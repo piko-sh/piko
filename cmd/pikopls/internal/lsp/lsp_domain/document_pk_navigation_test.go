@@ -477,7 +477,7 @@ func TestDocument_findRefReferencesInLine(t *testing.T) {
 
 func TestCheckEventHandlerContext(t *testing.T) {
 	document := &document{}
-	position := protocol.Position{Line: 0, Character: 0}
+	position := protocol.Position{}
 
 	testCases := []struct {
 		name     string
@@ -534,7 +534,7 @@ func TestCheckEventHandlerContext(t *testing.T) {
 
 func TestCheckPartialReloadContext(t *testing.T) {
 	document := &document{}
-	position := protocol.Position{Line: 0, Character: 0}
+	position := protocol.Position{}
 
 	testCases := []struct {
 		name     string
@@ -605,7 +605,7 @@ func TestCheckPartialReloadContext(t *testing.T) {
 
 func TestCheckRefsAccessContext(t *testing.T) {
 	document := &document{}
-	position := protocol.Position{Line: 0, Character: 0}
+	position := protocol.Position{}
 
 	testCases := []struct {
 		name     string
@@ -682,7 +682,7 @@ func TestCheckRefsAccessContext(t *testing.T) {
 
 func TestCheckIsAttributeDefinitionContext(t *testing.T) {
 	document := &document{}
-	position := protocol.Position{Line: 0, Character: 0}
+	position := protocol.Position{}
 
 	testCases := []struct {
 		name     string
@@ -761,13 +761,13 @@ func TestGetPKDefinition_GuardClauses(t *testing.T) {
 		},
 		{
 			name:     "nil content",
-			document: &document{Content: nil},
+			document: &document{},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			locs, err := tc.document.GetPKDefinition(context.Background(), protocol.Position{Line: 0, Character: 0})
+			locs, err := tc.document.GetPKDefinition(context.Background(), protocol.Position{})
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -807,13 +807,13 @@ func TestGetPKReferences_GuardClauses(t *testing.T) {
 		},
 		{
 			name:     "nil content",
-			document: &document{Content: nil},
+			document: &document{},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			locs, err := tc.document.GetPKReferences(context.Background(), protocol.Position{Line: 0, Character: 0})
+			locs, err := tc.document.GetPKReferences(context.Background(), protocol.Position{})
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -1239,11 +1239,9 @@ func TestFindPartialDefinitionByName(t *testing.T) {
 			name:        "nil virtual module returns nil",
 			partialName: "Card",
 			content:     "",
-			annResult: &annotator_dto.AnnotationResult{
-				VirtualModule: nil,
-			},
-			projectRes: nil,
-			expectNil:  true,
+			annResult:   &annotator_dto.AnnotationResult{},
+			projectRes:  nil,
+			expectNil:   true,
 		},
 		{
 			name:        "finds import line in content",
@@ -1382,11 +1380,9 @@ func TestFindPartialFileByName(t *testing.T) {
 		{
 			name:        "nil virtual module returns nil",
 			partialName: "Card",
-			annResult: &annotator_dto.AnnotationResult{
-				VirtualModule: nil,
-			},
-			projectRes: nil,
-			expectNil:  true,
+			annResult:   &annotator_dto.AnnotationResult{},
+			projectRes:  nil,
+			expectNil:   true,
 		},
 		{
 			name:        "nil current component returns nil",
@@ -1506,11 +1502,9 @@ func TestFindRefDefinition(t *testing.T) {
 			expectNil: true,
 		},
 		{
-			name:    "nil annotated AST returns nil",
-			refName: "myRef",
-			annResult: &annotator_dto.AnnotationResult{
-				AnnotatedAST: nil,
-			},
+			name:      "nil annotated AST returns nil",
+			refName:   "myRef",
+			annResult: &annotator_dto.AnnotationResult{},
 			expectNil: true,
 		},
 		{
@@ -1549,7 +1543,7 @@ func TestFindRefDefinition(t *testing.T) {
 					node := &ast_domain.TemplateNode{
 						TagName:  "div",
 						NodeType: ast_domain.NodeElement,
-						Location: ast_domain.Location{Line: 0, Column: 0},
+						Location: ast_domain.Location{},
 						DirRef: &ast_domain.Directive{
 							RawExpression: "myRef",
 						},

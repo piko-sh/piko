@@ -165,8 +165,12 @@ type voyageUsage struct {
 //
 // Returns *llm_dto.EmbeddingResponse which contains the generated embeddings.
 // Returns error when the request fails.
-func (p *voyageProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRequest) (*llm_dto.EmbeddingResponse, error) {
-	defer goroutine.RecoverPanic(ctx, "llm.voyageProvider.Embed")
+func (p *voyageProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRequest) (result *llm_dto.EmbeddingResponse, returnErr error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			result, returnErr = nil, goroutine.HandlePanicRecovery(ctx, "llm.voyageProvider.Embed", recovered)
+		}
+	}()
 
 	ctx, l := logger.From(ctx, log)
 	embedCount.Add(ctx, 1)
@@ -204,15 +208,15 @@ func (p *voyageProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRe
 // Returns error (always nil for Voyage).
 func (*voyageProvider) ListEmbeddingModels(_ context.Context) ([]llm_dto.ModelInfo, error) {
 	models := []llm_dto.ModelInfo{
-		{ID: "voyage-3.5", Name: "voyage-3.5", Provider: providerName},
-		{ID: "voyage-3.5-lite", Name: "voyage-3.5-lite", Provider: providerName},
-		{ID: "voyage-4", Name: "voyage-4", Provider: providerName},
-		{ID: "voyage-4-lite", Name: "voyage-4-lite", Provider: providerName},
-		{ID: "voyage-4-large", Name: "voyage-4-large", Provider: providerName},
-		{ID: "voyage-3-large", Name: "voyage-3-large", Provider: providerName},
-		{ID: "voyage-code-3", Name: "voyage-code-3", Provider: providerName},
-		{ID: "voyage-finance-2", Name: "voyage-finance-2", Provider: providerName},
-		{ID: "voyage-law-2", Name: "voyage-law-2", Provider: providerName},
+		llm_dto.NewEmbeddingModelInfo("voyage-3.5", providerName, 0),
+		llm_dto.NewEmbeddingModelInfo("voyage-3.5-lite", providerName, 0),
+		llm_dto.NewEmbeddingModelInfo("voyage-4", providerName, 0),
+		llm_dto.NewEmbeddingModelInfo("voyage-4-lite", providerName, 0),
+		llm_dto.NewEmbeddingModelInfo("voyage-4-large", providerName, 0),
+		llm_dto.NewEmbeddingModelInfo("voyage-3-large", providerName, 0),
+		llm_dto.NewEmbeddingModelInfo("voyage-code-3", providerName, 0),
+		llm_dto.NewEmbeddingModelInfo("voyage-finance-2", providerName, 0),
+		llm_dto.NewEmbeddingModelInfo("voyage-law-2", providerName, 0),
 	}
 	return models, nil
 }
@@ -303,8 +307,11 @@ func (p *voyageProvider) executeEmbedRequest(ctx context.Context, apiReq *voyage
 // Returns *voyageEmbedRequest which is ready to be serialised and sent.
 func buildVoyageEmbedRequest(model string, request *llm_dto.EmbeddingRequest) *voyageEmbedRequest {
 	apiReq := &voyageEmbedRequest{
-		Model: model,
-		Input: request.Input,
+		Model:           model,
+		Input:           request.Input,
+		OutputDimension: nil,
+		Truncation:      nil,
+		InputType:       "",
 	}
 
 	if request.Dimensions != nil {
@@ -335,21 +342,13 @@ func convertVoyageResponse(apiResp *voyageEmbedResponse) *llm_dto.EmbeddingRespo
 		for j, v := range d.Embedding {
 			f32[j] = float32(v)
 		}
-		embeddings[i] = llm_dto.Embedding{
-			Index:  d.Index,
-			Vector: f32,
-		}
+		embeddings[i] = llm_dto.NewFloat32Embedding(d.Index, f32)
 	}
 
-	result := &llm_dto.EmbeddingResponse{
-		Model:      apiResp.Model,
-		Embeddings: embeddings,
-	}
+	result := llm_dto.NewEmbeddingResponse(apiResp.Model, embeddings, nil)
 
 	if apiResp.Usage != nil {
-		result.Usage = &llm_dto.EmbeddingUsage{
-			TotalTokens: apiResp.Usage.TotalTokens,
-		}
+		result.Usage = llm_dto.NewEmbeddingUsage(0, apiResp.Usage.TotalTokens)
 	}
 
 	return result

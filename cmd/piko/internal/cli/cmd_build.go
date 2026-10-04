@@ -304,8 +304,7 @@ func runGo(ctx context.Context, stdout, stderr io.Writer, args ...string) int {
 	cmd.Stdin = os.Stdin
 	if err := cmd.Run(); err != nil {
 		fmt.Fprintf(stderr, "piko: `go %s` failed: %v\n", strings.Join(args, " "), err)
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
+		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 			if code := exitErr.ExitCode(); code >= 0 {
 				return code
 			}

@@ -1,6 +1,6 @@
 ---
 title: About interpreted mode (dev-i)
-description: Why Piko ships a bytecode interpreter for development and how it differs from compiled dev mode.
+description: Why Piko can run generated code through the Pipit interpreter during development and how it differs from compiled dev mode.
 nav:
   sidebar:
     section: "explanation"
@@ -10,11 +10,11 @@ nav:
 
 # About interpreted mode (dev-i)
 
-Piko has three run modes: `dev` (compiled with hot reload), `prod` (compiled, optimised, no dev machinery), and `dev-i` (interpreted). This page explains what `dev-i` is, when to reach for it, and the tradeoffs.
+Piko has three run modes, `dev`, `dev-i`, and `prod`. The two development modes reload templates after an edit. Production runs compiled Go without development machinery. Interpreted mode (`dev-i`) removes the server rebuild from the template editing loop.
 
 <p align="center">
   <img src="../diagrams/interpreted-modes.svg"
-       alt="Three tracks show the save-to-live cycle of each mode. Dev runs regenerate then go build then reload, taking one to three seconds. Dev-i runs regenerate then emits bytecode picked up live, taking under one hundred milliseconds. Prod compiles once ahead of time and ships without a watcher."
+       alt="Dev regenerates Go, rebuilds the binary, and reloads. Dev-i regenerates Go and compiles it to bytecode in memory with Pipit, without restarting the server. Prod runs a binary built ahead of time, without a watcher."
        width="600"/>
 </p>
 
@@ -23,49 +23,56 @@ Piko has three run modes: `dev` (compiled with hot reload), `prod` (compiled, op
 | Mode | Flag | Template engine | Hot reload | Who uses it |
 |---|---|---|---|---|
 | Dev | `piko dev` or `RunModeDev` | Compiled Go (regenerated on file change) | Yes | Default development |
-| Dev interpreted | `piko dev-i` or `RunModeDevInterpreted` | Bytecode interpreter | Yes, immediate | Faster iteration for PK template changes |
-| Production | `piko prod` or `RunModeProd` | Compiled Go, optimised | No | Shipping |
+| Dev interpreted | `piko dev-i` or `RunModeDevInterpreted` | Generated Go, interpreted by Pipit | Yes | Faster iteration for PK template changes |
+| Production | `piko build` then `./bin/app prod`, or `RunModeProd` | Compiled Go, optimised | No | Shipping |
 
 ## What dev-i changes
 
-In dev mode, every change to a `.pk` file triggers a regeneration and a partial rebuild of the Go binary. The feedback loop is fast but it runs four steps (detect change, regenerate, rebuild, reload). For small projects the cycle is sub-second. For large projects it can take two or three seconds.
+In dev mode, a `.pk` edit triggers regeneration and a rebuild of the Go binary. The feedback loop detects the change, regenerates Go, rebuilds the binary, and reloads the server. Its duration depends on the project and build environment.
 
-In dev-i mode, there is no binary rebuild for template edits. Piko carries a bytecode interpreter that executes the template directly from a compact bytecode representation. When you save a `.pk` file, the generator produces new bytecode and the interpreter picks it up without restarting the server.
+In dev-i mode, template edits do not rebuild the server binary. Piko runs the generated code through [Pipit](https://github.com/piko-sh/pipit), a Go bytecode interpreter. On each edit, the generator produces Go source and Pipit compiles it to bytecode in memory. The server then loads the updated templates without restarting.
 
-The interpreter reads the same template AST that the compiler uses, and the semantics match one-for-one. A template that renders the same output in `dev` renders the same output in `dev-i`.
+Both modes use the same generated Go source. They differ in how they execute it, so interpreter support and available native symbols also affect what can run in `dev-i`.
 
 ## What you trade for the faster loop
 
-Interpreted code is slower than compiled Go. For most development, that does not matter, as a page takes an extra millisecond or two to render. For performance-sensitive work or load testing, drop back to `dev`.
+Interpreted execution adds runtime overhead compared with compiled Go. The shorter rebuild cycle can help with template editing, but rendering performance in `dev-i` does not represent production performance.
 
-Not every Go symbol is available to the interpreter. The bytecode interpreter vendors a curated list of standard-library packages and Piko runtime functions. See [`piko-symbols.yaml`](https://github.com/piko-sh/piko/blob/master/piko-symbols.yaml) and [`piko-symbols-runtime.yaml`](https://github.com/piko-sh/piko/blob/master/piko-symbols-runtime.yaml). Template expressions that touch symbols outside the registered set fail to interpret. Compile-mode `dev` handles the same code fine. The [runtime symbols reference](../reference/runtime-symbols.md) lists what the interpreter provides.
+Pipit supplies native symbol tables for the standard library, and Piko adds its runtime packages. Piko can compile local project packages from source or use registered native symbols. Third-party Go packages need native symbol tables. The [runtime symbols reference](../reference/runtime-symbols.md) describes the available packages.
+
+Native symbols belong to the server binary. Changes to those packages require a rebuild and restart, even in interpreted mode. This makes the distinction between template edits and native package edits relevant when choosing a development workflow.
 
 ## When to use each mode
 
 **Use `dev` when**:
+
 - Measuring rendering performance locally.
 - Debugging an issue that only surfaces under compiled-code conditions (rare but happens).
 - Working on Piko itself, where you want to test generator changes.
 
 **Use `dev-i` when**:
-- Iterating fast on templates and UI, with dozens of edits per minute.
+
+- Iterating on templates and UI without restarting the server.
 - Working on a large project where the compiled rebuild is noticeable.
-- Teaching or demoing, where sub-second feedback matters more than peak throughput.
+- Demonstrating template changes where rebuild time interrupts the flow.
 
 **Use `prod` when**:
+
 - Benchmarking production performance.
 - Running integration tests that approximate production behaviour.
 - Shipping.
 
 ## How the interpreter integrates with the generator
 
-The generator emits two forms of output per template. One form is Go source that the compiler consumes for `dev` and `prod`. The other form is bytecode that `dev-i` loads. Each Piko project scaffolds its own generator entry point at `cmd/generator/main.go` inside the project tree (the example projects under `examples/scenarios/*/src/cmd/generator/main.go` show the shape). That entry point produces both. The generator does not distinguish development vs production output in its source-tree layout. The consumer decides which to load based on run mode.
+The generator emits Go source for each template in every run mode. In `dev` and `prod`, the Go toolchain compiles that source into the binary. In `dev-i`, Pipit compiles it to bytecode at runtime and runs the package initialisation functions that register template builders.
 
-To expose custom Go symbols to the interpreter, call `ssr.WithInterpreterProvider(provider)` (and optionally `ssr.WithSymbols(symbols)`) on the `*SSRServer` after `piko.New(...)`. Both are methods on the server, not package-level options. If you use `dev-i` and rely on a package that is not in the default symbol set, register it there.
+Each project has a generator entry point at `cmd/generator/main.go`. The output tree stays the same across run modes. The difference lies in when compilation happens and which runtime executes the generated code.
 
 ## See also
 
-- [CLI reference](../reference/cli.md) for `piko dev`, `piko dev-i`, and the per-project generator scaffolded into your own tree (typically run as `go run ./cmd/generator/main.go all`).
+- [How to run interpreted mode](../how-to/interpreted-mode.md) for setup, native symbols, and bytecode inspection.
+- [Interpreter API reference](../reference/interpreter-api.md) for resource limits and diagnostic output.
+- [CLI reference](../reference/cli.md) for `piko dev`, `piko dev-i`, `piko extract`, and the per-project generator scaffolded into your own tree (typically run as `go run ./cmd/generator/main.go all`).
 - [Runtime symbols reference](../reference/runtime-symbols.md) for what the interpreter can see.
 - [Bootstrap options reference](../reference/bootstrap-options.md) for `WithInterpreterProvider`.
 - Integration tests: [`tests/integration/interpreted_runner`](https://github.com/piko-sh/piko/tree/master/tests/integration/interpreted_runner) and [`interpreted_cache_invalidation`](https://github.com/piko-sh/piko/tree/master/tests/integration/interpreted_cache_invalidation).

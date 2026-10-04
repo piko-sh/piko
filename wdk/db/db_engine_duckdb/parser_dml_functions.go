@@ -57,8 +57,10 @@ func (p *parser) parseFunctionCallNoArgs(loweredName string, schema string) quer
 		p.advance()
 	}
 	result := &querier_dto.FunctionCallExpression{
-		FunctionName: loweredName,
-		Schema:       schema,
+		FunctionName:     loweredName,
+		Schema:           schema,
+		FilterExpression: nil,
+		Arguments:        nil,
 	}
 	return p.parseFunctionSuffix(result)
 }
@@ -85,9 +87,10 @@ func (p *parser) parseFunctionCallWithArgs(loweredName string, schema string) qu
 	p.markParametersAsFunctionArguments(parameterCountBefore)
 
 	result := &querier_dto.FunctionCallExpression{
-		FunctionName: loweredName,
-		Schema:       schema,
-		Arguments:    arguments,
+		FunctionName:     loweredName,
+		Schema:           schema,
+		Arguments:        arguments,
+		FilterExpression: nil,
 	}
 
 	return p.parseFunctionSuffix(result)
@@ -446,7 +449,7 @@ func (p *parser) parseCastTargetTypeName() string {
 	}
 
 	if p.current().kind == tokenLeftParen {
-		p.mustSkipParenthesised()
+		p.skipParenthesisedOrRecord()
 	}
 
 	typeName = p.appendArrayBrackets(typeName)
@@ -574,7 +577,7 @@ func (p *parser) parseCaseExpression() querier_dto.Expression {
 		branches = append(branches, querier_dto.CaseWhenBranch{Condition: condition, Result: result})
 	}
 
-	expression := &querier_dto.CaseWhenExpression{Branches: branches}
+	expression := &querier_dto.CaseWhenExpression{Branches: branches, ElseResult: nil}
 
 	if p.matchKeyword("ELSE") {
 		expression.ElseResult = p.parseExpression()
@@ -593,11 +596,8 @@ func (p *parser) parseExistsSubquery() querier_dto.Expression {
 		return &querier_dto.ExistsExpression{}
 	}
 
-	childParser := newParser(innerTokens)
+	childParser := p.newChildParser(innerTokens)
 	childParser.parameterCount = p.parameterCount
-	childParser.analysisDepth = p.analysisDepth
-	childParser.expressionDepth = p.expressionDepth
-	childParser.maxParseDepth = p.maxParseDepth
 	innerAnalysis, analyseError := childParser.analyseSelect()
 	if analyseError != nil {
 		return &querier_dto.ExistsExpression{}
@@ -634,11 +634,8 @@ func (p *parser) analyseSubqueryBody() (*querier_dto.RawQueryAnalysis, bool) {
 		return nil, false
 	}
 
-	childParser := newParser(innerTokens)
+	childParser := p.newChildParser(innerTokens)
 	childParser.parameterCount = p.parameterCount
-	childParser.analysisDepth = p.analysisDepth
-	childParser.expressionDepth = p.expressionDepth
-	childParser.maxParseDepth = p.maxParseDepth
 	innerAnalysis, analyseError := childParser.analyseSelect()
 	if analyseError != nil {
 		return nil, false

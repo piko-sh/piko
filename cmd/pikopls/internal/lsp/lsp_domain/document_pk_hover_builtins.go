@@ -71,6 +71,7 @@ var (
 	  {{ len(state.items) }} items found
 	</span>`,
 			DocumentsURL: "/docs/api/builtins/len",
+			Note:         "",
 		},
 		"cap": {
 			Name:         "cap",
@@ -101,6 +102,7 @@ var (
 			Example: `<span p-text="min(state.price, state.salePrice)"></span>
 	<span p-text="min(100, state.quantity, state.maxQuantity)"></span>`,
 			DocumentsURL: "/docs/api/builtins/min",
+			Note:         "",
 		},
 		"max": {
 			Name:        "max",
@@ -111,6 +113,7 @@ var (
 			Example: `<span p-text="max(state.score, state.highScore)"></span>
 	<progress :value="state.progress" :max="max(100, state.target)"></progress>`,
 			DocumentsURL: "/docs/api/builtins/max",
+			Note:         "",
 		},
 		"T": {
 			Name:        "T",
@@ -167,6 +170,7 @@ var (
 			Example: `<span p-text="string(state.count)"></span>
 	<input :value="string(state.price)" />`,
 			DocumentsURL: "/docs/api/builtins/string",
+			Note:         "",
 		},
 		"int": {
 			Name:        "int",
@@ -187,6 +191,7 @@ var (
 			Returns:      "`int64`",
 			Example:      `<span p-text="int64(state.largeNumber)"></span>`,
 			DocumentsURL: "/docs/api/builtins/int64",
+			Note:         "",
 		},
 		"int32": {
 			Name:         "int32",
@@ -196,6 +201,7 @@ var (
 			Returns:      "`int32`",
 			Example:      `<span p-text="int32(state.value)"></span>`,
 			DocumentsURL: "/docs/api/builtins/int32",
+			Note:         "",
 		},
 		"int16": {
 			Name:         "int16",
@@ -205,6 +211,7 @@ var (
 			Returns:      "`int16`",
 			Example:      `<span p-text="int16(state.smallValue)"></span>`,
 			DocumentsURL: "/docs/api/builtins/int16",
+			Note:         "",
 		},
 		"float": {
 			Name:        "float",
@@ -215,6 +222,7 @@ var (
 			Example: `<span p-text="float(state.intValue)"></span>
 	<span p-text="float('3.14')"></span>`,
 			DocumentsURL: "/docs/api/builtins/float",
+			Note:         "",
 		},
 		"float64": {
 			Name:         "float64",
@@ -224,6 +232,7 @@ var (
 			Returns:      "`float64`",
 			Example:      `<span p-text="float64(state.value)"></span>`,
 			DocumentsURL: "/docs/api/builtins/float64",
+			Note:         "",
 		},
 		"float32": {
 			Name:         "float32",

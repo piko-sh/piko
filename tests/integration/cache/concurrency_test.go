@@ -42,12 +42,9 @@ func TestConcurrency_ParallelSetGet(t *testing.T) {
 	const opsPerGoroutine = 100
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
-	for g := range goroutines {
-		go func(id int) {
-			defer wg.Done()
-
+	for id := range goroutines {
+		wg.Go(func() {
 			for i := range opsPerGoroutine {
 				key := fmt.Sprintf("g%d-k%d", id, i)
 				value := fmt.Sprintf("v%d-%d", id, i)
@@ -58,7 +55,7 @@ func TestConcurrency_ParallelSetGet(t *testing.T) {
 				assert.True(t, ok, "key %q should be present", key)
 				assert.Equal(t, value, got, "value mismatch for key %q", key)
 			}
-		}(g)
+		})
 	}
 
 	wg.Wait()
@@ -75,14 +72,11 @@ func TestConcurrency_HotKey(t *testing.T) {
 	_ = c.Set(context.Background(), hotKey, "initial-value")
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	errors := make(chan error, goroutines)
 
-	for g := range goroutines {
-		go func(id int) {
-			defer wg.Done()
-
+	for id := range goroutines {
+		wg.Go(func() {
 			value := fmt.Sprintf("writer-%d", id)
 			_ = c.Set(context.Background(), hotKey, value)
 
@@ -97,7 +91,7 @@ func TestConcurrency_HotKey(t *testing.T) {
 				return
 			}
 			_ = got
-		}(g)
+		})
 	}
 
 	wg.Wait()
@@ -120,14 +114,11 @@ func TestConcurrency_ParallelSetGet_WithTransformers(t *testing.T) {
 	const opsPerGoroutine = 50
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	errors := make(chan error, goroutines*opsPerGoroutine)
 
-	for g := range goroutines {
-		go func(id int) {
-			defer wg.Done()
-
+	for id := range goroutines {
+		wg.Go(func() {
 			for i := range opsPerGoroutine {
 				key := fmt.Sprintf("g%d-k%d", id, i)
 				original := fmt.Appendf(nil, "value-%d-%d-padding-%s",
@@ -145,7 +136,7 @@ func TestConcurrency_ParallelSetGet_WithTransformers(t *testing.T) {
 					errors <- fmt.Errorf("goroutine %d, op %d: round-trip mismatch", id, i)
 				}
 			}
-		}(g)
+		})
 	}
 
 	wg.Wait()
@@ -165,14 +156,11 @@ func TestConcurrency_ParallelSetGet_Cluster(t *testing.T) {
 	namespace := uniqueKey(t, "conc-cluster") + ":"
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	errors := make(chan error, goroutines*opsPerGoroutine)
 
-	for g := range goroutines {
-		go func(id int) {
-			defer wg.Done()
-
+	for id := range goroutines {
+		wg.Go(func() {
 			ctx := t.Context()
 			for i := range opsPerGoroutine {
 				key := fmt.Sprintf("%sg%d-k%d", namespace, id, i)
@@ -194,7 +182,7 @@ func TestConcurrency_ParallelSetGet_Cluster(t *testing.T) {
 					errors <- fmt.Errorf("goroutine %d, op %d: value mismatch: got %q, want %q", id, i, got, value)
 				}
 			}
-		}(g)
+		})
 	}
 
 	wg.Wait()
@@ -214,17 +202,14 @@ func TestConcurrency_Compute_Contention(t *testing.T) {
 	key := uniqueKey(t, "compute-contention")
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
-	for g := range goroutines {
-		go func(id int) {
-			defer wg.Done()
-
+	for id := range goroutines {
+		wg.Go(func() {
 			value := fmt.Sprintf("writer-%d", id)
 			_, _, _ = c.ComputeIfAbsent(context.Background(), key, func() string {
 				return value
 			})
-		}(g)
+		})
 	}
 
 	wg.Wait()

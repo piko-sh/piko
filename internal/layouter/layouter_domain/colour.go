@@ -135,27 +135,35 @@ type Colour struct {
 // Returns the constructed Colour in RGB space.
 func NewRGBA(red, green, blue, alpha float64) Colour {
 	return Colour{
-		Red:   red,
-		Green: green,
-		Blue:  blue,
-		Alpha: alpha,
-		Space: ColourSpaceRGB,
+		Red:     red,
+		Green:   green,
+		Blue:    blue,
+		Alpha:   alpha,
+		Space:   ColourSpaceRGB,
+		Cyan:    0,
+		Magenta: 0,
+		Yellow:  0,
+		Key:     0,
 	}
 }
 
 // NewGrey creates a grayscale colour with the given value and alpha.
 //
 // Takes value (float64) which is the grey level (0-1).
-// Takes alpha (float64) which is the opacity value (0-1).
+// Takes alpha (float64) which sets opacity in the range [0, 1].
 //
 // Returns the constructed Colour in grayscale space.
 func NewGrey(value, alpha float64) Colour {
 	return Colour{
-		Red:   value,
-		Green: value,
-		Blue:  value,
-		Alpha: alpha,
-		Space: ColourSpaceGrey,
+		Red:     value,
+		Green:   value,
+		Blue:    value,
+		Alpha:   alpha,
+		Space:   ColourSpaceGrey,
+		Cyan:    0,
+		Magenta: 0,
+		Yellow:  0,
+		Key:     0,
 	}
 }
 
@@ -175,6 +183,9 @@ func NewCMYK(cyan, magenta, yellow, key float64) Colour {
 		Key:     key,
 		Alpha:   1.0,
 		Space:   ColourSpaceCMYK,
+		Red:     0,
+		Green:   0,
+		Blue:    0,
 	}
 }
 

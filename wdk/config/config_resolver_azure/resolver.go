@@ -78,6 +78,7 @@ func NewResolver() (*Resolver, error) {
 	return &Resolver{
 		credential:  cred,
 		clientCache: make(map[string]*azsecrets.Client),
+		clientMutex: sync.Mutex{},
 	}, nil
 }
 

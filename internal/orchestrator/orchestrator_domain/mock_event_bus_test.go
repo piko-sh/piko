@@ -53,16 +53,14 @@ func TestMockEventBus_ConcurrentAccess(t *testing.T) {
 	event := Event{Type: "concurrent"}
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 
 			_ = m.Publish(ctx, "t", event)
 			_, _ = m.Subscribe(ctx, "t")
 			_ = m.Close(ctx)
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -242,17 +240,15 @@ func TestMockEventBus_ConcurrentAccessWithHandler(t *testing.T) {
 	handler := func(_ context.Context, _ Event) error { return nil }
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 
 			_ = m.Publish(ctx, "t", Event{})
 			_, _ = m.Subscribe(ctx, "t")
 			_ = m.Close(ctx)
 			_ = m.SubscribeWithHandler(ctx, "t", handler)
-		}()
+		})
 	}
 
 	wg.Wait()

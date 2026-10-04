@@ -178,7 +178,10 @@ func (m *MockStopWordsProvider) Reset() {
 // Returns *MockStopWordsProvider which can be set up to return test data.
 func New() *MockStopWordsProvider {
 	return &MockStopWordsProvider{
-		stopWords: make(map[string]map[string]bool),
-		calls:     make([]string, 0),
+		stopWords:        make(map[string]map[string]bool),
+		calls:            make([]string, 0),
+		getStopWordsFunc: nil,
+		mu:               sync.RWMutex{},
+		passThrough:      false,
 	}
 }

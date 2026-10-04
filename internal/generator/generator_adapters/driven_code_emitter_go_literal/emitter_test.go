@@ -38,7 +38,7 @@ import (
 )
 
 func TestNewEmitter(t *testing.T) {
-	emitter := NewEmitter(context.Background())
+	emitter := NewEmitter()
 	if emitter == nil {
 		t.Fatal("NewEmitter returned nil")
 	}
@@ -48,7 +48,7 @@ func TestNewEmitter(t *testing.T) {
 
 func TestEmitCode_SimpleComponent(t *testing.T) {
 	ctx := context.Background()
-	emitter := NewEmitter(context.Background())
+	emitter := NewEmitter()
 
 	result := createMinimalAnnotationResult("test_hash")
 	request := generator_dto.GenerateRequest{
@@ -90,7 +90,7 @@ func TestEmitCode_SimpleComponent(t *testing.T) {
 
 func TestEmitCode_MissingComponent(t *testing.T) {
 	ctx := context.Background()
-	emitter := NewEmitter(context.Background())
+	emitter := NewEmitter()
 
 	result := createMinimalAnnotationResult("existing_hash")
 	request := generator_dto.GenerateRequest{
@@ -115,7 +115,7 @@ func TestEmitCode_MissingComponent(t *testing.T) {
 
 func TestEmitCode_WithAnnotatedAST(t *testing.T) {
 	ctx := context.Background()
-	emitter := NewEmitter(context.Background())
+	emitter := NewEmitter()
 
 	result := createAnnotationResultWithAST("test_hash")
 	request := generator_dto.GenerateRequest{
@@ -561,15 +561,7 @@ func createMinimalAnnotationResult(hashedName string) *annotator_dto.AnnotationR
 					CanonicalGoPackagePath: "test.com/pkg",
 					Source: &annotator_dto.ParsedComponent{
 						SourcePath: sourcePath,
-						Script: &annotator_dto.ParsedScript{
-							PropsTypeExpression:      nil,
-							HasCachePolicy:           false,
-							HasMiddleware:            false,
-							HasSupportedLocales:      false,
-							CachePolicyFuncName:      "",
-							MiddlewaresFuncName:      "",
-							SupportedLocalesFuncName: "",
-						},
+						Script:     &annotator_dto.ParsedScript{},
 					},
 					RewrittenScriptAST: &goast.File{
 						Name:  cachedIdent("testpkg"),
@@ -821,7 +813,7 @@ func TestDirectiveMappingStmt(t *testing.T) {
 		node := &ast_domain.TemplateNode{
 			GoAnnotations: &ast_domain.GoGeneratorAnnotation{OriginalSourcePath: &srcPath},
 		}
-		dir := &ast_domain.Directive{NameLocation: ast_domain.Location{}}
+		dir := &ast_domain.Directive{}
 		got := em.directiveMappingStmt(node, dir)
 		_, ok := got.(*goast.EmptyStmt)
 		assert.True(t, ok, "expected EmptyStmt, got %T", got)

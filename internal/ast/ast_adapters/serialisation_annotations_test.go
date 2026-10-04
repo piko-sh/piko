@@ -135,16 +135,9 @@ func TestEncodeDecodeAnnotations_GoGeneratorAnnotation(t *testing.T) {
 		original := &ast_domain.TemplateAST{
 			RootNodes: []*ast_domain.TemplateNode{
 				{
-					NodeType: ast_domain.NodeElement,
-					TagName:  "div",
-					GoAnnotations: &ast_domain.GoGeneratorAnnotation{
-						BaseCodeGenVarName:   nil,
-						OriginalPackageAlias: nil,
-						OriginalSourcePath:   nil,
-						GeneratedSourcePath:  nil,
-						ParentTypeName:       nil,
-						FieldTag:             nil,
-					},
+					NodeType:      ast_domain.NodeElement,
+					TagName:       "div",
+					GoAnnotations: &ast_domain.GoGeneratorAnnotation{},
 				},
 			},
 		}
@@ -231,11 +224,9 @@ func TestEncodeDecodeAnnotations_ResolvedSymbol(t *testing.T) {
 		original := &ast_domain.TemplateAST{
 			RootNodes: []*ast_domain.TemplateNode{
 				{
-					NodeType: ast_domain.NodeElement,
-					TagName:  "div",
-					GoAnnotations: &ast_domain.GoGeneratorAnnotation{
-						Symbol: nil,
-					},
+					NodeType:      ast_domain.NodeElement,
+					TagName:       "div",
+					GoAnnotations: &ast_domain.GoGeneratorAnnotation{},
 				},
 			},
 		}
@@ -306,11 +297,9 @@ func TestEncodeDecodeAnnotations_ResolvedTypeInfo(t *testing.T) {
 		original := &ast_domain.TemplateAST{
 			RootNodes: []*ast_domain.TemplateNode{
 				{
-					NodeType: ast_domain.NodeElement,
-					TagName:  "div",
-					GoAnnotations: &ast_domain.GoGeneratorAnnotation{
-						ResolvedType: nil,
-					},
+					NodeType:      ast_domain.NodeElement,
+					TagName:       "div",
+					GoAnnotations: &ast_domain.GoGeneratorAnnotation{},
 				},
 			},
 		}
@@ -365,11 +354,9 @@ func TestEncodeDecodeAnnotations_PropDataSource(t *testing.T) {
 		original := &ast_domain.TemplateAST{
 			RootNodes: []*ast_domain.TemplateNode{
 				{
-					NodeType: ast_domain.NodeElement,
-					TagName:  "div",
-					GoAnnotations: &ast_domain.GoGeneratorAnnotation{
-						PropDataSource: nil,
-					},
+					NodeType:      ast_domain.NodeElement,
+					TagName:       "div",
+					GoAnnotations: &ast_domain.GoGeneratorAnnotation{},
 				},
 			},
 		}
@@ -470,11 +457,9 @@ func TestEncodeDecodeAnnotations_PartialInvocationInfo(t *testing.T) {
 		original := &ast_domain.TemplateAST{
 			RootNodes: []*ast_domain.TemplateNode{
 				{
-					NodeType: ast_domain.NodeElement,
-					TagName:  "div",
-					GoAnnotations: &ast_domain.GoGeneratorAnnotation{
-						PartialInfo: nil,
-					},
+					NodeType:      ast_domain.NodeElement,
+					TagName:       "div",
+					GoAnnotations: &ast_domain.GoGeneratorAnnotation{},
 				},
 			},
 		}

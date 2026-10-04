@@ -155,9 +155,9 @@ func watchdogList(ctx context.Context, cc *CommandContext, arguments []string) e
 	}
 
 	columns := []Column{
-		{Header: "TYPE"},
-		{Header: "TIMESTAMP"},
-		{Header: "SIZE"},
+		newColumn("TYPE"),
+		newColumn("TIMESTAMP"),
+		newColumn("SIZE"),
 		{Header: "FILENAME", WideOnly: true},
 	}
 
@@ -320,6 +320,7 @@ Examples:
 // resolveDownloadFilename determines the filename to download, either from a positional
 // argument or by querying the server for the latest profile of the given type.
 //
+// Takes cc (*CommandContext) which provides the watchdog connection and command options.
 // Takes positional ([]string) which may contain the filename as the first element.
 // Takes latest (bool) which indicates whether to fetch the latest profile.
 // Takes typeFilter (string) which specifies the profile type when using latest.
@@ -349,6 +350,7 @@ func resolveDownloadFilename(
 // resolveLatestFilename queries the server for profiles of the given type and returns the
 // filename of the first (most recent) result.
 //
+// Takes cc (*CommandContext) which provides the watchdog connection and command options.
 // Takes typeFilter (string) which specifies the profile type to search for.
 //
 // Returns string which is the filename of the latest matching profile.
@@ -449,6 +451,8 @@ func writeWatchdogProfileFile(
 // Takes filename (string) which is the profile file name.
 // Takes filePath (string) which is the path to the saved file.
 // Takes profileData ([]byte) which provides the byte count for display.
+// Takes sidecarPath (string) which is the saved metadata path, or empty when no sidecar
+// was written.
 //
 // Returns error when JSON serialisation fails.
 func displayDownloadResult(
@@ -567,11 +571,11 @@ func watchdogStatus(ctx context.Context, cc *CommandContext, _ []string) error {
 	}
 
 	p.PrintDetail([]inspector.DetailSection{
-		{Heading: "Lifecycle", Rows: inspector.BuildWatchdogStatusCoreRows(response)},
-		{Heading: "Thresholds", Rows: inspector.BuildWatchdogStatusThresholdRows(response)},
-		{Heading: "Crash Loop Detection", Rows: inspector.BuildWatchdogStatusCrashLoopRows(response)},
-		{Heading: "Continuous Profiling", Rows: inspector.BuildWatchdogStatusContinuousRows(response)},
-		{Heading: "Contention Diagnostic", Rows: inspector.BuildWatchdogStatusContentionRows(response)},
+		inspector.NewDetailSection("Lifecycle", inspector.BuildWatchdogStatusCoreRows(response)),
+		inspector.NewDetailSection("Thresholds", inspector.BuildWatchdogStatusThresholdRows(response)),
+		inspector.NewDetailSection("Crash Loop Detection", inspector.BuildWatchdogStatusCrashLoopRows(response)),
+		inspector.NewDetailSection("Continuous Profiling", inspector.BuildWatchdogStatusContinuousRows(response)),
+		inspector.NewDetailSection("Contention Diagnostic", inspector.BuildWatchdogStatusContentionRows(response)),
 	})
 
 	return nil

@@ -270,13 +270,7 @@ func (b *RequestBuilder) Build(ctx context.Context) *templater_dto.RequestData {
 	}
 
 	reqData := builder.Build()
-
-	if b.globalTranslations != nil {
-		reqData.SetGlobalStore(i18n_domain.NewStoreFromTranslations(b.globalTranslations, b.defaultLocale))
-	}
-	if b.localTranslations != nil {
-		reqData.SetLocalStore(i18n_domain.NewStoreFromTranslations(b.localTranslations, b.defaultLocale))
-	}
+	b.applyTranslations(ctx, reqData)
 
 	return reqData
 }
@@ -329,13 +323,25 @@ func (b *RequestBuilder) BuildHTTPRequest(ctx context.Context) (*http.Request, *
 	}
 
 	reqData := builder.Build()
-
-	if b.globalTranslations != nil {
-		reqData.SetGlobalStore(i18n_domain.NewStoreFromTranslations(b.globalTranslations, b.defaultLocale))
-	}
-	if b.localTranslations != nil {
-		reqData.SetLocalStore(i18n_domain.NewStoreFromTranslations(b.localTranslations, b.defaultLocale))
-	}
+	b.applyTranslations(ctx, reqData)
 
 	return httpReq, reqData
+}
+
+// applyTranslations builds the global and local translation stores configured on the
+// builder and sets them on reqData. Templates that cannot be parsed render as literal
+// text and are reported once per build through the logger carried by ctx.
+//
+// Takes reqData (*templater_dto.RequestData) which receives the stores.
+func (b *RequestBuilder) applyTranslations(ctx context.Context, reqData *templater_dto.RequestData) {
+	if b.globalTranslations != nil {
+		store := i18n_domain.NewStore(b.defaultLocale)
+		i18n_domain.ReportTemplateProblems(ctx, "pikotest global translations", store.AddAllTranslations(b.globalTranslations))
+		reqData.SetGlobalStore(store)
+	}
+	if b.localTranslations != nil {
+		store := i18n_domain.NewStore(b.defaultLocale)
+		i18n_domain.ReportTemplateProblems(ctx, "pikotest local translations", store.AddAllTranslations(b.localTranslations))
+		reqData.SetLocalStore(store)
+	}
 }

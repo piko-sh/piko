@@ -292,21 +292,7 @@ func (*ValidationFailedError) ErrorCode() string {
 //
 // Returns *ASTBinder which is set up and ready for use.
 func NewASTBinder() *ASTBinder {
-	b := &ASTBinder{
-		converters:        sync.Map{},
-		hasConverters:     atomic.Bool{},
-		cache:             binderCache{},
-		astCache:          sync.Map{},
-		astCacheEntries:   atomic.Int64{},
-		ignoreUnknownKeys: atomic.Bool{},
-		maxSliceSize:      atomic.Int64{},
-		maxPathDepth:      atomic.Int64{},
-		maxPathLength:     atomic.Int64{},
-		maxFieldCount:     atomic.Int64{},
-		maxValueLength:    atomic.Int64{},
-		maxBindJSONBytes:  atomic.Int64{},
-		maxFieldErrors:    atomic.Int64{},
-	}
+	b := &ASTBinder{}
 	b.hasConverters.Store(false)
 	b.ignoreUnknownKeys.Store(false)
 	b.maxSliceSize.Store(defaultMaxSliceSize)
@@ -574,7 +560,7 @@ func (b *ASTBinder) runValidation(ctx context.Context, limits binderOptions, des
 
 	reporter, ok := validator.(FieldErrorReporter)
 	if !ok {
-		return &ValidationFailedError{Err: validatorErr}
+		return &ValidationFailedError{Err: validatorErr, Fields: nil}
 	}
 
 	fields := reporter.FieldErrors(validatorErr, destination)
@@ -875,6 +861,8 @@ func (b *ASTBinder) loadDefaults() binderOptions {
 		maxValueLength:    int(b.maxValueLength.Load()),
 		maxPathDepth:      int(b.maxPathDepth.Load()),
 		maxSliceSize:      int(b.maxSliceSize.Load()),
+		sliceElements:     nil,
+		validate:          false,
 	}
 }
 
@@ -892,6 +880,8 @@ func (b *ASTBinder) resolveOptions(opts *BindOptions) binderOptions {
 		maxValueLength:    int(b.maxValueLength.Load()),
 		maxPathDepth:      int(b.maxPathDepth.Load()),
 		maxSliceSize:      int(b.maxSliceSize.Load()),
+		sliceElements:     nil,
+		validate:          false,
 	}
 
 	if opts.IgnoreUnknownKeys != nil {
@@ -1713,8 +1703,7 @@ func mergeBindErrors(subtreeErrs MultiError, bindErr error) error {
 	if bindErr == nil {
 		return subtreeErrs
 	}
-	var flat MultiError
-	if errors.As(bindErr, &flat) {
+	if flat, ok := errors.AsType[MultiError](bindErr); ok {
 		maps.Copy(subtreeErrs, flat)
 		return subtreeErrs
 	}

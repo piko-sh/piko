@@ -117,10 +117,13 @@ func NewSSEStream(w http.ResponseWriter, done <-chan struct{}, lastEventID strin
 		return nil
 	}
 	return &SSEStream{
-		writer:      w,
-		flusher:     flusher,
-		done:        done,
-		lastEventID: lastEventID,
+		writer:          w,
+		flusher:         flusher,
+		done:            done,
+		lastEventID:     lastEventID,
+		nextID:          0,
+		idsEnabled:      false,
+		developmentMode: false,
 	}
 }
 

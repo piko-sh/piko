@@ -321,6 +321,8 @@ func (*registryService) checkBlobStore(
 // Takes eventBus (orchestrator_domain.EventBus) which publishes artefact lifecycle
 // events.
 // Takes cache (MetadataCache) which caches metadata lookups for performance.
+// Takes opts (...RegistryServiceOption) which configure default variant origins and build
+// identity.
 //
 // Returns RegistryService which is ready to manage registry operations.
 func NewRegistryService(
@@ -337,6 +339,9 @@ func NewRegistryService(
 		cache:                   cache,
 		loader:                  singleflight.Group{},
 		artefactEventsPublished: atomic.Int64{},
+		defaultVariantOrigin:    "",
+		defaultBuildRelease:     "",
+		defaultBuildHash:        "",
 	}
 	for _, opt := range opts {
 		opt(s)

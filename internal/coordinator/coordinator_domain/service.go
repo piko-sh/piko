@@ -744,16 +744,9 @@ func withClock(c clock.Clock) CoordinatorOption {
 // Returns coordinatorOptions which holds the settings with defaults applied for any
 // values not set.
 func applyCoordinatorOptions(opts ...CoordinatorOption) coordinatorOptions {
-	options := coordinatorOptions{
-		fileHashCache:        nil,
-		codeEmitter:          nil,
-		clientScriptEmitter:  nil,
-		diagnosticOutput:     nil,
-		clock:                nil,
-		baseDirSandbox:       nil,
-		debounceDuration:     defaultDebounceDuration,
-		maxBuildWaitDuration: defaultMaxBuildWaitDuration,
-	}
+	options := coordinatorOptions{}
+	options.debounceDuration = defaultDebounceDuration
+	options.maxBuildWaitDuration = defaultMaxBuildWaitDuration
 	for _, opt := range opts {
 		opt(&options)
 	}
@@ -820,5 +813,9 @@ func newCoordinatorService(
 		enableDwarfLineDirectives: options.enableDwarfLineDirectives,
 		formatGeneratedCode:       options.formatGeneratedCode,
 		verifyGeneratedCode:       options.verifyGeneratedCode,
+		knownStyleDeps:            nil,
+		invalidationEpoch:         atomic.Uint64{},
+		buildInFlight:             sync.WaitGroup{},
+		styleDepsMu:               sync.RWMutex{},
 	}
 }

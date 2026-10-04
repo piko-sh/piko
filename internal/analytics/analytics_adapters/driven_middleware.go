@@ -59,6 +59,10 @@ func NewAnalyticsMiddleware(
 // via PikoRequestCtx (zero allocations), then fires a page view event after the
 // downstream handler returns.
 //
+// The event is built from copies and never holds the live *http.Request, and its
+// properties and revenue are copied from the carrier, so the asynchronous collectors
+// never share state with the request or its pooled carrier.
+//
 // Takes next (http.Handler) which is the downstream handler.
 //
 // Returns http.Handler which wraps next with analytics tracking.
@@ -76,45 +80,59 @@ func (m *AnalyticsMiddleware) Handler(next http.Handler) http.Handler {
 
 		next.ServeHTTP(pctx, r)
 
-		statusCode := pctx.ResponseStatusCode
-		if statusCode == 0 {
-			statusCode = http.StatusOK
-		}
-
-		ev := analytics_dto.AcquireEvent()
-		ev.Request = r
-		ev.Hostname = r.Host
-		ev.URL = truncateField(r.RequestURI, maxFieldLength)
-		ev.Path = r.URL.Path
-		ev.Method = r.Method
-		ev.UserAgent = truncateField(r.UserAgent(), maxFieldLength)
-		ev.Referrer = truncateField(r.Referer(), maxFieldLength)
-		ev.Timestamp = start
-		ev.Duration = time.Since(start)
-		ev.StatusCode = statusCode
-		ev.Type = analytics_dto.EventPageView
-		ev.ClientIP = pctx.ClientIP
-		ev.Locale = pctx.Locale
-		ev.MatchedPattern = pctx.MatchedPattern
-		ev.Revenue = pctx.AnalyticsRevenue
-		ev.Properties = pctx.AnalyticsProperties
-
-		if pctx.AnalyticsActionName != "" {
-			ev.ActionName = pctx.AnalyticsActionName
-			ev.Type = analytics_dto.EventAction
-		}
-
-		if pctx.AnalyticsEventName != "" {
-			ev.EventName = pctx.AnalyticsEventName
-			ev.Type = analytics_dto.EventCustom
-		}
-
-		if auth, ok := pctx.CachedAuth.(daemon_dto.AuthContext); ok && auth.IsAuthenticated() {
-			ev.UserID = auth.UserID()
-		}
-
+		ev := newPageEvent(r, pctx, start)
 		m.service.Track(r.Context(), ev)
 	})
+}
+
+// newPageEvent builds the analytics event for a finished request from copies of the
+// request and carrier values.
+//
+// Takes r (*http.Request) which is the finished request.
+// Takes pctx (*daemon_dto.PikoRequestCtx) which carries the response status and the
+// values stashed by handlers.
+// Takes start (time.Time) which is when the request started.
+//
+// Returns *analytics_dto.Event which is a pooled event owned by the caller.
+func newPageEvent(r *http.Request, pctx *daemon_dto.PikoRequestCtx, start time.Time) *analytics_dto.Event {
+	statusCode := pctx.ResponseStatusCode
+	if statusCode == 0 {
+		statusCode = http.StatusOK
+	}
+	stashed := pctx.Analytics()
+
+	ev := analytics_dto.AcquireEvent()
+	ev.Hostname = r.Host
+	ev.URL = truncateField(r.RequestURI, maxFieldLength)
+	ev.Path = r.URL.Path
+	ev.Method = r.Method
+	ev.UserAgent = truncateField(r.UserAgent(), maxFieldLength)
+	ev.Referrer = truncateField(r.Referer(), maxFieldLength)
+	ev.Timestamp = start
+	ev.Duration = time.Since(start)
+	ev.StatusCode = statusCode
+	ev.Type = analytics_dto.EventPageView
+	ev.ClientIP = pctx.ClientIP
+	ev.Locale = pctx.Locale
+	ev.MatchedPattern = pctx.MatchedPattern
+	ev.Revenue = stashed.Revenue
+	ev.Properties = stashed.Properties
+
+	if stashed.ActionName != "" {
+		ev.ActionName = stashed.ActionName
+		ev.Type = analytics_dto.EventAction
+	}
+
+	if stashed.EventName != "" {
+		ev.EventName = stashed.EventName
+		ev.Type = analytics_dto.EventCustom
+	}
+
+	if auth, ok := pctx.CachedAuth.(daemon_dto.AuthContext); ok && auth.IsAuthenticated() {
+		ev.UserID = auth.UserID()
+	}
+
+	return ev
 }
 
 // truncateField returns s unchanged when it fits within limit runes, or truncates it to

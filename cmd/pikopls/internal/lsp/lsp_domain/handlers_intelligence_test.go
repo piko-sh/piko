@@ -40,12 +40,10 @@ func TestTypeDefinition_NilDocument_ReturnsEmptyList(t *testing.T) {
 	}
 
 	params := &protocol.TypeDefinitionParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{
-				URI: "file:///nonexistent.pk",
-			},
-			Position: protocol.Position{Line: 0, Character: 0},
+		TextDocument: protocol.TextDocumentIdentifier{
+			URI: "file:///nonexistent.pk",
 		},
+		Position: protocol.Position{},
 	}
 
 	result, err := server.TypeDefinition(context.Background(), params)
@@ -76,12 +74,10 @@ func TestReferences_WorkspaceSearchFails_ReturnsEmptyList(t *testing.T) {
 	}
 
 	params := &protocol.ReferenceParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{
-				URI: "file:///nonexistent.pk",
-			},
-			Position: protocol.Position{Line: 0, Character: 0},
+		TextDocument: protocol.TextDocumentIdentifier{
+			URI: "file:///nonexistent.pk",
 		},
+		Position: protocol.Position{},
 	}
 
 	result, err := server.References(context.Background(), params)
@@ -112,13 +108,11 @@ func TestRename_NoReferences_ReturnsEmptyEdit(t *testing.T) {
 	}
 
 	params := &protocol.RenameParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{
-				URI: "file:///nonexistent.pk",
-			},
-			Position: protocol.Position{Line: 0, Character: 0},
+		TextDocument: protocol.TextDocumentIdentifier{
+			URI: "file:///nonexistent.pk",
 		},
-		NewName: "newName",
+		Position: protocol.Position{},
+		NewName:  "newName",
 	}
 
 	result, err := server.Rename(context.Background(), params)
@@ -152,10 +146,8 @@ func TestFoldingRanges_AnalysisFails_ReturnsEmptyList(t *testing.T) {
 	}
 
 	params := &protocol.FoldingRangeParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{
-				URI: "file:///nonexistent.pk",
-			},
+		TextDocument: protocol.TextDocumentIdentifier{
+			URI: "file:///nonexistent.pk",
 		},
 	}
 
@@ -187,12 +179,10 @@ func TestSignatureHelp_NilDocument_ReturnsEmptySignatures(t *testing.T) {
 	}
 
 	params := &protocol.SignatureHelpParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{
-				URI: "file:///nonexistent.pk",
-			},
-			Position: protocol.Position{Line: 0, Character: 0},
+		TextDocument: protocol.TextDocumentIdentifier{
+			URI: "file:///nonexistent.pk",
 		},
+		Position: protocol.Position{},
 	}
 
 	result, err := server.SignatureHelp(context.Background(), params)
@@ -223,12 +213,10 @@ func TestDocumentHighlight_NilDocument_ReturnsEmptyList(t *testing.T) {
 	}
 
 	params := &protocol.DocumentHighlightParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{
-				URI: "file:///nonexistent.pk",
-			},
-			Position: protocol.Position{Line: 0, Character: 0},
+		TextDocument: protocol.TextDocumentIdentifier{
+			URI: "file:///nonexistent.pk",
 		},
+		Position: protocol.Position{},
 	}
 
 	result, err := server.DocumentHighlight(context.Background(), params)
@@ -259,12 +247,10 @@ func TestLinkedEditingRange_NilDocument_ReturnsEmptyRanges(t *testing.T) {
 	}
 
 	params := &protocol.LinkedEditingRangeParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{
-				URI: "file:///nonexistent.pk",
-			},
-			Position: protocol.Position{Line: 0, Character: 0},
+		TextDocument: protocol.TextDocumentIdentifier{
+			URI: "file:///nonexistent.pk",
 		},
+		Position: protocol.Position{},
 	}
 
 	result, err := server.LinkedEditingRange(context.Background(), params)
@@ -348,10 +334,8 @@ func TestDeclaration_DelegatesToDefinition(t *testing.T) {
 	}
 
 	params := &protocol.DeclarationParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: uri},
-			Position:     protocol.Position{Line: 0, Character: 12},
-		},
+		TextDocument: protocol.TextDocumentIdentifier{URI: uri},
+		Position:     protocol.Position{Line: 0, Character: 12},
 	}
 
 	result, err := server.Declaration(context.Background(), params)
@@ -367,12 +351,10 @@ func TestImplementation_ReturnsEmptyList(t *testing.T) {
 	server := &Server{}
 
 	params := &protocol.ImplementationParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{
-				URI: "file:///test.pk",
-			},
-			Position: protocol.Position{Line: 0, Character: 0},
+		TextDocument: protocol.TextDocumentIdentifier{
+			URI: "file:///test.pk",
 		},
+		Position: protocol.Position{},
 	}
 
 	result, err := server.Implementation(context.Background(), params)
@@ -392,12 +374,10 @@ func TestPrepareCallHierarchy_ReturnsEmptyList(t *testing.T) {
 	server := &Server{}
 
 	params := &protocol.CallHierarchyPrepareParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{
-				URI: "file:///test.pk",
-			},
-			Position: protocol.Position{Line: 0, Character: 0},
+		TextDocument: protocol.TextDocumentIdentifier{
+			URI: "file:///test.pk",
 		},
+		Position: protocol.Position{},
 	}
 
 	result, err := server.PrepareCallHierarchy(context.Background(), params)
@@ -461,12 +441,10 @@ func TestMoniker_ReturnsEmptyList(t *testing.T) {
 	server := &Server{}
 
 	params := &protocol.MonikerParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{
-				URI: "file:///test.pk",
-			},
-			Position: protocol.Position{Line: 0, Character: 0},
+		TextDocument: protocol.TextDocumentIdentifier{
+			URI: "file:///test.pk",
 		},
+		Position: protocol.Position{},
 	}
 
 	result, err := server.Moniker(context.Background(), params)

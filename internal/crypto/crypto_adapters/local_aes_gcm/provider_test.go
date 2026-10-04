@@ -156,9 +156,7 @@ func TestEncrypt_EmptyPlaintext(t *testing.T) {
 	provider, err := NewProvider(Config{Key: generateTestKey()})
 	require.NoError(t, err)
 
-	_, err = provider.Encrypt(ctx, &crypto_dto.EncryptRequest{
-		Plaintext: "",
-	})
+	_, err = provider.Encrypt(ctx, &crypto_dto.EncryptRequest{})
 
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, crypto_dto.ErrEmptyPlaintext)
@@ -169,9 +167,7 @@ func TestDecrypt_EmptyCiphertext(t *testing.T) {
 	provider, err := NewProvider(Config{Key: generateTestKey()})
 	require.NoError(t, err)
 
-	_, err = provider.Decrypt(ctx, &crypto_dto.DecryptRequest{
-		Ciphertext: "",
-	})
+	_, err = provider.Decrypt(ctx, &crypto_dto.DecryptRequest{})
 
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, crypto_dto.ErrEmptyCiphertext)

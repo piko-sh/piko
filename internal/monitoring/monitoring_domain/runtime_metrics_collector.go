@@ -256,6 +256,18 @@ type runtimeMetricsSnapshot struct {
 	CPUTotalSeconds float64
 }
 
+// newRuntimeMetricsSnapshot creates a snapshot stamped with the given sample time and
+// every metric set to zero.
+//
+// Takes sampledAt (time.Time) which is stored as the snapshot's SampledAt.
+//
+// Returns runtimeMetricsSnapshot which is the zeroed snapshot.
+func newRuntimeMetricsSnapshot(sampledAt time.Time) runtimeMetricsSnapshot {
+	snapshot := runtimeMetricsSnapshot{}
+	snapshot.SampledAt = sampledAt
+	return snapshot
+}
+
 // runtimeMetricsCollector samples the curated set of runtime/metrics into a snapshot once
 // per tick. It owns a pre-allocated samples slice so the hot path performs no
 // allocations.
@@ -323,7 +335,7 @@ func newRuntimeMetricsCollector() *runtimeMetricsCollector {
 // Returns runtimeMetricsSnapshot containing the populated curated view.
 func (c *runtimeMetricsCollector) sample(now time.Time) runtimeMetricsSnapshot {
 	if len(c.samples) == 0 {
-		return runtimeMetricsSnapshot{SampledAt: now}
+		return newRuntimeMetricsSnapshot(now)
 	}
 
 	metrics.Read(c.samples)
@@ -336,7 +348,7 @@ func (c *runtimeMetricsCollector) sample(now time.Time) runtimeMetricsSnapshot {
 //
 // Returns runtimeMetricsSnapshot built from the most recent samples.
 func (c *runtimeMetricsCollector) extract(now time.Time) runtimeMetricsSnapshot {
-	snap := runtimeMetricsSnapshot{SampledAt: now}
+	snap := newRuntimeMetricsSnapshot(now)
 
 	snap.HeapObjectsBytes = c.uint64(metricNameHeapObjects)
 	snap.HeapFreeBytes = c.uint64(metricNameHeapFree)

@@ -22,6 +22,7 @@ import (
 	"regexp"
 	"strings"
 
+	"piko.sh/piko/internal/esbuild/ast"
 	"piko.sh/piko/internal/esbuild/helpers"
 	"piko.sh/piko/internal/esbuild/js_ast"
 )
@@ -124,27 +125,59 @@ func createStaticGetterFunction(getterName, content string) *js_ast.Property {
 	}
 }
 
-// findClassDeclarationByName finds the first named class declaration in a JavaScript AST,
+// findClassDeclarationByName finds the top-level class declaration with the given name,
 // checking both export default and regular class statements.
 //
 // Takes syntaxTree (*js_ast.AST) which is the parsed JavaScript AST to search.
+// Takes className (string) which is the name of the class to find.
 //
-// Returns *js_ast.Class which is the first named class found, or nil if no named class
-// declaration exists.
-func findClassDeclarationByName(syntaxTree *js_ast.AST, _ string) *js_ast.Class {
+// Returns *js_ast.Class which is the named class, or nil when the tree declares no
+// top-level class of that name, so the caller can create it or report it missing.
+func findClassDeclarationByName(syntaxTree *js_ast.AST, className string) *js_ast.Class {
+	if syntaxTree == nil || className == "" {
+		return nil
+	}
 	for _, statement := range getStmtsFromAST(syntaxTree) {
-		switch node := statement.Data.(type) {
-		case *js_ast.SExportDefault:
-			if classDecl, isClass := node.Value.Data.(*js_ast.SClass); isClass {
-				if classDecl.Class.Name != nil {
-					return &classDecl.Class
-				}
-			}
-		case *js_ast.SClass:
-			if node.Class.Name != nil {
-				return &node.Class
-			}
+		classDecl := topLevelClassDeclaration(statement)
+		if classDecl != nil && classDecl.Name != nil && classDeclarationName(syntaxTree, classDecl.Name) == className {
+			return classDecl
 		}
 	}
 	return nil
+}
+
+// topLevelClassDeclaration returns the class a top-level statement declares, directly or
+// as its default export.
+//
+// Takes statement (js_ast.Stmt) which is the statement to inspect.
+//
+// Returns *js_ast.Class which is the declared class, or nil when the statement declares
+// none.
+func topLevelClassDeclaration(statement js_ast.Stmt) *js_ast.Class {
+	switch node := statement.Data.(type) {
+	case *js_ast.SExportDefault:
+		if classStatement, isClass := node.Value.Data.(*js_ast.SClass); isClass {
+			return &classStatement.Class
+		}
+	case *js_ast.SClass:
+		return &node.Class
+	}
+	return nil
+}
+
+// classDeclarationName resolves the name of a class declaration.
+//
+// Takes syntaxTree (*js_ast.AST) which supplies the symbol table.
+// Takes name (*ast.LocRef) which is the class's name reference.
+//
+// Returns string which is the class name, or empty when it cannot be resolved.
+func classDeclarationName(syntaxTree *js_ast.AST, name *ast.LocRef) string {
+	if registered := lookupLocRefName(name); registered != "" {
+		return registered
+	}
+	index := int(name.Ref.InnerIndex)
+	if index < len(syntaxTree.Symbols) {
+		return syntaxTree.Symbols[index].OriginalName
+	}
+	return ""
 }

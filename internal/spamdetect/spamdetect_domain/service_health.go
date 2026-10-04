@@ -80,11 +80,12 @@ func (s *spamDetectService) checkLiveness(ctx context.Context, startTime time.Ti
 	}
 
 	return healthprobe_dto.Status{
-		Name:      healthProbeName,
-		State:     state,
-		Message:   message,
-		Timestamp: startTime,
-		Duration:  s.clock.Now().Sub(startTime).String(),
+		Name:         healthProbeName,
+		State:        state,
+		Message:      message,
+		Timestamp:    startTime,
+		Duration:     s.clock.Now().Sub(startTime).String(),
+		Dependencies: nil,
 	}
 }
 
@@ -97,11 +98,12 @@ func (s *spamDetectService) checkLiveness(ctx context.Context, startTime time.Ti
 func (s *spamDetectService) checkReadiness(ctx context.Context, startTime time.Time) healthprobe_dto.Status {
 	if !s.IsEnabled(ctx) {
 		return healthprobe_dto.Status{
-			Name:      healthProbeName,
-			State:     healthprobe_dto.StateDegraded,
-			Message:   "no spam detection detectors configured",
-			Timestamp: startTime,
-			Duration:  s.clock.Now().Sub(startTime).String(),
+			Name:         healthProbeName,
+			State:        healthprobe_dto.StateDegraded,
+			Message:      "no spam detection detectors configured",
+			Timestamp:    startTime,
+			Duration:     s.clock.Now().Sub(startTime).String(),
+			Dependencies: nil,
 		}
 	}
 
@@ -176,17 +178,22 @@ func (s *spamDetectService) probeDetectorHealth(ctx context.Context, name string
 			logger_domain.Error(err),
 		)
 		return &healthprobe_dto.Status{
-			Name:      name,
-			State:     healthprobe_dto.StateUnhealthy,
-			Message:   fmt.Sprintf("failed to resolve detector: %v", err),
-			Timestamp: startTime,
-			Duration:  s.clock.Now().Sub(startTime).String(),
+			Name:         name,
+			State:        healthprobe_dto.StateUnhealthy,
+			Message:      fmt.Sprintf("failed to resolve detector: %v", err),
+			Timestamp:    startTime,
+			Duration:     s.clock.Now().Sub(startTime).String(),
+			Dependencies: nil,
 		}
 	}
 
 	status := &healthprobe_dto.Status{
-		Name:      name,
-		Timestamp: startTime,
+		Name:         name,
+		Timestamp:    startTime,
+		State:        "",
+		Message:      "",
+		Duration:     "",
+		Dependencies: nil,
 	}
 
 	if detectorErr := s.invokeDetectorHealthCheck(ctx, name, detector); detectorErr != nil {

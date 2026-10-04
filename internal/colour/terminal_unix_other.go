@@ -16,12 +16,14 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-//go:build !linux && !darwin && !windows && !js
+//go:build !linux && !darwin && !freebsd && !openbsd && !netbsd && !dragonfly && !windows && !js
 
 package colour
 
-// ioctlGetTermios is not available on this platform.
-//
-// The isTerminal function in terminal_unix.go will always return false, so colour
-// auto-detection is disabled. Use FORCE_COLOUR to enable colour output.
-const ioctlGetTermios = 0
+const (
+	// ioctlGetTermios is not available on this platform.
+	//
+	// The isTerminal function in terminal_unix.go will always return false, so colour
+	// auto-detection is disabled. Use FORCE_COLOUR to enable colour output.
+	ioctlGetTermios = 0
+)

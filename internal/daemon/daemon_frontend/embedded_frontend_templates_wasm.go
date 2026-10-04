@@ -20,7 +20,9 @@
 
 package daemon_frontend
 
-import "context"
+import (
+	"context"
+)
 
 // EmbeddedAsset is the WASM-build counterpart of the disk-build type.
 //

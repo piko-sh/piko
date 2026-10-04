@@ -265,6 +265,33 @@ func TestTypeBuilder(t *testing.T) {
 			assert.Equal(t, mockLiveBuildData, data)
 		})
 
+		t.Run("should invalidate the entry and rebuild when the cache provider panics", func(t *testing.T) {
+			t.Parallel()
+			rig := setupManagerTest(t)
+			ctx := context.Background()
+			mockLiveBuildData := &inspector_dto.TypeData{Packages: map[string]*inspector_dto.Package{}}
+
+			rig.mockProvider.On("GetTypeData", mock.Anything, "test-cache-key").
+				Run(func(mock.Arguments) { panic("corrupt cache entry") }).
+				Return(nil, nil)
+			rig.mockProvider.On("InvalidateCache", mock.Anything, "test-cache-key").Return(errors.New("read-only")).Once()
+			rig.mockParser.On("Parse", mock.Anything, rig.sourceContents, 4).Return(map[string]*ast.File{}, nil)
+			rig.mockLoader.On("Load", mock.Anything, mock.Anything, rig.sourceContents).Return([]*packages.Package{}, nil)
+			rig.mockEncoder.On("Encode", mock.Anything, mock.Anything).Return(mockLiveBuildData, nil)
+			rig.mockProvider.On("SaveTypeData", mock.Anything, "test-cache-key", mockLiveBuildData).Return(nil)
+
+			err := rig.manager.Build(ctx, rig.sourceContents, rig.scriptHashes)
+
+			require.NoError(t, err)
+			rig.mockProvider.AssertExpectations(t)
+			rig.mockLoader.AssertExpectations(t)
+			rig.mockEncoder.AssertExpectations(t)
+
+			data, err := rig.manager.GetTypeData()
+			require.NoError(t, err)
+			assert.Equal(t, mockLiveBuildData, data)
+		})
+
 		t.Run("should gracefully handle cache save failures", func(t *testing.T) {
 			t.Parallel()
 			rig := setupManagerTest(t)

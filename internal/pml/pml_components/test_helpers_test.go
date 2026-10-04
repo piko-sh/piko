@@ -95,45 +95,17 @@ func (b *TestNodeBuilder) Build() *ast_domain.TemplateNode {
 	loc := ast_domain.Location{Line: 1, Column: 1, Offset: 0}
 	nodeRange := ast_domain.Range{Start: loc, End: loc}
 
-	return &ast_domain.TemplateNode{
-		NodeType:           b.nodeType,
-		TagName:            b.tagName,
-		Attributes:         b.attributes,
-		Children:           b.children,
-		TextContent:        b.textContent,
-		Location:           loc,
-		NodeRange:          nodeRange,
-		OpeningTagRange:    nodeRange,
-		ClosingTagRange:    nodeRange,
-		Key:                nil,
-		DirKey:             nil,
-		DirHTML:            nil,
-		GoAnnotations:      nil,
-		RuntimeAnnotations: nil,
-		CustomEvents:       nil,
-		OnEvents:           nil,
-		Binds:              nil,
-		DirContext:         nil,
-		DirElse:            nil,
-		DirText:            nil,
-		DirStyle:           nil,
-		DirClass:           nil,
-		DirIf:              nil,
-		DirElseIf:          nil,
-		DirFor:             nil,
-		DirShow:            nil,
-		DirRef:             nil,
-		DirModel:           nil,
-		DirScaffold:        nil,
-		InnerHTML:          "",
-		RichText:           nil,
-		Diagnostics:        nil,
-		DynamicAttributes:  nil,
-		Directives:         nil,
-		PreferredFormat:    0,
-		IsPooled:           false,
-		IsContentEditable:  false,
-	}
+	node := ast_domain.TemplateNode{}
+	node.NodeType = b.nodeType
+	node.TagName = b.tagName
+	node.Attributes = b.attributes
+	node.Children = b.children
+	node.TextContent = b.textContent
+	node.Location = loc
+	node.NodeRange = nodeRange
+	node.OpeningTagRange = nodeRange
+	node.ClosingTagRange = nodeRange
+	return &node
 }
 
 type TestContextBuilder struct {

@@ -247,18 +247,10 @@ func (p *componentAnnotationPipeline) earlyResult(expansionResult *annotator_dto
 	if expansionResult != nil {
 		ast = expansionResult.FlattenedAST
 	}
-	return &annotator_dto.AnnotationResult{
-		AnalysisMap:           nil,
-		EntryPointStyleBlocks: nil,
-		AnnotatedAST:          ast,
-		VirtualModule:         p.virtualModule,
-		StyleBlock:            "",
-		ClientScript:          "",
-		AssetRefs:             nil,
-		CustomTags:            nil,
-		UniqueInvocations:     nil,
-		AssetDependencies:     nil,
-	}
+	result := annotator_dto.AnnotationResult{}
+	result.AnnotatedAST = ast
+	result.VirtualModule = p.virtualModule
+	return &result
 }
 
 // earlyResultFromLink builds an annotation result from early pipeline stages.
@@ -275,18 +267,10 @@ func (p *componentAnnotationPipeline) earlyResultFromLink(expansionResult *annot
 	if linkingResult != nil && linkingResult.LinkedAST != nil {
 		ast = linkingResult.LinkedAST
 	}
-	return &annotator_dto.AnnotationResult{
-		AnalysisMap:           nil,
-		EntryPointStyleBlocks: nil,
-		AnnotatedAST:          ast,
-		VirtualModule:         p.virtualModule,
-		StyleBlock:            "",
-		ClientScript:          "",
-		AssetRefs:             nil,
-		CustomTags:            nil,
-		UniqueInvocations:     nil,
-		AssetDependencies:     nil,
-	}
+	result := annotator_dto.AnnotationResult{}
+	result.AnnotatedAST = ast
+	result.VirtualModule = p.virtualModule
+	return &result
 }
 
 // earlyResultFromAnnotation returns the analysis result if present, or builds a default
@@ -303,16 +287,8 @@ func (p *componentAnnotationPipeline) earlyResultFromAnnotation(linkingResult *a
 	if analysisResult != nil {
 		return analysisResult
 	}
-	return &annotator_dto.AnnotationResult{
-		AnalysisMap:           nil,
-		EntryPointStyleBlocks: nil,
-		AnnotatedAST:          linkingResult.LinkedAST,
-		VirtualModule:         p.virtualModule,
-		StyleBlock:            "",
-		ClientScript:          "",
-		AssetRefs:             nil,
-		CustomTags:            nil,
-		UniqueInvocations:     nil,
-		AssetDependencies:     nil,
-	}
+	result := annotator_dto.AnnotationResult{}
+	result.AnnotatedAST = linkingResult.LinkedAST
+	result.VirtualModule = p.virtualModule
+	return &result
 }

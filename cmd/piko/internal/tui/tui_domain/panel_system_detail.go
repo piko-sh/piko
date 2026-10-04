@@ -32,7 +32,8 @@ import (
 // (memory, CPU, goroutines, GC). When no row is selected the system overview is shown
 // without a chart.
 //
-// Takes width (int) and height (int) which are the inner dimensions of the detail pane.
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 //
 // Returns string with the rendered body.
 func (p *SystemPanel) DetailView(width, height int) string {
@@ -60,7 +61,8 @@ func (p *SystemPanel) currentSectionKey() string {
 //
 // Takes section (string) which is the section key.
 //
-// Returns []ChartSeries and string label.
+// Returns []ChartSeries which contains the selected section history, or nil without data.
+// Returns string which labels the chart, or is empty when no chart is available.
 func (p *SystemPanel) detailChartFor(section string) ([]ChartSeries, string) {
 	switch section {
 	case sectionMemory:
@@ -119,6 +121,7 @@ func (p *SystemPanel) buildDetailBody() inspector.DetailBody {
 		return inspector.DetailBody{
 			Title:    "System",
 			Subtitle: "no data yet",
+			Sections: nil,
 		}
 	}
 
@@ -148,19 +151,19 @@ func (p *SystemPanel) buildDetailBody() inspector.DetailBody {
 // Returns inspector.DetailBody describing CPU, goroutines, and heap headlines.
 func systemOverviewDetailBody(s *SystemStats) inspector.DetailBody {
 	rows := []inspector.DetailRow{
-		{Label: "Uptime", Value: inspector.FormatDuration(s.Uptime)},
-		{Label: "CPU (mC)", Value: fmt.Sprintf("%.0f", s.CPUMillicores)},
-		{Label: "CPUs", Value: fmt.Sprintf(FormatPercentInt, s.NumCPU)},
-		{Label: "GOMAXPROCS", Value: fmt.Sprintf(FormatPercentInt, s.GOMAXPROCS)},
-		{Label: "Goroutines", Value: fmt.Sprintf(FormatPercentInt, s.NumGoroutines)},
-		{Label: "CGO calls", Value: fmt.Sprintf(FormatPercentInt, s.NumCGOCalls)},
-		{Label: "Heap alloc", Value: inspector.FormatBytes(s.Memory.HeapAlloc)},
-		{Label: "Sys", Value: inspector.FormatBytes(s.Memory.Sys)},
+		inspector.NewDetailRow("Uptime", inspector.FormatDuration(s.Uptime)),
+		inspector.NewDetailRow("CPU (mC)", fmt.Sprintf("%.0f", s.CPUMillicores)),
+		inspector.NewDetailRow("CPUs", fmt.Sprintf(FormatPercentInt, s.NumCPU)),
+		inspector.NewDetailRow("GOMAXPROCS", fmt.Sprintf(FormatPercentInt, s.GOMAXPROCS)),
+		inspector.NewDetailRow("Goroutines", fmt.Sprintf(FormatPercentInt, s.NumGoroutines)),
+		inspector.NewDetailRow("CGO calls", fmt.Sprintf(FormatPercentInt, s.NumCGOCalls)),
+		inspector.NewDetailRow("Heap alloc", inspector.FormatBytes(s.Memory.HeapAlloc)),
+		inspector.NewDetailRow("Sys", inspector.FormatBytes(s.Memory.Sys)),
 	}
 	return inspector.DetailBody{
 		Title:    "System overview",
 		Subtitle: fmt.Sprintf("up %s", inspector.FormatDuration(s.Uptime)),
-		Sections: []inspector.DetailSection{{Heading: "Snapshot", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Snapshot", rows)},
 	}
 }
 
@@ -178,10 +181,10 @@ func systemMemoryDetailBody(s *SystemStats) inspector.DetailBody {
 	return inspector.DetailBody{
 		Title:    "Memory",
 		Subtitle: inspector.FormatBytes(s.Memory.HeapAlloc) + " heap",
-		Sections: []inspector.DetailSection{{
-			Heading: "Memory stats",
-			Rows:    inspector.BuildMemoryDetailRows(memoryStatsToProto(s.Memory)),
-		}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection(
+			"Memory stats",
+			inspector.BuildMemoryDetailRows(memoryStatsToProto(s.Memory)),
+		)},
 	}
 }
 
@@ -197,10 +200,10 @@ func systemGCDetailBody(s *SystemStats) inspector.DetailBody {
 	return inspector.DetailBody{
 		Title:    "Garbage collector",
 		Subtitle: fmt.Sprintf("%d cycles", s.GC.NumGC),
-		Sections: []inspector.DetailSection{{
-			Heading: "GC stats",
-			Rows:    inspector.BuildGCDetailRows(gcStatsToProto(s.GC)),
-		}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection(
+			"GC stats",
+			inspector.BuildGCDetailRows(gcStatsToProto(s.GC)),
+		)},
 	}
 }
 
@@ -218,10 +221,10 @@ func systemProcessDetailBody(s *SystemStats) inspector.DetailBody {
 	return inspector.DetailBody{
 		Title:    "Process",
 		Subtitle: fmt.Sprintf("PID %d", s.Process.PID),
-		Sections: []inspector.DetailSection{{
-			Heading: "Process info",
-			Rows:    inspector.BuildProcessDetailRows(processInfoToProto(s.Process)),
-		}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection(
+			"Process info",
+			inspector.BuildProcessDetailRows(processInfoToProto(s.Process)),
+		)},
 	}
 }
 
@@ -238,10 +241,10 @@ func systemBuildDetailBody(s *SystemStats) inspector.DetailBody {
 	return inspector.DetailBody{
 		Title:    "Build",
 		Subtitle: s.Build.Version,
-		Sections: []inspector.DetailSection{{
-			Heading: "Build info",
-			Rows:    inspector.BuildBuildDetailRows(buildInfoToProto(s.Build)),
-		}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection(
+			"Build info",
+			inspector.BuildBuildDetailRows(buildInfoToProto(s.Build)),
+		)},
 	}
 }
 
@@ -257,12 +260,13 @@ func systemBuildDetailBody(s *SystemStats) inspector.DetailBody {
 func systemRuntimeDetailBody(s *SystemStats) inspector.DetailBody {
 	rows := inspector.BuildRuntimeDetailRows(runtimeConfigToProto(s.Runtime))
 	rows = append(rows,
-		inspector.DetailRow{Label: "GOMAXPROCS", Value: fmt.Sprintf(FormatPercentInt, s.GOMAXPROCS)},
-		inspector.DetailRow{Label: "Go version", Value: s.Build.GoVersion},
+		inspector.NewDetailRow("GOMAXPROCS", fmt.Sprintf(FormatPercentInt, s.GOMAXPROCS)),
+		inspector.NewDetailRow("Go version", s.Build.GoVersion),
 	)
 	return inspector.DetailBody{
 		Title:    "Runtime",
-		Sections: []inspector.DetailSection{{Heading: "Runtime config", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Runtime config", rows)},
+		Subtitle: "",
 	}
 }
 
@@ -274,13 +278,13 @@ func systemRuntimeDetailBody(s *SystemStats) inspector.DetailBody {
 func systemUptimeDetailBody(s *SystemStats) inspector.DetailBody {
 	started := s.Timestamp.Add(-s.Uptime)
 	rows := []inspector.DetailRow{
-		{Label: "Uptime", Value: inspector.FormatDuration(s.Uptime)},
-		{Label: "Started", Value: inspector.FormatDetailTime(started)},
+		inspector.NewDetailRow("Uptime", inspector.FormatDuration(s.Uptime)),
+		inspector.NewDetailRow("Started", inspector.FormatDetailTime(started)),
 	}
 	return inspector.DetailBody{
 		Title:    "Uptime",
 		Subtitle: inspector.FormatDuration(s.Uptime),
-		Sections: []inspector.DetailSection{{Heading: "Process lifetime", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Process lifetime", rows)},
 	}
 }
 
@@ -293,12 +297,16 @@ func systemUptimeDetailBody(s *SystemStats) inspector.DetailBody {
 // Returns *pb.BuildInfo with the carried fields populated.
 func buildInfoToProto(b SystemBuildInfo) *pb.BuildInfo {
 	return &pb.BuildInfo{
-		Version:   b.Version,
-		Commit:    b.Commit,
-		GoVersion: b.GoVersion,
-		Os:        b.OS,
-		Arch:      b.Arch,
-		BuildTime: b.BuildTime,
+		Version:       b.Version,
+		Commit:        b.Commit,
+		GoVersion:     b.GoVersion,
+		Os:            b.OS,
+		Arch:          b.Arch,
+		BuildTime:     b.BuildTime,
+		ModulePath:    "",
+		ModuleVersion: "",
+		VcsModified:   false,
+		VcsTime:       "",
 	}
 }
 
@@ -313,6 +321,7 @@ func runtimeConfigToProto(r SystemRuntimeConfig) *pb.RuntimeInfo {
 	return &pb.RuntimeInfo{
 		Gogc:       r.GOGC,
 		Gomemlimit: r.GOMEMLIMIT,
+		Compiler:   "",
 	}
 }
 
@@ -326,19 +335,34 @@ func runtimeConfigToProto(r SystemRuntimeConfig) *pb.RuntimeInfo {
 // Returns *pb.MemoryInfo with the carried fields populated.
 func memoryStatsToProto(m SystemMemoryStats) *pb.MemoryInfo {
 	return &pb.MemoryInfo{
-		Alloc:        m.Alloc,
-		TotalAlloc:   m.TotalAlloc,
-		Sys:          m.Sys,
-		HeapAlloc:    m.HeapAlloc,
-		HeapSys:      m.HeapSys,
-		HeapIdle:     m.HeapIdle,
-		HeapInuse:    m.HeapInuse,
-		HeapObjects:  m.HeapObjects,
-		HeapReleased: m.HeapReleased,
-		StackSys:     m.StackSys,
-		Mallocs:      m.Mallocs,
-		Frees:        m.Frees,
-		LiveObjects:  m.LiveObjects,
+		Alloc:             m.Alloc,
+		TotalAlloc:        m.TotalAlloc,
+		Sys:               m.Sys,
+		HeapAlloc:         m.HeapAlloc,
+		HeapSys:           m.HeapSys,
+		HeapIdle:          m.HeapIdle,
+		HeapInuse:         m.HeapInuse,
+		HeapObjects:       m.HeapObjects,
+		HeapReleased:      m.HeapReleased,
+		StackSys:          m.StackSys,
+		Mallocs:           m.Mallocs,
+		Frees:             m.Frees,
+		LiveObjects:       m.LiveObjects,
+		StackInuse:        0,
+		MspanInuse:        0,
+		MspanSys:          0,
+		McacheInuse:       0,
+		McacheSys:         0,
+		GcSys:             0,
+		OtherSys:          0,
+		BuckhashSys:       0,
+		Lookups:           0,
+		HeapObjectsBytes:  0,
+		HeapFreeBytes:     0,
+		HeapReleasedBytes: 0,
+		HeapStacksBytes:   0,
+		HeapUnusedBytes:   0,
+		TotalBytes:        0,
 	}
 }
 
@@ -357,6 +381,10 @@ func gcStatsToProto(g SystemGCStats) *pb.GCInfo {
 		GcCpuFraction: g.GCCPUFraction,
 		NextGc:        g.NextGC,
 		RecentPauses:  g.RecentPauses,
+		NumForcedGc:   0,
+		PauseP50Ns:    0,
+		PauseP95Ns:    0,
+		PauseP99Ns:    0,
 	}
 }
 
@@ -369,10 +397,10 @@ func gcStatsToProto(g SystemGCStats) *pb.GCInfo {
 //
 // Returns *pb.ProcessInfo with PID / thread count / FD count / RSS populated.
 func processInfoToProto(p SystemProcessInfo) *pb.ProcessInfo {
-	return &pb.ProcessInfo{
-		Pid:         safeconv.IntToInt32(p.PID),
-		ThreadCount: safeconv.IntToInt32(p.ThreadCount),
-		FdCount:     safeconv.IntToInt32(p.FDCount),
-		Rss:         p.RSS,
-	}
+	info := pb.ProcessInfo{}
+	info.Pid = safeconv.IntToInt32(p.PID)
+	info.ThreadCount = safeconv.IntToInt32(p.ThreadCount)
+	info.FdCount = safeconv.IntToInt32(p.FDCount)
+	info.Rss = p.RSS
+	return &info
 }

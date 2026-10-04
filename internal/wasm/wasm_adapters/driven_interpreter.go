@@ -22,12 +22,12 @@ package wasm_adapters
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/url"
-	"reflect"
+	"runtime/debug"
 
 	"piko.sh/piko/internal/generator/generator_dto"
+	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/internal/templater/templater_dto"
 	"piko.sh/piko/internal/wasm/wasm_domain"
@@ -35,194 +35,74 @@ import (
 )
 
 // InterpreterAdapter implements InterpreterPort to execute generated Go code inside WASM.
-//
-// It supports both incremental Eval and Piko's internal bytecode interpreter (via batch
-// compilation). It uses interface-based dependencies to avoid importing interpreter
-// implementations directly, keeping them isolated to the wdk package and cmd/wasm.
 type InterpreterAdapter struct {
-	// symbolLoader loads symbols into interpreters.
-	symbolLoader wasm_domain.SymbolLoaderPort
-
 	// interpreterFactory creates new interpreter instances.
 	interpreterFactory wasm_domain.InterpreterFactoryPort
 }
 
-var _ wasm_domain.InterpreterPort = (*InterpreterAdapter)(nil)
+var (
+	_ wasm_domain.InterpreterPort = (*InterpreterAdapter)(nil)
+)
 
 // InterpreterAdapterOption configures an InterpreterAdapter.
 type InterpreterAdapterOption func(*InterpreterAdapter)
 
-// interpreterInstance wraps the interpreter to provide a consistent interface.
-type interpreterInstance struct {
-	// interp holds the interpreter instance.
-	interp any
-}
-
-// Eval evaluates Go source code.
+// NewInterpreterAdapter creates a new interpreter adapter for WASM.
 //
-// Takes ctx (context.Context) for cancellation and deadlines.
-// Takes code (string) which is the Go source code to evaluate.
+// Takes opts (...InterpreterAdapterOption) which configure the adapter.
 //
-// Returns any which is the result of evaluating the code.
-// Returns error when the interpreter does not support evaluation or the code is invalid.
-func (w *interpreterInstance) Eval(ctx context.Context, code string) (any, error) {
-	if evaluator, ok := w.interp.(interface {
-		Eval(string) (reflect.Value, error)
-	}); ok {
-		value, err := evaluator.Eval(code)
-		if err != nil {
-			return nil, fmt.Errorf("evaluating code: %w", err)
-		}
-		return value.Interface(), nil
+// Returns *InterpreterAdapter which is ready for interpreting generated code.
+func NewInterpreterAdapter(opts ...InterpreterAdapterOption) *InterpreterAdapter {
+	a := &InterpreterAdapter{
+		interpreterFactory: nil,
 	}
-	if evaluator, ok := w.interp.(interface{ Eval(string) (any, error) }); ok {
-		return evaluator.Eval(code)
-	}
-	if evaluator, ok := w.interp.(interface {
-		Eval(context.Context, string) (any, error)
-	}); ok {
-		return evaluator.Eval(ctx, code)
-	}
-	return nil, errors.New("interpreter does not implement Eval")
-}
 
-// SetBuildContext sets the build context for the interpreter.
-//
-// Takes buildCtx (any) which provides the build context configuration.
-func (w *interpreterInstance) SetBuildContext(buildCtx any) {
-	if setter, ok := w.interp.(interface{ SetBuildContext(any) }); ok {
-		setter.SetBuildContext(buildCtx)
+	for _, opt := range opts {
+		opt(a)
 	}
-}
 
-// SetSourcecodeFilesystem sets the virtual filesystem for source code access.
-//
-// Takes filesystem (any) which provides the filesystem implementation to use.
-func (w *interpreterInstance) SetSourcecodeFilesystem(filesystem any) {
-	if setter, ok := w.interp.(interface{ SetSourcecodeFilesystem(any) }); ok {
-		setter.SetSourcecodeFilesystem(filesystem)
-	}
-}
-
-// RegisterPackageAlias registers a package alias.
-//
-// Takes canonical (string) which is the full package path.
-// Takes alias (string) which is the short name to use for the package.
-//
-// Returns error when the underlying interpreter fails to register the alias.
-func (w *interpreterInstance) RegisterPackageAlias(canonical, alias string) error {
-	if registrar, ok := w.interp.(interface{ RegisterPackageAlias(string, string) error }); ok {
-		return registrar.RegisterPackageAlias(canonical, alias)
-	}
-	return nil
-}
-
-// Reset clears the interpreter state if the underlying interpreter supports it.
-func (w *interpreterInstance) Reset() {
-	if resetter, ok := w.interp.(interface{ Reset() }); ok {
-		resetter.Reset()
-	}
-}
-
-// Clone creates a copy of the interpreter.
-//
-// Returns templater_domain.InterpreterPort which is a copy of the interpreter, or nil if
-// the underlying interpreter does not support cloning.
-func (w *interpreterInstance) Clone() templater_domain.InterpreterPort {
-	if cloner, ok := w.interp.(interface{ Clone() any }); ok {
-		return &interpreterInstance{interp: cloner.Clone()}
-	}
-	return nil
-}
-
-// Unwrap returns the underlying interpreter.
-//
-// Returns any which is the wrapped interpreter instance.
-func (w *interpreterInstance) Unwrap() any {
-	return w.interp
-}
-
-// batchCompiler is an optional interface that interpreter instances may implement to
-// support batch compilation of multiple packages at once. The Piko bytecode interpreter
-// implements this via wasmServiceWrapper.
-type batchCompiler interface {
-	// CompileAndExecuteWASM compiles and executes all packages at once within the WASM
-	// environment.
-	//
-	// Takes mainCode (string) which is the generated Go source of the main package.
-	// Takes packagePath (string) which is the import path of the main package.
-	// Takes dependencies (map[string]string) which maps each package path to its source.
-	//
-	// Returns error when compilation or execution fails.
-	CompileAndExecuteWASM(ctx context.Context, mainCode, packagePath string, dependencies map[string]string) error
+	return a
 }
 
 // Interpret executes generated Go code and returns the template AST.
 //
-// When the interpreter supports batch compilation (batchCompiler), it uses
-// CompileAndExecuteWASM to compile all packages at once. Otherwise it falls back to the
-// incremental Eval-based path.
+// A panic raised while compiling, initialising or building the template is recovered and
+// reported as a failed response; its stack is logged once and kept out of the response.
 //
 // Takes request (*wasm_dto.InterpretRequest) which contains the generated code and
 // configuration.
 //
 // Returns *wasm_dto.InterpretResponse which contains the template AST and metadata.
-// Returns error when interpretation fails.
-func (a *InterpreterAdapter) Interpret(ctx context.Context, request *wasm_dto.InterpretRequest) (*wasm_dto.InterpretResponse, error) {
+// Returns error which is always nil because failures are reported inside the response.
+func (a *InterpreterAdapter) Interpret(ctx context.Context, request *wasm_dto.InterpretRequest) (response *wasm_dto.InterpretResponse, err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			_, l := logger_domain.From(ctx, log)
+			l.Warn("Interpreter panicked while running a playground program",
+				logger_domain.String("recovered", fmt.Sprintf("%v", recovered)),
+				logger_domain.String("stack", string(debug.Stack())),
+			)
+			response = newFailedInterpretResponse(fmt.Sprintf("interpreter panicked: %v", recovered), nil)
+			err = nil
+		}
+	}()
+
 	if a.interpreterFactory == nil {
-		return &wasm_dto.InterpretResponse{
-			Success: false,
-			Error:   "interpreter factory not configured",
-		}, nil
+		return newFailedInterpretResponse("interpreter factory not configured", nil), nil
 	}
 
-	rawInterp := a.interpreterFactory.NewInterpreter()
+	clearRegisteredBuilders(request)
 
-	if a.symbolLoader != nil {
-		if err := a.symbolLoader.Use(rawInterp); err != nil {
-			return &wasm_dto.InterpretResponse{
-				Success: false,
-				Error:   fmt.Sprintf("failed to load symbols: %v", err),
-			}, nil
-		}
-	}
-
-	if bc, ok := rawInterp.(batchCompiler); ok {
-		if err := bc.CompileAndExecuteWASM(ctx, request.GeneratedCode, request.PackagePath, request.Dependencies); err != nil {
-			return &wasm_dto.InterpretResponse{
-				Success: false,
-				Error:   fmt.Sprintf("batch compilation failed: %v", err),
-			}, nil
-		}
-
-		return a.buildASTResponse(ctx, request)
-	}
-
-	wrapper := &interpreterInstance{interp: rawInterp}
-
-	vfs := NewInterpreterVFS(map[string]string{
-		request.PackagePath + "/main.go": request.GeneratedCode,
-	})
-
-	for packagePath, content := range request.Dependencies {
-		vfs.AddFile(packagePath+"/generated.go", content)
-	}
-
-	wrapper.SetSourcecodeFilesystem(vfs)
-
-	_, err := wrapper.Eval(ctx, request.GeneratedCode)
-	if err != nil {
-		return &wasm_dto.InterpretResponse{
-			Success: false,
-			Error:   fmt.Sprintf("evaluation failed: %v", err),
-		}, nil
+	interpreter := a.interpreterFactory.NewInterpreter()
+	if err := interpreter.CompileAndExecute(ctx, request.GeneratedCode, request.PackagePath, request.Dependencies); err != nil {
+		return newFailedInterpretResponse(fmt.Sprintf("batch compilation failed: %v", err), nil), nil
 	}
 
 	return a.buildASTResponse(ctx, request)
 }
 
 // buildASTResponse retrieves the registered AST function and produces an
-// InterpretResponse. This is shared between the batch compilation and Eval code paths.
+// InterpretResponse.
 //
 // Takes ctx (context.Context) for the request context.
 // Takes request (*wasm_dto.InterpretRequest) which contains the package path, request
@@ -231,13 +111,10 @@ func (a *InterpreterAdapter) Interpret(ctx context.Context, request *wasm_dto.In
 // Returns *wasm_dto.InterpretResponse which contains the template AST and metadata.
 // Returns error which is always nil because errors are reported inside the response
 // struct.
-func (a *InterpreterAdapter) buildASTResponse(ctx context.Context, request *wasm_dto.InterpretRequest) (*wasm_dto.InterpretResponse, error) {
+func (*InterpreterAdapter) buildASTResponse(ctx context.Context, request *wasm_dto.InterpretRequest) (*wasm_dto.InterpretResponse, error) {
 	astFunc, found := templater_domain.GetASTFunc(request.PackagePath)
 	if !found {
-		return &wasm_dto.InterpretResponse{
-			Success: false,
-			Error:   fmt.Sprintf("BuildAST not registered for package path: %s", request.PackagePath),
-		}, nil
+		return newFailedInterpretResponse(fmt.Sprintf("BuildAST not registered for package path: %s", request.PackagePath), nil), nil
 	}
 
 	requestData := buildMockRequestData(ctx, request.RequestURL)
@@ -248,30 +125,16 @@ func (a *InterpreterAdapter) buildASTResponse(ctx context.Context, request *wasm
 	diagnostics := convertRuntimeDiagnostics(runtimeDiags)
 
 	if ast == nil && len(diagnostics) > 0 {
-		return &wasm_dto.InterpretResponse{
-			Success:     false,
-			Error:       "BuildAST returned nil AST",
-			Diagnostics: diagnostics,
-		}, nil
+		return newFailedInterpretResponse("BuildAST returned nil AST", diagnostics), nil
 	}
 
 	return &wasm_dto.InterpretResponse{
 		Success:     true,
 		AST:         ast,
 		Metadata:    &metadata,
+		Error:       "",
 		Diagnostics: diagnostics,
 	}, nil
-}
-
-// WithSymbolLoader sets the symbol loader for the interpreter adapter.
-//
-// Takes loader (wasm_domain.SymbolLoaderPort) which loads symbols into the interpreter.
-//
-// Returns InterpreterAdapterOption which configures the adapter.
-func WithSymbolLoader(loader wasm_domain.SymbolLoaderPort) InterpreterAdapterOption {
-	return func(a *InterpreterAdapter) {
-		a.symbolLoader = loader
-	}
 }
 
 // WithInterpreterFactory sets the interpreter factory for the adapter.
@@ -286,19 +149,17 @@ func WithInterpreterFactory(factory wasm_domain.InterpreterFactoryPort) Interpre
 	}
 }
 
-// NewInterpreterAdapter creates a new interpreter adapter for WASM.
+// clearRegisteredBuilders removes the template functions registered for the request's
+// packages by earlier programs, so after the program runs only its own builders can be
+// found.
 //
-// Takes opts (...InterpreterAdapterOption) which configure the adapter.
-//
-// Returns *InterpreterAdapter which is ready for interpreting generated code.
-func NewInterpreterAdapter(opts ...InterpreterAdapterOption) *InterpreterAdapter {
-	a := &InterpreterAdapter{}
-
-	for _, opt := range opts {
-		opt(a)
+// Takes request (*wasm_dto.InterpretRequest) which names the main package and its
+// dependencies.
+func clearRegisteredBuilders(request *wasm_dto.InterpretRequest) {
+	templater_domain.Unregister(request.PackagePath)
+	for dependencyPath := range request.Dependencies {
+		templater_domain.Unregister(dependencyPath)
 	}
-
-	return a
 }
 
 // buildMockRequestData creates a RequestData instance for WASM execution.
@@ -343,6 +204,7 @@ func convertRuntimeDiagnostics(diagnostics []*generator_dto.RuntimeDiagnostic) [
 		result = append(result, wasm_dto.Diagnostic{
 			Severity: severityToString(d.Severity),
 			Message:  d.Message,
+			Code:     d.Code,
 			Location: wasm_dto.Location{
 				FilePath: d.SourcePath,
 				Line:     d.Line,
@@ -370,5 +232,22 @@ func severityToString(severity generator_dto.Severity) string {
 		return "error"
 	default:
 		return "unknown"
+	}
+}
+
+// newFailedInterpretResponse builds an unsuccessful interpret response.
+//
+// Takes message (string) which describes the failure.
+// Takes diagnostics ([]wasm_dto.Diagnostic) which are any diagnostics gathered before the
+// failure, or nil.
+//
+// Returns *wasm_dto.InterpretResponse which carries no AST or metadata.
+func newFailedInterpretResponse(message string, diagnostics []wasm_dto.Diagnostic) *wasm_dto.InterpretResponse {
+	return &wasm_dto.InterpretResponse{
+		Success:     false,
+		AST:         nil,
+		Metadata:    nil,
+		Error:       message,
+		Diagnostics: diagnostics,
 	}
 }

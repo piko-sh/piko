@@ -959,7 +959,7 @@ func TestShouldAddEmptyLineBefore(t *testing.T) {
 
 	t.Run("PreserveEmptyLines disabled returns false", func(t *testing.T) {
 		t.Parallel()
-		p := newPrettyPrinter(&FormatOptions{PreserveEmptyLines: false})
+		p := newPrettyPrinter(&FormatOptions{})
 		p.lastWasBlock = true
 		node := &ast_domain.TemplateNode{NodeType: ast_domain.NodeElement, TagName: "header"}
 		assert.False(t, p.shouldAddEmptyLineBefore(node))
@@ -1022,7 +1022,7 @@ func TestContainsShadowRootChild(t *testing.T) {
 
 	t.Run("no children returns false", func(t *testing.T) {
 		t.Parallel()
-		node := &ast_domain.TemplateNode{Children: nil}
+		node := &ast_domain.TemplateNode{}
 		assert.False(t, containsShadowRootChild(node))
 	})
 

@@ -57,7 +57,7 @@ func TestRender_ReturnsTestView(t *testing.T) {
 		return &ast_domain.TemplateAST{
 			RootNodes: []*ast_domain.TemplateNode{h1},
 		}, templater_dto.InternalMetadata{
-			Metadata: templater_dto.Metadata{Title: "Test Page"},
+			Title: "Test Page",
 		}, nil
 	}
 

@@ -115,11 +115,7 @@ func NewDiskProvider(_ context.Context, arguments DiskProviderArgs, opts ...emai
 		return nil, fmt.Errorf("failed to create outbox sandbox at %q: %w", arguments.OutboxPath, err)
 	}
 
-	defaultConfig := email_domain.ProviderRateLimitConfig{
-		CallsPerSecond: 0,
-		Burst:          0,
-		Clock:          nil,
-	}
+	defaultConfig := email_domain.ProviderRateLimitConfig{}
 	rateLimiter := email_domain.ApplyProviderOptions(defaultConfig, opts...)
 
 	return &DiskProvider{
@@ -275,51 +271,56 @@ func (p *DiskProvider) Check(_ context.Context, checkType healthprobe_dto.CheckT
 
 	if p.outboxPath == "" {
 		return healthprobe_dto.Status{
-			Name:      p.Name(),
-			State:     healthprobe_dto.StateUnhealthy,
-			Message:   "Outbox path not configured",
-			Timestamp: time.Now(),
-			Duration:  time.Since(startTime).String(),
+			Name:         p.Name(),
+			State:        healthprobe_dto.StateUnhealthy,
+			Message:      "Outbox path not configured",
+			Timestamp:    time.Now(),
+			Duration:     time.Since(startTime).String(),
+			Dependencies: nil,
 		}
 	}
 
 	if checkType == healthprobe_dto.CheckTypeLiveness {
 		return healthprobe_dto.Status{
-			Name:      p.Name(),
-			State:     healthprobe_dto.StateHealthy,
-			Message:   "Disk email provider configured",
-			Timestamp: time.Now(),
-			Duration:  time.Since(startTime).String(),
+			Name:         p.Name(),
+			State:        healthprobe_dto.StateHealthy,
+			Message:      "Disk email provider configured",
+			Timestamp:    time.Now(),
+			Duration:     time.Since(startTime).String(),
+			Dependencies: nil,
 		}
 	}
 
 	info, err := p.sandbox.Stat(".")
 	if err != nil {
 		return healthprobe_dto.Status{
-			Name:      p.Name(),
-			State:     healthprobe_dto.StateUnhealthy,
-			Message:   fmt.Sprintf("Outbox directory not accessible: %v", err),
-			Timestamp: time.Now(),
-			Duration:  time.Since(startTime).String(),
+			Name:         p.Name(),
+			State:        healthprobe_dto.StateUnhealthy,
+			Message:      fmt.Sprintf("Outbox directory not accessible: %v", err),
+			Timestamp:    time.Now(),
+			Duration:     time.Since(startTime).String(),
+			Dependencies: nil,
 		}
 	}
 
 	if !info.IsDir() {
 		return healthprobe_dto.Status{
-			Name:      p.Name(),
-			State:     healthprobe_dto.StateUnhealthy,
-			Message:   fmt.Sprintf("Outbox path is not a directory: %s", p.outboxPath),
-			Timestamp: time.Now(),
-			Duration:  time.Since(startTime).String(),
+			Name:         p.Name(),
+			State:        healthprobe_dto.StateUnhealthy,
+			Message:      fmt.Sprintf("Outbox path is not a directory: %s", p.outboxPath),
+			Timestamp:    time.Now(),
+			Duration:     time.Since(startTime).String(),
+			Dependencies: nil,
 		}
 	}
 
 	return healthprobe_dto.Status{
-		Name:      p.Name(),
-		State:     healthprobe_dto.StateHealthy,
-		Message:   "Outbox directory accessible",
-		Timestamp: time.Now(),
-		Duration:  time.Since(startTime).String(),
+		Name:         p.Name(),
+		State:        healthprobe_dto.StateHealthy,
+		Message:      "Outbox directory accessible",
+		Timestamp:    time.Now(),
+		Duration:     time.Since(startTime).String(),
+		Dependencies: nil,
 	}
 }
 

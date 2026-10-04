@@ -118,7 +118,7 @@ func TestFSProvider_Get_EmptyKey(t *testing.T) {
 	provider := newTestProvider(t)
 	ctx := context.Background()
 
-	_, err := provider.Get(ctx, storage_dto.GetParams{Key: ""})
+	_, err := provider.Get(ctx, storage_dto.GetParams{})
 	require.ErrorIs(t, err, ErrEmptyKey, "expected ErrEmptyKey")
 }
 
@@ -264,7 +264,7 @@ func TestFSProvider_Exists_EmptyKey(t *testing.T) {
 	provider := newTestProvider(t)
 	ctx := context.Background()
 
-	_, err := provider.Exists(ctx, storage_dto.GetParams{Key: ""})
+	_, err := provider.Exists(ctx, storage_dto.GetParams{})
 	require.ErrorIs(t, err, ErrEmptyKey, "expected ErrEmptyKey")
 }
 

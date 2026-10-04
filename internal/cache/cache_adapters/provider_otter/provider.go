@@ -211,11 +211,12 @@ func (p *OtterProvider) Check(_ context.Context, checkType healthprobe_dto.Check
 
 	if checkType == healthprobe_dto.CheckTypeLiveness {
 		return healthprobe_dto.Status{
-			Name:      p.Name(),
-			State:     healthprobe_dto.StateHealthy,
-			Message:   "Otter in-memory cache provider operational",
-			Timestamp: time.Now(),
-			Duration:  time.Since(startTime).String(),
+			Name:         p.Name(),
+			State:        healthprobe_dto.StateHealthy,
+			Message:      "Otter in-memory cache provider operational",
+			Timestamp:    time.Now(),
+			Duration:     time.Since(startTime).String(),
+			Dependencies: nil,
 		}
 	}
 
@@ -224,10 +225,11 @@ func (p *OtterProvider) Check(_ context.Context, checkType healthprobe_dto.Check
 	p.mu.RUnlock()
 
 	return healthprobe_dto.Status{
-		Name:      p.Name(),
-		State:     healthprobe_dto.StateHealthy,
-		Message:   fmt.Sprintf("Otter cache operational with %d namespace(s)", namespaceCount),
-		Timestamp: time.Now(),
-		Duration:  time.Since(startTime).String(),
+		Name:         p.Name(),
+		State:        healthprobe_dto.StateHealthy,
+		Message:      fmt.Sprintf("Otter cache operational with %d namespace(s)", namespaceCount),
+		Timestamp:    time.Now(),
+		Duration:     time.Since(startTime).String(),
+		Dependencies: nil,
 	}
 }

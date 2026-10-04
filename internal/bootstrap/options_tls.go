@@ -268,8 +268,13 @@ func WithMonitoringTLSHotReload(enabled bool) MonitoringTLSOption {
 func WithMonitoringTLS(opts ...MonitoringTLSOption) MonitoringOption {
 	return func(c *monitoring_domain.ServiceConfig) {
 		c.TLS = tlscert.TLSValues{
-			Mode:       tlscert.TLSModeCertFile,
-			MinVersion: tls.VersionTLS12,
+			Mode:           tlscert.TLSModeCertFile,
+			MinVersion:     tls.VersionTLS12,
+			CertFile:       "",
+			KeyFile:        "",
+			ClientCAFile:   "",
+			ClientAuthType: 0,
+			HotReload:      false,
 		}
 		for _, opt := range opts {
 			opt(&c.TLS)

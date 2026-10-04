@@ -112,7 +112,11 @@ func (s *CacheStats) HitRate() float64 {
 // Returns *CacheConfig with caching enabled.
 func DefaultCacheConfig() *CacheConfig {
 	return &CacheConfig{
-		Enabled: true,
-		TTL:     time.Hour,
+		Enabled:          true,
+		TTL:              time.Hour,
+		Key:              "",
+		SkipWrite:        false,
+		SkipRead:         false,
+		UseProviderCache: false,
 	}
 }

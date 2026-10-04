@@ -747,7 +747,7 @@ func TestIsExpressionIntrinsicallySafe(t *testing.T) {
 						Stringability: int(inspector_dto.StringablePrimitive),
 					},
 				},
-				Alternate: &ast_domain.IntegerLiteral{Value: 0},
+				Alternate: &ast_domain.IntegerLiteral{},
 			},
 			want: false,
 		},
@@ -1859,10 +1859,8 @@ func TestEmitRefAttribute(t *testing.T) {
 			wantNilAll: true,
 		},
 		{
-			name: "empty RawExpression returns nil",
-			dirRef: &ast_domain.Directive{
-				RawExpression: "",
-			},
+			name:       "empty RawExpression returns nil",
+			dirRef:     &ast_domain.Directive{},
 			hashedName: "",
 			wantNilAll: true,
 		},
@@ -1965,9 +1963,7 @@ func TestGetSourcePath(t *testing.T) {
 		ne := requireNodeEmitter(t, em)
 		ae := requireAttributeEmitter(t, ne)
 
-		ann := &ast_domain.GoGeneratorAnnotation{
-			OriginalSourcePath: nil,
-		}
+		ann := &ast_domain.GoGeneratorAnnotation{}
 
 		result := ae.getSourcePath(ann)
 		assert.Equal(t, "", result)

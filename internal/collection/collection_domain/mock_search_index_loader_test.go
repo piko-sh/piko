@@ -91,13 +91,11 @@ func TestMockSearchIndexLoader_ConcurrentAccess(t *testing.T) {
 
 	const goroutines = 50
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_, _ = m.GetIndex("blog", "fulltext")
-		}()
+		})
 	}
 
 	wg.Wait()

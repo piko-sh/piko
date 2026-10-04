@@ -306,10 +306,8 @@ func TestValidateCASParams(t *testing.T) {
 			expectedAlg: "md5",
 		},
 		{
-			name: "Default hash algorithm",
-			params: storage_dto.PutParams{
-				HashAlgorithm: "",
-			},
+			name:        "Default hash algorithm",
+			params:      storage_dto.PutParams{},
 			expectError: false,
 			expectedAlg: "sha256",
 		},

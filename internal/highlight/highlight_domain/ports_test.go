@@ -54,7 +54,7 @@ func TestHighlighter_Interface_RecordsArgumentsAndReturnsOutput(t *testing.T) {
 func TestHighlighter_Interface_HandlesEmptyInputs(t *testing.T) {
 	t.Parallel()
 
-	stub := &stubHighlighter{output: ""}
+	stub := &stubHighlighter{}
 
 	got := stub.Highlight("", "")
 

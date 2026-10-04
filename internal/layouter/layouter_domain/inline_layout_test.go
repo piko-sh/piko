@@ -305,7 +305,7 @@ func TestApplyOffsetToLine(t *testing.T) {
 		{
 			name: "centre alignment shifts items by half the free space",
 			items: []lineItem{
-				{fragment: &Fragment{OffsetX: 0}, x: 0, width: 40},
+				{fragment: &Fragment{}, x: 0, width: 40},
 				{fragment: &Fragment{OffsetX: 40}, x: 40, width: 60},
 			},
 			line_width:       100,
@@ -318,7 +318,7 @@ func TestApplyOffsetToLine(t *testing.T) {
 		{
 			name: "right alignment shifts items by full free space",
 			items: []lineItem{
-				{fragment: &Fragment{OffsetX: 0}, x: 0, width: 40},
+				{fragment: &Fragment{}, x: 0, width: 40},
 				{fragment: &Fragment{OffsetX: 40}, x: 40, width: 60},
 			},
 			line_width:       100,
@@ -343,7 +343,7 @@ func TestApplyOffsetToLine(t *testing.T) {
 		{
 			name: "no free space does not shift items",
 			items: []lineItem{
-				{fragment: &Fragment{OffsetX: 0}, x: 0, width: 200},
+				{fragment: &Fragment{}, x: 0, width: 200},
 			},
 			line_width:       200,
 			text_align:       TextAlignRight,
@@ -443,7 +443,7 @@ func TestApplyInlineVerticalAlign(t *testing.T) {
 			name: "nil box is skipped without panic",
 			items: []lineItem{
 				{
-					fragment: &Fragment{Box: nil, OffsetY: 0},
+					fragment: &Fragment{},
 				},
 			},
 			line_height:     50,

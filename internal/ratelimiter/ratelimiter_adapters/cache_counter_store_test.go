@@ -129,18 +129,16 @@ func TestCacheCounterStore_Concurrent(t *testing.T) {
 	const incrementsPerGoroutine = 20
 
 	var wg sync.WaitGroup
-	wg.Add(numGoroutines)
 
 	for range numGoroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for range incrementsPerGoroutine {
 				_, err := store.IncrementAndGet(context.Background(), "concurrent-key", 1, time.Minute)
 				if err != nil {
 					t.Errorf("concurrent increment failed: %v", err)
 				}
 			}
-		}()
+		})
 	}
 
 	wg.Wait()

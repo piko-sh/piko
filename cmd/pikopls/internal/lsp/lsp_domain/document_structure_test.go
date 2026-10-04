@@ -40,7 +40,7 @@ func TestNodeRangeToLSP(t *testing.T) {
 				End:   ast_domain.Location{Line: 1, Column: 10},
 			},
 			want: protocol.Range{
-				Start: protocol.Position{Line: 0, Character: 0},
+				Start: protocol.Position{},
 				End:   protocol.Position{Line: 0, Character: 9},
 			},
 		},
@@ -57,14 +57,8 @@ func TestNodeRangeToLSP(t *testing.T) {
 		},
 		{
 			name: "zero values remain zero after underflow protection",
-			r: ast_domain.Range{
-				Start: ast_domain.Location{Line: 0, Column: 0},
-				End:   ast_domain.Location{Line: 0, Column: 0},
-			},
-			want: protocol.Range{
-				Start: protocol.Position{Line: 0, Character: 0},
-				End:   protocol.Position{Line: 0, Character: 0},
-			},
+			r:    ast_domain.Range{},
+			want: protocol.Range{},
 		},
 	}
 
@@ -571,7 +565,7 @@ func TestMatchSymbolHighlight(t *testing.T) {
 				id.GoAnnotations = &ast_domain.GoGeneratorAnnotation{
 					Symbol: &ast_domain.ResolvedSymbol{
 						Name:              "x",
-						ReferenceLocation: ast_domain.Location{Line: 0, Column: 0},
+						ReferenceLocation: ast_domain.Location{},
 					},
 				}
 				return id
@@ -853,7 +847,7 @@ func TestGetSymbolReferenceAtPosition(t *testing.T) {
 				node.DirIf = &ast_domain.Directive{
 					Expression: &ast_domain.Identifier{
 						Name:             "visible",
-						RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+						RelativeLocation: ast_domain.Location{},
 						SourceLength:     7,
 					},
 				}
@@ -874,15 +868,12 @@ func TestGetSymbolReferenceAtPosition(t *testing.T) {
 				node.DirIf = &ast_domain.Directive{
 					Expression: &ast_domain.Identifier{
 						Name:             "visible",
-						RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+						RelativeLocation: ast_domain.Location{},
 						SourceLength:     7,
 						GoAnnotations: &ast_domain.GoGeneratorAnnotation{
 							Symbol: &ast_domain.ResolvedSymbol{
-								Name: "visible",
-								ReferenceLocation: ast_domain.Location{
-									Line:   0,
-									Column: 0,
-								},
+								Name:              "visible",
+								ReferenceLocation: ast_domain.Location{},
 							},
 						},
 					},
@@ -904,11 +895,9 @@ func TestGetSymbolReferenceAtPosition(t *testing.T) {
 				node.DirIf = &ast_domain.Directive{
 					Expression: &ast_domain.Identifier{
 						Name:             "visible",
-						RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+						RelativeLocation: ast_domain.Location{},
 						SourceLength:     7,
-						GoAnnotations: &ast_domain.GoGeneratorAnnotation{
-							Symbol: nil,
-						},
+						GoAnnotations:    &ast_domain.GoGeneratorAnnotation{},
 					},
 				}
 				return newTestDocumentBuilder().
@@ -967,7 +956,7 @@ func TestCollectHighlights(t *testing.T) {
 				node.DirIf = &ast_domain.Directive{
 					Expression: &ast_domain.Identifier{
 						Name:             "visible",
-						RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+						RelativeLocation: ast_domain.Location{},
 						SourceLength:     7,
 						GoAnnotations: &ast_domain.GoGeneratorAnnotation{
 							Symbol: &ast_domain.ResolvedSymbol{

@@ -10,17 +10,17 @@ nav:
 
 # About WebAssembly in Piko
 
-Piko's WASM target is narrower than a typical Go build for the browser. A WASM binary ships the template engine and the bytecode interpreter, but it does not ship the server runtime. This page explains where the line sits, why it sits there, and what WASM Piko is good for.
+Piko's WASM target is narrower than a typical Go build for the browser. A WASM binary ships the template engine and the [Pipit](https://github.com/piko-sh/pipit) bytecode interpreter, but it does not ship the server runtime. This page explains where the line sits, why it sits there, and what WASM Piko is good for.
 
 <p align="center">
   <img src="../diagrams/wasm-scope.svg"
-       alt="Two boxes. Inside WASM contains the template parser, bytecode interpreter, and PK-to-HTML renderer; the use case is client-side template evaluation. Outside WASM contains the piko.sh/piko package, ActionMetadata, RequestData, storage, cache, email, LLM, PDF, notification, and database drivers; these stay server-side."
+       alt="Two boxes. Inside WASM contains the template parser, Pipit interpreter, and PK-to-HTML renderer; the use case is client-side template evaluation. Outside WASM contains the piko.sh/piko package, ActionMetadata, RequestData, storage, cache, email, LLM, PDF, notification, and database drivers; these stay server-side."
        width="600"/>
 </p>
 
 ## What sits inside a WASM build
 
-A WASM build parses and compiles PK templates at runtime. It runs the same bytecode interpreter Piko uses in development mode for server-side rendering. It produces HTML strings the host page can inject into the DOM.
+A WASM build parses and compiles PK templates at runtime. It interprets the generated Go with Pipit, the same Go bytecode interpreter Piko uses for server-side rendering in interpreted development mode (`dev-i`). It produces HTML strings the host page can inject into the DOM.
 
 The use cases fall into one shape. Client-side template evaluation. Live editors, dashboards where users compose their own layouts, interactive tutorials that render PK snippets, and playgrounds that preview arbitrary templates are all natural fits. Each wants to evaluate a template the server did not pre-compile, with data the server did not see, and wants to stay responsive without a round-trip.
 

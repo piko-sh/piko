@@ -25,12 +25,14 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// standardLibraryLookalikes maps a single segment package path that resolves to the Go
-// standard library onto the third party import path a go_type override almost certainly
-// meant.
-var standardLibraryLookalikes = map[string]string{
-	"uuid": "github.com/google/uuid",
-}
+var (
+	// standardLibraryLookalikes maps a single segment package path that resolves to the Go
+	// standard library onto the third party import path a go_type override almost certainly
+	// meant.
+	standardLibraryLookalikes = map[string]string{
+		"uuid": "github.com/google/uuid",
+	}
+)
 
 // parseGoTypeOverride splits a go_type directive value into its package path and type
 // name.
@@ -44,7 +46,7 @@ func parseGoTypeOverride(raw string) (*querier_dto.GoType, string) {
 	packagePath, typeName, found := strings.CutLast(raw, ".")
 
 	if !found {
-		return &querier_dto.GoType{Name: raw}, ""
+		return &querier_dto.GoType{Name: raw, Package: ""}, ""
 	}
 
 	if packagePath == "" || typeName == "" {

@@ -86,6 +86,51 @@ type EmbeddingUsage struct {
 	TotalTokens int
 }
 
+// NewEmbeddingResponse creates an EmbeddingResponse with no response identifier.
+//
+// Takes model (string) which is the name of the model that generated the embeddings.
+// Takes embeddings ([]Embedding) which holds the generated embeddings.
+// Takes usage (*EmbeddingUsage) which holds token usage statistics, or nil when the
+// provider reports none.
+//
+// Returns *EmbeddingResponse which is the assembled response.
+func NewEmbeddingResponse(model string, embeddings []Embedding, usage *EmbeddingUsage) *EmbeddingResponse {
+	return &EmbeddingResponse{
+		Usage:      usage,
+		ID:         "",
+		Model:      model,
+		Embeddings: embeddings,
+	}
+}
+
+// NewFloat32Embedding creates an Embedding holding a float32 vector.
+//
+// Takes index (int) which is the position of the matching input text in the request.
+// Takes vector ([]float32) which holds the embedding values.
+//
+// Returns Embedding which carries the vector without a base64 encoding.
+func NewFloat32Embedding(index int, vector []float32) Embedding {
+	return Embedding{
+		Base64: nil,
+		Vector: vector,
+		Index:  index,
+	}
+}
+
+// NewEmbeddingUsage creates EmbeddingUsage from token counts without a cost estimate.
+//
+// Takes promptTokens (int) which is the number of tokens in the input text.
+// Takes totalTokens (int) which is the total number of tokens used.
+//
+// Returns *EmbeddingUsage which holds the token counts.
+func NewEmbeddingUsage(promptTokens, totalTokens int) *EmbeddingUsage {
+	return &EmbeddingUsage{
+		EstimatedCost: nil,
+		PromptTokens:  promptTokens,
+		TotalTokens:   totalTokens,
+	}
+}
+
 // FirstEmbedding returns the first embedding from the response, or an empty Embedding if
 // none exist. This is a convenience method for single-input requests.
 //

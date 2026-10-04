@@ -26,7 +26,7 @@ import (
 	fbs "piko.sh/piko/internal/typegen/typegen_schema/typegen_schema"
 )
 
-// ParseActionManifest converts a FlatBuffer byte slice to an ActionManifest DTO.
+// parseActionManifest converts a FlatBuffer byte slice to an ActionManifest DTO.
 //
 // When the data slice is empty, returns nil.
 //
@@ -38,7 +38,7 @@ import (
 // SAFETY: The returned DTO contains strings that reference 'data' directly via
 // mem.String. Go's GC keeps 'data' alive through these string references. The caller must
 // not modify 'data' while the DTO is in use.
-func ParseActionManifest(data []byte) *typegen_dto.ActionManifest {
+func parseActionManifest(data []byte) *typegen_dto.ActionManifest {
 	if len(data) == 0 {
 		return nil
 	}
@@ -55,6 +55,8 @@ func ParseActionManifest(data []byte) *typegen_dto.ActionManifest {
 func convertActionManifestFB(fb *fbs.ActionManifestFB) *typegen_dto.ActionManifest {
 	manifest := &typegen_dto.ActionManifest{
 		GeneratedAt: time.Unix(fb.GeneratedAt(), 0),
+		Actions:     nil,
+		Types:       nil,
 	}
 
 	actionCount := fb.ActionsLength()
@@ -97,6 +99,7 @@ func convertActionEntryFB(fb *fbs.ActionEntryFB) typegen_dto.ActionEntry {
 		Method:         mem.String(fb.Method()),
 		ReturnType:     mem.String(fb.ReturnType()),
 		Documentation:  mem.String(fb.Documentation()),
+		Params:         nil,
 	}
 
 	paramCount := fb.ParamsLength()
@@ -138,6 +141,7 @@ func convertActionTypeFB(fb *fbs.ActionTypeFB) typegen_dto.ActionType {
 	actionType := typegen_dto.ActionType{
 		Name:        mem.String(fb.Name()),
 		PackagePath: mem.String(fb.PackagePath()),
+		Fields:      nil,
 	}
 
 	fieldCount := fb.FieldsLength()

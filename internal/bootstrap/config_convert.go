@@ -73,18 +73,21 @@ const (
 // with defaults applied.
 func NewDaemonConfig(sc *ServerConfig) daemon_domain.DaemonConfig {
 	return daemon_domain.DaemonConfig{
-		NetworkPort:         deref(sc.Network.Port, "8080"),
-		NetworkAutoNextPort: deref(sc.Network.AutoNextPort, false),
-		HealthEnabled:       deref(sc.HealthProbe.Enabled, true),
-		HealthPort:          deref(sc.HealthProbe.Port, "9090"),
-		HealthBindAddress:   deref(sc.HealthProbe.BindAddress, "127.0.0.1"),
-		HealthAutoNextPort:  deref(sc.HealthProbe.AutoNextPort, false),
-		HealthLivePath:      deref(sc.HealthProbe.LivePath, "/live"),
-		HealthReadyPath:     deref(sc.HealthProbe.ReadyPath, "/ready"),
-		ShutdownDrainDelay:  time.Duration(deref(sc.HealthProbe.ShutdownDrainDelay, 0)) * time.Second,
-		TLS:                 NewTLSValues(&sc.Network.TLS),
-		TLSRedirectHTTPPort: deref(sc.Network.TLS.RedirectHTTPPort, ""),
-		HealthTLS:           NewHealthTLSValues(&sc.HealthProbe.TLS),
+		NetworkPort:          deref(sc.Network.Port, "8080"),
+		NetworkAutoNextPort:  deref(sc.Network.AutoNextPort, false),
+		HealthEnabled:        deref(sc.HealthProbe.Enabled, true),
+		HealthPort:           deref(sc.HealthProbe.Port, "9090"),
+		HealthBindAddress:    deref(sc.HealthProbe.BindAddress, "127.0.0.1"),
+		HealthAutoNextPort:   deref(sc.HealthProbe.AutoNextPort, false),
+		HealthLivePath:       deref(sc.HealthProbe.LivePath, "/live"),
+		HealthReadyPath:      deref(sc.HealthProbe.ReadyPath, "/ready"),
+		ShutdownDrainDelay:   time.Duration(deref(sc.HealthProbe.ShutdownDrainDelay, 0)) * time.Second,
+		TLS:                  NewTLSValues(&sc.Network.TLS),
+		TLSRedirectHTTPPort:  deref(sc.Network.TLS.RedirectHTTPPort, ""),
+		HealthTLS:            NewHealthTLSValues(&sc.HealthProbe.TLS),
+		MaxConcurrentSEOJobs: 0,
+		IAmACatPerson:        false,
+		DevelopmentMode:      false,
 	}
 }
 
@@ -198,17 +201,23 @@ func NewRouterConfig(
 	}
 
 	return &daemon_domain.RouterConfig{
-		Port:                  deref(sc.Network.Port, "8080"),
-		PublicDomain:          deref(sc.Network.PublicDomain, "localhost:8080"),
-		ForceHTTPS:            forceHTTPS,
-		RequestTimeoutSeconds: deref(sc.Network.RequestTimeoutSeconds, defaultRequestTimeoutSeconds),
-		MaxConcurrentRequests: deref(sc.Network.MaxConcurrentRequests, defaultMaxConcurrentRequests),
-		DistServePath:         deref(sc.Paths.DistServePath, "/_piko/dist"),
-		ArtefactServePath:     deref(sc.Paths.ArtefactServePath, "/_piko/assets"),
-		SecurityHeaders:       shValues,
-		RateLimit:             NewRateLimitValues(&sc.Security.RateLimit),
-		Reporting:             NewReportingValues(new(reportingConfig)),
-		WatchMode:             deref(sc.Build.WatchMode, false),
+		Port:                      deref(sc.Network.Port, "8080"),
+		PublicDomain:              deref(sc.Network.PublicDomain, "localhost:8080"),
+		ForceHTTPS:                forceHTTPS,
+		RequestTimeoutSeconds:     deref(sc.Network.RequestTimeoutSeconds, defaultRequestTimeoutSeconds),
+		MaxConcurrentRequests:     deref(sc.Network.MaxConcurrentRequests, defaultMaxConcurrentRequests),
+		DistServePath:             deref(sc.Paths.DistServePath, "/_piko/dist"),
+		ArtefactServePath:         deref(sc.Paths.ArtefactServePath, "/_piko/assets"),
+		SecurityHeaders:           shValues,
+		RateLimit:                 NewRateLimitValues(&sc.Security.RateLimit),
+		Reporting:                 NewReportingValues(new(reportingConfig)),
+		WatchMode:                 deref(sc.Build.WatchMode, false),
+		DevAPIHandler:             nil,
+		DevEventsBroadcaster:      nil,
+		DevPreviewHandler:         nil,
+		RobotsTxtBlock:            nil,
+		DisableHTTPCache:          false,
+		SitemapCacheMaxAgeSeconds: 0,
 	}
 }
 

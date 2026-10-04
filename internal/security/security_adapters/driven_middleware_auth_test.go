@@ -28,7 +28,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"piko.sh/piko/internal/daemon/daemon_dto"
-	"piko.sh/piko/internal/logger/logger_domain"
 )
 
 type stubAuthContext struct {
@@ -55,7 +54,7 @@ func TestAuthMiddleware_StoresAuthContext(t *testing.T) {
 	provider := &stubAuthProvider{
 		authContext: &stubAuthContext{authenticated: true, userID: "user-1"},
 	}
-	middleware := NewAuthMiddleware(provider, logger_domain.GetLogger("test/auth"))
+	middleware := NewAuthMiddleware(provider)
 
 	var capturedAuth daemon_dto.AuthContext
 	handler := middleware.Handler(http.HandlerFunc(func(_ http.ResponseWriter, request *http.Request) {
@@ -85,8 +84,8 @@ func TestAuthMiddleware_StoresAuthContext(t *testing.T) {
 func TestAuthMiddleware_NilAuth_PassesThrough(t *testing.T) {
 	t.Parallel()
 
-	provider := &stubAuthProvider{authContext: nil, err: nil}
-	middleware := NewAuthMiddleware(provider, logger_domain.GetLogger("test/auth"))
+	provider := &stubAuthProvider{}
+	middleware := NewAuthMiddleware(provider)
 
 	called := false
 	handler := middleware.Handler(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
@@ -109,7 +108,7 @@ func TestAuthMiddleware_Error_TreatsAsUnauthenticated(t *testing.T) {
 	t.Parallel()
 
 	provider := &stubAuthProvider{err: errors.New("database unreachable")}
-	middleware := NewAuthMiddleware(provider, logger_domain.GetLogger("test/auth"))
+	middleware := NewAuthMiddleware(provider)
 
 	called := false
 	handler := middleware.Handler(http.HandlerFunc(func(_ http.ResponseWriter, request *http.Request) {
@@ -136,7 +135,7 @@ func TestAuthMiddleware_NoPikoRequestCtx_PassesThrough(t *testing.T) {
 	provider := &stubAuthProvider{
 		authContext: &stubAuthContext{authenticated: true},
 	}
-	middleware := NewAuthMiddleware(provider, logger_domain.GetLogger("test/auth"))
+	middleware := NewAuthMiddleware(provider)
 
 	called := false
 	handler := middleware.Handler(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {

@@ -252,7 +252,7 @@ func TestNormaliseToCallExpr(t *testing.T) {
 		wantNil    bool
 	}{
 		{
-			name: "CallExpr returned directly",
+			name: "CallExpr passed through unchanged",
 			expression: &ast_domain.CallExpression{
 				Callee: &ast_domain.Identifier{Name: "doSomething"},
 				Args: []ast_domain.Expression{
@@ -264,12 +264,21 @@ func TestNormaliseToCallExpr(t *testing.T) {
 		},
 		{
 			name:       "Identifier wrapped in CallExpr with implicit $event",
-			expression: &ast_domain.Identifier{Name: "doSomething"},
+			expression: &ast_domain.Identifier{Name: "handleClick"},
 			wantNil:    false,
 			wantArgs:   1,
 		},
 		{
-			name:       "unsupported expression returns nil",
+			name: "BinaryExpression returns nil",
+			expression: &ast_domain.BinaryExpression{
+				Operator: ast_domain.OpPlus,
+				Left:     &ast_domain.IntegerLiteral{Value: 1},
+				Right:    &ast_domain.IntegerLiteral{Value: 2},
+			},
+			wantNil: true,
+		},
+		{
+			name:       "StringLiteral returns nil",
 			expression: &ast_domain.StringLiteral{Value: "not a call"},
 			wantNil:    true,
 		},
@@ -289,7 +298,12 @@ func TestNormaliseToCallExpr(t *testing.T) {
 			require.NotNil(t, result)
 			assert.Len(t, result.Args, tc.wantArgs)
 
-			if _, isIdent := tc.expression.(*ast_domain.Identifier); isIdent {
+			if ce, ok := tc.expression.(*ast_domain.CallExpression); ok {
+				assert.Same(t, ce, result, "CallExpr should be passed through without wrapping")
+			}
+
+			if identifier, ok := tc.expression.(*ast_domain.Identifier); ok {
+				assert.Same(t, identifier, result.Callee, "callee should be the original identifier")
 				require.Len(t, result.Args, 1)
 				eventArg, ok := result.Args[0].(*ast_domain.Identifier)
 				require.True(t, ok, "implicit argument should be an Identifier")

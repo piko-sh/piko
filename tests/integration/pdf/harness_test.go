@@ -39,6 +39,7 @@ import (
 	"github.com/chromedp/cdproto/page"
 	cdpruntime "github.com/chromedp/cdproto/runtime"
 	"github.com/chromedp/chromedp"
+	"piko.sh/goastutil"
 	"piko.sh/piko"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/caller"
@@ -47,7 +48,6 @@ import (
 	"piko.sh/piko/internal/config/config_domain"
 	"piko.sh/piko/internal/fonts"
 	"piko.sh/piko/internal/generator/generator_helpers"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/i18n/i18n_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/render/render_domain"
@@ -170,9 +170,13 @@ var (
 			))
 		}
 
-		service, err := pdf.NewServiceFromManifest(context.Background(), manifestPath, serviceOpts...)
+		service, err := pdf.NewServiceFromManifest(manifestPath, serviceOpts...)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "PDF service creation failed: %v\n", err)
+			os.Exit(1)
+		}
+		if err := service.Load(context.Background()); err != nil {
+			fmt.Fprintf(os.Stderr, "PDF manifest loading failed: %v\n", err)
 			os.Exit(1)
 		}
 

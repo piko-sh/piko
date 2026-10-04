@@ -547,9 +547,9 @@ func TestLocation_Add(t *testing.T) {
 		},
 		{
 			name:     "both synthetic returns base",
-			base:     Location{Line: 0, Column: 0, Offset: 0},
-			other:    Location{Line: 0, Column: 0, Offset: 0},
-			expected: Location{Line: 0, Column: 0, Offset: 0},
+			base:     Location{},
+			other:    Location{},
+			expected: Location{},
 		},
 		{
 			name:     "other on same line adds columns",

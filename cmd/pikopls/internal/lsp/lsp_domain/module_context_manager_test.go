@@ -25,7 +25,11 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/internal/config"
+	"piko.sh/piko/wdk/safedisk"
 )
 
 func TestFindGoModRoot(t *testing.T) {
@@ -185,5 +189,20 @@ func TestModuleContext(t *testing.T) {
 		if len(eps1) != len(eps2) {
 			t.Errorf("entry point count changed after invalidation: %d vs %d", len(eps1), len(eps2))
 		}
+	})
+
+	t.Run("detects the module when the sandbox factory does not allow its directory", func(t *testing.T) {
+		otherRoot := t.TempDir()
+		factory, err := safedisk.NewFactory(safedisk.FactoryConfig{
+			CWD:          otherRoot,
+			AllowedPaths: []string{otherRoot},
+			Enabled:      true,
+		})
+		require.NoError(t, err)
+
+		mc, err := NewModuleContext(context.Background(), moduleRoot, baseConfig, WithModuleSandboxFactory(factory))
+
+		require.NoError(t, err)
+		assert.NotEmpty(t, mc.ModuleName)
 	})
 }

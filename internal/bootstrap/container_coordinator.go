@@ -155,7 +155,12 @@ func (c *Container) createAnnotatorServiceInstance(
 		enableDebugLogFiles = *c.compilerDebugLogsEnabled
 	}
 
-	return annotator_domain.NewAnnotatorService(c.GetAppContext(), &annotator_domain.AnnotatorServiceConfig{
+	sandboxFactory, err := c.GetSandboxFactory()
+	if err != nil {
+		return nil, fmt.Errorf(errCreateSandboxFactory, err)
+	}
+
+	return annotator_domain.NewAnnotatorService(&annotator_domain.AnnotatorServiceConfig{
 		Resolver:              resolver,
 		FSReader:              fsReader,
 		TypeInspector:         annotator_domain.NewTypeInspectorBuilderAdapter(typeInspectorManager),
@@ -169,7 +174,8 @@ func (c *Container) createAnnotatorServiceInstance(
 		CollectionService:     collectionService,
 		ComponentRegistry:     c.GetComponentRegistry(),
 		GlobalTranslationKeys: c.loadGlobalTranslationKeys(c.GetAppContext()),
-	})
+		InMemoryMode:          false,
+	}, annotator_domain.WithCompilationLogSandboxFactory(sandboxFactory)), nil
 }
 
 // loadGlobalTranslationKeys returns the union of project-level translation keys across
@@ -434,7 +440,7 @@ func (c *Container) GetCodeEmitter() (coordinator_domain.CodeEmitterPort, error)
 	prerenderer := render_domain.NewRenderOrchestrator(nil, nil, nil, nil,
 		render_domain.WithStripHTMLComments(c.experimentalCommentStripping),
 	)
-	factory := driven_code_emitter_go_literal.NewEmitterFactory(c.GetAppContext(), prerenderer)
+	factory := driven_code_emitter_go_literal.NewEmitterFactory(prerenderer)
 	emitter := factory.NewEmitter()
 	return emitter, nil
 }
@@ -508,9 +514,11 @@ func (c *Container) GetResolver() (resolver_domain.ResolverPort, error) {
 			c.resolver = c.resolverOverride
 			return
 		}
-		localResolver := resolver_adapters.NewLocalModuleResolver(deref(c.serverConfig.Paths.BaseDir, "."))
-		cacheResolver := resolver_adapters.NewGoModuleCacheResolver()
-		resolver := resolver_adapters.NewChainedResolver(localResolver, cacheResolver)
+		resolver, err := c.newChainedModuleResolver()
+		if err != nil {
+			c.resolverErr = fmt.Errorf("creating module resolver: %w", err)
+			return
+		}
 		if err := resolver.DetectLocalModule(c.GetAppContext()); err != nil {
 			c.resolverErr = fmt.Errorf("could not detect Go module: %w", err)
 			return
@@ -518,6 +526,24 @@ func (c *Container) GetResolver() (resolver_domain.ResolverPort, error) {
 		c.resolver = resolver
 	})
 	return c.resolver, c.resolverErr
+}
+
+// newChainedModuleResolver creates a resolver that tries the local module first and then
+// the Go module cache, reading go.mod through the container's sandbox factory.
+//
+// Returns *resolver_adapters.ChainedResolver which has not yet detected the module.
+// Returns error when the sandbox factory cannot be created.
+func (c *Container) newChainedModuleResolver() (*resolver_adapters.ChainedResolver, error) {
+	factory, err := c.GetSandboxFactory()
+	if err != nil {
+		return nil, fmt.Errorf(errCreateSandboxFactory, err)
+	}
+	localResolver := resolver_adapters.NewLocalModuleResolver(
+		deref(c.serverConfig.Paths.BaseDir, "."),
+		resolver_adapters.WithSandboxFactory(factory),
+	)
+	cacheResolver := resolver_adapters.NewGoModuleCacheResolver()
+	return resolver_adapters.NewChainedResolver(localResolver, cacheResolver), nil
 }
 
 // createDefaultGeneratorService sets up the generator service with default settings.
@@ -536,7 +562,7 @@ func (c *Container) createDefaultGeneratorService() {
 		return
 	}
 
-	c.generatorService, c.generatorErr = generator_domain.NewGeneratorService(c.GetAppContext(), NewGeneratorPathsConfig(serverConfig), deref(serverConfig.I18nDefaultLocale, "en"), ports,
+	generatorService, err := generator_domain.NewGeneratorService(NewGeneratorPathsConfig(serverConfig), deref(serverConfig.I18nDefaultLocale, "en"), ports,
 		generator_domain.WithPrerendering(c.experimentalPrerendering),
 		generator_domain.WithStripHTMLComments(c.experimentalCommentStripping),
 		generator_domain.WithDwarfLineDirectives(c.experimentalDwarfLineDirectives),
@@ -544,6 +570,15 @@ func (c *Container) createDefaultGeneratorService() {
 		generator_domain.WithVerifyGeneratedCode(c.verifyGeneratedCode),
 		generator_domain.WithI18nLocales(c.GetWebsiteConfig().I18n.Locales),
 	)
+	if err != nil {
+		c.generatorErr = err
+		return
+	}
+	if err := generatorService.EnsureDistPackage(c.GetAppContext()); err != nil {
+		c.generatorErr = err
+		return
+	}
+	c.generatorService = generatorService
 }
 
 // generatorSandboxes holds the sandboxes for the generator service.
@@ -616,7 +651,7 @@ func (c *Container) createGeneratorPorts(serverConfig *ServerConfig, sandboxes g
 		Coordinator:        coordinator,
 		Resolver:           resolver,
 		RegisterEmitter:    generator_adapters.NewRegisterEmitter(fsWriter),
-		CodeEmitterFactory: driven_code_emitter_go_literal.NewEmitterFactory(c.GetAppContext(), prerenderer),
+		CodeEmitterFactory: driven_code_emitter_go_literal.NewEmitterFactory(prerenderer),
 		CollectionEmitter:  c.createCollectionEmitter(fsWriter, sandboxes.output, resolver),
 		SearchIndexEmitter: c.createSearchIndexEmitter(fsWriter, sandboxes.output, resolver),
 		PKJSEmitter:        c.createPKJSEmitter(),
@@ -627,6 +662,7 @@ func (c *Container) createGeneratorPorts(serverConfig *ServerConfig, sandboxes g
 		}, sandboxes.source, sandboxes.output),
 		ActionGenerator: generator_adapters.NewActionGeneratorAdapter(generator_adapters.WithActionSandbox(sandboxes.output)),
 		SEOService:      c.getSEOServiceOptional(),
+		SandboxFactory:  nil,
 	}, nil
 }
 
@@ -738,9 +774,11 @@ func (c *Container) createDefaultTypeInspectorManager() {
 		}
 	}
 
-	localResolver := resolver_adapters.NewLocalModuleResolver(deref(serverConfig.Paths.BaseDir, "."))
-	cacheResolver := resolver_adapters.NewGoModuleCacheResolver()
-	resolver := resolver_adapters.NewChainedResolver(localResolver, cacheResolver)
+	resolver, err := c.newChainedModuleResolver()
+	if err != nil {
+		c.typeInspectorBuilderErr = fmt.Errorf("creating module resolver for type inspector: %w", err)
+		return
+	}
 	if err := resolver.DetectLocalModule(c.GetAppContext()); err != nil {
 		c.typeInspectorBuilderErr = fmt.Errorf("could not detect Go module for type inspector: %w", err)
 		return
@@ -756,6 +794,11 @@ func (c *Container) createDefaultTypeInspectorManager() {
 			BuildFlags:         inspector_dto.AnalysisBuildFlags,
 			UseStandardLoader:  c.useStandardLoader,
 			TolerateTypeErrors: true,
+			MaxParseWorkers:    nil,
+			GOOS:               "",
+			GOARCH:             "",
+			GOCACHE:            "",
+			GOMODCACHE:         "",
 		},
 		builderOptions...,
 	)

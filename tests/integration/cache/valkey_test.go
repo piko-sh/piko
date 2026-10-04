@@ -374,11 +374,9 @@ func TestValkey_Concurrency_ParallelSetGet(t *testing.T) {
 	const opsPerGoroutine = 100
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
-	for g := range goroutines {
-		go func(id int) {
-			defer wg.Done()
+	for id := range goroutines {
+		wg.Go(func() {
 
 			for i := range opsPerGoroutine {
 				key := fmt.Sprintf("g%d-k%d", id, i)
@@ -391,7 +389,7 @@ func TestValkey_Concurrency_ParallelSetGet(t *testing.T) {
 				assert.True(t, ok, "key %q should be present", key)
 				assert.Equal(t, value, got, "value mismatch for key %q", key)
 			}
-		}(g)
+		})
 	}
 
 	wg.Wait()
@@ -409,13 +407,11 @@ func TestValkey_Concurrency_HotKey(t *testing.T) {
 	require.NoError(t, c.Set(ctx, hotKey, "initial-value"))
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	errors := make(chan error, goroutines)
 
-	for g := range goroutines {
-		go func(id int) {
-			defer wg.Done()
+	for id := range goroutines {
+		wg.Go(func() {
 
 			value := fmt.Sprintf("writer-%d", id)
 			if err := c.Set(ctx, hotKey, value); err != nil {
@@ -435,7 +431,7 @@ func TestValkey_Concurrency_HotKey(t *testing.T) {
 			if len(got) == 0 {
 				errors <- fmt.Errorf("goroutine %d: got empty value", id)
 			}
-		}(g)
+		})
 	}
 
 	wg.Wait()
@@ -456,15 +452,13 @@ func TestValkey_Concurrency_Compute_Contention(t *testing.T) {
 	key := uniqueKey(t, "compute-contention")
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
-	for g := range goroutines {
-		go func(id int) {
-			defer wg.Done()
+	for id := range goroutines {
+		wg.Go(func() {
 			_, _, _ = c.ComputeIfAbsent(ctx, key, func() string {
 				return fmt.Sprintf("writer-%d", id)
 			})
-		}(g)
+		})
 	}
 
 	wg.Wait()
@@ -788,13 +782,11 @@ func TestValkeyCluster_Concurrency(t *testing.T) {
 	const opsPerGoroutine = 50
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	errors := make(chan error, goroutines*opsPerGoroutine)
 
-	for g := range goroutines {
-		go func(id int) {
-			defer wg.Done()
+	for id := range goroutines {
+		wg.Go(func() {
 
 			for i := range opsPerGoroutine {
 				key := fmt.Sprintf("g%d-k%d", id, i)
@@ -818,7 +810,7 @@ func TestValkeyCluster_Concurrency(t *testing.T) {
 					errors <- fmt.Errorf("goroutine %d, op %d: value mismatch: got %q, want %q", id, i, got, value)
 				}
 			}
-		}(g)
+		})
 	}
 
 	wg.Wait()
@@ -827,4 +819,38 @@ func TestValkeyCluster_Concurrency(t *testing.T) {
 	for err := range errors {
 		t.Error(err)
 	}
+}
+
+func TestValkey_CloseLeavesOtherNamespacesUsable(t *testing.T) {
+	skipIfNoValkey(t)
+	t.Parallel()
+
+	encoder := cache_encoder_json.New[string]()
+	provider, err := cache_provider_valkey.NewValkeyProvider(cache_provider_valkey.Config{
+		Address:    globalEnv.valkeyAddr,
+		DefaultTTL: time.Hour,
+		Registry:   cache.NewEncodingRegistry(encoder.(cache.AnyEncoder)),
+	})
+	require.NoError(t, err, "creating valkey provider")
+
+	createNamespace := func(namespace string) *cache_provider_valkey.ValkeyAdapter[string, string] {
+		cacheAny, err := provider.CreateNamespaceTyped(uniqueKey(t, namespace)+":", cache.Options[string, string]{})
+		require.NoError(t, err)
+		adapter, ok := cacheAny.(*cache_provider_valkey.ValkeyAdapter[string, string])
+		require.True(t, ok)
+		return adapter
+	}
+	closed := createNamespace("vk-closed")
+	open := createNamespace("vk-open")
+	ctx := context.Background()
+
+	require.NoError(t, closed.Close(ctx))
+
+	key := uniqueKey(t, "page")
+	require.NoError(t, open.Set(ctx, key, "rendered"))
+	value, found, err := open.GetIfPresent(ctx, key)
+	require.NoError(t, err)
+	assert.True(t, found)
+	assert.Equal(t, "rendered", value)
+	assert.NoError(t, provider.Close(), "the provider still owns an open client")
 }

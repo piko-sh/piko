@@ -568,14 +568,8 @@ func (*DiskProvider) SupportsPresignedURLs() bool {
 func (d *DiskProvider) RemoveMany(ctx context.Context, params storage_dto.RemoveManyParams) (*storage_dto.BatchResult, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	startTime := time.Now()
-	result := &storage_dto.BatchResult{
-		TotalRequested:  len(params.Keys),
-		TotalSuccessful: 0,
-		TotalFailed:     0,
-		SuccessfulKeys:  nil,
-		FailedKeys:      nil,
-		ProcessingTime:  0,
-	}
+	result := &storage_dto.BatchResult{}
+	result.TotalRequested = len(params.Keys)
 
 	for _, key := range params.Keys {
 		if ctx.Err() != nil {
@@ -626,14 +620,8 @@ func (d *DiskProvider) RemoveMany(ctx context.Context, params storage_dto.Remove
 func (d *DiskProvider) PutMany(ctx context.Context, params *storage_dto.PutManyParams) (*storage_dto.BatchResult, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	startTime := time.Now()
-	result := &storage_dto.BatchResult{
-		TotalRequested:  len(params.Objects),
-		TotalSuccessful: 0,
-		TotalFailed:     0,
-		SuccessfulKeys:  nil,
-		FailedKeys:      nil,
-		ProcessingTime:  0,
-	}
+	result := &storage_dto.BatchResult{}
+	result.TotalRequested = len(params.Objects)
 
 	for _, storageObject := range params.Objects {
 		if ctx.Err() != nil {

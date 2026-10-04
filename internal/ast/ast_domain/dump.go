@@ -42,23 +42,42 @@ const (
 
 // DumpAST returns a text version of the AST for debugging.
 //
+// The dump is wrapped in a block comment so it can sit at the top of a compiled script.
+// Every `*/` inside it, which template text, attributes and expressions may all hold, is
+// written as `*\/` so the comment cannot end early and leave the rest of the dump to run
+// as script.
+//
 // When tree is nil, returns a string showing the AST is nil.
 //
 // Takes ctx (context.Context) which carries the request-scoped logger.
-// Takes tree (*TemplateAST) which is the parsed template tree to format.
+// Takes tree (*TemplateAST) which is the parsed template tree to format; it is not
+// changed.
 //
 // Returns string which contains the formatted AST wrapped in comment markers.
 func DumpAST(ctx context.Context, tree *TemplateAST) string {
 	if tree == nil {
 		return "/* AST is nil */\n"
 	}
-	var builder strings.Builder
-	builder.WriteString("/*\n--- BEGIN AST DUMP ---\n\n")
+	var body strings.Builder
 	for _, node := range tree.RootNodes {
-		dumpNode(ctx, &builder, node, 0)
+		dumpNode(ctx, &body, node, 0)
 	}
-	builder.WriteString("\n--- END AST DUMP ---\n*/")
-	return builder.String()
+	return "/*\n--- BEGIN AST DUMP ---\n\n" + escapeCommentTerminators(body.String()) + "\n--- END AST DUMP ---\n*/"
+}
+
+// SortAttributesByName orders the static and dynamic attributes of every element in a
+// tree by name, the order DumpAST lists them in, so output built from the tree does not
+// depend on the order the author wrote them in.
+//
+// Takes tree (*TemplateAST) which is sorted in place; a nil tree is left alone.
+func SortAttributesByName(tree *TemplateAST) {
+	tree.Walk(func(node *TemplateNode) bool {
+		if node.NodeType == NodeElement {
+			slices.SortFunc(node.Attributes, compareAttributeNames)
+			slices.SortFunc(node.DynamicAttributes, compareDynamicAttributeNames)
+		}
+		return true
+	})
 }
 
 // dumpNode writes a formatted view of a template node to the builder.
@@ -201,28 +220,28 @@ func getNodePackageAlias(node *TemplateNode) string {
 }
 
 // dumpAttributes writes the node's attributes to the string builder in sorted order by
-// name.
+// name, leaving the node's own attribute order unchanged.
 //
 // Takes builder (*strings.Builder) which receives the formatted attribute output.
 // Takes node (*TemplateNode) which provides the attributes to write.
 func dumpAttributes(builder *strings.Builder, node *TemplateNode) {
-	attrs := node.Attributes
-	slices.SortFunc(attrs, func(a, b HTMLAttribute) int { return cmp.Compare(a.Name, b.Name) })
+	attrs := slices.Clone(node.Attributes)
+	slices.SortFunc(attrs, compareAttributeNames)
 	for i := range attrs {
 		_, _ = fmt.Fprintf(builder, " %s=\"%s\"", attrs[i].Name, escapeString(attrs[i].Value))
 	}
 }
 
 // dumpDynamicAttributes writes the dynamic attributes of a template node to the string
-// builder in sorted order.
+// builder in sorted order, leaving the node's own attribute order unchanged.
 //
 // Takes builder (*strings.Builder) which receives the formatted output.
 // Takes node (*TemplateNode) which provides the dynamic attributes to write.
 // Takes nodePackageAlias (string) which is the package alias used to filter origin notes
 // that match the owning package from the output.
 func dumpDynamicAttributes(builder *strings.Builder, node *TemplateNode, nodePackageAlias string) {
-	dynAttrs := node.DynamicAttributes
-	slices.SortFunc(dynAttrs, func(a, b DynamicAttribute) int { return cmp.Compare(a.Name, b.Name) })
+	dynAttrs := slices.Clone(node.DynamicAttributes)
+	slices.SortFunc(dynAttrs, compareDynamicAttributeNames)
 
 	for i := range dynAttrs {
 		attr := &dynAttrs[i]
@@ -461,6 +480,38 @@ func escapeString(s string) string {
 	s = strings.ReplaceAll(s, "\n", "\\n")
 	s = strings.ReplaceAll(s, "\"", "\\\"")
 	return s
+}
+
+// compareAttributeNames orders two static attributes by name.
+//
+// Takes a (HTMLAttribute) which is the first attribute.
+// Takes b (HTMLAttribute) which is the second attribute.
+//
+// Returns int which is negative, zero or positive as a's name sorts before, with or after
+// b's.
+func compareAttributeNames(a, b HTMLAttribute) int {
+	return cmp.Compare(a.Name, b.Name)
+}
+
+// compareDynamicAttributeNames orders two dynamic attributes by name.
+//
+// Takes a (DynamicAttribute) which is the first attribute.
+// Takes b (DynamicAttribute) which is the second attribute.
+//
+// Returns int which is negative, zero or positive as a's name sorts before, with or after
+// b's.
+func compareDynamicAttributeNames(a, b DynamicAttribute) int {
+	return cmp.Compare(a.Name, b.Name)
+}
+
+// escapeCommentTerminators rewrites every `*/` in text as `*\/`, so the text can sit
+// inside a block comment without ending it.
+//
+// Takes text (string) which is the comment body to escape.
+//
+// Returns string which holds no `*/` sequence.
+func escapeCommentTerminators(text string) string {
+	return strings.ReplaceAll(text, "*/", `*\/`)
 }
 
 // expressionToString converts a Go expression to its string form.

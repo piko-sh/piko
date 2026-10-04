@@ -216,6 +216,8 @@ func NewExecutor(database *sql.DB, dialectConfig DialectConfig, options ...Execu
 		dialectConfig:           dialectConfig,
 		progressUpdateBatchSize: defaultProgressUpdateBatchSize,
 		clock:                   clock.RealClock(),
+		pinnedConnection:        nil,
+		appliedVersionsSQL:      "",
 	}
 	for _, option := range options {
 		option(executor)

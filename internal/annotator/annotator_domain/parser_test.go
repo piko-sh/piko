@@ -20,6 +20,7 @@ package annotator_domain
 
 import (
 	"context"
+	"errors"
 	goast "go/ast"
 	"go/token"
 	"testing"
@@ -167,6 +168,51 @@ body { margin: 0; }
 		var scriptErr *scriptBlockParseError
 		require.ErrorAs(t, err, &scriptErr, "Error should be of type scriptBlockParseError")
 		assert.Contains(t, scriptErr.reason, "found 'EOF'")
+	})
+
+	t.Run("should resolve a collection source alias from the script imports", func(t *testing.T) {
+		source := `<template p-collection="docs" p-collection-source="docs"><div></div></template>
+<script type="application/x-go">
+package main
+import _ "github.com/myorg/docs/v2"
+import "github.com/myorg/docs/v2"
+</script>`
+		parsedComponent, _, err := ParsePK(context.Background(), []byte(source), "test.pk")
+		require.NoError(t, err)
+		require.NotNil(t, parsedComponent)
+		assert.True(t, parsedComponent.HasCollection)
+		assert.Equal(t, "github.com/myorg/docs/v2", parsedComponent.ContentModulePath)
+	})
+
+	t.Run("should return a diagnostic error for an unresolvable collection source alias", func(t *testing.T) {
+		source := `<template p-collection="docs" p-collection-source="docz"><div></div></template>
+<script type="application/x-go">
+package main
+import docs "github.com/myorg/docs"
+</script>`
+		parsedComponent, _, err := ParsePK(context.Background(), []byte(source), "test.pk")
+		require.Error(t, err)
+		require.NotNil(t, parsedComponent)
+		assert.Empty(t, parsedComponent.ContentModulePath)
+
+		var diagErr *ParseDiagnosticError
+		require.ErrorAs(t, err, &diagErr)
+		require.Len(t, diagErr.Diagnostics, 1)
+		assert.Equal(t, annotator_dto.CodeCollectionSourceNotFound, diagErr.Diagnostics[0].Code)
+		assert.Equal(t, ast_domain.Error, diagErr.Diagnostics[0].Severity)
+		assert.Equal(t, 1, diagErr.Diagnostics[0].Location.Line)
+		require.NotNil(t, parsedComponent.Template)
+		assert.Contains(t, parsedComponent.Template.Diagnostics, diagErr.Diagnostics[0])
+	})
+
+	t.Run("should report the script error rather than the collection source when the script is invalid", func(t *testing.T) {
+		source := `<template p-collection="docs" p-collection-source="docs"><div></div></template>
+<script type="application/x-go">package main; func Render() {</script>`
+		_, _, err := ParsePK(context.Background(), []byte(source), "test.pk")
+		require.Error(t, err)
+
+		var scriptErr *scriptBlockParseError
+		require.ErrorAs(t, err, &scriptErr)
 	})
 
 	t.Run("should return an error for invalid i18n JSON", func(t *testing.T) {
@@ -501,83 +547,6 @@ func TestBuildParsedComponent(t *testing.T) {
 		assert.Equal(t, "console.log('hello')", comp.ClientScript)
 	})
 
-	t.Run("should populate collection fields when p-collection is present", func(t *testing.T) {
-		t.Parallel()
-
-		sfcResult := &sfcparser.ParseResult{
-			TemplateAttributes: map[string]string{
-				"p-collection": "posts",
-				"p-provider":   "filesystem",
-				"p-param":      "id",
-			},
-			Styles: []sfcparser.Style{},
-		}
-
-		comp := buildParsedComponent(nil, nil, nil, "/test.pk", sfcResult, nil)
-
-		assert.True(t, comp.HasCollection)
-		assert.Equal(t, "posts", comp.CollectionName)
-		assert.Equal(t, "filesystem", comp.CollectionProvider)
-		assert.Equal(t, "id", comp.CollectionParamName)
-	})
-
-	t.Run("should resolve collection source alias from Go imports", func(t *testing.T) {
-		t.Parallel()
-
-		sfcResult := &sfcparser.ParseResult{
-			TemplateAttributes: map[string]string{
-				"p-collection":        "posts",
-				"p-collection-source": "content",
-			},
-			Styles: []sfcparser.Style{},
-		}
-
-		parsedScript := &annotator_dto.ParsedScript{
-			AST: &goast.File{
-				Name: goast.NewIdent("main"),
-				Imports: []*goast.ImportSpec{
-					{
-						Name: goast.NewIdent("content"),
-						Path: &goast.BasicLit{Kind: token.STRING, Value: `"github.com/myorg/mysite/content"`},
-					},
-				},
-			},
-		}
-
-		comp := buildParsedComponent(nil, parsedScript, nil, "/test.pk", sfcResult, nil)
-
-		assert.True(t, comp.HasCollection)
-		assert.Equal(t, "github.com/myorg/mysite/content", comp.ContentModulePath)
-	})
-
-	t.Run("should handle collection source with no matching import", func(t *testing.T) {
-		t.Parallel()
-
-		sfcResult := &sfcparser.ParseResult{
-			TemplateAttributes: map[string]string{
-				"p-collection":        "posts",
-				"p-collection-source": "nonexistent",
-			},
-			Styles: []sfcparser.Style{},
-		}
-
-		parsedScript := &annotator_dto.ParsedScript{
-			AST: &goast.File{
-				Name: goast.NewIdent("main"),
-				Imports: []*goast.ImportSpec{
-					{
-						Path: &goast.BasicLit{Kind: token.STRING, Value: `"fmt"`},
-					},
-				},
-			},
-		}
-
-		comp := buildParsedComponent(nil, parsedScript, nil, "/test.pk", sfcResult, nil)
-
-		assert.True(t, comp.HasCollection)
-		assert.Empty(t, comp.ContentModulePath)
-	})
-
 	t.Run("should preserve style blocks and piko imports", func(t *testing.T) {
 		t.Parallel()
 
@@ -601,115 +570,401 @@ func TestBuildParsedComponent(t *testing.T) {
 	})
 }
 
+func TestApplyCollectionDirective(t *testing.T) {
+	t.Parallel()
+
+	contentImports := []*goast.ImportSpec{
+		{
+			Name: goast.NewIdent("content"),
+			Path: &goast.BasicLit{Kind: token.STRING, Value: `"github.com/myorg/mysite/content"`},
+		},
+	}
+
+	testCases := []struct {
+		name                  string
+		attributes            map[string]string
+		imports               []*goast.ImportSpec
+		wantCollection        bool
+		wantName              string
+		wantProvider          string
+		wantParam             string
+		wantContentModulePath string
+		wantDiagnostic        bool
+	}{
+		{
+			name:       "leaves the component untouched without p-collection",
+			attributes: map[string]string{},
+		},
+		{
+			name: "populates collection fields when p-collection is present",
+			attributes: map[string]string{
+				"p-collection": "posts",
+				"p-provider":   "filesystem",
+				"p-param":      "id",
+			},
+			wantCollection: true,
+			wantName:       "posts",
+			wantProvider:   "filesystem",
+			wantParam:      "id",
+		},
+		{
+			name: "resolves the collection source alias from Go imports",
+			attributes: map[string]string{
+				"p-collection":        "posts",
+				"p-collection-source": "content",
+			},
+			imports:               contentImports,
+			wantCollection:        true,
+			wantName:              "posts",
+			wantProvider:          "markdown",
+			wantParam:             "slug",
+			wantContentModulePath: "github.com/myorg/mysite/content",
+		},
+		{
+			name: "reports an error when the collection source alias matches no import",
+			attributes: map[string]string{
+				"p-collection":        "posts",
+				"p-collection-source": "nonexistent",
+			},
+			imports: []*goast.ImportSpec{
+				{Path: &goast.BasicLit{Kind: token.STRING, Value: `"fmt"`}},
+			},
+			wantCollection: true,
+			wantName:       "posts",
+			wantProvider:   "markdown",
+			wantParam:      "slug",
+			wantDiagnostic: true,
+		},
+		{
+			name: "reports an error when the component has no script",
+			attributes: map[string]string{
+				"p-collection":        "posts",
+				"p-collection-source": "content",
+			},
+			wantCollection: true,
+			wantName:       "posts",
+			wantProvider:   "markdown",
+			wantParam:      "slug",
+			wantDiagnostic: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			sfcResult := &sfcparser.ParseResult{
+				TemplateAttributes: tc.attributes,
+				TemplateLocation:   sfcparser.Location{Line: 3, Column: 1},
+				Styles:             []sfcparser.Style{},
+			}
+			var parsedScript *annotator_dto.ParsedScript
+			if tc.imports != nil {
+				parsedScript = &annotator_dto.ParsedScript{
+					AST: &goast.File{Name: goast.NewIdent("main"), Imports: tc.imports},
+				}
+			}
+
+			component := buildParsedComponent(nil, parsedScript, nil, "/test.pk", sfcResult, nil)
+			diagnostic := applyCollectionDirective(component, sfcResult, parsedScript, "/test.pk")
+
+			assert.Equal(t, tc.wantCollection, component.HasCollection)
+			assert.Equal(t, tc.wantName, component.CollectionName)
+			assert.Equal(t, tc.wantProvider, component.CollectionProvider)
+			assert.Equal(t, tc.wantParam, component.CollectionParamName)
+			assert.Equal(t, tc.wantContentModulePath, component.ContentModulePath)
+
+			if !tc.wantDiagnostic {
+				assert.Nil(t, diagnostic)
+				return
+			}
+			require.NotNil(t, diagnostic)
+			assert.Equal(t, ast_domain.Error, diagnostic.Severity)
+			assert.Equal(t, annotator_dto.CodeCollectionSourceNotFound, diagnostic.Code)
+			assert.Equal(t, "/test.pk", diagnostic.SourcePath)
+			assert.Equal(t, 3, diagnostic.Location.Line)
+			assert.Contains(t, diagnostic.Message, tc.attributes["p-collection-source"])
+		})
+	}
+}
+
 func TestResolveCollectionSourceAlias(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should resolve a named alias import", func(t *testing.T) {
-		t.Parallel()
-
-		imports := []*goast.ImportSpec{
-			{
-				Name: goast.NewIdent("content"),
-				Path: &goast.BasicLit{Kind: token.STRING, Value: `"github.com/myorg/mysite/content"`},
-			},
+	namedImport := func(name, path string) *goast.ImportSpec {
+		return &goast.ImportSpec{
+			Name: goast.NewIdent(name),
+			Path: &goast.BasicLit{Kind: token.STRING, Value: `"` + path + `"`},
 		}
+	}
+	unnamedImport := func(path string) *goast.ImportSpec {
+		return &goast.ImportSpec{Path: &goast.BasicLit{Kind: token.STRING, Value: `"` + path + `"`}}
+	}
 
-		result := resolveCollectionSourceAlias("content", imports)
-
-		assert.Equal(t, "github.com/myorg/mysite/content", result)
-	})
-
-	t.Run("should resolve via last path segment when no explicit alias", func(t *testing.T) {
-		t.Parallel()
-
-		imports := []*goast.ImportSpec{
-			{
-				Path: &goast.BasicLit{Kind: token.STRING, Value: `"github.com/myorg/myblog/articles"`},
+	testCases := []struct {
+		name      string
+		alias     string
+		imports   []*goast.ImportSpec
+		wantPath  string
+		wantFound bool
+	}{
+		{
+			name:      "resolves a named import",
+			alias:     "content",
+			imports:   []*goast.ImportSpec{namedImport("content", "github.com/myorg/mysite/content")},
+			wantPath:  "github.com/myorg/mysite/content",
+			wantFound: true,
+		},
+		{
+			name:      "resolves an unnamed import by its last path element",
+			alias:     "articles",
+			imports:   []*goast.ImportSpec{unnamedImport("github.com/myorg/myblog/articles")},
+			wantPath:  "github.com/myorg/myblog/articles",
+			wantFound: true,
+		},
+		{
+			name:      "skips a major-version suffix when matching an unnamed import",
+			alias:     "docs",
+			imports:   []*goast.ImportSpec{unnamedImport("github.com/myorg/docs/v2")},
+			wantPath:  "github.com/myorg/docs/v2",
+			wantFound: true,
+		},
+		{
+			name:    "does not match the major-version suffix itself",
+			alias:   "v2",
+			imports: []*goast.ImportSpec{unnamedImport("github.com/myorg/docs/v2")},
+		},
+		{
+			name:      "resolves a single-element import path",
+			alias:     "content",
+			imports:   []*goast.ImportSpec{unnamedImport("content")},
+			wantPath:  "content",
+			wantFound: true,
+		},
+		{
+			name:    "does not match the path of an import renamed to something else",
+			alias:   "content",
+			imports: []*goast.ImportSpec{namedImport("other", "github.com/myorg/content")},
+		},
+		{
+			name:    "reports not found when no import matches",
+			alias:   "content",
+			imports: []*goast.ImportSpec{unnamedImport("fmt")},
+		},
+		{
+			name:  "reports not found for nil imports",
+			alias: "content",
+		},
+		{
+			name:    "reports not found for an empty alias",
+			alias:   "",
+			imports: []*goast.ImportSpec{unnamedImport("github.com/myorg/content")},
+		},
+		{
+			name:    "does not match a blank import",
+			alias:   "_",
+			imports: []*goast.ImportSpec{namedImport("_", "github.com/myorg/content")},
+		},
+		{
+			name:      "skips nil import specs",
+			alias:     "content",
+			imports:   []*goast.ImportSpec{nil, namedImport("content", "github.com/content")},
+			wantPath:  "github.com/content",
+			wantFound: true,
+		},
+		{
+			name:  "skips import specs with a nil path",
+			alias: "content",
+			imports: []*goast.ImportSpec{
+				{Name: goast.NewIdent("content"), Path: nil},
+				namedImport("content", "github.com/real/content"),
 			},
-		}
-
-		result := resolveCollectionSourceAlias("articles", imports)
-
-		assert.Equal(t, "github.com/myorg/myblog/articles", result)
-	})
-
-	t.Run("should return empty string when alias is not found", func(t *testing.T) {
-		t.Parallel()
-
-		imports := []*goast.ImportSpec{
-			{
-				Path: &goast.BasicLit{Kind: token.STRING, Value: `"fmt"`},
+			wantPath:  "github.com/real/content",
+			wantFound: true,
+		},
+		{
+			name:  "skips import specs with an invalid path literal",
+			alias: "content",
+			imports: []*goast.ImportSpec{
+				{Name: goast.NewIdent("content"), Path: &goast.BasicLit{Kind: token.STRING, Value: `"unterminated`}},
+				namedImport("content", "github.com/real/content"),
 			},
-		}
-
-		result := resolveCollectionSourceAlias("content", imports)
-
-		assert.Empty(t, result)
-	})
-
-	t.Run("should handle nil imports slice", func(t *testing.T) {
-		t.Parallel()
-
-		result := resolveCollectionSourceAlias("content", nil)
-
-		assert.Empty(t, result)
-	})
-
-	t.Run("should handle empty imports slice", func(t *testing.T) {
-		t.Parallel()
-
-		result := resolveCollectionSourceAlias("content", []*goast.ImportSpec{})
-
-		assert.Empty(t, result)
-	})
-
-	t.Run("should skip nil import specs", func(t *testing.T) {
-		t.Parallel()
-
-		imports := []*goast.ImportSpec{
-			nil,
-			{
-				Name: goast.NewIdent("content"),
-				Path: &goast.BasicLit{Kind: token.STRING, Value: `"github.com/content"`},
+			wantPath:  "github.com/real/content",
+			wantFound: true,
+		},
+		{
+			name:  "uses the first matching import",
+			alias: "myalias",
+			imports: []*goast.ImportSpec{
+				namedImport("myalias", "github.com/org/myalias-pkg"),
+				unnamedImport("github.com/org/myalias"),
 			},
-		}
+			wantPath:  "github.com/org/myalias-pkg",
+			wantFound: true,
+		},
+	}
 
-		result := resolveCollectionSourceAlias("content", imports)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-		assert.Equal(t, "github.com/content", result)
-	})
+			path, found := resolveCollectionSourceAlias(tc.alias, tc.imports)
 
-	t.Run("should skip import specs with nil Path", func(t *testing.T) {
+			assert.Equal(t, tc.wantFound, found)
+			assert.Equal(t, tc.wantPath, path)
+		})
+	}
+}
+
+func TestAssumedPackageName(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		importPath string
+		want       string
+	}{
+		{importPath: "fmt", want: "fmt"},
+		{importPath: "net/http", want: "http"},
+		{importPath: "github.com/org/repo/v2", want: "repo"},
+		{importPath: "github.com/org/repo/v10", want: "repo"},
+		{importPath: "example.com/v3", want: "example.com"},
+		{importPath: "github.com/org/version", want: "version"},
+		{importPath: "github.com/org/v", want: "v"},
+		{importPath: "github.com/org/v2beta", want: "v2beta"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.importPath, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, tc.want, assumedPackageName(tc.importPath))
+		})
+	}
+}
+
+func TestAttachComponentDiagnostic(t *testing.T) {
+	t.Parallel()
+
+	newDiagnostic := func(message string) *ast_domain.Diagnostic {
+		return ast_domain.NewDiagnosticWithCode(ast_domain.Error, message, "", annotator_dto.CodeCollectionSourceNotFound, ast_domain.Location{}, "/test.pk")
+	}
+
+	t.Run("creates a parse diagnostic error when there was no template error", func(t *testing.T) {
 		t.Parallel()
 
-		imports := []*goast.ImportSpec{
-			{Name: goast.NewIdent("content"), Path: nil},
-			{
-				Name: goast.NewIdent("content"),
-				Path: &goast.BasicLit{Kind: token.STRING, Value: `"github.com/real/content"`},
-			},
-		}
+		warning := ast_domain.NewDiagnostic(ast_domain.Warning, "existing warning", "", ast_domain.Location{}, "/test.pk")
+		component := &annotator_dto.ParsedComponent{}
+		component.SourcePath = "/test.pk"
+		component.Template = &ast_domain.TemplateAST{}
+		component.Template.Diagnostics = []*ast_domain.Diagnostic{warning}
+		diagnostic := newDiagnostic("collection")
 
-		result := resolveCollectionSourceAlias("content", imports)
+		err := attachComponentDiagnostic(component, nil, diagnostic, "<div></div>")
 
-		assert.Equal(t, "github.com/real/content", result)
+		diagErr, ok := errors.AsType[*ParseDiagnosticError](err)
+		require.True(t, ok)
+		assert.Equal(t, []*ast_domain.Diagnostic{warning, diagnostic}, diagErr.Diagnostics)
+		assert.Equal(t, "/test.pk", diagErr.SourcePath)
+		assert.Equal(t, "<div></div>", diagErr.TemplateSource)
+		assert.Equal(t, []*ast_domain.Diagnostic{warning, diagnostic}, component.Template.Diagnostics)
 	})
 
-	t.Run("should prefer named alias over path segment match", func(t *testing.T) {
+	t.Run("creates a parse diagnostic error for a component without a template", func(t *testing.T) {
 		t.Parallel()
 
-		imports := []*goast.ImportSpec{
-			{
-				Name: goast.NewIdent("myalias"),
-				Path: &goast.BasicLit{Kind: token.STRING, Value: `"github.com/org/myalias-pkg"`},
-			},
-			{
-				Path: &goast.BasicLit{Kind: token.STRING, Value: `"github.com/org/myalias"`},
-			},
-		}
+		component := &annotator_dto.ParsedComponent{}
+		component.SourcePath = "/test.pk"
+		diagnostic := newDiagnostic("collection")
 
-		result := resolveCollectionSourceAlias("myalias", imports)
+		err := attachComponentDiagnostic(component, nil, diagnostic, "")
 
-		assert.Equal(t, "github.com/org/myalias-pkg", result)
+		diagErr, ok := errors.AsType[*ParseDiagnosticError](err)
+		require.True(t, ok)
+		assert.Equal(t, []*ast_domain.Diagnostic{diagnostic}, diagErr.Diagnostics)
 	})
+
+	t.Run("extends an existing parse diagnostic error without disturbing the template", func(t *testing.T) {
+		t.Parallel()
+
+		templateError := newDiagnostic("template")
+		scriptWarning := ast_domain.NewDiagnostic(ast_domain.Warning, "script warning", "", ast_domain.Location{}, "/test.pk")
+		shared := make([]*ast_domain.Diagnostic, 0, 4)
+		shared = append(shared, templateError)
+		existingErr := NewParseDiagnosticError(shared, "/test.pk", "")
+
+		component := &annotator_dto.ParsedComponent{}
+		component.Template = &ast_domain.TemplateAST{}
+		component.Template.Diagnostics = append(shared, scriptWarning)
+		diagnostic := newDiagnostic("collection")
+
+		err := attachComponentDiagnostic(component, existingErr, diagnostic, "")
+
+		require.Same(t, existingErr, err)
+		assert.Equal(t, []*ast_domain.Diagnostic{templateError, diagnostic}, existingErr.Diagnostics)
+		assert.Equal(t, []*ast_domain.Diagnostic{templateError, scriptWarning, diagnostic}, component.Template.Diagnostics)
+	})
+
+	t.Run("returns any other template error unchanged", func(t *testing.T) {
+		t.Parallel()
+
+		component := &annotator_dto.ParsedComponent{}
+		fatal := errors.New("template parser failed")
+
+		err := attachComponentDiagnostic(component, fatal, newDiagnostic("collection"), "")
+
+		assert.Same(t, fatal, err)
+	})
+}
+
+func TestParsePK_ReportsUnparseableTranslationTemplates(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name         string
+		i18nBlock    string
+		wantMessages []string
+	}{
+		{
+			name:         "templates that parse produce no warnings",
+			i18nBlock:    `{"en": {"greeting": "Hello ${name}", "items": "one|${count} items"}}`,
+			wantMessages: nil,
+		},
+		{
+			name:      "each unparseable template or plural form produces one warning",
+			i18nBlock: `{"en": {"greeting": "Hello ${name"}, "fr": {"items": "un|${count articles"}}`,
+			wantMessages: []string{
+				"Translation template could not be parsed and renders as literal text: en:greeting: Unterminated expression: expected '}'",
+				"Translation template could not be parsed and renders as literal text: fr:items[1]: Unterminated expression: expected '}'",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			source := "<template><div>Hi</div></template>\n<i18n lang=\"json\">" + tc.i18nBlock + "</i18n>"
+
+			parsedComponent, _, err := ParsePK(context.Background(), []byte(source), "/project/src/main.pk")
+
+			require.NoError(t, err)
+			require.NotNil(t, parsedComponent.Template)
+			var messages []string
+			for _, diagnostic := range parsedComponent.Template.Diagnostics {
+				assert.Equal(t, ast_domain.Warning, diagnostic.Severity)
+				assert.Equal(t, "/project/src/main.pk", diagnostic.SourcePath)
+				assert.Equal(t, 2, diagnostic.Location.Line)
+				messages = append(messages, diagnostic.Message)
+			}
+			assert.Equal(t, tc.wantMessages, messages)
+		})
+	}
+}
+
+func TestNewI18nTemplateDiagnostics_WithoutI18nBlocks(t *testing.T) {
+	t.Parallel()
+
+	diagnostics := newI18nTemplateDiagnostics(nil, &sfcparser.ParseResult{}, "main.pk")
+
+	assert.Nil(t, diagnostics)
 }

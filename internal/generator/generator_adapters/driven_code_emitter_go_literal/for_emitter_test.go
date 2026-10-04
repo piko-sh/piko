@@ -615,12 +615,10 @@ func TestCanHoistLoopBody(t *testing.T) {
 		{
 			name: "not structurally static (CANNOT HOIST)",
 			node: &ast_domain.TemplateNode{
-				NodeType:    ast_domain.NodeElement,
-				TagName:     "div",
-				TextContent: "Dynamic",
-				GoAnnotations: &ast_domain.GoGeneratorAnnotation{
-					IsStructurallyStatic: false,
-				},
+				NodeType:      ast_domain.NodeElement,
+				TagName:       "div",
+				TextContent:   "Dynamic",
+				GoAnnotations: &ast_domain.GoGeneratorAnnotation{},
 			},
 			forExpr: &ast_domain.ForInExpression{
 				ItemVariable: &ast_domain.Identifier{Name: "item"},

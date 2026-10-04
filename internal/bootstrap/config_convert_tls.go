@@ -35,7 +35,9 @@ import (
 // applied.
 func NewTLSValues(tlsConfig *config.TLSConfig) tlscert.TLSValues {
 	if !deref(tlsConfig.Enabled, false) {
-		return tlscert.TLSValues{Mode: tlscert.TLSModeOff}
+		values := tlscert.TLSValues{}
+		values.Mode = tlscert.TLSModeOff
+		return values
 	}
 
 	return tlscert.TLSValues{
@@ -59,14 +61,19 @@ func NewTLSValues(tlsConfig *config.TLSConfig) tlscert.TLSValues {
 // defaults applied.
 func NewHealthTLSValues(tlsConfig *config.HealthTLSConfig) tlscert.TLSValues {
 	if !deref(tlsConfig.Enabled, false) {
-		return tlscert.TLSValues{Mode: tlscert.TLSModeOff}
+		values := tlscert.TLSValues{}
+		values.Mode = tlscert.TLSModeOff
+		return values
 	}
 
 	return tlscert.TLSValues{
-		Mode:       tlscert.TLSModeCertFile,
-		CertFile:   deref(tlsConfig.CertFile, ""),
-		KeyFile:    deref(tlsConfig.KeyFile, ""),
-		MinVersion: parseTLSMinVersion(deref(tlsConfig.MinVersion, "1.2")),
+		Mode:           tlscert.TLSModeCertFile,
+		CertFile:       deref(tlsConfig.CertFile, ""),
+		KeyFile:        deref(tlsConfig.KeyFile, ""),
+		MinVersion:     parseTLSMinVersion(deref(tlsConfig.MinVersion, "1.2")),
+		ClientCAFile:   "",
+		ClientAuthType: 0,
+		HotReload:      false,
 	}
 }
 

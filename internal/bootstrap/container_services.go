@@ -87,8 +87,9 @@ func (c *Container) createDefaultCSRFService() {
 	var err error
 	c.csrfService, err = security_domain.NewCSRFTokenService(
 		security_domain.SecurityConfig{
-			HMACSecretKey:   secret,
-			CSRFTokenMaxAge: c.csrfTokenMaxAge,
+			HMACSecretKey:    secret,
+			CSRFTokenMaxAge:  c.csrfTokenMaxAge,
+			CSRFCookieMaxAge: 0,
 		},
 		security_adapters.NewIPBinderAdapter(),
 		cookieSource,

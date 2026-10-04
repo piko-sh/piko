@@ -1,4 +1,0 @@
-{
-  "description": "sync/atomic.Int64 typed wrapper Add+Load.",
-  "expected": "x=1"
-}

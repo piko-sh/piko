@@ -87,10 +87,11 @@ type resolvedCTE struct {
 // Returns *scopeChain which holds the initialised scope with empty tables and CTEs.
 func newScopeChain(kind querier_dto.ScopeKind, parent *scopeChain) *scopeChain {
 	return &scopeChain{
-		parent: parent,
-		tables: make(map[string]*querier_dto.ScopedTable),
-		ctes:   make(map[string]*resolvedCTE),
-		kind:   kind,
+		parent:         parent,
+		tables:         make(map[string]*querier_dto.ScopedTable),
+		ctes:           make(map[string]*resolvedCTE),
+		kind:           kind,
+		lateralVisible: nil,
 	}
 }
 
@@ -192,10 +193,12 @@ func (s *scopeChain) AddCTEAsTable(alias string, columns []querier_dto.ScopedCol
 		}
 	}
 	s.tables[alias] = &querier_dto.ScopedTable{
-		Name:     alias,
-		Alias:    alias,
-		Columns:  scoped,
-		JoinKind: joinKind,
+		Name:           alias,
+		Alias:          alias,
+		Columns:        scoped,
+		JoinKind:       joinKind,
+		Schema:         "",
+		IsWithoutRowID: false,
 	}
 }
 
@@ -215,9 +218,12 @@ func (s *scopeChain) AddDerivedTable(reference querier_dto.DerivedTableReference
 		}
 	}
 	s.tables[reference.Alias] = &querier_dto.ScopedTable{
-		Alias:    reference.Alias,
-		Columns:  columns,
-		JoinKind: reference.JoinKind,
+		Alias:          reference.Alias,
+		Columns:        columns,
+		JoinKind:       reference.JoinKind,
+		Schema:         "",
+		Name:           "",
+		IsWithoutRowID: false,
 	}
 }
 
@@ -364,7 +370,7 @@ func resolveColumnInTable(
 	if isImplicitRowID(columnName) && !table.IsWithoutRowID {
 		rowidColumn := querier_dto.ScopedColumn{
 			Name:     columnName,
-			SQLType:  querier_dto.SQLType{EngineName: "integer", Category: querier_dto.TypeCategoryInteger},
+			SQLType:  querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "integer"),
 			Nullable: false,
 		}
 		return &rowidColumn, table, nil
@@ -390,9 +396,12 @@ func resolveColumnInCTE(
 	for i := range cte.columns {
 		if strings.EqualFold(cte.columns[i].Name, columnName) {
 			cteTable := &querier_dto.ScopedTable{
-				Name:    cte.name,
-				Alias:   cte.name,
-				Columns: cte.columns,
+				Name:           cte.name,
+				Alias:          cte.name,
+				Columns:        cte.columns,
+				Schema:         "",
+				JoinKind:       querier_dto.JoinInner,
+				IsWithoutRowID: false,
 			}
 			return &cte.columns[i], cteTable, nil
 		}
@@ -530,7 +539,7 @@ func (s *scopeChain) resolveImplicitRowID(
 	if rowidMatchCount == 1 {
 		rowidColumn := querier_dto.ScopedColumn{
 			Name:     columnName,
-			SQLType:  querier_dto.SQLType{EngineName: "integer", Category: querier_dto.TypeCategoryInteger},
+			SQLType:  querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "integer"),
 			Nullable: false,
 		}
 		return &rowidColumn, rowidTable, nil
@@ -558,9 +567,12 @@ func (s *scopeChain) resolveFromCTEsAndLateral(
 		for i := range cte.columns {
 			if strings.EqualFold(cte.columns[i].Name, columnName) {
 				cteTable := &querier_dto.ScopedTable{
-					Name:    cte.name,
-					Alias:   cte.name,
-					Columns: cte.columns,
+					Name:           cte.name,
+					Alias:          cte.name,
+					Columns:        cte.columns,
+					Schema:         "",
+					JoinKind:       querier_dto.JoinInner,
+					IsWithoutRowID: false,
 				}
 				return &cte.columns[i], cteTable
 			}
@@ -613,11 +625,10 @@ func arrayWrappedSQLType(column *querier_dto.Column) querier_dto.SQLType {
 	wrapped := column.SQLType
 	for range dimensions {
 		inner := wrapped
-		wrapped = querier_dto.SQLType{
-			Category:    querier_dto.TypeCategoryArray,
-			EngineName:  inner.EngineName + "[]",
-			ElementType: &inner,
-		}
+		wrapped = querier_dto.SQLType{}
+		wrapped.Category = querier_dto.TypeCategoryArray
+		wrapped.EngineName = inner.EngineName + "[]"
+		wrapped.ElementType = &inner
 	}
 	return wrapped
 }

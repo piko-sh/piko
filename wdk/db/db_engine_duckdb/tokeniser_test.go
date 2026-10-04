@@ -396,6 +396,13 @@ func TestTokenise_Parameters(t *testing.T) {
 			},
 		},
 		{
+			name:  "dollar parameter at the maximum",
+			input: "$65535",
+			expected: []token{
+				{kind: tokenDollarParam, value: "$65535", position: 0},
+			},
+		},
+		{
 			name:  "named parameter with colon",
 			input: ":name",
 			expected: []token{
@@ -680,6 +687,16 @@ func TestTokenise_Errors(t *testing.T) {
 			name:              "unterminated block comment at end of input",
 			input:             "SELECT /*",
 			expectedSubstring: "unterminated block comment",
+		},
+		{
+			name:              "positional parameter above the maximum",
+			input:             "SELECT $65536",
+			expectedSubstring: "exceeds maximum of 65535",
+		},
+		{
+			name:              "positional parameter that would overflow an int",
+			input:             "SELECT $999999999999999999999",
+			expectedSubstring: "invalid positional parameter number",
 		},
 	}
 

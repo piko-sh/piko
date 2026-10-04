@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -319,14 +320,30 @@ func TestTaskConfig_ZeroValue(t *testing.T) {
 	}
 }
 
-func TestTask_ScheduledExecuteAt_NotAffectedByReset(t *testing.T) {
+func TestTask_Reset_ClearsSchedulingFatalAndPersistedState(t *testing.T) {
 	t.Parallel()
 
 	task := &Task{
 		ScheduledExecuteAt: time.Now(),
+		IsFatal:            true,
+		persisted:          true,
 		Payload:            make(map[string]any),
 		Result:             make(map[string]any),
 	}
 
 	task.Reset()
+
+	assert.True(t, task.ScheduledExecuteAt.IsZero(), "a pooled task must not keep an old schedule")
+	assert.False(t, task.IsFatal, "a pooled task must not keep an old fatal flag")
+	assert.False(t, task.Persisted(), "a pooled task must not claim an existing record")
+}
+
+func TestTask_Persisted(t *testing.T) {
+	t.Parallel()
+
+	task := &Task{}
+	assert.False(t, task.Persisted())
+
+	task.persisted = true
+	assert.True(t, task.Persisted())
 }

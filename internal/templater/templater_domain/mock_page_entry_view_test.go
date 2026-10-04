@@ -101,11 +101,9 @@ func TestMockPageEntryView_ConcurrentAccess(t *testing.T) {
 	const goroutines = 50
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			m.GetHasMiddleware()
 			m.GetMiddlewareFuncName()
 			m.GetHasCachePolicy()
@@ -127,7 +125,7 @@ func TestMockPageEntryView_ConcurrentAccess(t *testing.T) {
 			m.GetJSScriptMetas()
 			m.GetIsE2EOnly()
 			m.GetStaticMetadata()
-		}()
+		})
 	}
 
 	wg.Wait()

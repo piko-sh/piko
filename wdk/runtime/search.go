@@ -187,6 +187,11 @@ func executeCollectionSearch(ctx context.Context, collectionName, query string, 
 //
 // Takes tType (reflect.Type) which is the instantiated type the user wrote inside the
 // brackets. Remaining parameters mirror SearchCollection's non-type-parameter signature.
+// Takes r (*templater_dto.RequestData) which provides the current request and collection
+// search context.
+// Takes collectionName (string) which identifies the content collection.
+// Takes query (string) which contains the search terms.
+// Takes opts (...SearchOption) which configure the collection search.
 //
 // Returns a reflect.Value wrapping []SearchResult[T] plus any search error. An empty
 // query returns a zero-length slice without error.
@@ -222,6 +227,10 @@ func SearchCollectionLink(
 //
 // Takes tType (reflect.Type) which is the instantiated type. Remaining parameters mirror
 // QuickSearch's non-type-parameter signature.
+// Takes r (*templater_dto.RequestData) which provides the current request and collection
+// search context.
+// Takes collectionName (string) which identifies the content collection.
+// Takes query (string) which contains the search terms.
 //
 // Returns a reflect.Value wrapping []T plus any search error.
 func QuickSearchLink(

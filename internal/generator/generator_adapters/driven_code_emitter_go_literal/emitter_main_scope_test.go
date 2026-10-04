@@ -19,7 +19,6 @@
 package driven_code_emitter_go_literal
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -48,7 +47,7 @@ func annotationResultForScope(t *testing.T, sourcePath, hashedName string) *anno
 func TestResetStateSetsMainComponentScope(t *testing.T) {
 	t.Parallel()
 
-	em, ok := NewEmitter(context.Background()).(*emitter)
+	em, ok := NewEmitter().(*emitter)
 	require.True(t, ok)
 
 	em.AnnotationResult = annotationResultForScope(t, "pages/main.pk", "pages_main_aaaa1111")
@@ -62,7 +61,7 @@ func TestResetStateSetsMainComponentScope(t *testing.T) {
 func TestResetStateDoesNotCarryScopeBetweenArtefacts(t *testing.T) {
 	t.Parallel()
 
-	em, ok := NewEmitter(context.Background()).(*emitter)
+	em, ok := NewEmitter().(*emitter)
 	require.True(t, ok)
 
 	em.AnnotationResult = annotationResultForScope(t, "pages/first.pk", "pages_first_aaaa1111")

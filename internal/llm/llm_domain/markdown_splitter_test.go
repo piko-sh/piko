@@ -306,6 +306,16 @@ func TestExtractNodeText_WithInlineFormatting(t *testing.T) {
 	assert.Equal(t, "Hello World", got)
 }
 
+func TestExtractNodeText_WithLineBreak(t *testing.T) {
+	heading := markdown_ast.NewHeading(1)
+	heading.AppendChild(markdown_ast.NewText([]byte("Hello")))
+	heading.AppendChild(markdown_ast.NewLineBreak())
+	heading.AppendChild(markdown_ast.NewText([]byte("World")))
+
+	got := extractNodeText(heading)
+	assert.Equal(t, "Hello\nWorld", got)
+}
+
 func TestHeadingLineStart(t *testing.T) {
 	source := []byte("preamble\n\n## Section\n\nbody")
 

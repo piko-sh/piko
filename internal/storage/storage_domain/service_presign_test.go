@@ -346,10 +346,8 @@ func TestService_GetObject_Singleflight(t *testing.T) {
 		results := make([][]byte, concurrency)
 		errs := make([]error, concurrency)
 
-		wg.Add(concurrency)
-		for i := range concurrency {
-			go func(index int) {
-				defer wg.Done()
+		for index := range concurrency {
+			wg.Go(func() {
 				reader, err := service.GetObject(ctx, "default", getParams)
 				if err != nil {
 					errs[index] = err
@@ -362,7 +360,7 @@ func TestService_GetObject_Singleflight(t *testing.T) {
 					return
 				}
 				results[index] = data
-			}(i)
+			})
 		}
 		wg.Wait()
 

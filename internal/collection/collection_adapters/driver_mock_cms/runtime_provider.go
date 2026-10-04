@@ -64,6 +64,7 @@ func NewMockCMSRuntimeProvider(name string) *MockCMSRuntimeProvider {
 	return &MockCMSRuntimeProvider{
 		name: name,
 		data: make(map[string][]byte),
+		mu:   sync.RWMutex{},
 	}
 }
 

@@ -251,7 +251,7 @@ func createUltraComplexTestAST() *ast_domain.TemplateAST {
 
 				DirClass: &ast_domain.Directive{Type: ast_domain.DirectiveClass, Expression: &ast_domain.ObjectLiteral{Pairs: map[string]ast_domain.Expression{
 					"is-active":   expressionUserIsActive,
-					"has-warning": &ast_domain.TernaryExpression{Condition: &ast_domain.Identifier{Name: "errorCount"}, Consequent: expressionTrue, Alternate: &ast_domain.BooleanLiteral{Value: false}},
+					"has-warning": &ast_domain.TernaryExpression{Condition: &ast_domain.Identifier{Name: "errorCount"}, Consequent: expressionTrue, Alternate: &ast_domain.BooleanLiteral{}},
 				}}},
 
 				DirStyle: &ast_domain.Directive{Type: ast_domain.DirectiveStyle, Expression: &ast_domain.ObjectLiteral{Pairs: map[string]ast_domain.Expression{
@@ -386,7 +386,7 @@ func createUltraComplexTestAST() *ast_domain.TemplateAST {
 
 				GoAnnotations: &ast_domain.GoGeneratorAnnotation{
 					ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: typeExprBuiltin, PackageAlias: ""},
-					Symbol:       &ast_domain.ResolvedSymbol{Name: "formInput", ReferenceLocation: ast_domain.Location{Line: 0, Column: 0}},
+					Symbol:       &ast_domain.ResolvedSymbol{Name: "formInput", ReferenceLocation: ast_domain.Location{}},
 
 					OriginalPackageAlias: nil,
 				},

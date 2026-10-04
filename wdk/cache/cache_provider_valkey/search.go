@@ -292,8 +292,10 @@ func (a *ValkeyAdapter[K, V]) executeSearch(ctx context.Context, query string, o
 // Returns error which is currently always nil but reserved for future use.
 func (a *ValkeyAdapter[K, V]) parseSearchResults(ctx context.Context, rawResults []valkey.ValkeyMessage, total int64, opts *cache.SearchOptions) (cache.SearchResult[K, V], error) {
 	result := cache.SearchResult[K, V]{
-		Items: make([]cache.SearchHit[K, V], 0),
-		Total: total,
+		Items:  make([]cache.SearchHit[K, V], 0),
+		Total:  total,
+		Offset: 0,
+		Limit:  0,
 	}
 
 	if opts != nil {
@@ -360,7 +362,7 @@ func (a *ValkeyAdapter[K, V]) parseSearchHit(ctx context.Context, rawResults []v
 		return zero, false
 	}
 
-	return cache.SearchHit[K, V]{Key: key, Value: value}, true
+	return cache.SearchHit[K, V]{Key: key, Value: value, Highlights: nil, Score: 0}, true
 }
 
 // setJSONValue stores a value as JSON for Valkey Search indexing.
@@ -465,10 +467,8 @@ func (a *ValkeyAdapter[K, V]) queryWithValkeySearch(ctx context.Context, opts *c
 		return cache.SearchResult[K, V]{}, err
 	}
 
-	searchOpts := &cache.SearchOptions{
-		Limit:  DefaultSearchResultLimit,
-		Offset: 0,
-	}
+	searchOpts := &cache.SearchOptions{}
+	searchOpts.Limit = DefaultSearchResultLimit
 	if opts != nil {
 		searchOpts.Limit = opts.Limit
 		searchOpts.Offset = opts.Offset
@@ -580,7 +580,7 @@ func (a *ValkeyAdapter[K, V]) vectorSearchWithValkeySearch(ctx context.Context, 
 	}
 
 	if len(result) == 0 {
-		return cache.SearchResult[K, V]{Items: make([]cache.SearchHit[K, V], 0)}, nil
+		return cache.SearchResult[K, V]{Items: make([]cache.SearchHit[K, V], 0), Total: 0, Offset: 0, Limit: 0}, nil
 	}
 
 	total, err := result[0].AsInt64()
@@ -683,7 +683,7 @@ func (a *ValkeyAdapter[K, V]) parseVectorSearchHit(ctx context.Context, rawResul
 
 	score := extractVectorScore(docData, scoreField)
 
-	return cache.SearchHit[K, V]{Key: key, Value: value, Score: score}, true
+	return cache.SearchHit[K, V]{Key: key, Value: value, Score: score, Highlights: nil}, true
 }
 
 // resolveVectorField returns the name of the first vector field in the schema.

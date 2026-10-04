@@ -22,6 +22,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/provider/provider_domain"
@@ -56,9 +57,9 @@ func (*spamDetectService) ProbeName() string {
 // Returns []provider_domain.ColumnDefinition which defines the table columns.
 func (*spamDetectService) ResourceListColumns() []provider_domain.ColumnDefinition {
 	return []provider_domain.ColumnDefinition{
-		{Header: "NAME", Key: "name"},
-		{Header: "SIGNALS", Key: "signals"},
-		{Header: "REGISTERED", Key: "registered"},
+		{Header: "NAME", Key: "name", WideOnly: false},
+		{Header: "SIGNALS", Key: "signals", WideOnly: false},
+		{Header: "REGISTERED", Key: "registered", WideOnly: false},
 	}
 }
 
@@ -154,5 +155,11 @@ func findDetectorInfo(infos []provider_domain.ProviderInfo, name string) provide
 			return info
 		}
 	}
-	return provider_domain.ProviderInfo{Name: name}
+	return provider_domain.ProviderInfo{
+		Name:         name,
+		Capabilities: nil,
+		RegisteredAt: time.Time{},
+		ProviderType: "",
+		IsDefault:    false,
+	}
 }

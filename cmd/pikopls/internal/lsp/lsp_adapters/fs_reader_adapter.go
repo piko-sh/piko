@@ -79,8 +79,8 @@ type osFSReader struct {
 	// ReadFile call based on the file's parent directory.
 	sandbox safedisk.Sandbox
 
-	// factory creates sandboxes for filesystem access. When nil, falls back to
-	// safedisk.NewNoOpSandbox for each call.
+	// factory creates sandboxes for filesystem access. When nil, each call opens a read-only
+	// sandbox rooted at the file's parent directory.
 	factory safedisk.Factory
 }
 
@@ -94,8 +94,8 @@ type OsFSReaderOption func(*osFSReader)
 // Returns []byte which contains the file contents.
 // Returns error when the sandbox cannot be created or the file cannot be read.
 func (r *osFSReader) ReadFile(ctx context.Context, filePath string) ([]byte, error) {
-	if err := ctx.Err(); err != nil {
-		return nil, err
+	if ctx.Err() != nil {
+		return nil, fmt.Errorf("osFSReader reading '%s': %w", filePath, context.Cause(ctx))
 	}
 
 	fileName := filepath.Base(filePath)
@@ -114,7 +114,7 @@ func (r *osFSReader) ReadFile(ctx context.Context, filePath string) ([]byte, err
 	if r.factory != nil {
 		sandbox, err = r.factory.Create("lsp-fs-read", parentDir, safedisk.ModeReadOnly)
 	} else {
-		sandbox, err = safedisk.NewNoOpSandbox(parentDir, safedisk.ModeReadOnly)
+		sandbox, err = safedisk.NewSandbox(parentDir, safedisk.ModeReadOnly)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("osFSReader failed to create sandbox for '%s': %w", parentDir, err)

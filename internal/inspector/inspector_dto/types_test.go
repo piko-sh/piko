@@ -20,58 +20,139 @@ package inspector_dto
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFunctionSignature_ToSignatureString(t *testing.T) {
-	tests := []struct {
-		name string
-		want string
-		sig  FunctionSignature
+	testCases := []struct {
+		name      string
+		want      string
+		signature FunctionSignature
 	}{
 		{
-			name: "no params or returns",
-			want: "func() ",
-			sig:  FunctionSignature{},
+			name:      "no params or returns",
+			want:      "func() ",
+			signature: FunctionSignature{},
 		},
 		{
-			name: "single return",
-			want: "func(int, string) error",
-			sig:  FunctionSignature{Params: []string{"int", "string"}, Results: []string{"error"}},
+			name:      "single return",
+			want:      "func(int, string) error",
+			signature: FunctionSignature{Params: []string{"int", "string"}, Results: []string{"error"}},
 		},
 		{
-			name: "multiple returns",
-			want: "func(string) (int, error)",
-			sig:  FunctionSignature{Params: []string{"string"}, Results: []string{"int", "error"}},
+			name:      "multiple returns",
+			want:      "func(string) (int, error)",
+			signature: FunctionSignature{Params: []string{"string"}, Results: []string{"int", "error"}},
+		},
+		{
+			name: "generic signature renders its type parameters",
+			want: "func[K comparable, V any](K, V) map[K]V",
+			signature: FunctionSignature{
+				Params:               []string{"K", "V"},
+				Results:              []string{"map[K]V"},
+				TypeParamNames:       []string{"K", "V"},
+				TypeParamConstraints: []string{"comparable", "any"},
+			},
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.sig.ToSignatureString(); got != tt.want {
-				t.Errorf("ToSignatureString() = %q, want %q", got, tt.want)
-			}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			assert.Equal(t, testCase.want, testCase.signature.ToSignatureString())
+		})
+	}
+}
+
+func TestFunctionSignature_TypeParamList(t *testing.T) {
+	testCases := []struct {
+		name      string
+		want      string
+		signature FunctionSignature
+	}{
+		{
+			name:      "no type parameters",
+			want:      "",
+			signature: FunctionSignature{Params: []string{"string"}},
+		},
+		{
+			name: "every parameter constrained",
+			want: "[T any, U comparable]",
+			signature: FunctionSignature{
+				TypeParamNames:       []string{"T", "U"},
+				TypeParamConstraints: []string{"any", "comparable"},
+			},
+		},
+		{
+			name: "fewer constraints than parameters",
+			want: "[T fmt.Stringer, U]",
+			signature: FunctionSignature{
+				TypeParamNames:       []string{"T", "U"},
+				TypeParamConstraints: []string{"fmt.Stringer"},
+			},
+		},
+		{
+			name: "empty constraint is omitted",
+			want: "[T, U ~int | ~string]",
+			signature: FunctionSignature{
+				TypeParamNames:       []string{"T", "U"},
+				TypeParamConstraints: []string{"", "~int | ~string"},
+			},
+		},
+		{
+			name:      "no constraints recorded",
+			want:      "[T]",
+			signature: FunctionSignature{TypeParamNames: []string{"T"}},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			assert.Equal(t, testCase.want, testCase.signature.TypeParamList())
 		})
 	}
 }
 
 func TestParseStructTag(t *testing.T) {
-	raw := "`prop:\"title\" validate:\"required\" json:\"title\"`"
-	got := ParseStructTag(raw)
-
-	if got["prop"] != "title" {
-		t.Errorf("prop = %q, want %q", got["prop"], "title")
+	testCases := []struct {
+		expectedMap map[string]string
+		name        string
+		inputTag    string
+	}{
+		{name: "Known tag: prop", inputTag: `prop:"userID"`, expectedMap: map[string]string{"prop": "userID"}},
+		{name: "Known tag: validate", inputTag: `validate:"required,uuid"`, expectedMap: map[string]string{"validate": "required,uuid"}},
+		{name: "Known tag: default", inputTag: `default:"guest"`, expectedMap: map[string]string{"default": "guest"}},
+		{name: "Known tag: factory", inputTag: `factory:"NewUser"`, expectedMap: map[string]string{"factory": "NewUser"}},
+		{name: "Known tag: coerce with value", inputTag: `coerce:"true"`, expectedMap: map[string]string{"coerce": "true"}},
+		{name: "Known tag: coerce with empty string value", inputTag: `coerce:""`, expectedMap: map[string]string{"coerce": ""}},
+		{name: "All known tags present", inputTag: `prop:"id" validate:"required" default:"0" factory:"New" coerce:""`,
+			expectedMap: map[string]string{
+				"prop":     "id",
+				"validate": "required",
+				"default":  "0",
+				"factory":  "New",
+				"coerce":   "",
+			}},
+		{name: "Mix of known and unknown tags", inputTag: `prop:"name" json:"userName" validate:"required"`,
+			expectedMap: map[string]string{
+				"prop":     "name",
+				"validate": "required",
+			}},
+		{name: "Backticked tag drops unknown json key", inputTag: "`prop:\"title\" validate:\"required\" json:\"title\"`",
+			expectedMap: map[string]string{
+				"prop":     "title",
+				"validate": "required",
+			}},
+		{name: "Only unknown tags", inputTag: `json:"name" xml:"id"`, expectedMap: map[string]string{}},
+		{name: "Empty tag string", inputTag: ``, expectedMap: map[string]string{}},
+		{name: "Tag string with backticks", inputTag: "`prop:\"name\"`", expectedMap: map[string]string{"prop": "name"}},
+		{name: "Duplicate known tag", inputTag: `prop:"a" prop:"b"`, expectedMap: map[string]string{"prop": "a"}},
+		{name: "Malformed tag (ignored by reflect)", inputTag: `prop:name`, expectedMap: map[string]string{}},
 	}
-	if got["validate"] != "required" {
-		t.Errorf("validate = %q, want %q", got["validate"], "required")
-	}
 
-	if _, exists := got["json"]; exists {
-		t.Error("json should not be in parsed Piko tags")
-	}
-}
-
-func TestParseStructTag_Empty(t *testing.T) {
-	got := ParseStructTag("")
-	if len(got) != 0 {
-		t.Errorf("empty tag should return empty map, got %v", got)
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			assert.Equal(t, testCase.expectedMap, ParseStructTag(testCase.inputTag))
+		})
 	}
 }

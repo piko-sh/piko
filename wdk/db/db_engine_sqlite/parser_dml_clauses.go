@@ -58,18 +58,34 @@ func (p *parser) parseFromClause() ([]querier_dto.TableReference, []querier_dto.
 			continue
 		}
 
-		join, joinErr := p.parseJoinTarget(joinKind)
+		join, joinErr := p.parseExplicitJoin(joinKind)
 		if joinErr != nil {
 			return nil, nil, joinErr
 		}
 		if join != nil {
 			joins = append(joins, *join)
 		}
-
-		p.parseJoinCondition()
 	}
 
 	return tables, joins, nil
+}
+
+// parseExplicitJoin parses the target and the ON or USING condition of an explicit JOIN.
+//
+// Takes joinKind (int) which is the int-encoded join kind from parseJoinKeyword.
+//
+// Returns *querier_dto.JoinClause which is the parsed join, or nil for derived tables and
+// table-valued functions.
+// Returns error when the target or condition fails to parse.
+func (p *parser) parseExplicitJoin(joinKind int) (*querier_dto.JoinClause, error) {
+	join, err := p.parseJoinTarget(joinKind)
+	if err != nil {
+		return nil, err
+	}
+	if err := p.parseJoinCondition(); err != nil {
+		return nil, err
+	}
+	return join, nil
 }
 
 // parseCommaJoin parses an additional comma-joined table after the initial FROM source.
@@ -106,7 +122,7 @@ func (p *parser) parseFromTableSource(joinKind querier_dto.JoinKind) (*querier_d
 		return nil, nil
 	}
 	tableName, alias := p.parseTableReference()
-	return &querier_dto.TableReference{Name: tableName, Alias: alias}, nil
+	return &querier_dto.TableReference{Name: tableName, Alias: alias, Schema: ""}, nil
 }
 
 // parseJoinTarget parses the table or derived target of an explicit JOIN.
@@ -132,22 +148,26 @@ func (p *parser) parseJoinTarget(joinKind int) (*querier_dto.JoinClause, error) 
 	return &querier_dto.JoinClause{
 		Kind: querier_dto.JoinKind(joinKindValue),
 		Table: querier_dto.TableReference{
-			Name:  joinTable,
-			Alias: joinAlias,
+			Name:   joinTable,
+			Alias:  joinAlias,
+			Schema: "",
 		},
 	}, nil
 }
 
 // parseJoinCondition consumes an ON expression or USING column list when present after a
 // JOIN target.
-func (p *parser) parseJoinCondition() {
+//
+// Returns error when the USING column list's parentheses are unmatched.
+func (p *parser) parseJoinCondition() error {
 	if p.matchKeyword(keywordON) {
 		p.parseJoinConditionExpression()
-	} else if p.matchKeyword("USING") {
-		if p.current().kind == tokenLeftParen {
-			p.mustSkipParenthesised()
-		}
+		return nil
 	}
+	if p.matchKeyword("USING") && p.current().kind == tokenLeftParen {
+		return p.skipParenthesised()
+	}
+	return nil
 }
 
 // isSubqueryStart reports whether the cursor is positioned at the opening of a `(SELECT
@@ -177,6 +197,7 @@ func (p *parser) parseDerivedTable(joinKind querier_dto.JoinKind) error {
 	childParser.expressionDepth = p.expressionDepth
 	childParser.maxParseDepth = p.maxParseDepth
 	innerAnalysis, analyseError := childParser.analyseSelect()
+	p.adoptSyntaxError(childParser)
 	if analyseError != nil {
 		return analyseError
 	}
@@ -276,9 +297,10 @@ func (p *parser) parseTableValuedFunction(joinKind querier_dto.JoinKind) {
 	}
 
 	p.rawTableValuedFunctions = append(p.rawTableValuedFunctions, querier_dto.RawTableValuedFunctionReference{
-		FunctionName: functionName,
-		Alias:        alias,
-		JoinKind:     joinKind,
+		FunctionName:      functionName,
+		Alias:             alias,
+		JoinKind:          joinKind,
+		ColumnDefinitions: nil,
 	})
 }
 
@@ -441,16 +463,7 @@ func (p *parser) resolveLikeContext(paramPosition int) (querier_dto.ParameterCon
 // Returns int which is the LIKE-style operator's token index when found.
 // Returns bool which is true when an operator was located.
 func (p *parser) findEnclosingLikeOperator(paramPosition int) (int, bool) {
-	return engine_shared.FindEnclosingLikeOperator(paramPosition,
-		func(index int) bool { return p.tokens[index].kind == tokenLeftParen },
-		func(index int) bool { return p.tokens[index].kind == tokenRightParen },
-		func(index int) bool {
-			return p.tokens[index].kind == tokenIdentifier && isLikeBoundaryKeyword(strings.ToUpper(p.tokens[index].value))
-		},
-		func(index int) bool {
-			return p.tokens[index].kind == tokenIdentifier && isLikePatternKeyword(strings.ToUpper(p.tokens[index].value))
-		},
-	)
+	return p.parenthesisScanIndex().EnclosingLikeOperator(paramPosition)
 }
 
 // resolveLikeOperatorColumn picks the column reference associated with a LIKE operator's
@@ -761,13 +774,7 @@ func (p *parser) countTopLevelArgumentsBefore(openParen, paramPosition int) int 
 //
 // Returns int which is the enclosing `(` token index, or -1 when none encloses position.
 func (p *parser) findEnclosingParen(position int) int {
-	return engine_shared.FindEnclosingParen(position,
-		func(index int) bool { return p.tokens[index].kind == tokenLeftParen },
-		func(index int) bool { return p.tokens[index].kind == tokenRightParen },
-		func(index int) bool {
-			return p.tokens[index].kind == tokenIdentifier && isLikeBoundaryKeyword(strings.ToUpper(p.tokens[index].value))
-		},
-	)
+	return p.parenthesisScanIndex().EnclosingParen(position)
 }
 
 // extractColumnReferenceBeforeIN returns the column referenced immediately before an IN
@@ -899,6 +906,7 @@ func (p *parser) extractColumnReference(position int) *querier_dto.ColumnReferen
 
 	return &querier_dto.ColumnReference{
 		ColumnName: tok.value,
+		TableAlias: "",
 	}
 }
 
@@ -961,7 +969,7 @@ func (p *parser) tryParseGroupByColumn() ([]querier_dto.ColumnReference, bool) {
 	}
 
 	if isGroupByItemBoundary(p.peek()) {
-		return []querier_dto.ColumnReference{{ColumnName: p.advance().value}}, true
+		return []querier_dto.ColumnReference{{ColumnName: p.advance().value, TableAlias: ""}}, true
 	}
 
 	if p.peek().kind != tokenDot {
@@ -1571,27 +1579,28 @@ func isSetExpressionTerminator(tok token) bool {
 //
 // Takes tableName (string) which is the target table name used when recursing into the DO
 // UPDATE SET clause.
-func (p *parser) skipOnConflict(tableName string) {
+//
+// Returns error when the conflict target's parentheses are unmatched.
+func (p *parser) skipOnConflict(tableName string) error {
 	p.matchKeyword("CONFLICT")
 
 	if p.current().kind == tokenLeftParen {
-		p.mustSkipParenthesised()
+		if err := p.skipParenthesised(); err != nil {
+			return err
+		}
 		p.skipConflictTargetPredicate()
 	}
 
-	if p.matchKeyword("DO") {
-		if p.matchKeyword("NOTHING") {
-			return
-		}
-		if p.matchKeyword("UPDATE") {
-			if p.matchKeyword(keywordSET) {
-				p.parseSetClause(tableName)
-			}
-			if p.matchKeyword(keywordWHERE) {
-				p.parseWhereExpression()
-			}
-		}
+	if !p.matchKeyword("DO") || p.matchKeyword("NOTHING") || !p.matchKeyword("UPDATE") {
+		return nil
 	}
+	if p.matchKeyword(keywordSET) {
+		p.parseSetClause(tableName)
+	}
+	if p.matchKeyword(keywordWHERE) {
+		p.parseWhereExpression()
+	}
+	return nil
 }
 
 var (

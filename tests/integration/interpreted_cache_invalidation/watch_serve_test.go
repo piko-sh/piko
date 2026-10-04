@@ -20,6 +20,8 @@ package cache_invalidation_test
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -28,9 +30,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko"
-	"piko.sh/piko/wdk/interp/interp_provider_piko"
+	"piko.sh/piko/wdk/interp/interp_provider_pipit"
 )
 
 const (
@@ -41,11 +44,16 @@ const (
 
 type watchServer struct {
 	server  *piko.SSRServer
-	srcDir  string
 	cleanup func()
+	srcDir  string
 }
 
 func setupWatchServer(t *testing.T) watchServer {
+	t.Helper()
+	return setupWatchServerWithFiles(t, nil)
+}
+
+func setupWatchServerWithFiles(t *testing.T, extraFiles map[string]string) watchServer {
 	t.Helper()
 
 	origSrcDir, err := filepath.Abs(filepath.Join("testdata", "01_simple_page_modification", "src"))
@@ -58,13 +66,18 @@ func setupWatchServer(t *testing.T) watchServer {
 
 	require.NoError(t, os.MkdirAll(filepath.Join(tmpSrcDir, "lib"), 0755))
 	require.NoError(t, os.WriteFile(filepath.Join(tmpSrcDir, "lib", "icon.svg"), svgVersionOne(), 0644))
+	for relativePath, content := range extraFiles {
+		path := filepath.Join(tmpSrcDir, filepath.FromSlash(relativePath))
+		require.NoError(t, os.MkdirAll(filepath.Dir(path), 0755))
+		require.NoError(t, os.WriteFile(path, []byte(content), 0644))
+	}
 
 	originalWd, err := os.Getwd()
 	require.NoError(t, err)
 	require.NoError(t, os.Chdir(tmpSrcDir))
 
 	server := piko.New()
-	server.WithInterpreterProvider(interp_provider_piko.NewProvider())
+	server.WithInterpreterProvider(interp_provider_pipit.NewProvider())
 	server.Configure(piko.PublicConfig{
 		BaseDir:        ".",
 		PagesSourceDir: "pages",
@@ -91,44 +104,61 @@ func svgVersionTwo() []byte {
 
 func doGet(t *testing.T, server *piko.SSRServer, urlPath string) (int, []byte) {
 	t.Helper()
+	status, body, err := fetch(server, urlPath)
+	require.NoError(t, err)
+	return status, body
+}
+
+func fetch(server *piko.SSRServer, urlPath string) (int, []byte, error) {
 	handler := server.GetHandler()
-	require.NotNil(t, handler, "GetHandler returned nil - daemon not built")
+	if handler == nil {
+		return 0, nil, errors.New("GetHandler returned nil - daemon not built")
+	}
 	request := httptest.NewRequest(http.MethodGet, urlPath, nil)
 	recorder := httptest.NewRecorder()
 	handler.ServeHTTP(recorder, request)
 	response := recorder.Result()
 	defer func() { _ = response.Body.Close() }()
 	body, err := io.ReadAll(response.Body)
-	require.NoError(t, err)
-	return response.StatusCode, body
+	if err != nil {
+		return 0, nil, fmt.Errorf("reading response body for %s: %w", urlPath, err)
+	}
+	return response.StatusCode, body, nil
 }
 
-func pollForStatus(t *testing.T, server *piko.SSRServer, urlPath string, wantStatus int) bool {
+func requireStatusEventually(t *testing.T, server *piko.SSRServer, urlPath string, wantStatus int, message string, arguments ...any) {
 	t.Helper()
-	deadline := time.Now().Add(watchPollTimeout)
-	for time.Now().Before(deadline) {
-		status, _ := doGet(t, server, urlPath)
-		if status == wantStatus {
-			return true
+	require.EventuallyWithTf(t, func(collect *assert.CollectT) {
+		status, _, err := fetch(server, urlPath)
+		if !assert.NoError(collect, err) {
+			return
 		}
-		time.Sleep(watchPollInterval)
-	}
-	return false
+		assert.Equal(collect, wantStatus, status)
+	}, watchPollTimeout, watchPollInterval, message, arguments...)
 }
 
-func pollForBody(t *testing.T, server *piko.SSRServer, urlPath string, wantBody []byte) ([]byte, bool) {
+func requireBodyContainsEventually(t *testing.T, server *piko.SSRServer, urlPath string, wantText string, message string, arguments ...any) {
 	t.Helper()
-	deadline := time.Now().Add(watchPollTimeout)
-	var lastBody []byte
-	for time.Now().Before(deadline) {
-		status, body := doGet(t, server, urlPath)
-		lastBody = body
-		if status == http.StatusOK && bytesEqual(body, wantBody) {
-			return body, true
+	require.EventuallyWithTf(t, func(collect *assert.CollectT) {
+		status, body, err := fetch(server, urlPath)
+		if !assert.NoError(collect, err) {
+			return
 		}
-		time.Sleep(watchPollInterval)
-	}
-	return lastBody, false
+		assert.Equal(collect, http.StatusOK, status)
+		assert.Contains(collect, string(body), wantText)
+	}, watchPollTimeout, watchPollInterval, message, arguments...)
+}
+
+func requireBodyEventually(t *testing.T, server *piko.SSRServer, urlPath string, wantBody []byte, message string, arguments ...any) {
+	t.Helper()
+	require.EventuallyWithTf(t, func(collect *assert.CollectT) {
+		status, body, err := fetch(server, urlPath)
+		if !assert.NoError(collect, err) {
+			return
+		}
+		assert.Equal(collect, http.StatusOK, status)
+		assert.Equal(collect, string(wantBody), string(body))
+	}, watchPollTimeout, watchPollInterval, message, arguments...)
 }
 
 func bytesEqual(left, right []byte) bool {
@@ -161,7 +191,7 @@ func TestWatchServe_Create(t *testing.T) {
 	newPagePath := filepath.Join(watch.srcDir, "pages", "newpage.pk")
 	require.NoError(t, os.WriteFile(newPagePath, newPageSource(), 0644))
 
-	require.True(t, pollForStatus(t, watch.server, "/newpage", http.StatusOK),
+	requireStatusEventually(t, watch.server, "/newpage", http.StatusOK,
 		"after creating pages/newpage.pk, GET /newpage must become 200 within %s", watchPollTimeout)
 }
 
@@ -184,9 +214,9 @@ func TestWatchServe_Rename(t *testing.T) {
 	newPath := filepath.Join(watch.srcDir, "pages", "home.pk")
 	require.NoError(t, os.Rename(oldPath, newPath))
 
-	require.True(t, pollForStatus(t, watch.server, "/home", http.StatusOK),
+	requireStatusEventually(t, watch.server, "/home", http.StatusOK,
 		"after renaming main.pk -> home.pk, GET /home must become 200 within %s", watchPollTimeout)
-	require.True(t, pollForStatus(t, watch.server, "/main", http.StatusNotFound),
+	requireStatusEventually(t, watch.server, "/main", http.StatusNotFound,
 		"after renaming main.pk -> home.pk, GET /main must become 404 within %s", watchPollTimeout)
 }
 
@@ -201,7 +231,7 @@ func TestWatchServe_Asset(t *testing.T) {
 
 	assetURL := "/_piko/assets/" + watchFixtureModule + "/lib/icon.svg"
 
-	require.True(t, pollForStatus(t, watch.server, assetURL, http.StatusOK),
+	requireStatusEventually(t, watch.server, assetURL, http.StatusOK,
 		"baseline: GET %s must serve 200 within %s", assetURL, watchPollTimeout)
 
 	status, body := doGet(t, watch.server, assetURL)
@@ -211,10 +241,59 @@ func TestWatchServe_Asset(t *testing.T) {
 
 	require.NoError(t, os.WriteFile(filepath.Join(watch.srcDir, "lib", "icon.svg"), svgVersionTwo(), 0644))
 
-	served, ok := pollForBody(t, watch.server, assetURL, svgVersionTwo())
-	require.True(t, ok,
-		"after rewriting lib/icon.svg, GET %s must serve the NEW svg bytes within %s, last served %q",
-		assetURL, watchPollTimeout, string(served))
+	requireBodyEventually(t, watch.server, assetURL, svgVersionTwo(),
+		"after rewriting lib/icon.svg, GET %s must serve the NEW svg bytes within %s",
+		assetURL, watchPollTimeout)
+}
+
+func TestWatchServe_UserPackageEdit(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping watch->serve integration test in short mode")
+	}
+	resetGlobalStateForTestIsolation()
+
+	watch := setupWatchServerWithFiles(t, map[string]string{
+		"pkg/greeting/greeting.go": greetingPackageSource("first greeting"),
+		"pages/greet.pk":           greetingPageSource(),
+	})
+	defer watch.cleanup()
+
+	requireBodyContainsEventually(t, watch.server, "/greet", "first greeting",
+		"baseline: GET /greet must render the user package's value within %s", watchPollTimeout)
+
+	require.NoError(t, os.WriteFile(filepath.Join(watch.srcDir, "pkg", "greeting", "greeting.go"),
+		[]byte(greetingPackageSource("second greeting")), 0644))
+
+	requireBodyContainsEventually(t, watch.server, "/greet", "second greeting",
+		"after editing pkg/greeting/greeting.go, GET /greet must render the edited value within %s", watchPollTimeout)
+}
+
+func greetingPackageSource(message string) string {
+	return "package greeting\n\nfunc Message() string {\n\treturn \"" + message + "\"\n}\n"
+}
+
+func greetingPageSource() string {
+	return `<template>
+  <p class="greeting">{{ state.Message }}</p>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+	"piko.sh/piko"
+	"` + watchFixtureModule + `/pkg/greeting"
+)
+
+type Response struct {
+	Message string
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	return Response{Message: greeting.Message()}, piko.Metadata{}, nil
+}
+</script>
+`
 }
 
 func newPageSource() []byte {

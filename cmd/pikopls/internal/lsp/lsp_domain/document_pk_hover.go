@@ -26,6 +26,7 @@ import (
 
 	protocol "github.com/politepixels/golang-language-server"
 	"go.lsp.dev/uri"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/esbuild/ast"
@@ -33,7 +34,6 @@ import (
 	"piko.sh/piko/internal/esbuild/js_ast"
 	"piko.sh/piko/internal/esbuild/js_parser"
 	"piko.sh/piko/internal/esbuild/logger"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/wdk/safeconv"
 )
@@ -375,7 +375,7 @@ func (d *document) getHandlerHover(ctx *PKHoverContext) (*protocol.Hover, error)
 		return d.makeCodeHover(ctx, signature, "typescript")
 	}
 
-	return d.makeSimpleHover(ctx, fmt.Sprintf("Event handler `%s`", ctx.Name))
+	return d.makeSimpleHover(ctx, fmt.Sprintf("Event handler %s", markdownCode(ctx.Name)))
 }
 
 // findFunctionSignature extracts the signature of a function from the AST.
@@ -551,17 +551,17 @@ func (*document) formatArrowSignature(name string, value js_ast.Expr) string {
 // Returns error when the simple hover cannot be created.
 func (d *document) getPartialHover(ctx *PKHoverContext, showProps bool) (*protocol.Hover, error) {
 	if d.AnnotationResult == nil || d.AnnotationResult.VirtualModule == nil {
-		return d.makeSimpleHover(ctx, fmt.Sprintf("Partial `%s`", ctx.Name))
+		return d.makeSimpleHover(ctx, fmt.Sprintf("Partial %s", markdownCode(ctx.Name)))
 	}
 
 	currentComponent := d.findCurrentComponent()
 	if currentComponent == nil {
-		return d.makeSimpleHover(ctx, fmt.Sprintf("Partial `%s`", ctx.Name))
+		return d.makeSimpleHover(ctx, fmt.Sprintf("Partial %s", markdownCode(ctx.Name)))
 	}
 
 	imp := d.findPikoImportByAlias(currentComponent, ctx.Name)
 	if imp == nil {
-		return d.makeSimpleHover(ctx, fmt.Sprintf("Partial `%s`", ctx.Name))
+		return d.makeSimpleHover(ctx, fmt.Sprintf("Partial %s", markdownCode(ctx.Name)))
 	}
 
 	content := d.buildPartialHoverContent(imp.Path, showProps)
@@ -850,6 +850,7 @@ type refElementInfo struct {
 func (d *document) findRefElementInfo(refName string) refElementInfo {
 	info := refElementInfo{
 		elementType: "HTMLElement",
+		tagName:     "",
 	}
 
 	if d.AnnotationResult == nil || d.AnnotationResult.AnnotatedAST == nil {
@@ -1230,7 +1231,7 @@ func extractPropTagInfo(tagValue, defaultName string) (propName string, isRequir
 	propName = defaultName
 
 	if pName := extractTagValue(tagValue, "prop"); pName != "" {
-		if name := strings.Split(pName, ",")[0]; name != "" {
+		if name, _, _ := strings.Cut(pName, ","); name != "" {
 			propName = name
 		}
 	}

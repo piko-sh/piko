@@ -285,3 +285,19 @@ func BenchmarkExtractExpressions(b *testing.B) {
 		_ = ExtractExpressions(template)
 	}
 }
+
+func TestParsePluralForms(t *testing.T) {
+	t.Parallel()
+
+	formsParts, problems := ParsePluralForms([]string{"one ${n}", "${broken", ""})
+
+	require.Len(t, formsParts, 3)
+	assert.Equal(t, []PartKind{PartLiteral, PartExpression}, []PartKind{formsParts[0][0].Kind, formsParts[0][1].Kind})
+	require.Len(t, formsParts[1], 1)
+	assert.Equal(t, PartLiteral, formsParts[1][0].Kind)
+	assert.Equal(t, "${broken", formsParts[1][0].Literal)
+	assert.Empty(t, formsParts[2])
+	require.Len(t, problems, 1)
+	assert.Equal(t, 1, problems[0].FormIndex)
+	assert.NotEmpty(t, problems[0].Messages)
+}

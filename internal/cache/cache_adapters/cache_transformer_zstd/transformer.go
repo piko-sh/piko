@@ -175,6 +175,7 @@ func NewZstdCacheTransformer(config Config, options ...Option) (*ZstdCacheTransf
 		encoder:              encoder,
 		decoder:              decoder,
 		maxDecompressedBytes: config.MaxDecompressedBytes,
+		closeOnce:            sync.Once{},
 	}
 
 	for _, opt := range options {

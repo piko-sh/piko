@@ -216,9 +216,11 @@ func runGenerate(
 	reader := newVirtualFileReader(migrations, queries)
 	emitter := &recordingEmitter{}
 	service, serviceError := querier_domain.NewQuerierService(querier_domain.QuerierPorts{
-		Engine:     engine,
-		Emitter:    emitter,
-		FileReader: reader,
+		Engine:            engine,
+		Emitter:           emitter,
+		FileReader:        reader,
+		CatalogueProvider: nil,
+		Clock:             nil,
 	})
 	if serviceError != nil {
 		return nil, nil, serviceError
@@ -226,6 +228,8 @@ func runGenerate(
 	result, generateError := service.GenerateDatabase(ctx, "conformance", &querier_dto.DatabaseConfig{
 		MigrationDirectory: migrationDir,
 		QueryDirectory:     queryDir,
+		TypeOverrides:      nil,
+		CustomFunctions:    nil,
 	})
 	return emitter, result, generateError
 }

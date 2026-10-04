@@ -24,22 +24,26 @@ import (
 
 var (
 	// typeUUID is the SQL type descriptor for the uuid type.
-	typeUUID = querier_dto.SQLType{Category: querier_dto.TypeCategoryUUID, EngineName: "uuid"}
+	typeUUID = querier_dto.NewSQLType(querier_dto.TypeCategoryUUID, "uuid")
 
 	// typeText is the SQL type descriptor for the text type.
-	typeText = querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}
+	typeText = querier_dto.NewSQLType(querier_dto.TypeCategoryText, "text")
 
 	// typeBytea is the SQL type descriptor for the bytea type.
-	typeBytea = querier_dto.SQLType{Category: querier_dto.TypeCategoryBytea, EngineName: "bytea"}
+	typeBytea = querier_dto.NewSQLType(querier_dto.TypeCategoryBytea, "bytea")
 
 	// typeFloat8 is the SQL type descriptor for the float8 type.
-	typeFloat8 = querier_dto.SQLType{Category: querier_dto.TypeCategoryFloat, EngineName: "float8"}
+	typeFloat8 = querier_dto.NewSQLType(querier_dto.TypeCategoryFloat, "float8")
 
 	// typeJSON is the SQL type descriptor for the json type.
-	typeJSON = querier_dto.SQLType{Category: querier_dto.TypeCategoryJSON, EngineName: "json"}
+	typeJSON = querier_dto.NewSQLType(querier_dto.TypeCategoryJSON, "json")
 
 	// typeInteger is the SQL type descriptor for the int4 type.
-	typeInteger = querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int4"}
+	typeInteger = querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int4")
+
+	// typeTextList is the SQL type descriptor the hstore and pg_trgm key and trigram
+	// functions return, a text-category type spelt text[].
+	typeTextList = querier_dto.NewSQLType(querier_dto.TypeCategoryText, "text[]")
 )
 
 var (
@@ -47,52 +51,37 @@ var (
 	// adds when installed.
 	extensionRegistry = map[string][]*querier_dto.FunctionSignature{
 		"pgcrypto": {
-			{Name: "gen_random_uuid", ReturnType: typeUUID, NullableBehaviour: querier_dto.FunctionNullableNeverNull},
-			{Name: "crypt", ReturnType: typeText, NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
-				Arguments: []querier_dto.FunctionArgument{{Type: typeText}, {Type: typeText}}},
-			{Name: "digest", ReturnType: typeBytea, NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
-				Arguments: []querier_dto.FunctionArgument{{Type: typeText}, {Type: typeText}}},
-			{Name: "gen_salt", ReturnType: typeText, NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
-				Arguments: []querier_dto.FunctionArgument{{Type: typeText}}, MinArguments: 1, IsVariadic: false},
-			{Name: "hmac", ReturnType: typeBytea, NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
-				Arguments: []querier_dto.FunctionArgument{{Type: typeText}, {Type: typeText}, {Type: typeText}}},
+			extensionFunction("gen_random_uuid", nil, typeUUID, querier_dto.FunctionNullableNeverNull),
+			extensionFunction("crypt", unnamedArguments(typeText, typeText), typeText, querier_dto.FunctionNullableReturnsNullOnNull),
+			extensionFunction("digest", unnamedArguments(typeText, typeText), typeBytea, querier_dto.FunctionNullableReturnsNullOnNull),
+			extensionFunction("gen_salt", unnamedArguments(typeText), typeText, querier_dto.FunctionNullableReturnsNullOnNull,
+				querier_dto.WithMinArguments(1)),
+			extensionFunction("hmac", unnamedArguments(typeText, typeText, typeText), typeBytea, querier_dto.FunctionNullableReturnsNullOnNull),
 		},
 		"uuid-ossp": {
-			{Name: "uuid_generate_v1", ReturnType: typeUUID, NullableBehaviour: querier_dto.FunctionNullableNeverNull},
-			{Name: "uuid_generate_v1mc", ReturnType: typeUUID, NullableBehaviour: querier_dto.FunctionNullableNeverNull},
-			{Name: "uuid_generate_v3", ReturnType: typeUUID, NullableBehaviour: querier_dto.FunctionNullableNeverNull,
-				Arguments: []querier_dto.FunctionArgument{{Type: typeUUID}, {Type: typeText}}},
-			{Name: "uuid_generate_v4", ReturnType: typeUUID, NullableBehaviour: querier_dto.FunctionNullableNeverNull},
-			{Name: "uuid_generate_v5", ReturnType: typeUUID, NullableBehaviour: querier_dto.FunctionNullableNeverNull,
-				Arguments: []querier_dto.FunctionArgument{{Type: typeUUID}, {Type: typeText}}},
-			{Name: "uuid_nil", ReturnType: typeUUID, NullableBehaviour: querier_dto.FunctionNullableNeverNull},
+			extensionFunction("uuid_generate_v1", nil, typeUUID, querier_dto.FunctionNullableNeverNull),
+			extensionFunction("uuid_generate_v1mc", nil, typeUUID, querier_dto.FunctionNullableNeverNull),
+			extensionFunction("uuid_generate_v3", unnamedArguments(typeUUID, typeText), typeUUID, querier_dto.FunctionNullableNeverNull),
+			extensionFunction("uuid_generate_v4", nil, typeUUID, querier_dto.FunctionNullableNeverNull),
+			extensionFunction("uuid_generate_v5", unnamedArguments(typeUUID, typeText), typeUUID, querier_dto.FunctionNullableNeverNull),
+			extensionFunction("uuid_nil", nil, typeUUID, querier_dto.FunctionNullableNeverNull),
 		},
 		"pg_trgm": {
-			{Name: "similarity", ReturnType: typeFloat8, NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
-				Arguments: []querier_dto.FunctionArgument{{Type: typeText}, {Type: typeText}}},
-			{Name: "word_similarity", ReturnType: typeFloat8, NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
-				Arguments: []querier_dto.FunctionArgument{{Type: typeText}, {Type: typeText}}},
-			{Name: "strict_word_similarity", ReturnType: typeFloat8, NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
-				Arguments: []querier_dto.FunctionArgument{{Type: typeText}, {Type: typeText}}},
-			{Name: "show_trgm", ReturnType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text[]"},
-				NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
-				Arguments:         []querier_dto.FunctionArgument{{Type: typeText}}},
+			extensionFunction("similarity", unnamedArguments(typeText, typeText), typeFloat8, querier_dto.FunctionNullableReturnsNullOnNull),
+			extensionFunction("word_similarity", unnamedArguments(typeText, typeText), typeFloat8, querier_dto.FunctionNullableReturnsNullOnNull),
+			extensionFunction("strict_word_similarity", unnamedArguments(typeText, typeText), typeFloat8,
+				querier_dto.FunctionNullableReturnsNullOnNull),
+			extensionFunction("show_trgm", unnamedArguments(typeText), typeTextList, querier_dto.FunctionNullableReturnsNullOnNull),
 		},
 		"hstore": {
-			{Name: "akeys", ReturnType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text[]"},
-				NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
-				Arguments:         []querier_dto.FunctionArgument{{Type: typeText}}},
-			{Name: "avals", ReturnType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text[]"},
-				NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
-				Arguments:         []querier_dto.FunctionArgument{{Type: typeText}}},
-			{Name: "hstore_to_json", ReturnType: typeJSON, NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
-				Arguments: []querier_dto.FunctionArgument{{Type: typeText}}},
+			extensionFunction("akeys", unnamedArguments(typeText), typeTextList, querier_dto.FunctionNullableReturnsNullOnNull),
+			extensionFunction("avals", unnamedArguments(typeText), typeTextList, querier_dto.FunctionNullableReturnsNullOnNull),
+			extensionFunction("hstore_to_json", unnamedArguments(typeText), typeJSON, querier_dto.FunctionNullableReturnsNullOnNull),
 		},
 		"ltree": {
-			{Name: "nlevel", ReturnType: typeInteger, NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
-				Arguments: []querier_dto.FunctionArgument{{Type: typeText}}},
-			{Name: "lca", ReturnType: typeText, NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
-				Arguments: []querier_dto.FunctionArgument{{Type: typeText}, {Type: typeText}}, IsVariadic: true, MinArguments: 1},
+			extensionFunction("nlevel", unnamedArguments(typeText), typeInteger, querier_dto.FunctionNullableReturnsNullOnNull),
+			extensionFunction("lca", unnamedArguments(typeText, typeText), typeText, querier_dto.FunctionNullableReturnsNullOnNull,
+				querier_dto.WithVariadic(1)),
 		},
 	}
 )
@@ -120,4 +109,43 @@ func init() {
 // nil when no extension matches.
 func lookupExtensionFunctions(name string) []*querier_dto.FunctionSignature {
 	return extensionRegistry[name]
+}
+
+// extensionFunction builds a named extension function signature.
+//
+// Takes name (string) which is the function's name.
+// Takes arguments ([]querier_dto.FunctionArgument) which are its arguments, or nil.
+// Takes returnType (querier_dto.SQLType) which is the type it returns.
+// Takes nullableBehaviour (querier_dto.FunctionNullableBehaviour) which says when the
+// result is NULL.
+// Takes options (...querier_dto.FunctionSignatureOption) which set further attributes.
+//
+// Returns *querier_dto.FunctionSignature which is the configured signature.
+func extensionFunction(
+	name string,
+	arguments []querier_dto.FunctionArgument,
+	returnType querier_dto.SQLType,
+	nullableBehaviour querier_dto.FunctionNullableBehaviour,
+	options ...querier_dto.FunctionSignatureOption,
+) *querier_dto.FunctionSignature {
+	options = append([]querier_dto.FunctionSignatureOption{querier_dto.WithFunctionName(name)}, options...)
+	return querier_dto.NewFunctionSignature(arguments, returnType, nullableBehaviour, options...)
+}
+
+// unnamedArguments builds required, unnamed arguments of the given types, the shape every
+// registered extension function declares.
+//
+// Takes types (...querier_dto.SQLType) which are the argument types in order.
+//
+// Returns []querier_dto.FunctionArgument which holds one required argument per type.
+func unnamedArguments(types ...querier_dto.SQLType) []querier_dto.FunctionArgument {
+	arguments := make([]querier_dto.FunctionArgument, len(types))
+	for index := range types {
+		arguments[index] = querier_dto.FunctionArgument{
+			Type:       types[index],
+			Name:       "",
+			IsOptional: false,
+		}
+	}
+	return arguments
 }

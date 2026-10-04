@@ -56,7 +56,7 @@ func TestExpressionGoAnnotationMethods(t *testing.T) {
 			name: "IndexExpr",
 			expression: &IndexExpression{
 				Base:  &Identifier{Name: "arr"},
-				Index: &IntegerLiteral{Value: 0},
+				Index: &IntegerLiteral{},
 			},
 		},
 		{
@@ -670,7 +670,7 @@ func TestGetSourceLength(t *testing.T) {
 		},
 		{
 			name:         "IndexExpr",
-			expression:   &IndexExpression{Base: &Identifier{Name: "arr"}, Index: &IntegerLiteral{Value: 0}, SourceLength: 6},
+			expression:   &IndexExpression{Base: &Identifier{Name: "arr"}, Index: &IntegerLiteral{}, SourceLength: 6},
 			sourceLength: 6,
 		},
 		{
@@ -803,7 +803,7 @@ func TestGetRelativeLocation(t *testing.T) {
 		},
 		{
 			name:       "IndexExpr",
-			expression: &IndexExpression{Base: &Identifier{Name: "a"}, Index: &IntegerLiteral{Value: 0}, RelativeLocation: expectedLocation},
+			expression: &IndexExpression{Base: &Identifier{Name: "a"}, Index: &IntegerLiteral{}, RelativeLocation: expectedLocation},
 		},
 		{
 			name:       "UnaryExpr",
@@ -941,10 +941,7 @@ func TestTemplateLiteralPartClone(t *testing.T) {
 	t.Run("expression part with nil expression", func(t *testing.T) {
 		t.Parallel()
 
-		original := TemplateLiteralPart{
-			IsLiteral:  false,
-			Expression: nil,
-		}
+		original := TemplateLiteralPart{}
 
 		clone := original.Clone()
 

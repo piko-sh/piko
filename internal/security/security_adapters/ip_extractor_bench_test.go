@@ -21,7 +21,7 @@ import (
 	"testing"
 )
 
-func BenchmarkExtractClientIP_DirectConnection(b *testing.B) {
+func BenchmarkResolveClient_DirectConnection(b *testing.B) {
 	extractor, err := NewTrustedProxyIPExtractor([]string{"10.0.0.0/8"}, false)
 	if err != nil {
 		b.Fatal(err)
@@ -32,11 +32,11 @@ func BenchmarkExtractClientIP_DirectConnection(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {
-		_ = extractor.ExtractClientIP(request)
+		_, _ = extractor.ResolveClient(request)
 	}
 }
 
-func BenchmarkExtractClientIP_TrustedProxyXFF(b *testing.B) {
+func BenchmarkResolveClient_TrustedProxyXFF(b *testing.B) {
 	extractor, err := NewTrustedProxyIPExtractor([]string{"10.0.0.0/8"}, false)
 	if err != nil {
 		b.Fatal(err)
@@ -48,11 +48,11 @@ func BenchmarkExtractClientIP_TrustedProxyXFF(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {
-		_ = extractor.ExtractClientIP(request)
+		_, _ = extractor.ResolveClient(request)
 	}
 }
 
-func BenchmarkExtractClientIP_TrustedProxyCF(b *testing.B) {
+func BenchmarkResolveClient_TrustedProxyCF(b *testing.B) {
 	extractor, err := NewTrustedProxyIPExtractor([]string{"10.0.0.0/8"}, true)
 	if err != nil {
 		b.Fatal(err)
@@ -64,11 +64,11 @@ func BenchmarkExtractClientIP_TrustedProxyCF(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {
-		_ = extractor.ExtractClientIP(request)
+		_, _ = extractor.ResolveClient(request)
 	}
 }
 
-func BenchmarkExtractClientIP_TrustedProxyXRealIP(b *testing.B) {
+func BenchmarkResolveClient_TrustedProxyXRealIP(b *testing.B) {
 	extractor, err := NewTrustedProxyIPExtractor([]string{"10.0.0.0/8"}, false)
 	if err != nil {
 		b.Fatal(err)
@@ -80,11 +80,11 @@ func BenchmarkExtractClientIP_TrustedProxyXRealIP(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {
-		_ = extractor.ExtractClientIP(request)
+		_, _ = extractor.ResolveClient(request)
 	}
 }
 
-func BenchmarkExtractClientIP_XFF_MultiHop(b *testing.B) {
+func BenchmarkResolveClient_XFF_MultiHop(b *testing.B) {
 	extractor, err := NewTrustedProxyIPExtractor([]string{"10.0.0.0/8"}, false)
 	if err != nil {
 		b.Fatal(err)
@@ -96,7 +96,7 @@ func BenchmarkExtractClientIP_XFF_MultiHop(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {
-		_ = extractor.ExtractClientIP(request)
+		_, _ = extractor.ResolveClient(request)
 	}
 }
 

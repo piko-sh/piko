@@ -27,6 +27,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync/atomic"
 )
 
 const (
@@ -89,15 +90,38 @@ var (
 	// legitimate document.
 	ErrMalformedStreamLength = errors.New("stream /Length exceeds remaining file bytes")
 
-	// maxDecompressedStreamBytes holds the active cap on FlateDecode decompression output.
-	// It defaults to defaultMaxDecompressedStreamBytes and may be overridden via
-	// SetMaxDecompressedStreamBytes.
-	maxDecompressedStreamBytes = defaultMaxDecompressedStreamBytes
+	// maxDecompressedStreamBytes holds the process-wide default cap on FlateDecode
+	// decompression output, used by documents parsed without WithMaxDecompressedStreamBytes.
+	//
+	// Zero means defaultMaxDecompressedStreamBytes. It is atomic so
+	// SetMaxDecompressedStreamBytes is safe alongside concurrent parsing.
+	maxDecompressedStreamBytes atomic.Int64
 )
 
-// SetMaxDecompressedStreamBytes sets the cap on the size of a single decompressed
-// FlateDecode stream. Callers may raise this for trusted inputs but should not lower it
-// below the largest legitimate stream they expect to encounter.
+// ParseOption configures how Parse reads a document.
+type ParseOption func(*Document)
+
+// WithMaxDecompressedStreamBytes caps the size of a single decompressed FlateDecode
+// stream for the parsed document, overriding the process-wide default. Non-positive
+// values keep the process-wide default.
+//
+// Takes limit (int64) which is the cap in bytes.
+//
+// Returns ParseOption which applies the cap.
+func WithMaxDecompressedStreamBytes(limit int64) ParseOption {
+	return func(d *Document) {
+		if limit > 0 {
+			d.maxDecompressedStreamBytes = limit
+		}
+	}
+}
+
+// SetMaxDecompressedStreamBytes sets the process-wide default cap on the size of a single
+// decompressed FlateDecode stream.
+//
+// Callers may raise this for trusted inputs but should not lower it below the largest
+// legitimate stream they expect to encounter. Prefer WithMaxDecompressedStreamBytes to
+// configure a single parse.
 //
 // Takes limit (int64) which is the new cap in bytes. Values <= 0 are ignored to keep the
 // existing limit safe.
@@ -105,13 +129,19 @@ func SetMaxDecompressedStreamBytes(limit int64) {
 	if limit <= 0 {
 		return
 	}
-	maxDecompressedStreamBytes = limit
+	maxDecompressedStreamBytes.Store(limit)
 }
 
-// MaxDecompressedStreamBytes returns the active cap on FlateDecode decompression output.
+// MaxDecompressedStreamBytes returns the process-wide default cap on FlateDecode
+// decompression output.
 //
-// Returns int64 which is the active cap in bytes.
-func MaxDecompressedStreamBytes() int64 { return maxDecompressedStreamBytes }
+// Returns int64 which is the active default cap in bytes.
+func MaxDecompressedStreamBytes() int64 {
+	if limit := maxDecompressedStreamBytes.Load(); limit > 0 {
+		return limit
+	}
+	return defaultMaxDecompressedStreamBytes
+}
 
 // xrefEntry represents one entry in the cross-reference table.
 type xrefEntry struct {
@@ -139,20 +169,30 @@ type Document struct {
 
 	// trailer holds the parsed trailer dictionary.
 	trailer Dict
+
+	// maxDecompressedStreamBytes caps the output of one decompressed FlateDecode stream for
+	// this document. Zero uses the process-wide default.
+	maxDecompressedStreamBytes int64
 }
 
 // Parse reads a PDF document from raw bytes and returns a Document that can be used to
 // inspect and modify objects.
 //
 // Takes data ([]byte) which is the complete PDF file bytes.
+// Takes opts (...ParseOption) which configure the parse, such as the decompression cap.
 //
 // Returns *Document which provides access to the parsed PDF structure.
 // Returns error when the PDF cannot be parsed.
-func Parse(data []byte) (*Document, error) {
+func Parse(data []byte, opts ...ParseOption) (*Document, error) {
 	doc := &Document{
-		raw:         data,
-		xref:        make(map[int]xrefEntry),
-		objectCache: make(map[int]Object),
+		raw:                        data,
+		xref:                       make(map[int]xrefEntry),
+		objectCache:                make(map[int]Object),
+		trailer:                    Dict{},
+		maxDecompressedStreamBytes: 0,
+	}
+	for _, opt := range opts {
+		opt(doc)
 	}
 
 	xrefOffset, err := findXRefOffset(data)
@@ -241,14 +281,43 @@ func (d *Document) Resolve(obj Object) (Object, error) {
 // Returns []byte which holds the raw file content.
 func (d *Document) Raw() []byte { return d.raw }
 
-// DecodeStream decompresses a stream object's data if it uses FlateDecode. If the stream
-// has no filter or an unsupported filter, the raw data is returned.
+// DecodeStream decompresses a stream object's data if it uses FlateDecode, enforcing the
+// document's decompression cap. If the stream has no filter or an unsupported filter, the
+// raw data is returned.
 //
 // Takes obj (Object) which must be an ObjectStream.
 //
 // Returns []byte which is the decoded stream content.
-// Returns error when decompression fails.
+// Returns error when decompression fails or exceeds the cap.
+func (d *Document) DecodeStream(obj Object) ([]byte, error) {
+	limit := d.maxDecompressedStreamBytes
+	if limit <= 0 {
+		limit = MaxDecompressedStreamBytes()
+	}
+	return decodeStreamWithLimit(obj, limit)
+}
+
+// DecodeStream decompresses a stream object's data if it uses FlateDecode, enforcing the
+// process-wide decompression cap. If the stream has no filter or an unsupported filter,
+// the raw data is returned.
+//
+// Takes obj (Object) which must be an ObjectStream.
+//
+// Returns []byte which is the decoded stream content.
+// Returns error when decompression fails or exceeds the cap.
 func DecodeStream(obj Object) ([]byte, error) {
+	return decodeStreamWithLimit(obj, MaxDecompressedStreamBytes())
+}
+
+// decodeStreamWithLimit decompresses a stream object's data if it uses FlateDecode,
+// enforcing the given cap.
+//
+// Takes obj (Object) which must be an ObjectStream.
+// Takes limit (int64) which caps the decompressed size in bytes.
+//
+// Returns []byte which is the decoded stream content.
+// Returns error when decompression fails or exceeds the cap.
+func decodeStreamWithLimit(obj Object, limit int64) ([]byte, error) {
 	if obj.Type != ObjectStream {
 		return nil, errors.New("not a stream object")
 	}
@@ -260,7 +329,7 @@ func DecodeStream(obj Object) ([]byte, error) {
 	filter := dict.GetName("Filter")
 
 	if filter == "FlateDecode" {
-		return deflateDecode(obj.StreamData)
+		return deflateDecode(obj.StreamData, limit)
 	}
 	return obj.StreamData, nil
 }
@@ -704,21 +773,21 @@ func (d *Document) readStreamData(sc *scanner, dict Dict) ([]byte, error) {
 	return d.raw[streamStart:end], nil
 }
 
-// deflateDecode decompresses zlib-compressed data, enforcing the active FlateDecode size
-// cap to guard against zip-bomb PDFs.
+// deflateDecode decompresses zlib-compressed data, enforcing a FlateDecode size cap to
+// guard against zip-bomb PDFs.
 //
 // Takes data ([]byte) which holds the compressed stream bytes.
+// Takes limit (int64) which caps the decompressed size in bytes.
 //
 // Returns []byte which is the decompressed content.
-// Returns error when decompression fails or the output exceeds the configured cap.
-func deflateDecode(data []byte) ([]byte, error) {
+// Returns error when decompression fails or the output exceeds the cap.
+func deflateDecode(data []byte, limit int64) ([]byte, error) {
 	reader, err := zlib.NewReader(bytes.NewReader(data))
 	if err != nil {
 		return nil, fmt.Errorf("creating zlib reader: %w", err)
 	}
 	defer reader.Close()
 
-	limit := maxDecompressedStreamBytes
 	decoded, err := io.ReadAll(io.LimitReader(reader, limit+1))
 	if err != nil {
 		return nil, fmt.Errorf("decompressing FlateDecode stream: %w", err)

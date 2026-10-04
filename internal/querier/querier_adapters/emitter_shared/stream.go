@@ -22,7 +22,7 @@ import (
 	"go/ast"
 	"go/token"
 
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
@@ -68,6 +68,8 @@ func BuildStreamMethod(
 //
 // Takes query (*querier_dto.AnalysedQuery) which holds the analysed query metadata.
 // Takes strategy (MethodStrategy) which provides database-specific AST nodes.
+// Takes mappings (*querier_dto.TypeMappingTable) which maps database types to generated
+// Go types.
 //
 // Returns *ast.FuncDecl which is the dynamic stream method declaration.
 func BuildDynamicStreamMethod(query *querier_dto.AnalysedQuery, strategy MethodStrategy, mappings *querier_dto.TypeMappingTable) *ast.FuncDecl {

@@ -197,5 +197,6 @@ func (m *MemoryDeadLetterQueue[T]) GetOlderThan(_ context.Context, duration time
 func NewMemoryDeadLetterQueue[T any]() deadletter_domain.DeadLetterPort[T] {
 	return &MemoryDeadLetterQueue[T]{
 		entries: make(map[string]wrappedEntry[T]),
+		mu:      sync.RWMutex{},
 	}
 }

@@ -31,7 +31,7 @@ import (
 	"sync"
 
 	"golang.org/x/tools/go/packages"
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 	"piko.sh/piko/internal/mem"
 )
@@ -398,12 +398,13 @@ func (s *encoder) buildGenericPlaceholderFieldDTO(
 // It performs type substitution for generic fields, resolves underlying types, and
 // extracts position information for LSP support.
 //
-// Takes field (*types.Var) which is the field to analyse. Takes rawTag (string) which is
-// the raw struct tag for the field. Takes smap (map[*types.TypeParam]types.Type) which
-// maps type parameters to concrete types for generic substitution. Takes ownerPackagePath
-// (string) which is the package path of the declaring type. Takes ownerTypeName (string)
-// which is the name of the declaring type. Takes qualifier (types.Qualifier) which
-// formats package names in type strings.
+// Takes field (*types.Var) which is the field to analyse.
+// Takes rawTag (string) which is the raw struct tag for the field.
+// Takes smap (map[*types.TypeParam]types.Type) which maps type parameters to concrete
+// types for generic substitution.
+// Takes ownerPackagePath (string) which is the package path of the declaring type.
+// Takes ownerTypeName (string) which is the name of the declaring type.
+// Takes qualifier (types.Qualifier) which formats package names in type strings.
 //
 // Returns *inspector_dto.Field which contains the fully analysed field metadata.
 func (s *encoder) buildStandardFieldDTO(
@@ -665,6 +666,7 @@ func isCompositeType(typ types.Type) bool {
 // Takes qualifier (types.Qualifier) which formats package names in output.
 // Takes allPackages (map[string]*packages.Package) which provides package lookup for
 // internal type detection.
+// Takes arena (*encoderArena) which provides reusable storage for serialised type data.
 //
 // Returns *inspector_dto.CompositePart which contains the type metadata including
 // underlying type info, package path, and nested composite parts.
@@ -717,6 +719,7 @@ func buildCompositePart(
 // Takes qualifier (types.Qualifier) which formats package names in type strings.
 // Takes allPackages (map[string]*packages.Package) which provides access to all loaded
 // packages for cross-package type resolution.
+// Takes arena (*encoderArena) which provides reusable storage for serialised type data.
 //
 // Returns []*inspector_dto.CompositePart which contains the extracted parts sorted by
 // role, or nil if the type is nil or has no composite parts.
@@ -744,6 +747,7 @@ func extractCompositeParts(typ types.Type, qualifier types.Qualifier, allPackage
 // Takes qualifier (types.Qualifier) which formats package names in type strings.
 // Takes allPackages (map[string]*packages.Package) which provides package data for type
 // lookup.
+// Takes arena (*encoderArena) which provides reusable storage for serialised type data.
 //
 // Returns []*inspector_dto.CompositePart which contains the extracted parts, or nil when
 // the type is not a known composite type.
@@ -775,6 +779,7 @@ func extractUnderlyingCompositeParts(underlying types.Type, qualifier types.Qual
 // Takes qualifier (types.Qualifier) which formats package names in type strings.
 // Takes allPackages (map[string]*packages.Package) which provides access to all loaded
 // packages for type resolution.
+// Takes arena (*encoderArena) which provides reusable storage for serialised type data.
 //
 // Returns []*inspector_dto.CompositePart which contains the parameter and result parts
 // from the signature.
@@ -793,6 +798,7 @@ func extractSignatureParts(sig *types.Signature, qualifier types.Qualifier, allP
 // Takes partType (string) which names the kind of part (e.g. "param").
 // Takes qualifier (types.Qualifier) which formats package names in types.
 // Takes allPackages (map[string]*packages.Package) which provides package data.
+// Takes arena (*encoderArena) which provides reusable storage for serialised type data.
 //
 // Returns []*inspector_dto.CompositePart which holds the original parts plus new parts
 // for each tuple element.
@@ -820,6 +826,7 @@ func appendTupleParts(
 // Takes typ (types.Type) which is the type to get generic arguments from.
 // Takes qualifier (types.Qualifier) which formats package names in type strings.
 // Takes allPackages (map[string]*packages.Package) which provides package data.
+// Takes arena (*encoderArena) which provides reusable storage for serialised type data.
 //
 // Returns []*inspector_dto.CompositePart which contains the original parts plus any
 // generic argument parts.
@@ -885,6 +892,7 @@ func shouldSkipMethod(method *types.Func, processed map[string]bool) bool {
 // Takes qualifier (types.Qualifier) which formats package names in types.
 // Takes allPackages (map[string]*packages.Package) which provides package data for
 // position lookup.
+// Takes arena (*encoderArena) which provides reusable storage for serialised type data.
 //
 // Returns *inspector_dto.Method which contains the method metadata and where it is
 // defined.
@@ -1007,8 +1015,8 @@ func resolveMethodPackagePath(rn *types.Named, method *types.Func) string {
 //
 // Returns string which is the package path, or the type name for built-in types.
 func resolveBuiltinTypePackagePath(typeString string, method *types.Func) string {
-	if lastDot := strings.LastIndex(typeString, "."); lastDot != -1 {
-		return typeString[:lastDot]
+	if before, _, ok := strings.CutLast(typeString, "."); ok {
+		return before
 	}
 
 	if method.Pkg() != nil {
@@ -1049,13 +1057,13 @@ func encodeSignature(sig *types.Signature, qualifier types.Qualifier) inspector_
 // Returns []string which holds the type parameter names in declaration order, or nil when
 // the signature declares none.
 // Returns []string which holds the matching constraint type strings, in the same order.
-func encodeTypeParams(typeParams *types.TypeParamList, qualifier types.Qualifier) ([]string, []string) {
+func encodeTypeParams(typeParams *types.TypeParamList, qualifier types.Qualifier) (names, constraints []string) {
 	if typeParams == nil || typeParams.Len() == 0 {
 		return nil, nil
 	}
 
-	names := make([]string, typeParams.Len())
-	constraints := make([]string, typeParams.Len())
+	names = make([]string, typeParams.Len())
+	constraints = make([]string, typeParams.Len())
 
 	for index := range typeParams.Len() {
 		typeParam := typeParams.At(index)

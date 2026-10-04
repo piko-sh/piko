@@ -46,7 +46,7 @@ func TestNewContextManager(t *testing.T) {
 	t.Run("creates context manager with type resolver", func(t *testing.T) {
 		t.Parallel()
 
-		tr := &TypeResolver{inspector: nil}
+		tr := &TypeResolver{}
 		cm := newContextManager(tr, nil)
 
 		require.NotNil(t, cm)
@@ -68,7 +68,7 @@ func TestNewContextManager(t *testing.T) {
 	t.Run("creates context manager with both parameters", func(t *testing.T) {
 		t.Parallel()
 
-		tr := &TypeResolver{inspector: nil}
+		tr := &TypeResolver{}
 		vm := &annotator_dto.VirtualModule{
 			ComponentsByHash: make(map[string]*annotator_dto.VirtualComponent),
 		}
@@ -104,10 +104,7 @@ func TestContextSwitchResult(t *testing.T) {
 	t.Run("allows nil values", func(t *testing.T) {
 		t.Parallel()
 
-		result := &contextSwitchResult{
-			newCtx:      nil,
-			activePInfo: nil,
-		}
+		result := &contextSwitchResult{}
 
 		assert.Nil(t, result.newCtx)
 		assert.Nil(t, result.activePInfo)
@@ -122,9 +119,7 @@ func TestNeedsContextSwitch(t *testing.T) {
 
 		cm := newContextManager(nil, createContextManagerVirtualModule())
 		ctx := createContextManagerTestContext()
-		node := &ast_domain.TemplateNode{
-			GoAnnotations: nil,
-		}
+		node := &ast_domain.TemplateNode{}
 
 		result := cm.needsContextSwitch(node, ctx)
 
@@ -232,9 +227,7 @@ func TestCreateForLoopContext(t *testing.T) {
 
 		cm := newContextManager(nil, nil)
 		parentCtx := createContextManagerTestContext()
-		node := &ast_domain.TemplateNode{
-			DirFor: nil,
-		}
+		node := &ast_domain.TemplateNode{}
 
 		result, err := cm.CreateForLoopContext(context.Background(), node, parentCtx)
 
@@ -285,10 +278,8 @@ func TestCreateForLoopContext(t *testing.T) {
 		parentCtx := createContextManagerTestContext()
 		forExpr := &ast_domain.ForInExpression{
 			Collection: &ast_domain.Identifier{
-				Name: "items",
-				GoAnnotations: &ast_domain.GoGeneratorAnnotation{
-					ResolvedType: nil,
-				},
+				Name:          "items",
+				GoAnnotations: &ast_domain.GoGeneratorAnnotation{},
 			},
 		}
 		node := &ast_domain.TemplateNode{
@@ -312,9 +303,7 @@ func TestDeterminePartialSelfContext(t *testing.T) {
 
 		cm := newContextManager(nil, createContextManagerVirtualModule())
 		parentCtx := createContextManagerTestContext()
-		node := &ast_domain.TemplateNode{
-			GoAnnotations: nil,
-		}
+		node := &ast_domain.TemplateNode{}
 
 		result := cm.DeterminePartialSelfContext(node, parentCtx)
 
@@ -327,9 +316,7 @@ func TestDeterminePartialSelfContext(t *testing.T) {
 		cm := newContextManager(nil, createContextManagerVirtualModule())
 		parentCtx := createContextManagerTestContext()
 		node := &ast_domain.TemplateNode{
-			GoAnnotations: &ast_domain.GoGeneratorAnnotation{
-				PartialInfo: nil,
-			},
+			GoAnnotations: &ast_domain.GoGeneratorAnnotation{},
 		}
 
 		result := cm.DeterminePartialSelfContext(node, parentCtx)
@@ -368,9 +355,7 @@ func TestDetermineNodeContext(t *testing.T) {
 
 		cm := newContextManager(nil, createContextManagerVirtualModule())
 		parentCtx := createContextManagerTestContext()
-		node := &ast_domain.TemplateNode{
-			GoAnnotations: nil,
-		}
+		node := &ast_domain.TemplateNode{}
 
 		resultCtx, resultPInfo := cm.DetermineNodeContext(node, parentCtx, nil, 0)
 
@@ -387,9 +372,7 @@ func TestDetermineNodeContext(t *testing.T) {
 			InvocationKey:      "existing-key",
 			PartialPackageName: "existing_partial",
 		}
-		node := &ast_domain.TemplateNode{
-			GoAnnotations: nil,
-		}
+		node := &ast_domain.TemplateNode{}
 
 		resultCtx, resultPInfo := cm.DetermineNodeContext(node, parentCtx, existingPInfo, 0)
 
@@ -427,9 +410,7 @@ func TestTryContextSwitch(t *testing.T) {
 
 		cm := newContextManager(nil, createContextManagerVirtualModule())
 		parentCtx := createContextManagerTestContext()
-		node := &ast_domain.TemplateNode{
-			GoAnnotations: nil,
-		}
+		node := &ast_domain.TemplateNode{}
 
 		result := cm.tryContextSwitch(node, parentCtx, nil, 0)
 
@@ -558,9 +539,7 @@ func TestCreateForLoopVisitorContext(t *testing.T) {
 
 		cm := newContextManager(nil, nil)
 		parentCtx := createContextManagerTestContext()
-		node := &ast_domain.TemplateNode{
-			DirFor: nil,
-		}
+		node := &ast_domain.TemplateNode{}
 
 		result, err := cm.CreateForLoopVisitorContext(context.Background(), node, parentCtx, 0)
 
@@ -613,7 +592,7 @@ func TestDefineItemVariable(t *testing.T) {
 	t.Run("does nothing when ItemVariable is nil", func(t *testing.T) {
 		t.Parallel()
 
-		tr := &TypeResolver{inspector: nil}
+		tr := &TypeResolver{}
 		cm := newContextManager(tr, nil)
 		parentCtx := createContextManagerTestContext()
 		loopCtx := parentCtx.ForChildScope()
@@ -670,7 +649,7 @@ func TestDefineIndexVariable(t *testing.T) {
 	t.Run("does nothing when IndexVariable is nil", func(t *testing.T) {
 		t.Parallel()
 
-		tr := &TypeResolver{inspector: nil}
+		tr := &TypeResolver{}
 		cm := newContextManager(tr, nil)
 		parentCtx := createContextManagerTestContext()
 		loopCtx := parentCtx.ForChildScope()
@@ -887,9 +866,7 @@ func TestCreateForLoopContext_NoDirFor(t *testing.T) {
 		"/test/main.pk",
 	)
 
-	node := &ast_domain.TemplateNode{
-		DirFor: nil,
-	}
+	node := &ast_domain.TemplateNode{}
 
 	resultCtx, err := cm.CreateForLoopContext(context.Background(), node, parentCtx)
 
@@ -1018,9 +995,7 @@ func TestDeterminePartialSelfContext_NoPartialInfo(t *testing.T) {
 		"/test/main.pk",
 	)
 
-	node := &ast_domain.TemplateNode{
-		GoAnnotations: nil,
-	}
+	node := &ast_domain.TemplateNode{}
 
 	resultCtx := cm.DeterminePartialSelfContext(node, parentCtx)
 	assert.Same(t, parentCtx, resultCtx, "should return parent context when no partial info")
@@ -1097,9 +1072,7 @@ func TestDetermineNodeContext_NoPartialInfo(t *testing.T) {
 		"/test/main.pk",
 	)
 
-	node := &ast_domain.TemplateNode{
-		GoAnnotations: nil,
-	}
+	node := &ast_domain.TemplateNode{}
 
 	resultCtx, resultPInfo := cm.DetermineNodeContext(node, parentCtx, nil, 0)
 

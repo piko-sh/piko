@@ -20,7 +20,10 @@ package layouter_domain
 
 import (
 	"context"
+	"fmt"
 	"math"
+
+	"piko.sh/piko/internal/layouter/layouter_dto"
 )
 
 // tableCellPlacement tracks the grid position and span of a placed table cell.
@@ -44,6 +47,48 @@ type tableCellPlacement struct {
 	rowspan int
 }
 
+// tableSlots tracks which table grid slots are occupied by cells placed so far.
+//
+// Rows are placed in order and a row's cursor only moves right, so a slot (row, column)
+// is occupied exactly when some earlier cell covering that column spans down to or past
+// the row. Recording, per column, the first row no longer covered is therefore enough,
+// and costs one integer per column instead of one map entry per covered slot.
+type tableSlots struct {
+	// busyUntil holds, for each column, the exclusive row index up to which the column is
+	// covered by a placed cell.
+	busyUntil []int
+}
+
+// nextFreeColumn returns the first column at or after column that is not covered in row.
+//
+// Takes row (int) which is the row being filled.
+// Takes column (int) which is the column to start searching from.
+//
+// Returns int which is the first free column.
+func (s *tableSlots) nextFreeColumn(row, column int) int {
+	for column < len(s.busyUntil) && s.busyUntil[column] > row {
+		column++
+	}
+	return column
+}
+
+// occupy records a cell covering the given columns from row for rowspan rows.
+//
+// Takes row (int) which is the cell's starting row.
+// Takes column (int) which is the cell's starting column.
+// Takes rowspan (int) which is the number of rows the cell covers.
+// Takes colspan (int) which is the number of columns the cell covers.
+func (s *tableSlots) occupy(row, column, rowspan, colspan int) {
+	endColumn := column + colspan
+	if endColumn > len(s.busyUntil) {
+		s.busyUntil = append(s.busyUntil, make([]int, endColumn-len(s.busyUntil))...)
+	}
+	endRow := row + rowspan
+	for index := column; index < endColumn; index++ {
+		s.busyUntil[index] = max(s.busyUntil[index], endRow)
+	}
+}
+
 // layoutTableContainer performs CSS table layout on a table box, returning a Fragment
 // with parent-relative child offsets.
 //
@@ -56,18 +101,24 @@ func layoutTableContainer(ctx context.Context, box *LayoutBox, input layoutInput
 	tableWidth := input.AvailableWidth
 
 	rows, columnCount := collectTableRows(box)
-	if len(rows) == 0 {
-		return formattingContextResult{
-			Margin: BoxEdges{
-				Top:    input.Edges.MarginTop,
-				Bottom: input.Edges.MarginBottom,
-			},
-		}
+	if len(rows) == 0 || !tableColumnsWithinLimit(columnCount, input.Limits) {
+		return newFormattingContextResult(
+			nil,
+			0,
+			newVerticalMarginEdges(input.Edges.MarginTop, input.Edges.MarginBottom),
+		)
 	}
 
-	placements, rowCount, gridColumnCount := buildTableGrid(rows)
+	placements, rowCount, gridColumnCount := buildTableGrid(rows, input.Limits.Limits().MaxTableColumns)
 	if gridColumnCount > columnCount {
 		columnCount = gridColumnCount
+	}
+	if !tableColumnsWithinLimit(columnCount, input.Limits) {
+		return newFormattingContextResult(
+			nil,
+			0,
+			newVerticalMarginEdges(input.Edges.MarginTop, input.Edges.MarginBottom),
+		)
 	}
 
 	spacing := box.Style.BorderSpacing
@@ -92,14 +143,11 @@ func layoutTableContainer(ctx context.Context, box *LayoutBox, input layoutInput
 
 	totalHeight := computeTableTotalHeight(rowHeights, rowCount, spacing)
 
-	result := formattingContextResult{
-		Children:      childFragments,
-		ContentHeight: totalHeight,
-		Margin: BoxEdges{
-			Top:    input.Edges.MarginTop,
-			Bottom: input.Edges.MarginBottom,
-		},
-	}
+	result := newFormattingContextResult(
+		childFragments,
+		totalHeight,
+		newVerticalMarginEdges(input.Edges.MarginTop, input.Edges.MarginBottom),
+	)
 
 	if isCollapsed {
 		result.Border = collapsedTableOuterBorder(box, placements, rowCount, columnCount)
@@ -257,39 +305,42 @@ func appendTableRowFragments(
 			break
 		}
 		if row.box != nil {
-			rowFragment := &Fragment{
-				Box:           row.box,
-				OffsetX:       spacing,
-				OffsetY:       rowYOffsets[rowIndex],
-				ContentWidth:  tableWidth - 2*spacing,
-				ContentHeight: rowHeights[rowIndex],
-			}
+			rowFragment := newFragment(row.box, spacing, rowYOffsets[rowIndex], tableWidth-2*spacing, rowHeights[rowIndex])
 			*childFragments = append(*childFragments, rowFragment)
 		}
 	}
 }
 
 // buildTableGrid places cells into a 2D grid, respecting colspan and rowspan attributes.
-// Returns the cell placements, total row count, and total column count.
+//
+// Occupancy is tracked per column rather than per cell, so a large rowspan or colspan
+// costs nothing beyond the columns it covers. Placement stops at the first cell that
+// would extend beyond maxColumns; the caller detects the overflow from the returned
+// column count.
 //
 // Takes rows ([]tableRow) which are the collected table rows.
+// Takes maxColumns (int) which bounds the number of grid columns.
 //
 // Returns cells ([]tableCellPlacement) listing all placed cells.
-// Returns columnCount (int) which is the maximum grid column count.
 // Returns rowCount (int) which is the total number of grid rows.
-func buildTableGrid(rows []tableRow) (cells []tableCellPlacement, columnCount, rowCount int) {
-	occupied := make(map[[2]int]bool)
+// Returns columnCount (int) which is the maximum grid column count, or more than
+// maxColumns when placement stopped at the limit.
+func buildTableGrid(rows []tableRow, maxColumns int) (cells []tableCellPlacement, rowCount, columnCount int) {
+	slots := &tableSlots{busyUntil: nil}
 	var placements []tableCellPlacement
 	maxColumn := 0
 
 	for rowIndex, row := range rows {
 		columnCursor := 0
 		for _, cell := range row.cells {
-			for occupied[[2]int{rowIndex, columnCursor}] {
-				columnCursor++
-			}
+			columnCursor = slots.nextFreeColumn(rowIndex, columnCursor)
 
-			placement, endColumn := placeSingleCell(cell, rowIndex, columnCursor, occupied)
+			placement := newTableCellPlacement(cell, rowIndex, columnCursor)
+			endColumn := columnCursor + placement.colspan
+			if endColumn > maxColumns {
+				return placements, len(rows), endColumn
+			}
+			slots.occupy(rowIndex, columnCursor, placement.rowspan, placement.colspan)
 			placements = append(placements, placement)
 
 			if endColumn > maxColumn {
@@ -302,38 +353,23 @@ func buildTableGrid(rows []tableRow) (cells []tableCellPlacement, columnCount, r
 	return placements, len(rows), maxColumn
 }
 
-// placeSingleCell creates a placement for one cell at the given grid position and marks
-// the occupied cells in the grid map.
+// newTableCellPlacement creates the placement for one cell at the given grid position,
+// treating spans below one as one.
 //
 // Takes cell (*LayoutBox) which is the cell to place.
 // Takes rowIndex (int) which is the grid row for the cell.
 // Takes columnCursor (int) which is the starting grid column.
-// Takes occupied (map[[2]int]bool) which tracks occupied grid positions.
 //
 // Returns tableCellPlacement which is the cell's grid placement.
-// Returns int which is the column index after the cell.
-func placeSingleCell(
-	cell *LayoutBox, rowIndex, columnCursor int,
-	occupied map[[2]int]bool,
-) (tableCellPlacement, int) {
-	colspan := max(cell.Colspan, 1)
-	rowspan := max(cell.Rowspan, 1)
-
-	placement := tableCellPlacement{
-		cell:    cell,
-		column:  columnCursor,
-		row:     rowIndex,
-		colspan: colspan,
-		rowspan: rowspan,
+func newTableCellPlacement(cell *LayoutBox, rowIndex, columnCursor int) tableCellPlacement {
+	return tableCellPlacement{
+		cell:     cell,
+		column:   columnCursor,
+		row:      rowIndex,
+		colspan:  max(cell.Colspan, 1),
+		rowspan:  max(cell.Rowspan, 1),
+		fragment: nil,
 	}
-
-	for spanRow := range rowspan {
-		for spanCol := range colspan {
-			occupied[[2]int{rowIndex + spanRow, columnCursor + spanCol}] = true
-		}
-	}
-
-	return placement, columnCursor + colspan
 }
 
 // adjustColumnWidthsForColspan ensures that spanning cells' content widths are satisfied
@@ -553,13 +589,12 @@ func sizeTableCell(ctx context.Context, cell *LayoutBox, columnWidth float64, in
 		cellContentWidth = 0
 	}
 
-	fragment := layoutBox(ctx, cell, layoutInput{
-		AvailableWidth:    cellContentWidth,
-		FontMetrics:       input.FontMetrics,
-		Cache:             input.Cache,
-		IsFixedInlineSize: true,
-		Edges:             edges,
-	})
+	fragment := layoutBox(ctx, cell, newFixedInlineSizeInput(
+		input,
+		cellContentWidth,
+		0,
+		edges,
+	))
 
 	if !cell.Style.Height.IsAuto() {
 		explicitContentHeight := adjustForBoxSizing(
@@ -609,7 +644,7 @@ func collectTableRows(table *LayoutBox) ([]tableRow, int) {
 				maxColumns = maxColumnCount(maxColumns, countRowColumns(row))
 			}
 		case BoxTableCell:
-			rows = append(rows, tableRow{cells: []*LayoutBox{child}})
+			rows = append(rows, tableRow{cells: []*LayoutBox{child}, box: nil})
 			maxColumns = maxColumnCount(maxColumns, max(child.Colspan, 1))
 		}
 	}
@@ -666,7 +701,7 @@ func maxColumnCount(current, candidate int) int {
 //
 // Returns tableRow which pairs the row box with its cells.
 func collectCellsFromRow(rowBox *LayoutBox) tableRow {
-	row := tableRow{box: rowBox}
+	row := tableRow{box: rowBox, cells: nil}
 	for _, child := range rowBox.Children {
 		if child.Type == BoxTableCell {
 			row.cells = append(row.cells, child)
@@ -680,6 +715,8 @@ func collectCellsFromRow(rowBox *LayoutBox) tableRow {
 //
 // Takes table (*LayoutBox) which provides the table-layout style.
 // Takes rows ([]tableRow) which are the table rows for auto sizing.
+// Takes placements ([]tableCellPlacement) which maps table cells to their column
+// positions and spans.
 // Takes columnCount (int) which is the number of columns.
 // Takes tableWidth (float64) which is the available table width.
 // Takes spacing (float64) which is the border-spacing value.
@@ -731,6 +768,8 @@ func computeFixedColumnWidths(columnCount int, tableWidth, spacing float64) []fl
 // proportionally for auto table layout.
 //
 // Takes rows ([]tableRow) which are the table rows to measure.
+// Takes placements ([]tableCellPlacement) which maps table cells to their column
+// positions and spans.
 // Takes columnCount (int) which is the number of columns.
 // Takes tableWidth (float64) which is the total table width.
 // Takes spacing (float64) which is the border-spacing value.
@@ -773,9 +812,9 @@ func measureColumnWidths(rows []tableRow, columnCount int, fontMetrics FontMetri
 	minWidths = make([]float64, columnCount)
 	preferredWidths = make([]float64, columnCount)
 
-	occupied := make(map[[2]int]bool)
+	slots := &tableSlots{busyUntil: nil}
 	for rowIndex, row := range rows {
-		measureRowCellWidths(row, rowIndex, columnCount, occupied, fontMetrics, minWidths, preferredWidths)
+		measureRowCellWidths(row, rowIndex, columnCount, slots, fontMetrics, minWidths, preferredWidths)
 	}
 
 	return minWidths, preferredWidths
@@ -788,50 +827,32 @@ func measureColumnWidths(rows []tableRow, columnCount int, fontMetrics FontMetri
 // Takes row (tableRow) which is the row to measure.
 // Takes rowIndex (int) which is the row's grid index.
 // Takes columnCount (int) which is the number of columns.
-// Takes occupied (map[[2]int]bool) which tracks occupied grid positions.
+// Takes slots (*tableSlots) which tracks occupied grid positions.
 // Takes fontMetrics (FontMetricsPort) which provides text measurement.
 // Takes minWidths ([]float64) which receives the minimum widths.
 // Takes preferredWidths ([]float64) which receives the preferred widths.
 func measureRowCellWidths(
 	row tableRow, rowIndex, columnCount int,
-	occupied map[[2]int]bool,
+	slots *tableSlots,
 	fontMetrics FontMetricsPort,
 	minWidths, preferredWidths []float64,
 ) {
 	columnCursor := 0
 	for _, cell := range row.cells {
-		for occupied[[2]int{rowIndex, columnCursor}] {
-			columnCursor++
-		}
+		columnCursor = slots.nextFreeColumn(rowIndex, columnCursor)
 		if columnCursor >= columnCount {
 			break
 		}
 
 		colspan := max(cell.Colspan, 1)
 		rowspan := max(cell.Rowspan, 1)
-		markTableOccupied(occupied, rowIndex, columnCursor, rowspan, colspan)
+		slots.occupy(rowIndex, columnCursor, rowspan, min(colspan, columnCount-columnCursor))
 
 		if colspan == 1 {
 			measureSingleColumnCell(cell, columnCursor, fontMetrics, minWidths, preferredWidths)
 		}
 
 		columnCursor += colspan
-	}
-}
-
-// markTableOccupied marks all grid cells covered by a cell's rowspan and colspan as
-// occupied in the grid map.
-//
-// Takes occupied (map[[2]int]bool) which is the grid occupancy map.
-// Takes rowIndex (int) which is the cell's starting row.
-// Takes columnCursor (int) which is the cell's starting column.
-// Takes rowspan (int) which is the number of rows spanned.
-// Takes colspan (int) which is the number of columns spanned.
-func markTableOccupied(occupied map[[2]int]bool, rowIndex, columnCursor, rowspan, colspan int) {
-	for spanRow := range rowspan {
-		for spanCol := range colspan {
-			occupied[[2]int{rowIndex + spanRow, columnCursor + spanCol}] = true
-		}
 	}
 }
 
@@ -1022,4 +1043,21 @@ func collapsedTableOuterBorder(
 	}
 
 	return border
+}
+
+// tableColumnsWithinLimit reports whether a table's column count fits MaxTableColumns,
+// recording a breach when it does not.
+//
+// Takes columnCount (int) which is the table's column count.
+// Takes limits (*LimitTracker) which enforces the limit, or nil for the defaults.
+//
+// Returns bool which is false when the table has too many columns.
+func tableColumnsWithinLimit(columnCount int, limits *LimitTracker) bool {
+	maxColumns := limits.Limits().MaxTableColumns
+	if columnCount > maxColumns {
+		limits.fail(fmt.Errorf("table has %d columns, more than the limit of %d: %w",
+			columnCount, maxColumns, layouter_dto.ErrTooManyTableColumns))
+		return false
+	}
+	return true
 }

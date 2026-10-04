@@ -19,7 +19,6 @@
 package analytics_dto
 
 import (
-	"net/http"
 	"testing"
 	"time"
 
@@ -52,9 +51,6 @@ func TestAcquireEvent_ReturnsZeroedEvent(t *testing.T) {
 	ev := AcquireEvent()
 	defer ReleaseEvent(ev)
 
-	if ev.Request != nil {
-		t.Error("expected Request to be nil")
-	}
 	if ev.Revenue != nil {
 		t.Error("expected Revenue to be nil")
 	}
@@ -90,7 +86,6 @@ func TestAcquireEvent_ResetsFieldsFromPreviousUse(t *testing.T) {
 	ev.Path = "/test"
 	ev.StatusCode = 200
 	ev.Properties = map[string]string{"key": "value"}
-	ev.Request = &http.Request{}
 	ev.Revenue = new(maths.NewMoneyFromString("29.99", "GBP"))
 	ev.Timestamp = time.Now()
 	ev.Duration = 5 * time.Second
@@ -120,9 +115,6 @@ func TestAcquireEvent_ResetsFieldsFromPreviousUse(t *testing.T) {
 	}
 	if ev2.Properties != nil {
 		t.Error("expected Properties to be nil after reset")
-	}
-	if ev2.Request != nil {
-		t.Error("expected Request to be nil after reset")
 	}
 	if ev2.Revenue != nil {
 		t.Error("expected Revenue to be nil after reset")

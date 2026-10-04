@@ -353,6 +353,10 @@ func newRootTransformationContext(config *pml_dto.Config, initialWidth float64, 
 		SiblingCount:            0,
 		IsInsideGroup:           false,
 		IsEmailContext:          false,
+		InheritedTextAlign:      "",
+		SourceFilePath:          "",
+		AssetServePath:          "",
+		IsPreviewMode:           false,
 	}
 }
 
@@ -383,6 +387,8 @@ func newRootTransformationContextForEmail(config *pml_dto.Config, initialWidth f
 		IsEmailContext:          true,
 		IsPreviewMode:           config.PreviewMode,
 		AssetServePath:          config.AssetServePath,
+		InheritedTextAlign:      "",
+		SourceFilePath:          "",
 	}
 }
 

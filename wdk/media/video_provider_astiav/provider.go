@@ -145,12 +145,10 @@ func (p *Provider) ExtractCapabilities(ctx context.Context, input io.Reader) (me
 	ctx, span, l := l.Span(ctx, "Provider.ExtractCapabilities")
 	defer span.End()
 
-	caps := media.VideoCapabilities{
-		SupportedCodecs:  p.codecRegistry.SupportedCodecs(),
-		SupportedFormats: []string{"mp4", "webm", "mkv"},
-		SupportsHLS:      true,
-		SupportsDASH:     false,
-	}
+	caps := media.VideoCapabilities{}
+	caps.SupportedCodecs = p.codecRegistry.SupportedCodecs()
+	caps.SupportedFormats = []string{"mp4", "webm", "mkv"}
+	caps.SupportsHLS = true
 
 	inputCtx, err := p.createInputFormatContext(ctx, input)
 	if err != nil {

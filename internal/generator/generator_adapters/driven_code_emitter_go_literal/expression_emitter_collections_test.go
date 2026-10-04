@@ -167,10 +167,8 @@ func TestExpressionEmitter_CollectionCall_NotACollection(t *testing.T) {
 	em.resetState()
 
 	expression := &ast_domain.CallExpression{
-		Callee: &ast_domain.Identifier{Name: "regularFunction"},
-		GoAnnotations: &ast_domain.GoGeneratorAnnotation{
-			IsCollectionCall: false,
-		},
+		Callee:        &ast_domain.Identifier{Name: "regularFunction"},
+		GoAnnotations: &ast_domain.GoGeneratorAnnotation{},
 	}
 
 	expressionEmitter := requireExpressionEmitter(t, em)
@@ -219,10 +217,8 @@ func TestValidateHybridCollectionInfo(t *testing.T) {
 		expectDiag   bool
 	}{
 		{
-			name: "nil DynamicCollectionInfo returns diagnostic",
-			ann: &ast_domain.GoGeneratorAnnotation{
-				DynamicCollectionInfo: nil,
-			},
+			name:       "nil DynamicCollectionInfo returns diagnostic",
+			ann:        &ast_domain.GoGeneratorAnnotation{},
 			expectInfo: false,
 			expectDiag: true,
 		},
@@ -296,10 +292,8 @@ func TestHandleNonHybridMode(t *testing.T) {
 			expectLiteral: true,
 		},
 		{
-			name: "without StaticCollectionLiteral returns nil ident and warning",
-			ann: &ast_domain.GoGeneratorAnnotation{
-				StaticCollectionLiteral: nil,
-			},
+			name:          "without StaticCollectionLiteral returns nil ident and warning",
+			ann:           &ast_domain.GoGeneratorAnnotation{},
 			expectLiteral: false,
 		},
 	}
@@ -375,10 +369,8 @@ func TestEmitHybridCollectionFetcher(t *testing.T) {
 		{
 			name: "non-hybrid mode with literal returns literal and warning",
 			ann: &ast_domain.GoGeneratorAnnotation{
-				IsHybridCollection: true,
-				DynamicCollectionInfo: &collection_dto.DynamicCollectionInfo{
-					HybridMode: false,
-				},
+				IsHybridCollection:      true,
+				DynamicCollectionInfo:   &collection_dto.DynamicCollectionInfo{},
 				StaticCollectionLiteral: staticLiteral,
 			},
 			expectLiteral: true,
@@ -388,10 +380,8 @@ func TestEmitHybridCollectionFetcher(t *testing.T) {
 		{
 			name: "non-hybrid mode without literal returns nil and warning",
 			ann: &ast_domain.GoGeneratorAnnotation{
-				IsHybridCollection: true,
-				DynamicCollectionInfo: &collection_dto.DynamicCollectionInfo{
-					HybridMode: false,
-				},
+				IsHybridCollection:      true,
+				DynamicCollectionInfo:   &collection_dto.DynamicCollectionInfo{},
 				StaticCollectionLiteral: nil,
 			},
 			expectNilExpr: true,

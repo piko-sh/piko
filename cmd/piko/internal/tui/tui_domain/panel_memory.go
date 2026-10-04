@@ -83,6 +83,8 @@ func NewMemoryPanel(provider SystemProvider, c clock.Clock) *MemoryPanel {
 		heapHistory: NewHistoryRing(memoryHistorySize),
 		gcHistory:   NewHistoryRing(memoryHistorySize),
 		stateMutex:  sync.RWMutex{},
+		err:         nil,
+		stats:       nil,
 	}
 	p.SetKeyMap([]KeyBinding{{Key: "r", Description: "Refresh"}})
 	return p
@@ -131,7 +133,8 @@ func (p *MemoryPanel) View(width, height int) string {
 
 // DetailView renders the right-pane detail with heap and GC charts.
 //
-// Takes width (int) and height (int) for the inner content.
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 //
 // Returns string with the rendered body.
 func (p *MemoryPanel) DetailView(width, height int) string {
@@ -145,7 +148,7 @@ func (p *MemoryPanel) DetailView(width, height int) string {
 	now := p.clock.Now()
 	series := make([]ChartSeries, 0, 2)
 	if len(snap.heap) >= 2 {
-		series = append(series, ChartSeries{Name: "Heap", Points: pointsFromHistory(snap.heap, now)})
+		series = append(series, ChartSeries{Name: "Heap", Points: pointsFromHistory(snap.heap, now), Severity: 0})
 	}
 	if len(snap.gc) >= 2 {
 		series = append(series, ChartSeries{Name: "GC pause us", Points: pointsFromHistory(snap.gc, now), Severity: SeverityWarning})
@@ -236,39 +239,43 @@ func (p *MemoryPanel) renderBody(stats *SystemStats, err error) string {
 func (*MemoryPanel) detailBody(stats *SystemStats, err error) inspector.DetailBody {
 	if err != nil {
 		return inspector.DetailBody{
-			Title:    "Memory",
-			Sections: []inspector.DetailSection{{Heading: "Error", Rows: []inspector.DetailRow{{Label: "Reason", Value: err.Error()}}}},
+			Title: "Memory",
+			Sections: []inspector.DetailSection{inspector.NewDetailSection(
+				"Error",
+				[]inspector.DetailRow{inspector.NewDetailRow("Reason", err.Error())},
+			)},
+			Subtitle: "",
 		}
 	}
 	if stats == nil {
-		return inspector.DetailBody{Title: "Memory", Subtitle: "no data yet"}
+		return inspector.DetailBody{Title: "Memory", Subtitle: "no data yet", Sections: nil}
 	}
 
 	heap := []inspector.DetailRow{
-		{Label: "Alloc", Value: inspector.FormatBytes(stats.Memory.Alloc)},
-		{Label: "Heap alloc", Value: inspector.FormatBytes(stats.Memory.HeapAlloc)},
-		{Label: "Heap inuse", Value: inspector.FormatBytes(stats.Memory.HeapInuse)},
-		{Label: "Heap idle", Value: inspector.FormatBytes(stats.Memory.HeapIdle)},
-		{Label: "Heap released", Value: inspector.FormatBytes(stats.Memory.HeapReleased)},
-		{Label: "Heap objects", Value: formatUint64(stats.Memory.HeapObjects)},
-		{Label: "Sys", Value: inspector.FormatBytes(stats.Memory.Sys)},
-		{Label: "Total alloc", Value: inspector.FormatBytes(stats.Memory.TotalAlloc)},
+		inspector.NewDetailRow("Alloc", inspector.FormatBytes(stats.Memory.Alloc)),
+		inspector.NewDetailRow("Heap alloc", inspector.FormatBytes(stats.Memory.HeapAlloc)),
+		inspector.NewDetailRow("Heap inuse", inspector.FormatBytes(stats.Memory.HeapInuse)),
+		inspector.NewDetailRow("Heap idle", inspector.FormatBytes(stats.Memory.HeapIdle)),
+		inspector.NewDetailRow("Heap released", inspector.FormatBytes(stats.Memory.HeapReleased)),
+		inspector.NewDetailRow("Heap objects", formatUint64(stats.Memory.HeapObjects)),
+		inspector.NewDetailRow("Sys", inspector.FormatBytes(stats.Memory.Sys)),
+		inspector.NewDetailRow("Total alloc", inspector.FormatBytes(stats.Memory.TotalAlloc)),
 	}
 
 	gc := []inspector.DetailRow{
-		{Label: "Cycles", Value: formatUint64(uint64(stats.GC.NumGC))},
-		{Label: "Last pause", Value: formatDurationNs(stats.GC.LastPauseNs)},
-		{Label: "Total pause", Value: formatDurationNs(stats.GC.PauseTotalNs)},
-		{Label: "GC CPU", Value: percentageString(stats.GC.GCCPUFraction)},
-		{Label: "Next GC", Value: inspector.FormatBytes(stats.GC.NextGC)},
+		inspector.NewDetailRow("Cycles", formatUint64(uint64(stats.GC.NumGC))),
+		inspector.NewDetailRow("Last pause", formatDurationNs(stats.GC.LastPauseNs)),
+		inspector.NewDetailRow("Total pause", formatDurationNs(stats.GC.PauseTotalNs)),
+		inspector.NewDetailRow("GC CPU", percentageString(stats.GC.GCCPUFraction)),
+		inspector.NewDetailRow("Next GC", inspector.FormatBytes(stats.GC.NextGC)),
 	}
 
 	return inspector.DetailBody{
 		Title:    "Memory & GC",
 		Subtitle: inspector.FormatBytes(stats.Memory.HeapAlloc) + " heap · " + formatUint64(uint64(stats.GC.NumGC)) + " cycles",
 		Sections: []inspector.DetailSection{
-			{Heading: "Heap", Rows: heap},
-			{Heading: "Garbage Collection", Rows: gc},
+			inspector.NewDetailSection("Heap", heap),
+			inspector.NewDetailSection("Garbage Collection", gc),
 		},
 	}
 }

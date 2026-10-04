@@ -448,7 +448,7 @@ func TestIsAssignable(t *testing.T) {
 		},
 		{
 			name:        "nil TypeExpr in source returns false",
-			source:      &ast_domain.ResolvedTypeInfo{TypeExpression: nil},
+			source:      &ast_domain.ResolvedTypeInfo{},
 			destination: &ast_domain.ResolvedTypeInfo{TypeExpression: goast.NewIdent("int")},
 			expected:    false,
 		},
@@ -532,7 +532,7 @@ func TestIsTypeParameter(t *testing.T) {
 		},
 		{
 			name:     "nil TypeExpr returns false",
-			typeInfo: &ast_domain.ResolvedTypeInfo{TypeExpression: nil},
+			typeInfo: &ast_domain.ResolvedTypeInfo{},
 			expected: false,
 		},
 		{
@@ -601,7 +601,7 @@ func TestIsStringType(t *testing.T) {
 		},
 		{
 			name:     "nil TypeExpr returns false",
-			typeInfo: &ast_domain.ResolvedTypeInfo{TypeExpression: nil},
+			typeInfo: &ast_domain.ResolvedTypeInfo{},
 			expected: false,
 		},
 		{
@@ -1685,7 +1685,7 @@ func TestIsLenable(t *testing.T) {
 		},
 		{
 			name:     "nil TypeExpr returns false",
-			typeInfo: &ast_domain.ResolvedTypeInfo{TypeExpression: nil},
+			typeInfo: &ast_domain.ResolvedTypeInfo{},
 			expected: false,
 		},
 		{
@@ -1760,7 +1760,7 @@ func TestGetSliceElementType(t *testing.T) {
 		},
 		{
 			name:     "nil TypeExpr returns false",
-			typeInfo: &ast_domain.ResolvedTypeInfo{TypeExpression: nil},
+			typeInfo: &ast_domain.ResolvedTypeInfo{},
 			expectOk: false,
 		},
 		{

@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"strings"
 
-	"piko.sh/piko/internal/annotator/annotator_domain"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/inspector/inspector_dto"
@@ -63,7 +62,9 @@ type RenderAdapterOption func(*RenderAdapter)
 // Returns *RenderAdapter which is ready to render templates.
 func NewRenderAdapter(opts ...RenderAdapterOption) *RenderAdapter {
 	a := &RenderAdapter{
-		moduleName: "playground",
+		moduleName:       "playground",
+		headlessRenderer: nil,
+		stdlibDataGetter: nil,
 	}
 	for _, opt := range opts {
 		opt(a)
@@ -93,10 +94,7 @@ func (a *RenderAdapter) Render(
 		moduleName = a.moduleName
 	}
 
-	annotator, errResp := a.createAnnotator(request.Sources, moduleName, stdlibData)
-	if errResp != nil {
-		return errResp, nil
-	}
+	annotator := NewInMemoryAnnotatorService(request.Sources, moduleName, stdlibData)
 
 	entryPoints := a.findEntryPoints(request.Sources, moduleName, request.EntryPoint)
 	if len(entryPoints) == 0 {
@@ -128,6 +126,7 @@ func (a *RenderAdapter) Render(
 		CSS:          styling,
 		Diagnostics:  a.convertDiagnostics(result.AllDiagnostics),
 		IsStaticOnly: true,
+		Error:        "",
 	}, nil
 }
 
@@ -147,6 +146,7 @@ func (a *RenderAdapter) RenderFromAST(
 			Success: true,
 			HTML:    "",
 			CSS:     request.CSS,
+			Error:   "",
 		}, nil
 	}
 
@@ -154,6 +154,8 @@ func (a *RenderAdapter) RenderFromAST(
 		return &wasm_dto.RenderFromASTResponse{
 			Success: false,
 			Error:   "headless renderer not configured",
+			HTML:    "",
+			CSS:     "",
 		}, nil
 	}
 
@@ -167,6 +169,8 @@ func (a *RenderAdapter) RenderFromAST(
 		return &wasm_dto.RenderFromASTResponse{
 			Success: false,
 			Error:   fmt.Sprintf("rendering failed: %v", err),
+			HTML:    "",
+			CSS:     "",
 		}, nil
 	}
 
@@ -174,6 +178,7 @@ func (a *RenderAdapter) RenderFromAST(
 		Success: true,
 		HTML:    html,
 		CSS:     request.CSS,
+		Error:   "",
 	}, nil
 }
 
@@ -191,25 +196,6 @@ func (a *RenderAdapter) validateAndGetStdlib() (*inspector_dto.TypeData, *wasm_d
 		return nil, a.errorResponse(fmt.Sprintf("failed to get stdlib data: %v", err))
 	}
 	return stdlibData, nil
-}
-
-// createAnnotator creates the in-memory annotator service.
-//
-// Takes sources (map[string]string) which provides the source files to parse.
-// Takes moduleName (string) which specifies the module path for the sources.
-// Takes stdlibData (*inspector_dto.TypeData) which provides standard library type
-// information.
-//
-// Returns annotator_domain.AnnotatorPort which is the configured annotator service ready
-// for use.
-// Returns *wasm_dto.RenderFromSourcesResponse which contains an error response when the
-// annotator service cannot be created, or nil on success.
-func (a *RenderAdapter) createAnnotator(sources map[string]string, moduleName string, stdlibData *inspector_dto.TypeData) (annotator_domain.AnnotatorPort, *wasm_dto.RenderFromSourcesResponse) {
-	annotator, err := NewInMemoryAnnotatorService(sources, moduleName, stdlibData)
-	if err != nil {
-		return nil, a.errorResponse(fmt.Sprintf("failed to create annotator service: %v", err))
-	}
-	return annotator, nil
 }
 
 // renderToHTML renders the component to HTML using the headless renderer.
@@ -244,7 +230,9 @@ func (a *RenderAdapter) renderToHTML(ctx context.Context, component *annotator_d
 //
 // Returns *wasm_dto.RenderFromSourcesResponse which is the failed response.
 func (*RenderAdapter) errorResponse(message string) *wasm_dto.RenderFromSourcesResponse {
-	return &wasm_dto.RenderFromSourcesResponse{Success: false, Error: message}
+	response := wasm_dto.RenderFromSourcesResponse{}
+	response.Error = message
+	return &response
 }
 
 // findEntryPoints discovers .pk files from the sources map.
@@ -270,14 +258,7 @@ func (*RenderAdapter) findEntryPoints(
 			continue
 		}
 
-		isPage := strings.Contains(path, "pages/") || strings.HasPrefix(path, "pages/")
-
-		fullPath := moduleName + "/" + path
-
-		entryPoints = append(entryPoints, annotator_dto.EntryPoint{
-			Path:   fullPath,
-			IsPage: isPage,
-		})
+		entryPoints = append(entryPoints, newSourceEntryPoint(moduleName, path))
 	}
 
 	return entryPoints
@@ -330,10 +311,10 @@ func (*RenderAdapter) buildMetadata(component *annotator_dto.AnnotationResult) *
 		return &templater_dto.InternalMetadata{}
 	}
 
-	return &templater_dto.InternalMetadata{
-		AssetRefs:  component.AssetRefs,
-		CustomTags: component.CustomTags,
-	}
+	metadata := new(templater_dto.InternalMetadata)
+	metadata.AssetRefs = component.AssetRefs
+	metadata.CustomTags = component.CustomTags
+	return metadata
 }
 
 // convertDiagnostics converts annotator diagnostics to WASM DTOs.

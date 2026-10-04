@@ -398,6 +398,7 @@ func NewMailchimpTransactionalProvider(ctx context.Context, arguments MailchimpT
 	defaultConfig := email_domain.ProviderRateLimitConfig{
 		CallsPerSecond: defaultCallsPerSecond,
 		Burst:          defaultBurst,
+		Clock:          nil,
 	}
 	rateLimiter := email_domain.ApplyProviderOptions(defaultConfig, opts...)
 
@@ -447,11 +448,20 @@ func (p *MailchimpTransactionalProvider) buildMandrillRequest(params *email_dto.
 		To:          buildRecipients(params),
 		Attachments: attachments,
 		Images:      images,
+		Headers:     nil,
+		Metadata:    nil,
+		Tags:        nil,
+		TrackOpens:  nil,
+		TrackClicks: nil,
+		Important:   nil,
+		AutoText:    nil,
+		InlineCSS:   nil,
 	}
 
 	request := &mandrillSendRequest{
 		Key:     p.apiKey,
 		Message: message,
+		Async:   false,
 	}
 
 	applyProviderOptions(&request.Message, request, params.ProviderOptions)
@@ -469,13 +479,13 @@ func buildRecipients(params *email_dto.SendParams) []mandrillRecipient {
 	recipients := make([]mandrillRecipient, 0, len(params.To)+len(params.Cc)+len(params.Bcc))
 
 	for _, addr := range params.To {
-		recipients = append(recipients, mandrillRecipient{Email: addr, Type: "to"})
+		recipients = append(recipients, mandrillRecipient{Email: addr, Type: "to", Name: ""})
 	}
 	for _, addr := range params.Cc {
-		recipients = append(recipients, mandrillRecipient{Email: addr, Type: "cc"})
+		recipients = append(recipients, mandrillRecipient{Email: addr, Type: "cc", Name: ""})
 	}
 	for _, addr := range params.Bcc {
-		recipients = append(recipients, mandrillRecipient{Email: addr, Type: "bcc"})
+		recipients = append(recipients, mandrillRecipient{Email: addr, Type: "bcc", Name: ""})
 	}
 
 	return recipients

@@ -22,6 +22,7 @@ import (
 	"flag"
 	"time"
 
+	"piko.sh/piko/wdk/browser/internal/browser_provider_chromedp"
 	"piko.sh/piko/wdk/safedisk"
 )
 
@@ -125,6 +126,9 @@ type specOptions struct {
 
 // SpecOption configures how a test spec runs.
 type SpecOption func(*specOptions)
+
+// ScreenshotOption configures a region or element screenshot.
+type ScreenshotOption = browser_provider_chromedp.CaptureOption
 
 // WithProjectDir sets the project directory to test. Defaults to ".".
 //
@@ -302,6 +306,16 @@ func WithTimeout(d time.Duration) WaitOption {
 	}
 }
 
+// WithScreenshotTimeout bounds how long a region or element screenshot may take. The
+// default is 60 seconds; zero or a negative value keeps the default.
+//
+// Takes d (time.Duration) which specifies the maximum duration of the capture.
+//
+// Returns ScreenshotOption which configures the capture timeout.
+func WithScreenshotTimeout(d time.Duration) ScreenshotOption {
+	return browser_provider_chromedp.WithCaptureTimeout(d)
+}
+
 // WithUpdateGoldens sets whether to update golden files. Defaults to the value of the
 // -update-goldens flag.
 //
@@ -341,6 +355,7 @@ func defaultHarnessOptions() harnessOptions {
 		interactive:    *flagInteractive,
 		interactiveTUI: *flagInteractive && !*flagInteractiveSimple,
 		skipBuild:      false,
+		sandboxFactory: nil,
 	}
 }
 

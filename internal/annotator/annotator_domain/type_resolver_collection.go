@@ -29,10 +29,10 @@ import (
 
 	goast "go/ast"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/collection/collection_dto"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
@@ -154,6 +154,7 @@ func (*TypeResolver) extractGenericGetCollectionMemberExpr(indexExpr *ast_domain
 			Optional:         false,
 			RelativeLocation: ast_domain.Location{},
 			SourceLength:     0,
+			Indices:          nil,
 		},
 		GoAnnotations:    nil,
 		Optional:         false,
@@ -206,12 +207,13 @@ func (*TypeResolver) handleMissingCollectionService(ctx *AnalysisContext, _ *ast
 
 // handleCollectionError creates a diagnostic for errors that occur when gathering data.
 //
-// Takes ctx (*AnalysisContext) which provides the analysis state and logger. Takes n
-// (*ast_domain.CallExpression) which is the call expression that failed. Takes location
-// (ast_domain.Location) which shows where the error occurred. Takes err (error) which is
-// the cause of the failure. Takes logMessage (string) which is the message to write to
-// the error log. Takes diagMessageFormat (string) which is the format string for the
-// diagnostic message. It must contain one %v placeholder for the error.
+// Takes ctx (*AnalysisContext) which provides the analysis state and logger.
+// Takes n (*ast_domain.CallExpression) which is the call expression that failed.
+// Takes location (ast_domain.Location) which shows where the error occurred.
+// Takes err (error) which is the cause of the failure.
+// Takes logMessage (string) which is the message to write to the error log.
+// Takes diagMessageFormat (string) which is the format string for the diagnostic message.
+// It must contain one %v placeholder for the error.
 //
 // Returns *ast_domain.GoGeneratorAnnotation which is always nil after logging and saving
 // the diagnostic.
@@ -381,17 +383,8 @@ func (*TypeResolver) parseGetCollectionOptions(_ *AnalysisContext, optionArgs []
 		return collection_dto.FetchOptions{}, nil
 	}
 
-	options := collection_dto.FetchOptions{
-		Cache:           nil,
-		Filters:         make(map[string]any),
-		FilterGroup:     nil,
-		Pagination:      nil,
-		ProviderName:    "",
-		Locale:          "",
-		ExplicitLocales: nil,
-		Sort:            nil,
-		AllLocales:      false,
-	}
+	options := collection_dto.FetchOptions{}
+	options.Filters = make(map[string]any)
 
 	scope := make(map[string]any)
 

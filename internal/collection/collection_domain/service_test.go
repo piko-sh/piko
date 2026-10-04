@@ -306,14 +306,12 @@ func TestTrackExternalSandbox_Concurrent(t *testing.T) {
 
 	const goroutines = 20
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			sb := safedisk.NewMockSandbox("/mod", safedisk.ModeReadOnly)
 			s.trackExternalSandbox(sb)
-		}()
+		})
 	}
 	wg.Wait()
 

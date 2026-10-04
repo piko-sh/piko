@@ -8,13 +8,13 @@ Piko compiles .pk templates to typed Go code. No Node.js. No runtime template pa
 
 <img src="docs/images/mascot.png" alt="Piko" width="480"/>
 
-[![Go Version](https://img.shields.io/badge/Go-1.26+-00ADD8?style=flat&logo=go)](https://go.dev/)
+[![Go Version](https://img.shields.io/badge/Go-1.27+-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/Status-Alpha-orange.svg)]()
 
-[![Go Coverage](https://img.shields.io/badge/Go_Coverage-74%25-yellowgreen?logo=go)](hack/test/test.sh)
-[![Frontend Coverage](https://img.shields.io/badge/Frontend_Coverage-92%25-brightgreen?logo=typescript)](frontend/core/)
-[![VSCode Plugin Coverage](https://img.shields.io/badge/VSCode_Plugin-44%25-red?logo=visualstudiocode)](plugins/vscode/)
+[![Go Coverage](https://img.shields.io/badge/Go_Coverage-78%25-yellowgreen?logo=go)](hack/test/test.sh)
+[![Frontend Coverage](https://img.shields.io/badge/Frontend_Coverage-85%25-green?logo=typescript)](frontend/core/)
+[![VSCode Plugin Coverage](https://img.shields.io/badge/VSCode_Plugin-45%25-red?logo=visualstudiocode)](plugins/vscode/)
 [![IntelliJ Plugin Coverage](https://img.shields.io/badge/IntelliJ_Plugin-32%25-red?logo=intellijidea)](plugins/idea/)
 
 [Getting Started](#getting-started) |
@@ -76,7 +76,7 @@ If you rename a field or change a type, you get a compile error. Not a broken pa
 
 ### Hot reload without full rebuilds
 
-During development, Piko runs a custom Go interpreter that executes compiled templates at runtime. You edit a `.pk` file, the generator re-compiles it, and the interpreter picks up the change without restarting the server. In production, everything is statically compiled and the interpreter is not included.
+During development, Piko can run the generated Go through [Pipit](https://github.com/piko-sh/pipit), a Go bytecode interpreter, instead of rebuilding the binary. You edit a `.pk` file, Piko generates updated Go source, and Pipit compiles and runs it without restarting the server. In production, Piko runs statically compiled templates.
 
 ### One format for pages, emails, and PDFs
 
@@ -90,7 +90,7 @@ The `.pk` template format is the same whether you are rendering a web page, a tr
 
 ### Prerequisites
 
-- Go 1.26 or later
+- Go 1.27 or later
 
 ### Installation
 

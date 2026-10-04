@@ -239,6 +239,46 @@ func TestRewriteTdewolffAST_LocalVariableShadowing(t *testing.T) {
 			instanceProps:  []string{"count"},
 			wantNotContain: "this.$$ctx.count",
 		},
+		{
+			name: "function rest param shadows instance prop",
+			source: `class Foo {
+				render() {
+					function process(...count) { count; }
+				}
+			}`,
+			instanceProps:  []string{"count"},
+			wantNotContain: "this.$$ctx.count",
+		},
+		{
+			name: "arrow rest param shadows instance prop",
+			source: `class Foo {
+				render() {
+					const fn = (first, ...count) => { count; };
+				}
+			}`,
+			instanceProps:  []string{"count"},
+			wantNotContain: "this.$$ctx.count",
+		},
+		{
+			name: "method rest param shadows instance prop",
+			source: `class Foo {
+				render(...count) {
+					count;
+				}
+			}`,
+			instanceProps:  []string{"count"},
+			wantNotContain: "this.$$ctx.count",
+		},
+		{
+			name: "destructured rest param shadows instance prop",
+			source: `class Foo {
+				render(...[first, count]) {
+					count;
+				}
+			}`,
+			instanceProps:  []string{"count"},
+			wantNotContain: "this.$$ctx.count",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -527,6 +567,28 @@ func TestRewriteTdewolffAST_Destructuring(t *testing.T) {
 			RewriteTdewolffAST(ast, tc.instanceProps)
 			result := printTdewolffASTForTest(ast)
 			assert.NotContains(t, result, tc.wantNotContain)
+		})
+	}
+}
+
+func TestRewriteTdewolffAST_ComputedKeys(t *testing.T) {
+	testCases := []struct {
+		name   string
+		body   string
+		wantIn string
+	}{
+		{name: "object literal key", body: `return {[count]: 1};`, wantIn: "[this.$$ctx.count]"},
+		{name: "object literal key expression", body: `return {[count + "x"]: 1};`, wantIn: "[this.$$ctx.count + \"x\"]"},
+		{name: "object literal method key", body: `return {[count]() { return 1; }};`, wantIn: "[this.$$ctx.count]"},
+		{name: "destructuring key", body: `const {[count]: v} = o; return v;`, wantIn: "[this.$$ctx.count]"},
+		{name: "assignment pattern key", body: `let v; ({[count]: v} = o); return v;`, wantIn: "[this.$$ctx.count]"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ast := mustParseTdewolff(t, "class Foo { render(o) { "+tc.body+" } }")
+			RewriteTdewolffAST(ast, []string{"count"})
+			assert.Contains(t, printTdewolffASTForTest(ast), tc.wantIn)
 		})
 	}
 }

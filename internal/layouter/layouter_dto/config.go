@@ -40,6 +40,9 @@ type LayoutConfig struct {
 
 	// DefaultLineHeight is the unitless line-height multiplier. Defaults to 1.2 if zero.
 	DefaultLineHeight float64
+
+	// Limits bounds the work the layout may perform. Zero fields use the built-in defaults.
+	Limits LayoutLimits
 }
 
 // PageConfig defines the physical dimensions and margins of a page in points.

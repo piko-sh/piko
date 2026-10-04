@@ -107,6 +107,7 @@ func NewBrowserPool(opts BrowserOptions, size int, config ...BrowserPoolConfig) 
 	return &BrowserPool{
 		browsers: browsers,
 		sem:      sem,
+		index:    atomic.Uint64{},
 	}, nil
 }
 

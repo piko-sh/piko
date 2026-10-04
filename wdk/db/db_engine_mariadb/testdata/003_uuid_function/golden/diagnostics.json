@@ -2,7 +2,7 @@
   {
     "Filename": "001_schema.sql",
     "Message": "001_schema.sql is ignored; migration files must end in .up.sql or .down.sql",
-    "Code": "",
+    "Code": "Q048",
     "Suggestion": "",
     "Line": 1,
     "Column": 1,

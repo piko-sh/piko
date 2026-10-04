@@ -86,7 +86,7 @@ type fsNotifyWatcher struct {
 	// sandboxFactory creates sandboxes for filesystem access within the watcher.
 	sandboxFactory safedisk.Factory
 
-	// scanWg tracks goroutines that scan directories.
+	// scanWg tracks initial scans and goroutines that scan new directories.
 	scanWg sync.WaitGroup
 
 	// closeOnce guards single execution of close.
@@ -103,18 +103,16 @@ var (
 	_ lifecycle_domain.FileSystemWatcher = (*fsNotifyWatcher)(nil)
 )
 
-// Watch sets up the initial, static watches on core source directories and starts the
-// event loop. It recursively scans these directories and adds a watch to every
-// subdirectory found.
+// Watch installs the initial directory watches and starts the event loop.
 //
-// Takes ctx (context.Context) which controls the lifetime of the event loop.
 // Takes staticRecursiveDirs ([]string) which lists directories to watch recursively.
 //
 // Returns <-chan lifecycle_dto.FileEvent which delivers file system events.
-// Returns error when the watcher has been closed.
+// Returns error when the watcher is closed, the context is cancelled, or an initial watch
+// cannot be installed.
 //
-// Safe for concurrent use. Spawns goroutines to scan static directories and run the event
-// loop.
+// Safe for concurrent use with Close. Tracks initial scans during shutdown and spawns the
+// event loop after installing the initial watches.
 func (f *fsNotifyWatcher) Watch(
 	ctx context.Context,
 	staticRecursiveDirs []string,
@@ -125,25 +123,18 @@ func (f *fsNotifyWatcher) Watch(
 		f.mu.Unlock()
 		return nil, errWatcherClosed
 	}
+	f.scanWg.Add(1)
 	f.mu.Unlock()
+	defer f.scanWg.Done()
 
 	ctx, l := logger_domain.From(ctx, log)
 	out := make(chan lifecycle_dto.FileEvent, eventBufferSize)
 
 	for _, directory := range staticRecursiveDirs {
-		dirCopy := directory
-		f.scanWg.Go(func() {
-			select {
-			case <-f.shutdownCh:
-				return
-			default:
-			}
-
-			l.Trace("Scanning static source directory for initial watch setup", logger_domain.String(fieldDir, dirCopy))
-			if err := f.scanAndWatchDirectory(ctx, dirCopy); err != nil {
-				l.Warn("Failed to scan static directory", logger_domain.String(fieldDir, dirCopy), logger_domain.Error(err))
-			}
-		})
+		l.Trace("Scanning static source directory for initial watch setup", logger_domain.String(fieldDir, directory))
+		if err := f.scanAndWatchDirectory(ctx, directory); err != nil {
+			return nil, fmt.Errorf("installing initial watches: %w", err)
+		}
 	}
 
 	go f.runEventLoop(ctx, out)
@@ -256,7 +247,8 @@ func (f *fsNotifyWatcher) removeOldDynamicWatches(ctx context.Context, newFiles 
 //
 // Takes root (string) which specifies the directory path to scan and watch.
 //
-// Returns error when the watcher is closed or the directory walk fails.
+// Returns error when the watcher is closed, the context is cancelled, or the directory
+// walk fails.
 //
 // Safe for concurrent use. Uses singleflight to prevent concurrent scans of the same
 // directory root.
@@ -271,8 +263,10 @@ func (f *fsNotifyWatcher) scanAndWatchDirectory(ctx context.Context, root string
 	_, err, _ := f.scanGroup.Do(root, func() (any, error) {
 		walkErr := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 			select {
+			case <-ctx.Done():
+				return ctx.Err()
 			case <-f.shutdownCh:
-				return fs.SkipAll
+				return errWatcherClosed
 			default:
 			}
 			return f.walkDirCallback(ctx, path, d, err)
@@ -342,28 +336,25 @@ func (*fsNotifyWatcher) shouldSkipDirectory(ctx context.Context, path string, d 
 //
 // Takes path (string) which specifies the directory to watch.
 //
-// Returns error when the watcher is closed (fs.SkipDir), nil otherwise.
+// Returns error when the watcher is closed or the watch cannot be installed.
 //
 // Safe for concurrent use; protects internal state with a mutex.
 func (f *fsNotifyWatcher) tryAddStaticWatch(ctx context.Context, path string) error {
 	f.mu.Lock()
+	defer f.mu.Unlock()
 	if f.isClosed {
-		f.mu.Unlock()
-		return fs.SkipDir
+		return errWatcherClosed
 	}
 	if f.staticDirs[path] {
-		f.mu.Unlock()
 		return nil
 	}
-	f.staticDirs[path] = true
-	f.mu.Unlock()
 
 	_, l := logger_domain.From(ctx, log)
 	if addErr := f.watcher.Add(path); addErr != nil {
-		l.Warn("Failed to add static watch", logger_domain.String(fieldDir, path), logger_domain.Error(addErr))
-	} else {
-		l.Trace("Now watching static directory", logger_domain.String(fieldDir, path))
+		return fmt.Errorf("adding static watch for %q: %w", path, addErr)
 	}
+	f.staticDirs[path] = true
+	l.Trace("Now watching static directory", logger_domain.String(fieldDir, path))
 	return nil
 }
 
@@ -512,10 +503,8 @@ func (f *fsNotifyWatcher) handleDirectoryCreation(ctx context.Context, ev fsnoti
 	}
 
 	f.mu.Lock()
-	isCovered := f.isPathCoveredByStaticWatch(ev.Name)
-	f.mu.Unlock()
-
-	if !isCovered {
+	defer f.mu.Unlock()
+	if f.isClosed || !f.isPathCoveredByStaticWatch(ev.Name) {
 		return
 	}
 

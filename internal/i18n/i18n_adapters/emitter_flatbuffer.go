@@ -111,7 +111,8 @@ func (e *FlatBufferEmitter) Emit(ctx context.Context, store *i18n_domain.Store, 
 	return nil
 }
 
-// EmitFromTranslations serialises raw translations to a FlatBuffer file.
+// EmitFromTranslations serialises raw translations to a FlatBuffer file. Templates that
+// cannot be parsed are written as literal text and reported once as a warning.
 //
 // Takes ctx (context.Context) which carries logging context for trace/request ID
 // propagation.
@@ -123,9 +124,7 @@ func (e *FlatBufferEmitter) Emit(ctx context.Context, store *i18n_domain.Store, 
 // Returns error when serialisation or file writing fails.
 func (e *FlatBufferEmitter) EmitFromTranslations(ctx context.Context, translations i18n_domain.Translations, defaultLocale, outputPath string) error {
 	store := i18n_domain.NewStore(defaultLocale)
-	for locale, entries := range translations {
-		store.AddTranslations(locale, entries)
-	}
+	i18n_domain.ReportTemplateProblems(ctx, outputPath, store.AddAllTranslations(translations))
 	return e.Emit(ctx, store, defaultLocale, outputPath)
 }
 

@@ -118,6 +118,29 @@ Attach RAG to a completion with `CompletionBuilder.WithRAG(...)` options: `WithR
 | `llm_provider_voyage` | Voyage AI embeddings. |
 | `llm_provider_zoltai` | Zolt.ai. |
 
+### Ollama
+
+`llm_provider_ollama.NewOllamaProvider(config)` performs no network requests or process startup. The first request connects to the server, starting `ollama serve` if `AutoStart` permits it. `Start(ctx)` and `EnsureModels(ctx)` allow explicit initialisation before requests arrive.
+
+`Config` contains the following lifecycle limits.
+
+| Field | Default | Purpose |
+|---|---|---|
+| `StartupTimeout` | 30 seconds | Wait for a spawned server to answer health checks. |
+| `ProbeTimeout` | 2 seconds | Each health or reachability request. |
+| `StopGracePeriod` | 5 seconds | Time allowed for a managed server to exit after an interrupt, before forced termination. |
+
+#### Image fetching
+
+A non-nil `Config.ImageFetch` enables fetching image URLs from messages. Destinations must have publicly routable addresses. The provider rejects loopback, private, link-local, and cloud metadata destinations. Inline image data does not require URL fetching.
+
+| `ImageFetchConfig` field | Default | Purpose |
+|---|---|---|
+| `MaxImages` | 8 | Maximum image URLs per request. The provider rejects excess URLs before downloading any image. |
+| `MaxBytes` | 20 MiB | Maximum bytes per image. |
+| `Timeout` | 30 seconds | Time limit for each image fetch. |
+| `MaxRedirects` | 5 | Maximum redirects per fetch. A negative value rejects all redirects. |
+
 ## Bootstrap options
 
 | Option | Purpose |

@@ -274,14 +274,12 @@ func TestInitDefaultFactory_ThreadSafety(t *testing.T) {
 	const goroutines = 50
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
-	for i := range goroutines {
-		go func(id int) {
-			defer wg.Done()
+	for range goroutines {
+		wg.Go(func() {
 			handler := NewRecordingHandler()
 			logger_domain.InitDefaultFactory(slog.New(handler))
-		}(i)
+		})
 	}
 
 	wg.Wait()

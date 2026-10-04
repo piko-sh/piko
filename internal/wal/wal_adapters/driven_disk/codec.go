@@ -632,7 +632,7 @@ func (c *BinaryCodec[K, V]) Decode(data []byte) (DecodeResult[K, V], error) {
 	if err != nil {
 		return DecodeResult[K, V]{}, fmt.Errorf("decoding entry (slow path): %w", err)
 	}
-	return DecodeResult[K, V]{Entry: entry}, nil
+	return DecodeResult[K, V]{Entry: entry, tagPool: nil}, nil
 }
 
 // decodeFast is the zero-allocation fast path using fast codecs and mem.String.
@@ -776,8 +776,10 @@ func NewBinaryCodec[K comparable, V any](
 	valueCodec wal_domain.ValueCodec[V],
 ) *BinaryCodec[K, V] {
 	codec := &BinaryCodec[K, V]{
-		keyCodec:   keyCodec,
-		valueCodec: valueCodec,
+		keyCodec:       keyCodec,
+		valueCodec:     valueCodec,
+		fastKeyCodec:   nil,
+		fastValueCodec: nil,
 	}
 
 	//nolint:govet // generic assertion valid at runtime

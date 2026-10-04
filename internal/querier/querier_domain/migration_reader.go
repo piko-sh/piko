@@ -92,6 +92,7 @@ func readMigrationFiles(
 		files = append(files, migrationFile{
 			filename: entry.Name(),
 			content:  content,
+			index:    0,
 		})
 	}
 
@@ -137,11 +138,15 @@ func warnNonConformingMigrationFiles(
 			continue
 		}
 		diagnostics = append(diagnostics, querier_dto.SourceError{
-			Filename: name,
-			Line:     1,
-			Column:   1,
-			Message:  fmt.Sprintf("%s is ignored; migration files must end in .up.sql or .down.sql", name),
-			Severity: querier_dto.SeverityWarning,
+			Filename:   name,
+			Line:       1,
+			Column:     1,
+			Message:    fmt.Sprintf("%s is ignored; migration files must end in .up.sql or .down.sql", name),
+			Severity:   querier_dto.SeverityWarning,
+			Code:       querier_dto.CodeIgnoredMigrationFile,
+			Suggestion: "",
+			EndLine:    0,
+			EndColumn:  0,
 		})
 	}
 

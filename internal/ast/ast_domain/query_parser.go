@@ -341,7 +341,8 @@ func (p *QueryParser) skipWhitespace() bool {
 // Returns SimpleSelector which holds the parsed tag, ID, classes, attributes, and
 // pseudo-classes.
 func (p *QueryParser) parseSimpleSelector() SimpleSelector {
-	ss := SimpleSelector{Tag: "", ID: "", Classes: nil, Attributes: nil, PseudoClasses: nil, Location: p.current.Location}
+	ss := SimpleSelector{}
+	ss.Location = p.current.Location
 
 	if p.current.Type == TokenIdent || p.current.Type == TokenStar {
 		ss.Tag = p.current.Literal

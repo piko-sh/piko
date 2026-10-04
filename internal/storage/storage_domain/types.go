@@ -196,6 +196,7 @@ func DefaultRetryConfig() RetryConfig {
 		InitialDelay:  DefaultInitialRetryDelay,
 		MaxDelay:      DefaultMaxRetryDelay,
 		BackoffFactor: DefaultBackoffFactor,
+		JitterFunc:    nil,
 	}
 }
 
@@ -422,5 +423,9 @@ func defaultServiceConfig() ServiceConfig {
 		PresignConfig:               DefaultPresignConfig(),
 		PresignFallbackBaseURL:      "",
 		PublicFallbackBaseURL:       "",
+		TempSandbox:                 nil,
+		TempSandboxFactory:          nil,
+		Clock:                       nil,
+		MaxStorageBytes:             0,
 	}
 }

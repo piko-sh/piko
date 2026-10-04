@@ -134,7 +134,7 @@ func TestIsPropUsage(t *testing.T) {
 			name: "index expression with props root returns true",
 			expression: &ast_domain.IndexExpression{
 				Base:  &ast_domain.Identifier{Name: "props"},
-				Index: &ast_domain.IntegerLiteral{Value: 0},
+				Index: &ast_domain.IntegerLiteral{},
 			},
 			want: true,
 		},
@@ -176,7 +176,7 @@ func TestGetPropertyNameFromMemberExpr(t *testing.T) {
 			name: "member expression with non-identifier property returns empty",
 			expression: &ast_domain.MemberExpression{
 				Base:     &ast_domain.Identifier{Name: "props"},
-				Property: &ast_domain.IntegerLiteral{Value: 0},
+				Property: &ast_domain.IntegerLiteral{},
 			},
 			want: "",
 		},
@@ -241,7 +241,7 @@ func TestGetRootIdentifier(t *testing.T) {
 			name: "index expression returns base identifier",
 			expression: &ast_domain.IndexExpression{
 				Base:  &ast_domain.Identifier{Name: "items"},
-				Index: &ast_domain.IntegerLiteral{Value: 0},
+				Index: &ast_domain.IntegerLiteral{},
 			},
 			wantName: "items",
 			wantOk:   true,
@@ -410,7 +410,7 @@ func TestVisitExpression(t *testing.T) {
 		t.Parallel()
 		expression := &ast_domain.IndexExpression{
 			Base:  &ast_domain.Identifier{Name: "items"},
-			Index: &ast_domain.IntegerLiteral{Value: 0},
+			Index: &ast_domain.IntegerLiteral{},
 		}
 		callCount := 0
 		visitExpression(expression, func(_ ast_domain.Expression) bool {
@@ -738,8 +738,8 @@ func TestVisitStructuralDirectives(t *testing.T) {
 	t.Run("skips directives with nil expressions", func(t *testing.T) {
 		t.Parallel()
 		node := &ast_domain.TemplateNode{
-			DirIf:  &ast_domain.Directive{Expression: nil},
-			DirFor: &ast_domain.Directive{Expression: nil},
+			DirIf:  &ast_domain.Directive{},
+			DirFor: &ast_domain.Directive{},
 		}
 		callCount := 0
 		visitStructuralDirectives(node, func(_ ast_domain.Expression) {
@@ -796,7 +796,7 @@ func TestVisitContentDirectives(t *testing.T) {
 	t.Run("skips nil and nil-expression directives", func(t *testing.T) {
 		t.Parallel()
 		node := &ast_domain.TemplateNode{
-			DirText: &ast_domain.Directive{Expression: nil},
+			DirText: &ast_domain.Directive{},
 		}
 		callCount := 0
 		visitContentDirectives(node, func(_ ast_domain.Expression) {
@@ -836,7 +836,7 @@ func TestVisitModelDirective(t *testing.T) {
 	t.Run("skips model directive with nil expression", func(t *testing.T) {
 		t.Parallel()
 		node := &ast_domain.TemplateNode{
-			DirModel: &ast_domain.Directive{Expression: nil},
+			DirModel: &ast_domain.Directive{},
 		}
 		callCount := 0
 		visitModelDirective(node, func(_ ast_domain.Expression) {
@@ -1374,7 +1374,7 @@ func TestVisitExpression_CompositeAndControlFlow(t *testing.T) {
 				&ast_domain.BinaryExpression{
 					Left: &ast_domain.IndexExpression{
 						Base:  &ast_domain.Identifier{Name: "items"},
-						Index: &ast_domain.IntegerLiteral{Value: 0},
+						Index: &ast_domain.IntegerLiteral{},
 					},
 					Operator: ast_domain.OpPlus,
 					Right:    &ast_domain.Identifier{Name: "count"},

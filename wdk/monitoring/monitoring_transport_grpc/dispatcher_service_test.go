@@ -303,10 +303,8 @@ func TestDispatcherInspectorService_GetDLQCount(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "returns zero count",
-			inspector: &mockDispatcherInspector{
-				dlqCount: 0,
-			},
+			name:        "returns zero count",
+			inspector:   &mockDispatcherInspector{},
 			expected:    0,
 			expectError: false,
 		},

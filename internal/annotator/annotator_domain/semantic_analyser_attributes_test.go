@@ -520,10 +520,8 @@ func TestIsClassBindingType(t *testing.T) {
 			expected: false,
 		},
 		{
-			name: "nil type expr returns false",
-			typeInfo: &ast_domain.ResolvedTypeInfo{
-				TypeExpression: nil,
-			},
+			name:     "nil type expr returns false",
+			typeInfo: &ast_domain.ResolvedTypeInfo{},
 			expected: false,
 		},
 		{
@@ -634,10 +632,8 @@ func TestIsComplexType(t *testing.T) {
 			expected: true,
 		},
 		{
-			name: "nil type expr returns true",
-			typeInfo: &ast_domain.ResolvedTypeInfo{
-				TypeExpression: nil,
-			},
+			name:     "nil type expr returns true",
+			typeInfo: &ast_domain.ResolvedTypeInfo{},
 			expected: true,
 		},
 		{
@@ -1191,9 +1187,7 @@ func TestAttributeAnalyser_getValidatorForContext(t *testing.T) {
 			mainComponentHash: "main",
 		}
 
-		pInfo := &ast_domain.PartialInvocationInfo{
-			PartialPackageName: "",
-		}
+		pInfo := &ast_domain.PartialInvocationInfo{}
 
 		result := aa.getValidatorForContext(pInfo)
 
@@ -1484,10 +1478,8 @@ func TestRejectEventPlaceholderInDirective(t *testing.T) {
 			wantReject: false,
 		},
 		{
-			name: "nil expression returns false",
-			directive: &ast_domain.Directive{
-				Expression: nil,
-			},
+			name:       "nil expression returns false",
+			directive:  &ast_domain.Directive{},
 			wantReject: false,
 		},
 		{
@@ -1663,9 +1655,7 @@ func TestValidateConditionalDirective_NonBoolType(t *testing.T) {
 
 		ctx := createTestContext()
 		expression := &ast_domain.Identifier{Name: "unknown"}
-		expression.SetGoAnnotation(&ast_domain.GoGeneratorAnnotation{
-			ResolvedType: nil,
-		})
+		expression.SetGoAnnotation(&ast_domain.GoGeneratorAnnotation{})
 
 		d := &ast_domain.Directive{
 			Type:          ast_domain.DirectiveIf,
@@ -1685,9 +1675,7 @@ func TestValidateConditionalDirective_NonBoolType(t *testing.T) {
 		ctx := createTestContext()
 		expression := &ast_domain.Identifier{Name: "x"}
 		expression.SetGoAnnotation(&ast_domain.GoGeneratorAnnotation{
-			ResolvedType: &ast_domain.ResolvedTypeInfo{
-				TypeExpression: nil,
-			},
+			ResolvedType: &ast_domain.ResolvedTypeInfo{},
 		})
 
 		d := &ast_domain.Directive{
@@ -1805,7 +1793,7 @@ func TestValidateModelDirective_IndexExprIsValid(t *testing.T) {
 		RawExpression: "items[0]",
 		Expression: &ast_domain.IndexExpression{
 			Base:  &ast_domain.Identifier{Name: "items"},
-			Index: &ast_domain.IntegerLiteral{Value: 0},
+			Index: &ast_domain.IntegerLiteral{},
 		},
 		Location: ast_domain.Location{Line: 1, Column: 1, Offset: 0},
 	}
@@ -2490,7 +2478,7 @@ func TestExpressionHasDynamicScopeRefs_AdditionalCases(t *testing.T) {
 			name: "index expression returns true",
 			expression: &ast_domain.IndexExpression{
 				Base:  &ast_domain.Identifier{Name: "items"},
-				Index: &ast_domain.IntegerLiteral{Value: 0},
+				Index: &ast_domain.IntegerLiteral{},
 			},
 			expected: true,
 		},
@@ -2855,9 +2843,7 @@ func TestAttributeContextResolver_ForDirective(t *testing.T) {
 			partialSelfContext: partialCtx,
 		}
 
-		d := &ast_domain.Directive{
-			GoAnnotations: nil,
-		}
+		d := &ast_domain.Directive{}
 
 		result := r.forDirective(d)
 
@@ -3261,7 +3247,7 @@ func TestIsStyleBindingType_AdditionalCases(t *testing.T) {
 	t.Run("nil type expr returns false", func(t *testing.T) {
 		t.Parallel()
 
-		result := isStyleBindingType(&ast_domain.ResolvedTypeInfo{TypeExpression: nil})
+		result := isStyleBindingType(&ast_domain.ResolvedTypeInfo{})
 
 		assert.False(t, result)
 	})
@@ -3418,9 +3404,7 @@ func TestValidateClassAttribute_NilResolvedType(t *testing.T) {
 	attr := &ast_domain.DynamicAttribute{
 		Name:          "class",
 		RawExpression: "state.Class",
-		GoAnnotations: &ast_domain.GoGeneratorAnnotation{
-			ResolvedType: nil,
-		},
+		GoAnnotations: &ast_domain.GoGeneratorAnnotation{},
 	}
 
 	validateClassAttribute(ctx, attr)
@@ -3467,7 +3451,7 @@ func TestAttributeAnalyser_isActionCall_EmptyExpression(t *testing.T) {
 	t.Parallel()
 
 	aa := &AttributeAnalyser{}
-	d := &ast_domain.Directive{RawExpression: ""}
+	d := &ast_domain.Directive{}
 
 	result := aa.isActionCall(d)
 
@@ -3957,9 +3941,7 @@ func TestAddCSRFAndMethodAttributes_PreservesExistingAnnotations(t *testing.T) {
 	resolver := NewTypeResolver(nil, vm, nil)
 	aa := newAttributeAnalyser(resolver, actions, contextManager, "", nil)
 
-	existingAnn := &ast_domain.GoGeneratorAnnotation{
-		NeedsCSRF: false,
-	}
+	existingAnn := &ast_domain.GoGeneratorAnnotation{}
 	node := &ast_domain.TemplateNode{
 		TagName:       "button",
 		NodeType:      ast_domain.NodeElement,
@@ -4241,9 +4223,7 @@ func TestAnalyseEventDirectives_MultipleEvents(t *testing.T) {
 func TestLookupActionCaseInsensitive_NilActionsMap(t *testing.T) {
 	t.Parallel()
 
-	aa := &AttributeAnalyser{
-		actions: nil,
-	}
+	aa := &AttributeAnalyser{}
 
 	result := aa.lookupActionCaseInsensitive("anything")
 

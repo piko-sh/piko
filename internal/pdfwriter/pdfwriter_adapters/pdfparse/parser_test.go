@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -504,4 +505,86 @@ func TestParseDictionary_RejectsExcessiveNesting(t *testing.T) {
 	_, err = doc.GetObject(1)
 	require.Error(t, err)
 	assert.True(t, errors.Is(err, pdfparse.ErrParseDepthExceeded), "expected ErrParseDepthExceeded, got: %v", err)
+}
+
+func TestDocumentDecodeStream_UsesTheParseOption(t *testing.T) {
+	payload := bytes.Repeat([]byte{'B'}, 512)
+	streamObj := pdfparse.StreamObj(
+		pdfparse.Dict{Pairs: []pdfparse.DictPair{{Key: "Filter", Value: pdfparse.Name("FlateDecode")}}},
+		compressFlate(t, payload),
+	)
+
+	tests := []struct {
+		wantErr error
+		name    string
+		opts    []pdfparse.ParseOption
+	}{
+		{name: "default cap admits the stream"},
+		{
+			name:    "tight per-document cap rejects the stream",
+			opts:    []pdfparse.ParseOption{pdfparse.WithMaxDecompressedStreamBytes(100)},
+			wantErr: pdfparse.ErrFlateStreamTooLarge,
+		},
+		{
+			name: "non-positive option keeps the default",
+			opts: []pdfparse.ParseOption{pdfparse.WithMaxDecompressedStreamBytes(0)},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			doc, err := pdfparse.Parse(buildMinimalPDF(), tt.opts...)
+			require.NoError(t, err)
+
+			decoded, err := doc.DecodeStream(streamObj)
+			if tt.wantErr != nil {
+				assert.ErrorIs(t, err, tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, payload, decoded)
+		})
+	}
+}
+
+func TestDocumentDecodeStream_RejectsNonStreams(t *testing.T) {
+	doc, err := pdfparse.Parse(buildMinimalPDF())
+	require.NoError(t, err)
+
+	_, err = doc.DecodeStream(pdfparse.Name("NotAStream"))
+	assert.Error(t, err)
+}
+
+func TestMaxDecompressedStreamBytes_DefaultIsPositive(t *testing.T) {
+	assert.Positive(t, pdfparse.MaxDecompressedStreamBytes())
+}
+
+func TestSetMaxDecompressedStreamBytes_IsSafeAlongsideDecoding(t *testing.T) {
+	original := pdfparse.MaxDecompressedStreamBytes()
+	t.Cleanup(func() { pdfparse.SetMaxDecompressedStreamBytes(original) })
+
+	streamObj := pdfparse.StreamObj(
+		pdfparse.Dict{Pairs: []pdfparse.DictPair{{Key: "Filter", Value: pdfparse.Name("FlateDecode")}}},
+		compressFlate(t, []byte("concurrent")),
+	)
+
+	var group sync.WaitGroup
+	errs := make(chan error, 8)
+	for worker := range 8 {
+		group.Go(func() {
+			if worker%2 == 0 {
+				pdfparse.SetMaxDecompressedStreamBytes(int64(4096 + worker))
+				return
+			}
+			if _, err := pdfparse.DecodeStream(streamObj); err != nil {
+				errs <- err
+			}
+		})
+	}
+	group.Wait()
+	close(errs)
+
+	for err := range errs {
+		assert.NoError(t, err)
+	}
 }

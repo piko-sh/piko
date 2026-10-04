@@ -227,6 +227,11 @@ func New(ctx context.Context, config Config) (*Writer, error) {
 		cancel:        writerCancel,
 		cleanupSignal: make(chan struct{}, 1),
 		done:          make(chan struct{}),
+		file:          nil,
+		currentSize:   0,
+		closeOnce:     sync.Once{},
+		mu:            sync.Mutex{},
+		closed:        atomic.Bool{},
 	}
 
 	go writer.runCleanup()
@@ -339,6 +344,7 @@ func resolveSandbox(config Config) (safedisk.Sandbox, bool, error) {
 	factory, factoryError := safedisk.NewFactory(safedisk.FactoryConfig{
 		Enabled:      true,
 		AllowedPaths: []string{config.Directory},
+		CWD:          "",
 	})
 	if factoryError != nil {
 		return nil, false, fmt.Errorf("logrotate: failed to create sandbox factory for %q: %w", config.Directory, factoryError)

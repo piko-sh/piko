@@ -129,7 +129,9 @@ func NewChromaHighlighter(config Config) *Highlighter {
 		bufPool: sync.Pool{
 			New: func() any { return bytes.NewBuffer(make([]byte, 0, defaultBufferSize)) },
 		},
-		hashSeed: maphash.MakeSeed(),
+		hashSeed:    maphash.MakeSeed(),
+		lexerCache:  sync.Map{},
+		resultCache: sync.Map{},
 	}
 }
 

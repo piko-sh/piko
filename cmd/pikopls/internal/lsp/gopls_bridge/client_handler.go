@@ -60,6 +60,9 @@ func newClientHandler(moduleRoot string) *clientHandler {
 	return &clientHandler{
 		ready:      make(chan struct{}),
 		moduleRoot: moduleRoot,
+		sink:       nil,
+		readyOnce:  sync.Once{},
+		mu:         sync.Mutex{},
 	}
 }
 
@@ -166,7 +169,7 @@ func (*clientHandler) UnregisterCapability(_ context.Context, _ *protocol.Unregi
 // Returns *protocol.ApplyWorkspaceEditResponse which refuses the gopls edit.
 // Returns error which is always nil; refusal never fails.
 func (*clientHandler) ApplyEdit(_ context.Context, _ *protocol.ApplyWorkspaceEditParams) (*protocol.ApplyWorkspaceEditResponse, error) {
-	return &protocol.ApplyWorkspaceEditResponse{Applied: false}, nil
+	return &protocol.ApplyWorkspaceEditResponse{}, nil
 }
 
 // Configuration returns default (nil) configuration for every requested item so gopls

@@ -53,14 +53,10 @@ func registerGeoS2Functions(b *FunctionCatalogueBuilder) {
 //
 // Returns querier_dto.SQLType which is the constructed tuple type.
 func tupleUInt64Pair(b *FunctionCatalogueBuilder) querier_dto.SQLType {
-	return querier_dto.SQLType{
-		Category:   querier_dto.TypeCategoryStruct,
-		EngineName: "Tuple",
-		StructFields: []querier_dto.StructField{
-			{Name: "lo", SQLType: b.uint64Type},
-			{Name: "hi", SQLType: b.uint64Type},
-		},
-	}
+	return tupleOf([]querier_dto.StructField{
+		{Name: "lo", SQLType: b.uint64Type},
+		{Name: "hi", SQLType: b.uint64Type},
+	})
 }
 
 // tupleUInt64Float64 constructs a Tuple(UInt64, Float64) SQLType used by the s2 cap-union
@@ -70,14 +66,10 @@ func tupleUInt64Pair(b *FunctionCatalogueBuilder) querier_dto.SQLType {
 //
 // Returns querier_dto.SQLType which is the constructed tuple type.
 func tupleUInt64Float64(b *FunctionCatalogueBuilder) querier_dto.SQLType {
-	return querier_dto.SQLType{
-		Category:   querier_dto.TypeCategoryStruct,
-		EngineName: "Tuple",
-		StructFields: []querier_dto.StructField{
-			{Name: "centre", SQLType: b.uint64Type},
-			{Name: "radius", SQLType: b.float64Type},
-		},
-	}
+	return tupleOf([]querier_dto.StructField{
+		{Name: "centre", SQLType: b.uint64Type},
+		{Name: "radius", SQLType: b.float64Type},
+	})
 }
 
 // tupleFloat64Pos constructs a Tuple(Float64, Float64) SQLType used by the s2 geographic
@@ -91,12 +83,8 @@ func tupleUInt64Float64(b *FunctionCatalogueBuilder) querier_dto.SQLType {
 //
 // Returns querier_dto.SQLType which is the constructed tuple type.
 func tupleFloat64Pos(b *FunctionCatalogueBuilder) querier_dto.SQLType {
-	return querier_dto.SQLType{
-		Category:   querier_dto.TypeCategoryStruct,
-		EngineName: "Tuple",
-		StructFields: []querier_dto.StructField{
-			{Name: "lon", SQLType: b.float64Type},
-			{Name: "lat", SQLType: b.float64Type},
-		},
-	}
+	return tupleOf([]querier_dto.StructField{
+		{Name: "lon", SQLType: b.float64Type},
+		{Name: "lat", SQLType: b.float64Type},
+	})
 }

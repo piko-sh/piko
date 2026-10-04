@@ -36,6 +36,9 @@ type mockTaskStoreTracker struct {
 func (m *mockTaskStoreTracker) CreateTask(_ context.Context, _ *Task) error    { return nil }
 func (m *mockTaskStoreTracker) CreateTasks(_ context.Context, _ []*Task) error { return nil }
 func (m *mockTaskStoreTracker) UpdateTask(_ context.Context, _ *Task) error    { return nil }
+func (m *mockTaskStoreTracker) GetTasksByID(_ context.Context, _ []string) ([]*Task, error) {
+	return nil, nil
+}
 func (m *mockTaskStoreTracker) FetchAndMarkDueTasks(_ context.Context, _ TaskPriority, _ int) ([]*Task, error) {
 	return nil, nil
 }

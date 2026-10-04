@@ -93,6 +93,10 @@ type RenderBuilder struct {
 	// embeddedLimits overrides the embedded-data size and count limits, or nil for defaults.
 	embeddedLimits *EmbeddedDataLimits
 
+	// layoutLimits overrides the service's layout limits for this render, or nil to use them
+	// unchanged.
+	layoutLimits *layouter_dto.LayoutLimits
+
 	// request holds the HTTP request context for template rendering, or nil.
 	request *http.Request
 
@@ -107,6 +111,10 @@ type RenderBuilder struct {
 
 	// embeddedFiles holds machine-readable payloads attached as PDF associated files.
 	embeddedFiles []EmbeddedFile
+
+	// maxImagePixels overrides the service's image pixel-area cap for this render. Zero
+	// keeps the service's cap.
+	maxImagePixels int
 
 	// fontSize is the root font size in points (0 means use default).
 	fontSize float64
@@ -202,6 +210,35 @@ func (b *RenderBuilder) WithEmbeddedDataLimits(limits EmbeddedDataLimits) *Rende
 	return b
 }
 
+// WithLayoutLimits overrides the layout limits for this render.
+//
+// Unset (non-positive) fields keep the service's configured limits, which in turn fall
+// back to the built-in defaults. Do returns an error wrapping
+// layouter_dto.ErrLayoutLimitExceeded when the document breaches a limit.
+//
+// Takes limits (layouter_dto.LayoutLimits) which holds the overrides.
+//
+// Returns *RenderBuilder for method chaining.
+func (b *RenderBuilder) WithLayoutLimits(limits layouter_dto.LayoutLimits) *RenderBuilder {
+	b.layoutLimits = &limits
+	return b
+}
+
+// WithMaxImagePixels overrides the pixel-area cap (width times height) applied to every
+// image this render embeds.
+//
+// Non-positive values keep the service's cap, which in turn falls back to the built-in
+// default. Do returns an error wrapping ErrImageDimensionsTooLarge when an image exceeds
+// the cap.
+//
+// Takes pixels (int) which is the maximum pixel area of one image.
+//
+// Returns *RenderBuilder for method chaining.
+func (b *RenderBuilder) WithMaxImagePixels(pixels int) *RenderBuilder {
+	b.maxImagePixels = pixels
+	return b
+}
+
 // ViewerPreferences configures how PDF viewers display the document (page layout, toolbar
 // visibility, initial panel, etc.).
 //
@@ -238,7 +275,7 @@ func (b *RenderBuilder) PageLabels(ranges ...PageLabelRange) *RenderBuilder {
 //
 // Returns *RenderBuilder for method chaining.
 func (b *RenderBuilder) Watermark(text string) *RenderBuilder {
-	b.watermark = &WatermarkConfig{Text: text}
+	b.watermark = &WatermarkConfig{Text: text, FontSize: 0, ColourR: 0, ColourG: 0, ColourB: 0, Angle: 0, Opacity: 0}
 	return b
 }
 
@@ -368,13 +405,14 @@ func (b *RenderBuilder) LineHeight(height float64) *RenderBuilder {
 //
 // Takes ctx (context.Context) which carries cancellation and tracing.
 //
-// Returns *pdfwriter_dto.PdfResult which contains the rendered PDF bytes, page count, and
-// optional layout dump.
-// Returns error when any stage of the pipeline fails.
-func (b *RenderBuilder) Do(ctx context.Context) (*pdfwriter_dto.PdfResult, error) {
+// Returns result (*pdfwriter_dto.PdfResult) which contains the rendered PDF bytes, page
+// count, and optional layout dump.
+// Returns err (error) when any stage of the pipeline fails, including a recovered panic.
+func (b *RenderBuilder) Do(ctx context.Context) (result *pdfwriter_dto.PdfResult, err error) {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "RenderBuilder.Do")
 	defer span.End()
+	defer func() { StorePanicAsError(ctx, "PDF render", recover(), &err) }()
 
 	if b.templatePath == "" {
 		l.ReportError(span, ErrTemplatePath, "Missing template path")
@@ -491,11 +529,18 @@ func (b *RenderBuilder) buildLayoutConfig() layouter_dto.LayoutConfig {
 		fontSize = builderDefaultFontSize
 	}
 
+	limits := b.service.layoutLimits
+	if b.layoutLimits != nil {
+		limits = b.layoutLimits.WithFallback(limits)
+	}
+
 	return layouter_dto.LayoutConfig{
 		Page:              pageConfig,
 		DefaultFontSize:   fontSize,
 		DefaultLineHeight: b.lineHeight,
 		Stylesheets:       b.stylesheets,
+		DefaultFontFamily: "",
+		Limits:            limits,
 	}
 }
 
@@ -504,6 +549,8 @@ func (b *RenderBuilder) buildLayoutConfig() layouter_dto.LayoutConfig {
 //
 // Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes pageConfig (layouter_dto.PageConfig) which specifies the page dimensions.
+// Takes layoutResult (*layouter_dto.LayoutResult) which contains the laid-out pages to
+// paint into the PDF.
 //
 // Returns []byte which is the rendered PDF content.
 // Returns error when font instancing, context cancellation, or painting fails.
@@ -529,16 +576,19 @@ func (b *RenderBuilder) paintPDF(
 	painter := NewPdfPainter(painterWidth, painterHeight, painterFontEntries, b.service.imageData)
 
 	ConfigurePainter(painter, PainterConfig{
-		Metadata:      b.metadata,
-		ViewerPrefs:   b.viewerPrefs,
-		PageLabels:    b.pageLabels,
-		Watermark:     b.watermark,
-		PdfAConfig:    b.pdfaConfig,
-		SVGWriter:     b.svgWriter,
-		SVGData:       b.svgData,
-		Tagged:        b.tagged,
-		EmitXMP:       true,
-		EmbeddedFiles: b.embeddedFiles,
+		Metadata:       b.metadata,
+		ViewerPrefs:    b.viewerPrefs,
+		PageLabels:     b.pageLabels,
+		Watermark:      b.watermark,
+		PdfAConfig:     b.pdfaConfig,
+		SVGWriter:      b.svgWriter,
+		SVGData:        b.svgData,
+		Tagged:         b.tagged,
+		EmitXMP:        true,
+		EmbeddedFiles:  b.embeddedFiles,
+		Clock:          nil,
+		GlyphWidthFunc: nil,
+		MaxImagePixels: b.effectiveMaxImagePixels(),
 	})
 
 	painter.setPageMargins(
@@ -566,9 +616,21 @@ func (b *RenderBuilder) paintPDF(
 	return buffer.Bytes(), nil
 }
 
+// effectiveMaxImagePixels returns the render's image pixel-area override when set, or the
+// service's configured cap otherwise, with zero selecting the default.
+//
+// Returns int which is the cap, or zero for the built-in default.
+func (b *RenderBuilder) effectiveMaxImagePixels() int {
+	if b.maxImagePixels > 0 {
+		return b.maxImagePixels
+	}
+	return b.service.maxImagePixels
+}
+
 // applyTransforms runs post-processing transform chains if configured.
 //
 // Takes ctx (context.Context) which carries cancellation and tracing.
+// Takes pdfBytes ([]byte) which contains the rendered PDF to transform.
 //
 // Returns []byte which is the transformed PDF content.
 // Returns error when chain creation or transformation fails.
@@ -622,10 +684,13 @@ func instanceVariableFonts(fontEntries []layouter_dto.FontEntry, fontMetrics lay
 				return nil, fmt.Errorf("instancing variable font %q at weight %d: %w", entry.Family, weight, instanceError)
 			}
 			painterFontEntries = append(painterFontEntries, layouter_dto.FontEntry{
-				Family: entry.Family,
-				Weight: weight,
-				Style:  entry.Style,
-				Data:   instancedData,
+				Family:     entry.Family,
+				Weight:     weight,
+				Style:      entry.Style,
+				Data:       instancedData,
+				WeightMin:  0,
+				WeightMax:  0,
+				IsVariable: false,
 			})
 		}
 	}
@@ -667,7 +732,7 @@ func instanceGlyphFromFace(face *font.Face, gid uint16) InstancedGlyphData {
 	data := face.GlyphData(font.GID(gid))
 	outline, ok := data.(font.GlyphOutline)
 	if !ok || len(outline.Segments) == 0 {
-		return InstancedGlyphData{AdvanceWidth: advance}
+		return InstancedGlyphData{AdvanceWidth: advance, Contours: nil}
 	}
 
 	contours := segmentsToContours(outline.Segments)

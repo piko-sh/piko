@@ -122,8 +122,9 @@ func (c *CompositeCatalogueProvider) BuildCatalogue(
 // Returns *querier_dto.Catalogue which is a fresh, mutable catalogue.
 func emptyCatalogue() *querier_dto.Catalogue {
 	return &querier_dto.Catalogue{
-		Schemas:    map[string]*querier_dto.Schema{},
-		Extensions: map[string]struct{}{},
+		Schemas:       map[string]*querier_dto.Schema{},
+		Extensions:    map[string]struct{}{},
+		DefaultSchema: "",
 	}
 }
 

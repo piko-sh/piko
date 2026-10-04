@@ -105,13 +105,19 @@ func (*NotificationServiceAdapter) convertGroupedErrorToNotification(errInfo *lo
 			Environment: env,
 			Priority:    priority,
 			Timestamp:   errInfo.FirstSeen,
+			Service:     "",
+			TraceID:     "",
 		},
 		Content: notification_dto.NotificationContent{
-			Type:    notification_dto.NotificationTypeRich,
-			Title:   fmt.Sprintf("%s: Application Error", r.Level.String()),
-			Message: r.Message,
-			Fields:  fields,
+			Type:         notification_dto.NotificationTypeRich,
+			Title:        fmt.Sprintf("%s: Application Error", r.Level.String()),
+			Message:      r.Message,
+			Fields:       fields,
+			TemplateData: nil,
+			ImageURL:     "",
 		},
+		ProviderOptions: nil,
+		Providers:       nil,
 	}
 }
 

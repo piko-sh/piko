@@ -34,10 +34,10 @@ import (
 )
 
 type stubAssetRegistrar struct {
-	serveURLFor   func(sandboxRelPath string) string
 	registerError error
-	mu            sync.Mutex
+	serveURLFor   func(sandboxRelPath string) string
 	calls         []stubRegistrarCall
+	mu            sync.Mutex
 }
 
 type stubRegistrarCall struct {

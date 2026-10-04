@@ -32,5 +32,6 @@ func MariaDB() db.EngineConfig {
 		DriverName:       "mysql",
 		Engine:           NewMariaDBEngine(),
 		MigrationDialect: migration_sql.MySQLDialect(),
+		CatalogueFactory: nil,
 	}
 }

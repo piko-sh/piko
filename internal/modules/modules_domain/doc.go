@@ -17,9 +17,9 @@
 // strip others of their rights and dignity.
 
 // Package modules_domain defines the language-level contract for loading Go-as-bytecode
-// modules into a piko interpreter at runtime.
+// modules into the interpreter used by interpreted mode (pipit) at runtime.
 //
-// Owns the types that cross the boundary between piko (the interpreter) and its hosts:
+// Owns the types that cross the boundary between the interpreter and its hosts:
 //
 //   - [ModuleRef]: how compiled code references a module dependency by path + version +
 //     integrity pin.

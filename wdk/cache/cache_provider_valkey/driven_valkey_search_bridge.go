@@ -109,17 +109,14 @@ func (a *ValkeyAdapter[K, V]) Stats() cache.Stats {
 	}
 }
 
-// Close releases the Valkey client connection.
+// Close releases this namespace.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
+// The Valkey client is shared by every namespace of the provider and is closed by
+// ValkeyProvider.Close, so closing one namespace leaves the others usable.
 //
-// Returns error when resources cannot be released cleanly.
-func (a *ValkeyAdapter[K, V]) Close(ctx context.Context) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	a.client.Close()
-	return nil
+// Returns error when ctx is already done.
+func (*ValkeyAdapter[K, V]) Close(ctx context.Context) error {
+	return ctx.Err()
 }
 
 // SetExpiresAfter updates the time-to-live for an existing key using the Valkey EXPIRE

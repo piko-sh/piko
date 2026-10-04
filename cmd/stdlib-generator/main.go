@@ -64,7 +64,7 @@ func run() error {
 
 	packages := slices.Clone(inspector_domain.StdlibPackages)
 	if *customPackages != "" {
-		for _, extra := range strings.Split(*customPackages, ",") {
+		for extra := range strings.SplitSeq(*customPackages, ",") {
 			if trimmed := strings.TrimSpace(extra); trimmed != "" {
 				packages = append(packages, trimmed)
 			}

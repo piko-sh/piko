@@ -415,7 +415,7 @@ func TestExtractTextBetweenPositions(t *testing.T) {
 		{
 			name:     "same line extraction",
 			content:  "hello world",
-			start:    protocol.Position{Line: 0, Character: 0},
+			start:    protocol.Position{},
 			end:      protocol.Position{Line: 0, Character: 5},
 			expected: "hello",
 		},
@@ -450,7 +450,7 @@ func TestExtractTextBetweenPositions(t *testing.T) {
 		{
 			name:     "end line out of bounds",
 			content:  "hello",
-			start:    protocol.Position{Line: 0, Character: 0},
+			start:    protocol.Position{},
 			end:      protocol.Position{Line: 5, Character: 3},
 			expected: "",
 		},
@@ -464,14 +464,14 @@ func TestExtractTextBetweenPositions(t *testing.T) {
 		{
 			name:     "end character out of bounds",
 			content:  "hello",
-			start:    protocol.Position{Line: 0, Character: 0},
+			start:    protocol.Position{},
 			end:      protocol.Position{Line: 0, Character: 15},
 			expected: "",
 		},
 		{
 			name:     "full first line",
 			content:  "first\nsecond",
-			start:    protocol.Position{Line: 0, Character: 0},
+			start:    protocol.Position{},
 			end:      protocol.Position{Line: 0, Character: 5},
 			expected: "first",
 		},
@@ -492,14 +492,14 @@ func TestExtractTextBetweenPositions(t *testing.T) {
 		{
 			name:     "empty content",
 			content:  "",
-			start:    protocol.Position{Line: 0, Character: 0},
-			end:      protocol.Position{Line: 0, Character: 0},
+			start:    protocol.Position{},
+			end:      protocol.Position{},
 			expected: "",
 		},
 		{
 			name:     "single character",
 			content:  "x",
-			start:    protocol.Position{Line: 0, Character: 0},
+			start:    protocol.Position{},
 			end:      protocol.Position{Line: 0, Character: 1},
 			expected: "x",
 		},
@@ -593,7 +593,7 @@ func TestCallExprFinder_Visit(t *testing.T) {
 			name: "non-CallExpr is ignored",
 			expression: &ast_domain.Identifier{
 				Name:             "foo",
-				RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+				RelativeLocation: ast_domain.Location{},
 				SourceLength:     3,
 			},
 			targetPos:   protocol.Position{Line: 0, Character: 1},
@@ -604,7 +604,7 @@ func TestCallExprFinder_Visit(t *testing.T) {
 			expression: &ast_domain.CallExpression{
 				Callee: &ast_domain.Identifier{
 					Name:             "myFunc",
-					RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+					RelativeLocation: ast_domain.Location{},
 					SourceLength:     6,
 				},
 				LparenLocation: ast_domain.Location{Line: 1, Column: 7},
@@ -619,7 +619,7 @@ func TestCallExprFinder_Visit(t *testing.T) {
 			expression: &ast_domain.CallExpression{
 				Callee: &ast_domain.Identifier{
 					Name:             "myFunc",
-					RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+					RelativeLocation: ast_domain.Location{},
 					SourceLength:     6,
 				},
 				LparenLocation: ast_domain.Location{Line: 1, Column: 7},
@@ -671,7 +671,7 @@ func TestFindEnclosingCallExpr(t *testing.T) {
 					Expression: &ast_domain.CallExpression{
 						Callee: &ast_domain.Identifier{
 							Name:             "myFunc",
-							RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+							RelativeLocation: ast_domain.Location{},
 							SourceLength:     6,
 						},
 						Args: []ast_domain.Expression{
@@ -683,7 +683,7 @@ func TestFindEnclosingCallExpr(t *testing.T) {
 						},
 						LparenLocation:   ast_domain.Location{Line: 1, Column: 7},
 						RparenLocation:   ast_domain.Location{Line: 1, Column: 10},
-						RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+						RelativeLocation: ast_domain.Location{},
 						SourceLength:     10,
 					},
 				}

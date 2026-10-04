@@ -21,6 +21,7 @@ package querier_domain
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/querier/querier_dto"
@@ -116,6 +117,7 @@ func (s *seedService) Status(ctx context.Context) ([]querier_dto.SeedStatus, err
 			Filename:      file.Filename,
 			Applied:       false,
 			ChecksumMatch: true,
+			AppliedAt:     time.Time{},
 		}
 
 		if record, ok := appliedByVersion[file.Version]; ok {

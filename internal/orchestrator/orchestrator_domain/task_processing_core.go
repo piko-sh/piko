@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand/v2"
+	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -36,6 +37,11 @@ import (
 	"piko.sh/piko/wdk/goroutine"
 )
 
+const (
+	// taskPersistTimeout bounds every individual task store write made by the core.
+	taskPersistTimeout = 5 * time.Second
+)
+
 var (
 	// errTaskIDRequired is returned when a task is submitted without an ID.
 	errTaskIDRequired = errors.New("task ID is required")
@@ -45,7 +51,36 @@ var (
 
 	// errTaskExecutorRequired is returned when a task is submitted without an executor name.
 	errTaskExecutorRequired = errors.New("task executor is required")
+
+	// errTaskPersistTimeout is the cancellation cause when a task store write exceeds
+	// taskPersistTimeout.
+	errTaskPersistTimeout = errors.New("task persist exceeded 5s timeout")
+
+	// errTaskDedupPersistTimeout is the cancellation cause when creating a task with
+	// deduplication exceeds taskPersistTimeout.
+	errTaskDedupPersistTimeout = errors.New("task dedup persist exceeded 5s timeout")
 )
+
+// staleRecoverySweep describes one stale task recovery pass.
+type staleRecoverySweep struct {
+	// claimed lists the stale tasks this node claimed.
+	claimed []RecoveryClaimedTask
+
+	// retry holds the recovered tasks moved back to RETRYING.
+	retry []*Task
+
+	// count is the number of tasks the store recovered.
+	count int
+}
+
+// executionOutcome carries an executor's result back to the goroutine waiting for it.
+type executionOutcome struct {
+	// result is the map the executor returned.
+	result map[string]any
+
+	// err is the executor's error, or the recovered panic.
+	err error
+}
 
 // TaskProcessingCore contains the shared task processing logic used by both the local
 // channel dispatcher and the Watermill dispatcher.
@@ -71,6 +106,13 @@ type TaskProcessingCore struct {
 	// scheduling.
 	DelayedPublisher DelayedPublisher
 
+	// OnTaskSettled is called once a task carrying a deduplication key has settled.
+	//
+	// A task settles when it reaches a terminal state (complete, failed, or released without
+	// running) and its record has been written, so its key is free. Nil disables the
+	// notification. Set it before the core is used concurrently.
+	OnTaskSettled func(ctx context.Context, task *Task)
+
 	// EventBus publishes task completion events.
 	EventBus EventBus
 
@@ -92,8 +134,9 @@ type TaskProcessingCore struct {
 	// goroutine for that task.
 	heartbeatStopChans sync.Map
 
-	// InFlightTasks tracks tasks that are being processed by this instance. Maps task ID to
-	// *Task for graceful shutdown release.
+	// InFlightTasks tracks tasks that are being processed by this instance for graceful
+	// shutdown release. It maps a task ID to a *Task snapshot taken when execution started,
+	// so releasing it never touches the task its handler is still running.
 	InFlightTasks sync.Map
 
 	// nodeID uniquely identifies this orchestrator instance for recovery leases.
@@ -163,6 +206,7 @@ func NewTaskProcessingCore(
 		Clock:              clock,
 		OtelPropagator:     propagation.TraceContext{},
 		DelayedPublisher:   nil,
+		OnTaskSettled:      nil,
 		executors:          make(map[string]TaskExecutor),
 		shutdownCh:         make(chan struct{}),
 		persistSemaphore:   make(chan struct{}, config.EffectiveMaxConcurrentPersistJobs()),
@@ -173,6 +217,13 @@ func NewTaskProcessingCore(
 		persistWg:          sync.WaitGroup{},
 		executorsMutex:     sync.RWMutex{},
 		shutdownOnce:       sync.Once{},
+		buildTag:           "",
+		TasksCompleted:     atomic.Int64{},
+		TasksFailed:        atomic.Int64{},
+		TasksFatalFailed:   atomic.Int64{},
+		TasksRetried:       atomic.Int64{},
+		TasksDispatched:    atomic.Int64{},
+		buildTagMu:         sync.RWMutex{},
 	}
 }
 
@@ -206,7 +257,7 @@ func (c *TaskProcessingCore) GetExecutor(name string) (TaskExecutor, error) {
 	c.executorsMutex.RUnlock()
 
 	if !exists {
-		return nil, fmt.Errorf("executor not found: %s", name)
+		return nil, fmt.Errorf("%w: %s", ErrExecutorNotFound, name)
 	}
 	return executor, nil
 }
@@ -267,7 +318,7 @@ func (c *TaskProcessingCore) PrepareTaskExecution(ctx context.Context, task *Tas
 	task.UpdatedAt = c.Clock.Now()
 	task.Status = StatusProcessing
 
-	c.InFlightTasks.Store(task.ID, task)
+	c.InFlightTasks.Store(task.ID, new(*task))
 
 	c.PersistTaskUpdate(ctx, task)
 
@@ -282,13 +333,20 @@ func (c *TaskProcessingCore) PrepareTaskExecution(ctx context.Context, task *Tas
 
 // ExecuteTask runs the executor with timeout and returns any error.
 //
+// The executor runs on its own goroutine so the wait for it is bounded even when it
+// ignores cancellation. Once the timeout has passed and the executor has still not
+// returned after the abandon grace, the wait ends with the timeout as the cause. A stuck
+// executor therefore fails its task instead of holding the task's topic, and idle
+// detection, forever.
+//
 // Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes task (*Task) which is being executed.
 // Takes executor (TaskExecutor) which handles the task.
 // Takes timeout (time.Duration) which limits execution time.
 //
-// Returns error from the executor, or nil on success.
-func (*TaskProcessingCore) ExecuteTask(
+// Returns error from the executor, the timeout cause when the executor was abandoned, or
+// nil on success.
+func (c *TaskProcessingCore) ExecuteTask(
 	ctx context.Context,
 	task *Task,
 	executor TaskExecutor,
@@ -301,16 +359,14 @@ func (*TaskProcessingCore) ExecuteTask(
 
 	l.Trace("Executing task")
 	var execErr error
-	var result any
+	var result map[string]any
 
 	_ = l.RunInSpan(ctx, "ExecuteTask", func(_ context.Context, _ logger_domain.Logger) error {
 		execStartTime := time.Now()
-		result, execErr = executor.Execute(execCtx, task.Payload)
+		result, execErr = c.runExecutor(execCtx, task, executor)
 
 		if result != nil {
-			if mapResult, ok := result.(map[string]any); ok {
-				task.Result = mapResult
-			}
+			task.Result = result
 		}
 		TaskExecutionDuration.Record(ctx, float64(time.Since(execStartTime).Milliseconds()))
 		return nil
@@ -367,9 +423,10 @@ func (c *TaskProcessingCore) HandleTaskSuccess(ctx context.Context, task *Task, 
 	task.LastError = ""
 	task.UpdatedAt = c.Clock.Now()
 
-	c.PersistTaskUpdate(ctx, task)
+	c.persistSettledTask(ctx, task)
 
 	c.PublishCompletionEvent(ctx, task, nil, c.Clock.Now().Sub(startTime))
+	c.notifySettled(ctx, task)
 
 	l.Trace("Task completed successfully",
 		logger_domain.Int("resultSize", len(task.Result)))
@@ -446,8 +503,9 @@ func (c *TaskProcessingCore) MarkTaskFailed(
 			logger_domain.Int("totalAttempts", task.Attempt))
 	}
 
-	c.PersistTaskUpdate(ctx, task)
+	c.persistSettledTask(ctx, task)
 	c.PublishCompletionEvent(ctx, task, execErr, time.Since(startTime))
+	c.notifySettled(ctx, task)
 	span.SetStatus(codes.Error, "Task failed after max retries")
 }
 
@@ -469,7 +527,7 @@ func (c *TaskProcessingCore) ScheduleTaskRetry(
 	c.TasksRetried.Add(1)
 	TaskRetryCount.Add(ctx, 1)
 
-	retryDelay := calculateRetryBackoff(task.Attempt, rand.IntN)
+	retryDelay := calculateRetryBackoff(task.Attempt, c.Config.EffectiveMaxRetryBackoff(), rand.IntN)
 	executeAt := c.Clock.Now().Add(retryDelay)
 
 	task.Status = StatusRetrying
@@ -569,60 +627,99 @@ func (c *TaskProcessingCore) PersistTaskUpdate(ctx context.Context, task *Task) 
 // PersistWithDedup creates a task with deduplication check. Uses the store's
 // CreateTaskWithDedup method which handles deduplication atomically.
 //
+// The write is always synchronous, whatever SyncPersistence says. Its outcome decides
+// whether the task may be published at all, so it must be known before the caller
+// publishes. Writing in the background would let a duplicate through, and would let a
+// handler update the task before its record exists. The write is bounded by
+// taskPersistTimeout with a cause.
+//
 // Takes ctx (context.Context) which provides cancellation.
 // Takes task (*Task) which has the task to persist.
 //
-// Returns ErrDuplicateTask if a task with the same deduplication key exists, or any other
-// persistence error. During shutdown, automatically falls back to synchronous
-// persistence. When the persist concurrency cap is saturated, the caller also falls back
-// to synchronous persistence so the goroutine count stays bounded.
-//
-// Safe for concurrent use. The spawned goroutine runs until the persistence operation
-// completes or the context is cancelled.
+// Returns ErrDuplicateTask if an active task with the same deduplication key exists, or
+// any other persistence error.
 func (c *TaskProcessingCore) PersistWithDedup(ctx context.Context, task *Task) error {
 	if c.TaskStore == nil || task.persisted {
 		return nil
 	}
 
-	if c.Config.SyncPersistence {
-		return c.TaskStore.CreateTaskWithDedup(ctx, task)
+	persistCtx, cancel := context.WithTimeoutCause(ctx, taskPersistTimeout, errTaskDedupPersistTimeout)
+	defer cancel()
+
+	if err := c.TaskStore.CreateTaskWithDedup(persistCtx, task); err != nil {
+		return err
 	}
-
-	select {
-	case <-c.shutdownCh:
-		return c.TaskStore.CreateTaskWithDedup(ctx, task)
-	default:
-	}
-
-	if !c.acquirePersistPermit() {
-		return c.TaskStore.CreateTaskWithDedup(ctx, task)
-	}
-
-	detachedCtx := context.WithoutCancel(ctx)
-	_, l := logger_domain.From(ctx, log)
-	c.persistWg.Go(func() {
-		defer c.releasePersistPermit()
-		persistCtx, cancel := context.WithTimeoutCause(detachedCtx, 5*time.Second,
-			errors.New("task dedup persist exceeded 5s timeout"))
-		defer cancel()
-
-		go func() {
-			select {
-			case <-c.shutdownCh:
-				cancel()
-			case <-persistCtx.Done():
-			}
-		}()
-
-		if err := c.TaskStore.CreateTaskWithDedup(persistCtx, task); err != nil {
-			if !errors.Is(err, ErrDuplicateTask) && !errors.Is(err, context.Canceled) {
-				l.Warn("Failed to persist task",
-					logger_domain.Error(err),
-					logger_domain.String(attributeKeyTaskID, task.ID))
-			}
-		}
-	})
+	task.persisted = true
 	return nil
+}
+
+// ReleaseUnrequiredTask completes a claimed task without running it.
+//
+// A requirement check found the task's work already satisfied. Completing the record
+// frees the deduplication key for later dispatches, and the write is synchronous so the
+// key is free as soon as this returns.
+//
+// Cancellation of ctx is detached so the release is not abandoned part way.
+//
+// Takes task (*Task) which is the claimed task to release.
+//
+// Returns error when the store write fails, in which case the key may still be held.
+func (c *TaskProcessingCore) ReleaseUnrequiredTask(ctx context.Context, task *Task) error {
+	task.Status = StatusComplete
+	task.LastError = ""
+	task.UpdatedAt = c.Clock.Now()
+
+	if c.TaskStore == nil {
+		return nil
+	}
+
+	if err := c.updateTaskWithTimeout(context.WithoutCancel(ctx), task); err != nil {
+		return fmt.Errorf("releasing unrequired task %q: %w", task.ID, err)
+	}
+
+	TaskNotRequiredCount.Add(ctx, 1)
+	c.notifySettled(ctx, task)
+	return nil
+}
+
+// AbandonUnpublishedTask marks a task record as failed because its message could not be
+// published, so its deduplication key no longer blocks a later dispatch of the same work
+// by a task that will never run. The write is synchronous and bounded by a timeout.
+//
+// Cancellation of ctx is detached so the write is not abandoned part way.
+//
+// Takes task (*Task) which is the task whose message was not published.
+// Takes cause (error) which explains why publishing failed.
+func (c *TaskProcessingCore) AbandonUnpublishedTask(ctx context.Context, task *Task, cause error) {
+	ctx, l := logger_domain.From(ctx, log)
+	task.Status = StatusFailed
+	task.LastError = cause.Error()
+	task.UpdatedAt = c.Clock.Now()
+
+	if c.TaskStore == nil {
+		return
+	}
+
+	if err := c.updateTaskWithTimeout(context.WithoutCancel(ctx), task); err != nil {
+		l.Warn("Failed to record unpublished task as failed",
+			logger_domain.Error(err),
+			logger_domain.String(attributeKeyTaskID, task.ID))
+		return
+	}
+	c.notifySettled(ctx, task)
+}
+
+// RecordUndeliverableTask accounts for a task message that reached a handler but could
+// not be decoded back into a task. The task was counted as dispatched and can never run,
+// so it is counted as failed; otherwise idle detection would wait for it forever.
+//
+// Takes cause (error) which explains why the message could not be decoded.
+func (c *TaskProcessingCore) RecordUndeliverableTask(ctx context.Context, cause error) {
+	ctx, l := logger_domain.From(ctx, log)
+	c.TasksFailed.Add(1)
+	TaskFailureCount.Add(ctx, 1)
+	l.Warn("Dropping task message that cannot be decoded",
+		logger_domain.Error(errors.Join(ErrUndeliverableTask, cause)))
 }
 
 // RecordProcessingMetrics records the final processing duration and span attributes.
@@ -733,14 +830,20 @@ func (c *TaskProcessingCore) InFlightCount() int {
 	return count
 }
 
-// RecoverStaleTasks finds and reprocesses tasks that have been stuck in PROCESSING state
-// for too long. Uses the store's built-in recovery logic.
+// RecoverStaleTasks recovers tasks that have been stuck in PROCESSING state for too long.
 //
-// Returns int which is the count of recovered tasks.
-// Returns error when claiming or recovering stale tasks fails.
-func (c *TaskProcessingCore) RecoverStaleTasks(ctx context.Context) (int, error) {
+// The store claims the stale tasks for this node and moves each back to RETRYING, or to
+// FAILED once its retries are spent. A RETRYING task has no message on the bus any more,
+// so tasks moved back to RETRYING are read back in the same transaction and returned. The
+// caller must dispatch them again or the work never happens and their deduplication keys
+// stay held.
+//
+// Returns []*Task which holds the recovered tasks that must be dispatched again, already
+// marked as persisted.
+// Returns error when claiming, recovering or reading the stale tasks fails.
+func (c *TaskProcessingCore) RecoverStaleTasks(ctx context.Context) ([]*Task, error) {
 	if c.TaskStore == nil {
-		return 0, nil
+		return nil, nil
 	}
 
 	ctx, l := logger_domain.From(ctx, log)
@@ -748,42 +851,22 @@ func (c *TaskProcessingCore) RecoverStaleTasks(ctx context.Context) (int, error)
 		logger_domain.String("nodeID", c.nodeID))
 	defer span.End()
 
-	leaseTimeout, batchLimit := c.recoveryParams()
-	var (
-		claimed []RecoveryClaimedTask
-		count   int
-	)
-
+	var sweep staleRecoverySweep
 	err := c.TaskStore.RunAtomic(ctx, func(ctx context.Context, store TaskStore) error {
-		var claimErr error
-		claimed, claimErr = store.ClaimStaleTasksForRecovery(
-			ctx, c.nodeID, c.Config.StaleTaskThreshold, leaseTimeout, batchLimit,
-		)
-		if claimErr != nil {
-			return fmt.Errorf("claiming stale tasks: %w", claimErr)
-		}
-		if len(claimed) == 0 {
-			return nil
-		}
-
-		var recoverErr error
-		count, recoverErr = store.RecoverClaimedTasks(
-			ctx, c.nodeID, c.Config.DefaultMaxRetries, staleTaskRecoveryError,
-		)
-		if recoverErr != nil {
-			return fmt.Errorf("recovering claimed tasks: %w", recoverErr)
-		}
-		return nil
+		var sweepErr error
+		sweep, sweepErr = c.recoverStaleInTransaction(ctx, store)
+		return sweepErr
 	})
+	claimed, retry, count := sweep.claimed, sweep.retry, sweep.count
 	if err != nil {
 		l.Warn("Failed to recover stale tasks", logger_domain.Error(err))
 		TaskRecoveryErrorCount.Add(ctx, 1)
-		return 0, err
+		return nil, err
 	}
 
 	if len(claimed) == 0 {
 		span.SetStatus(codes.Ok, "No stale tasks to recover")
-		return 0, nil
+		return nil, nil
 	}
 
 	l.Internal("Claimed stale tasks for recovery",
@@ -792,12 +875,13 @@ func (c *TaskProcessingCore) RecoverStaleTasks(ctx context.Context) (int, error)
 	if count > 0 {
 		l.Notice("Recovered stale tasks",
 			logger_domain.Int("count", count),
+			logger_domain.Int("toRetry", len(retry)),
 			logger_domain.Duration("staleThreshold", c.Config.StaleTaskThreshold))
 		TaskRecoveryCount.Add(ctx, int64(count))
 	}
 
 	span.SetStatus(codes.Ok, "Stale tasks recovered")
-	return count, nil
+	return retry, nil
 }
 
 // ReleaseRecoveryLeases releases all recovery leases held by this node. Called during
@@ -953,15 +1037,113 @@ func (c *TaskProcessingCore) releasePersistPermit() {
 // Takes task (*Task) which is the task to persist.
 func (c *TaskProcessingCore) persistTaskSync(ctx context.Context, task *Task) {
 	ctx, l := logger_domain.From(ctx, log)
-	ctx, cancel := context.WithTimeoutCause(ctx, 5*time.Second,
-		errors.New("task persist exceeded 5s timeout"))
-	defer cancel()
-
-	if err := c.TaskStore.UpdateTask(ctx, task); err != nil {
+	if err := c.updateTaskWithTimeout(ctx, task); err != nil {
 		l.Warn("Failed to persist task update",
 			logger_domain.Error(err),
 			logger_domain.String(attributeKeyTaskID, task.ID))
 	}
+}
+
+// persistSettledTask writes a task's terminal state. A task carrying a deduplication key
+// is written synchronously, so the key is free in the store before anything is told the
+// task has settled; other tasks use the normal persistence path.
+//
+// Cancellation of ctx is detached so the write is not abandoned part way.
+//
+// Takes task (*Task) which is the task in its terminal state.
+func (c *TaskProcessingCore) persistSettledTask(ctx context.Context, task *Task) {
+	if task.DeduplicationKey == "" || c.TaskStore == nil {
+		c.PersistTaskUpdate(ctx, task)
+		return
+	}
+	c.persistTaskSync(context.WithoutCancel(ctx), task)
+}
+
+// notifySettled calls OnTaskSettled for a task carrying a deduplication key.
+//
+// Takes task (*Task) which is the task that has settled.
+func (c *TaskProcessingCore) notifySettled(ctx context.Context, task *Task) {
+	if task.DeduplicationKey == "" || c.OnTaskSettled == nil {
+		return
+	}
+	c.OnTaskSettled(ctx, task)
+}
+
+// updateTaskWithTimeout writes the task to the store, bounded by taskPersistTimeout with
+// a cause.
+//
+// Takes task (*Task) which is the task to write.
+//
+// Returns error when the store write fails or times out.
+func (c *TaskProcessingCore) updateTaskWithTimeout(ctx context.Context, task *Task) error {
+	ctx, cancel := context.WithTimeoutCause(ctx, taskPersistTimeout, errTaskPersistTimeout)
+	defer cancel()
+
+	return c.TaskStore.UpdateTask(ctx, task)
+}
+
+// runExecutor calls the executor on its own goroutine and waits for it, bounded by the
+// context plus the abandon grace. A panic inside the executor is recovered and returned
+// as an error without a stack; the stack is logged once.
+//
+// Takes task (*Task) which supplies the payload and identifies the task in logs.
+// Takes executor (TaskExecutor) which runs the task.
+//
+// Returns map[string]any which is the executor's result.
+// Returns error when the executor fails or panics, or when it was abandoned, in which
+// case the error wraps the context's cause.
+func (c *TaskProcessingCore) runExecutor(
+	ctx context.Context,
+	task *Task,
+	executor TaskExecutor,
+) (map[string]any, error) {
+	outcome := make(chan executionOutcome, 1)
+	go func() {
+		defer func() {
+			if recovered := recover(); recovered != nil {
+				_, l := logger_domain.From(ctx, log)
+				l.Warn("Task executor panicked",
+					logger_domain.String(attributeKeyTaskID, task.ID),
+					logger_domain.String("stack_trace", string(debug.Stack())))
+				goroutine.PanicRecoveryCount.Add(ctx, 1)
+				outcome <- executionOutcome{result: nil, err: fmt.Errorf("panic in task executor: %v", recovered)}
+			}
+		}()
+		result, err := executor.Execute(ctx, task.Payload)
+		outcome <- executionOutcome{result: result, err: err}
+	}()
+
+	select {
+	case finished := <-outcome:
+		return finished.result, finished.err
+	case <-ctx.Done():
+	}
+
+	grace := c.taskClock().NewTimer(c.Config.EffectiveExecutorAbandonGrace())
+	defer grace.Stop()
+
+	select {
+	case finished := <-outcome:
+		return finished.result, finished.err
+	case <-grace.C():
+		_, l := logger_domain.From(ctx, log)
+		TaskExecutorAbandonedCount.Add(ctx, 1)
+		cause := context.Cause(ctx)
+		l.Error("Abandoned task executor that ignored cancellation",
+			logger_domain.String(attributeKeyTaskID, task.ID),
+			logger_domain.Error(cause))
+		return nil, fmt.Errorf("abandoned executor that ignored cancellation: %w", cause)
+	}
+}
+
+// taskClock returns the configured clock, or the real clock when none is set.
+//
+// Returns clockpkg.Clock which provides time for the core.
+func (c *TaskProcessingCore) taskClock() clockpkg.Clock {
+	if c.Clock == nil {
+		return clockpkg.RealClock()
+	}
+	return c.Clock
 }
 
 // recoveryParams returns the lease timeout and batch limit for task recovery.
@@ -1024,4 +1206,68 @@ func (c *TaskProcessingCore) stopHeartbeat(taskID string) {
 	if value, ok := c.heartbeatStopChans.LoadAndDelete(taskID); ok {
 		close(value.(chan struct{}))
 	}
+}
+
+// recoverStaleInTransaction claims this node's stale tasks, recovers them, and reads back
+// those moved to RETRYING, all through the store bound to one transaction.
+//
+// Takes store (TaskStore) which is the store bound to the recovery transaction.
+//
+// Returns staleRecoverySweep which describes what was claimed and recovered.
+// Returns error when claiming, recovering or reading back fails.
+func (c *TaskProcessingCore) recoverStaleInTransaction(ctx context.Context, store TaskStore) (staleRecoverySweep, error) {
+	leaseTimeout, batchLimit := c.recoveryParams()
+	sweep := staleRecoverySweep{claimed: nil, retry: nil, count: 0}
+
+	claimed, err := store.ClaimStaleTasksForRecovery(
+		ctx, c.nodeID, c.Config.StaleTaskThreshold, leaseTimeout, batchLimit,
+	)
+	if err != nil {
+		return sweep, fmt.Errorf("claiming stale tasks: %w", err)
+	}
+	sweep.claimed = claimed
+	if len(claimed) == 0 {
+		return sweep, nil
+	}
+
+	sweep.count, err = store.RecoverClaimedTasks(
+		ctx, c.nodeID, c.Config.DefaultMaxRetries, staleTaskRecoveryError,
+	)
+	if err != nil {
+		return sweep, fmt.Errorf("recovering claimed tasks: %w", err)
+	}
+
+	sweep.retry, err = readTasksToRetry(ctx, store, claimed)
+	return sweep, err
+}
+
+// readTasksToRetry reads back the claimed tasks after recovery and keeps those moved to
+// RETRYING, marking them as persisted so dispatching them updates their record rather
+// than inserting it again.
+//
+// Takes store (TaskStore) which is the store bound to the recovery transaction.
+// Takes claimed ([]RecoveryClaimedTask) which lists the tasks this node recovered.
+//
+// Returns []*Task which holds the recovered tasks to dispatch again.
+// Returns error when the read fails.
+func readTasksToRetry(ctx context.Context, store TaskStore, claimed []RecoveryClaimedTask) ([]*Task, error) {
+	ids := make([]string, len(claimed))
+	for i := range claimed {
+		ids[i] = claimed[i].ID
+	}
+
+	tasks, err := store.GetTasksByID(ctx, ids)
+	if err != nil {
+		return nil, fmt.Errorf("reading recovered tasks: %w", err)
+	}
+
+	retry := make([]*Task, 0, len(tasks))
+	for _, task := range tasks {
+		if task.Status != StatusRetrying {
+			continue
+		}
+		task.persisted = true
+		retry = append(retry, task)
+	}
+	return retry, nil
 }

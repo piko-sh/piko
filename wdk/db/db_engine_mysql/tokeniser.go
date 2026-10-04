@@ -131,8 +131,14 @@ var (
 		Comments: engine_shared.CommentRules{
 			DoubleDashRequiresWhitespace: true,
 			HashLineComment:              true,
+			NestedBlockComments:          false,
 		},
-		Numbers: engine_shared.NumberRules{HexPrefix: true, BinaryPrefix: true},
+		Numbers: engine_shared.NumberRules{
+			HexPrefix:                true,
+			BinaryPrefix:             true,
+			OctalPrefix:              false,
+			RequireDigitsAfterPrefix: false,
+		},
 	}
 )
 
@@ -143,7 +149,7 @@ var (
 // Returns []token which holds the full token stream including the trailing EOF marker.
 // Returns error when scanning fails on a malformed literal.
 func tokenise(input string) ([]token, error) {
-	lexer := &tokeniser{input: input}
+	lexer := &tokeniser{input: input, position: 0}
 	var tokens []token
 
 	for {
@@ -170,7 +176,7 @@ func (t *tokeniser) next() (token, error) {
 	}
 
 	if t.position >= len(t.input) {
-		return token{kind: tokenEOF, position: t.position}, nil
+		return token{kind: tokenEOF, position: t.position, value: ""}, nil
 	}
 
 	character := t.input[t.position]

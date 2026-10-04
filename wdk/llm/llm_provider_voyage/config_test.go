@@ -44,10 +44,8 @@ func TestConfig_Validate(t *testing.T) {
 			wantError: true,
 		},
 		{
-			name: "empty API key",
-			config: Config{
-				APIKey: "",
-			},
+			name:      "empty API key",
+			config:    Config{},
 			wantError: true,
 		},
 		{

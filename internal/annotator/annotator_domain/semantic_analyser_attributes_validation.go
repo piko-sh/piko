@@ -28,9 +28,9 @@ import (
 	"slices"
 	"strings"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/goastutil"
 )
 
 // isHelperCall checks if a directive is a helper function call. Helper calls use the
@@ -99,6 +99,7 @@ func (aa *AttributeAnalyser) resolveClientEventHandlerArgs(ctx context.Context, 
 				IsExportedPackageSymbol: false,
 				InitialPackagePath:      "",
 				InitialFilePath:         "",
+				UnderlyingTypeString:    "",
 			},
 			CodeGenVarName:      "$event",
 			SourceInvocationKey: "",
@@ -113,6 +114,7 @@ func (aa *AttributeAnalyser) resolveClientEventHandlerArgs(ctx context.Context, 
 				IsExportedPackageSymbol: false,
 				InitialPackagePath:      "",
 				InitialFilePath:         "",
+				UnderlyingTypeString:    "",
 			},
 			CodeGenVarName:      "$form",
 			SourceInvocationKey: "",
@@ -136,6 +138,7 @@ func (aa *AttributeAnalyser) resolveClientEventHandlerArgs(ctx context.Context, 
 		IsExportedPackageSymbol: false,
 		InitialPackagePath:      "",
 		InitialFilePath:         "",
+		UnderlyingTypeString:    "",
 	})
 }
 
@@ -519,8 +522,8 @@ func validateContextDirective(d *ast_domain.Directive, ctx *AnalysisContext) {
 // validateEventDirective checks that an event handler uses a function call and validates
 // $event placeholder usage.
 //
-// Takes d (*ast_domain.Directive) which is the directive to validate. Takes ctx
-// (*AnalysisContext) which collects any validation errors.
+// Takes d (*ast_domain.Directive) which is the directive to validate.
+// Takes ctx (*AnalysisContext) which collects any validation errors.
 func validateEventDirective(d *ast_domain.Directive, ctx *AnalysisContext) {
 	if d.Expression == nil {
 		return

@@ -68,6 +68,7 @@ type PresignRIDCache struct {
 // panic recovery.
 // Takes cleanupInterval (time.Duration) which specifies how often to purge expired
 // identifiers. Use DefaultRIDCleanupInterval for sensible defaults.
+// Takes opts (...PresignRIDCacheOption) which configure the clock used for expiry checks.
 //
 // Returns *PresignRIDCache which is ready for use.
 //

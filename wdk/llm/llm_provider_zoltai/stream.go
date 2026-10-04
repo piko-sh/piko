@@ -97,7 +97,12 @@ func (p *zoltaiProvider) processStream(ctx context.Context, model, full string, 
 			{
 				Index: 0,
 				Message: llm_dto.Message{
-					Role: llm_dto.RoleAssistant,
+					Role:         llm_dto.RoleAssistant,
+					Name:         nil,
+					ToolCallID:   nil,
+					Content:      "",
+					ContentParts: nil,
+					ToolCalls:    nil,
 				},
 				FinishReason: llm_dto.FinishReasonStop,
 			},
@@ -106,7 +111,13 @@ func (p *zoltaiProvider) processStream(ctx context.Context, model, full string, 
 			PromptTokens:     msgCount * estimatedTokensPerMessage,
 			CompletionTokens: totalWords,
 			TotalTokens:      msgCount*estimatedTokensPerMessage + totalWords,
+			EstimatedCost:    nil,
+			CachedTokens:     0,
 		},
+		FallbackInfo: nil,
+		ID:           "",
+		Sources:      nil,
+		Created:      0,
 	})
 
 	select {
@@ -120,6 +131,7 @@ func (p *zoltaiProvider) processStream(ctx context.Context, model, full string, 
 // Takes ctx (context.Context) which controls cancellation.
 // Takes model (string) which is the model name for chunk metadata.
 // Takes full (string) which is the full text to split and stream.
+// Takes events (chan<- llm_dto.StreamEvent) which receives the generated stream events.
 //
 // Returns error when the context is cancelled.
 func streamLines(ctx context.Context, model, full string, events chan<- llm_dto.StreamEvent) error {
@@ -155,6 +167,7 @@ func streamLines(ctx context.Context, model, full string, events chan<- llm_dto.
 // Takes ctx (context.Context) which controls cancellation.
 // Takes model (string) which is the model name for chunk metadata.
 // Takes line (string) which is the line to split into words.
+// Takes events (chan<- llm_dto.StreamEvent) which receives the generated stream events.
 //
 // Returns error when the context is cancelled.
 func streamWords(ctx context.Context, model, line string, events chan<- llm_dto.StreamEvent) error {
@@ -183,8 +196,13 @@ func sendChunk(ctx context.Context, model, token string, events chan<- llm_dto.S
 	chunk := &llm_dto.StreamChunk{
 		Model: model,
 		Delta: &llm_dto.MessageDelta{
-			Content: &token,
+			Content:   &token,
+			Role:      nil,
+			ToolCalls: nil,
 		},
+		FinishReason: nil,
+		Usage:        nil,
+		ID:           "",
 	}
 	select {
 	case events <- llm_dto.NewChunkEvent(chunk):
@@ -266,7 +284,12 @@ func buildToolHeaderChunk(model string, tool llm_dto.ToolDefinition, callID stri
 					},
 				},
 			},
+			Role:    nil,
+			Content: nil,
 		},
+		FinishReason: nil,
+		Usage:        nil,
+		ID:           "",
 	}
 }
 
@@ -297,6 +320,10 @@ func buildToolDoneEvent(model string, tool llm_dto.ToolDefinition, callID string
 							},
 						},
 					},
+					Name:         nil,
+					ToolCallID:   nil,
+					Content:      "",
+					ContentParts: nil,
 				},
 				FinishReason: finishReason,
 			},
@@ -305,6 +332,12 @@ func buildToolDoneEvent(model string, tool llm_dto.ToolDefinition, callID string
 			PromptTokens:     msgCount * estimatedTokensPerMessage,
 			CompletionTokens: 5,
 			TotalTokens:      msgCount*estimatedTokensPerMessage + 5,
+			EstimatedCost:    nil,
+			CachedTokens:     0,
 		},
+		FallbackInfo: nil,
+		ID:           "",
+		Sources:      nil,
+		Created:      0,
 	})
 }

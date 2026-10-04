@@ -27,7 +27,8 @@ import (
 // DetailView renders the detail-pane body for the row currently under the cursor. Task or
 // workflow rows show resource detail; otherwise an overview of counts is rendered.
 //
-// Takes width (int) and height (int) which are the inner dimensions of the detail pane.
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 //
 // Returns string with the rendered body.
 func (p *OrchestratorPanel) DetailView(width, height int) string {
@@ -55,13 +56,13 @@ func (p *OrchestratorPanel) overviewDetailBody() inspector.DetailBody {
 		mode = "Workflows"
 	}
 	rows := []inspector.DetailRow{
-		{Label: "Active view", Value: mode},
-		{Label: "Tasks", Value: fmt.Sprintf(FormatPercentInt, len(p.tasks))},
-		{Label: "Workflows", Value: fmt.Sprintf(FormatPercentInt, len(p.workflows))},
+		inspector.NewDetailRow("Active view", mode),
+		inspector.NewDetailRow("Tasks", fmt.Sprintf(FormatPercentInt, len(p.tasks))),
+		inspector.NewDetailRow("Workflows", fmt.Sprintf(FormatPercentInt, len(p.workflows))),
 	}
 	return inspector.DetailBody{
 		Title:    "Orchestrator overview",
 		Subtitle: fmt.Sprintf("%d tasks · %d workflows", len(p.tasks), len(p.workflows)),
-		Sections: []inspector.DetailSection{{Heading: "Counts", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Counts", rows)},
 	}
 }

@@ -98,13 +98,19 @@ func BuildWatchdogStatusCoreRows(response *pb.GetWatchdogStatusResponse) []Detai
 
 	return []DetailRow{
 		{Label: "Status", Value: statusValue, IsStatus: true},
-		{Label: "Check Interval", Value: FormatMilliseconds(response.GetCheckIntervalMs())},
-		{Label: "Cooldown", Value: FormatMilliseconds(response.GetCooldownMs())},
-		{Label: "Capture Window", Value: FormatMilliseconds(response.GetCaptureWindowMs())},
-		{Label: "Captures In Window", Value: fmt.Sprintf("%d / %d", response.GetCaptureWindowUsed(), response.GetMaxCapturesPerWindow())},
-		{Label: "Warnings In Window", Value: fmt.Sprintf("%d / %d", response.GetWarningWindowUsed(), response.GetMaxWarningsPerWindow())},
-		{Label: "Profile Directory", Value: response.GetProfileDirectory()},
-		{Label: "Warm-Up Remaining", Value: WatchdogWarmUpRemaining(response)},
+		NewDetailRow("Check Interval", FormatMilliseconds(response.GetCheckIntervalMs())),
+		NewDetailRow("Cooldown", FormatMilliseconds(response.GetCooldownMs())),
+		NewDetailRow("Capture Window", FormatMilliseconds(response.GetCaptureWindowMs())),
+		NewDetailRow(
+			"Captures In Window",
+			fmt.Sprintf("%d / %d", response.GetCaptureWindowUsed(), response.GetMaxCapturesPerWindow()),
+		),
+		NewDetailRow(
+			"Warnings In Window",
+			fmt.Sprintf("%d / %d", response.GetWarningWindowUsed(), response.GetMaxWarningsPerWindow()),
+		),
+		NewDetailRow("Profile Directory", response.GetProfileDirectory()),
+		NewDetailRow("Warm-Up Remaining", WatchdogWarmUpRemaining(response)),
 	}
 }
 
@@ -117,14 +123,17 @@ func BuildWatchdogStatusCoreRows(response *pb.GetWatchdogStatusResponse) []Detai
 // Returns []DetailRow rendered as the Thresholds section.
 func BuildWatchdogStatusThresholdRows(response *pb.GetWatchdogStatusResponse) []DetailRow {
 	return []DetailRow{
-		{Label: "Heap Threshold", Value: FormatBytes(response.GetHeapThresholdBytes())},
-		{Label: "Heap High-Water Mark", Value: FormatBytes(response.GetHeapHighWater())},
-		{Label: "Goroutine Threshold", Value: fmt.Sprintf(fmtDecimalInt, response.GetGoroutineThreshold())},
-		{Label: "Goroutine Safety Ceiling", Value: fmt.Sprintf(fmtDecimalInt, response.GetGoroutineSafetyCeiling())},
-		{Label: "Goroutine Baseline", Value: fmt.Sprintf(fmtDecimalInt, response.GetGoroutineBaseline())},
-		{Label: "FD Pressure Threshold", Value: fmt.Sprintf("%.0f%%", response.GetFdPressureThresholdPercent()*100)},
-		{Label: "Scheduler Latency p99 Threshold", Value: FormatDurationNanos(response.GetSchedulerLatencyP99ThresholdNs())},
-		{Label: "Max Profiles Per Type", Value: fmt.Sprintf(fmtDecimalInt, response.GetMaxProfilesPerType())},
+		NewDetailRow("Heap Threshold", FormatBytes(response.GetHeapThresholdBytes())),
+		NewDetailRow("Heap High-Water Mark", FormatBytes(response.GetHeapHighWater())),
+		NewDetailRow("Goroutine Threshold", fmt.Sprintf(fmtDecimalInt, response.GetGoroutineThreshold())),
+		NewDetailRow("Goroutine Safety Ceiling", fmt.Sprintf(fmtDecimalInt, response.GetGoroutineSafetyCeiling())),
+		NewDetailRow("Goroutine Baseline", fmt.Sprintf(fmtDecimalInt, response.GetGoroutineBaseline())),
+		NewDetailRow("FD Pressure Threshold", fmt.Sprintf("%.0f%%", response.GetFdPressureThresholdPercent()*100)),
+		NewDetailRow(
+			"Scheduler Latency p99 Threshold",
+			FormatDurationNanos(response.GetSchedulerLatencyP99ThresholdNs()),
+		),
+		NewDetailRow("Max Profiles Per Type", fmt.Sprintf(fmtDecimalInt, response.GetMaxProfilesPerType())),
 	}
 }
 
@@ -136,8 +145,8 @@ func BuildWatchdogStatusThresholdRows(response *pb.GetWatchdogStatusResponse) []
 // Returns []DetailRow rendered as the Crash Loop Detection section.
 func BuildWatchdogStatusCrashLoopRows(response *pb.GetWatchdogStatusResponse) []DetailRow {
 	return []DetailRow{
-		{Label: "Crash Loop Window", Value: FormatMilliseconds(response.GetCrashLoopWindowMs())},
-		{Label: "Crash Loop Threshold", Value: fmt.Sprintf(fmtDecimalInt, response.GetCrashLoopThreshold())},
+		NewDetailRow("Crash Loop Window", FormatMilliseconds(response.GetCrashLoopWindowMs())),
+		NewDetailRow("Crash Loop Threshold", fmt.Sprintf(fmtDecimalInt, response.GetCrashLoopThreshold())),
 	}
 }
 
@@ -154,9 +163,12 @@ func BuildWatchdogStatusContinuousRows(response *pb.GetWatchdogStatusResponse) [
 	}
 	return []DetailRow{
 		{Label: "Continuous Profiling", Value: continuousProfilingValue, IsStatus: true},
-		{Label: "Continuous Profiling Interval", Value: FormatMilliseconds(response.GetContinuousProfilingIntervalMs())},
-		{Label: "Continuous Profiling Types", Value: strings.Join(response.GetContinuousProfilingTypes(), ", ")},
-		{Label: "Continuous Profiling Retention", Value: fmt.Sprintf(fmtDecimalInt, response.GetContinuousProfilingRetention())},
+		NewDetailRow("Continuous Profiling Interval", FormatMilliseconds(response.GetContinuousProfilingIntervalMs())),
+		NewDetailRow("Continuous Profiling Types", strings.Join(response.GetContinuousProfilingTypes(), ", ")),
+		NewDetailRow(
+			"Continuous Profiling Retention",
+			fmt.Sprintf(fmtDecimalInt, response.GetContinuousProfilingRetention()),
+		),
 	}
 }
 
@@ -173,9 +185,12 @@ func BuildWatchdogStatusContentionRows(response *pb.GetWatchdogStatusResponse) [
 	}
 	return []DetailRow{
 		{Label: "Contention Diagnostic Mode", Value: contentionAutoFireValue, IsStatus: true},
-		{Label: "Contention Diagnostic Window", Value: FormatMilliseconds(response.GetContentionDiagnosticWindowMs())},
-		{Label: "Contention Diagnostic Cooldown", Value: FormatMilliseconds(response.GetContentionDiagnosticCooldownMs())},
-		{Label: "Contention Diagnostic Last Run", Value: FormatOptionalTime(response.GetContentionDiagnosticLastRunMs())},
+		NewDetailRow("Contention Diagnostic Window", FormatMilliseconds(response.GetContentionDiagnosticWindowMs())),
+		NewDetailRow(
+			"Contention Diagnostic Cooldown",
+			FormatMilliseconds(response.GetContentionDiagnosticCooldownMs()),
+		),
+		NewDetailRow("Contention Diagnostic Last Run", FormatOptionalTime(response.GetContentionDiagnosticLastRunMs())),
 	}
 }
 

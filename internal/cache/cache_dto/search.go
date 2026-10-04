@@ -327,9 +327,12 @@ type SearchHit[K comparable, V any] struct {
 // Returns FieldSchema configured for text search with default weight of 1.0.
 func TextField(name string) FieldSchema {
 	return FieldSchema{
-		Name:   name,
-		Type:   FieldTypeText,
-		Weight: 1.0,
+		Name:           name,
+		Type:           FieldTypeText,
+		Weight:         1.0,
+		DistanceMetric: "",
+		Dimension:      0,
+		Sortable:       false,
 	}
 }
 
@@ -340,8 +343,12 @@ func TextField(name string) FieldSchema {
 // Returns FieldSchema configured for tag matching.
 func TagField(name string) FieldSchema {
 	return FieldSchema{
-		Name: name,
-		Type: FieldTypeTag,
+		Name:           name,
+		Type:           FieldTypeTag,
+		DistanceMetric: "",
+		Dimension:      0,
+		Sortable:       false,
+		Weight:         0,
 	}
 }
 
@@ -352,8 +359,12 @@ func TagField(name string) FieldSchema {
 // Returns FieldSchema configured for numeric comparisons.
 func NumericField(name string) FieldSchema {
 	return FieldSchema{
-		Name: name,
-		Type: FieldTypeNumeric,
+		Name:           name,
+		Type:           FieldTypeNumeric,
+		DistanceMetric: "",
+		Dimension:      0,
+		Sortable:       false,
+		Weight:         0,
 	}
 }
 
@@ -364,9 +375,12 @@ func NumericField(name string) FieldSchema {
 // Returns FieldSchema configured for numeric comparisons and sorting.
 func SortableNumericField(name string) FieldSchema {
 	return FieldSchema{
-		Name:     name,
-		Type:     FieldTypeNumeric,
-		Sortable: true,
+		Name:           name,
+		Type:           FieldTypeNumeric,
+		Sortable:       true,
+		DistanceMetric: "",
+		Dimension:      0,
+		Weight:         0,
 	}
 }
 
@@ -377,10 +391,12 @@ func SortableNumericField(name string) FieldSchema {
 // Returns FieldSchema configured for text search and sorting.
 func SortableTextField(name string) FieldSchema {
 	return FieldSchema{
-		Name:     name,
-		Type:     FieldTypeText,
-		Sortable: true,
-		Weight:   1.0,
+		Name:           name,
+		Type:           FieldTypeText,
+		Sortable:       true,
+		Weight:         1.0,
+		DistanceMetric: "",
+		Dimension:      0,
 	}
 }
 
@@ -391,8 +407,12 @@ func SortableTextField(name string) FieldSchema {
 // Returns FieldSchema configured for geo operations.
 func GeoField(name string) FieldSchema {
 	return FieldSchema{
-		Name: name,
-		Type: FieldTypeGeo,
+		Name:           name,
+		Type:           FieldTypeGeo,
+		DistanceMetric: "",
+		Dimension:      0,
+		Sortable:       false,
+		Weight:         0,
 	}
 }
 
@@ -409,6 +429,8 @@ func VectorField(name string, dimension int) FieldSchema {
 		Type:           FieldTypeVector,
 		Dimension:      dimension,
 		DistanceMetric: "cosine",
+		Sortable:       false,
+		Weight:         0,
 	}
 }
 
@@ -427,6 +449,8 @@ func VectorFieldWithMetric(name string, dimension int, metric string) FieldSchem
 		Type:           FieldTypeVector,
 		Dimension:      dimension,
 		DistanceMetric: metric,
+		Sortable:       false,
+		Weight:         0,
 	}
 }
 
@@ -437,8 +461,13 @@ func VectorFieldWithMetric(name string, dimension int, metric string) FieldSchem
 // Returns *SearchSchema with english language and default stop words.
 func NewSearchSchema(fields ...FieldSchema) *SearchSchema {
 	return &SearchSchema{
-		Fields:   fields,
-		Language: "english",
+		Fields:                 fields,
+		Language:               "english",
+		TextAnalyser:           nil,
+		StopWords:              nil,
+		MaxTagsPerKey:          0,
+		MaxInvertedIndexTokens: 0,
+		MaxVectors:             0,
 	}
 }
 
@@ -452,9 +481,13 @@ func NewSearchSchema(fields ...FieldSchema) *SearchSchema {
 // Returns *SearchSchema with the analyser configured and english as the default language.
 func NewSearchSchemaWithAnalyser(analyser TextAnalyseFunc, fields ...FieldSchema) *SearchSchema {
 	return &SearchSchema{
-		Fields:       fields,
-		Language:     "english",
-		TextAnalyser: analyser,
+		Fields:                 fields,
+		Language:               "english",
+		TextAnalyser:           analyser,
+		StopWords:              nil,
+		MaxTagsPerKey:          0,
+		MaxInvertedIndexTokens: 0,
+		MaxVectors:             0,
 	}
 }
 
@@ -465,7 +498,7 @@ func NewSearchSchemaWithAnalyser(analyser TextAnalyseFunc, fields ...FieldSchema
 //
 // Returns Filter configured for equality comparison.
 func Eq(field string, value any) Filter {
-	return Filter{Field: field, Operation: FilterOpEq, Value: value}
+	return Filter{Field: field, Operation: FilterOpEq, Value: value, Values: nil}
 }
 
 // Ne creates a not-equal filter.
@@ -475,7 +508,7 @@ func Eq(field string, value any) Filter {
 //
 // Returns Filter configured for inequality comparison.
 func Ne(field string, value any) Filter {
-	return Filter{Field: field, Operation: FilterOpNe, Value: value}
+	return Filter{Field: field, Operation: FilterOpNe, Value: value, Values: nil}
 }
 
 // Gt creates a greater-than filter.
@@ -485,7 +518,7 @@ func Ne(field string, value any) Filter {
 //
 // Returns Filter configured for greater-than comparison.
 func Gt(field string, value any) Filter {
-	return Filter{Field: field, Operation: FilterOpGt, Value: value}
+	return Filter{Field: field, Operation: FilterOpGt, Value: value, Values: nil}
 }
 
 // Ge creates a greater-than-or-equal filter.
@@ -495,7 +528,7 @@ func Gt(field string, value any) Filter {
 //
 // Returns Filter configured for greater-than-or-equal comparison.
 func Ge(field string, value any) Filter {
-	return Filter{Field: field, Operation: FilterOpGe, Value: value}
+	return Filter{Field: field, Operation: FilterOpGe, Value: value, Values: nil}
 }
 
 // Lt creates a less-than filter.
@@ -505,7 +538,7 @@ func Ge(field string, value any) Filter {
 //
 // Returns Filter configured for less-than comparison.
 func Lt(field string, value any) Filter {
-	return Filter{Field: field, Operation: FilterOpLt, Value: value}
+	return Filter{Field: field, Operation: FilterOpLt, Value: value, Values: nil}
 }
 
 // Le creates a less-than-or-equal filter.
@@ -515,7 +548,7 @@ func Lt(field string, value any) Filter {
 //
 // Returns Filter configured for less-than-or-equal comparison.
 func Le(field string, value any) Filter {
-	return Filter{Field: field, Operation: FilterOpLe, Value: value}
+	return Filter{Field: field, Operation: FilterOpLe, Value: value, Values: nil}
 }
 
 // In creates a set membership filter.
@@ -525,7 +558,7 @@ func Le(field string, value any) Filter {
 //
 // Returns Filter that matches if field value is in the set.
 func In(field string, values ...any) Filter {
-	return Filter{Field: field, Operation: FilterOpIn, Values: values}
+	return Filter{Field: field, Operation: FilterOpIn, Values: values, Value: nil}
 }
 
 // Between creates a range filter (inclusive).
@@ -536,7 +569,7 @@ func In(field string, values ...any) Filter {
 //
 // Returns Filter that matches if field is within [lower, upper].
 func Between(field string, lower, upper any) Filter {
-	return Filter{Field: field, Operation: FilterOpBetween, Values: []any{lower, upper}}
+	return Filter{Field: field, Operation: FilterOpBetween, Values: []any{lower, upper}, Value: nil}
 }
 
 // Prefix creates a prefix match filter for TAG fields.
@@ -546,5 +579,5 @@ func Between(field string, lower, upper any) Filter {
 //
 // Returns Filter that matches if field starts with prefix.
 func Prefix(field string, prefix string) Filter {
-	return Filter{Field: field, Operation: FilterOpPrefix, Value: prefix}
+	return Filter{Field: field, Operation: FilterOpPrefix, Value: prefix, Values: nil}
 }

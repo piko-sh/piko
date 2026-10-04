@@ -104,9 +104,7 @@ func TestParseRequestData_DetectLocale_Priority(t *testing.T) {
 			name: "empty route context locale is ignored",
 			path: "/?locale=query_locale",
 			setupRequest: func(request *http.Request) *http.Request {
-				ctx := daemon_dto.WithPikoRequestCtx(request.Context(), &daemon_dto.PikoRequestCtx{
-					Locale: "",
-				})
+				ctx := daemon_dto.WithPikoRequestCtx(request.Context(), &daemon_dto.PikoRequestCtx{})
 				return request.WithContext(ctx)
 			},
 			expectedLocale: "query_locale",

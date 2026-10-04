@@ -97,6 +97,8 @@ func NewProfilingCaptureOverlay(profile string, duration time.Duration, c clock.
 		profile:   profile,
 		duration:  duration,
 		startedAt: c.Now(),
+		frame:     0,
+		dismissed: false,
 	}
 }
 
@@ -169,18 +171,21 @@ func (o *ProfilingCaptureOverlay) Render(width, height int) string {
 	body := strings.Join(rows, "\n")
 
 	return RenderPaneFrame(PaneFrameOpts{
-		Title:   "Profile capture",
-		Body:    body,
-		Width:   width,
-		Height:  height,
-		Focused: true,
+		Title:     "Profile capture",
+		Body:      body,
+		Width:     width,
+		Height:    height,
+		Focused:   true,
+		Theme:     nil,
+		Indicator: "",
 	})
 }
 
 // captureProgressBar renders the elapsed-vs-total progress bar.
 //
-// Takes elapsed (time.Duration), total (time.Duration), width (int) which sets the bar
-// character width.
+// Takes elapsed (time.Duration) which is the time elapsed since capture started.
+// Takes total (time.Duration) which is the expected capture duration.
+// Takes width (int) which sets the available width in terminal cells.
 //
 // Returns string with a "[#####.....]" style bar.
 func captureProgressBar(elapsed, total time.Duration, width int) string {

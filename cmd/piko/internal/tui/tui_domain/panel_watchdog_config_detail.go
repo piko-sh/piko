@@ -27,7 +27,8 @@ import (
 // DetailView renders the detail-pane body for the section under the cursor: its full
 // label, every field, and its current value.
 //
-// Takes width (int) and height (int) which are the inner dimensions of the detail pane.
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 //
 // Returns string with the rendered body.
 func (p *WatchdogConfigPanel) DetailView(width, height int) string {
@@ -46,6 +47,7 @@ func (p *WatchdogConfigPanel) buildDetailBody() inspector.DetailBody {
 		return inspector.DetailBody{
 			Title:    "Watchdog config",
 			Subtitle: "no snapshot yet",
+			Sections: nil,
 		}
 	}
 
@@ -67,15 +69,12 @@ func (p *WatchdogConfigPanel) buildDetailBody() inspector.DetailBody {
 func configOverviewDetailBody(sections []configSection, status *WatchdogStatus) inspector.DetailBody {
 	rows := make([]inspector.DetailRow, 0, len(sections))
 	for _, section := range sections {
-		rows = append(rows, inspector.DetailRow{
-			Label: section.Label,
-			Value: fmt.Sprintf("%d fields", len(section.Fields)),
-		})
+		rows = append(rows, inspector.NewDetailRow(section.Label, fmt.Sprintf("%d fields", len(section.Fields))))
 	}
 	return inspector.DetailBody{
 		Title:    "Configuration",
 		Subtitle: yesNo(status.Enabled),
-		Sections: []inspector.DetailSection{{Heading: "Sections", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Sections", rows)},
 	}
 }
 
@@ -89,14 +88,11 @@ func configOverviewDetailBody(sections []configSection, status *WatchdogStatus) 
 func configSectionDetailBody(section configSection, status *WatchdogStatus) inspector.DetailBody {
 	rows := make([]inspector.DetailRow, 0, len(section.Fields))
 	for _, field := range section.Fields {
-		rows = append(rows, inspector.DetailRow{
-			Label: field.Label,
-			Value: field.Value(status),
-		})
+		rows = append(rows, inspector.NewDetailRow(field.Label, field.Value(status)))
 	}
 	return inspector.DetailBody{
 		Title:    section.Label,
 		Subtitle: fmt.Sprintf("%d fields", len(section.Fields)),
-		Sections: []inspector.DetailSection{{Heading: section.Label, Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection(section.Label, rows)},
 	}
 }

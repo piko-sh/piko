@@ -114,7 +114,7 @@ func TestPropertyMetadata_GetPropType_Comprehensive(t *testing.T) {
 		},
 		{
 			name:     "empty type",
-			prop:     PropertyMetadata{JSType: ""},
+			prop:     PropertyMetadata{},
 			expected: "Any",
 		},
 		{
@@ -195,7 +195,7 @@ func TestPropertyMetadata_GetDefaultValue_Comprehensive(t *testing.T) {
 		},
 		{
 			name:     "empty type fallback",
-			prop:     PropertyMetadata{JSType: ""},
+			prop:     PropertyMetadata{},
 			expected: "null",
 		},
 		{
@@ -251,7 +251,7 @@ func TestPropertyMetadata_IsBoolean(t *testing.T) {
 		},
 		{
 			name:     "empty type",
-			prop:     PropertyMetadata{JSType: ""},
+			prop:     PropertyMetadata{},
 			expected: false,
 		},
 		{

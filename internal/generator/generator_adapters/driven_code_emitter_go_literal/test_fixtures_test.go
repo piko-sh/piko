@@ -26,75 +26,27 @@ import (
 )
 
 func createMockAnnotation(typeName string, stringability inspector_dto.StringabilityMethod) *ast_domain.GoGeneratorAnnotation {
-	return &ast_domain.GoGeneratorAnnotation{
-		ResolvedType: &ast_domain.ResolvedTypeInfo{
-			TypeExpression:       cachedIdent(typeName),
-			PackageAlias:         "",
-			CanonicalPackagePath: "",
-			IsSynthetic:          false,
-		},
-		Stringability:           int(stringability),
-		EffectiveKeyExpression:  nil,
-		PropDataSource:          nil,
-		BaseCodeGenVarName:      nil,
-		ParentTypeName:          nil,
-		GeneratedSourcePath:     nil,
-		FieldTag:                nil,
-		SourceInvocationKey:     nil,
-		OriginalPackageAlias:    nil,
-		OriginalSourcePath:      nil,
-		DynamicAttributeOrigins: nil,
-		Symbol:                  nil,
-		PartialInfo:             nil,
-		Srcset:                  nil,
-		IsStatic:                false,
-		NeedsCSRF:               false,
-		NeedsRuntimeSafetyCheck: false,
-		IsStructurallyStatic:    false,
-		IsPointerToStringable:   false,
-		StaticCollectionLiteral: nil,
-		StaticCollectionData:    nil,
-		DynamicCollectionInfo:   nil,
-		IsCollectionCall:        false,
-		IsHybridCollection:      false,
-		IsMapAccess:             false,
+	annotation := ast_domain.GoGeneratorAnnotation{}
+	annotation.ResolvedType = &ast_domain.ResolvedTypeInfo{
+		TypeExpression:       cachedIdent(typeName),
+		PackageAlias:         "",
+		CanonicalPackagePath: "",
+		IsSynthetic:          false,
 	}
+	annotation.Stringability = int(stringability)
+	return &annotation
 }
 
 func createMockAnnotationWithTypeExpr(typeExpr goast.Expr, stringability inspector_dto.StringabilityMethod) *ast_domain.GoGeneratorAnnotation {
-	return &ast_domain.GoGeneratorAnnotation{
-		ResolvedType: &ast_domain.ResolvedTypeInfo{
-			TypeExpression:       typeExpr,
-			PackageAlias:         "",
-			CanonicalPackagePath: "",
-			IsSynthetic:          false,
-		},
-		Stringability:           int(stringability),
-		EffectiveKeyExpression:  nil,
-		PropDataSource:          nil,
-		BaseCodeGenVarName:      nil,
-		ParentTypeName:          nil,
-		GeneratedSourcePath:     nil,
-		FieldTag:                nil,
-		SourceInvocationKey:     nil,
-		OriginalPackageAlias:    nil,
-		OriginalSourcePath:      nil,
-		DynamicAttributeOrigins: nil,
-		Symbol:                  nil,
-		PartialInfo:             nil,
-		Srcset:                  nil,
-		IsStatic:                false,
-		NeedsCSRF:               false,
-		NeedsRuntimeSafetyCheck: false,
-		IsStructurallyStatic:    false,
-		IsPointerToStringable:   false,
-		StaticCollectionLiteral: nil,
-		StaticCollectionData:    nil,
-		DynamicCollectionInfo:   nil,
-		IsCollectionCall:        false,
-		IsHybridCollection:      false,
-		IsMapAccess:             false,
+	annotation := ast_domain.GoGeneratorAnnotation{}
+	annotation.ResolvedType = &ast_domain.ResolvedTypeInfo{
+		TypeExpression:       typeExpr,
+		PackageAlias:         "",
+		CanonicalPackagePath: "",
+		IsSynthetic:          false,
 	}
+	annotation.Stringability = int(stringability)
+	return &annotation
 }
 
 func createTypedIdentifier(name, typeName string) *ast_domain.Identifier {
@@ -133,12 +85,8 @@ func createTypedIdentifier(name, typeName string) *ast_domain.Identifier {
 			IsHybridCollection:      false,
 			IsMapAccess:             false,
 		},
-		RelativeLocation: ast_domain.Location{
-			Line:   0,
-			Column: 0,
-			Offset: 0,
-		},
-		SourceLength: 0,
+		RelativeLocation: ast_domain.Location{},
+		SourceLength:     0,
 	}
 }
 
@@ -180,12 +128,8 @@ func createMockBinaryExpr(op ast_domain.BinaryOp, leftType, rightType string) *a
 			IsHybridCollection:      false,
 			IsMapAccess:             false,
 		},
-		RelativeLocation: ast_domain.Location{
-			Line:   0,
-			Column: 0,
-			Offset: 0,
-		},
-		SourceLength: 0,
+		RelativeLocation: ast_domain.Location{},
+		SourceLength:     0,
 	}
 }
 

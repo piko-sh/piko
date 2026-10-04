@@ -105,10 +105,14 @@ type SecurityHeadersMiddleware struct {
 // Returns *SecurityHeadersMiddleware which is configured and ready for use.
 func NewSecurityHeadersMiddleware(config SecurityHeadersValues, forceHTTPS bool, cspConfig security_dto.CSPRuntimeConfig, reportingValues ReportingValues) *SecurityHeadersMiddleware {
 	m := &SecurityHeadersMiddleware{
-		config:         config,
-		cspConfig:      cspConfig,
-		forceHTTPS:     forceHTTPS,
-		tokenGenerator: generateSecureToken,
+		config:            config,
+		cspConfig:         cspConfig,
+		forceHTTPS:        forceHTTPS,
+		tokenGenerator:    generateSecureToken,
+		cspHeaderName:     "",
+		staticHeaders:     [maxStaticHeaders]staticHeader{},
+		staticCSPValue:    nil,
+		staticHeaderCount: 0,
 	}
 
 	n := 0

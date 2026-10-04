@@ -389,7 +389,7 @@ func TestEncodeDecodeExpr_IndexExpr(t *testing.T) {
 						RawExpression: "items[0]",
 						Expression: &ast_domain.IndexExpression{
 							Base:     &ast_domain.Identifier{Name: "items"},
-							Index:    &ast_domain.IntegerLiteral{Value: 0},
+							Index:    &ast_domain.IntegerLiteral{},
 							Optional: false,
 						},
 					},
@@ -420,7 +420,7 @@ func TestEncodeDecodeExpr_IndexExpr(t *testing.T) {
 						RawExpression: "items?.[0]",
 						Expression: &ast_domain.IndexExpression{
 							Base:     &ast_domain.Identifier{Name: "items"},
-							Index:    &ast_domain.IntegerLiteral{Value: 0},
+							Index:    &ast_domain.IntegerLiteral{},
 							Optional: true,
 						},
 					},
@@ -736,12 +736,12 @@ func TestEncodeDecodeExpr_ComplexCombined(t *testing.T) {
 									Base:     &ast_domain.Identifier{Name: "items"},
 									Property: &ast_domain.Identifier{Name: "length"},
 								},
-								Right: &ast_domain.IntegerLiteral{Value: 0},
+								Right: &ast_domain.IntegerLiteral{},
 							},
 							Consequent: &ast_domain.MemberExpression{
 								Base: &ast_domain.IndexExpression{
 									Base:  &ast_domain.Identifier{Name: "items"},
-									Index: &ast_domain.IntegerLiteral{Value: 0},
+									Index: &ast_domain.IntegerLiteral{},
 								},
 								Property: &ast_domain.Identifier{Name: "name"},
 							},

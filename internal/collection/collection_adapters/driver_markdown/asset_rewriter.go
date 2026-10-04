@@ -199,6 +199,7 @@ func rewriteRelativeURLs(ctx context.Context, params rewriteParams, raw string) 
 		collectionName: params.CollectionName,
 		mdRelativePath: params.MdRelativePath,
 		replacements:   make([]srcReplacement, 0, initialReplacementCapacity),
+		currentTag:     "",
 	}
 
 	for {

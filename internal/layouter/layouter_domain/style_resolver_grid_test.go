@@ -19,9 +19,13 @@
 package layouter_domain
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"piko.sh/piko/internal/layouter/layouter_dto"
 )
 
 func TestParseGridTrackList(t *testing.T) {
@@ -188,7 +192,7 @@ func TestParseGridTrackToken(t *testing.T) {
 		{
 			name:     "auto keyword",
 			input:    "auto",
-			expected: GridTrack{Unit: GridTrackAuto},
+			expected: GridTrack{},
 		},
 		{
 			name:     "min-content keyword",
@@ -403,6 +407,128 @@ func TestParseGridAutoFlow(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			result := parseGridAutoFlow(tc.input)
 			assert.Equal(t, tc.expected, result)
+		})
+	}
+}
+
+func TestParseGridTrackList_EnforcesLimits(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		wantErr    error
+		name       string
+		value      string
+		limits     layouter_dto.LayoutLimits
+		wantTracks int
+	}{
+		{
+			name:       "repeat count within the limit expands",
+			value:      "repeat(3, 10px)",
+			wantTracks: 3,
+		},
+		{
+			name:    "repeat count beyond the limit drops the list",
+			value:   "repeat(20000000, 1px)",
+			wantErr: layouter_dto.ErrRepeatCountTooLarge,
+		},
+		{
+			name:    "repeat expansion beyond the track limit drops the list",
+			value:   "repeat(60, 1px 1px)",
+			limits:  layouter_dto.LayoutLimits{MaxGridTracks: 100},
+			wantErr: layouter_dto.ErrTooManyGridTracks,
+		},
+		{
+			name:    "plain tokens beyond the track limit drop the list",
+			value:   strings.Repeat("1px ", 11),
+			limits:  layouter_dto.LayoutLimits{MaxGridTracks: 10},
+			wantErr: layouter_dto.ErrTooManyGridTracks,
+		},
+		{
+			name:       "custom repeat limit",
+			value:      "repeat(6, 1px)",
+			limits:     layouter_dto.LayoutLimits{MaxRepeatCount: 5},
+			wantErr:    layouter_dto.ErrRepeatCountTooLarge,
+			wantTracks: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			context := defaultResolutionContext()
+			context.Limits = NewLimitTracker(tt.limits)
+			result := parseGridTrackList(tt.value, context)
+
+			assert.Len(t, result.tracks, tt.wantTracks)
+			if tt.wantErr != nil {
+				assert.ErrorIs(t, context.Limits.Err(), tt.wantErr)
+				return
+			}
+			assert.NoError(t, context.Limits.Err())
+		})
+	}
+}
+
+func TestParseGridTrackList_HugeRepeatWithoutTrackerIsDropped(t *testing.T) {
+	t.Parallel()
+
+	result := parseGridTrackList("repeat(20000000, 1px)", defaultResolutionContext())
+
+	assert.Empty(t, result.tracks)
+}
+
+func TestParseGridTrackList_ManyRepeatsParseInOrder(t *testing.T) {
+	t.Parallel()
+
+	value := strings.Repeat("repeat(2, 1px 2px) ", 1000)
+	result := parseGridTrackList(value, defaultResolutionContext())
+
+	require.Len(t, result.tracks, 4000)
+	assert.InDelta(t, 1*PixelsToPoints, result.tracks[0].Value, 1e-9)
+	assert.InDelta(t, 2*PixelsToPoints, result.tracks[3999].Value, 1e-9)
+}
+
+func TestParseRepeat_ConsumesTokensUpToTheClosingParenthesis(t *testing.T) {
+	t.Parallel()
+
+	tokens := strings.Fields("10px repeat(2, 1px 2px 3px) 20px")
+	tracks, autoRepeat, consumed, ok := parseRepeat(tokens, 1, defaultResolutionContext(), 1)
+
+	require.True(t, ok)
+	assert.Nil(t, autoRepeat)
+	assert.Equal(t, 3, consumed)
+	assert.Len(t, tracks, 6)
+}
+
+func TestParseRepeat_UnclosedFunctionIsIgnored(t *testing.T) {
+	t.Parallel()
+
+	tracks, autoRepeat, consumed, ok := parseRepeat([]string{"repeat(2,", "1px"}, 0, defaultResolutionContext(), 0)
+
+	assert.True(t, ok)
+	assert.Nil(t, tracks)
+	assert.Nil(t, autoRepeat)
+	assert.Zero(t, consumed)
+}
+
+func TestFindClosingParenthesisToken(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		tokens []string
+		start  int
+		want   int
+	}{
+		{name: "same token", tokens: []string{"repeat(2,1px)"}, start: 0, want: 0},
+		{name: "later token", tokens: []string{"a", "repeat(2,", "1px)", "b)"}, start: 1, want: 2},
+		{name: "no closing parenthesis", tokens: []string{"repeat(2,", "1px"}, start: 0, want: -1},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, findClosingParenthesisToken(tt.tokens, tt.start))
 		})
 	}
 }

@@ -61,7 +61,8 @@ func (m *ContextualMenu) SetTheme(theme *Theme) { m.theme = theme }
 // Takes items ([]MenuItem) which is the group's ordered item list.
 // Takes activeID (ItemID) which is the currently-active item.
 // Takes cursor (int) which is the highlighted-but-not-active index.
-// Takes width (int) and height (int) which are the column dimensions.
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 //
 // Returns string with the rendered menu body.
 func (m *ContextualMenu) Render(items []MenuItem, activeID ItemID, cursor, width, height int) string {

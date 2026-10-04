@@ -79,6 +79,9 @@ const (
 )
 
 const (
+	// rectangleCoordinates counts the x1, y1, x2, and y2 coordinates in a PDF rectangle.
+	rectangleCoordinates = 4
+
 	// defaultFontSize is the default font size in points for form field appearance strings.
 	defaultFontSize = 12.0
 
@@ -142,7 +145,7 @@ type FormField struct {
 	Options []string
 
 	// Rect is the widget rectangle in PDF coordinates [x1, y1, x2, y2].
-	Rect [4]float64
+	Rect [rectangleCoordinates]float64
 
 	// FieldType determines the PDF field type (/FT entry).
 	FieldType FormFieldType
@@ -180,6 +183,8 @@ type AcroFormBuilder struct {
 func NewAcroFormBuilder() *AcroFormBuilder {
 	return &AcroFormBuilder{
 		radioGroups: make(map[string][]*FormField),
+		fields:      nil,
+		fieldCount:  0,
 	}
 }
 
@@ -382,7 +387,7 @@ func writeFieldFlags(dict *strings.Builder, field *FormField) {
 func writeFieldValue(dict *strings.Builder, field *FormField) {
 	if field.Value != "" {
 		if field.FieldType == FormFieldCheckbox {
-			fmt.Fprintf(dict, " /V /%s", field.Value)
+			fmt.Fprintf(dict, " /V /%s", escapePdfName(field.Value))
 		} else {
 			fmt.Fprintf(dict, " /V %s", encodePdfTextString(field.Value))
 		}
@@ -471,7 +476,7 @@ func (b *AcroFormBuilder) writeRadioGroup(
 	fmt.Fprintf(&pDict, " /Ff %d", FormFlagRadio|FormFlagNoToggleOff)
 
 	if selectedValue != "Off" {
-		fmt.Fprintf(&pDict, " /V /%s", selectedValue)
+		fmt.Fprintf(&pDict, " /V /%s", escapePdfName(selectedValue))
 	}
 
 	pDict.WriteString(" /Kids [")
@@ -525,7 +530,7 @@ func (b *AcroFormBuilder) writeRadioChild(
 	}
 
 	if child.ExportValue == selectedValue {
-		fmt.Fprintf(&wDict, " /AS /%s", exportVal)
+		fmt.Fprintf(&wDict, " /AS /%s", escapePdfName(exportVal))
 	} else {
 		wDict.WriteString(" /AS /Off")
 	}
@@ -598,7 +603,8 @@ func (*AcroFormBuilder) writeCheckboxAppearance(
 // writeRadioAppearance creates /AP appearance XObject streams for a radio button widget.
 //
 // Each widget needs an "on" appearance (filled circle) keyed by its export value and an
-// "Off" appearance (empty circle).
+// "Off" appearance (empty circle). The export value comes from the HTML value attribute,
+// so it is escaped before being written as a PDF name.
 //
 // Takes writer (*PdfDocumentWriter) which receives the appearance stream objects.
 // Takes field (*FormField) which provides the widget rectangle dimensions.
@@ -642,7 +648,7 @@ func (*AcroFormBuilder) writeRadioAppearance(
 	writer.WriteObject(offNum, offDict+"\nstream\n"+offContent+"\nendstream")
 
 	return fmt.Sprintf(" /AP << /N << /%s %s /Off %s >> >>",
-		exportVal, FormatReference(onNum), FormatReference(offNum))
+		escapePdfName(exportVal), FormatReference(onNum), FormatReference(offNum))
 }
 
 // radioCircleStream generates PDF content stream operators for a radio button appearance:

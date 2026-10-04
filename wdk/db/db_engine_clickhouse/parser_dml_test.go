@@ -19,7 +19,9 @@
 package db_engine_clickhouse
 
 import (
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -379,10 +381,12 @@ func TestDML_IntersectExcept(t *testing.T) {
 
 	analysis := analyse(t, "SELECT id FROM a INTERSECT SELECT id FROM b EXCEPT SELECT id FROM c")
 
-	require.Len(t, analysis.CompoundBranches, 1)
+	require.Len(t, analysis.CompoundBranches, 2)
 	assert.Equal(t, querier_dto.CompoundIntersect, analysis.CompoundBranches[0].Operator)
-	require.Len(t, analysis.CompoundBranches[0].Query.CompoundBranches, 1)
-	assert.Equal(t, querier_dto.CompoundExcept, analysis.CompoundBranches[0].Query.CompoundBranches[0].Operator)
+	assert.Equal(t, querier_dto.CompoundExcept, analysis.CompoundBranches[1].Operator)
+	assert.Empty(t, analysis.CompoundBranches[0].Query.CompoundBranches)
+	require.Len(t, analysis.CompoundBranches[1].Query.FromTables, 1)
+	assert.Equal(t, "c", analysis.CompoundBranches[1].Query.FromTables[0].Name)
 }
 
 func TestDML_CTERecordsDefinitions(t *testing.T) {
@@ -713,6 +717,119 @@ func TestAnalyse_ParametersInProjectionAndGroupBy(t *testing.T) {
 				"parameters in projection/GROUP BY expressions must be registered")
 			for _, ref := range analysis.ParameterReferences {
 				assert.NotEmpty(testRunner, ref.Name)
+			}
+		})
+	}
+}
+
+func TestFlatSetOperationChainsParseIteratively(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		operator string
+		want     querier_dto.CompoundOperator
+	}{
+		{name: "UNION ALL", operator: " UNION ALL ", want: querier_dto.CompoundUnionAll},
+		{name: "UNION", operator: " UNION ", want: querier_dto.CompoundUnion},
+		{name: "INTERSECT", operator: " INTERSECT ", want: querier_dto.CompoundIntersect},
+		{name: "EXCEPT", operator: " EXCEPT ", want: querier_dto.CompoundExcept},
+	}
+	const arms = 10_000
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			sql := "SELECT id FROM a" + strings.Repeat(testCase.operator+"SELECT id FROM a", arms-1)
+			started := time.Now()
+			analysis := analyse(t, sql)
+
+			assert.Less(t, time.Since(started), 10*time.Second)
+			require.Len(t, analysis.CompoundBranches, arms-1)
+			for _, branch := range analysis.CompoundBranches {
+				require.Equal(t, testCase.want, branch.Operator)
+				require.Empty(t, branch.Query.CompoundBranches)
+			}
+		})
+	}
+}
+
+func TestNestedSubqueriesStillCountTowardsTheDepthCap(t *testing.T) {
+	t.Parallel()
+
+	const nesting = 20
+	engine := NewClickHouseEngine(WithMaxParseDepth(nesting / 2))
+	sql := strings.Repeat("SELECT * FROM (", nesting) + "SELECT 1" + strings.Repeat(") AS t", nesting)
+	statements, err := engine.ParseStatements(sql)
+	require.NoError(t, err)
+	require.Len(t, statements, 1)
+
+	_, err = engine.AnalyseQuery(nil, statements[0])
+	require.ErrorIs(t, err, errAnalysisDepthExceeded)
+}
+
+func TestOverDeepProjectionExpressionsAreReported(t *testing.T) {
+	t.Parallel()
+
+	const nesting = 40
+	testCases := []struct {
+		name string
+		sql  string
+	}{
+		{name: "nested parentheses", sql: "SELECT " + strings.Repeat("(", nesting) + "1" + strings.Repeat(")", nesting) + " AS x FROM t"},
+		{name: "nested function calls", sql: "SELECT " + strings.Repeat("abs(", nesting) + "1" + strings.Repeat(")", nesting) + " AS x FROM t"},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			engine := NewClickHouseEngine(WithMaxParseDepth(nesting / 2))
+			statements, err := engine.ParseStatements(testCase.sql)
+			require.NoError(t, err)
+			require.Len(t, statements, 1)
+
+			analysis, err := engine.AnalyseQuery(nil, statements[0])
+			require.ErrorIs(t, err, errExpressionDepthExceeded)
+			assert.Nil(t, analysis)
+			assert.NotContains(t, err.Error(), "panic")
+		})
+	}
+}
+
+func TestShallowExpressionsWithinTheCapAreAccepted(t *testing.T) {
+	t.Parallel()
+
+	engine := NewClickHouseEngine(WithMaxParseDepth(64))
+	statements, err := engine.ParseStatements("SELECT ((((1)))) AS x, NOT NOT 1 AS y, - - 1 AS z FROM t")
+	require.NoError(t, err)
+	require.Len(t, statements, 1)
+
+	analysis, err := engine.AnalyseQuery(nil, statements[0])
+	require.NoError(t, err)
+	require.Len(t, analysis.OutputColumns, 3)
+}
+
+func TestProjectionStarAfterColumnIsMultiplication(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		sql        string
+		wantNames  []string
+		wantColumn []string
+	}{
+		{name: "multiplication with alias", sql: "SELECT id, val * 2 AS doubled FROM src", wantNames: []string{"id", "doubled"}, wantColumn: []string{"id", ""}},
+		{name: "qualified star is still an expansion", sql: "SELECT s.* FROM src AS s", wantNames: []string{""}, wantColumn: []string{""}},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			analysis := analyse(t, testCase.sql)
+			require.Len(t, analysis.OutputColumns, len(testCase.wantNames))
+			for index, column := range analysis.OutputColumns {
+				assert.Equal(t, testCase.wantNames[index], column.Name)
+				assert.Equal(t, testCase.wantColumn[index], column.ColumnName)
 			}
 		})
 	}

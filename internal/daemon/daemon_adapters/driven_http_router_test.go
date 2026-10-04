@@ -639,9 +639,9 @@ func TestHandlePageRenderError_RedirectError_Redirects(t *testing.T) {
 	span := newNoopSpan()
 	entry := &mockPageEntryViewWithPath{}
 
-	redirectMeta := templater_dto.InternalMetadata{}
-	redirectMeta.ClientRedirect = "/new-page"
-	redirectMeta.RedirectStatus = http.StatusMovedPermanently
+	redirectMeta := templater_dto.InternalMetadata{
+		ClientRedirect: "/new-page",
+		RedirectStatus: http.StatusMovedPermanently}
 	err := &templater_dto.RedirectRequired{Metadata: redirectMeta}
 
 	handlePageRenderError(context.Background(), recorder, request, err, pageErrorContext{Entry: entry, Store: &templater_domain.MockManifestStoreView{}, Span: span}, false)
@@ -840,9 +840,7 @@ func TestGetMatchedPattern_EmptyPikoRequestCtx_FallsBackToChi(t *testing.T) {
 	t.Parallel()
 
 	request := httptest.NewRequest(http.MethodGet, "/", nil)
-	ctx := daemon_dto.WithPikoRequestCtx(request.Context(), &daemon_dto.PikoRequestCtx{
-		MatchedPattern: "",
-	})
+	ctx := daemon_dto.WithPikoRequestCtx(request.Context(), &daemon_dto.PikoRequestCtx{})
 	request = request.WithContext(ctx)
 
 	result := getMatchedPattern(request)
@@ -1640,7 +1638,7 @@ func TestBuildRouter_InstallsNotFoundHandlerOnMainRouter(t *testing.T) {
 		&daemon_domain.RouterConfig{
 			DistServePath:     "/_piko/dist",
 			ArtefactServePath: "/_piko/artefacts",
-			SecurityHeaders:   security_dto.SecurityHeadersValues{Enabled: false},
+			SecurityHeaders:   security_dto.SecurityHeadersValues{},
 			RateLimit:         security_dto.RateLimitValues{},
 		},
 		daemon_domain.RouterDependencies{

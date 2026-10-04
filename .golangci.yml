@@ -12,7 +12,7 @@ linters:
     - gocritic
     - gosec
     - godoclint
-    - exhaustruct
+    - exhaustruct_v5
     - govet
     - dupl
     - modernize
@@ -119,8 +119,8 @@ linters:
             - "^strings\\.Builder\\.WriteString$"
             - "^strings\\.Builder\\.WriteByte$"
             - "^strings\\.Builder\\.Write$"
-            - "^os\\.Stdout\\.Write$"
-            - "^\\(\\*os\\.File\\)\\.Close$"
+            - "^os\\.File\\.Write$"
+            - "^os\\.File\\.Close$"
         - name: error-strings
         - name: blank-imports
         - name: dot-imports
@@ -161,6 +161,7 @@ linters:
         - switch
         - map
       default-signifies-exhaustive: true
+      ignore-enum-members: 'piko\.sh/piko/wdk/db/db_engine_postgres\.StatementKindExtensionBase'
 
     misspell:
       locale: UK
@@ -201,28 +202,15 @@ linters:
       enable:
         - fieldalignment
 
-    exhaustruct:
-      include:
-        - '^piko\.sh/piko/'
-      exclude:
-        - '\.component_dto\.ComponentDefinition$'
-        - '\.css_ast\.'
-        - '\.config\.TSOptions$'
-        - '\.js_ast\.'
-        - '\.js\.'
-        - '\.css_printer\.'
-        - '\.logger\.Source$'
-        - '\.ast\.'
-        - '\.token\.'
-        - '\.printer\.'
-        - '\.es_logger\.'
-        - '\.syscall\.'
-        - '\.logger\.Path$'
-        - '\.logger\.PrettyPaths$'
-        - '\.js_parser\.Options$'
-        - '\.js_printer\.Options$'
-        - '\.config\.Options$'
-        - '\.ast\.ImportRecord$'
+    exhaustruct_v5:
+      explicit-mode: true
+      enforce-patterns:
+        - 'piko\.sh/piko[/.].*'
+      ignore-patterns:
+        - '.*\.<anonymous>'
+        - 'piko\.sh/piko/internal/esbuild/.*'
+        - 'piko\.sh/piko/internal/component/component_dto\.ComponentDefinition'
+      allow-empty: true
 
     goheader:
       template: |-
@@ -260,7 +248,6 @@ linters:
       - third_party
       - vendor
       - node_modules
-      - tests/benchmarks/cross_language/benchmarks
 
     rules:
       - path: internal/config/
@@ -286,7 +273,7 @@ linters:
           - funcorder
           - dupl
           - exhaustive
-          - exhaustruct
+          - exhaustruct_v5
           - goheader
           - decorder
           - unused
@@ -295,10 +282,6 @@ linters:
       - path: _test\.go$
         linters: [staticcheck]
         text: "QF1011|SA1012|SA1029|S1040|SA2001"
-
-      - path: (internal/interp/interp_domain/asm/asmgen_arch_amd64|internal/interp/interp_domain/asm/asmgen_arch_arm64|internal/vectormaths/asm/asmgen_arch_amd64|internal/vectormaths/asm/asmgen_arch_arm64)/
-        linters: [revive]
-        text: "add-constant"
 
       - path: ^options\.go$
         linters: [revive]
@@ -312,6 +295,7 @@ linters:
         linters:
           - revive
           - godoclint
+          - dupl
 
       - path: testdata/
         linters: [revive]
@@ -367,19 +351,6 @@ linters:
       - linters: [dupl]
         text: "_test\\.go"
 
-      - linters: [dupl]
-        path: "internal/interp/interp_domain/asm/"
-
-      - linters: [dupl]
-        path: "internal/vectormaths/asm/"
-
-      - linters: [dupl]
-        path: "wdk/asmgen/asmgen_arch_"
-
-      - path: internal/interp/interp_domain/
-        linters: [govet]
-        text: "unsafeptr"
-
       - path: _test\.go$
         linters: [govet]
         text: "fieldalignment"
@@ -401,6 +372,17 @@ linters:
         linters:
           - gosec
 
+formatters:
+  enable:
+    - gofmt
+  exclusions:
+    generated: strict
+    paths:
+      - internal/esbuild
+      - third_party
+      - vendor
+      - node_modules
+
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
@@ -408,8 +390,9 @@ issues:
 
 output:
   formats:
-    colored-line-number: {}
-  sort-results: true
+    text:
+      path: stdout
+      colors: true
   sort-order:
     - linter
     - file

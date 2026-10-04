@@ -19,11 +19,16 @@
 package browser_provider_chromedp
 
 import (
+	"os"
 	"slices"
 	"testing"
 	"time"
 
+	"github.com/chromedp/cdproto/browser"
+	"github.com/chromedp/cdproto/target"
 	"github.com/chromedp/chromedp"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewBrowser(t *testing.T) {
@@ -34,37 +39,57 @@ func TestNewBrowser(t *testing.T) {
 
 	t.Run("creates browser with default options", func(t *testing.T) {
 		opts := DefaultBrowserOptions()
-		browser, err := NewBrowser(opts)
+		instance, err := NewBrowser(opts)
 		if err != nil {
 			t.Fatalf("NewBrowser() error = %v", err)
 		}
-		defer browser.Close()
+		defer instance.Close()
 
-		if browser.BrowserCtx() == nil {
+		if instance.BrowserCtx() == nil {
 			t.Error("browser context should not be nil")
 		}
 	})
 
 	t.Run("creates browser in headless mode", func(t *testing.T) {
 		opts := BrowserOptions{Headless: true}
-		browser, err := NewBrowser(opts)
+		instance, err := NewBrowser(opts)
 		if err != nil {
 			t.Fatalf("NewBrowser(headless=true) error = %v", err)
 		}
-		defer browser.Close()
+		defer instance.Close()
 
-		if !browser.headless {
+		if !instance.headless {
 			t.Error("browser should be in headless mode")
 		}
 	})
 }
 
+func TestBrowser_CloseRemovesTheProfileAndCanRepeat(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skipping browser test in short mode")
+	}
+
+	instance, err := NewBrowser(DefaultBrowserOptions())
+	require.NoError(t, err)
+	profileDirectory := instance.userDataDir
+	page, err := instance.NewIncognitoPage()
+	require.NoError(t, err)
+	require.NoError(t, chromedp.Run(page.Ctx, chromedp.Navigate("about:blank")))
+
+	instance.Close()
+	assert.NotPanics(t, instance.Close)
+
+	_, statErr := os.Stat(profileDirectory)
+	assert.ErrorIs(t, statErr, os.ErrNotExist, "no browser process writes into the profile after Close")
+}
+
 func TestBrowser_NewIncognitoPage(t *testing.T) {
 	t.Parallel()
-	browser := requireBrowser(t)
+	instance := requireBrowser(t)
 
 	t.Run("creates incognito page successfully", func(t *testing.T) {
-		page, err := browser.NewIncognitoPage()
+		page, err := instance.NewIncognitoPage()
 		if err != nil {
 			t.Fatalf("NewIncognitoPage() error = %v", err)
 		}
@@ -76,13 +101,13 @@ func TestBrowser_NewIncognitoPage(t *testing.T) {
 	})
 
 	t.Run("multiple pages are isolated", func(t *testing.T) {
-		page1, err := browser.NewIncognitoPage()
+		page1, err := instance.NewIncognitoPage()
 		if err != nil {
 			t.Fatalf("NewIncognitoPage() error = %v", err)
 		}
 		defer func() { _ = page1.Close() }()
 
-		page2, err := browser.NewIncognitoPage()
+		page2, err := instance.NewIncognitoPage()
 		if err != nil {
 			t.Fatalf("NewIncognitoPage() error = %v", err)
 		}
@@ -96,10 +121,10 @@ func TestBrowser_NewIncognitoPage(t *testing.T) {
 
 func TestIncognitoPage_Close(t *testing.T) {
 	t.Parallel()
-	browser := requireBrowser(t)
+	instance := requireBrowser(t)
 
 	t.Run("close does not error", func(t *testing.T) {
-		page, err := browser.NewIncognitoPage()
+		page, err := instance.NewIncognitoPage()
 		if err != nil {
 			t.Fatalf("NewIncognitoPage() error = %v", err)
 		}
@@ -111,7 +136,7 @@ func TestIncognitoPage_Close(t *testing.T) {
 	})
 
 	t.Run("double close does not panic", func(t *testing.T) {
-		page, err := browser.NewIncognitoPage()
+		page, err := instance.NewIncognitoPage()
 		if err != nil {
 			t.Fatalf("NewIncognitoPage() error = %v", err)
 		}
@@ -123,10 +148,10 @@ func TestIncognitoPage_Close(t *testing.T) {
 
 func TestIncognitoPage_CloseContext(t *testing.T) {
 	t.Parallel()
-	browser := requireBrowser(t)
+	instance := requireBrowser(t)
 
 	t.Run("CloseContext disposes browser context", func(t *testing.T) {
-		page, err := browser.NewIncognitoPage()
+		page, err := instance.NewIncognitoPage()
 		if err != nil {
 			t.Fatalf("NewIncognitoPage() error = %v", err)
 		}
@@ -140,7 +165,7 @@ func TestIncognitoPage_CloseContext(t *testing.T) {
 	})
 
 	t.Run("CloseContext is idempotent", func(t *testing.T) {
-		page, err := browser.NewIncognitoPage()
+		page, err := instance.NewIncognitoPage()
 		if err != nil {
 			t.Fatalf("NewIncognitoPage() error = %v", err)
 		}
@@ -381,9 +406,9 @@ setTimeout(function() {
 
 func TestNewPageHelper(t *testing.T) {
 	t.Parallel()
-	browser := requireBrowser(t)
+	instance := requireBrowser(t)
 
-	incognito, err := browser.NewIncognitoPage()
+	incognito, err := instance.NewIncognitoPage()
 	if err != nil {
 		t.Fatalf("NewIncognitoPage() error = %v", err)
 	}
@@ -404,9 +429,9 @@ func TestNewPageHelper(t *testing.T) {
 
 func TestPageHelper_Close(t *testing.T) {
 	t.Parallel()
-	browser := requireBrowser(t)
+	instance := requireBrowser(t)
 
-	incognito, err := browser.NewIncognitoPage()
+	incognito, err := instance.NewIncognitoPage()
 	if err != nil {
 		t.Fatalf("NewIncognitoPage() error = %v", err)
 	}
@@ -427,4 +452,67 @@ func TestPageHelper_Close(t *testing.T) {
 	}
 
 	_ = incognito.Close()
+}
+
+func TestBrowser_PagesOpenInSeparateWindows(t *testing.T) {
+	t.Parallel()
+
+	pool := requireExclusivePool(t)
+	instance, err := pool.Acquire(t.Context())
+	require.NoError(t, err)
+	defer pool.Release(instance)
+
+	first, err := instance.NewIncognitoPage()
+	require.NoError(t, err)
+	defer func() { assert.NoError(t, first.Close()) }()
+
+	second, err := instance.NewIncognitoPage()
+	require.NoError(t, err)
+	defer func() { assert.NoError(t, second.Close()) }()
+
+	firstWindow := requireWindowForPage(t, instance, first)
+	secondWindow := requireWindowForPage(t, instance, second)
+	assert.NotEqual(t, firstWindow, secondWindow)
+}
+
+func TestBrowser_CloseTarget(t *testing.T) {
+	t.Parallel()
+
+	pool := requireExclusivePool(t)
+	instance, err := pool.Acquire(t.Context())
+	require.NoError(t, err)
+	defer pool.Release(instance)
+
+	targetID, err := instance.createWindowTarget()
+	require.NoError(t, err)
+	require.NotEmpty(t, targetID)
+
+	require.NoError(t, instance.closeTarget(targetID))
+
+	executor, err := instance.browserExecutor()
+	require.NoError(t, err)
+	require.Eventually(t, func() bool {
+		targets, listErr := target.GetTargets().Do(executor)
+		if listErr != nil {
+			return false
+		}
+		return !slices.ContainsFunc(targets, func(info *target.Info) bool {
+			return info.TargetID == targetID
+		})
+	}, 10*time.Second, 50*time.Millisecond, "closed target should disappear from the target list")
+}
+
+func requireWindowForPage(t *testing.T, instance *Browser, incognito *IncognitoPage) browser.WindowID {
+	t.Helper()
+
+	pageContext := chromedp.FromContext(incognito.Ctx)
+	require.NotNil(t, pageContext)
+	require.NotNil(t, pageContext.Target)
+
+	executor, err := instance.browserExecutor()
+	require.NoError(t, err)
+
+	windowID, _, err := browser.GetWindowForTarget().WithTargetID(target.ID(pageContext.Target.TargetID)).Do(executor)
+	require.NoError(t, err)
+	return windowID
 }

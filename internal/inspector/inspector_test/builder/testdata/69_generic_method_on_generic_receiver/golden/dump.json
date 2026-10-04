@@ -40,7 +40,7 @@
                   "T"
                 ]
               },
-              "definition_line": 29,
+              "definition_line": 25,
               "definition_column": 17,
               "is_pointer_receiver": false
             },
@@ -68,7 +68,7 @@
                   "any"
                 ]
               },
-              "definition_line": 35,
+              "definition_line": 29,
               "definition_column": 17,
               "is_pointer_receiver": false
             }
@@ -78,7 +78,7 @@
           ],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 23,
+          "definition_line": 21,
           "definition_column": 6
         },
         "StringBox": {
@@ -111,7 +111,7 @@
                 }
               ],
               "composite_type": 7,
-              "definition_line": 41,
+              "definition_line": 34,
               "definition_column": 2,
               "is_internal_type": false,
               "is_embedded": true,
@@ -132,7 +132,7 @@
                   "string"
                 ]
               },
-              "definition_line": 29,
+              "definition_line": 25,
               "definition_column": 17,
               "is_pointer_receiver": false
             },
@@ -160,7 +160,7 @@
                   "any"
                 ]
               },
-              "definition_line": 35,
+              "definition_line": 29,
               "definition_column": 17,
               "is_pointer_receiver": false
             }
@@ -168,7 +168,7 @@
           "type_params": [],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 40,
+          "definition_line": 33,
           "definition_column": 6
         }
       },

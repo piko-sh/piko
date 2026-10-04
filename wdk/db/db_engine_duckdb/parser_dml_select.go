@@ -30,7 +30,9 @@ import (
 // Returns []querier_dto.RawCTEDefinition which lists the parsed CTEs in declared order.
 // Returns error when an individual CTE fails to parse.
 func (p *parser) parseCTEList() ([]querier_dto.RawCTEDefinition, error) {
-	p.mustKeyword(keywordWITH)
+	if _, err := p.expectKeyword(keywordWITH); err != nil {
+		return nil, err
+	}
 	isRecursive := p.matchKeyword("RECURSIVE")
 
 	var definitions []querier_dto.RawCTEDefinition
@@ -82,10 +84,9 @@ func (p *parser) parseSingleCTEDefinition(isRecursive bool) (querier_dto.RawCTED
 
 	cteAnalysis, cteParser := p.analyseCTEBody(cteTokens)
 
-	definition := querier_dto.RawCTEDefinition{
-		Name:        cteName,
-		IsRecursive: isRecursive,
-	}
+	definition := querier_dto.RawCTEDefinition{}
+	definition.Name = cteName
+	definition.IsRecursive = isRecursive
 
 	if cteAnalysis != nil {
 		p.populateCTEDefinition(&definition, cteAnalysis, columnNames)
@@ -116,10 +117,7 @@ func (p *parser) skipMaterialisationHint() {
 // Returns *parser which is the child parser used so its parameter state can be merged by
 // the caller.
 func (p *parser) analyseCTEBody(cteTokens []token) (*querier_dto.RawQueryAnalysis, *parser) {
-	cteParser := newParser(cteTokens)
-	cteParser.analysisDepth = p.analysisDepth
-	cteParser.expressionDepth = p.expressionDepth
-	cteParser.maxParseDepth = p.maxParseDepth
+	cteParser := p.newChildParser(cteTokens)
 	var cteAnalysis *querier_dto.RawQueryAnalysis
 	var analyseErr error
 
@@ -185,7 +183,13 @@ func (*parser) populateCTEDefinition(
 ) {
 	if len(columnNames) > 0 {
 		for columnIndex, name := range columnNames {
-			column := querier_dto.RawOutputColumn{Name: name}
+			column := querier_dto.RawOutputColumn{
+				Name:       name,
+				Expression: nil,
+				TableAlias: "",
+				ColumnName: "",
+				IsStar:     false,
+			}
 			if columnIndex < len(analysis.OutputColumns) {
 				column.Expression = analysis.OutputColumns[columnIndex].Expression
 				column.ColumnName = analysis.OutputColumns[columnIndex].ColumnName
@@ -302,7 +306,7 @@ func (p *parser) parseOutputColumns() ([]querier_dto.RawOutputColumn, error) {
 func (p *parser) parseOneOutputColumn() (querier_dto.RawOutputColumn, error) {
 	if p.current().kind == tokenStar {
 		p.advance()
-		return querier_dto.RawOutputColumn{IsStar: true}, nil
+		return querier_dto.RawOutputColumn{IsStar: true, Expression: nil, Name: "", TableAlias: "", ColumnName: ""}, nil
 	}
 
 	if p.current().kind == tokenIdentifier && p.peek().kind == tokenDot {
@@ -310,7 +314,13 @@ func (p *parser) parseOneOutputColumn() (querier_dto.RawOutputColumn, error) {
 		p.advance()
 		if p.current().kind == tokenStar {
 			p.advance()
-			return querier_dto.RawOutputColumn{IsStar: true, TableAlias: tableAlias}, nil
+			return querier_dto.RawOutputColumn{
+				IsStar:     true,
+				TableAlias: tableAlias,
+				Expression: nil,
+				Name:       "",
+				ColumnName: "",
+			}, nil
 		}
 		p.position -= 2
 	}
@@ -504,7 +514,8 @@ func (p *parser) isPivotOrUnpivot() bool {
 }
 
 // parsePivotOrUnpivot parses a PIVOT or UNPIVOT clause and records its alias on the
-// derived-table list.
+// derived-table list. An unbalanced clause body is recorded as the statement's syntax
+// error.
 //
 // Takes joinKind (querier_dto.JoinKind) which records how the pivot is joined into the
 // FROM clause.
@@ -512,7 +523,7 @@ func (p *parser) parsePivotOrUnpivot(joinKind querier_dto.JoinKind) {
 	p.advance()
 
 	if p.current().kind == tokenLeftParen {
-		p.mustSkipParenthesised()
+		p.skipParenthesisedOrRecord()
 	}
 
 	alias := ""
@@ -526,8 +537,9 @@ func (p *parser) parsePivotOrUnpivot(joinKind querier_dto.JoinKind) {
 
 	if alias != "" {
 		p.rawDerivedTables = append(p.rawDerivedTables, querier_dto.RawDerivedTableReference{
-			Alias:    alias,
-			JoinKind: joinKind,
+			Alias:      alias,
+			JoinKind:   joinKind,
+			InnerQuery: nil,
 		})
 	}
 }
@@ -543,18 +555,19 @@ func (p *parser) isJoinOrClauseKeyword() bool {
 }
 
 // parseJoinCondition consumes an optional ON predicate or USING column list following a
-// JOIN clause.
+// JOIN clause, recording an unbalanced USING list as the statement's syntax error.
 func (p *parser) parseJoinCondition() {
 	if p.matchKeyword(keywordON) {
 		p.parseJoinConditionExpression()
 		return
 	}
 	if p.matchKeyword(keywordUSING) && p.current().kind == tokenLeftParen {
-		p.mustSkipParenthesised()
+		p.skipParenthesisedOrRecord()
 	}
 }
 
-// parseTableReference parses a schema-qualified table reference with an optional alias.
+// parseTableReference parses a schema-qualified table reference with an optional alias. A
+// malformed qualified name is recorded as the statement's syntax error.
 //
 // Returns querier_dto.TableReference which describes the parsed schema, name, and alias.
 func (p *parser) parseTableReference() querier_dto.TableReference {
@@ -562,7 +575,11 @@ func (p *parser) parseTableReference() querier_dto.TableReference {
 		return querier_dto.TableReference{}
 	}
 
-	schema, name := p.mustSchemaQualifiedName()
+	schema, name, nameError := p.parseSchemaQualifiedName()
+	if nameError != nil {
+		p.recordSyntaxError(nameError)
+		return querier_dto.TableReference{}
+	}
 
 	if p.current().kind == tokenStar {
 		p.advance()
@@ -626,18 +643,16 @@ func (p *parser) isTableValuedFunctionStart() bool {
 // Takes joinKind (querier_dto.JoinKind) which records how the derived table is joined
 // into the FROM clause.
 //
-// Returns error when the inner SELECT fails to parse or analyse.
+// Returns error when the inner SELECT fails to parse or analyse, or its column alias list
+// is unbalanced.
 func (p *parser) parseDerivedTable(joinKind querier_dto.JoinKind) error {
 	innerTokens, collectError := p.collectParenthesised()
 	if collectError != nil {
 		return collectError
 	}
 
-	childParser := newParser(innerTokens)
+	childParser := p.newChildParser(innerTokens)
 	childParser.parameterCount = p.parameterCount
-	childParser.analysisDepth = p.analysisDepth
-	childParser.expressionDepth = p.expressionDepth
-	childParser.maxParseDepth = p.maxParseDepth
 	innerAnalysis, analyseError := childParser.analyseSelect()
 	if analyseError != nil {
 		return analyseError
@@ -654,8 +669,8 @@ func (p *parser) parseDerivedTable(joinKind querier_dto.JoinKind) error {
 		alias = p.advance().value
 	}
 
-	if p.current().kind == tokenLeftParen {
-		p.mustSkipParenthesised()
+	if err := p.skipParenthesisedIfPresent(); err != nil {
+		return err
 	}
 
 	p.rawDerivedTables = append(p.rawDerivedTables, querier_dto.RawDerivedTableReference{
@@ -783,12 +798,12 @@ type joinKeywordEntry struct {
 var (
 	// joinKeywordDispatch maps each recognised join-prefix keyword to its dispatch entry.
 	joinKeywordDispatch = map[string]joinKeywordEntry{
-		"INNER":           {kind: querier_dto.JoinInner},
+		"INNER":           {kind: querier_dto.JoinInner, hasOuter: false},
 		"LEFT":            {kind: querier_dto.JoinLeft, hasOuter: true},
 		"RIGHT":           {kind: querier_dto.JoinRight, hasOuter: true},
 		"FULL":            {kind: querier_dto.JoinFull, hasOuter: true},
-		"CROSS":           {kind: querier_dto.JoinCross},
-		keywordPOSITIONAL: {kind: querier_dto.JoinPositional},
+		"CROSS":           {kind: querier_dto.JoinCross, hasOuter: false},
+		keywordPOSITIONAL: {kind: querier_dto.JoinPositional, hasOuter: false},
 	}
 )
 

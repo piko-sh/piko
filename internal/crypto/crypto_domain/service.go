@@ -230,7 +230,9 @@ func (s *cryptoService) GetActiveKeyID(_ context.Context) (string, error) {
 // Returns *EncryptBuilder which provides a fluent interface for encrypting data.
 func (s *cryptoService) NewEncrypt() *EncryptBuilder {
 	return &EncryptBuilder{
-		service: s,
+		service:   s,
+		plaintext: "",
+		keyID:     "",
 	}
 }
 
@@ -239,7 +241,8 @@ func (s *cryptoService) NewEncrypt() *EncryptBuilder {
 // Returns *DecryptBuilder which provides a fluent interface for decrypting data.
 func (s *cryptoService) NewDecrypt() *DecryptBuilder {
 	return &DecryptBuilder{
-		service: s,
+		service:    s,
+		ciphertext: "",
 	}
 }
 
@@ -248,7 +251,8 @@ func (s *cryptoService) NewDecrypt() *DecryptBuilder {
 // Returns *BatchEncryptBuilder which provides a fluent interface for batch encryption.
 func (s *cryptoService) NewBatchEncrypt() *BatchEncryptBuilder {
 	return &BatchEncryptBuilder{
-		service: s,
+		service:    s,
+		plaintexts: nil,
 	}
 }
 
@@ -257,7 +261,8 @@ func (s *cryptoService) NewBatchEncrypt() *BatchEncryptBuilder {
 // Returns *BatchDecryptBuilder which provides a fluent interface for batch decryption.
 func (s *cryptoService) NewBatchDecrypt() *BatchDecryptBuilder {
 	return &BatchDecryptBuilder{
-		service: s,
+		service:     s,
+		ciphertexts: nil,
 	}
 }
 
@@ -268,6 +273,8 @@ func (s *cryptoService) NewBatchDecrypt() *BatchDecryptBuilder {
 func (s *cryptoService) NewStreamEncrypt() *StreamEncryptBuilder {
 	return &StreamEncryptBuilder{
 		service: s,
+		output:  nil,
+		keyID:   "",
 	}
 }
 
@@ -278,6 +285,7 @@ func (s *cryptoService) NewStreamEncrypt() *StreamEncryptBuilder {
 func (s *cryptoService) NewStreamDecrypt() *StreamDecryptBuilder {
 	return &StreamDecryptBuilder{
 		service: s,
+		input:   nil,
 	}
 }
 
@@ -336,6 +344,7 @@ func NewCryptoService(ctx context.Context, cacheService cache_domain.Service, co
 		enableAutoReEncrypt:      config.EnableAutoReEncrypt,
 		enableEnvelopeEncryption: config.EnableEnvelopeEncryption,
 		directModeMaxConcurrency: directModeConcurrency,
+		mu:                       sync.RWMutex{},
 	}
 
 	for _, opt := range opts {

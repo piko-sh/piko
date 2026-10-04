@@ -265,7 +265,7 @@ func TestAggregateProfileTopN(t *testing.T) {
 
 	t.Run("topN of zero falls back to default", func(t *testing.T) {
 		t.Parallel()
-		summary, err := AggregateProfile(prof, ProfileAggOpts{TopN: 0})
+		summary, err := AggregateProfile(prof, ProfileAggOpts{})
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}

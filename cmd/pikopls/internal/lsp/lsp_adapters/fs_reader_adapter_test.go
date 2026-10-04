@@ -21,6 +21,8 @@ package lsp_adapters
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -142,6 +144,58 @@ func TestOsFSReader_ReadFile(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "osFSReader failed to read file")
 	})
+}
+
+func TestOsFSReader_ReadFileWithoutInjectedSandbox(t *testing.T) {
+	t.Parallel()
+
+	directory := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(directory, "page.pk"), []byte("<template></template>"), 0o600))
+	cancelled, cancel := context.WithCancelCause(context.Background())
+	cancel(errors.New("editor closed the document"))
+
+	testCases := []struct {
+		ctx         context.Context
+		name        string
+		filePath    string
+		wantErr     string
+		wantContent string
+	}{
+		{
+			name:        "reads a file from its directory",
+			ctx:         context.Background(),
+			filePath:    filepath.Join(directory, "page.pk"),
+			wantContent: "<template></template>",
+		},
+		{
+			name:     "reports a missing directory",
+			ctx:      context.Background(),
+			filePath: filepath.Join(directory, "absent", "page.pk"),
+			wantErr:  "failed to create sandbox",
+		},
+		{
+			name:     "reports the cancellation cause",
+			ctx:      cancelled,
+			filePath: filepath.Join(directory, "page.pk"),
+			wantErr:  "editor closed the document",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			content, err := NewOsFSReader().ReadFile(testCase.ctx, testCase.filePath)
+
+			if testCase.wantErr != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), testCase.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, testCase.wantContent, string(content))
+		})
+	}
 }
 
 func TestSetupLogFile(t *testing.T) {

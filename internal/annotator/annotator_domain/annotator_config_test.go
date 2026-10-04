@@ -30,15 +30,7 @@ func TestAnnotatorPathsConfig_ZeroValue(t *testing.T) {
 	t.Run("zero value has all empty strings", func(t *testing.T) {
 		t.Parallel()
 
-		config := AnnotatorPathsConfig{
-			PagesSourceDir:    "",
-			EmailsSourceDir:   "",
-			PartialsSourceDir: "",
-			E2ESourceDir:      "",
-			AssetsSourceDir:   "",
-			PartialServePath:  "",
-			ArtefactServePath: "",
-		}
+		config := AnnotatorPathsConfig{}
 
 		assert.Empty(t, config.PagesSourceDir)
 		assert.Empty(t, config.EmailsSourceDir)

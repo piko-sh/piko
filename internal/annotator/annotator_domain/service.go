@@ -39,6 +39,7 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/resolver/resolver_domain"
 	"piko.sh/piko/internal/sfcparser"
+	"piko.sh/piko/wdk/safedisk"
 )
 
 const (
@@ -70,6 +71,17 @@ type annotationOptions struct {
 
 // AnnotationOption is a function type that changes how annotations behave.
 type AnnotationOption func(*annotationOptions)
+
+// annotatorServiceOptions holds optional construction settings for AnnotatorService.
+type annotatorServiceOptions struct {
+	// compilationLogSandboxFactory creates the sandbox used to prepare the compilation log
+	// directory. When nil the log store uses a sandboxing factory restricted to that
+	// directory.
+	compilationLogSandboxFactory safedisk.Factory
+}
+
+// AnnotatorServiceOption configures an AnnotatorService when it is created.
+type AnnotatorServiceOption func(*annotatorServiceOptions)
 
 // AnnotatorService is the main part of the Piko compilation pipeline. It implements
 // AnnotatorPort and manages the full annotation workflow.
@@ -180,22 +192,32 @@ type AnnotatorServiceConfig struct {
 // Use slog.LevelDebug for development and compiled modes, slog.LevelWarn for interpreted
 // mode.
 //
+// Construction performs no I/O; the compilation log directory is prepared when the first
+// annotation runs.
+//
 // Takes serviceConfig (*AnnotatorServiceConfig) which specifies the service settings.
+// Takes opts (...AnnotatorServiceOption) which provides optional settings such as
+// WithCompilationLogSandboxFactory.
 //
 // Returns *AnnotatorService which is the configured service ready for use.
-// Returns error when the compilation log store cannot be initialised.
-func NewAnnotatorService(ctx context.Context, serviceConfig *AnnotatorServiceConfig) (*AnnotatorService, error) {
+func NewAnnotatorService(serviceConfig *AnnotatorServiceConfig, opts ...AnnotatorServiceOption) *AnnotatorService {
 	excludePatterns := []string{}
 
-	logStore, err := NewCompilationLogStore(
-		ctx,
+	options := annotatorServiceOptions{}
+	for _, opt := range opts {
+		opt(&options)
+	}
+
+	var logStoreOptions []CompilationLogStoreOption
+	if options.compilationLogSandboxFactory != nil {
+		logStoreOptions = append(logStoreOptions, WithLogStoreSandboxFactory(options.compilationLogSandboxFactory))
+	}
+	logStore := NewCompilationLogStore(
 		serviceConfig.EnableDebugLogFiles,
 		serviceConfig.DebugLogDir,
 		serviceConfig.CompilationLogLevel,
+		logStoreOptions...,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialise compilation log store: %w", err)
-	}
 
 	var assetsConfig config.AssetsConfig
 	if serviceConfig.AssetsConfig != nil {
@@ -216,7 +238,7 @@ func NewAnnotatorService(ctx context.Context, serviceConfig *AnnotatorServiceCon
 		collectionService:     serviceConfig.CollectionService,
 		componentRegistry:     serviceConfig.ComponentRegistry,
 		inMemoryMode:          serviceConfig.InMemoryMode,
-	}, nil
+	}
 }
 
 // AnnotateProject is the primary entry point for a full project build.
@@ -234,7 +256,7 @@ func NewAnnotatorService(ctx context.Context, serviceConfig *AnnotatorServiceCon
 // Takes scriptHashes (map[string]string) which contains SHA1 hashes of script block
 // content for cache invalidation. Pass nil if script hashes are not available (will
 // disable script-based cache invalidation).
-// Takes opts (...AnnotationOption) which configures annotation behaviour.
+// Takes opts (...AnnotationOption) which configure annotation behaviour.
 //
 // Returns *annotator_dto.ProjectAnnotationResult which contains the complete analysis
 // results for all components.
@@ -246,7 +268,7 @@ func (s *AnnotatorService) AnnotateProject(
 	scriptHashes map[string]string,
 	opts ...AnnotationOption,
 ) (*annotator_dto.ProjectAnnotationResult, *CompilationLogStore, error) {
-	options := &annotationOptions{faultTolerant: false}
+	options := &annotationOptions{}
 	for _, opt := range opts {
 		opt(options)
 	}
@@ -261,14 +283,10 @@ func (s *AnnotatorService) AnnotateProject(
 	phase1Result, err := s.runPhase1Introspection(ctx, entryPoints, scriptHashes, options)
 	if err != nil {
 		if phase1Result != nil && len(phase1Result.Diagnostics) > 0 && phase1Result.ComponentGraph != nil {
-			return &annotator_dto.ProjectAnnotationResult{
-				ComponentResults:        nil,
-				AllDiagnostics:          phase1Result.Diagnostics,
-				AllSourceContents:       phase1Result.ComponentGraph.AllSourceContents,
-				FinalAssetManifest:      nil,
-				VirtualModule:           nil,
-				FinalGeneratedArtefacts: nil,
-			}, s.logStore, err
+			result := annotator_dto.ProjectAnnotationResult{}
+			result.AllDiagnostics = phase1Result.Diagnostics
+			result.AllSourceContents = phase1Result.ComponentGraph.AllSourceContents
+			return &result, s.logStore, err
 		}
 		return nil, s.logStore, err
 	}
@@ -284,6 +302,8 @@ func (s *AnnotatorService) AnnotateProject(
 			FinalAssetManifest:      nil,
 			VirtualModule:           nil,
 			FinalGeneratedArtefacts: nil,
+			AnnotatedComponentCount: 0,
+			GeneratedArtefactCount:  0,
 		}, s.logStore, NewSemanticError(phase1Diagnostics)
 	}
 	l.Internal("--- [PHASE 1] Finished: Type Introspection Complete ---")
@@ -323,7 +343,7 @@ func (s *AnnotatorService) AnnotateProjectWithCachedIntrospection(
 	cachedTypeResolver *TypeResolver,
 	opts ...AnnotationOption,
 ) (*annotator_dto.ProjectAnnotationResult, *CompilationLogStore, error) {
-	options := &annotationOptions{faultTolerant: false}
+	options := &annotationOptions{}
 	for _, opt := range opts {
 		opt(options)
 	}
@@ -364,7 +384,20 @@ func (s *AnnotatorService) Annotate(ctx context.Context, mainSourcePath string, 
 	ctx, span, l := log.Span(ctx, "AnnotatorService.Annotate", logger_domain.String("entryPoint", mainSourcePath))
 	defer span.End()
 
-	entryPoints := []annotator_dto.EntryPoint{{Path: mainSourcePath, IsPage: isPage, IsPublic: false, IsEmail: false, VirtualPageSource: nil, IsE2EOnly: false}}
+	entryPoints := []annotator_dto.EntryPoint{{
+		Path:               mainSourcePath,
+		IsPage:             isPage,
+		IsPublic:           false,
+		IsEmail:            false,
+		VirtualPageSource:  nil,
+		IsE2EOnly:          false,
+		ErrorStatusCode:    0,
+		ErrorStatusCodeMin: 0,
+		ErrorStatusCodeMax: 0,
+		IsPdf:              false,
+		IsErrorPage:        false,
+		IsCatchAllError:    false,
+	}}
 	projectResult, compilationLogs, err := s.AnnotateProject(ctx, entryPoints, nil)
 	if err != nil {
 		return nil, compilationLogs, err
@@ -417,7 +450,7 @@ func (s *AnnotatorService) RunPhase1IntrospectionAndAnnotate(
 	scriptHashes map[string]string,
 	opts ...AnnotationOption,
 ) (*Phase1Result, error) {
-	options := &annotationOptions{faultTolerant: false}
+	options := &annotationOptions{}
 	for _, opt := range opts {
 		opt(options)
 	}
@@ -484,7 +517,7 @@ func (s *AnnotatorService) getEffectiveResolver(opts *annotationOptions) resolve
 // earlier phases.
 // Takes actions (map[string]ActionInfoProvider) which provides action metadata for
 // annotation.
-// Takes options (*annotationOptions) which configures the annotation behaviour.
+// Takes options (*annotationOptions) which configure the annotation behaviour.
 //
 // Returns *annotator_dto.ProjectAnnotationResult which contains the aggregated annotation
 // results, diagnostics, and asset manifest.
@@ -501,6 +534,8 @@ func (s *AnnotatorService) runPhase2Annotation(
 ) (*annotator_dto.ProjectAnnotationResult, *CompilationLogStore, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	l.Internal("--- [PHASE 2] Starting: Per-Component Annotation ---")
+
+	s.logStore.PrepareLogDirectory(ctx)
 
 	if actions == nil {
 		actions = buildActionsFromManifest(virtualModule.ActionManifest)
@@ -540,6 +575,8 @@ func (s *AnnotatorService) runPhase2Annotation(
 		FinalAssetManifest:      nil,
 		VirtualModule:           virtualModule,
 		FinalGeneratedArtefacts: nil,
+		AnnotatedComponentCount: 0,
+		GeneratedArtefactCount:  0,
 	}
 
 	severeErrors := aggregateAnnotationResults(resultsChan, finalResult)
@@ -580,7 +617,13 @@ func (s *AnnotatorService) handlePhase1Error(
 
 	if phase1Result == nil {
 		l.Warn("Phase 1 failed with a nil introspection result; returning a minimal LSP-safe result")
-		return &Phase1Result{Logs: s.logStore}, phase1Err
+		return &Phase1Result{
+			Logs:           s.logStore,
+			ComponentGraph: nil,
+			VirtualModule:  nil,
+			TypeResolver:   nil,
+			Annotations:    nil,
+		}, phase1Err
 	}
 
 	diagnostics := phase1ErrorDiagnostics(phase1Result, phase1Err)
@@ -592,14 +635,9 @@ func (s *AnnotatorService) handlePhase1Error(
 		logger_domain.Bool("has_virtual_module", phase1Result.VirtualModule != nil))
 
 	if len(diagnostics) > 0 || phase1Result.VirtualModule != nil {
-		minimalResult := &annotator_dto.ProjectAnnotationResult{
-			ComponentResults:        nil,
-			AllDiagnostics:          diagnostics,
-			AllSourceContents:       nil,
-			FinalAssetManifest:      nil,
-			VirtualModule:           phase1Result.VirtualModule,
-			FinalGeneratedArtefacts: nil,
-		}
+		minimalResult := &annotator_dto.ProjectAnnotationResult{}
+		minimalResult.AllDiagnostics = diagnostics
+		minimalResult.VirtualModule = phase1Result.VirtualModule
 		l.Warn("Phase 1 failed, returning minimal result with diagnostics and virtual module for LSP",
 			logger_domain.Int(attributeKeyDiagnosticCount, len(diagnostics)))
 		return &Phase1Result{
@@ -636,8 +674,7 @@ func phase1ErrorDiagnostics(phase1Result *Phase1IntrospectionResult, phase1Err e
 	if phase1Result != nil && len(phase1Result.Diagnostics) > 0 {
 		return phase1Result.Diagnostics
 	}
-	var semanticErr *SemanticError
-	if errors.As(phase1Err, &semanticErr) {
+	if semanticErr, ok := errors.AsType[*SemanticError](phase1Err); ok {
 		return semanticErr.Diagnostics
 	}
 	return nil
@@ -893,7 +930,13 @@ func (*AnnotatorService) convertCollectionToAnnotatorEntryPointsWithResolver(
 				RouteOverride:     cep.RoutePatternOverride,
 				CollectionContext: nil,
 			},
-			IsE2EOnly: false,
+			IsE2EOnly:          false,
+			ErrorStatusCode:    0,
+			ErrorStatusCodeMin: 0,
+			ErrorStatusCodeMax: 0,
+			IsPdf:              false,
+			IsErrorPage:        false,
+			IsCatchAllError:    false,
 		})
 	}
 
@@ -1141,6 +1184,12 @@ func (s *AnnotatorService) initialiseTypeResolver(
 			ModuleName:         resolver.GetModuleName(),
 			BuildFlags:         inspector_dto.AnalysisBuildFlags,
 			TolerateTypeErrors: true,
+			MaxParseWorkers:    nil,
+			GOOS:               "",
+			GOARCH:             "",
+			GOCACHE:            "",
+			GOMODCACHE:         "",
+			UseStandardLoader:  false,
 		})
 	}
 
@@ -1220,6 +1269,8 @@ func (s *AnnotatorService) collectOriginalGoFilesWithResolver(
 //
 // Takes componentGraph (*annotator_dto.ComponentGraph) which contains the cached
 // components to refresh.
+// Takes changedComponents (map[string]bool) which selects components to refresh by hashed
+// name, or is nil to refresh all components.
 //
 // Returns error when reading or parsing component files fails.
 //
@@ -1278,7 +1329,7 @@ func (s *AnnotatorService) refreshMutableComponentData(ctx context.Context, comp
 				logger_domain.Error(err))
 		}
 
-		freshTranslations, err := parseI18nBlocks(sfcResult, sourcePath)
+		freshTranslations, err := parseI18nBlocksInto(freshTemplate, sfcResult, sourcePath)
 		if err != nil {
 			return fmt.Errorf("failed to parse i18n blocks for '%s': %w", sourcePath, err)
 		}
@@ -1294,6 +1345,18 @@ func (s *AnnotatorService) refreshMutableComponentData(ctx context.Context, comp
 
 	l.Internal("Successfully refreshed mutable content for all components")
 	return nil
+}
+
+// WithCompilationLogSandboxFactory sets the sandbox factory the compilation log store
+// uses to create its log directory.
+//
+// Takes factory (safedisk.Factory) which creates the log directory sandbox.
+//
+// Returns AnnotatorServiceOption which configures the compilation log store.
+func WithCompilationLogSandboxFactory(factory safedisk.Factory) AnnotatorServiceOption {
+	return func(opts *annotatorServiceOptions) {
+		opts.compilationLogSandboxFactory = factory
+	}
 }
 
 // WithFaultTolerance enables fault-tolerant mode for the annotator.

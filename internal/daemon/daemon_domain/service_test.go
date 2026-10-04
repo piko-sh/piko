@@ -40,9 +40,7 @@ import (
 func TestNewService_DefaultsToFallbackSignalNotifier(t *testing.T) {
 	t.Parallel()
 
-	deps := &DaemonServiceDeps{
-		SignalNotifier: nil,
-	}
+	deps := &DaemonServiceDeps{}
 
 	service := mustBuildDaemonService(t, deps)
 
@@ -155,9 +153,7 @@ func TestHandleBuildNotifications_IgnoresNilResult(t *testing.T) {
 func TestProcessSEOArtefacts_Skips_WhenSEOServiceNil(t *testing.T) {
 	t.Parallel()
 
-	deps := &DaemonServiceDeps{
-		SEOService: nil,
-	}
+	deps := &DaemonServiceDeps{}
 
 	service := mustBuildDaemonService(t, deps)
 
@@ -169,9 +165,7 @@ func TestProcessSEOArtefacts_Skips_WhenSEOServiceNil(t *testing.T) {
 func TestSubscribeToCoordinator_ReturnsNoOp_WhenCoordinatorNil(t *testing.T) {
 	t.Parallel()
 
-	deps := &DaemonServiceDeps{
-		CoordinatorService: nil,
-	}
+	deps := &DaemonServiceDeps{}
 
 	service := mustBuildDaemonService(t, deps)
 

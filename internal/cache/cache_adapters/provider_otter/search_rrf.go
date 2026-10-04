@@ -86,9 +86,10 @@ func (a *OtterAdapter[K, V]) rrfFusion(
 		}
 
 		items = append(items, cache_dto.SearchHit[K, V]{
-			Key:   entry.key,
-			Value: value,
-			Score: entry.score,
+			Key:        entry.key,
+			Value:      value,
+			Score:      entry.score,
+			Highlights: nil,
 		})
 	}
 

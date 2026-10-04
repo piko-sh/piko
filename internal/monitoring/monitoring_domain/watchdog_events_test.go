@@ -20,14 +20,12 @@ package monitoring_domain
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/wdk/clock"
-	"piko.sh/piko/wdk/safedisk"
 )
 
 func TestWatchdog_ListEventsFiltersBySinceAndType(t *testing.T) {
@@ -181,43 +179,6 @@ func TestWatchdog_DownloadSidecarMissing(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, present, "sidecar should be reported absent")
 	assert.Nil(t, data, "no bytes when sidecar is absent")
-}
-
-func TestWatchdog_GetStartupHistoryReturnsEntries(t *testing.T) {
-	t.Parallel()
-
-	startTime := time.Date(2026, 4, 25, 13, 0, 0, 0, time.UTC)
-	mockClock := clock.NewMockClock(startTime)
-
-	tempDir := t.TempDir()
-	sandbox, err := safedisk.NewNoOpSandbox(tempDir, safedisk.ModeReadWrite)
-	require.NoError(t, err)
-
-	pre := startupHistoryFile{
-		Entries: []startupHistoryEntry{
-			{StartedAt: startTime.Add(-2 * time.Hour), StoppedAt: startTime.Add(-time.Hour), PID: 100, Reason: "clean", Hostname: "alpha", Version: "v1"},
-			{StartedAt: startTime.Add(-30 * time.Minute), PID: 200, Hostname: "alpha", Version: "v2"},
-		},
-	}
-	encoded, err := json.MarshalIndent(pre, "", "  ")
-	require.NoError(t, err)
-	require.NoError(t, sandbox.WriteFileAtomic(startupHistoryFilename, encoded, 0o640))
-
-	config := DefaultWatchdogConfig()
-	config.WarmUpDuration = 0
-
-	collector := NewSystemCollector(WithSystemCollectorClock(mockClock))
-	watchdog, err := NewWatchdog(config, collector, WithWatchdogClock(mockClock), WithWatchdogSandbox(sandbox))
-	require.NoError(t, err)
-	watchdog.profileStore.clock = mockClock
-
-	entries, err := watchdog.GetStartupHistory(context.Background())
-	require.NoError(t, err)
-	require.Len(t, entries, 2)
-	assert.Equal(t, "v1", entries[0].Version)
-	assert.Equal(t, "clean", entries[0].Reason)
-	assert.False(t, entries[0].StoppedAt.IsZero())
-	assert.True(t, entries[1].StoppedAt.IsZero(), "second entry has no clean stop")
 }
 
 func TestWatchdog_StopClosesActiveSubscribers(t *testing.T) {

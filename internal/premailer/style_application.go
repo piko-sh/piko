@@ -245,13 +245,9 @@ func (p *Premailer) reinsertLeftoverRules(rules []css_ast.Rule, cssAST css_ast.A
 func (p *Premailer) insertStyleTag(cssString string) {
 	head := p.findOrCreateHead()
 
-	styleNode := &ast_domain.TemplateNode{
-		NodeType: ast_domain.NodeElement,
-		TagName:  literalStyle,
-		Children: []*ast_domain.TemplateNode{
-			{NodeType: ast_domain.NodeText, TextContent: literalNewline + cssString + literalNewline},
-		},
-	}
+	styleNode := ast_domain.NewElementNode(literalStyle, nil, []*ast_domain.TemplateNode{
+		ast_domain.NewTextNode(literalNewline + cssString + literalNewline),
+	})
 	head.Children = append(head.Children, styleNode)
 }
 
@@ -267,7 +263,7 @@ func (p *Premailer) findOrCreateHead() *ast_domain.TemplateNode {
 		return head
 	}
 
-	head = &ast_domain.TemplateNode{NodeType: ast_domain.NodeElement, TagName: "head"}
+	head = ast_domain.NewElementNode("head", nil, nil)
 
 	html := p.tree.Find(func(node *ast_domain.TemplateNode) bool {
 		return node.NodeType == ast_domain.NodeElement && node.TagName == "html"
@@ -312,6 +308,7 @@ func (p *Premailer) propagateDiagnostics() {
 			location = ast_domain.Location{
 				Line:   message.Data.Location.Line,
 				Column: message.Data.Location.Column + 1,
+				Offset: 0,
 			}
 		}
 
@@ -498,7 +495,7 @@ func rulesToCSSString(rules []css_ast.Rule, cssAST css_ast.AST) string {
 	leftoverAST := css_ast.AST{Rules: rules, Symbols: cssAST.Symbols}
 	symbolMap := ast.SymbolMap{SymbolsForSource: [][]ast.Symbol{cssAST.Symbols}}
 
-	options := css_printer.Options{MinifyWhitespace: false}
+	options := css_printer.Options{}
 	result := css_printer.Print(leftoverAST, symbolMap, options)
 	cssString := strings.TrimSpace(string(result.CSS))
 

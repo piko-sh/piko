@@ -119,15 +119,13 @@ func TestMockResourceProvider_ConcurrentAccess(t *testing.T) {
 	const goroutines = 50
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 
 			result := mock.GetResources()
 			assert.Equal(t, int32(5), result.Total)
-		}()
+		})
 	}
 
 	wg.Wait()

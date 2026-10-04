@@ -60,7 +60,7 @@ func (h *ActionHandler) handleBatch(w http.ResponseWriter, request *http.Request
 	h.trackBatchMetrics(ctx, request)
 	l.Trace("Handling batch action request")
 
-	batchReq, ok := h.parseBatchRequest(w, request, span, l)
+	batchReq, ok := h.parseBatchRequest(ctx, w, request, span)
 	if !ok {
 		return
 	}
@@ -97,13 +97,19 @@ func (h *ActionHandler) handleBatch(w http.ResponseWriter, request *http.Request
 // Takes w (http.ResponseWriter) which receives any HTTP error responses.
 // Takes request (*http.Request) which provides the batch request body and headers.
 // Takes span (trace.Span) which records errors encountered during parsing.
-// Takes l (logger_domain.Logger) which provides structured logging for failures.
 //
 // Returns daemon_dto.BatchActionRequest which contains the decoded batch request when
 // parsing succeeds, or a zero value on failure.
 // Returns bool which is true when the request was parsed successfully and false when an
 // HTTP error response has already been written.
-func (h *ActionHandler) parseBatchRequest(w http.ResponseWriter, request *http.Request, span trace.Span, l logger_domain.Logger) (daemon_dto.BatchActionRequest, bool) {
+func (h *ActionHandler) parseBatchRequest(
+	ctx context.Context,
+	w http.ResponseWriter,
+	request *http.Request,
+	span trace.Span,
+) (daemon_dto.BatchActionRequest, bool) {
+	_, l := logger_domain.From(ctx, log)
+
 	var batchReq daemon_dto.BatchActionRequest
 
 	developmentMode := isDevelopmentModeFromContext(request.Context())
@@ -227,6 +233,8 @@ func cancelledBatchResult(name string) daemon_dto.BatchActionResult {
 		Status: http.StatusServiceUnavailable,
 		Error:  "The request ended before this action ran.",
 		Code:   "CANCELLED",
+		Data:   nil,
+		Errors: nil,
 	}
 }
 
@@ -326,6 +334,8 @@ func batchRejection(name string, status int, message, code string) daemon_dto.Ba
 		Status: status,
 		Error:  message,
 		Code:   code,
+		Data:   nil,
+		Errors: nil,
 	}
 }
 
@@ -342,8 +352,6 @@ func (h *ActionHandler) executeSingleAction(
 	request *http.Request,
 	item daemon_dto.BatchActionItem,
 ) (daemon_dto.BatchActionResult, any) {
-	ctx, l := logger_domain.From(ctx, log)
-
 	entry, ok := h.registry[item.Name]
 	if !ok {
 		return batchRejection(item.Name, http.StatusNotFound,
@@ -376,7 +384,7 @@ func (h *ActionHandler) executeSingleAction(
 		arguments = make(map[string]any)
 	}
 
-	if rejection, rejected := h.screenBatchAction(ctx, request, action, arguments, item.Name, l); rejected {
+	if rejection, rejected := h.screenBatchAction(ctx, request, action, arguments, item.Name); rejected {
 		return rejection, action
 	}
 
@@ -389,6 +397,9 @@ func (h *ActionHandler) executeSingleAction(
 		Name:   item.Name,
 		Status: http.StatusOK,
 		Data:   result,
+		Errors: nil,
+		Error:  "",
+		Code:   "",
 	}, action
 }
 
@@ -396,13 +407,13 @@ func (h *ActionHandler) executeSingleAction(
 // result, mirroring the single-action 429/403 split. It also emits the structured warning
 // that the single-action path emits.
 //
-// Takes l (logger_domain.Logger) which receives the structured warning.
 // Takes name (string) which identifies the action that failed validation.
 // Takes captchaErr (error) which carries the underlying captcha failure.
 //
 // Returns daemon_dto.BatchActionResult populated with the right status code and code
 // string (RATE_LIMITED for ErrRateLimited, otherwise CAPTCHA_FAILED).
-func buildBatchCaptchaResult(l logger_domain.Logger, name string, captchaErr error) daemon_dto.BatchActionResult {
+func buildBatchCaptchaResult(ctx context.Context, name string, captchaErr error) daemon_dto.BatchActionResult {
+	_, l := logger_domain.From(ctx, log)
 	l.Warn("Captcha validation failed",
 		logger_domain.String(attributeKeyAction, name),
 		logger_domain.Error(captchaErr),
@@ -413,6 +424,8 @@ func buildBatchCaptchaResult(l logger_domain.Logger, name string, captchaErr err
 			Status: http.StatusTooManyRequests,
 			Error:  "Too many captcha attempts",
 			Code:   "RATE_LIMITED",
+			Data:   nil,
+			Errors: nil,
 		}
 	}
 	return daemon_dto.BatchActionResult{
@@ -420,6 +433,8 @@ func buildBatchCaptchaResult(l logger_domain.Logger, name string, captchaErr err
 		Status: http.StatusForbidden,
 		Error:  "Captcha validation failed",
 		Code:   "CAPTCHA_FAILED",
+		Data:   nil,
+		Errors: nil,
 	}
 }
 
@@ -490,6 +505,7 @@ func (*ActionHandler) buildBatchErrorResult(name string, err error, developmentM
 			Error:  safeerror.ExtractSafeMessage(err, developmentMode),
 			Code:   actionErr.ErrorCode(),
 			Errors: fieldErrorsFor(err),
+			Data:   nil,
 		}
 	}
 
@@ -498,6 +514,8 @@ func (*ActionHandler) buildBatchErrorResult(name string, err error, developmentM
 		Status: http.StatusInternalServerError,
 		Error:  safeerror.ExtractSafeMessage(err, developmentMode),
 		Code:   "INTERNAL_ERROR",
+		Data:   nil,
+		Errors: nil,
 	}
 }
 
@@ -754,7 +772,6 @@ func (h *ActionHandler) admitBatchAction(
 // Takes action (any) which may declare captcha or spam protection.
 // Takes arguments (map[string]any) which holds the parsed arguments.
 // Takes name (string) which identifies the action.
-// Takes l (logger_domain.Logger) which receives the structured warning.
 //
 // Returns daemon_dto.BatchActionResult which describes the rejection.
 // Returns bool which is true when the call was rejected.
@@ -764,10 +781,9 @@ func (h *ActionHandler) screenBatchAction(
 	action any,
 	arguments map[string]any,
 	name string,
-	l logger_domain.Logger,
 ) (daemon_dto.BatchActionResult, bool) {
 	if captchaErr := h.validateCaptcha(ctx, request, action, arguments, name); captchaErr != nil {
-		return buildBatchCaptchaResult(l, name, captchaErr), true
+		return buildBatchCaptchaResult(ctx, name, captchaErr), true
 	}
 
 	if spamErr := h.validateSpamDetect(ctx, request, action, arguments, name); spamErr != nil {
@@ -776,6 +792,8 @@ func (h *ActionHandler) screenBatchAction(
 			Status: http.StatusForbidden,
 			Error:  "Submission flagged by spam filter",
 			Code:   "SPAM_DETECTED",
+			Data:   nil,
+			Errors: nil,
 		}, true
 	}
 

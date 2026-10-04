@@ -126,6 +126,61 @@ func TestExtractOutput(t *testing.T) {
 		require.Error(t, err)
 	})
 
+	t.Run("diagnostics decide whether the output is usable", func(t *testing.T) {
+		t.Parallel()
+
+		testCases := []struct {
+			name        string
+			wantErrors  []string
+			diagnostics []compiler_dto.CompilationDiagnostic
+		}{
+			{
+				name: "warnings and information keep the output",
+				diagnostics: []compiler_dto.CompilationDiagnostic{
+					{Severity: compiler_dto.DiagnosticSeverityWarning, Message: "unused style", SourceIdentifier: "test.vue"},
+					{Severity: "info", Message: "compiled in strict mode", SourceIdentifier: "test.vue"},
+				},
+			},
+			{
+				name: "an error rejects the output",
+				diagnostics: []compiler_dto.CompilationDiagnostic{
+					{Severity: compiler_dto.DiagnosticSeverityWarning, Message: "unused style", SourceIdentifier: "test.vue"},
+					{Severity: compiler_dto.DiagnosticSeverityError, Message: "script could not be printed", SourceIdentifier: "test.vue"},
+				},
+				wantErrors: []string{"script could not be printed", "1 error(s)", "test.vue"},
+			},
+			{
+				name: "every error is reported",
+				diagnostics: []compiler_dto.CompilationDiagnostic{
+					{Severity: compiler_dto.DiagnosticSeverityError, Message: "first failure", SourceIdentifier: "test.vue"},
+					{Severity: compiler_dto.DiagnosticSeverityError, Message: "second failure", SourceIdentifier: "test.vue"},
+				},
+				wantErrors: []string{"first failure", "second failure", "2 error(s)"},
+			},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+				artefact := &compiler_dto.CompiledArtefact{
+					BaseJSPath:  "output.js",
+					Files:       map[string]string{"output.js": "console.log('hello');"},
+					Diagnostics: tc.diagnostics,
+				}
+				output, err := extractOutput(context.Background(), artefact, "test.vue", span)
+				if len(tc.wantErrors) == 0 {
+					require.NoError(t, err)
+					assert.Equal(t, "console.log('hello');", output)
+					return
+				}
+				require.Error(t, err)
+				assert.Empty(t, output)
+				for _, want := range tc.wantErrors {
+					assert.Contains(t, err.Error(), want)
+				}
+			})
+		}
+	})
+
 	t.Run("should return empty string content when entrypoint exists with empty content", func(t *testing.T) {
 		t.Parallel()
 		artefact := &compiler_dto.CompiledArtefact{
@@ -256,6 +311,31 @@ func TestCompileComponent(t *testing.T) {
 		_, err := capabilityFunction(context.Background(), strings.NewReader("content"), params)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "missing.js")
+	})
+
+	t.Run("should fail fatally when the artefact reports an error diagnostic", func(t *testing.T) {
+		t.Parallel()
+		compiler := &mockCompilerService{
+			compileSFCBytesFunction: func(_ context.Context, _ string, _ []byte) (*compiler_dto.CompiledArtefact, error) {
+				return &compiler_dto.CompiledArtefact{
+					BaseJSPath: "output.js",
+					Files:      map[string]string{"output.js": "/* dump only */"},
+					Diagnostics: []compiler_dto.CompilationDiagnostic{{
+						Severity:         compiler_dto.DiagnosticSeverityError,
+						Message:          "script could not be printed",
+						SourceIdentifier: "/path/to/comp.vue",
+					}},
+				}, nil
+			},
+		}
+
+		capabilityFunction := CompileComponent(compiler)
+		params := capabilities_domain.CapabilityParams{"sourcePath": "/path/to/comp.vue"}
+		result, err := capabilityFunction(context.Background(), strings.NewReader("content"), params)
+		require.Error(t, err)
+		assert.Nil(t, result)
+		assert.True(t, capabilities_domain.IsFatalError(err))
+		assert.Contains(t, err.Error(), "script could not be printed")
 	})
 
 	t.Run("should return error when context is cancelled", func(t *testing.T) {

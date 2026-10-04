@@ -35,42 +35,42 @@ var (
 	// that needs more than its declared width (for example a key beyond the 32-bit range)
 	// must be declared BIGINT to map to int64.
 	builtinTypeMap = map[string]querier_dto.SQLType{
-		"integer":   {Category: querier_dto.TypeCategoryInteger, EngineName: "int4"},
-		"int":       {Category: querier_dto.TypeCategoryInteger, EngineName: "int4"},
-		"mediumint": {Category: querier_dto.TypeCategoryInteger, EngineName: "int4"},
-		"tinyint":   {Category: querier_dto.TypeCategoryInteger, EngineName: "int2"},
-		"smallint":  {Category: querier_dto.TypeCategoryInteger, EngineName: "int2"},
-		"int2":      {Category: querier_dto.TypeCategoryInteger, EngineName: "int2"},
-		"bigint":    {Category: querier_dto.TypeCategoryInteger, EngineName: "int8"},
-		"int8":      {Category: querier_dto.TypeCategoryInteger, EngineName: "int8"},
+		"integer":   querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int4"),
+		"int":       querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int4"),
+		"mediumint": querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int4"),
+		"tinyint":   querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int2"),
+		"smallint":  querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int2"),
+		"int2":      querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int2"),
+		"bigint":    querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int8"),
+		"int8":      querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int8"),
 
-		"text":      {Category: querier_dto.TypeCategoryText, EngineName: "text"},
-		"clob":      {Category: querier_dto.TypeCategoryText, EngineName: "text"},
-		"varchar":   {Category: querier_dto.TypeCategoryText, EngineName: "text"},
-		"nchar":     {Category: querier_dto.TypeCategoryText, EngineName: "text"},
-		"nvarchar":  {Category: querier_dto.TypeCategoryText, EngineName: "text"},
-		"char":      {Category: querier_dto.TypeCategoryText, EngineName: "text"},
-		"character": {Category: querier_dto.TypeCategoryText, EngineName: "text"},
+		"text":      querier_dto.NewSQLType(querier_dto.TypeCategoryText, "text"),
+		"clob":      querier_dto.NewSQLType(querier_dto.TypeCategoryText, "text"),
+		"varchar":   querier_dto.NewSQLType(querier_dto.TypeCategoryText, "text"),
+		"nchar":     querier_dto.NewSQLType(querier_dto.TypeCategoryText, "text"),
+		"nvarchar":  querier_dto.NewSQLType(querier_dto.TypeCategoryText, "text"),
+		"char":      querier_dto.NewSQLType(querier_dto.TypeCategoryText, "text"),
+		"character": querier_dto.NewSQLType(querier_dto.TypeCategoryText, "text"),
 
-		"real":   {Category: querier_dto.TypeCategoryFloat, EngineName: "real"},
-		"double": {Category: querier_dto.TypeCategoryFloat, EngineName: "real"},
-		"float":  {Category: querier_dto.TypeCategoryFloat, EngineName: "real"},
+		"real":   querier_dto.NewSQLType(querier_dto.TypeCategoryFloat, "real"),
+		"double": querier_dto.NewSQLType(querier_dto.TypeCategoryFloat, "real"),
+		"float":  querier_dto.NewSQLType(querier_dto.TypeCategoryFloat, "real"),
 
-		"blob": {Category: querier_dto.TypeCategoryBytea, EngineName: "blob"},
+		"blob": querier_dto.NewSQLType(querier_dto.TypeCategoryBytea, "blob"),
 
-		"any": {Category: querier_dto.TypeCategoryUnknown, EngineName: "any"},
+		"any": querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "any"),
 
-		"numeric": {Category: querier_dto.TypeCategoryDecimal, EngineName: "numeric"},
-		"decimal": {Category: querier_dto.TypeCategoryDecimal, EngineName: "numeric"},
+		"numeric": querier_dto.NewSQLType(querier_dto.TypeCategoryDecimal, "numeric"),
+		"decimal": querier_dto.NewSQLType(querier_dto.TypeCategoryDecimal, "numeric"),
 
-		"boolean": {Category: querier_dto.TypeCategoryBoolean, EngineName: "boolean"},
-		"bool":    {Category: querier_dto.TypeCategoryBoolean, EngineName: "boolean"},
+		"boolean": querier_dto.NewSQLType(querier_dto.TypeCategoryBoolean, "boolean"),
+		"bool":    querier_dto.NewSQLType(querier_dto.TypeCategoryBoolean, "boolean"),
 
-		"date":      {Category: querier_dto.TypeCategoryTemporal, EngineName: "date"},
-		"datetime":  {Category: querier_dto.TypeCategoryTemporal, EngineName: "datetime"},
-		"timestamp": {Category: querier_dto.TypeCategoryTemporal, EngineName: "timestamp"},
+		"date":      querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, "date"),
+		"datetime":  querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, "datetime"),
+		"timestamp": querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, "timestamp"),
 
-		"json": {Category: querier_dto.TypeCategoryJSON, EngineName: "json"},
+		"json": querier_dto.NewSQLType(querier_dto.TypeCategoryJSON, "json"),
 	}
 )
 
@@ -97,7 +97,7 @@ func normaliseTypeName(name string, modifiers ...int) querier_dto.SQLType {
 	lowered := strings.ToLower(strings.TrimSpace(name))
 
 	if lowered == "" {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryBytea, EngineName: "blob"}
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryBytea, "blob")
 	}
 
 	if sqlType, exists := builtinTypeMap[lowered]; exists {
@@ -119,24 +119,24 @@ func normaliseByAffinity(lowered string, modifiers []int) querier_dto.SQLType {
 	upper := strings.ToUpper(lowered)
 
 	if strings.Contains(upper, "INT") {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int4"}
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int4")
 	}
 
 	if strings.Contains(upper, "CHAR") || strings.Contains(upper, "CLOB") || strings.Contains(upper, "TEXT") {
-		result := querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}
+		result := querier_dto.NewSQLType(querier_dto.TypeCategoryText, "text")
 		applyModifiers(&result, modifiers)
 		return result
 	}
 
 	if strings.Contains(upper, "BLOB") {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryBytea, EngineName: "blob"}
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryBytea, "blob")
 	}
 
 	if strings.Contains(upper, "REAL") || strings.Contains(upper, "FLOA") || strings.Contains(upper, "DOUB") {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryFloat, EngineName: "real"}
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryFloat, "real")
 	}
 
-	result := querier_dto.SQLType{Category: querier_dto.TypeCategoryDecimal, EngineName: "numeric"}
+	result := querier_dto.NewSQLType(querier_dto.TypeCategoryDecimal, "numeric")
 	applyModifiers(&result, modifiers)
 	return result
 }

@@ -29,41 +29,66 @@ import (
 //
 // Returns *ast_domain.TemplateAST which contains three piko:svg usages.
 func SvgGradientPageAST() *ast_domain.TemplateAST {
-	return &ast_domain.TemplateAST{
-		RootNodes: []*ast_domain.TemplateNode{
+	t := ast_domain.TemplateAST{}
+	t.RootNodes = []*ast_domain.TemplateNode{
+		ast_domain.NewElementNode("div", []ast_domain.HTMLAttribute{
 			{
-				NodeType: ast_domain.NodeElement,
-				TagName:  "div",
-				Attributes: []ast_domain.HTMLAttribute{
-					{Name: "class", Value: "gallery"},
-				},
-				Children: []*ast_domain.TemplateNode{
-					{
-						NodeType: ast_domain.NodeElement,
-						TagName:  "piko:svg",
-						Attributes: []ast_domain.HTMLAttribute{
-							{Name: "src", Value: "icons/star.svg"},
-							{Name: "class", Value: "star"},
-						},
-					},
-					{
-						NodeType: ast_domain.NodeElement,
-						TagName:  "piko:svg",
-						Attributes: []ast_domain.HTMLAttribute{
-							{Name: "src", Value: "icons/star.svg"},
-							{Name: "class", Value: "star star--large"},
-						},
-					},
-					{
-						NodeType: ast_domain.NodeElement,
-						TagName:  "piko:svg",
-						Attributes: []ast_domain.HTMLAttribute{
-							{Name: "src", Value: "icons/heart.svg"},
-							{Name: "class", Value: "heart"},
-						},
-					},
-				},
+				Name:           "class",
+				Value:          "gallery",
+				Location:       ast_domain.Location{},
+				NameLocation:   ast_domain.Location{},
+				AttributeRange: ast_domain.Range{},
 			},
-		},
+		}, []*ast_domain.TemplateNode{
+			ast_domain.NewElementNode("piko:svg", []ast_domain.HTMLAttribute{
+				{
+					Name:           "src",
+					Value:          "icons/star.svg",
+					Location:       ast_domain.Location{},
+					NameLocation:   ast_domain.Location{},
+					AttributeRange: ast_domain.Range{},
+				},
+				{
+					Name:           "class",
+					Value:          "star",
+					Location:       ast_domain.Location{},
+					NameLocation:   ast_domain.Location{},
+					AttributeRange: ast_domain.Range{},
+				},
+			}, nil),
+			ast_domain.NewElementNode("piko:svg", []ast_domain.HTMLAttribute{
+				{
+					Name:           "src",
+					Value:          "icons/star.svg",
+					Location:       ast_domain.Location{},
+					NameLocation:   ast_domain.Location{},
+					AttributeRange: ast_domain.Range{},
+				},
+				{
+					Name:           "class",
+					Value:          "star star--large",
+					Location:       ast_domain.Location{},
+					NameLocation:   ast_domain.Location{},
+					AttributeRange: ast_domain.Range{},
+				},
+			}, nil),
+			ast_domain.NewElementNode("piko:svg", []ast_domain.HTMLAttribute{
+				{
+					Name:           "src",
+					Value:          "icons/heart.svg",
+					Location:       ast_domain.Location{},
+					NameLocation:   ast_domain.Location{},
+					AttributeRange: ast_domain.Range{},
+				},
+				{
+					Name:           "class",
+					Value:          "heart",
+					Location:       ast_domain.Location{},
+					NameLocation:   ast_domain.Location{},
+					AttributeRange: ast_domain.Range{},
+				},
+			}, nil),
+		}),
 	}
+	return &t
 }

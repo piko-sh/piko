@@ -177,7 +177,7 @@ func TestCacheManager_GetOrExecute(t *testing.T) {
 		manager := NewCacheManager(store, time.Hour)
 
 		executed := false
-		response, fromCache, err := manager.GetOrExecute(ctx, &llm_dto.CacheConfig{Enabled: false}, &llm_dto.CompletionRequest{
+		response, fromCache, err := manager.GetOrExecute(ctx, &llm_dto.CacheConfig{}, &llm_dto.CompletionRequest{
 			Model:    "gpt-4o",
 			Messages: []llm_dto.Message{{Role: llm_dto.RoleUser, Content: "Hi"}},
 		}, "openai", func() (*llm_dto.CompletionResponse, error) {

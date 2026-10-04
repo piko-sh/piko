@@ -20,16 +20,12 @@ package captcha_provider_hcaptcha
 
 import (
 	"context"
-	"fmt"
-	"io"
-	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
+	"piko.sh/piko/internal/captcha/captcha_adapters/siteverify"
 	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/captcha/captcha_dto"
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/wdk/captcha/captcha_provider_hcaptcha/scripts"
 )
 
@@ -37,12 +33,8 @@ const (
 	// verifyURL is the hCaptcha server-side verification endpoint.
 	verifyURL = "https://api.hcaptcha.com/siteverify"
 
-	// httpTimeout is the timeout for HTTP requests to the hCaptcha API.
-	httpTimeout = 10 * time.Second
-
-	// maxResponseBodySize is the maximum number of bytes read from the hCaptcha verification
-	// response. Prevents unbounded memory allocation from a misbehaving upstream.
-	maxResponseBodySize = 64 * 1024
+	// providerName names hCaptcha in verification errors.
+	providerName = "hcaptcha"
 )
 
 // hcaptchaVerifyResult represents the JSON response from the hCaptcha siteverify API
@@ -71,8 +63,8 @@ type hcaptchaVerifyResult struct {
 
 // provider implements captcha_domain.CaptchaProvider using hCaptcha for bot detection.
 type provider struct {
-	// httpClient is the HTTP client used for calls to the hCaptcha API.
-	httpClient *http.Client
+	// client posts verification requests to the hCaptcha API.
+	client *siteverify.Client
 
 	// config holds the hCaptcha site key and secret key.
 	config Config
@@ -85,20 +77,33 @@ var (
 // NewProvider creates a new hCaptcha captcha provider.
 //
 // Takes config (Config) which specifies the hCaptcha site key and secret key.
+// Takes options (...Option) which override the verification timeout and response size
+// limit.
 //
 // Returns captcha_domain.CaptchaProvider which provides hCaptcha-based captcha
 // verification.
 // Returns error when the configuration is invalid.
-func NewProvider(config Config) (captcha_domain.CaptchaProvider, error) {
+func NewProvider(config Config, options ...Option) (captcha_domain.CaptchaProvider, error) {
+	return newProvider(config, verifyURL, options...)
+}
+
+// newProvider creates an hCaptcha provider that verifies tokens against endpoint.
+//
+// Takes config (Config) which specifies the hCaptcha site key and secret key.
+// Takes endpoint (string) which is the siteverify URL.
+// Takes options (...Option) which override the verification timeout and response size
+// limit.
+//
+// Returns *provider which is ready for use.
+// Returns error when the configuration is invalid.
+func newProvider(config Config, endpoint string, options ...Option) (*provider, error) {
 	if err := config.validate(); err != nil {
 		return nil, err
 	}
 
 	return &provider{
 		config: config,
-		httpClient: &http.Client{
-			Timeout: httpTimeout,
-		},
+		client: siteverify.NewClient(providerName, endpoint, options...),
 	}, nil
 }
 
@@ -138,10 +143,9 @@ func (p *provider) Verify(ctx context.Context, request *captcha_dto.VerifyReques
 	defer span.End()
 
 	if request == nil || request.Token == "" {
-		return &captcha_dto.VerifyResponse{
-			Success:    false,
-			ErrorCodes: []string{"missing-input-response"},
-		}, nil
+		response := captcha_dto.VerifyResponse{}
+		response.ErrorCodes = []string{"missing-input-response"}
+		return &response, nil
 	}
 
 	hcaptchaResult, err := p.callVerifyAPI(ctx, request)
@@ -155,6 +159,7 @@ func (p *provider) Verify(ctx context.Context, request *captcha_dto.VerifyReques
 		ErrorCodes: hcaptchaResult.ErrorCodes,
 		Hostname:   hcaptchaResult.Hostname,
 		Timestamp:  parseChallengeTimestamp(hcaptchaResult.ChallengeTimestamp),
+		Action:     "",
 	}, nil
 }
 
@@ -185,6 +190,8 @@ func (*provider) RenderRequirements() *captcha_dto.RenderRequirements {
 		CSPFrameDomains:   []string{"https://hcaptcha.com", "https://*.hcaptcha.com"},
 		CSPConnectDomains: []string{"https://hcaptcha.com", "https://*.hcaptcha.com"},
 		ProviderType:      "hcaptcha",
+		ServerSideToken:   false,
+		Invisible:         false,
 	}
 }
 
@@ -215,45 +222,9 @@ func (p *provider) callVerifyAPI(ctx context.Context, request *captcha_dto.Verif
 		formData.Set("remoteip", request.RemoteIP)
 	}
 
-	encodedForm := formData.Encode()
-	httpRequest, err := http.NewRequestWithContext(ctx, http.MethodPost, verifyURL, strings.NewReader(encodedForm))
+	result, err := siteverify.Verify[hcaptchaVerifyResult](ctx, p.client, formData)
 	if err != nil {
-		return nil, fmt.Errorf("creating hcaptcha request: %w", err)
-	}
-	httpRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	httpResponse, err := p.httpClient.Do(httpRequest)
-	if err != nil {
-		return nil, fmt.Errorf("sending hcaptcha verification request: %w", err)
-	}
-	defer func() {
-		_, _ = io.Copy(io.Discard, io.LimitReader(httpResponse.Body, maxResponseBodySize))
-		_ = httpResponse.Body.Close()
-	}()
-
-	if httpResponse.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("hcaptcha verification returned HTTP %d: %w", httpResponse.StatusCode, captcha_dto.ErrProviderUnavailable)
-	}
-
-	contentType := httpResponse.Header.Get("Content-Type")
-	if !strings.HasPrefix(contentType, "application/json") {
-		return nil, fmt.Errorf("hcaptcha returned unexpected content type %q: %w",
-			contentType, captcha_dto.ErrProviderUnavailable)
-	}
-
-	body, err := io.ReadAll(io.LimitReader(httpResponse.Body, maxResponseBodySize))
-	if err != nil {
-		return nil, fmt.Errorf("reading hcaptcha response body: %w", err)
-	}
-
-	if int64(len(body)) >= maxResponseBodySize {
-		return nil, fmt.Errorf("hcaptcha response body exceeded %d byte limit: %w",
-			maxResponseBodySize, captcha_dto.ErrProviderUnavailable)
-	}
-
-	var result hcaptchaVerifyResult
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("parsing hcaptcha response: %w", err)
+		return nil, err
 	}
 
 	return &result, nil

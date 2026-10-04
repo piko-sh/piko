@@ -19,6 +19,7 @@
 package db_engine_clickhouse
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -710,4 +711,184 @@ func TestDictionaryLifetime_MinWithoutMax(t *testing.T) {
 	lifetime := mutation.EngineSpecific["DICTIONARY_LIFETIME_SECONDS"]
 	assert.Equal(t, "MIN 300", lifetime)
 	assert.NotContains(t, lifetime, "MAX ")
+}
+
+func TestDDL_CreateTableWithoutColumnList(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		wantEngine     map[string]string
+		name           string
+		sql            string
+		wantSourceName string
+		wantColumns    []string
+	}{
+		{
+			name:        "engine clauses before AS SELECT",
+			sql:         "CREATE TABLE summary ENGINE = MergeTree() ORDER BY id AS SELECT id, name FROM users",
+			wantColumns: []string{"id", "name"},
+			wantEngine:  map[string]string{"ENGINE": "MergeTree()"},
+		},
+		{
+			name:        "EMPTY before AS SELECT",
+			sql:         "CREATE TABLE summary ENGINE = Memory EMPTY AS SELECT id FROM users",
+			wantColumns: []string{"id"},
+			wantEngine:  map[string]string{"ENGINE": "Memory", "EMPTY": "true"},
+		},
+		{
+			name:        "AS WITH body",
+			sql:         "CREATE TABLE summary ENGINE = Memory AS WITH active AS (SELECT id FROM users) SELECT id FROM active",
+			wantColumns: []string{"id"},
+			wantEngine:  map[string]string{"ENGINE": "Memory"},
+		},
+		{
+			name:           "AS source table followed by engine clauses",
+			sql:            "CREATE TABLE clone AS events ENGINE = Memory",
+			wantColumns:    nil,
+			wantSourceName: "events",
+			wantEngine:     map[string]string{"ENGINE": "Memory"},
+		},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			mutation, err := applyDDL(t, testCase.sql)
+			require.NoError(t, err)
+			require.NotNil(t, mutation)
+
+			names := make([]string, 0, len(mutation.Columns))
+			for _, column := range mutation.Columns {
+				names = append(names, column.Name)
+				assert.True(t, column.Nullable)
+				assert.Equal(t, querier_dto.TypeCategoryUnknown, column.SQLType.Category)
+			}
+			if testCase.wantColumns == nil {
+				assert.Empty(t, names)
+			} else {
+				assert.Equal(t, testCase.wantColumns, names)
+			}
+			assert.Equal(t, testCase.wantSourceName, mutation.EngineSpecific["CTAS_SOURCE_TABLE"])
+			for key, value := range testCase.wantEngine {
+				assert.Equal(t, value, mutation.EngineSpecific[key], "engine clause %s", key)
+			}
+		})
+	}
+}
+
+func TestDDL_CreateTableWithoutColumnListOrBodyFails(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name    string
+		sql     string
+		wantErr string
+	}{
+		{name: "engine clauses without AS", sql: "CREATE TABLE t ENGINE = Memory", wantErr: "expected '(' or AS"},
+		{name: "malformed AS SELECT body", sql: "CREATE TABLE t ENGINE = Memory AS SELECT id FROM (SELECT 1", wantErr: "analysing CREATE TABLE AS body"},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			mutation, err := applyDDL(t, testCase.sql)
+			require.Error(t, err)
+			assert.Nil(t, mutation)
+			assert.Contains(t, err.Error(), testCase.wantErr)
+		})
+	}
+}
+
+func TestDDL_CreateTableWithColumnListIgnoresAsBody(t *testing.T) {
+	t.Parallel()
+
+	mutation, err := applyDDL(t, "CREATE TABLE t (id UInt64, label String) ENGINE = MergeTree() ORDER BY id AS SELECT 1, 'x'")
+	require.NoError(t, err)
+	require.Len(t, mutation.Columns, 2)
+	assert.Equal(t, "id", mutation.Columns[0].Name)
+	assert.Equal(t, "label", mutation.Columns[1].Name)
+	assert.Equal(t, "id", mutation.EngineSpecific["ORDER_BY"])
+}
+
+func TestDDL_MaterializedViewWithInlineEngineKeepsItsBody(t *testing.T) {
+	t.Parallel()
+
+	mutation, err := applyDDL(t, "CREATE MATERIALIZED VIEW mv ENGINE = MergeTree() ORDER BY id AS SELECT id, val * 2 AS doubled FROM src")
+	require.NoError(t, err)
+	require.NotNil(t, mutation.ViewDefinition)
+	require.Len(t, mutation.Columns, 2)
+	assert.Equal(t, "id", mutation.Columns[0].Name)
+	assert.Equal(t, "doubled", mutation.Columns[1].Name)
+	assert.Equal(t, "MergeTree()", mutation.EngineSpecific["ENGINE"])
+}
+
+func TestDDL_OverDeepViewBodyIsReported(t *testing.T) {
+	t.Parallel()
+
+	const nesting = 40
+	engine := NewClickHouseEngine(WithMaxParseDepth(nesting / 2))
+	sql := "CREATE VIEW v AS SELECT " + strings.Repeat("(", nesting) + "1" + strings.Repeat(")", nesting) + " AS x FROM t"
+	statements, err := engine.ParseStatements(sql)
+	require.NoError(t, err)
+	require.Len(t, statements, 1)
+
+	mutation, err := engine.ApplyDDL(t.Context(), statements[0])
+	require.ErrorIs(t, err, errExpressionDepthExceeded)
+	assert.Nil(t, mutation)
+}
+
+func TestDDL_DropFunction(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		sql      string
+		wantName string
+		wantErr  string
+	}{
+		{name: "plain", sql: "DROP FUNCTION f", wantName: "f"},
+		{name: "IF EXISTS with cluster", sql: "DROP FUNCTION IF EXISTS g ON CLUSTER main", wantName: "g"},
+		{name: "missing name", sql: "DROP FUNCTION", wantErr: "expected identifier"},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			mutation, err := applyDDL(t, testCase.sql)
+			if testCase.wantErr != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), testCase.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, querier_dto.MutationDropFunction, mutation.Kind)
+			require.NotNil(t, mutation.FunctionSignature)
+			assert.Equal(t, testCase.wantName, mutation.FunctionSignature.Name)
+			assert.Empty(t, mutation.FunctionSignature.Schema)
+		})
+	}
+}
+
+func TestDDL_ViewBodiesThatAreNotSelectsKeepNoDefinition(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name string
+		sql  string
+	}{
+		{name: "view without a body", sql: "CREATE VIEW v AS"},
+		{name: "view over a non-SELECT body", sql: "CREATE VIEW v AS VALUES (1)"},
+		{name: "view over a malformed SELECT", sql: "CREATE VIEW v AS SELECT id FROM (SELECT 1"},
+		{name: "materialised view without AS", sql: "CREATE MATERIALIZED VIEW mv TO target"},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			mutation, err := applyDDL(t, testCase.sql)
+			require.NoError(t, err)
+			assert.Nil(t, mutation.ViewDefinition)
+			assert.Empty(t, mutation.Columns)
+		})
+	}
 }

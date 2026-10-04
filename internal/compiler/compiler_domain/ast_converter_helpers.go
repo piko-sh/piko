@@ -29,10 +29,15 @@ import (
 
 // convertBinding converts an esbuild binding to a tdewolff binding.
 //
+// An array hole is only meaningful inside an array pattern, so convertBArray handles it
+// before it reaches here.
+//
 // Takes binding (js_ast.Binding) which is the esbuild binding to convert.
 //
-// Returns parsejs.IBinding which is the converted tdewolff binding.
-// Returns error when the conversion fails.
+// Returns parsejs.IBinding which is the converted tdewolff binding, or nil when binding
+// has no data.
+// Returns error when the binding kind cannot be printed, so it fails the build instead of
+// declaring a placeholder name.
 func (c *ASTConverter) convertBinding(binding js_ast.Binding) (parsejs.IBinding, error) {
 	if binding.Data == nil {
 		return nil, nil
@@ -46,7 +51,7 @@ func (c *ASTConverter) convertBinding(binding js_ast.Binding) (parsejs.IBinding,
 	case *js_ast.BObject:
 		return c.convertBObject(b)
 	default:
-		return &parsejs.Var{Data: []byte("binding")}, nil
+		return nil, fmt.Errorf("binding %T: %w", binding.Data, errUnsupportedExpression)
 	}
 }
 
@@ -72,32 +77,89 @@ func (c *ASTConverter) convertBIdentifier(b *js_ast.BIdentifier) (parsejs.IBindi
 
 // convertBArray converts an array destructuring binding.
 //
+// A hole such as the first slot of `[, b]` becomes an elided element, and when the
+// pattern ends in a rest element such as `...others` the last item becomes the pattern's
+// rest binding.
+//
 // Takes b (*js_ast.BArray) which is the array binding pattern to convert.
 //
 // Returns parsejs.IBinding which is the converted array binding.
-// Returns error when any element binding or default expression fails to convert.
+// Returns error when any element binding or default expression fails to convert, or the
+// rest element is missing or has a default.
 func (c *ASTConverter) convertBArray(b *js_ast.BArray) (parsejs.IBinding, error) {
-	elements := make([]parsejs.BindingElement, 0, len(b.Items))
-	for _, item := range b.Items {
-		converted, err := c.convertBinding(item.Binding)
+	items := b.Items
+	var rest parsejs.IBinding
+	if b.HasSpread {
+		if len(items) == 0 {
+			return nil, fmt.Errorf("array binding rest element: %w", errUnsupportedExpression)
+		}
+		var err error
+		rest, err = c.convertBArrayRest(items[len(items)-1])
 		if err != nil {
-			return nil, fmt.Errorf("converting array binding element: %w", err)
+			return nil, err
 		}
-
-		var defaultExpr parsejs.IExpr
-		if item.DefaultValueOrNil.Data != nil {
-			defaultExpr, err = c.convertExpression(item.DefaultValueOrNil)
-			if err != nil {
-				return nil, fmt.Errorf("converting array binding default value: %w", err)
-			}
-		}
-
-		elements = append(elements, parsejs.BindingElement{
-			Binding: converted,
-			Default: defaultExpr,
-		})
+		items = items[:len(items)-1]
 	}
-	return &parsejs.BindingArray{List: elements}, nil
+
+	elements := make([]parsejs.BindingElement, 0, len(items))
+	for _, item := range items {
+		element, err := c.convertArrayBindingElement(item)
+		if err != nil {
+			return nil, err
+		}
+		elements = append(elements, element)
+	}
+	return &parsejs.BindingArray{List: elements, Rest: rest}, nil
+}
+
+// convertArrayBindingElement converts one non-rest slot of an array destructuring
+// pattern.
+//
+// Takes item (js_ast.ArrayBinding) which is the slot to convert.
+//
+// Returns parsejs.BindingElement which is the converted slot, with a nil binding for a
+// hole.
+// Returns error when the binding or its default expression fails to convert.
+func (c *ASTConverter) convertArrayBindingElement(item js_ast.ArrayBinding) (parsejs.BindingElement, error) {
+	if _, isHole := item.Binding.Data.(*js_ast.BMissing); isHole {
+		return parsejs.BindingElement{}, nil
+	}
+
+	converted, err := c.convertBinding(item.Binding)
+	if err != nil {
+		return parsejs.BindingElement{}, fmt.Errorf("converting array binding element: %w", err)
+	}
+
+	var defaultExpr parsejs.IExpr
+	if item.DefaultValueOrNil.Data != nil {
+		defaultExpr, err = c.convertExpression(item.DefaultValueOrNil)
+		if err != nil {
+			return parsejs.BindingElement{}, fmt.Errorf("converting array binding default value: %w", err)
+		}
+	}
+
+	return parsejs.BindingElement{Binding: converted, Default: defaultExpr}, nil
+}
+
+// convertBArrayRest converts the rest element of an array destructuring pattern.
+//
+// Takes item (js_ast.ArrayBinding) which is the pattern's last item.
+//
+// Returns parsejs.IBinding which is the binding that receives the remaining elements; it
+// may itself be a pattern, as in `[a, ...[b, c]]`.
+// Returns error when the rest target is a hole, carries a default, or fails to convert.
+func (c *ASTConverter) convertBArrayRest(item js_ast.ArrayBinding) (parsejs.IBinding, error) {
+	if item.DefaultValueOrNil.Data != nil {
+		return nil, fmt.Errorf("array binding rest element with a default: %w", errUnsupportedExpression)
+	}
+	if _, isHole := item.Binding.Data.(*js_ast.BMissing); isHole || item.Binding.Data == nil {
+		return nil, fmt.Errorf("array binding rest element without a target: %w", errUnsupportedExpression)
+	}
+	rest, err := c.convertBinding(item.Binding)
+	if err != nil {
+		return nil, fmt.Errorf("converting array binding rest element: %w", err)
+	}
+	return rest, nil
 }
 
 // convertBObject converts an object destructuring binding.
@@ -108,8 +170,21 @@ func (c *ASTConverter) convertBArray(b *js_ast.BArray) (parsejs.IBinding, error)
 // Returns error when a property value or default expression fails to convert.
 func (c *ASTConverter) convertBObject(b *js_ast.BObject) (parsejs.IBinding, error) {
 	props := make([]parsejs.BindingObjectItem, 0, len(b.Properties))
+	var rest *parsejs.Var
 	for _, prop := range b.Properties {
-		key := c.convertBindingPropertyKey(prop.Key)
+		if prop.IsSpread {
+			var err error
+			rest, err = c.convertBObjectRest(prop)
+			if err != nil {
+				return nil, err
+			}
+			continue
+		}
+
+		key, err := c.convertBindingKey(prop)
+		if err != nil {
+			return nil, err
+		}
 
 		value, err := c.convertBinding(prop.Value)
 		if err != nil {
@@ -129,41 +204,98 @@ func (c *ASTConverter) convertBObject(b *js_ast.BObject) (parsejs.IBinding, erro
 			Value: parsejs.BindingElement{Binding: value, Default: defaultExpr},
 		})
 	}
-	return &parsejs.BindingObject{List: props}, nil
+	return &parsejs.BindingObject{List: props, Rest: rest}, nil
 }
 
-// convertBindingPropertyKey converts an AST expression for a property key into a
+// convertBObjectRest converts the rest element of an object destructuring pattern.
+//
+// Takes prop (js_ast.PropertyBinding) which is the spread property holding the rest
+// target.
+//
+// Returns *parsejs.Var which names the variable that receives the remaining properties.
+// Returns error when the rest target is not a plain identifier, which is the only form
+// JavaScript allows in an object pattern.
+func (c *ASTConverter) convertBObjectRest(prop js_ast.PropertyBinding) (*parsejs.Var, error) {
+	binding, err := c.convertBinding(prop.Value)
+	if err != nil {
+		return nil, fmt.Errorf("converting object binding rest: %w", err)
+	}
+	rest, ok := binding.(*parsejs.Var)
+	if !ok {
+		return nil, fmt.Errorf("object binding rest %T: %w", binding, errUnsupportedExpression)
+	}
+	return rest, nil
+}
+
+// convertBindingKey converts the key of one object destructuring property.
+//
+// A computed key keeps its brackets so the binding reads the property the expression
+// names, not a property spelled like the expression.
+//
+// Takes prop (js_ast.PropertyBinding) which is the destructuring property.
+//
+// Returns *parsejs.PropertyName which is the converted key.
+// Returns error when the key cannot be converted.
+func (c *ASTConverter) convertBindingKey(prop js_ast.PropertyBinding) (*parsejs.PropertyName, error) {
+	if prop.IsComputed {
+		return c.computedPropertyName(prop.Key)
+	}
+	return c.convertBindingPropertyKey(prop.Key)
+}
+
+// convertBindingPropertyKey converts a non-computed destructuring key into a
 // PropertyName.
 //
 // Takes key (js_ast.Expr) which is the AST expression for the property key.
 //
-// Returns *parsejs.PropertyName which is the converted property name, or nil if the key
-// type is not supported. Handles identifier and string expressions.
-func (c *ASTConverter) convertBindingPropertyKey(key js_ast.Expr) *parsejs.PropertyName {
-	if identifier, ok := key.Data.(*js_ast.EIdentifier); ok {
-		name := c.resolveRef(identifier.Ref)
+// Returns *parsejs.PropertyName which is the converted property name.
+// Returns error when the key is not an identifier, string or number, so an unsupported
+// key fails the build instead of printing as a shorthand binding.
+func (c *ASTConverter) convertBindingPropertyKey(key js_ast.Expr) (*parsejs.PropertyName, error) {
+	switch k := key.Data.(type) {
+	case *js_ast.EIdentifier:
+		name := c.resolveRef(k.Ref)
 		if name == "" {
 			name = "key"
 		}
 		return &parsejs.PropertyName{
 			Literal: parsejs.LiteralExpr{TokenType: parsejs.IdentifierToken, Data: []byte(name)},
-		}
-	}
-	if str, ok := key.Data.(*js_ast.EString); ok {
+		}, nil
+	case *js_ast.EString:
 		return &parsejs.PropertyName{
-			Literal: parsejs.LiteralExpr{TokenType: parsejs.StringToken, Data: helpers.QuoteForJSON(helpers.UTF16ToString(str.Value), false)},
-		}
+			Literal: parsejs.LiteralExpr{TokenType: parsejs.StringToken, Data: helpers.QuoteForJSON(helpers.UTF16ToString(k.Value), false)},
+		}, nil
+	case *js_ast.ENumber:
+		return numericPropertyName(k.Value), nil
+	default:
+		return nil, fmt.Errorf("object binding key %T: %w", key.Data, errUnsupportedExpression)
 	}
-	return nil
 }
 
 // convertParams converts function arguments to parameter bindings.
 //
 // Takes arguments ([]js_ast.Arg) which contains the function arguments to convert.
+// Takes hasRestArg (bool) which is true when the last argument is a rest parameter such
+// as `...values`, as recorded on the function or arrow.
 //
-// Returns parsejs.Params which contains the converted binding elements.
-// Returns error when a binding or default value cannot be converted.
-func (c *ASTConverter) convertParams(arguments []js_ast.Arg) (parsejs.Params, error) {
+// Returns parsejs.Params which contains the converted binding elements and, when
+// hasRestArg is set, the rest parameter.
+// Returns error when a binding or default value cannot be converted, or the rest
+// parameter is missing or has a default.
+func (c *ASTConverter) convertParams(arguments []js_ast.Arg, hasRestArg bool) (parsejs.Params, error) {
+	var rest parsejs.IBinding
+	if hasRestArg {
+		if len(arguments) == 0 {
+			return parsejs.Params{}, fmt.Errorf("rest parameter: %w", errUnsupportedExpression)
+		}
+		var err error
+		rest, err = c.convertRestParam(arguments[len(arguments)-1])
+		if err != nil {
+			return parsejs.Params{}, err
+		}
+		arguments = arguments[:len(arguments)-1]
+	}
+
 	elements := make([]parsejs.BindingElement, 0, len(arguments))
 	for _, argument := range arguments {
 		binding, err := c.convertBinding(argument.Binding)
@@ -185,7 +317,28 @@ func (c *ASTConverter) convertParams(arguments []js_ast.Arg) (parsejs.Params, er
 		})
 	}
 
-	return parsejs.Params{List: elements}, nil
+	return parsejs.Params{List: elements, Rest: rest}, nil
+}
+
+// convertRestParam converts a function's rest parameter.
+//
+// Takes argument (js_ast.Arg) which is the function's last argument.
+//
+// Returns parsejs.IBinding which is the binding that receives the remaining arguments.
+// Returns error when the rest parameter has a default or no binding, or its binding fails
+// to convert.
+func (c *ASTConverter) convertRestParam(argument js_ast.Arg) (parsejs.IBinding, error) {
+	if argument.DefaultOrNil.Data != nil {
+		return nil, fmt.Errorf("rest parameter with a default: %w", errUnsupportedExpression)
+	}
+	rest, err := c.convertBinding(argument.Binding)
+	if err != nil {
+		return nil, fmt.Errorf("converting rest parameter binding: %w", err)
+	}
+	if rest == nil {
+		return nil, fmt.Errorf("rest parameter without a binding: %w", errUnsupportedExpression)
+	}
+	return rest, nil
 }
 
 // convertFunctionBody converts a function body to a block statement.
@@ -195,17 +348,10 @@ func (c *ASTConverter) convertParams(arguments []js_ast.Arg) (parsejs.Params, er
 // Returns *parsejs.BlockStmt which contains the converted statements.
 // Returns error when a statement conversion fails.
 func (c *ASTConverter) convertFunctionBody(body js_ast.FnBody) (*parsejs.BlockStmt, error) {
-	statements := make([]parsejs.IStmt, 0, len(body.Block.Stmts))
-	for _, statement := range body.Block.Stmts {
-		converted, err := c.convertStatement(statement)
-		if err != nil {
-			return nil, fmt.Errorf("converting function body statement: %w", err)
-		}
-		if converted != nil {
-			statements = append(statements, converted)
-		}
+	statements, err := c.convertStatementList(body.Block.Stmts)
+	if err != nil {
+		return nil, fmt.Errorf("converting function body: %w", err)
 	}
-
 	return &parsejs.BlockStmt{List: statements}, nil
 }
 
@@ -231,7 +377,13 @@ func (c *ASTConverter) convertProperty(prop js_ast.Property) (*parsejs.Property,
 		return shorthandProp, nil
 	}
 
-	name, err := c.convertPropertyName(prop.Key)
+	var name *parsejs.PropertyName
+	var err error
+	if prop.Flags.Has(js_ast.PropertyIsComputed) {
+		name, err = c.computedPropertyName(prop.Key)
+	} else {
+		name, err = c.convertPropertyName(prop.Key)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("converting property name: %w", err)
 	}
@@ -277,7 +429,7 @@ func (c *ASTConverter) tryConvertAccessorProperty(
 		return nil, false, nil
 	}
 
-	params, err := c.convertParams(jsFunction.Fn.Args)
+	params, err := c.convertParams(jsFunction.Fn.Args, jsFunction.Fn.HasRestArg)
 	if err != nil {
 		return nil, false, fmt.Errorf("converting object method parameters: %w", err)
 	}
@@ -354,22 +506,45 @@ func (c *ASTConverter) convertPropertyName(key js_ast.Expr) (*parsejs.PropertyNa
 		}, nil
 
 	case *js_ast.ENumber:
-		if lit, ok := nonFiniteKeyLiteral(k.Value); ok {
-			return &parsejs.PropertyName{Literal: lit}, nil
-		}
-		return &parsejs.PropertyName{
-			Literal: parsejs.LiteralExpr{
-				TokenType: parsejs.DecimalToken,
-				Data:      fmt.Appendf(nil, "%g", k.Value),
-			},
-		}, nil
+		return numericPropertyName(k.Value), nil
 
 	default:
-		computed, err := c.convertExpression(key)
-		if err != nil {
-			return nil, fmt.Errorf("converting computed property name: %w", err)
-		}
-		return &parsejs.PropertyName{Computed: computed}, nil
+		return c.computedPropertyName(key)
+	}
+}
+
+// computedPropertyName converts a key expression into the bracketed computed-name slot.
+//
+// Takes key (js_ast.Expr) which is the key expression written inside the brackets.
+//
+// Returns *parsejs.PropertyName which holds the converted key expression.
+// Returns error when the key expression cannot be converted.
+func (c *ASTConverter) computedPropertyName(key js_ast.Expr) (*parsejs.PropertyName, error) {
+	computed, err := c.convertExpression(key)
+	if err != nil {
+		return nil, fmt.Errorf("converting computed property name: %w", err)
+	}
+	if computed == nil {
+		return nil, fmt.Errorf("computed property name: %w", errUnsupportedExpression)
+	}
+	return &parsejs.PropertyName{Computed: computed}, nil
+}
+
+// numericPropertyName converts a numeric literal key into a PropertyName.
+//
+// Takes value (float64) which is the key's numeric value.
+//
+// Returns *parsejs.PropertyName which prints the number as written, or as the non-finite
+// key literal for NaN and the infinities.
+func numericPropertyName(value float64) *parsejs.PropertyName {
+	if lit, ok := nonFiniteKeyLiteral(value); ok {
+		return &parsejs.PropertyName{Literal: lit}
+	}
+	return &parsejs.PropertyName{
+		Literal: parsejs.LiteralExpr{
+			TokenType: parsejs.DecimalToken,
+			Data:      fmt.Appendf(nil, "%g", value),
+		},
 	}
 }
 
@@ -408,15 +583,11 @@ func (c *ASTConverter) convertClassStaticBlock(prop js_ast.Property) (*parsejs.C
 		return &parsejs.ClassElement{StaticBlock: block}, nil
 	}
 
-	for i, statement := range prop.ClassStaticBlock.Block.Stmts {
-		converted, err := c.convertStatement(statement)
-		if err != nil {
-			return nil, fmt.Errorf("converting class static block statement %d: %w", i, err)
-		}
-		if converted != nil {
-			block.List = append(block.List, converted)
-		}
+	statements, err := c.convertStatementList(prop.ClassStaticBlock.Block.Stmts)
+	if err != nil {
+		return nil, fmt.Errorf("converting class static block: %w", err)
 	}
+	block.List = statements
 	return &parsejs.ClassElement{StaticBlock: block}, nil
 }
 
@@ -442,20 +613,16 @@ func (c *ASTConverter) getClassElementName(prop js_ast.Property) (parsejs.ClassE
 			prop.Kind == js_ast.PropertySetter
 		if isMember && js_ast.IsIdentifier(strValue) {
 			return parsejs.ClassElementName{
-				PropertyName: parsejs.PropertyName{
-					Literal: parsejs.LiteralExpr{
-						TokenType: parsejs.IdentifierToken,
-						Data:      []byte(strValue),
-					},
+				Literal: parsejs.LiteralExpr{
+					TokenType: parsejs.IdentifierToken,
+					Data:      []byte(strValue),
 				},
 			}, nil
 		}
 		return parsejs.ClassElementName{
-			PropertyName: parsejs.PropertyName{
-				Literal: parsejs.LiteralExpr{
-					TokenType: parsejs.StringToken,
-					Data:      helpers.QuoteForJSON(strValue, false),
-				},
+			Literal: parsejs.LiteralExpr{
+				TokenType: parsejs.StringToken,
+				Data:      helpers.QuoteForJSON(strValue, false),
 			},
 		}, nil
 	}
@@ -472,11 +639,9 @@ func (c *ASTConverter) getClassElementName(prop js_ast.Property) (parsejs.ClassE
 			name = "member"
 		}
 		return parsejs.ClassElementName{
-			PropertyName: parsejs.PropertyName{
-				Literal: parsejs.LiteralExpr{
-					TokenType: parsejs.IdentifierToken,
-					Data:      []byte(name),
-				},
+			Literal: parsejs.LiteralExpr{
+				TokenType: parsejs.IdentifierToken,
+				Data:      []byte(name),
 			},
 		}, nil
 	}
@@ -499,7 +664,7 @@ func (c *ASTConverter) computedClassElementName(prop js_ast.Property) (parsejs.C
 		return parsejs.ClassElementName{}, fmt.Errorf("computed class member key: %w", errUnsupportedExpression)
 	}
 	return parsejs.ClassElementName{
-		PropertyName: parsejs.PropertyName{Computed: key},
+		Computed: key,
 	}, nil
 }
 
@@ -512,7 +677,7 @@ func (c *ASTConverter) computedClassElementName(prop js_ast.Property) (parsejs.C
 // Returns *parsejs.ClassElement which wraps the converted method.
 // Returns error when parameter or body conversion fails.
 func (c *ASTConverter) convertClassMethod(prop js_ast.Property, jsFunction *js_ast.EFunction, elemName parsejs.ClassElementName) (*parsejs.ClassElement, error) {
-	params, err := c.convertParams(jsFunction.Fn.Args)
+	params, err := c.convertParams(jsFunction.Fn.Args, jsFunction.Fn.HasRestArg)
 	if err != nil {
 		return nil, fmt.Errorf("converting class method parameters: %w", err)
 	}
@@ -565,11 +730,9 @@ func (c *ASTConverter) convertClassField(prop js_ast.Property, elemName parsejs.
 	}
 
 	return &parsejs.ClassElement{
-		Field: parsejs.Field{
-			Static: prop.Flags.Has(js_ast.PropertyIsStatic),
-			Name:   elemName,
-			Init:   init,
-		},
+		Static: prop.Flags.Has(js_ast.PropertyIsStatic),
+		Name:   elemName,
+		Init:   init,
 	}, nil
 }
 

@@ -96,7 +96,7 @@ func runLayoutTest(t *testing.T, testDirectory string) {
 	)
 
 	cache := annotator_adapters.NewComponentCache()
-	annotatorService, err := annotator_domain.NewAnnotatorService(ctx, &annotator_domain.AnnotatorServiceConfig{
+	annotatorService := annotator_domain.NewAnnotatorService(&annotator_domain.AnnotatorServiceConfig{
 		Resolver:            resolver,
 		FSReader:            &realFSReader{},
 		TypeInspector:       annotator_domain.NewTypeInspectorBuilderAdapter(inspectorManager),
@@ -105,9 +105,6 @@ func runLayoutTest(t *testing.T, testDirectory string) {
 		Cache:               cache,
 		CompilationLogLevel: slog.LevelInfo,
 	})
-	if err != nil {
-		t.Fatalf("failed to create annotator service: %v", err)
-	}
 
 	moduleName := resolver.GetModuleName()
 	entryPointModulePath := filepath.ToSlash(filepath.Join(moduleName, "main.pk"))
@@ -149,15 +146,15 @@ func runLayoutTest(t *testing.T, testDirectory string) {
 	fontMetrics := &layouter_adapters.MockFontMetrics{}
 	imageResolver := &layouter_adapters.MockImageResolver{}
 
-	rootBox, err := layouter_domain.BuildBoxTree(
-		ctx,
-		tree,
-		styleMap,
-		pseudoStyleMap,
-		imageResolver,
-		pageConfig.Width,
-		pageConfig.Height,
-	)
+	rootBox, err := layouter_domain.BuildBoxTree(ctx, layouter_domain.BoxTreeInput{
+		Tree:           tree,
+		Styles:         styleMap,
+		PseudoStyles:   pseudoStyleMap,
+		ImageResolver:  imageResolver,
+		Limits:         nil,
+		ViewportWidth:  pageConfig.Width,
+		ViewportHeight: pageConfig.Height,
+	})
 	if err != nil {
 		if spec.ShouldError {
 			return
@@ -165,7 +162,7 @@ func runLayoutTest(t *testing.T, testDirectory string) {
 		t.Fatalf("box tree construction failed: %v", err)
 	}
 
-	_, _ = layouter_domain.LayoutBoxTree(context.Background(), rootBox, fontMetrics)
+	_, _ = layouter_domain.LayoutBoxTree(context.Background(), rootBox, fontMetrics, nil)
 
 	actual := layouter_domain.SerialiseLayoutBoxToGoFileContent(rootBox, "test")
 

@@ -394,18 +394,40 @@ func NewPdfPainter(pageWidth, pageHeight float64, fontEntries []layouter_dto.Fon
 	}
 
 	return &PdfPainter{
-		pageWidth:        pageWidth,
-		pageHeight:       pageHeight,
-		fontEntries:      fontEntries,
-		fontEmbedder:     NewFontEmbedder(),
-		fontDataMap:      fontDataMap,
-		extGStateManager: NewExtGStateManager(),
-		imageEmbedder:    NewImageEmbedder(),
-		imageData:        imageData,
-		shadingManager:   NewShadingManager(),
-		outlineBuilder:   NewOutlineBuilder(),
-		acroformBuilder:  NewAcroFormBuilder(),
-		clock:            clock.RealClock(),
+		pageWidth:         pageWidth,
+		pageHeight:        pageHeight,
+		fontEntries:       fontEntries,
+		fontEmbedder:      NewFontEmbedder(),
+		fontDataMap:       fontDataMap,
+		extGStateManager:  NewExtGStateManager(),
+		imageEmbedder:     NewImageEmbedder(),
+		imageData:         imageData,
+		shadingManager:    NewShadingManager(),
+		outlineBuilder:    NewOutlineBuilder(),
+		acroformBuilder:   NewAcroFormBuilder(),
+		clock:             clock.RealClock(),
+		svgWriter:         nil,
+		svgData:           nil,
+		variableFonts:     nil,
+		viewerPrefs:       nil,
+		pdfaConfig:        nil,
+		embeddedFiles:     nil,
+		glyphWidthFunc:    nil,
+		metadata:          nil,
+		writer:            nil,
+		structTree:        nil,
+		watermark:         nil,
+		maskFormObjects:   nil,
+		structStack:       nil,
+		namedDests:        nil,
+		annotations:       nil,
+		pageLabels:        nil,
+		pageYOffset:       0,
+		basePageYOffset:   0,
+		marginLeft:        0,
+		marginTop:         0,
+		contentPageHeight: 0,
+		emitXMP:           false,
 	}
 }
 
@@ -447,6 +469,10 @@ type PainterConfig struct {
 
 	// EmbeddedFiles holds machine-readable payloads to attach as PDF associated files.
 	EmbeddedFiles []EmbeddedFile
+
+	// MaxImagePixels caps the pixel area (width times height) of any image the painter
+	// embeds. Zero uses the built-in default.
+	MaxImagePixels int
 
 	// Tagged enables PDF structure tagging for accessibility (PDF/UA).
 	Tagged bool
@@ -494,6 +520,9 @@ func ConfigurePainter(painter *PdfPainter, config PainterConfig) {
 	if config.GlyphWidthFunc != nil {
 		painter.setGlyphWidthFunc(config.GlyphWidthFunc)
 	}
+	if config.MaxImagePixels > 0 {
+		painter.imageEmbedder.SetMaxPixels(config.MaxImagePixels)
+	}
 }
 
 // MarkVariableFont records that a font key corresponds to a variable font instance.
@@ -510,11 +539,17 @@ func (painter *PdfPainter) MarkVariableFont(family string, weight int, style int
 
 // Paint renders the layout result to the given writer as a PDF document.
 //
+// A panic raised while painting a malformed layout is recovered and returned as an error,
+// so a single hostile document cannot crash the process.
+//
 // Takes result (*layouter_dto.LayoutResult) which holds the layout tree and page list.
 // Takes output (io.Writer) which specifies the destination for the PDF bytes.
 //
-// Returns error when the root box is invalid or image embedding fails.
-func (painter *PdfPainter) Paint(ctx context.Context, result *layouter_dto.LayoutResult, output io.Writer) error {
+// Returns err (error) when the root box is invalid, image embedding fails, ctx is
+// cancelled, or a panic is recovered.
+func (painter *PdfPainter) Paint(ctx context.Context, result *layouter_dto.LayoutResult, output io.Writer) (err error) {
+	defer func() { StorePanicAsError(ctx, "PDF painting", recover(), &err) }()
+
 	rootBox, ok := result.RootBox.(*layouter_domain.LayoutBox)
 	if !ok {
 		return fmt.Errorf("pdfwriter: %w", ErrInvalidRootBox)
@@ -532,26 +567,14 @@ func (painter *PdfPainter) Paint(ctx context.Context, result *layouter_dto.Layou
 	catalogueNumber := writer.AllocateObject()
 	pagesNumber := writer.AllocateObject()
 
-	pageObjs := make([]pageObj, pageCount)
-	for i := range pageObjs {
-		pageObjs[i].pageNumber = writer.AllocateObject()
-		pageObjs[i].contentNumber = writer.AllocateObject()
-	}
+	pageObjs := allocatePageObjects(writer, pageCount)
 
 	watermarkPrefix, watermarkFontResource := painter.prepareWatermark(writer)
-	streams := painter.renderPageStreams(ctx, rootBox, pageCount, watermarkPrefix)
-
-	kids := make([]string, pageCount)
-	for i, po := range pageObjs {
-		kids[i] = FormatReference(po.pageNumber)
+	streams, err := painter.renderPageStreams(ctx, rootBox, pageCount, watermarkPrefix)
+	if err != nil {
+		return err
 	}
-	writer.WriteObject(pagesNumber, fmt.Sprintf(
-		"<< /Type /Pages /Kids [%s] /Count %d >>",
-		strings.Join(kids, " "), pageCount))
-
-	for i, s := range streams {
-		writer.WriteStreamObject(pageObjs[i].contentNumber, "", []byte(s.String()))
-	}
+	writePageTree(writer, pagesNumber, pageObjs, streams)
 
 	fontResourceEntries := painter.writeFontResources(ctx, writer)
 	resources, resourcesError := painter.buildResourcesDict(writer, fontResourceEntries, watermarkFontResource)
@@ -800,17 +823,25 @@ func (painter *PdfPainter) prepareWatermark(writer *PdfDocumentWriter) (prefix s
 
 // renderPageStreams paints all pages and returns their content streams.
 //
+// The boxes that start each page are collected in a single pass over the tree, so
+// painting a page visits only that page's subtrees instead of walking the whole tree once
+// per page.
+//
 // Takes rootBox (*layouter_domain.LayoutBox) which holds the root of the layout tree.
 // Takes pageCount (int) which specifies the number of pages to render.
 // Takes watermarkPrefix (string) which holds the watermark stream prefix prepended to
 // each page.
 //
 // Returns []*ContentStream which holds the content streams for each page.
-func (painter *PdfPainter) renderPageStreams(ctx context.Context, rootBox *layouter_domain.LayoutBox, pageCount int, watermarkPrefix string) []*ContentStream {
+// Returns error when ctx is cancelled before every page is painted.
+func (painter *PdfPainter) renderPageStreams(
+	ctx context.Context, rootBox *layouter_domain.LayoutBox, pageCount int, watermarkPrefix string,
+) ([]*ContentStream, error) {
+	entries := collectPageEntryBoxes(rootBox, pageCount)
 	streams := make([]*ContentStream, pageCount)
 	for i := range streams {
-		if ctx.Err() != nil {
-			break
+		if err := ctx.Err(); err != nil {
+			return nil, fmt.Errorf("pdfwriter: painting cancelled at page %d: %w", i, err)
 		}
 		streams[i] = &ContentStream{}
 		if watermarkPrefix != "" {
@@ -825,13 +856,18 @@ func (painter *PdfPainter) renderPageStreams(ctx context.Context, rootBox *layou
 			fmt.Fprintf(&streams[i].builder, "1 0 0 1 %s %s cm\n",
 				FormatNumber(painter.marginLeft), FormatNumber(-painter.marginTop))
 		}
-		painter.paintPageBoxes(ctx, streams[i], rootBox, i)
+		for _, box := range entries[i] {
+			painter.paintBoxToStream(ctx, streams[i], box, i)
+		}
 		if hasMargins {
 			streams[i].builder.WriteString("Q\n")
 		}
 	}
 	painter.pageYOffset = 0
-	return streams
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("pdfwriter: painting cancelled: %w", err)
+	}
+	return streams, nil
 }
 
 // writeFontResources writes font objects and returns the resource entries string.
@@ -1048,7 +1084,9 @@ func (painter *PdfPainter) effectiveViewerPrefs() *ViewerPreferences {
 		return painter.viewerPrefs
 	}
 	if painter.emitXMP {
-		return &ViewerPreferences{DisplayDocTitle: true}
+		preferences := ViewerPreferences{}
+		preferences.DisplayDocTitle = true
+		return &preferences
 	}
 	return nil
 }
@@ -1554,4 +1592,87 @@ func (*PdfPainter) hasAnyBorderRadius(box *layouter_domain.LayoutBox) bool {
 		box.Style.BorderTopRightRadius > 0 ||
 		box.Style.BorderBottomRightRadius > 0 ||
 		box.Style.BorderBottomLeftRadius > 0
+}
+
+// collectPageEntryBoxes returns each page's painting entry boxes in document order,
+// excluding boxes inside a display:none subtree and boxes with an ancestor on the same
+// page.
+//
+// Painting each entry with paintBoxToStream paints exactly what walking the whole tree
+// from the root for that page would, because an entry's descendants on the page are
+// painted within it.
+//
+// Takes root (*layouter_domain.LayoutBox) which is the root of the layout tree.
+// Takes pageCount (int) which is the number of pages; boxes assigned to other pages are
+// never painted.
+//
+// Returns [][]*layouter_domain.LayoutBox which holds the entry boxes for each page.
+func collectPageEntryBoxes(root *layouter_domain.LayoutBox, pageCount int) [][]*layouter_domain.LayoutBox {
+	entries := make([][]*layouter_domain.LayoutBox, pageCount)
+	claimedByAncestor := make([]int, pageCount)
+	appendPageEntryBoxes(root, entries, claimedByAncestor)
+	return entries
+}
+
+// appendPageEntryBoxes walks a subtree, appending each box that starts a page to that
+// page's entries. claimedByAncestor counts, per page, the boxes on the current path that
+// are already entries, so their descendants on the same page are left to them.
+//
+// Takes box (*layouter_domain.LayoutBox) which is the subtree root to walk.
+// Takes entries ([][]*layouter_domain.LayoutBox) which receives the entry boxes per page.
+// Takes claimedByAncestor ([]int) which counts the ancestors on each page.
+func appendPageEntryBoxes(box *layouter_domain.LayoutBox, entries [][]*layouter_domain.LayoutBox, claimedByAncestor []int) {
+	if box == nil || box.Type == layouter_domain.BoxNone {
+		return
+	}
+	page := box.PageIndex
+	onPage := page >= 0 && page < len(entries)
+	if onPage {
+		if claimedByAncestor[page] == 0 {
+			entries[page] = append(entries[page], box)
+		}
+		claimedByAncestor[page]++
+	}
+	for _, child := range box.Children {
+		appendPageEntryBoxes(child, entries, claimedByAncestor)
+	}
+	if onPage {
+		claimedByAncestor[page]--
+	}
+}
+
+// allocatePageObjects reserves the page and content stream object numbers for every page.
+//
+// Takes writer (*PdfDocumentWriter) which allocates the object numbers.
+// Takes pageCount (int) which is the number of pages.
+//
+// Returns []pageObj which holds the object numbers for each page.
+func allocatePageObjects(writer *PdfDocumentWriter, pageCount int) []pageObj {
+	pageObjs := make([]pageObj, pageCount)
+	for i := range pageObjs {
+		pageObjs[i].pageNumber = writer.AllocateObject()
+		pageObjs[i].contentNumber = writer.AllocateObject()
+	}
+	return pageObjs
+}
+
+// writePageTree writes the /Pages tree object listing every page and each page's content
+// stream.
+//
+// Takes writer (*PdfDocumentWriter) which receives the objects.
+// Takes pagesNumber (int) which is the object number of the /Pages tree.
+// Takes pageObjs ([]pageObj) which holds the object numbers for each page.
+// Takes streams ([]*ContentStream) which holds the painted content of each page.
+func writePageTree(writer *PdfDocumentWriter, pagesNumber int, pageObjs []pageObj, streams []*ContentStream) {
+	kids := make([]string, len(pageObjs))
+	for i, po := range pageObjs {
+		kids[i] = FormatReference(po.pageNumber)
+	}
+	writer.WriteObject(pagesNumber, fmt.Sprintf(
+		"<< /Type /Pages /Kids [%s] /Count %d >>",
+		strings.Join(kids, " "), len(pageObjs)))
+
+	for i, stream := range streams {
+		writer.WriteStreamObject(pageObjs[i].contentNumber, "", []byte(stream.String()))
+	}
 }

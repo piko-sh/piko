@@ -47,7 +47,7 @@ func TestCodeAction_AnalysisFails_ReturnsBaseActions(t *testing.T) {
 			URI: "file:///nonexistent.pk",
 		},
 		Range: protocol.Range{
-			Start: protocol.Position{Line: 0, Character: 0},
+			Start: protocol.Position{},
 			End:   protocol.Position{Line: 0, Character: 10},
 		},
 		Context: protocol.CodeActionContext{
@@ -191,9 +191,7 @@ func TestSymbols_EmptyQuery_ReturnsEmptyList(t *testing.T) {
 		workspace: ws,
 	}
 
-	params := &protocol.WorkspaceSymbolParams{
-		Query: "",
-	}
+	params := &protocol.WorkspaceSymbolParams{}
 
 	result, err := server.Symbols(context.Background(), params)
 
@@ -293,7 +291,7 @@ func TestCodeLensResolve_ReturnsInput(t *testing.T) {
 
 	params := &protocol.CodeLens{
 		Range: protocol.Range{
-			Start: protocol.Position{Line: 0, Character: 0},
+			Start: protocol.Position{},
 			End:   protocol.Position{Line: 0, Character: 10},
 		},
 	}
@@ -346,7 +344,7 @@ func TestDocumentLinkResolve_ReturnsInput(t *testing.T) {
 
 	params := &protocol.DocumentLink{
 		Range: protocol.Range{
-			Start: protocol.Position{Line: 0, Character: 0},
+			Start: protocol.Position{},
 			End:   protocol.Position{Line: 0, Character: 10},
 		},
 	}
@@ -446,9 +444,7 @@ func TestExecuteCommand_UnknownCommand_ReturnsError(t *testing.T) {
 func TestDidChangeConfiguration_NoError(t *testing.T) {
 	server := &Server{}
 
-	params := &protocol.DidChangeConfigurationParams{
-		Settings: nil,
-	}
+	params := &protocol.DidChangeConfigurationParams{}
 
 	err := server.DidChangeConfiguration(context.Background(), params)
 
@@ -584,7 +580,7 @@ func TestSemanticTokensRange_ReturnsEmptyData(t *testing.T) {
 			URI: "file:///test.pk",
 		},
 		Range: protocol.Range{
-			Start: protocol.Position{Line: 0, Character: 0},
+			Start: protocol.Position{},
 			End:   protocol.Position{Line: 10, Character: 0},
 		},
 	}
@@ -954,11 +950,9 @@ func TestSearchDocumentForIDs(t *testing.T) {
 		wantCount  int
 	}{
 		{
-			name: "nil annotation result returns nil",
-			uri:  "file:///test.pk",
-			document: &document{
-				AnnotationResult: nil,
-			},
+			name:       "nil annotation result returns nil",
+			uri:        "file:///test.pk",
+			document:   &document{},
 			queryLower: "test",
 			wantCount:  0,
 		},
@@ -966,9 +960,7 @@ func TestSearchDocumentForIDs(t *testing.T) {
 			name: "nil annotated AST returns nil",
 			uri:  "file:///test.pk",
 			document: &document{
-				AnnotationResult: &annotator_dto.AnnotationResult{
-					AnnotatedAST: nil,
-				},
+				AnnotationResult: &annotator_dto.AnnotationResult{},
 			},
 			queryLower: "test",
 			wantCount:  0,

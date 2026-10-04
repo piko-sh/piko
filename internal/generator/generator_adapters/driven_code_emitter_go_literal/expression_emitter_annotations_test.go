@@ -80,7 +80,7 @@ func TestGetAnnotationFromOperatorExpr(t *testing.T) {
 			name: "IndexExpr with GoAnnotations",
 			expression: &ast_domain.IndexExpression{
 				Base:          &ast_domain.Identifier{Name: "arr"},
-				Index:         &ast_domain.IntegerLiteral{Value: 0},
+				Index:         &ast_domain.IntegerLiteral{},
 				GoAnnotations: expectedAnn,
 			},
 			wantNil: false,
@@ -135,10 +135,8 @@ func TestGetEffectiveKeyExpression(t *testing.T) {
 		{
 			name: "nil EffectiveKeyExpression returns node Key",
 			node: &ast_domain.TemplateNode{
-				GoAnnotations: &ast_domain.GoGeneratorAnnotation{
-					EffectiveKeyExpression: nil,
-				},
-				Key: &ast_domain.StringLiteral{Value: "structural-key"},
+				GoAnnotations: &ast_domain.GoGeneratorAnnotation{},
+				Key:           &ast_domain.StringLiteral{Value: "structural-key"},
 			},
 			want: &ast_domain.StringLiteral{Value: "structural-key"},
 		},
@@ -157,10 +155,7 @@ func TestGetEffectiveKeyExpression(t *testing.T) {
 		},
 		{
 			name: "nil Key with nil GoAnnotations returns nil",
-			node: &ast_domain.TemplateNode{
-				GoAnnotations: nil,
-				Key:           nil,
-			},
+			node: &ast_domain.TemplateNode{},
 			want: nil,
 		},
 	}

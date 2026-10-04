@@ -95,6 +95,7 @@ func (n *Notifier) Notify(ctx context.Context, event monitoring_domain.WatchdogE
 		Priority:    safeconv.IntToInt32(int(event.Priority)),
 		Message:     message,
 		TimestampMs: time.Now().UnixMilli(),
+		Fields:      nil,
 	}
 	ev.Fields = cappedFields(event.Fields)
 	n.client.AddWatchdog(ctx, ev)
@@ -147,6 +148,9 @@ func (n *Notifier) Upload(ctx context.Context, profileType string, data []byte, 
 		SizeBytes:       int64(len(data)),
 		ContentEncoding: "gzip",
 		Reason:          metadata["reason"],
+		BlobRef:         "",
+		Fields:          nil,
+		Blob:            nil,
 	}
 	pm.Fields = cappedFields(metadata)
 	switch {
@@ -203,7 +207,7 @@ func (n *Notifier) Close(ctx context.Context) error {
 //
 // Returns *Notifier which streams events and profiles over the shared client.
 func New(client *telemetry_grpcfb.Client) *Notifier {
-	return &Notifier{client: client}
+	return &Notifier{client: client, ownsClient: false}
 }
 
 // Dial creates a Notifier backed by its own telemetry client and connection. Its Close

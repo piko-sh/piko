@@ -90,7 +90,7 @@ type StreamOptions struct {
 //
 // Returns *CompletionRequest ready for further configuration.
 func NewCompletionRequest(model string) *CompletionRequest {
-	return &CompletionRequest{
-		Model: model,
-	}
+	request := CompletionRequest{}
+	request.Model = model
+	return &request
 }

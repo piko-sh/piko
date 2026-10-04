@@ -269,6 +269,8 @@ func createModuleSandbox(moduleBase, contentRoot string) (safedisk.Sandbox, erro
 // Takes provider (CollectionProvider) which supplies the static content.
 // Takes directive (*collection_dto.CollectionDirectiveInfo) which specifies the
 // collection to fetch.
+// Takes source (collection_dto.ContentSource) which supplies the sandbox, base path, and
+// external module flag used to load content.
 //
 // Returns []collection_dto.ContentItem which contains the fetched items.
 // Returns string which is the computed ETag for cache validation.

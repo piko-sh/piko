@@ -19,7 +19,6 @@
 package resolver_adapters
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -42,8 +41,8 @@ var (
 // interacting with the file system and discovering Go module information to enforce
 // module-absolute imports.
 type LocalModuleResolver struct {
-	// sandboxFactory creates sandboxes when needed. When non-nil, this factory is used
-	// instead of safedisk.NewNoOpSandbox.
+	// sandboxFactory creates the sandbox used to read go.mod. When nil, a kernel-backed
+	// sandbox is created directly with safedisk.NewSandbox.
 	sandboxFactory safedisk.Factory
 
 	// startDir is the directory where the search for go.mod starts.
@@ -56,38 +55,32 @@ type LocalModuleResolver struct {
 	moduleName string
 }
 
+// LocalModuleResolverOption configures a LocalModuleResolver at construction.
+type LocalModuleResolverOption func(*LocalModuleResolver)
+
 // NewLocalModuleResolver creates a new local module resolver.
 //
 // The startDir is the directory from which to begin searching for the go.mod file,
-// typically the project's root or current working directory.
+// typically the project's root or current working directory. Without a sandbox factory
+// the go.mod file is read through a kernel-backed sandbox rooted at its directory.
 //
 // Takes startDir (string) which specifies the directory to start searching from for the
 // go.mod file.
+// Takes opts (...LocalModuleResolverOption) which apply optional configuration such as
+// WithSandboxFactory.
 //
 // Returns *LocalModuleResolver which is ready to detect the local module.
-func NewLocalModuleResolver(startDir string) *LocalModuleResolver {
-	return &LocalModuleResolver{
-		startDir:   startDir,
-		baseDir:    "",
-		moduleName: "",
-	}
-}
-
-// NewLocalModuleResolverWithFactory creates a new local module resolver with an optional
-// sandbox factory.
-//
-// Takes startDir (string) which specifies the directory to start searching from for the
-// go.mod file.
-// Takes factory (safedisk.Factory) which creates sandboxes when needed.
-//
-// Returns *LocalModuleResolver which is ready to detect the local module.
-func NewLocalModuleResolverWithFactory(startDir string, factory safedisk.Factory) *LocalModuleResolver {
-	return &LocalModuleResolver{
-		sandboxFactory: factory,
+func NewLocalModuleResolver(startDir string, opts ...LocalModuleResolverOption) *LocalModuleResolver {
+	resolver := &LocalModuleResolver{
+		sandboxFactory: nil,
 		startDir:       startDir,
 		baseDir:        "",
 		moduleName:     "",
 	}
+	for _, opt := range opts {
+		opt(resolver)
+	}
+	return resolver
 }
 
 // DetectLocalModule finds the project's root by locating the go.mod file and parsing it
@@ -131,7 +124,7 @@ func (lmr *LocalModuleResolver) DetectLocalModule(ctx context.Context) error {
 	lmr.baseDir = filepath.Dir(modFile)
 	l.Internal("Found go.mod file", logger_domain.String("path", modFile), logger_domain.String("baseDir", lmr.baseDir))
 
-	name, err := readModuleName(modFile, lmr.sandboxFactory)
+	name, err := ReadModuleName(ctx, modFile, lmr.sandboxFactory)
 	if err != nil {
 		moduleDetectionErrorCount.Add(ctx, 1)
 		l.ReportError(span, err, "Failed to read module name from go.mod")
@@ -419,6 +412,18 @@ func (*LocalModuleResolver) fetchRemotePK(ctx context.Context, url string) (stri
 	return "", err
 }
 
+// WithSandboxFactory makes the resolver create the sandbox it reads go.mod through with
+// the given factory, so the application's sandbox configuration applies.
+//
+// Takes factory (safedisk.Factory) which creates the read-only module directory sandbox.
+//
+// Returns LocalModuleResolverOption which applies the factory.
+func WithSandboxFactory(factory safedisk.Factory) LocalModuleResolverOption {
+	return func(resolver *LocalModuleResolver) {
+		resolver.sandboxFactory = factory
+	}
+}
+
 // findGoMod searches upward through the directory tree to find a go.mod file.
 //
 // Takes start (string) which is the directory or file path to begin from.
@@ -457,45 +462,4 @@ func findGoMod(start string) (string, error) {
 		}
 		directory = parent
 	}
-}
-
-// readModuleName reads a go.mod file and returns the module name from the "module ..."
-// line.
-//
-// Takes modFile (string) which is the path to the go.mod file.
-//
-// Returns string which is the module name found in the file.
-// Returns error when the file cannot be opened, read, or does not contain a module line.
-func readModuleName(modFile string, factory safedisk.Factory) (string, error) {
-	modDir := filepath.Dir(modFile)
-	var sandbox safedisk.Sandbox
-	var sErr error
-	if factory != nil {
-		sandbox, sErr = factory.Create("go-mod", modDir, safedisk.ModeReadOnly)
-	} else {
-		sandbox, sErr = safedisk.NewNoOpSandbox(modDir, safedisk.ModeReadOnly)
-	}
-	if sErr != nil {
-		return "", fmt.Errorf("creating sandbox for go.mod at %q: %w", modFile, sErr)
-	}
-	defer func() { _ = sandbox.Close() }()
-
-	data, err := sandbox.ReadFile("go.mod")
-	if err != nil {
-		return "", fmt.Errorf("reading go.mod file %q: %w", modFile, err)
-	}
-
-	sc := bufio.NewScanner(strings.NewReader(string(data)))
-	for sc.Scan() {
-		line := strings.TrimSpace(sc.Text())
-		if strings.HasPrefix(line, "module ") {
-			return strings.TrimSpace(strings.TrimPrefix(line, "module")), nil
-		}
-	}
-
-	if err := sc.Err(); err != nil {
-		return "", fmt.Errorf("scanning go.mod file %q: %w", modFile, err)
-	}
-
-	return "", fmt.Errorf("no 'module' line found in %s", modFile)
 }

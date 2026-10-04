@@ -118,7 +118,7 @@ func newFunctionBodyScope(parameters []string) *scopeChain {
 	for _, name := range parameters {
 		columns = append(columns, querier_dto.ScopedColumn{
 			Name:     name,
-			SQLType:  querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown},
+			SQLType:  querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""),
 			Nullable: true,
 		})
 	}
@@ -127,6 +127,8 @@ func newFunctionBodyScope(parameters []string) *scopeChain {
 		Alias:          functionBodyParameterAlias,
 		Columns:        columns,
 		IsWithoutRowID: true,
+		Schema:         "",
+		JoinKind:       querier_dto.JoinInner,
 	}
 	return scope
 }

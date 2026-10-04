@@ -138,6 +138,14 @@ type generatorService struct {
 	// operations that are not routed through port interfaces.
 	baseSandbox safedisk.Sandbox
 
+	// distSandbox is an optional sandbox rooted at the project root that overrides
+	// baseSandbox when creating the dist package placeholder.
+	distSandbox safedisk.Sandbox
+
+	// sandboxFactory creates a sandbox for the dist package placeholder when neither
+	// distSandbox nor baseSandbox is set.
+	sandboxFactory safedisk.Factory
+
 	// baseDir is the absolute path to the project root directory.
 	baseDir string
 
@@ -164,6 +172,9 @@ type generatorService struct {
 	// valid Go. Off by default: it is a defensive check redundant with the downstream `go
 	// build` of dist, and the per-artefact parse is a top build allocation source.
 	verifyGeneratedCode bool
+
+	// inMemoryMode skips filesystem operations such as creating the dist package.
+	inMemoryMode bool
 }
 
 // GeneratorPorts groups all adapter ports required by the generator service. It follows
@@ -309,6 +320,29 @@ func (s *generatorService) Generate(
 // Returns resolver_domain.ResolverPort which is the path resolver instance.
 func (s *generatorService) Resolver() resolver_domain.ResolverPort {
 	return s.resolver
+}
+
+// EnsureDistPackage creates the dist directory and its placeholder generated.go when they
+// are missing, so the project's dist package is a valid Go package before the first
+// build. It does nothing in in-memory mode.
+//
+// Returns error when ctx is cancelled, or when the placeholder cannot be checked or
+// written.
+func (s *generatorService) EnsureDistPackage(ctx context.Context) error {
+	if s.inMemoryMode {
+		return nil
+	}
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("ensuring dist package exists: %w", err)
+	}
+	sandbox := s.distSandbox
+	if sandbox == nil {
+		sandbox = s.baseSandbox
+	}
+	if err := ensureDistPackageExists(ctx, s.baseDir, sandbox, s.sandboxFactory); err != nil {
+		return fmt.Errorf("ensuring dist package exists: %w", err)
+	}
+	return nil
 }
 
 // GenerateProject orchestrates the full compilation pipeline for an entire project. It
@@ -478,11 +512,18 @@ func (s *generatorService) runSingleFileAnnotation(
 	request generator_dto.GenerateRequest,
 ) (*annotator_dto.ProjectAnnotationResult, error) {
 	entryPoints := []annotator_dto.EntryPoint{{
-		Path:              request.SourcePath,
-		IsPage:            request.IsPage,
-		IsPublic:          false,
-		IsEmail:           false,
-		VirtualPageSource: nil,
+		Path:               request.SourcePath,
+		IsPage:             request.IsPage,
+		IsPublic:           false,
+		IsEmail:            false,
+		VirtualPageSource:  nil,
+		ErrorStatusCode:    0,
+		ErrorStatusCodeMin: 0,
+		ErrorStatusCodeMax: 0,
+		IsPdf:              false,
+		IsE2EOnly:          false,
+		IsErrorPage:        false,
+		IsCatchAllError:    false,
 	}}
 	return s.coordinator.GetResult(ctx, entryPoints, coordinator_domain.WithCausationID(generatorCausationID))
 }
@@ -1306,10 +1347,10 @@ func WithI18nLocales(locales []string) GeneratorServiceOption {
 // WithDistSandbox sets a custom sandbox for dist directory operations. This allows mock
 // sandboxes to be used for testing filesystem operations.
 //
-// If not provided, a real sandbox is created from the base directory.
+// If not provided, EnsureDistPackage uses the base sandbox.
 //
-// Takes sandbox (safedisk.Sandbox) which provides filesystem access for dist directory
-// operations.
+// Takes sandbox (safedisk.Sandbox) which provides filesystem access rooted at the project
+// directory for dist directory operations.
 //
 // Returns GeneratorServiceOption which configures the service with the given sandbox.
 func WithDistSandbox(sandbox safedisk.Sandbox) GeneratorServiceOption {
@@ -1391,26 +1432,20 @@ func WithVerifyGeneratedCode(enabled bool) GeneratorServiceOption {
 // NewGeneratorService creates a new, fully configured generator service.
 //
 // It takes all its dependencies as interfaces, adhering to the Hexagonal architecture.
+// Construction does not create the dist package; the owner calls EnsureDistPackage before
+// the first build.
 //
-// Takes ctx (context.Context) which provides the context for construction-time
-// operations.
 // Takes pathsConfig (GeneratorPathsConfig) which provides path settings.
 // Takes i18nDefaultLocale (string) which is the default locale for i18n.
 // Takes ports (GeneratorPorts) which provides the required service adapters.
 // Takes opts (...GeneratorServiceOption) which provides optional configuration.
 //
 // Returns GeneratorService which is the configured service ready for use.
-// Returns error when the distribution package cannot be created.
-func NewGeneratorService(ctx context.Context, pathsConfig GeneratorPathsConfig, i18nDefaultLocale string, ports GeneratorPorts, opts ...GeneratorServiceOption) (GeneratorService, error) {
+// Returns error when the base sandbox cannot be created.
+func NewGeneratorService(pathsConfig GeneratorPathsConfig, i18nDefaultLocale string, ports GeneratorPorts, opts ...GeneratorServiceOption) (GeneratorService, error) {
 	options := &generatorServiceOptions{}
 	for _, opt := range opts {
 		opt(options)
-	}
-
-	if !options.inMemoryMode {
-		if err := ensureDistPackageExists(ctx, pathsConfig.BaseDir, options.distSandbox, ports.SandboxFactory); err != nil {
-			return nil, fmt.Errorf("ensuring dist package exists: %w", err)
-		}
 	}
 
 	baseSandbox := ports.BaseSandbox
@@ -1442,6 +1477,9 @@ func NewGeneratorService(ctx context.Context, pathsConfig GeneratorPathsConfig, 
 		actionGenerator:           ports.ActionGenerator,
 		seoService:                ports.SEOService,
 		baseSandbox:               baseSandbox,
+		distSandbox:               options.distSandbox,
+		sandboxFactory:            ports.SandboxFactory,
+		inMemoryMode:              options.inMemoryMode,
 		enablePrerendering:        options.enablePrerendering,
 		stripHTMLComments:         options.stripHTMLComments,
 		enableDwarfLineDirectives: options.enableDwarfLineDirectives,
@@ -1527,11 +1565,10 @@ func convertVirtualInstanceToContentItem(instance annotator_dto.VirtualPageInsta
 		return collection_dto.ContentItem{}, false
 	}
 
-	item := collection_dto.ContentItem{
-		ID:       instance.Slug,
-		Slug:     instance.Slug,
-		Metadata: make(map[string]any),
-	}
+	item := collection_dto.ContentItem{}
+	item.ID = instance.Slug
+	item.Slug = instance.Slug
+	item.Metadata = make(map[string]any)
 
 	if pageData, ok := instance.InitialProps["page"].(map[string]any); ok {
 		item.Metadata = pageData
@@ -1603,10 +1640,10 @@ func derivePagePath(sourcePath, baseDir string) string {
 // ensureDistPackageExists checks if the dist directory and a placeholder generated.go
 // file exist to ensure it is a valid Go package. If either is missing, it creates them.
 //
-// Takes ctx (context.Context) which provides the base context for logging. Takes baseDir
-// (string) which is the absolute path to the project root. Takes sandbox
-// (safedisk.Sandbox) which is an optional sandbox for filesystem operations. If nil, a
-// sandbox is created from the base directory.
+// Takes baseDir (string) which is the absolute path to the project root.
+// Takes sandbox (safedisk.Sandbox) which is an optional sandbox rooted at baseDir; when
+// nil, a sandbox is created from the base directory.
+// Takes factory (safedisk.Factory) which creates that sandbox when set.
 //
 // Returns error when the sandbox cannot be created, the placeholder file status cannot be
 // checked, or directory or file creation fails.
@@ -1633,7 +1670,7 @@ func ensureDistPackageExists(ctx context.Context, baseDir string, sandbox safedi
 	}
 
 	placeholderRelPath := filepath.Join(distDir, placeholderFileName)
-	_, l := logger_domain.From(context.WithoutCancel(ctx), log)
+	_, l := logger_domain.From(ctx, log)
 	_, err := baseSandbox.Stat(placeholderRelPath)
 	if err == nil {
 		l.Internal("Placeholder 'dist/generated.go' already exists.")

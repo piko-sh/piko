@@ -149,10 +149,17 @@ func (s *Store) Search(ctx context.Context, request *llm_dto.VectorSearchRequest
 	}
 
 	searchResult, err := c.Search(ctx, request.TextQuery, &cache_dto.SearchOptions{
-		Vector:   request.Vector,
-		TopK:     topK,
-		MinScore: request.MinScore,
-		Limit:    topK,
+		Vector:      request.Vector,
+		TopK:        topK,
+		MinScore:    request.MinScore,
+		Limit:       topK,
+		SortBy:      "",
+		VectorField: "",
+		Filters:     nil,
+		Fields:      nil,
+		Offset:      0,
+		SortOrder:   0,
+		Highlight:   false,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("cache search failed: %w", err)
@@ -168,9 +175,11 @@ func (s *Store) Search(ctx context.Context, request *llm_dto.VectorSearchRequest
 			continue
 		}
 		result := llm_dto.VectorSearchResult{
-			ID:      hit.Value.ID,
-			Content: hit.Value.Content,
-			Score:   float32(hit.Score),
+			ID:       hit.Value.ID,
+			Content:  hit.Value.Content,
+			Score:    float32(hit.Score),
+			Metadata: nil,
+			Vector:   nil,
 		}
 		if request.IncludeVectors {
 			result.Vector = hit.Value.Vector
@@ -393,6 +402,9 @@ func New(factory CacheFactory) *Store {
 		caches:  make(map[string]cache_domain.Cache[string, llm_dto.VectorDocument]),
 		configs: make(map[string]*llm_domain.VectorNamespaceConfig),
 		factory: factory,
+		retired: nil,
+		mu:      sync.RWMutex{},
+		closed:  false,
 	}
 }
 

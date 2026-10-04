@@ -291,10 +291,15 @@ func NewWebhookCollector(endpoint string, opts ...WebhookOption) (*WebhookCollec
 	}
 
 	wc := &WebhookCollector{
-		client:        &http.Client{Timeout: defaultWebhookTimeout},
-		url:           endpoint,
-		batchSize:     defaultWebhookBatchSize,
-		flushInterval: defaultWebhookFlushInterval,
+		client:               &http.Client{Timeout: defaultWebhookTimeout},
+		url:                  endpoint,
+		batchSize:            defaultWebhookBatchSize,
+		flushInterval:        defaultWebhookFlushInterval,
+		batcher:              nil,
+		headers:              nil,
+		retryConfig:          nil,
+		circuitBreakerConfig: nil,
+		clock:                nil,
 	}
 	for _, opt := range opts {
 		opt(wc)
@@ -308,6 +313,7 @@ func NewWebhookCollector(endpoint string, opts ...WebhookOption) (*WebhookCollec
 			Clock:          wc.clock,
 			Retry:          wc.retryConfig,
 			CircuitBreaker: wc.circuitBreakerConfig,
+			MaxBufferSize:  0,
 		},
 		wc.sendBatch,
 	)
@@ -350,6 +356,8 @@ func (wc *WebhookCollector) Collect(_ context.Context, event *analytics_dto.Even
 		DurationMS:     float64(event.Duration) / float64(time.Millisecond),
 		StatusCode:     event.StatusCode,
 		Type:           event.Type.String(),
+		Revenue:        nil,
+		Properties:     nil,
 	}
 	if event.Revenue != nil {
 		snap.Revenue = new(*event.Revenue)

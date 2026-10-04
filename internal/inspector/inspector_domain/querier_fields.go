@@ -26,7 +26,7 @@ import (
 	goast "go/ast"
 	"strings"
 
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 )

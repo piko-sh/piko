@@ -20,6 +20,7 @@ package llm_provider_ollama
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -36,7 +37,14 @@ const (
 	llmStreamEventBufferSize = 16
 )
 
+var (
+	// errStreamFinished is the cancellation cause recorded once a stream has finished.
+	errStreamFinished = errors.New("ollama stream finished")
+)
+
 // Stream sends a streaming completion request to Ollama.
+//
+// Starts the provider first when it has not been started.
 //
 // Takes request (*llm_dto.CompletionRequest) which specifies the completion parameters
 // including model and messages.
@@ -45,16 +53,17 @@ const (
 // the Ollama API.
 // Returns error when the stream cannot be started.
 //
-// A processing task scheduled via streamWaitGroup.Go feeds events to the returned channel
-// until the stream completes or the context is cancelled. The wait group is incremented
-// so Close can drain active streams before returning.
+// A processing task tracked on backgroundWaitGroup feeds events to the returned channel
+// until the stream completes or the context is cancelled, so Close can drain active
+// streams before returning.
 func (p *ollamaProvider) Stream(ctx context.Context, request *llm_dto.CompletionRequest) (<-chan llm_dto.StreamEvent, error) {
 	ctx, l := logger.From(ctx, log)
 	streamCount.Add(ctx, 1)
 
 	model, ref := p.resolveModel(request.Model, p.defaultModel)
 
-	if err := p.ensureModel(ctx, model, ref); err != nil {
+	chatRequest, err := p.prepareChat(ctx, request, model, ref)
+	if err != nil {
 		streamErrorCount.Add(ctx, 1)
 		return nil, err
 	}
@@ -64,41 +73,47 @@ func (p *ollamaProvider) Stream(ctx context.Context, request *llm_dto.Completion
 		logger.Int("message_count", len(request.Messages)),
 	)
 
-	chatRequest := p.buildChatRequest(ctx, request, model)
-	streamContext := p.streamContext(ctx)
+	streamContext, cancelStream := p.streamContext(ctx)
 
 	events := make(chan llm_dto.StreamEvent, llmStreamEventBufferSize)
 
-	p.streamWaitGroup.Go(func() {
+	if err := p.goBackground(func() {
+		defer cancelStream(errStreamFinished)
 		p.processStream(streamContext, chatRequest, model, events)
-	})
+	}); err != nil {
+		cancelStream(err)
+		streamErrorCount.Add(ctx, 1)
+		return nil, err
+	}
 
 	return events, nil
 }
 
-// streamContext returns a context that is cancelled when either the caller's context is
-// cancelled or the provider is closed.
+// streamContext returns a context that is cancelled when the caller's context is
+// cancelled, the provider is closed, or the returned cancel function is called.
 //
 // Takes ctx (context.Context) which is the caller's context.
 //
 // Returns context.Context which carries the merged cancellation signal.
-func (p *ollamaProvider) streamContext(ctx context.Context) context.Context {
-	if p.closeContext == nil {
-		return ctx
-	}
+// Returns context.CancelCauseFunc which must be called once the stream finishes, so the
+// watch on the provider's close signal is released.
+func (p *ollamaProvider) streamContext(ctx context.Context) (context.Context, context.CancelCauseFunc) {
 	merged, cancel := context.WithCancelCause(ctx)
+	if p.closeContext == nil {
+		return merged, cancel
+	}
 	stopWatch := context.AfterFunc(p.closeContext, func() {
 		cancel(context.Cause(p.closeContext))
 	})
-	context.AfterFunc(merged, func() {
+	return merged, func(cause error) {
 		stopWatch()
-	})
-	return merged
+		cancel(cause)
+	}
 }
 
 // processStream runs the Ollama chat with streaming and feeds events into the channel.
-// The caller is responsible for tracking the goroutine via streamWaitGroup; processStream
-// itself only owns the events channel.
+// The caller is responsible for tracking the goroutine via backgroundWaitGroup;
+// processStream itself only owns the events channel.
 //
 // Takes chatRequest (*api.ChatRequest) which is the Ollama request.
 // Takes model (string) which is the model being used.
@@ -123,8 +138,13 @@ func (p *ollamaProvider) processStream(ctx context.Context, chatRequest *api.Cha
 		chunk := &llm_dto.StreamChunk{
 			Model: model,
 			Delta: &llm_dto.MessageDelta{
-				Content: new(response.Message.Content),
+				Content:   new(response.Message.Content),
+				Role:      nil,
+				ToolCalls: nil,
 			},
+			FinishReason: nil,
+			Usage:        nil,
+			ID:           "",
 		}
 
 		select {
@@ -166,9 +186,8 @@ func buildStreamDoneEvent(
 	model string, toolCalls []api.ToolCall, promptTokens, evalTokens int,
 ) llm_dto.StreamEvent {
 	finishReason := llm_dto.FinishReasonStop
-	doneMessage := llm_dto.Message{
-		Role: llm_dto.RoleAssistant,
-	}
+	doneMessage := llm_dto.Message{}
+	doneMessage.Role = llm_dto.RoleAssistant
 
 	if len(toolCalls) > 0 {
 		doneMessage.ToolCalls = convertOllamaToolCalls(toolCalls)
@@ -188,6 +207,12 @@ func buildStreamDoneEvent(
 			PromptTokens:     promptTokens,
 			CompletionTokens: evalTokens,
 			TotalTokens:      promptTokens + evalTokens,
+			EstimatedCost:    nil,
+			CachedTokens:     0,
 		},
+		FallbackInfo: nil,
+		ID:           "",
+		Sources:      nil,
+		Created:      0,
 	})
 }

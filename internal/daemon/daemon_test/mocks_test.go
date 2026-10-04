@@ -147,14 +147,14 @@ func newMockOnDemandVariantGenerator() *daemon_domain.MockOnDemandVariantGenerat
 func newMockTemplaterService() *templater_domain.MockTemplaterService {
 	return &templater_domain.MockTemplaterService{
 		ProbePageFunc: func(_ context.Context, _ templater_dto.PageDefinition, _ *http.Request, _ *config.WebsiteConfig) (*templater_dto.PageProbeResult, error) {
-			return &templater_dto.PageProbeResult{LinkHeaders: nil}, nil
+			return &templater_dto.PageProbeResult{}, nil
 		},
 		RenderPageFunc: func(_ context.Context, request templater_domain.RenderRequest) error {
 			_, err := request.Writer.Write([]byte("<html><body>Mock Page</body></html>"))
 			return err
 		},
 		ProbePartialFunc: func(_ context.Context, _ templater_dto.PageDefinition, _ *http.Request, _ *config.WebsiteConfig) (*templater_dto.PageProbeResult, error) {
-			return &templater_dto.PageProbeResult{LinkHeaders: nil}, nil
+			return &templater_dto.PageProbeResult{}, nil
 		},
 		RenderPartialFunc: func(_ context.Context, request templater_domain.RenderRequest) error {
 			_, err := request.Writer.Write([]byte("<div>Mock Partial</div>"))

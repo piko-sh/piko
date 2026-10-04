@@ -230,16 +230,15 @@ const (
 	// the top level, shared by the classifier and the parser.
 	objectKindDatabase = "DATABASE"
 
-	// maxTokensPerStatement bounds the per-statement token stream length the consume helpers
-	// walk.
+	// defaultMaxTokensPerStatement bounds the per-statement token stream length the parser
+	// walks when no WithMaxTokensPerStatement option is supplied.
 	//
 	// Real ClickHouse statements rarely exceed a few hundred tokens; the 100k headroom
 	// covers generated SQL with large IN lists while still cutting off an adversarial input
-	// that would otherwise drive a paren-balanced scan into an unbounded loop. The budget is
-	// enforced by a single upfront whole-statement check in ApplyDDL and AnalyseQuery (`if
-	// len(parsed.tokens) > maxTokensPerStatement`) run before any parsing begins, which
-	// returns errTokenBudgetExceeded directly; there is no per-helper check or recover path.
-	maxTokensPerStatement = 100_000
+	// that would otherwise drive the analysis and DDL parsers into a very long,
+	// non-cancellable walk. ApplyDDL and AnalyseQuery check the budget once, before any
+	// parsing begins, and only for statements the parser actually walks.
+	defaultMaxTokensPerStatement = 100_000
 )
 
 var (
@@ -255,9 +254,14 @@ var (
 	// complete.
 	errUnexpectedEndOfWithInput = errors.New("unexpected end of input in WITH clause")
 
-	// errTokenBudgetExceeded is returned when a statement scan walks more tokens than
-	// maxTokensPerStatement permits.
+	// errTokenBudgetExceeded is returned, wrapped with the statement's token count and the
+	// configured limit, when a statement is longer than the per-statement token budget.
 	errTokenBudgetExceeded = errors.New("clickhouse: per-statement token budget exceeded")
+
+	// errExpressionDepthExceeded is recorded as the parser's syntax error when expression
+	// nesting exceeds maxParseDepth, so an over-deep expression is reported rather than
+	// silently degrading to an unknown type.
+	errExpressionDepthExceeded = errors.New("clickhouse: expression nesting depth exceeded")
 
 	// firstWordClassifiers dispatches on the first keyword to the appropriate sub-classifier
 	// when the second token is also needed for disambiguation (e.g. CREATE TABLE vs CREATE
@@ -362,6 +366,11 @@ type parser struct {
 	// binding.
 	firstParameterTypeError error
 
+	// syntaxError captures the first syntax error found by a parsing routine that has no
+	// error result of its own (the expression chain). ApplyDDL and AnalyseQuery return it in
+	// preference to any partial result.
+	syntaxError error
+
 	// tokens holds the lexed token stream being parsed.
 	tokens []token
 
@@ -387,6 +396,11 @@ type parser struct {
 	// seeds it with defaultMaxParseDepth; the engine overrides it from the dialect and child
 	// parsers inherit it so the global cap holds across instances.
 	maxParseDepth int
+
+	// maxTypeParseDepth is the effective cap on wrapper nesting inside type names parsed
+	// while walking the statement. newParser seeds it with defaultMaxTypeParseDepth; the
+	// engine overrides it from the dialect and child parsers inherit it.
+	maxTypeParseDepth int
 }
 
 // newParser builds a parser positioned at the start of the supplied token stream with the
@@ -397,9 +411,16 @@ type parser struct {
 // Returns *parser which is the ready-to-use parser state.
 func newParser(tokens []token) *parser {
 	return &parser{
-		tokens:            tokens,
-		maxParseDepth:     defaultMaxParseDepth,
-		namedParameterMap: make(map[string]int),
+		tokens:                  tokens,
+		maxParseDepth:           defaultMaxParseDepth,
+		maxTypeParseDepth:       defaultMaxTypeParseDepth,
+		namedParameterMap:       make(map[string]int),
+		firstParameterTypeError: nil,
+		syntaxError:             nil,
+		position:                0,
+		parameterCount:          0,
+		analysisDepth:           0,
+		expressionDepth:         0,
 	}
 }
 
@@ -780,7 +801,7 @@ func classifyWithStatement(tokens []token) statementKind {
 // past the end so callers need not bounds-check on every read.
 func (p *parser) current() token {
 	if p.position >= len(p.tokens) {
-		return token{kind: tokenEOF}
+		return token{kind: tokenEOF, value: "", position: 0}
 	}
 	return p.tokens[p.position]
 }
@@ -792,7 +813,7 @@ func (p *parser) current() token {
 // Returns token which is the lookahead token, or an EOF sentinel when out of range.
 func (p *parser) peek() token {
 	if p.position+1 >= len(p.tokens) {
-		return token{kind: tokenEOF}
+		return token{kind: tokenEOF, value: "", position: 0}
 	}
 	return p.tokens[p.position+1]
 }
@@ -805,7 +826,7 @@ func (p *parser) peek() token {
 // range.
 func (p *parser) peekAt(index int) token {
 	if index < 0 || index >= len(p.tokens) {
-		return token{kind: tokenEOF}
+		return token{kind: tokenEOF, value: "", position: 0}
 	}
 	return p.tokens[index]
 }
@@ -972,50 +993,87 @@ func (p *parser) skipParenthesised() error {
 // tokens, excluding the outer parens.
 //
 // It is used when the caller needs to re-parse the inner content (for example column
-// definitions or function bodies).
+// definitions or function bodies). The result is a sub-slice of the parser's own token
+// stream rather than a copy, so nested groups re-parsed level by level cost no extra
+// memory; its capacity is clipped to its length so an append by a caller can never
+// overwrite the tokens that follow the group.
 //
-// Returns []token which is the inner token slice.
+// Returns []token which is the inner token slice, sharing storage with p.tokens.
 // Returns error when the cursor is not on `(` or the parens are unbalanced.
 func (p *parser) collectParenthesised() ([]token, error) {
 	if p.current().kind != tokenLeftParen {
 		return nil, fmt.Errorf("expected '(' at position %d", p.current().position)
 	}
 	p.advance()
-	var inner []token
+	start := p.position
 	depth := 1
-	for depth > 0 && !p.atEnd() {
-		tok := p.current()
-		switch tok.kind {
+	for !p.atEnd() {
+		switch p.current().kind {
 		case tokenLeftParen:
 			depth++
 		case tokenRightParen:
 			depth--
 			if depth == 0 {
+				end := p.position
 				p.advance()
-				return inner, nil
+				return p.tokens[start:end:end], nil
 			}
 		default:
 		}
-		inner = append(inner, tok)
 		p.advance()
 	}
 	return nil, errUnmatchedParenthesis
 }
 
-// mustKeyword is the panic-on-mismatch variant of expectKeyword.
+// expectKeywordSequence consumes each of keywords in order, each one required.
 //
-// IMPORTANT RECOVER PRECONDITION: mustKeyword panics on mismatch. Callers MUST run inside
-// a recover-protected frame. The public-API entry points ApplyDDL and AnalyseQuery
-// (engine.go) install the required defer/recover at the top of each call, wrapping the
-// recovered value plus a captured stack trace into a returned error so a malformed
-// statement cannot crash the calling apply loop. Any new entry point that invokes
-// mustKeyword (directly or transitively) must install its own recover or it must only be
-// called when the caller has already classified the statement so a mismatch indicates a
-// tokeniser invariant break, not user input.
+// Takes keywords (...string) which are the keywords that must appear next, in order.
 //
-// Takes keywords (...string) which are the accepted keyword spellings.
-func (p *parser) mustKeyword(keywords ...string) {
-	if _, err := p.expectKeyword(keywords...); err != nil {
-		panic(fmt.Errorf("mustKeyword %v: %w", keywords, err))
+// Returns error when any keyword in the sequence does not match the token at the cursor.
+func (p *parser) expectKeywordSequence(keywords ...string) error {
+	for _, keyword := range keywords {
+		if _, err := p.expectKeyword(keyword); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// newChildParser creates a parser over a sub-sequence of tokens that inherits this
+// parser's analysis depth and every configured limit, so the global bounds hold across
+// nested parser instances.
+//
+// Takes tokens ([]token) which is the token sub-sequence the child walks.
+//
+// Returns *parser which is the child parser positioned at the start of tokens.
+func (p *parser) newChildParser(tokens []token) *parser {
+	child := newParser(tokens)
+	child.analysisDepth = p.analysisDepth
+	child.maxParseDepth = p.maxParseDepth
+	child.maxTypeParseDepth = p.maxTypeParseDepth
+	return child
+}
+
+// recordSyntaxError keeps the first syntax error reported by a parsing routine that has
+// no error result of its own; later errors are dropped because the first one is the root
+// cause.
+//
+// Takes err (error) which is the syntax error to record.
+func (p *parser) recordSyntaxError(err error) {
+	if p.syntaxError == nil {
+		p.syntaxError = err
+	}
+}
+
+// absorbChildFailure records a nested parser's depth-limit failure on this parser.
+//
+// Nested subquery bodies that fail to parse fall back to an untyped expression by design,
+// but a failure caused by a nesting limit must still surface so an over-deep statement is
+// reported rather than silently accepted.
+//
+// Takes err (error) which is the nested parser's failure, or nil.
+func (p *parser) absorbChildFailure(err error) {
+	if errors.Is(err, errAnalysisDepthExceeded) || errors.Is(err, errExpressionDepthExceeded) || errors.Is(err, errTypeDepthExceeded) {
+		p.recordSyntaxError(err)
 	}
 }

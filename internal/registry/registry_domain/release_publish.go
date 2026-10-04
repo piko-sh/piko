@@ -326,6 +326,7 @@ func SeedDigest(artefacts []*registry_dto.ArtefactMeta) string {
 // Takes digest (string) which is the release payload digest (see SeedDigest).
 // Takes artefacts ([]*registry_dto.ArtefactMeta) which are the release's artefact layers.
 // Takes now (time.Time) which is the claim and heartbeat time.
+// Takes options (...PublishOption) which configure release publication.
 //
 // Returns PublishOutcome which describes what happened.
 // Returns error when the release id is empty, a digest conflict is detected, or a store
@@ -393,8 +394,9 @@ func PublishRelease(
 // attempt.
 //
 // Takes publisher (ReleasePublisher) which owns the lease rows.
-// Takes releaseID (string) and digest (string) which identify the release and its
-// payload.
+// Takes releaseID (string) which identifies the release whose publishing lease is
+// accessed.
+// Takes digest (string) which identifies the release payload.
 // Takes now (time.Time) which is the claim time.
 //
 // Returns bool which reports whether this caller now owns the publish.
@@ -736,8 +738,10 @@ func retireReleaseInTransaction(ctx context.Context, transactionStore MetadataSt
 
 	if len(hints) > 0 {
 		if err := transactionStore.AtomicUpdate(ctx, []registry_dto.AtomicAction{{
-			Type:    registry_dto.ActionTypeAddGCHints,
-			GCHints: hints,
+			Type:       registry_dto.ActionTypeAddGCHints,
+			GCHints:    hints,
+			ArtefactID: "",
+			Artefact:   nil,
 		}}); err != nil {
 			return fmt.Errorf("recording garbage hints for retired release '%s': %w", releaseID, err)
 		}

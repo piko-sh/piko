@@ -21,9 +21,14 @@ package security_adapters
 import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
+
+	"piko.sh/piko/internal/logger/logger_domain"
 )
 
 var (
+	// log is the package logger, used when a request carries none.
+	log = logger_domain.GetLogger("piko/internal/security/security_adapters")
+
 	// meter provides OpenTelemetry metrics for the security adapters package.
 	meter = otel.Meter("piko/internal/security/security_adapters")
 

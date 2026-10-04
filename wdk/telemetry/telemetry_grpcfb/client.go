@@ -824,6 +824,20 @@ func newClient(clientConnection *grpc.ClientConn, ownsConnection bool, config Co
 				return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
 			},
 		}),
+		currentBatch:      nil,
+		cancel:            nil,
+		ticker:            nil,
+		wg:                sync.WaitGroup{},
+		seq:               0,
+		currentEventCount: 0,
+		sent:              atomic.Int64{},
+		dropped:           atomic.Int64{},
+		rejected:          atomic.Int64{},
+		mu:                sync.Mutex{},
+		started:           atomic.Bool{},
+		closed:            atomic.Bool{},
+		dropWarned:        atomic.Bool{},
+		sendClosed:        false,
 	}
 }
 
@@ -840,5 +854,17 @@ func newBatch(config *Config) *Batch {
 		ServiceName: identity.ServiceName, ServiceVersion: identity.ServiceVersion,
 		Environment: identity.Environment, Region: identity.Region,
 		StartedAtMs: identity.StartedAtMs, PID: identity.PID,
+		Analytics:  nil,
+		Watchdog:   nil,
+		Logs:       nil,
+		Spans:      nil,
+		Metrics:    nil,
+		Errors:     nil,
+		Profiles:   nil,
+		Workers:    nil,
+		QueryStats: nil,
+		Emails:     nil,
+		SentAtMs:   0,
+		Seq:        0,
 	}
 }

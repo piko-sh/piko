@@ -237,10 +237,8 @@ func TestClientStampsIdentityOnEveryFrame(t *testing.T) {
 }
 
 func TestClientWithoutIdentityStampsNothing(t *testing.T) {
-	config := Config{
-		SiteID: "site-1", APIKey: "", Source: "", Identity: Identity{},
-		FlushSize: 0, FlushInterval: 0, MaxQueuedBatches: 0, Breaker: nil,
-	}
+	config := Config{}
+	config.SiteID = "site-1"
 
 	batch := newBatch(&config)
 

@@ -532,3 +532,42 @@ func TestMiddleware_EventNameOutranksActionName(t *testing.T) {
 	assert.Equal(t, "docsearch.ask", event.ActionName,
 		"a custom event fired from an action still records the action that ran")
 }
+
+type gatedCollector struct {
+	gate chan struct{}
+	testCollector
+}
+
+func (c *gatedCollector) Collect(ctx context.Context, ev *analytics_dto.Event) error {
+	<-c.gate
+	return c.testCollector.Collect(ctx, ev)
+}
+
+func TestMiddleware_EventOwnsItsAnalyticsValues(t *testing.T) {
+	collector := &gatedCollector{gate: make(chan struct{})}
+	svc := analytics_domain.NewService([]analytics_domain.Collector{collector})
+	svc.Start(context.Background())
+
+	pctx := daemon_dto.AcquirePikoRequestCtx()
+	mw := NewAnalyticsMiddleware(svc)
+	handler := mw.Handler(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		require.True(t, pctx.SetAnalyticsProperty("plan", "pro", 8))
+		pctx.SetAnalyticsRevenue(new(maths.NewMoneyFromString("9.99", "GBP")))
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	handler.ServeHTTP(httptest.NewRecorder(), newRequestWithPctx(http.MethodGet, "/checkout", pctx))
+
+	require.True(t, pctx.SetAnalyticsProperty("plan", "team", 8))
+	pctx.SetAnalyticsRevenue(new(maths.NewMoneyFromString("1.00", "GBP")))
+	daemon_dto.ReleasePikoRequestCtx(pctx)
+	close(collector.gate)
+	require.NoError(t, svc.Close(context.Background()))
+
+	events := collector.collected()
+	require.Len(t, events, 1)
+	assert.Equal(t, map[string]string{"plan": "pro"}, events[0].Properties,
+		"later writes to the request carrier must not reach the queued event")
+	require.NotNil(t, events[0].Revenue)
+	assert.Equal(t, "9.99", events[0].Revenue.MustNumber())
+}

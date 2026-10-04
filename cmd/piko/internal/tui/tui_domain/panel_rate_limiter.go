@@ -116,6 +116,11 @@ func NewRateLimiterPanel(provider RateLimiterInspector, c clock.Clock) *RateLimi
 		stateMutex:     sync.RWMutex{},
 		allowedHistory: NewHistoryRing(rateLimiterHistorySize),
 		deniedHistory:  NewHistoryRing(rateLimiterHistorySize),
+		lastRefresh:    time.Time{},
+		err:            nil,
+		status:         nil,
+		prevAllowed:    0,
+		prevDenied:     0,
 	}
 	p.SetKeyMap([]KeyBinding{{Key: "r", Description: "Refresh"}})
 	return p
@@ -284,12 +289,16 @@ func (p *RateLimiterPanel) renderBody(status *RateLimiterStatus, err error) stri
 func (*RateLimiterPanel) detailBody(status *RateLimiterStatus, err error) inspector.DetailBody {
 	if err != nil {
 		return inspector.DetailBody{
-			Title:    rateLimiterTitle,
-			Sections: []inspector.DetailSection{{Heading: "Error", Rows: []inspector.DetailRow{{Label: "Reason", Value: err.Error()}}}},
+			Title: rateLimiterTitle,
+			Sections: []inspector.DetailSection{inspector.NewDetailSection(
+				"Error",
+				[]inspector.DetailRow{inspector.NewDetailRow("Reason", err.Error())},
+			)},
+			Subtitle: "",
 		}
 	}
 	if status == nil {
-		return inspector.DetailBody{Title: rateLimiterTitle, Subtitle: "no data yet"}
+		return inspector.DetailBody{Title: rateLimiterTitle, Subtitle: "no data yet", Sections: nil}
 	}
 	denyRatio := 0.0
 	if status.TotalChecks > 0 {
@@ -299,19 +308,19 @@ func (*RateLimiterPanel) detailBody(status *RateLimiterStatus, err error) inspec
 		Title:    rateLimiterTitle,
 		Subtitle: status.FailPolicy,
 		Sections: []inspector.DetailSection{
-			{Heading: "Configuration", Rows: []inspector.DetailRow{
-				{Label: "Token bucket", Value: status.TokenBucketStore},
-				{Label: "Counter store", Value: status.CounterStore},
-				{Label: "Fail policy", Value: status.FailPolicy},
-				{Label: "Key prefix", Value: status.KeyPrefix},
-			}},
-			{Heading: "Counters", Rows: []inspector.DetailRow{
-				{Label: "Checks", Value: fmt.Sprintf(fmtDecimal, status.TotalChecks)},
-				{Label: "Allowed", Value: fmt.Sprintf(fmtDecimal, status.TotalAllowed)},
-				{Label: "Denied", Value: fmt.Sprintf(fmtDecimal, status.TotalDenied)},
-				{Label: "Errors", Value: fmt.Sprintf(fmtDecimal, status.TotalErrors)},
-				{Label: "Deny ratio", Value: percentageString(denyRatio)},
-			}},
+			inspector.NewDetailSection("Configuration", []inspector.DetailRow{
+				inspector.NewDetailRow("Token bucket", status.TokenBucketStore),
+				inspector.NewDetailRow("Counter store", status.CounterStore),
+				inspector.NewDetailRow("Fail policy", status.FailPolicy),
+				inspector.NewDetailRow("Key prefix", status.KeyPrefix),
+			}),
+			inspector.NewDetailSection("Counters", []inspector.DetailRow{
+				inspector.NewDetailRow("Checks", fmt.Sprintf(fmtDecimal, status.TotalChecks)),
+				inspector.NewDetailRow("Allowed", fmt.Sprintf(fmtDecimal, status.TotalAllowed)),
+				inspector.NewDetailRow("Denied", fmt.Sprintf(fmtDecimal, status.TotalDenied)),
+				inspector.NewDetailRow("Errors", fmt.Sprintf(fmtDecimal, status.TotalErrors)),
+				inspector.NewDetailRow("Deny ratio", percentageString(denyRatio)),
+			}),
 		},
 	}
 }
@@ -322,7 +331,7 @@ func (*RateLimiterPanel) detailBody(status *RateLimiterStatus, err error) inspec
 func (p *RateLimiterPanel) refresh() tea.Cmd {
 	return func() tea.Msg {
 		if p.provider == nil {
-			return rateLimiterRefreshMessage{err: errNoRateLimiterInspector}
+			return rateLimiterRefreshMessage{err: errNoRateLimiterInspector, status: nil}
 		}
 		ctx, cancel := context.WithTimeoutCause(context.Background(), rateLimiterRefreshTimeout,
 			errors.New("rate-limiter status exceeded timeout"))

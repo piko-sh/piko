@@ -29,10 +29,7 @@
 //
 // Companion provider implementations live in sibling packages:
 //
-//   - wdk/modules/modules_provider_filesystem - reads bundles from a directory, intended
-//     for piko-CLI use ("piko run --module-dir ./vendor").
-//   - wdk/modules/modules_provider_inmemory - in-memory map for tests and the REPL.
-//   - wdk/modules/modules_provider_goproxy - GOPROXY-backed fetch for pipit-style
-//     scripting.
+//   - wdk/modules/modules_provider_filesystem - reads bundles from a directory.
+//   - wdk/modules/modules_provider_inmemory - in-memory map, mainly for tests.
 //   - wdk/modules/modules_provider_chain - composes other providers in priority order.
 package modules

@@ -45,6 +45,5 @@
 //
 // All manifest runner implementations are safe for concurrent use.
 // InterpretedManifestRunner uses internal locking for cache access. ManifestStore is
-// read-only after construction and safe for concurrent reads. RegistryVFSAdapter uses a
-// read-write mutex to guard its path map and fresh artefacts cache.
+// read-only after construction and safe for concurrent reads.
 package templater_adapters

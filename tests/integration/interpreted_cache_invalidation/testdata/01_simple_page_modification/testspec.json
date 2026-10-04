@@ -16,8 +16,7 @@
       "expectedGolden": "stage_1.html",
       "expectCacheHit": false,
       "expectCacheMiss": true,
-      "expectChange": true,
-      "delayBeforeRenderMs": 10
+      "expectChange": true
     }
   ]
 }

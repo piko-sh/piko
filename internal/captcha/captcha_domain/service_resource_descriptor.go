@@ -21,6 +21,7 @@ package captcha_domain
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"piko.sh/piko/internal/provider/provider_domain"
 )
@@ -53,9 +54,9 @@ func (*captchaService) ProbeName() string {
 // Returns []provider_domain.ColumnDefinition which defines the table columns.
 func (*captchaService) ResourceListColumns() []provider_domain.ColumnDefinition {
 	return []provider_domain.ColumnDefinition{
-		{Header: "NAME", Key: "name"},
-		{Header: "TYPE", Key: "type"},
-		{Header: "REGISTERED", Key: "registered"},
+		{Header: "NAME", Key: "name", WideOnly: false},
+		{Header: "TYPE", Key: "type", WideOnly: false},
+		{Header: "REGISTERED", Key: "registered", WideOnly: false},
 	}
 }
 
@@ -147,5 +148,11 @@ func findProviderInfo(infos []provider_domain.ProviderInfo, name string) provide
 			return info
 		}
 	}
-	return provider_domain.ProviderInfo{Name: name}
+	return provider_domain.ProviderInfo{
+		Name:         name,
+		Capabilities: nil,
+		RegisteredAt: time.Time{},
+		ProviderType: "",
+		IsDefault:    false,
+	}
 }

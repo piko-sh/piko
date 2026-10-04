@@ -21,6 +21,8 @@ package orchestrator_domain
 import (
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestDefaultDispatcherConfig(t *testing.T) {
@@ -51,6 +53,73 @@ func TestDefaultDispatcherConfig(t *testing.T) {
 	}
 	if config.WatermillLowHandlers != 2 {
 		t.Errorf("WatermillLowHandlers: expected 2, got %d", config.WatermillLowHandlers)
+	}
+}
+
+func TestDispatcherConfig_EffectiveLimits(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name             string
+		config           DispatcherConfig
+		wantBacklog      int
+		wantRetryBackoff time.Duration
+		wantAbandonGrace time.Duration
+		wantReruns       int
+	}{
+		{
+			name:             "zero values fall back to the defaults",
+			config:           DispatcherConfig{},
+			wantBacklog:      defaultDispatchBacklogLimit,
+			wantRetryBackoff: defaultMaxRetryBackoff,
+			wantAbandonGrace: defaultExecutorAbandonGrace,
+			wantReruns:       defaultMaxPendingReruns,
+		},
+		{
+			name: "negative values fall back to the defaults",
+			config: DispatcherConfig{
+				DispatchBacklogLimit: -1,
+				MaxRetryBackoff:      -time.Second,
+				ExecutorAbandonGrace: -time.Second,
+				MaxPendingReruns:     -1,
+			},
+			wantBacklog:      defaultDispatchBacklogLimit,
+			wantRetryBackoff: defaultMaxRetryBackoff,
+			wantAbandonGrace: defaultExecutorAbandonGrace,
+			wantReruns:       defaultMaxPendingReruns,
+		},
+		{
+			name: "positive values are used as configured",
+			config: DispatcherConfig{
+				DispatchBacklogLimit: 7,
+				MaxRetryBackoff:      time.Minute,
+				ExecutorAbandonGrace: time.Second,
+				MaxPendingReruns:     3,
+			},
+			wantBacklog:      7,
+			wantRetryBackoff: time.Minute,
+			wantAbandonGrace: time.Second,
+			wantReruns:       3,
+		},
+		{
+			name:             "the production defaults are set explicitly",
+			config:           DefaultDispatcherConfig(),
+			wantBacklog:      defaultDispatchBacklogLimit,
+			wantRetryBackoff: defaultMaxRetryBackoff,
+			wantAbandonGrace: defaultExecutorAbandonGrace,
+			wantReruns:       defaultMaxPendingReruns,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, tc.wantBacklog, tc.config.EffectiveDispatchBacklogLimit())
+			assert.Equal(t, tc.wantRetryBackoff, tc.config.EffectiveMaxRetryBackoff())
+			assert.Equal(t, tc.wantAbandonGrace, tc.config.EffectiveExecutorAbandonGrace())
+			assert.Equal(t, tc.wantReruns, tc.config.EffectiveMaxPendingReruns())
+		})
 	}
 }
 

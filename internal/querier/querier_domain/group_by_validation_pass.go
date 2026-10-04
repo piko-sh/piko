@@ -53,8 +53,11 @@ func (*groupByValidationPass) Analyse(context *diagnosticContext) []querier_dto.
 				"piko.group_by is only valid with :many command, query %q uses :%s",
 				context.Query.Name, commandName(context.Query.Command),
 			),
-			Severity: querier_dto.SeverityWarning,
-			Code:     querier_dto.CodeGroupByWrongCommand,
+			Severity:   querier_dto.SeverityWarning,
+			Code:       querier_dto.CodeGroupByWrongCommand,
+			Suggestion: "",
+			EndLine:    0,
+			EndColumn:  0,
 		})
 	}
 
@@ -87,8 +90,11 @@ func validateGroupByColumnReferences(context *diagnosticContext, outputColumnNam
 					"piko.group_by references column %q which is not in the query output",
 					groupByColumn,
 				),
-				Severity: querier_dto.SeverityWarning,
-				Code:     querier_dto.CodeGroupByColumnMissing,
+				Severity:   querier_dto.SeverityWarning,
+				Code:       querier_dto.CodeGroupByColumnMissing,
+				Suggestion: "",
+				EndLine:    0,
+				EndColumn:  0,
 			})
 		}
 	}
@@ -120,8 +126,11 @@ func validateGroupByRequiresEmbed(context *diagnosticContext) []querier_dto.Sour
 				"piko.group_by on query %q requires at least one piko.embed directive on non-key tables",
 				context.Query.Name,
 			),
-			Severity: querier_dto.SeverityWarning,
-			Code:     querier_dto.CodeGroupByMissingEmbed,
+			Severity:   querier_dto.SeverityWarning,
+			Code:       querier_dto.CodeGroupByMissingEmbed,
+			Suggestion: "",
+			EndLine:    0,
+			EndColumn:  0,
 		}}
 	}
 

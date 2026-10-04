@@ -26,6 +26,9 @@ import (
 
 // analyseSelect parses a SELECT statement into a raw query analysis.
 //
+// Compound arms (UNION, INTERSECT, EXCEPT) are collected iteratively into one flat list,
+// so a long chain of arms consumes a single level of the analysis depth budget.
+//
 // Returns *querier_dto.RawQueryAnalysis which is the populated analysis.
 // Returns error when parsing fails.
 func (p *parser) analyseSelect() (*querier_dto.RawQueryAnalysis, error) {
@@ -35,13 +38,40 @@ func (p *parser) analyseSelect() (*querier_dto.RawQueryAnalysis, error) {
 	p.analysisDepth++
 	defer func() { p.analysisDepth-- }()
 
+	analysis, err := p.analyseSelectArm()
+	if err != nil {
+		return nil, err
+	}
+
+	if err := p.parseCompoundBranches(analysis); err != nil {
+		return nil, err
+	}
+
+	p.parseOrderByIfPresent()
+	p.parseLimitOffsetIfPresent()
+	p.skipForUpdateClause()
+
+	analysis.ReadOnly = !p.hasForUpdate && !p.hasDataModifyingCTE
+	p.finaliseAnalysis(analysis)
+	return analysis, nil
+}
+
+// analyseSelectArm parses one SELECT arm including the optional WITH list, the select
+// list, and the FROM, WHERE, GROUP BY, and HAVING clauses, stopping before any compound
+// operator or trailing ORDER BY, LIMIT, and locking clauses.
+//
+// Returns *querier_dto.RawQueryAnalysis which describes the arm.
+// Returns error when the arm fails to parse.
+func (p *parser) analyseSelectArm() (*querier_dto.RawQueryAnalysis, error) {
 	analysis := &querier_dto.RawQueryAnalysis{}
 
 	if err := p.parseCTEListIfPresent(analysis); err != nil {
 		return nil, err
 	}
 
-	p.mustKeyword(keywordSELECT)
+	if _, err := p.expectKeyword(keywordSELECT); err != nil {
+		return nil, err
+	}
 	p.skipSelectModifiers()
 
 	outputColumns, err := p.parseOutputColumns()
@@ -68,16 +98,6 @@ func (p *parser) analyseSelect() (*querier_dto.RawQueryAnalysis, error) {
 		p.parseWhereClause()
 	}
 
-	if err := p.parseCompoundBranches(analysis); err != nil {
-		return nil, err
-	}
-
-	p.parseOrderByIfPresent()
-	p.parseLimitOffsetIfPresent()
-	p.skipForUpdateClause()
-
-	analysis.ReadOnly = !p.hasForUpdate && !p.hasDataModifyingCTE
-	p.finaliseAnalysis(analysis)
 	return analysis, nil
 }
 
@@ -139,10 +159,12 @@ func (p *parser) parseCompoundBranches(analysis *querier_dto.RawQueryAnalysis) e
 		if compoundOperator == 0 {
 			break
 		}
-		branchAnalysis, branchError := p.analyseSelect()
+		branchAnalysis, branchError := p.analyseSelectArm()
 		if branchError != nil {
 			return branchError
 		}
+		branchAnalysis.ReadOnly = !p.hasForUpdate && !p.hasDataModifyingCTE
+		p.finaliseAnalysis(branchAnalysis)
 		analysis.CompoundBranches = append(analysis.CompoundBranches, querier_dto.RawCompoundBranch{
 			Operator: compoundOperator,
 			Query:    branchAnalysis,
@@ -194,12 +216,19 @@ func (p *parser) analyseInsert() (*querier_dto.RawQueryAnalysis, error) {
 		return nil, err
 	}
 
-	p.mustKeyword("INSERT", keywordREPLACE)
+	if _, err := p.expectKeyword("INSERT", keywordREPLACE); err != nil {
+		return nil, err
+	}
 	p.matchKeyword(keywordIGNORE)
 	p.matchKeyword("INTO")
 
-	schema, tableName := p.mustSchemaQualifiedName()
-	p.skipPartitionClause()
+	schema, tableName, err := p.parseSchemaQualifiedName()
+	if err != nil {
+		return nil, err
+	}
+	if err := p.skipPartitionClause(); err != nil {
+		return nil, err
+	}
 	alias := p.parseOptionalAlias()
 	analysis.FromTables = []querier_dto.TableReference{{Schema: schema, Name: tableName, Alias: alias}}
 
@@ -242,13 +271,13 @@ func (p *parser) parseOptionalAlias() string {
 
 // skipPartitionClause consumes an optional MySQL PARTITION (partition_list) clause that
 // may follow the target table of an INSERT or REPLACE.
-func (p *parser) skipPartitionClause() {
+//
+// Returns error when the partition list's parentheses are unmatched.
+func (p *parser) skipPartitionClause() error {
 	if !p.matchKeyword("PARTITION") {
-		return
+		return nil
 	}
-	if p.current().kind == tokenLeftParen {
-		p.mustSkipParenthesised()
-	}
+	return p.skipParenthesisedIfPresent()
 }
 
 // parseInsertColumnList parses the optional INSERT column-name list.
@@ -327,7 +356,9 @@ func (p *parser) analyseUpdate() (*querier_dto.RawQueryAnalysis, error) {
 		return nil, err
 	}
 
-	p.mustKeyword("UPDATE")
+	if _, err := p.expectKeyword("UPDATE"); err != nil {
+		return nil, err
+	}
 
 	fromTables, joinClauses, err := p.parseUpdateTableReferences()
 	if err != nil {
@@ -336,7 +367,9 @@ func (p *parser) analyseUpdate() (*querier_dto.RawQueryAnalysis, error) {
 	analysis.FromTables = fromTables
 	analysis.JoinClauses = joinClauses
 
-	p.mustKeyword(keywordSET)
+	if _, err := p.expectKeyword(keywordSET); err != nil {
+		return nil, err
+	}
 
 	tableName := ""
 	if len(fromTables) > 0 {
@@ -364,12 +397,15 @@ func (p *parser) analyseUpdate() (*querier_dto.RawQueryAnalysis, error) {
 //
 // Returns []querier_dto.TableReference which lists each referenced table.
 // Returns []querier_dto.JoinClause which lists any join clauses.
-// Returns error when a join clause fails to parse.
+// Returns error when a table reference or join clause fails to parse.
 func (p *parser) parseUpdateTableReferences() ([]querier_dto.TableReference, []querier_dto.JoinClause, error) {
 	var tables []querier_dto.TableReference
 	var joins []querier_dto.JoinClause
 
-	tableRef := p.parseTableReference()
+	tableRef, err := p.parseTableReference()
+	if err != nil {
+		return nil, nil, err
+	}
 	tables = append(tables, tableRef)
 
 	for {
@@ -385,7 +421,10 @@ func (p *parser) parseUpdateTableReferences() ([]querier_dto.TableReference, []q
 			break
 		}
 		p.advance()
-		additionalTable := p.parseTableReference()
+		additionalTable, err := p.parseTableReference()
+		if err != nil {
+			return nil, nil, err
+		}
 		tables = append(tables, additionalTable)
 	}
 
@@ -412,7 +451,9 @@ func (p *parser) analyseDelete() (*querier_dto.RawQueryAnalysis, error) {
 		return nil, err
 	}
 
-	p.mustKeyword("DELETE")
+	if _, err := p.expectKeyword("DELETE"); err != nil {
+		return nil, err
+	}
 
 	if p.isKeyword(keywordFROM) {
 		return p.parseSimpleDelete(analysis)
@@ -428,9 +469,14 @@ func (p *parser) analyseDelete() (*querier_dto.RawQueryAnalysis, error) {
 // Returns *querier_dto.RawQueryAnalysis which is the same analysis value.
 // Returns error when parsing fails.
 func (p *parser) parseSimpleDelete(analysis *querier_dto.RawQueryAnalysis) (*querier_dto.RawQueryAnalysis, error) {
-	p.mustKeyword(keywordFROM)
+	if _, err := p.expectKeyword(keywordFROM); err != nil {
+		return nil, err
+	}
 
-	schema, tableName := p.mustSchemaQualifiedName()
+	schema, tableName, err := p.parseSchemaQualifiedName()
+	if err != nil {
+		return nil, err
+	}
 	alias := p.parseDeleteAlias()
 	analysis.FromTables = []querier_dto.TableReference{{Schema: schema, Name: tableName, Alias: alias}}
 
@@ -459,7 +505,10 @@ func (p *parser) parseSimpleDelete(analysis *querier_dto.RawQueryAnalysis) (*que
 // Returns error when parsing fails.
 func (p *parser) parseMultiTableDelete(analysis *querier_dto.RawQueryAnalysis) (*querier_dto.RawQueryAnalysis, error) {
 	for p.current().kind == tokenIdentifier {
-		_, name := p.mustSchemaQualifiedName()
+		_, name, err := p.parseSchemaQualifiedName()
+		if err != nil {
+			return nil, err
+		}
 		if p.current().kind == tokenDot && p.peek().kind == tokenStar {
 			p.advance()
 			p.advance()
@@ -471,7 +520,9 @@ func (p *parser) parseMultiTableDelete(analysis *querier_dto.RawQueryAnalysis) (
 		p.advance()
 	}
 
-	p.mustKeyword(keywordFROM)
+	if _, err := p.expectKeyword(keywordFROM); err != nil {
+		return nil, err
+	}
 
 	fromTables, joinClauses, err := p.parseFromClause()
 	if err != nil {
@@ -516,9 +567,12 @@ func (p *parser) analyseValues() (*querier_dto.RawQueryAnalysis, error) {
 	p.analysisDepth++
 	defer func() { p.analysisDepth-- }()
 
-	analysis := &querier_dto.RawQueryAnalysis{ReadOnly: true}
+	analysis := &querier_dto.RawQueryAnalysis{}
+	analysis.ReadOnly = true
 
-	p.mustKeyword(keywordVALUES)
+	if _, err := p.expectKeyword(keywordVALUES); err != nil {
+		return nil, err
+	}
 
 	if p.current().kind != tokenLeftParen {
 		analysis.ParameterReferences = p.parameterRefs

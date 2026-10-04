@@ -84,8 +84,9 @@ func Initialise(
 	otelOpts *driver_handlers.OtelSetupOptions,
 ) (*slog.Logger, func(context.Context) error, error) {
 	state := &initialisationState{
-		handlers: make([]slog.Handler, 0, len(logConfig.Outputs)),
-		closers:  make([]io.Closer, 0, len(logConfig.Outputs)),
+		handlers:      make([]slog.Handler, 0, len(logConfig.Outputs)),
+		closers:       make([]io.Closer, 0, len(logConfig.Outputs)),
+		shutdownTasks: nil,
 	}
 
 	if err := setupOtelIntegration(ctx, logConfig, otelConfig, otelOpts, state); err != nil {
@@ -363,6 +364,8 @@ func createHandlerForOutput(ctx context.Context, config logger_dto.OutputConfig,
 			MaxAge:     config.File.MaxAge,
 			Compress:   config.File.Compress,
 			LocalTime:  config.File.LocalTime,
+			Sandbox:    nil,
+			Clock:      nil,
 		})
 		if fileError != nil {
 			return nil, nil, fmt.Errorf("creating file output %q: %w", config.File.Path, fileError)

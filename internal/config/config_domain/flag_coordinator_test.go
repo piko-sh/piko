@@ -133,7 +133,7 @@ func TestFlagCoordinatorRegisterStruct(t *testing.T) {
 			prefix: "app",
 			setupFunc: func(fc *FlagCoordinator) {
 				config := &testConfig{}
-				loader := &Loader{opts: LoaderOptions{}}
+				loader := &Loader{}
 				_ = fc.RegisterStruct(config, "app", loader)
 			},
 		},
@@ -157,7 +157,7 @@ func TestFlagCoordinatorRegisterStruct(t *testing.T) {
 			}
 
 			config := &testConfig{}
-			loader := &Loader{opts: LoaderOptions{}}
+			loader := &Loader{}
 			err := fc.RegisterStruct(config, tc.prefix, loader)
 
 			if tc.wantErr {
@@ -231,7 +231,7 @@ func TestFlagCoordinatorReset(t *testing.T) {
 			test: func(t *testing.T) {
 				fc := newFlagCoordinator()
 				config := &testConfig{}
-				loader := &Loader{opts: LoaderOptions{}}
+				loader := &Loader{}
 				_ = fc.RegisterStruct(config, "app", loader)
 
 				fc.Reset()
@@ -247,7 +247,7 @@ func TestFlagCoordinatorReset(t *testing.T) {
 				fc.Reset()
 
 				config := &testConfig{}
-				loader := &Loader{opts: LoaderOptions{}}
+				loader := &Loader{}
 				err := fc.RegisterStruct(config, "new", loader)
 				require.NoError(t, err)
 			},
@@ -295,7 +295,7 @@ func TestFlagCoordinatorGetVisitedFlags(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			fc := newFlagCoordinator()
 			config := &testConfig{}
-			loader := &Loader{opts: LoaderOptions{}}
+			loader := &Loader{}
 
 			err := fc.RegisterStruct(config, tc.prefix, loader)
 			require.NoError(t, err)
@@ -322,7 +322,7 @@ func TestFlagCoordinatorFlagTypes(t *testing.T) {
 
 	fc := newFlagCoordinator()
 	config := &allTypesConfig{}
-	loader := &Loader{opts: LoaderOptions{}}
+	loader := &Loader{}
 
 	err := fc.RegisterStruct(config, "", loader)
 	require.NoError(t, err)
@@ -348,7 +348,7 @@ func TestFlagCoordinatorPointerFlagTypes(t *testing.T) {
 	t.Run("pointer fields register as flags", func(t *testing.T) {
 		fc := newFlagCoordinator()
 		config := &pointerConfig{}
-		loader := &Loader{opts: LoaderOptions{}}
+		loader := &Loader{}
 
 		err := fc.RegisterStruct(config, "", loader)
 		require.NoError(t, err)
@@ -363,7 +363,7 @@ func TestFlagCoordinatorPointerFlagTypes(t *testing.T) {
 	t.Run("pointer flags parse values correctly", func(t *testing.T) {
 		fc := newFlagCoordinator()
 		config := &pointerConfig{}
-		loader := &Loader{opts: LoaderOptions{}}
+		loader := &Loader{}
 
 		err := fc.RegisterStruct(config, "", loader)
 		require.NoError(t, err)
@@ -398,7 +398,7 @@ func TestFlagCoordinatorPointerFlagTypes(t *testing.T) {
 	t.Run("pointer flags with prefix parse correctly", func(t *testing.T) {
 		fc := newFlagCoordinator()
 		config := &pointerConfig{}
-		loader := &Loader{opts: LoaderOptions{}}
+		loader := &Loader{}
 
 		err := fc.RegisterStruct(config, "app", loader)
 		require.NoError(t, err)
@@ -422,7 +422,7 @@ func TestFlagCoordinatorPrefixIsolation(t *testing.T) {
 	}
 
 	fc := newFlagCoordinator()
-	loader := &Loader{opts: LoaderOptions{}}
+	loader := &Loader{}
 
 	cfg1 := &config{}
 	cfg2 := &config{}

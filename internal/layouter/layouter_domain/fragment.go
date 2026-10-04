@@ -130,6 +130,53 @@ func (f *Fragment) BlockOffset(writingMode WritingModeType) float64 {
 	return f.OffsetX
 }
 
+// newFragment creates a childless Fragment for box at the given parent-relative offset
+// and content size, with zero padding, border and margin edges.
+//
+// Takes box (*LayoutBox) which is the box the fragment lays out, or nil for an anonymous
+// line fragment.
+// Takes offsetX (float64) which is the horizontal offset from the parent content box.
+// Takes offsetY (float64) which is the vertical offset from the parent content box.
+// Takes contentWidth (float64) which is the content box width in points.
+// Takes contentHeight (float64) which is the content box height in points.
+//
+// Returns *Fragment which is the new fragment.
+func newFragment(box *LayoutBox, offsetX, offsetY, contentWidth, contentHeight float64) *Fragment {
+	return &Fragment{
+		Box:           box,
+		Children:      nil,
+		OffsetX:       offsetX,
+		OffsetY:       offsetY,
+		ContentWidth:  contentWidth,
+		ContentHeight: contentHeight,
+		Padding:       BoxEdges{},
+		Border:        BoxEdges{},
+		Margin:        BoxEdges{},
+	}
+}
+
+// newOffsetFragmentCopy creates a shallow copy of fragment placed at a new
+// parent-relative offset, sharing its box and children.
+//
+// Takes fragment (*Fragment) which is the fragment to copy.
+// Takes offsetX (float64) which is the new horizontal offset.
+// Takes offsetY (float64) which is the new vertical offset.
+//
+// Returns *Fragment which is the repositioned copy.
+func newOffsetFragmentCopy(fragment *Fragment, offsetX, offsetY float64) *Fragment {
+	return &Fragment{
+		Box:           fragment.Box,
+		Children:      fragment.Children,
+		OffsetX:       offsetX,
+		OffsetY:       offsetY,
+		ContentWidth:  fragment.ContentWidth,
+		ContentHeight: fragment.ContentHeight,
+		Padding:       fragment.Padding,
+		Border:        fragment.Border,
+		Margin:        fragment.Margin,
+	}
+}
+
 // writeFragmentsToBoxTree recursively writes Fragment results back to the corresponding
 // LayoutBox tree, converting parent-relative offsets to absolute coordinates.
 //

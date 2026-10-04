@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"sync/atomic"
 
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/render/render_dto"
@@ -76,11 +77,30 @@ type MockRegistry struct {
 // Returns *MockRegistry which is ready for use with pre-configured result maps.
 func NewMockRegistry(t TestingTB) *MockRegistry {
 	m := &MockRegistry{
-		t:                t,
-		componentResults: make(map[string]*render_dto.ComponentMetadata),
-		svgResults:       make(map[string]*render_domain.ParsedSvgData),
-		componentReqs:    make(map[string]int64),
-		svgReqs:          make(map[string]int64),
+		t:                                 t,
+		componentResults:                  make(map[string]*render_dto.ComponentMetadata),
+		svgResults:                        make(map[string]*render_domain.ParsedSvgData),
+		componentReqs:                     make(map[string]int64),
+		svgReqs:                           make(map[string]int64),
+		GetComponentMetadataFunc:          nil,
+		BulkGetComponentMetadataFunc:      nil,
+		GetAssetRawSVGFunc:                nil,
+		BulkGetAssetRawSVGFunc:            nil,
+		GetStatsFunc:                      nil,
+		ClearComponentCacheFunc:           nil,
+		ClearSvgCacheFunc:                 nil,
+		GetArtefactServePathFunc:          nil,
+		UpsertArtefactFunc:                nil,
+		GetComponentMetadataCallCount:     atomic.Int64{},
+		BulkGetComponentMetadataCallCount: atomic.Int64{},
+		GetAssetRawSVGCallCount:           atomic.Int64{},
+		BulkGetAssetRawSVGCallCount:       atomic.Int64{},
+		GetStatsCallCount:                 atomic.Int64{},
+		ClearComponentCacheCallCount:      atomic.Int64{},
+		ClearSvgCacheCallCount:            atomic.Int64{},
+		GetArtefactServePathCallCount:     atomic.Int64{},
+		UpsertArtefactCallCount:           atomic.Int64{},
+		mu:                                sync.Mutex{},
 	}
 
 	m.GetComponentMetadataFunc = func(_ context.Context, componentType string) (*render_dto.ComponentMetadata, error) {
@@ -199,5 +219,10 @@ func NewMockCSRF() *security_domain.MockCSRFTokenService {
 		NameFunc: func() string {
 			return "mock-csrf"
 		},
+		CheckFunc:                 nil,
+		GenerateCSRFPairCallCount: atomic.Int64{},
+		ValidateCSRFPairCallCount: atomic.Int64{},
+		NameCallCount:             atomic.Int64{},
+		CheckCallCount:            atomic.Int64{},
 	}
 }

@@ -127,9 +127,9 @@ type Provider struct {
 // Returns *Provider which is the uninitialised provider. Call Connect to establish the
 // caches.
 func NewProvider(config Config) *Provider {
-	return &Provider{
-		config: config,
-	}
+	provider := Provider{}
+	provider.config = config
+	return &provider
 }
 
 // Connect initialises the in-memory storage.
@@ -379,30 +379,30 @@ func (p *Provider) createPersistentCaches(registryCapacity, orchestratorCapacity
 
 	snapshotThreshold := valueOrDefault(config.SnapshotThreshold, defaultSnapshotThreshold)
 
-	registryOpts := cache_dto.Options[string, *registry_dto.ArtefactMeta]{
-		MaximumEntries: int(registryCapacity),
-		ProviderSpecific: cache_adapters_otter.PersistenceConfig[string, *registry_dto.ArtefactMeta]{
+	registryOpts := newOtterCacheOptions[string, *registry_dto.ArtefactMeta](
+		int(registryCapacity),
+		cache_adapters_otter.PersistenceConfig[string, *registry_dto.ArtefactMeta]{
 			Enabled:    true,
 			WALConfig:  buildWALConfig(walDir, "registry", syncMode, snapshotThreshold),
 			KeyCodec:   StringKeyCodec{},
 			ValueCodec: ArtefactMetaCodec{},
 		},
-	}
+	)
 
 	registryCache, err = cache_adapters_otter.OtterProviderFactory(registryOpts)
 	if err != nil {
 		return nil, nil, fmt.Errorf("creating registry cache with WAL: %w", err)
 	}
 
-	orchestratorOpts := cache_dto.Options[string, *orchestrator_domain.Task]{
-		MaximumEntries: int(orchestratorCapacity),
-		ProviderSpecific: cache_adapters_otter.PersistenceConfig[string, *orchestrator_domain.Task]{
+	orchestratorOpts := newOtterCacheOptions[string, *orchestrator_domain.Task](
+		int(orchestratorCapacity),
+		cache_adapters_otter.PersistenceConfig[string, *orchestrator_domain.Task]{
 			Enabled:    true,
 			WALConfig:  buildWALConfig(walDir, "orchestrator", syncMode, snapshotThreshold),
 			KeyCodec:   StringKeyCodec{},
 			ValueCodec: TaskCodec{},
 		},
-	}
+	)
 
 	orchCache, err = cache_adapters_otter.OtterProviderFactory(orchestratorOpts)
 	if err != nil {
@@ -475,8 +475,31 @@ func rebuildIndexes(ctx context.Context, dal any) {
 // Returns wal_domain.Config which is the complete configuration with defaults applied.
 func buildWALConfig(walDir, subDir string, syncMode wal_domain.SyncMode, snapshotThreshold int) wal_domain.Config {
 	return wal_domain.Config{
-		Dir:               filepath.Join(walDir, subDir),
-		SyncMode:          syncMode,
-		SnapshotThreshold: snapshotThreshold,
+		Dir:                  filepath.Join(walDir, subDir),
+		SyncMode:             syncMode,
+		SnapshotThreshold:    snapshotThreshold,
+		WALFileName:          "",
+		SnapshotFileName:     "",
+		BatchSyncInterval:    0,
+		BatchSyncCount:       0,
+		MaxWALSize:           0,
+		CompressionLevel:     0,
+		EnableCompression:    false,
+		DisableAlignedWrites: false,
 	}.WithDefaults()
+}
+
+// newOtterCacheOptions creates otter cache options with the given entry limit and
+// provider-specific settings, leaving every other option at its default.
+//
+// Takes maximumEntries (int) which caps the number of cached entries.
+// Takes providerSpecific (any) which carries provider-specific configuration such as WAL
+// persistence, or nil for none.
+//
+// Returns cache_dto.Options[K, V] which is the assembled cache configuration.
+func newOtterCacheOptions[K comparable, V any](maximumEntries int, providerSpecific any) cache_dto.Options[K, V] {
+	options := cache_dto.Options[K, V]{}
+	options.MaximumEntries = maximumEntries
+	options.ProviderSpecific = providerSpecific
+	return options
 }

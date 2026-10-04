@@ -84,13 +84,13 @@ func TestFindPackageVariable(t *testing.T) {
 
 	t.Run("should return nil for nil typeData", func(t *testing.T) {
 		t.Parallel()
-		querier := &TypeQuerier{typeData: nil}
+		querier := &TypeQuerier{}
 		assert.Nil(t, querier.FindPackageVariable("pkg", "MaxRetries", "my/main", "/src/app.go"))
 	})
 
 	t.Run("should return nil for nil Packages", func(t *testing.T) {
 		t.Parallel()
-		querier := &TypeQuerier{typeData: &inspector_dto.TypeData{Packages: nil}}
+		querier := &TypeQuerier{typeData: &inspector_dto.TypeData{}}
 		assert.Nil(t, querier.FindPackageVariable("pkg", "MaxRetries", "my/main", "/src/app.go"))
 	})
 
@@ -171,7 +171,7 @@ func TestFindPackageVariableType(t *testing.T) {
 
 	t.Run("should return empty string for nil typeData", func(t *testing.T) {
 		t.Parallel()
-		querier := &TypeQuerier{typeData: nil}
+		querier := &TypeQuerier{}
 		result := querier.FindPackageVariableType("pkg", "Foo", "my/main", "/src/app.go")
 		assert.Equal(t, "", result)
 	})

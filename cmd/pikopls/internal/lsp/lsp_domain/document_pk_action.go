@@ -200,7 +200,7 @@ func (d *document) getActionNamespaceHover(ctx *PKHoverContext) (*protocol.Hover
 func (d *document) getActionNameHover(ctx *PKHoverContext) (*protocol.Hover, error) {
 	action := d.lookupAction(ctx.Name)
 	if action == nil {
-		return d.makeSimpleHover(ctx, fmt.Sprintf("Action `%s` (not found in manifest)", ctx.Name))
+		return d.makeSimpleHover(ctx, fmt.Sprintf("Action %s (not found in manifest)", markdownCode(ctx.Name)))
 	}
 
 	var b strings.Builder

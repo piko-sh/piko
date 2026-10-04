@@ -656,3 +656,34 @@ func TestRedis_EmptyTagList(t *testing.T) {
 		t.Error("key should still exist")
 	}
 }
+
+func TestRedisAdapter_CloseLeavesOtherNamespacesUsable(t *testing.T) {
+	_, addr := setupMiniredis(t)
+	valueEncoder := cache_encoder_json.New[string]()
+	provider, err := cache_provider_redis.NewRedisProvider(cache_provider_redis.Config{
+		Address:    addr,
+		DefaultTTL: time.Hour,
+		Registry:   cache.NewEncodingRegistry(valueEncoder.(cache.AnyEncoder)),
+	})
+	require.NoError(t, err)
+
+	createNamespace := func(namespace string) *cache_provider_redis.RedisAdapter[string, string] {
+		cacheAny, err := provider.CreateNamespaceTyped(namespace, cache.Options[string, string]{})
+		require.NoError(t, err)
+		adapter, ok := cacheAny.(*cache_provider_redis.RedisAdapter[string, string])
+		require.True(t, ok)
+		return adapter
+	}
+	closed := createNamespace("sessions")
+	open := createNamespace("pages")
+	ctx := context.Background()
+
+	require.NoError(t, closed.Close(ctx))
+
+	require.NoError(t, open.Set(ctx, "home", "rendered"))
+	value, found, err := open.GetIfPresent(ctx, "home")
+	require.NoError(t, err)
+	assert.True(t, found)
+	assert.Equal(t, "rendered", value)
+	assert.NoError(t, provider.Close(), "the provider still owns an open client")
+}

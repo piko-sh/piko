@@ -295,6 +295,8 @@ func (s *service) selectTransformer(spec image_dto.TransformationSpec) (Transfor
 // Takes tr (TransformerPort) which performs the actual transformation.
 // Takes spec (image_dto.TransformationSpec) which defines the transformation to apply.
 // Takes providerName (string) which identifies the provider for metrics.
+// Takes cancel (context.CancelFunc) which releases the transformation context when the
+// pipeline finishes.
 func (*service) runTransformPipeline(
 	ctx context.Context,
 	input io.Reader,
@@ -493,13 +495,15 @@ func (s *service) transformPlaceholder(ctx context.Context, data []byte, spec im
 // timeouts, and allowed formats.
 func DefaultServiceConfig() ServiceConfig {
 	return ServiceConfig{
-		FallbackIconPaths: make(map[string]string),
-		MaxImageWidth:     defaultMaxImageWidth,
-		MaxImageHeight:    defaultMaxImageHeight,
-		MaxImagePixels:    defaultMaxImagePixels,
-		MaxFileSizeBytes:  defaultMaxFileSizeBytes,
-		TransformTimeout:  defaultTransformTimeout,
-		AllowedFormats:    []string{"jpeg", "jpg", "png", "webp", "avif", "gif"},
+		FallbackIconPaths:          make(map[string]string),
+		MaxImageWidth:              defaultMaxImageWidth,
+		MaxImageHeight:             defaultMaxImageHeight,
+		MaxImagePixels:             defaultMaxImagePixels,
+		MaxFileSizeBytes:           defaultMaxFileSizeBytes,
+		TransformTimeout:           defaultTransformTimeout,
+		AllowedFormats:             []string{"jpeg", "jpg", "png", "webp", "avif", "gif"},
+		FallbackIconSandbox:        nil,
+		FallbackIconSandboxFactory: nil,
 	}
 }
 

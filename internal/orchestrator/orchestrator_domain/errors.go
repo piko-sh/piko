@@ -47,6 +47,23 @@ var (
 	// service is shutting down and the task insertion channel has been closed. Callers
 	// should treat this as a terminal condition rather than a retryable backpressure signal.
 	ErrOrchestratorShuttingDown = errors.New("orchestrator: orchestrator is shutting down")
+
+	// ErrTaskNotRequired is returned by DispatchIfRequired when the requirement check,
+	// evaluated after the task's deduplication key was claimed, reports that the work is
+	// already satisfied. The claim has been released and nothing was published.
+	ErrTaskNotRequired = errors.New("orchestrator: task no longer required")
+
+	// ErrDispatcherStopped is returned when a task is dispatched after the task dispatcher
+	// has shut down. Nothing is published because no handler would receive it.
+	ErrDispatcherStopped = errors.New("orchestrator: task dispatcher is stopped")
+
+	// ErrDispatchBacklogFull is returned when a task is dispatched before the task
+	// dispatcher has started and the bounded backlog of tasks held until start is full.
+	ErrDispatchBacklogFull = errors.New("orchestrator: dispatch backlog is full")
+
+	// ErrUndeliverableTask is recorded as the failure cause when a task message reaches a
+	// handler but cannot be decoded back into a task, so the task can never run.
+	ErrUndeliverableTask = errors.New("orchestrator: task message cannot be decoded")
 )
 
 // NewFatalError wraps an error to mark it as a fatal orchestrator failure that should not

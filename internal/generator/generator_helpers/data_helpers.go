@@ -98,16 +98,19 @@ func (w *boundedWriter) Write(data []byte) (int, error) {
 // Takes r (*templater_dto.RequestData) which contains the CollectionData map.
 //
 // Returns T which is the page data converted to the requested type, or the zero value if
-// conversion fails.
+// r is nil or conversion fails.
 func GetData[T any](r *templater_dto.RequestData) T {
-	result, _ := GetDataReflect(r, reflect.TypeFor[T]())
-	value, ok := result.Interface().(T)
+	var zero T
+	result, populated := GetDataReflect(r, reflect.TypeFor[T]())
+	if !populated {
+		return zero
+	}
+	value, ok := reflect.TypeAssert[T](result)
 	if !ok {
-		_, l := logger_domain.From(r.Context(), log)
+		_, l := logger_domain.From(requestContext(r), log)
 		l.Warn("GetData type assertion failed; returning zero value",
 			logger_domain.String(logAttrTargetType, reflect.TypeFor[T]().String()),
 			logger_domain.String("actual_type", result.Type().String()))
-		var zero T
 		return zero
 	}
 	return value
@@ -124,10 +127,7 @@ func GetData[T any](r *templater_dto.RequestData) T {
 // succeeded.
 func GetDataReflect(r *templater_dto.RequestData, tType reflect.Type) (reflect.Value, bool) {
 	zero := reflect.New(tType).Elem()
-	ctx := context.Background()
-	if r != nil {
-		ctx = r.Context()
-	}
+	ctx := requestContext(r)
 	pageData, ok := extractPageData(ctx, r, tType)
 	if !ok {
 		return zero, false
@@ -164,7 +164,7 @@ func extractPageData(ctx context.Context, r *templater_dto.RequestData, tType re
 	if !ok {
 		l.Warn("CollectionData is not map[string]any",
 			logger_domain.String(logAttrTargetType, tType.String()),
-			logger_domain.String("actual_type", reflect.TypeOf(collection).String()))
+			logger_domain.String("actual_type", dynamicTypeName(collection)))
 		return nil, false
 	}
 
@@ -200,7 +200,7 @@ func decodePageData(ctx context.Context, pageData any, tType reflect.Type, zero 
 	if !ok {
 		l.Warn("'page' value is not map[string]any",
 			logger_domain.String(logAttrTargetType, tType.String()),
-			logger_domain.String("actual_page_type", reflect.TypeOf(pageData).String()))
+			logger_domain.String("actual_page_type", dynamicTypeName(pageData)))
 		return zero, false
 	}
 
@@ -227,6 +227,32 @@ func decodePageData(ctx context.Context, pageData any, tType reflect.Type, zero 
 	}
 
 	return result.Elem(), true
+}
+
+// requestContext returns the context carried by r, or context.Background when r is nil or
+// carries no context.
+//
+// Takes r (*templater_dto.RequestData) which may be nil.
+//
+// Returns context.Context which is safe to pass to the logger.
+func requestContext(r *templater_dto.RequestData) context.Context {
+	if r == nil || r.Context() == nil {
+		return context.Background()
+	}
+	return r.Context()
+}
+
+// dynamicTypeName returns the dynamic type name of value for diagnostic output.
+//
+// Takes value (any) which may be nil.
+//
+// Returns string which is the type name, or "<nil>" when value is nil.
+func dynamicTypeName(value any) string {
+	valueType := reflect.TypeOf(value)
+	if valueType == nil {
+		return "<nil>"
+	}
+	return valueType.String()
 }
 
 // safeURLPath returns r.URL().Path when available, or a placeholder when the request has
@@ -269,7 +295,7 @@ func collectionKeys(rootMap map[string]any) []string {
 // Returns the encoded bytes and nil on success; nil and errPageDataTooLarge when the
 // limit is hit mid-stream; nil and the encoder's error otherwise.
 func marshalBounded(value any, limitBytes int) ([]byte, error) {
-	writer := &boundedWriter{limit: int64(limitBytes)}
+	writer := &boundedWriter{limit: int64(limitBytes), buf: bytes.Buffer{}, written: 0}
 	encoder := json.NewEncoder(writer)
 	if err := encoder.Encode(value); err != nil {
 		if errors.Is(err, errPageDataTooLarge) {

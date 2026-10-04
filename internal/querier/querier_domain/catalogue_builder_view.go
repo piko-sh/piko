@@ -33,10 +33,11 @@ import (
 func (b *catalogueBuilder) applyCreateEnum(mutation *querier_dto.CatalogueMutation) error {
 	schema := b.resolveSchema(mutation.SchemaName)
 	schema.Enums[mutation.EnumName] = &querier_dto.Enum{
-		Name:   mutation.EnumName,
-		Schema: schema.Name,
-		Values: mutation.EnumValues,
-		Origin: mutation.Origin,
+		Name:    mutation.EnumName,
+		Schema:  schema.Name,
+		Values:  mutation.EnumValues,
+		Origin:  mutation.Origin,
+		Comment: "",
 	}
 	return nil
 }
@@ -187,10 +188,12 @@ func (b *catalogueBuilder) applyCreateView(ctx context.Context, mutation *querie
 		columns[i].Origin = mutation.Origin
 	}
 	schema.Views[mutation.TableName] = &querier_dto.View{
-		Name:    mutation.TableName,
-		Schema:  schema.Name,
-		Columns: columns,
-		Origin:  mutation.Origin,
+		Name:       mutation.TableName,
+		Schema:     schema.Name,
+		Columns:    columns,
+		Origin:     mutation.Origin,
+		Definition: "",
+		Comment:    "",
 	}
 	return nil
 }
@@ -220,11 +223,7 @@ func (b *catalogueBuilder) resolveViewColumns(ctx context.Context, definition *q
 
 	columns := make([]querier_dto.Column, len(outputColumns))
 	for i := range outputColumns {
-		columns[i] = querier_dto.Column{
-			Name:     outputColumns[i].Name,
-			SQLType:  outputColumns[i].SQLType,
-			Nullable: outputColumns[i].Nullable,
-		}
+		columns[i] = querier_dto.NewColumn(outputColumns[i].Name, outputColumns[i].SQLType, outputColumns[i].Nullable)
 	}
 	return columns
 }

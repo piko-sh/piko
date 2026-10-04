@@ -187,7 +187,7 @@ func TestTemplateNode_Clone(t *testing.T) {
 		assert.Equal(t, "", clone.DirIf.RawExpression, "Modification to original DirIf should not be visible in clone")
 		assert.Equal(t, "key123", clone.GoAnnotations.PartialInfo.InvocationKey, "Modification to original GoAnnotation should not be visible in clone")
 
-		clone.DirIf.Expression = &BooleanLiteral{Value: false}
+		clone.DirIf.Expression = &BooleanLiteral{}
 		assert.IsType(t, &Identifier{}, original.DirIf.Expression, "Original directive expression should be unaffected by clone modification")
 	})
 
@@ -298,7 +298,7 @@ func TestTemplateNode_DeepClone(t *testing.T) {
 		root.DynamicAttributes[0].RawExpression = "new expression"
 		root.OnEvents["mouseover"] = []Directive{{}}
 		root.OnEvents["click"][0].Arg = "modified-click"
-		root.DirIf.Expression = &BooleanLiteral{Value: false}
+		root.DirIf.Expression = &BooleanLiteral{}
 		root.Key = &StringLiteral{Value: "new-key"}
 		root.GoAnnotations.OriginalPackageAlias = new("new-pkg")
 		child1.TagName = "new-child1-name"
@@ -665,7 +665,7 @@ func TestExtractStaticKeyString_EdgeCases(t *testing.T) {
 	}{
 		{
 			name: "empty string literal returns empty string",
-			key:  &StringLiteral{Value: ""},
+			key:  &StringLiteral{},
 			want: "",
 		},
 		{
@@ -834,7 +834,7 @@ func TestInjectScopeAttributes(t *testing.T) {
 		t.Parallel()
 
 		attrs := []HTMLAttribute{}
-		key := &StringLiteral{Value: ""}
+		key := &StringLiteral{}
 		result := injectScopeAttributes(attrs, key, "")
 
 		assert.Empty(t, result)

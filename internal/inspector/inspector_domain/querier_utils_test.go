@@ -220,7 +220,7 @@ func TestGetAllPackages(t *testing.T) {
 
 	t.Run("should return empty map for nil typeData", func(t *testing.T) {
 		t.Parallel()
-		querier := &TypeQuerier{typeData: nil}
+		querier := &TypeQuerier{}
 		pkgs := querier.GetAllPackages()
 		assert.NotNil(t, pkgs)
 		assert.Empty(t, pkgs)
@@ -229,7 +229,7 @@ func TestGetAllPackages(t *testing.T) {
 	t.Run("should return empty map for nil Packages", func(t *testing.T) {
 		t.Parallel()
 
-		querier := &TypeQuerier{typeData: &inspector_dto.TypeData{Packages: nil}}
+		querier := &TypeQuerier{typeData: &inspector_dto.TypeData{}}
 		pkgs := querier.GetAllPackages()
 		assert.NotNil(t, pkgs)
 		assert.Empty(t, pkgs)
@@ -258,7 +258,7 @@ func TestGetImportsForFile(t *testing.T) {
 
 	t.Run("should return empty map for nil typeData", func(t *testing.T) {
 		t.Parallel()
-		querier := &TypeQuerier{typeData: nil}
+		querier := &TypeQuerier{}
 		imports := querier.GetImportsForFile("pkg/a", "/src/a.go")
 		assert.NotNil(t, imports)
 		assert.Empty(t, imports)
@@ -358,7 +358,7 @@ func TestFindFileWithImportAlias(t *testing.T) {
 
 	t.Run("should return empty for nil typeData", func(t *testing.T) {
 		t.Parallel()
-		querier := &TypeQuerier{typeData: nil}
+		querier := &TypeQuerier{}
 		assert.Equal(t, "", querier.FindFileWithImportAlias("pkg/a", "fmt", "fmt"))
 	})
 
@@ -447,7 +447,7 @@ func TestFindPackagePathForTypeDTO(t *testing.T) {
 	t.Run("should return empty when PackagePath is empty", func(t *testing.T) {
 		t.Parallel()
 
-		typ := &inspector_dto.Type{PackagePath: ""}
+		typ := &inspector_dto.Type{}
 		assert.Equal(t, "", querier.FindPackagePathForTypeDTO(typ))
 	})
 }
@@ -464,7 +464,7 @@ func TestGetFilesForPackage(t *testing.T) {
 	t.Run("should return nil for nil typeData", func(t *testing.T) {
 		t.Parallel()
 
-		querier := &TypeQuerier{typeData: nil}
+		querier := &TypeQuerier{}
 		assert.Nil(t, querier.GetFilesForPackage("pkg/a"))
 	})
 
@@ -591,7 +591,7 @@ func TestGetNamedTypeByPackageAndName(t *testing.T) {
 	t.Run("should return nil for nil typeData", func(t *testing.T) {
 		t.Parallel()
 
-		querier := &TypeQuerier{typeData: nil}
+		querier := &TypeQuerier{}
 		assert.Nil(t, querier.getNamedTypeByPackageAndName("pkg/a", "User"))
 	})
 
@@ -741,7 +741,7 @@ func TestDebugDTO(t *testing.T) {
 
 	t.Run("should return error map for nil typeData", func(t *testing.T) {
 		t.Parallel()
-		querier := &TypeQuerier{typeData: nil}
+		querier := &TypeQuerier{}
 		result := querier.DebugDTO()
 		require.Contains(t, result, "error")
 		assert.Contains(t, result["error"][0], "nil")
@@ -903,7 +903,7 @@ func TestFindRenderReturnType(t *testing.T) {
 
 	t.Run("should return nil for nil typeData", func(t *testing.T) {
 		t.Parallel()
-		querier := &TypeQuerier{typeData: nil}
+		querier := &TypeQuerier{}
 		assert.Nil(t, querier.FindRenderReturnType("pkg/a", "/src/a.go"))
 	})
 

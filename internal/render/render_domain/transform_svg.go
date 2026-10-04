@@ -1068,14 +1068,14 @@ func collectAttrRefs(refs *[maxCombinedAttrCount]attributeReference, attrs []ast
 	n := 0
 	for i := 0; i < len(indices) && i < staticCount && n < maxCombinedAttrCount; i++ {
 		index := indices[i] //nolint:gosec // index bounded upstream
-		refs[n] = attributeReference{name: attrs[index].Name, value: attrs[index].Value}
+		refs[n] = attributeReference{name: attrs[index].Name, value: attrs[index].Value, writer: nil}
 		n++
 	}
 	for _, dw := range attributeWriters {
 		if dw == nil || !isUserAttr(dw.Name) || n >= maxCombinedAttrCount {
 			continue
 		}
-		refs[n] = attributeReference{name: dw.Name, writer: dw}
+		refs[n] = attributeReference{name: dw.Name, writer: dw, value: ""}
 		n++
 	}
 	return n
@@ -1198,7 +1198,13 @@ func hashAttrsWithWritersSlow(attrs []ast_domain.HTMLAttribute, _ int, attribute
 		} else {
 			value = dw.String()
 		}
-		userAttrs = append(userAttrs, ast_domain.HTMLAttribute{Name: dw.Name, Value: value})
+		userAttrs = append(userAttrs, ast_domain.HTMLAttribute{
+			Name:           dw.Name,
+			Value:          value,
+			Location:       ast_domain.Location{},
+			NameLocation:   ast_domain.Location{},
+			AttributeRange: ast_domain.Range{},
+		})
 	}
 
 	return hashUserAttrs(userAttrs)

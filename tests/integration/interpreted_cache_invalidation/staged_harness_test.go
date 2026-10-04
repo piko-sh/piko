@@ -36,43 +36,42 @@ import (
 	"piko.sh/piko"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/coordinator/coordinator_adapters"
-	"piko.sh/piko/wdk/interp/interp_provider_piko"
+	"piko.sh/piko/wdk/interp/interp_provider_pipit"
 	"piko.sh/piko/wdk/json"
 )
 
 type StagedTestSpec struct {
 	Description string  `json:"description"`
 	RequestURL  string  `json:"requestURL"`
-	IsFragment  bool    `json:"isFragment,omitempty"`
 	Stages      []Stage `json:"stages"`
+	IsFragment  bool    `json:"isFragment,omitempty"`
 }
 
 type Stage struct {
-	Stage                int      `json:"stage"`
-	Description          string   `json:"description"`
-	ExpectedGolden       string   `json:"expectedGolden"`
-	ExpectChange         bool     `json:"expectChange,omitempty"`
-	ExpectCacheHit       bool     `json:"expectCacheHit,omitempty"`
-	DelayBeforeRenderMs  int      `json:"delayBeforeRenderMs,omitempty"`
+	ExpectFastPath       *bool    `json:"expectFastPath,omitempty"`
+	ExpectTier2Hit       *bool    `json:"expectTier2Hit,omitempty"`
+	ExpectGeneratedCount *int     `json:"expectGeneratedCount,omitempty"`
+	ExpectAnnotatedCount *int     `json:"expectAnnotatedCount,omitempty"`
+	ExpectTier2Miss      *bool    `json:"expectTier2Miss,omitempty"`
 	ExpectTier1Hit       *bool    `json:"expectTier1Hit,omitempty"`
 	ExpectTier1Miss      *bool    `json:"expectTier1Miss,omitempty"`
-	ExpectTier2Hit       *bool    `json:"expectTier2Hit,omitempty"`
-	ExpectTier2Miss      *bool    `json:"expectTier2Miss,omitempty"`
-	ExpectFastPath       *bool    `json:"expectFastPath,omitempty"`
 	ExpectFullBuild      *bool    `json:"expectFullBuild,omitempty"`
-	UseTargetedRebuild   bool     `json:"useTargetedRebuild,omitempty"`
+	Description          string   `json:"description"`
+	ExpectedGolden       string   `json:"expectedGolden"`
 	TargetedEntryPoints  []string `json:"targetedEntryPoints,omitempty"`
-	ExpectAnnotatedCount *int     `json:"expectAnnotatedCount,omitempty"`
-	ExpectGeneratedCount *int     `json:"expectGeneratedCount,omitempty"`
+	Stage                int      `json:"stage"`
+	ExpectCacheHit       bool     `json:"expectCacheHit,omitempty"`
+	UseTargetedRebuild   bool     `json:"useTargetedRebuild,omitempty"`
+	ExpectChange         bool     `json:"expectChange,omitempty"`
 }
 
 type stagedServerResult struct {
 	server           *piko.SSRServer
-	srcDir           string
-	testCasePath     string
 	cleanup          func()
 	tier2Spy         *CacheSpy
 	introspectionSpy *IntrospectionCacheSpy
+	srcDir           string
+	testCasePath     string
 }
 
 func setupStagedServer(t *testing.T, tc testCase) stagedServerResult {
@@ -100,7 +99,7 @@ func setupStagedServer(t *testing.T, tc testCase) stagedServerResult {
 	server := piko.New(
 		piko.WithCSSReset(piko.WithCSSResetComplete()),
 	)
-	server.WithInterpreterProvider(interp_provider_piko.NewProvider())
+	server.WithInterpreterProvider(interp_provider_pipit.NewProvider())
 
 	server.Configure(piko.PublicConfig{
 		BaseDir:        ".",
@@ -152,10 +151,6 @@ func runStagedTestCase(t *testing.T, tc testCase) {
 
 		if stage.Stage > 0 {
 			applyStageModifications(t, result.srcDir, stage.Stage)
-		}
-
-		if stage.DelayBeforeRenderMs > 0 {
-			time.Sleep(time.Duration(stage.DelayBeforeRenderMs) * time.Millisecond)
 		}
 
 		var buildResult *annotator_dto.ProjectAnnotationResult
@@ -327,9 +322,7 @@ func applyStageModifications(t *testing.T, srcDir string, stageNum int) {
 				return fmt.Errorf("reading stage file %s: %w", path, readErr)
 			}
 
-			if writeErr := os.WriteFile(targetPath, content, 0644); writeErr != nil {
-				return fmt.Errorf("writing target file %s: %w", targetPath, writeErr)
-			}
+			return replaceStageFile(targetPath, content)
 		}
 		return nil
 	})
@@ -455,4 +448,26 @@ func assertStagedGoldenFile(t *testing.T, goldenPath string, actualBytes []byte,
 			filepath.Base(goldenPath), string(normalisedActual))
 		assert.Fail(t, fmt.Sprintf("Golden file mismatch: %s. Run with -update if this change is intentional.", goldenPath), msgAndArgs...)
 	}
+}
+
+func replaceStageFile(targetPath string, content []byte) error {
+	var previousModTime time.Time
+	if info, statErr := os.Stat(targetPath); statErr == nil {
+		previousModTime = info.ModTime()
+	}
+	if writeErr := os.WriteFile(targetPath, content, 0644); writeErr != nil {
+		return fmt.Errorf("writing target file %s: %w", targetPath, writeErr)
+	}
+	info, statErr := os.Stat(targetPath)
+	if statErr != nil {
+		return fmt.Errorf("checking target file %s: %w", targetPath, statErr)
+	}
+	if info.ModTime().After(previousModTime) {
+		return nil
+	}
+	advanced := previousModTime.Add(time.Second)
+	if chtimesErr := os.Chtimes(targetPath, advanced, advanced); chtimesErr != nil {
+		return fmt.Errorf("advancing modification time of %s: %w", targetPath, chtimesErr)
+	}
+	return nil
 }

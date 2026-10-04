@@ -23,11 +23,11 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/collection/collection_domain"
 	"piko.sh/piko/internal/collection/collection_dto"
 	"piko.sh/piko/internal/generator/generator_domain"
 	"piko.sh/piko/internal/generator/generator_dto"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/wdk/safedisk"
 )

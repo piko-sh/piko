@@ -74,7 +74,7 @@ func TestValidateGenerateRequest_RejectsAggregateOverflow(t *testing.T) {
 func TestValidateGenerateRequest_AllowsZeroLimitsAsUnlimited(t *testing.T) {
 	t.Parallel()
 
-	limits := generatorLimits{MaxFileCount: 0, MaxTotalBytes: 0, MaxFileBytes: 0}
+	limits := generatorLimits{}
 	sources := map[string]string{"a.pk": strings.Repeat("x", 1024*1024)}
 	response := validateGenerateRequest(&wasm_dto.GenerateFromSourcesRequest{Sources: sources}, limits)
 	assert.Nil(t, response, "zero on every limit means unlimited")
@@ -240,4 +240,60 @@ type fixedError struct {
 
 func (e *fixedError) Error() string {
 	return e.message
+}
+
+func TestNewSourceEntryPoint(t *testing.T) {
+	t.Parallel()
+	testCases := []struct {
+		name       string
+		sourcePath string
+		wantPath   string
+		wantPage   bool
+	}{
+		{name: "page", sourcePath: "pages/home.pk", wantPath: "playground/pages/home.pk", wantPage: true},
+		{name: "nested page", sourcePath: "app/pages/home.pk", wantPath: "playground/app/pages/home.pk", wantPage: true},
+		{name: "partial", sourcePath: "partials/card.pk", wantPath: "playground/partials/card.pk", wantPage: false},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			entryPoint := newSourceEntryPoint("playground", testCase.sourcePath)
+			assert.Equal(t, testCase.wantPath, entryPoint.Path)
+			assert.Equal(t, testCase.wantPage, entryPoint.IsPage)
+			assert.False(t, entryPoint.IsPublic)
+		})
+	}
+}
+
+func TestGeneratorAdapter_DiscoverEntryPoints(t *testing.T) {
+	t.Parallel()
+
+	sources := map[string]string{
+		"pages/home.pk":            "<template></template>",
+		"partials/card.pk":         "<template></template>",
+		"components/pp-button.pkc": "<template></template>",
+		"main.go":                  "package main",
+	}
+
+	entryPoints := NewGeneratorAdapter().discoverEntryPoints(sources, "playground")
+
+	paths := make([]string, 0, len(entryPoints))
+	for _, entryPoint := range entryPoints {
+		paths = append(paths, entryPoint.Path)
+	}
+	assert.ElementsMatch(t, []string{"playground/pages/home.pk", "playground/partials/card.pk"}, paths)
+}
+
+func TestGeneratorAdapter_CreateGeneratorService(t *testing.T) {
+	t.Parallel()
+
+	adapter := NewGeneratorAdapter()
+	request := &wasm_dto.GenerateFromSourcesRequest{}
+	annotator := NewInMemoryAnnotatorService(map[string]string{}, "playground", nil)
+
+	writer, service, failure := adapter.createGeneratorService(context.Background(), request, "playground", annotator)
+
+	require.Nil(t, failure)
+	assert.NotNil(t, writer)
+	assert.NotNil(t, service)
 }

@@ -36,6 +36,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"piko.sh/goastutil"
 	"piko.sh/piko"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/caller"
@@ -43,13 +44,12 @@ import (
 	"piko.sh/piko/internal/compiler/compiler_domain"
 	"piko.sh/piko/internal/config/config_domain"
 	"piko.sh/piko/internal/generator/generator_helpers"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/i18n/i18n_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/shutdown"
 	"piko.sh/piko/internal/templater/templater_domain"
-	"piko.sh/piko/wdk/interp/interp_provider_piko"
+	"piko.sh/piko/wdk/interp/interp_provider_pipit"
 	"piko.sh/piko/wdk/json"
 	"piko.sh/piko/wdk/logger"
 )
@@ -108,7 +108,7 @@ func setupServer(t *testing.T, tc testCase, spec TemplaterTestSpec) (*piko.SSRSe
 	server := piko.New(
 		piko.WithCSSReset(piko.WithCSSResetComplete()),
 	)
-	server.WithInterpreterProvider(interp_provider_piko.NewProvider())
+	server.WithInterpreterProvider(interp_provider_pipit.NewProvider())
 
 	if spec.RegisteredPackages {
 		moduleName := readModuleName(t, absSrcDir)

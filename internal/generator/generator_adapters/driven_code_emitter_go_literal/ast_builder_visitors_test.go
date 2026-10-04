@@ -48,7 +48,7 @@ func TestVisitExpression(t *testing.T) {
 			name: "visits IndexExpr and children",
 			expression: &ast_domain.IndexExpression{
 				Base:  &ast_domain.Identifier{Name: "items"},
-				Index: &ast_domain.IntegerLiteral{Value: 0},
+				Index: &ast_domain.IntegerLiteral{},
 			},
 			stopEarly:     false,
 			expectedCalls: 3,
@@ -189,7 +189,7 @@ func TestVisitIndexExpression(t *testing.T) {
 
 	expression := &ast_domain.IndexExpression{
 		Base:  &ast_domain.Identifier{Name: "arr"},
-		Index: &ast_domain.IntegerLiteral{Value: 0},
+		Index: &ast_domain.IntegerLiteral{},
 	}
 
 	visitIndexExpression(expression, visitor)

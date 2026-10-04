@@ -563,9 +563,7 @@ func TestGetPartialOrigin(t *testing.T) {
 	t.Run("returns empty when GoAnnotations is nil", func(t *testing.T) {
 		t.Parallel()
 
-		node := &ast_domain.TemplateNode{
-			GoAnnotations: nil,
-		}
+		node := &ast_domain.TemplateNode{}
 
 		result := getPartialOrigin(node)
 
@@ -576,9 +574,7 @@ func TestGetPartialOrigin(t *testing.T) {
 		t.Parallel()
 
 		node := &ast_domain.TemplateNode{
-			GoAnnotations: &ast_domain.GoGeneratorAnnotation{
-				OriginalPackageAlias: nil,
-			},
+			GoAnnotations: &ast_domain.GoGeneratorAnnotation{},
 		}
 
 		result := getPartialOrigin(node)
@@ -593,9 +589,7 @@ func TestEnsureDynamicAttributeAnnotations(t *testing.T) {
 	t.Run("creates GoAnnotations when nil", func(t *testing.T) {
 		t.Parallel()
 
-		node := &ast_domain.TemplateNode{
-			GoAnnotations: nil,
-		}
+		node := &ast_domain.TemplateNode{}
 
 		ensureDynamicAttributeAnnotations(node)
 
@@ -607,9 +601,7 @@ func TestEnsureDynamicAttributeAnnotations(t *testing.T) {
 		t.Parallel()
 
 		node := &ast_domain.TemplateNode{
-			GoAnnotations: &ast_domain.GoGeneratorAnnotation{
-				DynamicAttributeOrigins: nil,
-			},
+			GoAnnotations: &ast_domain.GoGeneratorAnnotation{},
 		}
 
 		ensureDynamicAttributeAnnotations(node)
@@ -1198,9 +1190,7 @@ func TestFinaliseAttrOrigin(t *testing.T) {
 				},
 			},
 		}
-		invokerNode := &ast_domain.TemplateNode{
-			GoAnnotations: nil,
-		}
+		invokerNode := &ast_domain.TemplateNode{}
 		attr := &ast_domain.DynamicAttribute{Name: "title"}
 
 		finaliseAttrOrigin(attr, targetNode, invokerNode, invokerOrigin, "title")
@@ -1264,7 +1254,7 @@ func TestApplyInvokerDirectives(t *testing.T) {
 		invokerNode := &ast_domain.TemplateNode{
 			TagName:   "piko:partial",
 			DirElseIf: &ast_domain.Directive{RawExpression: "state.other"},
-			DirElse:   &ast_domain.Directive{RawExpression: ""},
+			DirElse:   &ast_domain.Directive{},
 		}
 
 		applyInvokerDirectives(targetNode, invokerNode, "pkg")
@@ -2378,9 +2368,9 @@ func TestGetSortedAttrKeys_Deterministic(t *testing.T) {
 	t.Parallel()
 
 	attrs := map[string]ast_domain.DynamicAttribute{
-		"zebra": {Name: "zebra", Expression: nil, Location: ast_domain.Location{Line: 0, Column: 0, Offset: 0}, NameLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0}},
-		"alpha": {Name: "alpha", Expression: nil, Location: ast_domain.Location{Line: 0, Column: 0, Offset: 0}, NameLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0}},
-		"mango": {Name: "mango", Expression: nil, Location: ast_domain.Location{Line: 0, Column: 0, Offset: 0}, NameLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0}},
+		"zebra": {Name: "zebra", Expression: nil, Location: ast_domain.Location{}, NameLocation: ast_domain.Location{}},
+		"alpha": {Name: "alpha", Expression: nil, Location: ast_domain.Location{}, NameLocation: ast_domain.Location{}},
+		"mango": {Name: "mango", Expression: nil, Location: ast_domain.Location{}, NameLocation: ast_domain.Location{}},
 	}
 
 	result1 := getSortedAttrKeys(attrs)

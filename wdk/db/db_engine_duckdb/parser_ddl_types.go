@@ -19,6 +19,8 @@
 package db_engine_duckdb
 
 import (
+	"strings"
+
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
@@ -30,8 +32,9 @@ import (
 // when the statement form is unrecognised.
 // Returns error when parsing the type name fails.
 func (p *parser) parseCreateType(engine typeNormaliser) (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordCREATE)
-	p.mustKeyword(keywordTYPE)
+	if err := p.expectKeywords(keywordCREATE, keywordTYPE); err != nil {
+		return nil, err
+	}
 
 	schema, typeName, err := p.parseSchemaQualifiedName()
 	if err != nil {
@@ -62,12 +65,12 @@ func (p *parser) parseCreateType(engine typeNormaliser) (*querier_dto.CatalogueM
 // Returns error which is always nil.
 func (p *parser) parseCreateEnum(schema, typeName string) (*querier_dto.CatalogueMutation, error) {
 	values := p.parseEnumValues()
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationCreateEnum,
-		SchemaName: schema,
-		EnumName:   typeName,
-		EnumValues: values,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationCreateEnum,
+		schema,
+		"",
+		querier_dto.WithEnum(typeName, values),
+	), nil
 }
 
 // parseEnumValues parses a parenthesised list of enum string literals.
@@ -114,13 +117,10 @@ func (p *parser) parseCreateCompositeType(
 			return nil, fieldError
 		}
 		fieldType, arrayDimensions := p.parseColumnType(engine)
-		columns = append(columns, querier_dto.Column{
-			Name:            fieldName,
-			SQLType:         fieldType,
-			Nullable:        true,
-			IsArray:         arrayDimensions > 0,
-			ArrayDimensions: arrayDimensions,
-		})
+		column := querier_dto.NewColumn(fieldName, fieldType, true)
+		column.IsArray = arrayDimensions > 0
+		column.ArrayDimensions = arrayDimensions
+		columns = append(columns, column)
 
 		if p.current().kind == tokenComma {
 			p.advance()
@@ -130,12 +130,13 @@ func (p *parser) parseCreateCompositeType(
 		p.advance()
 	}
 
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationCreateCompositeType,
-		SchemaName: schema,
-		EnumName:   typeName,
-		Columns:    columns,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationCreateCompositeType,
+		schema,
+		"",
+		querier_dto.WithTypeName(typeName),
+		querier_dto.WithColumns(columns),
+	), nil
 }
 
 // parseAlterType parses an ALTER TYPE statement.
@@ -144,8 +145,9 @@ func (p *parser) parseCreateCompositeType(
 // when no recognised sub-clause follows.
 // Returns error when parsing the type name fails.
 func (p *parser) parseAlterType() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword("ALTER")
-	p.mustKeyword(keywordTYPE)
+	if err := p.expectKeywords("ALTER", keywordTYPE); err != nil {
+		return nil, err
+	}
 
 	schema, typeName, err := p.parseSchemaQualifiedName()
 	if err != nil {
@@ -188,12 +190,12 @@ func (p *parser) parseAlterTypeAddValue(schema, typeName string) (*querier_dto.C
 		p.advance()
 	}
 
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationAlterEnumAddValue,
-		SchemaName: schema,
-		EnumName:   typeName,
-		EnumValues: []string{newValue},
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationAlterEnumAddValue,
+		schema,
+		"",
+		querier_dto.WithEnum(typeName, []string{newValue}),
+	), nil
 }
 
 // parseAlterTypeRenameValue parses ALTER TYPE ... RENAME VALUE.
@@ -203,7 +205,7 @@ func (p *parser) parseAlterTypeAddValue(schema, typeName string) (*querier_dto.C
 //
 // Returns *querier_dto.CatalogueMutation which describes the rename-value mutation, or
 // nil when the form is unrecognised.
-// Returns error which is always nil.
+// Returns error when TO does not follow the old value.
 func (p *parser) parseAlterTypeRenameValue(schema, typeName string) (*querier_dto.CatalogueMutation, error) {
 	if !p.matchKeyword("VALUE") {
 		return nil, nil
@@ -214,19 +216,21 @@ func (p *parser) parseAlterTypeRenameValue(schema, typeName string) (*querier_dt
 	}
 	oldValue := p.advance().value
 
-	p.mustKeyword("TO")
+	if _, err := p.expectKeyword("TO"); err != nil {
+		return nil, err
+	}
 
 	if p.current().kind != tokenString {
 		return nil, nil
 	}
 	newValue := p.advance().value
 
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationAlterEnumRenameValue,
-		SchemaName: schema,
-		EnumName:   typeName,
-		EnumValues: []string{oldValue, newValue},
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationAlterEnumRenameValue,
+		schema,
+		"",
+		querier_dto.WithEnum(typeName, []string{oldValue, newValue}),
+	), nil
 }
 
 // parseDropType parses a DROP TYPE statement.
@@ -234,8 +238,9 @@ func (p *parser) parseAlterTypeRenameValue(schema, typeName string) (*querier_dt
 // Returns *querier_dto.CatalogueMutation which describes the drop-type mutation.
 // Returns error when parsing the type name fails.
 func (p *parser) parseDropType() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordDROP)
-	p.mustKeyword(keywordTYPE)
+	if err := p.expectKeywords(keywordDROP, keywordTYPE); err != nil {
+		return nil, err
+	}
 
 	p.skipIfExists()
 
@@ -247,23 +252,29 @@ func (p *parser) parseDropType() (*querier_dto.CatalogueMutation, error) {
 	p.matchKeyword(keywordCASCADE)
 	p.matchKeyword(keywordRESTRICT)
 
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationDropType,
-		SchemaName: schema,
-		EnumName:   typeName,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationDropType,
+		schema,
+		"",
+		querier_dto.WithTypeName(typeName),
+	), nil
 }
 
-// parseCreateMacro parses a CREATE MACRO or CREATE FUNCTION statement.
+// parseCreateMacro parses a CREATE [OR REPLACE] [TEMP] MACRO or FUNCTION statement.
 //
 // Takes engine (typeNormaliser) which normalises argument type names.
 //
 // Returns *querier_dto.CatalogueMutation which describes the create-function mutation.
 // Returns error when parsing the name or arguments fails.
 func (p *parser) parseCreateMacro(engine typeNormaliser) (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordCREATE)
+	if _, err := p.expectKeyword(keywordCREATE); err != nil {
+		return nil, err
+	}
 	p.skipOrReplace()
-	p.mustKeyword(keywordMACRO, "FUNCTION")
+	p.skipTemporary()
+	if _, err := p.expectKeyword(keywordMACRO, "FUNCTION"); err != nil {
+		return nil, err
+	}
 
 	schema, macroName, err := p.parseSchemaQualifiedName()
 	if err != nil {
@@ -275,12 +286,9 @@ func (p *parser) parseCreateMacro(engine typeNormaliser) (*querier_dto.Catalogue
 		return nil, argumentsError
 	}
 
-	signature := &querier_dto.FunctionSignature{
-		Name:       macroName,
-		Schema:     schema,
-		Arguments:  arguments,
-		IsVariadic: p.lastArgumentWasVariadic,
-	}
+	signature := querier_dto.NewFunctionReference(schema, macroName)
+	signature.Arguments = arguments
+	signature.IsVariadic = p.lastArgumentWasVariadic
 	p.lastArgumentWasVariadic = false
 
 	p.matchKeyword(keywordAS)
@@ -293,12 +301,13 @@ func (p *parser) parseCreateMacro(engine typeNormaliser) (*querier_dto.Catalogue
 		p.captureMacroBody(signature)
 	}
 
-	return &querier_dto.CatalogueMutation{
-		Kind:              querier_dto.MutationCreateFunction,
-		SchemaName:        schema,
-		FunctionSignature: signature,
-		Columns:           tableColumns,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationCreateFunction,
+		schema,
+		"",
+		querier_dto.WithColumns(tableColumns),
+		querier_dto.WithFunction(signature),
+	), nil
 }
 
 // captureTableMacroColumns analyses the SELECT body of a CREATE MACRO ... AS TABLE macro
@@ -326,11 +335,7 @@ func (p *parser) captureTableMacroColumns() []querier_dto.Column {
 		if name == "" {
 			continue
 		}
-		columns = append(columns, querier_dto.Column{
-			Name:     name,
-			SQLType:  querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown},
-			Nullable: true,
-		})
+		columns = append(columns, querier_dto.NewColumn(name, querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true))
 	}
 	return columns
 }
@@ -351,8 +356,7 @@ func (p *parser) captureMacroBody(signature *querier_dto.FunctionSignature) {
 		return
 	}
 
-	bodyParser := newParser(bodyTokens)
-	bodyParser.maxParseDepth = p.maxParseDepth
+	bodyParser := p.newChildParser(bodyTokens)
 	expression := bodyParser.parseExpression()
 	if expression == nil {
 		return
@@ -375,14 +379,14 @@ func inferMacroReturnType(expression querier_dto.Expression) querier_dto.SQLType
 		return inferLiteralType(expr.TypeName)
 	case *querier_dto.BinaryOpExpression:
 		if expr.Operator == "||" {
-			return querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "varchar"}
+			return querier_dto.NewSQLType(querier_dto.TypeCategoryText, "varchar")
 		}
 		return inferMacroReturnType(expr.Left)
 	case *querier_dto.CastExpression:
 		normalised := normaliseTypeName(expr.TypeName, nil)
 		return normalised
 	default:
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "")
 	}
 }
 
@@ -395,15 +399,15 @@ func inferMacroReturnType(expression querier_dto.Expression) querier_dto.SQLType
 func inferLiteralType(typeName string) querier_dto.SQLType {
 	switch typeName {
 	case "integer":
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int4"}
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int4")
 	case "text":
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "varchar"}
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryText, "varchar")
 	case "numeric":
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryDecimal, EngineName: "numeric"}
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryDecimal, "numeric")
 	case "boolean":
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryBoolean, EngineName: "bool"}
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryBoolean, "bool")
 	default:
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "")
 	}
 }
 
@@ -448,6 +452,10 @@ func (p *parser) parseFunctionArgumentList(engine typeNormaliser) ([]querier_dto
 // parseFunctionArgument parses a single function or macro argument declaration, including
 // optional mode keywords and default value.
 //
+// A macro parameter written `name := default` is optional and, like every untyped macro
+// parameter, is recorded by its name in place of a type; DEFAULT marks a typed argument
+// optional.
+//
 // Takes engine (typeNormaliser) which normalises the argument's type name.
 //
 // Returns querier_dto.FunctionArgument which describes the parsed argument.
@@ -463,13 +471,24 @@ func (p *parser) parseFunctionArgument(engine typeNormaliser) (querier_dto.Funct
 	savedPosition := p.position
 	possibleName, _ := p.parseIdentifierOrKeyword()
 
+	if possibleName != "" && p.matchMacroDefaultAssignment() {
+		argument := querier_dto.FunctionArgument{
+			Name:       "",
+			Type:       engine.NormaliseTypeName(strings.ToLower(possibleName)),
+			IsOptional: true,
+		}
+		p.skipFunctionDefault()
+		return argument, nil
+	}
+
 	if p.current().kind == tokenIdentifier && !p.isDuckDBColumnConstraintKeyword() &&
 		!p.isAnyKeyword(keywordDEFAULT, "COMMA") &&
 		p.current().kind != tokenComma && p.current().kind != tokenRightParen {
 		argumentType, arrayDimensions := p.parseColumnType(engine)
 		argument := querier_dto.FunctionArgument{
-			Name: possibleName,
-			Type: functionArgumentArrayType(argumentType, arrayDimensions),
+			Name:       possibleName,
+			Type:       functionArgumentArrayType(argumentType, arrayDimensions),
+			IsOptional: false,
 		}
 
 		if p.matchKeyword(keywordDEFAULT) {
@@ -483,7 +502,9 @@ func (p *parser) parseFunctionArgument(engine typeNormaliser) (querier_dto.Funct
 	p.position = savedPosition
 	argumentType, arrayDimensions := p.parseColumnType(engine)
 	argument := querier_dto.FunctionArgument{
-		Type: functionArgumentArrayType(argumentType, arrayDimensions),
+		Type:       functionArgumentArrayType(argumentType, arrayDimensions),
+		Name:       "",
+		IsOptional: false,
 	}
 
 	if p.matchKeyword(keywordDEFAULT) {
@@ -512,14 +533,23 @@ func (p *parser) parseFunctionArgument(engine typeNormaliser) (querier_dto.Funct
 func functionArgumentArrayType(elementType querier_dto.SQLType, dimensions int) querier_dto.SQLType {
 	wrapped := elementType
 	for range dimensions {
-		element := wrapped
-		wrapped = querier_dto.SQLType{
-			Category:    querier_dto.TypeCategoryArray,
-			EngineName:  element.EngineName + "[]",
-			ElementType: &element,
-		}
+		wrapped = newArrayType(wrapped)
 	}
 	return wrapped
+}
+
+// matchMacroDefaultAssignment consumes the `:=` that introduces a macro parameter's
+// default value, which the tokeniser emits as a ":" operator followed by an "=" operator.
+//
+// Returns bool which is true when `:=` was consumed.
+func (p *parser) matchMacroDefaultAssignment() bool {
+	if p.current().kind != tokenOperator || p.current().value != ":" ||
+		p.peek().kind != tokenOperator || p.peek().value != "=" {
+		return false
+	}
+	p.advance()
+	p.advance()
+	return true
 }
 
 // skipFunctionDefault advances the cursor past a DEFAULT expression while honouring
@@ -550,10 +580,14 @@ func (p *parser) skipFunctionDefault() {
 // parseDropFunction parses a DROP FUNCTION, DROP PROCEDURE, or DROP MACRO statement.
 //
 // Returns *querier_dto.CatalogueMutation which describes the drop-function mutation.
-// Returns error when parsing the qualified name fails.
+// Returns error when the keywords, qualified name, or argument list are malformed.
 func (p *parser) parseDropFunction() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordDROP)
-	p.mustKeyword("FUNCTION", "PROCEDURE", keywordMACRO)
+	if _, err := p.expectKeyword(keywordDROP); err != nil {
+		return nil, err
+	}
+	if _, err := p.expectKeyword("FUNCTION", "PROCEDURE", keywordMACRO); err != nil {
+		return nil, err
+	}
 
 	p.skipIfExists()
 
@@ -562,19 +596,17 @@ func (p *parser) parseDropFunction() (*querier_dto.CatalogueMutation, error) {
 		return nil, err
 	}
 
-	if p.current().kind == tokenLeftParen {
-		p.mustSkipParenthesised()
+	if err := p.skipParenthesisedIfPresent(); err != nil {
+		return nil, err
 	}
 
 	p.matchKeyword(keywordCASCADE)
 	p.matchKeyword(keywordRESTRICT)
 
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationDropFunction,
-		SchemaName: schema,
-		FunctionSignature: &querier_dto.FunctionSignature{
-			Name:   functionName,
-			Schema: schema,
-		},
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationDropFunction,
+		schema,
+		"",
+		querier_dto.WithFunction(querier_dto.NewFunctionReference(schema, functionName)),
+	), nil
 }

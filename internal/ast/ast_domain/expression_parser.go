@@ -1166,7 +1166,8 @@ func (p *ExpressionParser) backtrack(position int) {
 	if p.tokenIndex < len(p.tokens) {
 		p.currentToken = p.tokens[p.tokenIndex]
 	} else {
-		p.currentToken = lexerToken{offset: 0, length: 0, errorMessage: "", Location: Location{}, Type: tokenEOF}
+		p.currentToken = lexerToken{}
+		p.currentToken.Type = tokenEOF
 	}
 }
 
@@ -1176,7 +1177,8 @@ func (p *ExpressionParser) advanceLexerToken() {
 	if p.tokenIndex < len(p.tokens) {
 		p.currentToken = p.tokens[p.tokenIndex]
 	} else {
-		p.currentToken = lexerToken{offset: 0, length: 0, errorMessage: "", Location: Location{}, Type: tokenEOF}
+		p.currentToken = lexerToken{}
+		p.currentToken.Type = tokenEOF
 	}
 }
 

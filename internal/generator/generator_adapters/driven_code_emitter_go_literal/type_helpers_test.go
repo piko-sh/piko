@@ -236,7 +236,7 @@ func TestIsExpressionStringType(t *testing.T) {
 		},
 		{
 			name:     "nil typeExpr",
-			typeInfo: &ast_domain.ResolvedTypeInfo{TypeExpression: nil},
+			typeInfo: &ast_domain.ResolvedTypeInfo{},
 			want:     false,
 		},
 		{
@@ -414,7 +414,7 @@ func TestIsNumeric_EdgeCases(t *testing.T) {
 		},
 		{
 			name:     "nil typeExpr",
-			typeInfo: &ast_domain.ResolvedTypeInfo{TypeExpression: nil},
+			typeInfo: &ast_domain.ResolvedTypeInfo{},
 			want:     false,
 		},
 		{
@@ -538,8 +538,8 @@ func TestShouldSkipEscaping_NilHandling(t *testing.T) {
 		name string
 	}{
 		{name: "nil annotation", ann: nil},
-		{name: "nil ResolvedType", ann: &ast_domain.GoGeneratorAnnotation{ResolvedType: nil}},
-		{name: "nil TypeExpr", ann: &ast_domain.GoGeneratorAnnotation{ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: nil}}},
+		{name: "nil ResolvedType", ann: &ast_domain.GoGeneratorAnnotation{}},
+		{name: "nil TypeExpr", ann: &ast_domain.GoGeneratorAnnotation{ResolvedType: &ast_domain.ResolvedTypeInfo{}}},
 	}
 
 	for _, tc := range testCases {
@@ -598,7 +598,7 @@ func TestGetSyntheticTypeName(t *testing.T) {
 		},
 		{
 			name:     "nil TypeExpr returns unknown",
-			typeInfo: &ast_domain.ResolvedTypeInfo{TypeExpression: nil},
+			typeInfo: &ast_domain.ResolvedTypeInfo{},
 			want:     "unknown",
 		},
 		{

@@ -420,7 +420,7 @@ func TestDispatcher_Retry_ShutdownPersistsPendingRetriesToDLQ(t *testing.T) {
 
 func TestRetryConfig_ShouldRetry(t *testing.T) {
 	t.Parallel()
-	config := RetryConfig{Config: retry.Config{MaxRetries: 3}}
+	config := RetryConfig{MaxRetries: 3}
 
 	testCases := []struct {
 		attempt int

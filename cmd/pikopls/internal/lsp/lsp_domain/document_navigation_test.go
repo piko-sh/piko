@@ -286,7 +286,7 @@ func TestBuildSymbolLocation(t *testing.T) {
 			line:       1,
 			column:     1,
 			symbolName: "foo",
-			wantStart:  protocol.Position{Line: 0, Character: 0},
+			wantStart:  protocol.Position{},
 			wantEnd:    protocol.Position{Line: 0, Character: 3},
 		},
 		{
@@ -304,8 +304,8 @@ func TestBuildSymbolLocation(t *testing.T) {
 			line:       1,
 			column:     1,
 			symbolName: "",
-			wantStart:  protocol.Position{Line: 0, Character: 0},
-			wantEnd:    protocol.Position{Line: 0, Character: 0},
+			wantStart:  protocol.Position{},
+			wantEnd:    protocol.Position{},
 		},
 		{
 			name:       "single character symbol",
@@ -431,9 +431,7 @@ func TestCheckExpression(t *testing.T) {
 			expression: func() ast_domain.Expression {
 				id := &ast_domain.Identifier{Name: "x"}
 				id.GoAnnotations = &ast_domain.GoGeneratorAnnotation{
-					Symbol: &ast_domain.ResolvedSymbol{
-						ReferenceLocation: ast_domain.Location{Line: 0, Column: 0},
-					},
+					Symbol: &ast_domain.ResolvedSymbol{},
 				}
 				return id
 			}(),
@@ -647,9 +645,7 @@ func TestTryPartialDefinition(t *testing.T) {
 			WithURI("file:///project/page.pk").
 			Build()
 
-		ann := &ast_domain.GoGeneratorAnnotation{
-			PartialInfo: nil,
-		}
+		ann := &ast_domain.GoGeneratorAnnotation{}
 
 		result := document.tryPartialDefinition(context.Background(), ann)
 		if result != nil {
@@ -754,7 +750,7 @@ func TestTrySymbolDefinition(t *testing.T) {
 		ann := &ast_domain.GoGeneratorAnnotation{
 			Symbol: &ast_domain.ResolvedSymbol{
 				Name:                "count",
-				DeclarationLocation: ast_domain.Location{Line: 0, Column: 0},
+				DeclarationLocation: ast_domain.Location{},
 			},
 			OriginalSourcePath: new("/project/types.go"),
 		}
@@ -921,7 +917,7 @@ func TestLogFallbackToType(t *testing.T) {
 		ann := &ast_domain.GoGeneratorAnnotation{
 			Symbol: &ast_domain.ResolvedSymbol{
 				Name:              "x",
-				ReferenceLocation: ast_domain.Location{Line: 0, Column: 0},
+				ReferenceLocation: ast_domain.Location{},
 			},
 		}
 		document.logFallbackToType(context.Background(), ann)
@@ -933,7 +929,7 @@ func TestGetTypeDefinition_NilAnnotationResult(t *testing.T) {
 		WithURI("file:///project/page.pk").
 		Build()
 
-	result, err := document.GetTypeDefinition(context.Background(), protocol.Position{Line: 0, Character: 0})
+	result, err := document.GetTypeDefinition(context.Background(), protocol.Position{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -948,7 +944,7 @@ func TestResolveTypeInfoAtPosition(t *testing.T) {
 			WithURI("file:///project/page.pk").
 			Build()
 
-		typeInfo, ctx := document.resolveTypeInfoAtPosition(context.Background(), protocol.Position{Line: 0, Character: 0})
+		typeInfo, ctx := document.resolveTypeInfoAtPosition(context.Background(), protocol.Position{})
 		if typeInfo != nil {
 			t.Errorf("expected nil typeInfo, got %v", typeInfo)
 		}
@@ -963,7 +959,7 @@ func TestResolveTypeInfoAtPosition(t *testing.T) {
 			WithAnnotationResult(&annotator_dto.AnnotationResult{}).
 			Build()
 
-		typeInfo, ctx := document.resolveTypeInfoAtPosition(context.Background(), protocol.Position{Line: 0, Character: 0})
+		typeInfo, ctx := document.resolveTypeInfoAtPosition(context.Background(), protocol.Position{})
 		if typeInfo != nil {
 			t.Errorf("expected nil typeInfo, got %v", typeInfo)
 		}
@@ -1231,7 +1227,7 @@ func TestGetDefinition_NilAnnotationResult(t *testing.T) {
 		WithURI("file:///project/page.pk").
 		Build()
 
-	result, err := document.GetDefinition(context.Background(), protocol.Position{Line: 0, Character: 0})
+	result, err := document.GetDefinition(context.Background(), protocol.Position{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1246,7 +1242,7 @@ func TestGetReferences_NilAnnotationResult(t *testing.T) {
 		WithURI("file:///project/page.pk").
 		Build()
 
-	result, err := document.GetReferences(context.Background(), protocol.Position{Line: 0, Character: 0})
+	result, err := document.GetReferences(context.Background(), protocol.Position{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1431,7 +1427,7 @@ func TestGetReferences_WithMatchingSymbols(t *testing.T) {
 
 	identifier := &ast_domain.Identifier{
 		Name:             "count",
-		RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+		RelativeLocation: ast_domain.Location{},
 		SourceLength:     5,
 	}
 	identifier.GoAnnotations = &ast_domain.GoGeneratorAnnotation{
@@ -1469,7 +1465,7 @@ func TestResolveTypeInfoAtPosition_PositivePath(t *testing.T) {
 
 	identifier := &ast_domain.Identifier{
 		Name:             "user",
-		RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+		RelativeLocation: ast_domain.Location{},
 		SourceLength:     4,
 	}
 	identifier.GoAnnotations = &ast_domain.GoGeneratorAnnotation{
@@ -1513,7 +1509,7 @@ func TestResolveTypeInfoAtPosition_NoTypeInspector(t *testing.T) {
 
 	identifier := &ast_domain.Identifier{
 		Name:             "user",
-		RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+		RelativeLocation: ast_domain.Location{},
 		SourceLength:     4,
 	}
 	identifier.GoAnnotations = &ast_domain.GoGeneratorAnnotation{
@@ -1586,9 +1582,7 @@ func TestTryExternalFunctionDefinition_MethodFound(t *testing.T) {
 		Build()
 
 	ann := &ast_domain.GoGeneratorAnnotation{
-		ResolvedType: &ast_domain.ResolvedTypeInfo{
-			PackageAlias: "",
-		},
+		ResolvedType: &ast_domain.ResolvedTypeInfo{},
 	}
 
 	result := document.tryExternalFunctionDefinition(

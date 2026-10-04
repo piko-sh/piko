@@ -122,10 +122,12 @@ func NewProvider(config Config) (captcha_domain.CaptchaProvider, error) {
 	copy(secret, config.Secret)
 
 	return &provider{
-		secret:     secret,
-		ttl:        ttl,
-		clock:      providerClock,
-		usedTokens: make(map[string]time.Time),
+		secret:       secret,
+		ttl:          ttl,
+		clock:        providerClock,
+		usedTokens:   make(map[string]time.Time),
+		lastEviction: time.Time{},
+		usedMutex:    sync.Mutex{},
 	}, nil
 }
 
@@ -157,9 +159,9 @@ func (*provider) ScriptURL() string {
 //
 // Returns *captcha_dto.RenderRequirements with ServerSideToken set to true.
 func (*provider) RenderRequirements() *captcha_dto.RenderRequirements {
-	return &captcha_dto.RenderRequirements{
-		ServerSideToken: true,
-	}
+	requirements := captcha_dto.RenderRequirements{}
+	requirements.ServerSideToken = true
+	return &requirements
 }
 
 // GenerateChallenge creates a new challenge token for the given action.
@@ -232,6 +234,9 @@ func (p *provider) Verify(_ context.Context, request *captcha_dto.VerifyRequest)
 			Action:     parsed.action,
 			Timestamp:  parsed.challengeTime,
 			ErrorCodes: []string{errorCodeActionMismatch},
+			Score:      nil,
+			Hostname:   "",
+			Success:    false,
 		}, nil
 	}
 
@@ -239,14 +244,20 @@ func (p *provider) Verify(_ context.Context, request *captcha_dto.VerifyRequest)
 		return &captcha_dto.VerifyResponse{
 			Timestamp:  parsed.challengeTime,
 			ErrorCodes: []string{errorCodeExpired},
+			Score:      nil,
+			Action:     "",
+			Hostname:   "",
+			Success:    false,
 		}, nil
 	}
 
 	return &captcha_dto.VerifyResponse{
-		Score:     new(float64(1.0)),
-		Success:   true,
-		Action:    parsed.action,
-		Timestamp: parsed.challengeTime,
+		Score:      new(float64(1.0)),
+		Success:    true,
+		Action:     parsed.action,
+		Timestamp:  parsed.challengeTime,
+		Hostname:   "",
+		ErrorCodes: nil,
 	}, nil
 }
 
@@ -261,8 +272,9 @@ func (p *provider) HealthCheck(ctx context.Context) error {
 	}
 
 	response, err := p.Verify(ctx, &captcha_dto.VerifyRequest{
-		Token:  token,
-		Action: "health-check",
+		Token:    token,
+		Action:   "health-check",
+		RemoteIP: "",
 	})
 	if err != nil {
 		return fmt.Errorf("verifying health check token: %w", err)
@@ -317,6 +329,10 @@ func (p *provider) parseAndValidateToken(tokenString string) (*parsedToken, *cap
 		return nil, &captcha_dto.VerifyResponse{
 			Timestamp:  challengeTime,
 			ErrorCodes: []string{errorCodeExpired},
+			Score:      nil,
+			Action:     "",
+			Hostname:   "",
+			Success:    false,
 		}
 	}
 
@@ -411,6 +427,10 @@ func failedResponse(errorCode string) *captcha_dto.VerifyResponse {
 	return &captcha_dto.VerifyResponse{
 		Score:      new(float64(0.0)),
 		ErrorCodes: []string{errorCode},
+		Timestamp:  time.Time{},
+		Action:     "",
+		Hostname:   "",
+		Success:    false,
 	}
 }
 

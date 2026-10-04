@@ -1018,9 +1018,7 @@ func TestEmitTruthinessCheck(t *testing.T) {
 		{
 			name:   "nil ResolvedType falls back to runtime truthiness call",
 			goExpr: cachedIdent("val"),
-			ann: &ast_domain.GoGeneratorAnnotation{
-				ResolvedType: nil,
-			},
+			ann:    &ast_domain.GoGeneratorAnnotation{},
 			assertFunc: func(t *testing.T, result goast.Expr) {
 				t.Helper()
 				callExpr := requireCallExpr(t, result, "should be a call expression")
@@ -1032,9 +1030,7 @@ func TestEmitTruthinessCheck(t *testing.T) {
 			name:   "nil TypeExpr falls back to runtime truthiness call",
 			goExpr: cachedIdent("val"),
 			ann: &ast_domain.GoGeneratorAnnotation{
-				ResolvedType: &ast_domain.ResolvedTypeInfo{
-					TypeExpression: nil,
-				},
+				ResolvedType: &ast_domain.ResolvedTypeInfo{},
 			},
 			assertFunc: func(t *testing.T, result goast.Expr) {
 				t.Helper()

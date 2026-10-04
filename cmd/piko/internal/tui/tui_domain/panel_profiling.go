@@ -147,10 +147,17 @@ func NewProfilingPanel(provider ProfilingInspector, c clock.Clock) *ProfilingPan
 		c = clock.RealClock()
 	}
 	p := &ProfilingPanel{
-		BasePanel:  NewBasePanel("profiling", titleProfiling),
-		clock:      c,
-		provider:   provider,
-		stateMutex: sync.RWMutex{},
+		BasePanel:      NewBasePanel("profiling", titleProfiling),
+		clock:          c,
+		provider:       provider,
+		stateMutex:     sync.RWMutex{},
+		lastRefresh:    time.Time{},
+		err:            nil,
+		captureErr:     nil,
+		status:         nil,
+		captureMessage: "",
+		lastSummary:    nil,
+		capturing:      false,
 	}
 	p.SetKeyMap([]KeyBinding{
 		{Key: "e", Description: "Enable profiling"},
@@ -349,15 +356,19 @@ func (p *ProfilingPanel) renderBody(status *ProfilingStatus, err error) string {
 func (p *ProfilingPanel) detailBody(status *ProfilingStatus, err error) inspector.DetailBody {
 	if err != nil {
 		return inspector.DetailBody{
-			Title:    titleProfiling,
-			Sections: []inspector.DetailSection{{Heading: "Error", Rows: []inspector.DetailRow{{Label: "Reason", Value: err.Error()}}}},
+			Title: titleProfiling,
+			Sections: []inspector.DetailSection{inspector.NewDetailSection(
+				"Error",
+				[]inspector.DetailRow{inspector.NewDetailRow("Reason", err.Error())},
+			)},
+			Subtitle: "",
 		}
 	}
 	if status == nil {
-		return inspector.DetailBody{Title: titleProfiling, Subtitle: "no data yet"}
+		return inspector.DetailBody{Title: titleProfiling, Subtitle: "no data yet", Sections: nil}
 	}
 
-	sections := []inspector.DetailSection{{Heading: "Status", Rows: profilingStatusRows(status)}}
+	sections := []inspector.DetailSection{inspector.NewDetailSection("Status", profilingStatusRows(status))}
 	sections = append(sections, p.captureSection())
 	p.stateMutex.RLock()
 	summary := p.lastSummary
@@ -385,19 +396,19 @@ func profilingStatusRows(status *ProfilingStatus) []inspector.DetailRow {
 		enabledLabel = "enabled"
 	}
 	rows := []inspector.DetailRow{
-		{Label: "State", Value: enabledLabel},
-		{Label: "Available", Value: strings.Join(status.AvailableProfiles, ", ")},
-		{Label: "Pprof URL", Value: status.PprofBaseURL},
-		{Label: "Port", Value: fmt.Sprintf(fmtDecimal, status.Port)},
-		{Label: "Block rate", Value: fmt.Sprintf(fmtDecimal, status.BlockProfileRate)},
-		{Label: "Mutex frac", Value: fmt.Sprintf(fmtDecimal, status.MutexProfileFraction)},
-		{Label: "Mem rate", Value: fmt.Sprintf(fmtDecimal, status.MemProfileRate)},
+		inspector.NewDetailRow("State", enabledLabel),
+		inspector.NewDetailRow("Available", strings.Join(status.AvailableProfiles, ", ")),
+		inspector.NewDetailRow("Pprof URL", status.PprofBaseURL),
+		inspector.NewDetailRow("Port", fmt.Sprintf(fmtDecimal, status.Port)),
+		inspector.NewDetailRow("Block rate", fmt.Sprintf(fmtDecimal, status.BlockProfileRate)),
+		inspector.NewDetailRow("Mutex frac", fmt.Sprintf(fmtDecimal, status.MutexProfileFraction)),
+		inspector.NewDetailRow("Mem rate", fmt.Sprintf(fmtDecimal, status.MemProfileRate)),
 	}
 	if !status.ExpiresAt.IsZero() {
-		rows = append(rows, inspector.DetailRow{Label: "Expires", Value: status.ExpiresAt.Format(time.RFC3339)})
+		rows = append(rows, inspector.NewDetailRow("Expires", status.ExpiresAt.Format(time.RFC3339)))
 	}
 	if status.Remaining > 0 {
-		rows = append(rows, inspector.DetailRow{Label: "Remaining", Value: status.Remaining.Truncate(time.Second).String()})
+		rows = append(rows, inspector.NewDetailRow("Remaining", status.Remaining.Truncate(time.Second).String()))
 	}
 	return rows
 }
@@ -418,16 +429,25 @@ func (p *ProfilingPanel) captureSection() inspector.DetailSection {
 
 	switch {
 	case capturing:
-		return inspector.DetailSection{Heading: captureSectionHeading, Rows: []inspector.DetailRow{{Label: "Status", Value: "in flight..."}}}
+		return inspector.NewDetailSection(
+			captureSectionHeading,
+			[]inspector.DetailRow{inspector.NewDetailRow("Status", "in flight...")},
+		)
 	case captureErr != nil:
-		return inspector.DetailSection{Heading: captureSectionHeading, Rows: []inspector.DetailRow{
-			{Label: "Last", Value: captureMessage},
-			{Label: "Error", Value: captureErr.Error()},
-		}}
+		return inspector.NewDetailSection(captureSectionHeading, []inspector.DetailRow{
+			inspector.NewDetailRow("Last", captureMessage),
+			inspector.NewDetailRow("Error", captureErr.Error()),
+		})
 	case captureMessage != "":
-		return inspector.DetailSection{Heading: captureSectionHeading, Rows: []inspector.DetailRow{{Label: "Last", Value: captureMessage}}}
+		return inspector.NewDetailSection(
+			captureSectionHeading,
+			[]inspector.DetailRow{inspector.NewDetailRow("Last", captureMessage)},
+		)
 	default:
-		return inspector.DetailSection{Heading: captureSectionHeading, Rows: []inspector.DetailRow{{Label: "Status", Value: "no capture yet"}}}
+		return inspector.NewDetailSection(
+			captureSectionHeading,
+			[]inspector.DetailRow{inspector.NewDetailRow("Status", "no capture yet")},
+		)
 	}
 }
 
@@ -445,10 +465,10 @@ func profileTopSection(summary *inspector.ProfileSummary) inspector.DetailSectio
 			pct = float64(e.Flat) / float64(summary.Total) * percentScale
 		}
 		value := fmt.Sprintf("%5.1f%%  %d %s", pct, e.Flat, summary.SampleUnit)
-		rows = append(rows, inspector.DetailRow{Label: e.Function, Value: value})
+		rows = append(rows, inspector.NewDetailRow(e.Function, value))
 	}
 	heading := fmt.Sprintf("Top %s (flat)", summary.SampleType)
-	return inspector.DetailSection{Heading: heading, Rows: rows}
+	return inspector.NewDetailSection(heading, rows)
 }
 
 // refresh returns a Cmd that fetches the latest profiling status.
@@ -457,7 +477,7 @@ func profileTopSection(summary *inspector.ProfileSummary) inspector.DetailSectio
 func (p *ProfilingPanel) refresh() tea.Cmd {
 	return func() tea.Msg {
 		if p.provider == nil {
-			return profilingRefreshMessage{err: errNoProfilingInspector}
+			return profilingRefreshMessage{err: errNoProfilingInspector, status: nil}
 		}
 		ctx, cancel := context.WithTimeoutCause(context.Background(), profilingRefreshTimeout,
 			errors.New("profiling status exceeded timeout"))
@@ -521,27 +541,35 @@ func (p *ProfilingPanel) captureCmd(profile string, duration time.Duration) tea.
 
 	captureFn := func() tea.Msg {
 		if provider == nil {
-			return profilingCaptureMessage{profile: profile, err: errNoProfilingInspector}
+			return profilingCaptureMessage{
+				profile: profile,
+				err:     errNoProfilingInspector,
+				summary: nil,
+				path:    "",
+				bytes:   0,
+			}
 		}
 		ctx, cancel := context.WithTimeoutCause(context.Background(), duration+profilingRefreshTimeout,
 			fmt.Errorf("%s profile capture exceeded timeout", profile))
 		defer cancel()
 		data, err := provider.Capture(ctx, profile, duration)
 		if err != nil {
-			return profilingCaptureMessage{profile: profile, err: err}
+			return profilingCaptureMessage{profile: profile, err: err, summary: nil, path: "", bytes: 0}
 		}
 		path, writeErr := writeCaptureToTempFile(clk, profile, data)
 		if writeErr != nil {
-			return profilingCaptureMessage{profile: profile, err: writeErr}
+			return profilingCaptureMessage{profile: profile, err: writeErr, summary: nil, path: "", bytes: 0}
 		}
 		summary, parseErr := inspector.ParseProfileSummary(data, inspector.ProfileAggOpts{
 			SampleIndex: 0,
 			TopN:        inspector.ProfileTopDefault,
+			FocusRegex:  nil,
+			ByLine:      false,
 		})
 		if parseErr != nil {
-			return profilingCaptureMessage{profile: profile, path: path, bytes: len(data), err: parseErr}
+			return profilingCaptureMessage{profile: profile, path: path, bytes: len(data), err: parseErr, summary: nil}
 		}
-		return profilingCaptureMessage{profile: profile, path: path, bytes: len(data), summary: summary}
+		return profilingCaptureMessage{profile: profile, path: path, bytes: len(data), summary: summary, err: nil}
 	}
 
 	overlayPush := func() tea.Msg {

@@ -87,8 +87,12 @@ func NewDevAPIHandler(
 	opts ...DevAPIHandlerOption,
 ) *DevAPIHandler {
 	h := &DevAPIHandler{
-		systemStats:  systemStats,
-		orchestrator: orchestrator,
+		systemStats:     systemStats,
+		orchestrator:    orchestrator,
+		healthProbe:     nil,
+		resources:       nil,
+		providerInfo:    nil,
+		developmentMode: false,
 	}
 	for _, opt := range opts {
 		opt(h)

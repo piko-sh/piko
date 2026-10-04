@@ -308,6 +308,7 @@ func NewDiskFileHashCache(cacheFilePath string, opts ...DiskFileHashCacheOption)
 		sandbox:       nil,
 		cacheFileName: cacheFileName,
 		mu:            sync.RWMutex{},
+		factory:       nil,
 	}
 
 	for _, opt := range opts {

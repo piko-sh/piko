@@ -90,7 +90,16 @@ Actions consume the score through the same `VerifyResponse.Score` field regardle
 
 ## Providers
 
-Each provider sub-package exposes `NewProvider(Config) (captcha_domain.CaptchaProvider, error)`.
+Each provider sub-package exposes a `NewProvider` constructor returning `(captcha_domain.CaptchaProvider, error)`.
+
+The providers that call a remote verification endpoint (Turnstile, reCAPTCHA v3, hCaptcha) take `NewProvider(config Config, options ...Option)` with two options:
+
+| Option | Purpose |
+|---|---|
+| `WithVerifyTimeout(timeout time.Duration)` | Bounds each verification call, including reading the response. Defaults to 10 seconds. |
+| `WithMaxResponseBytes(limit int64)` | Caps the verification response body. Defaults to 64 KiB. A larger response fails with an error wrapping `ErrProviderUnavailable` without truncating the response. |
+
+Zero or negative values keep the default.
 
 ### `captcha_provider_turnstile`
 
@@ -101,7 +110,7 @@ type Config struct {
 }
 ```
 
-Constructor: `captcha_provider_turnstile.NewProvider(Config)`.
+Constructor: `captcha_provider_turnstile.NewProvider(Config, ...Option)`.
 
 ### `captcha_provider_recaptcha_v3`
 
@@ -112,7 +121,7 @@ type Config struct {
 }
 ```
 
-Constructor: `captcha_provider_recaptcha_v3.NewProvider(Config)`.
+Constructor: `captcha_provider_recaptcha_v3.NewProvider(Config, ...Option)`.
 
 ### `captcha_provider_hcaptcha`
 
@@ -123,7 +132,7 @@ type Config struct {
 }
 ```
 
-Constructor: `captcha_provider_hcaptcha.NewProvider(Config)`.
+Constructor: `captcha_provider_hcaptcha.NewProvider(Config, ...Option)`.
 
 ### `captcha_provider_hmac_challenge`
 

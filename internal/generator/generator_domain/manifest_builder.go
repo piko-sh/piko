@@ -91,6 +91,7 @@ func NewManifestBuilder(pathsConfig GeneratorPathsConfig, i18nDefaultLocale stri
 		baseServePath:     pathsConfig.BaseServePath,
 		i18nDefaultLocale: i18nDefaultLocale,
 		configSandbox:     nil,
+		configFactory:     nil,
 	}
 
 	for _, opt := range opts {

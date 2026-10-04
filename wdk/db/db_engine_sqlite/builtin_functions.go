@@ -30,12 +30,12 @@ import (
 func buildFunctionCatalogue() *querier_dto.FunctionCatalogue {
 	builder := &FunctionCatalogueBuilder{
 		CatalogueBuilder: engine_shared.NewCatalogueBuilder(),
-		Integer:          querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "integer"},
-		Bigint:           querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int8"},
-		Text:             querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"},
-		Real:             querier_dto.SQLType{Category: querier_dto.TypeCategoryFloat, EngineName: "real"},
-		Blob:             querier_dto.SQLType{Category: querier_dto.TypeCategoryBytea, EngineName: "blob"},
-		Any:              querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown, EngineName: ""},
+		Integer:          querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "integer"),
+		Bigint:           querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int8"),
+		Text:             querier_dto.NewSQLType(querier_dto.TypeCategoryText, "text"),
+		Real:             querier_dto.NewSQLType(querier_dto.TypeCategoryFloat, "real"),
+		Blob:             querier_dto.NewSQLType(querier_dto.TypeCategoryBytea, "blob"),
+		Any:              querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""),
 	}
 
 	builder.registerCoreFunctions()
@@ -172,19 +172,47 @@ func (b *FunctionCatalogueBuilder) registerMathFunctions() {
 func (b *FunctionCatalogueBuilder) registerDateTimeFunctions() {
 	timeArgs := b.Args(Arg{Name: "timestring", Type: b.Text}, Arg{Name: "modifier", Type: b.Text})
 
-	b.Add("date", &querier_dto.FunctionSignature{Arguments: timeArgs, ReturnType: b.Text, NullableBehaviour: querier_dto.FunctionNullableCalledOnNull, IsVariadic: true, MinArguments: 1})
-	b.Add("time", &querier_dto.FunctionSignature{Arguments: timeArgs, ReturnType: b.Text, NullableBehaviour: querier_dto.FunctionNullableCalledOnNull, IsVariadic: true, MinArguments: 1})
-	b.Add("datetime", &querier_dto.FunctionSignature{Arguments: timeArgs, ReturnType: b.Text, NullableBehaviour: querier_dto.FunctionNullableCalledOnNull, IsVariadic: true, MinArguments: 1})
-	b.Add("julianday", &querier_dto.FunctionSignature{Arguments: timeArgs, ReturnType: b.Real, NullableBehaviour: querier_dto.FunctionNullableCalledOnNull, IsVariadic: true, MinArguments: 1})
-	b.Add("unixepoch", &querier_dto.FunctionSignature{Arguments: timeArgs, ReturnType: b.Integer, NullableBehaviour: querier_dto.FunctionNullableCalledOnNull, IsVariadic: true, MinArguments: 1})
+	b.Add("date", querier_dto.NewFunctionSignature(
+		timeArgs,
+		b.Text,
+		querier_dto.FunctionNullableCalledOnNull,
+		querier_dto.WithVariadic(1),
+	))
+	b.Add("time", querier_dto.NewFunctionSignature(
+		timeArgs,
+		b.Text,
+		querier_dto.FunctionNullableCalledOnNull,
+		querier_dto.WithVariadic(1),
+	))
+	b.Add("datetime", querier_dto.NewFunctionSignature(
+		timeArgs,
+		b.Text,
+		querier_dto.FunctionNullableCalledOnNull,
+		querier_dto.WithVariadic(1),
+	))
+	b.Add("julianday", querier_dto.NewFunctionSignature(
+		timeArgs,
+		b.Real,
+		querier_dto.FunctionNullableCalledOnNull,
+		querier_dto.WithVariadic(1),
+	))
+	b.Add("unixepoch", querier_dto.NewFunctionSignature(
+		timeArgs,
+		b.Integer,
+		querier_dto.FunctionNullableCalledOnNull,
+		querier_dto.WithVariadic(1),
+	))
 
-	b.Add("strftime", &querier_dto.FunctionSignature{
-		Arguments:         b.Args(Arg{Name: paramNameFormat, Type: b.Text}, Arg{Name: "timestring", Type: b.Text}, Arg{Name: "modifier", Type: b.Text}),
-		ReturnType:        b.Text,
-		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
-		IsVariadic:        true,
-		MinArguments:      2,
-	})
+	b.Add("strftime", querier_dto.NewFunctionSignature(b.Args(Arg{
+		Name: paramNameFormat,
+		Type: b.Text,
+	}, Arg{
+		Name: "timestring",
+		Type: b.Text,
+	}, Arg{
+		Name: "modifier",
+		Type: b.Text,
+	}), b.Text, querier_dto.FunctionNullableCalledOnNull, querier_dto.WithVariadic(2)))
 
 	b.CalledOnNull("timediff", b.Args(Arg{Name: "time1", Type: b.Text}, Arg{Name: "time2", Type: b.Text}), b.Text)
 }
@@ -212,93 +240,83 @@ func (b *FunctionCatalogueBuilder) registerJSONScalarFunctions() {
 
 	mutatorArgs := b.Args(Arg{Name: paramNameJSON, Type: b.Text}, Arg{Name: "path", Type: b.Text}, Arg{Name: paramNameValue, Type: b.Any})
 	for _, name := range []string{"json_set", "json_insert", "json_replace"} {
-		b.Add(name, &querier_dto.FunctionSignature{
-			Arguments:         mutatorArgs,
-			ReturnType:        b.Text,
-			NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
-			IsVariadic:        true,
-			MinArguments:      3,
-		})
+		b.Add(name, querier_dto.NewFunctionSignature(
+			mutatorArgs,
+			b.Text,
+			querier_dto.FunctionNullableReturnsNullOnNull,
+			querier_dto.WithVariadic(len(mutatorArgs)),
+		))
 	}
 
-	b.Add("json_remove", &querier_dto.FunctionSignature{
-		Arguments:         b.Args(Arg{Name: paramNameJSON, Type: b.Text}, Arg{Name: "path", Type: b.Text}),
-		ReturnType:        b.Text,
-		NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
-		IsVariadic:        true,
-		MinArguments:      2,
-	})
+	b.Add("json_remove", querier_dto.NewFunctionSignature(b.Args(Arg{
+		Name: paramNameJSON,
+		Type: b.Text,
+	}, Arg{
+		Name: "path",
+		Type: b.Text,
+	}), b.Text, querier_dto.FunctionNullableReturnsNullOnNull, querier_dto.WithVariadic(2)))
 }
 
 // registerJSONAggregateFunctions registers JSON aggregate functions.
 func (b *FunctionCatalogueBuilder) registerJSONAggregateFunctions() {
-	b.Add("json_group_array", &querier_dto.FunctionSignature{
-		Arguments:         b.Args(Arg{Name: paramNameValue, Type: b.Any}),
-		ReturnType:        b.Text,
-		IsAggregate:       true,
-		NullableBehaviour: querier_dto.FunctionNullableNeverNull,
-	})
-	b.Add("json_group_object", &querier_dto.FunctionSignature{
-		Arguments:         b.Args(Arg{Name: "name", Type: b.Text}, Arg{Name: paramNameValue, Type: b.Any}),
-		ReturnType:        b.Text,
-		IsAggregate:       true,
-		NullableBehaviour: querier_dto.FunctionNullableNeverNull,
-	})
+	b.Add("json_group_array", querier_dto.NewFunctionSignature(b.Args(Arg{
+		Name: paramNameValue,
+		Type: b.Any,
+	}), b.Text, querier_dto.FunctionNullableNeverNull, querier_dto.WithAggregate()))
+	b.Add("json_group_object", querier_dto.NewFunctionSignature(b.Args(Arg{
+		Name: "name",
+		Type: b.Text,
+	}, Arg{
+		Name: paramNameValue,
+		Type: b.Any,
+	}), b.Text, querier_dto.FunctionNullableNeverNull, querier_dto.WithAggregate()))
 }
 
 // registerAggregateFunctions registers core aggregate functions.
 func (b *FunctionCatalogueBuilder) registerAggregateFunctions() {
-	b.Add("count", &querier_dto.FunctionSignature{ReturnType: b.Bigint, IsAggregate: true, NullableBehaviour: querier_dto.FunctionNullableNeverNull})
-	b.Add("count", &querier_dto.FunctionSignature{
-		Arguments:         b.Args(Arg{Name: paramNameX, Type: b.Any}),
-		ReturnType:        b.Bigint,
-		IsAggregate:       true,
-		NullableBehaviour: querier_dto.FunctionNullableNeverNull,
-	})
-	b.Add("total", &querier_dto.FunctionSignature{
-		Arguments:         b.Args(Arg{Name: paramNameX, Type: b.Any}),
-		ReturnType:        b.Real,
-		IsAggregate:       true,
-		NullableBehaviour: querier_dto.FunctionNullableNeverNull,
-	})
+	b.Add("count", querier_dto.NewFunctionSignature(
+		nil,
+		b.Bigint,
+		querier_dto.FunctionNullableNeverNull,
+		querier_dto.WithAggregate(),
+	))
+	b.Add("count", querier_dto.NewFunctionSignature(b.Args(Arg{
+		Name: paramNameX,
+		Type: b.Any,
+	}), b.Bigint, querier_dto.FunctionNullableNeverNull, querier_dto.WithAggregate()))
+	b.Add("total", querier_dto.NewFunctionSignature(b.Args(Arg{
+		Name: paramNameX,
+		Type: b.Any,
+	}), b.Real, querier_dto.FunctionNullableNeverNull, querier_dto.WithAggregate()))
 
-	b.Add("avg", &querier_dto.FunctionSignature{
-		Arguments:         b.Args(Arg{Name: paramNameX, Type: b.Any}),
-		ReturnType:        b.Real,
-		IsAggregate:       true,
-		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
-	})
-	b.Add("sum", &querier_dto.FunctionSignature{
-		Arguments:         b.Args(Arg{Name: paramNameX, Type: b.Any}),
-		ReturnType:        b.Any,
-		IsAggregate:       true,
-		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
-	})
-	b.Add("group_concat", &querier_dto.FunctionSignature{
-		Arguments:         b.Args(Arg{Name: paramNameX, Type: b.Any}),
-		ReturnType:        b.Text,
-		IsAggregate:       true,
-		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
-	})
+	b.Add("avg", querier_dto.NewFunctionSignature(b.Args(Arg{
+		Name: paramNameX,
+		Type: b.Any,
+	}), b.Real, querier_dto.FunctionNullableCalledOnNull, querier_dto.WithAggregate()))
+	b.Add("sum", querier_dto.NewFunctionSignature(b.Args(Arg{
+		Name: paramNameX,
+		Type: b.Any,
+	}), b.Any, querier_dto.FunctionNullableCalledOnNull, querier_dto.WithAggregate()))
+	b.Add("group_concat", querier_dto.NewFunctionSignature(b.Args(Arg{
+		Name: paramNameX,
+		Type: b.Any,
+	}), b.Text, querier_dto.FunctionNullableCalledOnNull, querier_dto.WithAggregate()))
 
-	b.Add("max", &querier_dto.FunctionSignature{
-		Arguments:         b.Args(Arg{Name: paramNameX, Type: b.Any}),
-		ReturnType:        b.Any,
-		IsAggregate:       true,
-		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
-	})
-	b.Add("min", &querier_dto.FunctionSignature{
-		Arguments:         b.Args(Arg{Name: paramNameX, Type: b.Any}),
-		ReturnType:        b.Any,
-		IsAggregate:       true,
-		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
-	})
-	b.Add("group_concat", &querier_dto.FunctionSignature{
-		Arguments:         b.Args(Arg{Name: paramNameX, Type: b.Any}, Arg{Name: "separator", Type: b.Text}),
-		ReturnType:        b.Text,
-		IsAggregate:       true,
-		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
-	})
+	b.Add("max", querier_dto.NewFunctionSignature(b.Args(Arg{
+		Name: paramNameX,
+		Type: b.Any,
+	}), b.Any, querier_dto.FunctionNullableCalledOnNull, querier_dto.WithAggregate()))
+	b.Add("min", querier_dto.NewFunctionSignature(b.Args(Arg{
+		Name: paramNameX,
+		Type: b.Any,
+	}), b.Any, querier_dto.FunctionNullableCalledOnNull, querier_dto.WithAggregate()))
+	b.Add("group_concat", querier_dto.NewFunctionSignature(b.Args(Arg{
+		Name: paramNameX,
+		Type: b.Any,
+	}, Arg{
+		Name: "separator",
+		Type: b.Text,
+	}), b.Text, querier_dto.FunctionNullableCalledOnNull, querier_dto.WithAggregate()))
 }
 
 // registerWindowRankingFunctions registers window ranking functions (row_number, rank,
@@ -317,8 +335,18 @@ func (b *FunctionCatalogueBuilder) registerWindowRankingFunctions() {
 func (b *FunctionCatalogueBuilder) registerWindowValueFunctions() {
 	windowValueArgs := b.Args(Arg{Name: paramNameExpression, Type: b.Any}, Arg{Name: "offset", Type: b.Integer}, Arg{Name: "default", Type: b.Any})
 
-	b.Add("lag", &querier_dto.FunctionSignature{Arguments: windowValueArgs, ReturnType: b.Any, NullableBehaviour: querier_dto.FunctionNullableCalledOnNull, MinArguments: 1})
-	b.Add("lead", &querier_dto.FunctionSignature{Arguments: windowValueArgs, ReturnType: b.Any, NullableBehaviour: querier_dto.FunctionNullableCalledOnNull, MinArguments: 1})
+	b.Add("lag", querier_dto.NewFunctionSignature(
+		windowValueArgs,
+		b.Any,
+		querier_dto.FunctionNullableCalledOnNull,
+		querier_dto.WithMinArguments(1),
+	))
+	b.Add("lead", querier_dto.NewFunctionSignature(
+		windowValueArgs,
+		b.Any,
+		querier_dto.FunctionNullableCalledOnNull,
+		querier_dto.WithMinArguments(1),
+	))
 
 	b.CalledOnNull("first_value", b.Args(Arg{Name: paramNameExpression, Type: b.Any}), b.Any)
 	b.CalledOnNull("last_value", b.Args(Arg{Name: paramNameExpression, Type: b.Any}), b.Any)
@@ -342,13 +370,13 @@ func (b *FunctionCatalogueBuilder) registerFTS5Functions() {
 		Arg{Name: "max_tokens", Type: b.Integer},
 	), b.Text)
 
-	b.Add("bm25", &querier_dto.FunctionSignature{
-		Arguments:         b.Args(Arg{Name: paramNameTable, Type: b.Text}, Arg{Name: "weight", Type: b.Real}),
-		ReturnType:        b.Real,
-		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
-		IsVariadic:        true,
-		MinArguments:      1,
-	})
+	b.Add("bm25", querier_dto.NewFunctionSignature(b.Args(Arg{
+		Name: paramNameTable,
+		Type: b.Text,
+	}, Arg{
+		Name: "weight",
+		Type: b.Real,
+	}), b.Real, querier_dto.FunctionNullableCalledOnNull, querier_dto.WithVariadic(1)))
 
 	b.CalledOnNull("matchinfo", b.Args(Arg{Name: paramNameTable, Type: b.Text}), b.Blob)
 	b.CalledOnNull("matchinfo", b.Args(Arg{Name: paramNameTable, Type: b.Text}, Arg{Name: paramNameFormat, Type: b.Text}), b.Blob)

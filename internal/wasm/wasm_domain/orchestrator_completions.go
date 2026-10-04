@@ -210,13 +210,13 @@ func analyseCompletionContext(source string, line, column int, _ *ast.File, impo
 		return newScopeContext()
 	}
 
-	dotIndex := strings.LastIndex(textBeforeCursor, ".")
-	if dotIndex == -1 {
+	before, after, ok := strings.CutLast(textBeforeCursor, ".")
+	if !ok {
 		return newScopeContext()
 	}
 
-	prefix := textBeforeCursor[dotIndex+1:]
-	beforeDot := strings.TrimSpace(textBeforeCursor[:dotIndex])
+	prefix := after
+	beforeDot := strings.TrimSpace(before)
 	if beforeDot == "" {
 		return newScopeContext()
 	}

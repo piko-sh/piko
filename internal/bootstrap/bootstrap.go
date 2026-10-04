@@ -184,9 +184,10 @@ func Daemon(ctx context.Context, runMode string, container *Container, deps *Dep
 // piko itself reads no files, env vars, or CLI flags. Only the Defaults, Programmatic,
 // Resolvers, ProgrammaticOverrides and Validation passes from config_domain run here.
 //
-// Takes target (*ServerConfig) which is populated in place. Takes overrides
-// (*ServerConfig) which carries the user's With* option values. May be nil. Takes
-// resolvers ([]config_domain.Resolver) which expand placeholder strings such as
+// Takes target (*ServerConfig) which is populated in place.
+// Takes overrides (*ServerConfig) which carries the user's With* option values. May be
+// nil.
+// Takes resolvers ([]config_domain.Resolver) which expand placeholder strings such as
 // "aws-secret:my/key" inside the override values.
 //
 // Returns *config_domain.LoadContext which carries source tracking for the summary.
@@ -203,6 +204,16 @@ func resolveServerConfig(target *ServerConfig, overrides *ServerConfig, resolver
 			config_domain.PassProgrammaticOverrides,
 			config_domain.PassValidation,
 		},
+		FileReader:           nil,
+		ProgrammaticDefaults: nil,
+		Validator:            nil,
+		ResolverRegistry:     nil,
+		ResolverCacheTTL:     nil,
+		FlagCoordinator:      nil,
+		EnvPrefix:            "",
+		FlagPrefix:           "",
+		FilePaths:            nil,
+		StrictFile:           false,
 	}
 
 	ctx, err := config_domain.Load(context.Background(), target, opts)

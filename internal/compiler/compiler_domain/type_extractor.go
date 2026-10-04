@@ -141,16 +141,8 @@ func (e *typeExtractor) extractStateProperties(declaration *js_ast.Decl, metadat
 // Returns *PropertyMetadata which contains the extracted type information, or a default
 // metadata with JSType "any" if no type could be determined.
 func (e *typeExtractor) extractPropertyMetadata(expression js_ast.Expr, propName string) *PropertyMetadata {
-	meta := &PropertyMetadata{
-		Name:         propName,
-		JSType:       "",
-		ElementType:  "",
-		KeyType:      "",
-		ValueType:    "",
-		InitialValue: "",
-		Location:     ast_domain.Location{},
-		IsNullable:   false,
-	}
+	meta := &PropertyMetadata{}
+	meta.Name = propName
 
 	if assertion, found := e.typeAssertions[propName]; found {
 		parsedType := ParseTypeString(assertion.TypeString)

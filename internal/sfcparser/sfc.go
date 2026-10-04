@@ -116,7 +116,7 @@ func (p *parser) handleErrorToken() (*ParseResult, error) {
 // Returns *ParseResult which is the parse result when the handler signals EOF.
 // Returns error when the tag handler fails.
 func (p *parser) handleStartTag() (*ParseResult, error) {
-	line, column := p.lexer.PositionAt(p.lexer.TokenStart())
+	line, column := p.lexer.TokenLine(), p.lexer.TokenCol()
 
 	handler, ok := p.tagHandlers[string(bytes.ToLower(p.lexer.Text()))]
 	if !ok {
@@ -502,7 +502,9 @@ func Parse(data []byte) (*ParseResult, error) {
 			I18nBlocks:              make([]I18nBlock, 0),
 			TemplateLocation:        Location{},
 			TemplateContentLocation: Location{},
+			Timelines:               nil,
 		},
+		lexer: htmllexer.Lexer{},
 	}
 	p.lexer.Init(data)
 	p.initialiseTagHandlers()

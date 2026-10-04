@@ -824,11 +824,9 @@ func TestIsBindDirectiveBoolean(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "directive with nil GoAnnotations",
-			directive: &ast_domain.Directive{
-				GoAnnotations: nil,
-			},
-			want: false,
+			name:      "directive with nil GoAnnotations",
+			directive: &ast_domain.Directive{},
+			want:      false,
 		},
 	}
 
@@ -859,9 +857,7 @@ func TestIsCollectionNillable(t *testing.T) {
 		},
 		{
 			name: "nil ResolvedType",
-			ann: &ast_domain.GoGeneratorAnnotation{
-				ResolvedType: nil,
-			},
+			ann:  &ast_domain.GoGeneratorAnnotation{},
 			want: true,
 		},
 		{
@@ -1691,9 +1687,7 @@ func TestWillEmitPartialInfoAttributes(t *testing.T) {
 	}{
 		{
 			name: "nil GoAnnotations returns false",
-			node: &ast_domain.TemplateNode{
-				GoAnnotations: nil,
-			},
+			node: &ast_domain.TemplateNode{},
 			annotationResult: &annotator_dto.AnnotationResult{
 				VirtualModule: &annotator_dto.VirtualModule{
 					ComponentsByHash: map[string]*annotator_dto.VirtualComponent{},
@@ -1704,9 +1698,7 @@ func TestWillEmitPartialInfoAttributes(t *testing.T) {
 		{
 			name: "nil PartialInfo returns false",
 			node: &ast_domain.TemplateNode{
-				GoAnnotations: &ast_domain.GoGeneratorAnnotation{
-					PartialInfo: nil,
-				},
+				GoAnnotations: &ast_domain.GoGeneratorAnnotation{},
 			},
 			annotationResult: &annotator_dto.AnnotationResult{
 				VirtualModule: &annotator_dto.VirtualModule{
@@ -1757,10 +1749,8 @@ func TestWillEmitPartialInfoAttributes(t *testing.T) {
 					},
 				},
 			},
-			annotationResult: &annotator_dto.AnnotationResult{
-				VirtualModule: nil,
-			},
-			want: false,
+			annotationResult: &annotator_dto.AnnotationResult{},
+			want:             false,
 		},
 		{
 			name: "public partial returns true",
@@ -2486,10 +2476,8 @@ func TestGetChildScopeID(t *testing.T) {
 		want          string
 	}{
 		{
-			name: "nil GoAnnotations returns parentScopeID",
-			node: &ast_domain.TemplateNode{
-				GoAnnotations: nil,
-			},
+			name:          "nil GoAnnotations returns parentScopeID",
+			node:          &ast_domain.TemplateNode{},
 			parentScopeID: "parent",
 			componentHash: map[string]*annotator_dto.VirtualComponent{},
 			want:          "parent",
@@ -2497,9 +2485,7 @@ func TestGetChildScopeID(t *testing.T) {
 		{
 			name: "nil PartialInfo returns parentScopeID",
 			node: &ast_domain.TemplateNode{
-				GoAnnotations: &ast_domain.GoGeneratorAnnotation{
-					PartialInfo: nil,
-				},
+				GoAnnotations: &ast_domain.GoGeneratorAnnotation{},
 			},
 			parentScopeID: "parent",
 			componentHash: map[string]*annotator_dto.VirtualComponent{},
@@ -2631,9 +2617,7 @@ func TestEmitPartialInfoAttributes(t *testing.T) {
 		ne := requireNodeEmitter(t, em)
 
 		node := createMockTemplateNode(ast_domain.NodeElement, "div", "")
-		node.GoAnnotations = &ast_domain.GoGeneratorAnnotation{
-			PartialInfo: nil,
-		}
+		node.GoAnnotations = &ast_domain.GoGeneratorAnnotation{}
 
 		statements := ne.emitPartialInfoAttributes(cachedIdent("tmpNode"), node)
 		assert.Nil(t, statements)

@@ -43,6 +43,10 @@ const (
 
 	// executablePermissionBits selects the owner, group, and other execute bits.
 	executablePermissionBits = 0o111
+
+	// gracefulCloseTimeout bounds how long Close waits for Chrome to shut down its processes
+	// before the browser is killed.
+	gracefulCloseTimeout = 5 * time.Second
 )
 
 var (
@@ -51,6 +55,10 @@ var (
 
 	// ErrChromePathNotExecutable is returned for a path that cannot be run.
 	ErrChromePathNotExecutable = errors.New("browser executable is not an executable file")
+
+	// errBrowserNotInitialised is returned when a browser-level CDP command is attempted
+	// before the browser connection exists.
+	errBrowserNotInitialised = errors.New("browser connection is not initialised")
 )
 
 // Browser wraps a chromedp browser instance and manages its lifecycle. It implements
@@ -74,6 +82,9 @@ type Browser struct {
 
 	// headless indicates whether the browser runs without a visible window.
 	headless bool
+
+	// closed records that Close has run, so later calls do nothing.
+	closed bool
 
 	// mu guards access to browser state during page creation and cleanup.
 	mu sync.Mutex
@@ -281,6 +292,7 @@ func NewBrowser(opts BrowserOptions) (*Browser, error) {
 		browserCancel:   browserCancel,
 		userDataDir:     userDataDir,
 		headless:        opts.Headless,
+		closed:          false,
 		mu:              sync.Mutex{},
 	}, nil
 }
@@ -320,12 +332,27 @@ func (b *Browser) NewIncognitoPage() (*IncognitoPage, error) {
 // Close closes the browser and cleans up resources, including the temporary user-data
 // directory on disk.
 //
+// Chrome is first asked to close and given up to gracefulCloseTimeout to stop all of its
+// processes, so none of them can write into the user-data directory after it is removed.
+// If that fails, the browser is killed.
+//
 // Concurrency: safe for concurrent use. Repeated calls are no-ops because the mutex
-// serialises access and nil-guarded cancels are idempotent.
+// serialises access and the closed flag is checked first.
 func (b *Browser) Close() {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
+	if b.closed {
+		return
+	}
+	b.closed = true
+
+	if b.browserCtx != nil {
+		closeCtx, cancelClose := context.WithTimeoutCause(b.browserCtx, gracefulCloseTimeout,
+			fmt.Errorf("graceful browser close exceeded %s", gracefulCloseTimeout))
+		_ = chromedp.Cancel(closeCtx)
+		cancelClose()
+	}
 	if b.browserCancel != nil {
 		b.browserCancel()
 	}
@@ -338,15 +365,6 @@ func (b *Browser) Close() {
 	}
 }
 
-// UserDataDir returns the path to the browser's temporary user-data directory. Callers
-// can use this to identify (and exclude) the directory during cleanup of orphaned temp
-// dirs left by killed subprocesses.
-//
-// Returns string which is the path to the temporary user-data directory.
-func (b *Browser) UserDataDir() string {
-	return b.userDataDir
-}
-
 // BrowserCtx returns the underlying chromedp browser context. Use with caution - prefer
 // using the wrapped methods.
 //
@@ -355,16 +373,26 @@ func (b *Browser) BrowserCtx() context.Context {
 	return b.browserCtx
 }
 
-// createIncognitoPageOnce creates a single page (tab) without retries. This creates a new
-// tab context, not a true incognito context, but provides sufficient isolation for
-// parallel test execution.
+// createIncognitoPageOnce creates a single page without retries. This creates a new page
+// context, not a true incognito context, but provides sufficient isolation for parallel
+// test execution.
 //
-// Returns *IncognitoPage which is the new tab ready for use.
+// Each page opens in its own browser window so that it stays the active tab of that
+// window. Chrome stops producing compositor frames for a tab once another tab in the same
+// window is in front, which leaves Page.captureScreenshot waiting for a frame that never
+// arrives; a window per page keeps screenshots deterministic under parallel use.
+//
+// Returns *IncognitoPage which is the new page ready for use.
 // Returns error when the page fails to initialise.
 func (b *Browser) createIncognitoPageOnce() (*IncognitoPage, error) {
-	pageCtx, pageCancel := chromedp.NewContext(b.browserCtx)
+	targetID, err := b.createWindowTarget()
+	if err != nil {
+		return nil, fmt.Errorf("opening page window: %w", err)
+	}
 
-	err := chromedp.Run(pageCtx,
+	pageCtx, pageCancel := chromedp.NewContext(b.browserCtx, chromedp.WithTargetID(targetID))
+
+	err = chromedp.Run(pageCtx,
 		chromedp.Navigate("about:blank"),
 		chromedp.WaitReady("body"),
 		chromedp.ActionFunc(func(ctx context.Context) error {
@@ -372,8 +400,13 @@ func (b *Browser) createIncognitoPageOnce() (*IncognitoPage, error) {
 		}),
 	)
 	if err != nil {
+		attached := chromedp.FromContext(pageCtx).Target != nil
 		pageCancel()
-		return nil, fmt.Errorf("initialising page: %w", err)
+		initialiseErr := fmt.Errorf("initialising page: %w", err)
+		if attached {
+			return nil, initialiseErr
+		}
+		return nil, errors.Join(initialiseErr, b.closeTarget(targetID))
 	}
 
 	time.Sleep(200 * time.Millisecond)
@@ -383,7 +416,55 @@ func (b *Browser) createIncognitoPageOnce() (*IncognitoPage, error) {
 		Cancel:           pageCancel,
 		browserContextID: "",
 		browser:          b,
+		releaseFunction:  nil,
+		releaseOnce:      sync.Once{},
 	}, nil
+}
+
+// createWindowTarget opens a blank page target in a new browser window.
+//
+// Returns target.ID which identifies the new page target.
+// Returns error when the browser is not initialised or the target cannot be created.
+func (b *Browser) createWindowTarget() (target.ID, error) {
+	executor, err := b.browserExecutor()
+	if err != nil {
+		return "", err
+	}
+	targetID, err := target.CreateTarget("about:blank").WithNewWindow(true).Do(executor)
+	if err != nil {
+		return "", fmt.Errorf("creating page target: %w", err)
+	}
+	return targetID, nil
+}
+
+// closeTarget closes a page target that no chromedp context has attached to, so that a
+// failed page initialisation does not leave an orphaned window behind.
+//
+// Takes targetID (target.ID) which identifies the page target to close.
+//
+// Returns error when the target cannot be closed.
+func (b *Browser) closeTarget(targetID target.ID) error {
+	executor, err := b.browserExecutor()
+	if err != nil {
+		return err
+	}
+	if err := target.CloseTarget(targetID).Do(executor); err != nil {
+		return fmt.Errorf("closing page target %s: %w", targetID, err)
+	}
+	return nil
+}
+
+// browserExecutor returns a context that sends CDP commands to the browser itself rather
+// than to a page target.
+//
+// Returns context.Context which carries the browser-level CDP executor.
+// Returns error when the browser connection has not been established.
+func (b *Browser) browserExecutor() (context.Context, error) {
+	chromedpContext := chromedp.FromContext(b.browserCtx)
+	if chromedpContext == nil || chromedpContext.Browser == nil {
+		return nil, errBrowserNotInitialised
+	}
+	return cdp.WithExecutor(b.browserCtx, chromedpContext.Browser), nil
 }
 
 // verifyPageHealthy checks that the page is responsive to CDP commands.
@@ -659,7 +740,10 @@ func (ph *PageHelper) recordConsoleLog(message, level string) {
 // Returns BrowserOptions which is configured with headless mode enabled.
 func DefaultBrowserOptions() BrowserOptions {
 	return BrowserOptions{
-		Headless: true,
+		Headless:         true,
+		ChromePath:       "",
+		ChromeFlags:      nil,
+		IgnoreCertErrors: false,
 	}
 }
 

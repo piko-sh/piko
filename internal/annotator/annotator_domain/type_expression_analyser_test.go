@@ -116,7 +116,7 @@ func TestResolveLiteral(t *testing.T) {
 		},
 		{
 			name:             "boolean literal false resolves to bool",
-			expression:       &ast_domain.BooleanLiteral{Value: false},
+			expression:       &ast_domain.BooleanLiteral{},
 			expectedType:     "bool",
 			expectedStringly: int(inspector_dto.StringablePrimitive),
 		},
@@ -352,7 +352,7 @@ func TestIsFunctionType(t *testing.T) {
 
 	t.Run("returns false for annotation with nil ResolvedType", func(t *testing.T) {
 		t.Parallel()
-		ann := &ast_domain.GoGeneratorAnnotation{ResolvedType: nil}
+		ann := &ast_domain.GoGeneratorAnnotation{}
 		result := isFunctionType(ann)
 		assert.False(t, result)
 	})
@@ -360,7 +360,7 @@ func TestIsFunctionType(t *testing.T) {
 	t.Run("returns false for annotation with nil TypeExpr", func(t *testing.T) {
 		t.Parallel()
 		ann := &ast_domain.GoGeneratorAnnotation{
-			ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: nil},
+			ResolvedType: &ast_domain.ResolvedTypeInfo{},
 		}
 		result := isFunctionType(ann)
 		assert.False(t, result)
@@ -728,7 +728,7 @@ func TestResolveBinaryExpr_BooleanLogic(t *testing.T) {
 
 		expression := &ast_domain.BinaryExpression{
 			Left:     &ast_domain.BooleanLiteral{Value: true},
-			Right:    &ast_domain.BooleanLiteral{Value: false},
+			Right:    &ast_domain.BooleanLiteral{},
 			Operator: ast_domain.OpAnd,
 		}
 		result := h.Resolver.Resolve(context.Background(), h.Context, expression, ast_domain.Location{})
@@ -749,7 +749,7 @@ func TestResolveBinaryExpr_BooleanLogic(t *testing.T) {
 
 		expression := &ast_domain.BinaryExpression{
 			Left:     &ast_domain.BooleanLiteral{Value: true},
-			Right:    &ast_domain.BooleanLiteral{Value: false},
+			Right:    &ast_domain.BooleanLiteral{},
 			Operator: ast_domain.OpOr,
 		}
 		result := h.Resolver.Resolve(context.Background(), h.Context, expression, ast_domain.Location{})
@@ -1062,7 +1062,7 @@ func TestResolveTernaryExpr(t *testing.T) {
 		h := newTypeResolverTestHarness()
 
 		expression := &ast_domain.TernaryExpression{
-			Condition:  &ast_domain.BooleanLiteral{Value: false},
+			Condition:  &ast_domain.BooleanLiteral{},
 			Consequent: &ast_domain.IntegerLiteral{Value: 1},
 			Alternate:  &ast_domain.IntegerLiteral{Value: 2},
 		}
@@ -1638,9 +1638,7 @@ func TestRequiresPointerSafetyCheck(t *testing.T) {
 
 	t.Run("returns false for nil resolved type", func(t *testing.T) {
 		t.Parallel()
-		ann := &ast_domain.GoGeneratorAnnotation{
-			ResolvedType: nil,
-		}
+		ann := &ast_domain.GoGeneratorAnnotation{}
 		assert.False(t, requiresPointerSafetyCheck(ann))
 	})
 }
@@ -1653,7 +1651,7 @@ func TestResolveIndexExpr_SliceIndex(t *testing.T) {
 
 	expression := &ast_domain.IndexExpression{
 		Base:  &ast_domain.Identifier{Name: "items"},
-		Index: &ast_domain.IntegerLiteral{Value: 0},
+		Index: &ast_domain.IntegerLiteral{},
 	}
 
 	result := h.Resolver.Resolve(context.Background(), h.Context, expression, ast_domain.Location{})
@@ -1699,7 +1697,7 @@ func TestResolveIndexExpr_UnresolvableBase(t *testing.T) {
 
 	expression := &ast_domain.IndexExpression{
 		Base:  &ast_domain.Identifier{Name: "unknown"},
-		Index: &ast_domain.IntegerLiteral{Value: 0},
+		Index: &ast_domain.IntegerLiteral{},
 	}
 
 	result := h.Resolver.Resolve(context.Background(), h.Context, expression, ast_domain.Location{})
@@ -1717,7 +1715,7 @@ func TestResolveIndexExpr_NonIndexableType(t *testing.T) {
 
 	expression := &ast_domain.IndexExpression{
 		Base:  &ast_domain.Identifier{Name: "count"},
-		Index: &ast_domain.IntegerLiteral{Value: 0},
+		Index: &ast_domain.IntegerLiteral{},
 	}
 
 	result := h.Resolver.Resolve(context.Background(), h.Context, expression, ast_domain.Location{})
@@ -1936,7 +1934,7 @@ func TestResolveMemberExpr_ComputedPropertyDiagnostic(t *testing.T) {
 
 	expression := &ast_domain.MemberExpression{
 		Base:     &ast_domain.Identifier{Name: "user"},
-		Property: &ast_domain.IntegerLiteral{Value: 0},
+		Property: &ast_domain.IntegerLiteral{},
 	}
 
 	result := h.Resolver.Resolve(context.Background(), h.Context, expression, ast_domain.Location{})
@@ -1954,7 +1952,7 @@ func TestResolveIndexExpr_OptionalChaining(t *testing.T) {
 
 	expression := &ast_domain.IndexExpression{
 		Base:     &ast_domain.Identifier{Name: "items"},
-		Index:    &ast_domain.IntegerLiteral{Value: 0},
+		Index:    &ast_domain.IntegerLiteral{},
 		Optional: true,
 	}
 
@@ -1974,7 +1972,7 @@ func TestResolveIndexExpr_SliceWithoutOptionalChaining(t *testing.T) {
 
 	expression := &ast_domain.IndexExpression{
 		Base:     &ast_domain.Identifier{Name: "items"},
-		Index:    &ast_domain.IntegerLiteral{Value: 0},
+		Index:    &ast_domain.IntegerLiteral{},
 		Optional: false,
 	}
 
@@ -2401,7 +2399,7 @@ func TestResolvePackageMemberAccessWithAlias_ComputedProperty(t *testing.T) {
 	baseIdent := &ast_domain.Identifier{Name: "pkg"}
 	n := &ast_domain.MemberExpression{
 		Base:     baseIdent,
-		Property: &ast_domain.IntegerLiteral{Value: 0},
+		Property: &ast_domain.IntegerLiteral{},
 		Computed: true,
 	}
 
@@ -2561,7 +2559,7 @@ func TestResolveIndexExpr_UnknownBaseVariable(t *testing.T) {
 
 	expression := &ast_domain.IndexExpression{
 		Base:  &ast_domain.Identifier{Name: "unknown"},
-		Index: &ast_domain.IntegerLiteral{Value: 0},
+		Index: &ast_domain.IntegerLiteral{},
 	}
 
 	result := h.Resolver.Resolve(context.Background(), h.Context, expression, ast_domain.Location{})
@@ -3638,4 +3636,63 @@ func TestResolveUnaryExpr_UnresolvableOperand(t *testing.T) {
 
 	require.NotNil(t, result, "unary on unresolvable operand should return a fallback annotation")
 	require.NotNil(t, result.ResolvedType)
+}
+
+func TestResolveTypeConversionCall(t *testing.T) {
+	t.Parallel()
+
+	newSymbol := func() *Symbol {
+		symbol := Symbol{
+			Name: "Celsius",
+			TypeInfo: &ast_domain.ResolvedTypeInfo{
+				TypeExpression:       goast.NewIdent(typeNamedType),
+				PackageAlias:         "main",
+				CanonicalPackagePath: "example.com/app",
+			},
+		}
+		return &symbol
+	}
+
+	t.Run("annotates a single-argument conversion with the named type", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := createExpressionAnalyserTestContext()
+		tr := &TypeResolver{inspector: &inspector_domain.MockTypeQuerier{}}
+		analyser := getAnalyser(tr, ctx, ast_domain.Location{Line: 1, Column: 1}, 0)
+		defer putAnalyser(analyser)
+
+		callee := &ast_domain.Identifier{Name: "Celsius"}
+		call := &ast_domain.CallExpression{Callee: callee}
+		argument := newAnnotationWithType(newSimpleTypeInfo(goast.NewIdent("float64")))
+
+		result := analyser.resolveTypeConversionCall(t.Context(), call, callee, newSymbol(), []*ast_domain.GoGeneratorAnnotation{argument})
+
+		require.NotNil(t, result)
+		require.NotNil(t, result.ResolvedType)
+		typeIdent, ok := result.ResolvedType.TypeExpression.(*goast.Ident)
+		require.True(t, ok)
+		assert.Equal(t, "Celsius", typeIdent.Name)
+		assert.Equal(t, "main", result.ResolvedType.PackageAlias)
+		assert.Equal(t, "example.com/app", result.ResolvedType.CanonicalPackagePath)
+		assert.True(t, result.ResolvedType.IsExportedPackageSymbol)
+		assert.NotNil(t, callee.GoAnnotations)
+	})
+
+	t.Run("reports a diagnostic when the argument count is wrong", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := createExpressionAnalyserTestContext()
+		tr := &TypeResolver{inspector: &inspector_domain.MockTypeQuerier{}}
+		analyser := getAnalyser(tr, ctx, ast_domain.Location{Line: 1, Column: 1}, 0)
+		defer putAnalyser(analyser)
+
+		callee := &ast_domain.Identifier{Name: "Celsius"}
+		call := &ast_domain.CallExpression{Callee: callee}
+
+		result := analyser.resolveTypeConversionCall(t.Context(), call, callee, newSymbol(), nil)
+
+		assert.Nil(t, result)
+		require.NotEmpty(t, *ctx.Diagnostics)
+		assert.Equal(t, annotator_dto.CodeCoercionError, (*ctx.Diagnostics)[0].Code)
+	})
 }

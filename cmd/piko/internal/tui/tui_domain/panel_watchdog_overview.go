@@ -162,10 +162,18 @@ func NewWatchdogOverviewPanel(provider WatchdogProvider, dispatcher *EventDispat
 		clk = clock.RealClock()
 	}
 	panel := &WatchdogOverviewPanel{
-		BasePanel:  NewBasePanel(WatchdogOverviewPanelID, WatchdogOverviewPanelTitle),
-		provider:   provider,
-		dispatcher: dispatcher,
-		clock:      clk,
+		BasePanel:      NewBasePanel(WatchdogOverviewPanelID, WatchdogOverviewPanelTitle),
+		provider:       provider,
+		dispatcher:     dispatcher,
+		clock:          clk,
+		statusFetched:  time.Time{},
+		lastFetchErr:   nil,
+		theme:          nil,
+		status:         nil,
+		subscription:   nil,
+		events:         nil,
+		mu:             sync.RWMutex{},
+		subscriptionMu: sync.Mutex{},
 	}
 	panel.SetKeyMap([]KeyBinding{
 		{Key: "j / Down", Description: "Next section"},
@@ -236,8 +244,8 @@ func (p *WatchdogOverviewPanel) Update(message tea.Msg) (Panel, tea.Cmd) {
 
 // View renders the panel sized to the supplied dimensions.
 //
-// Takes width (int) and height (int) which are the allocated panel dimensions including
-// frame and padding.
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 //
 // Returns string which is the framed body.
 func (p *WatchdogOverviewPanel) View(width, height int) string {
@@ -256,7 +264,8 @@ func (p *WatchdogOverviewPanel) View(width, height int) string {
 // composeBody arranges the section nav, dashboard, and alert tape according to the
 // available width.
 //
-// Takes width (int) and height (int) which are the inner content dimensions.
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 //
 // Returns string which is the composed body.
 func (p *WatchdogOverviewPanel) composeBody(width, height int) string {
@@ -287,7 +296,8 @@ func overviewSectionsWidth(width int) int {
 
 // renderSectionNav builds the section navigation column.
 //
-// Takes width (int) and height (int) which are the column dimensions.
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 //
 // Returns string which is the section nav body.
 func (p *WatchdogOverviewPanel) renderSectionNav(width, height int) string {
@@ -324,7 +334,8 @@ func (p *WatchdogOverviewPanel) renderSectionNav(width, height int) string {
 
 // renderDashboard composes the right-hand dashboard area.
 //
-// Takes width (int) and height (int) which are the dashboard dimensions.
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 //
 // Returns string which is the dashboard body.
 func (p *WatchdogOverviewPanel) renderDashboard(width, height int) string {
@@ -438,13 +449,15 @@ func (p *WatchdogOverviewPanel) renderGauges(width int) []string {
 	rows := make([]string, 0, len(specs))
 	for _, spec := range specs {
 		rows = append(rows, Gauge(GaugeConfig{
-			Theme:    p.theme,
-			Label:    spec.label,
-			Width:    width,
-			Used:     spec.gauge.Used,
-			Max:      spec.gauge.Max,
-			Severity: spec.gauge.Severity(),
-			ShowText: true,
+			Theme:     p.theme,
+			Label:     spec.label,
+			Width:     width,
+			Used:      spec.gauge.Used,
+			Max:       spec.gauge.Max,
+			Severity:  spec.gauge.Severity(),
+			ShowText:  true,
+			FillChar:  0,
+			EmptyChar: 0,
 		}))
 	}
 	return rows
@@ -452,7 +465,8 @@ func (p *WatchdogOverviewPanel) renderGauges(width int) []string {
 
 // renderAlertTape returns up to budget rows of recent high-priority events.
 //
-// Takes width (int) and budget (int).
+// Takes width (int) which sets the available width in terminal cells.
+// Takes budget (int) which limits the number of rows available for alerts.
 //
 // Returns []string with one event per row, padded to width.
 func (p *WatchdogOverviewPanel) renderAlertTape(width, budget int) []string {
@@ -611,9 +625,12 @@ func (p *WatchdogOverviewPanel) waitForNextEventCmd() tea.Cmd {
 	return func() tea.Msg {
 		ev, ok := <-sub.Events
 		if !ok {
-			return overviewEventMsg{Done: true}
+			return overviewEventMsg{
+				Done:  true,
+				Event: WatchdogEvent{},
+			}
 		}
-		return overviewEventMsg{Event: ev}
+		return overviewEventMsg{Event: ev, Done: false}
 	}
 }
 

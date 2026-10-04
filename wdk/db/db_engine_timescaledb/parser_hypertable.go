@@ -104,10 +104,14 @@ type dimensionArgument struct {
 // MutationCreateTable and EngineSpecific entries marking it as a hypertable.
 // Returns error which is non-nil when the qualified name or column list fails to parse.
 func parseCreateHypertable(p db_engine_postgres.ParserContext) (*querier_dto.CatalogueMutation, error) {
-	p.MustKeyword("CREATE")
+	if err := p.ExpectKeyword("CREATE"); err != nil {
+		return nil, err
+	}
 
 	ifNotExists := p.MatchIfNotExists()
-	p.MustKeyword("HYPERTABLE")
+	if err := p.ExpectKeyword("HYPERTABLE"); err != nil {
+		return nil, err
+	}
 	if !ifNotExists && p.MatchIfNotExists() {
 		ifNotExists = true
 	}
@@ -117,14 +121,9 @@ func parseCreateHypertable(p db_engine_postgres.ParserContext) (*querier_dto.Cat
 		return nil, fmt.Errorf("hypertable name: %w", qualifiedErr)
 	}
 
-	mutation := &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationCreateTable,
-		SchemaName: schema,
-		TableName:  name,
-		EngineSpecific: map[string]string{
-			"TIMESCALE_HYPERTABLE": literalTrue,
-		},
-	}
+	mutation := querier_dto.NewCatalogueMutation(querier_dto.MutationCreateTable, schema, name, querier_dto.WithEngineSpecific(map[string]string{
+		"TIMESCALE_HYPERTABLE": literalTrue,
+	}))
 	if ifNotExists {
 		mutation.EngineSpecific["TIMESCALE_IF_NOT_EXISTS"] = literalTrue
 	}
@@ -293,10 +292,9 @@ func parseColumnDefinition(p db_engine_postgres.ParserContext) (querier_dto.Colu
 	if tok.Kind() != db_engine_postgres.TokenIdentifier && tok.Kind() != db_engine_postgres.TokenString {
 		return querier_dto.Column{}, false, fmt.Errorf("expected column name at position %d", tok.Position())
 	}
-	column := querier_dto.Column{
-		Name:     tok.Value(),
-		Nullable: true,
-	}
+	column := querier_dto.Column{}
+	column.Name = tok.Value()
+	column.Nullable = true
 	p.Advance()
 
 	sqlType, arrayDimensions := p.ParseColumnType()
@@ -499,6 +497,7 @@ func skipParenGroup(p db_engine_postgres.ParserContext) error {
 				p.Advance()
 				return nil
 			}
+		default:
 		}
 		p.Advance()
 	}
@@ -677,8 +676,12 @@ func skipForeignKeyAction(p db_engine_postgres.ParserContext) {
 // Returns error which is non-nil when the `(` after PRIMARY KEY is absent or the column
 // list fails to parse.
 func consumePrimaryKeyConstraint(p db_engine_postgres.ParserContext) ([]string, error) {
-	p.MustKeyword("PRIMARY")
-	p.MustKeyword("KEY")
+	if err := p.ExpectKeyword("PRIMARY"); err != nil {
+		return nil, err
+	}
+	if err := p.ExpectKeyword("KEY"); err != nil {
+		return nil, err
+	}
 	if p.CurrentToken().Kind() != db_engine_postgres.TokenLeftParen {
 		return nil, fmt.Errorf("expected '(' after PRIMARY KEY at position %d", p.CurrentToken().Position())
 	}
@@ -714,14 +717,18 @@ func consumeTableConstraint(p db_engine_postgres.ParserContext) error {
 // Returns error which is non-nil when the constraint name is missing, the PK column list
 // fails to parse, or the opaque tail overflows the paren-depth limit.
 func consumeNamedConstraint(p db_engine_postgres.ParserContext) ([]string, bool, error) {
-	p.MustKeyword("CONSTRAINT")
+	if err := p.ExpectKeyword("CONSTRAINT"); err != nil {
+		return nil, false, err
+	}
 	if p.CurrentToken().Kind() != db_engine_postgres.TokenIdentifier &&
 		p.CurrentToken().Kind() != db_engine_postgres.TokenString {
 		return nil, false, fmt.Errorf("expected constraint name at position %d", p.CurrentToken().Position())
 	}
 	p.Advance()
 	if p.MatchKeyword("PRIMARY") {
-		p.MustKeyword("KEY")
+		if err := p.ExpectKeyword("KEY"); err != nil {
+			return nil, false, err
+		}
 		if p.CurrentToken().Kind() != db_engine_postgres.TokenLeftParen {
 			return nil, false, fmt.Errorf("expected '(' after PRIMARY KEY at position %d", p.CurrentToken().Position())
 		}
@@ -761,7 +768,9 @@ func consumeNamedConstraint(p db_engine_postgres.ParserContext) ([]string, bool,
 // Returns the parsed annotation mutation.
 // Returns error on parse failure.
 func parseCreateHypertableCall(p db_engine_postgres.ParserContext) (*querier_dto.CatalogueMutation, error) {
-	p.MustKeyword("SELECT")
+	if err := p.ExpectKeyword("SELECT"); err != nil {
+		return nil, err
+	}
 	if !p.MatchKeyword("create_hypertable") {
 		return nil, fmt.Errorf("expected create_hypertable at position %d", p.CurrentToken().Position())
 	}
@@ -858,7 +867,7 @@ func extractDimensionArgument(p db_engine_postgres.ParserContext) (dimensionArgu
 	if castErr := consumeOptionalCast(p); castErr != nil {
 		return dimensionArgument{}, castErr
 	}
-	return dimensionArgument{column: tok.Value()}, nil
+	return dimensionArgument{column: tok.Value(), builder: ""}, nil
 }
 
 // isKnownDimensionBuilder reports whether name is one of the TimescaleDB dimension
@@ -924,16 +933,11 @@ func extractDimensionBuilderArgument(p db_engine_postgres.ParserContext) (dimens
 // Returns the populated CatalogueMutation.
 func buildHypertableCallMutation(args hypertableCallArguments) *querier_dto.CatalogueMutation {
 	schema, table := splitMaybeSchemaQualified(args.table)
-	mutation := &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationAlterTableAlterColumn,
-		SchemaName: schema,
-		TableName:  table,
-		EngineSpecific: map[string]string{
-			"TIMESCALE_HYPERTABLE":    literalTrue,
-			"TIMESCALE_TIME_COLUMN":   args.timeColumn,
-			"TIMESCALE_ANNOTATE_ONLY": literalTrue,
-		},
-	}
+	mutation := querier_dto.NewCatalogueMutation(querier_dto.MutationAlterTableAlterColumn, schema, table, querier_dto.WithEngineSpecific(map[string]string{
+		"TIMESCALE_HYPERTABLE":    literalTrue,
+		"TIMESCALE_TIME_COLUMN":   args.timeColumn,
+		"TIMESCALE_ANNOTATE_ONLY": literalTrue,
+	}))
 	if args.dimensionBuilder != "" {
 		mutation.EngineSpecific["TIMESCALE_DIMENSION_BUILDER"] = args.dimensionBuilder
 	}
@@ -1043,6 +1047,7 @@ func consumeBalancedParenGroup(p db_engine_postgres.ParserContext) error {
 			depth++
 		case db_engine_postgres.TokenRightParen:
 			depth--
+		default:
 		}
 		p.Advance()
 		if depth == 0 {
@@ -1101,6 +1106,7 @@ func captureRemainingCallArguments(p db_engine_postgres.ParserContext, openParen
 				p.Advance()
 				return strings.TrimSpace(builder.String()), nil
 			}
+		default:
 		}
 		if builder.Len() > 0 {
 			builder.WriteByte(' ')

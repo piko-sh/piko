@@ -32,5 +32,6 @@ func CockroachDB() db.EngineConfig {
 		DriverName:       "postgres",
 		Engine:           NewCockroachDBEngine(),
 		MigrationDialect: migration_sql.PostgresDialect(),
+		CatalogueFactory: nil,
 	}
 }

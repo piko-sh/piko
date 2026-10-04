@@ -607,6 +607,8 @@ func appendPreloadTags(preload, script *[]byte, jsFile, sriHash string) {
 //
 // Takes modules ([]string) which are the library URLs gathered from every component.
 // Takes sortedCompTags ([]string) which name the components already preloaded.
+// Takes rctx (*renderContext) which provides render metadata and the modules already
+// marked for preloading.
 //
 // Returns []string which contains the modules to preload, in a stable order.
 func uniqueUnpreloadedModules(modules, sortedCompTags []string, rctx *renderContext) []string {

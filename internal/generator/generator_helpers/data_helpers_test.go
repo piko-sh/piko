@@ -19,6 +19,7 @@
 package generator_helpers
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -105,4 +106,74 @@ func TestGetData(t *testing.T) {
 		got := GetData[testPageData](r)
 		assert.Equal(t, testPageData{}, got)
 	})
+}
+
+func TestGetDataNilRequestAndInterfaceTargets(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		build func() *templater_dto.RequestData
+		read  func(r *templater_dto.RequestData) any
+		want  any
+		name  string
+	}{
+		{
+			name:  "nil request with struct target returns zero",
+			build: func() *templater_dto.RequestData { return nil },
+			read:  func(r *templater_dto.RequestData) any { return GetData[testPageData](r) },
+			want:  testPageData{},
+		},
+		{
+			name:  "nil request with interface target returns nil",
+			build: func() *templater_dto.RequestData { return nil },
+			read:  func(r *templater_dto.RequestData) any { return GetData[fmt.Stringer](r) },
+			want:  nil,
+		},
+		{
+			name:  "nil request with empty interface target returns nil",
+			build: func() *templater_dto.RequestData { return nil },
+			read:  func(r *templater_dto.RequestData) any { return GetData[any](r) },
+			want:  nil,
+		},
+		{
+			name: "missing page with interface target returns nil",
+			build: func() *templater_dto.RequestData {
+				return templater_dto.NewRequestDataBuilder().WithCollectionData(map[string]any{}).Build()
+			},
+			read: func(r *templater_dto.RequestData) any { return GetData[fmt.Stringer](r) },
+			want: nil,
+		},
+		{
+			name: "nil page value with struct target returns zero",
+			build: func() *templater_dto.RequestData {
+				return templater_dto.NewRequestDataBuilder().WithCollectionData(map[string]any{"page": nil}).Build()
+			},
+			read: func(r *templater_dto.RequestData) any { return GetData[testPageData](r) },
+			want: testPageData{},
+		},
+		{
+			name: "page map with empty interface target decodes the map",
+			build: func() *templater_dto.RequestData {
+				return templater_dto.NewRequestDataBuilder().
+					WithCollectionData(map[string]any{"page": map[string]any{"Title": "Hello"}}).
+					Build()
+			},
+			read: func(r *templater_dto.RequestData) any { return GetData[any](r) },
+			want: map[string]any{"Title": "Hello"},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			r := testCase.build()
+			if r != nil {
+				defer r.Release()
+			}
+			assert.NotPanics(t, func() {
+				assert.Equal(t, testCase.want, testCase.read(r))
+			})
+		})
+	}
 }

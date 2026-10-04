@@ -61,14 +61,15 @@ func NewErrorBuilder(filename string) ErrorBuilder {
 // Returns SourceError which carries the supplied span, code, and message.
 func (builder ErrorBuilder) At(span TextSpan, code, message string) SourceError {
 	return SourceError{
-		Filename:  builder.Filename,
-		Message:   message,
-		Code:      code,
-		Line:      span.Line,
-		Column:    span.Column,
-		EndLine:   span.EndLine,
-		EndColumn: span.EndColumn,
-		Severity:  SeverityError,
+		Filename:   builder.Filename,
+		Message:    message,
+		Code:       code,
+		Line:       span.Line,
+		Column:     span.Column,
+		EndLine:    span.EndLine,
+		EndColumn:  span.EndColumn,
+		Severity:   SeverityError,
+		Suggestion: "",
 	}
 }
 

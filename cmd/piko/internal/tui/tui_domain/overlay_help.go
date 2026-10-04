@@ -66,6 +66,7 @@ func NewHelpOverlay(theme *Theme, globalKeys []KeyBinding, panelTitle string, pa
 		panelTitle: panelTitle,
 		panelKeys:  panelKeys,
 		commands:   commands,
+		dismissed:  false,
 	}
 }
 
@@ -146,12 +147,13 @@ func (h *HelpOverlay) Render(width, height int) string {
 	body := strings.Join(rows, "\n")
 
 	return RenderPaneFrame(PaneFrameOpts{
-		Theme:   h.theme,
-		Title:   "",
-		Body:    body,
-		Width:   width,
-		Height:  height,
-		Focused: true,
+		Theme:     h.theme,
+		Title:     "",
+		Body:      body,
+		Width:     width,
+		Height:    height,
+		Focused:   true,
+		Indicator: "",
 	})
 }
 
@@ -162,7 +164,15 @@ func (h *HelpOverlay) Render(width, height int) string {
 //
 // Returns string which is the title row.
 func (h *HelpOverlay) titleRow(label string, width int) string {
-	style := paneFrameStyle(PaneFrameOpts{Theme: h.theme, Focused: true})
+	style := paneFrameStyle(PaneFrameOpts{
+		Theme:     h.theme,
+		Focused:   true,
+		Title:     "",
+		Body:      "",
+		Indicator: "",
+		Width:     0,
+		Height:    0,
+	})
 	_ = style
 	titleStyle := paneFrameTitleStyle(h.theme)
 	pad := max(0, (width-TextWidth(label))/2)

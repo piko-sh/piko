@@ -258,9 +258,7 @@ type StatusFilterMixin struct {
 //
 // Returns *StatusFilterMixin which is ready for use with no active filter.
 func NewStatusFilterMixin() *StatusFilterMixin {
-	return &StatusFilterMixin{
-		filterStatus: nil,
-	}
+	return &StatusFilterMixin{}
 }
 
 // FilterStatus returns the current status filter.

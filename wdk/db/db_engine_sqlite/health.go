@@ -61,11 +61,17 @@ func checkSQLiteDatabaseSize(ctx context.Context, database *sql.DB) []db.Databas
 	var pageCount, pageSize int64
 	if err := database.QueryRowContext(ctx, "SELECT page_count, page_size FROM pragma_page_count(), pragma_page_size()").Scan(&pageCount, &pageSize); err != nil {
 		return []db.DatabaseHealthDiagnostic{{
-			Name: "database_size", State: "UNHEALTHY", Message: fmt.Sprintf("query failed: %v", err),
+			Name:    "database_size",
+			Value:   "",
+			State:   "UNHEALTHY",
+			Message: fmt.Sprintf("query failed: %v", err),
 		}}
 	}
 	return []db.DatabaseHealthDiagnostic{{
-		Name: "database_size", Value: formatBytes(pageCount * pageSize),
+		Name:    "database_size",
+		Value:   formatBytes(pageCount * pageSize),
+		State:   "",
+		Message: "",
 	}}
 }
 
@@ -80,11 +86,17 @@ func checkSQLiteFreelistPages(ctx context.Context, database *sql.DB) []db.Databa
 	var freelistCount int64
 	if err := database.QueryRowContext(ctx, "PRAGMA freelist_count").Scan(&freelistCount); err != nil {
 		return []db.DatabaseHealthDiagnostic{{
-			Name: "freelist_pages", State: "UNHEALTHY", Message: fmt.Sprintf("query failed: %v", err),
+			Name:    "freelist_pages",
+			Value:   "",
+			State:   "UNHEALTHY",
+			Message: fmt.Sprintf("query failed: %v", err),
 		}}
 	}
 	return []db.DatabaseHealthDiagnostic{{
-		Name: "freelist_pages", Value: strconv.FormatInt(freelistCount, 10),
+		Name:    "freelist_pages",
+		Value:   strconv.FormatInt(freelistCount, 10),
+		State:   "",
+		Message: "",
 	}}
 }
 
@@ -99,11 +111,17 @@ func checkSQLiteJournalMode(ctx context.Context, database *sql.DB) []db.Database
 	var journalMode string
 	if err := database.QueryRowContext(ctx, "PRAGMA journal_mode").Scan(&journalMode); err != nil {
 		return []db.DatabaseHealthDiagnostic{{
-			Name: "journal_mode", State: "UNHEALTHY", Message: fmt.Sprintf("query failed: %v", err),
+			Name:    "journal_mode",
+			Value:   "",
+			State:   "UNHEALTHY",
+			Message: fmt.Sprintf("query failed: %v", err),
 		}}
 	}
 	return []db.DatabaseHealthDiagnostic{{
-		Name: "journal_mode", Value: journalMode,
+		Name:    "journal_mode",
+		Value:   journalMode,
+		State:   "",
+		Message: "",
 	}}
 }
 

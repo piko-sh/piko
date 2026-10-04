@@ -143,12 +143,29 @@ type ParsedTypeInfo struct {
 // Nested generics like Map<string, Array<number>> and union types like User | nil are
 // handled correctly.
 //
+// The lexer runs without a parser, so it cannot always tell a regular expression or the
+// tail of a template literal from other tokens, and reports such text as a syntax error
+// by panicking. That ends the scan early; the assertions found so far are returned and
+// the script itself is still checked by the full parse.
+//
 // Takes source (string) which is the TypeScript source code to parse.
 //
 // Returns map[string]TypeAssertion which maps property names to their type assertion
 // information.
-func ExtractTypeAssertions(source string) map[string]TypeAssertion {
-	assertions := make(map[string]TypeAssertion)
+//
+// Panics if the lexer panics for any reason other than a syntax error, which indicates an
+// internal error.
+func ExtractTypeAssertions(source string) (assertions map[string]TypeAssertion) {
+	assertions = make(map[string]TypeAssertion)
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			return
+		}
+		if _, isLexerPanic := recovered.(js_lexer.LexerPanic); !isLexerPanic {
+			panic(recovered)
+		}
+	}()
 
 	log := logger.NewDeferLog(logger.DeferLogAll, nil)
 	lexer := js_lexer.NewLexer(

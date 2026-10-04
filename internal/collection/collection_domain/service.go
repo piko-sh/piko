@@ -490,12 +490,16 @@ func NewCollectionService(
 	opts ...CollectionServiceOption,
 ) CollectionService {
 	s := &collectionService{
-		registry:       registry,
-		hybridRegistry: newDefaultHybridRegistry(),
-		encoder:        newDefaultCollectionEncoder(),
-		clock:          clock.RealClock(),
-		cache:          make(map[string][]collection_dto.ContentItem),
-		cacheMutex:     sync.RWMutex{},
+		registry:          registry,
+		hybridRegistry:    newDefaultHybridRegistry(),
+		encoder:           newDefaultCollectionEncoder(),
+		clock:             clock.RealClock(),
+		cache:             make(map[string][]collection_dto.ContentItem),
+		cacheMutex:        sync.RWMutex{},
+		defaultSandbox:    nil,
+		resolver:          nil,
+		externalSandboxes: nil,
+		sandboxMutex:      sync.Mutex{},
 	}
 
 	for _, opt := range opts {
@@ -574,6 +578,7 @@ func (s *collectionService) defaultContentSource() collection_dto.ContentSource 
 	return collection_dto.ContentSource{
 		Sandbox:    s.defaultSandbox,
 		IsExternal: false,
+		BasePath:   "",
 	}
 }
 

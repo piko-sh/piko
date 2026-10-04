@@ -193,6 +193,23 @@ var (
 	}
 )
 
+// sourcePosition describes a resolved source position through its 1-based line, the byte
+// offset at which that line starts, and its 1-based column in runes. A zero column marks
+// a position that has not been resolved yet.
+type sourcePosition struct {
+	// offset holds the byte offset into the source.
+	offset int
+
+	// lineStart holds the byte offset of the first byte on the line containing offset.
+	lineStart int
+
+	// line holds the 1-based line number containing offset.
+	line int
+
+	// column holds the 1-based column of offset, measured in runes.
+	column int
+}
+
 // Lexer tokenises HTML source into a stream of tokens. It is a streaming, single-pass
 // tokeniser that returns one token per call to Next().
 //
@@ -243,6 +260,10 @@ type Lexer struct {
 	// attributeValueStart holds the byte offset where the attribute value begins, or -1.
 	attributeValueStart int
 
+	// positionMemo holds the most recent PositionAt result so that successive lookups along
+	// the same line only count the bytes between the two offsets.
+	positionMemo sourcePosition
+
 	// Small fields packed at the end to minimise padding.
 	insideTag bool
 
@@ -257,7 +278,7 @@ type Lexer struct {
 //
 // Returns *Lexer which is ready to produce tokens via Next().
 func NewLexer(source []byte) *Lexer {
-	l := &Lexer{}
+	l := new(Lexer)
 	l.Init(source)
 	return l
 }
@@ -271,51 +292,7 @@ func NewLexer(source []byte) *Lexer {
 // Takes source ([]byte) which is the HTML content to tokenise.
 func (l *Lexer) Init(source []byte) {
 	offsets := buildNewlineIndex(source)
-	l.initAt(source, offsets, 0)
-}
-
-// buildNewlineIndex precomputes the byte offsets of every line-feed in source so
-// PositionAt can resolve line/column in O(log n).
-//
-// Takes source ([]byte) which is the content to scan.
-//
-// Returns []int which is the sorted list of newline byte offsets, or nil when source
-// contains no newlines.
-func buildNewlineIndex(source []byte) []int {
-	count := bytes.Count(source, []byte{lineFeed})
-	if count == 0 {
-		return nil
-	}
-	offsets := make([]int, 0, count)
-	for index, b := range source {
-		if b == lineFeed {
-			offsets = append(offsets, index)
-		}
-	}
-	return offsets
-}
-
-// computeLineColumn converts a byte offset to a 1-based (line, column) position using a
-// precomputed newline-offset index. Column is measured in Unicode runes.
-//
-// Takes source ([]byte) which is the full source buffer.
-// Takes newlineOffsets ([]int) which is the precomputed sorted list of line-feed byte
-// offsets.
-// Takes offset (int) which is the byte offset to convert; assumed to be in range and on a
-// rune boundary.
-//
-// Returns line (int) which is the 1-based line number.
-// Returns column (int) which is the 1-based column in runes.
-func computeLineColumn(source []byte, newlineOffsets []int, offset int) (line, column int) {
-	lineIndex := sort.SearchInts(newlineOffsets, offset)
-	line = lineIndex + 1
-
-	columnStartOffset := 0
-	if lineIndex > 0 {
-		columnStartOffset = newlineOffsets[lineIndex-1] + 1
-	}
-	column = utf8.RuneCount(source[columnStartOffset:offset]) + 1
-	return line, column
+	l.initAt(source, offsets, sourcePosition{offset: 0, lineStart: 0, line: 1, column: 1})
 }
 
 // Next advances the lexer to the next token and returns its type. Token data is available
@@ -393,21 +370,25 @@ func (l *Lexer) AttrValStart() int {
 }
 
 // PositionAt converts an arbitrary byte offset in the source to a 1-based line and column
-// position, measured in Unicode runes using a precomputed newline index for O(log n)
-// lookup.
+// position, with the column measured in Unicode runes.
 //
-// Takes offset (int) which is the byte offset to convert.
+// The line is found with an O(log n) binary search over the precomputed newline index.
+// The column is counted from the nearest known position on the same line, choosing
+// between the previous PositionAt result, the lexer cursor, and the start of the line.
+// Lookups that move forward through the source, as a parser does, therefore cost time
+// proportional to the distance moved rather than to the length of the line, keeping a
+// full parse linear even when the whole template sits on a single line. The lookup
+// updates internal state, so like every other Lexer method it must not be called
+// concurrently.
+//
+// Takes offset (int) which is the byte offset to convert; values outside the source are
+// clamped to its bounds.
 //
 // Returns line (int) which is the 1-based line number.
 // Returns column (int) which is the 1-based column in runes.
 func (l *Lexer) PositionAt(offset int) (line int, column int) {
-	if offset < 0 {
-		offset = 0
-	}
-	if offset > len(l.source) {
-		offset = len(l.source)
-	}
-	return computeLineColumn(l.source, l.newlineOffsets, offset)
+	position := l.resolvePosition(clampOffset(offset, len(l.source)))
+	return position.line, position.column
 }
 
 // SourceBytes returns the full source buffer. This allows consumers to slice raw content
@@ -431,46 +412,103 @@ func (l *Lexer) Err() error {
 // Takes endOffset (int) which is the byte offset immediately after the closing tag (i.e.
 // the position where normal tokenisation should resume).
 func (l *Lexer) ResumeAfterRawText(endOffset int) {
-	if endOffset < 0 {
-		endOffset = 0
-	}
-	if endOffset > len(l.source) {
-		endOffset = len(l.source)
-	}
+	endOffset = clampOffset(endOffset, len(l.source))
 	for endOffset < len(l.source) && !utf8.RuneStart(l.source[endOffset]) {
 		endOffset++
 	}
-	l.initAt(l.source, l.newlineOffsets, endOffset)
+	l.initAt(l.source, l.newlineOffsets, l.resolvePosition(endOffset))
 }
 
-// initAt sets every Lexer field to its initial value at the given byte offset, reusing a
-// precomputed newline-offset index. All mode flags, token buffers, and per-token state
-// default to their zero values, so adding a new field to Lexer is automatically safe; no
-// field-by-field reset is needed elsewhere.
+// initAt sets every Lexer field to its initial value at the given source position,
+// reusing a precomputed newline-offset index. All mode flags, token buffers, and
+// per-token state default to their zero values, so adding a new field to Lexer is
+// automatically safe; no field-by-field reset is needed elsewhere.
 //
 // Takes source ([]byte) which is the HTML content to tokenise.
 // Takes newlineOffsets ([]int) which is the precomputed sorted list of line-feed byte
 // offsets in source.
-// Takes offset (int) which is the cursor position to start at.
-func (l *Lexer) initAt(source []byte, newlineOffsets []int, offset int) {
-	line, column := computeLineColumn(source, newlineOffsets, offset)
-	lastNewlinePos := -1
-	if i := sort.SearchInts(newlineOffsets, offset); i > 0 {
-		lastNewlinePos = newlineOffsets[i-1]
-	}
-
+// Takes position (sourcePosition) which is the resolved position to start at; it also
+// seeds the position memo.
+func (l *Lexer) initAt(source []byte, newlineOffsets []int, position sourcePosition) {
 	*l = Lexer{
 		source:              source,
 		newlineOffsets:      newlineOffsets,
-		cursor:              offset,
-		currentLine:         line,
-		currentColumn:       column,
-		lastNewlinePos:      lastNewlinePos,
-		tokenStartOffset:    offset,
-		tokenEndOffset:      offset,
-		tokenLine:           line,
-		tokenColumn:         column,
+		cursor:              position.offset,
+		currentLine:         position.line,
+		currentColumn:       position.column,
+		lastNewlinePos:      position.lineStart - 1,
+		tokenStartOffset:    position.offset,
+		tokenEndOffset:      position.offset,
+		tokenLine:           position.line,
+		tokenColumn:         position.column,
 		attributeValueStart: -1,
+		positionMemo:        position,
+		err:                 nil,
+		text:                nil,
+		attributeValue:      nil,
+		insideTag:           false,
+		rawTextTag:          rawTextNone,
+	}
+}
+
+// resolvePosition converts an in-range byte offset to a full source position and
+// remembers it for the next lookup.
+//
+// Takes offset (int) which is the byte offset to convert; it must lie within [0,
+// len(source)].
+//
+// Returns sourcePosition which holds the offset, its line, the start of that line, and
+// its column.
+func (l *Lexer) resolvePosition(offset int) sourcePosition {
+	lineIndex := sort.SearchInts(l.newlineOffsets, offset)
+	lineStart := 0
+	if lineIndex > 0 {
+		lineStart = l.newlineOffsets[lineIndex-1] + 1
+	}
+
+	anchor := l.nearestAnchor(lineStart, lineIndex+1, offset)
+	column := anchor.column
+	if offset >= anchor.offset {
+		column += countColumns(l.source[anchor.offset:offset])
+	} else {
+		column -= countColumns(l.source[offset:anchor.offset])
+	}
+
+	l.positionMemo = sourcePosition{offset: offset, lineStart: lineStart, line: lineIndex + 1, column: column}
+	return l.positionMemo
+}
+
+// nearestAnchor picks the known position on the given line that is closest to offset,
+// choosing between the line start, the previous lookup and the lexer cursor.
+//
+// Takes lineStart (int) which is the byte offset at which the line begins.
+// Takes line (int) which is the 1-based number of that line.
+// Takes offset (int) which is the byte offset being resolved.
+//
+// Returns sourcePosition which is the anchor to count columns from.
+func (l *Lexer) nearestAnchor(lineStart, line, offset int) sourcePosition {
+	nearest := sourcePosition{offset: lineStart, lineStart: lineStart, line: line, column: 1}
+	candidates := [...]sourcePosition{l.positionMemo, l.cursorPosition()}
+	for _, candidate := range candidates {
+		if candidate.column < 1 || candidate.lineStart != lineStart {
+			continue
+		}
+		if offsetDistance(candidate.offset, offset) < offsetDistance(nearest.offset, offset) {
+			nearest = candidate
+		}
+	}
+	return nearest
+}
+
+// cursorPosition returns the incrementally tracked position of the lexer cursor.
+//
+// Returns sourcePosition which describes the cursor offset, line, line start and column.
+func (l *Lexer) cursorPosition() sourcePosition {
+	return sourcePosition{
+		offset:    l.cursor,
+		lineStart: l.lastNewlinePos + 1,
+		line:      l.currentLine,
+		column:    l.currentColumn,
 	}
 }
 
@@ -511,16 +549,16 @@ func (l *Lexer) advanceCursor(n int) {
 		l.currentLine += newlineCount
 		lastLF := bytes.LastIndexByte(segment, lineFeed)
 		l.lastNewlinePos = l.cursor + lastLF
-		l.currentColumn = utf8.RuneCount(l.source[l.lastNewlinePos+1:end]) + 1
+		l.currentColumn = countColumns(l.source[l.lastNewlinePos+1:end]) + 1
 	} else {
-		l.currentColumn += utf8.RuneCount(segment)
+		l.currentColumn += countColumns(segment)
 	}
 
 	l.cursor = end
 }
 
 // advanceOne moves the cursor forward by exactly one byte with minimal overhead. Unlike
-// advanceCursor(1), it avoids slice creation, bytes.Count, and utf8.RuneCount calls.
+// advanceCursor(1), it avoids slice creation and the bytes.Count and countColumns scans.
 //
 // For multi-byte UTF-8 sequences, only the leading byte increments the column counter;
 // continuation bytes (10xxxxxx) are skipped. This correctly counts columns in runes
@@ -720,4 +758,68 @@ func (l *Lexer) emitRawText(contentStart int) TokenType {
 	l.finaliseToken()
 
 	return TextToken
+}
+
+// buildNewlineIndex precomputes the byte offsets of every line-feed in source so
+// PositionAt can find the line of any offset with a binary search.
+//
+// Takes source ([]byte) which is the content to scan.
+//
+// Returns []int which is the sorted list of newline byte offsets, or nil when source
+// contains no newlines.
+func buildNewlineIndex(source []byte) []int {
+	count := bytes.Count(source, []byte{lineFeed})
+	if count == 0 {
+		return nil
+	}
+	offsets := make([]int, 0, count)
+	for index, b := range source {
+		if b == lineFeed {
+			offsets = append(offsets, index)
+		}
+	}
+	return offsets
+}
+
+// countColumns returns the number of columns spanned by segment.
+//
+// Every byte that is not a UTF-8 continuation byte starts a new column, so valid UTF-8
+// counts one column per rune and each byte of an invalid sequence counts at most once.
+// The count matches the incremental tracking in advanceOne and is additive across any
+// split of the segment, which lets positions be counted from any anchor.
+//
+// Takes segment ([]byte) which is the bytes to measure.
+//
+// Returns int which is the number of columns the bytes occupy.
+func countColumns(segment []byte) int {
+	columns := 0
+	for _, b := range segment {
+		if b&utf8ContinuationMask != utf8ContinuationValue {
+			columns++
+		}
+	}
+	return columns
+}
+
+// clampOffset restricts offset to the range [0, length].
+//
+// Takes offset (int) which is the byte offset to clamp.
+// Takes length (int) which is the upper bound, normally the source length.
+//
+// Returns int which is the clamped offset.
+func clampOffset(offset, length int) int {
+	return min(max(offset, 0), length)
+}
+
+// offsetDistance returns the absolute distance in bytes between two offsets.
+//
+// Takes first (int) which is one byte offset.
+// Takes second (int) which is the other byte offset.
+//
+// Returns int which is the non-negative distance between them.
+func offsetDistance(first, second int) int {
+	if first > second {
+		return first - second
+	}
+	return second - first
 }

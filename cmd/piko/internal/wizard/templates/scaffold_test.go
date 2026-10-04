@@ -119,7 +119,7 @@ func TestCreateDirs(t *testing.T) {
 		"styles",
 		"dist",
 		"e2e",
-		"internal/interpreted",
+		"internal/piko_symbols",
 	}
 
 	for _, d := range expectedDirs {

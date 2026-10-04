@@ -109,8 +109,12 @@ var (
 //
 // Returns *llm_dto.CompletionResponse which contains the model's response.
 // Returns error when the Anthropic API call fails.
-func (p *anthropicProvider) Complete(ctx context.Context, request *llm_dto.CompletionRequest) (*llm_dto.CompletionResponse, error) {
-	defer goroutine.RecoverPanic(ctx, "llm.anthropicProvider.Complete")
+func (p *anthropicProvider) Complete(ctx context.Context, request *llm_dto.CompletionRequest) (result *llm_dto.CompletionResponse, returnErr error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			result, returnErr = nil, goroutine.HandlePanicRecovery(ctx, "llm.anthropicProvider.Complete", recovered)
+		}
+	}()
 
 	ctx, l := logger.From(ctx, log)
 	completeCount.Add(ctx, 1)
@@ -210,61 +214,11 @@ func (*anthropicProvider) SupportsMessageName() bool { return false }
 // Returns error which is always nil as this uses a static list.
 func (*anthropicProvider) ListModels(_ context.Context) ([]llm_dto.ModelInfo, error) {
 	return []llm_dto.ModelInfo{
-		{
-			ID:                       "claude-opus-4-6",
-			Name:                     "Claude Opus 4.6",
-			Provider:                 providerNameAnthropic,
-			ContextWindow:            ContextWindowClaude4Opus,
-			MaxOutputTokens:          MaxOutputTokensClaude4Opus,
-			SupportsStreaming:        true,
-			SupportsTools:            true,
-			SupportsStructuredOutput: true,
-			SupportsVision:           true,
-		},
-		{
-			ID:                       "claude-sonnet-4-5-20250929",
-			Name:                     "Claude Sonnet 4.5",
-			Provider:                 providerNameAnthropic,
-			ContextWindow:            ContextWindowClaude4,
-			MaxOutputTokens:          MaxOutputTokensClaude4,
-			SupportsStreaming:        true,
-			SupportsTools:            true,
-			SupportsStructuredOutput: true,
-			SupportsVision:           true,
-		},
-		{
-			ID:                       "claude-haiku-4-5-20251001",
-			Name:                     "Claude Haiku 4.5",
-			Provider:                 providerNameAnthropic,
-			ContextWindow:            ContextWindowClaude4,
-			MaxOutputTokens:          MaxOutputTokensClaude4,
-			SupportsStreaming:        true,
-			SupportsTools:            true,
-			SupportsStructuredOutput: true,
-			SupportsVision:           true,
-		},
-		{
-			ID:                       "claude-sonnet-4-20250514",
-			Name:                     "Claude Sonnet 4",
-			Provider:                 providerNameAnthropic,
-			ContextWindow:            ContextWindowClaude4,
-			MaxOutputTokens:          MaxOutputTokensClaude4,
-			SupportsStreaming:        true,
-			SupportsTools:            true,
-			SupportsStructuredOutput: true,
-			SupportsVision:           true,
-		},
-		{
-			ID:                       "claude-opus-4-20250514",
-			Name:                     "Claude Opus 4",
-			Provider:                 providerNameAnthropic,
-			ContextWindow:            ContextWindowClaude4Opus,
-			MaxOutputTokens:          MaxOutputTokensClaude4Opus,
-			SupportsStreaming:        true,
-			SupportsTools:            true,
-			SupportsStructuredOutput: true,
-			SupportsVision:           true,
-		},
+		llm_dto.NewFullCapabilityModelInfo("claude-opus-4-6", "Claude Opus 4.6", providerNameAnthropic, ContextWindowClaude4Opus, MaxOutputTokensClaude4Opus),
+		llm_dto.NewFullCapabilityModelInfo("claude-sonnet-4-5-20250929", "Claude Sonnet 4.5", providerNameAnthropic, ContextWindowClaude4, MaxOutputTokensClaude4),
+		llm_dto.NewFullCapabilityModelInfo("claude-haiku-4-5-20251001", "Claude Haiku 4.5", providerNameAnthropic, ContextWindowClaude4, MaxOutputTokensClaude4),
+		llm_dto.NewFullCapabilityModelInfo("claude-sonnet-4-20250514", "Claude Sonnet 4", providerNameAnthropic, ContextWindowClaude4, MaxOutputTokensClaude4),
+		llm_dto.NewFullCapabilityModelInfo("claude-opus-4-20250514", "Claude Opus 4", providerNameAnthropic, ContextWindowClaude4Opus, MaxOutputTokensClaude4Opus),
 	}, nil
 }
 
@@ -577,9 +531,8 @@ func (*anthropicProvider) convertToolChoice(choice *llm_dto.ToolChoice) anthropi
 // Returns *llm_dto.CompletionResponse which contains the normalised completion data
 // including message content, tool calls, and usage statistics.
 func (p *anthropicProvider) convertResponse(anthropicMessage *anthropic.Message, model string) *llm_dto.CompletionResponse {
-	message := llm_dto.Message{
-		Role: llm_dto.RoleAssistant,
-	}
+	message := llm_dto.Message{}
+	message.Role = llm_dto.RoleAssistant
 
 	for i := range anthropicMessage.Content {
 		block := &anthropicMessage.Content[i]
@@ -612,6 +565,9 @@ func (p *anthropicProvider) convertResponse(anthropicMessage *anthropic.Message,
 				FinishReason: finishReason,
 			},
 		},
+		Usage:        nil,
+		FallbackInfo: nil,
+		Sources:      nil,
 	}
 
 	if anthropicMessage.Usage.InputTokens > 0 || anthropicMessage.Usage.OutputTokens > 0 {
@@ -620,6 +576,7 @@ func (p *anthropicProvider) convertResponse(anthropicMessage *anthropic.Message,
 			CompletionTokens: int(anthropicMessage.Usage.OutputTokens),
 			TotalTokens:      int(anthropicMessage.Usage.InputTokens + anthropicMessage.Usage.OutputTokens),
 			CachedTokens:     int(anthropicMessage.Usage.CacheReadInputTokens),
+			EstimatedCost:    nil,
 		}
 	}
 
@@ -676,5 +633,7 @@ func New(config Config) (llm_domain.LLMProviderPort, error) {
 		config:          config,
 		defaultModel:    config.DefaultModel,
 		defaultMaxToken: config.DefaultMaxTokens,
+		streamWaitGroup: sync.WaitGroup{},
+		closeOnce:       sync.Once{},
 	}, nil
 }

@@ -110,6 +110,7 @@ func (r *jsonIndexReader) GetDocMetadata(documentID uint32) (search_domain.DocMe
 		FieldLength:        document.FieldLength,
 		FieldLengthsPacked: document.FieldLengthsPacked,
 		Route:              document.Route,
+		FieldLengths:       nil,
 	}, nil
 }
 

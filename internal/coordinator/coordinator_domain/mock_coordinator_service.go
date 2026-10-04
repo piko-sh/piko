@@ -96,6 +96,7 @@ func (m *MockCoordinatorService) Subscribe(name string) (<-chan BuildNotificatio
 //
 // Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes entryPoints ([]annotator_dto.EntryPoint) which lists the components to build.
+// Takes opts (...BuildOption) which configure the requested build.
 func (m *MockCoordinatorService) RequestRebuild(
 	ctx context.Context,
 	entryPoints []annotator_dto.EntryPoint,
@@ -111,6 +112,7 @@ func (m *MockCoordinatorService) RequestRebuild(
 //
 // Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes entryPoints ([]annotator_dto.EntryPoint) which lists the components to build.
+// Takes opts (...BuildOption) which configure retrieval of the build result.
 //
 // Returns (*ProjectAnnotationResult, error), or (nil, nil) if GetResultFunc is nil.
 func (m *MockCoordinatorService) GetResult(
@@ -129,6 +131,7 @@ func (m *MockCoordinatorService) GetResult(
 //
 // Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes entryPoints ([]annotator_dto.EntryPoint) which lists the components to build.
+// Takes opts (...BuildOption) which configure the project build.
 //
 // Returns (*ProjectAnnotationResult, error), or (nil, nil) if GetOrBuildProjectFunc is
 // nil.

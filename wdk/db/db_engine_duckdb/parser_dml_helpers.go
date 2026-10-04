@@ -100,16 +100,7 @@ func (p *parser) resolveLikeContext(paramPosition int) (querier_dto.ParameterCon
 // Returns int which is the LIKE-style operator's token index when found.
 // Returns bool which is true when an operator was located.
 func (p *parser) findEnclosingLikeOperator(paramPosition int) (int, bool) {
-	return engine_shared.FindEnclosingLikeOperator(paramPosition,
-		func(index int) bool { return p.tokens[index].kind == tokenLeftParen },
-		func(index int) bool { return p.tokens[index].kind == tokenRightParen },
-		func(index int) bool {
-			return p.tokens[index].kind == tokenIdentifier && isLikeBoundaryKeyword(strings.ToUpper(p.tokens[index].value))
-		},
-		func(index int) bool {
-			return p.tokens[index].kind == tokenIdentifier && isLikePatternKeyword(strings.ToUpper(p.tokens[index].value))
-		},
-	)
+	return p.parenthesisScanIndex().EnclosingLikeOperator(paramPosition)
 }
 
 // resolveLikeOperatorColumn picks the column reference associated with a LIKE operator's
@@ -544,26 +535,36 @@ func (p *parser) qualifiedFunctionName(namePosition int) string {
 // parameter to derive the parameter's 0-based argument slot, ignoring commas nested
 // inside deeper parentheses or brackets.
 //
+// Placeholders are registered left to right, so the scan for each call resumes from where
+// the previous placeholder in the same call stopped; a call with n placeholder arguments
+// is scanned once rather than n times.
+//
 // Takes openParen (int) which is the index of the call's opening parenthesis.
 // Takes paramPosition (int) which is the parameter token's index.
 //
 // Returns int which is the 0-based argument ordinal.
 func (p *parser) argumentOrdinal(openParen int, paramPosition int) int {
-	ordinal := 0
-	depth := 0
-	for i := openParen + 1; i < paramPosition && i < len(p.tokens); i++ {
-		switch p.tokens[i].kind { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
+	cursor, resumable := p.argumentCursors[openParen]
+	if !resumable || cursor.position > paramPosition {
+		cursor = argumentOrdinalCursor{position: openParen + 1, depth: 0, ordinal: 0}
+	}
+	for ; cursor.position < paramPosition && cursor.position < len(p.tokens); cursor.position++ {
+		switch p.tokens[cursor.position].kind { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		case tokenLeftParen, tokenLeftBracket:
-			depth++
+			cursor.depth++
 		case tokenRightParen, tokenRightBracket:
-			depth--
+			cursor.depth--
 		case tokenComma:
-			if depth == 0 {
-				ordinal++
+			if cursor.depth == 0 {
+				cursor.ordinal++
 			}
 		}
 	}
-	return ordinal
+	if p.argumentCursors == nil {
+		p.argumentCursors = make(map[int]argumentOrdinalCursor)
+	}
+	p.argumentCursors[openParen] = cursor
+	return cursor.ordinal
 }
 
 // findEnclosingParen walks back from position looking for the opening parenthesis that
@@ -580,13 +581,7 @@ func (p *parser) argumentOrdinal(openParen int, paramPosition int) int {
 //
 // Returns int which is the index of the enclosing '(' or -1 when none is found.
 func (p *parser) findEnclosingParen(position int) int {
-	return engine_shared.FindEnclosingParen(position,
-		func(index int) bool { return p.tokens[index].kind == tokenLeftParen },
-		func(index int) bool { return p.tokens[index].kind == tokenRightParen },
-		func(index int) bool {
-			return p.tokens[index].kind == tokenIdentifier && isLikeBoundaryKeyword(strings.ToUpper(p.tokens[index].value))
-		},
-	)
+	return p.parenthesisScanIndex().EnclosingParen(position)
 }
 
 // extractColumnReferenceBeforeIN reads the column reference that precedes an IN keyword.
@@ -702,6 +697,7 @@ func (p *parser) extractColumnReference(position int) *querier_dto.ColumnReferen
 
 	return &querier_dto.ColumnReference{
 		ColumnName: tok.value,
+		TableAlias: "",
 	}
 }
 
@@ -805,7 +801,7 @@ func (p *parser) parseCastTypeName() string {
 	p.appendMultiWordTypeKeywords(&builder)
 
 	if p.current().kind == tokenLeftParen {
-		p.mustSkipParenthesised()
+		p.skipParenthesisedOrRecord()
 	}
 
 	p.appendTypeArrayBrackets(&builder)

@@ -19,9 +19,14 @@
 package layouter_domain
 
 import (
+	"context"
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"piko.sh/piko/internal/layouter/layouter_dto"
 )
 
 func TestBuildGridAreaMap(t *testing.T) {
@@ -106,7 +111,7 @@ func TestIsAreaAvailable(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := isAreaAvailable(tt.occupied, tt.row, tt.column, tt.row_span, tt.col_span)
+			result := occupancyFromCells(t, tt.occupied).isAreaAvailable(tt.row, tt.column, tt.row_span, tt.col_span)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -150,7 +155,7 @@ func TestAutoPlaceItem(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			col, row := autoPlaceItem(
-				tt.occupied,
+				occupancyFromCells(t, tt.occupied),
 				tt.col_span, tt.row_span, tt.max_columns,
 				GridAutoFlowRow,
 				new(tt.cursor_row), new(tt.cursor_column),
@@ -379,7 +384,7 @@ func TestExpandAutoRepeatTracks(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := expandAutoRepeatTracks(tt.fixed, tt.ar, tt.containerSize, tt.gap)
+			result := expandAutoRepeatTracks(tt.fixed, tt.ar, tt.containerSize, tt.gap, nil)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -413,4 +418,333 @@ func TestCollapseEmptyAutoFitTracks(t *testing.T) {
 	assert.Equal(t, 0.0, result[2].Value)
 	assert.Equal(t, 200.0, result[3].Value)
 	assert.Equal(t, 100.0, result[4].Value)
+}
+
+func occupancyFromCells(t *testing.T, cells map[[2]int]bool) *gridOccupancy {
+	t.Helper()
+	occupancy := newGridOccupancy(nil)
+	for cell, occupied := range cells {
+		if occupied {
+			occupancy.rowForWrite(cell[0], cell[1]+1)[cell[1]] = true
+		}
+	}
+	return occupancy
+}
+
+func TestExpandAutoRepeatTracks_HostileInput(t *testing.T) {
+	t.Parallel()
+
+	pattern := []GridTrack{{Value: 100, Unit: GridTrackPoints}}
+	tests := []struct {
+		wantErr       error
+		name          string
+		pattern       []GridTrack
+		limits        layouter_dto.LayoutLimits
+		containerSize float64
+		gap           float64
+		wantTracks    int
+	}{
+		{
+			name:          "negative gap is treated as zero and terminates",
+			pattern:       pattern,
+			containerSize: 400,
+			gap:           -100,
+			wantTracks:    4,
+		},
+		{
+			name:          "infinite container repeats once",
+			pattern:       pattern,
+			containerSize: math.Inf(1),
+			wantTracks:    1,
+		},
+		{
+			name:          "NaN container repeats once",
+			pattern:       pattern,
+			containerSize: math.NaN(),
+			wantTracks:    1,
+		},
+		{
+			name:          "empty pattern adds no tracks",
+			pattern:       nil,
+			containerSize: 400,
+			wantTracks:    0,
+		},
+		{
+			name:          "tiny track breaches the track limit",
+			pattern:       []GridTrack{{Value: 0.00001, Unit: GridTrackPoints}},
+			containerSize: 400,
+			limits:        layouter_dto.LayoutLimits{MaxGridTracks: 50},
+			wantTracks:    50,
+			wantErr:       layouter_dto.ErrTooManyGridTracks,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			tracker := NewLimitTracker(tt.limits)
+			ar := &GridAutoRepeat{Type: GridAutoRepeatFill, Pattern: tt.pattern}
+			tracks := expandAutoRepeatTracks(nil, ar, tt.containerSize, tt.gap, tracker)
+
+			assert.Len(t, tracks, tt.wantTracks)
+			if tt.wantErr != nil {
+				assert.ErrorIs(t, tracker.Err(), tt.wantErr)
+				return
+			}
+			assert.NoError(t, tracker.Err())
+		})
+	}
+}
+
+func TestAutoRepeatCount_MatchesIncrementalSearch(t *testing.T) {
+	t.Parallel()
+
+	incremental := func(oneRepetition, gap, available float64) int {
+		count := 1
+		if oneRepetition > 0 {
+			for {
+				next := float64(count) * oneRepetition
+				if count > 1 {
+					next += float64(count-1) * gap
+				}
+				if next > available {
+					count--
+					break
+				}
+				count++
+			}
+			count = max(count, 1)
+		}
+		return count
+	}
+
+	for _, oneRepetition := range []float64{0, 0.1, 1, 7.5, 33.3, 100, 150, 1000} {
+		for _, gap := range []float64{0, 0.1, 2, 10, 33.3} {
+			for _, available := range []float64{0, 1, 99.9, 100, 300, 333.3, 600, 1234.5} {
+				assert.Equal(t, incremental(oneRepetition, gap, available), autoRepeatCount(oneRepetition, gap, available),
+					"repetition %v gap %v available %v", oneRepetition, gap, available)
+			}
+		}
+	}
+}
+
+func TestAutoRepeatCount_SaturatesForAbsurdRatios(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, maxPageIndex, autoRepeatCount(1e-300, 0, 1e300))
+	assert.Equal(t, 1, autoRepeatCount(math.Inf(1), 0, 100))
+	assert.Equal(t, 1, autoRepeatCount(math.NaN(), 0, 100))
+}
+
+func TestGridLayout_HostileTemplatesTerminate(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		properties map[string]string
+		wantErr    error
+		name       string
+	}{
+		{
+			name: "negative column gap with auto-fill",
+			properties: map[string]string{
+				"display":               "grid",
+				"grid-template-columns": "repeat(auto-fill, 100px)",
+				"column-gap":            "-100px",
+			},
+		},
+		{
+			name: "tiny auto-fill track",
+			properties: map[string]string{
+				"display":               "grid",
+				"grid-template-columns": "repeat(auto-fill, 0.00001px)",
+			},
+			wantErr: layouter_dto.ErrTooManyGridTracks,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			root := makeRoot(400)
+			root.Children = []*LayoutBox{newGridContainerForTest(root, tt.properties)}
+
+			_, err := LayoutBoxTree(context.Background(), root, &mockFontMetrics{}, nil)
+			if tt.wantErr != nil {
+				assert.ErrorIs(t, err, tt.wantErr)
+				return
+			}
+			assert.NoError(t, err)
+		})
+	}
+}
+
+func TestPlaceGridItems_EnforcesLimits(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		configure func(item *LayoutBox)
+		wantErr   error
+		name      string
+		limits    layouter_dto.LayoutLimits
+		items     int
+	}{
+		{
+			name:   "column span beyond the track limit",
+			limits: layouter_dto.LayoutLimits{MaxGridTracks: 100},
+			items:  1,
+			configure: func(item *LayoutBox) {
+				item.Style.GridColumnStart = GridLine{Span: 500}
+			},
+			wantErr: layouter_dto.ErrTooManyGridTracks,
+		},
+		{
+			name:   "explicit row line beyond the track limit",
+			limits: layouter_dto.LayoutLimits{MaxGridTracks: 100},
+			items:  1,
+			configure: func(item *LayoutBox) {
+				item.Style.GridRowStart = GridLine{Line: 1000}
+				item.Style.GridColumnStart = GridLine{Line: 1}
+			},
+			wantErr: layouter_dto.ErrTooManyGridTracks,
+		},
+		{
+			name:   "overlapping large items exhaust the cell budget",
+			limits: layouter_dto.LayoutLimits{MaxGridCells: 10_000},
+			items:  10,
+			configure: func(item *LayoutBox) {
+				item.Style.GridColumnStart = GridLine{Line: 1}
+				item.Style.GridColumnEnd = GridLine{Span: 50}
+				item.Style.GridRowStart = GridLine{Line: 1}
+				item.Style.GridRowEnd = GridLine{Span: 50}
+			},
+			wantErr: layouter_dto.ErrGridTooLarge,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			grid := &LayoutBox{Type: BoxBlock, Style: DefaultComputedStyle()}
+			grid.Style.Display = DisplayGrid
+			for range tt.items {
+				item := &LayoutBox{Type: BoxBlock, Style: DefaultComputedStyle(), Parent: grid}
+				tt.configure(item)
+				grid.Children = append(grid.Children, item)
+			}
+
+			tracker := NewLimitTracker(tt.limits)
+			placements, columns, rows := placeGridItemsWithColumns(grid, []GridTrack{{}}, tracker)
+
+			assert.ErrorIs(t, tracker.Err(), tt.wantErr)
+			assert.Nil(t, placements)
+			assert.Zero(t, columns)
+			assert.Zero(t, rows)
+		})
+	}
+}
+
+func TestPlaceGridItems_AutoPlacementBeyondSearchWindow(t *testing.T) {
+	t.Parallel()
+
+	const itemCount = gridSearchLimit + 200
+	grid := &LayoutBox{Type: BoxBlock, Style: DefaultComputedStyle()}
+	grid.Style.Display = DisplayGrid
+	for range itemCount {
+		grid.Children = append(grid.Children, &LayoutBox{Type: BoxBlock, Style: DefaultComputedStyle(), Parent: grid})
+	}
+
+	tracker := NewLimitTracker(layouter_dto.LayoutLimits{})
+	placements, columns, rows := placeGridItemsWithColumns(grid, []GridTrack{{}}, tracker)
+
+	require.NoError(t, tracker.Err())
+	require.Len(t, placements, itemCount)
+	assert.Equal(t, 1, columns)
+	assert.Equal(t, itemCount, rows)
+	for index, placement := range placements {
+		assert.Equal(t, index, placement.row, "item %d should occupy its own row", index)
+	}
+}
+
+func TestSingleSpanItemsByTrack(t *testing.T) {
+	t.Parallel()
+
+	first := &LayoutBox{}
+	second := &LayoutBox{}
+	spanning := &LayoutBox{}
+	placements := []gridItemPlacement{
+		{item: first, column: 0, columnEnd: 1, row: 0, rowEnd: 1},
+		{item: second, column: 0, columnEnd: 1, row: 1, rowEnd: 2},
+		{item: spanning, column: 1, columnEnd: 3, row: 0, rowEnd: 1},
+		{item: &LayoutBox{}, column: 9, columnEnd: 10, row: 9, rowEnd: 10},
+	}
+
+	columns := singleSpanItemsByTrack(placements, 3, true)
+	assert.Equal(t, []*LayoutBox{first, second}, columns[0])
+	assert.Empty(t, columns[1], "a spanning item belongs to no single track")
+	assert.Empty(t, columns[2])
+
+	rows := singleSpanItemsByTrack(placements, 2, false)
+	assert.Equal(t, []*LayoutBox{first, spanning}, rows[0])
+	assert.Equal(t, []*LayoutBox{second}, rows[1])
+}
+
+func TestPlaceGridItems_SemiAutomaticAndNamedPlacement(t *testing.T) {
+	t.Parallel()
+
+	grid := &LayoutBox{Type: BoxBlock, Style: DefaultComputedStyle()}
+	grid.Style.Display = DisplayGrid
+	grid.Style.GridTemplateAreas = [][]string{{"head", "head"}, {"side", "main"}}
+
+	named := &LayoutBox{Type: BoxBlock, Style: DefaultComputedStyle(), Parent: grid}
+	named.Style.GridArea = "main"
+	columnOnly := &LayoutBox{Type: BoxBlock, Style: DefaultComputedStyle(), Parent: grid}
+	columnOnly.Style.GridColumnStart = GridLine{Line: 1}
+	rowOnly := &LayoutBox{Type: BoxBlock, Style: DefaultComputedStyle(), Parent: grid}
+	rowOnly.Style.GridRowStart = GridLine{Line: 3}
+	grid.Children = []*LayoutBox{named, columnOnly, rowOnly}
+
+	tracker := NewLimitTracker(layouter_dto.LayoutLimits{})
+	placements, columns, rows := placeGridItemsWithColumns(grid, []GridTrack{{}, {}}, tracker)
+
+	require.NoError(t, tracker.Err())
+	require.Len(t, placements, 3)
+	assert.Equal(t, gridItemPlacement{item: named, column: 1, columnEnd: 2, row: 1, rowEnd: 2}, placements[0])
+	assert.Equal(t, 0, placements[1].column, "a column-only item keeps its column")
+	assert.Equal(t, 0, placements[1].row, "and takes the first free row in that column")
+	assert.Equal(t, 2, placements[2].row, "a row-only item keeps its row")
+	assert.Equal(t, 0, placements[2].column, "and takes the first free column in that row")
+	assert.Equal(t, 2, columns)
+	assert.Equal(t, 3, rows)
+}
+
+func TestPlaceGridItems_NamedAreaBeyondTrackLimit(t *testing.T) {
+	t.Parallel()
+
+	grid := &LayoutBox{Type: BoxBlock, Style: DefaultComputedStyle()}
+	grid.Style.Display = DisplayGrid
+	grid.Style.GridTemplateAreas = [][]string{{"a", "a", "a", "a"}}
+	item := &LayoutBox{Type: BoxBlock, Style: DefaultComputedStyle(), Parent: grid}
+	item.Style.GridArea = "a"
+	grid.Children = []*LayoutBox{item}
+
+	tracker := NewLimitTracker(layouter_dto.LayoutLimits{MaxGridTracks: 3})
+	placements, _, _ := placeGridItemsWithColumns(grid, []GridTrack{{}}, tracker)
+
+	assert.Nil(t, placements)
+	assert.ErrorIs(t, tracker.Err(), layouter_dto.ErrTooManyGridTracks)
+}
+
+func TestResolveAutoRepeatRows(t *testing.T) {
+	t.Parallel()
+
+	box := &LayoutBox{Style: DefaultComputedStyle()}
+	box.Style.GridTemplateRows = []GridTrack{{Value: 10, Unit: GridTrackPoints}}
+	assert.Equal(t, box.Style.GridTemplateRows, resolveAutoRepeatRows(box, nil))
+
+	box.Style.GridAutoRepeatRows = &GridAutoRepeat{Type: GridAutoRepeatFill, Pattern: []GridTrack{{Value: 20, Unit: GridTrackPoints}}, InsertIndex: 1}
+	rows := resolveAutoRepeatRows(box, nil)
+	assert.Len(t, rows, 2, "an indefinite block size repeats the pattern once")
 }

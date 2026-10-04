@@ -43,13 +43,17 @@ func (p *parser) parseCreateFunction(engine *MySQLEngine) (mutation *querier_dto
 		}
 	}()
 
-	p.mustKeyword(keywordCREATE)
+	if _, err := p.expectKeyword(keywordCREATE); err != nil {
+		return nil, err
+	}
 
 	if p.matchKeyword(keywordDEFINER) {
 		p.skipDefinerClause()
 	}
 
-	p.mustKeyword(keywordFUNCTION, keywordPROCEDURE)
+	if _, err := p.expectKeyword(keywordFUNCTION, keywordPROCEDURE); err != nil {
+		return nil, err
+	}
 
 	schema, functionName, nameError := p.parseSchemaQualifiedName()
 	if nameError != nil {
@@ -61,21 +65,19 @@ func (p *parser) parseCreateFunction(engine *MySQLEngine) (mutation *querier_dto
 		return nil, argumentsError
 	}
 
-	signature := &querier_dto.FunctionSignature{
-		Name:      functionName,
-		Schema:    schema,
-		Arguments: arguments,
-	}
+	signature := querier_dto.NewFunctionReference(schema, functionName)
+	signature.Arguments = arguments
 
 	p.parseFunctionReturnsClause(engine, signature)
 	p.parseFunctionAttributes(signature)
 	p.parseFunctionBodyCapture(signature)
 
-	return &querier_dto.CatalogueMutation{
-		Kind:              querier_dto.MutationCreateFunction,
-		SchemaName:        schema,
-		FunctionSignature: signature,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationCreateFunction,
+		schema,
+		"",
+		querier_dto.WithFunction(signature),
+	), nil
 }
 
 // parseDropFunction parses a DROP FUNCTION or DROP PROCEDURE statement and produces a
@@ -93,8 +95,12 @@ func (p *parser) parseDropFunction() (mutation *querier_dto.CatalogueMutation, e
 		}
 	}()
 
-	p.mustKeyword(keywordDROP)
-	p.mustKeyword(keywordFUNCTION, keywordPROCEDURE)
+	if _, err := p.expectKeyword(keywordDROP); err != nil {
+		return nil, err
+	}
+	if _, err := p.expectKeyword(keywordFUNCTION, keywordPROCEDURE); err != nil {
+		return nil, err
+	}
 
 	p.skipIfExists()
 
@@ -104,17 +110,17 @@ func (p *parser) parseDropFunction() (mutation *querier_dto.CatalogueMutation, e
 	}
 
 	if p.current().kind == tokenLeftParen {
-		p.mustSkipParenthesised()
+		if err := p.skipParenthesised(); err != nil {
+			return nil, err
+		}
 	}
 
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationDropFunction,
-		SchemaName: schema,
-		FunctionSignature: &querier_dto.FunctionSignature{
-			Name:   functionName,
-			Schema: schema,
-		},
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationDropFunction,
+		schema,
+		"",
+		querier_dto.WithFunction(querier_dto.NewFunctionReference(schema, functionName)),
+	), nil
 }
 
 // parseFunctionArgumentList parses the parenthesised argument list of a CREATE FUNCTION
@@ -175,15 +181,18 @@ func (p *parser) parseFunctionArgument(engine *MySQLEngine) querier_dto.Function
 	if p.current().kind == tokenIdentifier {
 		argumentType := p.parseColumnType(engine)
 		return querier_dto.FunctionArgument{
-			Name: possibleName,
-			Type: argumentType,
+			Name:       possibleName,
+			Type:       argumentType,
+			IsOptional: false,
 		}
 	}
 
 	p.position = savedPosition
 	argumentType := p.parseColumnType(engine)
 	return querier_dto.FunctionArgument{
-		Type: argumentType,
+		Type:       argumentType,
+		Name:       "",
+		IsOptional: false,
 	}
 }
 

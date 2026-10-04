@@ -28,22 +28,22 @@ var (
 	// inspection.
 	tableValuedFunctionColumns = map[string][]querier_dto.ScopedColumn{
 		"generate_series": {
-			{Name: "generate_series", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int8"}, Nullable: false},
+			{
+				Name:     "generate_series",
+				SQLType:  querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int8"),
+				Nullable: false,
+			},
 		},
 		"range": {
-			{Name: "range", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int8"}, Nullable: false},
+			{Name: "range", SQLType: querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int8"), Nullable: false},
 		},
 		"unnest": {
-			{Name: "unnest", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown, EngineName: ""}, Nullable: true},
+			{Name: "unnest", SQLType: querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), Nullable: true},
 		},
 		"regexp_matches": {
 			{
-				Name: "regexp_matches",
-				SQLType: querier_dto.SQLType{
-					Category:    querier_dto.TypeCategoryArray,
-					EngineName:  "varchar[]",
-					ElementType: &querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "varchar"},
-				},
+				Name:     "regexp_matches",
+				SQLType:  newArrayType(querier_dto.NewSQLType(querier_dto.TypeCategoryText, "varchar")),
 				Nullable: true,
 			},
 		},

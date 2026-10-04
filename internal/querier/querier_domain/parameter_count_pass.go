@@ -82,8 +82,10 @@ func collectReferencedParameters(references []querier_dto.RawParameterReference)
 // positional directive matches by number.
 //
 // Takes directive (*querier_dto.ParameterDirective) which is the declared parameter.
-// Takes referencedNames (map[string]struct{}) and referencedNumbers (map[int]struct{})
-// which are the reference sets from collectReferencedParameters.
+// Takes referencedNames (map[string]struct{}) which contains parameter names referenced
+// by the query.
+// Takes referencedNumbers (map[int]struct{}) which contains positional parameter numbers
+// referenced by the query.
 //
 // Returns bool which is true when the parameter is referenced.
 func parameterIsReferenced(directive *querier_dto.ParameterDirective, referencedNames map[string]struct{}, referencedNumbers map[int]struct{}) bool {
@@ -108,11 +110,14 @@ func unreferencedParameterDiagnostic(directive *querier_dto.ParameterDirective, 
 		message = fmt.Sprintf("parameter %d declared as %q but not referenced in query", directive.Number, directive.Name)
 	}
 	return querier_dto.SourceError{
-		Filename: context.Filename,
-		Line:     context.Query.Line,
-		Column:   1,
-		Message:  message,
-		Severity: querier_dto.SeverityWarning,
-		Code:     querier_dto.CodeUnreferencedParameter,
+		Filename:   context.Filename,
+		Line:       context.Query.Line,
+		Column:     1,
+		Message:    message,
+		Severity:   querier_dto.SeverityWarning,
+		Code:       querier_dto.CodeUnreferencedParameter,
+		Suggestion: "",
+		EndLine:    0,
+		EndColumn:  0,
 	}
 }

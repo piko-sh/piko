@@ -68,6 +68,7 @@ func NewModuleContextManager(basePathsConfig *config.PathsConfig, fallbackModule
 		fallbackModuleRoot: fallbackModuleRoot,
 		basePathsConfig:    basePathsConfig,
 		contexts:           make(map[string]*ModuleContext),
+		mu:                 sync.RWMutex{},
 	}
 }
 

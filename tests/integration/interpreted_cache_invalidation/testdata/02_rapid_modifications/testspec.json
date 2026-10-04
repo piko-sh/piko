@@ -13,22 +13,19 @@
       "stage": 1,
       "description": "First rapid modification",
       "expectedGolden": "stage_1.html",
-      "expectChange": true,
-      "delayBeforeRenderMs": 5
+      "expectChange": true
     },
     {
       "stage": 2,
       "description": "Second rapid modification (5ms after first)",
       "expectedGolden": "stage_2.html",
-      "expectChange": true,
-      "delayBeforeRenderMs": 5
+      "expectChange": true
     },
     {
       "stage": 3,
       "description": "Third rapid modification (5ms after second)",
       "expectedGolden": "stage_3.html",
-      "expectChange": true,
-      "delayBeforeRenderMs": 5
+      "expectChange": true
     }
   ]
 }

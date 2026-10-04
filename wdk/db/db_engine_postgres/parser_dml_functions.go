@@ -57,8 +57,10 @@ func (p *parser) parseFunctionCallNoArgs(loweredName string, schema string) quer
 		p.advance()
 	}
 	result := &querier_dto.FunctionCallExpression{
-		FunctionName: loweredName,
-		Schema:       schema,
+		FunctionName:     loweredName,
+		Schema:           schema,
+		FilterExpression: nil,
+		Arguments:        nil,
 	}
 	return p.parseFunctionSuffix(result)
 }
@@ -89,9 +91,10 @@ func (p *parser) parseFunctionCallWithArgs(loweredName string, schema string) qu
 	p.markParametersAsFunctionArguments(parameterCountBefore, qualifiedName, argumentSlots)
 
 	result := &querier_dto.FunctionCallExpression{
-		FunctionName: loweredName,
-		Schema:       schema,
-		Arguments:    arguments,
+		FunctionName:     loweredName,
+		Schema:           schema,
+		Arguments:        arguments,
+		FilterExpression: nil,
 	}
 
 	return p.parseFunctionSuffix(result)
@@ -417,7 +420,7 @@ func (p *parser) parseCastTargetTypeName() string {
 	}
 
 	if p.current().kind == tokenLeftParen {
-		p.mustSkipParenthesised()
+		_ = p.requireSkipParenthesised()
 	}
 
 	typeName = p.appendArrayBrackets(typeName)
@@ -550,7 +553,7 @@ func (p *parser) parseCaseExpression() querier_dto.Expression {
 		branches = append(branches, querier_dto.CaseWhenBranch{Condition: condition, Result: result})
 	}
 
-	expression := &querier_dto.CaseWhenExpression{Branches: branches}
+	expression := &querier_dto.CaseWhenExpression{Branches: branches, ElseResult: nil}
 
 	if p.matchKeyword("ELSE") {
 		expression.ElseResult = p.parseExpression()

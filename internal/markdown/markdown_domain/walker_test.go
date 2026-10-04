@@ -20,6 +20,7 @@ package markdown_domain
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -35,12 +36,12 @@ func Test_newMarkdownWalker(t *testing.T) {
 		transformer := &mockNodeTransformer{}
 		diagnostics := make([]*ast_domain.Diagnostic, 0)
 
-		walker := newMarkdownWalker(transformer, source, diagnostics)
+		walker := newMarkdownWalker(transformer, source, &diagnostics)
 
 		assert.NotNil(t, walker)
 		assert.Equal(t, source, walker.source)
 		assert.Equal(t, transformer, walker.transformer)
-		assert.Equal(t, diagnostics, walker.diagnostics)
+		assert.Same(t, &diagnostics, walker.diagnostics)
 		assert.NotNil(t, walker.blocks)
 		assert.Equal(t, 0, walker.wordCount)
 	})
@@ -50,7 +51,7 @@ func Test_newMarkdownWalker(t *testing.T) {
 		mockTransformer := &mockNodeTransformer{}
 		diagnostics := make([]*ast_domain.Diagnostic, 0)
 
-		walker := newMarkdownWalker(mockTransformer, source, diagnostics)
+		walker := newMarkdownWalker(mockTransformer, source, &diagnostics)
 
 		assert.NotNil(t, walker)
 		assert.Equal(t, mockTransformer, walker.transformer)
@@ -227,7 +228,7 @@ func Test_markdownWalker_CollectMetadata(t *testing.T) {
 			links: []markdown_dto.LinkMeta{},
 		}
 
-		walker.collectMetadata(linkNode)
+		walker.collectMetadata(context.Background(), linkNode)
 
 		assert.Len(t, walker.links, 1)
 		assert.Equal(t, "https://example.com", walker.links[0].Href)
@@ -254,7 +255,7 @@ func Test_markdownWalker_CollectMetadata(t *testing.T) {
 			images: []markdown_dto.ImageMeta{},
 		}
 
-		walker.collectMetadata(imgNode)
+		walker.collectMetadata(context.Background(), imgNode)
 
 		assert.Len(t, walker.images, 1)
 		assert.Equal(t, "/image.png", walker.images[0].Src)
@@ -524,7 +525,7 @@ func Test_markdownWalker_HandleNodeEnter_WordCount(t *testing.T) {
 
 		paraNode := markdown_ast.NewParagraph()
 
-		status := walker.handleNodeEnter(paraNode)
+		status := walker.handleNodeEnter(context.Background(), paraNode)
 
 		assert.Equal(t, markdown_ast.WalkSkipChildren, status)
 		assert.Equal(t, 3, walker.wordCount)
@@ -552,8 +553,8 @@ func Test_markdownWalker_HandleNodeEnter_WordCount(t *testing.T) {
 
 		walker := newMarkdownWalker(mockTransformer, []byte("test"), nil)
 
-		_ = walker.handleNodeEnter(markdown_ast.NewParagraph())
-		_ = walker.handleNodeEnter(markdown_ast.NewParagraph())
+		_ = walker.handleNodeEnter(context.Background(), markdown_ast.NewParagraph())
+		_ = walker.handleNodeEnter(context.Background(), markdown_ast.NewParagraph())
 
 		assert.Equal(t, 5, walker.wordCount)
 	})
@@ -569,7 +570,7 @@ func Test_markdownWalker_HandleNodeEnter_WordCount(t *testing.T) {
 
 		walker := newMarkdownWalker(mockTransformer, []byte("test"), nil)
 
-		status := walker.handleNodeEnter(markdown_ast.NewParagraph())
+		status := walker.handleNodeEnter(context.Background(), markdown_ast.NewParagraph())
 
 		assert.Equal(t, markdown_ast.WalkContinue, status)
 		assert.Equal(t, 0, walker.wordCount)
@@ -601,19 +602,123 @@ func Test_markdownWalker_HandleNodeEnter_WordCount(t *testing.T) {
 
 		walker := newMarkdownWalker(mockTransformer, []byte("test"), nil)
 
-		_ = walker.handleNodeEnter(markdown_ast.NewParagraph())
+		_ = walker.handleNodeEnter(context.Background(), markdown_ast.NewParagraph())
 
 		assert.Equal(t, 3, walker.wordCount)
 	})
 }
 
 func Test_markdownWalker_DiagnosticsSharing(t *testing.T) {
-	t.Run("SharesDiagnosticsWithTransformer", func(t *testing.T) {
-		source := []byte("Test")
-		diagnostics := make([]*ast_domain.Diagnostic, 0)
+	t.Parallel()
 
-		walker := newMarkdownWalker(&mockNodeTransformer{}, source, diagnostics)
+	testCases := []struct {
+		diagnostics *[]*ast_domain.Diagnostic
+		name        string
+		wantCount   int
+	}{
+		{name: "diagnostics appended by the transformer reach the result", diagnostics: new([]*ast_domain.Diagnostic), wantCount: 1},
+		{name: "a walker without a diagnostics slice reports none", diagnostics: nil, wantCount: 0},
+	}
 
-		assert.Equal(t, diagnostics, walker.diagnostics, "Walker should reference the same diagnostics slice")
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			shared := tc.diagnostics
+			mockTransformer := &mockNodeTransformer{
+				TransformNodeFunc: func(_ context.Context, _ markdown_ast.Node) *ast_domain.TemplateNode {
+					if shared != nil {
+						*shared = append(*shared, ast_domain.NewDiagnostic(ast_domain.Error, "bad shortcode", "piko x", ast_domain.Location{}, "test.md"))
+					}
+					return &ast_domain.TemplateNode{NodeType: ast_domain.NodeText, TextContent: "text"}
+				},
+			}
+			walker := newMarkdownWalker(mockTransformer, []byte("text"), shared)
+
+			result, err := walker.Transform(context.Background(), markdown_ast.NewDocument())
+
+			require.NoError(t, err)
+			assert.Len(t, result.Diagnostics, tc.wantCount)
+		})
+	}
+}
+
+func Test_transformMarkdownAST_ReportsShortcodeDiagnostics(t *testing.T) {
+	t.Parallel()
+
+	document := markdown_ast.NewDocument()
+	codeBlock := markdown_ast.NewFencedCodeBlock()
+	codeBlock.Info = `piko my-card :title="1 +"`
+	document.AppendChild(codeBlock)
+
+	result, err := transformMarkdownAST(context.Background(), document, []byte("```piko my-card\n```"), "test.md", nil)
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, result.Diagnostics, "shortcode parse errors must reach the processed result")
+}
+
+func Test_markdownWalker_Transform_Cancellation(t *testing.T) {
+	t.Parallel()
+
+	errStopped := errors.New("build stopped")
+
+	t.Run("returns the cancellation cause when ctx is already cancelled", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithCancelCause(context.Background())
+		cancel(errStopped)
+		called := false
+		mockTransformer := &mockNodeTransformer{
+			TransformNodeFunc: func(_ context.Context, _ markdown_ast.Node) *ast_domain.TemplateNode {
+				called = true
+				return nil
+			},
+		}
+		walker := newMarkdownWalker(mockTransformer, nil, nil)
+
+		result, err := walker.Transform(ctx, markdown_ast.NewDocument())
+
+		require.ErrorIs(t, err, errStopped)
+		assert.Nil(t, result)
+		assert.False(t, called, "no node should be transformed after cancellation")
+	})
+
+	t.Run("stops when ctx is cancelled during the walk", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithCancelCause(context.Background())
+		defer cancel(nil)
+		calls := 0
+		mockTransformer := &mockNodeTransformer{
+			TransformNodeFunc: func(_ context.Context, _ markdown_ast.Node) *ast_domain.TemplateNode {
+				calls++
+				cancel(errStopped)
+				return nil
+			},
+		}
+		document := markdown_ast.NewDocument()
+		document.AppendChild(markdown_ast.NewParagraph())
+		document.AppendChild(markdown_ast.NewParagraph())
+		walker := newMarkdownWalker(mockTransformer, nil, nil)
+
+		_, err := walker.Transform(ctx, document)
+
+		require.ErrorIs(t, err, errStopped)
+		assert.Equal(t, 1, calls)
+	})
+
+	t.Run("a cancelled transform through the real transformer returns an error", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithCancelCause(context.Background())
+		cancel(errStopped)
+		document := markdown_ast.NewDocument()
+		paragraph := markdown_ast.NewParagraph()
+		paragraph.AppendChild(markdown_ast.NewText([]byte("hello")))
+		document.AppendChild(paragraph)
+
+		_, err := transformMarkdownAST(ctx, document, []byte("hello"), "test.md", nil)
+
+		require.ErrorIs(t, err, errStopped)
 	})
 }

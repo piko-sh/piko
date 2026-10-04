@@ -40,8 +40,8 @@ type registry[T any] struct {
 
 // register registers a factory with the given name.
 //
-// Takes name (string) which is the identifier for this factory (typically a language code
-// like "english").
+// Takes name (string) which identifies the registered factory, typically with a language
+// code such as "english".
 // Takes factory (factoryFunc[T]) which creates instances of type T.
 //
 // Panics if a factory with the same name is already registered.

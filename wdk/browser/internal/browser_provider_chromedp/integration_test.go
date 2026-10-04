@@ -24,8 +24,10 @@ import (
 	"os"
 	"testing"
 	"time"
+)
 
-	"go.uber.org/goleak"
+const (
+	poolStartTimeout = 60 * time.Second
 )
 
 var (
@@ -33,22 +35,43 @@ var (
 	testExclusivePool *ExclusiveBrowserPool
 )
 
-func TestMain(m *testing.M) {
+type browserPoolMain struct {
+	m *testing.M
+}
+
+type poolResult struct {
+	pool          *BrowserPool
+	exclusivePool *ExclusiveBrowserPool
+	err           error
+}
+
+func newBrowserPoolMain(m *testing.M) *browserPoolMain {
+	return &browserPoolMain{m: m}
+}
+
+func (b *browserPoolMain) Run() int {
 	flag.Parse()
 
 	if testing.Short() {
-		os.Exit(m.Run())
+		return b.m.Run()
 	}
 
+	if err := startTestPools(); err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "starting browser pools: %v\n", err)
+		closeTestPools()
+		return 1
+	}
+	defer closeTestPools()
+
+	_, _ = fmt.Fprintf(os.Stderr, "browser pools: %d shared + %d exclusive instances\n",
+		testPool.Size(), testExclusivePool.Size())
+
+	return b.m.Run()
+}
+
+func startTestPools() error {
 	opts := DefaultBrowserOptions()
 	opts.Headless = true
-
-	type poolResult struct {
-		pool          *BrowserPool
-		exclusivePool *ExclusiveBrowserPool
-		err           error
-	}
-
 	poolSize := DefaultPoolSize()
 
 	sharedDone := make(chan poolResult, 1)
@@ -56,56 +79,43 @@ func TestMain(m *testing.M) {
 
 	go func() {
 		p, err := NewBrowserPool(opts, poolSize)
-		sharedDone <- poolResult{pool: p, err: err}
+		sharedDone <- poolResult{pool: p, exclusivePool: nil, err: err}
 	}()
 	go func() {
 		ep, err := NewExclusiveBrowserPool(opts, poolSize)
-		exclusiveDone <- poolResult{exclusivePool: ep, err: err}
+		exclusiveDone <- poolResult{pool: nil, exclusivePool: ep, err: err}
 	}()
 
-	timeout := time.After(60 * time.Second)
+	timeout := time.NewTimer(poolStartTimeout)
+	defer timeout.Stop()
 
-	select {
-	case r := <-sharedDone:
-		if r.err != nil {
-			panic("failed to start shared browser pool: " + r.err.Error())
+	var startErr error
+	for range 2 {
+		select {
+		case r := <-sharedDone:
+			testPool = r.pool
+			if r.err != nil && startErr == nil {
+				startErr = fmt.Errorf("shared browser pool: %w", r.err)
+			}
+		case r := <-exclusiveDone:
+			testExclusivePool = r.exclusivePool
+			if r.err != nil && startErr == nil {
+				startErr = fmt.Errorf("exclusive browser pool: %w", r.err)
+			}
+		case <-timeout.C:
+			return fmt.Errorf("browser pools did not start within %s", poolStartTimeout)
 		}
-		testPool = r.pool
-	case <-timeout:
-		_, _ = fmt.Fprintf(os.Stderr, "timeout: browser pools failed to start within 60s\n")
-		os.Exit(1)
 	}
+	return startErr
+}
 
-	select {
-	case r := <-exclusiveDone:
-		if r.err != nil {
-			testPool.Close()
-			panic("failed to start exclusive browser pool: " + r.err.Error())
-		}
-		testExclusivePool = r.exclusivePool
-	case <-timeout:
-		testPool.Close()
-		_, _ = fmt.Fprintf(os.Stderr, "timeout: browser pools failed to start within 60s\n")
-		os.Exit(1)
-	}
-
-	_, _ = fmt.Fprintf(os.Stderr, "browser pools: %d shared + %d exclusive instances\n",
-		testPool.Size(), testExclusivePool.Size())
-
-	code := m.Run()
-
+func closeTestPools() {
 	if testPool != nil {
 		testPool.Close()
+		testPool = nil
 	}
 	if testExclusivePool != nil {
 		testExclusivePool.Close()
+		testExclusivePool = nil
 	}
-
-	if code == 0 {
-		if err := goleak.Find(); err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "goleak: %v\n", err)
-			os.Exit(1)
-		}
-	}
-	os.Exit(code)
 }

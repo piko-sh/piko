@@ -137,6 +137,7 @@ func (*FlattenTransformer) Transform(_ context.Context, pdf []byte, options any)
 	fctx := &flattenContext{
 		doc:    doc,
 		writer: writer,
+		xobjID: 0,
 	}
 
 	if err := flattenPages(fctx, pageRefs, &opts); err != nil {
@@ -489,11 +490,11 @@ func extractAppearanceBBox(fctx *flattenContext, objNum int) pdfRect {
 	obj := fctx.writer.GetObject(objNum)
 	dict, ok := obj.Value.(pdfparse.Dict)
 	if !ok {
-		return pdfRect{urx: 1, ury: 1}
+		return pdfRect{urx: 1, ury: 1, llx: 0, lly: 0}
 	}
 	arr := dict.GetArray("BBox")
 	if len(arr) < rectElements {
-		return pdfRect{urx: 1, ury: 1}
+		return pdfRect{urx: 1, ury: 1, llx: 0, lly: 0}
 	}
 	return pdfRect{
 		llx: objectToFloat(arr[0]),

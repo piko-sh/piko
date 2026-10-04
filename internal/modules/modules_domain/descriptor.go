@@ -56,7 +56,7 @@ type ModuleDescriptor struct {
 	// Ref is the canonical reference for this module: the (path, version, pin) identity. Pin
 	// in a descriptor is the integrity hash of the bundle itself once finalised; left empty
 	// during descriptor construction and filled in by the bundler.
-	Ref ModuleRef `json:"ref"`
+	Ref ModuleRef `json:"reference"`
 
 	// StdlibVersion pins which piko stdlib symbol surface the module was compiled against.
 	// Hosts with a newer stdlib accept it when symbols remain compatible; mismatch surfaces
@@ -96,7 +96,7 @@ func (d *ModuleDescriptor) Validate() error {
 		return fmt.Errorf("modules_domain: descriptor schema_version %d newer than supported %d", d.SchemaVersion, DescriptorVersion)
 	}
 	if d.Ref.Path == "" {
-		return errors.New("modules_domain: descriptor missing ref.path")
+		return errors.New("modules_domain: descriptor missing reference.path")
 	}
 	for _, capability := range d.Capabilities {
 		if capability.Axis == "" {

@@ -200,11 +200,12 @@ func (a *lifecycleProbeAdapter) Check(ctx context.Context, checkType healthprobe
 			})
 		if err != nil {
 			return healthprobe_dto.Status{
-				Name:      a.component.Name(),
-				State:     healthprobe_dto.StateUnhealthy,
-				Message:   "Custom health check panicked",
-				Timestamp: time.Now(),
-				Duration:  zeroDurationText,
+				Name:         a.component.Name(),
+				State:        healthprobe_dto.StateUnhealthy,
+				Message:      "Custom health check panicked",
+				Timestamp:    time.Now(),
+				Duration:     zeroDurationText,
+				Dependencies: nil,
 			}
 		}
 		return status
@@ -212,19 +213,21 @@ func (a *lifecycleProbeAdapter) Check(ctx context.Context, checkType healthprobe
 
 	if checkType == healthprobe_dto.CheckTypeLiveness {
 		return healthprobe_dto.Status{
-			Name:      a.component.Name(),
-			State:     healthprobe_dto.StateHealthy,
-			Message:   "Component is running (no custom health check provided)",
-			Timestamp: time.Now(),
-			Duration:  zeroDurationText,
+			Name:         a.component.Name(),
+			State:        healthprobe_dto.StateHealthy,
+			Message:      "Component is running (no custom health check provided)",
+			Timestamp:    time.Now(),
+			Duration:     zeroDurationText,
+			Dependencies: nil,
 		}
 	}
 
 	return healthprobe_dto.Status{
-		Name:      a.component.Name(),
-		State:     healthprobe_dto.StateDegraded,
-		Message:   "Component does not provide readiness check",
-		Timestamp: time.Now(),
-		Duration:  zeroDurationText,
+		Name:         a.component.Name(),
+		State:        healthprobe_dto.StateDegraded,
+		Message:      "Component does not provide readiness check",
+		Timestamp:    time.Now(),
+		Duration:     zeroDurationText,
+		Dependencies: nil,
 	}
 }

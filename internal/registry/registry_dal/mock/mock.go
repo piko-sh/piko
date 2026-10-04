@@ -121,6 +121,8 @@ func NewRegistryDAL() *RegistryDAL {
 		tagIndex:              make(map[string]map[string][]string),
 		behaviours:            make(map[string]*Behaviour),
 		calls:                 make([]CallRecord, 0),
+		mu:                    sync.RWMutex{},
+		inTransaction:         false,
 	}
 }
 
@@ -738,6 +740,7 @@ func (m *RegistryDAL) createTransactionCopy() *RegistryDAL {
 		behaviours:            make(map[string]*Behaviour),
 		calls:                 make([]CallRecord, 0),
 		inTransaction:         true,
+		mu:                    sync.RWMutex{},
 	}
 
 	for k, v := range m.artefacts {

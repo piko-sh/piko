@@ -229,18 +229,16 @@ func TestMockHybridRegistry_ConcurrentAccess(t *testing.T) {
 
 	const goroutines = 50
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			m.Register(context.Background(), "md", "blog", nil, "", collection_dto.HybridConfig{})
 			_, _ = m.GetBlob(context.Background(), "md", "blog")
 			_ = m.GetETag("md", "blog")
 			_ = m.Has("md", "blog")
 			_ = m.List()
 			m.TriggerRevalidation(context.Background(), "md", "blog")
-		}()
+		})
 	}
 
 	wg.Wait()

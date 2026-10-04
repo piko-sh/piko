@@ -87,8 +87,12 @@ func (r *StatusBarRenderer) Render(segments StatusBarSegments, width int) string
 
 // composeBody picks the segment arrangement that fits in width.
 //
-// Takes left, mid, right (string) which are the three segments.
-// Takes leftWidth, midWidth, rightWidth (int) which are pre-computed widths.
+// Takes left (string) which contains the left status text.
+// Takes mid (string) which contains the centre status text.
+// Takes right (string) which contains the right status text.
+// Takes leftWidth (int) which sets the left status region width in terminal cells.
+// Takes midWidth (int) which sets the centre status region width in terminal cells.
+// Takes rightWidth (int) which sets the right status region width in terminal cells.
 // Takes width (int) which is the total target width.
 //
 // Returns string of exactly width cells.

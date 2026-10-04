@@ -636,9 +636,7 @@ func BenchmarkTransformation_MixedContent(b *testing.B) {
 
 		ast := BuildMixedAST(10)
 		metadata := &templater_dto.InternalMetadata{
-			Metadata: templater_dto.Metadata{
-				Title: "Mixed Transform Test",
-			},
+			Title:      "Mixed Transform Test",
 			CustomTags: []string{"my-card", "another-component"},
 		}
 

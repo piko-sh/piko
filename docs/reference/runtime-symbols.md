@@ -10,11 +10,13 @@ nav:
 
 # Runtime symbols
 
-Piko's template expression language compiles to Go. The expressions have access to a curated subset of Go's standard library plus the `piko` runtime packages. This page enumerates the packages vendored into the bytecode interpreter. Source of truth: [`piko-symbols.yaml`](https://github.com/piko-sh/piko/blob/master/piko-symbols.yaml) (stdlib) and [`piko-symbols-runtime.yaml`](https://github.com/piko-sh/piko/blob/master/piko-symbols-runtime.yaml) (Piko packages).
+Piko compiles template expressions to Go. In interpreted mode (`dev-i`), [Pipit](https://github.com/piko-sh/pipit) executes that code using its standard-library symbol tables and Piko runtime symbols from `wdk/interp/interp_piko_symbols`.
+
+The package manifests are [`pipit-symbols-stdlib.yaml`](https://github.com/piko-sh/pipit/blob/master/pipit-symbols-stdlib.yaml) and [`piko-symbols-runtime.yaml`](https://github.com/piko-sh/piko/blob/master/piko-symbols-runtime.yaml). Local project packages can also compile from source. Registered native packages take precedence over source compilation.
 
 ## Standard-library packages
 
-The following Go standard library packages are available as-is. Call them with the usual package-qualified syntax: `strings.ToUpper(state.Name)`.
+The table below lists standard-library packages commonly used in templates. Pipit's [standard-library manifest](https://github.com/piko-sh/pipit/blob/master/pipit-symbols-stdlib.yaml) lists the full set. Expressions use package-qualified names such as `strings.ToUpper(state.Name)`.
 
 | Package | Typical uses in templates |
 |---|---|
@@ -38,32 +40,32 @@ The following Go standard library packages are available as-is. Call them with t
 
 ## Generic packages
 
-Generic packages expose a fixed set of instantiations chosen at vendoring time. Call sites that need other element types fall back to non-generic equivalents (for example `sort.Slice`).
+Generic packages expose a fixed set of fast-path instantiations chosen at vendoring time. Calls with other element types fall back to slower reflection-based implementations where Pipit provides an implementation. Other calls need a non-generic equivalent such as `sort.Slice`.
 
 ### `slices`
 
-Element types: `string`, `int`, `int64`, `float64`, `byte`, `bool`.
+Element types: `string`, `int`, `int8`, `int16`, `int32`, `int64`, `uint`, `uint8` (`byte`), `uint16`, `uint32`, `uint64`, `float32`, `float64`, `bool`.
 
 | Function | Element types |
 |---|---|
-| `slices.BinarySearch` | string, int, int64, float64, byte |
-| `slices.Compare` | string, int, int64, float64, byte |
-| `slices.IsSorted` | string, int, int64, float64, byte |
-| `slices.Max` | string, int, int64, float64, byte |
-| `slices.Min` | string, int, int64, float64, byte |
-| `slices.Sort` | string, int, int64, float64, byte |
+| `slices.BinarySearch` | all the above except `bool` |
+| `slices.Compare` | all the above except `bool` |
+| `slices.IsSorted` | all the above except `bool` |
+| `slices.Max` | all the above except `bool` |
+| `slices.Min` | all the above except `bool` |
+| `slices.Sort` | all the above except `bool` |
 
 ### `maps`
 
-Key types: `string`, `int`. Value types: `string`, `int`, `float64`, `bool`, `any`.
+Key types: `string`, `int`, `int32`, `int64`. Value types: `string`, `int`, `int32`, `int64`, `float64`, `bool`, `any`.
 
 ### `cmp`
 
-Element types: `string`, `int`, `int64`, `float64`, `byte`.
+Element types: `string`, `int`, `int8`, `int16`, `int32`, `int64`, `uint`, `uint8` (`byte`), `uint16`, `uint32`, `uint64`, `float32`, `float64`.
 
 ## Piko runtime packages
 
-The Piko tree vendors the following packages.
+The Piko tree vendors the following packages into `wdk/interp/interp_piko_symbols`.
 
 ### `piko.sh/piko`
 
@@ -119,21 +121,21 @@ Saturating numeric conversions plus boolean and string parsers. The package expo
 
 ## Register custom symbols
 
-Extend interpreted mode (`dev-i`) with project-specific symbols. Register them on the server before calling `Run`:
+`(*SSRServer).WithSymbols` registers native package symbols before `Run`. Each map entry associates an import path with its exported names and reflection values.
 
 ```go
 import (
     "reflect"
 
     "piko.sh/piko"
-    pikointerp "piko.sh/piko/wdk/interp/interp_provider_piko"
+    "piko.sh/piko/wdk/interp/interp_provider_pipit"
 
     "myapp/util"
 )
 
 func main() {
     server := piko.New()
-    server.WithInterpreterProvider(pikointerp.NewProvider())
+    server.WithInterpreterProvider(interp_provider_pipit.NewProvider())
 
     server.WithSymbols(map[string]map[string]reflect.Value{
         "myapp/util": {
@@ -146,7 +148,9 @@ func main() {
 }
 ```
 
-`WithSymbols` and `WithInterpreterProvider` are methods on `*SSRServer` (not options to `piko.New`). The dev-i interpreter consults them only. Compiled `dev`/`prod` builds resolve the same identifiers at compile time.
+`WithSymbols` and `WithInterpreterProvider` are methods on `*SSRServer`. Interpreted mode requires a provider, while additional symbols are optional. Compiled `dev` and `prod` builds resolve the same identifiers at compile time.
+
+`piko extract generate` produces symbol tables from `piko-symbols.yaml`. Its default output package, `internal/piko_symbols`, exports the map as `piko_symbols.Symbols`. See [how to run interpreted mode](../how-to/interpreted-mode.md#add-native-package-symbols) for discovery, generation, and registration steps.
 
 ## See also
 
@@ -156,4 +160,4 @@ func main() {
 - [Collections API reference](collections-api.md) for the full `piko.sh/piko/wdk/runtime` surface.
 - [How to collections/markdown](../how-to/collections/markdown.md) for a worked `GetData` / `GetSections` flow.
 - [How to actions/forms](../how-to/actions/forms.md) for `ActionMetadata` and `ValidationField` in context.
-- Source files: [`piko-symbols.yaml`](https://github.com/piko-sh/piko/blob/master/piko-symbols.yaml), [`piko-symbols-runtime.yaml`](https://github.com/piko-sh/piko/blob/master/piko-symbols-runtime.yaml).
+- Source files: [`pipit-symbols-stdlib.yaml`](https://github.com/piko-sh/pipit/blob/master/pipit-symbols-stdlib.yaml), [`piko-symbols-runtime.yaml`](https://github.com/piko-sh/piko/blob/master/piko-symbols-runtime.yaml).

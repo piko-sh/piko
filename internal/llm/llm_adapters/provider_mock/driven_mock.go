@@ -508,6 +508,8 @@ func (m *MockProvider) ListModels(_ context.Context) ([]llm_dto.ModelInfo, error
 			SupportsStreaming:        m.supportsStreaming,
 			SupportsTools:            m.supportsTools,
 			SupportsStructuredOutput: m.supportsStructuredOutput,
+			Created:                  0,
+			SupportsVision:           false,
 		},
 	}, nil
 }
@@ -652,9 +654,12 @@ func (m *MockProvider) emitDefaultChunk(events chan<- llm_dto.StreamEvent) {
 		ID:    response.ID,
 		Model: response.Model,
 		Delta: &llm_dto.MessageDelta{
-			Role:    new(response.Choices[0].Message.Role),
-			Content: new(response.Choices[0].Message.Content),
+			Role:      new(response.Choices[0].Message.Role),
+			Content:   new(response.Choices[0].Message.Content),
+			ToolCalls: nil,
 		},
+		FinishReason: nil,
+		Usage:        nil,
 	})
 }
 
@@ -690,13 +695,12 @@ func WithMockClock(c clock.Clock) MockProviderOption {
 //
 // Returns *MockProvider which is ready for use in tests.
 func New(opts ...MockProviderOption) *MockProvider {
-	m := &MockProvider{
-		clock:                    clock.RealClock(),
-		defaultModel:             "mock-model",
-		supportsStreaming:        true,
-		supportsStructuredOutput: true,
-		supportsTools:            true,
-	}
+	m := &MockProvider{}
+	m.clock = clock.RealClock()
+	m.defaultModel = "mock-model"
+	m.supportsStreaming = true
+	m.supportsStructuredOutput = true
+	m.supportsTools = true
 	for _, opt := range opts {
 		opt(m)
 	}
@@ -708,8 +712,12 @@ func New(opts ...MockProviderOption) *MockProvider {
 			{
 				Index: 0,
 				Message: llm_dto.Message{
-					Role:    llm_dto.RoleAssistant,
-					Content: "This is a mock response.",
+					Role:         llm_dto.RoleAssistant,
+					Content:      "This is a mock response.",
+					Name:         nil,
+					ToolCallID:   nil,
+					ContentParts: nil,
+					ToolCalls:    nil,
 				},
 				FinishReason: llm_dto.FinishReasonStop,
 			},
@@ -718,7 +726,11 @@ func New(opts ...MockProviderOption) *MockProvider {
 			PromptTokens:     DefaultMockPromptTokens,
 			CompletionTokens: DefaultMockCompletionTokens,
 			TotalTokens:      DefaultMockTotalTokens,
+			EstimatedCost:    nil,
+			CachedTokens:     0,
 		},
+		FallbackInfo: nil,
+		Sources:      nil,
 	}
 	return m
 }

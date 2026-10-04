@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/querier/querier_dto"
@@ -101,9 +102,14 @@ func NewMigrationService(
 	options ...MigrationServiceOption,
 ) MigrationServicePort {
 	service := &migrationService{
-		executor:   executor,
-		fileReader: fileReader,
-		directory:  directory,
+		executor:             executor,
+		fileReader:           fileReader,
+		directory:            directory,
+		beforeMigrationHooks: nil,
+		afterMigrationHooks:  nil,
+		beforeRunHooks:       nil,
+		afterRunHooks:        nil,
+		nonBlockingLock:      false,
 	}
 	for _, option := range options {
 		option(service)
@@ -189,6 +195,11 @@ func (service *migrationService) Status(ctx context.Context) ([]querier_dto.Migr
 			Name:             file.Name,
 			Filename:         file.Filename,
 			HasDownMigration: downVersions[file.Version],
+			AppliedAt:        time.Time{},
+			LastStatement:    nil,
+			Applied:          false,
+			ChecksumMatch:    false,
+			Dirty:            false,
 		}
 
 		if appliedMigration, found := appliedByVersion[file.Version]; found {
@@ -707,11 +718,12 @@ func (service *migrationService) executeSingleRollback(
 
 	useTransaction := !hasNoTransactionDirective(downFile.Content)
 	record := querier_dto.MigrationRecord{
-		Version:  downFile.Version,
-		Name:     downFile.Name,
-		Content:  downFile.Content,
-		Checksum: downFile.Checksum,
-		SkipUpTo: -1,
+		Version:      downFile.Version,
+		Name:         downFile.Name,
+		Content:      downFile.Content,
+		Checksum:     downFile.Checksum,
+		SkipUpTo:     -1,
+		DownChecksum: "",
 	}
 
 	executeError := service.executor.ExecuteMigration(

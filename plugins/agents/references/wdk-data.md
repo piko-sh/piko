@@ -12,10 +12,22 @@ Database access, file storage, and caching. All packages follow hexagonal archit
 |--------|---------|-------------|
 | SQLite (CGO, fastest) | `wdk/db/db_driver_sqlite_cgo` | `Open(path string, cfg Config) (*sql.DB, error)` |
 | SQLite (pure Go) | `wdk/db/db_driver_sqlite_nocgo` | `Open(path string, cfg Config) (*sql.DB, error)` |
-| Cloudflare D1 | `wdk/db/db_driver_d1` | `Open(cfg Config) (*sql.DB, error)` |
+| Cloudflare D1 | `wdk/db/db_driver_d1` | `Open(cfg Config, opts ...Option) (*sql.DB, error)` |
 | PostgreSQL / MySQL / others | stdlib | `sql.Open(driverName, dsn)` |
 
 No `wdk/db` driver subpackage exists for Postgres or MySQL - open them via `database/sql` with a third-party driver (e.g. `github.com/jackc/pgx/v5/stdlib`).
+
+#### D1 options and behaviour
+
+| Option | Default | Purpose |
+|---|---|---|
+| `WithRequestTimeout(d)` | 2 minutes | Bounds each API call, including the rate-limiter wait. |
+| `WithMaxResponseBytes(n)` | 64 MiB | Caps the response body. Larger responses return `ErrResponseTooLarge`. |
+| `WithRequestsPerSecond(rate)` | 4 | Sets the request rate shared by all connections on the handle. |
+
+- The driver never resends a request, because a resent `INSERT` or `COMMIT` could apply twice. Retry idempotent work in application code.
+- A `nil` bound parameter fails with `ErrNullParamUnsupported`. Write `NULL` in the SQL text instead.
+- The driver batches transactional statements and sends them on `Commit`. `LastInsertId` and `RowsAffected` for a statement inside a transaction return `ErrResultUnavailableInTransaction`. `BeginTx` with a read-only transaction or an isolation level other than default or serialisable returns `ErrUnsupportedTransactionOptions`.
 
 ### Engines
 
@@ -194,7 +206,9 @@ removed, err := userCache.InvalidateByTags(ctx, "user")
 
 ### Multilevel and search
 
-For L1+L2: chain `.MultiLevel("otter", "redis").L2CircuitBreaker(5, 30*time.Second)` before `Build(ctx)`.
+To combine L1 and L2, chain `.MultiLevel("otter", "redis").L2CircuitBreaker(5, 30*time.Second)` before `Build(ctx)`. `Namespace` applies to both levels. Capacity settings apply to L1, while `MaxEntryWeight` rejects oversized values before they reach either level.
+
+`Build` returns an error if `MultiLevel` also specifies `Provider`, `FactoryBlueprint`, a transformer, or an encoder.
 
 For searchable caches: build a `*SearchSchema` with field constructors (`TagField`, `NumericField`, `TextField`, `GeoField`, `VectorField(name, dim)`, `VectorFieldWithMetric(name, dim, metric)`), pass to `.Searchable(schema)` on the builder, then call `cache.Search(ctx, query, *SearchOptions)`.
 

@@ -22,7 +22,7 @@ import (
 	"go/ast"
 	"go/token"
 
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 )
 
 // buildBuilderBuildQueryMethod constructs the buildQuery() method that assembles the
@@ -47,6 +47,8 @@ import (
 // Takes builderTypeName (string) which is the name of the builder struct.
 // Takes baseHasWhere (bool) which is true when the .sql file's SELECT already includes a
 // WHERE clause.
+// Takes strategy (MethodStrategy) which provides database-specific code generation
+// behaviour.
 //
 // Returns *ast.FuncDecl which is the buildQuery method declaration.
 func buildBuilderBuildQueryMethod(builderTypeName string, baseHasWhere bool, strategy MethodStrategy) *ast.FuncDecl {

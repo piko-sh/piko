@@ -89,6 +89,7 @@ func NewTypeHierarchyIndex(typeData *inspector_dto.TypeData) *TypeHierarchyIndex
 	index := &TypeHierarchyIndex{
 		typeToEmbedded:  make(map[string][]EmbeddedTypeInfo),
 		embeddedToTypes: make(map[string][]EmbedderInfo),
+		mu:              sync.RWMutex{},
 	}
 	index.buildFromTypeData(typeData)
 	return index

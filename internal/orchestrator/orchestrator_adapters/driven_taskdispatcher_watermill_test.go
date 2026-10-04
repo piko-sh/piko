@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -37,6 +38,7 @@ import (
 type mockEventBus struct {
 	handlers        map[string][]orchestrator_domain.EventHandler
 	publishFunc     func(ctx context.Context, topic string, event orchestrator_domain.Event) error
+	subscribeErr    error
 	publishedEvents []mockPublishedEvent
 	mu              sync.Mutex
 }
@@ -93,6 +95,9 @@ func (m *mockEventBus) Close(_ context.Context) error {
 func (m *mockEventBus) SubscribeWithHandler(ctx context.Context, topic string, handler orchestrator_domain.EventHandler) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if m.subscribeErr != nil {
+		return m.subscribeErr
+	}
 	m.handlers[topic] = append(m.handlers[topic], handler)
 	return nil
 }
@@ -154,6 +159,11 @@ func newTrackingDelayedPublisher() *orchestrator_domain.MockDelayedPublisher {
 	return m
 }
 
+func startPublishing(t *testing.T, d *watermillTaskDispatcher) {
+	t.Helper()
+	d.publishBacklog(t.Context())
+}
+
 func Test_watermillTaskDispatcher_Dispatch_RoutesToCorrectTopic(t *testing.T) {
 	testCases := []struct {
 		name          string
@@ -183,6 +193,7 @@ func Test_watermillTaskDispatcher_Dispatch_RoutesToCorrectTopic(t *testing.T) {
 			config := orchestrator_domain.DefaultDispatcherConfig()
 
 			dispatcher := newWatermillTaskDispatcher(config, eventBus, nil)
+			startPublishing(t, dispatcher)
 
 			task := &orchestrator_domain.Task{
 				ID:         "task-1",
@@ -577,7 +588,7 @@ func Test_watermillTaskDispatcher_ProcessTask_ExecutorNotFound(t *testing.T) {
 	store := &orchestrator_domain.MockTaskStore{}
 	config := orchestrator_domain.DefaultDispatcherConfig()
 	config.SyncPersistence = true
-	config.DefaultMaxRetries = 0
+	config.DefaultMaxRetries = 3
 
 	dispatcher := newWatermillTaskDispatcher(config, eventBus, store)
 
@@ -592,6 +603,8 @@ func Test_watermillTaskDispatcher_ProcessTask_ExecutorNotFound(t *testing.T) {
 
 	assert.Equal(t, orchestrator_domain.StatusFailed, task.Status)
 	assert.Contains(t, task.LastError, "executor not found")
+	assert.True(t, task.IsFatal, "a missing executor cannot be fixed by retrying")
+	assert.Equal(t, int64(0), dispatcher.Stats().TasksRetried)
 }
 
 func TestCreateTaskDispatcher_SelectsCorrectImplementation(t *testing.T) {
@@ -739,4 +752,399 @@ func Test_watermillTaskDispatcher_runRecoveryLoop_LogsWarningOnFailure(t *testin
 	case <-time.After(2 * time.Second):
 		require.FailNow(t, "recovery loop did not exit after context cancellation")
 	}
+}
+
+type runningDispatcher struct {
+	cancel context.CancelCauseFunc
+	result chan error
+	err    error
+	once   sync.Once
+}
+
+func (r *runningDispatcher) stop() error {
+	r.once.Do(func() {
+		r.cancel(errors.New("test stopped the dispatcher"))
+		r.err = <-r.result
+	})
+	return r.err
+}
+
+func runDispatcher(t *testing.T, d *watermillTaskDispatcher) *runningDispatcher {
+	t.Helper()
+	ctx, cancel := context.WithCancelCause(context.Background())
+	r := &runningDispatcher{cancel: cancel, result: make(chan error, 1)}
+	go func() { r.result <- d.Start(ctx) }()
+	t.Cleanup(func() { _ = r.stop() })
+	return r
+}
+
+func dispatcherPhaseOf(d *watermillTaskDispatcher) dispatcherPhase {
+	d.phaseMutex.Lock()
+	defer d.phaseMutex.Unlock()
+	return d.phase
+}
+
+type statusRecordingStore struct {
+	*orchestrator_domain.MockTaskStore
+	statuses []orchestrator_domain.TaskStatus
+	mu       sync.Mutex
+}
+
+func newStatusRecordingStore(updateErr error) *statusRecordingStore {
+	store := &statusRecordingStore{MockTaskStore: &orchestrator_domain.MockTaskStore{}}
+	store.UpdateTaskFunc = func(_ context.Context, task *orchestrator_domain.Task) error {
+		store.mu.Lock()
+		store.statuses = append(store.statuses, task.Status)
+		store.mu.Unlock()
+		return updateErr
+	}
+	return store
+}
+
+func (s *statusRecordingStore) recordedStatuses() []orchestrator_domain.TaskStatus {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return slices.Clone(s.statuses)
+}
+
+func newLifecycleTestConfig() orchestrator_domain.DispatcherConfig {
+	config := orchestrator_domain.DefaultDispatcherConfig()
+	config.SyncPersistence = true
+	config.RecoveryInterval = 0
+	config.HeartbeatInterval = 0
+	return config
+}
+
+func newHighPriorityTask(id string) *orchestrator_domain.Task {
+	return &orchestrator_domain.Task{
+		ID:               id,
+		WorkflowID:       "wf-" + id,
+		Executor:         "test-executor",
+		DeduplicationKey: "dedup-" + id,
+		Config:           orchestrator_domain.TaskConfig{Priority: orchestrator_domain.PriorityHigh},
+	}
+}
+
+func Test_watermillTaskDispatcher_HoldsTasksUntilSubscribed(t *testing.T) {
+	t.Parallel()
+
+	eventBus := newMockEventBus()
+	d := newWatermillTaskDispatcher(newLifecycleTestConfig(), eventBus, &orchestrator_domain.MockTaskStore{})
+	executor := newMockExecutor()
+	d.RegisterExecutor(t.Context(), "test-executor", executor)
+
+	require.NoError(t, d.Dispatch(t.Context(), newHighPriorityTask("early")))
+
+	assert.Empty(t, eventBus.getPublishedEvents(),
+		"nothing is published while no handler is subscribed to receive it")
+	assert.Equal(t, int64(1), d.Stats().TasksDispatched)
+	assert.False(t, d.IsIdle(), "a held task is outstanding work")
+
+	runDispatcher(t, d)
+
+	require.Eventually(t, func() bool {
+		return d.Stats().TasksCompleted == 1
+	}, 5*time.Second, 5*time.Millisecond, "held task should be published and run once subscribed")
+
+	events := eventBus.getPublishedEvents()
+	require.NotEmpty(t, events)
+	assert.Equal(t, orchestrator_domain.TopicTaskDispatchHigh, events[0].Topic)
+	assert.Equal(t, 1, executor.getCallCount())
+	require.Eventually(t, d.IsIdle, 5*time.Second, 5*time.Millisecond)
+}
+
+func Test_watermillTaskDispatcher_RefusesDispatchAfterStop(t *testing.T) {
+	t.Parallel()
+
+	store := &orchestrator_domain.MockTaskStore{}
+	d := newWatermillTaskDispatcher(newLifecycleTestConfig(), newMockEventBus(), store)
+
+	running := runDispatcher(t, d)
+	require.Eventually(t, func() bool {
+		return dispatcherPhaseOf(d) == dispatcherPhaseRunning
+	}, 5*time.Second, 5*time.Millisecond)
+	require.NoError(t, running.stop())
+
+	err := d.Dispatch(t.Context(), newHighPriorityTask("late"))
+	require.ErrorIs(t, err, orchestrator_domain.ErrDispatcherStopped)
+	assert.Equal(t, int64(0), store.CreateTaskWithDedupCallCount.Load(),
+		"a task that can never be published is not persisted")
+	assert.Equal(t, int64(0), d.Stats().TasksDispatched)
+	assert.True(t, d.IsIdle())
+}
+
+func Test_watermillTaskDispatcher_BacklogLimit(t *testing.T) {
+	t.Parallel()
+
+	store := &orchestrator_domain.MockTaskStore{}
+	config := newLifecycleTestConfig()
+	config.DispatchBacklogLimit = 1
+	d := newWatermillTaskDispatcher(config, newMockEventBus(), store)
+
+	require.NoError(t, d.Dispatch(t.Context(), newHighPriorityTask("first")))
+
+	err := d.Dispatch(t.Context(), newHighPriorityTask("second"))
+	require.ErrorIs(t, err, orchestrator_domain.ErrDispatchBacklogFull)
+	assert.Equal(t, int64(1), store.CreateTaskWithDedupCallCount.Load(),
+		"a task refused by the backlog limit is not persisted")
+	assert.Equal(t, int64(1), d.Stats().TasksDispatched)
+}
+
+func Test_watermillTaskDispatcher_holdForPublish(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		wantErr  error
+		name     string
+		phase    dispatcherPhase
+		mode     publishMode
+		held     int
+		wantHeld bool
+		wantWake bool
+	}{
+		{name: "holds while not started", phase: dispatcherPhaseNotStarted, mode: publishImmediately, wantHeld: true},
+		{name: "refuses when the backlog is full", phase: dispatcherPhaseNotStarted, held: 1, wantErr: orchestrator_domain.ErrDispatchBacklogFull},
+		{name: "publishes directly while running", phase: dispatcherPhaseRunning, mode: publishImmediately, wantHeld: false},
+		{name: "holds a deferred publish while running and wakes the publisher", phase: dispatcherPhaseRunning, mode: publishDeferred, wantHeld: true, wantWake: true},
+		{name: "refuses a deferred publish when the backlog is full", phase: dispatcherPhaseRunning, mode: publishDeferred, held: 1, wantErr: orchestrator_domain.ErrDispatchBacklogFull},
+		{name: "refuses once stopped", phase: dispatcherPhaseStopped, wantErr: orchestrator_domain.ErrDispatcherStopped},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			config := newLifecycleTestConfig()
+			config.DispatchBacklogLimit = 1
+			d := newWatermillTaskDispatcher(config, newMockEventBus(), nil)
+			d.phase = tc.phase
+			for range tc.held {
+				d.backlog = append(d.backlog, backloggedTask{task: newHighPriorityTask("held")})
+			}
+
+			held, err := d.holdForPublish(newHighPriorityTask("task"), orchestrator_domain.TopicTaskDispatchHigh, orchestrator_domain.Event{}, tc.mode)
+			if tc.wantErr != nil {
+				require.ErrorIs(t, err, tc.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantHeld, held)
+
+			select {
+			case <-d.heldWake:
+				assert.True(t, tc.wantWake, "the held-task publisher was woken unexpectedly")
+			default:
+				assert.False(t, tc.wantWake, "the held-task publisher was not woken")
+			}
+		})
+	}
+}
+
+func Test_watermillTaskDispatcher_Start_SubscribeFailureFailsHeldTasks(t *testing.T) {
+	t.Parallel()
+
+	eventBus := newMockEventBus()
+	eventBus.subscribeErr = errors.New("broker unavailable")
+	store := newStatusRecordingStore(nil)
+	d := newWatermillTaskDispatcher(newLifecycleTestConfig(), eventBus, store)
+
+	require.NoError(t, d.Dispatch(t.Context(), newHighPriorityTask("held")))
+
+	err := d.Start(t.Context())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "broker unavailable")
+
+	stats := d.Stats()
+	assert.Equal(t, int64(1), stats.TasksFailed, "the held task is accounted for as failed")
+	assert.True(t, d.IsIdle(), "no task is left waiting on a dispatcher that never ran")
+	assert.Equal(t, []orchestrator_domain.TaskStatus{orchestrator_domain.StatusFailed}, store.recordedStatuses())
+
+	err = d.Dispatch(t.Context(), newHighPriorityTask("after"))
+	require.ErrorIs(t, err, orchestrator_domain.ErrDispatcherStopped)
+}
+
+func Test_watermillTaskDispatcher_Start_HeldTaskPublishFailureIsCounted(t *testing.T) {
+	t.Parallel()
+
+	eventBus := newMockEventBus()
+	eventBus.publishFunc = func(context.Context, string, orchestrator_domain.Event) error {
+		return errors.New("bus rejected message")
+	}
+	store := newStatusRecordingStore(nil)
+	d := newWatermillTaskDispatcher(newLifecycleTestConfig(), eventBus, store)
+
+	require.NoError(t, d.Dispatch(t.Context(), newHighPriorityTask("held")))
+
+	runDispatcher(t, d)
+
+	require.Eventually(t, func() bool {
+		return d.Stats().TasksFailed == 1
+	}, 5*time.Second, 5*time.Millisecond)
+	assert.True(t, d.IsIdle())
+	assert.Equal(t, []orchestrator_domain.TaskStatus{orchestrator_domain.StatusFailed}, store.recordedStatuses())
+}
+
+func Test_watermillTaskDispatcher_DispatchIfRequired(t *testing.T) {
+	t.Parallel()
+
+	errCheck := errors.New("registry unavailable")
+
+	testCases := []struct {
+		required       orchestrator_domain.DispatchRequirement
+		dedupErr       error
+		updateErr      error
+		wantErr        error
+		name           string
+		wantStatuses   []orchestrator_domain.TaskStatus
+		wantPublished  int
+		wantDispatched int64
+		wantCreates    int64
+		wantPending    int
+		wantChecked    bool
+	}{
+		{
+			name:        "missing requirement is rejected before anything is persisted",
+			required:    nil,
+			wantErr:     errNilDispatchRequirement,
+			wantCreates: 0,
+		},
+		{
+			name:           "work still required is published",
+			required:       func(context.Context) (bool, error) { return true, nil },
+			wantPublished:  1,
+			wantDispatched: 1,
+			wantCreates:    1,
+			wantChecked:    true,
+		},
+		{
+			name:         "satisfied work is released without publishing",
+			required:     func(context.Context) (bool, error) { return false, nil },
+			wantErr:      orchestrator_domain.ErrTaskNotRequired,
+			wantStatuses: []orchestrator_domain.TaskStatus{orchestrator_domain.StatusComplete},
+			wantCreates:  1,
+			wantChecked:  true,
+		},
+		{
+			name:           "failed requirement check publishes anyway",
+			required:       func(context.Context) (bool, error) { return false, errCheck },
+			wantPublished:  1,
+			wantDispatched: 1,
+			wantCreates:    1,
+			wantChecked:    true,
+		},
+		{
+			name:           "failed release publishes anyway so completion frees the key",
+			required:       func(context.Context) (bool, error) { return false, nil },
+			updateErr:      errors.New("store unavailable"),
+			wantStatuses:   []orchestrator_domain.TaskStatus{orchestrator_domain.StatusComplete},
+			wantPublished:  1,
+			wantDispatched: 1,
+			wantCreates:    1,
+			wantChecked:    true,
+		},
+		{
+			name:        "duplicate claim becomes the pending rerun without checking the requirement",
+			required:    func(context.Context) (bool, error) { return true, nil },
+			dedupErr:    orchestrator_domain.ErrDuplicateTask,
+			wantErr:     orchestrator_domain.ErrDuplicateTask,
+			wantCreates: 2,
+			wantPending: 1,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			eventBus := newMockEventBus()
+			store := newStatusRecordingStore(tc.updateErr)
+			if tc.dedupErr != nil {
+				store.CreateTaskWithDedupFunc = func(context.Context, *orchestrator_domain.Task) error {
+					return tc.dedupErr
+				}
+			}
+			d := newWatermillTaskDispatcher(newLifecycleTestConfig(), eventBus, store)
+			startPublishing(t, d)
+
+			var checked atomic.Bool
+			var required orchestrator_domain.DispatchRequirement
+			if tc.required != nil {
+				required = func(ctx context.Context) (bool, error) {
+					checked.Store(true)
+					return tc.required(ctx)
+				}
+			}
+
+			err := d.DispatchIfRequired(t.Context(), newHighPriorityTask("task"), required)
+			if tc.wantErr != nil {
+				require.ErrorIs(t, err, tc.wantErr)
+			} else {
+				require.NoError(t, err)
+			}
+
+			assert.Equal(t, tc.wantChecked, checked.Load())
+			assert.Len(t, eventBus.getPublishedEvents(), tc.wantPublished)
+			assert.Equal(t, tc.wantDispatched, d.Stats().TasksDispatched)
+			assert.Equal(t, tc.wantCreates, store.CreateTaskWithDedupCallCount.Load())
+			assert.Equal(t, tc.wantStatuses, store.recordedStatuses())
+			assert.Equal(t, tc.wantPending, d.reruns.size())
+		})
+	}
+}
+
+func Test_watermillTaskDispatcher_RecoveredTasksAreDispatchedAgain(t *testing.T) {
+	t.Parallel()
+
+	mockClock := clockpkg.NewMockClock(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+	config := newLifecycleTestConfig()
+	config.RecoveryInterval = 30 * time.Second
+	config.DefaultMaxRetries = 3
+
+	recovered := &orchestrator_domain.Task{
+		ID:               "stale-task",
+		WorkflowID:       "wf-stale",
+		Executor:         "test-executor",
+		Status:           orchestrator_domain.StatusRetrying,
+		Attempt:          1,
+		DeduplicationKey: "stale-key",
+		Payload:          map[string]any{"input": "data"},
+		Config:           orchestrator_domain.TaskConfig{Priority: orchestrator_domain.PriorityNormal, MaxRetries: 3},
+	}
+
+	var claimed atomic.Bool
+	store := newStatusRecordingStore(nil)
+	store.ClaimStaleTasksForRecoveryFunc = func(context.Context, string, time.Duration, time.Duration, int) ([]orchestrator_domain.RecoveryClaimedTask, error) {
+		if claimed.Swap(true) {
+			return nil, nil
+		}
+		return []orchestrator_domain.RecoveryClaimedTask{{ID: recovered.ID, WorkflowID: recovered.WorkflowID, Attempt: 1}}, nil
+	}
+	store.RecoverClaimedTasksFunc = func(context.Context, string, int, string) (int, error) {
+		return 1, nil
+	}
+	store.GetTasksByIDFunc = func(context.Context, []string) ([]*orchestrator_domain.Task, error) {
+		return []*orchestrator_domain.Task{recovered}, nil
+	}
+
+	d := newWatermillTaskDispatcher(config, newMockEventBus(), store, withWatermillClock(mockClock))
+	executor := newMockExecutor()
+	d.RegisterExecutor(t.Context(), "test-executor", executor)
+
+	baseline := mockClock.TimerCount()
+	runDispatcher(t, d)
+	require.True(t, mockClock.AwaitTimerSetup(baseline, 5*time.Second), "recovery loop should arm its ticker")
+	assert.Equal(t, 0, executor.getCallCount(), "nothing runs before a recovery sweep")
+
+	mockClock.Advance(config.RecoveryInterval)
+
+	require.Eventually(t, func() bool {
+		return executor.getCallCount() == 1 && d.IsIdle()
+	}, 5*time.Second, 5*time.Millisecond, "the recovered task must be dispatched and run again")
+
+	stats := d.Stats()
+	assert.Equal(t, int64(1), stats.TasksDispatched)
+	assert.Equal(t, int64(1), stats.TasksCompleted)
+	assert.Equal(t, int64(0), store.CreateTaskWithDedupCallCount.Load(),
+		"a recovered task updates its existing record instead of being inserted again")
+	assert.Contains(t, store.recordedStatuses(), orchestrator_domain.StatusComplete)
 }

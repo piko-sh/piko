@@ -122,13 +122,6 @@ func (s *stubInterpreterPort) Interpret(_ context.Context, _ *wasm_dto.Interpret
 	return s.response, s.err
 }
 
-type stubJSInterop struct{}
-
-func (*stubJSInterop) RegisterFunction(_ string, _ func(arguments []any) (any, error)) {}
-func (*stubJSInterop) Log(_ string, _ string, _ ...any)                                {}
-func (*stubJSInterop) MarshalToJS(_ any) (any, error)                                  { return nil, nil }
-func (*stubJSInterop) UnmarshalFromJS(_ any, _ any) error                              { return nil }
-
 type sfcparserScript struct {
 	Content string
 }
@@ -517,21 +510,10 @@ func init() {
 	assert.True(t, response.AST.ScriptBlock.HasInit)
 }
 
-func TestWithJSInterop(t *testing.T) {
-	t.Parallel()
-
-	interop := &stubJSInterop{}
-	o := NewOrchestrator(WithJSInterop(interop))
-	assert.NotNil(t, o.jsInterop)
-}
-
 func TestWithInterpreter(t *testing.T) {
 	t.Parallel()
 
-	interp := &stubInterpreterPort{
-		response: nil,
-		err:      nil,
-	}
+	interp := &stubInterpreterPort{}
 	o := NewOrchestrator(WithInterpreter(interp))
 	assert.NotNil(t, o.interpreter)
 }
@@ -640,14 +622,9 @@ func TestOrchestrator_Render_NonSuccess(t *testing.T) {
 
 	renderer := &stubRenderPort{
 		renderFunc: func(_ context.Context, _ *wasm_dto.RenderFromSourcesRequest) (*wasm_dto.RenderFromSourcesResponse, error) {
-			return &wasm_dto.RenderFromSourcesResponse{
-				Success:      false,
-				Error:        "template error",
-				HTML:         "",
-				CSS:          "",
-				Diagnostics:  nil,
-				IsStaticOnly: false,
-			}, nil
+			renderFromSourcesResponse := wasm_dto.RenderFromSourcesResponse{}
+			renderFromSourcesResponse.Error = "template error"
+			return &renderFromSourcesResponse, nil
 		},
 		renderASTFunc: nil,
 	}
@@ -692,10 +669,7 @@ func TestOrchestrator_DynamicRender_NoGenerator(t *testing.T) {
 	t.Parallel()
 
 	o := NewOrchestrator(
-		WithInterpreter(&stubInterpreterPort{
-			response: nil,
-			err:      nil,
-		}),
+		WithInterpreter(&stubInterpreterPort{}),
 	)
 	response, err := o.DynamicRender(t.Context(), &wasm_dto.DynamicRenderRequest{
 		Sources:    map[string]string{"p.pk": "<template><p>hi</p></template>"},
@@ -712,10 +686,7 @@ func TestOrchestrator_DynamicRender_NoInterpreter(t *testing.T) {
 	t.Parallel()
 
 	o := NewOrchestrator(
-		WithGenerator(&stubGeneratorPort{
-			response: nil,
-			err:      nil,
-		}),
+		WithGenerator(&stubGeneratorPort{}),
 	)
 	response, err := o.DynamicRender(t.Context(), &wasm_dto.DynamicRenderRequest{
 		Sources:    map[string]string{"p.pk": "<template><p>hi</p></template>"},
@@ -736,10 +707,7 @@ func TestOrchestrator_DynamicRender_GenerateError(t *testing.T) {
 			response: nil,
 			err:      errors.New("gen fail"),
 		}),
-		WithInterpreter(&stubInterpreterPort{
-			response: nil,
-			err:      nil,
-		}),
+		WithInterpreter(&stubInterpreterPort{}),
 	)
 	response, err := o.DynamicRender(t.Context(), &wasm_dto.DynamicRenderRequest{
 		Sources:    map[string]string{"p.pk": "<template><p>hi</p></template>"},
@@ -766,10 +734,7 @@ func TestOrchestrator_DynamicRender_GenerateNonSuccess(t *testing.T) {
 			},
 			err: nil,
 		}),
-		WithInterpreter(&stubInterpreterPort{
-			response: nil,
-			err:      nil,
-		}),
+		WithInterpreter(&stubInterpreterPort{}),
 	)
 	response, err := o.DynamicRender(t.Context(), &wasm_dto.DynamicRenderRequest{
 		Sources:    map[string]string{"p.pk": "<template><p>hi</p></template>"},
@@ -796,10 +761,7 @@ func TestOrchestrator_DynamicRender_NoPageFound(t *testing.T) {
 			},
 			err: nil,
 		}),
-		WithInterpreter(&stubInterpreterPort{
-			response: nil,
-			err:      nil,
-		}),
+		WithInterpreter(&stubInterpreterPort{}),
 	)
 	response, err := o.DynamicRender(t.Context(), &wasm_dto.DynamicRenderRequest{
 		Sources:    map[string]string{"p.pk": "<template><p>hi</p></template>"},
@@ -853,7 +815,7 @@ func TestOrchestrator_DynamicRender_InterpretError(t *testing.T) {
 				Error:       "",
 				AST:         nil,
 				Metadata:    nil,
-				Diagnostics: []wasm_dto.Diagnostic{{Severity: "error", Message: "interp fail", Location: wasm_dto.Location{FilePath: "", Line: 0, Column: 0}, Code: ""}},
+				Diagnostics: []wasm_dto.Diagnostic{{Severity: "error", Message: "interp fail", Location: wasm_dto.Location{}, Code: ""}},
 			},
 			err: errors.New("interp boom"),
 		}),
@@ -868,6 +830,60 @@ func TestOrchestrator_DynamicRender_InterpretError(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, response.Success)
 	assert.Contains(t, response.Error, "interpretation failed")
+}
+
+func TestOrchestrator_DynamicRender_InterpretNilResponse(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name          string
+		err           error
+		expectedError string
+	}{
+		{name: "nil response with error", err: errors.New("interp boom"), expectedError: "interpretation failed: interp boom"},
+		{name: "nil response without error", err: nil, expectedError: "interpretation returned no response"},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			o := NewOrchestrator(
+				WithGenerator(&stubGeneratorPort{
+					response: &wasm_dto.GenerateFromSourcesResponse{
+						Success: true,
+						Artefacts: []wasm_dto.GeneratedArtefact{
+							{
+								Path:       "dist/page.go",
+								Content:    "package main",
+								Type:       wasm_dto.ArtefactTypePage,
+								SourcePath: "p.pk",
+							},
+						},
+						Manifest: &wasm_dto.GeneratedManifest{
+							Pages: map[string]wasm_dto.ManifestPageEntry{
+								"p": {
+									SourcePath:    "p.pk",
+									PackagePath:   "test/pages/p",
+									RoutePatterns: map[string]string{"en": "/"},
+								},
+							},
+						},
+					},
+				}),
+				WithInterpreter(&stubInterpreterPort{response: nil, err: testCase.err}),
+				WithConsole(&noOpConsole{}),
+			)
+			response, err := o.DynamicRender(t.Context(), &wasm_dto.DynamicRenderRequest{
+				Sources:    map[string]string{"p.pk": "<template><p>hi</p></template>"},
+				ModuleName: "test",
+				RequestURL: "/",
+			})
+			require.NoError(t, err)
+			assert.False(t, response.Success)
+			assert.Contains(t, response.Error, testCase.expectedError)
+		})
+	}
 }
 
 func TestOrchestrator_DynamicRender_InterpretNonSuccess(t *testing.T) {
@@ -1828,65 +1844,65 @@ func TestMatchSegments(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name        string
-		patternSegs []string
-		urlSegs     []string
-		expected    bool
+		name            string
+		patternSegments []string
+		urlSegments     []string
+		expected        bool
 	}{
 		{
-			name:        "exact match",
-			patternSegs: []string{"about"},
-			urlSegs:     []string{"about"},
-			expected:    true,
+			name:            "exact match",
+			patternSegments: []string{"about"},
+			urlSegments:     []string{"about"},
+			expected:        true,
 		},
 		{
-			name:        "length mismatch",
-			patternSegs: []string{"about", "us"},
-			urlSegs:     []string{"about"},
-			expected:    false,
+			name:            "length mismatch",
+			patternSegments: []string{"about", "us"},
+			urlSegments:     []string{"about"},
+			expected:        false,
 		},
 		{
-			name:        "dynamic segment",
-			patternSegs: []string{"blog", "{slug}"},
-			urlSegs:     []string{"blog", "hello"},
-			expected:    true,
+			name:            "dynamic segment",
+			patternSegments: []string{"blog", "{slug}"},
+			urlSegments:     []string{"blog", "hello"},
+			expected:        true,
 		},
 		{
-			name:        "dynamic segment empty value",
-			patternSegs: []string{"blog", "{slug}"},
-			urlSegs:     []string{"blog", ""},
-			expected:    false,
+			name:            "dynamic segment empty value",
+			patternSegments: []string{"blog", "{slug}"},
+			urlSegments:     []string{"blog", ""},
+			expected:        false,
 		},
 		{
-			name:        "catch-all segment",
-			patternSegs: []string{"docs", "{path*}"},
-			urlSegs:     []string{"docs", "a", "b", "c"},
-			expected:    true,
+			name:            "catch-all segment",
+			patternSegments: []string{"docs", "{path*}"},
+			urlSegments:     []string{"docs", "a", "b", "c"},
+			expected:        true,
 		},
 		{
-			name:        "static mismatch",
-			patternSegs: []string{"about"},
-			urlSegs:     []string{"contact"},
-			expected:    false,
+			name:            "static mismatch",
+			patternSegments: []string{"about"},
+			urlSegments:     []string{"contact"},
+			expected:        false,
 		},
 		{
-			name:        "pattern longer than URL",
-			patternSegs: []string{"a", "b"},
-			urlSegs:     []string{"a"},
-			expected:    false,
+			name:            "pattern longer than URL",
+			patternSegments: []string{"a", "b"},
+			urlSegments:     []string{"a"},
+			expected:        false,
 		},
 		{
-			name:        "URL longer than pattern",
-			patternSegs: []string{"a"},
-			urlSegs:     []string{"a", "b"},
-			expected:    false,
+			name:            "URL longer than pattern",
+			patternSegments: []string{"a"},
+			urlSegments:     []string{"a", "b"},
+			expected:        false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			assert.Equal(t, tt.expected, matchSegments(tt.patternSegs, tt.urlSegs))
+			assert.Equal(t, tt.expected, matchSegments(tt.patternSegments, tt.urlSegments))
 		})
 	}
 }
@@ -2105,11 +2121,7 @@ func TestConvertSFCResultToAST_EmptyTemplate(t *testing.T) {
 	t.Parallel()
 
 	o := NewOrchestrator()
-	response, err := o.ParseTemplate(t.Context(), &wasm_dto.ParseTemplateRequest{
-		Template:   "",
-		Script:     "",
-		ModuleName: "",
-	})
+	response, err := o.ParseTemplate(t.Context(), &wasm_dto.ParseTemplateRequest{})
 	require.NoError(t, err)
 
 	require.NotNil(t, response)
@@ -2221,10 +2233,7 @@ func TestValidateDynamicRenderAdapters(t *testing.T) {
 
 	t.Run("no interpreter", func(t *testing.T) {
 		t.Parallel()
-		o := NewOrchestrator(WithGenerator(&stubGeneratorPort{
-			response: nil,
-			err:      nil,
-		}))
+		o := NewOrchestrator(WithGenerator(&stubGeneratorPort{}))
 		response := o.validateDynamicRenderAdapters(t.Context())
 		require.NotNil(t, response)
 		assert.Contains(t, response.Error, "interpreter not configured")
@@ -2233,14 +2242,8 @@ func TestValidateDynamicRenderAdapters(t *testing.T) {
 	t.Run("both configured returns nil", func(t *testing.T) {
 		t.Parallel()
 		o := NewOrchestrator(
-			WithGenerator(&stubGeneratorPort{
-				response: nil,
-				err:      nil,
-			}),
-			WithInterpreter(&stubInterpreterPort{
-				response: nil,
-				err:      nil,
-			}),
+			WithGenerator(&stubGeneratorPort{}),
+			WithInterpreter(&stubInterpreterPort{}),
 		)
 		response := o.validateDynamicRenderAdapters(t.Context())
 		assert.Nil(t, response)

@@ -98,6 +98,8 @@ func NewServer(deps monitoring_domain.MonitoringDeps, registrar serviceRegistrar
 	config := ServerConfig{
 		Address:          ":9091",
 		EnableReflection: true,
+		GRPCServerOpts:   nil,
+		AutoNextPort:     false,
 	}
 
 	for _, opt := range opts {
@@ -124,9 +126,10 @@ func NewServer(deps monitoring_domain.MonitoringDeps, registrar serviceRegistrar
 	grpcServer := grpc.NewServer(allOpts...)
 
 	server := &Server{
-		grpcServer: grpcServer,
-		config:     config,
-		deps:       deps,
+		grpcServer:    grpcServer,
+		config:        config,
+		deps:          deps,
+		actualAddress: atomic.Pointer[string]{},
 	}
 
 	if registrar != nil {

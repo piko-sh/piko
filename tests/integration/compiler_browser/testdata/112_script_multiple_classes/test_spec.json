@@ -1,0 +1,30 @@
+[
+  {
+    "action": "checkText",
+    "selector": "multiple-classes-component >>> p.greeting",
+    "expected": "hello piko from multiple"
+  },
+  {
+    "action": "checkText",
+    "selector": "multiple-classes-component >>> p.count",
+    "expected": "0"
+  },
+  {
+    "action": "click",
+    "selector": "multiple-classes-component >>> button"
+  },
+  {
+    "action": "checkText",
+    "selector": "multiple-classes-component >>> p.count",
+    "expected": "2"
+  },
+  {
+    "action": "click",
+    "selector": "multiple-classes-component >>> button"
+  },
+  {
+    "action": "checkText",
+    "selector": "multiple-classes-component >>> p.count",
+    "expected": "4"
+  }
+]

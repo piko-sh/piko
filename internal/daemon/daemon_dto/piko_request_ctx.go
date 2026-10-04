@@ -20,6 +20,7 @@ package daemon_dto
 
 import (
 	"context"
+	"maps"
 	"net/http"
 	"strings"
 	"sync"
@@ -38,12 +39,14 @@ const (
 // context.WithValue call.
 //
 // Downstream middleware mutates the same pointer, eliminating additional context
-// allocations. The struct is pooled to amortise allocation cost to zero after warmup.
+// allocations. The struct is pooled to amortise allocation cost to zero after warmup, so
+// it must not be read once the request has finished. Work that outlives the request takes
+// its context from DetachRequestContext, which carries an unpooled snapshot instead.
 type PikoRequestCtx struct {
-	// CachedLogger stores a request-scoped logger (as logger_domain.Logger). Set lazily by
-	// logger_domain.From on first call per request; subsequent calls return the cached
-	// instance at zero cost.
-	CachedLogger any
+	// cachedLogger stores a request-scoped logger (as logger_domain.Logger), guarded by mu.
+	// Set lazily by logger_domain.From on first call per request through StoreCachedLogger;
+	// subsequent calls read it through CachedLoggerValue.
+	cachedLogger any
 
 	// CachedAuth stores the resolved authentication context (as AuthContext). Nil when no
 	// provider is registered or the request is unauthenticated.
@@ -134,8 +137,29 @@ type PikoRequestCtx struct {
 	// classifies to all-empty is not derived again on every record.
 	userAgentClassified bool
 
-	// mu guards the analytics fields and the memoised User-Agent classification.
+	// detached marks an unpooled snapshot made by DetachRequestContext, which is never
+	// returned to the pool and so may be shared by any number of background goroutines.
+	detached bool
+
+	// mu guards the cached logger, the analytics fields and the memoised User-Agent
+	// classification.
 	mu sync.Mutex
+}
+
+// AnalyticsFields is a consistent copy of the analytics values that action handlers stash
+// on a request, safe to hand to asynchronous collectors.
+type AnalyticsFields struct {
+	// Revenue is a copy of the revenue recorded against the request; nil when none was.
+	Revenue *maths.Money
+
+	// Properties is a copy of the custom properties; nil when none were set.
+	Properties map[string]string
+
+	// EventName is the explicit custom event name; empty when none was set.
+	EventName string
+
+	// ActionName is the server action the request is attributed to; empty for page views.
+	ActionName string
 }
 
 // RequestID returns the formatted request ID. For server-generated IDs the string is
@@ -287,6 +311,63 @@ func (p *PikoRequestCtx) SetAnalyticsRevenue(revenue *maths.Money) {
 	p.AnalyticsRevenue = revenue
 }
 
+// CachedLoggerValue returns the request-scoped logger cached on the carrier.
+//
+// Returns any which is the cached logger (as logger_domain.Logger), or nil when none has
+// been cached yet.
+//
+// Safe for concurrent use; mu guards the read.
+func (p *PikoRequestCtx) CachedLoggerValue() any {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	return p.cachedLogger
+}
+
+// StoreCachedLogger caches candidate as the request-scoped logger unless another
+// goroutine cached one first.
+//
+// Takes candidate (any) which is the logger (as logger_domain.Logger) to cache.
+//
+// Returns any which is either candidate or the logger cached before this call.
+//
+// Safe for concurrent use; mu is held across the check and the store, so every goroutine
+// of a request agrees on one logger.
+func (p *PikoRequestCtx) StoreCachedLogger(candidate any) any {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if p.cachedLogger != nil {
+		return p.cachedLogger
+	}
+	p.cachedLogger = candidate
+
+	return candidate
+}
+
+// Analytics returns a copy of the analytics values stashed on the request.
+//
+// Returns AnalyticsFields which owns its property map and revenue, so later writes to the
+// carrier never reach it.
+//
+// Safe for concurrent use; mu is held while the values are copied.
+func (p *PikoRequestCtx) Analytics() AnalyticsFields {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	fields := AnalyticsFields{
+		Revenue:    nil,
+		Properties: maps.Clone(p.AnalyticsProperties),
+		EventName:  p.AnalyticsEventName,
+		ActionName: p.AnalyticsActionName,
+	}
+	if p.AnalyticsRevenue != nil {
+		fields.Revenue = new(*p.AnalyticsRevenue)
+	}
+
+	return fields
+}
+
 // UserAgentClass returns the classification of this request's User-Agent, deriving it at
 // most once.
 //
@@ -317,7 +398,7 @@ func (p *PikoRequestCtx) reset() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	p.CachedLogger = nil
+	p.cachedLogger = nil
 	p.CachedAuth = nil
 	p.ResponseWriter = nil
 	p.ErrorPage = nil
@@ -339,28 +420,87 @@ func (p *PikoRequestCtx) reset() {
 	p.DevelopmentMode = false
 	p.userAgentClass = useragent.Classification{}
 	p.userAgentClassified = false
+	p.detached = false
 }
 
-// ReleasePikoRequestCtx returns a PikoRequestCtx to the pool. The caller must not use the
-// struct after this call.
+// snapshot copies the carrier into a new, unpooled carrier that owns its maps and
+// pointers and has no ResponseWriter.
 //
-// Takes pctx (*PikoRequestCtx) which is the instance to return.
+// Returns *PikoRequestCtx which is marked detached.
+//
+// Safe for concurrent use with the mu-guarded writers; the remaining fields are written
+// by the middleware chain before handlers run, so a handler may snapshot them while the
+// request is live.
+func (p *PikoRequestCtx) snapshot() *PikoRequestCtx {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	copied := new(PikoRequestCtx)
+	copied.CachedAuth = p.CachedAuth
+	if p.ErrorPage != nil {
+		copied.ErrorPage = new(*p.ErrorPage)
+	}
+	copied.Locale = p.Locale
+	copied.CSPToken = p.CSPToken
+	copied.ForwardedRequestID = p.ForwardedRequestID
+	copied.ClientIP = p.ClientIP
+	copied.MatchedPattern = p.MatchedPattern
+	copied.AnalyticsActionName = p.AnalyticsActionName
+	copied.UserAgent = p.UserAgent
+	if p.AnalyticsRevenue != nil {
+		copied.AnalyticsRevenue = new(*p.AnalyticsRevenue)
+	}
+	copied.AnalyticsProperties = maps.Clone(p.AnalyticsProperties)
+	copied.Hostname = p.Hostname
+	copied.AnalyticsEventName = p.AnalyticsEventName
+	copied.userAgentClass = p.userAgentClass
+	copied.RequestIDCounter = p.RequestIDCounter
+	copied.ResponseStatusCode = p.ResponseStatusCode
+	copied.FromTrustedProxy = p.FromTrustedProxy
+	copied.OtelExtracted = p.OtelExtracted
+	copied.DevelopmentMode = p.DevelopmentMode
+	copied.userAgentClassified = p.userAgentClassified
+	copied.detached = true
+
+	return copied
+}
+
+// ReleasePikoRequestCtx clears a PikoRequestCtx and returns it to the pool. The caller
+// must not use the struct after this call, and neither may any goroutine still holding
+// the request context; such work must run under DetachRequestContext.
+//
+// Takes pctx (*PikoRequestCtx) which is the instance to return. A detached snapshot is
+// never pooled, so passing one is a no-op.
 func ReleasePikoRequestCtx(pctx *PikoRequestCtx) {
-	if pctx == nil {
+	if pctx == nil || pctx.detached {
 		return
 	}
-	pctx.ErrorPage = nil
-	pctx.CachedLogger = nil
-	pctx.CachedAuth = nil
-	pctx.ResponseWriter = nil
-	pctx.AnalyticsRevenue = nil
-	pctx.AnalyticsProperties = nil
-	pctx.AnalyticsEventName = ""
-	pctx.AnalyticsActionName = ""
-	pctx.ResponseStatusCode = 0
-	pctx.Hostname = ""
-	pctx.UserAgent = ""
+	pctx.reset()
 	pikoRequestCtxPool.Put(pctx)
+}
+
+// DetachRequestContext prepares a request context for work that outlives the request.
+//
+// The result keeps every context value but drops cancellation, and replaces the pooled
+// per-request carrier with an unpooled snapshot containing copied scalar fields and
+// cloned maps and pointers, with no ResponseWriter or cached logger. Releasing or reusing
+// the original carrier therefore never reaches the background work. The request's cached
+// logger is bound to the original context, so it is left behind; the first
+// logger_domain.From on the detached context binds a logger to the detached context
+// instead.
+//
+// Returns context.Context which is safe to use after the request has finished. Without a
+// carrier it is context.WithoutCancel(ctx); a context already detached keeps its
+// snapshot, which is safe to share.
+func DetachRequestContext(ctx context.Context) context.Context {
+	detached := context.WithoutCancel(ctx)
+
+	pctx := PikoRequestCtxFromContext(ctx)
+	if pctx == nil || pctx.detached {
+		return detached
+	}
+
+	return WithPikoRequestCtx(detached, pctx.snapshot())
 }
 
 // WithPikoRequestCtx returns a new context carrying the given PikoRequestCtx.

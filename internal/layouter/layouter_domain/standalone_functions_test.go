@@ -509,7 +509,7 @@ func TestApplyJustifyToLine_SingleItem(t *testing.T) {
 
 func TestApplyOffsetToLine_Centre(t *testing.T) {
 	items := []lineItem{
-		{fragment: &Fragment{OffsetX: 0}, x: 0, width: 40},
+		{fragment: &Fragment{}, x: 0, width: 40},
 		{fragment: &Fragment{OffsetX: 40}, x: 40, width: 60},
 	}
 	line := lineBox{items: items, width: 100}
@@ -522,7 +522,7 @@ func TestApplyOffsetToLine_Centre(t *testing.T) {
 
 func TestApplyOffsetToLine_Right(t *testing.T) {
 	items := []lineItem{
-		{fragment: &Fragment{OffsetX: 0}, x: 0, width: 40},
+		{fragment: &Fragment{}, x: 0, width: 40},
 		{fragment: &Fragment{OffsetX: 40}, x: 40, width: 60},
 	}
 	line := lineBox{items: items, width: 100}

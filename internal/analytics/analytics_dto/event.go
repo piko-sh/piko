@@ -19,7 +19,6 @@
 package analytics_dto
 
 import (
-	"net/http"
 	"sync"
 	"time"
 
@@ -70,10 +69,6 @@ func (t EventType) String() string {
 type Event struct {
 	// Timestamp is when the event occurred.
 	Timestamp time.Time
-
-	// Request is the raw HTTP request. Adapters may need the full request for
-	// Accept-Language and Client Hints headers.
-	Request *http.Request
 
 	// Revenue holds optional monetary data for e-commerce analytics events such as purchases
 	// or refunds; nil when the event does not carry revenue information.
@@ -159,7 +154,6 @@ func ReleaseEvent(ev *Event) {
 	if ev == nil {
 		return
 	}
-	ev.Request = nil
 	ev.Properties = nil
 	ev.Revenue = nil
 	eventPool.Put(ev)

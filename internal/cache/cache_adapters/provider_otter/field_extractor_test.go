@@ -315,10 +315,7 @@ func TestFieldExtractor_EmptyFields(t *testing.T) {
 
 	extractor := NewFieldExtractor[Product](schema)
 
-	product := Product{
-		Name:  "",
-		Price: 0.0,
-	}
+	product := Product{}
 
 	texts := extractor.ExtractTextFields(product)
 	if len(texts) != 0 {

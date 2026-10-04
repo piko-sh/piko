@@ -64,7 +64,7 @@ func (m Money) Allocate(ratios ...int64) ([]Money, error) {
 // slice is empty or currencies do not match.
 func AverageMoney(monies ...Money) Money {
 	if len(monies) == 0 {
-		return Money{err: errors.New("money: cannot calculate average of an empty slice")}
+		return newMoneyError(errors.New("money: cannot calculate average of an empty slice"))
 	}
 
 	sum := SumMoney(monies...)
@@ -86,7 +86,7 @@ func AverageMoney(monies ...Money) Money {
 // Returns Money which is the total sum of all provided values.
 func SumMoney(monies ...Money) Money {
 	if len(monies) == 0 {
-		return Money{err: errors.New("money: cannot sum an empty slice")}
+		return newMoneyError(errors.New("money: cannot sum an empty slice"))
 	}
 	sum := monies[0]
 	for i := 1; i < len(monies); i++ {
@@ -105,7 +105,7 @@ func SumMoney(monies ...Money) Money {
 // Returns Money which is the absolute sum of all values.
 func AbsSumMoney(monies ...Money) Money {
 	if len(monies) == 0 {
-		return Money{err: errors.New("money: cannot calculate absolute sum of an empty slice")}
+		return newMoneyError(errors.New("money: cannot calculate absolute sum of an empty slice"))
 	}
 
 	first := monies[0]
@@ -140,7 +140,7 @@ func MinMoney(m1 Money, others ...Money) Money {
 		}
 		cmp, err := m.amount.Cmp(minValue.amount)
 		if err != nil {
-			return Money{err: err}
+			return newMoneyError(err)
 		}
 		if cmp < 0 {
 			minValue = m
@@ -168,7 +168,7 @@ func MaxMoney(m1 Money, others ...Money) Money {
 		}
 		cmp, err := m.amount.Cmp(maxValue.amount)
 		if err != nil {
-			return Money{err: err}
+			return newMoneyError(err)
 		}
 		if cmp > 0 {
 			maxValue = m

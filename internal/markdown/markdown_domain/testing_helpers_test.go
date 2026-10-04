@@ -112,15 +112,15 @@ func (b *TransformerTestBuilder) Build() *TestTransformer {
 
 type WalkerTestBuilder struct {
 	transformer nodeTransformer
+	diagnostics *[]*ast_domain.Diagnostic
 	source      []byte
-	diagnostics []*ast_domain.Diagnostic
 }
 
 func NewWalkerTestBuilder() *WalkerTestBuilder {
 	return &WalkerTestBuilder{
 		transformer: &mockNodeTransformer{},
 		source:      []byte("# Test"),
-		diagnostics: make([]*ast_domain.Diagnostic, 0),
+		diagnostics: new([]*ast_domain.Diagnostic),
 	}
 }
 
@@ -134,7 +134,7 @@ func (b *WalkerTestBuilder) WithSource(source []byte) *WalkerTestBuilder {
 	return b
 }
 
-func (b *WalkerTestBuilder) WithDiagnostics(diagnostics []*ast_domain.Diagnostic) *WalkerTestBuilder {
+func (b *WalkerTestBuilder) WithDiagnostics(diagnostics *[]*ast_domain.Diagnostic) *WalkerTestBuilder {
 	b.diagnostics = diagnostics
 	return b
 }

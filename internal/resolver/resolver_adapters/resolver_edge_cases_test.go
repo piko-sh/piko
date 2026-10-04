@@ -977,7 +977,7 @@ func TestFindGoMod_FromFile(t *testing.T) {
 func TestReadModuleName_NonExistent(t *testing.T) {
 	t.Parallel()
 
-	_, err := readModuleName("/nonexistent/go.mod", nil)
+	_, err := ReadModuleName(context.Background(), "/nonexistent/go.mod", nil)
 	require.Error(t, err)
 }
 

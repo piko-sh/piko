@@ -385,6 +385,8 @@ func (b *sitemapBuilder) matchRouteRule(ctx context.Context, routePattern string
 //
 // Takes page (pageDiscovery) which provides the found page details including route and
 // metadata.
+// Takes rule (*config.SitemapRouteRule) which provides route-specific sitemap priority
+// and change-frequency overrides.
 //
 // Returns seo_dto.SitemapURL which is a complete sitemap URL with location, timestamps,
 // priority, alternate language links, and linked images.
@@ -700,7 +702,13 @@ func (b *sitemapBuilder) discoverImages(explicitImages []string) []seo_dto.Image
 
 	images := make([]seo_dto.ImageEntry, 0, len(explicitImages))
 	for _, img := range explicitImages {
-		images = append(images, seo_dto.ImageEntry{Location: b.buildAbsoluteURL(img)})
+		images = append(images, seo_dto.ImageEntry{
+			Location:    b.buildAbsoluteURL(img),
+			Caption:     "",
+			Title:       "",
+			License:     "",
+			GeoLocation: "",
+		})
 	}
 
 	return images
@@ -1100,7 +1108,13 @@ func (*sitemapBuilder) convertInputImages(input seo_dto.SitemapURLInput) []seo_d
 
 	images := make([]seo_dto.ImageEntry, 0, len(input.Images))
 	for _, imgURL := range input.Images {
-		images = append(images, seo_dto.ImageEntry{Location: imgURL})
+		images = append(images, seo_dto.ImageEntry{
+			Location:    imgURL,
+			Caption:     "",
+			Title:       "",
+			License:     "",
+			GeoLocation: "",
+		})
 	}
 	return images
 }
@@ -1391,6 +1405,12 @@ func newSitemapBuilder(
 		config:            sitemapConfig,
 		i18nDefaultLocale: i18nDefaultLocale,
 		dynamicURLSource:  dynamicURLSource,
+		urlProvider:       nil,
+		routeSources:      nil,
+		sandboxFactory:    nil,
+		sandbox:           nil,
+		i18nStrategy:      "",
+		i18nLocales:       nil,
 	}
 
 	for _, opt := range opts {
@@ -1447,9 +1467,8 @@ func convertInputNews(input *seo_dto.NewsInputEntry) *seo_dto.NewsEntry {
 // Returns seo_dto.Sitemap with the base namespace and any optional namespaces populated
 // according to the URL content.
 func buildSitemapNamespaces(urls []seo_dto.SitemapURL) seo_dto.Sitemap {
-	sitemap := seo_dto.Sitemap{
-		Xmlns: namespaceSitemap,
-	}
+	sitemap := seo_dto.Sitemap{}
+	sitemap.Xmlns = namespaceSitemap
 
 	for i := range urls {
 		url := &urls[i]

@@ -64,8 +64,8 @@ func (w *Watchdog) RunContentionDiagnostic(ctx context.Context) error {
 		return err
 	}
 
-	w.captureAndStoreProfile(ctx, "block", captureContext{Rule: "contention_diagnostic"})
-	w.captureAndStoreProfile(ctx, "mutex", captureContext{Rule: "contention_diagnostic"})
+	w.captureAndStoreProfile(ctx, "block", captureContext{Rule: "contention_diagnostic", Observed: 0, Threshold: 0})
+	w.captureAndStoreProfile(ctx, "mutex", captureContext{Rule: "contention_diagnostic", Observed: 0, Threshold: 0})
 
 	w.mu.Lock()
 	w.lastContentionDiagnosticAt = w.clock.Now()

@@ -53,9 +53,9 @@ func (m Money) Negate() Money {
 
 	negated, err := m.amount.Mul("-1")
 	if err != nil {
-		return Money{err: err}
+		return newMoneyError(err)
 	}
-	return Money{amount: negated}
+	return Money{amount: negated, err: nil}
 }
 
 // RoundToStandard rounds the money amount to the standard number of decimal places for
@@ -70,7 +70,7 @@ func (m Money) RoundToStandard() Money {
 	}
 	currencyRegistryMutex.RLock()
 	defer currencyRegistryMutex.RUnlock()
-	return Money{amount: m.amount.Round()}
+	return Money{amount: m.amount.Round(), err: nil}
 }
 
 // RoundTo rounds the money amount to a custom number of decimal places using the
@@ -84,7 +84,7 @@ func (m Money) RoundTo(places uint8, mode currency.RoundingMode) Money {
 	if m.err != nil {
 		return m
 	}
-	return Money{amount: m.amount.RoundTo(places, mode)}
+	return Money{amount: m.amount.RoundTo(places, mode), err: nil}
 }
 
 // AddPercent adds a percentage to the money value. For example,
@@ -98,11 +98,11 @@ func (m Money) AddPercent(p Decimal) Money {
 		return m
 	}
 	if p.Err() != nil {
-		return Money{err: p.Err()}
+		return newMoneyError(p.Err())
 	}
 	currentAmount, err := m.Amount()
 	if err != nil {
-		return Money{err: err}
+		return newMoneyError(err)
 	}
 	newAmount := currentAmount.AddPercent(p)
 	code, _ := m.CurrencyCode()
@@ -148,11 +148,11 @@ func (m Money) SubtractPercent(p Decimal) Money {
 		return m
 	}
 	if p.Err() != nil {
-		return Money{err: p.Err()}
+		return newMoneyError(p.Err())
 	}
 	currentAmount, err := m.Amount()
 	if err != nil {
-		return Money{err: err}
+		return newMoneyError(err)
 	}
 	newAmount := currentAmount.SubtractPercent(p)
 	code, _ := m.CurrencyCode()
@@ -198,11 +198,11 @@ func (m Money) GetPercent(p Decimal) Money {
 		return m
 	}
 	if p.Err() != nil {
-		return Money{err: p.Err()}
+		return newMoneyError(p.Err())
 	}
 	currentAmount, err := m.Amount()
 	if err != nil {
-		return Money{err: err}
+		return newMoneyError(err)
 	}
 	newAmount := currentAmount.GetPercent(p)
 	code, _ := m.CurrencyCode()
@@ -360,7 +360,7 @@ func (m Money) Ceil() Money {
 	}
 	amount, err := m.Amount()
 	if err != nil {
-		return Money{err: err}
+		return newMoneyError(err)
 	}
 	ceiledAmount := amount.Ceil()
 	code, _ := m.CurrencyCode()
@@ -376,7 +376,7 @@ func (m Money) Floor() Money {
 	}
 	amount, err := m.Amount()
 	if err != nil {
-		return Money{err: err}
+		return newMoneyError(err)
 	}
 	flooredAmount := amount.Floor()
 	code, _ := m.CurrencyCode()
@@ -393,7 +393,7 @@ func (m Money) Truncate() Money {
 	}
 	amount, err := m.Amount()
 	if err != nil {
-		return Money{err: err}
+		return newMoneyError(err)
 	}
 	truncatedAmount := amount.Truncate()
 	code, _ := m.CurrencyCode()

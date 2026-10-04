@@ -103,11 +103,9 @@ func TestMockTemplaterService_ConcurrentAccess(t *testing.T) {
 	websiteConfig := &config.WebsiteConfig{}
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_, _ = m.ProbePage(ctx, page, request, websiteConfig)
 			_ = m.RenderPage(ctx, templater_domain.RenderRequest{
 				Page:          page,
@@ -127,7 +125,7 @@ func TestMockTemplaterService_ConcurrentAccess(t *testing.T) {
 				WebsiteConfig: websiteConfig,
 			})
 			m.SetRunner(nil)
-		}()
+		})
 	}
 
 	wg.Wait()

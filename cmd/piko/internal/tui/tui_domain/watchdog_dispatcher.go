@@ -238,7 +238,16 @@ func NewEventDispatcher(provider WatchdogProvider, clk clock.Clock) *EventDispat
 		backoffInitial:   dispatcherInitialBackoff,
 		backoffMax:       dispatcherMaxBackoff,
 
-		rng: rand.New(rand.NewPCG(uint64(clk.Now().UnixNano()), 0)), //nolint:gosec // jitter, not a security primitive
+		rng:         rand.New(rand.NewPCG(uint64(clk.Now().UnixNano()), 0)), //nolint:gosec // jitter, not a security primitive
+		program:     nil,
+		cancel:      nil,
+		wg:          sync.WaitGroup{},
+		nextSubID:   atomic.Uint64{},
+		lastEventTS: atomic.Int64{},
+		dropped:     atomic.Uint64{},
+		historyMu:   sync.RWMutex{},
+		subsMu:      sync.Mutex{},
+		state:       atomic.Int32{},
 	}
 }
 
@@ -322,8 +331,11 @@ func (d *EventDispatcher) Subscribe(filter EventFilter, since time.Time) Watchdo
 	bufferSize := max(len(backfill)+8, d.subscriberBuffer)
 
 	sub := &dispatcherSub{
-		ch:     make(chan WatchdogEvent, bufferSize),
-		filter: filter,
+		ch:      make(chan WatchdogEvent, bufferSize),
+		filter:  filter,
+		id:      "",
+		dropped: atomic.Uint64{},
+		closed:  atomic.Bool{},
 	}
 
 	id := d.nextSubID.Add(1)

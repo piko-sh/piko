@@ -76,7 +76,7 @@ type limitedBuffer struct {
 //
 // Returns *limitedBuffer ready for use as an io.Writer.
 func newLimitedBuffer(limit int) *limitedBuffer {
-	return &limitedBuffer{limit: limit}
+	return &limitedBuffer{limit: limit, buffer: bytes.Buffer{}, exceeded: false}
 }
 
 // Write appends data to the buffer, returning errCaptureLimitExceeded if the write would
@@ -129,7 +129,10 @@ type ProfilingService struct {
 //
 // Returns *ProfilingService ready for gRPC registration.
 func NewProfilingService(controller monitoring_domain.ProfilingController) *ProfilingService {
-	return &ProfilingService{controller: controller}
+	return &ProfilingService{
+		controller:                          controller,
+		UnimplementedProfilingServiceServer: pb.UnimplementedProfilingServiceServer{},
+	}
 }
 
 // EnableProfiling starts the pprof server and configures runtime profiling rates.
@@ -205,6 +208,8 @@ func (s *ProfilingService) GetProfilingStatus(ctx context.Context, _ *pb.GetProf
 		MutexProfileFraction: safeconv.IntToInt32(profilingStatus.MutexProfileFraction),
 		MemProfileRate:       safeconv.IntToInt32(profilingStatus.MemProfileRate),
 		AvailableProfiles:    profilingStatus.AvailableProfiles,
+		ExpiresAtMs:          0,
+		RemainingMs:          0,
 	}
 
 	if profilingStatus.Enabled {
@@ -268,6 +273,7 @@ func sendProfileChunks(stream pb.ProfilingService_CaptureProfileServer, data []b
 		if err := stream.Send(&pb.CaptureProfileChunk{
 			IsLast:  true,
 			Warning: warning,
+			Data:    nil,
 		}); err != nil {
 			return fmt.Errorf("sending empty profile response: %w", err)
 		}
@@ -283,8 +289,9 @@ func sendProfileChunks(stream pb.ProfilingService_CaptureProfileServer, data []b
 		isLast := end >= len(data)
 
 		chunk := &pb.CaptureProfileChunk{
-			Data:   data[offset:end],
-			IsLast: isLast,
+			Data:    data[offset:end],
+			IsLast:  isLast,
+			Warning: "",
 		}
 		if offset == 0 && warning != "" {
 			chunk.Warning = warning

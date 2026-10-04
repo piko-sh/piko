@@ -475,6 +475,10 @@ a gap (`Q021`) for forward-compatibility.
 | `Q043` | warn  | A migration file mixes a non-transactional statement (a `piko.migration(no_transaction: true)` directive or an auto-detected statement such as `CREATE INDEX CONCURRENTLY`) with other statements, so the whole migration runs without a transaction and is not atomic. Move the non-transactional statement into its own migration file. |
 | `Q044` | warn  | A directive sits in the wrong file: a `piko.migration` directive in a query file, or a `piko.query` header in a migration file. The parser ignores the directive. |
 | `Q045` | warn  | An engine function resolver returned a resolution without declaring its data access, so the generator defaults the function to read-only. |
+| `Q046` | warn  | A `command: one` query pairs `ON CONFLICT DO NOTHING` with `RETURNING`. On a conflict no row comes back, so the generated scan returns the driver no-rows error. Use `optional: true`, `exec` / `execrows`, or handle the no-rows error explicitly. |
+| `Q047` | error | `optional: true` sits on a query where it has no meaning. It applies only to a static `command: one` query. |
+| `Q048` | warn  | The migration loader ignores a `.sql` file because its name ends in neither `.up.sql` nor `.down.sql`. |
+| `Q049` | error | A migration `go_type` override names a type the generator cannot use, so the column keeps its inferred Go type. |
 
 LSP plugins can use the `Suggestion` field on diagnostics that carry
 one to power one-click quick-fixes.
@@ -601,6 +605,36 @@ Available engine configs:
 | `wdk/db/db_engine_clickhouse` | `ClickHouse()` | ClickHouse (table-based migration lock; no transactions). |
 
 Each engine config gives the generator type inference and the migrator the correct dialect. Swap the import to change engine. No other application code changes.
+
+### Parser limits
+
+Engine parsers limit recursion and token processing per statement. Exceeding a limit returns a parse error. The engine constructor accepts limit options, and `EngineConfig.Engine` selects that configured instance.
+
+```go
+config := db_engine_postgres.Postgres()
+config.Engine = db_engine_postgres.NewPostgresEngine(
+    db_engine_postgres.WithMaxTokensPerStatement(250_000),
+)
+
+piko.WithDatabase("primary", &db.DatabaseRegistration{
+    DB:           sqlDB,
+    EngineConfig: config,
+})
+```
+
+| Option | Engines | Default | Bounds |
+|---|---|---|---|
+| `WithMaxParseDepth(depth int)` | postgres, mysql, sqlite, duckdb, clickhouse | 256 | Parser recursion depth across nested expressions and subqueries. |
+| `WithMaxTokensPerStatement(limit int)` | postgres, mysql, sqlite, duckdb, clickhouse | 100,000 | Tokens the parser walks for one statement. |
+| `WithMaxTypeParseDepth(depth int)` | clickhouse | 64 | Nesting of type names such as `Array(Array(Tuple(...)))`. |
+
+Values below one keep the default. Derived engines accept their base engine's options.
+
+| Constructor | Option type |
+|---|---|
+| `db_engine_mariadb.NewMariaDBEngine` | `db_engine_mysql.Option` |
+| `db_engine_cockroachdb.NewCockroachDBEngine` | `db_engine_postgres.Option` |
+| `db_engine_timescaledb.NewTimescaleDBEngine` | `db_engine_postgres.Option` |
 
 ### Reserved database names
 

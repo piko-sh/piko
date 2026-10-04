@@ -19,6 +19,7 @@
 package db_engine_mysql
 
 import (
+	"fmt"
 	"strings"
 
 	"piko.sh/piko/internal/querier/querier_dto"
@@ -59,8 +60,10 @@ func (p *parser) parseFunctionCallNoArgs(loweredName string, schema string) quer
 		p.advance()
 	}
 	result := &querier_dto.FunctionCallExpression{
-		FunctionName: loweredName,
-		Schema:       schema,
+		FunctionName:     loweredName,
+		Schema:           schema,
+		FilterExpression: nil,
+		Arguments:        nil,
 	}
 	return p.parseFunctionSuffix(result)
 }
@@ -87,9 +90,10 @@ func (p *parser) parseFunctionCallWithArgs(loweredName string, schema string) qu
 		parameterCountBefore, qualifiedFunctionName(loweredName, schema), argumentBoundaries)
 
 	result := &querier_dto.FunctionCallExpression{
-		FunctionName: loweredName,
-		Schema:       schema,
-		Arguments:    arguments,
+		FunctionName:     loweredName,
+		Schema:           schema,
+		Arguments:        arguments,
+		FilterExpression: nil,
 	}
 
 	return p.parseFunctionSuffix(result)
@@ -380,9 +384,10 @@ func (p *parser) parseTrimFunction(loweredName string, schema string) querier_dt
 		parameterCountBefore, qualifiedFunctionName(loweredName, schema), argumentBoundaries)
 
 	return &querier_dto.FunctionCallExpression{
-		FunctionName: loweredName,
-		Schema:       schema,
-		Arguments:    arguments,
+		FunctionName:     loweredName,
+		Schema:           schema,
+		Arguments:        arguments,
+		FilterExpression: nil,
 	}
 }
 
@@ -409,9 +414,10 @@ func (p *parser) parseExtractFunction(loweredName string, schema string) querier
 		parameterCountBefore, qualifiedFunctionName(loweredName, schema), argumentBoundaries)
 
 	return &querier_dto.FunctionCallExpression{
-		FunctionName: loweredName,
-		Schema:       schema,
-		Arguments:    arguments,
+		FunctionName:     loweredName,
+		Schema:           schema,
+		Arguments:        arguments,
+		FilterExpression: nil,
 	}
 }
 
@@ -453,9 +459,10 @@ func (p *parser) parseGroupConcatFunction(loweredName string, schema string) que
 		parameterCountBefore, qualifiedFunctionName(loweredName, schema), argumentBoundaries)
 
 	result := &querier_dto.FunctionCallExpression{
-		FunctionName: loweredName,
-		Schema:       schema,
-		Arguments:    arguments,
+		FunctionName:     loweredName,
+		Schema:           schema,
+		Arguments:        arguments,
+		FilterExpression: nil,
 	}
 
 	return p.parseFunctionSuffix(result)
@@ -513,9 +520,10 @@ func (p *parser) parseConvertFunction(loweredName string, schema string) querier
 	}
 
 	return &querier_dto.FunctionCallExpression{
-		FunctionName: loweredName,
-		Schema:       schema,
-		Arguments:    []querier_dto.Expression{inner},
+		FunctionName:     loweredName,
+		Schema:           schema,
+		Arguments:        []querier_dto.Expression{inner},
+		FilterExpression: nil,
 	}
 }
 
@@ -577,8 +585,8 @@ func (p *parser) parseCastTargetTypeName() string {
 		}
 	}
 
-	if p.current().kind == tokenLeftParen {
-		p.mustSkipParenthesised()
+	if err := p.skipParenthesisedIfPresent(); err != nil {
+		p.recordSyntaxError(fmt.Errorf("parsing CAST type modifiers: %w", err))
 	}
 
 	return typeName
@@ -693,7 +701,7 @@ func (p *parser) parseCaseExpression() querier_dto.Expression {
 		branches = append(branches, querier_dto.CaseWhenBranch{Condition: condition, Result: result})
 	}
 
-	expression := &querier_dto.CaseWhenExpression{Branches: branches}
+	expression := &querier_dto.CaseWhenExpression{Branches: branches, ElseResult: nil}
 
 	if p.matchKeyword("ELSE") {
 		expression.ElseResult = p.parseExpression()

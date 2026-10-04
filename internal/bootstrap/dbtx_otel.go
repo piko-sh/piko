@@ -157,6 +157,8 @@ func (set *operationLabelSet) labelFor(query string) string {
 // Takes databaseNamespace (string) which is the registered database name (e.g. "tasks").
 // Takes resolver (func(string) string) which maps a SQL query string to a human-readable
 // operation name. May be nil, in which case operations are reported as "UNKNOWN".
+// Takes observer (monitoring_domain.QueryObserver) which receives query execution
+// observations.
 //
 // Returns *otelDBTX which implements DBTX with instrumentation.
 func newOTelDBTX(

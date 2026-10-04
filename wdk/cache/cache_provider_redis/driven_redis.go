@@ -1044,6 +1044,9 @@ func (a *RedisAdapter[K, V]) prepareBulkSetItem(ctx context.Context, key K, valu
 	if a.expiryCalculator != nil {
 		entry := cache.Entry[K, V]{
 			Key: key, Value: value, SnapshotAtNano: time.Now().UnixNano(),
+			Weight:            0,
+			ExpiresAtNano:     0,
+			RefreshableAtNano: 0,
 		}
 		entryTTL = a.expiryCalculator.ExpireAfterCreate(entry)
 	}
@@ -1469,19 +1472,14 @@ func (a *RedisAdapter[K, V]) Stats() cache.Stats {
 	}
 }
 
-// Close releases the Redis client connection.
+// Close releases this namespace.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
+// The Redis client is shared by every namespace of the provider and is closed by
+// RedisProvider.Close, so closing one namespace leaves the others usable.
 //
-// Returns error when the client cannot be closed cleanly.
-func (a *RedisAdapter[K, V]) Close(ctx context.Context) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	if err := a.client.Close(); err != nil {
-		return fmt.Errorf("error closing Redis client: %w", err)
-	}
-	return nil
+// Returns error when ctx is already done.
+func (*RedisAdapter[K, V]) Close(ctx context.Context) error {
+	return ctx.Err()
 }
 
 // SetExpiresAfter updates the time-to-live for an existing key using the Redis EXPIRE

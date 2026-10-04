@@ -35,9 +35,9 @@ import (
 	"github.com/cespare/xxhash/v2"
 
 	"golang.org/x/sync/errgroup"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/pathutil"
 	"piko.sh/piko/internal/resolver/resolver_domain"
@@ -369,7 +369,7 @@ func (*GraphBuilder) processParseResultError(result *parseResult) ([]*ast_domain
 	}
 
 	if scriptErr, ok := errors.AsType[*scriptBlockParseError](result.err); ok {
-		diagnostic := ast_domain.NewDiagnosticWithCode(ast_domain.Error, scriptErr.Error(), "", annotator_dto.CodeClientScriptError, ast_domain.Location{Line: 0, Column: 0, Offset: 0}, result.path)
+		diagnostic := ast_domain.NewDiagnosticWithCode(ast_domain.Error, scriptErr.Error(), "", annotator_dto.CodeClientScriptError, ast_domain.Location{}, result.path)
 		return []*ast_domain.Diagnostic{diagnostic}, nil
 	}
 
@@ -413,10 +413,28 @@ func (gb *GraphBuilder) registerBrokenComponent(ctx context.Context, graph *anno
 
 	isExternal := !pathutil.Contains(baseDir, path)
 	graph.Components[hash] = &annotator_dto.ParsedComponent{
-		SourcePath:       path,
-		IsExternal:       isExternal,
-		ModuleImportPath: gb.buildModuleImportPath(path, baseDir, isExternal),
-		ComponentType:    gb.determineComponentType(ctx, path),
+		SourcePath:             path,
+		IsExternal:             isExternal,
+		ModuleImportPath:       gb.buildModuleImportPath(path, baseDir, isExternal),
+		ComponentType:          gb.determineComponentType(ctx, path),
+		Script:                 nil,
+		LocalTranslations:      nil,
+		Template:               nil,
+		VisibilityOverride:     nil,
+		ClientScript:           "",
+		CollectionName:         "",
+		CollectionProvider:     "",
+		CollectionParamName:    "",
+		ContentModulePath:      "",
+		RouteSourceName:        "",
+		RouteSourceParamName:   "",
+		SitemapPriority:        "",
+		SitemapChangeFrequency: "",
+		SitemapCanonical:       "",
+		StyleBlocks:            nil,
+		PikoImports:            nil,
+		HasCollection:          false,
+		SitemapNoindex:         false,
 	}
 }
 

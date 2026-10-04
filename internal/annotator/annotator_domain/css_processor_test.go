@@ -245,10 +245,7 @@ func TestCSSProcessor_Process(t *testing.T) {
 					color: red;
 				}
 			`,
-			minifyOpts: &config.Options{
-				MinifyWhitespace: false,
-				MinifySyntax:     false,
-			},
+			minifyOpts: &config.Options{},
 
 			expectedCSS: `.my-class {color:red;}`,
 		},
@@ -2713,7 +2710,7 @@ func TestScopeDirect(t *testing.T) {
 	t.Run("returns empty selector unchanged", func(t *testing.T) {
 		t.Parallel()
 
-		selector := css_ast.ComplexSelector{Selectors: nil}
+		selector := css_ast.ComplexSelector{}
 		result := scopeDirect(selector, scopeID)
 
 		assert.Empty(t, result.Selectors)
@@ -3081,7 +3078,7 @@ func TestRemoveMarkerClass(t *testing.T) {
 			},
 		}
 
-		loc := &markerLocation{compoundIndex: 0, subclassIndex: 0}
+		loc := &markerLocation{}
 		result := removeMarkerClass(selector, loc)
 		require.Len(t, result.Selectors, 1)
 		assert.Empty(t, result.Selectors[0].SubclassSelectors)
@@ -3101,7 +3098,7 @@ func TestExtractRootDescriptors(t *testing.T) {
 	t.Run("returns nil for template with no root nodes", func(t *testing.T) {
 		t.Parallel()
 
-		template := &ast_domain.TemplateAST{RootNodes: nil}
+		template := &ast_domain.TemplateAST{}
 		result := extractRootDescriptors(template)
 		assert.Nil(t, result)
 	})
@@ -3246,7 +3243,7 @@ func TestHandleDeepMarker(t *testing.T) {
 				},
 			},
 		}
-		marker := &markerLocation{compoundIndex: 0, subclassIndex: 0}
+		marker := &markerLocation{}
 
 		var scoped []css_ast.ComplexSelector
 		result := transformer.handleDeepMarker(scoped, selector, marker, es_logger.Loc{})

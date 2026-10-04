@@ -78,13 +78,9 @@ func (*PostgresEngine) CheckHealth(ctx context.Context, database *sql.DB) []db.D
 func checkPostgresDatabaseSize(ctx context.Context, database *sql.DB) []db.DatabaseHealthDiagnostic {
 	var sizeBytes int64
 	if err := database.QueryRowContext(ctx, "SELECT pg_database_size(current_database())").Scan(&sizeBytes); err != nil {
-		return []db.DatabaseHealthDiagnostic{{
-			Name: "database_size", State: healthStateUnhealthy, Message: fmt.Sprintf(healthQueryFailedFormat, err),
-		}}
+		return failedProbeDiagnostic("database_size", err)
 	}
-	return []db.DatabaseHealthDiagnostic{{
-		Name: "database_size", Value: formatBytes(sizeBytes),
-	}}
+	return probeValueDiagnostic("database_size", formatBytes(sizeBytes))
 }
 
 // checkPostgresActiveConnections probes the count of active sessions.
@@ -97,13 +93,9 @@ func checkPostgresDatabaseSize(ctx context.Context, database *sql.DB) []db.Datab
 func checkPostgresActiveConnections(ctx context.Context, database *sql.DB) []db.DatabaseHealthDiagnostic {
 	var count int
 	if err := database.QueryRowContext(ctx, "SELECT count(*) FROM pg_stat_activity WHERE state = 'active'").Scan(&count); err != nil {
-		return []db.DatabaseHealthDiagnostic{{
-			Name: "active_connections", State: healthStateUnhealthy, Message: fmt.Sprintf(healthQueryFailedFormat, err),
-		}}
+		return failedProbeDiagnostic("active_connections", err)
 	}
-	return []db.DatabaseHealthDiagnostic{{
-		Name: "active_connections", Value: strconv.Itoa(count),
-	}}
+	return probeValueDiagnostic("active_connections", strconv.Itoa(count))
 }
 
 // checkPostgresRecoveryState probes whether the server is in recovery mode.
@@ -116,13 +108,9 @@ func checkPostgresActiveConnections(ctx context.Context, database *sql.DB) []db.
 func checkPostgresRecoveryState(ctx context.Context, database *sql.DB) []db.DatabaseHealthDiagnostic {
 	var inRecovery bool
 	if err := database.QueryRowContext(ctx, "SELECT pg_is_in_recovery()").Scan(&inRecovery); err != nil {
-		return []db.DatabaseHealthDiagnostic{{
-			Name: "is_in_recovery", State: healthStateUnhealthy, Message: fmt.Sprintf(healthQueryFailedFormat, err),
-		}}
+		return failedProbeDiagnostic("is_in_recovery", err)
 	}
-	return []db.DatabaseHealthDiagnostic{{
-		Name: "is_in_recovery", Value: strconv.FormatBool(inRecovery),
-	}}
+	return probeValueDiagnostic("is_in_recovery", strconv.FormatBool(inRecovery))
 }
 
 // checkPostgresReplicationLag probes replication lag when in recovery.
@@ -141,9 +129,7 @@ func checkPostgresReplicationLag(ctx context.Context, database *sql.DB) []db.Dat
 			"ELSE NULL END",
 	).Scan(&lagSeconds)
 	if err != nil {
-		return []db.DatabaseHealthDiagnostic{{
-			Name: "replication_lag", State: healthStateUnhealthy, Message: fmt.Sprintf(healthQueryFailedFormat, err),
-		}}
+		return failedProbeDiagnostic("replication_lag", err)
 	}
 
 	if !lagSeconds.Valid {
@@ -184,4 +170,34 @@ func formatBytes(bytes int64) string {
 		exponent++
 	}
 	return fmt.Sprintf("%.1f %ciB", float64(bytes)/float64(divisor), "KMGTPE"[exponent])
+}
+
+// failedProbeDiagnostic reports a probe whose query failed as unhealthy.
+//
+// Takes name (string) which identifies the probe.
+// Takes err (error) which is the query failure.
+//
+// Returns []db.DatabaseHealthDiagnostic which is a single unhealthy entry.
+func failedProbeDiagnostic(name string, err error) []db.DatabaseHealthDiagnostic {
+	return []db.DatabaseHealthDiagnostic{{
+		Name:    name,
+		Value:   "",
+		State:   healthStateUnhealthy,
+		Message: fmt.Sprintf(healthQueryFailedFormat, err),
+	}}
+}
+
+// probeValueDiagnostic reports a probe's measured value with no health state.
+//
+// Takes name (string) which identifies the probe.
+// Takes value (string) which is the measured value.
+//
+// Returns []db.DatabaseHealthDiagnostic which is a single entry carrying the value.
+func probeValueDiagnostic(name string, value string) []db.DatabaseHealthDiagnostic {
+	return []db.DatabaseHealthDiagnostic{{
+		Name:    name,
+		Value:   value,
+		State:   "",
+		Message: "",
+	}}
 }

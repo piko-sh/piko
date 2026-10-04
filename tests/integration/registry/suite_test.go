@@ -123,7 +123,17 @@ func addGCHints(t *testing.T, store registry_domain.MetadataStore, hints []regis
 
 func incrementRef(t *testing.T, store registry_domain.MetadataStore, key string) int {
 	t.Helper()
-	count, err := store.IncrementBlobRefCount(t.Context(), registry_domain.BlobReference{
+	count, err := store.IncrementBlobRefCount(t.Context(), blobReference(key))
+	require.NoError(t, err, "incrementing ref count for %q", key)
+	return count
+}
+
+func ctx(t *testing.T) context.Context {
+	return t.Context()
+}
+
+func blobReference(key string) registry_domain.BlobReference {
+	return registry_domain.BlobReference{
 		StorageKey:       key,
 		StorageBackendID: "local_disk_cache",
 		ContentHash:      "hash-" + key,
@@ -131,11 +141,5 @@ func incrementRef(t *testing.T, store registry_domain.MetadataStore, key string)
 		SizeBytes:        42,
 		CreatedAt:        fixedTime,
 		LastReferencedAt: fixedTime,
-	})
-	require.NoError(t, err, "incrementing ref count for %q", key)
-	return count
-}
-
-func ctx(t *testing.T) context.Context {
-	return t.Context()
+	}
 }

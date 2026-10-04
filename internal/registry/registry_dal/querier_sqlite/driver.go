@@ -410,7 +410,8 @@ func (d *driver) DeleteArtefact(ctx context.Context, artefactID string) error {
 
 // DeleteArtefactLayer deletes one artefact layer, keyed by (id, release_id).
 //
-// Takes artefactID (string) and releaseID (string) which identify the layer.
+// Takes artefactID (string) which identifies the artefact within the release.
+// Takes releaseID (string) which identifies the release that owns the artefact layer.
 //
 // Returns error when the delete fails.
 func (d *driver) DeleteArtefactLayer(ctx context.Context, artefactID, releaseID string) error {
@@ -447,7 +448,8 @@ func (d *driver) ReclaimArtefactLayersForRelease(ctx context.Context, releaseID 
 
 // DeleteVariantTagsForArtefact removes an artefact layer's variant tags.
 //
-// Takes artefactID (string) and releaseID (string) which identify the layer.
+// Takes artefactID (string) which identifies the artefact within the release.
+// Takes releaseID (string) which identifies the release that owns the artefact layer.
 //
 // Returns error when the delete fails.
 func (d *driver) DeleteVariantTagsForArtefact(ctx context.Context, artefactID, releaseID string) error {
@@ -457,6 +459,7 @@ func (d *driver) DeleteVariantTagsForArtefact(ctx context.Context, artefactID, r
 // DeleteChunksForArtefact removes every chunk belonging to an artefact.
 //
 // Takes artefactID (string) which identifies the owning artefact.
+// Takes releaseID (string) which identifies the release that owns the artefact layer.
 //
 // Returns error when the delete fails.
 func (d *driver) DeleteChunksForArtefact(ctx context.Context, artefactID, releaseID string) error {
@@ -465,7 +468,8 @@ func (d *driver) DeleteChunksForArtefact(ctx context.Context, artefactID, releas
 
 // DeleteVariantsForArtefact removes an artefact layer's variants.
 //
-// Takes artefactID (string) and releaseID (string) which identify the layer.
+// Takes artefactID (string) which identifies the artefact within the release.
+// Takes releaseID (string) which identifies the release that owns the artefact layer.
 //
 // Returns error when the delete fails.
 func (d *driver) DeleteVariantsForArtefact(ctx context.Context, artefactID, releaseID string) error {
@@ -474,7 +478,8 @@ func (d *driver) DeleteVariantsForArtefact(ctx context.Context, artefactID, rele
 
 // DeleteDesiredProfilesForArtefact removes an artefact layer's desired profiles.
 //
-// Takes artefactID (string) and releaseID (string) which identify the layer.
+// Takes artefactID (string) which identifies the artefact within the release.
+// Takes releaseID (string) which identifies the release that owns the artefact layer.
 //
 // Returns error when the delete fails.
 func (d *driver) DeleteDesiredProfilesForArtefact(ctx context.Context, artefactID, releaseID string) error {
@@ -502,9 +507,11 @@ func (d *driver) InsertVariant(ctx context.Context, params dalcore.InsertVariant
 
 // InsertVariantTag stores a single metadata tag for a variant in a layer.
 //
-// Takes artefactID (string) and releaseID (string) which identify the layer.
+// Takes artefactID (string) which identifies the artefact within the release.
+// Takes releaseID (string) which identifies the release that owns the artefact layer.
 // Takes variantID (string) which identifies the owning variant.
-// Takes tagKey (string) and tagValue (string) which are the tag to store.
+// Takes tagKey (string) which names the metadata tag.
+// Takes tagValue (string) which contains the metadata tag value.
 //
 // Returns error when the insert fails.
 func (d *driver) InsertVariantTag(ctx context.Context, artefactID, releaseID, variantID, tagKey, tagValue string) error {
@@ -604,7 +611,10 @@ func (d *driver) GetRelease(ctx context.Context, releaseID string) (dalcore.Rele
 
 // MarkReleasePublished flips a release lease to published and stamps its timestamps.
 //
-// Takes releaseID (string), publishedAt (int64) and heartbeatAt (int64).
+// Takes releaseID (string) which identifies the release whose publishing lease is
+// accessed.
+// Takes publishedAt (int64) which is the publication time in Unix seconds.
+// Takes heartbeatAt (int64) which is the lease heartbeat time in Unix seconds.
 //
 // Returns error when the update fails.
 func (d *driver) MarkReleasePublished(ctx context.Context, releaseID string, publishedAt, heartbeatAt int64) error {
@@ -619,7 +629,9 @@ func (d *driver) MarkReleasePublished(ctx context.Context, releaseID string, pub
 // new heartbeat feeds both the SET value and the comparison, which makes the update
 // monotonic.
 //
-// Takes releaseID (string) and heartbeatAt (int64).
+// Takes releaseID (string) which identifies the release whose publishing lease is
+// accessed.
+// Takes heartbeatAt (int64) which is the lease heartbeat time in Unix seconds.
 //
 // Returns error when the update fails.
 func (d *driver) HeartbeatRelease(ctx context.Context, releaseID string, heartbeatAt int64) error {
@@ -632,7 +644,9 @@ func (d *driver) HeartbeatRelease(ctx context.Context, releaseID string, heartbe
 
 // ListExpiredReleases returns published releases whose heartbeat predates the cutoff.
 //
-// Takes cutoff (int64) and ownRelease (string) which is excluded from the result.
+// Takes cutoff (int64) which is the stale-heartbeat threshold in Unix seconds.
+// Takes ownRelease (string) which identifies the caller release to exclude from the
+// result.
 //
 // Returns []string which are the expired release IDs.
 // Returns error when the query fails.
@@ -663,8 +677,10 @@ func (d *driver) DeleteReleaseLease(ctx context.Context, releaseID string) error
 // DeleteStalePublishingLease removes a publishing lease whose heartbeat predates
 // staleBefore.
 //
-// Takes releaseID (string) which identifies the release, and staleBefore (int64) which is
-// the staleness cutoff in Unix seconds.
+// Takes releaseID (string) which identifies the release whose publishing lease is
+// accessed.
+// Takes staleBefore (int64) which is the publishing lease expiry threshold in Unix
+// seconds.
 //
 // Returns error when the delete fails.
 func (d *driver) DeleteStalePublishingLease(ctx context.Context, releaseID string, staleBefore int64) error {

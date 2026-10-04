@@ -23,26 +23,6 @@
 // orchestrates caching operations, and a fluent builder API for constructing configured
 // cache instances with support for transformations, encoding, and multi-level caching.
 //
-// # Usage
-//
-// Create a cache using the builder:
-//
-//	service := cache_domain.NewService("otter")
-//	cache, err := cache_domain.NewCacheBuilder[string, User](service).
-//	    WithProvider("redis").
-//	    WithNamespace("users").
-//	    WithMaximumSize(10000).
-//	    WithCompression().
-//	    WithExpiration(10 * time.Minute).
-//	    Build(ctx)
-//
-// Or create a multi-level cache with local and remote layers:
-//
-//	cache, err := cache_domain.NewCacheBuilder[string, User](service).
-//	    WithMultiLevel("otter", "redis").
-//	    WithMaximumSize(1000).
-//	    Build(ctx)
-//
 // # Context handling
 //
 // All I/O methods accept a context.Context for cancellation and timeout control.

@@ -40,9 +40,7 @@ var (
 //
 // Returns *ListItem which is the initialised component ready for use.
 func NewListItem() *ListItem {
-	return &ListItem{
-		BaseComponent: BaseComponent{},
-	}
+	return &ListItem{}
 }
 
 // TagName returns the tag name for this component.

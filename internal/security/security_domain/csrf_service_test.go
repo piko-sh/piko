@@ -63,9 +63,7 @@ func TestNewCSRFTokenService_EmptySecret_ReturnsError(t *testing.T) {
 
 func TestNewCSRFTokenService_NilSecret_ReturnsError(t *testing.T) {
 	binder := newMockBinder("session-id")
-	config := SecurityConfig{
-		HMACSecretKey: nil,
-	}
+	config := SecurityConfig{}
 
 	service, err := NewCSRFTokenService(config, binder, newMockCookieSource())
 

@@ -77,11 +77,12 @@ func (s *captchaService) checkLiveness(startTime time.Time) healthprobe_dto.Stat
 	}
 
 	return healthprobe_dto.Status{
-		Name:      healthProbeName,
-		State:     state,
-		Message:   message,
-		Timestamp: startTime,
-		Duration:  s.clock.Now().Sub(startTime).String(),
+		Name:         healthProbeName,
+		State:        state,
+		Message:      message,
+		Timestamp:    startTime,
+		Duration:     s.clock.Now().Sub(startTime).String(),
+		Dependencies: nil,
 	}
 }
 
@@ -93,31 +94,36 @@ func (s *captchaService) checkLiveness(startTime time.Time) healthprobe_dto.Stat
 func (s *captchaService) checkReadiness(ctx context.Context, startTime time.Time) healthprobe_dto.Status {
 	if !s.IsEnabled() {
 		return healthprobe_dto.Status{
-			Name:      healthProbeName,
-			State:     healthprobe_dto.StateDegraded,
-			Message:   "no captcha provider configured",
-			Timestamp: startTime,
-			Duration:  s.clock.Now().Sub(startTime).String(),
+			Name:         healthProbeName,
+			State:        healthprobe_dto.StateDegraded,
+			Message:      "no captcha provider configured",
+			Timestamp:    startTime,
+			Duration:     s.clock.Now().Sub(startTime).String(),
+			Dependencies: nil,
 		}
 	}
 
 	provider, err := s.getProvider(ctx)
 	if err != nil {
 		return healthprobe_dto.Status{
-			Name:      healthProbeName,
-			State:     healthprobe_dto.StateUnhealthy,
-			Message:   fmt.Sprintf("failed to resolve provider: %v", err),
-			Timestamp: startTime,
-			Duration:  s.clock.Now().Sub(startTime).String(),
+			Name:         healthProbeName,
+			State:        healthprobe_dto.StateUnhealthy,
+			Message:      fmt.Sprintf("failed to resolve provider: %v", err),
+			Timestamp:    startTime,
+			Duration:     s.clock.Now().Sub(startTime).String(),
+			Dependencies: nil,
 		}
 	}
 
 	healthErr := provider.HealthCheck(ctx)
 
 	providerStatus := &healthprobe_dto.Status{
-		Name:      string(provider.Type()),
-		Timestamp: startTime,
-		Duration:  s.clock.Now().Sub(startTime).String(),
+		Name:         string(provider.Type()),
+		Timestamp:    startTime,
+		Duration:     s.clock.Now().Sub(startTime).String(),
+		State:        "",
+		Message:      "",
+		Dependencies: nil,
 	}
 
 	if healthErr != nil {

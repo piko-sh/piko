@@ -144,12 +144,15 @@ func NewService(collectors []Collector, opts ...ServiceOption) *Service {
 		workers[i] = collectorWorker{
 			collector: c,
 			eventCh:   make(chan *analytics_dto.Event, cfg.channelBufferSize),
+			wg:        sync.WaitGroup{},
 		}
 	}
 
 	return &Service{
 		workers:     workers,
 		workerCount: cfg.workerCount,
+		closeOnce:   sync.Once{},
+		stopped:     atomic.Bool{},
 	}
 }
 

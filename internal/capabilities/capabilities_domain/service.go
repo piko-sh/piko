@@ -91,5 +91,6 @@ func (s *capabilityService) Execute(
 func NewCapabilityService(initialCapacity int) CapabilityService {
 	return &capabilityService{
 		capabilities: make(map[string]CapabilityFunc, initialCapacity),
+		mu:           sync.RWMutex{},
 	}
 }

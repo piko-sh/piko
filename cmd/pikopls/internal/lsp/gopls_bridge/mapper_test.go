@@ -42,7 +42,7 @@ func TestMapperRoundTrip(t *testing.T) {
 		assert.Equal(t, virtual, back, "round trip should be identity")
 	}
 
-	realPosition := mapper.ToReal(protocol.Position{Line: 0, Character: 0})
+	realPosition := mapper.ToReal(protocol.Position{})
 	assert.Equal(t, uint32(142), realPosition.Line)
 	assert.Equal(t, uint32(0), realPosition.Character)
 }

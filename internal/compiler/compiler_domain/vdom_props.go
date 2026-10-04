@@ -437,6 +437,8 @@ func handleModelDirective(
 		ctx, eventName, "__internal_model_updater", astBindingOptions{
 			loopVarNames:        getLoopVarNames(loopVars),
 			directFrameworkBody: handlerBodyBlock,
+			userArgs:            nil,
+			eventModifiers:      nil,
 		},
 	)
 	if err != nil {
@@ -575,6 +577,9 @@ func addNavigateClickHandler(
 		"__internal_navigateTo",
 		astBindingOptions{
 			directFrameworkBody: handlerBodyBlock,
+			userArgs:            nil,
+			loopVarNames:        nil,
+			eventModifiers:      nil,
 		},
 	)
 

@@ -99,7 +99,7 @@ Piko applications accept the run mode as the first command-line argument:
 | Run mode | Constant | Behaviour |
 |---|---|---|
 | `dev` | `piko.RunModeDev` | Hot reload, file watching, verbose dev output. |
-| `dev-i` | `piko.RunModeDevInterpreted` | Yaegi interpreter: no recompilation, slower runtime. |
+| `dev-i` | `piko.RunModeDevInterpreted` | Development only. Pipit compiles generated Go to bytecode without rebuilding the server for template edits. |
 | `prod` | `piko.RunModeProd` | Compiled templates, AST caching, production HTTP stack. |
 
 The scaffolded `cmd/main/main.go` reads the argument and passes it to `ssr.Run`:
@@ -177,7 +177,7 @@ A multi-stage Dockerfile:
 
 ```dockerfile
 # Build stage
-FROM golang:1.26 AS build
+FROM golang:1.27 AS build
 WORKDIR /app
 
 COPY go.mod go.sum ./

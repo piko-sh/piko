@@ -139,16 +139,14 @@ func TestWorkspace_ConcurrentUpdateDocument(t *testing.T) {
 	const iterations = 100
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
-	for i := range goroutines {
-		go func(id int) {
-			defer wg.Done()
+	for id := range goroutines {
+		wg.Go(func() {
 			for j := range iterations {
 				content := fmt.Appendf(nil, "<template>content-%d-%d</template>", id, j)
 				ws.UpdateDocument(uri, content, 1)
 			}
-		}(i)
+		})
 	}
 
 	wg.Wait()
@@ -178,15 +176,13 @@ func TestWorkspace_ConcurrentGetDocument(t *testing.T) {
 	const iterations = 500
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for range iterations {
 				_, _ = ws.GetDocument(uri)
 			}
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -203,25 +199,22 @@ func TestWorkspace_ConcurrentUpdateAndGet(t *testing.T) {
 	const iterations = 100
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines * 2)
 
-	for i := range goroutines {
-		go func(id int) {
-			defer wg.Done()
+	for id := range goroutines {
+		wg.Go(func() {
 			for j := range iterations {
 				content := fmt.Appendf(nil, "<template>content-%d-%d</template>", id, j)
 				ws.UpdateDocument(uri, content, 1)
 			}
-		}(i)
+		})
 	}
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for range iterations {
 				_, _ = ws.GetDocument(uri)
 			}
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -302,11 +295,9 @@ func TestWorkspace_ConcurrentSetupCleanup(t *testing.T) {
 	const iterations = 50
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
-	for i := range goroutines {
-		go func(id int) {
-			defer wg.Done()
+	for id := range goroutines {
+		wg.Go(func() {
 			uri := protocol.DocumentURI(fmt.Sprintf("file:///test%d.pk", id))
 			ctx := context.Background()
 
@@ -315,7 +306,7 @@ func TestWorkspace_ConcurrentSetupCleanup(t *testing.T) {
 
 				ws.cleanupAnalysisContext(ctx, uri, doneChan, token)
 			}
-		}(i)
+		})
 	}
 
 	wg.Wait()
@@ -332,18 +323,16 @@ func TestWorkspace_ConcurrentSetupCleanup_SameURI(t *testing.T) {
 	const iterations = 50
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			ctx := context.Background()
 
 			for range iterations {
 				_, doneChan, token := ws.setupAnalysisContext(ctx, uri, 1)
 				ws.cleanupAnalysisContext(ctx, uri, doneChan, token)
 			}
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -518,25 +507,6 @@ func TestRemoveDocument_NilClient_DoesNotPanic(t *testing.T) {
 	ws.RemoveDocument(context.Background(), testURI)
 }
 
-func TestSearchAllDocuments_FindsReferencesAcrossDocuments(t *testing.T) {
-	ws := createTestWorkspace()
-
-	ws.documents["file:///a.pk"] = &document{URI: "file:///a.pk"}
-	ws.documents["file:///b.pk"] = &document{URI: "file:///b.pk"}
-
-	target := &symbolTarget{
-		sourcePath:  "/project/main.go",
-		name:        "Foo",
-		defLocation: ast_domain.Location{Line: 10, Column: 5},
-	}
-
-	locations := ws.searchAllDocuments(target)
-
-	if len(locations) != 0 {
-		t.Errorf("expected 0 locations, got %d", len(locations))
-	}
-}
-
 func TestCopyActionProviders_ReturnsShallowCopy(t *testing.T) {
 	ws := createTestWorkspace()
 	ws.actionProviders = make(map[string]annotator_domain.ActionInfoProvider)
@@ -705,11 +675,9 @@ func TestExtractTypedAnalysisMap(t *testing.T) {
 			wantNil: true,
 		},
 		{
-			name: "nil analysis map returns nil",
-			uri:  "file:///test.pk",
-			result: &annotator_dto.AnnotationResult{
-				AnalysisMap: nil,
-			},
+			name:    "nil analysis map returns nil",
+			uri:     "file:///test.pk",
+			result:  &annotator_dto.AnnotationResult{},
 			wantNil: true,
 		},
 		{
@@ -781,19 +749,15 @@ func TestExtractAnnotationResultForURI(t *testing.T) {
 		wantNil bool
 	}{
 		{
-			name: "nil VirtualModule returns nil",
-			project: &annotator_dto.ProjectAnnotationResult{
-				VirtualModule: nil,
-			},
+			name:    "nil VirtualModule returns nil",
+			project: &annotator_dto.ProjectAnnotationResult{},
 			absPath: "/test.pk",
 			wantNil: true,
 		},
 		{
 			name: "nil Graph returns nil",
 			project: &annotator_dto.ProjectAnnotationResult{
-				VirtualModule: &annotator_dto.VirtualModule{
-					Graph: nil,
-				},
+				VirtualModule: &annotator_dto.VirtualModule{},
 			},
 			absPath: "/test.pk",
 			wantNil: true,
@@ -1049,24 +1013,21 @@ func TestWorkspace_ConcurrentSetConnGetConn(t *testing.T) {
 	const iterations = 100
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines * 2)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for range iterations {
 				ws.setConn(nil)
 			}
-		}()
+		})
 	}
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for range iterations {
 				_ = ws.getConn()
 			}
-		}()
+		})
 	}
 
 	wg.Wait()

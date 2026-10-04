@@ -307,7 +307,7 @@ func TestAnthropicProvider_ValidateToolCallArguments(t *testing.T) {
 
 	t.Run("empty arguments are handled gracefully", func(t *testing.T) {
 		toolCalls := []llm_dto.ToolCall{
-			{Function: llm_dto.FunctionCall{Arguments: ""}},
+			{Function: llm_dto.FunctionCall{}},
 		}
 
 		p.validateToolCallArguments(toolCalls)

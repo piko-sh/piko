@@ -23,7 +23,8 @@
 //
 // If the Piko framework has been bootstrapped (daemon mode), [GetDefaultService] returns
 // the pre-configured service instance. For standalone use (tests, CLI), create a service
-// from a compiled manifest with [NewServiceFromManifest].
+// from a compiled manifest with [NewServiceFromManifest] and load the manifest with
+// [ManifestService.Load] before rendering.
 //
 // # Daemon usage
 //
@@ -42,6 +43,9 @@
 //
 //	service, err := pdf.NewServiceFromManifest("dist/manifest.bin")
 //	if err != nil {
+//	    return err
+//	}
+//	if err := service.Load(ctx); err != nil {
 //	    return err
 //	}
 //	result, err := service.NewRender().

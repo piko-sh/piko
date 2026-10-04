@@ -50,6 +50,9 @@ type MockInterpretedOrchestrator struct {
 	// RemoveComponentFunc is the function called by RemoveComponent.
 	RemoveComponentFunc func(ctx context.Context, relPath string)
 
+	// InvalidateUserPackagesFunc is the function called by InvalidateUserPackages.
+	InvalidateUserPackagesFunc func()
+
 	// BuildRunnerCallCount tracks how many times BuildRunner was called.
 	BuildRunnerCallCount atomic.Int64
 
@@ -70,6 +73,10 @@ type MockInterpretedOrchestrator struct {
 
 	// RemoveComponentCallCount tracks how many times RemoveComponent was called.
 	RemoveComponentCallCount atomic.Int64
+
+	// InvalidateUserPackagesCallCount tracks how many times InvalidateUserPackages was
+	// called.
+	InvalidateUserPackagesCallCount atomic.Int64
 }
 
 var (
@@ -163,5 +170,13 @@ func (m *MockInterpretedOrchestrator) RemoveComponent(ctx context.Context, relPa
 	m.RemoveComponentCallCount.Add(1)
 	if m.RemoveComponentFunc != nil {
 		m.RemoveComponentFunc(ctx, relPath)
+	}
+}
+
+// InvalidateUserPackages records that user Go packages changed.
+func (m *MockInterpretedOrchestrator) InvalidateUserPackages() {
+	m.InvalidateUserPackagesCallCount.Add(1)
+	if m.InvalidateUserPackagesFunc != nil {
+		m.InvalidateUserPackagesFunc()
 	}
 }

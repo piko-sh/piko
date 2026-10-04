@@ -146,6 +146,7 @@ func DecodeRawEntry(crcAndPayload []byte) (wal_domain.RawEntry, error) {
 		Timestamp: timestamp,
 		Operation: operation,
 		CRCValid:  storedCRC == computedCRC,
+		SizeBytes: 0,
 	}, nil
 }
 

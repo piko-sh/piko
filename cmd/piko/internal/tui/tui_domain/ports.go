@@ -474,7 +474,8 @@ type Panel interface {
 	// Panels with no per-row detail return the empty string; the composer falls back to a
 	// placeholder hint in that case. The returned string must be sized to (width, height).
 	//
-	// Takes width (int) and height (int) for the inner content area.
+	// Takes width (int) which sets the available width in terminal cells.
+	// Takes height (int) which sets the available height in terminal rows.
 	//
 	// Returns string with the rendered detail body, or "" to opt out.
 	DetailView(width, height int) string

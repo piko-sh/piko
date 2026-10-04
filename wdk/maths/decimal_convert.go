@@ -277,23 +277,23 @@ type NumberLocale struct {
 var (
 	// LocaleEnGB uses "." for decimal and "," for thousands (e.g., 1,234.56). Used by:
 	// en-GB, en-AU, en-NZ, en-IE, en-ZA, ja, zh, ko, th.
-	LocaleEnGB = NumberLocale{DecimalSep: ".", ThousandSep: ",", GroupSize: 3}
+	LocaleEnGB = NumberLocale{DecimalSep: ".", ThousandSep: ",", GroupSize: 3, SecondaryGroupSize: 0}
 
 	// LocaleEnUS uses "." for decimal and "," for thousands (e.g., 1,234.56). Identical to
 	// LocaleEnGB but kept separate for semantic clarity.
-	LocaleEnUS = NumberLocale{DecimalSep: ".", ThousandSep: ",", GroupSize: 3}
+	LocaleEnUS = NumberLocale{DecimalSep: ".", ThousandSep: ",", GroupSize: 3, SecondaryGroupSize: 0}
 
 	// LocaleDeDe uses "," for decimal and "." for thousands (e.g., 1.234,56). Used by: de,
 	// es, it, pt, nl, el, tr, hr, ro, sr, sl, vi, id.
-	LocaleDeDe = NumberLocale{DecimalSep: ",", ThousandSep: ".", GroupSize: 3}
+	LocaleDeDe = NumberLocale{DecimalSep: ",", ThousandSep: ".", GroupSize: 3, SecondaryGroupSize: 0}
 
 	// LocaleFrFr uses "," for decimal and narrow no-break space (U+202F) for thousands
 	// (e.g., 1 234,56). Used by: fr, sv, nb, nn, da, fi, pl, ru, uk, be, cs, sk, bg, hu.
-	LocaleFrFr = NumberLocale{DecimalSep: ",", ThousandSep: "\u202f", GroupSize: 3}
+	LocaleFrFr = NumberLocale{DecimalSep: ",", ThousandSep: "\u202f", GroupSize: 3, SecondaryGroupSize: 0}
 
 	// LocaleSwiss uses "." for decimal and apostrophe "'" for thousands (e.g., 1'234.56).
 	// Used by: de-CH, fr-CH, it-CH, rm-CH.
-	LocaleSwiss = NumberLocale{DecimalSep: ".", ThousandSep: "'", GroupSize: 3}
+	LocaleSwiss = NumberLocale{DecimalSep: ".", ThousandSep: "'", GroupSize: 3, SecondaryGroupSize: 0}
 
 	// LocaleIndian defines Indian number formatting with lakh and crore grouping.
 	//
@@ -309,7 +309,7 @@ var (
 
 	// LocaleRaw uses no thousand separator and "." for decimal. Useful for machine-readable
 	// output or when no formatting is desired.
-	LocaleRaw = NumberLocale{DecimalSep: ".", ThousandSep: "", GroupSize: 0}
+	LocaleRaw = NumberLocale{DecimalSep: ".", ThousandSep: "", GroupSize: 0, SecondaryGroupSize: 0}
 
 	// localeMap maps locale strings to NumberLocale settings. Organised by number format
 	// family for clarity.

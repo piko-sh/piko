@@ -127,10 +127,8 @@ func TestGetSpecialisedHelperName(t *testing.T) {
 			want:        "GenericAppend",
 		},
 		{
-			name: "nil ResolvedType returns generic",
-			ann: &ast_domain.GoGeneratorAnnotation{
-				ResolvedType: nil,
-			},
+			name:        "nil ResolvedType returns generic",
+			ann:         &ast_domain.GoGeneratorAnnotation{},
 			genericName: "GenericAppend",
 			want:        "GenericAppend",
 		},

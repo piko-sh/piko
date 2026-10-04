@@ -126,9 +126,15 @@ func NewWatchdogHistoryPanel(provider WatchdogProvider, clk clock.Clock) *Watchd
 		clk = clock.RealClock()
 	}
 	panel := &WatchdogHistoryPanel{
-		BasePanel: NewBasePanel(WatchdogHistoryPanelID, WatchdogHistoryPanelTitle),
-		provider:  provider,
-		clock:     clk,
+		BasePanel:    NewBasePanel(WatchdogHistoryPanelID, WatchdogHistoryPanelTitle),
+		provider:     provider,
+		clock:        clk,
+		lastFetchErr: nil,
+		theme:        nil,
+		status:       nil,
+		entries:      nil,
+		filter:       0,
+		mu:           sync.RWMutex{},
 	}
 	panel.SetKeyMap([]KeyBinding{
 		{Key: "j / Down", Description: "Next entry"},

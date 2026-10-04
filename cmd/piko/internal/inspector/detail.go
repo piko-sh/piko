@@ -34,6 +34,20 @@ type DetailRow struct {
 	IsStatus bool
 }
 
+// NewDetailRow returns a plain label and value row.
+//
+// Takes label (string) which names the value.
+// Takes value (string) which is the text shown for it.
+//
+// Returns DetailRow which is not styled as a status.
+func NewDetailRow(label, value string) DetailRow {
+	return DetailRow{
+		Label:    label,
+		Value:    value,
+		IsStatus: false,
+	}
+}
+
 // DetailSection groups labelled rows under an optional heading.
 //
 // SubSections allow nested groups; the CLI Printer indents them, the TUI flattens them
@@ -47,6 +61,20 @@ type DetailSection struct {
 
 	// SubSections are nested sections rendered after the rows.
 	SubSections []DetailSection
+}
+
+// NewDetailSection returns a section of rows under a heading, with no sub-sections.
+//
+// Takes heading (string) which titles the section.
+// Takes rows ([]DetailRow) which are the rows it shows.
+//
+// Returns DetailSection which holds the heading and rows.
+func NewDetailSection(heading string, rows []DetailRow) DetailSection {
+	return DetailSection{
+		Heading:     heading,
+		Rows:        rows,
+		SubSections: nil,
+	}
 }
 
 // DetailBody describes a structured detail view with a title row, optional subtitle, and

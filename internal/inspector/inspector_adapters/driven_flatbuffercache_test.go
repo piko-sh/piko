@@ -21,8 +21,10 @@ package inspector_adapters
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"errors"
 	"io/fs"
+	"runtime"
 	"slices"
 	"testing"
 
@@ -30,6 +32,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/inspector/inspector_dto"
+	"piko.sh/piko/internal/inspector/inspector_schema"
 	"piko.sh/piko/internal/inspector/inspector_schema/inspector_schema_gen"
 	"piko.sh/piko/wdk/safedisk"
 )
@@ -325,7 +328,7 @@ func TestFlatBufferRoundTrip_ParamNames(t *testing.T) {
 	t.Logf("Isolated: ParamsLength=%d ResultsLength=%d ParamNamesLength=%d",
 		fb.ParamsLength(), fb.ResultsLength(), fb.ParamNamesLength())
 
-	unpacked := unpackFunctionSignature(fb)
+	unpacked := unpackSignatureWithArena(t, fb, len(buffer))
 	assert.Equal(t, []string{"string"}, unpacked.Params)
 	assert.Equal(t, []string{"error"}, unpacked.Results)
 	assert.Equal(t, []string{"name"}, unpacked.ParamNames)
@@ -357,7 +360,7 @@ func TestFlatBufferRoundTrip_ParamNames(t *testing.T) {
 	t.Logf("Nested: ParamsLength=%d ResultsLength=%d ParamNamesLength=%d",
 		sigResult.ParamsLength(), sigResult.ResultsLength(), sigResult.ParamNamesLength())
 
-	unpacked2 := unpackFunctionSignature(sigResult)
+	unpacked2 := unpackSignatureWithArena(t, sigResult, len(buf2))
 	assert.Equal(t, []string{"string"}, unpacked2.Params)
 	assert.Equal(t, []string{"error"}, unpacked2.Results)
 	assert.Equal(t, []string{"name"}, unpacked2.ParamNames, "ParamNames lost when nested inside Method")
@@ -412,7 +415,7 @@ func TestFlatBufferRoundTrip_ParamNames(t *testing.T) {
 	t.Logf("Multi-method: ParamsLength=%d ResultsLength=%d ParamNamesLength=%d",
 		sigResult2.ParamsLength(), sigResult2.ResultsLength(), sigResult2.ParamNamesLength())
 
-	unpacked3 := unpackFunctionSignature(sigResult2)
+	unpacked3 := unpackSignatureWithArena(t, sigResult2, len(buf3))
 	assert.Equal(t, []string{"string"}, unpacked3.Params)
 	assert.Equal(t, []string{"error"}, unpacked3.Results)
 	assert.Equal(t, []string{"name"}, unpacked3.ParamNames, "ParamNames lost when multiple methods packed")
@@ -436,7 +439,7 @@ func TestFlatBufferRoundTrip_TypeParams(t *testing.T) {
 	fb := inspector_schema_gen.GetRootAsFunctionSignature(b.FinishedBytes(), 0)
 	require.NotNil(t, fb)
 
-	unpacked := unpackFunctionSignature(fb)
+	unpacked := unpackSignatureWithArena(t, fb, len(b.FinishedBytes()))
 	assert.Equal(t, []string{"K", "V"}, unpacked.Params)
 	assert.Equal(t, []string{"map[K]V"}, unpacked.Results)
 	assert.Equal(t, []string{"key", "value"}, unpacked.ParamNames)
@@ -471,7 +474,7 @@ func TestFlatBufferRoundTrip_TypeParams(t *testing.T) {
 	nestedSig := fbMethod.Signature(&fbSig)
 	require.NotNil(t, nestedSig)
 
-	unpackedNested := unpackFunctionSignature(nestedSig)
+	unpackedNested := unpackSignatureWithArena(t, nestedSig, len(nested.FinishedBytes()))
 	assert.Equal(t, []string{"K", "V"}, unpackedNested.TypeParamNames,
 		"Type parameter names lost when nested inside Method")
 	assert.Equal(t, []string{"comparable", "any"}, unpackedNested.TypeParamConstraints,
@@ -670,4 +673,180 @@ func TestFlatBufferCache_SaveWriteFailure(t *testing.T) {
 	err := cache.SaveTypeData(ctx, "key", testTypeData())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to write cache file atomically")
+}
+
+func TestFlatBufferCache_GetTypeDataDiscardsCorruptFiles(t *testing.T) {
+	payload := EncodeTypeDataToFBS(testTypeData())
+
+	testCases := []struct {
+		mutate func([]byte) []byte
+		name   string
+	}{
+		{name: "payload shorter than a root offset", mutate: func(data []byte) []byte { return data[:2] }},
+		{name: "truncated to half", mutate: func(data []byte) []byte { return data[:len(data)/2] }},
+		{name: "truncated to a quarter", mutate: func(data []byte) []byte { return data[:len(data)/4] }},
+		{name: "root offset beyond payload", mutate: func(data []byte) []byte {
+			binary.LittleEndian.PutUint32(data, 0xfffffff0)
+			return data
+		}},
+		{name: "every byte inverted", mutate: func(data []byte) []byte {
+			for index := range data {
+				data[index] = ^data[index]
+			}
+			return data
+		}},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			sandbox := safedisk.NewMockSandbox("/cache", safedisk.ModeReadWrite)
+			cache := NewFlatBufferCache(sandbox)
+			corrupt := testCase.mutate(append([]byte(nil), payload...))
+			sandbox.AddFile("typedata-corrupt.bin", inspector_schema.Pack(corrupt))
+
+			decoded, err := cache.GetTypeData(context.Background(), "corrupt")
+			require.Error(t, err)
+			assert.ErrorIs(t, err, errCorruptTypeData)
+			assert.NotContains(t, err.Error(), "goroutine")
+			assert.Nil(t, decoded)
+
+			_, statErr := sandbox.Stat("typedata-corrupt.bin")
+			assert.ErrorIs(t, statErr, fs.ErrNotExist)
+		})
+	}
+}
+
+func TestFlatBufferCache_GetTypeDataReportsRemovalFailure(t *testing.T) {
+	sandbox := safedisk.NewMockSandbox("/cache", safedisk.ModeReadWrite)
+	sandbox.RemoveErr = errors.New("read-only file system")
+	cache := NewFlatBufferCache(sandbox)
+	sandbox.AddFile("typedata-corrupt.bin", inspector_schema.Pack([]byte{1, 2}))
+
+	_, err := cache.GetTypeData(context.Background(), "corrupt")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, errCorruptTypeData)
+	assert.ErrorContains(t, err, "read-only file system")
+}
+
+func TestDecodeTypeDataFromFBS_CorruptPayloads(t *testing.T) {
+	payload := EncodeTypeDataToFBS(testTypeData())
+
+	testCases := []struct {
+		name string
+		data []byte
+	}{
+		{name: "payload shorter than a root offset", data: payload[:3]},
+		{name: "root offset beyond payload", data: func() []byte {
+			corrupt := append([]byte(nil), payload...)
+			binary.LittleEndian.PutUint32(corrupt, 0xfffffff0)
+			return corrupt
+		}()},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			decoded, err := DecodeTypeDataFromFBS(testCase.data)
+			require.ErrorIs(t, err, errCorruptTypeData)
+			assert.Nil(t, decoded)
+		})
+	}
+}
+
+func TestDecodeTypeDataFromFBS_EveryByteCorruptedStaysBounded(t *testing.T) {
+	payload := EncodeTypeDataToFBS(testTypeData())
+	allocationLimit := uint64(4<<20 + 512*len(payload))
+
+	stride := 1
+	if testing.Short() {
+		stride = 3
+	}
+
+	var corruptErrors, decoded int
+	corrupt := make([]byte, len(payload))
+	for offset := 0; offset < len(payload); offset += stride {
+		for _, replacement := range []byte{0x00, 0x7f, 0x80, 0xff} {
+			copy(corrupt, payload)
+			corrupt[offset] = replacement
+
+			var before, after runtime.MemStats
+			runtime.ReadMemStats(&before)
+			_, err := DecodeTypeDataFromFBS(corrupt)
+			runtime.ReadMemStats(&after)
+
+			require.LessOrEqualf(t, after.TotalAlloc-before.TotalAlloc, allocationLimit,
+				"decoding a %d byte payload with byte %d set to %#x", len(corrupt), offset, replacement)
+			if err == nil {
+				decoded++
+				continue
+			}
+			require.ErrorIs(t, err, errCorruptTypeData)
+			corruptErrors++
+		}
+	}
+
+	assert.Positive(t, corruptErrors)
+	assert.Positive(t, decoded)
+}
+
+func TestElementBudget_Claim(t *testing.T) {
+	testCases := []struct {
+		name          string
+		requests      []int
+		payloadLength int
+		wantErrorAt   int
+	}{
+		{name: "fits exactly", payloadLength: 40, requests: []int{4, 6}, wantErrorAt: -1},
+		{name: "single request too large", payloadLength: 40, requests: []int{11}, wantErrorAt: 0},
+		{name: "cumulative requests too large", payloadLength: 40, requests: []int{6, 5}, wantErrorAt: 1},
+		{name: "negative length", payloadLength: 40, requests: []int{-1}, wantErrorAt: 0},
+		{name: "claims after a failure are refused", payloadLength: 40, requests: []int{11, 1}, wantErrorAt: 0},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			budget := newElementBudget(testCase.payloadLength)
+			for index, request := range testCase.requests {
+				fits := budget.claim(request)
+				if testCase.wantErrorAt >= 0 && index >= testCase.wantErrorAt {
+					assert.False(t, fits)
+					assert.ErrorIs(t, budget.err, errCorruptTypeData)
+					continue
+				}
+				assert.True(t, fits)
+				assert.NoError(t, budget.err)
+			}
+		})
+	}
+
+	t.Run("claimAll stops at the first vector that does not fit", func(t *testing.T) {
+		budget := newElementBudget(40)
+		assert.False(t, budget.claimAll(2, 20, 1))
+		assert.ErrorIs(t, budget.err, errCorruptTypeData)
+		assert.Equal(t, 8, budget.remaining)
+	})
+}
+
+func TestUnpackArena_FallsBackToHeapWhenSlabsAreExhausted(t *testing.T) {
+	arena := newUnpackArena(unpackCounts{}, 0)
+
+	assert.NotNil(t, arena.AllocPackage())
+	assert.NotNil(t, arena.AllocType())
+	assert.NotNil(t, arena.AllocField())
+	assert.NotNil(t, arena.AllocMethod())
+	assert.NotNil(t, arena.AllocCompositePart())
+	assert.NotNil(t, arena.AllocFunction())
+	assert.NotNil(t, arena.AllocVariable())
+	assert.Len(t, arena.StringSlice(2), 2)
+	assert.Len(t, arena.FieldPtrSlice(2), 2)
+	assert.Len(t, arena.MethodPtrSlice(2), 2)
+	assert.Len(t, arena.CompositePartPtrSlice(2), 2)
+}
+
+func unpackSignatureWithArena(t *testing.T, fb *inspector_schema_gen.FunctionSignature, payloadLength int) inspector_dto.FunctionSignature {
+	t.Helper()
+
+	arena := newUnpackArena(unpackCounts{}, payloadLength)
+	signature := unpackFunctionSignatureSafe(fb, arena)
+	require.NoError(t, arena.err)
+	return signature
 }

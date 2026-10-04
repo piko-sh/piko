@@ -38,11 +38,15 @@ func (p *parser) parseCreateIndex() (mutation *querier_dto.CatalogueMutation, er
 		}
 	}()
 
-	p.mustKeyword(keywordCREATE)
+	if _, err := p.expectKeyword(keywordCREATE); err != nil {
+		return nil, err
+	}
 
 	p.matchKeyword(keywordUNIQUE)
 
-	p.mustKeyword("INDEX")
+	if _, err := p.expectKeyword("INDEX"); err != nil {
+		return nil, err
+	}
 
 	p.skipIfNotExists()
 
@@ -55,19 +59,21 @@ func (p *parser) parseCreateIndex() (mutation *querier_dto.CatalogueMutation, er
 		p.advance()
 	}
 
-	p.mustKeyword(keywordON)
+	if _, err := p.expectKeyword(keywordON); err != nil {
+		return nil, err
+	}
 
 	schema, tableName, tableError := p.parseSchemaQualifiedName()
 	if tableError != nil {
 		return nil, tableError
 	}
 
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationCreateIndex,
-		SchemaName: schema,
-		TableName:  tableName,
-		NewName:    indexName,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationCreateIndex,
+		schema,
+		tableName,
+		querier_dto.WithNewName(indexName),
+	), nil
 }
 
 // parseDropIndex parses a DROP INDEX ... ON table statement.
@@ -83,8 +89,9 @@ func (p *parser) parseDropIndex() (mutation *querier_dto.CatalogueMutation, err 
 		}
 	}()
 
-	p.mustKeyword(keywordDROP)
-	p.mustKeyword("INDEX")
+	if err := p.expectKeywordSequence(keywordDROP, "INDEX"); err != nil {
+		return nil, err
+	}
 
 	p.skipIfExists()
 
@@ -103,12 +110,12 @@ func (p *parser) parseDropIndex() (mutation *querier_dto.CatalogueMutation, err 
 		}
 	}
 
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationDropIndex,
-		SchemaName: schema,
-		TableName:  tableName,
-		NewName:    indexName,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationDropIndex,
+		schema,
+		tableName,
+		querier_dto.WithNewName(indexName),
+	), nil
 }
 
 // parseCreateView parses a CREATE [OR REPLACE] VIEW statement.
@@ -124,13 +131,17 @@ func (p *parser) parseCreateView() (mutation *querier_dto.CatalogueMutation, err
 		}
 	}()
 
-	p.mustKeyword(keywordCREATE)
+	if _, err := p.expectKeyword(keywordCREATE); err != nil {
+		return nil, err
+	}
 
 	p.skipOrReplace()
 
 	p.skipViewPrefixes()
 
-	p.mustKeyword("VIEW")
+	if _, err := p.expectKeyword("VIEW"); err != nil {
+		return nil, err
+	}
 
 	p.skipIfNotExists()
 
@@ -148,11 +159,7 @@ func (p *parser) parseCreateView() (mutation *querier_dto.CatalogueMutation, err
 		columnNames = names
 	}
 
-	mutation = &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationCreateView,
-		SchemaName: schema,
-		TableName:  viewName,
-	}
+	mutation = querier_dto.NewCatalogueMutation(querier_dto.MutationCreateView, schema, viewName)
 
 	if p.matchKeyword(keywordAS) {
 		mutation.ViewDefinition = p.analyseViewBody(columnNames)
@@ -207,7 +214,13 @@ func (p *parser) analyseViewBody(columnNames []string) (result *querier_dto.RawQ
 // Takes columnNames ([]string) which are the declared column names.
 func overlayViewColumnNames(analysis *querier_dto.RawQueryAnalysis, columnNames []string) {
 	for columnIndex, name := range columnNames {
-		column := querier_dto.RawOutputColumn{Name: name}
+		column := querier_dto.RawOutputColumn{
+			Name:       name,
+			Expression: nil,
+			TableAlias: "",
+			ColumnName: "",
+			IsStar:     false,
+		}
 		if columnIndex < len(analysis.OutputColumns) {
 			column.Expression = analysis.OutputColumns[columnIndex].Expression
 			column.ColumnName = analysis.OutputColumns[columnIndex].ColumnName
@@ -234,11 +247,7 @@ func columnsFromNames(names []string) []querier_dto.Column {
 	}
 	columns := make([]querier_dto.Column, len(names))
 	for index, name := range names {
-		columns[index] = querier_dto.Column{
-			Name:     name,
-			SQLType:  querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown},
-			Nullable: true,
-		}
+		columns[index] = querier_dto.NewColumn(name, querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true)
 	}
 	return columns
 }
@@ -303,8 +312,9 @@ func (p *parser) parseDropView() (mutation *querier_dto.CatalogueMutation, err e
 		}
 	}()
 
-	p.mustKeyword(keywordDROP)
-	p.mustKeyword("VIEW")
+	if err := p.expectKeywordSequence(keywordDROP, "VIEW"); err != nil {
+		return nil, err
+	}
 
 	p.skipIfExists()
 
@@ -313,11 +323,7 @@ func (p *parser) parseDropView() (mutation *querier_dto.CatalogueMutation, err e
 		return nil, nameError
 	}
 
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationDropView,
-		SchemaName: schema,
-		TableName:  viewName,
-	}, nil
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationDropView, schema, viewName), nil
 }
 
 // parseCreateOrDropTrigger parses a CREATE or DROP TRIGGER statement.
@@ -347,13 +353,17 @@ func (p *parser) parseCreateOrDropTrigger(kind statementKind) (mutation *querier
 // Returns *querier_dto.CatalogueMutation which describes the new trigger.
 // Returns error when the statement is malformed.
 func (p *parser) parseCreateTrigger() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordCREATE)
+	if _, err := p.expectKeyword(keywordCREATE); err != nil {
+		return nil, err
+	}
 
 	if p.matchKeyword("DEFINER") {
 		p.skipDefinerClause()
 	}
 
-	p.mustKeyword("TRIGGER")
+	if _, err := p.expectKeyword("TRIGGER"); err != nil {
+		return nil, err
+	}
 
 	p.skipIfNotExists()
 
@@ -376,11 +386,12 @@ func (p *parser) parseCreateTrigger() (*querier_dto.CatalogueMutation, error) {
 
 	p.skipTriggerBody()
 
-	return &querier_dto.CatalogueMutation{
-		Kind:        querier_dto.MutationCreateTrigger,
-		TriggerName: triggerName,
-		TableName:   tableName,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationCreateTrigger,
+		"",
+		tableName,
+		querier_dto.WithTriggerName(triggerName),
+	), nil
 }
 
 // skipTriggerBody advances past a trigger body's BEGIN ... END block.
@@ -417,8 +428,9 @@ func (p *parser) skipTriggerBody() {
 // Returns *querier_dto.CatalogueMutation which describes the trigger to drop.
 // Returns error when the statement is malformed.
 func (p *parser) parseDropTrigger() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordDROP)
-	p.mustKeyword("TRIGGER")
+	if err := p.expectKeywordSequence(keywordDROP, "TRIGGER"); err != nil {
+		return nil, err
+	}
 
 	p.skipIfExists()
 
@@ -429,10 +441,12 @@ func (p *parser) parseDropTrigger() (*querier_dto.CatalogueMutation, error) {
 
 	_ = schema
 
-	return &querier_dto.CatalogueMutation{
-		Kind:        querier_dto.MutationDropTrigger,
-		TriggerName: triggerName,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationDropTrigger,
+		"",
+		"",
+		querier_dto.WithTriggerName(triggerName),
+	), nil
 }
 
 // parseCreateDatabase parses a CREATE DATABASE/SCHEMA statement.
@@ -448,7 +462,9 @@ func (p *parser) parseCreateDatabase() (mutation *querier_dto.CatalogueMutation,
 		}
 	}()
 
-	p.mustKeyword(keywordCREATE)
+	if _, err := p.expectKeyword(keywordCREATE); err != nil {
+		return nil, err
+	}
 	if _, expectError := p.expectKeyword(keywordDATABASE, keywordSCHEMA); expectError != nil {
 		return nil, expectError
 	}
@@ -462,10 +478,7 @@ func (p *parser) parseCreateDatabase() (mutation *querier_dto.CatalogueMutation,
 
 	p.skipToStatementEnd()
 
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationCreateSchema,
-		SchemaName: databaseName,
-	}, nil
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationCreateSchema, databaseName, ""), nil
 }
 
 // parseDropDatabase parses a DROP DATABASE/SCHEMA statement.
@@ -481,7 +494,9 @@ func (p *parser) parseDropDatabase() (mutation *querier_dto.CatalogueMutation, e
 		}
 	}()
 
-	p.mustKeyword(keywordDROP)
+	if _, err := p.expectKeyword(keywordDROP); err != nil {
+		return nil, err
+	}
 	if _, expectError := p.expectKeyword(keywordDATABASE, keywordSCHEMA); expectError != nil {
 		return nil, expectError
 	}
@@ -493,8 +508,5 @@ func (p *parser) parseDropDatabase() (mutation *querier_dto.CatalogueMutation, e
 		return nil, nameError
 	}
 
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationDropSchema,
-		SchemaName: databaseName,
-	}, nil
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationDropSchema, databaseName, ""), nil
 }

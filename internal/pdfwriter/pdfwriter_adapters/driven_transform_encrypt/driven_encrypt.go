@@ -959,7 +959,7 @@ func (t *EncryptTransformer) aes256CBCEncrypt(key, plaintext []byte) ([]byte, er
 		return nil, fmt.Errorf("generating IV: %w", err)
 	}
 
-	mode := cipher.NewCBCEncrypter(block, iv)
+	mode := cipher.NewCBCEncrypter(block, iv) //nolint:gosec // IV read from randomSource
 	mode.CryptBlocks(ciphertext[aesBlockSize:], padded)
 
 	return ciphertext, nil
@@ -986,7 +986,7 @@ func aes256CBCEncryptZeroIV(key, plaintext []byte) ([]byte, error) {
 	iv := make([]byte, aesBlockSize)
 	ciphertext := make([]byte, len(plaintext))
 
-	mode := cipher.NewCBCEncrypter(block, iv)
+	mode := cipher.NewCBCEncrypter(block, iv) //nolint:gosec // PDF spec mandates a zero IV
 	mode.CryptBlocks(ciphertext, plaintext)
 
 	return ciphertext, nil

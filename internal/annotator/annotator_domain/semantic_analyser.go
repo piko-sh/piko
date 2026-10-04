@@ -30,9 +30,9 @@ import (
 	"maps"
 	"strings"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
@@ -384,18 +384,9 @@ func Annotate(
 // Returns []*ast_domain.Diagnostic which is the unchanged diagnostics slice.
 // Returns error which is always nil here.
 func createEmptyAnnotationResult(flattenedAST *ast_domain.TemplateAST, diagnostics []*ast_domain.Diagnostic) (*annotator_dto.AnnotationResult, []*ast_domain.Diagnostic, error) {
-	return &annotator_dto.AnnotationResult{
-		AnnotatedAST:          flattenedAST,
-		VirtualModule:         nil,
-		StyleBlock:            "",
-		AssetRefs:             nil,
-		CustomTags:            nil,
-		UniqueInvocations:     nil,
-		AssetDependencies:     nil,
-		AnalysisMap:           nil,
-		EntryPointStyleBlocks: nil,
-		ClientScript:          "",
-	}, diagnostics, nil
+	result := annotator_dto.AnnotationResult{}
+	result.AnnotatedAST = flattenedAST
+	return &result, diagnostics, nil
 }
 
 // setupAndPopulateRootContext creates and fills the root analysis context with debug
@@ -641,6 +632,10 @@ func buildAnnotationResult(
 		AnalysisMap:           analysisMap,
 		EntryPointStyleBlocks: mainComp.Source.StyleBlocks,
 		ClientScript:          mainComp.Source.ClientScript,
+		SitemapImageURLs:      nil,
+		ImportedStylePaths:    nil,
+		UsesCaptcha:           false,
+		SitemapNoindex:        false,
 	}
 }
 

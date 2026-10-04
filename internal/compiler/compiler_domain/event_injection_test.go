@@ -352,7 +352,7 @@ func TestWalkStmt(t *testing.T) {
 func TestWalkBlockStmt(t *testing.T) {
 	t.Run("walks all statements in block", func(t *testing.T) {
 		s1 := js_ast.Stmt{Data: &js_ast.SExpr{Value: js_ast.Expr{Data: &js_ast.EBoolean{Value: true}}}}
-		s2 := js_ast.Stmt{Data: &js_ast.SExpr{Value: js_ast.Expr{Data: &js_ast.EBoolean{Value: false}}}}
+		s2 := js_ast.Stmt{Data: &js_ast.SExpr{Value: js_ast.Expr{Data: &js_ast.EBoolean{}}}}
 		block := js_ast.Stmt{Data: &js_ast.SBlock{Stmts: []js_ast.Stmt{s1, s2}}}
 
 		count := 0
@@ -382,7 +382,7 @@ func TestWalkIfStmt(t *testing.T) {
 
 	t.Run("walks else branch when present", func(t *testing.T) {
 		yes := js_ast.Stmt{Data: &js_ast.SExpr{Value: js_ast.Expr{Data: &js_ast.EBoolean{Value: true}}}}
-		no := js_ast.Stmt{Data: &js_ast.SExpr{Value: js_ast.Expr{Data: &js_ast.EBoolean{Value: false}}}}
+		no := js_ast.Stmt{Data: &js_ast.SExpr{Value: js_ast.Expr{Data: &js_ast.EBoolean{}}}}
 		ifStmt := js_ast.Stmt{Data: &js_ast.SIf{
 			Test:    js_ast.Expr{Data: &js_ast.EBoolean{Value: true}},
 			Yes:     yes,
@@ -417,7 +417,7 @@ func TestWalkIfStmt(t *testing.T) {
 func TestWalkForStmt(t *testing.T) {
 	t.Run("walks init and body", func(t *testing.T) {
 		init := js_ast.Stmt{Data: &js_ast.SExpr{Value: js_ast.Expr{Data: &js_ast.EBoolean{Value: true}}}}
-		body := js_ast.Stmt{Data: &js_ast.SExpr{Value: js_ast.Expr{Data: &js_ast.EBoolean{Value: false}}}}
+		body := js_ast.Stmt{Data: &js_ast.SExpr{Value: js_ast.Expr{Data: &js_ast.EBoolean{}}}}
 		forStmt := js_ast.Stmt{Data: &js_ast.SFor{InitOrNil: init, Body: body}}
 
 		count := 0
@@ -520,7 +520,7 @@ func TestWalkTryStmt(t *testing.T) {
 
 	t.Run("walks try and catch blocks", func(t *testing.T) {
 		tryBody := js_ast.Stmt{Data: &js_ast.SExpr{Value: js_ast.Expr{Data: &js_ast.EBoolean{Value: true}}}}
-		catchBody := js_ast.Stmt{Data: &js_ast.SExpr{Value: js_ast.Expr{Data: &js_ast.EBoolean{Value: false}}}}
+		catchBody := js_ast.Stmt{Data: &js_ast.SExpr{Value: js_ast.Expr{Data: &js_ast.EBoolean{}}}}
 		tryStmt := js_ast.Stmt{Data: &js_ast.STry{
 			Block: js_ast.SBlock{Stmts: []js_ast.Stmt{tryBody}},
 			Catch: &js_ast.Catch{Block: js_ast.SBlock{Stmts: []js_ast.Stmt{catchBody}}},
@@ -536,7 +536,7 @@ func TestWalkTryStmt(t *testing.T) {
 
 	t.Run("walks try, catch, and finally blocks", func(t *testing.T) {
 		tryBody := js_ast.Stmt{Data: &js_ast.SExpr{Value: js_ast.Expr{Data: &js_ast.EBoolean{Value: true}}}}
-		catchBody := js_ast.Stmt{Data: &js_ast.SExpr{Value: js_ast.Expr{Data: &js_ast.EBoolean{Value: false}}}}
+		catchBody := js_ast.Stmt{Data: &js_ast.SExpr{Value: js_ast.Expr{Data: &js_ast.EBoolean{}}}}
 		finallyBody := js_ast.Stmt{Data: &js_ast.SExpr{Value: js_ast.Expr{Data: &js_ast.EBoolean{Value: true}}}}
 		tryStmt := js_ast.Stmt{Data: &js_ast.STry{
 			Block:   js_ast.SBlock{Stmts: []js_ast.Stmt{tryBody}},
@@ -583,7 +583,7 @@ func TestExprContainsIdentifier(t *testing.T) {
 
 	t.Run("returns false when no identifier in binary", func(t *testing.T) {
 		left := js_ast.Expr{Data: &js_ast.EBoolean{Value: true}}
-		right := js_ast.Expr{Data: &js_ast.EBoolean{Value: false}}
+		right := js_ast.Expr{Data: &js_ast.EBoolean{}}
 		expression := js_ast.Expr{Data: &js_ast.EBinary{Left: left, Right: right}}
 		assert.False(t, expressionContainsIdentifier(expression))
 	})
@@ -601,7 +601,7 @@ func TestStatementContainsIdentifier(t *testing.T) {
 	})
 
 	t.Run("returns false for non-expression statement", func(t *testing.T) {
-		statement := js_ast.Stmt{Data: &js_ast.SBlock{Stmts: nil}}
+		statement := js_ast.Stmt{Data: &js_ast.SBlock{}}
 		assert.False(t, statementContainsIdentifier(statement))
 	})
 
@@ -1002,7 +1002,7 @@ func TestEncodeBlockStatements(t *testing.T) {
 
 	t.Run("returns empty string for empty block", func(t *testing.T) {
 		registry := NewRegistryContext()
-		block := &js_ast.SBlock{Stmts: nil}
+		block := &js_ast.SBlock{}
 		result, err := encodeBlockStatements(block, registry)
 		require.NoError(t, err)
 		assert.Equal(t, "", result)
@@ -1047,7 +1047,7 @@ func TestInjectEventBindingsIntoConstructor(t *testing.T) {
 
 		_, _ = ec.createAndStoreBinding(ctx, "click", "handleClick", nil, false, nil, "")
 
-		classDecl := &js_ast.Class{Properties: nil}
+		classDecl := &js_ast.Class{}
 		err := injectEventBindingsIntoConstructor(ctx, classDecl, ec)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "no constructor found")
@@ -1088,7 +1088,7 @@ func TestFindAndValidateConstructor(t *testing.T) {
 	t.Run("returns error when no constructor", func(t *testing.T) {
 		ctx := context.Background()
 		registry := NewRegistryContext()
-		classDecl := &js_ast.Class{Properties: nil}
+		classDecl := &js_ast.Class{}
 
 		constructor, err := findAndValidateConstructor(ctx, classDecl, registry)
 		assert.Error(t, err)
@@ -1134,7 +1134,7 @@ func TestInsertBindingsIntoConstructor(t *testing.T) {
 				},
 			},
 		}
-		newStmt := js_ast.Stmt{Data: &js_ast.SExpr{Value: js_ast.Expr{Data: &js_ast.EBoolean{Value: false}}}}
+		newStmt := js_ast.Stmt{Data: &js_ast.SExpr{Value: js_ast.Expr{Data: &js_ast.EBoolean{}}}}
 
 		insertBindingsIntoConstructor(ctx, constructor, []js_ast.Stmt{newStmt})
 		assert.Len(t, constructor.Fn.Body.Block.Stmts, 2)
@@ -1142,11 +1142,7 @@ func TestInsertBindingsIntoConstructor(t *testing.T) {
 
 	t.Run("appends at end when body is empty", func(t *testing.T) {
 		ctx := context.Background()
-		constructor := &js_ast.EFunction{
-			Fn: js_ast.Fn{
-				Body: js_ast.FnBody{Block: js_ast.SBlock{Stmts: nil}},
-			},
-		}
+		constructor := &js_ast.EFunction{}
 		newStmt := js_ast.Stmt{Data: &js_ast.SExpr{Value: js_ast.Expr{Data: &js_ast.EBoolean{Value: true}}}}
 
 		insertBindingsIntoConstructor(ctx, constructor, []js_ast.Stmt{newStmt})

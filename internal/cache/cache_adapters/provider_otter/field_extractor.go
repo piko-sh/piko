@@ -437,6 +437,7 @@ func NewFieldExtractor[V any](schema *cache_dto.SearchSchema) *FieldExtractor[V]
 		sortableFields:   make(map[string]bool),
 		fieldPathParts:   make(map[string][]string),
 		fieldPathInvalid: make(map[string]struct{}),
+		cacheMu:          sync.RWMutex{},
 	}
 
 	for _, field := range schema.Fields {

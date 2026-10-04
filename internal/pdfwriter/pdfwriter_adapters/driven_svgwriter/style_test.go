@@ -386,7 +386,7 @@ func TestResolveStyle_NilNode(t *testing.T) {
 
 func TestResolveStyle_NilAttrs(t *testing.T) {
 	t.Parallel()
-	node := &Node{Attrs: nil}
+	node := &Node{}
 	s := ResolveStyle(node, new(DefaultStyle()))
 	assert.Equal(t, "nonzero", s.FillRule)
 }

@@ -40,6 +40,10 @@ const (
 	// with built-in handlers.
 	StatementKindExtensionBase StatementKind = 1000
 
+	// reloptionImpliedValue is the value a reloption written without `= value` takes, since
+	// PostgreSQL treats a bare boolean option as enabled.
+	reloptionImpliedValue = "true"
+
 	// TokenIdentifier is a bare or quoted identifier (column name, table name, keyword
 	// token).
 	TokenIdentifier = tokenIdentifier
@@ -178,19 +182,21 @@ type PostParseHook func(p ParserContext, kind StatementKind, mutation *querier_d
 //
 // PostParseHook implementations MUST NOT advance the cursor; only read-only methods
 // (CurrentToken, Peek, AtEnd, EngineSpecificFromTokens) are safe to call from a hook. The
-// mutating methods (Advance, MustKeyword, MatchKeyword, MatchIfNotExists, MatchIfExists,
-// ParseQualifiedName, ParseColumnList, ParseReloptionList, ConsumeRemainder,
-// ConsumeRemainderAsText) are exposed for StatementExtension.Parse only; a hook that
-// advances them after the built-in handler has consumed its tokens corrupts subsequent
-// hooks in the chain.
+// mutating methods (Advance, ExpectKeyword, MatchKeyword, MatchIfNotExists,
+// MatchIfExists, ParseQualifiedName, ParseColumnList, ParseReloptionList,
+// ConsumeRemainder, ConsumeRemainderAsText) are exposed for StatementExtension.Parse
+// only; a hook that advances them after the built-in handler has consumed its tokens
+// corrupts subsequent hooks in the chain.
 type ParserContext interface {
-	// MustKeyword consumes the next token, requiring it to be the named keyword.
+	// ExpectKeyword consumes the next token, requiring it to be the named keyword.
+	//
+	// A mismatch is recorded as the statement's syntax error, so ApplyDDL fails even when
+	// the extension does not propagate the returned error.
 	//
 	// Takes name (string) which is the keyword the next token must match.
 	//
-	// Panics (via the parser's internal mechanism) if the token does not match; the engine's
-	// ApplyDDL recovers panics into a wrapped error.
-	MustKeyword(name string)
+	// Returns error when the token does not match the keyword.
+	ExpectKeyword(name string) error
 
 	// MatchKeyword consumes the current token only if it matches the supplied keyword
 	// (case-insensitive).
@@ -360,10 +366,13 @@ func (c *parserContext) ParseColumnType() (querier_dto.SQLType, int) {
 	return c.p.parseColumnType(c.engine)
 }
 
-// MustKeyword consumes the next token as the named keyword or panics.
+// ExpectKeyword consumes the next token as the named keyword, recording a syntax error
+// when it does not match.
 //
 // Takes name (string) which is the required keyword.
-func (c *parserContext) MustKeyword(name string) { c.p.mustKeyword(name) }
+//
+// Returns error when the token does not match the keyword.
+func (c *parserContext) ExpectKeyword(name string) error { return c.p.requireKeyword(name) }
 
 // MatchKeyword consumes the current token when it matches the named keyword and returns
 // whether a match occurred.
@@ -477,11 +486,12 @@ func (c *parserContext) ParseColumnList() ([]string, error) {
 	return names, nil
 }
 
-// ParseReloptionList parses `( key = value, ... )` and returns the captured key-value
+// ParseReloptionList parses `( key [= value], ... )` and returns the captured key-value
 // pairs.
 //
 // Values that are single-quoted strings have their quotes stripped; other values are
-// captured as raw text.
+// captured as raw text. A key written without `= value`, such as
+// `timescaledb.continuous`, is a boolean option set to true, as in PostgreSQL itself.
 //
 // Returns map[string]string which is the captured key-value pairs.
 // Returns error when the body is malformed or a value cannot be parsed.
@@ -496,10 +506,7 @@ func (c *parserContext) ParseReloptionList() (map[string]string, error) {
 		if keyErr != nil {
 			return nil, keyErr
 		}
-		if !c.matchOperator("=") {
-			return nil, fmt.Errorf("expected '=' after reloption key %q at position %d", key, c.p.current().position)
-		}
-		value, valueErr := c.parseReloptionValue()
+		value, valueErr := c.parseReloptionAssignment(key)
 		if valueErr != nil {
 			return nil, valueErr
 		}
@@ -608,6 +615,25 @@ func (c *parserContext) parseReloptionKey() (string, error) {
 	return builder.String(), nil
 }
 
+// parseReloptionAssignment reads the `= value` part that follows a reloption key,
+// treating a key that is directly followed by a comma or the closing paren as a boolean
+// option set to true.
+//
+// Takes key (string) which is the reloption key, used in error messages.
+//
+// Returns string which is the option's value text.
+// Returns error when neither `=` nor the end of the option follows the key, or the value
+// cannot be parsed.
+func (c *parserContext) parseReloptionAssignment(key string) (string, error) {
+	if c.matchOperator("=") {
+		return c.parseReloptionValue()
+	}
+	if kind := c.p.current().kind; kind == tokenComma || kind == tokenRightParen {
+		return reloptionImpliedValue, nil
+	}
+	return "", fmt.Errorf("expected '=' after reloption key %q at position %d", key, c.p.current().position)
+}
+
 // parseReloptionValue reads a value, stopping at the next top-level comma or close paren.
 //
 // A single literal or identifier is returned verbatim. A multi-token value (e.g.
@@ -635,7 +661,7 @@ func (c *parserContext) parseReloptionValue() (string, error) {
 		if depth == 0 && (tok.kind == tokenComma || tok.kind == tokenRightParen) {
 			break
 		}
-		depth = adjustReloptionDepth(tok.kind, depth)
+		depth = adjustParenthesisDepth(tok.kind, depth)
 		if depth > maxDDLDepth {
 			return "", errDDLDepthExceeded
 		}
@@ -680,8 +706,8 @@ func isSimpleReloptionValueToken(kind tokenKind) bool {
 	return kind == tokenString || kind == tokenNumber
 }
 
-// adjustReloptionDepth updates the paren nesting counter for the multi-token reloption
-// value capture.
+// adjustParenthesisDepth updates a paren nesting counter for one token, as used by the
+// multi-token reloption value capture and the parenthesised-group collector.
 //
 // Other token kinds leave the depth untouched. It is extracted so the surrounding loop
 // does not need a switch with side-effecting cases and can keep its body shallow.
@@ -690,7 +716,7 @@ func isSimpleReloptionValueToken(kind tokenKind) bool {
 // Takes depth (int) which is the current paren nesting depth.
 //
 // Returns int which is the updated depth.
-func adjustReloptionDepth(kind tokenKind, depth int) int {
+func adjustParenthesisDepth(kind tokenKind, depth int) int {
 	switch kind {
 	case tokenLeftParen:
 		return depth + 1

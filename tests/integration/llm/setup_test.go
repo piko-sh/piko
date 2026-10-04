@@ -133,6 +133,7 @@ func setupTestEnvironment(ctx context.Context) (*testEnv, error) {
 
 func isOllamaReachable(host string) bool {
 	client := &http.Client{Timeout: 3 * time.Second}
+	defer client.CloseIdleConnections()
 
 	response, err := client.Get(host + "/api/version")
 	if err != nil {
@@ -144,6 +145,7 @@ func isOllamaReachable(host string) bool {
 
 func findMissingModels(host string, required ...string) []string {
 	client := &http.Client{Timeout: 5 * time.Second}
+	defer client.CloseIdleConnections()
 
 	response, err := client.Get(host + "/api/tags")
 	if err != nil {

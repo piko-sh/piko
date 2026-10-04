@@ -104,10 +104,7 @@ func TestIsCollectionTemplate(t *testing.T) {
 		{
 			name: "no collection flag",
 			vc: &annotator_dto.VirtualComponent{
-				Source: &annotator_dto.ParsedComponent{
-					HasCollection:  false,
-					CollectionName: "",
-				},
+				Source: &annotator_dto.ParsedComponent{},
 			},
 			want: false,
 		},
@@ -296,10 +293,7 @@ func TestExtractCollectionItemsFromModule(t *testing.T) {
 			vm: &annotator_dto.VirtualModule{
 				ComponentsByHash: map[string]*annotator_dto.VirtualComponent{
 					"hash1": {
-						Source: &annotator_dto.ParsedComponent{
-							HasCollection:  false,
-							CollectionName: "",
-						},
+						Source: &annotator_dto.ParsedComponent{},
 					},
 				},
 			},
@@ -506,18 +500,14 @@ func TestGetMainComponent(t *testing.T) {
 			wantErr: "missing required data",
 		},
 		{
-			name: "nil AnnotatedAST returns error",
-			result: &annotator_dto.AnnotationResult{
-				AnnotatedAST: nil,
-			},
+			name:    "nil AnnotatedAST returns error",
+			result:  &annotator_dto.AnnotationResult{},
 			wantErr: "missing required data",
 		},
 		{
 			name: "nil SourcePath returns error",
 			result: &annotator_dto.AnnotationResult{
-				AnnotatedAST: &ast_domain.TemplateAST{
-					SourcePath: nil,
-				},
+				AnnotatedAST: &ast_domain.TemplateAST{},
 			},
 			wantErr: "missing required data",
 		},

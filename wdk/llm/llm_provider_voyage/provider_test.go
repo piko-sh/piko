@@ -374,3 +374,13 @@ func TestClose(t *testing.T) {
 	err := p.Close(context.Background())
 	assert.NoError(t, err)
 }
+
+func TestVoyageProvider_ReturnsPanicsAsErrors(t *testing.T) {
+	t.Parallel()
+
+	p := newTestProvider(t)
+
+	_, err := p.Embed(t.Context(), nil)
+	require.Error(t, err, "embedding")
+	assert.Contains(t, err.Error(), "panic in llm.voyageProvider.Embed")
+}

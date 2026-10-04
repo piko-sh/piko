@@ -21,6 +21,7 @@ package json
 import (
 	"io"
 	"reflect"
+	"sync"
 )
 
 // Provider supplies JSON encoding and decoding operations. Implementations replace the
@@ -67,7 +68,7 @@ var (
 //
 // Returns API which lazily resolves to the active provider on first use.
 func Freeze(config Config) API {
-	return &lazyAPI{config: config}
+	return &lazyAPI{config: config, inner: nil, once: sync.Once{}}
 }
 
 var (

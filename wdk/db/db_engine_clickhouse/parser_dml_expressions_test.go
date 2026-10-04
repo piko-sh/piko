@@ -19,7 +19,11 @@
 package db_engine_clickhouse
 
 import (
+	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/querier/querier_dto"
 )
@@ -524,4 +528,50 @@ func TestHasIntegerRadixPrefix(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestExpressionNestingPastTheCapRecordsASyntaxError(t *testing.T) {
+	t.Parallel()
+
+	const (
+		capacity = 10
+		nesting  = 30
+	)
+	testCases := []struct {
+		wantErr       error
+		name          string
+		source        string
+		analysisDepth int
+	}{
+		{name: "nested parentheses", source: strings.Repeat("(", nesting) + "1" + strings.Repeat(")", nesting), wantErr: errExpressionDepthExceeded},
+		{name: "NOT chain", source: strings.Repeat("NOT ", nesting) + "1", wantErr: errExpressionDepthExceeded},
+		{name: "unary minus chain", source: strings.Repeat("- ", nesting) + "1", wantErr: errExpressionDepthExceeded},
+		{name: "EXISTS subquery at the analysis cap", source: "EXISTS (SELECT 1 FROM t)", analysisDepth: capacity, wantErr: errAnalysisDepthExceeded},
+		{name: "IN subquery at the analysis cap", source: "x IN (SELECT y FROM t)", analysisDepth: capacity, wantErr: errAnalysisDepthExceeded},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			tokens, err := tokenise(testCase.source)
+			require.NoError(t, err)
+			parserInstance := newParser(tokens)
+			parserInstance.maxParseDepth = capacity
+			parserInstance.analysisDepth = testCase.analysisDepth
+
+			require.NotNil(t, parserInstance.parseExpression())
+			assert.ErrorIs(t, parserInstance.syntaxError, testCase.wantErr)
+		})
+	}
+}
+
+func TestExpressionNestingWithinTheCapRecordsNothing(t *testing.T) {
+	t.Parallel()
+
+	tokens, err := tokenise("((1 + 2)) AND NOT NOT x IN (SELECT y FROM t)")
+	require.NoError(t, err)
+	parserInstance := newParser(tokens)
+
+	require.NotNil(t, parserInstance.parseExpression())
+	assert.NoError(t, parserInstance.syntaxError)
 }

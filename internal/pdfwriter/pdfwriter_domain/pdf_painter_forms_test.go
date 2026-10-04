@@ -619,3 +619,24 @@ func TestBuildFormField_SelectIgnoresNonOptionChildren(t *testing.T) {
 	require.Len(t, field.Options, 1, "expected 1 option (skipping optgroup)")
 	assert.Equal(t, "Valid", field.Options[0])
 }
+
+func TestBuildFormField_DefaultsToTextWithPageRectangle(t *testing.T) {
+	t.Parallel()
+
+	painter := newPainterWithDefaults()
+	node := &ast_domain.TemplateNode{
+		NodeType:   ast_domain.NodeElement,
+		TagName:    "input",
+		Attributes: []ast_domain.HTMLAttribute{{Name: "type", Value: "date"}, {Name: "name", Value: "when"}},
+	}
+	box := newLayoutBox().WithContentRect(10, 20, 100, 30).WithSourceNode(node).Build()
+
+	field := painter.buildFormField(box)
+
+	require.NotNil(t, field)
+	assert.Equal(t, FormFieldText, field.FieldType)
+	assert.Len(t, field.Rect, rectangleCoordinates)
+	assert.InDelta(t, 10.0, field.Rect[0], 1e-9)
+	assert.Greater(t, field.Rect[rectX2Index], field.Rect[0])
+	assert.Greater(t, field.Rect[rectY2Index], field.Rect[1])
+}

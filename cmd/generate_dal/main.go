@@ -143,9 +143,11 @@ func run() error {
 
 	ctx := context.Background()
 	service, err := querier_domain.NewQuerierService(querier_domain.QuerierPorts{
-		Engine:     engine,
-		Emitter:    emitter_go_sql.NewSQLEmitterForDialect(engine.Dialect()),
-		FileReader: &fileReader{factory: factory},
+		Engine:            engine,
+		Emitter:           emitter_go_sql.NewSQLEmitterForDialect(engine.Dialect()),
+		FileReader:        &fileReader{factory: factory},
+		CatalogueProvider: nil,
+		Clock:             nil,
 	})
 	if err != nil {
 		return fmt.Errorf("service: %w", err)
@@ -157,6 +159,8 @@ func run() error {
 	result, err := service.GenerateDatabase(ctx, pkgName, &querier_dto.DatabaseConfig{
 		MigrationDirectory: migDir,
 		QueryDirectory:     queryDir,
+		TypeOverrides:      nil,
+		CustomFunctions:    nil,
 	})
 	if err != nil {
 		return fmt.Errorf("generate: %w", err)

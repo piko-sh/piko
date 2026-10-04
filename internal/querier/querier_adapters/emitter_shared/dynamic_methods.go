@@ -21,7 +21,7 @@ package emitter_shared
 import (
 	"go/ast"
 
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
@@ -61,6 +61,8 @@ func buildDynamicOneQueryStatements(
 //
 // Takes query (*querier_dto.AnalysedQuery) which holds the analysed query definition.
 // Takes strategy (MethodStrategy) which provides database-specific AST nodes.
+// Takes mappings (*querier_dto.TypeMappingTable) which maps database types to generated
+// Go types.
 //
 // Returns *ast.FuncDecl which holds the complete :one method AST node.
 func BuildDynamicOneMethod(query *querier_dto.AnalysedQuery, strategy MethodStrategy, mappings *querier_dto.TypeMappingTable) *ast.FuncDecl {
@@ -125,6 +127,8 @@ func BuildDynamicOneMethod(query *querier_dto.AnalysedQuery, strategy MethodStra
 //
 // Takes query (*querier_dto.AnalysedQuery) which holds the analysed query definition.
 // Takes strategy (MethodStrategy) which provides database-specific AST nodes.
+// Takes mappings (*querier_dto.TypeMappingTable) which maps database types to generated
+// Go types.
 //
 // Returns *ast.FuncDecl which holds the complete :many method AST node.
 func BuildDynamicManyMethod(query *querier_dto.AnalysedQuery, strategy MethodStrategy, mappings *querier_dto.TypeMappingTable) *ast.FuncDecl {

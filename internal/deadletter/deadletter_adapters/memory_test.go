@@ -293,13 +293,11 @@ func TestMemoryDeadLetterQueue_ConcurrentAdds(t *testing.T) {
 	const goroutines = 50
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
-	for i := range goroutines {
-		go func(id int) {
-			defer wg.Done()
+	for id := range goroutines {
+		wg.Go(func() {
 			_ = dlq.Add(testCtx(), sampleEntry(id))
-		}(i)
+		})
 	}
 
 	wg.Wait()

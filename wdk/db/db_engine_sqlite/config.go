@@ -31,5 +31,7 @@ func SQLite() db.EngineConfig {
 	return db.EngineConfig{
 		Engine:           NewSQLiteEngine(),
 		MigrationDialect: migration_sql.SQLiteDialect(),
+		DriverName:       "",
+		CatalogueFactory: nil,
 	}
 }

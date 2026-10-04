@@ -90,12 +90,13 @@ func (k StateKey) String() string {
 //
 // Returns StateKey with Pane == StateSlotMenu and an empty Item.
 func MenuKey(group GroupID) StateKey {
-	return StateKey{Group: group, Pane: StateSlotMenu}
+	return StateKey{Group: group, Pane: StateSlotMenu, Item: ""}
 }
 
 // CentreKey returns a StateKey addressing the centre pane of an item.
 //
-// Takes group (GroupID) and item (ItemID) which together identify the menu item.
+// Takes group (GroupID) which identifies the panel group.
+// Takes item (ItemID) which identifies the menu item within the group.
 //
 // Returns StateKey with Pane == StateSlotCentre.
 func CentreKey(group GroupID, item ItemID) StateKey {
@@ -104,7 +105,8 @@ func CentreKey(group GroupID, item ItemID) StateKey {
 
 // DetailKey returns a StateKey addressing the detail pane of an item.
 //
-// Takes group (GroupID) and item (ItemID) which together identify the menu item.
+// Takes group (GroupID) which identifies the panel group.
+// Takes item (ItemID) which identifies the menu item within the group.
 //
 // Returns StateKey with Pane == StateSlotDetail.
 func DetailKey(group GroupID, item ItemID) StateKey {

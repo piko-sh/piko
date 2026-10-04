@@ -213,5 +213,8 @@ func DefaultDispatcherConfig() DispatcherConfig {
 		MaxConsecutiveFailures: defaultMaxConsecutiveFailures,
 		CircuitBreakerTimeout:  defaultCircuitBreakerTimeout * time.Second,
 		CircuitBreakerInterval: defaultCircuitBreakerInterval * time.Second,
+		Clock:                  nil,
+		JitterFunc:             nil,
+		RetryWorkerCount:       0,
 	}
 }

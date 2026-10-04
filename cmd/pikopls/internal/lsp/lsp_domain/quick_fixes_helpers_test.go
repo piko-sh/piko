@@ -126,14 +126,9 @@ func TestExtractTypeMismatchData(t *testing.T) {
 			},
 		},
 		{
-			name:    "empty map",
-			dataMap: map[string]any{},
-			expectData: typeMismatchData{
-				CanCoerce:   false,
-				PropDefPath: "",
-				PropDefLine: 0,
-				PropName:    "",
-			},
+			name:       "empty map",
+			dataMap:    map[string]any{},
+			expectData: typeMismatchData{},
 		},
 		{
 			name: "wrong types ignored",
@@ -141,12 +136,7 @@ func TestExtractTypeMismatchData(t *testing.T) {
 				"can_coerce":    "not a bool",
 				"prop_def_line": "not a number",
 			},
-			expectData: typeMismatchData{
-				CanCoerce:   false,
-				PropDefPath: "",
-				PropDefLine: 0,
-				PropName:    "",
-			},
+			expectData: typeMismatchData{},
 		},
 	}
 
@@ -205,14 +195,9 @@ func TestExtractUndefinedVariableData(t *testing.T) {
 			},
 		},
 		{
-			name:    "empty map",
-			dataMap: map[string]any{},
-			expectData: undefinedVariableData{
-				Suggestion:    "",
-				IsProp:        false,
-				PropName:      "",
-				SuggestedType: "",
-			},
+			name:       "empty map",
+			dataMap:    map[string]any{},
+			expectData: undefinedVariableData{},
 		},
 	}
 
@@ -268,13 +253,9 @@ func TestExtractUndefinedPartialAliasData(t *testing.T) {
 			},
 		},
 		{
-			name:    "empty map",
-			dataMap: map[string]any{},
-			expectData: undefinedPartialAliasData{
-				Suggestion:    "",
-				Alias:         "",
-				PotentialPath: "",
-			},
+			name:       "empty map",
+			dataMap:    map[string]any{},
+			expectData: undefinedPartialAliasData{},
 		},
 	}
 
@@ -328,13 +309,9 @@ func TestExtractMissingRequiredPropData(t *testing.T) {
 			},
 		},
 		{
-			name:    "empty map",
-			dataMap: map[string]any{},
-			expectData: missingRequiredPropData{
-				PropName:       "",
-				PropType:       "",
-				SuggestedValue: "",
-			},
+			name:       "empty map",
+			dataMap:    map[string]any{},
+			expectData: missingRequiredPropData{},
 		},
 	}
 
@@ -384,12 +361,9 @@ func TestExtractMissingImportData(t *testing.T) {
 			},
 		},
 		{
-			name:    "empty map",
-			dataMap: map[string]any{},
-			expectData: missingImportData{
-				Alias:      "",
-				ImportPath: "",
-			},
+			name:       "empty map",
+			dataMap:    map[string]any{},
+			expectData: missingImportData{},
 		},
 	}
 

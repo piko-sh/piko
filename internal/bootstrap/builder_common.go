@@ -25,13 +25,22 @@ import (
 
 	"piko.sh/piko/internal/daemon/daemon_adapters"
 	"piko.sh/piko/internal/daemon/daemon_domain"
+	"piko.sh/piko/internal/fonts"
+	"piko.sh/piko/internal/layouter/layouter_adapters"
+	"piko.sh/piko/internal/layouter/layouter_domain"
+	"piko.sh/piko/internal/layouter/layouter_dto"
 	"piko.sh/piko/internal/lifecycle/lifecycle_adapters"
 	"piko.sh/piko/internal/lifecycle/lifecycle_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/monitoring/monitoring_adapters"
 	"piko.sh/piko/internal/monitoring/monitoring_domain"
+	"piko.sh/piko/internal/pdfwriter/pdfwriter_adapters"
+	"piko.sh/piko/internal/pdfwriter/pdfwriter_adapters/driven_svgwriter"
+	"piko.sh/piko/internal/pdfwriter/pdfwriter_domain"
 	"piko.sh/piko/internal/render/render_domain"
+	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/internal/typegen/typegen_adapters"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/safedisk"
 )
 
@@ -39,16 +48,16 @@ import (
 // one-time startup tasks (theme seeding, configuration loading, asset discovery). Errors
 // are logged unless the context has already been cancelled.
 //
-// Takes appCtx (context.Context) which controls the lifetime of the goroutine.
-// Takes l (logger_domain.Logger) which logs errors from the background tasks.
+// Takes appCtx (context.Context) which controls the lifetime of the goroutine and carries
+// its logger.
 // Takes lifecycleService (lifecycle_domain.LifecycleService) which provides the initial
 // tasks to run.
-func runInitialTasksInBackground(appCtx context.Context, l logger_domain.Logger, lifecycleService lifecycle_domain.LifecycleService) {
+func runInitialTasksInBackground(appCtx context.Context, lifecycleService lifecycle_domain.LifecycleService) {
 	go func() {
-		if err := lifecycleService.RunInitialTasks(appCtx); err != nil {
-			if appCtx.Err() == nil {
-				l.Error("Initial tasks failed", logger_domain.Error(err))
-			}
+		defer goroutine.RecoverPanic(appCtx, "bootstrap.runInitialTasks")
+		if err := lifecycleService.RunInitialTasks(appCtx); err != nil && appCtx.Err() == nil {
+			_, l := logger_domain.From(appCtx, log)
+			l.Error("Initial tasks failed", logger_domain.Error(err))
 		}
 	}()
 }
@@ -199,4 +208,64 @@ func ensureTypeDefinitions(ctx context.Context, c *Container) {
 	}
 
 	l.Internal("TypeScript type definitions written to dist/ts/")
+}
+
+// setupPdfWriterService creates the PDF writer service with the bundled Noto Sans fonts
+// and registers it on the container.
+//
+// Takes c (*Container) which receives the PDF writer service and supplies the render
+// registry for SVG data.
+// Takes runner (templater_domain.ManifestRunnerPort) which renders the PDF templates.
+// Takes modeName (string) which names the run mode in error messages.
+//
+// Returns error when the font metrics cannot be created.
+func setupPdfWriterService(c *Container, runner templater_domain.ManifestRunnerPort, modeName string) error {
+	fontEntries := newDefaultPdfFontEntries()
+	fontMetrics, fontMetricsError := layouter_adapters.NewGoTextFontMetrics(fontEntries)
+	if fontMetricsError != nil {
+		return fmt.Errorf("failed to create font metrics for %s: %w", modeName, fontMetricsError)
+	}
+
+	svgData := driven_svgwriter.NewRegistrySVGDataAdapter(c.GetRenderRegistry(), driven_svgwriter.NewDataURISVGDataAdapter())
+	imageResolver := driven_svgwriter.NewSVGImageResolver(&layouter_adapters.MockImageResolver{}, svgData)
+	serviceOptions := append(
+		[]pdfwriter_domain.PdfServiceOption{pdfwriter_domain.WithSVGRenderer(driven_svgwriter.New(), svgData)},
+		pdfServiceLimitOptions(c.serverConfig.Pdf)...,
+	)
+	c.SetPdfWriterService(pdfwriter_domain.NewPdfWriterService(
+		pdfwriter_adapters.NewTemplateRunnerAdapter(runner),
+		pdfwriter_adapters.NewLayouterAdapter(fontMetrics, imageResolver),
+		fontEntries,
+		nil,
+		fontMetrics,
+		serviceOptions...,
+	))
+	return nil
+}
+
+// newDefaultPdfFontEntries creates the font entries for the bundled Noto Sans regular and
+// bold faces used by the PDF writer.
+//
+// Returns []layouter_dto.FontEntry which lists the regular and bold font entries.
+func newDefaultPdfFontEntries() []layouter_dto.FontEntry {
+	return []layouter_dto.FontEntry{
+		{
+			Family:     fonts.NotoSansFamilyName,
+			Weight:     fontWeightNormal,
+			Style:      int(layouter_domain.FontStyleNormal),
+			Data:       fonts.NotoSansRegularTTF,
+			WeightMin:  0,
+			WeightMax:  0,
+			IsVariable: false,
+		},
+		{
+			Family:     fonts.NotoSansFamilyName,
+			Weight:     fontWeightBold,
+			Style:      int(layouter_domain.FontStyleNormal),
+			Data:       fonts.NotoSansBoldTTF,
+			WeightMin:  0,
+			WeightMax:  0,
+			IsVariable: false,
+		},
+	}
 }

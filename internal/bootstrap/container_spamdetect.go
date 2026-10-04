@@ -152,7 +152,14 @@ func (c *Container) buildSpamDetectServiceFromConfig(ctx context.Context) {
 	blocklistPatterns := c.serverConfig.Security.SpamDetectBlocklistPatterns
 
 	err = builtin_detectors.RegisterDefaults(ctx, service, builtin_detectors.Config{
-		BlocklistPatterns: blocklistPatterns,
+		BlocklistPatterns:   blocklistPatterns,
+		RepetitionCache:     nil,
+		RepetitionIPScoped:  nil,
+		BigramAnalysers:     nil,
+		RepetitionTTL:       0,
+		TimingMinDuration:   0,
+		GibberishThreshold:  0,
+		LinkDensityMaxLinks: 0,
 	})
 	if err != nil {
 		c.spamdetectErr = fmt.Errorf("registering built-in detectors: %w", err)
@@ -178,7 +185,9 @@ func (c *Container) spamDetectServiceConfig() *spamdetect_dto.ServiceConfig {
 	scoreThreshold := deref(c.serverConfig.Security.SpamDetectScoreThreshold, defaultConfig.ScoreThreshold)
 
 	return &spamdetect_dto.ServiceConfig{
-		ScoreThreshold: scoreThreshold,
-		Timeout:        defaultConfig.Timeout,
+		ScoreThreshold:    scoreThreshold,
+		Timeout:           defaultConfig.Timeout,
+		DetectorWeights:   nil,
+		FeedbackCacheSize: 0,
 	}
 }

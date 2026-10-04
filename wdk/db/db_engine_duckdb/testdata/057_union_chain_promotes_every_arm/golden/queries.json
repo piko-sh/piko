@@ -1,0 +1,60 @@
+[
+  {
+    "InsertTable": "",
+    "Filename": "list_slugs.sql",
+    "SQL": "-- piko.query(name: ListSlugs, command: many)\nSELECT slug FROM events\nUNION ALL\nSELECT slug FROM events\nUNION ALL\nSELECT NULL;",
+    "Name": "ListSlugs",
+    "CountSQL": "",
+    "Parameters": [],
+    "OutputColumns": [
+      {
+        "GoTypeOverride": null,
+        "Name": "slug",
+        "SourceTable": "events",
+        "SourceSchema": "",
+        "SourceColumn": "slug",
+        "SourceQualifier": "events",
+        "EmbedTable": "",
+        "SQLType": {
+          "Precision": null,
+          "Scale": null,
+          "Length": null,
+          "ElementType": null,
+          "EngineName": "varchar",
+          "Schema": "",
+          "EnumValues": null,
+          "StructFields": null,
+          "KeyType": null,
+          "UnionMembers": null,
+          "Category": 4,
+          "Nullable": false
+        },
+        "Nullable": true,
+        "IsEmbedded": false,
+        "EmbedIsOuter": false
+      }
+    ],
+    "GroupByKey": null,
+    "InsertColumns": null,
+    "AllowedColumns": null,
+    "Directives": {
+      "NullableOverride": null,
+      "ReadOnlyOverride": null,
+      "EmbedTables": null,
+      "GroupByKeys": null,
+      "Slices": null,
+      "DynamicOrderByColumns": null,
+      "ParamOverrides": null,
+      "DynamicRuntime": false,
+      "Optional": false
+    },
+    "Line": 1,
+    "Command": 1,
+    "IsDynamic": false,
+    "DynamicRuntime": false,
+    "ReadOnly": true,
+    "BaseQueryHasWhereClause": false,
+    "CountSQLWrapped": false,
+    "Optional": false
+  }
+]

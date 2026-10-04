@@ -64,6 +64,7 @@ func NewInMemoryTokenBucketStore(opts ...InMemoryTokenBucketStoreOption) *InMemo
 	s := &InMemoryTokenBucketStore{
 		clock:   clock.RealClock(),
 		buckets: make(map[string]*ratelimiter_domain.TokenBucketState),
+		mu:      sync.Mutex{},
 	}
 	for _, opt := range opts {
 		opt(s)

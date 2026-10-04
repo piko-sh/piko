@@ -108,6 +108,7 @@ func NewFunctionTool(name, description string, parameters *JSONSchema) ToolDefin
 			Name:        name,
 			Description: &description,
 			Parameters:  parameters,
+			Strict:      nil,
 		},
 	}
 }
@@ -148,7 +149,10 @@ func (t ToolDefinition) DeepCopy() ToolDefinition {
 // Returns FunctionDefinition which is a deep copy of the receiver.
 func (f FunctionDefinition) DeepCopy() FunctionDefinition {
 	cp := FunctionDefinition{
-		Name: f.Name,
+		Name:        f.Name,
+		Description: nil,
+		Parameters:  nil,
+		Strict:      nil,
 	}
 	cp.Description = copyPtr(f.Description)
 	cp.Strict = copyPtr(f.Strict)
@@ -162,21 +166,21 @@ func (f FunctionDefinition) DeepCopy() FunctionDefinition {
 //
 // Returns *ToolChoice set up for automatic tool selection.
 func ToolChoiceAuto() *ToolChoice {
-	return &ToolChoice{Type: ToolChoiceTypeAuto}
+	return &ToolChoice{Type: ToolChoiceTypeAuto, Function: nil}
 }
 
 // ToolChoiceNone returns a ToolChoice that stops the model from calling tools.
 //
 // Returns *ToolChoice which is set to disable all tool calls.
 func ToolChoiceNone() *ToolChoice {
-	return &ToolChoice{Type: ToolChoiceTypeNone}
+	return &ToolChoice{Type: ToolChoiceTypeNone, Function: nil}
 }
 
 // ToolChoiceRequired returns a ToolChoice that forces at least one tool call.
 //
 // Returns *ToolChoice which is set to require tool use.
 func ToolChoiceRequired() *ToolChoice {
-	return &ToolChoice{Type: ToolChoiceTypeRequired}
+	return &ToolChoice{Type: ToolChoiceTypeRequired, Function: nil}
 }
 
 // ToolChoiceSpecific returns a ToolChoice that forces a specific function call.

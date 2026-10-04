@@ -172,6 +172,9 @@ var (
 				DeduplicationKey:   "",
 				Config:             TaskConfig{},
 				Attempt:            0,
+				BuildTag:           "",
+				IsFatal:            false,
+				persisted:          false,
 			}
 		},
 	}
@@ -213,6 +216,14 @@ func NewTask(executor string, payload map[string]any) *Task {
 	return task
 }
 
+// Persisted reports whether the task's record has already been created in the task store,
+// so a later dispatch of the same task does not insert it again.
+//
+// Returns bool which is true once the record exists.
+func (t *Task) Persisted() bool {
+	return t.persisted
+}
+
 // Reset clears all fields so the Task can be reused from sync.Pool. Payload and Result
 // maps that exceed taskMapMaxRetainedEntries are replaced with fresh small maps rather
 // than cleared in place.
@@ -225,10 +236,12 @@ func (t *Task) Reset() {
 	t.DeduplicationKey = ""
 	t.BuildTag = ""
 	t.Attempt = 0
+	t.IsFatal = false
 	t.persisted = false
 	t.ExecuteAt = time.Time{}
 	t.CreatedAt = time.Time{}
 	t.UpdatedAt = time.Time{}
+	t.ScheduledExecuteAt = time.Time{}
 	t.Config = TaskConfig{}
 
 	if len(t.Payload) > taskMapMaxRetainedEntries {

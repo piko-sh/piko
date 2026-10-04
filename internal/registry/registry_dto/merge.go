@@ -175,6 +175,7 @@ func scaffoldFromPrimary(base *ArtefactMeta, primary *ArtefactMeta) *ArtefactMet
 		ReleaseID:       source.ReleaseID,
 		DesiredProfiles: make([]NamedProfile, len(source.DesiredProfiles)),
 		ActualVariants:  make([]Variant, 0),
+		Status:          "",
 	}
 	copy(merged.DesiredProfiles, source.DesiredProfiles)
 	return merged

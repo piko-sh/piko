@@ -289,7 +289,7 @@ func TestGetBuiltinHover(t *testing.T) {
 				Kind: PKDefBuiltinFunction,
 				Name: tc.builtinName,
 				Range: protocol.Range{
-					Start: protocol.Position{Line: 0, Character: 0},
+					Start: protocol.Position{},
 					End:   protocol.Position{Line: 0, Character: uint32(len(tc.builtinName))},
 				},
 			}
@@ -334,7 +334,7 @@ func TestGetBuiltinHover_UnknownBuiltin(t *testing.T) {
 		Kind: PKDefBuiltinFunction,
 		Name: "nonexistent",
 		Range: protocol.Range{
-			Start: protocol.Position{Line: 0, Character: 0},
+			Start: protocol.Position{},
 			End:   protocol.Position{Line: 0, Character: 11},
 		},
 	}

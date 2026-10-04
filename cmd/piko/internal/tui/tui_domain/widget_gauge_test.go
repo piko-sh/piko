@@ -102,7 +102,7 @@ func TestSeverityFromPercent(t *testing.T) {
 }
 
 func TestGaugeZeroWidthSafe(t *testing.T) {
-	if out := Gauge(GaugeConfig{Width: 0}); out != "" {
+	if out := Gauge(GaugeConfig{}); out != "" {
 		t.Errorf("zero-width gauge = %q, want empty", out)
 	}
 }

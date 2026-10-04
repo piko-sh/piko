@@ -201,7 +201,8 @@ func (d *decoder) unpackDiagnosticRelatedInfo(fb *ast_schema_gen.DiagnosticRelat
 	}
 
 	info := ast_domain.DiagnosticRelatedInfo{
-		Message: mem.String(fb.Message()),
+		Message:  mem.String(fb.Message()),
+		Location: ast_domain.Location{},
 	}
 
 	var err error
@@ -234,6 +235,9 @@ func (d *decoder) unpackDiagnostic(fb *ast_schema_gen.DiagnosticFB) (*ast_domain
 		SourcePath:   mem.String(fb.SourcePath()),
 		Code:         mem.String(fb.Code()),
 		SourceLength: int(fb.SourceLength()),
+		Data:         nil,
+		RelatedInfo:  nil,
+		Location:     ast_domain.Location{},
 	}
 
 	var err error
@@ -337,10 +341,13 @@ func createVector(s *encoder, offsets []flatbuffers.UOffsetT) flatbuffers.UOffse
 // Takes unpacker (unpackerFunc) which converts a FlatBuffers item to a Go type.
 //
 // Returns []GoType which contains the converted Go values.
-// Returns error when an item fails to unpack.
+// Returns error when length exceeds what the payload can hold or an item fails to unpack.
 func unpackVector[FBType any, GoType any](d *decoder, length int, getter func(*FBType, int) bool, unpacker unpackerFunc[FBType, GoType]) ([]GoType, error) {
 	if length == 0 {
 		return nil, nil
+	}
+	if err := d.reserveElements(length); err != nil {
+		return nil, err
 	}
 	result := make([]GoType, length)
 	var fbItem FBType
@@ -367,10 +374,14 @@ func unpackVector[FBType any, GoType any](d *decoder, length int, getter func(*F
 // Takes unpacker (unknown) which converts a FlatBuffers item to a Go type.
 //
 // Returns []*GoType which contains the deserialised Go pointer items.
-// Returns error when an item cannot be unpacked.
+// Returns error when length exceeds what the payload can hold or an item cannot be
+// unpacked.
 func unpackPtrVector[FBType any, GoType any](d *decoder, length int, getter func(*FBType, int) bool, unpacker unpackerPtrFunc[FBType, GoType]) ([]*GoType, error) {
 	if length == 0 {
 		return nil, nil
+	}
+	if err := d.reserveElements(length); err != nil {
+		return nil, err
 	}
 	result := make([]*GoType, length)
 	var fbItem FBType

@@ -2,7 +2,7 @@
 
 ## Requirements
 
-Go 1.26+. Node.js 22+ if you are touching frontend or plugins. `make help` lists all the targets.
+Go 1.27+. Node.js 22+ if you are touching frontend or plugins. `make help` lists all the targets.
 
 ---
 
@@ -106,8 +106,9 @@ The anti-fascism statement is mandatory and non-negotiable.
 ## Linting
 
 ```bash
-make lint-go PKG=./internal/yourpkg   # Lint one package
-make lint-go-all                      # Lint everything
+golangci-lint run ./internal/yourpkg/...   # Lint one package
+make lint-go                               # Lint every workspace module, untagged (what CI runs)
+make lint-go-all                           # Also lint every build tag and platform variant
 ```
 
 Configuration is in `.golangci.yml` and `revive.toml`. The limits that tend to come up:

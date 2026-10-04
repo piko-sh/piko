@@ -288,5 +288,6 @@ func DefaultNavigationConfig() NavigationConfig {
 		IncludeHidden:  false,
 		DefaultOrder:   defaultNavigationOrder,
 		GroupBySection: true,
+		Locale:         "",
 	}
 }

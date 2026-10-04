@@ -116,79 +116,78 @@ const (
 // Returns completionContext which describes the detected completion type and any prefix
 // or context information found.
 func analyseCompletionContext(d *document, position protocol.Position) completionContext {
-	ctx := completionContext{
-		TriggerKind: triggerScope,
-	}
+	completion := completionContext{}
+	completion.TriggerKind = triggerScope
 
 	line, found := getLineAtPosition(d.Content, position.Line)
 	if !found {
-		return ctx
+		return completion
 	}
 	if int(position.Character) > len(line) {
-		return ctx
+		return completion
 	}
 
 	textBeforeCursor := line[:position.Character]
 	lineString := string(line)
 	cursorPosition := int(position.Character)
 
-	if tryPikoNamespaceContext(&ctx, textBeforeCursor) {
-		return ctx
+	if tryPikoNamespaceContext(&completion, textBeforeCursor) {
+		return completion
 	}
-	if tryActionNamespaceContext(&ctx, textBeforeCursor) {
-		return ctx
+	if tryActionNamespaceContext(&completion, textBeforeCursor) {
+		return completion
 	}
-	if tryMemberAccessContext(&ctx, textBeforeCursor) {
-		return ctx
+	if tryMemberAccessContext(&completion, textBeforeCursor) {
+		return completion
 	}
-	if tryDirectiveContext(&ctx, textBeforeCursor) {
-		return ctx
+	if tryDirectiveContext(&completion, textBeforeCursor) {
+		return completion
 	}
-	if tryCSSClassValueContext(&ctx, lineString, cursorPosition) {
-		return ctx
+	if tryCSSClassValueContext(&completion, lineString, cursorPosition) {
+		return completion
 	}
-	if tryDirectiveValueContext(&ctx, textBeforeCursor) {
-		return ctx
+	if tryDirectiveValueContext(&completion, textBeforeCursor) {
+		return completion
 	}
-	if tryPartialAliasContext(&ctx, lineString, cursorPosition) {
-		return ctx
+	if tryPartialAliasContext(&completion, lineString, cursorPosition) {
+		return completion
 	}
-	if tryEventHandlercompletionContext(&ctx, lineString, cursorPosition) {
-		return ctx
+	if tryEventHandlercompletionContext(&completion, lineString, cursorPosition) {
+		return completion
 	}
-	if tryPartialNamecompletionContext(&ctx, lineString, cursorPosition) {
-		return ctx
+	if tryPartialNamecompletionContext(&completion, lineString, cursorPosition) {
+		return completion
 	}
-	if tryRefsAccesscompletionContext(&ctx, lineString, cursorPosition) {
-		return ctx
+	if tryRefsAccesscompletionContext(&completion, lineString, cursorPosition) {
+		return completion
 	}
-	if tryStateAccesscompletionContext(&ctx, d, position, lineString, cursorPosition) {
-		return ctx
+	if tryStateAccesscompletionContext(&completion, d, position, lineString, cursorPosition) {
+		return completion
 	}
-	if tryPropsAccesscompletionContext(&ctx, d, position, lineString, cursorPosition) {
-		return ctx
+	if tryPropsAccesscompletionContext(&completion, d, position, lineString, cursorPosition) {
+		return completion
 	}
 
-	return ctx
+	return completion
 }
 
 // tryMemberAccessContext checks for member access (contains a dot). Handles both "state."
 // (cursor right after dot) and "state.us" (partial name after dot).
 //
-// Takes ctx (*completionContext) which receives the trigger kind, base expression, and
-// prefix when member access is detected.
+// Takes completion (*completionContext) which receives the trigger kind, base expression,
+// and prefix when member access is detected.
 // Takes textBeforeCursor ([]byte) which is the text to check for member access.
 //
 // Returns bool which is true when member access was detected and the context was updated.
-func tryMemberAccessContext(ctx *completionContext, textBeforeCursor []byte) bool {
+func tryMemberAccessContext(completion *completionContext, textBeforeCursor []byte) bool {
 	if len(textBeforeCursor) == 0 {
 		return false
 	}
 
 	if textBeforeCursor[len(textBeforeCursor)-1] == '.' {
-		ctx.TriggerKind = triggerMemberAccess
-		ctx.BaseExpression = extractBaseExpression(textBeforeCursor[:len(textBeforeCursor)-1])
-		ctx.Prefix = ""
+		completion.TriggerKind = triggerMemberAccess
+		completion.BaseExpression = extractBaseExpression(textBeforeCursor[:len(textBeforeCursor)-1])
+		completion.Prefix = ""
 		return true
 	}
 
@@ -202,9 +201,9 @@ func tryMemberAccessContext(ctx *completionContext, textBeforeCursor []byte) boo
 		return false
 	}
 
-	ctx.TriggerKind = triggerMemberAccess
-	ctx.BaseExpression = extractBaseExpression(textBeforeCursor[:dotIndex])
-	ctx.Prefix = string(partialName)
+	completion.TriggerKind = triggerMemberAccess
+	completion.BaseExpression = extractBaseExpression(textBeforeCursor[:dotIndex])
+	completion.Prefix = string(partialName)
 	return true
 }
 
@@ -241,13 +240,13 @@ func isValidIdentifierPrefix(text []byte) bool {
 // tryDirectiveContext checks for directive completion patterns like "p-". Handles both
 // "p-" (cursor right after the dash) and "p-sh" (partial directive name).
 //
-// Takes ctx (*completionContext) which receives the trigger kind and prefix if a
+// Takes completion (*completionContext) which receives the trigger kind and prefix if a
 // directive pattern is found.
 // Takes textBeforeCursor ([]byte) which contains the text to check for a directive
 // prefix.
 //
-// Returns bool which is true if a directive context was found and ctx was updated.
-func tryDirectiveContext(ctx *completionContext, textBeforeCursor []byte) bool {
+// Returns bool which is true if a directive context was found and completion was updated.
+func tryDirectiveContext(completion *completionContext, textBeforeCursor []byte) bool {
 	if len(textBeforeCursor) < 2 {
 		return false
 	}
@@ -267,8 +266,8 @@ func tryDirectiveContext(ctx *completionContext, textBeforeCursor []byte) bool {
 		return false
 	}
 
-	ctx.TriggerKind = triggerDirective
-	ctx.Prefix = string(afterPDash)
+	completion.TriggerKind = triggerDirective
+	completion.Prefix = string(afterPDash)
 	return true
 }
 
@@ -322,12 +321,12 @@ func isDirectiveNameChar(b byte) bool {
 // tryDirectiveValueContext checks if the cursor is inside a directive attribute value
 // (e.g., p-if="<cursor>", p-show="sta<cursor>").
 //
-// Takes ctx (*completionContext) which receives the trigger kind and prefix when inside a
-// directive value.
+// Takes completion (*completionContext) which receives the trigger kind and prefix when
+// inside a directive value.
 // Takes textBeforeCursor ([]byte) which contains the text to check.
 //
 // Returns bool which is true when the cursor is inside a directive value.
-func tryDirectiveValueContext(ctx *completionContext, textBeforeCursor []byte) bool {
+func tryDirectiveValueContext(completion *completionContext, textBeforeCursor []byte) bool {
 	index := findDirectiveValueStart(textBeforeCursor)
 	if index == -1 {
 		return false
@@ -339,9 +338,9 @@ func tryDirectiveValueContext(ctx *completionContext, textBeforeCursor []byte) b
 		return false
 	}
 
-	ctx.TriggerKind = triggerDirectiveValue
-	ctx.Prefix = prefix
-	ctx.InDirective = true
+	completion.TriggerKind = triggerDirectiveValue
+	completion.Prefix = prefix
+	completion.InDirective = true
 	return true
 }
 
@@ -418,13 +417,13 @@ func extractDirectiveValuePrefix(text []byte) (string, bool) {
 // tryPartialAliasContext checks if the cursor is inside an is="..." attribute and sets up
 // the completion context for partial alias matching.
 //
-// Takes ctx (*completionContext) which receives the trigger kind and prefix when a
+// Takes completion (*completionContext) which receives the trigger kind and prefix when a
 // partial alias is found.
 // Takes lineString (string) which contains the current line text.
 // Takes cursorPosition (int) which specifies the cursor position in the line.
 //
 // Returns bool which is true when the cursor is inside an is="..." attribute.
-func tryPartialAliasContext(ctx *completionContext, lineString string, cursorPosition int) bool {
+func tryPartialAliasContext(completion *completionContext, lineString string, cursorPosition int) bool {
 	index := strings.LastIndex(lineString[:cursorPosition], `is="`)
 	if index == -1 {
 		return false
@@ -433,69 +432,69 @@ func tryPartialAliasContext(ctx *completionContext, lineString string, cursorPos
 	if hasClosingQuote(textBetween) {
 		return false
 	}
-	ctx.TriggerKind = triggerPartialAlias
-	ctx.Prefix = textBetween
+	completion.TriggerKind = triggerPartialAlias
+	completion.Prefix = textBetween
 	return true
 }
 
 // tryEventHandlercompletionContext checks if the current line matches an event handler
 // pattern and updates the completion context if found.
 //
-// Takes ctx (*completionContext) which receives updates when a match is found.
+// Takes completion (*completionContext) which receives updates when a match is found.
 // Takes lineString (string) which contains the current line of code.
 // Takes cursorPosition (int) which specifies the cursor position in the line.
 //
 // Returns bool which is true when an event handler context was found.
-func tryEventHandlercompletionContext(ctx *completionContext, lineString string, cursorPosition int) bool {
+func tryEventHandlercompletionContext(completion *completionContext, lineString string, cursorPosition int) bool {
 	index, prefix := findEventHandlerContext(lineString, cursorPosition)
 	if index == -1 {
 		return false
 	}
-	ctx.TriggerKind = triggerEventHandler
-	ctx.Prefix = prefix
+	completion.TriggerKind = triggerEventHandler
+	completion.Prefix = prefix
 	return true
 }
 
 // tryPartialNamecompletionContext checks if there is a partial name at the cursor that
 // can be completed.
 //
-// Takes ctx (*completionContext) which stores the completion trigger details.
+// Takes completion (*completionContext) which stores the completion trigger details.
 // Takes lineString (string) which contains the current line of text.
 // Takes cursorPosition (int) which specifies the cursor position in the line.
 //
 // Returns bool which is true when a partial name context was found.
-func tryPartialNamecompletionContext(ctx *completionContext, lineString string, cursorPosition int) bool {
+func tryPartialNamecompletionContext(completion *completionContext, lineString string, cursorPosition int) bool {
 	index, prefix := findPartialNameContext(lineString, cursorPosition)
 	if index == -1 {
 		return false
 	}
-	ctx.TriggerKind = triggerPartialName
-	ctx.Prefix = prefix
+	completion.TriggerKind = triggerPartialName
+	completion.Prefix = prefix
 	return true
 }
 
 // tryRefsAccesscompletionContext checks if a line contains refs access context.
 //
-// Takes ctx (*completionContext) which receives the trigger kind and prefix when refs
-// access context is found.
+// Takes completion (*completionContext) which receives the trigger kind and prefix when
+// refs access context is found.
 // Takes lineString (string) which contains the line of text to check.
 // Takes cursorPosition (int) which specifies the cursor position in the line.
 //
 // Returns bool which indicates whether refs access context was found.
-func tryRefsAccesscompletionContext(ctx *completionContext, lineString string, cursorPosition int) bool {
+func tryRefsAccesscompletionContext(completion *completionContext, lineString string, cursorPosition int) bool {
 	index, prefix := findRefsAccessContext(lineString, cursorPosition)
 	if index == -1 {
 		return false
 	}
-	ctx.TriggerKind = triggerRefAccess
-	ctx.Prefix = prefix
+	completion.TriggerKind = triggerRefAccess
+	completion.Prefix = prefix
 	return true
 }
 
 // tryStateAccesscompletionContext checks for state access in a JavaScript script block.
 //
-// Takes ctx (*completionContext) which receives the completion context to populate if a
-// state access is found.
+// Takes completion (*completionContext) which receives the completion context to populate
+// if a state access is found.
 // Takes d (*document) which provides access to SFC parsing for script detection.
 // Takes position (protocol.Position) which specifies the cursor position in the document.
 // Takes lineString (string) which contains the current line text.
@@ -503,7 +502,7 @@ func tryRefsAccesscompletionContext(ctx *completionContext, lineString string, c
 //
 // Returns bool which is true when a state access context was found and the context was
 // populated.
-func tryStateAccesscompletionContext(ctx *completionContext, d *document, position protocol.Position, lineString string, cursorPosition int) bool {
+func tryStateAccesscompletionContext(completion *completionContext, d *document, position protocol.Position, lineString string, cursorPosition int) bool {
 	index, prefix := findStateAccessContext(lineString, cursorPosition)
 	if index == -1 {
 		return false
@@ -511,22 +510,23 @@ func tryStateAccesscompletionContext(ctx *completionContext, d *document, positi
 	if !d.isPositionInClientScript(position) {
 		return false
 	}
-	ctx.TriggerKind = triggerStateAccessJS
-	ctx.Prefix = prefix
+	completion.TriggerKind = triggerStateAccessJS
+	completion.Prefix = prefix
 	return true
 }
 
 // tryPropsAccesscompletionContext checks for props access in a JavaScript script block.
 //
-// Takes ctx (*completionContext) which receives the completion context to update if props
-// access is found.
+// Takes completion (*completionContext) which receives the completion context to update
+// if props access is found.
 // Takes d (*document) which provides access to SFC parsing to find the script.
 // Takes position (protocol.Position) which specifies the cursor position.
 // Takes lineString (string) which contains the current line text.
 // Takes cursorPosition (int) which indicates the cursor offset within the line.
 //
-// Returns bool which is true if props access context was found and ctx was updated.
-func tryPropsAccesscompletionContext(ctx *completionContext, d *document, position protocol.Position, lineString string, cursorPosition int) bool {
+// Returns bool which is true if props access context was found and completion was
+// updated.
+func tryPropsAccesscompletionContext(completion *completionContext, d *document, position protocol.Position, lineString string, cursorPosition int) bool {
 	index, prefix := findPropsAccessContext(lineString, cursorPosition)
 	if index == -1 {
 		return false
@@ -534,8 +534,8 @@ func tryPropsAccesscompletionContext(ctx *completionContext, d *document, positi
 	if !d.isPositionInClientScript(position) {
 		return false
 	}
-	ctx.TriggerKind = triggerPropsAccessJS
-	ctx.Prefix = prefix
+	completion.TriggerKind = triggerPropsAccessJS
+	completion.Prefix = prefix
 	return true
 }
 
@@ -975,19 +975,19 @@ func findPropsAccessContext(line string, cursorPosition int) (int, string) {
 // tryPikoNamespaceContext checks for piko namespace completion contexts. Handles "piko.",
 // "piko.na", "piko.nav.", and "piko.nav.na" patterns.
 //
-// Takes ctx (*completionContext) which receives the trigger kind and namespace.
+// Takes completion (*completionContext) which receives the trigger kind and namespace.
 // Takes textBeforeCursor ([]byte) which is the text before the cursor.
 //
 // Returns bool which is true when a piko namespace context was detected.
-func tryPikoNamespaceContext(ctx *completionContext, textBeforeCursor []byte) bool {
+func tryPikoNamespaceContext(completion *completionContext, textBeforeCursor []byte) bool {
 	for _, namespace := range typegen_domain.PikoSubNamespaces {
 		pattern := "piko." + namespace + "."
 		if index := findPatternEnd(textBeforeCursor, pattern); index != -1 {
 			prefix := string(textBeforeCursor[index:])
 			if isValidIdentifierPrefix([]byte(prefix)) {
-				ctx.TriggerKind = triggerPikoSubNamespace
-				ctx.Namespace = namespace
-				ctx.Prefix = prefix
+				completion.TriggerKind = triggerPikoSubNamespace
+				completion.Namespace = namespace
+				completion.Prefix = prefix
 				return true
 			}
 		}
@@ -997,8 +997,8 @@ func tryPikoNamespaceContext(ctx *completionContext, textBeforeCursor []byte) bo
 	if index := findPatternEnd(textBeforeCursor, pikoPattern); index != -1 {
 		prefix := string(textBeforeCursor[index:])
 		if isValidIdentifierPrefix([]byte(prefix)) {
-			ctx.TriggerKind = triggerPikoNamespace
-			ctx.Prefix = prefix
+			completion.TriggerKind = triggerPikoNamespace
+			completion.Prefix = prefix
 			return true
 		}
 	}
@@ -1009,17 +1009,17 @@ func tryPikoNamespaceContext(ctx *completionContext, textBeforeCursor []byte) bo
 // tryActionNamespaceContext checks for action namespace completion contexts. It handles
 // patterns like "action." and "action.cus".
 //
-// Takes ctx (*completionContext) which receives the trigger kind and prefix.
+// Takes completion (*completionContext) which receives the trigger kind and prefix.
 // Takes textBeforeCursor ([]byte) which is the text before the cursor.
 //
 // Returns bool which is true when an action namespace context was found.
-func tryActionNamespaceContext(ctx *completionContext, textBeforeCursor []byte) bool {
+func tryActionNamespaceContext(completion *completionContext, textBeforeCursor []byte) bool {
 	actionPattern := "action."
 	if index := findPatternEnd(textBeforeCursor, actionPattern); index != -1 {
 		prefix := string(textBeforeCursor[index:])
 		if isValidActionPrefix([]byte(prefix)) {
-			ctx.TriggerKind = triggerActionNamespace
-			ctx.Prefix = prefix
+			completion.TriggerKind = triggerActionNamespace
+			completion.Prefix = prefix
 			return true
 		}
 	}

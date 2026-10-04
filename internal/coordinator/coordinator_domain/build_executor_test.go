@@ -71,9 +71,7 @@ func TestOutputDiagnosticsIfPresent(t *testing.T) {
 
 	t.Run("returns false when diagnostics are empty", func(t *testing.T) {
 		s := &coordinatorService{}
-		buildResult := &annotator_dto.ProjectAnnotationResult{
-			AllDiagnostics: nil,
-		}
+		buildResult := &annotator_dto.ProjectAnnotationResult{}
 		result := s.outputDiagnosticsIfPresent(context.Background(), buildResult, nil, nil)
 		assert.False(t, result)
 	})
@@ -117,9 +115,7 @@ func TestOutputDiagnosticsIfPresent(t *testing.T) {
 	})
 
 	t.Run("handles nil diagnostic output gracefully", func(t *testing.T) {
-		s := &coordinatorService{
-			diagnosticOutput: nil,
-		}
+		s := &coordinatorService{}
 		buildResult := &annotator_dto.ProjectAnnotationResult{
 			AllDiagnostics: []*ast_domain.Diagnostic{
 				{Message: "test diagnostic"},
@@ -133,9 +129,7 @@ func TestOutputDiagnosticsIfPresent(t *testing.T) {
 
 func TestTryGenerateArtefacts(t *testing.T) {
 	t.Run("returns nil when code emitter is nil", func(t *testing.T) {
-		s := &coordinatorService{
-			codeEmitter: nil,
-		}
+		s := &coordinatorService{}
 
 		err := s.tryGenerateArtefacts(
 			context.Background(),
@@ -262,10 +256,7 @@ func TestCacheIntrospectionResults(t *testing.T) {
 			introspectionCache: cache,
 		}
 
-		tier1Result := tier1CacheResult{
-			introspectionHash: "",
-			scriptHashes:      nil,
-		}
+		tier1Result := tier1CacheResult{}
 
 		s.cacheIntrospectionResults(
 			context.Background(),
@@ -351,9 +342,7 @@ func TestGenerateArtefacts(t *testing.T) {
 			codeEmitter: &mockCodeEmitter{Result: []byte("code")},
 		}
 
-		buildResult := &annotator_dto.ProjectAnnotationResult{
-			VirtualModule: nil,
-		}
+		buildResult := &annotator_dto.ProjectAnnotationResult{}
 
 		artefacts, err := s.generateArtefacts(context.Background(), buildResult)
 
@@ -552,9 +541,7 @@ func TestGenerateSingleArtefact(t *testing.T) {
 			VirtualGoFilePath: "/virtual/test.go",
 			Source:            &annotator_dto.ParsedComponent{SourcePath: "/src/test.pk"},
 		}
-		annotationResult := &annotator_dto.AnnotationResult{
-			VirtualModule: nil,
-		}
+		annotationResult := &annotator_dto.AnnotationResult{}
 
 		_, err := s.generateSingleArtefact(
 			context.Background(),
@@ -750,9 +737,7 @@ func TestIntrospectionCacheEntry_MatchesScriptHashes(t *testing.T) {
 	})
 
 	t.Run("returns false when entry script hashes are nil", func(t *testing.T) {
-		entry := &IntrospectionCacheEntry{
-			ScriptHashes: nil,
-		}
+		entry := &IntrospectionCacheEntry{}
 
 		assert.False(t, entry.MatchesScriptHashes(nil))
 	})

@@ -399,41 +399,38 @@ func Image() *ImageConfigBuilder {
 // Returns map[string]image_dto.TransformationSpec which contains the default variants.
 func DefaultPredefinedVariants() map[string]image_dto.TransformationSpec {
 	return map[string]image_dto.TransformationSpec{
-		"thumb_100": {
-			Width:   variantSizeThumb100,
-			Height:  variantSizeThumb100,
-			Format:  variantFormatWebP,
-			Quality: variantQualityLow,
-			Fit:     variantFitCover,
-		},
-		"thumb_200": {
-			Width:   variantSizeThumb200,
-			Height:  variantSizeThumb200,
-			Format:  variantFormatWebP,
-			Quality: variantQualityMedium,
-			Fit:     variantFitCover,
-		},
-		"thumb_400": {
-			Width:   variantSizeThumb400,
-			Height:  variantSizeThumb400,
-			Format:  variantFormatWebP,
-			Quality: variantQualityHigh,
-			Fit:     variantFitCover,
-		},
-		"preview_800": {
-			Width:   variantSizePreview800,
-			Height:  0,
-			Format:  variantFormatWebP,
-			Quality: variantQualityHigh,
-			Fit:     variantFitContain,
-		},
-		"lqip": {
-			Width:   variantSizeLQIP,
-			Height:  variantSizeLQIP,
-			Format:  variantFormatWebP,
-			Quality: variantQualityLQIP,
-			Fit:     variantFitCover,
-		},
+		"thumb_100":   newWebPVariant(variantSizeThumb100, variantSizeThumb100, variantQualityLow, variantFitCover),
+		"thumb_200":   newWebPVariant(variantSizeThumb200, variantSizeThumb200, variantQualityMedium, variantFitCover),
+		"thumb_400":   newWebPVariant(variantSizeThumb400, variantSizeThumb400, variantQualityHigh, variantFitCover),
+		"preview_800": newWebPVariant(variantSizePreview800, 0, variantQualityHigh, variantFitContain),
+		"lqip":        newWebPVariant(variantSizeLQIP, variantSizeLQIP, variantQualityLQIP, variantFitCover),
+	}
+}
+
+// newWebPVariant creates a predefined WebP variant specification with the given
+// dimensions, quality and fit mode, leaving every other setting at its zero value.
+//
+// Takes width (int) which is the target width in pixels.
+// Takes height (int) which is the target height in pixels, or 0 to preserve the aspect
+// ratio.
+// Takes quality (int) which is the encoding quality.
+// Takes fit (image_dto.FitMode) which controls how the image fills the dimensions.
+//
+// Returns image_dto.TransformationSpec which is the variant specification.
+func newWebPVariant(width, height, quality int, fit image_dto.FitMode) image_dto.TransformationSpec {
+	return image_dto.TransformationSpec{
+		Width:              width,
+		Height:             height,
+		Format:             variantFormatWebP,
+		Quality:            quality,
+		Fit:                fit,
+		Placeholder:        nil,
+		Responsive:         nil,
+		Modifiers:          nil,
+		AspectRatio:        "",
+		Provider:           "",
+		Background:         "",
+		WithoutEnlargement: false,
 	}
 }
 

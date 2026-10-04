@@ -26,18 +26,11 @@ import (
 	"piko.sh/piko/internal/coordinator/coordinator_domain"
 	"piko.sh/piko/internal/daemon/daemon_adapters"
 	"piko.sh/piko/internal/daemon/daemon_domain"
-	"piko.sh/piko/internal/fonts"
 	"piko.sh/piko/internal/i18n/i18n_domain"
-	"piko.sh/piko/internal/layouter/layouter_adapters"
-	"piko.sh/piko/internal/layouter/layouter_domain"
-	"piko.sh/piko/internal/layouter/layouter_dto"
 	"piko.sh/piko/internal/lifecycle/lifecycle_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/monitoring/monitoring_domain"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
-	"piko.sh/piko/internal/pdfwriter/pdfwriter_adapters"
-	"piko.sh/piko/internal/pdfwriter/pdfwriter_adapters/driven_svgwriter"
-	"piko.sh/piko/internal/pdfwriter/pdfwriter_domain"
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/shutdown"
 	"piko.sh/piko/internal/templater/templater_adapters"
@@ -209,26 +202,7 @@ func (b *devDaemonBuilder) buildTemplater(ctx context.Context) error {
 	b.compiledRunner = templater_adapters.NewCompiledManifestRunner(b.store, b.i18nService, defaultLocale)
 	b.templaterService = templater_domain.NewTemplaterService(b.compiledRunner, templater_adapters.NewDrivenRenderer(b.renderer), b.i18nService)
 	b.c.SetEmailTemplateService(templater_domain.NewEmailTemplateService(b.compiledRunner, templater_adapters.NewDrivenRenderer(b.renderer)))
-	fontEntries := []layouter_dto.FontEntry{
-		{Family: fonts.NotoSansFamilyName, Weight: fontWeightNormal, Style: int(layouter_domain.FontStyleNormal), Data: fonts.NotoSansRegularTTF},
-		{Family: fonts.NotoSansFamilyName, Weight: fontWeightBold, Style: int(layouter_domain.FontStyleNormal), Data: fonts.NotoSansBoldTTF},
-	}
-	fontMetrics, fontMetricsError := layouter_adapters.NewGoTextFontMetrics(fontEntries)
-	if fontMetricsError != nil {
-		return fmt.Errorf("failed to create font metrics for dev mode: %w", fontMetricsError)
-	}
-
-	svgData := driven_svgwriter.NewRegistrySVGDataAdapter(b.c.GetRenderRegistry(), driven_svgwriter.NewDataURISVGDataAdapter())
-	imageResolver := driven_svgwriter.NewSVGImageResolver(&layouter_adapters.MockImageResolver{}, svgData)
-	b.c.SetPdfWriterService(pdfwriter_domain.NewPdfWriterService(
-		pdfwriter_adapters.NewTemplateRunnerAdapter(b.compiledRunner),
-		pdfwriter_adapters.NewLayouterAdapter(fontMetrics, imageResolver),
-		fontEntries,
-		nil,
-		fontMetrics,
-		pdfwriter_domain.WithSVGRenderer(driven_svgwriter.New(), svgData),
-	))
-	return nil
+	return setupPdfWriterService(b.c, b.compiledRunner, "dev mode")
 }
 
 // buildRouter builds the final http.Handler for the application.
@@ -240,6 +214,7 @@ func (b *devDaemonBuilder) buildRouter(ctx context.Context) error {
 		devHandlers = &devRouterHandlers{
 			eventsBroadcaster: b.devEventBroadcaster,
 			apiHandler:        b.devAPIHandler,
+			previewHandler:    nil,
 		}
 		if b.c.IsDevWidgetEnabled() {
 			devHandlers.previewHandler = daemon_adapters.NewDevPreviewHandler(
@@ -309,7 +284,7 @@ func (b *devDaemonBuilder) buildFinalDaemonDeps(ctx context.Context, fsWatcher l
 		return nil, fmt.Errorf("failed to start lifecycle service: %w", err)
 	}
 
-	runInitialTasksInBackground(appCtx, l, lifecycleService)
+	runInitialTasksInBackground(appCtx, lifecycleService)
 
 	daemonConfig := NewDaemonConfig(&b.c.serverConfig)
 	daemonConfig.DevelopmentMode = true
@@ -341,6 +316,7 @@ func (b *devDaemonBuilder) buildFinalDaemonDeps(ctx context.Context, fsWatcher l
 		TLSRedirectServer:   tlsRedirectServer,
 		OnServerBound:       b.c.OnServerBound(),
 		OnHealthBound:       b.c.OnHealthBound(),
+		SignalNotifier:      nil,
 	}, nil
 }
 
@@ -355,10 +331,9 @@ func (b *devDaemonBuilder) buildFinalDaemonDeps(ctx context.Context, fsWatcher l
 // Returns lifecycle_domain.LifecycleService ready for Start, or an error if creation
 // fails.
 func (b *devDaemonBuilder) buildLifecycleService(fsWatcher lifecycle_domain.FileSystemWatcher) (lifecycle_domain.LifecycleService, error) {
-	config := &lifecycleServiceConfig{
-		PathsConfig:    NewLifecyclePathsConfig(&b.c.serverConfig),
-		WatcherAdapter: fsWatcher,
-	}
+	config := &lifecycleServiceConfig{}
+	config.PathsConfig = NewLifecyclePathsConfig(&b.c.serverConfig)
+	config.WatcherAdapter = fsWatcher
 	if b.devEventBroadcaster != nil {
 		config.DevEventNotifier = b.devEventBroadcaster
 	}
@@ -400,9 +375,8 @@ func (b *devDaemonBuilder) setupTLSServerAdapter(ctx context.Context, daemonConf
 // Returns daemon_domain.DaemonService which is the assembled daemon service.
 // Returns error when the builder fails to construct the daemon.
 func buildDevDaemon(ctx context.Context, c *Container, deps *Dependencies) (daemon_domain.DaemonService, error) {
-	builder := &devDaemonBuilder{
-		c:    c,
-		deps: deps,
-	}
+	builder := &devDaemonBuilder{}
+	builder.c = c
+	builder.deps = deps
 	return builder.build(ctx)
 }

@@ -26,6 +26,7 @@ import (
 	"strings"
 
 	"github.com/redis/go-redis/v9"
+
 	"piko.sh/piko/wdk/cache"
 	"piko.sh/piko/wdk/logger"
 )
@@ -40,7 +41,27 @@ const (
 
 	// redisLogKeyField is the attribute key for logging Redis keys in search operations.
 	redisLogKeyField = "key"
+
+	// logKeyIndex is the attribute key for logging the index name in search operations.
+	logKeyIndex = "index"
+
+	// defaultTextFieldWeight is the RediSearch TEXT weight applied when none is given, so it
+	// is omitted from FT.CREATE.
+	defaultTextFieldWeight = 1.0
 )
+
+// indexSchema holds the FT.CREATE command built from a search schema.
+type indexSchema struct {
+	// arguments is the complete FT.CREATE command, including the command name.
+	arguments []any
+
+	// skippedFields lists the fields left out of the index because their type, such as
+	// VECTOR, cannot be indexed by this provider.
+	skippedFields []string
+
+	// fieldCount is the number of fields included in the index.
+	fieldCount int
+}
 
 // ensureIndexExists creates the RediSearch index if it does not already exist. This is
 // called lazily on the first search operation.
@@ -65,7 +86,7 @@ func (a *RedisClusterAdapter[K, V]) ensureIndexExists(ctx context.Context) error
 	_, err := a.client.Do(ctx, "FT.INFO", a.indexName).Result()
 	if err == nil {
 		a.indexCreated = true
-		l.Internal("RediSearch index already exists", logger.String("index", a.indexName))
+		l.Internal("RediSearch index already exists", logger.String(logKeyIndex, a.indexName))
 		return nil
 	}
 
@@ -79,49 +100,36 @@ func (a *RedisClusterAdapter[K, V]) ensureIndexExists(ctx context.Context) error
 
 // createIndex creates the RediSearch index using FT.CREATE.
 //
-// Returns error when the index creation command fails.
+// VECTOR fields are skipped because the Redis cluster provider does not support vector
+// search. The first skip on an adapter is logged at Warn, so a schema that declares a
+// field this index cannot serve is visible instead of quietly returning nothing.
+//
+// Returns error when the schema has no indexable fields or the index creation command
+// fails.
 func (a *RedisClusterAdapter[K, V]) createIndex(ctx context.Context) error {
 	ctx, l := logger.From(ctx, log)
 
-	arguments := []any{
-		"FT.CREATE", a.indexName,
-		"ON", "JSON",
-		"PREFIX", "1", a.namespace,
-		"SCHEMA",
+	schema := buildIndexSchema(a.indexName, a.namespace, a.schema.Fields)
+
+	if len(schema.skippedFields) > 0 {
+		a.vectorSkipWarning.Do(func() {
+			l.Warn("Skipping fields the Redis cluster provider cannot index; VECTOR search is not supported",
+				logger.Strings("fields", schema.skippedFields),
+				logger.String(logKeyIndex, a.indexName))
+		})
 	}
 
-	for _, field := range a.schema.Fields {
-		jsonPath := "$." + field.Name
-		alias := field.Name
-
-		arguments = append(arguments, jsonPath, "AS", alias)
-
-		switch field.Type {
-		case cache.FieldTypeText:
-			arguments = append(arguments, "TEXT")
-			if field.Weight != 0 && field.Weight != 1.0 {
-				arguments = append(arguments, "WEIGHT", field.Weight)
-			}
-		case cache.FieldTypeTag:
-			arguments = append(arguments, "TAG")
-		case cache.FieldTypeNumeric:
-			arguments = append(arguments, "NUMERIC")
-		case cache.FieldTypeGeo:
-			arguments = append(arguments, "GEO")
-		}
-
-		if field.Sortable {
-			arguments = append(arguments, "SORTABLE")
-		}
+	if schema.fieldCount == 0 {
+		return fmt.Errorf("no indexable fields for RediSearch index %s (VECTOR fields are not supported by the Redis cluster provider)", a.indexName)
 	}
 
-	if err := a.client.Do(ctx, arguments...).Err(); err != nil {
+	if err := a.client.Do(ctx, schema.arguments...).Err(); err != nil {
 		return fmt.Errorf("failed to create RediSearch index %s: %w", a.indexName, err)
 	}
 
 	l.Internal("Created RediSearch index",
-		logger.String("index", a.indexName),
-		logger.Int("fields", len(a.schema.Fields)))
+		logger.String(logKeyIndex, a.indexName),
+		logger.Int("fields", schema.fieldCount))
 
 	return nil
 }
@@ -261,8 +269,10 @@ func (a *RedisClusterAdapter[K, V]) executeSearch(ctx context.Context, query str
 // error when result parsing fails.
 func (a *RedisClusterAdapter[K, V]) parseSearchResults(ctx context.Context, rawResults []any, total int64, opts *cache.SearchOptions) (cache.SearchResult[K, V], error) {
 	result := cache.SearchResult[K, V]{
-		Items: make([]cache.SearchHit[K, V], 0),
-		Total: total,
+		Items:  make([]cache.SearchHit[K, V], 0),
+		Total:  total,
+		Offset: 0,
+		Limit:  0,
 	}
 
 	if opts != nil {
@@ -327,7 +337,7 @@ func (a *RedisClusterAdapter[K, V]) parseSearchHit(ctx context.Context, rawResul
 		return zero, false
 	}
 
-	return cache.SearchHit[K, V]{Key: key, Value: value}, true
+	return cache.SearchHit[K, V]{Key: key, Value: value, Highlights: nil, Score: 0}, true
 }
 
 // setJSONValue stores a value as JSON for RediSearch indexing.
@@ -435,10 +445,8 @@ func (a *RedisClusterAdapter[K, V]) queryWithRediSearch(ctx context.Context, opt
 	}
 	searchQuery := a.buildSearchQuery("", filters)
 
-	searchOpts := &cache.SearchOptions{
-		Limit:  DefaultSearchResultLimit,
-		Offset: 0,
-	}
+	searchOpts := &cache.SearchOptions{}
+	searchOpts.Limit = DefaultSearchResultLimit
 	if opts != nil {
 		searchOpts.Limit = opts.Limit
 		searchOpts.Offset = opts.Offset
@@ -478,7 +486,7 @@ func (a *RedisClusterAdapter[K, V]) dropIndex(ctx context.Context) {
 	if err := a.client.Do(ctx, "FT.DROPINDEX", a.indexName).Err(); err != nil {
 		if !isUnknownIndexError(err) {
 			l.Warn("Failed to drop search index",
-				logger.String("index", a.indexName),
+				logger.String(logKeyIndex, a.indexName),
 				logger.Error(err))
 		}
 	}
@@ -592,4 +600,71 @@ func extractJSONFromDocData(docData []any) string {
 		}
 	}
 	return ""
+}
+
+// buildIndexSchema builds the FT.CREATE command for a RediSearch index over JSON
+// documents, leaving out VECTOR fields because the Redis cluster provider does not
+// support vector search.
+//
+// Takes indexName (string) which names the index to create.
+// Takes namespace (string) which is the key prefix the index covers.
+// Takes fields ([]cache.FieldSchema) which are the fields declared by the search schema.
+//
+// Returns indexSchema which holds the command, the number of indexed fields and the names
+// of the skipped fields.
+func buildIndexSchema(indexName, namespace string, fields []cache.FieldSchema) indexSchema {
+	schema := indexSchema{
+		arguments: []any{
+			"FT.CREATE", indexName,
+			"ON", "JSON",
+			"PREFIX", "1", namespace,
+			"SCHEMA",
+		},
+		skippedFields: nil,
+		fieldCount:    0,
+	}
+
+	for _, field := range fields {
+		fieldArguments, ok := indexFieldArguments(field)
+		if !ok {
+			schema.skippedFields = append(schema.skippedFields, field.Name)
+			continue
+		}
+		schema.arguments = append(schema.arguments, fieldArguments...)
+		schema.fieldCount++
+	}
+
+	return schema
+}
+
+// indexFieldArguments builds the FT.CREATE SCHEMA arguments for one field.
+//
+// Takes field (cache.FieldSchema) which is the field to index.
+//
+// Returns []any which holds the JSON path, alias, type and options for the field.
+// Returns bool which is false when the field type cannot be indexed by this provider.
+func indexFieldArguments(field cache.FieldSchema) ([]any, bool) {
+	arguments := []any{"$." + field.Name, "AS", field.Name}
+
+	switch field.Type {
+	case cache.FieldTypeText:
+		arguments = append(arguments, "TEXT")
+		if field.Weight != 0 && field.Weight != defaultTextFieldWeight {
+			arguments = append(arguments, "WEIGHT", field.Weight)
+		}
+	case cache.FieldTypeTag:
+		arguments = append(arguments, "TAG")
+	case cache.FieldTypeNumeric:
+		arguments = append(arguments, "NUMERIC")
+	case cache.FieldTypeGeo:
+		arguments = append(arguments, "GEO")
+	default:
+		return nil, false
+	}
+
+	if field.Sortable {
+		arguments = append(arguments, "SORTABLE")
+	}
+
+	return arguments, true
 }

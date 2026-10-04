@@ -73,7 +73,7 @@ func TestGetHoverInfo_NilAnnotationResult(t *testing.T) {
 		WithURI("file:///test/component.pk").
 		Build()
 
-	result, err := document.GetHoverInfo(context.Background(), protocol.Position{Line: 0, Character: 0})
+	result, err := document.GetHoverInfo(context.Background(), protocol.Position{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -508,9 +508,7 @@ func TestGetTypePreviewForAnySymbol_WithInitialPaths(t *testing.T) {
 }
 
 func TestGetTypePreviewForAnySymbol_ResolverReturnsNil(t *testing.T) {
-	customTI := &resolveNamedTypeMock{
-		resolveExprResult: nil,
-	}
+	customTI := &resolveNamedTypeMock{}
 
 	document := newTestDocumentBuilder().
 		WithURI("file:///test/component.pk").
@@ -725,9 +723,7 @@ func TestGetMethodSignatureFromInspector_FoundMethod(t *testing.T) {
 }
 
 func TestGetMethodSignatureFromInspector_NilMethodInfo(t *testing.T) {
-	customTI := &methodSignatureMock{
-		methodInfo: nil,
-	}
+	customTI := &methodSignatureMock{}
 
 	document := newTestDocumentBuilder().
 		WithURI("file:///test/component.pk").

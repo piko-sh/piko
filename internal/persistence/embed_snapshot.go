@@ -31,7 +31,6 @@ import (
 	"github.com/klauspost/compress/zstd"
 	cache_adapters_otter "piko.sh/piko/internal/cache/cache_adapters/provider_otter"
 	"piko.sh/piko/internal/cache/cache_domain"
-	"piko.sh/piko/internal/cache/cache_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
@@ -192,6 +191,7 @@ func LoadOrchestratorCacheFromFS(
 // Takes codec (*driven_disk.BinaryCodec[K, V]) which decodes entries.
 // Takes capacity (int64) which caps the cache; zero uses the default.
 // Takes label (string) which names the domain for logging and error wrapping.
+// Takes clk (clock.Clock) which provides the current time for cache population.
 //
 // Returns cache_domain.ProviderPort[K, V] which is the populated cache.
 // Returns error when loading or cache creation fails.
@@ -216,9 +216,7 @@ func loadAndPopulateCache[K comparable, V any](
 	}
 
 	cache, cacheErr := cache_adapters_otter.OtterProviderFactory(
-		cache_dto.Options[K, V]{
-			MaximumEntries: safeconv.Int64ToInt(capacity),
-		},
+		newOtterCacheOptions[K, V](safeconv.Int64ToInt(capacity), nil),
 	)
 	if cacheErr != nil {
 		return nil, fmt.Errorf("creating %s cache: %w", label, cacheErr)
@@ -465,6 +463,7 @@ func decodeEntries[K comparable, V any](
 //
 // Takes cache (cache_domain.ProviderPort[K, V]) which receives the entries.
 // Takes entries ([]wal_domain.Entry[K, V]) which are the decoded entries to apply.
+// Takes clk (clock.Clock) which provides the current time for cache population.
 //
 // Returns int which is the number of entries populated.
 // Returns error when ctx is cancelled before every entry is applied.

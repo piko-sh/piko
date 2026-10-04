@@ -66,8 +66,12 @@ type Message struct {
 // Returns Message which is set up with the system role.
 func NewSystemMessage(content string) Message {
 	return Message{
-		Role:    RoleSystem,
-		Content: content,
+		Role:         RoleSystem,
+		Content:      content,
+		Name:         nil,
+		ToolCallID:   nil,
+		ContentParts: nil,
+		ToolCalls:    nil,
 	}
 }
 
@@ -78,8 +82,12 @@ func NewSystemMessage(content string) Message {
 // Returns Message which is set up with the user role.
 func NewUserMessage(content string) Message {
 	return Message{
-		Role:    RoleUser,
-		Content: content,
+		Role:         RoleUser,
+		Content:      content,
+		Name:         nil,
+		ToolCallID:   nil,
+		ContentParts: nil,
+		ToolCalls:    nil,
 	}
 }
 
@@ -90,8 +98,12 @@ func NewUserMessage(content string) Message {
 // Returns Message configured with RoleAssistant.
 func NewAssistantMessage(content string) Message {
 	return Message{
-		Role:    RoleAssistant,
-		Content: content,
+		Role:         RoleAssistant,
+		Content:      content,
+		Name:         nil,
+		ToolCallID:   nil,
+		ContentParts: nil,
+		ToolCalls:    nil,
 	}
 }
 
@@ -103,9 +115,12 @@ func NewAssistantMessage(content string) Message {
 // Returns Message set up with RoleTool.
 func NewToolResultMessage(toolCallID, content string) Message {
 	return Message{
-		Role:       RoleTool,
-		Content:    content,
-		ToolCallID: &toolCallID,
+		Role:         RoleTool,
+		Content:      content,
+		ToolCallID:   &toolCallID,
+		Name:         nil,
+		ContentParts: nil,
+		ToolCalls:    nil,
 	}
 }
 
@@ -123,6 +138,10 @@ func NewUserMessageWithImages(text string, images ...ContentPart) Message {
 	return Message{
 		Role:         RoleUser,
 		ContentParts: parts,
+		Name:         nil,
+		ToolCallID:   nil,
+		Content:      "",
+		ToolCalls:    nil,
 	}
 }
 

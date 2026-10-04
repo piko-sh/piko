@@ -25,6 +25,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/querier/querier_dto"
+	"piko.sh/piko/wdk/db/db_engine_mysql"
 )
 
 func TestNewMariaDBEngine(t *testing.T) {
@@ -88,4 +89,64 @@ func TestMariaDB_BuiltinFunctions_ExtraFunctions(t *testing.T) {
 			assert.NotEmpty(t, signatures, "function %q should have at least one signature", functionName)
 		})
 	}
+}
+
+func TestNewMariaDBEngineAppliesCallerOptions(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name      string
+		sql       string
+		options   []db_engine_mysql.Option
+		wantError bool
+	}{
+		{
+			name:      "default token budget accepts an ordinary query",
+			sql:       "SELECT a, b, c FROM t WHERE a = ?",
+			options:   nil,
+			wantError: false,
+		},
+		{
+			name:      "caller token budget is honoured",
+			sql:       "SELECT a, b, c FROM t WHERE a = ?",
+			options:   []db_engine_mysql.Option{db_engine_mysql.WithMaxTokensPerStatement(5)},
+			wantError: true,
+		},
+		{
+			name:      "caller parse depth is honoured",
+			sql:       "SELECT ((((((((((1)))))))))) FROM t",
+			options:   []db_engine_mysql.Option{db_engine_mysql.WithMaxParseDepth(4)},
+			wantError: true,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			engine := NewMariaDBEngine(testCase.options...)
+			statements, err := engine.ParseStatements(testCase.sql)
+			require.NoError(t, err)
+
+			_, err = engine.AnalyseQuery(nil, statements[0])
+
+			assert.Equal(t, "mariadb", engine.Dialect(), "caller options must not displace the MariaDB defaults")
+			if testCase.wantError {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestMariaDBEngineConfig(t *testing.T) {
+	t.Parallel()
+
+	config := MariaDB()
+
+	assert.Equal(t, "mysql", config.DriverName)
+	require.NotNil(t, config.Engine)
+	assert.Equal(t, "mariadb", config.Engine.Dialect())
+	assert.Nil(t, config.CatalogueFactory)
 }

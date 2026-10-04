@@ -151,5 +151,6 @@ func DefaultRetryConfig() *RetryConfig {
 		InitialDelay:      defaultRetryInitialDelayMs * time.Millisecond,
 		MaxDelay:          defaultRetryMaxDelaySeconds * time.Second,
 		BackoffMultiplier: defaultRetryBackoffMultiplier,
+		RetryableErrors:   nil,
 	}
 }

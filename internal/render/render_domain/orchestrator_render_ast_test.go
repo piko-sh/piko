@@ -91,9 +91,7 @@ func TestRenderAST(t *testing.T) {
 					},
 				},
 				Metadata: &templater_dto.InternalMetadata{
-					Metadata: templater_dto.Metadata{
-						Title: "Fragment Page",
-					},
+					Title: "Fragment Page",
 				},
 				PageID:     "frag-test",
 				IsFragment: true,
@@ -117,10 +115,8 @@ func TestRenderAST(t *testing.T) {
 					},
 				},
 				Metadata: &templater_dto.InternalMetadata{
-					Metadata: templater_dto.Metadata{
-						Title:    "Full Page",
-						Language: "en",
-					},
+					Title:    "Full Page",
+					Language: "en",
 				},
 				PageID:     "full-test",
 				IsFragment: false,
@@ -148,9 +144,7 @@ func TestRenderAST(t *testing.T) {
 					},
 				},
 				Metadata: &templater_dto.InternalMetadata{
-					Metadata: templater_dto.Metadata{
-						Title: "My Test Title",
-					},
+					Title: "My Test Title",
 				},
 				PageID:     "titled-page",
 				IsFragment: false,
@@ -217,9 +211,7 @@ func TestRenderAST(t *testing.T) {
 					RootNodes: []*ast_domain.TemplateNode{},
 				},
 				Metadata: &templater_dto.InternalMetadata{
-					Metadata: templater_dto.Metadata{
-						Title: "Empty Body",
-					},
+					Title: "Empty Body",
 				},
 				PageID:     "empty-body",
 				IsFragment: false,
@@ -315,9 +307,7 @@ func TestRenderAST_WithHTTPRequest(t *testing.T) {
 			},
 		},
 		Metadata: &templater_dto.InternalMetadata{
-			Metadata: templater_dto.Metadata{
-				Title: "HTTP Request Test",
-			},
+			Title: "HTTP Request Test",
 		},
 		PageID:     "http-page",
 		IsFragment: false,
@@ -361,9 +351,7 @@ func TestRenderFragment(t *testing.T) {
 					},
 				},
 				Metadata: &templater_dto.InternalMetadata{
-					Metadata: templater_dto.Metadata{
-						Title: "Fragment Title",
-					},
+					Title: "Fragment Title",
 				},
 				PageID: "frag-text",
 			},
@@ -407,9 +395,7 @@ func TestRenderFragment(t *testing.T) {
 			opts: RenderASTOptions{
 				Template: nil,
 				Metadata: &templater_dto.InternalMetadata{
-					Metadata: templater_dto.Metadata{
-						Title: "Empty Fragment",
-					},
+					Title: "Empty Fragment",
 				},
 				PageID: "nil-frag",
 			},
@@ -546,10 +532,8 @@ func TestRenderFullPage(t *testing.T) {
 					},
 				},
 				Metadata: &templater_dto.InternalMetadata{
-					Metadata: templater_dto.Metadata{
-						Title:    "Full Page Title",
-						Language: "en",
-					},
+					Title:    "Full Page Title",
+					Language: "en",
 				},
 				PageID: "full-page",
 			},
@@ -580,9 +564,7 @@ func TestRenderFullPage(t *testing.T) {
 					},
 				},
 				Metadata: &templater_dto.InternalMetadata{
-					Metadata: templater_dto.Metadata{
-						Title: "My Page Title",
-					},
+					Title: "My Page Title",
 				},
 				PageID: "title-page",
 			},
@@ -603,9 +585,7 @@ func TestRenderFullPage(t *testing.T) {
 			opts: RenderASTOptions{
 				Template: nil,
 				Metadata: &templater_dto.InternalMetadata{
-					Metadata: templater_dto.Metadata{
-						Title: "Empty Body Page",
-					},
+					Title: "Empty Body Page",
 				},
 				PageID: "empty-full",
 			},
@@ -705,10 +685,8 @@ func TestRenderFullPage(t *testing.T) {
 					},
 				},
 				Metadata: &templater_dto.InternalMetadata{
-					Metadata: templater_dto.Metadata{
-						Title:       "Described Page",
-						Description: "A page with a description",
-					},
+					Title:       "Described Page",
+					Description: "A page with a description",
 				},
 				PageID: "described-page",
 			},

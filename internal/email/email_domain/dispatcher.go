@@ -270,24 +270,7 @@ func NewEmailDispatcher(provider EmailProviderPort, deadLetterPort DeadLetterPor
 
 	priorityQueue := retry.NewHeap(func(item *retryItem) time.Time { return item.priority })
 
-	var circuitBreaker *gobreaker.CircuitBreaker[any]
-	if config.MaxConsecutiveFailures > 0 {
-		cbSettings := gobreaker.Settings{
-			Name:         fmt.Sprintf("email-provider-%p", provider),
-			MaxRequests:  1,
-			Interval:     config.CircuitBreakerInterval,
-			Timeout:      config.CircuitBreakerTimeout,
-			BucketPeriod: circuitBreakerBucketPeriod,
-			ReadyToTrip: func(counts gobreaker.Counts) bool {
-				return counts.ConsecutiveFailures >= safeconv.IntToUint32(config.MaxConsecutiveFailures)
-			},
-			IsExcluded: func(err error) bool {
-				return errors.Is(err, context.Canceled) ||
-					errors.Is(err, context.DeadlineExceeded)
-			},
-		}
-		circuitBreaker = gobreaker.NewCircuitBreaker[any](cbSettings)
-	}
+	circuitBreaker := newProviderCircuitBreaker(provider, config)
 
 	return &EmailDispatcher{
 		clock:            clk,
@@ -311,10 +294,19 @@ func NewEmailDispatcher(provider EmailProviderPort, deadLetterPort DeadLetterPor
 			},
 			DeadLetterQueue: config.DeadLetterQueue || deadLetterPort != nil,
 		},
-		circuitBreaker: circuitBreaker,
-		shutdownChan:   make(chan struct{}),
-		flushChan:      make(chan struct{}, 1),
-		shutdownName:   fmt.Sprintf("email-dispatcher-%p", provider),
+		circuitBreaker:  circuitBreaker,
+		shutdownChan:    make(chan struct{}),
+		flushChan:       make(chan struct{}, 1),
+		shutdownName:    fmt.Sprintf("email-dispatcher-%p", provider),
+		startTime:       time.Time{},
+		wg:              sync.WaitGroup{},
+		totalProcessed:  atomic.Int64{},
+		totalSuccessful: atomic.Int64{},
+		totalFailed:     atomic.Int64{},
+		totalRetries:    atomic.Int64{},
+		mu:              sync.RWMutex{},
+		retryMutex:      sync.Mutex{},
+		isRunning:       false,
 	}
 }
 
@@ -857,11 +849,13 @@ func (d *EmailDispatcher) sendToDeadLetterQueue(ctx context.Context, dlqCtx *dea
 	}
 
 	entry := email_dto.DeadLetterEntry{
-		Email:         dlqCtx.email,
-		OriginalError: dlqCtx.originalError.Error(),
-		TotalAttempts: dlqCtx.totalAttempts,
-		FirstAttempt:  dlqCtx.firstAttempt,
-		LastAttempt:   dlqCtx.lastAttempt,
+		Email:             dlqCtx.email,
+		OriginalError:     dlqCtx.originalError.Error(),
+		TotalAttempts:     dlqCtx.totalAttempts,
+		FirstAttempt:      dlqCtx.firstAttempt,
+		LastAttempt:       dlqCtx.lastAttempt,
+		AddedToDeadLetter: time.Time{},
+		ID:                "",
 	}
 
 	if err := d.deadLetterQueue.Add(ctx, &entry); err != nil {
@@ -1106,6 +1100,7 @@ func (d *EmailDispatcher) persistRetryQueueOnShutdown(ctx context.Context) {
 			originalError: fmt.Errorf("service shutdown during retry: %w", item.emailError.Error),
 			totalAttempts: item.emailError.Attempt,
 			lastAttempt:   item.emailError.LastAttempt,
+			firstAttempt:  time.Time{},
 		}
 		d.sendToDeadLetterQueue(ctx, &dlqCtx)
 	}
@@ -1147,6 +1142,37 @@ func applyDispatcherConfigDefaults(config *email_dto.DispatcherConfig) {
 	if config.MaxRetryHeapSize <= 0 {
 		config.MaxRetryHeapSize = defaultMaxRetryHeapSize
 	}
+}
+
+// newProviderCircuitBreaker creates the circuit breaker that guards calls to the email
+// provider, tripping after the configured number of consecutive failures.
+//
+// Takes provider (EmailProviderPort) which is the provider the breaker guards.
+// Takes config (*email_dto.DispatcherConfig) which sets the failure threshold, interval
+// and timeout.
+//
+// Returns *gobreaker.CircuitBreaker[any] which guards provider calls, or nil when
+// MaxConsecutiveFailures is not positive and the breaker is disabled.
+func newProviderCircuitBreaker(provider EmailProviderPort, config *email_dto.DispatcherConfig) *gobreaker.CircuitBreaker[any] {
+	if config.MaxConsecutiveFailures <= 0 {
+		return nil
+	}
+
+	cbSettings := gobreaker.Settings{
+		Name:         fmt.Sprintf("email-provider-%p", provider),
+		MaxRequests:  1,
+		Interval:     config.CircuitBreakerInterval,
+		Timeout:      config.CircuitBreakerTimeout,
+		BucketPeriod: circuitBreakerBucketPeriod,
+		ReadyToTrip: func(counts gobreaker.Counts) bool {
+			return counts.ConsecutiveFailures >= safeconv.IntToUint32(config.MaxConsecutiveFailures)
+		},
+		IsExcluded: func(err error) bool {
+			return errors.Is(err, context.Canceled) ||
+				errors.Is(err, context.DeadlineExceeded)
+		},
+	}
+	return gobreaker.NewCircuitBreaker[any](cbSettings)
 }
 
 // drainTimer removes any pending event from a timer channel.

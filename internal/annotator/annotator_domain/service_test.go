@@ -19,6 +19,8 @@
 package annotator_domain
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,6 +28,7 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/resolver/resolver_domain"
+	"piko.sh/piko/wdk/safedisk"
 )
 
 func TestShouldIncludeGoFile(t *testing.T) {
@@ -120,9 +123,7 @@ func TestGetMainComponent(t *testing.T) {
 	t.Run("returns error for nil virtual module", func(t *testing.T) {
 		t.Parallel()
 
-		result := &annotator_dto.AnnotationResult{
-			VirtualModule: nil,
-		}
+		result := &annotator_dto.AnnotationResult{}
 
 		vc, err := getMainComponent(result)
 
@@ -151,7 +152,7 @@ func TestGetMainComponent(t *testing.T) {
 
 		result := &annotator_dto.AnnotationResult{
 			VirtualModule: &annotator_dto.VirtualModule{},
-			AnnotatedAST:  &ast_domain.TemplateAST{SourcePath: nil},
+			AnnotatedAST:  &ast_domain.TemplateAST{},
 		}
 
 		vc, err := getMainComponent(result)
@@ -238,7 +239,7 @@ func TestWithFaultTolerance(t *testing.T) {
 	t.Run("sets faultTolerant to true", func(t *testing.T) {
 		t.Parallel()
 
-		opts := &annotationOptions{faultTolerant: false}
+		opts := &annotationOptions{}
 
 		option := WithFaultTolerance()
 		option(opts)
@@ -257,13 +258,54 @@ func TestWithResolver(t *testing.T) {
 			GetBaseDirFunc:    func() string { return "/project" },
 			GetModuleNameFunc: func() string { return "mymodule" },
 		}
-		opts := &annotationOptions{resolver: nil}
+		opts := &annotationOptions{}
 
 		option := WithResolver(mockResolver)
 		option(opts)
 
 		assert.Same(t, mockResolver, opts.resolver)
 	})
+}
+
+func TestNewAnnotatorService_CompilationLogStore(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	factory, err := safedisk.NewFactory(safedisk.FactoryConfig{CWD: root, AllowedPaths: []string{root}, Enabled: true})
+	require.NoError(t, err)
+
+	testCases := []struct {
+		name        string
+		opts        []AnnotatorServiceOption
+		wantFactory safedisk.Factory
+	}{
+		{name: "without a sandbox factory", opts: nil, wantFactory: nil},
+		{
+			name:        "with a sandbox factory",
+			opts:        []AnnotatorServiceOption{WithCompilationLogSandboxFactory(factory)},
+			wantFactory: factory,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			logDir := filepath.Join(root, tc.name, "logs")
+			serviceConfig := &AnnotatorServiceConfig{}
+			serviceConfig.Resolver = &resolver_domain.MockResolver{GetBaseDirFunc: func() string { return root }}
+			serviceConfig.EnableDebugLogFiles = true
+			serviceConfig.DebugLogDir = logDir
+
+			service := NewAnnotatorService(serviceConfig, tc.opts...)
+
+			require.NotNil(t, service.logStore)
+			assert.Equal(t, tc.wantFactory, service.logStore.sandboxFactory)
+			assert.Equal(t, logDir, service.logStore.logDir)
+			_, statErr := os.Stat(logDir)
+			assert.ErrorIs(t, statErr, os.ErrNotExist)
+		})
+	}
 }
 
 func TestGetEffectiveResolver(t *testing.T) {
@@ -301,7 +343,7 @@ func TestGetEffectiveResolver(t *testing.T) {
 		defaultResolver := &resolver_domain.MockResolver{GetBaseDirFunc: func() string { return "/default" }}
 
 		service := &AnnotatorService{resolver: defaultResolver}
-		opts := &annotationOptions{resolver: nil}
+		opts := &annotationOptions{}
 
 		result := service.getEffectiveResolver(opts)
 

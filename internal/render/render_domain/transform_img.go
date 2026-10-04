@@ -94,6 +94,7 @@ var (
 				Densities: make([]string, 0, 4),
 				Formats:   make([]string, 0, 4),
 				Widths:    make([]int, 0, 8),
+				Sizes:     "",
 			}
 		},
 	}
@@ -907,6 +908,7 @@ func getAssetProfile() *assetProfile {
 		Densities: make([]string, 0, defaultDensityCapacity),
 		Formats:   make([]string, 0, defaultDensityCapacity),
 		Widths:    make([]int, 0, defaultWidthCapacity),
+		Sizes:     "",
 	}
 }
 

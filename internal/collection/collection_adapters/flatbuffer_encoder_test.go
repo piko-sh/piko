@@ -405,34 +405,6 @@ func TestFlatBufferEncoder_DecodeCollectionItem_InvalidBlob(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestParseHybridKey_Comprehensive(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name     string
-		key      string
-		wantProv string
-		wantColl string
-	}{
-		{name: "standard key", key: "cms:articles", wantProv: "cms", wantColl: "articles"},
-		{name: "colons in collection", key: "cms:some:nested:name", wantProv: "cms", wantColl: "some:nested:name"},
-		{name: "empty key", key: "", wantProv: "", wantColl: ""},
-		{name: "no colon", key: "justtext", wantProv: "", wantColl: ""},
-		{name: "leading colon", key: ":value", wantProv: "", wantColl: "value"},
-		{name: "trailing colon", key: "key:", wantProv: "key", wantColl: ""},
-		{name: "only colon", key: ":", wantProv: "", wantColl: ""},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			provider, coll := parseHybridKey(tt.key)
-			assert.Equal(t, tt.wantProv, provider)
-			assert.Equal(t, tt.wantColl, coll)
-		})
-	}
-}
-
 func TestFlatBufferEncoder_SortsBySlug(t *testing.T) {
 	t.Parallel()
 

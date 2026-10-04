@@ -136,6 +136,8 @@ func NewSMTPProvider(_ context.Context, arguments SMTPProviderArgs, opts ...emai
 		password:    arguments.Password,
 		fromEmail:   arguments.FromEmail,
 		rateLimiter: rateLimiter,
+		client:      nil,
+		mu:          sync.Mutex{},
 	}, nil
 }
 
@@ -281,10 +283,12 @@ func (p *SMTPProvider) SendBulk(ctx context.Context, emails []*email_dto.SendPar
 				logger.String("subject", email.Subject))
 
 			emailError := &email_domain.EmailError{
-				Email:       *email,
-				Error:       err,
-				Attempt:     1,
-				LastAttempt: time.Now(),
+				Email:        *email,
+				Error:        err,
+				Attempt:      1,
+				LastAttempt:  time.Now(),
+				FirstAttempt: time.Time{},
+				NextRetry:    time.Time{},
 			}
 
 			if multiError == nil {
@@ -324,21 +328,23 @@ func (p *SMTPProvider) Check(_ context.Context, checkType healthprobe_dto.CheckT
 
 	if p.host == "" || p.port <= 0 {
 		return healthprobe_dto.Status{
-			Name:      p.Name(),
-			State:     healthprobe_dto.StateUnhealthy,
-			Message:   "SMTP host or port not configured",
-			Timestamp: time.Now(),
-			Duration:  time.Since(startTime).String(),
+			Name:         p.Name(),
+			State:        healthprobe_dto.StateUnhealthy,
+			Message:      "SMTP host or port not configured",
+			Timestamp:    time.Now(),
+			Duration:     time.Since(startTime).String(),
+			Dependencies: nil,
 		}
 	}
 
 	if checkType == healthprobe_dto.CheckTypeLiveness {
 		return healthprobe_dto.Status{
-			Name:      p.Name(),
-			State:     healthprobe_dto.StateHealthy,
-			Message:   fmt.Sprintf("SMTP provider configured for %s:%d", p.host, p.port),
-			Timestamp: time.Now(),
-			Duration:  time.Since(startTime).String(),
+			Name:         p.Name(),
+			State:        healthprobe_dto.StateHealthy,
+			Message:      fmt.Sprintf("SMTP provider configured for %s:%d", p.host, p.port),
+			Timestamp:    time.Now(),
+			Duration:     time.Since(startTime).String(),
+			Dependencies: nil,
 		}
 	}
 
@@ -348,20 +354,22 @@ func (p *SMTPProvider) Check(_ context.Context, checkType healthprobe_dto.CheckT
 
 	if !clientConnected {
 		return healthprobe_dto.Status{
-			Name:      p.Name(),
-			State:     healthprobe_dto.StateDegraded,
-			Message:   "SMTP client not connected (will connect on first send)",
-			Timestamp: time.Now(),
-			Duration:  time.Since(startTime).String(),
+			Name:         p.Name(),
+			State:        healthprobe_dto.StateDegraded,
+			Message:      "SMTP client not connected (will connect on first send)",
+			Timestamp:    time.Now(),
+			Duration:     time.Since(startTime).String(),
+			Dependencies: nil,
 		}
 	}
 
 	return healthprobe_dto.Status{
-		Name:      p.Name(),
-		State:     healthprobe_dto.StateHealthy,
-		Message:   fmt.Sprintf("SMTP client connected to %s:%d", p.host, p.port),
-		Timestamp: time.Now(),
-		Duration:  time.Since(startTime).String(),
+		Name:         p.Name(),
+		State:        healthprobe_dto.StateHealthy,
+		Message:      fmt.Sprintf("SMTP client connected to %s:%d", p.host, p.port),
+		Timestamp:    time.Now(),
+		Duration:     time.Since(startTime).String(),
+		Dependencies: nil,
 	}
 }
 

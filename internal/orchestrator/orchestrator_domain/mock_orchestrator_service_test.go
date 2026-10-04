@@ -66,11 +66,9 @@ func TestMockOrchestratorService_ConcurrentAccess(t *testing.T) {
 	task := &Task{ID: "concurrent"}
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 
 			_ = m.RegisterExecutor(context.Background(), "e", nil)
 			_, _ = m.Dispatch(ctx, task)
@@ -81,7 +79,7 @@ func TestMockOrchestratorService_ConcurrentAccess(t *testing.T) {
 			_ = m.PendingTasks(ctx)
 			_ = m.GetTaskDispatcher()
 			_, _ = m.DispatchDirect(ctx, task)
-		}()
+		})
 	}
 
 	wg.Wait()

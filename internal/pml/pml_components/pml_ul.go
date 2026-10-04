@@ -40,9 +40,7 @@ var (
 // Returns *UnorderedList which is a ready-to-use component instance.
 func NewUnorderedList() *UnorderedList {
 	return &UnorderedList{
-		OrderedList: OrderedList{
-			BaseComponent: BaseComponent{},
-		},
+		BaseComponent: BaseComponent{},
 	}
 }
 
@@ -76,9 +74,9 @@ func (c *UnorderedList) Transform(node *ast_domain.TemplateNode, ctx *pml_domain
 		node.Attributes = append(node.Attributes, ast_domain.HTMLAttribute{
 			Name:           "list-style",
 			Value:          "unordered",
-			Location:       NewLocation(),
-			NameLocation:   NewLocation(),
-			AttributeRange: NewRange(),
+			Location:       ast_domain.Location{},
+			NameLocation:   ast_domain.Location{},
+			AttributeRange: ast_domain.Range{},
 		})
 
 		ctx.StyleManager = pml_domain.NewStyleManager(node, c, ctx.Config)

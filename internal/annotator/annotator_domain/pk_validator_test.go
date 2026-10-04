@@ -250,7 +250,7 @@ func TestPKValidator_HasClientScript(t *testing.T) {
 		{
 			name: "nil clientExports returns false",
 			setup: func() *PKValidator {
-				return &PKValidator{clientExports: nil}
+				return &PKValidator{}
 			},
 			expected: false,
 		},

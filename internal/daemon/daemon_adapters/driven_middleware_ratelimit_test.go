@@ -117,7 +117,7 @@ func TestRateLimitMiddleware_Handler_ExemptPath(t *testing.T) {
 
 	mockService := &security_domain.MockRateLimitService{
 		CheckLimitFunc: func(_ context.Context, _ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
-			return ratelimiter_dto.Result{Allowed: false}, nil
+			return ratelimiter_dto.Result{}, nil
 		},
 	}
 

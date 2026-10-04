@@ -93,6 +93,8 @@ func newTransactionJournal[K comparable, V any](inner ProviderPort[K, V]) *trans
 	return &transactionJournal[K, V]{
 		inner:       inner,
 		snapshotted: make(map[K]struct{}),
+		journal:     nil,
+		finalised:   false,
 	}
 }
 

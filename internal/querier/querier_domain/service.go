@@ -153,7 +153,7 @@ func (s *querierService) GenerateDatabase(
 			logger_domain.String("database", name),
 			logger_domain.Int("errorCount", len(allDiagnostics)),
 		)
-		return &querier_dto.GenerationResult{Diagnostics: allDiagnostics}, nil
+		return &querier_dto.GenerationResult{Diagnostics: allDiagnostics, Files: nil}, nil
 	}
 
 	return s.emitGenerationResult(ctx, name, catalogue, queries, config, allDiagnostics)

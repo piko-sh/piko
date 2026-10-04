@@ -1,5 +1,0 @@
-{
-  "description": "Value receiver methods across files",
-  "shouldError": false,
-  "expected": "84"
-}

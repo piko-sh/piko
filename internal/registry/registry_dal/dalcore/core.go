@@ -123,6 +123,7 @@ func New(database *sql.DB, driver Driver, options ...Option) registry_dal.Regist
 		driver:                driver,
 		clock:                 clock.RealClock(),
 		maxTransactionTimeout: defaultMaxTransactionTimeout,
+		inTransaction:         false,
 	}
 	for _, option := range options {
 		option(c)
@@ -783,8 +784,12 @@ func (c *core) ReclaimArtefactLayersForRelease(ctx context.Context, releaseID st
 // ClaimRelease attempts to claim publishing rights for a release, returning true when
 // this caller won the claim (inserted the lease row).
 //
-// Takes releaseID (string) and publishDigest (string) which identify the release and its
-// payload, and firstSeenAt / heartbeatAt (int64) which stamp the initial lease.
+// Takes releaseID (string) which identifies the release whose publishing lease is
+// accessed.
+// Takes publishDigest (string) which identifies the release payload.
+// Takes firstSeenAt (int64) which records the initial lease creation time in Unix
+// seconds.
+// Takes heartbeatAt (int64) which is the lease heartbeat time in Unix seconds.
 //
 // Returns bool which reports whether this caller won the claim.
 // Returns error when the claim query fails.
@@ -822,7 +827,10 @@ func (c *core) GetRelease(ctx context.Context, releaseID string) (registry_domai
 
 // MarkReleasePublished flips a release lease to published and stamps its timestamps.
 //
-// Takes releaseID (string), publishedAt (int64) and heartbeatAt (int64).
+// Takes releaseID (string) which identifies the release whose publishing lease is
+// accessed.
+// Takes publishedAt (int64) which is the publication time in Unix seconds.
+// Takes heartbeatAt (int64) which is the lease heartbeat time in Unix seconds.
 //
 // Returns error when the update fails.
 func (c *core) MarkReleasePublished(ctx context.Context, releaseID string, publishedAt, heartbeatAt int64) error {
@@ -832,8 +840,9 @@ func (c *core) MarkReleasePublished(ctx context.Context, releaseID string, publi
 // HeartbeatRelease advances a release's heartbeat when the new value is more recent. The
 // update is monotonic, so an out-of-order heartbeat cannot rewind a fresher one.
 //
-// Takes releaseID (string) and heartbeatAt (int64) which is the new heartbeat in Unix
-// seconds.
+// Takes releaseID (string) which identifies the release whose publishing lease is
+// accessed.
+// Takes heartbeatAt (int64) which is the lease heartbeat time in Unix seconds.
 //
 // Returns error when the update fails.
 func (c *core) HeartbeatRelease(ctx context.Context, releaseID string, heartbeatAt int64) error {
@@ -843,8 +852,8 @@ func (c *core) HeartbeatRelease(ctx context.Context, releaseID string, heartbeat
 // ListExpiredReleases returns published releases whose heartbeat predates the cutoff,
 // excluding the caller's own release.
 //
-// Takes cutoff (int64) which is the stale-heartbeat threshold in Unix seconds, and
-// ownRelease (string) which is excluded from the result.
+// Takes cutoff (int64) which is the stale-heartbeat threshold in Unix seconds.
+// Takes ownRelease (string) which identifies the release excluded from the result.
 //
 // Returns []string which are the expired release IDs.
 // Returns error when the query fails.
@@ -866,8 +875,10 @@ func (c *core) DeleteReleaseLease(ctx context.Context, releaseID string) error {
 // DeleteStalePublishingLease removes a publishing lease whose heartbeat predates
 // staleBefore, so a publish that died mid-flight can be re-claimed by another node.
 //
-// Takes releaseID (string) which identifies the release, and staleBefore (int64) which is
-// the staleness cutoff in Unix seconds.
+// Takes releaseID (string) which identifies the release whose publishing lease is
+// accessed.
+// Takes staleBefore (int64) which is the publishing lease expiry threshold in Unix
+// seconds.
 //
 // Returns error when the delete fails.
 func (c *core) DeleteStalePublishingLease(ctx context.Context, releaseID string, staleBefore int64) error {
@@ -1309,6 +1320,7 @@ func insertVariantsWithData(ctx context.Context, driver Driver, artefact *regist
 //
 // Takes driver (Driver) which provides database access.
 // Takes artefactID (string) which identifies the parent artefact.
+// Takes releaseID (string) which identifies the release that owns the artefact layer.
 // Takes variant (*registry_dto.Variant) which contains the variant data to store.
 //
 // Returns error when the database insert fails.
@@ -1330,6 +1342,7 @@ func insertVariant(ctx context.Context, driver Driver, artefactID, releaseID str
 //
 // Takes driver (Driver) which provides database access.
 // Takes artefactID (string) which identifies the parent artefact.
+// Takes releaseID (string) which identifies the release that owns the artefact layer.
 // Takes variant (*registry_dto.Variant) which contains the tags to insert.
 //
 // Returns error when a tag cannot be inserted.
@@ -1347,6 +1360,7 @@ func insertVariantTags(ctx context.Context, driver Driver, artefactID, releaseID
 //
 // Takes driver (Driver) which provides database access.
 // Takes artefactID (string) which identifies the parent artefact.
+// Takes releaseID (string) which identifies the release that owns the artefact layer.
 // Takes variant (*registry_dto.Variant) which contains the chunks to insert.
 //
 // Returns error when a chunk cannot be inserted.

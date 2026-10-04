@@ -23,24 +23,6 @@
 // API that JavaScript code can call to analyse Go source, provide code completions,
 // display hover information, validate syntax, generate code, and render templates.
 //
-// # Usage
-//
-//	orchestrator := wasm_domain.NewOrchestrator(
-//	    wasm_domain.WithStdlibLoader(loader),
-//	    wasm_domain.WithJSInterop(interop),
-//	    wasm_domain.WithConsole(console),
-//	    wasm_domain.WithGenerator(gen),
-//	    wasm_domain.WithRenderer(renderer),
-//	)
-//	if err := orchestrator.Initialise(ctx); err != nil {
-//	    return err
-//	}
-//
-//	// Analyse Go source code
-//	response, err := orchestrator.Analyse(ctx, &wasm_dto.AnalyseRequest{
-//	    Sources: map[string]string{"main.go": source},
-//	})
-//
 // # Thread safety
 //
 // The [Orchestrator] is safe for concurrent use. All public methods acquire appropriate

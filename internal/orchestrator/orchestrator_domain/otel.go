@@ -133,6 +133,26 @@ var (
 	// TaskGracefulReleaseCount tracks how many tasks were released during a graceful
 	// shutdown.
 	TaskGracefulReleaseCount metric.Int64Counter
+
+	// TaskNotRequiredCount tracks claimed tasks released without running because their
+	// requirement check found the work already satisfied.
+	TaskNotRequiredCount metric.Int64Counter
+
+	// TaskExecutorAbandonedCount tracks executors that ignored cancellation for longer than
+	// the abandon grace and were no longer waited for.
+	TaskExecutorAbandonedCount metric.Int64Counter
+
+	// DelayedTaskDroppedCount tracks due tasks dropped because their dispatch failed in a
+	// way retrying cannot fix.
+	DelayedTaskDroppedCount metric.Int64Counter
+
+	// TaskRerunRequestedCount tracks dispatches coalesced into a pending rerun because their
+	// deduplication key was in use.
+	TaskRerunRequestedCount metric.Int64Counter
+
+	// TaskRerunDroppedCount tracks rerun requests dropped because the pending rerun limit
+	// was reached.
+	TaskRerunDroppedCount metric.Int64Counter
 )
 
 func init() {
@@ -406,6 +426,46 @@ func init() {
 	TaskGracefulReleaseCount, err = meter.Int64Counter(
 		"orchestrator.domain.task_graceful_release_count",
 		metric.WithDescription("Number of tasks released during graceful shutdown"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	TaskNotRequiredCount, err = meter.Int64Counter(
+		"orchestrator.domain.task_not_required_count",
+		metric.WithDescription("Number of claimed tasks released because their work was already satisfied"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	TaskExecutorAbandonedCount, err = meter.Int64Counter(
+		"orchestrator.domain.task_executor_abandoned_count",
+		metric.WithDescription("Number of executors abandoned after ignoring cancellation past the grace period"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	DelayedTaskDroppedCount, err = meter.Int64Counter(
+		"orchestrator.domain.delayed_task_dropped_count",
+		metric.WithDescription("Number of due tasks dropped because their dispatch can never succeed"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	TaskRerunRequestedCount, err = meter.Int64Counter(
+		"orchestrator.domain.task_rerun_requested_count",
+		metric.WithDescription("Number of dispatches coalesced into a pending rerun of a busy deduplication key"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	TaskRerunDroppedCount, err = meter.Int64Counter(
+		"orchestrator.domain.task_rerun_dropped_count",
+		metric.WithDescription("Number of rerun requests dropped because the pending rerun limit was reached"),
 	)
 	if err != nil {
 		otel.Handle(err)

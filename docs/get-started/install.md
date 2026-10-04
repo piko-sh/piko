@@ -14,7 +14,7 @@ This page gets a Piko project running on your machine. Expect five minutes from 
 
 ## Prerequisites
 
-Piko targets Go 1.26 or later. Check your version with `go version`. If you do not have Go, install it from [go.dev/dl](https://go.dev/dl/).
+Piko targets Go 1.27 or later. Check your version with `go version`. If you do not have Go, install it from [go.dev/dl](https://go.dev/dl/).
 
 ## Install the CLI
 
@@ -77,10 +77,10 @@ Either form listens on `http://localhost:8080` (or the next free port). Open tha
 | Mode | Command | Purpose |
 |---|---|---|
 | `dev` | `go run ./cmd/main/main.go dev` | Development mode with compiled templates. The scaffolded bootstrap enables the dev widget and hot-reload. |
-| `dev-i` | `go run ./cmd/main/main.go dev-i` | Interpreted mode. For testing the interpreter pipeline, not the default fast-feedback dev mode. The scaffolded bootstrap enables the dev widget and hot-reload here too, and requires `ssr.WithSymbols(...)` registration in `cmd/main/main.go`. See [about interpreted mode](../explanation/about-interpreted-mode.md). |
+| `dev-i` | `go run ./cmd/main/main.go dev-i` | Development mode that runs generated Go through Pipit without rebuilding the server for template edits. Requires an interpreter provider. |
 | `prod` | `go run ./cmd/main/main.go prod` | Production mode. Dev widgets off. |
 
-If `cmd/main/main.go` runs without an argument it falls back to `dev`. The scaffolded `.air.toml` points at `dev` by default. To wire up `dev-i`, see [about interpreted mode](../explanation/about-interpreted-mode.md) for the bootstrap setup and [runtime symbols reference](../reference/runtime-symbols.md) for exposing symbols.
+Without a run-mode argument, the scaffolded `cmd/main/main.go` uses `dev`. Air also uses `dev` by default. To configure the alternative workflow, follow [how to run interpreted mode](../how-to/interpreted-mode.md).
 
 ## What to do next
 

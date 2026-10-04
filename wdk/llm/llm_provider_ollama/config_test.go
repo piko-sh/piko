@@ -20,6 +20,7 @@ package llm_provider_ollama
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -239,6 +240,23 @@ func TestModelRef(t *testing.T) {
 		require.NoError(t, err)
 	})
 
+	t.Run("verifyDigest rejects an empty installed digest", func(t *testing.T) {
+		ref := ModelWithDigest("llama3.2", "a8b0c5157701")
+
+		err := ref.verifyDigest("")
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "digest mismatch")
+	})
+
+	t.Run("verifyDigest rejects a short installed digest prefix", func(t *testing.T) {
+		ref := ModelWithDigest("llama3.2", "a8b0c5157701deadbeef")
+
+		err := ref.verifyDigest("sha256:a8b0")
+
+		require.Error(t, err)
+	})
+
 	t.Run("verifyDigest fails on mismatch", func(t *testing.T) {
 		ref := ModelWithDigest("llama3.2", "a8b0c5157701")
 
@@ -248,4 +266,144 @@ func TestModelRef(t *testing.T) {
 		assert.Contains(t, err.Error(), "digest mismatch")
 		assert.Contains(t, err.Error(), "supply chain")
 	})
+}
+
+func TestConfig_WithDefaults_ProcessTimeouts(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name  string
+		input Config
+		want  Config
+	}{
+		{
+			name:  "applies defaults to zero values",
+			input: Config{},
+			want: Config{
+				HTTPTimeout:     defaultHTTPTimeout,
+				StartupTimeout:  defaultStartupTimeout,
+				ProbeTimeout:    defaultProbeTimeout,
+				StopGracePeriod: defaultStopGracePeriod,
+			},
+		},
+		{
+			name: "replaces negative values",
+			input: Config{
+				HTTPTimeout:     -time.Second,
+				StartupTimeout:  -time.Second,
+				ProbeTimeout:    -time.Second,
+				StopGracePeriod: -time.Second,
+			},
+			want: Config{
+				HTTPTimeout:     defaultHTTPTimeout,
+				StartupTimeout:  defaultStartupTimeout,
+				ProbeTimeout:    defaultProbeTimeout,
+				StopGracePeriod: defaultStopGracePeriod,
+			},
+		},
+		{
+			name: "keeps custom values",
+			input: Config{
+				HTTPTimeout:     time.Minute,
+				StartupTimeout:  2 * time.Minute,
+				ProbeTimeout:    3 * time.Second,
+				StopGracePeriod: 4 * time.Second,
+			},
+			want: Config{
+				HTTPTimeout:     time.Minute,
+				StartupTimeout:  2 * time.Minute,
+				ProbeTimeout:    3 * time.Second,
+				StopGracePeriod: 4 * time.Second,
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := testCase.input.WithDefaults()
+
+			assert.Equal(t, testCase.want.HTTPTimeout, got.HTTPTimeout)
+			assert.Equal(t, testCase.want.StartupTimeout, got.StartupTimeout)
+			assert.Equal(t, testCase.want.ProbeTimeout, got.ProbeTimeout)
+			assert.Equal(t, testCase.want.StopGracePeriod, got.StopGracePeriod)
+		})
+	}
+}
+
+func TestImageFetchConfig_WithDefaults(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name              string
+		input             ImageFetchConfig
+		want              ImageFetchConfig
+		wantRedirectLimit int
+	}{
+		{
+			name:  "applies defaults to zero values",
+			input: ImageFetchConfig{},
+			want: ImageFetchConfig{
+				MaxBytes:     defaultImageFetchMaxBytes,
+				Timeout:      defaultImageFetchTimeout,
+				MaxImages:    defaultImageFetchMaxImages,
+				MaxRedirects: defaultImageFetchMaxRedirects,
+			},
+			wantRedirectLimit: defaultImageFetchMaxRedirects,
+		},
+		{
+			name:  "negative redirects refuse every redirect",
+			input: ImageFetchConfig{MaxBytes: -1, Timeout: -time.Second, MaxImages: -1, MaxRedirects: -1},
+			want: ImageFetchConfig{
+				MaxBytes:     defaultImageFetchMaxBytes,
+				Timeout:      defaultImageFetchTimeout,
+				MaxImages:    defaultImageFetchMaxImages,
+				MaxRedirects: -1,
+			},
+			wantRedirectLimit: 0,
+		},
+		{
+			name:              "keeps custom values",
+			input:             ImageFetchConfig{MaxBytes: 10, Timeout: time.Second, MaxImages: 2, MaxRedirects: 1},
+			want:              ImageFetchConfig{MaxBytes: 10, Timeout: time.Second, MaxImages: 2, MaxRedirects: 1},
+			wantRedirectLimit: 1,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := testCase.input.withDefaults()
+
+			assert.Equal(t, testCase.want, got)
+			assert.Equal(t, testCase.wantRedirectLimit, got.redirectLimit())
+		})
+	}
+}
+
+func TestConfig_AutoStartAndAutoPull(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		value *bool
+		name  string
+		want  bool
+	}{
+		{name: "unset defaults to enabled", value: nil, want: true},
+		{name: "explicitly enabled", value: new(true), want: true},
+		{name: "explicitly disabled", value: new(false), want: false},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			config := Config{AutoStart: testCase.value, AutoPull: testCase.value}
+
+			assert.Equal(t, testCase.want, config.autoStartEnabled())
+			assert.Equal(t, testCase.want, config.autoPullEnabled())
+		})
+	}
 }

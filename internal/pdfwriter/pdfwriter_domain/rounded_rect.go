@@ -39,8 +39,10 @@ const (
 // length.
 //
 // Takes stream (*ContentStream) which receives the path operators.
-// Takes x, y (float64) which define the lower-left corner position.
-// Takes width, height (float64) which define the rectangle dimensions.
+// Takes x (float64) which is the left edge position in PDF coordinates.
+// Takes y (float64) which is the bottom edge position in PDF coordinates.
+// Takes width (float64) which is the rectangle width in points.
+// Takes height (float64) which is the rectangle height in points.
 // Takes tlr (float64) which is the top-left corner radius.
 // Takes trr (float64) which is the top-right corner radius.
 // Takes brr (float64) which is the bottom-right corner radius.
@@ -95,8 +97,12 @@ func emitRoundedRectPath(stream *ContentStream, x, y, width, height, tlr, trr, b
 // clampRadii scales border radii so that adjacent radii never exceed half the length of
 // the shared edge, per the CSS border-radius spec.
 //
-// Takes width, height (float64) which are the rectangle dimensions.
-// Takes tlr, trr, brr, blr (float64) which are the four corner radii.
+// Takes width (float64) which is the rectangle width in points.
+// Takes height (float64) which is the rectangle height in points.
+// Takes tlr (float64) which is the top-left corner radius in points.
+// Takes trr (float64) which is the top-right corner radius in points.
+// Takes brr (float64) which is the bottom-right corner radius in points.
+// Takes blr (float64) which is the bottom-left corner radius in points.
 //
 // Returns the clamped (tlr, trr, brr, blr) values.
 func clampRadii(width, height, tlr, trr, brr, blr float64) (clampedTLR, clampedTRR, clampedBRR, clampedBLR float64) {

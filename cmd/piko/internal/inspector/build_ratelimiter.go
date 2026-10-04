@@ -51,24 +51,18 @@ func BuildRateLimiterDetailSections(response *pb.GetRateLimiterStatusResponse) [
 	}
 
 	return []DetailSection{
-		{
-			Heading: "Rate Limiter",
-			Rows: []DetailRow{
-				{Label: "Token Bucket Store", Value: response.GetTokenBucketStore()},
-				{Label: "Counter Store", Value: response.GetCounterStore()},
-				{Label: "Fail Policy", Value: response.GetFailPolicy()},
-				{Label: "Key Prefix", Value: response.GetKeyPrefix()},
-			},
-		},
-		{
-			Heading: "Counters",
-			Rows: []DetailRow{
-				{Label: "Total Checks", Value: strconv.FormatInt(response.GetTotalChecks(), 10)},
-				{Label: "Total Allowed", Value: strconv.FormatInt(response.GetTotalAllowed(), 10)},
-				{Label: "Total Denied", Value: strconv.FormatInt(response.GetTotalDenied(), 10)},
-				{Label: "Total Errors", Value: strconv.FormatInt(response.GetTotalErrors(), 10)},
-				{Label: "Allow Rate", Value: allowedDeniedRatio},
-			},
-		},
+		NewDetailSection("Rate Limiter", []DetailRow{
+			NewDetailRow("Token Bucket Store", response.GetTokenBucketStore()),
+			NewDetailRow("Counter Store", response.GetCounterStore()),
+			NewDetailRow("Fail Policy", response.GetFailPolicy()),
+			NewDetailRow("Key Prefix", response.GetKeyPrefix()),
+		}),
+		NewDetailSection("Counters", []DetailRow{
+			NewDetailRow("Total Checks", strconv.FormatInt(response.GetTotalChecks(), 10)),
+			NewDetailRow("Total Allowed", strconv.FormatInt(response.GetTotalAllowed(), 10)),
+			NewDetailRow("Total Denied", strconv.FormatInt(response.GetTotalDenied(), 10)),
+			NewDetailRow("Total Errors", strconv.FormatInt(response.GetTotalErrors(), 10)),
+			NewDetailRow("Allow Rate", allowedDeniedRatio),
+		}),
 	}
 }

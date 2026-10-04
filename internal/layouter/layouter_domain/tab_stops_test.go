@@ -186,6 +186,10 @@ func (s *tabStopTestMetrics) ShapeText(_ FontDescriptor, _ float64, text string,
 	return glyphs
 }
 
+func (s *tabStopTestMetrics) ShapeAndMeasureText(font FontDescriptor, size float64, text string, direction DirectionType) ([]GlyphPosition, float64) {
+	return s.ShapeText(font, size, text, direction), s.MeasureText(font, size, text, direction)
+}
+
 func (s *tabStopTestMetrics) GetMetrics(_ FontDescriptor, _ float64) FontMetrics {
 	return FontMetrics{Ascent: 10, Descent: 3, LineGap: 1}
 }
@@ -205,5 +209,26 @@ func (s *tabStopTestMetrics) SplitGraphemeClusters(text string) []string {
 func newInlineLayoutContext(fm FontMetricsPort) *inlineLayoutContext {
 	return &inlineLayoutContext{
 		fontMetrics: fm,
+	}
+}
+
+func TestResolveTabStopTargetX(t *testing.T) {
+	testCases := []struct {
+		name         string
+		stop         TabStop
+		segmentWidth float64
+		cursorX      float64
+		want         float64
+	}{
+		{name: "left aligned stop", stop: TabStop{Position: 100, Align: TabAlignLeft}, segmentWidth: 30, cursorX: 10, want: 100},
+		{name: "right aligned stop ends the segment at the stop", stop: TabStop{Position: 100, Align: TabAlignRight}, segmentWidth: 30, cursorX: 10, want: 70},
+		{name: "centre aligned stop centres the segment", stop: TabStop{Position: 100, Align: TabAlignCenter}, segmentWidth: 30, cursorX: 10, want: 85},
+		{name: "target never falls before the cursor", stop: TabStop{Position: 100, Align: TabAlignRight}, segmentWidth: 30, cursorX: 90, want: 90},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			assert.InDelta(t, testCase.want, resolveTabStopTargetX(testCase.stop, testCase.segmentWidth, testCase.cursorX), 1e-9)
+		})
 	}
 }

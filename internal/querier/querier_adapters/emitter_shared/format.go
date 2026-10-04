@@ -26,7 +26,7 @@ import (
 	"strconv"
 	"strings"
 
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
@@ -485,9 +485,10 @@ func skipSQLStringLiteral(sql string, position int) int {
 // rewriteNamedToken rewrites a single named parameter token at the given position to a ?N
 // placeholder, writing the result to the builder.
 //
-// Takes sql (string) which holds the SQL text containing the named parameter. Takes
-// position (int) which holds the index of the prefix character (:, @, or $). Takes
-// nameToNumber (map[string]int) which maps parameter names to their positional numbers.
+// Takes sql (string) which holds the SQL text containing the named parameter.
+// Takes position (int) which holds the index of the prefix character (:, @, or $).
+// Takes nameToNumber (map[string]int) which maps parameter names to their positional
+// numbers.
 // Takes builder (*strings.Builder) which receives the rewritten placeholder.
 //
 // Returns int which is the position after the token, or the original position if no named
@@ -802,8 +803,8 @@ func RenumberParametersExcluding(sql string, excluded map[int]bool) string {
 
 // isParameterPrefix checks whether position starts a $N or ?N placeholder.
 //
-// Takes sql (string) which is the SQL text to inspect. Takes position (int) which is the
-// index to check.
+// Takes sql (string) which is the SQL text to inspect.
+// Takes position (int) which is the index to check.
 //
 // Returns bool which is true when the character at position is $ or ? followed by a digit
 // 1-9.

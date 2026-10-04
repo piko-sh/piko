@@ -446,7 +446,7 @@ func (ne *nodeEmitter) emitChildren(
 		}
 
 		childScopeID := getEffectivePartialScopeID(child, partialScopeID, ne.getPartialScopeID())
-		childCtx := newNodeEmissionContext(ctx, nodeEmissionParams{
+		childCtx := newNodeEmissionContext(nodeEmissionParams{
 			Node:                  child,
 			ParentSliceExpression: childSliceExpr,
 			Index:                 i,
@@ -462,7 +462,7 @@ func (ne *nodeEmitter) emitChildren(
 			}
 		}
 
-		childStmts, nodesConsumed, childDiags := ne.astBuilder.emitNode(childCtx)
+		childStmts, nodesConsumed, childDiags := ne.astBuilder.emitNode(ctx, childCtx)
 		statements = append(statements, childStmts...)
 		allDiags = append(allDiags, childDiags...)
 		i += nodesConsumed
@@ -1501,6 +1501,8 @@ func countBooleanDynamicAttributes(dynAttrs []ast_domain.DynamicAttribute) int {
 //
 // Takes dynAttrs ([]ast_domain.DynamicAttribute) which contains the attributes to
 // inspect.
+// Takes tagName (string) which identifies the element used to classify boolean
+// attributes.
 //
 // Returns int which is the number of non-boolean dynamic attributes found.
 func countNonBooleanDynamicAttributes(dynAttrs []ast_domain.DynamicAttribute, tagName string) int {

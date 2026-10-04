@@ -37,15 +37,19 @@ const (
 //
 // Configures the PostgreSQL engine with CockroachDB-specific dialect options.
 //
+// Takes options (...db_engine_postgres.Option) which apply after the CockroachDB wiring,
+// for example db_engine_postgres.WithMaxTokensPerStatement or WithMaxParseDepth to tune
+// the parser limits.
+//
 // Returns *db_engine_postgres.PostgresEngine which is ready for catalogue introspection
 // and code generation against CockroachDB.
-func NewCockroachDBEngine() *db_engine_postgres.PostgresEngine {
-	return db_engine_postgres.NewPostgresEngine(
+func NewCockroachDBEngine(options ...db_engine_postgres.Option) *db_engine_postgres.PostgresEngine {
+	return db_engine_postgres.NewPostgresEngine(append([]db_engine_postgres.Option{
 		db_engine_postgres.WithDialectName("cockroachdb"),
 		db_engine_postgres.WithExtraTypes(cockroachDBTypes()),
 		db_engine_postgres.WithTypeNormaliserHook(normaliseCockroachDBType),
 		db_engine_postgres.WithExtraFunctions(registerCockroachDBFunctions),
-	)
+	}, options...)...)
 }
 
 // cockroachDBTypes returns the extra CockroachDB type aliases that map onto the
@@ -56,13 +60,13 @@ func NewCockroachDBEngine() *db_engine_postgres.PostgresEngine {
 // Returns map[string]querier_dto.SQLType keyed by raw CockroachDB type name.
 func cockroachDBTypes() map[string]querier_dto.SQLType {
 	return map[string]querier_dto.SQLType{
-		"string": {Category: querier_dto.TypeCategoryText, EngineName: "text"},
-		"bytes":  {Category: querier_dto.TypeCategoryBytea, EngineName: "bytea"},
+		"string": querier_dto.NewSQLType(querier_dto.TypeCategoryText, "text"),
+		"bytes":  querier_dto.NewSQLType(querier_dto.TypeCategoryBytea, "bytea"),
 
-		"int":     {Category: querier_dto.TypeCategoryInteger, EngineName: engineNameInt8},
-		"integer": {Category: querier_dto.TypeCategoryInteger, EngineName: engineNameInt8},
-		"int64":   {Category: querier_dto.TypeCategoryInteger, EngineName: engineNameInt8},
-		"serial":  {Category: querier_dto.TypeCategoryInteger, EngineName: engineNameInt8},
+		"int":     querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, engineNameInt8),
+		"integer": querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, engineNameInt8),
+		"int64":   querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, engineNameInt8),
+		"serial":  querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, engineNameInt8),
 	}
 }
 
@@ -80,12 +84,12 @@ func cockroachDBTypes() map[string]querier_dto.SQLType {
 func normaliseCockroachDBType(name string, _ []int) *querier_dto.SQLType {
 	switch name {
 	case "string":
-		return new(querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"})
+		return new(querier_dto.NewSQLType(querier_dto.TypeCategoryText, "text"))
 	case "bytes":
-		return new(querier_dto.SQLType{Category: querier_dto.TypeCategoryBytea, EngineName: "bytea"})
+		return new(querier_dto.NewSQLType(querier_dto.TypeCategoryBytea, "bytea"))
 	case "int", "integer", "int64", "serial":
 
-		return new(querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: engineNameInt8})
+		return new(querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, engineNameInt8))
 	default:
 		return nil
 	}

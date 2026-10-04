@@ -31,7 +31,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/tools/go/packages"
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 )
 
@@ -72,6 +72,8 @@ var (
 			return &encoder{
 				methodSetCache: make(map[types.Type]*types.MethodSet, initialMethodSetCacheSize),
 				primitiveGuard: make(map[types.Type]bool, initialPrimitiveGuardSize),
+				allPackages:    nil,
+				arena:          nil,
 			}
 		},
 	}
@@ -215,6 +217,8 @@ func getEncoder(allPackages map[string]*packages.Package) *encoder {
 		s = &encoder{
 			methodSetCache: make(map[types.Type]*types.MethodSet, initialMethodSetCacheSize),
 			primitiveGuard: make(map[types.Type]bool, initialPrimitiveGuardSize),
+			allPackages:    nil,
+			arena:          nil,
 		}
 	}
 	s.allPackages = allPackages

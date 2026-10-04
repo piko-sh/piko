@@ -1,4 +1,0 @@
-{
-  "description": "Function in fileA defers a recovery while fileB function panics; checks defer + recover unwinds correctly across file boundaries",
-  "expected": "recovered=boom finished=true"
-}

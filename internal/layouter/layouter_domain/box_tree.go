@@ -342,3 +342,31 @@ func (b *LayoutBox) TagName() string {
 		return "#root"
 	}
 }
+
+// newVerticalMarginEdges creates a BoxEdges carrying only resolved top and bottom
+// margins, as reported by formatting contexts that do not resolve horizontal margins.
+//
+// Takes top (float64) which is the top margin in points.
+// Takes bottom (float64) which is the bottom margin in points.
+//
+// Returns BoxEdges which holds the vertical margins with zero horizontal edges.
+func newVerticalMarginEdges(top, bottom float64) BoxEdges {
+	return BoxEdges{Top: top, Right: 0, Bottom: bottom, Left: 0}
+}
+
+// newLayoutBox creates a LayoutBox of the given type with a copy of the given style,
+// attached to parent. Every other field starts at its zero value for the caller to fill
+// in.
+//
+// Takes boxType (BoxType) which is the kind of box to create.
+// Takes style (*ComputedStyle) which is copied into the new box.
+// Takes parent (*LayoutBox) which is the parent box, or nil for a detached box.
+//
+// Returns *LayoutBox which is the new box.
+func newLayoutBox(boxType BoxType, style *ComputedStyle, parent *LayoutBox) *LayoutBox {
+	box := LayoutBox{}
+	box.Type = boxType
+	box.Style = *style
+	box.Parent = parent
+	return &box
+}

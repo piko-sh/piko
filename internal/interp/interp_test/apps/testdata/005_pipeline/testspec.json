@@ -1,5 +1,0 @@
-{
-  "description": "Three-file data pipeline: filter, transform, aggregate",
-  "shouldError": false,
-  "expected": "30"
-}

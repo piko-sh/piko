@@ -60,5 +60,6 @@ func TestParserDepthLimitIsConfigurable(t *testing.T) {
 	statements, err := engine.ParseStatements(sql)
 	require.NoError(t, err)
 	require.NotEmpty(t, statements)
-	_, _ = engine.AnalyseQuery(nil, statements[0])
+	_, err = engine.AnalyseQuery(nil, statements[0])
+	require.ErrorIs(t, err, errExpressionDepthExceeded)
 }

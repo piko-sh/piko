@@ -27,7 +27,7 @@ import (
 	goast "go/ast"
 	"sync"
 
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 )
@@ -147,11 +147,17 @@ func NewTypeQuerier(
 	config inspector_dto.Config,
 ) *TypeQuerier {
 	return &TypeQuerier{
-		localPackageFiles:  allScriptBlocksByFile,
-		typeData:           typeData,
-		Config:             config,
-		namedTypeCache:     sync.Map{},
-		underlyingASTCache: sync.Map{},
+		localPackageFiles:   allScriptBlocksByFile,
+		typeData:            typeData,
+		Config:              config,
+		namedTypeCache:      sync.Map{},
+		underlyingASTCache:  sync.Map{},
+		implementationIndex: nil,
+		typeHierarchyIndex:  nil,
+		cachedSymbols:       nil,
+		implIndexOnce:       sync.Once{},
+		typeHierarchyOnce:   sync.Once{},
+		symbolsOnce:         sync.Once{},
 	}
 }
 

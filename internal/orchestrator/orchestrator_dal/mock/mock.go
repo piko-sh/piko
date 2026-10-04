@@ -96,6 +96,8 @@ func NewOrchestratorDAL() *OrchestratorDAL {
 		tasksByWorkflow: make(map[string][]string),
 		behaviours:      make(map[string]*Behaviour),
 		calls:           make([]CallRecord, 0),
+		mu:              sync.RWMutex{},
+		inTransaction:   false,
 	}
 }
 
@@ -326,6 +328,32 @@ func (m *OrchestratorDAL) FetchAndMarkDueTasks(_ context.Context, priority orche
 		}
 	}
 
+	return results, nil
+}
+
+// GetTasksByID implements orchestrator_dal.TaskDAL.
+//
+// Takes ids ([]string) which lists the task IDs to read.
+//
+// Returns []*orchestrator_domain.Task which holds copies of the tasks found.
+// Returns error when a configured behaviour produces an error.
+//
+// Safe for concurrent use; protects internal state with a mutex.
+func (m *OrchestratorDAL) GetTasksByID(_ context.Context, ids []string) ([]*orchestrator_domain.Task, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.recordCall("GetTasksByID", ids)
+	if err := m.executeBehaviour("GetTasksByID"); err != nil {
+		return nil, err
+	}
+
+	results := make([]*orchestrator_domain.Task, 0, len(ids))
+	for _, id := range ids {
+		if task, exists := m.tasks[id]; exists {
+			results = append(results, new(*task))
+		}
+	}
 	return results, nil
 }
 
@@ -893,6 +921,7 @@ func (m *OrchestratorDAL) createTransactionCopy() *OrchestratorDAL {
 		behaviours:      make(map[string]*Behaviour),
 		calls:           make([]CallRecord, 0),
 		inTransaction:   true,
+		mu:              sync.RWMutex{},
 	}
 
 	for k, v := range m.tasks {

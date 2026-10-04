@@ -54,6 +54,7 @@ func newRecordingFSReader(inner FSReaderPort) *recordingFSReader {
 	return &recordingFSReader{
 		inner: inner,
 		paths: make(map[string]struct{}),
+		mu:    sync.Mutex{},
 	}
 }
 

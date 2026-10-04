@@ -703,9 +703,10 @@ func (a *OtterAdapter[K, V]) buildSearchResultWithScores(keys []K, scores map[K]
 		}
 
 		items = append(items, cache_dto.SearchHit[K, V]{
-			Key:   key,
-			Value: value,
-			Score: score,
+			Key:        key,
+			Value:      value,
+			Score:      score,
+			Highlights: nil,
 		})
 	}
 
@@ -733,6 +734,8 @@ func (a *OtterAdapter[K, V]) vectorSearch(query string, opts *cache_dto.SearchOp
 		return cache_dto.SearchResult[K, V]{
 			Offset: opts.Offset,
 			Limit:  opts.Limit,
+			Items:  nil,
+			Total:  0,
 		}, nil
 	}
 
@@ -769,6 +772,8 @@ func (a *OtterAdapter[K, V]) vectorQuery(opts *cache_dto.QueryOptions) (cache_dt
 		return cache_dto.SearchResult[K, V]{
 			Offset: opts.Offset,
 			Limit:  opts.Limit,
+			Items:  nil,
+			Total:  0,
 		}, nil
 	}
 
@@ -839,9 +844,10 @@ func (a *OtterAdapter[K, V]) buildVectorSearchResult(
 		}
 
 		items = append(items, cache_dto.SearchHit[K, V]{
-			Key:   hit.Key,
-			Value: value,
-			Score: float64(hit.Score),
+			Key:        hit.Key,
+			Value:      value,
+			Score:      float64(hit.Score),
+			Highlights: nil,
 		})
 	}
 

@@ -77,8 +77,15 @@ type RAGOption func(*ragConfig)
 // Returns *CompletionBuilder for method chaining.
 func (b *CompletionBuilder) RAG(namespace string, topK int, opts ...RAGOption) *CompletionBuilder {
 	b.ragConfig = &ragConfig{
-		namespace: namespace,
-		topK:      topK,
+		namespace:          namespace,
+		topK:               topK,
+		filter:             nil,
+		minScore:           nil,
+		rewriter:           nil,
+		query:              "",
+		embeddingProvider:  "",
+		embeddingModel:     "",
+		enableHybridSearch: false,
 	}
 	for _, opt := range opts {
 		opt(b.ragConfig)
@@ -179,8 +186,13 @@ func (b *CompletionBuilder) embedRAGQueries(ctx context.Context, queries []strin
 	}
 
 	embReq := &llm_dto.EmbeddingRequest{
-		Input: queries,
-		Model: b.ragConfig.embeddingModel,
+		Input:           queries,
+		Model:           b.ragConfig.embeddingModel,
+		EncodingFormat:  nil,
+		Dimensions:      nil,
+		User:            nil,
+		ProviderOptions: nil,
+		Metadata:        nil,
 	}
 	embResp, err := b.service.embeddingService.Embed(ctx, b.ragConfig.embeddingProvider, embReq)
 	if err != nil {
@@ -215,6 +227,8 @@ func (b *CompletionBuilder) resolveSingleQueryRAG(ctx context.Context, query str
 		MinScore:        b.ragConfig.minScore,
 		Filter:          b.ragConfig.filter,
 		IncludeMetadata: true,
+		TextQuery:       "",
+		IncludeVectors:  false,
 	}
 	if b.ragConfig.enableHybridSearch {
 		searchReq.TextQuery = query
@@ -256,6 +270,8 @@ func (b *CompletionBuilder) resolveMultiQueryRAG(ctx context.Context, queries []
 			MinScore:        b.ragConfig.minScore,
 			Filter:          b.ragConfig.filter,
 			IncludeMetadata: true,
+			TextQuery:       "",
+			IncludeVectors:  false,
 		}
 		if b.ragConfig.enableHybridSearch && i < len(queries) {
 			searchReq.TextQuery = queries[i]

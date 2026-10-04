@@ -276,6 +276,15 @@ func NewSpamDetectService(config *spamdetect_dto.ServiceConfig, opts ...ServiceO
 		timeout:            config.Timeout,
 		cacheSize:          cacheSize,
 		healthCheckTimeout: defaultHealthCheckTimeout,
+		feedbackStore:      nil,
+		inflight:           sync.WaitGroup{},
+		cacheIndex:         0,
+		breakerMu:          sync.RWMutex{},
+		feedbackMu:         sync.RWMutex{},
+		matchCacheMu:       sync.RWMutex{},
+		closed:             sync.Once{},
+		cacheMu:            sync.Mutex{},
+		registerMu:         sync.Mutex{},
 	}
 
 	for _, opt := range opts {
@@ -595,6 +604,8 @@ func (s *spamDetectService) buildFeedbackRecord(ctx context.Context, submissionI
 		SubmissionID: submissionID,
 		ReportedAt:   s.clock.Now(),
 		IsSpam:       isSpam,
+		Submission:   nil,
+		Result:       nil,
 	}
 
 	s.cacheMu.Lock()
@@ -974,13 +985,18 @@ func (s *spamDetectService) aggregateResults(
 	score, allFailed := s.computeCompositeScore(detectorResults, fieldScores, schema)
 
 	result := &spamdetect_dto.AnalysisResult{
-		DetectorResults: detectorResults,
-		FieldResults:    fieldScores,
-		FormReasons:     collectFormReasons(detectorResults),
-		Duration:        totalDuration,
-		Score:           score,
-		Threshold:       threshold,
-		IsSpam:          score >= threshold,
+		DetectorResults:  detectorResults,
+		FieldResults:     fieldScores,
+		FormReasons:      collectFormReasons(detectorResults),
+		Duration:         totalDuration,
+		Score:            score,
+		Threshold:        threshold,
+		IsSpam:           score >= threshold,
+		SubmissionID:     "",
+		PendingDetectors: nil,
+		TruncatedFields:  nil,
+		PendingAsync:     false,
+		Truncated:        false,
 	}
 
 	return aggregationResult{analysisResult: result, allFailed: allFailed}
@@ -1321,9 +1337,14 @@ func resolveFeedbackCacheSize(configured int) int {
 // Returns spamdetect_dto.DetectorResult which represents the failure.
 func detectorErrorResult(name string, err error, duration time.Duration) spamdetect_dto.DetectorResult {
 	return spamdetect_dto.DetectorResult{
-		Detector: name,
-		Error:    err,
-		Duration: duration,
+		Detector:     name,
+		Error:        err,
+		Duration:     duration,
+		FieldReasons: nil,
+		FieldScores:  nil,
+		Reasons:      nil,
+		Score:        0,
+		IsSpam:       false,
 	}
 }
 

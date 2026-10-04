@@ -247,7 +247,7 @@ Empty `Locales` slice disables i18n routing.
 |------|---------|----------|
 | `prod` | `./app prod` | Production (AST caching, no hot-reload) |
 | `dev` | `./app dev` | Development (file watching, hot-reload) |
-| `dev-i` | `./app dev-i` | Interpreted mode (Yaegi interpreter) |
+| `dev-i` | `./app dev-i` | Interpreted mode (Pipit interpreter) |
 
 First CLI argument. Controls watcher and AST caching automatically. Use `piko.WithWatchMode(...)` only to override the default.
 
@@ -322,7 +322,7 @@ apiKey := handle.Value()
 ## Docker deployment
 
 ```dockerfile
-FROM golang:1.26 as build
+FROM golang:1.27 as build
 WORKDIR /app
 COPY . .
 RUN go build -o bin/generator cmd/generator/main.go && bin/generator all

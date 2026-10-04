@@ -23,6 +23,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"errors"
+	"fmt"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -95,6 +96,9 @@ func (stubDriver) CreateWithDedup(context.Context, CreateTaskParams, string) (bo
 	return false, nil
 }
 func (stubDriver) FetchDueTasks(context.Context, FetchDueTasksParams) ([]FetchDueTaskRow, error) {
+	return nil, nil
+}
+func (stubDriver) GetTasksByID(context.Context, []string) ([]FetchDueTaskRow, error) {
 	return nil, nil
 }
 func (stubDriver) MarkTasksAsProcessing(context.Context, int64, []string) error { return nil }
@@ -190,6 +194,7 @@ type configurableStubDriver struct {
 	updateTaskFunc              func(context.Context, UpdateTaskParams) error
 	createWithDedupFunc         func(context.Context, CreateTaskParams, string) (bool, error)
 	fetchDueTasksFunc           func(context.Context, FetchDueTasksParams) ([]FetchDueTaskRow, error)
+	getTasksByIDFunc            func(context.Context, []string) ([]FetchDueTaskRow, error)
 	markProcessingFunc          func(context.Context, int64, []string) error
 	getWorkflowStatusFunc       func(context.Context, string) (bool, error)
 	promoteFunc                 func(context.Context, int64, int64) (int64, error)
@@ -247,6 +252,13 @@ func (d *configurableStubDriver) CreateWithDedup(ctx context.Context, params Cre
 func (d *configurableStubDriver) FetchDueTasks(ctx context.Context, params FetchDueTasksParams) ([]FetchDueTaskRow, error) {
 	if d.fetchDueTasksFunc != nil {
 		return d.fetchDueTasksFunc(ctx, params)
+	}
+	return nil, nil
+}
+
+func (d *configurableStubDriver) GetTasksByID(ctx context.Context, ids []string) ([]FetchDueTaskRow, error) {
+	if d.getTasksByIDFunc != nil {
+		return d.getTasksByIDFunc(ctx, ids)
 	}
 	return nil, nil
 }
@@ -1302,4 +1314,112 @@ func TestCore_MockClockDeterministicTimestamps(t *testing.T) {
 
 	require.NoError(t, dal.UpdateTaskHeartbeat(t.Context(), "task-1"), "heartbeat must succeed")
 	require.Equal(t, fixedTime.Unix(), heartbeatSeconds, "heartbeat timestamp must equal the injected mock clock time")
+}
+
+func TestCore_GetTasksByID(t *testing.T) {
+	t.Parallel()
+
+	rowFor := func(id string) FetchDueTaskRow {
+		return FetchDueTaskRow{ID: id, WorkflowID: "wf", Executor: "e", Status: "RETRYING", Payload: `{}`, Config: `{}`}
+	}
+
+	t.Run("reads every ID in chunks below the bind limit", func(t *testing.T) {
+		t.Parallel()
+
+		ids := make([]string, 1001)
+		for i := range ids {
+			ids[i] = fmt.Sprintf("t%d", i)
+		}
+		var chunkSizes []int
+		stub := &configurableStubDriver{getTasksByIDFunc: func(_ context.Context, chunk []string) ([]FetchDueTaskRow, error) {
+			chunkSizes = append(chunkSizes, len(chunk))
+			rows := make([]FetchDueTaskRow, 0, len(chunk))
+			for _, id := range chunk {
+				rows = append(rows, rowFor(id))
+			}
+			return rows, nil
+		}}
+		dal := newTxCore(t, stub)
+
+		tasks, err := dal.GetTasksByID(t.Context(), ids)
+		require.NoError(t, err)
+		require.Len(t, tasks, len(ids))
+		assert.Equal(t, []int{500, 500, 1}, chunkSizes)
+		assert.Equal(t, "t1000", tasks[1000].ID)
+		assert.Equal(t, orchestrator_domain.StatusRetrying, tasks[0].Status)
+	})
+
+	t.Run("failure after a successful chunk releases the tasks already read", func(t *testing.T) {
+		t.Parallel()
+
+		ids := make([]string, 600)
+		for i := range ids {
+			ids[i] = fmt.Sprintf("t%d", i)
+		}
+		var chunks int
+		stub := &configurableStubDriver{getTasksByIDFunc: func(_ context.Context, chunk []string) ([]FetchDueTaskRow, error) {
+			chunks++
+			if chunks > 1 {
+				return nil, errors.New("connection lost")
+			}
+			return []FetchDueTaskRow{rowFor(chunk[0])}, nil
+		}}
+		dal := newTxCore(t, stub)
+
+		tasks, err := dal.GetTasksByID(t.Context(), ids)
+		require.Error(t, err)
+		assert.Nil(t, tasks)
+		assert.Equal(t, 2, chunks)
+	})
+
+	testCases := []struct {
+		ctx     func(t *testing.T) context.Context
+		rows    func(context.Context, []string) ([]FetchDueTaskRow, error)
+		name    string
+		wantErr string
+	}{
+		{
+			name: "driver failure is reported",
+			rows: func(context.Context, []string) ([]FetchDueTaskRow, error) {
+				return nil, errors.New("connection lost")
+			},
+			wantErr: "connection lost",
+		},
+		{
+			name: "unreadable row is reported",
+			rows: func(context.Context, []string) ([]FetchDueTaskRow, error) {
+				return []FetchDueTaskRow{{ID: "bad", Payload: `{not json`, Config: `{}`}}, nil
+			},
+			wantErr: "bad",
+		},
+		{
+			name: "cancelled context stops the read",
+			ctx: func(t *testing.T) context.Context {
+				ctx, cancel := context.WithCancelCause(t.Context())
+				cancel(errors.New("caller gave up"))
+				return ctx
+			},
+			rows: func(context.Context, []string) ([]FetchDueTaskRow, error) {
+				return nil, nil
+			},
+			wantErr: "context canceled",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx := t.Context()
+			if tc.ctx != nil {
+				ctx = tc.ctx(t)
+			}
+			dal := newTxCore(t, &configurableStubDriver{getTasksByIDFunc: tc.rows})
+
+			tasks, err := dal.GetTasksByID(ctx, []string{"a"})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tc.wantErr)
+			assert.Nil(t, tasks)
+		})
+	}
 }

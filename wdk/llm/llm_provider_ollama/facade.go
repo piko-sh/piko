@@ -36,10 +36,14 @@ type OllamaProvider struct {
 // llm.EmbeddingProviderPort (embeddings). When registered via piko.WithLLMProvider, the
 // framework automatically detects and registers the embedding capability.
 //
+// Construction does no network or process work. The provider reaches the server, or
+// starts a managed one when AutoStart allows it, on the first request; call Start (or
+// EnsureModels) at application startup to do this up front and fail fast.
+//
 // Takes config (Config) which contains the provider configuration.
 //
 // Returns *OllamaProvider which can be registered with the LLM service.
-// Returns error when the configuration is invalid or Ollama cannot be reached.
+// Returns error when the configuration is invalid or the host URL cannot be parsed.
 func NewOllamaProvider(config Config) (*OllamaProvider, error) {
 	p, err := newProvider(config)
 	if err != nil {
@@ -48,15 +52,18 @@ func NewOllamaProvider(config Config) (*OllamaProvider, error) {
 	return &OllamaProvider{ollamaProvider: p}, nil
 }
 
-// EnsureModels downloads the configured default completion and embedding models if they
-// are not already available locally. Call this at application startup to avoid
-// first-request latency from on-demand model pulls.
+// EnsureModels starts the provider and downloads the configured default completion and
+// embedding models if they are not already available locally. Call this at application
+// startup to avoid first-request latency from on-demand model pulls.
 //
 // After ensuring the embedding model, this also queries its vector dimension so that
 // EmbeddingDimensions returns the correct value immediately.
 //
-// Returns error when a model cannot be pulled or verified.
+// Returns error when the provider cannot start or a model cannot be pulled or verified.
 func (p *OllamaProvider) EnsureModels(ctx context.Context) error {
+	if err := p.ensureStarted(ctx); err != nil {
+		return err
+	}
 	if err := p.ensureModel(ctx, p.defaultModel.Name, p.defaultModel); err != nil {
 		return fmt.Errorf("ensuring completion model %q: %w", p.defaultModel.Name, err)
 	}

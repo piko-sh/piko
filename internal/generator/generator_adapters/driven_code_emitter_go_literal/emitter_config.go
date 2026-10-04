@@ -146,10 +146,15 @@ type EmitterContext struct {
 // zero.
 func NewEmitterContext() *EmitterContext {
 	return &EmitterContext{
-		requiredImports:   make(map[string]string),
-		usedAliases:       make(map[string]string),
-		fetcherDecls:      make([]goast.Decl, 0),
-		fetcherCtr:        0,
-		customTagsVarName: "",
+		requiredImports:        make(map[string]string),
+		usedAliases:            make(map[string]string),
+		fetcherDecls:           make([]goast.Decl, 0),
+		fetcherCtr:             0,
+		customTagsVarName:      "",
+		userCodeLineDirectives: nil,
+		tempVarCtr:             atomic.Int64{},
+		staticVarCtr:           atomic.Int64{},
+		staticAttrVarCtr:       atomic.Int64{},
+		loopIterCtr:            atomic.Int64{},
 	}
 }

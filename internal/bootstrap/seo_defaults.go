@@ -44,6 +44,18 @@ func applySEOConfigDefaults(ctx context.Context, seoConfig config.SEOConfig) (co
 			config_domain.PassDefaults,
 			config_domain.PassProgrammaticOverrides,
 		},
+		FileReader:           nil,
+		ProgrammaticDefaults: nil,
+		Validator:            nil,
+		ResolverRegistry:     nil,
+		ResolverCacheTTL:     nil,
+		FlagCoordinator:      nil,
+		EnvPrefix:            "",
+		FlagPrefix:           "",
+		Resolvers:            nil,
+		FilePaths:            nil,
+		UseGlobalResolvers:   false,
+		StrictFile:           false,
 	})
 	if err != nil {
 		return seoConfig, fmt.Errorf("applying SEO configuration defaults: %w", err)

@@ -79,7 +79,8 @@ func parseSVGReader(r io.Reader) (*SVG, error) {
 		return nil, errors.New("svg: no <svg> element found")
 	}
 
-	s := &SVG{Root: svgRoot}
+	s := &SVG{}
+	s.Root = svgRoot
 	s.extractDimensions()
 	s.indexDefs()
 	return s, nil
@@ -173,6 +174,8 @@ func handleElementToken(dec *xml.Decoder, tok xml.Token) (*Node, bool, error) {
 			Tag:       t.Name.Local,
 			Attrs:     make(map[string]string),
 			Transform: Identity(),
+			Text:      "",
+			Children:  nil,
 		}
 		for _, attr := range t.Attr {
 			node.Attrs[attr.Name.Local] = attr.Value
@@ -270,6 +273,8 @@ func buildNodeFromStart(start xml.StartElement) *Node {
 		Tag:       start.Name.Local,
 		Attrs:     make(map[string]string),
 		Transform: Identity(),
+		Text:      "",
+		Children:  nil,
 	}
 	for _, attr := range start.Attr {
 		node.Attrs[attr.Name.Local] = attr.Value

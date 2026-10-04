@@ -114,8 +114,8 @@ func neighbourRemove[K comparable](neighbours []*node[K], target *node[K]) []*no
 //
 // Takes layer (int) which is the layer index.
 // Takes maxNeighboursPerLayer (int) which is the limit for upper layers.
-// Takes maxNeighboursBaseLayer (int) which is the limit for the base layer (usually 2 *
-// maxNeighboursPerLayer).
+// Takes maxNeighboursBaseLayer (int) which sets the base-layer neighbour limit, usually
+// twice the upper-layer limit.
 //
 // Returns int which is the neighbour limit for the given layer.
 func maxNeighbours(layer, maxNeighboursPerLayer, maxNeighboursBaseLayer int) int {

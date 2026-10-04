@@ -131,22 +131,22 @@ type FunctionCatalogueBuilder struct {
 func newFunctionCatalogueBuilder() *FunctionCatalogueBuilder {
 	return &FunctionCatalogueBuilder{
 		functions:      map[string][]*querier_dto.FunctionSignature{},
-		uint64Type:     querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "UInt64"},
-		uint32Type:     querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "UInt32"},
-		int64Type:      querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "Int64"},
-		int32Type:      querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "Int32"},
-		float64Type:    querier_dto.SQLType{Category: querier_dto.TypeCategoryFloat, EngineName: "Float64"},
-		float32Type:    querier_dto.SQLType{Category: querier_dto.TypeCategoryFloat, EngineName: "Float32"},
-		textType:       querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "String"},
-		boolType:       querier_dto.SQLType{Category: querier_dto.TypeCategoryBoolean, EngineName: "Bool"},
-		dateType:       querier_dto.SQLType{Category: querier_dto.TypeCategoryTemporal, EngineName: "Date"},
-		dateTimeType:   querier_dto.SQLType{Category: querier_dto.TypeCategoryTemporal, EngineName: "DateTime"},
-		dateTime64Type: querier_dto.SQLType{Category: querier_dto.TypeCategoryTemporal, EngineName: "DateTime64"},
-		uuidType:       querier_dto.SQLType{Category: querier_dto.TypeCategoryUUID, EngineName: "UUID"},
-		decimal128Type: querier_dto.SQLType{Category: querier_dto.TypeCategoryDecimal, EngineName: "Decimal128"},
-		jsonType:       querier_dto.SQLType{Category: querier_dto.TypeCategoryJSON, EngineName: "JSON"},
+		uint64Type:     querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "UInt64"),
+		uint32Type:     querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "UInt32"),
+		int64Type:      querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "Int64"),
+		int32Type:      querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "Int32"),
+		float64Type:    querier_dto.NewSQLType(querier_dto.TypeCategoryFloat, "Float64"),
+		float32Type:    querier_dto.NewSQLType(querier_dto.TypeCategoryFloat, "Float32"),
+		textType:       querier_dto.NewSQLType(querier_dto.TypeCategoryText, "String"),
+		boolType:       querier_dto.NewSQLType(querier_dto.TypeCategoryBoolean, "Bool"),
+		dateType:       querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, "Date"),
+		dateTimeType:   querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, "DateTime"),
+		dateTime64Type: querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, "DateTime64"),
+		uuidType:       querier_dto.NewSQLType(querier_dto.TypeCategoryUUID, "UUID"),
+		decimal128Type: querier_dto.NewSQLType(querier_dto.TypeCategoryDecimal, "Decimal128"),
+		jsonType:       querier_dto.NewSQLType(querier_dto.TypeCategoryJSON, "JSON"),
 
-		unknownType: querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown},
+		unknownType: querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""),
 	}
 }
 
@@ -160,17 +160,11 @@ func newFunctionCatalogueBuilder() *FunctionCatalogueBuilder {
 // Takes returnType (querier_dto.SQLType) which is the function's result type.
 // Takes argTypes (...querier_dto.SQLType) which are the argument types in order.
 func (builder *FunctionCatalogueBuilder) Register(name string, returnType querier_dto.SQLType, argTypes ...querier_dto.SQLType) {
-	args := make([]querier_dto.FunctionArgument, len(argTypes))
-	for i := range argTypes {
-		args[i] = querier_dto.FunctionArgument{Type: argTypes[i]}
-	}
-	key := strings.ToLower(name)
-	builder.functions[key] = append(builder.functions[key], &querier_dto.FunctionSignature{
-		Name:       name,
-		ReturnType: returnType,
-		Arguments:  args,
-		DataAccess: querier_dto.DataAccessReadOnly,
-	})
+	builder.add(name, querier_dto.NewFunctionSignature(
+		builtinArguments(argTypes),
+		returnType,
+		querier_dto.FunctionNullableCalledOnNull,
+	))
 }
 
 // RegisterVariadic adds a function whose last argument may repeat.
@@ -182,19 +176,12 @@ func (builder *FunctionCatalogueBuilder) Register(name string, returnType querie
 // Takes minArgs (int) which is the minimum number of arguments accepted.
 // Takes argTypes (...querier_dto.SQLType) which are the argument types in order.
 func (builder *FunctionCatalogueBuilder) RegisterVariadic(name string, returnType querier_dto.SQLType, minArgs int, argTypes ...querier_dto.SQLType) {
-	args := make([]querier_dto.FunctionArgument, len(argTypes))
-	for i := range argTypes {
-		args[i] = querier_dto.FunctionArgument{Type: argTypes[i]}
-	}
-	key := strings.ToLower(name)
-	builder.functions[key] = append(builder.functions[key], &querier_dto.FunctionSignature{
-		Name:         name,
-		ReturnType:   returnType,
-		Arguments:    args,
-		IsVariadic:   true,
-		MinArguments: minArgs,
-		DataAccess:   querier_dto.DataAccessReadOnly,
-	})
+	builder.add(name, querier_dto.NewFunctionSignature(
+		builtinArguments(argTypes),
+		returnType,
+		querier_dto.FunctionNullableCalledOnNull,
+		querier_dto.WithVariadic(minArgs),
+	))
 }
 
 // RegisterNullPropagating adds a scalar function whose result is NULL exactly when an
@@ -207,18 +194,11 @@ func (builder *FunctionCatalogueBuilder) RegisterVariadic(name string, returnTyp
 // Takes returnType (querier_dto.SQLType) which is the function's result type.
 // Takes argTypes (...querier_dto.SQLType) which are the argument types in order.
 func (builder *FunctionCatalogueBuilder) RegisterNullPropagating(name string, returnType querier_dto.SQLType, argTypes ...querier_dto.SQLType) {
-	args := make([]querier_dto.FunctionArgument, len(argTypes))
-	for i := range argTypes {
-		args[i] = querier_dto.FunctionArgument{Type: argTypes[i]}
-	}
-	key := strings.ToLower(name)
-	builder.functions[key] = append(builder.functions[key], &querier_dto.FunctionSignature{
-		Name:              name,
-		ReturnType:        returnType,
-		Arguments:         args,
-		DataAccess:        querier_dto.DataAccessReadOnly,
-		NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
-	})
+	builder.add(name, querier_dto.NewFunctionSignature(
+		builtinArguments(argTypes),
+		returnType,
+		querier_dto.FunctionNullableReturnsNullOnNull,
+	))
 }
 
 // RegisterAggregate adds an aggregate function signature.
@@ -229,19 +209,12 @@ func (builder *FunctionCatalogueBuilder) RegisterNullPropagating(name string, re
 // Takes returnType (querier_dto.SQLType) which is the function's result type.
 // Takes argTypes (...querier_dto.SQLType) which are the argument types in order.
 func (builder *FunctionCatalogueBuilder) RegisterAggregate(name string, returnType querier_dto.SQLType, argTypes ...querier_dto.SQLType) {
-	args := make([]querier_dto.FunctionArgument, len(argTypes))
-	for i := range argTypes {
-		args[i] = querier_dto.FunctionArgument{Type: argTypes[i]}
-	}
-	key := strings.ToLower(name)
-	builder.functions[key] = append(builder.functions[key], &querier_dto.FunctionSignature{
-		Name:              name,
-		ReturnType:        returnType,
-		Arguments:         args,
-		IsAggregate:       true,
-		DataAccess:        querier_dto.DataAccessReadOnly,
-		NullableBehaviour: querier_dto.FunctionNullableNeverNull,
-	})
+	builder.add(name, querier_dto.NewFunctionSignature(
+		builtinArguments(argTypes),
+		returnType,
+		querier_dto.FunctionNullableNeverNull,
+		querier_dto.WithAggregate(),
+	))
 }
 
 // RegisterAggregateNoArgs adds a no-argument aggregate such as count().
@@ -251,14 +224,12 @@ func (builder *FunctionCatalogueBuilder) RegisterAggregate(name string, returnTy
 // Takes name (string) which is the function name to register under.
 // Takes returnType (querier_dto.SQLType) which is the function's result type.
 func (builder *FunctionCatalogueBuilder) RegisterAggregateNoArgs(name string, returnType querier_dto.SQLType) {
-	key := strings.ToLower(name)
-	builder.functions[key] = append(builder.functions[key], &querier_dto.FunctionSignature{
-		Name:              name,
-		ReturnType:        returnType,
-		IsAggregate:       true,
-		DataAccess:        querier_dto.DataAccessReadOnly,
-		NullableBehaviour: querier_dto.FunctionNullableNeverNull,
-	})
+	builder.add(name, querier_dto.NewFunctionSignature(
+		nil,
+		returnType,
+		querier_dto.FunctionNullableNeverNull,
+		querier_dto.WithAggregate(),
+	))
 }
 
 // RegisterVariadicAggregate adds an aggregate function whose last argument may repeat.
@@ -272,21 +243,25 @@ func (builder *FunctionCatalogueBuilder) RegisterAggregateNoArgs(name string, re
 // Takes minArgs (int) which is the minimum number of arguments accepted.
 // Takes argTypes (...querier_dto.SQLType) which are the argument types in order.
 func (builder *FunctionCatalogueBuilder) RegisterVariadicAggregate(name string, returnType querier_dto.SQLType, minArgs int, argTypes ...querier_dto.SQLType) {
-	args := make([]querier_dto.FunctionArgument, len(argTypes))
-	for index := range argTypes {
-		args[index] = querier_dto.FunctionArgument{Type: argTypes[index]}
-	}
+	builder.add(name, querier_dto.NewFunctionSignature(
+		builtinArguments(argTypes),
+		returnType,
+		querier_dto.FunctionNullableNeverNull,
+		querier_dto.WithVariadic(minArgs),
+		querier_dto.WithAggregate(),
+	))
+}
+
+// add names a built-in signature, marks it read-only and appends it under the lower-cased
+// name so catalogue lookups are case-insensitive.
+//
+// Takes name (string) which is the function name to register under.
+// Takes signature (*querier_dto.FunctionSignature) which is the signature to register.
+func (builder *FunctionCatalogueBuilder) add(name string, signature *querier_dto.FunctionSignature) {
+	signature.Name = name
+	signature.DataAccess = querier_dto.DataAccessReadOnly
 	key := strings.ToLower(name)
-	builder.functions[key] = append(builder.functions[key], &querier_dto.FunctionSignature{
-		Name:              name,
-		ReturnType:        returnType,
-		Arguments:         args,
-		IsVariadic:        true,
-		MinArguments:      minArgs,
-		IsAggregate:       true,
-		DataAccess:        querier_dto.DataAccessReadOnly,
-		NullableBehaviour: querier_dto.FunctionNullableNeverNull,
-	})
+	builder.functions[key] = append(builder.functions[key], signature)
 }
 
 // build returns a finalised FunctionCatalogue from the accumulated registrations.
@@ -318,6 +293,20 @@ func buildFunctionCatalogue(extras func(*FunctionCatalogueBuilder)) *querier_dto
 		extras(builder)
 	}
 	return builder.build()
+}
+
+// builtinArguments converts positional argument types into required, unnamed function
+// arguments.
+//
+// Takes argTypes ([]querier_dto.SQLType) which are the argument types in order.
+//
+// Returns []querier_dto.FunctionArgument which holds one required argument per type.
+func builtinArguments(argTypes []querier_dto.SQLType) []querier_dto.FunctionArgument {
+	arguments := make([]querier_dto.FunctionArgument, len(argTypes))
+	for index := range argTypes {
+		arguments[index] = querier_dto.FunctionArgument{Type: argTypes[index], Name: "", IsOptional: false}
+	}
+	return arguments
 }
 
 // registerCoreCatalogueFamilies registers the core aggregate, date-time, string, array,
@@ -585,15 +574,11 @@ func registerExponentialAggregates(b *FunctionCatalogueBuilder) {
 func registerSamplingAggregates(b *FunctionCatalogueBuilder) {
 	b.RegisterAggregate("largestTriangleThreeBuckets", arrayOf(b.unknownType), b.uint64Type, b.float64Type, b.float64Type)
 	b.RegisterAggregate("boundingRatio", b.float64Type, b.float64Type, b.float64Type)
-	histogramElement := querier_dto.SQLType{
-		Category:   querier_dto.TypeCategoryStruct,
-		EngineName: "Tuple",
-		StructFields: []querier_dto.StructField{
-			{Name: "lower", SQLType: b.float64Type},
-			{Name: "upper", SQLType: b.float64Type},
-			{Name: "height", SQLType: b.float64Type},
-		},
-	}
+	histogramElement := tupleOf([]querier_dto.StructField{
+		{Name: "lower", SQLType: b.float64Type},
+		{Name: "upper", SQLType: b.float64Type},
+		{Name: "height", SQLType: b.float64Type},
+	})
 	b.RegisterAggregate("histogram", arrayOf(histogramElement), b.uint64Type, b.float64Type)
 	b.RegisterAggregate("singleValueOrNull", b.unknownType, b.unknownType)
 	b.RegisterAggregate("entropy", b.float64Type, b.unknownType)
@@ -1052,10 +1037,10 @@ func registerDecimalConversions(b *FunctionCatalogueBuilder) {
 		name        string
 		decimalType querier_dto.SQLType
 	}{
-		{name: "toDecimal32", decimalType: querier_dto.SQLType{Category: querier_dto.TypeCategoryDecimal, EngineName: "Decimal32"}},
-		{name: "toDecimal64", decimalType: querier_dto.SQLType{Category: querier_dto.TypeCategoryDecimal, EngineName: "Decimal64"}},
+		{name: "toDecimal32", decimalType: querier_dto.NewSQLType(querier_dto.TypeCategoryDecimal, "Decimal32")},
+		{name: "toDecimal64", decimalType: querier_dto.NewSQLType(querier_dto.TypeCategoryDecimal, "Decimal64")},
 		{name: "toDecimal128", decimalType: b.decimal128Type},
-		{name: "toDecimal256", decimalType: querier_dto.SQLType{Category: querier_dto.TypeCategoryDecimal, EngineName: "Decimal256"}},
+		{name: "toDecimal256", decimalType: querier_dto.NewSQLType(querier_dto.TypeCategoryDecimal, "Decimal256")},
 	}
 	for index := range decimalEntries {
 		entry := &decimalEntries[index]
@@ -1142,19 +1127,6 @@ func registerHashingFunctions(b *FunctionCatalogueBuilder) {
 	b.Register("murmurHash3_32", b.uint64Type, b.unknownType)
 	b.Register("halfMD5", b.uint64Type, b.unknownType)
 	b.Register("sipHash64", b.uint64Type, b.unknownType)
-}
-
-// fixedStringType constructs a FixedString(N) SQLType.
-//
-// Takes length (int) which is the fixed byte length N.
-//
-// Returns querier_dto.SQLType which is the FixedString type carrying that length.
-func fixedStringType(length int) querier_dto.SQLType {
-	return querier_dto.SQLType{
-		Category:   querier_dto.TypeCategoryText,
-		EngineName: "FixedString",
-		Length:     new(length),
-	}
 }
 
 // registerURLAndIPFunctions covers URL parsing helpers and IPv4 and IPv6 string
@@ -1274,19 +1246,6 @@ func registerWindowFunctions(b *FunctionCatalogueBuilder) {
 	b.Register("first_value", b.unknownType, b.unknownType)
 	b.Register("last_value", b.unknownType, b.unknownType)
 	b.Register("nth_value", b.unknownType, b.unknownType, b.uint64Type)
-}
-
-// arrayOf wraps the given element type in an Array(T) shape.
-//
-// Takes element (querier_dto.SQLType) which is the element type T to wrap.
-//
-// Returns querier_dto.SQLType which is the Array type carrying that element type.
-func arrayOf(element querier_dto.SQLType) querier_dto.SQLType {
-	return querier_dto.SQLType{
-		Category:    querier_dto.TypeCategoryArray,
-		EngineName:  "Array",
-		ElementType: new(element),
-	}
 }
 
 // registerBitwiseFunctions covers function-call equivalents of the bitwise operators.

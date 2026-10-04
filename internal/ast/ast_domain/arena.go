@@ -147,19 +147,19 @@ type RenderArena struct {
 
 	// rootNodesSlabs holds pre-allocated slices of template node pointers, organised by
 	// capacity bucket for efficient reuse.
-	rootNodesSlabs [14]slabBucket[[]*TemplateNode]
+	rootNodesSlabs [len(rootNodesBucketCaps)]slabBucket[[]*TemplateNode]
 
 	// childSlabs holds the child slice slabs organised by capacity bucket. Buckets: 2, 4, 6,
 	// 8, 10, 12, 16, 24, 32, 48, 64, 96, 128.
-	childSlabs [13]slabBucket[[]*TemplateNode]
+	childSlabs [len(childBucketCaps)]slabBucket[[]*TemplateNode]
 
 	// attributeSlabs holds attribute slice storage organised by capacity bucket. Buckets
 	// have capacities: 2, 4, 6, 8, 10, 12, 16.
-	attributeSlabs [7]slabBucket[[]HTMLAttribute]
+	attributeSlabs [len(attributeBucketCapacities)]slabBucket[[]HTMLAttribute]
 
 	// attributeWriterSlabs holds buckets for attribute writer slices, sized at capacities 2,
 	// 4, 8, 10, 12, and 16.
-	attributeWriterSlabs [6]slabBucket[[]*DirectWriter]
+	attributeWriterSlabs [len(attributeWriterBucketCapacities)]slabBucket[[]*DirectWriter]
 
 	// byteBufferIndex is the next available index in byteBufs; reset to 0 on arena reset.
 	byteBufferIndex int
@@ -548,9 +548,7 @@ func (a *RenderArena) growRootNodesBucket(index int) {
 
 // resetNodes clears all nodes in the arena and resets the index to zero.
 func (a *RenderArena) resetNodes() {
-	for i := range a.nodeIndex {
-		a.nodes[i] = TemplateNode{}
-	}
+	clear(a.nodes[:a.nodeIndex])
 	a.nodeIndex = 0
 
 	if len(a.nodes) > maxNodeCount {
@@ -669,10 +667,20 @@ func ResetArenaPool() {
 // Returns *RenderArena which is a fully initialised arena ready for use.
 func newRenderArena() *RenderArena {
 	a := &RenderArena{
-		nodes:         make([]TemplateNode, initialNodeCount),
-		directWriters: make([]DirectWriter, initialDirectWriters),
-		byteBufs:      make([][]byte, initialByteBufs),
-		annotations:   make([]RuntimeAnnotation, initialAnnotations),
+		nodes:                make([]TemplateNode, initialNodeCount),
+		directWriters:        make([]DirectWriter, initialDirectWriters),
+		byteBufs:             make([][]byte, initialByteBufs),
+		annotations:          make([]RuntimeAnnotation, initialAnnotations),
+		ast:                  TemplateAST{},
+		rootNodesSlabs:       [len(rootNodesBucketCaps)]slabBucket[[]*TemplateNode]{},
+		childSlabs:           [len(childBucketCaps)]slabBucket[[]*TemplateNode]{},
+		attributeSlabs:       [len(attributeBucketCapacities)]slabBucket[[]HTMLAttribute]{},
+		attributeWriterSlabs: [len(attributeWriterBucketCapacities)]slabBucket[[]*DirectWriter]{},
+		byteBufferIndex:      0,
+		directWriterIndex:    0,
+		annotationIndex:      0,
+		nodeIndex:            0,
+		astUsed:              false,
 	}
 
 	for i := range a.byteBufs {
@@ -709,6 +717,7 @@ func newSlabBucket[T any](count, sliceCap int, makeSlice func(int) T) slabBucket
 	b := slabBucket[T]{
 		backing: make([]T, count),
 		cap:     sliceCap,
+		used:    0,
 	}
 	for i := range b.backing {
 		b.backing[i] = makeSlice(sliceCap)

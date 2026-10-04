@@ -142,7 +142,7 @@ func TestResolverRegistryRegister(t *testing.T) {
 		},
 		{
 			name:       "fails with empty prefix",
-			resolver:   &registryTestResolver{prefix: ""},
+			resolver:   &registryTestResolver{},
 			wantErr:    true,
 			errMessage: "resolver prefix cannot be empty",
 		},

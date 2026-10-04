@@ -25,8 +25,11 @@ import (
 	"context"
 	"fmt"
 
+	"piko.sh/piko/internal/coordinator/coordinator_domain"
 	"piko.sh/piko/internal/lifecycle/lifecycle_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/internal/registry/registry_domain"
+	"piko.sh/piko/internal/resolver/resolver_domain"
 	"piko.sh/piko/internal/shutdown"
 	"piko.sh/piko/wdk/clock"
 )
@@ -94,33 +97,7 @@ func (c *Container) createLifecycleService(config *lifecycleServiceConfig) (life
 		return nil, fmt.Errorf("failed to get resolver for lifecycle: %w", err)
 	}
 
-	renderRegistry := c.GetRenderRegistry()
-	renderer := c.GetRenderer()
-	clk := config.Clock
-	if clk == nil {
-		clk = clock.RealClock()
-	}
-
-	deps := &lifecycle_domain.LifecycleServiceDeps{
-		PathsConfig:             config.PathsConfig,
-		RegistryService:         registryService,
-		CoordinatorService:      coordinatorService,
-		Resolver:                resolver,
-		RenderRegistryPort:      renderRegistry,
-		Renderer:                renderer,
-		Clock:                   clk,
-		WebsiteConfig:           c.websiteConfig,
-		WatcherAdapter:          config.WatcherAdapter,
-		ProductionMode:          c.isProductionMode(),
-		RegistryBlobsReadOnly:   c.registryBlobsReadOnly(),
-		RouterManager:           config.RouterManager,
-		TemplaterService:        config.TemplaterService,
-		InterpretedOrchestrator: config.InterpretedOrchestrator,
-		BuildCacheInvalidator:   config.BuildCacheInvalidator,
-		DevEventNotifier:        config.DevEventNotifier,
-		ComponentRegistry:       c.GetComponentRegistry(),
-		ExternalComponents:      c.externalComponents,
-	}
+	deps := c.newLifecycleServiceDeps(config, registryService, coordinatorService, resolver)
 
 	if captchaService, captchaErr := c.GetCaptchaService(); captchaErr == nil {
 		deps.CaptchaService = captchaService
@@ -136,4 +113,54 @@ func (c *Container) createLifecycleService(config *lifecycleServiceConfig) (life
 
 	l.Internal("LifecycleService created and registered for shutdown")
 	return service, nil
+}
+
+// newLifecycleServiceDeps assembles the lifecycle service dependencies from the
+// container's services and the daemon-specific configuration.
+//
+// Takes serviceConfig (*lifecycleServiceConfig) which provides the daemon-specific
+// dependencies.
+// Takes registryService (registry_domain.RegistryService) which manages artefacts.
+// Takes coordinatorService (coordinator_domain.CoordinatorService) which coordinates
+// builds.
+// Takes resolver (resolver_domain.ResolverPort) which resolves import paths.
+//
+// Returns *lifecycle_domain.LifecycleServiceDeps which holds the dependencies, with no
+// captcha service set.
+func (c *Container) newLifecycleServiceDeps(
+	serviceConfig *lifecycleServiceConfig,
+	registryService registry_domain.RegistryService,
+	coordinatorService coordinator_domain.CoordinatorService,
+	resolver resolver_domain.ResolverPort,
+) *lifecycle_domain.LifecycleServiceDeps {
+	renderRegistry := c.GetRenderRegistry()
+	renderer := c.GetRenderer()
+	lifecycleClock := serviceConfig.Clock
+	if lifecycleClock == nil {
+		lifecycleClock = clock.RealClock()
+	}
+
+	return &lifecycle_domain.LifecycleServiceDeps{
+		PathsConfig:             serviceConfig.PathsConfig,
+		RegistryService:         registryService,
+		CoordinatorService:      coordinatorService,
+		Resolver:                resolver,
+		RenderRegistryPort:      renderRegistry,
+		Renderer:                renderer,
+		Clock:                   lifecycleClock,
+		WebsiteConfig:           c.websiteConfig,
+		WatcherAdapter:          serviceConfig.WatcherAdapter,
+		ProductionMode:          c.isProductionMode(),
+		RegistryBlobsReadOnly:   c.registryBlobsReadOnly(),
+		RouterManager:           serviceConfig.RouterManager,
+		TemplaterService:        serviceConfig.TemplaterService,
+		InterpretedOrchestrator: serviceConfig.InterpretedOrchestrator,
+		BuildCacheInvalidator:   serviceConfig.BuildCacheInvalidator,
+		DevEventNotifier:        serviceConfig.DevEventNotifier,
+		ComponentRegistry:       c.GetComponentRegistry(),
+		ExternalComponents:      c.externalComponents,
+		AssetPipeline:           nil,
+		FileSystem:              nil,
+		CaptchaService:          nil,
+	}
 }

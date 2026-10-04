@@ -87,7 +87,7 @@ func (m *MockMetadataStore) GetArtefact(_ context.Context, artefactID string) (*
 		return nil, fmt.Errorf("artefact %q: %w", artefactID, registry_domain.ErrArtefactNotFound)
 	}
 
-	return cloneArtefactMeta(artefact), nil
+	return artefact.Clone(), nil
 }
 
 // GetMultipleArtefacts retrieves multiple artefacts by their IDs.
@@ -105,7 +105,7 @@ func (m *MockMetadataStore) GetMultipleArtefacts(_ context.Context, artefactIDs 
 	result := make([]*registry_dto.ArtefactMeta, 0, len(artefactIDs))
 	for _, id := range artefactIDs {
 		if artefact, exists := m.artefacts[id]; exists {
-			result = append(result, cloneArtefactMeta(artefact))
+			result = append(result, artefact.Clone())
 		}
 	}
 
@@ -145,7 +145,7 @@ func (m *MockMetadataStore) SearchArtefacts(_ context.Context, _ registry_domain
 
 	result := make([]*registry_dto.ArtefactMeta, 0, len(m.artefacts))
 	for _, artefact := range m.artefacts {
-		result = append(result, cloneArtefactMeta(artefact))
+		result = append(result, artefact.Clone())
 	}
 
 	return result, nil
@@ -175,7 +175,7 @@ func (m *MockMetadataStore) SearchArtefactsByTagValues(_ context.Context, tagKey
 		for i := range artefact.ActualVariants {
 			variant := &artefact.ActualVariants[i]
 			if tagValue, exists := variant.MetadataTags.GetByName(tagKey); exists && valueSet[tagValue] {
-				result = append(result, cloneArtefactMeta(artefact))
+				result = append(result, artefact.Clone())
 				break
 			}
 		}
@@ -207,7 +207,7 @@ func (m *MockMetadataStore) FindArtefactByVariantStorageKey(_ context.Context, s
 		return nil, fmt.Errorf("artefact index corrupted: variant points to non-existent artefact %s", artefactID)
 	}
 
-	return cloneArtefactMeta(artefact), nil
+	return artefact.Clone(), nil
 }
 
 // PopGCHints returns and removes garbage collection hints. This mock implementation
@@ -234,7 +234,7 @@ func (m *MockMetadataStore) AtomicUpdate(_ context.Context, actions []registry_d
 		switch action.Type {
 		case registry_dto.ActionTypeUpsertArtefact:
 			artefact := action.Artefact
-			m.artefacts[artefact.ID] = cloneArtefactMeta(artefact)
+			m.artefacts[artefact.ID] = artefact.Clone()
 
 			for i := range artefact.ActualVariants {
 				variant := &artefact.ActualVariants[i]
@@ -351,46 +351,4 @@ func (*MockMetadataStore) Close() error {
 // Returns error when fn returns an error.
 func (m *MockMetadataStore) RunAtomic(ctx context.Context, fn func(ctx context.Context, transactionStore registry_domain.MetadataStore) error) error {
 	return fn(ctx, m)
-}
-
-// cloneArtefactMeta creates a deep copy of artefact metadata to prevent external
-// modifications.
-//
-// Takes artefact (*registry_dto.ArtefactMeta) which is the metadata to clone.
-//
-// Returns *registry_dto.ArtefactMeta which is an independent copy of the input, or nil if
-// the input is nil.
-func cloneArtefactMeta(artefact *registry_dto.ArtefactMeta) *registry_dto.ArtefactMeta {
-	if artefact == nil {
-		return nil
-	}
-
-	artCopy := &registry_dto.ArtefactMeta{
-		ID:              artefact.ID,
-		SourcePath:      artefact.SourcePath,
-		ActualVariants:  make([]registry_dto.Variant, len(artefact.ActualVariants)),
-		CreatedAt:       artefact.CreatedAt,
-		UpdatedAt:       artefact.UpdatedAt,
-		DesiredProfiles: make([]registry_dto.NamedProfile, len(artefact.DesiredProfiles)),
-	}
-
-	copy(artCopy.DesiredProfiles, artefact.DesiredProfiles)
-
-	for i := range artefact.ActualVariants {
-		v := &artefact.ActualVariants[i]
-		artCopy.ActualVariants[i] = registry_dto.Variant{
-			VariantID:        v.VariantID,
-			StorageBackendID: v.StorageBackendID,
-			StorageKey:       v.StorageKey,
-			MimeType:         v.MimeType,
-			SizeBytes:        v.SizeBytes,
-			CreatedAt:        v.CreatedAt,
-			Status:           v.Status,
-			MetadataTags:     v.MetadataTags.Clone(),
-			ContentHash:      v.ContentHash,
-			Chunks:           v.Chunks,
-		}
-	}
-
-	return artCopy
 }

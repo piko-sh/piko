@@ -42,8 +42,9 @@ func (p *parser) skipIfExists() {
 // Returns *querier_dto.CatalogueMutation which describes the create schema mutation.
 // Returns error when the schema identifier cannot be parsed.
 func (p *parser) parseCreateSchema() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordCREATE)
-	p.mustKeyword(keywordSCHEMA)
+	if err := p.expectKeywords(keywordCREATE, keywordSCHEMA); err != nil {
+		return nil, err
+	}
 
 	p.skipIfNotExists()
 
@@ -52,10 +53,7 @@ func (p *parser) parseCreateSchema() (*querier_dto.CatalogueMutation, error) {
 		return nil, err
 	}
 
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationCreateSchema,
-		SchemaName: schemaName,
-	}, nil
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationCreateSchema, schemaName, ""), nil
 }
 
 // parseDropSchema parses a DROP SCHEMA statement.
@@ -63,8 +61,9 @@ func (p *parser) parseCreateSchema() (*querier_dto.CatalogueMutation, error) {
 // Returns *querier_dto.CatalogueMutation which describes the drop schema mutation.
 // Returns error when the schema identifier cannot be parsed.
 func (p *parser) parseDropSchema() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordDROP)
-	p.mustKeyword(keywordSCHEMA)
+	if err := p.expectKeywords(keywordDROP, keywordSCHEMA); err != nil {
+		return nil, err
+	}
 
 	p.skipIfExists()
 
@@ -76,10 +75,7 @@ func (p *parser) parseDropSchema() (*querier_dto.CatalogueMutation, error) {
 	p.matchKeyword(keywordCASCADE)
 	p.matchKeyword(keywordRESTRICT)
 
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationDropSchema,
-		SchemaName: schemaName,
-	}, nil
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationDropSchema, schemaName, ""), nil
 }
 
 // parseCreateSequence parses a CREATE SEQUENCE statement.
@@ -88,8 +84,9 @@ func (p *parser) parseDropSchema() (*querier_dto.CatalogueMutation, error) {
 // including any OWNED BY target.
 // Returns error when the sequence name or options cannot be parsed.
 func (p *parser) parseCreateSequence() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordCREATE)
-	p.mustKeyword("SEQUENCE")
+	if err := p.expectKeywords(keywordCREATE, "SEQUENCE"); err != nil {
+		return nil, err
+	}
 
 	p.skipIfNotExists()
 
@@ -103,13 +100,13 @@ func (p *parser) parseCreateSequence() (*querier_dto.CatalogueMutation, error) {
 		return nil, ownedError
 	}
 
-	return &querier_dto.CatalogueMutation{
-		Kind:          querier_dto.MutationCreateSequence,
-		SchemaName:    schema,
-		SequenceName:  sequenceName,
-		OwnedByTable:  ownedByTable,
-		OwnedByColumn: ownedByColumn,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationCreateSequence,
+		schema,
+		"",
+		querier_dto.WithSequence(sequenceName),
+		querier_dto.WithSequenceOwner(ownedByTable, ownedByColumn),
+	), nil
 }
 
 // parseSequenceOptions scans sequence options for an OWNED BY target.
@@ -165,8 +162,9 @@ func (p *parser) parseOwnedByTarget() (tableName string, columnName string, err 
 // Returns *querier_dto.CatalogueMutation which describes the drop sequence mutation.
 // Returns error when the sequence name cannot be parsed.
 func (p *parser) parseDropSequence() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordDROP)
-	p.mustKeyword("SEQUENCE")
+	if err := p.expectKeywords(keywordDROP, "SEQUENCE"); err != nil {
+		return nil, err
+	}
 
 	p.skipIfExists()
 
@@ -178,11 +176,12 @@ func (p *parser) parseDropSequence() (*querier_dto.CatalogueMutation, error) {
 	p.matchKeyword(keywordCASCADE)
 	p.matchKeyword(keywordRESTRICT)
 
-	return &querier_dto.CatalogueMutation{
-		Kind:         querier_dto.MutationDropSequence,
-		SchemaName:   schema,
-		SequenceName: sequenceName,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationDropSequence,
+		schema,
+		"",
+		querier_dto.WithSequence(sequenceName),
+	), nil
 }
 
 // parseCreateIndex parses a CREATE INDEX statement.
@@ -191,11 +190,15 @@ func (p *parser) parseDropSequence() (*querier_dto.CatalogueMutation, error) {
 // including target table and optional index name.
 // Returns error when an identifier or schema name cannot be parsed.
 func (p *parser) parseCreateIndex() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordCREATE)
+	if _, err := p.expectKeyword(keywordCREATE); err != nil {
+		return nil, err
+	}
 
 	p.matchKeyword(keywordUNIQUE)
 
-	p.mustKeyword("INDEX")
+	if _, err := p.expectKeyword("INDEX"); err != nil {
+		return nil, err
+	}
 
 	p.skipIfNotExists()
 
@@ -208,7 +211,9 @@ func (p *parser) parseCreateIndex() (*querier_dto.CatalogueMutation, error) {
 		indexName = name
 	}
 
-	p.mustKeyword(keywordON)
+	if _, err := p.expectKeyword(keywordON); err != nil {
+		return nil, err
+	}
 
 	schema, tableName, tableError := p.parseSchemaQualifiedName()
 	if tableError != nil {
@@ -219,12 +224,12 @@ func (p *parser) parseCreateIndex() (*querier_dto.CatalogueMutation, error) {
 		p.advance()
 	}
 
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationCreateIndex,
-		SchemaName: schema,
-		TableName:  tableName,
-		NewName:    indexName,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationCreateIndex,
+		schema,
+		tableName,
+		querier_dto.WithNewName(indexName),
+	), nil
 }
 
 // parseDropIndex parses a DROP INDEX statement.
@@ -232,8 +237,9 @@ func (p *parser) parseCreateIndex() (*querier_dto.CatalogueMutation, error) {
 // Returns *querier_dto.CatalogueMutation which describes the drop index mutation.
 // Returns error when the index name cannot be parsed.
 func (p *parser) parseDropIndex() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordDROP)
-	p.mustKeyword("INDEX")
+	if err := p.expectKeywords(keywordDROP, "INDEX"); err != nil {
+		return nil, err
+	}
 
 	p.skipIfExists()
 
@@ -242,11 +248,12 @@ func (p *parser) parseDropIndex() (*querier_dto.CatalogueMutation, error) {
 		return nil, err
 	}
 
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationDropIndex,
-		SchemaName: schema,
-		NewName:    indexName,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationDropIndex,
+		schema,
+		"",
+		querier_dto.WithNewName(indexName),
+	), nil
 }
 
 // parseComment parses a COMMENT ON target IS value statement.
@@ -254,12 +261,11 @@ func (p *parser) parseDropIndex() (*querier_dto.CatalogueMutation, error) {
 // Returns *querier_dto.CatalogueMutation which describes the comment target.
 // Returns error when the comment target cannot be parsed.
 func (p *parser) parseComment() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword("COMMENT")
-	p.mustKeyword(keywordON)
-
-	mutation := &querier_dto.CatalogueMutation{
-		Kind: querier_dto.MutationComment,
+	if err := p.expectKeywords("COMMENT", keywordON); err != nil {
+		return nil, err
 	}
+
+	mutation := querier_dto.NewCatalogueMutation(querier_dto.MutationComment, "", "")
 
 	if parseError := p.parseCommentTarget(mutation); parseError != nil {
 		return nil, parseError
@@ -362,21 +368,16 @@ func (p *parser) parseCommentOnType(mutation *querier_dto.CatalogueMutation) err
 // Takes mutation (*querier_dto.CatalogueMutation) which receives the schema and function
 // signature.
 //
-// Returns error when the schema-qualified name cannot be parsed.
+// Returns error when the schema-qualified name cannot be parsed or the argument list is
+// unbalanced.
 func (p *parser) parseCommentOnFunction(mutation *querier_dto.CatalogueMutation) error {
 	schema, functionName, nameError := p.parseSchemaQualifiedName()
 	if nameError != nil {
 		return nameError
 	}
 	mutation.SchemaName = schema
-	mutation.FunctionSignature = &querier_dto.FunctionSignature{
-		Name:   functionName,
-		Schema: schema,
-	}
-	if p.current().kind == tokenLeftParen {
-		p.mustSkipParenthesised()
-	}
-	return nil
+	mutation.FunctionSignature = querier_dto.NewFunctionReference(schema, functionName)
+	return p.skipParenthesisedIfPresent()
 }
 
 // parseCommentOnSchema parses the schema name for COMMENT ON SCHEMA.

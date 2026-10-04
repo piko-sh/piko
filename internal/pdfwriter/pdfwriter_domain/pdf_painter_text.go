@@ -91,6 +91,7 @@ func (painter *PdfPainter) paintRasterImage(ctx context.Context, stream *Content
 // Takes ctx (context.Context) which controls cancellation.
 // Takes stream (*ContentStream) which receives PDF operators.
 // Takes box (*layouter_domain.LayoutBox) which is the target box.
+// Takes source (string) which identifies the image source to load as SVG.
 //
 // Returns bool which indicates whether SVG rendering succeeded.
 func (painter *PdfPainter) trySVGVector(ctx context.Context, stream *ContentStream, box *layouter_domain.LayoutBox, source string) bool {
@@ -109,7 +110,8 @@ func (painter *PdfPainter) trySVGVector(ctx context.Context, stream *ContentStre
 // Takes stream (*ContentStream) which receives PDF operators.
 // Takes box (*layouter_domain.LayoutBox) which provides the content area dimensions.
 // Takes resourceName (string) which is the image XObject key.
-// Takes intrinsicW, intrinsicH (float64) which are the image's natural pixel dimensions.
+// Takes intrinsicW (float64) which is the natural image width.
+// Takes intrinsicH (float64) which is the natural image height.
 func (painter *PdfPainter) emitRasterImage(
 	stream *ContentStream, box *layouter_domain.LayoutBox,
 	resourceName string, intrinsicW, intrinsicH float64,
@@ -166,6 +168,7 @@ func extractSrcAttribute(box *layouter_domain.LayoutBox) string {
 // Takes ctx (context.Context) which controls cancellation.
 // Takes stream (*ContentStream) which receives PDF operators.
 // Takes box (*layouter_domain.LayoutBox) which provides the content area.
+// Takes svgXML (string) which contains the SVG markup to render as vector content.
 //
 // Returns error if SVG rendering fails.
 func (painter *PdfPainter) paintSVGVector(ctx context.Context, stream *ContentStream, box *layouter_domain.LayoutBox, svgXML string) error {
@@ -198,6 +201,8 @@ func (painter *PdfPainter) paintSVGVector(ctx context.Context, stream *ContentSt
 		CurrentColourG:   box.Style.Colour.Green,
 		CurrentColourB:   box.Style.Colour.Blue,
 		CurrentColourA:   box.Style.Colour.Alpha,
+		MeasureText:      nil,
+		GetImageData:     nil,
 	}
 
 	return painter.svgWriter.RenderSVG(ctx, svgXML, renderCtx, pdfX, pdfY, contentW, contentH)
@@ -620,7 +625,8 @@ func (painter *PdfPainter) paintTextDecorations(stream *ContentStream, box *layo
 // Y coordinate, using the specified decoration style.
 //
 // Takes stream (*ContentStream) which receives PDF operators.
-// Takes startX, endX (float64) which define the horizontal extent.
+// Takes startX (float64) which is the horizontal start coordinate in points.
+// Takes endX (float64) which is the horizontal end coordinate in points.
 // Takes pdfY (float64) which is the vertical position in PDF coordinates.
 // Takes lineWidth (float64) which is the stroke width in points.
 // Takes style (layouter_domain.TextDecorationStyleType) which selects the line style.
@@ -674,7 +680,8 @@ func (*PdfPainter) drawDecorationLine(
 // Bezier curves.
 //
 // Takes stream (*ContentStream) which receives PDF operators.
-// Takes startX, endX (float64) which define the horizontal extent.
+// Takes startX (float64) which is the horizontal start coordinate in points.
+// Takes endX (float64) which is the horizontal end coordinate in points.
 // Takes baseY (float64) which is the centre line Y coordinate.
 // Takes amplitude (float64) which is the wave peak height in points.
 // Takes wavelength (float64) which is the full wave length in points.

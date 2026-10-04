@@ -53,6 +53,7 @@ import (
 // Takes config (inspector_dto.Config) which provides the base directory path.
 // Takes sourceContents (map[string][]byte) which holds virtualised Go files.
 // Takes scriptHashes (map[string]string) which maps script paths to their content hashes.
+// Takes factory (safedisk.Factory) which creates sandboxes for reading dependency files.
 //
 // Returns string which is the hex-encoded xxhash of all inputs.
 // Returns error when hashing any part fails.
@@ -82,6 +83,7 @@ func generateCacheKey(config inspector_dto.Config, sourceContents map[string][]b
 //
 // Takes hasher (hash.Hash) which collects the hash of the file contents.
 // Takes baseDir (string) which is the folder that contains the files.
+// Takes factory (safedisk.Factory) which creates sandboxes for reading dependency files.
 //
 // Returns error when a dependency file cannot be hashed.
 func hashDependencyFiles(hasher hash.Hash, baseDir string, factory safedisk.Factory) error {
@@ -190,6 +192,7 @@ func hashBuildFlags(hasher hash.Hash, flags []string) error {
 //
 // Takes h (hash.Hash) which receives the file contents for hashing.
 // Takes path (string) which specifies the file path to read.
+// Takes factory (safedisk.Factory) which creates sandboxes for reading dependency files.
 //
 // Returns error when the file exists but cannot be read or copied.
 func hashFile(h hash.Hash, path string, factory safedisk.Factory) error {

@@ -819,18 +819,14 @@ func TestWrapWithTypeAssertion(t *testing.T) {
 			wantTypeAssert: false,
 		},
 		{
-			name: "nil ResolvedType returns original expr",
-			ann: &ast_domain.GoGeneratorAnnotation{
-				ResolvedType: nil,
-			},
+			name:           "nil ResolvedType returns original expr",
+			ann:            &ast_domain.GoGeneratorAnnotation{},
 			wantTypeAssert: false,
 		},
 		{
 			name: "nil TypeExpr returns original expr",
 			ann: &ast_domain.GoGeneratorAnnotation{
-				ResolvedType: &ast_domain.ResolvedTypeInfo{
-					TypeExpression: nil,
-				},
+				ResolvedType: &ast_domain.ResolvedTypeInfo{},
 			},
 			wantTypeAssert: false,
 		},
@@ -882,7 +878,7 @@ func TestGetNumericRank_Extended(t *testing.T) {
 		},
 		{
 			name:     "nil TypeExpr returns unknown",
-			typeInfo: &ast_domain.ResolvedTypeInfo{TypeExpression: nil},
+			typeInfo: &ast_domain.ResolvedTypeInfo{},
 			wantRank: NumericRankUnknown,
 		},
 		{
@@ -999,10 +995,8 @@ func TestCoerceToNumber(t *testing.T) {
 			wantIdentical: true,
 		},
 		{
-			name: "nil ResolvedType returns expr unchanged with nil type",
-			ann: &ast_domain.GoGeneratorAnnotation{
-				ResolvedType: nil,
-			},
+			name:          "nil ResolvedType returns expr unchanged with nil type",
+			ann:           &ast_domain.GoGeneratorAnnotation{},
 			wantStmts:     false,
 			wantIdentical: true,
 		},

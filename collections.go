@@ -195,7 +195,7 @@ func GetSections(r *RequestData) []Section {
 // structures suitable for rendering a table of contents with proper nesting.
 //
 // Takes r (*RequestData) which contains the collection data to extract from.
-// Takes opts (...SectionTreeOption) which configures level filtering.
+// Takes opts (...SectionTreeOption) which configure level filtering.
 //
 // Returns []SectionNode which contains top-level sections with nested children.
 //
@@ -338,6 +338,11 @@ func SearchCollection[T any](r *RequestData, collectionName string, query string
 //
 // Takes tType (reflect.Type) which is the instantiated T. Remaining parameters mirror
 // SearchCollection's non-type-parameter signature.
+// Takes r (*RequestData) which provides the current request and collection search
+// context.
+// Takes collectionName (string) which identifies the content collection.
+// Takes query (string) which contains the search terms.
+// Takes opts (...SearchOption) which configure the collection search.
 //
 // Returns a reflect.Value wrapping []SearchResult[T] plus any search error.
 func SearchCollectionLink(
@@ -383,6 +388,10 @@ func QuickSearch[T any](r *RequestData, collectionName string, query string) ([]
 //
 // Takes tType (reflect.Type) which is the instantiated T. Remaining parameters mirror
 // QuickSearch's non-type-parameter signature.
+// Takes r (*RequestData) which provides the current request and collection search
+// context.
+// Takes collectionName (string) which identifies the content collection.
+// Takes query (string) which contains the search terms.
 //
 // Returns a reflect.Value wrapping []T plus any search error.
 func QuickSearchLink(

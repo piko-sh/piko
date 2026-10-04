@@ -1,0 +1,51 @@
+# Native symbols for interpreted mode
+
+Interpreted mode (`dev-i`) runs your generated Go through the [Pipit](https://github.com/piko-sh/pipit) bytecode interpreter. Templates can import the Go standard library and Piko runtime packages without extra symbol tables. This directory holds native symbols for third-party modules and any project packages you choose to compile into the server binary.
+
+`cmd/main/main.go` passes these tables to the server with `ssr.WithSymbols(piko_symbols.Symbols)`.
+
+---
+
+## When you need it
+
+Nothing needs generating while your `.pk` files only import the standard library and Piko. `gen_register.go` holds an empty table so the project builds as it is.
+
+For third-party Go packages, generate symbol tables with `piko extract`. Local project packages can compile from source through the interpreter, or use native symbol tables if listed in the manifest.
+
+---
+
+## Generating symbol files
+
+Run these from the root of your project:
+
+```bash
+# Scan your .pk files and write piko-symbols.yaml, listing every package they
+# import that is not already provided.
+piko extract init
+
+# Generate the symbol files in this directory from piko-symbols.yaml.
+piko extract generate
+```
+
+`piko extract init` can write an empty package list. Skip generation when there are no packages to add, because `generate` requires at least one. You can also edit `piko-symbols.yaml` by hand to add packages your templates reach indirectly.
+
+Other subcommands support checking the package list.
+
+| Command | Purpose |
+|---|---|
+| `piko extract check` | Verifies `piko-symbols.yaml` against project imports. |
+| `piko extract discover` | Reports packages that need native symbols without writing files. |
+
+Run `piko extract <subcommand> --help` for the flags each one accepts.
+
+---
+
+## When to regenerate
+
+Regenerate after you:
+
+-   Import a new package from a component.
+-   Add or change exported functions, types or constants in a package listed in the manifest.
+-   See "symbol not found" errors while running in `dev-i`.
+
+The server binary contains native code for packages listed in the manifest. Restart `dev-i` after changing one of your own listed packages. Piko compiles other local project packages from source through the interpreter.

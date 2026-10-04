@@ -87,9 +87,10 @@ var (
 // Returns *SeedExecutor which is ready to execute seeds.
 func NewSeedExecutor(database *sql.DB, dialectConfig DialectConfig, options ...SeedExecutorOption) *SeedExecutor {
 	executor := &SeedExecutor{
-		database:      database,
-		dialectConfig: dialectConfig,
-		clock:         clock.RealClock(),
+		database:                 database,
+		dialectConfig:            dialectConfig,
+		clock:                    clock.RealClock(),
+		pinnedSeedLockConnection: nil,
 	}
 	for _, option := range options {
 		option(executor)

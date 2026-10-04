@@ -185,6 +185,7 @@ func (p *Provider) emitEvent(ctx context.Context, params *email.SendParams, even
 		Status:    status,
 		Error:     errMsg,
 		TsMs:      nowMs,
+		Attrs:     nil,
 	})
 }
 

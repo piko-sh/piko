@@ -62,13 +62,13 @@ func TestGetSourceType(t *testing.T) {
 		},
 		{
 			name: "nil ResolvedType returns any",
-			ann:  &ast_domain.GoGeneratorAnnotation{ResolvedType: nil},
+			ann:  &ast_domain.GoGeneratorAnnotation{},
 			want: "any",
 		},
 		{
 			name: "nil TypeExpr returns any",
 			ann: &ast_domain.GoGeneratorAnnotation{
-				ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: nil},
+				ResolvedType: &ast_domain.ResolvedTypeInfo{},
 			},
 			want: "any",
 		},

@@ -280,6 +280,9 @@ type ResponseWriter struct {
 func NewResponseWriter() *ResponseWriter {
 	return &ResponseWriter{
 		headers: make(http.Header),
+		cookies: nil,
+		helpers: nil,
+		mu:      sync.Mutex{},
 	}
 }
 

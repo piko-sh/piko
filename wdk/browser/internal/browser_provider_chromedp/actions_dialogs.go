@@ -97,17 +97,10 @@ type DialogHandler struct {
 //
 // Returns *DialogHandler which is ready to use but not yet enabled.
 func NewDialogHandler() *DialogHandler {
-	return &DialogHandler{
-		lastDialog: nil,
-		dialogChan: make(chan DialogInfo, dialogChannelBufferSize),
-		stopChan:   make(chan struct{}),
-		autoText:   "",
-		mu:         sync.RWMutex{},
-		wg:         sync.WaitGroup{},
-		enabled:    false,
-		autoAccept: false,
-		closed:     false,
-	}
+	handler := DialogHandler{}
+	handler.dialogChan = make(chan DialogInfo, dialogChannelBufferSize)
+	handler.stopChan = make(chan struct{})
+	return &handler
 }
 
 // Enable enables automatic dialog handling.

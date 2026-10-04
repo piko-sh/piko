@@ -501,10 +501,8 @@ func TestSpamDetectService_ReportSpam_NotifiesFeedbackAwareDetectors(t *testing.
 	require.NoError(t, err)
 
 	feedbackDetector := &mockFeedbackAwareDetector{
-		mockDetector: mockDetector{
-			name: "feedback_detector", signals: []spamdetect_dto.Signal{spamdetect_dto.SignalGibberish},
-			result: &spamdetect_dto.DetectorResult{Score: 0.8, FieldScores: map[string]float64{"message": 0.8}},
-		},
+		name: "feedback_detector", signals: []spamdetect_dto.Signal{spamdetect_dto.SignalGibberish},
+		result: &spamdetect_dto.DetectorResult{Score: 0.8, FieldScores: map[string]float64{"message": 0.8}},
 	}
 
 	require.NoError(t, service.RegisterDetector(context.Background(), "feedback_detector", feedbackDetector))
@@ -539,13 +537,11 @@ func TestSpamDetectService_PriorityTierShortCircuit(t *testing.T) {
 
 	normalDetectorRan := false
 	normalDetector := &trackingDetector{
-		mockDetector: mockDetector{
-			name:     "normal_tracker",
-			signals:  []spamdetect_dto.Signal{spamdetect_dto.SignalHoneypot},
-			priority: spamdetect_dto.PriorityNormal,
-			result:   &spamdetect_dto.DetectorResult{Score: 0.1},
-		},
-		ran: &normalDetectorRan,
+		name:     "normal_tracker",
+		signals:  []spamdetect_dto.Signal{spamdetect_dto.SignalHoneypot},
+		priority: spamdetect_dto.PriorityNormal,
+		result:   &spamdetect_dto.DetectorResult{Score: 0.1},
+		ran:      &normalDetectorRan,
 	}
 
 	require.NoError(t, service.RegisterDetector(context.Background(), "critical_blocker", criticalDetector))
@@ -722,7 +718,7 @@ func TestSpamDetectService_HealthProbe_Readiness_UnhealthyDetector(t *testing.T)
 	t.Parallel()
 	service := concreteService(t)
 	require.NoError(t, service.RegisterDetector(context.Background(), "unhealthy", &mockUnhealthyDetector{
-		mockDetector: mockDetector{name: "unhealthy"},
+		name: "unhealthy",
 	}))
 
 	status := service.Check(context.Background(), healthprobe_dto.CheckTypeReadiness)
@@ -736,7 +732,7 @@ func TestSpamDetectService_HealthCheck_UnhealthyDetector(t *testing.T) {
 	t.Parallel()
 	service := concreteService(t)
 	require.NoError(t, service.RegisterDetector(context.Background(), "unhealthy", &mockUnhealthyDetector{
-		mockDetector: mockDetector{name: "unhealthy"},
+		name: "unhealthy",
 	}))
 
 	err := service.HealthCheck(context.Background())
@@ -816,10 +812,8 @@ func TestSpamDetectService_ResourceDescribeProvider_WithMetadata(t *testing.T) {
 	t.Parallel()
 	service := concreteService(t)
 	require.NoError(t, service.RegisterDetector(context.Background(), "meta_det", &mockMetadataDetector{
-		mockDetector: mockDetector{
-			name:    "meta_det",
-			signals: []spamdetect_dto.Signal{spamdetect_dto.SignalGibberish},
-		},
+		name:    "meta_det",
+		signals: []spamdetect_dto.Signal{spamdetect_dto.SignalGibberish},
 	}))
 
 	detail, err := service.ResourceDescribeProvider(context.Background(), "meta_det")

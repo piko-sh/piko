@@ -42,21 +42,14 @@ import (
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/esbuild/compat"
 	esbuildconfig "piko.sh/piko/internal/esbuild/config"
-	"piko.sh/piko/internal/fonts"
 	"piko.sh/piko/internal/generator/generator_adapters"
 	"piko.sh/piko/internal/generator/generator_domain"
 	"piko.sh/piko/internal/i18n/i18n_domain"
-	"piko.sh/piko/internal/layouter/layouter_adapters"
-	"piko.sh/piko/internal/layouter/layouter_domain"
-	"piko.sh/piko/internal/layouter/layouter_dto"
 	"piko.sh/piko/internal/lifecycle/lifecycle_adapters"
 	"piko.sh/piko/internal/lifecycle/lifecycle_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/monitoring/monitoring_domain"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
-	"piko.sh/piko/internal/pdfwriter/pdfwriter_adapters"
-	"piko.sh/piko/internal/pdfwriter/pdfwriter_adapters/driven_svgwriter"
-	"piko.sh/piko/internal/pdfwriter/pdfwriter_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/render/render_domain"
@@ -104,9 +97,6 @@ type interpretedDaemonBuilder struct {
 
 	// coordinatorService manages project builds and caching for interpreted mode.
 	coordinatorService coordinator_domain.CoordinatorService
-
-	// symbolProvider holds the symbols used for template interpretation.
-	symbolProvider any
 
 	// runner runs manifest templates for page and email rendering.
 	runner templater_domain.ManifestRunnerPort
@@ -192,7 +182,9 @@ func (b *interpretedDaemonBuilder) build(ctx context.Context) (daemon_domain.Dae
 	enableDevProfilingPortFallback(b.c)
 	b.wireMonitoringInspectors()
 
-	b.buildRouter(ctx)
+	if err := b.buildRouter(ctx); err != nil {
+		return nil, fmt.Errorf("building router for interpreted mode: %w", err)
+	}
 
 	if err := b.triggerInitialBuild(ctx); err != nil {
 		return nil, fmt.Errorf("initial blocking JIT build failed: %w", err)
@@ -448,7 +440,7 @@ func (b *interpretedDaemonBuilder) createAnnotatorServiceInstance(
 		collectionService = nil
 	}
 
-	return annotator_domain.NewAnnotatorService(ctx, &annotator_domain.AnnotatorServiceConfig{
+	return annotator_domain.NewAnnotatorService(&annotator_domain.AnnotatorServiceConfig{
 		Resolver:              resolver,
 		FSReader:              fsReader,
 		TypeInspector:         annotator_domain.NewTypeInspectorBuilderAdapter(typeInspectorManager),
@@ -460,14 +452,16 @@ func (b *interpretedDaemonBuilder) createAnnotatorServiceInstance(
 		CollectionService:     collectionService,
 		ComponentRegistry:     b.c.GetComponentRegistry(),
 		GlobalTranslationKeys: b.c.loadGlobalTranslationKeys(ctx),
-	})
+		DebugLogDir:           "",
+		EnableDebugLogFiles:   false,
+		InMemoryMode:          false,
+	}), nil
 }
 
-// prepareProviders sets up the symbol provider and interpreter pool for the just-in-time
-// compilation pipeline.
+// prepareProviders sets up the interpreter pool for the just-in-time compilation
+// pipeline.
 func (b *interpretedDaemonBuilder) prepareProviders(ctx context.Context) {
 	_, l := logger_domain.From(ctx, log)
-	b.symbolProvider = b.deps.SymbolProvider
 	b.interpreterPool = b.deps.InterpreterPool
 
 	if b.interpreterPool == nil {
@@ -498,14 +492,16 @@ func (b *interpretedDaemonBuilder) buildTemplaterAndRunner() error {
 	moduleName := b.resolver.GetModuleName()
 	b.buildOrchestrator = lifecycle_adapters.NewInterpretedBuildOrchestrator(
 		lifecycle_adapters.InterpretedBuildOrchestratorDeps{
-			InterpreterPool:   b.interpreterPool,
-			RegistryService:   b.registryService,
-			I18nService:       b.i18nService,
-			PathsConfig:       genPathsConfig,
-			I18nDefaultLocale: i18nLocale,
-			ModuleName:        moduleName,
-			ProjectRoot:       projectRoot,
-			SandboxFactory:    orchFactory,
+			InterpreterPool:     b.interpreterPool,
+			InterpreterProvider: b.deps.InterpreterProvider,
+			Clock:               nil,
+			I18nService:         b.i18nService,
+			PathsConfig:         genPathsConfig,
+			I18nDefaultLocale:   i18nLocale,
+			ModuleName:          moduleName,
+			ProjectRoot:         projectRoot,
+			SandboxFactory:      orchFactory,
+			JITCompileTimeout:   0,
 		},
 	)
 
@@ -536,32 +532,19 @@ func (b *interpretedDaemonBuilder) buildTemplaterAndRunner() error {
 //
 // Returns error when font metrics cannot be created.
 func (b *interpretedDaemonBuilder) setupPdfWriter() error {
-	fontEntries := []layouter_dto.FontEntry{
-		{Family: fonts.NotoSansFamilyName, Weight: fontWeightNormal, Style: int(layouter_domain.FontStyleNormal), Data: fonts.NotoSansRegularTTF},
-		{Family: fonts.NotoSansFamilyName, Weight: fontWeightBold, Style: int(layouter_domain.FontStyleNormal), Data: fonts.NotoSansBoldTTF},
-	}
-	fontMetrics, fontMetricsError := layouter_adapters.NewGoTextFontMetrics(fontEntries)
-	if fontMetricsError != nil {
-		return fmt.Errorf("failed to create font metrics for interpreted mode: %w", fontMetricsError)
-	}
-
-	svgData := driven_svgwriter.NewRegistrySVGDataAdapter(b.c.GetRenderRegistry(), driven_svgwriter.NewDataURISVGDataAdapter())
-	imageResolver := driven_svgwriter.NewSVGImageResolver(&layouter_adapters.MockImageResolver{}, svgData)
-	b.c.SetPdfWriterService(pdfwriter_domain.NewPdfWriterService(
-		pdfwriter_adapters.NewTemplateRunnerAdapter(b.runner),
-		pdfwriter_adapters.NewLayouterAdapter(fontMetrics, imageResolver),
-		fontEntries,
-		nil,
-		fontMetrics,
-		pdfwriter_domain.WithSVGRenderer(driven_svgwriter.New(), svgData),
-	))
-
-	return nil
+	return setupPdfWriterService(b.c, b.runner, "interpreted mode")
 }
 
 // buildRouter creates the router manager which handles dynamic route loading and prepares
 // the final wrapped http.Handler.
-func (b *interpretedDaemonBuilder) buildRouter(ctx context.Context) {
+//
+// The router manager receives the same request-path services as the compiled router,
+// including the auth provider and guard, analytics, rate limiting, presigned and public
+// storage handlers, the action response cache and the release identity, so every reload
+// serves the application exactly as a compiled build would.
+//
+// Returns error when the rate limit service cannot be created.
+func (b *interpretedDaemonBuilder) buildRouter(ctx context.Context) error {
 	b.setupDevEventBroadcaster()
 
 	if b.c.IsDevWidgetEnabled() {
@@ -580,28 +563,11 @@ func (b *interpretedDaemonBuilder) buildRouter(ctx context.Context) {
 
 	b.createVariantGenerator(ctx)
 
-	artefactMetaCache := b.buildArtefactMetadataCache(ctx)
-
-	b.routerManager = daemon_adapters.NewRouterManager(&daemon_adapters.RouterManagerConfig{
-		RouterConfig:  b.buildRouterConfig(),
-		RouteSettings: buildRouteSettings(&b.c.serverConfig),
-		CSPConfig:     buildCSPRuntimeConfig(b.c),
-		Deps: &daemon_domain.HTTPHandlerDependencies{
-			Templater: b.templaterService,
-		},
-		CSRFService:       b.csrfService,
-		SiteSettings:      &b.c.websiteConfig,
-		Actions:           b.c.GetActionRegistry(),
-		CacheMiddleware:   nil,
-		RegistryService:   b.registryService,
-		VariantGenerator:  b.variantGenerator,
-		RouteProviders:    nil,
-		AppRouter:         b.deps.AppRouter,
-		AuthGuardConfig:   b.c.authGuardConfig,
-		CaptchaService:    b.captchaService,
-		SpamDetectService: b.spamdetectService,
-		ArtefactCache:     artefactMetaCache,
-	})
+	managerConfig, err := b.newRouterManagerConfig(ctx)
+	if err != nil {
+		return err
+	}
+	b.routerManager = daemon_adapters.NewRouterManager(managerConfig)
 
 	if closer, ok := b.routerManager.(interface{ Close() }); ok {
 		shutdown.Register(b.c.GetAppContext(), "InterpretedRouterManager", func(_ context.Context) error {
@@ -609,6 +575,52 @@ func (b *interpretedDaemonBuilder) buildRouter(ctx context.Context) {
 			return nil
 		})
 	}
+
+	return nil
+}
+
+// newRouterManagerConfig assembles the router manager configuration with the same
+// request-path services the compiled router installs.
+//
+// Returns *daemon_adapters.RouterManagerConfig which configures the router manager.
+// Returns error when the rate limit service cannot be created.
+func (b *interpretedDaemonBuilder) newRouterManagerConfig(ctx context.Context) (*daemon_adapters.RouterManagerConfig, error) {
+	rateLimitService, err := b.c.GetRateLimitService()
+	if err != nil {
+		return nil, fmt.Errorf("getting rate limit service for interpreted router: %w", err)
+	}
+	presignUploadHandler, presignDownloadHandler, publicDownloadHandler := newPresignHandlers(ctx, b.c, rateLimitService)
+	instanceRelease, _ := buildReleaseIdentity(b.c.releaseIDOverride)
+
+	return &daemon_adapters.RouterManagerConfig{
+		RouterConfig:  b.buildRouterConfig(),
+		RouteSettings: buildRouteSettings(&b.c.serverConfig),
+		CSPConfig:     buildCSPRuntimeConfig(b.c),
+		Deps: &daemon_domain.HTTPHandlerDependencies{
+			Templater: b.templaterService,
+		},
+		CSRFService:            b.csrfService,
+		SiteSettings:           &b.c.websiteConfig,
+		Actions:                b.c.GetActionRegistry(),
+		CacheMiddleware:        nil,
+		RegistryService:        b.registryService,
+		VariantGenerator:       b.variantGenerator,
+		RouteProviders:         nil,
+		AppRouter:              b.deps.AppRouter,
+		AuthGuardConfig:        b.c.authGuardConfig,
+		AuthProvider:           b.c.authProvider,
+		AnalyticsService:       b.c.GetAnalyticsService(),
+		CaptchaService:         b.captchaService,
+		SpamDetectService:      b.spamdetectService,
+		ArtefactCache:          b.buildArtefactMetadataCache(ctx),
+		ActionResponseCache:    newActionResponseCache(ctx, b.c),
+		PresignDownloadHandler: presignDownloadHandler,
+		PresignUploadHandler:   presignUploadHandler,
+		PublicDownloadHandler:  publicDownloadHandler,
+		RateLimitService:       rateLimitService,
+		RateLimitConfig:        NewRateLimitValues(&b.c.serverConfig.Security.RateLimit),
+		InstanceRelease:        instanceRelease,
+	}, nil
 }
 
 // buildArtefactMetadataCache builds the shared artefact-metadata cache for the
@@ -813,6 +825,7 @@ func (b *interpretedDaemonBuilder) buildInterpretedDaemonDeps(ctx context.Contex
 		TLSRedirectServer:   newTLSRedirectServerIfConfigured(daemonConfig),
 		OnServerBound:       b.c.OnServerBound(),
 		OnHealthBound:       b.c.OnHealthBound(),
+		SignalNotifier:      nil,
 	}, nil
 }
 
@@ -1119,6 +1132,9 @@ func (*interpretedDaemonBuilder) processSourceFile(
 		ErrorStatusCodeMin: errResult.rangeMin,
 		ErrorStatusCodeMax: errResult.rangeMax,
 		IsCatchAllError:    errResult.isCatchAll,
+		VirtualPageSource:  nil,
+		IsPdf:              false,
+		IsE2EOnly:          false,
 	}
 	return nil
 }
@@ -1157,6 +1173,9 @@ func (b *interpretedDaemonBuilder) buildLifecycleService(fsWatcher lifecycle_dom
 		RouterManager:           b.routerManager,
 		TemplaterService:        b.templaterService,
 		InterpretedOrchestrator: b.buildOrchestrator,
+		BuildCacheInvalidator:   nil,
+		DevEventNotifier:        nil,
+		Clock:                   nil,
 	}
 	if b.devEventBroadcaster != nil {
 		config.DevEventNotifier = b.devEventBroadcaster
@@ -1210,9 +1229,8 @@ func (b *interpretedDaemonBuilder) buildGeneratorPathsConfig() generator_domain.
 // Returns daemon_domain.DaemonService which is the assembled daemon service.
 // Returns error when the builder fails to construct the daemon.
 func buildDevInterpretedDaemon(ctx context.Context, c *Container, deps *Dependencies) (daemon_domain.DaemonService, error) {
-	builder := &interpretedDaemonBuilder{
-		c:    c,
-		deps: deps,
-	}
+	builder := &interpretedDaemonBuilder{}
+	builder.c = c
+	builder.deps = deps
 	return builder.build(ctx)
 }

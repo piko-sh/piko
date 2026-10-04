@@ -127,8 +127,10 @@ type SVGWriterPort interface {
 	// Takes svgData (string) which is the raw SVG XML markup.
 	// Takes renderContext (SVGRenderContext) which provides access to PDF drawing
 	// infrastructure.
-	// Takes x, y, w, h (float64) which define the render rectangle in PDF coordinates
-	// (bottom-left origin).
+	// Takes x (float64) which is the left edge position in PDF coordinates.
+	// Takes y (float64) which is the bottom edge position in PDF coordinates.
+	// Takes w (float64) which is the rectangle width in points.
+	// Takes h (float64) which is the rectangle height in points.
 	//
 	// Returns error when the SVG cannot be parsed or rendered.
 	RenderSVG(ctx context.Context, svgData string, renderContext SVGRenderContext, x, y, w, h float64) error

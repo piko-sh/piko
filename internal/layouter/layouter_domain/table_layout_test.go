@@ -19,9 +19,13 @@
 package layouter_domain
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"piko.sh/piko/internal/layouter/layouter_dto"
 )
 
 func TestSpanWidth(t *testing.T) {
@@ -148,7 +152,7 @@ func TestBuildTableGrid(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			placements, row_count, column_count := buildTableGrid(tt.rows)
+			placements, row_count, column_count := buildTableGrid(tt.rows, defaultLayoutLimits.MaxTableColumns)
 			assert.Equal(t, tt.expected_count, len(placements))
 			assert.Equal(t, tt.expected_rows, row_count)
 			assert.Equal(t, tt.expected_columns, column_count)
@@ -166,7 +170,7 @@ func TestBuildTableGrid(t *testing.T) {
 			}},
 		}
 
-		placements, _, _ := buildTableGrid(rows)
+		placements, _, _ := buildTableGrid(rows, defaultLayoutLimits.MaxTableColumns)
 
 		assert.Equal(t, 0, placements[0].column)
 		assert.Equal(t, 0, placements[0].row)
@@ -376,4 +380,148 @@ func TestApplyTableCellVerticalAlignFragment(t *testing.T) {
 			assert.InDelta(t, tt.expected_offset, fragment.OffsetY, 0.001)
 		})
 	}
+}
+
+func TestTableSlots(t *testing.T) {
+	t.Parallel()
+
+	slots := &tableSlots{}
+	slots.occupy(0, 0, 3, 2)
+	slots.occupy(0, 2, 1, 1)
+
+	tests := []struct {
+		name   string
+		row    int
+		column int
+		want   int
+	}{
+		{name: "skips columns covered by a rowspan", row: 1, column: 0, want: 2},
+		{name: "column freed after a single-row cell", row: 1, column: 2, want: 2},
+		{name: "rowspan ends after its last row", row: 3, column: 0, want: 0},
+		{name: "beyond every occupied column", row: 0, column: 3, want: 3},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, slots.nextFreeColumn(tt.row, tt.column))
+		})
+	}
+}
+
+func TestTableSlots_OverlappingSpansKeepTheLongest(t *testing.T) {
+	t.Parallel()
+
+	slots := &tableSlots{}
+	slots.occupy(0, 0, 5, 1)
+	slots.occupy(1, 0, 1, 1)
+
+	assert.Equal(t, 1, slots.nextFreeColumn(4, 0), "the longer rowspan still covers row four")
+	assert.Equal(t, 0, slots.nextFreeColumn(5, 0))
+}
+
+func TestBuildTableGrid_StopsAtColumnLimit(t *testing.T) {
+	t.Parallel()
+
+	rows := []tableRow{
+		{cells: []*LayoutBox{
+			{Type: BoxTableCell, Colspan: 6, Rowspan: 1},
+			{Type: BoxTableCell, Colspan: 6, Rowspan: 1},
+		}},
+	}
+
+	placements, rowCount, columnCount := buildTableGrid(rows, 10)
+
+	assert.Len(t, placements, 1, "placement stops before the cell that crosses the limit")
+	assert.Equal(t, 1, rowCount)
+	assert.Equal(t, 12, columnCount, "the overflowing column count is reported to the caller")
+}
+
+func TestBuildTableGrid_LargeRowspanCostsOneEntryPerColumn(t *testing.T) {
+	t.Parallel()
+
+	rows := []tableRow{
+		{cells: []*LayoutBox{{Type: BoxTableCell, Colspan: 1000, Rowspan: 65534}}},
+		{cells: []*LayoutBox{{Type: BoxTableCell, Colspan: 1, Rowspan: 1}}},
+	}
+
+	placements, rowCount, columnCount := buildTableGrid(rows, defaultLayoutLimits.MaxTableColumns)
+
+	require.Len(t, placements, 2)
+	assert.Equal(t, 2, rowCount)
+	assert.Equal(t, 1001, columnCount)
+	assert.Equal(t, 1000, placements[1].column, "the second row's cell sits after the spanning cell")
+}
+
+func TestLayoutTable_TooManyColumnsFailsLayout(t *testing.T) {
+	t.Parallel()
+
+	root := makeRoot(400)
+	table := &LayoutBox{Type: BoxTable, Style: DefaultComputedStyle(), Parent: root}
+	table.Style.Display = DisplayTable
+	row := &LayoutBox{Type: BoxTableRow, Style: DefaultComputedStyle(), Parent: table}
+	row.Style.Display = DisplayTableRow
+	for range 3 {
+		cell := &LayoutBox{Type: BoxTableCell, Style: DefaultComputedStyle(), Parent: row, Colspan: 1000, Rowspan: 1}
+		cell.Style.Display = DisplayTableCell
+		row.Children = append(row.Children, cell)
+	}
+	table.Children = []*LayoutBox{row}
+	root.Children = []*LayoutBox{table}
+
+	tracker := NewLimitTracker(layouter_dto.LayoutLimits{MaxTableColumns: 2500})
+	_, err := LayoutBoxTree(context.Background(), root, &mockFontMetrics{}, tracker)
+
+	assert.ErrorIs(t, err, layouter_dto.ErrTooManyTableColumns)
+}
+
+func TestTableColumnsWithinLimit(t *testing.T) {
+	t.Parallel()
+
+	tracker := NewLimitTracker(layouter_dto.LayoutLimits{MaxTableColumns: 4})
+
+	assert.True(t, tableColumnsWithinLimit(4, tracker))
+	require.NoError(t, tracker.Err())
+	assert.False(t, tableColumnsWithinLimit(5, tracker))
+	assert.ErrorIs(t, tracker.Err(), layouter_dto.ErrTooManyTableColumns)
+}
+
+func TestMeasureTableIntrinsicWidth_OversizedTableMeasuresChromeOnly(t *testing.T) {
+	t.Parallel()
+
+	table := &LayoutBox{Type: BoxTable, Style: DefaultComputedStyle()}
+	table.Style.PaddingLeft = 3
+	table.Style.PaddingRight = 4
+	row := &LayoutBox{Type: BoxTableRow, Style: DefaultComputedStyle(), Parent: table}
+	for range 11 {
+		row.Children = append(row.Children, &LayoutBox{Type: BoxTableCell, Style: DefaultComputedStyle(), Colspan: 1000})
+	}
+	table.Children = []*LayoutBox{row}
+
+	assert.InDelta(t, 7.0, measureTableIntrinsicWidth(table, &mockFontMetrics{}), 1e-9)
+}
+
+func TestMeasureTableIntrinsicWidth_SumsColumns(t *testing.T) {
+	t.Parallel()
+
+	table := &LayoutBox{Type: BoxTable, Style: DefaultComputedStyle()}
+	table.Style.BorderSpacing = 2
+	row := &LayoutBox{Type: BoxTableRow, Style: DefaultComputedStyle(), Parent: table}
+	for _, width := range []float64{30, 40} {
+		cell := &LayoutBox{Type: BoxTableCell, Style: DefaultComputedStyle(), Parent: row, Colspan: 1, Rowspan: 1}
+		cell.Style.Width = DimensionPt(width)
+		row.Children = append(row.Children, cell)
+	}
+	table.Children = []*LayoutBox{row}
+
+	assert.InDelta(t, 30+40+2*3, measureTableIntrinsicWidth(table, &mockFontMetrics{}), 1e-9)
+}
+
+func TestMeasureTableIntrinsicWidth_EmptyTable(t *testing.T) {
+	t.Parallel()
+
+	table := &LayoutBox{Type: BoxTable, Style: DefaultComputedStyle()}
+	table.Style.BorderLeftWidth = 1
+	table.Style.BorderRightWidth = 2
+
+	assert.InDelta(t, 3.0, measureTableIntrinsicWidth(table, &mockFontMetrics{}), 1e-9)
 }

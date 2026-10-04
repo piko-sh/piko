@@ -71,6 +71,8 @@ func (grpcMetadataCreds) RequireTransportSecurity() bool {
 // createGrpcExporter dials the configured endpoint and creates an OTLP gRPC exporter
 // using the supplied constructor.
 //
+// Takes config (driver_handlers.OtelSetupConfig) which provides exporter transport,
+// endpoint, and authentication settings.
 // Takes newExporter which receives the context and the established connection and returns
 // the SDK-specific exporter.
 //

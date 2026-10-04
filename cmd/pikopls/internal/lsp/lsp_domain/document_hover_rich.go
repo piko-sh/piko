@@ -25,8 +25,8 @@ import (
 	"strings"
 
 	protocol "github.com/politepixels/golang-language-server"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 )

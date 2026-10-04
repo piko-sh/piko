@@ -104,10 +104,31 @@ func (m *MockFontMetrics) ShapeText(font layouter_domain.FontDescriptor, size fl
 			XAdvance:     advance,
 			ClusterIndex: index,
 			RuneCount:    1,
+			XOffset:      0,
+			YOffset:      0,
 		}
 	}
 
 	return glyphs
+}
+
+// ShapeAndMeasureText returns the results of ShapeText and MeasureText for the text,
+// honouring any overriding function fields.
+//
+// Takes font (FontDescriptor) which identifies the typeface.
+// Takes size (float64) which is the font size in points.
+// Takes text (string) which is the text to shape.
+// Takes direction (DirectionType) which is the text direction.
+//
+// Returns []layouter_domain.GlyphPosition which holds the glyph positions.
+// Returns float64 which is the total advance width in points.
+func (m *MockFontMetrics) ShapeAndMeasureText(
+	font layouter_domain.FontDescriptor,
+	size float64,
+	text string,
+	direction layouter_domain.DirectionType,
+) ([]layouter_domain.GlyphPosition, float64) {
+	return m.ShapeText(font, size, text, direction), m.MeasureText(font, size, text, direction)
 }
 
 // GetMetrics returns fixed vertical font metrics.

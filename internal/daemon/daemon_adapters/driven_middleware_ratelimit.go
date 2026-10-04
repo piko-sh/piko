@@ -285,9 +285,10 @@ func newRateLimitMiddleware(
 	opts ...rateLimitMiddlewareOption,
 ) *rateLimitMiddleware {
 	m := &rateLimitMiddleware{
-		clock:   clock.RealClock(),
-		service: service,
-		config:  config,
+		clock:               clock.RealClock(),
+		service:             service,
+		config:              config,
+		missingClientIPOnce: sync.Once{},
 	}
 
 	for _, opt := range opts {

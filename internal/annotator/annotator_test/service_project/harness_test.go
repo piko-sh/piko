@@ -32,11 +32,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_adapters"
 	"piko.sh/piko/internal/annotator/annotator_domain"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/inspector/inspector_adapters"
 	"piko.sh/piko/internal/inspector/inspector_domain"
 	"piko.sh/piko/internal/inspector/inspector_dto"
@@ -137,7 +137,7 @@ func runProjectTestCase(t *testing.T, tc testCase) {
 		inspector_domain.WithProvider(inspector_adapters.NewInMemoryProvider(nil)),
 	)
 	cache := annotator_adapters.NewComponentCache()
-	service, _ := annotator_domain.NewAnnotatorService(context.Background(), &annotator_domain.AnnotatorServiceConfig{
+	service := annotator_domain.NewAnnotatorService(&annotator_domain.AnnotatorServiceConfig{
 		Resolver:            resolver,
 		FSReader:            fsReader,
 		TypeInspector:       annotator_domain.NewTypeInspectorBuilderAdapter(inspectorManager),
@@ -498,6 +498,7 @@ func assertOnSubExpression(t *testing.T, node *ast_domain.TemplateNode, assertio
 func generateAndCheckGoldenFiles(t *testing.T, tc testCase, annotationResult *annotator_dto.AnnotationResult, entryPointPath string) {
 	baseDir := filepath.Join(tc.Path, "src")
 	sanitisedAST := ast_domain.SanitiseForEncoding(annotationResult.AnnotatedAST, baseDir)
+	ast_domain.SortAttributesByName(sanitisedAST)
 	actualASTDump := ast_domain.DumpAST(context.Background(), sanitisedAST)
 	actualASTCompile := ast_domain.SerialiseASTToGoFileContent(sanitisedAST, "test")
 

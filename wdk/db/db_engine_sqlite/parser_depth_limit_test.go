@@ -22,6 +22,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,23 +30,58 @@ func TestParserDepthLimitPreventsStackOverflow(t *testing.T) {
 	t.Parallel()
 
 	const depth = 100_000
-	engine := NewSQLiteEngine()
+	engine := NewSQLiteEngine(WithMaxTokensPerStatement(4 * depth))
 
 	sql := "SELECT " + strings.Repeat("(", depth) + "1" + strings.Repeat(")", depth) + " FROM t"
 	statements, err := engine.ParseStatements(sql)
 	require.NoError(t, err)
 	require.NotEmpty(t, statements)
 
-	_, _ = engine.AnalyseQuery(nil, statements[0])
+	analysis, err := engine.AnalyseQuery(nil, statements[0])
+
+	require.ErrorIs(t, err, errExpressionDepthExceeded)
+	assert.Nil(t, analysis)
 }
 
 func TestParserDepthLimitIsConfigurable(t *testing.T) {
 	t.Parallel()
 
-	engine := NewSQLiteEngine(WithMaxParseDepth(8))
-	sql := "SELECT " + strings.Repeat("(", 64) + "1" + strings.Repeat(")", 64) + " FROM t"
-	statements, err := engine.ParseStatements(sql)
-	require.NoError(t, err)
-	require.NotEmpty(t, statements)
-	_, _ = engine.AnalyseQuery(nil, statements[0])
+	testCases := []struct {
+		name     string
+		nesting  int
+		wantFail bool
+	}{
+		{name: "nesting within the cap analyses", nesting: 4, wantFail: false},
+		{name: "nesting past the cap reports the depth error", nesting: 64, wantFail: true},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			engine := NewSQLiteEngine(WithMaxParseDepth(8))
+			sql := "SELECT " + strings.Repeat("(", testCase.nesting) + "1" + strings.Repeat(")", testCase.nesting) + " FROM t"
+			statements, err := engine.ParseStatements(sql)
+			require.NoError(t, err)
+			require.NotEmpty(t, statements)
+
+			_, err = engine.AnalyseQuery(nil, statements[0])
+
+			if testCase.wantFail {
+				require.ErrorIs(t, err, errExpressionDepthExceeded)
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestWithMaxParseDepthIgnoresNonPositiveValues(t *testing.T) {
+	t.Parallel()
+
+	for _, depth := range []int{0, -1} {
+		engine := NewSQLiteEngine(WithMaxParseDepth(depth))
+
+		assert.Equal(t, defaultMaxParseDepth, engine.dialect.resolvedMaxParseDepth())
+	}
 }

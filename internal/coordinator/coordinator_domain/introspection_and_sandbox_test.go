@@ -376,10 +376,7 @@ func TestGetOrCreateSandbox_DifferentPath(t *testing.T) {
 func TestGetOrCreateSandbox_NilExistingSandbox(t *testing.T) {
 	t.Parallel()
 
-	service := &coordinatorService{
-		baseDirSandbox:     nil,
-		baseDirSandboxPath: "",
-	}
+	service := &coordinatorService{}
 
 	_, _, err := service.getOrCreateSandbox("/nonexistent")
 
@@ -1510,7 +1507,7 @@ func TestGetEffectiveResolver_NilResolver(t *testing.T) {
 	defaultResolver := &resolver_domain.MockResolver{GetBaseDirFunc: func() string { return "/default" }}
 	service := &coordinatorService{resolver: defaultResolver}
 
-	result := service.getEffectiveResolver(&buildOptions{Resolver: nil})
+	result := service.getEffectiveResolver(&buildOptions{})
 	assert.Same(t, defaultResolver, result)
 }
 
@@ -2254,7 +2251,7 @@ func TestHandleSemanticError_NilDiagnosticOutput(t *testing.T) {
 		{Message: "error", SourcePath: "/a.pk"},
 	})
 
-	logStore, _ := annotator_domain.NewCompilationLogStore(context.Background(), false, "", 0)
+	logStore := annotator_domain.NewCompilationLogStore(false, "", 0)
 	request := &coordinator_dto.BuildRequest{CausationID: "cause"}
 	partialResult := &annotator_dto.ProjectAnnotationResult{}
 
@@ -2375,8 +2372,7 @@ func TestHashAndReadFile_SetsCache(t *testing.T) {
 func TestOutputInternalCompilerLogs_WithMatchingFile(t *testing.T) {
 	t.Parallel()
 
-	logStore, err := annotator_domain.NewCompilationLogStore(context.Background(), false, "", 0)
-	require.NoError(t, err)
+	logStore := annotator_domain.NewCompilationLogStore(false, "", 0)
 
 	diagnostics := []*ast_domain.Diagnostic{
 		{SourcePath: "/test.pk", Message: "error"},

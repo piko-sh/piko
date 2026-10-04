@@ -272,17 +272,17 @@ func buildSpanDetailSections(_ *Printer, s *pb.Span) []inspector.DetailSection {
 		slices.Sort(attributeKeys)
 		fields := make([]inspector.DetailRow, 0, len(attrs))
 		for _, k := range attributeKeys {
-			fields = append(fields, inspector.DetailRow{Label: k, Value: attrs[k]})
+			fields = append(fields, inspector.NewDetailRow(k, attrs[k]))
 		}
-		sections = append(sections, inspector.DetailSection{
-			Heading: fmt.Sprintf("Span %s (%s)", truncate(s.GetSpanId(), describeTruncateLen), s.GetName()),
-			Rows:    fields,
-		})
+		sections = append(sections, inspector.NewDetailSection(
+			fmt.Sprintf("Span %s (%s)", truncate(s.GetSpanId(), describeTruncateLen), s.GetName()),
+			fields,
+		))
 	}
 
 	for _, e := range s.GetEvents() {
 		eventFields := []inspector.DetailRow{
-			{Label: "Timestamp", Value: formatTimestamp(e.GetTimestampMs())},
+			inspector.NewDetailRow("Timestamp", formatTimestamp(e.GetTimestampMs())),
 		}
 		eventAttrs := e.GetAttributes()
 		eventAttrKeys := make([]string, 0, len(eventAttrs))
@@ -291,12 +291,9 @@ func buildSpanDetailSections(_ *Printer, s *pb.Span) []inspector.DetailSection {
 		}
 		slices.Sort(eventAttrKeys)
 		for _, k := range eventAttrKeys {
-			eventFields = append(eventFields, inspector.DetailRow{Label: k, Value: eventAttrs[k]})
+			eventFields = append(eventFields, inspector.NewDetailRow(k, eventAttrs[k]))
 		}
-		sections = append(sections, inspector.DetailSection{
-			Heading: fmt.Sprintf("Event: %s", e.GetName()),
-			Rows:    eventFields,
-		})
+		sections = append(sections, inspector.NewDetailSection(fmt.Sprintf("Event: %s", e.GetName()), eventFields))
 	}
 
 	return sections
@@ -319,6 +316,11 @@ type resourceDescriptor struct {
 // describeResourceItems implements the shared describe pattern: parse flags, fetch items
 // via gRPC, then render as JSON or detail sections.
 //
+// Takes conn (monitoringConnection) which provides the monitoring connection used to
+// fetch resources.
+// Takes p (*Printer) which formats and writes the resource details.
+// Takes arguments ([]string) which contains the command-line flags and positional
+// arguments.
 // Takes resourceName (string) which names the resource for the flag set and error
 // messages.
 // Takes descriptor (resourceDescriptor) which bundles the fetch, filter, and
@@ -430,24 +432,21 @@ func buildTaskDetailSections(p *Printer, tasks []*pb.TaskListItem, filter string
 			continue
 		}
 		fields := []inspector.DetailRow{
-			{Label: "ID", Value: t.GetId()},
-			{Label: "Workflow", Value: t.GetWorkflowId()},
-			{Label: "Executor", Value: t.GetExecutor()},
+			inspector.NewDetailRow("ID", t.GetId()),
+			inspector.NewDetailRow("Workflow", t.GetWorkflowId()),
+			inspector.NewDetailRow("Executor", t.GetExecutor()),
 			{Label: "Status", Value: p.ColourisedStatus(t.GetStatus()), IsStatus: true},
-			{Label: "Priority", Value: strconv.Itoa(int(t.GetPriority()))},
-			{Label: "Attempt", Value: strconv.Itoa(int(t.GetAttempt()))},
+			inspector.NewDetailRow("Priority", strconv.Itoa(int(t.GetPriority()))),
+			inspector.NewDetailRow("Attempt", strconv.Itoa(int(t.GetAttempt()))),
 		}
 		if t.GetLastError() != "" {
-			fields = append(fields, inspector.DetailRow{Label: "Last Error", Value: t.GetLastError()})
+			fields = append(fields, inspector.NewDetailRow("Last Error", t.GetLastError()))
 		}
 		fields = append(fields,
-			inspector.DetailRow{Label: "Created", Value: formatTimestamp(t.GetCreatedAt())},
-			inspector.DetailRow{Label: "Updated", Value: formatTimestamp(t.GetUpdatedAt())},
+			inspector.NewDetailRow("Created", formatTimestamp(t.GetCreatedAt())),
+			inspector.NewDetailRow("Updated", formatTimestamp(t.GetUpdatedAt())),
 		)
-		sections = append(sections, inspector.DetailSection{
-			Heading: fmt.Sprintf("Task %s", t.GetId()),
-			Rows:    fields,
-		})
+		sections = append(sections, inspector.NewDetailSection(fmt.Sprintf("Task %s", t.GetId()), fields))
 	}
 	return sections
 }
@@ -517,18 +516,15 @@ func buildWorkflowDetailSections(workflows []*pb.WorkflowSummary, filter string)
 		if !matchesFilter(wf.GetWorkflowId(), filter) {
 			continue
 		}
-		sections = append(sections, inspector.DetailSection{
-			Heading: fmt.Sprintf("Workflow %s", wf.GetWorkflowId()),
-			Rows: []inspector.DetailRow{
-				{Label: "Workflow ID", Value: wf.GetWorkflowId()},
-				{Label: "Tasks", Value: strconv.FormatInt(wf.GetTaskCount(), 10)},
-				{Label: "Complete", Value: strconv.FormatInt(wf.GetCompleteCount(), 10)},
-				{Label: "Failed", Value: strconv.FormatInt(wf.GetFailedCount(), 10)},
-				{Label: "Active", Value: strconv.FormatInt(wf.GetActiveCount(), 10)},
-				{Label: "Created", Value: formatTimestamp(wf.GetCreatedAt())},
-				{Label: "Updated", Value: formatTimestamp(wf.GetUpdatedAt())},
-			},
-		})
+		sections = append(sections, inspector.NewDetailSection(fmt.Sprintf("Workflow %s", wf.GetWorkflowId()), []inspector.DetailRow{
+			inspector.NewDetailRow("Workflow ID", wf.GetWorkflowId()),
+			inspector.NewDetailRow("Tasks", strconv.FormatInt(wf.GetTaskCount(), 10)),
+			inspector.NewDetailRow("Complete", strconv.FormatInt(wf.GetCompleteCount(), 10)),
+			inspector.NewDetailRow("Failed", strconv.FormatInt(wf.GetFailedCount(), 10)),
+			inspector.NewDetailRow("Active", strconv.FormatInt(wf.GetActiveCount(), 10)),
+			inspector.NewDetailRow("Created", formatTimestamp(wf.GetCreatedAt())),
+			inspector.NewDetailRow("Updated", formatTimestamp(wf.GetUpdatedAt())),
+		}))
 	}
 	return sections
 }
@@ -594,18 +590,15 @@ func buildArtefactDetailSections(p *Printer, artefacts []*pb.ArtefactListItem, f
 		if !matchesFilter(a.GetId(), filter) && !matchesFilter(a.GetSourcePath(), filter) {
 			continue
 		}
-		sections = append(sections, inspector.DetailSection{
-			Heading: fmt.Sprintf("Artefact %s", a.GetId()),
-			Rows: []inspector.DetailRow{
-				{Label: "ID", Value: a.GetId()},
-				{Label: "Source Path", Value: a.GetSourcePath()},
-				{Label: "Status", Value: p.ColourisedStatus(a.GetStatus()), IsStatus: true},
-				{Label: "Variants", Value: strconv.FormatInt(a.GetVariantCount(), 10)},
-				{Label: "Size", Value: formatBytes(safeconv.Int64ToUint64(a.GetTotalSize()))},
-				{Label: "Created", Value: formatTimestamp(a.GetCreatedAt())},
-				{Label: "Updated", Value: formatTimestamp(a.GetUpdatedAt())},
-			},
-		})
+		sections = append(sections, inspector.NewDetailSection(fmt.Sprintf("Artefact %s", a.GetId()), []inspector.DetailRow{
+			inspector.NewDetailRow("ID", a.GetId()),
+			inspector.NewDetailRow("Source Path", a.GetSourcePath()),
+			{Label: "Status", Value: p.ColourisedStatus(a.GetStatus()), IsStatus: true},
+			inspector.NewDetailRow("Variants", strconv.FormatInt(a.GetVariantCount(), 10)),
+			inspector.NewDetailRow("Size", formatBytes(safeconv.Int64ToUint64(a.GetTotalSize()))),
+			inspector.NewDetailRow("Created", formatTimestamp(a.GetCreatedAt())),
+			inspector.NewDetailRow("Updated", formatTimestamp(a.GetUpdatedAt())),
+		}))
 	}
 	return sections
 }
@@ -690,14 +683,11 @@ func buildResourceDetailSections(response *pb.GetFileDescriptorsResponse, filter
 	sections := make([]inspector.DetailSection, 0)
 
 	if filter == "" {
-		sections = append(sections, inspector.DetailSection{
-			Heading: "Summary",
-			Rows: []inspector.DetailRow{
-				{Label: "Total", Value: strconv.Itoa(int(response.GetTotal()))},
-				{Label: "Categories", Value: strconv.Itoa(len(response.GetCategories()))},
-				{Label: "Timestamp", Value: formatTimestamp(response.GetTimestampMs())},
-			},
-		})
+		sections = append(sections, inspector.NewDetailSection("Summary", []inspector.DetailRow{
+			inspector.NewDetailRow("Total", strconv.Itoa(int(response.GetTotal()))),
+			inspector.NewDetailRow("Categories", strconv.Itoa(len(response.GetCategories()))),
+			inspector.NewDetailRow("Timestamp", formatTimestamp(response.GetTimestampMs())),
+		}))
 	}
 
 	for _, cat := range response.GetCategories() {
@@ -705,21 +695,15 @@ func buildResourceDetailSections(response *pb.GetFileDescriptorsResponse, filter
 			continue
 		}
 
-		catSection := inspector.DetailSection{
-			Heading: cat.GetCategory(),
-			Rows: []inspector.DetailRow{
-				{Label: "Count", Value: strconv.Itoa(int(cat.GetCount()))},
-			},
-		}
+		catSection := inspector.NewDetailSection(cat.GetCategory(), []inspector.DetailRow{
+			inspector.NewDetailRow("Count", strconv.Itoa(int(cat.GetCount()))),
+		})
 
 		for _, fd := range cat.GetFds() {
-			catSection.SubSections = append(catSection.SubSections, inspector.DetailSection{
-				Heading: fmt.Sprintf("fd %d", fd.GetFd()),
-				Rows: []inspector.DetailRow{
-					{Label: "Target", Value: fd.GetTarget()},
-					{Label: "Age", Value: formatDuration(fd.GetAgeMs())},
-				},
-			})
+			catSection.SubSections = append(catSection.SubSections, inspector.NewDetailSection(fmt.Sprintf("fd %d", fd.GetFd()), []inspector.DetailRow{
+				inspector.NewDetailRow("Target", fd.GetTarget()),
+				inspector.NewDetailRow("Age", formatDuration(fd.GetAgeMs())),
+			}))
 		}
 
 		sections = append(sections, catSection)
@@ -834,10 +818,10 @@ func appendSubResourceSections(ctx context.Context, conn monitoringConnection, p
 	subFields := buildSubResourceFields(subResp)
 	subName := capitaliseFirstRune(subResp.GetSubResourceName())
 
-	return append(sections, inspector.DetailSection{
-		Heading: fmt.Sprintf("%s (%d)", subName, len(subResp.GetRows())),
-		Rows:    subFields,
-	})
+	return append(sections, inspector.NewDetailSection(
+		fmt.Sprintf("%s (%d)", subName, len(subResp.GetRows())),
+		subFields,
+	))
 }
 
 // buildSubResourceFields creates detail fields from sub-resource rows, combining
@@ -863,10 +847,7 @@ func buildSubResourceFields(response *pb.ListSubResourcesResponse) []inspector.D
 		if value == "" {
 			value = "-"
 		}
-		fields = append(fields, inspector.DetailRow{
-			Label: row.GetName(),
-			Value: value,
-		})
+		fields = append(fields, inspector.NewDetailRow(row.GetName(), value))
 	}
 	return fields
 }

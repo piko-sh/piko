@@ -24,6 +24,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/collection/collection_domain"
@@ -356,17 +357,15 @@ func TestConcurrentRegister(t *testing.T) {
 	const numGoroutines = 100
 
 	var wg sync.WaitGroup
-	wg.Add(numGoroutines)
 
-	for i := range numGoroutines {
-		go func(id int) {
-			defer wg.Done()
+	for id := range numGoroutines {
+		wg.Go(func() {
 			p := &mockProvider{
 				name:         string(rune('A' + id)),
 				providerType: collection_domain.ProviderTypeStatic,
 			}
 			_ = registry.Register(p)
-		}(i)
+		})
 	}
 
 	wg.Wait()
@@ -391,18 +390,16 @@ func TestConcurrentGet(t *testing.T) {
 
 	const numGoroutines = 100
 	var wg sync.WaitGroup
-	wg.Add(numGoroutines)
 
-	for i := range numGoroutines {
-		go func(id int) {
-			defer wg.Done()
+	for id := range numGoroutines {
+		wg.Go(func() {
 			name := string(rune('a' + (id % 10)))
 			provider, ok := registry.Get(name)
 			if !ok {
 				t.Errorf("Get returned ok=false for registered provider %q", name)
 			}
-			require.NotNil(t, provider, "Get returned nil provider for %q", name)
-		}(i)
+			assert.NotNil(t, provider, "Get returned nil provider for %q", name)
+		})
 	}
 
 	wg.Wait()
@@ -423,11 +420,9 @@ func TestConcurrentMixedOperations(t *testing.T) {
 
 	const numGoroutines = 100
 	var wg sync.WaitGroup
-	wg.Add(numGoroutines)
 
-	for i := range numGoroutines {
-		go func(id int) {
-			defer wg.Done()
+	for id := range numGoroutines {
+		wg.Go(func() {
 			switch id % 4 {
 			case 0:
 				name := string(rune('a' + (id % 5)))
@@ -440,7 +435,7 @@ func TestConcurrentMixedOperations(t *testing.T) {
 			case 3:
 				_ = registry.count()
 			}
-		}(i)
+		})
 	}
 
 	wg.Wait()

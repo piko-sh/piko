@@ -21,8 +21,8 @@ package driven_code_emitter_go_literal
 import (
 	goast "go/ast"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 )
 

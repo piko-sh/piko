@@ -639,13 +639,14 @@ func (*AssetViewer[T]) Init() tea.Cmd {
 // Returns *AssetViewer[T] which is the configured viewer ready for use.
 func NewAssetViewer[T any](config AssetViewerConfig[T]) *AssetViewer[T] {
 	v := &AssetViewer[T]{
-		BasePanel: NewBasePanel(config.ID, config.Title),
-		items:     make([]T, 0),
-		expanded:  make(map[string]bool),
-		renderer:  config.Renderer,
-		navMode:   config.NavMode,
-		search:    nil,
-		mu:        nil,
+		BasePanel:       NewBasePanel(config.ID, config.Title),
+		items:           make([]T, 0),
+		expanded:        make(map[string]bool),
+		renderer:        config.Renderer,
+		navMode:         config.NavMode,
+		search:          nil,
+		mu:              nil,
+		lastHeaderLines: 0,
 	}
 
 	if config.EnableSearch {

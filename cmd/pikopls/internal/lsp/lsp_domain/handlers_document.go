@@ -136,7 +136,7 @@ func (s *Server) WillSaveWaitUntil(ctx context.Context, params *protocol.WillSav
 
 	textEdit := protocol.TextEdit{
 		Range: protocol.Range{
-			Start: protocol.Position{Line: 0, Character: 0},
+			Start: protocol.Position{},
 			End:   protocol.Position{Line: maxFormattingBytes, Character: 0},
 		},
 		NewText: string(formatted),
@@ -183,7 +183,7 @@ func (s *Server) Formatting(ctx context.Context, params *protocol.DocumentFormat
 
 	textEdit := protocol.TextEdit{
 		Range: protocol.Range{
-			Start: protocol.Position{Line: 0, Character: 0},
+			Start: protocol.Position{},
 			End:   protocol.Position{Line: maxFormattingBytes, Character: 0},
 		},
 		NewText: string(formatted),
@@ -239,7 +239,7 @@ func (s *Server) RangeFormatting(ctx context.Context, params *protocol.DocumentR
 
 	textEdit := protocol.TextEdit{
 		Range: protocol.Range{
-			Start: protocol.Position{Line: 0, Character: 0},
+			Start: protocol.Position{},
 			End:   protocol.Position{Line: maxFormattingBytes, Character: 0},
 		},
 		NewText: string(formatted),
@@ -292,7 +292,7 @@ func (s *Server) OnTypeFormatting(ctx context.Context, params *protocol.Document
 
 	textEdit := protocol.TextEdit{
 		Range: protocol.Range{
-			Start: protocol.Position{Line: 0, Character: 0},
+			Start: protocol.Position{},
 			End:   protocol.Position{Line: maxFormattingBytes, Character: 0},
 		},
 		NewText: string(formatted),

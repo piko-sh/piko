@@ -28,6 +28,7 @@ import (
 	"errors"
 	"fmt"
 	goast "go/ast"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -226,20 +227,10 @@ func NewTypeBuilder(config inspector_dto.Config, opts ...TypeBuilderOption) *Typ
 		config.MaxParseWorkers = new(defaultMaxWorkers)
 	}
 
-	m := &TypeBuilder{
-		provider:        nil,
-		parser:          nil,
-		loader:          nil,
-		encoder:         nil,
-		keyGen:          nil,
-		typeDataByKey:   make(map[string]*inspector_dto.TypeData),
-		querierByKey:    make(map[string]*TypeQuerier),
-		liteBuilder:     nil,
-		currentCacheKey: "",
-		config:          config,
-		mu:              sync.RWMutex{},
-		liteMode:        false,
-	}
+	m := &TypeBuilder{}
+	m.typeDataByKey = make(map[string]*inspector_dto.TypeData)
+	m.querierByKey = make(map[string]*TypeQuerier)
+	m.config = config
 
 	for _, opt := range opts {
 		opt(m)
@@ -449,7 +440,7 @@ func (m *TypeBuilder) buildFromCache(ctx context.Context, cacheKey string, sourc
 	}
 
 	l.Internal("[INSPECTOR] Attempting to load from cache provider...", logger_domain.String("cacheKey", cacheKey))
-	cachedData, err := m.provider.GetTypeData(ctx, cacheKey)
+	cachedData, err := m.loadCachedTypeData(ctx, cacheKey)
 	if err != nil || cachedData == nil {
 		l.Internal("[INSPECTOR] CACHE MISS or error.", logger_domain.Error(err))
 		return false
@@ -466,6 +457,38 @@ func (m *TypeBuilder) buildFromCache(ctx context.Context, cacheKey string, sourc
 	m.querierByKey[cacheKey] = NewTypeQuerier(allScriptBlocks, cachedData, m.config)
 	l.Internal("[INSPECTOR] Successfully built from cache.")
 	return true
+}
+
+// loadCachedTypeData fetches type data from the cache provider, converting a panic in the
+// provider into an error and invalidating the entry so that a corrupt cache leads to a
+// rebuild rather than a crash.
+//
+// The recovered panic and its stack are logged once at warning level.
+//
+// Takes cacheKey (string) which identifies the cached type data to load.
+//
+// Returns typeData (*inspector_dto.TypeData) which is the cached type data.
+// Returns err (error) when the provider fails or panics.
+func (m *TypeBuilder) loadCachedTypeData(ctx context.Context, cacheKey string) (typeData *inspector_dto.TypeData, err error) {
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			return
+		}
+		typeData = nil
+		_, l := logger_domain.From(ctx, log)
+		l.Warn("Recovered from panic while loading cached type data; invalidating the entry",
+			logger_domain.String("cacheKey", cacheKey),
+			logger_domain.String("recovered", fmt.Sprintf("%v", recovered)),
+			logger_domain.String("stack", string(debug.Stack())),
+		)
+		err = fmt.Errorf("loading cached type data for key %s: %v", cacheKey, recovered)
+		if invalidateErr := m.provider.InvalidateCache(ctx, cacheKey); invalidateErr != nil {
+			err = errors.Join(err, fmt.Errorf("invalidating cached type data for key %s: %w", cacheKey, invalidateErr))
+		}
+	}()
+
+	return m.provider.GetTypeData(ctx, cacheKey)
 }
 
 // buildFromSource runs the full build process without using the cache.

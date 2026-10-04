@@ -136,6 +136,7 @@ func (s *Store) Clear() {
 func New() *Store {
 	return &Store{
 		conversations: make(map[string]*llm_dto.ConversationState),
+		mu:            sync.RWMutex{},
 	}
 }
 
@@ -155,6 +156,8 @@ func copyState(state *llm_dto.ConversationState) *llm_dto.ConversationState {
 		TokenCount: state.TokenCount,
 		CreatedAt:  state.CreatedAt,
 		UpdatedAt:  state.UpdatedAt,
+		Summary:    nil,
+		Messages:   nil,
 	}
 
 	if state.Summary != nil {
@@ -178,8 +181,12 @@ func copyState(state *llm_dto.ConversationState) *llm_dto.ConversationState {
 // Returns llm_dto.Message which is a new message with all fields copied.
 func copyMessage(message llm_dto.Message) llm_dto.Message {
 	copied := llm_dto.Message{
-		Role:    message.Role,
-		Content: message.Content,
+		Role:         message.Role,
+		Content:      message.Content,
+		Name:         nil,
+		ToolCallID:   nil,
+		ContentParts: nil,
+		ToolCalls:    nil,
 	}
 
 	if message.Name != nil {
@@ -214,7 +221,10 @@ func copyMessage(message llm_dto.Message) llm_dto.Message {
 // Returns llm_dto.ContentPart which is an independent copy of the input.
 func copyContentPart(part llm_dto.ContentPart) llm_dto.ContentPart {
 	copied := llm_dto.ContentPart{
-		Type: part.Type,
+		Type:      part.Type,
+		Text:      nil,
+		ImageURL:  nil,
+		ImageData: nil,
 	}
 
 	if part.Text != nil {
@@ -223,7 +233,8 @@ func copyContentPart(part llm_dto.ContentPart) llm_dto.ContentPart {
 
 	if part.ImageURL != nil {
 		copied.ImageURL = &llm_dto.ImageURL{
-			URL: part.ImageURL.URL,
+			URL:    part.ImageURL.URL,
+			Detail: nil,
 		}
 		if part.ImageURL.Detail != nil {
 			copied.ImageURL.Detail = new(*part.ImageURL.Detail)

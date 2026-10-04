@@ -19,6 +19,10 @@
 package llm_provider_gemini
 
 import (
+	"context"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"google.golang.org/genai"
@@ -670,4 +674,106 @@ func TestGeminiProvider_CapabilityMethods(t *testing.T) {
 	assert.Equal(t, true, p.SupportsSeed())
 	assert.Equal(t, false, p.SupportsParallelToolCalls())
 	assert.Equal(t, false, p.SupportsMessageName())
+}
+
+func newEmbeddingTestProvider(t *testing.T, responseBody string) *geminiProvider {
+	t.Helper()
+
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		_, _ = io.Copy(io.Discard, request.Body)
+		writer.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(writer, responseBody)
+	}))
+	transport := &http.Transport{}
+	httpClient := &http.Client{Transport: transport}
+	t.Cleanup(func() {
+		transport.CloseIdleConnections()
+		server.Close()
+	})
+
+	client, err := genai.NewClient(context.Background(), &genai.ClientConfig{
+		APIKey:      "test-key",
+		Backend:     genai.BackendGeminiAPI,
+		HTTPClient:  httpClient,
+		HTTPOptions: genai.HTTPOptions{BaseURL: server.URL},
+	})
+	require.NoError(t, err)
+
+	provider := newTestProvider(t)
+	provider.client = client
+	provider.httpClient = httpClient
+	provider.defaultEmbeddingModel = "gemini-embedding-001"
+	return provider
+}
+
+func TestGeminiProvider_Embed(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name      string
+		body      string
+		model     string
+		wantModel string
+		input     []string
+		wantData  []llm_dto.Embedding
+	}{
+		{
+			name:      "uses the default embedding model and keeps input order",
+			body:      `{"embeddings":[{"values":[0.5,-0.25]},{"values":[1]}]}`,
+			input:     []string{"first", "second"},
+			wantModel: "gemini-embedding-001",
+			wantData: []llm_dto.Embedding{
+				llm_dto.NewFloat32Embedding(0, []float32{0.5, -0.25}),
+				llm_dto.NewFloat32Embedding(1, []float32{1}),
+			},
+		},
+		{
+			name:      "uses the requested model",
+			body:      `{"embeddings":[{"values":[0.75]}]}`,
+			model:     "text-embedding-004",
+			input:     []string{"only"},
+			wantModel: "text-embedding-004",
+			wantData: []llm_dto.Embedding{
+				llm_dto.NewFloat32Embedding(0, []float32{0.75}),
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			provider := newEmbeddingTestProvider(t, testCase.body)
+			request := &llm_dto.EmbeddingRequest{Model: testCase.model, Input: testCase.input}
+
+			response, err := provider.Embed(context.Background(), request)
+			require.NoError(t, err)
+			assert.Equal(t, testCase.wantModel, response.Model)
+			assert.Equal(t, testCase.wantData, response.Embeddings)
+			assert.Nil(t, response.Usage)
+			assert.Empty(t, response.ID)
+		})
+	}
+}
+
+func TestGeminiProvider_ReturnsPanicsAsErrors(t *testing.T) {
+	t.Parallel()
+
+	p := newTestProvider(t)
+
+	_, err := p.Complete(t.Context(), nil)
+	require.Error(t, err, "completion")
+	assert.Contains(t, err.Error(), "panic in llm.geminiProvider.Complete")
+
+	_, err = p.Stream(t.Context(), nil)
+	require.Error(t, err, "stream")
+	assert.Contains(t, err.Error(), "panic in llm.geminiProvider.Stream")
+
+	_, err = p.Embed(t.Context(), nil)
+	require.Error(t, err, "embedding")
+	assert.Contains(t, err.Error(), "panic in llm.geminiProvider.Embed")
+
+	_, err = p.ListModels(t.Context())
+	require.Error(t, err, "model listing")
+	assert.Contains(t, err.Error(), "panic in llm.geminiProvider.ListModels")
 }

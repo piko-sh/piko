@@ -51,7 +51,7 @@ func TestTotalWeightedSize_SumsOnlyWeightBoundedNamespaces(t *testing.T) {
 		"otter": enumerableProvider{namespaces: map[string]any{
 			"sessions": weighedNamespace{weighted: true, size: 300, maximum: 1000},
 			"blobs":    weighedNamespace{weighted: true, size: 700, maximum: 4000},
-			"counters": weighedNamespace{weighted: false},
+			"counters": weighedNamespace{},
 		}},
 	}}
 

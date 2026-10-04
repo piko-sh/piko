@@ -25,9 +25,9 @@ import (
 
 	goast "go/ast"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/goastutil"
 )
 
 var (
@@ -118,7 +118,12 @@ func getFormatFuncReturnType(_ context.Context, _ *TypeResolver, _ *AnalysisCont
 				Sel: goast.NewIdent("FormatBuilder"),
 			},
 		},
-		PackageAlias:         "i18n_domain",
-		CanonicalPackagePath: "piko.sh/piko/internal/i18n/i18n_domain",
+		PackageAlias:            "i18n_domain",
+		CanonicalPackagePath:    "piko.sh/piko/internal/i18n/i18n_domain",
+		UnderlyingTypeString:    "",
+		InitialPackagePath:      "",
+		InitialFilePath:         "",
+		IsSynthetic:             false,
+		IsExportedPackageSymbol: false,
 	}
 }

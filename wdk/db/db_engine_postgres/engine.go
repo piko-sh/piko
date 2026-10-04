@@ -82,6 +82,10 @@ type PostgresDialect struct {
 	// nesting) and the expression precedence chain (parenthesis nesting). Zero selects
 	// defaultMaxParseDepth.
 	MaxParseDepth int
+
+	// MaxTokensPerStatement caps the number of tokens the parser walks for one statement.
+	// Zero selects defaultMaxTokensPerStatement.
+	MaxTokensPerStatement int
 }
 
 // Option configures a PostgresDialect.
@@ -224,6 +228,53 @@ func (d PostgresDialect) resolvedMaxParseDepth() int {
 	return defaultMaxParseDepth
 }
 
+// WithMaxTokensPerStatement sets the maximum number of tokens the parser walks for a
+// single statement.
+//
+// The DDL and analysis parsers are not cancellable mid-statement, so an adversarially
+// long statement could otherwise hold a caller for a long time. The default is high
+// (defaultMaxTokensPerStatement) so realistic statements, including generated SQL with
+// large IN lists, are unaffected; lower it to harden against hostile input or raise it
+// for unusually large generated statements. The budget only applies to statements the
+// parser actually walks, so a large seed INSERT inside a migration is not affected.
+//
+// Takes limit (int) which is the maximum token count; values below 1 are ignored so the
+// default remains in force.
+//
+// Returns Option which applies the token budget to a PostgresDialect.
+func WithMaxTokensPerStatement(limit int) Option {
+	return func(dialect *PostgresDialect) {
+		if limit > 0 {
+			dialect.MaxTokensPerStatement = limit
+		}
+	}
+}
+
+// resolvedMaxTokensPerStatement returns the effective per-statement token budget, falling
+// back to defaultMaxTokensPerStatement when unset.
+//
+// Returns int which is the effective token budget.
+func (d PostgresDialect) resolvedMaxTokensPerStatement() int {
+	if d.MaxTokensPerStatement > 0 {
+		return d.MaxTokensPerStatement
+	}
+	return defaultMaxTokensPerStatement
+}
+
+// checkTokenBudget reports whether a statement's token stream fits the dialect's
+// per-statement budget.
+//
+// Takes tokenCount (int) which is the number of tokens in the statement.
+//
+// Returns error wrapping errTokenBudgetExceeded when the statement is over budget.
+func (d PostgresDialect) checkTokenBudget(tokenCount int) error {
+	limit := d.resolvedMaxTokensPerStatement()
+	if tokenCount > limit {
+		return fmt.Errorf("%w: statement has %d tokens, limit is %d", errTokenBudgetExceeded, tokenCount, limit)
+	}
+	return nil
+}
+
 // PostgresEngine implements the querier EnginePort for PostgreSQL.
 type PostgresEngine struct {
 	// functions holds the built-in PostgreSQL function catalogue plus any extra signatures
@@ -244,9 +295,8 @@ type PostgresEngine struct {
 //
 // Returns *PostgresEngine which is the configured engine adapter.
 func NewPostgresEngine(options ...Option) *PostgresEngine {
-	dialect := PostgresDialect{
-		Name: "postgres",
-	}
+	dialect := PostgresDialect{}
+	dialect.Name = "postgres"
 	for _, option := range options {
 		option(&dialect)
 	}
@@ -328,6 +378,16 @@ func statementSpanLength(statementTokens [][]token, sliceIndex int, location int
 type ddlHandler func(*parser, *PostgresEngine) (*querier_dto.CatalogueMutation, error)
 
 var (
+	// statementAnalysers dispatches each DML statement kind to the parser routine that
+	// analyses it.
+	statementAnalysers = [statementKindCount]func(*parser) (*querier_dto.RawQueryAnalysis, error){
+		statementKindSelect: (*parser).analyseSelect,
+		statementKindInsert: (*parser).analyseInsert,
+		statementKindUpdate: (*parser).analyseUpdate,
+		statementKindDelete: (*parser).analyseDelete,
+		statementKindValues: (*parser).analyseValues,
+	}
+
 	// ddlHandlers dispatches each DDL statement kind to the parser routine that produces the
 	// corresponding catalogue mutation.
 	ddlHandlers = [statementKindCount]ddlHandler{
@@ -383,13 +443,13 @@ var (
 
 // ApplyDDL applies a DDL statement to the catalogue for the PostgreSQL dialect.
 //
-// It wraps the per-statement handler with a panic recovery so a malformed statement (e.g.
-// an incomplete multi-action ALTER TABLE that trips a mustKeyword helper inside the
-// parser) becomes a wrapped error rather than crashing the calling apply loop. The
-// recovered stack is logged at warn level so operators can diagnose the inner bug while
-// the returned error stays free of internal symbol paths that have no value to the webdev
-// consuming the diagnostic. It honours ctx.Err() before dispatch so a long-running
-// catalogue build can be cancelled by the caller.
+// A malformed statement is reported as a returned syntax error. The per-statement handler
+// is also wrapped with a panic recovery so a parser bug becomes an error rather than
+// crashing the calling apply loop; the recovered stack is logged once at warn level so
+// operators can diagnose it while the returned error stays free of internal symbol paths.
+// It honours ctx.Err() before dispatch so a long-running catalogue build can be cancelled
+// by the caller, and rejects a statement over the per-statement token budget before the
+// parser walks it.
 //
 // Takes statement (querier_dto.ParsedStatement) which is the DDL statement to apply.
 //
@@ -422,10 +482,19 @@ func (engine *PostgresEngine) ApplyDDL(
 		return nil, ctxErr
 	}
 
+	if engine.hasDDLHandler(parsed) {
+		if budgetErr := engine.dialect.checkTokenBudget(len(parsed.tokens)); budgetErr != nil {
+			return nil, budgetErr
+		}
+	}
+
 	p := newParser(parsed.tokens)
 	p.maxParseDepth = engine.dialect.resolvedMaxParseDepth()
 
 	mutation, err = engine.dispatchDDL(p, parsed)
+	if p.syntax.err != nil {
+		return nil, p.syntax.err
+	}
 	if err != nil {
 		return mutation, err
 	}
@@ -445,15 +514,16 @@ func (engine *PostgresEngine) ApplyDDL(
 // AnalyseQuery performs structural analysis of a DML statement for the PostgreSQL
 // dialect.
 //
-// It wraps the per-statement analyser with a panic recovery so a malformed statement that
-// trips a parser invariant becomes a wrapped error rather than crashing the calling
-// analyser.
+// A malformed statement is reported as a returned syntax error. The per-statement
+// analyser is also wrapped with a panic recovery so a parser bug becomes an error rather
+// than crashing the calling analyser; the recovered stack is logged once at warn level. A
+// statement over the per-statement token budget is rejected before the parser walks it.
 //
 // Takes statement (querier_dto.ParsedStatement) which is the DML statement to analyse.
 //
 // Returns analysis (*querier_dto.RawQueryAnalysis) which describes the query structure.
-// Returns error which is non-nil when the statement type is unexpected or analysis
-// panics.
+// Returns error which is non-nil when the statement type is unexpected, the statement is
+// malformed or over budget, or analysis panics.
 func (engine *PostgresEngine) AnalyseQuery(
 	_ *querier_dto.Catalogue,
 	statement querier_dto.ParsedStatement,
@@ -475,23 +545,22 @@ func (engine *PostgresEngine) AnalyseQuery(
 		}
 	}()
 
+	if int(parsed.kind) >= len(statementAnalysers) || statementAnalysers[parsed.kind] == nil {
+		return &querier_dto.RawQueryAnalysis{}, nil
+	}
+	analyser := statementAnalysers[parsed.kind]
+	if budgetErr := engine.dialect.checkTokenBudget(len(parsed.tokens)); budgetErr != nil {
+		return nil, budgetErr
+	}
+
 	p := newParser(parsed.tokens)
 	p.maxParseDepth = engine.dialect.resolvedMaxParseDepth()
 
-	switch parsed.kind {
-	case statementKindSelect:
-		return p.analyseSelect()
-	case statementKindInsert:
-		return p.analyseInsert()
-	case statementKindUpdate:
-		return p.analyseUpdate()
-	case statementKindDelete:
-		return p.analyseDelete()
-	case statementKindValues:
-		return p.analyseValues()
-	default:
-		return &querier_dto.RawQueryAnalysis{}, nil
+	analysis, err = analyser(p)
+	if p.syntax.err != nil {
+		return nil, p.syntax.err
 	}
+	return analysis, err
 }
 
 // RewriteSelectAsCount delegates to the shared SELECT->COUNT(*) rewriter.
@@ -847,6 +916,19 @@ func (*PostgresEngine) ResolveFunctionCall(
 // when the extension is unknown.
 func (*PostgresEngine) LoadExtensionFunctions(name string) []*querier_dto.FunctionSignature {
 	return lookupExtensionFunctions(name)
+}
+
+// hasDDLHandler reports whether a built-in handler or the owning extension will parse the
+// statement, so the token budget is only charged to statements the parser walks.
+//
+// Takes parsed (*parsedStatement) which is the classified statement.
+//
+// Returns bool which is true when dispatchDDL would invoke a parser for the statement.
+func (engine *PostgresEngine) hasDDLHandler(parsed *parsedStatement) bool {
+	if parsed.kind < StatementKindExtensionBase {
+		return int(parsed.kind) < len(ddlHandlers) && ddlHandlers[parsed.kind] != nil
+	}
+	return parsed.extensionOwner >= 0 && parsed.extensionOwner < len(engine.dialect.StatementExtensions)
 }
 
 // dispatchDDL routes a parsed statement to its handler.

@@ -558,11 +558,9 @@ func TestConcurrentRegistration(t *testing.T) {
 	const numGoroutines = 10
 
 	var wg sync.WaitGroup
-	wg.Add(numGoroutines)
 
-	for i := range numGoroutines {
-		go func(index int) {
-			defer wg.Done()
+	for index := range numGoroutines {
+		wg.Go(func() {
 
 			providerName := fmt.Sprintf("provider-%d", index)
 			provider := newMockTestProvider(providerName)
@@ -571,7 +569,7 @@ func TestConcurrentRegistration(t *testing.T) {
 			if err != nil {
 				t.Errorf("failed to register provider %q: %v", providerName, err)
 			}
-		}(i)
+		})
 	}
 
 	wg.Wait()
@@ -596,17 +594,15 @@ func TestConcurrentGetProviders(t *testing.T) {
 	const numGoroutines = 20
 
 	var wg sync.WaitGroup
-	wg.Add(numGoroutines)
 
 	for range numGoroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 
 			providers := service.GetProviders()
 			if len(providers) != 5 {
 				t.Errorf("expected 5 providers, got %d", len(providers))
 			}
-		}()
+		})
 	}
 
 	wg.Wait()

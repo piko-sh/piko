@@ -25,7 +25,7 @@ import (
 	"slices"
 	"strings"
 
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 

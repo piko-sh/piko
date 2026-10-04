@@ -833,7 +833,7 @@ func TestResolveWindowFunctionExpression(t *testing.T) {
 		t.Parallel()
 
 		resolver, scope := newExpressionTestResolver(t)
-		expr := &querier_dto.WindowFunctionExpression{Function: nil}
+		expr := &querier_dto.WindowFunctionExpression{}
 		_, _, err := resolver.resolveWindowFunctionExpression(expr, scope, new(false))
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "Q030")
@@ -903,9 +903,7 @@ func TestResolveScalarSubqueryExpression(t *testing.T) {
 		t.Parallel()
 
 		resolver, scope := newExpressionTestResolver(t)
-		expr := &querier_dto.ScalarSubqueryExpression{
-			InnerQuery: nil,
-		}
+		expr := &querier_dto.ScalarSubqueryExpression{}
 
 		sqlType, nullable, err := resolver.resolveExpressionType(expr, scope, new(false))
 
@@ -919,9 +917,7 @@ func TestResolveScalarSubqueryExpression(t *testing.T) {
 
 		resolver, scope := newExpressionTestResolver(t)
 		expr := &querier_dto.ScalarSubqueryExpression{
-			InnerQuery: &querier_dto.RawQueryAnalysis{
-				OutputColumns: nil,
-			},
+			InnerQuery: &querier_dto.RawQueryAnalysis{},
 		}
 
 		sqlType, nullable, err := resolver.resolveExpressionType(expr, scope, new(false))

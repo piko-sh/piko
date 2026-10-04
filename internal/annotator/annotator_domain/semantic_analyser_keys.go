@@ -246,7 +246,7 @@ func (*KeyAnalyser) appendIndexToKeyParts(
 			Expression:       nil,
 			Literal:          ".",
 			IsLiteral:        true,
-			RelativeLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0},
+			RelativeLocation: ast_domain.Location{},
 		})
 	}
 
@@ -254,7 +254,7 @@ func (*KeyAnalyser) appendIndexToKeyParts(
 		Expression:       indexVariable,
 		Literal:          "",
 		IsLiteral:        false,
-		RelativeLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0},
+		RelativeLocation: ast_domain.Location{},
 	})
 
 	return newKeyParts
@@ -305,15 +305,15 @@ func (*KeyAnalyser) extractPathPartsForNestedLoop(keyExpr ast_domain.Expression)
 
 	switch v := keyExpr.(type) {
 	case *ast_domain.StringLiteral:
-		return []ast_domain.TemplateLiteralPart{{Expression: nil, Literal: v.Value, IsLiteral: true, RelativeLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0}}}
+		return []ast_domain.TemplateLiteralPart{{Expression: nil, Literal: v.Value, IsLiteral: true, RelativeLocation: ast_domain.Location{}}}
 	case *ast_domain.TemplateLiteral:
 		parts := make([]ast_domain.TemplateLiteralPart, len(v.Parts))
 		copy(parts, v.Parts)
 		return parts
 	case *ast_domain.Identifier:
-		return []ast_domain.TemplateLiteralPart{{Expression: v, Literal: "", IsLiteral: false, RelativeLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0}}}
+		return []ast_domain.TemplateLiteralPart{{Expression: v, Literal: "", IsLiteral: false, RelativeLocation: ast_domain.Location{}}}
 	default:
-		return []ast_domain.TemplateLiteralPart{{Expression: v, Literal: "", IsLiteral: false, RelativeLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0}}}
+		return []ast_domain.TemplateLiteralPart{{Expression: v, Literal: "", IsLiteral: false, RelativeLocation: ast_domain.Location{}}}
 	}
 }
 
@@ -357,7 +357,7 @@ func (*KeyAnalyser) extractPathPartsFromKey(keyExpr ast_domain.Expression) []ast
 
 	switch v := keyExpr.(type) {
 	case *ast_domain.StringLiteral:
-		return []ast_domain.TemplateLiteralPart{{Expression: nil, Literal: v.Value, IsLiteral: true, RelativeLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0}}}
+		return []ast_domain.TemplateLiteralPart{{Expression: nil, Literal: v.Value, IsLiteral: true, RelativeLocation: ast_domain.Location{}}}
 	case *ast_domain.TemplateLiteral:
 		if len(v.Parts) == 0 {
 			return nil
@@ -373,7 +373,7 @@ func (*KeyAnalyser) extractPathPartsFromKey(keyExpr ast_domain.Expression) []ast
 	case *ast_domain.Identifier:
 		return nil
 	default:
-		return []ast_domain.TemplateLiteralPart{{Expression: v, Literal: "", IsLiteral: false, RelativeLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0}}}
+		return []ast_domain.TemplateLiteralPart{{Expression: v, Literal: "", IsLiteral: false, RelativeLocation: ast_domain.Location{}}}
 	}
 }
 
@@ -650,7 +650,7 @@ func createIndexVariableIdentifier(name string, typeInfo *ast_domain.ResolvedTyp
 	identifier := &ast_domain.Identifier{
 		GoAnnotations:    nil,
 		Name:             name,
-		RelativeLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0},
+		RelativeLocation: ast_domain.Location{},
 		SourceLength:     0,
 	}
 	identifier.GoAnnotations = &ast_domain.GoGeneratorAnnotation{
@@ -680,6 +680,8 @@ func createIndexVariableIdentifier(name string, typeInfo *ast_domain.ResolvedTyp
 		IsCollectionCall:        false,
 		IsHybridCollection:      false,
 		IsMapAccess:             false,
+		IsTypeInstantiation:     false,
+		IsFullyPrerenderable:    false,
 	}
 	return identifier
 }
@@ -707,34 +709,7 @@ func needsDotSeparator(pathParts []ast_domain.TemplateLiteralPart) bool {
 // Returns *ast_domain.GoGeneratorAnnotation which has the resolved type set to string.
 // All other fields are set to their zero values.
 func createStringTypeAnnotation() *ast_domain.GoGeneratorAnnotation {
-	return &ast_domain.GoGeneratorAnnotation{
-		EffectiveKeyExpression:  nil,
-		DynamicCollectionInfo:   nil,
-		StaticCollectionLiteral: nil,
-		ParentTypeName:          nil,
-		BaseCodeGenVarName:      nil,
-		GeneratedSourcePath:     nil,
-		DynamicAttributeOrigins: nil,
-		ResolvedType:            newSimpleTypeInfo(goast.NewIdent("string")),
-		Symbol:                  nil,
-		PartialInfo:             nil,
-		PropDataSource:          nil,
-		OriginalSourcePath:      nil,
-		OriginalPackageAlias:    nil,
-		FieldTag:                nil,
-		SourceInvocationKey:     nil,
-		StaticCollectionData:    nil,
-		Srcset:                  nil,
-		Stringability:           1,
-		IsStatic:                false,
-		NeedsCSRF:               false,
-		NeedsRuntimeSafetyCheck: false,
-		IsStructurallyStatic:    false,
-		IsPointerToStringable:   false,
-		IsCollectionCall:        false,
-		IsHybridCollection:      false,
-		IsMapAccess:             false,
-	}
+	return newAnnotationWithTypeAndStringability(newSimpleTypeInfo(goast.NewIdent(typeString)), int(inspector_dto.StringablePrimitive))
 }
 
 // findPositionInTemplateLiteral searches for a position part within a list of template
@@ -797,6 +772,6 @@ func extractPositionFromLiteral(lit string) []ast_domain.TemplateLiteralPart {
 		Expression:       nil,
 		Literal:          position,
 		IsLiteral:        true,
-		RelativeLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0},
+		RelativeLocation: ast_domain.Location{},
 	}}
 }

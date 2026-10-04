@@ -140,7 +140,9 @@ func (*DisabledCryptoService) DecryptStream(_ context.Context, _ io.Reader) (io.
 // Returns *EncryptBuilder which is configured with the disabled service.
 func (d *DisabledCryptoService) NewEncrypt() *EncryptBuilder {
 	return &EncryptBuilder{
-		service: d,
+		service:   d,
+		plaintext: "",
+		keyID:     "",
 	}
 }
 
@@ -149,7 +151,8 @@ func (d *DisabledCryptoService) NewEncrypt() *EncryptBuilder {
 // Returns *DecryptBuilder which is configured with the disabled service.
 func (d *DisabledCryptoService) NewDecrypt() *DecryptBuilder {
 	return &DecryptBuilder{
-		service: d,
+		service:    d,
+		ciphertext: "",
 	}
 }
 
@@ -158,7 +161,8 @@ func (d *DisabledCryptoService) NewDecrypt() *DecryptBuilder {
 // Returns *BatchEncryptBuilder which is set up with the disabled service.
 func (d *DisabledCryptoService) NewBatchEncrypt() *BatchEncryptBuilder {
 	return &BatchEncryptBuilder{
-		service: d,
+		service:    d,
+		plaintexts: nil,
 	}
 }
 
@@ -167,7 +171,8 @@ func (d *DisabledCryptoService) NewBatchEncrypt() *BatchEncryptBuilder {
 // Returns *BatchDecryptBuilder which is set up with the disabled service.
 func (d *DisabledCryptoService) NewBatchDecrypt() *BatchDecryptBuilder {
 	return &BatchDecryptBuilder{
-		service: d,
+		service:     d,
+		ciphertexts: nil,
 	}
 }
 
@@ -177,6 +182,8 @@ func (d *DisabledCryptoService) NewBatchDecrypt() *BatchDecryptBuilder {
 func (d *DisabledCryptoService) NewStreamEncrypt() *StreamEncryptBuilder {
 	return &StreamEncryptBuilder{
 		service: d,
+		output:  nil,
+		keyID:   "",
 	}
 }
 
@@ -186,6 +193,7 @@ func (d *DisabledCryptoService) NewStreamEncrypt() *StreamEncryptBuilder {
 func (d *DisabledCryptoService) NewStreamDecrypt() *StreamDecryptBuilder {
 	return &StreamDecryptBuilder{
 		service: d,
+		input:   nil,
 	}
 }
 

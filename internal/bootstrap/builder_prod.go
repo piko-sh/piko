@@ -30,15 +30,8 @@ import (
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/daemon/daemon_adapters"
 	"piko.sh/piko/internal/daemon/daemon_domain"
-	"piko.sh/piko/internal/fonts"
 	"piko.sh/piko/internal/i18n/i18n_domain"
-	"piko.sh/piko/internal/layouter/layouter_adapters"
-	"piko.sh/piko/internal/layouter/layouter_domain"
-	"piko.sh/piko/internal/layouter/layouter_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/internal/pdfwriter/pdfwriter_adapters"
-	"piko.sh/piko/internal/pdfwriter/pdfwriter_adapters/driven_svgwriter"
-	"piko.sh/piko/internal/pdfwriter/pdfwriter_domain"
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/shutdown"
 	"piko.sh/piko/internal/templater/templater_adapters"
@@ -171,7 +164,7 @@ func (b *prodDaemonBuilder) buildTemplater(ctx context.Context) error {
 	compiledRunner := templater_adapters.NewCompiledManifestRunner(b.store, b.i18nService, defaultLocale)
 
 	runner := compiledRunner
-	if astCacheService, cacheErr := b.bootstrapASTCacheService(ctx); cacheErr != nil {
+	if astCacheService, cacheErr := b.bootstrapASTCacheService(); cacheErr != nil {
 		l.Warn("AST cache unavailable; serving without it (templates recompile per render). Mount a writable .piko to enable caching.",
 			logger_domain.Error(cacheErr))
 	} else {
@@ -186,26 +179,7 @@ func (b *prodDaemonBuilder) buildTemplater(ctx context.Context) error {
 
 	b.templaterService = templater_domain.NewTemplaterService(runner, templater_adapters.NewDrivenRenderer(b.renderer), b.i18nService)
 	b.c.SetEmailTemplateService(templater_domain.NewEmailTemplateService(runner, templater_adapters.NewDrivenRenderer(b.renderer)))
-	fontEntries := []layouter_dto.FontEntry{
-		{Family: fonts.NotoSansFamilyName, Weight: fontWeightNormal, Style: int(layouter_domain.FontStyleNormal), Data: fonts.NotoSansRegularTTF},
-		{Family: fonts.NotoSansFamilyName, Weight: fontWeightBold, Style: int(layouter_domain.FontStyleNormal), Data: fonts.NotoSansBoldTTF},
-	}
-	fontMetrics, fontMetricsError := layouter_adapters.NewGoTextFontMetrics(fontEntries)
-	if fontMetricsError != nil {
-		return fmt.Errorf("failed to create font metrics for production: %w", fontMetricsError)
-	}
-
-	svgData := driven_svgwriter.NewRegistrySVGDataAdapter(b.c.GetRenderRegistry(), driven_svgwriter.NewDataURISVGDataAdapter())
-	imageResolver := driven_svgwriter.NewSVGImageResolver(&layouter_adapters.MockImageResolver{}, svgData)
-	b.c.SetPdfWriterService(pdfwriter_domain.NewPdfWriterService(
-		pdfwriter_adapters.NewTemplateRunnerAdapter(runner),
-		pdfwriter_adapters.NewLayouterAdapter(fontMetrics, imageResolver),
-		fontEntries,
-		nil,
-		fontMetrics,
-		pdfwriter_domain.WithSVGRenderer(driven_svgwriter.New(), svgData),
-	))
-	return nil
+	return setupPdfWriterService(b.c, runner, "production")
 }
 
 // buildRouter creates the HTTP handler for the application.
@@ -241,7 +215,14 @@ func (b *prodDaemonBuilder) buildFinalDaemon(ctx context.Context) (daemon_domain
 	}
 
 	lifecycleService, err := b.c.createLifecycleService(&lifecycleServiceConfig{
-		PathsConfig: NewLifecyclePathsConfig(&b.c.serverConfig),
+		PathsConfig:             NewLifecyclePathsConfig(&b.c.serverConfig),
+		WatcherAdapter:          nil,
+		RouterManager:           nil,
+		TemplaterService:        nil,
+		InterpretedOrchestrator: nil,
+		BuildCacheInvalidator:   nil,
+		DevEventNotifier:        nil,
+		Clock:                   nil,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create lifecycle service: %w", err)
@@ -252,32 +233,42 @@ func (b *prodDaemonBuilder) buildFinalDaemon(ctx context.Context) (daemon_domain
 		return nil, fmt.Errorf("failed to start lifecycle service: %w", err)
 	}
 
-	runInitialTasksInBackground(appCtx, l, lifecycleService)
+	runInitialTasksInBackground(appCtx, lifecycleService)
 
 	return daemon_domain.NewService(ctx, &daemon_domain.DaemonServiceDeps{
-		DaemonConfig:      daemonConfig,
-		WatchMode:         b.c.serverConfig.Build.WatchMode,
-		Server:            serverAdapter,
-		FinalRouter:       b.finalRouter,
-		SEOService:        seoService,
-		I18nLocales:       b.c.GetWebsiteConfig().I18n.Locales,
-		HealthServer:      healthServer,
-		HealthRouter:      healthRouter,
-		DrainSignaller:    drainSignaller,
-		TLSRedirectServer: newTLSRedirectServerIfConfigured(daemonConfig),
-		OnServerBound:     b.c.OnServerBound(),
-		OnHealthBound:     b.c.OnHealthBound(),
+		DaemonConfig:        daemonConfig,
+		WatchMode:           b.c.serverConfig.Build.WatchMode,
+		Server:              serverAdapter,
+		FinalRouter:         b.finalRouter,
+		SEOService:          seoService,
+		I18nLocales:         b.c.GetWebsiteConfig().I18n.Locales,
+		HealthServer:        healthServer,
+		HealthRouter:        healthRouter,
+		DrainSignaller:      drainSignaller,
+		TLSRedirectServer:   newTLSRedirectServerIfConfigured(daemonConfig),
+		OnServerBound:       b.c.OnServerBound(),
+		OnHealthBound:       b.c.OnHealthBound(),
+		OrchestratorService: nil,
+		SignalNotifier:      nil,
+		CoordinatorService:  nil,
 	}), nil
 }
 
-// bootstrapASTCacheService creates the AST cache service based on config. The AST cache
+// bootstrapASTCacheService creates the AST cache service based on config and starts its
+// background maintenance workers for the lifetime of the application. The AST cache
 // improves performance by storing the parsed component tree.
 //
 // Returns ast_domain.ASTCacheService which is the configured cache service.
-// Returns error when the cache service cannot be created.
-func (b *prodDaemonBuilder) bootstrapASTCacheService(ctx context.Context) (ast_domain.ASTCacheService, error) {
+// Returns error when the sandbox factory or the cache service cannot be created.
+func (b *prodDaemonBuilder) bootstrapASTCacheService() (ast_domain.ASTCacheService, error) {
+	sandboxFactory, err := b.c.GetSandboxFactory()
+	if err != nil {
+		return nil, fmt.Errorf("creating sandbox factory for the AST cache: %w", err)
+	}
+
 	serverConfig := b.c.serverConfig
 	astCacheConfig := ast_adapters.ASTCacheConfig{
+		SandboxFactory:  sandboxFactory,
 		L1CacheCapacity: config.DefaultL1CacheCapacity,
 		L1CacheTTL:      time.Duration(config.DefaultL1CacheTTLMinutes) * time.Minute,
 		L2CacheBaseDir: filepath.Join(
@@ -286,7 +277,12 @@ func (b *prodDaemonBuilder) bootstrapASTCacheService(ctx context.Context) (ast_d
 			config.L2CacheDirName,
 		),
 	}
-	return ast_adapters.NewASTCacheService(ctx, astCacheConfig)
+	service, err := ast_adapters.NewASTCacheService(astCacheConfig)
+	if err != nil {
+		return nil, fmt.Errorf("creating AST cache service: %w", err)
+	}
+	service.Start(b.c.GetAppContext())
+	return service, nil
 }
 
 // buildProdDaemon is the entry point for the production strategy. It creates and runs a
@@ -298,10 +294,9 @@ func (b *prodDaemonBuilder) bootstrapASTCacheService(ctx context.Context) (ast_d
 // Returns daemon_domain.DaemonService which is the assembled daemon service.
 // Returns error when the builder fails to assemble the daemon.
 func buildProdDaemon(ctx context.Context, c *Container, deps *Dependencies) (daemon_domain.DaemonService, error) {
-	builder := &prodDaemonBuilder{
-		c:    c,
-		deps: deps,
-	}
+	builder := &prodDaemonBuilder{}
+	builder.c = c
+	builder.deps = deps
 	return builder.build(ctx)
 }
 

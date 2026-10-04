@@ -1,0 +1,5 @@
+{
+  "description": "A page with an AuthPolicy requiring authentication redirects an unauthenticated browser request to the login page in interpreted mode, matching compiled mode.",
+  "requestURL": "/main",
+  "expectedStatus": 303
+}

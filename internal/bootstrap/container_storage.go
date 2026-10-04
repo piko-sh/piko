@@ -308,8 +308,9 @@ func (c *Container) selectDiskStorageProvider() (string, storage_domain.StorageP
 		return "", nil, fmt.Errorf("failed to create storage sandbox: %w", sandboxErr)
 	}
 	provider, err := provider_disk.NewDiskProvider(provider_disk.Config{
-		BaseDirectory: storageDir,
-		Sandbox:       storageSandbox,
+		BaseDirectory:  storageDir,
+		Sandbox:        storageSandbox,
+		SandboxFactory: nil,
 	})
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to initialise default disk storage provider: %w", err)

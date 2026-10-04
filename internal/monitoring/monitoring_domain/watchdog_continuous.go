@@ -159,11 +159,11 @@ func (w *Watchdog) captureAndStoreRoutineProfile(ctx context.Context, profileTyp
 		return
 	}
 
-	w.writeSidecarMetadata(ctx, prefixed, timestamp, captureContext{Rule: "routine"})
+	w.writeSidecarMetadata(ctx, prefixed, timestamp, captureContext{Rule: "routine", Observed: 0, Threshold: 0})
 	watchdogRoutineProfileCaptureCount.Add(ctx, 1)
 
 	if w.config.ContinuousProfilingUpload {
-		w.uploadProfile(ctx, profileType, profileData, captureContext{Rule: "routine"})
+		w.uploadProfile(ctx, profileType, profileData, captureContext{Rule: "routine", Observed: 0, Threshold: 0})
 	}
 
 	if w.config.ContinuousProfilingNotify {

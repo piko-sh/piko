@@ -20,10 +20,13 @@ package markdown_provider_goldmark
 
 import (
 	"context"
+	"errors"
+	"strings"
 	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHTMLConverter_Singleton(t *testing.T) {
@@ -136,7 +139,8 @@ func TestToHTML_SafeMode(t *testing.T) {
 
 	t.Run("OmitsRawHTML", func(t *testing.T) {
 		input := `Hello <script>alert('xss')</script> World`
-		result := ToHTML(context.Background(), input)
+		result, err := ToHTML(context.Background(), input)
+		require.NoError(t, err)
 
 		assert.NotContains(t, result, "<script>")
 		assert.Contains(t, result, "<!-- raw HTML omitted -->")
@@ -146,7 +150,8 @@ func TestToHTML_SafeMode(t *testing.T) {
 
 	t.Run("OmitsIframe", func(t *testing.T) {
 		input := `Before <iframe src="evil.com"></iframe> After`
-		result := ToHTML(context.Background(), input)
+		result, err := ToHTML(context.Background(), input)
+		require.NoError(t, err)
 
 		assert.NotContains(t, result, "<iframe")
 		assert.Contains(t, result, "<!-- raw HTML omitted -->")
@@ -160,7 +165,8 @@ func TestToHTML_UnsafeMode(t *testing.T) {
 
 	t.Run("PreservesRawHTML", func(t *testing.T) {
 		input := `Hello <span class="highlight">styled</span> World`
-		result := ToHTML(context.Background(), input, WithUnsafe())
+		result, err := ToHTML(context.Background(), input, WithUnsafe())
+		require.NoError(t, err)
 
 		assert.Contains(t, result, `<span class="highlight">styled</span>`)
 		assert.Contains(t, result, "Hello")
@@ -169,7 +175,8 @@ func TestToHTML_UnsafeMode(t *testing.T) {
 
 	t.Run("PreservesScript", func(t *testing.T) {
 		input := `Before <script>console.log('test')</script> After`
-		result := ToHTML(context.Background(), input, WithUnsafe())
+		result, err := ToHTML(context.Background(), input, WithUnsafe())
+		require.NoError(t, err)
 
 		assert.Contains(t, result, "<script>")
 		assert.Contains(t, result, "console.log")
@@ -181,7 +188,8 @@ func TestToHTMLBytes_SafeMode(t *testing.T) {
 
 	t.Run("OmitsRawHTML", func(t *testing.T) {
 		input := []byte(`Hello <script>alert('xss')</script> World`)
-		result := ToHTMLBytes(context.Background(), input)
+		result, err := ToHTMLBytes(context.Background(), input)
+		require.NoError(t, err)
 
 		assert.NotContains(t, string(result), "<script>")
 		assert.Contains(t, string(result), "<!-- raw HTML omitted -->")
@@ -193,8 +201,56 @@ func TestToHTMLBytes_UnsafeMode(t *testing.T) {
 
 	t.Run("PreservesRawHTML", func(t *testing.T) {
 		input := []byte(`Hello <span class="highlight">styled</span> World`)
-		result := ToHTMLBytes(context.Background(), input, WithUnsafe())
+		result, err := ToHTMLBytes(context.Background(), input, WithUnsafe())
+		require.NoError(t, err)
 
 		assert.Contains(t, string(result), `<span class="highlight">styled</span>`)
 	})
+}
+
+func TestToHTML_InputLimits(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		wantErr error
+		name    string
+		input   string
+		options []HTMLConverterOption
+	}{
+		{name: "a document within the limits converts", input: "> quoted\n- item"},
+		{name: "a document over the size limit is rejected", input: "too long", options: []HTMLConverterOption{WithHTMLMaxInputSize(4)}, wantErr: ErrInputTooLarge},
+		{name: "a document over the default size is rejected", input: strings.Repeat("a", defaultMaxInputSize+1), wantErr: ErrInputTooLarge},
+		{name: "deep nesting is rejected", input: strings.Repeat(">", 100_000) + " deep", wantErr: ErrNestingTooDeep},
+		{name: "nesting past a custom limit is rejected", input: "> > > x", options: []HTMLConverterOption{WithHTMLMaxNestingDepth(2)}, wantErr: ErrNestingTooDeep},
+		{name: "limits below one keep the defaults", input: "> > > x", options: []HTMLConverterOption{WithHTMLMaxInputSize(0), WithHTMLMaxNestingDepth(-1)}},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			result, err := ToHTML(context.Background(), tc.input, tc.options...)
+
+			if tc.wantErr == nil {
+				require.NoError(t, err)
+				assert.Contains(t, result, "<blockquote>")
+				return
+			}
+			require.ErrorIs(t, err, tc.wantErr)
+			assert.Empty(t, result)
+		})
+	}
+}
+
+func TestToHTMLBytes_CancelledContext(t *testing.T) {
+	t.Parallel()
+
+	errStopped := errors.New("render abandoned")
+	ctx, cancel := context.WithCancelCause(context.Background())
+	cancel(errStopped)
+
+	result, err := ToHTMLBytes(ctx, []byte("# Title"))
+
+	require.ErrorIs(t, err, errStopped)
+	assert.Nil(t, result)
 }

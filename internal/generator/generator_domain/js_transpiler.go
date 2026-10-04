@@ -72,7 +72,7 @@ func NewJSTranspiler() *JSTranspiler {
 // Returns error when parsing the TypeScript source fails.
 func (*JSTranspiler) Transpile(_ context.Context, source string, opts TranspileOptions) (*TranspileResult, error) {
 	if source == "" {
-		return &TranspileResult{Code: ""}, nil
+		return &TranspileResult{}, nil
 	}
 
 	parseLog := logger.NewDeferLog(logger.DeferLogAll, nil)

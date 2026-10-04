@@ -97,9 +97,11 @@ var (
 
 // NewTelemetryOverviewPanel constructs the panel.
 //
-// Takes health (HealthProvider), traces (TracesProvider) which may each be nil; missing
-// providers fall back to placeholder rows. Takes c (clock.Clock); nil falls back to the
-// real clock.
+// Takes health (HealthProvider) which provides health data, or is nil to show placeholder
+// rows.
+// Takes traces (TracesProvider) which provides trace data, or is nil to show placeholder
+// rows.
+// Takes c (clock.Clock) which provides the clock, or is nil to use the real clock.
 //
 // Returns *TelemetryOverviewPanel ready to register with the group.
 func NewTelemetryOverviewPanel(health HealthProvider, traces TracesProvider, c clock.Clock) *TelemetryOverviewPanel {
@@ -112,6 +114,9 @@ func NewTelemetryOverviewPanel(health HealthProvider, traces TracesProvider, c c
 		healthProvider: health,
 		tracesProvider: traces,
 		stateMutex:     sync.RWMutex{},
+		lastRefresh:    time.Time{},
+		last:           telemetryOverviewMessage{},
+		hasData:        false,
 	}
 	p.SetKeyMap([]KeyBinding{{Key: "r", Description: "Refresh"}})
 	return p
@@ -178,7 +183,7 @@ func (p *TelemetryOverviewPanel) tileBody() inspector.DetailBody {
 	defer p.stateMutex.RUnlock()
 
 	if !p.hasData {
-		return inspector.DetailBody{Title: "Telemetry", Subtitle: "fetching..."}
+		return inspector.DetailBody{Title: "Telemetry", Subtitle: "fetching...", Sections: nil}
 	}
 
 	livenessLabel := "-"
@@ -197,14 +202,15 @@ func (p *TelemetryOverviewPanel) tileBody() inspector.DetailBody {
 	}
 
 	rows := []inspector.DetailRow{
-		{Label: "Liveness", Value: livenessLabel},
-		{Label: "Readiness", Value: readinessLabel},
-		{Label: "Spans (recent)", Value: formatInt(p.last.totalSpans)},
-		{Label: "Errors", Value: formatInt(p.last.errorSpans)},
+		inspector.NewDetailRow("Liveness", livenessLabel),
+		inspector.NewDetailRow("Readiness", readinessLabel),
+		inspector.NewDetailRow("Spans (recent)", formatInt(p.last.totalSpans)),
+		inspector.NewDetailRow("Errors", formatInt(p.last.errorSpans)),
 	}
 	return inspector.DetailBody{
 		Title:    "Telemetry",
-		Sections: []inspector.DetailSection{{Heading: "At a glance", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("At a glance", rows)},
+		Subtitle: "",
 	}
 }
 
@@ -218,34 +224,35 @@ func (p *TelemetryOverviewPanel) detailBody() inspector.DetailBody {
 	defer p.stateMutex.RUnlock()
 
 	if !p.hasData {
-		return inspector.DetailBody{Title: "Telemetry overview", Subtitle: "fetching..."}
+		return inspector.DetailBody{Title: "Telemetry overview", Subtitle: "fetching...", Sections: nil}
 	}
 
 	rows := []inspector.DetailRow{}
 	if p.last.liveness != nil {
-		rows = append(rows, inspector.DetailRow{Label: "Liveness", Value: p.last.liveness.State.String()})
+		rows = append(rows, inspector.NewDetailRow("Liveness", p.last.liveness.State.String()))
 	} else if p.last.livenessErr != nil {
-		rows = append(rows, inspector.DetailRow{Label: "Liveness", Value: "error: " + p.last.livenessErr.Error()})
+		rows = append(rows, inspector.NewDetailRow("Liveness", "error: "+p.last.livenessErr.Error()))
 	}
 	if p.last.readiness != nil {
-		rows = append(rows, inspector.DetailRow{Label: "Readiness", Value: p.last.readiness.State.String()})
+		rows = append(rows, inspector.NewDetailRow("Readiness", p.last.readiness.State.String()))
 	} else if p.last.readinessErr != nil {
-		rows = append(rows, inspector.DetailRow{Label: "Readiness", Value: "error: " + p.last.readinessErr.Error()})
+		rows = append(rows, inspector.NewDetailRow("Readiness", "error: "+p.last.readinessErr.Error()))
 	}
 	rows = append(rows,
-		inspector.DetailRow{Label: "Recent spans", Value: formatInt(p.last.totalSpans)},
-		inspector.DetailRow{Label: "Error spans", Value: formatInt(p.last.errorSpans)},
+		inspector.NewDetailRow("Recent spans", formatInt(p.last.totalSpans)),
+		inspector.NewDetailRow("Error spans", formatInt(p.last.errorSpans)),
 	)
 	if !p.lastRefresh.IsZero() {
-		rows = append(rows, inspector.DetailRow{Label: "Last refresh", Value: p.lastRefresh.Format(time.RFC3339)})
+		rows = append(rows, inspector.NewDetailRow("Last refresh", p.lastRefresh.Format(time.RFC3339)))
 	}
 	if p.last.err != nil {
-		rows = append(rows, inspector.DetailRow{Label: "Error", Value: p.last.err.Error()})
+		rows = append(rows, inspector.NewDetailRow("Error", p.last.err.Error()))
 	}
 
 	return inspector.DetailBody{
 		Title:    "Telemetry overview",
-		Sections: []inspector.DetailSection{{Heading: "Status", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Status", rows)},
+		Subtitle: "",
 	}
 }
 

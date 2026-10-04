@@ -299,7 +299,8 @@ func (a *ArtefactMeta) ComputeStatus() VariantStatus {
 
 // Clone returns a deep copy that shares no mutable state with the original.
 //
-// Returns *ArtefactMeta which is an independent copy, or nil when the receiver is nil.
+// Returns *ArtefactMeta which is an independent copy, or nil when the receiver is nil. A
+// nil slice stays nil, so a clone compares equal to its original.
 func (a *ArtefactMeta) Clone() *ArtefactMeta {
 	if a == nil {
 		return nil
@@ -307,26 +308,45 @@ func (a *ArtefactMeta) Clone() *ArtefactMeta {
 
 	clone := *a
 
-	clone.ActualVariants = make([]Variant, len(a.ActualVariants))
-	for i := range a.ActualVariants {
-		variant := a.ActualVariants[i]
-		variant.MetadataTags = a.ActualVariants[i].MetadataTags.Clone()
-		variant.Transform.Params = a.ActualVariants[i].Transform.Params.Clone()
-		if a.ActualVariants[i].Chunks != nil {
-			variant.Chunks = make([]VariantChunk, len(a.ActualVariants[i].Chunks))
-			copy(variant.Chunks, a.ActualVariants[i].Chunks)
+	if a.ActualVariants != nil {
+		clone.ActualVariants = make([]Variant, len(a.ActualVariants))
+		for i := range a.ActualVariants {
+			clone.ActualVariants[i] = a.ActualVariants[i].clone()
 		}
-		clone.ActualVariants[i] = variant
 	}
 
-	clone.DesiredProfiles = make([]NamedProfile, len(a.DesiredProfiles))
-	for i := range a.DesiredProfiles {
-		profile := a.DesiredProfiles[i]
-		profile.Profile.Params = a.DesiredProfiles[i].Profile.Params.Clone()
-		profile.Profile.ResultingTags = a.DesiredProfiles[i].Profile.ResultingTags.Clone()
-		profile.Profile.DependsOn = a.DesiredProfiles[i].Profile.DependsOn.Clone()
-		clone.DesiredProfiles[i] = profile
+	if a.DesiredProfiles != nil {
+		clone.DesiredProfiles = make([]NamedProfile, len(a.DesiredProfiles))
+		for i := range a.DesiredProfiles {
+			profile := a.DesiredProfiles[i]
+			profile.Profile.Params = a.DesiredProfiles[i].Profile.Params.Clone()
+			profile.Profile.ResultingTags = a.DesiredProfiles[i].Profile.ResultingTags.Clone()
+			profile.Profile.DependsOn = a.DesiredProfiles[i].Profile.DependsOn.Clone()
+			clone.DesiredProfiles[i] = profile
+		}
 	}
 
 	return &clone
+}
+
+// clone returns a deep copy of the variant, including its chunks' duration pointers.
+//
+// Returns Variant which shares no mutable state with the receiver.
+func (v *Variant) clone() Variant {
+	variant := *v
+	variant.MetadataTags = v.MetadataTags.Clone()
+	variant.Transform.Params = v.Transform.Params.Clone()
+
+	if v.Chunks != nil {
+		variant.Chunks = make([]VariantChunk, len(v.Chunks))
+		for i := range v.Chunks {
+			chunk := v.Chunks[i]
+			if chunk.DurationSeconds != nil {
+				chunk.DurationSeconds = new(*chunk.DurationSeconds)
+			}
+			variant.Chunks[i] = chunk
+		}
+	}
+
+	return variant
 }

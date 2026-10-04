@@ -86,17 +86,15 @@ func TestCookieAccumulator_ConcurrentAccess(t *testing.T) {
 	const numGoroutines = 50
 
 	var wg sync.WaitGroup
-	wg.Add(numGoroutines)
 
-	for i := range numGoroutines {
-		go func(idx int) {
-			defer wg.Done()
+	for idx := range numGoroutines {
+		wg.Go(func() {
 			acc.Add(&http.Cookie{
 				Name:  "cookie",
 				Value: "value",
 			})
 			_ = idx
-		}(i)
+		})
 	}
 
 	wg.Wait()

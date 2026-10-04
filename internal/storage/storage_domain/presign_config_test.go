@@ -74,10 +74,8 @@ func TestPresignConfig_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "zero DefaultExpiry gets default",
-			config: PresignConfig{
-				DefaultExpiry: 0,
-			},
+			name:    "zero DefaultExpiry gets default",
+			config:  PresignConfig{},
 			wantErr: false,
 			checkFunc: func(t *testing.T, config *PresignConfig) {
 				if config.DefaultExpiry != DefaultPresignExpiry {
@@ -98,10 +96,8 @@ func TestPresignConfig_Validate(t *testing.T) {
 			},
 		},
 		{
-			name: "zero MaxExpiry gets default",
-			config: PresignConfig{
-				MaxExpiry: 0,
-			},
+			name:    "zero MaxExpiry gets default",
+			config:  PresignConfig{},
 			wantErr: false,
 			checkFunc: func(t *testing.T, config *PresignConfig) {
 				if config.MaxExpiry != MaxPresignExpiry {
@@ -123,10 +119,8 @@ func TestPresignConfig_Validate(t *testing.T) {
 			},
 		},
 		{
-			name: "zero DefaultMaxSize gets default",
-			config: PresignConfig{
-				DefaultMaxSize: 0,
-			},
+			name:    "zero DefaultMaxSize gets default",
+			config:  PresignConfig{},
 			wantErr: false,
 			checkFunc: func(t *testing.T, config *PresignConfig) {
 				if config.DefaultMaxSize != DefaultPresignMaxSize {
@@ -135,10 +129,8 @@ func TestPresignConfig_Validate(t *testing.T) {
 			},
 		},
 		{
-			name: "zero MaxMaxSize gets default",
-			config: PresignConfig{
-				MaxMaxSize: 0,
-			},
+			name:    "zero MaxMaxSize gets default",
+			config:  PresignConfig{},
 			wantErr: false,
 			checkFunc: func(t *testing.T, config *PresignConfig) {
 				if config.MaxMaxSize != MaxPresignMaxSize {
@@ -199,9 +191,7 @@ func TestPresignConfig_Validate(t *testing.T) {
 
 func TestPresignConfig_EnsureSecret(t *testing.T) {
 	t.Run("generates secret when nil", func(t *testing.T) {
-		config := PresignConfig{
-			Secret: nil,
-		}
+		config := PresignConfig{}
 
 		err := config.EnsureSecret()
 		if err != nil {

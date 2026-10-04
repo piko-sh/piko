@@ -30,6 +30,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/orchestrator/orchestrator_adapters"
 	orchestrator_otter "piko.sh/piko/internal/orchestrator/orchestrator_dal/otter"
@@ -112,9 +113,11 @@ func (e *controllableExecutor) getCallCount() int {
 type harnessOption func(*harnessConfig)
 
 type harnessConfig struct {
-	dispatcherConfig orchestrator_domain.DispatcherConfig
-	executors        map[string]*controllableExecutor
-	clock            clockpkg.Clock
+	dispatcherConfig     orchestrator_domain.DispatcherConfig
+	executors            map[string]*controllableExecutor
+	clock                clockpkg.Clock
+	wrapBridgeRegistry   func(registry_domain.RegistryService) registry_domain.RegistryService
+	deferDispatcherStart bool
 }
 
 func withMaxRetries(n int) harnessOption {
@@ -132,6 +135,24 @@ func withExecutor(name string, exec *controllableExecutor) harnessOption {
 func withClock(c clockpkg.Clock) harnessOption {
 	return func(config *harnessConfig) {
 		config.clock = c
+	}
+}
+
+func withBridgeRegistry(wrap func(registry_domain.RegistryService) registry_domain.RegistryService) harnessOption {
+	return func(config *harnessConfig) {
+		config.wrapBridgeRegistry = wrap
+	}
+}
+
+func withRecoverySweepInterval(interval time.Duration) harnessOption {
+	return func(config *harnessConfig) {
+		config.dispatcherConfig.RecoveryInterval = interval
+	}
+}
+
+func withDeferredDispatcherStart() harnessOption {
+	return func(config *harnessConfig) {
+		config.deferDispatcherStart = true
 	}
 }
 
@@ -242,8 +263,13 @@ func newPipelineHarness(t *testing.T, opts ...harnessOption) *pipelineHarness {
 		nil,
 	)
 
+	bridgeRegistry := h.registryService
+	if config.wrapBridgeRegistry != nil {
+		bridgeRegistry = config.wrapBridgeRegistry(h.registryService)
+	}
+
 	h.bridge = orchestrator_adapters.NewArtefactWorkflowBridge(
-		h.registryService,
+		bridgeRegistry,
 		nil,
 		h.dispatcher,
 		h.eventBus,
@@ -255,11 +281,9 @@ func newPipelineHarness(t *testing.T, opts ...harnessOption) *pipelineHarness {
 		wait()
 	})
 
-	h.wg.Go(func() {
-		_ = h.dispatcher.Start(ctx)
-	})
-
-	time.Sleep(100 * time.Millisecond)
+	if !config.deferDispatcherStart {
+		h.startDispatcher()
+	}
 
 	t.Cleanup(func() {
 		cancel()
@@ -270,6 +294,12 @@ func newPipelineHarness(t *testing.T, opts ...harnessOption) *pipelineHarness {
 	})
 
 	return h
+}
+
+func (h *pipelineHarness) startDispatcher() {
+	h.wg.Go(func() {
+		assert.NoError(h.t, h.dispatcher.Start(h.ctx))
+	})
 }
 
 func (h *pipelineHarness) waitForIdle(timeout time.Duration) bool {
@@ -292,6 +322,15 @@ func waitForCondition(timeout time.Duration, condition func() bool) bool {
 		time.Sleep(20 * time.Millisecond)
 	}
 	return false
+}
+
+func waitForSignal(t *testing.T, signal <-chan struct{}, message string) {
+	t.Helper()
+	select {
+	case <-signal:
+	case <-time.After(10 * time.Second):
+		require.FailNow(t, message)
+	}
 }
 
 func (h *pipelineHarness) advancePastRetry(attempt int) bool {
@@ -389,6 +428,7 @@ func withProductionConfig() harnessOption {
 		config.dispatcherConfig.WatermillHighHandlers = prod.WatermillHighHandlers
 		config.dispatcherConfig.WatermillNormalHandlers = prod.WatermillNormalHandlers
 		config.dispatcherConfig.WatermillLowHandlers = prod.WatermillLowHandlers
+		config.dispatcherConfig.SyncPersistence = prod.SyncPersistence
 	}
 }
 

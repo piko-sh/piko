@@ -88,8 +88,12 @@ type streamState struct {
 //
 // Spawns a goroutine to process the stream. The channel is closed when the stream ends or
 // the context is cancelled.
-func (p *mistralProvider) Stream(ctx context.Context, request *llm_dto.CompletionRequest) (<-chan llm_dto.StreamEvent, error) {
-	defer goroutine.RecoverPanic(ctx, "llm.mistralProvider.Stream")
+func (p *mistralProvider) Stream(ctx context.Context, request *llm_dto.CompletionRequest) (result <-chan llm_dto.StreamEvent, returnErr error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			result, returnErr = nil, goroutine.HandlePanicRecovery(ctx, "llm.mistralProvider.Stream", recovered)
+		}
+	}()
 
 	ctx, l := logger.From(ctx, log)
 	streamCount.Add(ctx, 1)
@@ -398,6 +402,7 @@ func (p *mistralProvider) processChunkChoices(ctx context.Context, events chan<-
 			Model:        chunk.Model,
 			Delta:        delta,
 			FinishReason: finishReason,
+			Usage:        nil,
 		}
 
 		p.extractUsage(chunk, streamChunk, state)
@@ -456,7 +461,7 @@ func (p *mistralProvider) buildToolCallDeltas(toolCalls []mistralToolCall, state
 //
 // Returns llm_dto.ToolCallDelta which contains the converted tool call delta.
 func (p *mistralProvider) buildSingleToolCallDelta(index int, tc mistralToolCall, state *streamState) llm_dto.ToolCallDelta {
-	tcd := llm_dto.ToolCallDelta{Index: index}
+	tcd := llm_dto.ToolCallDelta{Index: index, ID: nil, Type: nil, Function: nil}
 
 	if tc.ID != "" {
 		tcd.ID = new(tc.ID)
@@ -520,6 +525,8 @@ func (*mistralProvider) extractUsage(chunk *mistralStreamChunk, streamChunk *llm
 		PromptTokens:     chunk.Usage.PromptTokens,
 		CompletionTokens: chunk.Usage.CompletionTokens,
 		TotalTokens:      chunk.Usage.TotalTokens,
+		EstimatedCost:    nil,
+		CachedTokens:     0,
 	}
 	state.finalUsage = streamChunk.Usage
 }
@@ -550,9 +557,13 @@ func (*mistralProvider) sendEvent(ctx context.Context, events chan<- llm_dto.Str
 // Returns *llm_dto.CompletionResponse which contains the assembled response.
 func (*mistralProvider) buildFinalResponse(state *streamState) *llm_dto.CompletionResponse {
 	finalResponse := &llm_dto.CompletionResponse{
-		ID:    state.lastID,
-		Model: state.lastModel,
-		Usage: state.finalUsage,
+		ID:           state.lastID,
+		Model:        state.lastModel,
+		Usage:        state.finalUsage,
+		FallbackInfo: nil,
+		Choices:      nil,
+		Sources:      nil,
+		Created:      0,
 	}
 
 	if state.lastFinishReason != nil {
@@ -560,8 +571,12 @@ func (*mistralProvider) buildFinalResponse(state *streamState) *llm_dto.Completi
 			{
 				Index: 0,
 				Message: llm_dto.Message{
-					Role:      llm_dto.RoleAssistant,
-					ToolCalls: state.accumulatedToolCalls,
+					Role:         llm_dto.RoleAssistant,
+					ToolCalls:    state.accumulatedToolCalls,
+					Name:         nil,
+					ToolCallID:   nil,
+					Content:      "",
+					ContentParts: nil,
 				},
 				FinishReason: *state.lastFinishReason,
 			},

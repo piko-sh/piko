@@ -2043,7 +2043,7 @@ func TestAnalyseCompletionContext(t *testing.T) {
 		{
 			name:            "empty document returns scope trigger",
 			content:         "",
-			position:        protocol.Position{Line: 0, Character: 0},
+			position:        protocol.Position{},
 			expectedTrigger: triggerScope,
 		},
 		{
@@ -2264,12 +2264,9 @@ func TestCollectNodeDirectives(t *testing.T) {
 func TestProcessNodeDynamicAttrs(t *testing.T) {
 	t.Run("adds dynamic attribute expressions to range map", func(t *testing.T) {
 		expression := &ast_domain.Identifier{
-			Name:         "title",
-			SourceLength: 5,
-			RelativeLocation: ast_domain.Location{
-				Line:   0,
-				Column: 0,
-			},
+			Name:             "title",
+			SourceLength:     5,
+			RelativeLocation: ast_domain.Location{},
 		}
 		node := &ast_domain.TemplateNode{
 			DynamicAttributes: []ast_domain.DynamicAttribute{
@@ -2309,12 +2306,9 @@ func TestProcessNodeDynamicAttrs(t *testing.T) {
 func TestProcessNodeRichText(t *testing.T) {
 	t.Run("adds non-literal rich text expressions", func(t *testing.T) {
 		expression := &ast_domain.Identifier{
-			Name:         "userName",
-			SourceLength: 8,
-			RelativeLocation: ast_domain.Location{
-				Line:   0,
-				Column: 0,
-			},
+			Name:             "userName",
+			SourceLength:     8,
+			RelativeLocation: ast_domain.Location{},
 		}
 		node := &ast_domain.TemplateNode{
 			RichText: []ast_domain.TextPart{
@@ -2370,12 +2364,9 @@ func TestProcessNodeRichText(t *testing.T) {
 func TestProcessNodeDirectives(t *testing.T) {
 	t.Run("adds directive with non-synthetic location", func(t *testing.T) {
 		expression := &ast_domain.Identifier{
-			Name:         "visible",
-			SourceLength: 7,
-			RelativeLocation: ast_domain.Location{
-				Line:   0,
-				Column: 0,
-			},
+			Name:             "visible",
+			SourceLength:     7,
+			RelativeLocation: ast_domain.Location{},
 		}
 		node := &ast_domain.TemplateNode{
 			DirIf: &ast_domain.Directive{
@@ -2413,10 +2404,7 @@ func TestProcessNodeDirectives(t *testing.T) {
 					Line:   1,
 					Column: 1,
 				},
-				AttributeRange: ast_domain.Range{
-					Start: ast_domain.Location{Line: 0, Column: 0},
-					End:   ast_domain.Location{Line: 0, Column: 0},
-				},
+				AttributeRange: ast_domain.Range{},
 			},
 		}
 
@@ -2429,10 +2417,7 @@ func TestProcessNodeDirectives(t *testing.T) {
 	})
 
 	t.Run("skips nil directives", func(t *testing.T) {
-		node := &ast_domain.TemplateNode{
-			DirIf:   nil,
-			DirShow: nil,
-		}
+		node := &ast_domain.TemplateNode{}
 
 		rangeMap := make(map[ast_domain.Expression]protocol.Range)
 		processNodeDirectives(node, rangeMap)
@@ -2446,28 +2431,19 @@ func TestProcessNodeDirectives(t *testing.T) {
 func TestProcessExpressionsInNode(t *testing.T) {
 	t.Run("processes all expression types from a node", func(t *testing.T) {
 		dynExpr := &ast_domain.Identifier{
-			Name:         "title",
-			SourceLength: 5,
-			RelativeLocation: ast_domain.Location{
-				Line:   0,
-				Column: 0,
-			},
+			Name:             "title",
+			SourceLength:     5,
+			RelativeLocation: ast_domain.Location{},
 		}
 		dirExpr := &ast_domain.Identifier{
-			Name:         "isVisible",
-			SourceLength: 9,
-			RelativeLocation: ast_domain.Location{
-				Line:   0,
-				Column: 0,
-			},
+			Name:             "isVisible",
+			SourceLength:     9,
+			RelativeLocation: ast_domain.Location{},
 		}
 		richExpr := &ast_domain.Identifier{
-			Name:         "greeting",
-			SourceLength: 8,
-			RelativeLocation: ast_domain.Location{
-				Line:   0,
-				Column: 0,
-			},
+			Name:             "greeting",
+			SourceLength:     8,
+			RelativeLocation: ast_domain.Location{},
 		}
 
 		node := &ast_domain.TemplateNode{
@@ -2518,12 +2494,9 @@ func TestProcessExpressionsInNode(t *testing.T) {
 func TestAddExpressionTreeToRangeMap(t *testing.T) {
 	t.Run("adds single identifier expression", func(t *testing.T) {
 		expression := &ast_domain.Identifier{
-			Name:         "count",
-			SourceLength: 5,
-			RelativeLocation: ast_domain.Location{
-				Line:   0,
-				Column: 0,
-			},
+			Name:             "count",
+			SourceLength:     5,
+			RelativeLocation: ast_domain.Location{},
 		}
 		baseLocation := ast_domain.Location{Line: 3, Column: 10}
 		rangeMap := make(map[ast_domain.Expression]protocol.Range)
@@ -2545,12 +2518,9 @@ func TestAddExpressionTreeToRangeMap(t *testing.T) {
 
 	t.Run("adds member expression tree with base and property", func(t *testing.T) {
 		base := &ast_domain.Identifier{
-			Name:         "state",
-			SourceLength: 5,
-			RelativeLocation: ast_domain.Location{
-				Line:   0,
-				Column: 0,
-			},
+			Name:             "state",
+			SourceLength:     5,
+			RelativeLocation: ast_domain.Location{},
 		}
 		prop := &ast_domain.Identifier{
 			Name:         "name",
@@ -2561,13 +2531,10 @@ func TestAddExpressionTreeToRangeMap(t *testing.T) {
 			},
 		}
 		memberExpr := &ast_domain.MemberExpression{
-			Base:     base,
-			Property: prop,
-			RelativeLocation: ast_domain.Location{
-				Line:   0,
-				Column: 0,
-			},
-			SourceLength: 10,
+			Base:             base,
+			Property:         prop,
+			RelativeLocation: ast_domain.Location{},
+			SourceLength:     10,
 		}
 
 		baseLocation := ast_domain.Location{Line: 1, Column: 1}
@@ -2597,12 +2564,9 @@ func TestBuildExpressionRangeMap(t *testing.T) {
 
 	t.Run("collects expressions from matching document path", func(t *testing.T) {
 		expression := &ast_domain.Identifier{
-			Name:         "count",
-			SourceLength: 5,
-			RelativeLocation: ast_domain.Location{
-				Line:   0,
-				Column: 0,
-			},
+			Name:             "count",
+			SourceLength:     5,
+			RelativeLocation: ast_domain.Location{},
 		}
 		node := &ast_domain.TemplateNode{
 			TagName:  "div",
@@ -2694,12 +2658,9 @@ func TestBuildExpressionRangeMap(t *testing.T) {
 
 	t.Run("processes child nodes recursively", func(t *testing.T) {
 		childExpr := &ast_domain.Identifier{
-			Name:         "name",
-			SourceLength: 4,
-			RelativeLocation: ast_domain.Location{
-				Line:   0,
-				Column: 0,
-			},
+			Name:             "name",
+			SourceLength:     4,
+			RelativeLocation: ast_domain.Location{},
 		}
 		child := &ast_domain.TemplateNode{
 			TagName:  "span",

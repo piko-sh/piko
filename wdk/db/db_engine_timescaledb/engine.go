@@ -42,14 +42,18 @@ import (
 // MigrationDialect unchanged because TimescaleDB inherits postgres transactions, advisory
 // locks, and migration metadata tables.
 //
+// Takes options (...db_engine_postgres.Option) which apply after the TimescaleDB wiring,
+// for example db_engine_postgres.WithMaxTokensPerStatement or WithMaxParseDepth to tune
+// the parser limits.
+//
 // Returns *db_engine_postgres.PostgresEngine which is the wired TimescaleDB-flavoured
 // postgres engine.
-func NewTimescaleDBEngine() *db_engine_postgres.PostgresEngine {
-	return db_engine_postgres.NewPostgresEngine(
+func NewTimescaleDBEngine(options ...db_engine_postgres.Option) *db_engine_postgres.PostgresEngine {
+	return db_engine_postgres.NewPostgresEngine(append([]db_engine_postgres.Option{
 		db_engine_postgres.WithDialectName("timescaledb"),
 		db_engine_postgres.WithExtraTypes(timescaleDBTypes()),
 		db_engine_postgres.WithExtraFunctions(registerTimescaleDBFunctions),
 		db_engine_postgres.WithStatementExtensions(newTimescaleExtension()),
 		db_engine_postgres.WithPostParseHook(timescaleCreateTableHypertableHook),
-	)
+	}, options...)...)
 }

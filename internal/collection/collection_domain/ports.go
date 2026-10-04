@@ -655,9 +655,6 @@ type CollectionConfigEntry struct {
 // that don't rely on global state. The hybrid registry stores build-time snapshots and
 // manages background revalidation for hybrid collections.
 //
-// Implements collection_adapters.hybridRegistryAccessor and HybridRegistryPort
-// interfaces.
-//
 // Thread-safety: All implementations must be safe for concurrent use.
 type HybridRegistryPort interface {
 	// Register stores a build-time snapshot for runtime use.
@@ -715,45 +712,6 @@ type HybridRegistryPort interface {
 	// Returns at once; revalidation runs in the background. Concurrent calls are combined
 	// into a single revalidation.
 	TriggerRevalidation(ctx context.Context, providerName, collectionName string)
-}
-
-// HybridPersistencePort manages persistent storage of hybrid collection state.
-//
-// This port enables hybrid collections to survive process restarts by persisting their
-// current state (blob, ETag, timestamps) to disk. Without persistence, revalidated
-// content would be lost on restart, forcing unnecessary re-fetches.
-//
-// Design Philosophy:
-//   - Atomic writes: Prevents corruption from process crashes mid-write
-//   - Graceful degradation: Missing cache file is not an error (cold start)
-//   - JSON format: Human-readable for debugging, efficient enough for cache size
-//
-// Thread-safety: All implementations must be safe for concurrent use.
-type HybridPersistencePort interface {
-	// Load reads persisted hybrid state from storage into the registry.
-	//
-	// This should be called during application startup to restore hybrid collection state
-	// from the previous run.
-	//
-	// Graceful degradation:
-	//   - Missing file: Not an error, registry starts empty (cold start)
-	//   - Corrupted file: Log warning, registry starts empty
-	//   - Read error: Return error for caller to handle
-	//
-	// Returns error when loading fails. A missing file is not a failure.
-	Load(ctx context.Context) error
-
-	// Persist writes current hybrid state from the registry to storage.
-	//
-	// This should be called during graceful shutdown to preserve the current state for the
-	// next run.
-	//
-	// Atomic write strategy:
-	//  1. Write to temporary file
-	//  2. Rename temp file to target (atomic on POSIX)
-	//
-	// Returns error when persisting fails.
-	Persist(ctx context.Context) error
 }
 
 // StaticCollectionRegistryPort manages static collection blobs for runtime access.

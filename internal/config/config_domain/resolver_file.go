@@ -62,7 +62,7 @@ var (
 //
 // Returns *FileResolver which resolves file paths to their contents.
 func NewFileResolver(sandbox safedisk.Sandbox) *FileResolver {
-	return &FileResolver{sandbox: sandbox}
+	return &FileResolver{sandbox: sandbox, sandboxFactory: nil}
 }
 
 // NewFileResolverWithFactory creates a new file content resolver with an optional sandbox

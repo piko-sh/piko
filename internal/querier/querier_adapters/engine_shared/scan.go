@@ -25,6 +25,34 @@
 // imports only querier_dto, so any engine module can use it without an import cycle.
 package engine_shared
 
+import (
+	"cmp"
+	"slices"
+)
+
+const (
+	// TokenClassOther marks a token with no role in the scans.
+	TokenClassOther TokenClass = iota
+
+	// TokenClassLeftParen marks a "(" token.
+	TokenClassLeftParen
+
+	// TokenClassRightParen marks a ")" token.
+	TokenClassRightParen
+
+	// TokenClassBoundary marks a clause or boolean-connector keyword that a backward scan
+	// must not cross at its own nesting level.
+	TokenClassBoundary
+
+	// TokenClassPattern marks a LIKE-family pattern operator keyword.
+	TokenClassPattern
+)
+
+const (
+	// notFound is the sentinel index for a scan that located nothing.
+	notFound = -1
+)
+
 var (
 	// clauseBoundaryKeywords is the SQL-standard clause and boolean-connector vocabulary
 	// shared by every dialect; an upper-cased keyword in this set marks a clause or
@@ -59,71 +87,226 @@ var (
 	}
 )
 
-// FindEnclosingParen scans backwards from start-1 for the unmatched left parenthesis that
-// encloses the token at start, tracking parenthesis nesting depth. The caller injects the
-// dialect-specific classification so this loop carries no token-kind knowledge of its
-// own.
+// TokenClass is the role a token plays in the parenthesis-aware backward scans that infer
+// a parameter's context.
+type TokenClass uint8
+
+// ParenthesisScanIndex answers, for any token position of one statement, which "(" opens
+// the group enclosing it and which LIKE-family operator it is a pattern operand of.
 //
-// Takes start (int) which is the index whose enclosing parenthesis is sought.
-// Takes isLeftParen (func(int) bool) which reports whether the token at an index is a
-// "(".
-// Takes isRightParen (func(int) bool) which reports whether the token at an index is a
-// ")".
-// Takes isBoundary (func(int) bool) which reports a depth-0 token past which the search
-// must stop and report "no enclosing parenthesis"; engines that scan unbounded pass a
-// predicate that always returns false.
-//
-// Returns int which is the index of the enclosing left parenthesis, or -1 when none is
-// found (or a boundary token is reached first at depth 0).
-func FindEnclosingParen(start int, isLeftParen, isRightParen, isBoundary func(index int) bool) int {
-	depth := 0
-	for index := start - 1; index >= 0; index-- {
-		switch {
-		case isRightParen(index):
-			depth++
-		case isLeftParen(index):
-			if depth == 0 {
-				return index
-			}
-			depth--
-		case depth == 0 && isBoundary(index):
-			return -1
-		}
-	}
-	return -1
+// Both answers are computed for every position in a single linear pass, so a statement
+// with n parameters costs O(n log n) in total rather than the O(n^2) of one backward walk
+// per parameter (an IN list of 100,000 parameters otherwise takes close to a minute). The
+// answers match a backward walk exactly, including on unbalanced input.
+type ParenthesisScanIndex struct {
+	// enclosingParens holds, per position, the index of the enclosing "(" or notFound.
+	enclosingParens []int
+
+	// likeOperators holds, per position, the index of the enclosing LIKE-family operator or
+	// notFound.
+	likeOperators []int
 }
 
-// FindEnclosingLikeOperator scans backwards from start-1 for a LIKE-family pattern
-// operator the parameter at start is an operand of.
+// scanCandidate is a boundary or pattern token kept on the monotonic stack used to find
+// the nearest such token at or above a nesting level.
+type scanCandidate struct {
+	// index is the token's position.
+	index int
+
+	// level is the unclamped parenthesis depth in front of the token.
+	level int
+
+	// isPattern reports whether the token is a pattern operator rather than a boundary.
+	isPattern bool
+}
+
+// parenthesisScanBuilder carries the running state of the single pass that fills a
+// ParenthesisScanIndex.
+type parenthesisScanBuilder struct {
+	// latestOpenParen maps an offset level to the index of the latest "(" opened from that
+	// level, or notFound.
+	latestOpenParen []int
+
+	// latestBoundary maps an offset level to the index of the latest boundary token at that
+	// level, or notFound.
+	latestBoundary []int
+
+	// candidates is the monotonic stack of boundary and pattern tokens, ordered so that
+	// levels strictly increase from the bottom to the top.
+	candidates []scanCandidate
+
+	// levelOffset shifts the unclamped depth, which can go negative on unbalanced input,
+	// into a valid slice index.
+	levelOffset int
+}
+
+// NewParenthesisScanIndex classifies every token once and precomputes the enclosing "("
+// and enclosing LIKE-family operator for every position from 0 to tokenCount inclusive.
 //
-// It tracks parenthesis depth so operators nested in an unrelated paren are skipped. The
-// caller injects every classification (including its own dialect LIKE-family set via
-// isPattern), so this loop carries no dialect knowledge. The scan stops, reporting "not
-// found", at a clause boundary.
+// Takes tokenCount (int) which is the number of tokens in the statement.
+// Takes classify (func(int) TokenClass) which reports the role of the token at an index;
+// the engine supplies its own keyword sets so the index carries no dialect knowledge.
 //
-// Takes start (int) which is the parameter index the operator is sought for.
-// Takes isLeftParen / isRightParen (func(int) bool) which classify parenthesis tokens.
-// Takes isBoundary (func(int) bool) which reports a depth-0 clause boundary ending the
-// scan.
-// Takes isPattern (func(int) bool) which reports a depth-0 LIKE-family pattern operator.
+// Returns *ParenthesisScanIndex which answers lookups in constant time.
+func NewParenthesisScanIndex(tokenCount int, classify func(index int) TokenClass) *ParenthesisScanIndex {
+	tokenCount = max(tokenCount, 0)
+	index := &ParenthesisScanIndex{
+		enclosingParens: make([]int, tokenCount+1),
+		likeOperators:   make([]int, tokenCount+1),
+	}
+	builder := newParenthesisScanBuilder(tokenCount)
+	level := 0
+	for position := 0; position <= tokenCount; position++ {
+		index.enclosingParens[position] = builder.enclosingParen(level)
+		index.likeOperators[position] = builder.likeOperator(level)
+		if position == tokenCount {
+			break
+		}
+		level = builder.record(position, level, classify(position))
+	}
+	return index
+}
+
+// EnclosingParen returns the "(" that opens the group enclosing position.
+//
+// A clause-boundary keyword at the position's own nesting level, found before the "(",
+// means the position is not enclosed by that group, matching a backward walk that stops
+// at the boundary.
+//
+// Takes position (int) which is the token index whose enclosing group is sought.
+//
+// Returns int which is the index of the enclosing "(", or -1 when there is none, a
+// boundary intervenes, or position is out of range.
+func (s *ParenthesisScanIndex) EnclosingParen(position int) int {
+	if position < 0 || position >= len(s.enclosingParens) {
+		return notFound
+	}
+	return s.enclosingParens[position]
+}
+
+// EnclosingLikeOperator returns the LIKE-family operator the token at position is a
+// pattern operand of.
+//
+// The search walks outwards through enclosing groups and stops at the nearest boundary
+// keyword not nested deeper than position, matching a backward walk that tracks
+// parenthesis depth.
+//
+// Takes position (int) which is the parameter's token index.
 //
 // Returns int which is the operator's token index when found.
 // Returns bool which is true when a pattern operator was located.
-func FindEnclosingLikeOperator(start int, isLeftParen, isRightParen, isBoundary, isPattern func(index int) bool) (int, bool) {
-	depth := 0
-	for index := start - 1; index >= 0; index-- {
-		switch {
-		case isRightParen(index):
-			depth++
-		case isLeftParen(index):
-			depth--
-		case depth <= 0 && isBoundary(index):
-			return 0, false
-		case depth <= 0 && isPattern(index):
-			return index, true
-		}
+func (s *ParenthesisScanIndex) EnclosingLikeOperator(position int) (int, bool) {
+	if position < 0 || position >= len(s.likeOperators) {
+		return 0, false
 	}
-	return 0, false
+	operator := s.likeOperators[position]
+	if operator == notFound {
+		return 0, false
+	}
+	return operator, true
+}
+
+// enclosingParen answers the enclosing-group query for the current position.
+//
+// The nearest earlier position whose depth is below level is necessarily the "(" opened
+// from level-1, and the group encloses the position unless a boundary at level appears
+// after that "(".
+//
+// Takes level (int) which is the unclamped depth in front of the current position.
+//
+// Returns int which is the enclosing "(" index or notFound.
+func (b *parenthesisScanBuilder) enclosingParen(level int) int {
+	parentSlot := level - 1 + b.levelOffset
+	if parentSlot < 0 {
+		return notFound
+	}
+	openParen := b.latestOpenParen[parentSlot]
+	if openParen == notFound || b.latestBoundary[level+b.levelOffset] > openParen {
+		return notFound
+	}
+	return openParen
+}
+
+// likeOperator answers the enclosing-LIKE query for the current position using the
+// nearest earlier boundary or pattern token whose depth is at most level to decide the
+// result.
+//
+// Levels strictly increase towards the top of the candidate stack, so the eligible
+// candidates form a prefix of the stack and the nearest of them is found by binary
+// search.
+//
+// Takes level (int) which is the unclamped depth in front of the current position.
+//
+// Returns int which is the pattern operator's index, or notFound when the nearest
+// eligible token is a boundary or there is none.
+func (b *parenthesisScanBuilder) likeOperator(level int) int {
+	eligible, _ := slices.BinarySearchFunc(b.candidates, level+1, compareCandidateLevel)
+	if eligible == 0 {
+		return notFound
+	}
+	nearest := b.candidates[eligible-1]
+	if !nearest.isPattern {
+		return notFound
+	}
+	return nearest.index
+}
+
+// record folds the token at position into the running state and returns the depth in
+// front of the next token.
+//
+// Takes position (int) which is the token's index.
+// Takes level (int) which is the unclamped depth in front of the token.
+// Takes class (TokenClass) which is the token's role.
+//
+// Returns int which is the depth after the token.
+func (b *parenthesisScanBuilder) record(position int, level int, class TokenClass) int {
+	switch class {
+	case TokenClassLeftParen:
+		b.latestOpenParen[level+b.levelOffset] = position
+		return level + 1
+	case TokenClassRightParen:
+		return level - 1
+	case TokenClassBoundary:
+		b.latestBoundary[level+b.levelOffset] = position
+		b.pushCandidate(scanCandidate{index: position, level: level, isPattern: false})
+	case TokenClassPattern:
+		b.pushCandidate(scanCandidate{index: position, level: level, isPattern: true})
+	case TokenClassOther:
+	}
+	return level
+}
+
+// pushCandidate adds a boundary or pattern token to the monotonic stack, first dropping
+// every candidate at the same or a deeper level because the new, nearer token shadows
+// them for every later query.
+//
+// Takes candidate (scanCandidate) which is the token to add.
+func (b *parenthesisScanBuilder) pushCandidate(candidate scanCandidate) {
+	for len(b.candidates) > 0 && b.candidates[len(b.candidates)-1].level >= candidate.level {
+		b.candidates = b.candidates[:len(b.candidates)-1]
+	}
+	b.candidates = append(b.candidates, candidate)
+}
+
+// newParenthesisScanBuilder sizes the level tables for a statement of tokenCount tokens,
+// whose depth can range from -tokenCount to tokenCount.
+//
+// Takes tokenCount (int) which is the number of tokens in the statement.
+//
+// Returns *parenthesisScanBuilder which is ready for the pass.
+func newParenthesisScanBuilder(tokenCount int) *parenthesisScanBuilder {
+	levelCount := 2*tokenCount + 1
+	builder := &parenthesisScanBuilder{
+		latestOpenParen: make([]int, levelCount),
+		latestBoundary:  make([]int, levelCount),
+		candidates:      nil,
+		levelOffset:     tokenCount,
+	}
+	for level := range levelCount {
+		builder.latestOpenParen[level] = notFound
+		builder.latestBoundary[level] = notFound
+	}
+	return builder
 }
 
 // IsClauseBoundaryKeyword reports whether an upper-cased SQL keyword marks a clause or
@@ -141,4 +324,16 @@ func FindEnclosingLikeOperator(start int, isLeftParen, isRightParen, isBoundary,
 func IsClauseBoundaryKeyword(keyword string) bool {
 	_, ok := clauseBoundaryKeywords[keyword]
 	return ok
+}
+
+// compareCandidateLevel orders a candidate's level against a target level for the binary
+// search over the monotonic stack.
+//
+// Takes candidate (scanCandidate) which is the stack entry.
+// Takes target (int) which is the level being searched for.
+//
+// Returns int which is negative, zero, or positive as the candidate's level is below,
+// equal to, or above target.
+func compareCandidateLevel(candidate scanCandidate, target int) int {
+	return cmp.Compare(candidate.level, target)
 }

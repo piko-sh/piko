@@ -208,14 +208,15 @@ func processIDAttribute(targetsToKeep map[string]bool) func(*ast_domain.Template
 // Takes node (*ast_domain.TemplateNode) which receives the anchor as its first child.
 // Takes idValue (string) which sets the name attribute for the anchor.
 func convertIDToAnchorName(node *ast_domain.TemplateNode, idValue string) {
-	anchorNode := &ast_domain.TemplateNode{
-		NodeType: ast_domain.NodeElement,
-		TagName:  "a",
-		Attributes: []ast_domain.HTMLAttribute{
-			{Name: "name", Value: idValue},
+	anchorNode := ast_domain.NewElementNode("a", []ast_domain.HTMLAttribute{
+		{
+			Name:           "name",
+			Value:          idValue,
+			Location:       ast_domain.Location{},
+			NameLocation:   ast_domain.Location{},
+			AttributeRange: ast_domain.Range{},
 		},
-		Children: []*ast_domain.TemplateNode{},
-	}
+	}, []*ast_domain.TemplateNode{})
 
 	node.Children = append([]*ast_domain.TemplateNode{anchorNode}, node.Children...)
 }

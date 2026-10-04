@@ -22,6 +22,8 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+
+	"github.com/cockroachdb/apd/v3"
 )
 
 // Allocate splits a BigInt value into parts based on the given ratios. This uses integer
@@ -75,7 +77,7 @@ func SumBigInts(bigints ...BigInt) BigInt {
 // empty or any calculation fails.
 func AverageBigInts(bigints ...BigInt) Decimal {
 	if len(bigints) == 0 {
-		return Decimal{err: errors.New("maths: cannot calculate average of an empty slice")}
+		return Decimal{err: errors.New("maths: cannot calculate average of an empty slice"), value: apd.Decimal{}}
 	}
 
 	sumBigInt := SumBigInts(bigints...)
@@ -111,7 +113,7 @@ func MinBigInt(b1 BigInt, others ...BigInt) BigInt {
 		}
 		cmp, err := b.Cmp(minValue)
 		if err != nil {
-			return BigInt{err: fmt.Errorf("maths: Min comparison failed: %w", err)}
+			return BigInt{err: fmt.Errorf("maths: Min comparison failed: %w", err), value: apd.BigInt{}}
 		}
 		if cmp < 0 {
 			minValue = b
@@ -138,7 +140,7 @@ func MaxBigInt(b1 BigInt, others ...BigInt) BigInt {
 		}
 		cmp, err := b.Cmp(maxValue)
 		if err != nil {
-			return BigInt{err: fmt.Errorf("maths: Max comparison failed: %w", err)}
+			return BigInt{err: fmt.Errorf("maths: Max comparison failed: %w", err), value: apd.BigInt{}}
 		}
 		if cmp > 0 {
 			maxValue = b

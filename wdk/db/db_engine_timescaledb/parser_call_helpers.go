@@ -59,6 +59,7 @@ func captureExpressionUntilBoundary(p db_engine_postgres.ParserContext) (string,
 			depth++
 		case db_engine_postgres.TokenRightParen:
 			depth--
+		default:
 		}
 		if builder.Len() > 0 {
 			builder.WriteByte(' ')

@@ -140,8 +140,12 @@ var (
 //
 // Returns *llm_dto.CompletionResponse which contains the generated response.
 // Returns error when the request to Mistral fails.
-func (p *mistralProvider) Complete(ctx context.Context, request *llm_dto.CompletionRequest) (*llm_dto.CompletionResponse, error) {
-	defer goroutine.RecoverPanic(ctx, "llm.mistralProvider.Complete")
+func (p *mistralProvider) Complete(ctx context.Context, request *llm_dto.CompletionRequest) (result *llm_dto.CompletionResponse, returnErr error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			result, returnErr = nil, goroutine.HandlePanicRecovery(ctx, "llm.mistralProvider.Complete", recovered)
+		}
+	}()
 
 	ctx, l := logger.From(ctx, log)
 	completeCount.Add(ctx, 1)
@@ -420,8 +424,12 @@ func (*mistralProvider) SupportsMessageName() bool { return true }
 //
 // Returns []llm_dto.ModelInfo which contains the available model details.
 // Returns error when the request fails or the API returns an error.
-func (p *mistralProvider) ListModels(ctx context.Context) ([]llm_dto.ModelInfo, error) {
-	defer goroutine.RecoverPanic(ctx, "llm.mistralProvider.ListModels")
+func (p *mistralProvider) ListModels(ctx context.Context) (providerResult []llm_dto.ModelInfo, returnErr error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			providerResult, returnErr = nil, goroutine.HandlePanicRecovery(ctx, "llm.mistralProvider.ListModels", recovered)
+		}
+	}()
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, p.config.BaseURL+"/v1/models", nil)
 	if err != nil {
@@ -465,6 +473,9 @@ func (p *mistralProvider) ListModels(ctx context.Context) ([]llm_dto.ModelInfo, 
 			SupportsStreaming:        true,
 			SupportsTools:            true,
 			SupportsStructuredOutput: true,
+			ContextWindow:            0,
+			MaxOutputTokens:          0,
+			SupportsVision:           false,
 		}
 	}
 	return result, nil
@@ -556,8 +567,12 @@ type mistralEmbedData struct {
 //
 // Returns *llm_dto.EmbeddingResponse which contains the generated embeddings.
 // Returns error when the request fails.
-func (p *mistralProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRequest) (*llm_dto.EmbeddingResponse, error) {
-	defer goroutine.RecoverPanic(ctx, "llm.mistralProvider.Embed")
+func (p *mistralProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRequest) (result *llm_dto.EmbeddingResponse, returnErr error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			result, returnErr = nil, goroutine.HandlePanicRecovery(ctx, "llm.mistralProvider.Embed", recovered)
+		}
+	}()
 
 	ctx, l := logger.From(ctx, log)
 	embedCount.Add(ctx, 1)
@@ -662,11 +677,10 @@ func (p *mistralProvider) doEmbedRequest(
 //
 // Returns *mistralRequest which is the formatted request for the Mistral API.
 func (p *mistralProvider) buildRequest(request *llm_dto.CompletionRequest, model string, stream bool) *mistralRequest {
-	apiReq := &mistralRequest{
-		Model:    model,
-		Messages: p.convertMessages(request.Messages),
-		Stream:   stream,
-	}
+	apiReq := &mistralRequest{}
+	apiReq.Model = model
+	apiReq.Messages = p.convertMessages(request.Messages)
+	apiReq.Stream = stream
 
 	if request.Temperature != nil {
 		apiReq.Temperature = request.Temperature
@@ -724,7 +738,11 @@ func (p *mistralProvider) convertMessages(messages []llm_dto.Message) []mistralM
 // Returns mistralMessage which is the converted message in Mistral format.
 func (p *mistralProvider) convertMessage(message llm_dto.Message) mistralMessage {
 	mm := mistralMessage{
-		Role: string(message.Role),
+		Role:       string(message.Role),
+		Content:    nil,
+		Name:       "",
+		ToolCallID: "",
+		ToolCalls:  nil,
 	}
 
 	if len(message.ContentParts) > 0 && (message.Role == llm_dto.RoleUser || message.Role == llm_dto.RoleSystem) {
@@ -771,8 +789,9 @@ func (*mistralProvider) convertContentParts(parts []llm_dto.ContentPart) stdjson
 		case llm_dto.ContentPartTypeText:
 			if part.Text != nil {
 				mParts = append(mParts, mistralContentPart{
-					Type: "text",
-					Text: *part.Text,
+					Type:     "text",
+					Text:     *part.Text,
+					ImageURL: nil,
 				})
 			}
 		case llm_dto.ContentPartTypeImageURL:
@@ -780,6 +799,7 @@ func (*mistralProvider) convertContentParts(parts []llm_dto.ContentPart) stdjson
 				mParts = append(mParts, mistralContentPart{
 					Type:     "image_url",
 					ImageURL: &mistralImageURL{URL: part.ImageURL.URL},
+					Text:     "",
 				})
 			}
 		case llm_dto.ContentPartTypeImageData:
@@ -788,6 +808,7 @@ func (*mistralProvider) convertContentParts(parts []llm_dto.ContentPart) stdjson
 				mParts = append(mParts, mistralContentPart{
 					Type:     "image_url",
 					ImageURL: &mistralImageURL{URL: dataURI},
+					Text:     "",
 				})
 			}
 		}
@@ -807,7 +828,9 @@ func (p *mistralProvider) convertTools(tools []llm_dto.ToolDefinition) []mistral
 		mt := mistralTool{
 			Type: toolTypeFunction,
 			Function: mistralFunction{
-				Name: tool.Function.Name,
+				Name:        tool.Function.Name,
+				Parameters:  nil,
+				Description: "",
 			},
 		}
 		if tool.Function.Description != nil {
@@ -932,8 +955,12 @@ func (p *mistralProvider) convertResponse(response *mistralResponse) *llm_dto.Co
 	choices := make([]llm_dto.Choice, len(response.Choices))
 	for i, choice := range response.Choices {
 		message := llm_dto.Message{
-			Role:    llm_dto.RoleAssistant,
-			Content: choice.Message.Content,
+			Role:         llm_dto.RoleAssistant,
+			Content:      choice.Message.Content,
+			Name:         nil,
+			ToolCallID:   nil,
+			ContentParts: nil,
+			ToolCalls:    nil,
 		}
 
 		if len(choice.Message.ToolCalls) > 0 {
@@ -958,10 +985,13 @@ func (p *mistralProvider) convertResponse(response *mistralResponse) *llm_dto.Co
 	}
 
 	result := &llm_dto.CompletionResponse{
-		ID:      response.ID,
-		Model:   response.Model,
-		Created: response.Created,
-		Choices: choices,
+		ID:           response.ID,
+		Model:        response.Model,
+		Created:      response.Created,
+		Choices:      choices,
+		Usage:        nil,
+		FallbackInfo: nil,
+		Sources:      nil,
 	}
 
 	if response.Usage != nil {
@@ -969,6 +999,8 @@ func (p *mistralProvider) convertResponse(response *mistralResponse) *llm_dto.Co
 			PromptTokens:     response.Usage.PromptTokens,
 			CompletionTokens: response.Usage.CompletionTokens,
 			TotalTokens:      response.Usage.TotalTokens,
+			EstimatedCost:    nil,
+			CachedTokens:     0,
 		}
 	}
 
@@ -1015,6 +1047,8 @@ func New(config Config) (llm_domain.LLMProviderPort, error) {
 		defaultModel:          config.DefaultModel,
 		defaultEmbeddingModel: config.DefaultEmbeddingModel,
 		embeddingDimensions:   config.EmbeddingDimensions,
+		streamWaitGroup:       sync.WaitGroup{},
+		closeOnce:             sync.Once{},
 	}, nil
 }
 
@@ -1031,25 +1065,15 @@ func convertEmbedResponse(apiResp *mistralEmbedResponse) *llm_dto.EmbeddingRespo
 		for j, v := range d.Embedding {
 			f32[j] = float32(v)
 		}
-		embeddings[i] = llm_dto.Embedding{
-			Index:  d.Index,
-			Vector: f32,
-		}
+		embeddings[i] = llm_dto.NewFloat32Embedding(d.Index, f32)
 	}
 
-	result := &llm_dto.EmbeddingResponse{
-		Model:      apiResp.Model,
-		Embeddings: embeddings,
-	}
-
+	var usage *llm_dto.EmbeddingUsage
 	if apiResp.Usage != nil {
-		result.Usage = &llm_dto.EmbeddingUsage{
-			PromptTokens: apiResp.Usage.PromptTokens,
-			TotalTokens:  apiResp.Usage.TotalTokens,
-		}
+		usage = llm_dto.NewEmbeddingUsage(apiResp.Usage.PromptTokens, apiResp.Usage.TotalTokens)
 	}
 
-	return result
+	return llm_dto.NewEmbeddingResponse(apiResp.Model, embeddings, usage)
 }
 
 // marshalStringContent encodes a plain string as a JSON string for use in

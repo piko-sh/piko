@@ -110,6 +110,8 @@ func processStream(ctx context.Context, inputData io.Reader, factory writerFacto
 // Takes ctx (context.Context) which controls cancellation of the copy operation.
 // Takes destination (io.Writer) which is the destination to write data to.
 // Takes source (io.Reader) which is the source to read data from.
+// Takes buffer ([]byte) which provides reusable storage for copying bytes between the
+// streams.
 //
 // Returns int64 which is the total number of bytes written.
 // Returns error when the context is cancelled, a read fails, or a write fails.

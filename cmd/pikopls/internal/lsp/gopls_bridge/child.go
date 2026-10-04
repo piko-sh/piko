@@ -422,6 +422,11 @@ func dialChild(
 		done:         make(chan struct{}),
 		onDead:       onDead,
 		moduleRoot:   moduleRoot,
+		maxOverlays:  0,
+		overlayMu:    sync.Mutex{},
+		notifyMu:     sync.Mutex{},
+		lastUsed:     atomic.Int64{},
+		dead:         atomic.Bool{},
 	}
 	handler.setSink(func(sinkCtx context.Context, params *protocol.PublishDiagnosticsParams) {
 		defer goroutine.RecoverPanic(sinkCtx, "gopls_bridge.diagnosticsSink")
@@ -485,7 +490,6 @@ func buildGoplsInitializeParams(moduleRoot string) *protocol.InitializeParams {
 	rootURI := fileURI(moduleRoot)
 	return &protocol.InitializeParams{
 		ProcessID:    safeconv.IntToInt32(os.Getpid()),
-		RootURI:      rootURI,
 		Capabilities: buildGoplsClientCapabilities(),
 		WorkspaceFolders: []protocol.WorkspaceFolder{{
 			URI:  string(rootURI),

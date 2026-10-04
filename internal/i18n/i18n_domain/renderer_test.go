@@ -399,3 +399,55 @@ func BenchmarkRenderWithVars_Translation(b *testing.B) {
 		_ = trans.String()
 	}
 }
+
+func TestRender_BrokenTemplatesRenderLiterally(t *testing.T) {
+	t.Parallel()
+
+	three := 3
+	testCases := []struct {
+		entry *Entry
+		count *int
+		name  string
+		want  string
+	}{
+		{
+			name:  "an unparsed broken template renders verbatim",
+			entry: &Entry{Template: "Hello ${name", Parts: nil, PluralForms: nil, PluralFormsParts: nil, HasPlurals: false},
+			want:  "Hello ${name",
+		},
+		{
+			name: "an unparsed broken plural form renders verbatim",
+			entry: &Entry{
+				Template:         "one|${count items",
+				Parts:            nil,
+				PluralForms:      []string{"one", "${count items"},
+				PluralFormsParts: nil,
+				HasPlurals:       true,
+			},
+			count: &three,
+			want:  "${count items",
+		},
+		{
+			name: "an unparsed plural form that parses renders normally",
+			entry: &Entry{
+				Template:         "one|${count} items",
+				Parts:            nil,
+				PluralForms:      []string{"one", "${count} items"},
+				PluralFormsParts: nil,
+				HasPlurals:       true,
+			},
+			count: &three,
+			want:  "3 items",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			buffer := NewStrBuf(64)
+
+			assert.Equal(t, tc.want, Render(tc.entry, map[string]any{"name": "Ana"}, tc.count, "en-GB", buffer))
+		})
+	}
+}

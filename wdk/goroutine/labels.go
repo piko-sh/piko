@@ -23,9 +23,11 @@ import (
 	"runtime/pprof"
 )
 
-// labelKeyComponent is the pprof label key identifying which part of the framework a
-// goroutine belongs to. It mirrors the component string already passed to RecoverPanic.
-const labelKeyComponent = "component"
+const (
+	// labelKeyComponent is the pprof label key identifying which part of the framework a
+	// goroutine belongs to. It mirrors the component string already passed to RecoverPanic.
+	labelKeyComponent = "component"
+)
 
 // Label attaches pprof labels to the calling goroutine and returns the labelled context.
 //

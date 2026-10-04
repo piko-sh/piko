@@ -60,9 +60,7 @@ const (
 //
 // Returns *Paragraph which is the initialised component ready for use.
 func NewParagraph() *Paragraph {
-	return &Paragraph{
-		BaseComponent: BaseComponent{},
-	}
+	return &Paragraph{}
 }
 
 // TagName returns the HTML tag name for the paragraph element.

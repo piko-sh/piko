@@ -22,6 +22,8 @@ package metric_collector_grpcfb
 
 import (
 	"syscall"
+
+	"piko.sh/piko/wdk/safeconv"
 )
 
 // fdLimit returns the soft RLIMIT_NOFILE (max open files). Unix-only: the
@@ -34,5 +36,5 @@ func fdLimit() (uint64, bool) {
 	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rl); err != nil {
 		return 0, false
 	}
-	return rl.Cur, true
+	return safeconv.ToUint64(rl.Cur), true
 }

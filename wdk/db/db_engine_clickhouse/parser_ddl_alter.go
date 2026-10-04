@@ -197,15 +197,10 @@ func (p *parser) parseAlterAddProjection(database, table string) (*querier_dto.C
 		}
 		body = captured
 	}
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationAlterTableAddProjection,
-		SchemaName: database,
-		TableName:  table,
-		EngineSpecific: map[string]string{
-			engineKeyProjectionName:   name,
-			engineKeyProjectionSelect: body,
-		},
-	}, nil
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationAlterTableAddProjection, database, table, querier_dto.WithEngineSpecific(map[string]string{
+		engineKeyProjectionName:   name,
+		engineKeyProjectionSelect: body,
+	})), nil
 }
 
 // parseAlterAddIndex captures the name, expression, type, and granularity of an `ALTER
@@ -234,12 +229,12 @@ func (p *parser) parseAlterAddIndex(database, table string) (*querier_dto.Catalo
 	if indexGranularity != "" {
 		specific[engineKeyIndexGranularity] = indexGranularity
 	}
-	return &querier_dto.CatalogueMutation{
-		Kind:           querier_dto.MutationAlterTableAddSkippingIndex,
-		SchemaName:     database,
-		TableName:      table,
-		EngineSpecific: specific,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationAlterTableAddSkippingIndex,
+		database,
+		table,
+		querier_dto.WithEngineSpecific(specific),
+	), nil
 }
 
 // captureIndexExpressionText reads the expression that follows an index name, stopping at
@@ -338,13 +333,13 @@ func (p *parser) parseAlterAddConstraint(database, table string) (*querier_dto.C
 	if p.matchKeyword("CHECK") {
 		specific[engineKeyConstraintCheck] = p.consumeUntilTopLevelCommaAsText()
 	}
-	return &querier_dto.CatalogueMutation{
-		Kind:           querier_dto.MutationAlterTableAddConstraint,
-		SchemaName:     database,
-		TableName:      table,
-		ConstraintName: name,
-		EngineSpecific: specific,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationAlterTableAddConstraint,
+		database,
+		table,
+		querier_dto.WithConstraintName(name),
+		querier_dto.WithEngineSpecific(specific),
+	), nil
 }
 
 // parseAlterAddStatistics captures the column list and statistic type list of an `ALTER
@@ -359,15 +354,10 @@ func (p *parser) parseAlterAddConstraint(database, table string) (*querier_dto.C
 func (p *parser) parseAlterAddStatistics(database, table string) (*querier_dto.CatalogueMutation, error) {
 	p.matchIfNotExists()
 	columns, types := p.parseStatisticsColumnAndTypeLists()
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationAlterTableAddStatistics,
-		SchemaName: database,
-		TableName:  table,
-		EngineSpecific: map[string]string{
-			engineKeyStatsColumns: strings.Join(columns, statsListSeparator),
-			engineKeyStatsTypes:   strings.Join(types, statsListSeparator),
-		},
-	}, nil
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationAlterTableAddStatistics, database, table, querier_dto.WithEngineSpecific(map[string]string{
+		engineKeyStatsColumns: strings.Join(columns, statsListSeparator),
+		engineKeyStatsTypes:   strings.Join(types, statsListSeparator),
+	})), nil
 }
 
 // parseStatisticsColumnAndTypeLists reads the `col[, col, ...] TYPE type[, type, ...]`
@@ -422,12 +412,9 @@ func (p *parser) parseAlterDropProjection(database, table string) (*querier_dto.
 	if err != nil {
 		return nil, err
 	}
-	return &querier_dto.CatalogueMutation{
-		Kind:           querier_dto.MutationAlterTableDropProjection,
-		SchemaName:     database,
-		TableName:      table,
-		EngineSpecific: map[string]string{engineKeyProjectionName: name},
-	}, nil
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationAlterTableDropProjection, database, table, querier_dto.WithEngineSpecific(map[string]string{
+		engineKeyProjectionName: name,
+	})), nil
 }
 
 // parseAlterDropIndex captures the name of a `DROP INDEX [IF EXISTS] name` clause.
@@ -443,12 +430,9 @@ func (p *parser) parseAlterDropIndex(database, table string) (*querier_dto.Catal
 	if err != nil {
 		return nil, err
 	}
-	return &querier_dto.CatalogueMutation{
-		Kind:           querier_dto.MutationAlterTableDropSkippingIndex,
-		SchemaName:     database,
-		TableName:      table,
-		EngineSpecific: map[string]string{engineKeyIndexName: name},
-	}, nil
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationAlterTableDropSkippingIndex, database, table, querier_dto.WithEngineSpecific(map[string]string{
+		engineKeyIndexName: name,
+	})), nil
 }
 
 // parseAlterDropConstraint captures the name of a `DROP CONSTRAINT [IF EXISTS] name`
@@ -465,13 +449,13 @@ func (p *parser) parseAlterDropConstraint(database, table string) (*querier_dto.
 	if err != nil {
 		return nil, err
 	}
-	return &querier_dto.CatalogueMutation{
-		Kind:           querier_dto.MutationAlterTableDropConstraint,
-		SchemaName:     database,
-		TableName:      table,
-		ConstraintName: name,
-		EngineSpecific: map[string]string{engineKeyConstraintName: name},
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationAlterTableDropConstraint,
+		database,
+		table,
+		querier_dto.WithConstraintName(name),
+		querier_dto.WithEngineSpecific(map[string]string{engineKeyConstraintName: name}),
+	), nil
 }
 
 // parseAlterDropStatistics captures the column list of a `DROP STATISTICS [IF EXISTS]
@@ -485,14 +469,9 @@ func (p *parser) parseAlterDropConstraint(database, table string) (*querier_dto.
 func (p *parser) parseAlterDropStatistics(database, table string) (*querier_dto.CatalogueMutation, error) {
 	p.matchIfExists()
 	columns := p.parseCommaSeparatedIdentifierList()
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationAlterTableDropStatistics,
-		SchemaName: database,
-		TableName:  table,
-		EngineSpecific: map[string]string{
-			engineKeyStatsColumns: strings.Join(columns, statsListSeparator),
-		},
-	}, nil
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationAlterTableDropStatistics, database, table, querier_dto.WithEngineSpecific(map[string]string{
+		engineKeyStatsColumns: strings.Join(columns, statsListSeparator),
+	})), nil
 }
 
 // parseAlterDropDetached recognises `DROP DETACHED PARTITION expr` and `DROP DETACHED
@@ -541,13 +520,13 @@ func (p *parser) parseAlterModifyColumnAction(database, table string) (*querier_
 	if err != nil {
 		return nil, err
 	}
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationAlterTableAlterColumn,
-		SchemaName: database,
-		TableName:  table,
-		ColumnName: column.Name,
-		Columns:    []querier_dto.Column{column},
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationAlterTableAlterColumn,
+		database,
+		table,
+		querier_dto.WithColumnName(column.Name),
+		querier_dto.WithColumns([]querier_dto.Column{column}),
+	), nil
 }
 
 // tryParseModifyColumnSubAction handles the REMOVE, MODIFY COMMENT, and RESET SETTING
@@ -610,15 +589,9 @@ func (p *parser) tryParseModifyColumnSubAction(database, table, columnName strin
 //
 // Returns *querier_dto.CatalogueMutation describing the column modification.
 func (*parser) buildModifyColumnMutation(database, table, columnName, key, value string) *querier_dto.CatalogueMutation {
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationAlterTableModifyColumn,
-		SchemaName: database,
-		TableName:  table,
-		ColumnName: columnName,
-		EngineSpecific: map[string]string{
-			key: value,
-		},
-	}
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationAlterTableModifyColumn, database, table, querier_dto.WithColumnName(columnName), querier_dto.WithEngineSpecific(map[string]string{
+		key: value,
+	}))
 }
 
 // parseAlterModifyQuery handles `ALTER TABLE v MODIFY QUERY <select>` for refreshable
@@ -631,14 +604,9 @@ func (*parser) buildModifyColumnMutation(database, table, columnName, key, value
 // Returns error which is always nil for this clause.
 func (p *parser) parseAlterModifyQuery(database, table string) (*querier_dto.CatalogueMutation, error) {
 	newQuery := p.consumeRemainderAsText()
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationAlterTableModifyQuery,
-		SchemaName: database,
-		TableName:  table,
-		EngineSpecific: map[string]string{
-			engineKeyNewQuery: newQuery,
-		},
-	}, nil
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationAlterTableModifyQuery, database, table, querier_dto.WithEngineSpecific(map[string]string{
+		engineKeyNewQuery: newQuery,
+	})), nil
 }
 
 // parseAlterModifyRefresh handles the refresh-policy sub-targets of `ALTER TABLE v
@@ -667,12 +635,12 @@ func (p *parser) parseAlterModifyRefresh(database, table, kind string) (*querier
 			specific[engineKeyMVDefiner] = name
 		}
 	}
-	return &querier_dto.CatalogueMutation{
-		Kind:           querier_dto.MutationAlterTableModifyRefresh,
-		SchemaName:     database,
-		TableName:      table,
-		EngineSpecific: specific,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationAlterTableModifyRefresh,
+		database,
+		table,
+		querier_dto.WithEngineSpecific(specific),
+	), nil
 }
 
 // captureRefreshClauseInto reads the `EVERY <interval> [OFFSET ...]` or `AFTER
@@ -704,15 +672,10 @@ func (p *parser) captureRefreshClauseInto(specific map[string]string) {
 // Returns error which is always nil for this clause.
 func (p *parser) parseAlterModifyStatistics(database, table string) (*querier_dto.CatalogueMutation, error) {
 	columns, types := p.parseStatisticsColumnAndTypeLists()
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationAlterTableModifyStatistics,
-		SchemaName: database,
-		TableName:  table,
-		EngineSpecific: map[string]string{
-			engineKeyStatsColumns: strings.Join(columns, statsListSeparator),
-			engineKeyStatsTypes:   strings.Join(types, statsListSeparator),
-		},
-	}, nil
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationAlterTableModifyStatistics, database, table, querier_dto.WithEngineSpecific(map[string]string{
+		engineKeyStatsColumns: strings.Join(columns, statsListSeparator),
+		engineKeyStatsTypes:   strings.Join(types, statsListSeparator),
+	})), nil
 }
 
 // parseAlterMaterializeNamed reads the named target plus the optional `IN PARTITION expr`
@@ -730,12 +693,9 @@ func (p *parser) parseAlterMaterializeNamed(database, table string, kind querier
 	if err != nil {
 		return nil, err
 	}
-	mutation := &querier_dto.CatalogueMutation{
-		Kind:           kind,
-		SchemaName:     database,
-		TableName:      table,
-		EngineSpecific: map[string]string{nameKey: name},
-	}
+	mutation := querier_dto.NewCatalogueMutation(kind, database, table, querier_dto.WithEngineSpecific(map[string]string{
+		nameKey: name,
+	}))
 	p.captureMaterializeInPartition(mutation)
 	return mutation, nil
 }
@@ -764,14 +724,9 @@ func (p *parser) captureMaterializeInPartition(mutation *querier_dto.CatalogueMu
 // Returns error which is always nil for this clause.
 func (p *parser) parseAlterMaterializeStatistics(database, table string) (*querier_dto.CatalogueMutation, error) {
 	columns := p.parseCommaSeparatedIdentifierList()
-	mutation := &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationAlterTableMaterializeStatistics,
-		SchemaName: database,
-		TableName:  table,
-		EngineSpecific: map[string]string{
-			engineKeyStatsColumns: strings.Join(columns, statsListSeparator),
-		},
-	}
+	mutation := querier_dto.NewCatalogueMutation(querier_dto.MutationAlterTableMaterializeStatistics, database, table, querier_dto.WithEngineSpecific(map[string]string{
+		engineKeyStatsColumns: strings.Join(columns, statsListSeparator),
+	}))
 	p.captureMaterializeInPartition(mutation)
 	return mutation, nil
 }
@@ -785,12 +740,9 @@ func (p *parser) parseAlterMaterializeStatistics(database, table string) (*queri
 // Returns *CatalogueMutation which describes the materialise TTL action.
 // Returns error which is always nil for this clause.
 func (p *parser) parseAlterMaterializeTTL(database, table string) (*querier_dto.CatalogueMutation, error) {
-	mutation := &querier_dto.CatalogueMutation{
-		Kind:           querier_dto.MutationAlterTableMaterializeColumn,
-		SchemaName:     database,
-		TableName:      table,
-		EngineSpecific: map[string]string{engineKeyMaterializeTarget: "TTL"},
-	}
+	mutation := querier_dto.NewCatalogueMutation(querier_dto.MutationAlterTableMaterializeColumn, database, table, querier_dto.WithEngineSpecific(map[string]string{
+		engineKeyMaterializeTarget: "TTL",
+	}))
 	p.captureMaterializeInPartition(mutation)
 	return mutation, nil
 }

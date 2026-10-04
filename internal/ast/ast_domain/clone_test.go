@@ -126,11 +126,7 @@ func TestPropDataSourceClone(t *testing.T) {
 	t.Run("non-nil with nil nested fields", func(t *testing.T) {
 		t.Parallel()
 
-		original := &PropDataSource{
-			ResolvedType:       nil,
-			Symbol:             nil,
-			BaseCodeGenVarName: nil,
-		}
+		original := &PropDataSource{}
 
 		clone := original.Clone()
 
@@ -927,7 +923,7 @@ func TestIndexExprClone(t *testing.T) {
 
 		original := &IndexExpression{
 			Base:             &Identifier{Name: "items"},
-			Index:            &IntegerLiteral{Value: 0},
+			Index:            &IntegerLiteral{},
 			RelativeLocation: Location{Line: 1, Column: 1},
 			SourceLength:     8,
 		}
@@ -1308,7 +1304,7 @@ func TestDirectiveClone(t *testing.T) {
 
 		original := Directive{
 			Type:       DirectiveElseIf,
-			Expression: &BooleanLiteral{Value: false},
+			Expression: &BooleanLiteral{},
 			ChainKey:   &IntegerLiteral{Value: 1},
 		}
 

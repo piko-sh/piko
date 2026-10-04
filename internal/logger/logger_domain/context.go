@@ -50,9 +50,10 @@ func WithLogger(ctx context.Context, l Logger) context.Context {
 // paths for zero-allocation retrieval.
 //
 // Request path (PikoRequestCtx present):
-//   - Hot path: returns CachedLogger from PikoRequestCtx.
+//   - Hot path: returns the logger cached on the PikoRequestCtx.
 //   - Cold path (first call per request): binds the fallback to the request context via
-//     WithSpanContext, caches it on PikoRequestCtx, and returns.
+//     WithSpanContext and caches it on the PikoRequestCtx. When several goroutines of one
+//     request race to cache, all of them return the logger that was stored first.
 //
 // Non-request path (no PikoRequestCtx):
 //   - Falls back to loggerCtxKey{} lookup and context.WithValue storage.
@@ -70,13 +71,11 @@ func From(ctx context.Context, fallback Logger) (context.Context, Logger) {
 	}
 
 	if pctx := daemon_dto.PikoRequestCtxFromContext(ctx); pctx != nil {
-		if l, ok := pctx.CachedLogger.(Logger); ok {
+		if l, ok := pctx.CachedLoggerValue().(Logger); ok {
 			return ctx, l
 		}
 
-		bound := resolveFallback(fallback).WithSpanContext(ctx)
-		pctx.CachedLogger = bound
-		return ctx, bound
+		return ctx, cacheOnCarrier(pctx, resolveFallback(fallback).WithSpanContext(ctx))
 	}
 
 	if l, ok := ctx.Value(loggerCtxKey{}).(Logger); ok {
@@ -88,8 +87,10 @@ func From(ctx context.Context, fallback Logger) (context.Context, Logger) {
 
 // MustFrom retrieves the logger from context, panicking if not present.
 //
-// Checks PikoRequestCtx.CachedLogger first (request paths), then falls back to
-// loggerCtxKey{}.
+// Checks the logger cached on the PikoRequestCtx first (request paths), then falls back
+// to loggerCtxKey{}. On a request path whose carrier has no cached logger yet, the
+// loggerCtxKey{} logger is bound to ctx and cached, so a context detached for background
+// work never logs through a logger bound to the original request.
 //
 // Use this in code paths where a logger MUST be in context (e.g., after middleware that
 // guarantees it). Panicking early catches middleware misconfiguration during development.
@@ -98,8 +99,9 @@ func From(ctx context.Context, fallback Logger) (context.Context, Logger) {
 //
 // Panics if no logger is stored in context.
 func MustFrom(ctx context.Context) Logger {
-	if pctx := daemon_dto.PikoRequestCtxFromContext(ctx); pctx != nil {
-		if l, ok := pctx.CachedLogger.(Logger); ok {
+	pctx := daemon_dto.PikoRequestCtxFromContext(ctx)
+	if pctx != nil {
+		if l, ok := pctx.CachedLoggerValue().(Logger); ok {
 			return l
 		}
 	}
@@ -107,23 +109,40 @@ func MustFrom(ctx context.Context) Logger {
 	if !ok {
 		panic("logger: no logger in context - ensure middleware calls WithLogger")
 	}
+	if pctx != nil {
+		return cacheOnCarrier(pctx, l.WithSpanContext(ctx))
+	}
 	return l
 }
 
 // HasLogger reports whether a logger is stored in the context.
 //
-// Checks PikoRequestCtx.CachedLogger first (request paths), then falls back to
-// loggerCtxKey{}.
+// Checks the logger cached on the PikoRequestCtx first (request paths), then falls back
+// to loggerCtxKey{}.
 //
 // Returns bool which is true when a logger is present, false otherwise.
 func HasLogger(ctx context.Context) bool {
 	if pctx := daemon_dto.PikoRequestCtxFromContext(ctx); pctx != nil {
-		if _, ok := pctx.CachedLogger.(Logger); ok {
+		if _, ok := pctx.CachedLoggerValue().(Logger); ok {
 			return true
 		}
 	}
 	_, ok := ctx.Value(loggerCtxKey{}).(Logger)
 	return ok
+}
+
+// cacheOnCarrier caches candidate on the request carrier unless another goroutine cached
+// a logger first.
+//
+// Takes pctx (*daemon_dto.PikoRequestCtx) which is the request carrier.
+// Takes candidate (Logger) which is the logger to cache.
+//
+// Returns Logger which is the logger now cached on the carrier.
+func cacheOnCarrier(pctx *daemon_dto.PikoRequestCtx, candidate Logger) Logger {
+	if stored, ok := pctx.StoreCachedLogger(candidate).(Logger); ok {
+		return stored
+	}
+	return candidate
 }
 
 // resolveFallback returns the fallback logger if non-nil, otherwise lazily initialises

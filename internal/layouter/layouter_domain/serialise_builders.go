@@ -139,7 +139,8 @@ func buildStyleExpr(style *ComputedStyle) goast.Expr {
 }
 
 // buildStyleOverrideStatements generates assignment statements for each ComputedStyle
-// field that differs from the default.
+// field that differs from the default. Fields promoted from the embedded value groups are
+// visited in declaration order and assigned through their promoted names.
 //
 // Takes style (*ComputedStyle) which is the style to compare.
 //
@@ -150,12 +151,13 @@ func buildStyleOverrideStatements(style *ComputedStyle) []goast.Stmt {
 
 	styleValue := reflect.ValueOf(*style)
 	defaultValue := reflect.ValueOf(defaultStyle)
-	styleType := styleValue.Type()
 
-	for i := range styleType.NumField() {
-		field := styleType.Field(i)
-		actual := styleValue.Field(i).Interface()
-		expected := defaultValue.Field(i).Interface()
+	for _, field := range reflect.VisibleFields(styleValue.Type()) {
+		if field.Anonymous {
+			continue
+		}
+		actual := styleValue.FieldByIndex(field.Index).Interface()
+		expected := defaultValue.FieldByIndex(field.Index).Interface()
 
 		if reflect.DeepEqual(actual, expected) {
 			continue

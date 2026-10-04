@@ -79,8 +79,11 @@ func (*queryValidator) ValidateDuplicateNames(
 					"duplicate query name %q (first defined in %s:%d)",
 					query.Name, existing.Filename, existing.Line,
 				),
-				Severity: querier_dto.SeverityError,
-				Code:     querier_dto.CodeDuplicateQueryName,
+				Severity:   querier_dto.SeverityError,
+				Code:       querier_dto.CodeDuplicateQueryName,
+				Suggestion: "",
+				EndLine:    0,
+				EndColumn:  0,
 			})
 		} else {
 			seen[key] = query

@@ -22,10 +22,12 @@ import (
 	"bytes"
 	"fmt"
 	"math"
+	"slices"
 	"sync"
 
 	"github.com/go-text/typesetting/di"
 	"github.com/go-text/typesetting/font"
+	"github.com/go-text/typesetting/font/opentype/tables"
 	"github.com/go-text/typesetting/language"
 	"github.com/go-text/typesetting/segmenter"
 	"github.com/go-text/typesetting/shaping"
@@ -78,10 +80,13 @@ type fontKey struct {
 	style layouter_domain.FontStyle
 }
 
-// fontRecord stores a parsed font face together with its registration metadata.
+// fontRecord stores a parsed font together with its registration metadata. A record is
+// immutable once registered and is shared by every goroutine; per-goroutine shaping state
+// (faces and their glyph caches) lives in a shapingSession instead.
 type fontRecord struct {
-	// face is the parsed go-text font face.
-	face *font.Face
+	// font is the parsed font file. Its methods are read-only, so it is safe to share across
+	// goroutines.
+	font *font.Font
 
 	// family is the CSS font-family name.
 	family string
@@ -89,36 +94,70 @@ type fontRecord struct {
 	// data is the raw TTF or OTF font bytes.
 	data []byte
 
+	// coords holds the normalised variation coordinates of the instance, or nil for a static
+	// font.
+	coords []tables.Coord
+
 	// style is the font style variant.
 	style layouter_domain.FontStyle
 
 	// weight is the CSS font-weight value.
 	weight int
+
+	// extents holds the unscaled horizontal font extents in font units.
+	extents font.FontExtents
+
+	// capHeight holds the unscaled capital letter height in font units.
+	capHeight float32
+
+	// xHeight holds the unscaled x-height in font units.
+	xHeight float32
+
+	// unitsPerEm holds the number of font units per em.
+	unitsPerEm uint16
+
+	// hasExtents reports whether the font defines its horizontal extents.
+	hasExtents bool
+}
+
+// recordShaper pairs a goroutine-local face for one font record with a HarfBuzz shaper
+// used only for that face, so the shaper's internal font cache (keyed by the shared font
+// file) never mixes the variation coordinates of different instances.
+type recordShaper struct {
+	// face is the goroutine-local face for the record. Faces cache glyph data and are not
+	// safe for concurrent use.
+	face *font.Face
+
+	// shaper is the HarfBuzz shaper dedicated to face.
+	shaper shaping.HarfbuzzShaper
+}
+
+// shapingSession holds the mutable shaping state used by one goroutine at a time.
+// Sessions are pooled so concurrent renders shape in parallel instead of serialising on a
+// single shaper.
+type shapingSession struct {
+	// shapers maps each font record to its goroutine-local face and shaper, created on first
+	// use.
+	shapers map[*fontRecord]*recordShaper
 }
 
 // GoTextFontMetrics implements FontMetricsPort using the go-text/typesetting library for
 // HarfBuzz-based text shaping with full GSUB/GPOS support.
+//
+// It is safe for concurrent use. The registered fonts are immutable after construction;
+// shaping runs on pooled per-goroutine sessions, so concurrent renders never wait on one
+// another.
 type GoTextFontMetrics struct {
 	// fonts maps font keys to their parsed records.
 	fonts map[fontKey]*fontRecord
 
-	// fallback is the ordered list of font records used when no exact match is found.
+	// sessions pools the per-goroutine shaping state.
+	sessions sync.Pool
+
+	// fallback lists every font record in registration order. It is the deterministic order
+	// used when resolving descriptors without an exact match and when searching for a font
+	// that covers a character.
 	fallback []*fontRecord
-
-	// shaper is the HarfBuzz shaper instance.
-	shaper shaping.HarfbuzzShaper
-
-	// mutex guards concurrent access to the shaper and font faces.
-	mutex sync.Mutex
-}
-
-// mustTag converts a 4-character string to an OpenType tag (uint32).
-//
-// Takes s (string) which is the 4-character tag string.
-//
-// Returns font.Tag which is the corresponding OpenType tag.
-func mustTag(s string) font.Tag {
-	return font.Tag(uint32(s[0])<<24 | uint32(s[1])<<16 | uint32(s[2])<<8 | uint32(s[3]))
 }
 
 // NewGoTextFontMetrics creates a new GoTextFontMetrics from a slice of font registration
@@ -133,61 +172,100 @@ func NewGoTextFontMetrics(entries []layouter_dto.FontEntry) (*GoTextFontMetrics,
 	fallback := make([]*fontRecord, 0, len(entries))
 
 	for _, entry := range entries {
-		if entry.IsVariable {
-			baseFace, parseError := font.ParseTTF(bytes.NewReader(entry.Data))
-			if parseError != nil {
-				return nil, fmt.Errorf("parse variable font %q: %w", entry.Family, parseError)
-			}
-			for weight := entry.WeightMin; weight <= entry.WeightMax; weight += variableWeightStep {
-				face := font.NewFace(baseFace.Font)
-				face.SetVariations([]font.Variation{
-					{Tag: mustTag("wght"), Value: float32(weight)},
-				})
-				key := fontKey{
-					family: entry.Family,
-					weight: weight,
-					style:  layouter_domain.FontStyle(entry.Style),
-				}
-				record := &fontRecord{
-					face:   face,
-					data:   entry.Data,
-					family: entry.Family,
-					weight: weight,
-					style:  layouter_domain.FontStyle(entry.Style),
-				}
-				fonts[key] = record
-				fallback = append(fallback, record)
-			}
-			continue
+		records, err := newFontRecords(entry)
+		if err != nil {
+			return nil, err
 		}
-
-		face, parseError := font.ParseTTF(bytes.NewReader(entry.Data))
-		if parseError != nil {
-			return nil, fmt.Errorf("parse font %q weight=%d style=%d: %w",
-				entry.Family, entry.Weight, entry.Style, parseError)
+		for _, record := range records {
+			fonts[newFontKey(record)] = record
+			fallback = append(fallback, record)
 		}
-
-		key := fontKey{
-			family: entry.Family,
-			weight: entry.Weight,
-			style:  layouter_domain.FontStyle(entry.Style),
-		}
-
-		record := &fontRecord{
-			face:   face,
-			data:   entry.Data,
-			family: entry.Family,
-			weight: entry.Weight,
-			style:  layouter_domain.FontStyle(entry.Style),
-		}
-		fonts[key] = record
-		fallback = append(fallback, record)
 	}
 
 	return &GoTextFontMetrics{
-		fonts:    fonts,
+		fonts: fonts,
+		sessions: sync.Pool{
+			New: func() any { return newShapingSession() },
+		},
 		fallback: fallback,
 	}, nil
+}
+
+// shape runs HarfBuzz over the whole of runes with the record's face at the given CSS
+// pixel size.
+//
+// Takes record (*fontRecord) which identifies the font to shape with.
+// Takes runes ([]rune) which is the text to shape; it must not be empty.
+// Takes cssPixelSize (float64) which is the font size in CSS pixels.
+// Takes direction (layouter_domain.DirectionType) which is the text direction.
+//
+// Returns shaping.Output which holds the shaped glyphs and total advance.
+func (s *shapingSession) shape(
+	record *fontRecord,
+	runes []rune,
+	cssPixelSize float64,
+	direction layouter_domain.DirectionType,
+) shaping.Output {
+	state := s.shaperFor(record)
+	script, lang := detectScriptAndLanguage(runes)
+	return state.shaper.Shape(shaping.Input{
+		Text:      runes,
+		RunStart:  0,
+		RunEnd:    len(runes),
+		Direction: mapDirection(direction),
+		Face:      state.face,
+		Size:      fixed.Int26_6(cssPixelSize * fixedPointScale),
+		Script:    script,
+		Language:  lang,
+	})
+}
+
+// shaperFor returns the session's face and shaper for the record, creating them on first
+// use.
+//
+// Takes record (*fontRecord) which identifies the font.
+//
+// Returns *recordShaper which is owned by this session.
+func (s *shapingSession) shaperFor(record *fontRecord) *recordShaper {
+	if state, exists := s.shapers[record]; exists {
+		return state
+	}
+	state := &recordShaper{face: record.newFace(), shaper: shaping.HarfbuzzShaper{}}
+	s.shapers[record] = state
+	return state
+}
+
+// newFace creates a fresh face for the record with its variation coordinates applied. The
+// face is owned by the caller and must not be shared between goroutines.
+//
+// Returns *font.Face which is ready for shaping or glyph queries.
+func (r *fontRecord) newFace() *font.Face {
+	face := font.NewFace(r.font)
+	if len(r.coords) > 0 {
+		face.SetCoords(r.coords)
+	}
+	return face
+}
+
+// covers reports whether the record's font maps the character to a glyph.
+//
+// Takes character (rune) which is the character to look up.
+//
+// Returns bool which is true when the font has a glyph for the character.
+func (r *fontRecord) covers(character rune) bool {
+	_, hasGlyph := r.font.Cmap.Lookup(character)
+	return hasGlyph
+}
+
+// descriptor returns the font descriptor under which the record is registered.
+//
+// Returns layouter_domain.FontDescriptor which identifies the record.
+func (r *fontRecord) descriptor() layouter_domain.FontDescriptor {
+	return layouter_domain.FontDescriptor{
+		Family: r.family,
+		Weight: r.weight,
+		Style:  r.style,
+	}
 }
 
 // MeasureText returns the width in points of the given text string when rendered with the
@@ -207,42 +285,15 @@ func NewGoTextFontMetrics(entries []layouter_dto.FontEntry) (*GoTextFontMetrics,
 //
 // Returns the total advance width in points.
 //
-// Safe for concurrent use; the shaper is guarded by a mutex.
+// Each shaping call uses its own pooled session, allowing calls to run concurrently.
 func (m *GoTextFontMetrics) MeasureText(
 	fontDescriptor layouter_domain.FontDescriptor,
 	size float64,
 	text string,
 	direction layouter_domain.DirectionType,
 ) float64 {
-	record := m.resolveFont(fontDescriptor)
-	if record == nil {
-		return float64(len([]rune(text))) * size * fallbackAdvanceFraction
-	}
-
-	runes := []rune(text)
-	if len(runes) == 0 {
-		return 0
-	}
-
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-
-	script, lang := detectScriptAndLanguage(runes)
-
-	cssPixelSize := size / layouter_domain.PixelsToPoints
-
-	output := m.shaper.Shape(shaping.Input{
-		Text:      runes,
-		RunStart:  0,
-		RunEnd:    len(runes),
-		Direction: mapDirection(direction),
-		Face:      record.face,
-		Size:      fixed.Int26_6(cssPixelSize * fixedPointScale),
-		Script:    script,
-		Language:  lang,
-	})
-
-	return fixedToFloat(output.Advance) * layouter_domain.PixelsToPoints
+	_, width := m.ShapeAndMeasureText(fontDescriptor, size, text, direction)
+	return width
 }
 
 // ShapeText produces positioned glyphs for the given text using HarfBuzz shaping,
@@ -257,59 +308,51 @@ func (m *GoTextFontMetrics) MeasureText(
 //
 // Returns a slice of glyph positions, one per output glyph.
 //
-// Safe for concurrent use; the shaper is guarded by a mutex.
+// Each shaping call uses its own pooled session, allowing calls to run concurrently.
 func (m *GoTextFontMetrics) ShapeText(
 	fontDescriptor layouter_domain.FontDescriptor,
 	size float64,
 	text string,
 	direction layouter_domain.DirectionType,
 ) []layouter_domain.GlyphPosition {
+	glyphs, _ := m.ShapeAndMeasureText(fontDescriptor, size, text, direction)
+	return glyphs
+}
+
+// ShapeAndMeasureText shapes the text once and returns both the positioned glyphs and the
+// total advance width, giving the same results as ShapeText and MeasureText without
+// shaping the text twice.
+//
+// Takes fontDescriptor (FontDescriptor) which identifies the typeface.
+// Takes size (float64) which is the font size in points.
+// Takes text (string) which is the text to shape.
+// Takes direction (DirectionType) which is the text direction.
+//
+// Returns []layouter_domain.GlyphPosition which holds one position per output glyph.
+// Returns float64 which is the total advance width in points.
+//
+// Each shaping call uses its own pooled session, allowing calls to run concurrently.
+func (m *GoTextFontMetrics) ShapeAndMeasureText(
+	fontDescriptor layouter_domain.FontDescriptor,
+	size float64,
+	text string,
+	direction layouter_domain.DirectionType,
+) ([]layouter_domain.GlyphPosition, float64) {
 	record := m.resolveFont(fontDescriptor)
 	if record == nil {
-		return fallbackShapeText(size, text)
+		return fallbackShapeText(size, text), float64(len([]rune(text))) * size * fallbackAdvanceFraction
 	}
 
 	runes := []rune(text)
 	if len(runes) == 0 {
-		return nil
+		return nil, 0
 	}
 
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
+	session := m.acquireSession()
+	output := session.shape(record, runes, size/layouter_domain.PixelsToPoints, direction)
+	m.sessions.Put(session)
 
-	script, lang := detectScriptAndLanguage(runes)
-
-	cssPixelSize := size / layouter_domain.PixelsToPoints
-
-	output := m.shaper.Shape(shaping.Input{
-		Text:      runes,
-		RunStart:  0,
-		RunEnd:    len(runes),
-		Direction: mapDirection(direction),
-		Face:      record.face,
-		Size:      fixed.Int26_6(cssPixelSize * fixedPointScale),
-		Script:    script,
-		Language:  lang,
-	})
-
-	scale := layouter_domain.PixelsToPoints
-	positions := make([]layouter_domain.GlyphPosition, len(output.Glyphs))
-	for index, glyph := range output.Glyphs {
-		var glyphID uint16
-		if uint32(glyph.GlyphID) <= math.MaxUint16 {
-			glyphID = uint16(glyph.GlyphID) //nolint:gosec // guarded by the bounds check above
-		}
-		positions[index] = layouter_domain.GlyphPosition{
-			GlyphID:      glyphID,
-			XOffset:      fixedToFloat(glyph.XOffset) * scale,
-			YOffset:      fixedToFloat(glyph.YOffset) * scale,
-			XAdvance:     fixedToFloat(glyph.Advance) * scale,
-			ClusterIndex: glyph.TextIndex(),
-			RuneCount:    glyph.RunesCount(),
-		}
-	}
-
-	return positions
+	return convertGlyphs(output.Glyphs), fixedToFloat(output.Advance) * layouter_domain.PixelsToPoints
 }
 
 // GetMetrics returns the vertical metrics (ascent, descent, line gap, cap height,
@@ -320,7 +363,8 @@ func (m *GoTextFontMetrics) ShapeText(
 //
 // Returns the vertical metrics for the font at the given size.
 //
-// Safe for concurrent use; font face access is guarded by a mutex.
+// Metric lookups read immutable values captured during registration and can run
+// concurrently.
 func (m *GoTextFontMetrics) GetMetrics(
 	fontDescriptor layouter_domain.FontDescriptor,
 	size float64,
@@ -331,37 +375,40 @@ func (m *GoTextFontMetrics) GetMetrics(
 			Ascent:     size * defaultAscentFraction,
 			Descent:    size * defaultDescentFraction,
 			UnitsPerEm: defaultUnitsPerEm,
+			LineGap:    0,
+			CapHeight:  0,
+			XHeight:    0,
 		}
 	}
 
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-
-	unitsPerEm := record.face.Upem()
-	scale := size / float64(unitsPerEm)
-
-	extents, hasExtents := record.face.FontHExtents()
-
-	if !hasExtents {
+	if !record.hasExtents {
 		return layouter_domain.FontMetrics{
 			Ascent:     size * defaultAscentFraction,
 			Descent:    size * defaultDescentFraction,
-			UnitsPerEm: int(unitsPerEm),
+			UnitsPerEm: int(record.unitsPerEm),
+			LineGap:    0,
+			CapHeight:  0,
+			XHeight:    0,
 		}
 	}
 
+	scale := size / float64(record.unitsPerEm)
 	return layouter_domain.FontMetrics{
-		Ascent:     float64(extents.Ascender) * scale,
-		Descent:    -float64(extents.Descender) * scale,
-		LineGap:    float64(extents.LineGap) * scale,
-		CapHeight:  float64(record.face.LineMetric(font.CapHeight)) * scale,
-		XHeight:    float64(record.face.LineMetric(font.XHeight)) * scale,
-		UnitsPerEm: int(unitsPerEm),
+		Ascent:     float64(record.extents.Ascender) * scale,
+		Descent:    -float64(record.extents.Descender) * scale,
+		LineGap:    float64(record.extents.LineGap) * scale,
+		CapHeight:  float64(record.capHeight) * scale,
+		XHeight:    float64(record.xHeight) * scale,
+		UnitsPerEm: int(record.unitsPerEm),
 	}
 }
 
 // ResolveFallback returns a font descriptor for a font that contains the given character,
 // walking the fallback chain if the primary font lacks coverage.
+//
+// The chain is searched in font registration order, so the result is deterministic. A
+// covering font with the requested weight and style is preferred; otherwise the first
+// registered font that covers the character is used.
 //
 // Takes fontDescriptor (FontDescriptor) which is the primary font.
 // Takes character (rune) which is the character needing a fallback.
@@ -369,36 +416,28 @@ func (m *GoTextFontMetrics) GetMetrics(
 // Returns a FontDescriptor for a font containing the character, or the original if no
 // fallback has coverage.
 //
-// Safe for concurrent use; font face access is guarded by a mutex.
+// Fallback lookups read immutable font coverage and can run concurrently.
 func (m *GoTextFontMetrics) ResolveFallback(
 	fontDescriptor layouter_domain.FontDescriptor,
 	character rune,
 ) layouter_domain.FontDescriptor {
-	primaryRecord := m.resolveFont(fontDescriptor)
-	if primaryRecord != nil {
-		m.mutex.Lock()
-		_, hasGlyph := primaryRecord.face.NominalGlyph(character)
-		m.mutex.Unlock()
-		if hasGlyph {
-			return fontDescriptor
-		}
+	if primaryRecord := m.resolveFont(fontDescriptor); primaryRecord != nil && primaryRecord.covers(character) {
+		return fontDescriptor
 	}
 
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-
-	for key, record := range m.fonts {
-		_, hasGlyph := record.face.NominalGlyph(character)
-		if hasGlyph {
-			return layouter_domain.FontDescriptor{
-				Family: key.family,
-				Weight: key.weight,
-				Style:  key.style,
-			}
-		}
+	firstCovering := slices.IndexFunc(m.fallback, func(record *fontRecord) bool {
+		return record.covers(character)
+	})
+	if firstCovering < 0 {
+		return fontDescriptor
 	}
 
-	return fontDescriptor
+	for _, record := range m.fallback[firstCovering:] {
+		if record.weight == fontDescriptor.Weight && record.style == fontDescriptor.Style && record.covers(character) {
+			return record.descriptor()
+		}
+	}
+	return m.fallback[firstCovering].descriptor()
 }
 
 // GetFontData returns the raw TTF bytes for the font matching the given descriptor. This
@@ -417,8 +456,12 @@ func (m *GoTextFontMetrics) GetFontData(
 	return record.data, true
 }
 
-// GetFontFace returns the go-text Face for the font matching the given descriptor. Used
-// by the PDF pipeline to compute variation-aware glyph advance widths for variable fonts.
+// GetFontFace returns a go-text Face for the font matching the given descriptor, with the
+// instance's variation coordinates applied. Used by the PDF pipeline to compute
+// variation-aware glyph advance widths for variable fonts.
+//
+// Each call returns a new Face owned by the caller, because faces cache glyph data and
+// are not safe for concurrent use.
 //
 // Takes fontDescriptor (FontDescriptor) which identifies the font.
 //
@@ -430,7 +473,7 @@ func (m *GoTextFontMetrics) GetFontFace(
 	if record == nil {
 		return nil
 	}
-	return record.face
+	return record.newFace()
 }
 
 // SplitGraphemeClusters segments text into grapheme clusters using Unicode UAX #29 rules
@@ -455,20 +498,19 @@ func (*GoTextFontMetrics) SplitGraphemeClusters(text string) []string {
 	return clusters
 }
 
-// mapDirection converts a layouter DirectionType to a go-text di.Direction.
+// acquireSession takes a shaping session from the pool, creating one when the pool is
+// empty. The caller returns it with m.sessions.Put once shaping is complete.
 //
-// Takes d (DirectionType) which is the layouter direction.
-//
-// Returns di.Direction which is the go-text direction.
-func mapDirection(d layouter_domain.DirectionType) di.Direction {
-	if d == layouter_domain.DirectionRTL {
-		return di.DirectionRTL
+// Returns *shapingSession which is owned by the caller until it is put back.
+func (m *GoTextFontMetrics) acquireSession() *shapingSession {
+	if session, ok := m.sessions.Get().(*shapingSession); ok {
+		return session
 	}
-	return di.DirectionLTR
+	return newShapingSession()
 }
 
 // resolveFont looks up the best matching fontRecord for the given descriptor, falling
-// back through style, weight, and the global fallback chain.
+// back through style, weight, and the registration-ordered fallback chain.
 //
 // Takes fontDescriptor (FontDescriptor) which identifies the desired font.
 //
@@ -495,13 +537,13 @@ func (m *GoTextFontMetrics) resolveFont(
 		return record
 	}
 
-	for k, record := range m.fonts {
-		if k.weight == fontDescriptor.Weight && k.style == fontDescriptor.Style {
+	for _, record := range m.fallback {
+		if record.weight == fontDescriptor.Weight && record.style == fontDescriptor.Style {
 			return record
 		}
 	}
-	for k, record := range m.fonts {
-		if k.weight == fontDescriptor.Weight && k.style == layouter_domain.FontStyleNormal {
+	for _, record := range m.fallback {
+		if record.weight == fontDescriptor.Weight && record.style == layouter_domain.FontStyleNormal {
 			return record
 		}
 	}
@@ -511,6 +553,132 @@ func (m *GoTextFontMetrics) resolveFont(
 	}
 
 	return nil
+}
+
+// newFontRecords parses a font entry into one record for a static font or one record per
+// weight step for a variable font.
+//
+// Takes entry (layouter_dto.FontEntry) which describes the font to register.
+//
+// Returns []*fontRecord which holds the records in weight order.
+// Returns error when the font data cannot be parsed.
+func newFontRecords(entry layouter_dto.FontEntry) ([]*fontRecord, error) {
+	face, parseError := font.ParseTTF(bytes.NewReader(entry.Data))
+	if parseError != nil {
+		if entry.IsVariable {
+			return nil, fmt.Errorf("parse variable font %q: %w", entry.Family, parseError)
+		}
+		return nil, fmt.Errorf("parse font %q weight=%d style=%d: %w",
+			entry.Family, entry.Weight, entry.Style, parseError)
+	}
+
+	if !entry.IsVariable {
+		return []*fontRecord{newFontRecord(face, entry, entry.Weight)}, nil
+	}
+
+	var records []*fontRecord
+	for weight := entry.WeightMin; weight <= entry.WeightMax; weight += variableWeightStep {
+		instance := font.NewFace(face.Font)
+		instance.SetVariations([]font.Variation{
+			{Tag: mustTag("wght"), Value: float32(weight)},
+		})
+		records = append(records, newFontRecord(instance, entry, weight))
+	}
+	return records, nil
+}
+
+// newFontRecord creates a fontRecord for a parsed face, registered under the entry's
+// family and style at the given weight. The face's variation coordinates and unscaled
+// vertical metrics are captured so the record never needs the face again.
+//
+// Takes face (*font.Face) which is the parsed font face with any variations applied.
+// Takes entry (layouter_dto.FontEntry) which supplies the family, style and raw font
+// bytes.
+// Takes weight (int) which is the CSS font-weight the face is registered at.
+//
+// Returns *fontRecord which holds the font and its registration metadata.
+func newFontRecord(face *font.Face, entry layouter_dto.FontEntry, weight int) *fontRecord {
+	extents, hasExtents := face.FontHExtents()
+	return &fontRecord{
+		font:       face.Font,
+		family:     entry.Family,
+		data:       entry.Data,
+		coords:     slices.Clone(face.Coords()),
+		extents:    extents,
+		capHeight:  face.LineMetric(font.CapHeight),
+		xHeight:    face.LineMetric(font.XHeight),
+		unitsPerEm: face.Upem(),
+		style:      layouter_domain.FontStyle(entry.Style),
+		weight:     weight,
+		hasExtents: hasExtents,
+	}
+}
+
+// newFontKey creates the lookup key under which a fontRecord is registered.
+//
+// Takes record (*fontRecord) which is the record to key.
+//
+// Returns fontKey which identifies the record by family, weight and style.
+func newFontKey(record *fontRecord) fontKey {
+	return fontKey{
+		family: record.family,
+		weight: record.weight,
+		style:  record.style,
+	}
+}
+
+// newShapingSession creates an empty shaping session.
+//
+// Returns *shapingSession which creates faces and shapers lazily.
+func newShapingSession() *shapingSession {
+	return &shapingSession{shapers: make(map[*fontRecord]*recordShaper)}
+}
+
+// mustTag converts a 4-character string to an OpenType tag (uint32).
+//
+// Takes s (string) which is the 4-character tag string.
+//
+// Returns font.Tag which is the corresponding OpenType tag.
+func mustTag(s string) font.Tag {
+	return font.Tag(uint32(s[0])<<24 | uint32(s[1])<<16 | uint32(s[2])<<8 | uint32(s[3]))
+}
+
+// convertGlyphs converts shaped go-text glyphs into layouter glyph positions, scaling the
+// CSS pixel output back to points.
+//
+// Takes glyphs ([]shaping.Glyph) which holds the shaper output.
+//
+// Returns []layouter_domain.GlyphPosition which holds one position per glyph.
+func convertGlyphs(glyphs []shaping.Glyph) []layouter_domain.GlyphPosition {
+	scale := layouter_domain.PixelsToPoints
+	positions := make([]layouter_domain.GlyphPosition, len(glyphs))
+	for index, glyph := range glyphs {
+		var glyphID uint16
+		if uint32(glyph.GlyphID) <= math.MaxUint16 {
+			glyphID = uint16(glyph.GlyphID) //nolint:gosec // guarded by the bounds check above
+		}
+		positions[index] = layouter_domain.GlyphPosition{
+			GlyphID:      glyphID,
+			XOffset:      fixedToFloat(glyph.XOffset) * scale,
+			YOffset:      fixedToFloat(glyph.YOffset) * scale,
+			XAdvance:     fixedToFloat(glyph.Advance) * scale,
+			ClusterIndex: glyph.TextIndex(),
+			RuneCount:    glyph.RunesCount(),
+		}
+	}
+	return positions
+}
+
+// mapDirection converts a layouter DirectionType to a go-text di.Direction.
+//
+// Takes d (DirectionType) which is the layouter direction.
+//
+// Returns di.Direction which is the go-text direction.
+func mapDirection(d layouter_domain.DirectionType) di.Direction {
+	if d == layouter_domain.DirectionRTL {
+		return di.DirectionRTL
+	}
+	return di.DirectionLTR
 }
 
 // fallbackShapeText produces synthetic glyph positions when no real font is available,
@@ -533,6 +701,8 @@ func fallbackShapeText(
 			XAdvance:     advance,
 			ClusterIndex: index,
 			RuneCount:    1,
+			XOffset:      0,
+			YOffset:      0,
 		}
 	}
 	return positions

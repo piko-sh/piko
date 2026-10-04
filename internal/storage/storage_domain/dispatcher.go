@@ -243,19 +243,22 @@ func NewStorageDispatcher(provider StorageProviderPort, providerName string, con
 	}
 
 	return &StorageDispatcher{
-		provider:      provider,
-		clock:         config.Clock,
-		providerName:  providerName,
-		putQueue:      make(chan *queuedPut, config.QueueSize),
-		removeQueue:   make(chan *queuedRemove, config.QueueSize),
-		flushChan:     make(chan struct{}, 1),
-		shutdownChan:  make(chan struct{}),
-		batchSize:     config.BatchSize,
-		maxRetries:    config.MaxRetries,
-		flushInterval: config.FlushInterval,
-		wg:            sync.WaitGroup{},
-		mu:            sync.RWMutex{},
-		isRunning:     false,
+		provider:       provider,
+		clock:          config.Clock,
+		providerName:   providerName,
+		putQueue:       make(chan *queuedPut, config.QueueSize),
+		removeQueue:    make(chan *queuedRemove, config.QueueSize),
+		flushChan:      make(chan struct{}, 1),
+		shutdownChan:   make(chan struct{}),
+		batchSize:      config.BatchSize,
+		maxRetries:     config.MaxRetries,
+		flushInterval:  config.FlushInterval,
+		wg:             sync.WaitGroup{},
+		mu:             sync.RWMutex{},
+		isRunning:      false,
+		totalQueued:    atomic.Int64{},
+		totalProcessed: atomic.Int64{},
+		totalFailed:    atomic.Int64{},
 	}
 }
 
@@ -433,6 +436,8 @@ type DispatcherStats struct {
 // batchSize, and flushes on tick, explicit flush signal, shutdown, or context
 // cancellation.
 //
+// Takes d (*StorageDispatcher) which provides dispatcher state and operation processing
+// dependencies.
 // Takes queue (chan *T) which supplies incoming operations.
 // Takes processBatch (func(context.Context, []*T)) which processes a full batch.
 // Takes drain (func(context.Context)) which drains remaining queue items on exit.
@@ -598,6 +603,7 @@ func (d *StorageDispatcher) handleRemoveFailure(ctx context.Context, operation *
 // shutdown or context cancellation.
 //
 // Takes queue (chan *T) which is the destination channel.
+// Takes operation (*T) which is the storage operation to return to the queue.
 // Takes key (string) which identifies the operation for logging.
 // Takes shutdownChan (chan struct{}) which signals dispatcher shutdown.
 // Takes logFailure (func()) which logs permanent failure when requeue is impossible.
@@ -743,5 +749,6 @@ func DefaultDispatcherConfig() DispatcherConfig {
 		FlushInterval: defaultFlushInterval,
 		QueueSize:     defaultQueueSize,
 		MaxRetries:    defaultMaxRetries,
+		Clock:         nil,
 	}
 }

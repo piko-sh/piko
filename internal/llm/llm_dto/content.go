@@ -74,8 +74,10 @@ type ImageData struct {
 // Returns ContentPart which is set up as a text part.
 func TextPart(text string) ContentPart {
 	return ContentPart{
-		Type: ContentPartTypeText,
-		Text: &text,
+		Type:      ContentPartTypeText,
+		Text:      &text,
+		ImageURL:  nil,
+		ImageData: nil,
 	}
 }
 
@@ -89,8 +91,11 @@ func ImageURLPart(url string, detail ...string) ContentPart {
 	cp := ContentPart{
 		Type: ContentPartTypeImageURL,
 		ImageURL: &ImageURL{
-			URL: url,
+			URL:    url,
+			Detail: nil,
 		},
+		Text:      nil,
+		ImageData: nil,
 	}
 	if len(detail) > 0 && detail[0] != "" {
 		cp.ImageURL.Detail = &detail[0]
@@ -111,6 +116,8 @@ func ImageDataPart(mimeType, base64Data string) ContentPart {
 			MIMEType: mimeType,
 			Data:     base64Data,
 		},
+		Text:     nil,
+		ImageURL: nil,
 	}
 }
 

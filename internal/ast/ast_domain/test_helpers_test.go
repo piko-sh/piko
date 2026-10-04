@@ -184,14 +184,9 @@ func literalPart(text string) TextPart {
 }
 
 func expressionPart(raw string) TextPart {
-	return TextPart{
-		Expression:    nil,
-		GoAnnotations: nil,
-		Literal:       "",
-		RawExpression: raw,
-		Location:      Location{},
-		IsLiteral:     false,
-	}
+	part := TextPart{}
+	part.RawExpression = raw
+	return part
 }
 
 func writerWith(appendTo func(dw *DirectWriter)) *DirectWriter {

@@ -19,6 +19,7 @@
 package llm_provider_ollama
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -53,7 +54,7 @@ func newTestServerProvider(t *testing.T, responses []api.ChatResponse) *ollamaPr
 	u, err := url.Parse(server.URL)
 	require.NoError(t, err)
 
-	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport := cloneTransport(http.DefaultTransport)
 	t.Cleanup(transport.CloseIdleConnections)
 
 	return &ollamaProvider{
@@ -118,11 +119,9 @@ func TestProcessStream_TokenAccumulation(t *testing.T) {
 			Message: api.Message{Role: "assistant", Content: "Hi"},
 		},
 		{
-			Done: true,
-			Metrics: api.Metrics{
-				PromptEvalCount: 10,
-				EvalCount:       5,
-			},
+			Done:            true,
+			PromptEvalCount: 10,
+			EvalCount:       5,
 		},
 	}
 
@@ -159,11 +158,9 @@ func TestProcessStream_DoneEvent(t *testing.T) {
 			Message: api.Message{Role: "assistant", Content: "Done test"},
 		},
 		{
-			Done: true,
-			Metrics: api.Metrics{
-				PromptEvalCount: 3,
-				EvalCount:       2,
-			},
+			Done:            true,
+			PromptEvalCount: 3,
+			EvalCount:       2,
 		},
 	}
 
@@ -261,4 +258,49 @@ func TestProcessStream_ModelPassedThrough(t *testing.T) {
 			assert.Equal(t, "mistral:7b", event.FinalResponse.Model)
 		}
 	}
+}
+
+func TestStreamContext(t *testing.T) {
+	t.Parallel()
+
+	t.Run("provider close cancels the stream", func(t *testing.T) {
+		t.Parallel()
+
+		closeContext, closeCancel := context.WithCancelCause(context.Background())
+		p := &ollamaProvider{closeContext: closeContext, closeCancel: closeCancel}
+
+		streamContext, cancelStream := p.streamContext(t.Context())
+		t.Cleanup(func() {
+			cancelStream(errStreamFinished)
+		})
+
+		closeCancel(errProviderClosed)
+
+		<-streamContext.Done()
+		assert.ErrorIs(t, context.Cause(streamContext), errProviderClosed)
+	})
+
+	t.Run("finishing the stream detaches it from provider close", func(t *testing.T) {
+		t.Parallel()
+
+		closeContext, closeCancel := context.WithCancelCause(context.Background())
+		p := &ollamaProvider{closeContext: closeContext, closeCancel: closeCancel}
+
+		streamContext, cancelStream := p.streamContext(t.Context())
+		cancelStream(errStreamFinished)
+		closeCancel(errProviderClosed)
+
+		assert.ErrorIs(t, context.Cause(streamContext), errStreamFinished)
+	})
+
+	t.Run("without a close signal the caller context is used", func(t *testing.T) {
+		t.Parallel()
+
+		p := &ollamaProvider{}
+
+		streamContext, cancelStream := p.streamContext(t.Context())
+		cancelStream(errStreamFinished)
+
+		assert.ErrorIs(t, context.Cause(streamContext), errStreamFinished)
+	})
 }

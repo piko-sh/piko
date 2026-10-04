@@ -20,11 +20,15 @@ package layouter_domain
 
 import (
 	"context"
+	"errors"
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/layouter/layouter_dto"
 )
 
 func TestPaginate_SinglePage(t *testing.T) {
@@ -37,7 +41,7 @@ func TestPaginate_SinglePage(t *testing.T) {
 		},
 	}
 
-	maxPage := Paginate(context.Background(), root, UniformPageGeometry(841.89))
+	maxPage := mustPaginate(t, root, UniformPageGeometry(841.89))
 	assert.Equal(t, 0, maxPage)
 
 	for _, child := range root.Children {
@@ -55,7 +59,7 @@ func TestPaginate_TwoPages(t *testing.T) {
 		},
 	}
 
-	maxPage := Paginate(context.Background(), root, UniformPageGeometry(841.89))
+	maxPage := mustPaginate(t, root, UniformPageGeometry(841.89))
 	assert.Equal(t, 1, maxPage)
 
 	assert.Equal(t, 0, root.Children[0].PageIndex)
@@ -74,7 +78,7 @@ func TestPaginate_ManyPages(t *testing.T) {
 		},
 	}
 
-	maxPage := Paginate(context.Background(), root, UniformPageGeometry(841.89))
+	maxPage := mustPaginate(t, root, UniformPageGeometry(841.89))
 	assert.Equal(t, 3, maxPage)
 
 	expected := []int{0, 1, 2, 3}
@@ -97,7 +101,7 @@ func TestPaginate_NestedChildren(t *testing.T) {
 		},
 	}
 
-	maxPage := Paginate(context.Background(), root, UniformPageGeometry(841.89))
+	maxPage := mustPaginate(t, root, UniformPageGeometry(841.89))
 	assert.Equal(t, 1, maxPage)
 
 	assert.Equal(t, 0, root.Children[0].PageIndex)
@@ -119,13 +123,13 @@ func TestPageForY_ExactBoundaryFloatingPoint(t *testing.T) {
 
 func TestPaginate_ZeroPageHeight(t *testing.T) {
 	root := &LayoutBox{ContentY: 100}
-	maxPage := Paginate(context.Background(), root, UniformPageGeometry(0))
+	maxPage := mustPaginate(t, root, UniformPageGeometry(0))
 	assert.Equal(t, 0, maxPage, "expected maxPage 0 for zero page height")
 }
 
 func TestPaginate_NegativePageHeight(t *testing.T) {
 	root := &LayoutBox{ContentY: 100}
-	maxPage := Paginate(context.Background(), root, UniformPageGeometry(-100))
+	maxPage := mustPaginate(t, root, UniformPageGeometry(-100))
 	assert.Equal(t, 0, maxPage, "expected maxPage 0 for negative page height")
 }
 
@@ -169,7 +173,7 @@ func TestPaginate_FirstPageDifferentHeight(t *testing.T) {
 	}
 
 	geo := PageGeometry{DefaultHeight: 200, FirstPageHeight: 100}
-	maxPage := Paginate(context.Background(), root, geo)
+	maxPage := mustPaginate(t, root, geo)
 
 	assert.Equal(t, 2, maxPage)
 
@@ -193,7 +197,7 @@ func TestPaginate_BreakInsideAvoid_FitsOnPage(t *testing.T) {
 		},
 	}
 
-	maxPage := Paginate(context.Background(), root, UniformPageGeometry(200))
+	maxPage := mustPaginate(t, root, UniformPageGeometry(200))
 	assert.Equal(t, 1, maxPage)
 	assert.Equal(t, 1, root.Children[1].PageIndex)
 }
@@ -216,7 +220,7 @@ func TestPaginate_BreakInsideAvoid_TallerThanPage(t *testing.T) {
 		Children: []*LayoutBox{container},
 	}
 
-	maxPage := Paginate(context.Background(), root, UniformPageGeometry(150))
+	maxPage := mustPaginate(t, root, UniformPageGeometry(150))
 
 	assert.Equal(t, 0, container.PageIndex)
 
@@ -242,7 +246,7 @@ func TestPaginate_BreakBeforeRight_OnLeftPage(t *testing.T) {
 		},
 	}
 
-	maxPage := Paginate(context.Background(), root, UniformPageGeometry(200))
+	maxPage := mustPaginate(t, root, UniformPageGeometry(200))
 
 	box := root.Children[1]
 	assert.Equal(t, 2, box.PageIndex)
@@ -264,7 +268,7 @@ func TestPaginate_BreakBeforeLeft_OnRightPage(t *testing.T) {
 		},
 	}
 
-	Paginate(context.Background(), root, UniformPageGeometry(200))
+	mustPaginate(t, root, UniformPageGeometry(200))
 
 	box := root.Children[1]
 	assert.Equal(t, 1, box.PageIndex)
@@ -285,7 +289,7 @@ func TestPaginate_BreakBeforeRight_AlreadyOnRight(t *testing.T) {
 		},
 	}
 
-	Paginate(context.Background(), root, UniformPageGeometry(200))
+	mustPaginate(t, root, UniformPageGeometry(200))
 
 	box := root.Children[1]
 
@@ -306,7 +310,7 @@ func TestPaginate_BreakAfterLeft(t *testing.T) {
 		},
 	}
 
-	Paginate(context.Background(), root, UniformPageGeometry(200))
+	mustPaginate(t, root, UniformPageGeometry(200))
 
 	next := root.Children[1]
 	assert.Equal(t, 1, next.PageIndex%2)
@@ -327,7 +331,7 @@ func TestPaginate_OrphansWidows_FitsOnPage(t *testing.T) {
 	}
 	root := &LayoutBox{ContentY: 0, Children: []*LayoutBox{para}}
 
-	Paginate(context.Background(), root, UniformPageGeometry(200))
+	mustPaginate(t, root, UniformPageGeometry(200))
 
 	for i, line := range para.Children {
 		assert.Equal(t, 0, line.PageIndex, "line %d", i)
@@ -352,7 +356,7 @@ func TestPaginate_OrphansWidows_DefaultSatisfied(t *testing.T) {
 	}
 	root := &LayoutBox{ContentY: 0, Children: []*LayoutBox{para}}
 
-	maxPage := Paginate(context.Background(), root, UniformPageGeometry(130))
+	maxPage := mustPaginate(t, root, UniformPageGeometry(130))
 
 	assert.Equal(t, 1, maxPage)
 
@@ -379,7 +383,7 @@ func TestPaginate_OrphansWidows_WidowsViolated(t *testing.T) {
 	}
 	root := &LayoutBox{ContentY: 0, Children: []*LayoutBox{para}}
 
-	maxPage := Paginate(context.Background(), root, UniformPageGeometry(130))
+	maxPage := mustPaginate(t, root, UniformPageGeometry(130))
 
 	assert.Equal(t, 1, maxPage)
 
@@ -405,7 +409,7 @@ func TestPaginate_OrphansWidows_OrphansViolated(t *testing.T) {
 	}
 	root := &LayoutBox{ContentY: 0, Children: []*LayoutBox{para}}
 
-	maxPage := Paginate(context.Background(), root, UniformPageGeometry(200))
+	maxPage := mustPaginate(t, root, UniformPageGeometry(200))
 
 	assert.Equal(t, 1, maxPage)
 
@@ -429,7 +433,7 @@ func TestPaginate_OrphansWidows_BothUnsatisfiable(t *testing.T) {
 	}
 	root := &LayoutBox{ContentY: 0, Children: []*LayoutBox{para}}
 
-	maxPage := Paginate(context.Background(), root, UniformPageGeometry(200))
+	maxPage := mustPaginate(t, root, UniformPageGeometry(200))
 
 	assert.Equal(t, 1, maxPage)
 
@@ -457,7 +461,7 @@ func TestPaginate_OrphansWidows_CustomValues(t *testing.T) {
 	}
 	root := &LayoutBox{ContentY: 0, Children: []*LayoutBox{para}}
 
-	maxPage := Paginate(context.Background(), root, UniformPageGeometry(100))
+	maxPage := mustPaginate(t, root, UniformPageGeometry(100))
 
 	assert.Equal(t, 1, maxPage)
 
@@ -489,7 +493,7 @@ func TestPaginate_TableHeader_NoThead(t *testing.T) {
 	}
 	root := &LayoutBox{ContentY: 0, Children: []*LayoutBox{table}}
 
-	maxPage := Paginate(context.Background(), root, UniformPageGeometry(200))
+	maxPage := mustPaginate(t, root, UniformPageGeometry(200))
 
 	assert.Equal(t, 1, maxPage)
 }
@@ -529,7 +533,7 @@ func TestPaginate_TableHeader_TwoPages_RealisticRowGroup(t *testing.T) {
 	}
 	root := &LayoutBox{ContentY: 0, Children: []*LayoutBox{table}}
 
-	Paginate(context.Background(), root, geo)
+	mustPaginate(t, root, geo)
 
 	rows := tbody.Children
 	expectedPages := []int{0, 0, 1, 1}
@@ -575,7 +579,7 @@ func TestPaginate_TableHeader_TwoPages(t *testing.T) {
 
 	pageHeight := 200.0
 	geo := UniformPageGeometry(pageHeight)
-	maxPage := Paginate(context.Background(), root, geo)
+	maxPage := mustPaginate(t, root, geo)
 
 	assert.Equal(t, 1, maxPage)
 
@@ -637,7 +641,7 @@ func TestPaginate_TableHeader_ThreePages(t *testing.T) {
 
 	pageHeight := 200.0
 	geo := UniformPageGeometry(pageHeight)
-	maxPage := Paginate(context.Background(), root, geo)
+	maxPage := mustPaginate(t, root, geo)
 
 	assert.Equal(t, 2, maxPage)
 
@@ -697,7 +701,7 @@ func TestPaginate_TableFooter_TwoPages(t *testing.T) {
 	root := &LayoutBox{ContentY: 0, Children: []*LayoutBox{table}}
 
 	geo := UniformPageGeometry(200)
-	maxPage := Paginate(context.Background(), root, geo)
+	maxPage := mustPaginate(t, root, geo)
 
 	assert.Equal(t, 1, maxPage)
 
@@ -747,7 +751,7 @@ func TestPaginate_TableFooter_NoThead(t *testing.T) {
 	root := &LayoutBox{ContentY: 0, Children: []*LayoutBox{table}}
 
 	geo := UniformPageGeometry(200)
-	maxPage := Paginate(context.Background(), root, geo)
+	maxPage := mustPaginate(t, root, geo)
 
 	assert.Equal(t, 1, maxPage)
 
@@ -801,7 +805,7 @@ func TestPaginate_TableFooter_ThreePages(t *testing.T) {
 	root := &LayoutBox{ContentY: 0, Children: []*LayoutBox{table}}
 
 	geo := UniformPageGeometry(200)
-	maxPage := Paginate(context.Background(), root, geo)
+	maxPage := mustPaginate(t, root, geo)
 
 	assert.Equal(t, 2, maxPage)
 
@@ -836,7 +840,7 @@ func TestPaginate_FixedPosition_ClonedToAllPages(t *testing.T) {
 	}
 
 	geo := UniformPageGeometry(200)
-	maxPage := Paginate(context.Background(), root, geo)
+	maxPage := mustPaginate(t, root, geo)
 
 	assert.Equal(t, 2, maxPage)
 
@@ -874,7 +878,7 @@ func TestPaginate_FixedPosition_WithTransformAncestor(t *testing.T) {
 	}
 
 	initialChildCount := len(root.Children)
-	Paginate(context.Background(), root, UniformPageGeometry(200))
+	mustPaginate(t, root, UniformPageGeometry(200))
 
 	assert.Equal(t, initialChildCount, len(root.Children))
 }
@@ -901,7 +905,7 @@ func TestPaginate_FixedPosition_MultipleFixedElements(t *testing.T) {
 	}
 
 	initialChildCount := len(root.Children)
-	Paginate(context.Background(), root, UniformPageGeometry(200))
+	mustPaginate(t, root, UniformPageGeometry(200))
 
 	cloneCount := len(root.Children) - initialChildCount
 	assert.Equal(t, 2, cloneCount)
@@ -933,7 +937,7 @@ func TestPaginate_LayoutRoleHeader_TwoPages(t *testing.T) {
 	}
 
 	geo := UniformPageGeometry(200)
-	maxPage := Paginate(context.Background(), root, geo)
+	maxPage := mustPaginate(t, root, geo)
 
 	assert.Equal(t, 1, maxPage)
 
@@ -969,7 +973,7 @@ func TestPaginate_LayoutRoleFooter_TwoPages(t *testing.T) {
 	}
 
 	geo := UniformPageGeometry(200)
-	maxPage := Paginate(context.Background(), root, geo)
+	maxPage := mustPaginate(t, root, geo)
 
 	assert.Equal(t, 1, maxPage)
 
@@ -1004,7 +1008,7 @@ func TestPaginate_LayoutRoleHeaderAndFooter(t *testing.T) {
 	}
 
 	geo := UniformPageGeometry(200)
-	maxPage := Paginate(context.Background(), root, geo)
+	maxPage := mustPaginate(t, root, geo)
 
 	assert.GreaterOrEqual(t, maxPage, 1)
 
@@ -1026,7 +1030,7 @@ func TestPaginate_LayoutRole_NoAttribute(t *testing.T) {
 	}
 
 	initialCount := len(root.Children)
-	Paginate(context.Background(), root, UniformPageGeometry(200))
+	mustPaginate(t, root, UniformPageGeometry(200))
 
 	assert.Equal(t, initialCount, len(root.Children))
 }
@@ -1042,7 +1046,7 @@ func TestPaginate_ChildOverflow_PushToNextPage(t *testing.T) {
 		},
 	}
 
-	maxPage := Paginate(context.Background(), root, UniformPageGeometry(250))
+	maxPage := mustPaginate(t, root, UniformPageGeometry(250))
 	assert.Equal(t, 1, maxPage)
 
 	assert.Equal(t, 0, root.Children[0].PageIndex)
@@ -1059,7 +1063,7 @@ func TestPaginate_ChildOverflow_TallerThanPage(t *testing.T) {
 		},
 	}
 
-	maxPage := Paginate(context.Background(), root, UniformPageGeometry(200))
+	maxPage := mustPaginate(t, root, UniformPageGeometry(200))
 	assert.Equal(t, 0, maxPage)
 	assert.Equal(t, 0, root.Children[0].PageIndex)
 }
@@ -1074,7 +1078,7 @@ func TestPaginate_ChildOverflow_FitsExactly(t *testing.T) {
 		},
 	}
 
-	maxPage := Paginate(context.Background(), root, UniformPageGeometry(250))
+	maxPage := mustPaginate(t, root, UniformPageGeometry(250))
 	assert.Equal(t, 0, maxPage)
 	assert.Equal(t, 0, root.Children[1].PageIndex)
 }
@@ -1091,7 +1095,7 @@ func TestPaginate_ChildOverflow_ChainedPush(t *testing.T) {
 		},
 	}
 
-	maxPage := Paginate(context.Background(), root, UniformPageGeometry(250))
+	maxPage := mustPaginate(t, root, UniformPageGeometry(250))
 	assert.Equal(t, 1, maxPage)
 
 	expected := []int{0, 0, 0, 1}
@@ -1116,7 +1120,148 @@ func TestPaginate_ChildOverflow_WithBreakAfter(t *testing.T) {
 		},
 	}
 
-	maxPage := Paginate(context.Background(), root, UniformPageGeometry(250))
+	maxPage := mustPaginate(t, root, UniformPageGeometry(250))
 	assert.Equal(t, 1, maxPage)
 	assert.Equal(t, 1, root.Children[1].PageIndex)
+}
+
+func mustPaginate(t *testing.T, root *LayoutBox, geometry PageGeometry) int {
+	t.Helper()
+	maxPage, err := Paginate(context.Background(), root, geometry, nil)
+	require.NoError(t, err)
+	return maxPage
+}
+
+func TestPaginate_EnforcesLimits(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		build   func() *LayoutBox
+		wantErr error
+		limits  layouter_dto.LayoutLimits
+		name    string
+	}{
+		{
+			name:    "content beyond the page limit",
+			limits:  layouter_dto.LayoutLimits{MaxPages: 10},
+			build:   func() *LayoutBox { return &LayoutBox{Children: []*LayoutBox{{ContentY: 5000, ContentHeight: 10}}} },
+			wantErr: layouter_dto.ErrTooManyPages,
+		},
+		{
+			name:    "absurd offset saturates instead of overflowing",
+			build:   func() *LayoutBox { return &LayoutBox{Children: []*LayoutBox{{ContentY: 1e300, ContentHeight: 10}}} },
+			wantErr: layouter_dto.ErrTooManyPages,
+		},
+		{
+			name:   "fixed element clones count toward the box limit",
+			limits: layouter_dto.LayoutLimits{MaxBoxNodes: 6},
+			build: func() *LayoutBox {
+				fixed := &LayoutBox{ContentHeight: 10, Style: ComputedStyle{Position: PositionFixed}, Children: []*LayoutBox{{}, {}}}
+				return &LayoutBox{Children: []*LayoutBox{fixed, {ContentY: 900, ContentHeight: 10}}}
+			},
+			wantErr: layouter_dto.ErrTooManyBoxes,
+		},
+		{
+			name:   "layout role clones count toward the box limit",
+			limits: layouter_dto.LayoutLimits{MaxBoxNodes: 3},
+			build: func() *LayoutBox {
+				header := &LayoutBox{ContentHeight: 30, SourceNode: makeSourceNode("header")}
+				return &LayoutBox{Children: []*LayoutBox{header, {ContentY: 30, ContentHeight: 10}, {ContentY: 900, ContentHeight: 10}}}
+			},
+			wantErr: layouter_dto.ErrTooManyBoxes,
+		},
+		{
+			name:   "table header clones respect the page limit",
+			limits: layouter_dto.LayoutLimits{MaxPages: 3},
+			build: func() *LayoutBox {
+				thead := &LayoutBox{
+					Type: BoxTableRowGroup, ContentHeight: 40,
+					Style:    ComputedStyle{Display: DisplayTableHeaderGroup},
+					Children: []*LayoutBox{{Type: BoxTableRow, ContentHeight: 40}},
+				}
+				tbody := &LayoutBox{
+					Type: BoxTableRowGroup, ContentY: 40, ContentHeight: 60,
+					Style:    ComputedStyle{Display: DisplayTableRowGroup},
+					Children: []*LayoutBox{{Type: BoxTableRow, ContentY: 5000, ContentHeight: 60}},
+				}
+				return &LayoutBox{Children: []*LayoutBox{{Type: BoxTable, ContentHeight: 100, Children: []*LayoutBox{thead, tbody}}}}
+			},
+			wantErr: layouter_dto.ErrTooManyPages,
+		},
+		{
+			name:   "content within the limits",
+			limits: layouter_dto.LayoutLimits{MaxPages: 10, MaxBoxNodes: 100},
+			build:  func() *LayoutBox { return &LayoutBox{Children: []*LayoutBox{{ContentY: 500, ContentHeight: 10}}} },
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			root := tt.build()
+			maxPage, err := Paginate(context.Background(), root, UniformPageGeometry(200), NewLimitTracker(tt.limits))
+			if tt.wantErr != nil {
+				assert.ErrorIs(t, err, tt.wantErr)
+				assert.Zero(t, maxPage)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, 2, maxPage)
+		})
+	}
+}
+
+func TestPaginate_NonFiniteGeometryDoesNotPaginate(t *testing.T) {
+	t.Parallel()
+
+	for _, height := range []float64{math.NaN(), math.Inf(1), math.Inf(-1)} {
+		root := &LayoutBox{Children: []*LayoutBox{{ContentY: 5000, ContentHeight: 10}}}
+		maxPage, err := Paginate(context.Background(), root, UniformPageGeometry(height), nil)
+		require.NoError(t, err)
+		assert.Zero(t, maxPage, "height %v", height)
+	}
+}
+
+func TestPaginate_CancelledContext(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancelCause(context.Background())
+	cancel(errors.New("stopped by test"))
+
+	_, err := Paginate(ctx, &LayoutBox{Children: []*LayoutBox{{ContentY: 500}}}, UniformPageGeometry(200), nil)
+
+	assert.ErrorIs(t, err, context.Canceled)
+}
+
+func TestPageForY_HostileCoordinates(t *testing.T) {
+	t.Parallel()
+
+	geometry := UniformPageGeometry(100)
+	tests := []struct {
+		name string
+		y    float64
+		want int
+	}{
+		{name: "NaN lands on the first page", y: math.NaN(), want: 0},
+		{name: "negative lands on the first page", y: -50, want: 0},
+		{name: "infinity saturates", y: math.Inf(1), want: maxPageIndex},
+		{name: "huge offset saturates", y: 1e300, want: maxPageIndex},
+		{name: "ordinary offset", y: 250, want: 2},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, geometry.pageForY(tt.y))
+		})
+	}
+}
+
+func TestCountBoxes(t *testing.T) {
+	t.Parallel()
+
+	tree := &LayoutBox{Children: []*LayoutBox{{Children: []*LayoutBox{{}, {}}}, {}}}
+
+	assert.Equal(t, 5, countBoxes(tree))
+	assert.Zero(t, countBoxes(nil))
 }

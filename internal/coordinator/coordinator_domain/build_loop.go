@@ -138,14 +138,8 @@ func (s *coordinatorService) drainPendingBuilds(ctx context.Context) {
 
 		signature := buildRequestSignature(request)
 
-		buildOpts := &buildOptions{
-			InspectionCacheHints: nil,
-			CausationID:          "",
-			ChangedFiles:         nil,
-			Resolver:             request.Resolver,
-			SkipInspection:       false,
-			FaultTolerant:        false,
-		}
+		buildOpts := &buildOptions{}
+		buildOpts.Resolver = request.Resolver
 
 		inputHash, allSourceContents, err := s.calculateInputHash(ctx, request.EntryPoints, buildOpts)
 		if err != nil {

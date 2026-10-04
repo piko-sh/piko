@@ -225,4 +225,8 @@ const (
 	// CodeSitemapMarkerIgnored indicates the build-only `sitemap` marker was placed on a tag
 	// that cannot contribute a crawlable image URL, so the opt-in had no effect.
 	CodeSitemapMarkerIgnored = "T154"
+
+	// CodeCollectionSourceNotFound indicates a p-collection-source alias matches no import
+	// in the component's Go script block.
+	CodeCollectionSourceNotFound = "T155"
 )

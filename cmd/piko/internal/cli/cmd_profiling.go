@@ -216,18 +216,27 @@ func printEnableResponse(cc *CommandContext, response *pb.EnableProfilingRespons
 	}
 
 	p.PrintDetail([]inspector.DetailSection{
-		{Rows: []inspector.DetailRow{
+		inspector.NewDetailSection("", []inspector.DetailRow{
 			{Label: "Status", Value: "enabled", IsStatus: true},
-			{Label: "Port", Value: strconv.FormatInt(safeconv.Int32ToInt64(response.GetPort()), 10)},
-			{Label: "Time Remaining", Value: remaining.String()},
-			{Label: "Expires At", Value: expiresAt.Format("2006-01-02 15:04:05")},
-			{Label: "Block Rate", Value: fmt.Sprintf("%d (samples events >= %dns)", response.GetBlockProfileRate(), response.GetBlockProfileRate())},
-			{Label: "Mutex Fraction", Value: fmt.Sprintf("%d (samples 1/%d of events)", response.GetMutexProfileFraction(), response.GetMutexProfileFraction())},
-			{Label: "Mem Profile Rate", Value: formatMemProfileRate(safeconv.Int32ToInt(response.GetMemProfileRate()))},
-		}},
-		{Heading: "pprof HTTP server", Rows: []inspector.DetailRow{
-			{Label: "URL", Value: response.GetPprofBaseUrl()},
-		}},
+			inspector.NewDetailRow("Port", strconv.FormatInt(safeconv.Int32ToInt64(response.GetPort()), 10)),
+			inspector.NewDetailRow("Time Remaining", remaining.String()),
+			inspector.NewDetailRow("Expires At", expiresAt.Format("2006-01-02 15:04:05")),
+			inspector.NewDetailRow(
+				"Block Rate",
+				fmt.Sprintf("%d (samples events >= %dns)", response.GetBlockProfileRate(), response.GetBlockProfileRate()),
+			),
+			inspector.NewDetailRow(
+				"Mutex Fraction",
+				fmt.Sprintf("%d (samples 1/%d of events)", response.GetMutexProfileFraction(), response.GetMutexProfileFraction()),
+			),
+			inspector.NewDetailRow(
+				"Mem Profile Rate",
+				formatMemProfileRate(safeconv.Int32ToInt(response.GetMemProfileRate())),
+			),
+		}),
+		inspector.NewDetailSection("pprof HTTP server", []inspector.DetailRow{
+			inspector.NewDetailRow("URL", response.GetPprofBaseUrl()),
+		}),
 	})
 
 	return nil
@@ -272,9 +281,9 @@ func profilingStatus(ctx context.Context, cc *CommandContext, _ []string) error 
 
 	if !response.GetEnabled() {
 		p.PrintDetail([]inspector.DetailSection{
-			{Rows: []inspector.DetailRow{
+			inspector.NewDetailSection("", []inspector.DetailRow{
 				{Label: "Status", Value: "disabled", IsStatus: true},
-			}},
+			}),
 		})
 		_, _ = fmt.Fprintln(cc.Stdout, "\nTip: Run 'piko profiling enable 30m' to start profiling.")
 		return nil
@@ -284,19 +293,28 @@ func profilingStatus(ctx context.Context, cc *CommandContext, _ []string) error 
 	remaining := time.Duration(response.GetRemainingMs()) * time.Millisecond
 
 	p.PrintDetail([]inspector.DetailSection{
-		{Rows: []inspector.DetailRow{
+		inspector.NewDetailSection("", []inspector.DetailRow{
 			{Label: "Status", Value: "enabled", IsStatus: true},
-			{Label: "Port", Value: strconv.FormatInt(safeconv.Int32ToInt64(response.GetPort()), 10)},
-			{Label: "Time Remaining", Value: remaining.Truncate(time.Second).String()},
-			{Label: "Expires At", Value: expiresAt.Format("2006-01-02 15:04:05")},
-			{Label: "Block Rate", Value: fmt.Sprintf("%d (samples events >= %dns)", response.GetBlockProfileRate(), response.GetBlockProfileRate())},
-			{Label: "Mutex Fraction", Value: fmt.Sprintf("%d (samples 1/%d of events)", response.GetMutexProfileFraction(), response.GetMutexProfileFraction())},
-			{Label: "Mem Profile Rate", Value: formatMemProfileRate(safeconv.Int32ToInt(response.GetMemProfileRate()))},
-			{Label: "Available Profiles", Value: strings.Join(response.GetAvailableProfiles(), ", ")},
-		}},
-		{Heading: "pprof HTTP server", Rows: []inspector.DetailRow{
-			{Label: "URL", Value: response.GetPprofBaseUrl()},
-		}},
+			inspector.NewDetailRow("Port", strconv.FormatInt(safeconv.Int32ToInt64(response.GetPort()), 10)),
+			inspector.NewDetailRow("Time Remaining", remaining.Truncate(time.Second).String()),
+			inspector.NewDetailRow("Expires At", expiresAt.Format("2006-01-02 15:04:05")),
+			inspector.NewDetailRow(
+				"Block Rate",
+				fmt.Sprintf("%d (samples events >= %dns)", response.GetBlockProfileRate(), response.GetBlockProfileRate()),
+			),
+			inspector.NewDetailRow(
+				"Mutex Fraction",
+				fmt.Sprintf("%d (samples 1/%d of events)", response.GetMutexProfileFraction(), response.GetMutexProfileFraction()),
+			),
+			inspector.NewDetailRow(
+				"Mem Profile Rate",
+				formatMemProfileRate(safeconv.Int32ToInt(response.GetMemProfileRate())),
+			),
+			inspector.NewDetailRow("Available Profiles", strings.Join(response.GetAvailableProfiles(), ", ")),
+		}),
+		inspector.NewDetailSection("pprof HTTP server", []inspector.DetailRow{
+			inspector.NewDetailRow("URL", response.GetPprofBaseUrl()),
+		}),
 	})
 
 	return nil

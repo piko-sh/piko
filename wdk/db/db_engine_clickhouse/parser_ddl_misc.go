@@ -21,10 +21,8 @@ package db_engine_clickhouse
 import (
 	"cmp"
 	"fmt"
-	"runtime/debug"
 	"strings"
 
-	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
@@ -95,8 +93,9 @@ const (
 // Returns *querier_dto.CatalogueMutation which is the primary ALTER mutation.
 // Returns error when the table name or any action cannot be parsed.
 func (p *parser) parseAlterTable() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword("ALTER")
-	p.mustKeyword("TABLE")
+	if err := p.expectKeywordSequence("ALTER", "TABLE"); err != nil {
+		return nil, err
+	}
 	p.matchIfExists()
 
 	database, name, nameError := p.parseDatabaseQualifiedName()
@@ -231,12 +230,12 @@ func (p *parser) parseAlterAddAction(database, table string) (*querier_dto.Catal
 
 	_ = p.matchKeyword("FIRST")
 
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationAlterTableAddColumn,
-		SchemaName: database,
-		TableName:  table,
-		Columns:    []querier_dto.Column{column},
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationAlterTableAddColumn,
+		database,
+		table,
+		querier_dto.WithColumns([]querier_dto.Column{column}),
+	), nil
 }
 
 // parseAlterDropAction handles `ALTER TABLE x DROP COLUMN <name>` and its sibling forms
@@ -270,12 +269,12 @@ func (p *parser) parseAlterDropAction(database, table string) (*querier_dto.Cata
 	if err != nil {
 		return nil, err
 	}
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationAlterTableDropColumn,
-		SchemaName: database,
-		TableName:  table,
-		ColumnName: columnName,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationAlterTableDropColumn,
+		database,
+		table,
+		querier_dto.WithColumnName(columnName),
+	), nil
 }
 
 // parseAlterModifyAction handles `MODIFY COLUMN ...` (type change) plus `MODIFY TTL`,
@@ -336,13 +335,13 @@ func (p *parser) parseAlterRenameAction(database, table string) (*querier_dto.Ca
 	if err != nil {
 		return nil, err
 	}
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationAlterTableRenameColumn,
-		SchemaName: database,
-		TableName:  table,
-		ColumnName: oldName,
-		NewName:    newName,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationAlterTableRenameColumn,
+		database,
+		table,
+		querier_dto.WithColumnName(oldName),
+		querier_dto.WithNewName(newName),
+	), nil
 }
 
 // parseAlterMaterializeAction handles the MATERIALIZE family of ALTER actions and emits a
@@ -393,14 +392,9 @@ func (p *parser) parseAlterMaterializeAction(database, table string) (*querier_d
 // Returns error when the update body cannot be captured.
 func (p *parser) parseAlterUpdateAction(database, table string) (*querier_dto.CatalogueMutation, error) {
 	body := p.consumeUntilTopLevelCommaAsText()
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationAsyncDataUpdate,
-		SchemaName: database,
-		TableName:  table,
-		EngineSpecific: map[string]string{
-			engineKeyAsyncBody: body,
-		},
-	}, nil
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationAsyncDataUpdate, database, table, querier_dto.WithEngineSpecific(map[string]string{
+		engineKeyAsyncBody: body,
+	})), nil
 }
 
 // parseAlterDeleteAction handles `ALTER TABLE x DELETE WHERE predicate`. Like ALTER
@@ -414,14 +408,9 @@ func (p *parser) parseAlterUpdateAction(database, table string) (*querier_dto.Ca
 // Returns error when the delete body cannot be captured.
 func (p *parser) parseAlterDeleteAction(database, table string) (*querier_dto.CatalogueMutation, error) {
 	body := p.consumeUntilTopLevelCommaAsText()
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationAsyncDataDelete,
-		SchemaName: database,
-		TableName:  table,
-		EngineSpecific: map[string]string{
-			engineKeyAsyncBody: body,
-		},
-	}, nil
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationAsyncDataDelete, database, table, querier_dto.WithEngineSpecific(map[string]string{
+		engineKeyAsyncBody: body,
+	})), nil
 }
 
 // parseCreateView handles `CREATE [OR REPLACE] VIEW [IF NOT EXISTS] [db.]view [AS] SELECT
@@ -431,33 +420,29 @@ func (p *parser) parseAlterDeleteAction(database, table string) (*querier_dto.Ca
 // Returns *querier_dto.CatalogueMutation which is the CREATE VIEW mutation.
 // Returns error when the view name or body cannot be parsed.
 func (p *parser) parseCreateView() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordCreate)
+	if _, err := p.expectKeyword(keywordCreate); err != nil {
+		return nil, err
+	}
 	p.skipCreatePrefixesInParser()
-	p.mustKeyword("VIEW")
+	if _, err := p.expectKeyword("VIEW"); err != nil {
+		return nil, err
+	}
 	p.matchIfNotExists()
 
 	database, name, err := p.parseDatabaseQualifiedName()
 	if err != nil {
 		return nil, err
 	}
-	mutation := &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationCreateView,
-		SchemaName: database,
-		TableName:  name,
-	}
+	mutation := querier_dto.NewCatalogueMutation(querier_dto.MutationCreateView, database, name)
 	if cluster := p.matchOnCluster(); cluster != "" {
 		mutation.EngineSpecific = map[string]string{engineClauseOnCluster: cluster}
 	}
 
 	declaredColumns := p.tryParseViewColumnList()
 	p.matchKeyword("AS")
-	viewBody, viewBodyErr := p.analyseViewBody(declaredColumns)
-	mutation.ViewDefinition = viewBody
+	mutation.ViewDefinition = p.analyseViewBody(declaredColumns)
 	if mutation.ViewDefinition != nil {
 		mutation.Columns = viewColumnsFromAnalysis(mutation.ViewDefinition, declaredColumns)
-	}
-	if viewBodyErr != nil {
-		return mutation, viewBodyErr
 	}
 	return mutation, nil
 }
@@ -491,56 +476,42 @@ func (p *parser) tryParseViewColumnList() []string {
 	return names
 }
 
-// analyseViewBody re-tokenises the remaining input through a fresh parser and runs
-// analyseSelect on it.
+// analyseViewBody runs analyseSelect over the remaining tokens through a child parser.
 //
-// The result is (nil, nil) when the body is empty or does not start with a SELECT/WITH
-// keyword; the caller then falls back to consumeRemainder behaviour. Panics in the nested
-// analyser are recovered into an error so a malformed view body cannot crash the DDL
-// apply path; the stack trace is logged engine-side via log.Warn rather than embedded in
-// the error, so user-facing surfaces never expose internal paths.
+// The result is nil when the body is empty, does not start with a SELECT/WITH keyword, or
+// cannot be analysed; the caller then keeps the view without a typed definition. The
+// remainder of the statement is always consumed.
 //
 // Takes declaredColumns ([]string) which are the explicit view column names that override
 // the analyser's output names when present.
 //
 // Returns *querier_dto.RawQueryAnalysis which is the analysed SELECT body, or nil when
-// the body is empty or not a SELECT.
-// Returns error when the nested analyser panics.
-func (p *parser) analyseViewBody(declaredColumns []string) (result *querier_dto.RawQueryAnalysis, err error) {
+// the body is empty, not a SELECT, or cannot be analysed; a body that fails only because
+// it nests too deeply is recorded as the parser's syntax error rather than dropped.
+func (p *parser) analyseViewBody(declaredColumns []string) *querier_dto.RawQueryAnalysis {
 	remainingTokens := p.tokens[p.position:]
 	if len(remainingTokens) == 0 {
 		p.consumeRemainder()
-		return nil, nil
+		return nil
 	}
-	defer func() {
-		if recovered := recover(); recovered != nil {
-			log.Warn("clickhouse: panic while analysing view body",
-				logger_domain.String("recovered", fmt.Sprintf("%v", recovered)),
-				logger_domain.String("stack", string(debug.Stack())),
-			)
-			err = fmt.Errorf("clickhouse: panic while analysing view body: %v", recovered)
-			result = nil
-		}
-	}()
 
-	viewParser := newParser(remainingTokens)
-	viewParser.analysisDepth = p.analysisDepth
-	viewParser.maxParseDepth = p.maxParseDepth
+	viewParser := p.newChildParser(remainingTokens)
 	if !viewParser.isKeyword("SELECT") && !viewParser.isKeyword("WITH") {
 		p.consumeRemainder()
-		return nil, nil
+		return nil
 	}
 	viewAnalysis, analyseError := viewParser.analyseSelect()
 	if analyseError != nil || viewAnalysis == nil {
+		p.absorbChildFailure(analyseError)
 		p.consumeRemainder()
-		return nil, nil
+		return nil
 	}
 	p.consumeRemainder()
 
 	if len(declaredColumns) > 0 {
 		overlayViewColumnNamesOnAnalysis(viewAnalysis, declaredColumns)
 	}
-	return viewAnalysis, nil
+	return viewAnalysis
 }
 
 // overlayViewColumnNamesOnAnalysis renames the analysis's output columns to match a
@@ -556,7 +527,11 @@ func overlayViewColumnNamesOnAnalysis(analysis *querier_dto.RawQueryAnalysis, co
 			analysis.OutputColumns[columnIndex].Name = name
 		} else {
 			analysis.OutputColumns = append(analysis.OutputColumns, querier_dto.RawOutputColumn{
-				Name: name,
+				Name:       name,
+				Expression: nil,
+				TableAlias: "",
+				ColumnName: "",
+				IsStar:     false,
 			})
 		}
 	}
@@ -579,11 +554,7 @@ func viewColumnsFromAnalysis(analysis *querier_dto.RawQueryAnalysis, declaredCol
 			name = declaredColumns[index]
 		}
 		name = cmp.Or(name, output.ColumnName)
-		columns = append(columns, querier_dto.Column{
-			Name:     name,
-			SQLType:  querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown},
-			Nullable: true,
-		})
+		columns = append(columns, querier_dto.NewColumn(name, querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true))
 	}
 	return columns
 }
@@ -599,22 +570,22 @@ func viewColumnsFromAnalysis(analysis *querier_dto.RawQueryAnalysis, declaredCol
 // Returns *querier_dto.CatalogueMutation which is the CREATE VIEW mutation.
 // Returns error when any clause or the SELECT body cannot be parsed.
 func (p *parser) parseCreateMaterializedView() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordCreate)
+	if _, err := p.expectKeyword(keywordCreate); err != nil {
+		return nil, err
+	}
 	p.skipCreatePrefixesInParser()
-	p.mustKeyword("MATERIALIZED")
-	p.mustKeyword("VIEW")
+	if err := p.expectKeywordSequence("MATERIALIZED", "VIEW"); err != nil {
+		return nil, err
+	}
 	p.matchIfNotExists()
 
 	database, name, err := p.parseDatabaseQualifiedName()
 	if err != nil {
 		return nil, err
 	}
-	mutation := &querier_dto.CatalogueMutation{
-		Kind:           querier_dto.MutationCreateView,
-		SchemaName:     database,
-		TableName:      name,
-		EngineSpecific: map[string]string{"MATERIALIZED": mvBooleanTrue},
-	}
+	mutation := querier_dto.NewCatalogueMutation(querier_dto.MutationCreateView, database, name, querier_dto.WithEngineSpecific(map[string]string{
+		"MATERIALIZED": mvBooleanTrue,
+	}))
 	if cluster := p.matchOnCluster(); cluster != "" {
 		mutation.EngineSpecific[engineClauseOnCluster] = cluster
 	}
@@ -626,7 +597,7 @@ func (p *parser) parseCreateMaterializedView() (*querier_dto.CatalogueMutation, 
 	if modifierErr := p.parseMaterializedViewTrailingModifiers(mutation); modifierErr != nil {
 		return nil, modifierErr
 	}
-	return p.parseMaterializedViewBody(mutation, declaredColumns)
+	return p.parseMaterializedViewBody(mutation, declaredColumns), nil
 }
 
 // parseMaterializedViewStorageClauses recognises the optional `TO target` clause or the
@@ -685,18 +656,16 @@ func (p *parser) parseMaterializedViewTrailingModifiers(mutation *querier_dto.Ca
 // Takes declaredColumns ([]string) which override the analyser's output names.
 //
 // Returns *querier_dto.CatalogueMutation which is the populated mutation.
-// Returns error when the view body cannot be analysed.
-func (p *parser) parseMaterializedViewBody(mutation *querier_dto.CatalogueMutation, declaredColumns []string) (*querier_dto.CatalogueMutation, error) {
+func (p *parser) parseMaterializedViewBody(mutation *querier_dto.CatalogueMutation, declaredColumns []string) *querier_dto.CatalogueMutation {
 	if !p.matchKeyword(keywordAs) {
 		p.consumeRemainder()
-		return mutation, nil
+		return mutation
 	}
-	viewBody, bodyErr := p.analyseViewBody(declaredColumns)
-	mutation.ViewDefinition = viewBody
+	mutation.ViewDefinition = p.analyseViewBody(declaredColumns)
 	if mutation.ViewDefinition != nil {
 		mutation.Columns = viewColumnsFromAnalysis(mutation.ViewDefinition, declaredColumns)
 	}
-	return mutation, bodyErr
+	return mutation
 }
 
 // parseMaterializedViewRefreshClauses recognises the refreshable MV REFRESH / RANDOMIZE
@@ -818,21 +787,22 @@ func (p *parser) captureDependsOnList() string {
 // list, and engine-specific metadata. Returns a non-nil error when a malformed clause is
 // encountered.
 func (p *parser) parseCreateDictionary() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordCreate)
+	if _, err := p.expectKeyword(keywordCreate); err != nil {
+		return nil, err
+	}
 	p.skipCreatePrefixesInParser()
-	p.mustKeyword(keywordDictionary)
+	if _, err := p.expectKeyword(keywordDictionary); err != nil {
+		return nil, err
+	}
 	p.matchIfNotExists()
 
 	database, name, err := p.parseDatabaseQualifiedName()
 	if err != nil {
 		return nil, err
 	}
-	mutation := &querier_dto.CatalogueMutation{
-		Kind:           querier_dto.MutationCreateDictionary,
-		SchemaName:     database,
-		TableName:      name,
-		EngineSpecific: map[string]string{keywordDictionary: "true"},
-	}
+	mutation := querier_dto.NewCatalogueMutation(querier_dto.MutationCreateDictionary, database, name, querier_dto.WithEngineSpecific(map[string]string{
+		keywordDictionary: "true",
+	}))
 	if cluster := p.matchOnCluster(); cluster != "" {
 		mutation.EngineSpecific[engineClauseOnCluster] = cluster
 	}
@@ -1283,8 +1253,10 @@ func (p *parser) captureDictionaryLifetime() (string, error) {
 // no MAX does not produce a malformed "MIN n MAX " value with a trailing empty bound);
 // otherwise it returns the single-integer form.
 //
-// Takes minValue / maxValue (string) which are the captured MIN / MAX bounds (empty when
-// absent), and single (string) which is the single-integer lifetime.
+// Takes minValue (string) which is the captured MIN lifetime bound, or empty when absent.
+// Takes maxValue (string) which is the captured MAX lifetime bound, or empty when absent.
+// Takes single (string) which is the lifetime value used when no MIN or MAX bounds are
+// present.
 //
 // Returns the formatted LIFETIME body.
 func formatLifetimeValue(minValue, maxValue, single string) string {
@@ -1320,18 +1292,15 @@ func (p *parser) captureLifetimeNumber() (string, error) {
 // Returns *querier_dto.CatalogueMutation which is the DROP DICTIONARY mutation.
 // Returns error when the dictionary name cannot be parsed.
 func (p *parser) parseDropDictionary() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordDrop)
-	p.mustKeyword(keywordDictionary)
+	if err := p.expectKeywordSequence(keywordDrop, keywordDictionary); err != nil {
+		return nil, err
+	}
 	p.matchIfExists()
 	database, name, err := p.parseDatabaseQualifiedName()
 	if err != nil {
 		return nil, err
 	}
-	mutation := &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationDropDictionary,
-		SchemaName: database,
-		TableName:  name,
-	}
+	mutation := querier_dto.NewCatalogueMutation(querier_dto.MutationDropDictionary, database, name)
 	if cluster := p.matchOnCluster(); cluster != "" {
 		mutation.EngineSpecific = map[string]string{engineClauseOnCluster: cluster}
 	}
@@ -1345,7 +1314,9 @@ func (p *parser) parseDropDictionary() (*querier_dto.CatalogueMutation, error) {
 // Returns *querier_dto.CatalogueMutation which is the primary rename mutation.
 // Returns error when the RENAME keyword or any clause cannot be parsed.
 func (p *parser) parseRenameTable() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword("RENAME")
+	if _, err := p.expectKeyword("RENAME"); err != nil {
+		return nil, err
+	}
 
 	if _, err := p.expectKeyword("TABLE", "DICTIONARY", "DATABASE"); err != nil {
 		return nil, err
@@ -1383,12 +1354,12 @@ func (p *parser) parseSingleRename() (*querier_dto.CatalogueMutation, error) {
 	if newErr != nil {
 		return nil, newErr
 	}
-	mutation := &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationAlterTableRenameTable,
-		SchemaName: oldDB,
-		TableName:  oldName,
-		NewName:    newName,
-	}
+	mutation := querier_dto.NewCatalogueMutation(
+		querier_dto.MutationAlterTableRenameTable,
+		oldDB,
+		oldName,
+		querier_dto.WithNewName(newName),
+	)
 	if cluster := p.matchOnCluster(); cluster != "" {
 		mutation.EngineSpecific = map[string]string{engineClauseOnCluster: cluster}
 	}
@@ -1407,7 +1378,9 @@ func (p *parser) parseSingleRename() (*querier_dto.CatalogueMutation, error) {
 // Returns *querier_dto.CatalogueMutation which is the EXCHANGE TABLES mutation.
 // Returns error when TABLES, AND, or either table name is missing.
 func (p *parser) parseExchangeTables() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword("EXCHANGE")
+	if _, err := p.expectKeyword("EXCHANGE"); err != nil {
+		return nil, err
+	}
 	if !p.matchKeyword("TABLES") {
 		return nil, fmt.Errorf("expected TABLES after EXCHANGE at position %d", p.current().position)
 	}
@@ -1422,12 +1395,9 @@ func (p *parser) parseExchangeTables() (*querier_dto.CatalogueMutation, error) {
 	if rightErr != nil {
 		return nil, rightErr
 	}
-	mutation := &querier_dto.CatalogueMutation{
-		Kind:           querier_dto.MutationExchangeTables,
-		SchemaName:     leftDB,
-		TableName:      leftName,
-		EngineSpecific: map[string]string{engineKeyExchangeTarget: qualifiedName(rightDB, rightName)},
-	}
+	mutation := querier_dto.NewCatalogueMutation(querier_dto.MutationExchangeTables, leftDB, leftName, querier_dto.WithEngineSpecific(map[string]string{
+		engineKeyExchangeTarget: qualifiedName(rightDB, rightName),
+	}))
 	if cluster := p.matchOnCluster(); cluster != "" {
 		mutation.EngineSpecific[engineClauseOnCluster] = cluster
 	}
@@ -1491,7 +1461,9 @@ func clickHouseIdentifierNeedsQuoting(identifier string) bool {
 // Returns *querier_dto.CatalogueMutation which is always nil for this operation.
 // Returns error which is always nil because the statement is consumed wholesale.
 func (p *parser) parseTruncateTable() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword("TRUNCATE")
+	if _, err := p.expectKeyword("TRUNCATE"); err != nil {
+		return nil, err
+	}
 	p.matchKeyword("TABLE")
 	p.matchIfExists()
 	p.consumeRemainder()
@@ -1506,7 +1478,9 @@ func (p *parser) parseTruncateTable() (*querier_dto.CatalogueMutation, error) {
 // Returns *querier_dto.CatalogueMutation which is always nil for this operation.
 // Returns error which is always nil because the statement is consumed wholesale.
 func (p *parser) parseOptimize() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword("OPTIMIZE")
+	if _, err := p.expectKeyword("OPTIMIZE"); err != nil {
+		return nil, err
+	}
 	p.consumeRemainder()
 	return nil, nil
 }
@@ -1516,7 +1490,9 @@ func (p *parser) parseOptimize() (*querier_dto.CatalogueMutation, error) {
 // Returns *querier_dto.CatalogueMutation which is always nil for this operation.
 // Returns error which is always nil because the statement is consumed wholesale.
 func (p *parser) parseSystem() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword("SYSTEM")
+	if _, err := p.expectKeyword("SYSTEM"); err != nil {
+		return nil, err
+	}
 	p.consumeRemainder()
 	return nil, nil
 }
@@ -1526,7 +1502,9 @@ func (p *parser) parseSystem() (*querier_dto.CatalogueMutation, error) {
 // Returns *querier_dto.CatalogueMutation which is always nil for this operation.
 // Returns error which is always nil because the statement is consumed wholesale.
 func (p *parser) parseUseDatabase() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword("USE")
+	if _, err := p.expectKeyword("USE"); err != nil {
+		return nil, err
+	}
 	p.consumeRemainder()
 	return nil, nil
 }
@@ -1537,7 +1515,9 @@ func (p *parser) parseUseDatabase() (*querier_dto.CatalogueMutation, error) {
 // Returns *querier_dto.CatalogueMutation which is always nil for this operation.
 // Returns error which is always nil because the statement is consumed wholesale.
 func (p *parser) parseShow() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword("SHOW")
+	if _, err := p.expectKeyword("SHOW"); err != nil {
+		return nil, err
+	}
 	p.consumeRemainder()
 	return nil, nil
 }
@@ -1547,7 +1527,9 @@ func (p *parser) parseShow() (*querier_dto.CatalogueMutation, error) {
 // Returns *querier_dto.CatalogueMutation which is always nil for this operation.
 // Returns error which is always nil because the statement is consumed wholesale.
 func (p *parser) parseSet() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword("SET")
+	if _, err := p.expectKeyword("SET"); err != nil {
+		return nil, err
+	}
 	p.consumeRemainder()
 	return nil, nil
 }

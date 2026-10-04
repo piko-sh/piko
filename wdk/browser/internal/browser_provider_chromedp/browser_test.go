@@ -178,7 +178,7 @@ func TestRemoteObjectToString(t *testing.T) {
 		},
 		{
 			name:     "empty value no description",
-			argument: &runtime.RemoteObject{Value: nil, Description: ""},
+			argument: &runtime.RemoteObject{},
 			expected: "",
 		},
 	}
@@ -389,9 +389,9 @@ func TestValidateChromePath(t *testing.T) {
 	require.NoError(t, os.WriteFile(nonExecutable, []byte("data"), 0o644))
 
 	testCases := []struct {
+		wantErr    error
 		name       string
 		chromePath string
-		wantErr    error
 	}{
 		{name: "empty keeps the default lookup", chromePath: "", wantErr: nil},
 		{name: "absolute executable is accepted", chromePath: executable, wantErr: nil},
@@ -427,4 +427,37 @@ func TestNewBrowserRejectsInvalidChromePath(t *testing.T) {
 	require.Error(t, err)
 	assert.Nil(t, browser)
 	assert.ErrorIs(t, err, ErrChromePathNotAbsolute)
+}
+
+func TestBrowser_TargetCommandsWithoutConnection(t *testing.T) {
+	t.Parallel()
+
+	instance := &Browser{}
+	instance.browserCtx = t.Context()
+
+	testCases := []struct {
+		run  func() error
+		name string
+	}{
+		{
+			name: "opening a window reports the missing connection",
+			run: func() error {
+				_, err := instance.createWindowTarget()
+				return err
+			},
+		},
+		{
+			name: "closing a target reports the missing connection",
+			run: func() error {
+				return instance.closeTarget("missing-target")
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			require.ErrorIs(t, testCase.run(), errBrowserNotInitialised)
+		})
+	}
 }

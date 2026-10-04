@@ -39,10 +39,7 @@ func TestMockTransformer_Transform(t *testing.T) {
 
 		inputAST := &ast_domain.TemplateAST{}
 
-		mock := &MockTransformer{
-			TransformFunc:         nil,
-			TransformForEmailFunc: nil,
-		}
+		mock := &MockTransformer{}
 
 		resultAST, css, errs := mock.Transform(context.Background(), inputAST, &pml_dto.Config{})
 
@@ -114,10 +111,7 @@ func TestMockTransformer_TransformForEmail(t *testing.T) {
 
 		inputAST := &ast_domain.TemplateAST{}
 
-		mock := &MockTransformer{
-			TransformFunc:         nil,
-			TransformForEmailFunc: nil,
-		}
+		mock := &MockTransformer{}
 
 		resultAST, css, assets, errs := mock.TransformForEmail(context.Background(), inputAST, &pml_dto.Config{})
 
@@ -214,27 +208,21 @@ func TestMockTransformer_ZeroValueIsUsable(t *testing.T) {
 func TestMockTransformer_ConcurrentAccess(t *testing.T) {
 	t.Parallel()
 
-	mock := &MockTransformer{
-		TransformFunc:         nil,
-		TransformForEmailFunc: nil,
-	}
+	mock := &MockTransformer{}
 
 	const goroutines = 50
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines * 2)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			inputAST := &ast_domain.TemplateAST{}
 			_, _, _ = mock.Transform(context.Background(), inputAST, &pml_dto.Config{})
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			inputAST := &ast_domain.TemplateAST{}
 			_, _, _, _ = mock.TransformForEmail(context.Background(), inputAST, &pml_dto.Config{})
-		}()
+		})
 	}
 
 	wg.Wait()

@@ -71,22 +71,22 @@ var (
 
 	// healthColumns defines the column layout for each resource type.
 	healthColumns = []Column{
-		{Header: "PROBE"},
-		{Header: "STATE"},
-		{Header: "READY"},
-		{Header: "MESSAGE"},
+		newColumn("PROBE"),
+		newColumn("STATE"),
+		newColumn("READY"),
+		newColumn("MESSAGE"),
 		{Header: "DURATION", WideOnly: true},
 		{Header: "TIMESTAMP", WideOnly: true},
 	}
 
 	// taskColumns defines the table column layout for task list output.
 	taskColumns = []Column{
-		{Header: "ID"},
-		{Header: "WORKFLOW"},
-		{Header: "EXECUTOR"},
-		{Header: "STATUS"},
-		{Header: "ATTEMPT"},
-		{Header: "UPDATED"},
+		newColumn("ID"),
+		newColumn("WORKFLOW"),
+		newColumn("EXECUTOR"),
+		newColumn("STATUS"),
+		newColumn("ATTEMPT"),
+		newColumn("UPDATED"),
 		{Header: "PRIORITY", WideOnly: true},
 		{Header: "LAST ERROR", WideOnly: true},
 		{Header: "CREATED", WideOnly: true},
@@ -94,49 +94,49 @@ var (
 
 	// workflowColumns defines the table column layout for workflow list output.
 	workflowColumns = []Column{
-		{Header: "WORKFLOW ID"},
-		{Header: "TASKS"},
-		{Header: "COMPLETE"},
-		{Header: "FAILED"},
-		{Header: "ACTIVE"},
-		{Header: "UPDATED"},
+		newColumn("WORKFLOW ID"),
+		newColumn("TASKS"),
+		newColumn("COMPLETE"),
+		newColumn("FAILED"),
+		newColumn("ACTIVE"),
+		newColumn("UPDATED"),
 		{Header: "CREATED", WideOnly: true},
 	}
 
 	// artefactColumns defines the table column layout for artefact list output.
 	artefactColumns = []Column{
-		{Header: "ID"},
-		{Header: "SOURCE PATH"},
-		{Header: "STATUS"},
-		{Header: "VARIANTS"},
-		{Header: "SIZE"},
-		{Header: "UPDATED"},
+		newColumn("ID"),
+		newColumn("SOURCE PATH"),
+		newColumn("STATUS"),
+		newColumn("VARIANTS"),
+		newColumn("SIZE"),
+		newColumn("UPDATED"),
 		{Header: "CREATED", WideOnly: true},
 	}
 
 	// variantColumns defines the table column layout for variant summary output.
 	variantColumns = []Column{
-		{Header: "STATUS"},
-		{Header: "COUNT"},
+		newColumn("STATUS"),
+		newColumn("COUNT"),
 	}
 
 	// metricColumns defines the table column layout for metrics output.
 	metricColumns = []Column{
-		{Header: "NAME"},
-		{Header: "TYPE"},
-		{Header: "DATA POINTS"},
+		newColumn("NAME"),
+		newColumn("TYPE"),
+		newColumn("DATA POINTS"),
 		{Header: "UNIT", WideOnly: true},
 		{Header: "DESCRIPTION", WideOnly: true},
 	}
 
 	// traceColumns defines the table column layout for trace span output.
 	traceColumns = []Column{
-		{Header: "TRACE ID"},
-		{Header: "SPAN ID"},
-		{Header: "NAME"},
-		{Header: "SERVICE"},
-		{Header: "STATUS"},
-		{Header: "DURATION"},
+		newColumn("TRACE ID"),
+		newColumn("SPAN ID"),
+		newColumn("NAME"),
+		newColumn("SERVICE"),
+		newColumn("STATUS"),
+		newColumn("DURATION"),
 		{Header: "KIND", WideOnly: true},
 		{Header: "START", WideOnly: true},
 		{Header: "STATUS MESSAGE", WideOnly: true},
@@ -144,18 +144,18 @@ var (
 
 	// resourceColumns defines the table column layout for open resource counts.
 	resourceColumns = []Column{
-		{Header: "CATEGORY"},
-		{Header: "COUNT"},
+		newColumn("CATEGORY"),
+		newColumn("COUNT"),
 	}
 
 	// dlqSummaryColumns defines the table column layout for dead-letter queue summary
 	// output.
 	dlqSummaryColumns = []Column{
-		{Header: "TYPE"},
-		{Header: "QUEUED"},
-		{Header: "DLQ"},
-		{Header: "PROCESSED"},
-		{Header: "FAILED"},
+		newColumn("TYPE"),
+		newColumn("QUEUED"),
+		newColumn("DLQ"),
+		newColumn("PROCESSED"),
+		newColumn("FAILED"),
 		{Header: "RETRY", WideOnly: true},
 		{Header: "SUCCESSFUL", WideOnly: true},
 		{Header: "RETRIES", WideOnly: true},
@@ -165,23 +165,23 @@ var (
 	// dlqEntryColumns defines the table column layout for individual dead-letter queue
 	// entries.
 	dlqEntryColumns = []Column{
-		{Header: "ID"},
-		{Header: "TYPE"},
-		{Header: "ERROR"},
-		{Header: "ATTEMPTS"},
-		{Header: "ADDED"},
+		newColumn("ID"),
+		newColumn("TYPE"),
+		newColumn("ERROR"),
+		newColumn("ATTEMPTS"),
+		newColumn("ADDED"),
 		{Header: "FIRST ATTEMPT", WideOnly: true},
 		{Header: "LAST ATTEMPT", WideOnly: true},
 	}
 
 	// rateLimiterColumns defines the table column layout for rate limiter status output.
 	rateLimiterColumns = []Column{
-		{Header: "TOKEN BUCKET"},
-		{Header: "COUNTER"},
-		{Header: "FAIL POLICY"},
-		{Header: "CHECKS"},
-		{Header: "ALLOWED"},
-		{Header: "DENIED"},
+		newColumn("TOKEN BUCKET"),
+		newColumn("COUNTER"),
+		newColumn("FAIL POLICY"),
+		newColumn("CHECKS"),
+		newColumn("ALLOWED"),
+		newColumn("DENIED"),
 		{Header: "KEY PREFIX", WideOnly: true},
 		{Header: "ERRORS", WideOnly: true},
 	}
@@ -888,7 +888,7 @@ func buildProviderRows(p *Printer, response *pb.ListProvidersResponse, filter st
 
 	pbColumns := response.GetColumns()
 	columns := make([]Column, 0, len(pbColumns)+1)
-	columns = append(columns, Column{Header: "DEFAULT"})
+	columns = append(columns, newColumn("DEFAULT"))
 	for _, col := range pbColumns {
 		columns = append(columns, Column{
 			Header:   col.GetHeader(),

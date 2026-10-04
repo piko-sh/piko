@@ -84,7 +84,7 @@ func ParseCapability(input string) Capability {
 	trimmed := strings.TrimSpace(input)
 	axis, scope, hasScope := strings.Cut(trimmed, "(")
 	if !hasScope {
-		return Capability{Axis: trimmed}
+		return Capability{Axis: trimmed, Scope: ""}
 	}
 	if closeParen := strings.LastIndexByte(scope, ')'); closeParen >= 0 {
 		scope = scope[:closeParen]

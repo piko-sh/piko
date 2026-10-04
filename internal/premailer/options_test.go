@@ -111,9 +111,7 @@ func TestToFunctionalOptions_AllSet(t *testing.T) {
 }
 
 func TestToFunctionalOptions_ExpandShorthandsFalse(t *testing.T) {
-	opts := &Options{
-		ExpandShorthands: false,
-	}
+	opts := &Options{}
 
 	functional := opts.ToFunctionalOptions()
 	assert.NotEmpty(t, functional, "should include ExpandShorthands(false) since default is true")

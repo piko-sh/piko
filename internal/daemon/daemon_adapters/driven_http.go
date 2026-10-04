@@ -40,6 +40,7 @@ import (
 	"piko.sh/piko/internal/analytics/analytics_adapters"
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/daemon/daemon_domain"
+	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
@@ -213,7 +214,8 @@ func (builder *HTTPRouterBuilder) setupStaticRoutes(
 // Takes deps (daemon_domain.RouterDependencies) which groups all router dependencies
 // including auth, rate limiting, and user routes.
 //
-// Returns error when the trusted proxy configuration is invalid.
+// Returns error when the trusted proxy configuration is invalid, or rate limiting is
+// enabled without a rate limit service.
 func (builder *HTTPRouterBuilder) setupDynamicRoutes(
 	ctx context.Context,
 	router *chi.Mux,
@@ -228,7 +230,7 @@ func (builder *HTTPRouterBuilder) setupDynamicRoutes(
 		}
 
 		if deps.AuthProvider != nil {
-			authMiddleware := security_adapters.NewAuthMiddleware(deps.AuthProvider, log)
+			authMiddleware := security_adapters.NewAuthMiddleware(deps.AuthProvider)
 			r.Use(authMiddleware.Handler)
 		}
 
@@ -237,7 +239,10 @@ func (builder *HTTPRouterBuilder) setupDynamicRoutes(
 			r.Use(analyticsMw.Handler)
 		}
 
-		builder.setupRateLimiting(r, routerConfig, deps.RateLimitService)
+		if err := builder.setupRateLimiting(r, routerConfig, deps.RateLimitService); err != nil {
+			setupErr = err
+			return
+		}
 		builder.setupCORS(r, routerConfig)
 
 		r.Use(streamAwareThrottle(
@@ -279,6 +284,8 @@ type staticArtefactConfig struct {
 //
 // Takes registryService (registry_domain.RegistryService) which provides access to static
 // assets.
+// Takes disableHTTPCache (bool) which serves the asset with a revalidating cache policy
+// instead of the long-lived one.
 //
 // Returns http.HandlerFunc which serves the minified, compressed theme CSS with a
 // one-hour cache time.
@@ -298,6 +305,7 @@ func (*HTTPRouterBuilder) serveTheme(registryService registry_domain.RegistrySer
 // Takes registryService (registry_domain.RegistryService) which provides access to stored
 // files.
 // Takes artefactID (string) which is the name of the sitemap file to serve.
+// Takes cacheControl (string) which is the Cache-Control value sent with the sitemap.
 //
 // Returns http.HandlerFunc which serves the sitemap with XML content type and a one-hour
 // cache duration.
@@ -316,6 +324,7 @@ func (*HTTPRouterBuilder) serveSitemapArtefact(registryService registry_domain.R
 //
 // Takes registryService (registry_domain.RegistryService) which provides access to stored
 // sitemap files.
+// Takes cacheControl (string) which is the Cache-Control value sent with each chunk.
 //
 // Returns http.HandlerFunc which handles requests for sitemap chunks.
 func (builder *HTTPRouterBuilder) serveSitemapChunk(registryService registry_domain.RegistryService, cacheControl string) http.HandlerFunc {
@@ -407,6 +416,8 @@ type variantResolutionContext struct {
 // artefact metadata and storage.
 // Takes variantGenerator (daemon_domain.OnDemandVariantGenerator) which creates image
 // variants when needed.
+// Takes disableHTTPCache (bool) which serves the asset with a revalidating cache policy
+// instead of the long-lived one.
 //
 // Returns http.HandlerFunc which handles artefact requests with optional variant
 // selection.
@@ -667,9 +678,9 @@ func (*HTTPRouterBuilder) tryGenerateVariantOnDemand(
 //
 // Concurrency: uses singleflight to deduplicate concurrent calls for the same artefact -
 // only the first caller spawns a background goroutine; subsequent callers share the
-// in-flight result. The goroutine detaches cancellation from the parent context but
-// preserves tracing values, and checks for existing variants before generating to avoid
-// doing the same work twice.
+// in-flight result. The goroutine runs under daemon_dto.DetachRequestContext, which keeps
+// the tracing values without the pooled request carrier, and checks for existing variants
+// before generating to avoid doing the same work twice.
 func (builder *HTTPRouterBuilder) queueRemainingVariants(
 	ctx context.Context,
 	registryService registry_domain.RegistryService,
@@ -689,18 +700,10 @@ func (builder *HTTPRouterBuilder) queueRemainingVariants(
 		logger_domain.Int("variantCount", len(profileNames)),
 		logger_domain.String(logFieldArtefactID, artefact.ID))
 
+	backgroundCtx := daemon_dto.DetachRequestContext(ctx)
 	ch := builder.variantGenerationGroup.DoChan(artefact.ID, func() (any, error) {
-		defer goroutine.RecoverPanic(context.WithoutCancel(ctx), "daemon.variantGeneration")
-		bgCtx := context.WithoutCancel(ctx)
-		for _, profileName := range profileNames {
-			freshArtefact, err := registryService.GetArtefact(bgCtx, artefact.ID)
-			if err == nil && variantExistsInArtefact(freshArtefact, profileName) {
-				l.Trace("Variant already exists, skipping background generation",
-					logger_domain.String(logFieldProfileName, profileName))
-				continue
-			}
-			generateBackgroundVariant(bgCtx, variantGenerator, artefact, profileName)
-		}
+		defer goroutine.RecoverPanic(backgroundCtx, "daemon.variantGeneration")
+		generateMissingVariants(backgroundCtx, registryService, variantGenerator, artefact, profileNames)
 		return nil, nil
 	})
 
@@ -733,6 +736,8 @@ var (
 //
 // Takes registryService (registry_domain.RegistryService) which provides access to video
 // artefact metadata.
+// Takes disableHTTPCache (bool) which serves the asset with a revalidating cache policy
+// instead of the long-lived one.
 //
 // Returns http.HandlerFunc which builds and serves the master M3U8 playlist.
 func (*HTTPRouterBuilder) serveVideoMasterPlaylist(
@@ -776,6 +781,8 @@ func (*HTTPRouterBuilder) serveVideoMasterPlaylist(
 //
 // Takes registryService (registry_domain.RegistryService) which provides access to video
 // variant chunks.
+// Takes disableHTTPCache (bool) which serves the asset with a revalidating cache policy
+// instead of the long-lived one.
 //
 // Returns http.HandlerFunc which builds and serves the variant M3U8 playlist.
 func (*HTTPRouterBuilder) serveVideoVariantPlaylist(
@@ -873,12 +880,16 @@ func (*HTTPRouterBuilder) serveVideoChunk(
 //
 // Takes artefactCache (cache_domain.Cache) which provides the backing store for artefact
 // metadata caching. May be nil to disable caching.
+// Takes instanceRelease (string) which is this running binary's release identifier, used
+// to prefer the variants built for it.
 //
 // Returns daemon_domain.RouterBuilder which is the configured builder ready for use.
 func NewHTTPRouterBuilder(artefactCache cache_domain.Cache[string, *registry_dto.ArtefactMeta], instanceRelease string) daemon_domain.RouterBuilder {
 	return &HTTPRouterBuilder{
-		artefactCache:   artefactCache,
-		instanceRelease: instanceRelease,
+		artefactCache:          artefactCache,
+		instanceRelease:        instanceRelease,
+		variantGenerationGroup: singleflight.Group{},
+		metadataCache:          nil,
 	}
 }
 
@@ -1292,6 +1303,8 @@ func findBestCompressedVariant(r *http.Request, artefact *registry_dto.ArtefactM
 // If-None-Match header matches the file's ETag, sends a 304 Not Modified response.
 //
 // Takes watchMode (bool) which indicates whether the server is in dev mode.
+// Takes disableHTTPCache (bool) which serves the asset with a revalidating cache policy
+// instead of the long-lived one.
 //
 // Returns http.HandlerFunc which serves the embedded frontend assets.
 func serveEmbeddedFrontend(watchMode bool, disableHTTPCache bool) http.HandlerFunc {
@@ -1333,6 +1346,35 @@ func serveEmbeddedFrontend(watchMode bool, disableHTTPCache bool) http.HandlerFu
 		w.Header().Add("Vary", headerAcceptEncoding)
 
 		http.ServeContent(w, r, filepath.Base(basePath), time.Time{}, bytes.NewReader(asset.Content))
+	}
+}
+
+// generateMissingVariants generates each named profile that the registry does not yet
+// hold for the artefact.
+//
+// Takes registryService (registry_domain.RegistryService) which fetches fresh artefact
+// state.
+// Takes variantGenerator (daemon_domain.OnDemandVariantGenerator) which creates the
+// variants.
+// Takes artefact (*registry_dto.ArtefactMeta) which identifies the source artefact.
+// Takes profileNames ([]string) which lists the profiles to generate.
+func generateMissingVariants(
+	ctx context.Context,
+	registryService registry_domain.RegistryService,
+	variantGenerator daemon_domain.OnDemandVariantGenerator,
+	artefact *registry_dto.ArtefactMeta,
+	profileNames []string,
+) {
+	ctx, l := logger_domain.From(ctx, log)
+
+	for _, profileName := range profileNames {
+		freshArtefact, err := registryService.GetArtefact(ctx, artefact.ID)
+		if err == nil && variantExistsInArtefact(freshArtefact, profileName) {
+			l.Trace("Variant already exists, skipping background generation",
+				logger_domain.String(logFieldProfileName, profileName))
+			continue
+		}
+		generateBackgroundVariant(ctx, variantGenerator, artefact, profileName)
 	}
 }
 

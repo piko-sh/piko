@@ -132,7 +132,6 @@ func (p *RedisProvider) Close() error {
 	_, l := logger.From(context.Background(), log)
 
 	if err := p.client.Close(); err != nil {
-		l.Error("Error closing Redis client", logger.Error(err))
 		return fmt.Errorf("failed to close Redis client: %w", err)
 	}
 

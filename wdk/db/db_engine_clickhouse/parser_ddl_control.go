@@ -32,7 +32,9 @@ import (
 // read-only.
 // Returns error which is always nil.
 func (p *parser) parseExplain() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword("EXPLAIN")
+	if _, err := p.expectKeyword("EXPLAIN"); err != nil {
+		return nil, err
+	}
 	p.consumeRemainder()
 	return nil, nil
 }
@@ -59,8 +61,9 @@ func (p *parser) parseDescribeTable() (*querier_dto.CatalogueMutation, error) {
 // Returns *querier_dto.CatalogueMutation which is always nil because CHECK is read-only.
 // Returns error which is always nil.
 func (p *parser) parseCheckTable() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword("CHECK")
-	p.mustKeyword("TABLE")
+	if err := p.expectKeywordSequence("CHECK", "TABLE"); err != nil {
+		return nil, err
+	}
 	p.consumeRemainder()
 	return nil, nil
 }
@@ -72,14 +75,13 @@ func (p *parser) parseCheckTable() (*querier_dto.CatalogueMutation, error) {
 // EngineSpecific.
 // Returns error which is always nil.
 func (p *parser) parseBackup() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword("BACKUP")
+	if _, err := p.expectKeyword("BACKUP"); err != nil {
+		return nil, err
+	}
 	body := p.consumeRemainderAsText()
-	return &querier_dto.CatalogueMutation{
-		Kind: querier_dto.MutationBackup,
-		EngineSpecific: map[string]string{
-			engineKeyStatementBody: body,
-		},
-	}, nil
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationBackup, "", "", querier_dto.WithEngineSpecific(map[string]string{
+		engineKeyStatementBody: body,
+	})), nil
 }
 
 // parseRestore handles `RESTORE {TABLE | DATABASE | DICTIONARY} name [, ...] FROM source
@@ -89,14 +91,13 @@ func (p *parser) parseBackup() (*querier_dto.CatalogueMutation, error) {
 // EngineSpecific.
 // Returns error which is always nil.
 func (p *parser) parseRestore() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword("RESTORE")
+	if _, err := p.expectKeyword("RESTORE"); err != nil {
+		return nil, err
+	}
 	body := p.consumeRemainderAsText()
-	return &querier_dto.CatalogueMutation{
-		Kind: querier_dto.MutationRestore,
-		EngineSpecific: map[string]string{
-			engineKeyStatementBody: body,
-		},
-	}, nil
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationRestore, "", "", querier_dto.WithEngineSpecific(map[string]string{
+		engineKeyStatementBody: body,
+	})), nil
 }
 
 // parseKillQuery handles `KILL QUERY [ON CLUSTER c] WHERE predicate [SYNC | ASYNC |
@@ -106,15 +107,13 @@ func (p *parser) parseRestore() (*querier_dto.CatalogueMutation, error) {
 // EngineSpecific.
 // Returns error which is always nil.
 func (p *parser) parseKillQuery() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword("KILL")
-	p.mustKeyword("QUERY")
+	if err := p.expectKeywordSequence("KILL", "QUERY"); err != nil {
+		return nil, err
+	}
 	body := p.consumeRemainderAsText()
-	return &querier_dto.CatalogueMutation{
-		Kind: querier_dto.MutationKillQuery,
-		EngineSpecific: map[string]string{
-			engineKeyStatementBody: body,
-		},
-	}, nil
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationKillQuery, "", "", querier_dto.WithEngineSpecific(map[string]string{
+		engineKeyStatementBody: body,
+	})), nil
 }
 
 // parseKillMutation handles `KILL MUTATION [ON CLUSTER c] WHERE predicate [SYNC | ASYNC |
@@ -124,15 +123,13 @@ func (p *parser) parseKillQuery() (*querier_dto.CatalogueMutation, error) {
 // EngineSpecific.
 // Returns error which is always nil.
 func (p *parser) parseKillMutation() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword("KILL")
-	p.mustKeyword("MUTATION")
+	if err := p.expectKeywordSequence("KILL", "MUTATION"); err != nil {
+		return nil, err
+	}
 	body := p.consumeRemainderAsText()
-	return &querier_dto.CatalogueMutation{
-		Kind: querier_dto.MutationKillMutation,
-		EngineSpecific: map[string]string{
-			engineKeyStatementBody: body,
-		},
-	}, nil
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationKillMutation, "", "", querier_dto.WithEngineSpecific(map[string]string{
+		engineKeyStatementBody: body,
+	})), nil
 }
 
 // parseAttachTable handles `ATTACH {TABLE | VIEW | DICTIONARY | DATABASE} [IF NOT EXISTS]
@@ -146,7 +143,9 @@ func (p *parser) parseKillMutation() (*querier_dto.CatalogueMutation, error) {
 // statement body under EngineSpecific.
 // Returns error when the object kind keyword or the qualified name fails to parse.
 func (p *parser) parseAttachTable() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordAttach)
+	if _, err := p.expectKeyword(keywordAttach); err != nil {
+		return nil, err
+	}
 	if _, err := p.expectKeyword(objectKindTable, objectKindView, objectKindDictionary, objectKindDatabase); err != nil {
 		return nil, err
 	}
@@ -155,14 +154,9 @@ func (p *parser) parseAttachTable() (*querier_dto.CatalogueMutation, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationAttachTable,
-		SchemaName: database,
-		TableName:  name,
-		EngineSpecific: map[string]string{
-			engineKeyStatementBody: p.consumeRemainderAsText(),
-		},
-	}, nil
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationAttachTable, database, name, querier_dto.WithEngineSpecific(map[string]string{
+		engineKeyStatementBody: p.consumeRemainderAsText(),
+	})), nil
 }
 
 // parseDetachTable handles `DETACH {TABLE | VIEW | DICTIONARY | DATABASE} [IF EXISTS]
@@ -176,7 +170,9 @@ func (p *parser) parseAttachTable() (*querier_dto.CatalogueMutation, error) {
 // statement body under EngineSpecific.
 // Returns error when the object kind keyword or the qualified name fails to parse.
 func (p *parser) parseDetachTable() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordDetach)
+	if _, err := p.expectKeyword(keywordDetach); err != nil {
+		return nil, err
+	}
 	if _, err := p.expectKeyword(objectKindTable, objectKindView, objectKindDictionary, objectKindDatabase); err != nil {
 		return nil, err
 	}
@@ -185,12 +181,7 @@ func (p *parser) parseDetachTable() (*querier_dto.CatalogueMutation, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationDetachTable,
-		SchemaName: database,
-		TableName:  name,
-		EngineSpecific: map[string]string{
-			engineKeyStatementBody: p.consumeRemainderAsText(),
-		},
-	}, nil
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationDetachTable, database, name, querier_dto.WithEngineSpecific(map[string]string{
+		engineKeyStatementBody: p.consumeRemainderAsText(),
+	})), nil
 }

@@ -25,8 +25,8 @@ package annotator_domain
 import (
 	"fmt"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/goastutil"
 )
 
 // ValidationResult holds the outcome of a type validation check.
@@ -47,7 +47,7 @@ type ValidationResult struct {
 // Returns ValidationResult which indicates whether the comparison is valid.
 func ValidateOrderingComparison(left, right *ast_domain.ResolvedTypeInfo, operator ast_domain.BinaryOp) ValidationResult {
 	if areComparableForOrdering(left, right) {
-		return ValidationResult{Valid: true}
+		return ValidationResult{Valid: true, Message: ""}
 	}
 	leftString := goastutil.ASTToTypeString(left.TypeExpression, left.PackageAlias)
 	rightString := goastutil.ASTToTypeString(right.TypeExpression, right.PackageAlias)
@@ -68,7 +68,7 @@ func ValidateOrderingComparison(left, right *ast_domain.ResolvedTypeInfo, operat
 // Returns ValidationResult which indicates whether the comparison is valid.
 func ValidateEqualityComparison(operator ast_domain.BinaryOp, left, right *ast_domain.ResolvedTypeInfo, strict bool) ValidationResult {
 	if areComparableForEquality(operator, left, right) {
-		return ValidationResult{Valid: true}
+		return ValidationResult{Valid: true, Message: ""}
 	}
 	leftString := goastutil.ASTToTypeString(left.TypeExpression, left.PackageAlias)
 	rightString := goastutil.ASTToTypeString(right.TypeExpression, right.PackageAlias)
@@ -89,7 +89,7 @@ func ValidateEqualityComparison(operator ast_domain.BinaryOp, left, right *ast_d
 // Returns ValidationResult which indicates whether the left operand is valid.
 func ValidateLogicalAndLeftOperand(left *ast_domain.ResolvedTypeInfo) ValidationResult {
 	if isBoolLike(left) {
-		return ValidationResult{Valid: true}
+		return ValidationResult{Valid: true, Message: ""}
 	}
 	leftString := goastutil.ASTToTypeString(left.TypeExpression, left.PackageAlias)
 	return ValidationResult{
@@ -105,7 +105,7 @@ func ValidateLogicalAndLeftOperand(left *ast_domain.ResolvedTypeInfo) Validation
 // Returns ValidationResult which indicates whether the right operand is valid.
 func ValidateLogicalAndRightOperand(right *ast_domain.ResolvedTypeInfo) ValidationResult {
 	if isBoolLike(right) {
-		return ValidationResult{Valid: true}
+		return ValidationResult{Valid: true, Message: ""}
 	}
 	rightString := goastutil.ASTToTypeString(right.TypeExpression, right.PackageAlias)
 	return ValidationResult{
@@ -122,7 +122,7 @@ func ValidateLogicalAndRightOperand(right *ast_domain.ResolvedTypeInfo) Validati
 // Returns ValidationResult which indicates whether the OR operation is valid.
 func ValidateOrOperator(left, right *ast_domain.ResolvedTypeInfo) ValidationResult {
 	if isAssignable(right, left) || isNilType(left) {
-		return ValidationResult{Valid: true}
+		return ValidationResult{Valid: true, Message: ""}
 	}
 	leftString := goastutil.ASTToTypeString(left.TypeExpression, left.PackageAlias)
 	rightString := goastutil.ASTToTypeString(right.TypeExpression, right.PackageAlias)
@@ -141,7 +141,7 @@ func ValidateOrOperator(left, right *ast_domain.ResolvedTypeInfo) ValidationResu
 // Returns ValidationResult which indicates whether the coalesce is valid.
 func ValidateCoalesceOperator(left, right *ast_domain.ResolvedTypeInfo) ValidationResult {
 	if isAssignable(right, left) || isNilType(left) {
-		return ValidationResult{Valid: true}
+		return ValidationResult{Valid: true, Message: ""}
 	}
 	leftString := goastutil.ASTToTypeString(left.TypeExpression, left.PackageAlias)
 	rightString := goastutil.ASTToTypeString(right.TypeExpression, right.PackageAlias)
@@ -158,7 +158,7 @@ func ValidateCoalesceOperator(left, right *ast_domain.ResolvedTypeInfo) Validati
 // Returns ValidationResult which indicates whether the type is boolean.
 func ValidateBooleanCondition(typeInfo *ast_domain.ResolvedTypeInfo) ValidationResult {
 	if typeInfo == nil || isBoolLike(typeInfo) {
-		return ValidationResult{Valid: true}
+		return ValidationResult{Valid: true, Message: ""}
 	}
 	typeString := goastutil.ASTToTypeString(typeInfo.TypeExpression, typeInfo.PackageAlias)
 	return ValidationResult{
@@ -174,7 +174,7 @@ func ValidateBooleanCondition(typeInfo *ast_domain.ResolvedTypeInfo) ValidationR
 // Returns ValidationResult which indicates whether the NOT operation is valid.
 func ValidateUnaryNot(operand *ast_domain.ResolvedTypeInfo) ValidationResult {
 	if isBoolLike(operand) {
-		return ValidationResult{Valid: true}
+		return ValidationResult{Valid: true, Message: ""}
 	}
 	operandString := goastutil.ASTToTypeString(operand.TypeExpression, operand.PackageAlias)
 	return ValidationResult{
@@ -190,7 +190,7 @@ func ValidateUnaryNot(operand *ast_domain.ResolvedTypeInfo) ValidationResult {
 // Returns ValidationResult which indicates whether the negation operation is valid.
 func ValidateUnaryNeg(operand *ast_domain.ResolvedTypeInfo) ValidationResult {
 	if getNumericFamily(operand) != familyNone {
-		return ValidationResult{Valid: true}
+		return ValidationResult{Valid: true, Message: ""}
 	}
 	operandString := goastutil.ASTToTypeString(operand.TypeExpression, operand.PackageAlias)
 	return ValidationResult{
@@ -209,13 +209,13 @@ func ValidateUnaryNeg(operand *ast_domain.ResolvedTypeInfo) ValidationResult {
 // Returns ValidationResult which indicates whether the operation is valid.
 func ValidateArithmeticOperator(left, right *ast_domain.ResolvedTypeInfo, operator ast_domain.BinaryOp) ValidationResult {
 	if isMoneyType(left) || isMoneyType(right) {
-		return ValidationResult{Valid: true}
+		return ValidationResult{Valid: true, Message: ""}
 	}
 	if operator == ast_domain.OpPlus && isStringType(left) && isStringType(right) {
-		return ValidationResult{Valid: true}
+		return ValidationResult{Valid: true, Message: ""}
 	}
 	if isArithmeticType(left, right) {
-		return ValidationResult{Valid: true}
+		return ValidationResult{Valid: true, Message: ""}
 	}
 	leftString := goastutil.ASTToTypeString(left.TypeExpression, left.PackageAlias)
 	rightString := goastutil.ASTToTypeString(right.TypeExpression, right.PackageAlias)
@@ -233,7 +233,7 @@ func ValidateArithmeticOperator(left, right *ast_domain.ResolvedTypeInfo, operat
 // Returns ValidationResult which indicates whether the branches are compatible.
 func ValidateTernaryBranches(consequent, alternate *ast_domain.ResolvedTypeInfo) ValidationResult {
 	if isAssignable(alternate, consequent) {
-		return ValidationResult{Valid: true}
+		return ValidationResult{Valid: true, Message: ""}
 	}
 	consequentString := goastutil.ASTToTypeString(consequent.TypeExpression, consequent.PackageAlias)
 	alternateString := goastutil.ASTToTypeString(alternate.TypeExpression, alternate.PackageAlias)
@@ -257,7 +257,7 @@ func ValidateMoneyAddSub(left, right *ast_domain.ResolvedTypeInfo, isLeftMoney, 
 	isRightDecimal := getNumericFamily(right) == familyDecimal
 
 	if (isLeftMoney && isRightMoney) || (isLeftMoney && isRightDecimal) || (isLeftDecimal && isRightMoney) {
-		return ValidationResult{Valid: true}
+		return ValidationResult{Valid: true, Message: ""}
 	}
 
 	invalidType := goastutil.ASTToTypeString(right.TypeExpression, right.PackageAlias)
@@ -288,7 +288,7 @@ func ValidateMoneyMulDiv(left, right *ast_domain.ResolvedTypeInfo, isLeftMoney, 
 	}
 
 	if (isLeftMoney && isNumericType(right)) || (isNumericType(left) && isRightMoney) {
-		return ValidationResult{Valid: true}
+		return ValidationResult{Valid: true, Message: ""}
 	}
 
 	invalidType := goastutil.ASTToTypeString(right.TypeExpression, right.PackageAlias)

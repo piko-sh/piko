@@ -19,6 +19,7 @@
 package pdfwriter_domain
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -315,4 +316,102 @@ func TestAcroFormBuilder_MultipleFieldsMultiPage(t *testing.T) {
 	assert.Contains(t, content, "/T (field_page0)", "expected field_page0 in output")
 	assert.Contains(t, content, "/T (field_page1)", "expected field_page1 in output")
 	assert.Contains(t, content, "/T (check_page1)", "expected check_page1 in output")
+}
+
+func TestAcroFormBuilder_RadioValuesAreEscapedAsNames(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		value       string
+		wantName    string
+		forbidden   string
+		otherExport string
+	}{
+		{
+			name:      "injected dictionary",
+			value:     "x /A << /S /JavaScript /JS (alert) >>",
+			wantName:  "/x#20#2FA#20#3C#3C#20#2FS#20#2FJavaScript#20#2FJS#20#28alert#29#20#3E#3E",
+			forbidden: "/JavaScript /JS",
+		},
+		{name: "spaces", value: "first choice", wantName: "/first#20choice", forbidden: "/first choice"},
+		{name: "number sign", value: "a#b", wantName: "/a#23b", forbidden: "/a#b "},
+		{name: "non-ASCII", value: "caf\u00e9", wantName: "/caf#C3#A9", forbidden: "/caf\u00e9"},
+		{name: "plain value", value: "red", wantName: "/red"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			b := NewAcroFormBuilder()
+			b.AddField(&FormField{Name: "group", FieldType: FormFieldRadio, Value: tt.value, ExportValue: tt.value, Rect: [4]float64{1, 2, 13, 14}})
+			b.AddField(&FormField{Name: "group", FieldType: FormFieldRadio, Value: "Off", ExportValue: "other", Rect: [4]float64{20, 2, 33, 14}})
+
+			writer := &PdfDocumentWriter{}
+			_, _, err := b.WriteObjects(writer, []int{3})
+			require.NoError(t, err)
+			content := string(writer.Bytes())
+
+			assert.Contains(t, content, "/V "+tt.wantName, "the selected value is an escaped name")
+			assert.Contains(t, content, "/AS "+tt.wantName, "the selected widget state is an escaped name")
+			assert.Contains(t, content, "/AP << /N << "+tt.wantName+" ", "the appearance key is an escaped name")
+			assert.Contains(t, content, "/AS /Off", "the unselected widget compares raw values and stays off")
+			if tt.forbidden != "" {
+				assert.NotContains(t, content, tt.forbidden)
+			}
+		})
+	}
+}
+
+func TestAcroFormBuilder_RadioWithoutExportValueUsesEscapedFieldName(t *testing.T) {
+	t.Parallel()
+
+	b := NewAcroFormBuilder()
+	b.AddField(&FormField{Name: "my group", FieldType: FormFieldRadio, Value: "", ExportValue: "", Rect: [4]float64{1, 2, 13, 14}})
+
+	writer := &PdfDocumentWriter{}
+	_, _, err := b.WriteObjects(writer, []int{3})
+	require.NoError(t, err)
+
+	content := string(writer.Bytes())
+	assert.Contains(t, content, "/AP << /N << /my#20group ")
+	assert.False(t, strings.Contains(content, "/my group"))
+}
+
+func TestAcroFormBuilder_CheckboxValueIsEscaped(t *testing.T) {
+	t.Parallel()
+
+	b := NewAcroFormBuilder()
+	b.AddField(&FormField{Name: "agree", FieldType: FormFieldCheckbox, Value: "Yes please", ExportValue: "Yes", Rect: [4]float64{1, 2, 13, 14}})
+
+	writer := &PdfDocumentWriter{}
+	_, _, err := b.WriteObjects(writer, []int{3})
+	require.NoError(t, err)
+
+	assert.Contains(t, string(writer.Bytes()), "/V /Yes#20please")
+}
+
+func TestFormFieldTypeNames(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		fieldType FormFieldType
+		value     int
+		want      string
+	}{
+		{fieldType: FormFieldText, value: 0, want: "Tx"},
+		{fieldType: FormFieldCheckbox, value: 1, want: "Btn"},
+		{fieldType: FormFieldRadio, value: 2, want: "Btn"},
+		{fieldType: FormFieldDropdown, value: 3, want: "Ch"},
+		{fieldType: FormFieldListBox, value: 4, want: "Ch"},
+		{fieldType: FormFieldPushButton, value: 5, want: "Btn"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.want, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.value, int(tt.fieldType))
+			assert.Equal(t, tt.want, formFieldTypeName(tt.fieldType))
+		})
+	}
 }

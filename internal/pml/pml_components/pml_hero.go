@@ -41,9 +41,7 @@ var (
 //
 // Returns *Hero which is ready to render a hero banner section.
 func NewHero() *Hero {
-	return &Hero{
-		BaseComponent: BaseComponent{},
-	}
+	return &Hero{}
 }
 
 // TagName returns the HTML custom element tag name for this component.

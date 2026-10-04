@@ -764,6 +764,71 @@ func TestMarkdownProvider_FetchStaticContent_Errors(t *testing.T) {
 	})
 }
 
+func TestMarkdownProvider_FetchStaticContent_ContentErrors(t *testing.T) {
+	validPost := "---\ntitle: Valid\n---\n\nSome text.\n"
+	brokenShortcode := "---\ntitle: Broken\n---\n\n```piko my-card :title=\"1 +\"\n```\n"
+
+	testCases := []struct {
+		files            map[string]string
+		name             string
+		expectedContains []string
+		expectedItems    int
+		expectContentErr bool
+	}{
+		{
+			name:          "valid files produce items",
+			files:         map[string]string{"valid.md": validPost},
+			expectedItems: 1,
+		},
+		{
+			name:             "a malformed shortcode fails the collection with its location",
+			files:            map[string]string{"valid.md": validPost, "broken.md": brokenShortcode},
+			expectContentErr: true,
+			expectedContains: []string{"broken.md", "Expected expression"},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			tmpDir := t.TempDir()
+			provider, source := setupTestProviderWithSource(t, tmpDir)
+			for name, content := range tc.files {
+				createTestMarkdownFile(t, filepath.Join(tmpDir, "content", "blog"), name, content)
+			}
+
+			items, err := provider.FetchStaticContent(context.Background(), "blog", source)
+
+			if tc.expectContentErr {
+				require.ErrorIs(t, err, errMarkdownContent)
+				for _, expected := range tc.expectedContains {
+					assert.Contains(t, err.Error(), expected)
+				}
+				assert.Nil(t, items)
+				return
+			}
+			require.NoError(t, err)
+			assert.Len(t, items, tc.expectedItems)
+		})
+	}
+}
+
+func TestMarkdownProvider_ProcessCollectionFiles_StopsOnCancellation(t *testing.T) {
+	tmpDir := t.TempDir()
+	provider, source := setupTestProviderWithSource(t, tmpDir)
+	absolutePath := createTestMarkdownFile(t, filepath.Join(tmpDir, "content", "blog"), "post.md", "---\ntitle: Post\n---\n")
+	files := []*discoveredFile{{absolutePath: absolutePath, relativePath: "post.md", size: 0, modTime: 0}}
+
+	ctx, cancel := context.WithCancelCause(context.Background())
+	cancel(errors.New("build cancelled"))
+
+	items, groups, err := provider.processCollectionFiles(ctx, source, files, "blog", newPathAnalyser(nil, "en"))
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "build cancelled")
+	assert.Nil(t, items)
+	assert.Nil(t, groups)
+}
+
 func TestMarkdownProvider_ComputeETag_Errors(t *testing.T) {
 	t.Parallel()
 
@@ -1120,9 +1185,7 @@ func TestExtractPlainContent(t *testing.T) {
 	t.Run("returns empty when renderService is nil", func(t *testing.T) {
 		t.Parallel()
 
-		provider := &MarkdownProvider{
-			renderService: nil,
-		}
+		provider := &MarkdownProvider{}
 		processed := &markdown_dto.ProcessedMarkdown{
 			PageAST: &ast_domain.TemplateAST{},
 		}
@@ -1137,7 +1200,7 @@ func TestExtractPlainContent(t *testing.T) {
 		provider := &MarkdownProvider{
 			renderService: renderService,
 		}
-		processed := &markdown_dto.ProcessedMarkdown{PageAST: nil}
+		processed := &markdown_dto.ProcessedMarkdown{}
 		result := provider.extractPlainContent(context.Background(), processed, "test.md")
 		assert.Empty(t, result)
 	})

@@ -50,7 +50,8 @@ type ProviderInfoService struct {
 // Returns *ProviderInfoService which is ready for gRPC registration.
 func NewProviderInfoService(inspector monitoring_domain.ProviderInfoInspector) *ProviderInfoService {
 	return &ProviderInfoService{
-		inspector: inspector,
+		inspector:                              inspector,
+		UnimplementedProviderInfoServiceServer: pb.UnimplementedProviderInfoServiceServer{},
 	}
 }
 

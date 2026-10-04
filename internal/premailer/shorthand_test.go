@@ -563,7 +563,7 @@ func TestExpandShorthandIntegration(t *testing.T) {
 		cssAST := parseTestCSS(t, css)
 
 		var diagnostics []*ast_domain.Diagnostic
-		ruleSet := ProcessCSS(cssAST, &Options{ExpandShorthands: false}, &diagnostics, "test.css")
+		ruleSet := ProcessCSS(cssAST, &Options{}, &diagnostics, "test.css")
 
 		assert.Len(t, ruleSet.InlineableRules, 1)
 		rule := ruleSet.InlineableRules[0]

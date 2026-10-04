@@ -51,7 +51,7 @@ var (
 	// getSharedHTTPClient returns a lazily initialised HTTP client configured with optimised
 	// connection pooling and timeouts.
 	getSharedHTTPClient = sync.OnceValue(func() *http.Client {
-		transport := http.DefaultTransport.(*http.Transport).Clone()
+		transport := cloneBaseTransport(http.DefaultTransport)
 		transport.MaxIdleConns = 100
 		transport.MaxIdleConnsPerHost = 10
 		transport.IdleConnTimeout = 90 * time.Second
@@ -302,7 +302,9 @@ func doResetState() {
 	levelVar.Set(slog.LevelInfo)
 
 	handler := logger_adapters_handlers.NewPrettyHandler(os.Stdout, &logger_adapters_handlers.Options{
-		Level: levelVar,
+		Level:     levelVar,
+		AddSource: false,
+		NoColour:  false,
 	})
 
 	globalState.destinationHandlers = []slog.Handler{handler}
@@ -320,4 +322,25 @@ func init() {
 		return
 	}
 	doResetState()
+}
+
+// cloneBaseTransport returns an independent copy of base when it is an *http.Transport,
+// so the shared client keeps any proxy and TLS settings the application configured.
+//
+// When an application has wrapped http.DefaultTransport in another RoundTripper (for
+// example a tracing wrapper) a fresh transport honouring the proxy environment is
+// returned instead of panicking on the type assertion.
+//
+// Takes base (http.RoundTripper) which is the transport to start from, normally
+// http.DefaultTransport.
+//
+// Returns *http.Transport which the caller may modify without affecting base.
+func cloneBaseTransport(base http.RoundTripper) *http.Transport {
+	if transport, ok := base.(*http.Transport); ok {
+		return transport.Clone()
+	}
+	return &http.Transport{
+		Proxy:             http.ProxyFromEnvironment,
+		ForceAttemptHTTP2: true,
+	}
 }

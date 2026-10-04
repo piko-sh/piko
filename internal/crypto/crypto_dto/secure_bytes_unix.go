@@ -24,6 +24,8 @@ import (
 	"context"
 	"fmt"
 	"runtime"
+	"sync"
+	"sync/atomic"
 
 	"golang.org/x/sys/unix"
 	"piko.sh/piko/internal/logger/logger_domain"
@@ -101,6 +103,10 @@ func NewSecureBytes(size int, opts ...Option) (*SecureBytes, error) {
 		data:      data,
 		size:      size,
 		allocSize: allocSize,
+		id:        "",
+		cleanup:   runtime.Cleanup{},
+		mu:        sync.RWMutex{},
+		closed:    atomic.Bool{},
 	}
 
 	for _, opt := range opts {

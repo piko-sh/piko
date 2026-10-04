@@ -34,6 +34,9 @@ type mockTaskStoreHealth struct {
 func (m *mockTaskStoreHealth) CreateTask(_ context.Context, _ *Task) error    { return nil }
 func (m *mockTaskStoreHealth) CreateTasks(_ context.Context, _ []*Task) error { return nil }
 func (m *mockTaskStoreHealth) UpdateTask(_ context.Context, _ *Task) error    { return nil }
+func (m *mockTaskStoreHealth) GetTasksByID(_ context.Context, _ []string) ([]*Task, error) {
+	return nil, nil
+}
 func (m *mockTaskStoreHealth) FetchAndMarkDueTasks(_ context.Context, _ TaskPriority, _ int) ([]*Task, error) {
 	return nil, nil
 }
@@ -99,6 +102,9 @@ type mockTaskDispatcherHealth struct {
 }
 
 func (m *mockTaskDispatcherHealth) Dispatch(_ context.Context, _ *Task) error { return nil }
+func (m *mockTaskDispatcherHealth) DispatchIfRequired(_ context.Context, _ *Task, _ DispatchRequirement) error {
+	return nil
+}
 func (m *mockTaskDispatcherHealth) DispatchDelayed(_ context.Context, _ *Task, _ time.Time) error {
 	return nil
 }
@@ -212,7 +218,7 @@ func TestOrchestratorService_Check_Readiness_NoExecutors(t *testing.T) {
 	t.Parallel()
 
 	store := &mockTaskStoreHealth{healthState: healthprobe_dto.StateHealthy}
-	dispatcher := &mockTaskDispatcherHealth{activeWorkers: 0}
+	dispatcher := &mockTaskDispatcherHealth{}
 	service := newTestOrchestratorService(store, dispatcher)
 
 	status := service.Check(context.Background(), healthprobe_dto.CheckTypeReadiness)
@@ -277,7 +283,7 @@ func TestOrchestratorService_Check_Readiness_UnhealthyTaskStore(t *testing.T) {
 	t.Parallel()
 
 	store := &mockTaskStoreHealth{healthState: healthprobe_dto.StateUnhealthy}
-	dispatcher := &mockTaskDispatcherHealth{activeWorkers: 0}
+	dispatcher := &mockTaskDispatcherHealth{}
 	service := newTestOrchestratorService(store, dispatcher)
 	service.executors["test-executor"] = nil
 
@@ -295,7 +301,7 @@ func TestOrchestratorService_Check_Readiness_DegradedTaskStore(t *testing.T) {
 	t.Parallel()
 
 	store := &mockTaskStoreHealth{healthState: healthprobe_dto.StateDegraded}
-	dispatcher := &mockTaskDispatcherHealth{activeWorkers: 0}
+	dispatcher := &mockTaskDispatcherHealth{}
 	service := newTestOrchestratorService(store, dispatcher)
 	service.executors["test-executor"] = nil
 

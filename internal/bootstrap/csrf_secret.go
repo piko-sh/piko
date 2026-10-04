@@ -241,7 +241,7 @@ func generateFallbackSecret() []byte {
 
 	fallback := make([]byte, csrfSecretLength)
 	for i := range fallback {
-		mixed := now ^ (pid << fallbackPIDShift) ^ safeconv.IntToUint64(i*fallbackGoldenRatio)
+		mixed := now ^ (pid << fallbackPIDShift) ^ safeconv.IntToUint64(i)*fallbackGoldenRatio
 		fallback[i] = byte(mixed >> ((i % 8) * 8)) //nolint:gosec // intentional byte extraction
 		now = (now >> 1) | (now << fallbackRotateBits)
 	}

@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"runtime/debug"
 	"slices"
 	"sync"
 
@@ -33,6 +34,7 @@ import (
 	"piko.sh/piko/internal/inspector/inspector_dto"
 	"piko.sh/piko/internal/inspector/inspector_schema"
 	"piko.sh/piko/internal/inspector/inspector_schema/inspector_schema_gen"
+	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/mem"
 	"piko.sh/piko/wdk/safeconv"
 	"piko.sh/piko/wdk/safedisk"
@@ -55,6 +57,11 @@ const (
 )
 
 var (
+	// errCorruptTypeData indicates that encoded type data is structurally invalid, for
+	// example because a cache file was truncated or a byte was flipped on disk. Callers
+	// treat it as a cache miss and rebuild.
+	errCorruptTypeData = errors.New("corrupt type data")
+
 	// builderPool reuses FlatBuffer Builder instances to reduce allocation pressure during
 	// type data serialisation.
 	builderPool = sync.Pool{
@@ -89,11 +96,15 @@ func NewFlatBufferCache(sandbox safedisk.Sandbox) *FlatBufferCache {
 
 // GetTypeData retrieves cached TypeData for the given cache key.
 //
+// A cache file that has a different schema version, is truncated or is otherwise corrupt
+// is deleted so the next build rewrites it, and is reported as an error so the caller
+// rebuilds the type data.
+//
 // Takes cacheKey (string) which identifies the cached type data to retrieve.
 //
 // Returns *inspector_dto.TypeData which contains the deserialised type data.
 // Returns error when the cache is missing, corrupt, or has a schema version mismatch.
-func (fc *FlatBufferCache) GetTypeData(_ context.Context, cacheKey string) (*inspector_dto.TypeData, error) {
+func (fc *FlatBufferCache) GetTypeData(ctx context.Context, cacheKey string) (*inspector_dto.TypeData, error) {
 	if fc.sandbox == nil || cacheKey == "" {
 		return nil, errors.New("flatbuffer cache provider requires a sandbox and key")
 	}
@@ -106,20 +117,19 @@ func (fc *FlatBufferCache) GetTypeData(_ context.Context, cacheKey string) (*ins
 
 	payload, err := inspector_schema.Unpack(data)
 	if err != nil {
-		_ = fc.sandbox.Remove(fileName)
 		if errors.Is(err, fbs.ErrSchemaVersionMismatch) {
-			return nil, fmt.Errorf("cache schema version mismatch for key %s, invalidated", cacheKey)
+			err = fmt.Errorf("cache schema version mismatch for key %s, invalidated: %w", cacheKey, err)
+		} else {
+			err = fmt.Errorf("failed to unpack versioned cache for key %s: %w", cacheKey, err)
 		}
-		return nil, fmt.Errorf("failed to unpack versioned cache for key %s: %w", cacheKey, err)
+		return nil, fc.discardEntry(fileName, err)
 	}
 
-	fbTypeData := inspector_schema_gen.GetRootAsTypeData(payload, 0)
-	if fbTypeData == nil {
-		_ = fc.sandbox.Remove(fileName)
-		return nil, fmt.Errorf("failed to parse corrupt cache file for key %s", cacheKey)
+	typeData, err := decodeTypeDataPayload(ctx, payload)
+	if err != nil {
+		return nil, fc.discardEntry(fileName, fmt.Errorf("failed to decode cache file for key %s: %w", cacheKey, err))
 	}
-
-	return unpackTypeData(fbTypeData), nil
+	return typeData, nil
 }
 
 // SaveTypeData serialises and stores TypeData to the cache with the given key.
@@ -196,6 +206,20 @@ func (fc *FlatBufferCache) ClearCache(_ context.Context) error {
 	return nil
 }
 
+// discardEntry removes a cache file that cannot be used, joining any removal failure
+// other than the file already being gone onto the reason it was discarded.
+//
+// Takes fileName (string) which is the cache file to remove.
+// Takes cause (error) which explains why the entry is being discarded.
+//
+// Returns error which is cause, joined with the removal error when removal failed.
+func (fc *FlatBufferCache) discardEntry(fileName string, cause error) error {
+	if err := fc.sandbox.Remove(fileName); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return errors.Join(cause, fmt.Errorf("removing unusable cache file %s: %w", fileName, err))
+	}
+	return cause
+}
+
 // EncodeTypeDataToFBS encodes TypeData to FlatBuffers binary format. Use it to generate
 // pre-bundled stdlib data for WASM builds.
 //
@@ -219,19 +243,18 @@ func EncodeTypeDataToFBS(data *inspector_dto.TypeData) []byte {
 // DecodeTypeDataFromFBS decodes FlatBuffers binary data into a TypeData struct. Use it to
 // load pre-bundled standard library data in WASM builds.
 //
+// Corrupt or truncated data is reported as an error, never as a panic or an unbounded
+// allocation.
+//
 // Takes data ([]byte) which contains the FlatBuffers binary data to parse.
 //
 // Returns *inspector_dto.TypeData which holds the decoded type information.
-// Returns error when the data is empty or cannot be parsed as FlatBuffers.
+// Returns error when the data is empty or is not valid FlatBuffers type data.
 func DecodeTypeDataFromFBS(data []byte) (*inspector_dto.TypeData, error) {
 	if len(data) == 0 {
 		return nil, errors.New("empty FlatBuffer data")
 	}
-	fbTypeData := inspector_schema_gen.GetRootAsTypeData(data, 0)
-	if fbTypeData == nil {
-		return nil, errors.New("failed to parse FlatBuffer data")
-	}
-	return unpackTypeData(fbTypeData), nil
+	return decodeTypeDataPayload(context.Background(), data)
 }
 
 // packTypeData writes type data into a FlatBuffers format.
@@ -604,20 +627,61 @@ func packCompositePart(b *flatbuffers.Builder, cp *inspector_dto.CompositePart) 
 	return inspector_schema_gen.CompositePartEnd(b)
 }
 
-// unpackTypeData converts a FlatBuffer TypeData into its DTO form.
+// decodeTypeDataPayload decodes an unversioned FlatBuffers payload into TypeData,
+// converting any panic raised by the FlatBuffers accessors on corrupt data into an error.
 //
-// Takes fb (*inspector_schema_gen_gen.TypeData) which is the serialised type data.
+// The recovered panic and its stack are logged once at warning level; the returned error
+// carries only the panic value.
 //
-// Returns *inspector_dto.TypeData which contains the unpacked packages and
-// file-to-package mappings.
-func unpackTypeData(fb *inspector_schema_gen.TypeData) *inspector_dto.TypeData {
-	counts := countEntities(fb)
-	arena := newUnpackArena(counts)
-
-	return &inspector_dto.TypeData{
-		Packages:      unpackPackages(fb, arena),
-		FileToPackage: unpackMap(fb.FileToPackageLength(), fb.FileToPackage, unpackFileToPackageEntry),
+// Takes payload ([]byte) which is the FlatBuffers payload without the schema prefix.
+//
+// Returns typeData (*inspector_dto.TypeData) which holds the decoded type information.
+// Returns err (error) which wraps errCorruptTypeData when the payload is too short,
+// declares an impossible vector length, or makes the accessors panic.
+func decodeTypeDataPayload(ctx context.Context, payload []byte) (typeData *inspector_dto.TypeData, err error) {
+	if len(payload) < flatbuffers.SizeUOffsetT {
+		return nil, fmt.Errorf("%w: payload too short (%d bytes)", errCorruptTypeData, len(payload))
 	}
+
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			typeData = nil
+			_, l := logger_domain.From(ctx, log)
+			l.Warn("Recovered from panic while decoding corrupt type data",
+				logger_domain.String("recovered", fmt.Sprintf("%v", recovered)),
+				logger_domain.String("stack", string(debug.Stack())),
+			)
+			err = fmt.Errorf("%w: %v", errCorruptTypeData, recovered)
+		}
+	}()
+
+	return unpackTypeData(inspector_schema_gen.GetRootAsTypeData(payload, 0), len(payload))
+}
+
+// unpackTypeData converts a FlatBuffers TypeData table into its DTO form.
+//
+// Takes fb (*inspector_schema_gen.TypeData) which is the root FlatBuffers table.
+// Takes payloadLength (int) which is the size of the payload in bytes and bounds the
+// vector lengths read from it.
+//
+// Returns *inspector_dto.TypeData which holds the unpacked packages and file mappings.
+// Returns error which wraps errCorruptTypeData when a vector length exceeds what the
+// payload can hold.
+func unpackTypeData(fb *inspector_schema_gen.TypeData, payloadLength int) (*inspector_dto.TypeData, error) {
+	counts, err := countEntities(fb, payloadLength)
+	if err != nil {
+		return nil, err
+	}
+	arena := newUnpackArena(counts, payloadLength)
+
+	typeData := &inspector_dto.TypeData{
+		Packages:      unpackPackages(fb, arena),
+		FileToPackage: unpackMap(&arena.elementBudget, fb.FileToPackageLength(), fb.FileToPackage, unpackFileToPackageEntry),
+	}
+	if arena.err != nil {
+		return nil, arena.err
+	}
+	return typeData, nil
 }
 
 // unpackFileToPackageEntry extracts the key and value strings from a file to package
@@ -629,65 +693,6 @@ func unpackTypeData(fb *inspector_schema_gen.TypeData) *inspector_dto.TypeData {
 // Returns value (string) which is the package name.
 func unpackFileToPackageEntry(fb *inspector_schema_gen.FileToPackageEntry) (key, value string) {
 	return mem.String(fb.Key()), mem.String(fb.Value())
-}
-
-// unpackFunctionSignature converts a FlatBuffer function signature to a DTO.
-//
-// Takes fb (*inspector_schema_gen_gen.FunctionSignature) which is the FlatBuffer
-// representation to unpack.
-//
-// Returns inspector_dto.FunctionSignature which contains the extracted parameter and
-// result type strings.
-func unpackFunctionSignature(fb *inspector_schema_gen.FunctionSignature) inspector_dto.FunctionSignature {
-	paramsLen := fb.ParamsLength()
-	resultsLen := fb.ResultsLength()
-	paramNamesLen := fb.ParamNamesLength()
-	typeParamNamesLen := fb.TypeParamNamesLength()
-	typeParamConstraintsLen := fb.TypeParamConstraintsLength()
-
-	total := paramsLen + resultsLen + paramNamesLen + typeParamNamesLen + typeParamConstraintsLen
-	if total == 0 {
-		return inspector_dto.FunctionSignature{}
-	}
-
-	backing := make([]string, total)
-
-	paramsStart := 0
-	resultsStart := paramsStart + paramsLen
-	paramNamesStart := resultsStart + resultsLen
-	typeParamNamesStart := paramNamesStart + paramNamesLen
-	typeParamConstraintsStart := typeParamNamesStart + typeParamNamesLen
-
-	for i := range paramsLen {
-		backing[paramsStart+i] = mem.String(fb.Params(i))
-	}
-	for i := range resultsLen {
-		backing[resultsStart+i] = mem.String(fb.Results(i))
-	}
-	for i := range paramNamesLen {
-		backing[paramNamesStart+i] = mem.String(fb.ParamNames(i))
-	}
-	for i := range typeParamNamesLen {
-		backing[typeParamNamesStart+i] = mem.String(fb.TypeParamNames(i))
-	}
-	for i := range typeParamConstraintsLen {
-		backing[typeParamConstraintsStart+i] = mem.String(fb.TypeParamConstraints(i))
-	}
-
-	sig := inspector_dto.FunctionSignature{
-		Params:  backing[paramsStart : paramsStart+paramsLen : paramsStart+paramsLen],
-		Results: backing[resultsStart : resultsStart+resultsLen : resultsStart+resultsLen],
-	}
-	if paramNamesLen > 0 {
-		sig.ParamNames = backing[paramNamesStart : paramNamesStart+paramNamesLen : paramNamesStart+paramNamesLen]
-	}
-	if typeParamNamesLen > 0 {
-		sig.TypeParamNames = backing[typeParamNamesStart : typeParamNamesStart+typeParamNamesLen : typeParamNamesStart+typeParamNamesLen]
-	}
-	if typeParamConstraintsLen > 0 {
-		sig.TypeParamConstraints = backing[typeParamConstraintsStart : typeParamConstraintsStart+typeParamConstraintsLen : typeParamConstraintsStart+typeParamConstraintsLen]
-	}
-	return sig
 }
 
 // packMap writes a map to a FlatBuffers vector with sorted keys.
@@ -788,14 +793,16 @@ func createVector(b *flatbuffers.Builder, offsets []flatbuffers.UOffsetT) flatbu
 
 // unpackMap builds a map from a list of items using the given functions.
 //
+// Takes budget (*elementBudget) which bounds the vector length read from the buffer.
 // Takes length (int) which is the number of items to process.
 // Takes getItem (func(*T, int) bool) which gets an item at the given index into the
 // pointer and returns true if it worked.
 // Takes unpacker (func(*T) (K, V)) which gets a key and value from an item.
 //
-// Returns map[K]V which holds the key-value pairs, or nil if length is zero.
-func unpackMap[T any, K comparable, V any](length int, getItem func(*T, int) bool, unpacker func(*T) (K, V)) map[K]V {
-	if length == 0 {
+// Returns map[K]V which holds the key-value pairs, or nil if length is zero or exceeds
+// the budget.
+func unpackMap[T any, K comparable, V any](budget *elementBudget, length int, getItem func(*T, int) bool, unpacker func(*T) (K, V)) map[K]V {
+	if length == 0 || !budget.claim(length) {
 		return nil
 	}
 	m := make(map[K]V, length)

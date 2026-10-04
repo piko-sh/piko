@@ -178,12 +178,11 @@ func main() {
 // Runs the server in a separate goroutine. The goroutine runs until the server stops or
 // fails.
 func startPprofServer(ctx context.Context, port int) {
-	profilerConfig := profiler.Config{
-		Port:                 port,
-		BindAddress:          profiler.DefaultBindAddress,
-		BlockProfileRate:     profiler.DefaultBlockProfileRate,
-		MutexProfileFraction: profiler.DefaultMutexProfileFraction,
-	}
+	profilerConfig := profiler.Config{}
+	profilerConfig.Port = port
+	profilerConfig.BindAddress = profiler.DefaultBindAddress
+	profilerConfig.BlockProfileRate = profiler.DefaultBlockProfileRate
+	profilerConfig.MutexProfileFraction = profiler.DefaultMutexProfileFraction
 
 	profiler.SetRuntimeRates(profilerConfig)
 
@@ -246,7 +245,9 @@ func envTruthy(key string) bool {
 // cache, and LSP file reader.
 func initialiseLSP() lspServices {
 	deps := &bootstrap.Dependencies{
-		AppRouter: chi.NewRouter(),
+		AppRouter:           chi.NewRouter(),
+		InterpreterPool:     nil,
+		InterpreterProvider: nil,
 	}
 
 	container, err := bootstrap.ConfigAndContainer(context.Background(), deps)
@@ -302,16 +303,19 @@ func createDriver(driverMode, tcpAddr string, service lspServices) lsp_domain.LS
 	case "tcp":
 		getLog().Info("Creating TCP driver adapter", logger.String("address", tcpAddr))
 		driver, driverErr := lsp_adapters.NewTCPAdapter(lsp_adapters.TCPAdapterDeps{
-			Addr:                 tcpAddr,
-			CoordinatorService:   coordinatorService,
-			Resolver:             resolver,
-			TypeInspectorManager: typeInspectorMgr,
-			DocCache:             service.docCache,
-			LSPReader:            service.lspReader,
-			PathsConfig:          service.pathsConfig,
-			GoplsManager:         goplsManager,
-			GoplsBridgeEnabled:   goplsBridgeEnabled,
-			FormattingEnabled:    *flagFormatting,
+			Addr:                        tcpAddr,
+			CoordinatorService:          coordinatorService,
+			Resolver:                    resolver,
+			TypeInspectorManager:        typeInspectorMgr,
+			DocCache:                    service.docCache,
+			LSPReader:                   service.lspReader,
+			PathsConfig:                 service.pathsConfig,
+			GoplsManager:                goplsManager,
+			GoplsBridgeEnabled:          goplsBridgeEnabled,
+			FormattingEnabled:           *flagFormatting,
+			MaxConcurrentConnections:    0,
+			ConnectionInactivityTimeout: 0,
+			MaxMessageBytes:             0,
 		})
 		if driverErr != nil {
 			fatalf("Failed to create TCP driver adapter: %v", driverErr)
@@ -360,6 +364,7 @@ func buildGoplsManager() (*gopls_bridge.Manager, bool) {
 		Allow:               allow,
 		MaxChildren:         cmp.Or(*flagGoplsMaxChildren, envInt("PIKO_LSP_GOPLS_MAX_CHILDREN")),
 		MaxOverlaysPerChild: cmp.Or(*flagGoplsMaxOverlays, envInt("PIKO_LSP_GOPLS_MAX_OVERLAYS")),
+		Clock:               nil,
 	})
 	return manager, goplsBridgeEnabled
 }

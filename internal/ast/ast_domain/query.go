@@ -179,17 +179,8 @@ func (n *TemplateNode) QueryAll(selector, sourcePath string) ([]*TemplateNode, [
 	if n == nil {
 		return nil, nil
 	}
-	tempAST := &TemplateAST{
-		SourcePath:        nil,
-		ExpiresAtUnixNano: nil,
-		Metadata:          nil,
-		queryContext:      nil,
-		RootNodes:         []*TemplateNode{n},
-		Diagnostics:       nil,
-		SourceSize:        0,
-		Tidied:            false,
-		isPooled:          false,
-	}
+	tempAST := &TemplateAST{}
+	tempAST.RootNodes = []*TemplateNode{n}
 	return QueryAll(tempAST, selector, sourcePath)
 }
 
@@ -244,6 +235,7 @@ func ClearSelectorCache() {
 // This is the main query function that supports all combinators and pseudo-classes. The
 // QueryContext is cached on the AST for efficient repeated queries.
 //
+// Takes root (*TemplateAST) which is the template AST to search.
 // Takes selector (string) which specifies the CSS selector to match.
 // Takes sourcePath (string) which identifies the source file for diagnostics.
 //
@@ -281,6 +273,7 @@ func QueryAll(root *TemplateAST, selector, sourcePath string) ([]*TemplateNode, 
 
 // Query finds the first node in a TemplateAST that matches a CSS selector.
 //
+// Takes root (*TemplateAST) which is the template AST to search.
 // Takes selector (string) which specifies the CSS selector pattern to match.
 //
 // Returns *TemplateNode which is the first matching node, or nil if none is found.
@@ -296,6 +289,7 @@ func Query(root *TemplateAST, selector string) (*TemplateNode, []*Diagnostic) {
 // MustQuery returns the first node that matches the selector, or nil if no match is
 // found. It wraps QueryAll and ignores any diagnostics.
 //
+// Takes root (*TemplateAST) which is the template AST to search.
 // Takes selector (string) which specifies the query pattern to match.
 //
 // Returns *TemplateNode which is the first matching node, or nil if none is found.
@@ -1091,13 +1085,14 @@ func buildEffectiveTreeInfo(root *TemplateAST, virtualRoot *TemplateNode) effect
 // Returns effectiveTreeInfo which is ready to be populated with tree data.
 func createEmptyTreeInfo() effectiveTreeInfo {
 	return effectiveTreeInfo{
-		parentOf:    make(map[*TemplateNode]*TemplateNode),
-		siblingsOf:  make(map[*TemplateNode][]*TemplateNode),
-		childrenOf:  make(map[*TemplateNode][]*TemplateNode),
-		byTag:       make(map[string][]*TemplateNode, indexCapacityTags),
-		byClass:     make(map[string][]*TemplateNode, indexCapacityClasses),
-		byID:        make(map[string][]*TemplateNode, indexCapacityIDs),
-		allElements: make([]*TemplateNode, 0, indexCapacityElements),
+		parentOf:          make(map[*TemplateNode]*TemplateNode),
+		siblingsOf:        make(map[*TemplateNode][]*TemplateNode),
+		childrenOf:        make(map[*TemplateNode][]*TemplateNode),
+		byTag:             make(map[string][]*TemplateNode, indexCapacityTags),
+		byClass:           make(map[string][]*TemplateNode, indexCapacityClasses),
+		byID:              make(map[string][]*TemplateNode, indexCapacityIDs),
+		allElements:       make([]*TemplateNode, 0, indexCapacityElements),
+		attributeMapCache: nil,
 	}
 }
 
@@ -1208,17 +1203,10 @@ func processChildren(children []*TemplateNode, parent *TemplateNode, depth int, 
 // Returns *TemplateNode which is a fragment node with all fields set to zero values
 // except Children.
 func newVirtualRootNode(children []*TemplateNode) *TemplateNode {
-	return &TemplateNode{
-		Key: nil, DirKey: nil, DirHTML: nil, GoAnnotations: nil, RuntimeAnnotations: nil,
-		AttributeWriters: nil, TextContentWriter: nil,
-		CustomEvents: nil, OnEvents: nil, Binds: nil, DirContext: nil,
-		DirElse: nil, DirText: nil, DirStyle: nil, DirClass: nil, DirIf: nil, DirElseIf: nil,
-		DirFor: nil, DirShow: nil, DirRef: nil, DirMemo: nil, DirSlot: nil, DirModel: nil, DirScaffold: nil,
-		TagName: "", TextContent: "", InnerHTML: "", Children: children,
-		RichText: nil, Attributes: nil, Diagnostics: nil, DynamicAttributes: nil, Directives: nil,
-		Location: Location{}, NodeType: NodeFragment, IsPooled: false, IsContentEditable: false,
-		NodeRange: Range{}, OpeningTagRange: Range{}, ClosingTagRange: Range{}, PreferredFormat: FormatAuto,
-	}
+	node := TemplateNode{}
+	node.Children = children
+	node.NodeType = NodeFragment
+	return &node
 }
 
 // getEffectiveChildrenWithDepth returns the child nodes of a parent node, skipping

@@ -404,21 +404,21 @@ type IndexExpression struct {
 	// Index is the first index or type argument expression inside the brackets.
 	Index Expression
 
-	// Indices holds every index or type argument when the brackets contain more than one, as
-	// in a generic instantiation such as Pair[K, V].
-	Indices []Expression
-
 	// GoAnnotations holds code generation hints for this expression.
 	GoAnnotations *GoGeneratorAnnotation
 
-	// Optional indicates whether this uses optional chaining (?.[]).
-	Optional bool
+	// Indices holds every index or type argument when the brackets contain more than one, as
+	// in a generic instantiation such as Pair[K, V].
+	Indices []Expression
 
 	// RelativeLocation is the source location of this expression in the original source.
 	RelativeLocation Location
 
 	// SourceLength is the byte length of this expression in the source code.
 	SourceLength int
+
+	// Optional indicates whether this uses optional chaining (?.[]).
+	Optional bool
 }
 
 // String returns the text form of the index expression.

@@ -39,6 +39,10 @@ import (
 )
 
 const (
+	// lowerBufferSize is the size of the parser's scratch buffer for lowercasing tag and
+	// attribute names. 64 bytes covers all standard HTML names.
+	lowerBufferSize = 64
+
 	// textPartPreallocCapacity is the initial slice capacity for TextPart slices. Sized for
 	// the common pattern: literal-expr-literal-expr.
 	textPartPreallocCapacity = 4
@@ -191,7 +195,7 @@ type Parser struct {
 
 	// lowerBuf is a scratch buffer for lowercasing tag names and attribute names without
 	// allocating. 64 bytes covers all standard HTML names.
-	lowerBuf [64]byte
+	lowerBuf [lowerBufferSize]byte
 }
 
 // toLower lowercases src into the parser's scratch buffer and returns the result as a
@@ -238,7 +242,7 @@ func (p *Parser) adjustLocation(line, column int) Location {
 //
 // Returns error when the lexer returns an error other than end of file.
 func (p *Parser) run() error {
-	head := &TemplateNode{}
+	head := new(TemplateNode)
 	p.nodeStack = []*TemplateNode{head}
 
 	for {
@@ -294,49 +298,10 @@ func (p *Parser) processText(data []byte) {
 //
 // Takes data ([]byte) which contains the raw text to process.
 func (p *Parser) handleRawText(data []byte) {
-	node := &TemplateNode{
-		Key:                nil,
-		DirKey:             nil,
-		DirHTML:            nil,
-		GoAnnotations:      nil,
-		RuntimeAnnotations: nil,
-		AttributeWriters:   nil,
-		TextContentWriter:  nil,
-		CustomEvents:       nil,
-		OnEvents:           nil,
-		Binds:              nil,
-		DirContext:         nil,
-		DirElse:            nil,
-		DirText:            nil,
-		DirStyle:           nil,
-		DirClass:           nil,
-		DirIf:              nil,
-		DirElseIf:          nil,
-		DirFor:             nil,
-		DirShow:            nil,
-		DirRef:             nil,
-		DirMemo:            nil,
-		DirModel:           nil,
-		DirScaffold:        nil,
-		TagName:            "",
-		TextContent:        html.UnescapeString(string(data)),
-		InnerHTML:          "",
-		Children:           nil,
-		RichText:           nil,
-		Attributes:         nil,
-		Diagnostics:        nil,
-		DynamicAttributes:  nil,
-		Directives:         nil,
-		Location:           Location{},
-		NodeType:           NodeText,
-		IsPooled:           false,
-		IsContentEditable:  false,
-		PreserveWhitespace: true,
-		NodeRange:          Range{},
-		OpeningTagRange:    Range{},
-		ClosingTagRange:    Range{},
-		PreferredFormat:    FormatAuto,
-	}
+	node := &TemplateNode{}
+	node.TextContent = html.UnescapeString(string(data))
+	node.NodeType = NodeText
+	node.PreserveWhitespace = true
 	p.currentParent().Children = append(p.currentParent().Children, node)
 }
 
@@ -465,7 +430,14 @@ func (s *interpolationScanner) scanExpressionPart(openDelimOffset int) (TextPart
 			Error, "Unterminated text interpolation: missing '}}'", remainingString,
 			CodeUnterminatedInterpolation, errAbsLocation, s.p.sourcePath,
 		))
-		return TextPart{Expression: nil, GoAnnotations: nil, Literal: html.UnescapeString(remainingString), RawExpression: "", Location: Location{}, IsLiteral: true}, len(s.data) - s.cursor, true
+		return TextPart{
+			Expression:    nil,
+			GoAnnotations: nil,
+			Literal:       html.UnescapeString(remainingString),
+			RawExpression: "",
+			Location:      Location{},
+			IsLiteral:     true,
+		}, len(s.data) - s.cursor, true
 	}
 
 	expressionBytesWithWhitespace := s.data[expressionStartAbsoluteOffset : expressionStartAbsoluteOffset+closeDelimOffset]
@@ -494,8 +466,7 @@ func (s *interpolationScanner) scanExpressionPart(openDelimOffset int) (TextPart
 //
 // Takes data ([]byte) which contains the raw text to process.
 func (p *Parser) handlePlainText(data []byte) {
-	tokenStartOffset := p.lexer.TokenStart()
-	line, column := p.lexer.PositionAt(tokenStartOffset)
+	line, column := p.lexer.TokenLine(), p.lexer.TokenCol()
 	finalLocation := p.adjustLocation(line, column)
 
 	start, end := 0, len(data)
@@ -557,7 +528,7 @@ func (p *Parser) processEndTag() {
 	if len(p.nodeStack) > 1 {
 		closingNode := p.nodeStack[len(p.nodeStack)-1]
 
-		startLine, startCol := p.lexer.PositionAt(p.lexer.TokenStart())
+		startLine, startCol := p.lexer.TokenLine(), p.lexer.TokenCol()
 		endLine, endCol := p.lexer.PositionAt(p.lexer.TokenEnd())
 
 		closingNode.ClosingTagRange = Range{
@@ -621,52 +592,15 @@ func (*Parser) detectFormattingHint(node *TemplateNode) {
 // processComment handles a CommentToken by creating a comment node.
 func (p *Parser) processComment() {
 	commentContent := string(p.lexer.Text())
-	line, column := p.lexer.PositionAt(p.lexer.TokenStart())
+	line, column := p.lexer.TokenLine(), p.lexer.TokenCol()
 	endLine, endColumn := p.lexer.PositionAt(p.lexer.TokenEnd())
 	startLocation := p.adjustLocation(line, column)
 	endLocation := p.adjustLocation(endLine, endColumn)
-	node := &TemplateNode{
-		Key:                nil,
-		DirKey:             nil,
-		DirHTML:            nil,
-		GoAnnotations:      nil,
-		RuntimeAnnotations: nil,
-		AttributeWriters:   nil,
-		TextContentWriter:  nil,
-		CustomEvents:       nil,
-		OnEvents:           nil,
-		Binds:              nil,
-		DirContext:         nil,
-		DirElse:            nil,
-		DirText:            nil,
-		DirStyle:           nil,
-		DirClass:           nil,
-		DirIf:              nil,
-		DirElseIf:          nil,
-		DirFor:             nil,
-		DirShow:            nil,
-		DirRef:             nil,
-		DirMemo:            nil,
-		DirModel:           nil,
-		DirScaffold:        nil,
-		TagName:            "",
-		TextContent:        commentContent,
-		InnerHTML:          "",
-		Children:           nil,
-		RichText:           nil,
-		Attributes:         nil,
-		Diagnostics:        nil,
-		DynamicAttributes:  nil,
-		Directives:         nil,
-		Location:           p.adjustLocation(line, column),
-		NodeRange:          Range{Start: startLocation, End: endLocation},
-		OpeningTagRange:    Range{},
-		ClosingTagRange:    Range{},
-		NodeType:           NodeComment,
-		IsPooled:           false,
-		IsContentEditable:  false,
-		PreferredFormat:    FormatAuto,
-	}
+	node := &TemplateNode{}
+	node.TextContent = commentContent
+	node.Location = p.adjustLocation(line, column)
+	node.NodeRange = Range{Start: startLocation, End: endLocation}
+	node.NodeType = NodeComment
 	p.currentParent().Children = append(p.currentParent().Children, node)
 }
 
@@ -899,12 +833,15 @@ func ParseWithOptions(ctx context.Context, raw string, sourcePath string, startL
 			SourceSize:        int64(len(raw)),
 			Tidied:            false,
 			isPooled:          false,
+			arena:             nil,
 		},
 		sourcePath: sourcePath,
 		nodeStack:  nil,
 		startLine:  location.Line,
 		startCol:   location.Column,
 		opts:       opts,
+		lexer:      htmllexer.Lexer{},
+		lowerBuf:   [lowerBufferSize]byte{},
 	}
 	p.lexer.Init([]byte(raw))
 
@@ -947,48 +884,11 @@ func releaseScanner(scanner *interpolationScanner) {
 //
 // Returns *TemplateNode which is a text node with the RichText field set.
 func newRichTextNode(parts []TextPart, location Location) *TemplateNode {
-	return &TemplateNode{
-		Key:                nil,
-		DirKey:             nil,
-		DirHTML:            nil,
-		GoAnnotations:      nil,
-		RuntimeAnnotations: nil,
-		AttributeWriters:   nil,
-		TextContentWriter:  nil,
-		CustomEvents:       nil,
-		OnEvents:           nil,
-		Binds:              nil,
-		DirContext:         nil,
-		DirElse:            nil,
-		DirText:            nil,
-		DirStyle:           nil,
-		DirClass:           nil,
-		DirIf:              nil,
-		DirElseIf:          nil,
-		DirFor:             nil,
-		DirShow:            nil,
-		DirRef:             nil,
-		DirMemo:            nil,
-		DirModel:           nil,
-		DirScaffold:        nil,
-		TagName:            "",
-		TextContent:        "",
-		InnerHTML:          "",
-		Children:           nil,
-		RichText:           parts,
-		Attributes:         nil,
-		Diagnostics:        nil,
-		DynamicAttributes:  nil,
-		Directives:         nil,
-		Location:           location,
-		NodeType:           NodeText,
-		IsPooled:           false,
-		IsContentEditable:  false,
-		NodeRange:          Range{},
-		OpeningTagRange:    Range{},
-		ClosingTagRange:    Range{},
-		PreferredFormat:    FormatAuto,
-	}
+	node := TemplateNode{}
+	node.RichText = parts
+	node.Location = location
+	node.NodeType = NodeText
+	return &node
 }
 
 // newTextNode creates a text TemplateNode with the given content and location.
@@ -998,17 +898,11 @@ func newRichTextNode(parts []TextPart, location Location) *TemplateNode {
 //
 // Returns *TemplateNode which is a text node ready for use in the template.
 func newTextNode(textContent string, location Location) *TemplateNode {
-	return &TemplateNode{
-		Key: nil, DirKey: nil, DirHTML: nil, GoAnnotations: nil, RuntimeAnnotations: nil,
-		AttributeWriters: nil, TextContentWriter: nil,
-		CustomEvents: nil, OnEvents: nil, Binds: nil, DirContext: nil,
-		DirElse: nil, DirText: nil, DirStyle: nil, DirClass: nil, DirIf: nil, DirElseIf: nil,
-		DirFor: nil, DirShow: nil, DirRef: nil, DirMemo: nil, DirSlot: nil, DirModel: nil, DirScaffold: nil,
-		TagName: "", TextContent: textContent, InnerHTML: "", Children: nil,
-		RichText: nil, Attributes: nil, Diagnostics: nil, DynamicAttributes: nil, Directives: nil,
-		Location: location, NodeType: NodeText, IsPooled: false, IsContentEditable: false,
-		NodeRange: Range{}, OpeningTagRange: Range{}, ClosingTagRange: Range{}, PreferredFormat: FormatAuto,
-	}
+	node := TemplateNode{}
+	node.TextContent = textContent
+	node.Location = location
+	node.NodeType = NodeText
+	return &node
 }
 
 // collapseWhitespace extracts text from a byte slice and replaces any group of whitespace
@@ -1072,18 +966,13 @@ func hasAttribute(node *TemplateNode, name string) bool {
 //
 // Returns *TemplateNode which is the new element node with default values set.
 func newElementNode(tagName string, location Location) *TemplateNode {
-	return &TemplateNode{
-		Key: nil, DirKey: nil, DirHTML: nil, GoAnnotations: nil, RuntimeAnnotations: nil,
-		AttributeWriters: nil, TextContentWriter: nil,
-		CustomEvents: nil, OnEvents: nil, Binds: nil, DirContext: nil,
-		DirElse: nil, DirText: nil, DirStyle: nil, DirClass: nil, DirIf: nil, DirElseIf: nil,
-		DirFor: nil, DirShow: nil, DirRef: nil, DirMemo: nil, DirSlot: nil, DirModel: nil, DirScaffold: nil,
-		TagName: tagName, TextContent: "", InnerHTML: "", Children: nil,
-		RichText: nil, Attributes: nil, Diagnostics: nil, DynamicAttributes: nil, Directives: nil,
-		Location: location, NodeType: NodeElement, IsPooled: false, IsContentEditable: false,
-		NodeRange: Range{Start: location, End: location}, OpeningTagRange: Range{Start: location, End: location},
-		ClosingTagRange: Range{}, PreferredFormat: FormatAuto,
-	}
+	node := TemplateNode{}
+	node.NodeType = NodeElement
+	node.TagName = tagName
+	node.Location = location
+	node.NodeRange = Range{Start: location, End: location}
+	node.OpeningTagRange = Range{Start: location, End: location}
+	return &node
 }
 
 // buildForeignElementNode creates a TemplateNode from an XML start element, classifying
@@ -1124,14 +1013,21 @@ func classifyForeignAttribute(node *TemplateNode, attr xml.Attr, baseLocation Lo
 		node.Directives = append(node.Directives, d)
 	} else if len(attributeName) > 0 && attributeName[0] == ':' {
 		node.DynamicAttributes = append(node.DynamicAttributes, DynamicAttribute{
-			Name:          internBytes([]byte(attributeName[1:])),
-			RawExpression: attributeValue,
-			Location:      baseLocation,
+			Name:           internBytes([]byte(attributeName[1:])),
+			RawExpression:  attributeValue,
+			Location:       baseLocation,
+			Expression:     nil,
+			GoAnnotations:  nil,
+			NameLocation:   Location{},
+			AttributeRange: Range{},
 		})
 	} else {
 		node.Attributes = append(node.Attributes, HTMLAttribute{
-			Name:  normaliseForeignAttrName(attributeName),
-			Value: attributeValue,
+			Name:           normaliseForeignAttrName(attributeName),
+			Value:          attributeValue,
+			Location:       Location{},
+			NameLocation:   Location{},
+			AttributeRange: Range{},
 		})
 	}
 }
@@ -1192,18 +1088,10 @@ func interpretDirective(key []byte, value string, location Location) (Directive,
 	}
 
 	if dirType, found := resolveDirectiveType(key); found {
-		d := Directive{
-			Expression:     nil,
-			ChainKey:       nil,
-			GoAnnotations:  nil,
-			Arg:            "",
-			Modifier:       "",
-			RawExpression:  value,
-			Location:       location,
-			NameLocation:   Location{},
-			AttributeRange: Range{},
-			Type:           dirType,
-		}
+		d := Directive{}
+		d.RawExpression = value
+		d.Location = location
+		d.Type = dirType
 
 		if d.Type == DirectiveElse {
 			d.RawExpression = ""
@@ -1246,18 +1134,9 @@ func handleFlagDirective(d *Directive) {
 // Returns Directive which contains the parsed directive with its type and argument.
 // Returns bool which is true when a prefixed directive was found.
 func parsePrefixedDirective(key []byte, value string, location Location) (Directive, bool) {
-	d := Directive{
-		Expression:     nil,
-		ChainKey:       nil,
-		GoAnnotations:  nil,
-		Arg:            "",
-		Modifier:       "",
-		RawExpression:  value,
-		Location:       location,
-		NameLocation:   Location{},
-		AttributeRange: Range{},
-		Type:           0,
-	}
+	d := Directive{}
+	d.RawExpression = value
+	d.Location = location
 
 	switch {
 	case bytes.HasPrefix(key, []byte("p-on:")):

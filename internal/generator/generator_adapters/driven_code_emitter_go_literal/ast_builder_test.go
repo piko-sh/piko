@@ -76,10 +76,8 @@ func TestBuildASTFunction_EmptyAST(t *testing.T) {
 					PartialName:            "TestComponent",
 					CanonicalGoPackagePath: "github.com/test/testpkg",
 					Source: &annotator_dto.ParsedComponent{
-						SourcePath: "test.pk",
-						Script: &annotator_dto.ParsedScript{
-							PropsTypeExpression: nil,
-						},
+						SourcePath:        "test.pk",
+						Script:            &annotator_dto.ParsedScript{},
 						LocalTranslations: nil,
 					},
 					RewrittenScriptAST: nil,
@@ -142,9 +140,7 @@ func TestBuildASTFunction_WithRootNodes(t *testing.T) {
 					CanonicalGoPackagePath: "github.com/test/testpkg",
 					Source: &annotator_dto.ParsedComponent{
 						SourcePath: "test.pk",
-						Script: &annotator_dto.ParsedScript{
-							PropsTypeExpression: nil,
-						},
+						Script:     &annotator_dto.ParsedScript{},
 					},
 				},
 			},
@@ -421,9 +417,7 @@ func TestBuildPartialRenderCalls_StaticPartial(t *testing.T) {
 					PartialName:            "MyPartial",
 					CanonicalGoPackagePath: "test.com/partials",
 					Source: &annotator_dto.ParsedComponent{
-						Script: &annotator_dto.ParsedScript{
-							PropsTypeExpression: nil,
-						},
+						Script: &annotator_dto.ParsedScript{},
 					},
 				},
 			},
@@ -928,7 +922,7 @@ func TestEmitNode_TextNode(t *testing.T) {
 	textNode := createMockTemplateNode(ast_domain.NodeText, "", "Hello")
 	parentSliceExpr := cachedIdent("rootNodes")
 
-	emitCtx := newNodeEmissionContext(ctx, nodeEmissionParams{
+	emitCtx := newNodeEmissionContext(nodeEmissionParams{
 		Node:                  textNode,
 		ParentSliceExpression: parentSliceExpr,
 		Index:                 0,
@@ -938,7 +932,7 @@ func TestEmitNode_TextNode(t *testing.T) {
 		MainComponentScope:    "",
 	})
 
-	statements, consumed, diagnostics := builder.emitNode(emitCtx)
+	statements, consumed, diagnostics := builder.emitNode(ctx, emitCtx)
 
 	if len(diagnostics) != 0 {
 		t.Errorf("Expected no diagnostics, got %d", len(diagnostics))
@@ -978,7 +972,7 @@ func TestEmitNode_StaticElement(t *testing.T) {
 	}
 	parentSliceExpr := cachedIdent("rootNodes")
 
-	emitCtx := newNodeEmissionContext(ctx, nodeEmissionParams{
+	emitCtx := newNodeEmissionContext(nodeEmissionParams{
 		Node:                  staticNode,
 		ParentSliceExpression: parentSliceExpr,
 		Index:                 0,
@@ -988,7 +982,7 @@ func TestEmitNode_StaticElement(t *testing.T) {
 		MainComponentScope:    "",
 	})
 
-	statements, consumed, diagnostics := builder.emitNode(emitCtx)
+	statements, consumed, diagnostics := builder.emitNode(ctx, emitCtx)
 
 	for _, diagnostic := range diagnostics {
 		if diagnostic.Severity == ast_domain.Error {
@@ -1018,7 +1012,7 @@ func TestEmitNode_Fragment(t *testing.T) {
 	}
 	parentSliceExpr := cachedIdent("rootNodes")
 
-	emitCtx := newNodeEmissionContext(ctx, nodeEmissionParams{
+	emitCtx := newNodeEmissionContext(nodeEmissionParams{
 		Node:                  fragmentNode,
 		ParentSliceExpression: parentSliceExpr,
 		Index:                 0,
@@ -1028,7 +1022,7 @@ func TestEmitNode_Fragment(t *testing.T) {
 		MainComponentScope:    "",
 	})
 
-	statements, consumed, diagnostics := builder.emitNode(emitCtx)
+	statements, consumed, diagnostics := builder.emitNode(ctx, emitCtx)
 
 	if len(diagnostics) != 0 {
 		t.Errorf("Expected no diagnostics, got %d", len(diagnostics))
@@ -1115,9 +1109,7 @@ func TestBuildInitialRenderCall_WithoutProps(t *testing.T) {
 					PartialName:            "Component",
 					CanonicalGoPackagePath: "test.com/comp",
 					Source: &annotator_dto.ParsedComponent{
-						Script: &annotator_dto.ParsedScript{
-							PropsTypeExpression: nil,
-						},
+						Script: &annotator_dto.ParsedScript{},
 					},
 					RewrittenScriptAST: nil,
 				},

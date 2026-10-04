@@ -396,8 +396,8 @@ func (m *MockWatchdogProvider) PruneProfiles(_ context.Context, profileType stri
 
 // DownloadProfile implements WatchdogProvider, writing a placeholder body for tests.
 //
-// Takes filename (string) which is the profile name to fetch. Takes w (io.Writer) which
-// receives the placeholder body.
+// Takes filename (string) which is the profile name to fetch.
+// Takes w (io.Writer) which receives the placeholder body.
 //
 // Returns error which is the value injected via Errors.DownloadProfile, or any error from
 // the underlying writer.

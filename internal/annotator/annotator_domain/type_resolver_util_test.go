@@ -58,7 +58,7 @@ func TestGetPropertyName(t *testing.T) {
 
 		expression := &ast_domain.MemberExpression{
 			Base:     &ast_domain.Identifier{Name: "obj"},
-			Property: &ast_domain.IntegerLiteral{Value: 0},
+			Property: &ast_domain.IntegerLiteral{},
 		}
 
 		result := getPropertyName(expression)
@@ -348,9 +348,7 @@ func TestLogAnn(t *testing.T) {
 
 	t.Run("returns <nil> for annotation with nil ResolvedType", func(t *testing.T) {
 		t.Parallel()
-		ann := &ast_domain.GoGeneratorAnnotation{
-			ResolvedType: nil,
-		}
+		ann := &ast_domain.GoGeneratorAnnotation{}
 		result := tr.logAnn(ann)
 		assert.Equal(t, "<nil>", result)
 	})
@@ -420,9 +418,7 @@ func TestLogAnn(t *testing.T) {
 	t.Run("returns <unresolved> for nil TypeExpr", func(t *testing.T) {
 		t.Parallel()
 		ann := &ast_domain.GoGeneratorAnnotation{
-			ResolvedType: &ast_domain.ResolvedTypeInfo{
-				TypeExpression: nil,
-			},
+			ResolvedType: &ast_domain.ResolvedTypeInfo{},
 		}
 		result := tr.logAnn(ann)
 
@@ -495,9 +491,7 @@ func TestUnmapVirtualLocationToOriginal(t *testing.T) {
 			virtualModule: &annotator_dto.VirtualModule{
 				ComponentsByGoPath: map[string]*annotator_dto.VirtualComponent{
 					"example.com/test": {
-						Source: &annotator_dto.ParsedComponent{
-							Script: nil,
-						},
+						Source: &annotator_dto.ParsedComponent{},
 					},
 				},
 			},

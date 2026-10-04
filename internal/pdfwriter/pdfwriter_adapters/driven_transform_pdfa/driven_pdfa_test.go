@@ -244,9 +244,7 @@ func TestPdfATransformer_DefaultLevel(t *testing.T) {
 	tr := driven_transform_pdfa.New()
 	pdf := buildPDFWithTransparency(t)
 
-	result, err := tr.Transform(context.Background(), pdf, pdfwriter_dto.PdfAOptions{
-		Level: "",
-	})
+	result, err := tr.Transform(context.Background(), pdf, pdfwriter_dto.PdfAOptions{})
 	require.NoError(t, err)
 
 	doc, err := pdfparse.Parse(result)

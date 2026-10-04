@@ -16,7 +16,9 @@
 
 package llm_provider_ollama
 
-import "os"
+import (
+	"os"
+)
 
 // interruptSignal returns the interrupt signal for non-Unix platforms.
 //

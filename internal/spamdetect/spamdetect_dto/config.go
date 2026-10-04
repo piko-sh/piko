@@ -74,6 +74,7 @@ func DefaultServiceConfig() *ServiceConfig {
 		ScoreThreshold:    defaultScoreThreshold,
 		Timeout:           defaultTimeout,
 		FeedbackCacheSize: DefaultFeedbackCacheSize,
+		DetectorWeights:   nil,
 	}
 }
 

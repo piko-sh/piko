@@ -325,7 +325,7 @@ func TestServer_ExtractRootURI_FromWorkspaceFolders(t *testing.T) {
 		WorkspaceFolders: []protocol.WorkspaceFolder{
 			{URI: "file:///workspace/project", Name: "project"},
 		},
-		RootURI: "file:///old/root",
+		RootURI: "file:///old/root", //nolint:staticcheck // tests the RootURI fallback
 	}
 
 	uri := server.extractRootURI(params)
@@ -340,7 +340,7 @@ func TestServer_ExtractRootURI_FallbackToRootURI(t *testing.T) {
 
 	params := &protocol.InitializeParams{
 		WorkspaceFolders: []protocol.WorkspaceFolder{},
-		RootURI:          "file:///root/path",
+		RootURI:          "file:///root/path", //nolint:staticcheck // tests the RootURI fallback
 	}
 
 	uri := server.extractRootURI(params)

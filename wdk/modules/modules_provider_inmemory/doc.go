@@ -24,7 +24,8 @@
 //
 //	provider := modules_provider_inmemory.New()
 //	provider.Inject(ref, bundle)
-//	loaded, err := service.LoadModule(ctx, ref, provider, hook)
+//	resolved, err := provider.Resolve(ctx, ref)
+//	interpreterProvider.LoadModule(resolved, ref)
 //
 // All operations are safe for concurrent use.
 package modules_provider_inmemory

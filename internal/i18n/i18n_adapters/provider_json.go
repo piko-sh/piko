@@ -19,6 +19,7 @@
 package i18n_adapters
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -51,13 +52,15 @@ type jsonProvider struct {
 }
 
 // load reads all JSON translation files from the directory and populates the store.
+// Templates that cannot be parsed render as literal text and are reported once as a
+// warning through the logger carried by ctx.
 //
 // Takes defaultLocale (string) which specifies the fallback locale for missing
 // translations.
 //
 // Returns *i18n_domain.Store which contains all loaded translations.
 // Returns error when the directory path is empty, unreadable, or a file fails to parse.
-func (p *jsonProvider) load(defaultLocale string) (*i18n_domain.Store, error) {
+func (p *jsonProvider) load(ctx context.Context, defaultLocale string) (*i18n_domain.Store, error) {
 	if p.directory == "" {
 		return nil, errors.New("JSON provider requires a valid directory path")
 	}
@@ -69,6 +72,7 @@ func (p *jsonProvider) load(defaultLocale string) (*i18n_domain.Store, error) {
 		return nil, fmt.Errorf("failed to read i18n directory %s: %w", p.directory, err)
 	}
 
+	var problems []i18n_domain.TemplateProblem
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
@@ -82,11 +86,14 @@ func (p *jsonProvider) load(defaultLocale string) (*i18n_domain.Store, error) {
 		locale := strings.TrimSuffix(name, ".json")
 
 		filePath := filepath.Join(p.directory, name)
-		if err := p.parseAndLoadJSONFile(store, locale, filePath); err != nil {
+		fileProblems, err := p.parseAndLoadJSONFile(store, locale, filePath)
+		if err != nil {
 			return nil, fmt.Errorf("failed to load %s: %w", filePath, err)
 		}
+		problems = append(problems, fileProblems...)
 	}
 
+	i18n_domain.ReportTemplateProblems(ctx, p.directory, problems)
 	return store, nil
 }
 
@@ -96,20 +103,20 @@ func (p *jsonProvider) load(defaultLocale string) (*i18n_domain.Store, error) {
 // Takes locale (string) which identifies the language for the translations.
 // Takes filePath (string) which specifies the JSON file to read.
 //
+// Returns []i18n_domain.TemplateProblem which lists the templates that failed to parse.
 // Returns error when the file cannot be read or the JSON is invalid.
-func (p *jsonProvider) parseAndLoadJSONFile(store *i18n_domain.Store, locale, filePath string) error {
+func (p *jsonProvider) parseAndLoadJSONFile(store *i18n_domain.Store, locale, filePath string) ([]i18n_domain.TemplateProblem, error) {
 	data, err := p.sandbox.ReadFile(filePath)
 	if err != nil {
-		return fmt.Errorf("failed to read file: %w", err)
+		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
 
 	translations, err := i18n_domain.ParseAndFlatten(data)
 	if err != nil {
-		return fmt.Errorf("failed to parse JSON: %w", err)
+		return nil, fmt.Errorf("failed to parse JSON: %w", err)
 	}
 
-	store.AddTranslations(locale, translations)
-	return nil
+	return store.AddTranslations(locale, translations), nil
 }
 
 // jsonEmitter writes translations to JSON files for debugging purposes. All file

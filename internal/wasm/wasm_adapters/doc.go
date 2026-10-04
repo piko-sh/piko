@@ -20,14 +20,14 @@
 // running the Piko compiler pipeline inside a WASM environment.
 //
 // It supplies in-memory replacements for file system, coordinator, annotator, generator,
-// renderer, and interpreter services, plus build-tag-aware JavaScript interop and console
-// output. Together these adapters allow the full annotation, generation, and rendering
-// pipeline to operate without disk access.
+// renderer, and interpreter services, plus build-tag-aware JavaScript console output.
+// Together these adapters allow the full annotation, generation, and rendering pipeline
+// to operate without disk access.
 //
 // # Build tags
 //
-// The jsInterop, jsConsole, and InterpreterAdapter types have two implementations. Under
-// the WASM build (js && wasm), they provide full functionality using syscall/js and the
+// The jsConsole and InterpreterAdapter types have two implementations. Under the WASM
+// build (js && wasm), they provide full functionality using syscall/js and the
 // interpreter. Under non-WASM builds, they are stubs that return errors or use stdout.
 // The package compiles and runs in both environments.
 //

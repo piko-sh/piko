@@ -268,8 +268,10 @@ func (a *RedisAdapter[K, V]) executeSearch(ctx context.Context, query string, op
 // parsing fails.
 func (a *RedisAdapter[K, V]) parseSearchResults(ctx context.Context, rawResults []any, total int64, opts *cache.SearchOptions) (cache.SearchResult[K, V], error) {
 	result := cache.SearchResult[K, V]{
-		Items: make([]cache.SearchHit[K, V], 0),
-		Total: total,
+		Items:  make([]cache.SearchHit[K, V], 0),
+		Total:  total,
+		Offset: 0,
+		Limit:  0,
 	}
 
 	if opts != nil {
@@ -333,7 +335,7 @@ func (a *RedisAdapter[K, V]) parseSearchHit(ctx context.Context, rawResults []an
 		return zero, false
 	}
 
-	return cache.SearchHit[K, V]{Key: key, Value: value}, true
+	return cache.SearchHit[K, V]{Key: key, Value: value, Highlights: nil, Score: 0}, true
 }
 
 // setJSONValue stores a value as JSON for RediSearch indexing.
@@ -435,10 +437,8 @@ func (a *RedisAdapter[K, V]) queryWithRediSearch(ctx context.Context, opts *cach
 		return cache.SearchResult[K, V]{}, err
 	}
 
-	searchOpts := &cache.SearchOptions{
-		Limit:  DefaultSearchResultLimit,
-		Offset: 0,
-	}
+	searchOpts := &cache.SearchOptions{}
+	searchOpts.Limit = DefaultSearchResultLimit
 	if opts != nil {
 		searchOpts.Limit = opts.Limit
 		searchOpts.Offset = opts.Offset
@@ -587,7 +587,7 @@ func (a *RedisAdapter[K, V]) vectorSearchWithRediSearch(ctx context.Context, que
 
 	results, ok := result.([]any)
 	if !ok || len(results) == 0 {
-		return cache.SearchResult[K, V]{Items: make([]cache.SearchHit[K, V], 0)}, nil
+		return cache.SearchResult[K, V]{Items: make([]cache.SearchHit[K, V], 0), Total: 0, Offset: 0, Limit: 0}, nil
 	}
 
 	total, ok := results[0].(int64)
@@ -687,7 +687,7 @@ func (a *RedisAdapter[K, V]) parseVectorSearchHit(ctx context.Context, rawResult
 
 	score := extractVectorScore(docData, scoreField)
 
-	return cache.SearchHit[K, V]{Key: key, Value: value, Score: score}, true
+	return cache.SearchHit[K, V]{Key: key, Value: value, Score: score, Highlights: nil}, true
 }
 
 // resolveVectorField returns the name of the first vector field in the schema.

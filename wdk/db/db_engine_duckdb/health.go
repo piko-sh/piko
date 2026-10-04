@@ -65,11 +65,17 @@ func checkDuckDBDatabaseSize(ctx context.Context, database *sql.DB) []db.Databas
 	).Scan(&databaseSize)
 	if err != nil {
 		return []db.DatabaseHealthDiagnostic{{
-			Name: "database_size", State: "UNHEALTHY", Message: fmt.Sprintf("query failed: %v", err),
+			Name:    "database_size",
+			State:   "UNHEALTHY",
+			Message: fmt.Sprintf("query failed: %v", err),
+			Value:   "",
 		}}
 	}
 	return []db.DatabaseHealthDiagnostic{{
-		Name: "database_size", Value: databaseSize,
+		Name:    "database_size",
+		Value:   databaseSize,
+		State:   "",
+		Message: "",
 	}}
 }
 
@@ -84,11 +90,17 @@ func checkDuckDBMemoryLimit(ctx context.Context, database *sql.DB) []db.Database
 	var memoryLimit string
 	if err := database.QueryRowContext(ctx, "SELECT current_setting('memory_limit')").Scan(&memoryLimit); err != nil {
 		return []db.DatabaseHealthDiagnostic{{
-			Name: "memory_limit", State: "UNHEALTHY", Message: fmt.Sprintf("query failed: %v", err),
+			Name:    "memory_limit",
+			State:   "UNHEALTHY",
+			Message: fmt.Sprintf("query failed: %v", err),
+			Value:   "",
 		}}
 	}
 	return []db.DatabaseHealthDiagnostic{{
-		Name: "memory_limit", Value: memoryLimit,
+		Name:    "memory_limit",
+		Value:   memoryLimit,
+		State:   "",
+		Message: "",
 	}}
 }
 
@@ -103,10 +115,16 @@ func checkDuckDBThreads(ctx context.Context, database *sql.DB) []db.DatabaseHeal
 	var threads string
 	if err := database.QueryRowContext(ctx, "SELECT current_setting('threads')").Scan(&threads); err != nil {
 		return []db.DatabaseHealthDiagnostic{{
-			Name: "threads", State: "UNHEALTHY", Message: fmt.Sprintf("query failed: %v", err),
+			Name:    "threads",
+			State:   "UNHEALTHY",
+			Message: fmt.Sprintf("query failed: %v", err),
+			Value:   "",
 		}}
 	}
 	return []db.DatabaseHealthDiagnostic{{
-		Name: "threads", Value: threads,
+		Name:    "threads",
+		Value:   threads,
+		State:   "",
+		Message: "",
 	}}
 }

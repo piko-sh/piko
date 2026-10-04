@@ -780,9 +780,7 @@ func TestBuildBackgroundImageExpr_LinearGradient(t *testing.T) {
 }
 
 func TestBuildBackgroundImageExpr_NoURLOrStops(t *testing.T) {
-	bg := BackgroundImage{
-		Type: BackgroundImageNone,
-	}
+	bg := BackgroundImage{}
 	expr := buildBackgroundImageExpr(bg)
 	printed := printExpr(expr)
 

@@ -121,16 +121,14 @@ func TestGetLinkedEditingRanges_NilAnnotation(t *testing.T) {
 			name: "nil AnnotatedAST returns nil",
 			document: newTestDocumentBuilder().
 				WithURI("file:///test.html").
-				WithAnnotationResult(&annotator_dto.AnnotationResult{
-					AnnotatedAST: nil,
-				}).
+				WithAnnotationResult(&annotator_dto.AnnotationResult{}).
 				Build(),
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			position := protocol.Position{Line: 0, Character: 0}
+			position := protocol.Position{}
 
 			result, err := tc.document.GetLinkedEditingRanges(position)
 			if err != nil {

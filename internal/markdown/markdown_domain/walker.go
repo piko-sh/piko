@@ -20,8 +20,10 @@ package markdown_domain
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/markdown/markdown_ast"
@@ -38,11 +40,10 @@ var (
 type walker interface {
 	// Transform converts a piko markdown AST into processed markdown.
 	//
-	// Takes ctx (context.Context) which carries the logger and trace spans.
 	// Takes doc (*markdown_ast.Document) which is the root of the parsed AST.
 	//
 	// Returns *ProcessedMarkdown which contains the transformed content.
-	// Returns error when the transformation fails.
+	// Returns error when ctx is cancelled before the transformation completes.
 	Transform(ctx context.Context, doc *markdown_ast.Document) (*markdown_dto.ProcessedMarkdown, error)
 }
 
@@ -50,15 +51,15 @@ type walker interface {
 // implements the walker interface, using a nodeTransformer to convert nodes and
 // assembling a structured ProcessedMarkdown DTO.
 type markdownWalker struct {
-	// ctx carries the logger and trace spans through the walk; set at the start of Transform
-	// because the walk callback signature does not accept a context parameter.
-	ctx context.Context
+	// transformer converts AST nodes into Piko nodes.
+	transformer nodeTransformer
 
 	// blocks maps block names to their template nodes.
 	blocks map[string][]*ast_domain.TemplateNode
 
-	// transformer converts AST nodes into Piko nodes.
-	transformer nodeTransformer
+	// diagnostics points at the slice shared with the transformer, so issues the transformer
+	// appends are visible when the result is assembled; nil collects nothing.
+	diagnostics *[]*ast_domain.Diagnostic
 
 	// currentBlockName holds the name of the block being parsed; empty when not inside a
 	// named block.
@@ -76,9 +77,6 @@ type markdownWalker struct {
 	// links holds metadata for all hyperlinks found in the document.
 	links []markdown_dto.LinkMeta
 
-	// diagnostics stores any issues found while parsing the markdown.
-	diagnostics []*ast_domain.Diagnostic
-
 	// wordCount is the total number of words in the document.
 	wordCount int
 }
@@ -93,43 +91,32 @@ var (
 // It first walks the piko markdown AST to produce a flat list of Piko AST nodes, then
 // post-processes this flat list to create the distinct build artefacts.
 //
-// Takes ctx (context.Context) which carries the logger and trace spans.
 // Takes doc (*markdown_ast.Document) which is the root of the piko markdown AST tree.
 //
 // Returns *markdown_dto.ProcessedMarkdown which contains the page AST, excerpt AST,
 // metadata, and diagnostics.
-// Returns error when the AST walk fails.
+// Returns error when ctx is cancelled before the walk completes.
 func (w *markdownWalker) Transform(ctx context.Context, doc *markdown_ast.Document) (*markdown_dto.ProcessedMarkdown, error) {
-	w.ctx = ctx
 	markdown_ast.Walk(doc, func(node markdown_ast.Node, entering bool) markdown_ast.WalkStatus {
+		if ctx.Err() != nil {
+			return markdown_ast.WalkStop
+		}
 		if entering {
-			status := w.handleNodeEnter(node)
-			return status
+			return w.handleNodeEnter(ctx, node)
 		}
 		return w.handleNodeExit(node)
 	})
-
-	mainPageAST := &ast_domain.TemplateAST{
-		SourcePath:        nil,
-		ExpiresAtUnixNano: nil,
-		Metadata:          nil,
-		RootNodes:         w.pikoContent,
-		Diagnostics:       nil,
-		SourceSize:        0,
-		Tidied:            false,
+	if ctx.Err() != nil {
+		return nil, fmt.Errorf("walking markdown AST: %w", context.Cause(ctx))
 	}
+
+	mainPageAST := &ast_domain.TemplateAST{}
+	mainPageAST.RootNodes = w.pikoContent
 
 	var excerptAST *ast_domain.TemplateAST
 	if excerptNodes := w.buildExcerptNodes(); len(excerptNodes) > 0 {
-		excerptAST = &ast_domain.TemplateAST{
-			SourcePath:        nil,
-			ExpiresAtUnixNano: nil,
-			Metadata:          nil,
-			RootNodes:         excerptNodes,
-			Diagnostics:       nil,
-			SourceSize:        0,
-			Tidied:            false,
-		}
+		excerptAST = &ast_domain.TemplateAST{}
+		excerptAST.RootNodes = excerptNodes
 	}
 
 	metadata := markdown_dto.PageMetadata{
@@ -141,14 +128,30 @@ func (w *markdownWalker) Transform(ctx context.Context, doc *markdown_ast.Docume
 		Links:       w.links,
 		ReadingTime: 0,
 		WordCount:   w.wordCount,
+		PublishDate: time.Time{},
+		Description: "",
+		Tags:        nil,
+		Draft:       false,
 	}
 
 	return &markdown_dto.ProcessedMarkdown{
 		PageAST:     mainPageAST,
 		ExcerptAST:  excerptAST,
 		Metadata:    metadata,
-		Diagnostics: w.diagnostics,
+		Diagnostics: w.collectedDiagnostics(),
 	}, nil
+}
+
+// collectedDiagnostics returns the diagnostics gathered so far by the walker and the
+// transformer.
+//
+// Returns []*ast_domain.Diagnostic which holds the shared diagnostics, or nil when the
+// walker was built without a diagnostics slice.
+func (w *markdownWalker) collectedDiagnostics() []*ast_domain.Diagnostic {
+	if w.diagnostics == nil {
+		return nil
+	}
+	return *w.diagnostics
 }
 
 // handleNodeEnter is called when the walker first enters a node. It handles state
@@ -157,16 +160,16 @@ func (w *markdownWalker) Transform(ctx context.Context, doc *markdown_ast.Docume
 // Takes node (markdown_ast.Node) which is the AST node being entered.
 //
 // Returns markdown_ast.WalkStatus which shows how the walker should continue.
-func (w *markdownWalker) handleNodeEnter(node markdown_ast.Node) markdown_ast.WalkStatus {
+func (w *markdownWalker) handleNodeEnter(ctx context.Context, node markdown_ast.Node) markdown_ast.WalkStatus {
 	if container, ok := node.(*markdown_ast.FencedContainer); ok {
 		w.handleNamedBlock(container)
 		return markdown_ast.WalkContinue
 	}
 
-	pikoNode := w.transformer.TransformNode(w.ctx, node)
+	pikoNode := w.transformer.TransformNode(ctx, node)
 	if pikoNode != nil {
 		w.appendNode(pikoNode)
-		w.collectMetadata(pikoNode)
+		w.collectMetadata(ctx, pikoNode)
 		w.wordCount += countWords(pikoNode)
 
 		return markdown_ast.WalkSkipChildren
@@ -226,8 +229,8 @@ func (w *markdownWalker) appendNodeAt(node *ast_domain.TemplateNode, depth int) 
 // markdown_ast.MaxMarkdownDepth so a pathological tree cannot overflow the stack.
 //
 // Takes node (*ast_domain.TemplateNode) which is the root node to walk.
-func (w *markdownWalker) collectMetadata(node *ast_domain.TemplateNode) {
-	w.collectMetadataAt(node, 0)
+func (w *markdownWalker) collectMetadata(ctx context.Context, node *ast_domain.TemplateNode) {
+	w.collectMetadataAt(ctx, node, 0)
 }
 
 // collectMetadataAt is the depth-tracked recursion behind collectMetadata.
@@ -235,14 +238,14 @@ func (w *markdownWalker) collectMetadata(node *ast_domain.TemplateNode) {
 // Takes node (*ast_domain.TemplateNode) which is the node to walk.
 // Takes depth (int) which is the current recursion depth, capped at
 // markdown_ast.MaxMarkdownDepth.
-func (w *markdownWalker) collectMetadataAt(node *ast_domain.TemplateNode, depth int) {
+func (w *markdownWalker) collectMetadataAt(ctx context.Context, node *ast_domain.TemplateNode, depth int) {
 	if node == nil || depth >= markdown_ast.MaxMarkdownDepth {
 		return
 	}
 	switch node.TagName {
 	case "a":
 		if href, ok := node.GetAttribute("href"); ok {
-			w.links = append(w.links, markdown_dto.LinkMeta{Href: href, Text: node.Text(context.Background())})
+			w.links = append(w.links, markdown_dto.LinkMeta{Href: href, Text: node.Text(ctx)})
 		}
 	case "img":
 		if src, ok := node.GetAttribute("src"); ok {
@@ -251,7 +254,7 @@ func (w *markdownWalker) collectMetadataAt(node *ast_domain.TemplateNode, depth 
 		}
 	}
 	for _, child := range node.Children {
-		w.collectMetadataAt(child, depth+1)
+		w.collectMetadataAt(ctx, child, depth+1)
 	}
 }
 
@@ -326,16 +329,16 @@ func (w *markdownWalker) buildExcerptNodes() []*ast_domain.TemplateNode {
 // diagnostics slice.
 //
 // The transformer and diagnostics are passed in to allow testing and loose coupling. The
-// diagnostics slice is shared between the walker and transformer to collect all issues
-// found.
+// diagnostics slice is shared with the transformer through the pointer so every issue the
+// transformer records reaches the result.
 //
 // Takes transformer (nodeTransformer) which processes markdown nodes during traversal.
 // Takes source ([]byte) which contains the raw markdown content.
-// Takes diagnostics ([]*ast_domain.Diagnostic) which collects issues found during
-// walking.
+// Takes diagnostics (*[]*ast_domain.Diagnostic) which is the slice shared with the
+// transformer, or nil when no diagnostics are collected.
 //
 // Returns *markdownWalker which is ready to traverse a markdown AST.
-func newMarkdownWalker(transformer nodeTransformer, source []byte, diagnostics []*ast_domain.Diagnostic) *markdownWalker {
+func newMarkdownWalker(transformer nodeTransformer, source []byte, diagnostics *[]*ast_domain.Diagnostic) *markdownWalker {
 	return &markdownWalker{
 		source:           source,
 		pikoContent:      nil,
@@ -390,11 +393,11 @@ func countWordsAt(node *ast_domain.TemplateNode, depth int) int {
 // Takes highlighter (Highlighter) which handles syntax highlighting.
 //
 // Returns *markdown_dto.ProcessedMarkdown which holds the build artefacts.
-// Returns error when the conversion fails.
+// Returns error when ctx is cancelled during the conversion.
 func transformMarkdownAST(ctx context.Context, doc *markdown_ast.Document, content []byte, sourcePath string, highlighter Highlighter) (*markdown_dto.ProcessedMarkdown, error) {
 	locationMapper := newLocationMapper(content)
 	diagnostics := make([]*ast_domain.Diagnostic, 0)
 	xformer := newTransformer(sourcePath, content, locationMapper, &diagnostics, highlighter)
-	w := newMarkdownWalker(xformer, content, diagnostics)
+	w := newMarkdownWalker(xformer, content, &diagnostics)
 	return w.Transform(ctx, doc)
 }

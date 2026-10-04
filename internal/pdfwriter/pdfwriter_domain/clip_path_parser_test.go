@@ -19,6 +19,7 @@
 package pdfwriter_domain
 
 import (
+	"math"
 	"strings"
 	"testing"
 
@@ -192,7 +193,7 @@ func TestEmitClipPath_None_Noop(t *testing.T) {
 	t.Parallel()
 
 	stream := &ContentStream{}
-	shape := ClipShape{Type: ClipShapeNone}
+	shape := ClipShape{}
 
 	EmitClipPath(stream, shape, 0, 0, 200, 100)
 
@@ -373,4 +374,55 @@ func TestParsePosition_SingleValue(t *testing.T) {
 	x, y := parsePosition("25%")
 	assert.InDelta(t, 0.25, x, 0.01, "expected x=0.25")
 	assert.Equal(t, 0.5, y, "expected y=0.5 for single value")
+}
+
+func TestParseClipPath_MalformedFunctionsAreIgnored(t *testing.T) {
+	t.Parallel()
+
+	values := []string{
+		"circle(", "ellipse(", "inset(", "polygon(",
+		"circle(50%", "polygon(0 0, 1 1", "circle)", "inset",
+	}
+	for _, value := range values {
+		t.Run(value, func(t *testing.T) {
+			t.Parallel()
+
+			assert.NotPanics(t, func() {
+				assert.Equal(t, ClipShapeNone, ParseClipPath(value, 100, 100).Type)
+			})
+		})
+	}
+}
+
+func TestParseClipPath_DegenerateInputStaysFinite(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		value  string
+		width  float64
+		height float64
+	}{
+		{name: "polygon on a zero-sized box", value: "polygon(0 0, 10px 0, 10px 10px)", width: 0, height: 0},
+		{name: "NaN coordinates", value: "polygon(NaNpx 0, 10px infpx, 1px 1px)", width: 100, height: 100},
+		{name: "NaN circle position", value: "circle(NaN% at NaN% inf%)", width: 100, height: 100},
+		{name: "infinite inset", value: "inset(infpx round NaNpx)", width: 100, height: 100},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			shape := ParseClipPath(tt.value, tt.width, tt.height)
+			for _, value := range []float64{
+				shape.CenterX, shape.CenterY, shape.RadiusX, shape.RadiusY,
+				shape.InsetTop, shape.InsetRight, shape.InsetBottom, shape.InsetLeft, shape.InsetRadius,
+			} {
+				assert.False(t, math.IsNaN(value) || math.IsInf(value, 0), "value %v must be finite", value)
+			}
+			for _, point := range shape.Points {
+				assert.False(t, math.IsNaN(point[0]) || math.IsInf(point[0], 0))
+				assert.False(t, math.IsNaN(point[1]) || math.IsInf(point[1], 0))
+			}
+		})
+	}
 }

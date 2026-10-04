@@ -51,7 +51,7 @@ type noInitTestConfig struct {
 
 func TestWalkerFlatStruct(t *testing.T) {
 	config := &flatConfig{}
-	loader := &Loader{opts: LoaderOptions{}}
+	loader := &Loader{}
 
 	var visited []string
 	processor := func(field *reflect.StructField, _ reflect.Value, _, keyPath string) error {
@@ -68,7 +68,7 @@ func TestWalkerFlatStruct(t *testing.T) {
 
 func TestWalkerNestedStruct(t *testing.T) {
 	config := &nestedTestConfig{}
-	loader := &Loader{opts: LoaderOptions{}}
+	loader := &Loader{}
 
 	var visited []string
 	processor := func(field *reflect.StructField, _ reflect.Value, _, keyPath string) error {
@@ -87,7 +87,7 @@ func TestWalkerNestedStruct(t *testing.T) {
 
 func TestWalkerPointerStruct(t *testing.T) {
 	config := &pointerTestConfig{}
-	loader := &Loader{opts: LoaderOptions{}}
+	loader := &Loader{}
 
 	var visited []string
 	processor := func(field *reflect.StructField, _ reflect.Value, _, keyPath string) error {
@@ -107,7 +107,7 @@ func TestWalkerPointerStruct(t *testing.T) {
 
 func TestWalkerNoInit(t *testing.T) {
 	config := &noInitTestConfig{}
-	loader := &Loader{opts: LoaderOptions{}}
+	loader := &Loader{}
 
 	var visited []string
 	processor := func(field *reflect.StructField, _ reflect.Value, _, keyPath string) error {
@@ -125,7 +125,7 @@ func TestWalkerNoInit(t *testing.T) {
 }
 
 func TestWalkerNonStruct(t *testing.T) {
-	loader := &Loader{opts: LoaderOptions{}}
+	loader := &Loader{}
 
 	var visited []string
 	processor := func(field *reflect.StructField, _ reflect.Value, _, keyPath string) error {
@@ -142,9 +142,9 @@ func TestWalkerNonStruct(t *testing.T) {
 
 func TestWalkerNilProcessor(t *testing.T) {
 	config := &flatConfig{}
-	loader := &Loader{opts: LoaderOptions{}}
+	loader := &Loader{}
 
-	state := &walkState{processor: nil}
+	state := &walkState{}
 	err := loader.walk(reflect.ValueOf(config), state)
 
 	require.NoError(t, err)
@@ -152,7 +152,7 @@ func TestWalkerNilProcessor(t *testing.T) {
 
 func TestWalkerProcessorError(t *testing.T) {
 	config := &flatConfig{}
-	loader := &Loader{opts: LoaderOptions{}}
+	loader := &Loader{}
 
 	processor := func(field *reflect.StructField, _ reflect.Value, _, keyPath string) error {
 		if keyPath == "Value" {
@@ -174,7 +174,7 @@ func TestWalkerUnexportedFields(t *testing.T) {
 	}
 
 	config := &configWithUnexported{}
-	loader := &Loader{opts: LoaderOptions{}}
+	loader := &Loader{}
 
 	var visited []string
 	processor := func(field *reflect.StructField, _ reflect.Value, _, keyPath string) error {
@@ -192,7 +192,7 @@ func TestWalkerUnexportedFields(t *testing.T) {
 
 func TestWalkerKeyPrefix(t *testing.T) {
 	config := &flatConfig{}
-	loader := &Loader{opts: LoaderOptions{}}
+	loader := &Loader{}
 
 	var visited []string
 	processor := func(field *reflect.StructField, _ reflect.Value, _, keyPath string) error {
@@ -209,7 +209,7 @@ func TestWalkerKeyPrefix(t *testing.T) {
 
 func TestWalkerSourceAttribution(t *testing.T) {
 	config := &flatConfig{}
-	loader := &Loader{opts: LoaderOptions{}}
+	loader := &Loader{}
 
 	ctx := &LoadContext{
 		FieldSources: make(map[string]string),

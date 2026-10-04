@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"path/filepath"
 	"strings"
@@ -43,7 +44,19 @@ const (
 	// bundleFilePermissions is the permission mode applied when the envelope file is written
 	// through the temp-then-rename helper.
 	bundleFilePermissions = 0o600
+
+	// defaultMaxBundleBytes is the default ceiling on the size of one bundle file. It sits
+	// well above any realistic module so only a corrupt or hostile file reaches it.
+	defaultMaxBundleBytes int64 = 512 << 20
 )
+
+var (
+	// errBundleTooLarge reports a bundle file larger than the configured read limit.
+	errBundleTooLarge = errors.New("modules_provider_filesystem: bundle file exceeds the size limit")
+)
+
+// Option configures a Provider.
+type Option func(*Provider)
 
 // Provider serves bundles from a directory tree on the local filesystem. Construct with
 // New; safe for concurrent Resolve.
@@ -52,39 +65,90 @@ type Provider struct {
 	// methods are interpreted relative to that root, so the provider cannot read or write
 	// outside its own directory tree.
 	sandbox safedisk.Sandbox
+
+	// maxBundleBytes is the largest bundle file Resolve reads; a larger file is rejected
+	// rather than truncated.
+	maxBundleBytes int64
+
+	// ownsSandbox reports whether the provider created the sandbox and so closes it in
+	// Close.
+	ownsSandbox bool
 }
 
-// New constructs a Provider rooted at the given directory. The directory does not need to
-// exist when New is called; Resolve returns modules.ErrModuleNotFound for any path that
-// doesn't resolve to a readable file at lookup time.
+// WithMaxBundleBytes sets the largest bundle file Resolve will read.
 //
-// Internally wraps the root in a safedisk.NewNoOpSandbox so all I/O is routed through the
-// sandbox API. Callers that need to inject a pre-built sandbox (for tests, capability
-// gating, or a custom storage backend) should use NewWithSandbox instead.
+// Takes limit (int64) which is the size ceiling in bytes; values below one keep the
+// default.
+//
+// Returns Option which applies the limit.
+func WithMaxBundleBytes(limit int64) Option {
+	return func(p *Provider) {
+		if limit > 0 {
+			p.maxBundleBytes = limit
+		}
+	}
+}
+
+// New constructs a Provider rooted at the given directory, creating the directory when it
+// does not exist yet. Resolve returns modules.ErrModuleNotFound for any path that doesn't
+// resolve to a readable file at lookup time.
+//
+// All I/O is routed through a safedisk sandbox rooted at the directory, which the
+// provider owns and releases in Close. Callers that need to inject a pre-built sandbox
+// (for tests, capability gating, or a custom storage backend) should use NewWithSandbox
+// instead.
 //
 // Takes root (string) which is the absolute or relative directory path.
+// Takes options (...Option) which configure read limits.
 //
 // Returns *Provider which is a sandbox-backed module provider implementing
 // modules.ModuleProvider.
 // Returns error when the root path is empty or rejected by safedisk.
-func New(root string) (*Provider, error) {
-	sandbox, err := safedisk.NewNoOpSandbox(root, safedisk.ModeReadWrite)
+func New(root string, options ...Option) (*Provider, error) {
+	sandbox, err := safedisk.NewSandbox(root, safedisk.ModeReadWrite)
 	if err != nil {
 		return nil, fmt.Errorf("modules_provider_filesystem: building sandbox for %q: %w", root, err)
 	}
-	return NewWithSandbox(sandbox), nil
+	provider := NewWithSandbox(sandbox, options...)
+	provider.ownsSandbox = true
+	return provider, nil
 }
 
 // NewWithSandbox constructs a Provider that delegates every file operation to the given
-// sandbox. Useful for tests and for hosts that build sandboxes through a capability-gated
-// factory.
+// sandbox.
+//
+// Useful for tests and for hosts that build sandboxes through a capability-gated factory.
+// The caller keeps ownership of the sandbox.
 //
 // Takes sandbox (safedisk.Sandbox) which provides the rooted file system view; must be
 // writable for Write to succeed.
+// Takes options (...Option) which configure read limits.
 //
 // Returns *Provider implementing modules.ModuleProvider.
-func NewWithSandbox(sandbox safedisk.Sandbox) *Provider {
-	return &Provider{sandbox: sandbox}
+func NewWithSandbox(sandbox safedisk.Sandbox, options ...Option) *Provider {
+	provider := &Provider{
+		sandbox:        sandbox,
+		maxBundleBytes: defaultMaxBundleBytes,
+		ownsSandbox:    false,
+	}
+	for _, option := range options {
+		option(provider)
+	}
+	return provider
+}
+
+// Close releases the sandbox when the provider created it in New. A provider built with
+// NewWithSandbox leaves the caller's sandbox open.
+//
+// Returns error when closing the owned sandbox fails.
+func (p *Provider) Close() error {
+	if !p.ownsSandbox {
+		return nil
+	}
+	if err := p.sandbox.Close(); err != nil {
+		return fmt.Errorf("modules_provider_filesystem: closing sandbox: %w", err)
+	}
+	return nil
 }
 
 // Write persists a bundle under the root.
@@ -121,17 +185,17 @@ func (p *Provider) Write(bundle *modules.ModuleBundle) error {
 // Resolve implements modules.ModuleProvider.
 //
 // Reads the bundle file for (ref.Path, ref.Version), parses it, and yields the bundle.
-// The ref's Pin is NOT verified here; callers (or piko's loader) check integrity via
-// modules.ModuleBundle.VerifyAgainstRef. A missing file maps to
-// modules.ErrModuleNotFound; all other errors propagate unchanged.
+// The interpreter verifies the ref's Pin by checking the bundle against the pin when the
+// module is loaded. A missing file maps to modules.ErrModuleNotFound; a file larger than
+// the configured limit is rejected; all other errors propagate unchanged.
 //
 // Takes ctx (context.Context) which is checked for cancellation; I/O itself is
 // synchronous.
 // Takes ref (modules.ModuleRef) which identifies the bundle.
 //
 // Returns *modules.ModuleBundle which is the parsed bundle.
-// Returns error when ctx is cancelled, the file is missing, or the envelope fails to
-// parse.
+// Returns error when ctx is cancelled, the file is missing or too large, or the envelope
+// fails to parse.
 func (p *Provider) Resolve(ctx context.Context, ref modules.ModuleRef) (*modules.ModuleBundle, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -144,18 +208,39 @@ func (p *Provider) Resolve(ctx context.Context, ref modules.ModuleRef) (*modules
 		return nil, err
 	}
 	target := filepath.Join(folder, fileName(ref.Version))
-	data, err := p.sandbox.ReadFile(target)
+	data, err := p.readBundleFile(target)
+	if err != nil {
+		return nil, err
+	}
+	return UnmarshalEnvelope(data)
+}
+
+// readBundleFile reads one bundle file through the sandbox, refusing files larger than
+// the configured limit.
+//
+// Takes target (string) which is the sandbox-relative path of the bundle file.
+//
+// Returns []byte which holds the complete file.
+// Returns error which wraps modules.ErrModuleNotFound when the file is missing,
+// errBundleTooLarge when it exceeds the limit, or the underlying I/O failure.
+func (p *Provider) readBundleFile(target string) ([]byte, error) {
+	handle, err := p.sandbox.Open(target)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return nil, modules.ErrModuleNotFound
 		}
+		return nil, fmt.Errorf("modules_provider_filesystem: opening %s: %w", target, err)
+	}
+	defer func() { _ = handle.Close() }()
+
+	data, err := io.ReadAll(io.LimitReader(handle, p.maxBundleBytes+1))
+	if err != nil {
 		return nil, fmt.Errorf("modules_provider_filesystem: reading %s: %w", target, err)
 	}
-	bundle, err := UnmarshalEnvelope(data)
-	if err != nil {
-		return nil, err
+	if int64(len(data)) > p.maxBundleBytes {
+		return nil, fmt.Errorf("%w: %s is larger than %d bytes", errBundleTooLarge, target, p.maxBundleBytes)
 	}
-	return bundle, nil
+	return data, nil
 }
 
 // encodeModuleFolder converts a module path into its on-disk folder name (relative to the

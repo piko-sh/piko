@@ -93,9 +93,7 @@ const (
 //
 // Returns *Button which is the configured button ready for use.
 func NewButton() *Button {
-	return &Button{
-		BaseComponent: BaseComponent{},
-	}
+	return &Button{}
 }
 
 // TagName returns the HTML custom element tag name for this component.
@@ -271,53 +269,11 @@ func (*Button) renderNonLinkedButton(styles *pml_domain.StyleManager, contentNod
 	cellStyles := buildCellStyles(styles)
 	tableStyles := buildTableStyles(styles)
 
-	pNode := &ast_domain.TemplateNode{
-		NodeType: ast_domain.NodeElement,
-		TagName:  ElementP,
-		Attributes: []ast_domain.HTMLAttribute{
-			{
-				Name:           AttrStyle,
-				Value:          mapToStyleString(pStyles),
-				Location:       NewLocation(),
-				NameLocation:   NewLocation(),
-				AttributeRange: NewRange(),
-			},
-		},
-		Children:           contentNodes,
-		Key:                nil,
-		DirKey:             nil,
-		DirHTML:            nil,
-		GoAnnotations:      nil,
-		RuntimeAnnotations: nil,
-		CustomEvents:       nil,
-		OnEvents:           nil,
-		Binds:              nil,
-		DirContext:         nil,
-		DirElse:            nil,
-		DirText:            nil,
-		DirStyle:           nil,
-		DirClass:           nil,
-		DirIf:              nil,
-		DirElseIf:          nil,
-		DirFor:             nil,
-		DirShow:            nil,
-		DirRef:             nil,
-		DirModel:           nil,
-		DirScaffold:        nil,
-		TextContent:        "",
-		InnerHTML:          "",
-		RichText:           nil,
-		Diagnostics:        nil,
-		DynamicAttributes:  nil,
-		Directives:         nil,
-		Location:           NewLocation(),
-		NodeRange:          NewRange(),
-		OpeningTagRange:    NewRange(),
-		ClosingTagRange:    NewRange(),
-		PreferredFormat:    0,
-		IsPooled:           false,
-		IsContentEditable:  false,
-	}
+	pNode := ast_domain.NewElementNode(
+		ElementP,
+		[]ast_domain.HTMLAttribute{NewHTMLAttribute(AttrStyle, mapToStyleString(pStyles))},
+		contentNodes,
+	)
 
 	return createButtonTable(styles, tableStyles, cellStyles, pNode)
 }

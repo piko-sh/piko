@@ -93,6 +93,7 @@ type Validator struct {
 func NewValidator(opts ...Option) *Validator {
 	cfg := &config{
 		registrations: make(map[string]validator.Func),
+		options:       nil,
 	}
 	for _, opt := range opts {
 		opt(cfg)

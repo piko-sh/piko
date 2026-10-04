@@ -259,9 +259,9 @@ func (*assetCollectionContext) mergeProfileAttributes(
 		newAttrs = append(newAttrs, ast_domain.HTMLAttribute{
 			Name:           name,
 			Value:          value,
-			Location:       ast_domain.Location{Line: 0, Column: 0, Offset: 0},
-			NameLocation:   ast_domain.Location{Line: 0, Column: 0, Offset: 0},
-			AttributeRange: ast_domain.Range{Start: ast_domain.Location{Line: 0, Column: 0, Offset: 0}, End: ast_domain.Location{Line: 0, Column: 0, Offset: 0}},
+			Location:       ast_domain.Location{},
+			NameLocation:   ast_domain.Location{},
+			AttributeRange: ast_domain.Range{},
 		})
 	}
 	slices.SortFunc(newAttrs, func(a, b ast_domain.HTMLAttribute) int {
@@ -428,6 +428,7 @@ func (ac *assetCollectionContext) buildPosterDependency(
 		TransformationParams: make(map[string]string),
 		OriginComponentPath:  ac.originPathForNode(node),
 		Location:             node.Location,
+		IncludeInSitemap:     false,
 	}
 
 	posterAttrMap := map[string]string{
@@ -467,6 +468,7 @@ func (ac *assetCollectionContext) buildDependency(
 		TransformationParams: make(map[string]string),
 		OriginComponentPath:  ac.originPathForNode(node),
 		Location:             node.Location,
+		IncludeInSitemap:     false,
 	}
 
 	for i := range node.Attributes {

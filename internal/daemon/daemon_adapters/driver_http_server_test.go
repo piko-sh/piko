@@ -20,6 +20,7 @@ package daemon_adapters
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"net/http"
 	"testing"
@@ -275,4 +276,43 @@ func TestDriverHTTPServerAdapter_BuildServerConfiguresHTTP2(t *testing.T) {
 		assert.NotPanics(t, func() { server.HTTP2.CountError("frame_headers_bad_path") },
 			"the server outlives the context that started it, so counting must survive cancellation")
 	})
+}
+
+func TestDriverHTTPServerAdapter_CreateListener(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		tlsConfig *TLSAdapterConfig
+		name      string
+		address   string
+		purpose   serverPurpose
+		wantErr   bool
+	}{
+		{name: "plain listener", address: "127.0.0.1:0", purpose: serverPurposeMain},
+		{name: "TLS listener", address: "127.0.0.1:0", purpose: serverPurposeMain, tlsConfig: &TLSAdapterConfig{MinVersion: tls.VersionTLS13}},
+		{name: "health listener", address: "127.0.0.1:0", purpose: serverPurposeHealth},
+		{name: "unbindable address", address: "127.0.0.1:-1", purpose: serverPurposeMain, wantErr: true},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			adapter := &driverHTTPServerAdapter{}
+			adapter.purpose = tc.purpose
+			adapter.tlsConfig = tc.tlsConfig
+
+			listener, err := adapter.createListener(context.Background(), tc.address)
+			if tc.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "binding to address")
+				return
+			}
+			require.NoError(t, err)
+			t.Cleanup(func() { _ = listener.Close() })
+
+			adapter.logServerReady(context.Background(), listener.Addr().String())
+			assert.NotEmpty(t, listener.Addr().String())
+		})
+	}
 }

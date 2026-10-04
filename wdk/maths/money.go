@@ -65,20 +65,20 @@ type Money struct {
 // Safe for concurrent use; acquires a read lock on the currency registry.
 func NewMoneyFromDecimal(amount Decimal, code string) Money {
 	if amount.Err() != nil {
-		return Money{err: amount.Err()}
+		return newMoneyError(amount.Err())
 	}
 	s, err := amount.String()
 	if err != nil {
-		return Money{err: err}
+		return newMoneyError(err)
 	}
 
 	currencyRegistryMutex.RLock()
 	defer currencyRegistryMutex.RUnlock()
 	cAmount, err := currency.NewAmount(s, code)
 	if err != nil {
-		return Money{err: err}
+		return newMoneyError(err)
 	}
-	return Money{amount: cAmount}
+	return Money{amount: cAmount, err: nil}
 }
 
 // NewMoneyFromString creates a Money value from a string amount and a currency code.
@@ -117,9 +117,9 @@ func NewMoneyFromMinorInt(amount int64, code string) Money {
 	defer currencyRegistryMutex.RUnlock()
 	cAmount, err := currency.NewAmountFromInt64(amount, code)
 	if err != nil {
-		return Money{err: err}
+		return newMoneyError(err)
 	}
-	return Money{amount: cAmount}
+	return Money{amount: cAmount, err: nil}
 }
 
 // NewMoneyFromFloat creates a Money value from a float64 amount and currency code.
@@ -167,9 +167,9 @@ func (m Money) Add(other Money) Money {
 	}
 	newAmount, err := m.amount.Add(other.amount)
 	if err != nil {
-		return Money{err: err}
+		return newMoneyError(err)
 	}
-	return Money{amount: newAmount}
+	return Money{amount: newAmount, err: nil}
 }
 
 // AddDecimal adds a decimal amount to this money value.
@@ -265,9 +265,9 @@ func (m Money) Subtract(other Money) Money {
 	}
 	newAmount, err := m.amount.Sub(other.amount)
 	if err != nil {
-		return Money{err: err}
+		return newMoneyError(err)
 	}
-	return Money{amount: newAmount}
+	return Money{amount: newAmount, err: nil}
 }
 
 // SubtractDecimal returns a new Money with the given amount subtracted.
@@ -354,22 +354,7 @@ func (m Money) SubtractString(amount string) Money {
 // Returns Money which holds the result, or an error state if either value has an error or
 // if the multiplication fails.
 func (m Money) Multiply(factor Decimal) Money {
-	if m.err != nil {
-		return m
-	}
-	if factor.Err() != nil {
-		code := m.currencyCode()
-		return ZeroMoneyWithError(code, factor.Err())
-	}
-	factorString, err := factor.String()
-	if err != nil {
-		return Money{err: err}
-	}
-	newAmount, err := m.amount.Mul(factorString)
-	if err != nil {
-		return Money{err: err}
-	}
-	return Money{amount: newAmount}
+	return m.applyFactor(factor, currency.Amount.Mul)
 }
 
 // MultiplyBigInt returns the money value multiplied by the given factor.
@@ -429,22 +414,7 @@ func (m Money) MultiplyString(factor string) Money {
 // Returns an error state when the receiver has an error, the factor has an error, or the
 // division fails.
 func (m Money) Divide(factor Decimal) Money {
-	if m.err != nil {
-		return m
-	}
-	if factor.Err() != nil {
-		code := m.currencyCode()
-		return ZeroMoneyWithError(code, factor.Err())
-	}
-	factorString, err := factor.String()
-	if err != nil {
-		return Money{err: err}
-	}
-	newAmount, err := m.amount.Div(factorString)
-	if err != nil {
-		return Money{err: err}
-	}
-	return Money{amount: newAmount}
+	return m.applyFactor(factor, currency.Amount.Div)
 }
 
 // DivideBigInt divides the money value by the given big integer factor.
@@ -732,7 +702,7 @@ func (m Money) divisionRemainder(factor Decimal, roundFunction func(Decimal) Dec
 
 	mAmount, err := m.Amount()
 	if err != nil {
-		return Money{err: err}
+		return newMoneyError(err)
 	}
 
 	divisionResult := mAmount.Divide(factor)
@@ -747,6 +717,37 @@ func (m Money) divisionRemainder(factor Decimal, roundFunction func(Decimal) Dec
 
 	code := m.currencyCode()
 	return NewMoneyFromDecimal(resultAmount, code)
+}
+
+// applyFactor applies a scaling operation such as multiplication or division to the money
+// amount using the given decimal factor. This is the shared logic for both Multiply and
+// Divide.
+//
+// Takes factor (Decimal) which is the operand of the scaling operation.
+// Takes operation (func(currency.Amount, string) (currency.Amount, error)) which is the
+// scaling method, such as currency.Amount.Mul or currency.Amount.Div; it receives the
+// current amount and the factor as a decimal string, and returns the scaled amount or an
+// error when the calculation fails.
+//
+// Returns Money which holds the scaled amount, or an error state when the receiver has an
+// error, the factor has an error, or the operation fails.
+func (m Money) applyFactor(factor Decimal, operation func(currency.Amount, string) (currency.Amount, error)) Money {
+	if m.err != nil {
+		return m
+	}
+	if factor.Err() != nil {
+		code := m.currencyCode()
+		return ZeroMoneyWithError(code, factor.Err())
+	}
+	factorString, err := factor.String()
+	if err != nil {
+		return newMoneyError(err)
+	}
+	newAmount, err := operation(m.amount, factorString)
+	if err != nil {
+		return newMoneyError(err)
+	}
+	return Money{amount: newAmount, err: nil}
 }
 
 // currencyCode returns the currency code from a Money value that is known to be
@@ -807,4 +808,14 @@ func OneMoney(code string) Money {
 // Returns Money which holds 100 major units in the specified currency.
 func HundredMoney(code string) Money {
 	return NewMoneyFromDecimal(HundredDecimal(), code)
+}
+
+// newMoneyError creates a Money value that carries err and no amount, so the error
+// propagates through any further chained operations.
+//
+// Takes err (error) which is the failure the value carries.
+//
+// Returns Money which is in the error state.
+func newMoneyError(err error) Money {
+	return Money{err: err, amount: currency.Amount{}}
 }

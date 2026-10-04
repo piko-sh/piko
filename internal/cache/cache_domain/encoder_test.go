@@ -427,23 +427,20 @@ func TestEncodingRegistry_Concurrent(t *testing.T) {
 	const numGoroutines = 20
 
 	var wg sync.WaitGroup
-	wg.Add(numGoroutines * 2)
 
-	for i := range numGoroutines {
-		go func(index int) {
-			defer wg.Done()
+	for index := range numGoroutines {
+		wg.Go(func() {
 
 			if index%2 == 0 {
 				_ = registry.Register(context.Background(), newMockEncoder[TestUser]())
 			} else {
 				_ = registry.Register(context.Background(), newMockEncoder[TestProduct]())
 			}
-		}(i)
+		})
 	}
 
 	for range numGoroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 
 			user := TestUser{ID: "123"}
 			_, _ = registry.Get(user)
@@ -453,7 +450,7 @@ func TestEncodingRegistry_Concurrent(t *testing.T) {
 
 			_ = registry.Count()
 			_ = registry.HasDefault()
-		}()
+		})
 	}
 
 	wg.Wait()

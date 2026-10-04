@@ -1,7 +1,0 @@
-package parsed
-
-var (
-	prefix = "hello"
-	suffix = "world"
-	Length = len(Greeting)
-)

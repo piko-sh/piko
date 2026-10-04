@@ -54,9 +54,9 @@ type CacheSpy struct {
 //
 // Returns *CacheSpy which wraps the underlying cache to record interactions.
 func NewCacheSpy(underlying coordinator_domain.BuildResultCachePort) *CacheSpy {
-	return &CacheSpy{
-		underlying: underlying,
-	}
+	spy := CacheSpy{}
+	spy.underlying = underlying
+	return &spy
 }
 
 // Get retrieves a cache entry by key, delegating to the underlying cache.
@@ -173,9 +173,9 @@ type IntrospectionCacheSpy struct {
 //
 // Returns *IntrospectionCacheSpy which wraps the underlying cache for testing.
 func NewIntrospectionCacheSpy(underlying coordinator_domain.IntrospectionCachePort) *IntrospectionCacheSpy {
-	return &IntrospectionCacheSpy{
-		underlying: underlying,
-	}
+	spy := IntrospectionCacheSpy{}
+	spy.underlying = underlying
+	return &spy
 }
 
 // Get retrieves a cache entry by key, delegating to the underlying cache.

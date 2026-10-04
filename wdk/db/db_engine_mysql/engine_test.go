@@ -1168,39 +1168,218 @@ func TestResolveFunctionCall_ViaEngine(t *testing.T) {
 	assert.Equal(t, "bigint", resolution.ReturnType.EngineName)
 }
 
-func TestAnalyseQuery_RecoversFromParserPanic(t *testing.T) {
+func TestApplyDDLReturnsSyntaxErrors(t *testing.T) {
 	t.Parallel()
 
-	engine := NewMySQLEngine()
-	statement := querier_dto.ParsedStatement{
-		Raw: &parsedStatement{
-			tokens: []token{{kind: tokenEOF}},
-			kind:   statementKindSelect,
-		},
+	testCases := []struct {
+		name      string
+		sql       string
+		wantError string
+	}{
+		{name: "rename column without TO", sql: "ALTER TABLE t RENAME COLUMN a b", wantError: "expected keyword [TO]"},
+		{name: "unterminated DEFAULT expression", sql: "CREATE TABLE t (a INT DEFAULT (1", wantError: "unmatched parenthesis"},
+		{name: "unterminated CHECK expression", sql: "CREATE TABLE t (a INT CHECK (a > 0", wantError: "unmatched parenthesis"},
+		{name: "unterminated REFERENCES column list", sql: "CREATE TABLE t (a INT REFERENCES u(id", wantError: "unmatched parenthesis"},
+		{name: "unterminated generated column expression", sql: "CREATE TABLE t (a INT GENERATED ALWAYS AS (a + 1", wantError: "unmatched parenthesis"},
+		{name: "unterminated ON UPDATE precision", sql: "CREATE TABLE t (a TIMESTAMP ON UPDATE CURRENT_TIMESTAMP(3", wantError: "unmatched parenthesis"},
+		{name: "unterminated group in an unrecognised ALTER action", sql: "ALTER TABLE t ENGINE = (x", wantError: "unmatched parenthesis"},
+		{name: "index without ON", sql: "CREATE INDEX i t (a)", wantError: "expected keyword [ON]"},
 	}
 
-	analysis, err := engine.AnalyseQuery(nil, statement)
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
 
-	require.Error(t, err)
-	require.Nil(t, analysis)
-	assert.Contains(t, err.Error(), "analyse panic")
+			engine := NewMySQLEngine()
+			statements, err := engine.ParseStatements(testCase.sql)
+			require.NoError(t, err)
+			require.NotEmpty(t, statements)
+
+			mutation, err := engine.ApplyDDL(context.Background(), statements[0])
+
+			require.Error(t, err)
+			assert.Nil(t, mutation)
+			assert.Contains(t, err.Error(), testCase.wantError)
+			assert.NotContains(t, err.Error(), "panic")
+		})
+	}
 }
 
-func TestApplyDDL_RecoversFromPanic(t *testing.T) {
+func TestAnalyseQueryReturnsSyntaxErrors(t *testing.T) {
 	t.Parallel()
 
-	engine := NewMySQLEngine()
-	statement := querier_dto.ParsedStatement{
-		Raw: &parsedStatement{
-			tokens: []token{{kind: tokenEOF}},
-			kind:   statementKindDropTrigger,
+	testCases := []struct {
+		wantSentinel error
+		name         string
+		sql          string
+		wantError    string
+		options      []Option
+	}{
+		{name: "UPDATE without SET", sql: "UPDATE t a = 1", wantError: "expected keyword [SET]"},
+		{name: "UPDATE with a malformed qualified table", sql: "UPDATE db.(x) SET a = 1", wantError: "expected identifier"},
+		{name: "compound arm that is not a SELECT", sql: "SELECT 1 UNION VALUES ROW(2)", wantError: "expected keyword [SELECT]"},
+		{name: "unterminated USING list", sql: "SELECT * FROM a JOIN b USING (id", wantError: "unmatched parenthesis"},
+		{name: "unterminated index hint list", sql: "SELECT * FROM USE INDEX (i", wantError: "unmatched parenthesis"},
+		{name: "unterminated PARTITION list", sql: "INSERT INTO t PARTITION (p1 VALUES (1)", wantError: "unmatched parenthesis"},
+		{name: "unterminated CAST type modifiers", sql: "SELECT CAST(? AS DECIMAL(10 FROM t", wantError: "parsing CAST type modifiers"},
+		{name: "unterminated ANY operand", sql: "SELECT a = ANY (1 FROM t", wantError: "ANY/ALL operand"},
+		{
+			name:         "expression nested past the cap inside a CTE",
+			sql:          "WITH c AS (SELECT ((((((((((1)))))))))) AS x) SELECT x FROM c",
+			options:      []Option{WithMaxParseDepth(8)},
+			wantSentinel: errExpressionDepthExceeded,
+		},
+		{
+			name:         "expression nested past the cap inside a scalar subquery",
+			sql:          "SELECT (SELECT ((((((((((1))))))))))) FROM t",
+			options:      []Option{WithMaxParseDepth(8)},
+			wantSentinel: errExpressionDepthExceeded,
+		},
+		{
+			name:         "expression nested past the cap inside a derived table",
+			sql:          "SELECT * FROM (SELECT ((((((((((1)))))))))) AS x) d",
+			options:      []Option{WithMaxParseDepth(8)},
+			wantSentinel: errExpressionDepthExceeded,
+		},
+		{
+			name:         "expression nested past the cap inside an IN subquery",
+			sql:          "SELECT a FROM t WHERE a IN (SELECT ((((((((((1)))))))))))",
+			options:      []Option{WithMaxParseDepth(8)},
+			wantSentinel: errExpressionDepthExceeded,
 		},
 	}
 
-	mutation, err := engine.ApplyDDL(context.Background(), statement)
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			engine := NewMySQLEngine(testCase.options...)
+			statements, err := engine.ParseStatements(testCase.sql)
+			require.NoError(t, err)
+			require.NotEmpty(t, statements)
+
+			analysis, err := engine.AnalyseQuery(nil, statements[0])
+
+			require.Error(t, err)
+			assert.Nil(t, analysis)
+			assert.NotContains(t, err.Error(), "panic")
+			if testCase.wantSentinel != nil {
+				assert.ErrorIs(t, err, testCase.wantSentinel)
+				return
+			}
+			assert.Contains(t, err.Error(), testCase.wantError)
+		})
+	}
+}
+
+func TestApplyDDLRecoversFromHandlerPanic(t *testing.T) {
+	original := ddlHandlers[statementKindCreateTable]
+	ddlHandlers[statementKindCreateTable] = func(*parser, *MySQLEngine) (*querier_dto.CatalogueMutation, error) {
+		panic("handler bug")
+	}
+	t.Cleanup(func() { ddlHandlers[statementKindCreateTable] = original })
+
+	engine := NewMySQLEngine()
+	statements, err := engine.ParseStatements("CREATE TABLE t (a INT)")
+	require.NoError(t, err)
+
+	mutation, err := engine.ApplyDDL(context.Background(), statements[0])
 
 	require.Error(t, err)
-	require.Nil(t, mutation)
+	assert.Nil(t, mutation)
+	assert.Equal(t, "mysql: ddl panic: handler bug", err.Error())
+}
+
+func TestAnalyseQueryRecoversFromAnalyserPanic(t *testing.T) {
+	original := queryAnalysers[statementKindSelect]
+	queryAnalysers[statementKindSelect] = func(*parser) (*querier_dto.RawQueryAnalysis, error) {
+		panic("analyser bug")
+	}
+	t.Cleanup(func() { queryAnalysers[statementKindSelect] = original })
+
+	engine := NewMySQLEngine()
+	statements, err := engine.ParseStatements("SELECT 1")
+	require.NoError(t, err)
+
+	analysis, err := engine.AnalyseQuery(nil, statements[0])
+
+	require.Error(t, err)
+	assert.Nil(t, analysis)
+	assert.Equal(t, "mysql: analyse panic: analyser bug", err.Error())
+}
+
+func TestWithMaxTokensPerStatement(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name  string
+		limit int
+		want  int
+	}{
+		{name: "positive limit is applied", limit: 500, want: 500},
+		{name: "zero keeps the default", limit: 0, want: defaultMaxTokensPerStatement},
+		{name: "negative keeps the default", limit: -3, want: defaultMaxTokensPerStatement},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			engine := NewMySQLEngine(WithMaxTokensPerStatement(testCase.limit))
+
+			assert.Equal(t, testCase.want, engine.dialect.resolvedMaxTokensPerStatement())
+		})
+	}
+}
+
+func TestTokenBudgetRejectsWalkedStatements(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name  string
+		sql   string
+		isDDL bool
+	}{
+		{name: "DDL statement over budget", sql: "CREATE TABLE t (a INT, b TEXT, c BLOB)", isDDL: true},
+		{name: "query over budget", sql: "SELECT a, b, c FROM t WHERE a = ?", isDDL: false},
+		{name: "REPLACE over budget", sql: "REPLACE INTO t (a, b) VALUES (?, ?)", isDDL: false},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			engine := NewMySQLEngine(WithMaxTokensPerStatement(5))
+			statements, err := engine.ParseStatements(testCase.sql)
+			require.NoError(t, err)
+
+			if testCase.isDDL {
+				_, err = engine.ApplyDDL(context.Background(), statements[0])
+			} else {
+				_, err = engine.AnalyseQuery(nil, statements[0])
+			}
+
+			require.ErrorIs(t, err, errTokenBudgetExceeded)
+			assert.Contains(t, err.Error(), "exceeds the limit of 5")
+		})
+	}
+}
+
+func TestTokenBudgetIgnoresStatementsTheParserDoesNotWalk(t *testing.T) {
+	t.Parallel()
+
+	engine := NewMySQLEngine(WithMaxTokensPerStatement(5))
+	statements, err := engine.ParseStatements("INSERT INTO t (a, b, c) VALUES (1, 2, 3); SET NAMES utf8mb4")
+	require.NoError(t, err)
+	require.Len(t, statements, 2)
+
+	mutation, err := engine.ApplyDDL(context.Background(), statements[0])
+	require.NoError(t, err)
+	assert.Nil(t, mutation)
+
+	analysis, err := engine.AnalyseQuery(nil, statements[1])
+	require.NoError(t, err)
+	assert.Equal(t, &querier_dto.RawQueryAnalysis{}, analysis)
 }
 
 func TestParseStatementsRecordsPerStatementByteLength(t *testing.T) {
@@ -1223,4 +1402,103 @@ func TestParseStatementsRecordsPerStatementByteLength(t *testing.T) {
 	assert.Equal(t, secondLocation, statements[1].Location)
 	assert.Equal(t, len(second), statements[1].Length,
 		"second statement Length should span only its own tokens")
+}
+
+var (
+	sampleDDLStatements = []string{
+		"CREATE TABLE IF NOT EXISTS db.t (a INT NOT NULL AUTO_INCREMENT PRIMARY KEY, b VARCHAR(10) NULL DEFAULT (lower('x')) " +
+			"CHECK (length(b) > 0) REFERENCES u(id) ON DELETE CASCADE, c TIMESTAMP ON UPDATE CURRENT_TIMESTAMP(3) COMMENT 'c' " +
+			"COLLATE utf8mb4_bin, d INT GENERATED ALWAYS AS (a + 1) STORED, CONSTRAINT k UNIQUE KEY (b), " +
+			"FOREIGN KEY (a) REFERENCES u(id), INDEX ix (b)) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4",
+		"DROP TABLE IF EXISTS db.t, u",
+		"ALTER TABLE t RENAME COLUMN a TO b",
+		"ALTER TABLE t ADD COLUMN d INT DEFAULT 0 AFTER a",
+		"ALTER TABLE t MODIFY COLUMN d BIGINT NOT NULL",
+		"ALTER TABLE t CHANGE COLUMN d e INT",
+		"ALTER TABLE t DROP COLUMN d",
+		"ALTER TABLE t RENAME TO u",
+		"ALTER TABLE t ENGINE = InnoDB, ALGORITHM = (INPLACE)",
+		"CREATE OR REPLACE VIEW v (x) AS SELECT a FROM t",
+		"DROP VIEW IF EXISTS v",
+		"CREATE UNIQUE INDEX i ON t (a, b)",
+		"DROP INDEX i ON t",
+		"CREATE TRIGGER tr AFTER INSERT ON t FOR EACH ROW SET @x = 1",
+		"DROP TRIGGER IF EXISTS tr",
+		"CREATE DATABASE IF NOT EXISTS d",
+		"DROP DATABASE IF EXISTS d",
+		"CREATE FUNCTION f(a INT, b VARCHAR(10)) RETURNS INT DETERMINISTIC RETURN a + 1",
+		"DROP FUNCTION IF EXISTS f",
+	}
+	sampleQueryStatements = []string{
+		"WITH c AS (SELECT a FROM t) SELECT DISTINCT a, CAST(? AS DECIMAL(10, 2)), a = ANY (SELECT 1) FROM c " +
+			"JOIN u USING (id) LEFT JOIN db.w AS x ON x.id = c.a WHERE a IN (SELECT a FROM t) " +
+			"AND EXISTS (SELECT 1 FROM (SELECT 1) d) GROUP BY a HAVING count(*) > 1 UNION SELECT 1 " +
+			"ORDER BY 1 LIMIT ? OFFSET ? FOR UPDATE",
+		"INSERT INTO t PARTITION (p1) (a, b) VALUES (?, ?) ON DUPLICATE KEY UPDATE b = VALUES(b)",
+		"REPLACE INTO t (a) SELECT a FROM u",
+		"UPDATE t, db.u AS x SET t.a = ? WHERE t.id = x.id ORDER BY t.a LIMIT 1",
+		"DELETE t FROM t JOIN u ON t.id = u.id WHERE u.a = ?",
+		"DELETE FROM t WHERE a = ? ORDER BY a LIMIT 1",
+		"VALUES ROW(1, ?)",
+	}
+)
+
+func TestApplyDDLReturnsErrorsForTruncatedAndMismatchedStatements(t *testing.T) {
+	t.Parallel()
+
+	engine := NewMySQLEngine()
+	for kind, handler := range ddlHandlers {
+		if handler == nil {
+			continue
+		}
+		for _, sql := range sampleDDLStatements {
+			for _, tokens := range statementPrefixes(t, sql) {
+				statement := querier_dto.ParsedStatement{Raw: &parsedStatement{tokens: tokens, kind: statementKind(kind)}}
+
+				_, err := engine.ApplyDDL(context.Background(), statement)
+
+				if err != nil {
+					assert.NotContains(t, err.Error(), "panic", "kind %d over %d tokens of %q", kind, len(tokens), sql)
+				}
+			}
+		}
+	}
+}
+
+func TestAnalyseQueryReturnsErrorsForTruncatedAndMismatchedStatements(t *testing.T) {
+	t.Parallel()
+
+	engine := NewMySQLEngine()
+	for kind, analyser := range queryAnalysers {
+		if analyser == nil {
+			continue
+		}
+		for _, sql := range append(sampleQueryStatements, sampleDDLStatements...) {
+			for _, tokens := range statementPrefixes(t, sql) {
+				statement := querier_dto.ParsedStatement{Raw: &parsedStatement{tokens: tokens, kind: statementKind(kind)}}
+
+				_, err := engine.AnalyseQuery(nil, statement)
+
+				if err != nil {
+					assert.NotContains(t, err.Error(), "panic", "kind %d over %d tokens of %q", kind, len(tokens), sql)
+				}
+			}
+		}
+	}
+}
+
+func statementPrefixes(t *testing.T, sql string) [][]token {
+	t.Helper()
+
+	tokens, err := tokenise(sql)
+	require.NoError(t, err)
+	statements := splitStatements(tokens)
+	require.NotEmpty(t, statements)
+	whole := statements[0]
+
+	prefixes := make([][]token, 0, len(whole)+1)
+	for length := range len(whole) + 1 {
+		prefixes = append(prefixes, whole[:length:length])
+	}
+	return prefixes
 }

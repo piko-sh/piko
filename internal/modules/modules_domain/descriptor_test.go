@@ -44,7 +44,7 @@ func TestDescriptorValidate(t *testing.T) {
 	}{
 		{"missing schema version", func(d *ModuleDescriptor) { d.SchemaVersion = 0 }, "schema_version"},
 		{"future schema version", func(d *ModuleDescriptor) { d.SchemaVersion = DescriptorVersion + 1 }, "newer than supported"},
-		{"missing path", func(d *ModuleDescriptor) { d.Ref.Path = "" }, "ref.path"},
+		{"missing path", func(d *ModuleDescriptor) { d.Ref.Path = "" }, "reference.path"},
 		{"empty capability axis", func(d *ModuleDescriptor) {
 			d.Capabilities = CapabilitySet{{Axis: ""}}
 		}, "empty axis"},
@@ -141,7 +141,7 @@ func TestUnmarshalDescriptorRoundTrip(t *testing.T) {
 
 func TestUnmarshalDescriptorRejectsBadSchema(t *testing.T) {
 	t.Parallel()
-	bad := `{"schema_version": 0, "ref": {"path": "x"}}`
+	bad := `{"schema_version": 0, "reference": {"path": "x"}}`
 	if _, err := UnmarshalDescriptor([]byte(bad)); err == nil {
 		t.Fatalf("expected error for malformed descriptor")
 	}

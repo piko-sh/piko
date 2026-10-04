@@ -16,7 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-//go:build windows
+//go:build windows && !safe
 
 package crypto_dto
 
@@ -24,26 +24,30 @@ import (
 	"context"
 	"fmt"
 	"runtime"
+	"sync"
+	"sync/atomic"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// pageSize caches the system page size.
-var pageSize int
+var (
+	// pageSize caches the system page size.
+	pageSize = windows.Getpagesize()
+)
 
 // secureBytesCleanupData holds the data needed for runtime.AddCleanup. It is passed as
 // the argument to the cleanup function when SecureBytes becomes unreachable.
 type secureBytesCleanupData struct {
-	// data is the memory region to be zeroed and unmapped on cleanup.
+	// id is the unique identifier for tracking this cleanup operation.
+	id string
+
+	// data is the memory region to be zeroed and released on cleanup.
 	data []byte
 
 	// allocSize is the allocated memory size in bytes used for secure cleanup.
 	allocSize int
-
-	// id is the unique identifier for tracking this cleanup operation.
-	id string
 
 	// size is the number of bytes in the secure buffer.
 	size int
@@ -93,7 +97,7 @@ func NewSecureBytes(size int, opts ...Option) (*SecureBytes, error) {
 		return nil, fmt.Errorf("VirtualAlloc failed: %w", err)
 	}
 
-	data := unsafe.Slice((*byte)(unsafe.Pointer(addr)), allocSize)
+	data := virtualAllocSlice(addr, allocSize)
 
 	if err := windows.VirtualLock(addr, uintptr(allocSize)); err != nil {
 		_ = windows.VirtualFree(addr, 0, windows.MEM_RELEASE)
@@ -104,6 +108,10 @@ func NewSecureBytes(size int, opts ...Option) (*SecureBytes, error) {
 		data:      data,
 		size:      size,
 		allocSize: allocSize,
+		id:        "",
+		cleanup:   runtime.Cleanup{},
+		mu:        sync.RWMutex{},
+		closed:    atomic.Bool{},
 	}
 
 	for _, opt := range opts {
@@ -119,6 +127,29 @@ func NewSecureBytes(size int, opts ...Option) (*SecureBytes, error) {
 	secureBytes.cleanup = runtime.AddCleanup(secureBytes, secureBytesCleanup, cleanupData)
 
 	return secureBytes, nil
+}
+
+// virtualAllocSlice views a VirtualAlloc allocation as a byte slice without copying.
+//
+// This is the only place the package turns an integer address into a pointer, and it is
+// valid only because of where the address comes from. VirtualAlloc returns memory outside
+// the Go heap. The garbage collector never scans, moves or frees it, so the address stays
+// fixed and valid until VirtualFree, exactly like the memory syscall.Mmap returns on
+// Unix. The resulting pointer is never mistaken for a reference to a Go object, and the
+// runtime's pointer checks accept it because it lies outside every heap span.
+//
+// The conversion is written as unsafe.Add on a nil pointer, which is the same integer to
+// pointer conversion as unsafe.Pointer(address). go vet reports the latter form because,
+// for an arbitrary uintptr, it cannot know the address is not a heap object that has
+// since moved; that hazard cannot arise for VirtualAlloc memory. Builds with the safe tag
+// do not use this file and keep secrets in ordinary heap memory instead.
+//
+// Takes address (uintptr) which is the base address returned by VirtualAlloc.
+// Takes length (int) which is the number of bytes in the allocation.
+//
+// Returns []byte which spans the whole allocation.
+func virtualAllocSlice(address uintptr, length int) []byte {
+	return unsafe.Slice((*byte)(unsafe.Add(nil, address)), length)
 }
 
 // NewSecureBytesFromSlice creates a SecureBytes instance by copying existing data into
@@ -169,8 +200,4 @@ func secureBytesCleanup(argument *secureBytesCleanupData) {
 	_ = windows.VirtualUnlock(addr, uintptr(argument.allocSize))
 
 	_ = windows.VirtualFree(addr, 0, windows.MEM_RELEASE)
-}
-
-func init() {
-	pageSize = windows.Getpagesize()
 }

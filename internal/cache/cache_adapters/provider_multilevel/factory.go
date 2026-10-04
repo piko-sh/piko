@@ -22,6 +22,16 @@ import (
 	"time"
 )
 
+const (
+	// defaultMaxConsecutiveFailures is how many consecutive L2 failures open the circuit
+	// when the builder supplies no threshold.
+	defaultMaxConsecutiveFailures = 5
+
+	// defaultOpenStateTimeout is how long the L2 circuit stays open when the builder
+	// supplies no timeout.
+	defaultOpenStateTimeout = 30 * time.Second
+)
+
 // Config holds the settings for the multi-level cache provider.
 type Config struct {
 	// L1ProviderName is the name of the level 1 (fastest) cache provider.

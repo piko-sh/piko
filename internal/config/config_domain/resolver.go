@@ -290,8 +290,8 @@ func (op *resolutionOperation) applyResults() error {
 // runBatchResolver resolves multiple placeholder values using a BatchResolver in a single
 // batch call, deduplicating lookup keys before fetching.
 //
-// Takes resolver (BatchResolver) which performs the batch lookup. Takes jobs
-// ([]*resolutionJob) which are the placeholder jobs to resolve.
+// Takes resolver (BatchResolver) which performs the batch lookup.
+// Takes jobs ([]*resolutionJob) which are the placeholder jobs to resolve.
 func (op *resolutionOperation) runBatchResolver(resolver BatchResolver, _ string, jobs []*resolutionJob) {
 	uniqueKeys := make(map[string]struct{})
 	keysToFetch := make([]string, 0, len(jobs))

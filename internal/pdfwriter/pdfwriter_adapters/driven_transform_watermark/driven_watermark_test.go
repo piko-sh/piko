@@ -73,9 +73,7 @@ func TestWatermarkTransformer_EmptyText_Passthrough(t *testing.T) {
 	wm := driven_transform_watermark.New()
 	pdf := buildMinimalPDF()
 
-	result, err := wm.Transform(context.Background(), pdf, pdfwriter_dto.WatermarkOptions{
-		Text: "",
-	})
+	result, err := wm.Transform(context.Background(), pdf, pdfwriter_dto.WatermarkOptions{})
 	require.NoError(t, err)
 	assert.Equal(t, pdf, result)
 }

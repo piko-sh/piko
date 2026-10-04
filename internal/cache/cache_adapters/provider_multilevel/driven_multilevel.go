@@ -31,6 +31,7 @@ import (
 	"github.com/sony/gobreaker/v2"
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/cache/cache_dto"
+	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/wdk/goroutine"
 )
@@ -207,21 +208,19 @@ func (m *MultiLevelAdapter[K, V]) createWriteBackLoader(loader cache_dto.Loader[
 
 // asyncWriteToL2 asynchronously writes a value to L2 cache through the circuit breaker.
 //
-// Takes ctx (context.Context) whose values (e.g. trace spans) are preserved but whose
-// cancellation and deadline are stripped via context.WithoutCancel.
+// The write keeps the trace values of ctx but not its cancellation or pooled request
+// carrier.
+//
 // Takes key (K) which identifies the cache entry.
 // Takes value (V) which is the data to store.
 func (m *MultiLevelAdapter[K, V]) asyncWriteToL2(ctx context.Context, key K, value V) {
-	ctx, l := logger_domain.From(ctx, log)
-
-	detachedCtx := context.WithoutCancel(ctx)
-
-	m.spawnBackgroundWorker(detachedCtx, "cache.multilevelAsyncWriteToL2", func() {
+	m.spawnBackgroundWorker(ctx, "cache.multilevelAsyncWriteToL2", func(backgroundCtx context.Context) {
 		_, err := m.l2Circuit.Execute(func() (any, error) {
-			return nil, m.l2Provider.Set(detachedCtx, key, value)
+			return nil, m.l2Provider.Set(backgroundCtx, key, value)
 		})
 		if err != nil && !errors.Is(err, gobreaker.ErrOpenState) {
-			l2ErrorsTotal.Add(detachedCtx, 1)
+			l2ErrorsTotal.Add(backgroundCtx, 1)
+			_, l := logger_domain.From(backgroundCtx, log)
 			l.Warn("Failed to write back to L2 after load",
 				logger_domain.String(fieldKey, fmt.Sprintf(fmtVerb, key)),
 				logger_domain.Error(err))
@@ -234,19 +233,20 @@ func (m *MultiLevelAdapter[K, V]) asyncWriteToL2(ctx context.Context, key K, val
 // so a saturated pool back-pressures the calling path rather than piling up unbounded
 // goroutines.
 //
-// Takes ctx (context.Context) which is forwarded to RecoverPanic for observability.
 // Takes component (string) which identifies the worker for panic logging.
-// Takes fn (func()) which is the work to execute on the background goroutine.
-func (m *MultiLevelAdapter[K, V]) spawnBackgroundWorker(ctx context.Context, component string, fn func()) {
+// Takes fn (func(context.Context)) which is the work to execute on the background
+// goroutine, given the detached context.
+func (m *MultiLevelAdapter[K, V]) spawnBackgroundWorker(ctx context.Context, component string, fn func(context.Context)) {
+	backgroundCtx := daemon_dto.DetachRequestContext(ctx)
 	if m.backgroundSemaphore != nil {
 		m.backgroundSemaphore <- struct{}{}
 	}
 	go func() {
-		defer goroutine.RecoverPanic(ctx, component)
+		defer goroutine.RecoverPanic(backgroundCtx, component)
 		if m.backgroundSemaphore != nil {
 			defer func() { <-m.backgroundSemaphore }()
 		}
-		fn()
+		fn(backgroundCtx)
 	}()
 }
 
@@ -523,12 +523,11 @@ func (m *MultiLevelAdapter[K, V]) processL2Hits(ctx context.Context, l2Hits map[
 		backPopulations.Add(ctx, 1)
 	}
 
-	detachedCtx := context.WithoutCancel(ctx)
 	hits := l2Hits
 
-	m.spawnBackgroundWorker(detachedCtx, "cache.multilevelBackPopulateL1", func() {
+	m.spawnBackgroundWorker(ctx, "cache.multilevelBackPopulateL1", func(backgroundCtx context.Context) {
 		for k, v := range hits {
-			_ = m.l1Provider.Set(detachedCtx, k, v)
+			_ = m.l1Provider.Set(backgroundCtx, k, v)
 		}
 	})
 }
@@ -583,26 +582,24 @@ func (m *MultiLevelAdapter[K, V]) loadAndStoreValues(
 //
 // Takes values (map[K]V) which contains the key-value pairs to store.
 func (m *MultiLevelAdapter[K, V]) storeLoadedValues(ctx context.Context, values map[K]V) {
-	ctx, l := logger_domain.From(ctx, log)
-
 	for k, v := range values {
 		_ = m.l1Provider.Set(ctx, k, v)
 	}
 
-	detachedCtx := context.WithoutCancel(ctx)
 	vals := values
 
-	m.spawnBackgroundWorker(detachedCtx, "cache.multilevelStoreToL2", func() {
+	m.spawnBackgroundWorker(ctx, "cache.multilevelStoreToL2", func(backgroundCtx context.Context) {
 		_, err := m.l2Circuit.Execute(func() (any, error) {
 			for k, v := range vals {
-				if setErr := m.l2Provider.Set(detachedCtx, k, v); setErr != nil {
+				if setErr := m.l2Provider.Set(backgroundCtx, k, v); setErr != nil {
 					return nil, setErr
 				}
 			}
 			return nil, nil
 		})
 		if err != nil && !errors.Is(err, gobreaker.ErrOpenState) {
-			l2ErrorsTotal.Add(detachedCtx, 1)
+			l2ErrorsTotal.Add(backgroundCtx, 1)
+			_, l := logger_domain.From(backgroundCtx, log)
 			l.Warn("Failed to write loaded values to L2 cache",
 				logger_domain.Int("value_count", len(vals)),
 				logger_domain.Error(err))
@@ -914,6 +911,7 @@ func NewMultiLevelAdapter[K comparable, V any](
 		l2Circuit:           newCircuitBreaker(ctx, name, cbConfig.MaxConsecutiveFailures, cbConfig.OpenStateTimeout),
 		backgroundSemaphore: make(chan struct{}, runtime.NumCPU()),
 		name:                name,
+		closeOnce:           sync.Once{},
 	}
 	for _, opt := range opts {
 		opt(adapter)

@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -410,6 +411,45 @@ func TestParse_LocationTracking(t *testing.T) {
 	assertExprString(t, "user.isActive", pNode.DirIf.Expression)
 
 	assert.Empty(t, pNode.Directives, "p-if directive should not be in the raw Directives slice after transformation")
+}
+
+func TestParse_SingleLineTemplateScalesLikeMultiLine(t *testing.T) {
+	element := `<span class="b" :title="item.name">{{ a }} text</span><!-- c --><p>x</p>`
+	count := (1 << 20) / len(element)
+	singleLine := strings.Repeat(element, count)
+	multiLine := strings.Repeat(element+"\n", count)
+
+	singleLineTree, singleLineDuration := fastestParse(t, singleLine)
+	_, multiLineDuration := fastestParse(t, multiLine)
+
+	var lastSpan *TemplateNode
+	for _, node := range singleLineTree.RootNodes {
+		if node.TagName == "span" {
+			lastSpan = node
+		}
+	}
+	require.NotNil(t, lastSpan)
+	elementStartColumn := (count-1)*len(element) + 1
+	assert.Equal(t, 1, lastSpan.Location.Line)
+	assert.Equal(t, elementStartColumn, lastSpan.Location.Column)
+	assert.Equal(t, elementStartColumn+len(`<span class="b" :title="item.name">`), lastSpan.OpeningTagRange.End.Column)
+	require.Len(t, lastSpan.DynamicAttributes, 1)
+	assert.Equal(t, elementStartColumn+len(`<span class="b" :title=`)+1, lastSpan.DynamicAttributes[0].Location.Column)
+
+	assert.Less(t, singleLineDuration, 8*multiLineDuration+500*time.Millisecond,
+		"a %d byte single-line template took %v to parse against %v for the same markup over %d lines",
+		len(singleLine), singleLineDuration, multiLineDuration, count)
+}
+
+func TestNewElementNode(t *testing.T) {
+	location := Location{Line: 3, Column: 7, Offset: 0}
+	node := newElementNode("section", location)
+
+	assert.Equal(t, NodeElement, node.NodeType)
+	assert.Equal(t, "section", node.TagName)
+	assert.Equal(t, location, node.Location)
+	assert.Equal(t, Range{Start: location, End: location}, node.NodeRange)
+	assert.Equal(t, Range{Start: location, End: location}, node.OpeningTagRange)
 }
 
 func TestParse_TextInterpolation(t *testing.T) {
@@ -1158,4 +1198,22 @@ func TestParse_MemoDirective(t *testing.T) {
 		require.NotEmpty(t, tree.RootNodes)
 		assert.Nil(t, tree.RootNodes[0].DirMemo)
 	})
+}
+
+func fastestParse(t *testing.T, source string) (*TemplateAST, time.Duration) {
+	t.Helper()
+
+	var tree *TemplateAST
+	fastest := time.Duration(0)
+	for range 2 {
+		start := time.Now()
+		parsed, err := Parse(context.Background(), source, "single_line.pk", nil)
+		elapsed := time.Since(start)
+		require.NoError(t, err)
+		tree = parsed
+		if fastest == 0 || elapsed < fastest {
+			fastest = elapsed
+		}
+	}
+	return tree, fastest
 }

@@ -30,9 +30,9 @@ import (
 	"slices"
 	"sync"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 )
@@ -213,41 +213,17 @@ func (a *typeExpressionAnalyser) stampBaseAsPackageWithAlias(base ast_domain.Exp
 	imports := a.typeResolver.inspector.GetImportsForFile(a.ctx.CurrentGoFullPackagePath, a.ctx.CurrentGoSourcePath)
 	canonicalPath := imports[effectiveAlias]
 
-	baseAnn := &ast_domain.GoGeneratorAnnotation{
-		EffectiveKeyExpression:  nil,
-		DynamicCollectionInfo:   nil,
-		StaticCollectionLiteral: nil,
-		ParentTypeName:          nil,
-		BaseCodeGenVarName:      &effectiveAlias,
-		GeneratedSourcePath:     nil,
-		DynamicAttributeOrigins: nil,
-		ResolvedType: &ast_domain.ResolvedTypeInfo{
-			TypeExpression:          nil,
-			PackageAlias:            effectiveAlias,
-			CanonicalPackagePath:    canonicalPath,
-			IsSynthetic:             false,
-			IsExportedPackageSymbol: false,
-			InitialPackagePath:      "",
-			InitialFilePath:         "",
-		},
-		Symbol:                  nil,
-		PartialInfo:             nil,
-		PropDataSource:          nil,
-		OriginalSourcePath:      nil,
-		OriginalPackageAlias:    nil,
-		FieldTag:                nil,
-		SourceInvocationKey:     nil,
-		StaticCollectionData:    nil,
-		Srcset:                  nil,
-		Stringability:           0,
-		IsStatic:                false,
-		NeedsCSRF:               false,
-		NeedsRuntimeSafetyCheck: false,
-		IsStructurallyStatic:    false,
-		IsPointerToStringable:   false,
-		IsCollectionCall:        false,
-		IsHybridCollection:      false,
-		IsMapAccess:             false,
+	baseAnn := &ast_domain.GoGeneratorAnnotation{}
+	baseAnn.BaseCodeGenVarName = &effectiveAlias
+	baseAnn.ResolvedType = &ast_domain.ResolvedTypeInfo{
+		TypeExpression:          nil,
+		PackageAlias:            effectiveAlias,
+		CanonicalPackagePath:    canonicalPath,
+		IsSynthetic:             false,
+		IsExportedPackageSymbol: false,
+		InitialPackagePath:      "",
+		InitialFilePath:         "",
+		UnderlyingTypeString:    "",
 	}
 	setAnnotationOnExpression(base, baseAnn)
 	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
@@ -373,15 +349,7 @@ func (a *typeExpressionAnalyser) createMapAccessAnnotation(n *ast_domain.MemberE
 			logger_domain.String("property", propIdent.Name))
 	}
 
-	ann := newAnnotationWithType(&ast_domain.ResolvedTypeInfo{
-		TypeExpression:          goast.NewIdent("interface{}"),
-		PackageAlias:            "",
-		CanonicalPackagePath:    "",
-		IsSynthetic:             false,
-		IsExportedPackageSymbol: false,
-		InitialPackagePath:      "",
-		InitialFilePath:         "",
-	})
+	ann := newAnnotationWithType(newSimpleTypeInfo(goast.NewIdent("interface{}")))
 	ann.IsMapAccess = true
 	return ann
 }
@@ -635,34 +603,9 @@ func (a *typeExpressionAnalyser) buildIndexExprAnnotation(
 	itemTypeInfo *ast_domain.ResolvedTypeInfo,
 ) *ast_domain.GoGeneratorAnnotation {
 	stringability, isPointer := a.typeResolver.determineStringability(ctx, a.ctx, itemTypeInfo)
-	finalAnn := &ast_domain.GoGeneratorAnnotation{
-		EffectiveKeyExpression:  nil,
-		DynamicCollectionInfo:   nil,
-		StaticCollectionLiteral: nil,
-		ParentTypeName:          nil,
-		BaseCodeGenVarName:      baseAnn.BaseCodeGenVarName,
-		GeneratedSourcePath:     nil,
-		DynamicAttributeOrigins: nil,
-		ResolvedType:            itemTypeInfo,
-		Symbol:                  nil,
-		PartialInfo:             nil,
-		PropDataSource:          nil,
-		OriginalSourcePath:      nil,
-		OriginalPackageAlias:    nil,
-		FieldTag:                nil,
-		SourceInvocationKey:     nil,
-		StaticCollectionData:    nil,
-		Srcset:                  nil,
-		Stringability:           stringability,
-		IsStatic:                false,
-		NeedsCSRF:               false,
-		NeedsRuntimeSafetyCheck: false,
-		IsStructurallyStatic:    false,
-		IsPointerToStringable:   isPointer,
-		IsCollectionCall:        false,
-		IsHybridCollection:      false,
-		IsMapAccess:             false,
-	}
+	finalAnn := newAnnotationWithTypeAndStringability(itemTypeInfo, stringability)
+	finalAnn.BaseCodeGenVarName = baseAnn.BaseCodeGenVarName
+	finalAnn.IsPointerToStringable = isPointer
 
 	if baseAnn.ResolvedType != nil && isNillableIndexable(baseAnn.ResolvedType.TypeExpression) {
 		if n.Optional {
@@ -724,15 +667,10 @@ func (a *typeExpressionAnalyser) resolveArrayLiteral(ctx context.Context, n *ast
 		}
 	}
 
-	finalArrayTypeInfo := &ast_domain.ResolvedTypeInfo{
-		TypeExpression:          &goast.ArrayType{Len: nil, Elt: expectedTypeInfo.TypeExpression},
-		PackageAlias:            expectedTypeInfo.PackageAlias,
-		CanonicalPackagePath:    "",
-		IsSynthetic:             false,
-		IsExportedPackageSymbol: false,
-		InitialPackagePath:      "",
-		InitialFilePath:         "",
-	}
+	finalArrayTypeInfo := newSimpleTypeInfoWithAlias(
+		&goast.ArrayType{Len: nil, Elt: expectedTypeInfo.TypeExpression},
+		expectedTypeInfo.PackageAlias,
+	)
 	ann := newAnnotationFull(finalArrayTypeInfo, &a.ctx.SFCSourcePath, int(inspector_dto.StringableNone))
 	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
 		a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveArrayLiteral",
@@ -749,16 +687,7 @@ func (a *typeExpressionAnalyser) resolveArrayLiteral(ctx context.Context, n *ast
 //
 // Returns *ast_domain.GoGeneratorAnnotation which holds the resolved []any type.
 func (a *typeExpressionAnalyser) resolveEmptyArrayLiteral(n *ast_domain.ArrayLiteral) *ast_domain.GoGeneratorAnnotation {
-	anyTypeInfo := newSimpleTypeInfo(goast.NewIdent(typeAny))
-	finalArrayTypeInfo := &ast_domain.ResolvedTypeInfo{
-		TypeExpression:          &goast.ArrayType{Len: nil, Elt: anyTypeInfo.TypeExpression},
-		PackageAlias:            anyTypeInfo.PackageAlias,
-		CanonicalPackagePath:    "",
-		IsSynthetic:             false,
-		IsExportedPackageSymbol: false,
-		InitialPackagePath:      "",
-		InitialFilePath:         "",
-	}
+	finalArrayTypeInfo := newSimpleTypeInfo(&goast.ArrayType{Len: nil, Elt: goast.NewIdent(typeAny)})
 	ann := newAnnotationFull(finalArrayTypeInfo, &a.ctx.SFCSourcePath, int(inspector_dto.StringableNone))
 	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
 		a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveArrayLiteral",
@@ -799,15 +728,10 @@ func (a *typeExpressionAnalyser) reportObjectLiteralTypeMismatch(
 // Returns *ast_domain.GoGeneratorAnnotation which describes the type as map[string]any.
 func (a *typeExpressionAnalyser) createEmptyObjectLiteralAnnotation() *ast_domain.GoGeneratorAnnotation {
 	anyTypeInfo := newSimpleTypeInfo(goast.NewIdent(typeAny))
-	finalMapTypeInfo := &ast_domain.ResolvedTypeInfo{
-		TypeExpression:          &goast.MapType{Key: goast.NewIdent(typeString), Value: anyTypeInfo.TypeExpression},
-		PackageAlias:            anyTypeInfo.PackageAlias,
-		CanonicalPackagePath:    "",
-		IsSynthetic:             false,
-		IsExportedPackageSymbol: false,
-		InitialPackagePath:      "",
-		InitialFilePath:         "",
-	}
+	finalMapTypeInfo := newSimpleTypeInfoWithAlias(
+		&goast.MapType{Key: goast.NewIdent(typeString), Value: anyTypeInfo.TypeExpression},
+		anyTypeInfo.PackageAlias,
+	)
 	return newAnnotationFull(finalMapTypeInfo, &a.ctx.SFCSourcePath, int(inspector_dto.StringableNone))
 }
 
@@ -861,15 +785,10 @@ func (a *typeExpressionAnalyser) resolveObjectLiteral(ctx context.Context, n *as
 		commonValueType = newSimpleTypeInfo(goast.NewIdent(typeAny))
 	}
 
-	finalMapTypeInfo := &ast_domain.ResolvedTypeInfo{
-		TypeExpression:          &goast.MapType{Key: goast.NewIdent(typeString), Value: commonValueType.TypeExpression},
-		PackageAlias:            commonValueType.PackageAlias,
-		CanonicalPackagePath:    "",
-		IsSynthetic:             false,
-		IsExportedPackageSymbol: false,
-		InitialPackagePath:      "",
-		InitialFilePath:         "",
-	}
+	finalMapTypeInfo := newSimpleTypeInfoWithAlias(
+		&goast.MapType{Key: goast.NewIdent(typeString), Value: commonValueType.TypeExpression},
+		commonValueType.PackageAlias,
+	)
 	ann := newAnnotationFull(finalMapTypeInfo, &a.ctx.SFCSourcePath, int(inspector_dto.StringableNone))
 	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
 		a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveObjectLiteral",
@@ -900,16 +819,7 @@ func (a *typeExpressionAnalyser) resolveTemplateLiteral(ctx context.Context, n *
 		}
 	}
 
-	resultTypeInfo := &ast_domain.ResolvedTypeInfo{
-		TypeExpression:          goast.NewIdent(typeString),
-		PackageAlias:            "",
-		CanonicalPackagePath:    "",
-		IsSynthetic:             false,
-		IsExportedPackageSymbol: false,
-		InitialPackagePath:      "",
-		InitialFilePath:         "",
-	}
-	ann := newAnnotationFull(resultTypeInfo, &a.ctx.SFCSourcePath, int(inspector_dto.StringablePrimitive))
+	ann := newAnnotationFull(newSimpleTypeInfo(goast.NewIdent(typeString)), &a.ctx.SFCSourcePath, int(inspector_dto.StringablePrimitive))
 
 	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
 		a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveTemplateLiteral",

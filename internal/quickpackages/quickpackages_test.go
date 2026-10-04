@@ -838,3 +838,137 @@ func TestLoad_SimplePackage(t *testing.T) {
 	assert.NotEmpty(t, pkg.Syntax)
 	assert.Empty(t, pkg.Errors)
 }
+
+func TestGoListErrorKind(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		listed   goListPkg
+		expected packages.ErrorKind
+	}{
+		{
+			name: "compile failure of the package itself is a type error",
+			listed: goListPkg{
+				ImportPath: "example.com/broken",
+				Error: &goListError{
+					Pos: "",
+					Err: "# example.com/broken\nbroken.go:3:13: cannot use \"x\" (untyped string constant) as int value\n",
+				},
+			},
+			expected: packages.TypeError,
+		},
+		{
+			name: "missing import with a position stays a list error",
+			listed: goListPkg{
+				ImportPath: "example.com/app",
+				Error: &goListError{
+					Pos: "app.go:3:8",
+					Err: "no required module provides package example.com/missing",
+				},
+			},
+			expected: packages.ListError,
+		},
+		{
+			name: "compile failure with a continuation line is a type error",
+			listed: goListPkg{
+				ImportPath: "example.com/broken",
+				Error: &goListError{
+					Pos: "",
+					Err: "# example.com/broken\n./broken.go:5:9: not enough arguments in call to f\n\thave ()\n\twant (int)\n",
+				},
+			},
+			expected: packages.TypeError,
+		},
+		{
+			name: "missing C compiler stays a list error",
+			listed: goListPkg{
+				ImportPath: "runtime/cgo",
+				Error: &goListError{
+					Pos: "",
+					Err: "# runtime/cgo\ncgo: C compiler \"/nonexistent/gcc\" not found: exec: \"/nonexistent/gcc\": stat /nonexistent/gcc: no such file or directory\n",
+				},
+			},
+			expected: packages.ListError,
+		},
+		{
+			name: "missing C header stays a list error",
+			listed: goListPkg{
+				ImportPath: "example.com/probe/cgodep",
+				Error: &goListError{
+					Pos: "",
+					Err: "# example.com/probe/cgodep\ncgodep/c.go:4:10: fatal error: nonexistent_header_xyz.h: No such file or directory\n    4 | #include \"nonexistent_header_xyz.h\"\n",
+				},
+			},
+			expected: packages.ListError,
+		},
+		{
+			name: "pkg-config failure stays a list error",
+			listed: goListPkg{
+				ImportPath: "example.com/vips",
+				Error: &goListError{
+					Pos: "",
+					Err: "# example.com/vips\n# [pkg-config --cflags  -- vips]\nPackage vips was not found in the pkg-config search path.\n",
+				},
+			},
+			expected: packages.ListError,
+		},
+		{
+			name: "header with no diagnostics stays a list error",
+			listed: goListPkg{
+				ImportPath: "example.com/empty",
+				Error: &goListError{
+					Pos: "",
+					Err: "# example.com/empty\n",
+				},
+			},
+			expected: packages.ListError,
+		},
+		{
+			name: "compiler output for a different package stays a list error",
+			listed: goListPkg{
+				ImportPath: "example.com/app",
+				Error: &goListError{
+					Pos: "",
+					Err: "# example.com/other\nother.go:1:1: expected 'package', found 'EOF'\n",
+				},
+			},
+			expected: packages.ListError,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, testCase.expected, goListErrorKind(&testCase.listed))
+		})
+	}
+}
+
+func TestLoad_CompileFailureIsTypeError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+	t.Parallel()
+
+	moduleDirectory := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(moduleDirectory, "go.mod"), []byte("module example.com/typeerror\n\ngo 1.27.0\n"), 0o600))
+	require.NoError(t, os.Mkdir(filepath.Join(moduleDirectory, "broken"), 0o750))
+	require.NoError(t, os.WriteFile(filepath.Join(moduleDirectory, "broken", "broken.go"), []byte("package broken\n\nvar Value int = \"not an int\"\n"), 0o600))
+
+	cfg := &packages.Config{
+		Context: context.Background(),
+		Dir:     moduleDirectory,
+		Env:     append(os.Environ(), "GOWORK=off", "GOFLAGS=-mod=mod"),
+	}
+
+	pkgs, err := Load(cfg, "./broken")
+	require.NoError(t, err)
+	require.Len(t, pkgs, 1)
+	require.NotEmpty(t, pkgs[0].Errors)
+
+	for _, packageError := range pkgs[0].Errors {
+		assert.NotEqual(t, packages.ListError, packageError.Kind,
+			"a type error must not surface as a list error, or best-effort introspection aborts: %s", packageError.Msg)
+	}
+}

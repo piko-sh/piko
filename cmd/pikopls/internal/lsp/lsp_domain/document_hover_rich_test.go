@@ -209,7 +209,7 @@ func TestExtractBaseIdentifier(t *testing.T) {
 			name: "index expression",
 			expression: &ast_domain.IndexExpression{
 				Base:  &ast_domain.Identifier{Name: "arr"},
-				Index: &ast_domain.IntegerLiteral{Value: 0},
+				Index: &ast_domain.IntegerLiteral{},
 			},
 			expectedName: "arr",
 		},
@@ -526,7 +526,7 @@ func TestDocumentIsFunctionType(t *testing.T) {
 		},
 		{
 			name:     "nil type expr",
-			typeInfo: &ast_domain.ResolvedTypeInfo{TypeExpression: nil},
+			typeInfo: &ast_domain.ResolvedTypeInfo{},
 			expected: false,
 		},
 		{
@@ -860,7 +860,7 @@ func TestIsFieldSymbol(t *testing.T) {
 			ann: &ast_domain.GoGeneratorAnnotation{
 				Symbol: &ast_domain.ResolvedSymbol{
 					Name:              "Name",
-					ReferenceLocation: ast_domain.Location{Line: 0, Column: 0},
+					ReferenceLocation: ast_domain.Location{},
 				},
 				OriginalSourcePath: new("/project/types.go"),
 			},
@@ -1403,9 +1403,7 @@ func TestFormatHoverContentsEnhanced(t *testing.T) {
 			Build()
 
 		expression := &ast_domain.Identifier{Name: "foo"}
-		expression.GoAnnotations = &ast_domain.GoGeneratorAnnotation{
-			ResolvedType: nil,
-		}
+		expression.GoAnnotations = &ast_domain.GoGeneratorAnnotation{}
 		result := document.formatHoverContentsEnhanced(context.Background(), expression, protocol.Position{}, nil)
 		if result != "" {
 			t.Errorf("expected empty string for nil resolved type, got %q", result)
@@ -1519,9 +1517,7 @@ func TestGetTypePreview_NilGuards(t *testing.T) {
 
 		ann := &ast_domain.GoGeneratorAnnotation{
 			OriginalSourcePath: new("/test.go"),
-			ResolvedType: &ast_domain.ResolvedTypeInfo{
-				CanonicalPackagePath: "",
-			},
+			ResolvedType:       &ast_domain.ResolvedTypeInfo{},
 		}
 
 		result := document.getTypePreview(context.Background(), ann, 10)

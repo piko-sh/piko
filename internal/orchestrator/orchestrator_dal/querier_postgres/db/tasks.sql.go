@@ -159,6 +159,62 @@ func (queries *Queries) FetchDueTasks(ctx context.Context, params FetchDueTasksP
 	return results, nil
 }
 
+const gettasksbyid = `SELECT
+  id, workflow_id, executor, priority,
+  payload, config,
+  result, status, execute_at, attempt, last_error, created_at, updated_at, deduplication_key
+FROM orchestrator_tasks
+WHERE
+  id IN ($1);`
+
+type GetTasksByIDParams struct {
+	IDs []string
+}
+type GetTasksByIDRow struct {
+	ID               string  `json:"id"`
+	WorkflowID       string  `json:"workflow_id"`
+	Executor         string  `json:"executor"`
+	Priority         int32   `json:"priority"`
+	Payload          string  `json:"payload"`
+	Config           string  `json:"config"`
+	Result           *string `json:"result"`
+	Status           string  `json:"status"`
+	ExecuteAt        int64   `json:"execute_at"`
+	Attempt          int32   `json:"attempt"`
+	LastError        *string `json:"last_error"`
+	CreatedAt        int64   `json:"created_at"`
+	UpdatedAt        int64   `json:"updated_at"`
+	DeduplicationKey *string `json:"deduplication_key"`
+}
+
+func (queries *Queries) GetTasksByID(ctx context.Context, params GetTasksByIDParams) ([]GetTasksByIDRow, error) {
+	query, expansionError := pikoExpandSlicePlaceholders(gettasksbyid, []pikoSliceExpansionSpec{{Placeholder: 1, Count: len(params.IDs)}})
+	if expansionError != nil {
+		return nil, expansionError
+	}
+	args := make([]any, 0, len(params.IDs))
+	for _, v := range params.IDs {
+		args = append(args, v)
+	}
+	rows, err := queries.reader.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var results []GetTasksByIDRow
+	for rows.Next() {
+		var row GetTasksByIDRow
+		if err := rows.Scan(&row.ID, &row.WorkflowID, &row.Executor, &row.Priority, &row.Payload, &row.Config, &row.Result, &row.Status, &row.ExecuteAt, &row.Attempt, &row.LastError, &row.CreatedAt, &row.UpdatedAt, &row.DeduplicationKey); err != nil {
+			return nil, err
+		}
+		results = append(results, row)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return results, nil
+}
+
 const marktasksasprocessing = `UPDATE orchestrator_tasks
 SET
   status = 'PROCESSING',

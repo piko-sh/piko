@@ -277,11 +277,12 @@ func (p *provider) EncryptStream(_ context.Context, output io.Writer, _ *crypto_
 	}
 
 	header := &crypto_dto.StreamingHeader{
-		Version:   2,
-		KeyID:     p.keyID,
-		Provider:  string(p.Type()),
-		IV:        base64.StdEncoding.EncodeToString(baseIV),
-		Algorithm: "AES-256-GCM",
+		Version:          2,
+		KeyID:            p.keyID,
+		Provider:         string(p.Type()),
+		IV:               base64.StdEncoding.EncodeToString(baseIV),
+		Algorithm:        "AES-256-GCM",
+		EncryptedDataKey: "",
 	}
 
 	if err := WriteStreamingHeader(output, header); err != nil {

@@ -329,8 +329,12 @@ func relockStrategyForTable(strategy LockStrategy, name string) LockStrategy {
 // "ON CONFLICT (version) DO NOTHING" clause. SQLite (in modern versions) accepts the same
 // syntax.
 //
-// Takes versionPlaceholder, namePlaceholder, checksumPlaceholder, durationPlaceholder
-// (string) which are the dialect-specific parameter markers for the four bound columns.
+// Takes versionPlaceholder (string) which is the parameter marker for the version column.
+// Takes namePlaceholder (string) which is the parameter marker for the name column.
+// Takes checksumPlaceholder (string) which is the parameter marker for the checksum
+// column.
+// Takes durationPlaceholder (string) which is the parameter marker for the duration_ms
+// column.
 //
 // Returns string which is the complete INSERT statement.
 func postgresOnConflictSeedInsert(
@@ -346,8 +350,12 @@ func postgresOnConflictSeedInsert(
 // CONFLICT(version) DO NOTHING" clause (no space between ON CONFLICT and the column list,
 // mirroring SQLite's grammar).
 //
-// Takes versionPlaceholder, namePlaceholder, checksumPlaceholder, durationPlaceholder
-// (string) which are the dialect-specific parameter markers for the four bound columns.
+// Takes versionPlaceholder (string) which is the parameter marker for the version column.
+// Takes namePlaceholder (string) which is the parameter marker for the name column.
+// Takes checksumPlaceholder (string) which is the parameter marker for the checksum
+// column.
+// Takes durationPlaceholder (string) which is the parameter marker for the duration_ms
+// column.
 //
 // Returns string which is the complete INSERT statement.
 func sqliteOnConflictSeedInsert(
@@ -364,8 +372,12 @@ func sqliteOnConflictSeedInsert(
 // MySQL 5.7+ also supports "INSERT ... ON DUPLICATE KEY UPDATE", but INSERT IGNORE is the
 // simplest no-op equivalent.
 //
-// Takes versionPlaceholder, namePlaceholder, checksumPlaceholder, durationPlaceholder
-// (string) which are the dialect-specific parameter markers for the four bound columns.
+// Takes versionPlaceholder (string) which is the parameter marker for the version column.
+// Takes namePlaceholder (string) which is the parameter marker for the name column.
+// Takes checksumPlaceholder (string) which is the parameter marker for the checksum
+// column.
+// Takes durationPlaceholder (string) which is the parameter marker for the duration_ms
+// column.
 //
 // Returns string which is the complete INSERT statement.
 func mysqlIgnoreSeedInsert(
@@ -395,8 +407,12 @@ func mysqlIgnoreSeedInsert(
 // INSERT can still emit two rows. ReplacingMergeTree + FINAL handles the read side after
 // such a race. The ClickHouseDialect doc-comment captures this contract.
 //
-// Takes versionPlaceholder, namePlaceholder, checksumPlaceholder, durationPlaceholder
-// (string) which are the dialect-specific parameter markers for the four bound columns.
+// Takes versionPlaceholder (string) which is the parameter marker for the version column.
+// Takes namePlaceholder (string) which is the parameter marker for the name column.
+// Takes checksumPlaceholder (string) which is the parameter marker for the checksum
+// column.
+// Takes durationPlaceholder (string) which is the parameter marker for the duration_ms
+// column.
 //
 // Returns string which is the complete INSERT statement.
 func clickHouseNotExistsSeedInsert(
@@ -460,6 +476,14 @@ func PostgresDialect() DialectConfig {
 		PlaceholderFunc: func(index int) string {
 			return fmt.Sprintf("$%d", index)
 		},
+		DeleteHistorySQLFunc:   nil,
+		PreMigrationStatements: nil,
+		AlterStatements:        nil,
+		SplitStatements:        false,
+		DisableTransactions:    false,
+		AppendOnlyHistory:      false,
+		SelectHistoryFinal:     false,
+		BackslashEscapes:       false,
 	}
 }
 
@@ -496,17 +520,27 @@ func PostgresPgBouncerDialect() DialectConfig {
     lock_id INTEGER NOT NULL PRIMARY KEY DEFAULT 1,
     CONSTRAINT piko_migration_lock_single_row CHECK (lock_id = 1)
 )`,
+			heldTransaction: nil,
 		},
 		SeedLockStrategy: &TableBasedSeedLock{
 			CreateLockTableSQL: `CREATE TABLE IF NOT EXISTS piko_seed_lock (
     lock_id INTEGER NOT NULL PRIMARY KEY DEFAULT 1,
     CONSTRAINT piko_seed_lock_single_row CHECK (lock_id = 1)
 )`,
+			heldTransaction: nil,
 		},
 		InsertSeedSQLFunc: postgresOnConflictSeedInsert,
 		PlaceholderFunc: func(index int) string {
 			return fmt.Sprintf("$%d", index)
 		},
+		DeleteHistorySQLFunc:   nil,
+		PreMigrationStatements: nil,
+		AlterStatements:        nil,
+		SplitStatements:        false,
+		DisableTransactions:    false,
+		AppendOnlyHistory:      false,
+		SelectHistoryFinal:     false,
+		BackslashEscapes:       false,
 	}
 }
 
@@ -535,12 +569,18 @@ func MySQLDialect() DialectConfig {
     applied_at  TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     duration_ms BIGINT       NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
-		LockStrategy:      &MySQLAdvisoryLock{LockKey: DefaultHistoryTableName},
-		SeedLockStrategy:  &MySQLAdvisorySeedLock{},
-		InsertSeedSQLFunc: mysqlIgnoreSeedInsert,
-		PlaceholderFunc:   func(_ int) string { return "?" },
-		SplitStatements:   true,
-		BackslashEscapes:  true,
+		LockStrategy:           &MySQLAdvisoryLock{LockKey: DefaultHistoryTableName},
+		SeedLockStrategy:       &MySQLAdvisorySeedLock{},
+		InsertSeedSQLFunc:      mysqlIgnoreSeedInsert,
+		PlaceholderFunc:        func(_ int) string { return "?" },
+		SplitStatements:        true,
+		BackslashEscapes:       true,
+		DeleteHistorySQLFunc:   nil,
+		PreMigrationStatements: nil,
+		AlterStatements:        nil,
+		DisableTransactions:    false,
+		AppendOnlyHistory:      false,
+		SelectHistoryFinal:     false,
 	}
 }
 
@@ -613,16 +653,18 @@ func ClickHouseDialect() DialectConfig {
     applied_at  DateTime64(6) NOT NULL DEFAULT now64(),
     duration_ms Int64         NOT NULL
 ) ENGINE = ReplacingMergeTree(applied_at) ORDER BY version`,
-		LockStrategy:         &NoOpLock{},
-		SeedLockStrategy:     &NoOpLock{},
-		InsertSeedSQLFunc:    clickHouseNotExistsSeedInsert,
-		DeleteHistorySQLFunc: clickHouseDeleteHistory,
-		PlaceholderFunc:      func(_ int) string { return "?" },
-		SplitStatements:      true,
-		DisableTransactions:  true,
-		AppendOnlyHistory:    true,
-		SelectHistoryFinal:   true,
-		BackslashEscapes:     true,
+		LockStrategy:           &NoOpLock{},
+		SeedLockStrategy:       &NoOpLock{},
+		InsertSeedSQLFunc:      clickHouseNotExistsSeedInsert,
+		DeleteHistorySQLFunc:   clickHouseDeleteHistory,
+		PlaceholderFunc:        func(_ int) string { return "?" },
+		SplitStatements:        true,
+		DisableTransactions:    true,
+		AppendOnlyHistory:      true,
+		SelectHistoryFinal:     true,
+		BackslashEscapes:       true,
+		PreMigrationStatements: nil,
+		AlterStatements:        nil,
 	}
 }
 
@@ -650,9 +692,17 @@ func SQLiteDialect() DialectConfig {
     applied_at  TEXT    NOT NULL DEFAULT (datetime('now')),
     duration_ms INTEGER NOT NULL
 )`,
-		LockStrategy:      &NoOpLock{},
-		SeedLockStrategy:  &NoOpLock{},
-		InsertSeedSQLFunc: sqliteOnConflictSeedInsert,
-		PlaceholderFunc:   func(_ int) string { return "?" },
+		LockStrategy:           &NoOpLock{},
+		SeedLockStrategy:       &NoOpLock{},
+		InsertSeedSQLFunc:      sqliteOnConflictSeedInsert,
+		PlaceholderFunc:        func(_ int) string { return "?" },
+		DeleteHistorySQLFunc:   nil,
+		PreMigrationStatements: nil,
+		AlterStatements:        nil,
+		SplitStatements:        false,
+		DisableTransactions:    false,
+		AppendOnlyHistory:      false,
+		SelectHistoryFinal:     false,
+		BackslashEscapes:       false,
 	}
 }

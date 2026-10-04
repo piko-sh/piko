@@ -81,10 +81,10 @@ func (d *document) getPKCStatePropertyHover(ctx *PKHoverContext) (*protocol.Hove
 	}
 
 	var parts []string
-	parts = append(parts, fmt.Sprintf("**state.%s** `%s`", prop.Name, typeString))
+	parts = append(parts, fmt.Sprintf("**state.%s** %s", prop.Name, markdownCode(typeString)))
 
 	if prop.InitialValue != "" {
-		parts = append(parts, fmt.Sprintf("Default: `%s`", prop.InitialValue))
+		parts = append(parts, fmt.Sprintf("Default: %s", markdownCode(prop.InitialValue)))
 	}
 
 	return &protocol.Hover{
@@ -106,12 +106,12 @@ func (d *document) getPKCStatePropertyHover(ctx *PKHoverContext) (*protocol.Hove
 func (d *document) getPKCHandlerHover(ctx *PKHoverContext) (*protocol.Hover, error) {
 	meta := d.getPKCMetadata()
 	if meta == nil {
-		return d.makeSimpleHover(ctx, fmt.Sprintf("Event handler `%s`", ctx.Name))
+		return d.makeSimpleHover(ctx, fmt.Sprintf("Event handler %s", markdownCode(ctx.Name)))
 	}
 
 	function, exists := meta.Functions[ctx.Name]
 	if !exists {
-		return d.makeSimpleHover(ctx, fmt.Sprintf("Event handler `%s`", ctx.Name))
+		return d.makeSimpleHover(ctx, fmt.Sprintf("Event handler %s", markdownCode(ctx.Name)))
 	}
 
 	params := strings.Join(function.ParamNames, ", ")

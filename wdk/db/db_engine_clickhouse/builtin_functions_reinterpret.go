@@ -110,7 +110,7 @@ func registerFormatRowAndStringNullableHelpers(b *FunctionCatalogueBuilder) {
 //
 // Takes b (*FunctionCatalogueBuilder) which receives the registered signatures.
 func registerBFloat16Conversions(b *FunctionCatalogueBuilder) {
-	bfloat16Type := querier_dto.SQLType{Category: querier_dto.TypeCategoryFloat, EngineName: "BFloat16"}
+	bfloat16Type := querier_dto.NewSQLType(querier_dto.TypeCategoryFloat, "BFloat16")
 	b.Register("toBFloat16", bfloat16Type, b.unknownType)
 	for _, suffix := range safetyConversionSuffixes {
 		b.Register("toBFloat16"+suffix, bfloat16Type, b.unknownType)

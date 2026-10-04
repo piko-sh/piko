@@ -437,7 +437,8 @@ func findBlockInParts(parts []js_ast.Part) *js_ast.SBlock {
 //
 // Returns js_ast.Stmt which is the parsed statement.
 // Returns *js_ast.AST which is the full AST for further processing.
-// Returns error when parsing fails or no statement is found in the snippet.
+// Returns error when parsing fails, or one wrapping errStatementElided when the snippet
+// parses cleanly but the TypeScript parser removes every statement in it.
 func parseModuleLevelStatement(ctx context.Context, snippet string) (js_ast.Stmt, *js_ast.AST, error) {
 	trimmedSnippet := strings.TrimSpace(snippet)
 
@@ -459,7 +460,7 @@ func parseModuleLevelStatement(ctx context.Context, snippet string) (js_ast.Stmt
 		return statement, parsedAST, nil
 	}
 
-	return js_ast.Stmt{}, nil, fmt.Errorf("no statement found in module snippet: %q", snippet)
+	return js_ast.Stmt{}, nil, fmt.Errorf("module snippet %q: %w", snippet, errStatementElided)
 }
 
 // findStatementInParts searches through all parts for any statement with data.

@@ -123,7 +123,7 @@ func TestIsPositionInAttributeRange(t *testing.T) {
 		},
 		{
 			name:     "position before range",
-			position: protocol.Position{Line: 0, Character: 0},
+			position: protocol.Position{},
 			attributeRange: ast_domain.Range{
 				Start: ast_domain.Location{Line: 1, Column: 3},
 				End:   ast_domain.Location{Line: 1, Column: 20},
@@ -140,13 +140,10 @@ func TestIsPositionInAttributeRange(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:     "synthetic range",
-			position: protocol.Position{Line: 0, Character: 5},
-			attributeRange: ast_domain.Range{
-				Start: ast_domain.Location{Line: 0, Column: 0},
-				End:   ast_domain.Location{Line: 0, Column: 0},
-			},
-			expected: false,
+			name:           "synthetic range",
+			position:       protocol.Position{Line: 0, Character: 5},
+			attributeRange: ast_domain.Range{},
+			expected:       false,
 		},
 	}
 

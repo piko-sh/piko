@@ -180,7 +180,15 @@ func parseGenericAction(tagName string, attrs map[string]string, currentTime flo
 			params[k] = v
 		}
 	}
-	return &timelineAction{Time: currentTime, Action: action, Ref: ref, Params: params}, nil
+	return &timelineAction{
+		Time:   currentTime,
+		Action: action,
+		Ref:    ref,
+		Params: params,
+		Class:  "",
+		Value:  "",
+		Speed:  0,
+	}, nil
 }
 
 // parseAtDirective handles a <piko:at time="..."> element by updating the current time
@@ -223,7 +231,15 @@ func parseRefAction(tagName string, attrs map[string]string, currentTime float64
 		return nil, fmt.Errorf("%s element missing required 'ref' attribute", tagName)
 	}
 	action := strings.TrimPrefix(tagName, pikoTagPrefix)
-	return &timelineAction{Time: currentTime, Action: action, Ref: ref}, nil
+	return &timelineAction{
+		Time:   currentTime,
+		Action: action,
+		Ref:    ref,
+		Params: nil,
+		Class:  "",
+		Value:  "",
+		Speed:  0,
+	}, nil
 }
 
 // parseTypingAction handles <piko:type> and <piko:typehtml> elements that have a ref and
@@ -244,7 +260,7 @@ func parseTypingAction(tagName string, attrs map[string]string, currentTime floa
 		return nil, fmt.Errorf("%s element missing required 'ref' attribute", tagName)
 	}
 	action := strings.TrimPrefix(tagName, pikoTagPrefix)
-	a := &timelineAction{Time: currentTime, Action: action, Ref: ref}
+	a := &timelineAction{Time: currentTime, Action: action, Ref: ref, Params: nil, Class: "", Value: "", Speed: 0}
 	if speedStr, hasSpeed := attrs["speed"]; hasSpeed {
 		speed, err := strconv.ParseFloat(speedStr, 64)
 		if err != nil {
@@ -277,7 +293,15 @@ func parseClassAction(tagName string, attrs map[string]string, currentTime float
 		return nil, fmt.Errorf("%s element missing required 'class' attribute", tagName)
 	}
 	action := strings.TrimPrefix(tagName, pikoTagPrefix)
-	return &timelineAction{Time: currentTime, Action: action, Ref: ref, Class: class}, nil
+	return &timelineAction{
+		Time:   currentTime,
+		Action: action,
+		Ref:    ref,
+		Class:  class,
+		Params: nil,
+		Value:  "",
+		Speed:  0,
+	}, nil
 }
 
 // parseTooltipAction handles <piko:tooltip> elements that require a ref and have an
@@ -296,7 +320,15 @@ func parseTooltipAction(attrs map[string]string, currentTime float64, insideAt b
 	if !ok {
 		return nil, errors.New("piko:tooltip element missing required 'ref' attribute")
 	}
-	return &timelineAction{Time: currentTime, Action: "tooltip", Ref: ref, Value: attrs["value"]}, nil
+	return &timelineAction{
+		Time:   currentTime,
+		Action: "tooltip",
+		Ref:    ref,
+		Value:  attrs["value"],
+		Params: nil,
+		Class:  "",
+		Speed:  0,
+	}, nil
 }
 
 // parseTimeValue converts a time string to seconds, supporting "s", "ms", or bare number

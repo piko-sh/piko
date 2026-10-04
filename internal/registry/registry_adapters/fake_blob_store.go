@@ -69,11 +69,12 @@ func (m *MockBlobStore) Check(_ context.Context, _ healthprobe_dto.CheckType) he
 	startTime := time.Now()
 
 	return healthprobe_dto.Status{
-		Name:      m.Name(),
-		State:     healthprobe_dto.StateHealthy,
-		Message:   "Mock blob store operational",
-		Timestamp: time.Now(),
-		Duration:  time.Since(startTime).String(),
+		Name:         m.Name(),
+		State:        healthprobe_dto.StateHealthy,
+		Message:      "Mock blob store operational",
+		Timestamp:    time.Now(),
+		Duration:     time.Since(startTime).String(),
+		Dependencies: nil,
 	}
 }
 

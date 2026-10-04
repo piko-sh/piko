@@ -574,7 +574,7 @@ func findDefaultSlotLocation(nodes []*ast_domain.TemplateNode) ast_domain.Locati
 	if len(nodes) > 0 {
 		return nodes[0].Location
 	}
-	return ast_domain.Location{Line: 0, Column: 0, Offset: 0}
+	return ast_domain.Location{}
 }
 
 // processExpandedNodes applies partial invocation info and invoker attributes to expanded
@@ -615,7 +615,7 @@ func processExpandedNodes(expandedNodes []*ast_domain.TemplateNode, invokerNode 
 	}
 	applyInvokerAttributesToExpandedRoot(fragmentNode, invokerNode)
 
-	zeroLocation := ast_domain.Location{Line: 0, Column: 0, Offset: 0}
+	zeroLocation := ast_domain.Location{}
 	zeroRange := ast_domain.Range{Start: zeroLocation, End: zeroLocation}
 	for i, elementNode := range effectiveRootElements {
 		elementNode.Attributes = append(elementNode.Attributes,

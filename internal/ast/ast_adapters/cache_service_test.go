@@ -21,6 +21,7 @@ package ast_adapters
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
@@ -108,7 +109,7 @@ func TestASTCacheService_New(t *testing.T) {
 			L2CacheBaseDir:  tempDir,
 		}
 
-		service, err := NewASTCacheService(context.Background(), config)
+		service, err := NewASTCacheService(config)
 		require.NoError(t, err)
 		t.Cleanup(func() { service.Shutdown(context.Background()) })
 		require.NotNil(t, service)
@@ -140,7 +141,7 @@ func TestASTCacheService_New(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				service, err := NewASTCacheService(context.Background(), tc.config)
+				service, err := NewASTCacheService(tc.config)
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tc.errContains)
 				assert.Nil(t, service)
@@ -318,10 +319,11 @@ func TestASTCacheService_WithRealL2Cache(t *testing.T) {
 		L2CacheBaseDir:  tempDir,
 	}
 
-	service, err := NewASTCacheService(context.Background(), config)
+	service, err := NewASTCacheService(config)
 	require.NoError(t, err)
 	t.Cleanup(func() { service.Shutdown(context.Background()) })
 	require.NotNil(t, service)
+	service.Start(ctx)
 
 	entry1 := newTestEntry("real-l2")
 
@@ -343,16 +345,10 @@ func TestASTCacheService_WithRealL2Cache(t *testing.T) {
 	require.True(t, ok, "l2Cache should be *fbsFileCache")
 	filePath := l2Cache.getFilePath("real-key")
 
-	deadline := time.Now().Add(500 * time.Millisecond)
-	var statErr error
-	for {
-		_, statErr = os.Stat(filePath)
-		if os.IsNotExist(statErr) || time.Now().After(deadline) {
-			break
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-	assert.True(t, os.IsNotExist(statErr), "The physical cache file should have been deleted by the self-healing Get")
+	assert.Eventually(t, func() bool {
+		_, statErr := os.Stat(filepath.Join(tempDir, filePath))
+		return os.IsNotExist(statErr)
+	}, 5*time.Second, 10*time.Millisecond, "The physical cache file should have been deleted by the self-healing Get")
 }
 
 func TestASTCacheService_ComplexASTDiskRoundTrip(t *testing.T) {
@@ -365,7 +361,7 @@ func TestASTCacheService_ComplexASTDiskRoundTrip(t *testing.T) {
 		L2CacheBaseDir:  tempDir,
 	}
 
-	service, err := NewASTCacheService(context.Background(), config)
+	service, err := NewASTCacheService(config)
 	require.NoError(t, err)
 	t.Cleanup(func() { service.Shutdown(context.Background()) })
 

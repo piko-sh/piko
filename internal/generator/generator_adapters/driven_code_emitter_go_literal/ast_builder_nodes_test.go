@@ -22,6 +22,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
@@ -387,6 +389,112 @@ func TestFragmentHasDynamicFeatures(t *testing.T) {
 			got := builder.fragmentHasDynamicFeatures(tc.node)
 
 			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
+func TestAstBuilder_AddPartialMetadataToNode(t *testing.T) {
+	t.Parallel()
+
+	const sourcePath = "partials/card.pk"
+
+	newResult := func(isPublic bool, nested *annotator_dto.VirtualComponent) *annotator_dto.AnnotationResult {
+		path := sourcePath
+		components := map[string]*annotator_dto.VirtualComponent{
+			"partials_card_1111": {
+				HashedName:  "partials_card_1111",
+				PartialName: "partials-card",
+				PartialSrc:  "/_piko/partial/partials-card",
+				IsPublic:    isPublic,
+			},
+		}
+		if nested != nil {
+			components[nested.HashedName] = nested
+		}
+		return &annotator_dto.AnnotationResult{
+			AnnotatedAST: &ast_domain.TemplateAST{SourcePath: &path},
+			VirtualModule: &annotator_dto.VirtualModule{
+				ComponentsByHash: components,
+				Graph: &annotator_dto.ComponentGraph{
+					PathToHashedName: map[string]string{sourcePath: "partials_card_1111"},
+				},
+			},
+		}
+	}
+
+	nestedComponent := &annotator_dto.VirtualComponent{
+		HashedName:  "partials_inner_2222",
+		PartialName: "partials-inner",
+		PartialSrc:  "/_piko/partial/partials-inner",
+		IsPublic:    true,
+	}
+
+	testCases := []struct {
+		result    *annotator_dto.AnnotationResult
+		node      *ast_domain.TemplateNode
+		wantAttrs map[string]string
+		name      string
+	}{
+		{
+			name:   "public partial adds name, scope and source",
+			result: newResult(true, nil),
+			node:   &ast_domain.TemplateNode{TagName: "div", NodeType: ast_domain.NodeElement},
+			wantAttrs: map[string]string{
+				"partial":      "partials_card_1111",
+				"partial_name": "partials-card",
+				"partial_src":  "/_piko/partial/partials-card",
+			},
+		},
+		{
+			name:   "private partial omits the source",
+			result: newResult(false, nil),
+			node:   &ast_domain.TemplateNode{TagName: "div", NodeType: ast_domain.NodeElement},
+			wantAttrs: map[string]string{
+				"partial":      "partials_card_1111",
+				"partial_name": "partials-card",
+			},
+		},
+		{
+			name:   "nested partial root accumulates both partials",
+			result: newResult(true, nestedComponent),
+			node: &ast_domain.TemplateNode{
+				TagName:  "div",
+				NodeType: ast_domain.NodeElement,
+				GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+					PartialInfo: &ast_domain.PartialInvocationInfo{PartialPackageName: "partials_inner_2222"},
+				},
+			},
+			wantAttrs: map[string]string{
+				"partial":      "partials_card_1111 partials_inner_2222",
+				"partial_name": "partials-card partials-inner",
+				"partial_src":  "/_piko/partial/partials-card /_piko/partial/partials-inner",
+			},
+		},
+		{
+			name:      "missing main component leaves the clone unchanged",
+			result:    &annotator_dto.AnnotationResult{},
+			node:      &ast_domain.TemplateNode{TagName: "div", NodeType: ast_domain.NodeElement},
+			wantAttrs: map[string]string{},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			em := requireEmitter(t)
+			em.AnnotationResult = tc.result
+
+			prepared := em.astBuilder.addPartialMetadataToNode(tc.node)
+
+			require.NotSame(t, tc.node, prepared)
+			assert.Empty(t, tc.node.Attributes, "the original node must not be modified")
+			gotAttrs := make(map[string]string, len(prepared.Attributes))
+			for _, attribute := range prepared.Attributes {
+				assert.Equal(t, ast_domain.Location{}, attribute.Location)
+				gotAttrs[attribute.Name] = attribute.Value
+			}
+			assert.Equal(t, tc.wantAttrs, gotAttrs)
 		})
 	}
 }

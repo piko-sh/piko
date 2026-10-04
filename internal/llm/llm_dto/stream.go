@@ -113,8 +113,11 @@ type FunctionCallDelta struct {
 // Returns StreamEvent which is set up as a chunk event.
 func NewChunkEvent(chunk *StreamChunk) StreamEvent {
 	return StreamEvent{
-		Type:  StreamEventChunk,
-		Chunk: chunk,
+		Type:          StreamEventChunk,
+		Chunk:         chunk,
+		Error:         nil,
+		FinalResponse: nil,
+		Done:          false,
 	}
 }
 
@@ -129,6 +132,8 @@ func NewDoneEvent(finalResponse *CompletionResponse) StreamEvent {
 		Type:          StreamEventDone,
 		Done:          true,
 		FinalResponse: finalResponse,
+		Error:         nil,
+		Chunk:         nil,
 	}
 }
 
@@ -139,7 +144,10 @@ func NewDoneEvent(finalResponse *CompletionResponse) StreamEvent {
 // Returns StreamEvent which is set up as an error event.
 func NewErrorEvent(err error) StreamEvent {
 	return StreamEvent{
-		Type:  StreamEventError,
-		Error: err,
+		Type:          StreamEventError,
+		Error:         err,
+		Chunk:         nil,
+		FinalResponse: nil,
+		Done:          false,
 	}
 }

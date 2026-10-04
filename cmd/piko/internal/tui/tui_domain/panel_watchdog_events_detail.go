@@ -29,7 +29,8 @@ import (
 // full event message, fields, and timestamp are shown; otherwise an event-stream summary
 // is rendered.
 //
-// Takes width (int) and height (int) which are the inner dimensions of the detail pane.
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 //
 // Returns string with the rendered body.
 func (p *WatchdogEventsPanel) DetailView(width, height int) string {
@@ -57,16 +58,16 @@ func (p *WatchdogEventsPanel) buildDetailBody() inspector.DetailBody {
 // Returns inspector.DetailBody describing the event metadata and field map.
 func watchdogEventDetailBody(ev WatchdogEvent) inspector.DetailBody {
 	rows := []inspector.DetailRow{
-		{Label: "Type", Value: string(ev.EventType)},
-		{Label: "Priority", Value: priorityLabel(ev.Priority)},
-		{Label: "Emitted", Value: inspector.FormatDetailTime(ev.EmittedAt)},
-		{Label: "Category", Value: categoryLabel(ev.Category())},
+		inspector.NewDetailRow("Type", string(ev.EventType)),
+		inspector.NewDetailRow("Priority", priorityLabel(ev.Priority)),
+		inspector.NewDetailRow("Emitted", inspector.FormatDetailTime(ev.EmittedAt)),
+		inspector.NewDetailRow("Category", categoryLabel(ev.Category())),
 	}
 	if ev.Message != "" {
-		rows = append(rows, inspector.DetailRow{Label: "Message", Value: ev.Message})
+		rows = append(rows, inspector.NewDetailRow("Message", ev.Message))
 	}
 
-	sections := []inspector.DetailSection{{Heading: "Event", Rows: rows}}
+	sections := []inspector.DetailSection{inspector.NewDetailSection("Event", rows)}
 	if len(ev.Fields) > 0 {
 		fieldRows := make([]inspector.DetailRow, 0, len(ev.Fields))
 		keys := make([]string, 0, len(ev.Fields))
@@ -75,9 +76,9 @@ func watchdogEventDetailBody(ev WatchdogEvent) inspector.DetailBody {
 		}
 		slices.Sort(keys)
 		for _, k := range keys {
-			fieldRows = append(fieldRows, inspector.DetailRow{Label: k, Value: ev.Fields[k]})
+			fieldRows = append(fieldRows, inspector.NewDetailRow(k, ev.Fields[k]))
 		}
-		sections = append(sections, inspector.DetailSection{Heading: "Fields", Rows: fieldRows})
+		sections = append(sections, inspector.NewDetailSection("Fields", fieldRows))
 	}
 
 	return inspector.DetailBody{
@@ -106,15 +107,15 @@ func (p *WatchdogEventsPanel) eventsOverviewDetailBody() inspector.DetailBody {
 	}
 
 	rows := []inspector.DetailRow{
-		{Label: "Visible", Value: fmt.Sprintf(FormatPercentInt, len(p.visibleEvents()))},
-		{Label: "Total received", Value: fmt.Sprintf(FormatPercentInt, total)},
-		{Label: "Stream", Value: state},
-		{Label: "Min priority", Value: priorityLabel(minPrio)},
+		inspector.NewDetailRow("Visible", fmt.Sprintf(FormatPercentInt, len(p.visibleEvents()))),
+		inspector.NewDetailRow("Total received", fmt.Sprintf(FormatPercentInt, total)),
+		inspector.NewDetailRow("Stream", state),
+		inspector.NewDetailRow("Min priority", priorityLabel(minPrio)),
 	}
 	return inspector.DetailBody{
 		Title:    "Event stream",
 		Subtitle: state,
-		Sections: []inspector.DetailSection{{Heading: "Status", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Status", rows)},
 	}
 }
 

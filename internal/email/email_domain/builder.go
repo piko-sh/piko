@@ -140,9 +140,10 @@ func (b *baseEmailBuilder) Subject(subject string) *baseEmailBuilder {
 // Returns *baseEmailBuilder for method chaining.
 func (b *baseEmailBuilder) Attachment(filename, mimeType string, content []byte) *baseEmailBuilder {
 	b.params.Attachments = append(b.params.Attachments, email_dto.Attachment{
-		Filename: filename,
-		MIMEType: mimeType,
-		Content:  content,
+		Filename:  filename,
+		MIMEType:  mimeType,
+		Content:   content,
+		ContentID: "",
 	})
 	return b
 }
@@ -512,10 +513,18 @@ func (b *TemplatedEmailBuilder[PropsT]) getPremailerOptions() premailer.Options 
 		return *b.premailerOptions
 	}
 	return premailer.Options{
-		ExpandShorthands:      true,
-		MakeLeftoverImportant: true,
-		KeepBangImportant:     true,
-		Theme:                 map[string]string{},
+		ExpandShorthands:         true,
+		MakeLeftoverImportant:    true,
+		KeepBangImportant:        true,
+		Theme:                    map[string]string{},
+		LinkQueryParams:          nil,
+		ExternalCSS:              "",
+		RemoveClasses:            false,
+		RemoveIDs:                false,
+		ResolvePseudoElements:    false,
+		SkipEmailValidation:      false,
+		SkipHTMLAttributeMapping: false,
+		SkipStyleExtraction:      false,
 	}
 }
 
@@ -735,9 +744,15 @@ func (b *TemplatedEmailBuilder[PropsT]) Clone() *TemplatedEmailBuilder[PropsT] {
 // Returns email_dto.SendParams which is an independent copy of the input.
 func buildParamsCopy(params *email_dto.SendParams) email_dto.SendParams {
 	paramsCopy := email_dto.SendParams{
-		Subject:   params.Subject,
-		BodyHTML:  params.BodyHTML,
-		BodyPlain: params.BodyPlain,
+		Subject:         params.Subject,
+		BodyHTML:        params.BodyHTML,
+		BodyPlain:       params.BodyPlain,
+		From:            nil,
+		ProviderOptions: nil,
+		To:              nil,
+		Cc:              nil,
+		Bcc:             nil,
+		Attachments:     nil,
 	}
 
 	if params.From != nil {

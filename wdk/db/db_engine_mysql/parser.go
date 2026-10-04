@@ -24,6 +24,7 @@ import (
 	"strconv"
 	"strings"
 
+	"piko.sh/piko/internal/querier/querier_adapters/engine_shared"
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
@@ -123,6 +124,10 @@ var (
 	// errAnalysisDepthExceeded is the sentinel returned when parser recursion exceeds the
 	// configured maximum parse depth.
 	errAnalysisDepthExceeded = errors.New("mysql: analysis recursion depth exceeded")
+
+	// errExpressionDepthExceeded is the sentinel recorded when an expression nests deeper
+	// than the configured maximum parse depth.
+	errExpressionDepthExceeded = errors.New("mysql: expression nesting depth exceeded")
 )
 
 // parsedStatement bundles a token slice with its classified statement kind.
@@ -141,6 +146,10 @@ func (*parsedStatement) IsParsedStatement() {}
 // parser holds the mutable state required to walk a single SQL statement and accumulate
 // parameter and table references.
 type parser struct {
+	// parenthesisIndex answers the enclosing-parenthesis and enclosing-LIKE lookups the
+	// parameter-context scans make; nil until first used.
+	parenthesisIndex *engine_shared.ParenthesisScanIndex
+
 	// namedParameterMap maps named parameter labels to their assigned sequential numbers.
 	namedParameterMap map[string]int
 
@@ -155,6 +164,11 @@ type parser struct {
 
 	// parameterRefs accumulates references to bind parameters encountered during parsing.
 	parameterRefs []querier_dto.RawParameterReference
+
+	// syntaxError holds the first syntax error met by a parsing step that has no error
+	// return of its own, such as the expression chain. The engine returns it once the
+	// statement has been walked; nil when no such error occurred.
+	syntaxError error
 
 	// rawDerivedTables collects parsed derived (subquery) table references.
 	rawDerivedTables []querier_dto.RawDerivedTableReference
@@ -214,9 +228,24 @@ type parser struct {
 // Returns *parser which is ready to analyse the statement.
 func newParser(tokens []token) *parser {
 	return &parser{
-		tokens:            tokens,
-		maxParseDepth:     defaultMaxParseDepth,
-		namedParameterMap: make(map[string]int),
+		parenthesisIndex:        nil,
+		tokens:                  tokens,
+		maxParseDepth:           defaultMaxParseDepth,
+		namedParameterMap:       make(map[string]int),
+		insertProjectionTable:   "",
+		parameterRefs:           nil,
+		syntaxError:             nil,
+		rawDerivedTables:        nil,
+		predicateSubqueries:     nil,
+		rawTableValuedFunctions: nil,
+		insertProjectionColumns: nil,
+		position:                0,
+		parameterCount:          0,
+		analysisDepth:           0,
+		expressionDepth:         0,
+		insertProjectionIndex:   0,
+		hasForUpdate:            false,
+		hasDataModifyingCTE:     false,
 	}
 }
 
@@ -259,7 +288,8 @@ type statementSplitter struct {
 //
 // Returns [][]token which contains one entry per discovered statement.
 func splitStatements(tokens []token) [][]token {
-	splitter := &statementSplitter{tokens: tokens}
+	splitter := &statementSplitter{}
+	splitter.tokens = tokens
 	splitter.run()
 	return splitter.statements
 }
@@ -669,7 +699,7 @@ func classifyDMLKeyword(value string) (statementKind, bool) {
 // Returns token which is the current token or an EOF sentinel.
 func (p *parser) current() token {
 	if p.position >= len(p.tokens) {
-		return token{kind: tokenEOF}
+		return token{kind: tokenEOF, value: "", position: 0}
 	}
 	return p.tokens[p.position]
 }
@@ -680,7 +710,7 @@ func (p *parser) current() token {
 // Returns token which is the look-ahead token or an EOF sentinel.
 func (p *parser) peek() token {
 	if p.position+1 >= len(p.tokens) {
-		return token{kind: tokenEOF}
+		return token{kind: tokenEOF, value: "", position: 0}
 	}
 	return p.tokens[p.position+1]
 }
@@ -836,6 +866,10 @@ func (p *parser) skipParenthesised() error {
 // collectParenthesised consumes a balanced parenthesised group and returns the tokens it
 // contained, excluding the outer parentheses.
 //
+// The result is a capacity-capped view of the statement's own token slice rather than a
+// copy, so nested groups cost no allocation per level and an append by the caller cannot
+// overwrite the tokens that follow the group.
+//
 // Returns []token which is the slice of inner tokens.
 // Returns error when the opening parenthesis is missing or the group is unmatched.
 func (p *parser) collectParenthesised() ([]token, error) {
@@ -843,58 +877,69 @@ func (p *parser) collectParenthesised() ([]token, error) {
 		return nil, fmt.Errorf("expected '(' at position %d", p.current().position)
 	}
 	p.advance()
-	var inner []token
+	start := p.position
 	depth := 1
 	for depth > 0 && !p.atEnd() {
-		tok := p.current()
-		switch tok.kind { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
+		switch p.current().kind { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		case tokenLeftParen:
 			depth++
 		case tokenRightParen:
 			depth--
 			if depth == 0 {
+				end := p.position
 				p.advance()
-				return inner, nil
+				return p.tokens[start:end:end], nil
 			}
 		}
-		inner = append(inner, tok)
 		p.advance()
 	}
 	return nil, errUnmatchedParenthesis
 }
 
-// mustKeyword consumes one of the supplied keywords and panics when none match.
+// skipParenthesisedIfPresent consumes a balanced parenthesised group when the current
+// token is an opening parenthesis.
 //
-// Takes keywords (...string) which lists the acceptable keywords.
+// Returns error when the group is unmatched.
+func (p *parser) skipParenthesisedIfPresent() error {
+	if p.current().kind != tokenLeftParen {
+		return nil
+	}
+	return p.skipParenthesised()
+}
+
+// expectKeywordSequence consumes each of keywords in order, as in `DROP TABLE` or `DROP
+// TRIGGER`.
 //
-// Panics when the current token does not match any of the keywords.
-func (p *parser) mustKeyword(keywords ...string) {
-	if _, err := p.expectKeyword(keywords...); err != nil {
-		panic(fmt.Errorf("mustKeyword %v: %w", keywords, err))
+// Takes keywords (...string) which are the keywords that must follow one another.
+//
+// Returns error when any keyword in the sequence is missing.
+func (p *parser) expectKeywordSequence(keywords ...string) error {
+	for _, keyword := range keywords {
+		if _, err := p.expectKeyword(keyword); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// recordSyntaxError remembers err as the statement's syntax error unless an earlier one
+// is already held, so the first problem met is the one reported.
+//
+// Takes err (error) which is the syntax error met by a step without an error return.
+func (p *parser) recordSyntaxError(err error) {
+	if p.syntaxError == nil {
+		p.syntaxError = err
 	}
 }
 
-// mustSkipParenthesised skips a parenthesised group and panics on failure.
+// adoptSyntaxError carries a child parser's syntax error into this parser so a problem
+// inside a subquery, CTE, or derived table is reported for the whole statement.
 //
-// Panics when the group is malformed or the opening parenthesis is missing.
-func (p *parser) mustSkipParenthesised() {
-	if err := p.skipParenthesised(); err != nil {
-		panic(fmt.Errorf("mustSkipParenthesised: %w", err))
+// Takes child (*parser) which is the finished child parser.
+func (p *parser) adoptSyntaxError(child *parser) {
+	if child.syntaxError != nil {
+		p.recordSyntaxError(child.syntaxError)
 	}
-}
-
-// mustSchemaQualifiedName parses a schema-qualified name and panics on failure.
-//
-// Returns schema (string) which is the database qualifier or empty.
-// Returns name (string) which is the parsed identifier.
-//
-// Panics when no identifier can be parsed at the current position.
-func (p *parser) mustSchemaQualifiedName() (schema string, name string) {
-	schema, name, err := p.parseSchemaQualifiedName()
-	if err != nil {
-		panic(fmt.Errorf("mustSchemaQualifiedName: %w", err))
-	}
-	return schema, name
 }
 
 // functionArgumentMetadata carries the enclosing function name and the zero-based
@@ -1011,6 +1056,7 @@ func (p *parser) registerNumberedQuestionMark(
 		CastType:              castType,
 		EnclosingFunctionName: functionArgument.enclosingFunctionName,
 		ArgumentOrdinal:       functionArgument.argumentOrdinal,
+		Name:                  "",
 	})
 	return number
 }
@@ -1043,6 +1089,7 @@ func (p *parser) registerSequentialParameter(
 		CastType:              castType,
 		EnclosingFunctionName: functionArgument.enclosingFunctionName,
 		ArgumentOrdinal:       functionArgument.argumentOrdinal,
+		Name:                  "",
 	})
 	return number
 }

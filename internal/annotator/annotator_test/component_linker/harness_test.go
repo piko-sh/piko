@@ -290,6 +290,7 @@ func assertNode(t *testing.T, linkedAST *ast_domain.TemplateAST, assertion NodeA
 
 func generateAndCheckGoldenFiles(t *testing.T, tc testCase, fullAst *ast_domain.TemplateAST, srcRootPath string) {
 	sanitisedAST := ast_domain.SanitiseForEncoding(fullAst, srcRootPath)
+	ast_domain.SortAttributesByName(sanitisedAST)
 	actualASTDump := ast_domain.DumpAST(context.Background(), sanitisedAST)
 	actualASTCompile := ast_domain.SerialiseASTToGoFileContent(sanitisedAST, "test")
 

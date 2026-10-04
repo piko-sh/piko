@@ -297,23 +297,19 @@ func TestMockSignalNotifier_ConcurrentAccess(t *testing.T) {
 
 	const goroutines = 50
 	var wg sync.WaitGroup
-	wg.Add(goroutines * 3)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			ctx, cancel := mock.NotifyContext(context.Background())
 			defer cancel()
 			_ = ctx.Err()
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			_ = mock.WasTriggered()
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			_ = mock.NotifyContextCalled()
-		}()
+		})
 	}
 
 	wg.Wait()

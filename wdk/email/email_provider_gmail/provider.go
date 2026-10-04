@@ -247,10 +247,12 @@ func (p *GmailProvider) SendBulk(ctx context.Context, emails []*email_dto.SendPa
 				logger.String("subject", email.Subject))
 
 			emailError := &email_domain.EmailError{
-				Email:       *email,
-				Error:       err,
-				Attempt:     1,
-				LastAttempt: time.Now(),
+				Email:        *email,
+				Error:        err,
+				Attempt:      1,
+				LastAttempt:  time.Now(),
+				FirstAttempt: time.Time{},
+				NextRetry:    time.Time{},
 			}
 
 			if multiError == nil {
@@ -295,30 +297,33 @@ func (p *GmailProvider) Check(_ context.Context, checkType healthprobe_dto.Check
 
 	if checkType == healthprobe_dto.CheckTypeLiveness {
 		return healthprobe_dto.Status{
-			Name:      p.Name(),
-			State:     healthprobe_dto.StateHealthy,
-			Message:   "Gmail provider operational",
-			Timestamp: time.Now(),
-			Duration:  time.Since(startTime).String(),
+			Name:         p.Name(),
+			State:        healthprobe_dto.StateHealthy,
+			Message:      "Gmail provider operational",
+			Timestamp:    time.Now(),
+			Duration:     time.Since(startTime).String(),
+			Dependencies: nil,
 		}
 	}
 
 	if p.username == "" || p.password == "" {
 		return healthprobe_dto.Status{
-			Name:      p.Name(),
-			State:     healthprobe_dto.StateUnhealthy,
-			Message:   "Gmail credentials not configured",
-			Timestamp: time.Now(),
-			Duration:  time.Since(startTime).String(),
+			Name:         p.Name(),
+			State:        healthprobe_dto.StateUnhealthy,
+			Message:      "Gmail credentials not configured",
+			Timestamp:    time.Now(),
+			Duration:     time.Since(startTime).String(),
+			Dependencies: nil,
 		}
 	}
 
 	return healthprobe_dto.Status{
-		Name:      p.Name(),
-		State:     healthprobe_dto.StateHealthy,
-		Message:   "Gmail provider configured and ready",
-		Timestamp: time.Now(),
-		Duration:  time.Since(startTime).String(),
+		Name:         p.Name(),
+		State:        healthprobe_dto.StateHealthy,
+		Message:      "Gmail provider configured and ready",
+		Timestamp:    time.Now(),
+		Duration:     time.Since(startTime).String(),
+		Dependencies: nil,
 	}
 }
 

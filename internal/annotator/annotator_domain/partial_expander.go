@@ -399,15 +399,7 @@ func (*PartialExpander) finaliseExpansion(
 // fields.
 func createEmptyExpansionResult() *annotator_dto.ExpansionResult {
 	return &annotator_dto.ExpansionResult{
-		FlattenedAST: &ast_domain.TemplateAST{
-			SourcePath:        nil,
-			ExpiresAtUnixNano: nil,
-			Metadata:          nil,
-			RootNodes:         nil,
-			Diagnostics:       nil,
-			SourceSize:        0,
-			Tidied:            false,
-		},
+		FlattenedAST:         &ast_domain.TemplateAST{},
 		CombinedCSS:          "",
 		PotentialInvocations: nil,
 	}

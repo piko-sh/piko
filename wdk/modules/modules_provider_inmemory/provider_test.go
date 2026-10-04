@@ -117,17 +117,14 @@ func TestConcurrentInjectAndResolve(t *testing.T) {
 	t.Parallel()
 	provider := New()
 	var wg sync.WaitGroup
-	wg.Add(20)
 	for i := range 10 {
-		go func(i int) {
-			defer wg.Done()
+		wg.Go(func() {
 			ref := modules.ModuleRef{Path: "mod", Version: string(rune('0' + i))}
 			provider.Inject(ref, helperBundle(ref.Path, ref.Version))
-		}(i)
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			_, _ = provider.Resolve(context.Background(), modules.ModuleRef{Path: "mod", Version: "0"})
-		}()
+		})
 	}
 	wg.Wait()
 

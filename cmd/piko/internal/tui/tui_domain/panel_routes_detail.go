@@ -28,7 +28,8 @@ import (
 // rows show latency percentiles, request counts, and error rate; otherwise the
 // panel-level summary is rendered.
 //
-// Takes width (int) and height (int) which are the inner dimensions of the detail pane.
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 //
 // Returns string with the rendered body.
 func (p *RoutesPanel) DetailView(width, height int) string {
@@ -54,20 +55,20 @@ func (p *RoutesPanel) buildDetailBody() inspector.DetailBody {
 // Returns inspector.DetailBody describing latency percentiles and recent spans.
 func routeDetailBody(r *RouteStats) inspector.DetailBody {
 	rows := []inspector.DetailRow{
-		{Label: "Method", Value: r.Method},
-		{Label: "Path", Value: r.Path},
-		{Label: "Requests", Value: fmt.Sprintf(FormatPercentInt, r.Count)},
-		{Label: "Errors", Value: fmt.Sprintf(FormatPercentInt, r.ErrorCount)},
-		{Label: "Min", Value: fmt.Sprintf(FormatLatencyMs, r.MinMs)},
-		{Label: "Avg", Value: fmt.Sprintf(FormatLatencyMs, r.AverageMs)},
-		{Label: "P50", Value: fmt.Sprintf(FormatLatencyMs, r.P50Ms)},
-		{Label: "P90", Value: fmt.Sprintf(FormatLatencyMs, r.P90Ms)},
-		{Label: "P95", Value: fmt.Sprintf(FormatLatencyMs, r.P95Ms)},
-		{Label: "P99", Value: fmt.Sprintf(FormatLatencyMs, r.P99Ms)},
-		{Label: "Max", Value: fmt.Sprintf(FormatLatencyMs, r.MaxMs)},
+		inspector.NewDetailRow("Method", r.Method),
+		inspector.NewDetailRow("Path", r.Path),
+		inspector.NewDetailRow("Requests", fmt.Sprintf(FormatPercentInt, r.Count)),
+		inspector.NewDetailRow("Errors", fmt.Sprintf(FormatPercentInt, r.ErrorCount)),
+		inspector.NewDetailRow("Min", fmt.Sprintf(FormatLatencyMs, r.MinMs)),
+		inspector.NewDetailRow("Avg", fmt.Sprintf(FormatLatencyMs, r.AverageMs)),
+		inspector.NewDetailRow("P50", fmt.Sprintf(FormatLatencyMs, r.P50Ms)),
+		inspector.NewDetailRow("P90", fmt.Sprintf(FormatLatencyMs, r.P90Ms)),
+		inspector.NewDetailRow("P95", fmt.Sprintf(FormatLatencyMs, r.P95Ms)),
+		inspector.NewDetailRow("P99", fmt.Sprintf(FormatLatencyMs, r.P99Ms)),
+		inspector.NewDetailRow("Max", fmt.Sprintf(FormatLatencyMs, r.MaxMs)),
 	}
 
-	sections := []inspector.DetailSection{{Heading: "Statistics", Rows: rows}}
+	sections := []inspector.DetailSection{inspector.NewDetailSection("Statistics", rows)}
 
 	if len(r.RecentSpans) > 0 {
 		spanRows := make([]inspector.DetailRow, 0, min(len(r.RecentSpans), DetailRecentRowLimit))
@@ -80,12 +81,9 @@ func routeDetailBody(r *RouteStats) inspector.DetailBody {
 			if label == "" {
 				label = s.SpanID
 			}
-			spanRows = append(spanRows, inspector.DetailRow{
-				Label: label,
-				Value: inspector.FormatDuration(s.Duration),
-			})
+			spanRows = append(spanRows, inspector.NewDetailRow(label, inspector.FormatDuration(s.Duration)))
 		}
-		sections = append(sections, inspector.DetailSection{Heading: "Recent spans", Rows: spanRows})
+		sections = append(sections, inspector.NewDetailSection("Recent spans", spanRows))
 	}
 
 	return inspector.DetailBody{
@@ -109,18 +107,19 @@ func (p *RoutesPanel) routesOverviewDetailBody() inspector.DetailBody {
 	p.stateMutex.RUnlock()
 
 	rows := []inspector.DetailRow{
-		{Label: "Routes", Value: fmt.Sprintf(FormatPercentInt, len(p.Items()))},
-		{Label: "Total requests", Value: fmt.Sprintf(FormatPercentInt, totalCount)},
-		{Label: "Total errors", Value: fmt.Sprintf(FormatPercentInt, totalErrors)},
+		inspector.NewDetailRow("Routes", fmt.Sprintf(FormatPercentInt, len(p.Items()))),
+		inspector.NewDetailRow("Total requests", fmt.Sprintf(FormatPercentInt, totalCount)),
+		inspector.NewDetailRow("Total errors", fmt.Sprintf(FormatPercentInt, totalErrors)),
 	}
 	if !last.IsZero() {
-		rows = append(rows, inspector.DetailRow{Label: "Last refresh", Value: inspector.FormatDetailTime(last)})
+		rows = append(rows, inspector.NewDetailRow("Last refresh", inspector.FormatDetailTime(last)))
 	}
 	if err != nil {
-		rows = append(rows, inspector.DetailRow{Label: "Error", Value: err.Error()})
+		rows = append(rows, inspector.NewDetailRow("Error", err.Error()))
 	}
 	return inspector.DetailBody{
 		Title:    "Routes overview",
-		Sections: []inspector.DetailSection{{Heading: "Status", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Status", rows)},
+		Subtitle: "",
 	}
 }

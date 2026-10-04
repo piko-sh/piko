@@ -190,7 +190,7 @@ type InMemoryRegisterEmitter struct {
 //
 // Returns *InMemoryRegisterEmitter which generates and stores register code.
 func NewInMemoryRegisterEmitter(fsWriter generator_domain.FSWriterPort) *InMemoryRegisterEmitter {
-	return &InMemoryRegisterEmitter{fsWriter: fsWriter}
+	return &InMemoryRegisterEmitter{fsWriter: fsWriter, content: nil, mu: sync.RWMutex{}}
 }
 
 // Emit generates register code and writes it to the file system.
@@ -311,6 +311,7 @@ func NewInMemoryPKJSEmitter() *InMemoryPKJSEmitter {
 		artefacts:       make(map[string]string),
 		transpileCache:  make(map[string]string),
 		producedThisRun: make(map[string]struct{}),
+		mu:              sync.Mutex{},
 	}
 }
 

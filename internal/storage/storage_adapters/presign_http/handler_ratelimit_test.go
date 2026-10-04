@@ -93,7 +93,7 @@ func TestPresignUploadRejectsWhenRateLimited(t *testing.T) {
 	t.Parallel()
 
 	secret := newRateLimitTestSecret(t)
-	limiter := &stubPresignRateLimiter{allowed: false}
+	limiter := &stubPresignRateLimiter{}
 
 	handler := NewHandler(nil, storage_domain.PresignConfig{
 		Secret:             secret,
@@ -135,8 +135,8 @@ func TestPresignUploadSkipsLimitWhenUnconfigured(t *testing.T) {
 		limit   int
 	}{
 		{name: "NoLimiter", limiter: nil, limit: 5},
-		{name: "ZeroLimit", limiter: &stubPresignRateLimiter{allowed: false}, limit: 0},
-		{name: "NegativeLimit", limiter: &stubPresignRateLimiter{allowed: false}, limit: -1},
+		{name: "ZeroLimit", limiter: &stubPresignRateLimiter{}, limit: 0},
+		{name: "NegativeLimit", limiter: &stubPresignRateLimiter{}, limit: -1},
 	}
 
 	for _, testCase := range testCases {

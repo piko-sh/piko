@@ -107,6 +107,18 @@ func (f *FakeTaskStore) FetchAndMarkDueTasks(_ context.Context, priority TaskPri
 	return tasksCopy, nil
 }
 
+func (f *FakeTaskStore) GetTasksByID(_ context.Context, ids []string) ([]*Task, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	var found []*Task
+	for _, id := range ids {
+		if task, ok := f.tasks[id]; ok {
+			found = append(found, new(*task))
+		}
+	}
+	return found, nil
+}
+
 func (f *FakeTaskStore) PromoteScheduledTasks(context.Context) (int, error) { return 0, nil }
 func (f *FakeTaskStore) PendingTaskCount(context.Context) (int64, error)    { return 0, nil }
 

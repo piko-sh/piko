@@ -554,13 +554,13 @@ func extractStringLiteralAtCursor(text string, cursor int) string {
 // tryCSSClassValueContext checks if the cursor is inside a class="..." attribute value
 // and sets up the completion context for CSS class matching.
 //
-// Takes ctx (*completionContext) which receives the trigger kind and prefix when a class
-// attribute value is found.
+// Takes completion (*completionContext) which receives the trigger kind and prefix when a
+// class attribute value is found.
 // Takes lineString (string) which contains the current line text.
 // Takes cursorPosition (int) which specifies the cursor position in the line.
 //
 // Returns bool which is true when the cursor is inside a class="..." value.
-func tryCSSClassValueContext(ctx *completionContext, lineString string, cursorPosition int) bool {
+func tryCSSClassValueContext(completion *completionContext, lineString string, cursorPosition int) bool {
 	for _, pattern := range []string{`class="`, `class='`} {
 		index := strings.LastIndex(lineString[:cursorPosition], pattern)
 		if index == -1 {
@@ -579,8 +579,8 @@ func tryCSSClassValueContext(ctx *completionContext, lineString string, cursorPo
 			continue
 		}
 
-		ctx.TriggerKind = triggerCSSClassValue
-		ctx.Prefix = extractLastWord(textBetween)
+		completion.TriggerKind = triggerCSSClassValue
+		completion.Prefix = extractLastWord(textBetween)
 		return true
 	}
 	return false

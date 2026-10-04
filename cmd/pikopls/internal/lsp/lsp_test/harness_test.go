@@ -167,7 +167,7 @@ func (h *TestHarness) setupServices(absSrcDir string) {
 	)
 
 	annotatorComponentCache := annotator_adapters.NewComponentCache()
-	annotatorService, err := annotator_domain.NewAnnotatorService(context.Background(), &annotator_domain.AnnotatorServiceConfig{
+	annotatorService := annotator_domain.NewAnnotatorService(&annotator_domain.AnnotatorServiceConfig{
 		Resolver:      h.resolver,
 		FSReader:      h.fsReader,
 		TypeInspector: annotator_domain.NewTypeInspectorBuilderAdapter(h.typeInspectorManager),
@@ -183,7 +183,6 @@ func (h *TestHarness) setupServices(absSrcDir string) {
 		EnableDebugLogFiles: true,
 		DebugLogDir:         "tmp/logs",
 	})
-	require.NoError(h.t, err)
 
 	cacheService := newTestCacheService()
 	coordinatorCache, cacheErr := coordinator_adapters.NewBuildResultCache(context.Background(), cacheService)

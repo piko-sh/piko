@@ -1766,3 +1766,101 @@ func TestEngine_Accessors(t *testing.T) {
 		assert.Equal(t, querier_dto.ParameterStyleDollar, engine.ParameterStyle())
 	})
 }
+
+func TestApplyDDL_CreateOrReplaceTable(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name        string
+		sql         string
+		wantColumns []string
+	}{
+		{
+			name:        "OR REPLACE TABLE with a column list",
+			sql:         `CREATE OR REPLACE TABLE events (id BIGINT PRIMARY KEY, slug VARCHAR NOT NULL)`,
+			wantColumns: []string{"id", "slug"},
+		},
+		{
+			name:        "OR REPLACE TEMP TABLE",
+			sql:         `CREATE OR REPLACE TEMP TABLE events (id BIGINT)`,
+			wantColumns: []string{"id"},
+		},
+		{
+			name:        "OR REPLACE TABLE AS query",
+			sql:         `CREATE OR REPLACE TABLE events AS SELECT 1 AS id`,
+			wantColumns: nil,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			mutation := applyDDL(t, testCase.sql)
+
+			require.NotNil(t, mutation)
+			assert.Equal(t, querier_dto.MutationDropTable, mutation.Kind)
+			assert.Equal(t, "events", mutation.TableName)
+			require.Len(t, mutation.AdditionalMutations, 1)
+			create := mutation.AdditionalMutations[0]
+			assert.Equal(t, querier_dto.MutationCreateTable, create.Kind)
+			assert.Equal(t, "events", create.TableName)
+			var columnNames []string
+			for _, column := range create.Columns {
+				columnNames = append(columnNames, column.Name)
+			}
+			assert.Equal(t, testCase.wantColumns, columnNames)
+		})
+	}
+}
+
+func TestApplyDDL_CreateTableWithoutReplaceHasNoFollowUp(t *testing.T) {
+	t.Parallel()
+
+	mutation := applyDDL(t, `CREATE TEMPORARY TABLE events (id BIGINT PRIMARY KEY, slug VARCHAR)`)
+
+	require.NotNil(t, mutation)
+	assert.Equal(t, querier_dto.MutationCreateTable, mutation.Kind)
+	assert.Empty(t, mutation.AdditionalMutations)
+	assert.Equal(t, []string{"id"}, mutation.PrimaryKey)
+	require.Len(t, mutation.Columns, 2)
+}
+
+func TestApplyDDL_ArrayDimensions(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name           string
+		sql            string
+		wantDimensions int
+	}{
+		{name: "single dimension", sql: `CREATE TABLE t (x INTEGER[])`, wantDimensions: 1},
+		{name: "sized dimension", sql: `CREATE TABLE t (x INTEGER[3])`, wantDimensions: 1},
+		{name: "maximum dimensions", sql: `CREATE TABLE t (x INTEGER[][][][][][])`, wantDimensions: maxArrayDimensions},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			mutation := applyDDL(t, testCase.sql)
+
+			require.Len(t, mutation.Columns, 1)
+			assert.True(t, mutation.Columns[0].IsArray)
+			assert.Equal(t, testCase.wantDimensions, mutation.Columns[0].ArrayDimensions)
+		})
+	}
+}
+
+func TestApplyDDL_ViewBodyWithSyntaxErrorFallsBackToDeclaredColumns(t *testing.T) {
+	t.Parallel()
+
+	mutation := applyDDL(t, `CREATE VIEW v (a, b) AS SELECT x, y FROM t JOIN u USING (x`)
+
+	require.NotNil(t, mutation)
+	assert.Equal(t, querier_dto.MutationCreateView, mutation.Kind)
+	assert.Nil(t, mutation.ViewDefinition)
+	require.Len(t, mutation.Columns, 2)
+	assert.Equal(t, "a", mutation.Columns[0].Name)
+	assert.Equal(t, "b", mutation.Columns[1].Name)
+}

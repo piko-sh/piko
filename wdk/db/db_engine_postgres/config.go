@@ -33,6 +33,7 @@ func Postgres() db.EngineConfig {
 		DriverName:       "postgres",
 		Engine:           NewPostgresEngine(),
 		MigrationDialect: migration_sql.PostgresDialect(),
+		CatalogueFactory: nil,
 	}
 }
 
@@ -47,5 +48,6 @@ func PostgresPgBouncer() db.EngineConfig {
 		DriverName:       "postgres",
 		Engine:           NewPostgresEngine(),
 		MigrationDialect: migration_sql.PostgresPgBouncerDialect(),
+		CatalogueFactory: nil,
 	}
 }

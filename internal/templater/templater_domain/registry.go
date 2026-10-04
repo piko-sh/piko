@@ -125,10 +125,14 @@ type FunctionRegistry interface {
 
 	// GetAuthPolicyFunc retrieves the auth policy function for the given package.
 	//
+	// A page that declares an auth policy but has no function registered must be denied,
+	// which only the caller can decide.
+	//
 	// Takes packagePath (string) which identifies the package.
 	//
 	// Returns AuthPolicyFunc which provides the auth requirements for that package.
-	GetAuthPolicyFunc(packagePath string) AuthPolicyFunc
+	// Returns bool which is false when no auth policy function is registered.
+	GetAuthPolicyFunc(packagePath string) (AuthPolicyFunc, bool)
 
 	// RegisterPreviewFunc registers a Preview function for a package. Preview functions are
 	// dev-mode only and provide sample props for component previewing.
@@ -247,15 +251,7 @@ func (r *globalFunctionRegistry) GetCachePolicyFunc(packagePath string) CachePol
 		return registryFunction
 	}
 	return func(_ *templater_dto.RequestData) templater_dto.CachePolicy {
-		return templater_dto.CachePolicy{
-			MaxAgeSeconds:  0,
-			Enabled:        false,
-			OnRender:       false,
-			Static:         false,
-			MustRevalidate: false,
-			NoStore:        false,
-			Key:            "",
-		}
+		return templater_dto.CachePolicy{}
 	}
 }
 
@@ -339,25 +335,22 @@ func (r *globalFunctionRegistry) RegisterAuthPolicyFunc(packagePath string, regi
 	r.authPolicyFuncs[packagePath] = registryFunction
 }
 
-// GetAuthPolicyFunc retrieves the auth policy function for the given package. Returns a
-// no-op function when no auth policy is registered.
+// GetAuthPolicyFunc retrieves the auth policy function for the given package. Unlike the
+// other getters it has no permissive fallback, so a missing policy cannot silently allow
+// every request.
 //
 // Takes packagePath (string) which identifies the package.
 //
-// Returns AuthPolicyFunc which provides the auth requirements.
+// Returns AuthPolicyFunc which provides the auth requirements, or nil when none is
+// registered.
+// Returns bool which is false when no auth policy function is registered.
 //
 // Safe for concurrent use; protected by mu.
-func (r *globalFunctionRegistry) GetAuthPolicyFunc(packagePath string) AuthPolicyFunc {
+func (r *globalFunctionRegistry) GetAuthPolicyFunc(packagePath string) (AuthPolicyFunc, bool) {
 	r.mu.RLock()
+	defer r.mu.RUnlock()
 	registryFunction, ok := r.authPolicyFuncs[packagePath]
-	r.mu.RUnlock()
-
-	if ok {
-		return registryFunction
-	}
-	return func(_ *templater_dto.RequestData) daemon_dto.AuthPolicy {
-		return daemon_dto.AuthPolicy{}
-	}
+	return registryFunction, ok
 }
 
 // RegisterPreviewFunc registers a Preview function for the given package path.

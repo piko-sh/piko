@@ -137,11 +137,8 @@ func TestMatchUnexportedFuncDecl(t *testing.T) {
 			wantMatch:    false,
 		},
 		{
-			name: "nil function name",
-			declaration: &goast.FuncDecl{
-				Name: nil,
-				Recv: nil,
-			},
+			name:         "nil function name",
+			declaration:  &goast.FuncDecl{},
 			functionName: "myFunc",
 			wantMatch:    false,
 		},
@@ -348,11 +345,9 @@ func TestTryResolveField(t *testing.T) {
 			expectedFound: false,
 		},
 		{
-			name:         "nil resolved type returns not found",
-			setupHarness: func(_ *typeResolverTestHarness) {},
-			baseAnn: &ast_domain.GoGeneratorAnnotation{
-				ResolvedType: nil,
-			},
+			name:          "nil resolved type returns not found",
+			setupHarness:  func(_ *typeResolverTestHarness) {},
+			baseAnn:       &ast_domain.GoGeneratorAnnotation{},
 			propName:      "Field",
 			expectedFound: false,
 		},
@@ -360,9 +355,7 @@ func TestTryResolveField(t *testing.T) {
 			name:         "nil type expr returns not found",
 			setupHarness: func(_ *typeResolverTestHarness) {},
 			baseAnn: &ast_domain.GoGeneratorAnnotation{
-				ResolvedType: &ast_domain.ResolvedTypeInfo{
-					TypeExpression: nil,
-				},
+				ResolvedType: &ast_domain.ResolvedTypeInfo{},
 			},
 			propName:      "Field",
 			expectedFound: false,
@@ -463,11 +456,9 @@ func TestTryResolveMethod(t *testing.T) {
 			expectedFound: false,
 		},
 		{
-			name:         "nil resolved type returns not found",
-			setupHarness: func(_ *typeResolverTestHarness) {},
-			baseAnn: &ast_domain.GoGeneratorAnnotation{
-				ResolvedType: nil,
-			},
+			name:          "nil resolved type returns not found",
+			setupHarness:  func(_ *typeResolverTestHarness) {},
+			baseAnn:       &ast_domain.GoGeneratorAnnotation{},
 			methodName:    "Method",
 			expectedFound: false,
 		},
@@ -475,9 +466,7 @@ func TestTryResolveMethod(t *testing.T) {
 			name:         "nil type expr returns not found",
 			setupHarness: func(_ *typeResolverTestHarness) {},
 			baseAnn: &ast_domain.GoGeneratorAnnotation{
-				ResolvedType: &ast_domain.ResolvedTypeInfo{
-					TypeExpression: nil,
-				},
+				ResolvedType: &ast_domain.ResolvedTypeInfo{},
 			},
 			methodName:    "Method",
 			expectedFound: false,
@@ -837,10 +826,7 @@ func TestParseSignatureFromFuncDecl(t *testing.T) {
 			name: "function with no params or results",
 			funcDecl: &goast.FuncDecl{
 				Name: goast.NewIdent("myFunc"),
-				Type: &goast.FuncType{
-					Params:  nil,
-					Results: nil,
-				},
+				Type: &goast.FuncType{},
 			},
 			expectedNil:     false,
 			expectedParams:  0,
@@ -914,9 +900,7 @@ func TestFindFuncDeclInCurrentContext(t *testing.T) {
 		h := newTypeResolverTestHarness()
 		vm := h.Resolver.virtualModule
 		vm.ComponentsByGoPath["test/pkg"] = &annotator_dto.VirtualComponent{
-			Source: &annotator_dto.ParsedComponent{
-				Script: nil,
-			},
+			Source: &annotator_dto.ParsedComponent{},
 		}
 
 		result := h.Resolver.findFuncDeclInCurrentContext(h.Context, "someFunc")
@@ -1076,9 +1060,7 @@ func TestFindUnexportedFuncDeclInCurrentContext(t *testing.T) {
 		h := newTypeResolverTestHarness()
 		vm := h.Resolver.virtualModule
 		vm.ComponentsByGoPath["test/pkg"] = &annotator_dto.VirtualComponent{
-			Source: &annotator_dto.ParsedComponent{
-				Script: nil,
-			},
+			Source: &annotator_dto.ParsedComponent{},
 		}
 
 		result := h.Resolver.findUnexportedFuncDeclInCurrentContext(h.Context, "myFunc")
@@ -1311,9 +1293,7 @@ func TestFindCallSignature_AdditionalPaths(t *testing.T) {
 		h := newTypeResolverTestHarness()
 
 		base := &ast_domain.Identifier{Name: "obj"}
-		setAnnotationOnExpression(base, &ast_domain.GoGeneratorAnnotation{
-			ResolvedType: nil,
-		})
+		setAnnotationOnExpression(base, &ast_domain.GoGeneratorAnnotation{})
 
 		callee := &ast_domain.MemberExpression{
 			Base:     base,

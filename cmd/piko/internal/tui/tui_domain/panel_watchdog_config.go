@@ -113,9 +113,13 @@ func NewWatchdogConfigPanel(provider WatchdogProvider, clk clock.Clock) *Watchdo
 		clk = clock.RealClock()
 	}
 	panel := &WatchdogConfigPanel{
-		BasePanel: NewBasePanel(WatchdogConfigPanelID, WatchdogConfigPanelTitle),
-		provider:  provider,
-		clock:     clk,
+		BasePanel:    NewBasePanel(WatchdogConfigPanelID, WatchdogConfigPanelTitle),
+		provider:     provider,
+		clock:        clk,
+		lastFetchErr: nil,
+		theme:        nil,
+		status:       nil,
+		mu:           sync.RWMutex{},
 	}
 	panel.SetKeyMap([]KeyBinding{
 		{Key: "j / Down", Description: "Next section"},

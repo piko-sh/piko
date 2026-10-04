@@ -116,7 +116,9 @@ func parsePolicyCall(p db_engine_postgres.ParserContext, kind db_engine_postgres
 		return nil, fmt.Errorf("timescaledb: policy kind %d has no registered operation name", kind)
 	}
 
-	p.MustKeyword("SELECT")
+	if err := p.ExpectKeyword("SELECT"); err != nil {
+		return nil, err
+	}
 	if !p.MatchKeyword(operation) {
 		return nil, fmt.Errorf("timescaledb: expected %s at position %d", operation, p.CurrentToken().Position())
 	}
@@ -156,12 +158,9 @@ func parsePolicyArguments(
 	operation string,
 	openParenPosition int,
 ) (*querier_dto.CatalogueMutation, error) {
-	mutation := &querier_dto.CatalogueMutation{
-		Kind: querier_dto.MutationAlterTableAlterColumn,
-		EngineSpecific: map[string]string{
-			"TIMESCALE_POLICY_OP": operation,
-		},
-	}
+	mutation := querier_dto.NewCatalogueMutation(querier_dto.MutationAlterTableAlterColumn, "", "", querier_dto.WithEngineSpecific(map[string]string{
+		"TIMESCALE_POLICY_OP": operation,
+	}))
 
 	firstArg, firstErr := extractFirstPolicyArgument(p)
 	if firstErr != nil {
@@ -301,6 +300,7 @@ func extractFirstPolicyArgument(p db_engine_postgres.ParserContext) (string, err
 			return "", castErr
 		}
 		return tok.Value(), nil
+	default:
 	}
 	return "", fmt.Errorf("expected literal or identifier at position %d", tok.Position())
 }

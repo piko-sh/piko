@@ -19,6 +19,7 @@
 package db_engine_sqlite
 
 import (
+	"fmt"
 	"strings"
 
 	"piko.sh/piko/internal/querier/querier_dto"
@@ -167,6 +168,8 @@ func (p *parser) handleExpressionTerminator(tok token) bool {
 // expression scan.
 //
 // Takes tok (token) which is the token to inspect.
+// Takes terminators (map[string]bool) which identifies keywords that end the current
+// expression.
 //
 // Returns bool which is true when the token ends the expression.
 func isExpressionTerminator(tok token, terminators map[string]bool) bool {
@@ -232,6 +235,7 @@ func isComparisonOperator(operator string) bool {
 // Returns querier_dto.Expression which is the parsed expression tree.
 func (p *parser) parseExpression() querier_dto.Expression {
 	if p.expressionDepth >= p.maxParseDepth {
+		p.recordSyntaxError(errExpressionDepthExceeded)
 		return &querier_dto.UnknownExpression{}
 	}
 	p.expressionDepth++
@@ -724,9 +728,10 @@ func (p *parser) parseFunctionCall(functionName string) querier_dto.Expression {
 	arguments := p.parseFunctionArguments(loweredName)
 
 	result := &querier_dto.FunctionCallExpression{
-		FunctionName: loweredName,
-		Schema:       "",
-		Arguments:    arguments,
+		FunctionName:     loweredName,
+		Schema:           "",
+		Arguments:        arguments,
+		FilterExpression: nil,
 	}
 
 	if p.matchKeyword("FILTER") {
@@ -987,6 +992,7 @@ func (p *parser) analyseSubqueryBody() (*querier_dto.RawQueryAnalysis, bool) {
 	childParser.expressionDepth = p.expressionDepth
 	childParser.maxParseDepth = p.maxParseDepth
 	innerAnalysis, analyseError := childParser.analyseSelect()
+	p.adoptSyntaxError(childParser)
 	if analyseError != nil {
 		return nil, false
 	}
@@ -1022,7 +1028,9 @@ func (p *parser) parseCastExpression() querier_dto.Expression {
 	}
 
 	if p.current().kind == tokenLeftParen {
-		p.mustSkipParenthesised()
+		if err := p.skipParenthesised(); err != nil {
+			p.recordSyntaxError(fmt.Errorf("parsing CAST type modifiers: %w", err))
+		}
 	}
 
 	if p.current().kind == tokenRightParen {
@@ -1090,7 +1098,7 @@ func (p *parser) parseCaseExpression() querier_dto.Expression {
 		branches = append(branches, querier_dto.CaseWhenBranch{Condition: condition, Result: result})
 	}
 
-	expression := &querier_dto.CaseWhenExpression{Branches: branches}
+	expression := &querier_dto.CaseWhenExpression{Branches: branches, ElseResult: nil}
 
 	if p.matchKeyword("ELSE") {
 		expression.ElseResult = p.parseExpression()

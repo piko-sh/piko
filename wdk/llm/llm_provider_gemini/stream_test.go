@@ -60,9 +60,7 @@ func TestGeminiProvider_ProcessCandidateParts(t *testing.T) {
 
 	t.Run("handles nil content", func(t *testing.T) {
 		state := newStreamState("test-model")
-		candidate := &genai.Candidate{
-			Content: nil,
-		}
+		candidate := &genai.Candidate{}
 
 		delta := p.processCandidateParts(candidate, state)
 

@@ -132,3 +132,54 @@ type SubmissionRecord struct {
 	// IsSpam is true when the user confirmed this was spam, false for ham.
 	IsSpam bool
 }
+
+// NewCleanDetectorResult creates a detector verdict reporting no spam and carrying no
+// scores, reasons or error.
+//
+// Returns *DetectorResult which is the clean verdict.
+func NewCleanDetectorResult() *DetectorResult {
+	return NewReasonDetectorResult(0, false, nil)
+}
+
+// NewFieldDetectorResult creates a detector verdict built from per-field scores and
+// reasons.
+//
+// Takes score (float64) which is the overall spam likelihood.
+// Takes isSpam (bool) which is the detector's binary verdict.
+// Takes fieldScores (map[string]float64) which maps field keys to their scores.
+// Takes fieldReasons (map[string][]string) which maps field keys to their reasons.
+//
+// Returns *DetectorResult which is the populated verdict.
+func NewFieldDetectorResult(score float64, isSpam bool, fieldScores map[string]float64, fieldReasons map[string][]string) *DetectorResult {
+	return &DetectorResult{
+		Error:        nil,
+		FieldReasons: fieldReasons,
+		FieldScores:  fieldScores,
+		Detector:     "",
+		Reasons:      nil,
+		Duration:     0,
+		Score:        score,
+		IsSpam:       isSpam,
+	}
+}
+
+// NewReasonDetectorResult creates a detector verdict carrying detector-level reasons
+// rather than per-field breakdowns.
+//
+// Takes score (float64) which is the overall spam likelihood.
+// Takes isSpam (bool) which is the detector's binary verdict.
+// Takes reasons ([]string) which lists the detector-level explanations.
+//
+// Returns *DetectorResult which is the populated verdict.
+func NewReasonDetectorResult(score float64, isSpam bool, reasons []string) *DetectorResult {
+	return &DetectorResult{
+		Error:        nil,
+		FieldReasons: nil,
+		FieldScores:  nil,
+		Detector:     "",
+		Reasons:      reasons,
+		Duration:     0,
+		Score:        score,
+		IsSpam:       isSpam,
+	}
+}

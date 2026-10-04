@@ -547,7 +547,7 @@ func TestVdomProps_MergeMultiValueProps(t *testing.T) {
 
 	t.Run("existing property merged into multi-value", func(t *testing.T) {
 		properties := map[string]js_ast.Expr{
-			"onClick": {Data: &js_ast.ENumber{Value: 0}},
+			"onClick": {Data: &js_ast.ENumber{}},
 		}
 		multiValueProps := map[string][]js_ast.Expr{
 			"onClick": {
@@ -700,9 +700,7 @@ func TestVdomProps_CollectDirectiveProps(t *testing.T) {
 
 	t.Run("directory-ref with empty raw expression is not added", func(t *testing.T) {
 		node := &ast_domain.TemplateNode{
-			DirRef: &ast_domain.Directive{
-				RawExpression: "",
-			},
+			DirRef: &ast_domain.Directive{},
 		}
 		properties := make(map[string]js_ast.Expr)
 		collectDirectiveProps(node, properties, registry)
@@ -842,9 +840,7 @@ func TestVdomProps_CollectBindProps(t *testing.T) {
 	registry := NewRegistryContext()
 
 	t.Run("nil binds returns original link expression", func(t *testing.T) {
-		node := &ast_domain.TemplateNode{
-			Binds: nil,
-		}
+		node := &ast_domain.TemplateNode{}
 		originalLinkExpr := js_ast.Expr{Data: &js_ast.ENumber{Value: 42}}
 		properties := make(map[string]js_ast.Expr)
 
@@ -1446,10 +1442,8 @@ func TestVdomProps_HandleModelDirective(t *testing.T) {
 		multiValueProps := make(map[string][]js_ast.Expr)
 
 		node := &ast_domain.TemplateNode{
-			TagName: "input",
-			DirModel: &ast_domain.Directive{
-				Expression: nil,
-			},
+			TagName:  "input",
+			DirModel: &ast_domain.Directive{},
 		}
 
 		require.NoError(t, handleModelDirective(ctx, node, properties, multiValueProps, events, nil))

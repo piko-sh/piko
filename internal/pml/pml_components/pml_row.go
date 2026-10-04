@@ -48,9 +48,7 @@ const (
 //
 // Returns *Row which is an empty row container ready for use.
 func NewSection() *Row {
-	return &Row{
-		BaseComponent: BaseComponent{},
-	}
+	return &Row{}
 }
 
 // TagName returns the HTML custom element tag name for this component.
@@ -764,7 +762,7 @@ func getBackgroundShorthand(styles *pml_domain.StyleManager) string {
 
 	bgRepeat := getStyleWithDefault(styles, "background-repeat", "repeat")
 	bgSize := getStyleWithDefault(styles, "background-size", ValueAuto)
-	posX, posY := (&Row{BaseComponent: BaseComponent{}}).parseBackgroundPosition(styles)
+	posX, posY := (&Row{}).parseBackgroundPosition(styles)
 	backgroundPosition := posX + ValueSpace + posY
 
 	parts := []string{}

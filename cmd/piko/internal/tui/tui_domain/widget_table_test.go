@@ -225,7 +225,7 @@ func TestAlign(t *testing.T) {
 }
 
 func TestTable_EmptyColumns(t *testing.T) {
-	config := TableConfig{Columns: nil}
+	config := TableConfig{}
 	result := Table(nil, 0, &config, 80)
 
 	if result != "" {

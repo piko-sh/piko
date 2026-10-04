@@ -24,8 +24,8 @@ import (
 	"strings"
 
 	protocol "github.com/politepixels/golang-language-server"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
@@ -197,15 +197,9 @@ func (d *document) resolveStateType() *ast_domain.ResolvedTypeInfo {
 		return nil
 	}
 
-	return &ast_domain.ResolvedTypeInfo{
-		TypeExpression:          ast.NewIdent(returnTypeName),
-		PackageAlias:            "",
-		CanonicalPackagePath:    "",
-		IsSynthetic:             false,
-		IsExportedPackageSymbol: false,
-		InitialPackagePath:      "",
-		InitialFilePath:         "",
-	}
+	info := ast_domain.ResolvedTypeInfo{}
+	info.TypeExpression = ast.NewIdent(returnTypeName)
+	return &info
 }
 
 // resolvePropsType resolves the "props" identifier to the component's props type by
@@ -273,5 +267,6 @@ func (d *document) resolveFieldOnType(ctx context.Context, baseType *ast_domain.
 		IsExportedPackageSymbol: false,
 		InitialPackagePath:      "",
 		InitialFilePath:         "",
+		UnderlyingTypeString:    "",
 	}
 }

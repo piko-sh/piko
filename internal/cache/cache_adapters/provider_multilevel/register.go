@@ -94,8 +94,8 @@ func init() {
 		multilevelConfig := Config{
 			L1ProviderName:         "",
 			L2ProviderName:         "",
-			MaxConsecutiveFailures: 5,
-			OpenStateTimeout:       30,
+			MaxConsecutiveFailures: defaultMaxConsecutiveFailures,
+			OpenStateTimeout:       defaultOpenStateTimeout,
 		}
 
 		if value, ok := configMap["l1_provider"].(string); ok {

@@ -324,12 +324,15 @@ func extractTypeInfoFromString(
 		TSType:      goTypeToTSType(typeString),
 		IsPointer:   strings.HasPrefix(typeString, pointerPrefix),
 		Description: "",
+		ParamName:   "",
+		PackagePath: "",
+		PackageName: "",
+		Fields:      nil,
 	}
 
 	cleanTypeString := strings.TrimPrefix(typeString, pointerPrefix)
 
 	if packageAlias, typeName, found := strings.CutLast(cleanTypeString, "."); found {
-
 		for packagePath, pkg := range packages {
 			if pkg.Name == packageAlias || strings.HasSuffix(packagePath, "/"+packageAlias) {
 				if namedType, ok := pkg.NamedTypes[typeName]; ok {
@@ -374,6 +377,8 @@ func extractFieldsFromType(
 			Optional:     isOptionalField(field),
 			IsFileUpload: isFileUploadType(field.TypeString, field.PackagePath),
 			IsPointer:    strings.HasPrefix(field.TypeString, pointerPrefix),
+			NestedType:   nil,
+			Description:  "",
 		}
 
 		if !fieldInfo.IsFileUpload && !field.IsInternalType && field.PackagePath != "" {
@@ -385,6 +390,10 @@ func extractFieldsFromType(
 						PackagePath: field.PackagePath,
 						PackageName: pkg.Name,
 						Fields:      extractFieldsFromType(nestedType, packages),
+						ParamName:   "",
+						TSType:      "",
+						Description: "",
+						IsPointer:   false,
 					}
 				}
 			}
@@ -407,8 +416,8 @@ func extractTypeName(typeString string) string {
 
 	typeString = strings.TrimPrefix(typeString, slicePrefix)
 
-	if index := strings.LastIndex(typeString, "."); index != -1 {
-		return typeString[index+1:]
+	if _, typeName, found := strings.CutLast(typeString, "."); found {
+		return typeName
 	}
 
 	return typeString
@@ -573,8 +582,8 @@ func goTypeToTSType(goType string) string {
 		return tsString
 	}
 
-	if index := strings.LastIndex(goType, "."); index != -1 {
-		return goType[index+1:]
+	if _, typeName, found := strings.CutLast(goType, "."); found {
+		return typeName
 	}
 
 	return goType

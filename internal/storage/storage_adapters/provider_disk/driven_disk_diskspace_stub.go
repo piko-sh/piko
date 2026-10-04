@@ -20,7 +20,15 @@
 
 package provider_disk
 
-import "fmt"
+import (
+	"errors"
+)
+
+var (
+	// errDiskSpaceUnsupported is returned by getDiskSpace on platforms without a disk space
+	// query.
+	errDiskSpaceUnsupported = errors.New("disk space checking is not supported on this platform")
+)
 
 // getDiskSpace is a stub for platforms where disk space checking is not supported.
 //
@@ -28,5 +36,5 @@ import "fmt"
 // Returns totalMB (uint64) which is always zero on unsupported platforms.
 // Returns err (error) which always indicates the platform is unsupported.
 func getDiskSpace(_ string) (availableMB, totalMB uint64, err error) {
-	return 0, 0, fmt.Errorf("disk space checking is not supported on this platform")
+	return 0, 0, errDiskSpaceUnsupported
 }

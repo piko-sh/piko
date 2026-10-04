@@ -40,7 +40,7 @@ func TestGetSymbolName(t *testing.T) {
 	}{
 		{
 			name:     "valid index returns original name",
-			ref:      ast.Ref{InnerIndex: 0},
+			ref:      ast.Ref{},
 			symbols:  symbols,
 			expected: "alpha",
 		},
@@ -64,13 +64,13 @@ func TestGetSymbolName(t *testing.T) {
 		},
 		{
 			name:     "empty symbols returns empty string",
-			ref:      ast.Ref{InnerIndex: 0},
+			ref:      ast.Ref{},
 			symbols:  []ast.Symbol{},
 			expected: "",
 		},
 		{
 			name:     "nil symbols returns empty string",
-			ref:      ast.Ref{InnerIndex: 0},
+			ref:      ast.Ref{},
 			symbols:  nil,
 			expected: "",
 		},
@@ -101,7 +101,7 @@ func TestExtractBindingName(t *testing.T) {
 		{
 			name: "BIdentifier binding returns symbol name",
 			binding: js_ast.Binding{
-				Data: &js_ast.BIdentifier{Ref: ast.Ref{InnerIndex: 0}},
+				Data: &js_ast.BIdentifier{},
 			},
 			symbols:  symbols,
 			expected: "myVar",
@@ -220,7 +220,7 @@ func TestExtractExportedFunctionName(t *testing.T) {
 			jsFunction: &js_ast.SFunction{
 				IsExport: true,
 				Fn: js_ast.Fn{
-					Name: &ast.LocRef{Ref: ast.Ref{InnerIndex: 0}},
+					Name: &ast.LocRef{},
 				},
 			},
 			symbols:  symbols,
@@ -231,7 +231,7 @@ func TestExtractExportedFunctionName(t *testing.T) {
 			jsFunction: &js_ast.SFunction{
 				IsExport: false,
 				Fn: js_ast.Fn{
-					Name: &ast.LocRef{Ref: ast.Ref{InnerIndex: 0}},
+					Name: &ast.LocRef{},
 				},
 			},
 			symbols:  symbols,
@@ -241,7 +241,7 @@ func TestExtractExportedFunctionName(t *testing.T) {
 			name: "exported function without name returns nil",
 			jsFunction: &js_ast.SFunction{
 				IsExport: true,
-				Fn:       js_ast.Fn{Name: nil},
+				Fn:       js_ast.Fn{},
 			},
 			symbols:  symbols,
 			expected: nil,
@@ -297,7 +297,7 @@ func TestExtractDefaultExportName(t *testing.T) {
 				Value: js_ast.Stmt{
 					Data: &js_ast.SFunction{
 						Fn: js_ast.Fn{
-							Name: &ast.LocRef{Ref: ast.Ref{InnerIndex: 0}},
+							Name: &ast.LocRef{},
 						},
 					},
 				},
@@ -309,9 +309,7 @@ func TestExtractDefaultExportName(t *testing.T) {
 			name: "default export of unnamed function returns nil",
 			export: &js_ast.SExportDefault{
 				Value: js_ast.Stmt{
-					Data: &js_ast.SFunction{
-						Fn: js_ast.Fn{Name: nil},
-					},
+					Data: &js_ast.SFunction{},
 				},
 			},
 			symbols:  symbols,
@@ -367,7 +365,7 @@ func TestExtractLocalExportNames(t *testing.T) {
 			local: &js_ast.SLocal{
 				IsExport: false,
 				Decls: []js_ast.Decl{
-					{Binding: js_ast.Binding{Data: &js_ast.BIdentifier{Ref: ast.Ref{InnerIndex: 0}}}},
+					{Binding: js_ast.Binding{Data: &js_ast.BIdentifier{}}},
 				},
 			},
 			symbols:  symbols,
@@ -378,7 +376,7 @@ func TestExtractLocalExportNames(t *testing.T) {
 			local: &js_ast.SLocal{
 				IsExport: true,
 				Decls: []js_ast.Decl{
-					{Binding: js_ast.Binding{Data: &js_ast.BIdentifier{Ref: ast.Ref{InnerIndex: 0}}}},
+					{Binding: js_ast.Binding{Data: &js_ast.BIdentifier{}}},
 				},
 			},
 			symbols:  symbols,
@@ -389,7 +387,7 @@ func TestExtractLocalExportNames(t *testing.T) {
 			local: &js_ast.SLocal{
 				IsExport: true,
 				Decls: []js_ast.Decl{
-					{Binding: js_ast.Binding{Data: &js_ast.BIdentifier{Ref: ast.Ref{InnerIndex: 0}}}},
+					{Binding: js_ast.Binding{Data: &js_ast.BIdentifier{}}},
 					{Binding: js_ast.Binding{Data: &js_ast.BIdentifier{Ref: ast.Ref{InnerIndex: 1}}}},
 				},
 			},
@@ -401,7 +399,7 @@ func TestExtractLocalExportNames(t *testing.T) {
 			local: &js_ast.SLocal{
 				IsExport: true,
 				Decls: []js_ast.Decl{
-					{Binding: js_ast.Binding{Data: &js_ast.BIdentifier{Ref: ast.Ref{InnerIndex: 0}}}},
+					{Binding: js_ast.Binding{Data: &js_ast.BIdentifier{}}},
 					{Binding: js_ast.Binding{Data: &js_ast.BArray{}}},
 				},
 			},
@@ -458,7 +456,7 @@ func TestExtractExportNamesFromStmt(t *testing.T) {
 				Data: &js_ast.SFunction{
 					IsExport: true,
 					Fn: js_ast.Fn{
-						Name: &ast.LocRef{Ref: ast.Ref{InnerIndex: 0}},
+						Name: &ast.LocRef{},
 					},
 				},
 			},
@@ -498,7 +496,7 @@ func TestExtractExportNamesFromStmt(t *testing.T) {
 					Value: js_ast.Stmt{
 						Data: &js_ast.SFunction{
 							Fn: js_ast.Fn{
-								Name: &ast.LocRef{Ref: ast.Ref{InnerIndex: 0}},
+								Name: &ast.LocRef{},
 							},
 						},
 					},
@@ -565,7 +563,7 @@ func TestExtractExportsFromAST(t *testing.T) {
 								Data: &js_ast.SFunction{
 									IsExport: true,
 									Fn: js_ast.Fn{
-										Name: &ast.LocRef{Ref: ast.Ref{InnerIndex: 0}},
+										Name: &ast.LocRef{},
 									},
 								},
 							},
@@ -588,7 +586,7 @@ func TestExtractExportsFromAST(t *testing.T) {
 								Data: &js_ast.SFunction{
 									IsExport: true,
 									Fn: js_ast.Fn{
-										Name: &ast.LocRef{Ref: ast.Ref{InnerIndex: 0}},
+										Name: &ast.LocRef{},
 									},
 								},
 							},
@@ -619,7 +617,7 @@ func TestExtractExportsFromAST(t *testing.T) {
 								Data: &js_ast.SFunction{
 									IsExport: true,
 									Fn: js_ast.Fn{
-										Name: &ast.LocRef{Ref: ast.Ref{InnerIndex: 0}},
+										Name: &ast.LocRef{},
 									},
 								},
 							},
@@ -654,7 +652,7 @@ func TestExtractExportsFromAST(t *testing.T) {
 								Data: &js_ast.SFunction{
 									IsExport: false,
 									Fn: js_ast.Fn{
-										Name: &ast.LocRef{Ref: ast.Ref{InnerIndex: 0}},
+										Name: &ast.LocRef{},
 									},
 								},
 							},

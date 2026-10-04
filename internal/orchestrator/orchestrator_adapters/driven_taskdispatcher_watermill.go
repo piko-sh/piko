@@ -49,6 +49,39 @@ const (
 
 	// payloadKeyDeduplicationKey is the payload key for deduplication.
 	payloadKeyDeduplicationKey = "deduplicationKey"
+
+	// shutdownReleaseTimeout bounds each release step performed while the dispatcher shuts
+	// down.
+	shutdownReleaseTimeout = 5 * time.Second
+)
+
+// dispatcherPhase records whether dispatched tasks are held, published or refused.
+type dispatcherPhase int
+
+const (
+	// dispatcherPhaseNotStarted holds dispatched tasks in the backlog because the topic
+	// subscriptions do not exist yet and a non-persistent bus drops messages published to a
+	// topic nobody subscribes to.
+	dispatcherPhaseNotStarted dispatcherPhase = iota
+
+	// dispatcherPhaseRunning publishes dispatched tasks straight to their topics.
+	dispatcherPhaseRunning
+
+	// dispatcherPhaseStopped refuses dispatches because no handler would receive them.
+	dispatcherPhaseStopped
+)
+
+// publishMode selects when a dispatched task's message is published.
+type publishMode int
+
+const (
+	// publishImmediately publishes the message from the dispatching goroutine.
+	publishImmediately publishMode = iota
+
+	// publishDeferred counts the task as dispatched straight away but hands its message to
+	// the held-task publisher goroutine. It is used when dispatching from inside a task
+	// handler, where publishing to a task topic could wait on the handler itself.
+	publishDeferred
 )
 
 var (
@@ -57,7 +90,29 @@ var (
 	// errDispatcherAlreadyStarted is returned when Start is called on a dispatcher that has
 	// already been started.
 	errDispatcherAlreadyStarted = errors.New("dispatcher already started")
+
+	// errNilTask is returned when a nil task is dispatched.
+	errNilTask = errors.New("task is nil")
+
+	// errNilDispatchRequirement is returned when DispatchIfRequired is given no requirement.
+	errNilDispatchRequirement = errors.New("dispatch requirement is nil")
+
+	// errDispatcherShutdown is the cancellation cause recorded when the dispatcher's run
+	// context ends because its parent context was cancelled.
+	errDispatcherShutdown = errors.New("task dispatcher shutting down")
 )
+
+// backloggedTask is a task message held until the dispatcher's topic subscriptions exist.
+type backloggedTask struct {
+	// task is the dispatched task, kept so a failed publish can be recorded against it.
+	task *orchestrator_domain.Task
+
+	// topic is the priority topic the task is published to.
+	topic string
+
+	// event is the serialised task message.
+	event orchestrator_domain.Event
+}
 
 // watermillTaskDispatcher implements TaskDispatcher using Watermill for distributed task
 // processing. Tasks are published to priority-specific topics and processed by handlers
@@ -72,23 +127,40 @@ var (
 // This enables distributed task processing across multiple instances whilst maintaining
 // the same code path for single-node deployments (GoChannel backend).
 type watermillTaskDispatcher struct {
-	// core provides shared task processing logic.
-	*orchestrator_domain.TaskProcessingCore
-
 	// eventBus publishes and subscribes to task topics.
 	eventBus orchestrator_domain.EventBus
 
 	// runCtx is the context for the dispatcher's lifecycle; cancelled on shutdown.
 	runCtx context.Context
 
+	// core provides shared task processing logic.
+	*orchestrator_domain.TaskProcessingCore
+
 	// cancel stops the dispatcher's background processing when called.
 	cancel context.CancelCauseFunc
+
+	// reruns holds the one pending rerun of each deduplication key requested while the key
+	// was in use.
+	reruns *rerunCoalescer
+
+	// heldWake signals the held-task publisher that deferred tasks are waiting.
+	heldWake chan struct{}
+
+	// backlog holds tasks dispatched before topic subscriptions existed and deferred reruns,
+	// pending message publication.
+	backlog []backloggedTask
 
 	// wg tracks background goroutines for graceful shutdown.
 	wg sync.WaitGroup
 
 	// pendingTasks counts tasks that have been sent but not yet handled.
 	pendingTasks atomic.Int64
+
+	// phase records whether dispatched tasks are held, published or refused.
+	phase dispatcherPhase
+
+	// phaseMutex guards phase and backlog.
+	phaseMutex sync.Mutex
 
 	// activeHandlers counts handlers that are processing tasks at this moment.
 	activeHandlers atomic.Int32
@@ -114,68 +186,50 @@ func (d *watermillTaskDispatcher) RegisterExecutor(ctx context.Context, name str
 // priority.
 //
 // If the task has a DeduplicationKey set, it is saved with a check to prevent duplicates
-// before publishing. This keeps only one active task per key exists across all instances.
+// before publishing. This keeps only one active task per key across all instances. Tasks
+// dispatched before Start has subscribed to the topics are held in a bounded backlog and
+// published once the subscriptions exist.
 //
 // Takes task (*orchestrator_domain.Task) which specifies the task to dispatch.
 //
-// Returns error when the task is nil, validation fails, a duplicate exists, or publishing
-// fails.
+// Returns error when the task is nil, validation fails, a duplicate exists, the
+// dispatcher has stopped, the backlog is full, or publishing fails.
 func (d *watermillTaskDispatcher) Dispatch(ctx context.Context, task *orchestrator_domain.Task) error {
-	if task == nil {
-		ctx, l := logger_domain.From(ctx, log)
-		ctx, span, _ := l.Span(ctx, "watermillTaskDispatcher.Dispatch")
-		defer span.End()
-		err := errors.New("task is nil")
-		span.RecordError(err)
-		orchestrator_domain.DispatcherValidationErrorCount.Add(ctx, 1)
-		return fmt.Errorf("dispatching task: %w", err)
+	return d.dispatch(ctx, task, nil, publishImmediately)
+}
+
+// DispatchIfRequired dispatches a task like Dispatch, but confirms with required that the
+// work is still needed once the task's deduplication key has been claimed and before the
+// task is published.
+//
+// A decision to dispatch is usually made from state read earlier. If another task with
+// the same key finished in between, its key is free again and the stale decision would
+// run the work a second time. Checking after the claim closes that window, because after
+// the claim no other task with the key can start or finish.
+//
+// When the key is already held by an active task, the request becomes the key's single
+// pending rerun, dispatched through the same check once the active task settles.
+//
+// Takes task (*orchestrator_domain.Task) which specifies the task to dispatch.
+// Takes required (orchestrator_domain.DispatchRequirement) which confirms the work is
+// still needed.
+//
+// Returns error when required is nil, the task is a duplicate (the request is then kept
+// as the key's pending rerun), the work is no longer required
+// (orchestrator_domain.ErrTaskNotRequired), or dispatching fails.
+func (d *watermillTaskDispatcher) DispatchIfRequired(
+	ctx context.Context,
+	task *orchestrator_domain.Task,
+	required orchestrator_domain.DispatchRequirement,
+) error {
+	if required == nil {
+		return fmt.Errorf("dispatching task: %w", errNilDispatchRequirement)
 	}
-
-	ctx, l := logger_domain.From(ctx, log)
-	ctx, span, l := l.Span(ctx, "watermillTaskDispatcher.Dispatch",
-		logger_domain.String(attributeKeyTaskID, task.ID),
-		logger_domain.String(attributeKeyWorkflowID, task.WorkflowID),
-		logger_domain.String(payloadKeyExecutor, task.Executor),
-		logger_domain.Int("priority", int(task.Config.Priority)),
-	)
-	defer span.End()
-
-	if err := d.ValidateTask(task); err != nil {
-		l.ReportError(span, err, "Task validation failed")
-		orchestrator_domain.DispatcherValidationErrorCount.Add(ctx, 1)
-		return fmt.Errorf("validating task %q: %w", task.ID, err)
+	err := d.dispatch(ctx, task, required, publishImmediately)
+	if task.DeduplicationKey == "" || !errors.Is(err, orchestrator_domain.ErrDuplicateTask) {
+		return err
 	}
-
-	d.ApplyDefaults(task)
-
-	if err := d.persistOrUpdateTask(ctx, task); err != nil {
-		return fmt.Errorf("persisting task %q: %w", task.ID, err)
-	}
-
-	topic := d.topicForPriority(task.Config.Priority)
-
-	l.Trace("Publishing task to Watermill topic",
-		logger_domain.String("topic", topic))
-
-	event := orchestrator_domain.Event{
-		Type:    orchestrator_domain.EventType(topic),
-		Payload: d.taskToPayload(task),
-	}
-
-	if err := d.eventBus.Publish(ctx, topic, event); err != nil {
-		l.ReportError(span, err, "Failed to publish task to topic")
-		orchestrator_domain.TaskDispatchErrorCount.Add(ctx, 1)
-		return fmt.Errorf("publishing task to topic %s: %w", topic, err)
-	}
-
-	d.TasksDispatched.Add(1)
-	d.pendingTasks.Add(1)
-	orchestrator_domain.TaskDispatchedCount.Add(ctx, 1)
-
-	l.Trace("Task published to topic",
-		logger_domain.String("topic", topic))
-	span.SetStatus(codes.Ok, "Task dispatched")
-	return nil
+	return d.coalesceRerun(ctx, task, required, publishImmediately, err)
 }
 
 // DispatchDelayed schedules a task to run at a given time.
@@ -213,12 +267,6 @@ func (d *watermillTaskDispatcher) DispatchDelayed(ctx context.Context, task *orc
 		return fmt.Errorf("persisting delayed task with deduplication for %q: %w", task.ID, err)
 	}
 
-	if d.DelayedPublisher == nil {
-		l.Warn("No delayed publisher configured, task will not be executed",
-			logger_domain.String(attributeKeyTaskID, task.ID))
-		return nil
-	}
-
 	if err := d.DelayedPublisher.Schedule(ctx, task); err != nil {
 		l.ReportError(span, err, "Failed to schedule delayed task")
 		orchestrator_domain.DelayedTaskPublishErrorCount.Add(ctx, 1)
@@ -231,18 +279,21 @@ func (d *watermillTaskDispatcher) DispatchDelayed(ctx context.Context, task *orc
 	return nil
 }
 
-// Start begins processing tasks from Watermill topics, spawning background goroutines for
-// the recovery loop and delayed publisher. Blocks until the context is cancelled, then
-// waits for all goroutines to complete before releasing in-flight tasks and recovery
-// leases.
+// Start begins processing tasks from the Watermill topics.
 //
-// Returns error when the dispatcher fails to start.
+// It spawns background goroutines for the recovery loop and delayed publisher, and
+// publishes tasks dispatched before the topic subscriptions existed once they do. Blocks
+// until the context is cancelled, then refuses further dispatches and waits for all
+// goroutines to complete before releasing in-flight tasks and recovery leases.
+//
+// Returns error when the dispatcher was already started or fails to subscribe.
 func (d *watermillTaskDispatcher) Start(ctx context.Context) error {
 	if d.started.Swap(true) {
 		return errDispatcherAlreadyStarted
 	}
 
 	d.runCtx, d.cancel = context.WithCancelCause(ctx)
+	defer d.cancel(errDispatcherShutdown)
 
 	ctx, l := logger_domain.From(ctx, log)
 	l.Internal("Starting Watermill task dispatcher",
@@ -251,13 +302,14 @@ func (d *watermillTaskDispatcher) Start(ctx context.Context) error {
 		logger_domain.Int("lowHandlers", d.Config.WatermillLowHandlers))
 
 	if err := d.subscribeHandlers(); err != nil {
-		return fmt.Errorf("subscribing handlers: %w", err)
+		subscribeErr := fmt.Errorf("subscribing handlers: %w", err)
+		d.failBacklog(ctx, subscribeErr)
+		return subscribeErr
 	}
 
-	if d.DelayedPublisher == nil {
-		d.DelayedPublisher = orchestrator_domain.NewDelayedTaskPublisher(d.Dispatch, d.Clock)
-	}
 	d.DelayedPublisher.Start(d.runCtx)
+	d.publishBacklog(ctx)
+	d.wg.Go(d.runHeldPublisher)
 
 	if d.Config.RecoveryInterval > 0 {
 		d.wg.Go(d.runRecoveryLoop)
@@ -268,25 +320,12 @@ func (d *watermillTaskDispatcher) Start(ctx context.Context) error {
 	<-d.runCtx.Done()
 
 	l.Internal("Watermill task dispatcher shutting down")
+	d.failBacklog(ctx, orchestrator_domain.ErrDispatcherStopped)
 
 	d.wg.Wait()
 	d.DelayedPublisher.Stop()
 
-	releaseCtx, releaseCancel := context.WithTimeoutCause(context.WithoutCancel(d.runCtx), 5*time.Second,
-		errors.New("task message release exceeded 5s timeout"))
-	d.ReleaseInFlightTasks(releaseCtx)
-	releaseCancel()
-
-	ctx, cancel := context.WithTimeoutCause(context.WithoutCancel(d.runCtx), 5*time.Second,
-		errors.New("task message processing exceeded 5s timeout"))
-	if count, err := d.ReleaseRecoveryLeases(ctx); err != nil {
-		l.Warn("Failed to release recovery leases during shutdown",
-			logger_domain.Error(err))
-	} else if count > 0 {
-		l.Internal("Released recovery leases during shutdown",
-			logger_domain.Int("count", count))
-	}
-	cancel()
+	d.releaseOnShutdown(ctx)
 
 	l.Internal("Watermill task dispatcher stopped")
 	return nil
@@ -370,13 +409,91 @@ func (d *watermillTaskDispatcher) FailedTasks(ctx context.Context) ([]orchestrat
 	return summaries, nil
 }
 
+// dispatch validates, persists and publishes a task. When required is set it is checked
+// between the persist, which claims the task's deduplication key, and the publish.
+//
+// A fresh claim also clears the key's pending rerun because the claimed task reads its
+// inputs when it runs, after this point, so it covers every request made before it.
+//
+// Takes task (*orchestrator_domain.Task) which specifies the task to dispatch.
+// Takes required (orchestrator_domain.DispatchRequirement) which confirms the work is
+// still needed, or nil to publish unconditionally.
+// Takes mode (publishMode) which selects whether the message is published now or by the
+// held-task publisher.
+//
+// Returns error when the task is nil or invalid, the dispatcher refuses work, persisting
+// fails, the work is no longer required, or publishing fails.
+func (d *watermillTaskDispatcher) dispatch(
+	ctx context.Context,
+	task *orchestrator_domain.Task,
+	required orchestrator_domain.DispatchRequirement,
+	mode publishMode,
+) error {
+	ctx, l := logger_domain.From(ctx, log)
+	if task == nil {
+		ctx, span, _ := l.Span(ctx, "watermillTaskDispatcher.Dispatch")
+		defer span.End()
+		span.RecordError(errNilTask)
+		orchestrator_domain.DispatcherValidationErrorCount.Add(ctx, 1)
+		return fmt.Errorf("dispatching task: %w", errNilTask)
+	}
+
+	ctx, span, l := l.Span(ctx, "watermillTaskDispatcher.Dispatch",
+		logger_domain.String(attributeKeyTaskID, task.ID),
+		logger_domain.String(attributeKeyWorkflowID, task.WorkflowID),
+		logger_domain.String(payloadKeyExecutor, task.Executor),
+		logger_domain.Int("priority", int(task.Config.Priority)),
+	)
+	defer span.End()
+
+	if err := d.ValidateTask(task); err != nil {
+		l.ReportError(span, err, "Task validation failed")
+		orchestrator_domain.DispatcherValidationErrorCount.Add(ctx, 1)
+		return fmt.Errorf("validating task %q: %w", task.ID, err)
+	}
+
+	if err := d.acceptingDispatches(mode); err != nil {
+		return fmt.Errorf("dispatching task %q: %w", task.ID, err)
+	}
+
+	d.ApplyDefaults(task)
+
+	created, err := d.persistOrUpdateTask(ctx, task)
+	if err != nil {
+		return fmt.Errorf("persisting task %q: %w", task.ID, err)
+	}
+
+	if required != nil {
+		if err := d.confirmRequired(ctx, task, required); err != nil {
+			return err
+		}
+	}
+
+	if created && task.DeduplicationKey != "" {
+		d.reruns.forget(task.DeduplicationKey)
+	}
+
+	if err := d.publishTask(ctx, task, mode); err != nil {
+		if created {
+			d.AbandonUnpublishedTask(ctx, task, err)
+		}
+		l.ReportError(span, err, "Failed to publish task to topic")
+		orchestrator_domain.TaskDispatchErrorCount.Add(ctx, 1)
+		return fmt.Errorf("publishing task %q: %w", task.ID, err)
+	}
+
+	span.SetStatus(codes.Ok, "Task dispatched")
+	return nil
+}
+
 // persistOrUpdateTask handles persisting new tasks or updating existing retries.
 //
 // Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes task (*orchestrator_domain.Task) which is the task to persist or update.
 //
+// Returns bool which is true when this call created the task's record.
 // Returns error when persistence fails or deduplication blocks the task.
-func (d *watermillTaskDispatcher) persistOrUpdateTask(ctx context.Context, task *orchestrator_domain.Task) error {
+func (d *watermillTaskDispatcher) persistOrUpdateTask(ctx context.Context, task *orchestrator_domain.Task) (bool, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	if tag := d.BuildTag(); tag != "" && task.BuildTag == "" {
 		task.BuildTag = tag
@@ -389,18 +506,286 @@ func (d *watermillTaskDispatcher) persistOrUpdateTask(ctx context.Context, task 
 		d.PersistTaskUpdate(ctx, task)
 		l.Trace("Retry task updated for re-dispatch",
 			logger_domain.Int(attributeKeyAttempt, task.Attempt))
-		return nil
+		return false, nil
 	}
 
+	alreadyPersisted := task.Persisted()
 	if err := d.PersistWithDedup(ctx, task); err != nil {
 		if errors.Is(err, orchestrator_domain.ErrDuplicateTask) {
 			l.Trace("Duplicate task blocked by deduplication",
 				logger_domain.String(payloadKeyDeduplicationKey, task.DeduplicationKey))
 			orchestrator_domain.TaskDeduplicationBlockedCount.Add(ctx, 1)
 		}
-		return fmt.Errorf("persisting task with deduplication for %q: %w", task.ID, err)
+		return false, fmt.Errorf("persisting task with deduplication for %q: %w", task.ID, err)
+	}
+	return !alreadyPersisted, nil
+}
+
+// confirmRequired evaluates required for a task whose deduplication key is claimed.
+//
+// When the work is no longer needed the claim is released and ErrTaskNotRequired is
+// returned. When required fails, or the release cannot be written, the task proceeds to
+// publish. The redundant run completes normally and frees the key, whereas a skipped run
+// could leave the work undone.
+//
+// Takes task (*orchestrator_domain.Task) which is the claimed task.
+// Takes required (orchestrator_domain.DispatchRequirement) which confirms the work is
+// still needed.
+//
+// Returns error wrapping ErrTaskNotRequired when the claim was released.
+func (d *watermillTaskDispatcher) confirmRequired(
+	ctx context.Context,
+	task *orchestrator_domain.Task,
+	required orchestrator_domain.DispatchRequirement,
+) error {
+	ctx, l := logger_domain.From(ctx, log)
+	stillRequired, err := required(ctx)
+	if err != nil {
+		l.Warn("Dispatch requirement check failed, publishing task anyway",
+			logger_domain.String(attributeKeyTaskID, task.ID),
+			logger_domain.Error(err))
+		return nil
+	}
+	if stillRequired {
+		return nil
+	}
+
+	if err := d.ReleaseUnrequiredTask(ctx, task); err != nil {
+		l.Warn("Releasing unrequired task failed, publishing task so its completion frees the key",
+			logger_domain.String(attributeKeyTaskID, task.ID),
+			logger_domain.Error(err))
+		return nil
+	}
+
+	l.Trace("Task no longer required, released without publishing",
+		logger_domain.String(payloadKeyDeduplicationKey, task.DeduplicationKey))
+	return fmt.Errorf("dispatching task %q: %w", task.ID, orchestrator_domain.ErrTaskNotRequired)
+}
+
+// publishTask sends the task to its priority topic, or holds it in the backlog while the
+// topic subscriptions do not exist yet or when the publish is deferred. The dispatch
+// counters are raised before the message leaves, so idle detection never observes a
+// published task that is not yet counted.
+//
+// Takes task (*orchestrator_domain.Task) which is the task to publish.
+// Takes mode (publishMode) which selects whether the message is published now or by the
+// held-task publisher.
+//
+// Returns error when the dispatcher has stopped, the backlog is full, or the bus rejects
+// the message.
+func (d *watermillTaskDispatcher) publishTask(ctx context.Context, task *orchestrator_domain.Task, mode publishMode) error {
+	ctx, l := logger_domain.From(ctx, log)
+	topic := d.topicForPriority(task.Config.Priority)
+	event := orchestrator_domain.Event{
+		Type:    orchestrator_domain.EventType(topic),
+		Payload: d.taskToPayload(task),
+	}
+
+	held, err := d.holdForPublish(task, topic, event, mode)
+	if err != nil {
+		return err
+	}
+	if held {
+		orchestrator_domain.TaskDispatchedCount.Add(ctx, 1)
+		l.Trace("Task held for the held-task publisher",
+			logger_domain.String("topic", topic))
+		return nil
+	}
+
+	d.TasksDispatched.Add(1)
+	d.pendingTasks.Add(1)
+
+	if err := d.eventBus.Publish(ctx, topic, event); err != nil {
+		d.TasksDispatched.Add(-1)
+		d.pendingTasks.Add(-1)
+		return fmt.Errorf("publishing to topic %s: %w", topic, err)
+	}
+
+	orchestrator_domain.TaskDispatchedCount.Add(ctx, 1)
+	l.Trace("Task published to topic", logger_domain.String("topic", topic))
+	return nil
+}
+
+// acceptingDispatches reports whether a new dispatch can be taken at all, so a task that
+// could never be published is rejected before its record is written.
+//
+// Takes mode (publishMode) which selects whether the dispatch would be held.
+//
+// Returns error when the dispatcher has stopped or its backlog is full.
+//
+// Safe for concurrent use; guarded by phaseMutex.
+func (d *watermillTaskDispatcher) acceptingDispatches(mode publishMode) error {
+	d.phaseMutex.Lock()
+	defer d.phaseMutex.Unlock()
+
+	if d.phase == dispatcherPhaseStopped {
+		return orchestrator_domain.ErrDispatcherStopped
+	}
+	holds := d.phase == dispatcherPhaseNotStarted || mode == publishDeferred
+	if holds && len(d.backlog) >= d.Config.EffectiveDispatchBacklogLimit() {
+		return orchestrator_domain.ErrDispatchBacklogFull
 	}
 	return nil
+}
+
+// holdForPublish appends the task to the backlog, counting it as dispatched, when the
+// dispatcher has not yet subscribed to its topics or the publish is deferred. A deferred
+// task wakes the held-task publisher.
+//
+// Takes task (*orchestrator_domain.Task) which is the task being dispatched.
+// Takes topic (string) which is the task's priority topic.
+// Takes event (orchestrator_domain.Event) which is the serialised task message.
+// Takes mode (publishMode) which selects whether a running dispatcher holds the task.
+//
+// Returns bool which is true when the task was held rather than left to the caller to
+// publish.
+// Returns error when the dispatcher has stopped or the backlog is full.
+//
+// Safe for concurrent use; guarded by phaseMutex.
+func (d *watermillTaskDispatcher) holdForPublish(
+	task *orchestrator_domain.Task,
+	topic string,
+	event orchestrator_domain.Event,
+	mode publishMode,
+) (bool, error) {
+	d.phaseMutex.Lock()
+	defer d.phaseMutex.Unlock()
+
+	switch d.phase {
+	case dispatcherPhaseRunning:
+		if mode == publishImmediately {
+			return false, nil
+		}
+	case dispatcherPhaseStopped:
+		return false, orchestrator_domain.ErrDispatcherStopped
+	default:
+	}
+
+	if len(d.backlog) >= d.Config.EffectiveDispatchBacklogLimit() {
+		return false, orchestrator_domain.ErrDispatchBacklogFull
+	}
+
+	d.backlog = append(d.backlog, backloggedTask{task: task, topic: topic, event: event})
+	d.TasksDispatched.Add(1)
+	d.pendingTasks.Add(1)
+
+	if d.phase == dispatcherPhaseRunning {
+		select {
+		case d.heldWake <- struct{}{}:
+		default:
+		}
+	}
+	return true, nil
+}
+
+// publishBacklog switches the dispatcher to publishing directly and publishes every task
+// held while the topic subscriptions did not exist.
+//
+// Safe for concurrent use; the phase is switched under phaseMutex.
+func (d *watermillTaskDispatcher) publishBacklog(ctx context.Context) {
+	d.phaseMutex.Lock()
+	d.phase = dispatcherPhaseRunning
+	d.phaseMutex.Unlock()
+
+	d.publishHeld(ctx)
+}
+
+// publishHeld publishes every task currently held in the backlog while the dispatcher is
+// running. A task whose message cannot be published is recorded as failed.
+//
+// Safe for concurrent use; the backlog is taken under phaseMutex and published after it
+// is released.
+func (d *watermillTaskDispatcher) publishHeld(ctx context.Context) {
+	ctx, l := logger_domain.From(ctx, log)
+	d.phaseMutex.Lock()
+	if d.phase != dispatcherPhaseRunning || len(d.backlog) == 0 {
+		d.phaseMutex.Unlock()
+		return
+	}
+	held := d.backlog
+	d.backlog = nil
+	d.phaseMutex.Unlock()
+
+	for _, entry := range held {
+		if err := d.eventBus.Publish(ctx, entry.topic, entry.event); err != nil {
+			d.failBackloggedTask(ctx, entry.task, fmt.Errorf("publishing held task to topic %s: %w", entry.topic, err))
+		}
+	}
+
+	l.Internal("Published held tasks", logger_domain.Int("count", len(held)))
+}
+
+// runHeldPublisher publishes deferred tasks as they are held, until the dispatcher stops.
+func (d *watermillTaskDispatcher) runHeldPublisher() {
+	defer goroutine.RecoverPanic(d.runCtx, "orchestrator.watermillTaskDispatcher.runHeldPublisher")
+
+	for {
+		select {
+		case <-d.heldWake:
+			d.publishHeld(d.runCtx)
+		case <-d.runCtx.Done():
+			return
+		}
+	}
+}
+
+// failBacklog stops the dispatcher accepting work and fails every task still held in the
+// backlog with the given cause, so none is left counted as dispatched but never run.
+//
+// Takes cause (error) which explains why the held tasks cannot be published.
+//
+// Safe for concurrent use; the backlog is taken under phaseMutex.
+func (d *watermillTaskDispatcher) failBacklog(ctx context.Context, cause error) {
+	d.phaseMutex.Lock()
+	held := d.backlog
+	d.backlog = nil
+	d.phase = dispatcherPhaseStopped
+	d.phaseMutex.Unlock()
+
+	for _, entry := range held {
+		d.failBackloggedTask(ctx, entry.task, cause)
+	}
+}
+
+// failBackloggedTask records a held task that could not be published as failed, undoing
+// its pending count and freeing its deduplication key.
+//
+// Takes task (*orchestrator_domain.Task) which is the held task.
+// Takes cause (error) which explains why it was not published.
+func (d *watermillTaskDispatcher) failBackloggedTask(ctx context.Context, task *orchestrator_domain.Task, cause error) {
+	ctx, l := logger_domain.From(ctx, log)
+	d.pendingTasks.Add(-1)
+	d.TasksFailed.Add(1)
+	orchestrator_domain.TaskFailureCount.Add(ctx, 1)
+	d.AbandonUnpublishedTask(ctx, task, cause)
+	l.Warn("Held task could not be published",
+		logger_domain.String(attributeKeyTaskID, task.ID),
+		logger_domain.Error(cause))
+}
+
+// releaseOnShutdown returns in-flight tasks to pending and releases this node's recovery
+// leases, each bounded by a timeout with a cause so shutdown cannot hang.
+func (d *watermillTaskDispatcher) releaseOnShutdown(ctx context.Context) {
+	ctx, l := logger_domain.From(context.WithoutCancel(ctx), log)
+
+	releaseCtx, releaseCancel := context.WithTimeoutCause(ctx, shutdownReleaseTimeout,
+		errors.New("task message release exceeded 5s timeout"))
+	d.ReleaseInFlightTasks(releaseCtx)
+	releaseCancel()
+
+	leaseCtx, leaseCancel := context.WithTimeoutCause(ctx, shutdownReleaseTimeout,
+		errors.New("recovery lease release exceeded 5s timeout"))
+	defer leaseCancel()
+	count, err := d.ReleaseRecoveryLeases(leaseCtx)
+	if err != nil {
+		l.Warn("Failed to release recovery leases during shutdown",
+			logger_domain.Error(err))
+		return
+	}
+	if count > 0 {
+		l.Internal("Released recovery leases during shutdown",
+			logger_domain.Int("count", count))
+	}
 }
 
 // subscribeHandlers sets up a single subscription per priority topic.
@@ -453,13 +838,12 @@ func (d *watermillTaskDispatcher) subscribeHandlers() error {
 // Takes handlerID (int) which identifies the handler processing this task.
 //
 // Returns error when processing fails, though malformed tasks are acknowledged to prevent
-// infinite redelivery.
+// infinite redelivery. A malformed task is counted as failed, because it was counted as
+// dispatched and can never run.
 //
-// The deserialisation step is wrapped in a recover so a malformed payload that triggers a
-// panic during reflective parsing does not crash the process; recovered panics are logged
-// and the message is dropped.
+// The handler is wrapped in a recover so a panic does not crash the process; recovered
+// panics are logged and the message is dropped.
 func (d *watermillTaskDispatcher) handleTaskEvent(ctx context.Context, event orchestrator_domain.Event, handlerID int) error {
-	ctx, l := logger_domain.From(ctx, log)
 	d.activeHandlers.Add(1)
 	defer d.activeHandlers.Add(-1)
 	defer d.pendingTasks.Add(-1)
@@ -467,8 +851,7 @@ func (d *watermillTaskDispatcher) handleTaskEvent(ctx context.Context, event orc
 
 	task, err := d.taskFromPayload(event.Payload)
 	if err != nil {
-		l.Warn("Failed to deserialise task from event",
-			logger_domain.Error(err))
+		d.RecordUndeliverableTask(ctx, err)
 		return nil
 	}
 
@@ -496,7 +879,7 @@ func (d *watermillTaskDispatcher) processTask(ctx context.Context, task *orchest
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			panicError := fmt.Errorf("panic in task executor: %v", recovered)
-			l.Error("Task executor panicked",
+			l.Warn("Task executor panicked",
 				logger_domain.String(attributeKeyTaskID, task.ID),
 				logger_domain.String("panic_info", fmt.Sprintf("%v", recovered)),
 				logger_domain.String("stack_trace", string(debug.Stack())),
@@ -515,7 +898,7 @@ func (d *watermillTaskDispatcher) processTask(ctx context.Context, task *orchest
 	executor, err := d.GetExecutor(task.Executor)
 	if err != nil {
 		l.ReportError(span, err, "Executor not found")
-		d.HandleTaskFailure(ctx, task, err, startTime)
+		d.HandleTaskFailure(ctx, task, orchestrator_domain.NewFatalError(err), startTime)
 		return
 	}
 
@@ -542,17 +925,37 @@ func (d *watermillTaskDispatcher) runRecoveryLoop() {
 	}
 }
 
-// runRecoverySweep performs one stale-task recovery pass and logs the outcome. Errors are
-// logged but not returned because the recovery loop retries on the next tick.
+// runRecoverySweep performs one stale-task recovery pass and hands the tasks moved back
+// to RETRYING to the delayed publisher, which dispatches them straight away and keeps
+// retrying a dispatch that fails transiently. Errors are logged but not returned because
+// the recovery loop retries on the next tick.
 func (d *watermillTaskDispatcher) runRecoverySweep() {
-	recovered, err := d.RecoverStaleTasks(d.runCtx)
-	_, l := logger_domain.From(d.runCtx, log)
+	ctx, l := logger_domain.From(d.runCtx, log)
+	retry, err := d.RecoverStaleTasks(ctx)
 	if err != nil {
 		l.Warn("stale task recovery failed", logger_domain.Error(err))
 		return
 	}
-	if recovered > 0 {
-		l.Info("recovered stale tasks", logger_domain.Int("count", recovered))
+
+	scheduled := 0
+	now := d.Clock.Now()
+	for _, task := range retry {
+		if ctx.Err() != nil {
+			break
+		}
+		task.ExecuteAt = now
+		task.ScheduledExecuteAt = now
+		if scheduleErr := d.DelayedPublisher.Schedule(ctx, task); scheduleErr != nil {
+			l.Warn("Failed to schedule recovered task for dispatch",
+				logger_domain.String(attributeKeyTaskID, task.ID),
+				logger_domain.Error(scheduleErr))
+			continue
+		}
+		scheduled++
+	}
+
+	if scheduled > 0 {
+		l.Internal("Scheduled recovered tasks for dispatch", logger_domain.Int("count", scheduled))
 	}
 }
 
@@ -622,6 +1025,10 @@ func (d *watermillTaskDispatcher) taskFromPayload(payload map[string]any) (*orch
 		ScheduledExecuteAt: payloadTime(payload, "scheduledExecuteAt"),
 		CreatedAt:          payloadTime(payload, "createdAt"),
 		UpdatedAt:          payloadTime(payload, "updatedAt"),
+		Status:             "",
+		Config:             orchestrator_domain.TaskConfig{},
+		Attempt:            0,
+		IsFatal:            false,
 	}
 
 	d.parseTaskConfigField(payload, task)
@@ -670,6 +1077,10 @@ func (*watermillTaskDispatcher) parseTaskConfig(configMap map[string]any) orches
 
 // newWatermillTaskDispatcher creates a new Watermill-based task dispatcher.
 //
+// The delayed publisher is created here rather than in Start, so tasks scheduled before
+// the dispatcher starts are kept rather than dropped, and so the field is never written
+// while other goroutines read it.
+//
 // Takes config (DispatcherConfig) which specifies the dispatcher settings.
 // Takes eventBus (EventBus) which handles pub/sub for task distribution.
 // Takes taskStore (TaskStore) which provides persistence and crash recovery.
@@ -684,17 +1095,20 @@ func newWatermillTaskDispatcher(
 ) *watermillTaskDispatcher {
 	core := orchestrator_domain.NewTaskProcessingCore(config, eventBus, taskStore, config.Clock)
 
-	d := &watermillTaskDispatcher{
-		TaskProcessingCore: core,
-		eventBus:           eventBus,
-		runCtx:             nil,
-		cancel:             nil,
-		wg:                 sync.WaitGroup{},
-		started:            atomic.Bool{},
-	}
+	d := &watermillTaskDispatcher{}
+	d.TaskProcessingCore = core
+	d.eventBus = eventBus
+	d.phase = dispatcherPhaseNotStarted
+	d.heldWake = make(chan struct{}, 1)
+	d.reruns = newRerunCoalescer(config.EffectiveMaxPendingReruns())
+	d.OnTaskSettled = d.onTaskSettled
 
 	for _, opt := range opts {
 		opt(d)
+	}
+
+	if d.DelayedPublisher == nil {
+		d.DelayedPublisher = orchestrator_domain.NewDelayedTaskPublisher(d.Dispatch, d.Clock)
 	}
 
 	return d

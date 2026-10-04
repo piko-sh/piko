@@ -486,10 +486,10 @@ func newInitialModel() *Model {
 	wb := wizardbase.NewWizardBase()
 	wb.Step = StepProjectName
 
-	return &Model{
-		WizardBase: wb,
-		Inputs:     []textinput.Model{ti},
-	}
+	model := new(Model)
+	model.WizardBase = wb
+	model.Inputs = []textinput.Model{ti}
+	return model
 }
 
 // goVersionWarning returns a warning message if the current Go runtime is older than the

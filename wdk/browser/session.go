@@ -167,7 +167,10 @@ func (s *Session) Close() error {
 // fields are left nil.
 func (s *Session) actionCtx() *browser_provider_chromedp.ActionContext {
 	return &browser_provider_chromedp.ActionContext{
-		Ctx:       s.page.Ctx,
-		ServerURL: s.serverURL,
+		Ctx:            s.page.Ctx,
+		ServerURL:      s.serverURL,
+		SrcSandbox:     nil,
+		SandboxFactory: nil,
+		PageHelper:     nil,
 	}
 }

@@ -20,8 +20,11 @@ package compiler_domain
 
 import (
 	"fmt"
+	"strings"
 
 	parsejs "github.com/tdewolff/parse/v2/js"
+	"piko.sh/piko/internal/esbuild/ast"
+	"piko.sh/piko/internal/esbuild/helpers"
 	"piko.sh/piko/internal/esbuild/js_ast"
 )
 
@@ -246,15 +249,9 @@ func (c *ASTConverter) convertSReturn(s *js_ast.SReturn) (parsejs.IStmt, error) 
 // Returns parsejs.IStmt which is the converted block statement.
 // Returns error when a statement in the block fails to convert.
 func (c *ASTConverter) convertSBlock(s *js_ast.SBlock) (parsejs.IStmt, error) {
-	statements := make([]parsejs.IStmt, 0, len(s.Stmts))
-	for i, statement := range s.Stmts {
-		converted, err := c.convertStatement(statement)
-		if err != nil {
-			return nil, fmt.Errorf("converting block statement %d: %w", i, err)
-		}
-		if converted != nil {
-			statements = append(statements, converted)
-		}
+	statements, err := c.convertStatementList(s.Stmts)
+	if err != nil {
+		return nil, fmt.Errorf("converting block: %w", err)
 	}
 	return &parsejs.BlockStmt{List: statements}, nil
 }
@@ -340,6 +337,10 @@ func (c *ASTConverter) convertSLabel(s *js_ast.SLabel) (parsejs.IStmt, error) {
 		labelName = "label"
 	}
 
+	if loop, local, ok := forWithUsingInit(s.Stmt); ok {
+		return c.convertForUsing(loop, local, []byte(labelName))
+	}
+
 	statement, err := c.convertStatement(s.Stmt)
 	if err != nil {
 		return nil, fmt.Errorf("converting labelled statement %q: %w", labelName, err)
@@ -372,6 +373,9 @@ func (c *ASTConverter) convertSThrow(s *js_ast.SThrow) (parsejs.IStmt, error) {
 // Returns parsejs.IStmt which is the converted variable declaration.
 // Returns error when binding or expression conversion fails.
 func (c *ASTConverter) convertSLocal(s *js_ast.SLocal) (parsejs.IStmt, error) {
+	if s.Kind.IsUsing() {
+		return nil, fmt.Errorf("%w: a using declaration must sit directly in a block, a function body or a for-of head", errUsingUnsupported)
+	}
 	tokenType := getLocalTokenType(s.Kind)
 
 	bindings := make([]parsejs.BindingElement, 0, len(s.Decls))
@@ -408,7 +412,7 @@ func (c *ASTConverter) convertSLocal(s *js_ast.SLocal) (parsejs.IStmt, error) {
 // Returns parsejs.IStmt which is the converted function declaration.
 // Returns error when parameter or body conversion fails.
 func (c *ASTConverter) convertSFunction(s *js_ast.SFunction) (parsejs.IStmt, error) {
-	params, err := c.convertParams(s.Fn.Args)
+	params, err := c.convertParams(s.Fn.Args, s.Fn.HasRestArg)
 	if err != nil {
 		return nil, fmt.Errorf("converting function parameters: %w", err)
 	}
@@ -494,11 +498,16 @@ func (c *ASTConverter) convertSClass(s *js_ast.SClass) (parsejs.IStmt, error) {
 // Returns parsejs.IStmt which is the converted for statement.
 // Returns error when the test or update expression conversion fails.
 func (c *ASTConverter) convertSFor(s *js_ast.SFor) (parsejs.IStmt, error) {
-	init := c.convertForInit(s.InitOrNil)
+	if local, ok := s.InitOrNil.Data.(*js_ast.SLocal); ok && local.Kind.IsUsing() {
+		return c.convertForUsing(s, local, nil)
+	}
+	init, err := c.convertForInit(s.InitOrNil)
+	if err != nil {
+		return nil, fmt.Errorf("converting for-loop initialiser: %w", err)
+	}
 
 	var test parsejs.IExpr
 	if s.TestOrNil.Data != nil {
-		var err error
 		test, err = c.convertExpression(s.TestOrNil)
 		if err != nil {
 			return nil, fmt.Errorf("converting for-loop test: %w", err)
@@ -507,7 +516,6 @@ func (c *ASTConverter) convertSFor(s *js_ast.SFor) (parsejs.IStmt, error) {
 
 	var update parsejs.IExpr
 	if s.UpdateOrNil.Data != nil {
-		var err error
 		update, err = c.convertExpression(s.UpdateOrNil)
 		if err != nil {
 			return nil, fmt.Errorf("converting for-loop update: %w", err)
@@ -531,30 +539,29 @@ func (c *ASTConverter) convertSFor(s *js_ast.SFor) (parsejs.IStmt, error) {
 //
 // Takes initStmt (js_ast.Stmt) which is the initialisation statement to convert.
 //
-// Returns parsejs.IExpr which is the converted expression, or nil if the statement cannot
-// be converted.
-func (c *ASTConverter) convertForInit(initStmt js_ast.Stmt) parsejs.IExpr {
-	if initStmt.Data == nil {
-		return nil
-	}
-
+// Returns parsejs.IExpr which is the converted declaration or expression, or nil when the
+// loop has no initialiser.
+// Returns error when the initialiser cannot be converted, or is neither a declaration nor
+// an expression.
+func (c *ASTConverter) convertForInit(initStmt js_ast.Stmt) (parsejs.IExpr, error) {
 	switch init := initStmt.Data.(type) {
+	case nil:
+		return nil, nil
 	case *js_ast.SLocal:
-		varDecl, err := c.convertSLocal(init)
+		declaration, err := c.convertSLocal(init)
 		if err != nil {
-			return nil
+			return nil, err
 		}
-		if vd, ok := varDecl.(*parsejs.VarDecl); ok {
-			return vd
+		varDecl, ok := declaration.(*parsejs.VarDecl)
+		if !ok {
+			return nil, fmt.Errorf("loop declaration converted to %T: %w", declaration, errUnsupportedExpression)
 		}
+		return varDecl, nil
 	case *js_ast.SExpr:
-		expression, err := c.convertExpression(init.Value)
-		if err != nil {
-			return nil
-		}
-		return expression
+		return c.convertExpression(init.Value)
+	default:
+		return nil, fmt.Errorf("loop initialiser %T: %w", initStmt.Data, errUnsupportedExpression)
 	}
-	return nil
 }
 
 // convertForBody converts the body of a for loop.
@@ -583,52 +590,54 @@ func (c *ASTConverter) convertForBody(bodyStmt js_ast.Stmt) (*parsejs.BlockStmt,
 // Takes s (*js_ast.SForIn) which is the esbuild for-in statement to convert.
 //
 // Returns parsejs.IStmt which is the converted for-in statement.
-// Returns error when the value or body expression cannot be converted.
+// Returns error when the declaration, value or body cannot be converted.
 func (c *ASTConverter) convertSForIn(s *js_ast.SForIn) (parsejs.IStmt, error) {
-	init := c.convertForInit(s.Init)
-
-	value, err := c.convertExpression(s.Value)
+	head, err := c.convertForEachHead(s.Init, s.Value, s.Body)
 	if err != nil {
-		return nil, fmt.Errorf("converting for-in value: %w", err)
+		return nil, fmt.Errorf("converting for-in statement: %w", err)
 	}
-
-	body, err := c.convertForBody(s.Body)
-	if err != nil {
-		return nil, fmt.Errorf("converting for-in body: %w", err)
-	}
-
-	return &parsejs.ForInStmt{
-		Init:  init,
-		Value: value,
-		Body:  body,
-	}, nil
+	return &parsejs.ForInStmt{Init: head.init, Value: head.value, Body: head.body}, nil
 }
 
-// convertSForOf converts a for-of statement.
+// convertSForOf converts a for-of statement, lowering a using declaration in its head.
 //
 // Takes s (*js_ast.SForOf) which is the esbuild for-of statement to convert.
 //
 // Returns parsejs.IStmt which is the converted for-of statement.
-// Returns error when the value expression or body conversion fails.
+// Returns error when the declaration, value or body cannot be converted.
 func (c *ASTConverter) convertSForOf(s *js_ast.SForOf) (parsejs.IStmt, error) {
-	init := c.convertForInit(s.Init)
-
-	value, err := c.convertExpression(s.Value)
-	if err != nil {
-		return nil, fmt.Errorf("converting for-of value: %w", err)
+	if local, ok := s.Init.Data.(*js_ast.SLocal); ok && local.Kind.IsUsing() {
+		return c.convertForOfUsing(s, local)
 	}
-
-	body, err := c.convertForBody(s.Body)
+	head, err := c.convertForEachHead(s.Init, s.Value, s.Body)
 	if err != nil {
-		return nil, fmt.Errorf("converting for-of body: %w", err)
+		return nil, fmt.Errorf("converting for-of statement: %w", err)
 	}
+	return &parsejs.ForOfStmt{Await: s.Await.Len > 0, Init: head.init, Value: head.value, Body: head.body}, nil
+}
 
-	return &parsejs.ForOfStmt{
-		Await: s.Await.Len > 0,
-		Init:  init,
-		Value: value,
-		Body:  body,
-	}, nil
+// convertForEachHead converts the declaration, iterated value and body shared by for-in
+// and for-of loops.
+//
+// Takes init (js_ast.Stmt) which is the loop's declaration or assignment target.
+// Takes value (js_ast.Expr) which is the iterated value.
+// Takes body (js_ast.Stmt) which is the loop body.
+//
+// Returns forEachParts which holds the converted parts.
+// Returns error when any part cannot be converted.
+func (c *ASTConverter) convertForEachHead(init js_ast.Stmt, value js_ast.Expr, body js_ast.Stmt) (forEachParts, error) {
+	var parts forEachParts
+	var err error
+	if parts.init, err = c.convertForInit(init); err != nil {
+		return forEachParts{}, fmt.Errorf("converting declaration: %w", err)
+	}
+	if parts.value, err = c.convertExpression(value); err != nil {
+		return forEachParts{}, fmt.Errorf("converting value: %w", err)
+	}
+	if parts.body, err = c.convertForBody(body); err != nil {
+		return forEachParts{}, fmt.Errorf("converting body: %w", err)
+	}
+	return parts, nil
 }
 
 // convertSTry converts a try statement to the internal representation.
@@ -822,20 +831,23 @@ func (c *ASTConverter) getDefaultImportName(s *js_ast.SImport) []byte {
 	return []byte(name)
 }
 
-// getModulePath gets the module path from import records.
+// getModulePath gets the module specifier from import records as the quoted path followed
+// by the import attributes clause when the import has one, as in `"./data.json" with {
+// type: "json" }`.
 //
 // Takes s (*js_ast.SImport) which provides the import statement to look up.
 //
-// Returns string which is the quoted module path, or "unknown" if not found.
+// Returns string which is the module specifier, or "unknown" quoted if not found.
 func (c *ASTConverter) getModulePath(s *js_ast.SImport) string {
-	modulePath := ""
-	if c.importRecords != nil && int(s.ImportRecordIndex) < len(c.importRecords) {
-		modulePath = c.importRecords[s.ImportRecordIndex].Path.Text
+	if int(s.ImportRecordIndex) >= len(c.importRecords) {
+		return fmtQuotedStrValue("unknown")
 	}
+	record := &c.importRecords[s.ImportRecordIndex]
+	modulePath := record.Path.Text
 	if modulePath == "" {
 		modulePath = "unknown"
 	}
-	return fmtQuotedStrValue(modulePath)
+	return fmtQuotedStrValue(modulePath) + importAttributesClause(record.AssertOrWith)
 }
 
 // isNamespaceImport checks if this is a namespace import.
@@ -939,7 +951,7 @@ func (c *ASTConverter) convertExportDefaultClass(v *js_ast.SClass) (parsejs.IStm
 // Returns parsejs.IStmt which is the converted export statement.
 // Returns error when parameter or body conversion fails.
 func (c *ASTConverter) convertExportDefaultFunction(v *js_ast.SFunction) (parsejs.IStmt, error) {
-	params, err := c.convertParams(v.Fn.Args)
+	params, err := c.convertParams(v.Fn.Args, v.Fn.HasRestArg)
 	if err != nil {
 		return nil, fmt.Errorf("converting export default function parameters: %w", err)
 	}
@@ -989,13 +1001,14 @@ func (c *ASTConverter) convertExportDefaultExpr(v *js_ast.SExpr) (parsejs.IStmt,
 
 // getLocalTokenType returns the token type for a local declaration kind.
 //
-// Takes kind (js_ast.LocalKind) which specifies the declaration kind (const, let, or
-// var).
+// A using or await using declaration binds as a const once lowered.
+//
+// Takes kind (js_ast.LocalKind) which specifies the declaration kind.
 //
 // Returns parsejs.TokenType which is the corresponding token type.
 func getLocalTokenType(kind js_ast.LocalKind) parsejs.TokenType {
 	switch kind {
-	case js_ast.LocalConst:
+	case js_ast.LocalConst, js_ast.LocalUsing, js_ast.LocalAwaitUsing:
 		return parsejs.ConstToken
 	case js_ast.LocalLet:
 		return parsejs.LetToken
@@ -1006,9 +1019,45 @@ func getLocalTokenType(kind js_ast.LocalKind) parsejs.TokenType {
 
 // fmtQuotedStrValue formats a string as a quoted JavaScript string.
 //
-// Takes s (string) which is the value to wrap in quotes.
+// Takes s (string) which is the value to quote.
 //
-// Returns string which is the input wrapped in double quotes.
+// Returns string which is the input as a double-quoted string literal, with any quote,
+// backslash or control character escaped.
 func fmtQuotedStrValue(s string) string {
-	return "\"" + s + "\""
+	return string(helpers.QuoteForJSON(s, false))
+}
+
+// importAttributesClause prints the attributes clause of a static import, such as ` with
+// { type: "json" }`, so a module that needs one (a JSON module, for example) is still
+// loaded the way its author asked.
+//
+// Takes attributes (*ast.ImportAssertOrWith) which is the clause; nil when the import has
+// none.
+//
+// Returns string which is the clause with a leading space, or empty when there is none.
+func importAttributesClause(attributes *ast.ImportAssertOrWith) string {
+	if attributes == nil {
+		return ""
+	}
+
+	var builder strings.Builder
+	builder.WriteString(" ")
+	builder.WriteString(attributes.Keyword.String())
+	builder.WriteString(" {")
+	for i, entry := range attributes.Entries {
+		if i > 0 {
+			builder.WriteString(",")
+		}
+		builder.WriteString(" ")
+		key := helpers.UTF16ToString(entry.Key)
+		if js_ast.IsIdentifier(key) && !entry.PreferQuotedKey {
+			builder.WriteString(key)
+		} else {
+			builder.Write(helpers.QuoteForJSON(key, false))
+		}
+		builder.WriteString(": ")
+		builder.Write(helpers.QuoteForJSON(helpers.UTF16ToString(entry.Value), false))
+	}
+	builder.WriteString(" }")
+	return builder.String()
 }

@@ -97,7 +97,7 @@ func TestRegistryContext_RegisterIdentifierName(t *testing.T) {
 	rc := NewRegistryContext()
 
 	t.Run("registers name for identifier", func(t *testing.T) {
-		identifier := &js_ast.EIdentifier{Ref: ast.Ref{}}
+		identifier := &js_ast.EIdentifier{}
 		rc.RegisterIdentifierName(identifier, "testName")
 
 		assert.Equal(t, "testName", rc.LookupIdentifierName(identifier))
@@ -109,14 +109,14 @@ func TestRegistryContext_RegisterIdentifierName(t *testing.T) {
 	})
 
 	t.Run("empty name is ignored", func(t *testing.T) {
-		identifier := &js_ast.EIdentifier{Ref: ast.Ref{}}
+		identifier := &js_ast.EIdentifier{}
 		rc.RegisterIdentifierName(identifier, "")
 
 		assert.Empty(t, rc.LookupIdentifierName(identifier))
 	})
 
 	t.Run("overwrites existing registration", func(t *testing.T) {
-		identifier := &js_ast.EIdentifier{Ref: ast.Ref{}}
+		identifier := &js_ast.EIdentifier{}
 		rc.RegisterIdentifierName(identifier, "first")
 		rc.RegisterIdentifierName(identifier, "second")
 
@@ -133,7 +133,7 @@ func TestRegistryContext_LookupIdentifierName(t *testing.T) {
 	})
 
 	t.Run("returns empty for unknown identifier", func(t *testing.T) {
-		identifier := &js_ast.EIdentifier{Ref: ast.Ref{}}
+		identifier := &js_ast.EIdentifier{}
 
 		result := rc.LookupIdentifierName(identifier)
 
@@ -177,7 +177,7 @@ func TestRegistryContext_RegisterBindingName(t *testing.T) {
 	rc := NewRegistryContext()
 
 	t.Run("registers name for binding", func(t *testing.T) {
-		bind := &js_ast.BIdentifier{Ref: ast.Ref{}}
+		bind := &js_ast.BIdentifier{}
 		rc.RegisterBindingName(bind, "testBinding")
 
 		assert.Equal(t, "testBinding", rc.LookupBindingName(bind))
@@ -188,7 +188,7 @@ func TestRegistryContext_RegisterBindingName(t *testing.T) {
 	})
 
 	t.Run("empty name is ignored", func(t *testing.T) {
-		bind := &js_ast.BIdentifier{Ref: ast.Ref{}}
+		bind := &js_ast.BIdentifier{}
 		rc.RegisterBindingName(bind, "")
 
 		assert.Empty(t, rc.LookupBindingName(bind))
@@ -235,7 +235,7 @@ func TestRegistryContext_RegisterLocRefName(t *testing.T) {
 	rc := NewRegistryContext()
 
 	t.Run("registers name for LocRef", func(t *testing.T) {
-		locRef := &ast.LocRef{Ref: ast.Ref{}}
+		locRef := &ast.LocRef{}
 		rc.RegisterLocRefName(locRef, "TestClass")
 
 		assert.Equal(t, "TestClass", rc.LookupLocRefName(locRef))
@@ -246,7 +246,7 @@ func TestRegistryContext_RegisterLocRefName(t *testing.T) {
 	})
 
 	t.Run("empty name is ignored", func(t *testing.T) {
-		locRef := &ast.LocRef{Ref: ast.Ref{}}
+		locRef := &ast.LocRef{}
 		rc.RegisterLocRefName(locRef, "")
 
 		assert.Empty(t, rc.LookupLocRefName(locRef))
@@ -297,14 +297,12 @@ func TestRegistryContext_ConcurrentAccess(t *testing.T) {
 		var wg sync.WaitGroup
 		numGoroutines := 100
 
-		wg.Add(numGoroutines)
-		for i := range numGoroutines {
-			go func(index int) {
-				defer wg.Done()
+		for range numGoroutines {
+			wg.Go(func() {
 
 				identifier := rc.MakeIdentifier("var")
 				_ = rc.LookupIdentifierName(identifier)
-			}(i)
+			})
 		}
 
 		wg.Wait()
@@ -318,13 +316,11 @@ func TestRegistryContext_ConcurrentAccess(t *testing.T) {
 		var wg sync.WaitGroup
 		numGoroutines := 100
 
-		wg.Add(numGoroutines)
 		for range numGoroutines {
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				name := rc.LookupIdentifierName(identifier)
 				assert.Equal(t, "sharedVar", name)
-			}()
+			})
 		}
 
 		wg.Wait()

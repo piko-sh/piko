@@ -577,7 +577,7 @@ func TestValidateHelperFunctions(t *testing.T) {
 		}{
 			{
 				name:     "non-text node returns false",
-				node:     &TemplateNode{NodeType: NodeElement},
+				node:     &TemplateNode{},
 				expected: false,
 			},
 			{
@@ -797,9 +797,7 @@ func TestValidateHelperFunctions(t *testing.T) {
 			t.Parallel()
 
 			node := &TemplateNode{
-				GoAnnotations: &GoGeneratorAnnotation{
-					OriginalSourcePath: nil,
-				},
+				GoAnnotations: &GoGeneratorAnnotation{},
 			}
 			tree := &TemplateAST{SourcePath: new("main.html")}
 

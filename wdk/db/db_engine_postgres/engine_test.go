@@ -20,6 +20,8 @@ package db_engine_postgres
 
 import (
 	"context"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -1047,7 +1049,7 @@ func TestFloatPromotionRank(t *testing.T) {
 	}
 }
 
-func TestAnalyseQuery_RecoversFromParserPanic(t *testing.T) {
+func TestAnalyseQuery_ReportsEmptyStatementAsSyntaxError(t *testing.T) {
 	t.Parallel()
 
 	engine := NewPostgresEngine()
@@ -1062,8 +1064,8 @@ func TestAnalyseQuery_RecoversFromParserPanic(t *testing.T) {
 
 	require.Error(t, err)
 	require.Nil(t, analysis)
-	assert.Contains(t, err.Error(), "postgres: analyse panic")
-	assert.NotContains(t, err.Error(), "stack:")
+	assert.Contains(t, err.Error(), "expected keyword [SELECT]")
+	assert.NotContains(t, err.Error(), "panic")
 }
 
 func TestTableValuedFunctionColumnsFromCatalogue_DeterministicAcrossSchemas(t *testing.T) {
@@ -1118,7 +1120,7 @@ func TestTableValuedFunctionColumnsFromCatalogue_DeterministicAcrossSchemas(t *t
 		"should resolve to the alphabetically-first schema")
 }
 
-func TestApplyDDL_RecoversWithStackTrace(t *testing.T) {
+func TestApplyDDL_ReportsEmptyStatementAsSyntaxError(t *testing.T) {
 	t.Parallel()
 
 	engine := NewPostgresEngine()
@@ -1133,7 +1135,145 @@ func TestApplyDDL_RecoversWithStackTrace(t *testing.T) {
 
 	require.Error(t, err)
 	require.Nil(t, mutation)
+	assert.Contains(t, err.Error(), "expected keyword [CREATE]")
+	assert.NotContains(t, err.Error(), "panic")
+}
 
-	assert.Contains(t, err.Error(), "postgres: ddl panic")
-	assert.NotContains(t, err.Error(), "stack:")
+func TestApplyDDL_RecoversFromExtensionPanicWithoutStack(t *testing.T) {
+	t.Parallel()
+
+	engine := NewPostgresEngine(WithStatementExtensions(panickingExtension{}))
+	statements, err := engine.ParseStatements("CREATE FOOBAR widgets")
+	require.NoError(t, err)
+
+	mutation, err := engine.ApplyDDL(context.Background(), statements[0])
+
+	require.Error(t, err)
+	require.Nil(t, mutation)
+	assert.Contains(t, err.Error(), "postgres: ddl panic: extension bug")
+	assert.NotContains(t, err.Error(), "goroutine")
+}
+
+type panickingExtension struct {
+	foobarExtension
+}
+
+func (panickingExtension) Parse(ParserContext, StatementKind) (*querier_dto.CatalogueMutation, error) {
+	panic("extension bug")
+}
+
+func TestWithMaxTokensPerStatement(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name  string
+		limit int
+		want  int
+	}{
+		{name: "positive limit is applied", limit: 50, want: 50},
+		{name: "zero keeps the default", limit: 0, want: defaultMaxTokensPerStatement},
+		{name: "negative keeps the default", limit: -1, want: defaultMaxTokensPerStatement},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			engine := NewPostgresEngine(WithMaxTokensPerStatement(testCase.limit))
+
+			assert.Equal(t, testCase.want, engine.dialect.resolvedMaxTokensPerStatement())
+		})
+	}
+}
+
+func TestTokenBudgetRejectsOversizedStatements(t *testing.T) {
+	t.Parallel()
+
+	longSelect := "SELECT " + strings.TrimSuffix(strings.Repeat("1, ", 40), ", ")
+	longTable := "CREATE TABLE t (" + strings.TrimSuffix(strings.Repeat("c int, ", 20), ", ") + ")"
+
+	testCases := []struct {
+		name    string
+		sql     string
+		isDDL   bool
+		wantErr bool
+	}{
+		{name: "analysed query over budget", sql: longSelect, wantErr: true},
+		{name: "analysed query within budget", sql: "SELECT 1", wantErr: false},
+		{name: "handled DDL over budget", sql: longTable, isDDL: true, wantErr: true},
+		{name: "handled DDL within budget", sql: "CREATE TABLE t (id int)", isDDL: true, wantErr: false},
+		{name: "unhandled statement in a migration is not charged", sql: "INSERT INTO t VALUES " +
+			strings.TrimSuffix(strings.Repeat("(1), ", 40), ", "), isDDL: true, wantErr: false},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			engine := NewPostgresEngine(WithMaxTokensPerStatement(30))
+			statements, err := engine.ParseStatements(testCase.sql)
+			require.NoError(t, err)
+			require.Len(t, statements, 1)
+
+			if testCase.isDDL {
+				_, err = engine.ApplyDDL(context.Background(), statements[0])
+			} else {
+				_, err = engine.AnalyseQuery(nil, statements[0])
+			}
+
+			if !testCase.wantErr {
+				require.NoError(t, err)
+				return
+			}
+			require.Error(t, err)
+			assert.ErrorIs(t, err, errTokenBudgetExceeded)
+			assert.Contains(t, err.Error(), "limit is 30")
+		})
+	}
+}
+
+func TestDefaultTokenBudgetAcceptsLargeInLists(t *testing.T) {
+	t.Parallel()
+
+	var builder strings.Builder
+	builder.WriteString("SELECT id FROM users WHERE id IN (")
+	for index := range 20_000 {
+		if index > 0 {
+			builder.WriteString(", ")
+		}
+		builder.WriteString("$")
+		builder.WriteString(strconv.Itoa(index + 1))
+	}
+	builder.WriteString(")")
+
+	analysis := analyseQuery(t, newPostgresCatalogue(), builder.String())
+
+	assert.Len(t, analysis.ParameterReferences, 20_000)
+}
+
+func TestAnalyseQueryHandlesStatementsWithoutAnalyser(t *testing.T) {
+	t.Parallel()
+
+	engine := NewPostgresEngine()
+
+	t.Run("unexpected raw statement type is an error", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := engine.AnalyseQuery(nil, querier_dto.ParsedStatement{Raw: nil})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "unexpected statement type")
+	})
+
+	t.Run("DDL kind yields an empty analysis", func(t *testing.T) {
+		t.Parallel()
+
+		statements, err := engine.ParseStatements("CREATE TABLE t (id int)")
+		require.NoError(t, err)
+
+		analysis, err := engine.AnalyseQuery(nil, statements[0])
+
+		require.NoError(t, err)
+		assert.Equal(t, &querier_dto.RawQueryAnalysis{}, analysis)
+	})
 }

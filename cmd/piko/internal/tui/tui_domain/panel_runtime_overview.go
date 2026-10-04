@@ -83,6 +83,8 @@ func NewRuntimeOverviewPanel(provider SystemProvider, c clock.Clock) *RuntimeOve
 		heapHistory:      NewHistoryRing(runtimeOverviewHistory),
 		goroutineHistory: NewHistoryRing(runtimeOverviewHistory),
 		stateMutex:       sync.RWMutex{},
+		err:              nil,
+		stats:            nil,
 	}
 	p.SetKeyMap([]KeyBinding{{Key: "r", Description: "Refresh"}})
 	return p
@@ -169,7 +171,7 @@ func (p *RuntimeOverviewPanel) DetailView(width, height int) string {
 	now := p.clock.Now()
 	series := []ChartSeries{}
 	if len(snap.heap) >= 2 {
-		series = append(series, ChartSeries{Name: "Heap", Points: pointsFromHistory(snap.heap, now)})
+		series = append(series, ChartSeries{Name: "Heap", Points: pointsFromHistory(snap.heap, now), Severity: 0})
 	}
 	if len(snap.goroutines) >= 2 {
 		series = append(series, ChartSeries{Name: "Goroutines", Points: pointsFromHistory(snap.goroutines, now), Severity: SeverityWarning})
@@ -185,18 +187,18 @@ func (p *RuntimeOverviewPanel) DetailView(width, height int) string {
 // Returns inspector.DetailBody ready to pass to RenderDetailBody.
 func (*RuntimeOverviewPanel) tileBody(stats *SystemStats) inspector.DetailBody {
 	if stats == nil {
-		return inspector.DetailBody{Title: "Runtime", Subtitle: "no data yet"}
+		return inspector.DetailBody{Title: "Runtime", Subtitle: "no data yet", Sections: nil}
 	}
 	rows := []inspector.DetailRow{
-		{Label: "Uptime", Value: stats.Uptime.Truncate(time.Second).String()},
-		{Label: "Heap alloc", Value: inspector.FormatBytes(stats.Memory.HeapAlloc)},
-		{Label: "Goroutines", Value: formatInt(stats.NumGoroutines)},
-		{Label: "RSS", Value: inspector.FormatBytes(stats.Process.RSS)},
+		inspector.NewDetailRow("Uptime", stats.Uptime.Truncate(time.Second).String()),
+		inspector.NewDetailRow("Heap alloc", inspector.FormatBytes(stats.Memory.HeapAlloc)),
+		inspector.NewDetailRow("Goroutines", formatInt(stats.NumGoroutines)),
+		inspector.NewDetailRow("RSS", inspector.FormatBytes(stats.Process.RSS)),
 	}
 	return inspector.DetailBody{
 		Title:    "Runtime",
 		Subtitle: stats.Build.Version,
-		Sections: []inspector.DetailSection{{Heading: "At a glance", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("At a glance", rows)},
 	}
 }
 
@@ -238,22 +240,22 @@ func (p *RuntimeOverviewPanel) snapshot() runtimeOverviewSnapshot {
 // Returns inspector.DetailBody describing the panel state.
 func (*RuntimeOverviewPanel) detailBody(stats *SystemStats) inspector.DetailBody {
 	if stats == nil {
-		return inspector.DetailBody{Title: "Runtime", Subtitle: "no data yet"}
+		return inspector.DetailBody{Title: "Runtime", Subtitle: "no data yet", Sections: nil}
 	}
 	rows := []inspector.DetailRow{
-		{Label: "Uptime", Value: stats.Uptime.Truncate(time.Second).String()},
-		{Label: "CPU", Value: percentageString(stats.CPUMillicores / 1000.0)},
-		{Label: "Goroutines", Value: formatInt(stats.NumGoroutines)},
-		{Label: "Heap alloc", Value: inspector.FormatBytes(stats.Memory.HeapAlloc)},
-		{Label: "RSS", Value: inspector.FormatBytes(stats.Process.RSS)},
-		{Label: "GOMAXPROCS", Value: formatInt(stats.GOMAXPROCS)},
-		{Label: "GC cycles", Value: formatUint64(uint64(stats.GC.NumGC))},
-		{Label: "Last GC", Value: formatDurationNs(stats.GC.LastPauseNs)},
+		inspector.NewDetailRow("Uptime", stats.Uptime.Truncate(time.Second).String()),
+		inspector.NewDetailRow("CPU", percentageString(stats.CPUMillicores/1000.0)),
+		inspector.NewDetailRow("Goroutines", formatInt(stats.NumGoroutines)),
+		inspector.NewDetailRow("Heap alloc", inspector.FormatBytes(stats.Memory.HeapAlloc)),
+		inspector.NewDetailRow("RSS", inspector.FormatBytes(stats.Process.RSS)),
+		inspector.NewDetailRow("GOMAXPROCS", formatInt(stats.GOMAXPROCS)),
+		inspector.NewDetailRow("GC cycles", formatUint64(uint64(stats.GC.NumGC))),
+		inspector.NewDetailRow("Last GC", formatDurationNs(stats.GC.LastPauseNs)),
 	}
 	return inspector.DetailBody{
 		Title:    "Runtime overview",
 		Subtitle: stats.Build.Version,
-		Sections: []inspector.DetailSection{{Heading: "Snapshot", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Snapshot", rows)},
 	}
 }
 

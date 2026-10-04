@@ -118,5 +118,7 @@ func DefaultConfig() *Config {
 		CustomComponents:       make(map[string]string),
 		Beautify:               false,
 		Minify:                 false,
+		AssetServePath:         "",
+		PreviewMode:            false,
 	}
 }

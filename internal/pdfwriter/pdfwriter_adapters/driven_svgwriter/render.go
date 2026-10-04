@@ -92,6 +92,7 @@ func (*SVGWriter) RenderSVG(ctx context.Context, svgData string, svgRenderContex
 		measureText:      svgRenderContext.MeasureText,
 		getImageData:     svgRenderContext.GetImageData,
 		activeHrefs:      make(map[string]struct{}),
+		depth:            0,
 	}
 
 	rc.stream.SaveState()
@@ -590,6 +591,7 @@ func renderPath(ctx context.Context, rc *renderContext, node *Node, style *Style
 //
 // Takes ctx (context.Context) which controls cancellation of image data retrieval.
 // Takes rc (*renderContext) which provides the PDF stream and resource managers.
+// Takes node (*Node) which provides the SVG image element and its attributes.
 func renderImage(ctx context.Context, rc *renderContext, node *Node) {
 	if rc.getImageData == nil || rc.imageEmbedder == nil {
 		return

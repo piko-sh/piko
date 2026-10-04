@@ -21,13 +21,18 @@ package templater_adapters
 import (
 	"context"
 	"errors"
+	"net/http"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/daemon/daemon_dto"
+	"piko.sh/piko/internal/templater/templater_domain"
+	"piko.sh/piko/internal/templater/templater_dto"
 )
 
 type mockASTCache struct {
@@ -201,4 +206,78 @@ func TestConcurrentCacheAccessWithPoolReuse(t *testing.T) {
 			t.Error(err)
 		}
 	}
+}
+
+type recordedCacheWrite struct {
+	cause   error
+	carrier *daemon_dto.PikoRequestCtx
+	key     string
+	ttl     time.Duration
+}
+
+type gatedRecordingASTCache struct {
+	*mockASTCache
+	gate   chan struct{}
+	writes chan recordedCacheWrite
+}
+
+func (c *gatedRecordingASTCache) SetWithTTL(
+	ctx context.Context, key string, entry *ast_domain.CachedASTEntry, ttl time.Duration,
+) error {
+	<-c.gate
+	c.writes <- recordedCacheWrite{
+		cause:   context.Cause(ctx),
+		carrier: daemon_dto.PikoRequestCtxFromContext(ctx),
+		key:     key,
+		ttl:     ttl,
+	}
+	return c.Set(ctx, key, entry)
+}
+
+func (*gatedRecordingASTCache) Shutdown(context.Context) {}
+
+func TestCachingManifestRunner_BackgroundWriteOutlivesTheRequest(t *testing.T) {
+	cache := &gatedRecordingASTCache{
+		mockASTCache: newMockASTCache(),
+		gate:         make(chan struct{}),
+		writes:       make(chan recordedCacheWrite, 1),
+	}
+	entry := &PageEntry{}
+	entry.OriginalSourcePath = "pages/cached.pk"
+	entry.HasCachePolicy = true
+	entry.SetCachePolicyFunc(func(*templater_dto.RequestData) templater_dto.CachePolicy {
+		return templater_dto.CachePolicy{Enabled: true, MaxAgeSeconds: 90}
+	})
+	next := &mockManifestRunner{
+		getPageEntryFunction: func(context.Context, string) (templater_domain.PageEntryView, error) {
+			return entry, nil
+		},
+		runPageFunction: func(context.Context, templater_dto.PageDefinition, *http.Request) (*ast_domain.TemplateAST, templater_dto.InternalMetadata, string, error) {
+			return &ast_domain.TemplateAST{}, templater_dto.InternalMetadata{Title: "Cached"}, "", nil
+		},
+	}
+	runner := NewCachingManifestRunner(next, cache)
+
+	pctx := daemon_dto.AcquirePikoRequestCtx()
+	pctx.Locale = "en"
+	requestCtx, cancelRequest := context.WithCancelCause(daemon_dto.WithPikoRequestCtx(context.Background(), pctx))
+	request := newRequestWithChiCtx(http.MethodGet, "/cached")
+	request = request.WithContext(daemon_dto.WithPikoRequestCtx(request.Context(), pctx))
+	pageDef := templater_dto.PageDefinition{OriginalPath: "pages/cached.pk", NormalisedPath: "/cached"}
+
+	_, metadata, _, err := runner.RunPage(requestCtx, pageDef, request)
+	require.NoError(t, err)
+	assert.Equal(t, "Cached", metadata.Title)
+
+	cancelRequest(errors.New("client went away"))
+	daemon_dto.ReleasePikoRequestCtx(pctx)
+	close(cache.gate)
+
+	write := <-cache.writes
+	assert.Equal(t, 90*time.Second, write.ttl, "the TTL comes from the page's cache policy")
+	require.NoError(t, write.cause, "the cache write must outlive the request")
+	require.NotNil(t, write.carrier)
+	assert.NotSame(t, pctx, write.carrier, "the cache write must not read the pooled carrier")
+	assert.Equal(t, "en", write.carrier.Locale)
+	assert.NotEmpty(t, write.key)
 }

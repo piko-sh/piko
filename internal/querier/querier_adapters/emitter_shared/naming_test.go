@@ -24,7 +24,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 )
 
 func TestSnakeToPascalCase(t *testing.T) {

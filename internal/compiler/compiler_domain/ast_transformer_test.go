@@ -83,7 +83,7 @@ func TestTransformOurASTtoJSAST(t *testing.T) {
 		},
 		{
 			name:  "boolean literal false",
-			input: &ast_domain.BooleanLiteral{Value: false},
+			input: &ast_domain.BooleanLiteral{},
 			checkExpr: func(t *testing.T, expression js_ast.Expr) {
 				e, ok := expression.Data.(*js_ast.EBoolean)
 				require.True(t, ok, "expected EBoolean")
@@ -214,7 +214,7 @@ func TestTransformOurASTtoJSAST(t *testing.T) {
 			name: "index expression a[0]",
 			input: &ast_domain.IndexExpression{
 				Base:  &ast_domain.Identifier{Name: "a"},
-				Index: &ast_domain.IntegerLiteral{Value: 0},
+				Index: &ast_domain.IntegerLiteral{},
 			},
 			checkExpr: func(t *testing.T, expression js_ast.Expr) {
 				index, ok := expression.Data.(*js_ast.EIndex)
@@ -583,7 +583,7 @@ func TestTransformTemplateLiteral(t *testing.T) {
 	}{
 		{
 			name:     "empty parts returns empty string",
-			template: &ast_domain.TemplateLiteral{Parts: nil},
+			template: &ast_domain.TemplateLiteral{},
 			checkExpr: func(t *testing.T, expression js_ast.Expr) {
 				e, ok := expression.Data.(*js_ast.EString)
 				require.True(t, ok, "expected EString")

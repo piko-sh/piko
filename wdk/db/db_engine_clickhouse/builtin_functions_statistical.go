@@ -32,14 +32,10 @@ import (
 //
 // Returns querier_dto.SQLType which is the constructed tuple type.
 func tupleFloat64Pair(b *FunctionCatalogueBuilder) querier_dto.SQLType {
-	return querier_dto.SQLType{
-		Category:   querier_dto.TypeCategoryStruct,
-		EngineName: "Tuple",
-		StructFields: []querier_dto.StructField{
-			{Name: "statistic", SQLType: b.float64Type},
-			{Name: "p_value", SQLType: b.float64Type},
-		},
-	}
+	return tupleOf([]querier_dto.StructField{
+		{Name: "statistic", SQLType: b.float64Type},
+		{Name: "p_value", SQLType: b.float64Type},
+	})
 }
 
 // registerStatisticalAggregateFunctions covers hypothesis-test and rank-correlation

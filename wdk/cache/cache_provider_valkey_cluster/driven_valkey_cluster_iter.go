@@ -354,22 +354,23 @@ func (a *ValkeyClusterAdapter[K, V]) Stats() cache.Stats {
 	}
 
 	return cache.Stats{
-		Hits:   totalHits,
-		Misses: totalMisses,
+		Hits:             totalHits,
+		Misses:           totalMisses,
+		Evictions:        0,
+		LoadSuccessCount: 0,
+		LoadFailureCount: 0,
+		TotalLoadTime:    0,
 	}
 }
 
-// Close releases the Valkey Cluster client connection.
+// Close releases this namespace.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
+// The Valkey Cluster client is shared by every namespace of the provider and is closed by
+// ValkeyClusterProvider.Close, so closing one namespace leaves the others usable.
 //
-// Returns error when resources cannot be released cleanly.
-func (a *ValkeyClusterAdapter[K, V]) Close(ctx context.Context) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	a.client.Close()
-	return nil
+// Returns error when ctx is already done.
+func (*ValkeyClusterAdapter[K, V]) Close(ctx context.Context) error {
+	return ctx.Err()
 }
 
 // SetExpiresAfter updates the time to live for an existing key using the EXPIRE command.

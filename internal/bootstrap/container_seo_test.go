@@ -158,7 +158,7 @@ func TestCreateDefaultSEOService_GuardBranches(t *testing.T) {
 		seoConfig *config.SEOConfig
 	}{
 		{name: "no configuration supplied", seoConfig: nil},
-		{name: "disabled", seoConfig: &config.SEOConfig{Enabled: false}},
+		{name: "disabled", seoConfig: &config.SEOConfig{}},
 		{name: "enabled with no hostname", seoConfig: &config.SEOConfig{Enabled: true}},
 	}
 

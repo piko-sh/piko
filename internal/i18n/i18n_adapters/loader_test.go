@@ -19,6 +19,7 @@
 package i18n_adapters
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -110,7 +111,7 @@ func TestLoader_Load_UnknownMode(t *testing.T) {
 	t.Parallel()
 
 	loader := NewLoader(LoaderConfig{Mode: "unknown"})
-	_, err := loader.Load()
+	_, err := loader.Load(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unknown loader mode")
 }
@@ -126,7 +127,7 @@ func TestLoader_Load_FlatBufferMissingPath(t *testing.T) {
 		Sandbox: sandbox,
 	})
 
-	_, err := loader.Load()
+	_, err := loader.Load(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "FlatBuffer path is required")
 }
@@ -139,7 +140,7 @@ func TestLoader_Load_FlatBufferMissingSandbox(t *testing.T) {
 		FlatBufferPath: "dist/i18n.bin",
 	})
 
-	_, err := loader.Load()
+	_, err := loader.Load(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "sandbox is required")
 }
@@ -156,7 +157,7 @@ func TestLoader_Load_FlatBufferFileNotFound(t *testing.T) {
 		FlatBufferPath: "nonexistent/i18n.bin",
 	})
 
-	_, err := loader.Load()
+	_, err := loader.Load(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to load FlatBuffer translations")
 }
@@ -172,7 +173,7 @@ func TestLoader_Load_JSONMissingDirectory(t *testing.T) {
 		Sandbox: sandbox,
 	})
 
-	_, err := loader.Load()
+	_, err := loader.Load(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "JSON directory is required")
 }
@@ -185,7 +186,7 @@ func TestLoader_Load_JSONMissingSandbox(t *testing.T) {
 		JSONDirectory: "i18n",
 	})
 
-	_, err := loader.Load()
+	_, err := loader.Load(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "sandbox is required")
 }

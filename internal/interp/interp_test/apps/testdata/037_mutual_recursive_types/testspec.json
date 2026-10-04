@@ -1,4 +1,0 @@
-{
-  "description": "Mutually recursive types declared in different files (Tree and Branch reference each other)",
-  "expected": "root=trunk children=[a b] aParent=trunk"
-}

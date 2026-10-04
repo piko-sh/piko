@@ -395,13 +395,11 @@ func RunConcurrentTest(t *testing.T, goroutines int, callback func(id int)) {
 	t.Helper()
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
-	for i := range goroutines {
-		go func(id int) {
-			defer wg.Done()
+	for id := range goroutines {
+		wg.Go(func() {
 			callback(id)
-		}(i)
+		})
 	}
 
 	wg.Wait()

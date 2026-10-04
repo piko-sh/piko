@@ -142,6 +142,46 @@ func TestMockFontMetrics_ShapeText_CustomFunc(t *testing.T) {
 	assert.Equal(t, uint16(99), result[0].GlyphID)
 }
 
+func TestMockFontMetrics_ShapeAndMeasureText(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		mock       *MockFontMetrics
+		name       string
+		wantWidth  float64
+		wantGlyphs int
+	}{
+		{
+			name:       "defaults match ShapeText and MeasureText",
+			mock:       &MockFontMetrics{},
+			wantWidth:  3 * 10.0 * mockCharacterWidthRatio,
+			wantGlyphs: 3,
+		},
+		{
+			name: "overriding functions are honoured",
+			mock: &MockFontMetrics{
+				MeasureTextFunc: func(_ layouter_domain.FontDescriptor, _ float64, _ string) float64 { return 42 },
+				ShapeTextFunc: func(_ layouter_domain.FontDescriptor, _ float64, _ string) []layouter_domain.GlyphPosition {
+					return []layouter_domain.GlyphPosition{{GlyphID: 1}}
+				},
+			},
+			wantWidth:  42,
+			wantGlyphs: 1,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			glyphs, width := testCase.mock.ShapeAndMeasureText(layouter_domain.FontDescriptor{}, 10.0, "abc", layouter_domain.DirectionLTR)
+
+			assert.Len(t, glyphs, testCase.wantGlyphs)
+			assert.InDelta(t, testCase.wantWidth, width, 1e-9)
+		})
+	}
+}
+
 func TestMockFontMetrics_GetMetrics_Default(t *testing.T) {
 	t.Parallel()
 

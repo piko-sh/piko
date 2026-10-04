@@ -248,6 +248,7 @@ func newTypeHierarchyItem(typeName, packagePath, filePath string, line, column i
 			PackagePath: packagePath,
 			TypeName:    typeName,
 		},
+		Tags: nil,
 	}
 }
 

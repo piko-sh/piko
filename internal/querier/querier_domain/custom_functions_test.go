@@ -319,3 +319,37 @@ func TestParseNullableBehaviour(t *testing.T) {
 		})
 	}
 }
+
+func TestMergeCustomFunctions_WarnsAboutMisconfiguredFunctions(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name            string
+		nullable        string
+		wantDiagnostics int
+	}{
+		{name: "a recognised nullable behaviour is accepted", nullable: "never_null", wantDiagnostics: 0},
+		{name: "an unrecognised nullable behaviour is reported", nullable: "sometimes", wantDiagnostics: 1},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			catalogue := newTestCatalogue("public")
+			config := querier_dto.CustomFunctionConfig{}
+			config.Name = "slugify"
+			config.ReturnType = "text"
+			config.Nullable = testCase.nullable
+
+			diagnostics := mergeCustomFunctions(catalogue, &mockEngine{}, []querier_dto.CustomFunctionConfig{config})
+
+			require.Len(t, diagnostics, testCase.wantDiagnostics)
+			assert.Contains(t, catalogue.Schemas["public"].Functions, "slugify", "the function is registered either way")
+			for _, diagnostic := range diagnostics {
+				assert.Equal(t, querier_dto.SeverityWarning, diagnostic.Severity)
+				assert.Contains(t, diagnostic.Message, "slugify")
+			}
+		})
+	}
+}

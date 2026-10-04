@@ -29,7 +29,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -61,9 +60,9 @@ func runPdfTestCase(t *testing.T, tc testCase) {
 
 	if harness.spec.Encryption != nil {
 		fmt.Println("[PDF] Phase 4: Validating encryption with qpdf...")
-		encryptedPath := filepath.Join(tc.Path, "golden", "encrypted.pdf")
-		require.NoError(t, os.MkdirAll(filepath.Dir(encryptedPath), 0755))
-		require.NoError(t, os.WriteFile(encryptedPath, actualPdf, 0644),
+		artefactDirectory := t.TempDir()
+		encryptedPath := filepath.Join(artefactDirectory, "encrypted.pdf")
+		require.NoError(t, os.WriteFile(encryptedPath, actualPdf, 0o600),
 			"failed to write encrypted PDF")
 
 		qpdfPath, lookErr := exec.LookPath("qpdf")
@@ -72,7 +71,7 @@ func runPdfTestCase(t *testing.T, tc testCase) {
 		}
 		_ = qpdfPath
 
-		decryptedPath := filepath.Join(tc.Path, "golden", "decrypted.pdf")
+		decryptedPath := filepath.Join(artefactDirectory, "decrypted.pdf")
 		decryptCmd := exec.Command("qpdf",
 			"--password="+harness.spec.Encryption.UserPassword,
 			"--decrypt", encryptedPath, decryptedPath)
@@ -99,8 +98,6 @@ func runPdfTestCase(t *testing.T, tc testCase) {
 
 	fmt.Println("[PDF] Phase 6: Navigating to page...")
 	require.NoError(t, harness.navigateToPage(), "failed to navigate to page")
-
-	time.Sleep(500 * time.Millisecond)
 
 	fmt.Println("[PDF] Phase 7: Printing browser comparison PDF...")
 	comparisonPdf, err := harness.printBrowserPdf()

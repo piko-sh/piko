@@ -33,6 +33,13 @@ const (
 	// engineNameMap is the canonical ClickHouse Map(K, V) engine name.
 	engineNameMap = "Map"
 
+	// engineNameTuple is the canonical ClickHouse Tuple(...) engine name.
+	engineNameTuple = "Tuple"
+
+	// engineNameAggregateFunction is the canonical ClickHouse AggregateFunction(name, T)
+	// engine name.
+	engineNameAggregateFunction = "AggregateFunction"
+
 	// engineNameFloat64 is the canonical ClickHouse Float64 engine name.
 	engineNameFloat64 = "Float64"
 
@@ -310,35 +317,18 @@ func applyCombinator(base *querier_dto.FunctionResolution, combinator string) *q
 		return &clone
 	case "Resample", "ForEach":
 
-		clone.ReturnType = querier_dto.SQLType{
-			Category:    querier_dto.TypeCategoryArray,
-			EngineName:  engineNameArray,
-			ElementType: new(clone.ReturnType),
-		}
+		clone.ReturnType = arrayOf(clone.ReturnType)
 		return &clone
 	case engineNameMap:
 
-		key := querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "String"}
-		clone.ReturnType = querier_dto.SQLType{
-			Category:    querier_dto.TypeCategoryMap,
-			EngineName:  engineNameMap,
-			KeyType:     &key,
-			ElementType: new(clone.ReturnType),
-		}
+		key := querier_dto.NewSQLType(querier_dto.TypeCategoryText, "String")
+		clone.ReturnType = mapOf(key, clone.ReturnType)
 		return &clone
 	case "State", "MergeState":
-		clone.ReturnType = querier_dto.SQLType{
-			Category:    querier_dto.TypeCategoryAggregateState,
-			EngineName:  "AggregateFunction",
-			ElementType: new(clone.ReturnType),
-		}
+		clone.ReturnType = aggregateStateOf(engineNameAggregateFunction, clone.ReturnType)
 		return &clone
 	case "SimpleState":
-		clone.ReturnType = querier_dto.SQLType{
-			Category:    querier_dto.TypeCategoryAggregateState,
-			EngineName:  "SimpleAggregateFunction",
-			ElementType: new(clone.ReturnType),
-		}
+		clone.ReturnType = aggregateStateOf("SimpleAggregateFunction", clone.ReturnType)
 		return &clone
 	}
 	return &clone
@@ -458,15 +448,7 @@ func resolveArrayMap(argumentTypes []querier_dto.SQLType) *querier_dto.FunctionR
 	if arrayArg.Category != querier_dto.TypeCategoryArray || arrayArg.ElementType == nil {
 		return nil
 	}
-	return &querier_dto.FunctionResolution{
-		ReturnType: querier_dto.SQLType{
-			Category:    querier_dto.TypeCategoryArray,
-			EngineName:  engineNameArray,
-			ElementType: new(*arrayArg.ElementType),
-		},
-		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
-		DataAccess:        querier_dto.DataAccessReadOnly,
-	}
+	return newReadOnlyResolution(arrayOf(*arrayArg.ElementType))
 }
 
 // resolveArrayFilter returns the input array type unchanged because filtering preserves
@@ -485,11 +467,7 @@ func resolveArrayFilter(argumentTypes []querier_dto.SQLType) *querier_dto.Functi
 	if arrayArg.Category != querier_dto.TypeCategoryArray {
 		return nil
 	}
-	return &querier_dto.FunctionResolution{
-		ReturnType:        arrayArg,
-		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
-		DataAccess:        querier_dto.DataAccessReadOnly,
-	}
+	return newReadOnlyResolution(arrayArg)
 }
 
 // resolveArrayReduce returns the named aggregate's return type.
@@ -511,11 +489,7 @@ func resolveArrayReduce(argumentTypes []querier_dto.SQLType) *querier_dto.Functi
 		return nil
 	}
 	element := *arrayArg.ElementType
-	return &querier_dto.FunctionResolution{
-		ReturnType:        element,
-		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
-		DataAccess:        querier_dto.DataAccessReadOnly,
-	}
+	return newReadOnlyResolution(element)
 }
 
 // resolveArrayJoin returns the array's element type, which is what the projection sees
@@ -534,12 +508,9 @@ func resolveArrayJoin(argumentTypes []querier_dto.SQLType) *querier_dto.Function
 	if arg.Category != querier_dto.TypeCategoryArray || arg.ElementType == nil {
 		return nil
 	}
-	return &querier_dto.FunctionResolution{
-		ReturnType:        *arg.ElementType,
-		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
-		ReturnsSet:        true,
-		DataAccess:        querier_dto.DataAccessReadOnly,
-	}
+	resolution := newReadOnlyResolution(*arg.ElementType)
+	resolution.ReturnsSet = true
+	return resolution
 }
 
 // resolveArrayFlatten returns Array(T) where T is the inner element of a nested
@@ -561,19 +532,9 @@ func resolveArrayFlatten(argumentTypes []querier_dto.SQLType) *querier_dto.Funct
 		return nil
 	}
 	if arg.ElementType.Category == querier_dto.TypeCategoryArray && arg.ElementType.ElementType != nil {
-		return &querier_dto.FunctionResolution{
-			ReturnType: querier_dto.SQLType{
-				Category:    querier_dto.TypeCategoryArray,
-				EngineName:  engineNameArray,
-				ElementType: new(*arg.ElementType.ElementType),
-			},
-			DataAccess: querier_dto.DataAccessReadOnly,
-		}
+		return newReadOnlyResolution(arrayOf(*arg.ElementType.ElementType))
 	}
-	return &querier_dto.FunctionResolution{
-		ReturnType: arg,
-		DataAccess: querier_dto.DataAccessReadOnly,
-	}
+	return newReadOnlyResolution(arg)
 }
 
 // resolvePassthroughArray returns the input array type unchanged for functions that
@@ -592,10 +553,7 @@ func resolvePassthroughArray(argumentTypes []querier_dto.SQLType) *querier_dto.F
 	if arg.Category != querier_dto.TypeCategoryArray {
 		return nil
 	}
-	return &querier_dto.FunctionResolution{
-		ReturnType: arg,
-		DataAccess: querier_dto.DataAccessReadOnly,
-	}
+	return newReadOnlyResolution(arg)
 }
 
 // resolveArrayScalarReduce returns the array's element type for scalar-reduction
@@ -614,10 +572,7 @@ func resolveArrayScalarReduce(argumentTypes []querier_dto.SQLType) *querier_dto.
 	if arg.Category != querier_dto.TypeCategoryArray || arg.ElementType == nil {
 		return nil
 	}
-	return &querier_dto.FunctionResolution{
-		ReturnType: *arg.ElementType,
-		DataAccess: querier_dto.DataAccessReadOnly,
-	}
+	return newReadOnlyResolution(*arg.ElementType)
 }
 
 // resolveArrayElement returns the array's element type.
@@ -638,10 +593,7 @@ func resolveArrayElement(argumentTypes []querier_dto.SQLType) *querier_dto.Funct
 	if arg.Category != querier_dto.TypeCategoryArray || arg.ElementType == nil {
 		return nil
 	}
-	return &querier_dto.FunctionResolution{
-		ReturnType: *arg.ElementType,
-		DataAccess: querier_dto.DataAccessReadOnly,
-	}
+	return newReadOnlyResolution(*arg.ElementType)
 }
 
 // resolveTupleElement returns the n-th field of a tuple.
@@ -668,14 +620,11 @@ func resolveTupleElement(argumentTypes []querier_dto.SQLType) *querier_dto.Funct
 		return nil
 	}
 
-	returnType := querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}
+	returnType := querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "")
 	if len(tupleArg.StructFields) == 1 {
 		returnType = tupleArg.StructFields[0].SQLType
 	}
-	return &querier_dto.FunctionResolution{
-		ReturnType: returnType,
-		DataAccess: querier_dto.DataAccessReadOnly,
-	}
+	return newReadOnlyResolution(returnType)
 }
 
 // resolveIf produces the return type for if(cond, then, else) and multiIf(cond1, then1,
@@ -701,10 +650,7 @@ func resolveIf(argumentTypes []querier_dto.SQLType) *querier_dto.FunctionResolut
 	}
 	branchTypes := collectBranchTypes(argumentTypes)
 	unified := unifyBranchTypes(branchTypes)
-	return &querier_dto.FunctionResolution{
-		ReturnType: unified,
-		DataAccess: querier_dto.DataAccessReadOnly,
-	}
+	return newReadOnlyResolution(unified)
 }
 
 // collectBranchTypes extracts the result branches from an if or multiIf argument list.
@@ -746,10 +692,7 @@ func resolveCoalesce(argumentTypes []querier_dto.SQLType) *querier_dto.FunctionR
 		return nil
 	}
 	unified := unifyBranchTypes(argumentTypes)
-	return &querier_dto.FunctionResolution{
-		ReturnType: unified,
-		DataAccess: querier_dto.DataAccessReadOnly,
-	}
+	return newReadOnlyResolution(unified)
 }
 
 // unifyBranchTypes returns a single SQLType that all of the input branches can be safely
@@ -763,7 +706,7 @@ func resolveCoalesce(argumentTypes []querier_dto.SQLType) *querier_dto.FunctionR
 // Returns querier_dto.SQLType which is the unified type, or Unknown when none applies.
 func unifyBranchTypes(branches []querier_dto.SQLType) querier_dto.SQLType {
 	if len(branches) == 0 {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "")
 	}
 
 	candidates := []querier_dto.SQLType{}
@@ -773,7 +716,7 @@ func unifyBranchTypes(branches []querier_dto.SQLType) querier_dto.SQLType {
 		}
 	}
 	if len(candidates) == 0 {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "")
 	}
 	current := candidates[0]
 	for index := 1; index < len(candidates); index++ {
@@ -798,19 +741,19 @@ func unifyPair(left, right querier_dto.SQLType) querier_dto.SQLType {
 		case querier_dto.TypeCategoryInteger:
 			return widerInteger(left, right)
 		case querier_dto.TypeCategoryFloat:
-			return querier_dto.SQLType{Category: querier_dto.TypeCategoryFloat, EngineName: engineNameFloat64}
+			return querier_dto.NewSQLType(querier_dto.TypeCategoryFloat, engineNameFloat64)
 		case querier_dto.TypeCategoryText:
-			return querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "String"}
+			return querier_dto.NewSQLType(querier_dto.TypeCategoryText, "String")
 		default:
 
 			return left
 		}
 	}
 	if left.Category == querier_dto.TypeCategoryInteger && right.Category == querier_dto.TypeCategoryFloat {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryFloat, EngineName: engineNameFloat64}
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryFloat, engineNameFloat64)
 	}
 	if left.Category == querier_dto.TypeCategoryFloat && right.Category == querier_dto.TypeCategoryInteger {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryFloat, EngineName: engineNameFloat64}
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryFloat, engineNameFloat64)
 	}
 	return left
 }
@@ -869,11 +812,11 @@ func isUnsignedInteger(engineName string) bool {
 func nextWiderSignedInteger(rank int) (querier_dto.SQLType, bool) {
 	switch rank {
 	case integerRank8Bit:
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "Int16"}, true
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "Int16"), true
 	case integerRank16Bit:
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "Int32"}, true
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "Int32"), true
 	case integerRank32Bit:
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "Int64"}, true
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "Int64"), true
 	default:
 		return querier_dto.SQLType{}, false
 	}
@@ -915,10 +858,7 @@ func resolveNullIf(argumentTypes []querier_dto.SQLType) *querier_dto.FunctionRes
 	if len(argumentTypes) < 2 {
 		return nil
 	}
-	return &querier_dto.FunctionResolution{
-		ReturnType: argumentTypes[0],
-		DataAccess: querier_dto.DataAccessReadOnly,
-	}
+	return newReadOnlyResolution(argumentTypes[0])
 }
 
 // resolveCount resolves the count aggregate and every combinator form that strips to it.
@@ -931,12 +871,9 @@ func resolveNullIf(argumentTypes []querier_dto.SQLType) *querier_dto.FunctionRes
 //
 // Returns *querier_dto.FunctionResolution which is the non-null UInt64 count resolution.
 func resolveCount(_ []querier_dto.SQLType) *querier_dto.FunctionResolution {
-	return &querier_dto.FunctionResolution{
-		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "UInt64"},
-		IsAggregate:       true,
-		NullableBehaviour: querier_dto.FunctionNullableNeverNull,
-		DataAccess:        querier_dto.DataAccessReadOnly,
-	}
+	resolution := newAggregateResolution(querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "UInt64"))
+	resolution.NullableBehaviour = querier_dto.FunctionNullableNeverNull
+	return resolution
 }
 
 // resolveAggregateIdentity returns the first argument's type with the IsAggregate flag
@@ -953,11 +890,7 @@ func resolveAggregateIdentity(argumentTypes []querier_dto.SQLType) *querier_dto.
 	if len(argumentTypes) == 0 {
 		return nil
 	}
-	return &querier_dto.FunctionResolution{
-		ReturnType:  argumentTypes[0],
-		IsAggregate: true,
-		DataAccess:  querier_dto.DataAccessReadOnly,
-	}
+	return newAggregateResolution(argumentTypes[0])
 }
 
 // resolveScalarIdentity returns the first argument's type without the IsAggregate flag.
@@ -973,10 +906,7 @@ func resolveScalarIdentity(argumentTypes []querier_dto.SQLType) *querier_dto.Fun
 	if len(argumentTypes) == 0 {
 		return nil
 	}
-	return &querier_dto.FunctionResolution{
-		ReturnType: argumentTypes[0],
-		DataAccess: querier_dto.DataAccessReadOnly,
-	}
+	return newReadOnlyResolution(argumentTypes[0])
 }
 
 // resolveArgMinMax returns the first argument's type because argMin(x, y) returns the x
@@ -990,11 +920,7 @@ func resolveArgMinMax(argumentTypes []querier_dto.SQLType) *querier_dto.Function
 	if len(argumentTypes) < 2 {
 		return nil
 	}
-	return &querier_dto.FunctionResolution{
-		ReturnType:  argumentTypes[0],
-		IsAggregate: true,
-		DataAccess:  querier_dto.DataAccessReadOnly,
-	}
+	return newAggregateResolution(argumentTypes[0])
 }
 
 // resolveSumAvg promotes integer inputs to a wider integer (sum) or to Float64 (avg). The
@@ -1011,32 +937,16 @@ func resolveSumAvg(argumentTypes []querier_dto.SQLType, name string) *querier_dt
 	}
 	arg := argumentTypes[0]
 	if name == "avg" {
-		return &querier_dto.FunctionResolution{
-			ReturnType:  querier_dto.SQLType{Category: querier_dto.TypeCategoryFloat, EngineName: engineNameFloat64},
-			IsAggregate: true,
-			DataAccess:  querier_dto.DataAccessReadOnly,
-		}
+		return newAggregateResolution(querier_dto.NewSQLType(querier_dto.TypeCategoryFloat, engineNameFloat64))
 	}
 	if arg.Category == querier_dto.TypeCategoryInteger {
 		if strings.HasPrefix(strings.ToUpper(arg.EngineName), "UINT") {
-			return &querier_dto.FunctionResolution{
-				ReturnType:  querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "UInt64"},
-				IsAggregate: true,
-				DataAccess:  querier_dto.DataAccessReadOnly,
-			}
+			return newAggregateResolution(querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "UInt64"))
 		}
-		return &querier_dto.FunctionResolution{
-			ReturnType:  querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "Int64"},
-			IsAggregate: true,
-			DataAccess:  querier_dto.DataAccessReadOnly,
-		}
+		return newAggregateResolution(querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "Int64"))
 	}
 
-	return &querier_dto.FunctionResolution{
-		ReturnType:  arg,
-		IsAggregate: true,
-		DataAccess:  querier_dto.DataAccessReadOnly,
-	}
+	return newAggregateResolution(arg)
 }
 
 // resolveUntuple returns the first tuple field's type as a best-effort approximation.
@@ -1057,10 +967,7 @@ func resolveUntuple(argumentTypes []querier_dto.SQLType) *querier_dto.FunctionRe
 	if arg.Category != querier_dto.TypeCategoryStruct || len(arg.StructFields) == 0 {
 		return nil
 	}
-	return &querier_dto.FunctionResolution{
-		ReturnType: arg.StructFields[0].SQLType,
-		DataAccess: querier_dto.DataAccessReadOnly,
-	}
+	return newReadOnlyResolution(arg.StructFields[0].SQLType)
 }
 
 // resolveTuple constructs a Tuple(...) from the argument types.
@@ -1078,14 +985,7 @@ func resolveTuple(argumentTypes []querier_dto.SQLType) *querier_dto.FunctionReso
 			SQLType: argumentTypes[index],
 		}
 	}
-	return &querier_dto.FunctionResolution{
-		ReturnType: querier_dto.SQLType{
-			Category:     querier_dto.TypeCategoryStruct,
-			EngineName:   "Tuple",
-			StructFields: fields,
-		},
-		DataAccess: querier_dto.DataAccessReadOnly,
-	}
+	return newReadOnlyResolution(tupleOf(fields))
 }
 
 // resolveMap constructs a Map(K, V) from alternating key and value argument pairs.
@@ -1103,15 +1003,7 @@ func resolveMap(argumentTypes []querier_dto.SQLType) *querier_dto.FunctionResolu
 	if len(argumentTypes) < 2 {
 		return nil
 	}
-	return &querier_dto.FunctionResolution{
-		ReturnType: querier_dto.SQLType{
-			Category:    querier_dto.TypeCategoryMap,
-			EngineName:  engineNameMap,
-			KeyType:     new(argumentTypes[0]),
-			ElementType: new(argumentTypes[1]),
-		},
-		DataAccess: querier_dto.DataAccessReadOnly,
-	}
+	return newReadOnlyResolution(mapOf(argumentTypes[0], argumentTypes[1]))
 }
 
 // resolveMapKeys returns Array(K) where K is the map's key type.
@@ -1129,14 +1021,7 @@ func resolveMapKeys(argumentTypes []querier_dto.SQLType) *querier_dto.FunctionRe
 	if arg.Category != querier_dto.TypeCategoryMap || arg.KeyType == nil {
 		return nil
 	}
-	return &querier_dto.FunctionResolution{
-		ReturnType: querier_dto.SQLType{
-			Category:    querier_dto.TypeCategoryArray,
-			EngineName:  engineNameArray,
-			ElementType: new(*arg.KeyType),
-		},
-		DataAccess: querier_dto.DataAccessReadOnly,
-	}
+	return newReadOnlyResolution(arrayOf(*arg.KeyType))
 }
 
 // resolveMapValues returns Array(V) where V is the map's value type.
@@ -1154,14 +1039,7 @@ func resolveMapValues(argumentTypes []querier_dto.SQLType) *querier_dto.Function
 	if arg.Category != querier_dto.TypeCategoryMap || arg.ElementType == nil {
 		return nil
 	}
-	return &querier_dto.FunctionResolution{
-		ReturnType: querier_dto.SQLType{
-			Category:    querier_dto.TypeCategoryArray,
-			EngineName:  engineNameArray,
-			ElementType: new(*arg.ElementType),
-		},
-		DataAccess: querier_dto.DataAccessReadOnly,
-	}
+	return newReadOnlyResolution(arrayOf(*arg.ElementType))
 }
 
 // resolveMapContains returns Bool because mapContains(map, key) reports membership.
@@ -1177,10 +1055,7 @@ func resolveMapContains(argumentTypes []querier_dto.SQLType) *querier_dto.Functi
 	if len(argumentTypes) == 0 {
 		return nil
 	}
-	return &querier_dto.FunctionResolution{
-		ReturnType: querier_dto.SQLType{Category: querier_dto.TypeCategoryBoolean, EngineName: "Bool"},
-		DataAccess: querier_dto.DataAccessReadOnly,
-	}
+	return newReadOnlyResolution(querier_dto.NewSQLType(querier_dto.TypeCategoryBoolean, "Bool"))
 }
 
 // resolveMapAdd returns the map's type with the union of both operands' key and value
@@ -1202,10 +1077,7 @@ func resolveMapAdd(argumentTypes []querier_dto.SQLType) *querier_dto.FunctionRes
 	if arg.Category != querier_dto.TypeCategoryMap {
 		return nil
 	}
-	return &querier_dto.FunctionResolution{
-		ReturnType: arg,
-		DataAccess: querier_dto.DataAccessReadOnly,
-	}
+	return newReadOnlyResolution(arg)
 }
 
 // resolveMapPassthrough returns the map's type unchanged.
@@ -1227,10 +1099,7 @@ func resolveMapPassthrough(argumentTypes []querier_dto.SQLType) *querier_dto.Fun
 	if arg.Category != querier_dto.TypeCategoryMap {
 		return nil
 	}
-	return &querier_dto.FunctionResolution{
-		ReturnType: arg,
-		DataAccess: querier_dto.DataAccessReadOnly,
-	}
+	return newReadOnlyResolution(arg)
 }
 
 // resolveVariantElement returns the type identified by the literal TypeName second
@@ -1253,17 +1122,13 @@ func resolveVariantElement(argumentTypes []querier_dto.SQLType) *querier_dto.Fun
 	}
 	variant := argumentTypes[0]
 	if len(variant.UnionMembers) == 0 {
-		return &querier_dto.FunctionResolution{
-			ReturnType: querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown, Nullable: true},
-			DataAccess: querier_dto.DataAccessReadOnly,
-		}
+		unknownMember := querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "")
+		unknownMember.Nullable = true
+		return newReadOnlyResolution(unknownMember)
 	}
 	member := variant.UnionMembers[0].SQLType
 	member.Nullable = true
-	return &querier_dto.FunctionResolution{
-		ReturnType: member,
-		DataAccess: querier_dto.DataAccessReadOnly,
-	}
+	return newReadOnlyResolution(member)
 }
 
 // resolveVariantType returns String because ClickHouse's variantType and dynamicType
@@ -1277,10 +1142,7 @@ func resolveVariantType(argumentTypes []querier_dto.SQLType) *querier_dto.Functi
 	if len(argumentTypes) == 0 {
 		return nil
 	}
-	return &querier_dto.FunctionResolution{
-		ReturnType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "String"},
-		DataAccess: querier_dto.DataAccessReadOnly,
-	}
+	return newReadOnlyResolution(querier_dto.NewSQLType(querier_dto.TypeCategoryText, "String"))
 }
 
 // resolveFinalizeAggregation strips the AggregateFunction wrapper from an aggregate-state
@@ -1301,15 +1163,9 @@ func resolveFinalizeAggregation(argumentTypes []querier_dto.SQLType) *querier_dt
 	}
 	arg := argumentTypes[0]
 	if arg.ElementType != nil {
-		return &querier_dto.FunctionResolution{
-			ReturnType: *arg.ElementType,
-			DataAccess: querier_dto.DataAccessReadOnly,
-		}
+		return newReadOnlyResolution(*arg.ElementType)
 	}
-	return &querier_dto.FunctionResolution{
-		ReturnType: querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown},
-		DataAccess: querier_dto.DataAccessReadOnly,
-	}
+	return newReadOnlyResolution(querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""))
 }
 
 // resolveInitializeAggregation wraps a value type into an AggregateFunction state.
@@ -1328,14 +1184,7 @@ func resolveInitializeAggregation(argumentTypes []querier_dto.SQLType) *querier_
 	if len(argumentTypes) < 2 {
 		return nil
 	}
-	return &querier_dto.FunctionResolution{
-		ReturnType: querier_dto.SQLType{
-			Category:    querier_dto.TypeCategoryAggregateState,
-			EngineName:  "AggregateFunction",
-			ElementType: new(argumentTypes[1]),
-		},
-		DataAccess: querier_dto.DataAccessReadOnly,
-	}
+	return newReadOnlyResolution(aggregateStateOf(engineNameAggregateFunction, argumentTypes[1]))
 }
 
 // resolveFinalizeArray finalises an Array(AggregateFunction(...)) into an Array of the
@@ -1358,16 +1207,38 @@ func resolveFinalizeArray(argumentTypes []querier_dto.SQLType) *querier_dto.Func
 		return nil
 	}
 	inner := *arg.ElementType
-	finalised := querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}
+	finalised := querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "")
 	if inner.ElementType != nil {
 		finalised = *inner.ElementType
 	}
+	return newReadOnlyResolution(arrayOf(finalised))
+}
+
+// newReadOnlyResolution builds a read-only, non-aggregate, single-row function resolution
+// that accepts NULL input and is shared by most resolver handlers.
+//
+// Takes returnType (querier_dto.SQLType) which is the resolved return type.
+//
+// Returns *querier_dto.FunctionResolution which is the resolution carrying returnType.
+func newReadOnlyResolution(returnType querier_dto.SQLType) *querier_dto.FunctionResolution {
 	return &querier_dto.FunctionResolution{
-		ReturnType: querier_dto.SQLType{
-			Category:    querier_dto.TypeCategoryArray,
-			EngineName:  engineNameArray,
-			ElementType: &finalised,
-		},
-		DataAccess: querier_dto.DataAccessReadOnly,
+		ReturnType:        returnType,
+		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
+		DataAccess:        querier_dto.DataAccessReadOnly,
+		IsAggregate:       false,
+		ReturnsSet:        false,
 	}
+}
+
+// newAggregateResolution builds a read-only aggregate resolution that is called on NULL
+// input and returns a single row.
+//
+// Takes returnType (querier_dto.SQLType) which is the resolved return type.
+//
+// Returns *querier_dto.FunctionResolution which is the aggregate resolution carrying
+// returnType.
+func newAggregateResolution(returnType querier_dto.SQLType) *querier_dto.FunctionResolution {
+	resolution := newReadOnlyResolution(returnType)
+	resolution.IsAggregate = true
+	return resolution
 }

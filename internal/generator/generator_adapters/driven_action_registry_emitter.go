@@ -29,8 +29,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_dto"
-	"piko.sh/piko/internal/goastutil"
 )
 
 const (

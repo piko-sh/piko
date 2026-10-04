@@ -24,9 +24,9 @@ import (
 	"sort"
 	"testing"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/compiler/compiler_domain"
-	"piko.sh/piko/internal/goastutil"
 )
 
 func TestPdfPaintIntegration(t *testing.T) {

@@ -27,7 +27,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 )
 
@@ -151,7 +151,7 @@ func TestResolveCompositeInnerTypes(t *testing.T) {
 	t.Run("InterfaceType with nil Methods is unchanged", func(t *testing.T) {
 		t.Parallel()
 		querier, filePath := newQuerierWithAlias(t)
-		expression := &goast.InterfaceType{Methods: nil}
+		expression := &goast.InterfaceType{}
 
 		result, changed := querier.resolveCompositeInnerTypes(expression, filePath)
 
@@ -202,7 +202,7 @@ func TestResolveCompositeInnerTypes(t *testing.T) {
 	t.Run("Ellipsis with nil Elt is unchanged", func(t *testing.T) {
 		t.Parallel()
 		querier, filePath := newQuerierWithAlias(t)
-		expression := &goast.Ellipsis{Elt: nil}
+		expression := &goast.Ellipsis{}
 
 		result, changed := querier.resolveCompositeInnerTypes(expression, filePath)
 
@@ -339,7 +339,7 @@ func TestRequalifyCompositeType(t *testing.T) {
 	t.Run("StructType with nil Fields is returned unchanged", func(t *testing.T) {
 		t.Parallel()
 		querier, pkg := newQuerierForRequalify()
-		expression := &goast.StructType{Fields: nil}
+		expression := &goast.StructType{}
 
 		result := querier.requalifyCompositeType(expression, canonicalPackagePath, pkg, definingFilePath)
 
@@ -370,7 +370,7 @@ func TestRequalifyCompositeType(t *testing.T) {
 	t.Run("InterfaceType with nil Methods is returned unchanged", func(t *testing.T) {
 		t.Parallel()
 		querier, pkg := newQuerierForRequalify()
-		expression := &goast.InterfaceType{Methods: nil}
+		expression := &goast.InterfaceType{}
 
 		result := querier.requalifyCompositeType(expression, canonicalPackagePath, pkg, definingFilePath)
 
@@ -417,7 +417,7 @@ func TestRequalifyCompositeType(t *testing.T) {
 	t.Run("Ellipsis with nil Elt is unchanged", func(t *testing.T) {
 		t.Parallel()
 		querier, pkg := newQuerierForRequalify()
-		expression := &goast.Ellipsis{Elt: nil}
+		expression := &goast.Ellipsis{}
 
 		result := querier.requalifyCompositeType(expression, canonicalPackagePath, pkg, definingFilePath)
 

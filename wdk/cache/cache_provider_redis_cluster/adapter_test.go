@@ -495,3 +495,36 @@ func TestRedisCluster_Close(t *testing.T) {
 	require.NoError(t, c.Close(ctx))
 
 }
+
+func TestRedisClusterAdapter_CloseLeavesOtherNamespacesUsable(t *testing.T) {
+	mr := miniredis.RunT(t)
+	valueEncoder := cache_encoder_json.New[string]()
+	provider, err := cache_provider_redis_cluster.NewRedisClusterProvider(cache_provider_redis_cluster.Config{
+		Addrs:      []string{mr.Addr()},
+		DefaultTTL: time.Hour,
+		Registry:   cache.NewEncodingRegistry(valueEncoder.(cache.AnyEncoder)),
+	})
+	if err != nil {
+		t.Skip("Miniredis doesn't fully support Redis Cluster mode - skipping cluster adapter test")
+	}
+
+	createNamespace := func(namespace string) *cache_provider_redis_cluster.RedisClusterAdapter[string, string] {
+		cacheAny, err := provider.CreateNamespaceTyped(namespace, cache.Options[string, string]{})
+		require.NoError(t, err)
+		adapter, ok := cacheAny.(*cache_provider_redis_cluster.RedisClusterAdapter[string, string])
+		require.True(t, ok)
+		return adapter
+	}
+	closed := createNamespace("sessions")
+	open := createNamespace("pages")
+	ctx := context.Background()
+
+	require.NoError(t, closed.Close(ctx))
+
+	require.NoError(t, open.Set(ctx, "home", "rendered"))
+	value, found, err := open.GetIfPresent(ctx, "home")
+	require.NoError(t, err)
+	assert.True(t, found)
+	assert.Equal(t, "rendered", value)
+	assert.NoError(t, provider.Close(), "the provider still owns an open client")
+}

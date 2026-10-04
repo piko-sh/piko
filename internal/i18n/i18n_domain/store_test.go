@@ -269,3 +269,131 @@ func BenchmarkStore_GetWithFallback(b *testing.B) {
 		_, _ = store.Get("en-GB", "greeting")
 	}
 }
+
+func TestStore_AddTranslations_ReportsTemplateProblems(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name            string
+		translations    map[string]string
+		wantProblems    []string
+		wantKey         string
+		wantParts       []string
+		wantPluralParts [][]string
+	}{
+		{
+			name:         "templates that parse report no problems",
+			translations: map[string]string{"greeting": "Hello ${name}", "plural": "one|${count} many"},
+			wantProblems: nil,
+			wantKey:      "greeting",
+			wantParts:    []string{"Hello ", "${name}"},
+		},
+		{
+			name:         "a broken template renders as its literal text",
+			translations: map[string]string{"broken": "Hello ${name"},
+			wantProblems: []string{"en-GB:broken: Unterminated expression: expected '}'"},
+			wantKey:      "broken",
+			wantParts:    []string{"Hello ${name"},
+		},
+		{
+			name:            "a broken first plural form keeps its text as the entry parts",
+			translations:    map[string]string{"items": "one ${broken|${count} items"},
+			wantProblems:    []string{"en-GB:items[0]: Unterminated expression: expected '}'"},
+			wantKey:         "items",
+			wantParts:       []string{"one ${broken"},
+			wantPluralParts: [][]string{{"one ${broken"}, {"${count}", " items"}},
+		},
+		{
+			name:            "a broken later plural form is reported with its index",
+			translations:    map[string]string{"items": "one item|${count items"},
+			wantProblems:    []string{"en-GB:items[1]: Unterminated expression: expected '}'"},
+			wantKey:         "items",
+			wantParts:       []string{"one item"},
+			wantPluralParts: [][]string{{"one item"}, {"${count items"}},
+		},
+		{
+			name:         "problems are ordered by key",
+			translations: map[string]string{"b": "${", "a": "${"},
+			wantProblems: []string{
+				"en-GB:a: Unterminated expression: expected '}'",
+				"en-GB:b: Unterminated expression: expected '}'",
+			},
+			wantKey:   "a",
+			wantParts: []string{"${"},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			store := NewStore("en-GB")
+
+			problems := store.AddTranslations("en-GB", tc.translations)
+
+			var described []string
+			for _, problem := range problems {
+				described = append(described, problem.String())
+			}
+			assert.Equal(t, tc.wantProblems, described)
+
+			entry, found := store.Get("en-GB", tc.wantKey)
+			require.True(t, found)
+			assert.Equal(t, tc.wantParts, describeParts(entry.Parts))
+			if tc.wantPluralParts != nil {
+				require.Len(t, entry.PluralFormsParts, len(tc.wantPluralParts))
+				for index, want := range tc.wantPluralParts {
+					assert.Equal(t, want, describeParts(entry.PluralFormsParts[index]), "plural form %d", index)
+				}
+			}
+		})
+	}
+}
+
+func TestStore_ResolveMessage_UnparsedBrokenTemplateRendersLiterally(t *testing.T) {
+	t.Parallel()
+
+	store := NewStore("en-GB")
+	store.AddLocale("en-GB", map[string]*Entry{
+		"broken": {Template: "Hi ${name", Parts: nil, PluralForms: nil, PluralFormsParts: nil, HasPlurals: false},
+	})
+
+	got, found := store.ResolveMessage("broken", "en-GB", map[string]any{"name": "Ana"}, 0)
+
+	require.True(t, found)
+	assert.Equal(t, "Hi ${name", got)
+}
+
+func describeParts(parts []TemplatePart) []string {
+	described := make([]string, 0, len(parts))
+	for _, part := range parts {
+		switch part.Kind {
+		case PartExpression:
+			described = append(described, "${"+part.ExprSource+"}")
+		case PartLinkedMessage:
+			described = append(described, "@"+part.LinkedKey)
+		default:
+			described = append(described, part.Literal)
+		}
+	}
+	return described
+}
+
+func TestStore_AddAllTranslations_OrdersProblemsByLocale(t *testing.T) {
+	t.Parallel()
+
+	store := NewStore("en-GB")
+
+	problems := store.AddAllTranslations(Translations{
+		"fr-FR": {"b": "${", "ok": "Bonjour"},
+		"en-GB": {"a": "${", "ok": "Hello"},
+	})
+
+	var described []string
+	for _, problem := range problems {
+		described = append(described, problem.Locale+":"+problem.Key)
+	}
+	assert.Equal(t, []string{"en-GB:a", "fr-FR:b"}, described)
+	assert.True(t, store.HasLocale("en-GB"))
+	assert.True(t, store.HasLocale("fr-FR"))
+}

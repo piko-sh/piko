@@ -88,6 +88,7 @@ func Initialise(ctx context.Context, loggerConfig logger_dto.Config) (*slog.Logg
 		finalHandler = driver_handlers.NewPrettyHandler(os.Stderr, &driver_handlers.Options{
 			Level:     levelVar,
 			AddSource: loggerConfig.AddSource,
+			NoColour:  false,
 		})
 	} else if len(handlerList) == 1 {
 		finalHandler = handlerList[0]
@@ -146,6 +147,9 @@ func AddFileOutput(ctx context.Context, name, path string, level slog.Level, use
 		MaxBackups: 5,
 		MaxAge:     30,
 		Compress:   true,
+		Sandbox:    nil,
+		Clock:      nil,
+		LocalTime:  false,
 	})
 	if fileError != nil {
 		return
@@ -185,6 +189,7 @@ func ResetAndApplyConfig(loggerConfig logger_dto.Config) {
 
 	globalState = &loggerState{
 		handlers: []slog.Handler{},
+		logger:   nil,
 	}
 
 	logger_domain.InitDefaultFactory(slog.Default())
@@ -283,6 +288,8 @@ func createOutputHandler(ctx context.Context, output logger_dto.OutputConfig, gl
 			MaxAge:     output.File.MaxAge,
 			Compress:   output.File.Compress,
 			LocalTime:  output.File.LocalTime,
+			Sandbox:    nil,
+			Clock:      nil,
 		})
 		if fileError != nil {
 			return nil, fmt.Errorf("creating file output: %w", fileError)

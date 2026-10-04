@@ -37,7 +37,8 @@ const (
 // soon as it starts streaming.
 //
 // Takes limit (int) which is the number of concurrent requests allowed, or zero to
-// disable. Takes backlogTimeout (time.Duration) which bounds the wait for a slot.
+// disable.
+// Takes backlogTimeout (time.Duration) which bounds the wait for a slot.
 //
 // Returns func(http.Handler) http.Handler which is the middleware.
 func streamAwareThrottle(limit int, backlogTimeout time.Duration) func(http.Handler) http.Handler {
@@ -67,7 +68,11 @@ func streamAwareThrottle(limit int, backlogTimeout time.Duration) func(http.Hand
 				return
 			}
 
-			throttled := &throttleReleasingWriter{ResponseWriter: writer, release: func() { <-slots }}
+			throttled := &throttleReleasingWriter{
+				ResponseWriter: writer,
+				release:        func() { <-slots },
+				once:           sync.Once{},
+			}
 			defer throttled.releaseOnce()
 
 			next.ServeHTTP(throttled, request)

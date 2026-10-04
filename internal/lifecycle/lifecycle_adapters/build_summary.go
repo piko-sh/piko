@@ -237,8 +237,8 @@ func FormatGeneratorSummary(result *GeneratorResult) string {
 // Takes build (*lifecycle_domain.BuildResult) which holds the asset build outcome.
 // Takes annotationDuration (time.Duration) which is the wall-clock time for inspection
 // and annotation.
-// Takes totalDuration (time.Duration) which is the wall-clock time for the entire build
-// (annotation + parallel emission and assets).
+// Takes totalDuration (time.Duration) which is the total wall-clock duration of
+// annotation, parallel emission, and asset building.
 //
 // Returns string which contains the formatted summary with ANSI colour codes.
 func FormatCombinedSummary(gen *GeneratorResult, build *lifecycle_domain.BuildResult, annotationDuration, totalDuration time.Duration) string {
@@ -437,6 +437,8 @@ func extractBuildErrorSnippet(cleaned string) *buildErrorSnippet {
 		coreMessage: coreMessage,
 		line:        line,
 		column:      column,
+		sourceText:  "",
+		caretLine:   "",
 	}
 
 	if len(lines) >= 2 {

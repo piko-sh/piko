@@ -448,17 +448,36 @@ func rewriteTdewolffArrayExpr(node *parsejs.ArrayExpr, ctx *TdewolffRewriteConte
 	}
 }
 
-// rewriteTdewolffObjectExpr applies rewrite rules to each property value in an object
-// literal.
+// rewriteTdewolffObjectExpr applies rewrite rules to each computed key and property value
+// in an object literal.
 //
 // Takes node (*parsejs.ObjectExpr) which is the object expression to process.
 // Takes ctx (*TdewolffRewriteContext) which holds the rewrite state.
 func rewriteTdewolffObjectExpr(node *parsejs.ObjectExpr, ctx *TdewolffRewriteContext) {
 	for i := range node.List {
-		if node.List[i].Value != nil {
-			rewriteTdewolffExpr(node.List[i].Value, false, ctx)
+		property := &node.List[i]
+		rewriteTdewolffComputedKey(property.Name, ctx)
+		if method, ok := property.Value.(*parsejs.MethodDecl); ok {
+			rewriteTdewolffComputedKey(&method.Name.PropertyName, ctx)
+		}
+		if property.Value != nil {
+			rewriteTdewolffExpr(property.Value, false, ctx)
 		}
 	}
+}
+
+// rewriteTdewolffComputedKey rewrites the expression inside a computed property key.
+//
+// A computed key is evaluated in the enclosing scope, so an instance property named
+// inside the brackets needs the same prefix as one used as a value.
+//
+// Takes name (*parsejs.PropertyName) which is the key, or nil when there is none.
+// Takes ctx (*TdewolffRewriteContext) which holds the rewrite state.
+func rewriteTdewolffComputedKey(name *parsejs.PropertyName, ctx *TdewolffRewriteContext) {
+	if name == nil || name.Computed == nil {
+		return
+	}
+	rewriteTdewolffExpr(name.Computed, false, ctx)
 }
 
 // rewriteTdewolffTemplateExpr processes a template expression node by rewriting each
@@ -527,9 +546,7 @@ func rewriteTdewolffFuncDecl(node *parsejs.FuncDecl, ctx *TdewolffRewriteContext
 		tdewolffAddNameToScope(string(node.Name.Name()), ctx)
 	}
 	tdewolffPushScope(ctx)
-	for i := range node.Params.List {
-		tdewolffBindDeclaration(node.Params.List[i].Binding, ctx)
-	}
+	tdewolffBindParams(&node.Params, ctx)
 	for _, statement := range node.Body.List {
 		rewriteTdewolffStmt(statement, ctx)
 	}
@@ -543,9 +560,7 @@ func rewriteTdewolffFuncDecl(node *parsejs.FuncDecl, ctx *TdewolffRewriteContext
 // Takes ctx (*TdewolffRewriteContext) which tracks the rewrite state.
 func rewriteTdewolffArrowFunc(node *parsejs.ArrowFunc, ctx *TdewolffRewriteContext) {
 	tdewolffPushScope(ctx)
-	for i := range node.Params.List {
-		tdewolffBindDeclaration(node.Params.List[i].Binding, ctx)
-	}
+	tdewolffBindParams(&node.Params, ctx)
 	for _, statement := range node.Body.List {
 		rewriteTdewolffStmt(statement, ctx)
 	}
@@ -590,9 +605,7 @@ func rewriteTdewolffMethodDecl(node *parsejs.MethodDecl, ctx *TdewolffRewriteCon
 	ctx.inClassMethod = true
 
 	tdewolffPushScope(ctx)
-	for i := range node.Params.List {
-		tdewolffBindDeclaration(node.Params.List[i].Binding, ctx)
-	}
+	tdewolffBindParams(&node.Params, ctx)
 	for _, statement := range node.Body.List {
 		rewriteTdewolffStmt(statement, ctx)
 	}
@@ -687,6 +700,18 @@ func tdewolffBindDeclaration(binding parsejs.IBinding, ctx *TdewolffRewriteConte
 	}
 }
 
+// tdewolffBindParams binds every parameter of a function, arrow or method, including its
+// rest parameter.
+//
+// Takes params (*parsejs.Params) which is the parameter list to bind.
+// Takes ctx (*TdewolffRewriteContext) which provides the current scope context.
+func tdewolffBindParams(params *parsejs.Params, ctx *TdewolffRewriteContext) {
+	for i := range params.List {
+		tdewolffBindDeclaration(params.List[i].Binding, ctx)
+	}
+	tdewolffBindDeclaration(params.Rest, ctx)
+}
+
 // tdewolffBindArrayElements binds each element in an array binding pattern.
 //
 // Takes arr (*parsejs.BindingArray) which is the array pattern to process.
@@ -703,13 +728,14 @@ func tdewolffBindArrayElements(arr *parsejs.BindingArray, ctx *TdewolffRewriteCo
 }
 
 // tdewolffBindObjectProperties binds all property declarations within a destructuring
-// object pattern.
+// object pattern and rewrites its computed keys.
 //
 // Takes objectBinding (*parsejs.BindingObject) which contains the object binding pattern
 // to process.
 // Takes ctx (*TdewolffRewriteContext) which provides the rewrite context.
 func tdewolffBindObjectProperties(objectBinding *parsejs.BindingObject, ctx *TdewolffRewriteContext) {
 	for _, item := range objectBinding.List {
+		rewriteTdewolffComputedKey(item.Key, ctx)
 		if item.Value.Binding != nil {
 			tdewolffBindDeclaration(item.Value.Binding, ctx)
 		}

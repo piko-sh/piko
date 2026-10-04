@@ -99,7 +99,7 @@ func TestErrorClassifier_IsRetryable_NetworkTimeout(t *testing.T) {
 	})
 
 	t.Run("non-timeout network error is not retryable", func(t *testing.T) {
-		err := &mockNetError{timeout: false}
+		err := &mockNetError{}
 		assert.False(t, c.IsRetryable(err))
 	})
 }
@@ -209,7 +209,7 @@ func TestIsNetworkTimeout(t *testing.T) {
 	})
 
 	t.Run("non-timeout is false", func(t *testing.T) {
-		assert.False(t, retry.IsNetworkTimeout(&mockNetError{timeout: false}))
+		assert.False(t, retry.IsNetworkTimeout(&mockNetError{}))
 	})
 
 	t.Run("non-net error is false", func(t *testing.T) {

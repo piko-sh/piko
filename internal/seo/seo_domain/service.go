@@ -357,6 +357,7 @@ func (*seoService) buildCompressionProfiles() []registry_dto.NamedProfile {
 				CapabilityName: capability,
 				DependsOn:      deps,
 				ResultingTags:  tags,
+				Params:         registry_dto.ProfileParams{},
 			},
 		}
 	}
@@ -516,6 +517,7 @@ func resolveBlockAllIndexing(seoConfig config.SEOConfig, productionMode *bool) b
 // Takes storagePort (SEOStoragePort) which provides the storage backend for SEO data.
 // Takes dynamicURLPort (DynamicURLSourcePort) which supplies dynamic URL sources for
 // sitemap generation.
+// Takes opts (...SEOServiceOption) which configure search engine metadata generation.
 //
 // Returns SEOService which is the configured service ready for use.
 // Returns error when SEO is disabled in the configuration or when the sitemap hostname is

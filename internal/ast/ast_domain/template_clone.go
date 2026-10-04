@@ -313,6 +313,7 @@ func (ast *TemplateAST) Clone() *TemplateAST {
 		SourceSize:        ast.SourceSize,
 		Tidied:            ast.Tidied,
 		isPooled:          false,
+		arena:             nil,
 	}
 }
 
@@ -338,6 +339,7 @@ func (ast *TemplateAST) DeepClone() *TemplateAST {
 		SourceSize:        ast.SourceSize,
 		Tidied:            ast.Tidied,
 		isPooled:          false,
+		arena:             nil,
 	}
 }
 
@@ -575,12 +577,24 @@ func injectScopeAttributes(attrs []HTMLAttribute, key Expression, partialScopeID
 	newAttrs := slices.Clone(attrs)
 
 	if needsPartial {
-		newAttrs = append(newAttrs, HTMLAttribute{Name: "partial", Value: partialScopeID})
+		newAttrs = append(newAttrs, HTMLAttribute{
+			Name:           "partial",
+			Value:          partialScopeID,
+			Location:       Location{},
+			NameLocation:   Location{},
+			AttributeRange: Range{},
+		})
 	}
 
 	if needsPKey {
 		if keyValue := extractStaticKeyString(key); keyValue != "" {
-			newAttrs = append(newAttrs, HTMLAttribute{Name: "p-key", Value: keyValue})
+			newAttrs = append(newAttrs, HTMLAttribute{
+				Name:           "p-key",
+				Value:          keyValue,
+				Location:       Location{},
+				NameLocation:   Location{},
+				AttributeRange: Range{},
+			})
 		}
 	}
 

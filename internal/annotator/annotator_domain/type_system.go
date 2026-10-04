@@ -27,9 +27,9 @@ import (
 	"fmt"
 	goast "go/ast"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 )
@@ -327,6 +327,7 @@ func (tr *TypeResolver) checkPointerStringability(
 		IsExportedPackageSymbol: false,
 		InitialPackagePath:      "",
 		InitialFilePath:         "",
+		UnderlyingTypeString:    "",
 	}
 
 	baseStringability, _ := tr.determineStringability(ctx, analysisContext, elementTypeInfo)
@@ -446,6 +447,7 @@ func (tr *TypeResolver) resolveStringabilityViaInspector(
 
 // validateLenCapArgs checks arguments for len and cap built-in calls.
 //
+// Takes tr (*TypeResolver) which resolves argument types during validation.
 // Takes analysisContext (*AnalysisContext) which collects diagnostics.
 // Takes callExpr (*ast_domain.CallExpression) which is the call to validate.
 // Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which holds argument types.
@@ -552,6 +554,7 @@ func getAppendReturnType(_ context.Context, _ *TypeResolver, _ *AnalysisContext,
 
 // validateAppendArgs checks that arguments to the built-in append function are valid.
 //
+// Takes tr (*TypeResolver) which resolves argument types during validation.
 // Takes analysisContext (*AnalysisContext) which collects diagnostics.
 // Takes callExpr (*ast_domain.CallExpression) which is the append call to validate.
 // Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which provides resolved type
@@ -636,6 +639,7 @@ func (tr *TypeResolver) getSliceElementType(typeInfo *ast_domain.ResolvedTypeInf
 			IsExportedPackageSymbol: false,
 			InitialPackagePath:      "",
 			InitialFilePath:         "",
+			UnderlyingTypeString:    "",
 		}, true
 	}
 	return nil, false
@@ -783,6 +787,7 @@ func (tr *TypeResolver) isNamedTypeJSONSafe(ctx context.Context, analysisContext
 		IsExportedPackageSymbol: false,
 		InitialPackagePath:      "",
 		InitialFilePath:         "",
+		UnderlyingTypeString:    "",
 	})
 
 	namedType, _ := tr.inspector.ResolveExprToNamedTypeWithMemoization(
@@ -813,15 +818,9 @@ func (tr *TypeResolver) isNamedTypeJSONSafe(ctx context.Context, analysisContext
 //
 // Returns *ast_domain.ResolvedTypeInfo with the type expression set.
 func newSimpleTypeInfo(typeExpr goast.Expr) *ast_domain.ResolvedTypeInfo {
-	return &ast_domain.ResolvedTypeInfo{
-		TypeExpression:          typeExpr,
-		PackageAlias:            "",
-		CanonicalPackagePath:    "",
-		IsSynthetic:             false,
-		IsExportedPackageSymbol: false,
-		InitialPackagePath:      "",
-		InitialFilePath:         "",
-	}
+	info := ast_domain.ResolvedTypeInfo{}
+	info.TypeExpression = typeExpr
+	return &info
 }
 
 // newSimpleTypeInfoWithAlias creates a ResolvedTypeInfo with a type expression and
@@ -832,15 +831,10 @@ func newSimpleTypeInfo(typeExpr goast.Expr) *ast_domain.ResolvedTypeInfo {
 //
 // Returns *ast_domain.ResolvedTypeInfo with the type expression and alias set.
 func newSimpleTypeInfoWithAlias(typeExpr goast.Expr, packageAlias string) *ast_domain.ResolvedTypeInfo {
-	return &ast_domain.ResolvedTypeInfo{
-		TypeExpression:          typeExpr,
-		PackageAlias:            packageAlias,
-		CanonicalPackagePath:    "",
-		IsSynthetic:             false,
-		IsExportedPackageSymbol: false,
-		InitialPackagePath:      "",
-		InitialFilePath:         "",
-	}
+	info := ast_domain.ResolvedTypeInfo{}
+	info.TypeExpression = typeExpr
+	info.PackageAlias = packageAlias
+	return &info
 }
 
 // getLenCapReturnType returns the type for the built-in len and cap functions.

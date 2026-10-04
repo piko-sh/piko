@@ -19,8 +19,13 @@
 package db_driver_d1
 
 import (
+	"context"
+	"database/sql"
 	"database/sql/driver"
 	"encoding/base64"
+	"errors"
+	"io"
+	"net/http"
 	"strconv"
 	"testing"
 	"time"
@@ -29,37 +34,37 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestParseDSNValid(t *testing.T) {
-	config, err := parseDSN("myaccount/mydb?token=secret123")
-	require.NoError(t, err)
+func TestParseDSN(t *testing.T) {
+	testCases := []struct {
+		name          string
+		dsn           string
+		expectedError string
+		expected      Config
+	}{
+		{
+			name:     "valid",
+			dsn:      "myaccount/mydb?token=secret123",
+			expected: Config{APIToken: "secret123", AccountID: "myaccount", DatabaseID: "mydb"},
+		},
+		{name: "missing token", dsn: "myaccount/mydb", expectedError: "token"},
+		{name: "missing slash", dsn: "noslashhere?token=secret", expectedError: "expected format"},
+		{name: "empty account", dsn: "/mydb?token=secret", expectedError: "accountID is empty"},
+		{name: "empty database", dsn: "myaccount/?token=secret", expectedError: "databaseID is empty"},
+		{name: "malformed query", dsn: "myaccount/mydb?token=%zz", expectedError: "invalid DSN query"},
+	}
 
-	assert.Equal(t, "myaccount", config.AccountID)
-	assert.Equal(t, "mydb", config.DatabaseID)
-	assert.Equal(t, "secret123", config.APIToken)
-}
-
-func TestParseDSNMissingToken(t *testing.T) {
-	_, err := parseDSN("myaccount/mydb")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "token")
-}
-
-func TestParseDSNMissingSlash(t *testing.T) {
-	_, err := parseDSN("noslashhere?token=secret")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "expected format")
-}
-
-func TestParseDSNEmptyAccountID(t *testing.T) {
-	_, err := parseDSN("/mydb?token=secret")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "accountID is empty")
-}
-
-func TestParseDSNEmptyDatabaseID(t *testing.T) {
-	_, err := parseDSN("myaccount/?token=secret")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "databaseID is empty")
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			config, err := parseDSN(testCase.dsn)
+			if testCase.expectedError != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), testCase.expectedError)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, testCase.expected, config)
+		})
+	}
 }
 
 func TestStringifyNamedParamsNil(t *testing.T) {
@@ -67,7 +72,7 @@ func TestStringifyNamedParamsNil(t *testing.T) {
 		{Ordinal: 1, Value: nil},
 	}
 	result, err := stringifyNamedParams(args)
-	require.ErrorIs(t, err, errNullParamUnsupported)
+	require.ErrorIs(t, err, ErrNullParamUnsupported)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "parameter 1")
 }
@@ -78,7 +83,7 @@ func TestStringifyNamedParamsNilNotFirst(t *testing.T) {
 		{Ordinal: 2, Value: nil},
 	}
 	result, err := stringifyNamedParams(args)
-	require.ErrorIs(t, err, errNullParamUnsupported)
+	require.ErrorIs(t, err, ErrNullParamUnsupported)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "parameter 2")
 }
@@ -116,8 +121,8 @@ func TestStringifyNamedParamsFloat64(t *testing.T) {
 func TestStringifyNamedParamsBool(t *testing.T) {
 	tests := []struct {
 		name     string
-		value    bool
 		expected string
+		value    bool
 	}{
 		{name: "true", value: true, expected: "1"},
 		{name: "false", value: false, expected: "0"},
@@ -163,33 +168,157 @@ func TestDriverName(t *testing.T) {
 	assert.Equal(t, "d1", DriverName())
 }
 
-func TestBuildBatchParameterOrdering(t *testing.T) {
-	statements := []batchStatement{
-		{query: "INSERT INTO a (x) VALUES (?)", params: []string{"a1"}},
-		{query: "INSERT INTO b (x, y) VALUES (?, ?)", params: []string{"b1", "b2"}},
-		{query: "INSERT INTO c (x) VALUES (?)", params: []string{"c1"}},
+func TestBuildBatch(t *testing.T) {
+	testCases := []struct {
+		name           string
+		expectedSQL    string
+		statements     []batchStatement
+		expectedParams []string
+	}{
+		{
+			name: "parameters follow statement order",
+			statements: []batchStatement{
+				{query: "INSERT INTO a (x) VALUES (?)", params: []string{"a1"}},
+				{query: "INSERT INTO b (x, y) VALUES (?, ?)", params: []string{"b1", "b2"}},
+				{query: "INSERT INTO c (x) VALUES (?)", params: []string{"c1"}},
+			},
+			expectedSQL: "BEGIN;\n" +
+				"INSERT INTO a (x) VALUES (?)\n;\n" +
+				"INSERT INTO b (x, y) VALUES (?, ?)\n;\n" +
+				"INSERT INTO c (x) VALUES (?)\n;\n" +
+				"COMMIT;",
+			expectedParams: []string{"a1", "b1", "b2", "c1"},
+		},
+		{
+			name: "statements without parameters",
+			statements: []batchStatement{
+				{query: "DELETE FROM a", params: nil},
+				{query: "DELETE FROM b", params: nil},
+			},
+			expectedSQL:    "BEGIN;\nDELETE FROM a\n;\nDELETE FROM b\n;\nCOMMIT;",
+			expectedParams: nil,
+		},
+		{
+			name: "trailing line comment cannot swallow the separator",
+			statements: []batchStatement{
+				{query: "DELETE FROM a -- clear a", params: nil},
+				{query: "DELETE FROM b;  \n", params: nil},
+			},
+			expectedSQL:    "BEGIN;\nDELETE FROM a -- clear a\n;\nDELETE FROM b\n;\nCOMMIT;",
+			expectedParams: nil,
+		},
 	}
 
-	sql, params := buildBatch(statements)
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			sql, params := buildBatch(testCase.statements)
 
-	expectedSQL := "BEGIN;\n" +
-		"INSERT INTO a (x) VALUES (?);\n" +
-		"INSERT INTO b (x, y) VALUES (?, ?);\n" +
-		"INSERT INTO c (x) VALUES (?);\n" +
-		"COMMIT;"
-	assert.Equal(t, expectedSQL, sql)
-
-	assert.Equal(t, []string{"a1", "b1", "b2", "c1"}, params)
+			assert.Equal(t, testCase.expectedSQL, sql)
+			assert.Equal(t, testCase.expectedParams, params)
+		})
+	}
 }
 
-func TestBuildBatchEmptyParameters(t *testing.T) {
-	statements := []batchStatement{
-		{query: "DELETE FROM a", params: nil},
-		{query: "DELETE FROM b", params: nil},
+func TestValidateConfig(t *testing.T) {
+	testCases := []struct {
+		name          string
+		expectedError string
+		config        Config
+	}{
+		{name: "complete", config: Config{APIToken: "t", AccountID: "a", DatabaseID: "d"}},
+		{name: "missing token", config: Config{AccountID: "a", DatabaseID: "d"}, expectedError: "APIToken"},
+		{name: "missing account", config: Config{APIToken: "t", DatabaseID: "d"}, expectedError: "AccountID"},
+		{name: "missing database", config: Config{APIToken: "t", AccountID: "a"}, expectedError: "DatabaseID"},
 	}
 
-	sql, params := buildBatch(statements)
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			err := validateConfig(testCase.config)
+			if testCase.expectedError == "" {
+				require.NoError(t, err)
+				return
+			}
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), testCase.expectedError)
 
-	assert.Equal(t, "BEGIN;\nDELETE FROM a;\nDELETE FROM b;\nCOMMIT;", sql)
-	assert.Empty(t, params)
+			database, openErr := Open(testCase.config)
+			require.Error(t, openErr)
+			assert.Nil(t, database)
+		})
+	}
+}
+
+func TestOpenSharesOneClientAcrossConnections(t *testing.T) {
+	recorder := newRecordingServer(t, http.StatusOK, unorderedDuplicateColumnsResult)
+	database, err := Open(Config{APIToken: "t", AccountID: "a", DatabaseID: "d"},
+		withBaseURL(recorder.server.URL), WithRequestsPerSecond(testRequestsPerSecond))
+	require.NoError(t, err)
+	t.Cleanup(func() { assert.NoError(t, database.Close()) })
+
+	ctx := context.Background()
+	first, err := database.Conn(ctx)
+	require.NoError(t, err)
+	second, err := database.Conn(ctx)
+	require.NoError(t, err)
+
+	var clients []*d1Client
+	for _, connection := range []*sql.Conn{first, second} {
+		require.NoError(t, connection.Raw(func(driverConn any) error {
+			d1Connection, ok := driverConn.(*d1Conn)
+			require.True(t, ok)
+			clients = append(clients, d1Connection.client)
+			return nil
+		}))
+		require.NoError(t, connection.Close())
+	}
+	require.Len(t, clients, 2)
+	assert.Same(t, clients[0], clients[1])
+
+	var zeta, alpha, firstName, secondName string
+	require.NoError(t, database.QueryRowContext(ctx, "SELECT zeta, alpha, a.name, b.name FROM a JOIN b").
+		Scan(&zeta, &alpha, &firstName, &secondName))
+	assert.Equal(t, []string{"z1", "a1", "first", "second"}, []string{zeta, alpha, firstName, secondName})
+}
+
+func TestDriverOpenAndOpenConnector(t *testing.T) {
+	d1 := &d1Driver{}
+
+	connection, err := d1.Open("account/database?token=secret")
+	require.NoError(t, err)
+	d1Connection, ok := connection.(*d1Conn)
+	require.True(t, ok)
+	assert.Same(t, d1Connection.client, d1Connection.ownedClient)
+	assert.NoError(t, connection.Close())
+
+	connector, err := d1.OpenConnector("account/database?token=secret")
+	require.NoError(t, err)
+	assert.Same(t, d1, connector.Driver())
+
+	shared, err := connector.Connect(context.Background())
+	require.NoError(t, err)
+	sharedConnection, ok := shared.(*d1Conn)
+	require.True(t, ok)
+	assert.Nil(t, sharedConnection.ownedClient)
+	assert.NoError(t, shared.Close())
+
+	cancelled, cancel := context.WithCancelCause(context.Background())
+	cancel(errors.New("caller gave up"))
+	_, err = connector.Connect(cancelled)
+	require.ErrorIs(t, err, context.Canceled)
+
+	closer, ok := connector.(io.Closer)
+	require.True(t, ok)
+	assert.NoError(t, closer.Close())
+}
+
+func TestDriverRejectsMalformedDSN(t *testing.T) {
+	d1 := &d1Driver{}
+
+	connection, err := d1.Open("not-a-dsn")
+	require.Error(t, err)
+	assert.Nil(t, connection)
+
+	connector, err := d1.OpenConnector("account/database")
+	require.Error(t, err)
+	assert.Nil(t, connector)
 }

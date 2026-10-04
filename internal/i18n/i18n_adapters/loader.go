@@ -20,6 +20,7 @@ package i18n_adapters
 
 import (
 	"cmp"
+	"context"
 	"errors"
 	"fmt"
 
@@ -96,12 +97,12 @@ func NewLoader(config LoaderConfig) *Loader {
 //
 // Returns *i18n_domain.Store which contains the loaded translations.
 // Returns error when the loader mode is unknown or loading fails.
-func (l *Loader) Load() (*i18n_domain.Store, error) {
+func (l *Loader) Load(ctx context.Context) (*i18n_domain.Store, error) {
 	switch l.config.Mode {
 	case LoaderModeFlatBuffer:
-		return l.loadFlatBuffer()
+		return l.loadFlatBuffer(ctx)
 	case LoaderModeJSON:
-		return l.loadJSON()
+		return l.loadJSON(ctx)
 	default:
 		return nil, fmt.Errorf("unknown loader mode: %s", l.config.Mode)
 	}
@@ -125,7 +126,7 @@ func (l *Loader) Config() LoaderConfig {
 //
 // Returns *i18n_domain.Store which contains the loaded translations.
 // Returns error when FlatBufferPath is empty, sandbox is nil, or loading fails.
-func (l *Loader) loadFlatBuffer() (*i18n_domain.Store, error) {
+func (l *Loader) loadFlatBuffer(ctx context.Context) (*i18n_domain.Store, error) {
 	if l.config.FlatBufferPath == "" {
 		return nil, errors.New("FlatBuffer path is required for FlatBuffer mode")
 	}
@@ -134,7 +135,7 @@ func (l *Loader) loadFlatBuffer() (*i18n_domain.Store, error) {
 	}
 
 	l.fbProvider = newFlatBufferProvider(l.config.Sandbox, l.config.FlatBufferPath)
-	store, err := l.fbProvider.load()
+	store, err := l.fbProvider.load(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load FlatBuffer translations: %w", err)
 	}
@@ -147,7 +148,7 @@ func (l *Loader) loadFlatBuffer() (*i18n_domain.Store, error) {
 // Returns *i18n_domain.Store which contains the loaded translations.
 // Returns error when the JSON directory or sandbox is not configured, or when loading
 // fails.
-func (l *Loader) loadJSON() (*i18n_domain.Store, error) {
+func (l *Loader) loadJSON(ctx context.Context) (*i18n_domain.Store, error) {
 	if l.config.JSONDirectory == "" {
 		return nil, errors.New("JSON directory is required for JSON mode")
 	}
@@ -156,7 +157,7 @@ func (l *Loader) loadJSON() (*i18n_domain.Store, error) {
 	}
 
 	provider := newJSONProvider(l.config.Sandbox, l.config.JSONDirectory)
-	store, err := provider.load(l.config.DefaultLocale)
+	store, err := provider.load(ctx, l.config.DefaultLocale)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load JSON translations: %w", err)
 	}

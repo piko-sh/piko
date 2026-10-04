@@ -138,7 +138,7 @@ func Classify(userAgent string) Classification {
 	lower := strings.ToLower(userAgent)
 
 	if isBot(lower) {
-		return Classification{Device: "bot", Bot: true}
+		return Classification{Device: "bot", Bot: true, Browser: "", BrowserMajor: "", OS: ""}
 	}
 
 	browser, major := matchBrowser(userAgent)

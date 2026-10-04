@@ -394,6 +394,7 @@ func newNotificationHandlerWithOptions(next slog.Handler, notificationPort Notif
 			debounceTimer:    nil,
 			clock:            clk,
 			mu:               sync.Mutex{},
+			droppedErrors:    0,
 		},
 	}
 

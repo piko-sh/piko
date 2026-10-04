@@ -103,11 +103,11 @@ type MockLLMProvider struct {
 //
 // Returns *MockLLMProvider which is configured with all capabilities enabled.
 func NewMockLLMProvider() *MockLLMProvider {
-	return &MockLLMProvider{
-		SupportsStreamingValue:  true,
-		SupportsStructuredValue: true,
-		SupportsToolsValue:      true,
-	}
+	provider := MockLLMProvider{}
+	provider.SupportsStreamingValue = true
+	provider.SupportsStructuredValue = true
+	provider.SupportsToolsValue = true
+	return &provider
 }
 
 // Complete delegates to CompleteFunc if set.
@@ -131,8 +131,12 @@ func (m *MockLLMProvider) Complete(ctx context.Context, request *llm_dto.Complet
 			{
 				Index: 0,
 				Message: llm_dto.Message{
-					Role:    llm_dto.RoleAssistant,
-					Content: "Mock response",
+					Role:         llm_dto.RoleAssistant,
+					Content:      "Mock response",
+					Name:         nil,
+					ToolCallID:   nil,
+					ContentParts: nil,
+					ToolCalls:    nil,
 				},
 				FinishReason: "stop",
 			},
@@ -141,7 +145,11 @@ func (m *MockLLMProvider) Complete(ctx context.Context, request *llm_dto.Complet
 			PromptTokens:     mockPromptTokens,
 			CompletionTokens: mockCompletionTokens,
 			TotalTokens:      mockTotalTokens,
+			EstimatedCost:    nil,
+			CachedTokens:     0,
 		},
+		FallbackInfo: nil,
+		Sources:      nil,
 	}, nil
 }
 
@@ -227,7 +235,18 @@ func (m *MockLLMProvider) ListModels(ctx context.Context) ([]llm_dto.ModelInfo, 
 		return m.ListModelsFunc(ctx)
 	}
 	return []llm_dto.ModelInfo{
-		{ID: "mock-model", Name: "Mock Model"},
+		{
+			ID:                       "mock-model",
+			Name:                     "Mock Model",
+			Provider:                 "",
+			Created:                  0,
+			ContextWindow:            0,
+			MaxOutputTokens:          0,
+			SupportsStreaming:        false,
+			SupportsTools:            false,
+			SupportsStructuredOutput: false,
+			SupportsVision:           false,
+		},
 	}, nil
 }
 
@@ -306,19 +325,10 @@ func (m *MockEmbeddingProvider) Embed(ctx context.Context, request *llm_dto.Embe
 	}
 	embeddings := make([]llm_dto.Embedding, len(request.Input))
 	for i := range request.Input {
-		embeddings[i] = llm_dto.Embedding{
-			Index:  i,
-			Vector: []float32{mockEmbedDim1, mockEmbedDim2, mockEmbedDim3},
-		}
+		embeddings[i] = llm_dto.NewFloat32Embedding(i, []float32{mockEmbedDim1, mockEmbedDim2, mockEmbedDim3})
 	}
-	return &llm_dto.EmbeddingResponse{
-		Model:      request.Model,
-		Embeddings: embeddings,
-		Usage: &llm_dto.EmbeddingUsage{
-			PromptTokens: len(request.Input) * mockTokensPerInput,
-			TotalTokens:  len(request.Input) * mockTokensPerInput,
-		},
-	}, nil
+	tokens := len(request.Input) * mockTokensPerInput
+	return llm_dto.NewEmbeddingResponse(request.Model, embeddings, llm_dto.NewEmbeddingUsage(tokens, tokens)), nil
 }
 
 // ListEmbeddingModels delegates to ListModelsFunc if set.
@@ -329,7 +339,18 @@ func (m *MockEmbeddingProvider) ListEmbeddingModels(ctx context.Context) ([]llm_
 		return m.ListModelsFunc(ctx)
 	}
 	return []llm_dto.ModelInfo{
-		{ID: "mock-embedding-model", Name: "Mock Embedding Model"},
+		{
+			ID:                       "mock-embedding-model",
+			Name:                     "Mock Embedding Model",
+			Provider:                 "",
+			Created:                  0,
+			ContextWindow:            0,
+			MaxOutputTokens:          0,
+			SupportsStreaming:        false,
+			SupportsTools:            false,
+			SupportsStructuredOutput: false,
+			SupportsVision:           false,
+		},
 	}, nil
 }
 
@@ -378,9 +399,9 @@ type MockCacheStore struct {
 //
 // Returns *MockCacheStore which is ready for use with an empty cache.
 func NewMockCacheStore() *MockCacheStore {
-	return &MockCacheStore{
-		entries: make(map[string]*llm_dto.CacheEntry),
-	}
+	store := MockCacheStore{}
+	store.entries = make(map[string]*llm_dto.CacheEntry)
+	return &store
 }
 
 // Get retrieves a cache entry by key, implementing the cache store interface.
@@ -467,9 +488,10 @@ func (m *MockCacheStore) GetStats(_ context.Context) (*llm_dto.CacheStats, error
 	defer m.mu.Unlock()
 
 	return &llm_dto.CacheStats{
-		Hits:   m.hits,
-		Misses: m.misses,
-		Size:   int64(len(m.entries)),
+		Hits:               m.hits,
+		Misses:             m.misses,
+		Size:               int64(len(m.entries)),
+		EstimatedCostSaved: maths.Money{},
 	}, nil
 }
 
@@ -504,9 +526,9 @@ type MockBudgetStore struct {
 //
 // Returns *MockBudgetStore which is ready for use in tests.
 func NewMockBudgetStore() *MockBudgetStore {
-	return &MockBudgetStore{
-		statuses: make(map[string]*llm_dto.BudgetStatus),
-	}
+	store := MockBudgetStore{}
+	store.statuses = make(map[string]*llm_dto.BudgetStatus)
+	return &store
 }
 
 // Record implements the budget store Record method.
@@ -528,11 +550,15 @@ func (m *MockBudgetStore) Record(ctx context.Context, scope string, cost *llm_dt
 	status, exists := m.statuses[scope]
 	if !exists {
 		status = &llm_dto.BudgetStatus{
-			Scope:       scope,
-			TotalSpent:  maths.ZeroMoney(llm_dto.CostCurrency),
-			DailySpent:  maths.ZeroMoney(llm_dto.CostCurrency),
-			HourlySpent: maths.ZeroMoney(llm_dto.CostCurrency),
-			LastUpdated: time.Now(),
+			Scope:            scope,
+			TotalSpent:       maths.ZeroMoney(llm_dto.CostCurrency),
+			DailySpent:       maths.ZeroMoney(llm_dto.CostCurrency),
+			HourlySpent:      maths.ZeroMoney(llm_dto.CostCurrency),
+			LastUpdated:      time.Now(),
+			RemainingBudget:  maths.Money{},
+			RequestCount:     0,
+			TokenCount:       0,
+			ThresholdReached: false,
 		}
 	}
 	status.TotalSpent = status.TotalSpent.Add(cost.TotalCost)
@@ -563,12 +589,15 @@ func (m *MockBudgetStore) GetStatus(ctx context.Context, scope string) (*llm_dto
 	status, exists := m.statuses[scope]
 	if !exists {
 		return &llm_dto.BudgetStatus{
-			Scope:           scope,
-			TotalSpent:      maths.ZeroMoney(llm_dto.CostCurrency),
-			DailySpent:      maths.ZeroMoney(llm_dto.CostCurrency),
-			HourlySpent:     maths.ZeroMoney(llm_dto.CostCurrency),
-			RemainingBudget: maths.ZeroMoney(llm_dto.CostCurrency),
-			LastUpdated:     time.Now(),
+			Scope:            scope,
+			TotalSpent:       maths.ZeroMoney(llm_dto.CostCurrency),
+			DailySpent:       maths.ZeroMoney(llm_dto.CostCurrency),
+			HourlySpent:      maths.ZeroMoney(llm_dto.CostCurrency),
+			RemainingBudget:  maths.ZeroMoney(llm_dto.CostCurrency),
+			LastUpdated:      time.Now(),
+			RequestCount:     0,
+			TokenCount:       0,
+			ThresholdReached: false,
 		}, nil
 	}
 
@@ -703,10 +732,15 @@ func (m *MockBudgetStore) increment(scope string, count int64, isRequest bool) {
 	status, exists := m.statuses[scope]
 	if !exists {
 		status = &llm_dto.BudgetStatus{
-			Scope:       scope,
-			TotalSpent:  maths.ZeroMoney(llm_dto.CostCurrency),
-			DailySpent:  maths.ZeroMoney(llm_dto.CostCurrency),
-			HourlySpent: maths.ZeroMoney(llm_dto.CostCurrency),
+			Scope:            scope,
+			TotalSpent:       maths.ZeroMoney(llm_dto.CostCurrency),
+			DailySpent:       maths.ZeroMoney(llm_dto.CostCurrency),
+			HourlySpent:      maths.ZeroMoney(llm_dto.CostCurrency),
+			LastUpdated:      time.Time{},
+			RemainingBudget:  maths.Money{},
+			RequestCount:     0,
+			TokenCount:       0,
+			ThresholdReached: false,
 		}
 	}
 	if isRequest {
@@ -732,6 +766,7 @@ type MockMemoryStore struct {
 func NewMockMemoryStore() *MockMemoryStore {
 	return &MockMemoryStore{
 		states: make(map[string]*llm_dto.ConversationState),
+		mu:     sync.Mutex{},
 	}
 }
 
@@ -840,12 +875,19 @@ func (m *MockSummariser) Complete(ctx context.Context, request *llm_dto.Completi
 			{
 				Index: 0,
 				Message: llm_dto.Message{
-					Role:    llm_dto.RoleAssistant,
-					Content: "This is a mock summary of the conversation.",
+					Role:         llm_dto.RoleAssistant,
+					Content:      "This is a mock summary of the conversation.",
+					Name:         nil,
+					ToolCallID:   nil,
+					ContentParts: nil,
+					ToolCalls:    nil,
 				},
 				FinishReason: "stop",
 			},
 		},
+		Usage:        nil,
+		FallbackInfo: nil,
+		Sources:      nil,
 	}, nil
 }
 
@@ -873,8 +915,11 @@ type MockRateLimiterStore struct {
 // Returns *MockRateLimiterStore which is ready for use in tests.
 func NewMockRateLimiterStore() *MockRateLimiterStore {
 	return &MockRateLimiterStore{
-		buckets: make(map[string]*ratelimiter_domain.TokenBucketState),
-		clock:   time.Now,
+		buckets:          make(map[string]*ratelimiter_domain.TokenBucketState),
+		clock:            time.Now,
+		TryTakeFunc:      nil,
+		WaitDurationFunc: nil,
+		mu:               sync.Mutex{},
 	}
 }
 
@@ -888,8 +933,11 @@ func NewMockRateLimiterStore() *MockRateLimiterStore {
 // tests.
 func NewMockRateLimiterStoreWithClock(clock func() time.Time) *MockRateLimiterStore {
 	return &MockRateLimiterStore{
-		buckets: make(map[string]*ratelimiter_domain.TokenBucketState),
-		clock:   clock,
+		buckets:          make(map[string]*ratelimiter_domain.TokenBucketState),
+		clock:            clock,
+		TryTakeFunc:      nil,
+		WaitDurationFunc: nil,
+		mu:               sync.Mutex{},
 	}
 }
 

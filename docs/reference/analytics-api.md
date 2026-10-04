@@ -40,7 +40,6 @@ Type alias for `analytics_dto.Event`. Carries the data for a single event:
 - `EventName` (`string`): explicit name for custom events (separate from `ActionName` which identifies a server action).
 - `ActionName` (`string`): server action name; populated automatically for `EventAction` events.
 - `Timestamp` (`time.Time`): when the event occurred.
-- `Request` (`*http.Request`): raw request, available for adapters that read additional headers.
 - `ClientIP`, `Locale`, `Hostname`, `UserID`, `MatchedPattern`, `URL`, `Path`, `Method`, `UserAgent`, `Referrer` (`string`): enriched automatically from the request context when available.
 - `Duration` (`time.Duration`): request handling time.
 - `StatusCode` (`int`): HTTP response status code.

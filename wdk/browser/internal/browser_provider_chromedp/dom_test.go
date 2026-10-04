@@ -48,21 +48,15 @@ func TestNormaliseDOM(t *testing.T) {
 			expected: `<div data-a="[UUID]" data-b="[UUID]">x</div>`,
 		},
 		{
-			name:  "preserves UUIDs when disabled",
-			input: `<div id="550e8400-e29b-41d4-a716-446655440000">content</div>`,
-			opts: NormaliseOptions{
-				ReplaceUUIDs: false,
-				FormatHTML:   false,
-			},
+			name:     "preserves UUIDs when disabled",
+			input:    `<div id="550e8400-e29b-41d4-a716-446655440000">content</div>`,
+			opts:     NormaliseOptions{},
 			expected: `<div id="550e8400-e29b-41d4-a716-446655440000">content</div>`,
 		},
 		{
-			name:  "trims whitespace",
-			input: `   <div>content</div>   `,
-			opts: NormaliseOptions{
-				ReplaceUUIDs: false,
-				FormatHTML:   false,
-			},
+			name:     "trims whitespace",
+			input:    `   <div>content</div>   `,
+			opts:     NormaliseOptions{},
 			expected: `<div>content</div>`,
 		},
 		{

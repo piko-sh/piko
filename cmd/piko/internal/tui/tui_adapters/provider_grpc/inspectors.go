@@ -284,7 +284,7 @@ func (p *ProvidersInspector) DescribeProvider(ctx context.Context, resourceType,
 func (p *ProvidersInspector) listOneType(ctx context.Context, rt string) (result listProvidersResult) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
-			result = listProvidersResult{err: fmt.Errorf("list providers for %s: %v", rt, recovered)}
+			result = listProvidersResult{err: fmt.Errorf("list providers for %s: %v", rt, recovered), entries: nil}
 		}
 	}()
 	callCtx, cancel := context.WithTimeoutCause(ctx, listProvidersPerCallTimeout,
@@ -294,7 +294,10 @@ func (p *ProvidersInspector) listOneType(ctx context.Context, rt string) (result
 		ResourceType: rt,
 	})
 	if listErr != nil {
-		return listProvidersResult{err: fmt.Errorf("list providers for %s: %w", rt, translateRPCError(listErr))}
+		return listProvidersResult{
+			err:     fmt.Errorf("list providers for %s: %w", rt, translateRPCError(listErr)),
+			entries: nil,
+		}
 	}
 	rows := listResp.GetRows()
 	entries := make([]tui_domain.ProviderEntry, 0, len(rows))
@@ -306,7 +309,7 @@ func (p *ProvidersInspector) listOneType(ctx context.Context, rt string) (result
 			Values:       row.GetValues(),
 		})
 	}
-	return listProvidersResult{entries: entries}
+	return listProvidersResult{entries: entries, err: nil}
 }
 
 // DLQInspector adapts the gRPC DispatcherInspector service to the tui_domain.DLQInspector
@@ -544,7 +547,10 @@ func (p *ProfilingInspector) Status(ctx context.Context) (*tui_domain.ProfilingS
 // Returns error when the RPC fails.
 func (p *ProfilingInspector) Enable(ctx context.Context) error {
 	_, err := p.conn.profilingClient.EnableProfiling(ctx, &pb.EnableProfilingRequest{
-		DurationMs: int64(captureDeadlineSlack / time.Millisecond),
+		DurationMs:           int64(captureDeadlineSlack / time.Millisecond),
+		Port:                 0,
+		BlockProfileRate:     0,
+		MutexProfileFraction: 0,
 	})
 	if err != nil {
 		return fmt.Errorf("enable profiling: %w", translateRPCError(err))

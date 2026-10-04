@@ -127,23 +127,7 @@ func Render(entry *Entry, vars map[string]any, count *int, locale string, buffer
 
 	buffer.Reset()
 
-	var parts []TemplatePart
-	if entry.HasPlurals && count != nil {
-		if len(entry.PluralFormsParts) > 0 {
-			index := selectPluralFormIndex(*count, locale, len(entry.PluralFormsParts))
-			parts = entry.PluralFormsParts[index]
-		} else if len(entry.PluralForms) > 0 {
-			selectedForm := SelectPluralForm(*count, locale, entry.PluralForms)
-			parts, _ = ParseTemplate(selectedForm)
-		}
-	}
-	if len(parts) == 0 {
-		if len(entry.Parts) > 0 {
-			parts = entry.Parts
-		} else {
-			parts, _ = ParseTemplate(entry.Template)
-		}
-	}
+	parts := selectEntryParts(entry, count, locale)
 
 	scope := vars
 	if count != nil {
@@ -308,23 +292,7 @@ func renderWithVars(entry *Entry, vars varLookup, count *int, locale string, buf
 
 	buffer.Reset()
 
-	var parts []TemplatePart
-	if entry.HasPlurals && count != nil {
-		if len(entry.PluralFormsParts) > 0 {
-			index := selectPluralFormIndex(*count, locale, len(entry.PluralFormsParts))
-			parts = entry.PluralFormsParts[index]
-		} else if len(entry.PluralForms) > 0 {
-			selectedForm := SelectPluralForm(*count, locale, entry.PluralForms)
-			parts, _ = ParseTemplate(selectedForm)
-		}
-	}
-	if len(parts) == 0 {
-		if len(entry.Parts) > 0 {
-			parts = entry.Parts
-		} else {
-			parts, _ = ParseTemplate(entry.Template)
-		}
-	}
+	parts := selectEntryParts(entry, count, locale)
 
 	var scope map[string]any
 	if sp, ok := vars.(scopeProvider); ok {
@@ -405,4 +373,48 @@ func renderSimple(template string, vars map[string]any, buffer *StrBuf) string {
 	}
 
 	return renderTemplate(parts, ctx)
+}
+
+// selectEntryParts picks the plural form for count when the entry has plural forms,
+// otherwise the entry's own template parts. Entries that were not parsed when loaded are
+// parsed here.
+//
+// Takes entry (*Entry) which is the translation entry to render.
+// Takes count (*int) which picks the plural form when not nil.
+// Takes locale (string) which sets the plural rules.
+//
+// Returns []TemplatePart which holds the parts to render.
+func selectEntryParts(entry *Entry, count *int, locale string) []TemplatePart {
+	var parts []TemplatePart
+	if entry.HasPlurals && count != nil {
+		if len(entry.PluralFormsParts) > 0 {
+			index := selectPluralFormIndex(*count, locale, len(entry.PluralFormsParts))
+			parts = entry.PluralFormsParts[index]
+		} else if len(entry.PluralForms) > 0 {
+			parts = renderTimeParts(SelectPluralForm(*count, locale, entry.PluralForms))
+		}
+	}
+	if len(parts) > 0 {
+		return parts
+	}
+	if len(entry.Parts) > 0 {
+		return entry.Parts
+	}
+	return renderTimeParts(entry.Template)
+}
+
+// renderTimeParts parses a template at render time for an entry that was not parsed when
+// it was loaded. Parse problems are reported where translations are loaded, so a template
+// that fails here renders verbatim instead of logging on the render path.
+//
+// Takes template (string) which is the template to parse.
+//
+// Returns []TemplatePart which holds the parsed parts, or the template as one literal
+// part when it cannot be parsed.
+func renderTimeParts(template string) []TemplatePart {
+	parts, messages := ParseTemplate(template)
+	if len(messages) > 0 {
+		return []TemplatePart{newLiteralPart(template)}
+	}
+	return parts
 }

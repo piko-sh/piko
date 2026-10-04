@@ -21,7 +21,10 @@ package daemon_adapters
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"path/filepath"
+	"sync"
+	"sync/atomic"
 
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/tlscert"
@@ -54,7 +57,8 @@ func NewServerAdapterFromTLSConfig(
 	noopCleanup := func() error { return nil }
 
 	if !tlsValues.Enabled() {
-		adapter := &driverHTTPServerAdapter{purpose: purpose}
+		adapter := &driverHTTPServerAdapter{}
+		adapter.purpose = purpose
 		return adapter, noopCleanup, nil
 	}
 
@@ -64,8 +68,13 @@ func NewServerAdapterFromTLSConfig(
 	}
 
 	adapter := &driverHTTPServerAdapter{
-		purpose:   purpose,
-		tlsConfig: adapterConfig,
+		purpose:     purpose,
+		tlsConfig:   adapterConfig,
+		server:      atomic.Pointer[http.Server]{},
+		onBound:     nil,
+		boundChan:   nil,
+		boundMu:     sync.Mutex{},
+		boundClosed: false,
 	}
 	return adapter, cleanup, nil
 }
@@ -111,6 +120,7 @@ func buildCertFileTLSConfig(ctx context.Context, tlsValues tlscert.TLSValues, sa
 		ClientAuth:     tlsValues.ClientAuthType,
 		MinVersion:     tlsValues.MinVersion,
 		NextProtos:     []string{"h2", "http/1.1"},
+		ClientCAs:      nil,
 	}
 
 	if tlsValues.ClientCAFile != "" {

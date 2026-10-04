@@ -214,13 +214,11 @@ func (s *TranscodeSpec) validateEncodingOptions() error {
 // Returns TranscodeSpec which contains the parsed transcode settings.
 // Returns error when a required parameter is missing or a value is invalid.
 func ParseTranscodeSpec(params map[string]string) (TranscodeSpec, error) {
-	spec := TranscodeSpec{}
-
 	codec := parseLowerStringParam(params, "codec")
+	spec := newTranscodeSpec(codec)
 	if codec == "" {
 		return spec, errors.New("missing required parameter: codec")
 	}
-	spec.Codec = codec
 
 	var err error
 	if spec.Width, err = parseIntParam(params, "width"); err != nil {
@@ -260,6 +258,18 @@ func ParseTranscodeSpec(params map[string]string) (TranscodeSpec, error) {
 	}
 
 	return spec, nil
+}
+
+// newTranscodeSpec creates a TranscodeSpec for the given codec with every other setting
+// left at its zero value.
+//
+// Takes codec (string) which is the output video codec.
+//
+// Returns TranscodeSpec which holds the codec and default settings.
+func newTranscodeSpec(codec string) TranscodeSpec {
+	spec := TranscodeSpec{}
+	spec.Codec = codec
+	return spec
 }
 
 // parseIntParam extracts and parses an integer parameter from a params map.

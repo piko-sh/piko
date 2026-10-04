@@ -368,3 +368,27 @@ const (
 func (p QueryParameter) IsPaginationBound() bool {
 	return p.Context == ParameterContextLimit || p.Context == ParameterContextOffset
 }
+
+// NewOutputColumn returns an output column of the given name, type, and nullability, with
+// no source, embed, or Go type attribution.
+//
+// Takes name (string) which is the column name or alias.
+// Takes sqlType (SQLType) which is the resolved SQL type.
+// Takes nullable (bool) which reports whether the column can be NULL.
+//
+// Returns OutputColumn which carries only the name, type, and nullability.
+func NewOutputColumn(name string, sqlType SQLType, nullable bool) OutputColumn {
+	return OutputColumn{
+		GoTypeOverride:  nil,
+		Name:            name,
+		SourceTable:     "",
+		SourceSchema:    "",
+		SourceColumn:    "",
+		SourceQualifier: "",
+		EmbedTable:      "",
+		SQLType:         sqlType,
+		Nullable:        nullable,
+		IsEmbedded:      false,
+		EmbedIsOuter:    false,
+	}
+}

@@ -200,9 +200,7 @@ func TestPreloadAssetsAndComponents(t *testing.T) {
 		{
 			name: "component with no JS path does not add link header",
 			registry: newTestRegistryBuilder().
-				withComponent("static-comp", &render_dto.ComponentMetadata{
-					BaseJSPath: "",
-				}).build(),
+				withComponent("static-comp", &render_dto.ComponentMetadata{}).build(),
 			metadata: &templater_dto.InternalMetadata{
 				CustomTags: []string{"static-comp"},
 			},

@@ -20,7 +20,6 @@ package typegen_adapters
 
 import (
 	"testing"
-	"time"
 
 	flatbuffers "github.com/google/flatbuffers/go"
 	"github.com/stretchr/testify/assert"
@@ -32,22 +31,22 @@ import (
 func TestGetBuilder_PutBuilder(t *testing.T) {
 	t.Parallel()
 
-	t.Run("GetBuilder returns non-nil", func(t *testing.T) {
+	t.Run("getBuilder returns non-nil", func(t *testing.T) {
 		t.Parallel()
-		b := GetBuilder()
+		b := getBuilder()
 		require.NotNil(t, b)
-		PutBuilder(b)
+		putBuilder(b)
 	})
 
-	t.Run("PutBuilder then GetBuilder works", func(t *testing.T) {
+	t.Run("putBuilder then getBuilder works", func(t *testing.T) {
 		t.Parallel()
-		b1 := GetBuilder()
+		b1 := getBuilder()
 		require.NotNil(t, b1)
-		PutBuilder(b1)
+		putBuilder(b1)
 
-		b2 := GetBuilder()
+		b2 := getBuilder()
 		require.NotNil(t, b2)
-		PutBuilder(b2)
+		putBuilder(b2)
 	})
 }
 
@@ -57,7 +56,7 @@ func TestBuildActionManifest(t *testing.T) {
 	t.Run("builds populated manifest", func(t *testing.T) {
 		t.Parallel()
 		manifest := newTestManifest()
-		data := BuildActionManifest(manifest)
+		data := buildActionManifest(manifest)
 		require.NotNil(t, data)
 		assert.Greater(t, len(data), 0)
 	})
@@ -65,7 +64,7 @@ func TestBuildActionManifest(t *testing.T) {
 	t.Run("builds empty manifest", func(t *testing.T) {
 		t.Parallel()
 		manifest := &typegen_dto.ActionManifest{}
-		data := BuildActionManifest(manifest)
+		data := buildActionManifest(manifest)
 		require.NotNil(t, data)
 		assert.Greater(t, len(data), 0)
 	})
@@ -76,7 +75,7 @@ func TestBuildActionManifestInto(t *testing.T) {
 	builder := flatbuffers.NewBuilder(1024)
 	manifest := newTestManifest()
 
-	data := BuildActionManifestInto(builder, manifest)
+	data := buildActionManifestInto(builder, manifest)
 	require.NotNil(t, data)
 	assert.Greater(t, len(data), 0)
 }
@@ -101,7 +100,7 @@ func TestParseActionManifest(t *testing.T) {
 		},
 		{
 			name:    "valid data parses successfully",
-			input:   BuildActionManifest(newTestManifest()),
+			input:   buildActionManifest(newTestManifest()),
 			wantNil: false,
 		},
 	}
@@ -109,7 +108,7 @@ func TestParseActionManifest(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			result := ParseActionManifest(tc.input)
+			result := parseActionManifest(tc.input)
 			if tc.wantNil {
 				assert.Nil(t, result)
 			} else {
@@ -123,10 +122,10 @@ func TestFBS_Roundtrip(t *testing.T) {
 	t.Parallel()
 	original := newTestManifest()
 
-	data := BuildActionManifest(original)
+	data := buildActionManifest(original)
 	require.NotNil(t, data)
 
-	restored := ParseActionManifest(data)
+	restored := parseActionManifest(data)
 	require.NotNil(t, restored)
 
 	assert.Equal(t, original.GeneratedAt.Unix(), restored.GeneratedAt.Unix())
@@ -175,14 +174,12 @@ func TestFBS_Roundtrip(t *testing.T) {
 
 func TestFBS_Roundtrip_EmptyManifest(t *testing.T) {
 	t.Parallel()
-	original := &typegen_dto.ActionManifest{
-		GeneratedAt: time.Time{},
-	}
+	original := &typegen_dto.ActionManifest{}
 
-	data := BuildActionManifest(original)
+	data := buildActionManifest(original)
 	require.NotNil(t, data)
 
-	restored := ParseActionManifest(data)
+	restored := parseActionManifest(data)
 	require.NotNil(t, restored)
 
 	assert.Empty(t, restored.Actions)

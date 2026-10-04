@@ -454,13 +454,11 @@ func TestTransformConcurrent(t *testing.T) {
 
 	const goroutines = 10
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	errs := make(chan error, goroutines)
 
-	for i := range goroutines {
-		go func(id int) {
-			defer wg.Done()
+	for id := range goroutines {
+		wg.Go(func() {
 			input := fmt.Appendf(nil, "goroutine-%d-payload-data", id)
 			result := roundTrip(t, transformer, input, nil)
 			if !bytes.Equal(input, result) {
@@ -468,7 +466,7 @@ func TestTransformConcurrent(t *testing.T) {
 				return
 			}
 			errs <- nil
-		}(i)
+		})
 	}
 
 	wg.Wait()

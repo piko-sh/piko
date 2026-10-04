@@ -22,6 +22,9 @@ import (
 	"fmt"
 	"html"
 	"strings"
+	"unicode"
+
+	"golang.org/x/text/width"
 
 	"piko.sh/piko/internal/ast/ast_domain"
 )
@@ -297,22 +300,26 @@ func (w *plainTextWalker) writeLinkSuffix() {
 	w.isNewLine = false
 }
 
-// calculateUnderlineLength finds the right length for heading underlines. It uses the
-// length of the current line's text, kept between the minimum and maximum values.
+// calculateUnderlineLength finds the right length for heading underlines.
+//
+// It uses the display width of the heading's last line of text (so accented, CJK and
+// emoji headings get an underline matching what a reader sees), kept between the minimum
+// and maximum values. The heading line is the last non-blank line written, since the
+// walker has already moved to a fresh line for the underline.
 //
 // Returns int which is the underline length to use.
 func (w *plainTextWalker) calculateUnderlineLength() int {
-	currentText := w.builder.String()
-	lastNewline := strings.LastIndex(currentText, "\n")
+	currentText := strings.TrimRight(w.builder.String(), " \t\r\n")
+	_, after, ok := strings.CutLast(currentText, "\n")
 
 	var lineText string
-	if lastNewline == -1 {
+	if !ok {
 		lineText = currentText
 	} else {
-		lineText = currentText[lastNewline+1:]
+		lineText = after
 	}
 
-	textLen := len(strings.TrimSpace(lineText))
+	textLen := displayWidth(strings.TrimSpace(lineText))
 
 	if textLen < minUnderlineLength {
 		return minUnderlineLength
@@ -334,4 +341,35 @@ func newPlainTextWalker() *plainTextWalker {
 		listDepth:    0,
 		isNewLine:    true,
 	}
+}
+
+// displayWidth returns the number of monospace columns text occupies. Wide and fullwidth
+// characters (CJK ideographs, most emoji) take two columns, combining marks and other
+// zero-width characters take none, and everything else takes one.
+//
+// Takes text (string) which is the text to measure.
+//
+// Returns int which is the display width in columns.
+func displayWidth(text string) int {
+	columns := 0
+	for _, character := range text {
+		switch {
+		case unicode.In(character, unicode.Mn, unicode.Me, unicode.Cf):
+		case isWideCharacter(character):
+			columns += 2
+		default:
+			columns++
+		}
+	}
+	return columns
+}
+
+// isWideCharacter reports whether a character occupies two monospace columns.
+//
+// Takes character (rune) which is the character to classify.
+//
+// Returns bool which is true for East Asian wide and fullwidth characters.
+func isWideCharacter(character rune) bool {
+	kind := width.LookupRune(character).Kind()
+	return kind == width.EastAsianWide || kind == width.EastAsianFullwidth
 }

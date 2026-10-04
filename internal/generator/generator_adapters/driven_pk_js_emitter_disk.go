@@ -91,6 +91,8 @@ func NewDiskPKJSEmitter(outputDir string, minify bool, opts ...DiskPKJSEmitterOp
 		outputDir:    outputDir,
 		mu:           sync.Mutex{},
 		minify:       minify,
+		sandbox:      nil,
+		factory:      nil,
 	}
 
 	for _, opt := range opts {
@@ -121,6 +123,8 @@ func NewDiskPKJSEmitter(outputDir string, minify bool, opts ...DiskPKJSEmitterOp
 //
 // Takes source (string) which is the TypeScript/JavaScript source code to transpile.
 // Takes pagePath (string) which identifies the page this script belongs to.
+// Takes moduleName (string) which identifies the module used to resolve JavaScript
+// imports.
 //
 // Returns string which is the artefact ID that can be used to look up the file path via
 // GetWrittenFilePath.

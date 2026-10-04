@@ -35,7 +35,7 @@ func TestRuntimeFetcherCode_HasRetries(t *testing.T) {
 		want bool
 	}{
 		{name: "with retries", r: &RuntimeFetcherCode{RetryConfig: &RetryConfig{MaxAttempts: 3}}, want: true},
-		{name: "zero attempts", r: &RuntimeFetcherCode{RetryConfig: &RetryConfig{MaxAttempts: 0}}, want: false},
+		{name: "zero attempts", r: &RuntimeFetcherCode{RetryConfig: &RetryConfig{}}, want: false},
 		{name: "nil config", r: &RuntimeFetcherCode{}, want: false},
 	}
 

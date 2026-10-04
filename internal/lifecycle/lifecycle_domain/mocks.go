@@ -75,6 +75,7 @@ func NewMockFileSystem() *MockFileSystem {
 	return &MockFileSystem{
 		files: make(map[string]*mockFile),
 		dirs:  make(map[string]bool),
+		mu:    sync.RWMutex{},
 	}
 }
 

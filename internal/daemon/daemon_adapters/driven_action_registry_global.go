@@ -28,6 +28,7 @@ var (
 	// via init() functions in generated code.
 	globalActionRegistry = &actionRegistry{
 		entries: make(map[string]ActionHandlerEntry),
+		mu:      sync.RWMutex{},
 	}
 )
 

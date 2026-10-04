@@ -378,7 +378,7 @@ func HandledWithCmd(command tea.Cmd) KeyResult {
 //
 // Returns KeyResult which signals that the key event was not processed.
 func NotHandled() KeyResult {
-	return KeyResult{Handled: false, Cmd: nil}
+	return KeyResult{}
 }
 
 // HandleCommonKeys processes key events that are shared by most panels.

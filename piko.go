@@ -279,8 +279,9 @@ func (s *SSRServer) RegisterLifecycle(component LifecycleComponent) {
 // Returns error when the container fails to initialise.
 func (s *SSRServer) Setup() error {
 	deps := &bootstrap.Dependencies{
-		AppRouter:      s.AppRouter,
-		SymbolProvider: s.symbols,
+		AppRouter:           s.AppRouter,
+		InterpreterPool:     nil,
+		InterpreterProvider: nil,
 	}
 
 	container, err := bootstrap.ConfigAndContainer(context.Background(), deps, s.options...)
@@ -294,14 +295,16 @@ func (s *SSRServer) Setup() error {
 // WithInterpreterProvider sets the interpreter provider for dev-i mode.
 //
 // This is required when running in RunModeDevInterpreted. The provider creates pooled
-// interpreters with pre-loaded symbols for efficient JIT compilation.
+// interpreters with pre-loaded symbols for efficient JIT compilation. The standard
+// provider is backed by the pipit interpreter:
+//
+//	import "piko.sh/piko/wdk/interp/interp_provider_pipit"
+//
+//	server := piko.New()
+//	server.WithInterpreterProvider(interp_provider_pipit.NewProvider())
 //
 // Takes provider (templater_domain.InterpreterProviderPort) which provides the
 // interpreter pool and symbol management.
-//
-// Example: import pikointerp "piko.sh/piko/wdk/interp/interp_provider_piko" server :=
-// piko.New() server.WithInterpreterProvider(pikointerp.NewProvider()) server.Run(actions,
-// piko.RunModeDevInterpreted)
 func (s *SSRServer) WithInterpreterProvider(provider templater_domain.InterpreterProviderPort) {
 	s.interpreterProvider = provider
 }
@@ -349,11 +352,13 @@ func (s *SSRServer) Generate(ctx context.Context, runMode string) error {
 	}
 
 	deps := &bootstrap.Dependencies{
-		AppRouter: s.AppRouter,
+		AppRouter:           s.AppRouter,
+		InterpreterPool:     nil,
+		InterpreterProvider: nil,
 	}
 
 	if runMode == RunModeDevInterpreted {
-		if err := s.prepareInterpretedDeps(deps); err != nil {
+		if err := s.prepareInterpretedDeps(ctx, deps); err != nil {
 			return fmt.Errorf("preparing interpreted dependencies: %w", err)
 		}
 	}
@@ -431,7 +436,7 @@ func (s *SSRServer) Run(runMode string) error {
 	ctx, l := logger_domain.From(ctx, log)
 	l = l.With(logger_domain.String(logger_domain.FieldStrContext, "piko.Run"))
 
-	deps, err := s.buildDependencies(runMode)
+	deps, err := s.buildDependencies(ctx, runMode)
 	if err != nil {
 		return err
 	}
@@ -540,7 +545,7 @@ func (s *SSRServer) GetHandler() http.Handler {
 //
 // Returns error when the container cannot be initialised or the retire fails.
 func (s *SSRServer) RetireRelease(ctx context.Context, release string) error {
-	deps, err := s.buildDependencies(RunModeProd)
+	deps, err := s.buildDependencies(ctx, RunModeProd)
 	if err != nil {
 		return fmt.Errorf("building dependencies to retire release %q: %w", release, err)
 	}
@@ -551,21 +556,26 @@ func (s *SSRServer) RetireRelease(ctx context.Context, release string) error {
 	return container.RetireRegistryRelease(ctx, release)
 }
 
-// prepareInterpretedDeps configures interpreter-specific dependencies for dev-i mode.
+// prepareInterpretedDeps configures interpreter-specific dependencies for dev-i mode. It
+// builds the interpreter pool and loads the provider's queued modules into it once, under
+// the application context, so a module that fails to load stops startup.
 //
-// Takes deps (*bootstrap.Dependencies) which receives the interpreter pool and symbol
-// provider.
+// Takes deps (*bootstrap.Dependencies) which receives the interpreter pool and provider.
 //
-// Returns error when no interpreter provider has been set.
-func (s *SSRServer) prepareInterpretedDeps(deps *bootstrap.Dependencies) error {
+// Returns error when no interpreter provider has been set or a module fails to load.
+func (s *SSRServer) prepareInterpretedDeps(ctx context.Context, deps *bootstrap.Dependencies) error {
 	if s.interpreterProvider == nil {
 		return errors.New("dev-i mode requires an interpreter provider; call WithInterpreterProvider() first")
 	}
 	if s.symbols != nil {
 		s.interpreterProvider.RegisterSymbols(s.symbols)
 	}
-	deps.SymbolProvider = s.interpreterProvider.NewSymbolProvider()
-	deps.InterpreterPool = s.interpreterProvider.NewInterpreterPool(deps.SymbolProvider.(templater_domain.SymbolProviderPort))
+	pool := s.interpreterProvider.NewInterpreterPool()
+	if err := pool.LoadModules(ctx); err != nil {
+		return fmt.Errorf("loading interpreter modules: %w", err)
+	}
+	deps.InterpreterPool = pool
+	deps.InterpreterProvider = s.interpreterProvider
 	return nil
 }
 
@@ -719,22 +729,19 @@ func (*SSRServer) installCrashOutput(ctx context.Context, container *bootstrap.C
 // RunModeDevInterpreted, or RunModeProd).
 //
 // Returns *bootstrap.Dependencies which contains the configured dependencies.
-// Returns error when dev-i mode is requested but no interpreter provider is set.
-func (s *SSRServer) buildDependencies(runMode string) (*bootstrap.Dependencies, error) {
+// Returns error when dev-i mode is requested but no interpreter provider is set, or its
+// modules fail to load.
+func (s *SSRServer) buildDependencies(ctx context.Context, runMode string) (*bootstrap.Dependencies, error) {
 	deps := &bootstrap.Dependencies{
-		AppRouter: s.AppRouter,
+		AppRouter:           s.AppRouter,
+		InterpreterPool:     nil,
+		InterpreterProvider: nil,
 	}
 
 	if runMode == RunModeDevInterpreted {
-		if s.interpreterProvider == nil {
-			return nil, errors.New("dev-i mode requires an interpreter provider; call WithInterpreterProvider() first")
+		if err := s.prepareInterpretedDeps(ctx, deps); err != nil {
+			return nil, err
 		}
-		if s.symbols != nil {
-			s.interpreterProvider.RegisterSymbols(s.symbols)
-		}
-		symbolProvider := s.interpreterProvider.NewSymbolProvider()
-		deps.SymbolProvider = symbolProvider
-		deps.InterpreterPool = s.interpreterProvider.NewInterpreterPool(symbolProvider)
 	}
 
 	return deps, nil
@@ -1086,17 +1093,17 @@ type I18nConfig = config.I18nConfig
 // logger level before options are applied. Any explicit WithLogLevel option in opts
 // overrides it.
 //
-// Takes opts (...bootstrap.Option) which configures the server behaviour.
+// Takes opts (...bootstrap.Option) which configure the server behaviour.
 //
 // Returns *SSRServer which is ready for use with default router and config.
 func New(opts ...bootstrap.Option) *SSRServer {
 	if level := os.Getenv("PIKO_LOG_LEVEL"); level != "" {
 		opts = append([]bootstrap.Option{bootstrap.WithLogLevel(level)}, opts...)
 	}
-	return &SSRServer{
-		AppRouter: chi.NewRouter(),
-		options:   opts,
-	}
+	server := SSRServer{}
+	server.AppRouter = chi.NewRouter()
+	server.options = opts
+	return &server
 }
 
 // RunHeadless bootstraps Piko's global services for headless use cases such as CLI tools,
@@ -1174,6 +1181,7 @@ func InitialiseForTesting(opts ...Option) *bootstrap.Container {
 //
 // Takes container (*bootstrap.Container) which holds the resolved server configuration
 // and custom frontend modules.
+// Takes devMode (bool) which enables development-specific module setup.
 //
 // Returns error when logger setup fails, directory creation fails, or module registration
 // fails.
@@ -1217,6 +1225,7 @@ func performGlobalSetup(ctx context.Context, container *bootstrap.Container, dev
 //
 // Takes l (logger_domain.Logger) which logs diagnostic messages about module setup.
 // Takes container (*bootstrap.Container) which provides frontend module configuration.
+// Takes devMode (bool) which enables development-specific module setup.
 //
 // Returns error when a custom frontend module fails to register.
 func setupFrontendModules(ctx context.Context, l logger_domain.Logger, container *bootstrap.Container, devMode bool) error {

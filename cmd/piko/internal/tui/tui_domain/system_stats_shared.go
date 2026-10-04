@@ -55,7 +55,7 @@ type systemStatsMessage struct {
 func refreshSystemStatsCmd(provider SystemProvider) tea.Cmd {
 	return func() tea.Msg {
 		if provider == nil {
-			return systemStatsMessage{err: errNoSystemProvider}
+			return systemStatsMessage{err: errNoSystemProvider, stats: nil}
 		}
 		ctx, cancel := context.WithTimeoutCause(context.Background(), systemStatsRefreshTimeout,
 			errors.New("system stats fetch exceeded timeout"))

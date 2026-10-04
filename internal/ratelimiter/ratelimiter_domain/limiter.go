@@ -86,10 +86,17 @@ var (
 // Returns *Limiter ready for use.
 func NewLimiter(tokenStore TokenBucketStorePort, counterStore CounterStorePort, opts ...Option) *Limiter {
 	l := &Limiter{
-		clock:        clock.RealClock(),
-		tokenStore:   tokenStore,
-		counterStore: counterStore,
-		failPolicy:   ratelimiter_dto.FailOpen,
+		clock:            clock.RealClock(),
+		tokenStore:       tokenStore,
+		counterStore:     counterStore,
+		failPolicy:       ratelimiter_dto.FailOpen,
+		keyPrefix:        "",
+		tokenStoreName:   "",
+		counterStoreName: "",
+		totalChecks:      atomic.Int64{},
+		totalAllowed:     atomic.Int64{},
+		totalDenied:      atomic.Int64{},
+		totalErrors:      atomic.Int64{},
 	}
 	for _, opt := range opts {
 		opt(l)
@@ -188,10 +195,11 @@ func (l *Limiter) CheckFixedWindow(ctx context.Context, key string, config ratel
 		if l.failPolicy == ratelimiter_dto.FailOpen {
 			l.totalAllowed.Add(1)
 			return ratelimiter_dto.Result{
-				Allowed:   true,
-				Limit:     config.Limit,
-				Remaining: config.Limit - 1,
-				ResetAt:   start.Add(config.Window),
+				Allowed:    true,
+				Limit:      config.Limit,
+				Remaining:  config.Limit - 1,
+				ResetAt:    start.Add(config.Window),
+				RetryAfter: 0,
 			}, nil
 		}
 		return ratelimiter_dto.Result{}, storeErr

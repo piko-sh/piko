@@ -123,6 +123,7 @@ func NewService(config *tui_dto.Config, providers *Providers) (*Service, error) 
 		refreshOrchestrator:   nil,
 		program:               nil,
 		closeFuncs:            make([]func() error, 0),
+		eventDispatcher:       nil,
 	}
 
 	s.model = NewModel(config)

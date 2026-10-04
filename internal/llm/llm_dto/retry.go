@@ -78,6 +78,7 @@ func DefaultRetryPolicy() *RetryPolicy {
 		MaxBackoff:        DefaultRetryMaxBackoff,
 		BackoffMultiplier: DefaultRetryBackoffMultiplier,
 		JitterFraction:    DefaultRetryJitterFraction,
+		OnRetry:           nil,
 	}
 }
 
@@ -85,7 +86,5 @@ func DefaultRetryPolicy() *RetryPolicy {
 //
 // Returns *RetryPolicy configured with zero retries.
 func NoRetryPolicy() *RetryPolicy {
-	return &RetryPolicy{
-		MaxRetries: 0,
-	}
+	return &RetryPolicy{}
 }

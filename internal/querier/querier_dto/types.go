@@ -351,3 +351,18 @@ type ParsedStatement struct {
 func DefaultSQLCommentStyle() CommentStyle {
 	return CommentStyle{LinePrefix: "--"}
 }
+
+// NewSQLType returns a SQLType of the given category, named as the engine spells it, with
+// every other attribute unset.
+//
+// Takes category (SQLTypeCategory) which classifies the type.
+// Takes engineName (string) which is the engine's name for the type, or "" when it has
+// none.
+//
+// Returns SQLType which carries only the category and the engine name.
+func NewSQLType(category SQLTypeCategory, engineName string) SQLType {
+	sqlType := SQLType{}
+	sqlType.EngineName = engineName
+	sqlType.Category = category
+	return sqlType
+}

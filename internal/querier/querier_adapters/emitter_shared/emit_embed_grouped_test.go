@@ -307,7 +307,7 @@ func TestEmitQueryFileDynamicGroupedQueryEmitsParamPreamble(t *testing.T) {
 }
 
 func TestEmitQueryFileMultiParamAnonymousEngineOrdersArgs(t *testing.T) {
-	strategy := &indexedStrategy{preservesIndices: false}
+	strategy := &indexedStrategy{}
 	query := &querier_dto.AnalysedQuery{
 		Name:     "MatchPair",
 		Filename: "pairs.sql",
@@ -380,7 +380,7 @@ func TestEmitQueryFileRequiresRowTypeEmitsEmptyStub(t *testing.T) {
 }
 
 func TestEmitQueryFileDynamicAnonymousPlaceholderOrdersArgs(t *testing.T) {
-	strategy := &indexedStrategy{preservesIndices: false}
+	strategy := &indexedStrategy{}
 	query := &querier_dto.AnalysedQuery{
 		Name:      "FindThings",
 		Filename:  "things.sql",

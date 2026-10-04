@@ -92,18 +92,11 @@ type ServiceOption func(*service)
 //
 // Returns *CompletionBuilder which is ready for configuration.
 func (s *service) NewCompletion() *CompletionBuilder {
-	return &CompletionBuilder{
-		service:        s,
-		request:        &llm_dto.CompletionRequest{},
-		providerName:   "",
-		budgetScope:    "",
-		maxCost:        maths.ZeroMoney(llm_dto.CostCurrency),
-		retryPolicy:    nil,
-		fallbackConfig: nil,
-		cacheConfig:    nil,
-		memory:         nil,
-		conversationID: "",
-	}
+	builder := CompletionBuilder{}
+	builder.service = s
+	builder.request = &llm_dto.CompletionRequest{}
+	builder.maxCost = maths.ZeroMoney(llm_dto.CostCurrency)
+	return &builder
 }
 
 // Complete sends a completion request to the default provider.
@@ -503,14 +496,18 @@ func (s *service) NewIngest(namespace string) *IngestBuilder {
 func (s *service) AddText(ctx context.Context, namespace, id, content string) error {
 	return s.AddDocuments(ctx, namespace, []Document{
 		{
-			ID:      id,
-			Content: content,
+			ID:       id,
+			Content:  content,
+			Metadata: nil,
 		},
 	})
 }
 
 // AddDocuments embeds and stores multiple documents in the vector store. It handles
 // batching of embedding requests for efficiency.
+//
+// The namespace is created with the provider's reported embedding dimension, or, when the
+// provider does not know it yet, with the dimension of the first embedded batch.
 //
 // Takes namespace (string) which identifies the storage namespace.
 // Takes docs ([]Document) which contains the documents to embed and store.
@@ -526,7 +523,8 @@ func (s *service) AddDocuments(ctx context.Context, namespace string, docs []Doc
 		return nil
 	}
 
-	if err := s.ensureVectorNamespace(ctx, namespace); err != nil {
+	namespaceReady, err := s.ensureVectorNamespace(ctx, namespace, s.EmbeddingDimensions())
+	if err != nil {
 		return err
 	}
 
@@ -537,8 +535,20 @@ func (s *service) AddDocuments(ctx context.Context, namespace string, docs []Doc
 		}
 
 		end := min(i+batchSize, len(docs))
-		if err := s.embedAndStoreBatch(ctx, namespace, docs[i:end], i); err != nil {
+		vectorDocuments, err := s.embedBatch(ctx, docs[i:end], i)
+		if err != nil {
 			return err
+		}
+
+		if !namespaceReady {
+			namespaceReady, err = s.ensureVectorNamespace(ctx, namespace, len(vectorDocuments[0].Vector))
+			if err != nil {
+				return err
+			}
+		}
+
+		if err := s.vectorStore.BulkStore(ctx, namespace, vectorDocuments); err != nil {
+			return fmt.Errorf("bulk storage failed for batch at offset %d: %w", i, err)
 		}
 	}
 
@@ -558,48 +568,57 @@ func (s *service) EmbeddingDimensions() int {
 	return provider.EmbeddingDimensions()
 }
 
-// ensureVectorNamespace creates the vector namespace if the embedding dimension is known.
+// ensureVectorNamespace creates the vector namespace when the embedding dimension is
+// known.
 //
 // Takes namespace (string) which identifies the namespace to create.
+// Takes dimension (int) which is the embedding dimension, or zero or less when it is not
+// yet known.
 //
+// Returns bool which is true when the namespace was created.
 // Returns error when namespace creation fails.
-func (s *service) ensureVectorNamespace(ctx context.Context, namespace string) error {
-	dim := s.EmbeddingDimensions()
-	if dim <= 0 {
-		return nil
+func (s *service) ensureVectorNamespace(ctx context.Context, namespace string, dimension int) (bool, error) {
+	if dimension <= 0 {
+		return false, nil
 	}
 	if err := s.vectorStore.CreateNamespace(ctx, namespace, &VectorNamespaceConfig{
-		Dimension: dim,
+		Dimension: dimension,
 		Metric:    llm_dto.SimilarityCosine,
+		IndexType: "",
 	}); err != nil {
-		return fmt.Errorf("creating vector namespace %q: %w", namespace, err)
+		return false, fmt.Errorf("creating vector namespace %q: %w", namespace, err)
 	}
-	return nil
+	return true, nil
 }
 
-// embedAndStoreBatch embeds a single batch of documents and stores them in the vector
-// store.
+// embedBatch embeds a single batch of documents ready for the vector store.
 //
-// Takes namespace (string) which identifies the storage namespace.
-// Takes batch ([]Document) which contains the documents to process.
+// Takes batch ([]Document) which contains the documents to process; it must not be empty.
 // Takes offset (int) which is the starting index for error messages.
 //
-// Returns error when embedding or storage fails.
-func (s *service) embedAndStoreBatch(ctx context.Context, namespace string, batch []Document, offset int) error {
+// Returns []*llm_dto.VectorDocument which holds one document per input, in order.
+// Returns error when embedding fails or returns the wrong number of embeddings.
+func (s *service) embedBatch(ctx context.Context, batch []Document, offset int) ([]*llm_dto.VectorDocument, error) {
 	inputs := make([]string, len(batch))
 	for j, document := range batch {
 		inputs[j] = document.Content
 	}
 
 	response, err := s.embeddingService.Embed(ctx, "", &llm_dto.EmbeddingRequest{
-		Input: inputs,
+		Input:           inputs,
+		EncodingFormat:  nil,
+		Dimensions:      nil,
+		User:            nil,
+		ProviderOptions: nil,
+		Metadata:        nil,
+		Model:           "",
 	})
 	if err != nil {
-		return fmt.Errorf("batch embedding failed at offset %d: %w", offset, err)
+		return nil, fmt.Errorf("batch embedding failed at offset %d: %w", offset, err)
 	}
 
 	if len(response.Embeddings) != len(batch) {
-		return fmt.Errorf("embedding count mismatch at offset %d: got %d embeddings for %d inputs",
+		return nil, fmt.Errorf("embedding count mismatch at offset %d: got %d embeddings for %d inputs",
 			offset, len(response.Embeddings), len(batch))
 	}
 
@@ -612,11 +631,7 @@ func (s *service) embedAndStoreBatch(ctx context.Context, namespace string, batc
 			Vector:   emb.Vector,
 		}
 	}
-
-	if err := s.vectorStore.BulkStore(ctx, namespace, vectorDocuments); err != nil {
-		return fmt.Errorf("bulk storage failed for batch at offset %d: %w", offset, err)
-	}
-	return nil
+	return vectorDocuments, nil
 }
 
 // initialiseDefaults sets up default components that were not provided. This is called
@@ -1026,15 +1041,17 @@ func WithCircuitBreaker(maxFailures int, timeout time.Duration) ServiceOption {
 // Returns Service ready for provider registration.
 func NewService(defaultProviderName string, opts ...ServiceOption) Service {
 	s := &service{
-		clock:            clock.RealClock(),
-		providers:        make(map[string]LLMProviderPort),
-		costCalculator:   nil,
-		budgetManager:    nil,
-		rateLimiter:      nil,
-		cacheManager:     nil,
-		embeddingService: nil,
-		defaultProvider:  defaultProviderName,
-		mu:               sync.RWMutex{},
+		clock:                clock.RealClock(),
+		providers:            make(map[string]LLMProviderPort),
+		costCalculator:       nil,
+		budgetManager:        nil,
+		rateLimiter:          nil,
+		cacheManager:         nil,
+		embeddingService:     nil,
+		defaultProvider:      defaultProviderName,
+		mu:                   sync.RWMutex{},
+		vectorStore:          nil,
+		circuitBreakerConfig: nil,
 	}
 	for _, opt := range opts {
 		opt(s)

@@ -55,9 +55,6 @@ type nodeEmissionParams struct {
 
 // nodeEmissionContext holds the data needed to emit a single template node.
 type nodeEmissionContext struct {
-	// ctx is the context for cancellation and timeout handling.
-	ctx context.Context
-
 	// parentSliceExpr is the slice expression to which emitted nodes are added.
 	parentSliceExpr goast.Expr
 
@@ -96,8 +93,8 @@ type nodeEmissionContext struct {
 // Returns statements ([]goast.Stmt) which contains the generated Go statements.
 // Returns nodesConsumed (int) which shows how many nodes were used.
 // Returns diagnostics ([]*ast_domain.Diagnostic) which holds any problems found.
-func (b *astBuilder) emitNode(emitCtx *nodeEmissionContext) (statements []goast.Stmt, nodesConsumed int, diagnostics []*ast_domain.Diagnostic) {
-	return b.emitNodeWithContext(emitCtx)
+func (b *astBuilder) emitNode(ctx context.Context, emitCtx *nodeEmissionContext) (statements []goast.Stmt, nodesConsumed int, diagnostics []*ast_domain.Diagnostic) {
+	return b.emitNodeWithContext(ctx, emitCtx)
 }
 
 // emitNodeWithContext converts a node into Go AST statements using the given context.
@@ -108,9 +105,9 @@ func (b *astBuilder) emitNode(emitCtx *nodeEmissionContext) (statements []goast.
 // Returns []goast.Stmt which contains the generated Go AST statements.
 // Returns int which is the number of nodes that were processed.
 // Returns []*ast_domain.Diagnostic which contains any errors found.
-func (b *astBuilder) emitNodeWithContext(emitCtx *nodeEmissionContext) ([]goast.Stmt, int, []*ast_domain.Diagnostic) {
+func (b *astBuilder) emitNodeWithContext(ctx context.Context, emitCtx *nodeEmissionContext) ([]goast.Stmt, int, []*ast_domain.Diagnostic) {
 	if emitCtx.node.TagName == "piko:content" {
-		return b.emitContentTag(emitCtx.ctx, emitCtx.node, emitCtx.parentSliceExpr)
+		return b.emitContentTag(ctx, emitCtx.node, emitCtx.parentSliceExpr)
 	}
 
 	nodeForEmission := b.prepareNodeForEmission(emitCtx)
@@ -118,7 +115,7 @@ func (b *astBuilder) emitNodeWithContext(emitCtx *nodeEmissionContext) ([]goast.
 		return nil, 1, []*ast_domain.Diagnostic{diagnostic}
 	}
 
-	return b.dispatchNodeEmission(emitCtx, nodeForEmission)
+	return b.dispatchNodeEmission(ctx, emitCtx, nodeForEmission)
 }
 
 // prepareNodeForEmission prepares a node for emission by adding partial metadata if
@@ -186,32 +183,12 @@ func (b *astBuilder) addPartialMetadataToNode(node *ast_domain.TemplateNode) *as
 	}
 
 	nodeForEmission.Attributes = append(nodeForEmission.Attributes,
-		ast_domain.HTMLAttribute{
-			Name:           "partial",
-			Value:          partialValue,
-			Location:       ast_domain.Location{},
-			NameLocation:   ast_domain.Location{},
-			AttributeRange: ast_domain.Range{},
-		},
-		ast_domain.HTMLAttribute{
-			Name:           "partial_name",
-			Value:          partialNameValue,
-			Location:       ast_domain.Location{},
-			NameLocation:   ast_domain.Location{},
-			AttributeRange: ast_domain.Range{},
-		},
+		newSyntheticAttribute("partial", partialValue),
+		newSyntheticAttribute("partial_name", partialNameValue),
 	)
 
 	if mainComponent.IsPublic {
-		nodeForEmission.Attributes = append(nodeForEmission.Attributes,
-			ast_domain.HTMLAttribute{
-				Name:           "partial_src",
-				Value:          partialSrcValue,
-				Location:       ast_domain.Location{},
-				NameLocation:   ast_domain.Location{},
-				AttributeRange: ast_domain.Range{},
-			},
-		)
+		nodeForEmission.Attributes = append(nodeForEmission.Attributes, newSyntheticAttribute("partial_src", partialSrcValue))
 	}
 
 	return nodeForEmission
@@ -256,23 +233,24 @@ func (b *astBuilder) validateNodeForEmission(
 // Returns int which shows how many sibling nodes were used.
 // Returns []*ast_domain.Diagnostic which contains any issues found.
 func (b *astBuilder) dispatchNodeEmission(
+	ctx context.Context,
 	emitCtx *nodeEmissionContext,
 	nodeForEmission *ast_domain.TemplateNode,
 ) ([]goast.Stmt, int, []*ast_domain.Diagnostic) {
 	if nodeForEmission.DirFor != nil {
 		if emitCtx.loopIterInfo != nil {
 			statements, diagnostics := b.forEmitter.emitWithExtractedIterable(
-				emitCtx.ctx, nodeForEmission, emitCtx.parentSliceExpr,
+				ctx, nodeForEmission, emitCtx.parentSliceExpr,
 				emitCtx.loopIterInfo, emitCtx.partialScopeID, emitCtx.mainComponentScope,
 			)
 			return statements, 1, diagnostics
 		}
-		statements, diagnostics := b.forEmitter.emit(emitCtx.ctx, nodeForEmission, emitCtx.parentSliceExpr, emitCtx.partialScopeID, emitCtx.mainComponentScope)
+		statements, diagnostics := b.forEmitter.emit(ctx, nodeForEmission, emitCtx.parentSliceExpr, emitCtx.partialScopeID, emitCtx.mainComponentScope)
 		return statements, 1, diagnostics
 	}
 
 	if nodeForEmission.DirIf != nil {
-		return b.ifEmitter.emitChain(emitCtx.ctx, nodeForEmission, emitCtx.siblings, emitCtx.index, emitCtx.parentSliceExpr, emitCtx.partialScopeID, emitCtx.mainComponentScope)
+		return b.ifEmitter.emitChain(ctx, nodeForEmission, emitCtx.siblings, emitCtx.index, emitCtx.parentSliceExpr, emitCtx.partialScopeID, emitCtx.mainComponentScope)
 	}
 
 	if b.isElseClauseNode(emitCtx.node, nodeForEmission) {
@@ -280,14 +258,14 @@ func (b *astBuilder) dispatchNodeEmission(
 	}
 
 	if b.canEmitAsStatic(nodeForEmission) {
-		return b.emitStaticNode(emitCtx.ctx, nodeForEmission, emitCtx.parentSliceExpr, emitCtx.partialScopeID)
+		return b.emitStaticNode(ctx, nodeForEmission, emitCtx.parentSliceExpr, emitCtx.partialScopeID)
 	}
 
 	if nodeForEmission.NodeType == ast_domain.NodeFragment {
-		return b.emitFragment(emitCtx, nodeForEmission)
+		return b.emitFragment(ctx, emitCtx, nodeForEmission)
 	}
 
-	return b.emitDynamicNode(emitCtx.ctx, nodeForEmission, emitCtx.parentSliceExpr, emitCtx.partialScopeID)
+	return b.emitDynamicNode(ctx, nodeForEmission, emitCtx.parentSliceExpr, emitCtx.partialScopeID)
 }
 
 // isElseClauseNode checks if a node is an else or else-if clause.
@@ -348,14 +326,15 @@ func (b *astBuilder) emitStaticNode(
 // Returns int which is the number of statements created.
 // Returns []*ast_domain.Diagnostic which contains any errors or warnings.
 func (b *astBuilder) emitFragment(
+	ctx context.Context,
 	emitCtx *nodeEmissionContext,
 	nodeForEmission *ast_domain.TemplateNode,
 ) ([]goast.Stmt, int, []*ast_domain.Diagnostic) {
 	if b.fragmentHasDynamicFeatures(nodeForEmission) {
-		return b.emitDynamicNode(emitCtx.ctx, nodeForEmission, emitCtx.parentSliceExpr, emitCtx.partialScopeID)
+		return b.emitDynamicNode(ctx, nodeForEmission, emitCtx.parentSliceExpr, emitCtx.partialScopeID)
 	}
 
-	return b.emitFragmentChildren(emitCtx, nodeForEmission)
+	return b.emitFragmentChildren(ctx, emitCtx, nodeForEmission)
 }
 
 // fragmentHasDynamicFeatures checks if a fragment has dynamic features requiring special
@@ -380,6 +359,7 @@ func (*astBuilder) fragmentHasDynamicFeatures(node *ast_domain.TemplateNode) boo
 // Returns int which is the number of nodes consumed (always 1).
 // Returns []*ast_domain.Diagnostic which contains any diagnostics from child emissions.
 func (b *astBuilder) emitFragmentChildren(
+	ctx context.Context,
 	emitCtx *nodeEmissionContext,
 	nodeForEmission *ast_domain.TemplateNode,
 ) ([]goast.Stmt, int, []*ast_domain.Diagnostic) {
@@ -389,7 +369,7 @@ func (b *astBuilder) emitFragmentChildren(
 	i := 0
 	for i < len(nodeForEmission.Children) {
 		child := nodeForEmission.Children[i]
-		childCtx := newNodeEmissionContext(emitCtx.ctx, nodeEmissionParams{
+		childCtx := newNodeEmissionContext(nodeEmissionParams{
 			Node:                  child,
 			ParentSliceExpression: emitCtx.parentSliceExpr,
 			Index:                 i,
@@ -398,7 +378,7 @@ func (b *astBuilder) emitFragmentChildren(
 			PartialScopeID:        emitCtx.partialScopeID,
 			MainComponentScope:    emitCtx.mainComponentScope,
 		})
-		childStmts, consumed, childDiags := b.emitNode(childCtx)
+		childStmts, consumed, childDiags := b.emitNode(ctx, childCtx)
 		allStmts = append(allStmts, childStmts...)
 		allDiags = append(allDiags, childDiags...)
 		i += consumed
@@ -492,10 +472,9 @@ func (b *astBuilder) nodeContainsRichText(node *ast_domain.TemplateNode) bool {
 // Takes params (nodeEmissionParams) which holds the emission settings.
 //
 // Returns *nodeEmissionContext which is ready for use in template output.
-func newNodeEmissionContext(ctx context.Context, params nodeEmissionParams) *nodeEmissionContext {
+func newNodeEmissionContext(params nodeEmissionParams) *nodeEmissionContext {
 	return &nodeEmissionContext{
 		siblings:           params.Siblings,
-		ctx:                ctx,
 		parentSliceExpr:    params.ParentSliceExpression,
 		node:               params.Node,
 		partialScopeID:     params.PartialScopeID,
@@ -503,5 +482,22 @@ func newNodeEmissionContext(ctx context.Context, params nodeEmissionParams) *nod
 		loopIterInfo:       nil,
 		index:              params.Index,
 		isRootNode:         params.IsRootNode,
+	}
+}
+
+// newSyntheticAttribute creates a static HTML attribute that the generator adds to a node
+// and that has no position in the original source.
+//
+// Takes name (string) which is the attribute name.
+// Takes value (string) which is the attribute value.
+//
+// Returns ast_domain.HTMLAttribute which carries zero source locations.
+func newSyntheticAttribute(name, value string) ast_domain.HTMLAttribute {
+	return ast_domain.HTMLAttribute{
+		Name:           name,
+		Value:          value,
+		Location:       ast_domain.Location{},
+		NameLocation:   ast_domain.Location{},
+		AttributeRange: ast_domain.Range{},
 	}
 }

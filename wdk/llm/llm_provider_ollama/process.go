@@ -19,7 +19,6 @@
 package llm_provider_ollama
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -29,8 +28,10 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync/atomic"
 	"time"
 
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/logger"
 )
 
@@ -38,14 +39,22 @@ const (
 	// healthPollInterval is the interval between health status checks.
 	healthPollInterval = 250 * time.Millisecond
 
-	// healthTimeout is the maximum duration to wait for health check responses.
-	healthTimeout = 15 * time.Second
+	// killWaitTimeout bounds the wait for a killed managed process to be reaped.
+	killWaitTimeout = 5 * time.Second
 
-	// stopGracePeriod is the time to wait for graceful shutdown.
-	stopGracePeriod = 5 * time.Second
+	// outputWaitDelay bounds how long Wait keeps reading output pipes after the managed
+	// process exits, in case a child process still holds them open.
+	outputWaitDelay = 2 * time.Second
+
+	// ollamaVersionPath is the Ollama endpoint used for health and reachability probes.
+	ollamaVersionPath = "/api/version"
 )
 
 var (
+	// errManagedProcessExited is returned when the managed Ollama process exits before it
+	// becomes healthy.
+	errManagedProcessExited = errors.New("managed ollama process exited")
+
 	// managedOllamaEnvKeys holds the set of environment variable names that are forwarded to
 	// the managed Ollama process.
 	managedOllamaEnvKeys = map[string]struct{}{
@@ -81,7 +90,7 @@ type managedProcess struct {
 	// command is the running ollama serve process.
 	command *exec.Cmd
 
-	// done is closed when the process exits.
+	// done is closed once the process has exited and been reaped.
 	done chan struct{}
 
 	// interrupt sends a graceful shutdown signal to the managed process tree.
@@ -89,99 +98,215 @@ type managedProcess struct {
 
 	// kill forcefully terminates the managed process tree.
 	kill func(*exec.Cmd) error
+
+	// exitErr is the result of waiting for the process; it is written before done is closed
+	// and must only be read after done is closed.
+	exitErr error
+
+	// stopGracePeriod is how long Stop waits after an interrupt before killing.
+	stopGracePeriod time.Duration
+
+	// reapTimeout bounds the wait for the process to be reaped after it is killed.
+	reapTimeout time.Duration
+
+	// healthy is set once the process has answered a health check.
+	healthy atomic.Bool
+
+	// stopping is set once Stop has been called, so the exit is not reported as unexpected.
+	stopping atomic.Bool
 }
 
-// Stop terminates the managed Ollama process gracefully.
+// Stop terminates the managed Ollama process, gracefully when possible.
 //
-// Returns error when the process cannot be stopped.
-func (p *managedProcess) Stop() error {
+// The process is interrupted and given its grace period to exit. It is killed straight
+// away when the interrupt cannot be delivered (as on Windows), and also when the grace
+// period elapses or ctx is cancelled first.
+//
+// Returns error when the process cannot be killed or is not reaped in time.
+func (p *managedProcess) Stop(ctx context.Context) error {
 	if p == nil || p.command == nil || p.command.Process == nil {
 		return nil
 	}
-
-	if p.interrupt != nil {
-		_ = p.interrupt(p.command)
-	} else {
-		_ = p.command.Process.Signal(os.Interrupt)
-	}
+	p.stopping.Store(true)
 
 	select {
 	case <-p.done:
 		return nil
-	case <-time.After(stopGracePeriod):
-		_, l := logger.From(context.Background(), log)
-		l.Warn("Ollama did not stop gracefully, killing process")
-		if p.kill != nil {
-			return p.kill(p.command)
-		}
-		return p.command.Process.Kill()
+	default:
 	}
+
+	ctx, l := logger.From(ctx, log)
+	if err := p.interrupt(p.command); err != nil {
+		l.Internal("Interrupting managed Ollama server failed, killing it",
+			logger.Error(err),
+		)
+		return p.forceStop()
+	}
+
+	graceContext, cancel := context.WithTimeoutCause(ctx, p.stopGracePeriod,
+		fmt.Errorf("managed ollama server did not stop within %s", p.stopGracePeriod))
+	defer cancel()
+
+	select {
+	case <-p.done:
+		return nil
+	case <-graceContext.Done():
+		l.Warn("Managed Ollama server did not stop gracefully, killing it",
+			logger.String("reason", context.Cause(graceContext).Error()),
+		)
+		return p.forceStop()
+	}
+}
+
+// forceStop kills the managed process tree and waits a bounded time for it to be reaped.
+//
+// Returns error when the kill fails or the process is not reaped in time.
+func (p *managedProcess) forceStop() error {
+	p.stopping.Store(true)
+
+	if err := p.kill(p.command); err != nil && !errors.Is(err, os.ErrProcessDone) {
+		return fmt.Errorf("killing managed ollama server: %w", err)
+	}
+
+	timer := time.NewTimer(p.reapTimeout)
+	defer timer.Stop()
+
+	select {
+	case <-p.done:
+		return nil
+	case <-timer.C:
+		return fmt.Errorf("managed ollama server was not reaped within %s of being killed", p.reapTimeout)
+	}
+}
+
+// exitError describes why the process exited.
+//
+// Returns error which wraps errManagedProcessExited and the wait result, and must only be
+// called after done is closed.
+func (p *managedProcess) exitError() error {
+	if p.exitErr == nil {
+		return errManagedProcessExited
+	}
+	return fmt.Errorf("%w: %w", errManagedProcessExited, p.exitErr)
+}
+
+// supervise waits for the process to exit, flushes its output and records the result.
+//
+// The context only supplies the logger; it does not cancel supervision.
+//
+// Takes output (*outputRelay) which is flushed once the process has exited.
+func (p *managedProcess) supervise(ctx context.Context, output *outputRelay) {
+	defer close(p.done)
+	defer goroutine.RecoverPanic(ctx, "llm.ollamaManagedProcess.supervise")
+
+	waitErr := p.command.Wait()
+	output.Flush()
+	p.exitErr = waitErr
+
+	_, l := logger.From(ctx, log)
+	attributes := []logger.Attr{logger.Int("pid", p.command.Process.Pid)}
+	if waitErr != nil {
+		attributes = append(attributes, logger.Error(waitErr))
+	}
+	if p.healthy.Load() && !p.stopping.Load() {
+		l.Warn("Managed Ollama server exited unexpectedly", attributes...)
+		return
+	}
+	l.Internal("Managed Ollama server exited", attributes...)
 }
 
 // startOllama spawns `ollama serve` and waits for it to become healthy.
 //
-// Takes binaryPath (string) which is the path to the ollama binary.
-// Takes host (string) which is the Ollama API endpoint to wait for.
+// The process is not tied to ctx; ctx only bounds the health wait, and the process is
+// killed when that wait fails.
+//
+// Takes config (*Config) which supplies the binary path, host and process timeouts.
 //
 // Returns *managedProcess which manages the subprocess lifecycle.
 // Returns error when the binary cannot be found or the server fails to start.
 //
-// Spawns a goroutine to read stderr output from the subprocess. The goroutine terminates
-// when the subprocess exits.
-func startOllama(binaryPath, host string) (*managedProcess, error) {
-	_, l := logger.From(context.Background(), log)
-	if binaryPath == "" {
-		var err error
-		binaryPath, err = exec.LookPath("ollama")
-		if err != nil {
-			return nil, fmt.Errorf(
-				"ollama binary not found on $PATH - install from https://ollama.com: %w",
-				err,
-			)
-		}
+// Spawns a supervising goroutine that reaps the subprocess; it exits once the subprocess
+// has exited and its output pipes are closed.
+func startOllama(ctx context.Context, config *Config) (*managedProcess, error) {
+	ctx, l := logger.From(ctx, log)
+
+	binaryPath, err := resolveOllamaBinary(config.BinaryPath)
+	if err != nil {
+		return nil, err
 	}
 
-	command := newManagedOllamaCommand(binaryPath, host, os.Environ())
+	command := newManagedOllamaCommand(binaryPath, config.Host, os.Environ())
 	configureManagedOllamaCommand(command)
 
-	stderr, err := command.StderrPipe()
-	if err != nil {
-		return nil, fmt.Errorf("creating stderr pipe: %w", err)
-	}
+	supervisionContext := context.WithoutCancel(ctx)
+	output := newOutputRelay(supervisionContext)
+	command.Stderr = output
+	command.WaitDelay = outputWaitDelay
 
 	if err := command.Start(); err != nil {
 		return nil, fmt.Errorf("starting ollama serve: %w", err)
 	}
 
-	done := make(chan struct{})
+	process := newManagedProcess(command, config.StopGracePeriod)
+	go process.supervise(supervisionContext, output)
 
-	go func() {
-		defer close(done)
-		scanner := bufio.NewScanner(stderr)
-		for scanner.Scan() {
-			l.Debug("ollama",
-				logger.String("output", scanner.Text()),
-			)
+	if err := waitForHealth(ctx, config, process.done); err != nil {
+		if errors.Is(err, errManagedProcessExited) {
+			err = process.exitError()
 		}
-		_ = command.Wait()
-	}()
-
-	if err := waitForHealth(host, healthTimeout); err != nil {
-		_ = killManagedOllamaCommand(command)
-		return nil, fmt.Errorf("ollama failed to become healthy: %w", err)
+		return nil, errors.Join(
+			fmt.Errorf("ollama failed to become healthy: %w", err),
+			process.forceStop(),
+		)
 	}
+	process.healthy.Store(true)
 
-	l.Info("Started managed Ollama server",
+	l.Notice("Started managed Ollama server",
 		logger.String("binary", binaryPath),
-		logger.String("host", host),
+		logger.String("host", config.Host),
+		logger.Int("pid", command.Process.Pid),
 	)
 
+	return process, nil
+}
+
+// newManagedProcess wraps a started command with the platform stop handlers.
+//
+// Takes command (*exec.Cmd) which is the started ollama serve process.
+// Takes stopGracePeriod (time.Duration) which is how long Stop waits after an interrupt
+// before killing.
+//
+// Returns *managedProcess which is ready to be supervised.
+func newManagedProcess(command *exec.Cmd, stopGracePeriod time.Duration) *managedProcess {
 	return &managedProcess{
-		command:   command,
-		done:      done,
-		interrupt: interruptManagedOllamaCommand,
-		kill:      killManagedOllamaCommand,
-	}, nil
+		command:         command,
+		done:            make(chan struct{}),
+		interrupt:       interruptManagedOllamaCommand,
+		kill:            killManagedOllamaCommand,
+		exitErr:         nil,
+		stopGracePeriod: stopGracePeriod,
+		reapTimeout:     killWaitTimeout,
+		healthy:         atomic.Bool{},
+		stopping:        atomic.Bool{},
+	}
+}
+
+// resolveOllamaBinary returns the configured binary path, or the ollama binary found on
+// PATH when none is configured.
+//
+// Takes binaryPath (string) which is the configured path, or empty to search PATH.
+//
+// Returns string which is the binary to run.
+// Returns error when no binary is configured and none is found on PATH.
+func resolveOllamaBinary(binaryPath string) (string, error) {
+	if binaryPath != "" {
+		return binaryPath, nil
+	}
+	found, err := exec.LookPath("ollama")
+	if err != nil {
+		return "", fmt.Errorf("ollama binary not found on $PATH - install from https://ollama.com: %w", err)
+	}
+	return found, nil
 }
 
 // newManagedOllamaCommand creates the managed `ollama serve` command with an explicit
@@ -236,77 +361,138 @@ func buildManagedOllamaEnv(currentEnv []string, host string) []string {
 //
 // Returns bool which is true when the key should be preserved.
 func shouldPreserveManagedOllamaEnv(key string) bool {
-	normalized := strings.ToUpper(key)
-	if strings.HasPrefix(normalized, "OLLAMA_") {
+	normalised := strings.ToUpper(key)
+	if strings.HasPrefix(normalised, "OLLAMA_") {
 		return true
 	}
-	_, ok := managedOllamaEnvKeys[normalized]
+	_, ok := managedOllamaEnvKeys[normalised]
 	return ok
 }
 
-// waitForHealth polls the Ollama health endpoint until it responds or the timeout
-// elapses.
+// waitForHealth polls the Ollama health endpoint until it answers, the startup timeout
+// elapses, ctx is cancelled, or the managed process exits.
 //
-// Takes host (string) which is the Ollama API base URL.
-// Takes timeout (time.Duration) which is the maximum time to wait.
+// Takes config (*Config) which supplies the host, startup timeout and probe timeout.
+// Takes exited (<-chan struct{}) which is closed when the managed process exits.
 //
-// Returns error when the server does not become healthy within the timeout.
-func waitForHealth(host string, timeout time.Duration) error {
-	healthURL, err := url.JoinPath(host, "/api/version")
+// Returns error which carries the cancellation cause and the last probe failure when the
+// server does not become healthy, or wraps errManagedProcessExited when the process exits
+// first.
+func waitForHealth(ctx context.Context, config *Config, exited <-chan struct{}) error {
+	healthURL, err := healthURLFor(config.Host)
 	if err != nil {
-		return fmt.Errorf("building health URL: %w", err)
+		return err
 	}
 
-	ctx, cancel := context.WithTimeoutCause(context.Background(), timeout, fmt.Errorf("ollama process startup exceeded %s timeout", timeout))
+	ctx, cancel := context.WithTimeoutCause(ctx, config.StartupTimeout,
+		fmt.Errorf("ollama did not become healthy within %s", config.StartupTimeout))
 	defer cancel()
 
-	client := &http.Client{Timeout: 2 * time.Second}
+	client := newProbeClient(config.ProbeTimeout)
+	ticker := time.NewTicker(healthPollInterval)
+	defer ticker.Stop()
 
+	var lastProbeErr error
 	for {
-		request, err := http.NewRequestWithContext(ctx, http.MethodGet, healthURL, nil)
-		if err != nil {
-			return err
+		probeErr := probeServer(ctx, client, healthURL)
+		if probeErr == nil {
+			return nil
 		}
-
-		response, err := client.Do(request)
-		if err == nil {
-			_ = response.Body.Close()
-			if response.StatusCode == http.StatusOK {
-				return nil
-			}
+		if ctx.Err() == nil {
+			lastProbeErr = probeErr
 		}
 
 		select {
+		case <-exited:
+			return fmt.Errorf("%w before answering at %s", errManagedProcessExited, config.Host)
 		case <-ctx.Done():
-			return fmt.Errorf("timeout waiting for Ollama at %s", host)
-		case <-time.After(healthPollInterval):
+			return healthWaitError(ctx, config.Host, lastProbeErr)
+		case <-ticker.C:
 		}
 	}
 }
 
-// isServerReachable checks whether the Ollama server is responding.
+// healthWaitError describes a health wait that ended before the server answered.
+//
+// Takes host (string) which is the Ollama host that was polled.
+// Takes lastProbeErr (error) which is the last probe failure seen before ctx ended, or
+// nil when there was none.
+//
+// Returns error which carries the cancellation cause and the last probe failure.
+func healthWaitError(ctx context.Context, host string, lastProbeErr error) error {
+	if lastProbeErr == nil {
+		return fmt.Errorf("waiting for ollama at %s: %w", host, context.Cause(ctx))
+	}
+	return fmt.Errorf("waiting for ollama at %s: %w (last probe: %w)", host, context.Cause(ctx), lastProbeErr)
+}
+
+// probeOnce sends a single health probe bounded by timeout.
+//
+// Takes healthURL (string) which is the Ollama version endpoint.
+// Takes timeout (time.Duration) which bounds the probe.
+//
+// Returns error when the server does not answer with 200 OK in time.
+func probeOnce(ctx context.Context, healthURL string, timeout time.Duration) error {
+	ctx, cancel := context.WithTimeoutCause(ctx, timeout,
+		fmt.Errorf("ollama reachability probe exceeded %s", timeout))
+	defer cancel()
+
+	return probeServer(ctx, newProbeClient(timeout), healthURL)
+}
+
+// probeServer sends one health request to the Ollama server.
+//
+// Takes client (*http.Client) which sends the probe.
+// Takes healthURL (string) which is the Ollama version endpoint.
+//
+// Returns error when the request fails or the status is not 200 OK.
+func probeServer(ctx context.Context, client *http.Client, healthURL string) error {
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, healthURL, nil)
+	if err != nil {
+		return fmt.Errorf("building ollama probe request: %w", err)
+	}
+
+	response, err := client.Do(request)
+	if err != nil {
+		if cause := context.Cause(ctx); cause != nil {
+			return fmt.Errorf("probing ollama: %w", cause)
+		}
+		return fmt.Errorf("probing ollama: %w", err)
+	}
+	defer func() {
+		_ = drainAndClose(response.Body)
+	}()
+
+	if response.StatusCode != http.StatusOK {
+		return fmt.Errorf("probing ollama: unexpected status %d", response.StatusCode)
+	}
+	return nil
+}
+
+// healthURLFor builds the health endpoint URL for an Ollama host.
 //
 // Takes host (string) which is the Ollama API base URL.
 //
-// Returns bool which is true if the server is reachable.
-func isServerReachable(host string) bool {
-	healthURL, err := url.JoinPath(host, "/api/version")
+// Returns string which is the version endpoint URL.
+// Returns error when host cannot be joined with the endpoint path.
+func healthURLFor(host string) (string, error) {
+	healthURL, err := url.JoinPath(host, ollamaVersionPath)
 	if err != nil {
-		return false
+		return "", fmt.Errorf("building ollama health URL: %w", err)
 	}
+	return healthURL, nil
+}
 
-	ctx, cancel := context.WithTimeoutCause(context.Background(), 2*time.Second, errors.New("ollama process shutdown exceeded 2s timeout"))
-	defer cancel()
-
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, healthURL, nil)
-	if err != nil {
-		return false
-	}
-
-	response, err := (&http.Client{Timeout: 2 * time.Second}).Do(request)
-	if err != nil {
-		return false
-	}
-	_ = response.Body.Close()
-	return response.StatusCode == http.StatusOK
+// newProbeClient returns an HTTP client for one-shot Ollama health probes.
+//
+// Keep-alives are disabled so a probe never leaves a pooled connection, and its read and
+// write goroutines, behind after the provider has been closed.
+//
+// Takes timeout (time.Duration) which bounds each probe request.
+//
+// Returns *http.Client which closes each connection once its response is read.
+func newProbeClient(timeout time.Duration) *http.Client {
+	transport := cloneTransport(http.DefaultTransport)
+	transport.DisableKeepAlives = true
+	return &http.Client{Timeout: timeout, Transport: transport}
 }

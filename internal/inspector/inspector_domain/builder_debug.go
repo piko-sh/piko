@@ -425,7 +425,7 @@ func formatFieldsReadable(fields []*inspector_dto.Field) []string {
 			lines = append(lines, fmt.Sprintf("        (Canonical Package: %s)", f.PackagePath))
 		}
 		if f.RawTag != "" {
-			lines = append(lines, fmt.Sprintf("        (Tag: `%s`)", f.RawTag))
+			lines = append(lines, fmt.Sprintf("        (Tag: %#q)", f.RawTag))
 		}
 	}
 	return lines

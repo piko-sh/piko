@@ -302,7 +302,7 @@ func TestGenerateUndefinedVariableFixes(t *testing.T) {
 
 			diagnostic := protocol.Diagnostic{
 				Range: protocol.Range{
-					Start: protocol.Position{Line: 0, Character: 0},
+					Start: protocol.Position{},
 					End:   protocol.Position{Line: 0, Character: 5},
 				},
 				Data: tc.data,
@@ -338,7 +338,7 @@ type Props struct {
 
 	diagnostic := protocol.Diagnostic{
 		Range: protocol.Range{
-			Start: protocol.Position{Line: 0, Character: 0},
+			Start: protocol.Position{},
 			End:   protocol.Position{Line: 0, Character: 5},
 		},
 	}
@@ -412,7 +412,7 @@ func TestGenerateAddToPropsEdit_ReturnsNilOnInvalidContent(t *testing.T) {
 
 	diagnostic := protocol.Diagnostic{
 		Range: protocol.Range{
-			Start: protocol.Position{Line: 0, Character: 0},
+			Start: protocol.Position{},
 			End:   protocol.Position{Line: 0, Character: 5},
 		},
 	}

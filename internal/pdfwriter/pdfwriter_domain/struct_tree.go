@@ -232,7 +232,8 @@ type StructTree struct {
 // Returns *StructTree which holds the initialised tree with an empty Document root node.
 func NewStructTree() *StructTree {
 	return &StructTree{
-		root: &StructNode{tag: TagDocument},
+		root:     &StructNode{tag: TagDocument, altText: "", children: nil, mcids: nil},
+		nextMCID: nil,
 	}
 }
 
@@ -242,7 +243,7 @@ func NewStructTree() *StructTree {
 //
 // Returns *StructNode which holds the newly created child node.
 func (st *StructTree) AddElement(tag StructTag) *StructNode {
-	node := &StructNode{tag: tag}
+	node := &StructNode{tag: tag, altText: "", children: nil, mcids: nil}
 	st.root.children = append(st.root.children, node)
 	return node
 }
@@ -254,7 +255,7 @@ func (st *StructTree) AddElement(tag StructTag) *StructNode {
 //
 // Returns *StructNode which holds the newly created child node.
 func (*StructTree) AddChild(parent *StructNode, tag StructTag) *StructNode {
-	node := &StructNode{tag: tag}
+	node := &StructNode{tag: tag, altText: "", children: nil, mcids: nil}
 	parent.children = append(parent.children, node)
 	return node
 }

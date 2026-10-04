@@ -66,7 +66,7 @@ func (d Decimal) Round(places int32) Decimal {
 	result := apd.Decimal{}
 	_, err := decimalContext.Quantize(&result, &d.value, -places)
 	if err != nil {
-		return Decimal{err: fmt.Errorf("maths: Round failed: %w", err)}
+		return Decimal{err: fmt.Errorf("maths: Round failed: %w", err), value: apd.Decimal{}}
 	}
 	return NewDecimalFromApd(result)
 }
@@ -82,7 +82,7 @@ func (d Decimal) Ceil() Decimal {
 	var resultApd apd.Decimal
 	_, err := ctx.Ceil(&resultApd, &d.value)
 	if err != nil {
-		return Decimal{err: fmt.Errorf("maths: Ceil failed: %w", err)}
+		return Decimal{err: fmt.Errorf("maths: Ceil failed: %w", err), value: apd.Decimal{}}
 	}
 	return NewDecimalFromApd(resultApd)
 }
@@ -98,7 +98,7 @@ func (d Decimal) Floor() Decimal {
 	var resultApd apd.Decimal
 	_, err := ctx.Floor(&resultApd, &d.value)
 	if err != nil {
-		return Decimal{err: fmt.Errorf("maths: Floor failed: %w", err)}
+		return Decimal{err: fmt.Errorf("maths: Floor failed: %w", err), value: apd.Decimal{}}
 	}
 	return NewDecimalFromApd(resultApd)
 }
@@ -117,7 +117,7 @@ func (d Decimal) Truncate() Decimal {
 	result := apd.Decimal{}
 	_, err := truncCtx.Quantize(&result, &d.value, 0)
 	if err != nil {
-		return Decimal{err: fmt.Errorf("maths: Truncate failed: %w", err)}
+		return Decimal{err: fmt.Errorf("maths: Truncate failed: %w", err), value: apd.Decimal{}}
 	}
 	return NewDecimalFromApd(result)
 }
@@ -133,7 +133,7 @@ func (d Decimal) AddPercent(p Decimal) Decimal {
 		return d
 	}
 	if p.err != nil {
-		return Decimal{err: p.err}
+		return Decimal{err: p.err, value: apd.Decimal{}}
 	}
 	one := OneDecimal()
 	hundred := HundredDecimal()
@@ -179,7 +179,7 @@ func (d Decimal) SubtractPercent(p Decimal) Decimal {
 		return d
 	}
 	if p.err != nil {
-		return Decimal{err: p.err}
+		return Decimal{err: p.err, value: apd.Decimal{}}
 	}
 	one := OneDecimal()
 	hundred := HundredDecimal()
@@ -226,7 +226,7 @@ func (d Decimal) GetPercent(p Decimal) Decimal {
 		return d
 	}
 	if p.err != nil {
-		return Decimal{err: p.err}
+		return Decimal{err: p.err, value: apd.Decimal{}}
 	}
 	hundred := HundredDecimal()
 	return d.Multiply(p.Divide(hundred))
@@ -269,7 +269,7 @@ func (d Decimal) AsPercentOf(d2 Decimal) Decimal {
 		return d
 	}
 	if d2.err != nil {
-		return Decimal{err: d2.err}
+		return Decimal{err: d2.err, value: apd.Decimal{}}
 	}
 	hundred := HundredDecimal()
 	return d.Divide(d2).Multiply(hundred)

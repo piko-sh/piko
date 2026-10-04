@@ -18,8 +18,7 @@
       "expectTier1Hit": true,
       "expectFastPath": true,
       "expectAnnotatedCount": 3,
-      "expectGeneratedCount": 3,
-      "delayBeforeRenderMs": 10
+      "expectGeneratedCount": 3
     }
   ]
 }

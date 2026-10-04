@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strings"
 
 	parsejs "github.com/tdewolff/parse/v2/js"
 	"piko.sh/piko/internal/esbuild/helpers"
@@ -42,6 +43,9 @@ var (
 
 // convertExpression converts an esbuild expression to a tdewolff expression.
 //
+// Wrapper nodes the parser adds, an annotation or a TypeScript enum member it inlined as
+// its constant value, are converted as the value they wrap.
+//
 // Takes expression (js_ast.Expr) which is the esbuild expression to convert.
 //
 // Returns parsejs.IExpr which is the converted tdewolff expression.
@@ -53,6 +57,10 @@ func (c *ASTConverter) convertExpression(expression js_ast.Expr) (parsejs.IExpr,
 
 	if annotation, ok := expression.Data.(*js_ast.EAnnotation); ok {
 		return c.convertExpression(annotation.Value)
+	}
+
+	if inlinedEnum, ok := expression.Data.(*js_ast.EInlinedEnum); ok {
+		return c.convertExpression(inlinedEnum.Value)
 	}
 
 	if result := c.tryConvertPrimitiveLiteral(expression); result != nil {
@@ -343,13 +351,39 @@ func (*ASTConverter) convertERegExp(e *js_ast.ERegExp) (parsejs.IExpr, error) {
 func (c *ASTConverter) convertEArray(e *js_ast.EArray) (parsejs.IExpr, error) {
 	elements := make([]parsejs.Element, 0, len(e.Items))
 	for i, item := range e.Items {
-		converted, err := c.convertExpression(item)
+		converted, isSpread, err := c.convertSpreadableExpression(item)
 		if err != nil {
 			return nil, fmt.Errorf("converting array element %d: %w", i, err)
 		}
-		elements = append(elements, parsejs.Element{Value: converted})
+		elements = append(elements, parsejs.Element{Value: converted, Spread: isSpread})
 	}
 	return &parsejs.ArrayExpr{List: elements}, nil
+}
+
+// convertSpreadableExpression converts an array element or call argument, either of which
+// may be a spread such as `...items`.
+//
+// Takes expression (js_ast.Expr) which is the element or argument to convert.
+//
+// Returns parsejs.IExpr which is the converted value without its spread, or nil for an
+// array hole.
+// Returns bool which is true when the value is spread.
+// Returns error when the value cannot be converted, or a spread has no operand.
+func (c *ASTConverter) convertSpreadableExpression(expression js_ast.Expr) (parsejs.IExpr, bool, error) {
+	spread, isSpread := expression.Data.(*js_ast.ESpread)
+	if !isSpread {
+		converted, err := c.convertExpression(expression)
+		return converted, false, err
+	}
+
+	value, err := c.convertExpression(spread.Value)
+	if err != nil {
+		return nil, true, fmt.Errorf("converting spread expression value: %w", err)
+	}
+	if value == nil {
+		return nil, true, fmt.Errorf("spread without an operand: %w", errUnsupportedExpression)
+	}
+	return value, true, nil
 }
 
 // convertEObject converts an object literal expression.
@@ -384,13 +418,9 @@ func (c *ASTConverter) convertECall(e *js_ast.ECall) (parsejs.IExpr, error) {
 		return nil, fmt.Errorf("converting call target: %w", err)
 	}
 
-	arguments := make([]parsejs.Arg, 0, len(e.Args))
-	for i, argument := range e.Args {
-		converted, err := c.convertExpression(argument)
-		if err != nil {
-			return nil, fmt.Errorf("converting call argument %d: %w", i, err)
-		}
-		arguments = append(arguments, parsejs.Arg{Value: converted})
+	arguments, err := c.convertArguments(e.Args)
+	if err != nil {
+		return nil, fmt.Errorf("converting call arguments: %w", err)
 	}
 
 	return &parsejs.CallExpr{
@@ -412,19 +442,34 @@ func (c *ASTConverter) convertENew(e *js_ast.ENew) (parsejs.IExpr, error) {
 		return nil, fmt.Errorf("converting new target: %w", err)
 	}
 
-	arguments := make([]parsejs.Arg, 0, len(e.Args))
-	for i, argument := range e.Args {
-		converted, err := c.convertExpression(argument)
-		if err != nil {
-			return nil, fmt.Errorf("converting new argument %d: %w", i, err)
-		}
-		arguments = append(arguments, parsejs.Arg{Value: converted})
+	arguments, err := c.convertArguments(e.Args)
+	if err != nil {
+		return nil, fmt.Errorf("converting new arguments: %w", err)
 	}
 
 	return &parsejs.NewExpr{
 		X:    target,
 		Args: &parsejs.Args{List: arguments},
 	}, nil
+}
+
+// convertArguments converts the argument list of a call or new expression.
+//
+// Takes arguments ([]js_ast.Expr) which are the arguments to convert.
+//
+// Returns []parsejs.Arg which holds the converted arguments, a spread argument such as
+// `...values` marked as a rest argument.
+// Returns error when an argument cannot be converted.
+func (c *ASTConverter) convertArguments(arguments []js_ast.Expr) ([]parsejs.Arg, error) {
+	converted := make([]parsejs.Arg, 0, len(arguments))
+	for i, argument := range arguments {
+		value, isSpread, err := c.convertSpreadableExpression(argument)
+		if err != nil {
+			return nil, fmt.Errorf("converting argument %d: %w", i, err)
+		}
+		converted = append(converted, parsejs.Arg{Value: value, Rest: isSpread})
+	}
+	return converted, nil
 }
 
 // convertEDot converts a dot/member expression to the internal AST format.
@@ -576,7 +621,7 @@ func (c *ASTConverter) convertEIf(e *js_ast.EIf) (parsejs.IExpr, error) {
 // Returns parsejs.IExpr which is the converted arrow function.
 // Returns error when parameter or body conversion fails.
 func (c *ASTConverter) convertEArrow(e *js_ast.EArrow) (parsejs.IExpr, error) {
-	params, err := c.convertParams(e.Args)
+	params, err := c.convertParams(e.Args, e.HasRestArg)
 	if err != nil {
 		return nil, fmt.Errorf("converting arrow function parameters: %w", err)
 	}
@@ -600,7 +645,7 @@ func (c *ASTConverter) convertEArrow(e *js_ast.EArrow) (parsejs.IExpr, error) {
 // Returns parsejs.IExpr which is the converted function declaration.
 // Returns error when parameter or body conversion fails.
 func (c *ASTConverter) convertEFunction(e *js_ast.EFunction) (parsejs.IExpr, error) {
-	params, err := c.convertParams(e.Fn.Args)
+	params, err := c.convertParams(e.Fn.Args, e.Fn.HasRestArg)
 	if err != nil {
 		return nil, fmt.Errorf("converting function expression parameters: %w", err)
 	}
@@ -680,13 +725,9 @@ func (c *ASTConverter) applyTemplateTag(converted parsejs.IExpr, tag js_ast.Expr
 // Returns parsejs.IExpr which is the converted template expression.
 // Returns error when the conversion fails.
 func (*ASTConverter) convertSimpleTemplate(e *js_ast.ETemplate) (parsejs.IExpr, error) {
-	headString := ""
-	if e.HeadCooked != nil {
-		headString = helpers.UTF16ToString(e.HeadCooked)
-	}
 	return &parsejs.TemplateExpr{
 		List: nil,
-		Tail: []byte("`" + headString + "`"),
+		Tail: []byte("`" + templateHeadText(e) + "`"),
 	}, nil
 }
 
@@ -700,11 +741,7 @@ func (*ASTConverter) convertSimpleTemplate(e *js_ast.ETemplate) (parsejs.IExpr, 
 func (c *ASTConverter) convertInterpolatedTemplate(e *js_ast.ETemplate) (parsejs.IExpr, error) {
 	parts := make([]parsejs.TemplatePart, 0, len(e.Parts))
 
-	headString := ""
-	if e.HeadCooked != nil {
-		headString = helpers.UTF16ToString(e.HeadCooked)
-	}
-	previousString := headString
+	previousString := templateHeadText(e)
 
 	var finalTail string
 	for i, part := range e.Parts {
@@ -725,10 +762,7 @@ func (c *ASTConverter) convertInterpolatedTemplate(e *js_ast.ETemplate) (parsejs
 			Expr:  expression,
 		})
 
-		previousString = ""
-		if part.TailCooked != nil {
-			previousString = helpers.UTF16ToString(part.TailCooked)
-		}
+		previousString = templateTailText(e, part)
 		finalTail = previousString
 	}
 
@@ -959,4 +993,65 @@ func (*ASTConverter) convertEImportMeta() (parsejs.IExpr, error) {
 			Data:      []byte("meta"),
 		},
 	}, nil
+}
+
+// templateHeadText returns the text before a template literal's first substitution, as it
+// must be written back between the backticks.
+//
+// A tagged template sees the raw text, so it is kept exactly as written; an untagged one
+// holds only the cooked value, which is escaped again.
+//
+// Takes e (*js_ast.ETemplate) which is the template literal.
+//
+// Returns string which is the head text ready to print.
+func templateHeadText(e *js_ast.ETemplate) string {
+	if e.TagOrNil.Data != nil {
+		return e.HeadRaw
+	}
+	return escapeTemplateText(e.HeadCooked)
+}
+
+// templateTailText returns the text after one substitution of a template literal, as it
+// must be written back between the backticks.
+//
+// Takes e (*js_ast.ETemplate) which is the template literal.
+// Takes part (js_ast.TemplatePart) which is the substitution whose tail is wanted.
+//
+// Returns string which is the tail text ready to print.
+func templateTailText(e *js_ast.ETemplate, part js_ast.TemplatePart) string {
+	if e.TagOrNil.Data != nil {
+		return part.TailRaw
+	}
+	return escapeTemplateText(part.TailCooked)
+}
+
+// escapeTemplateText turns the cooked value of a template literal span back into source
+// text that reads as the same value.
+//
+// A backslash, a backtick and the `${` that would open a substitution are escaped, and a
+// carriage return is written as `\r` because a literal one would be read back as a line
+// feed.
+//
+// Takes cooked ([]uint16) which is the span's cooked value.
+//
+// Returns string which is the escaped span text.
+func escapeTemplateText(cooked []uint16) string {
+	text := helpers.UTF16ToString(cooked)
+	var builder strings.Builder
+	builder.Grow(len(text))
+	for i := range len(text) {
+		character := text[i]
+		switch {
+		case character == '\\' || character == '`':
+			builder.WriteByte('\\')
+			builder.WriteByte(character)
+		case character == '$' && i+1 < len(text) && text[i+1] == '{':
+			builder.WriteString(`\$`)
+		case character == '\r':
+			builder.WriteString(`\r`)
+		default:
+			builder.WriteByte(character)
+		}
+	}
+	return builder.String()
 }

@@ -20,11 +20,15 @@
 
 package colour
 
-import "golang.org/x/sys/windows"
+import (
+	"golang.org/x/sys/windows"
+)
 
-// enableVirtualTerminalProcessingFlag holds the Windows console mode flag for virtual
-// terminal sequence processing.
-const enableVirtualTerminalProcessingFlag = 0x4
+const (
+	// enableVirtualTerminalProcessingFlag holds the Windows console mode flag for virtual
+	// terminal sequence processing.
+	enableVirtualTerminalProcessingFlag = 0x4
+)
 
 // isTerminal reports whether the given file descriptor refers to a console.
 //

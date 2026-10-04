@@ -75,18 +75,14 @@ func DefaultPersistConfigNamed(name string) PersistConfig {
 //
 //	service := cache.NewService("otter")
 //	provider := cache_provider_otter.NewOtterProvider()
-//	service.RegisterProvider("otter", provider)
+//	err := service.RegisterProvider(ctx, "otter", provider)
 //
 //	// Create multiple namespaced caches
-//	userCache, _ := cache.NewCacheBuilder[string, User](service).
-//	    WithProvider("otter").
-//	    WithNamespace("users").
-//	    Build(ctx)
+//	userBuilder, _ := cache.NewCacheBuilder[string, User](service)
+//	userCache, _ := userBuilder.Provider("otter").Namespace("users").Build(ctx)
 //
-//	productCache, _ := cache.NewCacheBuilder[int, Product](service).
-//	    WithProvider("otter").
-//	    WithNamespace("products").
-//	    Build(ctx)
+//	productBuilder, _ := cache.NewCacheBuilder[int, Product](service)
+//	productCache, _ := productBuilder.Provider("otter").Namespace("products").Build(ctx)
 func NewOtterProvider() cache.Provider {
 	return provider_otter.NewOtterProvider()
 }

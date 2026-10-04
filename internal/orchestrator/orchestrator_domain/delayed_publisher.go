@@ -55,6 +55,9 @@ type DelayedTaskPublisher struct {
 	// cancel stops the processing loop; set by Start.
 	cancel context.CancelCauseFunc
 
+	// loopDone is closed when the processing loop has exited; set by Start.
+	loopDone chan struct{}
+
 	// mu protects taskHeap during scheduling and retrieval.
 	mu sync.Mutex
 }
@@ -78,6 +81,7 @@ func NewDelayedTaskPublisherForTesting(clock clockpkg.Clock, dispatchFunc TaskDi
 		taskHeap:     newScheduledTaskHeap(),
 		wakeChan:     make(chan struct{}, 1),
 		cancel:       nil,
+		loopDone:     nil,
 		mu:           sync.Mutex{},
 	}
 }
@@ -86,19 +90,29 @@ func NewDelayedTaskPublisherForTesting(clock clockpkg.Clock, dispatchFunc TaskDi
 //
 // Takes parentCtx (context.Context) which controls the publisher lifecycle.
 //
-// Safe for concurrent use. The spawned goroutine runs until Stop is called.
+// Spawns a goroutine that runs until Stop is called or parentCtx is cancelled. Call Start
+// and Stop from the goroutine that owns the publisher.
 func (p *DelayedTaskPublisher) Start(parentCtx context.Context) {
 	p.ctx, p.cancel = context.WithCancelCause(parentCtx)
+	loopDone := make(chan struct{})
+	p.loopDone = loopDone
 
 	_, l := logger_domain.From(parentCtx, log)
 	l.Internal("Starting delayed task publisher")
-	go p.loop()
+	go func() {
+		defer close(loopDone)
+		p.loop()
+	}()
 }
 
-// Stop shuts down the publisher cleanly.
+// Stop shuts down the publisher cleanly, waiting for the processing loop to exit so no
+// due task is dispatched after Stop returns.
 func (p *DelayedTaskPublisher) Stop() {
 	if p.cancel != nil {
 		p.cancel(errors.New("delayed publisher stopped"))
+	}
+	if p.loopDone != nil {
+		<-p.loopDone
 	}
 }
 
@@ -121,7 +135,8 @@ func (p *DelayedTaskPublisher) PendingCount() int {
 // Returns error when the task has a zero ScheduledExecuteAt time.
 //
 // Safe for concurrent use. Wakes the background dispatch loop to recalculate the next
-// sleep duration.
+// sleep duration. Once pushed, the task belongs to the dispatch loop and is not read
+// again here.
 func (p *DelayedTaskPublisher) Schedule(ctx context.Context, task *Task) error {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "DelayedTaskPublisher.Schedule",
@@ -130,7 +145,8 @@ func (p *DelayedTaskPublisher) Schedule(ctx context.Context, task *Task) error {
 	)
 	defer span.End()
 
-	if task.ScheduledExecuteAt.IsZero() {
+	scheduledAt := task.ScheduledExecuteAt
+	if scheduledAt.IsZero() {
 		err := errors.New("task has zero ScheduledExecuteAt time")
 		l.ReportError(span, err, "Cannot schedule task")
 		return err
@@ -146,7 +162,7 @@ func (p *DelayedTaskPublisher) Schedule(ctx context.Context, task *Task) error {
 	}
 
 	l.Trace("Task scheduled",
-		logger_domain.Duration("delay", task.ScheduledExecuteAt.Sub(p.clock.Now())))
+		logger_domain.Duration("delay", scheduledAt.Sub(p.clock.Now())))
 	span.SetStatus(codes.Ok, "Task scheduled")
 	return nil
 }
@@ -238,6 +254,16 @@ func (p *DelayedTaskPublisher) dispatchDueTask() {
 	task.Status = StatusPending
 
 	if err := p.dispatchFunc(ctx, task); err != nil {
+		if isPermanentDispatchError(err) {
+			l.Warn("Dropping due task that can never be dispatched",
+				logger_domain.Error(err),
+				logger_domain.String(attributeKeyTaskID, task.ID))
+			DelayedTaskDroppedCount.Add(ctx, 1)
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "Due task can never be dispatched")
+			return
+		}
+
 		l.Warn("Failed to dispatch due task",
 			logger_domain.Error(err),
 			logger_domain.String(attributeKeyTaskID, task.ID))
@@ -272,6 +298,30 @@ func NewDelayedTaskPublisher(dispatcherDispatch TaskDispatchFunc, clock clockpkg
 		taskHeap:     newScheduledTaskHeap(),
 		wakeChan:     make(chan struct{}, 1),
 		cancel:       nil,
+		loopDone:     nil,
 		mu:           sync.Mutex{},
 	}
+}
+
+// isPermanentDispatchError reports whether a dispatch failure will repeat however often
+// it is retried, so the delayed publisher drops the task instead of rescheduling it
+// forever and keeping the dispatcher from ever becoming idle.
+//
+// Takes err (error) which is the dispatch failure.
+//
+// Returns bool which is true when retrying cannot succeed.
+func isPermanentDispatchError(err error) bool {
+	for _, permanent := range []error{
+		ErrDuplicateTask,
+		ErrDispatcherStopped,
+		ErrTaskNotRequired,
+		errTaskIDRequired,
+		errTaskWorkflowIDRequired,
+		errTaskExecutorRequired,
+	} {
+		if errors.Is(err, permanent) {
+			return true
+		}
+	}
+	return false
 }

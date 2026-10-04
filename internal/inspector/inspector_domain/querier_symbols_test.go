@@ -107,7 +107,7 @@ func TestGetAllSymbols(t *testing.T) {
 
 	t.Run("should return empty for nil typeData", func(t *testing.T) {
 		t.Parallel()
-		querier := &TypeQuerier{typeData: nil}
+		querier := &TypeQuerier{}
 		symbols := querier.GetAllSymbols()
 		assert.Empty(t, symbols)
 	})
@@ -115,7 +115,7 @@ func TestGetAllSymbols(t *testing.T) {
 	t.Run("should return empty for nil Packages", func(t *testing.T) {
 		t.Parallel()
 		querier := &TypeQuerier{
-			typeData: &inspector_dto.TypeData{Packages: nil},
+			typeData: &inspector_dto.TypeData{},
 		}
 		symbols := querier.GetAllSymbols()
 		assert.Empty(t, symbols)

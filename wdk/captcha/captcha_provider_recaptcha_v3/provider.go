@@ -20,16 +20,12 @@ package captcha_provider_recaptcha_v3
 
 import (
 	"context"
-	"fmt"
-	"io"
-	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
+	"piko.sh/piko/internal/captcha/captcha_adapters/siteverify"
 	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/captcha/captcha_dto"
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/wdk/captcha/captcha_provider_recaptcha_v3/scripts"
 )
 
@@ -37,13 +33,8 @@ const (
 	// verifyURL is the Google reCAPTCHA server-side verification endpoint.
 	verifyURL = "https://www.google.com/recaptcha/api/siteverify"
 
-	// httpTimeout is the timeout for HTTP requests to the reCAPTCHA API.
-	httpTimeout = 10 * time.Second
-
-	// maxResponseBodySize is the maximum number of bytes read from the reCAPTCHA
-	// verification response. Prevents unbounded memory allocation from a misbehaving
-	// upstream.
-	maxResponseBodySize = 64 * 1024
+	// providerName names reCAPTCHA in verification errors.
+	providerName = "recaptcha"
 )
 
 // recaptchaVerifyResult represents the JSON response from the Google reCAPTCHA v3
@@ -70,8 +61,8 @@ type recaptchaVerifyResult struct {
 
 // provider implements captcha_domain.CaptchaProvider using Google reCAPTCHA v3.
 type provider struct {
-	// httpClient is the HTTP client used for calls to the reCAPTCHA API.
-	httpClient *http.Client
+	// client posts verification requests to the reCAPTCHA API.
+	client *siteverify.Client
 
 	// config holds the validated reCAPTCHA v3 configuration.
 	config Config
@@ -86,19 +77,33 @@ var (
 // Takes config (Config) which specifies the reCAPTCHA v3 site key and secret key from the
 // Google reCAPTCHA admin console.
 //
+// Takes options (...Option) which override the verification timeout and response size
+// limit.
+//
 // Returns captcha_domain.CaptchaProvider which provides reCAPTCHA v3 score-based captcha
 // verification.
 // Returns error when the configuration is invalid.
-func NewProvider(config Config) (captcha_domain.CaptchaProvider, error) {
+func NewProvider(config Config, options ...Option) (captcha_domain.CaptchaProvider, error) {
+	return newProvider(config, verifyURL, options...)
+}
+
+// newProvider creates a reCAPTCHA v3 provider that verifies tokens against endpoint.
+//
+// Takes config (Config) which specifies the reCAPTCHA v3 site key and secret key.
+// Takes endpoint (string) which is the siteverify URL.
+// Takes options (...Option) which override the verification timeout and response size
+// limit.
+//
+// Returns *provider which is ready for use.
+// Returns error when the configuration is invalid.
+func newProvider(config Config, endpoint string, options ...Option) (*provider, error) {
 	if err := config.validate(); err != nil {
 		return nil, err
 	}
 
 	return &provider{
 		config: config,
-		httpClient: &http.Client{
-			Timeout: httpTimeout,
-		},
+		client: siteverify.NewClient(providerName, endpoint, options...),
 	}, nil
 }
 
@@ -141,10 +146,9 @@ func (p *provider) Verify(ctx context.Context, request *captcha_dto.VerifyReques
 	defer span.End()
 
 	if request == nil || request.Token == "" {
-		return &captcha_dto.VerifyResponse{
-			Success:    false,
-			ErrorCodes: []string{"missing-input-response"},
-		}, nil
+		response := captcha_dto.VerifyResponse{}
+		response.ErrorCodes = []string{"missing-input-response"}
+		return &response, nil
 	}
 
 	formData := url.Values{
@@ -155,45 +159,9 @@ func (p *provider) Verify(ctx context.Context, request *captcha_dto.VerifyReques
 		formData.Set("remoteip", request.RemoteIP)
 	}
 
-	encodedForm := formData.Encode()
-	httpRequest, err := http.NewRequestWithContext(ctx, http.MethodPost, verifyURL, strings.NewReader(encodedForm))
+	recaptchaResult, err := siteverify.Verify[recaptchaVerifyResult](ctx, p.client, formData)
 	if err != nil {
-		return nil, fmt.Errorf("creating recaptcha request: %w", err)
-	}
-	httpRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	httpResponse, err := p.httpClient.Do(httpRequest)
-	if err != nil {
-		return nil, fmt.Errorf("sending recaptcha verification request: %w", err)
-	}
-	defer func() {
-		_, _ = io.Copy(io.Discard, io.LimitReader(httpResponse.Body, maxResponseBodySize))
-		_ = httpResponse.Body.Close()
-	}()
-
-	if httpResponse.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("recaptcha verification returned HTTP %d: %w", httpResponse.StatusCode, captcha_dto.ErrProviderUnavailable)
-	}
-
-	contentType := httpResponse.Header.Get("Content-Type")
-	if !strings.HasPrefix(contentType, "application/json") {
-		return nil, fmt.Errorf("recaptcha returned unexpected content type %q: %w",
-			contentType, captcha_dto.ErrProviderUnavailable)
-	}
-
-	body, err := io.ReadAll(io.LimitReader(httpResponse.Body, maxResponseBodySize))
-	if err != nil {
-		return nil, fmt.Errorf("reading recaptcha response body: %w", err)
-	}
-
-	if int64(len(body)) >= maxResponseBodySize {
-		return nil, fmt.Errorf("recaptcha response body exceeded %d byte limit: %w",
-			maxResponseBodySize, captcha_dto.ErrProviderUnavailable)
-	}
-
-	var recaptchaResult recaptchaVerifyResult
-	if err := json.Unmarshal(body, &recaptchaResult); err != nil {
-		return nil, fmt.Errorf("parsing recaptcha response: %w", err)
+		return nil, err
 	}
 
 	return buildVerifyResponse(recaptchaResult), nil
@@ -212,6 +180,7 @@ func buildVerifyResponse(result recaptchaVerifyResult) *captcha_dto.VerifyRespon
 		Action:     result.Action,
 		ErrorCodes: result.ErrorCodes,
 		Hostname:   result.Hostname,
+		Timestamp:  time.Time{},
 	}
 
 	if result.ChallengeTimestamp != "" {
@@ -254,6 +223,7 @@ func (p *provider) RenderRequirements() *captcha_dto.RenderRequirements {
 		CSPConnectDomains: []string{"https://www.google.com"},
 		ProviderType:      "recaptcha_v3",
 		Invisible:         true,
+		ServerSideToken:   false,
 	}
 }
 

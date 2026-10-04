@@ -369,24 +369,23 @@ func (a *RedisClusterAdapter[K, V]) Stats() cache.Stats {
 	}
 
 	return cache.Stats{
-		Hits:   totalHits,
-		Misses: totalMisses,
+		Hits:             totalHits,
+		Misses:           totalMisses,
+		Evictions:        0,
+		LoadSuccessCount: 0,
+		LoadFailureCount: 0,
+		TotalLoadTime:    0,
 	}
 }
 
-// Close releases the Redis Cluster client connection.
+// Close releases this namespace.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
+// The Redis Cluster client is shared by every namespace of the provider and is closed by
+// RedisClusterProvider.Close, so closing one namespace leaves the others usable.
 //
-// Returns error when the client cannot be closed cleanly.
-func (a *RedisClusterAdapter[K, V]) Close(ctx context.Context) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	if err := a.client.Close(); err != nil {
-		return fmt.Errorf("error closing Redis Cluster client: %w", err)
-	}
-	return nil
+// Returns error when ctx is already done.
+func (*RedisClusterAdapter[K, V]) Close(ctx context.Context) error {
+	return ctx.Err()
 }
 
 // SetExpiresAfter updates the time to live for an existing key using the Redis EXPIRE

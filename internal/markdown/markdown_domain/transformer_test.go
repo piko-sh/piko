@@ -20,6 +20,8 @@ package markdown_domain
 
 import (
 	"context"
+	"errors"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -648,7 +650,7 @@ func TestTransformer_TransformNode_FragmentFlattening(t *testing.T) {
 		require.NotNil(t, fragmentNode)
 		assert.Equal(t, ast_domain.NodeFragment, fragmentNode.NodeType)
 
-		children := tr.transformChildren(context.Background(), document)
+		children := tr.transformChildren(context.Background(), document, 0)
 
 		require.NotEmpty(t, children)
 		assert.Equal(t, "p", children[0].TagName)
@@ -796,4 +798,335 @@ func TestTransformer_TransformNode_Strikethrough(t *testing.T) {
 		assert.Equal(t, ast_domain.NodeElement, result.NodeType)
 		assert.Equal(t, "del", result.TagName)
 	})
+}
+
+func TestTransformer_TransformNode_LineBreak(t *testing.T) {
+	t.Parallel()
+
+	paragraph := markdown_ast.NewParagraph()
+	paragraph.AppendChild(markdown_ast.NewText([]byte("first line")))
+	paragraph.AppendChild(markdown_ast.NewLineBreak())
+	paragraph.AppendChild(markdown_ast.NewText([]byte("second line")))
+
+	tr := NewTransformerTestBuilder().
+		WithSource([]byte("first line  \nsecond line")).
+		Build()
+
+	result := tr.TransformNode(context.Background(), paragraph)
+
+	require.NotNil(t, result)
+	require.Len(t, result.Children, 3)
+	assert.Equal(t, ast_domain.NodeText, result.Children[0].NodeType)
+	assert.Equal(t, ast_domain.NodeElement, result.Children[1].NodeType)
+	assert.Equal(t, "br", result.Children[1].TagName)
+	assert.Empty(t, result.Children[1].Children)
+	assert.Equal(t, "second line", result.Children[2].TextContent)
+}
+
+func TestTransformer_ExtractNodeText_LineBreak(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name  string
+		build func() markdown_ast.Node
+		want  string
+	}{
+		{
+			name: "a hard line break separates the words either side with a newline",
+			build: func() markdown_ast.Node {
+				heading := markdown_ast.NewHeading(2)
+				heading.AppendChild(markdown_ast.NewText([]byte("Part")))
+				heading.AppendChild(markdown_ast.NewLineBreak())
+				heading.AppendChild(markdown_ast.NewText([]byte("two")))
+				return heading
+			},
+			want: "Part\ntwo",
+		},
+		{
+			name: "a hard line break nested in emphasis is kept",
+			build: func() markdown_ast.Node {
+				heading := markdown_ast.NewHeading(2)
+				emphasis := markdown_ast.NewEmphasis(1)
+				emphasis.AppendChild(markdown_ast.NewText([]byte("a")))
+				emphasis.AppendChild(markdown_ast.NewLineBreak())
+				emphasis.AppendChild(markdown_ast.NewText([]byte("b")))
+				heading.AppendChild(emphasis)
+				return heading
+			},
+			want: "a\nb",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			tr := NewTransformerTestBuilder().Build()
+
+			assert.Equal(t, tc.want, tr.extractNodeText(tc.build()))
+		})
+	}
+}
+
+func TestTransformer_TransformChildren_StopsWhenCancelled(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancelCause(context.Background())
+	cancel(errors.New("render abandoned"))
+
+	paragraph := markdown_ast.NewParagraph()
+	paragraph.AppendChild(markdown_ast.NewText([]byte("one")))
+	paragraph.AppendChild(markdown_ast.NewText([]byte("two")))
+
+	tr := NewTransformerTestBuilder().Build()
+
+	result := tr.TransformNode(ctx, paragraph)
+
+	require.NotNil(t, result)
+	assert.Empty(t, result.Children)
+}
+
+func TestTransformer_DepthLimit(t *testing.T) {
+	t.Parallel()
+
+	const deepNesting = 10_000
+
+	testCases := []struct {
+		name           string
+		levels         int
+		wantDiagnostic bool
+	}{
+		{name: "nesting within the limit is fully rendered", levels: 20, wantDiagnostic: false},
+		{name: "nesting at the limit is dropped and reported once", levels: markdown_ast.MaxMarkdownDepth, wantDiagnostic: true},
+		{name: "pathological nesting is bounded and reported once", levels: deepNesting, wantDiagnostic: true},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			document := markdown_ast.NewDocument()
+			innermost := nestBlockquotes(document, tc.levels)
+			innermost.AppendChild(markdown_ast.NewText([]byte("deep")))
+			diagnostics := new([]*ast_domain.Diagnostic)
+			tr := NewTransformerTestBuilder().WithDiagnostics(diagnostics).Build()
+
+			result := tr.TransformNode(context.Background(), document)
+
+			require.NotNil(t, result)
+			assert.LessOrEqual(t, templateDepth(result), markdown_ast.MaxMarkdownDepth)
+			if !tc.wantDiagnostic {
+				assert.Empty(t, *diagnostics)
+				assert.Equal(t, tc.levels+2, templateDepth(result), "document, every quote and the text")
+				return
+			}
+			require.Len(t, *diagnostics, 1)
+			assert.Equal(t, ast_domain.Error, (*diagnostics)[0].Severity)
+			assert.Contains(t, (*diagnostics)[0].Message, "deeper than 256 levels")
+		})
+	}
+}
+
+func TestTransformer_ExtractNodeText_DepthLimit(t *testing.T) {
+	t.Parallel()
+
+	heading := markdown_ast.NewHeading(1)
+	heading.AppendChild(markdown_ast.NewText([]byte("shallow ")))
+	var parent markdown_ast.Node = heading
+	for range 10_000 {
+		emphasis := markdown_ast.NewEmphasis(1)
+		parent.AppendChild(emphasis)
+		parent = emphasis
+	}
+	parent.AppendChild(markdown_ast.NewText([]byte("deep")))
+	diagnostics := new([]*ast_domain.Diagnostic)
+	tr := NewTransformerTestBuilder().WithDiagnostics(diagnostics).Build()
+
+	text := tr.extractNodeText(heading)
+
+	assert.Equal(t, "shallow ", text)
+	require.Len(t, *diagnostics, 1)
+}
+
+func TestTransformer_GetNodeLocation_DeepInlineNesting(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		levels     int
+		wantOffset int
+	}{
+		{name: "a shallow inline container takes its first text position", levels: 3, wantOffset: 7},
+		{name: "a position deeper than the limit is not searched for", levels: 10_000, wantOffset: 0},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			outer := markdown_ast.NewEmphasis(1)
+			var parent markdown_ast.Node = outer
+			for range tc.levels - 1 {
+				emphasis := markdown_ast.NewEmphasis(1)
+				parent.AppendChild(emphasis)
+				parent = emphasis
+			}
+			text := markdown_ast.NewText([]byte("x"))
+			text.Segment = markdown_ast.Segment{Start: 7, Stop: 8}
+			parent.AppendChild(text)
+			tr := NewTransformerTestBuilder().Build()
+
+			location := tr.getNodeLocation(outer)
+
+			assert.Equal(t, tc.wantOffset, location.Offset)
+		})
+	}
+}
+
+func Test_transformMarkdownAST_DeepNestingReportsDiagnostic(t *testing.T) {
+	t.Parallel()
+
+	document := markdown_ast.NewDocument()
+	innermost := nestBlockquotes(document, 10_000)
+	innermost.AppendChild(markdown_ast.NewText([]byte("deep")))
+
+	result, err := transformMarkdownAST(context.Background(), document, []byte("deep"), "deep.md", nil)
+
+	require.NoError(t, err)
+	require.Len(t, result.Diagnostics, 1)
+	assert.Equal(t, "deep.md", result.Diagnostics[0].SourcePath)
+}
+
+func nestBlockquotes(root markdown_ast.Node, levels int) markdown_ast.Node {
+	parent := root
+	for range levels {
+		quote := markdown_ast.NewBlockquote()
+		parent.AppendChild(quote)
+		parent = quote
+	}
+	return parent
+}
+
+func templateDepth(node *ast_domain.TemplateNode) int {
+	depth := 1
+	for current := node; len(current.Children) > 0; current = current.Children[0] {
+		depth++
+	}
+	return depth
+}
+
+func TestTransformer_TransformNode_PikoShortcode(t *testing.T) {
+	t.Parallel()
+
+	codeBlock := markdown_ast.NewFencedCodeBlock()
+	codeBlock.Info = `piko my-card title="Hello"`
+	slotParagraph := markdown_ast.NewParagraph()
+	slotParagraph.AppendChild(markdown_ast.NewText([]byte("slot content")))
+	codeBlock.AppendChild(slotParagraph)
+	diagnostics := new([]*ast_domain.Diagnostic)
+	tr := NewTransformerTestBuilder().WithDiagnostics(diagnostics).Build()
+
+	result := tr.TransformNode(context.Background(), codeBlock)
+
+	require.NotNil(t, result)
+	assert.Empty(t, *diagnostics)
+	assert.Equal(t, "my-card", result.TagName)
+	title, found := result.GetAttribute("title")
+	require.True(t, found)
+	assert.Equal(t, "Hello", title)
+	require.Len(t, result.Children, 1)
+	assert.Equal(t, "p", result.Children[0].TagName)
+}
+
+func TestTransformer_PikoShortcode_DiagnosticLocations(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		info       string
+		wantAt     string
+		wantColumn int
+	}{
+		{name: "an incomplete binary expression points at the operator", info: `piko my-card :title="1 +"`, wantColumn: 27, wantAt: `+"`},
+		{name: "an unclosed group points at the end of the value", info: `piko my-card p-if="(" x="1"`, wantColumn: 24, wantAt: `" x="1"`},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			source := "Intro\n\n```" + tc.info + "\n```\n"
+			infoStart := strings.Index(source, "piko")
+			codeBlock := markdown_ast.NewFencedCodeBlock()
+			codeBlock.Info = tc.info
+			codeBlock.InfoSegment = markdown_ast.Segment{Start: infoStart, Stop: infoStart + len(tc.info)}
+			diagnostics := new([]*ast_domain.Diagnostic)
+			tr := NewTransformerTestBuilder().
+				WithSource([]byte(source)).
+				WithLocationMapper(newLocationMapper([]byte(source))).
+				WithDiagnostics(diagnostics).
+				Build()
+
+			result := tr.TransformNode(context.Background(), codeBlock)
+
+			assert.Nil(t, result)
+			require.Len(t, *diagnostics, 1)
+			location := (*diagnostics)[0].Location
+			assert.Equal(t, 3, location.Line)
+			assert.Equal(t, tc.wantColumn, location.Column)
+			fenceLine := strings.Split(source, "\n")[2]
+			assert.Equal(t, tc.wantAt, fenceLine[location.Column-1:])
+		})
+	}
+}
+
+func TestTransformer_PikoShortcode_InvalidSyntaxPointsAtFenceLine(t *testing.T) {
+	t.Parallel()
+
+	source := "Intro\n\n```piko\n```\n"
+	infoStart := strings.Index(source, "piko")
+	codeBlock := markdown_ast.NewFencedCodeBlock()
+	codeBlock.Info = "piko"
+	codeBlock.InfoSegment = markdown_ast.Segment{Start: infoStart, Stop: infoStart + len("piko")}
+	diagnostics := new([]*ast_domain.Diagnostic)
+	tr := NewTransformerTestBuilder().
+		WithSource([]byte(source)).
+		WithLocationMapper(newLocationMapper([]byte(source))).
+		WithDiagnostics(diagnostics).
+		Build()
+
+	location := tr.infoStringLocation(codeBlock, 0)
+	_, problems := tr.transformPikoShortcode(context.Background(), "piko", codeBlock, 0)
+
+	assert.Equal(t, ast_domain.Location{Line: 3, Column: 4, Offset: infoStart}, location)
+	require.Len(t, problems, 1)
+	assert.Equal(t, location, problems[0].Location)
+}
+
+func TestTransformer_InfoStringLocation_FallsBackToBlock(t *testing.T) {
+	t.Parallel()
+
+	codeBlock := markdown_ast.NewFencedCodeBlock()
+	codeBlock.SetLines(markdown_ast.NewSegments(markdown_ast.Segment{Start: 5, Stop: 9}))
+	tr := NewTransformerTestBuilder().Build()
+
+	location := tr.infoStringLocation(codeBlock, 3)
+
+	assert.Equal(t, 5, location.Offset)
+}
+
+func TestClampToShortcode(t *testing.T) {
+	t.Parallel()
+
+	shortcode := ast_domain.Location{Line: 4, Column: 10, Offset: 30}
+	inside := &ast_domain.Diagnostic{Location: ast_domain.Location{Line: 4, Column: 15}}
+	before := &ast_domain.Diagnostic{Location: ast_domain.Location{Line: 4, Column: 2}}
+	otherLine := &ast_domain.Diagnostic{Location: ast_domain.Location{Line: 0, Column: 0}}
+
+	clamped := clampToShortcode([]*ast_domain.Diagnostic{inside, before, otherLine, nil}, shortcode)
+
+	require.Len(t, clamped, 4)
+	assert.Equal(t, 15, inside.Location.Column)
+	assert.Equal(t, shortcode, before.Location)
+	assert.Equal(t, shortcode, otherLine.Location)
 }

@@ -28,6 +28,6 @@
 //
 // # Thread safety
 //
-// The FlatBuffer builder pool ([GetBuilder], [PutBuilder]) is safe for concurrent use.
-// The emitters are stateless and safe to share across goroutines.
+// The pooled FlatBuffer builders are safe for concurrent use. The emitters are stateless
+// and safe to share across goroutines.
 package typegen_adapters

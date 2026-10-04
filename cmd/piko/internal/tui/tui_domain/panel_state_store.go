@@ -115,6 +115,7 @@ type InMemoryPanelStateStore struct {
 func NewInMemoryPanelStateStore() *InMemoryPanelStateStore {
 	return &InMemoryPanelStateStore{
 		snapshots: make(map[string]PanelSnapshot),
+		mu:        sync.RWMutex{},
 	}
 }
 

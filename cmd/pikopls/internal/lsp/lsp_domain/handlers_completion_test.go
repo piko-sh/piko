@@ -41,12 +41,10 @@ func TestCompletion_DocumentNotFound_ReturnsEmptyList(t *testing.T) {
 	}
 
 	params := &protocol.CompletionParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{
-				URI: "file:///nonexistent.pk",
-			},
-			Position: protocol.Position{Line: 0, Character: 0},
+		TextDocument: protocol.TextDocumentIdentifier{
+			URI: "file:///nonexistent.pk",
 		},
+		Position: protocol.Position{},
 	}
 
 	result, err := server.Completion(context.Background(), params)
@@ -88,10 +86,8 @@ func TestCompletion_ValidDocument_ReturnsCompletions(t *testing.T) {
 	}
 
 	params := &protocol.CompletionParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: uri},
-			Position:     protocol.Position{Line: 0, Character: 20},
-		},
+		TextDocument: protocol.TextDocumentIdentifier{URI: uri},
+		Position:     protocol.Position{Line: 0, Character: 20},
 	}
 
 	result, err := server.Completion(context.Background(), params)

@@ -39,6 +39,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 	"piko.sh/piko/internal/daemon/daemon_domain"
+	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
@@ -695,9 +696,7 @@ func TestFrontendAssetHandlerCompressionVerification(t *testing.T) {
 func TestBuildAllowedOrigins_EmptyPublicDomain_ReturnsNil(t *testing.T) {
 	t.Parallel()
 
-	config := &daemon_domain.RouterConfig{
-		PublicDomain: "",
-	}
+	config := &daemon_domain.RouterConfig{}
 
 	result := buildAllowedOrigins(config)
 
@@ -889,9 +888,7 @@ func TestBuildMasterPlaylist_UnknownQuality_Skipped(t *testing.T) {
 func TestBuildMasterPlaylist_EmptyProfiles(t *testing.T) {
 	t.Parallel()
 
-	artefact := &registry_dto.ArtefactMeta{
-		DesiredProfiles: nil,
-	}
+	artefact := &registry_dto.ArtefactMeta{}
 
 	result := buildMasterPlaylist(artefact)
 	assert.Equal(t, "#EXTM3U\n", result)
@@ -1183,10 +1180,7 @@ func TestSelectStaticVariant_FallsBackToSourceExtra(t *testing.T) {
 	}
 
 	request := httptest.NewRequest(http.MethodGet, "/", nil)
-	config := staticArtefactConfig{
-		preferredType:  "",
-		useCompression: false,
-	}
+	config := staticArtefactConfig{}
 
 	result := selectStaticVariant(request, artefact, config)
 	require.NotNil(t, result)
@@ -1779,4 +1773,68 @@ func TestNewPipeResponseWriter_SetStatusOK(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, prw.statusCode)
 	assert.NotNil(t, prw.header)
+}
+
+type generatedVariant struct {
+	cause   error
+	carrier *daemon_dto.PikoRequestCtx
+	profile string
+}
+
+func TestQueueRemainingVariants_GeneratesMissingProfilesAfterTheRequest(t *testing.T) {
+	generated := make(chan generatedVariant, 4)
+	requestFinished := make(chan struct{})
+	generator := &daemon_domain.MockOnDemandVariantGenerator{
+		GenerateVariantFunc: func(ctx context.Context, _ *registry_dto.ArtefactMeta, profileName string) (*registry_dto.Variant, error) {
+			<-requestFinished
+			generated <- generatedVariant{
+				cause:   context.Cause(ctx),
+				carrier: daemon_dto.PikoRequestCtxFromContext(ctx),
+				profile: profileName,
+			}
+			return nil, errors.New("generation failed")
+		},
+	}
+	registry := &registry_domain.MockRegistryService{
+		GetArtefactFunc: func(context.Context, string) (*registry_dto.ArtefactMeta, error) {
+			return &registry_dto.ArtefactMeta{ActualVariants: []registry_dto.Variant{{VariantID: "existing"}}}, nil
+		},
+	}
+	artefact := &registry_dto.ArtefactMeta{
+		ID: "images/photo.jpg",
+		DesiredProfiles: []registry_dto.NamedProfile{
+			{Name: "thumb"}, {Name: "existing"}, {Name: "webp"}, {Name: variantSource},
+		},
+	}
+	builder, ok := NewHTTPRouterBuilder(nil, "").(*HTTPRouterBuilder)
+	require.True(t, ok)
+
+	pctx := daemon_dto.AcquirePikoRequestCtx()
+	pctx.ClientIP = "10.0.0.1"
+	requestCtx, cancelRequest := context.WithCancelCause(daemon_dto.WithPikoRequestCtx(context.Background(), pctx))
+
+	builder.queueRemainingVariants(requestCtx, registry, generator, artefact, "webp")
+	cancelRequest(errors.New("request finished"))
+	daemon_dto.ReleasePikoRequestCtx(pctx)
+	close(requestFinished)
+
+	got := <-generated
+	assert.Equal(t, "thumb", got.profile, "existing and already generated profiles are skipped")
+	require.NoError(t, got.cause, "generation must outlive the request")
+	require.NotNil(t, got.carrier)
+	assert.NotSame(t, pctx, got.carrier, "generation must not read the pooled carrier")
+	assert.Equal(t, "10.0.0.1", got.carrier.ClientIP)
+	require.Eventually(t, func() bool { return generator.GenerateVariantCallCount.Load() == 1 },
+		time.Second, time.Millisecond)
+}
+
+func TestQueueRemainingVariants_DoesNothingWithoutMissingProfiles(t *testing.T) {
+	generator := &daemon_domain.MockOnDemandVariantGenerator{}
+	builder, ok := NewHTTPRouterBuilder(nil, "").(*HTTPRouterBuilder)
+	require.True(t, ok)
+	artefact := &registry_dto.ArtefactMeta{DesiredProfiles: []registry_dto.NamedProfile{{Name: "webp"}}}
+
+	builder.queueRemainingVariants(context.Background(), &registry_domain.MockRegistryService{}, generator, artefact, "webp")
+
+	assert.Zero(t, generator.GenerateVariantCallCount.Load())
 }

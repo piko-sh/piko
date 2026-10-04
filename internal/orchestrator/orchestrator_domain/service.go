@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel/codes"
 	"golang.org/x/sync/singleflight"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/wdk/clock"
@@ -253,7 +254,8 @@ func (s *orchestratorService) Dispatch(ctx context.Context, task *Task) (*Workfl
 
 	if s.taskInsertClosed {
 		s.removeReceipt(receipt)
-		l.ReportError(span, ErrOrchestratorShuttingDown, "Refusing dispatch during shutdown")
+		span.SetStatus(codes.Error, "Refusing dispatch during shutdown")
+		l.Trace("Refusing dispatch during shutdown", logger_domain.String(attributeKeyTaskID, task.ID))
 		TaskFailureCount.Add(ctx, 1)
 		return nil, fmt.Errorf("dispatching task %q: %w", task.ID, ErrOrchestratorShuttingDown)
 	}
@@ -314,6 +316,7 @@ func (s *orchestratorService) DispatchDirect(ctx context.Context, task *Task) (*
 		TaskFailureCount.Add(ctx, 1)
 		return nil, fmt.Errorf("dispatching task directly: %w", err)
 	}
+	task.persisted = true
 
 	s.registerReceiptInMemory(ctx, receipt)
 
@@ -366,7 +369,8 @@ func (s *orchestratorService) Schedule(ctx context.Context, task *Task, executeA
 
 	if s.taskInsertClosed {
 		s.removeReceipt(receipt)
-		l.ReportError(span, ErrOrchestratorShuttingDown, "Refusing schedule during shutdown")
+		span.SetStatus(codes.Error, "Refusing schedule during shutdown")
+		l.Trace("Refusing schedule during shutdown", logger_domain.String(attributeKeyTaskID, task.ID))
 		TaskFailureCount.Add(ctx, 1)
 		return nil, fmt.Errorf("scheduling task %q: %w", task.ID, ErrOrchestratorShuttingDown)
 	}
@@ -503,6 +507,7 @@ func DefaultServiceConfig() ServiceConfig {
 		InsertQueueSize:   defaultInsertQueueSize,
 		DispatcherConfig:  nil,
 		TaskDispatcher:    nil,
+		Clock:             nil,
 	}
 }
 
@@ -639,6 +644,8 @@ func NewService(ctx context.Context, store TaskStore, eventBus EventBus, opts ..
 		receiptsMutex:      sync.Mutex{},
 		isStopped:          false,
 		nodeID:             nodeID,
+		taskInsertMutex:    sync.RWMutex{},
+		taskInsertClosed:   false,
 	}
 }
 

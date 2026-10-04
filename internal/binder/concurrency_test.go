@@ -245,7 +245,7 @@ func TestConcurrent_PerCallOptionsAreSafe(t *testing.T) {
 					WithMaxFieldCount(50),
 					WithMaxValueLength(500),
 				)
-				require.NoError(t, err)
+				assert.NoError(t, err)
 				assert.Equal(t, "Alice", form.Name)
 			}
 		})
@@ -259,7 +259,7 @@ func TestConcurrent_PerCallOptionsAreSafe(t *testing.T) {
 					"Name": {"Bob"},
 				}
 				err := binder.Bind(context.Background(), &form, src)
-				require.NoError(t, err)
+				assert.NoError(t, err)
 				assert.Equal(t, "Bob", form.Name)
 			}
 		})
@@ -308,8 +308,7 @@ func TestConcurrent_MapBindingThreadSafety(t *testing.T) {
 
 	var wg sync.WaitGroup
 
-	for i := range 20 {
-		index := i
+	for index := range 20 {
 		wg.Go(func() {
 			type MapForm struct {
 				Data map[string]string
@@ -321,7 +320,7 @@ func TestConcurrent_MapBindingThreadSafety(t *testing.T) {
 			}
 
 			err := binder.Bind(context.Background(), &form, src)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			assert.Equal(t, fmt.Sprintf("val_%d", index), form.Data[fmt.Sprintf("key_%d", index)])
 		})
 	}

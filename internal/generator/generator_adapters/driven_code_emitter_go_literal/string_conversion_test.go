@@ -208,7 +208,7 @@ func TestValueToString_Fallback(t *testing.T) {
 		name string
 	}{
 		{name: "nil annotation", ann: nil},
-		{name: "nil ResolvedType", ann: &ast_domain.GoGeneratorAnnotation{ResolvedType: nil}},
+		{name: "nil ResolvedType", ann: &ast_domain.GoGeneratorAnnotation{}},
 		{name: "unknown stringability", ann: createMockAnnotation("UnknownType", 999)},
 	}
 
@@ -389,7 +389,7 @@ func TestDetermineJSONFallback(t *testing.T) {
 		},
 		{
 			name:     "nil typeExpr returns null",
-			typeInfo: &ast_domain.ResolvedTypeInfo{TypeExpression: nil},
+			typeInfo: &ast_domain.ResolvedTypeInfo{},
 			want:     "null",
 		},
 		{

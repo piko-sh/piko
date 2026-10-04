@@ -20,6 +20,7 @@ package markdown_provider_goldmark
 
 import (
 	"context"
+	"slices"
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark-meta"
@@ -40,6 +41,12 @@ import (
 type Parser struct {
 	// goldmark is the Goldmark Markdown parser used to parse document content.
 	goldmark goldmark.Markdown
+
+	// maxInputSize is the largest document, in bytes, that Parse accepts.
+	maxInputSize int
+
+	// maxNestingDepth is the most blockquote and list markers that may open on one line.
+	maxNestingDepth int
 }
 
 var (
@@ -48,16 +55,17 @@ var (
 
 // NewParser creates a new Goldmark-based parser configured with GFM, footnotes, fenced
 // containers, and metadata support. Built-in extensions are always included alongside any
-// additional extensions provided.
+// added with WithExtensions; WithMaxInputSize and WithMaxNestingDepth adjust the input
+// limits.
 //
-// Takes additionalExtensions (...goldmark.Extender) which provides optional extensions
-// such as syntax highlighting.
+// Takes options (...Option) which add extensions and adjust the limits.
 //
 // Returns *Parser which is ready to parse Markdown content.
-func NewParser(additionalExtensions ...goldmark.Extender) *Parser {
-	extensions := make([]goldmark.Extender, 0, 4+len(additionalExtensions))
+func NewParser(options ...Option) *Parser {
+	config := newParserConfig(options)
+	extensions := make([]goldmark.Extender, 0, 4+len(config.extensions))
 	extensions = append(extensions, extension.GFM, extension.Footnote, meta.New(), &fences.Extender{})
-	extensions = append(extensions, additionalExtensions...)
+	extensions = append(extensions, config.extensions...)
 
 	gm := goldmark.New(
 		goldmark.WithExtensions(extensions...),
@@ -67,18 +75,34 @@ func NewParser(additionalExtensions ...goldmark.Extender) *Parser {
 		),
 	)
 
-	return &Parser{goldmark: gm}
+	return &Parser{
+		goldmark:        gm,
+		maxInputSize:    config.maxInputSize,
+		maxNestingDepth: config.maxNestingDepth,
+	}
 }
 
 // Parse parses markdown content into a piko-native AST and extracts YAML frontmatter
 // metadata.
 //
+// Documents larger than the size limit, or with a line that opens more nested blockquotes
+// and list items than the nesting limit, are rejected before goldmark parses them.
+// Nesting is converted down to markdown_ast.MaxMarkdownDepth levels. A node at that depth
+// is kept without its children, so the markdown domain sees that the limit was reached
+// and reports it as a diagnostic, and a pathologically nested document cannot overflow
+// the stack.
+//
 // Takes content ([]byte) which is the raw markdown text to parse.
 //
 // Returns doc (*markdown_ast.Document) which is the root of the parsed AST.
 // Returns frontmatter (map[string]any) which contains the extracted YAML metadata.
-// Returns err (error) which is always nil for this implementation.
+// Returns err (error) which wraps ErrInputTooLarge or ErrNestingTooDeep when content is
+// beyond the configured limits.
 func (p *Parser) Parse(_ context.Context, content []byte) (doc *markdown_ast.Document, frontmatter map[string]any, err error) {
+	if limitErr := checkInputLimits(content, p.maxInputSize, p.maxNestingDepth); limitErr != nil {
+		return nil, nil, limitErr
+	}
+
 	pctx := parser.NewContext()
 	reader := text.NewReader(content)
 	gmRoot := p.goldmark.Parser().Parse(reader, parser.WithContext(pctx))
@@ -88,7 +112,7 @@ func (p *Parser) Parse(_ context.Context, content []byte) (doc *markdown_ast.Doc
 		frontmatter = make(map[string]any)
 	}
 
-	pikoDoc, ok := p.convertNode(gmRoot, content).(*markdown_ast.Document)
+	pikoDoc, ok := p.convertNode(gmRoot, content, 0).(*markdown_ast.Document)
 	if !ok {
 		pikoDoc = markdown_ast.NewDocument()
 	}
@@ -100,72 +124,74 @@ func (p *Parser) Parse(_ context.Context, content []byte) (doc *markdown_ast.Doc
 //
 // Takes gmNode (gmast.Node) which is the goldmark node to convert.
 // Takes source ([]byte) which is the original markdown source text.
+// Takes depth (int) which is the depth of gmNode below the document root.
 //
 // Returns markdown_ast.Node which is the converted piko AST node.
-func (p *Parser) convertNode(gmNode gmast.Node, source []byte) markdown_ast.Node {
-	if node, ok := p.convertBlockNode(gmNode, source); ok {
+func (p *Parser) convertNode(gmNode gmast.Node, source []byte, depth int) markdown_ast.Node {
+	if node, ok := p.convertBlockNode(gmNode, source, depth); ok {
 		return node
 	}
-	if node, ok := p.convertInlineNode(gmNode, source); ok {
+	if node, ok := p.convertInlineNode(gmNode, source, depth); ok {
 		return node
 	}
-	if node, ok := p.convertExtensionNode(gmNode, source); ok {
+	if node, ok := p.convertExtensionNode(gmNode, source, depth); ok {
 		return node
 	}
-	return p.convertFallbackNode(gmNode, source)
+	return p.convertFallbackNode(gmNode, source, depth)
 }
 
 // convertBlockNode handles conversion of standard block-level goldmark nodes.
 //
 // Takes gmNode (gmast.Node) which is the goldmark node to convert.
 // Takes source ([]byte) which is the original markdown source text.
+// Takes depth (int) which is the depth of gmNode below the document root.
 //
 // Returns markdown_ast.Node which is the converted node, or nil if not a block.
 // Returns bool which is true when the node was handled.
-func (p *Parser) convertBlockNode(gmNode gmast.Node, source []byte) (markdown_ast.Node, bool) {
+func (p *Parser) convertBlockNode(gmNode gmast.Node, source []byte, depth int) (markdown_ast.Node, bool) {
 	switch n := gmNode.(type) {
 	case *gmast.Document:
 		doc := markdown_ast.NewDocument()
-		p.convertChildren(n, source, doc)
+		p.convertChildren(n, source, doc, depth)
 		copyLines(n, doc)
 		return doc, true
 
 	case *gmast.Heading:
-		return p.convertHeading(n, source), true
+		return p.convertHeading(n, source, depth), true
 
 	case *gmast.Paragraph:
 		para := markdown_ast.NewParagraph()
-		p.convertChildren(n, source, para)
+		p.convertChildren(n, source, para, depth)
 		copyLines(n, para)
 		return para, true
 
 	case *gmast.Blockquote:
 		bq := markdown_ast.NewBlockquote()
-		p.convertChildren(n, source, bq)
+		p.convertChildren(n, source, bq, depth)
 		copyLines(n, bq)
 		return bq, true
 
 	case *gmast.List:
 		list := markdown_ast.NewList(n.IsOrdered())
-		p.convertChildren(n, source, list)
+		p.convertChildren(n, source, list, depth)
 		copyLines(n, list)
 		return list, true
 
 	case *gmast.ListItem:
 		li := markdown_ast.NewListItem()
-		p.convertChildren(n, source, li)
+		p.convertChildren(n, source, li, depth)
 		copyLines(n, li)
 		return li, true
 
 	case *gmast.FencedCodeBlock:
-		return p.convertFencedCodeBlock(n, source), true
+		return p.convertFencedCodeBlock(n, source, depth), true
 
 	case *gmast.HTMLBlock:
-		return p.convertHTMLBlock(n, source), true
+		return p.convertHTMLBlock(n, source, depth), true
 
 	case *gmast.TextBlock:
 		tb := markdown_ast.NewTextBlock()
-		p.convertChildren(n, source, tb)
+		p.convertChildren(n, source, tb, depth)
 		copyLines(n, tb)
 		return tb, true
 
@@ -179,9 +205,10 @@ func (p *Parser) convertBlockNode(gmNode gmast.Node, source []byte) (markdown_as
 //
 // Takes n (*gmast.Heading) which is the goldmark heading node.
 // Takes source ([]byte) which is the original markdown source text.
+// Takes depth (int) which is the depth of n below the document root.
 //
 // Returns *markdown_ast.Heading which is the converted heading.
-func (p *Parser) convertHeading(n *gmast.Heading, source []byte) *markdown_ast.Heading {
+func (p *Parser) convertHeading(n *gmast.Heading, source []byte, depth int) *markdown_ast.Heading {
 	heading := markdown_ast.NewHeading(n.Level)
 	if id, ok := n.AttributeString("id"); ok {
 		switch v := id.(type) {
@@ -191,7 +218,7 @@ func (p *Parser) convertHeading(n *gmast.Heading, source []byte) *markdown_ast.H
 			heading.SetAttributeString("id", v)
 		}
 	}
-	p.convertChildren(n, source, heading)
+	p.convertChildren(n, source, heading, depth)
 	copyLines(n, heading)
 	return heading
 }
@@ -201,13 +228,14 @@ func (p *Parser) convertHeading(n *gmast.Heading, source []byte) *markdown_ast.H
 //
 // Takes n (*gmast.FencedCodeBlock) which is the goldmark code block node.
 // Takes source ([]byte) which is the original markdown source text.
+// Takes depth (int) which is the depth of n below the document root.
 //
 // Returns *markdown_ast.FencedCodeBlock which is the converted code block.
-func (p *Parser) convertFencedCodeBlock(n *gmast.FencedCodeBlock, source []byte) *markdown_ast.FencedCodeBlock {
+func (p *Parser) convertFencedCodeBlock(n *gmast.FencedCodeBlock, source []byte, depth int) *markdown_ast.FencedCodeBlock {
 	fcb := markdown_ast.NewFencedCodeBlock()
 	if n.Info != nil {
-		info := string(n.Info.Segment.Value(source))
-		fcb.Info = info
+		fcb.Info = string(n.Info.Segment.Value(source))
+		fcb.InfoSegment = markdown_ast.Segment{Start: n.Info.Segment.Start, Stop: n.Info.Segment.Stop}
 	}
 	if lang := n.Language(source); len(lang) > 0 {
 		fcb.Language = string(lang)
@@ -219,7 +247,7 @@ func (p *Parser) convertFencedCodeBlock(n *gmast.FencedCodeBlock, source []byte)
 			fcb.Content = append(fcb.Content, seg.Value(source))
 		}
 	}
-	p.convertChildren(n, source, fcb)
+	p.convertChildren(n, source, fcb, depth)
 	copyLines(n, fcb)
 	return fcb
 }
@@ -228,9 +256,10 @@ func (p *Parser) convertFencedCodeBlock(n *gmast.FencedCodeBlock, source []byte)
 //
 // Takes n (*gmast.HTMLBlock) which is the goldmark HTML block node.
 // Takes source ([]byte) which is the original markdown source text.
+// Takes depth (int) which is the depth of n below the document root.
 //
 // Returns *markdown_ast.HTMLBlock which is the converted HTML block.
-func (p *Parser) convertHTMLBlock(n *gmast.HTMLBlock, source []byte) *markdown_ast.HTMLBlock {
+func (p *Parser) convertHTMLBlock(n *gmast.HTMLBlock, source []byte, depth int) *markdown_ast.HTMLBlock {
 	hb := markdown_ast.NewHTMLBlock()
 	lines := n.Lines()
 	if lines != nil {
@@ -239,7 +268,7 @@ func (p *Parser) convertHTMLBlock(n *gmast.HTMLBlock, source []byte) *markdown_a
 			hb.Content = append(hb.Content, seg.Value(source))
 		}
 	}
-	p.convertChildren(n, source, hb)
+	p.convertChildren(n, source, hb, depth)
 	copyLines(n, hb)
 	return hb
 }
@@ -248,13 +277,18 @@ func (p *Parser) convertHTMLBlock(n *gmast.HTMLBlock, source []byte) *markdown_a
 //
 // Takes gmNode (gmast.Node) which is the goldmark node to convert.
 // Takes source ([]byte) which is the original markdown source text.
+// Takes depth (int) which is the depth of gmNode below the document root.
 //
 // Returns markdown_ast.Node which is the converted node, or nil if not inline.
 // Returns bool which is true when the node was handled.
-func (p *Parser) convertInlineNode(gmNode gmast.Node, source []byte) (markdown_ast.Node, bool) {
+func (p *Parser) convertInlineNode(gmNode gmast.Node, source []byte, depth int) (markdown_ast.Node, bool) {
 	switch n := gmNode.(type) {
 	case *gmast.Text:
-		t := markdown_ast.NewText(n.Segment.Value(source))
+		value := n.Segment.Value(source)
+		if n.SoftLineBreak() {
+			value = append(slices.Clip(value), '\n')
+		}
+		t := markdown_ast.NewText(value)
 		t.Segment = markdown_ast.Segment{Start: n.Segment.Start, Stop: n.Segment.Stop}
 		return t, true
 
@@ -263,22 +297,22 @@ func (p *Parser) convertInlineNode(gmNode gmast.Node, source []byte) (markdown_a
 
 	case *gmast.Emphasis:
 		em := markdown_ast.NewEmphasis(n.Level)
-		p.convertChildren(n, source, em)
+		p.convertChildren(n, source, em, depth)
 		return em, true
 
 	case *gmast.Link:
 		link := markdown_ast.NewLink(n.Destination, n.Title)
-		p.convertChildren(n, source, link)
+		p.convertChildren(n, source, link, depth)
 		return link, true
 
 	case *gmast.Image:
 		img := markdown_ast.NewImage(n.Destination, n.Title)
-		p.convertChildren(n, source, img)
+		p.convertChildren(n, source, img, depth)
 		return img, true
 
 	case *gmast.CodeSpan:
 		cs := markdown_ast.NewCodeSpan()
-		p.convertChildren(n, source, cs)
+		p.convertChildren(n, source, cs, depth)
 		return cs, true
 
 	default:
@@ -311,37 +345,38 @@ func (*Parser) convertRawHTML(n *gmast.RawHTML, source []byte) *markdown_ast.Raw
 //
 // Takes gmNode (gmast.Node) which is the goldmark extension node to convert.
 // Takes source ([]byte) which is the original markdown source text.
+// Takes depth (int) which is the depth of gmNode below the document root.
 //
 // Returns markdown_ast.Node which is the converted node, or nil if not an extension.
 // Returns bool which is true when the node was handled.
-func (p *Parser) convertExtensionNode(gmNode gmast.Node, source []byte) (markdown_ast.Node, bool) {
+func (p *Parser) convertExtensionNode(gmNode gmast.Node, source []byte, depth int) (markdown_ast.Node, bool) {
 	switch n := gmNode.(type) {
 	case *exast.Table:
 		table := markdown_ast.NewTable()
-		p.convertChildren(n, source, table)
+		p.convertChildren(n, source, table, depth)
 		copyLines(n, table)
 		return table, true
 
 	case *exast.TableHeader:
 		th := markdown_ast.NewTableHeader()
-		p.convertChildren(n, source, th)
+		p.convertChildren(n, source, th, depth)
 		copyLines(n, th)
 		return th, true
 
 	case *exast.TableRow:
 		tr := markdown_ast.NewTableRow()
-		p.convertChildren(n, source, tr)
+		p.convertChildren(n, source, tr, depth)
 		copyLines(n, tr)
 		return tr, true
 
 	case *exast.TableCell:
 		tc := markdown_ast.NewTableCell(false)
-		p.convertChildren(n, source, tc)
+		p.convertChildren(n, source, tc, depth)
 		return tc, true
 
 	case *exast.Strikethrough:
 		s := markdown_ast.NewStrikethrough()
-		p.convertChildren(n, source, s)
+		p.convertChildren(n, source, s, depth)
 		return s, true
 
 	case *exast.TaskCheckBox:
@@ -349,7 +384,7 @@ func (p *Parser) convertExtensionNode(gmNode gmast.Node, source []byte) (markdow
 
 	case *fences.FencedContainer:
 		fc := markdown_ast.NewFencedContainer()
-		p.convertChildren(n, source, fc)
+		p.convertChildren(n, source, fc, depth)
 		copyLines(n, fc)
 		return fc, true
 
@@ -363,36 +398,60 @@ func (p *Parser) convertExtensionNode(gmNode gmast.Node, source []byte) (markdow
 //
 // Takes gmNode (gmast.Node) which is the unrecognised goldmark node.
 // Takes source ([]byte) which is the original markdown source text.
+// Takes depth (int) which is the depth of gmNode below the document root.
 //
 // Returns markdown_ast.Node which wraps the node's children in a suitable container.
-func (p *Parser) convertFallbackNode(gmNode gmast.Node, source []byte) markdown_ast.Node {
+func (p *Parser) convertFallbackNode(gmNode gmast.Node, source []byte, depth int) markdown_ast.Node {
 	switch gmNode.Type() {
 	case gmast.TypeBlock:
 		tb := markdown_ast.NewTextBlock()
-		p.convertChildren(gmNode, source, tb)
+		p.convertChildren(gmNode, source, tb, depth)
 		copyLines(gmNode, tb)
 		return tb
 	case gmast.TypeInline:
 		cs := markdown_ast.NewCodeSpan()
-		p.convertChildren(gmNode, source, cs)
+		p.convertChildren(gmNode, source, cs, depth)
 		return cs
 	default:
 		doc := markdown_ast.NewDocument()
-		p.convertChildren(gmNode, source, doc)
+		p.convertChildren(gmNode, source, doc, depth)
 		return doc
 	}
 }
 
 // convertChildren recursively converts all children of a goldmark node and appends them
-// to the piko parent.
+// to the piko parent. A text child that ends in a hard line break is followed by a
+// LineBreak node so the break renders as <br> rather than as whitespace.
+//
+// Children are converted only while they stay within markdown_ast.MaxMarkdownDepth; a
+// node at that depth keeps no children, which the markdown domain reports as a diagnostic
+// when it transforms the document.
 //
 // Takes gmNode (gmast.Node) which is the goldmark parent node.
 // Takes source ([]byte) which is the original markdown source text.
 // Takes parent (markdown_ast.Node) which receives the converted children.
-func (p *Parser) convertChildren(gmNode gmast.Node, source []byte, parent markdown_ast.Node) {
-	for child := gmNode.FirstChild(); child != nil; child = child.NextSibling() {
-		parent.AppendChild(p.convertNode(child, source))
+// Takes parentDepth (int) which is the depth of gmNode; its children are one deeper.
+func (p *Parser) convertChildren(gmNode gmast.Node, source []byte, parent markdown_ast.Node, parentDepth int) {
+	if parentDepth >= markdown_ast.MaxMarkdownDepth {
+		return
 	}
+	for child := gmNode.FirstChild(); child != nil; child = child.NextSibling() {
+		parent.AppendChild(p.convertNode(child, source, parentDepth+1))
+		if endsWithHardLineBreak(child) {
+			parent.AppendChild(markdown_ast.NewLineBreak())
+		}
+	}
+}
+
+// endsWithHardLineBreak reports whether a goldmark node is text that ends in a hard line
+// break (two trailing spaces or a backslash before the line ending).
+//
+// Takes gmNode (gmast.Node) which is the goldmark node to inspect.
+//
+// Returns bool which is true when the node is a Text with its hard line break flag set.
+func endsWithHardLineBreak(gmNode gmast.Node) bool {
+	textNode, ok := gmNode.(*gmast.Text)
+	return ok && textNode.HardLineBreak()
 }
 
 // copyLines transfers source line segments from a goldmark node to a piko node so that

@@ -132,7 +132,6 @@ func (p *RedisClusterProvider) Close() error {
 	_, l := logger.From(context.Background(), log)
 
 	if err := p.client.Close(); err != nil {
-		l.Error("Error closing Redis Cluster client", logger.Error(err))
 		return fmt.Errorf("failed to close Redis Cluster client: %w", err)
 	}
 

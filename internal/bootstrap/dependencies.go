@@ -30,11 +30,11 @@ type Dependencies struct {
 	// generated routes onto this router, including pages, partials, and actions.
 	AppRouter *chi.Mux
 
-	// SymbolProvider provides symbols for interpreted mode; nil for other modes. The
-	// concrete type implements SymbolProviderPort.
-	SymbolProvider any
-
 	// InterpreterPool provides a pool of interpreters for JIT compilation in interpreted
-	// mode; nil for other modes.
+	// mode, with its modules already loaded; nil for other modes.
 	InterpreterPool templater_domain.InterpreterPoolPort
+
+	// InterpreterProvider builds fresh interpreter pools in interpreted mode, used when user
+	// Go packages change and must be recompiled; nil for other modes.
+	InterpreterProvider templater_domain.InterpreterProviderPort
 }

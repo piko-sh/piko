@@ -27,6 +27,7 @@ import (
 	"github.com/tdewolff/minify/v2"
 	minifyjs "github.com/tdewolff/minify/v2/js"
 	"piko.sh/piko/internal/esbuild/ast"
+	"piko.sh/piko/internal/esbuild/helpers"
 	"piko.sh/piko/internal/esbuild/js_ast"
 )
 
@@ -285,7 +286,7 @@ func TestASTConverter_ResolveRef(t *testing.T) {
 		}
 		converter := NewASTConverter(symbols, nil, nil)
 
-		ref := ast.Ref{InnerIndex: 0}
+		ref := ast.Ref{}
 		name := converter.resolveRef(ref)
 		assert.Equal(t, "firstVar", name)
 
@@ -308,7 +309,7 @@ func TestASTConverter_ResolveRef(t *testing.T) {
 	t.Run("returns empty for nil symbols", func(t *testing.T) {
 		converter := NewASTConverter(nil, nil, nil)
 
-		ref := ast.Ref{InnerIndex: 0}
+		ref := ast.Ref{}
 		name := converter.resolveRef(ref)
 		assert.Empty(t, name)
 	})
@@ -897,7 +898,7 @@ func TestPrintExpr(t *testing.T) {
 	})
 
 	t.Run("nil data returns empty string", func(t *testing.T) {
-		expression := js_ast.Expr{Data: nil}
+		expression := js_ast.Expr{}
 		result, err := printExpression(expression, registry)
 		require.NoError(t, err)
 		assert.Empty(t, result)
@@ -946,7 +947,7 @@ func TestPrintStatement(t *testing.T) {
 	})
 
 	t.Run("nil data returns empty string", func(t *testing.T) {
-		statement := js_ast.Stmt{Data: nil}
+		statement := js_ast.Stmt{}
 		result, err := printStatement(statement, registry)
 		require.NoError(t, err)
 		assert.Empty(t, result)
@@ -1635,4 +1636,144 @@ func TestASTConverterNamespaceImport(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestConvertObjectKeys_ComputedAndNumeric(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		code string
+		want string
+	}{
+		{"computed identifier key", `const a = { [id]: true };`, `consta={[id]:true}`},
+		{"computed numeric variable key", `const e = { [n]: 1 };`, `conste={[n]:1}`},
+		{"computed method", `const f = { [id]() { return 1; } };`, `constf={[id](){return1;}}`},
+		{"computed getter", `const h = { get [id]() { return 1; } };`, `consth={get[id](){return1;}}`},
+		{"computed __proto__ stays computed", `const o = { ['__proto__']: 1 };`, `consto={["__proto__"]:1}`},
+		{"computed expression key", `const b = { ['pre_' + id]: 1 };`, `constb={["pre_"+id]:1}`},
+		{"plain identifier key", `const p = { a: 1 };`, `constp={"a":1}`},
+		{"plain string key", `const q = { "a-b": 1 };`, `constq={"a-b":1}`},
+		{"computed identifier binding key", `const { [id]: i } = src;`, `const{[id]:i}=src`},
+		{"computed expression binding key", `const { ['a' + s]: w } = src;`, `const{["a"+s]:w}=src`},
+		{"numeric binding key", `const { 0: first } = arr;`, `const{0:first}=arr`},
+		{"computed assignment pattern key", `({ [id]: x } = src);`, `({[id]:x}=src)`},
+		{"string binding key", `const { "a-b": c } = src;`, `const{"a-b":c}=src`},
+		{"object rest binding", `const { a, ...others } = src;`, `const{"a":a,...others}=src`},
+		{"object rest only", `const { ...all } = src;`, `const{...all}=src`},
+		{"object rest after computed key", `const { [id]: i, ...others } = src;`, `const{[id]:i,...others}=src`},
+		{"object rest assignment", `({ a, ...others } = src);`, `...others}=src`},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			printed := strings.Join(strings.Fields(convertAndPrint(t, tc.code)), "")
+			assert.Contains(t, printed, tc.want)
+		})
+	}
+}
+
+func TestConvertRestSpreadAndHoles(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		code string
+		want string
+	}{
+		{"array rest binding", `const [x, ...others] = arr;`, `const[x,...others]=arr`},
+		{"nested array rest binding", `const [[head, ...others]] = arr;`, `const[[head,...others]]=arr`},
+		{"array rest binding after a default", `const [a = 1, ...r] = arr;`, `const[a=1,...r]=arr`},
+		{"array rest binding to a pattern", `const [a, ...[b, c]] = arr;`, `const[a,...[b,c]]=arr`},
+		{"leading hole", `const [, second] = arr;`, `const[,second]=arr`},
+		{"two leading holes", `const [, , third] = arr;`, `const[,,third]=arr`},
+		{"trailing hole", `const [first, ,] = arr;`, `const[first,,]=arr`},
+		{"hole before a rest binding", `const [, ...tail] = arr;`, `const[,...tail]=arr`},
+		{"object rest in an array pattern", `const [{ a, ...r }] = arr;`, `const[{"a":a,...r}]=arr`},
+		{"array rest in a for-of head", `for (const [k, ...v] of rows) { use(k, v); }`, `for(const[k,...v]ofrows)`},
+		{"array rest in a catch clause", `try { run(); } catch ([a, ...b]) { use(a, b); }`, `catch([a,...b])`},
+		{"array rest assignment", `[a, ...b] = arr;`, `[a,...b]=arr`},
+		{"function rest parameter", `function g(...values) { return values; }`, `functiong(...values)`},
+		{"rest parameter after defaults", `function g(x, y = 2, ...values) { return values; }`, `functiong(x,y=2,...values)`},
+		{"rest parameter to a pattern", `function g(...[a, b]) { return a + b; }`, `functiong(...[a,b])`},
+		{"arrow rest parameter", `const f = (a, ...b) => b;`, `constf=(a,...b)=>`},
+		{"function expression rest parameter", `const f = function (...a) { return a; };`, `function(...a)`},
+		{"class method rest parameter", `class Q { m(...xs) { return xs; } }`, `m(...xs)`},
+		{"object method rest parameter", `const o = { m(...xs) { return xs; } };`, `(...xs)`},
+		{"object rest parameter", `function f({ a, ...more }) { return more; }`, `functionf({"a":a,...more})`},
+		{"arrow object rest parameter", `const f = ({ a, ...more }) => more;`, `({"a":a,...more})=>`},
+		{"array spread", `const xs = [1, ...ys, 2];`, `constxs=[1,...ys,2]`},
+		{"array spread after a hole", `const xs = [, ...ys];`, `constxs=[,...ys]`},
+		{"array spread of a sequence", `const xs = [...(a, b)];`, `constxs=[...(a,b)]`},
+		{"call spread", `f(...xs, 1);`, `f(...xs,1)`},
+		{"new spread", `new F(...xs);`, `newF(...xs)`},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			emitted := convertAndPrint(t, tc.code)
+			assert.Contains(t, strings.Join(strings.Fields(emitted), ""), tc.want)
+			minifyEmittedJS(t, emitted)
+		})
+	}
+}
+
+func TestConvertTemplateLiteral_Escapes(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		code string
+		want string
+	}{
+		{"escaped backtick after a substitution", "const t = `${a}\\`${b}`;", "`${a}\\`${b}`"},
+		{"escaped substitution opener", "const t = `${a}\\${b}`;", "`${a}\\${b}`"},
+		{"escaped backslash", "const t = `${a}\\\\d`;", "`${a}\\\\d`"},
+		{"escaped carriage return", "const t = `${a}\\r`;", "`${a}\\r`"},
+		{"dollar without a brace is left alone", "const t = `${a}$5`;", "`${a}$5`"},
+		{"tagged template keeps its raw text", "const t = String.raw`a\\d${1}\\n`;", "String.raw`a\\d${1}\\n`"},
+		{"tagged template without substitutions keeps its raw text", "const t = String.raw`\\d+`;", "String.raw`\\d+`"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			emitted := convertAndPrint(t, tc.code)
+			assert.Contains(t, emitted, tc.want)
+			minifyEmittedJS(t, emitted)
+		})
+	}
+}
+
+func TestEscapeTemplateText(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name   string
+		cooked string
+		want   string
+	}{
+		{"plain text", "hello", "hello"},
+		{"backslash", `a\b`, `a\\b`},
+		{"backtick", "a`b", "a\\`b"},
+		{"substitution opener", "a${b}", `a\${b}`},
+		{"lone dollar", "a$b", "a$b"},
+		{"trailing dollar", "a$", "a$"},
+		{"carriage return", "a\rb", `a\rb`},
+		{"line feed stays literal", "a\nb", "a\nb"},
+		{"non-ASCII text", "héllo ✓", "héllo ✓"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tc.want, escapeTemplateText(helpers.StringToUTF16(tc.cooked)))
+		})
+	}
+}
+
+func TestConvertInlinedEnumMember(t *testing.T) {
+	t.Parallel()
+
+	emitted := convertAndPrint(t, "enum Colour { Red, Green }\nconst picked = Colour.Green;")
+	assert.Contains(t, strings.Join(strings.Fields(emitted), ""), "constpicked=1")
+	minifyEmittedJS(t, emitted)
 }

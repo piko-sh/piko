@@ -23,6 +23,7 @@ package render_domain
 import (
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1078,4 +1079,58 @@ func TestPlainTextWalker_ListCounterIncrement(t *testing.T) {
 	assert.Contains(t, result, "1. Item")
 	assert.Contains(t, result, "10. Item")
 	assert.Contains(t, result, "15. Item")
+}
+
+func TestPlainTextWalker_HeadingUnderlineMatchesDisplayWidth(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		heading string
+		want    int
+	}{
+		{name: "ASCII heading", heading: "Quarterly report", want: 16},
+		{name: "accented heading", heading: "Café résumé naïveté", want: 19},
+		{name: "combining marks add no width", heading: "Cafe\u0301 re\u0301sume\u0301 extra", want: 17},
+		{name: "CJK heading is double width", heading: "四半期報告書について", want: 20},
+		{name: "emoji heading", heading: "Launch 🚀🚀 update", want: 18},
+		{name: "short heading uses the minimum", heading: "Hi", want: minUnderlineLength},
+		{name: "long CJK heading is capped", heading: strings.Repeat("漢", 40), want: maxUnderlineLength},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := walkNodes(t, elementNode("h1", nil, textNode(tt.heading)))
+			lines := strings.Split(result, "\n")
+			require.GreaterOrEqual(t, len(lines), 2)
+
+			underline := strings.TrimSpace(lines[1])
+			assert.Equal(t, tt.want, utf8.RuneCountInString(underline))
+		})
+	}
+}
+
+func TestDisplayWidth(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		text string
+		want int
+	}{
+		{name: "empty", text: "", want: 0},
+		{name: "ASCII", text: "abc", want: 3},
+		{name: "precomposed accent", text: "é", want: 1},
+		{name: "combining accent", text: "e\u0301", want: 1},
+		{name: "zero width joiner", text: "a\u200db", want: 2},
+		{name: "fullwidth latin", text: "ＡＢ", want: 4},
+		{name: "ideographs", text: "漢字", want: 4},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, displayWidth(tt.text))
+		})
+	}
 }

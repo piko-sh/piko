@@ -207,6 +207,16 @@ piko.WithDatabase("primary", &db.DatabaseRegistration{
 
 Engine factories: `db_engine_sqlite.SQLite()`, `db_engine_postgres.Postgres()` / `PostgresPgBouncer()`, `db_engine_mysql.MySQL()`, `db_engine_mariadb.MariaDB()`, `db_engine_cockroachdb.CockroachDB()`, `db_engine_duckdb.DuckDB()`, `db_engine_clickhouse.ClickHouse()`, `db_engine_timescaledb.TimescaleDB()`.
 
+Parser limits are options on the engine constructor. Assign the result to the factory config's `Engine` field, for example `config.Engine = db_engine_postgres.NewPostgresEngine(db_engine_postgres.WithMaxTokensPerStatement(n))`.
+
+| Option | Default | Engines |
+|---|---|---|
+| `WithMaxParseDepth` | 256 | postgres, mysql, sqlite, duckdb, clickhouse |
+| `WithMaxTokensPerStatement` | 100,000 | postgres, mysql, sqlite, duckdb, clickhouse |
+| `WithMaxTypeParseDepth` | 64 | clickhouse |
+
+`NewMariaDBEngine` accepts `db_engine_mysql.Option`. `NewCockroachDBEngine` and `NewTimescaleDBEngine` accept `db_engine_postgres.Option`.
+
 Reserved names: `db.DatabaseNameRegistry` (framework registry), `db.DatabaseNameOrchestrator` (orchestrator queue) - register a SQL database under either to persist that subsystem.
 
 ## Constraints and failure modes

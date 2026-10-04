@@ -40,7 +40,7 @@ func TestRemarshalParams(t *testing.T) {
 					URI: "file:///test.pk",
 				},
 				Range: protocol.Range{
-					Start: protocol.Position{Line: 0, Character: 0},
+					Start: protocol.Position{},
 					End:   protocol.Position{Line: 10, Character: 0},
 				},
 			},
@@ -92,13 +92,13 @@ func TestHandleInlayHint(t *testing.T) {
 	}{
 		{
 			name:   "nil workspace returns empty slice",
-			server: &Server{workspace: nil},
+			server: &Server{},
 			params: InlayHintParams{
 				TextDocument: protocol.TextDocumentIdentifier{
 					URI: "file:///test.pk",
 				},
 				Range: protocol.Range{
-					Start: protocol.Position{Line: 0, Character: 0},
+					Start: protocol.Position{},
 					End:   protocol.Position{Line: 10, Character: 0},
 				},
 			},
@@ -119,14 +119,14 @@ func TestHandleInlayHint(t *testing.T) {
 					URI: "file:///nonexistent.pk",
 				},
 				Range: protocol.Range{
-					Start: protocol.Position{Line: 0, Character: 0},
+					Start: protocol.Position{},
 					End:   protocol.Position{Line: 10, Character: 0},
 				},
 			},
 		},
 		{
 			name:   "invalid params returns empty slice",
-			server: &Server{workspace: nil},
+			server: &Server{},
 			params: math.Inf(1),
 		},
 	}
@@ -158,13 +158,13 @@ func TestHandlePrepareTypeHierarchy(t *testing.T) {
 	}{
 		{
 			name:   "nil workspace returns empty slice",
-			server: &Server{workspace: nil},
+			server: &Server{},
 			params: TypeHierarchyPrepareParams{
 				TextDocumentPositionParams: protocol.TextDocumentPositionParams{
 					TextDocument: protocol.TextDocumentIdentifier{
 						URI: "file:///test.pk",
 					},
-					Position: protocol.Position{Line: 0, Character: 0},
+					Position: protocol.Position{},
 				},
 			},
 		},
@@ -184,13 +184,13 @@ func TestHandlePrepareTypeHierarchy(t *testing.T) {
 					TextDocument: protocol.TextDocumentIdentifier{
 						URI: "file:///nonexistent.pk",
 					},
-					Position: protocol.Position{Line: 0, Character: 0},
+					Position: protocol.Position{},
 				},
 			},
 		},
 		{
 			name:   "invalid params returns empty slice",
-			server: &Server{workspace: nil},
+			server: &Server{},
 			params: math.Inf(1),
 		},
 	}
@@ -222,7 +222,7 @@ func TestHandleTypeHierarchySupertypes(t *testing.T) {
 	}{
 		{
 			name:   "nil workspace returns empty slice",
-			server: &Server{workspace: nil},
+			server: &Server{},
 			params: TypeHierarchySupertypesParams{
 				Item: TypeHierarchyItem{
 					Name: "TestType",
@@ -279,7 +279,7 @@ func TestHandleTypeHierarchySubtypes(t *testing.T) {
 	}{
 		{
 			name:   "nil workspace returns empty slice",
-			server: &Server{workspace: nil},
+			server: &Server{},
 			params: TypeHierarchySubtypesParams{
 				Item: TypeHierarchyItem{
 					Name: "TestType",

@@ -128,7 +128,7 @@ func TestProcessCSS(t *testing.T) {
 			cssAST := parseTestCSS(t, tc.css)
 
 			var diagnostics []*ast_domain.Diagnostic
-			ruleSet := ProcessCSS(cssAST, &Options{ExpandShorthands: false}, &diagnostics, "test.css")
+			ruleSet := ProcessCSS(cssAST, &Options{}, &diagnostics, "test.css")
 
 			assert.Len(t, ruleSet.InlineableRules, tc.expectedInlineableCount)
 			assert.Len(t, ruleSet.LeftoverRules, tc.expectedLeftoverCount)
@@ -147,7 +147,7 @@ func TestProcessCSS(t *testing.T) {
 		css := `p { color: red !important; font-size: 12px; }`
 		cssAST := parseTestCSS(t, css)
 		var diagnostics []*ast_domain.Diagnostic
-		ruleSet := ProcessCSS(cssAST, &Options{ExpandShorthands: false}, &diagnostics, "test.css")
+		ruleSet := ProcessCSS(cssAST, &Options{}, &diagnostics, "test.css")
 
 		require.Len(t, ruleSet.InlineableRules, 1)
 		rule := ruleSet.InlineableRules[0]

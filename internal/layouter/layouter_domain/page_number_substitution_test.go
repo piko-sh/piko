@@ -40,6 +40,10 @@ func (s *stubFontMetrics) ShapeText(_ FontDescriptor, _ float64, text string, _ 
 	return glyphs
 }
 
+func (s *stubFontMetrics) ShapeAndMeasureText(font FontDescriptor, size float64, text string, direction DirectionType) ([]GlyphPosition, float64) {
+	return s.ShapeText(font, size, text, direction), s.MeasureText(font, size, text, direction)
+}
+
 func (s *stubFontMetrics) GetMetrics(_ FontDescriptor, _ float64) FontMetrics {
 	return FontMetrics{}
 }

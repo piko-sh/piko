@@ -58,11 +58,12 @@ func (s *service) Check(_ context.Context, checkType healthprobe_dto.CheckType) 
 
 	if checkType == healthprobe_dto.CheckTypeLiveness {
 		return healthprobe_dto.Status{
-			Name:      s.Name(),
-			State:     healthprobe_dto.StateHealthy,
-			Message:   "LLM service is running",
-			Timestamp: time.Now(),
-			Duration:  time.Since(startTime).String(),
+			Name:         s.Name(),
+			State:        healthprobe_dto.StateHealthy,
+			Message:      "LLM service is running",
+			Timestamp:    time.Now(),
+			Duration:     time.Since(startTime).String(),
+			Dependencies: nil,
 		}
 	}
 
@@ -83,10 +84,11 @@ func (s *service) Check(_ context.Context, checkType healthprobe_dto.CheckType) 
 	}
 
 	return healthprobe_dto.Status{
-		Name:      s.Name(),
-		State:     state,
-		Message:   message,
-		Timestamp: time.Now(),
-		Duration:  time.Since(startTime).String(),
+		Name:         s.Name(),
+		State:        state,
+		Message:      message,
+		Timestamp:    time.Now(),
+		Duration:     time.Since(startTime).String(),
+		Dependencies: nil,
 	}
 }

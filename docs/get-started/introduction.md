@@ -78,4 +78,4 @@ This folder holds four onboarding pages. Introduction, install, concepts, and pr
 
 ## Requirements
 
-Piko targets Go 1.26 or later. See [Install and run](install.md) for the full setup steps.
+Piko targets Go 1.27 or later. See [Install and run](install.md) for the full setup steps.

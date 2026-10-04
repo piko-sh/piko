@@ -233,5 +233,6 @@ func (r *inMemoryRegistry) TagNames() []string {
 func NewInMemoryRegistry() component_domain.ComponentRegistry {
 	return &inMemoryRegistry{
 		components: make(map[string]*component_dto.ComponentDefinition),
+		mu:         sync.RWMutex{},
 	}
 }

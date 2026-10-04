@@ -79,7 +79,7 @@ type DefaultPaneAssigner struct {
 //
 // Returns *DefaultPaneAssigner ready for use.
 func NewDefaultPaneAssigner() *DefaultPaneAssigner {
-	return &DefaultPaneAssigner{Pairings: nil}
+	return &DefaultPaneAssigner{}
 }
 
 // Assign implements the PaneAssigner contract.

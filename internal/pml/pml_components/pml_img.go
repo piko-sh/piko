@@ -43,9 +43,7 @@ var (
 //
 // Returns *Image which is the configured component ready for use.
 func NewImage() *Image {
-	return &Image{
-		BaseComponent: BaseComponent{},
-	}
+	return &Image{}
 }
 
 // TagName returns the tag name for this component.

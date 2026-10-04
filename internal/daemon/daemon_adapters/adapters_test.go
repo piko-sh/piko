@@ -1657,9 +1657,7 @@ func TestNewCacheMiddleware_CreatesMiddleware(t *testing.T) {
 func TestNewCacheMiddleware_SetsDefaults_WhenConcurrencyZero(t *testing.T) {
 	t.Parallel()
 
-	artefactConfig := CacheMiddlewareConfig{
-		CacheWriteConcurrency: 0,
-	}
+	artefactConfig := CacheMiddlewareConfig{}
 	manifest := &templater_domain.MockManifestStoreView{}
 	registry := &registry_domain.MockRegistryService{}
 	mw := NewCacheMiddleware(artefactConfig, manifest, registry, nil, "")
@@ -1975,10 +1973,7 @@ func TestSelectStaticVariant_ReturnsSourceVariant_WhenNoCompression(t *testing.T
 		},
 	}
 	request := httptest.NewRequest(http.MethodGet, "/test", nil)
-	artefactConfig := staticArtefactConfig{
-		useCompression: false,
-		preferredType:  "",
-	}
+	artefactConfig := staticArtefactConfig{}
 
 	variant := selectStaticVariant(request, artefact, artefactConfig)
 

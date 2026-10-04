@@ -78,7 +78,7 @@ type Matrix struct {
 // Identity returns the identity matrix.
 //
 // Returns Matrix which represents no transformation.
-func Identity() Matrix { return Matrix{A: 1, D: 1} }
+func Identity() Matrix { return Matrix{A: 1, D: 1, B: 0, C: 0, E: 0, F: 0} }
 
 // Translate returns a translation matrix.
 //
@@ -87,7 +87,7 @@ func Identity() Matrix { return Matrix{A: 1, D: 1} }
 //
 // Returns Matrix which applies the specified translation.
 func Translate(tx, ty float64) Matrix {
-	return Matrix{A: 1, D: 1, E: tx, F: ty}
+	return Matrix{A: 1, D: 1, E: tx, F: ty, B: 0, C: 0}
 }
 
 // Scale returns a scaling matrix.
@@ -97,7 +97,7 @@ func Translate(tx, ty float64) Matrix {
 //
 // Returns Matrix which applies the specified scaling.
 func Scale(sx, sy float64) Matrix {
-	return Matrix{A: sx, D: sy}
+	return Matrix{A: sx, D: sy, B: 0, C: 0, E: 0, F: 0}
 }
 
 // Rotate returns a rotation matrix for the given angle in degrees.
@@ -109,7 +109,7 @@ func Rotate(angleDeg float64) Matrix {
 	rad := angleDeg * degreesToRadiansTransform
 	cos := math.Cos(rad)
 	sin := math.Sin(rad)
-	return Matrix{A: cos, B: sin, C: -sin, D: cos}
+	return Matrix{A: cos, B: sin, C: -sin, D: cos, E: 0, F: 0}
 }
 
 // SkewX returns a horizontal skew matrix for the given angle in degrees.
@@ -119,7 +119,7 @@ func Rotate(angleDeg float64) Matrix {
 // Returns Matrix which applies the horizontal skew.
 func SkewX(angleDeg float64) Matrix {
 	rad := angleDeg * degreesToRadiansTransform
-	return Matrix{A: 1, C: math.Tan(rad), D: 1}
+	return Matrix{A: 1, C: math.Tan(rad), D: 1, B: 0, E: 0, F: 0}
 }
 
 // SkewY returns a vertical skew matrix for the given angle in degrees.
@@ -129,7 +129,7 @@ func SkewX(angleDeg float64) Matrix {
 // Returns Matrix which applies the vertical skew.
 func SkewY(angleDeg float64) Matrix {
 	rad := angleDeg * degreesToRadiansTransform
-	return Matrix{A: 1, B: math.Tan(rad), D: 1}
+	return Matrix{A: 1, B: math.Tan(rad), D: 1, C: 0, E: 0, F: 0}
 }
 
 // Multiply returns the product m * n (apply n first, then m).

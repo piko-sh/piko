@@ -29,7 +29,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	protocol "github.com/politepixels/golang-language-server"
 	"go.lsp.dev/jsonrpc2"
 	"piko.sh/piko/cmd/pikopls/internal/lsp/gopls_bridge"
 	"piko.sh/piko/cmd/pikopls/internal/lsp/lsp_domain"
@@ -371,11 +370,12 @@ func (a *tcpAdapter) handleConnection(ctx context.Context, conn net.Conn) {
 		GoplsManager:         a.goplsManager,
 		FormattingEnabled:    a.formattingEnabled,
 		GoplsBridgeEnabled:   a.goplsBridgeEnabled,
+		Clock:                nil,
 	})
 
 	defer func() { _ = pikoServer.Shutdown(context.WithoutCancel(ctx)) }()
 
-	_, jsonrpcConn, client := protocol.NewServer(ctx, pikoServer, stream, slog.Default())
+	jsonrpcConn, client := serveProtocol(ctx, pikoServer, stream, slog.Default())
 	pikoServer.SetClient(client)
 	pikoServer.SetConn(jsonrpcConn)
 
@@ -464,6 +464,7 @@ func NewTCPAdapter(deps TCPAdapterDeps) (lsp_domain.LSPServerPort, error) {
 		maxMessageBytes:             maxMessageBytes,
 		connectionInactivityTimeout: inactivity,
 		connectionSemaphore:         make(chan struct{}, maxConnections),
+		goroutineWG:                 sync.WaitGroup{},
 	}, nil
 }
 
@@ -500,7 +501,7 @@ var (
 // Returns *cappedReadWriteCloser which delegates Write/Close to inner and enforces the
 // cap on Read.
 func newCappedReadWriteCloser(inner io.ReadWriteCloser, limit int64) *cappedReadWriteCloser {
-	return &cappedReadWriteCloser{inner: inner, limit: limit}
+	return &cappedReadWriteCloser{inner: inner, limit: limit, readSoFar: atomic.Int64{}}
 }
 
 // Read delegates to the wrapped conn but trims the requested length so the cumulative

@@ -114,7 +114,7 @@ func TestIsCosmeticMediaVariant(t *testing.T) {
 	assert.False(t, isCosmeticMediaVariant(&registry_dto.Variant{MimeType: "text/css; charset=utf-8"}))
 	assert.False(t, isCosmeticMediaVariant(&registry_dto.Variant{MimeType: "video/mp2t"}))
 	assert.False(t, isCosmeticMediaVariant(&registry_dto.Variant{MimeType: "application/manifest+json"}))
-	assert.False(t, isCosmeticMediaVariant(&registry_dto.Variant{MimeType: ""}))
+	assert.False(t, isCosmeticMediaVariant(&registry_dto.Variant{}))
 	assert.False(t, isCosmeticMediaVariant(nil))
 }
 

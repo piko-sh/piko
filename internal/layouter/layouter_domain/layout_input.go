@@ -64,6 +64,10 @@ type layoutInput struct {
 	// LayoutBoxTree call. Nil disables caching.
 	Cache *layoutCache
 
+	// Limits enforces the layout limits and records the first breach. Nil applies the
+	// default limits without recording breaches.
+	Limits *LimitTracker
+
 	// Floats provides access to the parent block formatting context's float state, allowing
 	// inline content to shorten line boxes around floats. Nil when no floats are active.
 	Floats *floatContext
@@ -125,4 +129,96 @@ type layoutInput struct {
 	// IsFixedInlineSize indicates that the parent has already determined this box's inline
 	// size. False is the default.
 	IsFixedInlineSize bool
+}
+
+// newRootLayoutInput creates the layoutInput for the root of a layout, carrying the font
+// metrics, layout cache and limit tracker that every descendant input inherits. All other
+// constraints start at zero, giving no edges, floats, fragmentainer, or fixed inline
+// size, and using normal sizing mode.
+//
+// Takes fontMetrics (FontMetricsPort) which provides text measurement.
+// Takes cache (*layoutCache) which stores layout results for reuse, or nil to disable
+// caching.
+// Takes limits (*LimitTracker) which enforces the layout limits, or nil for defaults.
+// Takes availableWidth (float64) which is the inline-axis space in points.
+// Takes availableBlockSize (float64) which is the block-axis space in points, or zero
+// when indefinite.
+//
+// Returns layoutInput which is the constraint set for the root layout.
+func newRootLayoutInput(
+	fontMetrics FontMetricsPort,
+	cache *layoutCache,
+	limits *LimitTracker,
+	availableWidth float64,
+	availableBlockSize float64,
+) layoutInput {
+	return layoutInput{
+		FontMetrics:              fontMetrics,
+		Cache:                    cache,
+		Limits:                   limits,
+		Floats:                   nil,
+		Edges:                    resolvedEdges{},
+		AvailableWidth:           availableWidth,
+		AvailableBlockSize:       availableBlockSize,
+		PercentageResolution:     0,
+		BFCOffset:                0,
+		MarginStrut:              0,
+		FragmentainerBlockSize:   0,
+		FragmentainerOffset:      0,
+		FloatBFCOffsetY:          0,
+		FloatContainerX:          0,
+		FloatContainerWidth:      0,
+		SizingMode:               SizingModeNormal,
+		ContainingBlockDirection: DirectionLTR,
+		IsNewBFC:                 false,
+		IsFixedInlineSize:        false,
+	}
+}
+
+// newLayoutInput creates a layoutInput for a child layout, inheriting the parent's font
+// metrics, layout cache and limit tracker with the given available sizes and resolved
+// edges. All other constraints start at zero, giving no floats, fragmentainer, or fixed
+// inline size, and using normal sizing mode.
+//
+// Takes parent (layoutInput) which supplies the inherited font metrics, cache and limit
+// tracker.
+// Takes availableWidth (float64) which is the inline-axis space in points.
+// Takes availableBlockSize (float64) which is the block-axis space in points, or zero
+// when indefinite.
+// Takes edges (resolvedEdges) which holds the box's resolved padding, border and vertical
+// margins.
+//
+// Returns layoutInput which is the constraint set for the child layout.
+func newLayoutInput(
+	parent layoutInput,
+	availableWidth float64,
+	availableBlockSize float64,
+	edges resolvedEdges,
+) layoutInput {
+	input := newRootLayoutInput(parent.FontMetrics, parent.Cache, parent.Limits, availableWidth, availableBlockSize)
+	input.Edges = edges
+	return input
+}
+
+// newFixedInlineSizeInput creates a layoutInput for a child whose inline size its parent
+// formatting context has already resolved, such as a flex item, grid item or table cell.
+//
+// Takes parent (layoutInput) which supplies the inherited font metrics, cache and limit
+// tracker.
+// Takes availableWidth (float64) which is the resolved inline size in points.
+// Takes availableBlockSize (float64) which is the block-axis space in points, or zero
+// when indefinite.
+// Takes edges (resolvedEdges) which holds the child's resolved padding, border and
+// vertical margins.
+//
+// Returns layoutInput which is the constraint set with IsFixedInlineSize set.
+func newFixedInlineSizeInput(
+	parent layoutInput,
+	availableWidth float64,
+	availableBlockSize float64,
+	edges resolvedEdges,
+) layoutInput {
+	input := newLayoutInput(parent, availableWidth, availableBlockSize, edges)
+	input.IsFixedInlineSize = true
+	return input
 }

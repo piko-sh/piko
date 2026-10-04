@@ -30,9 +30,9 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/stretchr/testify/require"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/resolver/resolver_domain"
 )
 
@@ -544,7 +544,7 @@ func TestProcessParseResultError(t *testing.T) {
 	t.Run("should return nil for a successful result", func(t *testing.T) {
 		t.Parallel()
 
-		result := &parseResult{err: nil}
+		result := &parseResult{}
 		diagnostics, fatalErr := builder.processParseResultError(result)
 
 		assert.Nil(t, diagnostics)

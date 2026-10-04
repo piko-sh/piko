@@ -21,6 +21,7 @@ package orchestrator_adapters
 import (
 	"context"
 	"errors"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -187,6 +188,52 @@ func TestWatermillEventBus_PublishWhenClosed(t *testing.T) {
 	assert.ErrorIs(t, err, orchestrator_domain.ErrServiceClosed)
 }
 
+type recordingPublisher struct {
+	published []*message.Message
+}
+
+func (p *recordingPublisher) Publish(_ string, messages ...*message.Message) error {
+	p.published = append(p.published, messages...)
+	return nil
+}
+
+func (*recordingPublisher) Close() error { return nil }
+
+func TestWatermillEventBus_Publish_PayloadLimit(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name          string
+		value         string
+		wantErr       bool
+		wantPublished int
+	}{
+		{name: "payload within the limit is published", value: "small", wantPublished: 1},
+		{name: "payload over the limit is refused", value: strings.Repeat("x", 512), wantErr: true},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			publisher := &recordingPublisher{}
+			bus := NewWatermillEventBus(publisher, nil, nil, WithMaxEventPayloadBytes(256))
+
+			err := bus.Publish(t.Context(), "topic", orchestrator_domain.Event{
+				Type:    orchestrator_domain.EventType("test"),
+				Payload: map[string]any{"value": tc.value},
+			})
+			if tc.wantErr {
+				require.ErrorIs(t, err, ErrEventPayloadTooLarge)
+			} else {
+				require.NoError(t, err)
+			}
+			assert.Len(t, publisher.published, tc.wantPublished,
+				"a message every subscriber would drop unread must never be published")
+		})
+	}
+}
+
 func TestWatermillEventBus_SubscribeWhenClosed(t *testing.T) {
 	t.Parallel()
 
@@ -339,9 +386,7 @@ func TestWatermillEventBus_CreateChannelMessageHandler_AcksOversize(t *testing.T
 func TestWatermillMonitor_RecoversFromPanic(t *testing.T) {
 	t.Parallel()
 
-	web := &watermillEventBus{
-		subscriptions: nil,
-	}
+	web := &watermillEventBus{}
 
 	ctx, cancel := context.WithCancelCause(t.Context())
 	web.monitorContextCancellation(ctx, "test-topic")
@@ -441,4 +486,86 @@ func TestPayloadTime_MissingKeyReturnsZero(t *testing.T) {
 	got := payloadTime(map[string]any{}, "executeAt")
 
 	require.True(t, got.IsZero())
+}
+
+func TestWatermillEventBus_DeliverWithBackpressure(t *testing.T) {
+	t.Parallel()
+
+	queued := orchestrator_domain.Event{Type: orchestrator_domain.EventType("queued")}
+	incoming := orchestrator_domain.Event{Type: orchestrator_domain.EventType("incoming")}
+
+	testCases := []struct {
+		name       string
+		wantTypes  []orchestrator_domain.EventType
+		mode       BackpressureMode
+		bufferFull bool
+		cancelled  bool
+		wantAck    bool
+	}{
+		{
+			name:      "free buffer delivers and acks",
+			mode:      BackpressureDropNewest,
+			wantTypes: []orchestrator_domain.EventType{"incoming"},
+			wantAck:   true,
+		},
+		{
+			name:       "cancelled subscription with a full buffer nacks",
+			mode:       BackpressureBlock,
+			bufferFull: true,
+			cancelled:  true,
+			wantTypes:  []orchestrator_domain.EventType{"queued"},
+			wantAck:    false,
+		},
+		{
+			name:       "drop newest nacks the incoming event when full",
+			mode:       BackpressureDropNewest,
+			bufferFull: true,
+			wantTypes:  []orchestrator_domain.EventType{"queued"},
+			wantAck:    false,
+		},
+		{
+			name:       "drop oldest evicts the queued event to deliver the incoming one",
+			mode:       BackpressureDropOldest,
+			bufferFull: true,
+			wantTypes:  []orchestrator_domain.EventType{"incoming"},
+			wantAck:    true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			bus := &watermillEventBus{backpressureMode: tc.mode}
+			outputChan := make(chan orchestrator_domain.Event, 1)
+			if tc.bufferFull {
+				outputChan <- queued
+			}
+
+			subCtx, cancel := context.WithCancelCause(t.Context())
+			defer cancel(errors.New("test finished"))
+			if tc.cancelled {
+				cancel(errors.New("subscription closed"))
+			}
+
+			wmMessage := message.NewMessage("message-id", nil)
+			bus.deliverWithBackpressure(t.Context(), subCtx, outputChan, incoming, wmMessage)
+
+			close(outputChan)
+			var gotTypes []orchestrator_domain.EventType
+			for event := range outputChan {
+				gotTypes = append(gotTypes, event.Type)
+			}
+			assert.Equal(t, tc.wantTypes, gotTypes)
+
+			select {
+			case <-wmMessage.Acked():
+				assert.True(t, tc.wantAck, "message should have been nacked")
+			case <-wmMessage.Nacked():
+				assert.False(t, tc.wantAck, "message should have been acked")
+			default:
+				require.FailNow(t, "message was neither acked nor nacked")
+			}
+		})
+	}
 }

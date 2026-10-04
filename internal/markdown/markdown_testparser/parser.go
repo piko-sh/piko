@@ -394,6 +394,8 @@ func parseFencedCodeBlock(parent markdown_ast.Node, lines []blockLine, start int
 	if info != "" {
 		fcb.Info = info
 		fcb.Language = extractFenceLanguage(info)
+		infoStart := lines[start].offset + len(m[1]) + len(m[2]) + len(m[3]) - len(strings.TrimLeftFunc(m[3], unicode.IsSpace))
+		fcb.InfoSegment = markdown_ast.Segment{Start: infoStart, Stop: infoStart + len(info)}
 	}
 
 	i := start + 1
@@ -779,6 +781,8 @@ func parseInlines(parent markdown_ast.Node, text []byte, baseOffset int) {
 		parent:     parent,
 		text:       text,
 		baseOffset: baseOffset,
+		position:   0,
+		textStart:  0,
 	}
 
 	for p.position < len(text) {

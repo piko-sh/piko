@@ -16,7 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-//go:build linux || darwin || freebsd || openbsd || netbsd
+//go:build linux || darwin || freebsd
 
 package provider_disk
 
@@ -39,7 +39,7 @@ func getDiskSpace(rootPath string) (availableMB, totalMB uint64, err error) {
 	if err := syscall.Statfs(rootPath, &stat); err != nil {
 		return 0, 0, fmt.Errorf("querying disk space for %q: %w", rootPath, err)
 	}
-	availableMB = (stat.Bavail * safeconv.ToUint64(stat.Bsize)) / bytesPerMegabyte
-	totalMB = (stat.Blocks * safeconv.ToUint64(stat.Bsize)) / bytesPerMegabyte
+	availableMB = (safeconv.ToUint64(stat.Bavail) * safeconv.ToUint64(stat.Bsize)) / bytesPerMegabyte
+	totalMB = (safeconv.ToUint64(stat.Blocks) * safeconv.ToUint64(stat.Bsize)) / bytesPerMegabyte
 	return availableMB, totalMB, nil
 }

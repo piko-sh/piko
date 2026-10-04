@@ -22,7 +22,7 @@ import (
 	"go/ast"
 	"strings"
 
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/querier/querier_adapters/emitter_shared"
 	"piko.sh/piko/internal/querier/querier_domain"
 	"piko.sh/piko/internal/querier/querier_dto"
@@ -126,7 +126,7 @@ func NewSQLEmitter() *SQLEmitter {
 //
 // Returns *SQLEmitter which emits anonymous placeholders for MySQL and MariaDB.
 func NewSQLEmitterForMySQL() *SQLEmitter {
-	return &SQLEmitter{plainPlaceholders: true}
+	return &SQLEmitter{plainPlaceholders: true, wrapAsClickHouseNamed: false, dollarPlaceholders: false}
 }
 
 // NewSQLEmitterForClickHouse creates a database/sql emitter configured for the ClickHouse
@@ -138,7 +138,7 @@ func NewSQLEmitterForMySQL() *SQLEmitter {
 //
 // Returns *SQLEmitter which wraps parameter accesses for the ClickHouse driver.
 func NewSQLEmitterForClickHouse() *SQLEmitter {
-	return &SQLEmitter{wrapAsClickHouseNamed: true}
+	return &SQLEmitter{wrapAsClickHouseNamed: true, plainPlaceholders: false, dollarPlaceholders: false}
 }
 
 // NewSQLEmitterForPostgres creates a database/sql emitter configured for the postgres
@@ -150,7 +150,7 @@ func NewSQLEmitterForClickHouse() *SQLEmitter {
 //
 // Returns *SQLEmitter which emits `$N` slice expansions for the postgres family.
 func NewSQLEmitterForPostgres() *SQLEmitter {
-	return &SQLEmitter{dollarPlaceholders: true}
+	return &SQLEmitter{dollarPlaceholders: true, plainPlaceholders: false, wrapAsClickHouseNamed: false}
 }
 
 // NewSQLEmitterForDialect returns the database/sql emitter configured for the named

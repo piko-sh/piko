@@ -25,7 +25,7 @@ import (
 )
 
 func TestBatchResult_HasErrors(t *testing.T) {
-	r := &BatchResult{TotalFailed: 0}
+	r := &BatchResult{}
 	if r.HasErrors() {
 		t.Error("HasErrors() should be false when TotalFailed is 0")
 	}

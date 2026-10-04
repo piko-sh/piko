@@ -33,6 +33,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"sync"
@@ -60,6 +61,12 @@ const (
 
 	// logKeyError is the structured logging key for error messages.
 	logKeyError = "error"
+)
+
+var (
+	// goDiagnosticLine matches one Go compiler diagnostic line such as "./broken.go:3:13:
+	// cannot use ...", optionally prefixed by a Windows drive letter.
+	goDiagnosticLine = regexp.MustCompile(`^(?:[A-Za-z]:)?[^\s:]+\.go:\d+(?::\d+)?: `)
 )
 
 // parseFileFunc is the signature for ParseFile callbacks used during loading.
@@ -433,6 +440,9 @@ func runGoList(ctx context.Context, cfg *packages.Config, overlayFile string, pa
 //
 // Takes listed ([]goListPkg) which is the go list JSON output.
 // Takes fset (*token.FileSet) which is the shared file set.
+// Takes parseInitial (parseFileFunc) which parses source files in the initially requested
+// packages.
+// Takes parseDepFn (parseFileFunc) which parses source files in dependency packages.
 //
 // Returns a map of all loader packages keyed by import path, the root packages slice, and
 // any error.
@@ -487,7 +497,7 @@ func createPackages(
 			pkg.Errors = append(pkg.Errors, packages.Error{
 				Pos:  lp.Error.Pos,
 				Msg:  lp.Error.Err,
-				Kind: packages.ListError,
+				Kind: goListErrorKind(lp),
 			})
 		}
 
@@ -623,6 +633,9 @@ func parseAndTypeCheck(
 		overlay:       overlay,
 		exportImports: exportImports,
 		cpuLimit:      make(chan struct{}, runtime.GOMAXPROCS(0)),
+		exportBufPool: sync.Pool{},
+		wg:            sync.WaitGroup{},
+		exportMu:      sync.Mutex{},
 	}
 
 	for _, lp := range pkgMap {
@@ -711,7 +724,7 @@ func (st *typeCheckState) loadFromExportData(ctx context.Context, lp *loaderPkg)
 		return false
 	}
 
-	r, err := gcexportdata.NewReader(bufio.NewReaderSize(f, exportReaderBufSize))
+	r, err := exportDataReader(bufio.NewReaderSize(f, exportReaderBufSize))
 	if err != nil {
 		_ = f.Close()
 		l.Warn("failed to create export reader",
@@ -913,3 +926,60 @@ type importerFunc func(path string) (*types.Package, error)
 // Returns *Package which contains the imported package types.
 // Returns error when the import path cannot be resolved.
 func (f importerFunc) Import(path string) (*types.Package, error) { return f(path) }
+
+// goListErrorKind classifies an error reported by go list.
+//
+// Because packages are listed with -export, go list compiles every package, and a package
+// that fails to compile reports the compiler output ("# <import path>" followed by the
+// diagnostics) in its Error field. When that output consists only of Go compiler
+// diagnostics it is a type or syntax error in the package's own source rather than a
+// failure to list it, so it is classed as a TypeError; this lets callers that tolerate
+// type errors keep going, exactly as they do for the matching errors the source type
+// check reports. Toolchain failures share the same header (a missing C compiler,
+// pkg-config, a missing C header), so they and every other go list error remain a
+// ListError.
+//
+// Takes listed (*goListPkg) which is the go list entry carrying the error.
+//
+// Returns packages.ErrorKind which is TypeError for a Go compile failure and ListError
+// otherwise.
+func goListErrorKind(listed *goListPkg) packages.ErrorKind {
+	if listed.Error.Pos != "" {
+		return packages.ListError
+	}
+	body, found := strings.CutPrefix(listed.Error.Err, "# "+listed.ImportPath+"\n")
+	if !found || !isGoCompilerOutput(body) {
+		return packages.ListError
+	}
+	return packages.TypeError
+}
+
+// isGoCompilerOutput reports whether compiler output consists solely of diagnostic lines,
+// each being either a "file.go:line:col: message" diagnostic or a tab-indented
+// continuation of one. Output from cgo, pkg-config or a C compiler is rejected.
+//
+// Takes output (string) which is the compiler output after the "# <import path>" header.
+//
+// Returns bool which is true when the output is non-empty and made only of Go
+// diagnostics.
+func isGoCompilerOutput(output string) bool {
+	sawDiagnostic := false
+	for line := range strings.Lines(output) {
+		line = strings.TrimRight(line, "\r\n")
+		switch {
+		case line == "":
+			continue
+		case line[0] == '\t' || line[0] == ' ':
+			if !sawDiagnostic {
+				return false
+			}
+		case strings.HasPrefix(line, "cgo:") || strings.HasPrefix(line, "# "):
+			return false
+		case !goDiagnosticLine.MatchString(line) || strings.Contains(line, ": fatal error: "):
+			return false
+		default:
+			sawDiagnostic = true
+		}
+	}
+	return sawDiagnostic
+}

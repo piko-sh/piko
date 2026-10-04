@@ -454,7 +454,12 @@ func normaliseToCallExpr(expression ast_domain.Expression) *ast_domain.CallExpre
 		return &ast_domain.CallExpression{
 			Callee: identifier,
 			Args: []ast_domain.Expression{
-				&ast_domain.Identifier{Name: "$event"},
+				&ast_domain.Identifier{
+					Name:             "$event",
+					GoAnnotations:    nil,
+					RelativeLocation: ast_domain.Location{},
+					SourceLength:     0,
+				},
 			},
 			GoAnnotations:    nil,
 			RelativeLocation: ast_domain.Location{},

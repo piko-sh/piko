@@ -1115,3 +1115,61 @@ func mustRoundTrip(t *testing.T, original *ast_domain.TemplateAST) *ast_domain.T
 
 	return decoded
 }
+
+func TestRoundTrip_AttributeWritersKeepTheirRenderedValue(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		build func(writer *ast_domain.DirectWriter)
+		name  string
+	}{
+		{name: "a string part", build: func(writer *ast_domain.DirectWriter) { writer.AppendString("card") }},
+		{name: "an integer part", build: func(writer *ast_domain.DirectWriter) { writer.AppendInt(-42) }},
+		{name: "an unsigned part", build: func(writer *ast_domain.DirectWriter) { writer.AppendUint(42) }},
+		{name: "a float part", build: func(writer *ast_domain.DirectWriter) { writer.AppendFloat(1.5) }},
+		{name: "a boolean part", build: func(writer *ast_domain.DirectWriter) { writer.AppendBool(true) }},
+		{name: "an escaped string part", build: func(writer *ast_domain.DirectWriter) { writer.AppendEscapeString("<b>") }},
+		{
+			name: "several parts in sequence",
+			build: func(writer *ast_domain.DirectWriter) {
+				writer.AppendString("item-")
+				writer.AppendInt(3)
+				writer.AppendString(" active")
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			writer := &ast_domain.DirectWriter{}
+			writer.SetName("class")
+			testCase.build(writer)
+			element := &ast_domain.TemplateNode{NodeType: ast_domain.NodeElement, TagName: "div"}
+			element.AttributeWriters = []*ast_domain.DirectWriter{writer}
+			original := &ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{element}}
+
+			decoded := mustRoundTrip(t, original)
+
+			require.Len(t, decoded.RootNodes, 1)
+			require.Len(t, decoded.RootNodes[0].AttributeWriters, 1)
+			decodedWriter := decoded.RootNodes[0].AttributeWriters[0]
+			assert.Equal(t, writer.Name, decodedWriter.Name)
+			assert.Equal(t, writer.String(), decodedWriter.String())
+		})
+	}
+}
+
+func TestRoundTrip_DiagnosticDataSurvives(t *testing.T) {
+	t.Parallel()
+
+	diagnostic := ast_domain.NewDiagnostic(ast_domain.Warning, "unknown prop", "title", ast_domain.Location{}, "pages/home.pk")
+	diagnostic.Data = map[string]any{"suggestion": "heading", "distance": float64(2), "candidates": []any{"heading", "label"}}
+	original := &ast_domain.TemplateAST{Diagnostics: []*ast_domain.Diagnostic{diagnostic}}
+
+	decoded := mustRoundTrip(t, original)
+
+	require.Len(t, decoded.Diagnostics, 1)
+	assert.Equal(t, diagnostic.Data, decoded.Diagnostics[0].Data)
+}

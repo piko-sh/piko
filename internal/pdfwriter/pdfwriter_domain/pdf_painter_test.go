@@ -21,6 +21,7 @@ package pdfwriter_domain
 import (
 	"bytes"
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -1119,4 +1120,55 @@ func TestConfigurePainter_WithGlyphWidthFunc(t *testing.T) {
 	result := painter.glyphWidthFunc("test", 400, 0, 1)
 	assert.True(t, called, "expected glyphWidthFunc to be called")
 	assert.Equal(t, 500, result)
+}
+
+type panickingImageData struct{}
+
+func (panickingImageData) GetImageData(context.Context, string) ([]byte, string, error) {
+	panic("image source exploded")
+}
+
+func TestPaint_RecoversPanics(t *testing.T) {
+	t.Parallel()
+
+	box := newLayoutBox().WithContentRect(0, 0, 100, 100).WithBoxType(layouter_domain.BoxBlock).Build()
+	box.Style.BorderImageSource = "border.png"
+	root := newLayoutBox().WithBoxType(layouter_domain.BoxBlock).WithChildren(box).Build()
+
+	painter := NewPdfPainter(595, 842, nil, panickingImageData{})
+	var output bytes.Buffer
+	var err error
+	assert.NotPanics(t, func() {
+		err = painter.Paint(context.Background(), &layouter_dto.LayoutResult{RootBox: root}, &output)
+	})
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "panic during PDF painting")
+	assert.Zero(t, output.Len(), "nothing is written when painting panics")
+}
+
+func TestPaint_CancelledContextReturnsError(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancelCause(context.Background())
+	cancel(errors.New("stopped by test"))
+
+	root := newLayoutBox().WithBoxType(layouter_domain.BoxBlock).Build()
+	var output bytes.Buffer
+	err := newPainterWithDefaults().Paint(ctx, &layouter_dto.LayoutResult{RootBox: root}, &output)
+
+	assert.ErrorIs(t, err, context.Canceled)
+}
+
+func TestConfigurePainter_MaxImagePixels(t *testing.T) {
+	t.Parallel()
+
+	painter := newPainterWithDefaults()
+	assert.Equal(t, DefaultMaxImagePixels, painter.imageEmbedder.maxPixels)
+
+	ConfigurePainter(painter, PainterConfig{MaxImagePixels: 42})
+	assert.Equal(t, 42, painter.imageEmbedder.maxPixels)
+
+	ConfigurePainter(painter, PainterConfig{})
+	assert.Equal(t, 42, painter.imageEmbedder.maxPixels, "an unset cap leaves the configured cap in place")
 }

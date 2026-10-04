@@ -28,13 +28,27 @@ Run `piko help` for a condensed list. Every subcommand accepts `--help` for its 
 | `piko generate` | Generate assets and the manifest, equivalent to `go run ./cmd/generator all`. Accepts an optional mode argument: `all` (default), `manifest`, `assets`, or `sql`. |
 | `piko build` | Generate then compile a self-contained production binary. Flags: `--output`/`-o` (binary path, default `bin/app`), `--mode` (generate mode, default `all`), `--no-embed` (build a binary that serves `dist/` and `.piko/` from disk instead of embedding them). |
 | `piko dev` | Generate assets then run the development server, equivalent to `go run ./cmd/generator all && go run ./cmd/main dev`. |
-| `piko dev-i` | Generate assets then run the development server in interpreted mode, equivalent to `go run ./cmd/generator all && go run ./cmd/main dev-i`. Requires a project scaffolded with interpreted mode. |
+| `piko dev-i` | Generate assets then run the development server in interpreted mode, equivalent to `go run ./cmd/generator all && go run ./cmd/main dev-i`. Requires [interpreter registration](../how-to/interpreted-mode.md#register-the-interpreter). |
 | `piko fmt` | Format `.pk` template files. Flags: `-w` (write, default `true`), `-r` (recurse), `-n` (dry run), `--check` (exit 1 if any files need formatting), `-l` (list files needing formatting). Accepts file or directory arguments. |
-| `piko extract <subcommand>` | Extract Go package symbols for the bytecode interpreter. Subcommands: `init` (write a starter `extract.yaml`), `discover` (find packages used by the project), `generate` (run extraction and emit the descriptor), `check` (verify the descriptor is up to date). Run `piko extract <subcommand> --help` for flags. |
+| `piko extract <subcommand>` | Generate and check native Go symbol tables for Pipit. See [symbol extraction](#symbol-extraction). |
 | `piko inspect <type> <file>` | Inspect FlatBuffers binary files. Types: `manifest`, `i18n`, `collection`, `search`, `bytecode`, `wal`. WAL-only flags: `--effective` (final state per key after replay), `--parse-values` (parse JSON string values into native objects). All types accept `--compact` for compact JSON. |
-| `piko bytecode <file.go> [flags]` | Compile a Go file to Piko bytecode and inspect or save it. Flags: `--types <descriptor>` (path to `gen_types_descriptor.json`), `--save <output>` (write the compiled `.bin` instead of printing JSON inspection), `--asm` (print human-readable bytecode assembly in `.pkasm` format), `--compact` (compact JSON output instead of pretty-printed). Without `--save` or `--asm` the command prints the bytecode as JSON. |
 | `piko agents` | Configure AI coding tools with Piko knowledge (Claude Code, Codex, Cursor, etc.). |
 | `piko profile <url>` | Profile a live server under load: CPU, memory, mutex, and blocking profiles. Supports `--focus` to scope results. See [how to profiling](../how-to/profiling.md) for interpretation. |
+
+## Symbol extraction
+
+`piko extract` uses `pipit.sh/pipit/sdk/extract` with Piko's `.pk` scanner, package exclusions, and manifest defaults.
+
+| Subcommand | Behaviour |
+|---|---|
+| `init` | Scans project imports and writes `piko-symbols.yaml`. The package list can be empty. Refuses to overwrite an existing file without `--force`. |
+| `discover` | Reports packages that need symbol tables without writing a manifest. |
+| `generate` | Generates symbol tables from a non-empty manifest. The default output is `internal/piko_symbols`. |
+| `check` | Checks the manifest against project imports. |
+
+Each subcommand accepts `--help` for its flags. The [interpreted-mode guide](../how-to/interpreted-mode.md#add-native-package-symbols) covers the extraction workflow.
+
+For bytecode inspection, `WithBytecodeEmission(dir)` writes diagnostic files under `<dir>/compiled/`. See the [interpreter API](interpreter-api.md#bytecode-emission) for their contents.
 
 ## Monitoring commands
 
@@ -112,13 +126,7 @@ piko agents install
 # Binary inspection
 piko inspect manifest dist/manifest.bin
 piko inspect wal .piko/wal/data.wal
-piko inspect bytecode dist/pages/page_abc/bytecode-def.bin
-
-# Bytecode compilation
-piko bytecode --types dist/gen_types_descriptor.json ./pages/index.go
-piko bytecode --types dist/gen_types_descriptor.json --save ./out.bin ./pages/index.go
-piko bytecode --types dist/gen_types_descriptor.json --asm ./pages/index.go
-piko bytecode --types dist/gen_types_descriptor.json --compact ./pages/index.go
+piko inspect bytecode .piko/bytecode/compiled/bytecode-abc.bin  # use an emitted filename
 
 # Extract dispatcher
 piko extract init

@@ -403,8 +403,13 @@ func NewDataLoaderRegistryAdapter(
 	config = applyConfigDefaults(config)
 
 	adapter := &DataLoaderRegistryAdapter{
-		registryService:   registryService,
-		artefactServePath: artefactServePath,
+		registryService:        registryService,
+		artefactServePath:      artefactServePath,
+		componentBulkLoader:    nil,
+		svgBulkLoader:          nil,
+		componentCache:         nil,
+		svgCache:               nil,
+		artefactServePathCache: sync.Map{},
 	}
 
 	adapter.componentBulkLoader = createComponentBulkLoader(registryService, artefactServePath)
@@ -1254,6 +1259,7 @@ func buildParsedSVGData(ctx context.Context, artefactID string, attributes []ast
 		Attributes:   attributes,
 		InnerHTML:    innerHTML,
 		CachedSymbol: "",
+		CachedDefs:   "",
 	}
 
 	var fellBack bool

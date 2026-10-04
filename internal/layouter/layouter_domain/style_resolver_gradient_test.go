@@ -899,3 +899,148 @@ func TestParseFilterList(t *testing.T) {
 		assert.InDelta(t, 3.0, result[0].Amount, 0.01)
 	})
 }
+
+func TestParseBackgroundImage_TruncatedFunctionsAreIgnored(t *testing.T) {
+	t.Parallel()
+
+	values := []string{
+		"url(",
+		"url(a.png",
+		"linear-gradient(",
+		"linear-gradient(red, blue",
+		"radial-gradient(",
+		"repeating-linear-gradient(",
+		"repeating-radial-gradient(",
+		"url)",
+	}
+	for _, value := range values {
+		t.Run(value, func(t *testing.T) {
+			t.Parallel()
+
+			assert.NotPanics(t, func() {
+				assert.Equal(t, BackgroundImage{}, parseBackgroundImage(value, DefaultResolutionContext()))
+			})
+		})
+	}
+}
+
+func TestResolveStyle_TruncatedImageValuesDoNotPanic(t *testing.T) {
+	t.Parallel()
+
+	for _, property := range []string{"background-image", "mask-image", "background"} {
+		t.Run(property, func(t *testing.T) {
+			t.Parallel()
+
+			assert.NotPanics(t, func() {
+				style := ResolveStyle(map[string]string{property: "url("}, nil, DefaultResolutionContext())
+				assert.Empty(t, style.BgImages)
+			})
+		})
+	}
+	assert.Equal(t, BackgroundImage{}, ParseMaskBackgroundImage("linear-gradient(", DefaultResolutionContext()))
+}
+
+func TestCSSFunctionArguments(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		value    string
+		function string
+		want     string
+		wantOK   bool
+	}{
+		{name: "complete call", value: "url(a.png)", function: "url", want: "a.png", wantOK: true},
+		{name: "empty arguments", value: "url()", function: "url", want: "", wantOK: true},
+		{name: "missing closing parenthesis", value: "url(", function: "url"},
+		{name: "different function", value: "linear-gradient(red)", function: "url"},
+		{name: "name without parenthesis", value: "url", function: "url"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, ok := CSSFunctionArguments(tt.value, tt.function)
+			assert.Equal(t, tt.wantOK, ok)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestParseContent_QuotedValues(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		value string
+		want  string
+	}{
+		{name: "double quoted", value: `"hello"`, want: "hello"},
+		{name: "single quoted", value: `'hi'`, want: "hi"},
+		{name: "lone double quote", value: `"`, want: `"`},
+		{name: "lone single quote", value: `'`, want: `'`},
+		{name: "unquoted", value: "attr(x)", want: "attr(x)"},
+		{name: "none", value: "none", want: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, parseContent(tt.value))
+		})
+	}
+}
+
+func TestParseDimension_NonFiniteValuesAreInvalid(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		value string
+		want  Dimension
+	}{
+		{name: "NaN points", value: "NaNpx", want: DimensionPt(0)},
+		{name: "infinite points", value: "infpx", want: DimensionPt(0)},
+		{name: "NaN percentage", value: "NaN%", want: DimensionAuto()},
+		{name: "infinite percentage", value: "inf%", want: DimensionAuto()},
+		{name: "overflowing calc", value: "calc(1e308pt * 10)", want: DimensionAuto()},
+		{name: "finite percentage", value: "50%", want: DimensionPct(50)},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, parseDimension(tt.value, DefaultResolutionContext()))
+		})
+	}
+}
+
+func TestParseBackgroundImage_CompleteFunctions(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		value string
+		want  BackgroundImageType
+	}{
+		{name: "url", value: `url("a.png")`, want: BackgroundImageURL},
+		{name: "linear", value: "linear-gradient(red, blue)", want: BackgroundImageLinearGradient},
+		{name: "radial", value: "radial-gradient(red, blue)", want: BackgroundImageRadialGradient},
+		{name: "repeating linear", value: "repeating-linear-gradient(red, blue 10px)", want: BackgroundImageRepeatingLinearGradient},
+		{name: "repeating radial", value: "repeating-radial-gradient(red, blue 10px)", want: BackgroundImageRepeatingRadialGradient},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, parseBackgroundImage(tt.value, DefaultResolutionContext()).Type)
+		})
+	}
+	assert.Equal(t, "a.png", parseBackgroundImage(`url('a.png')`, DefaultResolutionContext()).URL)
+}
+
+func TestParseDimension_Calc(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, DimensionPt(15), parseDimension("calc(10pt + 5pt)", DefaultResolutionContext()))
+	assert.Equal(t, DimensionAuto(), parseDimension("calc()", DefaultResolutionContext()))
+	assert.Equal(t, DimensionPt(0), parseDimension("calc(", DefaultResolutionContext()), "an unclosed calc is an invalid length")
+	assert.Equal(t, DimensionMaxContent(), parseDimension("max-content", DefaultResolutionContext()))
+}

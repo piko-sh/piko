@@ -20,7 +20,9 @@
 
 package caller
 
-import "runtime"
+import (
+	"runtime"
+)
 
 // callers captures multiple stack frames into the provided slice.
 //

@@ -67,8 +67,11 @@ type ThumbnailSpec struct {
 // Returns ThumbnailSpec which is set up with sensible defaults.
 func NewThumbnailSpec() ThumbnailSpec {
 	return ThumbnailSpec{
-		Format:  defaultThumbnailFormat,
-		Quality: defaultThumbnailQuality,
+		Format:    defaultThumbnailFormat,
+		Quality:   defaultThumbnailQuality,
+		Timestamp: 0,
+		Width:     0,
+		Height:    0,
 	}
 }
 

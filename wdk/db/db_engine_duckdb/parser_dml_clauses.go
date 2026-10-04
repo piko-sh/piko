@@ -254,11 +254,11 @@ func (p *parser) parseGroupByColumn() (querier_dto.ColumnReference, bool) {
 	}
 	first := p.advance().value
 	if p.current().kind != tokenDot {
-		return querier_dto.ColumnReference{ColumnName: first}, true
+		return querier_dto.ColumnReference{ColumnName: first, TableAlias: ""}, true
 	}
 	p.advance()
 	if p.current().kind != tokenIdentifier {
-		return querier_dto.ColumnReference{ColumnName: first}, true
+		return querier_dto.ColumnReference{ColumnName: first, TableAlias: ""}, true
 	}
 	second := p.advance().value
 	return querier_dto.ColumnReference{TableAlias: first, ColumnName: second}, true
@@ -621,6 +621,9 @@ func (p *parser) parseValuesFirstRow() []querier_dto.RawOutputColumn {
 		outputColumns = append(outputColumns, querier_dto.RawOutputColumn{
 			Name:       fmt.Sprintf("column%d", columnIndex),
 			Expression: expression,
+			TableAlias: "",
+			ColumnName: "",
+			IsStar:     false,
 		})
 		if p.current().kind != tokenComma {
 			break
@@ -680,11 +683,15 @@ func (p *parser) parseInsertSource() {
 // and WHERE expressions.
 //
 // Takes tableName (string) which is the target table for assignment column references.
-func (p *parser) parseOnConflict(tableName string) {
+//
+// Returns error when the conflict target list is unbalanced.
+func (p *parser) parseOnConflict(tableName string) error {
 	p.matchKeyword("CONFLICT")
 
 	if p.current().kind == tokenLeftParen {
-		p.mustSkipParenthesised()
+		if err := p.skipParenthesised(); err != nil {
+			return err
+		}
 		p.skipConflictTargetPredicate()
 	}
 
@@ -695,19 +702,16 @@ func (p *parser) parseOnConflict(tableName string) {
 		}
 	}
 
-	if p.matchKeyword("DO") {
-		if p.matchKeyword("NOTHING") {
-			return
-		}
-		if p.matchKeyword("UPDATE") {
-			if p.matchKeyword(keywordSET) {
-				p.parseSetClause(tableName)
-			}
-			if p.matchKeyword(keywordWHERE) {
-				p.parseWhereClause()
-			}
-		}
+	if !p.matchKeyword("DO") || p.matchKeyword("NOTHING") || !p.matchKeyword("UPDATE") {
+		return nil
 	}
+	if p.matchKeyword(keywordSET) {
+		p.parseSetClause(tableName)
+	}
+	if p.matchKeyword(keywordWHERE) {
+		p.parseWhereClause()
+	}
+	return nil
 }
 
 // skipConflictTargetPredicate consumes the optional WHERE index_predicate that follows a

@@ -281,17 +281,13 @@ func TestLinkingVisitor_IsPartialInvocation(t *testing.T) {
 		{
 			name: "node with GoAnnotations but no PartialInfo is not partial",
 			node: &ast_domain.TemplateNode{
-				GoAnnotations: &ast_domain.GoGeneratorAnnotation{
-					PartialInfo: nil,
-				},
+				GoAnnotations: &ast_domain.GoGeneratorAnnotation{},
 			},
 			expected: false,
 		},
 		{
-			name: "node without GoAnnotations is not partial",
-			node: &ast_domain.TemplateNode{
-				GoAnnotations: nil,
-			},
+			name:     "node without GoAnnotations is not partial",
+			node:     &ast_domain.TemplateNode{},
 			expected: false,
 		},
 	}
@@ -335,12 +331,9 @@ func TestLinkingVisitor_HandleSlottedContentContextSwitch(t *testing.T) {
 
 		visitor := createTestLinkingVisitor()
 		node := &ast_domain.TemplateNode{
-			NodeType: ast_domain.NodeElement,
-			TagName:  "div",
-			GoAnnotations: &ast_domain.GoGeneratorAnnotation{
-				OriginalPackageAlias: nil,
-				PartialInfo:          nil,
-			},
+			NodeType:      ast_domain.NodeElement,
+			TagName:       "div",
+			GoAnnotations: &ast_domain.GoGeneratorAnnotation{},
 		}
 
 		result := visitor.handleSlottedContentContextSwitch(context.Background(), node)
@@ -582,9 +575,7 @@ func TestLinkingVisitor_PrepareLinkerContext(t *testing.T) {
 		t.Parallel()
 
 		visitor := createTestLinkingVisitor()
-		node := &ast_domain.TemplateNode{
-			DirFor: nil,
-		}
+		node := &ast_domain.TemplateNode{}
 		partialInfo := &ast_domain.PartialInvocationInfo{}
 
 		result := visitor.prepareLinkerContext(context.Background(), node, visitor.ctx, partialInfo)
@@ -710,11 +701,8 @@ func TestLinkingVisitor_CreateContextForNode_WithOriginAnnotations(t *testing.T)
 
 		visitor := createTestLinkingVisitorWithGoPath()
 		node := &ast_domain.TemplateNode{
-			TagName: "div",
-			GoAnnotations: &ast_domain.GoGeneratorAnnotation{
-				OriginalPackageAlias: nil,
-				OriginalSourcePath:   nil,
-			},
+			TagName:       "div",
+			GoAnnotations: &ast_domain.GoGeneratorAnnotation{},
 		}
 
 		resultCtx, err := visitor.createContextForNode(context.Background(), node, nil)
@@ -780,12 +768,10 @@ func TestLinkingVisitor_Enter_SimpleElementWithAnnotations(t *testing.T) {
 
 		visitor := createTestLinkingVisitor()
 		node := &ast_domain.TemplateNode{
-			NodeType: ast_domain.NodeElement,
-			TagName:  "div",
-			GoAnnotations: &ast_domain.GoGeneratorAnnotation{
-				PartialInfo: nil,
-			},
-			Location: ast_domain.Location{Line: 1, Column: 1, Offset: 0},
+			NodeType:      ast_domain.NodeElement,
+			TagName:       "div",
+			GoAnnotations: &ast_domain.GoGeneratorAnnotation{},
+			Location:      ast_domain.Location{Line: 1, Column: 1, Offset: 0},
 		}
 
 		childVisitor, err := visitor.Enter(context.Background(), node)

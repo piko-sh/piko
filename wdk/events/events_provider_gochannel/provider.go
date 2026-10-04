@@ -126,10 +126,16 @@ func NewGoChannelProvider(config Config) (*GoChannelProvider, error) {
 	}, wmLogger)
 
 	return &GoChannelProvider{
-		config:     config,
-		pubsub:     pubsub,
-		logger:     wmLogger,
-		pikoLogger: pikoLogger,
+		config:       config,
+		pubsub:       pubsub,
+		logger:       wmLogger,
+		pikoLogger:   pikoLogger,
+		ctx:          nil,
+		router:       nil,
+		cancel:       nil,
+		runningMutex: sync.RWMutex{},
+		startMutex:   sync.Mutex{},
+		running:      false,
 	}, nil
 }
 

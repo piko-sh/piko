@@ -37,6 +37,9 @@ func isParameterToken(kind tokenKind) bool {
 // analyseSelect parses a SELECT statement and produces the raw query analysis with output
 // columns, parameters, and table references.
 //
+// Compound arms (UNION, INTERSECT, EXCEPT) are collected iteratively into one flat list,
+// so a long chain of arms consumes a single level of the analysis depth budget.
+//
 // Returns *querier_dto.RawQueryAnalysis which describes the SELECT.
 // Returns error when the statement fails to parse.
 func (p *parser) analyseSelect() (*querier_dto.RawQueryAnalysis, error) {
@@ -46,6 +49,28 @@ func (p *parser) analyseSelect() (*querier_dto.RawQueryAnalysis, error) {
 	p.analysisDepth++
 	defer func() { p.analysisDepth-- }()
 
+	analysis, err := p.analyseSelectArm()
+	if err != nil {
+		return nil, err
+	}
+
+	if err := p.parseSelectCompoundBranches(analysis); err != nil {
+		return nil, err
+	}
+
+	p.parseSelectTrailer()
+
+	p.recordCollectedReferences(analysis)
+	return analysis, nil
+}
+
+// analyseSelectArm parses one SELECT arm including the optional WITH clause, the select
+// list, and the FROM, WHERE, GROUP BY, and HAVING clauses, stopping before any compound
+// operator or trailing ORDER BY and LIMIT.
+//
+// Returns *querier_dto.RawQueryAnalysis which describes the arm.
+// Returns error when the arm fails to parse.
+func (p *parser) analyseSelectArm() (*querier_dto.RawQueryAnalysis, error) {
 	analysis := &querier_dto.RawQueryAnalysis{}
 
 	if p.isKeyword(keywordWITH) {
@@ -56,7 +81,9 @@ func (p *parser) analyseSelect() (*querier_dto.RawQueryAnalysis, error) {
 		analysis.CTEDefinitions = cteDefinitions
 	}
 
-	p.mustKeyword(keywordSELECT)
+	if _, err := p.expectKeyword(keywordSELECT); err != nil {
+		return nil, err
+	}
 	p.matchKeyword("DISTINCT")
 	p.matchKeyword("ALL")
 
@@ -78,19 +105,20 @@ func (p *parser) analyseSelect() (*querier_dto.RawQueryAnalysis, error) {
 	if err := p.parseSelectBody(analysis); err != nil {
 		return nil, err
 	}
+	return analysis, nil
+}
 
-	if err := p.parseSelectCompoundBranches(analysis); err != nil {
-		return nil, err
-	}
-
-	p.parseSelectTrailer()
-
+// recordCollectedReferences marks a SELECT analysis read-only and attaches the
+// parameters, derived tables, predicate subqueries, and table-valued functions the parser
+// has collected so far.
+//
+// Takes analysis (*querier_dto.RawQueryAnalysis) which receives the collected references.
+func (p *parser) recordCollectedReferences(analysis *querier_dto.RawQueryAnalysis) {
 	analysis.ReadOnly = true
 	analysis.ParameterReferences = p.parameterRefs
 	analysis.RawDerivedTables = p.rawDerivedTables
 	analysis.PredicateSubqueries = p.predicateSubqueries
 	analysis.RawTableValuedFunctions = p.rawTableValuedFunctions
-	return analysis, nil
 }
 
 // parseSelectBody parses FROM, WHERE, GROUP BY, and HAVING clauses into the analysis
@@ -140,10 +168,11 @@ func (p *parser) parseSelectCompoundBranches(analysis *querier_dto.RawQueryAnaly
 		if compoundOperator == 0 {
 			break
 		}
-		branchAnalysis, branchError := p.analyseSelect()
+		branchAnalysis, branchError := p.analyseSelectArm()
 		if branchError != nil {
 			return branchError
 		}
+		p.recordCollectedReferences(branchAnalysis)
 		analysis.CompoundBranches = append(analysis.CompoundBranches, querier_dto.RawCompoundBranch{
 			Operator: compoundOperator,
 			Query:    branchAnalysis,
@@ -191,7 +220,7 @@ func (p *parser) analyseInsert() (*querier_dto.RawQueryAnalysis, error) {
 	p.matchKeyword("INTO")
 
 	tableName, alias := p.parseTableReference()
-	analysis.FromTables = []querier_dto.TableReference{{Name: tableName, Alias: alias}}
+	analysis.FromTables = []querier_dto.TableReference{{Name: tableName, Alias: alias, Schema: ""}}
 
 	var columnNames []string
 	if p.current().kind == tokenLeftParen {
@@ -209,7 +238,9 @@ func (p *parser) analyseInsert() (*querier_dto.RawQueryAnalysis, error) {
 	analysis.InsertSelect = insertSelect
 
 	for p.matchKeyword(keywordON) {
-		p.skipOnConflict(tableName)
+		if err := p.skipOnConflict(tableName); err != nil {
+			return nil, err
+		}
 	}
 
 	if p.matchKeyword(keywordRETURNING) {
@@ -243,16 +274,20 @@ func (p *parser) analyseUpdate() (*querier_dto.RawQueryAnalysis, error) {
 		analysis.CTEDefinitions = cteDefinitions
 	}
 
-	p.mustKeyword("UPDATE")
+	if _, err := p.expectKeyword("UPDATE"); err != nil {
+		return nil, err
+	}
 
 	if p.matchKeyword(keywordOR) {
 		p.advance()
 	}
 
 	tableName, alias := p.parseTableReference()
-	analysis.FromTables = []querier_dto.TableReference{{Name: tableName, Alias: alias}}
+	analysis.FromTables = []querier_dto.TableReference{{Name: tableName, Alias: alias, Schema: ""}}
 
-	p.mustKeyword(keywordSET)
+	if _, err := p.expectKeyword(keywordSET); err != nil {
+		return nil, err
+	}
 	p.parseSetClause(tableName)
 
 	if p.matchKeyword(keywordFROM) {
@@ -300,11 +335,12 @@ func (p *parser) analyseDelete() (*querier_dto.RawQueryAnalysis, error) {
 		analysis.CTEDefinitions = cteDefinitions
 	}
 
-	p.mustKeyword("DELETE")
-	p.mustKeyword(keywordFROM)
+	if err := p.expectKeywordSequence("DELETE", keywordFROM); err != nil {
+		return nil, err
+	}
 
 	tableName, alias := p.parseTableReference()
-	analysis.FromTables = []querier_dto.TableReference{{Name: tableName, Alias: alias}}
+	analysis.FromTables = []querier_dto.TableReference{{Name: tableName, Alias: alias, Schema: ""}}
 
 	if p.matchKeyword(keywordWHERE) {
 		analysis.HasWhereClause = true
@@ -342,9 +378,12 @@ func (p *parser) analyseDelete() (*querier_dto.RawQueryAnalysis, error) {
 // read-only.
 // Returns error when the statement fails to parse.
 func (p *parser) analyseValues() (*querier_dto.RawQueryAnalysis, error) {
-	analysis := &querier_dto.RawQueryAnalysis{ReadOnly: true}
+	analysis := &querier_dto.RawQueryAnalysis{}
+	analysis.ReadOnly = true
 
-	p.mustKeyword(keywordVALUES)
+	if _, err := p.expectKeyword(keywordVALUES); err != nil {
+		return nil, err
+	}
 
 	if p.current().kind != tokenLeftParen {
 		analysis.ParameterReferences = p.parameterRefs
@@ -387,6 +426,9 @@ func (p *parser) parseValuesFirstRow() []querier_dto.RawOutputColumn {
 		outputColumns = append(outputColumns, querier_dto.RawOutputColumn{
 			Name:       fmt.Sprintf("column%d", columnIndex),
 			Expression: expression,
+			TableAlias: "",
+			ColumnName: "",
+			IsStar:     false,
 		})
 		if p.current().kind != tokenComma {
 			break
@@ -427,7 +469,9 @@ func (p *parser) skipValuesTrailingRows() {
 // Returns []querier_dto.RawCTEDefinition which holds the parsed definitions in order.
 // Returns error when a CTE fails to parse.
 func (p *parser) parseWithClause() ([]querier_dto.RawCTEDefinition, error) {
-	p.mustKeyword(keywordWITH)
+	if _, err := p.expectKeyword(keywordWITH); err != nil {
+		return nil, err
+	}
 	isRecursive := p.matchKeyword("RECURSIVE")
 
 	var definitions []querier_dto.RawCTEDefinition
@@ -480,11 +524,11 @@ func (p *parser) parseSingleCTE(isRecursive bool) (querier_dto.RawCTEDefinition,
 	cteParser.expressionDepth = p.expressionDepth
 	cteParser.maxParseDepth = p.maxParseDepth
 	cteAnalysis, analyseErr := cteParser.analyseSelect()
+	p.adoptSyntaxError(cteParser)
 
-	definition := querier_dto.RawCTEDefinition{
-		Name:        cteName,
-		IsRecursive: isRecursive,
-	}
+	definition := querier_dto.RawCTEDefinition{}
+	definition.Name = cteName
+	definition.IsRecursive = isRecursive
 
 	if analyseErr == nil {
 		definition.OutputColumns = buildCTEOutputColumns(columnNames, cteAnalysis)
@@ -531,7 +575,13 @@ func buildCTEOutputColumns(
 	}
 	columns := make([]querier_dto.RawOutputColumn, len(columnNames))
 	for i, name := range columnNames {
-		columns[i] = querier_dto.RawOutputColumn{Name: name}
+		columns[i] = querier_dto.RawOutputColumn{
+			Name:       name,
+			Expression: nil,
+			TableAlias: "",
+			ColumnName: "",
+			IsStar:     false,
+		}
 	}
 	return columns
 }
@@ -653,7 +703,7 @@ func (p *parser) bindInsertSelectProjection(refsCountBefore int, tableName strin
 func (p *parser) parseSelectItem() (querier_dto.RawOutputColumn, error) {
 	if p.current().kind == tokenStar {
 		p.advance()
-		return querier_dto.RawOutputColumn{IsStar: true}, nil
+		return querier_dto.RawOutputColumn{IsStar: true, Expression: nil, Name: "", TableAlias: "", ColumnName: ""}, nil
 	}
 
 	if p.current().kind == tokenIdentifier && p.peek().kind == tokenDot {
@@ -691,6 +741,9 @@ func (p *parser) parseQualifiedSelectItem() (querier_dto.RawOutputColumn, error)
 		return querier_dto.RawOutputColumn{
 			IsStar:     true,
 			TableAlias: tableAlias,
+			Expression: nil,
+			Name:       "",
+			ColumnName: "",
 		}, nil
 	}
 
@@ -702,6 +755,8 @@ func (p *parser) parseQualifiedSelectItem() (querier_dto.RawOutputColumn, error)
 		Name:       columnName,
 		TableAlias: tableAlias,
 		ColumnName: columnName,
+		Expression: nil,
+		IsStar:     false,
 	}
 	if p.matchKeyword(keywordAS) {
 		alias, aliasErr := p.parseIdentifierOrKeyword()

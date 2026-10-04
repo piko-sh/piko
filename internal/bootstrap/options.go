@@ -553,14 +553,7 @@ func WithMonitoringAutoNextPort(enabled bool) MonitoringOption {
 // Returns Option which configures the container with the monitoring service.
 func WithMonitoring(opts ...MonitoringOption) Option {
 	return func(c *Container) {
-		monitoringConfig := monitoring_domain.ServiceConfig{
-			Address:                   ":9091",
-			BindAddress:               "127.0.0.1",
-			MaxSpans:                  monitoring_domain.DefaultMaxSpans,
-			MaxMetrics:                monitoring_domain.DefaultMaxMetrics,
-			MaxMetricAge:              monitoring_domain.DefaultMaxMetricAge,
-			MetricsCollectionInterval: monitoring_domain.DefaultMetricsCollectionInterval,
-		}
+		monitoringConfig := monitoring_domain.DefaultServiceConfig()
 		for _, opt := range opts {
 			opt(&monitoringConfig)
 		}
@@ -1264,6 +1257,13 @@ func WithProfiling(opts ...ProfilingOption) Option {
 			BlockProfileRate:     profiler.DefaultBlockProfileRate,
 			MutexProfileFraction: profiler.DefaultMutexProfileFraction,
 			MemProfileRate:       profiler.DefaultMemProfileRate,
+			Sandbox:              nil,
+			SandboxFactory:       nil,
+			OutputDir:            "",
+			AutoNextPort:         false,
+			EnableRollingTrace:   false,
+			RollingTraceMinAge:   0,
+			RollingTraceMaxBytes: 0,
 		}
 		for _, opt := range opts {
 			opt(&profilingConfig)
@@ -1340,6 +1340,14 @@ func WithGeneratorProfiling(opts ...GeneratorProfilingOption) Option {
 			BlockProfileRate:     profiler.CaptureBlockProfileRate,
 			MutexProfileFraction: profiler.CaptureMutexProfileFraction,
 			MemProfileRate:       profiler.CaptureMemProfileRate,
+			Sandbox:              nil,
+			SandboxFactory:       nil,
+			BindAddress:          "",
+			Port:                 0,
+			AutoNextPort:         false,
+			EnableRollingTrace:   false,
+			RollingTraceMinAge:   0,
+			RollingTraceMaxBytes: 0,
 		}
 		for _, opt := range opts {
 			opt(&profilingConfig)

@@ -1160,12 +1160,13 @@ func buildClassString(inputs ...string) string {
 	builder, ok := classBuilderPool.Get().(*classBuilder)
 	if !ok {
 		builder = &classBuilder{
-			seen: make(map[string]struct{}),
+			seen:   make(map[string]struct{}),
+			buffer: nil,
 		}
 	}
 
 	for _, input := range inputs {
-		tokeniser := stringTokeniser{input: input}
+		tokeniser := stringTokeniser{input: input, position: 0}
 		for cn, ok := tokeniser.next(); ok; cn, ok = tokeniser.next() {
 			if _, exists := builder.seen[cn]; !exists {
 				builder.seen[cn] = struct{}{}
@@ -1192,7 +1193,8 @@ func acquireClassBuilder() *classBuilder {
 	builder, ok := classBuilderPool.Get().(*classBuilder)
 	if !ok {
 		builder = &classBuilder{
-			seen: make(map[string]struct{}),
+			seen:   make(map[string]struct{}),
+			buffer: nil,
 		}
 	}
 	return builder
@@ -1203,7 +1205,7 @@ func acquireClassBuilder() *classBuilder {
 // Takes builder (*classBuilder) which accumulates the unique class names.
 // Takes input (string) which contains space-separated class names to process.
 func processClassString(builder *classBuilder, input string) {
-	tokeniser := stringTokeniser{input: input}
+	tokeniser := stringTokeniser{input: input, position: 0}
 	for cn, ok := tokeniser.next(); ok; cn, ok = tokeniser.next() {
 		if _, exists := builder.seen[cn]; !exists {
 			builder.seen[cn] = struct{}{}
@@ -1249,12 +1251,13 @@ func buildClassBytes(inputs ...string) *[]byte {
 	builder, ok := classBuilderPool.Get().(*classBuilder)
 	if !ok {
 		builder = &classBuilder{
-			seen: make(map[string]struct{}),
+			seen:   make(map[string]struct{}),
+			buffer: nil,
 		}
 	}
 
 	for _, input := range inputs {
-		tokeniser := stringTokeniser{input: input}
+		tokeniser := stringTokeniser{input: input, position: 0}
 		for cn, ok := tokeniser.next(); ok; cn, ok = tokeniser.next() {
 			if _, exists := builder.seen[cn]; !exists {
 				builder.seen[cn] = struct{}{}
@@ -1332,7 +1335,7 @@ func parseStyleStringToMap(s string, targetMap map[string]string) {
 	if s == "" {
 		return
 	}
-	tokeniser := delimTokeniser{input: s, delimiter: ';'}
+	tokeniser := delimTokeniser{input: s, delimiter: ';', position: 0}
 	for declaration, ok := tokeniser.next(); ok; declaration, ok = tokeniser.next() {
 		declaration = strings.TrimSpace(declaration)
 		if declaration == "" {

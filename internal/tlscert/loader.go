@@ -93,6 +93,10 @@ func NewCertificateLoader(ctx context.Context, certFile, keyFile string, hotRelo
 		certFile: certFile,
 		keyFile:  keyFile,
 		stopCh:   make(chan struct{}),
+		cert:     atomic.Pointer[tls.Certificate]{},
+		watcher:  nil,
+		onReload: nil,
+		onError:  nil,
 	}
 
 	for _, opt := range opts {

@@ -25,9 +25,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/ast/ast_adapters"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/goastutil"
 )
 
 func TestEncodingRoundTrip(t *testing.T) {

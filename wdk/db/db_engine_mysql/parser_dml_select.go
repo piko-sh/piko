@@ -31,7 +31,9 @@ import (
 // Returns []querier_dto.RawCTEDefinition which is the parsed CTE list.
 // Returns error when any CTE definition fails to parse.
 func (p *parser) parseCTEList() ([]querier_dto.RawCTEDefinition, error) {
-	p.mustKeyword(keywordWITH)
+	if _, err := p.expectKeyword(keywordWITH); err != nil {
+		return nil, err
+	}
 	isRecursive := p.matchKeyword("RECURSIVE")
 
 	var definitions []querier_dto.RawCTEDefinition
@@ -82,10 +84,9 @@ func (p *parser) parseSingleCTEDefinition(isRecursive bool) (querier_dto.RawCTED
 
 	cteAnalysis, cteParser := p.analyseCTEBody(cteTokens)
 
-	definition := querier_dto.RawCTEDefinition{
-		Name:        cteName,
-		IsRecursive: isRecursive,
-	}
+	definition := querier_dto.RawCTEDefinition{}
+	definition.Name = cteName
+	definition.IsRecursive = isRecursive
 
 	if cteAnalysis != nil {
 		p.populateCTEDefinition(&definition, cteAnalysis, columnNames)
@@ -122,6 +123,7 @@ func (p *parser) analyseCTEBody(cteTokens []token) (*querier_dto.RawQueryAnalysi
 	default:
 		cteAnalysis, analyseErr = cteParser.analyseSelect()
 	}
+	p.adoptSyntaxError(cteParser)
 
 	if analyseErr != nil {
 		return nil, cteParser
@@ -175,7 +177,13 @@ func (*parser) populateCTEDefinition(
 ) {
 	if len(columnNames) > 0 {
 		for columnIndex, name := range columnNames {
-			column := querier_dto.RawOutputColumn{Name: name}
+			column := querier_dto.RawOutputColumn{
+				Name:       name,
+				Expression: nil,
+				TableAlias: "",
+				ColumnName: "",
+				IsStar:     false,
+			}
 			if columnIndex < len(analysis.OutputColumns) {
 				column.Expression = analysis.OutputColumns[columnIndex].Expression
 				column.ColumnName = analysis.OutputColumns[columnIndex].ColumnName
@@ -263,7 +271,7 @@ func (p *parser) parseOutputColumns() ([]querier_dto.RawOutputColumn, error) {
 func (p *parser) parseOneOutputColumn() (querier_dto.RawOutputColumn, error) {
 	if p.current().kind == tokenStar {
 		p.advance()
-		return querier_dto.RawOutputColumn{IsStar: true}, nil
+		return querier_dto.RawOutputColumn{IsStar: true, Expression: nil, Name: "", TableAlias: "", ColumnName: ""}, nil
 	}
 
 	if p.current().kind == tokenIdentifier && p.peek().kind == tokenDot {
@@ -271,7 +279,13 @@ func (p *parser) parseOneOutputColumn() (querier_dto.RawOutputColumn, error) {
 		p.advance()
 		if p.current().kind == tokenStar {
 			p.advance()
-			return querier_dto.RawOutputColumn{IsStar: true, TableAlias: tableAlias}, nil
+			return querier_dto.RawOutputColumn{
+				IsStar:     true,
+				TableAlias: tableAlias,
+				Expression: nil,
+				Name:       "",
+				ColumnName: "",
+			}, nil
 		}
 		p.position -= 2
 	}
@@ -423,8 +437,7 @@ func (p *parser) appendExplicitJoin(joinKind querier_dto.JoinKind, joins *[]quer
 		*joins = append(*joins, querier_dto.JoinClause{Kind: joinKind, Table: *tableRef})
 	}
 
-	p.parseJoinCondition()
-	return nil
+	return p.parseJoinCondition()
 }
 
 // parseTableSource parses a single source appearing in a FROM clause, covering
@@ -447,13 +460,21 @@ func (p *parser) parseTableSource(joinKind querier_dto.JoinKind) (*querier_dto.T
 		p.parseTableValuedFunction(joinKind)
 		return nil, nil
 	}
-	p.skipIndexHints()
-	return new(p.parseTableReference()), nil
+	if err := p.skipIndexHints(); err != nil {
+		return nil, err
+	}
+	reference, err := p.parseTableReference()
+	if err != nil {
+		return nil, err
+	}
+	return &reference, nil
 }
 
 // skipIndexHints consumes MySQL index hint clauses such as USE INDEX and FORCE INDEX
 // following a table reference.
-func (p *parser) skipIndexHints() {
+//
+// Returns error when a hint's index list parentheses are unmatched.
+func (p *parser) skipIndexHints() error {
 	for p.isAnyKeyword("USE", "FORCE", keywordIGNORE) {
 		p.advance()
 		p.matchKeyword("INDEX")
@@ -464,33 +485,41 @@ func (p *parser) skipIndexHints() {
 		p.matchKeyword(keywordBY)
 		p.matchKeyword(keywordGROUP)
 		p.matchKeyword(keywordBY)
-		if p.current().kind == tokenLeftParen {
-			p.mustSkipParenthesised()
+		if err := p.skipParenthesisedIfPresent(); err != nil {
+			return err
 		}
 	}
+	return nil
 }
 
 // parseJoinCondition consumes an optional ON or USING clause following a JOIN.
-func (p *parser) parseJoinCondition() {
+//
+// Returns error when the USING column list's parentheses are unmatched.
+func (p *parser) parseJoinCondition() error {
 	if p.matchKeyword(keywordON) {
 		p.parseJoinConditionExpression()
-		return
+		return nil
 	}
-	if p.matchKeyword(keywordUSING) && p.current().kind == tokenLeftParen {
-		p.mustSkipParenthesised()
+	if p.matchKeyword(keywordUSING) {
+		return p.skipParenthesisedIfPresent()
 	}
+	return nil
 }
 
 // parseTableReference parses a schema-qualified table name with an optional alias.
 //
 // Returns querier_dto.TableReference which is the parsed reference, or the zero value
 // when the current token is not an identifier.
-func (p *parser) parseTableReference() querier_dto.TableReference {
+// Returns error when the qualified name is malformed.
+func (p *parser) parseTableReference() (querier_dto.TableReference, error) {
 	if p.current().kind != tokenIdentifier {
-		return querier_dto.TableReference{}
+		return querier_dto.TableReference{}, nil
 	}
 
-	schema, name := p.mustSchemaQualifiedName()
+	schema, name, err := p.parseSchemaQualifiedName()
+	if err != nil {
+		return querier_dto.TableReference{}, err
+	}
 
 	alias := ""
 	if p.matchKeyword(keywordAS) {
@@ -504,7 +533,7 @@ func (p *parser) parseTableReference() querier_dto.TableReference {
 		alias = p.advance().value
 	}
 
-	return querier_dto.TableReference{Schema: schema, Name: name, Alias: alias}
+	return querier_dto.TableReference{Schema: schema, Name: name, Alias: alias}, nil
 }
 
 // isSubqueryStart reports whether the current parenthesised group opens a subquery rather
@@ -551,6 +580,7 @@ func (p *parser) parseDerivedTable(joinKind querier_dto.JoinKind) error {
 	childParser.expressionDepth = p.expressionDepth
 	childParser.maxParseDepth = p.maxParseDepth
 	innerAnalysis, analyseError := childParser.analyseSelect()
+	p.adoptSyntaxError(childParser)
 	if analyseError != nil {
 		return analyseError
 	}
@@ -567,7 +597,9 @@ func (p *parser) parseDerivedTable(joinKind querier_dto.JoinKind) error {
 	}
 
 	if p.current().kind == tokenLeftParen {
-		p.mustSkipParenthesised()
+		if err := p.skipParenthesised(); err != nil {
+			return err
+		}
 	}
 
 	p.rawDerivedTables = append(p.rawDerivedTables, querier_dto.RawDerivedTableReference{
@@ -669,10 +701,10 @@ type joinKeywordEntry struct {
 var (
 	// joinKeywordDispatch maps the leading join-keyword token to its joinKeywordEntry.
 	joinKeywordDispatch = map[string]joinKeywordEntry{
-		"INNER": {kind: querier_dto.JoinInner},
+		"INNER": {kind: querier_dto.JoinInner, hasOuter: false},
 		"LEFT":  {kind: querier_dto.JoinLeft, hasOuter: true},
 		"RIGHT": {kind: querier_dto.JoinRight, hasOuter: true},
-		"CROSS": {kind: querier_dto.JoinCross},
+		"CROSS": {kind: querier_dto.JoinCross, hasOuter: false},
 	}
 )
 
@@ -727,6 +759,9 @@ func (p *parser) parseValuesFirstRow() []querier_dto.RawOutputColumn {
 		outputColumns = append(outputColumns, querier_dto.RawOutputColumn{
 			Name:       fmt.Sprintf("column%d", columnIndex),
 			Expression: expression,
+			TableAlias: "",
+			ColumnName: "",
+			IsStar:     false,
 		})
 		if p.current().kind != tokenComma {
 			break

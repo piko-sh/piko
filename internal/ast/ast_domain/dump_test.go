@@ -773,3 +773,167 @@ func TestDumpAnnotations(t *testing.T) {
 		assert.Contains(t, result, "Tag: json:\"field\"")
 	})
 }
+
+func TestDumpAST_CommentTerminatorsCannotEndTheDump(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		node *TemplateNode
+		name string
+		want string
+	}{
+		{
+			name: "text content",
+			node: &TemplateNode{NodeType: NodeText, TextContent: "a */ window.pwned = 1; /* b"},
+			want: `a *\/ window.pwned = 1; /* b`,
+		},
+		{
+			name: "attribute value",
+			node: &TemplateNode{
+				NodeType:   NodeElement,
+				TagName:    "div",
+				Attributes: []HTMLAttribute{{Name: "title", Value: "x */ y"}},
+			},
+			want: `title="x *\/ y"`,
+		},
+		{
+			name: "comment",
+			node: &TemplateNode{NodeType: NodeComment, TextContent: " c */ d "},
+			want: `c *\/ d`,
+		},
+		{
+			name: "dynamic attribute expression",
+			node: &TemplateNode{
+				NodeType: NodeElement,
+				TagName:  "div",
+				DynamicAttributes: []DynamicAttribute{{
+					Name:          "title",
+					RawExpression: "'*/'",
+					Expression:    &StringLiteral{Value: "*/"},
+				}},
+			},
+			want: `:title="'*\/'"`,
+		},
+		{
+			name: "rich text expression",
+			node: &TemplateNode{
+				NodeType: NodeText,
+				RichText: []TextPart{
+					{IsLiteral: true, Literal: "before */"},
+					{IsLiteral: false, Expression: &StringLiteral{Value: "*/"}},
+				},
+			},
+			want: `"before *\/"`,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := DumpAST(context.Background(), &TemplateAST{RootNodes: []*TemplateNode{tc.node}})
+			assert.Equal(t, 1, strings.Count(result, "*/"), "only the closing marker may end the comment: %s", result)
+			assert.True(t, strings.HasSuffix(result, "--- END AST DUMP ---\n*/"))
+			assert.Contains(t, result, tc.want)
+		})
+	}
+}
+
+func TestDumpAST_LeavesAttributeOrderAlone(t *testing.T) {
+	t.Parallel()
+
+	node := &TemplateNode{
+		NodeType: NodeElement,
+		TagName:  "div",
+		Attributes: []HTMLAttribute{
+			{Name: "title", Value: "t"},
+			{Name: "class", Value: "c"},
+		},
+		DynamicAttributes: []DynamicAttribute{
+			{Name: "value", RawExpression: "v"},
+			{Name: "href", RawExpression: "h"},
+		},
+	}
+
+	result := DumpAST(context.Background(), &TemplateAST{RootNodes: []*TemplateNode{node}})
+
+	assert.Less(t, strings.Index(result, `class="c"`), strings.Index(result, `title="t"`), "the dump lists attributes by name")
+	assert.Less(t, strings.Index(result, `:href="h"`), strings.Index(result, `:value="v"`), "the dump lists dynamic attributes by name")
+	assert.Equal(t, []string{"title", "class"}, []string{node.Attributes[0].Name, node.Attributes[1].Name})
+	assert.Equal(t, []string{"value", "href"}, []string{node.DynamicAttributes[0].Name, node.DynamicAttributes[1].Name})
+}
+
+func TestSortAttributesByName(t *testing.T) {
+	t.Parallel()
+
+	t.Run("sorts every element in the tree", func(t *testing.T) {
+		t.Parallel()
+
+		child := &TemplateNode{
+			NodeType: NodeElement,
+			TagName:  "span",
+			Attributes: []HTMLAttribute{
+				{Name: "z-index", Value: "1"},
+				{Name: "aria-label", Value: "a"},
+			},
+		}
+		fragment := &TemplateNode{
+			NodeType: NodeFragment,
+			Attributes: []HTMLAttribute{
+				{Name: "second", Value: "2"},
+				{Name: "first", Value: "1"},
+			},
+			Children: []*TemplateNode{child},
+		}
+		root := &TemplateNode{
+			NodeType: NodeElement,
+			TagName:  "div",
+			Attributes: []HTMLAttribute{
+				{Name: "title", Value: "t"},
+				{Name: "class", Value: "c"},
+			},
+			DynamicAttributes: []DynamicAttribute{
+				{Name: "value", RawExpression: "v"},
+				{Name: "href", RawExpression: "h"},
+			},
+			Children: []*TemplateNode{fragment},
+		}
+
+		SortAttributesByName(&TemplateAST{RootNodes: []*TemplateNode{root}})
+
+		assert.Equal(t, "class", root.Attributes[0].Name)
+		assert.Equal(t, "title", root.Attributes[1].Name)
+		assert.Equal(t, "href", root.DynamicAttributes[0].Name)
+		assert.Equal(t, "value", root.DynamicAttributes[1].Name)
+		assert.Equal(t, "aria-label", child.Attributes[0].Name)
+		assert.Equal(t, "z-index", child.Attributes[1].Name)
+		assert.Equal(t, "second", fragment.Attributes[0].Name, "fragments are not elements and keep their order")
+	})
+
+	t.Run("nil tree is left alone", func(t *testing.T) {
+		t.Parallel()
+
+		assert.NotPanics(t, func() { SortAttributesByName(nil) })
+	})
+}
+
+func TestEscapeCommentTerminators(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{name: "no terminator", input: "plain /* text", want: "plain /* text"},
+		{name: "one terminator", input: "a */ b", want: `a *\/ b`},
+		{name: "several terminators", input: "*/*/", want: `*\/*\/`},
+		{name: "repeated stars", input: "**/", want: `**\/`},
+		{name: "already escaped", input: `*\/`, want: `*\/`},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tc.want, escapeCommentTerminators(tc.input))
+		})
+	}
+}

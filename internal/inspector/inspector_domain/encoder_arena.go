@@ -97,12 +97,18 @@ type encoderArena struct {
 // Returns *encoderArena with pre-allocated backing slabs.
 func newEncoderArena() *encoderArena {
 	return &encoderArena{
-		compositeParts: make([]inspector_dto.CompositePart, initialCompositePartSlab),
-		fields:         make([]inspector_dto.Field, initialFieldSlab),
-		methods:        make([]inspector_dto.Method, initialMethodSlab),
-		functions:      make([]inspector_dto.Function, initialFunctionSlab),
-		variables:      make([]inspector_dto.Variable, initialVariableSlab),
-		types:          make([]inspector_dto.Type, initialTypeSlab),
+		compositeParts:     make([]inspector_dto.CompositePart, initialCompositePartSlab),
+		fields:             make([]inspector_dto.Field, initialFieldSlab),
+		methods:            make([]inspector_dto.Method, initialMethodSlab),
+		functions:          make([]inspector_dto.Function, initialFunctionSlab),
+		variables:          make([]inspector_dto.Variable, initialVariableSlab),
+		types:              make([]inspector_dto.Type, initialTypeSlab),
+		compositePartsUsed: 0,
+		fieldsUsed:         0,
+		methodsUsed:        0,
+		functionsUsed:      0,
+		variablesUsed:      0,
+		typesUsed:          0,
 	}
 }
 

@@ -34,6 +34,7 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/markdown/markdown_domain"
 	"piko.sh/piko/internal/shutdown"
+	"piko.sh/piko/wdk/safeconv"
 	"piko.sh/piko/wdk/safedisk"
 )
 
@@ -172,10 +173,7 @@ func initHybridCache(c *Container) {
 func hybridCacheValueWeigher(key string, value collection_domain.HybridCacheValue) uint32 {
 	total := len(key) + len(value.CurrentBlob) + len(value.SnapshotBlob) +
 		len(value.CurrentETag) + len(value.SnapshotETag)
-	if total > int(^uint32(0)) {
-		return ^uint32(0)
-	}
-	return uint32(total)
+	return safeconv.IntToUint32(total)
 }
 
 // resolveHybridCacheMaxBytes returns the operator-supplied byte cap on the

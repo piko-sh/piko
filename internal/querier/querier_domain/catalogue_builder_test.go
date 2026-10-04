@@ -1308,9 +1308,7 @@ func TestCatalogueBuilder_ApplyCreateExtension(t *testing.T) {
 		t.Parallel()
 
 		engine := &mockExtensionLoaderEngine{
-			mockEngine: mockEngine{
-				defaultSchemaFn: func() string { return "public" },
-			},
+			defaultSchemaFn: func() string { return "public" },
 			loadExtensionFunctionsFn: func(name string) []*querier_dto.FunctionSignature {
 				if name == "uuid-ossp" {
 					return []*querier_dto.FunctionSignature{
@@ -2084,5 +2082,60 @@ func TestCatalogueBuilder_MutationHandlersComplete(t *testing.T) {
 			continue
 		}
 		t.Errorf("mutation kind %d has no handler and is not in the explicit switch", kind)
+	}
+}
+
+func TestCatalogueBuilder_ApplyMigrationColumnOverridesGoType(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name         string
+		goType       string
+		wantCode     string
+		wantSeverity querier_dto.ErrorSeverity
+		wantApplied  bool
+	}{
+		{
+			name:         "standard library lookalike is reported as unusable",
+			goType:       "uuid.UUID",
+			wantCode:     querier_dto.CodeUnusableGoTypeOverride,
+			wantSeverity: querier_dto.SeverityError,
+			wantApplied:  false,
+		},
+		{
+			name:         "malformed qualified type is reported",
+			goType:       "pkg.",
+			wantCode:     querier_dto.CodeUnknownOverrideMigrationColumn,
+			wantSeverity: querier_dto.SeverityWarning,
+			wantApplied:  false,
+		},
+		{
+			name:        "valid qualified type is applied",
+			goType:      "github.com/google/uuid.UUID",
+			wantApplied: true,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			builder, _ := setupBuilderWithTable("users", querier_dto.NewColumn("id", querier_dto.SQLType{}, false))
+			overrides := []migrationColumnOverride{{Table: "users", Column: "id", GoType: testCase.goType}}
+
+			diagnostics := builder.applyMigrationColumnOverrides(overrides, "001_init.up.sql")
+
+			column := findCatalogueColumn(builder.Catalogue(), "users", "id")
+			require.NotNil(t, column)
+			if testCase.wantApplied {
+				assert.Empty(t, diagnostics)
+				assert.NotNil(t, column.GoTypeOverride)
+				return
+			}
+			require.Len(t, diagnostics, 1)
+			assert.Equal(t, testCase.wantCode, diagnostics[0].Code)
+			assert.Equal(t, testCase.wantSeverity, diagnostics[0].Severity)
+			assert.Nil(t, column.GoTypeOverride)
+		})
 	}
 }

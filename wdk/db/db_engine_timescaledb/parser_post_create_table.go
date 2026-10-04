@@ -145,6 +145,7 @@ func findCreateTableWithBody(tokens []db_engine_postgres.Token) (createTableWith
 				depth--
 			}
 			continue
+		default:
 		}
 		if depth != 0 {
 			continue
@@ -195,6 +196,7 @@ func matchClosingParen(tokens []db_engine_postgres.Token, openIndex int) (int, b
 			if depth == 0 {
 				return index, true
 			}
+		default:
 		}
 	}
 	return 0, false
@@ -357,6 +359,7 @@ func advanceReloptionDepth(tok db_engine_postgres.Token, depth int) (int, bool) 
 		if depth > 0 {
 			return depth - 1, false
 		}
+	default:
 	}
 	return depth, false
 }

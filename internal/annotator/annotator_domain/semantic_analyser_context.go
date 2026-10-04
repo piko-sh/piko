@@ -25,9 +25,9 @@ package annotator_domain
 import (
 	"context"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
@@ -468,38 +468,16 @@ func (*ContextManager) createLoopVariableAnnotation(
 	typeInfo *ast_domain.ResolvedTypeInfo,
 	sfcSourcePath string,
 ) *ast_domain.GoGeneratorAnnotation {
-	return &ast_domain.GoGeneratorAnnotation{
-		EffectiveKeyExpression:  nil,
-		DynamicCollectionInfo:   nil,
-		StaticCollectionLiteral: nil,
-		ParentTypeName:          nil,
-		BaseCodeGenVarName:      &variable.Name,
-		GeneratedSourcePath:     nil,
-		DynamicAttributeOrigins: nil,
-		ResolvedType:            typeInfo,
-		Symbol: &ast_domain.ResolvedSymbol{
-			Name:                variable.Name,
-			ReferenceLocation:   variable.RelativeLocation,
-			DeclarationLocation: ast_domain.Location{},
-		},
-		PartialInfo:             nil,
-		PropDataSource:          nil,
-		OriginalSourcePath:      &sfcSourcePath,
-		OriginalPackageAlias:    nil,
-		FieldTag:                nil,
-		SourceInvocationKey:     nil,
-		StaticCollectionData:    nil,
-		Srcset:                  nil,
-		Stringability:           0,
-		IsStatic:                false,
-		NeedsCSRF:               false,
-		NeedsRuntimeSafetyCheck: false,
-		IsStructurallyStatic:    false,
-		IsPointerToStringable:   false,
-		IsCollectionCall:        false,
-		IsHybridCollection:      false,
-		IsMapAccess:             false,
+	annotation := ast_domain.GoGeneratorAnnotation{}
+	annotation.BaseCodeGenVarName = &variable.Name
+	annotation.ResolvedType = typeInfo
+	annotation.Symbol = &ast_domain.ResolvedSymbol{
+		Name:                variable.Name,
+		ReferenceLocation:   variable.RelativeLocation,
+		DeclarationLocation: ast_domain.Location{},
 	}
+	annotation.OriginalSourcePath = &sfcSourcePath
+	return &annotation
 }
 
 // newContextManager creates a new ContextManager with the given type resolver and virtual

@@ -90,6 +90,8 @@ func (s *collectionService) generateHybridAnnotation(
 // Takes provider (CollectionProvider) which supplies the content source.
 // Takes collectionName (string) which identifies the collection to fetch.
 // Takes options (*collection_dto.FetchOptions) which specifies query filters.
+// Takes source (collection_dto.ContentSource) which supplies the sandbox, base path, and
+// external module flag used to load content.
 //
 // Returns []collection_dto.ContentItem which contains the filtered content.
 // Returns string which is the computed ETag for cache validation.
@@ -294,34 +296,7 @@ func (s *collectionService) buildHybridAnnotation(
 ) *ast_domain.GoGeneratorAnnotation {
 	resolvedType := s.createSliceTypeInfo(targetTypeExpr)
 
-	return &ast_domain.GoGeneratorAnnotation{
-		EffectiveKeyExpression:  nil,
-		DynamicCollectionInfo:   dynamicInfo,
-		StaticCollectionLiteral: sliceLiteral,
-		ParentTypeName:          nil,
-		BaseCodeGenVarName:      nil,
-		GeneratedSourcePath:     nil,
-		DynamicAttributeOrigins: nil,
-		ResolvedType:            resolvedType,
-		Symbol:                  nil,
-		PartialInfo:             nil,
-		PropDataSource:          nil,
-		OriginalSourcePath:      nil,
-		OriginalPackageAlias:    nil,
-		FieldTag:                nil,
-		SourceInvocationKey:     nil,
-		StaticCollectionData:    convertItemsToAny(processedItems),
-		Srcset:                  nil,
-		Stringability:           0,
-		IsStatic:                true,
-		NeedsCSRF:               false,
-		NeedsRuntimeSafetyCheck: false,
-		IsStructurallyStatic:    true,
-		IsPointerToStringable:   false,
-		IsCollectionCall:        true,
-		IsHybridCollection:      true,
-		IsMapAccess:             false,
-	}
+	return newHybridCollectionAnnotation(resolvedType, dynamicInfo, sliceLiteral, convertItemsToAny(processedItems))
 }
 
 // logHybridAnnotationDiagnostics logs debug details about a hybrid collection annotation.

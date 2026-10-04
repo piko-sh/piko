@@ -90,11 +90,10 @@ var (
 //
 // Returns *MockEmailProvider which is set up with empty call records.
 func NewMockEmailProvider() *MockEmailProvider {
-	return &MockEmailProvider{
-		sendCalls:     make([]email_dto.SendParams, 0),
-		bulkSendCalls: make([][]email_dto.SendParams, 0),
-		supportsBulk:  false,
-	}
+	provider := MockEmailProvider{}
+	provider.sendCalls = make([]email_dto.SendParams, 0)
+	provider.bulkSendCalls = make([][]email_dto.SendParams, 0)
+	return &provider
 }
 
 // GetProviderType returns the type identifier for this email provider.
@@ -221,11 +220,12 @@ func (m *MockEmailProvider) Check(_ context.Context, _ healthprobe_dto.CheckType
 	startTime := time.Now()
 
 	return healthprobe_dto.Status{
-		Name:      m.Name(),
-		State:     healthprobe_dto.StateHealthy,
-		Message:   "Mock email provider operational",
-		Timestamp: time.Now(),
-		Duration:  time.Since(startTime).String(),
+		Name:         m.Name(),
+		State:        healthprobe_dto.StateHealthy,
+		Message:      "Mock email provider operational",
+		Timestamp:    time.Now(),
+		Duration:     time.Since(startTime).String(),
+		Dependencies: nil,
 	}
 }
 

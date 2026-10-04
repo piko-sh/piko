@@ -21,6 +21,7 @@
 package orchestrator_pipeline_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -70,34 +71,32 @@ func TestEdgeCase_ContextCancellationShutsDownCleanly(t *testing.T) {
 }
 
 func TestEdgeCase_DeduplicationBlocksDuplicateTask(t *testing.T) {
-	exec := newControllableExecutor()
-	exec.executionTime = 1 * time.Second
-
 	h := newPipelineHarness(t,
 		withMaxRetries(1),
-		withExecutor("artefact.compiler", exec),
 	)
 
-	profile := []registry_dto.NamedProfile{
-		makeProfile("web", "image.resize"),
-	}
+	exec := newSourceTrackingExecutor(h.registryService)
+	h.dispatcher.RegisterExecutor(context.Background(), "artefact.compiler", exec)
 
-	h.seedArtefact("dedup-artefact", profile)
+	profiles := []registry_dto.NamedProfile{sourceProfile("web", registry_dto.PriorityNeed)}
 
-	started := waitForCondition(5*time.Second, func() bool {
-		return exec.getCallCount() > 0
-	})
-	require.True(t, started, "first task should start processing")
+	h.seedArtefact("dedup-artefact", profiles)
+	waitForSignal(t, exec.entered, "first task should start processing")
 
-	h.seedArtefact("dedup-artefact", profile)
+	h.seedArtefact("dedup-artefact", profiles)
+	require.True(t, h.waitForFlush(5*time.Second),
+		"the identical re-seed should reach the bridge while the first task runs")
+
+	close(exec.gate)
 
 	idle := h.waitForIdle(10 * time.Second)
 	require.True(t, idle, "dispatcher should become idle")
 
-	assert.Equal(t, 1, exec.getCallCount(),
-		"executor should be called once due to deduplication")
+	assert.Len(t, exec.inputs(), 1,
+		"executor should be called once: the duplicate is held back while the first task runs and is not needed after it")
 
 	stats := h.dispatcher.Stats()
+	assert.Equal(t, int64(1), stats.TasksDispatched, "one task dispatched")
 	assert.Equal(t, int64(1), stats.TasksCompleted, "one task completed")
 	assert.Equal(t, int64(0), stats.TasksFailed, "no failures")
 }

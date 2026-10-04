@@ -23,7 +23,7 @@ import (
 	"go/ast"
 	"strings"
 
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/querier/querier_adapters/emitter_shared"
 	"piko.sh/piko/internal/querier/querier_domain"
 	"piko.sh/piko/internal/querier/querier_dto"

@@ -40,9 +40,7 @@ var (
 // Returns *Container which is the newly created container ready for use.
 func NewContainer() *Container {
 	return &Container{
-		Row: Row{
-			BaseComponent: BaseComponent{},
-		},
+		BaseComponent: BaseComponent{},
 	}
 }
 
@@ -98,9 +96,9 @@ func (c *Container) Transform(node *ast_domain.TemplateNode, ctx *pml_domain.Tra
 		node.Attributes = append(node.Attributes, ast_domain.HTMLAttribute{
 			Name:           "stack-children",
 			Value:          "true",
-			Location:       NewLocation(),
-			NameLocation:   NewLocation(),
-			AttributeRange: NewRange(),
+			Location:       ast_domain.Location{},
+			NameLocation:   ast_domain.Location{},
+			AttributeRange: ast_domain.Range{},
 		})
 	}
 

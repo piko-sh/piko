@@ -146,9 +146,7 @@ func TestCollectionService_Check_Readiness_WithHealthyProvider(t *testing.T) {
 	registry := newTestProviderRegistry()
 
 	provider := &mockHealthyProvider{
-		MockCollectionProvider: MockCollectionProvider{
-			NameFunc: func() string { return "healthy-provider" },
-		},
+		NameFunc: func() string { return "healthy-provider" },
 	}
 	_ = registry.Register(provider)
 
@@ -172,9 +170,7 @@ func TestCollectionService_Check_Readiness_WithUnhealthyProvider(t *testing.T) {
 	registry := newTestProviderRegistry()
 
 	provider := &mockUnhealthyProvider{
-		MockCollectionProvider: MockCollectionProvider{
-			NameFunc: func() string { return "unhealthy-provider" },
-		},
+		NameFunc: func() string { return "unhealthy-provider" },
 	}
 	_ = registry.Register(provider)
 
@@ -198,14 +194,10 @@ func TestCollectionService_Check_Readiness_MixedProviders(t *testing.T) {
 	registry := newTestProviderRegistry()
 
 	healthy := &mockHealthyProvider{
-		MockCollectionProvider: MockCollectionProvider{
-			NameFunc: func() string { return "healthy" },
-		},
+		NameFunc: func() string { return "healthy" },
 	}
 	unhealthy := &mockUnhealthyProvider{
-		MockCollectionProvider: MockCollectionProvider{
-			NameFunc: func() string { return "unhealthy" },
-		},
+		NameFunc: func() string { return "unhealthy" },
 	}
 	_ = registry.Register(healthy)
 	_ = registry.Register(unhealthy)
@@ -230,9 +222,7 @@ func TestCollectionService_Check_Readiness_DegradedProvider(t *testing.T) {
 	registry := newTestProviderRegistry()
 
 	provider := &mockDegradedProvider{
-		MockCollectionProvider: MockCollectionProvider{
-			NameFunc: func() string { return "degraded-provider" },
-		},
+		NameFunc: func() string { return "degraded-provider" },
 	}
 	_ = registry.Register(provider)
 
@@ -334,9 +324,7 @@ func TestGetProviderStatus_NoHealthCheck(t *testing.T) {
 
 func TestGetProviderStatus_WithHealthCheck(t *testing.T) {
 	provider := &mockHealthyProvider{
-		MockCollectionProvider: MockCollectionProvider{
-			NameFunc: func() string { return "healthy" },
-		},
+		NameFunc: func() string { return "healthy" },
 	}
 
 	status := getProviderStatus(context.Background(), healthprobe_dto.CheckTypeReadiness, "healthy", provider)

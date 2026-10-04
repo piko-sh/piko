@@ -250,14 +250,7 @@ func (s *coordinatorService) updateStatus(ctx context.Context, st state, result 
 //
 // Returns *buildOptions which contains the configured settings.
 func applyBuildOptions(opts []BuildOption) *buildOptions {
-	buildOpts := &buildOptions{
-		InspectionCacheHints: nil,
-		CausationID:          "",
-		ChangedFiles:         nil,
-		Resolver:             nil,
-		SkipInspection:       false,
-		FaultTolerant:        false,
-	}
+	buildOpts := &buildOptions{}
 	for _, opt := range opts {
 		opt(buildOpts)
 	}

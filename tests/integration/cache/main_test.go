@@ -62,8 +62,8 @@ func TestMain(m *testing.M) {
 
 	if code == 0 {
 		if err := leakcheck.FindLeaks(
-
 			goleak.IgnoreAnyFunction("github.com/valkey-io/valkey-go.(*call).LazyDo.func1"),
+			goleak.IgnoreAnyFunction("github.com/valkey-io/valkey-go.(*call).DelayDo.func1"),
 		); err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "goleak: %v\n", err)
 			os.Exit(1)

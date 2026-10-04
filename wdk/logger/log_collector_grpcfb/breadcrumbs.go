@@ -80,7 +80,7 @@ type breadcrumbRing struct {
 //
 // Returns *breadcrumbRing which is the initialised, empty ring.
 func newBreadcrumbRing(capacity int) *breadcrumbRing {
-	return &breadcrumbRing{buffer: make([]breadcrumb, capacity)}
+	return &breadcrumbRing{buffer: make([]breadcrumb, capacity), mu: sync.Mutex{}, position: 0, size: 0}
 }
 
 // add records a line as the newest entry, evicting the oldest when full.

@@ -77,8 +77,12 @@ type streamState struct {
 //
 // Spawns a goroutine to process the stream and send events on the returned channel. The
 // channel is closed when the stream completes or errors.
-func (p *anthropicProvider) Stream(ctx context.Context, request *llm_dto.CompletionRequest) (<-chan llm_dto.StreamEvent, error) {
-	defer goroutine.RecoverPanic(ctx, "llm.anthropicProvider.Stream")
+func (p *anthropicProvider) Stream(ctx context.Context, request *llm_dto.CompletionRequest) (result <-chan llm_dto.StreamEvent, returnErr error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			result, returnErr = nil, goroutine.HandlePanicRecovery(ctx, "llm.anthropicProvider.Stream", recovered)
+		}
+	}()
 
 	ctx, l := logger.From(ctx, log)
 	streamCount.Add(ctx, 1)
@@ -150,9 +154,11 @@ func (p *anthropicProvider) processStream(ctx context.Context, stream *ssestream
 		}
 
 		chunk := &llm_dto.StreamChunk{
-			ID:    state.messageID,
-			Model: model,
-			Delta: delta,
+			ID:           state.messageID,
+			Model:        model,
+			Delta:        delta,
+			FinishReason: nil,
+			Usage:        nil,
 		}
 
 		if !p.sendEvent(ctx, events, llm_dto.NewChunkEvent(chunk)) {
@@ -225,7 +231,11 @@ func (*anthropicProvider) handleContentBlockStart(e *anthropic.ContentBlockStart
 
 	state.currentToolIndex++
 	for len(state.accumulatedToolCalls) <= state.currentToolIndex {
-		state.accumulatedToolCalls = append(state.accumulatedToolCalls, llm_dto.ToolCall{Type: "function"})
+		state.accumulatedToolCalls = append(state.accumulatedToolCalls, llm_dto.ToolCall{
+			Type:     "function",
+			ID:       "",
+			Function: llm_dto.FunctionCall{},
+		})
 	}
 	state.accumulatedToolCalls[state.currentToolIndex].ID = toolUse.ID
 	state.accumulatedToolCalls[state.currentToolIndex].Function.Name = toolUse.Name
@@ -252,7 +262,10 @@ func (*anthropicProvider) handleContentBlockDelta(e *anthropic.ContentBlockDelta
 					Index: state.currentToolIndex,
 					Function: &llm_dto.FunctionCallDelta{
 						Arguments: &d.PartialJSON,
+						Name:      nil,
 					},
+					ID:   nil,
+					Type: nil,
 				},
 			}
 		}
@@ -273,6 +286,7 @@ func (p *anthropicProvider) handleMessageDelta(e *anthropic.MessageDeltaEvent, s
 			CompletionTokens: completionTokens,
 			TotalTokens:      state.inputTokens + completionTokens,
 			CachedTokens:     state.cachedTokens,
+			EstimatedCost:    nil,
 		}
 	}
 	if e.Delta.StopReason != "" {
@@ -307,9 +321,13 @@ func (*anthropicProvider) sendEvent(ctx context.Context, events chan<- llm_dto.S
 // usage data, and any tool calls.
 func (p *anthropicProvider) buildFinalResponse(state *streamState) *llm_dto.CompletionResponse {
 	finalResponse := &llm_dto.CompletionResponse{
-		ID:    state.messageID,
-		Model: state.model,
-		Usage: state.finalUsage,
+		ID:           state.messageID,
+		Model:        state.model,
+		Usage:        state.finalUsage,
+		FallbackInfo: nil,
+		Choices:      nil,
+		Sources:      nil,
+		Created:      0,
 	}
 
 	finishReason := llm_dto.FinishReasonStop
@@ -317,9 +335,8 @@ func (p *anthropicProvider) buildFinalResponse(state *streamState) *llm_dto.Comp
 		finishReason = *state.lastFinishReason
 	}
 
-	finalMessage := llm_dto.Message{
-		Role: llm_dto.RoleAssistant,
-	}
+	finalMessage := llm_dto.Message{}
+	finalMessage.Role = llm_dto.RoleAssistant
 
 	if len(state.accumulatedToolCalls) > 0 {
 		p.validateToolCallArguments(state.accumulatedToolCalls)
@@ -355,8 +372,8 @@ func (*anthropicProvider) validateToolCallArguments(toolCalls []llm_dto.ToolCall
 //
 // Returns *streamState which is the initialised state ready for streaming.
 func newStreamState(model string) *streamState {
-	return &streamState{
-		currentToolIndex: -1,
-		model:            model,
-	}
+	state := streamState{}
+	state.currentToolIndex = -1
+	state.model = model
+	return &state
 }

@@ -97,7 +97,7 @@ func TestValidate(t *testing.T) {
 
 	t.Run("should fail for nil Packages map", func(t *testing.T) {
 		t.Parallel()
-		td := &inspector_dto.TypeData{Packages: nil}
+		td := &inspector_dto.TypeData{}
 		err := validate(td)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "Packages map is nil")
@@ -702,9 +702,7 @@ func TestValidateNestedCompositeParts(t *testing.T) {
 	t.Run("should skip when CompositeType is None", func(t *testing.T) {
 		t.Parallel()
 		collector := &errorCollector{}
-		part := &inspector_dto.CompositePart{
-			CompositeType: inspector_dto.CompositeTypeNone,
-		}
+		part := &inspector_dto.CompositePart{}
 		validateNestedCompositeParts(part, "Data", "my/pkg", "User", validationContext{kind: vctxField, name: "test"}, collector)
 		assert.Empty(t, collector.errors)
 	})
@@ -840,9 +838,7 @@ func TestValidateFunc(t *testing.T) {
 	t.Run("should fail for empty Name", func(t *testing.T) {
 		t.Parallel()
 		collector := &errorCollector{}
-		validateFunc(&inspector_dto.Function{
-			Name: "",
-		}, "my/pkg", "NewUser", collector)
+		validateFunc(&inspector_dto.Function{}, "my/pkg", "NewUser", collector)
 		hasErr := false
 		for _, e := range collector.errors {
 			if contains(e, "incorrect or empty Name") {
@@ -972,9 +968,7 @@ func TestValidateGenericPlaceholderPackagePath(t *testing.T) {
 	t.Run("should return false for non-generic field", func(t *testing.T) {
 		t.Parallel()
 		collector := &errorCollector{}
-		input := packagePathInput{
-			IsGenericPlaceholder: false,
-		}
+		input := packagePathInput{}
 		result := validateGenericPlaceholderPackagePath(input, validationContext{kind: vctxField, name: "test"}, collector)
 		assert.False(t, result)
 		assert.Empty(t, collector.errors)

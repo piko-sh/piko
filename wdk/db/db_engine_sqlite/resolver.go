@@ -79,6 +79,7 @@ func resolveSQLiteIdentityAggregate(argumentTypes []querier_dto.SQLType) (*queri
 		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
 		IsAggregate:       len(argumentTypes) == 1,
 		DataAccess:        querier_dto.DataAccessReadOnly,
+		ReturnsSet:        false,
 	}, nil
 }
 
@@ -102,9 +103,9 @@ func resolveSQLiteSum(argumentTypes []querier_dto.SQLType) (*querier_dto.Functio
 	switch argumentType.Category {
 	case querier_dto.TypeCategoryInteger:
 
-		returnType = querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "int8"}
+		returnType = querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int8")
 	default:
-		returnType = querier_dto.SQLType{Category: querier_dto.TypeCategoryFloat, EngineName: "real"}
+		returnType = querier_dto.NewSQLType(querier_dto.TypeCategoryFloat, "real")
 	}
 
 	return &querier_dto.FunctionResolution{
@@ -112,6 +113,7 @@ func resolveSQLiteSum(argumentTypes []querier_dto.SQLType) (*querier_dto.Functio
 		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
 		IsAggregate:       true,
 		DataAccess:        querier_dto.DataAccessReadOnly,
+		ReturnsSet:        false,
 	}, nil
 }
 
@@ -138,13 +140,17 @@ func resolveSQLiteCoalesce(argumentTypes []querier_dto.SQLType) (*querier_dto.Fu
 				ReturnType:        argumentTypes[index],
 				NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
 				DataAccess:        querier_dto.DataAccessReadOnly,
+				IsAggregate:       false,
+				ReturnsSet:        false,
 			}, nil
 		}
 	}
 
 	return &querier_dto.FunctionResolution{
-		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown, EngineName: ""},
+		ReturnType:        querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""),
 		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
 		DataAccess:        querier_dto.DataAccessReadOnly,
+		IsAggregate:       false,
+		ReturnsSet:        false,
 	}, nil
 }

@@ -40,7 +40,6 @@ FBS_SCHEMAS=(
     "internal/inspector/inspector_schema/type_data.fbs"
     "internal/registry/registry_schema/artefact_meta.fbs"
     "internal/search/search_schema/search_index.fbs"
-    "internal/interp/interp_schema/bytecode.fbs"
     "internal/typegen/typegen_schema/action_manifest.fbs"
     "wdk/telemetry/telemetry_grpcfb/telemetry.fbs"
 )

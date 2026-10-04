@@ -66,11 +66,9 @@ func TestTestView_AssertState(t *testing.T) {
 
 func TestTestView_Metadata(t *testing.T) {
 	meta := templater_dto.InternalMetadata{
-		Metadata: templater_dto.Metadata{
-			Title:       "Test Title",
-			Description: "A description",
-			Language:    "en",
-		},
+		Title:       "Test Title",
+		Description: "A description",
+		Language:    "en",
 	}
 	view := renderView(t, nil, meta)
 
@@ -102,7 +100,7 @@ func TestTestView_AssertTitle(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			meta := templater_dto.InternalMetadata{
-				Metadata: templater_dto.Metadata{Title: tc.title},
+				Title: tc.title,
 			}
 			view := renderView(t, nil, meta)
 			view.AssertTitle(tc.expected)
@@ -125,7 +123,7 @@ func TestTestView_AssertStatusCode(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			meta := templater_dto.InternalMetadata{
-				Metadata: templater_dto.Metadata{Status: tc.status},
+				Status: tc.status,
 			}
 			view := renderView(t, nil, meta)
 			view.AssertStatusCode(tc.expected)
@@ -140,7 +138,7 @@ func TestTestView_AssertDefaultStatusCode(t *testing.T) {
 
 func TestTestView_AssertDescription(t *testing.T) {
 	meta := templater_dto.InternalMetadata{
-		Metadata: templater_dto.Metadata{Description: "A test page"},
+		Description: "A test page",
 	}
 	view := renderView(t, nil, meta)
 	view.AssertDescription("A test page")
@@ -148,11 +146,9 @@ func TestTestView_AssertDescription(t *testing.T) {
 
 func TestTestView_AssertHasMetaTag(t *testing.T) {
 	meta := templater_dto.InternalMetadata{
-		Metadata: templater_dto.Metadata{
-			MetaTags: []templater_dto.MetaTag{
-				{Name: "author", Content: "Piko"},
-				{Name: "robots", Content: "noindex"},
-			},
+		MetaTags: []templater_dto.MetaTag{
+			{Name: "author", Content: "Piko"},
+			{Name: "robots", Content: "noindex"},
 		},
 	}
 	view := renderView(t, nil, meta)
@@ -162,11 +158,9 @@ func TestTestView_AssertHasMetaTag(t *testing.T) {
 
 func TestTestView_AssertHasOGTag(t *testing.T) {
 	meta := templater_dto.InternalMetadata{
-		Metadata: templater_dto.Metadata{
-			OGTags: []templater_dto.OGTag{
-				{Property: "og:title", Content: "My Page"},
-				{Property: "og:type", Content: "website"},
-			},
+		OGTags: []templater_dto.OGTag{
+			{Property: "og:title", Content: "My Page"},
+			{Property: "og:type", Content: "website"},
 		},
 	}
 	view := renderView(t, nil, meta)
@@ -176,7 +170,7 @@ func TestTestView_AssertHasOGTag(t *testing.T) {
 
 func TestTestView_AssertClientRedirect(t *testing.T) {
 	meta := templater_dto.InternalMetadata{
-		Metadata: templater_dto.Metadata{ClientRedirect: "/dashboard"},
+		ClientRedirect: "/dashboard",
 	}
 	view := renderView(t, nil, meta)
 	view.AssertClientRedirect("/dashboard")
@@ -184,7 +178,7 @@ func TestTestView_AssertClientRedirect(t *testing.T) {
 
 func TestTestView_AssertServerRedirect(t *testing.T) {
 	meta := templater_dto.InternalMetadata{
-		Metadata: templater_dto.Metadata{ServerRedirect: "/login"},
+		ServerRedirect: "/login",
 	}
 	view := renderView(t, nil, meta)
 	view.AssertServerRedirect("/login")
@@ -192,7 +186,7 @@ func TestTestView_AssertServerRedirect(t *testing.T) {
 
 func TestTestView_AssertLanguage(t *testing.T) {
 	meta := templater_dto.InternalMetadata{
-		Metadata: templater_dto.Metadata{Language: "fr"},
+		Language: "fr",
 	}
 	view := renderView(t, nil, meta)
 	view.AssertLanguage("fr")
@@ -200,7 +194,7 @@ func TestTestView_AssertLanguage(t *testing.T) {
 
 func TestTestView_AssertCanonicalURL(t *testing.T) {
 	meta := templater_dto.InternalMetadata{
-		Metadata: templater_dto.Metadata{CanonicalURL: "https://example.com/page"},
+		CanonicalURL: "https://example.com/page",
 	}
 	view := renderView(t, nil, meta)
 	view.AssertCanonicalURL("https://example.com/page")

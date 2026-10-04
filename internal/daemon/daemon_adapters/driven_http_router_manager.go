@@ -25,6 +25,7 @@ import (
 	"sync"
 
 	"github.com/go-chi/chi/v5"
+	"piko.sh/piko/internal/analytics/analytics_domain"
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/config"
@@ -41,8 +42,9 @@ import (
 
 // RouterManagerConfig bundles the configuration parameters for creating a RouterManager.
 type RouterManagerConfig struct {
-	// CSRFService creates and validates CSRF tokens.
-	CSRFService security_domain.CSRFTokenService
+	// ArtefactCache provides the cache hexagon instance for artefact metadata. May be nil to
+	// disable metadata caching.
+	ArtefactCache cache_domain.Cache[string, *registry_dto.ArtefactMeta]
 
 	// CaptchaService verifies captcha tokens. Nil when captcha is disabled.
 	CaptchaService captcha_domain.CaptchaServicePort
@@ -62,17 +64,29 @@ type RouterManagerConfig struct {
 	// PresignUploadHandler handles presigned URL uploads; nil disables this feature.
 	PresignUploadHandler http.Handler
 
-	// RateLimitService provides rate limiting for the rate limiting middleware.
+	// PublicDownloadHandler serves public storage downloads; nil disables the route.
+	PublicDownloadHandler http.Handler
+
+	// RateLimitService provides rate limiting for the rate limiting middleware and the
+	// per-action limits; required when rate limiting is enabled.
 	RateLimitService security_domain.RateLimitService
+
+	// AuthProvider resolves the authentication state of each request. Nil when no provider
+	// is configured, in which case the auth guard is not installed.
+	AuthProvider daemon_dto.AuthProvider
+
+	// CSRFService creates and validates CSRF tokens.
+	CSRFService security_domain.CSRFTokenService
+
+	// ActionResponseCache caches action responses for actions that opt in; nil disables
+	// response caching.
+	ActionResponseCache cache_domain.Cache[string, []byte]
+
+	// Actions maps action names to their handler entries.
+	Actions map[string]ActionHandlerEntry
 
 	// SiteSettings holds the website settings used by the router.
 	SiteSettings *config.WebsiteConfig
-
-	// Deps holds shared dependencies used by HTTP handlers.
-	Deps *daemon_domain.HTTPHandlerDependencies
-
-	// CacheMiddleware wraps handlers with HTTP caching behaviour.
-	CacheMiddleware func(next http.Handler) http.Handler
 
 	// AppRouter is the main HTTP router for the application.
 	AppRouter *chi.Mux
@@ -84,18 +98,26 @@ type RouterManagerConfig struct {
 	// when no auth guard is configured.
 	AuthGuardConfig *daemon_dto.AuthGuardConfig
 
-	// ArtefactCache provides the cache hexagon instance for artefact metadata. May be nil to
-	// disable metadata caching.
-	ArtefactCache cache_domain.Cache[string, *registry_dto.ArtefactMeta]
+	// AnalyticsService receives page view and action events. Nil when analytics is disabled.
+	AnalyticsService *analytics_domain.Service
 
-	// Actions maps action names to their handler entries.
-	Actions map[string]ActionHandlerEntry
+	// CacheMiddleware wraps handlers with HTTP caching behaviour.
+	CacheMiddleware func(next http.Handler) http.Handler
+
+	// Deps holds shared dependencies used by HTTP handlers.
+	Deps *daemon_domain.HTTPHandlerDependencies
+
+	// InstanceRelease is this running binary's release identifier.
+	InstanceRelease string
+
+	// CSPConfig holds the Content Security Policy settings for security headers.
+	CSPConfig security_dto.CSPRuntimeConfig
 
 	// RouteProviders is the list of route providers that supply HTTP routes.
 	RouteProviders []daemon_domain.RouteProvider
 
-	// CSPConfig holds the Content Security Policy settings for security headers.
-	CSPConfig security_dto.CSPRuntimeConfig
+	// RateLimitConfig holds the per-action rate limit settings applied to action routes.
+	RateLimitConfig security_dto.RateLimitValues
 
 	// RouteSettings provides typed route settings for route mounting.
 	RouteSettings RouteSettings
@@ -106,12 +128,11 @@ type RouterManagerConfig struct {
 // using the latest router settings without dropping any requests that are still in
 // progress.
 type RouterManager struct {
-	// currentRouter is the active router that handles requests; it is swapped during route
-	// reloads.
-	currentRouter http.Handler
+	// spamdetectService analyses form content for spam. Nil when disabled.
+	spamdetectService spamdetect_domain.SpamDetectServicePort
 
-	// csrfService creates and checks CSRF tokens.
-	csrfService security_domain.CSRFTokenService
+	// presignDownloadHandler handles presigned URL downloads; may be nil.
+	presignDownloadHandler http.Handler
 
 	// registryService provides access to the artefact registry.
 	registryService registry_domain.RegistryService
@@ -119,30 +140,44 @@ type RouterManager struct {
 	// variantGenerator builds image variants when routes are set up.
 	variantGenerator daemon_domain.OnDemandVariantGenerator
 
-	// presignDownloadHandler handles presigned URL downloads; may be nil.
-	presignDownloadHandler http.Handler
+	// currentRouter is the active router that handles requests; it is swapped during route
+	// reloads.
+	currentRouter http.Handler
 
 	// presignUploadHandler provides presigned URL uploads; nil disables this feature.
 	presignUploadHandler http.Handler
 
+	// publicDownloadHandler serves public storage downloads; nil disables the route.
+	publicDownloadHandler http.Handler
+
 	// rateLimitService controls request rate limits for the rate limiting middleware.
 	rateLimitService security_domain.RateLimitService
 
+	// authProvider resolves the authentication state of each request; nil when none is
+	// configured.
+	authProvider daemon_dto.AuthProvider
+
+	// captchaService verifies captcha tokens. Nil when captcha is disabled.
+	captchaService captcha_domain.CaptchaServicePort
+
+	// actionResponseCache caches responses of actions that opt in; nil disables it.
+	actionResponseCache cache_domain.Cache[string, []byte]
+
 	// artefactCache provides the cache hexagon instance for artefact metadata.
 	artefactCache cache_domain.Cache[string, *registry_dto.ArtefactMeta]
+
+	// csrfService creates and checks CSRF tokens.
+	csrfService security_domain.CSRFTokenService
 
 	// currentBuilder holds the builder that created the current router, so its resources
 	// (e.g. metadata cache) can be closed on the next reload.
 	currentBuilder daemon_domain.RouterBuilder
 
-	// captchaService verifies captcha tokens. Nil when captcha is disabled.
-	captchaService captcha_domain.CaptchaServicePort
+	// cacheMiddleware wraps handlers to add response caching.
+	cacheMiddleware func(next http.Handler) http.Handler
 
-	// spamdetectService analyses form content for spam. Nil when disabled.
-	spamdetectService spamdetect_domain.SpamDetectServicePort
-
-	// siteSettings holds the website settings that route handlers use.
-	siteSettings *config.WebsiteConfig
+	// deps holds shared dependencies used when setting up HTTP routes.
+	deps *daemon_domain.HTTPHandlerDependencies
 
 	// appRouter is the main HTTP router for application routes.
 	appRouter *chi.Mux
@@ -154,20 +189,26 @@ type RouterManager struct {
 	// when no auth guard is configured.
 	authGuardConfig *daemon_dto.AuthGuardConfig
 
-	// cacheMiddleware wraps handlers to add response caching.
-	cacheMiddleware func(next http.Handler) http.Handler
+	// analyticsService receives page view and action events; nil when disabled.
+	analyticsService *analytics_domain.Service
 
 	// actions maps action names to handlers for route processing.
 	actions map[string]ActionHandlerEntry
 
-	// deps holds shared dependencies used when setting up HTTP routes.
-	deps *daemon_domain.HTTPHandlerDependencies
+	// siteSettings holds the website settings that route handlers use.
+	siteSettings *config.WebsiteConfig
+
+	// instanceRelease is this running binary's release identifier.
+	instanceRelease string
 
 	// routeProviders holds the providers that add routes when the router reloads.
 	routeProviders []daemon_domain.RouteProvider
 
 	// cspConfig holds the CSP settings from startup; read-only after start.
 	cspConfig security_dto.CSPRuntimeConfig
+
+	// rateLimitConfig holds the per-action rate limit settings.
+	rateLimitConfig security_dto.RateLimitValues
 
 	// routeSettings stores typed route settings used when mounting routes.
 	routeSettings RouteSettings
@@ -200,11 +241,18 @@ func NewRouterManager(routerManagerConfig *RouterManagerConfig) *RouterManager {
 		presignUploadHandler:   routerManagerConfig.PresignUploadHandler,
 		presignDownloadHandler: routerManagerConfig.PresignDownloadHandler,
 		rateLimitService:       routerManagerConfig.RateLimitService,
+		publicDownloadHandler:  routerManagerConfig.PublicDownloadHandler,
+		authProvider:           routerManagerConfig.AuthProvider,
+		analyticsService:       routerManagerConfig.AnalyticsService,
+		actionResponseCache:    routerManagerConfig.ActionResponseCache,
+		rateLimitConfig:        routerManagerConfig.RateLimitConfig,
+		instanceRelease:        routerManagerConfig.InstanceRelease,
 		authGuardConfig:        routerManagerConfig.AuthGuardConfig,
 		artefactCache:          routerManagerConfig.ArtefactCache,
 		captchaService:         routerManagerConfig.CaptchaService,
 		spamdetectService:      routerManagerConfig.SpamDetectService,
 		mu:                     sync.RWMutex{},
+		currentBuilder:         nil,
 	}
 }
 
@@ -243,7 +291,7 @@ func (rm *RouterManager) ReloadRoutes(ctx context.Context, store templater_domai
 
 	newAppRouter, notFoundHandler := rm.buildReloadedAppRouter(ctx, store)
 
-	builder := NewHTTPRouterBuilder(rm.artefactCache, "")
+	builder := NewHTTPRouterBuilder(rm.artefactCache, rm.instanceRelease)
 	finalRouter, err := builder.BuildRouter(
 		rm.routerConfig,
 		daemon_domain.RouterDependencies{
@@ -255,6 +303,10 @@ func (rm *RouterManager) ReloadRoutes(ctx context.Context, store templater_domai
 			PresignUploadHandler:   rm.presignUploadHandler,
 			PresignDownloadHandler: rm.presignDownloadHandler,
 			RateLimitService:       rm.rateLimitService,
+			PublicDownloadHandler:  rm.publicDownloadHandler,
+			AuthProvider:           rm.authProvider,
+			AuthGuardConfig:        rm.authGuardConfig,
+			AnalyticsService:       rm.analyticsService,
 		},
 	)
 	if err != nil {
@@ -305,17 +357,20 @@ func (rm *RouterManager) buildReloadedAppRouter(ctx context.Context, store templ
 	newAppRouter.Use(rm.appRouter.Middlewares()...)
 
 	MountRoutesFromManifest(ctx, &MountRoutesConfig{
-		Router:            newAppRouter,
-		Deps:              rm.deps,
-		Store:             store,
-		CSRFService:       rm.csrfService,
-		RouteSettings:     rm.routeSettings,
-		SiteSettings:      rm.siteSettings,
-		Actions:           rm.actions,
-		CacheMiddleware:   rm.cacheMiddleware,
-		AuthGuardConfig:   rm.authGuardConfig,
-		CaptchaService:    rm.captchaService,
-		SpamDetectService: rm.spamdetectService,
+		Router:              newAppRouter,
+		Deps:                rm.deps,
+		Store:               store,
+		CSRFService:         rm.csrfService,
+		RouteSettings:       rm.routeSettings,
+		SiteSettings:        rm.siteSettings,
+		Actions:             rm.actions,
+		CacheMiddleware:     rm.cacheMiddleware,
+		AuthGuardConfig:     rm.authGuardConfig,
+		CaptchaService:      rm.captchaService,
+		SpamDetectService:   rm.spamdetectService,
+		RateLimitService:    rm.rateLimitService,
+		ActionResponseCache: rm.actionResponseCache,
+		RateLimitConfig:     rm.rateLimitConfig,
 	})
 
 	for _, provider := range rm.routeProviders {

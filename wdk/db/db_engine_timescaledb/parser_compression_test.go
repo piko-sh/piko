@@ -92,3 +92,18 @@ func TestCompression_AlterTableSetSchemaIsNotCompression(t *testing.T) {
 	require.NotNil(t, mutation)
 	assert.Empty(t, mutation.EngineSpecific["TIMESCALE_COMPRESSION_ENABLED"])
 }
+
+func TestCompression_AlterTableBareCompressKeyMeansTrue(t *testing.T) {
+	t.Parallel()
+
+	engine := db_engine_timescaledb.NewTimescaleDBEngine()
+	statements, err := engine.ParseStatements("ALTER TABLE readings SET (timescaledb.compress)")
+	require.NoError(t, err)
+	require.Len(t, statements, 1)
+
+	mutation, err := engine.ApplyDDL(context.Background(), statements[0])
+
+	require.NoError(t, err)
+	require.NotNil(t, mutation)
+	assert.Equal(t, "true", mutation.EngineSpecific["TIMESCALE_COMPRESSION_ENABLED"])
+}

@@ -44,6 +44,28 @@ const (
 
 	// defaultImageFetchTimeout is the per-image fetch timeout.
 	defaultImageFetchTimeout = 30 * time.Second
+
+	// defaultImageFetchMaxImages is the maximum number of URL-referenced images fetched for
+	// a single request.
+	defaultImageFetchMaxImages = 8
+
+	// defaultImageFetchMaxRedirects is the number of redirects followed per image fetch.
+	defaultImageFetchMaxRedirects = 5
+
+	// defaultStartupTimeout bounds the wait for a managed Ollama server to become healthy.
+	defaultStartupTimeout = 30 * time.Second
+
+	// defaultProbeTimeout bounds a single health or reachability request to the Ollama
+	// server.
+	defaultProbeTimeout = 2 * time.Second
+
+	// defaultStopGracePeriod is how long a managed Ollama server is given to exit after an
+	// interrupt before it is killed.
+	defaultStopGracePeriod = 5 * time.Second
+
+	// minimumReverseDigestLength is the shortest installed digest accepted as a prefix of
+	// the configured digest, matching the length shown by `ollama list`.
+	minimumReverseDigestLength = 12
 )
 
 // ModelRef identifies an Ollama model by name with an optional SHA256 digest for supply
@@ -76,8 +98,11 @@ func (m ModelRef) IsZero() bool {
 	return m.Name == ""
 }
 
-// verifyDigest checks that gotDigest matches the expected digest in the ref. Matching is
-// prefix-based, so truncated digests work (as shown by `ollama list`).
+// verifyDigest checks that gotDigest matches the expected digest in the ref.
+//
+// Matching is prefix-based, so truncated digests work (as shown by `ollama list`). An
+// installed digest shorter than 12 characters never satisfies a longer expected digest,
+// so an empty or truncated digest reported by the server cannot pass verification.
 //
 // Takes gotDigest (string) which is the actual digest to compare.
 //
@@ -91,7 +116,10 @@ func (m ModelRef) verifyDigest(gotDigest string) error {
 	want := strings.TrimPrefix(m.Digest, "sha256:")
 	got := strings.TrimPrefix(gotDigest, "sha256:")
 
-	if !strings.HasPrefix(got, want) && !strings.HasPrefix(want, got) {
+	gotExtendsWant := strings.HasPrefix(got, want)
+	wantExtendsGot := len(got) >= minimumReverseDigestLength && strings.HasPrefix(want, got)
+
+	if !gotExtendsWant && !wantExtendsGot {
 		return fmt.Errorf(
 			"model %q digest mismatch: expected %s, got %s (possible supply chain compromise)",
 			m.Name, m.Digest, gotDigest,
@@ -101,43 +129,69 @@ func (m ModelRef) verifyDigest(gotDigest string) error {
 	return nil
 }
 
-// ImageFetchConfig controls how the Ollama provider fetches URL-referenced images. This
-// must be explicitly enabled because it causes the provider to make outbound HTTP
-// requests to arbitrary URLs supplied in messages.
+// ImageFetchConfig controls how the Ollama provider fetches URL-referenced images.
+//
+// This must be explicitly enabled because it causes the provider to make outbound HTTP
+// requests to URLs supplied in messages. Fetches only reach publicly routable addresses.
+// Loopback, private, link-local (including cloud metadata services) and other
+// special-purpose destinations are refused, as are proxies from the environment. Pass
+// images held on internal hosts as inline image data instead.
 type ImageFetchConfig struct {
 	// MaxBytes is the maximum allowed image size in bytes. Defaults to 20 MiB when zero.
 	MaxBytes int64
 
 	// Timeout is the per-image fetch timeout. Defaults to 30 seconds when zero.
 	Timeout time.Duration
+
+	// MaxImages is the maximum number of URL-referenced images fetched for one request; a
+	// request referencing more is rejected before anything is downloaded. Defaults to 8 when
+	// zero or negative.
+	MaxImages int
+
+	// MaxRedirects is the number of redirects followed per image. Defaults to 5 when zero; a
+	// negative value refuses every redirect.
+	MaxRedirects int
 }
 
 // withDefaults returns a copy with default values applied to zero fields.
 //
 // Returns ImageFetchConfig which has zero-valued fields replaced with defaults.
 func (c ImageFetchConfig) withDefaults() ImageFetchConfig {
-	if c.MaxBytes == 0 {
+	if c.MaxBytes <= 0 {
 		c.MaxBytes = defaultImageFetchMaxBytes
 	}
-	if c.Timeout == 0 {
+	if c.Timeout <= 0 {
 		c.Timeout = defaultImageFetchTimeout
 	}
+	if c.MaxImages <= 0 {
+		c.MaxImages = defaultImageFetchMaxImages
+	}
+	if c.MaxRedirects == 0 {
+		c.MaxRedirects = defaultImageFetchMaxRedirects
+	}
 	return c
+}
+
+// redirectLimit returns the number of redirects to follow per image.
+//
+// Returns int which is zero when redirects are refused.
+func (c ImageFetchConfig) redirectLimit() int {
+	return max(c.MaxRedirects, 0)
 }
 
 // Config holds settings for the Ollama provider.
 type Config struct {
 	// AutoStart spawns `ollama serve` as a managed subprocess if the server is not reachable
-	// on startup, defaulting to true.
+	// when the provider starts, defaulting to true.
 	AutoStart *bool
 
 	// AutoPull downloads models via Ollama's Pull API if they are not found locally.
 	// Defaults to true.
 	AutoPull *bool
 
-	// ImageFetch configures optional downloading of URL-referenced images, disabled by
-	// default for security so that nil causes image URL content parts to be silently
-	// skipped.
+	// ImageFetch configures optional downloading of URL-referenced images. It is disabled by
+	// default for security, so while it is nil, image URL content parts are skipped and a
+	// warning reports how many were left out.
 	ImageFetch *ImageFetchConfig
 
 	// DefaultModel is the model to use for completions when not given in requests. Defaults
@@ -159,6 +213,18 @@ type Config struct {
 	// defaulting to 10 minutes. Streaming calls are unaffected as they use per-request
 	// context cancellation.
 	HTTPTimeout time.Duration
+
+	// StartupTimeout bounds the wait for a managed Ollama server to answer health checks
+	// after it is spawned. Defaults to 30 seconds.
+	StartupTimeout time.Duration
+
+	// ProbeTimeout bounds each health or reachability request sent to the Ollama server.
+	// Defaults to 2 seconds.
+	ProbeTimeout time.Duration
+
+	// StopGracePeriod is how long a managed Ollama server is given to exit after an
+	// interrupt before it is killed. Defaults to 5 seconds.
+	StopGracePeriod time.Duration
 }
 
 // Validate reports whether the configuration is valid.
@@ -187,13 +253,36 @@ func (c Config) WithDefaults() Config {
 	if c.AutoPull == nil {
 		c.AutoPull = new(true)
 	}
-	if c.HTTPTimeout == 0 {
+	if c.HTTPTimeout <= 0 {
 		c.HTTPTimeout = defaultHTTPTimeout
+	}
+	if c.StartupTimeout <= 0 {
+		c.StartupTimeout = defaultStartupTimeout
+	}
+	if c.ProbeTimeout <= 0 {
+		c.ProbeTimeout = defaultProbeTimeout
+	}
+	if c.StopGracePeriod <= 0 {
+		c.StopGracePeriod = defaultStopGracePeriod
 	}
 	if c.ImageFetch != nil {
 		c.ImageFetch = new(c.ImageFetch.withDefaults())
 	}
 	return c
+}
+
+// autoStartEnabled reports whether a managed Ollama server may be started.
+//
+// Returns bool which is true when AutoStart is unset or true.
+func (c *Config) autoStartEnabled() bool {
+	return c.AutoStart == nil || *c.AutoStart
+}
+
+// autoPullEnabled reports whether missing models may be pulled.
+//
+// Returns bool which is true when AutoPull is unset or true.
+func (c *Config) autoPullEnabled() bool {
+	return c.AutoPull == nil || *c.AutoPull
 }
 
 // Model creates a ModelRef from a plain model name.
@@ -202,7 +291,7 @@ func (c Config) WithDefaults() Config {
 //
 // Returns ModelRef which contains the specified model name.
 func Model(name string) ModelRef {
-	return ModelRef{Name: name}
+	return ModelRef{Name: name, Digest: ""}
 }
 
 // ModelWithDigest creates a ModelRef pinned to a specific SHA256 digest.

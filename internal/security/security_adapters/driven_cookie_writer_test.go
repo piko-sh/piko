@@ -49,7 +49,7 @@ func TestSecureCookieWriter_SetCookie(t *testing.T) {
 		},
 		{
 			name:             "ForceHTTPOnly disabled preserves original",
-			config:           CookieSecurityValues{ForceHTTPOnly: false},
+			config:           CookieSecurityValues{},
 			inputCookie:      &http.Cookie{Name: "test", Value: "val"},
 			expectedHTTPOnly: false,
 			expectedSecure:   false,

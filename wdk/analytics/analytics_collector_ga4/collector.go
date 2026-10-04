@@ -84,17 +84,18 @@ const (
 	// maxResponseDiscardSize is the upper bound when draining an HTTP response body to
 	// enable connection reuse (64 KiB).
 	maxResponseDiscardSize = 64 << 10
-
-	// maxPooledBufferCapacity is the largest buffer capacity kept in the pool; buffers that
-	// grew beyond this during a spike are discarded to avoid lasting memory bloat.
-	maxPooledBufferCapacity = 256 << 10
 )
 
-// jsonBufferPool provides reusable bytes.Buffer instances for JSON encoding, avoiding
-// allocation on every chunk send.
-var jsonBufferPool = sync.Pool{
-	New: func() any { return new(bytes.Buffer) },
-}
+var (
+	// sha256Pool reuses SHA-256 hashers to avoid a 96-byte allocation on every Collect call.
+	sha256Pool = sync.Pool{
+		New: func() any { return sha256.New() },
+	}
+
+	// separatorByte is the delimiter written between client IP and user agent when computing
+	// the client ID hash.
+	separatorByte = []byte("|")
+)
 
 // eventSnapshot is a pre-computed copy of an analytics event in GA4-ready form. Created
 // in Collect to avoid retaining the pooled Event pointer.
@@ -315,10 +316,17 @@ func NewCollector(measurementID, apiSecret string, opts ...Option) (analytics.Co
 	}
 
 	c := &Collector{
-		client:        &http.Client{Timeout: defaultTimeout},
-		clientIDFunc:  defaultClientID,
-		batchSize:     defaultBatchSize,
-		flushInterval: defaultFlushInterval,
+		client:               &http.Client{Timeout: defaultTimeout},
+		clientIDFunc:         defaultClientID,
+		batchSize:            defaultBatchSize,
+		flushInterval:        defaultFlushInterval,
+		batcher:              nil,
+		paramsPool:           sync.Pool{},
+		retryConfig:          nil,
+		circuitBreakerConfig: nil,
+		clock:                nil,
+		endpoint:             "",
+		debug:                false,
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -341,6 +349,7 @@ func NewCollector(measurementID, apiSecret string, opts ...Option) (analytics.Co
 			Clock:          c.clock,
 			Retry:          c.retryConfig,
 			CircuitBreaker: c.circuitBreakerConfig,
+			MaxBufferSize:  0,
 		},
 		c.sendBatch,
 	)
@@ -372,6 +381,7 @@ func (c *Collector) Collect(_ context.Context, event *analytics_dto.Event) error
 		userID:    event.UserID,
 		timestamp: event.Timestamp,
 		params:    c.acquireParams(),
+		name:      "",
 	}
 
 	snap.name = resolveEventName(event)
@@ -543,7 +553,10 @@ func (c *Collector) sendBatch(ctx context.Context, batch []eventSnapshot) error 
 // Takes userID (string) which is the authenticated user ID.
 // Takes chunk ([]eventSnapshot) which holds the events to send.
 //
-// Returns error when encoding or the HTTP request fails.
+// Failures are returned rather than logged; the batcher reports each failed flush once.
+//
+// Returns error when encoding or the HTTP request fails, or when GA4 responds with an
+// error status.
 func (c *Collector) sendChunk(ctx context.Context, clientID, userID string, chunk []eventSnapshot) (returnErr error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -551,27 +564,15 @@ func (c *Collector) sendChunk(ctx context.Context, clientID, userID string, chun
 		}
 	}()
 
-	ctx, l := logger_domain.From(ctx, log)
 	batchSize.Record(ctx, int64(len(chunk)))
 
-	buf, ok := jsonBufferPool.Get().(*bytes.Buffer)
-	if !ok {
-		buf = new(bytes.Buffer)
-	}
-	buf.Reset()
-	defer func() {
-		if buf.Cap() <= maxPooledBufferCapacity {
-			jsonBufferPool.Put(buf)
-		}
-	}()
-
-	if err := c.encodeChunk(buf, clientID, userID, chunk); err != nil {
+	body, err := c.encodeChunk(clientID, userID, chunk)
+	if err != nil {
 		errorCount.Add(ctx, 1)
-		l.Warn("Analytics GA4 JSON encoding failed", logger_domain.Error(err))
 		return fmt.Errorf("encoding analytics GA4 batch: %w", err)
 	}
 
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint, bytes.NewReader(buf.Bytes()))
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint, bytes.NewReader(body))
 	if err != nil {
 		errorCount.Add(ctx, 1)
 		return fmt.Errorf("creating analytics GA4 request: %w", err)
@@ -584,7 +585,6 @@ func (c *Collector) sendChunk(ctx context.Context, clientID, userID string, chun
 
 	if err != nil {
 		errorCount.Add(ctx, 1)
-		l.Warn("Analytics GA4 POST failed", logger_domain.Error(err))
 		return fmt.Errorf("posting analytics GA4 batch: %w", err)
 	}
 	defer func() {
@@ -594,8 +594,6 @@ func (c *Collector) sendChunk(ctx context.Context, clientID, userID string, chun
 
 	if response.StatusCode >= httpStatusErrorThreshold {
 		errorCount.Add(ctx, 1)
-		l.Warn("Analytics GA4 returned error status",
-			logger_domain.Int("status_code", response.StatusCode))
 		return fmt.Errorf("analytics GA4 returned status %d", response.StatusCode)
 	}
 
@@ -605,15 +603,17 @@ func (c *Collector) sendChunk(ctx context.Context, clientID, userID string, chun
 	return nil
 }
 
-// encodeChunk builds the GA4 payload from the event chunk and encodes it into the
-// reusable JSON buffer.
+// encodeChunk builds the GA4 payload from the event chunk and encodes it into a body
+// owned by the request for its whole lifetime, because the transport may still be writing
+// it, or replay it for a redirect, after the response has been returned.
 //
 // Takes clientID (string) which identifies the GA4 client.
 // Takes userID (string) which is the authenticated user ID.
 // Takes chunk ([]eventSnapshot) which holds the events to encode.
 //
+// Returns []byte which is the JSON-encoded request body.
 // Returns error when JSON encoding fails.
-func (c *Collector) encodeChunk(buf *bytes.Buffer, clientID, userID string, chunk []eventSnapshot) error {
+func (*Collector) encodeChunk(clientID, userID string, chunk []eventSnapshot) ([]byte, error) {
 	events := make([]ga4Event, len(chunk))
 	for index, snap := range chunk {
 		events[index] = ga4Event{
@@ -629,8 +629,7 @@ func (c *Collector) encodeChunk(buf *bytes.Buffer, clientID, userID string, chun
 		Events:          events,
 	}
 
-	buf.Reset()
-	return json.NewEncoder(buf).Encode(p)
+	return json.Marshal(p)
 }
 
 // releaseSnapshotParams returns all pooled params maps from a batch back to the pool.
@@ -662,15 +661,6 @@ func (c *Collector) acquireParams() map[string]any {
 func (c *Collector) releaseParams(params map[string]any) {
 	c.paramsPool.Put(params)
 }
-
-// sha256Pool reuses SHA-256 hashers to avoid a 96-byte allocation on every Collect call.
-var sha256Pool = sync.Pool{
-	New: func() any { return sha256.New() },
-}
-
-// separatorByte is the delimiter written between client IP and user agent when computing
-// the client ID hash.
-var separatorByte = []byte("|")
 
 // defaultClientID produces a deterministic pseudo-anonymous client identifier by hashing
 // the client IP and user agent. The hasher is pooled to avoid per-call allocation.

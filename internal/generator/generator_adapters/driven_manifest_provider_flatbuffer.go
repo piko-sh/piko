@@ -43,7 +43,7 @@ type FlatBufferManifestProvider struct {
 	sandbox safedisk.Sandbox
 
 	// factory creates sandboxes with validated paths. When set and sandbox is nil, the
-	// factory is used before falling back to NewNoOpSandbox.
+	// factory is used before falling back to a directory-rooted sandbox.
 	factory safedisk.Factory
 
 	// manifestFileName is the path to the manifest file within the sandbox.
@@ -82,6 +82,8 @@ func NewFlatBufferManifestProvider(manifestPath string, opts ...FlatBufferManife
 	p := &FlatBufferManifestProvider{
 		sandbox:          nil,
 		manifestFileName: filepath.Base(manifestPath),
+		factory:          nil,
+		data:             nil,
 	}
 
 	for _, opt := range opts {
@@ -108,7 +110,7 @@ func NewFlatBufferManifestProvider(manifestPath string, opts ...FlatBufferManife
 //
 // Returns *FlatBufferManifestProvider which serves the embedded manifest.
 func NewFlatBufferManifestProviderFromBytes(data []byte) *FlatBufferManifestProvider {
-	return &FlatBufferManifestProvider{data: data}
+	return &FlatBufferManifestProvider{data: data, sandbox: nil, factory: nil, manifestFileName: ""}
 }
 
 // Load reads the binary manifest file from disk, performs a zero-copy parse using
@@ -181,8 +183,8 @@ func parseFlatBufferManifest(data []byte, source string) (manifest *generator_dt
 }
 
 // WithFlatBufferManifestFactory sets the sandbox factory for the FlatBuffer manifest
-// provider. When no sandbox is injected, the factory is tried before falling back to
-// NewNoOpSandbox.
+// provider. When no sandbox is injected, the factory is tried before falling back to a
+// read-only sandbox rooted at the manifest directory.
 //
 // Takes factory (safedisk.Factory) which creates sandboxes with validated paths.
 //
@@ -197,7 +199,7 @@ func WithFlatBufferManifestFactory(factory safedisk.Factory) FlatBufferManifestP
 // WithFlatBufferManifestSandbox sets a custom sandbox for the FlatBuffer manifest
 // provider. Inject a mock sandbox to test filesystem operations.
 //
-// If not provided, a real sandbox is created using safedisk.NewNoOpSandbox.
+// If not provided, a read-only sandbox rooted at the manifest directory is used.
 //
 // Takes sandbox (safedisk.Sandbox) which provides filesystem access for reading the
 // manifest file.

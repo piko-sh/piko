@@ -206,21 +206,17 @@ func TestMockFileSystemWatcher_ConcurrentAccess(t *testing.T) {
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines * 3)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_, _ = m.Watch(context.Background(), nil, nil)
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			_ = m.UpdateWatchedFiles(context.Background(), nil)
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			_ = m.Close()
-		}()
+		})
 	}
 
 	wg.Wait()

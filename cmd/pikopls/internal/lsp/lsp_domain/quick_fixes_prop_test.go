@@ -133,7 +133,7 @@ func TestFindPropInsertionPoint(t *testing.T) {
 		{
 			name:     "nil annotation result returns error",
 			document: newTestDocumentBuilder().WithURI("file:///test.pk").Build(),
-			position: protocol.Position{Line: 0, Character: 0},
+			position: protocol.Position{},
 			wantErr:  true,
 		},
 		{
@@ -142,7 +142,7 @@ func TestFindPropInsertionPoint(t *testing.T) {
 				WithURI("file:///test.pk").
 				WithAnnotationResult(&annotator_dto.AnnotationResult{}).
 				Build(),
-			position: protocol.Position{Line: 0, Character: 0},
+			position: protocol.Position{},
 			wantErr:  true,
 		},
 		{
@@ -153,7 +153,7 @@ func TestFindPropInsertionPoint(t *testing.T) {
 					AnnotatedAST: &ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{}},
 				}).
 				Build(),
-			position: protocol.Position{Line: 0, Character: 0},
+			position: protocol.Position{},
 			wantErr:  true,
 		},
 		{
@@ -273,7 +273,7 @@ func TestGenerateAddMissingPropFix(t *testing.T) {
 
 			diagnostic := protocol.Diagnostic{
 				Range: protocol.Range{
-					Start: protocol.Position{Line: 0, Character: 0},
+					Start: protocol.Position{},
 					End:   protocol.Position{Line: 0, Character: 10},
 				},
 				Data: tc.data,

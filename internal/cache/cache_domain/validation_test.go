@@ -66,16 +66,12 @@ func TestValidateOptions_ValidConfigurations(t *testing.T) {
 			},
 		},
 		{
-			name: "zero maximum size (unlimited)",
-			options: cache_dto.Options[string, string]{
-				MaximumEntries: 0,
-			},
+			name:    "zero maximum size (unlimited)",
+			options: cache_dto.Options[string, string]{},
 		},
 		{
-			name: "zero initial capacity",
-			options: cache_dto.Options[string, string]{
-				InitialCapacity: 0,
-			},
+			name:    "zero initial capacity",
+			options: cache_dto.Options[string, string]{},
 		},
 	}
 
@@ -296,10 +292,8 @@ func TestValidateOptions_EdgeCases(t *testing.T) {
 			wantError: false,
 		},
 		{
-			name: "maximum size exactly 0 (means unlimited)",
-			options: cache_dto.Options[string, string]{
-				MaximumEntries: 0,
-			},
+			name:      "maximum size exactly 0 (means unlimited)",
+			options:   cache_dto.Options[string, string]{},
 			wantError: false,
 		},
 		{

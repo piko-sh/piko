@@ -25,9 +25,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/inspector/inspector_domain"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
@@ -68,9 +68,7 @@ func TestGetValidPropsForComponent(t *testing.T) {
 	t.Run("ComponentWithoutPropsType", func(t *testing.T) {
 		vc := &annotator_dto.VirtualComponent{
 			Source: &annotator_dto.ParsedComponent{
-				Script: &annotator_dto.ParsedScript{
-					PropsTypeExpression: nil,
-				},
+				Script: &annotator_dto.ParsedScript{},
 			},
 		}
 		inspector := &inspector_domain.MockTypeQuerier{}
@@ -645,7 +643,7 @@ func TestPropParser_ValidateQueryType(t *testing.T) {
 			TypeString: "int",
 		}
 		destTypeExpr := goast.NewIdent("int")
-		result := &propParseResult{shouldCoerce: false}
+		result := &propParseResult{}
 
 		parser.validateQueryType(field, "port", destTypeExpr, result)
 
@@ -714,7 +712,7 @@ func TestPropParser_ValidateQueryType(t *testing.T) {
 			TypeString: "string",
 		}
 		destTypeExpr := goast.NewIdent("string")
-		result := &propParseResult{shouldCoerce: false}
+		result := &propParseResult{}
 
 		parser.validateQueryType(field, "name", destTypeExpr, result)
 
@@ -730,7 +728,7 @@ func TestPropParser_ValidateQueryType(t *testing.T) {
 			TypeString: "*string",
 		}
 		destTypeExpr := goastutil.TypeStringToAST("*string")
-		result := &propParseResult{shouldCoerce: false}
+		result := &propParseResult{}
 
 		parser.validateQueryType(field, "name", destTypeExpr, result)
 

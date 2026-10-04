@@ -21,10 +21,12 @@
 package templates
 
 import (
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"syscall"
 	"testing"
@@ -111,21 +113,52 @@ func appendLocalFrameworkReplaces(t *testing.T, projectDir, frameworkRoot string
 
 	var replaces strings.Builder
 	replaces.WriteString("\nreplace (\n")
-	for _, line := range strings.Split(string(content), "\n") {
-		trimmed := strings.TrimSpace(line)
-		if !strings.HasPrefix(trimmed, "piko.sh/piko") {
-			continue
-		}
-		fields := strings.Fields(trimmed)
-		modulePath := fields[0]
-		relative := strings.TrimPrefix(modulePath, "piko.sh/piko")
-		target := filepath.Join(frameworkRoot, filepath.FromSlash(strings.TrimPrefix(relative, "/")))
-		replaces.WriteString("\t" + modulePath + " => " + target + "\n")
+	for _, modulePath := range localFrameworkModules(t, string(content), frameworkRoot) {
+		replaces.WriteString("\t" + modulePath + " => " + frameworkModuleDir(frameworkRoot, modulePath) + "\n")
 	}
 	replaces.WriteString(")\n")
 
 	writeErr := os.WriteFile(goModPath, append(content, []byte(replaces.String())...), 0o644)
 	require.NoErrorf(t, writeErr, "appending local framework replaces to go.mod: %v", writeErr)
+}
+
+func localFrameworkModules(t *testing.T, scaffoldGoMod, frameworkRoot string) []string {
+	t.Helper()
+	seen := make(map[string]bool)
+	pending := frameworkRequirements(scaffoldGoMod)
+	for len(pending) > 0 {
+		modulePath := pending[0]
+		pending = pending[1:]
+		if seen[modulePath] {
+			continue
+		}
+		seen[modulePath] = true
+
+		content, err := os.ReadFile(filepath.Join(frameworkModuleDir(frameworkRoot, modulePath), "go.mod"))
+		require.NoErrorf(t, err, "reading the go.mod of framework module %s: %v", modulePath, err)
+		pending = append(pending, frameworkRequirements(string(content))...)
+	}
+	return slices.Sorted(maps.Keys(seen))
+}
+
+func frameworkRequirements(goMod string) []string {
+	var modules []string
+	for line := range strings.SplitSeq(goMod, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) > 0 && fields[0] == "require" {
+			fields = fields[1:]
+		}
+		if len(fields) < 2 || !strings.HasPrefix(fields[0], "piko.sh/piko") {
+			continue
+		}
+		modules = append(modules, fields[0])
+	}
+	return modules
+}
+
+func frameworkModuleDir(frameworkRoot, modulePath string) string {
+	relative := strings.TrimPrefix(strings.TrimPrefix(modulePath, "piko.sh/piko"), "/")
+	return filepath.Join(frameworkRoot, filepath.FromSlash(relative))
 }
 
 func assertSelfContainedBinaryBoots(t *testing.T, binaryPath string) {

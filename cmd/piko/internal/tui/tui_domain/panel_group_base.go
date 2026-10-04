@@ -123,6 +123,7 @@ func collectMenuItems(specs []MenuItemSpec) []MenuItem {
 			Label:  s.Label,
 			Hotkey: s.Hotkey,
 			Panel:  s.Panel,
+			Badge:  Badge{},
 		})
 	}
 	return items
@@ -131,7 +132,9 @@ func collectMenuItems(specs []MenuItemSpec) []MenuItem {
 // buildGroup is the shared body of every NewXGroup constructor: filter nil panels and
 // return a BasePanelGroup wrapping the rest.
 //
-// Takes id (GroupID), title (string), hotkey (rune) which configure the surrounding tab.
+// Takes id (GroupID) which identifies the panel group.
+// Takes title (string) which labels the group tab.
+// Takes hotkey (rune) which selects the group from the keyboard.
 // Takes specs ([]MenuItemSpec) which is the ordered candidate menu list; nil-Panel specs
 // are silently dropped.
 //

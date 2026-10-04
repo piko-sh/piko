@@ -26,7 +26,7 @@ import (
 	"go/ast"
 	"sync"
 
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 )
@@ -38,7 +38,7 @@ var (
 		p: sync.Pool{
 			New: func() any {
 				return &methodSearcher{
-					typeWalker:         typeWalker{querier: nil},
+					querier:            nil,
 					result:             nil,
 					resultMethod:       nil,
 					resultDefiningType: nil,
@@ -68,7 +68,7 @@ func (p *methodSearcherPool) Get() *methodSearcher {
 	s, ok := p.p.Get().(*methodSearcher)
 	if !ok {
 		return &methodSearcher{
-			typeWalker:         typeWalker{querier: nil},
+			querier:            nil,
 			result:             nil,
 			resultMethod:       nil,
 			resultDefiningType: nil,
@@ -474,8 +474,11 @@ func applyGenericSubstitutionToSignature(sig *inspector_dto.FunctionSignature, c
 	}
 
 	newSig := &inspector_dto.FunctionSignature{
-		Params:  make([]string, len(sig.Params)),
-		Results: make([]string, len(sig.Results)),
+		Params:               make([]string, len(sig.Params)),
+		Results:              make([]string, len(sig.Results)),
+		ParamNames:           nil,
+		TypeParamNames:       nil,
+		TypeParamConstraints: nil,
 	}
 
 	for i, param := range sig.Params {
@@ -524,6 +527,8 @@ func createMethodWithSubstitutedSignature(
 		DefinitionFilePath:   original.DefinitionFilePath,
 		DefinitionLine:       original.DefinitionLine,
 		DefinitionColumn:     original.DefinitionColumn,
+		TypeString:           "",
+		UnderlyingTypeString: "",
 	}
 }
 

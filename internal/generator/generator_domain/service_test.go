@@ -21,6 +21,7 @@ package generator_domain
 import (
 	"context"
 	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
@@ -45,7 +46,6 @@ func TestNewGeneratorService(t *testing.T) {
 	t.Run("in-memory mode succeeds", func(t *testing.T) {
 		t.Parallel()
 		service, err := NewGeneratorService(
-			context.Background(),
 			GeneratorPathsConfig{BaseDir: "/test"},
 			"",
 			GeneratorPorts{
@@ -63,7 +63,6 @@ func TestNewGeneratorService(t *testing.T) {
 		sandbox := safedisk.NewMockSandbox("/test", safedisk.ModeReadWrite)
 		defer sandbox.Close()
 		service, err := NewGeneratorService(
-			context.Background(),
 			GeneratorPathsConfig{BaseDir: "/test"},
 			"",
 			GeneratorPorts{
@@ -75,6 +74,86 @@ func TestNewGeneratorService(t *testing.T) {
 		)
 		require.NoError(t, err)
 		assert.NotNil(t, service)
+	})
+}
+
+func TestGeneratorServiceEnsureDistPackage(t *testing.T) {
+	t.Parallel()
+
+	newPorts := func(baseSandbox safedisk.Sandbox) GeneratorPorts {
+		return GeneratorPorts{
+			Resolver:    &resolver_domain.MockResolver{},
+			BaseSandbox: baseSandbox,
+		}
+	}
+
+	t.Run("construction does not touch the filesystem", func(t *testing.T) {
+		t.Parallel()
+		baseSandbox := safedisk.NewMockSandbox("/test", safedisk.ModeReadWrite)
+		_, err := NewGeneratorService(GeneratorPathsConfig{BaseDir: "/test"}, "", newPorts(baseSandbox))
+		require.NoError(t, err)
+		_, statErr := baseSandbox.Stat("dist/generated.go")
+		assert.ErrorIs(t, statErr, fs.ErrNotExist)
+	})
+
+	t.Run("writes the placeholder through the base sandbox", func(t *testing.T) {
+		t.Parallel()
+		baseSandbox := safedisk.NewMockSandbox("/test", safedisk.ModeReadWrite)
+		service, err := NewGeneratorService(GeneratorPathsConfig{BaseDir: "/test"}, "", newPorts(baseSandbox))
+		require.NoError(t, err)
+		require.NoError(t, service.EnsureDistPackage(context.Background()))
+		content, readErr := baseSandbox.ReadFile("dist/generated.go")
+		require.NoError(t, readErr)
+		assert.Equal(t, distPackageBoilerplate, string(content))
+	})
+
+	t.Run("prefers the dist sandbox over the base sandbox", func(t *testing.T) {
+		t.Parallel()
+		baseSandbox := safedisk.NewMockSandbox("/test", safedisk.ModeReadWrite)
+		distSandbox := safedisk.NewMockSandbox("/test", safedisk.ModeReadWrite)
+		service, err := NewGeneratorService(GeneratorPathsConfig{BaseDir: "/test"}, "", newPorts(baseSandbox),
+			WithDistSandbox(distSandbox))
+		require.NoError(t, err)
+		require.NoError(t, service.EnsureDistPackage(context.Background()))
+		_, distErr := distSandbox.Stat("dist/generated.go")
+		require.NoError(t, distErr)
+		_, baseErr := baseSandbox.Stat("dist/generated.go")
+		assert.ErrorIs(t, baseErr, fs.ErrNotExist)
+	})
+
+	t.Run("creates a sandbox on the base directory when none is given", func(t *testing.T) {
+		t.Parallel()
+		baseDir := t.TempDir()
+		service, err := NewGeneratorService(GeneratorPathsConfig{BaseDir: baseDir}, "", newPorts(nil))
+		require.NoError(t, err)
+		_, statErr := os.Stat(filepath.Join(baseDir, "dist", "generated.go"))
+		require.ErrorIs(t, statErr, fs.ErrNotExist)
+		require.NoError(t, service.EnsureDistPackage(context.Background()))
+		_, statErr = os.Stat(filepath.Join(baseDir, "dist", "generated.go"))
+		assert.NoError(t, statErr)
+	})
+
+	t.Run("does nothing in in-memory mode", func(t *testing.T) {
+		t.Parallel()
+		baseSandbox := safedisk.NewMockSandbox("/test", safedisk.ModeReadWrite)
+		service, err := NewGeneratorService(GeneratorPathsConfig{BaseDir: "/test"}, "", newPorts(baseSandbox),
+			WithInMemoryMode())
+		require.NoError(t, err)
+		require.NoError(t, service.EnsureDistPackage(context.Background()))
+		_, statErr := baseSandbox.Stat("dist/generated.go")
+		assert.ErrorIs(t, statErr, fs.ErrNotExist)
+	})
+
+	t.Run("returns an error when the context is cancelled", func(t *testing.T) {
+		t.Parallel()
+		baseSandbox := safedisk.NewMockSandbox("/test", safedisk.ModeReadWrite)
+		service, err := NewGeneratorService(GeneratorPathsConfig{BaseDir: "/test"}, "", newPorts(baseSandbox))
+		require.NoError(t, err)
+		ctx, cancel := context.WithCancelCause(context.Background())
+		cancel(errors.New("build aborted"))
+		assert.ErrorIs(t, service.EnsureDistPackage(ctx), context.Canceled)
+		_, statErr := baseSandbox.Stat("dist/generated.go")
+		assert.ErrorIs(t, statErr, fs.ErrNotExist)
 	})
 }
 
@@ -398,12 +477,10 @@ func TestEmitClientSideJS(t *testing.T) {
 			want: "",
 		},
 		{
-			name:  "empty client script returns empty",
-			setup: func(s *generatorService) { s.pkJSEmitter = &mockPKJSEmitter{} },
-			annotationResult: &annotator_dto.AnnotationResult{
-				ClientScript: "",
-			},
-			want: "",
+			name:             "empty client script returns empty",
+			setup:            func(s *generatorService) { s.pkJSEmitter = &mockPKJSEmitter{} },
+			annotationResult: &annotator_dto.AnnotationResult{},
+			want:             "",
 		},
 		{
 			name:  "success returns artefact ID",
@@ -887,9 +964,7 @@ func TestGenerateActionFiles(t *testing.T) {
 				s.pkJSEmitter = &mockPKJSEmitter{}
 			},
 			projectResult: &annotator_dto.ProjectAnnotationResult{
-				VirtualModule: &annotator_dto.VirtualModule{
-					ActionManifest: nil,
-				},
+				VirtualModule: &annotator_dto.VirtualModule{},
 			},
 			wantPath: "",
 		},
@@ -901,9 +976,7 @@ func TestGenerateActionFiles(t *testing.T) {
 			},
 			projectResult: &annotator_dto.ProjectAnnotationResult{
 				VirtualModule: &annotator_dto.VirtualModule{
-					ActionManifest: &annotator_dto.ActionManifest{
-						Actions: nil,
-					},
+					ActionManifest: &annotator_dto.ActionManifest{},
 				},
 			},
 			wantPath: "",

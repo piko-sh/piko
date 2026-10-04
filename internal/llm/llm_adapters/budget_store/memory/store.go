@@ -227,12 +227,15 @@ func (s *Store) GetStatus(ctx context.Context, scope string) (*llm_dto.BudgetSta
 
 	if data == nil {
 		return &llm_dto.BudgetStatus{
-			Scope:           scope,
-			TotalSpent:      maths.ZeroMoney(llm_dto.CostCurrency),
-			DailySpent:      maths.ZeroMoney(llm_dto.CostCurrency),
-			HourlySpent:     maths.ZeroMoney(llm_dto.CostCurrency),
-			RemainingBudget: maths.ZeroMoney(llm_dto.CostCurrency),
-			LastUpdated:     s.clock.Now(),
+			Scope:            scope,
+			TotalSpent:       maths.ZeroMoney(llm_dto.CostCurrency),
+			DailySpent:       maths.ZeroMoney(llm_dto.CostCurrency),
+			HourlySpent:      maths.ZeroMoney(llm_dto.CostCurrency),
+			RemainingBudget:  maths.ZeroMoney(llm_dto.CostCurrency),
+			LastUpdated:      s.clock.Now(),
+			RequestCount:     0,
+			TokenCount:       0,
+			ThresholdReached: false,
 		}, nil
 	}
 
@@ -249,14 +252,15 @@ func (s *Store) GetStatus(ctx context.Context, scope string) (*llm_dto.BudgetSta
 	}
 
 	return &llm_dto.BudgetStatus{
-		Scope:           scope,
-		TotalSpent:      data.totalSpent,
-		DailySpent:      dailySpent,
-		HourlySpent:     hourlySpent,
-		RemainingBudget: maths.ZeroMoney(llm_dto.CostCurrency),
-		RequestCount:    data.requestCount,
-		TokenCount:      data.tokenCount,
-		LastUpdated:     data.lastUpdated,
+		Scope:            scope,
+		TotalSpent:       data.totalSpent,
+		DailySpent:       dailySpent,
+		HourlySpent:      hourlySpent,
+		RemainingBudget:  maths.ZeroMoney(llm_dto.CostCurrency),
+		RequestCount:     data.requestCount,
+		TokenCount:       data.tokenCount,
+		LastUpdated:      data.lastUpdated,
+		ThresholdReached: false,
 	}, nil
 }
 
@@ -353,12 +357,14 @@ func (s *Store) getOrCreateData(scope string) *budgetData {
 	if data == nil {
 		now := s.clock.Now()
 		data = &budgetData{
-			totalSpent:  maths.ZeroMoney(llm_dto.CostCurrency),
-			hourlySpent: maths.ZeroMoney(llm_dto.CostCurrency),
-			dailySpent:  maths.ZeroMoney(llm_dto.CostCurrency),
-			hourStart:   now.Truncate(time.Hour),
-			dayStart:    truncateToDay(now),
-			lastUpdated: now,
+			totalSpent:   maths.ZeroMoney(llm_dto.CostCurrency),
+			hourlySpent:  maths.ZeroMoney(llm_dto.CostCurrency),
+			dailySpent:   maths.ZeroMoney(llm_dto.CostCurrency),
+			hourStart:    now.Truncate(time.Hour),
+			dayStart:     truncateToDay(now),
+			lastUpdated:  now,
+			requestCount: 0,
+			tokenCount:   0,
 		}
 		s.data[scope] = data
 	}
@@ -386,6 +392,7 @@ func New(opts ...StoreOption) *Store {
 	s := &Store{
 		clock: clock.RealClock(),
 		data:  make(map[string]*budgetData),
+		mu:    sync.RWMutex{},
 	}
 	for _, opt := range opts {
 		opt(s)

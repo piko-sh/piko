@@ -184,7 +184,7 @@ func TestStorageRenderer_IsExpandable(t *testing.T) {
 		},
 		{
 			name:     "without metadata",
-			artefact: Resource{Metadata: nil},
+			artefact: Resource{},
 			expected: false,
 		},
 		{

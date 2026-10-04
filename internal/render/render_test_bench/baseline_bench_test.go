@@ -82,11 +82,9 @@ func BenchmarkBaseline_Reference(b *testing.B) {
 	b.Run("Standard", func(b *testing.B) {
 		ast := BuildMixedAST(5)
 		metadata := &templater_dto.InternalMetadata{
-			Metadata: templater_dto.Metadata{
-				Title:       "Standard Page",
-				Description: "A standard test page",
-			},
-			CustomTags: []string{"my-card", "another-component"},
+			Title:       "Standard Page",
+			Description: "A standard test page",
+			CustomTags:  []string{"my-card", "another-component"},
 		}
 		WarmUpOrchestrator(orchestrator, ast)
 
@@ -102,11 +100,9 @@ func BenchmarkBaseline_Reference(b *testing.B) {
 	b.Run("Complex", func(b *testing.B) {
 		ast := BuildMixedAST(20)
 		metadata := &templater_dto.InternalMetadata{
-			Metadata: templater_dto.Metadata{
-				Title:       "Complex Page",
-				Description: "A complex test page with many sections",
-			},
-			CustomTags: []string{"my-card", "another-component", "custom-button"},
+			Title:       "Complex Page",
+			Description: "A complex test page with many sections",
+			CustomTags:  []string{"my-card", "another-component", "custom-button"},
 		}
 		WarmUpOrchestrator(orchestrator, ast)
 
@@ -126,14 +122,12 @@ func BenchmarkBaseline_FullPage(b *testing.B) {
 
 	ast := BuildMixedAST(10)
 	metadata := &templater_dto.InternalMetadata{
-		Metadata: templater_dto.Metadata{
-			Title:        "Full Page Baseline",
-			Description:  "Complete page with all rendering features",
-			Keywords:     "benchmark, test, render",
-			CanonicalURL: "https://example.com/benchmark",
-			Language:     "en",
-		},
-		CustomTags: []string{"my-card", "another-component"},
+		Title:        "Full Page Baseline",
+		Description:  "Complete page with all rendering features",
+		Keywords:     "benchmark, test, render",
+		CanonicalURL: "https://example.com/benchmark",
+		Language:     "en",
+		CustomTags:   []string{"my-card", "another-component"},
 	}
 	websiteConfig := &config.WebsiteConfig{
 		Theme: map[string]string{
@@ -172,9 +166,7 @@ func BenchmarkBaseline_Fragment(b *testing.B) {
 
 	ast := BuildMixedAST(5)
 	metadata := &templater_dto.InternalMetadata{
-		Metadata: templater_dto.Metadata{
-			Title: "Fragment Baseline",
-		},
+		Title:      "Fragment Baseline",
 		CustomTags: []string{"my-card"},
 	}
 
@@ -275,9 +267,7 @@ func BenchmarkBaseline_Parallel(b *testing.B) {
 
 	ast := BuildMixedAST(5)
 	metadata := &templater_dto.InternalMetadata{
-		Metadata: templater_dto.Metadata{
-			Title: "Parallel Test",
-		},
+		Title:      "Parallel Test",
 		CustomTags: []string{"my-card", "another-component"},
 	}
 
@@ -300,9 +290,7 @@ func BenchmarkBaseline_QuickSmoke(b *testing.B) {
 
 	ast := BuildMixedAST(3)
 	metadata := &templater_dto.InternalMetadata{
-		Metadata: templater_dto.Metadata{
-			Title: "Smoke Test",
-		},
+		Title:      "Smoke Test",
 		CustomTags: []string{"my-card"},
 	}
 

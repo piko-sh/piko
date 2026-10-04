@@ -102,10 +102,12 @@ type ConversationState struct {
 func NewConversationState(id string) *ConversationState {
 	now := time.Now()
 	return &ConversationState{
-		ID:        id,
-		Messages:  make([]Message, 0),
-		CreatedAt: now,
-		UpdatedAt: now,
+		ID:         id,
+		Messages:   make([]Message, 0),
+		CreatedAt:  now,
+		UpdatedAt:  now,
+		Summary:    nil,
+		TokenCount: 0,
 	}
 }
 
@@ -145,8 +147,11 @@ func (s *ConversationState) Clear() {
 // Returns *MemoryConfig which has BufferSize set to 20 messages.
 func DefaultBufferMemoryConfig() *MemoryConfig {
 	return &MemoryConfig{
-		Type:       MemoryTypeBuffer,
-		BufferSize: DefaultBufferSize,
+		Type:          MemoryTypeBuffer,
+		BufferSize:    DefaultBufferSize,
+		SummaryModel:  "",
+		SummaryPrompt: "",
+		TokenLimit:    0,
 	}
 }
 
@@ -156,8 +161,11 @@ func DefaultBufferMemoryConfig() *MemoryConfig {
 // Returns *MemoryConfig which has a TokenLimit of 4000 tokens.
 func DefaultWindowMemoryConfig() *MemoryConfig {
 	return &MemoryConfig{
-		Type:       MemoryTypeWindow,
-		TokenLimit: DefaultWindowTokenLimit,
+		Type:          MemoryTypeWindow,
+		TokenLimit:    DefaultWindowTokenLimit,
+		SummaryModel:  "",
+		SummaryPrompt: "",
+		BufferSize:    0,
 	}
 }
 
@@ -173,5 +181,6 @@ func DefaultSummaryMemoryConfig(model string) *MemoryConfig {
 		SummaryModel:  model,
 		BufferSize:    DefaultSummaryBufferSize,
 		SummaryPrompt: defaultSummaryPrompt,
+		TokenLimit:    0,
 	}
 }

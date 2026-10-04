@@ -92,14 +92,13 @@ func (b *catalogueBuilder) ApplyMigration(
 	statements, parseError := b.engine.ParseStatements(strippedContent)
 	if parseError != nil {
 		return []querier_dto.SourceError{
-			{
-				Filename: filename,
-				Line:     1,
-				Column:   1,
-				Message:  fmt.Errorf("failed to parse migration: %w", parseError).Error(),
-				Severity: querier_dto.SeverityError,
-				Code:     querier_dto.CodeParseError,
-			},
+			blockError(
+				filename,
+				1,
+				querier_dto.CodeParseError,
+				querier_dto.SeverityError,
+				fmt.Errorf("failed to parse migration: %w", parseError).Error(),
+			),
 		}
 	}
 
@@ -120,9 +119,12 @@ func (b *catalogueBuilder) ApplyMigration(
 // transactional statement is mixed with other statements (the whole migration then runs
 // without a transaction and is not atomic).
 //
-// Takes stripped ([]byte) and strippedContent (string) which are the down-stripped
-// migration content, commentPrefix (string) for the engine's line comment, filename
-// (string) for source mapping, and statementCount (int) the number of parsed statements.
+// Takes stripped ([]byte) which contains migration bytes with down sections removed.
+// Takes strippedContent (string) which contains migration text with down sections
+// removed.
+// Takes commentPrefix (string) which specifies the SQL engine line-comment marker.
+// Takes filename (string) which identifies the migration source file.
+// Takes statementCount (int) which is the number of parsed migration statements.
 //
 // Returns []querier_dto.SourceError which holds the warnings, or nil when there are none.
 func migrationConsistencyWarnings(
@@ -133,29 +135,27 @@ func migrationConsistencyWarnings(
 	var diagnostics []querier_dto.SourceError
 
 	for _, lineNumber := range scanMisplacedQueryDirectives(strippedContent, commentPrefix) {
-		diagnostics = append(diagnostics, querier_dto.SourceError{
-			Filename: filename,
-			Line:     lineNumber,
-			Column:   1,
-			Message: "piko.query is a query directive and is ignored in a migration file; use " +
+		diagnostics = append(diagnostics, blockError(
+			filename,
+			lineNumber,
+			querier_dto.CodeDirectiveWrongContext,
+			querier_dto.SeverityWarning,
+			"piko.query is a query directive and is ignored in a migration file; use "+
 				"piko.migration for migration directives",
-			Severity: querier_dto.SeverityWarning,
-			Code:     querier_dto.CodeDirectiveWrongContext,
-		})
+		))
 	}
 
 	if hasNoTransactionDirective(stripped) && statementCount > 1 {
-		diagnostics = append(diagnostics, querier_dto.SourceError{
-			Filename: filename,
-			Line:     1,
-			Column:   1,
-			Message: "migration mixes a non-transactional statement (piko.migration(no_transaction: true) " +
-				"or an auto-detected statement such as CREATE INDEX CONCURRENTLY) with other statements; " +
-				"the whole migration runs without a transaction and is not atomic, so move the " +
+		diagnostics = append(diagnostics, blockError(
+			filename,
+			1,
+			querier_dto.CodeMigrationMixedTransaction,
+			querier_dto.SeverityWarning,
+			"migration mixes a non-transactional statement (piko.migration(no_transaction: true) "+
+				"or an auto-detected statement such as CREATE INDEX CONCURRENTLY) with other statements; "+
+				"the whole migration runs without a transaction and is not atomic, so move the "+
 				"non-transactional statement into its own migration file",
-			Severity: querier_dto.SeverityWarning,
-			Code:     querier_dto.CodeMigrationMixedTransaction,
-		})
+		))
 	}
 
 	return diagnostics
@@ -299,29 +299,29 @@ func (b *catalogueBuilder) applyMigrationColumnOverrides(overrides []migrationCo
 			goType, problem := parseGoTypeOverride(override.GoType)
 			switch {
 			case goType != nil && problem != "":
-				diagnostics = append(diagnostics, querier_dto.SourceError{
-					Filename: filename,
-					Line:     1,
-					Column:   1,
-					Message: fmt.Sprintf(
+				diagnostics = append(diagnostics, blockError(
+					filename,
+					1,
+					querier_dto.CodeUnusableGoTypeOverride,
+					querier_dto.SeverityError,
+					fmt.Sprintf(
 						"migration go_type override %q for %s.%s is unusable: %s",
 						override.GoType, override.Table, override.Column, problem,
 					),
-				})
+				))
 			case goType != nil:
 				column.GoTypeOverride = goType
 			default:
-				diagnostics = append(diagnostics, querier_dto.SourceError{
-					Filename: filename,
-					Line:     1,
-					Column:   1,
-					Message: fmt.Sprintf(
+				diagnostics = append(diagnostics, blockError(
+					filename,
+					1,
+					querier_dto.CodeUnknownOverrideMigrationColumn,
+					querier_dto.SeverityWarning,
+					fmt.Sprintf(
 						"migration go_type override %q for %s.%s is malformed (a leading or trailing dot is not a valid qualified type)",
 						override.GoType, override.Table, override.Column,
 					),
-					Severity: querier_dto.SeverityWarning,
-					Code:     querier_dto.CodeUnknownOverrideMigrationColumn,
-				})
+				))
 			}
 		}
 		if override.Nullable != nil {
@@ -358,14 +358,13 @@ func (b *catalogueBuilder) applyStatements(
 
 		mutation, ddlError := b.engine.ApplyDDL(ctx, statement)
 		if ddlError != nil {
-			diagnostics = append(diagnostics, querier_dto.SourceError{
-				Filename: filename,
-				Line:     1,
-				Column:   1,
-				Message:  fmt.Errorf("failed to interpret DDL: %w", ddlError).Error(),
-				Severity: querier_dto.SeverityError,
-				Code:     querier_dto.CodeParseError,
-			})
+			diagnostics = append(diagnostics, blockError(
+				filename,
+				1,
+				querier_dto.CodeParseError,
+				querier_dto.SeverityError,
+				fmt.Errorf("failed to interpret DDL: %w", ddlError).Error(),
+			))
 			continue
 		}
 
@@ -383,14 +382,13 @@ func (b *catalogueBuilder) applyStatements(
 			applyMigrationReadOnlyOverride(next, readOnlyOverrides)
 
 			if mutationError := b.applyMutation(ctx, next); mutationError != nil {
-				diagnostics = append(diagnostics, querier_dto.SourceError{
-					Filename: filename,
-					Line:     1,
-					Column:   1,
-					Message:  mutationError.Error(),
-					Severity: querier_dto.SeverityError,
-					Code:     querier_dto.CodeParseError,
-				})
+				diagnostics = append(diagnostics, blockError(
+					filename,
+					1,
+					querier_dto.CodeParseError,
+					querier_dto.SeverityError,
+					mutationError.Error(),
+				))
 			}
 		}
 	}

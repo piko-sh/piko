@@ -133,6 +133,9 @@ func NewProvidersPanel(provider ProvidersInspector, c clock.Clock) *ProvidersPan
 		detailErrors:        map[string]error{},
 		subCursorByProvider: map[string]int{},
 		pendingDetail:       map[string]struct{}{},
+		lastRefresh:         time.Time{},
+		err:                 nil,
+		subMode:             false,
 	}
 	p.AssetViewer = NewAssetViewer(AssetViewerConfig[ProviderEntry]{
 		ID:           "providers",
@@ -445,7 +448,7 @@ func (p *ProvidersPanel) refreshSelectedDetailCmd() tea.Cmd {
 	provider := p.provider
 	return func() tea.Msg {
 		if provider == nil {
-			return providersDescribeMessage{row: key, err: errNoProvidersInspector}
+			return providersDescribeMessage{row: key, err: errNoProvidersInspector, detail: nil}
 		}
 		ctx, cancel := context.WithTimeoutCause(context.Background(), providersRefreshTimeout,
 			errors.New("describe provider exceeded timeout"))
@@ -461,7 +464,7 @@ func (p *ProvidersPanel) refreshSelectedDetailCmd() tea.Cmd {
 func (p *ProvidersPanel) refresh() tea.Cmd {
 	return func() tea.Msg {
 		if p.provider == nil {
-			return providersRefreshMessage{err: errNoProvidersInspector}
+			return providersRefreshMessage{err: errNoProvidersInspector, entries: nil}
 		}
 		ctx, cancel := context.WithTimeoutCause(context.Background(), providersRefreshTimeout,
 			errors.New("providers list exceeded timeout"))
@@ -525,18 +528,24 @@ func providerEntryDetail(entry ProviderEntry, derr error) inspector.DetailBody {
 	const providerEntryFixedRows = 3
 	rows := make([]inspector.DetailRow, 0, providerEntryFixedRows+len(entry.Values))
 	rows = append(rows,
-		inspector.DetailRow{Label: "Type", Value: entry.ResourceType},
-		inspector.DetailRow{Label: "Name", Value: entry.Name},
-		inspector.DetailRow{Label: "Default", Value: boolLabel(entry.IsDefault)},
+		inspector.NewDetailRow("Type", entry.ResourceType),
+		inspector.NewDetailRow("Name", entry.Name),
+		inspector.NewDetailRow("Default", boolLabel(entry.IsDefault)),
 	)
 	for _, k := range sortedStringKeys(entry.Values) {
-		rows = append(rows, inspector.DetailRow{Label: k, Value: entry.Values[k]})
+		rows = append(rows, inspector.NewDetailRow(k, entry.Values[k]))
 	}
-	sections := []inspector.DetailSection{{Heading: "Summary", Rows: rows}}
+	sections := []inspector.DetailSection{inspector.NewDetailSection("Summary", rows)}
 	if derr != nil {
-		sections = append(sections, inspector.DetailSection{Heading: "Error", Rows: []inspector.DetailRow{{Label: "Reason", Value: derr.Error()}}})
+		sections = append(sections, inspector.NewDetailSection(
+			"Error",
+			[]inspector.DetailRow{inspector.NewDetailRow("Reason", derr.Error())},
+		))
 	} else {
-		sections = append(sections, inspector.DetailSection{Heading: "Detail", Rows: []inspector.DetailRow{{Label: "Status", Value: "loading..."}}})
+		sections = append(sections, inspector.NewDetailSection(
+			"Detail",
+			[]inspector.DetailRow{inspector.NewDetailRow("Status", "loading...")},
+		))
 	}
 	return inspector.DetailBody{
 		Title:    entry.ResourceType + "/" + entry.Name,
@@ -578,9 +587,9 @@ func providerDetailBody(e ProviderEntry, d *ProviderDetail, subCursor int, subMo
 func providerSectionToDetail(s ProviderSection) inspector.DetailSection {
 	rows := make([]inspector.DetailRow, 0, len(s.Entries))
 	for _, en := range s.Entries {
-		rows = append(rows, inspector.DetailRow{Label: en.Key, Value: en.Value})
+		rows = append(rows, inspector.NewDetailRow(en.Key, en.Value))
 	}
-	return inspector.DetailSection{Heading: s.Title, Rows: rows}
+	return inspector.NewDetailSection(s.Title, rows)
 }
 
 // providerSubResourceSections renders the navigable sub-resource list and the optional
@@ -603,9 +612,9 @@ func providerSubResourceSections(subs []ProviderSubResource, subCursor int, subM
 			marker = MenuMarker + SingleSpace
 		}
 		label := marker + r.Type + "/" + r.Name
-		rows = append(rows, inspector.DetailRow{Label: label, Value: subResourceSummary(r.Values)})
+		rows = append(rows, inspector.NewDetailRow(label, subResourceSummary(r.Values)))
 	}
-	out := []inspector.DetailSection{{Heading: "Sub-resources", Rows: rows}}
+	out := []inspector.DetailSection{inspector.NewDetailSection("Sub-resources", rows)}
 	if subMode && subCursor >= 0 && subCursor < len(subs) {
 		out = append(out, providerSubResourceFocusSection(subs[subCursor]))
 	}
@@ -642,13 +651,13 @@ func providerSubResourceFocusSection(r ProviderSubResource) inspector.DetailSect
 	const subResourceFixedRows = 2
 	rows := make([]inspector.DetailRow, 0, subResourceFixedRows+len(r.Values))
 	rows = append(rows,
-		inspector.DetailRow{Label: "Type", Value: r.Type},
-		inspector.DetailRow{Label: "Name", Value: r.Name},
+		inspector.NewDetailRow("Type", r.Type),
+		inspector.NewDetailRow("Name", r.Name),
 	)
 	for _, k := range sortedStringKeys(r.Values) {
-		rows = append(rows, inspector.DetailRow{Label: k, Value: r.Values[k]})
+		rows = append(rows, inspector.NewDetailRow(k, r.Values[k]))
 	}
-	return inspector.DetailSection{Heading: "Selected sub-resource", Rows: rows}
+	return inspector.NewDetailSection("Selected sub-resource", rows)
 }
 
 // subResourceSummary collapses a sub-resource's values into a single space-delimited

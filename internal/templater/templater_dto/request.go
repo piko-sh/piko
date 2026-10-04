@@ -67,10 +67,22 @@ var (
 	requestDataPool = sync.Pool{
 		New: func() any {
 			return &RequestData{
-				pathParams:  make([]KVPair, 0, defaultPathParamsCapacity),
-				queryParams: make(map[string][]string, defaultQueryParamsCapacity),
-				formData:    make(map[string][]string, defaultFormDataCapacity),
-				cookies:     make([]*http.Cookie, 0, defaultCookiesCapacity),
+				pathParams:             make([]KVPair, 0, defaultPathParamsCapacity),
+				queryParams:            make(map[string][]string, defaultQueryParamsCapacity),
+				formData:               make(map[string][]string, defaultFormDataCapacity),
+				cookies:                make([]*http.Cookie, 0, defaultCookiesCapacity),
+				collectionData:         nil,
+				ctx:                    nil,
+				globalStore:            nil,
+				url:                    nil,
+				localStore:             nil,
+				strBufPool:             nil,
+				method:                 "",
+				host:                   "",
+				locale:                 "",
+				defaultLocale:          "",
+				localeFallbackOrder:    nil,
+				localeFallbackComputed: false,
 			}
 		},
 	}
@@ -79,10 +91,17 @@ var (
 	builderPool = sync.Pool{
 		New: func() any {
 			return &RequestDataBuilder{
-				pathParams:  make([]KVPair, 0, defaultPathParamsCapacity),
-				queryParams: make(map[string][]string, defaultQueryParamsCapacity),
-				formData:    make(map[string][]string, defaultFormDataCapacity),
-				cookies:     make([]*http.Cookie, 0, defaultCookiesCapacity),
+				pathParams:     make([]KVPair, 0, defaultPathParamsCapacity),
+				queryParams:    make(map[string][]string, defaultQueryParamsCapacity),
+				formData:       make(map[string][]string, defaultFormDataCapacity),
+				cookies:        make([]*http.Cookie, 0, defaultCookiesCapacity),
+				ctx:            nil,
+				collectionData: nil,
+				url:            nil,
+				method:         "",
+				host:           "",
+				locale:         "",
+				defaultLocale:  "",
 			}
 		},
 	}
@@ -439,20 +458,22 @@ func (r *RequestData) RangeFormData(callback func(key string, values []string) b
 // Returns *RequestData which is a shallow copy with the collection data applied.
 func (r *RequestData) WithCollectionData(data any) *RequestData {
 	return &RequestData{
-		ctx:            r.ctx,
-		method:         r.method,
-		host:           r.host,
-		url:            r.url,
-		pathParams:     r.pathParams,
-		queryParams:    r.queryParams,
-		formData:       r.formData,
-		cookies:        r.cookies,
-		locale:         r.locale,
-		defaultLocale:  r.defaultLocale,
-		collectionData: data,
-		globalStore:    r.globalStore,
-		localStore:     r.localStore,
-		strBufPool:     r.strBufPool,
+		ctx:                    r.ctx,
+		method:                 r.method,
+		host:                   r.host,
+		url:                    r.url,
+		pathParams:             r.pathParams,
+		queryParams:            r.queryParams,
+		formData:               r.formData,
+		cookies:                r.cookies,
+		locale:                 r.locale,
+		defaultLocale:          r.defaultLocale,
+		collectionData:         data,
+		globalStore:            r.globalStore,
+		localStore:             r.localStore,
+		strBufPool:             r.strBufPool,
+		localeFallbackOrder:    nil,
+		localeFallbackComputed: false,
 	}
 }
 
@@ -464,20 +485,22 @@ func (r *RequestData) WithCollectionData(data any) *RequestData {
 // Returns *RequestData which is a shallow copy with the default locale applied.
 func (r *RequestData) WithDefaultLocale(locale string) *RequestData {
 	return &RequestData{
-		ctx:            r.ctx,
-		method:         r.method,
-		host:           r.host,
-		url:            r.url,
-		pathParams:     r.pathParams,
-		queryParams:    r.queryParams,
-		formData:       r.formData,
-		cookies:        r.cookies,
-		locale:         r.locale,
-		defaultLocale:  locale,
-		collectionData: r.collectionData,
-		globalStore:    r.globalStore,
-		localStore:     r.localStore,
-		strBufPool:     r.strBufPool,
+		ctx:                    r.ctx,
+		method:                 r.method,
+		host:                   r.host,
+		url:                    r.url,
+		pathParams:             r.pathParams,
+		queryParams:            r.queryParams,
+		formData:               r.formData,
+		cookies:                r.cookies,
+		locale:                 r.locale,
+		defaultLocale:          locale,
+		collectionData:         r.collectionData,
+		globalStore:            r.globalStore,
+		localStore:             r.localStore,
+		strBufPool:             r.strBufPool,
+		localeFallbackOrder:    nil,
+		localeFallbackComputed: false,
 	}
 }
 
@@ -527,10 +550,17 @@ func NewRequestDataBuilder() *RequestDataBuilder {
 	b, ok := builderPool.Get().(*RequestDataBuilder)
 	if !ok {
 		b = &RequestDataBuilder{
-			pathParams:  make([]KVPair, 0, defaultPathParamsCapacity),
-			queryParams: make(map[string][]string),
-			formData:    make(map[string][]string),
-			cookies:     make([]*http.Cookie, 0, defaultCookiesCapacity),
+			pathParams:     make([]KVPair, 0, defaultPathParamsCapacity),
+			queryParams:    make(map[string][]string),
+			formData:       make(map[string][]string),
+			cookies:        make([]*http.Cookie, 0, defaultCookiesCapacity),
+			ctx:            nil,
+			collectionData: nil,
+			url:            nil,
+			method:         "",
+			host:           "",
+			locale:         "",
+			defaultLocale:  "",
 		}
 	}
 	b.resetBuilder()
@@ -692,12 +722,11 @@ func (b *RequestDataBuilder) AddFormDataValue(k, v string) *RequestDataBuilder {
 func (b *RequestDataBuilder) Build() *RequestData {
 	rd, ok := requestDataPool.Get().(*RequestData)
 	if !ok {
-		rd = &RequestData{
-			pathParams:  make([]KVPair, 0, defaultPathParamsCapacity),
-			queryParams: make(map[string][]string),
-			formData:    make(map[string][]string),
-			cookies:     make([]*http.Cookie, 0, defaultCookiesCapacity),
-		}
+		rd = &RequestData{}
+		rd.pathParams = make([]KVPair, 0, defaultPathParamsCapacity)
+		rd.queryParams = make(map[string][]string)
+		rd.formData = make(map[string][]string)
+		rd.cookies = make([]*http.Cookie, 0, defaultCookiesCapacity)
 	}
 
 	rd.pathParams, b.pathParams = b.pathParams, rd.pathParams
@@ -829,6 +858,9 @@ func (r *RequestData) SetLocalStore(store *i18n_domain.Store) {
 // SetLocalStoreFromMap builds a local translation Store from a raw map and sets it on
 // this request. This is used by generated BuildAST code where the internal i18n_domain
 // package cannot be imported directly.
+//
+// This runs on the render path, so templates that cannot be parsed render as literal text
+// without logging; they are reported as warnings when the component is compiled.
 //
 // Takes translations (map[string]map[string]string) which provides the translation
 // strings keyed by locale and then by translation key.

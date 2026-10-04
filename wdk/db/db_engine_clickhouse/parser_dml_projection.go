@@ -26,12 +26,14 @@ import (
 // projection item at the cursor, so the type resolver can infer its type. Without it a
 // function call such as toInt64(count()) resolves to `any` (no expression is attached).
 //
-// It is a side-effect-free trial: it never registers parameters and restores the cursor,
-// so the caller still drives the real placeholder-registering consume afterwards. The
-// tree is returned only when the expression parser consumes exactly up to the projection
-// boundary the consume stops at; a shorter or longer span (an operator the grammar does
-// not model, a placeholder, an unrepresentable cast) yields nil so the column falls back
-// to an untyped projection rather than carrying a partial tree.
+// The trial restores the cursor without registering parameters, so the caller still
+// drives the real placeholder-registering consume afterwards. The tree is returned only
+// when the expression parser consumes exactly up to the projection boundary the consume
+// stops at; a shorter or longer span (an operator the grammar does not model, a
+// placeholder, an unrepresentable cast) yields nil so the column falls back to an untyped
+// projection rather than carrying a partial tree. An expression nested past the depth cap
+// is not silently degraded. The failure is recorded as the parser's syntax error so the
+// statement is reported.
 //
 // Returns querier_dto.Expression which is the parsed tree, or nil when none fits.
 func (p *parser) tryProjectionExpressionTree() querier_dto.Expression {
@@ -40,7 +42,11 @@ func (p *parser) tryProjectionExpressionTree() querier_dto.Expression {
 	expression, err := p.parseLambdaBodyExpression()
 	end := p.position
 	p.position = start
-	if err != nil || expression == nil || end != boundary {
+	if err != nil {
+		p.absorbChildFailure(err)
+		return nil
+	}
+	if expression == nil || end != boundary {
 		return nil
 	}
 	return expression

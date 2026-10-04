@@ -29,7 +29,6 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/esbuild/ast"
 	"piko.sh/piko/internal/esbuild/js_ast"
-	es_logger "piko.sh/piko/internal/esbuild/logger"
 	"piko.sh/piko/internal/sfcparser"
 )
 
@@ -773,154 +772,150 @@ class StructureTestElement extends PPElement {
 	})
 }
 
-func TestFindImportKeyword(t *testing.T) {
-	testCases := []struct {
-		name       string
-		source     string
-		pathStart  int
-		wantResult int
-	}{
-		{
-			name:       "finds import before path",
-			source:     `import { foo } from './foo';`,
-			pathStart:  21,
-			wantResult: 0,
-		},
-		{
-			name:       "returns -1 when no import found",
-			source:     `const x = require('./foo');`,
-			pathStart:  20,
-			wantResult: -1,
-		},
-		{
-			name:       "ignores import inside identifier",
-			source:     `const reimport = 1; import { x } from './x';`,
-			pathStart:  40,
-			wantResult: 20,
-		},
-		{
-			name:       "finds import at start of string",
-			source:     `import './side-effect';`,
-			pathStart:  8,
-			wantResult: 0,
-		},
-		{
-			name:       "returns -1 for empty source",
-			source:     ``,
-			pathStart:  0,
-			wantResult: -1,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result := findImportKeyword(tc.source, tc.pathStart)
-			assert.Equal(t, tc.wantResult, result)
-		})
-	}
-}
-
-func TestFindStatementEnd(t *testing.T) {
-	testCases := []struct {
-		name       string
-		source     string
-		pathEnd    int
-		wantResult int
-	}{
-		{
-			name:       "finds semicolon",
-			source:     `import './foo';`,
-			pathEnd:    13,
-			wantResult: 15,
-		},
-		{
-			name:       "finds newline after quote",
-			source:     "import './foo'\nconst x = 1;",
-			pathEnd:    13,
-			wantResult: 14,
-		},
-		{
-			name:       "reaches end of string",
-			source:     `import './foo'`,
-			pathEnd:    13,
-			wantResult: 14,
-		},
-		{
-			name:       "pathEnd at end of source",
-			source:     `import './foo';`,
-			pathEnd:    15,
-			wantResult: 15,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result := findStatementEnd(tc.source, tc.pathEnd)
-			assert.Equal(t, tc.wantResult, result)
-		})
-	}
-}
-
-func TestIsIdentifierChar(t *testing.T) {
-	testCases := []struct {
-		name   string
-		c      byte
-		expect bool
-	}{
-		{name: "lowercase letter", c: 'a', expect: true},
-		{name: "uppercase letter", c: 'Z', expect: true},
-		{name: "digit", c: '5', expect: true},
-		{name: "underscore", c: '_', expect: true},
-		{name: "dollar sign", c: '$', expect: true},
-		{name: "space", c: ' ', expect: false},
-		{name: "semicolon", c: ';', expect: false},
-		{name: "dot", c: '.', expect: false},
-		{name: "quote", c: '\'', expect: false},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.expect, isIdentifierChar(tc.c))
-		})
-	}
-}
-
-func TestExtractImportTextFromSource(t *testing.T) {
-	t.Run("returns empty for empty source", func(t *testing.T) {
-		result := extractImportTextFromSource("", ast.ImportRecord{})
-		assert.Empty(t, result)
-	})
-
-	t.Run("returns empty for out-of-bounds range", func(t *testing.T) {
-		result := extractImportTextFromSource("short", ast.ImportRecord{
-			Range: es_logger.Range{Loc: es_logger.Loc{Start: 100}, Len: 5},
-		})
-		assert.Empty(t, result)
-	})
-
-	t.Run("returns empty when no import keyword found", func(t *testing.T) {
-		src := `const x = require('./foo');`
-		result := extractImportTextFromSource(src, ast.ImportRecord{
-			Range: es_logger.Range{Loc: es_logger.Loc{Start: 19}, Len: 7},
-		})
-		assert.Empty(t, result)
-	})
-}
-
 func TestInjectEventBindings(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("empty bindings is a no-op", func(t *testing.T) {
-		statement, _ := parseSnippetAsStatement(`class TestElement extends PPElement { constructor() { super(); } }`)
-		tree := &js_ast.AST{
-			Parts: []js_ast.Part{{Stmts: []js_ast.Stmt{statement}}},
-		}
-		registry := NewRegistryContext()
+	classTree := func(t *testing.T, source string) *js_ast.AST {
+		t.Helper()
+		statement, err := parseSnippetAsStatement(source)
+		require.NoError(t, err)
+		return &js_ast.AST{Parts: []js_ast.Part{{Stmts: []js_ast.Stmt{statement}}}}
+	}
+	withClickBinding := func(t *testing.T, registry *RegistryContext) *eventBindingCollection {
+		t.Helper()
 		ec := newEventBindingCollection(registry)
+		_, err := ec.createAndStoreBinding(ctx, "click", "handleClick", nil, false, nil, "")
+		require.NoError(t, err)
+		return ec
+	}
 
-		injectEventBindings(ctx, tree, "TestElement", ec)
+	t.Run("empty bindings is a no-op", func(t *testing.T) {
+		tree := classTree(t, `class TestElement extends PPElement { constructor() { super(); } }`)
+		registry := NewRegistryContext()
 
+		require.NoError(t, injectEventBindings(ctx, tree, "TestElement", newEventBindingCollection(registry)))
 	})
+
+	t.Run("bindings are added to the constructor", func(t *testing.T) {
+		tree := classTree(t, `class TestElement extends PPElement { constructor() { super(); } }`)
+		registry := NewRegistryContext()
+
+		require.NoError(t, injectEventBindings(ctx, tree, "TestElement", withClickBinding(t, registry)))
+	})
+
+	t.Run("bindings without a component class are an error", func(t *testing.T) {
+		tree := classTree(t, `const unrelated = 1;`)
+		registry := NewRegistryContext()
+
+		err := injectEventBindings(ctx, tree, "TestElement", withClickBinding(t, registry))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), `"TestElement" not found`)
+	})
+
+	t.Run("bindings without a constructor are an error", func(t *testing.T) {
+		tree := classTree(t, `class TestElement extends PPElement {}`)
+		registry := NewRegistryContext()
+
+		err := injectEventBindings(ctx, tree, "TestElement", withClickBinding(t, registry))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "no constructor found")
+	})
+}
+
+func TestBuildVDOMRenderMethod(t *testing.T) {
+	t.Parallel()
+
+	newContext := func(t *testing.T, script string) *sfcCompilationContext {
+		t.Helper()
+		tree, registry := mustParseJS(t, script)
+		cc := &sfcCompilationContext{}
+		cc.registry = registry
+		cc.jsAST = tree
+		cc.className = "RenderWidgetElement"
+		cc.reactiveTransformResult = &ReactiveTransformResult{}
+		return cc
+	}
+	divTemplate := func(node *ast_domain.TemplateNode) *ast_domain.TemplateAST {
+		return &ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{node}}
+	}
+
+	t.Run("render method is added to the component class", func(t *testing.T) {
+		t.Parallel()
+		cc := newContext(t, `class RenderWidgetElement extends PPElement {}`)
+
+		err := cc.buildVDOMRenderMethod(context.Background(), divTemplate(&ast_domain.TemplateNode{NodeType: ast_domain.NodeElement, TagName: "div"}), "")
+		require.NoError(t, err)
+		targetClass := findClassDeclarationByName(cc.jsAST, cc.className)
+		require.NotNil(t, targetClass)
+		assert.NotEmpty(t, targetClass.Properties)
+	})
+
+	t.Run("a render method that cannot be built fails the build", func(t *testing.T) {
+		t.Parallel()
+		cc := newContext(t, `class RenderWidgetElement extends PPElement {}`)
+		node := &ast_domain.TemplateNode{
+			NodeType: ast_domain.NodeElement,
+			TagName:  "li",
+			Key:      &ast_domain.StringLiteral{Value: "0"},
+			DirFor: &ast_domain.Directive{
+				Type:       ast_domain.DirectiveFor,
+				Expression: &ast_domain.StringLiteral{Value: "not a loop"},
+			},
+		}
+
+		err := cc.buildVDOMRenderMethod(context.Background(), divTemplate(node), "")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "building the render method of component RenderWidgetElement")
+	})
+
+	t.Run("a render method with no class to hold it fails the build", func(t *testing.T) {
+		t.Parallel()
+		cc := newContext(t, `const unrelated = 1;`)
+
+		err := cc.buildVDOMRenderMethod(context.Background(), divTemplate(&ast_domain.TemplateNode{NodeType: ast_domain.NodeElement, TagName: "div"}), "")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "adding the render method to component RenderWidgetElement")
+	})
+
+	t.Run("event bindings with no constructor to hold them fail the build", func(t *testing.T) {
+		t.Parallel()
+		cc := newContext(t, `class RenderWidgetElement extends PPElement {}`)
+		node := &ast_domain.TemplateNode{
+			NodeType: ast_domain.NodeElement,
+			TagName:  "button",
+			OnEvents: map[string][]ast_domain.Directive{
+				"click": {{
+					Type:          ast_domain.DirectiveOn,
+					Arg:           "click",
+					RawExpression: "handleClick",
+					Expression:    &ast_domain.Identifier{Name: "handleClick"},
+				}},
+			},
+		}
+
+		err := cc.buildVDOMRenderMethod(context.Background(), divTemplate(node), "")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "adding the event bindings of component RenderWidgetElement")
+	})
+}
+
+func TestProcessTemplate_RenderMethodFailureFailsTheBuild(t *testing.T) {
+	t.Parallel()
+
+	raw := []byte(`<script lang="ts">console.log(1);</script><template name="render-failure"><div>Hi</div></template>`)
+	cc := &sfcCompilationContext{}
+	var err error
+	cc.sfcParseResult, err = sfcparser.Parse(raw)
+	require.NoError(t, err)
+	cc.registry = NewRegistryContext()
+	cc.tagName = "render-failure"
+	cc.className = "RenderFailureElement"
+	cc.jsAST = &js_ast.AST{}
+	cc.reactiveTransformResult = &ReactiveTransformResult{}
+
+	err = cc.processTemplate(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "adding the render method to component RenderFailureElement")
 }
 
 func TestCollectUsedIdentifiers(t *testing.T) {
@@ -1057,4 +1052,267 @@ func TestPreProcessStyles(t *testing.T) {
 		assert.Equal(t, 12, preProcessor.gotLocation.Line)
 		assert.Equal(t, 3, preProcessor.gotLocation.Column)
 	})
+}
+
+func TestBuildArtefact(t *testing.T) {
+	t.Parallel()
+
+	t.Run("a script that cannot be printed fails the build", func(t *testing.T) {
+		t.Parallel()
+		cc := &sfcCompilationContext{}
+		cc.registry = NewRegistryContext()
+		cc.reactiveTransformResult = &ReactiveTransformResult{}
+		cc.className = "BrokenWidgetElement"
+		cc.tagName = "broken-widget"
+		cc.astDump = "/* dump */"
+		cc.jsAST = &js_ast.AST{Parts: []js_ast.Part{{Stmts: []js_ast.Stmt{{Data: &js_ast.SLocal{
+			Kind:  js_ast.LocalConst,
+			Decls: []js_ast.Decl{{Binding: js_ast.Binding{Data: &js_ast.BMissing{}}}},
+		}}}}}}
+
+		artefact, err := cc.buildArtefact(context.Background())
+		require.ErrorIs(t, err, errUnsupportedExpression)
+		assert.Nil(t, artefact)
+		assert.Contains(t, err.Error(), "BrokenWidgetElement")
+	})
+
+	t.Run("the dump is written before the printed script", func(t *testing.T) {
+		t.Parallel()
+		tree, registry := mustParseJS(t, "console.log(1);")
+		cc := &sfcCompilationContext{}
+		cc.registry = registry
+		cc.reactiveTransformResult = &ReactiveTransformResult{}
+		cc.className = "ShowWidgetElement"
+		cc.tagName = "show-widget"
+		cc.sourceFilename = "show-widget.pkc"
+		cc.astDump = "/* dump */"
+		cc.jsAST = tree
+
+		artefact, err := cc.buildArtefact(context.Background())
+		require.NoError(t, err)
+		require.NotNil(t, artefact)
+		assert.Equal(t, "show-widget.js", artefact.BaseJSPath)
+		assert.Equal(t, "show-widget.pkc", artefact.SourceIdentifier)
+		assert.Empty(t, artefact.Diagnostics)
+		assert.True(t, strings.HasPrefix(artefact.Files["show-widget.js"], "/* dump */\n\nconsole.log(1)"))
+	})
+}
+
+func TestCompileSFC_ScriptFeatures(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name            string
+		script          string
+		wantContains    []string
+		wantNotContains []string
+	}{
+		{
+			name:            "inline type-only import is dropped",
+			script:          "import { type Foo } from './types';\nconst x: Foo | null = null;\nconsole.log(x);",
+			wantNotContains: []string{"./types"},
+		},
+		{
+			name:            "several inline type-only bindings are dropped",
+			script:          "import { type A, type B } from './shapes';\nconsole.log(1);",
+			wantNotContains: []string{"./shapes"},
+		},
+		{
+			name:         "import attributes over several lines are kept",
+			script:       "import data from './data.json' with {\n  type: 'json'\n};\nconsole.log(data);",
+			wantContains: []string{`import data from "./data.json" with { type: "json" };`},
+		},
+		{
+			name:         "array holes and rest elements",
+			script:       "const [, second, ...others] = [1, 2, 3, 4];\nconsole.log(second, others);",
+			wantContains: []string{"const [, second, ...others] = [1, 2, 3, 4];"},
+		},
+		{
+			name:         "rest parameters",
+			script:       "function total(...values: number[]) { return values.length; }\nconsole.log(total(1, 2));",
+			wantContains: []string{"function total(...values)"},
+		},
+		{
+			name:         "object rest in a parameter",
+			script:       "function pick({ a, ...more }: any) { return more; }\nconsole.log(pick({ a: 1, b: 2 }));",
+			wantContains: []string{`function pick({"a": a, ...more})`},
+		},
+		{
+			name:         "enum members",
+			script:       "enum Size { Small, Large }\nconsole.log(Size.Large);",
+			wantContains: []string{"console.log(1)"},
+		},
+		{
+			name:            "using declarations keep their disposal",
+			script:          "function run() { using held = { [Symbol.dispose]() {} }; return held; }\nconsole.log(run());",
+			wantContains:    []string{"const held = $$pikoUsingAdd($$using0, {", "$$pikoUsingDispose($$using0);", "function $$pikoUsingDispose(scope)"},
+			wantNotContains: []string{"var held"},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			raw := []byte("<script lang=\"ts\">\n" + tc.script + "\n</script>\n<template name=\"script-features\"><div>Test</div></template>")
+
+			artefact, err := compileSFC(context.Background(), "script-features.pkc", raw, "example.com/app", nil)
+			require.NoError(t, err)
+			script := artefact.Files[artefact.BaseJSPath]
+			for _, want := range tc.wantContains {
+				assert.Contains(t, script, want)
+			}
+			for _, unwanted := range tc.wantNotContains {
+				assert.NotContains(t, script, unwanted)
+			}
+		})
+	}
+}
+
+func TestCompileSFC_ScriptFailures(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		wantErr error
+		name    string
+		script  string
+	}{
+		{
+			name:    "import inside a declare module block",
+			script:  "declare module 'x' { import { y } from 'y'; }\nconsole.log(1);",
+			wantErr: errNestedImportUnsupported,
+		},
+		{
+			name:    "re-export",
+			script:  "export { a } from './a';",
+			wantErr: errReexportUnsupported,
+		},
+		{
+			name:    "script nested beyond the printing depth limit",
+			script:  "const x = " + strings.Repeat("[", 10_001) + strings.Repeat("]", 10_001) + ";\nconsole.log(x);",
+			wantErr: errNormaliseTooDeep,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			raw := []byte("<script lang=\"ts\">\n" + tc.script + "\n</script>\n<template name=\"script-failures\"><div>Test</div></template>")
+
+			artefact, err := compileSFC(context.Background(), "script-failures.pkc", raw, "example.com/app", nil)
+			require.ErrorIs(t, err, tc.wantErr)
+			assert.Nil(t, artefact)
+		})
+	}
+}
+
+func TestCompileSFC_TemplateTextCannotEndTheASTDump(t *testing.T) {
+	t.Parallel()
+
+	raw := []byte(`<script lang="ts">console.log(1);</script>` +
+		`<template name="dump-guard"><div title="x */ y">a */ window.pwned = 1; /* b</div><!-- c */ d --></template>`)
+
+	artefact, err := compileSFC(context.Background(), "dump-guard.pkc", raw, "example.com/app", nil)
+	require.NoError(t, err)
+
+	script := artefact.Files[artefact.BaseJSPath]
+	dumpEnd := strings.Index(script, "--- END AST DUMP ---\n*/")
+	require.Positive(t, dumpEnd)
+	assert.NotContains(t, script[:dumpEnd], "*/", "the AST dump comment must not be closed early")
+	assert.Contains(t, script[:dumpEnd], `a *\/ window.pwned = 1; /* b`)
+}
+
+func TestCompileSFC_AttributesAreOrderedByName(t *testing.T) {
+	t.Parallel()
+
+	raw := []byte(`<script lang="ts">console.log(1);</script>` +
+		`<template name="ordered-attributes"><div title="t" class="c" id="i">Hi</div></template>`)
+
+	artefact, err := compileSFC(context.Background(), "ordered-attributes.pkc", raw, "example.com/app", nil)
+	require.NoError(t, err)
+	assert.Contains(t, artefact.ScaffoldHTML, `<div class="c" id="i" title="t">`)
+}
+
+func TestInjectTimelineData(t *testing.T) {
+	t.Parallel()
+
+	newContext := func(t *testing.T, script string, timelineJSON string) *sfcCompilationContext {
+		t.Helper()
+		tree, _ := mustParseJS(t, script)
+		cc := &sfcCompilationContext{}
+		cc.jsAST = tree
+		cc.className = "TimelineWidgetElement"
+		cc.timelineJSON = timelineJSON
+		return cc
+	}
+
+	t.Run("no timeline leaves the tree alone", func(t *testing.T) {
+		t.Parallel()
+		cc := newContext(t, `const unrelated = 1;`, "")
+		require.NoError(t, cc.injectTimelineData(context.Background()))
+	})
+
+	t.Run("timeline is added to the component class, not a helper", func(t *testing.T) {
+		t.Parallel()
+		cc := newContext(t, `class Helper {} class TimelineWidgetElement extends PPElement {}`, `[]`)
+		require.NoError(t, cc.injectTimelineData(context.Background()))
+
+		assert.Empty(t, findClassDeclarationByName(cc.jsAST, "Helper").Properties)
+		assert.Len(t, findClassDeclarationByName(cc.jsAST, cc.className).Properties, 1)
+	})
+
+	t.Run("timeline without the component class is an error", func(t *testing.T) {
+		t.Parallel()
+		cc := newContext(t, `class Helper {}`, `[]`)
+		err := cc.injectTimelineData(context.Background())
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), `"TimelineWidgetElement" not found`)
+	})
+}
+
+func TestCompileSFC_ScriptsWithSeveralClasses(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name   string
+		script string
+	}{
+		{
+			name:   "helper classes beside a generated component class",
+			script: "class Tally { count = 0; bump() { return ++this.count; } }\nclass Greeter { greet() { return 'hi'; } }\nfunction label() { return new Greeter().greet() + new Tally().bump(); }",
+		},
+		{
+			name:   "helper class declared before the author's component class",
+			script: "class Tally { count = 0; bump() { return ++this.count; } }\nclass SeveralClassesElement extends PPElement { helperCount() { return 1; } }\nfunction label() { return new Tally().bump(); }",
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			raw := []byte("<script lang=\"ts\">\n" + tc.script + "\n</script>\n" +
+				`<template name="several-classes"><button p-on:click="label">{{ label() }}</button></template>`)
+
+			artefact, err := compileSFC(context.Background(), "several-classes.pkc", raw, "example.com/app", nil)
+			require.NoError(t, err)
+			script := artefact.Files[artefact.BaseJSPath]
+
+			componentStart := strings.Index(script, "class SeveralClassesElement extends PPElement {")
+			tallyStart := strings.Index(script, "class Tally {")
+			require.Positive(t, componentStart)
+			require.Positive(t, tallyStart)
+
+			componentBody := script[componentStart:]
+			if tallyStart > componentStart {
+				componentBody = script[componentStart:tallyStart]
+			}
+			assert.Contains(t, componentBody, "renderVDOM ()")
+			assert.Contains(t, componentBody, "connectedCallback ()")
+			assert.Contains(t, componentBody, "_dir_click_label_evt_")
+
+			tallyBody := script[tallyStart:]
+			if componentStart > tallyStart {
+				tallyBody = script[tallyStart:componentStart]
+			}
+			assert.NotContains(t, tallyBody, "renderVDOM")
+			assert.NotContains(t, tallyBody, "connectedCallback")
+			assert.Equal(t, 1, strings.Count(script, "class SeveralClassesElement"), "exactly one component class is emitted")
+		})
+	}
 }

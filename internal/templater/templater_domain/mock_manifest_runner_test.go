@@ -91,16 +91,14 @@ func TestMockManifestRunnerPort_ConcurrentAccess(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, "/", nil)
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_, _, _, _ = m.RunPage(ctx, page, request)
 			_, _, _, _ = m.RunPartial(ctx, page, request)
 			_, _, _, _ = m.RunPartialWithProps(ctx, page, request, nil)
 			_, _ = m.GetPageEntry(ctx, "pages/home.pk")
-		}()
+		})
 	}
 
 	wg.Wait()

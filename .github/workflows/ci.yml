@@ -23,20 +23,20 @@ jobs:
   lint-go:
     name: Lint Go
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
         with:
           go-version-file: ${{ env.GO_VERSION_FILE }}
+          cache-dependency-path: "**/go.sum"
 
-      - uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
-        with:
-          version: v2.13.2
-          install-mode: goinstall
-          args: --timeout=10m
-          verify: false
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
+
+      - name: Lint every workspace module
+        run: make lint-go
 
   lint-scripts:
     name: Lint Scripts
@@ -90,6 +90,20 @@ jobs:
 
       - name: Verify all go.mod files are tidy
         run: make go-mod-verify
+
+  interp-symbols-validate:
+    name: Validate generated interpreter symbols
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+        with:
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+
+      - name: Verify committed piko runtime symbol tables match the extractor
+        run: make generate-interp-piko-symbols-validate
 
   test-go:
     name: Test Go
@@ -242,6 +256,7 @@ jobs:
       - lint-scripts
       - lint-licences
       - go-mod-verify
+      - interp-symbols-validate
       - test-go
       - test-go-safe
       - test-frontend

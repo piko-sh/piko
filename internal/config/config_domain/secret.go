@@ -217,6 +217,7 @@ func (s *Secret[T]) Acquire(ctx context.Context) (*SecretHandle[T], error) {
 	handle := &SecretHandle[T]{
 		secret:   s,
 		released: atomic.Bool{},
+		cleanup:  runtime.Cleanup{},
 	}
 
 	cleanupData := &secretHandleCleanupData[T]{

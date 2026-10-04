@@ -187,10 +187,7 @@ func TestBuildDelta_EmptyContent(t *testing.T) {
 	state := &streamState{}
 
 	t.Run("empty role and content", func(t *testing.T) {
-		choice := &mistralStreamChunkChoice{
-			Index: 0,
-			Delta: mistralDelta{},
-		}
+		choice := &mistralStreamChunkChoice{}
 
 		delta := p.buildDelta(choice, state)
 
@@ -394,9 +391,7 @@ func TestExtractFinishReason(t *testing.T) {
 
 	t.Run("empty finish reason returns nil", func(t *testing.T) {
 		state := &streamState{}
-		choice := &mistralStreamChunkChoice{
-			FinishReason: "",
-		}
+		choice := &mistralStreamChunkChoice{}
 
 		reason := p.extractFinishReason(choice, state)
 
@@ -431,9 +426,7 @@ func TestExtractUsage(t *testing.T) {
 
 	t.Run("skips nil usage", func(t *testing.T) {
 		state := &streamState{}
-		chunk := &mistralStreamChunk{
-			Usage: nil,
-		}
+		chunk := &mistralStreamChunk{}
 		streamChunk := &llm_dto.StreamChunk{}
 
 		p.extractUsage(chunk, streamChunk, state)
@@ -445,11 +438,7 @@ func TestExtractUsage(t *testing.T) {
 	t.Run("skips usage with zero total tokens", func(t *testing.T) {
 		state := &streamState{}
 		chunk := &mistralStreamChunk{
-			Usage: &mistralUsage{
-				PromptTokens:     0,
-				CompletionTokens: 0,
-				TotalTokens:      0,
-			},
+			Usage: &mistralUsage{},
 		}
 		streamChunk := &llm_dto.StreamChunk{}
 

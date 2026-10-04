@@ -71,6 +71,7 @@ type RenderCacheStatsProvider = monitoring_domain.RenderCacheStatsProvider
 // Takes fds (ResourceProvider) which provides file descriptor metrics.
 // Takes cacheStats (RenderCacheStatsProvider) which provides render cache statistics; may
 // be nil.
+// Takes opts (...MetricsServiceOption) which configure the gRPC metrics service.
 //
 // Returns *MetricsService which is the configured service ready for use.
 func NewMetricsService(telemetry TelemetryProvider, system SystemStatsProvider, fds ResourceProvider, cacheStats RenderCacheStatsProvider, opts ...MetricsServiceOption) *MetricsService {
@@ -332,20 +333,9 @@ func WithMetricsServiceClock(clk clock.Clock) MetricsServiceOption {
 // Returns *pb.GetSystemStatsResponse which contains only the given timestamp with all
 // other fields set to nil or zero values.
 func emptySystemStatsResponse(now time.Time) *pb.GetSystemStatsResponse {
-	return &pb.GetSystemStatsResponse{
-		Build:         nil,
-		Runtime:       nil,
-		Gc:            nil,
-		Memory:        nil,
-		Process:       nil,
-		TimestampMs:   now.UnixMilli(),
-		UptimeMs:      0,
-		NumCgoCalls:   0,
-		CpuMillicores: 0,
-		NumCpu:        0,
-		Gomaxprocs:    0,
-		NumGoroutines: 0,
-	}
+	response := pb.GetSystemStatsResponse{}
+	response.TimestampMs = now.UnixMilli()
+	return &response
 }
 
 // convertSystemStatsToPB converts domain SystemStats to protobuf format.
@@ -373,6 +363,7 @@ func convertSystemStatsToPB(stats *monitoring_domain.SystemStats) *pb.GetSystemS
 		SystemUptimeMs:       stats.SystemUptimeMs,
 		CgroupPath:           stats.CgroupPath,
 		MonitoringListenAddr: stats.MonitoringListenAddr,
+		Cache:                nil,
 	}
 }
 

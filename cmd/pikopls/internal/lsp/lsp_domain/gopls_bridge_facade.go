@@ -534,10 +534,8 @@ func (s *Server) goplsHover(ctx context.Context, document *document, position pr
 
 	hover, ok := callGopls(ctx, request.child, func(callCtx context.Context) (*protocol.Hover, error) {
 		return request.child.Server().Hover(callCtx, &protocol.HoverParams{
-			TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-				TextDocument: protocol.TextDocumentIdentifier{URI: request.virtualURI},
-				Position:     request.mappedPosition,
-			},
+			TextDocument: protocol.TextDocumentIdentifier{URI: request.virtualURI},
+			Position:     request.mappedPosition,
 		})
 	})
 	if !ok {
@@ -893,7 +891,12 @@ func (s *Server) mergeTemplateRenameEdits(ctx context.Context, document *documen
 	blockEndLine := blockStartLine + strings.Count(script.Content, "\n")
 
 	locations, err := s.workspace.FindAllReferences(context.WithoutCancel(ctx), document.URI, position)
-	if err != nil || len(locations) == 0 {
+	if err != nil {
+		_, l := logger_domain.From(ctx, log)
+		l.Warn("Rename: template references unavailable, applying the Go rename only", logger_domain.Error(err))
+		return goplsEdit
+	}
+	if len(locations) == 0 {
 		return goplsEdit
 	}
 	return mergeTemplateReferences(goplsEdit, document.URI, blockStartLine, blockEndLine, locations, newName)

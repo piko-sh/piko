@@ -141,16 +141,20 @@ func (s *service) SendToProviders(ctx context.Context, params *notification_dto.
 		provider, err := s.getProvider(providerName)
 		if err != nil {
 			providerErrors = append(providerErrors, &ProviderError{
-				Provider: providerName,
-				Err:      err,
+				Provider:   providerName,
+				Err:        err,
+				StatusCode: 0,
+				RetryAfter: 0,
 			})
 			continue
 		}
 
 		if err := goroutine.SafeCall(ctx, "notification.Send", func() error { return provider.Send(ctx, params) }); err != nil {
 			providerErrors = append(providerErrors, &ProviderError{
-				Provider: providerName,
-				Err:      err,
+				Provider:   providerName,
+				Err:        err,
+				StatusCode: 0,
+				RetryAfter: 0,
 			})
 		} else {
 			successCount++
@@ -355,7 +359,10 @@ func (s *service) getProvider(name string) (NotificationProviderPort, error) {
 // Returns Service which is the configured notification service ready for use.
 func NewService() Service {
 	return &service{
-		providers: make(map[string]NotificationProviderPort),
+		providers:       make(map[string]NotificationProviderPort),
+		dispatcher:      nil,
+		defaultProvider: "",
+		mu:              sync.RWMutex{},
 	}
 }
 
@@ -368,6 +375,8 @@ func NewServiceWithProvider(provider NotificationProviderPort) Service {
 	s := &service{
 		providers:       make(map[string]NotificationProviderPort),
 		defaultProvider: defaultProviderName,
+		dispatcher:      nil,
+		mu:              sync.RWMutex{},
 	}
 	s.providers[defaultProviderName] = provider
 	return s
@@ -381,8 +390,10 @@ func NewServiceWithProvider(provider NotificationProviderPort) Service {
 // Returns Service which is the configured notification service ready for use.
 func NewServiceWithDispatcher(dispatcher NotificationDispatcherPort) Service {
 	s := &service{
-		providers:  make(map[string]NotificationProviderPort),
-		dispatcher: dispatcher,
+		providers:       make(map[string]NotificationProviderPort),
+		dispatcher:      dispatcher,
+		defaultProvider: "",
+		mu:              sync.RWMutex{},
 	}
 
 	if dispatcher != nil {

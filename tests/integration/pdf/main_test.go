@@ -180,11 +180,15 @@ func runTestInSubprocess(t *testing.T, testName string) {
 	}
 	command.WaitDelay = 10 * time.Second
 
-	command.Env = append(os.Environ(), subprocessEnvVar+"=1")
+	temporaryDirectory, err := os.MkdirTemp("", "piko-pdf-run-")
+	if err != nil {
+		t.Fatalf("creating subprocess temporary directory: %v", err)
+	}
+	defer func() { _ = os.RemoveAll(temporaryDirectory) }()
+
+	command.Env = append(os.Environ(), subprocessEnvVar+"=1", "TMPDIR="+temporaryDirectory)
 
 	output, err := command.CombinedOutput()
-
-	cleanupOrphanedBrowserTempDirs()
 
 	t.Log(string(output))
 
@@ -193,20 +197,5 @@ func runTestInSubprocess(t *testing.T, testName string) {
 			t.Fatalf("subprocess test timed out after %v: %v", subprocessTimeout, err)
 		}
 		t.Fatalf("subprocess test failed: %v", err)
-	}
-}
-
-func cleanupOrphanedBrowserTempDirs() {
-	parentDirectory := ""
-	if browser != nil {
-		parentDirectory = browser.UserDataDir()
-	}
-
-	entries, _ := filepath.Glob(filepath.Join(os.TempDir(), "piko-chromedp-*"))
-	for _, entry := range entries {
-		if entry == parentDirectory {
-			continue
-		}
-		_ = os.RemoveAll(entry)
 	}
 }

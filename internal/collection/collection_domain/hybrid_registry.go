@@ -118,8 +118,23 @@ func init() {
 // Returns error which wraps any factory failure.
 func newDefaultHybridCache(namespace string) (cache_domain.Cache[string, HybridCacheValue], error) {
 	c, err := provider_otter.OtterProviderFactory(cache_dto.Options[string, HybridCacheValue]{
-		Namespace:      namespace,
-		MaximumEntries: defaultHybridCacheMaxEntries,
+		Namespace:         namespace,
+		MaximumEntries:    defaultHybridCacheMaxEntries,
+		ExpiryCalculator:  nil,
+		Logger:            nil,
+		ProviderSpecific:  nil,
+		Clock:             nil,
+		RefreshCalculator: nil,
+		StatsRecorder:     nil,
+		Executor:          nil,
+		Weigher:           nil,
+		OnDeletion:        nil,
+		OnAtomicDeletion:  nil,
+		SearchSchema:      nil,
+		Provider:          "",
+		InitialCapacity:   0,
+		MaximumWeight:     0,
+		MaxEntryWeight:    0,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating otter hybrid cache for %q: %w", namespace, err)
@@ -558,6 +573,9 @@ func revalidateCollection(
 	result := &collection_dto.HybridRevalidationResult{
 		ETagChanged:   false,
 		RevalidatedAt: c.Now(),
+		Error:         nil,
+		NewETag:       "",
+		NewItems:      nil,
 	}
 
 	hybridProvider, err := getHybridCapableProviderFromRegistry(val.ProviderName, runtimeRegistry)

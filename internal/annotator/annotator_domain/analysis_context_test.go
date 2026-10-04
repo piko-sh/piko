@@ -265,7 +265,7 @@ func TestTranslationKeySet_HasLocalKey(t *testing.T) {
 
 	t.Run("returns false for nil LocalKeys map", func(t *testing.T) {
 		t.Parallel()
-		keys := &TranslationKeySet{LocalKeys: nil}
+		keys := &TranslationKeySet{}
 		result := keys.HasLocalKey("anyKey")
 		assert.False(t, result)
 	})
@@ -310,7 +310,7 @@ func TestTranslationKeySet_HasGlobalKey(t *testing.T) {
 
 	t.Run("returns false for nil GlobalKeys map", func(t *testing.T) {
 		t.Parallel()
-		keys := &TranslationKeySet{GlobalKeys: nil}
+		keys := &TranslationKeySet{}
 		result := keys.HasGlobalKey("anyKey")
 		assert.False(t, result)
 	})
@@ -522,7 +522,7 @@ func TestAnalysisContext_IsKnownNonNil(t *testing.T) {
 
 	t.Run("returns false when KnownNonNilExpressions is nil", func(t *testing.T) {
 		t.Parallel()
-		ctx := &AnalysisContext{KnownNonNilExpressions: nil}
+		ctx := &AnalysisContext{}
 
 		result := ctx.IsKnownNonNil("props.User")
 
@@ -650,7 +650,7 @@ func TestAnalysisContext_SetLocalTranslationKeys(t *testing.T) {
 
 	t.Run("creates TranslationKeySet if nil", func(t *testing.T) {
 		t.Parallel()
-		ctx := &AnalysisContext{TranslationKeys: nil}
+		ctx := &AnalysisContext{}
 		localKeys := map[string]struct{}{"key1": {}}
 
 		ctx.SetLocalTranslationKeys(localKeys)
@@ -841,7 +841,7 @@ func TestAnalysisContext_addDiagnostic(t *testing.T) {
 		diagnostics := &[]*ast_domain.Diagnostic{}
 
 		ctx := NewRootAnalysisContext(diagnostics, "", "", "", "/default.pk")
-		ann := &ast_domain.GoGeneratorAnnotation{OriginalSourcePath: nil}
+		ann := &ast_domain.GoGeneratorAnnotation{}
 
 		ctx.addDiagnostic(
 			ast_domain.Warning,
@@ -1303,9 +1303,7 @@ func TestDefineAndValidateLocalFunctions(t *testing.T) {
 		ctx := NewRootAnalysisContext(diagnostics, "pkg/test", "test", "/test.go", "/test.pk")
 
 		vc := &annotator_dto.VirtualComponent{
-			Source: &annotator_dto.ParsedComponent{
-				Script: nil,
-			},
+			Source: &annotator_dto.ParsedComponent{},
 		}
 
 		defineAndValidateLocalFunctions(ctx, vc)
@@ -1323,9 +1321,7 @@ func TestDefineAndValidateLocalFunctions(t *testing.T) {
 
 		vc := &annotator_dto.VirtualComponent{
 			Source: &annotator_dto.ParsedComponent{
-				Script: &annotator_dto.ParsedScript{
-					AST: nil,
-				},
+				Script: &annotator_dto.ParsedScript{},
 			},
 		}
 
@@ -1458,7 +1454,7 @@ func TestDefineExportedConstantsAndVariables(t *testing.T) {
 		ctx := NewRootAnalysisContext(diagnostics, "", "", "", "")
 
 		vc := &annotator_dto.VirtualComponent{
-			Source: &annotator_dto.ParsedComponent{Script: nil},
+			Source: &annotator_dto.ParsedComponent{},
 		}
 
 		defineExportedConstantsAndVariables(ctx, vc)
@@ -1475,7 +1471,7 @@ func TestDefineExportedConstantsAndVariables(t *testing.T) {
 
 		vc := &annotator_dto.VirtualComponent{
 			Source: &annotator_dto.ParsedComponent{
-				Script: &annotator_dto.ParsedScript{AST: nil},
+				Script: &annotator_dto.ParsedScript{},
 			},
 		}
 
@@ -1566,7 +1562,7 @@ func TestDefineComponentSymbols(t *testing.T) {
 		ctx := NewRootAnalysisContext(diagnostics, "", "", "", "")
 
 		vc := &annotator_dto.VirtualComponent{
-			Source: &annotator_dto.ParsedComponent{Script: nil},
+			Source: &annotator_dto.ParsedComponent{},
 		}
 
 		defineComponentSymbols(ctx, nil, vc, "pageData", "props", "")
@@ -1593,7 +1589,7 @@ func TestDefineComponentSymbols(t *testing.T) {
 			},
 		}
 
-		tr := &TypeResolver{inspector: nil}
+		tr := &TypeResolver{}
 		defineComponentSymbols(ctx, tr, vc, "pageData", "props", "")
 
 		sym, found := ctx.Symbols.Find("state")
@@ -1621,7 +1617,7 @@ func TestDefineComponentSymbols(t *testing.T) {
 			},
 		}
 
-		tr := &TypeResolver{inspector: nil}
+		tr := &TypeResolver{}
 		defineComponentSymbols(ctx, tr, vc, "pageData", "props", "")
 
 		sym, found := ctx.Symbols.Find("props")
@@ -1648,7 +1644,7 @@ func TestDefineComponentSymbols(t *testing.T) {
 			},
 		}
 
-		tr := &TypeResolver{inspector: nil}
+		tr := &TypeResolver{}
 		defineComponentSymbols(ctx, tr, vc, "cardData_inv1", "props_inv1", "inv1")
 
 		sym, found := ctx.Symbols.Find("state")

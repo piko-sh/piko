@@ -20,6 +20,7 @@ package pdfwriter_domain
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -116,4 +117,68 @@ func TestSetPageMargins_MarginsLargerThanPageHeightDoNotProduceNegativeStride(t 
 
 	painter.setPageMargins(10, 10, 0.25)
 	assert.GreaterOrEqual(t, painter.pageStride(), minContentPageHeight, "tiny positive usable height must clamp to >= %.2f", minContentPageHeight)
+}
+
+func TestCollectPageEntryBoxes(t *testing.T) {
+	t.Parallel()
+
+	grandchild := newLayoutBox().WithBoxType(layouter_domain.BoxBlock).WithPageIndex(0).Build()
+	child := newLayoutBox().WithBoxType(layouter_domain.BoxBlock).WithPageIndex(1).WithChildren(grandchild).Build()
+	hiddenChild := newLayoutBox().WithBoxType(layouter_domain.BoxBlock).WithPageIndex(1).Build()
+	hidden := newLayoutBox().WithBoxType(layouter_domain.BoxNone).WithPageIndex(2).WithChildren(hiddenChild).Build()
+	outOfRange := newLayoutBox().WithBoxType(layouter_domain.BoxBlock).WithPageIndex(7).Build()
+	sibling := newLayoutBox().WithBoxType(layouter_domain.BoxBlock).WithPageIndex(1).Build()
+	root := newLayoutBox().WithBoxType(layouter_domain.BoxBlock).WithPageIndex(0).
+		WithChildren(child, hidden, outOfRange, sibling).Build()
+
+	entries := collectPageEntryBoxes(root, 3)
+
+	require.Len(t, entries, 3)
+	assert.Equal(t, []*layouter_domain.LayoutBox{root}, entries[0], "boxes under an entry on the same page are painted within it")
+	assert.Equal(t, []*layouter_domain.LayoutBox{child, sibling}, entries[1], "page 1 starts at each box whose ancestors are on other pages")
+	assert.Empty(t, entries[2], "display:none subtrees and out-of-range pages are never painted")
+}
+
+func TestRenderPageStreams_MatchesWholeTreeWalk(t *testing.T) {
+	t.Parallel()
+
+	grandchild := newLayoutBox().WithContentRect(10, 40, 100, 20).WithBoxType(layouter_domain.BoxBlock).
+		WithBackground(testColour(0.1, 0.2, 0.3, 1)).WithPageIndex(0).Build()
+	child := newLayoutBox().WithContentRect(0, 900, 595, 100).WithBoxType(layouter_domain.BoxBlock).
+		WithBackground(testColour(0.4, 0.5, 0.6, 1)).WithPageIndex(1).WithChildren(grandchild).Build()
+	other := newLayoutBox().WithContentRect(0, 1700, 595, 100).WithBoxType(layouter_domain.BoxBlock).
+		WithBackground(testColour(0.7, 0.8, 0.9, 1)).WithPageIndex(2).Build()
+	root := newLayoutBox().WithContentRect(0, 0, 595, 2526).WithBoxType(layouter_domain.BoxBlock).
+		WithBackground(testColour(1, 1, 1, 1)).WithPageIndex(0).WithChildren(child, other).Build()
+
+	painter := newPainterWithDefaults()
+	painter.setPageMargins(10, 20, 842)
+	streams, err := painter.renderPageStreams(context.Background(), root, 3, "")
+	require.NoError(t, err)
+
+	reference := newPainterWithDefaults()
+	reference.setPageMargins(10, 20, 842)
+	for page := range 3 {
+		expected := &ContentStream{}
+		reference.basePageYOffset = float64(page) * reference.pageStride()
+		reference.pageYOffset = reference.basePageYOffset
+		expected.builder.WriteString("q\n1 0 0 1 10 -20 cm\n")
+		reference.paintPageBoxes(context.Background(), expected, root, page)
+		expected.builder.WriteString("Q\n")
+
+		assert.Equal(t, expected.String(), streams[page].String(), "page %d", page)
+	}
+}
+
+func TestRenderPageStreams_CancelledContext(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancelCause(context.Background())
+	cancel(errors.New("stopped by test"))
+
+	root := newLayoutBox().WithBoxType(layouter_domain.BoxBlock).Build()
+	streams, err := newPainterWithDefaults().renderPageStreams(ctx, root, 2, "")
+
+	assert.Nil(t, streams)
+	assert.ErrorIs(t, err, context.Canceled)
 }

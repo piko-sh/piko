@@ -88,6 +88,10 @@ const (
 	// pipeResponseWriterMaxRetainedHeaders caps the number of header keys a pooled
 	// pipeResponseWriter may retain.
 	pipeResponseWriterMaxRetainedHeaders = 64
+
+	// backgroundPersistTimeout bounds how long one background persistence of a rendered page
+	// may take once it holds a write slot.
+	backgroundPersistTimeout = 30 * time.Second
 )
 
 var (
@@ -214,7 +218,9 @@ var (
 	pipeResponseWriterPool = sync.Pool{
 		New: func() any {
 			return &pipeResponseWriter{
-				header: make(http.Header, pipeResponseWriterHeaderSize),
+				header:     make(http.Header, pipeResponseWriterHeaderSize),
+				Writer:     nil,
+				statusCode: 0,
 			}
 		},
 	}
@@ -552,8 +558,8 @@ func (m *CacheMiddleware) readAndCompressStream(
 // Returns *jitResult which contains the compressed response ready for the client.
 // Returns error when the upstream handler returns a non-200 status or an empty body.
 //
-// Spawns goroutines to capture the upstream response and to persist the artefact in the
-// background.
+// Spawns a goroutine to capture the upstream response, joined on every return path, and
+// one to persist the artefact in the background under a detached request context.
 func (m *CacheMiddleware) generateAndCacheResponse(
 	r *http.Request, next http.Handler, artefactID string,
 ) (*jitResult, error) {
@@ -561,15 +567,7 @@ func (m *CacheMiddleware) generateAndCacheResponse(
 	ctx, l := logger_domain.From(ctx, log)
 
 	pr, pw := io.Pipe()
-	statusChan := make(chan int, 1)
-	go func() {
-		defer func() { _ = pw.Close() }()
-		defer goroutine.RecoverPanic(ctx, "daemon.cacheMiddlewareUpstream")
-		recorder := getPipeResponseWriter(pw)
-		next.ServeHTTP(recorder, r.WithContext(ctx))
-		statusChan <- recorder.statusCode
-		releasePipeResponseWriter(recorder)
-	}()
+	upstreamStatus := serveUpstreamIntoPipe(ctx, r, next, pw)
 
 	rawHTMLBuffer := getHTMLBuffer()
 	bufferHandedOff := false
@@ -584,10 +582,12 @@ func (m *CacheMiddleware) generateAndCacheResponse(
 
 	contentForUser, err := m.readAndCompressStream(ctx, streamForCompression, encodingForUser, capabilityToUse)
 	if err != nil {
+		_ = pr.CloseWithError(err)
+		<-upstreamStatus
 		return nil, fmt.Errorf("reading and compressing response stream: %w", err)
 	}
 
-	if finalStatusCode := <-statusChan; finalStatusCode != http.StatusOK {
+	if finalStatusCode := <-upstreamStatus; finalStatusCode != http.StatusOK {
 		l.Warn("Upstream handler returned non-200 status code", logger_domain.Int("status", finalStatusCode))
 		return nil, errHandlerNonSuccess
 	}
@@ -601,7 +601,7 @@ func (m *CacheMiddleware) generateAndCacheResponse(
 	} else {
 		l.Trace("Scheduling background persistence of artefact", logger_domain.Int("size", rawHTMLBuffer.Len()))
 		bufferHandedOff = true
-		go m.persistArtefactInBackground(ctx, artefactID, r.URL.String(), rawHTMLBuffer)
+		go m.persistArtefactInBackground(daemon_dto.DetachRequestContext(ctx), artefactID, r.URL.String(), rawHTMLBuffer)
 	}
 
 	return &jitResult{
@@ -614,25 +614,26 @@ func (m *CacheMiddleware) generateAndCacheResponse(
 
 // persistArtefactInBackground saves rendered HTML to the cache.
 //
-// Takes parentCtx (context.Context) which provides tracing values from the original
-// request. Cancellation is detached so persistence completes independently.
+// The caller passes a context already detached through daemon_dto.DetachRequestContext,
+// so the write keeps its trace values while outliving the request.
+//
 // Takes artefactID (string) which identifies the cache entry.
 // Takes sourcePath (string) which is the original request path.
 // Takes rawHTML (*bytes.Buffer) which contains the rendered HTML to cache.
 //
 // The buffer is returned to the pool after use. Uses a write limiter to control disk
 // writes.
-func (m *CacheMiddleware) persistArtefactInBackground(parentCtx context.Context, artefactID, sourcePath string, rawHTML *bytes.Buffer) {
-	parentCtx = goroutine.Label(parentCtx, "daemon.persistArtefactInBackground",
+func (m *CacheMiddleware) persistArtefactInBackground(ctx context.Context, artefactID, sourcePath string, rawHTML *bytes.Buffer) {
+	ctx = goroutine.Label(ctx, "daemon.persistArtefactInBackground",
 		"artefact_id", artefactID, "path", sourcePath)
 	defer releaseHTMLBuffer(rawHTML)
-	defer goroutine.RecoverPanic(context.WithoutCancel(parentCtx), "daemon.persistArtefactInBackground")
+	defer goroutine.RecoverPanic(ctx, "daemon.persistArtefactInBackground")
 
 	m.writeLimiter <- struct{}{}
 	defer func() { <-m.writeLimiter }()
 
-	ctx, cancel := context.WithTimeoutCause(context.WithoutCancel(parentCtx), 30*time.Second,
-		errors.New("cache middleware shutdown exceeded 30s timeout"))
+	ctx, cancel := context.WithTimeoutCause(ctx, backgroundPersistTimeout,
+		errors.New("background artefact persistence exceeded its timeout"))
 	defer cancel()
 
 	ctx, l := logger_domain.From(ctx, log)
@@ -1216,7 +1217,9 @@ func getPipeResponseWriter(pw *io.PipeWriter) *pipeResponseWriter {
 	prw, ok := pipeResponseWriterPool.Get().(*pipeResponseWriter)
 	if !ok {
 		prw = &pipeResponseWriter{
-			header: make(http.Header, pipeResponseWriterHeaderSize),
+			header:     make(http.Header, pipeResponseWriterHeaderSize),
+			Writer:     nil,
+			statusCode: 0,
 		}
 	}
 	prw.Writer = pw
@@ -1252,4 +1255,32 @@ func releasePipeResponseWriter(prw *pipeResponseWriter) {
 		delete(prw.header, k)
 	}
 	pipeResponseWriterPool.Put(prw)
+}
+
+// serveUpstreamIntoPipe runs next on a new goroutine, streaming its body into pw.
+//
+// Takes r (*http.Request) which is served by next under ctx.
+// Takes next (http.Handler) which renders the response.
+// Takes pw (*io.PipeWriter) which receives the body and is closed when next returns or
+// panics, so the reader always sees the end of the stream.
+//
+// Returns <-chan int which receives the upstream status code exactly once, after next has
+// returned and pw is closed. The value is the code next wrote, or 500 when it panicked.
+// Receiving from it joins the goroutine. A reader that stops early must close the pipe
+// reader first, so a handler waiting to write is released.
+func serveUpstreamIntoPipe(ctx context.Context, r *http.Request, next http.Handler, pw *io.PipeWriter) <-chan int {
+	status := make(chan int, 1)
+	go func() {
+		statusCode := http.StatusInternalServerError
+		defer func() { status <- statusCode }()
+		defer func() { _ = pw.Close() }()
+		defer goroutine.RecoverPanic(ctx, "daemon.cacheMiddlewareUpstream")
+
+		recorder := getPipeResponseWriter(pw)
+		next.ServeHTTP(recorder, r.WithContext(ctx))
+		statusCode = recorder.statusCode
+		releasePipeResponseWriter(recorder)
+	}()
+
+	return status
 }

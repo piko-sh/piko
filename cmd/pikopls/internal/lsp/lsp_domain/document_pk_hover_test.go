@@ -648,7 +648,7 @@ func TestKindString(t *testing.T) {
 
 func TestCheckIsAttributeHoverContext(t *testing.T) {
 	document := &document{}
-	position := protocol.Position{Line: 0, Character: 0}
+	position := protocol.Position{}
 
 	testCases := []struct {
 		name     string
@@ -718,7 +718,7 @@ func TestCheckIsAttributeHoverContext(t *testing.T) {
 
 func TestCheckHandlerHoverContext(t *testing.T) {
 	document := &document{}
-	position := protocol.Position{Line: 0, Character: 0}
+	position := protocol.Position{}
 
 	testCases := []struct {
 		name     string
@@ -775,7 +775,7 @@ func TestCheckHandlerHoverContext(t *testing.T) {
 
 func TestCheckPartialHoverContext(t *testing.T) {
 	document := &document{}
-	position := protocol.Position{Line: 0, Character: 0}
+	position := protocol.Position{}
 
 	testCases := []struct {
 		name     string
@@ -846,7 +846,7 @@ func TestCheckPartialHoverContext(t *testing.T) {
 
 func TestCheckRefHoverContext(t *testing.T) {
 	document := &document{}
-	position := protocol.Position{Line: 0, Character: 0}
+	position := protocol.Position{}
 
 	testCases := []struct {
 		name     string
@@ -910,7 +910,7 @@ func TestCheckRefHoverContext(t *testing.T) {
 
 func TestCheckTemplateTagHoverContext(t *testing.T) {
 	document := &document{}
-	position := protocol.Position{Line: 0, Character: 0}
+	position := protocol.Position{}
 
 	testCases := []struct {
 		name    string
@@ -980,13 +980,13 @@ func TestGetPKHoverInfo_GuardClauses(t *testing.T) {
 		},
 		{
 			name:     "nil content",
-			document: &document{Content: nil},
+			document: &document{},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			hover, err := tc.document.GetPKHoverInfo(context.Background(), protocol.Position{Line: 0, Character: 0})
+			hover, err := tc.document.GetPKHoverInfo(context.Background(), protocol.Position{})
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -1199,9 +1199,7 @@ func TestFindVirtualComponentByImportPath(t *testing.T) {
 		{
 			name: "nil VirtualModule",
 			document: &document{
-				AnnotationResult: &annotator_dto.AnnotationResult{
-					VirtualModule: nil,
-				},
+				AnnotationResult: &annotator_dto.AnnotationResult{},
 			},
 			importPath: "test",
 			wantNil:    true,
@@ -1841,7 +1839,7 @@ func TestGetPartialHover_NilAnnotationResult(t *testing.T) {
 		Kind: PKDefPartial,
 		Name: "TestPartial",
 		Range: protocol.Range{
-			Start: protocol.Position{Line: 0, Character: 0},
+			Start: protocol.Position{},
 			End:   protocol.Position{Line: 0, Character: 11},
 		},
 	}
@@ -1860,15 +1858,13 @@ func TestGetPartialHover_NilAnnotationResult(t *testing.T) {
 
 func TestGetPartialHover_NilVirtualModule(t *testing.T) {
 	document := &document{
-		AnnotationResult: &annotator_dto.AnnotationResult{
-			VirtualModule: nil,
-		},
+		AnnotationResult: &annotator_dto.AnnotationResult{},
 	}
 	ctx := &PKHoverContext{
 		Kind: PKDefPartial,
 		Name: "Widget",
 		Range: protocol.Range{
-			Start: protocol.Position{Line: 0, Character: 0},
+			Start: protocol.Position{},
 			End:   protocol.Position{Line: 0, Character: 6},
 		},
 	}
@@ -2064,9 +2060,7 @@ func TestExtractPropsFromComponent_NilPropsStruct(t *testing.T) {
 
 	vc := &annotator_dto.VirtualComponent{
 		Source: &annotator_dto.ParsedComponent{
-			Script: &annotator_dto.ParsedScript{
-				PropsTypeExpression: nil,
-			},
+			Script: &annotator_dto.ParsedScript{},
 		},
 	}
 
@@ -2147,7 +2141,7 @@ func TestFindRefElementInfo_NoMatchingRef(t *testing.T) {
 
 func TestCheckHandlerHoverContext_WithParens(t *testing.T) {
 	document := &document{}
-	position := protocol.Position{Line: 0, Character: 0}
+	position := protocol.Position{}
 
 	line := `<button p-on:click="handleClick($event)">`
 	ctx := document.checkHandlerHoverContext(line, 22, position)
@@ -2161,7 +2155,7 @@ func TestCheckHandlerHoverContext_WithParens(t *testing.T) {
 
 func TestCheckHandlerHoverContext_CursorOnEventPlaceholder(t *testing.T) {
 	document := &document{}
-	position := protocol.Position{Line: 0, Character: 0}
+	position := protocol.Position{}
 
 	line := `<button p-on:click="handleClick($event)">`
 	ctx := document.checkHandlerHoverContext(line, 33, position)
@@ -2172,7 +2166,7 @@ func TestCheckHandlerHoverContext_CursorOnEventPlaceholder(t *testing.T) {
 
 func TestCheckPartialHoverContext_EmptyPartialName(t *testing.T) {
 	document := &document{}
-	position := protocol.Position{Line: 0, Character: 0}
+	position := protocol.Position{}
 
 	line := `reloadPartial('')`
 	ctx := document.checkPartialHoverContext(line, 16, position)
@@ -2183,7 +2177,7 @@ func TestCheckPartialHoverContext_EmptyPartialName(t *testing.T) {
 
 func TestCheckPartialHoverContext_DoubleQuotePartial(t *testing.T) {
 	document := &document{}
-	position := protocol.Position{Line: 0, Character: 0}
+	position := protocol.Position{}
 
 	line := `partial("SideNav")`
 	ctx := document.checkPartialHoverContext(line, 10, position)
@@ -2240,7 +2234,7 @@ func TestContainsUnquotedTagClose_NestedQuotes(t *testing.T) {
 
 func TestCheckTemplateTagHoverContext_ClosingTag(t *testing.T) {
 	document := &document{}
-	position := protocol.Position{Line: 0, Character: 0}
+	position := protocol.Position{}
 
 	line := `</template>`
 	ctx := document.checkTemplateTagHoverContext(line, 8, position)
@@ -2257,7 +2251,7 @@ func TestCheckTemplateTagHoverContext_ClosingTag(t *testing.T) {
 
 func TestCheckTemplateTagHoverContext_CursorOutsideBoth(t *testing.T) {
 	document := &document{}
-	position := protocol.Position{Line: 0, Character: 0}
+	position := protocol.Position{}
 
 	line := `<template> some content here`
 	ctx := document.checkTemplateTagHoverContext(line, 25, position)
@@ -2436,9 +2430,7 @@ func TestExtractRegularFunctionSignature_NilName(t *testing.T) {
 		WithURI("file:///test.pk").
 		Build()
 
-	sFunc := &js_ast.SFunction{
-		Fn: js_ast.Fn{},
-	}
+	sFunc := &js_ast.SFunction{}
 	sig := document.extractRegularFunctionSignature(sFunc, nil, "anyName")
 	if sig != "" {
 		t.Errorf("expected empty string for nil function name, got %q", sig)
@@ -2806,7 +2798,7 @@ func TestGetPartialHover_WithMatchingComponent(t *testing.T) {
 		Kind: PKDefPartial,
 		Name: "Badge",
 		Range: protocol.Range{
-			Start: protocol.Position{Line: 0, Character: 0},
+			Start: protocol.Position{},
 			End:   protocol.Position{Line: 0, Character: 5},
 		},
 	}
@@ -2855,7 +2847,7 @@ func TestGetPartialHover_NoCurrentComponent(t *testing.T) {
 		Kind: PKDefPartial,
 		Name: "Missing",
 		Range: protocol.Range{
-			Start: protocol.Position{Line: 0, Character: 0},
+			Start: protocol.Position{},
 			End:   protocol.Position{Line: 0, Character: 7},
 		},
 	}
@@ -2877,7 +2869,7 @@ func TestCheckPikoPartialTagHoverContext_CursorOnTagName(t *testing.T) {
 
 	content := `<piko:partial is="StatusBadge">`
 	document := &document{Content: []byte(content)}
-	position := protocol.Position{Line: 0, Character: 0}
+	position := protocol.Position{}
 
 	ctx := document.checkPikoPartialTagHoverContext(content, 5, position)
 	if ctx == nil {
@@ -2894,7 +2886,7 @@ func TestCheckPikoPartialTagHoverContext_CursorOnTagName(t *testing.T) {
 func TestCheckPikoPartialTagHoverContext_ClosingTag(t *testing.T) {
 	content := `</piko:partial>`
 	document := &document{Content: []byte(content)}
-	position := protocol.Position{Line: 0, Character: 0}
+	position := protocol.Position{}
 
 	ctx := document.checkPikoPartialTagHoverContext(content, 5, position)
 	if ctx != nil {
@@ -2905,7 +2897,7 @@ func TestCheckPikoPartialTagHoverContext_ClosingTag(t *testing.T) {
 func TestCheckPikoPartialTagHoverContext_CursorOutsideTag(t *testing.T) {
 	content := `<piko:partial is="StatusBadge"> some text`
 	document := &document{Content: []byte(content)}
-	position := protocol.Position{Line: 0, Character: 0}
+	position := protocol.Position{}
 
 	ctx := document.checkPikoPartialTagHoverContext(content, 35, position)
 	if ctx != nil {

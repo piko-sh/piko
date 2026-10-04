@@ -210,6 +210,8 @@ type upsertInput struct {
 // resolveVariantsForUpsert finds the final variants based on whether source data is
 // available.
 //
+// Takes store (MetadataStore) which provides metadata access within the current operation
+// or transaction.
 // Takes input (upsertInput) which contains the source data and metadata.
 // Takes isNewArtefact (bool) which indicates if this is a new artefact.
 // Takes existingArtefact (*registry_dto.ArtefactMeta) which provides the current artefact
@@ -347,6 +349,8 @@ func (s *registryService) getArtefactForUpsert(ctx context.Context, artefactID s
 // persistAndFinaliseUpsert saves the artefact to the store, updates cache, and publishes
 // events.
 //
+// Takes store (MetadataStore) which provides metadata access within the current operation
+// or transaction.
 // Takes artefact (*registry_dto.ArtefactMeta) which is the artefact to save.
 // Takes isNewArtefact (bool) which indicates if this is a new artefact or an update to an
 // existing one.
@@ -409,6 +413,8 @@ type blobUploadResult struct {
 
 // incrementBlobRefCount increases the reference count for a blob.
 //
+// Takes store (MetadataStore) which provides metadata access within the current operation
+// or transaction.
 // Takes upload (*blobUploadResult) which contains the blob details to track.
 // Takes storageBackendID (string) which identifies the storage backend.
 //
@@ -446,6 +452,8 @@ func (*registryService) incrementBlobRefCount(
 
 // decrementOldBlobRefCount lowers the reference count for a replaced blob.
 //
+// Takes store (MetadataStore) which provides metadata access within the current operation
+// or transaction.
 // Takes oldStorageKey (string) which identifies the blob being replaced.
 // Takes newStorageKey (string) which identifies the replacement blob.
 //
@@ -479,6 +487,8 @@ func (*registryService) decrementOldBlobRefCount(
 // processBlobUpdate handles blob storage when source data is provided. It creates a new
 // source variant and removes any variants that depend on the old source.
 //
+// Takes store (MetadataStore) which provides metadata access within the current operation
+// or transaction.
 // Takes sourceData (io.Reader) which provides the blob content to store.
 // Takes sourcePath (string) which specifies the original file path for MIME type
 // detection.
@@ -567,6 +577,8 @@ type variantReplacementInfo struct {
 // incrementVariantRefCounts increases the reference counts for a variant's blob and all
 // its chunks.
 //
+// Takes store (MetadataStore) which provides metadata access within the current operation
+// or transaction.
 // Takes variant (*registry_dto.Variant) which provides the blob and chunk data.
 //
 // Returns error when variant fields are missing or invalid, or when any reference count
@@ -618,6 +630,8 @@ func incrementVariantRefCounts(
 // incrementChunkRefCounts increases the reference count for all chunk blobs. It stops on
 // the first failure to avoid leaving reference counts in a partial state.
 //
+// Takes store (MetadataStore) which provides metadata access within the current operation
+// or transaction.
 // Takes chunks ([]registry_dto.VariantChunk) which contains the chunks to update.
 //
 // Returns error when a chunk has missing or invalid fields, or when the reference count
@@ -674,6 +688,8 @@ func incrementChunkRefCounts(
 // decrementOldVariantRefCounts lowers reference counts for a replaced variant and returns
 // garbage collection hints.
 //
+// Takes store (MetadataStore) which provides metadata access within the current operation
+// or transaction.
 // Takes info (variantReplacementInfo) which holds details about the replaced variant.
 // Takes newStorageKey (string) which identifies the new storage location.
 //
@@ -706,6 +722,8 @@ func (s *registryService) decrementOldVariantRefCounts(
 // decrementMainBlobRefCount lowers the reference count for the old blob and returns a
 // garbage collection hint if the blob is no longer in use.
 //
+// Takes store (MetadataStore) which provides metadata access within the current operation
+// or transaction.
 // Takes info (variantReplacementInfo) which contains the old storage key and backend ID.
 // Takes newStorageKey (string) which is compared to skip updates where the key has not
 // changed.
@@ -751,6 +769,8 @@ func (*registryService) decrementMainBlobRefCount(
 // decrementOldChunkRefCounts lowers reference counts for old chunk blobs and returns
 // hints for garbage collection.
 //
+// Takes store (MetadataStore) which provides metadata access within the current operation
+// or transaction.
 // Takes oldChunks ([]registry_dto.VariantChunk) which contains the chunks to update.
 //
 // Returns []registry_dto.GCHint which contains hints for blobs that are no longer used
@@ -802,6 +822,8 @@ func decrementOldChunkRefCounts(
 // persistVariantUpdate saves the updated artefact to the metadata store with optional GC
 // hints.
 //
+// Takes store (MetadataStore) which provides metadata access within the current operation
+// or transaction.
 // Takes artefact (*registry_dto.ArtefactMeta) which contains the artefact metadata to
 // persist.
 // Takes hintsToAdd ([]registry_dto.GCHint) which specifies garbage collection hints to
@@ -939,6 +961,8 @@ func (s *registryService) applyVariantAddition(
 // collectVariantGCHints lowers the reference counts for all variants and gathers garbage
 // collection hints for blobs that are no longer in use.
 //
+// Takes store (MetadataStore) which provides metadata access within the current operation
+// or transaction.
 // Takes variants ([]registry_dto.Variant) which contains the variants to process.
 //
 // Returns []registry_dto.GCHint which contains hints for blobs that should be removed.
@@ -987,6 +1011,8 @@ func collectVariantGCHints(
 
 // persistArtefactDeletion executes the atomic deletion with optional GC hints.
 //
+// Takes store (MetadataStore) which provides metadata access within the current operation
+// or transaction.
 // Takes artefactID (string) which identifies the artefact to delete.
 // Takes gcHints ([]registry_dto.GCHint) which provides optional garbage collection hints
 // to include in the atomic update.
@@ -1136,6 +1162,7 @@ func buildArtefactMeta(
 		SourcePath:      sourcePath,
 		ActualVariants:  variants,
 		Status:          registry_dto.VariantStatusPending,
+		ReleaseID:       "",
 	}
 	meta.Status = meta.ComputeStatus()
 	return meta
@@ -1275,6 +1302,10 @@ func buildSourceVariant(upload *blobUploadResult, storageBackendID string, origi
 		Origin:           origin,
 		Kind:             registry_dto.KindSource,
 		InputFingerprint: registry_dto.SourceFingerprint(upload.hash),
+		BuildRelease:     "",
+		BuildHash:        "",
+		Transform:        registry_dto.VariantTransform{},
+		Producer:         0,
 	}
 }
 

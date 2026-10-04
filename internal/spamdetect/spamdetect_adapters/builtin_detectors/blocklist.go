@@ -103,16 +103,16 @@ func (d *BlocklistDetector) Analyse(ctx context.Context, submission *spamdetect_
 	}
 
 	if submission == nil || schema == nil {
-		return &spamdetect_dto.DetectorResult{Score: 0}, nil
+		return spamdetect_dto.NewCleanDetectorResult(), nil
 	}
 
 	if len(d.compiledPatterns) == 0 {
-		return &spamdetect_dto.DetectorResult{Score: 0}, nil
+		return spamdetect_dto.NewCleanDetectorResult(), nil
 	}
 
 	fields := schema.FieldsWithSignal(spamdetect_dto.SignalBlocklist)
 	if len(fields) == 0 {
-		return &spamdetect_dto.DetectorResult{Score: 0}, nil
+		return spamdetect_dto.NewCleanDetectorResult(), nil
 	}
 
 	fieldScores := make(map[string]float64, len(fields))
@@ -126,15 +126,10 @@ func (d *BlocklistDetector) Analyse(ctx context.Context, submission *spamdetect_
 	}
 
 	if !hasPositiveScore(fieldScores) {
-		return &spamdetect_dto.DetectorResult{Score: 0, FieldScores: fieldScores}, nil
+		return spamdetect_dto.NewFieldDetectorResult(0, false, fieldScores, nil), nil
 	}
 
-	return &spamdetect_dto.DetectorResult{
-		Score:        1.0,
-		IsSpam:       true,
-		FieldScores:  fieldScores,
-		FieldReasons: fieldReasons,
-	}, nil
+	return spamdetect_dto.NewFieldDetectorResult(1.0, true, fieldScores, fieldReasons), nil
 }
 
 // HealthCheck always succeeds because the detector has no external dependencies.

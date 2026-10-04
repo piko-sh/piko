@@ -252,6 +252,8 @@ func validatePositionalValue(spec *querier_dto.PositionalSpec, positional *parse
 		key:       spec.Name,
 		value:     positional.value,
 		valueSpan: positional.span,
+		span:      querier_dto.TextSpan{},
+		keySpan:   querier_dto.TextSpan{},
 	}
 	return validateKeywordArgumentValue(&adapter, &syntheticKeywordArgument, errorBuilder)
 }

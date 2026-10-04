@@ -65,7 +65,7 @@ func NewDecimalFromString(s string) Decimal {
 	}
 	d, _, err := apd.NewFromString(s)
 	if err != nil {
-		return Decimal{err: fmt.Errorf("maths: invalid decimal string: %q: %w", s, err)}
+		return Decimal{err: fmt.Errorf("maths: invalid decimal string: %q: %w", s, err), value: apd.Decimal{}}
 	}
 	return NewDecimalFromApd(*d)
 }
@@ -79,9 +79,9 @@ func NewDecimalFromString(s string) Decimal {
 func NewDecimalFromApd(value apd.Decimal) Decimal {
 	var reduced apd.Decimal
 	if _, _, err := decimalContext.Reduce(&reduced, &value); err != nil {
-		return Decimal{err: fmt.Errorf("maths: reducing decimal value: %w", err)}
+		return Decimal{err: fmt.Errorf("maths: reducing decimal value: %w", err), value: apd.Decimal{}}
 	}
-	return Decimal{value: reduced}
+	return Decimal{value: reduced, err: nil}
 }
 
 // NewDecimalFromInt creates a Decimal from an integer value.
@@ -90,7 +90,7 @@ func NewDecimalFromApd(value apd.Decimal) Decimal {
 //
 // Returns Decimal which holds the value as a fixed-point decimal with no fractional part.
 func NewDecimalFromInt(value int64) Decimal {
-	return Decimal{value: *apd.New(value, 0)}
+	return Decimal{value: *apd.New(value, 0), err: nil}
 }
 
 // NewDecimalFromFloat creates a Decimal from a float64.
@@ -101,10 +101,10 @@ func NewDecimalFromInt(value int64) Decimal {
 // a valid Decimal representing the value.
 func NewDecimalFromFloat(value float64) Decimal {
 	if math.IsNaN(value) {
-		return Decimal{err: errors.New("maths: cannot convert NaN to Decimal")}
+		return Decimal{err: errors.New("maths: cannot convert NaN to Decimal"), value: apd.Decimal{}}
 	}
 	if math.IsInf(value, 0) {
-		return Decimal{err: errors.New("maths: cannot convert Infinity to Decimal")}
+		return Decimal{err: errors.New("maths: cannot convert Infinity to Decimal"), value: apd.Decimal{}}
 	}
 
 	s := strconv.FormatFloat(value, 'f', -1, 64)
@@ -165,7 +165,7 @@ func (d Decimal) Add(d2 Decimal) Decimal {
 	result := apd.Decimal{}
 	_, err := decimalContext.Add(&result, &d.value, &d2.value)
 	if err != nil {
-		return Decimal{err: fmt.Errorf("maths: Add failed: %w", err)}
+		return Decimal{err: fmt.Errorf("maths: Add failed: %w", err), value: apd.Decimal{}}
 	}
 	return NewDecimalFromApd(result)
 }
@@ -247,7 +247,7 @@ func (d Decimal) Subtract(d2 Decimal) Decimal {
 	result := apd.Decimal{}
 	_, err := decimalContext.Sub(&result, &d.value, &d2.value)
 	if err != nil {
-		return Decimal{err: fmt.Errorf("maths: Subtract failed: %w", err)}
+		return Decimal{err: fmt.Errorf("maths: Subtract failed: %w", err), value: apd.Decimal{}}
 	}
 	return NewDecimalFromApd(result)
 }
@@ -329,7 +329,7 @@ func (d Decimal) Multiply(d2 Decimal) Decimal {
 	result := apd.Decimal{}
 	_, err := decimalContext.Mul(&result, &d.value, &d2.value)
 	if err != nil {
-		return Decimal{err: fmt.Errorf("maths: Multiply failed: %w", err)}
+		return Decimal{err: fmt.Errorf("maths: Multiply failed: %w", err), value: apd.Decimal{}}
 	}
 	return NewDecimalFromApd(result)
 }
@@ -641,7 +641,7 @@ func (d Decimal) Power(exponent Decimal) Decimal {
 	result := apd.Decimal{}
 	_, err := decimalContext.Pow(&result, &d.value, &exponent.value)
 	if err != nil {
-		return Decimal{err: fmt.Errorf("maths: Power failed: %w", err)}
+		return Decimal{err: fmt.Errorf("maths: Power failed: %w", err), value: apd.Decimal{}}
 	}
 	return NewDecimalFromApd(result)
 }
@@ -768,15 +768,15 @@ func (d Decimal) divisionResult(d2 Decimal, op func(d, x, y *apd.Decimal) (apd.C
 	}
 	isZero, err := d2.IsZero()
 	if err != nil {
-		return Decimal{err: err}
+		return Decimal{err: err, value: apd.Decimal{}}
 	}
 	if isZero {
-		return Decimal{err: fmt.Errorf("maths: %s", zeroMessage)}
+		return Decimal{err: fmt.Errorf("maths: %s", zeroMessage), value: apd.Decimal{}}
 	}
 	result := apd.Decimal{}
 	_, err = op(&result, &d.value, &d2.value)
 	if err != nil {
-		return Decimal{err: fmt.Errorf("maths: %s failed: %w", opName, err)}
+		return Decimal{err: fmt.Errorf("maths: %s failed: %w", opName, err), value: apd.Decimal{}}
 	}
 	return NewDecimalFromApd(result)
 }
@@ -785,7 +785,7 @@ func (d Decimal) divisionResult(d2 Decimal, op func(d, x, y *apd.Decimal) (apd.C
 //
 // Returns Decimal which is a zero value suitable for starting sums.
 func ZeroDecimal() Decimal {
-	return Decimal{value: *apd.New(0, 0)}
+	return Decimal{value: *apd.New(0, 0), err: nil}
 }
 
 // ZeroDecimalWithError returns a zero-value Decimal that holds a pre-existing error.
@@ -801,19 +801,19 @@ func ZeroDecimalWithError(err error) Decimal {
 //
 // Returns Decimal which holds the numeric value 1.
 func OneDecimal() Decimal {
-	return Decimal{value: *apd.New(1, 0)}
+	return Decimal{value: *apd.New(1, 0), err: nil}
 }
 
 // TenDecimal returns a Decimal that holds the value 10.
 //
 // Returns Decimal which contains the constant value 10.
 func TenDecimal() Decimal {
-	return Decimal{value: *apd.New(Value10, 0)}
+	return Decimal{value: *apd.New(Value10, 0), err: nil}
 }
 
 // HundredDecimal returns a Decimal that holds the value one hundred.
 //
 // Returns Decimal which contains the numeric value 100.
 func HundredDecimal() Decimal {
-	return Decimal{value: *apd.New(Value100, 0)}
+	return Decimal{value: *apd.New(Value100, 0), err: nil}
 }

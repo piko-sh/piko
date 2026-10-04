@@ -20,7 +20,10 @@ package layouter_domain
 
 import (
 	"context"
+	"fmt"
 	"math"
+
+	"piko.sh/piko/internal/layouter/layouter_dto"
 )
 
 const (
@@ -125,15 +128,24 @@ func updateAreaBounds(m map[string]gridAreaBounds, name string, row, col int) {
 //
 // Takes ctx (context.Context) which carries cancellation.
 // Takes box (*LayoutBox) which is the grid container box.
+// Takes input (layoutInput) which provides available dimensions, font metrics, and shared
+// layout state.
 //
 // Returns formattingContextResult which holds the laid-out child fragments and content
 // height.
 func layoutGridContainer(ctx context.Context, box *LayoutBox, input layoutInput) formattingContextResult {
 	containerWidth := input.AvailableWidth
-	templateColumns := resolveAutoRepeatColumns(box, containerWidth)
-	templateRows := resolveAutoRepeatRows(box)
+	templateColumns := resolveAutoRepeatColumns(box, containerWidth, input.Limits)
+	templateRows := resolveAutoRepeatRows(box, input.Limits)
 
-	placements, columnCount, rowCount := placeGridItemsWithColumns(box, templateColumns)
+	placements, columnCount, rowCount := placeGridItemsWithColumns(box, templateColumns, input.Limits)
+	if input.Limits.failed() {
+		return newFormattingContextResult(
+			nil,
+			0,
+			newVerticalMarginEdges(input.Edges.MarginTop, input.Edges.MarginBottom),
+		)
+	}
 
 	if box.Style.GridAutoRepeatColumns != nil &&
 		box.Style.GridAutoRepeatColumns.Type == GridAutoRepeatFit {
@@ -167,14 +179,11 @@ func layoutGridContainer(ctx context.Context, box *LayoutBox, input layoutInput)
 	childFragments := positionGridItems(box, placements, columnWidths, rowHeights, containerWidth)
 	totalHeight := sumTrackHeights(rowHeights, box.Style.RowGap)
 
-	return formattingContextResult{
-		Children:      childFragments,
-		ContentHeight: totalHeight,
-		Margin: BoxEdges{
-			Top:    input.Edges.MarginTop,
-			Bottom: input.Edges.MarginBottom,
-		},
-	}
+	return newFormattingContextResult(
+		childFragments,
+		totalHeight,
+		newVerticalMarginEdges(input.Edges.MarginTop, input.Edges.MarginBottom),
+	)
 }
 
 // resolveAutoRepeatColumns expands any auto-fill/auto-fit repeat on the column axis using
@@ -182,14 +191,15 @@ func layoutGridContainer(ctx context.Context, box *LayoutBox, input layoutInput)
 //
 // Takes box (*LayoutBox) which is the grid container box.
 // Takes containerWidth (float64) which specifies the available inline size.
+// Takes limits (*LimitTracker) which bounds the expanded track count.
 //
 // Returns []GridTrack which holds the expanded column track list.
-func resolveAutoRepeatColumns(box *LayoutBox, containerWidth float64) []GridTrack {
+func resolveAutoRepeatColumns(box *LayoutBox, containerWidth float64, limits *LimitTracker) []GridTrack {
 	cols := box.Style.GridTemplateColumns
 	if box.Style.GridAutoRepeatColumns != nil {
 		cols = expandAutoRepeatTracks(
 			cols, box.Style.GridAutoRepeatColumns,
-			containerWidth, box.Style.ColumnGap,
+			containerWidth, box.Style.ColumnGap, limits,
 		)
 	}
 	return cols
@@ -199,13 +209,14 @@ func resolveAutoRepeatColumns(box *LayoutBox, containerWidth float64) []GridTrac
 // available block size is typically indefinite so 0 is used.
 //
 // Takes box (*LayoutBox) which is the grid container box.
+// Takes limits (*LimitTracker) which bounds the expanded track count.
 //
 // Returns []GridTrack which holds the expanded row track list.
-func resolveAutoRepeatRows(box *LayoutBox) []GridTrack {
+func resolveAutoRepeatRows(box *LayoutBox, limits *LimitTracker) []GridTrack {
 	rows := box.Style.GridTemplateRows
 	if box.Style.GridAutoRepeatRows != nil {
 		rows = expandAutoRepeatTracks(
-			rows, box.Style.GridAutoRepeatRows, 0, box.Style.RowGap,
+			rows, box.Style.GridAutoRepeatRows, 0, box.Style.RowGap, limits,
 		)
 	}
 	return rows
@@ -232,14 +243,18 @@ func sumTrackHeights(heights []float64, gap float64) float64 {
 // instead of the style's columns. This is needed when auto-repeat has expanded the column
 // list.
 //
+// Placement stops, with the breach recorded on limits, when an item would extend beyond
+// MaxGridTracks on either axis or the grid cell budget is exhausted.
+//
 // Takes box (*LayoutBox) which is the grid container box.
 // Takes templateColumns ([]GridTrack) which holds the expanded column tracks.
+// Takes limits (*LimitTracker) which bounds the grid size and placement work.
 //
 // Returns placements ([]gridItemPlacement) which holds each item's resolved position.
 // Returns columnCount (int) which holds the total column count.
 // Returns rowCount (int) which holds the total row count.
 func placeGridItemsWithColumns(
-	box *LayoutBox, templateColumns []GridTrack,
+	box *LayoutBox, templateColumns []GridTrack, limits *LimitTracker,
 ) (placements []gridItemPlacement, columnCount, rowCount int) {
 	numColumns := len(templateColumns)
 	if numColumns == 0 {
@@ -247,18 +262,21 @@ func placeGridItemsWithColumns(
 	}
 
 	areaMap := buildGridAreaMap(box.Style.GridTemplateAreas)
-	occupied := make(map[[2]int]bool)
+	occupied := newGridOccupancy(limits)
 	placements = make([]gridItemPlacement, 0, len(box.Children))
 	autoFlow := box.Style.GridAutoFlow
 	cursorRow := 0
 	cursorColumn := 0
 
 	for _, child := range box.Children {
-		placement := placeGridChild(
+		placement, ok := placeGridChild(
 			child, numColumns, occupied,
 			autoFlow, &cursorRow, &cursorColumn, areaMap,
 		)
-		markOccupied(occupied, placement)
+		if !ok || limits.failed() {
+			return nil, 0, 0
+		}
+		occupied.mark(placement)
 		placements = append(placements, placement)
 	}
 
@@ -268,53 +286,88 @@ func placeGridItemsWithColumns(
 
 // expandAutoRepeatTracks expands an auto-fill or auto-fit repeat pattern into a concrete
 // track list. The number of repetitions is the largest integer that does not overflow the
-// container.
+// container, computed in closed form so a tiny pattern cannot loop for long.
+//
+// Negative gaps are treated as zero (CSS forbids them). When the container size is
+// indefinite (infinite or NaN) the pattern repeats once, as CSS specifies. An expansion
+// beyond MaxGridTracks records a breach on limits and is truncated to the limit so the
+// allocation stays bounded; the recorded breach fails the layout.
 //
 // Takes fixedTracks ([]GridTrack) which is the non-repeat tracks.
 // Takes ar (*GridAutoRepeat) which is the auto-repeat to expand.
 // Takes containerSize (float64) which is the available space.
 // Takes gap (float64) which is the gap between tracks.
+// Takes limits (*LimitTracker) which bounds the expanded track count.
 //
-// Returns the full expanded track list.
+// Returns []GridTrack which is the full expanded track list.
 func expandAutoRepeatTracks(
 	fixedTracks []GridTrack, ar *GridAutoRepeat,
-	containerSize, gap float64,
+	containerSize, gap float64, limits *LimitTracker,
 ) []GridTrack {
-	fixedSize := sumDefiniteTrackSizes(fixedTracks)
-	fixedGaps := 0.0
-	if len(fixedTracks) > 0 {
-		fixedGaps = float64(len(fixedTracks)) * gap
+	if len(ar.Pattern) == 0 {
+		return fixedTracks
 	}
+	if !(gap > 0) {
+		gap = 0
+	}
+
+	fixedSize := sumDefiniteTrackSizes(fixedTracks)
+	fixedGaps := float64(len(fixedTracks)) * gap
 
 	patternSize := sumDefiniteTrackSizes(ar.Pattern)
 	patternGaps := float64(len(ar.Pattern)-1) * gap
 
 	oneRepetition := patternSize + patternGaps
 	available := containerSize - fixedSize - fixedGaps
-	if available < 0 {
+	if !(available > 0) {
 		available = 0
 	}
 
-	count := 1
-	if oneRepetition > 0 {
-		count = 1
-		for {
-			next := float64(count) * oneRepetition
-			if count > 1 {
-				next += float64(count-1) * gap
-			}
-			if next > available {
-				count--
-				break
-			}
-			count++
-		}
-		if count < 1 {
-			count = 1
-		}
+	count := autoRepeatCount(oneRepetition, gap, available)
+
+	maxTracks := limits.Limits().MaxGridTracks
+	maxCount := max((maxTracks-len(fixedTracks))/len(ar.Pattern), 0)
+	if count > maxCount {
+		limits.fail(fmt.Errorf("auto-repeat expands to more than %d tracks: %w",
+			maxTracks, layouter_dto.ErrTooManyGridTracks))
+		count = maxCount
 	}
 
 	return spliceAutoRepeat(fixedTracks, ar, count)
+}
+
+// autoRepeatCount returns the largest auto-fill or auto-fit repetition count of at least
+// one whose total size, count*oneRepetition + (count-1)*gap, fits within available. An
+// indefinite or degenerate size yields a single repetition.
+//
+// The count is estimated in closed form and then corrected against the exact size
+// expression, so the result matches an incremental search without its unbounded loop.
+//
+// Takes oneRepetition (float64) which is the size of one repetition of the pattern.
+// Takes gap (float64) which is the non-negative gap between tracks.
+// Takes available (float64) which is the space left for the repetitions.
+//
+// Returns int which is the repetition count, at least one and at most maxPageIndex.
+func autoRepeatCount(oneRepetition, gap, available float64) int {
+	if !(oneRepetition > 0) || math.IsInf(oneRepetition, 1) || math.IsInf(available, 1) {
+		return 1
+	}
+	totalFor := func(count int) float64 {
+		return float64(count)*oneRepetition + float64(count-1)*gap
+	}
+
+	estimate := math.Floor((available + gap) / (oneRepetition + gap))
+	if !(estimate < maxPageIndex) {
+		return maxPageIndex
+	}
+	count := max(int(estimate), 1)
+	for count > 1 && totalFor(count) > available {
+		count--
+	}
+	for count < maxPageIndex && totalFor(count+1) <= available {
+		count++
+	}
+	return count
 }
 
 // sumDefiniteTrackSizes returns the total size of all tracks with a definite (fixed)
@@ -406,6 +459,8 @@ func collapseEmptyAutoFitTracks(
 // Takes placements ([]gridItemPlacement) which holds the item placements to lay out.
 // Takes box (*LayoutBox) which is the grid container box.
 // Takes columnWidths ([]float64) which holds the resolved column sizes.
+// Takes input (layoutInput) which provides available dimensions, font metrics, and shared
+// layout state.
 func layoutGridItemFragments(
 	ctx context.Context,
 	placements []gridItemPlacement,
@@ -445,14 +500,9 @@ func layoutGridItemFragments(
 			placement.item.Style.Height = DimensionPt(rowHeight)
 		}
 
-		placement.fragment = layoutBox(ctx, placement.item, layoutInput{
-			AvailableWidth:     childContentWidth,
-			AvailableBlockSize: rowHeight,
-			FontMetrics:        input.FontMetrics,
-			Cache:              input.Cache,
-			IsFixedInlineSize:  fixedSize,
-			Edges:              childEdges,
-		})
+		childInput := newLayoutInput(input, childContentWidth, rowHeight, childEdges)
+		childInput.IsFixedInlineSize = fixedSize
+		placement.fragment = layoutBox(ctx, placement.item, childInput)
 
 		if overrideHeight {
 			placement.item.Style.Height = originalHeight
@@ -521,6 +571,8 @@ func resolveGridContainerHeight(style *ComputedStyle, parentBlockSize float64) f
 // Takes box (*LayoutBox) which is the grid container box.
 // Takes columnWidths ([]float64) which holds the resolved column sizes.
 // Takes rowHeights ([]float64) which holds the resolved row sizes.
+// Takes input (layoutInput) which provides available dimensions, font metrics, and shared
+// layout state.
 func relayoutStretchedGridItems(
 	ctx context.Context,
 	placements []gridItemPlacement,
@@ -566,6 +618,8 @@ func relayoutStretchedGridItems(
 // Takes box (*LayoutBox) which is the grid container box.
 // Takes columnWidths ([]float64) which holds the resolved column sizes.
 // Takes cellHeight (float64) which specifies the resolved cell height in points.
+// Takes input (layoutInput) which provides available dimensions, font metrics, and shared
+// layout state.
 func relayoutSingleGridItem(
 	ctx context.Context,
 	placement *gridItemPlacement,
@@ -603,13 +657,9 @@ func relayoutSingleGridItem(
 	placement.item.Style.Height = DimensionPt(stretchedHeight)
 	input.Cache.Invalidate(placement.item)
 
-	placement.fragment = layoutBox(ctx, placement.item, layoutInput{
-		AvailableWidth:    childContentWidth,
-		FontMetrics:       input.FontMetrics,
-		Cache:             input.Cache,
-		IsFixedInlineSize: fixedSize,
-		Edges:             childEdges,
-	})
+	childInput := newLayoutInput(input, childContentWidth, 0, childEdges)
+	childInput.IsFixedInlineSize = fixedSize
+	placement.fragment = layoutBox(ctx, placement.item, childInput)
 
 	placement.item.Style.Height = originalHeight
 }
@@ -620,35 +670,41 @@ func relayoutSingleGridItem(
 //
 // Takes child (*LayoutBox) which is the grid item to place.
 // Takes templateColumns (int) which specifies the explicit column count.
-// Takes occupied (map[[2]int]bool) which tracks occupied cells.
+// Takes occupied (*gridOccupancy) which tracks occupied cells.
 // Takes autoFlow (GridAutoFlowType) which specifies the auto-placement direction.
 // Takes cursorRow (*int) which holds the row-major cursor row.
 // Takes cursorColumn (*int) which holds the row-major cursor column.
 // Takes areaMap (map[string]gridAreaBounds) which maps named areas to their bounds.
 //
 // Returns gridItemPlacement which holds the resolved position.
+// Returns bool which reports whether the placement fits within the grid track limit.
 func placeGridChild(
 	child *LayoutBox,
 	templateColumns int,
-	occupied map[[2]int]bool,
+	occupied *gridOccupancy,
 	autoFlow GridAutoFlowType,
 	cursorRow, cursorColumn *int,
 	areaMap map[string]gridAreaBounds,
-) gridItemPlacement {
+) (gridItemPlacement, bool) {
 	if child.Style.GridArea != "" && areaMap != nil {
 		if bounds, ok := areaMap[child.Style.GridArea]; ok {
-			return gridItemPlacement{
+			placement := gridItemPlacement{
 				item:      child,
 				column:    bounds.columnStart,
 				row:       bounds.rowStart,
 				columnEnd: bounds.columnEnd,
 				rowEnd:    bounds.rowEnd,
+				fragment:  nil,
 			}
+			return placement, occupied.withinTrackLimit(placement.columnEnd, placement.rowEnd)
 		}
 	}
 
 	columnStart, columnSpan := resolveGridItemColumn(&child.Style, templateColumns)
 	rowStart, rowSpan := resolveGridItemRow(&child.Style)
+	if !occupied.withinTrackLimit(max(columnStart, 0)+columnSpan, max(rowStart, 0)+rowSpan) {
+		return gridItemPlacement{}, false
+	}
 
 	switch {
 	case columnStart >= 0 && rowStart >= 0:
@@ -664,13 +720,15 @@ func placeGridChild(
 		)
 	}
 
-	return gridItemPlacement{
+	placement := gridItemPlacement{
 		item:      child,
 		column:    columnStart,
 		row:       rowStart,
 		columnEnd: columnStart + columnSpan,
 		rowEnd:    rowStart + rowSpan,
+		fragment:  nil,
 	}
+	return placement, occupied.withinTrackLimit(placement.columnEnd, placement.rowEnd)
 }
 
 // computeGridBounds returns the maximum column and row indices across all placements,
@@ -762,30 +820,18 @@ func resolveGridItemRow(style *ComputedStyle) (start, span int) {
 	return start, span
 }
 
-// markOccupied marks all cells covered by a placement as occupied in the occupancy map.
-//
-// Takes occupied (map[[2]int]bool) which tracks occupied cells.
-// Takes placement (gridItemPlacement) which holds the item position and span.
-func markOccupied(occupied map[[2]int]bool, placement gridItemPlacement) {
-	for row := placement.row; row < placement.rowEnd; row++ {
-		for column := placement.column; column < placement.columnEnd; column++ {
-			occupied[[2]int{row, column}] = true
-		}
-	}
-}
-
 // findNextAvailableRow searches downward from startRow for the first row where the given
 // column span is unoccupied.
 //
-// Takes occupied (map[[2]int]bool) which tracks occupied cells.
+// Takes occupied (*gridOccupancy) which tracks occupied cells.
 // Takes column (int) which is the fixed column index.
 // Takes columnSpan (int) which is the required column span.
 // Takes startRow (int) which is the row to begin searching from.
 //
 // Returns int which is the first available row index.
-func findNextAvailableRow(occupied map[[2]int]bool, column, columnSpan, startRow int) int {
+func findNextAvailableRow(occupied *gridOccupancy, column, columnSpan, startRow int) int {
 	for row := startRow; row < startRow+gridSearchLimit; row++ {
-		if isAreaAvailable(occupied, row, column, 1, columnSpan) {
+		if occupied.isAreaAvailable(row, column, 1, columnSpan) {
 			return row
 		}
 	}
@@ -795,16 +841,16 @@ func findNextAvailableRow(occupied map[[2]int]bool, column, columnSpan, startRow
 // findNextAvailableColumn searches rightward from startColumn for the first column where
 // the given row span is unoccupied.
 //
-// Takes occupied (map[[2]int]bool) which tracks occupied cells.
+// Takes occupied (*gridOccupancy) which tracks occupied cells.
 // Takes row (int) which is the fixed row index.
 // Takes rowSpan (int) which is the required row span.
 // Takes startColumn (int) which is the column to begin searching from.
 // Takes maxColumns (int) which is the column search limit.
 //
 // Returns int which is the first available column index.
-func findNextAvailableColumn(occupied map[[2]int]bool, row, rowSpan, startColumn, maxColumns int) int {
+func findNextAvailableColumn(occupied *gridOccupancy, row, rowSpan, startColumn, maxColumns int) int {
 	for column := startColumn; column < maxColumns+gridColumnOverflow; column++ {
-		if isAreaAvailable(occupied, row, column, rowSpan, 1) {
+		if occupied.isAreaAvailable(row, column, rowSpan, 1) {
 			return column
 		}
 	}
@@ -814,7 +860,7 @@ func findNextAvailableColumn(occupied map[[2]int]bool, row, rowSpan, startColumn
 // autoPlaceItem places a grid item automatically using the specified auto-flow direction
 // and density mode.
 //
-// Takes occupied (map[[2]int]bool) which tracks occupied cells.
+// Takes occupied (*gridOccupancy) which tracks occupied cells.
 // Takes columnSpan (int) which is the item column span.
 // Takes rowSpan (int) which is the item row span.
 // Takes maxColumns (int) which is the column limit.
@@ -825,7 +871,7 @@ func findNextAvailableColumn(occupied map[[2]int]bool, row, rowSpan, startColumn
 // Returns column (int) which is the placed column index.
 // Returns row (int) which is the placed row index.
 func autoPlaceItem(
-	occupied map[[2]int]bool,
+	occupied *gridOccupancy,
 	columnSpan, rowSpan, maxColumns int,
 	autoFlow GridAutoFlowType,
 	cursorRow, cursorColumn *int,
@@ -848,7 +894,7 @@ func autoPlaceItem(
 // autoPlaceRowMajor places a grid item using row-major auto-placement, scanning rows then
 // columns for a free slot.
 //
-// Takes occupied (map[[2]int]bool) which tracks occupied cells.
+// Takes occupied (*gridOccupancy) which tracks occupied cells.
 // Takes columnSpan (int) which is the item column span.
 // Takes rowSpan (int) which is the item row span.
 // Takes maxColumns (int) which is the column limit.
@@ -859,7 +905,7 @@ func autoPlaceItem(
 // Returns column (int) which is the placed column index.
 // Returns row (int) which is the placed row index.
 func autoPlaceRowMajor(
-	occupied map[[2]int]bool,
+	occupied *gridOccupancy,
 	columnSpan, rowSpan, maxColumns int,
 	isDense bool,
 	cursorRow, cursorColumn *int,
@@ -871,7 +917,7 @@ func autoPlaceRowMajor(
 		startColumn = 0
 	}
 
-	for row := startRow; row < gridSearchLimit; row++ {
+	for row := startRow; row < startRow+gridSearchLimit; row++ {
 		firstColumn := 0
 		if row == startRow {
 			firstColumn = startColumn
@@ -888,7 +934,7 @@ func autoPlaceRowMajor(
 // findAvailableColumnInRow scans a single row for an available area that can fit the
 // given column and row span.
 //
-// Takes occupied (map[[2]int]bool) which tracks occupied cells.
+// Takes occupied (*gridOccupancy) which tracks occupied cells.
 // Takes row (int) which specifies the row to scan.
 // Takes firstColumn (int) which specifies the starting column.
 // Takes maxColumns (int) which specifies the column limit.
@@ -898,11 +944,11 @@ func autoPlaceRowMajor(
 // Returns int which holds the column index of the slot.
 // Returns bool which indicates whether a slot was found.
 func findAvailableColumnInRow(
-	occupied map[[2]int]bool,
+	occupied *gridOccupancy,
 	row, firstColumn, maxColumns, columnSpan, rowSpan int,
 ) (int, bool) {
 	for column := firstColumn; column <= maxColumns-columnSpan; column++ {
-		if isAreaAvailable(occupied, row, column, rowSpan, columnSpan) {
+		if occupied.isAreaAvailable(row, column, rowSpan, columnSpan) {
 			return column, true
 		}
 	}
@@ -929,7 +975,7 @@ func advanceRowMajorCursor(cursorRow, cursorColumn *int, row, nextColumn, column
 // autoPlaceColumnMajor places a grid item using column-major auto-placement, scanning
 // columns then rows for a free slot.
 //
-// Takes occupied (map[[2]int]bool) which tracks occupied cells.
+// Takes occupied (*gridOccupancy) which tracks occupied cells.
 // Takes columnSpan (int) which is the item column span.
 // Takes rowSpan (int) which is the item row span.
 // Takes isDense (bool) which enables dense packing mode.
@@ -939,7 +985,7 @@ func advanceRowMajorCursor(cursorRow, cursorColumn *int, row, nextColumn, column
 // Returns column (int) which is the placed column index.
 // Returns row (int) which is the placed row index.
 func autoPlaceColumnMajor(
-	occupied map[[2]int]bool,
+	occupied *gridOccupancy,
 	columnSpan, rowSpan, _ int,
 	isDense bool,
 	cursorRow, cursorColumn *int,
@@ -951,13 +997,13 @@ func autoPlaceColumnMajor(
 		startRow = 0
 	}
 
-	for column := startColumn; column < gridSearchLimit; column++ {
+	for column := startColumn; column < startColumn+gridSearchLimit; column++ {
 		firstRow := 0
 		if column == startColumn {
 			firstRow = startRow
 		}
-		for row := firstRow; row < gridSearchLimit; row++ {
-			if isAreaAvailable(occupied, row, column, rowSpan, columnSpan) {
+		for row := firstRow; row < firstRow+gridSearchLimit; row++ {
+			if occupied.isAreaAvailable(row, column, rowSpan, columnSpan) {
 				*cursorColumn = column
 				*cursorRow = row + rowSpan
 				return column, row
@@ -965,27 +1011,6 @@ func autoPlaceColumnMajor(
 		}
 	}
 	return 0, 0
-}
-
-// isAreaAvailable reports whether the rectangular region starting at (row, column) with
-// the given spans is entirely unoccupied.
-//
-// Takes occupied (map[[2]int]bool) which tracks occupied cells.
-// Takes row (int) which is the start row.
-// Takes column (int) which is the start column.
-// Takes rowSpan (int) which is the row extent.
-// Takes columnSpan (int) which is the column extent.
-//
-// Returns bool which is true if every cell in the area is free.
-func isAreaAvailable(occupied map[[2]int]bool, row, column, rowSpan, columnSpan int) bool {
-	for checkRow := row; checkRow < row+rowSpan; checkRow++ {
-		for checkColumn := column; checkColumn < column+columnSpan; checkColumn++ {
-			if occupied[[2]int{checkRow, checkColumn}] {
-				return false
-			}
-		}
-	}
-	return true
 }
 
 // gridTrackSizingInput groups the parameters for grid track sizing, reducing the argument
@@ -1049,6 +1074,7 @@ func resolveGridTrackSizes(input gridTrackSizingInput) []float64 {
 // Returns fractionTotal (float64) which holds the sum of all fr values.
 // Returns fixedTotal (float64) which holds the sum of all resolved non-fr sizes.
 func resolveFixedTracks(sizes []float64, input gridTrackSizingInput) (fractionTotal, fixedTotal float64) {
+	itemsByTrack := singleSpanItemsByTrack(input.placements, input.trackCount, input.isColumn)
 	for index := range input.trackCount {
 		track := getTrack(input.templateTracks, input.autoTracks, index)
 
@@ -1061,22 +1087,22 @@ func resolveFixedTracks(sizes []float64, input gridTrackSizingInput) (fractionTo
 			sizes[index] = resolved
 			fixedTotal += resolved
 		case GridTrackMinContent:
-			minWidth := computeTrackIntrinsicSize(input.placements, index, input.isColumn, true, input.fontMetrics)
+			minWidth := computeTrackIntrinsicSize(itemsByTrack[index], true, input.fontMetrics)
 			sizes[index] = minWidth
 			fixedTotal += minWidth
 		case GridTrackMaxContent:
-			maxWidth := computeTrackIntrinsicSize(input.placements, index, input.isColumn, false, input.fontMetrics)
+			maxWidth := computeTrackIntrinsicSize(itemsByTrack[index], false, input.fontMetrics)
 			sizes[index] = maxWidth
 			fixedTotal += maxWidth
 		case GridTrackFitContent:
-			minW := computeTrackIntrinsicSize(input.placements, index, input.isColumn, true, input.fontMetrics)
-			maxW := computeTrackIntrinsicSize(input.placements, index, input.isColumn, false, input.fontMetrics)
+			minW := computeTrackIntrinsicSize(itemsByTrack[index], true, input.fontMetrics)
+			maxW := computeTrackIntrinsicSize(itemsByTrack[index], false, input.fontMetrics)
 			size := math.Min(maxW, math.Max(minW, track.Value))
 			sizes[index] = size
 			fixedTotal += size
 		case GridTrackFitContentPct:
-			minW := computeTrackIntrinsicSize(input.placements, index, input.isColumn, true, input.fontMetrics)
-			maxW := computeTrackIntrinsicSize(input.placements, index, input.isColumn, false, input.fontMetrics)
+			minW := computeTrackIntrinsicSize(itemsByTrack[index], true, input.fontMetrics)
+			maxW := computeTrackIntrinsicSize(itemsByTrack[index], false, input.fontMetrics)
 			clamp := track.Value / percentageDivisor * input.containerSize
 			size := math.Min(maxW, math.Max(minW, clamp))
 			sizes[index] = size
@@ -1084,7 +1110,7 @@ func resolveFixedTracks(sizes []float64, input gridTrackSizingInput) (fractionTo
 		case GridTrackFr:
 			fractionTotal += track.Value
 		case GridTrackAuto:
-			autoSize := computeTrackIntrinsicSize(input.placements, index, input.isColumn, false, input.fontMetrics)
+			autoSize := computeTrackIntrinsicSize(itemsByTrack[index], false, input.fontMetrics)
 			sizes[index] = autoSize
 			fixedTotal += autoSize
 		}
@@ -1126,52 +1152,60 @@ func getTrack(templateTracks []GridTrack, autoTracks []GridTrack, index int) Gri
 	if len(autoTracks) > 0 {
 		return autoTracks[(index-len(templateTracks))%len(autoTracks)]
 	}
-	return GridTrack{Unit: GridTrackAuto}
+	return GridTrack{}
 }
 
-// computeTrackIntrinsicSize computes the intrinsic size of a single track based on the
-// content of items occupying it.
+// computeTrackIntrinsicSize computes the intrinsic size of a single track from the items
+// that occupy only that track.
 //
-// Takes placements ([]gridItemPlacement) which holds the grid item placements.
-// Takes trackIndex (int) which is the track to measure.
-// Takes isColumn (bool) which selects column or row axis.
+// Takes items ([]*LayoutBox) which holds the items spanning exactly this track.
 // Takes useMinContent (bool) which selects min-content or max-content sizing.
 // Takes fontMetrics (FontMetricsPort) which provides font measurement.
 //
 // Returns float64 which is the intrinsic track size in points.
 func computeTrackIntrinsicSize(
-	placements []gridItemPlacement,
-	trackIndex int,
-	isColumn bool,
+	items []*LayoutBox,
 	useMinContent bool,
 	fontMetrics FontMetricsPort,
 ) float64 {
 	maxSize := 0.0
-	for _, placement := range placements {
-		var start, end int
-		if isColumn {
-			start = placement.column
-			end = placement.columnEnd
-		} else {
-			start = placement.row
-			end = placement.rowEnd
-		}
-
-		if start != trackIndex || end-start != 1 {
-			continue
-		}
-
+	for _, item := range items {
 		var itemSize float64
 		if useMinContent {
-			itemSize = measureMinContentWidth(placement.item, fontMetrics)
+			itemSize = measureMinContentWidth(item, fontMetrics)
 		} else {
-			itemSize = measureMaxContentWidth(placement.item, fontMetrics)
+			itemSize = measureMaxContentWidth(item, fontMetrics)
 		}
 		if itemSize > maxSize {
 			maxSize = itemSize
 		}
 	}
 	return maxSize
+}
+
+// singleSpanItemsByTrack groups the items that span exactly one track by the track they
+// occupy, so each track's intrinsic size considers only its own items instead of scanning
+// every placement per track.
+//
+// Takes placements ([]gridItemPlacement) which holds the grid item placements.
+// Takes trackCount (int) which is the number of tracks on the axis.
+// Takes isColumn (bool) which selects the column or row axis.
+//
+// Returns [][]*LayoutBox which holds, for each track index, its single-span items in
+// placement order.
+func singleSpanItemsByTrack(placements []gridItemPlacement, trackCount int, isColumn bool) [][]*LayoutBox {
+	itemsByTrack := make([][]*LayoutBox, trackCount)
+	for _, placement := range placements {
+		start, end := placement.row, placement.rowEnd
+		if isColumn {
+			start, end = placement.column, placement.columnEnd
+		}
+		if end-start != 1 || start < 0 || start >= trackCount {
+			continue
+		}
+		itemsByTrack[start] = append(itemsByTrack[start], placement.item)
+	}
+	return itemsByTrack
 }
 
 // computeRowHeights resolves all row track heights, handling fixed tracks, item-driven

@@ -109,7 +109,12 @@ var (
 	// no 0o octal or 0b binary forms).
 	dialectConfig = engine_shared.DialectConfig{
 		Comments: engine_shared.CommentRules{},
-		Numbers:  engine_shared.NumberRules{HexPrefix: true},
+		Numbers: engine_shared.NumberRules{
+			HexPrefix:                true,
+			OctalPrefix:              false,
+			BinaryPrefix:             false,
+			RequireDigitsAfterPrefix: false,
+		},
 	}
 )
 
@@ -121,7 +126,7 @@ var (
 // Returns error when the input contains an unterminated literal or an unexpected
 // character.
 func tokenise(input string) ([]token, error) {
-	lexer := &tokeniser{input: input}
+	lexer := &tokeniser{input: input, position: 0}
 	var tokens []token
 
 	for {
@@ -148,7 +153,7 @@ func (t *tokeniser) next() (token, error) {
 	}
 
 	if t.position >= len(t.input) {
-		return token{kind: tokenEOF, position: t.position}, nil
+		return token{kind: tokenEOF, position: t.position, value: ""}, nil
 	}
 
 	character := t.input[t.position]

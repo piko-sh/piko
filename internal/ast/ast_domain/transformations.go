@@ -92,13 +92,23 @@ func (ka *keyAssigner) assignKeysAndProcessDirectives(sourcePath string, tree *T
 		index := ka.contextKeys[key]
 		ka.contextKeys[key]++
 
-		basePath := append(slices.Clone(currentContextParts), TemplateLiteralPart{Expression: nil, Literal: fmt.Sprintf(".%d", index), IsLiteral: true, RelativeLocation: Location{}})
+		basePath := append(slices.Clone(currentContextParts), TemplateLiteralPart{
+			Expression:       nil,
+			Literal:          fmt.Sprintf(".%d", index),
+			IsLiteral:        true,
+			RelativeLocation: Location{},
+		})
 		userKeyExpr := ka.getUserKeyExpression(root)
 
 		if userKeyExpr != nil && root.DirFor == nil {
 			root.Key = userKeyExpr
 		} else if userKeyExpr != nil {
-			pathWithKey := append(slices.Clone(basePath), TemplateLiteralPart{Expression: nil, Literal: ".", IsLiteral: true, RelativeLocation: Location{}})
+			pathWithKey := append(slices.Clone(basePath), TemplateLiteralPart{
+				Expression:       nil,
+				Literal:          ".",
+				IsLiteral:        true,
+				RelativeLocation: Location{},
+			})
 			pathWithKey = append(pathWithKey, ka.getKeyParts(userKeyExpr)...)
 			root.Key = buildExpressionFromParts(pathWithKey, root.Location)
 		} else {
@@ -124,11 +134,21 @@ func (ka *keyAssigner) assignChildKeysAndProcessDirectives(parent *TemplateNode,
 		if child.DirContext != nil && child.DirContext.Expression != nil {
 			childBasePath = ka.getKeyParts(child.DirContext.Expression)
 		} else {
-			childBasePath = append(slices.Clone(parentPathParts), TemplateLiteralPart{Expression: nil, Literal: fmt.Sprintf(":%d", i), IsLiteral: true, RelativeLocation: Location{}})
+			childBasePath = append(slices.Clone(parentPathParts), TemplateLiteralPart{
+				Expression:       nil,
+				Literal:          fmt.Sprintf(":%d", i),
+				IsLiteral:        true,
+				RelativeLocation: Location{},
+			})
 		}
 
 		if userKeyExpr != nil {
-			pathWithKey := append(slices.Clone(childBasePath), TemplateLiteralPart{Expression: nil, Literal: ".", IsLiteral: true, RelativeLocation: Location{}})
+			pathWithKey := append(slices.Clone(childBasePath), TemplateLiteralPart{
+				Expression:       nil,
+				Literal:          ".",
+				IsLiteral:        true,
+				RelativeLocation: Location{},
+			})
 			pathWithKey = append(pathWithKey, ka.getKeyParts(userKeyExpr)...)
 			child.Key = buildExpressionFromParts(pathWithKey, child.Location)
 		} else {
@@ -151,11 +171,21 @@ func (*keyAssigner) getPathPartsFromKey(keyExpr Expression) []TemplateLiteralPar
 	}
 	switch v := keyExpr.(type) {
 	case *StringLiteral:
-		return []TemplateLiteralPart{{Expression: nil, Literal: v.Value, IsLiteral: true, RelativeLocation: Location{}}}
+		return []TemplateLiteralPart{{
+			Expression:       nil,
+			Literal:          v.Value,
+			IsLiteral:        true,
+			RelativeLocation: Location{},
+		}}
 	case *TemplateLiteral:
 		return v.Parts
 	default:
-		return []TemplateLiteralPart{{Expression: v, Literal: "", IsLiteral: false, RelativeLocation: Location{}}}
+		return []TemplateLiteralPart{{
+			Expression:       v,
+			Literal:          "",
+			IsLiteral:        false,
+			RelativeLocation: Location{},
+		}}
 	}
 }
 
@@ -177,7 +207,12 @@ func (*keyAssigner) getUserKeyExpression(node *TemplateNode) Expression {
 				return forInExpr.ItemVariable
 			}
 		}
-		return &Identifier{GoAnnotations: nil, Name: "index", RelativeLocation: Location{}, SourceLength: 0}
+		return &Identifier{
+			GoAnnotations:    nil,
+			Name:             "index",
+			RelativeLocation: Location{},
+			SourceLength:     0,
+		}
 	}
 	return nil
 }
@@ -564,10 +599,15 @@ func adjustDiagnosticLocations(diagnostics []*Diagnostic, baseLocation Location,
 // Returns *keyAssigner which is ready to use with default settings.
 func newKeyAssigner(tree *TemplateAST, sourcePath string) *keyAssigner {
 	return &keyAssigner{
-		tree:         tree,
-		sourcePath:   sourcePath,
-		contextKeys:  make(map[string]int),
-		defaultParts: []TemplateLiteralPart{{Expression: nil, Literal: "r", IsLiteral: true, RelativeLocation: Location{}}},
+		tree:        tree,
+		sourcePath:  sourcePath,
+		contextKeys: make(map[string]int),
+		defaultParts: []TemplateLiteralPart{{
+			Expression:       nil,
+			Literal:          "r",
+			IsLiteral:        true,
+			RelativeLocation: Location{},
+		}},
 	}
 }
 

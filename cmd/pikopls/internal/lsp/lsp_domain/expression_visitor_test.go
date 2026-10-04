@@ -36,13 +36,13 @@ func TestVisitExpressionChildrenWithContext_IndexExpr(t *testing.T) {
 
 	inner := &ast_domain.Identifier{
 		Name:             "items",
-		RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+		RelativeLocation: ast_domain.Location{},
 		SourceLength:     5,
 	}
 	indexExpr := &ast_domain.IndexExpression{
 		Base:             inner,
 		Index:            &ast_domain.Identifier{Name: "index", RelativeLocation: ast_domain.Location{Line: 0, Column: 6}, SourceLength: 3},
-		RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+		RelativeLocation: ast_domain.Location{},
 		SourceLength:     10,
 	}
 
@@ -78,11 +78,11 @@ func TestVisitExpressionChildrenWithContext_CallExpr(t *testing.T) {
 	callExpr := &ast_domain.CallExpression{
 		Callee: &ast_domain.Identifier{
 			Name:             "fn",
-			RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+			RelativeLocation: ast_domain.Location{},
 			SourceLength:     2,
 		},
 		Args:             []ast_domain.Expression{argIdent},
-		RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+		RelativeLocation: ast_domain.Location{},
 		SourceLength:     6,
 	}
 
@@ -111,10 +111,10 @@ func TestVisitExpressionChildrenWithContext_CallExpr(t *testing.T) {
 
 func TestVisitExpressionChildrenWithContext_BinaryExpr(t *testing.T) {
 	binaryExpr := &ast_domain.BinaryExpression{
-		Left:             &ast_domain.Identifier{Name: "a", RelativeLocation: ast_domain.Location{Line: 0, Column: 0}, SourceLength: 1},
+		Left:             &ast_domain.Identifier{Name: "a", RelativeLocation: ast_domain.Location{}, SourceLength: 1},
 		Right:            &ast_domain.Identifier{Name: "b", RelativeLocation: ast_domain.Location{Line: 0, Column: 4}, SourceLength: 1},
 		Operator:         "+",
-		RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+		RelativeLocation: ast_domain.Location{},
 		SourceLength:     5,
 	}
 
@@ -145,7 +145,7 @@ func TestVisitExpressionChildrenWithContext_UnaryExpr(t *testing.T) {
 	unaryExpr := &ast_domain.UnaryExpression{
 		Right:            &ast_domain.Identifier{Name: "val", RelativeLocation: ast_domain.Location{Line: 0, Column: 1}, SourceLength: 3},
 		Operator:         "!",
-		RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+		RelativeLocation: ast_domain.Location{},
 		SourceLength:     4,
 	}
 
@@ -174,10 +174,10 @@ func TestVisitExpressionChildrenWithContext_UnaryExpr(t *testing.T) {
 
 func TestVisitExpressionChildrenWithContext_TernaryExpr(t *testing.T) {
 	ternaryExpr := &ast_domain.TernaryExpression{
-		Condition:        &ast_domain.Identifier{Name: "cond", RelativeLocation: ast_domain.Location{Line: 0, Column: 0}, SourceLength: 4},
+		Condition:        &ast_domain.Identifier{Name: "cond", RelativeLocation: ast_domain.Location{}, SourceLength: 4},
 		Consequent:       &ast_domain.Identifier{Name: "yes", RelativeLocation: ast_domain.Location{Line: 0, Column: 7}, SourceLength: 3},
 		Alternate:        &ast_domain.Identifier{Name: "no", RelativeLocation: ast_domain.Location{Line: 0, Column: 13}, SourceLength: 2},
-		RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+		RelativeLocation: ast_domain.Location{},
 		SourceLength:     15,
 	}
 
@@ -211,13 +211,13 @@ func TestVisitExpressionChildrenWithContext_TemplateLiteral(t *testing.T) {
 				IsLiteral: false,
 				Expression: &ast_domain.Identifier{
 					Name:             "val",
-					RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+					RelativeLocation: ast_domain.Location{},
 					SourceLength:     3,
 				},
 				RelativeLocation: ast_domain.Location{Line: 0, Column: 2},
 			},
 		},
-		RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+		RelativeLocation: ast_domain.Location{},
 		SourceLength:     10,
 	}
 
@@ -249,7 +249,7 @@ func TestVisitExpressionChildrenWithContext_ObjectLiteral(t *testing.T) {
 		Pairs: map[string]ast_domain.Expression{
 			"key": &ast_domain.Identifier{Name: "v", RelativeLocation: ast_domain.Location{Line: 0, Column: 5}, SourceLength: 1},
 		},
-		RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+		RelativeLocation: ast_domain.Location{},
 		SourceLength:     8,
 	}
 
@@ -281,7 +281,7 @@ func TestVisitExpressionChildrenWithContext_ArrayLiteral(t *testing.T) {
 		Elements: []ast_domain.Expression{
 			&ast_domain.Identifier{Name: "el", RelativeLocation: ast_domain.Location{Line: 0, Column: 1}, SourceLength: 2},
 		},
-		RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+		RelativeLocation: ast_domain.Location{},
 		SourceLength:     5,
 	}
 
@@ -310,10 +310,10 @@ func TestVisitExpressionChildrenWithContext_ArrayLiteral(t *testing.T) {
 
 func TestVisitExpressionChildrenWithContext_ForInExpr(t *testing.T) {
 	forInExpr := &ast_domain.ForInExpression{
-		ItemVariable:     &ast_domain.Identifier{Name: "item", RelativeLocation: ast_domain.Location{Line: 0, Column: 0}, SourceLength: 4},
+		ItemVariable:     &ast_domain.Identifier{Name: "item", RelativeLocation: ast_domain.Location{}, SourceLength: 4},
 		IndexVariable:    &ast_domain.Identifier{Name: "index", RelativeLocation: ast_domain.Location{Line: 0, Column: 6}, SourceLength: 3},
 		Collection:       &ast_domain.Identifier{Name: "list", RelativeLocation: ast_domain.Location{Line: 0, Column: 13}, SourceLength: 4},
-		RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+		RelativeLocation: ast_domain.Location{},
 		SourceLength:     17,
 	}
 
@@ -347,7 +347,7 @@ func TestVisitExpressionChildrenWithContext_LinkedMessageExpr(t *testing.T) {
 			RelativeLocation: ast_domain.Location{Line: 0, Column: 1},
 			SourceLength:     3,
 		},
-		RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+		RelativeLocation: ast_domain.Location{},
 		SourceLength:     5,
 	}
 
@@ -386,7 +386,7 @@ func TestFindExprInTextChildren_MatchesRichTextChild(t *testing.T) {
 				IsLiteral: false,
 				Expression: &ast_domain.Identifier{
 					Name:             "greeting",
-					RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+					RelativeLocation: ast_domain.Location{},
 					SourceLength:     8,
 				},
 				Location: ast_domain.Location{Line: 2, Column: 5},
@@ -433,7 +433,7 @@ func TestFindExprInTextChildren_SkipsNonTextNodes(t *testing.T) {
 func TestFindExprInPassedProps_MatchingPositionWithInvokerAnnotation(t *testing.T) {
 	propExpr := &ast_domain.Identifier{
 		Name:             "title",
-		RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+		RelativeLocation: ast_domain.Location{},
 		SourceLength:     5,
 	}
 	invokerAnn := &ast_domain.GoGeneratorAnnotation{
@@ -523,10 +523,7 @@ func TestGetLinkedEditingRanges_ReturnsNilForSelfClosingTag(t *testing.T) {
 			Start: ast_domain.Location{Line: 1, Column: 1},
 			End:   ast_domain.Location{Line: 1, Column: 6},
 		},
-		ClosingTagRange: ast_domain.Range{
-			Start: ast_domain.Location{Line: 0, Column: 0},
-			End:   ast_domain.Location{Line: 0, Column: 0},
-		},
+		ClosingTagRange: ast_domain.Range{},
 	}
 
 	document := newTestDocumentBuilder().
@@ -585,7 +582,7 @@ func TestGetLinkedEditingRanges_NilAnnotationResult(t *testing.T) {
 		WithURI("file:///test.pk").
 		Build()
 
-	ranges, err := document.GetLinkedEditingRanges(protocol.Position{Line: 0, Character: 0})
+	ranges, err := document.GetLinkedEditingRanges(protocol.Position{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -606,7 +603,7 @@ func TestGetDocumentHighlights_FindsMatchingSymbols(t *testing.T) {
 	node.DirIf = &ast_domain.Directive{
 		Expression: &ast_domain.Identifier{
 			Name:             "count",
-			RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+			RelativeLocation: ast_domain.Location{},
 			SourceLength:     5,
 			GoAnnotations: &ast_domain.GoGeneratorAnnotation{
 				OriginalSourcePath: &docPath,
@@ -645,7 +642,7 @@ func TestGetImplementations_FullPath(t *testing.T) {
 	node.DirIf = &ast_domain.Directive{
 		Expression: &ast_domain.Identifier{
 			Name:             "reader",
-			RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+			RelativeLocation: ast_domain.Location{},
 			SourceLength:     6,
 			GoAnnotations: &ast_domain.GoGeneratorAnnotation{
 				ResolvedType: &ast_domain.ResolvedTypeInfo{
@@ -723,7 +720,7 @@ func TestGetImplementations_NilImplementationIndex(t *testing.T) {
 	node.DirIf = &ast_domain.Directive{
 		Expression: &ast_domain.Identifier{
 			Name:             "w",
-			RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+			RelativeLocation: ast_domain.Location{},
 			SourceLength:     1,
 			GoAnnotations: &ast_domain.GoGeneratorAnnotation{
 				ResolvedType: &ast_domain.ResolvedTypeInfo{
@@ -765,7 +762,7 @@ func TestGetMonikers_ReturnsMoniker(t *testing.T) {
 	node.DirIf = &ast_domain.Directive{
 		Expression: &ast_domain.Identifier{
 			Name:             "UserService",
-			RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+			RelativeLocation: ast_domain.Location{},
 			SourceLength:     11,
 			GoAnnotations: &ast_domain.GoGeneratorAnnotation{
 				ResolvedType: &ast_domain.ResolvedTypeInfo{
@@ -815,7 +812,7 @@ func TestGetMonikers_NoAnnotation(t *testing.T) {
 	node.DirIf = &ast_domain.Directive{
 		Expression: &ast_domain.Identifier{
 			Name:             "localVar",
-			RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+			RelativeLocation: ast_domain.Location{},
 			SourceLength:     8,
 		},
 		Location: ast_domain.Location{Line: 1, Column: 5},
@@ -846,7 +843,7 @@ func TestGetMonikers_LocalSymbol(t *testing.T) {
 	node.DirIf = &ast_domain.Directive{
 		Expression: &ast_domain.Identifier{
 			Name:             "localCount",
-			RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+			RelativeLocation: ast_domain.Location{},
 			SourceLength:     10,
 			GoAnnotations:    &ast_domain.GoGeneratorAnnotation{},
 		},
@@ -883,10 +880,10 @@ func TestLookupFunctionSignature_IdentCallee(t *testing.T) {
 	callExpr := &ast_domain.CallExpression{
 		Callee: &ast_domain.Identifier{
 			Name:             "doWork",
-			RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+			RelativeLocation: ast_domain.Location{},
 			SourceLength:     6,
 		},
-		RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+		RelativeLocation: ast_domain.Location{},
 		SourceLength:     8,
 	}
 	calleeAnn := &ast_domain.GoGeneratorAnnotation{
@@ -924,7 +921,7 @@ func TestLookupFunctionSignature_MemberCallee(t *testing.T) {
 	memberExpr := &ast_domain.MemberExpression{
 		Base: &ast_domain.Identifier{
 			Name:             "service",
-			RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+			RelativeLocation: ast_domain.Location{},
 			SourceLength:     3,
 			GoAnnotations: &ast_domain.GoGeneratorAnnotation{
 				ResolvedType: &ast_domain.ResolvedTypeInfo{
@@ -937,12 +934,12 @@ func TestLookupFunctionSignature_MemberCallee(t *testing.T) {
 			RelativeLocation: ast_domain.Location{Line: 0, Column: 4},
 			SourceLength:     3,
 		},
-		RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+		RelativeLocation: ast_domain.Location{},
 		SourceLength:     7,
 	}
 	callExpr := &ast_domain.CallExpression{
 		Callee:           memberExpr,
-		RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+		RelativeLocation: ast_domain.Location{},
 		SourceLength:     9,
 	}
 	calleeAnn := &ast_domain.GoGeneratorAnnotation{
@@ -983,10 +980,10 @@ func TestLookupFunctionSignature_UnknownCalleeType(t *testing.T) {
 			Left:             &ast_domain.Identifier{Name: "a", RelativeLocation: ast_domain.Location{}, SourceLength: 1},
 			Right:            &ast_domain.Identifier{Name: "b", RelativeLocation: ast_domain.Location{}, SourceLength: 1},
 			Operator:         "+",
-			RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+			RelativeLocation: ast_domain.Location{},
 			SourceLength:     3,
 		},
-		RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+		RelativeLocation: ast_domain.Location{},
 		SourceLength:     5,
 	}
 	calleeAnn := &ast_domain.GoGeneratorAnnotation{
@@ -1008,7 +1005,7 @@ func TestLookupMethodSignature_NilBaseAnnotation(t *testing.T) {
 	memberExpr := &ast_domain.MemberExpression{
 		Base: &ast_domain.Identifier{
 			Name:             "obj",
-			RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+			RelativeLocation: ast_domain.Location{},
 			SourceLength:     3,
 		},
 		Property: &ast_domain.Identifier{
@@ -1016,7 +1013,7 @@ func TestLookupMethodSignature_NilBaseAnnotation(t *testing.T) {
 			RelativeLocation: ast_domain.Location{Line: 0, Column: 4},
 			SourceLength:     6,
 		},
-		RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+		RelativeLocation: ast_domain.Location{},
 		SourceLength:     10,
 	}
 	analysisCtx := &annotator_domain.AnalysisContext{}
@@ -1256,7 +1253,7 @@ func TestPrepareRename_ReturnsRangeForValidSymbol(t *testing.T) {
 	node.DirIf = &ast_domain.Directive{
 		Expression: &ast_domain.Identifier{
 			Name:             "myVar",
-			RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+			RelativeLocation: ast_domain.Location{},
 			SourceLength:     5,
 			GoAnnotations: &ast_domain.GoGeneratorAnnotation{
 				Symbol: &ast_domain.ResolvedSymbol{
@@ -1297,7 +1294,7 @@ func TestPrepareRename_RejectsBuiltInNames(t *testing.T) {
 			node.DirIf = &ast_domain.Directive{
 				Expression: &ast_domain.Identifier{
 					Name:             name,
-					RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+					RelativeLocation: ast_domain.Location{},
 					SourceLength:     len(name),
 					GoAnnotations: &ast_domain.GoGeneratorAnnotation{
 						Symbol: &ast_domain.ResolvedSymbol{
@@ -1336,7 +1333,7 @@ func TestPrepareRename_EmptySymbolName(t *testing.T) {
 	node.DirIf = &ast_domain.Directive{
 		Expression: &ast_domain.Identifier{
 			Name:             "x",
-			RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+			RelativeLocation: ast_domain.Location{},
 			SourceLength:     1,
 			GoAnnotations: &ast_domain.GoGeneratorAnnotation{
 				Symbol: &ast_domain.ResolvedSymbol{
@@ -1372,7 +1369,7 @@ func TestGetSignatureHelpContext_NilTypeInspector(t *testing.T) {
 
 	callee := &ast_domain.Identifier{
 		Name:             "fn",
-		RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+		RelativeLocation: ast_domain.Location{},
 		SourceLength:     2,
 		GoAnnotations: &ast_domain.GoGeneratorAnnotation{
 			ResolvedType: &ast_domain.ResolvedTypeInfo{
@@ -1383,7 +1380,7 @@ func TestGetSignatureHelpContext_NilTypeInspector(t *testing.T) {
 	callExpr := &ast_domain.CallExpression{
 		Callee:           callee,
 		Args:             []ast_domain.Expression{},
-		RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+		RelativeLocation: ast_domain.Location{},
 		SourceLength:     4,
 	}
 
@@ -1669,7 +1666,7 @@ func TestExtractImplementationTypeInfo_ReturnsTypeInfo(t *testing.T) {
 	node.DirIf = &ast_domain.Directive{
 		Expression: &ast_domain.Identifier{
 			Name:             "service",
-			RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+			RelativeLocation: ast_domain.Location{},
 			SourceLength:     3,
 			GoAnnotations: &ast_domain.GoGeneratorAnnotation{
 				ResolvedType: &ast_domain.ResolvedTypeInfo{
@@ -1709,7 +1706,7 @@ func TestExtractImplementationTypeInfo_NilResolvedType(t *testing.T) {
 	node.DirIf = &ast_domain.Directive{
 		Expression: &ast_domain.Identifier{
 			Name:             "localVar",
-			RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+			RelativeLocation: ast_domain.Location{},
 			SourceLength:     8,
 			GoAnnotations:    &ast_domain.GoGeneratorAnnotation{},
 		},
@@ -1741,10 +1738,8 @@ func TestTryFastPathSignatureHelp_NoDocument(t *testing.T) {
 	server := &Server{workspace: ws}
 
 	result := server.tryFastPathSignatureHelp(context.Background(), &protocol.SignatureHelpParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: "file:///missing.pk"},
-			Position:     protocol.Position{Line: 0, Character: 0},
-		},
+		TextDocument: protocol.TextDocumentIdentifier{URI: "file:///missing.pk"},
+		Position:     protocol.Position{},
 	})
 	if result != nil {
 		t.Error("expected nil when document does not exist")
@@ -1764,10 +1759,8 @@ func TestTryFastPathSignatureHelp_DocumentLacksPrerequisites(t *testing.T) {
 	server := &Server{workspace: ws}
 
 	result := server.tryFastPathSignatureHelp(context.Background(), &protocol.SignatureHelpParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: documentURI},
-			Position:     protocol.Position{Line: 0, Character: 0},
-		},
+		TextDocument: protocol.TextDocumentIdentifier{URI: documentURI},
+		Position:     protocol.Position{},
 	})
 	if result != nil {
 		t.Error("expected nil when document lacks prerequisites")
@@ -1794,10 +1787,8 @@ func TestTryFastPathSignatureHelp_NoCacheContent(t *testing.T) {
 	server := &Server{workspace: ws}
 
 	result := server.tryFastPathSignatureHelp(context.Background(), &protocol.SignatureHelpParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: documentURI},
-			Position:     protocol.Position{Line: 0, Character: 10},
-		},
+		TextDocument: protocol.TextDocumentIdentifier{URI: documentURI},
+		Position:     protocol.Position{Line: 0, Character: 10},
 	})
 	if result != nil {
 		t.Error("expected nil when document cache has no content")
@@ -1845,10 +1836,8 @@ func TestTryFastPathSignatureHelp_WithCacheContent(t *testing.T) {
 	server := &Server{workspace: ws}
 
 	result := server.tryFastPathSignatureHelp(context.Background(), &protocol.SignatureHelpParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: documentURI},
-			Position:     protocol.Position{Line: 0, Character: 34},
-		},
+		TextDocument: protocol.TextDocumentIdentifier{URI: documentURI},
+		Position:     protocol.Position{Line: 0, Character: 34},
 	})
 
 	_ = result

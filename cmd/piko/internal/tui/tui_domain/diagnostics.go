@@ -246,6 +246,8 @@ func (r *DiagnosticsResult) addSkippedResult(service, method, details string) {
 		Method:    method,
 		Details:   details,
 		IsSkipped: true,
+		Error:     nil,
+		OK:        false,
 	})
 	r.Skipped++
 }
@@ -265,14 +267,8 @@ func RunDiagnostics(ctx context.Context, endpoint string, creds credentials.Tran
 		endpoint = tui_dto.DefaultMonitoringEndpoint
 	}
 
-	result := &DiagnosticsResult{
-		ConnectionError: nil,
-		Endpoint:        endpoint,
-		Services:        nil,
-		Passed:          0,
-		Failed:          0,
-		Connected:       false,
-	}
+	result := &DiagnosticsResult{}
+	result.Endpoint = endpoint
 
 	ctx, cancel := context.WithTimeoutCause(ctx, diagnosticsTimeout,
 		fmt.Errorf("diagnostics collection exceeded %s timeout", diagnosticsTimeout))
@@ -294,6 +290,8 @@ func RunDiagnostics(ctx context.Context, endpoint string, creds credentials.Tran
 // dialWithTimeout creates a gRPC connection to the given endpoint.
 //
 // Takes endpoint (string) which specifies the gRPC server address.
+// Takes creds (credentials.TransportCredentials) which configures transport security for
+// the connection.
 //
 // Returns *grpc.ClientConn which is the connection ready for use.
 // Returns error when the client cannot be created or the server cannot be reached.

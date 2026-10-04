@@ -247,8 +247,9 @@ func scanExportedFunction(lexer *parsejs.Lexer) *exportedFunctionInfo {
 		if tt == parsejs.IdentifierToken {
 			name := string(data)
 			return &exportedFunctionInfo{
-				name:    name,
-				isArrow: false,
+				name:        name,
+				isArrow:     false,
+				wasExported: false,
 			}
 		}
 
@@ -276,8 +277,9 @@ func scanExportedFunction(lexer *parsejs.Lexer) *exportedFunctionInfo {
 
 		if tt == parsejs.OpenParenToken || tt == parsejs.FunctionToken {
 			return &exportedFunctionInfo{
-				name:    name,
-				isArrow: true,
+				name:        name,
+				isArrow:     true,
+				wasExported: false,
 			}
 		}
 	}
@@ -475,6 +477,7 @@ func addImportsOnly(source string) string {
 // Takes source (string) which contains the original source code to transform.
 // Takes functions ([]exportedFunctionInfo) which lists the top-level functions to wrap.
 // Takes otherImports ([]string) which specifies extra imports to include.
+// Takes componentName (string) which names the component in the transformed source.
 //
 // Returns string which is the transformed source with the factory pattern applied and
 // self-registration with PageContext for p-on:* event binding.

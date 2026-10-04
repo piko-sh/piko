@@ -194,7 +194,7 @@ func TestWriteNodeAndFragmentAttributes_PreservesInternalAttributes_WebMode(t *t
 				{Name: "p-key", Value: "key1"},
 				{Name: "partial", Value: "scope1"},
 			},
-			rctx: &renderContext{isEmailMode: false},
+			rctx: &renderContext{},
 			want: ` class="test" p-key="key1" partial="scope1"`,
 		},
 		{
@@ -204,7 +204,7 @@ func TestWriteNodeAndFragmentAttributes_PreservesInternalAttributes_WebMode(t *t
 				{Name: "partial", Value: "scope"},
 				{Name: "p-ref", Value: "ref"},
 			},
-			rctx: &renderContext{isEmailMode: false},
+			rctx: &renderContext{},
 			want: ` p-key="key" partial="scope" p-ref="ref"`,
 		},
 	}

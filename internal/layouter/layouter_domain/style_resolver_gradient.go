@@ -25,12 +25,8 @@ import (
 )
 
 const (
-	// urlPrefixLength is the byte length of the "url(" prefix.
-	urlPrefixLength = len("url(")
-
-	// gradientPrefixLength is the byte length of the "linear-gradient(" and
-	// "radial-gradient(" prefixes, since both are 16 characters long.
-	gradientPrefixLength = len("linear-gradient(")
+	// cssCloseParenthesis closes a CSS function call.
+	cssCloseParenthesis = ")"
 
 	// gradientAngleRight is the angle in degrees for a rightward gradient.
 	gradientAngleRight = 90.0
@@ -130,14 +126,19 @@ func ParseMaskBackgroundImage(value string, context ResolutionContext) Backgroun
 // Returns ResolutionContext which holds the default resolution values.
 func DefaultResolutionContext() ResolutionContext {
 	return ResolutionContext{
-		ParentFontSize: defaultFontSizePt,
-		RootFontSize:   defaultFontSizePt,
+		ParentFontSize:       defaultFontSizePt,
+		RootFontSize:         defaultFontSizePt,
+		ContainingBlockWidth: 0,
+		ViewportWidth:        0,
+		ViewportHeight:       0,
+		Limits:               nil,
 	}
 }
 
 // parseBackgroundImage parses a single CSS background-image layer value into a
 // BackgroundImage, handling url(), linear-gradient(), radial-gradient(), and their
-// repeating variants.
+// repeating variants. A malformed function (for example a truncated "url(" with no
+// closing parenthesis) is invalid CSS and yields no image.
 //
 // Takes value (string) which is the single layer CSS value.
 // Takes context (ResolutionContext) which provides unit resolution values.
@@ -146,43 +147,40 @@ func DefaultResolutionContext() ResolutionContext {
 func parseBackgroundImage(value string, context ResolutionContext) BackgroundImage {
 	value = strings.TrimSpace(value)
 	if value == cssKeywordNone || value == "" {
-		return BackgroundImage{Type: BackgroundImageNone}
+		return BackgroundImage{}
 	}
 
-	if strings.HasPrefix(value, "url(") {
-		url := value[urlPrefixLength : len(value)-1]
-		url = strings.Trim(url, "\"'")
+	if url, ok := CSSFunctionArguments(value, "url"); ok {
 		return BackgroundImage{
-			Type: BackgroundImageURL,
-			URL:  url,
+			Type:  BackgroundImageURL,
+			URL:   strings.Trim(url, "\"'"),
+			Stops: nil,
+			Angle: 0,
+			Shape: 0,
 		}
 	}
 
-	if strings.HasPrefix(value, "linear-gradient(") {
-		inner := value[gradientPrefixLength : len(value)-1]
+	if inner, ok := CSSFunctionArguments(value, "linear-gradient"); ok {
 		return parseLinearGradient(inner, context)
 	}
 
-	if strings.HasPrefix(value, "radial-gradient(") {
-		inner := value[gradientPrefixLength : len(value)-1]
+	if inner, ok := CSSFunctionArguments(value, "radial-gradient"); ok {
 		return parseRadialGradient(inner, context)
 	}
 
-	if strings.HasPrefix(value, "repeating-linear-gradient(") {
-		inner := value[len("repeating-linear-gradient(") : len(value)-1]
+	if inner, ok := CSSFunctionArguments(value, "repeating-linear-gradient"); ok {
 		result := parseLinearGradient(inner, context)
 		result.Type = BackgroundImageRepeatingLinearGradient
 		return result
 	}
 
-	if strings.HasPrefix(value, "repeating-radial-gradient(") {
-		inner := value[len("repeating-radial-gradient(") : len(value)-1]
+	if inner, ok := CSSFunctionArguments(value, "repeating-radial-gradient"); ok {
 		result := parseRadialGradient(inner, context)
 		result.Type = BackgroundImageRepeatingRadialGradient
 		return result
 	}
 
-	return BackgroundImage{Type: BackgroundImageNone}
+	return BackgroundImage{}
 }
 
 // parseGradientDirection parses the optional direction or angle prefix from the first
@@ -227,12 +225,18 @@ func parseGradientDirection(first string) (angle float64, consumed bool) {
 func parseGradientStop(stop string) GradientStop {
 	stop = strings.TrimSpace(stop)
 	if stop == "" {
-		return GradientStop{Position: -1}
+		return GradientStop{
+			Position: -1,
+			Colour:   Colour{},
+		}
 	}
 
 	colourPart, positionPart := splitGradientStopParts(stop)
 
-	gs := GradientStop{Position: -1}
+	gs := GradientStop{
+		Position: -1,
+		Colour:   Colour{},
+	}
 	if colour, ok := ParseColour(colourPart); ok {
 		gs.Colour = colour
 	}
@@ -281,7 +285,7 @@ func splitGradientStopParts(stop string) (colour string, position string) {
 //
 // Returns BackgroundImage which is the parsed gradient.
 func parseLinearGradient(inner string, _ ResolutionContext) BackgroundImage {
-	bg := BackgroundImage{Type: BackgroundImageLinearGradient}
+	bg := BackgroundImage{Type: BackgroundImageLinearGradient, URL: "", Stops: nil, Angle: 0, Shape: 0}
 	parts := splitOutsideParens(inner, ',')
 	startIndex := 0
 
@@ -317,6 +321,9 @@ func parseRadialGradient(inner string, _ ResolutionContext) BackgroundImage {
 	bg := BackgroundImage{
 		Type:  BackgroundImageRadialGradient,
 		Shape: RadialShapeEllipse,
+		URL:   "",
+		Stops: nil,
+		Angle: 0,
 	}
 	parts := splitOutsideParens(inner, ',')
 	startIndex := 0
@@ -446,7 +453,8 @@ func parseBoxShadowLayer(layer string, context ResolutionContext) (BoxShadowValu
 		return BoxShadowValue{}, false
 	}
 
-	shadow := BoxShadowValue{Colour: ColourBlack}
+	shadow := BoxShadowValue{}
+	shadow.Colour = ColourBlack
 
 	var lengthTokens []string
 	for _, token := range tokens {
@@ -707,8 +715,8 @@ func parseContent(value string) string {
 	if trimmed == cssKeywordNone || trimmed == "normal" || trimmed == "" {
 		return ""
 	}
-	if (strings.HasPrefix(trimmed, "\"") && strings.HasSuffix(trimmed, "\"")) ||
-		(strings.HasPrefix(trimmed, "'") && strings.HasSuffix(trimmed, "'")) {
+	if len(trimmed) >= 2 && ((strings.HasPrefix(trimmed, "\"") && strings.HasSuffix(trimmed, "\"")) ||
+		(strings.HasPrefix(trimmed, "'") && strings.HasSuffix(trimmed, "'"))) {
 		return trimmed[1 : len(trimmed)-1]
 	}
 	return trimmed
@@ -755,7 +763,7 @@ func parseTextShadowLayer(layer string, context ResolutionContext) (TextShadowVa
 		return TextShadowValue{}, false
 	}
 
-	shadow := TextShadowValue{Colour: ColourBlack}
+	shadow := TextShadowValue{Colour: ColourBlack, OffsetX: 0, OffsetY: 0, BlurRadius: 0}
 
 	var lengthTokens []string
 	for _, token := range tokens {
@@ -882,36 +890,17 @@ func parseHyphens(value string) HyphensType {
 //
 // Returns Dimension which is the parsed dimension value.
 func parseDimension(value string, context ResolutionContext) Dimension {
-	if value == cssKeywordAuto {
-		return DimensionAuto()
+	if keyword, ok := parseDimensionKeyword(value); ok {
+		return keyword
 	}
-	if value == "min-content" {
-		return DimensionMinContent()
-	}
-	if value == "max-content" {
-		return DimensionMaxContent()
-	}
-	if value == "fit-content" {
-		return DimensionFitContentStretch()
-	}
-	if strings.HasPrefix(value, "fit-content(") && strings.HasSuffix(value, ")") {
+	if strings.HasPrefix(value, "fit-content(") && strings.HasSuffix(value, cssCloseParenthesis) {
 		return parseFitContentArgument(value, context)
 	}
-	if strings.HasPrefix(value, "calc(") && strings.HasSuffix(value, ")") {
-		inner := value[calcPrefixLength : len(value)-1]
-		expression := parseCalc(inner)
-		if expression != nil {
-			resolved := expression.resolveCalc(context, context.ContainingBlockWidth)
-			return DimensionPt(resolved)
-		}
-		return DimensionAuto()
+	if inner, ok := CSSFunctionArguments(value, "calc"); ok {
+		return parseCalcDimension(inner, context)
 	}
 	if number, found := strings.CutSuffix(value, percentSuffix); found {
-		parsed, err := strconv.ParseFloat(number, 64)
-		if err != nil {
-			return DimensionAuto()
-		}
-		return DimensionPct(parsed)
+		return parsePercentageDimension(number)
 	}
 	return DimensionPt(resolveLength(value, context))
 }
@@ -1056,7 +1045,7 @@ func parseFilterFunction(name string, arg string) FilterValue {
 	case "opacity":
 		return FilterValue{Function: FilterOpacity, Amount: parseFilterAmount(arg, 1.0)}
 	default:
-		return FilterValue{Function: FilterNone}
+		return FilterValue{}
 	}
 }
 
@@ -1137,4 +1126,77 @@ func parseFilterAngle(s string) float64 {
 		return v
 	}
 	return 0
+}
+
+// CSSFunctionArguments returns the argument text of a CSS function call such as
+// "url(a.png)" when value is a complete call of the named function. It checks for both
+// the opening "name(" and the closing parenthesis before slicing, so truncated input such
+// as "url(" is rejected rather than sliced out of range.
+//
+// Takes value (string) which is the trimmed CSS value.
+// Takes name (string) which is the function name without the parenthesis.
+//
+// Returns string which is the text between the parentheses.
+// Returns bool which is false when value is not a complete call of the function.
+func CSSFunctionArguments(value, name string) (string, bool) {
+	rest, hasPrefix := strings.CutPrefix(value, name+"(")
+	if !hasPrefix {
+		return "", false
+	}
+	return strings.CutSuffix(rest, cssCloseParenthesis)
+}
+
+// parseDimensionKeyword resolves the keyword values of a CSS dimension.
+//
+// Takes value (string) which is the CSS dimension value.
+//
+// Returns Dimension which is the keyword's dimension.
+// Returns bool which is false when value is not a dimension keyword.
+func parseDimensionKeyword(value string) (Dimension, bool) {
+	switch value {
+	case cssKeywordAuto:
+		return DimensionAuto(), true
+	case "min-content":
+		return DimensionMinContent(), true
+	case "max-content":
+		return DimensionMaxContent(), true
+	case "fit-content":
+		return DimensionFitContentStretch(), true
+	default:
+		return Dimension{}, false
+	}
+}
+
+// parseCalcDimension resolves the expression inside calc() to a point dimension. An
+// unparseable expression, or one whose result is not finite, is invalid and resolves to
+// auto.
+//
+// Takes inner (string) which is the text between calc( and ).
+// Takes context (ResolutionContext) which provides unit resolution values.
+//
+// Returns Dimension which is the resolved dimension.
+func parseCalcDimension(inner string, context ResolutionContext) Dimension {
+	expression := parseCalc(inner)
+	if expression == nil {
+		return DimensionAuto()
+	}
+	resolved := expression.resolveCalc(context, context.ContainingBlockWidth)
+	if math.IsNaN(resolved) || math.IsInf(resolved, 0) {
+		return DimensionAuto()
+	}
+	return DimensionPt(resolved)
+}
+
+// parsePercentageDimension parses the number of a percentage dimension. A malformed or
+// non-finite number is invalid and resolves to auto.
+//
+// Takes number (string) which is the value without its percent sign.
+//
+// Returns Dimension which is the percentage dimension.
+func parsePercentageDimension(number string) Dimension {
+	parsed, err := strconv.ParseFloat(number, 64)
+	if err != nil || math.IsNaN(parsed) || math.IsInf(parsed, 0) {
+		return DimensionAuto()
+	}
+	return DimensionPct(parsed)
 }

@@ -29,9 +29,9 @@ import (
 	"strings"
 	"sync"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 )
@@ -297,6 +297,7 @@ func (il *invocationLinker) buildDestinationTypeInfo(propInfo validPropInfo) *as
 		IsExportedPackageSymbol: false,
 		InitialPackagePath:      "",
 		InitialFilePath:         "",
+		UnderlyingTypeString:    "",
 	}
 }
 
@@ -443,42 +444,19 @@ func (il *invocationLinker) tryCoerceToString(
 		logger_domain.String("to", typeString))
 
 	transformedExpr := il.buildStringConversionAST(sourceExpression, sourceAnnotation)
-	newAnnotation := &ast_domain.GoGeneratorAnnotation{
-		EffectiveKeyExpression:  nil,
-		DynamicCollectionInfo:   nil,
-		StaticCollectionLiteral: nil,
-		ParentTypeName:          nil,
-		BaseCodeGenVarName:      nil,
-		GeneratedSourcePath:     nil,
-		DynamicAttributeOrigins: nil,
-		ResolvedType: &ast_domain.ResolvedTypeInfo{
-			TypeExpression:          goastutil.TypeStringToAST(typeString),
-			PackageAlias:            "",
-			CanonicalPackagePath:    "",
-			IsSynthetic:             false,
-			IsExportedPackageSymbol: false,
-			InitialPackagePath:      "",
-			InitialFilePath:         "",
-		},
-		Symbol:                  nil,
-		PartialInfo:             nil,
-		PropDataSource:          sourceAnnotation.PropDataSource.Clone(),
-		OriginalSourcePath:      nil,
-		OriginalPackageAlias:    nil,
-		FieldTag:                nil,
-		SourceInvocationKey:     nil,
-		StaticCollectionData:    nil,
-		Srcset:                  nil,
-		Stringability:           int(inspector_dto.StringablePrimitive),
-		IsStatic:                false,
-		NeedsCSRF:               false,
-		NeedsRuntimeSafetyCheck: false,
-		IsStructurallyStatic:    false,
-		IsPointerToStringable:   false,
-		IsCollectionCall:        false,
-		IsHybridCollection:      false,
-		IsMapAccess:             false,
+	newAnnotation := &ast_domain.GoGeneratorAnnotation{}
+	newAnnotation.ResolvedType = &ast_domain.ResolvedTypeInfo{
+		TypeExpression:          goastutil.TypeStringToAST(typeString),
+		PackageAlias:            "",
+		CanonicalPackagePath:    "",
+		IsSynthetic:             false,
+		IsExportedPackageSymbol: false,
+		InitialPackagePath:      "",
+		InitialFilePath:         "",
+		UnderlyingTypeString:    "",
 	}
+	newAnnotation.PropDataSource = sourceAnnotation.PropDataSource.Clone()
+	newAnnotation.Stringability = int(inspector_dto.StringablePrimitive)
 
 	setAnnotationOnExpression(transformedExpr, newAnnotation)
 	return transformedExpr, newAnnotation, true
@@ -640,38 +618,15 @@ func (il *invocationLinker) storeOptionalProp(p *propAssignmentParams) {
 		Right:            p.SourceExpression,
 		GoAnnotations:    nil,
 		Operator:         ast_domain.OpAddrOf,
-		RelativeLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0},
+		RelativeLocation: ast_domain.Location{},
 		SourceLength:     0,
 	}
 
-	transformedAnnotation := &ast_domain.GoGeneratorAnnotation{
-		EffectiveKeyExpression:  nil,
-		DynamicCollectionInfo:   nil,
-		StaticCollectionLiteral: nil,
-		ParentTypeName:          nil,
-		BaseCodeGenVarName:      p.SourceAnnotation.BaseCodeGenVarName,
-		GeneratedSourcePath:     nil,
-		DynamicAttributeOrigins: nil,
-		ResolvedType:            p.DestTypeInfo.Clone(),
-		Symbol:                  p.SourceAnnotation.Symbol.Clone(),
-		PartialInfo:             nil,
-		PropDataSource:          nil,
-		OriginalSourcePath:      nil,
-		OriginalPackageAlias:    nil,
-		FieldTag:                nil,
-		SourceInvocationKey:     nil,
-		StaticCollectionData:    nil,
-		Srcset:                  nil,
-		Stringability:           p.SourceAnnotation.Stringability,
-		IsStatic:                false,
-		NeedsCSRF:               false,
-		NeedsRuntimeSafetyCheck: false,
-		IsStructurallyStatic:    false,
-		IsPointerToStringable:   false,
-		IsCollectionCall:        false,
-		IsHybridCollection:      false,
-		IsMapAccess:             false,
-	}
+	transformedAnnotation := &ast_domain.GoGeneratorAnnotation{}
+	transformedAnnotation.BaseCodeGenVarName = p.SourceAnnotation.BaseCodeGenVarName
+	transformedAnnotation.ResolvedType = p.DestTypeInfo.Clone()
+	transformedAnnotation.Symbol = p.SourceAnnotation.Symbol.Clone()
+	transformedAnnotation.Stringability = p.SourceAnnotation.Stringability
 
 	if p.SourceAnnotation.PropDataSource == nil {
 		p.SourceAnnotation.PropDataSource = &ast_domain.PropDataSource{
@@ -759,26 +714,26 @@ func (il *invocationLinker) handleFactoryDefault(ctx context.Context, propName s
 			Base: &ast_domain.Identifier{
 				GoAnnotations:    nil,
 				Name:             il.partialVirtualComponent.RewrittenScriptAST.Name.Name,
-				RelativeLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0},
+				RelativeLocation: ast_domain.Location{},
 				SourceLength:     0,
 			},
 			Property: &ast_domain.Identifier{
 				GoAnnotations:    nil,
 				Name:             propInfo.FactoryFuncName,
-				RelativeLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0},
+				RelativeLocation: ast_domain.Location{},
 				SourceLength:     0,
 			},
 			GoAnnotations:    nil,
 			Optional:         false,
 			Computed:         false,
-			RelativeLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0},
+			RelativeLocation: ast_domain.Location{},
 			SourceLength:     0,
 		},
 		GoAnnotations:    nil,
 		Args:             []ast_domain.Expression{},
-		RelativeLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0},
-		LparenLocation:   ast_domain.Location{Line: 0, Column: 0, Offset: 0},
-		RparenLocation:   ast_domain.Location{Line: 0, Column: 0, Offset: 0},
+		RelativeLocation: ast_domain.Location{},
+		LparenLocation:   ast_domain.Location{},
+		RparenLocation:   ast_domain.Location{},
 		SourceLength:     0,
 	}
 
@@ -792,6 +747,7 @@ func (il *invocationLinker) handleFactoryDefault(ctx context.Context, propName s
 			IsExportedPackageSymbol: false,
 			InitialPackagePath:      "",
 			InitialFilePath:         "",
+			UnderlyingTypeString:    "",
 		}
 		if !isAssignable(factoryAnnotation.ResolvedType, destinationTypeInfo) {
 			sourceTypeString := goastutil.ASTToTypeString(factoryAnnotation.ResolvedType.TypeExpression, factoryAnnotation.ResolvedType.PackageAlias)
@@ -806,8 +762,8 @@ func (il *invocationLinker) handleFactoryDefault(ctx context.Context, propName s
 		Expression:        factoryCallExpr,
 		InvokerAnnotation: nil,
 		GoFieldName:       propInfo.GoFieldName,
-		Location:          ast_domain.Location{Line: 0, Column: 0, Offset: 0},
-		NameLocation:      ast_domain.Location{Line: 0, Column: 0, Offset: 0},
+		Location:          ast_domain.Location{},
+		NameLocation:      ast_domain.Location{},
 		IsLoopDependent:   false,
 	}
 }
@@ -845,8 +801,8 @@ func (il *invocationLinker) handleLiteralDefault(ctx context.Context, propName s
 		Expression:        coercedDefault,
 		InvokerAnnotation: nil,
 		GoFieldName:       propInfo.GoFieldName,
-		Location:          ast_domain.Location{Line: 0, Column: 0, Offset: 0},
-		NameLocation:      ast_domain.Location{Line: 0, Column: 0, Offset: 0},
+		Location:          ast_domain.Location{},
+		NameLocation:      ast_domain.Location{},
 		IsLoopDependent:   false,
 	}
 }
@@ -1091,6 +1047,7 @@ func createAnnotatedIdentifier(name, packageAlias, packagePath string) *ast_doma
 			IsExportedPackageSymbol: false,
 			InitialPackagePath:      "",
 			InitialFilePath:         "",
+			UnderlyingTypeString:    "",
 		},
 		Symbol:                  nil,
 		PartialInfo:             nil,
@@ -1110,6 +1067,8 @@ func createAnnotatedIdentifier(name, packageAlias, packagePath string) *ast_doma
 		IsCollectionCall:        false,
 		IsHybridCollection:      false,
 		IsMapAccess:             false,
+		IsTypeInstantiation:     false,
+		IsFullyPrerenderable:    false,
 	}
 	return identifier
 }
@@ -1336,34 +1295,7 @@ func updateExpressionBaseCodeGenVarName(expression ast_domain.Expression, baseCo
 	switch e := expression.(type) {
 	case *ast_domain.Identifier:
 		if e.GoAnnotations == nil {
-			e.GoAnnotations = &ast_domain.GoGeneratorAnnotation{
-				EffectiveKeyExpression:  nil,
-				DynamicCollectionInfo:   nil,
-				StaticCollectionLiteral: nil,
-				ParentTypeName:          nil,
-				BaseCodeGenVarName:      nil,
-				GeneratedSourcePath:     nil,
-				DynamicAttributeOrigins: nil,
-				ResolvedType:            nil,
-				Symbol:                  nil,
-				PartialInfo:             nil,
-				PropDataSource:          nil,
-				OriginalSourcePath:      nil,
-				OriginalPackageAlias:    nil,
-				FieldTag:                nil,
-				SourceInvocationKey:     nil,
-				StaticCollectionData:    nil,
-				Srcset:                  nil,
-				Stringability:           0,
-				IsStatic:                false,
-				NeedsCSRF:               false,
-				NeedsRuntimeSafetyCheck: false,
-				IsStructurallyStatic:    false,
-				IsPointerToStringable:   false,
-				IsCollectionCall:        false,
-				IsHybridCollection:      false,
-				IsMapAccess:             false,
-			}
+			e.GoAnnotations = &ast_domain.GoGeneratorAnnotation{}
 		}
 		e.GoAnnotations.BaseCodeGenVarName = baseCodeGenVarName
 	case *ast_domain.MemberExpression:

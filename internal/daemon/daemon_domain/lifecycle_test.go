@@ -1162,13 +1162,17 @@ func TestStartMainServer_PassesUnwrappedHandlerRegardlessOfTLS(t *testing.T) {
 			}
 
 			routerReached := false
-			var routerRequestCtx *daemon_dto.PikoRequestCtx
+			requestCtxAttached := false
+			otelExtracted := false
 			deps := &DaemonServiceDeps{
 				DaemonConfig: daemonConfig,
 				Server:       mockServer,
 				FinalRouter: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					routerReached = true
-					routerRequestCtx = daemon_dto.PikoRequestCtxFromContext(r.Context())
+					if requestCtx := daemon_dto.PikoRequestCtxFromContext(r.Context()); requestCtx != nil {
+						requestCtxAttached = true
+						otelExtracted = requestCtx.OtelExtracted
+					}
 					w.WriteHeader(http.StatusOK)
 				}),
 			}
@@ -1186,8 +1190,8 @@ func TestStartMainServer_PassesUnwrappedHandlerRegardlessOfTLS(t *testing.T) {
 
 			assert.Equal(t, http.StatusOK, recorder.Code)
 			assert.True(t, routerReached, "the handed-over handler must reach the final router")
-			require.NotNil(t, routerRequestCtx, "the tracing handler must attach the Piko request context")
-			assert.True(t, routerRequestCtx.OtelExtracted, "trace context extraction must have run")
+			require.True(t, requestCtxAttached, "the tracing handler must attach the Piko request context")
+			assert.True(t, otelExtracted, "trace context extraction must have run")
 		})
 	}
 }

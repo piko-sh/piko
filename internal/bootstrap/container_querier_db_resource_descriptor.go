@@ -65,8 +65,8 @@ func (*databaseService) ProbeName() string {
 // Returns []provider_domain.ColumnDefinition which describes each column.
 func (*databaseService) ResourceListColumns() []provider_domain.ColumnDefinition {
 	return []provider_domain.ColumnDefinition{
-		{Header: "NAME", Key: "name"},
-		{Header: "DRIVER", Key: "driver"},
+		{Header: "NAME", Key: "name", WideOnly: false},
+		{Header: "DRIVER", Key: "driver", WideOnly: false},
 		{Header: "REPLICAS", Key: "replicas", WideOnly: true},
 		{Header: "OPEN", Key: "open", WideOnly: true},
 		{Header: "IN USE", Key: "in_use", WideOnly: true},
@@ -95,6 +95,7 @@ func (s *databaseService) ResourceListProviders(_ context.Context) []provider_do
 				"open":     fmt.Sprintf(formatInt, stats.OpenConnections),
 				"in_use":   fmt.Sprintf(formatInt, stats.InUse),
 			},
+			IsDefault: false,
 		}
 	}
 

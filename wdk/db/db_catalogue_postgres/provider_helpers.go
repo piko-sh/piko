@@ -22,11 +22,18 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"slices"
-	"strings"
 
 	"piko.sh/piko/internal/querier/querier_dto"
 )
+
+// viewEntry is one view's name and definition as listed by information_schema.views.
+type viewEntry struct {
+	// name is the view's identifier.
+	name string
+
+	// definition is the view's SELECT text, NULL when the role cannot see it.
+	definition sql.NullString
+}
 
 // introspectViews fills the schema's Views map.
 //
@@ -37,33 +44,9 @@ func (provider *PgIntrospectionProvider) introspectViews(
 	ctx context.Context,
 	schema *querier_dto.Schema,
 ) error {
-	rows, queryError := provider.database.QueryContext(ctx,
-		`SELECT table_name, view_definition
-		 FROM information_schema.views
-		 WHERE table_schema = $1
-		 ORDER BY table_name`,
-		schema.Name)
-	if queryError != nil {
-		return queryError
-	}
-	defer rows.Close()
-
-	type viewEntry struct {
-		name       string
-		definition sql.NullString
-	}
-
-	var views []viewEntry
-	for rows.Next() {
-		var entry viewEntry
-		if scanError := rows.Scan(&entry.name, &entry.definition); scanError != nil {
-			return scanError
-		}
-		views = append(views, entry)
-	}
-
-	if rowError := rows.Err(); rowError != nil {
-		return rowError
+	views, listError := provider.listViews(ctx, schema.Name)
+	if listError != nil {
+		return listError
 	}
 
 	for _, entry := range views {
@@ -80,21 +63,60 @@ func (provider *PgIntrospectionProvider) introspectViews(
 			Schema:     schema.Name,
 			Columns:    columns,
 			Definition: entry.definition.String,
+			Comment:    "",
+			Origin:     querier_dto.MigrationOrigin{},
 		}
 	}
 
 	return nil
 }
 
+// listViews returns the schema's views, closing the result set before the caller issues
+// per-view queries.
+//
+// Takes schemaName (string) which selects the owning schema.
+//
+// Returns views ([]viewEntry) which lists the views in name order.
+// Returns err (error) when the query, a scan, or closing the rows fails.
+func (provider *PgIntrospectionProvider) listViews(
+	ctx context.Context,
+	schemaName string,
+) (views []viewEntry, err error) {
+	rows, queryError := provider.database.QueryContext(ctx,
+		`SELECT table_name, view_definition
+		 FROM information_schema.views
+		 WHERE table_schema = $1
+		 ORDER BY table_name`,
+		schemaName)
+	if queryError != nil {
+		return nil, queryError
+	}
+	defer closeRows(rows, &err)
+
+	for rows.Next() {
+		var entry viewEntry
+		if scanError := rows.Scan(&entry.name, &entry.definition); scanError != nil {
+			return nil, scanError
+		}
+		views = append(views, entry)
+	}
+
+	if rowError := rows.Err(); rowError != nil {
+		return nil, rowError
+	}
+
+	return views, nil
+}
+
 // introspectEnums fills the schema's Enums map.
 //
 // Takes schema (*querier_dto.Schema) which receives the enums.
 //
-// Returns error when the query or scan fails.
+// Returns err (error) when the query, a scan, or closing the rows fails.
 func (provider *PgIntrospectionProvider) introspectEnums(
 	ctx context.Context,
 	schema *querier_dto.Schema,
-) error {
+) (err error) {
 	rows, queryError := provider.database.QueryContext(ctx,
 		`SELECT t.typname, e.enumlabel
 		 FROM pg_type t
@@ -106,7 +128,7 @@ func (provider *PgIntrospectionProvider) introspectEnums(
 	if queryError != nil {
 		return queryError
 	}
-	defer rows.Close()
+	defer closeRows(rows, &err)
 
 	enumMap := make(map[string][]string)
 	var enumOrder []string
@@ -131,9 +153,11 @@ func (provider *PgIntrospectionProvider) introspectEnums(
 
 	for _, typeName := range enumOrder {
 		schema.Enums[typeName] = &querier_dto.Enum{
-			Name:   typeName,
-			Schema: schema.Name,
-			Values: enumMap[typeName],
+			Name:    typeName,
+			Schema:  schema.Name,
+			Values:  enumMap[typeName],
+			Comment: "",
+			Origin:  querier_dto.MigrationOrigin{},
 		}
 	}
 
@@ -153,16 +177,16 @@ type compositeField struct {
 //
 // Takes schema (*querier_dto.Schema) which receives the composites.
 //
-// Returns error when the query or scan fails.
+// Returns err (error) when the query, a scan, or closing the rows fails.
 func (provider *PgIntrospectionProvider) introspectCompositeTypes(
 	ctx context.Context,
 	schema *querier_dto.Schema,
-) error {
+) (err error) {
 	rows, queryError := provider.queryCompositeTypes(ctx, schema.Name)
 	if queryError != nil {
 		return queryError
 	}
-	defer rows.Close()
+	defer closeRows(rows, &err)
 
 	compositeMap := make(map[string][]compositeField)
 	var compositeOrder []string
@@ -235,265 +259,16 @@ func (provider *PgIntrospectionProvider) assembleCompositeTypes(
 
 		for _, field := range fields {
 			sqlType := provider.typeNormaliser.NormaliseTypeName(field.typeName)
-			columns = append(columns, querier_dto.Column{
-				Name:    field.attributeName,
-				SQLType: sqlType,
-			})
+			columns = append(columns, querier_dto.NewColumn(field.attributeName, sqlType, false))
 		}
 
 		schema.CompositeTypes[typeName] = &querier_dto.CompositeType{
 			Name:   typeName,
 			Schema: schema.Name,
 			Fields: columns,
+			Origin: querier_dto.MigrationOrigin{},
 		}
 	}
-}
-
-// introspectFunctions fills the schema's Functions map.
-//
-// Takes schema (*querier_dto.Schema) which receives the functions.
-//
-// Returns error when the query or scan fails.
-func (provider *PgIntrospectionProvider) introspectFunctions(
-	ctx context.Context,
-	schema *querier_dto.Schema,
-) error {
-	rows, queryError := provider.queryFunctions(ctx, schema.Name)
-	if queryError != nil {
-		return queryError
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		signature, scanError := provider.scanFunctionRow(rows, schema.Name)
-		if scanError != nil {
-			return scanError
-		}
-		schema.Functions[signature.Name] = append(schema.Functions[signature.Name], signature)
-	}
-
-	return rows.Err()
-}
-
-// queryFunctions runs the pg_proc lookup query for one schema.
-//
-// Takes schemaName (string) which selects the owning schema.
-//
-// Returns *sql.Rows which the caller must close.
-// Returns error when the query fails to dispatch.
-func (provider *PgIntrospectionProvider) queryFunctions(
-	ctx context.Context,
-	schemaName string,
-) (*sql.Rows, error) {
-	return provider.database.QueryContext(ctx,
-		`SELECT
-			p.proname,
-			pg_get_function_arguments(p.oid) AS arguments,
-			pg_get_function_result(p.oid) AS return_type,
-			p.prokind,
-			p.proisstrict
-		 FROM pg_proc p
-		 JOIN pg_namespace n ON p.pronamespace = n.oid
-		 WHERE n.nspname = $1 AND p.prokind IN ('f', 'a', 'w')
-		 ORDER BY p.proname`,
-		schemaName)
-}
-
-// scanFunctionRow decodes one row and builds a function signature.
-//
-// Takes rows (*sql.Rows) which is positioned on the row to scan.
-// Takes schemaName (string) which is the owning schema.
-//
-// Returns *querier_dto.FunctionSignature which is the decoded entry.
-// Returns error when scanning fails.
-func (provider *PgIntrospectionProvider) scanFunctionRow(
-	rows *sql.Rows,
-	schemaName string,
-) (*querier_dto.FunctionSignature, error) {
-	var functionName string
-	var argumentsString string
-	var returnTypeString string
-	var procKind string
-	var isStrict bool
-
-	scanError := rows.Scan(
-		&functionName, &argumentsString, &returnTypeString,
-		&procKind, &isStrict,
-	)
-	if scanError != nil {
-		return nil, scanError
-	}
-
-	arguments := parseFunctionArguments(argumentsString, provider.typeNormaliser)
-	returnType, returnsSet := parseReturnType(returnTypeString, provider.typeNormaliser)
-
-	nullableBehaviour := querier_dto.FunctionNullableCalledOnNull
-	if isStrict {
-		nullableBehaviour = querier_dto.FunctionNullableReturnsNullOnNull
-	}
-
-	return &querier_dto.FunctionSignature{
-		Name:              functionName,
-		Schema:            schemaName,
-		Arguments:         arguments,
-		ReturnType:        returnType,
-		ReturnsSet:        returnsSet,
-		IsAggregate:       procKind == "a" || procKind == "w",
-		NullableBehaviour: nullableBehaviour,
-	}, nil
-}
-
-// parseReturnType strips the SETOF prefix and normalises the type.
-//
-// Takes returnTypeString (string) which is the formatted return type.
-// Takes typeNormaliser (TypeNormaliser) which maps the cleaned name.
-//
-// Returns querier_dto.SQLType which is the normalised return type.
-// Returns bool which is true when the result represents a set.
-func parseReturnType(
-	returnTypeString string,
-	typeNormaliser TypeNormaliser,
-) (querier_dto.SQLType, bool) {
-	returnsSet := false
-	cleanedReturnType := returnTypeString
-
-	if strings.HasPrefix(returnTypeString, "SETOF ") {
-		returnsSet = true
-		cleanedReturnType = strings.TrimPrefix(returnTypeString, "SETOF ")
-	}
-
-	return typeNormaliser.NormaliseTypeName(strings.TrimSpace(cleanedReturnType)), returnsSet
-}
-
-// parseFunctionArguments splits the argument list at the top level.
-//
-// Comma splitting respects parenthesised groups so that composite or array types within
-// an argument are not mis-split.
-//
-// Takes argumentsString (string) which is the raw argument list.
-// Takes typeNormaliser (TypeNormaliser) which maps each type name.
-//
-// Returns []querier_dto.FunctionArgument which is the parsed list.
-func parseFunctionArguments(
-	argumentsString string,
-	typeNormaliser TypeNormaliser,
-) []querier_dto.FunctionArgument {
-	trimmed := strings.TrimSpace(argumentsString)
-	if trimmed == "" {
-		return nil
-	}
-
-	var arguments []querier_dto.FunctionArgument
-
-	depth := 0
-	start := 0
-
-	for i := range len(trimmed) {
-		switch trimmed[i] {
-		case '(':
-			depth++
-		case ')':
-			depth--
-		case ',':
-			if depth == 0 {
-				argument := parseSingleArgument(strings.TrimSpace(trimmed[start:i]), typeNormaliser)
-				arguments = append(arguments, argument)
-				start = i + 1
-			}
-		}
-	}
-
-	lastArgument := parseSingleArgument(strings.TrimSpace(trimmed[start:]), typeNormaliser)
-	arguments = append(arguments, lastArgument)
-
-	return arguments
-}
-
-// parseSingleArgument extracts name, type, and default flag.
-//
-// Strips parameter mode prefixes (IN, OUT, INOUT, VARIADIC) and the trailing DEFAULT
-// clause before tokenising.
-//
-// Takes raw (string) which is the unprocessed argument text.
-// Takes typeNormaliser (TypeNormaliser) which maps the resolved type.
-//
-// Returns querier_dto.FunctionArgument which is the parsed argument.
-func parseSingleArgument(
-	raw string,
-	typeNormaliser TypeNormaliser,
-) querier_dto.FunctionArgument {
-	cleaned := raw
-	for _, modePrefix := range []string{"INOUT ", "IN ", "OUT ", "VARIADIC "} {
-		if strings.HasPrefix(strings.ToUpper(cleaned), modePrefix) {
-			cleaned = strings.TrimSpace(cleaned[len(modePrefix):])
-			break
-		}
-	}
-
-	hasDefault := false
-	if defaultIndex := strings.Index(strings.ToUpper(cleaned), " DEFAULT "); defaultIndex >= 0 {
-		cleaned = strings.TrimSpace(cleaned[:defaultIndex])
-		hasDefault = true
-	}
-
-	parts := strings.Fields(cleaned)
-
-	var argumentName string
-	var typeName string
-
-	if len(parts) >= 2 {
-		candidateName := parts[0]
-		if !looksLikeTypeName(candidateName) {
-			argumentName = candidateName
-			typeName = strings.Join(parts[1:], " ")
-		} else {
-			typeName = cleaned
-		}
-	} else if len(parts) == 1 {
-		typeName = parts[0]
-	}
-
-	sqlType := typeNormaliser.NormaliseTypeName(strings.TrimSpace(typeName))
-
-	return querier_dto.FunctionArgument{
-		Name:       argumentName,
-		Type:       sqlType,
-		IsOptional: hasDefault,
-	}
-}
-
-var (
-	// knownTypeKeywords lists PostgreSQL built-in scalar type identifiers used by
-	// looksLikeTypeName to disambiguate name-less arguments.
-	knownTypeKeywords = []string{
-		"integer", "int", "int2", "int4", "int8",
-		"smallint", "bigint", "serial", "bigserial", "smallserial",
-		"real", "float", "float4", "float8", "double",
-		"numeric", "decimal", "money",
-		"boolean", "bool",
-		"text", "varchar", "char", "character", "name",
-		"bytea", "bit",
-		"timestamp", "timestamptz", "date", "time", "timetz", "interval",
-		"json", "jsonb",
-		"uuid",
-		"inet", "cidr", "macaddr", "macaddr8",
-		"point", "line", "lseg", "box", "path", "polygon", "circle",
-		"oid", "regclass", "regtype", "regproc", "regprocedure",
-		"void", "trigger", "record", "anyelement", "anyarray",
-		"anynonarray", "anyenum", "anyrange", "any",
-		"xml", "tsvector", "tsquery",
-	}
-)
-
-// looksLikeTypeName reports whether the token looks like a SQL type.
-//
-// Takes token (string) which is the candidate identifier.
-//
-// Returns bool which is true when token matches a known keyword or ends with the array
-// marker "[]".
-func looksLikeTypeName(token string) bool {
-	lower := strings.ToLower(token)
-	return slices.Contains(knownTypeKeywords, lower) || strings.HasSuffix(lower, "[]")
 }
 
 // introspectExtensions fills the catalogue's Extensions set.
@@ -502,17 +277,17 @@ func looksLikeTypeName(token string) bool {
 //
 // Takes catalogue (*querier_dto.Catalogue) which receives entries.
 //
-// Returns error when the query or scan fails.
+// Returns err (error) when the query, a scan, or closing the rows fails.
 func (provider *PgIntrospectionProvider) introspectExtensions(
 	ctx context.Context,
 	catalogue *querier_dto.Catalogue,
-) error {
+) (err error) {
 	rows, queryError := provider.database.QueryContext(ctx,
 		`SELECT extname FROM pg_extension WHERE extname != 'plpgsql'`)
 	if queryError != nil {
 		return queryError
 	}
-	defer rows.Close()
+	defer closeRows(rows, &err)
 
 	for rows.Next() {
 		var extensionName string

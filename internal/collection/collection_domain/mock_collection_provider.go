@@ -142,6 +142,8 @@ func (m *MockCollectionProvider) ValidateTargetType(targetType ast.Expr) error {
 //
 // Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes collectionName (string) which identifies the collection by name.
+// Takes source (collection_dto.ContentSource) which supplies the sandbox, base path, and
+// external module flag used to load content.
 //
 // Returns (nil, nil) if FetchStaticContentFunc is nil.
 func (m *MockCollectionProvider) FetchStaticContent(ctx context.Context, collectionName string, source collection_dto.ContentSource) ([]collection_dto.ContentItem, error) {
@@ -175,6 +177,8 @@ func (m *MockCollectionProvider) GenerateRuntimeFetcher(
 //
 // Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes collectionName (string) which identifies the collection by name.
+// Takes source (collection_dto.ContentSource) which supplies the sandbox, base path, and
+// external module flag used to load content.
 //
 // Returns ("", nil) if ComputeETagFunc is nil.
 func (m *MockCollectionProvider) ComputeETag(ctx context.Context, collectionName string, source collection_dto.ContentSource) (string, error) {
@@ -190,6 +194,8 @@ func (m *MockCollectionProvider) ComputeETag(ctx context.Context, collectionName
 // Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes collectionName (string) which identifies the collection by name.
 // Takes expectedETag (string) which is the ETag value to validate against.
+// Takes source (collection_dto.ContentSource) which supplies the sandbox, base path, and
+// external module flag used to load content.
 //
 // Returns ("", false, nil) if ValidateETagFunc is nil.
 func (m *MockCollectionProvider) ValidateETag(ctx context.Context, collectionName string, expectedETag string, source collection_dto.ContentSource) (string, bool, error) {

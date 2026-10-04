@@ -182,7 +182,8 @@ func (v *GroupedView) Compose(args GroupedViewArgs) string {
 // visible; the centre takes the remainder.
 //
 // Takes width (int) which is the total available width.
-// Takes leftVisible, rightVisible (bool) which are the column visibility flags.
+// Takes leftVisible (bool) which controls visibility of the left menu column.
+// Takes rightVisible (bool) which controls visibility of the right detail column.
 //
 // Returns leftWidth (int) which is the cells allocated to the left menu column; 0 when
 // the menu is hidden.
@@ -242,12 +243,13 @@ func (v *GroupedView) renderMenu(args GroupedViewArgs, width, height int) string
 	body := v.menu.Render(args.Group.Items(), args.Item.ID, args.MenuCursor, innerW, innerH)
 
 	return RenderPaneFrame(PaneFrameOpts{
-		Theme:   args.Theme,
-		Title:   args.Group.Title(),
-		Body:    body,
-		Width:   width,
-		Height:  height,
-		Focused: args.Focus == FocusMenu,
+		Theme:     args.Theme,
+		Title:     args.Group.Title(),
+		Body:      body,
+		Width:     width,
+		Height:    height,
+		Focused:   args.Focus == FocusMenu,
+		Indicator: "",
 	})
 }
 
@@ -272,8 +274,9 @@ func (*GroupedView) renderCentre(args GroupedViewArgs, width, height int) string
 // DetailView body; panels with no per-row detail return "" and the composer falls back to
 // a centred placeholder.
 //
-// Takes args (GroupedViewArgs) which is the full compose argument set. Takes width (int)
-// which is the column cell width. Takes height (int) which is the column cell height.
+// Takes args (GroupedViewArgs) which is the full compose argument set.
+// Takes width (int) which is the column cell width.
+// Takes height (int) which is the column cell height.
 //
 // Returns string which is the framed detail column.
 func (*GroupedView) renderDetail(args GroupedViewArgs, width, height int) string {
@@ -290,12 +293,13 @@ func (*GroupedView) renderDetail(args GroupedViewArgs, width, height int) string
 	}
 
 	return RenderPaneFrame(PaneFrameOpts{
-		Theme:   args.Theme,
-		Title:   "Detail",
-		Body:    body,
-		Width:   width,
-		Height:  height,
-		Focused: args.Focus == FocusDetail,
+		Theme:     args.Theme,
+		Title:     "Detail",
+		Body:      body,
+		Width:     width,
+		Height:    height,
+		Focused:   args.Focus == FocusDetail,
+		Indicator: "",
 	})
 }
 
@@ -303,7 +307,8 @@ func (*GroupedView) renderDetail(args GroupedViewArgs, width, height int) string
 // when the active panel returns "" from DetailView.
 //
 // Takes theme (*Theme) for the dim style; may be nil during tests.
-// Takes width (int) and height (int) which size the hint body.
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 //
 // Returns string with a centred hint body.
 func placeholderDetailBody(theme *Theme, width, height int) string {

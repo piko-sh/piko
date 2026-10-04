@@ -1,0 +1,66 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="multiple-classes-component">
+    <div>
+        <p class="greeting">{{ greeting() }}</p>
+        <p class="count">{{ state.count }}</p>
+        <button p-on:click="bump">Bump</button>
+    </div>
+</template>
+
+<script lang="ts">
+    class Tally {
+        total = 0;
+
+        add(step: number): number {
+            this.total += step;
+            return this.total;
+        }
+    }
+
+    class Greeter {
+        constructor(private readonly name: string) {}
+
+        greet(): string {
+            return 'hello ' + this.name;
+        }
+    }
+
+    class MultipleClassesComponentElement extends PPElement {
+        static get componentLabel(): string {
+            return 'multiple';
+        }
+    }
+
+    const tally = new Tally();
+
+    const state = {
+        count: 0
+    };
+
+    function greeting(): string {
+        return new Greeter('piko').greet() + ' from ' + MultipleClassesComponentElement.componentLabel;
+    }
+
+    function bump() {
+        state.count = tally.add(2);
+    }
+</script>

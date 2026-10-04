@@ -98,6 +98,7 @@ func (h *ActionHandler) validateCSRFWithToken(request *http.Request, ephemeralTo
 			return &security_domain.CSRFValidationError{
 				Code:    security_domain.CSRFErrorCodeMissing,
 				Message: "CSRF tokens required for browser requests",
+				Err:     nil,
 			}
 		}
 		return nil
@@ -111,6 +112,7 @@ func (h *ActionHandler) validateCSRFWithToken(request *http.Request, ephemeralTo
 		return &security_domain.CSRFValidationError{
 			Code:    security_domain.CSRFErrorCodeInvalid,
 			Message: "CSRF validation failed",
+			Err:     nil,
 		}
 	}
 
@@ -475,6 +477,8 @@ func (*ActionHandler) parseRawBody(request *http.Request, arguments map[string]a
 // implements RateLimitable. Returns nil when the action has no rate limit or when rate
 // limiting is disabled.
 //
+// Takes request (*http.Request) which provides the request used to resolve rate-limit
+// identity and report configuration warnings.
 // Takes action (any) which may implement daemon_domain.RateLimitable.
 // Takes entry (ActionHandlerEntry) which identifies the action for keying.
 //

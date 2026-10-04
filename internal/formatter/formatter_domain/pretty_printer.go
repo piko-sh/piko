@@ -671,6 +671,7 @@ func newPrettyPrinter(opts *FormatOptions) *prettyPrinter {
 		lastWasBlock:              false,
 		inlineContext:             false,
 		formattingInline:          false,
+		pendingIndent:             false,
 	}
 }
 

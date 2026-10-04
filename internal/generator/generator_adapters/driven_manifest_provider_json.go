@@ -38,7 +38,7 @@ type JSONManifestProvider struct {
 	sandbox safedisk.Sandbox
 
 	// factory creates sandboxes with validated paths. When set and sandbox is nil, the
-	// factory is used before falling back to NewNoOpSandbox.
+	// factory is used before falling back to a directory-rooted sandbox.
 	factory safedisk.Factory
 
 	// manifestFileName is the path to the manifest file within the sandbox.
@@ -64,6 +64,7 @@ func NewJSONManifestProvider(manifestPath string, opts ...JSONManifestProviderOp
 	p := &JSONManifestProvider{
 		sandbox:          nil,
 		manifestFileName: filepath.Base(manifestPath),
+		factory:          nil,
 	}
 
 	for _, opt := range opts {
@@ -112,7 +113,8 @@ func (p *JSONManifestProvider) Load(_ context.Context) (*generator_dto.Manifest,
 }
 
 // WithJSONManifestFactory sets the sandbox factory for the JSON manifest provider. When
-// no sandbox is injected, the factory is tried before falling back to NewNoOpSandbox.
+// no sandbox is injected, the factory is tried before falling back to a read-only sandbox
+// rooted at the manifest directory.
 //
 // Takes factory (safedisk.Factory) which creates sandboxes with validated paths.
 //
@@ -125,7 +127,7 @@ func WithJSONManifestFactory(factory safedisk.Factory) JSONManifestProviderOptio
 
 // createManifestSandbox creates a read-only sandbox for the directory containing the
 // manifest file. When factory is non-nil it is used to create the sandbox; otherwise a
-// no-op sandbox is created as a fallback.
+// read-only sandbox rooted at that directory is opened directly.
 //
 // Takes manifestPath (string) which is the path to the manifest file. The parent
 // directory is used as the sandbox root.
@@ -140,13 +142,13 @@ func createManifestSandbox(manifestPath string, factory safedisk.Factory, descri
 	if factory != nil {
 		return factory.Create(description, manifestDir, safedisk.ModeReadOnly)
 	}
-	return safedisk.NewNoOpSandbox(manifestDir, safedisk.ModeReadOnly)
+	return safedisk.NewSandbox(manifestDir, safedisk.ModeReadOnly)
 }
 
 // WithJSONManifestSandbox sets a custom sandbox for the JSON manifest provider. Inject a
 // mock sandbox to test file system operations.
 //
-// If not set, a real sandbox is created using safedisk.NewNoOpSandbox.
+// If not set, a read-only sandbox rooted at the manifest directory is used.
 //
 // Takes sandbox (safedisk.Sandbox) which provides file system access for reading the
 // manifest file.

@@ -16,8 +16,6 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-//go:build !js || !wasm
-
 package inspector_adapters
 
 import (
@@ -26,6 +24,24 @@ import (
 	"piko.sh/piko/internal/mem"
 )
 
+// flatBufferMapEntry is satisfied by pointers to generated FlatBuffers entry tables that
+// pair a string key with a value table of type V.
+type flatBufferMapEntry[E, V any] interface {
+	*E
+
+	// Key returns the raw bytes of the entry key.
+	//
+	// Returns []byte which references the key in the buffer.
+	Key() []byte
+
+	// Value reads the entry's value table into the given wrapper.
+	//
+	// Takes obj (*V) which is the wrapper to initialise, or nil to allocate one.
+	//
+	// Returns *V which is the value table, or nil when the entry has no value.
+	Value(obj *V) *V
+}
+
 // unpackPackages extracts packages from a FlatBuffer into a new map using arena
 // allocation for all DTO structs.
 //
@@ -33,28 +49,9 @@ import (
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
 // Returns map[string]*inspector_dto.Package which maps package paths to their unpacked
-// package data, or nil if there are no packages.
-//
-//nolint:dupl // distinct generated types
+// package data, or nil if there are no packages or the vector length is corrupt.
 func unpackPackages(fb *inspector_schema_gen.TypeData, arena *unpackArena) map[string]*inspector_dto.Package {
-	length := fb.PackagesLength()
-	if length == 0 {
-		return nil
-	}
-
-	m := make(map[string]*inspector_dto.Package, length)
-	var entry inspector_schema_gen.PackageEntry
-	var pkg inspector_schema_gen.Package
-	for i := range length {
-		if fb.Packages(&entry, i) {
-			fbPackage := entry.Value(&pkg)
-			if fbPackage != nil {
-				key := mem.String(entry.Key())
-				m[key] = unpackPackageSafe(fbPackage, arena)
-			}
-		}
-	}
-	return m
+	return unpackEntryMap(arena, fb.PackagesLength(), fb.Packages, unpackPackageSafe)
 }
 
 // unpackPackageSafe unpacks a single package using arena allocation.
@@ -68,10 +65,10 @@ func unpackPackageSafe(fb *inspector_schema_gen.Package, arena *unpackArena) *in
 	p.Path = mem.String(fb.Path())
 	p.Name = mem.String(fb.Name())
 	p.Version = mem.String(fb.Version())
-	p.FileImports = unpackFileImportsSafe(fb)
-	p.NamedTypes = unpackNamedTypesSafe(fb, arena)
-	p.Funcs = unpackFuncsSafe(fb, arena)
-	p.Variables = unpackVariablesSafe(fb, arena)
+	p.FileImports = unpackFileImportsSafe(fb, arena)
+	p.NamedTypes = unpackEntryMap(arena, fb.NamedTypesLength(), fb.NamedTypes, unpackTypeSafe)
+	p.Funcs = unpackEntryMap(arena, fb.FunctionsLength(), fb.Functions, unpackFunctionSafe)
+	p.Variables = unpackEntryMap(arena, fb.VariablesLength(), fb.Variables, unpackVariableSafe)
 	return p
 }
 
@@ -80,12 +77,13 @@ func unpackPackageSafe(fb *inspector_schema_gen.Package, arena *unpackArena) *in
 //
 // Takes fb (*inspector_schema_gen.Package) which contains the FlatBuffer package data to
 // unpack.
+// Takes arena (*unpackArena) which bounds the vector lengths read from the buffer.
 //
 // Returns map[string]map[string]string which maps file paths to their import alias
-// mappings, or nil when the package has no file imports.
-func unpackFileImportsSafe(fb *inspector_schema_gen.Package) map[string]map[string]string {
+// mappings, or nil when the package has no file imports or the length is corrupt.
+func unpackFileImportsSafe(fb *inspector_schema_gen.Package, arena *unpackArena) map[string]map[string]string {
 	length := fb.FileImportsLength()
-	if length == 0 {
+	if length == 0 || !arena.claim(length) {
 		return nil
 	}
 
@@ -97,7 +95,7 @@ func unpackFileImportsSafe(fb *inspector_schema_gen.Package) map[string]map[stri
 			fbImportMap := entry.Value(&importMap)
 			if fbImportMap != nil {
 				key := mem.String(entry.Key())
-				m[key] = unpackAliasMapSafe(fbImportMap)
+				m[key] = unpackAliasMapSafe(fbImportMap, arena)
 			}
 		}
 	}
@@ -108,12 +106,13 @@ func unpackFileImportsSafe(fb *inspector_schema_gen.Package) map[string]map[stri
 //
 // Takes fb (*inspector_schema_gen.FileImportMap) which contains the serialised import
 // alias entries.
+// Takes arena (*unpackArena) which bounds the vector lengths read from the buffer.
 //
 // Returns map[string]string which maps import aliases to their full paths, or nil when
-// there are no entries.
-func unpackAliasMapSafe(fb *inspector_schema_gen.FileImportMap) map[string]string {
+// there are no entries or the length is corrupt.
+func unpackAliasMapSafe(fb *inspector_schema_gen.FileImportMap, arena *unpackArena) map[string]string {
 	length := fb.EntriesLength()
-	if length == 0 {
+	if length == 0 || !arena.claim(length) {
 		return nil
 	}
 
@@ -122,99 +121,6 @@ func unpackAliasMapSafe(fb *inspector_schema_gen.FileImportMap) map[string]strin
 	for i := range length {
 		if fb.Entries(&entry, i) {
 			m[mem.String(entry.Key())] = mem.String(entry.Value())
-		}
-	}
-	return m
-}
-
-// unpackNamedTypesSafe extracts named types using arena allocation.
-//
-// Takes fb (*inspector_schema_gen.Package) which provides the FlatBuffer package to
-// extract named types from.
-// Takes arena (*unpackArena) which provides pre-allocated memory slabs.
-//
-// Returns map[string]*inspector_dto.Type which maps type names to their unpacked type
-// definitions, or nil when the package has no named types.
-//
-//nolint:dupl // distinct generated types
-func unpackNamedTypesSafe(fb *inspector_schema_gen.Package, arena *unpackArena) map[string]*inspector_dto.Type {
-	length := fb.NamedTypesLength()
-	if length == 0 {
-		return nil
-	}
-
-	m := make(map[string]*inspector_dto.Type, length)
-	var entry inspector_schema_gen.NamedTypeEntry
-	var typ inspector_schema_gen.Type
-	for i := range length {
-		if fb.NamedTypes(&entry, i) {
-			fbTyp := entry.Value(&typ)
-			if fbTyp != nil {
-				key := mem.String(entry.Key())
-				m[key] = unpackTypeSafe(fbTyp, arena)
-			}
-		}
-	}
-	return m
-}
-
-// unpackFuncsSafe extracts functions using arena allocation.
-//
-// Takes fb (*inspector_schema_gen.Package) which contains the serialised function data to
-// unpack.
-// Takes arena (*unpackArena) which provides pre-allocated memory slabs.
-//
-// Returns map[string]*inspector_dto.Function which maps function names to their unpacked
-// representations, or nil if the package has no functions.
-//
-//nolint:dupl // distinct generated types
-func unpackFuncsSafe(fb *inspector_schema_gen.Package, arena *unpackArena) map[string]*inspector_dto.Function {
-	length := fb.FunctionsLength()
-	if length == 0 {
-		return nil
-	}
-
-	m := make(map[string]*inspector_dto.Function, length)
-	var entry inspector_schema_gen.FunctionEntry
-	var inspectedFunction inspector_schema_gen.Function
-	for i := range length {
-		if fb.Functions(&entry, i) {
-			flatbufferFunction := entry.Value(&inspectedFunction)
-			if flatbufferFunction != nil {
-				key := mem.String(entry.Key())
-				m[key] = unpackFunctionSafe(flatbufferFunction, arena)
-			}
-		}
-	}
-	return m
-}
-
-// unpackVariablesSafe extracts variables using arena allocation.
-//
-// Takes fb (*inspector_schema_gen.Package) which contains the serialised variable data to
-// unpack.
-// Takes arena (*unpackArena) which provides pre-allocated memory slabs.
-//
-// Returns map[string]*inspector_dto.Variable which maps variable names to their unpacked
-// representations, or nil if the package has no variables.
-//
-//nolint:dupl // distinct generated types
-func unpackVariablesSafe(fb *inspector_schema_gen.Package, arena *unpackArena) map[string]*inspector_dto.Variable {
-	length := fb.VariablesLength()
-	if length == 0 {
-		return nil
-	}
-
-	m := make(map[string]*inspector_dto.Variable, length)
-	var entry inspector_schema_gen.VariableEntry
-	var v inspector_schema_gen.Variable
-	for i := range length {
-		if fb.Variables(&entry, i) {
-			fbVar := entry.Value(&v)
-			if fbVar != nil {
-				key := mem.String(entry.Key())
-				m[key] = unpackVariableSafe(fbVar, arena)
-			}
 		}
 	}
 	return m
@@ -248,10 +154,10 @@ func unpackVariableSafe(fb *inspector_schema_gen.Variable, arena *unpackArena) *
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
 // Returns []*inspector_dto.CompositePart which contains the extracted parts, or nil when
-// the variable has no composite parts.
+// the variable has no composite parts or the length is corrupt.
 func unpackVariableCompositePartsSafe(fb *inspector_schema_gen.Variable, arena *unpackArena) []*inspector_dto.CompositePart {
 	length := fb.CompositePartsLength()
-	if length == 0 {
+	if length == 0 || !arena.claim(length) {
 		return nil
 	}
 
@@ -295,10 +201,10 @@ func unpackTypeSafe(fb *inspector_schema_gen.Type, arena *unpackArena) *inspecto
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
 // Returns []*inspector_dto.Field which contains the extracted fields, or nil if there are
-// no fields.
+// no fields or the length is corrupt.
 func unpackFieldsSafe(fb *inspector_schema_gen.Type, arena *unpackArena) []*inspector_dto.Field {
 	length := fb.FieldsLength()
-	if length == 0 {
+	if length == 0 || !arena.claim(length) {
 		return nil
 	}
 
@@ -347,10 +253,10 @@ func unpackFieldSafe(fb *inspector_schema_gen.Field, arena *unpackArena) *inspec
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
 // Returns []*inspector_dto.CompositePart which contains the extracted parts, or nil when
-// the field has no composite parts.
+// the field has no composite parts or the length is corrupt.
 func unpackCompositePartsSafe(fb *inspector_schema_gen.Field, arena *unpackArena) []*inspector_dto.CompositePart {
 	length := fb.CompositePartsLength()
-	if length == 0 {
+	if length == 0 || !arena.claim(length) {
 		return nil
 	}
 
@@ -397,10 +303,10 @@ func unpackCompositePartSafe(fb *inspector_schema_gen.CompositePart, arena *unpa
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
 // Returns []*inspector_dto.CompositePart which contains the unpacked nested parts, or nil
-// if there are no nested parts.
+// if there are no nested parts or the length is corrupt.
 func unpackNestedCompositePartsSafe(fb *inspector_schema_gen.CompositePart, arena *unpackArena) []*inspector_dto.CompositePart {
 	length := fb.CompositePartsLength()
-	if length == 0 {
+	if length == 0 || !arena.claim(length) {
 		return nil
 	}
 
@@ -420,10 +326,10 @@ func unpackNestedCompositePartsSafe(fb *inspector_schema_gen.CompositePart, aren
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
 // Returns []*inspector_dto.Method which contains the extracted methods, or nil if the
-// type has no methods.
+// type has no methods or the length is corrupt.
 func unpackMethodsSafe(fb *inspector_schema_gen.Type, arena *unpackArena) []*inspector_dto.Method {
 	length := fb.MethodsLength()
-	if length == 0 {
+	if length == 0 || !arena.claim(length) {
 		return nil
 	}
 
@@ -492,7 +398,8 @@ func unpackFunctionSafe(fb *inspector_schema_gen.Function, arena *unpackArena) *
 //
 // Returns inspector_dto.FunctionSignature which contains the extracted parameter and
 // result type names.
-// Returns an empty signature when fb is nil or has no parameters or results.
+// Returns an empty signature when fb is nil, has no parameters or results, or declares
+// corrupt lengths.
 func unpackFunctionSignatureSafe(fb *inspector_schema_gen.FunctionSignature, arena *unpackArena) inspector_dto.FunctionSignature {
 	if fb == nil {
 		return inspector_dto.FunctionSignature{}
@@ -505,7 +412,7 @@ func unpackFunctionSignatureSafe(fb *inspector_schema_gen.FunctionSignature, are
 	typeParamConstraintsLen := fb.TypeParamConstraintsLength()
 
 	total := paramsLen + resultsLen + paramNamesLen + typeParamNamesLen + typeParamConstraintsLen
-	if total == 0 {
+	if total == 0 || !arena.claimAll(paramsLen, resultsLen, paramNamesLen, typeParamNamesLen, typeParamConstraintsLen) {
 		return inspector_dto.FunctionSignature{}
 	}
 
@@ -534,8 +441,11 @@ func unpackFunctionSignatureSafe(fb *inspector_schema_gen.FunctionSignature, are
 	}
 
 	sig := inspector_dto.FunctionSignature{
-		Params:  backing[paramsStart : paramsStart+paramsLen : paramsStart+paramsLen],
-		Results: backing[resultsStart : resultsStart+resultsLen : resultsStart+resultsLen],
+		Params:               backing[paramsStart : paramsStart+paramsLen : paramsStart+paramsLen],
+		Results:              backing[resultsStart : resultsStart+resultsLen : resultsStart+resultsLen],
+		ParamNames:           nil,
+		TypeParamNames:       nil,
+		TypeParamConstraints: nil,
 	}
 	if paramNamesLen > 0 {
 		sig.ParamNames = backing[paramNamesStart : paramNamesStart+paramNamesLen : paramNamesStart+paramNamesLen]
@@ -557,10 +467,10 @@ func unpackFunctionSignatureSafe(fb *inspector_schema_gen.FunctionSignature, are
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
 // Returns []string which contains the type parameter names, or nil if there are no type
-// parameters.
+// parameters or the length is corrupt.
 func unpackTypeParamsSafe(fb *inspector_schema_gen.Type, arena *unpackArena) []string {
 	length := fb.TypeParamsLength()
-	if length == 0 {
+	if length == 0 || !arena.claim(length) {
 		return nil
 	}
 
@@ -569,4 +479,40 @@ func unpackTypeParamsSafe(fb *inspector_schema_gen.Type, arena *unpackArena) []s
 		s[i] = mem.String(fb.TypeParams(i))
 	}
 	return s
+}
+
+// unpackEntryMap converts a FlatBuffers vector of key/value entry tables into a map of
+// DTOs, skipping entries whose value table is absent.
+//
+// Takes arena (*unpackArena) which provides pre-allocated memory slabs and bounds the
+// vector length read from the buffer.
+// Takes length (int) which is the number of entries in the vector.
+// Takes getEntry (func(*E, int) bool) which reads the entry at an index.
+// Takes unpackValue (func(*V, *unpackArena) *D) which converts an entry's value table.
+//
+// Returns map[string]*D which maps entry keys to their unpacked values, or nil when the
+// vector is empty or its length is corrupt.
+func unpackEntryMap[E, V, D any, PE flatBufferMapEntry[E, V]](
+	arena *unpackArena,
+	length int,
+	getEntry func(*E, int) bool,
+	unpackValue func(*V, *unpackArena) *D,
+) map[string]*D {
+	if length == 0 || !arena.claim(length) {
+		return nil
+	}
+
+	m := make(map[string]*D, length)
+	var entry E
+	var value V
+	entryPointer := PE(&entry)
+	for i := range length {
+		if !getEntry(&entry, i) {
+			continue
+		}
+		if fbValue := entryPointer.Value(&value); fbValue != nil {
+			m[mem.String(entryPointer.Key())] = unpackValue(fbValue, arena)
+		}
+	}
+	return m
 }

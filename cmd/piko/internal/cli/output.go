@@ -119,6 +119,7 @@ func NewPrinter(w io.Writer, format string, noColour, noHeaders bool) *Printer {
 		format:    format,
 		noColour:  noColour,
 		noHeaders: noHeaders,
+		limit:     0,
 	}
 }
 
@@ -317,6 +318,18 @@ func (p *Printer) statusStyle(status string) lipgloss.Style {
 		colour = lipgloss.Color("8")
 	}
 	return lipgloss.NewStyle().Foreground(colour)
+}
+
+// newColumn returns a column shown in every output mode.
+//
+// Takes header (string) which is the column's heading.
+//
+// Returns Column which is not restricted to wide output.
+func newColumn(header string) Column {
+	return Column{
+		Header:   header,
+		WideOnly: false,
+	}
 }
 
 // visibleWidth returns the visible character count of s after stripping ANSI escape

@@ -19,6 +19,7 @@
 package db_engine_duckdb
 
 import (
+	"fmt"
 	"strings"
 
 	"piko.sh/piko/internal/querier/querier_dto"
@@ -26,9 +27,14 @@ import (
 
 // parseExpression parses a SQL expression at the lowest precedence.
 //
+// Nesting beyond maxParseDepth records errExpressionDepthExceeded and yields an unknown
+// expression rather than descending further, so deeply nested input cannot overflow the
+// goroutine stack and is still reported.
+//
 // Returns querier_dto.Expression which is the parsed expression tree.
 func (p *parser) parseExpression() querier_dto.Expression {
 	if p.expressionDepth >= p.maxParseDepth {
+		p.recordSyntaxError(fmt.Errorf("%w of %d at position %d", errExpressionDepthExceeded, p.maxParseDepth, p.current().position))
 		return &querier_dto.UnknownExpression{}
 	}
 	p.expressionDepth++
@@ -182,7 +188,7 @@ func (p *parser) parseComparisonOperator(left querier_dto.Expression) querier_dt
 	operator := p.advance().value
 	if p.matchKeyword("ANY") || p.matchKeyword(keywordALL) || p.matchKeyword("SOME") {
 		if p.current().kind == tokenLeftParen {
-			p.mustSkipParenthesised()
+			p.skipParenthesisedOrRecord()
 		}
 		return &querier_dto.ComparisonExpression{Operator: operator, Left: left, Right: &querier_dto.UnknownExpression{}}
 	}
@@ -468,7 +474,12 @@ func (p *parser) parseIdentifierExpression() querier_dto.Expression {
 
 	if _, isImplicit := implicitFunctionIdentifiers[upper]; isImplicit {
 		p.advance()
-		return &querier_dto.FunctionCallExpression{FunctionName: strings.ToLower(upper)}
+		return &querier_dto.FunctionCallExpression{
+			FunctionName:     strings.ToLower(upper),
+			FilterExpression: nil,
+			Schema:           "",
+			Arguments:        nil,
+		}
 	}
 
 	return p.parseColumnOrFunctionReference()
@@ -729,11 +740,8 @@ func (p *parser) parseInListSuffix(left querier_dto.Expression) querier_dto.Expr
 		if collectError != nil {
 			return &querier_dto.UnknownExpression{}
 		}
-		childParser := newParser(innerTokens)
+		childParser := p.newChildParser(innerTokens)
 		childParser.parameterCount = p.parameterCount
-		childParser.analysisDepth = p.analysisDepth
-		childParser.expressionDepth = p.expressionDepth
-		childParser.maxParseDepth = p.maxParseDepth
 		innerAnalysis, analyseError := childParser.analyseSelect()
 		if analyseError != nil {
 			return &querier_dto.UnknownExpression{}

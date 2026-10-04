@@ -111,6 +111,10 @@ type RedisClusterAdapter[K comparable, V any] struct {
 	// indexCreated.
 	indexMu sync.Mutex
 
+	// vectorSkipWarning ensures skipped VECTOR fields are reported once per adapter rather
+	// than on every index rebuild.
+	vectorSkipWarning sync.Once
+
 	// If true and no namespace is set, InvalidateAll uses FLUSHDB. If false, InvalidateAll
 	// is blocked without a namespace for safety.
 	allowUnsafeFLUSHDB bool
@@ -392,6 +396,9 @@ func (a *RedisClusterAdapter[K, V]) prepareBulkSetItem(ctx context.Context, key 
 	if a.expiryCalculator != nil {
 		entry := cache.Entry[K, V]{
 			Key: key, Value: value, SnapshotAtNano: time.Now().UnixNano(),
+			Weight:            0,
+			ExpiresAtNano:     0,
+			RefreshableAtNano: 0,
 		}
 		entryTTL = a.expiryCalculator.ExpireAfterCreate(entry)
 	}

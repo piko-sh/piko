@@ -64,10 +64,7 @@ func (d *document) getPKCDocumentSymbols() ([]any, error) {
 var (
 	// zeroRange is a zero-valued range used for container symbols that do not have
 	// meaningful source positions.
-	zeroRange = protocol.Range{
-		Start: protocol.Position{Line: 0, Character: 0},
-		End:   protocol.Position{Line: 0, Character: 0},
-	}
+	zeroRange = protocol.Range{}
 )
 
 // buildPKCScriptSymbol creates the <script> section symbol with state properties and

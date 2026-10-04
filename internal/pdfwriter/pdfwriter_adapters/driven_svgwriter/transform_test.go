@@ -65,7 +65,7 @@ func TestScale(t *testing.T) {
 		{
 			name: "zero scale",
 			sx:   0, sy: 0,
-			want: Matrix{A: 0, B: 0, C: 0, D: 0, E: 0, F: 0},
+			want: Matrix{},
 		},
 		{
 			name: "negative scale",

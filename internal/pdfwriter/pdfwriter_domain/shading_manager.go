@@ -139,6 +139,9 @@ func (m *ShadingManager) RegisterLinearGradient(
 		x1:          x1,
 		y1:          y1,
 		stops:       stops,
+		r0:          0,
+		r1:          0,
+		grayscale:   false,
 	})
 	return name
 }
@@ -167,6 +170,7 @@ func (m *ShadingManager) RegisterRadialGradient(
 		y1:          cy,
 		r1:          r,
 		stops:       stops,
+		grayscale:   false,
 	})
 	return name
 }
@@ -196,6 +200,8 @@ func (m *ShadingManager) RegisterLinearGradientGray(
 		y1:          y1,
 		stops:       stops,
 		grayscale:   true,
+		r0:          0,
+		r1:          0,
 	})
 	return name
 }

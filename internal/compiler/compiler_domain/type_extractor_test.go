@@ -346,7 +346,7 @@ func TestExprToString(t *testing.T) {
 		},
 		{
 			name:       "number zero",
-			expression: js_ast.Expr{Data: &js_ast.ENumber{Value: 0}, Loc: logger.Loc{}},
+			expression: js_ast.Expr{Data: &js_ast.ENumber{}, Loc: logger.Loc{}},
 			expected:   "0",
 		},
 		{
@@ -376,12 +376,12 @@ func TestExprToString(t *testing.T) {
 		},
 		{
 			name:       "boolean false",
-			expression: js_ast.Expr{Data: &js_ast.EBoolean{Value: false}, Loc: logger.Loc{}},
+			expression: js_ast.Expr{Data: &js_ast.EBoolean{}, Loc: logger.Loc{}},
 			expected:   "false",
 		},
 		{
 			name:       "empty array",
-			expression: js_ast.Expr{Data: &js_ast.EArray{Items: nil}, Loc: logger.Loc{}},
+			expression: js_ast.Expr{Data: &js_ast.EArray{}, Loc: logger.Loc{}},
 			expected:   "[]",
 		},
 		{
@@ -420,7 +420,7 @@ func TestExprToString(t *testing.T) {
 		},
 		{
 			name:       "empty object",
-			expression: js_ast.Expr{Data: &js_ast.EObject{Properties: nil}, Loc: logger.Loc{}},
+			expression: js_ast.Expr{Data: &js_ast.EObject{}, Loc: logger.Loc{}},
 			expected:   "{}",
 		},
 		{
@@ -561,7 +561,7 @@ func TestArrayToString(t *testing.T) {
 	}{
 		{
 			name:     "empty array with nil items",
-			array:    &js_ast.EArray{Items: nil},
+			array:    &js_ast.EArray{},
 			expected: "[]",
 		},
 		{
@@ -608,7 +608,7 @@ func TestArrayToString(t *testing.T) {
 			name: "array with boolean elements",
 			array: &js_ast.EArray{Items: []js_ast.Expr{
 				{Data: &js_ast.EBoolean{Value: true}, Loc: logger.Loc{}},
-				{Data: &js_ast.EBoolean{Value: false}, Loc: logger.Loc{}},
+				{Data: &js_ast.EBoolean{}, Loc: logger.Loc{}},
 			}},
 			expected: "[true, false]",
 		},
@@ -636,7 +636,7 @@ func TestObjectToString(t *testing.T) {
 	}{
 		{
 			name:     "empty object with nil properties",
-			object:   &js_ast.EObject{Properties: nil},
+			object:   &js_ast.EObject{},
 			expected: "{}",
 		},
 		{
@@ -663,7 +663,7 @@ func TestObjectToString(t *testing.T) {
 				},
 				{
 					Key:        makeStringExpr("b"),
-					ValueOrNil: js_ast.Expr{Data: &js_ast.EBoolean{Value: false}, Loc: logger.Loc{}},
+					ValueOrNil: js_ast.Expr{Data: &js_ast.EBoolean{}, Loc: logger.Loc{}},
 				},
 			}},
 			expected: `{"a": "alpha", "b": false}`,
@@ -714,7 +714,7 @@ func TestObjectToString(t *testing.T) {
 			name: "all properties with non-string keys produces empty braces",
 			object: &js_ast.EObject{Properties: []js_ast.Property{
 				{
-					Key:        js_ast.Expr{Data: &js_ast.ENumber{Value: 0}, Loc: logger.Loc{}},
+					Key:        js_ast.Expr{Data: &js_ast.ENumber{}, Loc: logger.Loc{}},
 					ValueOrNil: makeStringExpr("nope"),
 				},
 			}},
@@ -759,7 +759,7 @@ func TestGetPropertyName(t *testing.T) {
 				{OriginalName: "myProp"},
 			},
 			key: js_ast.Expr{
-				Data: &js_ast.EIdentifier{Ref: ast.Ref{SourceIndex: 0, InnerIndex: 0}},
+				Data: &js_ast.EIdentifier{},
 				Loc:  logger.Loc{},
 			},
 			expected: "myProp",
@@ -779,7 +779,7 @@ func TestGetPropertyName(t *testing.T) {
 			name:    "identifier key with empty symbols table returns empty",
 			symbols: nil,
 			key: js_ast.Expr{
-				Data: &js_ast.EIdentifier{Ref: ast.Ref{SourceIndex: 0, InnerIndex: 0}},
+				Data: &js_ast.EIdentifier{},
 				Loc:  logger.Loc{},
 			},
 			expected: "",
@@ -836,7 +836,7 @@ func TestExtractPropertyKey(t *testing.T) {
 		},
 		{
 			name:     "number key returns empty string",
-			keyExpr:  js_ast.Expr{Data: &js_ast.ENumber{Value: 0}, Loc: logger.Loc{}},
+			keyExpr:  js_ast.Expr{Data: &js_ast.ENumber{}, Loc: logger.Loc{}},
 			expected: "",
 		},
 		{
@@ -846,7 +846,7 @@ func TestExtractPropertyKey(t *testing.T) {
 		},
 		{
 			name:     "identifier key returns empty string",
-			keyExpr:  js_ast.Expr{Data: &js_ast.EIdentifier{Ref: ast.Ref{}}, Loc: logger.Loc{}},
+			keyExpr:  js_ast.Expr{Data: &js_ast.EIdentifier{}, Loc: logger.Loc{}},
 			expected: "",
 		},
 		{

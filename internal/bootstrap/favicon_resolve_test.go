@@ -238,7 +238,7 @@ func TestApplyCanonicalBaseURL(t *testing.T) {
 		{
 			name:        "empty sitemap hostname leaves it empty",
 			initialBase: "",
-			seoOverride: &config.SEOConfig{Sitemap: config.SitemapConfig{Hostname: ""}},
+			seoOverride: &config.SEOConfig{},
 			wantBase:    "",
 		},
 		{

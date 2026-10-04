@@ -162,7 +162,7 @@ func TestShouldRetry(t *testing.T) {
 	})
 
 	t.Run("zero max retries disables retry", func(t *testing.T) {
-		noRetryConfig := retry.Config{MaxRetries: 0}
+		noRetryConfig := retry.Config{}
 		assert.False(t, noRetryConfig.ShouldRetry(1))
 	})
 

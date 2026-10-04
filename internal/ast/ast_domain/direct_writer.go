@@ -275,6 +275,7 @@ func (dw *DirectWriter) AppendString(s string) {
 		UintValue:   0,
 		FloatValue:  0,
 		BoolValue:   false,
+		BytesValue:  nil,
 	})
 }
 
@@ -290,6 +291,7 @@ func (dw *DirectWriter) AppendInt(i int64) {
 		UintValue:   0,
 		FloatValue:  0,
 		BoolValue:   false,
+		BytesValue:  nil,
 	})
 }
 
@@ -305,6 +307,7 @@ func (dw *DirectWriter) AppendUint(u uint64) {
 		UintValue:   u,
 		FloatValue:  0,
 		BoolValue:   false,
+		BytesValue:  nil,
 	})
 }
 
@@ -320,6 +323,7 @@ func (dw *DirectWriter) AppendFloat(f float64) {
 		UintValue:   0,
 		FloatValue:  f,
 		BoolValue:   false,
+		BytesValue:  nil,
 	})
 }
 
@@ -335,6 +339,7 @@ func (dw *DirectWriter) AppendBool(b bool) {
 		UintValue:   0,
 		FloatValue:  0,
 		BoolValue:   b,
+		BytesValue:  nil,
 	})
 }
 
@@ -353,6 +358,7 @@ func (dw *DirectWriter) AppendAny(v any) {
 		UintValue:   0,
 		FloatValue:  0,
 		BoolValue:   false,
+		BytesValue:  nil,
 	})
 }
 
@@ -415,6 +421,7 @@ func (dw *DirectWriter) AppendEscapeString(s string) {
 		UintValue:   0,
 		FloatValue:  0,
 		BoolValue:   false,
+		BytesValue:  nil,
 	})
 }
 
@@ -433,6 +440,7 @@ func (dw *DirectWriter) AppendFNVString(s string) {
 		UintValue:   0,
 		FloatValue:  0,
 		BoolValue:   false,
+		BytesValue:  nil,
 	})
 }
 
@@ -451,6 +459,7 @@ func (dw *DirectWriter) AppendFNVFloat(f float64) {
 		UintValue:   0,
 		FloatValue:  f,
 		BoolValue:   false,
+		BytesValue:  nil,
 	})
 }
 
@@ -469,6 +478,7 @@ func (dw *DirectWriter) AppendFNVAny(v any) {
 		UintValue:   0,
 		FloatValue:  0,
 		BoolValue:   false,
+		BytesValue:  nil,
 	})
 }
 

@@ -135,14 +135,70 @@ type command struct {
 var (
 	// commands maps command names to their definitions.
 	commands = map[string]*command{
-		"get":         {name: "get", usage: "piko get <resource> [flags]", description: "Display resources", needsConnection: true, run: runGet},
-		"describe":    {name: "describe", usage: "piko describe <resource> [id]", description: "Show detailed information", needsConnection: true, run: runDescribe},
-		"info":        {name: "info", usage: "piko info [category] [flags]", description: "Display system information", needsConnection: true, run: runInfo},
-		"watch":       {name: "watch", usage: "piko watch <resource> [flags]", description: "Stream resource updates", needsConnection: true, longRunning: true, run: runWatch},
-		"diagnostics": {name: "diagnostics", usage: "piko diagnostics [flags]", description: "Test connectivity to monitoring server", needsConnection: false, run: runDiagnosticsCmd},
-		"tui":         {name: "tui", usage: "piko tui [flags]", description: "Launch the interactive terminal UI", needsConnection: false, longRunning: true, run: runTUICmd},
-		"profiling":   {name: "profiling", usage: "piko profiling <subcommand> [flags]", description: "Control runtime profiling", needsConnection: true, run: runProfiling},
-		"watchdog":    {name: "watchdog", usage: "piko watchdog <subcommand> [flags]", description: "Manage watchdog diagnostic profiles", needsConnection: true, run: runWatchdog},
+		"get": {
+			name:            "get",
+			usage:           "piko get <resource> [flags]",
+			description:     "Display resources",
+			needsConnection: true,
+			run:             runGet,
+			longRunning:     false,
+		},
+		"describe": {
+			name:            "describe",
+			usage:           "piko describe <resource> [id]",
+			description:     "Show detailed information",
+			needsConnection: true,
+			run:             runDescribe,
+			longRunning:     false,
+		},
+		"info": {
+			name:            "info",
+			usage:           "piko info [category] [flags]",
+			description:     "Display system information",
+			needsConnection: true,
+			run:             runInfo,
+			longRunning:     false,
+		},
+		"watch": {
+			name:            "watch",
+			usage:           "piko watch <resource> [flags]",
+			description:     "Stream resource updates",
+			needsConnection: true,
+			longRunning:     true,
+			run:             runWatch,
+		},
+		"diagnostics": {
+			name:            "diagnostics",
+			usage:           "piko diagnostics [flags]",
+			description:     "Test connectivity to monitoring server",
+			needsConnection: false,
+			run:             runDiagnosticsCmd,
+			longRunning:     false,
+		},
+		"tui": {
+			name:            "tui",
+			usage:           "piko tui [flags]",
+			description:     "Launch the interactive terminal UI",
+			needsConnection: false,
+			longRunning:     true,
+			run:             runTUICmd,
+		},
+		"profiling": {
+			name:            "profiling",
+			usage:           "piko profiling <subcommand> [flags]",
+			description:     "Control runtime profiling",
+			needsConnection: true,
+			run:             runProfiling,
+			longRunning:     false,
+		},
+		"watchdog": {
+			name:            "watchdog",
+			usage:           "piko watchdog <subcommand> [flags]",
+			description:     "Manage watchdog diagnostic profiles",
+			needsConnection: true,
+			run:             runWatchdog,
+			longRunning:     false,
+		},
 	}
 )
 
@@ -201,6 +257,7 @@ func RunCommandWithIO(subcommand string, arguments []string, stdout, stderr io.W
 		Opts:    opts,
 		Stdout:  stdout,
 		Stderr:  stderr,
+		Conn:    nil,
 	}
 
 	if command.needsConnection {

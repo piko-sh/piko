@@ -187,23 +187,12 @@ func (s *coordinatorService) checkTier1Cache(
 	request *coordinator_dto.BuildRequest,
 ) tier1CacheResult {
 	ctx, l := logger_domain.From(ctx, log)
-	buildOpts := &buildOptions{
-		InspectionCacheHints: nil,
-		CausationID:          "",
-		ChangedFiles:         nil,
-		Resolver:             request.Resolver,
-		SkipInspection:       false,
-		FaultTolerant:        false,
-	}
+	buildOpts := &buildOptions{}
+	buildOpts.Resolver = request.Resolver
 	introspectionHash, scriptHashes, hashErr := s.calculateIntrospectionHash(ctx, request.EntryPoints, buildOpts)
 	if hashErr != nil {
 		l.Warn("Failed to calculate introspection hash, falling back to full build.", logger_domain.Error(hashErr))
-		return tier1CacheResult{
-			scriptHashes:      nil,
-			entry:             nil,
-			introspectionHash: "",
-			useFastPath:       false,
-		}
+		return tier1CacheResult{}
 	}
 
 	introspectionEntry, introspErr := s.introspectionCache.Get(ctx, introspectionHash)
@@ -255,6 +244,8 @@ func (s *coordinatorService) checkTier1Cache(
 // Takes allSourceContents (map[string][]byte) which provides the source files to build.
 // Takes inputHash (string) which identifies the build inputs for caching.
 // Takes tier1Result (tier1CacheResult) which contains the tier 1 cache lookup result.
+// Takes buildEpoch (uint64) which identifies the invalidation epoch used to reject stale
+// cache writes.
 //
 // Returns *annotator_dto.ProjectAnnotationResult which contains the build annotations.
 // Returns error when the annotation pipeline fails catastrophically.
@@ -549,6 +540,8 @@ func (s *coordinatorService) getKnownStyleDeps() []string {
 // Takes allSourceContents (map[string][]byte) which contains the source file contents
 // keyed by path.
 // Takes fullHash (string) which identifies the cache key for storing results.
+// Takes buildEpoch (uint64) which identifies the invalidation epoch used to reject stale
+// cache writes.
 //
 // Returns *annotator_dto.ProjectAnnotationResult which contains the annotated project
 // output.
@@ -623,6 +616,8 @@ func (s *coordinatorService) executePartialBuild(
 //
 // Takes ctx (context.Context) which provides the logging context.
 // Takes request (*coordinator_dto.BuildRequest) which supplies the build configuration.
+// Takes introspectionEntry (*IntrospectionCacheEntry) which provides the cached component
+// graph used to scope the partial build.
 //
 // Returns []annotator_domain.AnnotationOption which contains the assembled options.
 func (s *coordinatorService) buildPartialAnnotatorOptions(

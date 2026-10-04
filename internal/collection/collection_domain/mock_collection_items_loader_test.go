@@ -93,13 +93,11 @@ func TestMockCollectionItemsLoader_ConcurrentAccess(t *testing.T) {
 
 	const goroutines = 50
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_, _ = m.GetAllItems("blog")
-		}()
+		})
 	}
 
 	wg.Wait()

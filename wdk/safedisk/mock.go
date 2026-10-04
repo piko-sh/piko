@@ -140,11 +140,11 @@ var (
 //
 // Returns *MockFileHandle which is ready for use in tests.
 func NewMockFileHandle(name, absolutePath string, initialData []byte) *MockFileHandle {
-	return &MockFileHandle{
-		name:         name,
-		absolutePath: absolutePath,
-		data:         bytes.NewBuffer(initialData),
-	}
+	handle := MockFileHandle{}
+	handle.name = name
+	handle.absolutePath = absolutePath
+	handle.data = bytes.NewBuffer(initialData)
+	return &handle
 }
 
 // Name returns the relative path of the file within the sandbox.
@@ -599,12 +599,12 @@ type MockSandbox struct {
 //
 // Returns *MockSandbox which is the initialised mock sandbox ready for use.
 func NewMockSandbox(root string, mode Mode) *MockSandbox {
-	return &MockSandbox{
-		root:       root,
-		mode:       mode,
-		files:      make(map[string]*MockFileHandle),
-		CallCounts: make(map[string]int),
-	}
+	sandbox := MockSandbox{}
+	sandbox.root = root
+	sandbox.mode = mode
+	sandbox.files = make(map[string]*MockFileHandle)
+	sandbox.CallCounts = make(map[string]int)
+	return &sandbox
 }
 
 // AddFile adds a mock file to the sandbox with the given contents.
@@ -1280,7 +1280,7 @@ func (m *MockSandbox) walkSinglePath(path string, walkFunction fs.WalkDirFunc) w
 	m.mu.RUnlock()
 
 	if !exists {
-		return walkResult{action: walkContinue}
+		return walkResult{action: walkContinue, err: nil, isDir: false}
 	}
 
 	info, err := file.Stat()
@@ -1293,7 +1293,7 @@ func (m *MockSandbox) walkSinglePath(path string, walkFunction fs.WalkDirFunc) w
 		return handleWalkError(err, info.IsDir())
 	}
 
-	return walkResult{action: walkContinue}
+	return walkResult{action: walkContinue, err: nil, isDir: false}
 }
 
 // handleStatError handles an error from Stat during WalkDir.
@@ -1306,12 +1306,12 @@ func (m *MockSandbox) walkSinglePath(path string, walkFunction fs.WalkDirFunc) w
 func (*MockSandbox) handleStatError(path string, statErr error, walkFunction fs.WalkDirFunc) walkResult {
 	walkErr := walkFunction(path, nil, statErr)
 	if walkErr == nil {
-		return walkResult{action: walkContinue}
+		return walkResult{action: walkContinue, err: nil, isDir: false}
 	}
 	if errors.Is(walkErr, fs.SkipDir) || errors.Is(walkErr, fs.SkipAll) {
-		return walkResult{action: walkContinue}
+		return walkResult{action: walkContinue, err: nil, isDir: false}
 	}
-	return walkResult{action: walkError, err: walkErr}
+	return walkResult{action: walkError, err: walkErr, isDir: false}
 }
 
 // sortStrings sorts a slice of strings in place.
@@ -1367,12 +1367,12 @@ func isPathSkipped(path string, skipPrefixes []string) bool {
 // Returns walkResult which specifies the action to take based on the error.
 func handleWalkError(err error, isDir bool) walkResult {
 	if errors.Is(err, fs.SkipDir) {
-		return walkResult{action: walkSkipDir, isDir: isDir}
+		return walkResult{action: walkSkipDir, isDir: isDir, err: nil}
 	}
 	if errors.Is(err, fs.SkipAll) {
-		return walkResult{action: walkStop}
+		return walkResult{action: walkStop, err: nil, isDir: false}
 	}
-	return walkResult{action: walkError, err: err}
+	return walkResult{action: walkError, err: err, isDir: false}
 }
 
 // splitPath splits a path into its component parts.

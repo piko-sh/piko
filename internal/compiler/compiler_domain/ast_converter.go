@@ -58,6 +58,18 @@ func (*astConverterService) ConvertEsbuildToTdewolff(esbuildAST *js_ast.AST, reg
 	return ConvertEsbuildToTdewolff(esbuildAST, registry)
 }
 
+// forEachParts holds the converted parts of a for-in or for-of loop.
+type forEachParts struct {
+	// init is the loop's declaration or assignment target.
+	init parsejs.IExpr
+
+	// value is the iterated value.
+	value parsejs.IExpr
+
+	// body is the loop body.
+	body *parsejs.BlockStmt
+}
+
 // ASTConverter converts an esbuild AST to a tdewolff AST. It uses the symbol table to
 // resolve identifier names, import records to resolve module paths, and the registry
 // context to look up names of identifiers created by hand.
@@ -71,6 +83,14 @@ type ASTConverter struct {
 
 	// importRecords stores import records used to look up module paths by index.
 	importRecords []ast.ImportRecord
+
+	// usingScopeCount numbers the disposal scopes of lowered using declarations, so their
+	// variable names are unique within one conversion.
+	usingScopeCount int
+
+	// usesDisposal is true once a using declaration has been lowered, so the disposal
+	// helpers are emitted with the converted script.
+	usesDisposal bool
 }
 
 // NewASTConverter creates a converter with access to the given symbol table, import
@@ -83,9 +103,11 @@ type ASTConverter struct {
 // Returns *ASTConverter which is ready for converting AST nodes.
 func NewASTConverter(symbols []ast.Symbol, importRecords []ast.ImportRecord, registry *RegistryContext) *ASTConverter {
 	return &ASTConverter{
-		registry:      registry,
-		symbols:       symbols,
-		importRecords: importRecords,
+		registry:        registry,
+		symbols:         symbols,
+		importRecords:   importRecords,
+		usingScopeCount: 0,
+		usesDisposal:    false,
 	}
 }
 
@@ -133,17 +155,18 @@ func ConvertEsbuildToTdewolff(esbuildAST *js_ast.AST, registry *RegistryContext)
 	tdewolffAST := &parsejs.AST{}
 
 	for partIndex := range esbuildAST.Parts {
-		for statementIndex := range esbuildAST.Parts[partIndex].Stmts {
-			statement := esbuildAST.Parts[partIndex].Stmts[statementIndex]
-			convertedStmt, err := converter.convertStatement(statement)
-			if err != nil {
-				return nil, fmt.Errorf("converting statement: %w", err)
-			}
-			if convertedStmt != nil {
-				tdewolffAST.List = append(tdewolffAST.List, convertedStmt)
-			}
+		converted, err := converter.convertStatements(esbuildAST.Parts[partIndex].Stmts, nil)
+		if err != nil {
+			return nil, fmt.Errorf("converting statement: %w", err)
 		}
+		tdewolffAST.List = append(tdewolffAST.List, converted...)
 	}
+
+	helpers, err := converter.disposalHelpers()
+	if err != nil {
+		return nil, err
+	}
+	tdewolffAST.List = append(tdewolffAST.List, helpers...)
 
 	return tdewolffAST, nil
 }

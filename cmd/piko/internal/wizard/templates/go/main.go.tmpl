@@ -9,8 +9,8 @@ import (
 	"piko.sh/piko/wdk/logger"
 
 {{- if .EnableInterpreted }}
-	"{{ .ModuleName }}/internal/interpreted"
-	"piko.sh/piko/wdk/interp/interp_provider_piko"
+	"{{ .ModuleName }}/internal/piko_symbols"
+	"piko.sh/piko/wdk/interp/interp_provider_pipit"
 {{- end }}
 	_ "{{ .ModuleName }}/dist"
 )
@@ -38,8 +38,8 @@ func main() {
 
 	// You can optionally define your symbols for interpreted mode.
 	// This is required for interpreted mode.
-	ssr.WithInterpreterProvider(interp_provider_piko.NewProvider())
-	ssr.WithSymbols(interpreted.Symbols)
+	ssr.WithInterpreterProvider(interp_provider_pipit.NewProvider())
+	ssr.WithSymbols(piko_symbols.Symbols)
 {{- end }}
 
 	// You can add your own chi middleware and routes here.

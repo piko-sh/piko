@@ -326,9 +326,11 @@ func RegisterStaticCollectionBlob(ctx context.Context, collectionName string, da
 	defer staticCollectionRegistry.mu.Unlock()
 
 	collData := &staticCollectionData{
-		blob:      data,
-		items:     items,
-		slugIndex: slugIndex,
+		blob:       data,
+		items:      items,
+		slugIndex:  slugIndex,
+		navigation: sync.Map{},
+		astCache:   sync.Map{},
 	}
 	staticCollectionRegistry.collections[collectionName] = collData
 
@@ -786,9 +788,8 @@ func getOrBuildNavigation(
 func metadataToContentItems(items []map[string]any) []collection_dto.ContentItem {
 	contentItems := make([]collection_dto.ContentItem, 0, len(items))
 	for _, metadata := range items {
-		item := collection_dto.ContentItem{
-			Metadata: metadata,
-		}
+		item := collection_dto.ContentItem{}
+		item.Metadata = metadata
 		if id, ok := metadata["ID"].(string); ok {
 			item.ID = id
 		}

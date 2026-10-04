@@ -71,8 +71,11 @@ func (p *generatedColumnPass) Analyse(context *diagnosticContext) []querier_dto.
 				"parameter %s assigns to generated column %q which cannot be written to",
 				parameterLabel, reference.ColumnReference.ColumnName,
 			),
-			Severity: querier_dto.SeverityWarning,
-			Code:     querier_dto.CodeGeneratedColumn,
+			Severity:   querier_dto.SeverityWarning,
+			Code:       querier_dto.CodeGeneratedColumn,
+			Suggestion: "",
+			EndLine:    0,
+			EndColumn:  0,
 		})
 	}
 

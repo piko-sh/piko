@@ -289,7 +289,7 @@ func TestOrchestratorRenderer_IsExpandable(t *testing.T) {
 		},
 		{
 			name:     "without metadata",
-			resource: Resource{Metadata: nil},
+			resource: Resource{},
 			expected: false,
 		},
 		{
@@ -336,7 +336,7 @@ func TestOrchestratorRenderer_ExpandedLineCount(t *testing.T) {
 		},
 		{
 			name:     "nil metadata",
-			resource: Resource{Metadata: nil},
+			resource: Resource{},
 			expected: 0,
 		},
 	}

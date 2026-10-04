@@ -242,21 +242,18 @@ func TestMockCollectionService_ConcurrentAccess(t *testing.T) {
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines * 2)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_, _ = mock.ProcessGetCollectionCall(
 				context.Background(), "c", "T", goast.NewIdent("T"), nil,
 			)
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			_, _ = mock.ProcessCollectionDirective(
 				context.Background(), &collection_dto.CollectionDirectiveInfo{},
 			)
-		}()
+		})
 	}
 
 	wg.Wait()

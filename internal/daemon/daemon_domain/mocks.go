@@ -66,9 +66,9 @@ var (
 //
 // Returns *MockSignalNotifier which is the initialised mock.
 func NewMockSignalNotifier() *MockSignalNotifier {
-	return &MockSignalNotifier{
-		notifyContextCalled: make(chan struct{}),
-	}
+	notifier := MockSignalNotifier{}
+	notifier.notifyContextCalled = make(chan struct{})
+	return &notifier
 }
 
 // NotifyContext returns a context that can be cancelled by calling Trigger. If

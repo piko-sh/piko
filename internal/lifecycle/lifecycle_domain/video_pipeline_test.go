@@ -341,10 +341,7 @@ func Test_AssetPipelineOrchestrator_buildVideoProfiles(t *testing.T) {
 	t.Run("builds profiles for valid qualities", func(t *testing.T) {
 		t.Parallel()
 
-		orchestrator := &AssetPipelineOrchestrator{
-			registryService: nil,
-			assetsConfig:    nil,
-		}
+		orchestrator := &AssetPipelineOrchestrator{}
 
 		profiles := orchestrator.buildVideoProfiles([]string{"1080p", "720p"}, 10)
 
@@ -356,10 +353,7 @@ func Test_AssetPipelineOrchestrator_buildVideoProfiles(t *testing.T) {
 	t.Run("sets correct profile parameters", func(t *testing.T) {
 		t.Parallel()
 
-		orchestrator := &AssetPipelineOrchestrator{
-			registryService: nil,
-			assetsConfig:    nil,
-		}
+		orchestrator := &AssetPipelineOrchestrator{}
 
 		profiles := orchestrator.buildVideoProfiles([]string{"1080p"}, 10)
 
@@ -381,10 +375,7 @@ func Test_AssetPipelineOrchestrator_buildVideoProfiles(t *testing.T) {
 	t.Run("sets correct tags", func(t *testing.T) {
 		t.Parallel()
 
-		orchestrator := &AssetPipelineOrchestrator{
-			registryService: nil,
-			assetsConfig:    nil,
-		}
+		orchestrator := &AssetPipelineOrchestrator{}
 
 		profiles := orchestrator.buildVideoProfiles([]string{"720p"}, 6)
 
@@ -406,10 +397,7 @@ func Test_AssetPipelineOrchestrator_buildVideoProfiles(t *testing.T) {
 	t.Run("skips unknown quality levels", func(t *testing.T) {
 		t.Parallel()
 
-		orchestrator := &AssetPipelineOrchestrator{
-			registryService: nil,
-			assetsConfig:    nil,
-		}
+		orchestrator := &AssetPipelineOrchestrator{}
 
 		profiles := orchestrator.buildVideoProfiles([]string{"1080p", "unknown", "480p"}, 10)
 
@@ -421,10 +409,7 @@ func Test_AssetPipelineOrchestrator_buildVideoProfiles(t *testing.T) {
 	t.Run("returns empty for no valid qualities", func(t *testing.T) {
 		t.Parallel()
 
-		orchestrator := &AssetPipelineOrchestrator{
-			registryService: nil,
-			assetsConfig:    nil,
-		}
+		orchestrator := &AssetPipelineOrchestrator{}
 
 		profiles := orchestrator.buildVideoProfiles([]string{"8k", "16k"}, 10)
 
@@ -434,10 +419,7 @@ func Test_AssetPipelineOrchestrator_buildVideoProfiles(t *testing.T) {
 	t.Run("returns empty for nil qualities", func(t *testing.T) {
 		t.Parallel()
 
-		orchestrator := &AssetPipelineOrchestrator{
-			registryService: nil,
-			assetsConfig:    nil,
-		}
+		orchestrator := &AssetPipelineOrchestrator{}
 
 		profiles := orchestrator.buildVideoProfiles(nil, 10)
 
@@ -447,10 +429,7 @@ func Test_AssetPipelineOrchestrator_buildVideoProfiles(t *testing.T) {
 	t.Run("builds all four quality levels", func(t *testing.T) {
 		t.Parallel()
 
-		orchestrator := &AssetPipelineOrchestrator{
-			registryService: nil,
-			assetsConfig:    nil,
-		}
+		orchestrator := &AssetPipelineOrchestrator{}
 
 		profiles := orchestrator.buildVideoProfiles([]string{"1080p", "720p", "480p", "360p"}, 10)
 
@@ -470,10 +449,7 @@ func Test_AssetPipelineOrchestrator_buildVideoProfiles(t *testing.T) {
 	t.Run("uses custom segment duration", func(t *testing.T) {
 		t.Parallel()
 
-		orchestrator := &AssetPipelineOrchestrator{
-			registryService: nil,
-			assetsConfig:    nil,
-		}
+		orchestrator := &AssetPipelineOrchestrator{}
 
 		profiles := orchestrator.buildVideoProfiles([]string{"480p"}, 4)
 
@@ -486,10 +462,7 @@ func Test_AssetPipelineOrchestrator_buildVideoProfiles(t *testing.T) {
 	t.Run("sets correct capability name", func(t *testing.T) {
 		t.Parallel()
 
-		orchestrator := &AssetPipelineOrchestrator{
-			registryService: nil,
-			assetsConfig:    nil,
-		}
+		orchestrator := &AssetPipelineOrchestrator{}
 
 		profiles := orchestrator.buildVideoProfiles([]string{"720p"}, 10)
 

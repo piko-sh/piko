@@ -228,6 +228,9 @@ func parseSentryConfig(config any) (sentryConfig, error) {
 			enableTracing:    true,
 			sendDefaultPII:   false,
 			addSource:        true,
+			ignoreErrors:     nil,
+			eventLevels:      nil,
+			breadcrumbLevels: nil,
 		}, nil
 	default:
 		return sentryConfig{}, fmt.Errorf("unsupported config type: %T (expected *logger_dto.SentryConfig or Config)", config)

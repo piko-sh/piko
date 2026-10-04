@@ -71,6 +71,10 @@ type DuckDBDialect struct {
 	// MaxParseDepth caps recursion through analysis, expression and compound-type parsing.
 	// Zero selects defaultMaxParseDepth.
 	MaxParseDepth int
+
+	// MaxTokensPerStatement caps the tokens of one statement the DDL and analysis parsers
+	// will walk. Zero selects defaultMaxTokensPerStatement.
+	MaxTokensPerStatement int
 }
 
 // Option configures a DuckDBDialect.
@@ -105,6 +109,39 @@ func (d DuckDBDialect) resolvedMaxParseDepth() int {
 		return d.MaxParseDepth
 	}
 	return defaultMaxParseDepth
+}
+
+// WithMaxTokensPerStatement sets the maximum number of tokens one statement may carry
+// before the DDL and analysis parsers refuse to walk it.
+//
+// A statement far beyond any hand-written query would otherwise drive the parsers into a
+// very long walk that cannot be cancelled. The default is high
+// (defaultMaxTokensPerStatement) so realistic statements, including generated IN lists,
+// are unaffected; lower it to harden against hostile input or raise it for unusually
+// large generated statements. Statements the engine does not parse, such as a large seed
+// INSERT inside a migration, are never counted.
+//
+// Takes limit (int) which is the maximum token count; values below 1 are ignored so the
+// default remains in force.
+//
+// Returns Option which applies the token budget to a DuckDBDialect.
+func WithMaxTokensPerStatement(limit int) Option {
+	return func(dialect *DuckDBDialect) {
+		if limit > 0 {
+			dialect.MaxTokensPerStatement = limit
+		}
+	}
+}
+
+// resolvedMaxTokensPerStatement returns the effective per-statement token budget, falling
+// back to defaultMaxTokensPerStatement when unset.
+//
+// Returns int which is the resolved token budget.
+func (d DuckDBDialect) resolvedMaxTokensPerStatement() int {
+	if d.MaxTokensPerStatement > 0 {
+		return d.MaxTokensPerStatement
+	}
+	return defaultMaxTokensPerStatement
 }
 
 // WithDialectName sets the dialect name.
@@ -196,9 +233,8 @@ type DuckDBEngine struct {
 //
 // Returns *DuckDBEngine which is the configured engine adapter.
 func NewDuckDBEngine(options ...Option) *DuckDBEngine {
-	dialect := DuckDBDialect{
-		Name: "duckdb",
-	}
+	dialect := DuckDBDialect{}
+	dialect.Name = "duckdb"
 	for _, option := range options {
 		option(&dialect)
 	}
@@ -321,17 +357,33 @@ var (
 	}
 )
 
+// dmlAnalyser analyses one DML statement kind.
+type dmlAnalyser func(*parser) (*querier_dto.RawQueryAnalysis, error)
+
+var (
+	// dmlAnalysers dispatches each analysable statementKind to its analyser.
+	dmlAnalysers = [statementKindCount]dmlAnalyser{
+		statementKindSelect: (*parser).analyseSelect,
+		statementKindInsert: (*parser).analyseInsert,
+		statementKindUpdate: (*parser).analyseUpdate,
+		statementKindDelete: (*parser).analyseDelete,
+		statementKindValues: (*parser).analyseValues,
+	}
+)
+
 // ApplyDDL applies a DDL statement to the catalogue for the DuckDB dialect.
 //
-// Wraps the per-statement handler with a panic recovery so a malformed statement becomes
-// a wrapped error rather than crashing the calling apply loop. Honours ctx.Err() before
-// dispatch so the catalogue build loop can be cancelled by the caller.
+// A malformed statement returns its syntax error. The handler also runs beneath a panic
+// recovery that guards against parser bugs. The recovered stack is logged once at warn
+// level and a stack-free error is returned. Honours ctx.Err() before dispatch so the
+// catalogue build loop can be cancelled by the caller.
 //
 // Takes statement (querier_dto.ParsedStatement) which is the DDL statement to apply.
 //
 // Returns *querier_dto.CatalogueMutation which describes the mutation, or nil when the
 // statement produces none.
-// Returns error when the statement type is unexpected or the handler panics.
+// Returns error when the statement type is unexpected, the statement is malformed or over
+// the token budget, or the handler panics.
 func (engine *DuckDBEngine) ApplyDDL(
 	ctx context.Context,
 	statement querier_dto.ParsedStatement,
@@ -358,26 +410,35 @@ func (engine *DuckDBEngine) ApplyDDL(
 		return nil, ctxErr
 	}
 
+	if int(parsed.kind) >= len(ddlHandlers) || ddlHandlers[parsed.kind] == nil {
+		return nil, nil
+	}
+
+	if budgetErr := engine.checkTokenBudget(parsed); budgetErr != nil {
+		return nil, budgetErr
+	}
+
 	p := newParser(parsed.tokens)
 	p.maxParseDepth = engine.dialect.resolvedMaxParseDepth()
 
-	if int(parsed.kind) < len(ddlHandlers) && ddlHandlers[parsed.kind] != nil {
-		return ddlHandlers[parsed.kind](p, engine)
+	mutation, err = ddlHandlers[parsed.kind](p, engine)
+	if syntaxErr := p.syntaxError(); syntaxErr != nil {
+		return nil, syntaxErr
 	}
-
-	return nil, nil
+	return mutation, err
 }
 
 // AnalyseQuery performs structural analysis of a DML statement for the DuckDB dialect.
 //
-// Wraps the per-statement analyser with a panic recovery so a malformed statement that
-// trips a parser invariant becomes a wrapped error rather than crashing the calling
-// analyser.
+// A malformed statement returns its syntax error. The analyser also runs beneath a panic
+// recovery that guards against parser bugs. The recovered stack is logged once at warn
+// level and a stack-free error is returned.
 //
 // Takes statement (querier_dto.ParsedStatement) which is the DML statement to analyse.
 //
 // Returns *querier_dto.RawQueryAnalysis which describes the statement structure.
-// Returns error when the statement type is unexpected or the analyser panics.
+// Returns error when the statement type is unexpected, the statement is malformed or over
+// the token budget, or the analyser panics.
 func (engine *DuckDBEngine) AnalyseQuery(
 	_ *querier_dto.Catalogue,
 	statement querier_dto.ParsedStatement,
@@ -399,23 +460,23 @@ func (engine *DuckDBEngine) AnalyseQuery(
 		}
 	}()
 
+	if int(parsed.kind) >= len(dmlAnalysers) || dmlAnalysers[parsed.kind] == nil {
+		return &querier_dto.RawQueryAnalysis{}, nil
+	}
+	analyser := dmlAnalysers[parsed.kind]
+
+	if budgetErr := engine.checkTokenBudget(parsed); budgetErr != nil {
+		return nil, budgetErr
+	}
+
 	p := newParser(parsed.tokens)
 	p.maxParseDepth = engine.dialect.resolvedMaxParseDepth()
 
-	switch parsed.kind {
-	case statementKindSelect:
-		return p.analyseSelect()
-	case statementKindInsert:
-		return p.analyseInsert()
-	case statementKindUpdate:
-		return p.analyseUpdate()
-	case statementKindDelete:
-		return p.analyseDelete()
-	case statementKindValues:
-		return p.analyseValues()
-	default:
-		return &querier_dto.RawQueryAnalysis{}, nil
+	analysis, err = analyser(p)
+	if syntaxErr := p.syntaxError(); syntaxErr != nil {
+		return nil, syntaxErr
 	}
+	return analysis, err
 }
 
 // RewriteSelectAsCount delegates to the shared SELECT to COUNT(*) rewriter, using the
@@ -703,4 +764,19 @@ func (*DuckDBEngine) ResolveFunctionCall(
 	argumentTypes []querier_dto.SQLType,
 ) (*querier_dto.FunctionResolution, error) {
 	return NewDuckDBFunctionResolver().ResolveFunctionCall(catalogue, name, schema, argumentTypes)
+}
+
+// checkTokenBudget rejects a statement whose token stream exceeds the dialect's
+// per-statement token budget.
+//
+// Takes parsed (*parsedStatement) which is the statement about to be parsed.
+//
+// Returns error which wraps errTokenBudgetExceeded with the actual count and the limit,
+// or nil when the statement is within budget.
+func (engine *DuckDBEngine) checkTokenBudget(parsed *parsedStatement) error {
+	limit := engine.dialect.resolvedMaxTokensPerStatement()
+	if len(parsed.tokens) > limit {
+		return fmt.Errorf("%w: statement has %d tokens, limit is %d", errTokenBudgetExceeded, len(parsed.tokens), limit)
+	}
+	return nil
 }

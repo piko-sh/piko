@@ -380,10 +380,11 @@ func reportTransportError(loadConfiguration loadConfig, err error) {
 	}
 	select {
 	case loadConfiguration.errorCh <- loadErrorRecord{
-		Time:  time.Now().Format(time.RFC3339Nano),
-		Phase: loadConfiguration.phase,
-		Kind:  "transport",
-		Error: err.Error(),
+		Time:       time.Now().Format(time.RFC3339Nano),
+		Phase:      loadConfiguration.phase,
+		Kind:       "transport",
+		Error:      err.Error(),
+		StatusCode: 0,
 	}:
 	default:
 	}
@@ -405,6 +406,7 @@ func reportStatusError(loadConfiguration loadConfig, statusCode int) {
 		Phase:      loadConfiguration.phase,
 		Kind:       "status",
 		StatusCode: statusCode,
+		Error:      "",
 	}:
 	default:
 	}
@@ -617,8 +619,10 @@ func executeLoadRequest(
 // Returns *latencyWindow which is the initialised window.
 func newLatencyWindow(capacity int) *latencyWindow {
 	return &latencyWindow{
-		ring:    make([]time.Duration, capacity),
-		sortBuf: make([]time.Duration, 0, capacity),
+		ring:     make([]time.Duration, capacity),
+		sortBuf:  make([]time.Duration, 0, capacity),
+		writePos: 0,
+		filled:   0,
 	}
 }
 

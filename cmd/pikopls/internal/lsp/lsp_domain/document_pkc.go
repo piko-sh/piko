@@ -164,6 +164,10 @@ func extractPKCMetadata(filename string, sfc *sfcparser.ParseResult) *pkcMetadat
 		StateProperties: make(map[string]*pkcStateProperty),
 		Functions:       make(map[string]*pkcFunction),
 		CSSClasses:      make(map[string]cssClassDefinition),
+		Imports:         nil,
+		ComponentName:   "",
+		LifecycleHooks:  nil,
+		Refs:            nil,
 	}
 
 	extractPKCScriptMetadata(filename, sfc, meta)
@@ -314,10 +318,15 @@ func extractPKCStateProperties(
 		absLine, absCol := adjustToDocumentPosition(relLine, relCol, baseLineOffset, baseColOffset)
 
 		stateProp := &pkcStateProperty{
-			Name:   propName,
-			JSType: "any",
-			Line:   absLine,
-			Column: absCol,
+			Name:         propName,
+			JSType:       "any",
+			Line:         absLine,
+			Column:       absCol,
+			ElementType:  "",
+			KeyType:      "",
+			ValueType:    "",
+			InitialValue: "",
+			IsNullable:   false,
 		}
 
 		if assertion, found := typeAssertions[propName]; found {

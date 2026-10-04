@@ -95,6 +95,19 @@ type FontMetricsPort interface {
 	// Returns []GlyphPosition which are the shaped glyphs and their positions.
 	ShapeText(font FontDescriptor, size float64, text string, direction DirectionType) []GlyphPosition
 
+	// ShapeAndMeasureText shapes the text once and returns both the positioned glyphs and
+	// the total width, giving the same results as calling ShapeText and MeasureText
+	// separately without shaping the text twice.
+	//
+	// Takes font (FontDescriptor) which is the font the text is shaped with.
+	// Takes size (float64) which is the font size in points.
+	// Takes text (string) which is the text to shape.
+	// Takes direction (DirectionType) which is the direction the text runs in.
+	//
+	// Returns []GlyphPosition which are the shaped glyphs and their positions.
+	// Returns float64 which is the text width in points.
+	ShapeAndMeasureText(font FontDescriptor, size float64, text string, direction DirectionType) ([]GlyphPosition, float64)
+
 	// GetMetrics returns the vertical metrics (ascent, descent, line gap) for the specified
 	// font at the given size.
 	//

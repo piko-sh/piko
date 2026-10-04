@@ -31,6 +31,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/logger/logger_domain"
 )
 
 func TestBuildActionsFromManifest(t *testing.T) {
@@ -521,7 +522,7 @@ func TestHandlePhase2Completion_NoDiagnostics(t *testing.T) {
 		AllDiagnostics:   []*ast_domain.Diagnostic{},
 	}
 	logStore := newTestLogStore(t)
-	options := &annotationOptions{faultTolerant: false}
+	options := &annotationOptions{}
 
 	result, returnedLogStore, err := handlePhase2Completion(context.Background(), finalResult, logStore, options)
 
@@ -546,7 +547,7 @@ func TestHandlePhase2Completion_WarningsOnly(t *testing.T) {
 		},
 	}
 	logStore := newTestLogStore(t)
-	options := &annotationOptions{faultTolerant: false}
+	options := &annotationOptions{}
 
 	result, returnedLogStore, err := handlePhase2Completion(context.Background(), finalResult, logStore, options)
 
@@ -596,7 +597,7 @@ func TestHandlePhase2Completion_ErrorsWithoutFaultTolerance(t *testing.T) {
 		},
 	}
 	logStore := newTestLogStore(t)
-	options := &annotationOptions{faultTolerant: false}
+	options := &annotationOptions{}
 
 	result, returnedLogStore, err := handlePhase2Completion(context.Background(), finalResult, logStore, options)
 
@@ -623,7 +624,7 @@ func TestHandlePhase2Completion_DeduplicatesDiagnostics(t *testing.T) {
 		AllDiagnostics:   []*ast_domain.Diagnostic{diagnostic, diagnostic, diagnostic},
 	}
 	logStore := newTestLogStore(t)
-	options := &annotationOptions{faultTolerant: false}
+	options := &annotationOptions{}
 
 	result, _, err := handlePhase2Completion(context.Background(), finalResult, logStore, options)
 
@@ -648,7 +649,7 @@ func TestHandlePhase2Completion_SemanticErrorContainsDiagnostics(t *testing.T) {
 		AllDiagnostics:   []*ast_domain.Diagnostic{errorDiag},
 	}
 	logStore := newTestLogStore(t)
-	options := &annotationOptions{faultTolerant: false}
+	options := &annotationOptions{}
 
 	_, _, err := handlePhase2Completion(context.Background(), finalResult, logStore, options)
 
@@ -692,7 +693,7 @@ func TestHandlePhase2Completion_MixedDiagnosticSeverities(t *testing.T) {
 	}
 	logStore := newTestLogStore(t)
 
-	options := &annotationOptions{faultTolerant: false}
+	options := &annotationOptions{}
 	_, _, err := handlePhase2Completion(context.Background(), finalResult, logStore, options)
 	require.Error(t, err)
 
@@ -863,11 +864,45 @@ func TestFeedAnnotationJobs_CancelledContext(t *testing.T) {
 	assert.False(t, open, "jobs channel should be closed after cancellation")
 }
 
+func TestPrepareAnnotationJob(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		baseDir    string
+		sourcePath string
+	}{
+		{name: "source inside the base directory", baseDir: "/project", sourcePath: "/project/pages/index.pk"},
+		{name: "base directory that cannot be related to the source", baseDir: "relative/base", sourcePath: "/project/pages/index.pk"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			service := &AnnotatorService{}
+			service.resolver = newMockResolver("my-module", tc.baseDir)
+			service.logStore = newTestLogStore(t)
+			vc := &annotator_dto.VirtualComponent{}
+			vc.Source = &annotator_dto.ParsedComponent{}
+			vc.Source.SourcePath = tc.sourcePath
+
+			job := service.prepareAnnotationJob(context.Background(), vc)
+
+			require.NotNil(t, job)
+			assert.Same(t, vc, job.vc)
+			_, sessionLogger := logger_domain.From(job.ctx, nil)
+			sessionLogger.Warn("session message")
+			logs, found := service.logStore.GetLogs(tc.sourcePath)
+			require.True(t, found)
+			assert.Contains(t, logs, "session message")
+		})
+	}
+}
+
 func newTestLogStore(t *testing.T) *CompilationLogStore {
 	t.Helper()
-	store, err := NewCompilationLogStore(context.Background(), false, "", slog.LevelInfo)
-	require.NoError(t, err)
-	return store
+	return NewCompilationLogStore(false, "", slog.LevelInfo)
 }
 
 func TestRunSrcsetAnnotation_EmptyResults(t *testing.T) {

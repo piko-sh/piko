@@ -58,7 +58,7 @@ var (
 //
 // Typically called from init() in a wdk module (e.g. logger_integration_otel_grpc).
 //
-// Takes name (string) which identifies the protocol (e.g. "grpc", "http").
+// Takes name (string) which identifies the transport, such as "grpc" or "http".
 // Takes protocol (OtlpProtocol) which holds the exporter factories.
 //
 // Safe for concurrent use. Protected by a package-level mutex.

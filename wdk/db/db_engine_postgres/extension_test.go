@@ -53,8 +53,12 @@ func (foobarExtension) Parse(p ParserContext, kind StatementKind) (*querier_dto.
 	if kind != statementKindFoobar {
 		return nil, nil
 	}
-	p.MustKeyword("CREATE")
-	p.MustKeyword("FOOBAR")
+	if err := p.ExpectKeyword("CREATE"); err != nil {
+		return nil, err
+	}
+	if err := p.ExpectKeyword("FOOBAR"); err != nil {
+		return nil, err
+	}
 	tok := p.Advance()
 	return &querier_dto.CatalogueMutation{
 		Kind:       querier_dto.MutationCreateTable,
@@ -353,4 +357,133 @@ func TestParserContext_MatchIfExists_PartialMatchRestoresCursor(t *testing.T) {
 		"cursor must rewind to IF on a partial match")
 	assert.True(t, parserInstance.isKeyword("IF"),
 		"cursor should be back on the IF token so the next matcher can re-read it")
+}
+
+func TestParserContext_ParseReloptionList(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		want     map[string]string
+		name     string
+		sql      string
+		wantErr  string
+		consumed bool
+	}{
+		{
+			name:     "key with a value",
+			sql:      "(fillfactor = 70)",
+			want:     map[string]string{"fillfactor": "70"},
+			consumed: true,
+		},
+		{
+			name:     "bare key means true",
+			sql:      "(timescaledb.continuous)",
+			want:     map[string]string{"timescaledb.continuous": "true"},
+			consumed: true,
+		},
+		{
+			name:     "bare key mixed with valued keys",
+			sql:      "(timescaledb.continuous, timescaledb.materialized_only = false)",
+			want:     map[string]string{"timescaledb.continuous": "true", "timescaledb.materialized_only": "false"},
+			consumed: true,
+		},
+		{
+			name:    "key followed by an unexpected token",
+			sql:     "(fillfactor 70)",
+			wantErr: "expected '=' after reloption key",
+		},
+		{
+			name:    "missing open paren",
+			sql:     "fillfactor = 70",
+			wantErr: "expected '('",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			tokens, err := tokenise(testCase.sql)
+			require.NoError(t, err)
+			parserInstance := newParser(tokens)
+
+			options, err := newParserContext(parserInstance, NewPostgresEngine()).ParseReloptionList()
+
+			if testCase.wantErr != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), testCase.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, testCase.want, options)
+			assert.Equal(t, testCase.consumed, parserInstance.atEnd())
+		})
+	}
+}
+
+func TestParserContext_ExpectKeyword(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name    string
+		sql     string
+		wantErr bool
+	}{
+		{name: "matching keyword is consumed", sql: "create table", wantErr: false},
+		{name: "other keyword is an error", sql: "DROP table", wantErr: true},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			tokens, err := tokenise(testCase.sql)
+			require.NoError(t, err)
+			parserInstance := newParser(tokens)
+
+			err = newParserContext(parserInstance, NewPostgresEngine()).ExpectKeyword("CREATE")
+
+			if !testCase.wantErr {
+				require.NoError(t, err)
+				assert.Equal(t, 1, parserInstance.position)
+				return
+			}
+			require.Error(t, err)
+			assert.Same(t, err, parserInstance.syntax.err, "the mismatch fails the statement even if the extension drops it")
+		})
+	}
+}
+
+func TestPostgresEngine_StatementExtension_KeywordMismatchFailsApply(t *testing.T) {
+	t.Parallel()
+
+	engine := NewPostgresEngine(WithStatementExtensions(foobarTableExtension{}))
+	statements, err := engine.ParseStatements("CREATE FOOBAR widgets")
+	require.NoError(t, err)
+
+	_, err = engine.ApplyDDL(context.Background(), statements[0])
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "expected keyword [TABLE]")
+	assert.NotContains(t, err.Error(), "panic")
+}
+
+type foobarTableExtension struct {
+	foobarExtension
+}
+
+func (foobarTableExtension) Parse(p ParserContext, kind StatementKind) (*querier_dto.CatalogueMutation, error) {
+	if kind != statementKindFoobar {
+		return nil, nil
+	}
+	if err := p.ExpectKeyword("CREATE"); err != nil {
+		return nil, err
+	}
+	if err := p.ExpectKeyword("FOOBAR"); err != nil {
+		return nil, err
+	}
+	if err := p.ExpectKeyword("TABLE"); err != nil {
+		return nil, err
+	}
+	return nil, nil
 }

@@ -34,6 +34,8 @@ import (
 // optionally configures client CA verification for mTLS.
 //
 // Takes tlsValues (tlscert.TLSValues) which provides the resolved TLS settings.
+// Takes factory (safedisk.Factory) which creates sandboxes for reading TLS certificate
+// and key files.
 //
 // Returns credentials.TransportCredentials which is the configured TLS credentials for
 // gRPC.

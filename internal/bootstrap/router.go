@@ -52,6 +52,7 @@ import (
 	"piko.sh/piko/internal/storage/storage_adapters/presign_http"
 	"piko.sh/piko/internal/storage/storage_domain"
 	"piko.sh/piko/internal/templater/templater_domain"
+	"piko.sh/piko/wdk/safeconv"
 	"piko.sh/piko/wdk/safedisk"
 )
 
@@ -96,10 +97,7 @@ const (
 // when the total would overflow.
 func actionResponseWeigher(key string, value []byte) uint32 {
 	total := len(key) + len(value)
-	if total > int(^uint32(0)) {
-		return ^uint32(0)
-	}
-	return uint32(total)
+	return safeconv.IntToUint32(total)
 }
 
 var (
@@ -270,7 +268,7 @@ func (op *routerOperation) buildFinalRouter(ctx context.Context) (http.Handler, 
 	cacheMiddleware := op.createCacheMiddleware(ctx)
 	op.mountApplicationRoutes(ctx, cacheMiddleware)
 
-	presignUploadHandler, presignDownloadHandler, publicDownloadHandler := op.getPresignHandlers(ctx)
+	presignUploadHandler, presignDownloadHandler, publicDownloadHandler := newPresignHandlers(ctx, op.container, op.rateLimitService)
 
 	artefactMetaCache := op.buildArtefactMetadataCache(ctx)
 
@@ -363,8 +361,9 @@ func (op *routerOperation) createCacheMiddleware(ctx context.Context) *daemon_ad
 
 	cacheMiddleware := daemon_adapters.NewCacheMiddleware(
 		daemon_adapters.CacheMiddlewareConfig{
-			CacheWriteConcurrency: 5,
-			PersistenceDisabled:   op.container.registryBlobsReadOnly(),
+			CacheWriteConcurrency:  5,
+			PersistenceDisabled:    op.container.registryBlobsReadOnly(),
+			StreamCompressionLevel: 0,
 		},
 		op.store,
 		op.registryService,
@@ -382,19 +381,7 @@ func (op *routerOperation) createCacheMiddleware(ctx context.Context) *daemon_ad
 func (op *routerOperation) mountApplicationRoutes(ctx context.Context, cacheMiddleware *daemon_adapters.CacheMiddleware) {
 	ctx, l := logger_domain.From(ctx, log)
 
-	var actionResponseCache cache_domain.Cache[string, []byte]
-	if cacheService, err := op.container.GetCacheService(); err == nil {
-		actionResponseCache, err = cache_domain.NewCacheBuilder[string, []byte](cacheService).
-			Namespace("action_responses").
-			MaximumWeight(op.container.resolveActionResponseCacheMaxBytes()).
-			Weigher(actionResponseWeigher).
-			WriteExpiration(defaultActionResponseCacheMaxTTL).
-			Build(ctx)
-		if err != nil {
-			l.Warn("Failed to create action response cache, response caching disabled",
-				logger_domain.Error(err))
-		}
-	}
+	actionResponseCache := newActionResponseCache(ctx, op.container)
 
 	daemon_adapters.MountRoutesFromManifest(ctx, &daemon_adapters.MountRoutesConfig{
 		Router: op.deps.AppRouter,
@@ -445,63 +432,6 @@ func (op *routerOperation) buildRouterConfig(ctx context.Context) *daemon_domain
 	return routerConfig
 }
 
-// getPresignHandlers creates and returns presigned upload, download, and public download
-// HTTP handlers if the storage service is available.
-//
-// Returns uploadHandler (http.Handler) which handles authenticated uploads, or nil if not
-// available.
-// Returns downloadHandler (http.Handler) which handles authenticated downloads, or nil if
-// not available.
-// Returns publicDownloadHandler (http.Handler) which handles public downloads, or nil if
-// not available.
-func (op *routerOperation) getPresignHandlers(ctx context.Context) (uploadHandler, downloadHandler, publicDownloadHandler http.Handler) {
-	_, l := logger_domain.From(ctx, log)
-
-	storageService, err := op.container.GetStorageService()
-	if err != nil {
-		l.Internal("Storage service not available, presigned uploads/downloads disabled",
-			logger_domain.Error(err))
-		return nil, nil, nil
-	}
-
-	presignConfig := op.getPresignConfig(storageService)
-
-	if op.rateLimitService != nil {
-		presignConfig.RateLimiter = op.rateLimitService
-	} else if presignConfig.RateLimitPerMinute > 0 {
-		l.Warn("Presign rate limit is configured but no rate limit service is available, so it is not enforced",
-			logger_domain.Int("rate_limit_per_minute", presignConfig.RateLimitPerMinute))
-	}
-
-	publicDownloadHandler = presign_http.NewPublicDownloadHandler(storageService)
-	l.Internal("Public download handler configured at /_piko/storage/public")
-
-	if len(presignConfig.Secret) == 0 {
-		l.Warn("Presign secret not available, presigned uploads/downloads disabled")
-		return nil, nil, publicDownloadHandler
-	}
-
-	uploadHandler = presign_http.NewHandler(storageService, presignConfig)
-	downloadHandler = presign_http.NewDownloadHandler(storageService, presignConfig)
-	l.Internal("Presigned handlers configured at /_piko/storage/upload and /_piko/storage/download")
-	return uploadHandler, downloadHandler, publicDownloadHandler
-}
-
-// getPresignConfig retrieves the presign configuration from the storage service. If the
-// storage service provides a GetConfig method, use it; otherwise return defaults.
-//
-// Takes storageService (storage_domain.Service) which provides the storage configuration.
-//
-// Returns storage_domain.PresignConfig which contains the presign settings.
-func (*routerOperation) getPresignConfig(storageService storage_domain.Service) storage_domain.PresignConfig {
-	if configProvider, ok := storageService.(interface {
-		GetPresignConfig() storage_domain.PresignConfig
-	}); ok {
-		return configProvider.GetPresignConfig()
-	}
-	return storage_domain.DefaultPresignConfig()
-}
-
 // manifestProviderBuilder defines a function signature for creating a manifest provider.
 type manifestProviderBuilder func(path string, sandbox safedisk.Sandbox) generator_domain.ManifestProviderPort
 
@@ -526,6 +456,8 @@ type devRouterHandlers struct {
 // Takes c (*Container) which holds the dependency injection container.
 // Takes store (ManifestStoreView) which provides access to manifest data.
 // Takes templaterService (TemplaterService) which handles template rendering.
+// Takes disableHTTPCache (bool) which serves static assets with a revalidating cache
+// policy instead of the long-lived one.
 // Takes devHandlers (*devRouterHandlers) which provides optional dev-mode handlers; nil
 // in production mode.
 //
@@ -543,12 +475,23 @@ func buildRouter(
 	cspConfig := buildCSPRuntimeConfig(c)
 
 	operation := &routerOperation{
-		deps:             deps,
-		container:        c,
-		store:            store,
-		templaterService: templaterService,
-		cspConfig:        cspConfig,
-		disableHTTPCache: disableHTTPCache,
+		deps:                 deps,
+		container:            c,
+		store:                store,
+		templaterService:     templaterService,
+		cspConfig:            cspConfig,
+		disableHTTPCache:     disableHTTPCache,
+		variantGenerator:     nil,
+		registryService:      nil,
+		capabilityService:    nil,
+		renderRegistry:       nil,
+		csrfService:          nil,
+		captchaService:       nil,
+		spamdetectService:    nil,
+		rateLimitService:     nil,
+		devEventsBroadcaster: nil,
+		devAPIHandler:        nil,
+		devPreviewHandler:    nil,
 	}
 
 	if devHandlers != nil {
@@ -673,7 +616,8 @@ func mergeProviderCSPDomains(builder *security_domain.CSPBuilder, requirements *
 // Takes c (*Container) which provides configuration and sandbox creation.
 //
 // Returns generator_domain.ManifestProviderPort which is the selected manifest loader.
-// Returns error when the manifest format is not recognised.
+// Returns error when the manifest format is not recognised or the manifest directory
+// cannot be opened.
 func createManifestProvider(ctx context.Context, c *Container) (generator_domain.ManifestProviderPort, error) {
 	_, l := logger_domain.From(ctx, log)
 
@@ -700,10 +644,9 @@ func createManifestProvider(ctx context.Context, c *Container) (generator_domain
 		return nil, fmt.Errorf("%w: %s", errUnknownManifestFormat, config.ManifestFormat)
 	}
 
-	sandbox, sandboxErr := c.createSandbox("manifest-read", distDir, safedisk.ModeReadOnly)
-	if sandboxErr != nil {
-		l.Warn("Failed to create manifest read sandbox, provider will use fallback",
-			logger_domain.Error(sandboxErr))
+	sandbox, err := c.createSandbox("manifest-read", distDir, safedisk.ModeReadOnly)
+	if err != nil {
+		return nil, fmt.Errorf("opening manifest directory %q: %w", distDir, err)
 	}
 
 	return builder(manifestPath, sandbox), nil
@@ -729,4 +672,100 @@ func buildRouteSettings(serverConfig *ServerConfig) daemon_adapters.RouteSetting
 		ActionCompression:            deref(serverConfig.Network.ActionCompression, true),
 		MaxParallelBatchWorkers:      deref(serverConfig.Network.MaxParallelBatchWorkers, 0),
 	}
+}
+
+// newActionResponseCache builds the cache that holds the responses of actions that opt
+// into response caching.
+//
+// Takes c (*Container) which provides the cache service and the configured size limit.
+//
+// Returns cache_domain.Cache[string, []byte] which is the response cache, or nil when no
+// cache service is available or the cache cannot be built, which disables response
+// caching.
+func newActionResponseCache(ctx context.Context, c *Container) cache_domain.Cache[string, []byte] {
+	ctx, l := logger_domain.From(ctx, log)
+
+	cacheService, err := c.GetCacheService()
+	if err != nil {
+		return nil
+	}
+
+	actionResponseCache, err := cache_domain.NewCacheBuilder[string, []byte](cacheService).
+		Namespace("action_responses").
+		MaximumWeight(c.resolveActionResponseCacheMaxBytes()).
+		Weigher(actionResponseWeigher).
+		WriteExpiration(defaultActionResponseCacheMaxTTL).
+		Build(ctx)
+	if err != nil {
+		l.Warn("Failed to create action response cache, response caching disabled",
+			logger_domain.Error(err))
+		return nil
+	}
+
+	return actionResponseCache
+}
+
+// newPresignHandlers creates the presigned upload, download, and public download HTTP
+// handlers if the storage service is available.
+//
+// Takes c (*Container) which provides the storage service.
+// Takes rateLimitService (security_domain.RateLimitService) which limits presign
+// requests; nil leaves a configured presign rate limit unenforced, which is logged.
+//
+// Returns uploadHandler (http.Handler) which handles authenticated uploads, or nil if not
+// available.
+// Returns downloadHandler (http.Handler) which handles authenticated downloads, or nil if
+// not available.
+// Returns publicDownloadHandler (http.Handler) which handles public downloads, or nil if
+// not available.
+func newPresignHandlers(
+	ctx context.Context,
+	c *Container,
+	rateLimitService security_domain.RateLimitService,
+) (uploadHandler, downloadHandler, publicDownloadHandler http.Handler) {
+	_, l := logger_domain.From(ctx, log)
+
+	storageService, err := c.GetStorageService()
+	if err != nil {
+		l.Internal("Storage service not available, presigned uploads/downloads disabled",
+			logger_domain.Error(err))
+		return nil, nil, nil
+	}
+
+	presignConfig := presignConfigFor(storageService)
+
+	if rateLimitService != nil {
+		presignConfig.RateLimiter = rateLimitService
+	} else if presignConfig.RateLimitPerMinute > 0 {
+		l.Warn("Presign rate limit is configured but no rate limit service is available, so it is not enforced",
+			logger_domain.Int("rate_limit_per_minute", presignConfig.RateLimitPerMinute))
+	}
+
+	publicDownloadHandler = presign_http.NewPublicDownloadHandler(storageService)
+	l.Internal("Public download handler configured at /_piko/storage/public")
+
+	if len(presignConfig.Secret) == 0 {
+		l.Warn("Presign secret not available, presigned uploads/downloads disabled")
+		return nil, nil, publicDownloadHandler
+	}
+
+	uploadHandler = presign_http.NewHandler(storageService, presignConfig)
+	downloadHandler = presign_http.NewDownloadHandler(storageService, presignConfig)
+	l.Internal("Presigned handlers configured at /_piko/storage/upload and /_piko/storage/download")
+	return uploadHandler, downloadHandler, publicDownloadHandler
+}
+
+// presignConfigFor retrieves the presign configuration from the storage service. If the
+// storage service provides a GetPresignConfig method, use it; otherwise return defaults.
+//
+// Takes storageService (storage_domain.Service) which provides the storage configuration.
+//
+// Returns storage_domain.PresignConfig which contains the presign settings.
+func presignConfigFor(storageService storage_domain.Service) storage_domain.PresignConfig {
+	if configProvider, ok := storageService.(interface {
+		GetPresignConfig() storage_domain.PresignConfig
+	}); ok {
+		return configProvider.GetPresignConfig()
+	}
+	return storage_domain.DefaultPresignConfig()
 }

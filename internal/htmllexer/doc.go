@@ -31,9 +31,12 @@
 // # Position tracking
 //
 // Token positions are maintained incrementally on the hot path via TokenLine and
-// TokenCol. For arbitrary byte-offset lookups, PositionAt performs an O(log n) binary
-// search over a precomputed newline index built at construction time. Columns are
-// measured in Unicode runes, not bytes.
+// TokenCol. For arbitrary byte-offset lookups, PositionAt finds the line with an O(log n)
+// binary search over a precomputed newline index built at construction time, then counts
+// the column from the nearest known position on that line (the previous lookup, the
+// cursor, or the line start). Lookups that move forward through the source therefore cost
+// time proportional to the distance moved, so parsing stays linear even for templates
+// written on a single line. Columns are measured in Unicode runes, not bytes.
 //
 // # Thread safety
 //

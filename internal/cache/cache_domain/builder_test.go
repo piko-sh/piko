@@ -1302,3 +1302,185 @@ func (*mockStatsRecorder) RecordEviction()                 {}
 type mockClock struct{}
 
 func (*mockClock) Now() time.Time { return time.Now() }
+
+func newFullyConfiguredBuilder() *CacheBuilder[string, string] {
+	builder := NewCacheBuilder[string, string](NewService("mock")).
+		Namespace("users").
+		MaximumEntries(100).
+		MaximumWeight(1<<20).
+		MaxEntryWeight(64).
+		InitialCapacity(16).
+		Weigher(func(_ string, value string) uint32 { return uint32(len(value)) }).
+		WriteExpiration(time.Minute).
+		OnDeletion(func(cache_dto.DeletionEvent[string, string]) {}).
+		OnAtomicDeletion(func(cache_dto.DeletionEvent[string, string]) {}).
+		Executor(func(operation func()) { operation() }).
+		Searchable(&cache_dto.SearchSchema{}).
+		MultiLevel("l1", "l2").
+		L1Options("l1-options").
+		L2Options("l2-options").
+		L2CircuitBreaker(7, time.Second)
+	builder.providerOptions = "provider-options"
+	builder.providerName = "provider"
+	builder.factoryBlueprint = "blueprint"
+	builder.refreshCalculator = struct {
+		cache_dto.RefreshCalculator[string, string]
+	}{}
+	builder.statsRecorder = struct{ cache_dto.StatsRecorder }{}
+	builder.clock = struct{ cache_dto.Clock }{}
+	builder.cacheLogger = struct{ cache_dto.Logger }{}
+	builder.defaultEncoder = newMockEncoder[string]()
+	builder.encoders = append(builder.encoders, newMockEncoder[string]())
+	builder.transformers = append(builder.transformers, transformerSpec{name: "zstd"})
+
+	return builder
+}
+
+func TestCacheBuilder_ClonePreservesEveryField(t *testing.T) {
+	original := newFullyConfiguredBuilder()
+
+	clone := original.Clone()
+
+	value := reflect.ValueOf(clone).Elem()
+	for index := range value.NumField() {
+		field := value.Type().Field(index)
+		assert.False(t, value.Field(index).IsZero(), "Clone dropped %s", field.Name)
+	}
+	assert.Equal(t, original.maxEntryWeight, clone.maxEntryWeight)
+	assert.Equal(t, original.l1ProviderName, clone.l1ProviderName)
+	assert.Equal(t, original.l2OpenTimeout, clone.l2OpenTimeout)
+}
+
+func TestCacheBuilder_CloneOwnsItsTransformersAndEncoders(t *testing.T) {
+	original := NewCacheBuilder[string, string](NewService(""))
+	clone := original.Clone()
+
+	clone.encoders = append(clone.encoders, newMockEncoder[string]())
+	clone.transformers = append(clone.transformers, transformerSpec{name: "zstd"})
+
+	assert.Empty(t, original.encoders)
+	assert.Empty(t, original.transformers)
+}
+
+func TestCacheBuilder_MultiLevelLevelOptions(t *testing.T) {
+	builder := NewCacheBuilder[string, string](NewService("mock")).
+		Namespace("sessions").
+		MaximumEntries(100).
+		MaximumWeight(1<<20).
+		MaxEntryWeight(64).
+		InitialCapacity(16).
+		Weigher(func(_ string, value string) uint32 { return uint32(len(value)) }).
+		MultiLevel("l1", "l2").
+		L1Options("l1-options").
+		L2Options("l2-options")
+
+	l1 := builder.buildL1Options()
+	l2 := builder.buildL2Options()
+
+	testCases := []struct {
+		got  any
+		want any
+		name string
+	}{
+		{name: "L1 provider", got: l1.Provider, want: "l1"},
+		{name: "L1 namespace", got: l1.Namespace, want: "sessions"},
+		{name: "L1 provider options", got: l1.ProviderSpecific, want: "l1-options"},
+		{name: "L1 maximum entries", got: l1.MaximumEntries, want: 100},
+		{name: "L1 maximum weight", got: l1.MaximumWeight, want: uint64(1 << 20)},
+		{name: "L1 per-entry ceiling", got: l1.MaxEntryWeight, want: uint32(64)},
+		{name: "L1 initial capacity", got: l1.InitialCapacity, want: 16},
+		{name: "L1 has a weigher", got: l1.Weigher != nil, want: true},
+		{name: "L2 provider", got: l2.Provider, want: "l2"},
+		{name: "L2 namespace", got: l2.Namespace, want: "sessions"},
+		{name: "L2 provider options", got: l2.ProviderSpecific, want: "l2-options"},
+		{name: "L2 maximum entries", got: l2.MaximumEntries, want: 0},
+		{name: "L2 maximum weight", got: l2.MaximumWeight, want: uint64(0)},
+		{name: "L2 per-entry ceiling", got: l2.MaxEntryWeight, want: uint32(0)},
+		{name: "L2 initial capacity", got: l2.InitialCapacity, want: 0},
+		{name: "L2 has no weigher", got: l2.Weigher == nil, want: true},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, tc.got)
+		})
+	}
+}
+
+func TestCacheBuilder_BuildRejectsOptionsMultiLevelCannotHonour(t *testing.T) {
+	service := NewService("mock")
+	require.NoError(t, service.RegisterProvider(context.Background(), "mock", newMockTestProvider("mock")))
+
+	testCases := []struct {
+		configure func(builder *CacheBuilder[string, string])
+		name      string
+		wantText  string
+	}{
+		{
+			name:      "transformer",
+			configure: func(builder *CacheBuilder[string, string]) { builder.Compression() },
+			wantText:  "transformers/encoders",
+		},
+		{
+			name: "encoder",
+			configure: func(builder *CacheBuilder[string, string]) {
+				builder.DefaultEncoder(newMockEncoder[string]())
+			},
+			wantText: "transformers/encoders",
+		},
+		{
+			name:      "provider",
+			configure: func(builder *CacheBuilder[string, string]) { builder.Provider("mock") },
+			wantText:  "Provider",
+		},
+		{
+			name:      "factory blueprint",
+			configure: func(builder *CacheBuilder[string, string]) { builder.FactoryBlueprint("blueprint") },
+			wantText:  "FactoryBlueprint",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			builder := NewCacheBuilder[string, string](service).MultiLevel("mock", "mock")
+			tc.configure(builder)
+
+			cache, err := builder.Build(context.Background())
+
+			require.ErrorIs(t, err, errInvalidConfiguration)
+			assert.Contains(t, err.Error(), tc.wantText)
+			assert.Contains(t, err.Error(), "MultiLevel")
+			assert.Nil(t, cache)
+		})
+	}
+}
+
+func TestCacheBuilder_BuildMultiLevelGatesHeavyEntries(t *testing.T) {
+	multiLevelAdapterMutex.Lock()
+	original := multiLevelAdapterConstructor
+	multiLevelAdapterConstructor = func(_ context.Context, _ string, l1, _, _ any) (any, error) {
+		return l1, nil
+	}
+	multiLevelAdapterMutex.Unlock()
+	defer func() {
+		multiLevelAdapterMutex.Lock()
+		multiLevelAdapterConstructor = original
+		multiLevelAdapterMutex.Unlock()
+	}()
+
+	service := NewService("mock")
+	require.NoError(t, service.RegisterProvider(context.Background(), "l1", newMockTestProvider("l1")))
+	require.NoError(t, service.RegisterProvider(context.Background(), "l2", newMockTestProvider("l2")))
+
+	cache, err := NewCacheBuilder[string, string](service).
+		Namespace("gated").
+		MaximumWeight(1<<20).
+		Weigher(func(_ string, value string) uint32 { return uint32(len(value)) }).
+		MaxEntryWeight(4).
+		MultiLevel("l1", "l2").
+		Build(context.Background())
+	require.NoError(t, err)
+
+	require.ErrorIs(t, cache.Set(context.Background(), "heavy", "far too heavy"), ErrEntryTooLarge)
+	require.NoError(t, cache.Set(context.Background(), "light", "ok"))
+}

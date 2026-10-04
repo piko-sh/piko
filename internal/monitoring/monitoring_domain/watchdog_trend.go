@@ -73,6 +73,8 @@ func newHeapTrendBuffer(capacity int) *heapTrendBuffer {
 	return &heapTrendBuffer{
 		samples:  make([]uint64, capacity),
 		capacity: capacity,
+		head:     0,
+		count:    0,
 	}
 }
 

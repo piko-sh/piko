@@ -31,6 +31,7 @@ import (
 	"github.com/maypok86/otter/v2"
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/cache/cache_dto"
+	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/wal/wal_domain"
 	"piko.sh/piko/wdk/goroutine"
@@ -298,6 +299,9 @@ type OtterAdapter[K comparable, V any] struct {
 	// per-entry ceiling. It may be nil.
 	onDeletion func(cache_dto.DeletionEvent[K, V])
 
+	// closeErr holds the result of the first Close so later calls report the same outcome.
+	closeErr error
+
 	// maxEntryWeight is the largest weight a single entry may have; 0 means no ceiling.
 	maxEntryWeight uint32
 
@@ -371,6 +375,7 @@ func (a *OtterAdapter[K, V]) Set(ctx context.Context, key K, value V, tags ...st
 			Value:     value,
 			Tags:      tags,
 			Timestamp: time.Now().UnixNano(),
+			ExpiresAt: 0,
 		}
 		if err := a.wal.Append(context.WithoutCancel(ctx), entry); err != nil {
 			l.Warn("Failed to append to WAL", logger_domain.Error(err))
@@ -471,11 +476,10 @@ func (a *OtterAdapter[K, V]) Invalidate(ctx context.Context, key K) error {
 func (a *OtterAdapter[K, V]) appendDeleteToWAL(ctx context.Context, key K) {
 	ctx, l := logger_domain.From(ctx, log)
 
-	entry := wal_domain.Entry[K, V]{
-		Operation: wal_domain.OpDelete,
-		Key:       key,
-		Timestamp: time.Now().UnixNano(),
-	}
+	entry := wal_domain.Entry[K, V]{}
+	entry.Operation = wal_domain.OpDelete
+	entry.Key = key
+	entry.Timestamp = time.Now().UnixNano()
 	if err := a.wal.Append(context.WithoutCancel(ctx), entry); err != nil {
 		l.Warn("Failed to append delete to WAL", logger_domain.Error(err))
 	}
@@ -595,6 +599,7 @@ func (a *OtterAdapter[K, V]) BulkSet(ctx context.Context, items map[K]V, tags ..
 				Value:     value,
 				Tags:      tags,
 				Timestamp: nowNs,
+				ExpiresAt: 0,
 			}
 			if err := a.wal.Append(ctx, entry); err != nil {
 				l.Warn("Failed to append bulk item to WAL", logger_domain.Error(err))
@@ -710,10 +715,9 @@ func (a *OtterAdapter[K, V]) InvalidateAll(ctx context.Context) error {
 
 	if a.walEnabled && a.wal != nil {
 		a.checkpointMu.RLock()
-		entry := wal_domain.Entry[K, V]{
-			Operation: wal_domain.OpClear,
-			Timestamp: time.Now().UnixNano(),
-		}
+		entry := wal_domain.Entry[K, V]{}
+		entry.Operation = wal_domain.OpClear
+		entry.Timestamp = time.Now().UnixNano()
 		if err := a.wal.Append(context.WithoutCancel(ctx), entry); err != nil {
 			l.Warn("Failed to append clear to WAL", logger_domain.Error(err))
 		}
@@ -731,13 +735,19 @@ func (a *OtterAdapter[K, V]) InvalidateAll(ctx context.Context) error {
 
 // BulkRefresh refreshes multiple keys in the background using the bulk loader.
 //
+// The context is detached through daemon_dto.DetachRequestContext before the loader runs,
+// because the refresh can outlive the calling request.
+//
 // Takes keys ([]K) which specifies the cache keys to refresh.
 // Takes bulkLoader (BulkLoader) which loads fresh values for the keys.
 func (a *OtterAdapter[K, V]) BulkRefresh(ctx context.Context, keys []K, bulkLoader cache_dto.BulkLoader[K, V]) {
-	a.client.BulkRefresh(ctx, keys, a.wrapBulkLoader(bulkLoader))
+	a.client.BulkRefresh(daemon_dto.DetachRequestContext(ctx), keys, a.wrapBulkLoader(bulkLoader))
 }
 
 // Refresh asynchronously reloads a single key using the provided loader.
+//
+// The context is detached through daemon_dto.DetachRequestContext before the loader runs,
+// because the refresh can outlive the calling request.
 //
 // Takes key (K) which identifies the cache entry to refresh.
 // Takes loader (Loader[K, V]) which loads the fresh value.
@@ -747,6 +757,7 @@ func (a *OtterAdapter[K, V]) BulkRefresh(ctx context.Context, keys []K, bulkLoad
 // Safe for concurrent use. Spawns a goroutine that converts the otter result channel into
 // a DTO result channel.
 func (a *OtterAdapter[K, V]) Refresh(ctx context.Context, key K, loader cache_dto.Loader[K, V]) <-chan cache_dto.LoadResult[V] {
+	ctx = daemon_dto.DetachRequestContext(ctx)
 	otterResultChan := a.client.Refresh(ctx, key, a.wrapLoader(loader))
 
 	if otterResultChan == nil {
@@ -940,6 +951,8 @@ func (a *OtterAdapter[K, V]) collectSnapshotEntries() []wal_domain.Entry[K, V] {
 			Key:       key,
 			Value:     value,
 			Timestamp: nowNano,
+			Tags:      nil,
+			ExpiresAt: 0,
 		}
 
 		if tags := a.tagIndex.GetTags(key); len(tags) > 0 {
@@ -960,30 +973,25 @@ func (a *OtterAdapter[K, V]) collectSnapshotEntries() []wal_domain.Entry[K, V] {
 //
 // Returns error which contains any joined errors from closing the WAL and snapshot store;
 // nil when the cache is purely in-memory.
-func (a *OtterAdapter[K, V]) Close(ctx context.Context) error {
-	_, l := logger_domain.From(ctx, log)
-
-	var closeErr error
+func (a *OtterAdapter[K, V]) Close(_ context.Context) error {
 	a.closeOnce.Do(func() {
 		if a.walEnabled {
-			closeErr = a.closePersistenceLocked(l)
+			a.closeErr = a.closePersistenceLocked()
 		}
 		a.client.StopAllGoroutines()
 	})
-	return closeErr
+	return a.closeErr
 }
 
 // closePersistenceLocked finalises the WAL by checkpointing any pending entries, closing
 // the WAL and snapshot store, and joining any errors from the two closes.
-//
-// Takes l (logger_domain.Logger) which receives warnings about close failures.
 //
 // Returns error which is the joined set of WAL/snapshot close errors, or nil when both
 // close cleanly.
 //
 // Concurrency: acquires checkpointMu while flushing pending WAL entries before closing
 // the WAL and snapshot stores.
-func (a *OtterAdapter[K, V]) closePersistenceLocked(l logger_domain.Logger) error {
+func (a *OtterAdapter[K, V]) closePersistenceLocked() error {
 	a.checkpointMu.Lock()
 	if a.wal != nil && a.snapshot != nil && a.wal.EntryCount() > 0 {
 		_ = a.performCheckpointLocked()
@@ -993,14 +1001,12 @@ func (a *OtterAdapter[K, V]) closePersistenceLocked(l logger_domain.Logger) erro
 	var walErr, snapshotErr error
 	if a.wal != nil {
 		if err := a.wal.Close(); err != nil {
-			l.Warn("Failed to close WAL", logger_domain.Error(err))
-			walErr = err
+			walErr = fmt.Errorf("closing WAL: %w", err)
 		}
 	}
 	if a.snapshot != nil {
 		if err := a.snapshot.Close(); err != nil {
-			l.Warn("Failed to close snapshot store", logger_domain.Error(err))
-			snapshotErr = err
+			snapshotErr = fmt.Errorf("closing snapshot store: %w", err)
 		}
 	}
 	return errors.Join(walErr, snapshotErr)
@@ -1064,9 +1070,10 @@ func (a *OtterAdapter[K, V]) SetRefreshableAfter(_ context.Context, key K, refre
 // Returns *TagIndex[K] ready for use.
 func NewTagIndex[K comparable]() *TagIndex[K] {
 	return &TagIndex[K]{
-		index:     make(map[string]map[K]struct{}),
-		keyToTags: make(map[K]map[string]struct{}),
-		mu:        sync.RWMutex{},
+		index:         make(map[string]map[K]struct{}),
+		keyToTags:     make(map[K]map[string]struct{}),
+		mu:            sync.RWMutex{},
+		maxTagsPerKey: 0,
 	}
 }
 

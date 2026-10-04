@@ -990,7 +990,7 @@ func TestUpdateExpressionBaseCodeGenVarName(t *testing.T) {
 		baseIdent := &ast_domain.Identifier{Name: "items"}
 		expression := &ast_domain.IndexExpression{
 			Base:  baseIdent,
-			Index: &ast_domain.IntegerLiteral{Value: 0},
+			Index: &ast_domain.IntegerLiteral{},
 		}
 
 		updateExpressionBaseCodeGenVarName(expression, &varName)

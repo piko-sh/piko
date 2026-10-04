@@ -171,15 +171,13 @@ func TestIncrementWithExpiry_ConcurrentIncrements(t *testing.T) {
 	const incrementsPerGoroutine = 50
 
 	var wg sync.WaitGroup
-	wg.Add(numGoroutines)
 
 	for range numGoroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for range incrementsPerGoroutine {
 				_, _, _ = cache.IncrementWithExpiry(ctx, c, "counter", 1, time.Hour)
 			}
-		}()
+		})
 	}
 
 	wg.Wait()

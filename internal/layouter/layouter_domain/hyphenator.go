@@ -61,7 +61,7 @@ type trieNode struct {
 //
 // Returns *trieNode which is the newly allocated node.
 func newTrieNode() *trieNode {
-	return &trieNode{children: make(map[rune]*trieNode)}
+	return &trieNode{children: make(map[rune]*trieNode), values: nil}
 }
 
 // Hyphenator holds a compiled trie of hyphenation patterns for a single language. It is
@@ -288,6 +288,7 @@ var (
 	// hyphenators.
 	defaultHyphenationRegistry = &HyphenationRegistry{
 		hyphenators: make(map[string]*Hyphenator),
+		mu:          sync.Mutex{},
 	}
 )
 

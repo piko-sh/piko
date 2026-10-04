@@ -117,7 +117,7 @@ var (
 func New(base, overlay storage_domain.StorageProviderPort) storage_domain.StorageProviderPort {
 	if base == nil {
 		if overlay == nil {
-			return &UnionProvider{base: nil, overlay: nil}
+			return &UnionProvider{}
 		}
 		return overlay
 	}
@@ -248,8 +248,9 @@ func (p *UnionProvider) Put(ctx context.Context, params *storage_dto.PutParams) 
 
 // Copy copies an object within a repository on the overlay.
 //
-// Takes repository (string), sourceKey (string) and destinationKey (string) naming the
-// copy.
+// Takes repository (string) which names the repository containing the object.
+// Takes sourceKey (string) which identifies the source object.
+// Takes destinationKey (string) which identifies the destination object.
 //
 // Returns error which is ErrReadOnly when there is no overlay.
 func (p *UnionProvider) Copy(ctx context.Context, repository, sourceKey, destinationKey string) error {
@@ -261,8 +262,10 @@ func (p *UnionProvider) Copy(ctx context.Context, repository, sourceKey, destina
 
 // CopyToAnotherRepository copies an object across repositories on the overlay.
 //
-// Takes sourceRepository, sourceKey, destinationRepository and destinationKey naming a
-// copy.
+// Takes sourceRepository (string) which names the repository to copy from.
+// Takes sourceKey (string) which identifies the source object.
+// Takes destinationRepository (string) which names the repository to copy into.
+// Takes destinationKey (string) which identifies the destination object.
 //
 // Returns error which is ErrReadOnly when there is no overlay.
 func (p *UnionProvider) CopyToAnotherRepository(ctx context.Context, sourceRepository, sourceKey, destinationRepository, destinationKey string) error {
@@ -292,7 +295,9 @@ func (p *UnionProvider) Remove(ctx context.Context, params storage_dto.GetParams
 
 // Rename renames an object within a repository on the overlay.
 //
-// Takes repository, sourceKey and destinationKey (strings) naming the rename.
+// Takes repository (string) which names the repository containing the object.
+// Takes sourceKey (string) which identifies the source object.
+// Takes destinationKey (string) which identifies the destination object.
 //
 // Returns error which is ErrReadOnly when there is no overlay.
 func (p *UnionProvider) Rename(ctx context.Context, repository, sourceKey, destinationKey string) error {

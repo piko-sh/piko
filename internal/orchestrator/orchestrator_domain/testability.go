@@ -133,16 +133,20 @@ func (qs queueSelector) PollAttempts(priority TaskPriority) int {
 // calculateRetryBackoff computes the delay before retrying a failed task.
 //
 // Uses exponential backoff with configurable jitter. The formula is: base^attempt seconds
-// + random jitter milliseconds, where base is 10 seconds.
+// + random jitter milliseconds, where base is 10 seconds. The exponential part is capped
+// at maxBackoff before conversion, so large attempt numbers neither overflow nor produce
+// waits longer than the cap.
 //
 // Takes attempt (int) which is the current attempt number (1-indexed after first
 // failure).
+// Takes maxBackoff (time.Duration) which caps the exponential part of the delay.
 // Takes randFunction (randFunc) which returns a random int in [0, n). Pass nil for no
 // jitter.
 //
 // Returns time.Duration which is the calculated backoff delay.
-func calculateRetryBackoff(attempt int, randFunction randFunc) time.Duration {
-	backoff := time.Second * time.Duration(math.Pow(backoffBase, float64(attempt)))
+func calculateRetryBackoff(attempt int, maxBackoff time.Duration, randFunction randFunc) time.Duration {
+	backoffSeconds := min(math.Pow(backoffBase, float64(attempt)), maxBackoff.Seconds())
+	backoff := time.Duration(backoffSeconds * float64(time.Second))
 
 	var jitter time.Duration
 	if randFunction != nil {

@@ -83,7 +83,7 @@ func TestScaffold_DockerImageBootsAsNonroot(t *testing.T) {
 	t.Cleanup(func() { _ = exec.Command(dockerBin, "rm", "-f", containerID).Run() })
 
 	portOutput := strings.TrimSpace(runDocker("port", containerID, "8080/tcp"))
-	portLine := strings.Split(portOutput, "\n")[0]
+	portLine, _, _ := strings.Cut(portOutput, "\n")
 	address := strings.TrimSpace(portLine)
 
 	deadline := time.Now().Add(60 * time.Second)

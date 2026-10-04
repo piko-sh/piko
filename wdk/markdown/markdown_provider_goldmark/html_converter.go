@@ -21,22 +21,25 @@ package markdown_provider_goldmark
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer/html"
-	"piko.sh/piko/internal/logger/logger_domain"
-)
-
-var (
-	// log is the package-level logger for the markdown_provider_goldmark package.
-	log = logger_domain.GetLogger("piko/wdk/markdown/markdown_provider_goldmark")
 )
 
 // HTMLConverterOptions holds configuration for HTML conversion.
 type HTMLConverterOptions struct {
+	// MaxInputSize is the largest markdown document, in bytes, that is converted; larger
+	// documents fail with ErrInputTooLarge. Defaults to 16 MiB.
+	MaxInputSize int
+
+	// MaxNestingDepth is the most blockquote and list markers that may open on one line;
+	// deeper lines fail with ErrNestingTooDeep. Defaults to 1000.
+	MaxNestingDepth int
+
 	// Unsafe enables rendering of raw HTML embedded in markdown. When false (default), raw
 	// HTML is stripped for security.
 	Unsafe bool
@@ -67,18 +70,54 @@ func WithUnsafe() HTMLConverterOption {
 	}
 }
 
+// WithHTMLMaxInputSize sets the largest markdown document, in bytes, that ToHTML and
+// ToHTMLBytes convert; larger documents fail with ErrInputTooLarge. The default is 16
+// MiB.
+//
+// Takes size (int) which is the limit in bytes; values below one keep the default.
+//
+// Returns HTMLConverterOption which applies the limit.
+func WithHTMLMaxInputSize(size int) HTMLConverterOption {
+	return func(opts *HTMLConverterOptions) {
+		if size > 0 {
+			opts.MaxInputSize = size
+		}
+	}
+}
+
+// WithHTMLMaxNestingDepth sets the most blockquote and list markers that may open on a
+// single line; deeper lines fail with ErrNestingTooDeep before conversion. The default is
+// 1000.
+//
+// Takes depth (int) which is the limit; values below one keep the default.
+//
+// Returns HTMLConverterOption which applies the limit.
+func WithHTMLMaxNestingDepth(depth int) HTMLConverterOption {
+	return func(opts *HTMLConverterOptions) {
+		if depth > 0 {
+			opts.MaxNestingDepth = depth
+		}
+	}
+}
+
 // ToHTML converts a Markdown string to an HTML string.
 //
 // By default, raw HTML in the Markdown is removed for security. Use WithUnsafe() to allow
-// raw HTML rendering for trusted content only.
+// raw HTML rendering for trusted content only. Documents beyond the size or nesting
+// limits are rejected before conversion.
 //
-// Takes ctx (context.Context) which carries logger and tracing data.
 // Takes markdown (string) which is the Markdown content to convert.
 // Takes opts (...HTMLConverterOption) which sets options for the conversion.
 //
 // Returns string which is the rendered HTML output.
-func ToHTML(ctx context.Context, markdown string, opts ...HTMLConverterOption) string {
-	return string(ToHTMLBytes(ctx, []byte(markdown), opts...))
+// Returns error which wraps ErrInputTooLarge or ErrNestingTooDeep when markdown is beyond
+// the limits, the cancellation cause when ctx is done, or the conversion failure.
+func ToHTML(ctx context.Context, markdown string, opts ...HTMLConverterOption) (string, error) {
+	rendered, err := ToHTMLBytes(ctx, []byte(markdown), opts...)
+	if err != nil {
+		return "", err
+	}
+	return string(rendered), nil
 }
 
 // ToHTMLBytes converts markdown bytes to HTML bytes.
@@ -86,18 +125,22 @@ func ToHTML(ctx context.Context, markdown string, opts ...HTMLConverterOption) s
 // This variant avoids string conversion overhead when working with byte slices.
 //
 // By default, raw HTML embedded in the markdown is stripped for security. Use
-// WithUnsafe() to enable raw HTML rendering for trusted content only.
+// WithUnsafe() to enable raw HTML rendering for trusted content only. Documents beyond
+// the size or nesting limits are rejected before conversion.
 //
-// Takes ctx (context.Context) which carries logger and tracing data.
 // Takes markdown ([]byte) which is the markdown content to convert.
 // Takes opts (...HTMLConverterOption) which configures the conversion.
 //
 // Returns []byte which is the rendered HTML output.
-func ToHTMLBytes(ctx context.Context, markdown []byte, opts ...HTMLConverterOption) []byte {
-	_, l := logger_domain.From(ctx, log)
-	options := &HTMLConverterOptions{}
-	for _, opt := range opts {
-		opt(options)
+// Returns error which wraps ErrInputTooLarge or ErrNestingTooDeep when markdown is beyond
+// the limits, the cancellation cause when ctx is done, or the conversion failure.
+func ToHTMLBytes(ctx context.Context, markdown []byte, opts ...HTMLConverterOption) ([]byte, error) {
+	options := newHTMLConverterOptions(opts)
+	if ctx.Err() != nil {
+		return nil, fmt.Errorf("converting markdown to HTML: %w", context.Cause(ctx))
+	}
+	if err := checkInputLimits(markdown, options.MaxInputSize, options.MaxNestingDepth); err != nil {
+		return nil, err
 	}
 
 	var converter goldmark.Markdown
@@ -109,13 +152,10 @@ func ToHTMLBytes(ctx context.Context, markdown []byte, opts ...HTMLConverterOpti
 
 	var buffer bytes.Buffer
 	if err := converter.Convert(markdown, &buffer); err != nil {
-		l.Warn("Markdown conversion failed",
-			logger_domain.Error(err),
-			logger_domain.Int("input_length", len(markdown)))
-		return nil
+		return nil, fmt.Errorf("converting markdown to HTML: %w", err)
 	}
 
-	return buffer.Bytes()
+	return buffer.Bytes(), nil
 }
 
 // ResetConverters resets the singleton converters to their initial state. This is only
@@ -164,4 +204,21 @@ func newUnsafeConverterOnce() func() goldmark.Markdown {
 			),
 		)
 	})
+}
+
+// newHTMLConverterOptions applies opts over the default HTML conversion settings.
+//
+// Takes opts ([]HTMLConverterOption) which adjust the defaults.
+//
+// Returns HTMLConverterOptions which holds the resulting settings.
+func newHTMLConverterOptions(opts []HTMLConverterOption) HTMLConverterOptions {
+	options := HTMLConverterOptions{
+		MaxInputSize:    defaultMaxInputSize,
+		MaxNestingDepth: defaultMaxNestingDepth,
+		Unsafe:          false,
+	}
+	for _, opt := range opts {
+		opt(&options)
+	}
+	return options
 }

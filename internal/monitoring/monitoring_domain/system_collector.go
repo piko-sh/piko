@@ -121,18 +121,10 @@ type SystemCollectorOption func(*SystemCollector)
 //
 // Returns *SystemCollector which is ready to collect system metrics.
 func NewSystemCollector(opts ...SystemCollectorOption) *SystemCollector {
-	c := &SystemCollector{
-		clock:           nil,
-		startTime:       time.Time{},
-		lastCPUSampleAt: time.Time{},
-		stopCh:          make(chan struct{}),
-		memStats:        runtime.MemStats{},
-		runtimeMetrics:  newRuntimeMetricsCollector(),
-		lastCPUTime:     0,
-		cpuMillicores:   0,
-		mu:              sync.RWMutex{},
-		stopped:         false,
-	}
+	c := &SystemCollector{}
+	c.stopCh = make(chan struct{})
+	c.runtimeMetrics = newRuntimeMetricsCollector()
+	c.lastSnapshot = newRuntimeMetricsSnapshot(time.Time{})
 
 	for _, opt := range opts {
 		opt(c)
@@ -625,12 +617,16 @@ func readProcessCPUTime() uint64 {
 // details including VCS metadata from debug.ReadBuildInfo.
 func buildBuildInfo() internalBuildInfo {
 	info := internalBuildInfo{
-		GoVersion: runtime.Version(),
-		Version:   Version,
-		Commit:    Commit,
-		BuildTime: BuildTime,
-		OS:        runtime.GOOS,
-		Arch:      runtime.GOARCH,
+		GoVersion:     runtime.Version(),
+		Version:       Version,
+		Commit:        Commit,
+		BuildTime:     BuildTime,
+		OS:            runtime.GOOS,
+		Arch:          runtime.GOARCH,
+		ModulePath:    "",
+		ModuleVersion: "",
+		VCSTime:       "",
+		VCSModified:   false,
 	}
 
 	if bi, ok := debug.ReadBuildInfo(); ok {

@@ -80,6 +80,7 @@ func WithGRPCServerOptions(opts ...grpc.ServerOption) Option {
 func Transport(opts ...Option) monitoring_domain.TransportFactory {
 	tc := transportConfig{
 		enableReflection: true,
+		grpcServerOpts:   nil,
 	}
 	for _, opt := range opts {
 		opt(&tc)

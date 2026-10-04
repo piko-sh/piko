@@ -102,14 +102,9 @@ func TestIsSingleShortTextChild(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "empty element",
-			analysis: contentAnalysis{
-				childCount:         0,
-				hasTextChildren:    false,
-				hasElementChildren: false,
-				textLength:         0,
-			},
-			want: false,
+			name:     "empty element",
+			analysis: contentAnalysis{},
+			want:     false,
 		},
 	}
 
@@ -192,13 +187,10 @@ func TestIsSimpleListItem(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "li with zero content",
-			node: &ast_domain.TemplateNode{TagName: "li"},
-			analysis: contentAnalysis{
-				totalContentLength: 0,
-				hasBlockChildren:   false,
-			},
-			want: true,
+			name:     "li with zero content",
+			node:     &ast_domain.TemplateNode{TagName: "li"},
+			analysis: contentAnalysis{},
+			want:     true,
 		},
 	}
 

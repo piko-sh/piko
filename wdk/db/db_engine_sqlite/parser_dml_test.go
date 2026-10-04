@@ -19,6 +19,7 @@
 package db_engine_sqlite
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -120,6 +121,53 @@ func TestAnalyseQuery_CompoundLimitOffsetRegistersParameter(t *testing.T) {
 				"a parameter nested in a compound LIMIT/OFFSET value must be registered")
 		})
 	}
+}
+
+func TestAnalyseQueryCollectsCompoundArmsIntoOneFlatList(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name          string
+		sql           string
+		wantOperators []querier_dto.CompoundOperator
+	}{
+		{
+			name:          "three arms with mixed operators",
+			sql:           "SELECT id FROM a UNION SELECT id FROM b INTERSECT SELECT id FROM c ORDER BY id LIMIT ?",
+			wantOperators: []querier_dto.CompoundOperator{querier_dto.CompoundUnion, querier_dto.CompoundIntersect},
+		},
+		{
+			name:          "union all followed by except",
+			sql:           "SELECT id FROM a UNION ALL SELECT id FROM b EXCEPT SELECT id FROM c",
+			wantOperators: []querier_dto.CompoundOperator{querier_dto.CompoundUnionAll, querier_dto.CompoundExcept},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			analysis := analyseQuery(t, nil, testCase.sql)
+
+			require.Len(t, analysis.CompoundBranches, len(testCase.wantOperators))
+			for index, branch := range analysis.CompoundBranches {
+				assert.Equal(t, testCase.wantOperators[index], branch.Operator)
+				require.NotNil(t, branch.Query)
+				assert.Empty(t, branch.Query.CompoundBranches, "arms must not nest inside one another")
+			}
+		})
+	}
+}
+
+func TestAnalyseQueryHandlesLongCompoundChains(t *testing.T) {
+	t.Parallel()
+
+	const arms = 10_000
+	sql := "SELECT 1" + strings.Repeat(" UNION SELECT 1", arms-1)
+
+	analysis := analyseQuery(t, nil, sql)
+
+	assert.Len(t, analysis.CompoundBranches, arms-1)
 }
 
 func TestAnalyseQuery_ExistsSubqueryExposesInnerQueryParameters(t *testing.T) {

@@ -28,8 +28,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_dto"
-	"piko.sh/piko/internal/goastutil"
 )
 
 const (

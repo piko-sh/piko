@@ -31,5 +31,6 @@ func MySQL() db.EngineConfig {
 		DriverName:       "mysql",
 		Engine:           NewMySQLEngine(),
 		MigrationDialect: migration_sql.MySQLDialect(),
+		CatalogueFactory: nil,
 	}
 }

@@ -188,6 +188,8 @@ func (c *Container) createCSSPreProcessor(resolver resolver_domain.ResolverPort,
 			MaxDepth:      deref(c.serverConfig.Build.CSSImportMaxDepth, cssinliner.DefaultMaxImportDepth),
 			MaxTotalBytes: deref(c.serverConfig.Build.CSSImportMaxBytes, cssinliner.DefaultMaxInlinedBytes),
 		},
+		DiagnosticCode:       "",
+		ImportDiagnosticCode: "",
 	})
 	return compiler_adapters.NewCSSPreProcessor(processor, fsReader, resolver.GetModuleName(), baseDir), nil
 }
@@ -285,7 +287,13 @@ func (c *Container) createOrchestratorServiceCore() (orchestrator.Service, regis
 		return nil, nil, fmt.Errorf("getting event bus for orchestrator: %w", err)
 	}
 
-	orcService, err := orchestrator.NewService(c.GetAppContext(), orchestrator.Config{TaskStore: taskStore, EventBus: eventBus})
+	orcService, err := orchestrator.NewService(c.GetAppContext(), orchestrator.Config{
+		TaskStore:          taskStore,
+		EventBus:           eventBus,
+		WorkerCount:        0,
+		SchedulerInterval:  0,
+		DispatcherInterval: 0,
+	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create orchestrator service: %w", err)
 	}
@@ -338,21 +346,14 @@ func (c *Container) startOrchestratorBackground(orcService orchestrator.Service)
 	shutdown.Register(c.GetAppContext(), "Orchestrator", func(_ context.Context) error { orcService.Stop(); return nil })
 }
 
-// ScheduleGCTasks seeds the GC task queue with the first hint processing and orphan scan
-// tasks. Deduplication keys prevent duplicate scheduling if the system restarts.
+// ScheduleGCTasks seeds the GC task queue with the first hint processing task. The
+// deduplication key prevents duplicate scheduling if the system restarts.
 //
-// Safe to call multiple times; panics from a stopped orchestrator (e.g. after daemon
-// restart in dev-interpreted mode) are recovered and silently ignored.
+// Safe to call multiple times. An orchestrator that is already shutting down (for example
+// when the daemon stops during an interpreted-mode rebuild) refuses the task, which is
+// expected and only traced; any other scheduling failure is logged as a warning.
 func (c *Container) ScheduleGCTasks() {
-	defer func() {
-		if r := recover(); r != nil {
-			_, l := logger_domain.From(c.GetAppContext(), log)
-			l.Trace("ScheduleGCTasks recovered from panic (orchestrator likely stopped)",
-				logger_domain.Field("panic", r))
-		}
-	}()
-
-	ctx := c.GetAppContext()
+	ctx, l := logger_domain.From(c.GetAppContext(), log)
 	orcService := c.orchestratorService
 	if orcService == nil {
 		return
@@ -365,7 +366,14 @@ func (c *Container) ScheduleGCTasks() {
 	})
 	hintsTask.DeduplicationKey = "blob.gc.hints"
 	hintsTask.Config.Priority = orchestrator_domain.PriorityLow
-	_, _ = orcService.Schedule(ctx, hintsTask, time.Now().Add(10*time.Second))
+	_, err := orcService.Schedule(ctx, hintsTask, time.Now().Add(10*time.Second))
+	switch {
+	case err == nil:
+	case errors.Is(err, orchestrator_domain.ErrOrchestratorShuttingDown):
+		l.Trace("Skipped GC task scheduling because the orchestrator is shutting down")
+	default:
+		l.Warn("Failed to schedule the GC hints task", logger_domain.Error(err))
+	}
 }
 
 // createOrchestratorTaskStore creates the task store, using the querier-based DAL adapter

@@ -574,11 +574,7 @@ func (s *stubTemplateRunner) RunPdfWithProps(
 func TestBuilderDo_NilAST(t *testing.T) {
 	t.Parallel()
 
-	mockRunner := &stubTemplateRunner{
-		ast:     nil,
-		styling: "",
-		err:     nil,
-	}
+	mockRunner := &stubTemplateRunner{}
 	service := &pdfWriterService{templateRunner: mockRunner}
 	builder := service.NewRender()
 	builder.Template("test.pk")
@@ -624,4 +620,79 @@ func TestRenderBuilder_WithEmbeddedDataLimits(t *testing.T) {
 	builder.WithEmbeddedDataLimits(EmbeddedDataLimits{MaxFiles: 3})
 	require.NotNil(t, builder.embeddedLimits, "expected embedded limits to be set")
 	assert.Equal(t, 3, builder.embeddedLimits.MaxFiles, "expected MaxFiles 3")
+}
+
+func TestRenderBuilder_WithLayoutLimitsOverridesServiceLimits(t *testing.T) {
+	t.Parallel()
+
+	service := &pdfWriterService{layoutLimits: layouter_dto.LayoutLimits{MaxPages: 50, MaxColspan: 20}}
+
+	t.Run("service limits apply by default", func(t *testing.T) {
+		t.Parallel()
+		config := service.NewRender().buildLayoutConfig()
+		assert.Equal(t, service.layoutLimits, config.Limits)
+	})
+
+	t.Run("render overrides take precedence field by field", func(t *testing.T) {
+		t.Parallel()
+		config := service.NewRender().WithLayoutLimits(layouter_dto.LayoutLimits{MaxPages: 5, MaxRowspan: 9}).buildLayoutConfig()
+		assert.Equal(t, 5, config.Limits.MaxPages)
+		assert.Equal(t, 9, config.Limits.MaxRowspan)
+		assert.Equal(t, 20, config.Limits.MaxColspan, "unset overrides keep the service limit")
+	})
+}
+
+func TestRenderBuilder_EffectiveMaxImagePixels(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		service  int
+		override int
+		want     int
+	}{
+		{name: "neither set uses the default", want: 0},
+		{name: "service cap applies", service: 100, want: 100},
+		{name: "render override wins", service: 100, override: 10, want: 10},
+		{name: "non-positive override keeps the service cap", service: 100, override: -1, want: 100},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			builder := (&pdfWriterService{maxImagePixels: tt.service}).NewRender().WithMaxImagePixels(tt.override)
+			assert.Equal(t, tt.want, builder.effectiveMaxImagePixels())
+		})
+	}
+}
+
+func TestBuilderDo_RecoversPanics(t *testing.T) {
+	t.Parallel()
+
+	service := &pdfWriterService{templateRunner: panickingTemplateRunner{}}
+	builder := service.NewRender().Template("doc.pk")
+
+	var err error
+	assert.NotPanics(t, func() {
+		_, err = builder.Do(context.Background())
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "panic during PDF render")
+}
+
+func TestBuilderDo_PropagatesLayoutLimitErrors(t *testing.T) {
+	t.Parallel()
+
+	layouter := &stubLayouter{err: layouter_dto.ErrGridTooLarge}
+	service := &pdfWriterService{
+		templateRunner: &stubTemplateRunner{ast: &ast_domain.TemplateAST{}},
+		layouter:       layouter,
+	}
+
+	_, err := service.NewRender().Template("doc.pk").
+		WithLayoutLimits(layouter_dto.LayoutLimits{MaxGridCells: 10}).
+		Do(context.Background())
+
+	assert.ErrorIs(t, err, layouter_dto.ErrLayoutLimitExceeded)
+	assert.Equal(t, 10, layouter.config.Limits.MaxGridCells)
 }

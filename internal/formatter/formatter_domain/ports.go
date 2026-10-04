@@ -142,5 +142,6 @@ func DefaultFormatOptions() *FormatOptions {
 		SortAttributes:      true,
 		MaxLineLength:       defaultMaxLineLength,
 		AttributeWrapIndent: defaultAttributeWrapIndent,
+		RawHTMLMode:         false,
 	}
 }

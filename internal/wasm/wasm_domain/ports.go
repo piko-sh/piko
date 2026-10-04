@@ -124,40 +124,6 @@ type StdlibLoaderPort interface {
 	GetPackageList() []string
 }
 
-// JSInteropPort defines the interface for JavaScript interoperability. It abstracts
-// syscall/js to allow testing without a JavaScript runtime.
-type JSInteropPort interface {
-	// RegisterFunction registers a Go function to be callable from JavaScript.
-	//
-	// Takes name (string) which is the name used to call the function from JavaScript.
-	// Takes handler (func(arguments []any) (any, error)) which is the Go function to
-	// register.
-	RegisterFunction(name string, handler func(arguments []any) (any, error))
-
-	// Log writes a message to the JavaScript console.
-	//
-	// Takes level (string) which specifies the log level.
-	// Takes message (string) which is the text to log.
-	// Takes arguments (...any) which provides values for format placeholders.
-	Log(level string, message string, arguments ...any)
-
-	// MarshalToJS converts a Go value to a JavaScript-compatible form.
-	//
-	// Takes v (any) which is the Go value to convert.
-	//
-	// Returns any which is the JavaScript-compatible representation.
-	// Returns error when the conversion fails.
-	MarshalToJS(v any) (any, error)
-
-	// UnmarshalFromJS converts a JavaScript value to a Go type.
-	//
-	// Takes jsValue (any) which is the JavaScript value to convert.
-	// Takes target (any) which is a pointer to the Go value to populate.
-	//
-	// Returns error when the conversion fails.
-	UnmarshalFromJS(jsValue any, target any) error
-}
-
 // ConsolePort provides console output for WASM modules. It replaces standard logging with
 // JavaScript console output.
 type ConsolePort interface {
@@ -267,26 +233,29 @@ type InterpreterPort interface {
 	Interpret(ctx context.Context, request *wasm_dto.InterpretRequest) (*wasm_dto.InterpretResponse, error)
 }
 
-// SymbolLoaderPort abstracts symbol loading for WASM interpreters, letting wasm_adapters
-// accept symbol providers without depending on a concrete interpreter implementation.
-type SymbolLoaderPort interface {
-	// Use loads symbols into an interpreter.
+// ProgramInterpreterPort compiles and runs one generated program inside WASM. Running the
+// program's init functions registers its template builders in the global
+// FunctionRegistry.
+type ProgramInterpreterPort interface {
+	// CompileAndExecute compiles the main package and its dependencies as one program and
+	// runs their init functions.
 	//
-	// Takes interp (any) which is the interpreter to load symbols into. The concrete type
-	// depends on the interpreter implementation.
+	// Takes mainCode (string) which is the generated Go source of the main package.
+	// Takes packagePath (string) which is the import path of the main package.
+	// Takes dependencies (map[string]string) which maps each dependency's import path to its
+	// generated source.
 	//
-	// Returns error when symbol loading fails.
-	Use(interp any) error
+	// Returns error when compilation or init execution fails.
+	CompileAndExecute(ctx context.Context, mainCode, packagePath string, dependencies map[string]string) error
 }
 
-// InterpreterFactoryPort creates fresh interpreter instances. This abstracts interpreter
-// creation so the adapter does not need to import interpreter implementations directly.
+// InterpreterFactoryPort creates interpreters with their symbols already loaded. It keeps
+// the adapter free of any dependency on a concrete interpreter implementation.
 type InterpreterFactoryPort interface {
-	// NewInterpreter creates a new interpreter instance.
+	// NewInterpreter creates a new interpreter for one program.
 	//
-	// Returns any which is the interpreter instance. The concrete type depends on the
-	// interpreter implementation.
-	NewInterpreter() any
+	// Returns ProgramInterpreterPort which is ready to compile and run a program.
+	NewInterpreter() ProgramInterpreterPort
 }
 
 // HeadlessRendererPort provides AST-to-HTML rendering without HTTP context. This is
@@ -350,18 +319,6 @@ func WithConfig(config Config) Option {
 func WithStdlibLoader(loader StdlibLoaderPort) Option {
 	return func(o *Orchestrator) {
 		o.stdlibLoader = loader
-	}
-}
-
-// WithJSInterop sets the JavaScript interop adapter.
-//
-// Takes interop (JSInteropPort) which provides the adapter for JavaScript
-// interoperability.
-//
-// Returns Option which configures the orchestrator with the given adapter.
-func WithJSInterop(interop JSInteropPort) Option {
-	return func(o *Orchestrator) {
-		o.jsInterop = interop
 	}
 }
 

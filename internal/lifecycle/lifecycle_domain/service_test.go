@@ -204,7 +204,7 @@ func TestLifecycleTestBuilder(t *testing.T) {
 	t.Run("builder with interpreted orchestrator", func(t *testing.T) {
 		t.Parallel()
 
-		mockOrchestrator := &mockInterpretedBuildOrchestrator{}
+		mockOrchestrator := &MockInterpretedOrchestrator{}
 		builder := newLifecycleTestBuilder().WithInterpretedOrchestrator(mockOrchestrator)
 
 		deps := builder.GetDeps()
@@ -761,28 +761,6 @@ func (m *mockInterpretedRunner) RunPartialWithProps(_ context.Context, _ templat
 func (m *mockInterpretedRunner) GetPageEntry(_ context.Context, _ string) (templater_domain.PageEntryView, error) {
 	return nil, nil
 }
-
-type mockInterpretedBuildOrchestrator struct{}
-
-func (m *mockInterpretedBuildOrchestrator) BuildRunner(_ context.Context, _ *annotator_dto.ProjectAnnotationResult) (templater_domain.ManifestRunnerPort, error) {
-	return nil, nil
-}
-
-func (m *mockInterpretedBuildOrchestrator) MarkDirty(_ context.Context, _ *annotator_dto.ProjectAnnotationResult) error {
-	return nil
-}
-
-func (m *mockInterpretedBuildOrchestrator) MarkComponentsDirty(_ context.Context, _ *annotator_dto.ProjectAnnotationResult) error {
-	return nil
-}
-
-func (m *mockInterpretedBuildOrchestrator) IsInitialised() bool { return false }
-
-func (m *mockInterpretedBuildOrchestrator) GetAffectedComponents(_ string) []string { return nil }
-
-func (m *mockInterpretedBuildOrchestrator) ProactiveRecompile(_ context.Context) error { return nil }
-
-func (m *mockInterpretedBuildOrchestrator) RemoveComponent(_ context.Context, _ string) {}
 
 type mockTemplaterRunnerSwapper struct{}
 
@@ -1879,9 +1857,7 @@ func TestLifecycleService_handleInterpretedBuild(t *testing.T) {
 	t.Run("calls handleInitialBuild when not initialised", func(t *testing.T) {
 		t.Parallel()
 
-		mockOrchestrator := &mockTrackingInterpretedOrchestrator{
-			initialised: false,
-		}
+		mockOrchestrator := &mockTrackingInterpretedOrchestrator{}
 		mockTemplater := &mockTrackingTemplaterSwapper{}
 
 		deps := newLifecycleTestBuilder().GetDeps()
@@ -2201,6 +2177,11 @@ type mockTrackingInterpretedOrchestrator struct {
 	buildCalled           bool
 	markDirtyCalled       bool
 	removeComponentCalled bool
+	invalidatedPackages   bool
+}
+
+func (m *mockTrackingInterpretedOrchestrator) InvalidateUserPackages() {
+	m.invalidatedPackages = true
 }
 
 func (m *mockTrackingInterpretedOrchestrator) BuildRunner(_ context.Context, _ *annotator_dto.ProjectAnnotationResult) (templater_domain.ManifestRunnerPort, error) {
@@ -3320,9 +3301,7 @@ func TestLifecycleService_updateWatchedFilesFromBuild(t *testing.T) {
 
 		service := mustBuildLifecycleService(t, deps)
 
-		result := &annotator_dto.ProjectAnnotationResult{
-			FinalAssetManifest: nil,
-		}
+		result := &annotator_dto.ProjectAnnotationResult{}
 
 		service.updateWatchedFilesFromBuild(context.Background(), result)
 	})
@@ -3881,9 +3860,7 @@ func TestLifecycleService_resolveExternalAssetDirs(t *testing.T) {
 func TestSandboxedFileSystem_Rel(t *testing.T) {
 	t.Parallel()
 
-	fsys := &sandboxedFileSystem{
-		sandbox: nil,
-	}
+	fsys := &sandboxedFileSystem{}
 
 	rel, err := fsys.Rel("/home/user/project", "/home/user/project/src/main.go")
 	require.NoError(t, err)
@@ -3893,9 +3870,7 @@ func TestSandboxedFileSystem_Rel(t *testing.T) {
 func TestSandboxedFileSystem_Join(t *testing.T) {
 	t.Parallel()
 
-	fsys := &sandboxedFileSystem{
-		sandbox: nil,
-	}
+	fsys := &sandboxedFileSystem{}
 
 	result := fsys.Join("a", "b", "c")
 	assert.Equal(t, "a/b/c", result)
@@ -3907,9 +3882,7 @@ func TestSandboxedFileSystem_IsNotExist(t *testing.T) {
 	t.Run("returns true for os.ErrNotExist", func(t *testing.T) {
 		t.Parallel()
 
-		fsys := &sandboxedFileSystem{
-			sandbox: nil,
-		}
+		fsys := &sandboxedFileSystem{}
 
 		assert.True(t, fsys.IsNotExist(os.ErrNotExist))
 	})
@@ -3917,9 +3890,7 @@ func TestSandboxedFileSystem_IsNotExist(t *testing.T) {
 	t.Run("returns false for other errors", func(t *testing.T) {
 		t.Parallel()
 
-		fsys := &sandboxedFileSystem{
-			sandbox: nil,
-		}
+		fsys := &sandboxedFileSystem{}
 
 		assert.False(t, fsys.IsNotExist(os.ErrPermission))
 	})
@@ -3927,9 +3898,7 @@ func TestSandboxedFileSystem_IsNotExist(t *testing.T) {
 	t.Run("returns false for nil error", func(t *testing.T) {
 		t.Parallel()
 
-		fsys := &sandboxedFileSystem{
-			sandbox: nil,
-		}
+		fsys := &sandboxedFileSystem{}
 
 		assert.False(t, fsys.IsNotExist(nil))
 	})
