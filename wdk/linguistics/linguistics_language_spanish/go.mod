@@ -3,13 +3,13 @@ module piko.sh/piko/wdk/linguistics/linguistics_language_spanish
 go 1.27.0
 
 require (
-	piko.sh/piko/wdk/linguistics/linguistics_phonetic_spanish v0.0.0
-	piko.sh/piko/wdk/linguistics/linguistics_stemmer_spanish v0.0.0
-	piko.sh/piko/wdk/linguistics/linguistics_stopwords_spanish v0.0.0
+	piko.sh/piko/wdk/linguistics/linguistics_phonetic_spanish v0.0.0-alpha.39
+	piko.sh/piko/wdk/linguistics/linguistics_stemmer_spanish v0.0.0-alpha.39
+	piko.sh/piko/wdk/linguistics/linguistics_stopwords_spanish v0.0.0-alpha.39
 )
 
 require (
 	github.com/kljensen/snowball v0.10.0 // indirect
 	golang.org/x/text v0.42.0 // indirect
-	piko.sh/piko v0.0.0 // indirect
+	piko.sh/piko v0.0.0-alpha.39 // indirect
 )

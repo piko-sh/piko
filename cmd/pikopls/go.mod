@@ -12,8 +12,8 @@ require (
 	go.uber.org/goleak v1.3.0
 	golang.org/x/sync v0.23.0
 	piko.sh/goastutil v0.1.0
-	piko.sh/piko v0.0.0
-	piko.sh/piko/wdk/json/json_provider_sonic v0.0.0
+	piko.sh/piko v0.0.0-alpha.39
+	piko.sh/piko/wdk/json/json_provider_sonic v0.0.0-alpha.39
 )
 
 require (

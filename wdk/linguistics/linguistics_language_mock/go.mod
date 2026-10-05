@@ -3,12 +3,12 @@ module piko.sh/piko/wdk/linguistics/linguistics_language_mock
 go 1.27.0
 
 require (
-	piko.sh/piko/wdk/linguistics/linguistics_phonetic_mock v0.0.0
-	piko.sh/piko/wdk/linguistics/linguistics_stemmer_mock v0.0.0
-	piko.sh/piko/wdk/linguistics/linguistics_stopwords_mock v0.0.0
+	piko.sh/piko/wdk/linguistics/linguistics_phonetic_mock v0.0.0-alpha.39
+	piko.sh/piko/wdk/linguistics/linguistics_stemmer_mock v0.0.0-alpha.39
+	piko.sh/piko/wdk/linguistics/linguistics_stopwords_mock v0.0.0-alpha.39
 )
 
 require (
 	golang.org/x/text v0.42.0 // indirect
-	piko.sh/piko v0.0.0 // indirect
+	piko.sh/piko v0.0.0-alpha.39 // indirect
 )

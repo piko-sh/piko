@@ -5,7 +5,7 @@ go 1.27.0
 require (
 	github.com/cloudflare/cloudflare-go v0.117.0
 	github.com/stretchr/testify v1.12.1
-	piko.sh/piko v0.0.0
+	piko.sh/piko v0.0.0-alpha.39
 )
 
 require (

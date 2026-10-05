@@ -24,9 +24,9 @@ go 1.27.0
 
 require (
 	github.com/stretchr/testify v1.12.1
-	piko.sh/piko v0.0.0
-	piko.sh/piko/wdk/linguistics/linguistics_language_english v0.0.0
-	piko.sh/piko/wdk/linguistics/linguistics_language_french v0.0.0
+	piko.sh/piko v0.0.0-alpha.39
+	piko.sh/piko/wdk/linguistics/linguistics_language_english v0.0.0-alpha.39
+	piko.sh/piko/wdk/linguistics/linguistics_language_french v0.0.0-alpha.39
 )
 
 require (
@@ -34,10 +34,10 @@ require (
 	go.uber.org/goleak v1.3.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/text v0.42.0 // indirect
-	piko.sh/piko/wdk/linguistics/linguistics_phonetic_english v0.0.0 // indirect
-	piko.sh/piko/wdk/linguistics/linguistics_phonetic_french v0.0.0 // indirect
-	piko.sh/piko/wdk/linguistics/linguistics_stemmer_english v0.0.0 // indirect
-	piko.sh/piko/wdk/linguistics/linguistics_stemmer_french v0.0.0 // indirect
-	piko.sh/piko/wdk/linguistics/linguistics_stopwords_english v0.0.0 // indirect
-	piko.sh/piko/wdk/linguistics/linguistics_stopwords_french v0.0.0 // indirect
+	piko.sh/piko/wdk/linguistics/linguistics_phonetic_english v0.0.0-alpha.39 // indirect
+	piko.sh/piko/wdk/linguistics/linguistics_phonetic_french v0.0.0-alpha.39 // indirect
+	piko.sh/piko/wdk/linguistics/linguistics_stemmer_english v0.0.0-alpha.39 // indirect
+	piko.sh/piko/wdk/linguistics/linguistics_stemmer_french v0.0.0-alpha.39 // indirect
+	piko.sh/piko/wdk/linguistics/linguistics_stopwords_english v0.0.0-alpha.39 // indirect
+	piko.sh/piko/wdk/linguistics/linguistics_stopwords_french v0.0.0-alpha.39 // indirect
 )

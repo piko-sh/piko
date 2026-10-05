@@ -16,13 +16,13 @@ require (
 	go.uber.org/goleak v1.3.0
 	golang.org/x/text v0.42.0
 	google.golang.org/grpc v1.83.0
-	piko.sh/piko v0.0.0
-	piko.sh/piko/wdk/interp/interp_piko_symbols v0.0.0
-	piko.sh/piko/wdk/json/json_provider_sonic v0.0.0
-	piko.sh/piko/wdk/logger/logger_integration_otel_grpc v0.0.0
-	piko.sh/piko/wdk/logger/logger_integration_otel_http v0.0.0
-	piko.sh/piko/wdk/logger/logger_otel_sdk v0.0.0
-	piko.sh/piko/wdk/monitoring/monitoring_api v0.0.0
+	piko.sh/piko v0.0.0-alpha.39
+	piko.sh/piko/wdk/interp/interp_piko_symbols v0.0.0-alpha.39
+	piko.sh/piko/wdk/json/json_provider_sonic v0.0.0-alpha.39
+	piko.sh/piko/wdk/logger/logger_integration_otel_grpc v0.0.0-alpha.39
+	piko.sh/piko/wdk/logger/logger_integration_otel_http v0.0.0-alpha.39
+	piko.sh/piko/wdk/logger/logger_otel_sdk v0.0.0-alpha.39
+	piko.sh/piko/wdk/monitoring/monitoring_api v0.0.0-alpha.39
 	pipit.sh/pipit v0.0.0-alpha.5
 	pipit.sh/pipit/sdk/extract v0.0.0-alpha.5
 )

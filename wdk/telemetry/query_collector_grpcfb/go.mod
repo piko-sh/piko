@@ -6,8 +6,8 @@ require (
 	github.com/stretchr/testify v1.12.1
 	go.uber.org/goleak v1.3.0
 	google.golang.org/grpc v1.83.0
-	piko.sh/piko v0.0.0
-	piko.sh/piko/wdk/telemetry/telemetry_grpcfb v0.0.0
+	piko.sh/piko v0.0.0-alpha.39
+	piko.sh/piko/wdk/telemetry/telemetry_grpcfb v0.0.0-alpha.39
 )
 
 require (

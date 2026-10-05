@@ -5,7 +5,7 @@ go 1.27.0
 require (
 	github.com/stretchr/testify v1.12.1
 	golang.org/x/tools v0.50.0
-	piko.sh/piko v0.0.0
+	piko.sh/piko v0.0.0-alpha.39
 	pipit.sh/pipit/sdk/link v0.0.0-alpha.5
 )
 
