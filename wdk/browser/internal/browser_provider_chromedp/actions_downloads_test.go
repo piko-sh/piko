@@ -26,7 +26,7 @@ import (
 	"testing"
 	"time"
 
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 func TestNewDownloadTracker(t *testing.T) {

@@ -112,7 +112,6 @@ type MockMetadataStore struct {
 
 // GetArtefact retrieves artefact metadata by ID.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes artefactID (string) which identifies the artefact to look up.
 //
 // Returns (*ArtefactMeta, error), or (nil, nil) if GetArtefactFunc is nil.
@@ -126,7 +125,6 @@ func (m *MockMetadataStore) GetArtefact(ctx context.Context, artefactID string) 
 
 // GetMultipleArtefacts retrieves metadata for multiple artefacts.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes artefactIDs ([]string) which lists the artefact IDs to look up.
 //
 // Returns ([]*ArtefactMeta, error), or (nil, nil) if GetMultipleArtefactsFunc is nil.
@@ -151,7 +149,6 @@ func (m *MockMetadataStore) ListAllArtefactIDs(ctx context.Context) ([]string, e
 
 // SearchArtefacts searches for artefacts matching the query.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes query (SearchQuery) which defines the search criteria.
 //
 // Returns ([]*ArtefactMeta, error), or (nil, nil) if SearchArtefactsFunc is nil.
@@ -165,7 +162,6 @@ func (m *MockMetadataStore) SearchArtefacts(ctx context.Context, query SearchQue
 
 // SearchArtefactsByTagValues finds artefacts by tag key and values.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes tagKey (string) which is the tag key to filter by.
 // Takes tagValues ([]string) which lists the tag values to match.
 //
@@ -181,7 +177,6 @@ func (m *MockMetadataStore) SearchArtefactsByTagValues(ctx context.Context, tagK
 
 // FindArtefactByVariantStorageKey looks up an artefact by variant storage key.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes storageKey (string) which is the variant storage key to search for.
 //
 // Returns (*ArtefactMeta, error), or (nil, nil) if FindArtefactByVariantStorageKeyFunc is
@@ -196,7 +191,6 @@ func (m *MockMetadataStore) FindArtefactByVariantStorageKey(ctx context.Context,
 
 // PopGCHints pops garbage collection hints up to the given limit.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes limit (int) which is the maximum number of hints to return.
 //
 // Returns ([]GCHint, error), or (nil, nil) if PopGCHintsFunc is nil.
@@ -210,7 +204,6 @@ func (m *MockMetadataStore) PopGCHints(ctx context.Context, limit int) ([]regist
 
 // AtomicUpdate applies a batch of actions atomically.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes actions ([]registry_dto.AtomicAction) which lists the actions to apply.
 //
 // Returns error, or nil if AtomicUpdateFunc is nil.
@@ -224,7 +217,6 @@ func (m *MockMetadataStore) AtomicUpdate(ctx context.Context, actions []registry
 
 // IncrementBlobRefCount increments the reference count for a blob.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes blob (BlobReference) which identifies the blob to increment.
 //
 // Returns (int, error), or (0, nil) if IncrementBlobRefCountFunc is nil.
@@ -238,7 +230,6 @@ func (m *MockMetadataStore) IncrementBlobRefCount(ctx context.Context, blob Blob
 
 // DecrementBlobRefCount decrements the reference count for a blob.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes storageKey (string) which identifies the blob to decrement.
 //
 // Returns (int, bool, error), or (0, false, nil) if DecrementBlobRefCountFunc is nil.
@@ -252,7 +243,6 @@ func (m *MockMetadataStore) DecrementBlobRefCount(ctx context.Context, storageKe
 
 // GetBlobRefCount returns the current reference count for a blob.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes storageKey (string) which identifies the blob to query.
 //
 // Returns (int, error), or (0, nil) if GetBlobRefCountFunc is nil.
@@ -266,7 +256,8 @@ func (m *MockMetadataStore) GetBlobRefCount(ctx context.Context, storageKey stri
 
 // RunAtomic executes fn within a transaction.
 //
-// Takes fn which receives a transactional MetadataStore for atomic operations.
+// Takes fn (func(context.Context, MetadataStore) error) which receives a transactional
+// MetadataStore for atomic operations.
 //
 // Returns error, or nil if RunAtomicFunc is nil.
 func (m *MockMetadataStore) RunAtomic(ctx context.Context, fn func(ctx context.Context, transactionStore MetadataStore) error) error {

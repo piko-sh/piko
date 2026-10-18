@@ -18,12 +18,8 @@
 
 package services
 
-// This is the critical file.
-// It imports the 'dtos' package using an alias.
 import dto_alias "testcase_18_deep_method_resolution_with_alias_bug/dtos"
 
-// This struct uses the aliased import. The inspector must correctly
-// handle this when resolving fields on this type from another package's context.
 type TransactionServiceResponse struct {
 	Transaction dto_alias.TransactionDto
 }

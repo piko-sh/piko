@@ -16,14 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-package helpers // Name `helpers` is different from directory `utils`
+package helpers
 
-// This is our LOCAL helpers package.
 type UtilHelper struct {
 	IsLocal bool
 }
 
-// Box is a generic type from our local helper package.
 type Box[T any] struct {
 	Value T
 }

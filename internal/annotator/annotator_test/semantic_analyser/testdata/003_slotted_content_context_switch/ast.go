@@ -26,12 +26,6 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// CreateLinkingResult returns the hand-crafted LinkingResult for this test case.
-// It provides a "pre-expanded" AST where nodes from different components are mixed
-// due to slotting. Each node is stamped with its `OriginalPackageAlias`. This is the
-// ideal input to test the SemanticAnnotator's ability to switch its
-// analysis context (e.g., which `state` object it's resolving against) based on
-// a node's origin.
 func CreateLinkingResult(t *testing.T, vm *annotator_dto.VirtualModule) *annotator_dto.LinkingResult {
 	findHashedName := func(relPath string) string {
 		for hash, comp := range vm.ComponentsByHash {

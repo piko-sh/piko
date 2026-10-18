@@ -1,5 +1,0 @@
-CREATE TABLE profiles (
-    id INTEGER PRIMARY KEY,
-    name VARCHAR NOT NULL,
-    details STRUCT(age INTEGER, city VARCHAR) NOT NULL
-);

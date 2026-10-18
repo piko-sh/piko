@@ -300,7 +300,6 @@ func buildSpanAttributes(request *email_dto.EmailAssetRequest) []logger_domain.A
 // logVariantSelection logs details about the chosen variant and any fallback that was
 // used.
 //
-// Takes ctx (context.Context) which carries the logger and tracing data.
 // Takes variant (*registry_dto.Variant) which is the chosen variant to log.
 // Takes fallbackUsed (string) which explains why a fallback was needed, or is empty if no
 // fallback was used.

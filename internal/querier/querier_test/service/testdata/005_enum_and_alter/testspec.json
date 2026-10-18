@@ -1,3 +1,0 @@
-{
-  "description": "Enum creation and ALTER TABLE ADD COLUMN. Tests that enum types appear in the catalogue and ALTER TABLE mutations correctly add columns to existing tables."
-}

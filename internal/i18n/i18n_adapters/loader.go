@@ -25,7 +25,7 @@ import (
 	"fmt"
 
 	"piko.sh/piko/internal/i18n/i18n_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // LoaderMode specifies how translations are loaded.

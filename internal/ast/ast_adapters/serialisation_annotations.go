@@ -27,7 +27,7 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/ast/ast_schema/ast_schema_gen"
 	"piko.sh/piko/internal/mem"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // buildResponsiveVariantMetadata serialises responsive variant metadata to a FlatBuffer.

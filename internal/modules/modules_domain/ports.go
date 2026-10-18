@@ -41,7 +41,6 @@ import (
 type ModuleProvider interface {
 	// Resolve fetches the bundle for ref via the provider's backend.
 	//
-	// Takes ctx (context.Context) which carries deadlines and cancel.
 	// Takes ref (ModuleRef) which identifies the requested module.
 	//
 	// Returns *ModuleBundle which is the resolved artefact.
@@ -55,7 +54,6 @@ type ProviderFunc func(ctx context.Context, ref ModuleRef) (*ModuleBundle, error
 
 // Resolve forwards to the wrapped function.
 //
-// Takes ctx (context.Context) which carries deadlines and cancel.
 // Takes ref (ModuleRef) which identifies the requested module.
 //
 // Returns *ModuleBundle which is the resolved artefact.

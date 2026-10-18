@@ -1,3 +1,0 @@
-{
-  "description": "Slice membership via a native ClickHouse Array parameter: WHERE id IN {ids:Array(UInt64)} binds a Go slice as one array value"
-}

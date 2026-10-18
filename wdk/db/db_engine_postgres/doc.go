@@ -12,17 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// This project stands against fascism, authoritarianism, and all
-// forms of oppression. We built this to empower people, not to
-// enable those who would strip others of their rights and dignity.
+// This project stands against fascism, authoritarianism, and all forms of
+// oppression. We built this to empower people, not to enable those who would
+// strip others of their rights and dignity.
 
-// Package db_engine_postgres implements the querier EnginePort for PostgreSQL and
-// PostgreSQL-compatible databases.
+// Package db_engine_postgres is Piko's engine for PostgreSQL and PostgreSQL-compatible
+// databases.
 //
-// It uses a hand-written recursive-descent parser to convert DDL into catalogue mutations
-// and analyse DML queries for type resolution. The PostgresDialect option pattern allows
-// variants such as CockroachDB, YugabyteDB, and TimescaleDB to customise types,
-// functions, and semantic rules without forking the parser. The package also provides
-// health diagnostics covering database size, active connections, recovery state, and
-// replication lag.
+// Register it with a database to generate typed Go from SQL, run migrations and seeds,
+// and report engine-specific health diagnostics:
+//
+//	piko.WithDatabase("primary", &db.DatabaseRegistration{
+//	    DB:           database,
+//	    EngineConfig: db_engine_postgres.Postgres(),
+//	})
+//
+// The SQL analysis and code generation are provided by Seagull through
+// wdk/db/db_provider_seagull; db_engine_postgres selects and tunes the dialect.
 package db_engine_postgres

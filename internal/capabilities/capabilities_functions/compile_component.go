@@ -99,7 +99,6 @@ func CompileComponent(compiler compiler_domain.CompilerService) capabilities_dom
 
 // extractSourcePath checks and returns the required sourcePath parameter.
 //
-// Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes params (capabilities_domain.CapabilityParams) which holds the parameters to read
 // from.
 // Takes span (trace.Span) which gives tracing context for error reporting.
@@ -184,7 +183,6 @@ func compileSource(
 
 // extractOutput finds and returns the compiled JavaScript from the artefact.
 //
-// Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes artefact (*compiler_dto.CompiledArtefact) which contains the compiled files and
 // metadata.
 // Takes sourcePath (string) which identifies the source for error messages.

@@ -7,22 +7,39 @@ import "context"
 const createauthor = `INSERT INTO authors (name, email, created_at) VALUES (?, ?, ?);`
 
 type CreateAuthorParams struct {
-	P1 string
-	P2 string
-	P3 int32
+	Name      string
+	Email     string
+	CreatedAt int64
 }
 
 func (queries *Queries) CreateAuthor(ctx context.Context, params CreateAuthorParams) error {
-	_, err := queries.writer.ExecContext(ctx, createauthor, params.P1, params.P2, params.P3)
+	_, err := queries.writer.ExecContext(ctx, createauthor, params.Name, params.Email, params.CreatedAt)
 	return err
+}
+
+const getauthor = `SELECT id, name, email FROM authors WHERE id = ?;`
+
+type GetAuthorRow struct {
+	ID    int32  `json:"id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
+func (queries *Queries) GetAuthor(ctx context.Context, id int32) (GetAuthorRow, error) {
+	var row GetAuthorRow
+	err := queries.reader.QueryRowContext(ctx, getauthor, id).Scan(&row.ID, &row.Name, &row.Email)
+	if err != nil {
+		return GetAuthorRow{}, err
+	}
+	return row, nil
 }
 
 const listauthors = `SELECT id, name, email FROM authors ORDER BY name;`
 
 type ListAuthorsRow struct {
-	ID    int32
-	Name  string
-	Email string
+	ID    int32  `json:"id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
 }
 
 func (queries *Queries) ListAuthors(ctx context.Context) ([]ListAuthorsRow, error) {
@@ -43,21 +60,4 @@ func (queries *Queries) ListAuthors(ctx context.Context) ([]ListAuthorsRow, erro
 		return nil, err
 	}
 	return results, nil
-}
-
-const getauthor = `SELECT id, name, email FROM authors WHERE id = ?;`
-
-type GetAuthorRow struct {
-	ID    int32
-	Name  string
-	Email string
-}
-
-func (queries *Queries) GetAuthor(ctx context.Context, p1 int32) (GetAuthorRow, error) {
-	var row GetAuthorRow
-	err := queries.reader.QueryRowContext(ctx, getauthor, p1).Scan(&row.ID, &row.Name, &row.Email)
-	if err != nil {
-		return GetAuthorRow{}, err
-	}
-	return row, nil
 }

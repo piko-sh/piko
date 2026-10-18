@@ -297,7 +297,6 @@ type CryptoServicePort interface {
 
 	// RegisterProvider adds a new encryption provider with the given name.
 	//
-	// Takes ctx (context.Context) which carries cancellation and tracing.
 	// Takes name (string) which identifies the provider.
 	// Takes provider (EncryptionProvider) which handles encryption operations.
 	//

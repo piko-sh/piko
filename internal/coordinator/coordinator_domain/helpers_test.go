@@ -39,7 +39,7 @@ import (
 	"piko.sh/piko/internal/coordinator/coordinator_dto"
 	"piko.sh/piko/internal/resolver/resolver_domain"
 	"piko.sh/piko/wdk/clock"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 func TestSentinelErrors(t *testing.T) {
@@ -1169,7 +1169,7 @@ func TestDrainRebuildTrigger_FailsDiscardedWaiters(t *testing.T) {
 
 	select {
 	case <-waiter.done:
-		assert.ErrorIs(t, waiter.err, errBuildInvalidated)
+		assert.ErrorIs(t, waiter.err, ErrBuildInvalidated)
 	case <-time.After(time.Second):
 		t.Fatal("a waiter on a discarded build was not failed by drainRebuildTrigger")
 	}

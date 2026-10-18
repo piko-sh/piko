@@ -20,27 +20,22 @@ package main
 
 import "io"
 
-// MyWriter implements the io.Writer interface.
 type MyWriter struct{}
 
 var _ io.Writer = (*MyWriter)(nil)
 
-// Write has a specific signature required by io.Writer, using the 'byte' alias.
 func (m *MyWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-// MyRuneReader implements the io.RuneReader interface.
 type MyRuneReader struct{}
 
 var _ io.RuneReader = (*MyRuneReader)(nil)
 
-// ReadRune has a specific signature required by io.RuneReader, using the 'rune' alias.
 func (r *MyRuneReader) ReadRune() (character rune, size int, err error) {
 	return '⌘', 3, nil
 }
 
-// Container uses the 'any' alias, which is equivalent to interface{}.
 type Container struct {
 	Data any
 }

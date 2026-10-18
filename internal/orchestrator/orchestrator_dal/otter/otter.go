@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"slices"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"piko.sh/piko/internal/cache/cache_adapters/provider_otter"
@@ -32,12 +33,16 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/orchestrator/orchestrator_dal"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
-	"piko.sh/piko/wdk/safeconv"
+	clockpkg "piko.sh/piko/wdk/clock"
+	"piko.sh/safeconv"
 )
 
 const (
 	// defaultCacheCapacity is the default number of items the cache can hold.
 	defaultCacheCapacity = 100_000
+
+	// maintenanceBatchSize bounds each promotion, recovery, or cleanup batch.
+	maintenanceBatchSize = 100
 
 	// maxTransactionTimeout is the maximum duration a RunAtomic transaction may hold the
 	// mutex before the context is cancelled.
@@ -60,6 +65,8 @@ var (
 	_ orchestrator_dal.OrchestratorDALWithTx = (*DAL)(nil)
 
 	_ orchestrator_domain.OrchestratorInspector = (*DAL)(nil)
+
+	_ orchestrator_domain.BuildCompletionStore = (*DAL)(nil)
 
 	_ orchestrator_domain.TaskStore = (*otterTransactionDAL)(nil)
 )
@@ -92,45 +99,54 @@ type receipt struct {
 	errorMessage string
 }
 
-// recoveryLease tracks a claimed recovery for a task.
-type recoveryLease struct {
-	// claimedAt is when this lease was claimed.
-	claimedAt time.Time
-
-	// expiresAt is when the recovery lease expires.
-	expiresAt time.Time
-
-	// taskID string // taskID is the unique identifier of the task holding this lease.
-	taskID string
-
-	// nodeID identifies the node that holds this recovery lease.
-	nodeID string
-}
-
 // DAL provides in-memory storage for orchestrator tasks using otter cache. It implements
 // OrchestratorDALWithTx and OrchestratorInspector.
 type DAL struct {
+	// clock supplies the time for promotion, recovery, heartbeats, receipts, and due-task
+	// queries; it defaults to the real clock.
+	clock clockpkg.Clock
+
+	// processingIndex orders processing tasks by heartbeat update time for recovery.
+	processingIndex *timeIndex
+
+	// terminalIndex orders completed and failed tasks by update time for reclamation.
+	terminalIndex *timeIndex
+
+	// resolvedIndex orders resolved and timed-out receipts by resolution time for cleanup.
+	resolvedIndex *timeIndex
+
+	// journal records original states during a transaction; the DAL write lock guards
+	// access.
+	journal *mutationJournal
+
 	// tasks is the main cache for tasks, keyed by task ID. Uses the cache hexagon's
 	// ProviderPort for optional WAL persistence.
 	tasks cache_domain.ProviderPort[string, *orchestrator_domain.Task]
 
 	// scheduledIndex maps task IDs to their scheduled execution times. Supports range
 	// queries to find tasks ready to run.
-	scheduledIndex *provider_otter.SortedIndex[string]
+	scheduledIndex *timeIndex
 
 	// executeIndex stores pending and retrying tasks sorted by their ExecuteAt time. Used
 	// for efficient time-based range queries to find tasks ready to run.
-	executeIndex *provider_otter.SortedIndex[string]
+	executeIndex *timeIndex
 
-	// workflowIndex maps workflow IDs to their task IDs. Uses the cache hexagon's TagIndex
-	// for set membership operations.
-	workflowIndex *provider_otter.TagIndex[string]
+	// workflowIndex maps workflow IDs to their task IDs.
+	workflowIndex *workflowIndex
 
 	// dedupIndex maps deduplication keys to task IDs for detecting duplicate tasks.
 	dedupIndex map[string]string
 
-	// recoveryLeases maps task IDs to their claimed recovery leases.
-	recoveryLeases map[string]*recoveryLease
+	// unsettledByTag counts unsettled foreground tasks by build tag, using the empty tag for
+	// untagged tasks.
+	unsettledByTag map[string]int64
+
+	// degraded holds why the cache diverged from its log, once it has; writes then fail with
+	// ErrStoreDegraded.
+	degraded atomic.Pointer[error]
+
+	// countedTag maps counted task IDs to their unsettledByTag keys.
+	countedTag map[string]string
 
 	// receipts maps receipt IDs to workflow receipts.
 	receipts map[string]*receipt
@@ -141,9 +157,39 @@ type DAL struct {
 	// receiptsByNode maps node IDs to their receipt IDs for quick lookup.
 	receiptsByNode *provider_otter.TagIndex[string]
 
+	// nodes holds in-memory node leases protected by nodesMu.
+	nodes map[string]orchestrator_domain.NodeLease
+
+	// publishedAt holds in-memory task publication times protected by publishedMu.
+	publishedAt map[string]time.Time
+
+	// dangling holds missing task IDs for pruning by the next non-transactional write,
+	// protected by danglingMu.
+	dangling map[string]struct{}
+
+	// pendingWaits holds log-write waits collected under mu and completed after unlockWrite
+	// releases it.
+	pendingWaits []func() error
+
+	// capacity limits task storage and pending receipt admission.
+	capacity int
+
 	// ownsCache indicates whether this DAL owns the cache and should close it. When false,
 	// the cache was injected externally and the caller handles cleanup.
 	ownsCache bool
+
+	// danglingPending reports whether dangling holds IDs, so writes check it without taking
+	// danglingMu.
+	danglingPending atomic.Bool
+
+	// danglingMu guards dangling, which readers holding only the read lock add to.
+	danglingMu sync.Mutex
+
+	// nodesMu guards nodes.
+	nodesMu sync.Mutex
+
+	// publishedMu guards publishedAt.
+	publishedMu sync.Mutex
 
 	// mu guards concurrent access to indexes and maps.
 	mu sync.RWMutex
@@ -166,48 +212,55 @@ func (*DAL) HealthCheck(_ context.Context) error {
 	return nil
 }
 
+// LocalStore reports that the store's writes complete in this process, so callers need
+// not bound them with a timeout.
+//
+// Returns bool which is always true.
+func (*DAL) LocalStore() bool {
+	return true
+}
+
 // Close releases resources held by the DAL.
 //
 // Returns error when the cache cannot be closed cleanly.
+//
+// Safe for concurrent use; waits for any transaction in progress, which swaps the task
+// cache while it runs.
 func (d *DAL) Close() error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	if d.ownsCache {
 		return d.tasks.Close(context.Background())
 	}
 	return nil
 }
 
-// RunAtomic executes fn within a transaction.
+// RunAtomic executes fn in a transaction and rolls back its changes if it fails or
+// panics.
 //
-// For in-memory storage, RunAtomic acquires a write lock and provides a
-// transaction-scoped TaskStore that delegates to locked method variants to avoid mutex
-// re-entrancy deadlocks. The task cache is wrapped in a journal-based transaction for
-// rollback, and non-cache state (recovery leases, receipts) is snapshotted at transaction
-// start.
-//
-// If fn returns an error or panics, all mutations are rolled back. A maximum transaction
-// timeout is applied via context.WithTimeoutCause to prevent unbounded lock holding.
+// The DAL write lock serialises the transaction. The callback must finish within
+// maxTransactionTimeout, respect its context, and avoid blocking I/O.
 //
 // Takes fn (func) which receives a transactional TaskStore.
 //
 // Returns error when fn returns an error or the transaction fails to commit.
 //
 // Panics if fn panics. The transaction is rolled back before the panic is re-raised.
-//
-// Concurrency: holds the global write lock for the entire duration of fn, so fn must
-// complete within maxTransactionTimeout (currently 30s). Long-running or blocking
-// operations inside fn will starve all readers and writers. Callers must keep fn short,
-// do no I/O that can stall (e.g. cross-network calls), and rely on the supplied ctx for
-// cancellation. Pre-, mid-, and post-commit ctx.Err() checks abort early when the
-// deadline trips. Safe for concurrent use.
 func (d *DAL) RunAtomic(ctx context.Context, fn func(ctx context.Context, transactionStore orchestrator_domain.TaskStore) error) error {
 	ctx, cancel := context.WithTimeoutCause(ctx, maxTransactionTimeout,
 		fmt.Errorf("transaction exceeded maximum duration of %s", maxTransactionTimeout))
 	defer cancel()
 
-	d.mu.Lock()
-	defer d.mu.Unlock()
+	d.lockWrite()
+	defer d.unlockWrite()
 
-	snap := d.snapshotNonCacheState()
+	if err := d.writable(); err != nil {
+		return err
+	}
+
+	journal := &mutationJournal{}
+	d.journal = journal
+	defer func() { d.journal = nil }()
 	realCache := d.tasks
 	txCache := cache_domain.BeginTransaction(ctx, realCache)
 	d.tasks = txCache
@@ -217,12 +270,10 @@ func (d *DAL) RunAtomic(ctx context.Context, fn func(ctx context.Context, transa
 
 	rollback := func() {
 		if rollbackErr := txCache.Rollback(rollbackCtx); rollbackErr != nil {
-			_, l := logger_domain.From(rollbackCtx, log)
-			l.Warn("transaction rollback failed",
-				logger_domain.Error(rollbackErr))
+			d.markDegraded(fmt.Errorf("undoing a failed transaction: %w", rollbackErr))
 		}
 		d.tasks = realCache
-		d.restoreFromSnapshot(snap)
+		d.restoreJournal(rollbackCtx, journal)
 	}
 
 	var err error
@@ -233,7 +284,12 @@ func (d *DAL) RunAtomic(ctx context.Context, fn func(ctx context.Context, transa
 				panic(r)
 			}
 		}()
-		err = fn(ctx, &otterTransactionDAL{parent: d})
+		if err = ctx.Err(); err == nil {
+			err = fn(ctx, &otterTransactionDAL{parent: d})
+		}
+		if err == nil {
+			err = ctx.Err()
+		}
 	}()
 
 	if err != nil {
@@ -250,57 +306,54 @@ func (d *DAL) RunAtomic(ctx context.Context, fn func(ctx context.Context, transa
 
 // CreateTask saves a new task to storage.
 //
+// The DAL write lock serialises this operation.
+//
 // Takes task (*orchestrator_domain.Task) which is the task to save.
 //
 // Returns error when the task cannot be saved.
-//
-// Safe for concurrent use.
 func (d *DAL) CreateTask(ctx context.Context, task *orchestrator_domain.Task) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
+	d.lockWrite()
+	defer d.unlockWrite()
+
+	if err := d.writable(); err != nil {
+		return err
+	}
 
 	return d.createTaskLocked(ctx, task)
 }
 
 // CreateTasks inserts a batch of tasks.
 //
+// The DAL write lock serialises this operation.
+//
 // Takes tasks ([]*orchestrator_domain.Task) which contains the tasks to store.
 //
 // Returns error when the database operation fails.
-//
-// Safe for concurrent use; protected by a mutex.
 func (d *DAL) CreateTasks(ctx context.Context, tasks []*orchestrator_domain.Task) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
+	d.lockWrite()
+	defer d.unlockWrite()
+
+	if err := d.writable(); err != nil {
+		return err
+	}
 	return d.createTasksLocked(ctx, tasks)
 }
 
 // UpdateTask updates an existing task.
 //
+// The DAL write lock serialises this operation.
+//
 // Takes task (*orchestrator_domain.Task) which is the task to update.
 //
 // Returns error when the update fails.
-//
-// Safe for concurrent use; takes a mutex lock while updating.
 func (d *DAL) UpdateTask(ctx context.Context, task *orchestrator_domain.Task) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	return d.updateTaskLocked(ctx, task)
-}
+	d.lockWrite()
+	defer d.unlockWrite()
 
-// FetchAndMarkDueTasks fetches tasks that are due and marks them as processing.
-//
-// Takes priority (TaskPriority) which filters tasks by their priority level.
-// Takes limit (int) which sets the maximum number of tasks to fetch.
-//
-// Returns []*Task which contains the tasks now marked as processing.
-// Returns error when the fetch or update fails.
-//
-// Safe for concurrent use. Access is serialised by an internal mutex.
-func (d *DAL) FetchAndMarkDueTasks(ctx context.Context, priority orchestrator_domain.TaskPriority, limit int) ([]*orchestrator_domain.Task, error) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	return d.fetchAndMarkDueTasksLocked(ctx, priority, limit)
+	if err := d.writable(); err != nil {
+		return err
+	}
+	return d.updateTaskLocked(ctx, task)
 }
 
 // GetTasksByID reads the tasks with the given IDs without changing them.
@@ -333,13 +386,17 @@ func (d *DAL) GetWorkflowStatus(ctx context.Context, workflowID string) (bool, e
 
 // PromoteScheduledTasks moves scheduled tasks that are now due to pending status.
 //
+// The DAL write lock serialises this operation.
+//
 // Returns int which is the number of tasks promoted.
 // Returns error when the promotion fails.
-//
-// Safe for concurrent use. Protected by mutex.
 func (d *DAL) PromoteScheduledTasks(ctx context.Context) (int, error) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
+	d.lockWrite()
+	defer d.unlockWrite()
+
+	if err := d.writable(); err != nil {
+		return 0, err
+	}
 	return d.promoteScheduledTasksLocked(ctx)
 }
 
@@ -357,137 +414,56 @@ func (d *DAL) PendingTaskCount(ctx context.Context) (int64, error) {
 
 // CreateTaskWithDedup creates a task with deduplication support.
 //
+// The DAL write lock serialises this operation.
+//
 // Takes task (*orchestrator_domain.Task) which is the task to create.
 //
 // Returns error when the task cannot be created or a duplicate exists.
-//
-// Safe for concurrent use. Uses a mutex to protect the dedup index and task store.
 func (d *DAL) CreateTaskWithDedup(ctx context.Context, task *orchestrator_domain.Task) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
+	d.lockWrite()
+	defer d.unlockWrite()
+
+	if err := d.writable(); err != nil {
+		return err
+	}
 	return d.createTaskWithDedupLocked(ctx, task)
 }
 
-// RecoverStaleTasks resets PROCESSING tasks that have exceeded the stale threshold.
-//
-// Takes staleThreshold (time.Duration) which defines how long a task can be in PROCESSING
-// before being considered stuck.
-// Takes maxRetries (int) which is the maximum retry attempts before marking FAILED.
-// Takes recoveryError (string) which is the error message to record on recovered tasks.
-//
-// Returns int which is the count of tasks recovered.
-// Returns error when the recovery operation fails.
-//
-// Safe for concurrent use; takes the DAL mutex for the call duration.
-func (d *DAL) RecoverStaleTasks(ctx context.Context, staleThreshold time.Duration, maxRetries int, recoveryError string) (int, error) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	return d.recoverStaleTasksLocked(ctx, staleThreshold, maxRetries, recoveryError)
-}
-
-// GetStaleProcessingTaskCount returns the count of tasks stuck in PROCESSING longer than
-// the threshold.
-//
-// Takes staleThreshold (time.Duration) which defines when a PROCESSING task is considered
-// stuck.
-//
-// Returns int64 which is the count of stale tasks.
-// Returns error when the count cannot be retrieved.
-//
-// Safe for concurrent use; holds a read lock during the count operation.
-func (d *DAL) GetStaleProcessingTaskCount(ctx context.Context, staleThreshold time.Duration) (int64, error) {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
-	return d.getStaleProcessingTaskCountLocked(ctx, staleThreshold)
-}
-
-// UpdateTaskHeartbeat updates the updated_at timestamp for a task.
-//
-// Takes taskID (string) which identifies the task to update.
-//
-// Returns error when the task is not found or is not in PROCESSING status.
-//
-// Safe for concurrent use.
-func (d *DAL) UpdateTaskHeartbeat(ctx context.Context, taskID string) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	return d.updateTaskHeartbeatLocked(ctx, taskID)
-}
-
-// ClaimStaleTasksForRecovery atomically claims stale PROCESSING tasks for recovery.
-//
-// Takes nodeID (string) which identifies the node claiming the tasks.
-// Takes staleThreshold (time.Duration) which defines when a task is considered stale.
-// Takes leaseTimeout (time.Duration) which sets how long the claim is valid.
-// Takes batchLimit (int) which limits the number of tasks to claim per call.
-//
-// Returns []orchestrator_domain.RecoveryClaimedTask which contains the claimed tasks.
-// Returns error when the claim operation fails.
-//
-// Safe for concurrent use; protected by a mutex.
-func (d *DAL) ClaimStaleTasksForRecovery(ctx context.Context, nodeID string, staleThreshold, leaseTimeout time.Duration, batchLimit int) ([]orchestrator_domain.RecoveryClaimedTask, error) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	return d.claimStaleTasksForRecoveryLocked(ctx, nodeID, staleThreshold, leaseTimeout, batchLimit)
-}
-
-// RecoverClaimedTasks recovers all tasks previously claimed by this node.
-//
-// Takes nodeID (string) which identifies the node that claimed the tasks.
-// Takes maxRetries (int) which is the maximum retry attempts before marking FAILED.
-// Takes recoveryError (string) which is the error message to record.
-//
-// Returns int which is the count of tasks recovered.
-// Returns error when the recovery fails.
-//
-// Safe for concurrent use; holds the DAL mutex for the duration of the operation.
-func (d *DAL) RecoverClaimedTasks(ctx context.Context, nodeID string, maxRetries int, recoveryError string) (int, error) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	return d.recoverClaimedTasksLocked(ctx, nodeID, maxRetries, recoveryError)
-}
-
-// ReleaseRecoveryLeases releases all recovery leases held by this node.
-//
-// Takes nodeID (string) which identifies the node releasing leases.
-//
-// Returns int which is the count of leases released.
-// Returns error when the release fails.
-//
-// Safe for concurrent use. Uses a mutex to protect access to the lease map.
-func (d *DAL) ReleaseRecoveryLeases(ctx context.Context, nodeID string) (int, error) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	return d.releaseRecoveryLeasesLocked(ctx, nodeID)
-}
-
 // CreateWorkflowReceipt creates a new workflow receipt for tracking completion.
+//
+// The DAL write lock serialises this operation.
 //
 // Takes id (string) which is the unique identifier for the receipt.
 // Takes workflowID (string) which is the workflow being tracked.
 // Takes nodeID (string) which is the node that created the receipt.
 //
 // Returns error when the receipt cannot be created.
-//
-// Safe for concurrent use.
 func (d *DAL) CreateWorkflowReceipt(ctx context.Context, id, workflowID, nodeID string) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
+	d.lockWrite()
+	defer d.unlockWrite()
+
+	if err := d.writable(); err != nil {
+		return err
+	}
 	return d.createWorkflowReceiptLocked(ctx, id, workflowID, nodeID)
 }
 
 // ResolveWorkflowReceipts marks all pending receipts for a workflow as resolved.
+//
+// The DAL write lock serialises this operation.
 //
 // Takes workflowID (string) which identifies the completed workflow.
 // Takes errorMessage (string) which contains any error from workflow completion.
 //
 // Returns int which is the count of receipts resolved.
 // Returns error when the resolution fails.
-//
-// Safe for concurrent use. Protected by a mutex lock.
 func (d *DAL) ResolveWorkflowReceipts(ctx context.Context, workflowID, errorMessage string) (int, error) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
+	d.lockWrite()
+	defer d.unlockWrite()
+
+	if err := d.writable(); err != nil {
+		return 0, err
+	}
 	return d.resolveWorkflowReceiptsLocked(ctx, workflowID, errorMessage)
 }
 
@@ -523,29 +499,37 @@ func (d *DAL) GetPendingReceiptsByWorkflow(_ context.Context, workflowID string)
 
 // CleanupOldResolvedReceipts deletes resolved receipts older than the specified time.
 //
+// The DAL write lock serialises this operation.
+//
 // Takes olderThan (time.Time) which is the cutoff for deletion.
 //
 // Returns int which is the count of receipts deleted.
 // Returns error when the cleanup fails.
-//
-// Safe for concurrent use; takes a mutex lock for the call duration.
 func (d *DAL) CleanupOldResolvedReceipts(ctx context.Context, olderThan time.Time) (int, error) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
+	d.lockWrite()
+	defer d.unlockWrite()
+
+	if err := d.writable(); err != nil {
+		return 0, err
+	}
 	return d.cleanupOldResolvedReceiptsLocked(ctx, olderThan)
 }
 
 // TimeoutStaleReceipts marks very old pending receipts as timed out.
 //
+// The DAL write lock serialises this operation.
+//
 // Takes olderThan (time.Time) which is the cutoff for timeout.
 //
 // Returns int which is the count of receipts timed out.
 // Returns error when the timeout operation fails.
-//
-// Safe for concurrent use; protected by mutex.
 func (d *DAL) TimeoutStaleReceipts(ctx context.Context, olderThan time.Time) (int, error) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
+	d.lockWrite()
+	defer d.unlockWrite()
+
+	if err := d.writable(); err != nil {
+		return 0, err
+	}
 	return d.timeoutStaleReceiptsLocked(ctx, olderThan)
 }
 
@@ -683,88 +667,46 @@ func (d *DAL) ListWorkflowSummary(_ context.Context, limit int) ([]orchestrator_
 //
 // Safe for concurrent use; holds the mutex for the entire operation.
 //
-// Note: recoveryLeases, receipts, and related receipt indexes are not recovered. These
-// are ephemeral data that reset on restart. Recovery leases are tied to node instances
-// and receipts track in-flight workflow completion notifications.
+// Receipts and related receipt indexes are not recovered. They are ephemeral data that
+// reset on restart, tracking in-flight workflow completion notifications.
 func (d *DAL) RebuildIndexes(ctx context.Context) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
+	d.lockWrite()
+	defer d.unlockWrite()
 
-	d.scheduledIndex = provider_otter.NewSortedIndex[string]()
-	d.executeIndex = provider_otter.NewSortedIndex[string]()
-	d.workflowIndex = provider_otter.NewTagIndex[string]()
+	d.processingIndex = newTimeIndex()
+	d.terminalIndex = newTimeIndex()
+	d.resolvedIndex = newTimeIndex()
+	d.scheduledIndex = newTimeIndex()
+	d.executeIndex = newTimeIndex()
+	d.workflowIndex = newWorkflowIndex()
 	d.dedupIndex = make(map[string]string)
-	d.recoveryLeases = make(map[string]*recoveryLease)
+	d.unsettledByTag = make(map[string]int64)
+	d.countedTag = make(map[string]string)
+	d.nodesMu.Lock()
+	d.nodes = make(map[string]orchestrator_domain.NodeLease)
+	d.nodesMu.Unlock()
+	d.publishedMu.Lock()
+	d.publishedAt = make(map[string]time.Time)
+	d.publishedMu.Unlock()
 	d.receipts = make(map[string]*receipt)
 	d.receiptsByWorkflow = provider_otter.NewTagIndex[string]()
 	d.receiptsByNode = provider_otter.NewTagIndex[string]()
 
-	for _, task := range d.tasks.All() {
+	_, repairLog := logger_domain.From(ctx, log)
+	for id, task := range d.tasks.All() {
+		if task.Status == orchestrator_domain.StatusScheduled && task.ScheduledExecuteAt.IsZero() {
+			task = cloneTask(task)
+			task.ScheduledExecuteAt = task.ExecuteAt.UTC()
+			if err := d.tasks.Set(ctx, id, task); err != nil {
+				repairLog.Warn("Failed to persist repaired schedule", logger_domain.Error(err), logger_domain.String("task_id", id))
+			}
+		}
 		d.indexTaskLocked(task)
 	}
 
 	_, rl := logger_domain.From(ctx, log)
 	rl.Internal("Orchestrator indexes rebuilt from cache",
 		logger_domain.Int("task_count", d.tasks.EstimatedSize()))
-}
-
-// transactionSnapshot holds deep copies of non-cache mutable state captured at the start
-// of a RunAtomic transaction. On rollback, these are restored to undo mutations that are
-// not tracked by the cache transaction journal.
-type transactionSnapshot struct {
-	// recoveryLeases holds deep copies of claimed recovery leases keyed by task ID.
-	recoveryLeases map[string]*recoveryLease
-
-	// receipts holds deep copies of workflow receipts keyed by receipt ID.
-	receipts map[string]*receipt
-}
-
-// snapshotNonCacheState deep-copies the mutable maps that are not covered by the cache
-// transaction journal. Caller must hold mu.
-//
-// Returns *transactionSnapshot which contains deep copies of recovery leases and
-// receipts.
-func (d *DAL) snapshotNonCacheState() *transactionSnapshot {
-	leasesCopy := make(map[string]*recoveryLease, len(d.recoveryLeases))
-	for k, v := range d.recoveryLeases {
-		leasesCopy[k] = new(*v)
-	}
-
-	receiptsCopy := make(map[string]*receipt, len(d.receipts))
-	for k, v := range d.receipts {
-		receiptsCopy[k] = new(*v)
-	}
-
-	return &transactionSnapshot{
-		recoveryLeases: leasesCopy,
-		receipts:       receiptsCopy,
-	}
-}
-
-// restoreFromSnapshot reverts non-cache state to the given snapshot and rebuilds all
-// secondary indexes from the current cache contents. The index rebuild is O(n) over all
-// cached tasks, acceptable because rollback is the error path and a full rebuild is
-// simpler and safer than per-entry undo for volatile indexes.
-//
-// Takes snap (*transactionSnapshot) which contains the state to restore.
-func (d *DAL) restoreFromSnapshot(snap *transactionSnapshot) {
-	d.recoveryLeases = snap.recoveryLeases
-	d.receipts = snap.receipts
-
-	d.scheduledIndex = provider_otter.NewSortedIndex[string]()
-	d.executeIndex = provider_otter.NewSortedIndex[string]()
-	d.workflowIndex = provider_otter.NewTagIndex[string]()
-	d.dedupIndex = make(map[string]string)
-	for _, task := range d.tasks.All() {
-		d.indexTaskLocked(task)
-	}
-
-	d.receiptsByWorkflow = provider_otter.NewTagIndex[string]()
-	d.receiptsByNode = provider_otter.NewTagIndex[string]()
-	for id, r := range d.receipts {
-		d.receiptsByWorkflow.AddSingle(r.workflowID, id)
-		d.receiptsByNode.AddSingle(r.nodeID, id)
-	}
 }
 
 // createTasksLocked inserts a batch of tasks without acquiring the lock. Caller must hold
@@ -782,72 +724,26 @@ func (d *DAL) createTasksLocked(ctx context.Context, tasks []*orchestrator_domai
 	return nil
 }
 
-// updateTaskLocked updates an existing task without acquiring the lock. Caller must hold
+// updateTaskLocked stores an independent copy of an existing task while the caller holds
 // mu.
-//
-// Stores a shallow clone of the supplied task so caller mutations after the call cannot
-// race with concurrent reads of the stored value (callers outside the dispatcher
-// routinely mutate task.Status before re-persisting).
 //
 // Takes task (*orchestrator_domain.Task) which is the task to update.
 //
-// Returns error when the update fails.
+// Returns error which wraps ErrTaskNotFound when the task does not exist, or a cache
+// failure.
 func (d *DAL) updateTaskLocked(ctx context.Context, task *orchestrator_domain.Task) error {
-	if old, found, _ := d.tasks.GetIfPresent(ctx, task.ID); found {
-		d.unindexTaskLocked(old)
+	if err := ctx.Err(); err != nil {
+		return err
 	}
-
-	stored := cloneTask(task)
-	if err := d.tasks.Set(ctx, task.ID, stored); err != nil {
-		return fmt.Errorf("setting task %q: %w", task.ID, err)
+	d.pruneDanglingLocked(ctx)
+	old, found, err := d.tasks.GetIfPresent(ctx, task.ID)
+	if err != nil {
+		return err
 	}
-
-	d.indexTaskLocked(stored)
-
-	return nil
-}
-
-// fetchAndMarkDueTasksLocked fetches due tasks and marks them as processing without
-// acquiring the lock. Caller must hold mu.
-//
-// Takes priority (TaskPriority) which filters tasks by their priority level.
-// Takes limit (int) which sets the maximum number of tasks to fetch.
-//
-// Returns []*Task which contains the tasks now marked as processing.
-// Returns error when the fetch or update fails.
-func (d *DAL) fetchAndMarkDueTasksLocked(ctx context.Context, priority orchestrator_domain.TaskPriority, limit int) ([]*orchestrator_domain.Task, error) {
-	now := time.Now()
-
-	candidateIDs := d.executeIndex.KeysLessThanOrEqual(now, true)
-
-	results := make([]*orchestrator_domain.Task, 0, min(len(candidateIDs), limit))
-	for _, taskID := range candidateIDs {
-		if len(results) >= limit {
-			break
-		}
-
-		task, found, _ := d.tasks.GetIfPresent(ctx, taskID)
-		if !found {
-			continue
-		}
-
-		if task.Status != orchestrator_domain.StatusPending && task.Status != orchestrator_domain.StatusRetrying {
-			continue
-		}
-
-		if task.Config.Priority != priority {
-			continue
-		}
-
-		d.unindexTaskLocked(task)
-		task.Status = orchestrator_domain.StatusProcessing
-		task.UpdatedAt = now
-		d.indexTaskLocked(task)
-
-		results = append(results, cloneTask(task))
+	if !found {
+		return fmt.Errorf("updating task %q: %w", task.ID, orchestrator_domain.ErrTaskNotFound)
 	}
-
-	return results, nil
+	return d.replaceTaskLocked(ctx, old, storedCopy(task))
 }
 
 // getTasksByIDLocked reads tasks by ID without acquiring the lock. Caller must hold mu.
@@ -860,28 +756,33 @@ func (d *DAL) getTasksByIDLocked(ctx context.Context, ids []string) ([]*orchestr
 	results := make([]*orchestrator_domain.Task, 0, len(ids))
 	for _, id := range ids {
 		if task, found, _ := d.tasks.GetIfPresent(ctx, id); found {
-			results = append(results, cloneTask(task))
+			results = append(results, readCopy(task))
 		}
 	}
 	return results, nil
 }
 
 // getWorkflowStatusLocked checks workflow completion without acquiring the lock. Caller
-// must hold mu.
+// must hold mu, for reading or writing.
+//
+// Indexed tasks missing from the cache are noted as dangling rather than removed, because
+// a reader must not change the indexes.
 //
 // Takes workflowID (string) which identifies the workflow to check.
 //
-// Returns bool which is true when all tasks are done or failed.
-// Returns error when the workflow cannot be found.
+// Returns bool which is true when all tasks are done or failed, including when the
+// workflow has no tasks.
+// Returns error which is always nil.
 func (d *DAL) getWorkflowStatusLocked(ctx context.Context, workflowID string) (bool, error) {
 	taskIDs := d.workflowIndex.Get(workflowID)
 	if len(taskIDs) == 0 {
-		return false, fmt.Errorf("workflow %q not found", workflowID)
+		return true, nil
 	}
 
 	for taskID := range taskIDs {
 		task, found, _ := d.tasks.GetIfPresent(ctx, taskID)
 		if !found {
+			d.noteDangling(taskID)
 			continue
 		}
 
@@ -899,13 +800,16 @@ func (d *DAL) getWorkflowStatusLocked(ctx context.Context, workflowID string) (b
 // Returns int which is the number of tasks promoted.
 // Returns error when the promotion fails.
 func (d *DAL) promoteScheduledTasksLocked(ctx context.Context) (int, error) {
-	now := time.Now()
-	candidateIDs := d.scheduledIndex.KeysLessThanOrEqual(now, true)
+	now := d.now()
+	candidateIDs := d.scheduledIndex.KeysThrough(now, maintenanceBatchSize)
 
 	count := 0
 	for _, taskID := range candidateIDs {
 		task, found, _ := d.tasks.GetIfPresent(ctx, taskID)
 		if !found {
+			d.scheduledIndex.Remove(taskID)
+			d.executeIndex.Remove(taskID)
+			d.workflowIndex.RemoveKey(taskID)
 			continue
 		}
 
@@ -913,11 +817,13 @@ func (d *DAL) promoteScheduledTasksLocked(ctx context.Context) (int, error) {
 			continue
 		}
 
-		d.unindexTaskLocked(task)
+		task = cloneTask(task)
 		task.Status = orchestrator_domain.StatusPending
 		task.ExecuteAt = now
 		task.UpdatedAt = now
-		d.indexTaskLocked(task)
+		if err := d.updateTaskLocked(ctx, task); err != nil {
+			return count, err
+		}
 
 		count++
 	}
@@ -925,19 +831,13 @@ func (d *DAL) promoteScheduledTasksLocked(ctx context.Context) (int, error) {
 	return count, nil
 }
 
-// pendingTaskCountLocked counts pending tasks without acquiring the lock. Caller must
-// hold mu.
+// pendingTaskCountLocked counts the tasks waiting to run, pending, retrying and
+// scheduled, from the indexes that hold exactly those tasks. Caller must hold mu.
 //
-// Returns int64 which is the count of pending tasks.
+// Returns int64 which is the count of waiting tasks.
 // Returns error when the count cannot be retrieved.
 func (d *DAL) pendingTaskCountLocked(_ context.Context) (int64, error) {
-	var count int64
-	for _, task := range d.tasks.All() {
-		if task.Status == orchestrator_domain.StatusPending {
-			count++
-		}
-	}
-	return count, nil
+	return int64(d.executeIndex.Size() + d.scheduledIndex.Size()), nil
 }
 
 // createTaskWithDedupLocked creates a task with deduplication without acquiring the lock.
@@ -958,207 +858,6 @@ func (d *DAL) createTaskWithDedupLocked(ctx context.Context, task *orchestrator_
 	return d.createTaskLocked(ctx, task)
 }
 
-// recoverStaleTasksLocked resets stale PROCESSING tasks without acquiring the lock.
-// Caller must hold mu.
-//
-// Takes staleThreshold (time.Duration) which defines how long a task can be in PROCESSING
-// before being considered stuck.
-// Takes maxRetries (int) which is the maximum retry attempts before marking FAILED.
-// Takes recoveryError (string) which is the error message to record on recovered tasks.
-//
-// Returns int which is the count of tasks recovered.
-// Returns error when the recovery operation fails.
-func (d *DAL) recoverStaleTasksLocked(_ context.Context, staleThreshold time.Duration, maxRetries int, recoveryError string) (int, error) {
-	now := time.Now()
-	cutoff := now.Add(-staleThreshold)
-
-	count := 0
-	for _, task := range d.tasks.All() {
-		if task.Status != orchestrator_domain.StatusProcessing {
-			continue
-		}
-
-		if task.UpdatedAt.After(cutoff) {
-			continue
-		}
-
-		if lease, ok := d.recoveryLeases[task.ID]; ok && lease.expiresAt.After(now) {
-			continue
-		}
-
-		d.unindexTaskLocked(task)
-
-		task.LastError = recoveryError
-		task.UpdatedAt = now
-		task.Attempt++
-
-		if task.Attempt >= maxRetries {
-			task.Status = orchestrator_domain.StatusFailed
-		} else {
-			task.Status = orchestrator_domain.StatusRetrying
-			task.ExecuteAt = now
-		}
-
-		d.indexTaskLocked(task)
-		count++
-	}
-
-	return count, nil
-}
-
-// getStaleProcessingTaskCountLocked counts stale processing tasks without acquiring the
-// lock. Caller must hold mu.
-//
-// Takes staleThreshold (time.Duration) which defines when a PROCESSING task is considered
-// stuck.
-//
-// Returns int64 which is the count of stale tasks.
-// Returns error when the count cannot be retrieved.
-func (d *DAL) getStaleProcessingTaskCountLocked(_ context.Context, staleThreshold time.Duration) (int64, error) {
-	cutoff := time.Now().Add(-staleThreshold)
-
-	var count int64
-	for _, task := range d.tasks.All() {
-		if task.Status == orchestrator_domain.StatusProcessing && task.UpdatedAt.Before(cutoff) {
-			count++
-		}
-	}
-	return count, nil
-}
-
-// updateTaskHeartbeatLocked updates the task heartbeat without acquiring the lock. Caller
-// must hold mu.
-//
-// Takes taskID (string) which identifies the task to update.
-//
-// Returns error when the task is not found or is not in PROCESSING status.
-func (d *DAL) updateTaskHeartbeatLocked(ctx context.Context, taskID string) error {
-	task, found, _ := d.tasks.GetIfPresent(ctx, taskID)
-	if !found {
-		return fmt.Errorf("task %q not found", taskID)
-	}
-
-	if task.Status != orchestrator_domain.StatusProcessing {
-		return fmt.Errorf("task %q is not in PROCESSING status", taskID)
-	}
-
-	task.UpdatedAt = time.Now()
-	return nil
-}
-
-// claimStaleTasksForRecoveryLocked claims stale tasks for recovery without acquiring the
-// lock. Caller must hold mu.
-//
-// Takes nodeID (string) which identifies the node claiming the tasks.
-// Takes staleThreshold (time.Duration) which defines when a task is considered stale.
-// Takes leaseTimeout (time.Duration) which sets how long the claim is valid.
-// Takes batchLimit (int) which limits the number of tasks to claim per call.
-//
-// Returns []RecoveryClaimedTask which contains the claimed tasks.
-// Returns error when the claim operation fails.
-func (d *DAL) claimStaleTasksForRecoveryLocked(_ context.Context, nodeID string, staleThreshold, leaseTimeout time.Duration, batchLimit int) ([]orchestrator_domain.RecoveryClaimedTask, error) {
-	now := time.Now()
-	cutoff := now.Add(-staleThreshold)
-
-	results := make([]orchestrator_domain.RecoveryClaimedTask, 0, batchLimit)
-	for _, task := range d.tasks.All() {
-		if len(results) >= batchLimit {
-			break
-		}
-
-		if task.Status != orchestrator_domain.StatusProcessing {
-			continue
-		}
-
-		if task.UpdatedAt.After(cutoff) {
-			continue
-		}
-
-		if lease, ok := d.recoveryLeases[task.ID]; ok && lease.expiresAt.After(now) {
-			continue
-		}
-
-		d.recoveryLeases[task.ID] = &recoveryLease{
-			taskID:    task.ID,
-			nodeID:    nodeID,
-			claimedAt: now,
-			expiresAt: now.Add(leaseTimeout),
-		}
-
-		results = append(results, orchestrator_domain.RecoveryClaimedTask{
-			ID:         task.ID,
-			WorkflowID: task.WorkflowID,
-			Attempt:    safeconv.IntToInt32(task.Attempt),
-		})
-	}
-
-	return results, nil
-}
-
-// recoverClaimedTasksLocked recovers claimed tasks without acquiring the lock. Caller
-// must hold mu.
-//
-// Takes nodeID (string) which identifies the node that claimed the tasks.
-// Takes maxRetries (int) which is the maximum retry attempts before marking FAILED.
-// Takes recoveryError (string) which is the error message to record.
-//
-// Returns int which is the count of tasks recovered.
-// Returns error when the recovery fails.
-func (d *DAL) recoverClaimedTasksLocked(ctx context.Context, nodeID string, maxRetries int, recoveryError string) (int, error) {
-	now := time.Now()
-	count := 0
-
-	for taskID, lease := range d.recoveryLeases {
-		if lease.nodeID != nodeID {
-			continue
-		}
-
-		task, found, _ := d.tasks.GetIfPresent(ctx, taskID)
-		if !found {
-			delete(d.recoveryLeases, taskID)
-			continue
-		}
-
-		d.unindexTaskLocked(task)
-
-		task.LastError = recoveryError
-		task.UpdatedAt = now
-		task.Attempt++
-
-		if task.Attempt >= maxRetries {
-			task.Status = orchestrator_domain.StatusFailed
-		} else {
-			task.Status = orchestrator_domain.StatusRetrying
-			task.ExecuteAt = now
-		}
-
-		d.indexTaskLocked(task)
-		delete(d.recoveryLeases, taskID)
-		count++
-	}
-
-	return count, nil
-}
-
-// releaseRecoveryLeasesLocked releases recovery leases without acquiring the lock. Caller
-// must hold mu.
-//
-// Takes nodeID (string) which identifies the node releasing leases.
-//
-// Returns int which is the count of leases released.
-// Returns error when the release fails.
-func (d *DAL) releaseRecoveryLeasesLocked(_ context.Context, nodeID string) (int, error) {
-	count := 0
-	for taskID, lease := range d.recoveryLeases {
-		if lease.nodeID == nodeID {
-			delete(d.recoveryLeases, taskID)
-			count++
-		}
-	}
-
-	return count, nil
-}
-
 // createWorkflowReceiptLocked creates a workflow receipt without acquiring the lock.
 // Caller must hold mu.
 //
@@ -1167,17 +866,32 @@ func (d *DAL) releaseRecoveryLeasesLocked(_ context.Context, nodeID string) (int
 // Takes nodeID (string) which is the node that created the receipt.
 //
 // Returns error when the receipt cannot be created.
-func (d *DAL) createWorkflowReceiptLocked(_ context.Context, id, workflowID, nodeID string) error {
+func (d *DAL) createWorkflowReceiptLocked(ctx context.Context, id, workflowID, nodeID string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if _, exists := d.receipts[id]; !exists && d.capacity > 0 && len(d.receipts) >= d.capacity {
+		_, _ = d.cleanupOldResolvedReceiptsLocked(ctx, d.now().Add(time.Second))
+		if len(d.receipts) >= d.capacity {
+			return orchestrator_domain.ErrTaskCapacity
+		}
+	}
 	r := &receipt{
 		id:           id,
 		workflowID:   workflowID,
 		nodeID:       nodeID,
 		status:       receiptPending,
-		createdAt:    time.Now(),
+		createdAt:    d.now(),
 		resolvedAt:   time.Time{},
 		errorMessage: "",
 	}
 
+	d.rememberReceipt(id)
+	if old := d.receipts[id]; old != nil {
+		d.receiptsByWorkflow.RemoveSingle(old.workflowID, id)
+		d.receiptsByNode.RemoveSingle(old.nodeID, id)
+		d.resolvedIndex.Remove(id)
+	}
 	d.receipts[id] = r
 	d.receiptsByWorkflow.AddSingle(workflowID, id)
 	d.receiptsByNode.AddSingle(nodeID, id)
@@ -1195,7 +909,7 @@ func (d *DAL) createWorkflowReceiptLocked(_ context.Context, id, workflowID, nod
 // Returns error when the resolution fails.
 func (d *DAL) resolveWorkflowReceiptsLocked(_ context.Context, workflowID, errorMessage string) (int, error) {
 	receiptIDs := d.receiptsByWorkflow.Get(workflowID)
-	now := time.Now()
+	now := d.now()
 	count := 0
 
 	for receiptID := range receiptIDs {
@@ -1208,9 +922,11 @@ func (d *DAL) resolveWorkflowReceiptsLocked(_ context.Context, workflowID, error
 			continue
 		}
 
+		d.rememberReceipt(receiptID)
 		r.status = receiptResolved
 		r.errorMessage = errorMessage
 		r.resolvedAt = now
+		d.resolvedIndex.Add(receiptID, now)
 		count++
 	}
 
@@ -1238,16 +954,22 @@ func (d *DAL) getPendingReceiptsByNodeLocked(_ context.Context, nodeID string) (
 // Returns error when the cleanup fails.
 func (d *DAL) cleanupOldResolvedReceiptsLocked(_ context.Context, olderThan time.Time) (int, error) {
 	count := 0
-	for id, r := range d.receipts {
-		if r.status != receiptResolved {
+	for _, id := range d.resolvedIndex.KeysThrough(olderThan, maintenanceBatchSize) {
+		r := d.receipts[id]
+		if r == nil || r.status == receiptPending {
 			continue
 		}
 
 		if r.resolvedAt.Before(olderThan) {
+			d.rememberReceipt(id)
 			d.receiptsByWorkflow.RemoveSingle(r.workflowID, id)
 			d.receiptsByNode.RemoveSingle(r.nodeID, id)
 			delete(d.receipts, id)
+			d.resolvedIndex.Remove(id)
 			count++
+			if count >= maintenanceBatchSize {
+				break
+			}
 		}
 	}
 
@@ -1262,17 +984,19 @@ func (d *DAL) cleanupOldResolvedReceiptsLocked(_ context.Context, olderThan time
 // Returns int which is the count of receipts timed out.
 // Returns error when the timeout operation fails.
 func (d *DAL) timeoutStaleReceiptsLocked(_ context.Context, olderThan time.Time) (int, error) {
-	now := time.Now()
+	now := d.now()
 	count := 0
 
-	for _, r := range d.receipts {
+	for id, r := range d.receipts {
 		if r.status != receiptPending {
 			continue
 		}
 
 		if r.createdAt.Before(olderThan) {
+			d.rememberReceipt(id)
 			r.status = receiptTimedOut
 			r.resolvedAt = now
+			d.resolvedIndex.Add(id, now)
 			count++
 		}
 	}
@@ -1289,7 +1013,7 @@ func (d *DAL) listFailedTasksLocked(_ context.Context) ([]*orchestrator_domain.T
 	var result []*orchestrator_domain.Task
 	for _, task := range d.tasks.All() {
 		if task.Status == orchestrator_domain.StatusFailed {
-			result = append(result, new(*task))
+			result = append(result, readCopy(task))
 		}
 	}
 	return result, nil
@@ -1301,14 +1025,80 @@ func (d *DAL) listFailedTasksLocked(_ context.Context) ([]*orchestrator_domain.T
 //
 // Returns error when the storage operation fails.
 func (d *DAL) createTaskLocked(ctx context.Context, task *orchestrator_domain.Task) error {
-	stored := cloneTask(task)
-	if err := d.tasks.Set(ctx, task.ID, stored); err != nil {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	d.pruneDanglingLocked(ctx)
+	if _, found, _ := d.tasks.GetIfPresent(ctx, task.ID); !found && d.capacity > 0 && d.tasks.EstimatedSize() >= d.capacity {
+		if err := d.reclaimTerminalLocked(ctx); err != nil {
+			return err
+		}
+		if d.tasks.EstimatedSize() >= d.capacity {
+			return orchestrator_domain.ErrTaskCapacity
+		}
+	}
+	old, _, err := d.tasks.GetIfPresent(ctx, task.ID)
+	if err != nil {
+		return err
+	}
+	d.rememberTask(ctx, task.ID)
+	stored := storedCopy(task)
+	if err := d.setTaskLocked(ctx, task.ID, stored); err != nil {
 		return fmt.Errorf("setting task %q: %w", task.ID, err)
 	}
 
-	d.indexTaskLocked(stored)
+	if old != nil {
+		d.reindexTaskLocked(old, stored)
+	} else {
+		d.indexTaskLocked(stored)
+	}
 
 	return nil
+}
+
+// noteDangling records a task ID that is indexed but missing from the cache, for the next
+// write to prune.
+//
+// Takes taskID (string) which identifies the missing task.
+//
+// Safe for concurrent use by readers holding only the read lock; guarded by danglingMu.
+func (d *DAL) noteDangling(taskID string) {
+	d.danglingMu.Lock()
+	if d.dangling == nil {
+		d.dangling = make(map[string]struct{})
+	}
+	d.dangling[taskID] = struct{}{}
+	d.danglingPending.Store(true)
+	d.danglingMu.Unlock()
+}
+
+// pruneDanglingLocked removes missing tasks from the indexes outside transactions.
+//
+// Tasks that have reappeared remain indexed.
+//
+// Concurrent access requires the caller to hold the DAL write lock; danglingMu protects
+// the pending IDs.
+func (d *DAL) pruneDanglingLocked(ctx context.Context) {
+	if d.journal != nil || !d.danglingPending.Load() {
+		return
+	}
+	d.danglingMu.Lock()
+	ids := d.dangling
+	d.dangling = nil
+	d.danglingPending.Store(false)
+	d.danglingMu.Unlock()
+
+	for id := range ids {
+		if _, found, _ := d.tasks.GetIfPresent(ctx, id); found {
+			continue
+		}
+		d.uncountUnsettledLocked(id)
+		d.processingIndex.Remove(id)
+		d.terminalIndex.Remove(id)
+		d.scheduledIndex.Remove(id)
+		d.executeIndex.Remove(id)
+		d.workflowIndex.RemoveKey(id)
+	}
 }
 
 // cloneTask returns a shallow copy of task.
@@ -1327,10 +1117,20 @@ func cloneTask(task *orchestrator_domain.Task) *orchestrator_domain.Task {
 //
 // Takes task (*orchestrator_domain.Task) which is the task to index.
 func (d *DAL) indexTaskLocked(task *orchestrator_domain.Task) {
+	if task.Status == orchestrator_domain.StatusProcessing {
+		d.processingIndex.Add(task.ID, task.UpdatedAt)
+	}
+	if !isActiveStatus(task.Status) {
+		d.terminalIndex.Add(task.ID, task.UpdatedAt)
+	}
 	d.workflowIndex.AddSingle(task.WorkflowID, task.ID)
 
 	if task.Status == orchestrator_domain.StatusScheduled {
-		d.scheduledIndex.Add(task.ID, task.ScheduledExecuteAt)
+		due := task.ScheduledExecuteAt
+		if due.IsZero() {
+			due = task.ExecuteAt
+		}
+		d.scheduledIndex.Add(task.ID, due)
 	}
 
 	if task.Status == orchestrator_domain.StatusPending || task.Status == orchestrator_domain.StatusRetrying {
@@ -1338,7 +1138,30 @@ func (d *DAL) indexTaskLocked(task *orchestrator_domain.Task) {
 	}
 
 	if task.DeduplicationKey != "" && isActiveStatus(task.Status) {
+		d.rememberDedup(task.DeduplicationKey)
 		d.dedupIndex[task.DeduplicationKey] = task.ID
+	}
+
+	if !task.Background && isActiveStatus(task.Status) {
+		d.unsettledByTag[task.BuildTag]++
+		d.countedTag[task.ID] = task.BuildTag
+	}
+}
+
+// uncountUnsettledLocked removes a task from its build tag's unsettled count. Caller must
+// hold mu.
+//
+// Takes id (string) which identifies the task.
+func (d *DAL) uncountUnsettledLocked(id string) {
+	tag, counted := d.countedTag[id]
+	if !counted {
+		return
+	}
+	delete(d.countedTag, id)
+	if remaining := d.unsettledByTag[tag] - 1; remaining > 0 {
+		d.unsettledByTag[tag] = remaining
+	} else {
+		delete(d.unsettledByTag, tag)
 	}
 }
 
@@ -1367,6 +1190,9 @@ type workflowAgg struct {
 //
 // Takes task (*orchestrator_domain.Task) which is the task to remove from all indexes.
 func (d *DAL) unindexTaskLocked(task *orchestrator_domain.Task) {
+	d.uncountUnsettledLocked(task.ID)
+	d.processingIndex.Remove(task.ID)
+	d.terminalIndex.Remove(task.ID)
 	d.workflowIndex.RemoveSingle(task.WorkflowID, task.ID)
 
 	d.scheduledIndex.Remove(task.ID)
@@ -1374,6 +1200,7 @@ func (d *DAL) unindexTaskLocked(task *orchestrator_domain.Task) {
 
 	if task.DeduplicationKey != "" {
 		if existing, ok := d.dedupIndex[task.DeduplicationKey]; ok && existing == task.ID {
+			d.rememberDedup(task.DeduplicationKey)
 			delete(d.dedupIndex, task.DeduplicationKey)
 		}
 	}
@@ -1464,6 +1291,31 @@ func WithCache(cache cache_domain.ProviderPort[string, *orchestrator_domain.Task
 	}
 }
 
+// WithClock sets the clock the DAL uses for its own time comparisons and stamps.
+//
+// Use the same clock as the task dispatcher so stored times and due checks agree.
+//
+// Takes c (clockpkg.Clock) which provides the time; nil keeps the real clock.
+//
+// Returns Option which configures the DAL's clock.
+func WithClock(c clockpkg.Clock) Option {
+	return func(d *DAL) {
+		if c != nil {
+			d.clock = c
+		}
+	}
+}
+
+// now returns the current time from the DAL's clock.
+//
+// Returns time.Time which is the configured clock's time, or the real time when unset.
+func (d *DAL) now() time.Time {
+	if d.clock == nil {
+		return time.Now()
+	}
+	return d.clock.Now()
+}
+
 // NewOtterDAL creates a new in-memory orchestrator DAL using otter cache.
 //
 // Takes config (Config) which specifies cache settings.
@@ -1473,17 +1325,33 @@ func WithCache(cache cache_domain.ProviderPort[string, *orchestrator_domain.Task
 // Returns error when the cache cannot be created.
 func NewOtterDAL(config Config, opts ...Option) (orchestrator_dal.OrchestratorDALWithTx, error) {
 	dal := &DAL{
-		scheduledIndex:     provider_otter.NewSortedIndex[string](),
-		executeIndex:       provider_otter.NewSortedIndex[string](),
-		workflowIndex:      provider_otter.NewTagIndex[string](),
+		clock:              clockpkg.RealClock(),
+		processingIndex:    newTimeIndex(),
+		terminalIndex:      newTimeIndex(),
+		resolvedIndex:      newTimeIndex(),
+		scheduledIndex:     newTimeIndex(),
+		executeIndex:       newTimeIndex(),
+		workflowIndex:      newWorkflowIndex(),
 		dedupIndex:         make(map[string]string),
-		recoveryLeases:     make(map[string]*recoveryLease),
+		unsettledByTag:     make(map[string]int64),
+		countedTag:         make(map[string]string),
+		nodes:              make(map[string]orchestrator_domain.NodeLease),
+		publishedAt:        make(map[string]time.Time),
 		receipts:           make(map[string]*receipt),
 		receiptsByWorkflow: provider_otter.NewTagIndex[string](),
 		receiptsByNode:     provider_otter.NewTagIndex[string](),
 		ownsCache:          true,
 		mu:                 sync.RWMutex{},
 		tasks:              nil,
+		capacity:           0,
+		journal:            nil,
+		pendingWaits:       nil,
+		degraded:           atomic.Pointer[error]{},
+		dangling:           nil,
+		danglingPending:    atomic.Bool{},
+		danglingMu:         sync.Mutex{},
+		nodesMu:            sync.Mutex{},
+		publishedMu:        sync.Mutex{},
 	}
 
 	for _, opt := range opts {
@@ -1497,7 +1365,8 @@ func NewOtterDAL(config Config, opts ...Option) (orchestrator_dal.OrchestratorDA
 		}
 
 		cacheOpts := cache_dto.Options[string, *orchestrator_domain.Task]{}
-		cacheOpts.MaximumEntries = int(capacity)
+		dal.capacity = int(capacity)
+		cacheOpts.MaximumEntries = 0
 
 		cache, err := provider_otter.OtterProviderFactory(cacheOpts)
 		if err != nil {
@@ -1506,6 +1375,12 @@ func NewOtterDAL(config Config, opts ...Option) (orchestrator_dal.OrchestratorDA
 		dal.tasks = cache
 	}
 
+	if dal.capacity == 0 {
+		dal.capacity = int(config.Capacity)
+		if dal.capacity <= 0 {
+			dal.capacity = defaultCacheCapacity
+		}
+	}
 	return dal, nil
 }
 
@@ -1542,18 +1417,6 @@ func (tx *otterTransactionDAL) CreateTasks(ctx context.Context, tasks []*orchest
 // Returns error when the update fails.
 func (tx *otterTransactionDAL) UpdateTask(ctx context.Context, task *orchestrator_domain.Task) error {
 	return tx.parent.updateTaskLocked(ctx, task)
-}
-
-// FetchAndMarkDueTasks fetches due tasks and marks them as processing within the current
-// transaction.
-//
-// Takes priority (TaskPriority) which filters tasks by their priority level.
-// Takes limit (int) which sets the maximum number of tasks to fetch.
-//
-// Returns []*Task which contains the tasks now marked as processing.
-// Returns error when the fetch or update fails.
-func (tx *otterTransactionDAL) FetchAndMarkDueTasks(ctx context.Context, priority orchestrator_domain.TaskPriority, limit int) ([]*orchestrator_domain.Task, error) {
-	return tx.parent.fetchAndMarkDueTasksLocked(ctx, priority, limit)
 }
 
 // GetTasksByID reads the tasks with the given IDs within the current transaction.
@@ -1603,85 +1466,6 @@ func (tx *otterTransactionDAL) PendingTaskCount(ctx context.Context) (int64, err
 // Returns error when the task cannot be created or a duplicate exists.
 func (tx *otterTransactionDAL) CreateTaskWithDedup(ctx context.Context, task *orchestrator_domain.Task) error {
 	return tx.parent.createTaskWithDedupLocked(ctx, task)
-}
-
-// RecoverStaleTasks resets PROCESSING tasks that have exceeded the stale threshold within
-// the current transaction.
-//
-// Takes staleThreshold (time.Duration) which defines how long a task can be in PROCESSING
-// before being considered stuck.
-// Takes maxRetries (int) which is the maximum retry attempts before marking FAILED.
-// Takes recoveryError (string) which is the error message to record on recovered tasks.
-//
-// Returns int which is the count of tasks recovered.
-// Returns error when the recovery operation fails.
-func (tx *otterTransactionDAL) RecoverStaleTasks(ctx context.Context, staleThreshold time.Duration, maxRetries int, recoveryError string) (int, error) {
-	return tx.parent.recoverStaleTasksLocked(ctx, staleThreshold, maxRetries, recoveryError)
-}
-
-// GetStaleProcessingTaskCount returns the count of tasks stuck in PROCESSING longer than
-// the threshold within the current transaction.
-//
-// Takes staleThreshold (time.Duration) which defines when a PROCESSING task is considered
-// stuck.
-//
-// Returns int64 which is the count of stale tasks.
-// Returns error when the count cannot be retrieved.
-func (tx *otterTransactionDAL) GetStaleProcessingTaskCount(ctx context.Context, staleThreshold time.Duration) (int64, error) {
-	return tx.parent.getStaleProcessingTaskCountLocked(ctx, staleThreshold)
-}
-
-// UpdateTaskHeartbeat updates the updated_at timestamp for a task within the current
-// transaction.
-//
-// Takes taskID (string) which identifies the task to update.
-//
-// Returns error when the task is not found or is not in PROCESSING status.
-func (tx *otterTransactionDAL) UpdateTaskHeartbeat(ctx context.Context, taskID string) error {
-	return tx.parent.updateTaskHeartbeatLocked(ctx, taskID)
-}
-
-// ClaimStaleTasksForRecovery atomically claims stale PROCESSING tasks for recovery within
-// the current transaction.
-//
-// Takes nodeID (string) which identifies the node claiming the tasks.
-// Takes staleThreshold (time.Duration) which defines when a task is considered stale.
-// Takes leaseTimeout (time.Duration) which sets how long the claim is valid.
-// Takes batchLimit (int) which limits the number of tasks to claim per call.
-//
-// Returns []RecoveryClaimedTask which contains the claimed tasks.
-// Returns error when the claim operation fails.
-func (tx *otterTransactionDAL) ClaimStaleTasksForRecovery(
-	ctx context.Context,
-	nodeID string,
-	staleThreshold, leaseTimeout time.Duration,
-	batchLimit int,
-) ([]orchestrator_domain.RecoveryClaimedTask, error) {
-	return tx.parent.claimStaleTasksForRecoveryLocked(ctx, nodeID, staleThreshold, leaseTimeout, batchLimit)
-}
-
-// RecoverClaimedTasks recovers all tasks previously claimed by this node within the
-// current transaction.
-//
-// Takes nodeID (string) which identifies the node that claimed the tasks.
-// Takes maxRetries (int) which is the maximum retry attempts before marking FAILED.
-// Takes recoveryError (string) which is the error message to record.
-//
-// Returns int which is the count of tasks recovered.
-// Returns error when the recovery fails.
-func (tx *otterTransactionDAL) RecoverClaimedTasks(ctx context.Context, nodeID string, maxRetries int, recoveryError string) (int, error) {
-	return tx.parent.recoverClaimedTasksLocked(ctx, nodeID, maxRetries, recoveryError)
-}
-
-// ReleaseRecoveryLeases releases all recovery leases held by this node within the current
-// transaction.
-//
-// Takes nodeID (string) which identifies the node releasing leases.
-//
-// Returns int which is the count of leases released.
-// Returns error when the release fails.
-func (tx *otterTransactionDAL) ReleaseRecoveryLeases(ctx context.Context, nodeID string) (int, error) {
-	return tx.parent.releaseRecoveryLeasesLocked(ctx, nodeID)
 }
 
 // CreateWorkflowReceipt creates a new workflow receipt for tracking completion within the

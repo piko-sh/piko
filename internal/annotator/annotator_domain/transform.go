@@ -123,7 +123,6 @@ type assetCollectionContext struct {
 
 // processAssetNode handles a single node during asset dependency collection.
 //
-// Takes ctx (context.Context) which controls cancellation and timeout.
 // Takes node (*ast_domain.TemplateNode) which is the AST node to process.
 //
 // Returns bool which shows whether to continue traversal.
@@ -180,7 +179,6 @@ func (ac *assetCollectionContext) processAssetNode(ctx context.Context, node *as
 // expandProfileIfPresent expands a profile attribute into explicit transformation
 // parameters.
 //
-// Takes ctx (context.Context) which controls cancellation and timeout.
 // Takes node (*ast_domain.TemplateNode) which is the template node to check for a profile
 // attribute.
 func (ac *assetCollectionContext) expandProfileIfPresent(ctx context.Context, node *ast_domain.TemplateNode) {
@@ -229,7 +227,6 @@ func (ac *assetCollectionContext) expandProfileIfPresent(ctx context.Context, no
 
 // mergeProfileAttributes combines profile settings with tag attributes.
 //
-// Takes ctx (context.Context) which controls cancellation and timeout.
 // Takes node (*ast_domain.TemplateNode) which is the template node to update.
 // Takes profileDef ([]config.AssetTransformationStep) which provides the profile settings
 // to merge.
@@ -310,7 +307,6 @@ func (ac *assetCollectionContext) originPathForNode(node *ast_domain.TemplateNod
 // validateAssetExists checks if the asset file exists on the filesystem. It uses the
 // resolver to convert the module-absolute path (or @ alias) to a filesystem path.
 //
-// Takes ctx (context.Context) which controls cancellation and timeout.
 // Takes node (*ast_domain.TemplateNode) which identifies the template location for
 // diagnostic reporting.
 // Takes staticSrc (string) which is the asset path, possibly with @ alias.
@@ -367,7 +363,6 @@ func (*assetCollectionContext) updateNodeSrcAttribute(node *ast_domain.TemplateN
 // processPosterAttribute handles the poster attribute for piko:video elements, collecting
 // it as an image dependency for analysis and processing.
 //
-// Takes ctx (context.Context) which controls cancellation and timeout.
 // Takes node (*ast_domain.TemplateNode) which is the piko:video element to check for a
 // poster attribute.
 func (ac *assetCollectionContext) processPosterAttribute(ctx context.Context, node *ast_domain.TemplateNode) {
@@ -542,7 +537,6 @@ func collectSitemapImageURLs(deps []*annotator_dto.StaticAssetDependency, pathsC
 // validateAndEnrichResponsiveImage checks responsive image attributes and sets default
 // values.
 //
-// Takes ctx (context.Context) which controls cancellation and timeout.
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
 // Takes dependency (*annotator_dto.StaticAssetDependency) which holds the image settings.
 // Takes staticSrc (string) which is the source path used for logging.
@@ -589,7 +583,7 @@ func (ac *assetCollectionContext) validateAndEnrichResponsiveImage(
 // Takes node (*ast_domain.TemplateNode) which is the node to report errors on.
 // Takes densitiesString (string) which holds the density values to check.
 func (ac *assetCollectionContext) validateDensitiesFormat(node *ast_domain.TemplateNode, densitiesString string) {
-	for density := range strings.FieldsSeq(densitiesString) {
+	for density := range strings.FieldsFuncSeq(densitiesString, isCommaOrSpaceSeparator) {
 		if parseDensity(density) <= 0 {
 			ac.addDiagnostic(node, fmt.Sprintf(
 				"Invalid density value '%s' in densities attribute. Expected format: 'x1', 'x2', '2x', etc.",
@@ -602,7 +596,6 @@ func (ac *assetCollectionContext) validateDensitiesFormat(node *ast_domain.Templ
 // applyDefaultDensitiesIfNeeded adds default density values to responsive images that
 // have sizes but no densities set.
 //
-// Takes ctx (context.Context) which controls cancellation and timeout.
 // Takes node (*ast_domain.TemplateNode) which is the template node being processed.
 // Takes dependency (*annotator_dto.StaticAssetDependency) which receives the density
 // settings.

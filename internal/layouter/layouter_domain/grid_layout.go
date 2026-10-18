@@ -126,7 +126,6 @@ func updateAreaBounds(m map[string]gridAreaBounds, name string, row, col int) {
 // layoutGridContainer lays out a CSS grid container, resolving track sizes, placing
 // items, and positioning fragments.
 //
-// Takes ctx (context.Context) which carries cancellation.
 // Takes box (*LayoutBox) which is the grid container box.
 // Takes input (layoutInput) which provides available dimensions, font metrics, and shared
 // layout state.
@@ -455,7 +454,6 @@ func collapseEmptyAutoFitTracks(
 // When a row track has a definite size (points or percentage), the resolved height is
 // passed as AvailableBlockSize so that percentage-height children can resolve correctly.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes placements ([]gridItemPlacement) which holds the item placements to lay out.
 // Takes box (*LayoutBox) which is the grid container box.
 // Takes columnWidths ([]float64) which holds the resolved column sizes.
@@ -557,16 +555,9 @@ func resolveGridContainerHeight(style *ComputedStyle, parentBlockSize float64) f
 	return 0
 }
 
-// relayoutStretchedGridItems re-lays out grid items that need a second pass.
+// relayoutStretchedGridItems lays out items again when stretching or resolved row heights
+// change their available height.
 //
-//  1. Stretching: the cell height exceeds the item's natural height, so flex/grid items
-//     must be re-laid out with the cell height as their main size.
-//  2. Percentage resolution: the item is in a row whose height was not known at initial
-//     layout (auto or fr tracks), so children with percentage heights could not resolve.
-//     Now that the row height is computed, a re-layout lets percentage heights resolve
-//     correctly.
-//
-// Takes ctx (context.Context) which controls cancellation.
 // Takes placements ([]gridItemPlacement) which holds the item placements to check.
 // Takes box (*LayoutBox) which is the grid container box.
 // Takes columnWidths ([]float64) which holds the resolved column sizes.
@@ -606,14 +597,9 @@ func relayoutStretchedGridItems(
 	}
 }
 
-// relayoutSingleGridItem performs a second layout pass for a single grid item that needs
-// stretching or percentage height resolution.
+// relayoutSingleGridItem lays out a grid item with a definite height for stretching and
+// percentage-height resolution.
 //
-// It temporarily sets an explicit height on the item so that resolveAvailableBlockSize
-// passes through the definite size to children, enabling percentage height resolution and
-// correct column flex sizing.
-//
-// Takes ctx (context.Context) which controls cancellation.
 // Takes placement (*gridItemPlacement) which holds the item placement to re-lay out.
 // Takes box (*LayoutBox) which is the grid container box.
 // Takes columnWidths ([]float64) which holds the resolved column sizes.

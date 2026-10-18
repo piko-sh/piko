@@ -1,3 +1,0 @@
-{
-  "description": "Tables with STORED and VIRTUAL generated columns. SELECT verifies generated columns resolve correctly and retain their generated kind. INSERT targeting a generated column emits a Q013 warning."
-}

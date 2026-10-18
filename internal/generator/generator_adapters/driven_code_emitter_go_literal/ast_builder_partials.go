@@ -29,6 +29,7 @@ import (
 	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/generator/generator_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
@@ -313,7 +314,7 @@ func buildPartialErrorHandler(errVar *goast.Ident, packageName string) goast.Stm
 						cachedIdent(DiagnosticsVarName),
 						&goast.SelectorExpr{X: cachedIdent(runtimePackageName), Sel: cachedIdent("Error")},
 						&goast.CallExpr{Fun: &goast.SelectorExpr{X: errVar, Sel: cachedIdent("Error")}, Args: []goast.Expr{}},
-						strLit("R002"),
+						strLit(generator_dto.CodePartialRenderError),
 						strLit(""),
 						strLit("Partial Render() error for " + packageName),
 						intLit(0),

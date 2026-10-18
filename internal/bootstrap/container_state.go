@@ -73,7 +73,7 @@ import (
 	"piko.sh/piko/internal/storage/storage_domain"
 	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/internal/video/video_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // containerOnceGuards holds the sync.Once guards that make each lazily created service a
@@ -81,6 +81,9 @@ import (
 type containerOnceGuards struct {
 	// capabilityOnce guards single initialisation of the capability service.
 	capabilityOnce sync.Once
+
+	// emptyOutputsOnce guards single initialisation of the empty compiler output record.
+	emptyOutputsOnce sync.Once
 
 	// storageOnce guards single initialisation of the storage service.
 	storageOnce sync.Once
@@ -359,6 +362,10 @@ type containerCoreServices struct {
 	// artefactBridge links artefact processing to the orchestrator workflow.
 	artefactBridge *orchestrator_adapters.ArtefactWorkflowBridge
 
+	// emptyOutputs records the profiles the compiler built with no output, so the artefact
+	// bridge counts them as built; see compileEmptyOutputs.
+	emptyOutputs *orchestrator_adapters.EmptyOutputs
+
 	// orchestratorInspector holds the orchestrator inspector for monitoring; nil when not
 	// available.
 	orchestratorInspector orchestrator_domain.OrchestratorInspector
@@ -462,6 +469,10 @@ type containerFeatureServices struct {
 
 	// metricsExporter holds the metrics exporter (e.g., Prometheus). Nil when disabled.
 	metricsExporter monitoring_domain.MetricsExporter
+
+	// deferredBlobStores are the blob stores a build writes without syncing each blob;
+	// FlushPersistenceSnapshot syncs them.
+	deferredBlobStores []blobFlusher
 }
 
 // containerOverrides holds user-supplied replacements for the default services; a nil
@@ -966,6 +977,10 @@ type containerLifecycle struct {
 	// dropped before readiness info egresses off-box (registered via
 	// WithReadinessInfoKeyFilter). Nil when the built-in default filter applies.
 	readinessInfoKeyFilter func(string) bool
+
+	// typeInspectorMaxCachedBuilds bounds how many builds the type inspector keeps in
+	// memory. Zero uses the inspector's default.
+	typeInspectorMaxCachedBuilds int
 }
 
 // newContainerLifecycle creates the lifecycle state with the default registry metadata

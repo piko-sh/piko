@@ -26,7 +26,7 @@ import (
 
 	"google.golang.org/grpc/credentials"
 	"piko.sh/piko/internal/tlscert"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // buildGRPCTLSCredentials creates gRPC transport credentials from the resolved TLS

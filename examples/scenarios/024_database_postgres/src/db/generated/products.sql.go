@@ -2,18 +2,70 @@
 
 package generated
 
-import "context"
+import (
+	"context"
+
+	"piko.sh/piko/wdk/maths"
+)
+
+const createproduct = `INSERT INTO products (name, category, price, created_at)
+VALUES ($1, $2, $3, $4)
+RETURNING id, name, category, price, created_at;`
+
+type CreateProductParams struct {
+	Name      string
+	Category  string
+	Price     maths.Decimal
+	CreatedAt int64
+}
+type CreateProductRow struct {
+	ID        int32         `json:"id"`
+	Name      string        `json:"name"`
+	Category  string        `json:"category"`
+	Price     maths.Decimal `json:"price"`
+	CreatedAt int64         `json:"created_at"`
+}
+
+func (queries *Queries) CreateProduct(ctx context.Context, params CreateProductParams) (CreateProductRow, error) {
+	var row CreateProductRow
+	err := queries.writer.QueryRowContext(ctx, createproduct, params.Name, params.Category, params.Price, params.CreatedAt).Scan(&row.ID, &row.Name, &row.Category, &row.Price, &row.CreatedAt)
+	if err != nil {
+		return CreateProductRow{}, err
+	}
+	return row, nil
+}
+
+const getproduct = `SELECT id, name, category, price, created_at
+FROM products
+WHERE id = $1;`
+
+type GetProductRow struct {
+	ID        int32         `json:"id"`
+	Name      string        `json:"name"`
+	Category  string        `json:"category"`
+	Price     maths.Decimal `json:"price"`
+	CreatedAt int64         `json:"created_at"`
+}
+
+func (queries *Queries) GetProduct(ctx context.Context, id int32) (GetProductRow, error) {
+	var row GetProductRow
+	err := queries.reader.QueryRowContext(ctx, getproduct, id).Scan(&row.ID, &row.Name, &row.Category, &row.Price, &row.CreatedAt)
+	if err != nil {
+		return GetProductRow{}, err
+	}
+	return row, nil
+}
 
 const listproducts = `SELECT id, name, category, price, created_at
 FROM products
 ORDER BY name;`
 
 type ListProductsRow struct {
-	ID        int32
-	Name      string
-	Category  string
-	Price     float64
-	CreatedAt int64
+	ID        int32         `json:"id"`
+	Name      string        `json:"name"`
+	Category  string        `json:"category"`
+	Price     maths.Decimal `json:"price"`
+	CreatedAt int64         `json:"created_at"`
 }
 
 func (queries *Queries) ListProducts(ctx context.Context) ([]ListProductsRow, error) {
@@ -34,52 +86,4 @@ func (queries *Queries) ListProducts(ctx context.Context) ([]ListProductsRow, er
 		return nil, err
 	}
 	return results, nil
-}
-
-const createproduct = `INSERT INTO products (name, category, price, created_at)
-VALUES ($1, $2, $3, $4)
-RETURNING id, name, category, price, created_at;`
-
-type CreateProductParams struct {
-	P1 string
-	P2 string
-	P3 float64
-	P4 int64
-}
-type CreateProductRow struct {
-	ID        int32
-	Name      string
-	Category  string
-	Price     float64
-	CreatedAt int64
-}
-
-func (queries *Queries) CreateProduct(ctx context.Context, params CreateProductParams) (CreateProductRow, error) {
-	var row CreateProductRow
-	err := queries.writer.QueryRowContext(ctx, createproduct, params.P1, params.P2, params.P3, params.P4).Scan(&row.ID, &row.Name, &row.Category, &row.Price, &row.CreatedAt)
-	if err != nil {
-		return CreateProductRow{}, err
-	}
-	return row, nil
-}
-
-const getproduct = `SELECT id, name, category, price, created_at
-FROM products
-WHERE id = $1;`
-
-type GetProductRow struct {
-	ID        int32
-	Name      string
-	Category  string
-	Price     float64
-	CreatedAt int64
-}
-
-func (queries *Queries) GetProduct(ctx context.Context, p1 int32) (GetProductRow, error) {
-	var row GetProductRow
-	err := queries.reader.QueryRowContext(ctx, getproduct, p1).Scan(&row.ID, &row.Name, &row.Category, &row.Price, &row.CreatedAt)
-	if err != nil {
-		return GetProductRow{}, err
-	}
-	return row, nil
 }

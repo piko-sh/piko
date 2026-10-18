@@ -25,7 +25,7 @@ import (
 	"piko.sh/piko/internal/generator/generator_domain"
 	"piko.sh/piko/internal/generator/generator_dto"
 	"piko.sh/piko/internal/json"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // JSONManifestEmitter implements ManifestEmitterPort to write a JSON manifest. It uses

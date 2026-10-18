@@ -27,24 +27,18 @@ import (
 	"github.com/google/uuid"
 )
 
-// Event is another simple generic type.
 type Event[T any] struct {
 	Payload T
 }
 
-// Report is the "kitchen sink" type that combines multiple complex features.
 type Report[T any] struct {
-	// 1. Embed an instantiated generic from another package.
 	models.Auditable[uuid.UUID]
 
-	// 2. A complex field: map of slices of pointers to another generic type.
 	EventsByTopic map[string][]*Event[T]
 
-	// 3. A field that is a pointer to a standard library interface.
 	Output *io.Writer
 }
 
-// 4. A method with a complex signature using the generic parameter and external types.
 func (r *Report[T]) Summarise(ctx context.Context) (T, error) {
 	var zero T
 	return zero, nil

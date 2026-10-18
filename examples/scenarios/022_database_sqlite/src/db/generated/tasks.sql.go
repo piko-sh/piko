@@ -5,33 +5,33 @@ package generated
 import "context"
 
 const createtask = `INSERT INTO tasks (title, completed, created_at)
-VALUES (?, 0, ?)
+VALUES (?1, 0, ?2)
 RETURNING id, title, completed, created_at;`
 
 type CreateTaskParams struct {
-	P1 string
-	P2 int32
+	Title     string
+	CreatedAt int32
 }
 type CreateTaskRow struct {
-	ID        int32
-	Title     string
-	Completed int32
-	CreatedAt int32
+	ID        int64  `json:"id"`
+	Title     string `json:"title"`
+	Completed int32  `json:"completed"`
+	CreatedAt int32  `json:"created_at"`
 }
 
 func (queries *Queries) CreateTask(ctx context.Context, params CreateTaskParams) (CreateTaskRow, error) {
 	var row CreateTaskRow
-	err := queries.writer.QueryRowContext(ctx, createtask, params.P1, params.P2).Scan(&row.ID, &row.Title, &row.Completed, &row.CreatedAt)
+	err := queries.writer.QueryRowContext(ctx, createtask, params.Title, params.CreatedAt).Scan(&row.ID, &row.Title, &row.Completed, &row.CreatedAt)
 	if err != nil {
 		return CreateTaskRow{}, err
 	}
 	return row, nil
 }
 
-const deletetask = `DELETE FROM tasks WHERE id = ?;`
+const deletetask = `DELETE FROM tasks WHERE id = ?1;`
 
-func (queries *Queries) DeleteTask(ctx context.Context, p1 int32) error {
-	_, err := queries.writer.ExecContext(ctx, deletetask, p1)
+func (queries *Queries) DeleteTask(ctx context.Context, id int64) error {
+	_, err := queries.writer.ExecContext(ctx, deletetask, id)
 	return err
 }
 
@@ -40,10 +40,10 @@ FROM tasks
 ORDER BY created_at DESC;`
 
 type ListTasksRow struct {
-	ID        int32
-	Title     string
-	Completed int32
-	CreatedAt int32
+	ID        int64  `json:"id"`
+	Title     string `json:"title"`
+	Completed int32  `json:"completed"`
+	CreatedAt int32  `json:"created_at"`
 }
 
 func (queries *Queries) ListTasks(ctx context.Context) ([]ListTasksRow, error) {
@@ -67,9 +67,9 @@ func (queries *Queries) ListTasks(ctx context.Context) ([]ListTasksRow, error) {
 }
 
 const togglecomplete = `UPDATE tasks SET completed = CASE WHEN completed = 0 THEN 1 ELSE 0 END
-WHERE id = ?;`
+WHERE id = ?1;`
 
-func (queries *Queries) ToggleComplete(ctx context.Context, p1 int32) error {
-	_, err := queries.writer.ExecContext(ctx, togglecomplete, p1)
+func (queries *Queries) ToggleComplete(ctx context.Context, id int64) error {
+	_, err := queries.writer.ExecContext(ctx, togglecomplete, id)
 	return err
 }

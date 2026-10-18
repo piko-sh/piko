@@ -210,16 +210,14 @@ func fromPipitRef(ref pipitmodule.Ref) modules.ModuleRef {
 	}
 }
 
-// PackageModuleForPiko packages a module and hands the result back in piko's vocabulary.
-//
-// Exported so piko-side tests and callers can package a module without learning pipit's
-// module types; the bridge converts between the two representations.
+// PackageModuleForPiko packages a module and converts the result to Piko's module types.
 //
 // Takes interpreter (*pipit.Interpreter) which compiles and packages the module.
 // Takes descriptor (modules.ModuleDescriptor) which declares the module's identity.
 // Takes modulePath (string) which is the module's import path.
 // Takes packages (map[string]map[string]string) which are its sources by package path.
-// Takes pack (func(*pipit.CompiledFileSet) []byte) which serialises the compiled output.
+// Takes pack (func(*pipit.CompiledFileSet) ([]byte, error)) which serialises the compiled
+// output, or reports why it cannot.
 //
 // Returns *modules.ModuleBundle which is the packaged module.
 // Returns error when compilation or packaging fails, matching piko's module sentinels
@@ -230,7 +228,7 @@ func PackageModuleForPiko(
 	descriptor modules.ModuleDescriptor,
 	modulePath string,
 	packages map[string]map[string]string,
-	pack func(*pipit.CompiledFileSet) []byte,
+	pack func(*pipit.CompiledFileSet) ([]byte, error),
 ) (result *modules.ModuleBundle, err error) {
 	defer func() {
 		if recovered := recover(); recovered != nil {

@@ -1,3 +1,0 @@
-{
-  "description": "Tuple column round-trip: inserts and reads Tuple(String, UInt32) values. Verifies codegen produces a working composite Go type and that struct field access works."
-}

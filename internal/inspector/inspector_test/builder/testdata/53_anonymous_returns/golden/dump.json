@@ -17,7 +17,7 @@
               "struct{Port int; Host string}"
             ]
           },
-          "definition_line": 22,
+          "definition_line": 21,
           "definition_column": 6
         },
         "GetRunner": {
@@ -31,7 +31,7 @@
               "interface{Run() error}"
             ]
           },
-          "definition_line": 33,
+          "definition_line": 31,
           "definition_column": 6
         }
       },

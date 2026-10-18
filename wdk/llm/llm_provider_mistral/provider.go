@@ -562,7 +562,6 @@ type mistralEmbedData struct {
 
 // Embed generates embeddings for the given input texts via the Mistral embeddings API.
 //
-// Takes ctx (context.Context) which controls cancellation and timeouts.
 // Takes request (*llm_dto.EmbeddingRequest) which contains the embedding parameters.
 //
 // Returns *llm_dto.EmbeddingResponse which contains the generated embeddings.

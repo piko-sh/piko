@@ -1,3 +1,0 @@
-{
-  "description": "Slice parameters with IN clauses: piko.slice expands to dynamic IN (?, ?, ...) at runtime"
-}

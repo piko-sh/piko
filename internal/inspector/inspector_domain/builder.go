@@ -29,13 +29,14 @@ import (
 	"fmt"
 	goast "go/ast"
 	"runtime/debug"
+	"slices"
 	"sync"
 	"time"
 
 	"golang.org/x/tools/go/packages"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -48,6 +49,19 @@ const (
 
 	// listSeparator is the separator used between items in type lists.
 	listSeparator = ", "
+
+	// defaultMaxCachedBuilds limits how many builds' type data and queriers remain in
+	// memory.
+	defaultMaxCachedBuilds = 4
+
+	// logKeyCacheKey is the log field key for a build's cache key.
+	logKeyCacheKey = "cacheKey"
+)
+
+var (
+	// ErrQuerierUnavailable is returned by BuildAndGetQuerier when a build succeeds but no
+	// querier is held for it.
+	ErrQuerierUnavailable = errors.New("type querier is not available after build")
 )
 
 // builderCacheKeyGenerator defines how to create a stable cache key.
@@ -130,6 +144,9 @@ type TypeBuilder struct {
 	// typeDataByKey stores type data for each module, keyed by cache key.
 	typeDataByKey map[string]*inspector_dto.TypeData
 
+	// cachedKeyOrder lists cached build keys from least to most recently used.
+	cachedKeyOrder []string
+
 	// liteBuilder handles type building in lite mode; nil when lite mode is off.
 	liteBuilder *LiteBuilder
 
@@ -138,6 +155,9 @@ type TypeBuilder struct {
 
 	// config holds the inspector settings for the current module.
 	config inspector_dto.Config
+
+	// maxCachedBuilds bounds how many builds are kept in querierByKey and typeDataByKey.
+	maxCachedBuilds int
 
 	// mu guards access to the per-module caches during concurrent use.
 	mu sync.RWMutex
@@ -231,6 +251,7 @@ func NewTypeBuilder(config inspector_dto.Config, opts ...TypeBuilderOption) *Typ
 	m.typeDataByKey = make(map[string]*inspector_dto.TypeData)
 	m.querierByKey = make(map[string]*TypeQuerier)
 	m.config = config
+	m.maxCachedBuilds = defaultMaxCachedBuilds
 
 	for _, opt := range opts {
 		opt(m)
@@ -298,54 +319,37 @@ func (m *TypeBuilder) SetConfig(config inspector_dto.Config) {
 //
 // Not safe for concurrent use. Acquires the internal mutex for the duration of the build.
 func (m *TypeBuilder) Build(ctx context.Context, sourceContents map[string][]byte, scriptHashes map[string]string) error {
-	ctx, l := logger_domain.From(ctx, log)
-	ctx, span, l := l.Span(ctx, "Build", logger_domain.Int("source_file_count", len(sourceContents)))
-	defer span.End()
-
-	BuilderBuildCount.Add(ctx, 1)
-	startTime := time.Now()
-	defer func() { BuilderBuildDuration.Record(ctx, float64(time.Since(startTime).Milliseconds())) }()
-
-	l.Internal("--- [INSPECTOR MANAGER START] --- Starting Build Process ---")
-	defer l.Internal("--- [INSPECTOR MANAGER END] --- Build Process Finished ---")
-
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if m.liteMode {
-		return m.buildLite(ctx, sourceContents)
+	return m.buildLocked(ctx, sourceContents, scriptHashes)
+}
+
+// BuildAndGetQuerier builds the given sources and returns their querier while holding the
+// internal mutex.
+//
+// Takes sourceContents (map[string][]byte) which provides virtual Go source files from
+// ModuleVirtualiser.
+// Takes scriptHashes (map[string]string) which maps .pk file paths to hashes of their
+// script block content.
+//
+// Returns *TypeQuerier which is the query engine for this build.
+// Returns error when the build fails, or ErrQuerierUnavailable when the build succeeds
+// without leaving a querier.
+//
+// Safe for concurrent use. Acquires the internal mutex for the duration of the build.
+func (m *TypeBuilder) BuildAndGetQuerier(ctx context.Context, sourceContents map[string][]byte, scriptHashes map[string]string) (*TypeQuerier, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if err := m.buildLocked(ctx, sourceContents, scriptHashes); err != nil {
+		return nil, err
 	}
-
-	cacheKey := m.generateCacheKeyForBuild(ctx, sourceContents, scriptHashes)
-
-	if cacheKey != "" {
-		if _, exists := m.querierByKey[cacheKey]; exists {
-			m.currentCacheKey = cacheKey
-			l.Internal("[INSPECTOR] Build skipped: module already cached in memory.",
-				logger_domain.String("cacheKey", cacheKey[:min(8, len(cacheKey))]))
-			return nil
-		}
+	querier, exists := m.querierByKey[m.currentCacheKey]
+	if !exists || querier == nil {
+		return nil, ErrQuerierUnavailable
 	}
-
-	if cacheKey != "" && m.buildFromCache(ctx, cacheKey, sourceContents) {
-		m.currentCacheKey = cacheKey
-		return nil
-	}
-
-	if err := m.buildFromSource(ctx, cacheKey, sourceContents); err != nil {
-		BuilderBuildErrorCount.Add(ctx, 1)
-		l.ReportError(span, err, "Failed to build from source")
-		return fmt.Errorf("building type data from source: %w", err)
-	}
-
-	effectiveKey := cmp.Or(cacheKey, "__no_cache_key__")
-	m.currentCacheKey = effectiveKey
-
-	if cacheKey != "" {
-		m.saveToCache(ctx, cacheKey, m.typeDataByKey[cacheKey])
-	}
-
-	return nil
+	return querier, nil
 }
 
 // GetTypeData returns the serialised type data for the current module. Build must be
@@ -407,6 +411,64 @@ func (m *TypeBuilder) IsLiteMode() bool {
 	return m.liteMode
 }
 
+// buildLocked performs the build for Build and BuildAndGetQuerier and records the build's
+// cache key as the current one.
+//
+// Takes sourceContents (map[string][]byte) which provides the virtual Go source files.
+// Takes scriptHashes (map[string]string) which maps .pk file paths to script hashes.
+//
+// Returns error when the build process fails.
+//
+// Must be called with mu held for writing.
+func (m *TypeBuilder) buildLocked(ctx context.Context, sourceContents map[string][]byte, scriptHashes map[string]string) error {
+	ctx, l := logger_domain.From(ctx, log)
+	ctx, span, l := l.Span(ctx, "Build", logger_domain.Int("source_file_count", len(sourceContents)))
+	defer span.End()
+
+	BuilderBuildCount.Add(ctx, 1)
+	startTime := time.Now()
+	defer func() { BuilderBuildDuration.Record(ctx, float64(time.Since(startTime).Milliseconds())) }()
+
+	l.Internal("--- [INSPECTOR MANAGER START] --- Starting Build Process ---")
+	defer l.Internal("--- [INSPECTOR MANAGER END] --- Build Process Finished ---")
+
+	if m.liteMode {
+		return m.buildLite(ctx, sourceContents)
+	}
+
+	cacheKey := m.generateCacheKeyForBuild(ctx, sourceContents, scriptHashes)
+
+	if cacheKey != "" {
+		if _, exists := m.querierByKey[cacheKey]; exists {
+			m.touchLocked(cacheKey)
+			m.currentCacheKey = cacheKey
+			l.Internal("[INSPECTOR] Build skipped: module already cached in memory.",
+				logger_domain.String(logKeyCacheKey, cacheKey[:min(8, len(cacheKey))]))
+			return nil
+		}
+	}
+
+	if cacheKey != "" && m.buildFromCache(ctx, cacheKey, sourceContents) {
+		m.currentCacheKey = cacheKey
+		return nil
+	}
+
+	if err := m.buildFromSource(ctx, cacheKey, sourceContents); err != nil {
+		BuilderBuildErrorCount.Add(ctx, 1)
+		l.ReportError(span, err, "Failed to build from source")
+		return fmt.Errorf("building type data from source: %w", err)
+	}
+
+	effectiveKey := cmp.Or(cacheKey, "__no_cache_key__")
+	m.currentCacheKey = effectiveKey
+
+	if cacheKey != "" {
+		m.saveToCache(ctx, cacheKey, m.typeDataByKey[cacheKey])
+	}
+
+	return nil
+}
+
 // generateCacheKeyForBuild generates a cache key for the current build configuration.
 //
 // Takes sourceContents (map[string][]byte) which provides the source file contents for
@@ -439,7 +501,7 @@ func (m *TypeBuilder) buildFromCache(ctx context.Context, cacheKey string, sourc
 		return false
 	}
 
-	l.Internal("[INSPECTOR] Attempting to load from cache provider...", logger_domain.String("cacheKey", cacheKey))
+	l.Internal("[INSPECTOR] Attempting to load from cache provider...", logger_domain.String(logKeyCacheKey, cacheKey))
 	cachedData, err := m.loadCachedTypeData(ctx, cacheKey)
 	if err != nil || cachedData == nil {
 		l.Internal("[INSPECTOR] CACHE MISS or error.", logger_domain.Error(err))
@@ -453,8 +515,7 @@ func (m *TypeBuilder) buildFromCache(ctx context.Context, cacheKey string, sourc
 		return false
 	}
 
-	m.typeDataByKey[cacheKey] = cachedData
-	m.querierByKey[cacheKey] = NewTypeQuerier(allScriptBlocks, cachedData, m.config)
+	m.storeLocked(ctx, cacheKey, cachedData, NewTypeQuerier(allScriptBlocks, cachedData, m.config))
 	l.Internal("[INSPECTOR] Successfully built from cache.")
 	return true
 }
@@ -478,7 +539,7 @@ func (m *TypeBuilder) loadCachedTypeData(ctx context.Context, cacheKey string) (
 		typeData = nil
 		_, l := logger_domain.From(ctx, log)
 		l.Warn("Recovered from panic while loading cached type data; invalidating the entry",
-			logger_domain.String("cacheKey", cacheKey),
+			logger_domain.String(logKeyCacheKey, cacheKey),
 			logger_domain.String("recovered", fmt.Sprintf("%v", recovered)),
 			logger_domain.String("stack", string(debug.Stack())),
 		)
@@ -531,8 +592,7 @@ func (m *TypeBuilder) buildFromSource(ctx context.Context, cacheKey string, sour
 	l.Internal("[INSPECTOR] Encoded DTO passed validation.")
 
 	effectiveKey := cmp.Or(cacheKey, "__no_cache_key__")
-	m.typeDataByKey[effectiveKey] = typeData
-	m.querierByKey[effectiveKey] = NewTypeQuerier(allScriptBlocks, typeData, m.config)
+	m.storeLocked(ctx, effectiveKey, typeData, NewTypeQuerier(allScriptBlocks, typeData, m.config))
 	l.Internal("[INSPECTOR] Inspector built successfully from live source.")
 
 	return nil
@@ -548,12 +608,50 @@ func (m *TypeBuilder) saveToCache(ctx context.Context, cacheKey string, typeData
 		return
 	}
 
-	l.Internal("[INSPECTOR] Saving newly generated type data to cache...", logger_domain.String("cacheKey", cacheKey))
+	l.Internal("[INSPECTOR] Saving newly generated type data to cache...", logger_domain.String(logKeyCacheKey, cacheKey))
 	if err := m.provider.SaveTypeData(ctx, cacheKey, typeData); err != nil {
 		l.Warn("Failed to save type data to cache.", logger_domain.Error(err))
 	} else {
 		l.Internal("[INSPECTOR] Cache save successful.")
 	}
+}
+
+// storeLocked caches the querier and type information together and evicts the least
+// recently used build when the cache exceeds its limit.
+//
+// Takes cacheKey (string) which identifies the build.
+// Takes typeData (*inspector_dto.TypeData) which is the build's type data.
+// Takes querier (*TypeQuerier) which is the build's query engine.
+//
+// Must be called with mu held for writing.
+func (m *TypeBuilder) storeLocked(ctx context.Context, cacheKey string, typeData *inspector_dto.TypeData, querier *TypeQuerier) {
+	m.typeDataByKey[cacheKey] = typeData
+	m.querierByKey[cacheKey] = querier
+	m.touchLocked(cacheKey)
+
+	for len(m.cachedKeyOrder) > max(m.maxCachedBuilds, 1) {
+		evicted := m.cachedKeyOrder[0]
+		m.cachedKeyOrder = slices.Delete(m.cachedKeyOrder, 0, 1)
+		delete(m.typeDataByKey, evicted)
+		delete(m.querierByKey, evicted)
+
+		_, l := logger_domain.From(ctx, log)
+		l.Internal("[INSPECTOR] Evicted least recently used build from memory.",
+			logger_domain.String(logKeyCacheKey, evicted[:min(8, len(evicted))]),
+			logger_domain.Int("cached_builds", len(m.cachedKeyOrder)))
+	}
+}
+
+// touchLocked marks a cached build as the most recently used.
+//
+// Takes cacheKey (string) which identifies the build.
+//
+// Must be called with mu held for writing.
+func (m *TypeBuilder) touchLocked(cacheKey string) {
+	if index := slices.Index(m.cachedKeyOrder, cacheKey); index >= 0 {
+		m.cachedKeyOrder = slices.Delete(m.cachedKeyOrder, index, index+1)
+	}
+	m.cachedKeyOrder = append(m.cachedKeyOrder, cacheKey)
 }
 
 // buildLite runs a lightweight build using the LiteBuilder. This skips go/packages and
@@ -575,6 +673,7 @@ func (m *TypeBuilder) buildLite(ctx context.Context, sourceContents map[string][
 	const liteCacheKey = "__lite_mode__"
 
 	if _, exists := m.querierByKey[liteCacheKey]; exists {
+		m.touchLocked(liteCacheKey)
 		l.Internal("[INSPECTOR-LITE] Build skipped: manager is already built.")
 		m.currentCacheKey = liteCacheKey
 		return nil
@@ -594,8 +693,7 @@ func (m *TypeBuilder) buildLite(ctx context.Context, sourceContents map[string][
 		return errors.New("lite builder did not produce a querier")
 	}
 
-	m.typeDataByKey[liteCacheKey] = typeData
-	m.querierByKey[liteCacheKey] = querier
+	m.storeLocked(ctx, liteCacheKey, typeData, querier)
 	m.currentCacheKey = liteCacheKey
 
 	l.Internal("[INSPECTOR-LITE] Lite build complete.",
@@ -672,6 +770,21 @@ func WithBuilderCacheKeyGenerator(keyGen builderCacheKeyGenerator) TypeBuilderOp
 func WithBuilderSandboxFactory(factory safedisk.Factory) TypeBuilderOption {
 	return func(m *TypeBuilder) {
 		m.sandboxFactory = factory
+	}
+}
+
+// WithMaxCachedBuilds limits how many builds' type data and queriers the TypeBuilder
+// keeps in memory.
+//
+// Takes maxBuilds (int) which is the number of builds to keep; values below one leave the
+// default of four in place.
+//
+// Returns TypeBuilderOption which sets the bound.
+func WithMaxCachedBuilds(maxBuilds int) TypeBuilderOption {
+	return func(m *TypeBuilder) {
+		if maxBuilds > 0 {
+			m.maxCachedBuilds = maxBuilds
+		}
 	}
 }
 

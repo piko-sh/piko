@@ -2,7 +2,10 @@ module piko.sh/piko/cmd/stdlib-generator
 
 go 1.27.0
 
-require piko.sh/piko v0.0.0
+require (
+	piko.sh/piko v0.0.0
+	piko.sh/safedisk v0.1.0
+)
 
 require (
 	github.com/bojanz/currency v1.4.4 // indirect
@@ -18,5 +21,6 @@ require (
 	golang.org/x/mod v0.41.0 // indirect
 	golang.org/x/sync v0.23.0 // indirect
 	golang.org/x/tools v0.50.0 // indirect
-	piko.sh/goastutil v0.1.0 // indirect
+	piko.sh/goastutil v0.2.0 // indirect
+	piko.sh/safeconv v0.1.0 // indirect
 )

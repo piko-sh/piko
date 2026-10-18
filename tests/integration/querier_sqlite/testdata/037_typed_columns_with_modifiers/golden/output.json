@@ -1,9 +1,0 @@
-{
-  "product": {
-    "active": true,
-    "id": 1,
-    "name": "Widget",
-    "price": "29.99",
-    "sku": "WGT-001"
-  }
-}

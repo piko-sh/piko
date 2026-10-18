@@ -30,6 +30,7 @@ import (
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
+	clockpkg "piko.sh/piko/wdk/clock"
 )
 
 var (
@@ -105,6 +106,9 @@ type gcExecutor struct {
 	// orchestratorService is used to self-reschedule the next GC run.
 	orchestratorService orchestrator_domain.OrchestratorService
 
+	// clock supplies the time for rescheduling and the orphan grace window.
+	clock clockpkg.Clock
+
 	// orphanFirstSeen records when a key was first seen orphaned, keyed backend|key, for the
 	// two-scan grace applied when a store exposes no modification times.
 	orphanFirstSeen map[string]time.Time
@@ -113,24 +117,48 @@ type gcExecutor struct {
 	orphanFirstSeenMu sync.Mutex
 }
 
+// GCExecutorOption configures a garbage collection executor.
+type GCExecutorOption func(*gcExecutor)
+
+// WithGCExecutorClock sets the clock the executor uses to schedule its next run and to
+// age orphan candidates, so it follows the same clock as the orchestrator.
+//
+// Takes c (clockpkg.Clock) which provides the time; nil keeps the real clock.
+//
+// Returns GCExecutorOption which applies the clock.
+func WithGCExecutorClock(c clockpkg.Clock) GCExecutorOption {
+	return func(e *gcExecutor) {
+		if c != nil {
+			e.clock = c
+		}
+	}
+}
+
 // NewGCExecutor creates a new garbage collection executor.
 //
 // Takes registry (registry_domain.RegistryService) which provides access to GC hints,
 // artefact metadata, and blob stores.
 // Takes orchestrator (orchestrator_domain.OrchestratorService) which is used to
 // self-reschedule the next GC run.
+// Takes opts (...GCExecutorOption) which customise the executor, such as its clock.
 //
 // Returns orchestrator_domain.TaskExecutor which executes GC tasks.
 func NewGCExecutor(
 	registry registry_domain.RegistryService,
 	orchestrator orchestrator_domain.OrchestratorService,
+	opts ...GCExecutorOption,
 ) orchestrator_domain.TaskExecutor {
-	return &gcExecutor{
+	executor := &gcExecutor{
 		registryService:     registry,
 		orchestratorService: orchestrator,
+		clock:               clockpkg.RealClock(),
 		orphanFirstSeen:     nil,
 		orphanFirstSeenMu:   sync.Mutex{},
 	}
+	for _, opt := range opts {
+		opt(executor)
+	}
+	return executor
 }
 
 // Execute runs a garbage collection task.
@@ -178,6 +206,12 @@ func (e *gcExecutor) Execute(ctx context.Context, payload map[string]any) (map[s
 		"deleted_count": deletedCount,
 	}, nil
 }
+
+// SchedulesSuccessor requests transactional recurrence support from the task runner.
+//
+// Returns bool which is always true so successful garbage collection can schedule its
+// successor.
+func (*gcExecutor) SchedulesSuccessor() bool { return true }
 
 // processHints pops GC hints, deletes the corresponding blobs, and reschedules the next
 // run (immediately when a full batch is returned, otherwise after the configured delay).
@@ -445,11 +479,12 @@ func (e *gcExecutor) orphanTooYoungToDelete(
 	}
 	seenKey := backendID + "|" + key
 	firstSeen, seen := e.orphanFirstSeen[seenKey]
+	now := e.clock.Now()
 	if !seen {
-		e.orphanFirstSeen[seenKey] = time.Now()
+		e.orphanFirstSeen[seenKey] = now
 		return true
 	}
-	return time.Since(firstSeen) < orphanMinimumAge
+	return now.Sub(firstSeen) < orphanMinimumAge
 }
 
 // forgetOrphan clears a deleted key from the two-scan grace tracker so the map does not
@@ -525,7 +560,10 @@ func (e *gcExecutor) reschedule(ctx context.Context, payload map[string]any, del
 	task.DeduplicationKey = "blob.gc." + mode
 	task.Config.Priority = orchestrator_domain.PriorityLow
 
-	executeAt := time.Now().Add(delay)
+	executeAt := e.clock.Now().Add(delay)
+	if orchestrator_domain.ScheduleSuccessor(ctx, task, executeAt) {
+		return
+	}
 	if _, err := e.orchestratorService.Schedule(ctx, task, executeAt); err != nil {
 		l.Warn("Failed to reschedule GC task",
 			logger_domain.String(logKeyMode, mode),

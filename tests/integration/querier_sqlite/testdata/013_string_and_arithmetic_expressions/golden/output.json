@@ -1,9 +1,0 @@
-{
-  "product": {
-    "display_name": "Widget (Tools)",
-    "id": 1,
-    "price_with_tax": 30,
-    "quantity_minus_one": 9,
-    "total_value": 250
-  }
-}

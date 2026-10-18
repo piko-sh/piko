@@ -25,7 +25,7 @@ import (
 
 	"github.com/sony/gobreaker/v2"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (
@@ -36,8 +36,6 @@ const (
 
 // newCircuitBreaker initialises a new gobreaker instance with logging for state changes.
 //
-// Takes ctx (context.Context) which carries logging context for trace and request ID
-// propagation.
 // Takes name (string) which identifies the circuit breaker in log messages.
 // Takes maxFailures (int) which sets the consecutive failure threshold before opening.
 // Takes timeout (time.Duration) which specifies how long the circuit stays open before

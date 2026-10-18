@@ -21,31 +21,25 @@ package services
 import (
 	"context"
 
-	// Internal dependencies
 	"testproject_complex/api"
 	"testproject_complex/db"
 
-	// External dependency
 	"go.opentelemetry.io/otel/trace"
 )
 
-// LoginEvent is an embedded struct to test field lookups through embedding.
 type LoginEvent struct {
 	db.LoginEvent
 	TraceID trace.TraceID
 }
 
-// UserService defines an interface.
 type UserService interface {
 	GetUser(ctx context.Context, id int) (*api.User, error)
 }
 
-// UserServiceImpl is a concrete implementation of the interface.
 type UserServiceImpl struct {
-	DB *db.User // A field with a name-colliding type.
+	DB *db.User
 }
 
-// GetUser implements the UserService interface.
 func (s *UserServiceImpl) GetUser(ctx context.Context, id int) (*api.User, error) {
 	return &api.User{ID: "1", Email: "test@example.com"}, nil
 }

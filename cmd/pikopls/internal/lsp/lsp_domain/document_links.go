@@ -26,7 +26,7 @@ import (
 	"go.lsp.dev/uri"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (
@@ -42,8 +42,6 @@ const (
 
 // GetDocumentLinks finds and returns clickable links within the document. This includes
 // partial component imports (is="..." attributes) and asset references.
-//
-// Takes ctx (context.Context) which carries tracing values for resolver calls.
 //
 // Returns []protocol.DocumentLink which contains all links found in the document.
 // Returns error when link extraction fails.
@@ -64,7 +62,6 @@ func (d *document) GetDocumentLinks(ctx context.Context) ([]protocol.DocumentLin
 
 // extractLinksFromNode extracts document links from a single template node's attributes.
 //
-// Takes ctx (context.Context) which carries tracing values for the resolver.
 // Takes node (*ast_domain.TemplateNode) which is the node to extract links from.
 //
 // Returns []protocol.DocumentLink which contains the extracted document links.
@@ -83,7 +80,6 @@ func (d *document) extractLinksFromNode(ctx context.Context, node *ast_domain.Te
 
 // tryCreateLinkFromAttribute attempts to create a document link from an attribute.
 //
-// Takes ctx (context.Context) which carries tracing values for the resolver.
 // Takes node (*ast_domain.TemplateNode) which provides the template context.
 // Takes attribute (*ast_domain.HTMLAttribute) which contains the attribute to check.
 //
@@ -106,7 +102,6 @@ func (d *document) tryCreateLinkFromAttribute(ctx context.Context, node *ast_dom
 
 // resolvePartialLink resolves a partial component alias to a document link.
 //
-// Takes ctx (context.Context) which carries tracing values for the resolver.
 // Takes node (*ast_domain.TemplateNode) which provides the template node containing the
 // partial reference.
 // Takes alias (string) which specifies the partial component alias to resolve.
@@ -163,7 +158,6 @@ func (d *document) getInvokerComponent(node *ast_domain.TemplateNode) *annotator
 
 // resolvePartialToURI resolves a partial import path to a document URI.
 //
-// Takes ctx (context.Context) which carries tracing values for the resolver.
 // Takes partialPath (string) which is the partial import path to resolve.
 // Takes invokerSourcePath (string) which is the source path of the invoker.
 //
@@ -202,7 +196,6 @@ func (d *document) resolvePartialViaVirtualModule(partialPath string) protocol.D
 // createAssetLink creates a document link for an asset reference such as a src or href
 // attribute.
 //
-// Takes ctx (context.Context) which carries tracing values for the resolver.
 // Takes assetPath (string) which is the path from the attribute value.
 // Takes attributeLocation (ast_domain.Location) which is the source location of the
 // attribute value.

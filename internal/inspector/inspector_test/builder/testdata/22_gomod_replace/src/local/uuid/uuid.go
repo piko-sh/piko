@@ -16,10 +16,8 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// This is our local, custom version of the uuid package.
 package uuid
 
 type UUID struct {
-	// This custom field proves we are using the local version.
 	CustomField string
 }

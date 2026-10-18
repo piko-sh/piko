@@ -20,22 +20,18 @@ package actions
 
 import "piko.sh/piko"
 
-// DeleteUserInput holds the input parameters for the delete user action.
 type DeleteUserInput struct {
 	UserID int `json:"userID"`
 }
 
-// DeleteUserOutput holds the result of the delete user action.
 type DeleteUserOutput struct {
 	Success bool `json:"success"`
 }
 
-// DeleteUserAction handles deleting a user.
 type DeleteUserAction struct {
 	piko.ActionMetadata
 }
 
-// Call processes the delete user request.
 func (a *DeleteUserAction) Call(input DeleteUserInput) (DeleteUserOutput, error) {
 	return DeleteUserOutput{Success: true}, nil
 }

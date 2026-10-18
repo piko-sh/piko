@@ -84,7 +84,6 @@ func (*TimingDetector) Mode() spamdetect_dto.DetectorMode {
 
 // Analyse checks the time between form load and submission.
 //
-// Takes ctx (context.Context) which is the caller context.
 // Takes submission (*spamdetect_dto.Submission) which contains the timing data.
 //
 // Returns *spamdetect_dto.DetectorResult which contains the detection result.

@@ -67,7 +67,6 @@ type MockMetadataCache struct {
 
 // Get retrieves artefact metadata by ID.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes artefactID (string) which identifies the artefact to look up.
 //
 // Returns (*ArtefactMeta, error), or (nil, nil) if GetFunc is nil.
@@ -81,7 +80,6 @@ func (m *MockMetadataCache) Get(ctx context.Context, artefactID string) (*regist
 
 // GetMultiple retrieves metadata for multiple artefacts.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes artefactIDs ([]string) which lists the artefact IDs to look up.
 //
 // Returns ([]*ArtefactMeta, []string), or (nil, nil) if GetMultipleFunc is nil.
@@ -95,7 +93,6 @@ func (m *MockMetadataCache) GetMultiple(ctx context.Context, artefactIDs []strin
 
 // Set stores artefact metadata in the cache.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes artefact (*registry_dto.ArtefactMeta) which is the metadata to cache.
 func (m *MockMetadataCache) Set(ctx context.Context, artefact *registry_dto.ArtefactMeta) {
 	m.SetCallCount.Add(1)
@@ -106,7 +103,6 @@ func (m *MockMetadataCache) Set(ctx context.Context, artefact *registry_dto.Arte
 
 // SetMultiple stores multiple artefact metadata entries in the cache.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes artefacts ([]*registry_dto.ArtefactMeta) which are the metadata entries to cache.
 func (m *MockMetadataCache) SetMultiple(ctx context.Context, artefacts []*registry_dto.ArtefactMeta) {
 	m.SetMultipleCallCount.Add(1)
@@ -117,7 +113,6 @@ func (m *MockMetadataCache) SetMultiple(ctx context.Context, artefacts []*regist
 
 // Delete removes artefact metadata from the cache by ID.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes artefactID (string) which identifies the artefact to remove.
 func (m *MockMetadataCache) Delete(ctx context.Context, artefactID string) {
 	m.DeleteCallCount.Add(1)
@@ -127,9 +122,6 @@ func (m *MockMetadataCache) Delete(ctx context.Context, artefactID string) {
 }
 
 // Close shuts down the cache.
-//
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 //
 // Returns error, or nil if CloseFunc is nil.
 func (m *MockMetadataCache) Close(ctx context.Context) error {

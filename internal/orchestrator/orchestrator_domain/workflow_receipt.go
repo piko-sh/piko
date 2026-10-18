@@ -30,11 +30,18 @@ type WorkflowReceipt struct {
 	// doneCh signals workflow completion; receives an error or nil then closes.
 	doneCh chan error
 
+	// id identifies the receipt; the service receipt mutex guards admission fields.
+	id string
+
 	// WorkflowID is the unique identifier used to group and track related receipts.
 	WorkflowID string
 
 	// once restricts resolution to a single call.
 	once sync.Once
+
+	// awaitingAdmission stays true until storage accepts the receipt; the service receipt
+	// mutex guards access.
+	awaitingAdmission bool
 }
 
 // Done returns a channel that receives an error (or nil) when the workflow completes.
@@ -76,8 +83,10 @@ func (r *WorkflowReceipt) resolve(err error) {
 // finishes.
 func newWorkflowReceipt(workflowID string) *WorkflowReceipt {
 	return &WorkflowReceipt{
-		doneCh:     make(chan error, 1),
-		WorkflowID: workflowID,
-		once:       sync.Once{},
+		doneCh:            make(chan error, 1),
+		id:                "",
+		WorkflowID:        workflowID,
+		once:              sync.Once{},
+		awaitingAdmission: false,
 	}
 }

@@ -69,7 +69,6 @@ type diagnosticJSONResult struct {
 
 // runDiagnosticsCmd tests connectivity to the gRPC monitoring server.
 //
-// Takes ctx (context.Context) which controls the deadline for the diagnostic checks.
 // Takes cc (*CommandContext) which provides output settings and the target endpoint.
 //
 // Returns error when diagnostics fail or output formatting fails.

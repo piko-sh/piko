@@ -1,3 +1,0 @@
-{
-  "description": "Sequence creation with CREATE SEQUENCE and column DEFAULT nextval(). Tests catalogue Sequences map and sequence metadata."
-}

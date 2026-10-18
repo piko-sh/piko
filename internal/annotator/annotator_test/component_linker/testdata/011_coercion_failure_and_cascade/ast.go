@@ -26,11 +26,6 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// CreateExpansionResult returns the hand-crafted ExpansionResult for this test case.
-// It simulates an invocation where a non-numeric string ("twelve") is passed to a prop
-// that is both an integer and marked as coercible. This is the ideal input to test
-// the ComponentLinker's ability to first attempt coercion, fail with a warning, and
-// then subsequently fail type-checking with an error.
 func CreateExpansionResult(t *testing.T, vm *annotator_dto.VirtualModule) *annotator_dto.ExpansionResult {
 	findHash := func(relPath string) string {
 		for hash, comp := range vm.ComponentsByHash {

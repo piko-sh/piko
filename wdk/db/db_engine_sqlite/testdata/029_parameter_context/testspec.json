@@ -1,3 +1,0 @@
-{
-  "description": "Parameter context specificity. Verifies that parameters inside CAST, IN lists, and function arguments receive the correct ParameterContext values and type metadata."
-}

@@ -20,14 +20,12 @@ package dto
 
 import "piko.sh/piko/wdk/maths"
 
-// This mirrors DigitalPressRangeDto
 type RangeItem struct {
 	From   int64       `json:"from"`
 	To     int64       `json:"to"`
 	Charge maths.Money `json:"charge"`
 }
 
-// This mirrors DigitalPressDto
 type ItemDto struct {
 	ID     int64       `json:"id"`
 	Name   string      `json:"name"`

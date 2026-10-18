@@ -29,7 +29,7 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/provider/provider_domain"
 	"piko.sh/piko/internal/storage/storage_dto"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (
@@ -62,8 +62,6 @@ var (
 
 // NewCircuitBreakerWrapper creates a new circuit breaker wrapper for a storage provider.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes provider (StorageProviderPort) which is the storage to wrap.
 // Takes config (CircuitBreakerConfig) which sets the circuit breaker options.
 // Takes name (string) which identifies this circuit breaker in logs.

@@ -55,7 +55,6 @@ var (
 // with retry and circuit breaker decorators for resilience, and registers the provider
 // for graceful shutdown.
 //
-// Takes ctx (context.Context) for cancellation and logging propagation.
 // Takes name (string) which identifies the provider for later retrieval.
 // Takes provider (StorageProviderPort) which is the storage backend to register.
 //
@@ -123,8 +122,6 @@ func (s *service) SetDefaultProvider(name string) error {
 
 // GetProviders returns a sorted list of all registered provider names.
 //
-// Takes ctx (context.Context) for cancellation and logging propagation.
-//
 // Returns []string which contains the provider names in alphabetical order.
 func (s *service) GetProviders(ctx context.Context) []string {
 	providers := s.registry.ListProviders(ctx)
@@ -174,7 +171,6 @@ func (s *service) getProvider(ctx context.Context, name string) (StorageProvider
 
 // RegisterTransformer adds a stream transformer to the service registry.
 //
-// Takes ctx (context.Context) for cancellation and logging propagation.
 // Takes transformer (StreamTransformerPort) which is the transformer to add.
 //
 // Returns error when transformer is nil or registration fails.
@@ -228,7 +224,6 @@ func (s *service) HasTransformer(name string) bool {
 
 // RegisterDispatcher registers and starts a storage dispatcher with the service.
 //
-// Takes ctx (context.Context) for cancellation and logging propagation.
 // Takes dispatcher (StorageDispatcherPort) which is the dispatcher to register and start.
 //
 // Returns error when dispatcher is nil or fails to start.

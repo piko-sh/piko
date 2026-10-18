@@ -178,16 +178,11 @@ func EncodeAST(ast *ast_domain.TemplateAST) ([]byte, error) {
 	return result, nil
 }
 
-// DecodeAST converts a versioned FlatBuffers byte slice back into an in-memory
-// TemplateAST.
+// DecodeAST decodes a versioned FlatBuffers payload into a TemplateAST.
 //
-// Corrupt or truncated data cannot cause an unrecovered panic or unbounded allocation.
-// Every vector length read from the buffer is checked against the size of the payload,
-// and any panic raised by the FlatBuffers accessors is recovered and returned as an error
-// wrapping errCorruptAST.
+// Invalid payloads return an error wrapping errCorruptAST; length checks and panic
+// recovery protect decoding.
 //
-// Takes ctx (context.Context) which carries logging and cancellation context through the
-// deserialisation path.
 // Takes data ([]byte) which contains the encoded FlatBuffers data.
 //
 // Returns *ast_domain.TemplateAST which is the decoded AST structure.
@@ -196,9 +191,7 @@ func EncodeAST(ast *ast_domain.TemplateAST) ([]byte, error) {
 // Returns errASTSchemaVersionMismatch if the data was encoded with a different schema
 // version.
 //
-// SAFETY: The returned AST contains strings that reference 'data' directly via
-// mem.String. Go's GC keeps 'data' alive through these string references. The caller must
-// not modify 'data' while the AST is in use.
+// The returned AST shares data's storage. Do not modify data while the AST is in use.
 func DecodeAST(ctx context.Context, data []byte) (*ast_domain.TemplateAST, error) {
 	ast, err := decodeVersionedAST(ctx, data, false)
 	if err != nil {
@@ -207,15 +200,10 @@ func DecodeAST(ctx context.Context, data []byte) (*ast_domain.TemplateAST, error
 	return ast, nil
 }
 
-// DecodeASTForRender converts a versioned FlatBuffers byte slice back into an in-memory
-// TemplateAST, skipping location and range fields that are only needed by the LSP,
-// formatter, and error reporter.
+// DecodeASTForRender decodes a TemplateAST without source locations and ranges.
 //
-// Corrupt or truncated data is reported as an error wrapping errCorruptAST, never as a
-// panic or an unbounded allocation.
+// Invalid payloads return an error wrapping errCorruptAST.
 //
-// Takes ctx (context.Context) which carries logging and cancellation context through the
-// deserialisation path.
 // Takes data ([]byte) which contains the encoded FlatBuffers data.
 //
 // Returns *ast_domain.TemplateAST which is the decoded AST structure.
@@ -224,9 +212,7 @@ func DecodeAST(ctx context.Context, data []byte) (*ast_domain.TemplateAST, error
 // Returns errASTSchemaVersionMismatch if the data was encoded with a different schema
 // version.
 //
-// SAFETY: The returned AST contains strings that reference 'data' directly via
-// mem.String. Go's GC keeps 'data' alive through these string references. The caller must
-// not modify 'data' while the AST is in use.
+// The returned AST shares data's storage. Do not modify data while the AST is in use.
 func DecodeASTForRender(ctx context.Context, data []byte) (*ast_domain.TemplateAST, error) {
 	ast, err := decodeVersionedAST(ctx, data, true)
 	if err != nil {

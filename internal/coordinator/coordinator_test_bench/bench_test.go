@@ -81,8 +81,8 @@ func (m *mockAnnotator) AnnotateProjectWithCachedIntrospection(
 	_ *annotator_dto.VirtualModule,
 	_ *annotator_domain.TypeResolver,
 	_ ...annotator_domain.AnnotationOption,
-) (*annotator_dto.ProjectAnnotationResult, *annotator_domain.CompilationLogStore, error) {
-	return nil, nil, errors.New("AnnotateProjectWithCachedIntrospection not implemented in mock")
+) (*annotator_dto.ProjectAnnotationResult, *annotator_domain.IntrospectionSnapshot, *annotator_domain.CompilationLogStore, error) {
+	return nil, nil, nil, errors.New("AnnotateProjectWithCachedIntrospection not implemented in mock")
 }
 
 type mockCache struct {

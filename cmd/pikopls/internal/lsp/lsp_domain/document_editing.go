@@ -21,7 +21,7 @@ package lsp_domain
 import (
 	protocol "github.com/politepixels/golang-language-server"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // GetLinkedEditingRanges finds HTML tag pairs for synchronised editing. When a user edits

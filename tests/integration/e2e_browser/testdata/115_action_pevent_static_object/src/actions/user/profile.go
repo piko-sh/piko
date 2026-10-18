@@ -23,26 +23,22 @@ import (
 	"piko.sh/piko"
 )
 
-// ProfileAction tests an object literal with all static values (no state refs).
 type ProfileAction struct {
 	piko.ActionMetadata
 }
 
-// ProfileInput has mixed types from static literal values.
 type ProfileInput struct {
 	Name   string `json:"name"`
 	Age    int    `json:"age"`
 	Active bool   `json:"active"`
 }
 
-// ProfileResponse echoes back the received values.
 type ProfileResponse struct {
 	ReceivedName   string `json:"received_name"`
 	ReceivedAge    int    `json:"received_age"`
 	ReceivedActive bool   `json:"received_active"`
 }
 
-// Call echoes the static object fields back.
 func (a ProfileAction) Call(input ProfileInput) (ProfileResponse, error) {
 	a.Response().AddHelper("showResult",
 		input.Name,

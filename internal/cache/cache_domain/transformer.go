@@ -88,8 +88,6 @@ func NewTransformerRegistry() *TransformerRegistry {
 
 // Register adds a new transformer to the registry.
 //
-// Takes ctx (context.Context) which carries logging context for trace and request ID
-// propagation.
 // Takes transformer (CacheTransformerPort) which is the transformer to add.
 //
 // Returns error when transformer is nil, has an empty name, or a transformer with the

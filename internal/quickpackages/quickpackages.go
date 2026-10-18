@@ -44,8 +44,8 @@ import (
 	"golang.org/x/tools/go/packages"
 	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safeconv"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safeconv"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -394,7 +394,6 @@ func writeOverlayToDisk(sandbox safedisk.Sandbox, newFiles map[string]string, ov
 
 // runGoList executes go list -json -deps and returns the parsed packages.
 //
-// Takes ctx (context.Context) for cancellation.
 // Takes cfg (*packages.Config) for directory, env, and build flags.
 // Takes overlayFile (string) which is the path to the overlay JSON file, or empty if no
 // overlay.
@@ -604,7 +603,6 @@ type typeCheckState struct {
 // parseAndTypeCheck parses source files and type-checks all packages in dependency order
 // using parallel workers.
 //
-// Takes ctx (context.Context) for cancellation.
 // Takes pkgMap (map[string]*loaderPkg) which contains all packages.
 // Takes fset (*token.FileSet) which is the shared file set.
 // Takes sizes (types.Sizes) which provides type size information.
@@ -650,7 +648,6 @@ func parseAndTypeCheck(
 
 // enqueue starts processing a package once all its deps are ready.
 //
-// Takes ctx (context.Context) for cancellation.
 // Takes lp (*loaderPkg) which is the package to process.
 func (st *typeCheckState) enqueue(ctx context.Context, lp *loaderPkg) {
 	st.wg.Go(func() {
@@ -671,10 +668,9 @@ func (st *typeCheckState) enqueue(ctx context.Context, lp *loaderPkg) {
 	})
 }
 
-// loadSinglePackage loads a single package, choosing the fastest path: export data for
-// deps when available, or source parsing plus type-checking.
+// loadSinglePackage loads export data when available, otherwise parsing and type-checking
+// source.
 //
-// Takes ctx (context.Context) for cancellation.
 // Takes lp (*loaderPkg) which is the package to load.
 func (st *typeCheckState) loadSinglePackage(ctx context.Context, lp *loaderPkg) {
 	if ctx.Err() != nil {
@@ -786,7 +782,6 @@ func (st *typeCheckState) registerExportPkg(pkgPath string, pkg *types.Package) 
 
 // parsePackageFiles reads and parses all Go source files for a package.
 //
-// Takes ctx (context.Context) for cancellation.
 // Takes lp (*loaderPkg) which is the package whose files to parse.
 //
 // Returns []*File which contains the successfully parsed files.
@@ -826,7 +821,6 @@ func (st *typeCheckState) parsePackageFiles(ctx context.Context, lp *loaderPkg) 
 
 // typeCheckPackage runs the Go type checker on a single package.
 //
-// Takes ctx (context.Context) for cancellation.
 // Takes lp (*loaderPkg) which is the package to type-check.
 func (st *typeCheckState) typeCheckPackage(ctx context.Context, lp *loaderPkg) {
 	if ctx.Err() != nil {

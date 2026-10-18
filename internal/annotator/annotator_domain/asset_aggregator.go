@@ -26,6 +26,7 @@ import (
 	"cmp"
 	"slices"
 	"strings"
+	"unicode"
 
 	"piko.sh/piko/internal/annotator/annotator_dto"
 )
@@ -113,6 +114,18 @@ func getOrCreateAggregatedAsset(
 	return agg
 }
 
+var (
+	// listParamSeparators maps list-valued transformation parameters to their separators.
+	listParamSeparators = map[string]func(rune) bool{
+		"sizes":               isCommaSeparator,
+		"widths":              isCommaSeparator,
+		transformKeyDensities: isCommaOrSpaceSeparator,
+		"format":              isCommaSeparator,
+		"formats":             isCommaSeparator,
+		"qualities":           isCommaSeparator,
+	}
+)
+
 // mergeTransformationParams adds transformation parameters to an aggregated asset. When a
 // parameter key already exists, the new values are joined with the existing ones.
 //
@@ -124,22 +137,47 @@ func mergeTransformationParams(agg *aggregatedAsset, params map[string]string) {
 			agg.Params[paramKey] = make(map[string]struct{})
 		}
 
-		addCommaSeparatedValues(agg.Params[paramKey], paramValue)
+		addParamValues(agg.Params[paramKey], paramKey, paramValue)
 	}
 }
 
-// addCommaSeparatedValues splits a comma-separated string and adds each trimmed,
-// non-empty value to the given set.
+// addParamValues adds each list item or a scalar parameter's whole value to the set.
 //
-// Takes valueSet (map[string]struct{}) which receives the parsed values.
-// Takes paramValue (string) which contains the comma-separated values to parse.
-func addCommaSeparatedValues(valueSet map[string]struct{}, paramValue string) {
-	for v := range strings.SplitSeq(paramValue, ",") {
-		trimmedValue := strings.TrimSpace(v)
-		if trimmedValue != "" {
+// Takes valueSet (map[string]struct{}) which receives the values.
+// Takes paramKey (string) which names the parameter.
+// Takes paramValue (string) which is the parameter's value.
+func addParamValues(valueSet map[string]struct{}, paramKey, paramValue string) {
+	separator, isList := listParamSeparators[paramKey]
+	if !isList {
+		if trimmedValue := strings.TrimSpace(paramValue); trimmedValue != "" {
+			valueSet[trimmedValue] = struct{}{}
+		}
+		return
+	}
+	for _, item := range strings.FieldsFunc(paramValue, separator) {
+		if trimmedValue := strings.TrimSpace(item); trimmedValue != "" {
 			valueSet[trimmedValue] = struct{}{}
 		}
 	}
+}
+
+// isCommaSeparator reports whether r separates the items of a comma-separated list.
+//
+// Takes r (rune) which is the character to test.
+//
+// Returns bool which is true for a comma.
+func isCommaSeparator(r rune) bool {
+	return r == ','
+}
+
+// isCommaOrSpaceSeparator reports whether r separates the items of a list written with
+// commas, spaces or both, as densities are ("x1 x2" or "x1, x2").
+//
+// Takes r (rune) which is the character to test.
+//
+// Returns bool which is true for a comma or white space.
+func isCommaOrSpaceSeparator(r rune) bool {
+	return r == ',' || unicode.IsSpace(r)
 }
 
 // convertToFinalManifest converts grouped asset data into the final output format.

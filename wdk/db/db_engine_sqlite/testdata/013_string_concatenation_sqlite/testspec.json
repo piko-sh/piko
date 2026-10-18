@@ -1,3 +1,0 @@
-{
-  "description": "Tests string concatenation (||) through the SQLite parser. Result is always text; nullable if any operand is nullable."
-}

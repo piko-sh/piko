@@ -43,7 +43,7 @@ import (
 	"piko.sh/piko/internal/security/security_adapters"
 	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/logger"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (
@@ -620,7 +620,6 @@ func (p *ollamaProvider) waitForBackgroundWork(ctx context.Context) error {
 // If the model is not yet pulled or the server does not report the dimension, the cached
 // value remains 0 and is learned from the first Embed response.
 //
-// Takes ctx (context.Context) which bounds the Show API call.
 // Takes model (string) which is the model name to query for its embedding dimension.
 func (p *ollamaProvider) tryPopulateEmbeddingDim(ctx context.Context, model string) {
 	if p.embeddingDim.Load() != 0 {
@@ -651,7 +650,6 @@ func (p *ollamaProvider) tryPopulateEmbeddingDim(ctx context.Context, model stri
 // Image URLs are counted against the configured limit before any is fetched, and a
 // warning reports image URLs skipped because fetching is disabled.
 //
-// Takes ctx (context.Context) which controls cancellation for image fetches.
 // Takes request (*llm_dto.CompletionRequest) which contains the completion settings.
 // Takes model (string) which specifies the model to use.
 //

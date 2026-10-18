@@ -33,7 +33,9 @@ import (
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 	registry_otter "piko.sh/piko/internal/registry/registry_dal/otter"
 	"piko.sh/piko/internal/registry/registry_dto"
+	"piko.sh/piko/internal/wal/wal_adapters/driven_disk"
 	"piko.sh/piko/internal/wal/wal_domain"
+	clockpkg "piko.sh/piko/wdk/clock"
 )
 
 const (
@@ -62,6 +64,9 @@ type Config struct {
 	// Persistence sets up optional WAL-based persistence. When nil or Enabled is false, the
 	// cache works only in memory.
 	Persistence *PersistenceProviderConfig
+
+	// Clock supplies store timestamps and time comparisons; nil uses the real clock.
+	Clock clockpkg.Clock
 
 	// RegistryCapacity is the maximum number of registry artefacts to store. Defaults to
 	// 100,000 if zero or negative.
@@ -105,6 +110,9 @@ type Provider struct {
 	// orchestratorDALFactory is the orchestrator DAL factory; initialised by Connect.
 	orchestratorDALFactory *otterOrchestratorDALFactory
 
+	// ownerLock is the lock on the persistence directory while this process owns it.
+	ownerLock *ownerLock
+
 	// persistentCaches holds caches created with WAL persistence. These must be closed
 	// separately from the DALs because DALs that receive injected caches (ownsCache=false)
 	// do not close them.
@@ -113,11 +121,19 @@ type Provider struct {
 	// config holds the provider settings including cache capacities and persistence options.
 	config Config
 
+	// ownerPID is the process that owns the persistence directory when this process runs as
+	// a secondary, or zero when it is unknown.
+	ownerPID int
+
 	// mu guards access to connected and cache fields.
 	mu sync.RWMutex
 
 	// connected indicates whether the provider has an active connection.
 	connected bool
+
+	// secondary marks a process that reads a persistence snapshot without writing to its
+	// owner's directory.
+	secondary bool
 }
 
 // NewProvider creates a new Otter persistence provider.
@@ -149,44 +165,29 @@ func (p *Provider) Connect(ctx context.Context) error {
 	orchestratorCapacity := valueOrDefault(p.config.OrchestratorCapacity, defaultOrchestratorCapacity)
 
 	var registryOpts []registry_otter.Option
-	var orchestratorOpts []orchestrator_otter.Option
+	orchestratorOpts := []orchestrator_otter.Option{orchestrator_otter.WithClock(p.config.Clock)}
 
 	if p.persistenceEnabled() {
-		registryCache, orchCache, err := p.createPersistentCaches(registryCapacity, orchestratorCapacity)
+		if err := p.electOwner(ctx); err != nil {
+			return err
+		}
+		registryCache, orchCache, err := p.createPersistentCaches(registryCapacity)
 		if err != nil {
+			_ = p.ownerLock.release()
+			p.ownerLock = nil
 			return fmt.Errorf("creating persistent caches: %w", err)
 		}
 		registryOpts = append(registryOpts, registry_otter.WithCache(registryCache))
-		orchestratorOpts = append(orchestratorOpts, orchestrator_otter.WithCache(orchCache))
-		p.persistentCaches = []interface{ Close(context.Context) error }{registryCache, orchCache}
+		p.persistentCaches = []interface{ Close(context.Context) error }{registryCache}
+		if orchCache != nil {
+			orchestratorOpts = append(orchestratorOpts, orchestrator_otter.WithCache(orchCache))
+			p.persistentCaches = append(p.persistentCaches, orchCache)
+		}
 	}
 
-	registryDAL, err := registry_otter.NewOtterDAL(registry_otter.Config{
-		Capacity: registryCapacity,
-	}, registryOpts...)
-	if err != nil {
-		return fmt.Errorf("creating registry DAL: %w", err)
+	if err := p.createDALs(ctx, registryCapacity, orchestratorCapacity, registryOpts, orchestratorOpts); err != nil {
+		return err
 	}
-	p.registryDAL = registryDAL
-
-	if p.persistenceEnabled() {
-		rebuildIndexes(ctx, registryDAL)
-	}
-
-	orchestratorDAL, err := orchestrator_otter.NewOtterDAL(orchestrator_otter.Config{
-		Capacity: orchestratorCapacity,
-	}, orchestratorOpts...)
-	if err != nil {
-		return fmt.Errorf("creating orchestrator DAL: %w", err)
-	}
-	p.orchestratorDAL = orchestratorDAL
-
-	if p.persistenceEnabled() {
-		rebuildIndexes(ctx, orchestratorDAL)
-	}
-
-	p.registryDALFactory = &otterRegistryDALFactory{dal: registryDAL}
-	p.orchestratorDALFactory = &otterOrchestratorDALFactory{dal: orchestratorDAL}
 
 	p.connected = true
 
@@ -234,6 +235,11 @@ func (p *Provider) Close(ctx context.Context) error {
 	p.registryDAL = nil
 	p.orchestratorDAL = nil
 	p.connected = false
+	if err := p.ownerLock.release(); err != nil {
+		l.Warn("Error releasing the persistence directory's owner lock", logger_domain.Error(err))
+	}
+	p.ownerLock = nil
+	p.secondary = false
 
 	l.Internal("Otter persistence provider closed")
 	return nil
@@ -343,6 +349,136 @@ func (p *Provider) OrchestratorDALFactory() (OrchestratorDALFactory, error) {
 	return p.orchestratorDALFactory, nil
 }
 
+// IsSecondary reports whether another process owns the persistence directory, so this
+// process runs from an in-memory copy of it and writes nothing there.
+//
+// Returns bool which is true for a secondary.
+//
+// Safe for concurrent use.
+func (p *Provider) IsSecondary() bool {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	return p.secondary
+}
+
+// WriteRegistrySnapshot writes the registry's current state as a snapshot under dir, laid
+// out as the persistence directory lays it out. A secondary, which may not write the
+// persistence directory, uses it to hand a build's registry to the embedded runtime.
+//
+// Takes dir (string) which stands in for the persistence directory.
+//
+// Returns error when persistence is not active or the snapshot cannot be written.
+//
+// Safe for concurrent use.
+func (p *Provider) WriteRegistrySnapshot(ctx context.Context, dir string) error {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	if len(p.persistentCaches) == 0 {
+		return errProviderNotConnected
+	}
+	cache, ok := p.persistentCaches[0].(interface {
+		SnapshotEntries() []wal_domain.Entry[string, *registry_dto.ArtefactMeta]
+	})
+	if !ok {
+		return errors.New("registry cache cannot export a snapshot")
+	}
+	config := p.config.Persistence
+	walConfig := buildWALConfig(dir, "registry", config.SyncMode, valueOrDefault(config.SnapshotThreshold, defaultSnapshotThreshold))
+	snapshot, err := driven_disk.NewDiskSnapshot(ctx, walConfig,
+		driven_disk.NewBinaryCodec[string, *registry_dto.ArtefactMeta](StringKeyCodec{}, ArtefactMetaCodec{}))
+	if err != nil {
+		return fmt.Errorf("creating registry snapshot under %s: %w", dir, err)
+	}
+	defer func() { _ = snapshot.Close() }()
+	if err := snapshot.Save(ctx, cache.SnapshotEntries()); err != nil {
+		return fmt.Errorf("writing registry snapshot under %s: %w", dir, err)
+	}
+	return nil
+}
+
+// electOwner claims the persistence directory or loads a read-only copy when another
+// process owns it.
+//
+// Returns error when the directory's lock cannot be taken for any other reason.
+//
+// Caller must hold p.mu.
+func (p *Provider) electOwner(ctx context.Context) error {
+	lock, ownerPID, err := acquireOwnerLock(p.walDir())
+	switch {
+	case err == nil:
+		p.ownerLock = lock
+		p.secondary = false
+		return nil
+	case errors.Is(err, errOwnerLockHeld):
+		p.secondary = true
+		p.ownerPID = ownerPID
+		_, l := logger_domain.From(ctx, log)
+		l.Notice("Another piko instance owns .piko; running with an in-memory copy and writing nothing to it",
+			logger_domain.Int("owner_pid", ownerPID),
+			logger_domain.String("dir", p.walDir()))
+		return nil
+	default:
+		return fmt.Errorf("electing the persistence directory's owner: %w", err)
+	}
+}
+
+// createDALs creates the registry and orchestrator DALs and their factories, rebuilding
+// their indexes from the persisted state when persistence is enabled.
+//
+// Takes registryCapacity (int64) which sets the maximum number of registry artefacts.
+// Takes orchestratorCapacity (int64) which sets the maximum number of orchestrator tasks.
+// Takes registryOpts ([]registry_otter.Option) which configures the registry DAL.
+// Takes orchestratorOpts ([]orchestrator_otter.Option) which configures the orchestrator
+// DAL.
+//
+// Returns error when either DAL cannot be created.
+//
+// Caller must hold p.mu.
+func (p *Provider) createDALs(
+	ctx context.Context,
+	registryCapacity, orchestratorCapacity int64,
+	registryOpts []registry_otter.Option,
+	orchestratorOpts []orchestrator_otter.Option,
+) error {
+	registryDAL, err := registry_otter.NewOtterDAL(registry_otter.Config{
+		Capacity: registryCapacity,
+	}, registryOpts...)
+	if err != nil {
+		return fmt.Errorf("creating registry DAL: %w", err)
+	}
+	p.registryDAL = registryDAL
+
+	if p.persistenceEnabled() {
+		rebuildIndexes(ctx, registryDAL)
+	}
+
+	orchestratorDAL, err := orchestrator_otter.NewOtterDAL(orchestrator_otter.Config{
+		Capacity: orchestratorCapacity,
+	}, orchestratorOpts...)
+	if err != nil {
+		return fmt.Errorf("creating orchestrator DAL: %w", err)
+	}
+	p.orchestratorDAL = orchestratorDAL
+
+	if p.persistenceEnabled() {
+		rebuildIndexes(ctx, orchestratorDAL)
+	}
+
+	p.registryDALFactory = &otterRegistryDALFactory{dal: registryDAL}
+	p.orchestratorDALFactory = &otterOrchestratorDALFactory{dal: orchestratorDAL}
+	return nil
+}
+
+// walDir returns the persistence directory.
+//
+// Returns string which is the configured directory, or the default.
+func (p *Provider) walDir() string {
+	if p.config.Persistence != nil && p.config.Persistence.WALDir != "" {
+		return p.config.Persistence.WALDir
+	}
+	return ".piko/wal/persistence"
+}
+
 // persistenceEnabled reports whether WAL-based persistence is configured and active.
 //
 // Returns bool which is true when persistence is both configured and enabled.
@@ -352,28 +488,24 @@ func (p *Provider) persistenceEnabled() bool {
 
 // createPersistentCaches creates caches with WAL persistence enabled.
 //
-// Takes registryCapacity (int64) which sets the maximum registry cache size.
-// Takes orchestratorCapacity (int64) which sets the maximum orchestrator cache size.
+// Takes registryCapacity (int64) which sets the maximum registry cache size. The task
+// cache is unbounded, so the orchestrator capacity does not apply to it.
 //
 // Returns cache_domain.ProviderPort[string, *registry_dto.ArtefactMeta] which is the
 // WAL-backed artefact metadata cache.
 // Returns cache_domain.ProviderPort[string, *orchestrator_domain.Task] which is the
-// WAL-backed task cache.
+// WAL-backed task cache, or nil on a secondary, whose queue lives only in memory.
 // Returns error when cache creation fails.
-func (p *Provider) createPersistentCaches(registryCapacity, orchestratorCapacity int64) (
+func (p *Provider) createPersistentCaches(registryCapacity int64) (
 	registryCache cache_domain.ProviderPort[string, *registry_dto.ArtefactMeta],
 	orchCache cache_domain.ProviderPort[string, *orchestrator_domain.Task],
 	err error,
 ) {
 	config := p.config.Persistence
-
-	walDir := config.WALDir
-	if walDir == "" {
-		walDir = ".piko/wal/persistence"
-	}
+	walDir := p.walDir()
 
 	syncMode := config.SyncMode
-	if syncMode == 0 {
+	if syncMode == wal_domain.SyncModeDefault {
 		syncMode = wal_domain.SyncModeBatched
 	}
 
@@ -386,21 +518,35 @@ func (p *Provider) createPersistentCaches(registryCapacity, orchestratorCapacity
 			WALConfig:  buildWALConfig(walDir, "registry", syncMode, snapshotThreshold),
 			KeyCodec:   StringKeyCodec{},
 			ValueCodec: ArtefactMetaCodec{},
+			ReadOnly:   p.secondary,
+
+			QuarantineCorrupt: false,
 		},
 	)
 
 	registryCache, err = cache_adapters_otter.OtterProviderFactory(registryOpts)
 	if err != nil {
-		return nil, nil, fmt.Errorf("creating registry cache with WAL: %w", err)
+		registryDir := filepath.Join(walDir, "registry")
+		return nil, nil, fmt.Errorf("opening the artefact registry in %s: %w; "+
+			"if it is damaged or was written by a newer piko, move that directory aside and "+
+			"run `piko build` to rebuild it", registryDir, err)
+	}
+
+	if p.secondary {
+
+		return registryCache, nil, nil
 	}
 
 	orchestratorOpts := newOtterCacheOptions[string, *orchestrator_domain.Task](
-		int(orchestratorCapacity),
+		0,
 		cache_adapters_otter.PersistenceConfig[string, *orchestrator_domain.Task]{
 			Enabled:    true,
 			WALConfig:  buildWALConfig(walDir, "orchestrator", syncMode, snapshotThreshold),
 			KeyCodec:   StringKeyCodec{},
 			ValueCodec: TaskCodec{},
+			ReadOnly:   p.secondary,
+
+			QuarantineCorrupt: true,
 		},
 	)
 

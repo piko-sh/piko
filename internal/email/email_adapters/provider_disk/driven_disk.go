@@ -32,7 +32,7 @@ import (
 	"piko.sh/piko/internal/healthprobe/healthprobe_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/provider/provider_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -361,7 +361,6 @@ func (*DiskProvider) generateEmailFilename(recipient string) string {
 // filesystem. The sandbox handles temporary file creation, writing, and atomic rename
 // internally.
 //
-// Takes ctx (context.Context) which carries the logger and cancellation.
 // Takes filename (string) which specifies the destination filename relative to the
 // sandbox root.
 // Takes params (*email_dto.SendParams) which contains the email content to write.

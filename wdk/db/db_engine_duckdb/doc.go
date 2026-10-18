@@ -16,8 +16,16 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package db_engine_duckdb implements the querier EnginePort for DuckDB using a
-// hand-written recursive-descent parser. DuckDB's SQL dialect is largely
-// PostgreSQL-compatible, so this engine builds on the PostgreSQL parser with
-// DuckDB-specific type and syntax adjustments.
+// Package db_engine_duckdb is Piko's engine for DuckDB.
+//
+// Register it with a database to generate typed Go from SQL, run migrations and seeds,
+// and report engine-specific health diagnostics:
+//
+//	piko.WithDatabase("primary", &db.DatabaseRegistration{
+//	    DB:           database,
+//	    EngineConfig: db_engine_duckdb.DuckDB(),
+//	})
+//
+// The SQL analysis and code generation are provided by Seagull through
+// wdk/db/db_provider_seagull; db_engine_duckdb selects and tunes the dialect.
 package db_engine_duckdb

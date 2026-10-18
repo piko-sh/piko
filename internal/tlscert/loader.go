@@ -79,8 +79,6 @@ type CertificateLoader struct {
 // NewCertificateLoader loads the initial certificate pair and optionally starts a file
 // watcher for hot-reload.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes certFile (string) which is the path to the PEM-encoded certificate.
 // Takes keyFile (string) which is the path to the PEM-encoded private key.
 // Takes hotReload (bool) which enables watching for file changes.
@@ -159,9 +157,6 @@ func (cl *CertificateLoader) loadCertificate() error {
 }
 
 // checkCertificateExpiry logs a warning if the certificate expires soon.
-//
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 func (cl *CertificateLoader) checkCertificateExpiry(ctx context.Context) {
 	_, l := logger_domain.From(ctx, log)
 	cert := cl.cert.Load()
@@ -189,9 +184,6 @@ func (cl *CertificateLoader) checkCertificateExpiry(ctx context.Context) {
 
 // startWatcher creates a file watcher on the directories containing the cert and key
 // files and starts a background goroutine to handle reload events.
-//
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 //
 // Returns error when the watcher cannot be created or a directory cannot be watched.
 //
@@ -228,9 +220,6 @@ func (cl *CertificateLoader) startWatcher(ctx context.Context) error {
 }
 
 // watchLoop handles file system events and reloads certificates with debouncing.
-//
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 func (cl *CertificateLoader) watchLoop(ctx context.Context) {
 	var debounceTimer *time.Timer
 
@@ -262,8 +251,6 @@ func (cl *CertificateLoader) watchLoop(ctx context.Context) {
 // create for a watched certificate file, it resets the debounce timer to trigger a
 // reload.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes event (fsnotify.Event) which is the file system event to process.
 // Takes debounceTimer (*time.Timer) which is the current debounce timer, or nil if none
 // is active.
@@ -299,9 +286,6 @@ func (cl *CertificateLoader) isCertificateFile(name string) bool {
 
 // reloadCertificate attempts to reload the certificate from disk. On failure, the old
 // certificate is kept.
-//
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 func (cl *CertificateLoader) reloadCertificate(ctx context.Context) {
 	_, l := logger_domain.From(ctx, log)
 	if err := cl.loadCertificate(); err != nil {

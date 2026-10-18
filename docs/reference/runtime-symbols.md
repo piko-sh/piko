@@ -115,7 +115,7 @@ Runtime collection, section, navigation, and search helpers. The package mirrors
 
 Common entry points: `GetData[T]`, `GetSections`, `GetSectionsTree`, `GetAllCollectionItems`, `BuildNavigationFromMetadata`, `SearchCollection`, `QuickSearch`, `FetchCollection`, `RegisterRuntimeProvider`, `Filter`/`FilterGroup`/`SortOption`/`PaginationOptions` and the `FilterOp*` / `Sort*` constants.
 
-### `piko.sh/piko/wdk/safeconv`
+### `piko.sh/safeconv`
 
 Saturating numeric conversions plus boolean and string parsers. The package exposes around 30 typed conversions (for example `IntToUint8`, `Int64ToInt32`), their `Must*` panicking variants, and the generic `ToUint64[T integer]`. See [safeconv API reference](safeconv-api.md) for the full list.
 

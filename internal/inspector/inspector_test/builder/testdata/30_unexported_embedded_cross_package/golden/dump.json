@@ -23,7 +23,7 @@
               "name": "AuthProvider",
               "type_string": "auth.AuthProvider",
               "raw_tag": "",
-              "definition_line": 25,
+              "definition_line": 24,
               "definition_column": 7,
               "is_internal_type": false,
               "is_embedded": true,
@@ -44,7 +44,7 @@
                   "bool"
                 ]
               },
-              "definition_line": 25,
+              "definition_line": 23,
               "definition_column": 19,
               "is_pointer_receiver": false
             }
@@ -52,7 +52,7 @@
           "type_params": [],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 24,
+          "definition_line": 23,
           "definition_column": 6
         }
       },
@@ -86,7 +86,7 @@
                   "bool"
                 ]
               },
-              "definition_line": 25,
+              "definition_line": 23,
               "definition_column": 19,
               "is_pointer_receiver": false
             }
@@ -94,7 +94,7 @@
           "type_params": [],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 28,
+          "definition_line": 25,
           "definition_column": 6
         }
       },

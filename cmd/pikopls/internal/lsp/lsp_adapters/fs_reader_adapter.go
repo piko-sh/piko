@@ -29,7 +29,7 @@ import (
 	"piko.sh/piko/cmd/pikopls/internal/lsp/lsp_domain"
 	"piko.sh/piko/internal/annotator/annotator_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // lspFSReader is a driven adapter that implements FSReaderPort for providing live

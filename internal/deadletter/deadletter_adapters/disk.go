@@ -32,7 +32,7 @@ import (
 	"piko.sh/piko/internal/deadletter/deadletter_domain"
 	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -348,8 +348,6 @@ func (d *DiskDeadLetterQueue[T]) GetOlderThan(ctx context.Context, duration time
 }
 
 // getAllUnlocked reads all wrapped entries from the file. Must be called with lock held.
-//
-// Takes ctx (context.Context) which carries the logger and tracing data.
 //
 // Returns []wrappedEntry[T] which contains the deserialised entries.
 // Returns error when the file cannot be read.

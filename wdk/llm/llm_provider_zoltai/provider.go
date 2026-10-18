@@ -35,7 +35,7 @@ import (
 	"piko.sh/piko/internal/llm/llm_domain"
 	"piko.sh/piko/internal/llm/llm_dto"
 	"piko.sh/piko/wdk/goroutine"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (
@@ -94,7 +94,6 @@ var (
 // empty arguments. When a structured output format is requested, Zoltai wraps the fortune
 // in a JSON object.
 //
-// Takes ctx (context.Context) which controls cancellation and timeouts.
 // Takes request (*llm_dto.CompletionRequest) which controls the response shape.
 //
 // Returns *llm_dto.CompletionResponse which contains a random fortune.
@@ -161,7 +160,6 @@ func (p *zoltaiProvider) Complete(ctx context.Context, request *llm_dto.Completi
 // Embed generates deterministic fake embeddings by hashing input texts. The same input
 // always produces the same vector, but the vectors carry no semantic meaning.
 //
-// Takes ctx (context.Context) which controls cancellation and timeouts.
 // Takes request (*llm_dto.EmbeddingRequest) which contains the texts to embed.
 //
 // Returns *llm_dto.EmbeddingResponse which contains the fake embeddings.
@@ -287,8 +285,7 @@ func (*zoltaiProvider) SupportsMessageName() bool { return false }
 // Close releases resources held by the Zoltai provider, signalling any in-flight stream
 // goroutines to exit and waiting for them to drain within a bounded timeout.
 //
-// Takes ctx (context.Context) which controls how long Close is willing to wait for the
-// drain.
+// ctx bounds how long Close waits for the drain.
 //
 // Returns error when the bounded drain elapses before all stream goroutines have
 // finished.
@@ -338,8 +335,6 @@ func (p *zoltaiProvider) DefaultModel() string {
 
 // streamContext returns a context that is cancelled when either the caller's context is
 // cancelled or the provider is closed.
-//
-// Takes ctx (context.Context) which is the caller's context.
 //
 // Returns context.Context which carries the merged cancellation signal.
 func (p *zoltaiProvider) streamContext(ctx context.Context) context.Context {

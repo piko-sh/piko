@@ -1,3 +1,0 @@
-{
-  "description": "Basic CRUD: SELECT one and many with CockroachDB unique_rowid() and STRING type"
-}

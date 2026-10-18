@@ -198,8 +198,6 @@ func (m *rateLimitMiddleware) CheckActionAllowed(
 
 // checkRateLimit checks if a request is within the rate limit for a given key and tier.
 //
-// Takes ctx (context.Context) which carries cancellation through to the underlying
-// counter store call.
 // Takes clientIP (string) which identifies the client making the request.
 // Takes keySuffix (string) which specifies the rate limit bucket name.
 // Takes tier (security_dto.RateLimitTierValues) which defines the limit settings.

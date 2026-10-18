@@ -16,7 +16,6 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// main.go imports the 'models' package and uses one of its types.
 package main
 
 import "testcase_03_cross_package_struct_field/models"

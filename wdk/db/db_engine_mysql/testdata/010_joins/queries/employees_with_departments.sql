@@ -1,4 +1,0 @@
--- piko.query(name: EmployeesWithDepartments, command: many)
-SELECT e.id, e.name, d.name AS department_name
-FROM employees e
-INNER JOIN departments d ON e.department_id = d.id;

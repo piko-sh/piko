@@ -21,6 +21,7 @@ package daemon_adapters
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
@@ -35,37 +36,51 @@ const (
 	eventPayloadKeyArtefactID = "artefactID"
 )
 
-// SubscribeArtefactMetadataInvalidation wires the shared artefact-metadata cache to the
-// registry artefact lifecycle events so that an updated, created, or deleted artefact is
-// evicted from the cache straight away rather than lingering until the cache TTL expires.
-//
-// Without this subscription the daemon serves stale variant metadata for an asset (for
-// example an svg that was rewritten on disk) until the metadata cache entry naturally
-// expires, because the asset-serving handler returns the cached ArtefactMeta on a cache
-// hit without re-reading the registry.
+// ArtefactInvalidator is implemented by components that cache data derived from a
+// registry artefact and must drop it when the artefact changes, such as the render
+// registry's parsed SVG and serve-path caches.
+type ArtefactInvalidator interface {
+	// InvalidateArtefact drops any cached data derived from the artefact.
+	//
+	// Takes artefactID (string) which identifies the artefact that changed.
+	InvalidateArtefact(ctx context.Context, artefactID string)
+}
+
+// SubscribeArtefactMetadataInvalidation evicts artefact metadata and derived caches when
+// registry lifecycle events arrive.
 //
 // Takes eventBus (orchestrator_domain.EventBus) which delivers registry artefact events.
 // Takes cache (cache_domain.Cache) which is the shared artefact-metadata cache to evict
-// from; a nil cache disables invalidation and returns nil.
+// from; it may be nil when only invalidators are wired.
+// Takes invalidators (...ArtefactInvalidator) which are told about every affected
+// artefact; nil entries are ignored. With no cache and no invalidators nothing is
+// subscribed and nil is returned.
 //
 // Returns error when subscribing to any artefact topic fails.
 func SubscribeArtefactMetadataInvalidation(
 	ctx context.Context,
 	eventBus orchestrator_domain.EventBus,
 	cache cache_domain.Cache[string, *registry_dto.ArtefactMeta],
+	invalidators ...ArtefactInvalidator,
 ) error {
 	ctx, l := logger_domain.From(ctx, log)
 
-	if eventBus == nil || cache == nil {
+	invalidators = slices.DeleteFunc(slices.Clone(invalidators), func(invalidator ArtefactInvalidator) bool {
+		return invalidator == nil
+	})
+
+	if eventBus == nil || (cache == nil && len(invalidators) == 0) {
 		l.Internal("Artefact metadata cache invalidation not wired",
 			logger_domain.Bool("hasEventBus", eventBus != nil),
-			logger_domain.Bool("hasCache", cache != nil))
+			logger_domain.Bool("hasCache", cache != nil),
+			logger_domain.Int("invalidatorCount", len(invalidators)))
 		return nil
 	}
 
-	handler := newArtefactMetadataInvalidationHandler(cache)
+	handler := newArtefactMetadataInvalidationHandler(cache, invalidators)
 	for _, topic := range registry_domain.ArtefactTopics {
-		if err := eventBus.SubscribeWithHandler(ctx, topic, handler); err != nil {
+
+		if err := orchestrator_domain.SubscribeBroadcast(ctx, eventBus, topic, handler); err != nil {
 			return fmt.Errorf("subscribing artefact metadata invalidation to topic %q: %w", topic, err)
 		}
 	}
@@ -76,14 +91,18 @@ func SubscribeArtefactMetadataInvalidation(
 }
 
 // newArtefactMetadataInvalidationHandler builds an event handler that evicts the affected
-// artefact from the shared metadata cache on each registry artefact lifecycle event.
+// artefact from the shared metadata cache and tells every invalidator about it on each
+// registry artefact lifecycle event.
 //
 // Takes cache (cache_domain.Cache) which is the shared artefact-metadata cache to evict
-// from.
+// from, or nil.
+// Takes invalidators ([]ArtefactInvalidator) which are told about every affected
+// artefact.
 //
 // Returns orchestrator_domain.EventHandler which invalidates the affected artefact ID.
 func newArtefactMetadataInvalidationHandler(
 	cache cache_domain.Cache[string, *registry_dto.ArtefactMeta],
+	invalidators []ArtefactInvalidator,
 ) orchestrator_domain.EventHandler {
 	return func(eventCtx context.Context, event orchestrator_domain.Event) error {
 		eventCtx, l := logger_domain.From(eventCtx, log)
@@ -92,6 +111,14 @@ func newArtefactMetadataInvalidationHandler(
 		if !ok || artefactID == "" {
 			l.Trace("Artefact event without artefact ID, skipping cache invalidation",
 				logger_domain.String("eventType", string(event.Type)))
+			return nil
+		}
+
+		for _, invalidator := range invalidators {
+			invalidator.InvalidateArtefact(eventCtx, artefactID)
+		}
+
+		if cache == nil {
 			return nil
 		}
 

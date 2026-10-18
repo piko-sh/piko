@@ -18,10 +18,6 @@
 
 package main
 
-// We did NOT import the "models" package.
-// This is syntactically valid but will fail to type-check.
-
 type Response struct {
-	// This will cause a semantic error: "undefined: models".
 	User models.User
 }

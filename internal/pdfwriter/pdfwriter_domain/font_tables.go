@@ -26,7 +26,7 @@ import (
 	"slices"
 	"unicode/utf16"
 
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // FontDescriptorInfo holds the metrics extracted from a TrueType font, needed for the PDF

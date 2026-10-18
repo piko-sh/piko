@@ -21,7 +21,7 @@ package lsp_domain
 import (
 	protocol "github.com/politepixels/golang-language-server"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // callExprFinder is a visitor that finds the smallest CallExpr containing a target

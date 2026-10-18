@@ -27,8 +27,10 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"piko.sh/piko/internal/annotator/annotator_dto"
+	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/capabilities/capabilities_dto"
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/logger/logger_domain"
@@ -47,6 +49,13 @@ const (
 
 	// imageProfileNamePrefix is the prefix for generated image variant profile names.
 	imageProfileNamePrefix = "image"
+
+	// paramExpandedDensity records the density already applied to the transform key.
+	paramExpandedDensity = "_density"
+
+	// paramResponsive marks a responsive image before the annotator expands it. The key
+	// matches the annotator's transformKeyResponsive.
+	paramResponsive = "_responsive"
 
 	// imageVariantTypeTag is the tag value that marks a profile as an image variant.
 	imageVariantTypeTag = "image-variant"
@@ -68,6 +77,10 @@ const (
 
 	// fieldFormat is the parameter key for the image format setting.
 	fieldFormat = "format"
+
+	// imageFormatWebP is the WebP image format, the default output format for image
+	// variants.
+	imageFormatWebP = "webp"
 
 	// percentMax is the value used for percentage calculations.
 	percentMax = 100
@@ -161,6 +174,25 @@ type AssetPipelineOrchestrator struct {
 	// reader reads external-module asset bytes for seeding into the registry. When nil, byte
 	// seeding is skipped.
 	reader assetByteReader
+
+	// variantsOnDemand leaves responsive image variants to be generated when first
+	// requested, because the build has no image transformer; see WithImageVariantsOnDemand.
+	variantsOnDemand bool
+}
+
+// AssetPipelineOption configures an AssetPipelineOrchestrator.
+type AssetPipelineOption func(*AssetPipelineOrchestrator)
+
+// WithImageVariantsOnDemand leaves the width variants a responsive image's srcset names
+// to be generated when they are first requested, rather than building them. A build
+// process with no image transformer cannot build them, while the server it builds for
+// can.
+//
+// Returns AssetPipelineOption which applies the setting.
+func WithImageVariantsOnDemand() AssetPipelineOption {
+	return func(p *AssetPipelineOrchestrator) {
+		p.variantsOnDemand = true
+	}
 }
 
 // NewAssetPipelineOrchestrator creates a new asset pipeline orchestrator.
@@ -172,6 +204,7 @@ type AssetPipelineOrchestrator struct {
 // external-asset byte seeding.
 // Takes reader (assetByteReader) which reads external-module asset bytes; may be nil to
 // skip external-asset byte seeding.
+// Takes opts (...AssetPipelineOption) which adjust the pipeline.
 //
 // Returns *AssetPipelineOrchestrator which is ready for use.
 func NewAssetPipelineOrchestrator(
@@ -179,13 +212,19 @@ func NewAssetPipelineOrchestrator(
 	assetsConfig *config.AssetsConfig,
 	resolver resolver_domain.ResolverPort,
 	reader assetByteReader,
+	opts ...AssetPipelineOption,
 ) *AssetPipelineOrchestrator {
-	return &AssetPipelineOrchestrator{
-		registryService: registry,
-		assetsConfig:    assetsConfig,
-		resolver:        resolver,
-		reader:          reader,
+	p := &AssetPipelineOrchestrator{
+		registryService:  registry,
+		assetsConfig:     assetsConfig,
+		resolver:         resolver,
+		reader:           reader,
+		variantsOnDemand: false,
 	}
+	for _, opt := range opts {
+		opt(p)
+	}
+	return p
 }
 
 // ProcessBuildResult is the main entry point for asset processing. It iterates through
@@ -195,8 +234,9 @@ func NewAssetPipelineOrchestrator(
 // Takes result (*annotator_dto.ProjectAnnotationResult) which contains the build output
 // including the final asset manifest to process.
 //
-// Returns error when processing fails, though individual asset failures are logged and do
-// not halt the pipeline.
+// Returns error which wraps ErrMissingSrcsetProfiles when a generated srcset references a
+// variant no profile produces; individual asset failures are logged and do not halt the
+// pipeline.
 func (p *AssetPipelineOrchestrator) ProcessBuildResult(ctx context.Context, result *annotator_dto.ProjectAnnotationResult) error {
 	ctx, span, l := log.Span(ctx, "AssetPipelineOrchestrator.ProcessBuildResult")
 	defer span.End()
@@ -208,21 +248,118 @@ func (p *AssetPipelineOrchestrator) ProcessBuildResult(ctx context.Context, resu
 
 	l.Trace("Processing build asset manifest to generate registry profiles...", logger_domain.Int("asset_count", len(result.FinalAssetManifest)))
 
+	var referenced map[string][]string
+	if !p.variantsOnDemand {
+		referenced = srcsetVariantKeys(result.ComponentResults)
+	}
+	produced := make(map[string]map[string]struct{}, len(result.FinalAssetManifest))
 	for _, asset := range result.FinalAssetManifest {
-		p.processManifestAsset(ctx, asset)
+		names := produced[asset.SourcePath]
+		if names == nil {
+			names = make(map[string]struct{})
+			produced[asset.SourcePath] = names
+		}
+		profiles := p.processManifestAsset(ctx, asset, referenced[asset.SourcePath])
+		for i := range profiles {
+			names[profiles[i].Name] = struct{}{}
+		}
 	}
 
 	l.Trace("Finished processing asset manifest.")
-	return nil
+	if p.variantsOnDemand {
+		return nil
+	}
+	return verifySrcsetProfiles(result.ComponentResults, produced)
 }
 
-// processManifestAsset registers one manifest asset in the registry: it generates the
-// transformation profiles, seeds source bytes for external raster assets, and upserts the
-// result. Per-asset failures are logged and do not halt the pipeline.
+// srcsetVariantKeys collects the image variants the generated templates' srcsets
+// reference, by the image's source path.
+//
+// Takes components (map[string]*annotator_dto.AnnotationResult) which holds the annotated
+// templates.
+//
+// Returns map[string][]string which maps each image's source path to its referenced
+// variant keys, each once.
+func srcsetVariantKeys(components map[string]*annotator_dto.AnnotationResult) map[string][]string {
+	keys := make(map[string][]string)
+	for _, component := range components {
+		if component == nil || component.AnnotatedAST == nil {
+			continue
+		}
+		component.AnnotatedAST.Walk(func(node *ast_domain.TemplateNode) bool {
+			addSrcsetVariantKeys(keys, node)
+			return true
+		})
+	}
+	return keys
+}
+
+// addSrcsetVariantKeys records the image variants one template node's srcset references
+// under the node's src attribute, skipping variants already recorded.
+//
+// Takes keys (map[string][]string) which maps each image's source path to its referenced
+// variant keys, and is updated in place.
+// Takes node (*ast_domain.TemplateNode) which is the template node to inspect.
+func addSrcsetVariantKeys(keys map[string][]string, node *ast_domain.TemplateNode) {
+	if node.GoAnnotations == nil || len(node.GoAnnotations.Srcset) == 0 {
+		return
+	}
+	src, _ := node.GetAttribute("src")
+	for _, variant := range node.GoAnnotations.Srcset {
+		if !slices.Contains(keys[src], variant.VariantKey) {
+			keys[src] = append(keys[src], variant.VariantKey)
+		}
+	}
+}
+
+// verifySrcsetProfiles checks that every image variant a generated srcset references is a
+// profile the build registers for that image, so no srcset URL serves nothing.
+//
+// Takes components (map[string]*annotator_dto.AnnotationResult) which holds the annotated
+// templates whose srcset entries are checked.
+// Takes produced (map[string]map[string]struct{}) which maps each image's source path to
+// the profile names registered for it.
+//
+// Returns error which wraps ErrMissingSrcsetProfiles and names the missing variants, or
+// nil when every referenced variant is produced.
+func verifySrcsetProfiles(
+	components map[string]*annotator_dto.AnnotationResult,
+	produced map[string]map[string]struct{},
+) error {
+	var missing []string
+	for src, keys := range srcsetVariantKeys(components) {
+		for _, key := range keys {
+			if _, ok := produced[src][key]; !ok {
+				missing = append(missing, src+"?v="+key)
+			}
+		}
+	}
+	if len(missing) == 0 {
+		return nil
+	}
+	slices.Sort(missing)
+	total := len(missing)
+	const listed = 10
+	if total > listed {
+		missing = append(missing[:listed], fmt.Sprintf("and %d more", total-listed))
+	}
+	return fmt.Errorf("%w: %s", ErrMissingSrcsetProfiles, strings.Join(missing, ", "))
+}
+
+// processManifestAsset registers an asset and its profiles, logging failures without
+// aborting the remaining assets.
 //
 // Takes asset (*annotator_dto.FinalAssetDependency) which is the manifest entry to
 // process.
-func (p *AssetPipelineOrchestrator) processManifestAsset(ctx context.Context, asset *annotator_dto.FinalAssetDependency) {
+// Takes srcsetKeys ([]string) which names the variants generated srcsets reference for
+// the asset, to build as well.
+//
+// Returns []registry_dto.NamedProfile which holds the profiles generated for the asset.
+func (p *AssetPipelineOrchestrator) processManifestAsset(
+	ctx context.Context,
+	asset *annotator_dto.FinalAssetDependency,
+	srcsetKeys []string,
+) []registry_dto.NamedProfile {
 	ctx, l := logger_domain.From(ctx, log)
 	l.Trace("Processing asset", logger_domain.String(fieldAssetPath, asset.SourcePath), logger_domain.String("asset_type", asset.AssetType))
 
@@ -230,7 +367,7 @@ func (p *AssetPipelineOrchestrator) processManifestAsset(ctx context.Context, as
 
 	switch asset.AssetType {
 	case "img":
-		desiredProfiles = p.generateImageProfiles(asset)
+		desiredProfiles = p.addSrcsetVariants(p.generateImageProfiles(asset), asset, srcsetKeys)
 	case "video":
 		desiredProfiles = p.generateVideoProfiles(asset)
 	default:
@@ -246,7 +383,7 @@ func (p *AssetPipelineOrchestrator) processManifestAsset(ctx context.Context, as
 
 	if len(desiredProfiles) == 0 && sourceData == nil {
 		l.Trace("No desired profiles or source bytes for asset, skipping.", logger_domain.String(fieldAssetPath, asset.SourcePath))
-		return
+		return nil
 	}
 
 	l.Trace("Upserting asset",
@@ -265,6 +402,7 @@ func (p *AssetPipelineOrchestrator) processManifestAsset(ctx context.Context, as
 	); err != nil {
 		l.Error("Failed to upsert asset with generated profiles", logger_domain.Error(err), logger_domain.String(fieldAssetPath, asset.SourcePath))
 	}
+	return desiredProfiles
 }
 
 // isExternalSeedableAsset reports whether an external-module asset needs its bytes
@@ -402,6 +540,57 @@ func (*AssetPipelineOrchestrator) generateVariantProfiles(imageConfig imageProfi
 	return profiles
 }
 
+// addSrcsetVariants adds the variants referenced by srcset, including their quality
+// modifiers.
+//
+// Takes profiles ([]registry_dto.NamedProfile) which holds the asset's profiles so far.
+// Takes asset (*annotator_dto.FinalAssetDependency) which supplies the image parameters.
+// Takes keys ([]string) which names the referenced variants.
+//
+// Returns []registry_dto.NamedProfile which holds the profiles with the variants added.
+func (p *AssetPipelineOrchestrator) addSrcsetVariants(
+	profiles []registry_dto.NamedProfile,
+	asset *annotator_dto.FinalAssetDependency,
+	keys []string,
+) []registry_dto.NamedProfile {
+	if len(keys) == 0 {
+		return profiles
+	}
+	imageConfig := p.parseImageConfig(asset.TransformationParams, asset.SourcePath)
+	for _, key := range keys {
+		width, format, ok := parseVariantKey(key)
+		if !ok || slices.ContainsFunc(profiles, func(profile registry_dto.NamedProfile) bool { return profile.Name == key }) {
+			continue
+		}
+		profiles = append(profiles, createVariantProfile(width, format, imageConfig))
+	}
+	return profiles
+}
+
+// parseVariantKey reads the width and format from an image variant key such as
+// image_w600_webp.
+//
+// Takes key (string) which is the variant key.
+//
+// Returns int which is the width in pixels.
+// Returns string which is the format.
+// Returns bool which is false when key is not an image variant key.
+func parseVariantKey(key string) (int, string, bool) {
+	rest, found := strings.CutPrefix(key, imageProfileNamePrefix+"_w")
+	if !found {
+		return 0, "", false
+	}
+	widthText, format, found := strings.Cut(rest, "_")
+	if !found || format == "" {
+		return 0, "", false
+	}
+	width, err := strconv.Atoi(widthText)
+	if err != nil || width <= 0 {
+		return 0, "", false
+	}
+	return width, format, true
+}
+
 // shouldGeneratePlaceholder reports whether LQIP generation is enabled in the params.
 //
 // Takes params (map[string][]string) which contains the request parameters.
@@ -467,13 +656,15 @@ func (*AssetPipelineOrchestrator) generatePlaceholderProfile(
 			capabilityParams.SetByName(fieldFormat, strings.TrimSpace(formats[0]))
 		}
 	} else {
-		capabilityParams.SetByName(fieldFormat, "webp")
+		capabilityParams.SetByName(fieldFormat, imageFormatWebP)
 	}
 
+	placeholderFormat, _ := capabilityParams.GetByName(fieldFormat)
 	var resultingTags registry_dto.Tags
 	resultingTags.SetByName("type", "image-placeholder")
 	resultingTags.SetByName("storageBackendId", defaultStorageBackendID)
-	resultingTags.SetByName("fileExtension", ".placeholder.img")
+	resultingTags.SetByName("fileExtension", ".placeholder"+imageFileExtension(placeholderFormat))
+	resultingTags.SetByName("mimeType", imageMimeType(placeholderFormat))
 
 	var deps registry_dto.Dependencies
 	deps.Add(assetDependencySource)
@@ -559,7 +750,7 @@ func (*AssetPipelineOrchestrator) parseFormats(formatValues []string, sourcePath
 		return formatValues
 	}
 	originalExt := strings.TrimPrefix(filepath.Ext(sourcePath), ".")
-	return []string{"webp", "avif", originalExt}
+	return []string{imageFormatWebP, "avif", originalExt}
 }
 
 // getPassthroughModifiers collects extra image parameters that are not part of the
@@ -592,6 +783,9 @@ func (*AssetPipelineOrchestrator) getPassthroughModifiers(params map[string][]st
 		"withoutenlargement": {},
 		"background":         {},
 		"provider":           {},
+
+		paramExpandedDensity: {},
+		paramResponsive:      {},
 
 		paramPlaceholder:        {},
 		paramPlaceholderWidth:   {},
@@ -641,26 +835,28 @@ func (p *AssetPipelineOrchestrator) generateVideoProfiles(
 	return p.buildVideoProfiles(qualities, segmentDuration)
 }
 
-// parseVideoQualities extracts the quality levels from video parameters.
+// parseVideoQualities returns the distinct valid video qualities referenced by the
+// manifest.
 //
-// Takes params (map[string][]string) which contains the video parameters.
+// Takes params (map[string][]string) which contains the video parameters; an entry may
+// hold several comma-separated levels.
 //
-// Returns []string which contains the quality levels to generate.
+// Returns []string which contains the quality levels to generate, or the configured
+// defaults when none is named.
 func (p *AssetPipelineOrchestrator) parseVideoQualities(
 	params map[string][]string,
 ) []string {
-	if qualityParams, ok := params["qualities"]; ok && len(qualityParams) > 0 {
-		qualities := strings.Split(qualityParams[0], ",")
-		result := make([]string, 0, len(qualities))
-		for _, q := range qualities {
+	var result []string
+	for _, entry := range params["qualities"] {
+		for q := range strings.SplitSeq(entry, ",") {
 			q = strings.TrimSpace(q)
-			if _, ok := videoQualityConfigs[q]; ok {
+			if _, ok := videoQualityConfigs[q]; ok && !slices.Contains(result, q) {
 				result = append(result, q)
 			}
 		}
-		if len(result) > 0 {
-			return result
-		}
+	}
+	if len(result) > 0 {
+		return result
 	}
 
 	if p.assetsConfig != nil && len(p.assetsConfig.Video.DefaultQualities) > 0 {
@@ -748,7 +944,8 @@ func createVariantProfile(width int, format string, imageConfig imageProfileConf
 	var resultingTags registry_dto.Tags
 	resultingTags.SetByName("type", imageVariantTypeTag)
 	resultingTags.SetByName("storageBackendId", defaultStorageBackendID)
-	resultingTags.SetByName("fileExtension", defaultImageFileExtension)
+	resultingTags.SetByName("fileExtension", imageFileExtension(format))
+	resultingTags.SetByName("mimeType", imageMimeType(format))
 
 	var deps registry_dto.Dependencies
 	deps.Add(assetDependencySource)
@@ -762,6 +959,47 @@ func createVariantProfile(width int, format string, imageConfig imageProfileConf
 			Priority:       defaultImagePriority,
 			ResultingTags:  resultingTags,
 		},
+	}
+}
+
+// imageMimeType returns the MIME type of an image format, which every stored variant
+// records.
+//
+// Takes format (string) which is the image format, such as "webp".
+//
+// Returns string which is the MIME type, or application/octet-stream for an unknown
+// format.
+func imageMimeType(format string) string {
+	switch strings.ToLower(format) {
+	case imageFormatWebP:
+		return "image/webp"
+	case "jpeg", "jpg":
+		return "image/jpeg"
+	case "png":
+		return "image/png"
+	case "avif":
+		return "image/avif"
+	case "gif":
+		return "image/gif"
+	default:
+		return "application/octet-stream"
+	}
+}
+
+// imageFileExtension returns the file extension a variant in an image format is stored
+// with.
+//
+// Takes format (string) which is the image format.
+//
+// Returns string which is the extension with its dot, or .img for an unknown format.
+func imageFileExtension(format string) string {
+	switch format := strings.ToLower(format); format {
+	case "jpeg", "jpg":
+		return ".jpg"
+	case imageFormatWebP, "png", "avif", "gif":
+		return "." + format
+	default:
+		return defaultImageFileExtension
 	}
 }
 
@@ -863,7 +1101,8 @@ func addViewportWidths(vwValue string, widthSet map[int]struct{}) {
 // applyDensitiesToWidths creates width values scaled by density factors.
 //
 // Takes baseWidths (map[int]struct{}) which holds the starting width values.
-// Takes densities ([]string) which lists density factors such as "2x" or "3x".
+// Takes densities ([]string) which lists density factors such as "2x" or "3x"; an entry
+// may hold several, separated by commas or spaces.
 //
 // Returns map[int]struct{} which holds all widths, including the original values and any
 // new widths created by applying the density factors.
@@ -873,14 +1112,26 @@ func applyDensitiesToWidths(baseWidths map[int]struct{}, densities []string) map
 		finalWidthSet[w] = struct{}{}
 	}
 
-	for _, densityString := range densities {
-		multiplier, err := parseDensity(densityString)
-		if err != nil || multiplier <= 1.0 {
-			continue
+	for _, entry := range densities {
+		for _, densityString := range strings.FieldsFunc(entry, isDensitySeparator) {
+			multiplier, err := parseDensity(densityString)
+			if err != nil || multiplier <= 1.0 {
+				continue
+			}
+			applyDensityMultiplier(baseWidths, finalWidthSet, multiplier)
 		}
-		applyDensityMultiplier(baseWidths, finalWidthSet, multiplier)
 	}
 	return finalWidthSet
+}
+
+// isDensitySeparator reports whether r separates densities, which may be written with
+// commas, spaces or both ("x1 x2", "1x, 2x").
+//
+// Takes r (rune) which is the character to test.
+//
+// Returns bool which is true for a comma or white space.
+func isDensitySeparator(r rune) bool {
+	return r == ',' || unicode.IsSpace(r)
 }
 
 // applyDensityMultiplier scales each base width by the given multiplier and adds the

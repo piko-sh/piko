@@ -42,7 +42,6 @@ var (
 
 // CheckLimit checks whether the given key has exceeded its rate limit.
 //
-// Takes ctx (context.Context) which carries cancellation for the underlying store call.
 // Takes key (string) which identifies the rate limit bucket.
 // Takes limit (int) which is the maximum number of requests allowed.
 // Takes window (time.Duration) which specifies the time window for the limit.

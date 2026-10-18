@@ -270,7 +270,6 @@ func (t *RedactionTransformer) Priority() int { return t.priority }
 // If no redaction actions are configured (empty TextPatterns, empty Regions,
 // StripMetadata false), the PDF is returned unchanged.
 //
-// Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes pdf ([]byte) which is the input PDF document.
 // Takes options (any) which must be RedactionOptions or *RedactionOptions.
 //
@@ -322,8 +321,8 @@ func (t *RedactionTransformer) Transform(ctx context.Context, pdf []byte, option
 
 // redactPages applies text pattern and region redaction across all pages.
 //
-// Takes ctx (context.Context) which carries cancellation checked between pages and during
-// long match loops.
+// ctx is checked for cancellation between pages and during long match loops.
+//
 // Takes writer (*pdfparse.Writer) which is the PDF writer.
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 // Takes pageRefs ([]int) which holds the page object numbers.
@@ -439,8 +438,9 @@ func groupRegionsByPage(regions []pdfwriter_dto.RedactionRegion) map[int][]pdfwr
 // compiled pattern with spaces. When string-field redaction is enabled, it also walks
 // /Annots and /Resources/XObject form references on the page.
 //
-// Takes ctx (context.Context) which is checked periodically inside the match loop so
-// callers can cancel a runaway redaction.
+// ctx is checked for cancellation inside the match loop, so callers can cancel a runaway
+// redaction.
+//
 // Takes writer (*pdfparse.Writer) which is the PDF writer.
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 // Takes pageIndex (int) which is the zero-based page index for error messages.
@@ -489,7 +489,8 @@ func (t *RedactionTransformer) redactTextOnPage(
 // redactStreamRefs decodes each referenced content stream, applies text redaction to its
 // bytes, and writes the modified stream back.
 //
-// Takes ctx (context.Context) which is checked between streams.
+// ctx is checked for cancellation between streams.
+//
 // Takes writer (*pdfparse.Writer) which is the PDF writer.
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 // Takes pageIndex (int) which is the zero-based page index for error messages.
@@ -569,11 +570,9 @@ func resolveContentRefs(pageDict pdfparse.Dict) []int {
 	}
 }
 
-// applyTextRedaction replaces all regex matches in the stream bytes with space
-// characters. The match loop periodically re-checks the context so a malicious pattern
-// that produces many matches cannot monopolise CPU after the caller has cancelled.
+// applyTextRedaction replaces regex matches with spaces, checking cancellation every
+// cancellationCheckEvery matches.
 //
-// Takes ctx (context.Context) which is sampled every cancellationCheckEvery matches.
 // Takes data ([]byte) which is the stream content to redact.
 // Takes patterns ([]*regexp.Regexp) which holds the compiled text patterns.
 //
@@ -600,12 +599,9 @@ func (t *RedactionTransformer) applyTextRedaction(ctx context.Context, data []by
 	return result, nil
 }
 
-// redactPatternMatches replaces every match of re inside result with spaceReplacement.
+// redactPatternMatches replaces matches with spaceReplacement and checks cancellation
+// every checkEvery matches.
 //
-// Cancellation is sampled every checkEvery matches so a malicious pattern that produces
-// many matches cannot monopolise CPU after the caller has cancelled.
-//
-// Takes ctx (context.Context) which is sampled every checkEvery matches.
 // Takes result ([]byte) which is the buffer mutated in place at every match span.
 // Takes re (*regexp.Regexp) which is the pattern matched against result.
 // Takes checkEvery (int) which is the cancellation sampling interval.
@@ -650,7 +646,8 @@ func redactStringValue(value string, patterns []*regexp.Regexp) string {
 // values on each annotation dictionary. Annotations may be inline dictionaries or
 // indirect references; both are handled.
 //
-// Takes ctx (context.Context) which is checked between annotations.
+// ctx is checked for cancellation between annotations.
+//
 // Takes writer (*pdfparse.Writer) which is the PDF writer.
 // Takes pageDict (pdfparse.Dict) which is the page dictionary.
 // Takes patterns ([]*regexp.Regexp) which holds the compiled text patterns.
@@ -722,15 +719,11 @@ func redactDictStringFields(dict *pdfparse.Dict, patterns []*regexp.Regexp, keys
 	return changed
 }
 
-// redactPageFormXObjects walks the /Resources/XObject map of a page and, for each entry
-// whose /Subtype is /Form, redacts the form's own content stream and recurses into nested
-// form XObjects.
+// redactPageFormXObjects redacts form XObjects and their nested forms.
 //
-// The visited set is shared across all pages so a form XObject used by multiple pages is
-// redacted exactly once. The set also defends against cyclic /Resources/XObject
-// references that would otherwise loop forever.
+// A shared visited set prevents repeated work and cycles. Cancellation is checked between
+// XObjects.
 //
-// Takes ctx (context.Context) which is checked between XObjects.
 // Takes writer (*pdfparse.Writer) which is the PDF writer.
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 // Takes pageDict (pdfparse.Dict) which is the page dictionary.
@@ -786,7 +779,8 @@ func collectXObjectRefs(parent pdfparse.Dict) []int {
 // own /Resources/XObject children. Image XObjects and non-form streams are skipped
 // silently.
 //
-// Takes ctx (context.Context) which is checked at every recursion step.
+// ctx is checked for cancellation at every recursion step.
+//
 // Takes writer (*pdfparse.Writer) which is the PDF writer.
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 // Takes objNum (int) which is the form XObject's object number.

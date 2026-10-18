@@ -23,30 +23,25 @@ import (
 	"piko.sh/piko"
 )
 
-// CreateAction tests 3-level deep nested struct binding.
 type CreateAction struct {
 	piko.ActionMetadata
 }
 
-// Team is the innermost nested struct.
 type Team struct {
 	Name string `json:"name"`
 	Size int    `json:"size"`
 }
 
-// Department is the middle nested struct.
 type Department struct {
 	Name string `json:"name"`
 	Team Team   `json:"team"`
 }
 
-// CreateInput is the top-level input with 3 levels of nesting.
 type CreateInput struct {
 	Name       string     `json:"name"`
 	Department Department `json:"department"`
 }
 
-// CreateResponse echoes back the received values.
 type CreateResponse struct {
 	OrgName  string `json:"org_name"`
 	DeptName string `json:"dept_name"`
@@ -54,7 +49,6 @@ type CreateResponse struct {
 	TeamSize int    `json:"team_size"`
 }
 
-// Call echoes the deeply nested fields back.
 func (a CreateAction) Call(input CreateInput) (CreateResponse, error) {
 	a.Response().AddHelper("showResult",
 		input.Name,

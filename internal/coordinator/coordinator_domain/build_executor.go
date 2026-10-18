@@ -43,6 +43,9 @@ const (
 
 	// logKeyHashedName is the log field key for the hashed name of a component.
 	logKeyHashedName = "hashed_name"
+
+	// attrCacheTier1Status is the span attribute key for the Tier 1 cache lookup status.
+	attrCacheTier1Status = "cache.tier1.status"
 )
 
 // outputDiagnosticsIfPresent outputs build diagnostics using the set output port. Returns
@@ -118,7 +121,11 @@ func (s *coordinatorService) handleSemanticError(
 		buildResult.AllSourceContents = allSourceContents
 		l.Warn("Returning partial build result despite errors", logger_domain.Int("component_count", len(buildResult.ComponentResults)))
 	}
-	s.updateStatus(ctx, stateFailed, buildResult, semanticErr, request.CausationID)
+	statusResult := buildResult
+	if request.IsTargeted() {
+		statusResult = s.GetStatus().Result
+	}
+	s.updateStatus(ctx, stateFailed, statusResult, semanticErr, request.CausationID)
 	return buildResult, semanticErr
 }
 
@@ -202,7 +209,7 @@ func (s *coordinatorService) checkTier1Cache(
 			cacheErrorCount.Add(ctx, 1)
 		} else {
 			l.Trace("Tier 1 cache MISS.")
-			span.SetAttributes(attribute.String("cache.tier1.status", "MISS"))
+			span.SetAttributes(attribute.String(attrCacheTier1Status, "MISS"))
 			introspectionCacheMissCount.Add(ctx, 1)
 		}
 		return tier1CacheResult{
@@ -215,18 +222,17 @@ func (s *coordinatorService) checkTier1Cache(
 
 	if !introspectionEntry.MatchesScriptHashes(scriptHashes) {
 		l.Warn("Tier 1 cache entry found but script hashes don't match. Invalidating entry.")
-		span.SetAttributes(attribute.String("cache.tier1.status", "STALE"))
-		introspectionCacheMissCount.Add(ctx, 1)
-		return tier1CacheResult{
-			scriptHashes:      scriptHashes,
-			entry:             nil,
-			introspectionHash: introspectionHash,
-			useFastPath:       false,
-		}
+		return staleTier1Result(ctx, span, scriptHashes, introspectionHash)
+	}
+
+	if missing, ok := s.findUncoveredEntryPoint(ctx, introspectionEntry, request.IntrospectionEntryPoints(), buildOpts); !ok {
+		l.Internal("Tier 1 cache entry does not cover every requested entry point. Treating it as stale.",
+			logger_domain.String("missing_entry_point", missing))
+		return staleTier1Result(ctx, span, scriptHashes, introspectionHash)
 	}
 
 	l.Trace("Tier 1 cache HIT (introspection cache). Using FAST PATH (skip Phase 1).")
-	span.SetAttributes(attribute.String("cache.tier1.status", "HIT"))
+	span.SetAttributes(attribute.String(attrCacheTier1Status, "HIT"))
 	introspectionCacheHitCount.Add(ctx, 1)
 	return tier1CacheResult{
 		scriptHashes:      scriptHashes,
@@ -236,8 +242,57 @@ func (s *coordinatorService) checkTier1Cache(
 	}
 }
 
-// executeSlowPathBuild runs the full build (introspection plus annotation) when both
-// caches miss.
+// findUncoveredEntryPoint checks whether a cached component graph covers every requested
+// entry point.
+//
+// Unresolvable paths and virtual collection pages are excluded from the check. An entry
+// without a graph is treated as covered.
+//
+// Takes entry (*IntrospectionCacheEntry) which is the Tier 1 entry to check.
+// Takes entryPoints ([]annotator_dto.EntryPoint) which are the requested entry points.
+// Takes buildOpts (*buildOptions) which may carry a resolver override.
+//
+// Returns string which is the first entry point missing from the graph, or empty.
+// Returns bool which is true when the entry covers every entry point.
+func (s *coordinatorService) findUncoveredEntryPoint(
+	ctx context.Context,
+	entry *IntrospectionCacheEntry,
+	entryPoints []annotator_dto.EntryPoint,
+	buildOpts *buildOptions,
+) (string, bool) {
+	if entry.ComponentGraph == nil {
+		return "", true
+	}
+
+	resolver := s.getEffectiveResolver(buildOpts)
+	for _, entryPoint := range entryPoints {
+		if entryPoint.VirtualPageSource != nil {
+			continue
+		}
+
+		resolvedPath := entryPoint.Path
+		if !filepath.IsAbs(resolvedPath) {
+			if resolver == nil {
+				continue
+			}
+			resolved, err := resolver.ResolvePKPath(ctx, entryPoint.Path, "")
+			if err != nil {
+				continue
+			}
+			resolvedPath = resolved
+		}
+
+		if _, covered := entry.ComponentGraph.PathToHashedName[resolvedPath]; !covered {
+			return entryPoint.Path, false
+		}
+	}
+	return "", true
+}
+
+// executeSlowPathBuild runs introspection and annotation when both caches miss.
+//
+// Targeted builds cache introspection for all project entry points while restricting
+// annotation to the requested subset.
 //
 // Takes span (trace.Span) which receives tracing events for the build.
 // Takes request (*coordinator_dto.BuildRequest) which specifies the build parameters.
@@ -270,8 +325,11 @@ func (s *coordinatorService) executeSlowPathBuild(
 	if request.Resolver != nil {
 		annotatorOpts = append(annotatorOpts, annotator_domain.WithResolver(request.Resolver))
 	}
+	if request.IsTargeted() {
+		annotatorOpts = append(annotatorOpts, annotator_domain.WithChangedEntryPoints(request.EntryPoints))
+	}
 	phase1Result, buildErr := s.annotator.RunPhase1IntrospectionAndAnnotate(
-		ctx, request.EntryPoints, tier1Result.scriptHashes, annotatorOpts...)
+		ctx, request.IntrospectionEntryPoints(), tier1Result.scriptHashes, annotatorOpts...)
 	duration := time.Since(startTime)
 	buildDuration.Record(ctx, float64(duration.Milliseconds()))
 	buildCount.Add(ctx, 1)
@@ -307,7 +365,7 @@ func (s *coordinatorService) executeSlowPathBuild(
 	}
 
 	s.writeTier2Cache(ctx, span, inputHash, buildEpoch, phase1Result.Annotations)
-	s.updateStatus(ctx, stateReady, phase1Result.Annotations, nil, request.CausationID)
+	s.markReady(ctx, phase1Result.Annotations, request.CausationID, request.IsTargeted())
 	return phase1Result.Annotations, nil
 }
 
@@ -426,13 +484,14 @@ func (s *coordinatorService) executeBuild(
 	defer span.End()
 
 	buildEpoch := s.invalidationEpoch.Load()
+	ctx = withBuildEpoch(ctx, buildEpoch)
 	v, err, _ := s.buildGroup.Do(inputHash, func() (any, error) {
 		cachedResult, err := s.cache.Get(ctx, inputHash)
 		if err == nil {
 			l.Trace("Tier 2 cache HIT (annotation cache). Returning complete result.")
 			span.SetAttributes(attribute.String("cache.tier2.status", "HIT"))
 			cacheHitCount.Add(ctx, 1)
-			s.updateStatus(ctx, stateReady, cachedResult, nil, request.CausationID)
+			s.markReady(ctx, cachedResult, request.CausationID, request.IsTargeted())
 			return cachedResult, nil
 		}
 		if !errors.Is(err, ErrCacheMiss) {
@@ -446,7 +505,7 @@ func (s *coordinatorService) executeBuild(
 
 		tier1Result := s.checkTier1Cache(ctx, span, request)
 		if tier1Result.useFastPath {
-			return s.executePartialBuild(ctx, tier1Result.entry, request, allSourceContents, inputHash, buildEpoch)
+			return s.executePartialBuild(ctx, tier1Result.entry, tier1Result.introspectionHash, request, allSourceContents, inputHash, buildEpoch)
 		}
 
 		return s.executeSlowPathBuild(ctx, span, request, allSourceContents, inputHash, tier1Result, buildEpoch)
@@ -535,6 +594,8 @@ func (s *coordinatorService) getKnownStyleDeps() []string {
 //
 // Takes introspectionEntry (*IntrospectionCacheEntry) which provides the cached type
 // introspection data from a previous full build.
+// Takes introspectionHash (string) which is the Tier 1 key the entry was found under; the
+// refreshed snapshot is stored there. Empty disables the store.
 // Takes request (*coordinator_dto.BuildRequest) which specifies the build configuration
 // and actions to perform.
 // Takes allSourceContents (map[string][]byte) which contains the source file contents
@@ -549,6 +610,7 @@ func (s *coordinatorService) getKnownStyleDeps() []string {
 func (s *coordinatorService) executePartialBuild(
 	ctx context.Context,
 	introspectionEntry *IntrospectionCacheEntry,
+	introspectionHash string,
 	request *coordinator_dto.BuildRequest,
 	allSourceContents map[string][]byte,
 	fullHash string,
@@ -564,7 +626,7 @@ func (s *coordinatorService) executePartialBuild(
 	startTime := time.Now()
 	annotatorOpts := s.buildPartialAnnotatorOptions(ctx, request, introspectionEntry)
 
-	buildResult, compilationLogs, buildErr := s.annotator.AnnotateProjectWithCachedIntrospection(
+	buildResult, snapshot, compilationLogs, buildErr := s.annotator.AnnotateProjectWithCachedIntrospection(
 		ctx,
 		introspectionEntry.ComponentGraph,
 		introspectionEntry.VirtualModule,
@@ -590,6 +652,8 @@ func (s *coordinatorService) executePartialBuild(
 		return nil, buildErr
 	}
 
+	s.storeRefreshedIntrospection(ctx, introspectionHash, introspectionEntry, snapshot, buildEpoch)
+
 	buildResult.AllSourceContents = allSourceContents
 
 	if err := s.tryGenerateArtefacts(ctx, span, buildResult, request, " (fast path)"); err != nil {
@@ -607,14 +671,60 @@ func (s *coordinatorService) executePartialBuild(
 		l.Internal("Skipping Tier 2 cache write - cache was invalidated during build.")
 	}
 
-	s.updateStatus(ctx, stateReady, buildResult, nil, request.CausationID)
+	s.markReady(ctx, buildResult, request.CausationID, request.IsTargeted())
 	return buildResult, nil
+}
+
+// storeRefreshedIntrospection replaces a cached snapshot with a refreshed fork without
+// modifying state held by earlier readers.
+//
+// Takes introspectionHash (string) which is the Tier 1 key to store under.
+// Takes cached (*IntrospectionCacheEntry) which is the entry the build started from.
+// Takes snapshot (*annotator_domain.IntrospectionSnapshot) which is the state the build
+// ran against.
+// Takes buildEpoch (uint64) which must still be current for the write to happen.
+func (s *coordinatorService) storeRefreshedIntrospection(
+	ctx context.Context,
+	introspectionHash string,
+	cached *IntrospectionCacheEntry,
+	snapshot *annotator_domain.IntrospectionSnapshot,
+	buildEpoch uint64,
+) {
+	if introspectionHash == "" || cached == nil || snapshot == nil {
+		return
+	}
+	if snapshot.ComponentGraph == nil || snapshot.VirtualModule == nil || snapshot.TypeResolver == nil {
+		return
+	}
+	if snapshot.ComponentGraph == cached.ComponentGraph && snapshot.VirtualModule == cached.VirtualModule {
+		return
+	}
+
+	_, l := logger_domain.From(ctx, log)
+	if s.invalidationEpoch.Load() != buildEpoch {
+		l.Internal("Skipping Tier 1 refresh - cache was invalidated during build.")
+		return
+	}
+
+	refreshed := &IntrospectionCacheEntry{
+		VirtualModule:  snapshot.VirtualModule,
+		TypeResolver:   snapshot.TypeResolver,
+		ComponentGraph: snapshot.ComponentGraph,
+		ScriptHashes:   cached.ScriptHashes,
+		Timestamp:      time.Now(),
+		Version:        cached.Version,
+	}
+	if err := s.introspectionCache.Set(ctx, introspectionHash, refreshed); err != nil {
+		l.Warn("Failed to store the refreshed introspection snapshot in Tier 1", logger_domain.Error(err))
+		cacheErrorCount.Add(ctx, 1)
+		return
+	}
+	l.Internal("Stored the refreshed introspection snapshot in Tier 1.")
 }
 
 // buildPartialAnnotatorOptions assembles annotator options for a partial (fast-path)
 // build, including fault tolerance, resolver overrides, and targeted component scoping.
 //
-// Takes ctx (context.Context) which provides the logging context.
 // Takes request (*coordinator_dto.BuildRequest) which supplies the build configuration.
 // Takes introspectionEntry (*IntrospectionCacheEntry) which provides the cached component
 // graph used to scope the partial build.
@@ -835,6 +945,31 @@ func (s *coordinatorService) emitClientScript(
 		logger_domain.String("source", vc.Source.SourcePath),
 		logger_domain.String("jsPath", jsPath))
 	return jsPath
+}
+
+// staleTier1Result records a stale Tier 1 cache entry and returns a result that sends the
+// build down the slow path.
+//
+// Takes span (trace.Span) which records the STALE cache status.
+// Takes scriptHashes (map[string]string) which maps script paths to their content hashes.
+// Takes introspectionHash (string) which is the cache key for introspection results.
+//
+// Returns tier1CacheResult which keeps the hashes for the slow path but disables the fast
+// path.
+func staleTier1Result(
+	ctx context.Context,
+	span trace.Span,
+	scriptHashes map[string]string,
+	introspectionHash string,
+) tier1CacheResult {
+	span.SetAttributes(attribute.String(attrCacheTier1Status, "STALE"))
+	introspectionCacheMissCount.Add(ctx, 1)
+	return tier1CacheResult{
+		scriptHashes:      scriptHashes,
+		entry:             nil,
+		introspectionHash: introspectionHash,
+		useFastPath:       false,
+	}
 }
 
 // deriveComponentPagePath returns the project-relative path without the .pk suffix.

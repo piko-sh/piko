@@ -20,12 +20,8 @@ package main
 
 import "testcase_63_embedding_instantiated_generic_map/keys"
 
-// Cache is a named type definition for a generic map.
 type Cache[K comparable, V any] map[K]V
 
 type Response struct {
-	// Embed an instantiated version of our generic map type.
-	// This tests if the serialiser can "see through" the embedding and the
-	// type definition to find the PackagePath from the 'keys' package.
 	Cache[keys.SessionKey, int]
 }

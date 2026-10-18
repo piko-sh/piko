@@ -18,7 +18,6 @@
 
 package main
 
-// The main package imports types from the 'service' package.
 import "testcase_48_conflicting_import_aliases/service"
 
 type APIResponse struct {

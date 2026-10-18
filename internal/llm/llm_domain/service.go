@@ -182,8 +182,6 @@ func (s *service) StreamWithProvider(ctx context.Context, providerName string, r
 
 // RegisterProvider adds a provider to the registry.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes name (string) which identifies the provider in the registry.
 // Takes provider (LLMProviderPort) which is the provider implementation to add.
 //
@@ -212,8 +210,6 @@ func (s *service) RegisterProvider(ctx context.Context, name string, provider LL
 
 // SetDefaultProvider sets the default provider by name.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes name (string) which specifies the provider to use as default.
 //
 // Returns error when the named provider does not exist.
@@ -458,8 +454,6 @@ func (s *service) EmbedWithProvider(ctx context.Context, providerName string, re
 
 // RegisterEmbeddingProvider adds an embedding provider to the registry.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes name (string) which identifies the provider.
 // Takes provider (EmbeddingProviderPort) which handles embedding requests.
 //

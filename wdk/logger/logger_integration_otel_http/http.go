@@ -79,7 +79,8 @@ type otlpHTTPOptionBuilders[O any] struct {
 // Takes pathSuffix (string) which is appended to the URL path (e.g. "/v1/metrics").
 // Takes builders (otlpHTTPOptionBuilders[O]) which bundles the SDK-specific option
 // constructors.
-// Takes newExporter which constructs the final exporter from the collected options.
+// Takes newExporter (func(context.Context, ...O) (any, error)) which constructs the final
+// exporter from the collected options.
 //
 // Returns any which is the constructed exporter.
 // Returns error when the endpoint is invalid or the exporter cannot be created.

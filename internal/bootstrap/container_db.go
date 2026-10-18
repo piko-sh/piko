@@ -23,6 +23,8 @@ package bootstrap
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"path/filepath"
 
 	"piko.sh/piko/internal/config"
@@ -58,6 +60,7 @@ func (c *Container) getOtterProvider() (*persistence.Provider, error) {
 				SyncMode:          wal_domain.SyncModeBatched,
 				SnapshotThreshold: 10_000,
 			},
+			Clock: nil,
 		})
 
 		ctx := c.GetAppContext()
@@ -84,19 +87,31 @@ func (c *Container) getOtterProvider() (*persistence.Provider, error) {
 	return c.dbProvider, nil
 }
 
-// FlushPersistenceSnapshot writes a durable snapshot of the otter persistence provider
-// when one is active.
-//
-// A no-op when persistence is backed by a SQL database or was never initialised. Called
-// at the end of generation so a single-binary build produces the snapshot.piko seed the
-// embedded reader loads.
+// FlushPersistenceSnapshot flushes build blobs and snapshots the active otter persistence
+// provider.
 //
 // Returns error when the snapshot flush fails.
 func (c *Container) FlushPersistenceSnapshot(ctx context.Context) error {
-	if c.dbProvider == nil {
-		return nil
+	var errs []error
+	for _, store := range c.deferredBlobStores {
+		if err := store.Flush(ctx); err != nil {
+			errs = append(errs, fmt.Errorf("syncing build blobs: %w", err))
+		}
 	}
-	return c.dbProvider.Checkpoint(ctx)
+	if c.dbProvider != nil {
+		if err := c.dbProvider.Checkpoint(ctx); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// blobFlusher is a blob store that defers durability until Flush.
+type blobFlusher interface {
+	// Flush makes every blob written so far durable.
+	//
+	// Returns error when flushing fails.
+	Flush(ctx context.Context) error
 }
 
 // createOtterRegistryDAL creates a registry DAL from the otter provider.

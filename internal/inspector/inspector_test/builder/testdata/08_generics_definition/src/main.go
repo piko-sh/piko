@@ -18,12 +18,10 @@
 
 package main
 
-// Box is a generic container type.
 type Box[T any] struct {
 	Value T
 }
 
-// Pair is a generic type with multiple type parameters.
 type Pair[K comparable, V any] struct {
 	Key   K
 	Value V

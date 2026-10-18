@@ -113,8 +113,6 @@ func (p *anthropicProvider) Stream(ctx context.Context, request *llm_dto.Complet
 // streamContext returns a context that is cancelled when either the caller's context is
 // cancelled or the provider is closed.
 //
-// Takes ctx (context.Context) which is the caller's context.
-//
 // Returns context.Context which carries the merged cancellation signal.
 func (p *anthropicProvider) streamContext(ctx context.Context) context.Context {
 	if p.closeContext == nil {

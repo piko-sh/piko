@@ -272,7 +272,6 @@ func GetDefaultService() (ServicePort, error) {
 // with safeerror so callers can render a user-safe message in production whilst
 // preserving the technical detail for developer logs.
 //
-// Takes ctx (context.Context) which is the caller context.
 // Takes submission (*Submission) which contains the form data.
 // Takes schema (*Schema) which describes the form fields.
 //

@@ -1,3 +1,0 @@
-{
-  "description": "Enum array column and parameter cast. Validates that both column type and parameter cast resolve enum element types."
-}

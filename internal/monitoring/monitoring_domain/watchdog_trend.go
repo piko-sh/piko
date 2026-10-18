@@ -258,7 +258,6 @@ func (w *Watchdog) emitHeapTrendWarning(
 // so operators have forensic data before OOM. Uses the threshold-capture cooldown so
 // back-to-back warnings do not spam the disk.
 //
-// Takes ctx (context.Context) which carries cancellation and the request-scoped logger.
 // Takes currentHeap (uint64) which is recorded in the sidecar.
 // Takes effectiveLimit (uint64) which is recorded in the sidecar.
 // Takes secondsToBreach (time.Duration) which is recorded in the sidecar.

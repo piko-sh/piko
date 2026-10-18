@@ -60,7 +60,6 @@ type BatchProviderPort interface {
 
 	// CancelBatch cancels a pending or processing batch job.
 	//
-	// Takes ctx (context.Context) which controls cancellation and timeouts.
 	// Takes batchID (string) which identifies the batch job.
 	//
 	// Returns error when the batch cannot be cancelled.
@@ -72,8 +71,6 @@ type BatchProviderPort interface {
 	SupportsBatch() bool
 
 	// Close releases any resources held by the provider.
-	//
-	// Takes ctx (context.Context) which controls cancellation and timeouts.
 	//
 	// Returns error when the provider cannot be closed cleanly.
 	Close(ctx context.Context) error

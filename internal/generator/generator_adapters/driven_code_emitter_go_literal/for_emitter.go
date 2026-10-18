@@ -218,8 +218,6 @@ type rangeLoopContext struct {
 
 // emitStandardRangeLoopWithContext builds the range loop statements.
 //
-// Takes ctx (context.Context) which carries cancellation and deadline signals for
-// building the loop body.
 // Takes loopCtx (*rangeLoopContext) which holds the loop settings and state.
 //
 // Returns []goast.Stmt which contains the generated loop statements.
@@ -375,8 +373,6 @@ type mapLoopContext struct {
 // emitDeterministicMapLoopWithContext creates the loop statements for iterating over a
 // map in sorted key order.
 //
-// Takes ctx (context.Context) which carries cancellation and deadline signals for
-// building the loop body.
 // Takes mapCtx (*mapLoopContext) which holds the map loop settings.
 //
 // Returns []goast.Stmt which contains the generated loop statements.

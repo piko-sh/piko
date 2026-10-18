@@ -148,7 +148,7 @@ func NewFakeRegistry(bus orchestrator_domain.EventBus, blobStore registry_domain
 	}
 }
 
-func (f *FakeRegistry) UpsertArtefact(ctx context.Context, artefactID string, sourcePath string, sourceData io.Reader, storageBackendID string, desiredProfiles []registry_dto.NamedProfile) (*registry_dto.ArtefactMeta, error) {
+func (f *FakeRegistry) UpsertArtefact(ctx context.Context, artefactID string, sourcePath string, sourceData io.Reader, storageBackendID string, desiredProfiles []registry_dto.NamedProfile, _ ...registry_domain.UpsertOption) (*registry_dto.ArtefactMeta, error) {
 	data, err := io.ReadAll(sourceData)
 	if err != nil {
 		return nil, err
@@ -276,6 +276,14 @@ func (f *FakeRegistry) SearchArtefactsByTagValues(ctx context.Context, tagKey st
 }
 
 func (f *FakeRegistry) ArtefactEventsPublished() int64 {
+	return 0
+}
+
+func (f *FakeRegistry) ArtefactEventsIssued() int64 {
+	return 0
+}
+
+func (f *FakeRegistry) FlushArtefactEvents(context.Context) int {
 	return 0
 }
 

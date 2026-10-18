@@ -23,6 +23,5 @@ type User struct {
 }
 
 type Session struct {
-	// A pointer to a pointer to a User.
 	CurrentUser **User
 }

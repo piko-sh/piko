@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// This project stands against fascism, authoritarianism, and all
-// forms of oppression. We built this to empower people, not to
-// enable those who would strip others of their rights and dignity.
+// This project stands against fascism, authoritarianism, and all forms of
+// oppression. We built this to empower people, not to enable those who would
+// strip others of their rights and dignity.
 
-// Package db_engine_cockroachdb provides a CockroachDB engine adapter derived from the
-// PostgreSQL engine. It configures db_engine_postgres with CockroachDB-specific dialect
-// options for types and built-in functions.
+// Package db_engine_cockroachdb provides the CockroachDB engine with PostgreSQL options
+// and health diagnostics.
+//
+// SQL analysis and generation use Seagull through db_provider_seagull.
 package db_engine_cockroachdb

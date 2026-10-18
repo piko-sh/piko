@@ -1,3 +1,0 @@
-{
-  "description": "String concatenation operator (||) always produces text type. Nullable if any operand is nullable."
-}

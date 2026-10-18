@@ -4,20 +4,50 @@ package generated
 
 import "context"
 
+const createcomment = `INSERT INTO comments (post_id, author_name, body, created_at)
+VALUES (?, ?, ?, ?);`
+
+type CreateCommentParams struct {
+	PostID     int32
+	AuthorName string
+	Body       string
+	CreatedAt  int64
+}
+
+func (queries *Queries) CreateComment(ctx context.Context, params CreateCommentParams) error {
+	_, err := queries.writer.ExecContext(ctx, createcomment, params.PostID, params.AuthorName, params.Body, params.CreatedAt)
+	return err
+}
+
+const getcommentcount = `SELECT COUNT(*) as total FROM comments WHERE post_id = ?;`
+
+type GetCommentCountRow struct {
+	Total int64 `json:"total"`
+}
+
+func (queries *Queries) GetCommentCount(ctx context.Context, postID int32) (GetCommentCountRow, error) {
+	var row GetCommentCountRow
+	err := queries.reader.QueryRowContext(ctx, getcommentcount, postID).Scan(&row.Total)
+	if err != nil {
+		return GetCommentCountRow{}, err
+	}
+	return row, nil
+}
+
 const getcommentsforpost = `SELECT id, author_name, body, created_at
 FROM comments
 WHERE post_id = ?
 ORDER BY created_at ASC;`
 
 type GetCommentsForPostRow struct {
-	ID         int32
-	AuthorName string
-	Body       string
-	CreatedAt  int32
+	ID         int32  `json:"id"`
+	AuthorName string `json:"author_name"`
+	Body       string `json:"body"`
+	CreatedAt  int64  `json:"created_at"`
 }
 
-func (queries *Queries) GetCommentsForPost(ctx context.Context, p1 int32) ([]GetCommentsForPostRow, error) {
-	rows, err := queries.reader.QueryContext(ctx, getcommentsforpost, p1)
+func (queries *Queries) GetCommentsForPost(ctx context.Context, postID int32) ([]GetCommentsForPostRow, error) {
+	rows, err := queries.reader.QueryContext(ctx, getcommentsforpost, postID)
 	if err != nil {
 		return nil, err
 	}
@@ -34,34 +64,4 @@ func (queries *Queries) GetCommentsForPost(ctx context.Context, p1 int32) ([]Get
 		return nil, err
 	}
 	return results, nil
-}
-
-const createcomment = `INSERT INTO comments (post_id, author_name, body, created_at)
-VALUES (?, ?, ?, ?);`
-
-type CreateCommentParams struct {
-	P1 int32
-	P2 string
-	P3 string
-	P4 int32
-}
-
-func (queries *Queries) CreateComment(ctx context.Context, params CreateCommentParams) error {
-	_, err := queries.writer.ExecContext(ctx, createcomment, params.P1, params.P2, params.P3, params.P4)
-	return err
-}
-
-const getcommentcount = `SELECT COUNT(*) as total FROM comments WHERE post_id = ?;`
-
-type GetCommentCountRow struct {
-	Total int32
-}
-
-func (queries *Queries) GetCommentCount(ctx context.Context, p1 int32) (GetCommentCountRow, error) {
-	var row GetCommentCountRow
-	err := queries.reader.QueryRowContext(ctx, getcommentcount, p1).Scan(&row.Total)
-	if err != nil {
-		return GetCommentCountRow{}, err
-	}
-	return row, nil
 }

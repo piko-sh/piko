@@ -115,7 +115,6 @@ func (m *MockRuntimeProviderRegistry) Has(name string) bool {
 
 // Fetch delegates to FetchFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes providerName (string) which identifies the provider by name.
 // Takes collectionName (string) which identifies the collection by name.
 // Takes options (*collection_dto.FetchOptions) which provides fetch configuration

@@ -1,3 +1,0 @@
-{
-  "description": "STRING type alias: verifies CockroachDB STRING type resolves to text, and BYTES resolves to bytea."
-}

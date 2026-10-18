@@ -1,3 +1,0 @@
-{
-  "description": "EXISTS and NOT EXISTS subqueries in WHERE clause. Tests that EXISTS expressions are parsed and do not affect output column resolution."
-}

@@ -155,10 +155,8 @@ func (a *ValkeyClusterAdapter[K, V]) decodeKey(keyString string) (K, error) {
 // GetIfPresent retrieves a value from the cache if it exists, without blocking or
 // loading. When SearchSchema is configured, reads from JSON storage.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to retrieve.
 //
 // Returns V which is the cached value, or the zero value if not found.
@@ -212,7 +210,6 @@ func (a *ValkeyClusterAdapter[K, V]) GetIfPresent(ctx context.Context, key K) (V
 // Get retrieves a value from the cache, loading it via the provided loader if not
 // present.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to retrieve.
 // Takes loader (Loader[K, V]) which loads the value on cache miss.
 //
@@ -256,10 +253,8 @@ func (a *ValkeyClusterAdapter[K, V]) Get(ctx context.Context, key K, loader cach
 // When a SearchSchema is configured, values are stored as JSON for Valkey Search
 // indexing.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry.
 // Takes value (V) which is the data to store.
 // Takes tags (...string) which associate the key with groups for bulk removal.
@@ -461,10 +456,8 @@ func (a *ValkeyClusterAdapter[K, V]) BulkSet(ctx context.Context, items map[K]V,
 
 // Invalidate removes a key from the cache and cleans up its tag links.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which specifies the cache key to remove.
 //
 // Returns error when the operation fails.
@@ -674,10 +667,8 @@ func (a *ValkeyClusterAdapter[K, V]) BulkGet(ctx context.Context, keys []K, bulk
 
 // InvalidateByTags removes all cache entries associated with the given tags.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes tags (...string) which specifies the tags whose entries should be removed.
 //
 // Returns int which is the number of entries that were invalidated.
@@ -785,15 +776,11 @@ func (a *ValkeyClusterAdapter[K, V]) invalidateByNamespace(ctx context.Context) 
 // InvalidateAll flushes all data from the cluster. If search is enabled, also drops the
 // Valkey Search index.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
-//
-// Takes ctx (context.Context) for cancellation and timeout.
+// A cancelled or expired context returns its error before work begins.
 //
 // Returns error when the operation fails.
 //
-// CLUSTER NOTE: FLUSHDB in cluster mode flushes all databases on all nodes. This is an
-// EXTREMELY destructive operation that affects the entire cluster.
+// FLUSHDB clears every database on every node in the cluster.
 func (a *ValkeyClusterAdapter[K, V]) InvalidateAll(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -818,7 +805,6 @@ func (a *ValkeyClusterAdapter[K, V]) InvalidateAll(ctx context.Context) error {
 
 // BulkRefresh asynchronously refreshes multiple cache entries using the bulk loader.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes keys ([]K) which specifies the cache keys to refresh.
 // Takes bulkLoader (BulkLoader) which loads the values for the given keys.
 //
@@ -844,7 +830,6 @@ func (a *ValkeyClusterAdapter[K, V]) BulkRefresh(ctx context.Context, keys []K, 
 
 // Refresh asynchronously refreshes a single cache entry using the provided loader.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to refresh.
 // Takes loader (Loader[K, V]) which loads the fresh value for the given key.
 //
@@ -874,7 +859,6 @@ func (a *ValkeyClusterAdapter[K, V]) Refresh(ctx context.Context, key K, loader 
 // Search performs full-text search across indexed TEXT fields. Valkey Search does not
 // support full-text TEXT fields; returns ErrSearchNotSupported for text queries.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes query (string) which is the search query to match against TEXT fields.
 // Takes opts (*cache.SearchOptions) which contains filters, pagination, and sorting.
 //
@@ -904,7 +888,6 @@ func (a *ValkeyClusterAdapter[K, V]) Search(ctx context.Context, query string, o
 // Query performs structured filtering, sorting, and pagination without full-text search.
 // Returns ErrSearchNotSupported if no SearchSchema was configured.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes opts (*cache.QueryOptions) which contains filters, pagination, and sorting.
 //
 // Returns SearchResult containing matching items and total count.

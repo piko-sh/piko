@@ -26,11 +26,6 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// CreateExpansionResult returns the hand-crafted ExpansionResult for this test case.
-// It simulates two invocations of a component that are semantically identical in terms
-// of props, but differ in their non-prop attributes (like 'class'). This is the ideal
-// input to test that the ComponentLinker's canonical key generation correctly ignores
-// these non-prop attributes, resulting in a single unique invocation.
 func CreateExpansionResult(t *testing.T, vm *annotator_dto.VirtualModule) *annotator_dto.ExpansionResult {
 	findHash := func(relPath string) string {
 		for hash, comp := range vm.ComponentsByHash {

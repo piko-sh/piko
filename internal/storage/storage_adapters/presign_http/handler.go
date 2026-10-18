@@ -721,7 +721,6 @@ func etagMatches(clientETag, serverETag string) bool {
 // handleTokenValidationError maps token validation errors to HTTP responses using the
 // provided write function.
 //
-// Takes ctx (context.Context) which carries the request context.
 // Takes w (http.ResponseWriter) which receives the error response.
 // Takes err (error) which is the token validation error.
 // Takes writeFunction (errorWriteFunction) which writes the HTTP error response.

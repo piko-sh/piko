@@ -75,12 +75,19 @@ type transactionJournal[K comparable, V any] struct {
 	// mutation per key is recorded.
 	snapshotted map[K]struct{}
 
+	// batcher groups the transaction's log entries into one record when inner logs its
+	// writes; nil otherwise.
+	batcher LogBatcher
+
 	// journal records pre-mutation state for each key, in mutation order.
 	journal []journalEntry[K, V]
 
 	// finalised is true after Commit or Rollback has been called. Subsequent mutations or
 	// double-finalise attempts return an error.
 	finalised bool
+
+	// batchOpen is true while the batch begun for this transaction collects entries.
+	batchOpen bool
 }
 
 // newTransactionJournal creates a transaction journal wrapping the given cache.
@@ -90,12 +97,20 @@ type transactionJournal[K comparable, V any] struct {
 //
 // Returns *transactionJournal[K, V] which wraps inner with undo journalling.
 func newTransactionJournal[K comparable, V any](inner ProviderPort[K, V]) *transactionJournal[K, V] {
-	return &transactionJournal[K, V]{
+	t := &transactionJournal[K, V]{
 		inner:       inner,
 		snapshotted: make(map[K]struct{}),
 		journal:     nil,
 		finalised:   false,
+		batcher:     nil,
+		batchOpen:   false,
 	}
+	if batcher, ok := inner.(LogBatcher); ok {
+		batcher.BeginLogBatch()
+		t.batcher = batcher
+		t.batchOpen = true
+	}
+	return t
 }
 
 // snapshotKey records the current state of key before a mutation. Only the first mutation
@@ -130,12 +145,21 @@ func (t *transactionJournal[K, V]) snapshotKey(ctx context.Context, key K) error
 	return nil
 }
 
-// Commit discards the undo journal, making all mutations permanent.
+// Commit discards the undo journal, making all mutations permanent. When the cache logs
+// its writes, the transaction's entries are written as one record first.
 //
-// Returns error when the transaction has already been finalised.
-func (t *transactionJournal[K, V]) Commit(_ context.Context) error {
+// Returns error when the transaction has already been finalised, or when the record
+// cannot be written, in which case the transaction stays open for Rollback.
+func (t *transactionJournal[K, V]) Commit(ctx context.Context) error {
 	if t.finalised {
 		return ErrTransactionFinalised
+	}
+	if t.batchOpen {
+		t.batchOpen = false
+		if err := t.batcher.CommitLogBatch(ctx); err != nil {
+
+			return fmt.Errorf("logging transaction: %w", err)
+		}
 	}
 	t.finalised = true
 	t.journal = nil
@@ -163,6 +187,14 @@ func (t *transactionJournal[K, V]) Rollback(ctx context.Context) error {
 		return ErrTransactionFinalised
 	}
 	t.finalised = true
+
+	if t.batcher != nil {
+		if !t.batchOpen {
+			t.batcher.BeginLogBatch()
+		}
+		t.batchOpen = false
+		defer t.batcher.AbortLogBatch()
+	}
 
 	nowNano := time.Now().UnixNano()
 	var errs []error

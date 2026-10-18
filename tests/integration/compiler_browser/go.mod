@@ -26,6 +26,7 @@ require (
 	go.uber.org/goleak v1.3.0
 	piko.sh/piko v0.0.0
 	piko.sh/piko/wdk/browser v0.0.0
+	piko.sh/safedisk v0.1.0
 )
 
 require (
@@ -70,5 +71,6 @@ require (
 	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/text v0.42.0 // indirect
 	golang.org/x/tools v0.50.0 // indirect
-	piko.sh/goastutil v0.1.0 // indirect
+	piko.sh/goastutil v0.2.0 // indirect
+	piko.sh/safeconv v0.1.0 // indirect
 )

@@ -18,7 +18,6 @@
 
 package dtos
 
-// This type uses a type from piko's own source.
 import "piko.sh/piko/wdk/maths"
 
 type TransactionDto struct {

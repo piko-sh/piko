@@ -148,7 +148,6 @@ func (t *ObjStmTransformer) Priority() int { return t.priority }
 // compressed by the writer automatically. Options must be ObjStmOptions or
 // *ObjStmOptions.
 //
-// Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes pdf ([]byte) which is the input PDF document.
 // Takes options (any) which must be ObjStmOptions or *ObjStmOptions.
 //

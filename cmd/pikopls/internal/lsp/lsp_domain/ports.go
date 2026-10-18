@@ -62,13 +62,11 @@ type WorkspacePort interface {
 
 	// RemoveDocument removes a document from the workspace and clears its diagnostics.
 	//
-	// Takes ctx (context.Context) which provides cancellation support.
 	// Takes uri (protocol.DocumentURI) which identifies the document to remove.
 	RemoveDocument(ctx context.Context, uri protocol.DocumentURI)
 
 	// RunAnalysisForURI orchestrates document analysis for the given URI.
 	//
-	// Takes ctx (context.Context) which provides cancellation support.
 	// Takes uri (protocol.DocumentURI) which identifies the document to analyse.
 	//
 	// Returns *document which contains the analysis result for the URI.
@@ -79,7 +77,6 @@ type WorkspacePort interface {
 	// RunAnalysisForURI, waits for any in-flight analysis to complete instead of cancelling
 	// it.
 	//
-	// Takes ctx (context.Context) which provides cancellation support.
 	// Takes uri (protocol.DocumentURI) which identifies the document.
 	//
 	// Returns *document which contains the document ready for completion.
@@ -89,7 +86,6 @@ type WorkspacePort interface {
 	// FindAllReferences searches for all references to a symbol across all open documents in
 	// the workspace.
 	//
-	// Takes ctx (context.Context) which provides cancellation support.
 	// Takes uri (protocol.DocumentURI) which identifies the document containing the symbol.
 	// Takes position (protocol.Position) which specifies the position of the symbol.
 	//
@@ -123,8 +119,6 @@ type TypeInspectorPort interface {
 
 	// FindFieldInfo retrieves field metadata for a named field on a type.
 	//
-	// Takes ctx (context.Context) which carries logging context for trace/request ID
-	// propagation.
 	// Takes baseType (goast.Expr) which is the type expression to search.
 	// Takes fieldName (string) which identifies the field to find.
 	// Takes importerPackagePath (string) which is the package path of the caller.

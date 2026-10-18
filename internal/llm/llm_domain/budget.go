@@ -33,7 +33,6 @@ import (
 type BudgetStorePort interface {
 	// Record adds a cost entry for a scope.
 	//
-	// Takes ctx (context.Context) which controls cancellation.
 	// Takes scope (string) which identifies the budget scope.
 	// Takes cost (*llm_dto.CostEstimate) which is the cost to record.
 	//
@@ -42,7 +41,6 @@ type BudgetStorePort interface {
 
 	// GetStatus returns current budget status for a scope.
 	//
-	// Takes ctx (context.Context) which controls cancellation.
 	// Takes scope (string) which identifies the budget scope.
 	//
 	// Returns *llm_dto.BudgetStatus containing the current state.
@@ -56,7 +54,6 @@ type BudgetStorePort interface {
 	// Implementations must hold their lock for the entire check-and-reserve to prevent
 	// concurrent overspend.
 	//
-	// Takes ctx (context.Context) which controls cancellation.
 	// Takes scope (string) which identifies the budget scope.
 	// Takes estimatedCost (maths.Money) which is the cost to reserve.
 	// Takes limits (llm_dto.BudgetLimits) which carries the spend limits.
@@ -67,7 +64,6 @@ type BudgetStorePort interface {
 	// Unreserve releases a previously reserved cost when the request fails before
 	// RecordUsage is called. This prevents phantom charges.
 	//
-	// Takes ctx (context.Context) which controls cancellation.
 	// Takes scope (string) which identifies the budget scope.
 	// Takes cost (maths.Money) which is the cost to release.
 	//
@@ -76,7 +72,6 @@ type BudgetStorePort interface {
 
 	// IncrementRequests atomically increments the request count.
 	//
-	// Takes ctx (context.Context) which controls cancellation.
 	// Takes scope (string) which identifies the budget scope.
 	// Takes count (int64) which is the number to add.
 	//
@@ -85,7 +80,6 @@ type BudgetStorePort interface {
 
 	// IncrementTokens atomically increments the token count.
 	//
-	// Takes ctx (context.Context) which controls cancellation.
 	// Takes scope (string) which identifies the budget scope.
 	// Takes count (int64) which is the number to add.
 	//
@@ -94,7 +88,6 @@ type BudgetStorePort interface {
 
 	// Reset resets counters for a scope.
 	//
-	// Takes ctx (context.Context) which controls cancellation.
 	// Takes scope (string) which identifies the budget scope.
 	//
 	// Returns error if the reset fails.

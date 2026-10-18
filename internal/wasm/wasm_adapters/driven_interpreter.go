@@ -104,7 +104,6 @@ func (a *InterpreterAdapter) Interpret(ctx context.Context, request *wasm_dto.In
 // buildASTResponse retrieves the registered AST function and produces an
 // InterpretResponse.
 //
-// Takes ctx (context.Context) for the request context.
 // Takes request (*wasm_dto.InterpretRequest) which contains the package path, request
 // URL, and props.
 //

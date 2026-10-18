@@ -19,134 +19,144 @@
 package db_test
 
 import (
+	"context"
 	"testing"
+	"testing/fstest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/wdk/db"
 )
 
-func TestConstants(t *testing.T) {
-	if db.DirectionUp == db.DirectionDown {
-		t.Error("DirectionUp and DirectionDown must be distinct")
+func TestDirectionConstantsAreDistinct(t *testing.T) {
+	t.Parallel()
+
+	require.NotEqual(t, db.DirectionUp, db.DirectionDown)
+}
+
+func TestSentinelsAreSet(t *testing.T) {
+	t.Parallel()
+
+	for _, err := range []error{
+		db.ErrLockNotAcquired, db.ErrNoDownMigration, db.ErrInvalidIdentifier, db.ErrMigrationFileTooLarge,
+		db.ErrMalformedSQLStatement, db.ErrNoMigrationBackend, db.ErrNoSQLToolchain, db.ErrUnsupportedDriver,
+	} {
+		require.Error(t, err)
 	}
 }
 
-func TestErrLockNotAcquired(t *testing.T) {
-	if db.ErrLockNotAcquired == nil {
-		t.Error("ErrLockNotAcquired must not be nil")
-	}
-}
+func TestDialectConstructors(t *testing.T) {
+	t.Parallel()
 
-func TestDialectFactories(t *testing.T) {
-	dialects := []struct {
-		name    string
-		factory func() db.DialectConfig
+	cases := []struct {
+		dialect   db.DialectConfig
+		name      string
+		family    db.DialectFamily
+		pgBouncer bool
 	}{
-		{"PostgresDialect", db.PostgresDialect},
-		{"PostgresPgBouncerDialect", db.PostgresPgBouncerDialect},
-		{"MySQLDialect", db.MySQLDialect},
-		{"SQLiteDialect", db.SQLiteDialect},
+		{name: "postgres", dialect: db.PostgresDialect(), family: db.DialectFamilyPostgres},
+		{name: "postgres pgbouncer", dialect: db.PostgresPgBouncerDialect(), family: db.DialectFamilyPostgres, pgBouncer: true},
+		{name: "cockroachdb", dialect: db.CockroachDBDialect(), family: db.DialectFamilyCockroachDB},
+		{name: "mysql", dialect: db.MySQLDialect(), family: db.DialectFamilyMySQL},
+		{name: "sqlite", dialect: db.SQLiteDialect(), family: db.DialectFamilySQLite},
+		{name: "clickhouse", dialect: db.ClickHouseDialect(), family: db.DialectFamilyClickHouse},
 	}
 
-	for _, tt := range dialects {
-		t.Run(tt.name, func(t *testing.T) {
-			dialect := tt.factory()
-			if dialect.CreateTableSQL == "" {
-				t.Error("CreateTableSQL must not be empty")
-			}
-			if dialect.PlaceholderFunc == nil {
-				t.Error("PlaceholderFunc must not be nil")
-			}
-			if dialect.LockStrategy == nil {
-				t.Error("LockStrategy must not be nil")
-			}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			require.True(t, testCase.dialect.IsConfigured())
+			require.Equal(t, testCase.family, testCase.dialect.Family)
+			require.Equal(t, testCase.pgBouncer, testCase.dialect.PgBouncer)
 		})
 	}
 }
 
-func TestNewFSFileReader(t *testing.T) {
-	reader := db.NewFSFileReader(nil)
-	if reader == nil {
-		t.Error("NewFSFileReader must return a non-nil reader")
-	}
+func TestMySQLDialectWithDSNKeepsDSN(t *testing.T) {
+	t.Parallel()
+
+	dialect := db.MySQLDialectWithDSN("user:pass@tcp(localhost:3306)/app?multiStatements=true")
+
+	require.Equal(t, db.DialectFamilyMySQL, dialect.Family)
+	require.Equal(t, "user:pass@tcp(localhost:3306)/app?multiStatements=true", dialect.DSN)
 }
 
-func TestWithNonBlockingLock(t *testing.T) {
-	opt := db.WithNonBlockingLock()
-	if opt == nil {
-		t.Error("WithNonBlockingLock must return a non-nil option")
-	}
+func TestNewMigratorWithoutEngine(t *testing.T) {
+	t.Parallel()
+
+	_, err := db.NewMigrator(db.EngineConfig{}, nil, fstest.MapFS{}, ".")
+
+	require.ErrorIs(t, err, db.ErrNoSQLToolchain)
+}
+
+func TestNewSeederWithoutEngine(t *testing.T) {
+	t.Parallel()
+
+	_, err := db.NewSeeder(db.EngineConfig{}, nil, fstest.MapFS{}, ".")
+
+	require.ErrorIs(t, err, db.ErrNoSQLToolchain)
+}
+
+func TestGenerateWithoutEngine(t *testing.T) {
+	t.Parallel()
+
+	_, err := db.Generate(context.Background(), db.EngineConfig{}, db.GenerateRequest{})
+
+	require.ErrorIs(t, err, db.ErrNoSQLToolchain)
 }
 
 func TestGetDatabaseConnectionWithoutBootstrap(t *testing.T) {
 	_, err := db.GetDatabaseConnection("test")
-	if err == nil {
-		t.Error("GetDatabaseConnection must return error without bootstrap")
-	}
+
+	require.Error(t, err)
 }
 
 func TestGetMigrationServiceWithoutBootstrap(t *testing.T) {
 	_, err := db.GetMigrationService("test")
-	if err == nil {
-		t.Error("GetMigrationService must return error without bootstrap")
-	}
+
+	require.Error(t, err)
+}
+
+func TestGetSeedServiceWithoutBootstrap(t *testing.T) {
+	_, err := db.GetSeedService("test")
+
+	require.Error(t, err)
 }
 
 func TestGetDatabaseReaderWithoutBootstrap(t *testing.T) {
 	_, err := db.GetDatabaseReader("test")
-	if err == nil {
-		t.Error("GetDatabaseReader must return error without bootstrap")
-	}
-}
-
-func TestNewSQLEmitter_ReturnsNonNil(t *testing.T) {
-	t.Parallel()
-
-	emitter := db.NewSQLEmitter()
-
-	require.NotNil(t, emitter)
-}
-
-func TestNewSQLEmitterForDialect_ReturnsNonNil(t *testing.T) {
-	t.Parallel()
-
-	for _, dialect := range []string{"postgres", "sqlite", "mysql", "duckdb", "clickhouse", ""} {
-		t.Run(dialect, func(t *testing.T) {
-			t.Parallel()
-
-			emitter := db.NewSQLEmitterForDialect(dialect)
-
-			require.NotNil(t, emitter)
-		})
-	}
-}
-
-func TestNewCompositeCatalogueProvider_AcceptsEmptyProviderSlice(t *testing.T) {
-	t.Parallel()
-
-	provider := db.NewCompositeCatalogueProvider(nil)
-
-	require.NotNil(t, provider)
-}
-
-func TestNewQuerierService_ReturnsErrorOnMissingPorts(t *testing.T) {
-	t.Parallel()
-
-	service, err := db.NewQuerierService(db.QuerierPorts{})
 
 	require.Error(t, err)
-	require.Nil(t, service)
 }
 
-func TestSeverityConstants_HaveExpectedOrdering(t *testing.T) {
+func TestGetDatabaseWriterWithoutBootstrap(t *testing.T) {
+	_, err := db.GetDatabaseWriter("test")
+
+	require.Error(t, err)
+}
+
+func TestSeverityConstantsHaveExpectedOrdering(t *testing.T) {
 	t.Parallel()
 
 	assert.Less(t, db.SeverityError, db.SeverityWarning)
 	assert.Less(t, db.SeverityWarning, db.SeverityHint)
 }
 
-var (
-	_ db.CodeEmitterPort = db.NewSQLEmitter()
-	_ db.SourceError     = db.SourceError{}
-)
+func TestMigrationOptionsBuild(t *testing.T) {
+	t.Parallel()
+
+	options := []db.MigrationServiceOption{
+		db.WithNonBlockingLock(),
+		db.WithBeforeMigration(func(context.Context, db.MigrationHookContext) error { return nil }),
+		db.WithAfterMigration(func(context.Context, db.MigrationHookContext) error { return nil }),
+		db.WithBeforeRun(func(context.Context, db.MigrationRunHookContext) error { return nil }),
+		db.WithAfterRun(func(context.Context, db.MigrationRunHookContext, int) error { return nil }),
+	}
+
+	require.Len(t, options, 5)
+	for _, option := range options {
+		require.NotNil(t, option)
+	}
+}

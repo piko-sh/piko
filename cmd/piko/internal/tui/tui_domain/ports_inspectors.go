@@ -31,8 +31,6 @@ type ProvidersInspector interface {
 
 	// ListProviders returns every registered provider grouped by resource type.
 	//
-	// Takes ctx (context.Context) for cancellation.
-	//
 	// Returns []ProviderEntry which is the (possibly empty) list.
 	// Returns error when the call fails.
 	ListProviders(ctx context.Context) ([]ProviderEntry, error)
@@ -237,14 +235,10 @@ type ProfilingInspector interface {
 	// profiles exposed is decided by the server build, so callers cannot select individual
 	// profile kinds.
 	//
-	// Takes ctx (context.Context) for cancellation.
-	//
 	// Returns error when the call fails.
 	Enable(ctx context.Context) error
 
 	// Disable turns off all profiles.
-	//
-	// Takes ctx (context.Context) for cancellation.
 	//
 	// Returns error when the call fails.
 	Disable(ctx context.Context) error

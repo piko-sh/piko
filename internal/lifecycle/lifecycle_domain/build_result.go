@@ -19,15 +19,34 @@
 package lifecycle_domain
 
 import (
+	"errors"
+	"fmt"
+	"strings"
 	"time"
+)
+
+var (
+	// ErrBuildHasFailures reports a build that finished with failed tasks, profiles that
+	// were never built, or tasks still outstanding when it timed out.
+	ErrBuildHasFailures = errors.New("build completed with failures")
+
+	// ErrMissingSrcsetProfiles reports generated pages whose srcset references image
+	// variants the build does not produce, so those URLs would serve nothing.
+	ErrMissingSrcsetProfiles = errors.New("srcset references image variants the build does not produce")
+
+	// ErrDistributedEventBus reports an event bus that cannot deliver build tasks locally.
+	ErrDistributedEventBus = errors.New("a build cannot run on an event bus shared with other processes")
 )
 
 // BuildResult holds the outcome of a full build run, where infrastructure errors (context
 // cancelled, flush timeout) are reported via the error return of RunBuild and task-level
-// failures are captured here so callers can inspect and format a summary report.
+// and seed failures are captured here so callers can inspect and format a summary report.
 type BuildResult struct {
 	// Failures lists the details of each failed task.
 	Failures []BuildFailure
+
+	// SeedFailures lists source files that could not be walked, read, or registered.
+	SeedFailures []SeedFailure
 
 	// TotalDispatched is the number of tasks sent for processing.
 	TotalDispatched int64
@@ -73,9 +92,50 @@ type BuildFailure struct {
 	IsFatal bool
 }
 
-// HasFailures reports whether the build completed with any failed tasks.
+// SeedFailure holds the details of one source file or directory the build could not seed
+// into the registry, for user-facing reporting.
+type SeedFailure struct {
+	// Path is the file or directory that could not be seeded, relative to the project root
+	// when it lies inside it.
+	Path string
+
+	// Stage identifies the failed walk, read, or upsert operation.
+	Stage string
+
+	// Error is the error message.
+	Error string
+}
+
+// HasFailures reports failed tasks, unbuilt profiles, seed failures, or a build timeout.
 //
-// Returns bool which is true when TotalFailed is greater than zero.
+// Returns bool which is true when the build must be reported as failed.
 func (r *BuildResult) HasFailures() bool {
-	return r.TotalFailed > 0
+	return r.TotalFailed > 0 || len(r.Failures) > 0 || len(r.SeedFailures) > 0 || r.TimedOut
+}
+
+// FailureSummary describes why the build failed, for an error message.
+//
+// Returns string which counts the failed tasks, unbuilt profiles and seed failures and
+// notes a timeout, or is empty when the build did not fail.
+func (r *BuildResult) FailureSummary() string {
+	var parts []string
+	if r.TotalFailed > 0 {
+		parts = append(parts, fmt.Sprintf("%d failed task(s)", r.TotalFailed))
+	}
+	unbuilt := 0
+	for i := range r.Failures {
+		if r.Failures[i].Executor == "" && r.Failures[i].Profile != "" {
+			unbuilt++
+		}
+	}
+	if unbuilt > 0 {
+		parts = append(parts, fmt.Sprintf("%d profile(s) never built", unbuilt))
+	}
+	if len(r.SeedFailures) > 0 {
+		parts = append(parts, fmt.Sprintf("%d seed failure(s)", len(r.SeedFailures)))
+	}
+	if r.TimedOut {
+		parts = append(parts, "timed out with tasks outstanding")
+	}
+	return strings.Join(parts, ", ")
 }

@@ -71,7 +71,6 @@ var (
 // level when an odd argument count is supplied so the misuse is not silently dropped from
 // telemetry.
 //
-// Takes ctx (context.Context) which carries trace baggage for logging.
 // Takes keyValues (...string) which are alternating key-value pairs.
 //
 // Returns metric.MeasurementOption which contains the attributes.

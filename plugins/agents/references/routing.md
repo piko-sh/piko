@@ -216,7 +216,7 @@ pages/docs/
 
 ## LLM mistake checklist
 
-- Using `:slug` (Express style) or `{...slug}` (Next.js style) instead of `{slug}` / `{slug}*` in filenames
+- Using `:slug` (Express style) or `[...slug]` (Next.js style) instead of `{slug}` / `{slug}*` in filenames
 - Putting pages outside the `pages/` directory
 - Using `r.QueryParam` when you need `r.PathParam` (or vice versa)
 - Forgetting to handle 404 for dynamic routes when data is missing

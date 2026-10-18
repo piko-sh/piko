@@ -1,3 +1,0 @@
-{
-  "description": "Parameter reuse: same $1 used in multiple places should infer a consistent type."
-}

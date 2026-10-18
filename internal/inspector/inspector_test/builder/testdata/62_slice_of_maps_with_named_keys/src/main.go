@@ -21,7 +21,5 @@ package main
 import "testcase_62_slice_of_maps_with_named_keys/keys"
 
 type Response struct {
-	// A slice of maps, where the map's key is a named type and the value is primitive.
-	// This will trigger the same bug as the direct map field if the validator is naive.
 	History []map[keys.RequestKey]int
 }

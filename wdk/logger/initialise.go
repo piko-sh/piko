@@ -67,7 +67,6 @@ type earlyInitialisationResult struct {
 // configuration, setting up OpenTelemetry integration and configuring output handlers,
 // integrations, and notifications.
 //
-// Takes ctx (context.Context) which controls cancellation during setup.
 // Takes logConfig (logger_dto.Config) which specifies the logging configuration.
 // Takes otelConfig (driver_handlers.OtelSetupConfig) which provides OTLP exporter
 // settings.
@@ -142,7 +141,6 @@ func setupOtelIntegration(ctx context.Context, logConfig logger_dto.Config, otel
 
 // processOutputHandlers creates handlers for each configured output.
 //
-// Takes ctx (context.Context) which controls cancellation during setup.
 // Takes logConfig (logger_dto.Config) which specifies the logging configuration.
 // Takes globalLevel (slog.Level) which sets the default log level for handlers.
 // Takes state (*initialisationState) which collects the created handlers and closers.
@@ -325,8 +323,8 @@ func createHandlerForIntegration(config logger_dto.IntegrationConfig) (slog.Hand
 
 // createHandlerForOutput creates a log handler for the specified output configuration.
 //
-// Takes ctx (context.Context) which controls the lifetime of background goroutines such
-// as log rotation.
+// Background goroutines such as log rotation run until ctx is cancelled.
+//
 // Takes config (logger_dto.OutputConfig) which specifies the output type, format, and
 // optional file settings.
 // Takes addSource (bool) which controls whether source location is included in log

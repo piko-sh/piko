@@ -41,7 +41,7 @@ import (
 	"piko.sh/piko/internal/coordinator/coordinator_dto"
 	"piko.sh/piko/internal/resolver/resolver_domain"
 	"piko.sh/piko/wdk/clock"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 func noopSpan() trace.Span {
@@ -475,12 +475,14 @@ package pages
 	require.False(t, firstResult.useFastPath)
 
 	entry := &IntrospectionCacheEntry{
-		VirtualModule:  &annotator_dto.VirtualModule{},
-		TypeResolver:   &annotator_domain.TypeResolver{},
-		ComponentGraph: &annotator_dto.ComponentGraph{},
-		ScriptHashes:   firstResult.scriptHashes,
-		Timestamp:      time.Now(),
-		Version:        CurrentIntrospectionCacheVersion,
+		VirtualModule: &annotator_dto.VirtualModule{},
+		TypeResolver:  &annotator_domain.TypeResolver{},
+		ComponentGraph: &annotator_dto.ComponentGraph{
+			PathToHashedName: map[string]string{"/project/pages/index.pk": "pages_index"},
+		},
+		ScriptHashes: firstResult.scriptHashes,
+		Timestamp:    time.Now(),
+		Version:      CurrentIntrospectionCacheVersion,
 	}
 	err := introCache.Set(context.Background(), firstResult.introspectionHash, entry)
 	require.NoError(t, err)
@@ -490,6 +492,97 @@ package pages
 	assert.True(t, secondResult.useFastPath)
 	assert.NotNil(t, secondResult.entry)
 	assert.Same(t, entry, secondResult.entry)
+}
+
+func TestCheckTier1Cache_CacheHit_SubsetGraphIsStale(t *testing.T) {
+	t.Parallel()
+
+	const (
+		indexSource = "<script lang=\"go\">\npackage pages\n</script>"
+		aboutSource = "<script lang=\"go\">\npackage about\n</script>"
+	)
+
+	sandbox := safedisk.NewMockSandbox("/project", safedisk.ModeReadOnly)
+	sandbox.AddFile("pages/index.pk", []byte(indexSource))
+	sandbox.AddFile("pages/about.pk", []byte(aboutSource))
+
+	fsReader := &mockFSReader{
+		Files: map[string][]byte{
+			"/project/pages/index.pk": []byte(indexSource),
+			"/project/pages/about.pk": []byte(aboutSource),
+		},
+	}
+
+	introCache := newMockIntrospectionCache()
+
+	service := newCoordinatorService(
+		&mockAnnotator{},
+		newMockCache(),
+		introCache,
+		fsReader,
+		&resolver_domain.MockResolver{
+			GetBaseDirFunc:    func() string { return "/project" },
+			GetModuleNameFunc: func() string { return "test-module" },
+			ResolvePKPathFunc: func(_ context.Context, importPath string, _ string) (string, error) {
+				if after, ok := strings.CutPrefix(importPath, "test-module/"); ok {
+					return filepath.Join("/project", after), nil
+				}
+				return importPath, nil
+			},
+			ConvertEntryPointPathToManifestKeyFunc: func(path string) string { return path },
+		},
+		applyCoordinatorOptions(WithBaseDirSandbox(sandbox)),
+	)
+
+	request := &coordinator_dto.BuildRequest{
+		EntryPoints: []annotator_dto.EntryPoint{
+			{Path: "test-module/pages/index.pk", IsPage: true},
+			{Path: "test-module/pages/about.pk", IsPage: true},
+			{Path: "test-module/pages/blog/{slug}.pk", IsPage: true, VirtualPageSource: &annotator_dto.VirtualPageSource{}},
+		},
+	}
+
+	firstResult := service.checkTier1Cache(context.Background(), noopSpan(), request)
+	require.False(t, firstResult.useFastPath)
+
+	subsetEntry := &IntrospectionCacheEntry{
+		VirtualModule: &annotator_dto.VirtualModule{},
+		TypeResolver:  &annotator_domain.TypeResolver{},
+		ComponentGraph: &annotator_dto.ComponentGraph{
+			PathToHashedName: map[string]string{"/project/pages/index.pk": "pages_index"},
+		},
+		ScriptHashes: firstResult.scriptHashes,
+		Timestamp:    time.Now(),
+		Version:      CurrentIntrospectionCacheVersion,
+	}
+	require.NoError(t, introCache.Set(context.Background(), firstResult.introspectionHash, subsetEntry))
+
+	subsetResult := service.checkTier1Cache(context.Background(), noopSpan(), request)
+
+	assert.False(t, subsetResult.useFastPath, "a graph built from a subset of the entry points must not serve the fast path")
+	assert.Nil(t, subsetResult.entry)
+	assert.Equal(t, firstResult.introspectionHash, subsetResult.introspectionHash,
+		"the slow path must still be able to overwrite the subset entry under the same hash")
+
+	fullEntry := &IntrospectionCacheEntry{
+		VirtualModule: &annotator_dto.VirtualModule{},
+		TypeResolver:  &annotator_domain.TypeResolver{},
+		ComponentGraph: &annotator_dto.ComponentGraph{
+			PathToHashedName: map[string]string{
+				"/project/pages/index.pk": "pages_index",
+				"/project/pages/about.pk": "pages_about",
+			},
+		},
+		ScriptHashes: firstResult.scriptHashes,
+		Timestamp:    time.Now(),
+		Version:      CurrentIntrospectionCacheVersion,
+	}
+	require.NoError(t, introCache.Set(context.Background(), firstResult.introspectionHash, fullEntry))
+
+	fullResult := service.checkTier1Cache(context.Background(), noopSpan(), request)
+
+	assert.True(t, fullResult.useFastPath, "a graph covering every file-backed entry point must serve the fast path")
+	assert.Same(t, fullEntry, fullResult.entry)
 }
 
 func TestCheckTier1Cache_CacheHit_StaleHashes(t *testing.T) {
@@ -1570,6 +1663,7 @@ func TestExecutePartialBuild_Success(t *testing.T) {
 	result, err := service.executePartialBuild(
 		context.Background(),
 		entry,
+		"",
 		request,
 		allSourceContents,
 		"full-hash-123", 0,
@@ -1628,6 +1722,7 @@ func TestExecutePartialBuild_AnnotatorError(t *testing.T) {
 	result, err := service.executePartialBuild(
 		context.Background(),
 		entry,
+		"",
 		request,
 		nil,
 		"hash", 0,
@@ -1696,6 +1791,7 @@ func TestExecutePartialBuild_SemanticError(t *testing.T) {
 	result, err := service.executePartialBuild(
 		context.Background(),
 		entry,
+		"",
 		request,
 		map[string][]byte{"/comp.pk": []byte("content")},
 		"hash", 0,
@@ -1865,6 +1961,52 @@ func TestRequestRebuild_ReplacesDebounceTimer(t *testing.T) {
 	request := service.lastBuildRequest
 	service.mu.RUnlock()
 	assert.Equal(t, "second", request.CausationID)
+}
+
+func TestRequestRebuild_TrailingTimerTakesDebounceLock(t *testing.T) {
+	t.Parallel()
+
+	const debounce = 500 * time.Millisecond
+	entryPoints := []annotator_dto.EntryPoint{{Path: "test-module/pages/index.pk", IsPage: true}}
+
+	for range 10 {
+		mockClock := clock.NewMockClock(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+		start := mockClock.Now()
+
+		service := newCoordinatorService(
+			&mockAnnotator{},
+			newMockCache(),
+			newMockIntrospectionCache(),
+			&mockFSReader{Files: make(map[string][]byte)},
+			&resolver_domain.MockResolver{
+				GetBaseDirFunc:                         func() string { return "/project" },
+				GetModuleNameFunc:                      func() string { return "test-module" },
+				ConvertEntryPointPathToManifestKeyFunc: func(path string) string { return path },
+			},
+			applyCoordinatorOptions(
+				WithDebounceDuration(debounce),
+				withClock(mockClock),
+			),
+		)
+		service.lastTriggerTime = start.Add(-100 * time.Millisecond)
+
+		baseline := mockClock.TimerCount()
+		service.RequestRebuild(context.Background(), entryPoints, WithCausationID("first"))
+		mockClock.AwaitTimerSetup(baseline, 2*time.Second)
+
+		var wg sync.WaitGroup
+		wg.Go(func() { mockClock.Advance(debounce + 100*time.Millisecond) })
+		wg.Go(func() { service.RequestRebuild(context.Background(), entryPoints, WithCausationID("second")) })
+		wg.Wait()
+
+		mockClock.Advance(2 * debounce)
+
+		service.debounceMutex.Lock()
+		lastTrigger := service.lastTriggerTime
+		service.debounceMutex.Unlock()
+		assert.False(t, lastTrigger.Before(start.Add(debounce)),
+			"the trailing-edge timer must record when it fired")
+	}
 }
 
 func TestRequestRebuild_WithFaultTolerance(t *testing.T) {
@@ -2213,14 +2355,15 @@ func (m *mockAnnotatorWithSemanticError) AnnotateProjectWithCachedIntrospection(
 	_ *annotator_dto.VirtualModule,
 	_ *annotator_domain.TypeResolver,
 	_ ...annotator_domain.AnnotationOption,
-) (*annotator_dto.ProjectAnnotationResult, *annotator_domain.CompilationLogStore, error) {
-	return nil, nil, errors.New("not implemented")
+) (*annotator_dto.ProjectAnnotationResult, *annotator_domain.IntrospectionSnapshot, *annotator_domain.CompilationLogStore, error) {
+	return nil, nil, nil, errors.New("not implemented")
 }
 
 type mockAnnotatorWithCachedIntrospection struct {
-	resultToReturn *annotator_dto.ProjectAnnotationResult
-	errorToReturn  error
-	logsToReturn   *annotator_domain.CompilationLogStore
+	resultToReturn   *annotator_dto.ProjectAnnotationResult
+	errorToReturn    error
+	logsToReturn     *annotator_domain.CompilationLogStore
+	snapshotToReturn *annotator_domain.IntrospectionSnapshot
 }
 
 func (m *mockAnnotatorWithCachedIntrospection) AnnotateProject(
@@ -2255,12 +2398,12 @@ func (m *mockAnnotatorWithCachedIntrospection) AnnotateProjectWithCachedIntrospe
 	_ *annotator_dto.VirtualModule,
 	_ *annotator_domain.TypeResolver,
 	_ ...annotator_domain.AnnotationOption,
-) (*annotator_dto.ProjectAnnotationResult, *annotator_domain.CompilationLogStore, error) {
+) (*annotator_dto.ProjectAnnotationResult, *annotator_domain.IntrospectionSnapshot, *annotator_domain.CompilationLogStore, error) {
 	logs := m.logsToReturn
 	if logs == nil {
 		logs = annotator_domain.NewCompilationLogStore(false, "", slog.LevelDebug)
 	}
-	return m.resultToReturn, logs, m.errorToReturn
+	return m.resultToReturn, m.snapshotToReturn, logs, m.errorToReturn
 }
 
 func TestExecuteSlowPathBuild_WithCodeEmitter(t *testing.T) {
@@ -2400,6 +2543,7 @@ func TestExecutePartialBuild_WithCodeEmitter(t *testing.T) {
 	result, err := service.executePartialBuild(
 		context.Background(),
 		entry,
+		"",
 		request,
 		nil,
 		"hash", 0,
@@ -2409,6 +2553,97 @@ func TestExecutePartialBuild_WithCodeEmitter(t *testing.T) {
 	assert.Same(t, expected, result)
 	assert.Equal(t, 1, emitter.Calls)
 	assert.NotNil(t, result.FinalGeneratedArtefacts)
+}
+
+func TestExecutePartialBuild_StoresForkedSnapshotInTier1(t *testing.T) {
+	t.Parallel()
+
+	const introspectionHash = "introspection-hash"
+
+	newEntry := func() *IntrospectionCacheEntry {
+		return &IntrospectionCacheEntry{
+			VirtualModule:  &annotator_dto.VirtualModule{},
+			TypeResolver:   &annotator_domain.TypeResolver{},
+			ComponentGraph: &annotator_dto.ComponentGraph{},
+			ScriptHashes:   map[string]string{"/project/pages/index.pk": "script-hash"},
+			Timestamp:      time.Now(),
+			Version:        CurrentIntrospectionCacheVersion,
+		}
+	}
+
+	run := func(t *testing.T, entry *IntrospectionCacheEntry, snapshot *annotator_domain.IntrospectionSnapshot, hash string) *mockIntrospectionCache {
+		t.Helper()
+		introCache := newMockIntrospectionCache()
+		service := newCoordinatorService(
+			&mockAnnotatorWithCachedIntrospection{
+				resultToReturn:   &annotator_dto.ProjectAnnotationResult{ComponentResults: map[string]*annotator_dto.AnnotationResult{}},
+				snapshotToReturn: snapshot,
+			},
+			newMockCache(),
+			introCache,
+			&mockFSReader{Files: make(map[string][]byte)},
+			&resolver_domain.MockResolver{
+				GetBaseDirFunc:                         func() string { return "/project" },
+				GetModuleNameFunc:                      func() string { return "test-module" },
+				ConvertEntryPointPathToManifestKeyFunc: func(path string) string { return path },
+			},
+			applyCoordinatorOptions(),
+		)
+
+		_, err := service.executePartialBuild(context.Background(), entry, hash, &coordinator_dto.BuildRequest{}, nil, "full-hash", 0)
+		require.NoError(t, err)
+		return introCache
+	}
+
+	t.Run("a forked snapshot replaces the entry", func(t *testing.T) {
+		t.Parallel()
+
+		entry := newEntry()
+		fork := &annotator_domain.IntrospectionSnapshot{
+			ComponentGraph: &annotator_dto.ComponentGraph{},
+			VirtualModule:  &annotator_dto.VirtualModule{},
+			TypeResolver:   &annotator_domain.TypeResolver{},
+		}
+
+		introCache := run(t, entry, fork, introspectionHash)
+
+		stored, ok := introCache.entries[introspectionHash]
+		require.True(t, ok, "the fork must be stored under the key the entry was found under")
+		assert.NotSame(t, entry, stored, "the cached entry is replaced, not written to")
+		assert.Same(t, fork.ComponentGraph, stored.ComponentGraph)
+		assert.Same(t, fork.VirtualModule, stored.VirtualModule)
+		assert.Same(t, fork.TypeResolver, stored.TypeResolver)
+		assert.Equal(t, entry.ScriptHashes, stored.ScriptHashes)
+		assert.True(t, stored.IsValid())
+	})
+
+	t.Run("an unchanged snapshot is not stored again", func(t *testing.T) {
+		t.Parallel()
+
+		entry := newEntry()
+		unchanged := &annotator_domain.IntrospectionSnapshot{
+			ComponentGraph: entry.ComponentGraph,
+			VirtualModule:  entry.VirtualModule,
+			TypeResolver:   entry.TypeResolver,
+		}
+
+		introCache := run(t, entry, unchanged, introspectionHash)
+
+		assert.Zero(t, introCache.setCalls)
+	})
+
+	t.Run("nothing is stored without a key or a snapshot", func(t *testing.T) {
+		t.Parallel()
+
+		fork := &annotator_domain.IntrospectionSnapshot{
+			ComponentGraph: &annotator_dto.ComponentGraph{},
+			VirtualModule:  &annotator_dto.VirtualModule{},
+			TypeResolver:   &annotator_domain.TypeResolver{},
+		}
+
+		assert.Zero(t, run(t, newEntry(), fork, "").setCalls)
+		assert.Zero(t, run(t, newEntry(), nil, introspectionHash).setCalls)
+	})
 }
 
 func TestExecuteBuild_SingleflightWithErrorAndPartialResult(t *testing.T) {
@@ -2533,6 +2768,7 @@ func TestExecutePartialBuild_WithFaultToleranceAndResolver(t *testing.T) {
 	result, err := service.executePartialBuild(
 		context.Background(),
 		entry,
+		"",
 		request,
 		nil,
 		"hash", 0,

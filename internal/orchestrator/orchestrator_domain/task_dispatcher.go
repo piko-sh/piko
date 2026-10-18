@@ -20,7 +20,6 @@ package orchestrator_domain
 
 import (
 	"context"
-	"runtime"
 	"time"
 
 	clockpkg "piko.sh/piko/wdk/clock"
@@ -29,9 +28,6 @@ import (
 const (
 	// backoffBase is the base value used in exponential backoff calculations.
 	backoffBase = 10.0
-
-	// jitterMilliseconds is the maximum random jitter added to backoff delays.
-	jitterMilliseconds = 1000
 
 	// dispatchFailureRetryDelay is the delay before retrying a failed dispatch. Used when
 	// the delayed task publisher fails to dispatch a due task.
@@ -49,13 +45,10 @@ const (
 	// defaultStaleTaskThreshold is how long before a PROCESSING task is considered stuck.
 	defaultStaleTaskThreshold = 10 * time.Minute
 
-	// defaultHeartbeatInterval sets how often task timestamps are updated. Must be
-	// significantly less than StaleTaskThreshold to prevent premature task recovery.
+	// defaultHeartbeatInterval sets how often the node lease is renewed and running tasks
+	// refreshed. Must be significantly less than StaleTaskThreshold to prevent premature
+	// task recovery.
 	defaultHeartbeatInterval = 30 * time.Second
-
-	// defaultRecoveryLeaseTimeout is how long a recovery claim is valid. Should be long
-	// enough to complete recovery but short enough to not block others.
-	defaultRecoveryLeaseTimeout = 5 * time.Minute
 
 	// defaultRecoveryBatchLimit is the maximum number of tasks to claim per recovery cycle.
 	defaultRecoveryBatchLimit = 100
@@ -83,13 +76,8 @@ const (
 	// attributeKeyAttempt is the attribute key for the task attempt number.
 	attributeKeyAttempt = "attempt"
 
-	// defaultPersistJobsPerCPU is the multiplier applied to runtime.NumCPU() to derive the
-	// default persist concurrency cap when none is configured.
-	defaultPersistJobsPerCPU = 4
-
-	// defaultDispatchBacklogLimit is the default number of tasks held while the dispatcher
-	// has not yet subscribed to its topics.
-	defaultDispatchBacklogLimit = 10_000
+	// defaultOverflowLimit bounds task references held outside the transport.
+	defaultOverflowLimit = 1 << 16
 
 	// defaultMaxRetryBackoff caps the exponential retry delay so large retry budgets cannot
 	// produce unbounded or overflowing waits.
@@ -102,6 +90,10 @@ const (
 	// defaultMaxPendingReruns is the default number of deduplication keys that may each hold
 	// one pending rerun.
 	defaultMaxPendingReruns = 10_000
+
+	// defaultSweepInterval is how often a dispatcher re-dispatches due tasks whose messages
+	// may have been lost.
+	defaultSweepInterval = 30 * time.Second
 )
 
 // DispatchRequirement reports whether the work a task would do is required.
@@ -167,7 +159,6 @@ type TaskDispatcher interface {
 	// RegisterExecutor adds a task executor with the given name. Must be called before
 	// Start() for all executor types.
 	//
-	// Takes ctx (context.Context) which carries logging context.
 	// Takes name (string) which identifies the executor.
 	// Takes executor (TaskExecutor) which handles tasks of the named kind.
 	RegisterExecutor(ctx context.Context, name string, executor TaskExecutor)
@@ -183,17 +174,13 @@ type TaskDispatcher interface {
 	// Returns DispatcherStats which is a snapshot of queue and worker counters.
 	Stats() DispatcherStats
 
-	// IsIdle returns true when the dispatcher has no work remaining.
-	//
-	// The dispatcher counts as idle when all of the following hold:
-	//   - All dispatched tasks have completed or failed
-	//   - All queues are empty
-	//   - No delayed tasks are pending
-	//   - No workers are actively processing
-	//
-	// Used for build completion detection.
+	// IsIdle reports whether all dispatched tasks have settled and no queued, delayed, or
+	// executing work remains.
 	//
 	// Returns bool which reports whether the dispatcher has no work left.
+	//
+	// Deprecated: use CheckBuildComplete, which also asks the task store, so work this
+	// process never dispatched, or whose message was lost, still counts.
 	IsIdle() bool
 
 	// FailedTasks returns a summary of all tasks currently in the FAILED state. When a build
@@ -224,15 +211,9 @@ type DispatcherConfig struct {
 	// scheduling.
 	Clock clockpkg.Clock
 
-	// NodeID uniquely identifies this orchestrator instance for recovery lease ownership,
-	// preventing multiple nodes from recovering the same task. If empty, a UUID is generated
-	// at startup.
+	// NodeID identifies this node; each process derives its instance ID, which owns the
+	// tasks it claims and the node lease, from it. If empty, a UUID is generated at startup.
 	NodeID string
-
-	// RecoveryLeaseTimeout is how long a recovery claim is valid, needing to be long enough
-	// to complete recovery but short enough to not block other nodes, defaulting to 5
-	// minutes.
-	RecoveryLeaseTimeout time.Duration
 
 	// RecoveryInterval is the interval for checking stale PROCESSING tasks. Set to 0 to
 	// disable recovery; default is 30 seconds.
@@ -242,10 +223,10 @@ type DispatcherConfig struct {
 	// considered stuck and eligible for recovery. Default is 10 minutes.
 	StaleTaskThreshold time.Duration
 
-	// HeartbeatInterval is how often to update task timestamps during execution, preventing
-	// long-running tasks from being recovered while still active and needing to be
-	// significantly less than StaleTaskThreshold, where 0 disables heartbeats and the
-	// default is 30 seconds.
+	// HeartbeatInterval controls node lease renewal and running-task refresh.
+	//
+	// It must be well below StaleTaskThreshold. Zero disables heartbeats; the default is 30
+	// seconds.
 	HeartbeatInterval time.Duration
 
 	// DefaultMaxRetries is the retry count for tasks that do not specify one.
@@ -288,46 +269,47 @@ type DispatcherConfig struct {
 	// default of 10,000.
 	MaxPendingReruns int
 
-	// DispatchBacklogLimit bounds the tasks held until the dispatcher subscribes.
+	// OverflowLimit bounds task references held outside the transport.
 	//
-	// Tasks dispatched before the topic subscriptions exist are published once they do, so
-	// none are lost to a topic with no subscriber; beyond the limit Dispatch returns
-	// ErrDispatchBacklogFull. Zero or negative uses the default of 10,000.
-	DispatchBacklogLimit int
+	// At capacity, dispatch before startup and deferred dispatch return ErrOverflowFull;
+	// other tasks remain pending for a sweep. Nonpositive values use 65,536.
+	OverflowLimit int
 
-	// MaxConcurrentPersistJobs caps in-flight async persistence goroutines.
+	// SweepInterval controls periodic republication of due tasks.
 	//
-	// Without a cap, a burst of completed tasks can spawn an unbounded number of goroutines
-	// and overwhelm the task store. When the limit is reached, callers fall back to
-	// synchronous persistence so the work still completes but the caller absorbs the
-	// backpressure. Default is runtime.NumCPU() * 4 when zero or negative.
-	MaxConcurrentPersistJobs int
+	// Zero uses 30 seconds. A negative value disables periodic sweeps but retains the
+	// startup sweep.
+	SweepInterval time.Duration
 
-	// SyncPersistence controls whether task updates persist synchronously. Default is false
-	// (async persistence); set to true for testing.
-	SyncPersistence bool
+	// Transport selects how tasks reach workers. TransportAuto, the default, delivers them
+	// in-process when the event bus is node-local, and over the bus otherwise.
+	Transport TransportMode
+
+	// SkipRecovery disables orphan recovery when running from another process's task-store
+	// snapshot.
+	SkipRecovery bool
 }
 
-// EffectiveMaxConcurrentPersistJobs returns the configured persist concurrency limit,
-// falling back to runtime.NumCPU() * 4 when unset or non-positive.
+// EffectiveDefaultTimeout returns the configured default task timeout, falling back to
+// the built-in default when unset or non-positive.
 //
-// Returns int which is the effective concurrency cap.
-func (c DispatcherConfig) EffectiveMaxConcurrentPersistJobs() int {
-	if c.MaxConcurrentPersistJobs > 0 {
-		return c.MaxConcurrentPersistJobs
+// Returns time.Duration which is the timeout for tasks that do not set their own.
+func (c DispatcherConfig) EffectiveDefaultTimeout() time.Duration {
+	if c.DefaultTimeout > 0 {
+		return c.DefaultTimeout
 	}
-	return runtime.NumCPU() * defaultPersistJobsPerCPU
+	return defaultTaskTimeout
 }
 
-// EffectiveDispatchBacklogLimit returns the configured limit on tasks held before the
-// dispatcher starts, falling back to the default when unset or non-positive.
+// EffectiveOverflowLimit returns the configured limit on task references held outside the
+// transport, falling back to the default when unset or non-positive.
 //
-// Returns int which is the effective backlog limit.
-func (c DispatcherConfig) EffectiveDispatchBacklogLimit() int {
-	if c.DispatchBacklogLimit > 0 {
-		return c.DispatchBacklogLimit
+// Returns int which is the effective overflow limit.
+func (c DispatcherConfig) EffectiveOverflowLimit() int {
+	if c.OverflowLimit > 0 {
+		return c.OverflowLimit
 	}
-	return defaultDispatchBacklogLimit
+	return defaultOverflowLimit
 }
 
 // EffectiveMaxPendingReruns returns the configured limit on pending reruns, falling back
@@ -339,6 +321,18 @@ func (c DispatcherConfig) EffectiveMaxPendingReruns() int {
 		return c.MaxPendingReruns
 	}
 	return defaultMaxPendingReruns
+}
+
+// EffectiveSweepInterval returns how often to sweep for lost dispatches, falling back to
+// the default when unset.
+//
+// Returns time.Duration which is the interval, or a negative value when periodic sweeps
+// are disabled.
+func (c DispatcherConfig) EffectiveSweepInterval() time.Duration {
+	if c.SweepInterval == 0 {
+		return defaultSweepInterval
+	}
+	return c.SweepInterval
 }
 
 // EffectiveMaxRetryBackoff returns the configured cap on retry delays, falling back to
@@ -394,6 +388,22 @@ type DispatcherStats struct {
 
 	// TasksFatalFailed is the subset of TasksFailed caused by fatal (non-retryable) errors.
 	TasksFatalFailed int64
+
+	// HeldTasks counts dispatched references retained until publication capacity becomes
+	// available.
+	HeldTasks int
+
+	// InFlightTasks is the number of tasks this dispatcher is executing now, plus the
+	// finished attempts whose settled state is still waiting to be written.
+	InFlightTasks int
+
+	// DelayedTasks is the number of foreground tasks waiting in the delayed publisher,
+	// including one being handed to the dispatcher. Background tasks are not counted.
+	DelayedTasks int
+
+	// PendingReruns is the number of dispatches waiting for an active task with the same
+	// deduplication key to settle.
+	PendingReruns int
 }
 
 // FailedTaskSummary holds the key details of a task that ended in the FAILED state. Used
@@ -424,23 +434,23 @@ type FailedTaskSummary struct {
 // retry settings.
 func DefaultDispatcherConfig() DispatcherConfig {
 	return DispatcherConfig{
-		DefaultTimeout:           defaultTaskTimeout,
-		DefaultMaxRetries:        defaultMaxRetries,
-		RecoveryInterval:         defaultRecoveryInterval,
-		StaleTaskThreshold:       defaultStaleTaskThreshold,
-		HeartbeatInterval:        defaultHeartbeatInterval,
-		NodeID:                   "",
-		RecoveryLeaseTimeout:     defaultRecoveryLeaseTimeout,
-		RecoveryBatchLimit:       defaultRecoveryBatchLimit,
-		SyncPersistence:          false,
-		WatermillHighHandlers:    defaultWatermillHighHandlers,
-		WatermillNormalHandlers:  defaultWatermillNormalHandlers,
-		WatermillLowHandlers:     defaultWatermillLowHandlers,
-		Clock:                    nil,
-		MaxConcurrentPersistJobs: 0,
-		MaxRetryBackoff:          defaultMaxRetryBackoff,
-		ExecutorAbandonGrace:     defaultExecutorAbandonGrace,
-		MaxPendingReruns:         defaultMaxPendingReruns,
-		DispatchBacklogLimit:     defaultDispatchBacklogLimit,
+		DefaultTimeout:          defaultTaskTimeout,
+		DefaultMaxRetries:       defaultMaxRetries,
+		RecoveryInterval:        defaultRecoveryInterval,
+		StaleTaskThreshold:      defaultStaleTaskThreshold,
+		HeartbeatInterval:       defaultHeartbeatInterval,
+		NodeID:                  "",
+		RecoveryBatchLimit:      defaultRecoveryBatchLimit,
+		WatermillHighHandlers:   defaultWatermillHighHandlers,
+		WatermillNormalHandlers: defaultWatermillNormalHandlers,
+		WatermillLowHandlers:    defaultWatermillLowHandlers,
+		Clock:                   nil,
+		MaxRetryBackoff:         defaultMaxRetryBackoff,
+		ExecutorAbandonGrace:    defaultExecutorAbandonGrace,
+		MaxPendingReruns:        defaultMaxPendingReruns,
+		OverflowLimit:           defaultOverflowLimit,
+		SweepInterval:           defaultSweepInterval,
+		Transport:               TransportAuto,
+		SkipRecovery:            false,
 	}
 }

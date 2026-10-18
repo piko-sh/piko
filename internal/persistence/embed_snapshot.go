@@ -37,7 +37,7 @@ import (
 	"piko.sh/piko/internal/wal/wal_adapters/driven_disk"
 	"piko.sh/piko/internal/wal/wal_domain"
 	"piko.sh/piko/wdk/clock"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (
@@ -166,7 +166,8 @@ func LoadRegistryArtefactsFromFS(ctx context.Context, fsys fs.FS) ([]*registry_d
 // If the snapshot file does not exist, an empty cache is returned without error.
 //
 // Takes fsys (fs.FS) which provides access to the embedded .piko directory.
-// Takes capacity (int64) which sets the maximum cache size; zero uses default.
+// Takes capacity (int64) for compatibility; task admission is limited by the DAL.
+// Recovered active tasks must not be evicted by the cache.
 //
 // Returns cache_domain.ProviderPort[string, *orchestrator_domain.Task] which is the
 // populated cache.
@@ -208,6 +209,9 @@ func loadAndPopulateCache[K comparable, V any](
 
 	if capacity <= 0 {
 		capacity = defaultCapacity
+	}
+	if label == "orchestrator" {
+		capacity = 0
 	}
 
 	entries, err := loadSnapshotEntries(ctx, fsys, snapshotPath, codec)

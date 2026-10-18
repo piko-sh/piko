@@ -197,7 +197,6 @@ func WithSameSiteNone() CookieOption {
 // based on the DevelopmentMode flag in the request context. In production Secure is true;
 // in development Secure is false.
 //
-// Takes ctx (context.Context) which provides the request context for mode detection.
 // Takes name (string) which specifies the cookie name.
 // Takes value (string) which specifies the cookie value.
 // Takes expires (time.Time) which sets when the cookie expires.
@@ -214,7 +213,6 @@ func SmartSessionCookie(ctx context.Context, name, value string, expires time.Ti
 // SmartClearCookie creates a clear-cookie that automatically adapts the Secure flag to
 // match the runtime environment.
 //
-// Takes ctx (context.Context) which provides the request context for mode detection.
 // Takes name (string) which specifies the cookie name to clear.
 //
 // Returns *http.Cookie which instructs the browser to delete the cookie.

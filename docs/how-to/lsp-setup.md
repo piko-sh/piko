@@ -130,7 +130,7 @@ The LSP currently provides:
 | Completion | Directive names (`p-if`, `p-for`, etc.), state field names from the `Response` type, imported partial aliases, directive-attribute values. |
 | Hover | Type information for expressions inside `{{ ... }}`, doc comments from the `Response` struct, partial-prop docs. |
 | Go-to-definition | Jumps to the `Response` or `Props` struct field, to the imported partial, to actions referenced by `$form` or `action.*`. |
-| Diagnostics | Template-expression type errors, missing imports, unknown directive attributes. |
+| Diagnostics | Template-expression type errors, missing imports, unknown directive attributes. Each diagnostic's code, such as `T141`, links to its explanation in the [diagnostics reference](../reference/diagnostics.md); editors show it as a clickable code. |
 | Rename | Rename a field across struct declaration, template usage, and TS/JS script blocks. |
 
 ## Troubleshooting
@@ -143,6 +143,7 @@ The LSP currently provides:
 
 ## See also
 
+- [Diagnostics reference](../reference/diagnostics.md) for what each diagnostic code means and how to fix it.
 - [CLI reference](../reference/cli.md) for `piko fmt` (formatter accessible from the LSP).
 - [Client components reference](../reference/client-components.md) for the PKC file format the LSP understands.
 - [PK file format reference](../reference/pk-file-format.md).

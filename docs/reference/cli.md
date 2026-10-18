@@ -30,10 +30,23 @@ Run `piko help` for a condensed list. Every subcommand accepts `--help` for its 
 | `piko dev` | Generate assets then run the development server, equivalent to `go run ./cmd/generator all && go run ./cmd/main dev`. |
 | `piko dev-i` | Generate assets then run the development server in interpreted mode, equivalent to `go run ./cmd/generator all && go run ./cmd/main dev-i`. Requires [interpreter registration](../how-to/interpreted-mode.md#register-the-interpreter). |
 | `piko fmt` | Format `.pk` template files. Flags: `-w` (write, default `true`), `-r` (recurse), `-n` (dry run), `--check` (exit 1 if any files need formatting), `-l` (list files needing formatting). Accepts file or directory arguments. |
+| `piko explain [code...]` | Explain a diagnostic code from build output, such as the `T141` in `error [T141]`. Accepts a code in any case or its name (`ComparisonError`). With no code, lists every code. `--json` prints the same data as JSON. See [explaining a diagnostic](#explaining-a-diagnostic). |
 | `piko extract <subcommand>` | Generate and check native Go symbol tables for Pipit. See [symbol extraction](#symbol-extraction). |
 | `piko inspect <type> <file>` | Inspect FlatBuffers binary files. Types: `manifest`, `i18n`, `collection`, `search`, `bytecode`, `wal`. WAL-only flags: `--effective` (final state per key after replay), `--parse-values` (parse JSON string values into native objects). All types accept `--compact` for compact JSON. |
 | `piko agents` | Configure AI coding tools with Piko knowledge (Claude Code, Codex, Cursor, etc.). |
 | `piko profile <url>` | Profile a live server under load: CPU, memory, mutex, and blocking profiles. Supports `--focus` to scope results. See [how to profiling](../how-to/profiling.md) for interpretation. |
+
+## Explaining a diagnostic
+
+Every coded diagnostic in build output ends with a pointer to its explanation:
+
+```text
+  = docs: https://piko.sh/diagnostics/T141 (or run: piko explain T141)
+```
+
+`piko explain T141` prints the same explanation in the terminal: what the code means, when it is reported, how to fix it, and an example. `piko explain` with no code lists every code by family. Codes starting with `Q` come from the SQL generator; `piko explain` points to their explanation at seagull.sh. The [diagnostics reference](diagnostics.md) lists every code.
+
+`piko explain` explains diagnostic codes. It is unrelated to `piko diagnostics`, which tests the connection to the monitoring server.
 
 ## Symbol extraction
 
@@ -42,9 +55,11 @@ Run `piko help` for a condensed list. Every subcommand accepts `--help` for its 
 | Subcommand | Behaviour |
 |---|---|
 | `init` | Scans project imports and writes `piko-symbols.yaml`. The package list can be empty. Refuses to overwrite an existing file without `--force`. |
-| `discover` | Reports packages that need symbol tables without writing a manifest. |
+| `discover` | Reports packages that need symbol tables without writing a manifest. Imports it cannot load are printed as warnings. |
 | `generate` | Generates symbol tables from a non-empty manifest. The default output is `internal/piko_symbols`. |
 | `check` | Checks the manifest against project imports. |
+
+`init`, `discover` and `check` leave out the project's own packages, which dev-i compiles from source, and follow their imports instead. They choose those packages' files as the interpreter does, with the `interp` build tag set and cgo off. Packages the server already provides, and packages named with `--ignore`, are not followed. Action packages are reached through the `.pk` files that import them. Pass `--include-project` to list the project packages your `.pk` files import without following them, for example to register one as native code.
 
 Each subcommand accepts `--help` for its flags. The [interpreted-mode guide](../how-to/interpreted-mode.md#add-native-package-symbols) covers the extraction workflow.
 
@@ -64,7 +79,7 @@ Monitoring commands connect to the gRPC monitoring server (default `127.0.0.1:90
 | `piko profiling status` | Report whether profiling is active. |
 | `piko profiling capture <kind> [duration]` | Capture a specific profile: `heap`, `cpu`, `goroutine`, `mutex`, `block`, `allocs`, `trace`. |
 | `piko profiling disable` | Disable on-demand profiling. |
-| `piko diagnostics` | Test connectivity to the monitoring server. |
+| `piko diagnostics` | Test connectivity to the monitoring server. Not to be confused with `piko explain`, which explains diagnostic codes. |
 | `piko tui` | Launch the interactive terminal UI. |
 | `piko watchdog status` | Print the watchdog's lifecycle, thresholds, and continuous-profiling configuration. |
 | `piko watchdog list [--type <t>]` | List stored watchdog profiles. |
@@ -157,6 +172,7 @@ piko watchdog contention-diagnostic
 
 ## See also
 
+- [Diagnostics reference](diagnostics.md) for every code `piko explain` covers.
 - [Bootstrap options reference](bootstrap-options.md) for the server-side options that the monitoring commands read.
 - [Monitoring API reference](monitoring-api.md) for the gRPC transport that the `piko get`, `piko watch`, `piko describe`, `piko tui`, and `piko watchdog` commands consume.
 - [Watchdog API reference](watchdog-api.md) for the watchdog options and event types referenced by the `piko watchdog` subcommands.

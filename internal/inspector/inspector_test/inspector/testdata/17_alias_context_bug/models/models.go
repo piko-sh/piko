@@ -18,7 +18,6 @@
 
 package models
 
-// User is the canonical type that will be imported everywhere.
 type User struct {
 	ID string
 }

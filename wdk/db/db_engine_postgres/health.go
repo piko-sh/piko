@@ -55,7 +55,6 @@ const (
 // others. The set covers database size, active connections, recovery state, and
 // replication lag.
 //
-// Takes ctx (context.Context) which bounds each probe query.
 // Takes database (*sql.DB) which is the connection pool to probe.
 //
 // Returns []db.DatabaseHealthDiagnostic which lists every collected probe.
@@ -70,7 +69,6 @@ func (*PostgresEngine) CheckHealth(ctx context.Context, database *sql.DB) []db.D
 
 // checkPostgresDatabaseSize probes the current database size in bytes.
 //
-// Takes ctx (context.Context) which bounds the probe query.
 // Takes database (*sql.DB) which is the connection pool to probe.
 //
 // Returns []db.DatabaseHealthDiagnostic which is a single-entry slice reporting size or
@@ -85,7 +83,6 @@ func checkPostgresDatabaseSize(ctx context.Context, database *sql.DB) []db.Datab
 
 // checkPostgresActiveConnections probes the count of active sessions.
 //
-// Takes ctx (context.Context) which bounds the probe query.
 // Takes database (*sql.DB) which is the connection pool to probe.
 //
 // Returns []db.DatabaseHealthDiagnostic which is a single-entry slice reporting the count
@@ -100,7 +97,6 @@ func checkPostgresActiveConnections(ctx context.Context, database *sql.DB) []db.
 
 // checkPostgresRecoveryState probes whether the server is in recovery mode.
 //
-// Takes ctx (context.Context) which bounds the probe query.
 // Takes database (*sql.DB) which is the connection pool to probe.
 //
 // Returns []db.DatabaseHealthDiagnostic which is a single-entry slice reporting the
@@ -115,7 +111,6 @@ func checkPostgresRecoveryState(ctx context.Context, database *sql.DB) []db.Data
 
 // checkPostgresReplicationLag probes replication lag when in recovery.
 //
-// Takes ctx (context.Context) which bounds the probe query.
 // Takes database (*sql.DB) which is the connection pool to probe.
 //
 // Returns []db.DatabaseHealthDiagnostic which is a single-entry slice reporting lag and

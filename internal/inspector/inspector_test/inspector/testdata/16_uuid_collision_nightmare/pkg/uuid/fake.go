@@ -18,8 +18,6 @@
 
 package uuid
 
-// This is our local, fake UUID type. It has the same package name "uuid".
-// It has no methods.
 type UUID struct {
 	IsLocal bool
 }

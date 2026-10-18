@@ -1,1 +1,0 @@
-{"description": "VALUES as a standalone query without INSERT produces output columns inferred from the first row"}

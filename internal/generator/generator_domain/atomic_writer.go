@@ -25,7 +25,7 @@ import (
 	"path/filepath"
 
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -41,7 +41,6 @@ const (
 // The filename should be relative to the sandbox root. All operations are performed
 // within the sandbox boundary.
 //
-// Takes ctx (context.Context) which carries logging context.
 // Takes sandbox (safedisk.Sandbox) which provides the sandboxed filesystem.
 // Takes filename (string) which specifies the target file path.
 // Takes data ([]byte) which contains the content to write.
@@ -92,7 +91,6 @@ func AtomicWriteFile(ctx context.Context, sandbox safedisk.Sandbox, filename str
 // cleanupTempFile closes and removes a temporary file, logging any errors. This is a
 // best-effort cleanup function used during error handling.
 //
-// Takes ctx (context.Context) which carries logging context.
 // Takes sandbox (safedisk.Sandbox) which provides file system operations.
 // Takes tempFile (safedisk.FileHandle) which is the temporary file to clean up.
 func cleanupTempFile(ctx context.Context, sandbox safedisk.Sandbox, tempFile safedisk.FileHandle) {
@@ -111,7 +109,6 @@ func cleanupTempFile(ctx context.Context, sandbox safedisk.Sandbox, tempFile saf
 
 // removeTempFile removes a temporary file and logs a warning on failure.
 //
-// Takes ctx (context.Context) which carries logging context.
 // Takes sandbox (safedisk.Sandbox) which provides safe file system operations.
 // Takes tempFileName (string) which is the path of the temporary file to remove.
 func removeTempFile(ctx context.Context, sandbox safedisk.Sandbox, tempFileName string) {

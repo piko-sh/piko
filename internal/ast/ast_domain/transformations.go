@@ -261,14 +261,9 @@ func init() {
 	expressionParserPool.Store(newExpressionParserPool())
 }
 
-// TidyAST runs a second phase of changes on the AST that makes the tree simpler for later
-// stages like code generation. It assigns keys to nodes and links if-else chains.
+// TidyAST assigns node keys and links conditional chains, skipping nil or already tidied
+// trees.
 //
-// When tree is nil, returns at once.
-//
-// When tree.Tidied is already true, logs a warning and returns without making changes.
-//
-// Takes ctx (context.Context) which carries the request-scoped logger.
 // Takes tree (*TemplateAST) which is the parsed template tree to transform.
 func TidyAST(ctx context.Context, tree *TemplateAST) {
 	_, l := logger_domain.From(ctx, log)
@@ -310,8 +305,6 @@ func setSequentialProcessing(enabled bool) {
 // turns raw expression strings into structured Expression objects and moves directives
 // from the raw Directives slice into their typed fields (such as DirIf and OnEvents).
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes tree (*TemplateAST) which is the parsed template to transform.
 func applyTemplateTransformations(ctx context.Context, tree *TemplateAST) {
 	if tree == nil {
@@ -328,8 +321,6 @@ func applyTemplateTransformations(ctx context.Context, tree *TemplateAST) {
 
 // parseAllExpressions walks the AST to parse all raw expression strings.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes tree (*TemplateAST) which is the AST to process.
 //
 // Concurrent processing uses multiple goroutines when the tree size exceeds the parallel
@@ -370,8 +361,6 @@ func parseAllExpressions(ctx context.Context, tree *TemplateAST) {
 
 // parseExpressionsForNode parses all expressions within a single template node.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes node (*TemplateNode) which contains directives, dynamic attributes, and rich text
 // to parse.
 // Takes sourcePath (string) which identifies the source file for diagnostics.
@@ -407,8 +396,6 @@ func parseExpressionsForNode(ctx context.Context, node *TemplateNode, sourcePath
 // parseAndSetExpression parses a raw expression string and sets it on a target using the
 // given callback.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes rawExpr (string) which is the expression text to parse.
 // Takes location (Location) which specifies where the expression appears.
 // Takes sourcePath (string) which identifies the source file.
@@ -444,14 +431,9 @@ func parseAndSetExpression(ctx context.Context, rawExpr string, location Locatio
 	return diagnostics
 }
 
-// parseExpressionForDirective parses and sets the expression for a directive.
+// parseExpressionForDirective sets a directive's expression, validating raw-string
+// directives without parsing them.
 //
-// When the directive is an else type with no raw expression, returns nil. When the
-// directive is a raw string directive (such as p-ref), checks the raw value instead of
-// parsing it as an expression.
-//
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes d (*Directive) which is the directive to parse.
 // Takes sourcePath (string) which is the path to the source file.
 //
@@ -540,8 +522,6 @@ func validateSlotDirective(d *Directive, sourcePath string) []*Diagnostic {
 // parseExpressionForDynamicAttribute parses the raw expression of a dynamic attribute and
 // stores the parsed result.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes da (*DynamicAttribute) which holds the raw expression to parse.
 // Takes sourcePath (string) which is the path to the source file for error messages.
 //
@@ -555,8 +535,6 @@ func parseExpressionForDynamicAttribute(ctx context.Context, da *DynamicAttribut
 // parseExpressionForTextPart parses the raw expression in a text part and stores the
 // result.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes part (*TextPart) which contains the raw expression to parse.
 // Takes sourcePath (string) which gives the source file path for error messages.
 //

@@ -123,6 +123,7 @@ func SetupOtel(ctx context.Context, config OtelSetupConfig, enabledIntegrations 
 			tracerProvider = result.TracerProvider
 			meterProvider = result.MeterProvider
 			shutdownFunc = result.ShutdownFunc
+			logger_domain.SetTracingEnabled(true)
 		} else {
 			slog.Warn("OTEL SDK not available: no provider factory registered. Import piko.sh/piko/wdk/logger/logger_otel_sdk to enable OTEL SDK support. Falling back to noop providers.")
 			tracerProvider = tracenoop.NewTracerProvider()

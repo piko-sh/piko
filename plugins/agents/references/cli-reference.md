@@ -86,13 +86,13 @@ Default address: `http://localhost:8080`
 
 ```bash
 # Stdio mode (default, for editor integration)
-go run ./cmd/pikopls
+pikopls
 
 # TCP mode (for debugging)
-go run ./cmd/pikopls --tcp --port 4389
+pikopls --tcp --port 4389
 
 # File logging for debugging
-go run ./cmd/pikopls --file-logging
+pikopls --file-logging
 ```
 
 ### LSP capabilities
@@ -104,7 +104,7 @@ go run ./cmd/pikopls --file-logging
 | Diagnostics | Type errors, undefined variables, missing imports |
 | Go to Definition | Navigate to symbol definitions |
 | Find References | Locate all references |
-| Document Formatting | Format entire document |
+| Document Formatting | Format entire document (needs `--formatting`) |
 | Quick Fixes | Auto-fix diagnostics (add coerce, add import, etc.) |
 | Rename | Rename symbols across workspace |
 | Linked Editing | Edit matching HTML tags simultaneously |
@@ -113,7 +113,7 @@ go run ./cmd/pikopls --file-logging
 
 ```bash
 go build -o app ./cmd/main
-./app
+./app prod
 ```
 
 ## Docker
@@ -135,7 +135,7 @@ docker run -p 8080:8080 my-piko-app
 ## LLM mistake checklist
 
 - Forgetting to run `go run ./cmd/generator/main.go all` after adding pages/partials
-- Using `piko fmt` without `-r` flag (only formats a single file)
+- Using `piko fmt` without `-r` flag (subdirectories are skipped)
 - Forgetting to run `go mod tidy` after changing dependencies
 
 ## Related

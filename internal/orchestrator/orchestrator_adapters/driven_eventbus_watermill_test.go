@@ -517,11 +517,11 @@ func TestWatermillEventBus_DeliverWithBackpressure(t *testing.T) {
 			wantAck:    false,
 		},
 		{
-			name:       "drop newest nacks the incoming event when full",
+			name:       "drop newest acknowledges the incoming event when full",
 			mode:       BackpressureDropNewest,
 			bufferFull: true,
 			wantTypes:  []orchestrator_domain.EventType{"queued"},
-			wantAck:    false,
+			wantAck:    true,
 		},
 		{
 			name:       "drop oldest evicts the queued event to deliver the incoming one",

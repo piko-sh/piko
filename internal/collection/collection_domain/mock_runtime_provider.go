@@ -58,7 +58,6 @@ func (m *MockRuntimeProvider) Name() string {
 
 // Fetch delegates to FetchFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes collectionName (string) which identifies the collection by name.
 // Takes options (*collection_dto.FetchOptions) which provides fetch configuration
 // options.

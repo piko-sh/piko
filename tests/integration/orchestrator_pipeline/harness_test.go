@@ -35,6 +35,7 @@ import (
 	"piko.sh/piko/internal/orchestrator/orchestrator_adapters"
 	orchestrator_otter "piko.sh/piko/internal/orchestrator/orchestrator_dal/otter"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
+	"piko.sh/piko/internal/registry/registry_dal"
 	registry_otter "piko.sh/piko/internal/registry/registry_dal/otter"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
@@ -43,6 +44,8 @@ import (
 	clockpkg "piko.sh/piko/wdk/clock"
 	"piko.sh/piko/wdk/events/events_provider_gochannel"
 )
+
+const harnessBuildTag = "harness-build"
 
 type pipelineHarness struct {
 	eventBusProvider *events_provider_gochannel.GoChannelProvider
@@ -117,6 +120,8 @@ type harnessConfig struct {
 	executors            map[string]*controllableExecutor
 	clock                clockpkg.Clock
 	wrapBridgeRegistry   func(registry_domain.RegistryService) registry_domain.RegistryService
+	registryMetaStore    registry_dal.RegistryDALWithTx
+	registryBlobDir      string
 	deferDispatcherStart bool
 }
 
@@ -150,6 +155,13 @@ func withRecoverySweepInterval(interval time.Duration) harnessOption {
 	}
 }
 
+func withRegistryStorage(metaStore registry_dal.RegistryDALWithTx, blobDir string) harnessOption {
+	return func(config *harnessConfig) {
+		config.registryMetaStore = metaStore
+		config.registryBlobDir = blobDir
+	}
+}
+
 func withDeferredDispatcherStart() harnessOption {
 	return func(config *harnessConfig) {
 		config.deferDispatcherStart = true
@@ -172,7 +184,7 @@ func newPipelineHarness(t *testing.T, opts ...harnessOption) *pipelineHarness {
 			RecoveryInterval:        0,
 			StaleTaskThreshold:      10 * time.Minute,
 			HeartbeatInterval:       0,
-			SyncPersistence:         true,
+			SweepInterval:           -1,
 			WatermillHighHandlers:   2,
 			WatermillNormalHandlers: 2,
 			WatermillLowHandlers:    1,
@@ -222,7 +234,10 @@ func newPipelineHarness(t *testing.T, opts ...harnessOption) *pipelineHarness {
 	)
 	h.eventBus = eventBus
 
-	dal, err := orchestrator_otter.NewOtterDAL(orchestrator_otter.Config{Capacity: 10000})
+	dal, err := orchestrator_otter.NewOtterDAL(
+		orchestrator_otter.Config{Capacity: 10000},
+		orchestrator_otter.WithClock(config.dispatcherConfig.Clock),
+	)
 	require.NoError(t, err)
 	h.taskStore = dal
 
@@ -234,15 +249,22 @@ func newPipelineHarness(t *testing.T, opts ...harnessOption) *pipelineHarness {
 	)
 	require.NotNil(t, h.dispatcher, "CreateTaskDispatcher returned nil")
 
+	h.dispatcher.SetBuildTag(harnessBuildTag)
 	for name, exec := range config.executors {
 		h.dispatcher.RegisterExecutor(context.Background(), name, exec)
 	}
 
-	metaStore, err := registry_otter.NewOtterDAL(registry_otter.Config{Capacity: 10000})
-	require.NoError(t, err)
+	metaStore := config.registryMetaStore
+	ownsMetaStore := metaStore == nil
+	if ownsMetaStore {
+		metaStore, err = registry_otter.NewOtterDAL(registry_otter.Config{Capacity: 10000})
+		require.NoError(t, err)
+	}
 
-	tempDir := t.TempDir()
-	blobDir := filepath.Join(tempDir, "blobs")
+	blobDir := config.registryBlobDir
+	if blobDir == "" {
+		blobDir = filepath.Join(t.TempDir(), "blobs")
+	}
 	require.NoError(t, os.MkdirAll(blobDir, 0o755))
 	diskProvider, err := provider_disk.NewDiskProvider(provider_disk.Config{
 		BaseDirectory: blobDir,
@@ -290,10 +312,17 @@ func newPipelineHarness(t *testing.T, opts ...harnessOption) *pipelineHarness {
 		h.wg.Wait()
 		_ = provider.Close()
 		_ = dal.Close()
-		_ = metaStore.Close()
+		if ownsMetaStore {
+			_ = metaStore.Close()
+		}
 	})
 
 	return h
+}
+
+func (h *pipelineHarness) stop() {
+	h.cancel()
+	h.wg.Wait()
 }
 
 func (h *pipelineHarness) startDispatcher() {
@@ -335,17 +364,25 @@ func waitForSignal(t *testing.T, signal <-chan struct{}, message string) {
 
 func (h *pipelineHarness) advancePastRetry(attempt int) bool {
 	h.t.Helper()
-	baseline := h.clock.TimerCount()
-	if !h.clock.AwaitTimerSetup(baseline, 5*time.Second) {
-		return false
-	}
-
 	backoff := time.Duration(1) * time.Second
 	for range attempt {
 		backoff *= 10
 	}
-	h.clock.Advance(backoff + 2*time.Second)
-	return true
+	deadline := time.Now().Add(5 * time.Second)
+	for h.dispatcher.Stats().DelayedTasks == 0 {
+		if time.Now().After(deadline) {
+			return false
+		}
+		time.Sleep(time.Millisecond)
+	}
+	for time.Now().Before(deadline) {
+		h.clock.Advance(backoff + 2*time.Second)
+		time.Sleep(20 * time.Millisecond)
+		if h.dispatcher.Stats().DelayedTasks == 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func (h *pipelineHarness) advanceUntilIdle(timeout time.Duration) bool {
@@ -363,6 +400,36 @@ func (h *pipelineHarness) advanceUntilIdle(timeout time.Duration) bool {
 	return h.dispatcher.IsIdle()
 }
 
+func (h *pipelineHarness) buildCompletionCheck() orchestrator_domain.BuildCompletionCheck {
+	return orchestrator_domain.BuildCompletionCheck{
+		Dispatcher: h.dispatcher,
+		Store:      h.taskStore,
+		Outstanding: func() int64 {
+			return max(h.registryService.ArtefactEventsIssued()-h.bridge.ArtefactEventsProcessed(), 0)
+		},
+		BuildTag: harnessBuildTag,
+	}
+}
+
+func (h *pipelineHarness) buildComplete() bool {
+	h.t.Helper()
+	_, complete, err := orchestrator_domain.CheckBuildComplete(h.ctx, h.buildCompletionCheck())
+	require.NoError(h.t, err)
+	return complete
+}
+
+func (h *pipelineHarness) waitForBuildComplete(timeout time.Duration) bool {
+	h.t.Helper()
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if h.buildComplete() {
+			return true
+		}
+		time.Sleep(2 * time.Millisecond)
+	}
+	return false
+}
+
 func (h *pipelineHarness) waitForFlush(timeout time.Duration) bool {
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
@@ -377,8 +444,8 @@ func (h *pipelineHarness) waitForFlush(timeout time.Duration) bool {
 
 func (h *pipelineHarness) dispatchTask(executor string, priority orchestrator_domain.TaskPriority) error {
 	task := &orchestrator_domain.Task{
-		ID:         fmt.Sprintf("task-%d", time.Now().UnixNano()),
-		WorkflowID: fmt.Sprintf("workflow-%d", time.Now().UnixNano()),
+		ID:         "task-" + orchestrator_domain.NewTaskID(),
+		WorkflowID: "workflow-" + orchestrator_domain.NewTaskID(),
 		Executor:   executor,
 		Config: orchestrator_domain.TaskConfig{
 			Priority: priority,
@@ -428,7 +495,6 @@ func withProductionConfig() harnessOption {
 		config.dispatcherConfig.WatermillHighHandlers = prod.WatermillHighHandlers
 		config.dispatcherConfig.WatermillNormalHandlers = prod.WatermillNormalHandlers
 		config.dispatcherConfig.WatermillLowHandlers = prod.WatermillLowHandlers
-		config.dispatcherConfig.SyncPersistence = prod.SyncPersistence
 	}
 }
 

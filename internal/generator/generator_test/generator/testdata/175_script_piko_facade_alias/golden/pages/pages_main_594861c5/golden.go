@@ -14,7 +14,7 @@ import (
 	"piko.sh/piko"
 	pk "piko.sh/piko"
 	pikoruntime "piko.sh/piko/wdk/runtime"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 var _ = fmt.Println

@@ -59,7 +59,7 @@ import (
 	"piko.sh/piko/internal/spamdetect/spamdetect_domain"
 	"piko.sh/piko/internal/templater/templater_adapters"
 	"piko.sh/piko/internal/templater/templater_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // interpretedDaemonBuilder holds the state and logic needed to build the daemon in
@@ -171,7 +171,7 @@ func (b *interpretedDaemonBuilder) build(ctx context.Context) (daemon_domain.Dae
 	_, _ = fmt.Fprint(os.Stderr, summary)
 
 	if result.HasFailures() {
-		return nil, fmt.Errorf("initial asset seeding failed with %d failed task(s)", result.TotalFailed)
+		return nil, fmt.Errorf("initial asset seeding failed: %w: %s", lifecycle_domain.ErrBuildHasFailures, result.FailureSummary())
 	}
 	l.Internal("Initial asset pipeline complete.")
 
@@ -414,7 +414,6 @@ func (b *interpretedDaemonBuilder) createAnnotatorReaderAndProcessor(
 
 // createAnnotatorServiceInstance creates the annotator service with all dependencies.
 //
-// Takes ctx (context.Context) which carries the logging context.
 // Takes resolver (resolver_domain.ResolverPort) which resolves references.
 // Takes fsReader (annotator_domain.FSReaderPort) which reads files.
 // Takes cssProcessor (*annotator_domain.CSSProcessor) which processes CSS.
@@ -637,6 +636,7 @@ func (b *interpretedDaemonBuilder) buildArtefactMetadataCache(ctx context.Contex
 	if err != nil {
 		l.Warn("Failed to get cache service, artefact metadata caching disabled for interpreted mode",
 			logger_domain.Error(err))
+		b.c.subscribeArtefactInvalidation(ctx, nil)
 		return nil
 	}
 
@@ -649,6 +649,7 @@ func (b *interpretedDaemonBuilder) buildArtefactMetadataCache(ctx context.Contex
 	if err != nil {
 		l.Warn("Failed to create artefact metadata cache, metadata caching disabled for interpreted mode",
 			logger_domain.Error(err))
+		b.c.subscribeArtefactInvalidation(ctx, nil)
 		return nil
 	}
 
@@ -656,18 +657,7 @@ func (b *interpretedDaemonBuilder) buildArtefactMetadataCache(ctx context.Contex
 		return artefactMetaCache.Close(shutdownCtx)
 	})
 
-	eventBus, err := b.c.GetEventBus()
-	if err != nil {
-		l.Warn("Failed to get event bus, artefact metadata cache invalidation disabled for interpreted mode",
-			logger_domain.Error(err))
-		return artefactMetaCache
-	}
-
-	if subscribeErr := daemon_adapters.SubscribeArtefactMetadataInvalidation(ctx, eventBus, artefactMetaCache); subscribeErr != nil {
-		l.Warn("Failed to subscribe artefact metadata cache invalidation for interpreted mode",
-			logger_domain.Error(subscribeErr))
-	}
-
+	b.c.subscribeArtefactInvalidation(ctx, artefactMetaCache)
 	return artefactMetaCache
 }
 
@@ -805,7 +795,7 @@ func (b *interpretedDaemonBuilder) buildInterpretedDaemonDeps(ctx context.Contex
 	daemonConfig.NetworkAutoNextPort = true
 	daemonConfig.HealthAutoNextPort = true
 
-	serverAdapter, err := b.setupTLSServerAdapter(ctx, daemonConfig)
+	serverAdapter, err := b.setupTLSServerAdapter(ctx, &daemonConfig)
 	if err != nil {
 		return nil, fmt.Errorf("setting up TLS server adapter: %w", err)
 	}
@@ -822,7 +812,7 @@ func (b *interpretedDaemonBuilder) buildInterpretedDaemonDeps(ctx context.Contex
 		HealthServer:        healthServer,
 		HealthRouter:        healthRouter,
 		DrainSignaller:      drainSignaller,
-		TLSRedirectServer:   newTLSRedirectServerIfConfigured(daemonConfig),
+		TLSRedirectServer:   newTLSRedirectServerIfConfigured(&daemonConfig),
 		OnServerBound:       b.c.OnServerBound(),
 		OnHealthBound:       b.c.OnHealthBound(),
 		SignalNotifier:      nil,
@@ -832,12 +822,11 @@ func (b *interpretedDaemonBuilder) buildInterpretedDaemonDeps(ctx context.Contex
 // setupTLSServerAdapter creates the server adapter from TLS configuration and registers
 // the certificate loader for shutdown cleanup.
 //
-// Takes ctx (context.Context) which carries tracing and cancellation.
-// Takes daemonConfig (daemon_domain.DaemonConfig) which provides the TLS settings.
+// Takes daemonConfig (*daemon_domain.DaemonConfig) which provides the TLS settings.
 //
 // Returns daemon_domain.ServerAdapter which is the configured server adapter.
 // Returns error when TLS initialisation fails.
-func (b *interpretedDaemonBuilder) setupTLSServerAdapter(ctx context.Context, daemonConfig daemon_domain.DaemonConfig) (daemon_domain.ServerAdapter, error) {
+func (b *interpretedDaemonBuilder) setupTLSServerAdapter(ctx context.Context, daemonConfig *daemon_domain.DaemonConfig) (daemon_domain.ServerAdapter, error) {
 	serverAdapter, tlsCleanup, err := daemon_adapters.NewServerAdapterFromTLSConfig(
 		ctx,
 		daemonConfig.TLS,
@@ -996,7 +985,6 @@ func (b *interpretedDaemonBuilder) discoverInitialEntryPoints(ctx context.Contex
 
 // discoverSourceDir walks a single source directory and populates the entry point map.
 //
-// Takes ctx (context.Context) which carries the logging context.
 // Takes directory (string) which specifies the directory path relative to base.
 // Takes isPage (bool) which indicates whether entries are page templates.
 // Takes isEmail (bool) which indicates whether entries are email templates.
@@ -1036,7 +1024,6 @@ func (b *interpretedDaemonBuilder) discoverSourceDir(
 
 // sourceDirectoryExists checks whether a source directory exists.
 //
-// Takes ctx (context.Context) which carries the logging context.
 // Takes directory (string) which is the relative path to check.
 // Takes baseDir (string) which is the base path for creating the sandbox.
 // Takes absDir (string) which is the absolute path for logging.
@@ -1078,7 +1065,6 @@ type sourceFileContext struct {
 
 // processSourceFile handles a single file during directory walking.
 //
-// Takes ctx (context.Context) which carries the logging context.
 // Takes absPath (string) which is the full path to the file.
 // Takes d (os.DirEntry) which provides file information.
 // Takes err (error) which is any error from the walk step.

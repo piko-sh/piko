@@ -92,8 +92,6 @@ func (p *ollamaProvider) Stream(ctx context.Context, request *llm_dto.Completion
 // streamContext returns a context that is cancelled when the caller's context is
 // cancelled, the provider is closed, or the returned cancel function is called.
 //
-// Takes ctx (context.Context) which is the caller's context.
-//
 // Returns context.Context which carries the merged cancellation signal.
 // Returns context.CancelCauseFunc which must be called once the stream finishes, so the
 // watch on the provider's close signal is released.

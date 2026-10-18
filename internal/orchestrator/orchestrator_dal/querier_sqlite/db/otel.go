@@ -2,8 +2,20 @@
 
 package db
 
-var queryNameMap = map[string]string{cleanupoldresolvedreceipts: "CleanupOldResolvedReceipts", timeoutstalereceipts: "TimeoutStaleReceipts", listfailedtasks: "ListFailedTasks", checkduplicateactivetask: "CheckDuplicateActiveTask", createtaskwithdedup: "CreateTaskWithDedup", updatetaskheartbeat: "UpdateTaskHeartbeat", getstaleprocessingtaskcount: "GetStaleProcessingTaskCount", listtaskstatuscounts: "ListTaskStatusCounts", listrecenttasks: "ListRecentTasks", listworkflowsummary: "ListWorkflowSummary", recoverstaletasks: "RecoverStaleTasks", getstaletasksforrecovery: "GetStaleTasksForRecovery", claimtaskforrecovery: "ClaimTaskForRecovery", recoverclaimedtasks: "RecoverClaimedTasks", releaserecoveryleases: "ReleaseRecoveryLeases", promotescheduledtasks: "PromoteScheduledTasks", pendingtaskcount: "PendingTaskCount", createtask: "CreateTask", updatetask: "UpdateTask", fetchduetasks: "FetchDueTasks", gettasksbyid: "GetTasksByID", createtasksbatch: "CreateTasksBatch", marktasksasprocessing: "MarkTasksAsProcessing", createworkflowreceipt: "CreateWorkflowReceipt", resolveworkflowreceipts: "ResolveWorkflowReceipts", getpendingreceiptsbynode: "GetPendingReceiptsByNode", getpendingreceiptsbyworkflow: "GetPendingReceiptsByWorkflow", getworkflowstatus: "GetWorkflowStatus"}
+import "strings"
+
+var queryNameMap = map[string]string{claimtask: "ClaimTask", clearrerun: "ClearRerun", requestrerun: "RequestRerun", settletask: "SettleTask", transitiontask: "TransitionTask", cleanupoldresolvedreceipts: "CleanupOldResolvedReceipts", listfailedtasks: "ListFailedTasks", timeoutstalereceipts: "TimeoutStaleReceipts", countunsettledforbuild: "CountUnsettledForBuild", listfailedforbuild: "ListFailedForBuild", createtaskwithdedup: "CreateTaskWithDedup", listrecenttasks: "ListRecentTasks", listtaskstatuscounts: "ListTaskStatusCounts", listworkflowsummary: "ListWorkflowSummary", dispatchablepage: "DispatchablePage", listorphanedtasks: "ListOrphanedTasks", markpublished: "MarkPublished", purgeterminaltasks: "PurgeTerminalTasks", deletenode: "DeleteNode", listexpirednodes: "ListExpiredNodes", renewnode: "RenewNode", touchownedtasks: "TouchOwnedTasks", upsertnode: "UpsertNode", pendingtaskcount: "PendingTaskCount", promotescheduledtasks: "PromoteScheduledTasks", createtask: "CreateTask", createtasksbatch: "CreateTasksBatch", gettasksbyid: "GetTasksByID", updatetask: "UpdateTask", createworkflowreceipt: "CreateWorkflowReceipt", getpendingreceiptsbynode: "GetPendingReceiptsByNode", getpendingreceiptsbyworkflow: "GetPendingReceiptsByWorkflow", getworkflowstatus: "GetWorkflowStatus", resolveworkflowreceipts: "ResolveWorkflowReceipts"}
+var queryNamePrefixes = []string{gettasksbyid[:323], createtasksbatch[:257], transitiontask[:203], markpublished[:49]}
+var queryNamePrefixNames = []string{"GetTasksByID", "CreateTasksBatch", "TransitionTask", "MarkPublished"}
 
 func QueryNameResolver(query string) string {
-	return queryNameMap[query]
+	if name, ok := queryNameMap[query]; ok {
+		return name
+	}
+	for index, prefix := range queryNamePrefixes {
+		if strings.HasPrefix(query, prefix) {
+			return queryNamePrefixNames[index]
+		}
+	}
+	return ""
 }

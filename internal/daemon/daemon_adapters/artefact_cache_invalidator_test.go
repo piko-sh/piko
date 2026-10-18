@@ -210,5 +210,68 @@ func TestSubscribeArtefactMetadataInvalidation_NilCacheIsNoOp(t *testing.T) {
 	eventBus := &orchestrator_domain.MockEventBus{}
 
 	require.NoError(t, SubscribeArtefactMetadataInvalidation(context.Background(), eventBus, nil))
+	require.NoError(t, SubscribeArtefactMetadataInvalidation(context.Background(), eventBus, nil, nil))
 	require.Equal(t, int64(0), eventBus.SubscribeWithHandlerCallCount.Load())
+}
+
+type recordingArtefactInvalidator struct {
+	invalidated []string
+	mu          sync.Mutex
+}
+
+func (r *recordingArtefactInvalidator) InvalidateArtefact(_ context.Context, artefactID string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.invalidated = append(r.invalidated, artefactID)
+}
+
+func TestSubscribeArtefactMetadataInvalidation_FansOutToInvalidators(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		cache cache_domain.Cache[string, *registry_dto.ArtefactMeta]
+		name  string
+	}{
+		{name: "alongside the metadata cache", cache: newRealArtefactCache(t)},
+		{name: "without a metadata cache", cache: nil},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			var handlerMu sync.Mutex
+			handlers := map[string]orchestrator_domain.EventHandler{}
+			eventBus := &orchestrator_domain.MockEventBus{
+				SubscribeWithHandlerFunc: func(_ context.Context, topic string, handler orchestrator_domain.EventHandler) error {
+					handlerMu.Lock()
+					handlers[topic] = handler
+					handlerMu.Unlock()
+					return nil
+				},
+			}
+			invalidator := &recordingArtefactInvalidator{}
+
+			require.NoError(t, SubscribeArtefactMetadataInvalidation(context.Background(), eventBus, tc.cache, invalidator))
+
+			handlerMu.Lock()
+			defer handlerMu.Unlock()
+			require.Len(t, handlers, len(registry_domain.ArtefactTopics))
+			for _, topic := range registry_domain.ArtefactTopics {
+				require.NoError(t, handlers[topic](context.Background(), orchestrator_domain.Event{
+					Payload: map[string]any{eventPayloadKeyArtefactID: invalidatorAssetArtefactID},
+				}))
+			}
+			require.NoError(t, handlers[registry_domain.TopicArtefactUpdated](context.Background(), orchestrator_domain.Event{
+				Payload: map[string]any{},
+			}))
+
+			invalidator.mu.Lock()
+			defer invalidator.mu.Unlock()
+			require.Equal(t,
+				[]string{invalidatorAssetArtefactID, invalidatorAssetArtefactID, invalidatorAssetArtefactID},
+				invalidator.invalidated,
+				"every artefact event with an ID must reach the invalidator; events without one are skipped")
+		})
+	}
 }

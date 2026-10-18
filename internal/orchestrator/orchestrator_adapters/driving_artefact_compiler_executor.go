@@ -111,6 +111,25 @@ type compilerExecutor struct {
 
 	// capabilityService runs capability actions on artefact streams.
 	capabilityService capabilities_domain.CapabilityService
+
+	// emptyOutputs records the profiles whose capability produced no output; nil when
+	// nothing reads the record.
+	emptyOutputs *EmptyOutputs
+}
+
+// CompilerExecutorOption configures a compiler executor.
+type CompilerExecutorOption func(*compilerExecutor)
+
+// WithEmptyOutputs makes the compiler record each profile whose capability produces no
+// output, so the bridge reading the same record counts the profile as built.
+//
+// Takes emptyOutputs (*EmptyOutputs) which receives the record.
+//
+// Returns CompilerExecutorOption which applies the setting.
+func WithEmptyOutputs(emptyOutputs *EmptyOutputs) CompilerExecutorOption {
+	return func(e *compilerExecutor) {
+		e.emptyOutputs = emptyOutputs
+	}
 }
 
 // Execute runs the artefact compilation task with the given payload.
@@ -207,6 +226,7 @@ func (e *compilerExecutor) runCompilation(ctx context.Context, span trace.Span, 
 			logger_domain.String(payloadKeyArtefactID, artefact.ID),
 			logger_domain.String("variantID", newVariant.VariantID),
 		)
+		e.emptyOutputs.Record(artefact.ID, p.DesiredProfileName, sourceVariant.ContentHash)
 		return recordCompilationSuccess(ctx, startTime, &newVariant)
 	}
 
@@ -658,15 +678,23 @@ func (e *compilerExecutor) getTaskMetadata(ctx context.Context, p *compilerPaylo
 // Takes capabilities (capabilities_domain.CapabilityService) which provides capability
 // checking for compilation tasks.
 //
+// Takes opts (...CompilerExecutorOption) which configure optional behaviour.
+//
 // Returns orchestrator_domain.TaskExecutor which executes compilation tasks.
 func NewCompilerExecutor(
 	registry registry_domain.RegistryService,
 	capabilities capabilities_domain.CapabilityService,
+	opts ...CompilerExecutorOption,
 ) orchestrator_domain.TaskExecutor {
-	return &compilerExecutor{
+	executor := &compilerExecutor{
 		registryService:   registry,
 		capabilityService: capabilities,
+		emptyOutputs:      nil,
 	}
+	for _, opt := range opts {
+		opt(executor)
+	}
+	return executor
 }
 
 // wrapFatalIfNeeded wraps the given error as a fatal orchestrator error when the cause is

@@ -26,7 +26,7 @@ import (
 
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // ModuleContextManager lazily creates and caches ModuleContext instances for each Go

@@ -24,7 +24,6 @@ type Logger interface {
 
 type ConsoleLogger struct{}
 
-// ConsoleLogger satisfies the Logger interface
 func (l ConsoleLogger) Log(message string) error {
 	return nil
 }

@@ -1,3 +1,0 @@
-{
-  "description": "INSERT ... ON CONFLICT DO UPDATE (upsert): PostgreSQL-specific conflict handling with EXCLUDED pseudo-table. Tests RETURNING after ON CONFLICT."
-}

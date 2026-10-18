@@ -34,7 +34,7 @@ import (
 	"piko.sh/piko/internal/inspector/inspector_dto"
 	"piko.sh/piko/internal/inspector/inspector_schema"
 	"piko.sh/piko/internal/inspector/inspector_schema/inspector_schema_gen"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 func testTypeData() *inspector_dto.TypeData {

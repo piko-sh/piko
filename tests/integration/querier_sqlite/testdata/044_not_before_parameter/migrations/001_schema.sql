@@ -1,5 +1,0 @@
-CREATE TABLE flags (
-    id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
-    active INTEGER NOT NULL DEFAULT 1
-);

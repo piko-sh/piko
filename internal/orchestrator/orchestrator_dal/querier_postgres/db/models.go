@@ -2,23 +2,39 @@
 
 package db
 
+type OrchestratorNodes struct {
+	Instance  string `json:"instance"`
+	NodeID    string `json:"node_id"`
+	StartedAt int64  `json:"started_at"`
+	RenewedAt int64  `json:"renewed_at"`
+	ExpiresAt int64  `json:"expires_at"`
+}
 type OrchestratorTasks struct {
-	ID                string  `json:"id"`
-	WorkflowID        string  `json:"workflow_id"`
-	Executor          string  `json:"executor"`
-	Priority          int32   `json:"priority"`
-	Payload           string  `json:"payload"`
-	Config            string  `json:"config"`
-	Result            *string `json:"result"`
-	Status            string  `json:"status"`
-	ExecuteAt         int64   `json:"execute_at"`
-	Attempt           int32   `json:"attempt"`
-	LastError         *string `json:"last_error"`
-	DeduplicationKey  *string `json:"deduplication_key"`
-	RecoveryNodeID    *string `json:"recovery_node_id"`
-	RecoveryExpiresAt *int64  `json:"recovery_expires_at"`
-	CreatedAt         int64   `json:"created_at"`
-	UpdatedAt         int64   `json:"updated_at"`
+	ID                 string  `json:"id"`
+	WorkflowID         string  `json:"workflow_id"`
+	Executor           string  `json:"executor"`
+	Priority           int32   `json:"priority"`
+	Payload            string  `json:"payload"`
+	Config             string  `json:"config"`
+	Result             *string `json:"result"`
+	Status             string  `json:"status"`
+	ExecuteAt          int64   `json:"execute_at"`
+	Attempt            int32   `json:"attempt"`
+	LastError          *string `json:"last_error"`
+	DeduplicationKey   *string `json:"deduplication_key"`
+	RecoveryNodeID     *string `json:"recovery_node_id"`
+	RecoveryExpiresAt  *int64  `json:"recovery_expires_at"`
+	CreatedAt          int64   `json:"created_at"`
+	UpdatedAt          int64   `json:"updated_at"`
+	BuildTag           string  `json:"build_tag"`
+	IsFatal            bool    `json:"is_fatal"`
+	ScheduledExecuteAt int64   `json:"scheduled_execute_at"`
+	Background         bool    `json:"background"`
+	OwnerInstance      string  `json:"owner_instance"`
+	LastPublishedAt    int64   `json:"last_published_at"`
+	RerunID            *string `json:"rerun_id"`
+	RerunPayload       *string `json:"rerun_payload"`
+	RerunConfig        *string `json:"rerun_config"`
 }
 type OrchestratorWorkflowReceipts struct {
 	ID           string  `json:"id"`

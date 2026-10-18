@@ -43,9 +43,10 @@ func main() {
 		panic(fmt.Sprintf("opening PostgreSQL connection: %v", err))
 	}
 
-	executor := db.NewMigrationExecutor(database, db.PostgresDialect())
-	file_reader := db.NewFSFileReader(analyticsdb.Migrations)
-	migrator := db.NewMigrationService(executor, file_reader, "migrations")
+	migrator, err := db.NewMigrator(db_engine_postgres.Postgres(), database, analyticsdb.Migrations, "migrations")
+	if err != nil {
+		panic(fmt.Sprintf("creating migration service: %v", err))
+	}
 
 	if _, err := migrator.Up(ctx); err != nil {
 		panic(fmt.Sprintf("running migrations: %v", err))
@@ -53,9 +54,10 @@ func main() {
 	fmt.Println("[postgres-analytics] Migrations applied")
 
 	// Apply seed data if the database has not been seeded yet.
-	seeder := db.NewSeedService(
-		db.NewSeedExecutor(database, db.PostgresDialect()), db.NewFSFileReader(analyticsdb.Seeds), "seeds",
-	)
+	seeder, err := db.NewSeeder(db_engine_postgres.Postgres(), database, analyticsdb.Seeds, "seeds")
+	if err != nil {
+		panic(fmt.Sprintf("creating seed service: %v", err))
+	}
 
 	if applied, err := seeder.Apply(ctx); err != nil {
 		panic(fmt.Sprintf("applying seeds: %v", err))

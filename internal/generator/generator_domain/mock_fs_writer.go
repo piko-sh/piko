@@ -52,7 +52,6 @@ var (
 
 // WriteFile delegates to WriteFileFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes filePath (string) which is the destination file path.
 // Takes data ([]byte) which is the content to write.
 //

@@ -84,7 +84,6 @@ type MockOrchestratorService struct {
 
 // RegisterExecutor registers a task executor under the given name.
 //
-// Takes ctx (context.Context) which carries logging context.
 // Takes name (string) which identifies the executor.
 // Takes executor (TaskExecutor) which is the executor to register.
 //
@@ -99,7 +98,6 @@ func (m *MockOrchestratorService) RegisterExecutor(ctx context.Context, name str
 
 // Dispatch submits a task for immediate execution.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes task (*Task) which is the task to dispatch.
 //
 // Returns (*WorkflowReceipt, error), or (nil, nil) if DispatchFunc is nil.
@@ -113,7 +111,6 @@ func (m *MockOrchestratorService) Dispatch(ctx context.Context, task *Task) (*Wo
 
 // Schedule submits a task for execution at a future time.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes task (*Task) which is the task to schedule.
 // Takes executeAt (time.Time) which is the time to execute the task.
 //
@@ -177,7 +174,6 @@ func (m *MockOrchestratorService) GetTaskDispatcher() TaskDispatcher {
 
 // DispatchDirect submits a task bypassing the delayed publisher.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes task (*Task) which is the task to dispatch directly.
 //
 // Returns (*WorkflowReceipt, error), or (nil, nil) if DispatchDirectFunc is nil.

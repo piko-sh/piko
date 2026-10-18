@@ -29,7 +29,7 @@ import (
 	"sync"
 
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // FileResolver resolves placeholders like "file:path/to/your/file". This resolver

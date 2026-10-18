@@ -72,11 +72,20 @@ sudo lsof -i :9090
 ss -tlnp | grep -E ':8080|:9090'
 ```
 
+On Linux, the error names the process holding the port, for example `already in use by pid 4242 (main dev)`, so you rarely need these commands.
+
 Options:
 
 - Stop the previous instance.
-- Pass `piko.WithAutoNextPort(true)` to fall back to the next free port. Not appropriate when traffic reaches the service through a fixed port.
+- Pass `piko.WithAutoNextPort(true)` (or set `PIKO_AUTO_PORT=true`) to fall back to the next free port. Not appropriate when traffic reaches the service through a fixed port.
 - Change the configured port via `piko.WithPort(...)` or `piko.WithHealthProbePort(...)`.
+- Pass `piko.WithBindAddress("127.0.0.1")` to keep a development server off the network.
+
+## Several instances share one project
+
+A dev server started by your editor, a second one started by an AI agent to check a change, and a `piko build` can all run against the same project at once. The first to start owns `.piko`: it alone writes the registry and task queue there and recovers work an earlier, crashed owner left unfinished. Every later instance logs `Another piko instance owns .piko; running with an in-memory copy and writing nothing to it`, with the owner's process ID. It starts from a read-only copy of the owner's registry, keeps everything it does in memory, and never touches the owner's files or tasks. A build started this way still produces a complete `dist/`. When the owner exits, the next instance to start takes over `.piko`.
+
+Two dev servers still need different ports; see [port conflicts](#port-conflicts).
 
 ### Cannot bind to 80 or 443
 
@@ -285,6 +294,7 @@ Keep the previous binary or image reachable until the new deploy has been health
 | Message | Likely cause |
 |---|---|
 | `bind: address already in use` | Another process on 8080 or 9090. |
+| `Another piko instance owns .piko` | A second instance in the same project; informational. See [several instances share one project](#several-instances-share-one-project). |
 | `connection refused` | App not running, wrong port, firewall. |
 | `no such file or directory` | Missing generated assets (`--no-embed` builds), wrong working directory. |
 | `permission denied` | File permissions, SELinux/AppArmor, privileged port without capability. |

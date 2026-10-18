@@ -32,6 +32,7 @@ var (
 	GetOldSourceStorageKey = getOldSourceStorageKey
 	BuildArtefactMeta      = buildArtefactMeta
 	AggregateState         = aggregateState
+	MergeDesiredProfiles   = mergeDesiredProfiles
 )
 
 func CreateSourceVariant(

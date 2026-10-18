@@ -1,3 +1,0 @@
-{
-  "description": "FixedString(N) carries the byte-length modifier on the SQLType.Length field."
-}

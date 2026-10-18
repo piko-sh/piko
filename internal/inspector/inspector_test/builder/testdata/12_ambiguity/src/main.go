@@ -26,7 +26,6 @@ type DB struct{}
 
 func (d DB) Log() {}
 
-// Service has an ambiguous selector 'Log' because it's in both Logger and DB.
 type Service struct {
 	Logger
 	DB

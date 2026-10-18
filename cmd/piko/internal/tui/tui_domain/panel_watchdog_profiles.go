@@ -33,7 +33,7 @@ import (
 
 	"piko.sh/piko/cmd/piko/internal/inspector"
 	"piko.sh/piko/wdk/clock"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (

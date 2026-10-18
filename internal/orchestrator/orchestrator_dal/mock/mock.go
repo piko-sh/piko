@@ -68,6 +68,10 @@ type CallRecord struct {
 
 // OrchestratorDAL is a mock implementation of OrchestratorDALWithTx for testing.
 type OrchestratorDAL struct {
+	// UnimplementedTaskStoreV2 rejects the compare-and-set operations, which this mock does
+	// not model.
+	orchestrator_domain.UnimplementedTaskStoreV2
+
 	// tasks stores all tasks indexed by their ID.
 	tasks map[string]*orchestrator_domain.Task
 
@@ -92,12 +96,13 @@ type OrchestratorDAL struct {
 // Returns *OrchestratorDAL which is a ready-to-use mock with empty collections.
 func NewOrchestratorDAL() *OrchestratorDAL {
 	return &OrchestratorDAL{
-		tasks:           make(map[string]*orchestrator_domain.Task),
-		tasksByWorkflow: make(map[string][]string),
-		behaviours:      make(map[string]*Behaviour),
-		calls:           make([]CallRecord, 0),
-		mu:              sync.RWMutex{},
-		inTransaction:   false,
+		UnimplementedTaskStoreV2: orchestrator_domain.UnimplementedTaskStoreV2{},
+		tasks:                    make(map[string]*orchestrator_domain.Task),
+		tasksByWorkflow:          make(map[string][]string),
+		behaviours:               make(map[string]*Behaviour),
+		calls:                    make([]CallRecord, 0),
+		mu:                       sync.RWMutex{},
+		inTransaction:            false,
 	}
 }
 
@@ -288,47 +293,6 @@ func (m *OrchestratorDAL) UpdateTask(_ context.Context, task *orchestrator_domai
 
 	m.tasks[task.ID] = new(*task)
 	return nil
-}
-
-// FetchAndMarkDueTasks implements orchestrator_dal.TaskDAL.
-//
-// Takes priority (orchestrator_domain.TaskPriority) which filters tasks to fetch only
-// those at or above this priority level.
-// Takes limit (int) which specifies the maximum number of tasks to return.
-//
-// Returns []*orchestrator_domain.Task which contains the tasks that were marked as
-// processing.
-// Returns error when a configured behaviour produces an error.
-//
-// Safe for concurrent use; protects internal state with a mutex.
-func (m *OrchestratorDAL) FetchAndMarkDueTasks(_ context.Context, priority orchestrator_domain.TaskPriority, limit int) ([]*orchestrator_domain.Task, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	m.recordCall("FetchAndMarkDueTasks", priority, limit)
-	if err := m.executeBehaviour("FetchAndMarkDueTasks"); err != nil {
-		return nil, err
-	}
-
-	now := time.Now().UTC()
-	results := make([]*orchestrator_domain.Task, 0, limit)
-
-	for _, task := range m.tasks {
-		if len(results) >= limit {
-			break
-		}
-
-		if (task.Status == orchestrator_domain.StatusPending || task.Status == orchestrator_domain.StatusRetrying) &&
-			task.Config.Priority >= priority &&
-			!task.ExecuteAt.After(now) {
-			task.Status = orchestrator_domain.StatusProcessing
-			task.UpdatedAt = now
-
-			results = append(results, new(*task))
-		}
-	}
-
-	return results, nil
 }
 
 // GetTasksByID implements orchestrator_dal.TaskDAL.
@@ -567,158 +531,6 @@ func (m *OrchestratorDAL) CreateTaskWithDedup(_ context.Context, task *orchestra
 	return nil
 }
 
-// RecoverStaleTasks implements orchestrator_dal.TaskDAL. It resets PROCESSING tasks that
-// have exceeded the stale threshold.
-//
-// Takes staleThreshold (time.Duration) which defines how long a task can be in PROCESSING
-// before being considered stuck.
-// Takes maxRetries (int) which is the maximum retry attempts before marking FAILED.
-// Takes recoveryError (string) which is the error message to record on recovered tasks.
-//
-// Returns int which is the count of tasks recovered.
-// Returns error when the configured behaviour returns an error.
-//
-// Safe for concurrent use.
-func (m *OrchestratorDAL) RecoverStaleTasks(_ context.Context, staleThreshold time.Duration, maxRetries int, recoveryError string) (int, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	m.recordCall("RecoverStaleTasks", staleThreshold, maxRetries, recoveryError)
-	if err := m.executeBehaviour("RecoverStaleTasks"); err != nil {
-		return 0, err
-	}
-
-	now := time.Now().UTC()
-	staleThresholdTime := now.Add(-staleThreshold)
-	recovered := 0
-
-	for _, task := range m.tasks {
-		if task.Status == orchestrator_domain.StatusProcessing && task.UpdatedAt.Before(staleThresholdTime) {
-			if task.Attempt >= maxRetries {
-				task.Status = orchestrator_domain.StatusFailed
-			} else {
-				task.Status = orchestrator_domain.StatusRetrying
-				task.Attempt++
-			}
-			task.LastError = recoveryError
-			task.UpdatedAt = now
-			task.ExecuteAt = now
-			recovered++
-		}
-	}
-
-	return recovered, nil
-}
-
-// GetStaleProcessingTaskCount implements orchestrator_dal.TaskDAL. It returns the count
-// of tasks stuck in PROCESSING longer than the threshold.
-//
-// Takes staleThreshold (time.Duration) which defines when a PROCESSING task is considered
-// stuck.
-//
-// Returns int64 which is the count of stale tasks.
-// Returns error when the configured behaviour returns an error.
-//
-// Safe for concurrent use.
-func (m *OrchestratorDAL) GetStaleProcessingTaskCount(_ context.Context, staleThreshold time.Duration) (int64, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	m.recordCall("GetStaleProcessingTaskCount", staleThreshold)
-	if err := m.executeBehaviour("GetStaleProcessingTaskCount"); err != nil {
-		return 0, err
-	}
-
-	staleThresholdTime := time.Now().UTC().Add(-staleThreshold)
-	var count int64
-
-	for _, task := range m.tasks {
-		if task.Status == orchestrator_domain.StatusProcessing && task.UpdatedAt.Before(staleThresholdTime) {
-			count++
-		}
-	}
-
-	return count, nil
-}
-
-// UpdateTaskHeartbeat updates the updated_at timestamp for a task in PROCESSING status.
-//
-// Takes taskID (string) which identifies the task to update.
-//
-// Returns error when a configured behaviour returns an error.
-//
-// Safe for concurrent use; protected by a mutex.
-func (m *OrchestratorDAL) UpdateTaskHeartbeat(_ context.Context, taskID string) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	m.recordCall("UpdateTaskHeartbeat", taskID)
-	if err := m.executeBehaviour("UpdateTaskHeartbeat"); err != nil {
-		return err
-	}
-
-	if task, exists := m.tasks[taskID]; exists && task.Status == orchestrator_domain.StatusProcessing {
-		task.UpdatedAt = time.Now().UTC()
-	}
-
-	return nil
-}
-
-// ClaimStaleTasksForRecovery atomically claims stale PROCESSING tasks for recovery.
-//
-// Returns []orchestrator_domain.RecoveryClaimedTask which contains the claimed tasks, or
-// nil if no stale tasks are found.
-// Returns error when the configured mock behaviour returns an error.
-//
-// Safe for concurrent use; guards internal state with a mutex.
-func (m *OrchestratorDAL) ClaimStaleTasksForRecovery(_ context.Context, _ string, _ time.Duration, _ time.Duration, _ int) ([]orchestrator_domain.RecoveryClaimedTask, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	m.recordCall("ClaimStaleTasksForRecovery")
-	if err := m.executeBehaviour("ClaimStaleTasksForRecovery"); err != nil {
-		return nil, err
-	}
-
-	return nil, nil
-}
-
-// RecoverClaimedTasks recovers all tasks previously claimed by this node.
-//
-// Returns int which is the number of tasks recovered.
-// Returns error when behaviour execution fails.
-//
-// Safe for concurrent use; method is protected by a mutex.
-func (m *OrchestratorDAL) RecoverClaimedTasks(_ context.Context, _ string, _ int, _ string) (int, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	m.recordCall("RecoverClaimedTasks")
-	if err := m.executeBehaviour("RecoverClaimedTasks"); err != nil {
-		return 0, err
-	}
-
-	return 0, nil
-}
-
-// ReleaseRecoveryLeases releases all recovery leases held by this node.
-//
-// Returns int which is the number of leases released.
-// Returns error when the operation fails.
-//
-// Safe for concurrent use; protects internal state with a mutex.
-func (m *OrchestratorDAL) ReleaseRecoveryLeases(_ context.Context, _ string) (int, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	m.recordCall("ReleaseRecoveryLeases")
-	if err := m.executeBehaviour("ReleaseRecoveryLeases"); err != nil {
-		return 0, err
-	}
-
-	return 0, nil
-}
-
 // CreateWorkflowReceipt creates a new workflow receipt for tracking completion.
 //
 // Returns error when the configured behaviour fails.
@@ -916,12 +728,13 @@ func (m *OrchestratorDAL) executeBehaviour(method string) error {
 // Returns *OrchestratorDAL which is an isolated copy for use within a transaction.
 func (m *OrchestratorDAL) createTransactionCopy() *OrchestratorDAL {
 	txMock := &OrchestratorDAL{
-		tasks:           make(map[string]*orchestrator_domain.Task),
-		tasksByWorkflow: make(map[string][]string),
-		behaviours:      make(map[string]*Behaviour),
-		calls:           make([]CallRecord, 0),
-		inTransaction:   true,
-		mu:              sync.RWMutex{},
+		UnimplementedTaskStoreV2: orchestrator_domain.UnimplementedTaskStoreV2{},
+		tasks:                    make(map[string]*orchestrator_domain.Task),
+		tasksByWorkflow:          make(map[string][]string),
+		behaviours:               make(map[string]*Behaviour),
+		calls:                    make([]CallRecord, 0),
+		inTransaction:            true,
+		mu:                       sync.RWMutex{},
 	}
 
 	for k, v := range m.tasks {

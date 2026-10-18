@@ -27,7 +27,7 @@ import (
 	"piko.sh/piko/internal/inspector/inspector_domain"
 	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // PrepareTypeHierarchy returns the type hierarchy item at the given position. This is the
@@ -163,7 +163,8 @@ func (d *document) getTypeHierarchyIndexAndData(
 //
 // Takes item (TypeHierarchyItem) which identifies the type to query.
 // Takes opName (string) which names the operation for debug logging.
-// Takes lookupFn which retrieves the related types from the index.
+// Takes lookupFn (func(*inspector_domain.TypeHierarchyIndex, string, string)
+// []TypeHierarchyItem) which retrieves the related types from the index.
 //
 // Returns []TypeHierarchyItem which contains the related types.
 // Returns error when the lookup fails.

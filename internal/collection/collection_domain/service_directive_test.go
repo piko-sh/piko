@@ -25,7 +25,7 @@ import (
 	"testing"
 
 	"piko.sh/piko/internal/collection/collection_dto"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 func TestResolveContentSource(t *testing.T) {

@@ -55,7 +55,6 @@ type MockEventBus struct {
 
 // Publish sends an event to the given topic.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes topic (string) which identifies the event topic to publish to.
 // Takes event (orchestrator_domain.Event) which is the event to publish.
 //
@@ -70,7 +69,6 @@ func (m *MockEventBus) Publish(ctx context.Context, topic string, event orchestr
 
 // Subscribe returns a channel that receives events for the given topic.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes topic (string) which identifies the event topic to subscribe to.
 //
 // Returns (<-chan Event, error), or (nil, nil) if SubscribeFunc is nil.
@@ -84,7 +82,6 @@ func (m *MockEventBus) Subscribe(ctx context.Context, topic string) (<-chan orch
 
 // SubscribeWithHandler registers a handler for events on a topic.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes topic (string) which identifies the event topic.
 // Takes handler (orchestrator_domain.EventHandler) which is the callback to invoke for
 // each event.
@@ -99,8 +96,6 @@ func (m *MockEventBus) SubscribeWithHandler(ctx context.Context, topic string, h
 }
 
 // Close releases all resources and closes active subscriptions.
-//
-// Takes ctx (context.Context) which carries logging context for the shutdown operation.
 //
 // Returns error, or nil if CloseFunc is nil.
 func (m *MockEventBus) Close(ctx context.Context) error {

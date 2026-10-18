@@ -19,913 +19,140 @@
 package db_engine_clickhouse
 
 import (
-	"context"
-	"fmt"
-	"runtime/debug"
-
-	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/internal/querier/querier_domain"
-	"piko.sh/piko/internal/querier/querier_dto"
+	"piko.sh/piko/wdk/db/db_provider_seagull"
 )
 
-// ClickHouseDialect holds configuration for a ClickHouse variant.
-//
-// Hooks allow customising types, functions, and semantic rules without forking the
-// parser, mirroring the dialect-customisation pattern used by the postgres and duckdb
-// engines.
-type ClickHouseDialect struct {
-	// ExtraTypes are merged into the builtin type catalogue after the default ClickHouse
-	// types are registered.
-	ExtraTypes map[string]querier_dto.SQLType
+const (
+	// dialectName is the Seagull dialect this engine serves.
+	dialectName = "clickhouse"
+)
 
-	// ExtraFunctions, when non-nil, is invoked with the function catalogue builder after the
-	// default ClickHouse functions have been registered. Use it to install
-	// application-specific UDFs without forking the engine.
-	ExtraFunctions func(*FunctionCatalogueBuilder)
+// Option configures the ClickHouse engine.
+type Option func(*settings)
 
-	// TypeNormaliserHook, when non-nil, is consulted before the default type normaliser. A
-	// non-nil return overrides the default; nil means "fall through to the default".
-	TypeNormaliserHook func(name string, modifiers []int) *querier_dto.SQLType
+// settings holds the options the engine is built with.
+type settings struct {
+	// joinUseNulls is the join_use_nulls server setting the analysis assumes; nil keeps the
+	// server's default, off.
+	joinUseNulls *bool
 
-	// ImplicitCastHook overrides the default implicit-cast matrix.
-	ImplicitCastHook func(from, to querier_dto.SQLTypeCategory) *bool
+	// name is the dialect name the engine reports; empty keeps the default.
+	name string
 
-	// PromoteTypeHook overrides the default type-promotion rule.
-	PromoteTypeHook func(left, right querier_dto.SQLType) *querier_dto.SQLType
+	// maxParseDepth limits expression nesting; zero keeps the default.
+	maxParseDepth int
 
-	// Name is the dialect identifier returned from Dialect(). Defaults to "clickhouse".
-	Name string
+	// maxTokensPerStatement limits the size of one statement; zero keeps the default.
+	maxTokensPerStatement int
 
-	// MaxParseDepth caps recursion through analysis and expression parsing. Zero selects
-	// defaultMaxParseDepth.
-	MaxParseDepth int
-
-	// MaxTokensPerStatement caps the token count of a single statement the parser walks.
-	// Zero selects defaultMaxTokensPerStatement.
-	MaxTokensPerStatement int
-
-	// MaxTypeParseDepth caps wrapper nesting inside a type name (Array(Array(...)) and
-	// similar). Zero selects defaultMaxTypeParseDepth.
-	MaxTypeParseDepth int
+	// maxTypeParseDepth limits type nesting; zero keeps the default.
+	maxTypeParseDepth int
 }
 
-// Option configures a ClickHouseDialect.
-type Option func(*ClickHouseDialect)
-
-// WithMaxParseDepth sets the maximum parser recursion depth for analysis and expression
-// nesting.
-//
-// Deeply nested user input is otherwise able to overflow the goroutine stack with a
-// fatal, non-recoverable error. The default is high (defaultMaxParseDepth) so realistic
-// queries are unaffected; lower it to harden against hostile input or raise it for
-// unusually nested generated queries.
-//
-// Takes depth (int) which is the maximum nesting depth; values below 1 are ignored so the
-// default remains in force.
-//
-// Returns Option which applies the depth cap to a ClickHouseDialect.
-func WithMaxParseDepth(depth int) Option {
-	return func(dialect *ClickHouseDialect) {
-		if depth > 0 {
-			dialect.MaxParseDepth = depth
-		}
-	}
-}
-
-// resolvedMaxParseDepth returns the effective parser depth cap, falling back to
-// defaultMaxParseDepth when unset.
-//
-// Returns int which is the configured depth cap or defaultMaxParseDepth.
-func (d ClickHouseDialect) resolvedMaxParseDepth() int {
-	if d.MaxParseDepth > 0 {
-		return d.MaxParseDepth
-	}
-	return defaultMaxParseDepth
-}
-
-// WithMaxTokensPerStatement sets the maximum number of tokens a single statement may hold
-// before the parser refuses to walk it.
-//
-// The parsers are not cancellable mid-statement, so an adversarially long statement would
-// otherwise hold the caller for a long time. The default is generous
-// (defaultMaxTokensPerStatement) so realistic and generated statements are unaffected;
-// lower it to harden against hostile input or raise it for unusually large generated
-// statements.
-//
-// Takes limit (int) which is the maximum token count; values below 1 are ignored so the
-// default remains in force.
-//
-// Returns Option which applies the token budget to a ClickHouseDialect.
-func WithMaxTokensPerStatement(limit int) Option {
-	return func(dialect *ClickHouseDialect) {
-		if limit > 0 {
-			dialect.MaxTokensPerStatement = limit
-		}
-	}
-}
-
-// resolvedMaxTokensPerStatement returns the effective per-statement token budget, falling
-// back to defaultMaxTokensPerStatement when unset.
-//
-// Returns int which is the configured budget or defaultMaxTokensPerStatement.
-func (d ClickHouseDialect) resolvedMaxTokensPerStatement() int {
-	if d.MaxTokensPerStatement > 0 {
-		return d.MaxTokensPerStatement
-	}
-	return defaultMaxTokensPerStatement
-}
-
-// WithMaxTypeParseDepth sets the maximum wrapper nesting the type-name parser accepts.
-//
-// Type names such as Array(Array(Tuple(...))) are parsed recursively, so unbounded
-// nesting would otherwise exhaust the goroutine stack. The default is high
-// (defaultMaxTypeParseDepth) so realistic types are unaffected; lower it to harden
-// against hostile input or raise it for unusually deep generated types.
-//
-// Takes depth (int) which is the maximum wrapper nesting; values below 1 are ignored so
-// the default remains in force.
-//
-// Returns Option which applies the type depth cap to a ClickHouseDialect.
-func WithMaxTypeParseDepth(depth int) Option {
-	return func(dialect *ClickHouseDialect) {
-		if depth > 0 {
-			dialect.MaxTypeParseDepth = depth
-		}
-	}
-}
-
-// resolvedMaxTypeParseDepth returns the effective type-name nesting cap, falling back to
-// defaultMaxTypeParseDepth when unset.
-//
-// Returns int which is the configured cap or defaultMaxTypeParseDepth.
-func (d ClickHouseDialect) resolvedMaxTypeParseDepth() int {
-	if d.MaxTypeParseDepth > 0 {
-		return d.MaxTypeParseDepth
-	}
-	return defaultMaxTypeParseDepth
-}
-
-// WithDialectName sets the dialect identifier returned from Dialect().
-//
-// Takes name (string) which is the dialect identifier to report.
-//
-// Returns Option which applies the dialect name to a ClickHouseDialect.
-func WithDialectName(name string) Option {
-	return func(dialect *ClickHouseDialect) {
-		dialect.Name = name
-	}
-}
-
-// WithExtraTypes registers additional types after the builtin ClickHouse type catalogue
-// is built.
-//
-// Takes types (map[string]querier_dto.SQLType) which are the extra types to merge in.
-//
-// Returns Option which applies the extra types to a ClickHouseDialect.
-func WithExtraTypes(types map[string]querier_dto.SQLType) Option {
-	return func(dialect *ClickHouseDialect) {
-		dialect.ExtraTypes = types
-	}
-}
-
-// WithExtraFunctions registers additional functions after the builtin ClickHouse function
-// catalogue is built.
-//
-// Takes register (func(*FunctionCatalogueBuilder)) which installs the extra functions.
-//
-// Returns Option which applies the function registrar to a ClickHouseDialect.
-func WithExtraFunctions(register func(*FunctionCatalogueBuilder)) Option {
-	return func(dialect *ClickHouseDialect) {
-		dialect.ExtraFunctions = register
-	}
-}
-
-// WithTypeNormaliserHook installs a hook called first in NormaliseTypeName, where a
-// non-nil return overrides the default.
-//
-// Takes hook (func(string, []int) *querier_dto.SQLType) which resolves a type name to an
-// override or nil.
-//
-// Returns Option which applies the hook to a ClickHouseDialect.
-func WithTypeNormaliserHook(hook func(string, []int) *querier_dto.SQLType) Option {
-	return func(dialect *ClickHouseDialect) {
-		dialect.TypeNormaliserHook = hook
-	}
-}
-
-// WithImplicitCastHook installs a hook called first in CanImplicitCast, where a non-nil
-// return overrides the default rules.
-//
-// Takes hook (func(from, to querier_dto.SQLTypeCategory) *bool) which decides a cast or
-// returns nil to defer.
-//
-// Returns Option which applies the hook to a ClickHouseDialect.
-func WithImplicitCastHook(hook func(from, to querier_dto.SQLTypeCategory) *bool) Option {
-	return func(dialect *ClickHouseDialect) {
-		dialect.ImplicitCastHook = hook
-	}
-}
-
-// WithPromoteTypeHook installs a hook called first in PromoteType, where a non-nil return
-// overrides the default promotion.
-//
-// Takes hook (func(left, right querier_dto.SQLType) *querier_dto.SQLType) which promotes
-// a pair or returns nil to defer.
-//
-// Returns Option which applies the hook to a ClickHouseDialect.
-func WithPromoteTypeHook(hook func(left, right querier_dto.SQLType) *querier_dto.SQLType) Option {
-	return func(dialect *ClickHouseDialect) {
-		dialect.PromoteTypeHook = hook
-	}
-}
-
-// ClickHouseEngine implements the querier EnginePort for ClickHouse.
-//
-// It composes the tokeniser, classifier, DDL parser, DML parser, builtin types, and
-// builtin functions into a single adapter that the querier drives.
+// ClickHouseEngine is Piko's ClickHouse engine. It reports its dialect name and supplies
+// the toolchain that generates code, runs migrations and seeds, and checks database
+// health.
 type ClickHouseEngine struct {
-	// functions is the ClickHouse built-in function catalogue.
-	functions *querier_dto.FunctionCatalogue
-
-	// types is the ClickHouse built-in type catalogue.
-	types *querier_dto.TypeCatalogue
-
-	// dialect holds the resolved per-variant configuration and hooks.
-	dialect ClickHouseDialect
+	*db_provider_seagull.Engine
 }
 
-var (
-	// ddlParserDispatch maps each statementKind to the parser method that produces its
-	// catalogue mutation.
-	//
-	// The map keeps ApplyDDL's cyclomatic complexity within the linter budget while
-	// preserving constant-time lookup for every kind. The non-DDL kinds (Select / Insert)
-	// and the Unknown sentinel are populated with nil entries so the exhaustive linter is
-	// happy; ApplyDDL treats a nil handler as a no-op DDL result without walking the
-	// statement.
-	ddlParserDispatch = map[statementKind]func(*parser) (*querier_dto.CatalogueMutation, error){
-		statementKindCreateTable:            (*parser).parseCreateTable,
-		statementKindDropTable:              (*parser).parseDropTable,
-		statementKindAlterTable:             (*parser).parseAlterTable,
-		statementKindCreateView:             (*parser).parseCreateView,
-		statementKindCreateMaterializedView: (*parser).parseCreateMaterializedView,
-		statementKindCreateDictionary:       (*parser).parseCreateDictionary,
-		statementKindCreateFunction:         (*parser).parseCreateFunction,
-		statementKindCreateDatabase:         (*parser).parseCreateDatabase,
-		statementKindDropView:               (*parser).parseDropView,
-		statementKindDropDictionary:         (*parser).parseDropDictionary,
-		statementKindDropFunction:           (*parser).parseDropFunction,
-		statementKindDropDatabase:           (*parser).parseDropDatabase,
-		statementKindRenameTable:            (*parser).parseRenameTable,
-		statementKindExchangeTables:         (*parser).parseExchangeTables,
-		statementKindTruncate:               (*parser).parseTruncateTable,
-		statementKindOptimize:               (*parser).parseOptimize,
-		statementKindSystem:                 (*parser).parseSystem,
-		statementKindUse:                    (*parser).parseUseDatabase,
-		statementKindShow:                   (*parser).parseShow,
-		statementKindSet:                    (*parser).parseSet,
-		statementKindExplain:                (*parser).parseExplain,
-		statementKindDescribeTable:          (*parser).parseDescribeTable,
-		statementKindCheckTable:             (*parser).parseCheckTable,
-		statementKindBackup:                 (*parser).parseBackup,
-		statementKindRestore:                (*parser).parseRestore,
-		statementKindKillQuery:              (*parser).parseKillQuery,
-		statementKindKillMutation:           (*parser).parseKillMutation,
-		statementKindAttachTable:            (*parser).parseAttachTable,
-		statementKindDetachTable:            (*parser).parseDetachTable,
-		statementKindCreateUser:             (*parser).parseCreateUser,
-		statementKindAlterUser:              (*parser).parseAlterUser,
-		statementKindDropUser:               (*parser).parseDropUser,
-		statementKindCreateRole:             (*parser).parseCreateRole,
-		statementKindAlterRole:              (*parser).parseAlterRole,
-		statementKindDropRole:               (*parser).parseDropRole,
-		statementKindCreatePolicy:           (*parser).parseCreatePolicy,
-		statementKindAlterPolicy:            (*parser).parseAlterPolicy,
-		statementKindDropPolicy:             (*parser).parseDropPolicy,
-		statementKindCreateQuota:            (*parser).parseCreateQuota,
-		statementKindAlterQuota:             (*parser).parseAlterQuota,
-		statementKindDropQuota:              (*parser).parseDropQuota,
-		statementKindCreateSettingsProfile:  (*parser).parseCreateSettingsProfile,
-		statementKindAlterSettingsProfile:   (*parser).parseAlterSettingsProfile,
-		statementKindDropSettingsProfile:    (*parser).parseDropSettingsProfile,
-		statementKindGrant:                  (*parser).parseGrant,
-		statementKindRevoke:                 (*parser).parseRevoke,
-		statementKindSelect:                 nil,
-		statementKindInsert:                 nil,
-		statementKindDelete:                 nil,
-		statementKindUnknown:                nil,
-	}
-
-	// statementAnalysers maps each statement kind AnalyseQuery walks to the parser method
-	// that analyses it, indexed by kind. Kinds with no entry produce an empty analysis
-	// without the token stream being walked.
-	statementAnalysers = [statementKindUnknown + 1]func(*parser) (*querier_dto.RawQueryAnalysis, error){
-		statementKindSelect:     (*parser).analyseSelect,
-		statementKindInsert:     (*parser).analyseInsert,
-		statementKindDelete:     (*parser).analyseDelete,
-		statementKindAlterTable: (*parser).analyseAlterTable,
-	}
-
-	// clickHouseNumericRanks assigns a synthetic widening rank to every numeric ClickHouse
-	// type the engine recognises.
-	//
-	// Larger ranks denote wider or more general types within their category; the PromoteType
-	// LCT helper compares ranks to choose the dominant operand when both sides share a
-	// category. Types absent from this table fall back to rank 0 so PromoteType can leave
-	// the existing left operand in place rather than guessing at the promotion of an
-	// unfamiliar spelling.
-	clickHouseNumericRanks = map[string]int{
-		"UInt8":      1,
-		"Int8":       1,
-		"UInt16":     2,
-		"Int16":      2,
-		"UInt32":     3,
-		"Int32":      3,
-		"UInt64":     4,
-		"Int64":      4,
-		"UInt128":    5,
-		"Int128":     5,
-		"UInt256":    6,
-		"Int256":     6,
-		"BFloat16":   7,
-		"Float32":    8,
-		"Float64":    9,
-		"Decimal32":  10,
-		"Decimal64":  11,
-		"Decimal128": 12,
-		"Decimal256": 13,
-	}
-)
-
-// NewClickHouseEngine creates a new ClickHouse engine adapter with optional dialect
-// overrides.
+// WithDialectName overrides the dialect name the engine reports, for compatible databases
+// that need their own name in logs and diagnostics.
 //
-// Takes options (...Option) which customise the dialect before the catalogues are built.
+// Takes name (string) which is the reported dialect name.
 //
-// Returns *ClickHouseEngine which is the configured engine adapter.
+// Returns Option which applies the setting.
+func WithDialectName(name string) Option {
+	return func(settings *settings) {
+		settings.name = name
+	}
+}
+
+// WithMaxParseDepth limits how deeply expressions may nest before the parser reports an
+// error.
+//
+// Takes depth (int) which is the maximum nesting depth; zero keeps the default.
+//
+// Returns Option which applies the setting.
+func WithMaxParseDepth(depth int) Option {
+	return func(settings *settings) {
+		settings.maxParseDepth = depth
+	}
+}
+
+// WithMaxTokensPerStatement limits the number of tokens in one statement.
+//
+// Takes limit (int) which is the maximum token count; zero keeps the default.
+//
+// Returns Option which applies the setting.
+func WithMaxTokensPerStatement(limit int) Option {
+	return func(settings *settings) {
+		settings.maxTokensPerStatement = limit
+	}
+}
+
+// WithMaxTypeParseDepth limits how deeply ClickHouse types such as Array(Map(String,
+// Tuple(...))) may nest.
+//
+// Takes depth (int) which is the maximum type nesting depth; zero keeps the default.
+//
+// Returns Option which applies the setting.
+func WithMaxTypeParseDepth(depth int) Option {
+	return func(settings *settings) {
+		settings.maxTypeParseDepth = depth
+	}
+}
+
+// WithJoinUseNulls states the join_use_nulls setting of the servers queries run against.
+//
+// By default the analysis assumes ClickHouse's default, off, under which a LEFT, RIGHT or
+// FULL JOIN fills an unmatched row with the column type's default value, so a joined
+// column is a pointer only when its type is Nullable. Pass true when a server or settings
+// profile turns join_use_nulls on, so the outer side's columns become pointers that can
+// hold the NULLs it then returns.
+//
+// Takes enabled (bool) which is the server's join_use_nulls setting.
+//
+// Returns Option which applies the setting.
+func WithJoinUseNulls(enabled bool) Option {
+	return func(settings *settings) {
+		settings.joinUseNulls = &enabled
+	}
+}
+
+// NewClickHouseEngine returns the ClickHouse engine.
+//
+// Takes options (...Option) which tune the engine.
+//
+// Returns *ClickHouseEngine which serves the dialect.
 func NewClickHouseEngine(options ...Option) *ClickHouseEngine {
-	dialect := ClickHouseDialect{}
-	dialect.Name = "clickhouse"
+	return newEngine(dialectName, options)
+}
+
+// newEngine builds the engine for a dialect.
+//
+// Takes dialect (string) which is the Seagull dialect name.
+// Takes options ([]Option) which tune the engine.
+//
+// Returns *ClickHouseEngine which serves the dialect.
+func newEngine(dialect string, options []Option) *ClickHouseEngine {
+	settings := &settings{
+		joinUseNulls:          nil,
+		name:                  "",
+		maxParseDepth:         0,
+		maxTokensPerStatement: 0,
+		maxTypeParseDepth:     0,
+	}
 	for _, option := range options {
-		option(&dialect)
+		option(settings)
 	}
-
-	return &ClickHouseEngine{
-		dialect:   dialect,
-		functions: buildFunctionCatalogue(dialect.ExtraFunctions),
-		types:     buildTypeCatalogue(dialect.ExtraTypes),
-	}
-}
-
-// ParseStatements tokenises the input and classifies each semicolon-separated statement.
-//
-// The returned slice carries the engine-private payload (token stream plus classified
-// kind) on each ParsedStatement so downstream handlers can resume parsing without
-// re-tokenising.
-//
-// Takes sql (string) which is the raw SQL text to parse.
-//
-// Returns []querier_dto.ParsedStatement which is one entry per statement.
-// Returns error when tokenising the SQL fails.
-func (*ClickHouseEngine) ParseStatements(sql string) ([]querier_dto.ParsedStatement, error) {
-	tokens, tokeniseError := tokenise(sql)
-	if tokeniseError != nil {
-		return nil, fmt.Errorf("tokenising SQL: %w", tokeniseError)
-	}
-
-	statementTokens := splitStatements(tokens)
-	results := make([]querier_dto.ParsedStatement, 0, len(statementTokens))
-	for _, statementTokenSlice := range statementTokens {
-		kind := classifyStatement(statementTokenSlice)
-		results = append(results, querier_dto.ParsedStatement{
-			Raw:      &parsedStatement{tokens: statementTokenSlice, kind: kind},
-			Location: statementTokenSlice[0].position,
-			Length:   statementByteLength(statementTokenSlice),
-		})
-	}
-
-	return results, nil
-}
-
-// ApplyDDL applies a DDL statement to the catalogue for the ClickHouse dialect.
-//
-// Syntax errors in the statement are returned as ordinary errors. The per-statement
-// handler is additionally wrapped with a panic recovery so a parser bug cannot crash the
-// calling apply loop. The stack is logged once at warn level through the context logger
-// and the returned error carries only the recovered value. It honours ctx.Err() before
-// dispatch so the catalogue build loop can be cancelled by the caller, and refuses to
-// walk a statement longer than the configured token budget.
-//
-// Takes statement (querier_dto.ParsedStatement) which carries the classified tokens to
-// apply.
-//
-// Returns *querier_dto.CatalogueMutation which is the catalogue change, or nil for a
-// no-op kind.
-// Returns error when the statement type is unexpected, the statement is malformed, the
-// token budget is exceeded, the context is cancelled, or a parser invariant panics.
-func (engine *ClickHouseEngine) ApplyDDL(
-	ctx context.Context,
-	statement querier_dto.ParsedStatement,
-) (mutation *querier_dto.CatalogueMutation, err error) {
-	parsed, ok := statement.Raw.(*parsedStatement)
-	if !ok {
-		return nil, fmt.Errorf("unexpected statement type %T", statement.Raw)
-	}
-
-	defer func() {
-		if recovered := recover(); recovered != nil {
-			mutation = nil
-
-			_, logger := logger_domain.From(ctx, log)
-			logger.Warn("clickhouse: panic while applying DDL",
-				logger_domain.String("recovered", fmt.Sprintf("%v", recovered)),
-				logger_domain.String("stack", string(debug.Stack())),
-			)
-			err = fmt.Errorf("clickhouse: ddl panic: %v", recovered)
-		}
-	}()
-
-	if ctxErr := ctx.Err(); ctxErr != nil {
-		return nil, ctxErr
-	}
-
-	handler, found := ddlParserDispatch[parsed.kind]
-	if !found || handler == nil {
-		return nil, nil
-	}
-
-	p, budgetErr := engine.newStatementParser(parsed.tokens)
-	if budgetErr != nil {
-		return nil, budgetErr
-	}
-
-	mutation, err = handler(p)
-	if p.syntaxError != nil {
-		return nil, p.syntaxError
-	}
-	return mutation, err
-}
-
-// AnalyseQuery performs structural analysis of a DML statement for the ClickHouse
-// dialect.
-//
-// Syntax errors in the statement are returned as ordinary errors. The per-statement
-// analyser is additionally wrapped with a panic recovery so a parser bug cannot crash the
-// calling analyser. The stack is logged once at warn level and the returned error carries
-// only the recovered value. Statements longer than the configured token budget are
-// refused before any parsing begins.
-//
-// Takes statement (querier_dto.ParsedStatement) which carries the classified tokens to
-// analyse.
-//
-// Returns *querier_dto.RawQueryAnalysis which is the structural analysis result.
-// Returns error when the statement type is unexpected, the statement is malformed, the
-// token budget is exceeded, a parameter type is invalid, or a parser invariant panics.
-func (engine *ClickHouseEngine) AnalyseQuery(
-	_ *querier_dto.Catalogue,
-	statement querier_dto.ParsedStatement,
-) (analysis *querier_dto.RawQueryAnalysis, err error) {
-	parsed, ok := statement.Raw.(*parsedStatement)
-	if !ok {
-		return nil, fmt.Errorf("unexpected statement type %T", statement.Raw)
-	}
-
-	defer func() {
-		if recovered := recover(); recovered != nil {
-			analysis = nil
-
-			log.Warn("clickhouse: panic while analysing query",
-				logger_domain.String("recovered", fmt.Sprintf("%v", recovered)),
-				logger_domain.String("stack", string(debug.Stack())),
-			)
-			err = fmt.Errorf("clickhouse: analyse panic: %v", recovered)
-		}
-	}()
-
-	if int(parsed.kind) >= len(statementAnalysers) || statementAnalysers[parsed.kind] == nil {
-		return &querier_dto.RawQueryAnalysis{}, nil
-	}
-	analyser := statementAnalysers[parsed.kind]
-
-	p, budgetErr := engine.newStatementParser(parsed.tokens)
-	if budgetErr != nil {
-		return nil, budgetErr
-	}
-
-	analysis, err = analyser(p)
-	if p.syntaxError != nil {
-		return nil, p.syntaxError
-	}
-	return analysis, err
-}
-
-// RewriteSelectAsCount delegates to the shared SELECT->COUNT(*) rewriter.
-//
-// Takes originalSQL (string) which is the SELECT statement text to rewrite.
-// Takes analysis (*querier_dto.RawQueryAnalysis) which describes the parsed query.
-//
-// Returns string which is the rewritten COUNT(*) statement.
-// Returns bool which is true when a rewrite was produced.
-// Returns error when the rewrite cannot be performed.
-func (*ClickHouseEngine) RewriteSelectAsCount(
-	originalSQL string,
-	analysis *querier_dto.RawQueryAnalysis,
-) (string, bool, error) {
-	return querier_domain.RewriteSelectAsCount(originalSQL, analysis)
-}
-
-// BuiltinFunctions returns the ClickHouse built-in function catalogue.
-//
-// Returns *querier_dto.FunctionCatalogue which is the engine's function catalogue.
-func (engine *ClickHouseEngine) BuiltinFunctions() *querier_dto.FunctionCatalogue {
-	return engine.functions
-}
-
-// BuiltinTypes returns the ClickHouse built-in type catalogue.
-//
-// Returns *querier_dto.TypeCatalogue which is the engine's type catalogue.
-func (engine *ClickHouseEngine) BuiltinTypes() *querier_dto.TypeCatalogue {
-	return engine.types
-}
-
-// NormaliseTypeName resolves a raw type name to a structured SQLType for ClickHouse.
-//
-// It handles Nullable(T) / Array(T) / LowCardinality(T) / Tuple(...) / Map(K, V) /
-// Nested(...) / Enum8(...) / Enum16(...) / FixedString(N) / Decimal(P, S) /
-// DateTime64(p[, 'tz']) / Variant / AggregateFunction wrappers.
-// EnginePort.NormaliseTypeName has no place to surface the Nullable outer wrapper, so the
-// parsed result is unwrapped to the inner type. Callers that need the Nullable flag (the
-// DDL parser when reading a CREATE TABLE column) call parseClickHouseType directly.
-//
-// Takes name (string) which is the raw type spelling.
-// Takes modifiers (...int) which are the type modifiers such as precision and scale.
-//
-// Returns querier_dto.SQLType which is the structured, Nullable-unwrapped type.
-func (engine *ClickHouseEngine) NormaliseTypeName(name string, modifiers ...int) querier_dto.SQLType {
-	return normaliseTypeName(name, engine.dialect.TypeNormaliserHook, engine.dialect.resolvedMaxTypeParseDepth(), modifiers...)
-}
-
-// ParameterStyle returns the ClickHouse `{name:Type}` parameter style.
-//
-// Returns querier_dto.ParameterStyle which is ParameterStyleClickHouseCurly.
-func (*ClickHouseEngine) ParameterStyle() querier_dto.ParameterStyle {
-	return querier_dto.ParameterStyleClickHouseCurly
-}
-
-// SupportedDirectivePrefixes returns the parameter prefixes valid in ClickHouse
-// directives.
-//
-// The `{` prefix indicates the brace form `{name:Type}`; the lexer scans through the
-// matching `}`.
-//
-// Returns []querier_dto.DirectiveParameterPrefix which is the set of valid prefixes.
-func (*ClickHouseEngine) SupportedDirectivePrefixes() []querier_dto.DirectiveParameterPrefix {
-	return []querier_dto.DirectiveParameterPrefix{
-		{Prefix: '{', IsNamed: true},
-	}
-}
-
-// SupportsReturning reports whether ClickHouse supports RETURNING clauses on DML.
-//
-// Returns bool which is always false for ClickHouse.
-func (*ClickHouseEngine) SupportsReturning() bool {
-	return false
-}
-
-// SupportsAsyncMutations reports whether ClickHouse surfaces asynchronous mutations.
-//
-// ClickHouse executes ALTER UPDATE and ALTER DELETE asynchronously via background
-// mutations recorded in the system.mutations table; the client receives no rows-affected
-// count and the returned error reflects only acceptance, not completion. Returning true
-// permits the asyncexec piko command for ClickHouse queries.
-//
-// Returns bool which is always true for ClickHouse.
-func (*ClickHouseEngine) SupportsAsyncMutations() bool {
-	return true
-}
-
-// Dialect returns "clickhouse" (or the override set via WithDialectName).
-//
-// Returns string which is the configured dialect identifier.
-func (engine *ClickHouseEngine) Dialect() string {
-	return engine.dialect.Name
-}
-
-// SupportedExpressions returns the expression features supported by ClickHouse.
-//
-// It advertises the base feature set plus scalar subqueries (a parenthesised SELECT used
-// as a scalar), window functions (row_number / lag / lead with OVER), array subscripting
-// (`arr[idx]`), JSON operations (the JSONExtract family), bitwise operations (bitAnd /
-// bitOr / bitXor), lambdas (`x -> x + 1` for higher-order array functions), and struct
-// field access (tuple.field and tuple.1 syntax).
-//
-// Returns querier_dto.SQLExpressionFeature which is the supported feature bitset.
-func (*ClickHouseEngine) SupportedExpressions() querier_dto.SQLExpressionFeature {
-	return querier_dto.SQLFeaturesBase |
-		querier_dto.SQLFeatureScalarSubquery |
-		querier_dto.SQLFeatureWindowFunction |
-		querier_dto.SQLFeatureArraySubscript |
-		querier_dto.SQLFeatureJSONOp |
-		querier_dto.SQLFeatureBitwiseOp |
-		querier_dto.SQLFeatureLambda |
-		querier_dto.SQLFeatureStructFieldAccess
-}
-
-// DefaultSchema returns "default", the default ClickHouse database.
-//
-// ClickHouse uses `database.table` qualification; the Piko schema resolution path treats
-// the ClickHouse database as a schema for uniformity.
-//
-// Returns string which is the default schema name "default".
-func (*ClickHouseEngine) DefaultSchema() string {
-	return "default"
-}
-
-// TableValuedFunctionColumns returns output columns for a known table-valued function.
-//
-// A nil result is returned for functions whose output shape depends on the source (such
-// as remote / cluster / file / url / s3), whose column list resolves at runtime. Only
-// built-in table-valued functions are resolved here. ClickHouse user-defined functions
-// are scalar lambda expressions (CREATE FUNCTION name AS (x) -> ...), not table-valued,
-// so there are no user table-valued functions to register in the catalogue and the engine
-// does not implement CatalogueFunctionResolverPort. This is a dialect limitation.
-//
-// Takes functionName (string) which is the table-valued function name to resolve.
-//
-// Returns []querier_dto.ScopedColumn which is the function's output columns, or nil when
-// the function is unknown or resolves at runtime.
-func (*ClickHouseEngine) TableValuedFunctionColumns(functionName string) []querier_dto.ScopedColumn {
-	columns, exists := clickhouseTableValuedFunctionColumns[functionName]
-	if !exists {
-		return nil
-	}
-	result := make([]querier_dto.ScopedColumn, len(columns))
-	copy(result, columns)
-	return result
-}
-
-// PromoteType returns the wider type when both operands belong to a numeric category.
-//
-// ClickHouse follows a least-common-type rule: within the integer family the wider bit
-// width wins; mixing a floating-point operand with anything numeric collapses to the
-// float (Float64 if either side is Float64, else the wider float width); mixing a decimal
-// operand with an integer keeps the decimal; mixing across non-numeric categories returns
-// the left operand unchanged. Unknown engine names fall back to the left operand so
-// behaviour stays predictable when an extension introduces a type the rank table does not
-// cover.
-//
-// Takes left (querier_dto.SQLType) which is the existing operand type.
-// Takes right (querier_dto.SQLType) which is the candidate type the caller wants to fold
-// in.
-//
-// Returns querier_dto.SQLType which is the promoted type or the left operand when no
-// promotion applies.
-func (engine *ClickHouseEngine) PromoteType(
-	left querier_dto.SQLType,
-	right querier_dto.SQLType,
-) querier_dto.SQLType {
-	if engine.dialect.PromoteTypeHook != nil {
-		if result := engine.dialect.PromoteTypeHook(left, right); result != nil {
-			return *result
-		}
-	}
-	if !isPromotableNumericCategory(left.Category) || !isPromotableNumericCategory(right.Category) {
-		return left
-	}
-	if left.Category != right.Category {
-		return crossCategoryNumericPromotion(left, right)
-	}
-	if left.Category == querier_dto.TypeCategoryInteger {
-		return promoteSameCategoryInteger(left, right)
-	}
-	if clickHouseNumericTypeRank(right.EngineName) > clickHouseNumericTypeRank(left.EngineName) {
-		return right
-	}
-	return left
-}
-
-// CanImplicitCast reports whether ClickHouse allows implicit conversion between type
-// categories.
-//
-// By default, a cast is permitted only when the two categories match, with every
-// cross-category pair rejected. A configured ImplicitCastHook is consulted first and its
-// non-nil result overrides the default.
-//
-// Takes from (querier_dto.SQLTypeCategory) which is the source type category.
-// Takes to (querier_dto.SQLTypeCategory) which is the target type category.
-//
-// Returns bool which is true when the implicit cast is allowed.
-func (engine *ClickHouseEngine) CanImplicitCast(
-	from querier_dto.SQLTypeCategory,
-	to querier_dto.SQLTypeCategory,
-) bool {
-	if engine.dialect.ImplicitCastHook != nil {
-		if result := engine.dialect.ImplicitCastHook(from, to); result != nil {
-			return *result
-		}
-	}
-	return from == to
-}
-
-// CommentStyle returns the standard SQL comment style (`--`).
-//
-// Returns querier_dto.CommentStyle which is the default SQL comment style.
-func (*ClickHouseEngine) CommentStyle() querier_dto.CommentStyle {
-	return querier_dto.DefaultSQLCommentStyle()
-}
-
-// ResolveFunctionCall delegates to the ClickHouse polymorphic function resolver.
-//
-// It is used for arrayMap / arrayFilter / tupleElement / map / coalesce / if / multiIf
-// and the aggregate combinator family (countIf, sumOrNull, and similar) where the static
-// catalogue cannot express the return type from argument types alone.
-//
-// Takes catalogue (*querier_dto.Catalogue) which provides type and function context.
-// Takes name (string) which is the function name to resolve.
-// Takes schema (string) which is the schema the call is qualified by.
-// Takes argumentTypes ([]querier_dto.SQLType) which are the resolved argument types.
-//
-// Returns *querier_dto.FunctionResolution which is the resolved signature and return
-// type.
-// Returns error when the function cannot be resolved for the given arguments.
-func (*ClickHouseEngine) ResolveFunctionCall(
-	catalogue *querier_dto.Catalogue,
-	name string,
-	schema string,
-	argumentTypes []querier_dto.SQLType,
-) (*querier_dto.FunctionResolution, error) {
-	return NewClickHouseFunctionResolver().ResolveFunctionCall(catalogue, name, schema, argumentTypes)
-}
-
-// newStatementParser creates a parser over a statement's tokens configured with the
-// dialect's limits, refusing statements longer than the per-statement token budget.
-//
-// Takes tokens ([]token) which are the statement's tokens.
-//
-// Returns *parser which is the configured parser positioned at the statement start.
-// Returns error which wraps errTokenBudgetExceeded when the statement holds more tokens
-// than the budget allows.
-func (engine *ClickHouseEngine) newStatementParser(tokens []token) (*parser, error) {
-	if limit := engine.dialect.resolvedMaxTokensPerStatement(); len(tokens) > limit {
-		return nil, fmt.Errorf("%w: statement has %d tokens, limit is %d", errTokenBudgetExceeded, len(tokens), limit)
-	}
-	p := newParser(tokens)
-	p.maxParseDepth = engine.dialect.resolvedMaxParseDepth()
-	p.maxTypeParseDepth = engine.dialect.resolvedMaxTypeParseDepth()
-	return p, nil
-}
-
-// analyseAlterTable analyses an ALTER TABLE statement for its parameter placeholders.
-//
-// An asynchronous ALTER TABLE ... UPDATE or DELETE mutation records its action body under
-// engineKeyAsyncBody so downstream codegen can recognise the mutation, and every
-// `{name:Type}` placeholder in the statement is registered as an assignment parameter.
-//
-// The whole statement is probed for the async body on a throwaway parser so this parser's
-// cursor is untouched.
-//
-// Returns *querier_dto.RawQueryAnalysis which holds the placeholders and any async body.
-// Returns error when a placeholder carries a malformed or unrecognised type tag.
-func (p *parser) analyseAlterTable() (*querier_dto.RawQueryAnalysis, error) {
-	analysis := &querier_dto.RawQueryAnalysis{}
-	if body, isAsync := alterTableAsyncBody(p.tokens); isAsync {
-		analysis.EngineSpecific = map[string]string{engineKeyAsyncBody: body}
-	}
-	p.collectClickHouseParametersUntilEnd(analysis, querier_dto.ParameterContextAssignment)
-	if p.firstParameterTypeError != nil {
-		return analysis, p.firstParameterTypeError
-	}
-	return analysis, nil
-}
-
-// statementByteLength computes the byte span a statement occupies in the source SQL, from
-// the first token's start to the end of the last token's lexeme.
-//
-// Takes statementTokens ([]token) which are the ordered tokens of a single statement and
-// must hold at least one token.
-//
-// Returns int which is the statement's byte length in the source SQL.
-func statementByteLength(statementTokens []token) int {
-	first := statementTokens[0]
-	last := statementTokens[len(statementTokens)-1]
-	return last.position + len(last.value) - first.position
-}
-
-// alterTableAsyncBody reports whether an ALTER TABLE statement is an asynchronous
-// mutation (ALTER TABLE ... UPDATE / DELETE) and captures its action body text.
-//
-// The statement header is parsed on a throwaway parser so the caller's analysis parser is
-// untouched, mirroring the header grammar of parseAlterTable (ALTER TABLE [IF EXISTS]
-// [db.]name [ON CLUSTER c] <action>). This lets the query-analysis path mark exactly the
-// statements the DDL path records as MutationAsyncDataUpdate / MutationAsyncDataDelete.
-//
-// Takes tokens ([]token) which are the statement's tokens.
-//
-// Returns string which is the captured action body text.
-// Returns bool which is true when the action is UPDATE or DELETE.
-func alterTableAsyncBody(tokens []token) (string, bool) {
-	probe := newParser(tokens)
-	if !probe.matchKeyword("ALTER") || !probe.matchKeyword("TABLE") {
-		return "", false
-	}
-	probe.matchIfExists()
-	if _, _, err := probe.parseDatabaseQualifiedName(); err != nil {
-		return "", false
-	}
-	probe.matchOnCluster()
-	if probe.matchKeyword("UPDATE") || probe.matchKeyword("DELETE") {
-		return probe.consumeRemainderAsText(), true
-	}
-	return "", false
-}
-
-// promoteSameCategoryInteger promotes two integers of the same category.
-//
-// When the operands share a width rank but differ in sign (for example Int32 vs UInt32)
-// the least-common-type is the next wider signed type, because the signed range at the
-// shared width cannot hold the unsigned operand's high-bit values. The 64-bit pair (Int64
-// vs UInt64) is excluded because stock ClickHouse throws rather than promoting to Int128,
-// so the left operand is preserved for that pair. Otherwise the wider rank wins, with
-// ties preserving the left operand. The mixed-sign decision keys off the resolver's
-// integerRank table (bit-width ranks) rather than clickHouseNumericTypeRank so a single
-// helper, nextWiderSignedInteger, owns the widening map; the two rank tables agree on
-// integer widths.
-//
-// Takes left (querier_dto.SQLType) which is the existing operand type.
-// Takes right (querier_dto.SQLType) which is the candidate type.
-//
-// Returns querier_dto.SQLType which is the promoted integer type.
-func promoteSameCategoryInteger(left, right querier_dto.SQLType) querier_dto.SQLType {
-	leftWidth := integerRank(left.EngineName)
-	rightWidth := integerRank(right.EngineName)
-	if leftWidth == rightWidth && leftWidth != 0 &&
-		isUnsignedInteger(left.EngineName) != isUnsignedInteger(right.EngineName) {
-		if widened, found := nextWiderSignedInteger(leftWidth); found {
-			return widened
-		}
-	}
-	if clickHouseNumericTypeRank(right.EngineName) > clickHouseNumericTypeRank(left.EngineName) {
-		return right
-	}
-	return left
-}
-
-// isPromotableNumericCategory reports whether a SQLType category participates in the
-// ClickHouse numeric promotion matrix. Integer, floating-point, and fixed-point decimal
-// categories qualify; all other categories fall through to the left operand at the call
-// site.
-//
-// Takes category (querier_dto.SQLTypeCategory) which classifies the candidate type.
-//
-// Returns bool which is true when the category may be promoted.
-func isPromotableNumericCategory(category querier_dto.SQLTypeCategory) bool {
-	switch category {
-	case querier_dto.TypeCategoryInteger,
-		querier_dto.TypeCategoryFloat,
-		querier_dto.TypeCategoryDecimal:
-		return true
-	default:
-		return false
-	}
-}
-
-// crossCategoryNumericPromotion handles promotion across the three numeric categories.
-//
-// Decimal absorbs integer and float absorbs both integer and decimal. When both sides are
-// non-decimal the float side wins; when one side is decimal the decimal side wins
-// regardless of the other operand's width.
-//
-// Takes left (querier_dto.SQLType) which is the existing type.
-// Takes right (querier_dto.SQLType) which is the candidate type.
-//
-// Returns querier_dto.SQLType which is the dominant operand.
-func crossCategoryNumericPromotion(left, right querier_dto.SQLType) querier_dto.SQLType {
-	switch {
-	case left.Category == querier_dto.TypeCategoryFloat:
-		return left
-	case right.Category == querier_dto.TypeCategoryFloat:
-		return right
-	case left.Category == querier_dto.TypeCategoryDecimal:
-		return left
-	case right.Category == querier_dto.TypeCategoryDecimal:
-		return right
-	default:
-		return left
-	}
-}
-
-// clickHouseNumericTypeRank returns a synthetic rank for a numeric engine type name.
-//
-// Higher ranks denote wider or more general types within their category. Unknown engine
-// names produce rank 0 so the left operand is preserved by PromoteType when ClickHouse
-// adds a new numeric type the table does not recognise.
-//
-// Takes engineName (string) which is the ClickHouse type spelling.
-//
-// Returns int which is the comparable rank.
-func clickHouseNumericTypeRank(engineName string) int {
-	if rank, exists := clickHouseNumericRanks[engineName]; exists {
-		return rank
-	}
-	return 0
+	return &ClickHouseEngine{Engine: db_provider_seagull.NewBuiltinEngine(db_provider_seagull.DialectOptions{
+		Dialect:               dialect,
+		Returning:             nil,
+		JoinUseNulls:          settings.joinUseNulls,
+		Name:                  settings.name,
+		MaxParseDepth:         settings.maxParseDepth,
+		MaxTokensPerStatement: settings.maxTokensPerStatement,
+		MaxTypeParseDepth:     settings.maxTypeParseDepth,
+	})}
 }

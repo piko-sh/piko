@@ -46,6 +46,9 @@ var (
 	// (separate from CRC corruption).
 	ErrInvalidEntry = errors.New("wal: invalid entry")
 
+	// ErrEntryTooLarge reports an encoded entry that exceeds the reader's record-size limit.
+	ErrEntryTooLarge = errors.New("wal: entry too large")
+
 	// ErrCodecRequired indicates a codec must be provided for the WAL.
 	ErrCodecRequired = errors.New("wal: codec is required")
 

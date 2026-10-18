@@ -19,7 +19,6 @@
 package db_engine_sqlite
 
 import (
-	"piko.sh/piko/internal/querier/querier_adapters/migration_sql"
 	"piko.sh/piko/wdk/db"
 )
 
@@ -30,8 +29,7 @@ import (
 func SQLite() db.EngineConfig {
 	return db.EngineConfig{
 		Engine:           NewSQLiteEngine(),
-		MigrationDialect: migration_sql.SQLiteDialect(),
+		MigrationDialect: db.SQLiteDialect(),
 		DriverName:       "",
-		CatalogueFactory: nil,
 	}
 }

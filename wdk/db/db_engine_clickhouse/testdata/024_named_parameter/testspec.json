@@ -1,3 +1,0 @@
-{
-  "description": "ClickHouse `{name:Type}` named-parameter placeholder. Verifies the analyser captures Name, Number, and CastType."
-}

@@ -20,8 +20,6 @@ package main
 
 import "github.com/google/uuid"
 
-// MyUUID is a new, distinct type. It does NOT inherit methods from uuid.UUID.
 type MyUUID uuid.UUID
 
-// MyUUIDAlias is just another name for uuid.UUID. It shares the same method set.
 type MyUUIDAlias = uuid.UUID

@@ -24,8 +24,6 @@ type ActionOutput struct {
 	Done bool `json:"done"`
 }
 
-// Action is named exactly after the suffix the action name is derived by trimming, so it
-// leaves nothing behind to name the action with.
 type Action struct {
 	piko.ActionMetadata
 }

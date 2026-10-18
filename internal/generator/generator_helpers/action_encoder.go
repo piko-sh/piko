@@ -19,8 +19,11 @@
 package generator_helpers
 
 import (
+	"cmp"
 	"encoding/base64"
+	"maps"
 	"reflect"
+	"slices"
 	"strconv"
 
 	"piko.sh/piko/internal/ast/ast_domain"
@@ -463,21 +466,19 @@ func encodeString(bufferPointer *[]byte, s string) {
 	*bufferPointer = append(*bufferPointer, '"')
 }
 
-// encodeMap encodes a map[string]any as a JSON object, recursively encoding each value.
+// encodeMap encodes map entries in sorted-key order.
 //
 // Takes bufferPointer (*[]byte) which is the buffer to append to.
 // Takes m (map[string]any) which is the map to encode.
 func encodeMap(bufferPointer *[]byte, m map[string]any) {
 	*bufferPointer = append(*bufferPointer, '{')
-	first := true
-	for k, v := range m {
-		if !first {
+	for i, k := range slices.Sorted(maps.Keys(m)) {
+		if i > 0 {
 			*bufferPointer = append(*bufferPointer, ',')
 		}
-		first = false
 		encodeString(bufferPointer, k)
 		*bufferPointer = append(*bufferPointer, ':')
-		encodeValue(bufferPointer, v)
+		encodeValue(bufferPointer, m[k])
 	}
 	*bufferPointer = append(*bufferPointer, '}')
 }
@@ -497,23 +498,23 @@ func encodeSlice(bufferPointer *[]byte, s []any) {
 	*bufferPointer = append(*bufferPointer, ']')
 }
 
-// encodeReflectMap encodes any map with string keys as a JSON object using reflection.
-// This is the slow path for map types other than map[string]any.
+// encodeReflectMap encodes reflected map entries in sorted-key order.
 //
 // Takes bufferPointer (*[]byte) which is the buffer to append to.
 // Takes rv (reflect.Value) which is the map value to encode.
 func encodeReflectMap(bufferPointer *[]byte, rv reflect.Value) {
 	*bufferPointer = append(*bufferPointer, '{')
-	first := true
-	iterator := rv.MapRange()
-	for iterator.Next() {
-		if !first {
+	keys := rv.MapKeys()
+	slices.SortFunc(keys, func(a, b reflect.Value) int {
+		return cmp.Compare(a.String(), b.String())
+	})
+	for i, key := range keys {
+		if i > 0 {
 			*bufferPointer = append(*bufferPointer, ',')
 		}
-		first = false
-		encodeString(bufferPointer, iterator.Key().String())
+		encodeString(bufferPointer, key.String())
 		*bufferPointer = append(*bufferPointer, ':')
-		encodeValue(bufferPointer, iterator.Value().Interface())
+		encodeValue(bufferPointer, rv.MapIndex(key).Interface())
 	}
 	*bufferPointer = append(*bufferPointer, '}')
 }

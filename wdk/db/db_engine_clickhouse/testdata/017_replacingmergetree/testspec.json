@@ -1,3 +1,0 @@
-{
-  "description": "ReplacingMergeTree(version) engine declaration. The version-column argument is captured as part of the engine string in EngineSpecific."
-}

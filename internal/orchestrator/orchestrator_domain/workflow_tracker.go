@@ -30,7 +30,6 @@ import (
 
 // checkAndResolveWorkflow checks if a workflow has finished and resolves its receipt.
 //
-// Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes workflowID (string) which identifies the workflow to check.
 // Takes latestErr (error) which is the most recent error from the workflow.
 func (s *orchestratorService) checkAndResolveWorkflow(ctx context.Context, workflowID string, latestErr error) {
@@ -52,28 +51,58 @@ func (s *orchestratorService) checkAndResolveWorkflow(ctx context.Context, workf
 		}
 
 		if isComplete {
-			l.Trace("Workflow completed", logger_domain.String(attributeKeyWorkflowID, workflowID))
-			if latestErr != nil {
-				WorkflowFailureCount.Add(ctx, 1)
-			} else {
-				WorkflowSuccessCount.Add(ctx, 1)
-			}
-			s.resolveReceipts(ctx, workflowID, latestErr)
-			ActiveWorkflowsCount.Add(ctx, -1)
+			return nil, s.resolveCompletedWorkflow(ctx, l, workflowID, latestErr)
 		}
 		return nil, nil
 	})
 }
 
+// resolveCompletedWorkflow resolves receipts using the stored outcome when supported,
+// otherwise latestErr.
+//
+// Takes l (logger_domain.Logger) which records the completion.
+// Takes workflowID (string) which identifies the finished workflow.
+// Takes latestErr (error) which is the most recent error from the workflow.
+//
+// Returns error when the store's recorded outcome cannot be read.
+func (s *orchestratorService) resolveCompletedWorkflow(
+	ctx context.Context,
+	l logger_domain.Logger,
+	workflowID string,
+	latestErr error,
+) error {
+	outcome := latestErr
+	if reader, ok := s.taskStore.(interface {
+		WorkflowError(context.Context, string) (error, error)
+	}); ok {
+		recorded, readErr := reader.WorkflowError(ctx, workflowID)
+		if readErr != nil {
+			return readErr
+		}
+		outcome = recorded
+	}
+	l.Trace("Workflow completed", logger_domain.String(attributeKeyWorkflowID, workflowID))
+	if outcome != nil {
+		WorkflowFailureCount.Add(ctx, 1)
+	} else {
+		WorkflowSuccessCount.Add(ctx, 1)
+	}
+	s.resolveReceipts(ctx, workflowID, outcome)
+	return nil
+}
+
 // registerReceipt adds a new receipt to the internal map and persists to database.
 //
-// Takes ctx (context.Context) which carries tracing values; cancellation is detached
-// internally so persistence completes independently.
+// Cancellation of ctx is detached, so persistence completes independently.
+//
 // Takes receiptID (string) which is the unique identifier for this receipt.
 // Takes receipt (*WorkflowReceipt) which is the workflow receipt to store.
 func (s *orchestratorService) registerReceipt(ctx context.Context, receiptID string, receipt *WorkflowReceipt) {
 	ctx, l := logger_domain.From(ctx, log)
-	s.registerReceiptInMemory(ctx, receipt)
+	if err := s.registerReceiptInMemory(ctx, receipt); err != nil {
+		receipt.resolve(err)
+		return
+	}
 
 	if s.taskStore != nil {
 		ctx, cancel := context.WithTimeoutCause(context.WithoutCancel(ctx), 5*time.Second,
@@ -91,12 +120,22 @@ func (s *orchestratorService) registerReceipt(ctx context.Context, receiptID str
 // registerReceiptInMemory adds a receipt to the in-memory map without persisting to the
 // store.
 //
-// Takes ctx (context.Context) which carries tracing values for metrics.
 // Takes receipt (*WorkflowReceipt) which is the workflow receipt to track.
 //
+// Returns error when receipt admission exceeds the configured capacity.
+//
 // Safe for concurrent use. Uses a mutex to protect the receipts map.
-func (s *orchestratorService) registerReceiptInMemory(ctx context.Context, receipt *WorkflowReceipt) {
+func (s *orchestratorService) registerReceiptInMemory(ctx context.Context, receipt *WorkflowReceipt) error {
 	s.receiptsMutex.Lock()
+	limit := defaultReceiptCapacity
+	if capacity, ok := s.taskStore.(interface{ ReceiptCapacity() int }); ok {
+		limit = capacity.ReceiptCapacity()
+	}
+	if s.receiptWork.count >= limit {
+		s.receiptsMutex.Unlock()
+		return ErrTaskCapacity
+	}
+	s.addReceiptWorkLocked(receipt.WorkflowID)
 	s.receipts[receipt.WorkflowID] = append(s.receipts[receipt.WorkflowID], receipt)
 	isFirstReceipt := len(s.receipts[receipt.WorkflowID]) == 1
 	s.receiptsMutex.Unlock()
@@ -104,6 +143,7 @@ func (s *orchestratorService) registerReceiptInMemory(ctx context.Context, recei
 	if isFirstReceipt {
 		ActiveWorkflowsCount.Add(context.WithoutCancel(ctx), 1)
 	}
+	return nil
 }
 
 // removeReceipt removes a specific receipt from the waitlist.
@@ -123,21 +163,25 @@ func (s *orchestratorService) removeReceipt(receiptToRemove *WorkflowReceipt) {
 
 	for i, r := range waiters {
 		if r == receiptToRemove {
-			s.receipts[receiptToRemove.WorkflowID] = append(waiters[:i], waiters[i+1:]...)
+			copy(waiters[i:], waiters[i+1:])
+			waiters[len(waiters)-1] = nil
+			s.receipts[receiptToRemove.WorkflowID] = waiters[:len(waiters)-1]
+			s.removeReceiptWorkLocked(receiptToRemove.WorkflowID, 1)
 			break
 		}
 	}
 
 	if len(s.receipts[receiptToRemove.WorkflowID]) == 0 {
 		delete(s.receipts, receiptToRemove.WorkflowID)
+		ActiveWorkflowsCount.Add(context.Background(), -1)
 	}
 }
 
 // resolveReceipts resolves all waiting receipts for a completed workflow. Also resolves
 // receipts in the database for cross-node coordination.
 //
-// Takes ctx (context.Context) which carries tracing values; cancellation is detached
-// internally so resolution completes independently.
+// Cancellation of ctx is detached, so resolution completes independently.
+//
 // Takes workflowID (string) which identifies the workflow whose receipts to resolve.
 // Takes err (error) which is passed to each receipt to indicate success or failure.
 //
@@ -147,10 +191,18 @@ func (s *orchestratorService) resolveReceipts(ctx context.Context, workflowID st
 	ctx, l := logger_domain.From(ctx, log)
 	s.receiptsMutex.Lock()
 	waiters := s.receipts[workflowID]
+	for _, waiter := range waiters {
+		if waiter.awaitingAdmission {
+			s.receiptsMutex.Unlock()
+			return
+		}
+	}
 	delete(s.receipts, workflowID)
+	s.removeReceiptWorkLocked(workflowID, len(waiters))
 	s.receiptsMutex.Unlock()
 
 	if len(waiters) > 0 {
+		ActiveWorkflowsCount.Add(ctx, -1)
 		l.Trace("Resolving workflow receipts",
 			logger_domain.String(attributeKeyWorkflowID, workflowID),
 			logger_domain.Int("receiptCount", len(waiters)),
@@ -193,7 +245,8 @@ func (s *orchestratorService) subscribeToCompletionEvents() {
 	}
 
 	l.Internal("Subscribing to task.completed events via handler")
-	err := s.eventBus.SubscribeWithHandler(ctx, TopicTaskCompleted,
+
+	err := SubscribeBroadcast(ctx, s.eventBus, TopicTaskCompleted,
 		func(ctx context.Context, event Event) error {
 			s.handleCompletionEvent(ctx, event)
 			return nil
@@ -212,9 +265,24 @@ func (s *orchestratorService) subscribeToCompletionEvents() {
 	l.Internal("Completion event subscription shutting down")
 }
 
+// onLocalCompletion resolves locally registered workflow receipts after a task completes.
+//
+// Takes task (*Task) which completed.
+// Takes taskErr (error) which is the task's failure, or nil.
+//
+// Concurrent receipt access is protected by receiptsMutex.
+func (s *orchestratorService) onLocalCompletion(ctx context.Context, task *Task, taskErr error) {
+	s.receiptsMutex.Lock()
+	_, waiting := s.receipts[task.WorkflowID]
+	s.receiptsMutex.Unlock()
+	if !waiting {
+		return
+	}
+	s.checkAndResolveWorkflow(ctx, task.WorkflowID, taskErr)
+}
+
 // handleCompletionEvent processes a task.completed event to resolve workflow receipts.
 //
-// Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes event (Event) which contains the completion payload with workflow ID and status.
 func (s *orchestratorService) handleCompletionEvent(ctx context.Context, event Event) {
 	workflowID := getPayloadString(event.Payload, "workflowId")

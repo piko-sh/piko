@@ -37,18 +37,16 @@ import (
 
 	"golang.org/x/sync/errgroup"
 	"piko.sh/piko/internal/annotator/annotator_dto"
+	"piko.sh/piko/internal/capabilities/capabilities_dto"
 	"piko.sh/piko/internal/generator/generator_adapters"
 	"piko.sh/piko/internal/generator/generator_domain"
 	"piko.sh/piko/internal/generator/generator_dto"
 	"piko.sh/piko/internal/lifecycle/lifecycle_adapters"
 	"piko.sh/piko/internal/lifecycle/lifecycle_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/internal/querier/querier_adapters/emitter_go_sql"
-	"piko.sh/piko/internal/querier/querier_adapters/emitter_shared"
-	"piko.sh/piko/internal/querier/querier_adapters/migration_sql"
-	"piko.sh/piko/internal/querier/querier_domain"
-	"piko.sh/piko/internal/querier/querier_dto"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/piko/internal/sqldb/sqldb_adapters/generated_writer"
+	"piko.sh/piko/internal/sqldb/sqldb_dto"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -332,8 +330,28 @@ func (op *buildOperation) processAnnotationForAssets(
 		return fmt.Errorf("getting asset byte reader: %w", err)
 	}
 
-	pipeline := lifecycle_domain.NewAssetPipelineOrchestrator(registryService, op.container.GetAssetsConfig(), resolver, reader)
+	pipeline := lifecycle_domain.NewAssetPipelineOrchestrator(registryService, op.container.GetAssetsConfig(), resolver, reader,
+		op.imageVariantOptions(ctx)...)
 	return pipeline.ProcessBuildResult(ctx, annotationResult)
+}
+
+// imageVariantOptions leaves responsive image variants to be generated on demand when
+// this build cannot transform images, as a generator built without an image provider
+// cannot, instead of failing on every srcset it would have to build.
+//
+// Returns []lifecycle_domain.AssetPipelineOption which configures the asset pipeline.
+func (op *buildOperation) imageVariantOptions(ctx context.Context) []lifecycle_domain.AssetPipelineOption {
+	service, err := op.container.GetCapabilityService()
+	if err != nil {
+		return nil
+	}
+	checker, ok := service.(interface{ Has(name string) bool })
+	if !ok || checker.Has(capabilities_dto.CapabilityImageTransform.String()) {
+		return nil
+	}
+	_, l := logger_domain.From(ctx, log)
+	l.Notice("No image provider is registered for this build; responsive image variants will be generated when first requested")
+	return []lifecycle_domain.AssetPipelineOption{lifecycle_domain.WithImageVariantsOnDemand()}
 }
 
 // runAnnotationEmitAndBuildAssets runs annotation first, then fans out code emission
@@ -394,14 +412,18 @@ func (op *buildOperation) runAnnotationEmitAndBuildAssets(ctx context.Context) e
 	)
 	_, _ = fmt.Fprint(os.Stderr, summary)
 
+	if buildResult != nil && buildResult.HasFailures() {
+		return fmt.Errorf("%w: %s", lifecycle_domain.ErrBuildHasFailures, buildResult.FailureSummary())
+	}
 	return nil
 }
 
 // runEmissionLeg runs code emission, artefact writes, and manifest writing. It is the
 // first leg of the parallel GenerateModeAll build.
 //
-// Takes generatorService which drives code emission.
-// Takes annotationResult which contains the pre-computed annotation output.
+// Takes generatorService (generator_domain.GeneratorService) which drives code emission.
+// Takes annotationResult (*annotator_dto.ProjectAnnotationResult) which contains the
+// pre-computed annotation output.
 //
 // Returns the time taken for the emission phase and any error.
 func (op *buildOperation) runEmissionLeg(
@@ -437,7 +459,8 @@ func (op *buildOperation) runEmissionLeg(
 // runAssetLeg processes annotation-derived asset profiles and then runs the static asset
 // build. It is the second leg of the parallel GenerateModeAll build.
 //
-// Takes annotationResult which contains the FinalAssetManifest.
+// Takes annotationResult (*annotator_dto.ProjectAnnotationResult) which contains the
+// FinalAssetManifest.
 //
 // Returns the build result and any error.
 func (op *buildOperation) runAssetLeg(
@@ -447,7 +470,11 @@ func (op *buildOperation) runAssetLeg(
 	if err := op.processAnnotationForAssets(ctx, annotationResult); err != nil {
 		return nil, fmt.Errorf("processing annotation for assets: %w", err)
 	}
-	return op.runStaticAssetBuild(ctx)
+	result, err := op.runStaticAssetBuild(ctx)
+	if errors.Is(err, lifecycle_domain.ErrBuildHasFailures) {
+		return result, nil
+	}
+	return result, err
 }
 
 // discoverEntryPoints walks the configured pages, partials, and emails directories to
@@ -776,13 +803,11 @@ func (op *buildOperation) writeManifest(ctx context.Context) error {
 // Returns error when a required service cannot be obtained or the build fails.
 func (op *buildOperation) buildStaticAssets(ctx context.Context) error {
 	result, err := op.runStaticAssetBuild(ctx)
-	if err != nil {
-		return err
+	if result != nil {
+		summary := lifecycle_adapters.FormatBuildSummary(result)
+		_, _ = fmt.Fprint(os.Stderr, summary)
 	}
-
-	summary := lifecycle_adapters.FormatBuildSummary(result)
-	_, _ = fmt.Fprint(os.Stderr, summary)
-	return nil
+	return err
 }
 
 // runStaticAssetBuild runs the static asset build process, returning the result without
@@ -825,18 +850,17 @@ func (op *buildOperation) runStaticAssetBuild(ctx context.Context) (*lifecycle_d
 		&op.container.websiteConfig, buildPathsConfig, registryService,
 		orchestratorService, bridge, eventBus, renderer, resolver,
 		op.container.externalComponents, buildFactory,
+		lifecycle_adapters.WithLeftoverAdoption(),
 	)
+	defer orchestratorService.Stop()
 	result, err := buildService.RunBuild(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("static asset build failed: %w", err)
 	}
 
 	if result.HasFailures() {
-		orchestratorService.Stop()
-		return result, fmt.Errorf("build completed with %d failed task(s)", result.TotalFailed)
+		return result, fmt.Errorf("%w: %s", lifecycle_domain.ErrBuildHasFailures, result.FailureSummary())
 	}
-
-	orchestratorService.Stop()
 	return result, nil
 }
 
@@ -998,25 +1022,15 @@ func (op *buildOperation) generateSQLForDatabase(ctx context.Context, name strin
 	_, l := logger_domain.From(ctx, log)
 	l.Internal("Generating SQL code", logger_domain.String("database", name))
 
-	service, serviceErr := querier_domain.NewQuerierService(querier_domain.QuerierPorts{
-		Engine:            reg.EngineConfig.Engine,
-		Emitter:           emitter_go_sql.NewSQLEmitterForDialect(reg.EngineConfig.Engine.Dialect()),
-		FileReader:        migration_sql.NewFSFileReader(reg.QueryFS),
-		CatalogueProvider: nil,
-		Clock:             nil,
-	})
-	if serviceErr != nil {
-		return 0, fmt.Errorf("creating querier service for %q: %w", name, serviceErr)
-	}
-
-	config := &querier_dto.DatabaseConfig{
+	result, genErr := reg.EngineConfig.Engine.Toolchain().Generate(ctx, sqldb_dto.GenerateRequest{
+		Files:              reg.QueryFS,
+		PackageName:        stringOrDefault(reg.GeneratedPackageName, "generated"),
 		MigrationDirectory: stringOrDefault(reg.MigrationDirectory, "migrations"),
 		QueryDirectory:     stringOrDefault(reg.QueryDirectory, "queries"),
 		TypeOverrides:      nil,
 		CustomFunctions:    nil,
-	}
-
-	result, genErr := service.GenerateDatabase(ctx, stringOrDefault(reg.GeneratedPackageName, "generated"), config)
+		Driver:             sqldb_dto.DriverDatabaseSQL,
+	})
 	if genErr != nil {
 		return 0, fmt.Errorf("generating code for database %q: %w", name, genErr)
 	}
@@ -1036,12 +1050,7 @@ func (op *buildOperation) generateSQLForDatabase(ctx context.Context, name strin
 		return 0, err
 	}
 
-	queryCount := 0
-	for _, file := range result.Files {
-		if strings.HasSuffix(file.Name, ".sql.go") {
-			queryCount += strings.Count(string(file.Content), "func (queries *Queries)")
-		}
-	}
+	queryCount := result.QueryCount
 
 	l.Internal("SQL code generated",
 		logger_domain.String("database", name),
@@ -1054,14 +1063,14 @@ func (op *buildOperation) generateSQLForDatabase(ctx context.Context, name strin
 // checkSQLDiagnostics scans diagnostics for errors and logs warnings.
 //
 // Takes name (string) which identifies the database for error messages.
-// Takes diagnostics ([]querier_dto.SourceError) which holds the diagnostics to check.
+// Takes diagnostics ([]sqldb_dto.SourceError) which holds the diagnostics to check.
 //
 // Returns error when a diagnostic with error severity is found.
-func checkSQLDiagnostics(ctx context.Context, name string, diagnostics []querier_dto.SourceError) error {
+func checkSQLDiagnostics(ctx context.Context, name string, diagnostics []sqldb_dto.SourceError) error {
 	_, l := logger_domain.From(ctx, log)
 
 	for _, diagnostic := range diagnostics {
-		if diagnostic.Severity == querier_dto.SeverityError {
+		if diagnostic.Severity == sqldb_dto.SeverityError {
 			return fmt.Errorf("SQL generation error in %q: %s:%d: %s", name, diagnostic.Filename, diagnostic.Line, diagnostic.Message)
 		}
 		l.Warn("SQL generation warning",
@@ -1073,35 +1082,25 @@ func checkSQLDiagnostics(ctx context.Context, name string, diagnostics []querier
 }
 
 // writeSQLGeneratedFiles writes the generated Go files to the output directory using
-// safedisk for safe file operations.
+// safedisk for safe file operations, pruning files an earlier run generated.
 //
 // Takes factory (safedisk.Factory) which creates the sandbox the files are written
 // through.
 // Takes outputDir (string) which is the directory to write files into.
 // Takes name (string) which identifies the database for error messages.
-// Takes files ([]querier_dto.GeneratedFile) which holds the files to write.
+// Takes files ([]sqldb_dto.GeneratedFile) which holds the files to write.
 //
 // Returns error when directory creation or file writing fails.
-func writeSQLGeneratedFiles(factory safedisk.Factory, outputDir, name string, files []querier_dto.GeneratedFile) error {
+func writeSQLGeneratedFiles(factory safedisk.Factory, outputDir, name string, files []sqldb_dto.GeneratedFile) error {
 	sandbox, sandboxErr := factory.Create("sql-output-"+name, outputDir, safedisk.ModeReadWrite)
 	if sandboxErr != nil {
 		return fmt.Errorf("creating output sandbox for database %q: %w", name, sandboxErr)
 	}
 	defer func() { _ = sandbox.Close() }()
 
-	if pruneErr := emitter_shared.PruneStaleGeneratedFiles(sandbox, emitter_shared.GeneratedFileNameSet(files)); pruneErr != nil {
-		return fmt.Errorf("pruning stale generated files for database %q: %w", name, pruneErr)
+	if err := generated_writer.WriteFiles(sandbox, files, generatedFilePerms); err != nil {
+		return fmt.Errorf("writing generated files for database %q: %w", name, err)
 	}
-
-	for _, file := range files {
-		if len(file.Content) == 0 {
-			continue
-		}
-		if writeErr := sandbox.WriteFile(file.Name, file.Content, generatedFilePerms); writeErr != nil {
-			return fmt.Errorf("writing generated file %q for database %q: %w", file.Name, name, writeErr)
-		}
-	}
-
 	return nil
 }
 

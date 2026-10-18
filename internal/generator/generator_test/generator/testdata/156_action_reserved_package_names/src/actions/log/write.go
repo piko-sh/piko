@@ -28,8 +28,6 @@ type WriteOutput struct {
 	Written bool `json:"written"`
 }
 
-// WriteAction lives in a package called "log", which is also the name the generated
-// wrapper file used to give its package-level logger variable.
 type WriteAction struct {
 	piko.ActionMetadata
 }

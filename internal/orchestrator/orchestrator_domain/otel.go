@@ -37,9 +37,6 @@ var (
 	// TaskScheduleDuration measures the time taken to schedule a task.
 	TaskScheduleDuration metric.Float64Histogram
 
-	// TaskProcessingDuration records how long each task takes to process.
-	TaskProcessingDuration metric.Float64Histogram
-
 	// TaskExecutionDuration measures the time taken to execute a task.
 	TaskExecutionDuration metric.Float64Histogram
 
@@ -170,15 +167,6 @@ func init() {
 	TaskScheduleDuration, err = meter.Float64Histogram(
 		"orchestrator.domain.task_schedule_duration",
 		metric.WithDescription("Duration of task schedule operations"),
-		metric.WithUnit("ms"),
-	)
-	if err != nil {
-		otel.Handle(err)
-	}
-
-	TaskProcessingDuration, err = meter.Float64Histogram(
-		"orchestrator.domain.task_processing_duration",
-		metric.WithDescription("Duration of task processing operations"),
 		metric.WithUnit("ms"),
 	)
 	if err != nil {

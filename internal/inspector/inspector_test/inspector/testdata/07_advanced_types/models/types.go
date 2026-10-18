@@ -18,22 +18,19 @@
 
 package models
 
-// A generic struct
 type Product[M any] struct {
 	ID   string
-	Meta M // Generic field
+	Meta M
 }
 
 type Metadata struct {
 	Views int
 }
 
-// A method on a generic type
 func (p *Product[M]) GetMeta() M {
 	return p.Meta
 }
 
-// An interface
 type Logger interface {
 	Log(message string) error
 }

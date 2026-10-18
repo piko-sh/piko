@@ -21,8 +21,6 @@ package main
 import "testcase_09_generics_instantiation/models"
 
 type Container struct {
-	// A field using an instantiated generic type from another package.
-	StringBox models.Box[string]
-	// A field using a nested instantiated generic type.
+	StringBox   models.Box[string]
 	BoxOfIntBox models.Box[models.Box[int]]
 }

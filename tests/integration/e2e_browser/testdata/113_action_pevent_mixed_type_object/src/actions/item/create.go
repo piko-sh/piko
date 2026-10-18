@@ -23,26 +23,22 @@ import (
 	"piko.sh/piko"
 )
 
-// CreateAction tests an object literal with mixed Go types (string, int, bool).
 type CreateAction struct {
 	piko.ActionMetadata
 }
 
-// CreateInput has string, int, and bool fields.
 type CreateInput struct {
 	Label  string `json:"label"`
 	Count  int    `json:"count"`
 	Active bool   `json:"active"`
 }
 
-// CreateResponse echoes back the received values.
 type CreateResponse struct {
 	ReceivedLabel  string `json:"received_label"`
 	ReceivedCount  int    `json:"received_count"`
 	ReceivedActive bool   `json:"received_active"`
 }
 
-// Call echoes the mixed-type fields back.
 func (a CreateAction) Call(input CreateInput) (CreateResponse, error) {
 	a.Response().AddHelper("showResult",
 		input.Label,

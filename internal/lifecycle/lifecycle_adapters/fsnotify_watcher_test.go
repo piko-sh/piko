@@ -225,120 +225,187 @@ func TestIsPathCoveredByStaticWatch(t *testing.T) {
 	})
 }
 
-func TestShouldDebounceEvent(t *testing.T) {
+func TestIsCoalescedEvent(t *testing.T) {
 	t.Parallel()
 
-	t.Run("does not debounce first event", func(t *testing.T) {
+	testCases := []struct {
+		name     string
+		op       fsnotify.Op
+		expected bool
+	}{
+		{name: "write is held back", op: fsnotify.Write, expected: true},
+		{name: "chmod is held back", op: fsnotify.Chmod, expected: true},
+		{name: "write with chmod is held back", op: fsnotify.Write | fsnotify.Chmod, expected: true},
+		{name: "create is forwarded", op: fsnotify.Create, expected: false},
+		{name: "create with write is forwarded", op: fsnotify.Create | fsnotify.Write, expected: false},
+		{name: "remove is forwarded", op: fsnotify.Remove, expected: false},
+		{name: "rename is forwarded", op: fsnotify.Rename, expected: false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tc.expected, isCoalescedEvent(fsnotify.Event{Name: "/path/to/file.go", Op: tc.op}))
+		})
+	}
+}
+
+func TestWriteDebouncer(t *testing.T) {
+	t.Parallel()
+
+	const (
+		quiet   = 50 * time.Millisecond
+		maxWait = 500 * time.Millisecond
+		path    = "/path/to/logo.svg"
+	)
+	start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	t.Run("releases a single write after the quiet period", func(t *testing.T) {
 		t.Parallel()
 
-		watcher := &fsNotifyWatcher{
-			debounced: make(map[string]time.Time),
-			mu:        sync.Mutex{},
-		}
+		debouncer := newWriteDebouncer(quiet, maxWait)
+		debouncer.record(fsnotify.Event{Name: path, Op: fsnotify.Write}, start)
 
-		event := fsnotify.Event{
-			Name: "/path/to/file.go",
-			Op:   fsnotify.Write,
-		}
+		deadline, pending := debouncer.nextDeadline()
+		require.True(t, pending)
+		assert.Equal(t, start.Add(quiet), deadline)
+		assert.Empty(t, debouncer.takeDue(start.Add(quiet-time.Millisecond)), "nothing is due before the quiet period ends")
 
-		result := watcher.shouldDebounceEvent(context.Background(), event)
-		assert.False(t, result)
+		due := debouncer.takeDue(start.Add(quiet))
+		require.Len(t, due, 1)
+		assert.Equal(t, path, due[0].Name)
+		assert.True(t, due[0].Has(fsnotify.Write))
 	})
 
-	t.Run("debounces rapid write events", func(t *testing.T) {
+	t.Run("each write restarts the quiet period so the trailing write wins", func(t *testing.T) {
 		t.Parallel()
 
-		watcher := &fsNotifyWatcher{
-			debounced: map[string]time.Time{
-				"/path/to/file.go": time.Now(),
-			},
-			mu: sync.Mutex{},
-		}
+		debouncer := newWriteDebouncer(quiet, maxWait)
+		debouncer.record(fsnotify.Event{Name: path, Op: fsnotify.Write}, start)
+		debouncer.record(fsnotify.Event{Name: path, Op: fsnotify.Write}, start.Add(20*time.Millisecond))
 
-		event := fsnotify.Event{
-			Name: "/path/to/file.go",
-			Op:   fsnotify.Write,
-		}
+		assert.Empty(t, debouncer.takeDue(start.Add(quiet)), "the second write must hold the event back")
 
-		result := watcher.shouldDebounceEvent(context.Background(), event)
-		assert.True(t, result)
+		deadline, pending := debouncer.nextDeadline()
+		require.True(t, pending)
+		assert.Equal(t, start.Add(20*time.Millisecond+quiet), deadline)
+		assert.Len(t, debouncer.takeDue(deadline), 1, "exactly one event is released for the burst")
 	})
 
-	t.Run("does not debounce create events", func(t *testing.T) {
+	t.Run("a continuous burst is released at the maximum wait", func(t *testing.T) {
 		t.Parallel()
 
-		watcher := &fsNotifyWatcher{
-			debounced: map[string]time.Time{
-				"/path/to/file.go": time.Now(),
-			},
-			mu: sync.Mutex{},
+		debouncer := newWriteDebouncer(quiet, maxWait)
+		for offset := time.Duration(0); offset <= maxWait; offset += 10 * time.Millisecond {
+			debouncer.record(fsnotify.Event{Name: path, Op: fsnotify.Write}, start.Add(offset))
 		}
 
-		event := fsnotify.Event{
-			Name: "/path/to/file.go",
-			Op:   fsnotify.Create,
-		}
-
-		result := watcher.shouldDebounceEvent(context.Background(), event)
-		assert.False(t, result)
+		deadline, pending := debouncer.nextDeadline()
+		require.True(t, pending)
+		assert.Equal(t, start.Add(maxWait), deadline)
+		assert.Len(t, debouncer.takeDue(start.Add(maxWait)), 1)
 	})
 
-	t.Run("does not debounce remove events", func(t *testing.T) {
+	t.Run("a chmod after a write is still reported as a write", func(t *testing.T) {
 		t.Parallel()
 
-		watcher := &fsNotifyWatcher{
-			debounced: map[string]time.Time{
-				"/path/to/file.go": time.Now(),
-			},
-			mu: sync.Mutex{},
-		}
+		debouncer := newWriteDebouncer(quiet, maxWait)
+		debouncer.record(fsnotify.Event{Name: path, Op: fsnotify.Write}, start)
+		debouncer.record(fsnotify.Event{Name: path, Op: fsnotify.Chmod}, start.Add(time.Millisecond))
 
-		event := fsnotify.Event{
-			Name: "/path/to/file.go",
-			Op:   fsnotify.Remove,
-		}
-
-		result := watcher.shouldDebounceEvent(context.Background(), event)
-		assert.False(t, result)
+		due := debouncer.takeDue(start.Add(time.Second))
+		require.Len(t, due, 1)
+		assert.Equal(t, lifecycle_dto.FileEventTypeWrite, mapToFileEventType(due[0].Op))
 	})
 
-	t.Run("allows event after debounce interval", func(t *testing.T) {
+	t.Run("paths are debounced independently", func(t *testing.T) {
 		t.Parallel()
 
-		watcher := &fsNotifyWatcher{
-			debounced: map[string]time.Time{
-				"/path/to/file.go": time.Now().Add(-100 * time.Millisecond),
-			},
-			mu: sync.Mutex{},
-		}
+		debouncer := newWriteDebouncer(quiet, maxWait)
+		debouncer.record(fsnotify.Event{Name: "/a.go", Op: fsnotify.Write}, start)
+		debouncer.record(fsnotify.Event{Name: "/b.go", Op: fsnotify.Write}, start.Add(40*time.Millisecond))
 
-		event := fsnotify.Event{
-			Name: "/path/to/file.go",
-			Op:   fsnotify.Write,
-		}
-
-		result := watcher.shouldDebounceEvent(context.Background(), event)
-		assert.False(t, result)
+		due := debouncer.takeDue(start.Add(quiet))
+		require.Len(t, due, 1)
+		assert.Equal(t, "/a.go", due[0].Name)
 	})
 
-	t.Run("different files are not debounced against each other", func(t *testing.T) {
+	t.Run("discard drops a pending write", func(t *testing.T) {
 		t.Parallel()
 
-		watcher := &fsNotifyWatcher{
-			debounced: map[string]time.Time{
-				"/path/to/file1.go": time.Now(),
-			},
-			mu: sync.Mutex{},
-		}
+		debouncer := newWriteDebouncer(quiet, maxWait)
+		debouncer.record(fsnotify.Event{Name: path, Op: fsnotify.Write}, start)
+		debouncer.discard(path)
 
-		event := fsnotify.Event{
-			Name: "/path/to/file2.go",
-			Op:   fsnotify.Write,
-		}
-
-		result := watcher.shouldDebounceEvent(context.Background(), event)
-		assert.False(t, result)
+		_, pending := debouncer.nextDeadline()
+		assert.False(t, pending)
+		assert.Empty(t, debouncer.takeDue(start.Add(time.Second)))
 	})
+
+	t.Run("released paths are pruned", func(t *testing.T) {
+		t.Parallel()
+
+		debouncer := newWriteDebouncer(quiet, maxWait)
+		for i := range 100 {
+			debouncer.record(fsnotify.Event{Name: filepath.Join("/assets", string(rune('a'+i%26)), "file.svg"), Op: fsnotify.Write}, start)
+		}
+		debouncer.takeDue(start.Add(time.Second))
+
+		assert.Empty(t, debouncer.pending)
+	})
+}
+
+func TestFSNotifyWatcher_TruncateThenWriteDeliversFinalContent(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	assets := filepath.Join(root, "assets")
+	require.NoError(t, os.MkdirAll(assets, 0o755))
+	target := filepath.Join(assets, "logo.svg")
+	require.NoError(t, os.WriteFile(target, []byte(`<svg>old</svg>`), 0o644))
+
+	watcher, err := NewFSNotifyWatcher(nil)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, watcher.Close()) })
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	events, err := watcher.Watch(ctx, []string{assets}, nil)
+	require.NoError(t, err)
+
+	finalContent := `<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>`
+
+	file, err := os.OpenFile(target, os.O_WRONLY|os.O_TRUNC, 0o644)
+	require.NoError(t, err)
+	time.Sleep(20 * time.Millisecond)
+	_, err = file.WriteString(finalContent)
+	require.NoError(t, err)
+	require.NoError(t, file.Close())
+
+	var lastRead string
+	received := 0
+	quiet := time.NewTimer(3 * time.Second)
+	defer quiet.Stop()
+	for {
+		select {
+		case event, ok := <-events:
+			require.True(t, ok, "watcher closed before the write was reported")
+			if event.Path != target {
+				continue
+			}
+			received++
+			content, readErr := os.ReadFile(target)
+			require.NoError(t, readErr)
+			lastRead = string(content)
+			quiet.Reset(4 * writeQuietPeriod)
+			continue
+		case <-quiet.C:
+		}
+		break
+	}
+
+	require.Positive(t, received, "the write burst must be reported")
+	assert.Equal(t, finalContent, lastRead,
+		"the last event for a truncate-then-write burst must be handled after the final write")
 }
 
 func TestShouldSkipDirectory(t *testing.T) {

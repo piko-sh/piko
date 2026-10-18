@@ -84,6 +84,30 @@ func (s *coordinatorService) notifyWaiters(ctx context.Context, signature string
 	}
 }
 
+// notifyAllWaiters releases every registered waiter with err, whatever build it awaits.
+// Shutdown uses it so callers blocked in GetOrBuildProject return straight away instead
+// of waiting out the build wait deadline.
+//
+// Takes err (error) which is delivered to each waiter.
+func (s *coordinatorService) notifyAllWaiters(ctx context.Context, err error) {
+	notified := 0
+	s.waiters.Range(func(key, value any) bool {
+		waiter, waiterOK := value.(*buildWaiter)
+		if !waiterOK || !s.waiters.CompareAndDelete(key, value) {
+			return true
+		}
+		waiter.err = err
+		close(waiter.done)
+		notified++
+		return true
+	})
+
+	if notified > 0 {
+		_, wl := logger_domain.From(ctx, log)
+		wl.Internal("Released build waiters.", logger_domain.Int("count", notified), logger_domain.Error(err))
+	}
+}
+
 // buildLoop is the sole initiator of builds.
 //
 // It processes build requests from the rebuild trigger channel in an infinite loop until
@@ -115,7 +139,6 @@ func (s *coordinatorService) buildLoop(ctx context.Context) {
 // request queued after the final empty read always carries its own wake signal, so no
 // build is lost to a coalesced signal.
 func (s *coordinatorService) drainPendingBuilds(ctx context.Context) {
-	_, bl := logger_domain.From(ctx, log)
 	for {
 		select {
 		case <-s.shutdown:
@@ -123,44 +146,58 @@ func (s *coordinatorService) drainPendingBuilds(ctx context.Context) {
 		default:
 		}
 
-		request, found := s.takeNextPendingBuild()
-		if !found {
+		if !s.buildNextPending(ctx) {
 			return
 		}
-
-		bl.Trace("Build loop triggered.")
-
-		if request == nil {
-			bl.Warn("Build loop triggered, but no build request was found.")
-			s.buildInFlight.Done()
-			continue
-		}
-
-		signature := buildRequestSignature(request)
-
-		buildOpts := &buildOptions{}
-		buildOpts.Resolver = request.Resolver
-
-		inputHash, allSourceContents, err := s.calculateInputHash(ctx, request.EntryPoints, buildOpts)
-		if err != nil {
-			bl.Error("Build loop failed to calculate input hash", logger_domain.Error(err))
-
-			s.notifyWaiters(ctx, signature, nil, fmt.Errorf("calculating build input hash: %w", err))
-			s.buildInFlight.Done()
-			continue
-		}
-
-		result, buildErr := s.executeBuild(ctx, inputHash, request, allSourceContents)
-
-		s.notifyWaiters(ctx, signature, result, buildErr)
-		s.buildInFlight.Done()
-
-		if buildErr != nil {
-			bl.Error("Asynchronous rebuild failed", logger_domain.Error(buildErr))
-		} else {
-			bl.Internal("Asynchronous rebuild completed successfully.")
-		}
 	}
+}
+
+// buildNextPending builds the oldest queued request and notifies its waiters.
+//
+// Returns bool which is false when the queue was empty.
+//
+// Concurrent invalidation waits for buildMu, which is held through waiter notification.
+func (s *coordinatorService) buildNextPending(ctx context.Context) bool {
+	_, bl := logger_domain.From(ctx, log)
+
+	s.buildMu.Lock()
+	defer s.buildMu.Unlock()
+
+	request, found := s.takeNextPendingBuild()
+	if !found {
+		return false
+	}
+
+	bl.Trace("Build loop triggered.")
+
+	if request == nil {
+		bl.Warn("Build loop triggered, but no build request was found.")
+		return true
+	}
+
+	signature := buildRequestSignature(request)
+
+	buildOpts := &buildOptions{}
+	buildOpts.Resolver = request.Resolver
+
+	inputHash, allSourceContents, err := s.calculateInputHash(ctx, request.EntryPoints, buildOpts)
+	if err != nil {
+		bl.Error("Build loop failed to calculate input hash", logger_domain.Error(err))
+
+		s.notifyWaiters(ctx, signature, nil, fmt.Errorf("calculating build input hash: %w", err))
+		return true
+	}
+
+	result, buildErr := s.executeBuild(ctx, inputHash, request, allSourceContents)
+
+	s.notifyWaiters(ctx, signature, result, buildErr)
+
+	if buildErr != nil {
+		bl.Error("Asynchronous rebuild failed", logger_domain.Error(buildErr))
+	} else {
+		bl.Internal("Asynchronous rebuild completed successfully.")
+	}
+	return true
 }
 
 // triggerBuild queues a build request and wakes the build loop. It is a convenience for
@@ -173,16 +210,15 @@ func (s *coordinatorService) triggerBuild(ctx context.Context, request *coordina
 	s.signalRebuild(ctx)
 }
 
-// enqueuePendingBuild records request as the pending build for its target signature.
+// enqueuePendingBuild queues a request or replaces an existing request with the same
+// target signature.
 //
-// Any older request with the same signature is replaced. Rapid edits to one file coalesce
-// to the latest content; edits to different files keep distinct signatures and are all
-// preserved, so the build loop later serves every distinct waiter. It never blocks and
-// does not wake the loop on its own; pair it with signalRebuild.
+// Replacement preserves queue position. Call signalRebuild separately to wake the build
+// loop.
 //
 // Takes request (*coordinator_dto.BuildRequest) which specifies the build to queue.
 //
-// Concurrency: acquires pendingMu while mutating the pendingBuilds map.
+// Concurrency: acquires pendingMu while mutating the pending queue.
 func (s *coordinatorService) enqueuePendingBuild(ctx context.Context, request *coordinator_dto.BuildRequest) {
 	_, tl := logger_domain.From(ctx, log)
 	signature := buildRequestSignature(request)
@@ -192,6 +228,9 @@ func (s *coordinatorService) enqueuePendingBuild(ctx context.Context, request *c
 	}
 	_, superseded := s.pendingBuilds[signature]
 	s.pendingBuilds[signature] = request
+	if !superseded {
+		s.pendingOrder = append(s.pendingOrder, signature)
+	}
 	s.pendingMu.Unlock()
 	if superseded {
 		tl.Trace("Superseded a queued build request for the same target with a newer one.")
@@ -212,23 +251,27 @@ func (s *coordinatorService) signalRebuild(ctx context.Context) {
 	}
 }
 
-// takeNextPendingBuild removes and returns one queued build request.
-//
-// The found result is false only when no request remains, so a queued nil request (used
-// to exercise the loop's defensive handling) is still reported as found. The build loop
-// calls it repeatedly under no external lock until found is false.
+// takeNextPendingBuild removes the oldest queued request, including a queued nil request.
 //
 // Returns the dequeued request (which may be nil) and whether one was present.
 //
-// Concurrency: acquires pendingMu while reading the pendingBuilds map and increments the
-// buildInFlight wait group under that lock.
+// Concurrency: acquires pendingMu while reading the pending queue. The build loop calls
+// it with buildMu held.
 func (s *coordinatorService) takeNextPendingBuild() (*coordinator_dto.BuildRequest, bool) {
 	s.pendingMu.Lock()
 	defer s.pendingMu.Unlock()
+	for len(s.pendingOrder) > 0 {
+		signature := s.pendingOrder[0]
+		s.pendingOrder = s.pendingOrder[1:]
+		request, queued := s.pendingBuilds[signature]
+		if !queued {
+			continue
+		}
+		delete(s.pendingBuilds, signature)
+		return request, true
+	}
 	for signature, request := range s.pendingBuilds {
 		delete(s.pendingBuilds, signature)
-
-		s.buildInFlight.Add(1)
 		return request, true
 	}
 	return nil, false

@@ -18,7 +18,6 @@
 
 package models
 
-// Profile is defined in a separate file.
 type Profile struct {
 	Email string
 }

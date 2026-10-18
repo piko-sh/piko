@@ -12,10 +12,6 @@ export interface SaveOutput {
   "2fa-version": string;
 }
 
-/**
- * SaveAction carries JSON tags that are not identifiers, so the generated TypeScript has
- * to quote them rather than emit them bare.
- */
 export function recordSave(input: SaveInput): ActionBuilder<SaveOutput> {
   return createActionBuilder<SaveOutput>('record.Save', input);
 }

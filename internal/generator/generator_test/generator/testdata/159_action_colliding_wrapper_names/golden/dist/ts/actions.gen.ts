@@ -10,18 +10,10 @@ export interface COutput {
   from: string;
 }
 
-/**
- * BCAction produces the action name "zza.BC", which folds onto the same PascalCase
- * wrapper name as "zzaB.C" in actions/zzaB.
- */
 export function zzaBC(): ActionBuilder<BCOutput> {
   return createActionBuilder<BCOutput>('zza.BC', {});
 }
 
-/**
- * CAction produces the action name "zzaB.C", which folds onto the same PascalCase wrapper
- * name as "zza.BC" in actions/zza.
- */
 export function zzaBC2(): ActionBuilder<COutput> {
   return createActionBuilder<COutput>('zzaB.C', {});
 }

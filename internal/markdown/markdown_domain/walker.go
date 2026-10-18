@@ -386,7 +386,6 @@ func countWordsAt(node *ast_domain.TemplateNode, depth int) int {
 
 // transformMarkdownAST converts a piko markdown syntax tree into Piko build artefacts.
 //
-// Takes ctx (context.Context) which carries the logger and trace spans.
 // Takes doc (*markdown_ast.Document) which is the parsed markdown document.
 // Takes content ([]byte) which is the raw markdown source.
 // Takes sourcePath (string) which gives the source file path.

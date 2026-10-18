@@ -31,7 +31,7 @@ import (
 	"strings"
 
 	"piko.sh/piko/wdk/formatter"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -160,8 +160,6 @@ func RunFmtWithIO(arguments []string, stdout, stderr io.Writer) int {
 
 // processAllPaths processes each path argument and returns the exit code.
 //
-// Takes ctx (context.Context) which carries cancellation signals for formatting
-// operations.
 // Takes stats (*Statistics) which tracks formatting statistics.
 // Takes paths ([]string) which contains the file or directory paths to process.
 // Takes flags (*formatFlags) which specifies the formatting options.
@@ -242,8 +240,6 @@ func printWriteSummary(stats *Statistics, currentExitCode int) int {
 // processPath handles a file or directory path by passing it to the right processor based
 // on whether it is a file or directory.
 //
-// Takes ctx (context.Context) which carries cancellation signals for formatting
-// operations.
 // Takes stats (*Statistics) which collects processing metrics.
 // Takes path (string) which specifies the file or directory to process.
 // Takes flags (*formatFlags) which controls formatting behaviour.
@@ -272,8 +268,6 @@ func processPath(ctx context.Context, stats *Statistics, path string, flags *for
 
 // processDirectory handles all .pk files in a directory.
 //
-// Takes ctx (context.Context) which carries cancellation signals for formatting
-// operations.
 // Takes stats (*Statistics) which tracks formatting results.
 // Takes directory (string) which specifies the directory path to process.
 // Takes flags (*formatFlags) which controls formatting behaviour including recursive
@@ -289,8 +283,6 @@ func processDirectory(ctx context.Context, stats *Statistics, directory string, 
 
 // processDirectoryRecursive walks a directory tree and processes all .pk files.
 //
-// Takes ctx (context.Context) which carries cancellation signals for formatting
-// operations.
 // Takes stats (*Statistics) which tracks processing counts and errors.
 // Takes directory (string) which is the root directory to walk.
 // Takes flags (*formatFlags) which controls formatting behaviour.
@@ -314,8 +306,6 @@ func processDirectoryRecursive(ctx context.Context, stats *Statistics, directory
 
 // processDirectoryFlat processes .pk files in a single directory without recursion.
 //
-// Takes ctx (context.Context) which carries cancellation signals for formatting
-// operations.
 // Takes stats (*Statistics) which tracks processing metrics.
 // Takes directory (string) which specifies the directory path to process.
 // Takes flags (*formatFlags) which controls formatting behaviour.
@@ -348,8 +338,6 @@ func processDirectoryFlat(ctx context.Context, stats *Statistics, directory stri
 
 // processFile formats a single .pk file and updates statistics.
 //
-// Takes ctx (context.Context) which carries cancellation signals for the formatting
-// operation.
 // Takes stats (*Statistics) which tracks formatting progress and results.
 // Takes path (string) which specifies the file path to format.
 // Takes flags (*formatFlags) which controls the output mode.

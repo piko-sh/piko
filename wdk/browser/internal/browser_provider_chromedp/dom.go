@@ -609,7 +609,6 @@ func GetShadowRootHTML(ctx context.Context, hostSelector string) (string, error)
 // a map, returning only the last value for multi-value fields (use EvalOnElement for full
 // control).
 //
-// Takes ctx (context.Context) which controls the evaluation timeout.
 // Takes selector (string) which identifies the form element.
 //
 // Returns map[string]any which maps field names to their values.
@@ -634,7 +633,6 @@ func GetFormData(ctx context.Context, selector string) (map[string]any, error) {
 // e.detail into a window-scoped variable. The captured detail can later be retrieved with
 // GetEventDetail using the same eventName.
 //
-// Takes ctx (context.Context) which controls the evaluation timeout.
 // Takes selector (string) which identifies the target element.
 // Takes eventName (string) which specifies the DOM event to listen for.
 //
@@ -674,7 +672,6 @@ func ListenForEvent(ctx context.Context, selector, eventName string) error {
 // GetEventDetail returns the event detail captured by a prior ListenForEvent call.
 // Returns nil if the event has not been received yet.
 //
-// Takes ctx (context.Context) which controls the evaluation timeout.
 // Takes eventName (string) which specifies the event name to check.
 //
 // Returns any which is the captured e.detail, or nil if not yet received.

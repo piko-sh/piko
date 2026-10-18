@@ -52,6 +52,7 @@ import (
 	"piko.sh/piko/wdk/interp/interp_provider_pipit"
 	"piko.sh/piko/wdk/json"
 	"piko.sh/piko/wdk/logger"
+	"pipit.sh/pipit"
 )
 
 var (
@@ -64,16 +65,41 @@ type testCase struct {
 }
 
 type TemplaterTestSpec struct {
-	Description           string `json:"description"`
-	RequestURL            string `json:"requestURL"`
-	ErrorContains         string `json:"errorContains,omitempty"`
-	ExpectedStatus        int    `json:"expectedStatus,omitempty"`
-	IsFragment            bool   `json:"isFragment,omitempty"`
-	ShouldError           bool   `json:"shouldError,omitempty"`
-	ShouldGenerateError   bool   `json:"shouldGenerateError,omitempty"`
-	RegisteredPackages    bool   `json:"registeredPackages,omitempty"`
-	CrossPackageNamedType bool   `json:"crossPackageNamedType,omitempty"`
-	CrossPackageTimeField bool   `json:"crossPackageTimeField,omitempty"`
+	Description           string   `json:"description"`
+	RequestURL            string   `json:"requestURL"`
+	ErrorContains         string   `json:"errorContains,omitempty"`
+	ErrorContainsAll      []string `json:"errorContainsAll,omitempty"`
+	ExpectedStatus        int      `json:"expectedStatus,omitempty"`
+	IsFragment            bool     `json:"isFragment,omitempty"`
+	ShouldError           bool     `json:"shouldError,omitempty"`
+	ShouldGenerateError   bool     `json:"shouldGenerateError,omitempty"`
+	RegisteredPackages    bool     `json:"registeredPackages,omitempty"`
+	CrossPackageNamedType bool     `json:"crossPackageNamedType,omitempty"`
+	CrossPackageTimeField bool     `json:"crossPackageTimeField,omitempty"`
+	DeclaredPackageNames  bool     `json:"declaredPackageNames,omitempty"`
+	ConcurrentRequests    int      `json:"concurrentRequests,omitempty"`
+}
+
+const (
+	requestTimeout           = 60 * time.Second
+	concurrentRequestTimeout = 60 * time.Second
+)
+
+func serveWithin(t *testing.T, handler http.Handler, url string, timeout time.Duration) *http.Response {
+	t.Helper()
+	done := make(chan *http.Response, 1)
+	go func() {
+		recorder := httptest.NewRecorder()
+		handler.ServeHTTP(recorder, httptest.NewRequest("GET", url, nil))
+		done <- recorder.Result()
+	}()
+	select {
+	case response := <-done:
+		return response
+	case <-time.After(timeout):
+		t.Fatalf("request for %s did not finish within %s", url, timeout)
+		return nil
+	}
 }
 
 type crossPackageIdentity struct {
@@ -154,6 +180,22 @@ func setupServer(t *testing.T, tc testCase, spec TemplaterTestSpec) (*piko.SSRSe
 		})
 	}
 
+	if spec.DeclaredPackageNames {
+		moduleName := readModuleName(t, absSrcDir)
+		server.WithSymbols(templater_domain.SymbolExports{
+			moduleName + "/pkg/go-labels": {
+				"Title": reflect.ValueOf(func() string { return "registered labels" }),
+			},
+			moduleName + "/pkg/widget/v2": {
+				"Name": reflect.ValueOf(func() string { return "registered widget" }),
+			},
+			moduleName + "/pkg/declared": {
+				pipit.PackageNameSymbol: reflect.ValueOf("naming"),
+				"Label":                 reflect.ValueOf(func() string { return "registered naming" }),
+			},
+		})
+	}
+
 	server.Configure(piko.PublicConfig{
 		BaseDir:        ".",
 		PagesSourceDir: "pages",
@@ -190,6 +232,9 @@ func runTestCase(t *testing.T, tc testCase) {
 		if spec.ErrorContains != "" {
 			assert.Contains(t, err.Error(), spec.ErrorContains)
 		}
+		for _, fragment := range spec.ErrorContainsAll {
+			assert.Contains(t, err.Error(), fragment)
+		}
 		return
 	}
 
@@ -198,12 +243,7 @@ func runTestCase(t *testing.T, tc testCase) {
 	handler := server.GetHandler()
 	require.NotNil(t, handler, "GetHandler returned nil - daemon not built correctly")
 
-	request := httptest.NewRequest("GET", spec.RequestURL, nil)
-	recorder := httptest.NewRecorder()
-
-	handler.ServeHTTP(recorder, request)
-
-	response := recorder.Result()
+	response := serveWithin(t, handler, spec.RequestURL, requestTimeout)
 	defer func() { _ = response.Body.Close() }()
 
 	expectedStatus := http.StatusOK
@@ -223,6 +263,36 @@ func runTestCase(t *testing.T, tc testCase) {
 
 	goldenPath := filepath.Join(absTestCasePath, "golden", "golden.html")
 	assertGoldenFile(t, goldenPath, htmlBytes, "Generated HTML for %s", tc.Name)
+
+	if spec.ConcurrentRequests > 0 {
+		assertConcurrentRequestsMatchGolden(t, handler, spec, goldenPath)
+	}
+}
+
+func assertConcurrentRequestsMatchGolden(t *testing.T, handler http.Handler, spec TemplaterTestSpec, goldenPath string) {
+	t.Helper()
+	expected, err := os.ReadFile(goldenPath)
+	require.NoError(t, err)
+	want := string(normaliseHTML(expected))
+
+	bodies := make(chan string, spec.ConcurrentRequests)
+	for range spec.ConcurrentRequests {
+		go func() {
+			recorder := httptest.NewRecorder()
+			handler.ServeHTTP(recorder, httptest.NewRequest("GET", spec.RequestURL, nil))
+			bodies <- string(normaliseHTML(recorder.Body.Bytes()))
+		}()
+	}
+	deadline := time.After(concurrentRequestTimeout)
+	for index := range spec.ConcurrentRequests {
+		select {
+		case body := <-bodies:
+			assert.Equal(t, want, body, "concurrent response %d of %d", index+1, spec.ConcurrentRequests)
+		case <-deadline:
+			t.Fatalf("%d of %d concurrent requests did not finish within %s",
+				spec.ConcurrentRequests-index, spec.ConcurrentRequests, concurrentRequestTimeout)
+		}
+	}
 }
 
 func loadTestSpec(t *testing.T, tc testCase) TemplaterTestSpec {

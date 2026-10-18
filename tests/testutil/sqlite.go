@@ -27,8 +27,8 @@ import (
 	"testing"
 	"time"
 
-	"piko.sh/piko/internal/querier/querier_adapters/migration_sql"
-	"piko.sh/piko/internal/querier/querier_domain"
+	piko_db "piko.sh/piko/wdk/db"
+	"piko.sh/piko/wdk/db/db_engine_sqlite"
 	"piko.sh/piko/wdk/db/db_schema_orchestrator_sqlite"
 	"piko.sh/piko/wdk/db/db_schema_registry_sqlite"
 )
@@ -138,11 +138,13 @@ func detectSQLiteDriver() string {
 	return "sqlite"
 }
 
-// runQuerierMigrations applies database migrations using the querier migration service.
+// runQuerierMigrations applies database migrations through the SQLite engine's migration
+// service.
 func runQuerierMigrations(database *sql.DB, migrationFS fs.FS, name string) error {
-	executor := migration_sql.NewExecutor(database, migration_sql.SQLiteDialect())
-	fileReader := migration_sql.NewFSFileReader(migrationFS)
-	service := querier_domain.NewMigrationService(executor, fileReader, "migrations")
+	service, err := piko_db.NewMigrator(db_engine_sqlite.SQLite(), database, migrationFS, "migrations")
+	if err != nil {
+		return fmt.Errorf("%s migration service: %w", name, err)
+	}
 
 	ctx := context.Background()
 	if _, err := service.Up(ctx); err != nil {

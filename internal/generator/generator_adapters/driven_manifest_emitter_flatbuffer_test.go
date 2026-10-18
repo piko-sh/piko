@@ -32,7 +32,7 @@ import (
 	gen_fb "piko.sh/piko/internal/generator/generator_schema/generator_schema_gen"
 	"piko.sh/piko/internal/i18n/i18n_domain"
 	"piko.sh/piko/internal/templater/templater_dto"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 func testSandbox(t *testing.T) safedisk.Sandbox {

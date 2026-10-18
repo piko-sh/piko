@@ -19,510 +19,443 @@
 package db
 
 import (
+	"context"
 	"database/sql"
+	"fmt"
 	"io/fs"
 
 	"piko.sh/piko/internal/bootstrap"
-	"piko.sh/piko/wdk/dbschema"
+	"piko.sh/piko/internal/sqldb/sqldb_domain"
+	"piko.sh/piko/internal/sqldb/sqldb_dto"
 )
 
-// Schema types, aliased from dbschema.
+// Migration and seed services.
 type (
-	// MigrationService defines the driving port for database migration operations. It
-	// provides methods for applying, rolling back, and inspecting migration state.
-	MigrationService = dbschema.MigrationService
+	// MigrationService applies, reverts and inspects schema migrations for one database.
+	MigrationService = sqldb_domain.MigrationService
 
-	// MigrationExecutor defines the database-specific operations needed by the migration
-	// service.
-	MigrationExecutor = dbschema.MigrationExecutor
+	// SeedService applies and inspects seed data for one database.
+	SeedService = sqldb_domain.SeedService
 
-	// EnginePort defines the aggregate adapter contract for SQL dialect parsers.
-	EnginePort = dbschema.EnginePort
+	// MigrationServiceOption configures a migration service.
+	MigrationServiceOption = sqldb_domain.MigrationServiceOption
 
-	// CatalogueProviderPort defines the contract for building a schema catalogue from a live
-	// database.
-	CatalogueProviderPort = dbschema.CatalogueProviderPort
+	// BeforeMigrationHook runs before each migration. Returning an error stops the run.
+	BeforeMigrationHook = sqldb_dto.BeforeMigrationHook
 
-	// FileReaderPort abstracts filesystem access for reading migration and query SQL files.
-	FileReaderPort = dbschema.FileReaderPort
+	// AfterMigrationHook runs after each successful migration.
+	AfterMigrationHook = sqldb_dto.AfterMigrationHook
 
-	// QuerierServicePort is the SQL code-generation service returned by NewQuerierService.
-	QuerierServicePort = dbschema.QuerierServicePort
+	// BeforeRunHook runs once before a batch of migrations.
+	BeforeRunHook = sqldb_dto.BeforeRunHook
 
-	// QuerierService is the driving port for the querier code generator. It turns SQL
-	// migration + query files into Go source code.
-	QuerierService = dbschema.QuerierService
+	// AfterRunHook runs once after a batch of migrations, with the number applied.
+	AfterRunHook = sqldb_dto.AfterRunHook
 
-	// QuerierPorts groups the adapter ports a QuerierService needs at construction time.
-	// Pass it to NewQuerierService.
-	QuerierPorts = dbschema.QuerierPorts
+	// MigrationHookContext describes the migration a per-migration hook runs around.
+	MigrationHookContext = sqldb_dto.MigrationHookContext
 
-	// CodeEmitterPort is the outbound adapter that turns analysed queries into emitted
-	// source files.
-	CodeEmitterPort = dbschema.CodeEmitterPort
+	// MigrationRunHookContext describes the batch a run hook runs around.
+	MigrationRunHookContext = sqldb_dto.MigrationRunHookContext
 
-	// GenerationResult holds the output of one QuerierService.GenerateDatabase call: the
-	// emitted files, plus any diagnostics produced along the way.
-	GenerationResult = dbschema.GenerationResult
+	// MigrationDirection says whether a migration applies or reverts a change.
+	MigrationDirection = sqldb_dto.MigrationDirection
 
-	// GeneratedFile is one file in GenerationResult.Files. Callers typically write Content
-	// to disk under their chosen output directory.
-	GeneratedFile = dbschema.GeneratedFile
+	// MigrationStatus describes one migration file and whether it has been applied.
+	MigrationStatus = sqldb_dto.MigrationStatus
 
-	// SourceError is one diagnostic emitted during catalogue building or query analysis.
-	// Diagnostics run from SeverityHint, which is worth knowing, through SeverityWarning to
-	// SeverityError, which stops generation.
-	SourceError = dbschema.SourceError
+	// AppliedMigration is one row of the migration history table.
+	AppliedMigration = sqldb_dto.AppliedMigration
 
-	// Severity classifies a SourceError. Callers gate on SeverityError to decide whether to
-	// fail a code-generation run.
-	Severity = dbschema.Severity
+	// SeedStatus describes one seed file and whether it has been applied.
+	SeedStatus = sqldb_dto.SeedStatus
 
-	// CustomFunctionConfig describes a user-declared function signature that the analyser
-	// should recognise during query type resolution. Use this for SQLite extensions or for
-	// functions defined outside the migration files Piko parses.
-	CustomFunctionConfig = dbschema.CustomFunctionConfig
+	// AppliedSeed is one row of the seed history table.
+	AppliedSeed = sqldb_dto.AppliedSeed
 
-	// SeedService defines the driving port for database seed operations.
-	SeedService = dbschema.SeedService
+	// DialectConfig selects and tunes the migration backend for one database.
+	DialectConfig = sqldb_dto.DialectConfig
 
-	// SeedExecutorPort defines the database-specific operations needed by the seed service.
-	SeedExecutorPort = dbschema.SeedExecutorPort
+	// DialectFamily names a migration backend.
+	DialectFamily = sqldb_dto.DialectFamily
+)
 
-	// MigrationServiceOption configures optional behaviour of the migration service.
-	MigrationServiceOption = dbschema.MigrationServiceOption
+// Code generation.
+type (
+	// GenerateRequest describes one code generation run.
+	GenerateRequest = sqldb_dto.GenerateRequest
 
-	// BeforeMigrationHook is called before each individual migration executes.
-	BeforeMigrationHook = dbschema.BeforeMigrationHook
+	// GenerationResult is the outcome of generating code for one database.
+	GenerationResult = sqldb_dto.GenerationResult
 
-	// AfterMigrationHook is called after each individual migration executes successfully.
-	AfterMigrationHook = dbschema.AfterMigrationHook
+	// GeneratedFile is one Go source file produced by code generation.
+	GeneratedFile = sqldb_dto.GeneratedFile
 
-	// BeforeRunHook is called before the migration run begins.
-	BeforeRunHook = dbschema.BeforeRunHook
+	// GeneratedDriver selects the database driver API generated code targets.
+	GeneratedDriver = sqldb_dto.GeneratedDriver
 
-	// AfterRunHook is called after the migration run completes successfully.
-	AfterRunHook = dbschema.AfterRunHook
+	// SourceError is one diagnostic produced while analysing migrations and queries.
+	SourceError = sqldb_dto.SourceError
 
-	// MigrationHookContext provides information about an individual migration being
-	// processed.
-	MigrationHookContext = dbschema.MigrationHookContext
+	// Severity classifies a diagnostic.
+	Severity = sqldb_dto.Severity
 
-	// MigrationRunHookContext provides information about an entire migration run before it
-	// begins.
-	MigrationRunHookContext = dbschema.MigrationRunHookContext
+	// TypeOverride maps a SQL type to a Go type in generated code.
+	TypeOverride = sqldb_dto.TypeOverride
 
-	// MigrationDirection indicates whether a migration is a forward (up) or rollback (down)
-	// migration.
-	MigrationDirection = dbschema.MigrationDirection
+	// CustomFunction declares a SQL function the analyser cannot discover.
+	CustomFunction = sqldb_dto.CustomFunction
+)
 
-	// MigrationStatus combines a migration file with its applied state.
-	MigrationStatus = dbschema.MigrationStatus
+// Typed migration and seed errors. Match them with errors.As.
+type (
+	// ChecksumMismatchError reports an applied migration whose file has changed since.
+	ChecksumMismatchError = sqldb_domain.ChecksumMismatchError
 
-	// MigrationFile represents a parsed migration file with version, direction, and content.
-	MigrationFile = dbschema.MigrationFile
+	// DownChecksumMismatchError reports a down migration that changed after its up migration
+	// was applied.
+	DownChecksumMismatchError = sqldb_domain.DownChecksumMismatchError
 
-	// AppliedMigration represents a migration that has been applied to the database.
-	AppliedMigration = dbschema.AppliedMigration
+	// MigrationExecutionError reports a migration or rollback that failed to run.
+	MigrationExecutionError = sqldb_domain.MigrationExecutionError
 
-	// SeedStatus combines a seed file with its applied state.
-	SeedStatus = dbschema.SeedStatus
+	// LockAcquisitionError reports a failure to take the migration lock.
+	LockAcquisitionError = sqldb_domain.LockAcquisitionError
 
-	// AppliedSeed represents a seed that has been applied to the database.
-	AppliedSeed = dbschema.AppliedSeed
+	// MissingMigrationFileError reports an applied migration whose file no longer exists.
+	MissingMigrationFileError = sqldb_domain.MissingMigrationFileError
 
-	// DatabaseConfig is the configuration container for code generation.
-	DatabaseConfig = dbschema.DatabaseConfig
+	// NoDownMigrationError reports a rollback that needs a missing down migration.
+	NoDownMigrationError = sqldb_domain.NoDownMigrationError
 
-	// TypeOverride maps a SQL type to a Go type for code generation.
-	TypeOverride = dbschema.TypeOverride
+	// DuplicateMigrationVersionError reports two migration files with the same version.
+	DuplicateMigrationVersionError = sqldb_domain.DuplicateMigrationVersionError
 
-	// CustomFunction defines a custom SQL function for code generation.
-	CustomFunction = dbschema.CustomFunction
+	// DirtyMigrationError reports a migration that stopped part-way through.
+	DirtyMigrationError = sqldb_domain.DirtyMigrationError
 
-	// DialectConfig holds dialect-specific SQL and behaviour for the migration executor.
-	DialectConfig = dbschema.DialectConfig
+	// DuplicateSeedVersionError reports two seed files with the same version.
+	DuplicateSeedVersionError = sqldb_domain.DuplicateSeedVersionError
 
-	// ChecksumMismatchError is returned when an applied migration's recorded checksum does
-	// not match the current file on disk.
-	ChecksumMismatchError = dbschema.ChecksumMismatchError
-
-	// DownChecksumMismatchError is returned when a down migration file's checksum does not
-	// match the checksum recorded when the up migration was applied.
-	DownChecksumMismatchError = dbschema.DownChecksumMismatchError
-
-	// MigrationExecutionError wraps an error from executing a migration's SQL content.
-	MigrationExecutionError = dbschema.MigrationExecutionError
-
-	// LockAcquisitionError wraps a failure to acquire the migration advisory lock.
-	LockAcquisitionError = dbschema.LockAcquisitionError
-
-	// MissingMigrationFileError is returned when the database records an applied migration
-	// but no corresponding file exists on disk.
-	MissingMigrationFileError = dbschema.MissingMigrationFileError
-
-	// NoDownMigrationError is returned when a rollback is requested for a version that has
-	// no .down.sql file.
-	NoDownMigrationError = dbschema.NoDownMigrationError
+	// SeedExecutionError reports a seed that failed to run.
+	SeedExecutionError = sqldb_domain.SeedExecutionError
 )
 
 const (
-	// SeverityHint flags a non-fatal suggestion that does not block generation.
-	SeverityHint = dbschema.SeverityHint
+	// DirectionUp is a forward migration.
+	DirectionUp = sqldb_dto.DirectionUp
 
-	// SeverityWarning flags a diagnostic that highlights a likely problem but does not block
-	// generation.
-	SeverityWarning = dbschema.SeverityWarning
+	// DirectionDown is a rollback migration.
+	DirectionDown = sqldb_dto.DirectionDown
 
-	// SeverityError flags a diagnostic that prevents successful generation; callers should
-	// fail when one is reported.
-	SeverityError = dbschema.SeverityError
+	// SeverityError indicates a problem that prevents code generation.
+	SeverityError = sqldb_dto.SeverityError
 
-	// DirectionUp is a forward migration that applies schema changes.
-	DirectionUp = dbschema.DirectionUp
+	// SeverityWarning indicates a likely problem that does not block generation.
+	SeverityWarning = sqldb_dto.SeverityWarning
 
-	// DirectionDown is a rollback migration that reverts schema changes.
-	DirectionDown = dbschema.DirectionDown
+	// SeverityHint indicates a suggestion for improvement.
+	SeverityHint = sqldb_dto.SeverityHint
+
+	// DriverDatabaseSQL generates code against database/sql.
+	DriverDatabaseSQL = sqldb_dto.DriverDatabaseSQL
+
+	// DriverPgx generates code against github.com/jackc/pgx/v5.
+	DriverPgx = sqldb_dto.DriverPgx
+
+	// DriverClickHouseNative generates code against the native ClickHouse driver.
+	DriverClickHouseNative = sqldb_dto.DriverClickHouseNative
+
+	// DialectFamilyPostgres is PostgreSQL and its wire-compatible databases.
+	DialectFamilyPostgres = sqldb_dto.DialectFamilyPostgres
+
+	// DialectFamilyCockroachDB is CockroachDB, whose migrations take a table lock.
+	DialectFamilyCockroachDB = sqldb_dto.DialectFamilyCockroachDB
+
+	// DialectFamilyMySQL is MySQL and MariaDB.
+	DialectFamilyMySQL = sqldb_dto.DialectFamilyMySQL
+
+	// DialectFamilySQLite is SQLite and Cloudflare D1.
+	DialectFamilySQLite = sqldb_dto.DialectFamilySQLite
+
+	// DialectFamilyClickHouse is ClickHouse.
+	DialectFamilyClickHouse = sqldb_dto.DialectFamilyClickHouse
 )
 
 const (
-	// DatabaseNameRegistry is the reserved database name for piko's internal registry
-	// subsystem. Register a database with this name to back the registry with a SQL database
-	// instead of the default otter in-memory backend.
+	// DatabaseNameRegistry is the reserved database name for the registry subsystem.
 	DatabaseNameRegistry = bootstrap.DatabaseNameRegistry
 
-	// DatabaseNameOrchestrator is the reserved database name for piko's internal
-	// orchestrator subsystem. Register a database with this name to back the orchestrator
-	// with a SQL database instead of the default otter in-memory backend.
+	// DatabaseNameOrchestrator is the reserved database name for the orchestrator subsystem.
 	DatabaseNameOrchestrator = bootstrap.DatabaseNameOrchestrator
 )
 
 var (
-	// ErrLockNotAcquired is returned when a non-blocking lock attempt fails because another
-	// process already holds the migration lock.
-	ErrLockNotAcquired = dbschema.ErrLockNotAcquired
+	// ErrLockNotAcquired is returned when a non-blocking run finds the migration lock held.
+	ErrLockNotAcquired = sqldb_domain.ErrLockNotAcquired
+
+	// ErrNoDownMigration is returned when a rollback needs a missing down migration.
+	ErrNoDownMigration = sqldb_domain.ErrNoDownMigration
+
+	// ErrInvalidIdentifier is returned when a table or lock name is not a safe SQL
+	// identifier.
+	ErrInvalidIdentifier = sqldb_domain.ErrInvalidIdentifier
+
+	// ErrMigrationFileTooLarge is returned when a migration or seed file exceeds the size
+	// limit.
+	ErrMigrationFileTooLarge = sqldb_domain.ErrMigrationFileTooLarge
+
+	// ErrMalformedSQLStatement is returned when a migration cannot be split into statements.
+	ErrMalformedSQLStatement = sqldb_domain.ErrMalformedSQLStatement
+
+	// ErrNoMigrationBackend is returned when a dialect has no migration backend.
+	ErrNoMigrationBackend = sqldb_domain.ErrNoMigrationBackend
+
+	// ErrNoSQLToolchain is returned when a database has no engine.
+	ErrNoSQLToolchain = sqldb_domain.ErrNoSQLToolchain
+
+	// ErrUnsupportedDriver is returned when the toolchain cannot target the requested driver
+	// API.
+	ErrUnsupportedDriver = sqldb_domain.ErrUnsupportedDriver
 )
 
-// NewSQLEmitter returns the database/sql code emitter. This is the default emitter for
-// projects that use the standard library database abstraction; pgx-based projects can
-// import a dedicated emitter from wdk/db/db_emitter_pgx instead.
+// WithNonBlockingLock makes a run fail with ErrLockNotAcquired when another process holds
+// the migration lock, instead of waiting for it.
 //
-// Returns CodeEmitterPort which is ready to inject into a QuerierPorts struct.
-func NewSQLEmitter() CodeEmitterPort {
-	return dbschema.NewSQLEmitter()
-}
-
-// NewSQLEmitterForDialect returns the database/sql code emitter for an engine dialect.
-//
-// The emitter is configured so the generated placeholders and array decoding match the
-// engine's driver. A project generating for more than one engine should pass each
-// engine's Dialect() here rather than using NewSQLEmitter, otherwise the postgres family
-// loses its `$N` placeholder form and its to_json array-column auto-decoding.
-//
-// Takes dialect (string) which is the engine's Dialect() name.
-//
-// Returns CodeEmitterPort which is ready to inject into a QuerierPorts struct.
-func NewSQLEmitterForDialect(dialect string) CodeEmitterPort {
-	return dbschema.NewSQLEmitterForDialect(dialect)
-}
-
-// NewQuerierService constructs a QuerierService from the supplied adapter ports.
-//
-// Takes ports (QuerierPorts) which provides the engine, emitter, file reader, and
-// optional catalogue provider.
-//
-// Returns QuerierService which is ready to run GenerateDatabase.
-// Returns error when any required port is missing.
-func NewQuerierService(ports QuerierPorts) (QuerierService, error) {
-	return dbschema.NewQuerierService(ports)
-}
-
-// NewCompositeCatalogueProvider wires a CatalogueProviderPort that union-merges the
-// catalogues produced by each upstream provider in order. Use it when query files cross
-// schemas or hexagons and need every upstream schema visible at analysis time.
-//
-// Takes providers ([]CatalogueProviderPort) which is the apply-order chain. Nil and empty
-// slices return an empty catalogue.
-//
-// Returns CatalogueProviderPort which is ready to plug into a
-// QuerierPorts.CatalogueProvider.
-func NewCompositeCatalogueProvider(providers []CatalogueProviderPort) CatalogueProviderPort {
-	return dbschema.NewCompositeCatalogueProvider(providers)
-}
-
-// PostgresDialect returns a DialectConfig for PostgreSQL databases.
-//
-// Returns DialectConfig which carries PostgreSQL SQL and locking behaviour.
-func PostgresDialect() DialectConfig {
-	return dbschema.PostgresDialect()
-}
-
-// PostgresPgBouncerDialect returns a DialectConfig for PostgreSQL via PgBouncer.
-//
-// Configured for PgBouncer transaction mode, using table-based locking instead of
-// advisory locks.
-//
-// Returns DialectConfig which carries PgBouncer-compatible locking behaviour.
-func PostgresPgBouncerDialect() DialectConfig {
-	return dbschema.PostgresPgBouncerDialect()
-}
-
-// MySQLDialect returns a DialectConfig for MySQL databases.
-//
-// Returns DialectConfig which carries MySQL SQL and locking behaviour.
-func MySQLDialect() DialectConfig {
-	return dbschema.MySQLDialect()
-}
-
-// MySQLDialectWithDSN returns a DialectConfig for MySQL databases.
-//
-// Detects whether the DSN includes multiStatements=true. When the driver handles
-// multi-statement execution natively, statement splitting is disabled.
-//
-// Takes dsn (string) which is the MySQL DSN used to probe driver capabilities.
-//
-// Returns DialectConfig which carries MySQL SQL and locking behaviour tuned to the DSN.
-func MySQLDialectWithDSN(dsn string) DialectConfig {
-	return dbschema.MySQLDialectWithDSN(dsn)
-}
-
-// SQLiteDialect returns a DialectConfig for SQLite databases.
-//
-// Returns DialectConfig which carries SQLite SQL and locking behaviour.
-func SQLiteDialect() DialectConfig {
-	return dbschema.SQLiteDialect()
-}
-
-// NewMigrationExecutor creates a SQL-based migration executor from a database connection
-// and dialect configuration.
-//
-// Takes database (*sql.DB) which is the database connection to execute migrations
-// against.
-// Takes dialect (DialectConfig) which provides dialect-specific SQL and locking
-// behaviour.
-//
-// Returns MigrationExecutor which is ready to execute migrations.
-func NewMigrationExecutor(database *sql.DB, dialect DialectConfig) MigrationExecutor {
-	return dbschema.NewMigrationExecutor(database, dialect)
-}
-
-// NewFSFileReader creates a file reader backed by an fs.FS. This is typically used with
-// embed.FS for embedding migration files into the binary, or with os.DirFS for reading
-// from the local filesystem.
-//
-// Takes filesystem (fs.FS) which is the filesystem to read migration files from.
-//
-// Returns FileReaderPort which is ready to read files.
-func NewFSFileReader(filesystem fs.FS) FileReaderPort {
-	return dbschema.NewFSFileReader(filesystem)
-}
-
-// NewSeedExecutor creates a SQL-based seed executor from a database connection and
-// dialect configuration.
-//
-// Takes database (*sql.DB) which is the database connection to execute seeds against.
-// Takes dialect (DialectConfig) which provides dialect-specific SQL.
-//
-// Returns SeedExecutorPort which is ready to execute seeds.
-func NewSeedExecutor(database *sql.DB, dialect DialectConfig) SeedExecutorPort {
-	return dbschema.NewSeedExecutor(database, dialect)
-}
-
-// WithNonBlockingLock configures non-blocking lock acquisition.
-//
-// If the lock is already held, operations return ErrLockNotAcquired immediately instead
-// of waiting.
-//
-// Returns MigrationServiceOption which enables non-blocking lock behaviour.
+// Returns MigrationServiceOption which enables non-blocking locking.
 func WithNonBlockingLock() MigrationServiceOption {
-	return dbschema.WithNonBlockingLock()
+	return sqldb_domain.WithNonBlockingLock()
 }
 
-// WithBeforeMigration registers a hook that runs before each migration.
+// WithBeforeMigration adds a hook that runs before each migration.
 //
-// Takes hook (BeforeMigrationHook) which observes the upcoming migration.
+// Takes hook (BeforeMigrationHook) which may stop the run by returning an error.
 //
-// Returns MigrationServiceOption which installs the before-migration hook.
+// Returns MigrationServiceOption which registers the hook.
 func WithBeforeMigration(hook BeforeMigrationHook) MigrationServiceOption {
-	return dbschema.WithBeforeMigration(hook)
+	return sqldb_domain.WithBeforeMigration(hook)
 }
 
-// WithAfterMigration registers a hook that runs after each migration succeeds.
+// WithAfterMigration adds a hook that runs after each successful migration.
 //
-// Takes hook (AfterMigrationHook) which observes the completed migration.
+// Takes hook (AfterMigrationHook) which may stop the run by returning an error.
 //
-// Returns MigrationServiceOption which installs the after-migration hook.
+// Returns MigrationServiceOption which registers the hook.
 func WithAfterMigration(hook AfterMigrationHook) MigrationServiceOption {
-	return dbschema.WithAfterMigration(hook)
+	return sqldb_domain.WithAfterMigration(hook)
 }
 
-// WithBeforeRun registers a hook that runs before the migration run begins.
+// WithBeforeRun adds a hook that runs once before a batch of migrations.
 //
-// Takes hook (BeforeRunHook) which observes the migration run context.
+// Takes hook (BeforeRunHook) which may stop the run by returning an error.
 //
-// Returns MigrationServiceOption which installs the before-run hook.
+// Returns MigrationServiceOption which registers the hook.
 func WithBeforeRun(hook BeforeRunHook) MigrationServiceOption {
-	return dbschema.WithBeforeRun(hook)
+	return sqldb_domain.WithBeforeRun(hook)
 }
 
-// WithAfterRun registers a hook that runs after the migration run completes.
+// WithAfterRun adds a hook that runs once after a batch of migrations.
 //
-// Takes hook (AfterRunHook) which observes the migration run context.
+// Takes hook (AfterRunHook) which receives the number applied.
 //
-// Returns MigrationServiceOption which installs the after-run hook.
+// Returns MigrationServiceOption which registers the hook.
 func WithAfterRun(hook AfterRunHook) MigrationServiceOption {
-	return dbschema.WithAfterRun(hook)
+	return sqldb_domain.WithAfterRun(hook)
 }
 
-// NewMigrationCatalogueProvider returns the default catalogue provider, which builds a
-// schema catalogue by replaying migration DDL files.
+// PostgresDialect selects the PostgreSQL migration backend with advisory locking.
 //
-// Takes engine (EnginePort) which parses and interprets DDL.
-// Takes fileReader (FileReaderPort) which reads files from disk or an embed.FS.
-// Takes directory (string) which is the migrations directory path.
+// Returns DialectConfig which selects the backend.
+func PostgresDialect() DialectConfig {
+	return DialectConfig{Family: DialectFamilyPostgres, DSN: "", HistoryTable: "", PgBouncer: false}
+}
+
+// PostgresPgBouncerDialect selects the PostgreSQL migration backend with table-based
+// locking, for PgBouncer in transaction mode where advisory locks are unavailable.
 //
-// Returns CatalogueProviderPort which is ready to plug into a
-// QuerierPorts.CatalogueProvider.
-func NewMigrationCatalogueProvider(
-	engine EnginePort,
-	fileReader FileReaderPort,
+// Returns DialectConfig which selects the backend.
+func PostgresPgBouncerDialect() DialectConfig {
+	return DialectConfig{Family: DialectFamilyPostgres, DSN: "", HistoryTable: "", PgBouncer: true}
+}
+
+// CockroachDBDialect selects PostgreSQL migrations with table-based locking for
+// CockroachDB.
+//
+// Returns DialectConfig which selects the backend.
+func CockroachDBDialect() DialectConfig {
+	return DialectConfig{Family: DialectFamilyCockroachDB, DSN: "", HistoryTable: "", PgBouncer: false}
+}
+
+// MySQLDialect selects the MySQL and MariaDB migration backend.
+//
+// Returns DialectConfig which selects the backend.
+func MySQLDialect() DialectConfig {
+	return DialectConfig{Family: DialectFamilyMySQL, DSN: "", HistoryTable: "", PgBouncer: false}
+}
+
+// MySQLDialectWithDSN selects the MySQL migration backend and lets it inspect dsn to
+// decide whether the driver accepts multiple statements per call.
+//
+// Takes dsn (string) which is the MySQL connection string.
+//
+// Returns DialectConfig which selects the backend.
+func MySQLDialectWithDSN(dsn string) DialectConfig {
+	return DialectConfig{Family: DialectFamilyMySQL, DSN: dsn, HistoryTable: "", PgBouncer: false}
+}
+
+// SQLiteDialect selects the SQLite migration backend.
+//
+// Returns DialectConfig which selects the backend.
+func SQLiteDialect() DialectConfig {
+	return DialectConfig{Family: DialectFamilySQLite, DSN: "", HistoryTable: "", PgBouncer: false}
+}
+
+// ClickHouseDialect selects the ClickHouse migration backend.
+//
+// Returns DialectConfig which selects the backend.
+func ClickHouseDialect() DialectConfig {
+	return DialectConfig{Family: DialectFamilyClickHouse, DSN: "", HistoryTable: "", PgBouncer: false}
+}
+
+// NewMigrator builds a migration service for database using engine's toolchain.
+//
+// The engine's own migration dialect is used; pass a DialectConfig in the engine
+// configuration to change it.
+//
+// Takes engine (EngineConfig) which supplies the toolchain and migration dialect.
+// Takes database (*sql.DB) which is the connection pool migrations run on.
+// Takes files (fs.FS) which holds the migration files.
+// Takes directory (string) which is the migration directory within files.
+// Takes options (...MigrationServiceOption) which add hooks and locking behaviour.
+//
+// Returns MigrationService which is ready to use.
+// Returns error when the engine has no toolchain or no migration backend.
+func NewMigrator(
+	engine EngineConfig,
+	database *sql.DB,
+	files fs.FS,
 	directory string,
-) CatalogueProviderPort {
-	return dbschema.NewMigrationCatalogueProvider(engine, fileReader, directory)
+	options ...MigrationServiceOption,
+) (MigrationService, error) {
+	if engine.Engine == nil {
+		return nil, ErrNoSQLToolchain
+	}
+	migrator, err := engine.Engine.Toolchain().NewMigrationService(
+		database, engine.MigrationDialect, files, directory, sqldb_domain.BuildMigrationServiceConfig(options...),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("creating migration service: %w", err)
+	}
+	return migrator, nil
 }
 
-// NewMigrationService creates a migration service for executing database migrations. The
-// service handles applying, rolling back, and inspecting migration state with advisory
-// locking and checksum verification.
+// NewSeeder builds a seed service for database using engine's toolchain.
 //
-// Takes executor (MigrationExecutor) which provides database-specific migration
-// operations.
-// Takes fileReader (FileReaderPort) which provides filesystem access for reading
-// migration SQL files.
-// Takes directory (string) which is the path to the migration files within the
-// filesystem.
-// Takes opts (...MigrationServiceOption) which configure optional behaviour such as
-// non-blocking lock acquisition and lifecycle hooks.
+// Takes engine (EngineConfig) which supplies the toolchain and migration dialect.
+// Takes database (*sql.DB) which is the connection pool seeds run on.
+// Takes files (fs.FS) which holds the seed files.
+// Takes directory (string) which is the seed directory within files.
 //
-// Returns MigrationService which is ready to apply or roll back migrations.
-func NewMigrationService(
-	executor MigrationExecutor,
-	fileReader FileReaderPort,
-	directory string,
-	opts ...MigrationServiceOption,
-) MigrationService {
-	return dbschema.NewMigrationService(executor, fileReader, directory, opts...)
+// Returns SeedService which is ready to use.
+// Returns error when the engine has no toolchain or no seed backend.
+func NewSeeder(engine EngineConfig, database *sql.DB, files fs.FS, directory string) (SeedService, error) {
+	if engine.Engine == nil {
+		return nil, ErrNoSQLToolchain
+	}
+	seeder, err := engine.Engine.Toolchain().NewSeedService(database, engine.MigrationDialect, files, directory)
+	if err != nil {
+		return nil, fmt.Errorf("creating seed service: %w", err)
+	}
+	return seeder, nil
 }
 
-// NewSeedService creates a seed service for applying database seed files. The service
-// handles executing SQL seed files in version order with idempotency tracking via a
-// history table.
+// Generate analyses migrations and queries and emits Go code using engine's toolchain.
 //
-// Takes executor (SeedExecutorPort) which provides database-specific seed operations.
-// Takes fileReader (FileReaderPort) which provides filesystem access for reading seed SQL
-// files.
-// Takes directory (string) which is the path to the seed files within the filesystem.
+// Error-severity diagnostics are reported in the result, not as an error.
 //
-// Returns SeedService which is ready to apply seeds.
-func NewSeedService(
-	executor SeedExecutorPort,
-	fileReader FileReaderPort,
-	directory string,
-) SeedService {
-	return dbschema.NewSeedService(executor, fileReader, directory)
+// Takes engine (EngineConfig) which supplies the toolchain.
+// Takes request (GenerateRequest) which names the files and settings.
+//
+// Returns *GenerationResult which holds the files, diagnostics and query count.
+// Returns error when the engine has no toolchain or generation cannot run.
+func Generate(ctx context.Context, engine EngineConfig, request GenerateRequest) (*GenerationResult, error) {
+	if engine.Engine == nil {
+		return nil, ErrNoSQLToolchain
+	}
+	result, err := engine.Engine.Toolchain().Generate(ctx, request)
+	if err != nil {
+		return nil, fmt.Errorf("generating SQL access code: %w", err)
+	}
+	return result, nil
 }
 
-// DBTX is the common database interface for read and write operations. It matches the
-// interface generated by the querier code generator and is satisfied by *sql.DB and
-// *sql.Tx.
+// DBTX is the common interface for database operations, satisfied by *sql.DB and *sql.Tx.
 type DBTX = bootstrap.DBTX
 
-// Replica configures a single read replica connection.
+// Replica configures a read replica for a database registration.
 type Replica = bootstrap.Replica
 
-// DatabaseRegistration holds the configuration for a named database connection registered
-// during bootstrap. See bootstrap.DatabaseRegistration for field documentation.
+// DatabaseRegistration configures a named database connection with its engine,
+// migrations, seeds and generated-code settings.
 type DatabaseRegistration = bootstrap.DatabaseRegistration
 
-// WithDatabase returns a bootstrap option that registers a named database connection.
-// When the name is DatabaseNameRegistry or DatabaseNameOrchestrator, the framework uses
-// the querier-based DAL adapters instead of the default otter in-memory backend for that
-// subsystem.
+// WithDatabase registers a named database with Piko.
 //
 // Takes name (string) which identifies the database.
-// Takes registration (*DatabaseRegistration) which provides connection and migration
-// configuration.
+// Takes registration (*DatabaseRegistration) which configures it.
 //
-// Returns bootstrap.Option which registers the database with the container.
+// Returns bootstrap.Option which applies the registration.
 func WithDatabase(name string, registration *DatabaseRegistration) bootstrap.Option {
 	return bootstrap.WithDatabase(name, registration)
 }
 
 // GetDatabaseConnection returns the *sql.DB for a named database.
 //
-// The database must have been registered during bootstrap. Safe for concurrent use from
-// multiple goroutines.
-//
 // Takes name (string) which identifies the database.
 //
-// Returns *sql.DB which is the open database connection.
-// Returns error when the framework is not initialised or the database is not registered.
+// Returns *sql.DB which is the connection pool.
+// Returns error when the database is not registered or cannot be opened.
 func GetDatabaseConnection(name string) (*sql.DB, error) {
 	return bootstrap.GetDatabaseConnection(name)
 }
 
-// GetDatabaseReader returns the DBTX for reading from a named database.
-//
-// The database must have been registered during bootstrap. When replicas are configured,
-// returns a round-robin balancer across them; otherwise returns the primary connection.
-// Safe for concurrent use from multiple goroutines.
+// GetDatabaseReader returns the read-side connection for a named database, balanced
+// across replicas when any are configured.
 //
 // Takes name (string) which identifies the database.
 //
-// Returns DBTX which can execute read queries.
-// Returns error when the framework is not initialised or the database is not registered.
+// Returns DBTX which routes reads.
+// Returns error when the database is not registered or cannot be opened.
 func GetDatabaseReader(name string) (DBTX, error) {
 	return bootstrap.GetDatabaseReader(name)
 }
 
-// GetDatabaseWriter returns the DBTX for writing to a named database.
-//
-// The database must have been registered during bootstrap. When EnableOTel is set on the
-// registration, the returned DBTX is wrapped with OpenTelemetry spans and metrics. Safe
-// for concurrent use from multiple goroutines.
+// GetDatabaseWriter returns the write-side connection for a named database.
 //
 // Takes name (string) which identifies the database.
 //
-// Returns DBTX which can execute write queries.
-// Returns error when the framework is not initialised or the database is not registered.
+// Returns DBTX which routes writes to the primary.
+// Returns error when the database is not registered or cannot be opened.
 func GetDatabaseWriter(name string) (DBTX, error) {
 	return bootstrap.GetDatabaseWriter(name)
 }
 
 // GetMigrationService returns the migration service for a named database.
 //
-// The database must have been registered during bootstrap. Safe for concurrent use from
-// multiple goroutines.
-//
 // Takes name (string) which identifies the database.
 //
 // Returns MigrationService which can apply and roll back migrations.
-// Returns error when the framework is not initialised, the database is not registered, or
-// no migration filesystem was configured.
+// Returns error when the database is not registered or has no migration filesystem.
 func GetMigrationService(name string) (MigrationService, error) {
 	return bootstrap.GetMigrationService(name)
 }
 
 // GetSeedService returns the seed service for a named database.
 //
-// The database must have been registered during bootstrap. Safe for concurrent use from
-// multiple goroutines.
-//
 // Takes name (string) which identifies the database.
 //
 // Returns SeedService which can apply and inspect seeds.
-// Returns error when the framework is not initialised, the database is not registered, or
-// no seed filesystem was configured.
+// Returns error when the database is not registered or has no seed filesystem.
 func GetSeedService(name string) (SeedService, error) {
 	return bootstrap.GetSeedService(name)
 }

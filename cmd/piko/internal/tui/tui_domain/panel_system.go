@@ -30,7 +30,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"piko.sh/piko/cmd/piko/internal/inspector"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 
 	"piko.sh/piko/wdk/clock"
 )

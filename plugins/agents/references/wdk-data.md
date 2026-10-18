@@ -10,8 +10,8 @@ Database access, file storage, and caching. All packages follow hexagonal archit
 
 | Driver | Package | Constructor |
 |--------|---------|-------------|
-| SQLite (CGO, fastest) | `wdk/db/db_driver_sqlite_cgo` | `Open(path string, cfg Config) (*sql.DB, error)` |
-| SQLite (pure Go) | `wdk/db/db_driver_sqlite_nocgo` | `Open(path string, cfg Config) (*sql.DB, error)` |
+| SQLite (CGO, fastest) | `wdk/db/db_driver_sqlite_cgo` | `Open(ctx context.Context, path string, cfg Config) (*sql.DB, error)` |
+| SQLite (pure Go) | `wdk/db/db_driver_sqlite_nocgo` | `Open(ctx context.Context, path string, cfg Config) (*sql.DB, error)` |
 | Cloudflare D1 | `wdk/db/db_driver_d1` | `Open(cfg Config, opts ...Option) (*sql.DB, error)` |
 | PostgreSQL / MySQL / others | stdlib | `sql.Open(driverName, dsn)` |
 
@@ -52,7 +52,7 @@ import (
     "piko.sh/piko/wdk/db/db_engine_sqlite"
 )
 
-sqlDB, err := db_driver_sqlite_cgo.Open("data/app.db", db_driver_sqlite_cgo.Config{})
+sqlDB, err := db_driver_sqlite_cgo.Open(ctx, "data/app.db", db_driver_sqlite_cgo.Config{})
 // handle err
 
 app := piko.New(
@@ -70,12 +70,10 @@ Reserved names `db.DatabaseNameRegistry` and `db.DatabaseNameOrchestrator` back 
 
 Concurrency-safe accessors: `db.GetDatabaseConnection(name) (*sql.DB, error)`, `db.GetDatabaseReader(name) (DBTX, error)` (round-robin replicas), `db.GetDatabaseWriter(name) (DBTX, error)`.
 
-Bootstrap auto-runs migrations when `MigrationFS` is set. To build manually:
+Bootstrap does not run app migrations: with `MigrationFS` set, call `Up(ctx)` on `db.GetMigrationService(name)`. Or build one manually:
 
 ```go
-executor := db.NewMigrationExecutor(sqlDB, db.SQLiteDialect())
-reader := db.NewFSFileReader(migrationsFS)
-service := db.NewMigrationService(executor, reader, "migrations")
+service, err := db.NewMigrator(db_engine_sqlite.SQLite(), sqlDB, migrationsFS, "migrations")
 ```
 
 D1 migrations must use the Wrangler CLI - the framework cannot run them remotely.
@@ -90,7 +88,7 @@ D1 migrations must use the Wrangler CLI - the framework cannot run them remotely
 | S3 | `storage_provider_s3` | `NewS3Provider(ctx, *Config, opts...)` |
 | GCS | `storage_provider_gcs` | `NewGCSProvider(ctx, config, opts...)` |
 | R2 | `storage_provider_r2` | `NewR2Provider(ctx, *Config, opts...)` |
-| Mock (tests) | `storage_provider_mock` | - |
+| Mock (tests) | `storage_provider_mock` | `NewMockProvider()` |
 
 ### Setup
 
@@ -155,7 +153,7 @@ Type-safe caching with generic key/value parameters.
 
 | Provider | Package | Use case |
 |----------|---------|----------|
-| Otter | `cache_provider_otter` | In-memory, S3-FIFO, high performance |
+| Otter | `cache_provider_otter` | In-memory, W-TinyLFU, high performance |
 | Redis | `cache_provider_redis` | Distributed |
 | Redis Cluster | `cache_provider_redis_cluster` | Horizontally scaled Redis |
 | Valkey | `cache_provider_valkey` | Distributed (Redis-compatible OSS fork) |
@@ -165,7 +163,7 @@ Type-safe caching with generic key/value parameters.
 
 ### Setup and basic usage
 
-Builder methods are bare names. `Build(ctx)`, `RegisterProvider(ctx, name, provider)`, and `RegisterTransformer(ctx, transformer)` all require ctx.
+Builder methods are bare names. `Build(ctx)` and `RegisterProvider(ctx, name, provider)` both require ctx.
 
 ```go
 import (
@@ -180,7 +178,7 @@ builder, _ := cache.NewCacheBuilder[string, User](service)
 userCache, err := builder.
     Provider("otter").
     Namespace("users").
-    MaximumSize(10000).
+    MaximumEntries(10000).
     WriteExpiration(1 * time.Hour).
     Build(ctx)
 ```

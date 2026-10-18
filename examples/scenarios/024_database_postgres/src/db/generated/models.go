@@ -2,18 +2,19 @@
 
 package generated
 
-type Product struct {
-	ID        int32   `json:"id"`
-	Name      string  `json:"name"`
-	Category  string  `json:"category"`
-	Price     float64 `json:"price"`
-	CreatedAt int64   `json:"created_at"`
-}
+import "piko.sh/piko/wdk/maths"
 
-type Order struct {
-	ID        int32   `json:"id"`
-	ProductID int32   `json:"product_id"`
-	Quantity  int32   `json:"quantity"`
-	Total     float64 `json:"total"`
-	OrderedAt int64   `json:"ordered_at"`
+type Orders struct {
+	ID        int32         `json:"id"`
+	ProductID int32         `json:"product_id"`
+	Quantity  int32         `json:"quantity"`
+	Total     maths.Decimal `json:"total"`
+	OrderedAt int64         `json:"ordered_at"`
+}
+type Products struct {
+	ID        int32         `json:"id"`
+	Name      string        `json:"name"`
+	Category  string        `json:"category"`
+	Price     maths.Decimal `json:"price"`
+	CreatedAt int64         `json:"created_at"`
 }

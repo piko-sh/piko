@@ -125,6 +125,26 @@ func TestFormatRuntimeDiagnostics(t *testing.T) {
 		result := FormatRuntimeDiagnostics(diagnostics, "")
 		assert.Contains(t, result, "warning")
 		assert.Contains(t, result, "deprecated usage")
+		assert.NotContains(t, result, "= docs:")
+	})
+
+	t.Run("coded diagnostic links to its explanation", func(t *testing.T) {
+		t.Parallel()
+
+		diagnostics := []*generator_dto.RuntimeDiagnostic{
+			{
+				Severity:   generator_dto.Warning,
+				Message:    "Cannot access property 'Name' because 'state.User' is nil",
+				SourcePath: "page.pk",
+				Expression: "state.User.Name",
+				Code:       generator_dto.CodeNilPropertyAccess,
+				Line:       3,
+				Column:     8,
+			},
+		}
+		result := FormatRuntimeDiagnostics(diagnostics, "")
+		require.Contains(t, result, "[R003]")
+		require.Contains(t, result, "= docs: https://piko.sh/diagnostics/R003 (or run: piko explain R003)")
 	})
 
 	t.Run("info severity", func(t *testing.T) {

@@ -157,6 +157,7 @@ func (c *Container) newLifecycleServiceDeps(
 		InterpretedOrchestrator: serviceConfig.InterpretedOrchestrator,
 		BuildCacheInvalidator:   serviceConfig.BuildCacheInvalidator,
 		DevEventNotifier:        serviceConfig.DevEventNotifier,
+		ArtefactReconciler:      c.startupArtefactReconciler(),
 		ComponentRegistry:       c.GetComponentRegistry(),
 		ExternalComponents:      c.externalComponents,
 		AssetPipeline:           nil,

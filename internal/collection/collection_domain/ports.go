@@ -24,7 +24,7 @@ import (
 
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/collection/collection_dto"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // ProviderType indicates how a provider fetches and handles data. Static fetches all data

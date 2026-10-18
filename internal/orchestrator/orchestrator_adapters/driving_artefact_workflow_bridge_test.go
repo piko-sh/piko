@@ -19,12 +19,17 @@
 package orchestrator_adapters
 
 import (
+	"context"
+	"errors"
+	"fmt"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
+	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
 )
 
@@ -405,6 +410,106 @@ func TestEvaluateAndDispatchProfiles_EmptyProfiles(t *testing.T) {
 	}
 	variantStatus := map[string]registry_dto.VariantStatus{}
 
-	dispatched := bridge.evaluateAndDispatchProfiles(ctx, artefact, variantStatus)
+	dispatched, err := bridge.evaluateAndDispatchProfiles(ctx, artefact, variantStatus)
+	assert.NoError(t, err)
 	assert.Equal(t, 0, dispatched)
+}
+
+func TestHandleEvent_RetriesTransientFetchFailure(t *testing.T) {
+	t.Parallel()
+
+	var reads atomic.Int64
+	registry := &registry_domain.MockRegistryService{
+		GetArtefactFunc: func(context.Context, string) (*registry_dto.ArtefactMeta, error) {
+			if reads.Add(1) < 3 {
+				return nil, errors.New("registry briefly unavailable")
+			}
+			return &registry_dto.ArtefactMeta{ID: "art-1"}, nil
+		},
+	}
+	bridge := NewArtefactWorkflowBridge(registry, nil, &mockTaskDispatcher{}, nil)
+
+	bridge.handleEvent(t.Context(), orchestrator_domain.Event{
+		Type:    registry_domain.EventArtefactCreated,
+		Payload: map[string]any{logKeyArtefactID: "art-1"},
+	})
+	assert.Zero(t, bridge.ArtefactEventsProcessed(), "an event being retried is still outstanding")
+
+	require.Eventually(t, func() bool { return bridge.ArtefactEventsProcessed() == 1 }, 5*time.Second, 5*time.Millisecond,
+		"the event is processed once the artefact can be read")
+	assert.Equal(t, int64(3), reads.Load())
+}
+
+func TestHandleEvent_DoesNotRetryDeletedArtefact(t *testing.T) {
+	t.Parallel()
+
+	var reads atomic.Int64
+	registry := &registry_domain.MockRegistryService{
+		GetArtefactFunc: func(context.Context, string) (*registry_dto.ArtefactMeta, error) {
+			reads.Add(1)
+			return nil, registry_domain.ErrArtefactNotFound
+		},
+	}
+	bridge := NewArtefactWorkflowBridge(registry, nil, &mockTaskDispatcher{}, nil)
+
+	bridge.handleEvent(t.Context(), orchestrator_domain.Event{
+		Type:    registry_domain.EventArtefactCreated,
+		Payload: map[string]any{logKeyArtefactID: "gone"},
+	})
+	assert.Equal(t, int64(1), bridge.ArtefactEventsProcessed())
+	assert.Equal(t, int64(1), reads.Load(), "a deleted artefact cannot appear by retrying")
+}
+
+func TestReconcileArtefacts_ReadsTheRegistryInBatches(t *testing.T) {
+	t.Parallel()
+
+	ids := make([]string, 0, 2*reconcileBatchSize+10)
+	for i := range cap(ids) {
+		ids = append(ids, fmt.Sprintf("asset-%d.svg", i))
+	}
+	unbuilt := func(id string) *registry_dto.ArtefactMeta {
+		return &registry_dto.ArtefactMeta{
+			ID:              id,
+			ActualVariants:  []registry_dto.Variant{{VariantID: "source", Status: registry_dto.VariantStatusReady}},
+			DesiredProfiles: []registry_dto.NamedProfile{makeMinifyProfile("source")},
+		}
+	}
+	var batches [][]string
+	registry := &registry_domain.MockRegistryService{
+		GetArtefactFunc: func(_ context.Context, id string) (*registry_dto.ArtefactMeta, error) {
+			return unbuilt(id), nil
+		},
+		GetMultipleArtefactsFunc: func(_ context.Context, batch []string) ([]*registry_dto.ArtefactMeta, error) {
+			batches = append(batches, batch)
+			if len(batches) == 2 {
+				return nil, errors.New("registry briefly unavailable")
+			}
+			artefacts := make([]*registry_dto.ArtefactMeta, 0, len(batch))
+			for _, id := range batch[:len(batch)-1] {
+				artefacts = append(artefacts, unbuilt(id))
+			}
+			return artefacts, nil
+		},
+	}
+	dispatcher := &mockTaskDispatcher{}
+	bridge := NewArtefactWorkflowBridge(registry, nil, dispatcher, nil)
+
+	dispatched, err := bridge.ReconcileArtefacts(t.Context(), ids)
+
+	require.Error(t, err, "a batch that cannot be read is reported")
+	assert.Len(t, batches, 3, "one registry query per batch of reconcileBatchSize")
+	assert.Equal(t, []int{reconcileBatchSize, reconcileBatchSize, 10}, []int{len(batches[0]), len(batches[1]), len(batches[2])})
+	assert.Equal(t, reconcileBatchSize-1+9, dispatched,
+		"the other batches are still re-checked, and an artefact that no longer exists is skipped")
+	assert.Len(t, dispatcher.dispatched, dispatched)
+}
+
+func makeMinifyProfile(dependsOn string) registry_dto.NamedProfile {
+	return registry_dto.NamedProfile{
+		Name: "minified",
+		Profile: registry_dto.DesiredProfile{
+			CapabilityName: "minify-svg",
+			DependsOn:      registry_dto.DependenciesFromSlice([]string{dependsOn}),
+		},
+	}
 }

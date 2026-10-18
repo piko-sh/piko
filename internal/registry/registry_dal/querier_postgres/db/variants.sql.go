@@ -45,12 +45,16 @@ func (queries *Queries) GetAllTagsForArtefact(ctx context.Context, artefactID st
 	}
 	defer rows.Close()
 	var results []GetAllTagsForArtefactRow
-	for rows.Next() {
+	if rows.Next() {
 		var row GetAllTagsForArtefactRow
-		if err := rows.Scan(&row.VariantID, &row.TagKey, &row.TagValue); err != nil {
-			return nil, err
+		scanArgs := []any{&row.VariantID, &row.TagKey, &row.TagValue}
+		for more := true; more; more = rows.Next() {
+			row = GetAllTagsForArtefactRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -73,10 +77,10 @@ type GetTagsForArtefactIDsRow struct {
 }
 
 func (queries *Queries) GetTagsForArtefactIDs(ctx context.Context, params GetTagsForArtefactIDsParams) ([]GetTagsForArtefactIDsRow, error) {
-	query, expansionError := pikoExpandSlicePlaceholders(gettagsforartefactids, []pikoSliceExpansionSpec{{Placeholder: 1, Count: len(params.IDs)}})
-	if expansionError != nil {
-		return nil, expansionError
+	if err := pikoCheckBinds(len(params.IDs)); err != nil {
+		return nil, err
 	}
+	query := pikoSplice(gettagsforartefactids, pikoList(pikoListMark{Empty: `= ANY('{}')`, Operator: 95, Start: 98, End: 102}, 1, len(params.IDs)))
 	args := make([]any, 0, len(params.IDs))
 	for _, v := range params.IDs {
 		args = append(args, v)
@@ -87,12 +91,16 @@ func (queries *Queries) GetTagsForArtefactIDs(ctx context.Context, params GetTag
 	}
 	defer rows.Close()
 	var results []GetTagsForArtefactIDsRow
-	for rows.Next() {
+	if rows.Next() {
 		var row GetTagsForArtefactIDsRow
-		if err := rows.Scan(&row.ArtefactID, &row.VariantID, &row.TagKey, &row.TagValue); err != nil {
-			return nil, err
+		scanArgs := []any{&row.ArtefactID, &row.VariantID, &row.TagKey, &row.TagValue}
+		for more := true; more; more = rows.Next() {
+			row = GetTagsForArtefactIDsRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -120,12 +128,16 @@ func (queries *Queries) GetTagsForVariant(ctx context.Context, params GetTagsFor
 	}
 	defer rows.Close()
 	var results []GetTagsForVariantRow
-	for rows.Next() {
+	if rows.Next() {
 		var row GetTagsForVariantRow
-		if err := rows.Scan(&row.TagKey, &row.TagValue); err != nil {
-			return nil, err
+		scanArgs := []any{&row.TagKey, &row.TagValue}
+		for more := true; more; more = rows.Next() {
+			row = GetTagsForVariantRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -154,12 +166,16 @@ func (queries *Queries) GetVariantsForArtefact(ctx context.Context, artefactID s
 	}
 	defer rows.Close()
 	var results []GetVariantsForArtefactRow
-	for rows.Next() {
+	if rows.Next() {
 		var row GetVariantsForArtefactRow
-		if err := rows.Scan(&row.VariantID, &row.StorageKey, &row.StorageBackendID, &row.MimeType, &row.SizeBytes, &row.Status, &row.CreatedAt); err != nil {
-			return nil, err
+		scanArgs := []any{&row.VariantID, &row.StorageKey, &row.StorageBackendID, &row.MimeType, &row.SizeBytes, &row.Status, &row.CreatedAt}
+		for more := true; more; more = rows.Next() {
+			row = GetVariantsForArtefactRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -186,10 +202,10 @@ type GetVariantsForArtefactIDsRow struct {
 }
 
 func (queries *Queries) GetVariantsForArtefactIDs(ctx context.Context, params GetVariantsForArtefactIDsParams) ([]GetVariantsForArtefactIDsRow, error) {
-	query, expansionError := pikoExpandSlicePlaceholders(getvariantsforartefactids, []pikoSliceExpansionSpec{{Placeholder: 1, Count: len(params.IDs)}})
-	if expansionError != nil {
-		return nil, expansionError
+	if err := pikoCheckBinds(len(params.IDs)); err != nil {
+		return nil, err
 	}
+	query := pikoSplice(getvariantsforartefactids, pikoList(pikoListMark{Empty: `= ANY('{}')`, Operator: 147, Start: 150, End: 154}, 1, len(params.IDs)))
 	args := make([]any, 0, len(params.IDs))
 	for _, v := range params.IDs {
 		args = append(args, v)
@@ -200,12 +216,16 @@ func (queries *Queries) GetVariantsForArtefactIDs(ctx context.Context, params Ge
 	}
 	defer rows.Close()
 	var results []GetVariantsForArtefactIDsRow
-	for rows.Next() {
+	if rows.Next() {
 		var row GetVariantsForArtefactIDsRow
-		if err := rows.Scan(&row.ArtefactID, &row.VariantID, &row.StorageKey, &row.StorageBackendID, &row.MimeType, &row.SizeBytes, &row.Status, &row.CreatedAt); err != nil {
-			return nil, err
+		scanArgs := []any{&row.ArtefactID, &row.VariantID, &row.StorageKey, &row.StorageBackendID, &row.MimeType, &row.SizeBytes, &row.Status, &row.CreatedAt}
+		for more := true; more; more = rows.Next() {
+			row = GetVariantsForArtefactIDsRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

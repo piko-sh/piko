@@ -43,7 +43,7 @@ import (
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/render/render_dto"
 	"piko.sh/piko/wdk/contextaware"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (
@@ -299,6 +299,17 @@ func (r *DataLoaderRegistryAdapter) ClearSvgCache(_ context.Context, svgID strin
 	render_domain.InvalidateSpriteSheetCache()
 }
 
+// InvalidateArtefact clears an artefact's cached serve path, parsed SVG data, and
+// assembled sprite sheets.
+//
+// Takes artefactID (string) which identifies the artefact whose cached data is dropped.
+func (r *DataLoaderRegistryAdapter) InvalidateArtefact(ctx context.Context, artefactID string) {
+	r.artefactServePathCache.Delete(artefactID)
+	if strings.EqualFold(path.Ext(artefactID), ".svg") {
+		r.ClearSvgCache(ctx, artefactID)
+	}
+}
+
 // GetArtefactServePath returns the cache-busted URL serve path for an artefact,
 // preferring the minified variant and caching results in a sync.Map to avoid repeated
 // registry lookups.
@@ -339,10 +350,7 @@ func (r *DataLoaderRegistryAdapter) GetArtefactServePath(ctx context.Context, ar
 	return servePath
 }
 
-// findServableVariant returns the best variant to serve for an artefact. Prefers the
-// minified variant (VariantID "minified") over the source variant, since browsers should
-// load the processed output while the server handles content-encoding negotiation for
-// brotli/gzip.
+// findServableVariant prefers a ready minified variant over the source variant.
 //
 // Takes artefact (*registry_dto.ArtefactMeta) which contains the variants to search.
 //
@@ -351,7 +359,7 @@ func findServableVariant(artefact *registry_dto.ArtefactMeta) *registry_dto.Vari
 	var sourceVariant *registry_dto.Variant
 	for i := range artefact.ActualVariants {
 		v := &artefact.ActualVariants[i]
-		if v.VariantID == "minified" {
+		if v.VariantID == minifiedVariantID && v.Status == registry_dto.VariantStatusReady {
 			return v
 		}
 		if v.MetadataTags.Get(registry_dto.TagType) == "source" {
@@ -362,7 +370,8 @@ func findServableVariant(artefact *registry_dto.ArtefactMeta) *registry_dto.Vari
 }
 
 // UpsertArtefact registers a dynamic asset with metadata-only profiles. This delegates to
-// the underlying registry service for metadata-only registration.
+// the underlying registry service for metadata-only registration, then drops the cached
+// serve path so the next GetArtefactServePath reflects the upserted variants.
 //
 // Takes artefactID (string) which identifies the artefact to register.
 // Takes sourcePath (string) which specifies the path to the source file.
@@ -381,7 +390,9 @@ func (r *DataLoaderRegistryAdapter) UpsertArtefact(
 	storageBackendID string,
 	desiredProfiles []registry_dto.NamedProfile,
 ) (*registry_dto.ArtefactMeta, error) {
-	return r.registryService.UpsertArtefact(ctx, artefactID, sourcePath, sourceData, storageBackendID, desiredProfiles)
+	artefact, err := r.registryService.UpsertArtefact(ctx, artefactID, sourcePath, sourceData, storageBackendID, desiredProfiles)
+	r.artefactServePathCache.Delete(artefactID)
+	return artefact, err
 }
 
 // NewDataLoaderRegistryAdapter creates a new DataLoaderRegistryAdapter with the specified
@@ -1273,17 +1284,16 @@ func buildParsedSVGData(ctx context.Context, artefactID string, attributes []ast
 	return data
 }
 
-// findSVGVariant finds the best SVG variant from an artefact, preferring minified over
-// source.
+// findSVGVariant selects a ready minified SVG variant, falling back to the source.
 //
 // Takes artefact (*registry_dto.ArtefactMeta) which contains the variants to search.
 //
-// Returns *registry_dto.Variant which is the minified-svg variant if found, otherwise the
-// source variant, or nil if neither exists.
+// Returns *registry_dto.Variant which is the ready minified-svg variant if found,
+// otherwise the source variant, or nil if neither exists.
 func findSVGVariant(artefact *registry_dto.ArtefactMeta) *registry_dto.Variant {
 	for i := range artefact.ActualVariants {
 		v := &artefact.ActualVariants[i]
-		if v.MetadataTags.Get(registry_dto.TagType) == "minified-svg" {
+		if v.MetadataTags.Get(registry_dto.TagType) == "minified-svg" && v.Status == registry_dto.VariantStatusReady {
 			return v
 		}
 	}

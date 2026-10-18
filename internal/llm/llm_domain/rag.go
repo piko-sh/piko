@@ -140,7 +140,6 @@ func (b *CompletionBuilder) resolveRAGContext(ctx context.Context) {
 // resolveRAGQueries applies the query rewriter if configured and returns the list of
 // queries to embed.
 //
-// Takes ctx (context.Context) which carries the logger context.
 // Takes query (string) which is the original query text.
 //
 // Returns []string which contains the queries to embed.
@@ -168,7 +167,6 @@ func (b *CompletionBuilder) resolveRAGQueries(ctx context.Context, query string)
 // embedRAGQueries embeds the queries and validates the prerequisites. Returns false when
 // RAG should be skipped.
 //
-// Takes ctx (context.Context) which carries the logger context.
 // Takes queries ([]string) which contains the queries to embed.
 //
 // Returns *llm_dto.EmbeddingResponse which contains the embedding results.
@@ -209,7 +207,6 @@ func (b *CompletionBuilder) embedRAGQueries(ctx context.Context, queries []strin
 // resolveSingleQueryRAG performs vector search for a single query and stores results on
 // the builder.
 //
-// Takes ctx (context.Context) which carries the logger context.
 // Takes query (string) which is the query text.
 // Takes embResp (*llm_dto.EmbeddingResponse) which contains the embedding.
 func (b *CompletionBuilder) resolveSingleQueryRAG(ctx context.Context, query string, embResp *llm_dto.EmbeddingResponse) {
@@ -249,7 +246,6 @@ func (b *CompletionBuilder) resolveSingleQueryRAG(ctx context.Context, query str
 // resolveMultiQueryRAG performs vector search for each expanded query, deduplicates
 // results, and stores them on the builder.
 //
-// Takes ctx (context.Context) which carries the logger context.
 // Takes queries ([]string) which contains the expanded queries.
 // Takes embResp (*llm_dto.EmbeddingResponse) which contains the embeddings.
 func (b *CompletionBuilder) resolveMultiQueryRAG(ctx context.Context, queries []string, embResp *llm_dto.EmbeddingResponse) {

@@ -20,22 +20,16 @@ package main
 
 import "testcase_67_slice_of_generics/models"
 
-// A local generic type.
 type Box[T any] struct {
 	Content T
 }
 
-// A generic struct that contains a slice of its own type parameter.
-// This is the direct replication of the bug.
 type GenericResponse[T any] struct {
 	Items []T
 }
 
-// A concrete struct that uses slices of instantiated generic types.
 type Response struct {
-	// A slice of a locally defined generic type.
 	Boxes []Box[string]
 
-	// A slice of a generic type from another package.
 	Stores []models.Store[int]
 }

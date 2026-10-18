@@ -119,10 +119,10 @@ type GetMultipleArtefactsRow struct {
 }
 
 func (queries *Queries) GetMultipleArtefacts(ctx context.Context, params GetMultipleArtefactsParams) ([]GetMultipleArtefactsRow, error) {
-	query, expansionError := pikoExpandSlicePlaceholders(getmultipleartefacts, []pikoSliceExpansionSpec{{Placeholder: 1, Count: len(params.IDs)}})
-	if expansionError != nil {
-		return nil, expansionError
+	if err := pikoCheckBinds(len(params.IDs)); err != nil {
+		return nil, err
 	}
+	query := pikoSplice(getmultipleartefacts, pikoList(pikoListMark{Empty: `= ANY('{}')`, Operator: 101, Start: 104, End: 108}, 1, len(params.IDs)))
 	args := make([]any, 0, len(params.IDs))
 	for _, v := range params.IDs {
 		args = append(args, v)
@@ -188,12 +188,16 @@ func (queries *Queries) ListAllArtefactIDs(ctx context.Context) ([]ListAllArtefa
 	}
 	defer rows.Close()
 	var results []ListAllArtefactIDsRow
-	for rows.Next() {
+	if rows.Next() {
 		var row ListAllArtefactIDsRow
-		if err := rows.Scan(&row.ID); err != nil {
-			return nil, err
+		scanArgs := []any{&row.ID}
+		for more := true; more; more = rows.Next() {
+			row = ListAllArtefactIDsRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

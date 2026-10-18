@@ -23,7 +23,7 @@ import (
 	"errors"
 	"slices"
 
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 var (

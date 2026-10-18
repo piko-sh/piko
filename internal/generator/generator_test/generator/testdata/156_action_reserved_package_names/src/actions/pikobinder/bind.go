@@ -28,8 +28,6 @@ type BindOutput struct {
 	Bound string `json:"bound"`
 }
 
-// BindAction lives in a package called "pikobinder", which is the alias the generated
-// wrapper file imports the piko binder under.
 type BindAction struct {
 	piko.ActionMetadata
 }

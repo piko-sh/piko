@@ -20,7 +20,6 @@ package main
 
 import "testcase_05_embedding_promotion/models"
 
-// User embeds models.Base.
 type User struct {
 	models.Base
 	Name string

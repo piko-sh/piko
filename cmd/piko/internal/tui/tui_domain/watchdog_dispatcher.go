@@ -294,8 +294,6 @@ func (d *EventDispatcher) SetBackoff(initial, ceiling time.Duration) {
 
 // Start begins consuming events from the provider in a goroutine. Stops when Stop is
 // called or ctx is cancelled.
-//
-// Takes ctx (context.Context) which controls the lifetime.
 func (d *EventDispatcher) Start(ctx context.Context) {
 	subCtx, cancel := context.WithCancelCause(ctx)
 	d.cancel = cancel
@@ -398,8 +396,6 @@ func (d *EventDispatcher) DroppedTotal() uint64 {
 
 // run is the consumer loop. It opens an upstream subscription, forwards events, and
 // reconnects with exponential backoff when the upstream closes.
-//
-// Takes ctx (context.Context) which controls the loop's lifetime.
 func (d *EventDispatcher) run(ctx context.Context) {
 	defer goroutine.RecoverPanic(ctx, "watchdog-dispatcher.run")
 
@@ -447,7 +443,6 @@ func (d *EventDispatcher) run(ctx context.Context) {
 // consume reads from the upstream channel until it closes or ctx is cancelled. Each event
 // is recorded in history and fanned out to every subscriber whose filter matches.
 //
-// Takes ctx (context.Context) which controls the consume loop.
 // Takes ch (<-chan WatchdogEvent) which delivers upstream events.
 func (d *EventDispatcher) consume(ctx context.Context, ch <-chan WatchdogEvent) {
 	defer goroutine.RecoverPanic(ctx, "watchdog-dispatcher.consume")
@@ -567,7 +562,8 @@ func (d *EventDispatcher) resumeSince() time.Time {
 // sleepWithBackoff sleeps for the current backoff (with jitter) and doubles backoff up to
 // the configured maximum.
 //
-// Takes ctx (context.Context) which can cut the sleep short.
+// Cancelling ctx cuts the sleep short.
+//
 // Takes backoff (*time.Duration) which is updated in place.
 //
 // Returns bool which is true when the sleep completed; false when ctx was cancelled.

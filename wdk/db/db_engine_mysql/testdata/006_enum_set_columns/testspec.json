@@ -1,3 +1,0 @@
-{
-  "description": "Inline ENUM and SET column types in CREATE TABLE. Tests that ENUM and SET value lists are parsed correctly and reflected in the type catalogue."
-}

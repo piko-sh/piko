@@ -20,12 +20,9 @@ package main
 
 import "testcase_43_map_of_slice_of_pointers/models"
 
-// A type alias for the complex type.
 type UserGroups = map[string][]*models.User
 
 type Response struct {
-	// A field using the complex alias.
-	Groups UserGroups
-	// The same complex type, but inline.
+	Groups       UserGroups
 	GroupsInline map[string][]*models.User
 }

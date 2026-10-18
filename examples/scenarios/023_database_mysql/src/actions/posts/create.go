@@ -43,10 +43,10 @@ func (a CreateAction) Call(input CreateInput) (CreateResponse, error) {
 
 	queries := generated.New(conn)
 	if err := queries.CreatePost(a.Ctx(), generated.CreatePostParams{
-		P1: input.AuthorID,
-		P2: input.Title,
-		P3: input.Body,
-		P4: int32(time.Now().Unix()),
+		AuthorID:  input.AuthorID,
+		Title:     input.Title,
+		Body:      input.Body,
+		CreatedAt: time.Now().Unix(),
 	}); err != nil {
 		return CreateResponse{}, err
 	}

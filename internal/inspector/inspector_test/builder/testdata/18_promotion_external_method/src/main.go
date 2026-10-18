@@ -20,7 +20,6 @@ package main
 
 import "github.com/bojanz/currency"
 
-// Price embeds currency.Currency, which has a GetCode() method.
 type Price struct {
 	currency.Amount
 	Locale string

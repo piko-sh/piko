@@ -16,10 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// main.go defines the simple User struct to be inspected.
 package main
 
 type User struct {
-	Name string // Exported, should be serialised.
-	age  int    // Unexported, should be ignored.
+	Name string
+	age  int
 }

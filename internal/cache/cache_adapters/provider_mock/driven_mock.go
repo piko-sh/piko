@@ -239,7 +239,6 @@ func (m *MockAdapter[K, V]) Set(_ context.Context, key K, value V, tags ...strin
 
 // SetWithTTL stores a value with a time-to-live duration.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry.
 // Takes value (V) which is the data to store.
 // Takes ttl (time.Duration) which specifies how long the entry remains valid.
@@ -255,7 +254,6 @@ func (m *MockAdapter[K, V]) SetWithTTL(ctx context.Context, key K, value V, ttl 
 
 // BulkSet stores multiple values in the cache with optional tags.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes items (map[K]V) which contains the key-value pairs to store.
 // Takes tags (...string) which specifies optional tags for cache grouping.
 //
@@ -476,7 +474,6 @@ func (m *MockAdapter[K, V]) ComputeWithTTL(_ context.Context, key K, computeFunc
 
 // BulkGet retrieves multiple values, loading missing ones with the bulk loader.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes keys ([]K) which specifies the cache keys to retrieve.
 // Takes bulkLoader (BulkLoader[K, V]) which loads values for keys not in cache.
 //
@@ -548,8 +545,6 @@ func (m *MockAdapter[K, V]) InvalidateByTags(_ context.Context, tags ...string) 
 }
 
 // InvalidateAll removes all entries from the cache.
-//
-// Takes ctx (context.Context) for cancellation and timeout.
 //
 // Returns error when the operation fails.
 //
@@ -658,7 +653,6 @@ func (m *MockAdapter[K, V]) Values() iter.Seq[V] {
 
 // GetEntry returns the full entry for a key, including metadata.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the entry to retrieve.
 //
 // Returns cache_dto.Entry[K, V] which contains the entry with metadata.
@@ -693,7 +687,6 @@ func (m *MockAdapter[K, V]) GetEntry(ctx context.Context, key K) (cache_dto.Entr
 
 // ProbeEntry returns the entry for a key without affecting access statistics.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the entry to probe.
 //
 // Returns cache_dto.Entry[K, V] which contains the entry with metadata.
@@ -734,8 +727,6 @@ func (m *MockAdapter[K, V]) Stats() cache_dto.Stats {
 }
 
 // Close releases resources held by the cache.
-//
-// Takes ctx (context.Context) for cancellation and timeout.
 //
 // Returns error when the operation fails.
 //

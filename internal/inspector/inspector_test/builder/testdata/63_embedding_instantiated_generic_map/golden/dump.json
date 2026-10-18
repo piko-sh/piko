@@ -21,7 +21,7 @@
           ],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 24,
+          "definition_line": 23,
           "definition_column": 6
         },
         "Response": {
@@ -85,7 +85,7 @@
                 }
               ],
               "composite_type": 7,
-              "definition_line": 30,
+              "definition_line": 26,
               "definition_column": 2,
               "is_internal_type": false,
               "is_embedded": true,
@@ -96,7 +96,7 @@
           "type_params": [],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 26,
+          "definition_line": 25,
           "definition_column": 6
         }
       },

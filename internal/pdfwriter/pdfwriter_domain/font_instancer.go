@@ -24,7 +24,7 @@ import (
 	"fmt"
 	"math"
 
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 var (

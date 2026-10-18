@@ -22,6 +22,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"maps"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -315,16 +317,15 @@ func parseWithoutEnlargement(v string, s *image_dto.TransformationSpec) {
 	}
 }
 
-// parseTransformParams populates the spec from the generic params map.
-//
-// Dispatches through the transformParamParsers lookup table. Unrecognised keys are stored
-// in the Modifiers map for provider-specific handling.
+// parseTransformParams applies parameters in sorted-key order and stores unrecognised
+// keys as provider-specific modifiers.
 //
 // Takes params (capabilities_domain.CapabilityParams) which contains the key-value pairs
 // to parse.
 // Takes spec (*image_dto.TransformationSpec) which receives the parsed values.
 func parseTransformParams(params capabilities_domain.CapabilityParams, spec *image_dto.TransformationSpec) {
-	for key, value := range params {
+	for _, key := range slices.Sorted(maps.Keys(params)) {
+		value := params[key]
 		if parser, ok := transformParamParsers[strings.ToLower(key)]; ok {
 			parser(value, spec)
 		} else {

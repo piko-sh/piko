@@ -232,8 +232,6 @@ type ssrReadinessProbe struct {
 // flat Snapshot, enriched per dependency with whitelisted provider info. When monitoring
 // or its health probe is unavailable it returns an UNHEALTHY snapshot describing the gap.
 //
-// Takes ctx (context.Context) for cancellation of the underlying checks.
-//
 // Returns readiness.Snapshot which is the flattened readiness tree.
 func (p *ssrReadinessProbe) CheckReadiness(ctx context.Context) readiness.Snapshot {
 	probe, inspector := p.resolve()
@@ -279,11 +277,9 @@ func (p *ssrReadinessProbe) resolve() (monitoring_domain.HealthProbeService, mon
 	return monitoringService.HealthProbe(), monitoringService.ProviderInfoInspector()
 }
 
-// readinessSnapshotFrom flattens the internal HealthProbeStatus tree into a public
-// readiness.Snapshot: the root plus its immediate dependency children. Each dependency
-// that mapped to a descriptor is enriched with its whitelisted info, gated by sensitive.
+// readinessSnapshotFrom converts the health tree's root and immediate dependencies into a
+// public readiness snapshot.
 //
-// Takes ctx (context.Context) for cancellation of the per-dependency describe work.
 // Takes status (monitoring_domain.HealthProbeStatus) which is the internal readiness
 // tree.
 // Takes inspector (monitoring_domain.ProviderInfoInspector) which supplies provider info.
@@ -319,7 +315,6 @@ func readinessSnapshotFrom(ctx context.Context, status monitoring_domain.HealthP
 // returns nil when no descriptor maps to it, the resource lists no providers, or describe
 // fails.
 //
-// Takes ctx (context.Context) for cancellation of the describe work.
 // Takes inspector (monitoring_domain.ProviderInfoInspector) which describes providers.
 // Takes resolver (monitoring_domain.ProviderProbeResolver) which maps a probe to a
 // resource.
@@ -355,12 +350,9 @@ func providerInfoForDependency(
 	return whitelistedInfoEntries(resourceType, depName, detail, sensitive)
 }
 
-// defaultProviderName returns the provider name to describe for a resource type: the
-// entry flagged IsDefault, else the first listed entry. A dependency with several
-// connections surfaces only this single default connection's detail, keeping the info
-// bounded.
+// defaultProviderName selects the default provider for a resource type, falling back to
+// the first listed provider.
 //
-// Takes ctx (context.Context) for cancellation of the provider listing.
 // Takes inspector (monitoring_domain.ProviderInfoInspector) which lists providers.
 // Takes resourceType (string) which is the resource whose default provider is sought.
 //

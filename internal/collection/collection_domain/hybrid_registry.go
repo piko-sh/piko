@@ -184,8 +184,6 @@ type hybridRegistryOption func(*defaultHybridRegistry)
 // Register stores a hybrid snapshot for the given provider and collection. Implements
 // HybridRegistryPort.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes providerName (string) which identifies the data provider.
 // Takes collectionName (string) which specifies the collection to register.
 // Takes blob ([]byte) which contains the snapshot data.
@@ -197,8 +195,6 @@ func (*defaultHybridRegistry) Register(ctx context.Context, providerName, collec
 
 // GetBlob implements HybridRegistryPort.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes providerName (string) which identifies the provider to query.
 // Takes collectionName (string) which specifies the collection to retrieve.
 //
@@ -341,7 +337,6 @@ func (l *hybridLoader) Reload(ctx context.Context, _ string, oldValue HybridCach
 // generated init() functions to register the embedded FlatBuffer blob and its ETag for
 // hybrid mode operation.
 //
-// Takes ctx (context.Context) which carries logging context.
 // Takes providerName (string) which identifies the data provider.
 // Takes collectionName (string) which specifies the collection to register.
 // Takes blob ([]byte) which contains the FlatBuffer snapshot data.
@@ -379,7 +374,6 @@ func RegisterHybridSnapshot(
 
 // GetHybridBlob returns the current FlatBuffer blob and whether revalidation is needed.
 //
-// Takes ctx (context.Context) which carries logging context.
 // Takes providerName (string) which identifies the data provider.
 // Takes collectionName (string) which identifies the collection.
 //
@@ -403,7 +397,6 @@ func GetHybridBlob(ctx context.Context, providerName, collectionName string) (bl
 // TriggerHybridRevalidation triggers background revalidation for a hybrid collection,
 // returning immediately while concurrent calls are deduplicated.
 //
-// Takes ctx (context.Context) which carries logging context.
 // Takes providerName (string) which identifies the provider to revalidate.
 // Takes collectionName (string) which specifies the collection to revalidate.
 func TriggerHybridRevalidation(ctx context.Context, providerName, collectionName string) {
@@ -557,7 +550,6 @@ func shouldRevalidate(val HybridCacheValue, c clock.Clock) bool {
 // revalidateCollection performs the actual revalidation work by validating the ETag
 // against the provider and fetching new content if changed.
 //
-// Takes ctx (context.Context) which carries logging context.
 // Takes val (HybridCacheValue) which is the current cached state.
 // Takes runtimeRegistry (RuntimeProviderRegistryPort) which provides access to runtime
 // providers.
@@ -614,7 +606,6 @@ func getHybridCapableProviderFromRegistry(
 
 // validateAndFetchIfChanged checks the ETag and fetches new content if it has changed.
 //
-// Takes ctx (context.Context) which carries logging context.
 // Takes provider (hybridCapableProvider) which is the source to validate against.
 // Takes val (HybridCacheValue) which holds the current ETag and metadata.
 // Takes result (*HybridRevalidationResult) which accumulates the outcome.
@@ -653,7 +644,6 @@ func validateAndFetchIfChanged(
 
 // fetchFreshContent gets new content after an ETag change is found.
 //
-// Takes ctx (context.Context) which carries logging context.
 // Takes provider (hybridCapableProvider) which supplies the fresh items.
 // Takes val (HybridCacheValue) which holds the current metadata for logging.
 // Takes newETag (string) which is the updated ETag from the provider.
@@ -691,7 +681,6 @@ func fetchFreshContent(
 // applyRevalidationResult creates an updated HybridCacheValue from the revalidation
 // outcome, always updating LastRevalidated to prevent rapid retries.
 //
-// Takes ctx (context.Context) which carries logging context.
 // Takes oldValue (HybridCacheValue) which is the previous cached state.
 // Takes result (*HybridRevalidationResult) which describes the revalidation outcome.
 // Takes encoder (CollectionEncoderPort) which serialises updated items.

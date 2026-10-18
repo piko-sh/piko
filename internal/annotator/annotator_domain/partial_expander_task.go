@@ -91,8 +91,6 @@ type invokerSlotContent struct {
 
 // process runs all steps for a partialExpansionTask.
 //
-// Takes ctx (context.Context) which controls cancellation and timeout.
-//
 // Returns []*ast_domain.TemplateNode which holds the expanded template nodes, or nil when
 // an error happens during processing.
 func (t *partialExpansionTask) process(ctx context.Context) []*ast_domain.TemplateNode {
@@ -123,8 +121,6 @@ func (t *partialExpansionTask) process(ctx context.Context) []*ast_domain.Templa
 // resolveAndLoadPartial looks up the partial alias, resolves its import path, and loads
 // the target component from the graph. Sets hasError to true if the alias is not defined,
 // the path cannot be resolved, or the component is not found.
-//
-// Takes ctx (context.Context) which controls cancellation and timeout.
 func (t *partialExpansionTask) resolveAndLoadPartial(ctx context.Context) {
 	if t.hasError {
 		return
@@ -208,8 +204,6 @@ func (t *partialExpansionTask) checkCircularDependencies() {
 }
 
 // processCSS gathers and scopes CSS from all style blocks in the partial.
-//
-// Takes ctx (context.Context) which controls cancellation and timeout.
 func (t *partialExpansionTask) processCSS(ctx context.Context) {
 	if t.hasError {
 		return
@@ -240,7 +234,6 @@ func (t *partialExpansionTask) processCSS(ctx context.Context) {
 
 // processSingleStyleBlock handles a single style block from the SFC.
 //
-// Takes ctx (context.Context) which controls cancellation and timeout.
 // Takes styleBlock (sfcparser.Style) which contains the style content and attributes to
 // handle.
 //
@@ -264,7 +257,6 @@ func (t *partialExpansionTask) processSingleStyleBlock(ctx context.Context, styl
 
 // processGlobalStyleBlock handles a global style block and stores the result.
 //
-// Takes ctx (context.Context) which controls cancellation and timeout.
 // Takes styleContent (string) which is the raw CSS content to process.
 // Takes styleStartLocation (ast_domain.Location) which marks where the style block starts
 // in the source file.
@@ -286,7 +278,6 @@ func (t *partialExpansionTask) processGlobalStyleBlock(ctx context.Context, styl
 
 // processScopedStyleBlock scopes CSS within a style block to the partial.
 //
-// Takes ctx (context.Context) which controls cancellation and timeout.
 // Takes styleContent (string) which is the raw CSS to process.
 // Takes styleStartLocation (ast_domain.Location) which marks where the style block begins
 // in the source.
@@ -345,8 +336,6 @@ func (t *partialExpansionTask) handleCSSDiagnostics(diagnostics []*ast_domain.Di
 }
 
 // expandBodies expands slot content and fills the partial template body.
-//
-// Takes ctx (context.Context) which controls cancellation and timeout.
 func (t *partialExpansionTask) expandBodies(ctx context.Context) {
 	if t.hasError {
 		return
@@ -376,8 +365,6 @@ func (t *partialExpansionTask) expandBodies(ctx context.Context) {
 
 // assembleFinalNodes checks slots, creates metadata, and converts the expanded partial
 // body into final template nodes.
-//
-// Takes ctx (context.Context) which controls cancellation and timeout.
 //
 // Returns []*ast_domain.TemplateNode which contains the processed nodes ready for
 // insertion.

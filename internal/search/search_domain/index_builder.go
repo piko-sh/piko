@@ -35,7 +35,7 @@ import (
 	"piko.sh/piko/internal/search/search_dto"
 	"piko.sh/piko/internal/search/search_schema"
 	search_fb "piko.sh/piko/internal/search/search_schema/search_schema_gen"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // IndexBuilder implements IndexBuilderPort to create search indexes from collection

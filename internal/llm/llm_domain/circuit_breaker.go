@@ -27,7 +27,7 @@ import (
 
 	"piko.sh/piko/internal/llm/llm_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (
@@ -150,8 +150,6 @@ func (p *circuitBreakerProvider) DefaultModel() string {
 // newCircuitBreakerProvider wraps a provider with circuit breakers for both Complete and
 // Stream operations.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation in circuit breaker callbacks.
 // Takes name (string) which identifies the provider in log messages.
 // Takes inner (LLMProviderPort) which is the provider to wrap.
 // Takes maxFailures (int) which sets the consecutive failure threshold.

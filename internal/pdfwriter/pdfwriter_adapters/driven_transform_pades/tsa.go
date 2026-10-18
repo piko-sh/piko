@@ -112,7 +112,6 @@ type pkiStatusInfo struct {
 // DER-encoded TimeStampToken (a CMS ContentInfo). The token proves that the given
 // signature existed at the time of timestamping.
 //
-// Takes ctx (context.Context) which carries cancellation and timeout.
 // Takes tsaURL (string) which is the TSA endpoint URL.
 // Takes signature ([]byte) which is the signature value to timestamp.
 //
@@ -166,8 +165,6 @@ func encodeTimestampRequest(signature []byte) ([]byte, error) {
 // The response body is capped at tsaMaxResponseSize, drained, and closed before
 // returning.
 //
-// Takes ctx (context.Context) which carries cancellation and timeout for the HTTP
-// request.
 // Takes tsaURL (string) which is the TSA endpoint URL to POST to.
 // Takes reqDER ([]byte) which is the DER-encoded TimeStampReq body.
 //

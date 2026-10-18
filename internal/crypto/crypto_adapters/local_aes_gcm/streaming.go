@@ -32,7 +32,7 @@ import (
 
 	"piko.sh/piko/internal/crypto/crypto_dto"
 	"piko.sh/piko/internal/json"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (

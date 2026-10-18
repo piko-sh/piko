@@ -24,7 +24,7 @@ import (
 	"hash/crc32"
 
 	"piko.sh/piko/internal/wal/wal_domain"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // DecodeRawEntries decodes a complete WAL file into raw entries without requiring typed
@@ -121,19 +121,20 @@ func DecodeRawEntry(crcAndPayload []byte) (wal_domain.RawEntry, error) {
 	expiresAt := safeconv.Uint64ToInt64(binary.BigEndian.Uint64(payload[offset:]))
 	offset += uint64Size
 
-	keyBytes, n, err := readRawLengthPrefixed(payload, offset, "key")
-	if err != nil {
-		return wal_domain.RawEntry{}, err
+	if operation == wal_domain.OpBatch {
+		return wal_domain.RawEntry{
+			Key:       nil,
+			Value:     payload[offset:],
+			Tags:      nil,
+			ExpiresAt: 0,
+			Timestamp: timestamp,
+			Operation: operation,
+			CRCValid:  storedCRC == computedCRC,
+			SizeBytes: 0,
+		}, nil
 	}
-	offset += n
 
-	valueBytes, n, err := readRawLengthPrefixed(payload, offset, "value")
-	if err != nil {
-		return wal_domain.RawEntry{}, err
-	}
-	offset += n
-
-	tags, err := decodeRawTags(payload, offset)
+	keyBytes, valueBytes, tags, err := decodeRawBody(payload, offset)
 	if err != nil {
 		return wal_domain.RawEntry{}, err
 	}
@@ -148,6 +149,36 @@ func DecodeRawEntry(crcAndPayload []byte) (wal_domain.RawEntry, error) {
 		CRCValid:  storedCRC == computedCRC,
 		SizeBytes: 0,
 	}, nil
+}
+
+// decodeRawBody decodes the key, value and tags that follow the fixed fields of a
+// non-batch entry.
+//
+// Takes payload ([]byte) which is the entry payload.
+// Takes offset (int) which is the position of the key length.
+//
+// Returns keyBytes ([]byte) which is the key (a sub-slice of the input).
+// Returns valueBytes ([]byte) which is the value (a sub-slice of the input).
+// Returns tags ([]string) which contains the decoded tags.
+// Returns error when the key, value or tags are malformed or truncated.
+func decodeRawBody(payload []byte, offset int) (keyBytes []byte, valueBytes []byte, tags []string, err error) {
+	keyBytes, n, err := readRawLengthPrefixed(payload, offset, "key")
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	offset += n
+
+	valueBytes, n, err = readRawLengthPrefixed(payload, offset, "value")
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	offset += n
+
+	tags, err = decodeRawTags(payload, offset)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return keyBytes, valueBytes, tags, nil
 }
 
 // readRawLengthPrefixed reads a uint32 length-prefixed byte slice.

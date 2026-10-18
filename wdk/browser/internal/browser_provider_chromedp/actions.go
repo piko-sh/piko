@@ -30,7 +30,7 @@ import (
 	"github.com/chromedp/chromedp"
 	"piko.sh/piko/wdk/browser/internal/browser_provider_chromedp/scripts"
 	"piko.sh/piko/wdk/json"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -135,7 +135,6 @@ func DoubleClick(ctx *ActionContext, selector string) error {
 // pollForClickableElement polls until the element identified by selector becomes
 // clickable or the context expires.
 //
-// Takes ctx (context.Context) which controls the polling deadline.
 // Takes selector (string) which identifies the target element.
 //
 // Returns clickablePosition which holds the centre coordinates of the element.

@@ -20,7 +20,6 @@
 
 package main
 
-// On Linux, MyConfig has a Path field.
 type MyConfig struct {
 	Path string
 }

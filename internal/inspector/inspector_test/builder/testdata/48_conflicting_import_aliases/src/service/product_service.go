@@ -18,10 +18,8 @@
 
 package service
 
-// This file, in the SAME package, imports 'models' with the alias 'db'.
 import db "testcase_48_conflicting_import_aliases/models"
 
 type ProductResponse struct {
-	// The TypeString for this field must be 'db.Product'.
 	Product db.Product
 }

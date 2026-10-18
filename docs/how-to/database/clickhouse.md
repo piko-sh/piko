@@ -41,7 +41,7 @@ func dbConfig() db.EngineConfig {
   `github.com/ClickHouse/clickhouse-go/v2` package).
 - The ClickHouse engine adapter (parser, type system, function
   catalogue).
-- `migration_sql.ClickHouseDialect()` for migration execution, which
+- `db.ClickHouseDialect()` for migration execution, which
   runs each statement separately (ClickHouse has no DDL transactions)
   and uses no-op locking (ClickHouse has no advisory locks).
 
@@ -162,10 +162,41 @@ columns as scalar projections in the result.
 `GROUP BY` accepts the standard `WITH ROLLUP`, `WITH CUBE`, and
 `WITH TOTALS` extensions.
 
+## Outer joins and `join_use_nulls`
+
+ClickHouse fills the unmatched side of a `LEFT`, `RIGHT` or `FULL`
+join according to the server's `join_use_nulls` setting. By default
+it is off, and an unmatched row carries each column type's default
+value (`0`, `''`) rather than NULL, so Piko generates a joined column
+as a pointer only when its type is `Nullable(T)`:
+
+```sql
+-- piko.query(ListAuthorsWithBooks, many)
+SELECT authors.name, books.title
+FROM authors LEFT JOIN books ON books.author_id = authors.id;
+```
+
+With the default, `Title` is a `string` and an author without books
+reads as an empty title. If your servers or settings profile turn
+`join_use_nulls` on, tell the engine, so the outer side's columns
+become pointers that can hold the NULLs the server then returns:
+
+```go
+config := db_engine_clickhouse.ClickHouse()
+config.Engine = db_engine_clickhouse.NewClickHouseEngine(
+    db_engine_clickhouse.WithJoinUseNulls(true),
+)
+```
+
+Earlier Piko releases generated every outer-joined column as a
+pointer whatever the setting. Under the default setting those
+pointers were never nil, so after upgrading only the field types
+change: code that dereferenced them reads the plain values instead.
+
 ## Migration semantics
 
 ClickHouse has no DDL transactions and no advisory locks. The Piko
-migration dialect (`migration_sql.ClickHouseDialect()`) handles both
+migration dialect (`db.ClickHouseDialect()`) handles both
 constraints:
 
 - **Per-statement execution.** Piko splits each migration's body on

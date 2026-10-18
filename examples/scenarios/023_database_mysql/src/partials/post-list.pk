@@ -52,13 +52,13 @@ type PostSummary struct {
     Title        string `json:"title"`
     Excerpt      string `json:"excerpt"`
     AuthorName   string `json:"author_name"`
-    CommentCount int32  `json:"comment_count"`
+    CommentCount int64  `json:"comment_count"`
 }
 
 // Response is the data available as state.* in the template.
 type Response struct {
     Posts     []PostSummary `json:"posts"`
-    PostCount int32         `json:"post_count"`
+    PostCount int64         `json:"post_count"`
 }
 
 // Render fetches published posts with comment counts from the database.

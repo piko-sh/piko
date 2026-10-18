@@ -1,3 +1,0 @@
-{
-  "description": "Subqueries in SELECT list (scalar) and FROM clause (derived table). Tests column resolution through subquery boundaries."
-}

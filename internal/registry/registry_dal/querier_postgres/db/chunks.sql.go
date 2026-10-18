@@ -138,11 +138,11 @@ type GetChunksForVariantsRow struct {
 }
 
 func (queries *Queries) GetChunksForVariants(ctx context.Context, params GetChunksForVariantsParams) ([]GetChunksForVariantsRow, error) {
-	query, expansionError := pikoExpandSlicePlaceholders(getchunksforvariants, []pikoSliceExpansionSpec{{Placeholder: 1, Count: 1}, {Placeholder: 2, Count: len(params.VariantIDs)}})
-	if expansionError != nil {
-		return nil, expansionError
+	if err := pikoCheckBinds(1 + len(params.VariantIDs)); err != nil {
+		return nil, err
 	}
-	args := make([]any, 0, len(params.VariantIDs)+1)
+	query := pikoSplice(getchunksforvariants, pikoList(pikoListMark{Empty: `= ANY('{}')`, Operator: 246, Start: 249, End: 253}, 2, len(params.VariantIDs)))
+	args := make([]any, 0, 1+len(params.VariantIDs))
 	args = append(args, params.ArtefactID)
 	for _, v := range params.VariantIDs {
 		args = append(args, v)

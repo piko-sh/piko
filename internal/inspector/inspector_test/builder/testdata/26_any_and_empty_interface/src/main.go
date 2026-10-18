@@ -18,7 +18,6 @@
 
 package main
 
-// Data is an alias to the built-in 'any'.
 type Data = any
 
 type Container struct {

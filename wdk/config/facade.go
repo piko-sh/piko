@@ -22,7 +22,7 @@ import (
 	"context"
 
 	"piko.sh/piko/internal/config/config_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // Loader handles loading configuration from multiple sources into a struct. It runs a

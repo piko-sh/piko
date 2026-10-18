@@ -118,6 +118,10 @@ type NATSProvider struct {
 	// subscriber handles message consumption from NATS using Watermill.
 	subscriber message.Subscriber
 
+	// broadcastSubscriber receives every topic message without a queue group or durable
+	// consumer.
+	broadcastSubscriber message.Subscriber
+
 	// logger provides logging for the router, publisher, and subscriber.
 	logger watermill.LoggerAdapter
 
@@ -227,11 +231,29 @@ func (p *NATSProvider) Publisher() message.Publisher {
 	return p.publisher
 }
 
+// NodeLocal reports whether messages stay within this process.
+//
+// Returns bool which is false because NATS delivers messages across processes.
+func (*NATSProvider) NodeLocal() bool {
+	return false
+}
+
 // Subscriber returns the Watermill Subscriber for subscribing to topics.
 //
 // Returns message.Subscriber which handles message consumption from NATS.
 func (p *NATSProvider) Subscriber() message.Subscriber {
 	return p.subscriber
+}
+
+// BroadcastSubscriber returns a subscriber that delivers every topic message to every
+// subscription across processes.
+//
+// Subscriptions are not durable, so messages published while a process is down are not
+// replayed.
+//
+// Returns message.Subscriber which delivers every message to every subscription.
+func (p *NATSProvider) BroadcastSubscriber() message.Subscriber {
+	return p.broadcastSubscriber
 }
 
 // Running reports whether the router has been started and is active.
@@ -282,6 +304,23 @@ func (p *NATSProvider) Close() error {
 		p.cancel(errors.New("NATS event provider closed"))
 	}
 
+	p.closeComponents(ctx)
+
+	duration := time.Since(startTime)
+	providerCloseDuration.Record(ctx, float64(duration.Milliseconds()))
+	providerCloseCount.Add(ctx, 1)
+
+	l.Internal("NATS provider closed",
+		logger.Int64("durationMs", duration.Milliseconds()))
+
+	return nil
+}
+
+// closeComponents closes the router, subscribers, publisher and connection in turn,
+// logging and counting each failure without stopping the shutdown.
+func (p *NATSProvider) closeComponents(ctx context.Context) {
+	_, l := logger.From(ctx, log)
+
 	if p.router != nil {
 		if err := p.router.Close(); err != nil {
 			l.Error("Error closing Watermill router", logger.Error(err))
@@ -296,6 +335,13 @@ func (p *NATSProvider) Close() error {
 		}
 	}
 
+	if p.broadcastSubscriber != nil {
+		if err := p.broadcastSubscriber.Close(); err != nil {
+			l.Error("Error closing NATS broadcast subscriber", logger.Error(err))
+			providerCloseErrorCount.Add(ctx, 1)
+		}
+	}
+
 	if p.publisher != nil {
 		if err := p.publisher.Close(); err != nil {
 			l.Error("Error closing NATS publisher", logger.Error(err))
@@ -306,15 +352,6 @@ func (p *NATSProvider) Close() error {
 	if p.conn != nil {
 		p.conn.Close()
 	}
-
-	duration := time.Since(startTime)
-	providerCloseDuration.Record(ctx, float64(duration.Milliseconds()))
-	providerCloseCount.Add(ctx, 1)
-
-	l.Internal("NATS provider closed",
-		logger.Int64("durationMs", duration.Milliseconds()))
-
-	return nil
 }
 
 // logStarting logs that the provider is starting with its settings.
@@ -374,6 +411,17 @@ func (p *NATSProvider) initialisePubSub(ctx context.Context) error {
 	}
 	p.subscriber = subscriber
 
+	broadcastSubscriber, err := p.createBroadcastSubscriber()
+	if err != nil {
+		_ = p.subscriber.Close()
+		_ = p.publisher.Close()
+		p.conn.Close()
+		l.Error("Failed to create NATS broadcast subscriber", logger.Error(err))
+		providerStartErrorCount.Add(ctx, 1)
+		return fmt.Errorf("creating NATS broadcast subscriber: %w", err)
+	}
+	p.broadcastSubscriber = broadcastSubscriber
+
 	return nil
 }
 
@@ -389,6 +437,7 @@ func (p *NATSProvider) initialiseRouter(ctx context.Context) error {
 
 	router, err := message.NewRouter(routerConfig, p.logger)
 	if err != nil {
+		_ = p.broadcastSubscriber.Close()
 		_ = p.subscriber.Close()
 		_ = p.publisher.Close()
 		p.conn.Close()
@@ -541,6 +590,34 @@ func (p *NATSProvider) createSubscriber() (message.Subscriber, error) {
 		}
 	}
 
+	return nats.NewSubscriber(subConfig, p.logger)
+}
+
+// createBroadcastSubscriber creates a NATS subscriber that joins no queue group and keeps
+// no durable consumer, so every subscription receives every message on its topic.
+//
+// Returns message.Subscriber which delivers every message to every subscription.
+// Returns error when the subscriber cannot be created.
+func (p *NATSProvider) createBroadcastSubscriber() (message.Subscriber, error) {
+	subConfig := nats.SubscriberConfig{
+		URL:              p.config.URL,
+		QueueGroupPrefix: "",
+		SubscribersCount: 1,
+		CloseTimeout:     p.config.CloseTimeout,
+		AckWaitTimeout:   p.config.AckWaitTimeout,
+		Unmarshaler:      &nats.NATSMarshaler{},
+		NatsOptions: []nc.Option{
+			nc.Name(p.config.ClusterID + "-broadcast-subscriber"),
+		},
+		JetStream: nats.JetStreamConfig{Disabled: true},
+	}
+	if !p.config.JetStream.Disabled {
+		subConfig.JetStream = nats.JetStreamConfig{
+			Disabled:      false,
+			AutoProvision: p.config.JetStream.AutoProvision,
+			AckAsync:      p.config.JetStream.AckAsync,
+		}
+	}
 	return nats.NewSubscriber(subConfig, p.logger)
 }
 

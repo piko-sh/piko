@@ -18,10 +18,8 @@
 
 package main
 
-// MyMap is a new named type definition based on a generic map.
 type MyMap[K comparable, V any] map[K]V
 
-// Get is a method on the new generic map type.
 func (m MyMap[K, V]) Get(key K) (V, bool) {
 	val, ok := m[key]
 	return val, ok

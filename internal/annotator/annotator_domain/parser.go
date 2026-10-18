@@ -36,6 +36,7 @@ import (
 
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/goimportname"
 	"piko.sh/piko/internal/i18n/i18n_domain"
 	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/sfcparser"
@@ -161,7 +162,6 @@ func ParsePK(ctx context.Context, data []byte, sourcePath string) (*annotator_dt
 // parseTemplateBlock handles only the parsing of the <template> block into the custom
 // AST.
 //
-// Takes ctx (context.Context) which carries the logger and trace spans.
 // Takes templateSource (string) which contains the raw template content.
 // Takes sourcePath (string) which identifies the file for error reporting.
 // Takes templateContentLocation (ast_domain.Location) which specifies the position of the
@@ -444,12 +444,8 @@ func newCollectionSourceNotFoundDiagnostic(alias string, templateLocation sfcpar
 	)
 }
 
-// resolveCollectionSourceAlias finds the full import path for a given alias. Resolves
-// p-collection-source attributes that reference Go imports for external markdown content.
-//
-// An explicitly named import matches only by its name. An unnamed import matches by its
-// assumed package name, derived from the last path element after skipping a trailing
-// `/vN` major-version element.
+// resolveCollectionSourceAlias finds an imported package by its explicit alias or assumed
+// package name.
 //
 // Takes alias (string) which is the import alias to look up.
 // Takes goImports ([]*goast.ImportSpec) which contains the parsed Go imports.
@@ -483,52 +479,13 @@ func resolveCollectionSourceAlias(alias string, goImports []*goast.ImportSpec) (
 // Takes imp (*goast.ImportSpec) which is the import to inspect.
 // Takes importPath (string) which is the unquoted import path.
 //
-// Returns string which is the explicit import name when present, otherwise the assumed
-// package name derived from the path.
+// Returns string which is the explicit import name when present, otherwise the package
+// name goimports assumes for the path.
 func importedPackageName(imp *goast.ImportSpec, importPath string) string {
 	if imp.Name != nil {
 		return imp.Name.Name
 	}
-	return assumedPackageName(importPath)
-}
-
-// assumedPackageName derives the conventional package name from the last import path
-// element, or the preceding element when the last is a `/vN` major-version suffix.
-//
-// Takes importPath (string) which is the unquoted import path.
-//
-// Returns string which is the assumed package name.
-func assumedPackageName(importPath string) string {
-	parent, last, found := strings.CutLast(importPath, "/")
-	if !found {
-		return importPath
-	}
-	if !isMajorVersionElement(last) {
-		return last
-	}
-	if _, previous, ok := strings.CutLast(parent, "/"); ok {
-		return previous
-	}
-	return parent
-}
-
-// isMajorVersionElement reports whether an import path element is a major-version suffix
-// such as v2 or v10.
-//
-// Takes element (string) which is a single import path element.
-//
-// Returns bool which is true when the element is "v" followed by one or more digits.
-func isMajorVersionElement(element string) bool {
-	digits, ok := strings.CutPrefix(element, "v")
-	if !ok || digits == "" {
-		return false
-	}
-	for _, character := range digits {
-		if character < '0' || character > '9' {
-			return false
-		}
-	}
-	return true
+	return goimportname.Assumed(importPath)
 }
 
 // createEmptyParsedScript creates a default ParsedScript for empty script blocks.

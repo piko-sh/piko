@@ -1,1 +1,0 @@
-CREATE TABLE placeholder (id INTEGER PRIMARY KEY);

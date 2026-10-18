@@ -26,7 +26,7 @@ import (
 	protocol "github.com/politepixels/golang-language-server"
 	"go.lsp.dev/uri"
 	"piko.sh/piko/internal/annotator/annotator_dto"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (

@@ -23,7 +23,7 @@
               "name": "Data",
               "type_string": "any",
               "raw_tag": "",
-              "definition_line": 45,
+              "definition_line": 40,
               "definition_column": 2,
               "is_underlying_primitive": true,
               "is_internal_type": true,
@@ -36,7 +36,7 @@
           "type_params": [],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 44,
+          "definition_line": 39,
           "definition_column": 6
         },
         "MyRuneReader": {
@@ -62,7 +62,7 @@
                   "error"
                 ]
               },
-              "definition_line": 39,
+              "definition_line": 35,
               "definition_column": 24,
               "is_pointer_receiver": true
             }
@@ -70,7 +70,7 @@
           "type_params": [],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 34,
+          "definition_line": 31,
           "definition_column": 6
         },
         "MyWriter": {
@@ -100,7 +100,7 @@
                   "error"
                 ]
               },
-              "definition_line": 29,
+              "definition_line": 27,
               "definition_column": 20,
               "is_pointer_receiver": true
             }
@@ -108,7 +108,7 @@
           "type_params": [],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 24,
+          "definition_line": 23,
           "definition_column": 6
         }
       },

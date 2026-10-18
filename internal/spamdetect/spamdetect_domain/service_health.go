@@ -66,7 +66,6 @@ func (s *spamDetectService) Check(ctx context.Context, checkType healthprobe_dto
 
 // checkLiveness returns a liveness probe status.
 //
-// Takes ctx (context.Context) which is the caller context.
 // Takes startTime (time.Time) which marks the check start.
 //
 // Returns healthprobe_dto.Status which describes the liveness state.
@@ -91,7 +90,6 @@ func (s *spamDetectService) checkLiveness(ctx context.Context, startTime time.Ti
 
 // checkReadiness returns a readiness probe status including per-detector health.
 //
-// Takes ctx (context.Context) which is the caller context.
 // Takes startTime (time.Time) which marks the check start.
 //
 // Returns healthprobe_dto.Status which describes the readiness state.
@@ -138,7 +136,6 @@ func (s *spamDetectService) checkReadiness(ctx context.Context, startTime time.T
 // per-detector probe runs in parallel under a healthCheckTimeout deadline so one slow
 // detector cannot stall the readiness response.
 //
-// Takes ctx (context.Context) which is the caller context.
 // Takes startTime (time.Time) which marks the check start.
 //
 // Returns []*healthprobe_dto.Status which contains per-detector health.
@@ -163,7 +160,6 @@ func (s *spamDetectService) buildDetectorDependencies(ctx context.Context, start
 // probeDetectorHealth resolves a single detector and runs its HealthCheck under a bounded
 // deadline.
 //
-// Takes ctx (context.Context) which is the caller context.
 // Takes name (string) which identifies the detector.
 // Takes startTime (time.Time) which marks the check start.
 //

@@ -26,7 +26,7 @@ import (
 	flatbuffers "github.com/google/flatbuffers/go"
 	"piko.sh/piko/internal/registry/registry_dto"
 	fbs "piko.sh/piko/internal/registry/registry_schema/registry_schema_gen"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (

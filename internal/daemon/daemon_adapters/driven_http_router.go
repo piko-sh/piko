@@ -281,8 +281,6 @@ func (rt *responseTracker) Unwrap() http.ResponseWriter {
 // onto the given Chi router. It applies caching and middleware based on the provided
 // settings.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes mountConfig (*MountRoutesConfig) which provides the router, dependencies,
 // manifest store, and middleware settings.
 func MountRoutesFromManifest(ctx context.Context, mountConfig *MountRoutesConfig) {
@@ -392,12 +390,9 @@ func NewNotFoundHandler(
 	})
 }
 
-// registerPageRoute registers routes for a page entry with all its locale variants.
+// registerPageRoute registers GET and POST routes with middleware for every locale
+// variant.
 //
-// For each locale the route pattern is translated for chi (see translateCatchAllForChi),
-// wrapped in middleware, and registered for both GET and POST.
-//
-// Takes ctx (context.Context) which carries the logger and trace context.
 // Takes regDeps (*routeRegistrationDeps) which provides the router and middleware
 // dependencies.
 // Takes entry (templater_domain.PageEntryView) which is the page to register.
@@ -422,7 +417,6 @@ func registerPageRoute(ctx context.Context, regDeps *routeRegistrationDeps, entr
 // catch-all into chi's native wildcard form, with the original parameter name aliased
 // back at request time.
 //
-// Takes ctx (context.Context) which carries the logger and trace context.
 // Takes regDeps (*routeRegistrationDeps) which provides the router and middleware
 // dependencies.
 // Takes entry (templater_domain.PageEntryView) which is the page being registered.
@@ -539,7 +533,6 @@ func translateCatchAllForChi(pattern string) (chiPattern string, aliasedName str
 
 // registerPartialRoute registers a route for a partial page entry.
 //
-// Takes ctx (context.Context) which carries the logger and trace context.
 // Takes regDeps (*routeRegistrationDeps) which provides the router and middleware needed
 // for route setup.
 // Takes entry (templater_domain.PageEntryView) which specifies the partial page entry to
@@ -777,7 +770,6 @@ func e2eGuardMiddleware(next http.Handler) http.Handler {
 // registerRoutesFromStore iterates through store entries and registers page and partial
 // routes.
 //
-// Takes ctx (context.Context) which carries the logger and trace context.
 // Takes regDeps (*routeRegistrationDeps) which provides dependencies for route
 // registration.
 // Takes store (ManifestStoreView) which contains the manifest entries to process.
@@ -863,7 +855,6 @@ func getMatchedPattern(request *http.Request) string {
 // as a special case and attempting to render a custom error page when the response has
 // not yet started.
 //
-// Takes ctx (context.Context) which carries the logger and trace context.
 // Takes w (http.ResponseWriter) which receives the error response.
 // Takes request (*http.Request) which holds the original client request.
 // Takes err (error) which is the rendering error to handle.
@@ -1025,7 +1016,6 @@ func releasePageDef(pageDef *templater_dto.PageDefinition) {
 // renderAndRespond renders the page and writes the HTTP response, returning the render
 // duration in milliseconds.
 //
-// Takes ctx (context.Context) which carries the logger and trace context.
 // Takes w (http.ResponseWriter) which receives the rendered output.
 // Takes request (*http.Request) which provides the original request.
 // Takes p (renderRespondParams) which groups the page definition, entry, store, config,
@@ -1075,7 +1065,6 @@ func renderAndRespond(
 
 // handlePageProbeError handles errors that occur when checking a page.
 //
-// Takes ctx (context.Context) which carries the logger and trace context.
 // Takes w (http.ResponseWriter) which receives the error response.
 // Takes request (*http.Request) which holds the original client request.
 // Takes err (error) which is the probe error to handle.
@@ -1114,7 +1103,6 @@ func handlePageProbeError(
 // validateRedirectStatusCode checks that the status code is a valid HTTP redirect code
 // and returns 302 if it is not.
 //
-// Takes ctx (context.Context) which carries the logger context.
 // Takes statusCode (int) which is the HTTP status code to check.
 //
 // Returns int which is the status code if valid, or 302 if not.
@@ -1137,7 +1125,6 @@ func validateRedirectStatusCode(ctx context.Context, statusCode int) int {
 // handleRedirect processes redirect metadata and sends an appropriate HTTP redirect
 // response.
 //
-// Takes ctx (context.Context) which carries the logger context.
 // Takes w (http.ResponseWriter) which receives the redirect response.
 // Takes meta (*templater_dto.InternalMetadata) which contains the redirect target URL and
 // status code.
@@ -1304,7 +1291,6 @@ func writePartialResponseHeaders(w http.ResponseWriter, request *http.Request, l
 // error, records it in the trace span, and sends an internal server error response to the
 // client.
 //
-// Takes ctx (context.Context) which carries the logger and trace context.
 // Takes w (http.ResponseWriter) which receives the error response.
 // Takes err (error) which is the error to handle.
 // Takes entry (templater_domain.PageEntryView) which provides the path for logging.
@@ -1325,7 +1311,6 @@ func handlePartialProbeError(
 
 // handlePartialRenderError logs and records an error from partial rendering.
 //
-// Takes ctx (context.Context) which carries the logger and trace context.
 // Takes err (error) which is the error that occurred during rendering.
 // Takes entry (templater_domain.PageEntryView) which provides page context for logging.
 // Takes span (trace.Span) which records the error for tracing.
@@ -1481,8 +1466,6 @@ func sendSpecificEarlyHints(w http.ResponseWriter, r *http.Request, headersToSen
 // isDevelopmentModeFromContext reads the DevelopmentMode flag from the PikoRequestCtx on
 // the context.
 //
-// Takes ctx (context.Context) which carries the request context.
-//
 // Returns bool which is true when the context carries a PikoRequestCtx with
 // DevelopmentMode enabled, or false if no carrier is present.
 func isDevelopmentModeFromContext(ctx context.Context) bool {
@@ -1519,7 +1502,8 @@ func extractErrorMessage(err error, developmentMode bool) string {
 // no custom error page is available. In production it returns false and the caller falls
 // through to the standard http.Error or http.NotFound response.
 //
-// Takes ctx (context.Context) which carries the developer-profile flag.
+// ctx carries the developer-profile flag.
+//
 // Takes w (http.ResponseWriter) which receives the HTML response.
 // Takes statusCode (int) which is the HTTP status code.
 // Takes message (string) which is the error detail to display.
@@ -1554,7 +1538,6 @@ func writeDevErrorFallback(ctx context.Context, w http.ResponseWriter, statusCod
 // request path. It looks up the error page in the manifest store and renders it with the
 // correct status code and error context.
 //
-// Takes ctx (context.Context) which carries the logger and trace context.
 // Takes w (http.ResponseWriter) which receives the rendered error page.
 // Takes request (*http.Request) which holds the original client request.
 // Takes pageCtx (pageErrorContext) which provides the manifest store, templater, and

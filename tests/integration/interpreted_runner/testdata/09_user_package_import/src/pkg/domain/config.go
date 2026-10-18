@@ -18,13 +18,11 @@
 
 package domain
 
-// SiteConfig holds site-wide configuration values.
 type SiteConfig struct {
 	SiteName string
 	Version  string
 }
 
-// GetDefaultConfig returns the default site configuration.
 func GetDefaultConfig() SiteConfig {
 	return SiteConfig{
 		SiteName: "Test Site",

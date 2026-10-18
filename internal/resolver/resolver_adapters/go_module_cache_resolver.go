@@ -370,6 +370,9 @@ func (gmcr *GoModuleCacheResolver) FindModuleBoundary(_ context.Context, importP
 // form), then falls back to the module cache layout
 // (".../pkg/mod/<module>@<version>/<subpath>").
 //
+// The deepest replace directory wins. When several modules are replaced by the same
+// directory the smallest module path wins, so the result does not depend on map order.
+//
 // Takes absPath (string) which is the absolute file path to locate.
 //
 // Returns modulePath (string) which is the owning Go module path.
@@ -386,7 +389,11 @@ func (gmcr *GoModuleCacheResolver) findModuleBoundaryForAbsPath(absPath string) 
 
 	bestModule, bestSubpath, bestDirLen := "", "", -1
 	for module, dir := range replaceDirs {
-		if rel, ok := pathutil.RelWithin(dir, cleaned); ok && len(dir) > bestDirLen {
+		rel, ok := pathutil.RelWithin(dir, cleaned)
+		if !ok {
+			continue
+		}
+		if len(dir) > bestDirLen || (len(dir) == bestDirLen && module < bestModule) {
 			bestModule, bestSubpath, bestDirLen = module, rel, len(dir)
 		}
 	}

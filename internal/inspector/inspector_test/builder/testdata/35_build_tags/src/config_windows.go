@@ -20,7 +20,6 @@
 
 package main
 
-// On Windows, MyConfig has a different field.
 type MyConfig struct {
 	RegistryKey string
 }

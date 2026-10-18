@@ -176,9 +176,10 @@ func main() {
         panic(err)
     }
 
-    executor := db.NewMigrationExecutor(database, db.SQLiteDialect())
-    fileReader := db.NewFSFileReader(taskdb.Migrations)
-    migrator := db.NewMigrationService(executor, fileReader, "migrations")
+    migrator, err := db.NewMigrator(db_engine_sqlite.SQLite(), database, taskdb.Migrations, "migrations")
+    if err != nil {
+        panic(err)
+    }
 
     if _, err := migrator.Up(context.Background()); err != nil {
         panic(err)
@@ -246,7 +247,7 @@ import (
 )
 
 type Task struct {
-    ID        int32  `json:"id"`
+    ID        int64  `json:"id"`
     Title     string `json:"title"`
     Completed bool   `json:"completed"`
 }
@@ -373,7 +374,7 @@ type CreateInput struct {
 }
 
 type CreateResponse struct {
-    ID    int32  `json:"id"`
+    ID    int64  `json:"id"`
     Title string `json:"title"`
 }
 
@@ -385,8 +386,8 @@ func (a CreateAction) Call(input CreateInput) (CreateResponse, error) {
 
     queries := generated.New(conn)
     row, err := queries.CreateTask(a.Ctx(), generated.CreateTaskParams{
-        P1: input.Title,
-        P2: int32(time.Now().Unix()),
+        Title:     input.Title,
+        CreatedAt: int32(time.Now().Unix()),
     })
     if err != nil {
         return CreateResponse{}, err
@@ -396,7 +397,7 @@ func (a CreateAction) Call(input CreateInput) (CreateResponse, error) {
 }
 ```
 
-`P1` and `P2` map to the two `?` placeholders in the SQL. For named-parameter engines and the generator's naming rules see [querier reference](../reference/querier.md).
+`Title` and `CreatedAt` are the two `?` placeholders in the SQL, each named after the column it is inserted into and typed from it: `id` is an `INTEGER PRIMARY KEY`, SQLite's 64-bit row id, so the generated row's `ID` is an `int64`, while `created_at` is a plain `INTEGER`, an `int32`. For the naming rules, named parameters and `piko.param` directives see [querier reference](../reference/querier.md).
 
 ## Step 9: Add toggle and delete
 
@@ -417,7 +418,7 @@ type ToggleAction struct {
 }
 
 type ToggleInput struct {
-    ID int32 `json:"id" validate:"required"`
+    ID int64 `json:"id" validate:"required"`
 }
 
 type ToggleResponse struct{}
@@ -454,7 +455,7 @@ type DeleteAction struct {
 }
 
 type DeleteInput struct {
-    ID int32 `json:"id" validate:"required"`
+    ID int64 `json:"id" validate:"required"`
 }
 
 type DeleteResponse struct{}

@@ -28,8 +28,6 @@ type ScanOutput struct {
 	Scanned string `json:"scanned"`
 }
 
-// ScanAction lives in a package called "reflect", which the generated registry also
-// imports from the standard library to pretouch JSON types.
 type ScanAction struct {
 	piko.ActionMetadata
 }

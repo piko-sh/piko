@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"piko.sh/goastutil"
+	"piko.sh/goastutil/goimports"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 )
 
@@ -162,7 +163,7 @@ func (e *ActionWrapperEmitter) EmitWrappers(_ context.Context, specs []annotator
 	}
 	naming.addPackageImports(fset, file)
 
-	return goastutil.FormatAST(fset, file)
+	return goimports.FormatAST(fset, file)
 }
 
 // checkSpecialTypeImports checks if any action spec uses FileUpload or RawBody types.

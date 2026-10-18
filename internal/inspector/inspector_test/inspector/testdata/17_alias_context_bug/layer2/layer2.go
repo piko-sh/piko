@@ -18,10 +18,8 @@
 
 package layer2
 
-// Layer2 also imports 'models' with its default name.
 import "testproject_alias_bug/models"
 
 type Layer2Data struct {
-	// The type of this field must be resolved within layer2's context.
 	User models.User
 }

@@ -299,7 +299,6 @@ func (ro *RenderOrchestrator) preloadAssetsAndComponentsForTags(
 // set. This is needed because CollectMetadata and RenderAST use separate render contexts,
 // so the bulk fetch from preloadAssetsAndComponentsForTags does not carry over.
 //
-// Takes ctx (context.Context) which provides the request context.
 // Takes customTags ([]string) which lists the component tags to fetch.
 // Takes rctx (*renderContext) which receives the fetched metadata.
 func (ro *RenderOrchestrator) ensureComponentMetadata(ctx context.Context, customTags []string, rctx *renderContext) {

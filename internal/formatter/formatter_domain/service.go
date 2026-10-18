@@ -263,7 +263,6 @@ func (*formatterServiceImpl) recordformatDuration(ctx context.Context, startTime
 
 // formatTemplateBlock formats the template block, returning the original on error.
 //
-// Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes template (string) which is the template content to format.
 // Takes opts (*FormatOptions) which specifies the formatting behaviour.
 //
@@ -285,7 +284,6 @@ func (s *formatterServiceImpl) formatTemplateBlock(ctx context.Context, template
 
 // formatScriptBlocks formats all script blocks in a slice.
 //
-// Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes scripts ([]sfcparser.Script) which contains the script blocks to format.
 //
 // Returns []sfcparser.Script which contains the formatted scripts. Go scripts are
@@ -317,7 +315,6 @@ func (s *formatterServiceImpl) formatScriptBlocks(ctx context.Context, scripts [
 
 // formatStyleBlocks formats all CSS style blocks using esbuild.
 //
-// Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes styles ([]sfcparser.Style) which contains the style blocks to format.
 // Takes opts (*FormatOptions) which holds the formatting settings.
 //
@@ -349,7 +346,6 @@ func (s *formatterServiceImpl) formatStyleBlocks(ctx context.Context, styles []s
 
 // formatI18nBlocks formats all i18n blocks (JSON format only).
 //
-// Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes i18nBlocks ([]sfcparser.I18nBlock) which contains the i18n blocks to format.
 //
 // Returns []sfcparser.I18nBlock which contains the formatted blocks, with original

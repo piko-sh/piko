@@ -349,7 +349,6 @@ func (a *GeneratorAdapter) validateAndGetStdlib() (*inspector_dto.TypeData, *was
 
 // createGeneratorService creates the generator service with in-memory ports.
 //
-// Takes ctx (context.Context) which provides the base context for the service.
 // Takes request (*wasm_dto.GenerateFromSourcesRequest) which contains the source files
 // and configuration for generation.
 // Takes moduleName (string) which specifies the Go module name for resolution.
@@ -457,23 +456,12 @@ func (*GeneratorAdapter) discoverEntryPoints(sources map[string]string, moduleNa
 	return entryPoints
 }
 
-// compileClientComponents walks sources for .pkc client-side components and runs each one
-// through the SFC compiler. This produces a class extending PPElement with a
-// customElements.define call so the browser can upgrade <pp-foo> elements in the page.
+// compileClientComponents compiles .pkc files into custom-element classes with the SFC
+// compiler.
 //
-// .pkc is deliberately not routed through pkJSEmitter.EmitJS. That path applies the
-// partial-style TransformPKSource (factory + _createPKContext wrapper) intended for
-// inline <script> blocks inside .pk pages and partials, not for client-side Web
-// Components. The disk pipeline keeps the two paths separate; the WASM adapter mirrors
-// that.
+// Component failures and missing generated JavaScript are reported as diagnostics.
+// Cancellation is checked between components.
 //
-// Per-component errors land in the returned Diagnostic slice; a well-formed component
-// that produces no JS surfaces a warning so a silently-broken playground preview is
-// impossible.
-//
-// Takes ctx (context.Context) which propagates through compilation; ctx cancellation is
-// checked between iterations so a long-running run can be cancelled by the WASM Promise's
-// deadline.
 // Takes sources (map[string]string) which contains every source file the playground sent.
 // Takes moduleName (string) which the SFC compiler uses to resolve "@/" alias paths in
 // component imports.
@@ -505,8 +493,7 @@ func (a *GeneratorAdapter) compileClientComponents(
 // output in the emitter. Returns the slice of diagnostics that should be appended to the
 // caller's collection (empty on a clean success).
 //
-// Takes ctx (context.Context) which threads through CompileSFC.
-// Takes sfcCompiler which compiles the SFC.
+// Takes sfcCompiler (compiler_domain.SFCCompiler) which compiles the SFC.
 // Takes sourcePath (string) which is the user-supplied source key.
 // Takes content (string) which is the user-supplied raw .pkc text.
 //

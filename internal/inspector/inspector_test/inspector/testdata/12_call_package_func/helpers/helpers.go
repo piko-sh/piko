@@ -18,7 +18,6 @@
 
 package helpers
 
-// Format is a simple package-level function.
 func Format(s string) string {
 	return "Formatted: " + s
 }

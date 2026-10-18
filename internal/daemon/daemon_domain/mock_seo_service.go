@@ -41,7 +41,6 @@ var (
 
 // GenerateArtefacts creates SEO artefacts for the given project view.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes view (*seo_dto.ProjectView) which is the project view to generate artefacts for.
 //
 // Returns error, or nil if GenerateArtefactsFunc is nil.

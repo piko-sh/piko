@@ -98,7 +98,9 @@ func TestPipeline_RecoveredStaleTaskIsDispatchedAgain(t *testing.T) {
 		withRecoverySweepInterval(30*time.Second),
 	)
 
-	staleSince := time.Now().Add(-time.Hour)
+	require.True(t, h.clock.AwaitTimerSetup(0, 5*time.Second),
+		"the recovery loop arms its ticker once the dispatcher's startup recovery has run")
+	staleSince := h.clock.Now().Add(-time.Hour)
 	require.NoError(t, h.taskStore.CreateTask(h.ctx, &orchestrator_domain.Task{
 		ID:               "stale-task",
 		WorkflowID:       "stale-workflow",
@@ -112,7 +114,6 @@ func TestPipeline_RecoveredStaleTaskIsDispatchedAgain(t *testing.T) {
 		ExecuteAt:        staleSince,
 	}))
 
-	require.True(t, h.clock.AwaitTimerSetup(0, 5*time.Second), "the recovery loop should arm its ticker")
 	assert.Equal(t, 0, exec.getCallCount(), "nothing runs before a recovery sweep")
 
 	h.clock.Advance(30 * time.Second)

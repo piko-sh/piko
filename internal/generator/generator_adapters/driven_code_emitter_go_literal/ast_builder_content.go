@@ -296,7 +296,7 @@ func buildRenderErrorHandler() goast.Stmt {
 							Fun:  &goast.SelectorExpr{X: cachedIdent(identRenderErr), Sel: cachedIdent("Error")},
 							Args: []goast.Expr{},
 						},
-						strLit("R001"),
+						strLit(generator_dto.CodeRenderError),
 						strLit(""),
 						strLit("Render() error"),
 						intLit(0),

@@ -1,3 +1,0 @@
-{
-  "description": "Array subscript expression: tags[1] resolves to the element type of the array column. Tests ArraySubscriptExpression type resolution through the mock engine."
-}

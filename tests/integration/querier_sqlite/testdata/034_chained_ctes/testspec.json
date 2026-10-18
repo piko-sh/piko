@@ -1,1 +1,0 @@
-{"description": "Multiple CTEs where CTE B references CTE A resolve columns across the chain"}

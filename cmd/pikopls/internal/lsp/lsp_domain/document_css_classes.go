@@ -23,7 +23,7 @@ import (
 
 	protocol "github.com/politepixels/golang-language-server"
 	"piko.sh/piko/internal/sfcparser"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // cssClassDefinition holds a CSS class name and its absolute position in the document.

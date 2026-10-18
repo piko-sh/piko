@@ -33,16 +33,9 @@ const (
 	docTimestampContentsSize = 16384
 )
 
-// appendDocumentTimestamp adds a PAdES document timestamp to the signed PDF as an
-// incremental update. The document timestamp is a second signature with /SubFilter
-// /ETSI.RFC3161 whose /Contents holds an RFC 3161 timestamp token covering the entire
-// document (including the original PAdES signature and DSS data).
+// appendDocumentTimestamp appends an RFC 3161 timestamp covering the signed PDF and its
+// DSS data as a PAdES incremental update.
 //
-// The incremental update appends new objects (signature dictionary, widget annotation,
-// updated catalog and page) plus a new xref section and trailer with /Prev pointing to
-// the original startxref.
-//
-// Takes ctx (context.Context) which carries cancellation and timeout.
 // Takes signedPDF ([]byte) which is the B-LT signed PDF.
 // Takes tsaURL (string) which is the TSA endpoint URL.
 //
@@ -102,7 +95,6 @@ func buildDocTimestampIncrement(signedPDF []byte) ([]byte, int, error) {
 // computes the byte-range digest, requests a timestamp token from the TSA, and embeds it
 // into the PDF.
 //
-// Takes ctx (context.Context) which carries cancellation and timeout.
 // Takes pdfBytes ([]byte) which is the serialised PDF with placeholder.
 // Takes tsSigObjNum (int) which is the timestamp signature dictionary object number.
 // Takes tsaURL (string) which is the TSA endpoint URL.

@@ -579,8 +579,6 @@ func (b *RequestDataBuilder) Release() {
 
 // WithContext sets the request context.
 //
-// Takes ctx (context.Context) which provides the request context.
-//
 // Returns *RequestDataBuilder which enables method chaining.
 func (b *RequestDataBuilder) WithContext(ctx context.Context) *RequestDataBuilder {
 	b.ctx = ctx

@@ -18,7 +18,6 @@
 
 package main
 
-// A top-level variadic function.
 func Sum(numbers ...int) int {
 	total := 0
 	for _, n := range numbers {
@@ -29,5 +28,4 @@ func Sum(numbers ...int) int {
 
 type Logger struct{}
 
-// A variadic method.
 func (l Logger) Printf(format string, arguments ...any) {}

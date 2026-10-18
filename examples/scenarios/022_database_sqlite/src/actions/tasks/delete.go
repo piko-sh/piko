@@ -20,7 +20,7 @@ type DeleteAction struct {
 
 // DeleteInput defines the data the action expects to receive.
 type DeleteInput struct {
-	ID int32 `json:"id" validate:"required"`
+	ID int64 `json:"id" validate:"required"`
 }
 
 // DeleteResponse is returned after a successful deletion. It is intentionally empty

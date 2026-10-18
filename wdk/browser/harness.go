@@ -29,7 +29,7 @@ import (
 	"time"
 
 	"piko.sh/piko/wdk/browser/internal/browser_provider_chromedp"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 var (

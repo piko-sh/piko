@@ -28,7 +28,7 @@ import (
 	"piko.sh/piko/internal/generator/generator_domain"
 	"piko.sh/piko/internal/generator/generator_dto"
 	"piko.sh/piko/internal/typegen/typegen_adapters"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -84,14 +84,8 @@ func NewActionGeneratorAdapter(opts ...ActionGeneratorOption) *ActionGeneratorAd
 	return a
 }
 
-// GenerateActions generates all action code artefacts from the manifest.
+// GenerateActions generates action registries, Go wrappers, and TypeScript client types.
 //
-// Converts the ActionManifest to ActionSpec format and generates:
-//   - dist/actions/registry.go - action name to handler mapping
-//   - dist/actions/wrappers.go - type-safe wrapper functions
-//   - dist/ts/actions.gen.ts - TypeScript client types
-//
-// Takes ctx (context.Context) for cancellation.
 // Takes manifest (*annotator_dto.ActionManifest) which contains the discovered actions
 // from the actions/ directory.
 // Takes outputDir (string) which is the project root directory for output.

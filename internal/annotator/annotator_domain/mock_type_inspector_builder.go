@@ -38,6 +38,10 @@ type MockTypeInspectorBuilder struct {
 	// GetQuerierFunc is the function called by GetQuerier.
 	GetQuerierFunc func() (TypeInspectorPort, bool)
 
+	// BuildAndGetQuerierFunc is the function called by BuildAndGetQuerier. When nil,
+	// BuildAndGetQuerier falls back to Build followed by GetQuerier.
+	BuildAndGetQuerierFunc func(ctx context.Context, sourceOverlay map[string][]byte, scriptHashes map[string]string) (TypeInspectorPort, error)
+
 	// SetConfigCallCount tracks how many times SetConfig was called.
 	SetConfigCallCount atomic.Int64
 
@@ -46,6 +50,9 @@ type MockTypeInspectorBuilder struct {
 
 	// GetQuerierCallCount tracks how many times GetQuerier was called.
 	GetQuerierCallCount atomic.Int64
+
+	// BuildAndGetQuerierCallCount tracks how many times BuildAndGetQuerier was called.
+	BuildAndGetQuerierCallCount atomic.Int64
 }
 
 var (
@@ -66,7 +73,6 @@ func (m *MockTypeInspectorBuilder) SetConfig(config inspector_dto.Config) {
 
 // Build delegates to BuildFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes sourceOverlay (map[string][]byte) which maps file paths to their overlay source
 // content.
 // Takes scriptHashes (map[string]string) which maps file paths to their content hashes.
@@ -89,4 +95,30 @@ func (m *MockTypeInspectorBuilder) GetQuerier() (TypeInspectorPort, bool) {
 		return m.GetQuerierFunc()
 	}
 	return &inspector_domain.MockTypeQuerier{}, true
+}
+
+// BuildAndGetQuerier delegates to BuildAndGetQuerierFunc if set, otherwise to Build
+// followed by GetQuerier, so doubles configured through BuildFunc and GetQuerierFunc keep
+// their behaviour.
+//
+// Takes sourceOverlay (map[string][]byte) which maps file paths to their overlay source
+// content.
+// Takes scriptHashes (map[string]string) which maps file paths to their content hashes.
+//
+// Returns TypeInspectorPort which is the querier for the build.
+// Returns error when the build fails, or inspector_domain.ErrQuerierUnavailable when
+// GetQuerier reports no querier.
+func (m *MockTypeInspectorBuilder) BuildAndGetQuerier(ctx context.Context, sourceOverlay map[string][]byte, scriptHashes map[string]string) (TypeInspectorPort, error) {
+	m.BuildAndGetQuerierCallCount.Add(1)
+	if m.BuildAndGetQuerierFunc != nil {
+		return m.BuildAndGetQuerierFunc(ctx, sourceOverlay, scriptHashes)
+	}
+	if err := m.Build(ctx, sourceOverlay, scriptHashes); err != nil {
+		return nil, err
+	}
+	querier, ok := m.GetQuerier()
+	if !ok {
+		return nil, inspector_domain.ErrQuerierUnavailable
+	}
+	return querier, nil
 }

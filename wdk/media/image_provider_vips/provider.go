@@ -297,7 +297,6 @@ func (p *Provider) Close() error {
 
 // decodeImage decodes the input stream into a vips.ImageRef, applying size limits.
 //
-// Takes ctx (context.Context) which provides the request-scoped logger.
 // Takes input (io.Reader) which provides the image data to decode.
 //
 // Returns *vips.ImageRef which is the decoded image ready for processing.

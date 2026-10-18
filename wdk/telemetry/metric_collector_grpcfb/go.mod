@@ -8,6 +8,7 @@ require (
 	google.golang.org/grpc v1.83.0
 	piko.sh/piko v0.0.0
 	piko.sh/piko/wdk/telemetry/telemetry_grpcfb v0.0.0
+	piko.sh/safeconv v0.1.0
 )
 
 require (

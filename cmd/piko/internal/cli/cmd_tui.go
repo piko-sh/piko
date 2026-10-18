@@ -28,9 +28,8 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// runTUICmd launches the interactive terminal UI.
+// runTUICmd runs the interactive terminal UI until ctx is cancelled.
 //
-// Takes ctx (context.Context) which controls the lifetime of the TUI session.
 // Takes cc (*CommandContext) which provides CLI options including the monitoring
 // endpoint.
 //

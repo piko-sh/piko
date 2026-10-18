@@ -40,7 +40,7 @@
                 }
               ],
               "composite_type": 3,
-              "definition_line": 38,
+              "definition_line": 32,
               "definition_column": 2,
               "is_internal_type": false,
               "is_embedded": false,
@@ -55,7 +55,7 @@
               "name": "LocalFakeUUID",
               "type_string": "localuuid.UUID",
               "raw_tag": "",
-              "definition_line": 41,
+              "definition_line": 34,
               "definition_column": 2,
               "is_internal_type": false,
               "is_embedded": false,
@@ -84,7 +84,7 @@
                 }
               ],
               "composite_type": 3,
-              "definition_line": 44,
+              "definition_line": 36,
               "definition_column": 2,
               "is_internal_type": false,
               "is_embedded": false,
@@ -113,7 +113,7 @@
                 }
               ],
               "composite_type": 3,
-              "definition_line": 47,
+              "definition_line": 38,
               "definition_column": 2,
               "is_internal_type": true,
               "is_embedded": false,
@@ -125,7 +125,7 @@
           "type_params": [],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 36,
+          "definition_line": 31,
           "definition_column": 6
         }
       },
@@ -154,7 +154,7 @@
               "name": "IsLocal",
               "type_string": "bool",
               "raw_tag": "",
-              "definition_line": 23,
+              "definition_line": 22,
               "definition_column": 2,
               "is_underlying_primitive": true,
               "is_internal_type": true,
@@ -166,7 +166,7 @@
           "type_params": [],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 22,
+          "definition_line": 21,
           "definition_column": 6
         }
       },

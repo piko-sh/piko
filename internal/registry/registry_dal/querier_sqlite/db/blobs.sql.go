@@ -10,8 +10,8 @@ import (
 
 const decrementblobrefcount = `UPDATE blob_reference
 SET ref_count = ref_count - 1,
-    last_referenced_at = ?
-WHERE storage_key = ?
+    last_referenced_at = ?1
+WHERE storage_key = ?2
   AND ref_count > 0
 RETURNING ref_count;`
 
@@ -35,14 +35,14 @@ func (queries *Queries) DecrementBlobRefCount(ctx context.Context, params Decrem
 	return row, true, nil
 }
 
-const deleteblobreferenceifzero = `DELETE FROM blob_reference WHERE storage_key = ? AND ref_count <= 0;`
+const deleteblobreferenceifzero = `DELETE FROM blob_reference WHERE storage_key = ?1 AND ref_count <= 0;`
 
 func (queries *Queries) DeleteBlobReferenceIfZero(ctx context.Context, storageKey string) error {
 	_, err := queries.writer.ExecContext(ctx, deleteblobreferenceifzero, storageKey)
 	return err
 }
 
-const getblobrefcount = `SELECT ref_count FROM blob_reference WHERE storage_key = ?;`
+const getblobrefcount = `SELECT ref_count FROM blob_reference WHERE storage_key = ?1;`
 
 type GetBlobRefCountRow struct {
 	RefCount int32 `json:"ref_count"`
@@ -61,7 +61,7 @@ func (queries *Queries) GetBlobRefCount(ctx context.Context, storageKey string) 
 }
 
 const incrementblobrefcount = `INSERT INTO blob_reference (storage_key, storage_backend_id, content_hash, size_bytes, mime_type, ref_count, created_at, last_referenced_at)
-VALUES (?, ?, ?, ?, ?, 1, ?, ?)
+VALUES (?1, ?2, ?3, ?4, ?5, 1, ?6, ?7)
 ON CONFLICT(storage_key) DO UPDATE SET
   ref_count = ref_count + 1,
   last_referenced_at = excluded.last_referenced_at

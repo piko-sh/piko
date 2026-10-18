@@ -41,7 +41,6 @@ var (
 
 // ProcessBuildResult handles the annotation result from a build operation.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes result (*annotator_dto.ProjectAnnotationResult) which is the build output to
 // process.
 //

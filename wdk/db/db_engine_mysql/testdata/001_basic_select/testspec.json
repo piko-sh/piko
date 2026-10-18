@@ -1,3 +1,0 @@
-{
-  "description": "Basic SELECT with MySQL types: INT AUTO_INCREMENT, VARCHAR, TEXT, DATETIME. Tests catalogue building, question-mark parameter inference, and column type resolution."
-}

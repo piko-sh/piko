@@ -26,7 +26,7 @@ import (
 	"path/filepath"
 
 	"google.golang.org/grpc/credentials"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (

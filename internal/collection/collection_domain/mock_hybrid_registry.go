@@ -71,8 +71,6 @@ var (
 
 // Register delegates to RegisterFunc if set.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes providerName (string) which identifies the provider by name.
 // Takes collectionName (string) which identifies the collection by name.
 // Takes blob ([]byte) which is the collection data blob.
@@ -89,8 +87,6 @@ func (m *MockHybridRegistry) Register(ctx context.Context, providerName, collect
 
 // GetBlob delegates to GetBlobFunc if set.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes providerName (string) which identifies the provider by name.
 // Takes collectionName (string) which identifies the collection by name.
 //
@@ -144,7 +140,6 @@ func (m *MockHybridRegistry) List() []string {
 
 // TriggerRevalidation delegates to TriggerRevalidationFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes providerName (string) which identifies the provider by name.
 // Takes collectionName (string) which identifies the collection by name.
 //

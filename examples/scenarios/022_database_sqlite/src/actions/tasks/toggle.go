@@ -20,7 +20,7 @@ type ToggleAction struct {
 
 // ToggleInput defines the data the action expects to receive.
 type ToggleInput struct {
-	ID int32 `json:"id" validate:"required"`
+	ID int64 `json:"id" validate:"required"`
 }
 
 // ToggleResponse is returned after a successful toggle. It is intentionally empty because

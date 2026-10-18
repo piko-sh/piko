@@ -21,6 +21,8 @@ package i18n_domain
 import (
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
 
 	"piko.sh/piko/internal/json"
 )
@@ -118,6 +120,10 @@ func FlattenTranslationsWithOptions(data map[string]any, prefix string, result m
 // Recursion stops when depth reaches opts.MaxDepth and entry insertion stops when result
 // would exceed opts.MaxKeyCount.
 //
+// Keys are walked in sorted order. A dotted key such as "a.b" and a nested key such as
+// {"a": {"b": ...}} flatten to the same entry, and the sorted walk makes the dotted key
+// win every time rather than whichever one map iteration reached last.
+//
 // Takes data (map[string]any) which contains the nested translation map to walk.
 // Takes prefix (string) which is the dot-notation key prefix accumulated by the caller.
 // Takes result (map[string]string) which collects the flattened entries.
@@ -132,7 +138,8 @@ func flattenWithLimits(data map[string]any, prefix string, result map[string]str
 		return fmt.Errorf("at depth %d (limit %d): %w", depth, opts.MaxDepth, ErrTranslationDepthExceeded)
 	}
 
-	for key, value := range data {
+	for _, key := range slices.Sorted(maps.Keys(data)) {
+		value := data[key]
 		newKey := key
 		if prefix != "" {
 			newKey = prefix + "." + key

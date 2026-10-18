@@ -1,3 +1,0 @@
-{
-  "description": "json_agg and jsonb_agg aggregate functions. Validates json and jsonb return types respectively."
-}

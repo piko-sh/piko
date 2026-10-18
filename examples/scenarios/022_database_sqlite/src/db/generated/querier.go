@@ -12,19 +12,39 @@ type DBTX interface {
 	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
+type dbtxWrapper interface {
+	WrapDBTX(inner any) any
+}
 type Queries struct {
-	reader DBTX
-	writer DBTX
+	reader  DBTX
+	writer  DBTX
+	wrapper dbtxWrapper
 }
 
 func New(db DBTX) *Queries {
-	return &Queries{reader: db, writer: db}
+	wrapper, _ := db.(dbtxWrapper)
+	return &Queries{reader: db, writer: db, wrapper: wrapper}
 }
 func NewWithReplica(writer DBTX, reader DBTX) *Queries {
-	return &Queries{reader: reader, writer: writer}
+	wrapper, _ := writer.(dbtxWrapper)
+	return &Queries{reader: reader, writer: writer, wrapper: wrapper}
 }
 func (queries *Queries) WithTx(transaction *sql.Tx) *Queries {
-	return &Queries{reader: transaction, writer: transaction}
+	if queries == nil {
+		return &Queries{reader: transaction, writer: transaction, wrapper: nil}
+	}
+	db := queries.wrapDBTX(transaction)
+	return &Queries{reader: db, writer: db, wrapper: queries.wrapper}
+}
+func (queries *Queries) wrapDBTX(db DBTX) DBTX {
+	if queries.wrapper == nil {
+		return db
+	}
+	wrapped, ok := queries.wrapper.WrapDBTX(db).(DBTX)
+	if !ok {
+		return db
+	}
+	return wrapped
 }
 func (queries *Queries) RunInTx(ctx context.Context, db *sql.DB, fn func(*Queries) error) error {
 	transaction, err := db.BeginTx(ctx, nil)

@@ -26,7 +26,7 @@ import (
 
 	"piko.sh/piko/wdk/cache"
 	"piko.sh/piko/wdk/logger"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // EstimatedSize returns the approximate number of keys in the Valkey database.
@@ -122,10 +122,8 @@ func (*ValkeyAdapter[K, V]) Close(ctx context.Context) error {
 // SetExpiresAfter updates the time-to-live for an existing key using the Valkey EXPIRE
 // command.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
 // Takes expiresAfter (time.Duration) which specifies the new time-to-live.
 //
@@ -209,8 +207,6 @@ func (a *ValkeyAdapter[K, V]) WeightedSize() uint64 {
 
 // SetRefreshableAfter is a no-op as Valkey does not natively support refresh scheduling.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
-//
 // Returns error which is always nil for this provider.
 func (*ValkeyAdapter[K, V]) SetRefreshableAfter(ctx context.Context, _ K, _ time.Duration) error {
 	_, l := logger.From(ctx, log)
@@ -223,7 +219,6 @@ func (*ValkeyAdapter[K, V]) SetRefreshableAfter(ctx context.Context, _ K, _ time
 // text queries because Valkey Search does not support TEXT fields and directing callers
 // to use Query() instead.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes query (string) which is the search query to match against TEXT fields.
 // Takes opts (*cache.SearchOptions) which contains filters, pagination, and sorting.
 //
@@ -253,7 +248,6 @@ func (a *ValkeyAdapter[K, V]) Search(ctx context.Context, query string, opts *ca
 // Query performs structured filtering, sorting, and pagination without full-text search.
 // Returns ErrSearchNotSupported if no SearchSchema was configured.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes opts (*cache.QueryOptions) which contains filters, pagination, and sorting.
 //
 // Returns SearchResult containing matching items and total count.

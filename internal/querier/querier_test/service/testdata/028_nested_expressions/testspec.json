@@ -1,3 +1,0 @@
-{
-  "description": "Nested expression resolution through 3+ levels: COALESCE wrapping binary_op wrapping column references."
-}

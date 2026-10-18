@@ -135,11 +135,11 @@ func newDistributedHarness(t *testing.T, nodeCount int, opts ...distributedOptio
 			RecoveryInterval:        0,
 			StaleTaskThreshold:      2 * time.Second,
 			HeartbeatInterval:       0,
-			SyncPersistence:         true,
 			WatermillHighHandlers:   2,
 			WatermillNormalHandlers: 2,
 			WatermillLowHandlers:    1,
 			Clock:                   clockpkg.RealClock(),
+			Transport:               orchestrator_domain.TransportBus,
 		},
 		executors: make(map[string]*controllableExecutor),
 	}
@@ -307,7 +307,7 @@ func TestDistributed_StaleTaskRecovery(t *testing.T) {
 		Config: orchestrator_domain.TaskConfig{
 			Priority: orchestrator_domain.PriorityNormal,
 		},
-		Attempt:   1,
+		Attempt:   2,
 		CreatedAt: time.Now().Add(-10 * time.Minute),
 		UpdatedAt: time.Now().Add(-10 * time.Minute),
 	}
@@ -334,7 +334,7 @@ func TestDistributed_StaleTaskRecovery(t *testing.T) {
 		if f.ID == "stale-task-fail" {
 			foundFail = true
 			assert.Equal(t, orchestrator_domain.StatusFailed, f.Status)
-			assert.Equal(t, 2, f.Attempt, "attempt should be incremented to maxRetries")
+			assert.Equal(t, 2, f.Attempt, "recovery keeps the attempt; the task had used its two attempts")
 			assert.Contains(t, f.LastError, "task recovered")
 		}
 	}

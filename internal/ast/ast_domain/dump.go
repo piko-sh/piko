@@ -40,16 +40,9 @@ const (
 	dumpIndentUnit = "  "
 )
 
-// DumpAST returns a text version of the AST for debugging.
+// DumpAST returns a debugging dump wrapped in a block comment with embedded comment
+// terminators escaped.
 //
-// The dump is wrapped in a block comment so it can sit at the top of a compiled script.
-// Every `*/` inside it, which template text, attributes and expressions may all hold, is
-// written as `*\/` so the comment cannot end early and leave the rest of the dump to run
-// as script.
-//
-// When tree is nil, returns a string showing the AST is nil.
-//
-// Takes ctx (context.Context) which carries the request-scoped logger.
 // Takes tree (*TemplateAST) which is the parsed template tree to format; it is not
 // changed.
 //
@@ -82,7 +75,6 @@ func SortAttributesByName(tree *TemplateAST) {
 
 // dumpNode writes a formatted view of a template node to the builder.
 //
-// Takes ctx (context.Context) which carries the request-scoped logger.
 // Takes builder (*strings.Builder) which receives the output.
 // Takes node (*TemplateNode) which is the node to format.
 // Takes indent (int) which sets the indentation level.
@@ -110,7 +102,6 @@ func dumpNode(ctx context.Context, builder *strings.Builder, node *TemplateNode,
 
 // dumpElementNode writes an element node to the builder in XML-like format.
 //
-// Takes ctx (context.Context) which carries the request-scoped logger.
 // Takes builder (*strings.Builder) which receives the formatted output.
 // Takes node (*TemplateNode) which is the element to format.
 // Takes indent (int) which sets the indentation level.
@@ -138,7 +129,6 @@ func dumpElementNode(ctx context.Context, builder *strings.Builder, node *Templa
 
 // dumpFragmentNode writes an XML-like view of a fragment node to the builder.
 //
-// Takes ctx (context.Context) which carries the request-scoped logger.
 // Takes builder (*strings.Builder) which receives the formatted output.
 // Takes node (*TemplateNode) which is the fragment node to format.
 // Takes indent (int) which sets the indentation level.

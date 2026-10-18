@@ -2,7 +2,7 @@
 
 package generated
 
-var queryNameMap = map[string]string{summarystats: "Summarystats", revenuebycategory: "Revenuebycategory", revenuebyregion: "Revenuebyregion", topproducts: "Topproducts", monthlysales: "Monthlysales"}
+var queryNameMap = map[string]string{monthlysales: "MonthlySales", revenuebycategory: "RevenueByCategory", revenuebyregion: "RevenueByRegion", summarystats: "SummaryStats", topproducts: "TopProducts"}
 
 func QueryNameResolver(query string) string {
 	return queryNameMap[query]

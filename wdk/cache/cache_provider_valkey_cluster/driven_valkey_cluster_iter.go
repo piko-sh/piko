@@ -29,7 +29,7 @@ import (
 	"github.com/valkey-io/valkey-go"
 	"piko.sh/piko/wdk/cache"
 	"piko.sh/piko/wdk/logger"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // buildScanPattern returns the SCAN pattern for the configured namespace.
@@ -84,7 +84,6 @@ func (*ValkeyClusterAdapter[K, V]) scanNodeKeys(ctx context.Context, nodeClient 
 // yieldScannedKeys decodes each scanned key string, retrieves its value, and yields the
 // key-value pair to the iterator consumer.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes keys ([]string) which contains the raw Valkey key strings to process.
 // Takes yield (func(K, V) bool) which is the iterator callback.
 //
@@ -165,10 +164,8 @@ func (a *ValkeyClusterAdapter[K, V]) Values() iter.Seq[V] {
 
 // GetEntry retrieves the full entry metadata for a key including TTL information.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to retrieve.
 //
 // Returns cache.Entry[K, V] which contains the entry metadata and value.
@@ -180,10 +177,8 @@ func (a *ValkeyClusterAdapter[K, V]) GetEntry(ctx context.Context, key K) (cache
 
 // ProbeEntry retrieves entry metadata without affecting access patterns or TTL.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to probe.
 //
 // Returns cache.Entry[K, V] which contains the entry metadata and value.
@@ -375,10 +370,8 @@ func (*ValkeyClusterAdapter[K, V]) Close(ctx context.Context) error {
 
 // SetExpiresAfter updates the time to live for an existing key using the EXPIRE command.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
 // Takes expiresAfter (time.Duration) which specifies the new time to live.
 //
@@ -475,8 +468,6 @@ func (a *ValkeyClusterAdapter[K, V]) WeightedSize() uint64 {
 
 // SetRefreshableAfter is a no-op as Valkey Cluster does not natively support refresh
 // scheduling.
-//
-// Takes ctx (context.Context) for cancellation and timeout.
 //
 // Returns error which is always nil as this is a no-op.
 func (*ValkeyClusterAdapter[K, V]) SetRefreshableAfter(ctx context.Context, _ K, _ time.Duration) error {

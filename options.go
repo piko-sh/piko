@@ -3148,6 +3148,16 @@ func WithAutoNextPort(enabled bool) Option {
 	return bootstrap.WithAutoNextPort(enabled)
 }
 
+// WithBindAddress sets the network address the main HTTP server binds to. Empty, the
+// default, binds every interface; 127.0.0.1 keeps a development server off the network.
+//
+// Takes address (string) which is the value to apply.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithBindAddress(address string) Option {
+	return bootstrap.WithBindAddress(address)
+}
+
 // WithEncryptionKey sets the base64-encoded 32-byte encryption key for the default local
 // AES-GCM crypto provider.
 //

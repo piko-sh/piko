@@ -25,7 +25,7 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // getDiskSpace returns available and total disk space in megabytes for the given path.

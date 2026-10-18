@@ -104,7 +104,6 @@ func (m *MockCSRFTokenService) Name() string {
 
 // Check performs a health check and returns the component status.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes checkType (healthprobe_dto.CheckType) which specifies the type of health check to
 // perform.
 //

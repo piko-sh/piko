@@ -16,8 +16,6 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// File: artefact_compiler_test.go (or wherever this setup function is located)
-
 package orchestrator_test
 
 import (
@@ -30,6 +28,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"piko.sh/piko/internal/capabilities/capabilities_dto"
 	"piko.sh/piko/internal/orchestrator/orchestrator_adapters"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
@@ -252,20 +251,19 @@ func BenchmarkCompilerExecutor_Execute(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-
 			taskID := fmt.Sprintf("task-%d", taskCounter.Add(1))
 			payload := map[string]any{
 				"artefactID":         "source-artefact",
 				"sourceVariantID":    "source-variant",
 				"desiredProfileName": "compiled",
-				"capabilityToRun":    "compile",
+				"capabilityToRun":    string(capabilities_dto.CapabilityCompileComponent),
 				"taskID":             taskID,
 				"capabilityParams":   map[string]string{},
 			}
 
-			_, err := executor.Execute(ctx, payload)
-			if err != nil {
-				b.Fatalf("Executor.Execute failed: %v", err)
+			if _, err := executor.Execute(ctx, payload); err != nil {
+				b.Errorf("Executor.Execute failed: %v", err)
+				return
 			}
 		}
 	})

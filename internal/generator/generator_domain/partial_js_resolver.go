@@ -102,8 +102,8 @@ func (r *partialJSDependencyResolver) collectDependencies(
 	}
 }
 
-// newPartialJSDependencyResolver creates a resolver from the given artefacts. It builds
-// internal lookup maps for efficient dependency resolution.
+// newPartialJSDependencyResolver indexes partial scripts, with the last artefact winning
+// even when it removes a script.
 //
 // Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains all generated
 // artefacts for the project.
@@ -132,6 +132,8 @@ func newPartialJSDependencyResolver(artefacts []*generator_dto.GeneratedArtefact
 
 		if vc.Source != nil && vc.Source.ComponentType == "partial" && artefact.JSArtefactID != "" {
 			resolver.partialJSLookup[hashedName] = artefact.JSArtefactID
+		} else {
+			delete(resolver.partialJSLookup, hashedName)
 		}
 	}
 

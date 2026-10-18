@@ -22,7 +22,7 @@ import (
 	"bytes"
 
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (

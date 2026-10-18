@@ -30,7 +30,7 @@ import (
 
 	"piko.sh/piko/internal/generator/generator_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -87,16 +87,38 @@ type DrivenEmbedEmitter struct {
 
 	// destination is a writable sandbox rooted at the project's dist directory.
 	destination safedisk.Sandbox
+
+	// snapshotSource, when set, supplies the registry snapshot in place of source.
+	snapshotSource safedisk.Sandbox
 }
 
 // NewDrivenEmbedEmitter creates an embed emitter over the given sandboxes.
 //
 // Takes source (safedisk.Sandbox) which is rooted at the project's .piko directory.
 // Takes destination (safedisk.Sandbox) which is rooted at the project's dist directory.
+// Takes opts (...EmbedEmitterOption) which configures the emitter.
 //
 // Returns *DrivenEmbedEmitter ready to emit.
-func NewDrivenEmbedEmitter(source, destination safedisk.Sandbox) *DrivenEmbedEmitter {
-	return &DrivenEmbedEmitter{source: source, destination: destination}
+func NewDrivenEmbedEmitter(source, destination safedisk.Sandbox, opts ...EmbedEmitterOption) *DrivenEmbedEmitter {
+	emitter := &DrivenEmbedEmitter{source: source, destination: destination, snapshotSource: nil}
+	for _, opt := range opts {
+		opt(emitter)
+	}
+	return emitter
+}
+
+// EmbedEmitterOption configures a DrivenEmbedEmitter.
+type EmbedEmitterOption func(*DrivenEmbedEmitter)
+
+// WithSnapshotSource selects the sandbox used to read registry snapshots.
+//
+// Takes source (safedisk.Sandbox) which holds wal/persistence/registry/snapshot.piko.
+//
+// Returns EmbedEmitterOption which applies the setting.
+func WithSnapshotSource(source safedisk.Sandbox) EmbedEmitterOption {
+	return func(e *DrivenEmbedEmitter) {
+		e.snapshotSource = source
+	}
 }
 
 // Emit rebuilds dist/embed/piko from the current .piko payload and writes
@@ -153,7 +175,11 @@ func (e *DrivenEmbedEmitter) writePayload(ctx context.Context) (int, error) {
 		return copied, newEmbedGoSourceError(goSources)
 	}
 
-	snapshotCopied, err := e.copyFileIfPresent(ctx, embedRegistrySnapshotPath)
+	snapshotSource := e.source
+	if e.snapshotSource != nil {
+		snapshotSource = e.snapshotSource
+	}
+	snapshotCopied, err := e.copyFileIfPresent(ctx, snapshotSource, embedRegistrySnapshotPath)
 	if err != nil {
 		return copied, err
 	}
@@ -226,7 +252,7 @@ func (e *DrivenEmbedEmitter) copyTree(ctx context.Context, tree string) (int, []
 			return nil
 		}
 
-		if copyErr := e.copyFile(ctx, entryPath); copyErr != nil {
+		if copyErr := e.copyFile(ctx, e.source, entryPath); copyErr != nil {
 			return copyErr
 		}
 		copied++
@@ -242,12 +268,13 @@ func (e *DrivenEmbedEmitter) copyTree(ctx context.Context, tree string) (int, []
 
 // copyFileIfPresent copies one file from the .piko root into the payload when it exists.
 //
+// Takes source (safedisk.Sandbox) which is the sandbox to read from.
 // Takes relativePath (string) which is the file's path relative to the .piko root.
 //
 // Returns bool which is true when the file existed and was copied.
 // Returns error when the copy fails for a reason other than absence.
-func (e *DrivenEmbedEmitter) copyFileIfPresent(ctx context.Context, relativePath string) (bool, error) {
-	if err := e.copyFile(ctx, relativePath); err != nil {
+func (e *DrivenEmbedEmitter) copyFileIfPresent(ctx context.Context, source safedisk.Sandbox, relativePath string) (bool, error) {
+	if err := e.copyFile(ctx, source, relativePath); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return false, nil
 		}
@@ -256,18 +283,15 @@ func (e *DrivenEmbedEmitter) copyFileIfPresent(ctx context.Context, relativePath
 	return true, nil
 }
 
-// copyFile streams one file from the source sandbox into the payload.
+// copyFile streams one file from the source sandbox into the payload at the same relative
+// path.
 //
-// The file is written at the same relative path, creating parent directories as needed.
-// The write-side close error is folded into the return so a flush failure at close (for
-// example ENOSPC) surfaces as a truncated blob rather than being discarded, and the copy
-// is cancellable through ctx.
-//
+// Takes source (safedisk.Sandbox) which is the sandbox to read from.
 // Takes relativePath (string) which is the file's path relative to the .piko root.
 //
 // Returns error when the read, directory creation, write, or close fails.
-func (e *DrivenEmbedEmitter) copyFile(ctx context.Context, relativePath string) (err error) {
-	sourceFile, err := e.source.Open(relativePath)
+func (e *DrivenEmbedEmitter) copyFile(ctx context.Context, source safedisk.Sandbox, relativePath string) (err error) {
+	sourceFile, err := source.Open(relativePath)
 	if err != nil {
 		return err
 	}

@@ -40,7 +40,7 @@
                   "T"
                 ]
               },
-              "definition_line": 39,
+              "definition_line": 33,
               "definition_column": 17,
               "is_pointer_receiver": false
             }
@@ -50,7 +50,7 @@
           ],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 34,
+          "definition_line": 29,
           "definition_column": 6
         },
         "Container": {
@@ -81,7 +81,7 @@
           ],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 29,
+          "definition_line": 25,
           "definition_column": 6
         },
         "Getter": {
@@ -105,7 +105,7 @@
                   "T"
                 ]
               },
-              "definition_line": 24,
+              "definition_line": 22,
               "definition_column": 2,
               "is_pointer_receiver": false
             }
@@ -115,7 +115,7 @@
           ],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 23,
+          "definition_line": 21,
           "definition_column": 6
         },
         "Report": {
@@ -172,7 +172,7 @@
                 }
               ],
               "composite_type": 7,
-              "definition_line": 49,
+              "definition_line": 38,
               "definition_column": 2,
               "is_internal_type": false,
               "is_embedded": false,
@@ -183,7 +183,7 @@
           "type_params": [],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 44,
+          "definition_line": 37,
           "definition_column": 6
         }
       },

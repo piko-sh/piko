@@ -35,7 +35,7 @@ import (
 	"piko.sh/piko/internal/search/search_dto"
 	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/internal/templater/templater_dto"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 	"reflect"
 	"unicode/utf8"
 )
@@ -1703,8 +1703,8 @@ func DefaultNavigationConfig() NavigationConfig {
 // BuildNavigationFromMetadata constructs hierarchical navigation from collection metadata
 // maps.
 //
-// Takes metadata maps (from GetAllCollectionItems) and builds navigation trees based on
-// the "Navigation" field in each item's metadata.
+// Navigation trees use the "Navigation" field in each metadata map returned by
+// GetAllCollectionItems.
 //
 // Takes metadataItems ([]map[string]any) which provides metadata maps from a collection.
 // Takes navigationConfig (NavigationConfig) which specifies navigation building options.

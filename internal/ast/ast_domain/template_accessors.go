@@ -62,8 +62,6 @@ const (
 // RawText returns the concatenated raw text content of a node and its descendants,
 // including the raw string of any expressions.
 //
-// Takes ctx (context.Context) which carries the request-scoped logger.
-//
 // Returns string which contains the trimmed raw text, or an empty string if the node is
 // nil.
 func (n *TemplateNode) RawText(ctx context.Context) string {
@@ -78,8 +76,6 @@ func (n *TemplateNode) RawText(ctx context.Context) string {
 
 // Text returns the concatenated user-visible text content of a node and its descendants,
 // excluding expressions, comments, and tags.
-//
-// Takes ctx (context.Context) which carries the request-scoped logger.
 //
 // Returns string which contains the trimmed text content, or an empty string if the node
 // is nil.

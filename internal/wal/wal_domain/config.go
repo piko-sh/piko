@@ -27,8 +27,11 @@ import (
 type SyncMode uint8
 
 const (
+	// SyncModeDefault selects DefaultSyncMode for an unset configuration.
+	SyncModeDefault SyncMode = iota
+
 	// SyncModeNone performs no explicit sync; the OS decides when to flush.
-	SyncModeNone SyncMode = iota
+	SyncModeNone
 
 	// SyncModeEveryWrite performs fsync after every write operation. This is the safest mode
 	// but also the slowest, so use it when data loss is unacceptable.
@@ -83,10 +86,13 @@ const (
 
 // String returns the string representation of the sync mode.
 //
-// Returns string which is the mode name such as "NONE", "EVERY_WRITE", or "BATCHED".
+// Returns string which is the mode name such as "DEFAULT", "NONE", "EVERY_WRITE", or
+// "BATCHED".
 // Returns "UNKNOWN" for undefined mode values.
 func (m SyncMode) String() string {
 	switch m {
+	case SyncModeDefault:
+		return "DEFAULT"
 	case SyncModeNone:
 		return "NONE"
 	case SyncModeEveryWrite:
@@ -172,7 +178,7 @@ func (c Config) Validate() error {
 //
 // Returns Config which is the configuration with defaults set for any unspecified fields.
 func (c Config) WithDefaults() Config {
-	if c.SyncMode == 0 {
+	if c.SyncMode == SyncModeDefault {
 		c.SyncMode = DefaultSyncMode
 	}
 	if c.BatchSyncInterval == 0 {

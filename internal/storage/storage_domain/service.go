@@ -39,7 +39,7 @@ import (
 	"piko.sh/piko/internal/storage/storage_dto"
 	"piko.sh/piko/wdk/clock"
 	"piko.sh/piko/wdk/goroutine"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -1001,8 +1001,6 @@ func (*service) aggregateProviderState(
 
 // NewService creates a new storage service with the given options.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes opts (...ServiceOption) which sets the service behaviour.
 //
 // Returns Service which is the storage service ready for use.

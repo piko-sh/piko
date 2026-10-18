@@ -1,5 +1,0 @@
-CREATE TABLE items (
-    id INTEGER PRIMARY KEY,
-    name VARCHAR NOT NULL,
-    price NUMERIC(10,2) NOT NULL
-);

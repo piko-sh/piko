@@ -5,7 +5,7 @@ package db
 import "context"
 
 const countchunksforvariant = `SELECT COUNT(*) FROM variant_chunk
-WHERE artefact_id = ? AND variant_id = ?;`
+WHERE artefact_id = ?1 AND variant_id = ?2;`
 
 type CountChunksForVariantParams struct {
 	ArtefactID string
@@ -25,7 +25,7 @@ func (queries *Queries) CountChunksForVariant(ctx context.Context, params CountC
 }
 
 const deletechunksforartefact = `DELETE FROM variant_chunk
-WHERE artefact_id = ? AND release_id = ?;`
+WHERE artefact_id = ?1 AND release_id = ?2;`
 
 type DeleteChunksForArtefactParams struct {
 	ArtefactID string
@@ -38,7 +38,7 @@ func (queries *Queries) DeleteChunksForArtefact(ctx context.Context, params Dele
 }
 
 const findartefactbychunkstoragekey = `SELECT DISTINCT artefact_id FROM variant_chunk
-WHERE storage_key = ? LIMIT 1;`
+WHERE storage_key = ?1 LIMIT 1;`
 
 type FindArtefactByChunkStorageKeyRow struct {
 	ArtefactID string `json:"artefact_id"`
@@ -64,7 +64,7 @@ const getchunksforvariant = `SELECT
   created_at,
   duration_seconds
 FROM variant_chunk
-WHERE artefact_id = ? AND variant_id = ?
+WHERE artefact_id = ?1 AND variant_id = ?2
 ORDER BY sequence_number ASC;`
 
 type GetChunksForVariantParams struct {
@@ -138,11 +138,11 @@ type GetChunksForVariantsRow struct {
 }
 
 func (queries *Queries) GetChunksForVariants(ctx context.Context, params GetChunksForVariantsParams) ([]GetChunksForVariantsRow, error) {
-	query, expansionError := pikoExpandSlicePlaceholders(getchunksforvariants, []pikoSliceExpansionSpec{{Placeholder: 1, Count: 1}, {Placeholder: 2, Count: len(params.VariantIDs)}})
-	if expansionError != nil {
-		return nil, expansionError
+	if err := pikoCheckBinds(1 + len(params.VariantIDs)); err != nil {
+		return nil, err
 	}
-	args := make([]any, 0, len(params.VariantIDs)+1)
+	query := pikoSplice(getchunksforvariants, pikoList(pikoListMark{Empty: `IN (SELECT NULL WHERE 0)`, Operator: 237, Start: 240, End: 244}, 2, len(params.VariantIDs)))
+	args := make([]any, 0, 1+len(params.VariantIDs))
 	args = append(args, params.ArtefactID)
 	for _, v := range params.VariantIDs {
 		args = append(args, v)
@@ -179,7 +179,7 @@ const insertvariantchunk = `INSERT INTO variant_chunk (
   mime_type,
   created_at,
   duration_seconds
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`
+) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12);`
 
 type InsertVariantChunkParams struct {
 	ArtefactID       string

@@ -29,7 +29,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/config"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 func TestFindGoModRoot(t *testing.T) {

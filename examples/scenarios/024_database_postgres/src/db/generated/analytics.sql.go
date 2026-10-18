@@ -2,7 +2,11 @@
 
 package generated
 
-import "context"
+import (
+	"context"
+
+	"piko.sh/piko/wdk/maths"
+)
 
 const getcategorysummary = `WITH category_totals AS (
   SELECT
@@ -22,10 +26,10 @@ FROM category_totals
 ORDER BY revenue DESC;`
 
 type GetCategorySummaryRow struct {
-	Category     string
-	Revenue      float64
-	OrderCount   int64
-	RunningTotal float64
+	Category     string         `json:"category"`
+	Revenue      *maths.Decimal `json:"revenue"`
+	OrderCount   int64          `json:"order_count"`
+	RunningTotal *maths.Decimal `json:"running_total"`
 }
 
 func (queries *Queries) GetCategorySummary(ctx context.Context) ([]GetCategorySummaryRow, error) {
@@ -38,6 +42,41 @@ func (queries *Queries) GetCategorySummary(ctx context.Context) ([]GetCategorySu
 	for rows.Next() {
 		var row GetCategorySummaryRow
 		if err := rows.Scan(&row.Category, &row.Revenue, &row.OrderCount, &row.RunningTotal); err != nil {
+			return nil, err
+		}
+		results = append(results, row)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return results, nil
+}
+
+const getdailyrevenue = `SELECT
+  (o.ordered_at / 86400) * 86400 as day_timestamp,
+  SUM(o.total) as revenue,
+  COUNT(*) as order_count
+FROM orders o
+GROUP BY (o.ordered_at / 86400)
+ORDER BY day_timestamp DESC
+LIMIT $1;`
+
+type GetDailyRevenueRow struct {
+	DayTimestamp int64          `json:"day_timestamp"`
+	Revenue      *maths.Decimal `json:"revenue"`
+	OrderCount   int64          `json:"order_count"`
+}
+
+func (queries *Queries) GetDailyRevenue(ctx context.Context, limit int) ([]GetDailyRevenueRow, error) {
+	rows, err := queries.reader.QueryContext(ctx, getdailyrevenue, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var results []GetDailyRevenueRow
+	for rows.Next() {
+		var row GetDailyRevenueRow
+		if err := rows.Scan(&row.DayTimestamp, &row.Revenue, &row.OrderCount); err != nil {
 			return nil, err
 		}
 		results = append(results, row)
@@ -61,15 +100,15 @@ ORDER BY revenue DESC
 LIMIT $1;`
 
 type GetTopProductsRow struct {
-	Name         string
-	Category     string
-	Revenue      float64
-	OrderCount   int64
-	CategoryRank int64
+	Name         string         `json:"name"`
+	Category     string         `json:"category"`
+	Revenue      *maths.Decimal `json:"revenue"`
+	OrderCount   int64          `json:"order_count"`
+	CategoryRank int64          `json:"category_rank"`
 }
 
-func (queries *Queries) GetTopProducts(ctx context.Context, p1 int32) ([]GetTopProductsRow, error) {
-	rows, err := queries.reader.QueryContext(ctx, gettopproducts, p1)
+func (queries *Queries) GetTopProducts(ctx context.Context, limit int) ([]GetTopProductsRow, error) {
+	rows, err := queries.reader.QueryContext(ctx, gettopproducts, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -78,41 +117,6 @@ func (queries *Queries) GetTopProducts(ctx context.Context, p1 int32) ([]GetTopP
 	for rows.Next() {
 		var row GetTopProductsRow
 		if err := rows.Scan(&row.Name, &row.Category, &row.Revenue, &row.OrderCount, &row.CategoryRank); err != nil {
-			return nil, err
-		}
-		results = append(results, row)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return results, nil
-}
-
-const getdailyrevenue = `SELECT
-  (o.ordered_at / 86400) * 86400 as day_timestamp,
-  SUM(o.total) as revenue,
-  COUNT(*) as order_count
-FROM orders o
-GROUP BY (o.ordered_at / 86400)
-ORDER BY day_timestamp DESC
-LIMIT $1;`
-
-type GetDailyRevenueRow struct {
-	DayTimestamp int64
-	Revenue      float64
-	OrderCount   int64
-}
-
-func (queries *Queries) GetDailyRevenue(ctx context.Context, p1 int32) ([]GetDailyRevenueRow, error) {
-	rows, err := queries.reader.QueryContext(ctx, getdailyrevenue, p1)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var results []GetDailyRevenueRow
-	for rows.Next() {
-		var row GetDailyRevenueRow
-		if err := rows.Scan(&row.DayTimestamp, &row.Revenue, &row.OrderCount); err != nil {
 			return nil, err
 		}
 		results = append(results, row)

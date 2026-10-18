@@ -8,14 +8,14 @@ import (
 	"errors"
 )
 
-const deleteartefact = `DELETE FROM artefact WHERE id = ? AND release_id = '';`
+const deleteartefact = `DELETE FROM artefact WHERE id = ?1 AND release_id = '';`
 
 func (queries *Queries) DeleteArtefact(ctx context.Context, id string) error {
 	_, err := queries.writer.ExecContext(ctx, deleteartefact, id)
 	return err
 }
 
-const deleteartefactlayer = `DELETE FROM artefact WHERE id = ? AND release_id = ?;`
+const deleteartefactlayer = `DELETE FROM artefact WHERE id = ?1 AND release_id = ?2;`
 
 type DeleteArtefactLayerParams struct {
 	ID        string
@@ -27,7 +27,7 @@ func (queries *Queries) DeleteArtefactLayer(ctx context.Context, params DeleteAr
 	return err
 }
 
-const deleteartefactlayersforrelease = `DELETE FROM artefact WHERE release_id = ?;`
+const deleteartefactlayersforrelease = `DELETE FROM artefact WHERE release_id = ?1;`
 
 func (queries *Queries) DeleteArtefactLayersForRelease(ctx context.Context, releaseID string) error {
 	_, err := queries.writer.ExecContext(ctx, deleteartefactlayersforrelease, releaseID)
@@ -36,7 +36,7 @@ func (queries *Queries) DeleteArtefactLayersForRelease(ctx context.Context, rele
 
 const getartefact = `SELECT release_id, source_path, created_at, updated_at, data_fbs
 FROM artefact
-WHERE id = ?
+WHERE id = ?1
 ORDER BY release_id;`
 
 type GetArtefactRow struct {
@@ -67,9 +67,10 @@ func (queries *Queries) GetArtefact(ctx context.Context, id string) ([]GetArtefa
 	return results, nil
 }
 
-const getartefactforupdate = `SELECT release_id, source_path, created_at, updated_at, data_fbs
+const getartefactforupdate = `-- GetArtefactForUpdate
+SELECT release_id, source_path, created_at, updated_at, data_fbs
 FROM artefact
-WHERE id = ?
+WHERE id = ?1
 ORDER BY release_id;`
 
 type GetArtefactForUpdateRow struct {
@@ -118,10 +119,10 @@ type GetMultipleArtefactsRow struct {
 }
 
 func (queries *Queries) GetMultipleArtefacts(ctx context.Context, params GetMultipleArtefactsParams) ([]GetMultipleArtefactsRow, error) {
-	query, expansionError := pikoExpandSlicePlaceholders(getmultipleartefacts, []pikoSliceExpansionSpec{{Placeholder: 1, Count: len(params.IDs)}})
-	if expansionError != nil {
-		return nil, expansionError
+	if err := pikoCheckBinds(len(params.IDs)); err != nil {
+		return nil, err
 	}
+	query := pikoSplice(getmultipleartefacts, pikoList(pikoListMark{Empty: `IN (SELECT NULL WHERE 0)`, Operator: 92, Start: 95, End: 99}, 1, len(params.IDs)))
 	args := make([]any, 0, len(params.IDs))
 	for _, v := range params.IDs {
 		args = append(args, v)
@@ -146,7 +147,7 @@ func (queries *Queries) GetMultipleArtefacts(ctx context.Context, params GetMult
 }
 
 const insertartefactlayerifabsent = `INSERT INTO artefact (id, release_id, source_path, created_at, updated_at, data_fbs)
-VALUES (?, ?, ?, ?, ?, ?)
+VALUES (?1, ?2, ?3, ?4, ?5, ?6)
 ON CONFLICT(id, release_id) DO NOTHING
 RETURNING id;`
 
@@ -187,12 +188,16 @@ func (queries *Queries) ListAllArtefactIDs(ctx context.Context) ([]ListAllArtefa
 	}
 	defer rows.Close()
 	var results []ListAllArtefactIDsRow
-	for rows.Next() {
+	if rows.Next() {
 		var row ListAllArtefactIDsRow
-		if err := rows.Scan(&row.ID); err != nil {
-			return nil, err
+		scanArgs := []any{&row.ID}
+		for more := true; more; more = rows.Next() {
+			row = ListAllArtefactIDsRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -201,7 +206,7 @@ func (queries *Queries) ListAllArtefactIDs(ctx context.Context) ([]ListAllArtefa
 }
 
 const reclaimartefactlayersforrelease = `DELETE FROM artefact
-WHERE release_id = ?
+WHERE release_id = ?1
 RETURNING id, release_id, data_fbs;`
 
 type ReclaimArtefactLayersForReleaseRow struct {
@@ -231,7 +236,7 @@ func (queries *Queries) ReclaimArtefactLayersForRelease(ctx context.Context, rel
 }
 
 const upsertartefact = `INSERT INTO artefact (id, release_id, source_path, created_at, updated_at, data_fbs)
-VALUES (?, ?, ?, ?, ?, ?)
+VALUES (?1, ?2, ?3, ?4, ?5, ?6)
 ON CONFLICT(id, release_id) DO UPDATE SET
   source_path = excluded.source_path,
   updated_at = excluded.updated_at,

@@ -56,7 +56,6 @@ type PdfTransformerPort interface {
 	// Transform applies this transformation to the provided PDF bytes and returns the
 	// modified PDF bytes.
 	//
-	// Takes ctx (context.Context) which carries cancellation and tracing.
 	// Takes pdf ([]byte) which is the input PDF document.
 	// Takes options (any) which is sourced from TransformConfig.TransformerOptions[Name()].
 	//

@@ -24,8 +24,6 @@ type ReadOutput struct {
 	Value string `json:"value"`
 }
 
-// ReadAction lives in a package called "context", which the generated files also import
-// from the standard library.
 type ReadAction struct {
 	piko.ActionMetadata
 }

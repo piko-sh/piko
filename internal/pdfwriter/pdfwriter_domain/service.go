@@ -171,7 +171,6 @@ func (s *pdfWriterService) NewRender() *RenderBuilder {
 
 // Render executes the full PDF pipeline for a single PDF template.
 //
-// Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes request (*http.Request) which provides the HTTP context for template rendering.
 // Takes templatePath (string) which is the path to the PDF template.
 // Takes props (any) which contains the data to pass to the template.

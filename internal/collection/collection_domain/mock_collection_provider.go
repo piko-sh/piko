@@ -113,7 +113,6 @@ func (m *MockCollectionProvider) Type() ProviderType {
 
 // DiscoverCollections delegates to DiscoverCollectionsFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes config (collection_dto.ProviderConfig) which provides the provider configuration.
 //
 // Returns (nil, nil) if DiscoverCollectionsFunc is nil.
@@ -140,7 +139,6 @@ func (m *MockCollectionProvider) ValidateTargetType(targetType ast.Expr) error {
 
 // FetchStaticContent delegates to FetchStaticContentFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes collectionName (string) which identifies the collection by name.
 // Takes source (collection_dto.ContentSource) which supplies the sandbox, base path, and
 // external module flag used to load content.
@@ -156,7 +154,6 @@ func (m *MockCollectionProvider) FetchStaticContent(ctx context.Context, collect
 
 // GenerateRuntimeFetcher delegates to GenerateRuntimeFetcherFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes collectionName (string) which identifies the collection by name.
 // Takes targetType (ast.Expr) which is the AST expression for the target type.
 // Takes options (collection_dto.FetchOptions) which provides fetch configuration options.
@@ -175,7 +172,6 @@ func (m *MockCollectionProvider) GenerateRuntimeFetcher(
 
 // ComputeETag delegates to ComputeETagFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes collectionName (string) which identifies the collection by name.
 // Takes source (collection_dto.ContentSource) which supplies the sandbox, base path, and
 // external module flag used to load content.
@@ -191,7 +187,6 @@ func (m *MockCollectionProvider) ComputeETag(ctx context.Context, collectionName
 
 // ValidateETag delegates to ValidateETagFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes collectionName (string) which identifies the collection by name.
 // Takes expectedETag (string) which is the ETag value to validate against.
 // Takes source (collection_dto.ContentSource) which supplies the sandbox, base path, and
@@ -208,7 +203,6 @@ func (m *MockCollectionProvider) ValidateETag(ctx context.Context, collectionNam
 
 // GenerateRevalidator delegates to GenerateRevalidatorFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes collectionName (string) which identifies the collection by name.
 // Takes targetType (ast.Expr) which is the AST expression for the target type.
 // Takes config (collection_dto.HybridConfig) which provides the hybrid revalidation

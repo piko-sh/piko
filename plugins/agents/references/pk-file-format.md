@@ -4,7 +4,7 @@ Use this guide when creating or modifying `.pk` files - pages, partials, or emai
 
 ## File structure
 
-A `.pk` file has up to four sections, all optional, in any order:
+A `.pk` file has these sections (plus an optional client `<script lang="ts">`), all optional, in any order:
 
 ```piko
 <template>
@@ -124,8 +124,8 @@ piko.Metadata{
 ### Optional functions
 
 ```go
-func Middlewares() []string {
-    return []string{"auth", "csrf"}
+func Middlewares() []func(http.Handler) http.Handler {
+    return []func(http.Handler) http.Handler{auth.RequireAuthenticated}
 }
 
 func CachePolicy() piko.CachePolicy {
@@ -159,11 +159,11 @@ func CachePolicy() piko.CachePolicy {
 |-------|------|---------|
 | `Enabled` | `bool` | Master switch - if `false`, response is never cached |
 | `Static` | `bool` | Enable full-page HTML caching. Only for pages that don't vary per user |
-| `MaxAgeSeconds` | `int` | Cache TTL in seconds. Also sets `Cache-Control: public, max-age=N` |
-| `Key` | `string` | Optional custom key combined with URL for cache key. Use for per-user caching or A/B testing |
-| `MustRevalidate` | `bool` | Adds `must-revalidate` to `Cache-Control` |
-| `NoStore` | `bool` | Prevents caching entirely. Adds `no-store` to `Cache-Control` |
-| `OnRender` | `bool` | Pre-render at build time with long TTL |
+| `MaxAgeSeconds` | `int` | Cache TTL in seconds. Also sets `Cache-Control: public, max-age=N` on cache hits |
+| `Key` | `string` | Optional fixed key combined with URL for cache key. Use for A/B variants or partitioning (not per-user) |
+| `MustRevalidate` | `bool` | Currently unused (no header is added) |
+| `NoStore` | `bool` | Bypasses all server-side caching. Does not send `Cache-Control: no-store` |
+| `OnRender` | `bool` | Currently unused |
 
 **How it works**:
 
@@ -191,7 +191,7 @@ func CachePolicy() piko.CachePolicy {
     return piko.CachePolicy{Enabled: false}
 }
 
-// Sensitive data - prevent all caching
+// Sensitive data - skip server-side caching
 func CachePolicy() piko.CachePolicy {
     return piko.CachePolicy{NoStore: true}
 }

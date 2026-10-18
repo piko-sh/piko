@@ -1,3 +1,0 @@
-{
-  "description": "Type promotion via COALESCE expression. Tests that COALESCE with columns of different types within the same category returns the promoted common supertype."
-}

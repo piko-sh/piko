@@ -13,7 +13,7 @@ Media services are optional. When no providers are registered, Piko components d
 | Provider | Package | Requirements | Production ready |
 |----------|---------|--------------|-----------------|
 | imaging | `image_provider_imaging` | None (pure Go) | Development only |
-| vips | `image_provider_vips` | libvips (CGO) | Yes |
+| vips | `image_provider_vips` | libvips (CGO), `vips` build tag | Yes |
 | mock | `image_provider_mock` | None | Testing |
 
 **Warning**: The pure Go imaging provider uses lossless WebP (VP8L) which consumes 100-500MB per image. Use vips for production.
@@ -132,7 +132,7 @@ thumbnail, err := provider.ExtractThumbnail(ctx, videoReader, spec)
 
 - Using the pure Go imaging provider in production (memory-intensive, lossless WebP only)
 - Forgetting `defer provider.Close()` for vips (leaks libvips resources)
-- Not adding `-tags ffmpeg` build tag for video processing
+- Not adding the `-tags vips` / `-tags ffmpeg` build tags for vips / video processing
 - Forgetting to install system dependencies (libvips-dev or FFmpeg)
 - Setting quality above 100 or below 1
 

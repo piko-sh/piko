@@ -1,3 +1,0 @@
-{
-  "description": "Same parameter compared to columns of different integer widths. Validates type widening to the broadest compatible type."
-}

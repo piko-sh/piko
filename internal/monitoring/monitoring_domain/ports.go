@@ -39,14 +39,10 @@ type MonitoringService interface {
 	// Start begins background collection and, when a transport is configured, the transport
 	// server. Blocks until the context is cancelled or an error occurs.
 	//
-	// Takes ctx (context.Context) for cancellation.
-	//
 	// Returns error if the transport fails to start.
 	Start(ctx context.Context) error
 
 	// Stop shuts down the monitoring subsystem in a controlled manner.
-	//
-	// Takes ctx (context.Context) for logging context propagation.
 	Stop(ctx context.Context)
 
 	// SpanProcessor returns the span processor for OTEL SDK setup.
@@ -343,14 +339,10 @@ type TransportServer interface {
 	// Start begins serving on the configured address. Blocks until the context is cancelled
 	// or an error occurs.
 	//
-	// Takes ctx (context.Context) for cancellation.
-	//
 	// Returns error when the server fails to start or encounters an error.
 	Start(ctx context.Context) error
 
 	// Stop shuts down the transport server gracefully.
-	//
-	// Takes ctx (context.Context) for logging context propagation.
 	Stop(ctx context.Context)
 
 	// Address returns the address the transport is listening on.
@@ -389,14 +381,10 @@ type TransportConfig struct {
 type SpanProcessor interface {
 	// Shutdown flushes remaining spans and releases resources.
 	//
-	// Takes ctx (context.Context) which controls the shutdown deadline.
-	//
 	// Returns error when the shutdown fails or the context expires.
 	Shutdown(ctx context.Context) error
 
 	// ForceFlush immediately exports all buffered span data.
-	//
-	// Takes ctx (context.Context) which controls the flush deadline.
 	//
 	// Returns error when the flush fails or the context expires.
 	ForceFlush(ctx context.Context) error
@@ -409,8 +397,6 @@ type SpanProcessor interface {
 // MetricReader via structural typing.
 type MetricReader interface {
 	// Shutdown flushes remaining metrics and releases resources.
-	//
-	// Takes ctx (context.Context) which controls the shutdown deadline.
 	//
 	// Returns error when the shutdown fails or the context expires.
 	Shutdown(ctx context.Context) error

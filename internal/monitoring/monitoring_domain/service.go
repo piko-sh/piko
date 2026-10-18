@@ -384,8 +384,6 @@ func (s *Service) Start(ctx context.Context) error {
 
 // Stop shuts down the monitoring service and releases its resources.
 //
-// Takes ctx (context.Context) for logging context propagation.
-//
 // Safe for concurrent use. Protected by a read lock on the service mutex.
 func (s *Service) Stop(ctx context.Context) {
 	_, l := logger_domain.From(ctx, log)

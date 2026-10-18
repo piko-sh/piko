@@ -435,7 +435,7 @@ func (ds *daemonService) tryStartOnPort(ctx context.Context, span trace.Span, ha
 	ctx, l := logger_domain.From(ctx, log)
 	for i := range maxPortRetries {
 		currentPort := initialPort + i
-		addr := net.JoinHostPort("", strconv.Itoa(currentPort))
+		addr := net.JoinHostPort(ds.daemonConfig.NetworkBindAddress, strconv.Itoa(currentPort))
 
 		if i > 0 {
 			l.Notice("HTTP server using alternative port",
@@ -491,6 +491,23 @@ func (ds *daemonService) handleServerListenResult(ctx context.Context, span trac
 	return fmt.Errorf("starting %s on %s: %w", labels.name, addr, listenErr)
 }
 
+// portHolderOf describes the process holding addr's port, for a port conflict message.
+//
+// Takes addr (string) which is the address that failed to bind.
+//
+// Returns string which describes the holder, or "" when it cannot be found.
+func portHolderOf(addr string) string {
+	_, portText, err := net.SplitHostPort(addr)
+	if err != nil {
+		return ""
+	}
+	port, err := strconv.Atoi(portText)
+	if err != nil {
+		return ""
+	}
+	return netutil.PortHolder(port)
+}
+
 // handleServerPortInUse handles the case when a server port is already in use.
 //
 // Takes span (trace.Span) which records tracing events and errors.
@@ -507,12 +524,20 @@ func (*daemonService) handleServerPortInUse(ctx context.Context, span trace.Span
 	labels := serverKindLabels[kind]
 
 	if !autoNextPort {
+		holder := portHolderOf(addr)
 		l.Error(labels.name+" port is already in use and AutoNextPort is disabled.",
 			logger_domain.String(keyAddress, addr),
+			logger_domain.String("holder", holder),
 			logger_domain.Error(listenErr))
 		span.RecordError(listenErr)
 		span.SetStatus(codes.Error, labels.portInUse)
-		return fmt.Errorf("%s port %s already in use: %w", labels.name, addr, listenErr)
+		heldBy := ""
+		if holder != "" {
+			heldBy = " by " + holder
+		}
+		return fmt.Errorf("%s port %s already in use%s; set PIKO_AUTO_PORT=true (--autoNextPort) "+
+			"to take the next free port, or PIKO_PORT to choose another: %w",
+			labels.name, addr, heldBy, listenErr)
 	}
 
 	l.Warn(labels.name+" port in use, trying next available port...",

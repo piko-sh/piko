@@ -18,10 +18,8 @@
 
 package main
 
-// The import path uses the directory structure.
 import "testcase_33_pkg_name_mismatch/api/v1"
 
 type Request struct {
-	// The qualifier uses the package's declared name.
 	APIResponse api.Response
 }

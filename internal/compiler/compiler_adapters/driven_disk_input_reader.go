@@ -26,7 +26,7 @@ import (
 
 	"piko.sh/piko/internal/compiler/compiler_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // diskInputReader reads SFC files from disk using a sandboxed filesystem. All file

@@ -1290,6 +1290,9 @@ func (ne *nodeEmitter) emitPHTMLDirective(nodeVar *goast.Ident, directive *ast_d
 // attribute_emitter.emitRefAttribute because p-ref is always a static string literal (per
 // validation) and emits as an HTML attribute.
 //
+// p-model is always emitted before p-scaffold so the generated code is identical between
+// runs.
+//
 // Takes nodeVar (*goast.Ident) which identifies the node variable to assign to.
 // Takes node (*ast_domain.TemplateNode) which provides the template node with directives.
 //
@@ -1299,12 +1302,16 @@ func (ne *nodeEmitter) emitPHTMLDirective(nodeVar *goast.Ident, directive *ast_d
 func (ne *nodeEmitter) emitMiscDirectives(nodeVar *goast.Ident, node *ast_domain.TemplateNode) ([]goast.Stmt, []*ast_domain.Diagnostic) {
 	statements := make([]goast.Stmt, 0, MiscDirectiveCapacity)
 	var allDiags []*ast_domain.Diagnostic
-	directives := map[string]*ast_domain.Directive{
-		fieldDirModel:    node.DirModel,
-		fieldDirScaffold: node.DirScaffold,
+	directives := []struct {
+		directive *ast_domain.Directive
+		fieldName string
+	}{
+		{directive: node.DirModel, fieldName: fieldDirModel},
+		{directive: node.DirScaffold, fieldName: fieldDirScaffold},
 	}
 
-	for fieldName, directive := range directives {
+	for _, entry := range directives {
+		directive, fieldName := entry.directive, entry.fieldName
 		if directive != nil && directive.Expression != nil {
 			value, prereqs, diagnostics := ne.expressionEmitter.emit(directive.Expression)
 			statements = append(statements, prereqs...)

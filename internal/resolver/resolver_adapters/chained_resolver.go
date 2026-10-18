@@ -303,7 +303,6 @@ func (cr *ChainedResolver) FindModuleBoundary(ctx context.Context, importPath st
 // tryResolvers tries each resolver in the chain and returns the result from the first one
 // that succeeds.
 //
-// Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes resourceType (string) which describes what is being resolved (e.g. "component",
 // "CSS", "asset").
 // Takes resourcePath (string) which is the path to resolve.

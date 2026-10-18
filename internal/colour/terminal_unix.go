@@ -22,7 +22,7 @@ package colour
 
 import (
 	"golang.org/x/sys/unix"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // isTerminal reports whether the given file descriptor refers to a terminal.

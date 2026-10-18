@@ -18,7 +18,7 @@
           "type_params": [],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 24,
+          "definition_line": 23,
           "definition_column": 6
         },
         "MyUUIDAlias": {
@@ -306,7 +306,7 @@
           "type_params": null,
           "stringability": 0,
           "is_alias": true,
-          "definition_line": 27,
+          "definition_line": 25,
           "definition_column": 6
         }
       },

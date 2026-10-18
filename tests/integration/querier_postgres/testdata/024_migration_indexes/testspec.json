@@ -1,3 +1,0 @@
-{
-  "description": "Multiple migrations: table, then regular + unique + partial indexes, then GIN index on JSONB"
-}

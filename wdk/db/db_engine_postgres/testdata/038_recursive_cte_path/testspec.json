@@ -1,3 +1,0 @@
-{
-  "description": "WITH RECURSIVE building a string path via concatenation. Validates recursive CTE with string expressions."
-}

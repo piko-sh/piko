@@ -18,13 +18,11 @@
 
 package main
 
-// Node demonstrates simple recursion.
 type Node struct {
 	Value string
 	Next  *Node
 }
 
-// A and B are mutually recursive types.
 type A struct {
 	B *B
 }

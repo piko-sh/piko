@@ -19,7 +19,6 @@
 package db_engine_timescaledb
 
 import (
-	"piko.sh/piko/internal/querier/querier_adapters/migration_sql"
 	"piko.sh/piko/wdk/db"
 )
 
@@ -35,7 +34,6 @@ func TimescaleDB() db.EngineConfig {
 	return db.EngineConfig{
 		DriverName:       "postgres",
 		Engine:           NewTimescaleDBEngine(),
-		MigrationDialect: migration_sql.PostgresDialect(),
-		CatalogueFactory: nil,
+		MigrationDialect: db.PostgresDialect(),
 	}
 }

@@ -18,7 +18,6 @@
 
 package models
 
-// Box has a method that uses the generic type parameter T.
 type Box[T any] struct {
 	value T
 }

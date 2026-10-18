@@ -135,6 +135,18 @@ func WithAutoNextPort(enabled bool) Option {
 	}
 }
 
+// WithBindAddress sets the network address the main HTTP server binds to. Empty, the
+// default, binds every interface; 127.0.0.1 keeps a development server off the network.
+//
+// Takes address (string) which is the address to bind to.
+//
+// Returns Option which applies the setting to the container.
+func WithBindAddress(address string) Option {
+	return func(c *Container) {
+		c.ensureOverrides().Network.BindAddress = &address
+	}
+}
+
 // WithEncryptionKey sets the base64-encoded 32-byte (256-bit) encryption key used by the
 // default local AES-GCM crypto provider. In production prefer loading this from a secret
 // manager rather than hard-coding.

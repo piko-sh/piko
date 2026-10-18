@@ -242,8 +242,7 @@ func (b *RequestBuilder) WithCollectionData(data any) *RequestBuilder {
 
 // Build constructs the final RequestData from the builder's configuration.
 //
-// Takes ctx (context.Context) which is the request context for cancellation, deadlines,
-// and injecting mock dependencies.
+// Mock dependencies can be injected through ctx values.
 //
 // Returns *templater_dto.RequestData which contains the fully configured request data
 // ready for use.
@@ -278,8 +277,7 @@ func (b *RequestBuilder) Build(ctx context.Context) *templater_dto.RequestData {
 // BuildHTTPRequest creates an actual *http.Request in addition to RequestData. Use it in
 // tests that need to simulate the full HTTP layer.
 //
-// Takes ctx (context.Context) which is the request context for cancellation, deadlines,
-// and injecting mock dependencies.
+// Mock dependencies can be injected through ctx values.
 //
 // Returns *http.Request which is the constructed HTTP request ready for use.
 // Returns *templater_dto.RequestData which contains the parsed request data.

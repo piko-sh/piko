@@ -225,6 +225,27 @@ func TestProcessNotification_CallsSEO_WhenResultPresent(t *testing.T) {
 	}
 }
 
+func TestProcessNotification_SkipsSEO_ForTargetedBuilds(t *testing.T) {
+	t.Parallel()
+
+	mockSEO := &MockSEOService{
+		GenerateArtefactsFunc: func(context.Context, *seo_dto.ProjectView) error {
+			return nil
+		},
+	}
+	service := &daemonService{seoService: mockSEO}
+
+	service.processNotification(context.Background(), &coordinator_domain.BuildNotification{
+		CausationID: "targeted:pages/about.pk",
+		Result:      &annotator_dto.ProjectAnnotationResult{},
+		Targeted:    true,
+	})
+	service.seoWg.Wait()
+
+	assert.Zero(t, mockSEO.GenerateArtefactsCallCount.Load(),
+		"a targeted result covers only the rebuilt components, so it must not regenerate the sitemap")
+}
+
 func TestProcessSEOArtefacts_CallsService_WhenPresent(t *testing.T) {
 	t.Parallel()
 

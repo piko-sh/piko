@@ -18,12 +18,10 @@
 
 package models
 
-// Base provides a common method.
 type Base struct {
 	ID int
 }
 
-// GetID is the method that should be promoted.
 func (b Base) GetID() int {
 	return b.ID
 }

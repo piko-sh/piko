@@ -44,7 +44,7 @@ Do:
 - Use `:` prefix for dynamic attributes: `:href="state.URL"`
 - Use plain text for static attributes: `class="container"`
 - Directives (`p-if`, `p-for`, `p-on`, etc.) are expressions by default - no `:` prefix
-- `p-ref` and `p-slot` are exceptions - they accept plain text
+- `p-ref`, `p-slot` and `p-timeline` are exceptions - they accept plain text
 - Use `==` for strict equality, `~=` for loose (not `===`)
 - Use `~state.Var` to coerce non-booleans in conditions (`p-if="~state.Name"`)
 - Use `p-key` with a unique identifier in every `p-for`
@@ -58,7 +58,7 @@ Don't:
 - Access properties on `$event` / `$form` in **PK** template expressions - rejected by server-side analyser. Pass to a function and access there. PKC client templates **do** accept `$event.X`
 - Use `{{ }}` for raw HTML - use `p-html`
 - Treat `:prop="..."` as wrong - both `:prop` (bare) and `:server.prop` are accepted; `:server.prop` errors at compile time on wrong prop name
-- Use `:class` / `:style` to combine static and dynamic - `:class` **replaces**. Use `p-class` / `p-style` which **merge** (e.g. `class="x" p-class="'y'"` → `class="x y"`)
+- Use `:class` / `:style` in PKC to combine static and dynamic - there `:class` **replaces** (in PK it merges). Use `p-class` / `p-style` which **merge** (e.g. `class="x" p-class="'y'"` → `class="x y"`)
 - Use `===` (doesn't exist - `==` strict, `~=` loose)
 - Use a non-bool directly in `p-if` without `~`
 

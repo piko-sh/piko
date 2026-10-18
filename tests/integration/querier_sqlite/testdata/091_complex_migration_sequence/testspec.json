@@ -1,3 +1,0 @@
-{
-  "description": "Complex migration sequence: 5 sequential migrations with ALTER TABLE, indexes, foreign keys, and views"
-}

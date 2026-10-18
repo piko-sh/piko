@@ -87,7 +87,7 @@ resp, err := svc.NewCompletion().
     Tool("get_weather", "Get weather for a city", &llm.JSONSchema{
         Type: "object",
         Properties: map[string]*llm.JSONSchema{
-            "city": new(llm.StringSchema()),
+            "city": {Type: "string"},
         },
         Required: []string{"city"},
     }).
@@ -129,13 +129,14 @@ resp, err := svc.NewCompletion().
 resp, err := svc.NewCompletion().
     Model("gpt-4o").
     User("Extract entities from: 'John works at Acme'").
-    StructuredResponse("entities", llm.ObjectSchema(
-        map[string]*llm.JSONSchema{
-            "people":    new(llm.ArraySchema(llm.StringSchema())),
-            "companies": new(llm.ArraySchema(llm.StringSchema())),
+    StructuredResponse("entities", llm.JSONSchema{
+        Type: "object",
+        Properties: map[string]*llm.JSONSchema{
+            "people":    {Type: "array", Items: &llm.JSONSchema{Type: "string"}},
+            "companies": {Type: "array", Items: &llm.JSONSchema{Type: "string"}},
         },
-        []string{"people", "companies"},
-    )).
+        Required: []string{"people", "companies"},
+    }).
     Do(ctx)
 ```
 
@@ -213,20 +214,20 @@ resp, err := svc.NewCompletion().
 
 ```go
 // Ingest from directory
-err := svc.NewIngest("knowledge-base").
+splitter, err := llm.NewRecursiveCharacterSplitter(1000, 200)
+err = svc.NewIngest("knowledge-base").
     FromDirectory("./docs", "**/*.md").
     Transform(llm.StripFrontmatter()).
-    Splitter(llm.NewRecursiveCharacterSplitter(1000, 200)).
+    Splitter(splitter).
     Do(ctx)
 
 // Add individual documents
-err := svc.AddText(ctx, "knowledge-base", "faq-1", "How do I install Piko?")
+err = svc.AddText(ctx, "knowledge-base", "faq-1", "How do I install Piko?")
 ```
 
 ## LLM mistake checklist
 
-- Forgetting to set `MaxTokens` for Anthropic (required, unlike OpenAI)
-- Not closing the service on shutdown (`svc.Close(ctx)`)
+- Calling `svc.Close(ctx)` on the default service (Piko closes it on shutdown)
 - Using `Do(ctx)` without a context timeout in production
 - Forgetting to register an embedding provider for RAG (Anthropic and Grok have no embeddings; the others do)
 - Not setting a budget scope (can lead to unexpected costs)

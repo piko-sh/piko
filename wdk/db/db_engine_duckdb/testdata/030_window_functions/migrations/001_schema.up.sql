@@ -1,6 +1,0 @@
-CREATE TABLE scores (
-    id INTEGER PRIMARY KEY,
-    player VARCHAR NOT NULL,
-    game VARCHAR NOT NULL,
-    points INTEGER NOT NULL
-);

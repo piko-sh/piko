@@ -1,3 +1,0 @@
-{
-  "description": "Math operators with parameters: arithmetic expressions involving parameters should infer correct numeric types from the column context."
-}

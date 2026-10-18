@@ -1,3 +1,0 @@
-{
-  "description": "Full directive parsing with all parameter kinds: piko.param, piko.optional, piko.limit, piko.offset. Tests that parameter names, types, nullability, and flags are correctly resolved."
-}

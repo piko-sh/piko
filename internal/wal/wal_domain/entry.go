@@ -30,11 +30,14 @@ const (
 
 	// OpClear represents a clear-all operation.
 	OpClear
+
+	// OpBatch stores a transaction's entries as one record that readers apply in order.
+	OpBatch
 )
 
 // String returns the string representation of the operation.
 //
-// Returns string which is the operation name (SET, DELETE, CLEAR, or UNKNOWN).
+// Returns string which is the operation name (SET, DELETE, CLEAR, BATCH, or UNKNOWN).
 func (o Operation) String() string {
 	switch o {
 	case OpSet:
@@ -43,6 +46,8 @@ func (o Operation) String() string {
 		return "DELETE"
 	case OpClear:
 		return "CLEAR"
+	case OpBatch:
+		return "BATCH"
 	default:
 		return "UNKNOWN"
 	}
@@ -52,7 +57,7 @@ func (o Operation) String() string {
 //
 // Returns bool which is true when the operation is within the valid range.
 func (o Operation) IsValid() bool {
-	return o >= OpSet && o <= OpClear
+	return o >= OpSet && o <= OpBatch
 }
 
 // Entry represents a single WAL entry for recovery. Generic over key (K) and value (V)
@@ -68,6 +73,10 @@ type Entry[K comparable, V any] struct {
 	// Tags are the cache tags associated with this entry. Only meaningful for OpSet.
 	Tags []string
 
+	// Batch holds the grouped entries of an OpBatch record, in the order they apply. Each is
+	// a Set, Delete or Clear; batches never nest.
+	Batch []Entry[K, V]
+
 	// ExpiresAt is the Unix nanosecond timestamp when this entry expires. Zero means no
 	// expiration.
 	ExpiresAt int64
@@ -75,7 +84,7 @@ type Entry[K comparable, V any] struct {
 	// Timestamp is the Unix nanosecond timestamp when this operation occurred.
 	Timestamp int64
 
-	// Operation is the type of operation (Set, Delete, Clear).
+	// Operation is the type of operation (Set, Delete, Clear, Batch).
 	Operation Operation
 }
 

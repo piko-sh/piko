@@ -20,7 +20,6 @@ package main
 
 import "github.com/google/uuid"
 
-// MyUUID is an alias, not a new type.
 type MyUUID = uuid.UUID
 
 type Object struct {

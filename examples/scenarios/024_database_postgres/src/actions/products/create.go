@@ -5,6 +5,7 @@ import (
 
 	"piko.sh/piko"
 	"piko.sh/piko/wdk/db"
+	"piko.sh/piko/wdk/maths"
 
 	"testmodule/db/generated"
 )
@@ -45,10 +46,10 @@ func (a CreateAction) Call(input CreateInput) (CreateResponse, error) {
 
 	queries := generated.New(conn)
 	row, err := queries.CreateProduct(a.Ctx(), generated.CreateProductParams{
-		P1: input.Name,
-		P2: input.Category,
-		P3: input.Price,
-		P4: time.Now().Unix(),
+		Name:      input.Name,
+		Category:  input.Category,
+		Price:     maths.NewDecimalFromFloat(input.Price),
+		CreatedAt: time.Now().Unix(),
 	})
 	if err != nil {
 		return CreateResponse{}, err

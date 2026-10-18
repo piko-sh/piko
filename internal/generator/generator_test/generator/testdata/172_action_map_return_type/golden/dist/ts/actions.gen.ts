@@ -6,10 +6,6 @@ export interface FetchInput {
   period: string;
 }
 
-/**
- * FetchAction returns a bare Go map, which has no name a TypeScript interface could be
- * declared under and has to be spelled out at each use site instead.
- */
 export function reportFetch(input: FetchInput): ActionBuilder<Record<string, unknown>> {
   return createActionBuilder<Record<string, unknown>>('report.Fetch', input);
 }

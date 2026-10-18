@@ -16,7 +16,6 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Directory is 'v1', but package is 'api'.
 package api
 
 type Response struct{}

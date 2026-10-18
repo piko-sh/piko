@@ -21,6 +21,5 @@ package main
 import . "testproject_edgecases/utils"
 
 type Response struct {
-	// Because of the dot import, `Helper` is in the local scope.
 	Helper Helper
 }

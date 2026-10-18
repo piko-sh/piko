@@ -28,8 +28,8 @@ import (
 // getDocumentForURIHandler retrieves the document for an LSP handler that operates on a
 // URI without a cursor position.
 //
-// Takes ctx (context.Context) which carries tracing values; cancellation is detached so
-// analysis completes independently.
+// Cancellation of ctx is detached, so the analysis completes independently.
+//
 // Takes handlerName (string) which identifies the LSP operation for logging.
 // Takes uri (protocol.DocumentURI) which specifies the document to analyse.
 //
@@ -48,11 +48,9 @@ func (s *Server) getDocumentForURIHandler(ctx context.Context, handlerName strin
 	return document
 }
 
-// getDocumentForHandler retrieves the document for an LSP handler operation. It logs the
-// operation, runs analysis, and returns the document.
+// getDocumentForHandler retrieves and analyses a document independently of request
+// cancellation.
 //
-// Takes ctx (context.Context) which carries tracing values; cancellation is detached so
-// analysis completes independently.
 // Takes handlerName (string) which identifies the LSP operation for logging.
 // Takes uri (protocol.DocumentURI) which specifies the document to analyse.
 // Takes position (protocol.Position) which provides the cursor position for logging.

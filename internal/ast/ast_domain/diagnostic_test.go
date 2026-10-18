@@ -227,6 +227,28 @@ func TestFormatDiagnostics(t *testing.T) {
 		expected := "● error: Something went wrong (at invalid location L99:1)"
 		assert.Contains(t, output, expected)
 	})
+
+	t.Run("coded diagnostic links to its explanation", func(t *testing.T) {
+		diagnostics := []*Diagnostic{
+			NewDiagnosticWithCode(Error, "Invalid operation", "a == b", "T141", Location{Line: 1, Column: 13}, "test"),
+		}
+		output := FormatDiagnostics("pages/index.pk", `<span p-if="a == b">x</span>`, diagnostics)
+		require.Contains(t, output, " [T141]: Invalid operation")
+		require.Contains(t, output, "  = docs: https://piko.sh/diagnostics/T141 (or run: piko explain T141)\n")
+	})
+
+	t.Run("uncoded diagnostic has no docs line", func(t *testing.T) {
+		diagnostics := []*Diagnostic{
+			NewDiagnostic(Error, "Invalid operation", "a == b", Location{Line: 1, Column: 13}, "test"),
+		}
+		output := FormatDiagnostics("pages/index.pk", `<span p-if="a == b">x</span>`, diagnostics)
+		require.NotContains(t, output, "= docs:")
+	})
+}
+
+func TestDiagnosticDocsURL(t *testing.T) {
+	require.Equal(t, "https://piko.sh/diagnostics/T141", DiagnosticDocsURL("T141"))
+	require.Equal(t, "https://piko.sh/diagnostics/R003 (or run: piko explain R003)", DiagnosticDocsLine("R003"))
 }
 
 func TestFormatDiagnostics_WithHTMLEntities(t *testing.T) {

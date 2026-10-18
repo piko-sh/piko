@@ -24,8 +24,6 @@ type FetchInput struct {
 	Period string `json:"period" validate:"required"`
 }
 
-// FetchAction returns a bare Go map, which has no name a TypeScript interface could be
-// declared under and has to be spelled out at each use site instead.
 type FetchAction struct {
 	piko.ActionMetadata
 }

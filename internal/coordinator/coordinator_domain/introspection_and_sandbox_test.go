@@ -40,7 +40,7 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/coordinator/coordinator_dto"
 	"piko.sh/piko/internal/resolver/resolver_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 func TestHashAndReadFile_WithoutCache(t *testing.T) {

@@ -60,6 +60,8 @@
 package main
 
 import (
+    "fmt"
+
     "piko.sh/piko"
     "piko.sh/piko/wdk/db"
 
@@ -100,11 +102,15 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
 
     products := make([]ProductOption, len(product_rows))
     for i, row := range product_rows {
+        price, err := row.Price.Float64()
+        if err != nil {
+            return Response{}, piko.Metadata{}, fmt.Errorf("reading product %d price: %w", row.ID, err)
+        }
         products[i] = ProductOption{
             ID:       row.ID,
             Name:     row.Name,
             Category: row.Category,
-            Price:    row.Price,
+            Price:    price,
         }
     }
 

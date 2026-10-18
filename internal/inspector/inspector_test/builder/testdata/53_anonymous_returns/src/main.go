@@ -18,7 +18,6 @@
 
 package main
 
-// GetConfig returns an anonymous struct.
 func GetConfig() struct {
 	Port int
 	Host string
@@ -29,7 +28,6 @@ func GetConfig() struct {
 	}{Port: 8080, Host: "localhost"}
 }
 
-// GetRunner returns an anonymous interface.
 func GetRunner() interface {
 	Run() error
 } {

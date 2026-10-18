@@ -29,8 +29,6 @@ type GithubGetOutput struct {
 	FullName string `json:"full_name"`
 }
 
-// GithubGetAction shares its package name, "repo", with the action in
-// actions/gitlab/repo: the two packages differ only by import path.
 type GithubGetAction struct {
 	piko.ActionMetadata
 }

@@ -2,29 +2,33 @@
 
 package generated
 
-import "context"
+import (
+	"context"
+
+	"piko.sh/piko/wdk/maths"
+)
 
 const createorder = `INSERT INTO orders (product_id, quantity, total, ordered_at)
 VALUES ($1, $2, $3, $4)
 RETURNING id, product_id, quantity, total, ordered_at;`
 
 type CreateOrderParams struct {
-	P1 int32
-	P2 int32
-	P3 float64
-	P4 int64
-}
-type CreateOrderRow struct {
-	ID        int32
 	ProductID int32
 	Quantity  int32
-	Total     float64
+	Total     maths.Decimal
 	OrderedAt int64
+}
+type CreateOrderRow struct {
+	ID        int32         `json:"id"`
+	ProductID int32         `json:"product_id"`
+	Quantity  int32         `json:"quantity"`
+	Total     maths.Decimal `json:"total"`
+	OrderedAt int64         `json:"ordered_at"`
 }
 
 func (queries *Queries) CreateOrder(ctx context.Context, params CreateOrderParams) (CreateOrderRow, error) {
 	var row CreateOrderRow
-	err := queries.writer.QueryRowContext(ctx, createorder, params.P1, params.P2, params.P3, params.P4).Scan(&row.ID, &row.ProductID, &row.Quantity, &row.Total, &row.OrderedAt)
+	err := queries.writer.QueryRowContext(ctx, createorder, params.ProductID, params.Quantity, params.Total, params.OrderedAt).Scan(&row.ID, &row.ProductID, &row.Quantity, &row.Total, &row.OrderedAt)
 	if err != nil {
 		return CreateOrderRow{}, err
 	}
@@ -39,16 +43,16 @@ ORDER BY o.ordered_at DESC
 LIMIT $1;`
 
 type ListRecentOrdersRow struct {
-	ID              int32
-	Quantity        int32
-	Total           float64
-	OrderedAt       int64
-	ProductName     string
-	ProductCategory string
+	ID              int32         `json:"id"`
+	Quantity        int32         `json:"quantity"`
+	Total           maths.Decimal `json:"total"`
+	OrderedAt       int64         `json:"ordered_at"`
+	ProductName     string        `json:"product_name"`
+	ProductCategory string        `json:"product_category"`
 }
 
-func (queries *Queries) ListRecentOrders(ctx context.Context, p1 int32) ([]ListRecentOrdersRow, error) {
-	rows, err := queries.reader.QueryContext(ctx, listrecentorders, p1)
+func (queries *Queries) ListRecentOrders(ctx context.Context, limit int) ([]ListRecentOrdersRow, error) {
+	rows, err := queries.reader.QueryContext(ctx, listrecentorders, limit)
 	if err != nil {
 		return nil, err
 	}

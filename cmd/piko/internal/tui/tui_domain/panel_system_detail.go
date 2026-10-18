@@ -24,7 +24,7 @@ import (
 
 	"piko.sh/piko/cmd/piko/internal/inspector"
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // DetailView renders the detail-pane body for the section currently under the cursor,

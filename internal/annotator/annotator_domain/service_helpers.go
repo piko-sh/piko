@@ -142,7 +142,6 @@ func (s *AnnotatorService) processAnnotationJob(
 
 // createErrorJobResult creates a job result for a failed annotation.
 //
-// Takes ctx (context.Context) which carries the logger.
 // Takes vc (*annotator_dto.VirtualComponent) which is the component that failed.
 // Takes err (error) which is the error that occurred.
 //
@@ -173,7 +172,8 @@ func (*AnnotatorService) createErrorJobResult(
 
 // prepareAnnotationJob creates an annotation job for a virtual component.
 //
-// Takes ctx (context.Context) which is the parent context for the job.
+// The job's context is derived from ctx.
+//
 // Takes vc (*annotator_dto.VirtualComponent) which specifies the component to annotate.
 //
 // Returns *annotationJob which contains the component and a context carrying the session
@@ -194,7 +194,6 @@ func (s *AnnotatorService) prepareAnnotationJob(ctx context.Context, vc *annotat
 
 // runSrcsetAnnotation adds srcset attributes to images for responsive display.
 //
-// Takes ctx (context.Context) which carries the logger.
 // Takes finalResult (*annotator_dto.ProjectAnnotationResult) which holds the component
 // results to update with srcset attributes.
 func (s *AnnotatorService) runSrcsetAnnotation(
@@ -346,7 +345,6 @@ func aggregateAnnotationResults(
 
 // runAssetAggregation gathers assets from all components into a single manifest.
 //
-// Takes ctx (context.Context) which carries the logger.
 // Takes finalResult (*annotator_dto.ProjectAnnotationResult) which holds component
 // results and receives the final asset manifest.
 func runAssetAggregation(
@@ -366,13 +364,9 @@ func runAssetAggregation(
 		logger_domain.Int("unique_assets_found", len(finalResult.FinalAssetManifest)))
 }
 
-// handlePhase2Completion checks for errors after annotation and returns the final result.
+// handlePhase2Completion returns annotation results and reports build errors according to
+// the fault-tolerance setting.
 //
-// When fault tolerance is on, it logs a warning and returns partial results even if there
-// are errors. When fault tolerance is off, it returns an error if there are any build
-// errors.
-//
-// Takes ctx (context.Context) which carries the logger.
 // Takes finalResult (*annotator_dto.ProjectAnnotationResult) which contains the
 // annotation results to check.
 // Takes logStore (*CompilationLogStore) which holds build log entries.

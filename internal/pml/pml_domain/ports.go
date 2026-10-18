@@ -71,8 +71,6 @@ type Transformer interface {
 type ComponentRegistry interface {
 	// Register adds a component to the registry.
 	//
-	// Takes ctx (context.Context) which carries logging context for trace/request ID
-	// propagation.
 	// Takes comp (Component) which is the component to add.
 	//
 	// Returns error when registration fails.

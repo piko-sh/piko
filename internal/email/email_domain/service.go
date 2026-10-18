@@ -491,8 +491,6 @@ func NewServiceWithDefaultProvider(_ string, opts ...ServiceOption) Service {
 // compatibility). It accepts functional options to configure service limits and
 // behaviour.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes provider (EmailProviderPort) which is the email provider to use.
 // Takes opts (...ServiceOption) which are optional functions to configure the service.
 //
@@ -523,8 +521,6 @@ func NewServiceWithProvider(ctx context.Context, provider EmailProviderPort, opt
 // and optional dispatcher. It accepts functional options to set service limits and
 // behaviour.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes provider (EmailProviderPort) which handles sending emails.
 // Takes dispatcher (EmailDispatcherPort) which manages async email delivery.
 // Takes templater (TemplaterAdapterPort) which renders email templates.

@@ -15,18 +15,10 @@ export interface FetchOutput {
   total: number;
 }
 
-/**
- * CreateAction takes its input from a package that holds no action, which is the only
- * thing that decides whether the generated files import that package.
- */
 export function orderCreate(input: CreateInput): ActionBuilder<CreateOutput> {
   return createActionBuilder<CreateOutput>('order.Create', input);
 }
 
-/**
- * FetchAction returns a type from a package holding no action and takes no input, so the
- * registry names that package and the wrapper file never does.
- */
 export function reportFetch(): ActionBuilder<FetchOutput> {
   return createActionBuilder<FetchOutput>('report.Fetch', {});
 }

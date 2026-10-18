@@ -28,7 +28,7 @@ import (
 	"strings"
 
 	"piko.sh/piko/wdk/modules"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -182,15 +182,11 @@ func (p *Provider) Write(bundle *modules.ModuleBundle) error {
 	return nil
 }
 
-// Resolve implements modules.ModuleProvider.
+// Resolve reads and parses the bundle for the requested path and version.
 //
-// Reads the bundle file for (ref.Path, ref.Version), parses it, and yields the bundle.
-// The interpreter verifies the ref's Pin by checking the bundle against the pin when the
-// module is loaded. A missing file maps to modules.ErrModuleNotFound; a file larger than
-// the configured limit is rejected; all other errors propagate unchanged.
+// Missing files return ErrModuleNotFound and oversized files are rejected. The
+// interpreter verifies pins. Cancellation is checked before synchronous I/O.
 //
-// Takes ctx (context.Context) which is checked for cancellation; I/O itself is
-// synchronous.
 // Takes ref (modules.ModuleRef) which identifies the bundle.
 //
 // Returns *modules.ModuleBundle which is the parsed bundle.

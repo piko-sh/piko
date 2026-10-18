@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/colour"
 	"piko.sh/piko/internal/generator/generator_dto"
 )
@@ -138,55 +139,72 @@ func FormatRuntimeDiagnostics(diagnostics []*generator_dto.RuntimeDiagnostic, ba
 	builder.WriteString(errorColour.Sprintf("--> Found %d runtime issue(s):\n\n", len(diagnostics)))
 
 	for _, d := range diagnostics {
-		var primaryColour colour.Style
-		switch d.Severity {
-		case generator_dto.Error:
-			primaryColour = errorColour
-		case generator_dto.Warning:
-			primaryColour = warningColour
-		case generator_dto.Info:
-			primaryColour = infoColour
-		default:
-			primaryColour = messageColour
-		}
-
-		builder.WriteString(primaryColour.Sprintf(" ● %s", d.Severity))
-		if d.Code != "" {
-			builder.WriteString(messageColour.Sprintf(" [%s]", d.Code))
-		}
-		builder.WriteString(messageColour.Sprintf(": %s\n", d.Message))
-
-		displayPath := d.SourcePath
-		if baseDir != "" && d.SourcePath != "" && !filepath.IsAbs(d.SourcePath) {
-			displayPath = filepath.Join(baseDir, d.SourcePath)
-		}
-
-		fmt.Fprintf(&builder, "   %s %s:%d:%d\n",
-			gutterColour.Sprint("-->"),
-			pathColour.Sprint(displayPath),
-			d.Line,
-			d.Column,
-		)
-
-		builder.WriteString(gutterColour.Sprint("    |") + "\n")
-
-		if d.Expression != "" {
-			fmt.Fprintf(&builder, "%s %s\n", gutterColour.Sprint("    |"), d.Expression)
-
-			caretColumn := max(d.Column, 1)
-			caretPadding := strings.Repeat(" ", caretColumn-1)
-
-			highlightLen := len(d.Expression)
-			if highlightLen == 0 {
-				highlightLen = 1
-			}
-			highlight := strings.Repeat("^", highlightLen)
-
-			fmt.Fprintf(&builder, "%s %s%s\n", gutterColour.Sprint("    |"), caretPadding, primaryColour.Sprint(highlight))
-		}
-
-		builder.WriteString("\n")
+		writeRuntimeDiagnostic(&builder, d, baseDir)
 	}
 
 	return builder.String()
+}
+
+// writeRuntimeDiagnostic writes the diagnostic severity, code, highlighted source
+// location, and documentation link.
+//
+// Takes builder (*strings.Builder) which receives the formatted diagnostic.
+// Takes d (*generator_dto.RuntimeDiagnostic) which is the diagnostic to write.
+// Takes baseDir (string) which is the project root used to make relative paths absolute,
+// or empty to show paths as-is.
+func writeRuntimeDiagnostic(builder *strings.Builder, d *generator_dto.RuntimeDiagnostic, baseDir string) {
+	primaryColour := runtimeSeverityColour(d.Severity)
+
+	builder.WriteString(primaryColour.Sprintf(" ● %s", d.Severity))
+	if d.Code != "" {
+		builder.WriteString(messageColour.Sprintf(" [%s]", d.Code))
+	}
+	builder.WriteString(messageColour.Sprintf(": %s\n", d.Message))
+
+	displayPath := d.SourcePath
+	if baseDir != "" && d.SourcePath != "" && !filepath.IsAbs(d.SourcePath) {
+		displayPath = filepath.Join(baseDir, d.SourcePath)
+	}
+
+	fmt.Fprintf(builder, "   %s %s:%d:%d\n",
+		gutterColour.Sprint("-->"),
+		pathColour.Sprint(displayPath),
+		d.Line,
+		d.Column,
+	)
+
+	builder.WriteString(gutterColour.Sprint("    |") + "\n")
+
+	if d.Expression != "" {
+		fmt.Fprintf(builder, "%s %s\n", gutterColour.Sprint("    |"), d.Expression)
+
+		caretPadding := strings.Repeat(" ", max(d.Column, 1)-1)
+		highlight := strings.Repeat("^", max(len(d.Expression), 1))
+
+		fmt.Fprintf(builder, "%s %s%s\n", gutterColour.Sprint("    |"), caretPadding, primaryColour.Sprint(highlight))
+	}
+
+	if d.Code != "" {
+		fmt.Fprintf(builder, "%s %s\n", gutterColour.Sprint("    = docs:"), ast_domain.DiagnosticDocsLine(d.Code))
+	}
+
+	builder.WriteString("\n")
+}
+
+// runtimeSeverityColour returns the colour a runtime diagnostic's severity is shown in.
+//
+// Takes severity (generator_dto.Severity) which is the diagnostic's severity.
+//
+// Returns colour.Style which is the colour to use.
+func runtimeSeverityColour(severity generator_dto.Severity) colour.Style {
+	switch severity {
+	case generator_dto.Error:
+		return errorColour
+	case generator_dto.Warning:
+		return warningColour
+	case generator_dto.Info:
+		return infoColour
+	default:
+		return messageColour
+	}
 }

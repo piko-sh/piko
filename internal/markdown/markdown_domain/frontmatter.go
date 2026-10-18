@@ -20,6 +20,8 @@ package markdown_domain
 
 import (
 	"errors"
+	"maps"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -52,8 +54,10 @@ type Frontmatter struct {
 	Draft bool
 }
 
-// ParseFrontmatter parses raw frontmatter data into a structured Frontmatter object and
-// checks that required fields are present.
+// ParseFrontmatter parses frontmatter and validates required fields.
+//
+// Keys match case-insensitively and are processed in sorted order. The last matching key
+// wins, including navigation over nav.
 //
 // Takes rawData (map[string]any) which contains the raw frontmatter key-value pairs to
 // parse.
@@ -74,7 +78,8 @@ func ParseFrontmatter(rawData map[string]any) (*Frontmatter, error) {
 	fm := &Frontmatter{}
 	fm.Custom = make(map[string]any)
 
-	for key, value := range rawData {
+	for _, key := range slices.Sorted(maps.Keys(rawData)) {
+		value := rawData[key]
 		lowerKey := strings.ToLower(key)
 
 		if !knownKeys[lowerKey] {

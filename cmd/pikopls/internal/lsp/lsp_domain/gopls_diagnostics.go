@@ -25,7 +25,7 @@ import (
 	protocol "github.com/politepixels/golang-language-server"
 	"piko.sh/piko/cmd/pikopls/internal/lsp/gopls_bridge"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (

@@ -1,6 +1,0 @@
-CREATE TABLE routes (
-    id INTEGER PRIMARY KEY,
-    name VARCHAR NOT NULL,
-    waypoints LIST(STRUCT(x DOUBLE, y DOUBLE)) NOT NULL,
-    metadata MAP(VARCHAR, LIST(INTEGER))
-);

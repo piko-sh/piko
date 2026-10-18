@@ -18,8 +18,6 @@
 
 package models
 
-// User is defined in one file.
 type User struct {
-	// Its field type is defined in another file in the same package.
 	Profile Profile
 }

@@ -37,8 +37,6 @@ const (
 // Each probe handles its own errors so a single failure does not block the others.
 // Reported probes cover database size, memory limit, and thread count.
 //
-// Takes ctx (context.Context) which carries cancellation and deadlines for the underlying
-// queries.
 // Takes database (*sql.DB) which is the DuckDB connection to probe.
 //
 // Returns []db.DatabaseHealthDiagnostic which is one entry per probe, each marked
@@ -53,7 +51,6 @@ func (*DuckDBEngine) CheckHealth(ctx context.Context, database *sql.DB) []db.Dat
 
 // checkDuckDBDatabaseSize probes the on-disk database size.
 //
-// Takes ctx (context.Context) which carries cancellation.
 // Takes database (*sql.DB) which is the DuckDB connection.
 //
 // Returns []db.DatabaseHealthDiagnostic which is a one-entry slice carrying the size, or
@@ -81,7 +78,6 @@ func checkDuckDBDatabaseSize(ctx context.Context, database *sql.DB) []db.Databas
 
 // checkDuckDBMemoryLimit probes the configured memory limit setting.
 //
-// Takes ctx (context.Context) which carries cancellation.
 // Takes database (*sql.DB) which is the DuckDB connection.
 //
 // Returns []db.DatabaseHealthDiagnostic which is a one-entry slice carrying the limit, or
@@ -106,7 +102,6 @@ func checkDuckDBMemoryLimit(ctx context.Context, database *sql.DB) []db.Database
 
 // checkDuckDBThreads probes the configured thread count setting.
 //
-// Takes ctx (context.Context) which carries cancellation.
 // Takes database (*sql.DB) which is the DuckDB connection.
 //
 // Returns []db.DatabaseHealthDiagnostic which is a one-entry slice carrying the thread

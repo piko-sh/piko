@@ -84,8 +84,18 @@ type MockRegistryService struct {
 	// ArtefactEventsPublishedFunc is the function called by ArtefactEventsPublished.
 	ArtefactEventsPublishedFunc func() int64
 
+	// ArtefactEventsIssuedFunc is the function called by ArtefactEventsIssued.
+	ArtefactEventsIssuedFunc func() int64
+
+	// FlushArtefactEventsFunc is the function called by FlushArtefactEvents.
+	FlushArtefactEventsFunc func(ctx context.Context) int
+
 	// UpsertArtefactCallCount tracks how many times UpsertArtefact was called.
 	UpsertArtefactCallCount atomic.Int64
+
+	// UpsertArtefactProfileMergeCallCount tracks how many UpsertArtefact calls asked for
+	// WithProfileMerge.
+	UpsertArtefactProfileMergeCallCount atomic.Int64
 
 	// AddVariantCallCount tracks how many times AddVariant was called.
 	AddVariantCallCount atomic.Int64
@@ -134,6 +144,12 @@ type MockRegistryService struct {
 	// ArtefactEventsPublishedCallCount tracks how many times ArtefactEventsPublished was
 	// called.
 	ArtefactEventsPublishedCallCount atomic.Int64
+
+	// ArtefactEventsIssuedCallCount tracks how many times ArtefactEventsIssued was called.
+	ArtefactEventsIssuedCallCount atomic.Int64
+
+	// FlushArtefactEventsCallCount tracks how many times FlushArtefactEvents was called.
+	FlushArtefactEventsCallCount atomic.Int64
 }
 
 // UpsertArtefact creates or updates an artefact with its source data.
@@ -144,6 +160,8 @@ type MockRegistryService struct {
 // Takes storageBackendID (string) which identifies the storage backend to use.
 // Takes desiredProfiles ([]registry_dto.NamedProfile) which lists the processing profiles
 // to apply.
+// Takes opts (...UpsertOption) which are counted in UpsertArtefactProfileMergeCallCount
+// when they ask for WithProfileMerge, and are not passed to UpsertArtefactFunc.
 //
 // Returns (*ArtefactMeta, error), or (nil, nil) if UpsertArtefactFunc is nil.
 func (m *MockRegistryService) UpsertArtefact(
@@ -153,8 +171,12 @@ func (m *MockRegistryService) UpsertArtefact(
 	sourceData io.Reader,
 	storageBackendID string,
 	desiredProfiles []registry_dto.NamedProfile,
+	opts ...UpsertOption,
 ) (*registry_dto.ArtefactMeta, error) {
 	m.UpsertArtefactCallCount.Add(1)
+	if UpsertMergesProfiles(opts...) {
+		m.UpsertArtefactProfileMergeCallCount.Add(1)
+	}
 	if m.UpsertArtefactFunc != nil {
 		return m.UpsertArtefactFunc(ctx, artefactID, sourcePath, sourceData, storageBackendID, desiredProfiles)
 	}
@@ -365,6 +387,28 @@ func (m *MockRegistryService) ArtefactEventsPublished() int64 {
 	m.ArtefactEventsPublishedCallCount.Add(1)
 	if m.ArtefactEventsPublishedFunc != nil {
 		return m.ArtefactEventsPublishedFunc()
+	}
+	return 0
+}
+
+// ArtefactEventsIssued returns the number of artefact events issued.
+//
+// Returns int64, or 0 if ArtefactEventsIssuedFunc is nil.
+func (m *MockRegistryService) ArtefactEventsIssued() int64 {
+	m.ArtefactEventsIssuedCallCount.Add(1)
+	if m.ArtefactEventsIssuedFunc != nil {
+		return m.ArtefactEventsIssuedFunc()
+	}
+	return 0
+}
+
+// FlushArtefactEvents publishes owed artefact events.
+//
+// Returns int, or 0 if FlushArtefactEventsFunc is nil.
+func (m *MockRegistryService) FlushArtefactEvents(ctx context.Context) int {
+	m.FlushArtefactEventsCallCount.Add(1)
+	if m.FlushArtefactEventsFunc != nil {
+		return m.FlushArtefactEventsFunc(ctx)
 	}
 	return 0
 }

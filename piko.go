@@ -51,7 +51,7 @@ import (
 	"piko.sh/piko/wdk/email/email_provider_mock"
 	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/logger"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -540,8 +540,8 @@ func (s *SSRServer) GetHandler() http.Handler {
 // backend the operation is serialised by an advisory lock so it is safe to run while
 // other instances are serving.
 //
-// Takes release which is the BuildRelease to retire (the same identifier passed to
-// WithReleaseID at build time, or the VCS revision when none was set).
+// Takes release (string) which is the BuildRelease to retire (the same identifier passed
+// to WithReleaseID at build time, or the VCS revision when none was set).
 //
 // Returns error when the container cannot be initialised or the retire fails.
 func (s *SSRServer) RetireRelease(ctx context.Context, release string) error {

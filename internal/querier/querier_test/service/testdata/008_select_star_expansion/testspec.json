@@ -1,3 +1,0 @@
-{
-  "description": "SELECT * and qualified table.* expansion. Tests that star expansion produces correct columns from the scope chain with proper ordering."
-}

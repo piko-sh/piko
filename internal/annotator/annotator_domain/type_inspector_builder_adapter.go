@@ -78,3 +78,21 @@ func (a *TypeInspectorBuilderAdapter) GetQuerier() (TypeInspectorPort, bool) {
 	}
 	return querier, true
 }
+
+// BuildAndGetQuerier builds type information and returns the querier for that build while
+// the builder's lock is held, so a concurrent build cannot replace it in between.
+//
+// Takes sourceOverlay (map[string][]byte) which provides in-memory file contents that
+// override files on disk.
+// Takes scriptHashes (map[string]string) which maps script paths to their content hashes
+// for cache invalidation.
+//
+// Returns TypeInspectorPort which provides type inspection for this build.
+// Returns error when the build fails or no querier is available.
+func (a *TypeInspectorBuilderAdapter) BuildAndGetQuerier(ctx context.Context, sourceOverlay map[string][]byte, scriptHashes map[string]string) (TypeInspectorPort, error) {
+	querier, err := a.builder.BuildAndGetQuerier(ctx, sourceOverlay, scriptHashes)
+	if err != nil {
+		return nil, err
+	}
+	return querier, nil
+}

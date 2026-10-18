@@ -26,11 +26,6 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// CreateExpansionResult returns the hand-crafted ExpansionResult for this test case.
-// It simulates two invocations of a 'list' component whose Props struct contains an
-// embedded struct (`shared.Pagination`) where the actual prop fields are defined.
-// This is the ideal input to test that the ComponentLinker's type analysis can correctly
-// discover and validate these "promoted" props from the embedded struct.
 func CreateExpansionResult(t *testing.T, vm *annotator_dto.VirtualModule) *annotator_dto.ExpansionResult {
 	findHash := func(relPath string) string {
 		for hash, comp := range vm.ComponentsByHash {

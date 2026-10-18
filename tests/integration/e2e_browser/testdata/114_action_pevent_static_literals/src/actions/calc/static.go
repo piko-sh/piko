@@ -23,19 +23,16 @@ import (
 	"piko.sh/piko"
 )
 
-// StaticAction tests passing fully static literal values as separate arguments.
 type StaticAction struct {
 	piko.ActionMetadata
 }
 
-// StaticResponse echoes back the received values.
 type StaticResponse struct {
 	ReceivedName  string `json:"received_name"`
 	ReceivedCount int    `json:"received_count"`
 	ReceivedFlag  bool   `json:"received_flag"`
 }
 
-// Call accepts three separate typed parameters with static literal values.
 func (a StaticAction) Call(Name string, Count int, Flag bool) (StaticResponse, error) {
 	a.Response().AddHelper("showResult",
 		Name,

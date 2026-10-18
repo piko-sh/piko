@@ -9,7 +9,7 @@ const listrecenttasks = `SELECT
     last_error, created_at, updated_at
 FROM tasks
 ORDER BY updated_at DESC
-LIMIT ?;`
+LIMIT ?1;`
 
 type ListRecentTasksRow struct {
 	ID         string  `json:"id"`
@@ -59,12 +59,16 @@ func (queries *Queries) ListTaskStatusCounts(ctx context.Context) ([]ListTaskSta
 	}
 	defer rows.Close()
 	var results []ListTaskStatusCountsRow
-	for rows.Next() {
+	if rows.Next() {
 		var row ListTaskStatusCountsRow
-		if err := rows.Scan(&row.Status, &row.TaskCount); err != nil {
-			return nil, err
+		scanArgs := []any{&row.Status, &row.TaskCount}
+		for more := true; more; more = rows.Next() {
+			row = ListTaskStatusCountsRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -83,7 +87,7 @@ const listworkflowsummary = `SELECT
 FROM tasks
 GROUP BY workflow_id
 ORDER BY MAX(updated_at) DESC
-LIMIT ?;`
+LIMIT ?1;`
 
 type ListWorkflowSummaryRow struct {
 	WorkflowID    string `json:"workflow_id"`

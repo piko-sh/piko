@@ -50,6 +50,14 @@ const (
 	// summaryLineFormat is the format string for individual summary lines.
 	summaryLineFormat = "   %s %d %s\n"
 
+	// summaryMarkedLineFormat is the format string for an indented line that starts with a
+	// marker, such as a failure count or an artefact path.
+	summaryMarkedLineFormat = "   %s %s\n"
+
+	// summaryIndentedLineFormat is the format string for an indented detail line, such as a
+	// line of diagnostic output or a task's attempt count.
+	summaryIndentedLineFormat = "   %s\n"
+
 	// summaryDurationRounding is the rounding granularity for durations in build summaries.
 	// 10ms gives useful precision without false accuracy.
 	summaryDurationRounding = 10 * time.Millisecond
@@ -154,10 +162,12 @@ func FormatBuildSummary(result *lifecycle_domain.BuildResult) string {
 		if result.TotalFatalFailed > 0 {
 			failDetail += fmt.Sprintf(" (%d fatal)", result.TotalFatalFailed)
 		}
-		_, _ = fmt.Fprintf(&builder, "   %s %s\n",
+		_, _ = fmt.Fprintf(&builder, summaryMarkedLineFormat,
 			summaryFailureColour.Sprint("✗"),
 			summaryFailureColour.Sprint(failDetail))
 	}
+
+	writeSeedFailureCount(&builder, len(result.SeedFailures))
 
 	if result.TotalRetried > 0 {
 		_, _ = fmt.Fprintf(&builder, "   %s %d retried\n",
@@ -174,6 +184,8 @@ func FormatBuildSummary(result *lifecycle_domain.BuildResult) string {
 		builder.WriteString("\n")
 		formatBuildFailure(&builder, &f)
 	}
+
+	writeSeedFailures(&builder, result.SeedFailures)
 
 	builder.WriteString("\n")
 	return builder.String()
@@ -303,8 +315,8 @@ func writeGeneratorSummaryLines(builder *strings.Builder, gen *GeneratorResult) 
 		pluralise("query", gen.SQLQueries))
 }
 
-// writeBuildResultLines writes the asset build outcome lines (completed, failed, retried,
-// timed out, and individual failure details) to the builder.
+// writeBuildResultLines writes the asset build outcome lines (completed, failed, seed
+// failures, retried, timed out, and individual failure details) to the builder.
 //
 // Takes builder (*strings.Builder) which receives the formatted output.
 // Takes build (*lifecycle_domain.BuildResult) which holds the build outcome to render.
@@ -319,10 +331,12 @@ func writeBuildResultLines(builder *strings.Builder, build *lifecycle_domain.Bui
 		if build.TotalFatalFailed > 0 {
 			failDetail += fmt.Sprintf(" (%d fatal)", build.TotalFatalFailed)
 		}
-		_, _ = fmt.Fprintf(builder, "   %s %s\n",
+		_, _ = fmt.Fprintf(builder, summaryMarkedLineFormat,
 			summaryFailureColour.Sprint("✗"),
 			summaryFailureColour.Sprint(failDetail))
 	}
+
+	writeSeedFailureCount(builder, len(build.SeedFailures))
 
 	if build.TotalRetried > 0 {
 		_, _ = fmt.Fprintf(builder, "   %s %d retried\n",
@@ -338,6 +352,41 @@ func writeBuildResultLines(builder *strings.Builder, build *lifecycle_domain.Bui
 	for _, f := range build.Failures {
 		builder.WriteString("\n")
 		formatBuildFailure(builder, &f)
+	}
+
+	writeSeedFailures(builder, build.SeedFailures)
+}
+
+// writeSeedFailureCount writes the line counting the files the build could not seed, or
+// nothing when every file was seeded.
+//
+// Takes builder (*strings.Builder) which receives the formatted output.
+// Takes count (int) which is the number of seed failures.
+func writeSeedFailureCount(builder *strings.Builder, count int) {
+	if count == 0 {
+		return
+	}
+	_, _ = fmt.Fprintf(builder, summaryMarkedLineFormat,
+		summaryFailureColour.Sprint("✗"),
+		summaryFailureColour.Sprintf("%d source %s could not be seeded", count, pluralise("file", count)))
+}
+
+// writeSeedFailures renders each seed failure in diagnostic style.
+//
+// Takes builder (*strings.Builder) which receives the formatted output.
+// Takes failures ([]lifecycle_domain.SeedFailure) which are the failures to render.
+func writeSeedFailures(builder *strings.Builder, failures []lifecycle_domain.SeedFailure) {
+	for i := range failures {
+		failure := &failures[i]
+		builder.WriteString("\n")
+		builder.WriteString(summaryFailureColour.Sprint(" ● error"))
+		builder.WriteString(summaryHeaderColour.Sprintf(": seeding failed during %s\n", failure.Stage))
+		_, _ = fmt.Fprintf(builder, summaryMarkedLineFormat,
+			summaryDimColour.Sprint(arrowMarker),
+			summaryPathColour.Sprint(failure.Path))
+		for line := range strings.SplitSeq(failure.Error, "\n") {
+			_, _ = fmt.Fprintf(builder, summaryIndentedLineFormat, line)
+		}
 	}
 }
 
@@ -383,7 +432,7 @@ func formatBuildFailure(builder *strings.Builder, f *lifecycle_domain.BuildFailu
 		if f.IsFatal {
 			attemptInfo += " (fatal - not retried)"
 		}
-		_, _ = fmt.Fprintf(builder, "   %s\n", summaryDimColour.Sprint(attemptInfo))
+		_, _ = fmt.Fprintf(builder, summaryIndentedLineFormat, summaryDimColour.Sprint(attemptInfo))
 
 		formatSourceSnippet(builder, snippet)
 		return
@@ -393,7 +442,7 @@ func formatBuildFailure(builder *strings.Builder, f *lifecycle_domain.BuildFailu
 	builder.WriteString(summaryHeaderColour.Sprintf(": %s failed\n", f.Executor))
 
 	if f.ArtefactID != "" {
-		_, _ = fmt.Fprintf(builder, "   %s %s\n",
+		_, _ = fmt.Fprintf(builder, summaryMarkedLineFormat,
 			summaryDimColour.Sprint(arrowMarker),
 			summaryPathColour.Sprint(f.ArtefactID))
 	}
@@ -402,11 +451,11 @@ func formatBuildFailure(builder *strings.Builder, f *lifecycle_domain.BuildFailu
 	if f.IsFatal {
 		attemptInfo += " (fatal - not retried)"
 	}
-	_, _ = fmt.Fprintf(builder, "   %s\n", summaryDimColour.Sprint(attemptInfo))
+	_, _ = fmt.Fprintf(builder, summaryIndentedLineFormat, summaryDimColour.Sprint(attemptInfo))
 
 	if cleaned != "" {
 		for line := range strings.SplitSeq(cleaned, "\n") {
-			_, _ = fmt.Fprintf(builder, "   %s\n", line)
+			_, _ = fmt.Fprintf(builder, summaryIndentedLineFormat, line)
 		}
 	}
 }

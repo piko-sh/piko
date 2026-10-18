@@ -16,27 +16,16 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package db_engine_sqlite implements the querier EnginePort for SQLite using a
-// hand-written recursive-descent parser. It converts SQLite DDL into catalogue mutations
-// and analyses DML queries to produce the raw query analysis that the domain layer
-// resolves into fully typed results.
+// Package db_engine_sqlite is Piko's engine for SQLite.
 //
-// # Integer widths
+// Register it with a database to generate typed Go from SQL, run migrations and seeds,
+// and report engine-specific health diagnostics:
 //
-// SQLite stores every integer as a variable-length 1-8 byte value, so a declared width is
-// a preference, not a storage limit. For cross-dialect parity with Postgres and MySQL the
-// engine maps an ordinary table's INTEGER to a 32-bit Go int (int4); declare BIGINT for a
-// 64-bit column. Two cases are always 64-bit: an INTEGER PRIMARY KEY (the rowid alias,
-// which SQLite forbids spelling as BIGINT AUTOINCREMENT), and every integer column of a
-// STRICT table.
+//	piko.WithDatabase("primary", &db.DatabaseRegistration{
+//	    DB:           database,
+//	    EngineConfig: db_engine_sqlite.SQLite(),
+//	})
 //
-// # STRICT tables
-//
-// A STRICT table (CREATE TABLE ...) STRICT) enforces its declared types and permits only
-// INT, INTEGER, REAL, TEXT, BLOB, and ANY; the engine rejects any other spelling at
-// generation time (validateStrictColumnTypes) instead of letting it fail at migration
-// time. Because STRICT cannot express BIGINT, its INTEGER is genuinely signed 64-bit, so
-// every integer column of a STRICT table resolves to a Go int64 (widenStrictIntegers).
-// The same INTEGER spelling therefore yields int32 in an ordinary table but int64 inside
-// a STRICT table. An ANY column resolves to Go any.
+// The SQL analysis and code generation are provided by Seagull through
+// wdk/db/db_provider_seagull; db_engine_sqlite selects and tunes the dialect.
 package db_engine_sqlite

@@ -73,7 +73,6 @@ func instrumentedCall(ctx context.Context, operation func() error) error {
 // the result under a mutex. It eliminates structural duplication across provider Refresh
 // methods.
 //
-// Takes ctx (context.Context) which carries tracing and cancellation values.
 // Takes fetch (func(context.Context) (T, error)) which performs the gRPC call and
 // converts the response.
 // Takes store (func(T)) which persists the converted data under a lock.

@@ -30,7 +30,7 @@ import (
 
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/templater/templater_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 	"pipit.sh/pipit"
 )
 
@@ -79,12 +79,10 @@ var (
 	_ templater_domain.InterpreterPort = (*interpreterAdapter)(nil)
 )
 
-// CompileAndExecute compiles all packages as a single program and executes their init
-// functions. This is the compilation path Piko's interpreted mode uses.
+// CompileAndExecute compiles packages together and executes their init functions.
 //
-// The init functions typically call templater_domain.RegisterASTFunc to register template
-// builders in the global FunctionRegistry. A panic inside the interpreter is recovered
-// and returned as an error.
+// Interpreter panics become errors. Compilation failures include all problems and
+// available hints.
 //
 // Takes modulePath (string) which identifies the module.
 // Takes packages (map[string]map[string]string) which maps relative package paths to
@@ -109,7 +107,7 @@ func (a *interpreterAdapter) CompileAndExecute(ctx context.Context, modulePath s
 	}
 
 	if compileErr != nil {
-		return fmt.Errorf("interpreting module %q: %w", modulePath, compileErr)
+		return newCompileProblemsError(modulePath, compileErr)
 	}
 
 	if err := a.service.ExecuteInits(ctx, compiledFileSet); err != nil {
@@ -127,6 +125,18 @@ func (a *interpreterAdapter) CompileAndExecute(ctx context.Context, modulePath s
 // Returns bool which is true when the package is registered.
 func (a *interpreterAdapter) HasRegisteredPackage(importPath string) bool {
 	return a.service.HasRegisteredPackage(importPath)
+}
+
+// CompilesFile reports whether pipit compiles a project Go file, with the rules and build
+// tags it applies when it compiles the program.
+//
+// Takes name (string) which is the file's name; only the base name counts.
+// Takes source ([]byte) which is the file's content.
+//
+// Returns bool which is true when the file is compiled.
+// Returns error when the file's build constraints are malformed.
+func (a *interpreterAdapter) CompilesFile(name string, source []byte) (bool, error) {
+	return a.service.MatchFile(name, source)
 }
 
 // emitSourceFiles writes source files to the emission directory for debugging. They are
@@ -164,7 +174,8 @@ func (a *interpreterAdapter) emitSourceFiles(ctx context.Context, modulePath str
 }
 
 // emitCompilationOutput writes a package-path manifest and either bytecode with its
-// disassembly or the compilation error for post-mortem inspection.
+// disassembly or the compilation error for post-mortem inspection. A program that cannot
+// be packed gets its packing error in place of the bytecode.
 //
 // Takes packages (map[string]map[string]string) which maps relative package paths to
 // filename-to-source maps.
@@ -199,7 +210,7 @@ func (a *interpreterAdapter) emitCompilationOutput(
 	}}
 	if compiledFileSet != nil {
 		outputs = append(outputs,
-			emittedFile{name: fmt.Sprintf("bytecode-%s.bin", suffix), content: pipit.PackCompiledFileSetToBytes(compiledFileSet)},
+			packedBytecodeOutput(suffix, compiledFileSet),
 			emittedFile{name: fmt.Sprintf("bytecode-%s.pkasm", suffix), content: []byte(pipit.DisassembleAssembly(compiledFileSet))},
 		)
 	}
@@ -214,6 +225,21 @@ func (a *interpreterAdapter) emitCompilationOutput(
 				logger_domain.String(fieldPath, outputPath), logger_domain.Error(err))
 		}
 	}
+}
+
+// packedBytecodeOutput packs a compiled program for emission, or records why it could not
+// be packed so the failure sits next to the program's disassembly.
+//
+// Takes suffix (string) which names the compilation batch.
+// Takes compiledFileSet (*pipit.CompiledFileSet) which is the compiled program.
+//
+// Returns emittedFile which holds the packed bytecode, or the packing error as text.
+func packedBytecodeOutput(suffix string, compiledFileSet *pipit.CompiledFileSet) emittedFile {
+	packed, err := pipit.PackCompiledFileSetToBytes(compiledFileSet)
+	if err != nil {
+		return emittedFile{name: fmt.Sprintf("bytecode-%s.pack-error.txt", suffix), content: []byte(err.Error() + "\n")}
+	}
+	return emittedFile{name: fmt.Sprintf("bytecode-%s.bin", suffix), content: packed}
 }
 
 // bytecodeFileSuffix builds a filename suffix from the relative package paths in a

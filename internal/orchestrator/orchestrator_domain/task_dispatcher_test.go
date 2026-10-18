@@ -42,9 +42,6 @@ func TestDefaultDispatcherConfig(t *testing.T) {
 	if config.StaleTaskThreshold != 10*time.Minute {
 		t.Errorf("StaleTaskThreshold: expected 10m, got %v", config.StaleTaskThreshold)
 	}
-	if config.SyncPersistence {
-		t.Error("SyncPersistence: expected false, got true")
-	}
 	if config.WatermillHighHandlers != 10 {
 		t.Errorf("WatermillHighHandlers: expected 10, got %d", config.WatermillHighHandlers)
 	}
@@ -70,7 +67,7 @@ func TestDispatcherConfig_EffectiveLimits(t *testing.T) {
 		{
 			name:             "zero values fall back to the defaults",
 			config:           DispatcherConfig{},
-			wantBacklog:      defaultDispatchBacklogLimit,
+			wantBacklog:      defaultOverflowLimit,
 			wantRetryBackoff: defaultMaxRetryBackoff,
 			wantAbandonGrace: defaultExecutorAbandonGrace,
 			wantReruns:       defaultMaxPendingReruns,
@@ -78,12 +75,12 @@ func TestDispatcherConfig_EffectiveLimits(t *testing.T) {
 		{
 			name: "negative values fall back to the defaults",
 			config: DispatcherConfig{
-				DispatchBacklogLimit: -1,
+				OverflowLimit:        -1,
 				MaxRetryBackoff:      -time.Second,
 				ExecutorAbandonGrace: -time.Second,
 				MaxPendingReruns:     -1,
 			},
-			wantBacklog:      defaultDispatchBacklogLimit,
+			wantBacklog:      defaultOverflowLimit,
 			wantRetryBackoff: defaultMaxRetryBackoff,
 			wantAbandonGrace: defaultExecutorAbandonGrace,
 			wantReruns:       defaultMaxPendingReruns,
@@ -91,7 +88,7 @@ func TestDispatcherConfig_EffectiveLimits(t *testing.T) {
 		{
 			name: "positive values are used as configured",
 			config: DispatcherConfig{
-				DispatchBacklogLimit: 7,
+				OverflowLimit:        7,
 				MaxRetryBackoff:      time.Minute,
 				ExecutorAbandonGrace: time.Second,
 				MaxPendingReruns:     3,
@@ -104,7 +101,7 @@ func TestDispatcherConfig_EffectiveLimits(t *testing.T) {
 		{
 			name:             "the production defaults are set explicitly",
 			config:           DefaultDispatcherConfig(),
-			wantBacklog:      defaultDispatchBacklogLimit,
+			wantBacklog:      defaultOverflowLimit,
 			wantRetryBackoff: defaultMaxRetryBackoff,
 			wantAbandonGrace: defaultExecutorAbandonGrace,
 			wantReruns:       defaultMaxPendingReruns,
@@ -115,7 +112,7 @@ func TestDispatcherConfig_EffectiveLimits(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			assert.Equal(t, tc.wantBacklog, tc.config.EffectiveDispatchBacklogLimit())
+			assert.Equal(t, tc.wantBacklog, tc.config.EffectiveOverflowLimit())
 			assert.Equal(t, tc.wantRetryBackoff, tc.config.EffectiveMaxRetryBackoff())
 			assert.Equal(t, tc.wantAbandonGrace, tc.config.EffectiveExecutorAbandonGrace())
 			assert.Equal(t, tc.wantReruns, tc.config.EffectiveMaxPendingReruns())

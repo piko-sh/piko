@@ -40,9 +40,10 @@ func main() {
 	}
 
 	// Run migrations.
-	executor := db.NewMigrationExecutor(database, db.SQLiteDialect())
-	file_reader := db.NewFSFileReader(taskdb.Migrations)
-	migrator := db.NewMigrationService(executor, file_reader, "migrations")
+	migrator, err := db.NewMigrator(db_engine_sqlite.SQLite(), database, taskdb.Migrations, "migrations")
+	if err != nil {
+		panic("creating migration service: " + err.Error())
+	}
 
 	if _, err := migrator.Up(context.Background()); err != nil {
 		panic(err)

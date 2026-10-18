@@ -163,8 +163,9 @@ type MetadataStore interface {
 	// The provided MetadataStore is scoped to the transaction; all reads and writes through
 	// it are atomic. If fn returns an error (or panics), all mutations are rolled back.
 	//
-	// Takes fn which receives a transactional MetadataStore. The caller MUST use this
-	// transactional store for all operations that should be atomic.
+	// Takes fn (func(context.Context, MetadataStore) error) which receives a transactional
+	// MetadataStore. The caller MUST use this transactional store for all operations that
+	// should be atomic.
 	//
 	// Returns error when fn returns an error or the transaction fails to commit.
 	RunAtomic(ctx context.Context, fn func(ctx context.Context, transactionStore MetadataStore) error) error
@@ -289,6 +290,8 @@ type RegistryService interface {
 	// Takes storageBackendID (string) which identifies the storage backend to use.
 	// Takes desiredProfiles ([]registry_dto.NamedProfile) which specifies the profiles to
 	// apply.
+	// Takes opts (...UpsertOption) which adjust the upsert, such as WithProfileMerge to add
+	// the profiles to an existing artefact's profiles instead of replacing them.
 	//
 	// Returns *registry_dto.ArtefactMeta which contains the artefact metadata.
 	// Returns error when the operation fails.
@@ -299,6 +302,7 @@ type RegistryService interface {
 		sourceData io.Reader,
 		storageBackendID string,
 		desiredProfiles []registry_dto.NamedProfile,
+		opts ...UpsertOption,
 	) (*registry_dto.ArtefactMeta, error)
 
 	// AddVariant adds a new variant to an existing artefact.
@@ -426,10 +430,22 @@ type RegistryService interface {
 	// Returns []string which contains all backend IDs, sorted alphabetically.
 	ListBlobStoreIDs() []string
 
-	// ArtefactEventsPublished returns the number of artefact events published. Used for
-	// pipeline flush detection to check that all events are processed before the system is
-	// considered idle.
+	// ArtefactEventsIssued returns the number of artefact events issued to the bus,
+	// including events whose publish failed and that are still owed. Used for pipeline flush
+	// detection to check that all events are processed before the system is considered idle.
 	//
-	// Returns int64 which is the total count of published artefact events.
+	// Returns int64 which is the total count of issued artefact events.
+	ArtefactEventsIssued() int64
+
+	// ArtefactEventsPublished returns the number of artefact events issued.
+	//
+	// Returns int64 which is the total count of issued artefact events.
+	//
+	// Deprecated: use ArtefactEventsIssued.
 	ArtefactEventsPublished() int64
+
+	// FlushArtefactEvents publishes artefact events whose earlier publish failed.
+	//
+	// Returns int which is the number of events still owed after the attempt.
+	FlushArtefactEvents(ctx context.Context) int
 }

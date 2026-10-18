@@ -216,7 +216,7 @@ Usage in a PK page:
   <piko:partial is="layout" :server.page_title="'Contact'">
     <h1>Contact Us</h1>
 
-    <form p-on:submit.prevent="action.contact.Submit($form).call()">
+    <form p-on:submit.prevent="action.contact.Submit($form)">
       <div>
         <label for="name">Name</label>
         <input id="name" name="name" type="text" required />
@@ -269,8 +269,14 @@ type SubmitAction struct {
     piko.ActionMetadata
 }
 
-func (a SubmitAction) Call(name string, email string, message string) (ContactResponse, error) {
-    err := sendEmail(email, name, message)
+type SubmitInput struct {
+    Name    string `json:"name"`
+    Email   string `json:"email"`
+    Message string `json:"message"`
+}
+
+func (a SubmitAction) Call(input SubmitInput) (ContactResponse, error) {
+    err := sendEmail(input.Email, input.Name, input.Message)
     if err != nil {
         a.Response().AddHelper("showToast", "Could not send message.", "error")
         return ContactResponse{}, fmt.Errorf("sending email: %w", err)
@@ -283,7 +289,7 @@ func (a SubmitAction) Call(name string, email string, message string) (ContactRe
 
 Run `go run ./cmd/generator/main.go all` after creating new action files.
 
-**Key points**: `action.<package>.<StructNameMinusActionSuffix>` (here `action.contact.Submit`), `$form` binds input `name` to `Call` parameters, `piko.ActionMetadata` embed, `showToast` helper, generator auto-registers.
+**Key points**: `action.<package>.<StructNameMinusActionSuffix>` (here `action.contact.Submit`), `$form` binds input `name`s to the input struct's `json` tags, `piko.ActionMetadata` embed, `showToast` helper, generator auto-registers.
 
 ## Product list with loops and conditionals
 
@@ -304,7 +310,7 @@ Run `go run ./cmd/generator/main.go all` after creating new action files.
         <span p-if="product.InStock" class="badge-success">In Stock</span>
         <span p-else class="badge-danger">Out of Stock</span>
         <button
-          p-on:click="action.cart.Add({id: product.ID}).call()"
+          p-on:click="action.cart.Add({id: product.ID})"
           :disabled="!product.InStock"
         >
           Add to Cart
@@ -360,7 +366,7 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
         posts = append(posts, Post{
             Title: stringField(item, "Title"),
             Slug:  stringField(item, "Slug"),
-            Date:  stringField(item, "Date"),
+            Date:  stringField(item, "date"),
         })
     }
 

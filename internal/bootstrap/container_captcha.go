@@ -301,8 +301,6 @@ func (c *Container) SetCaptchaService(service captcha_domain.CaptchaServicePort)
 
 // IsAllowed checks whether the given key is within its rate limit.
 //
-// Takes ctx (context.Context) which propagates cancellation into the underlying rate
-// limit service.
 // Takes key (string) which identifies the resource being limited.
 // Takes limit (int) which is the maximum allowed requests.
 // Takes window (time.Duration) which is the time period for the limit.

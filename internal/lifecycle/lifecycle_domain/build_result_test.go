@@ -55,3 +55,17 @@ func TestBuildResult_HasFailures_ZeroStruct(t *testing.T) {
 
 	assert.False(t, result.HasFailures(), "expected HasFailures to return false for zero-value BuildResult")
 }
+
+func TestBuildResult_HasFailures_SeedFailureWithoutTaskFailures(t *testing.T) {
+	t.Parallel()
+
+	result := &BuildResult{
+		TotalDispatched: 5,
+		TotalCompleted:  5,
+		SeedFailures: []SeedFailure{
+			{Path: "lib/broken.png", Stage: "upsert", Error: "disk full"},
+		},
+	}
+
+	assert.True(t, result.HasFailures(), "a file the build could not seed must fail the build")
+}

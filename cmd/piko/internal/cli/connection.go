@@ -22,7 +22,7 @@ import (
 	"fmt"
 
 	"piko.sh/piko/cmd/piko/internal/tui/tui_adapters/provider_grpc"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // connect establishes a gRPC connection using the global options.

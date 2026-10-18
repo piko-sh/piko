@@ -108,6 +108,6 @@ These are authoritative sources. When a reference file is ambiguous or incomplet
 When debugging issues, inspect the build output in the user's project:
 
 - **`.piko/`** - contains generated intermediate files, including compiled JavaScript for `.pk` and `.pkc` files. Examining these reveals exactly what the framework produces from the source templates and script blocks.
-- **`dist/`** - contains generated Go code for compiled `.pk` pages and partials (e.g. `dist/pages/pages_index_abc123/component.go`). Inspect these to understand how the `Render` function, props, and metadata are wired together.
+- **`dist/`** - contains generated Go code for compiled `.pk` pages and partials (e.g. `dist/pages/pages_index_abc123/generated.go`). Inspect these to understand how the `Render` function, props, and metadata are wired together.
 
 Comparing source `.pk`/`.pkc` files against their generated output in `.piko/` and `dist/` is often the fastest way to diagnose template compilation issues, missing exports, or incorrect action wiring.

@@ -246,6 +246,19 @@ func (s *SpyRegistryPort) ClearSvgCache(ctx context.Context, svgID string) {
 	}
 }
 
+// InvalidateArtefact forwards an artefact invalidation to the delegate when it caches
+// artefact-derived data, so the spy can stand in for the render registry as an artefact
+// event invalidator.
+//
+// Takes artefactID (string) which identifies the artefact whose cached data is dropped.
+func (s *SpyRegistryPort) InvalidateArtefact(ctx context.Context, artefactID string) {
+	if invalidator, ok := s.delegate.(interface {
+		InvalidateArtefact(ctx context.Context, artefactID string)
+	}); ok {
+		invalidator.InvalidateArtefact(ctx, artefactID)
+	}
+}
+
 // GetArtefactServePath implements render_domain.RegistryPort.
 //
 // Takes artefactID (string) which identifies the artefact to look up.

@@ -18,7 +18,6 @@
 
 package models
 
-// UserKey is a named type used as a map key.
 type UserKey struct {
 	ID int
 }

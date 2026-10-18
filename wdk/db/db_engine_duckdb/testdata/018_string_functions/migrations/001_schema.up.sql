@@ -1,4 +1,0 @@
-CREATE TABLE labels (
-    id INTEGER PRIMARY KEY,
-    value VARCHAR NOT NULL
-);

@@ -35,7 +35,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/wal/wal_domain"
 	"piko.sh/piko/wdk/clock"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 func collectEntries[K comparable, V any](it iter.Seq2[wal_domain.Entry[K, V], error]) ([]wal_domain.Entry[K, V], error) {

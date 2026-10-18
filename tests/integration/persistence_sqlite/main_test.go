@@ -32,9 +32,9 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"piko.sh/piko/internal/querier/querier_adapters/migration_sql"
-	"piko.sh/piko/internal/querier/querier_domain"
 	"piko.sh/piko/internal/testutil/leakcheck"
+	"piko.sh/piko/wdk/db"
+	"piko.sh/piko/wdk/db/db_engine_sqlite"
 	"piko.sh/piko/wdk/db/db_schema_orchestrator_sqlite"
 	"piko.sh/piko/wdk/db/db_schema_registry_sqlite"
 )
@@ -90,11 +90,10 @@ func runMigrationsWithDir(t *testing.T, database *sql.DB, migration_fs embed.FS,
 
 	ctx := context.Background()
 
-	executor := migration_sql.NewExecutor(database, migration_sql.SQLiteDialect())
-	file_reader := migration_sql.NewFSFileReader(migration_fs)
-	service := querier_domain.NewMigrationService(executor, file_reader, directory)
+	service, err := db.NewMigrator(db_engine_sqlite.SQLite(), database, migration_fs, directory)
+	require.NoError(t, err, "creating migration service")
 
-	_, err := service.Up(ctx)
+	_, err = service.Up(ctx)
 	require.NoError(t, err, "running migrations")
 }
 

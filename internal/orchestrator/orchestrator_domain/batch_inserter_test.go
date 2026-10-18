@@ -30,13 +30,16 @@ import (
 )
 
 type mockTaskStoreBatch struct {
+	UnimplementedTaskStoreV2
 	createTasksErr    error
 	createdTasks      []*Task
 	mu                sync.Mutex
 	createTasksCalled atomic.Int32
 }
 
-func (m *mockTaskStoreBatch) CreateTask(_ context.Context, _ *Task) error { return nil }
+func (m *mockTaskStoreBatch) CreateTask(ctx context.Context, task *Task) error {
+	return m.CreateTasks(ctx, []*Task{task})
+}
 func (m *mockTaskStoreBatch) CreateTasks(_ context.Context, tasks []*Task) error {
 	m.createTasksCalled.Add(1)
 	m.mu.Lock()
@@ -48,9 +51,6 @@ func (m *mockTaskStoreBatch) UpdateTask(_ context.Context, _ *Task) error { retu
 func (m *mockTaskStoreBatch) GetTasksByID(_ context.Context, _ []string) ([]*Task, error) {
 	return nil, nil
 }
-func (m *mockTaskStoreBatch) FetchAndMarkDueTasks(_ context.Context, _ TaskPriority, _ int) ([]*Task, error) {
-	return nil, nil
-}
 func (m *mockTaskStoreBatch) GetWorkflowStatus(_ context.Context, _ string) (bool, error) {
 	return false, nil
 }
@@ -58,22 +58,6 @@ func (m *mockTaskStoreBatch) PendingTaskCount(_ context.Context) (int64, error) 
 func (m *mockTaskStoreBatch) PromoteScheduledTasks(_ context.Context) (int, error) { return 0, nil }
 func (m *mockTaskStoreBatch) CreateTaskWithDedup(_ context.Context, task *Task) error {
 	return m.CreateTask(context.Background(), task)
-}
-func (m *mockTaskStoreBatch) RecoverStaleTasks(_ context.Context, _ time.Duration, _ int, _ string) (int, error) {
-	return 0, nil
-}
-func (m *mockTaskStoreBatch) GetStaleProcessingTaskCount(_ context.Context, _ time.Duration) (int64, error) {
-	return 0, nil
-}
-func (m *mockTaskStoreBatch) UpdateTaskHeartbeat(_ context.Context, _ string) error { return nil }
-func (m *mockTaskStoreBatch) ClaimStaleTasksForRecovery(_ context.Context, _ string, _ time.Duration, _ time.Duration, _ int) ([]RecoveryClaimedTask, error) {
-	return nil, nil
-}
-func (m *mockTaskStoreBatch) RecoverClaimedTasks(_ context.Context, _ string, _ int, _ string) (int, error) {
-	return 0, nil
-}
-func (m *mockTaskStoreBatch) ReleaseRecoveryLeases(_ context.Context, _ string) (int, error) {
-	return 0, nil
 }
 func (m *mockTaskStoreBatch) CreateWorkflowReceipt(_ context.Context, _, _, _ string) error {
 	return nil
@@ -205,8 +189,8 @@ func TestFlushTaskBatch_Success(t *testing.T) {
 	if len(result) != 0 {
 		t.Error("successful flush should return empty (reset) slice")
 	}
-	if store.createTasksCalled.Load() != 1 {
-		t.Errorf("CreateTasks should be called once, got %d", store.createTasksCalled.Load())
+	if store.createTasksCalled.Load() != 2 {
+		t.Errorf("tasks should be admitted individually, got %d", store.createTasksCalled.Load())
 	}
 	if len(store.createdTasks) != 2 {
 		t.Errorf("expected 2 created tasks, got %d", len(store.createdTasks))

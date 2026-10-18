@@ -18,17 +18,14 @@
 
 package main
 
-// MyType has a method we expect to be promoted.
 type MyType struct{}
 
 func (m MyType) DoWork() string { return "done" }
 
-// Wrapper is a generic type that will be instantiated and embedded.
 type Wrapper[T any] struct {
 	Value T
 }
 
-// Worker is a generic struct with a method.
 type Worker[T any] struct {
 	Data T
 }
@@ -37,8 +34,6 @@ func (w Worker[T]) Process() T {
 	return w.Data
 }
 
-// StringWorker embeds an *instantiated* generic type.
-// THIS is the pattern that results in method promotion.
 type StringWorker struct {
 	Worker[string]
 }

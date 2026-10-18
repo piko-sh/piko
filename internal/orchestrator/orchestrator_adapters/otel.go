@@ -80,10 +80,6 @@ var (
 	// the SQLite task store.
 	SQLiteTaskStoreUpdateTaskDuration metric.Float64Histogram
 
-	// SQLiteTaskStoreFetchDueTasksDuration records the time taken to fetch due tasks from
-	// the SQLite task store.
-	SQLiteTaskStoreFetchDueTasksDuration metric.Float64Histogram
-
 	// SQLiteTaskStoreGetWorkflowStatusDuration records the duration in seconds of
 	// GetWorkflowStatus operations on the SQLite task store.
 	SQLiteTaskStoreGetWorkflowStatusDuration metric.Float64Histogram
@@ -99,10 +95,6 @@ var (
 	// SQLiteTaskStoreUpdateTaskErrorCount counts errors during task updates in the SQLite
 	// task store.
 	SQLiteTaskStoreUpdateTaskErrorCount metric.Int64Counter
-
-	// SQLiteTaskStoreFetchDueTasksErrorCount tracks the number of errors that occur when
-	// fetching due tasks from the SQLite task store.
-	SQLiteTaskStoreFetchDueTasksErrorCount metric.Int64Counter
 
 	// SQLiteTaskStoreGetWorkflowErrorCount tracks the number of errors when retrieving
 	// workflow data from the SQLite task store.
@@ -149,6 +141,10 @@ var (
 	// BridgeTaskDispatchErrorCount tracks the number of errors that occur when sending
 	// bridge tasks.
 	BridgeTaskDispatchErrorCount metric.Int64Counter
+
+	// BridgeEventRetryCount tracks artefact events handled again after a failure that may
+	// pass.
+	BridgeEventRetryCount metric.Int64Counter
 
 	// BridgeEventsProcessedCount tracks the total number of bridge events that have been
 	// processed.
@@ -304,15 +300,6 @@ func init() {
 		otel.Handle(err)
 	}
 
-	SQLiteTaskStoreFetchDueTasksDuration, err = meter.Float64Histogram(
-		"orchestrator.adapters.sqlite_task_store_fetch_due_tasks_duration",
-		metric.WithDescription("Duration of fetching due tasks operations"),
-		metric.WithUnit("ms"),
-	)
-	if err != nil {
-		otel.Handle(err)
-	}
-
 	SQLiteTaskStoreGetWorkflowStatusDuration, err = meter.Float64Histogram(
 		"orchestrator.adapters.sqlite_task_store_get_workflow_status_duration",
 		metric.WithDescription("Duration of getting workflow status operations"),
@@ -342,14 +329,6 @@ func init() {
 	SQLiteTaskStoreUpdateTaskErrorCount, err = meter.Int64Counter(
 		"orchestrator.adapters.sqlite_task_store_update_task_error_count",
 		metric.WithDescription("Number of task update errors"),
-	)
-	if err != nil {
-		otel.Handle(err)
-	}
-
-	SQLiteTaskStoreFetchDueTasksErrorCount, err = meter.Int64Counter(
-		"orchestrator.adapters.sqlite_task_store_fetch_due_tasks_error_count",
-		metric.WithDescription("Number of fetching due tasks errors"),
 	)
 	if err != nil {
 		otel.Handle(err)
@@ -449,6 +428,14 @@ func init() {
 	BridgeTaskDispatchErrorCount, err = meter.Int64Counter(
 		"orchestrator.adapters.bridge_task_dispatch_error_count",
 		metric.WithDescription("Number of task dispatch errors"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	BridgeEventRetryCount, err = meter.Int64Counter(
+		"orchestrator.adapters.bridge_event_retry_count",
+		metric.WithDescription("Number of artefact events handled again after a failure that may pass"),
 	)
 	if err != nil {
 		otel.Handle(err)

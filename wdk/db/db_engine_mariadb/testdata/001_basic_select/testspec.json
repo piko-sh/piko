@@ -1,3 +1,0 @@
-{
-  "description": "Basic SELECT with MariaDB types: verifies the derivative engine parses MySQL-compatible DDL and resolves column types correctly."
-}

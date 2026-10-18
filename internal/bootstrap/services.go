@@ -38,8 +38,8 @@ import (
 	"piko.sh/piko/internal/llm/llm_domain"
 	"piko.sh/piko/internal/notification/notification_domain"
 	"piko.sh/piko/internal/pdfwriter/pdfwriter_domain"
-	"piko.sh/piko/internal/querier/querier_domain"
 	"piko.sh/piko/internal/spamdetect/spamdetect_domain"
+	"piko.sh/piko/internal/sqldb/sqldb_domain"
 	"piko.sh/piko/internal/storage/storage_domain"
 )
 
@@ -350,10 +350,10 @@ func GetDatabaseWriter(name string) (DBTX, error) {
 //
 // Takes name (string) which identifies the database.
 //
-// Returns querier_domain.MigrationServicePort which can apply and roll back migrations.
+// Returns sqldb_domain.MigrationService which can apply and roll back migrations.
 // Returns error when the framework is not initialised, the database is not registered, or
 // no migration filesystem was configured.
-func GetMigrationService(name string) (querier_domain.MigrationServicePort, error) {
+func GetMigrationService(name string) (sqldb_domain.MigrationService, error) {
 	container, err := getContainer()
 	if err != nil {
 		return nil, fmt.Errorf("get migration service: %w", err)
@@ -366,10 +366,10 @@ func GetMigrationService(name string) (querier_domain.MigrationServicePort, erro
 //
 // Takes name (string) which identifies the database.
 //
-// Returns querier_domain.SeedServicePort which can apply and inspect seeds.
+// Returns sqldb_domain.SeedService which can apply and inspect seeds.
 // Returns error when the framework is not initialised, the database is not registered, or
 // no seed filesystem was configured.
-func GetSeedService(name string) (querier_domain.SeedServicePort, error) {
+func GetSeedService(name string) (sqldb_domain.SeedService, error) {
 	container, err := getContainer()
 	if err != nil {
 		return nil, fmt.Errorf("get seed service: %w", err)

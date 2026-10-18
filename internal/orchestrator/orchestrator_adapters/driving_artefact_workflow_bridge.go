@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sync/atomic"
 	"time"
 
@@ -37,6 +38,14 @@ import (
 )
 
 const (
+	// bridgeEventMaxAttempts limits retries for artefact events that cannot be read or
+	// dispatched.
+	bridgeEventMaxAttempts = 5
+
+	// bridgeEventRetryDelay is the delay before the first retry of a failed artefact event;
+	// each later retry waits twice as long.
+	bridgeEventRetryDelay = 100 * time.Millisecond
+
 	// logKeyArtefactID is the log field key for artefact identifiers.
 	logKeyArtefactID = "artefactID"
 
@@ -48,6 +57,10 @@ const (
 
 	// logKeyReference is the log field key for the related component name.
 	logKeyReference = "reference"
+
+	// reconcileBatchSize is how many artefacts ReconcileArtefacts reads from the registry
+	// in one query.
+	reconcileBatchSize = 256
 )
 
 // ArtefactWorkflowBridge is a driving adapter that listens for artefact events from the
@@ -71,6 +84,10 @@ type ArtefactWorkflowBridge struct {
 	// eventBus sends events to handlers that have registered to receive them.
 	eventBus orchestrator_domain.EventBus
 
+	// emptyOutputs records profiles successfully built without variants; nil disables this
+	// tracking.
+	emptyOutputs *EmptyOutputs
+
 	// eventGroup prevents duplicate processing of events for the same artefact.
 	eventGroup singleflight.Group
 
@@ -88,21 +105,32 @@ type ArtefactWorkflowBridge struct {
 // Takes taskDispatcher (TaskDispatcher) which dispatches tasks to workers.
 // Takes eventBus (EventBus) which handles event distribution.
 //
+// Takes opts (...BridgeOption) which configure optional behaviour.
+//
 // Returns *ArtefactWorkflowBridge which is ready for use.
 func NewArtefactWorkflowBridge(
 	registry registry_domain.RegistryService,
 	orchestrator orchestrator_domain.OrchestratorService,
 	taskDispatcher orchestrator_domain.TaskDispatcher,
 	eventBus orchestrator_domain.EventBus,
+	opts ...BridgeOption,
 ) *ArtefactWorkflowBridge {
-	return &ArtefactWorkflowBridge{
+	bridge := &ArtefactWorkflowBridge{
 		registryService:         registry,
 		orchestratorService:     orchestrator,
 		taskDispatcher:          taskDispatcher,
 		eventBus:                eventBus,
+		emptyOutputs:            nil,
 		eventGroup:              singleflight.Group{},
 		artefactEventsProcessed: atomic.Int64{},
 	}
+	for _, opt := range opts {
+		opt(bridge)
+	}
+	if registry, ok := taskDispatcher.(orchestrator_domain.RequirementRegistry); ok {
+		registry.RegisterRequirementFactory(ExecutorNameArtefactCompiler, bridge.compileRequirement)
+	}
+	return bridge
 }
 
 // Listen starts listening for artefact events from the provided EventBus, automatically
@@ -167,10 +195,95 @@ func (b *ArtefactWorkflowBridge) ArtefactEventsProcessed() int64 {
 	return b.artefactEventsProcessed.Load()
 }
 
+// ReconcileArtefacts dispatches the work required by the given artefacts, reading them
+// from the registry reconcileBatchSize at a time so a large registry costs few queries.
+// An artefact that no longer exists is skipped.
+//
+// Takes artefactIDs ([]string) which identifies the artefacts to re-check.
+//
+// Returns int which is the number of tasks dispatched.
+// Returns error which joins the batches that could not be read and the artefacts whose
+// work could not be dispatched.
+func (b *ArtefactWorkflowBridge) ReconcileArtefacts(ctx context.Context, artefactIDs []string) (int, error) {
+	dispatched := 0
+	var failures []error
+	for batch := range slices.Chunk(artefactIDs, reconcileBatchSize) {
+		if err := ctx.Err(); err != nil {
+			return dispatched, err
+		}
+		artefacts, err := b.registryService.GetMultipleArtefacts(ctx, batch)
+		if err != nil {
+			failures = append(failures, fmt.Errorf("reading %d artefacts from %q: %w", len(batch), batch[0], err))
+			continue
+		}
+		for _, artefact := range artefacts {
+			count, err := b.evaluateAndDispatchProfiles(ctx, artefact, buildVariantStatusMap(artefact.ActualVariants))
+			dispatched += count
+			if err != nil {
+				failures = append(failures, err)
+			}
+		}
+	}
+	return dispatched, errors.Join(failures...)
+}
+
+// UnbuiltProfiles reports desired profiles with no ready variant whose dependencies are
+// all ready.
+//
+// Takes artefactIDs ([]string) which identifies the artefacts to inspect.
+//
+// Returns map[string][]string which maps each artefact ID to its unbuilt profile names.
+// Returns error which joins the artefacts that could not be read.
+func (b *ArtefactWorkflowBridge) UnbuiltProfiles(ctx context.Context, artefactIDs []string) (map[string][]string, error) {
+	unbuilt := make(map[string][]string)
+	var failures []error
+	for _, artefactID := range artefactIDs {
+		artefact, err := b.registryService.GetArtefact(ctx, artefactID)
+		if errors.Is(err, registry_domain.ErrArtefactNotFound) {
+			continue
+		}
+		if err != nil {
+			failures = append(failures, fmt.Errorf("reading artefact %q: %w", artefactID, err))
+			continue
+		}
+		variantStatus := buildVariantStatusMap(artefact.ActualVariants)
+		for i := range artefact.DesiredProfiles {
+			profile := &artefact.DesiredProfiles[i]
+			if isProfileAlreadyReady(variantStatus, profile.Name) ||
+				b.emptyOutputs.BuiltEmpty(artefact, profile.Name, profile.Profile.DependsOn.First()) {
+				continue
+			}
+			if len(findMissingDependencies(&profile.Profile.DependsOn, variantStatus)) > 0 {
+				continue
+			}
+			unbuilt[artefactID] = append(unbuilt[artefactID], profile.Name)
+		}
+	}
+	return unbuilt, errors.Join(failures...)
+}
+
+// compileRequirement rebuilds the requirement check of a compile task from its payload,
+// for a compile task dispatched without one, such as a rerun created when the task
+// holding its key settled.
+//
+// Takes task (*orchestrator_domain.Task) which is the compile task.
+//
+// Returns orchestrator_domain.DispatchRequirement which reports whether its profile still
+// needs building, or nil when the payload does not name one.
+func (b *ArtefactWorkflowBridge) compileRequirement(task *orchestrator_domain.Task) orchestrator_domain.DispatchRequirement {
+	artefactID := payloadString(task.Payload, "artefactID")
+	profileName := payloadString(task.Payload, "desiredProfileName")
+	if artefactID == "" || profileName == "" {
+		return nil
+	}
+	return b.profileDispatchRequirement(artefactID, profileName)
+}
+
 // setupHandlerSubscriptions establishes handler-based subscriptions synchronously and
 // returns a wait function that blocks until context cancellation.
 //
-// Takes ctx (context.Context) which controls the subscription lifetime.
+// Cancelling ctx ends the subscription.
+//
 // Takes bus (orchestrator_domain.EventBus) which provides handler-based event
 // subscription.
 //
@@ -295,6 +408,18 @@ func (b *ArtefactWorkflowBridge) handleEventWithAck(ctx context.Context, event o
 // Takes event (orchestrator_domain.Event) which contains the event type and payload with
 // artefact details.
 func (b *ArtefactWorkflowBridge) handleEvent(ctx context.Context, event orchestrator_domain.Event) {
+	b.handleEventAttempt(ctx, event, 1)
+}
+
+// handleEventAttempt processes an artefact event with delayed retries for transient
+// failures.
+//
+// The event is counted as processed only after success or exhausted retries.
+//
+// Takes event (orchestrator_domain.Event) which contains the event type and payload with
+// artefact details.
+// Takes attempt (int) which is the attempt number, starting at 1.
+func (b *ArtefactWorkflowBridge) handleEventAttempt(ctx context.Context, event orchestrator_domain.Event, attempt int) {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "ArtefactWorkflowBridge.handleEvent",
 		logger_domain.String(logKeyReference, "artefactEvent"),
@@ -325,19 +450,43 @@ func (b *ArtefactWorkflowBridge) handleEvent(ctx context.Context, event orchestr
 		return b.processArtefactEvent(ctx, span, event, artefactID)
 	})
 
+	if err != nil && attempt < bridgeEventMaxAttempts && isRetryableBridgeError(err) && ctx.Err() == nil {
+		delay := bridgeEventRetryDelay << (attempt - 1)
+		l.Warn("Artefact event failed; handling it again",
+			logger_domain.Error(err),
+			logger_domain.Int("attempt", attempt),
+			logger_domain.Duration("retryIn", delay))
+		BridgeEventRetryCount.Add(ctx, 1)
+		time.AfterFunc(delay, func() {
+			b.handleEventAttempt(context.WithoutCancel(ctx), event, attempt+1)
+		})
+		return
+	}
+
 	b.finaliseEventHandling(ctx, span, err, artefactID, startTime)
+}
+
+// isRetryableBridgeError reports whether handling an artefact event again may succeed.
+//
+// Takes err (error) which is the failure.
+//
+// Returns bool which is false for a deleted artefact or a stopped dispatcher, which no
+// retry can change, and true otherwise.
+func isRetryableBridgeError(err error) bool {
+	return !errors.Is(err, registry_domain.ErrArtefactNotFound) &&
+		!errors.Is(err, orchestrator_domain.ErrDispatcherStopped)
 }
 
 // processArtefactEvent handles the main logic for processing an artefact event within
 // singleflight.
 //
-// Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes span (trace.Span) which records tracing data for this operation.
 // Takes event (orchestrator_domain.Event) which contains the event to process.
 // Takes artefactID (string) which identifies the artefact to process.
 //
 // Returns any which is always nil.
-// Returns error when fetching the artefact fails.
+// Returns error when fetching the artefact fails or a profile's task could not be
+// dispatched for a reason that may pass.
 func (b *ArtefactWorkflowBridge) processArtefactEvent(
 	ctx context.Context,
 	span trace.Span,
@@ -373,16 +522,15 @@ func (b *ArtefactWorkflowBridge) processArtefactEvent(
 		attribute.Int("profileCount", len(artefact.DesiredProfiles)),
 	)
 
-	tasksDispatched := b.evaluateAndDispatchProfiles(ctx, artefact, variantStatus)
+	tasksDispatched, err := b.evaluateAndDispatchProfiles(ctx, artefact, variantStatus)
 	span.SetAttributes(attribute.Int("tasksDispatched", tasksDispatched))
 
-	return nil, nil
+	return nil, err
 }
 
 // fetchArtefact retrieves artefact details from the registry and records fetch timing
 // metrics.
 //
-// Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes artefactID (string) which identifies the artefact to fetch.
 //
 // Returns *registry_dto.ArtefactMeta which contains the artefact details.
@@ -419,21 +567,28 @@ func (b *ArtefactWorkflowBridge) fetchArtefact(
 // their current status.
 //
 // Returns int which is the number of tasks successfully dispatched.
+// Returns error which joins the dispatch failures that may pass, so the event is handled
+// again; profiles already dispatched are deduplicated on the next attempt.
 func (b *ArtefactWorkflowBridge) evaluateAndDispatchProfiles(
 	ctx context.Context,
 	artefact *registry_dto.ArtefactMeta,
 	variantStatus map[string]registry_dto.VariantStatus,
-) int {
+) (int, error) {
 	tasksDispatched := 0
+	var failures []error
 
 	for i := range artefact.DesiredProfiles {
 		np := &artefact.DesiredProfiles[i]
-		if b.evaluateAndDispatchProfile(ctx, artefact, np.Name, &np.Profile, variantStatus) {
+		dispatched, err := b.evaluateAndDispatchProfile(ctx, artefact, np.Name, &np.Profile, variantStatus)
+		if dispatched {
 			tasksDispatched++
+		}
+		if err != nil {
+			failures = append(failures, err)
 		}
 	}
 
-	return tasksDispatched
+	return tasksDispatched, errors.Join(failures...)
 }
 
 // evaluateAndDispatchProfile evaluates a single profile and dispatches a task if
@@ -448,13 +603,14 @@ func (b *ArtefactWorkflowBridge) evaluateAndDispatchProfiles(
 // status of all variants.
 //
 // Returns bool which is true if a task was successfully dispatched.
+// Returns error when the task could not be dispatched for a reason that may pass.
 func (b *ArtefactWorkflowBridge) evaluateAndDispatchProfile(
 	ctx context.Context,
 	artefact *registry_dto.ArtefactMeta,
 	profileName string,
 	profile *registry_dto.DesiredProfile,
 	variantStatus map[string]registry_dto.VariantStatus,
-) bool {
+) (bool, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	profileCtx, profileSpan, profileLogger := l.Span(ctx, "EvaluateProfile",
 		logger_domain.String("profile", profileName),
@@ -464,10 +620,11 @@ func (b *ArtefactWorkflowBridge) evaluateAndDispatchProfile(
 
 	dedupKey := artefact.ID + ":" + profileName
 
-	if isProfileAlreadyReady(variantStatus, profileName) {
-		profileLogger.Trace("Profile variant already READY, skipping",
+	if isProfileAlreadyReady(variantStatus, profileName) ||
+		b.emptyOutputs.BuiltEmpty(artefact, profileName, profile.DependsOn.First()) {
+		profileLogger.Trace("Profile already built, skipping",
 			logger_domain.String("payloadKeyDeduplicationKey", dedupKey))
-		return false
+		return false, nil
 	}
 
 	missingDeps := findMissingDependencies(&profile.DependsOn, variantStatus)
@@ -476,7 +633,7 @@ func (b *ArtefactWorkflowBridge) evaluateAndDispatchProfile(
 			logger_domain.String("payloadKeyDeduplicationKey", dedupKey),
 			logger_domain.Field("missing", missingDeps))
 		profileSpan.SetAttributes(attribute.StringSlice("missingDependencies", missingDeps))
-		return false
+		return false, nil
 	}
 
 	return b.dispatchProfileTask(profileCtx, profileSpan, artefact, profileName, profile, dedupKey)
@@ -484,7 +641,6 @@ func (b *ArtefactWorkflowBridge) evaluateAndDispatchProfile(
 
 // dispatchProfileTask creates and sends a compilation task for the given profile.
 //
-// Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes span (trace.Span) which records tracing data.
 // Takes artefact (*registry_dto.ArtefactMeta) which is the artefact to compile.
 // Takes profileName (string) which identifies the target profile.
@@ -492,7 +648,9 @@ func (b *ArtefactWorkflowBridge) evaluateAndDispatchProfile(
 // Takes dedupKey (string) which prevents duplicate tasks.
 //
 // Returns bool which is true when the task was sent, or false when the task already
-// exists or sending failed.
+// exists, is no longer required, or sending failed.
+// Returns error when sending failed for a reason that may pass, such as a full backlog or
+// a failed store write.
 func (b *ArtefactWorkflowBridge) dispatchProfileTask(
 	ctx context.Context,
 	span trace.Span,
@@ -500,7 +658,7 @@ func (b *ArtefactWorkflowBridge) dispatchProfileTask(
 	profileName string,
 	profile *registry_dto.DesiredProfile,
 	dedupKey string,
-) bool {
+) (bool, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	l.Trace("All dependencies met, dispatching task",
 		logger_domain.String("payloadKeyDeduplicationKey", dedupKey),
@@ -525,23 +683,23 @@ func (b *ArtefactWorkflowBridge) dispatchProfileTask(
 			l.Trace("Task already exists for profile, skipping duplicate",
 				logger_domain.String(payloadKeyDeduplicationKey, dedupKey))
 			orchestrator_domain.TaskDeduplicationBlockedCount.Add(ctx, 1)
-			return false
+			return false, nil
 		}
 		if errors.Is(err, orchestrator_domain.ErrTaskNotRequired) {
 			l.Trace("Profile was built after it was evaluated, skipping dispatch",
 				logger_domain.String(payloadKeyDeduplicationKey, dedupKey))
-			return false
+			return false, nil
 		}
 		l.ReportError(span, err, "Failed to dispatch task to priority topic")
 		BridgeTaskDispatchErrorCount.Add(ctx, 1)
-		return false
+		return false, fmt.Errorf("dispatching profile %q of artefact %q: %w", profileName, artefact.ID, err)
 	}
 
 	l.Trace("Task dispatched successfully",
 		logger_domain.String("taskID", task.ID),
 		logger_domain.String(payloadKeyDeduplicationKey, dedupKey))
 	BridgeTasksDispatchedCount.Add(ctx, 1)
-	return true
+	return true, nil
 }
 
 // profileDispatchRequirement returns the check the dispatcher runs once the profile's
@@ -567,14 +725,30 @@ func (b *ArtefactWorkflowBridge) profileDispatchRequirement(artefactID, profileN
 		if err != nil {
 			return false, fmt.Errorf("re-reading artefact %q before dispatch: %w", artefactID, err)
 		}
-		return profileNeedsBuild(current, profileName), nil
+		return profileNeedsBuild(current, profileName) && !b.profileBuiltEmpty(current, profileName), nil
 	}
+}
+
+// profileBuiltEmpty reports whether a desired profile was built from the artefact's
+// current source and produced no output.
+//
+// Takes artefact (*registry_dto.ArtefactMeta) which is the artefact's current state.
+// Takes profileName (string) which names the profile.
+//
+// Returns bool which is true when the profile is complete although it has no variant.
+func (b *ArtefactWorkflowBridge) profileBuiltEmpty(artefact *registry_dto.ArtefactMeta, profileName string) bool {
+	for i := range artefact.DesiredProfiles {
+		desired := &artefact.DesiredProfiles[i]
+		if desired.Name == profileName {
+			return b.emptyOutputs.BuiltEmpty(artefact, profileName, desired.Profile.DependsOn.First())
+		}
+	}
+	return false
 }
 
 // finaliseEventHandling records metrics and updates span status after event processing
 // completes.
 //
-// Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes span (trace.Span) which receives status updates and timing data.
 // Takes err (error) which shows whether event handling succeeded.
 // Takes artefactID (string) which identifies the artefact for logging.
@@ -609,34 +783,14 @@ func (b *ArtefactWorkflowBridge) finaliseEventHandling(
 //
 // Returns orchestrator_domain.TaskPriority which is the mapped task priority.
 func (*ArtefactWorkflowBridge) mapPriority(priority registry_dto.ProfilePriority) orchestrator_domain.TaskPriority {
-	ctx := context.Background()
-
-	ctx, ml := logger_domain.From(ctx, log)
-	ctx, span, l := ml.Span(ctx, "ArtefactWorkflowBridge.mapPriority",
-		logger_domain.String(logKeyReference, "priorityMapping"),
-		logger_domain.String("registryPriority", string(priority)),
-	)
-	defer span.End()
-
-	var taskPriority orchestrator_domain.TaskPriority
-
 	switch priority {
 	case registry_dto.PriorityNeed:
-		taskPriority = orchestrator_domain.PriorityHigh
-		l.Trace("Mapped registry priority NEED to task priority HIGH")
-		span.SetAttributes(attribute.String("taskPriority", "HIGH"))
+		return orchestrator_domain.PriorityHigh
 	case registry_dto.PriorityWant:
-		taskPriority = orchestrator_domain.PriorityLow
-		l.Trace("Mapped registry priority WANT to task priority LOW")
-		span.SetAttributes(attribute.String("taskPriority", "LOW"))
+		return orchestrator_domain.PriorityLow
 	default:
-		taskPriority = orchestrator_domain.PriorityNormal
-		l.Trace("Mapped registry priority to default task priority NORMAL")
-		span.SetAttributes(attribute.String("taskPriority", "NORMAL"))
+		return orchestrator_domain.PriorityNormal
 	}
-
-	span.SetStatus(codes.Ok, "Priority mapped successfully")
-	return taskPriority
 }
 
 // buildVariantStatusMap creates a lookup map from variant IDs to their status.

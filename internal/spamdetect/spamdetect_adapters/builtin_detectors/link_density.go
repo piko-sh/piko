@@ -77,7 +77,6 @@ func (*LinkDensityDetector) Mode() spamdetect_dto.DetectorMode {
 
 // Analyse counts URLs in all fields tagged with SignalLinkDensity.
 //
-// Takes ctx (context.Context) which is the caller context.
 // Takes submission (*spamdetect_dto.Submission) which contains the field values.
 // Takes schema (*spamdetect_dto.Schema) which identifies the fields to check.
 //

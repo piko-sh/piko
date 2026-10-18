@@ -40,10 +40,11 @@ type compileCall struct {
 }
 
 type fakeInterpreter struct {
-	compile    func(call compileCall) error
-	registered map[string]bool
-	calls      []compileCall
-	mu         sync.Mutex
+	compile      func(call compileCall) error
+	compilesFile func(name string, source []byte) (bool, error)
+	registered   map[string]bool
+	calls        []compileCall
+	mu           sync.Mutex
 }
 
 func (f *fakeInterpreter) CompileAndExecute(ctx context.Context, modulePath string, packages map[string]map[string]string) error {
@@ -59,6 +60,13 @@ func (f *fakeInterpreter) CompileAndExecute(ctx context.Context, modulePath stri
 
 func (f *fakeInterpreter) HasRegisteredPackage(importPath string) bool {
 	return f.registered[importPath]
+}
+
+func (f *fakeInterpreter) CompilesFile(name string, source []byte) (bool, error) {
+	if f.compilesFile == nil {
+		return true, nil
+	}
+	return f.compilesFile(name, source)
 }
 
 func (f *fakeInterpreter) compileCalls() []compileCall {

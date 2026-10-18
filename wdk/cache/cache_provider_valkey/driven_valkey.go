@@ -153,10 +153,8 @@ func (a *ValkeyAdapter[K, V]) decodeKey(keyString string) (K, error) {
 // GetIfPresent retrieves a value from the cache if it exists, without blocking or
 // loading. When SearchSchema is configured, reads from JSON storage.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to retrieve.
 //
 // Returns V which is the cached value, or zero value if not found.
@@ -210,7 +208,6 @@ func (a *ValkeyAdapter[K, V]) GetIfPresent(ctx context.Context, key K) (V, bool,
 // Get retrieves a value from the cache, loading it via the provided loader if not
 // present.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cached value to retrieve.
 // Takes loader (Loader[K, V]) which loads the value if not already cached.
 //
@@ -253,10 +250,8 @@ func (a *ValkeyAdapter[K, V]) Get(ctx context.Context, key K, loader cache.Loade
 // Set stores a key-value pair in the cache with optional tags for grouped invalidation.
 // When a SearchSchema is configured, values are stored as JSON for search indexing.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry.
 // Takes value (V) which is the data to store.
 // Takes tags (...string) which provide optional grouping for bulk invalidation.
@@ -363,10 +358,8 @@ func (a *ValkeyAdapter[K, V]) SetWithTTL(ctx context.Context, key K, value V, tt
 
 // Invalidate removes a key from the cache and cleans up its tag links.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to remove.
 //
 // Returns error when the operation fails.
@@ -422,10 +415,8 @@ func (a *ValkeyAdapter[K, V]) encodeValue(value V) ([]byte, error) {
 // Compute atomically updates a cache entry using a compute function with optimistic
 // locking. Computes and writes the new value in one round trip.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
 // Takes computeFunction (func(...)) which calculates the new value based on the current
 // value and whether it exists.
@@ -538,7 +529,6 @@ func (a *ValkeyAdapter[K, V]) executeComputeInDedicated(ctx context.Context, c v
 // handleComputeResult is the shared implementation for processing the result of a compute
 // transaction attempt.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which is the cache key being computed.
 // Takes keyString (string) which is the string representation of the key for logging.
 // Takes opName (string) which is the operation name for log messages.
@@ -579,7 +569,6 @@ func (a *ValkeyAdapter[K, V]) handleComputeResult(ctx context.Context, key K, ke
 // handleComputeRetryResult processes the result of a Compute transaction attempt.
 // Delegates to handleComputeResult with reordered return values.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which is the cache key being computed.
 // Takes keyString (string) which is the string representation of the key for logging.
 // Takes err (error) which is the error from the transaction attempt, or nil on success.
@@ -596,10 +585,8 @@ func (a *ValkeyAdapter[K, V]) handleComputeRetryResult(ctx context.Context, key 
 
 // ComputeIfAbsent atomically computes and stores a value only if the key is not present.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to check or create.
 // Takes computeFunction (func() V) which generates the value if the key is absent.
 //
@@ -644,7 +631,6 @@ func (a *ValkeyAdapter[K, V]) ComputeIfAbsent(ctx context.Context, key K, comput
 // handleComputeIfAbsentResult processes the result of a ComputeIfAbsent transaction
 // attempt.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which is the cache key being computed.
 // Takes keyString (string) which is the string form of the key for logging.
 // Takes err (error) which is the error from the transaction attempt.
@@ -723,7 +709,6 @@ func (a *ValkeyAdapter[K, V]) computeIfAbsentTransaction(ctx context.Context, c 
 // When the context is already cancelled or has exceeded its deadline, returns the
 // context's error without performing any work.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
 // Takes computeFunction (func(...)) which receives the current value and returns the new
 // value along with an action indicating whether to update or remove.
@@ -798,7 +783,6 @@ func (a *ValkeyAdapter[K, V]) computeIfPresentTransaction(ctx context.Context, c
 // handleComputeIfPresentResult processes the result of a ComputeIfPresent transaction
 // attempt.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which is the cache key being computed.
 // Takes keyString (string) which is the string form of the key for logging.
 // Takes err (error) which is the error from the transaction attempt.
@@ -818,7 +802,6 @@ func (a *ValkeyAdapter[K, V]) handleComputeIfPresentResult(ctx context.Context, 
 // When the context is already cancelled or has exceeded its deadline, returns the
 // context's error without performing any work.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
 // Takes computeFunction (func(...)) which receives the old value and found flag,
 // returning a ComputeResult containing the new value, action, and optional TTL.
@@ -1214,10 +1197,8 @@ func (a *ValkeyAdapter[K, V]) bulkSetJSON(ctx context.Context, items map[K]V, ta
 
 // InvalidateByTags removes all cache entries linked to the given tags.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes tags (...string) which specifies the tags whose entries to remove.
 //
 // Returns int which is the number of entries removed.
@@ -1306,13 +1287,10 @@ func (a *ValkeyAdapter[K, V]) invalidateByNamespace(ctx context.Context) {
 // InvalidateAll removes all cache entries within the set namespace. If search is enabled,
 // it also drops the search index.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
 // When no namespace is set and AllowUnsafeFLUSHDB is false, the operation is blocked and
 // an error is returned.
-//
-// Takes ctx (context.Context) for cancellation and timeout.
 //
 // Returns error when the operation fails.
 func (a *ValkeyAdapter[K, V]) InvalidateAll(ctx context.Context) error {
@@ -1339,7 +1317,6 @@ func (a *ValkeyAdapter[K, V]) InvalidateAll(ctx context.Context) error {
 
 // BulkRefresh updates several cache entries in the background using the bulk loader.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes keys ([]K) which specifies the cache keys to refresh.
 // Takes bulkLoader (BulkLoader) which loads the new values for the keys.
 //
@@ -1365,7 +1342,6 @@ func (a *ValkeyAdapter[K, V]) BulkRefresh(ctx context.Context, keys []K, bulkLoa
 
 // Refresh asynchronously refreshes a single cache entry using the provided loader.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to refresh.
 // Takes loader (Loader[K, V]) which loads the fresh value for the given key.
 //
@@ -1443,7 +1419,6 @@ func (a *ValkeyAdapter[K, V]) scanAndYield(pattern string, yield func(K, V) bool
 
 // yieldScannedElements decodes and yields each key-value pair from a SCAN batch.
 //
-// Takes ctx (context.Context) for cancellation and timeout on value retrieval.
 // Takes elements ([]string) which contains the raw keys from a SCAN result.
 // Takes yield (func(K, V) bool) which receives each decoded key-value pair.
 //
@@ -1502,10 +1477,8 @@ func (a *ValkeyAdapter[K, V]) Values() iter.Seq[V] {
 
 // GetEntry retrieves the full entry metadata for a key including TTL information.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to retrieve.
 //
 // Returns cache.Entry[K, V] which contains the entry metadata and value.
@@ -1517,10 +1490,8 @@ func (a *ValkeyAdapter[K, V]) GetEntry(ctx context.Context, key K) (cache.Entry[
 
 // ProbeEntry retrieves entry metadata without affecting access patterns or TTL.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to probe.
 //
 // Returns cache.Entry[K, V] which contains the entry metadata and value.

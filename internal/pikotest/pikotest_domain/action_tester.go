@@ -57,8 +57,8 @@ func NewActionTester(tb testing.TB, entry daemon_adapters.ActionHandlerEntry) *A
 // Invoke creates a new action instance, injects test metadata, and calls the action with
 // the given arguments.
 //
-// Takes ctx (context.Context) which is the context for the action invocation, used to
-// inject mock dependencies via context values.
+// Mock dependencies can be injected through ctx values.
+//
 // Takes arguments (map[string]any) which maps parameter names to values. Pass nil or an
 // empty map for actions with no parameters.
 //

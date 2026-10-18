@@ -18,18 +18,12 @@
 
 package main
 
-// FunctionHolder contains fields with various function types
-// to test their serialisation.
 type FunctionHolder struct {
-	// A simple function type with no params or returns.
 	SimpleFunc func()
 
-	// A higher-order function that takes a function as a parameter.
 	HigherOrderFunc func(fn func())
 
-	// A zero-length array of function types.
 	ArrayOfFuncs [0]func()
 
-	// A map where the value is a function type.
 	MapOfFuncs map[string]func()
 }

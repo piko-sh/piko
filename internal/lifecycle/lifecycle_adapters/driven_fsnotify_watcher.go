@@ -33,7 +33,7 @@ import (
 	"piko.sh/piko/internal/lifecycle/lifecycle_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/wdk/goroutine"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 
 	"github.com/fsnotify/fsnotify"
 )
@@ -42,8 +42,12 @@ const (
 	// eventBufferSize is the buffer capacity for the file event channel.
 	eventBufferSize = 100
 
-	// debounceInterval is the minimum time between repeated file events.
-	debounceInterval = 50 * time.Millisecond
+	// writeQuietPeriod is how long a path must go without further write or chmod events
+	// before its coalesced write event is forwarded.
+	writeQuietPeriod = 50 * time.Millisecond
+
+	// writeMaxWait caps the delay before reporting a continuously written path.
+	writeMaxWait = 500 * time.Millisecond
 
 	// fieldFile is the logging field key for file paths.
 	fieldFile = "file"
@@ -76,9 +80,6 @@ type fsNotifyWatcher struct {
 
 	// dynamicFiles tracks files that are being watched for changes.
 	dynamicFiles map[string]bool
-
-	// debounced tracks when files were last processed to filter rapid duplicate events.
-	debounced map[string]time.Time
 
 	// shutdownCh signals scan goroutines to stop; closed during shutdown.
 	shutdownCh chan struct{}
@@ -378,7 +379,8 @@ func (f *fsNotifyWatcher) removeStaticWatch(ctx context.Context, directory strin
 	delete(f.staticDirs, directory)
 }
 
-// runEventLoop is the main loop that consumes events from fsnotify.
+// runEventLoop consumes fsnotify events and forwards debounced writes from the watcher
+// goroutine.
 //
 // Takes out (chan<- lifecycle_dto.FileEvent) which receives file events.
 func (f *fsNotifyWatcher) runEventLoop(ctx context.Context, out chan<- lifecycle_dto.FileEvent) {
@@ -386,7 +388,21 @@ func (f *fsNotifyWatcher) runEventLoop(ctx context.Context, out chan<- lifecycle
 	defer goroutine.RecoverPanic(ctx, "lifecycle.fsnotifyEventLoop")
 	ctx, l := logger_domain.From(ctx, log)
 	l.Internal("FSNotify event loop started.")
+
+	writes := newWriteDebouncer(writeQuietPeriod, writeMaxWait)
+	flushTimer := time.NewTimer(writeMaxWait)
+	flushTimer.Stop()
+	defer flushTimer.Stop()
+
 	for {
+		var flushC <-chan time.Time
+		if deadline, pending := writes.nextDeadline(); pending {
+			flushTimer.Reset(time.Until(deadline))
+			flushC = flushTimer.C
+		} else {
+			flushTimer.Stop()
+		}
+
 		select {
 		case <-ctx.Done():
 			l.Internal("FSNotify event loop context closed.")
@@ -396,7 +412,11 @@ func (f *fsNotifyWatcher) runEventLoop(ctx context.Context, out chan<- lifecycle
 				l.Internal("FSNotify events channel closed.")
 				return
 			}
-			f.handleFsnotifyEvent(ctx, ev, out)
+			f.handleFsnotifyEvent(ctx, ev, writes, out)
+		case <-flushC:
+			for _, ev := range writes.takeDue(time.Now()) {
+				f.forwardEvent(ctx, ev, out)
+			}
 		case wErr, ok := <-f.watcher.Errors:
 			if !ok {
 				l.Internal("FSNotify errors channel closed.")
@@ -407,14 +427,19 @@ func (f *fsNotifyWatcher) runEventLoop(ctx context.Context, out chan<- lifecycle
 	}
 }
 
-// handleFsnotifyEvent processes a single raw event from the file watcher.
+// handleFsnotifyEvent processes a raw watcher event.
+//
+// Writes and chmod events are debounced. Create, remove, and rename events are forwarded
+// immediately and discard queued writes for the same path.
 //
 // Takes ev (fsnotify.Event) which is the raw file system event to process.
+// Takes writes (*writeDebouncer) which holds back write and chmod events.
 // Takes out (chan<- lifecycle_dto.FileEvent) which receives the converted event if it
 // passes filtering.
 func (f *fsNotifyWatcher) handleFsnotifyEvent(
 	ctx context.Context,
 	ev fsnotify.Event,
+	writes *writeDebouncer,
 	out chan<- lifecycle_dto.FileEvent,
 ) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -423,9 +448,12 @@ func (f *fsNotifyWatcher) handleFsnotifyEvent(
 	if f.shouldIgnoreEvent(ctx, ev) {
 		return
 	}
-	if f.shouldDebounceEvent(ctx, ev) {
+	if isCoalescedEvent(ev) {
+		writes.record(ev, time.Now())
+		l.Trace("Holding write event until the file is quiet", logger_domain.String(fieldPathName, ev.Name))
 		return
 	}
+	writes.discard(ev.Name)
 
 	f.handleDirectoryCreation(ctx, ev)
 	f.handleDirectoryRemoval(ctx, ev)
@@ -444,30 +472,6 @@ func (*fsNotifyWatcher) shouldIgnoreEvent(ctx context.Context, ev fsnotify.Event
 		l.Trace("Ignoring editor temporary file", logger_domain.String(fieldFile, ev.Name))
 		return true
 	}
-	return false
-}
-
-// shouldDebounceEvent checks if the event should be debounced.
-//
-// Takes ev (fsnotify.Event) which is the file system event to check.
-//
-// Returns bool which is true if the event was debounced and should not be processed.
-//
-// Safe for concurrent use. Protects debounce state with a mutex.
-func (f *fsNotifyWatcher) shouldDebounceEvent(ctx context.Context, ev fsnotify.Event) bool {
-	now := time.Now()
-	f.mu.Lock()
-	defer f.mu.Unlock()
-
-	last, found := f.debounced[ev.Name]
-	isCreateOrRemove := ev.Has(fsnotify.Create) || ev.Has(fsnotify.Remove)
-
-	if found && now.Sub(last) < debounceInterval && !isCreateOrRemove {
-		_, l := logger_domain.From(ctx, log)
-		l.Trace("Debounced event", logger_domain.String(fieldPathName, ev.Name))
-		return true
-	}
-	f.debounced[ev.Name] = now
 	return false
 }
 
@@ -636,7 +640,6 @@ func NewFSNotifyWatcher(sandboxFactory safedisk.Factory) (lifecycle_domain.FileS
 		watcher:        w,
 		staticDirs:     make(map[string]bool),
 		dynamicFiles:   make(map[string]bool),
-		debounced:      make(map[string]time.Time),
 		shutdownCh:     make(chan struct{}),
 		sandboxFactory: sandboxFactory,
 		scanWg:         sync.WaitGroup{},

@@ -214,7 +214,6 @@ func (w *transformerWrapper[K, V]) unwrapAndReverse(ctx context.Context, data []
 // GetIfPresent retrieves a value if present, automatically reversing any transformations
 // and decoding the value.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the entry to retrieve.
 //
 // Returns V which is the decoded value, or the zero value if not found.
@@ -297,7 +296,6 @@ func (w *transformerWrapper[K, V]) Get(ctx context.Context, key K, loader cache_
 // Set stores a value for a key, automatically encoding and transforming it before
 // storage.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry.
 // Takes value (V) which is the data to store.
 // Takes tags (...string) which allows for group-based invalidation.
@@ -384,7 +382,6 @@ func (w *transformerWrapper[K, V]) BulkSet(ctx context.Context, items map[K]V, t
 
 // Invalidate removes an entry from the cache.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the entry to remove.
 //
 // Returns error when the underlying provider fails.
@@ -394,7 +391,6 @@ func (w *transformerWrapper[K, V]) Invalidate(ctx context.Context, key K) error 
 
 // InvalidateByTags passes through to the underlying provider.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes tags (...string) which specifies the cache tags to invalidate.
 //
 // Returns int which is the number of entries invalidated.
@@ -404,8 +400,6 @@ func (w *transformerWrapper[K, V]) InvalidateByTags(ctx context.Context, tags ..
 }
 
 // InvalidateAll removes all entries from the underlying cache provider.
-//
-// Takes ctx (context.Context) for cancellation and timeout.
 //
 // Returns error when the underlying provider fails.
 func (w *transformerWrapper[K, V]) InvalidateAll(ctx context.Context) error {
@@ -451,7 +445,6 @@ func (w *transformerWrapper[K, V]) encodeAndTransform(ctx context.Context, value
 
 // computeCallback handles the inner compute callback for the Compute method.
 //
-// Takes ctx (context.Context) which is propagated for cancellation and timeout.
 // Takes computeFunction (func(...)) which transforms the old value into a new value with
 // an action indicating what to do.
 //
@@ -491,7 +484,6 @@ func (w *transformerWrapper[K, V]) computeCallback(
 
 // Compute computes a new value atomically for the given key.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to compute.
 // Takes computeFunction (func(...)) which receives the old value and whether it was
 // found, and returns the new value with an action indicating what to do.
@@ -523,7 +515,6 @@ func (w *transformerWrapper[K, V]) Compute(ctx context.Context, key K, computeFu
 
 // ComputeIfAbsent atomically computes and stores a value if the key is absent.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the entry to look up or create.
 // Takes computeFunction (func() V) which generates the value if the key is absent.
 //
@@ -574,7 +565,6 @@ func (w *transformerWrapper[K, V]) ComputeIfAbsent(ctx context.Context, key K, c
 
 // computeIfPresentCallback creates the inner callback for ComputeIfPresent.
 //
-// Takes ctx (context.Context) which is propagated for cancellation and timeout.
 // Takes computeFunction (func(oldValue V) (newValue V, action ComputeAction)) which
 // updates the existing value and returns the action to take.
 //
@@ -610,7 +600,6 @@ func (w *transformerWrapper[K, V]) computeIfPresentCallback(
 
 // ComputeIfPresent atomically computes a new value for the key if it is present.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which is the key to look up and potentially update.
 // Takes computeFunction (func(...)) which computes the new value from the old value.
 //
@@ -641,7 +630,6 @@ func (w *transformerWrapper[K, V]) ComputeIfPresent(ctx context.Context, key K, 
 
 // ComputeWithTTL atomically computes a new value with per-call TTL control.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
 // Takes computeFunction (func(...)) which receives the old value and found flag,
 // returning a ComputeResult containing the new value, action, and optional TTL.
@@ -814,7 +802,6 @@ func (w *transformerWrapper[K, V]) processRefreshResult(ctx context.Context, byt
 
 // Refresh asynchronously reloads the value for a key.
 //
-// Takes ctx (context.Context) which controls cancellation and deadlines.
 // Takes key (K) which identifies the cache entry to refresh.
 // Takes loader (cache_dto.Loader[K, V]) which provides the refreshed value.
 //
@@ -909,7 +896,6 @@ func (w *transformerWrapper[K, V]) Values() iter.Seq[V] {
 
 // GetEntry returns a snapshot of the entry.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to retrieve.
 //
 // Returns cache_dto.Entry[K, V] which is the decoded entry snapshot.
@@ -923,7 +909,6 @@ func (w *transformerWrapper[K, V]) GetEntry(ctx context.Context, key K) (cache_d
 
 // ProbeEntry returns a snapshot without affecting access patterns.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to probe.
 //
 // Returns cache_dto.Entry[K, V] which is the decoded entry snapshot.
@@ -938,7 +923,6 @@ func (w *transformerWrapper[K, V]) ProbeEntry(ctx context.Context, key K) (cache
 // fetchAndProcessEntry runs a provider fetch via goroutine.SafeCall2, then decodes the
 // resulting byte entry through processEntry.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes operationName (string) which identifies the operation in goroutine.SafeCall2
 // ("cache.GetEntry" / "cache.ProbeEntry") and is forwarded to processEntry for error
 // logging.
@@ -968,7 +952,6 @@ func (w *transformerWrapper[K, V]) fetchAndProcessEntry(
 // processEntry unwraps transformations and decodes a byte-level cache entry back into a
 // typed Entry[K, V]. Returns an error if the reverse transform or decode fails.
 //
-// Takes ctx (context.Context) which is propagated for cancellation and timeout.
 // Takes byteEntry (cache_dto.Entry[K, []byte]) which is the raw byte-level entry to
 // decode.
 // Takes methodName (string) which identifies the calling method for error logging.
@@ -1012,8 +995,6 @@ func (w *transformerWrapper[K, V]) Stats() cache_dto.Stats {
 
 // Close releases all resources held by the transformer.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
-//
 // Returns error when the underlying provider fails to close.
 func (w *transformerWrapper[K, V]) Close(ctx context.Context) error {
 	return goroutine.SafeCall(ctx, "cache.Close", func() error { return w.provider.Close(ctx) })
@@ -1042,7 +1023,6 @@ func (w *transformerWrapper[K, V]) WeightedSize() uint64 {
 
 // SetExpiresAfter manually sets the expiration for a key (pass-through safe).
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
 // Takes expiresAfter (time.Duration) which specifies the expiration duration.
 //
@@ -1051,11 +1031,8 @@ func (w *transformerWrapper[K, V]) SetExpiresAfter(ctx context.Context, key K, e
 	return goroutine.SafeCall(ctx, "cache.SetExpiresAfter", func() error { return w.provider.SetExpiresAfter(ctx, key, expiresAfter) })
 }
 
-// SetRefreshableAfter manually sets the refresh time for a key.
+// SetRefreshableAfter sets the refresh time for a key.
 //
-// Pass-through safe.
-//
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
 // Takes refreshableAfter (time.Duration) which specifies when the entry becomes eligible
 // for refresh.
@@ -1068,7 +1045,6 @@ func (w *transformerWrapper[K, V]) SetRefreshableAfter(ctx context.Context, key 
 // Search returns ErrSearchNotSupported because the transformer wrapper stores values as
 // encoded bytes, not searchable structures.
 //
-// Takes ctx (context.Context) for cancellation.
 // Takes query (string) which is the search query (ignored).
 // Takes opts (*cache_dto.SearchOptions) which are the search options (ignored).
 //
@@ -1080,7 +1056,6 @@ func (*transformerWrapper[K, V]) Search(_ context.Context, _ string, _ *cache_dt
 // Query returns ErrSearchNotSupported because the transformer wrapper stores values as
 // encoded bytes, not queryable structures.
 //
-// Takes ctx (context.Context) for cancellation.
 // Takes opts (*cache_dto.QueryOptions) which are the query options (ignored).
 //
 // Returns empty SearchResult and ErrSearchNotSupported.

@@ -691,12 +691,10 @@ func (pe *PageEntry) GetIsE2EOnly() bool {
 	return pe.IsE2EOnly
 }
 
-// logRenderDiagnostics logs a component's render diagnostics at the most severe level.
+// logRenderDiagnostics logs the most severe render diagnostic.
 //
-// A healthy render may still emit advisory (warning or lower) diagnostics, so only an
-// error-or-above diagnostic is logged at Error and has its formatted detail written to
-// stderr; lesser diagnostics are logged quietly at Warn so they do not masquerade as
-// failures.
+// Errors include formatted details on stderr. Warnings include diagnostic codes and a
+// documentation link.
 //
 // Takes diagnostics ([]*generator_dto.RuntimeDiagnostic) which are the render diagnostics
 // to log.
@@ -710,7 +708,17 @@ func (pe *PageEntry) logRenderDiagnostics(ctx context.Context, diagnostics []*ge
 		return
 	}
 
-	l.Warn("AST function reported diagnostics", diagnosticCount)
+	first := firstDiagnostic(diagnostics)
+	if first == nil {
+		l.Warn("AST function reported diagnostics", diagnosticCount)
+		return
+	}
+	l.Warn("AST function reported diagnostics",
+		diagnosticCount,
+		logger_domain.String("codes", strings.Join(diagnosticCodes(diagnostics), ",")),
+		logger_domain.String("first", fmt.Sprintf("%s:%d:%d: %s", first.SourcePath, first.Line, first.Column, first.Message)),
+		logger_domain.String("docs", ast_domain.DiagnosticDocsURL(first.Code)),
+	)
 }
 
 // initialiseCachedJSScriptMetas pre-computes JS script metadata once during manifest load
@@ -1283,4 +1291,37 @@ func maxDiagnosticSeverity(diagnostics []*generator_dto.RuntimeDiagnostic) gener
 		}
 	}
 	return highest
+}
+
+// firstDiagnostic returns the first diagnostic that carries a code, or nil when none
+// does.
+//
+// Takes diagnostics ([]*generator_dto.RuntimeDiagnostic) which are the diagnostics to
+// scan.
+//
+// Returns *generator_dto.RuntimeDiagnostic which is the first coded diagnostic, or nil.
+func firstDiagnostic(diagnostics []*generator_dto.RuntimeDiagnostic) *generator_dto.RuntimeDiagnostic {
+	for _, diagnostic := range diagnostics {
+		if diagnostic != nil && diagnostic.Code != "" {
+			return diagnostic
+		}
+	}
+	return nil
+}
+
+// diagnosticCodes returns the distinct codes among the diagnostics, in the order they
+// first appear.
+//
+// Takes diagnostics ([]*generator_dto.RuntimeDiagnostic) which are the diagnostics to
+// scan.
+//
+// Returns []string which is the distinct codes.
+func diagnosticCodes(diagnostics []*generator_dto.RuntimeDiagnostic) []string {
+	var codes []string
+	for _, diagnostic := range diagnostics {
+		if diagnostic != nil && diagnostic.Code != "" && !slices.Contains(codes, diagnostic.Code) {
+			codes = append(codes, diagnostic.Code)
+		}
+	}
+	return codes
 }

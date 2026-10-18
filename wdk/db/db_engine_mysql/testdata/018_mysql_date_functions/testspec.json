@@ -1,3 +1,0 @@
-{
-  "description": "MySQL date and time functions: NOW(), CURDATE(), DATE_FORMAT(), STR_TO_DATE(), DATEDIFF(), DATE_ADD(), DATE_SUB(). Tests return type inference for temporal functions."
-}

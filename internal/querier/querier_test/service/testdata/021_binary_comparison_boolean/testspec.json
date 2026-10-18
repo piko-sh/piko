@@ -1,3 +1,0 @@
-{
-  "description": "Binary comparison expressions always produce boolean NOT NULL. Tests >, <> operators with NOT NULL and nullable operands."
-}

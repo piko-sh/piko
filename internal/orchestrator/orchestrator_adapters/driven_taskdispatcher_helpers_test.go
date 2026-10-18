@@ -21,6 +21,7 @@ package orchestrator_adapters
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -53,45 +54,22 @@ func Test_topicForPriority(t *testing.T) {
 	}
 }
 
-func Test_taskToPayload(t *testing.T) {
+func Test_refPayload(t *testing.T) {
 	t.Parallel()
 
-	d := &watermillTaskDispatcher{}
-	now := time.Now().UTC()
-
 	task := &orchestrator_domain.Task{
-		ID:                 "task-123",
-		WorkflowID:         "wf-456",
-		Executor:           "artefact.compiler",
-		Payload:            map[string]any{"key": "value"},
-		Config:             orchestrator_domain.TaskConfig{Priority: orchestrator_domain.PriorityHigh, MaxRetries: 3},
-		Status:             orchestrator_domain.StatusPending,
-		Attempt:            2,
-		Result:             map[string]any{"status": "ok"},
-		LastError:          "some error",
-		DeduplicationKey:   "dedup-key",
-		ExecuteAt:          now,
-		ScheduledExecuteAt: now.Add(10 * time.Minute),
-		CreatedAt:          now.Add(-1 * time.Hour),
-		UpdatedAt:          now,
+		ID:       "task-123",
+		Executor: "artefact.compiler",
+		Payload:  map[string]any{"key": "a large payload that stays in the store"},
+		Config:   orchestrator_domain.TaskConfig{Priority: orchestrator_domain.PriorityHigh, MaxRetries: 3},
+		Attempt:  2,
 	}
 
-	payload := d.taskToPayload(task)
-
-	assert.Equal(t, "task-123", payload["id"])
-	assert.Equal(t, "wf-456", payload["workflowID"])
-	assert.Equal(t, "artefact.compiler", payload["executor"])
-	assert.Equal(t, map[string]any{"key": "value"}, payload["payload"])
-	assert.Equal(t, task.Config, payload["config"])
-	assert.Equal(t, orchestrator_domain.StatusPending, payload["status"])
-	assert.Equal(t, 2, payload["attempt"])
-	assert.Equal(t, map[string]any{"status": "ok"}, payload["result"])
-	assert.Equal(t, "some error", payload["lastError"])
-	assert.Equal(t, "dedup-key", payload["deduplicationKey"])
-	assert.Equal(t, now, payload["executeAt"])
-	assert.Equal(t, now.Add(10*time.Minute), payload["scheduledExecuteAt"])
-	assert.Equal(t, now.Add(-1*time.Hour), payload["createdAt"])
-	assert.Equal(t, now, payload["updatedAt"])
+	assert.Equal(t, map[string]any{
+		"id":       "task-123",
+		"attempt":  2,
+		"priority": int(orchestrator_domain.PriorityHigh),
+	}, refPayload(orchestrator_domain.RefOf(task)), "only what a claim needs travels on the bus")
 }
 
 func Test_taskFromPayload_ValidPayload(t *testing.T) {
@@ -382,9 +360,9 @@ func Test_parseTaskConfigField(t *testing.T) {
 		task := &orchestrator_domain.Task{}
 		payload := map[string]any{
 			"config": map[string]any{
-				"Priority":   float64(orchestrator_domain.PriorityHigh),
-				"Timeout":    float64(30 * time.Second),
-				"MaxRetries": float64(5),
+				"priority":    float64(orchestrator_domain.PriorityHigh),
+				"timeout":     float64(30 * time.Second),
+				"max_retries": float64(5),
 			},
 		}
 		d.parseTaskConfigField(payload, task)
@@ -420,9 +398,9 @@ func Test_parseTaskConfig(t *testing.T) {
 	t.Run("all fields present", func(t *testing.T) {
 		t.Parallel()
 		configMap := map[string]any{
-			"Priority":   float64(2),
-			"Timeout":    float64(1000000000),
-			"MaxRetries": float64(3),
+			"priority":    float64(2),
+			"timeout":     float64(1000000000),
+			"max_retries": float64(3),
 		}
 		result := d.parseTaskConfig(configMap)
 		assert.Equal(t, orchestrator_domain.TaskPriority(2), result.Priority)
@@ -439,7 +417,7 @@ func Test_parseTaskConfig(t *testing.T) {
 	t.Run("partial fields", func(t *testing.T) {
 		t.Parallel()
 		configMap := map[string]any{
-			"Priority": float64(1),
+			"priority": float64(1),
 		}
 		result := d.parseTaskConfig(configMap)
 		assert.Equal(t, orchestrator_domain.TaskPriority(1), result.Priority)
@@ -450,58 +428,35 @@ func Test_parseTaskConfig(t *testing.T) {
 	t.Run("wrong types ignored", func(t *testing.T) {
 		t.Parallel()
 		configMap := map[string]any{
-			"Priority":   "high",
-			"Timeout":    "1s",
-			"MaxRetries": "3",
+			"priority":    "high",
+			"timeout":     "1s",
+			"max_retries": "3",
 		}
 		result := d.parseTaskConfig(configMap)
 		assert.Equal(t, orchestrator_domain.TaskConfig{}, result)
 	})
 }
 
-func Test_taskToPayload_RoundTrip(t *testing.T) {
+func Test_refPayload_RoundTrip(t *testing.T) {
 	t.Parallel()
 
-	eventBus := newMockEventBus()
-	config := orchestrator_domain.DefaultDispatcherConfig()
-	d := newWatermillTaskDispatcher(config, eventBus, nil)
-
-	now := time.Now().UTC()
+	d := newWatermillTaskDispatcher(orchestrator_domain.DefaultDispatcherConfig(), newMockEventBus(), nil)
 	original := &orchestrator_domain.Task{
-		ID:                 "round-trip-task",
-		WorkflowID:         "wf-rt",
-		Executor:           "test-executor",
-		Payload:            map[string]any{"data": "value"},
-		Config:             orchestrator_domain.TaskConfig{Priority: orchestrator_domain.PriorityHigh, MaxRetries: 3, Timeout: 5 * time.Second},
-		Status:             orchestrator_domain.StatusPending,
-		Attempt:            1,
-		Result:             map[string]any{"result": "ok"},
-		LastError:          "last err",
-		DeduplicationKey:   "dedup-rt",
-		ExecuteAt:          now,
-		ScheduledExecuteAt: now.Add(5 * time.Minute),
-		CreatedAt:          now.Add(-1 * time.Hour),
-		UpdatedAt:          now,
+		ID:      "round-trip-task",
+		Config:  orchestrator_domain.TaskConfig{Priority: orchestrator_domain.PriorityHigh},
+		Attempt: 1,
 	}
 
-	payload := d.taskToPayload(original)
-	restored, err := d.taskFromPayload(payload)
+	restored, err := d.taskFromPayload(refPayload(orchestrator_domain.RefOf(original)))
 	require.NoError(t, err)
-
 	assert.Equal(t, original.ID, restored.ID)
-	assert.Equal(t, original.WorkflowID, restored.WorkflowID)
-	assert.Equal(t, original.Executor, restored.Executor)
-	assert.Equal(t, original.Payload, restored.Payload)
-	assert.Equal(t, original.Status, restored.Status)
 	assert.Equal(t, original.Attempt, restored.Attempt)
-	assert.Equal(t, original.Result, restored.Result)
-	assert.Equal(t, original.LastError, restored.LastError)
-	assert.Equal(t, original.DeduplicationKey, restored.DeduplicationKey)
-	assert.Equal(t, original.ExecuteAt, restored.ExecuteAt)
-	assert.Equal(t, original.ScheduledExecuteAt, restored.ScheduledExecuteAt)
-	assert.Equal(t, original.CreatedAt, restored.CreatedAt)
-	assert.Equal(t, original.UpdatedAt, restored.UpdatedAt)
-	assert.Equal(t, original.Config, restored.Config)
+	assert.Equal(t, original.Config.Priority, restored.Config.Priority)
+
+	decoded, err := d.taskFromPayload(map[string]any{"id": "json", "attempt": float64(3), "priority": float64(2)})
+	require.NoError(t, err, "a reference that crossed a JSON bus decodes")
+	assert.Equal(t, 3, decoded.Attempt)
+	assert.Equal(t, orchestrator_domain.TaskPriority(2), decoded.Config.Priority)
 }
 
 func Test_handleTaskEvent_MalformedPayload(t *testing.T) {
@@ -537,11 +492,11 @@ func Test_persistOrUpdateTask(t *testing.T) {
 		wantCreated   bool
 	}{
 		{
-			name:          "retry task is updated to pending without a new record",
+			name:          "retry task preserves its committed state without a new write",
 			status:        orchestrator_domain.StatusRetrying,
 			attempt:       1,
 			wantCreated:   false,
-			wantStatus:    orchestrator_domain.StatusPending,
+			wantStatus:    orchestrator_domain.StatusRetrying,
 			wantCreateHit: 0,
 		},
 		{
@@ -567,7 +522,6 @@ func Test_persistOrUpdateTask(t *testing.T) {
 
 			store := &orchestrator_domain.MockTaskStore{}
 			config := orchestrator_domain.DefaultDispatcherConfig()
-			config.SyncPersistence = true
 			d := newWatermillTaskDispatcher(config, newMockEventBus(), store)
 
 			task := &orchestrator_domain.Task{
@@ -710,7 +664,6 @@ func Test_watermillTaskDispatcher_DispatchDelayed_DedupBlocked(t *testing.T) {
 		},
 	}
 	config := orchestrator_domain.DefaultDispatcherConfig()
-	config.SyncPersistence = true
 	delayedPub := newTrackingDelayedPublisher()
 
 	d := newWatermillTaskDispatcher(config, eventBus, store,
@@ -735,7 +688,6 @@ func Test_watermillTaskDispatcher_DispatchDelayed_NoDelayedPublisher(t *testing.
 	eventBus := newMockEventBus()
 	store := &orchestrator_domain.MockTaskStore{}
 	config := orchestrator_domain.DefaultDispatcherConfig()
-	config.SyncPersistence = true
 
 	d := newWatermillTaskDispatcher(config, eventBus, store)
 	ctx := t.Context()
@@ -752,46 +704,148 @@ func Test_watermillTaskDispatcher_DispatchDelayed_NoDelayedPublisher(t *testing.
 	assert.Equal(t, orchestrator_domain.StatusScheduled, task.Status)
 }
 
-func Test_watermillTaskDispatcher_Dispatch_PublishFails(t *testing.T) {
+func Test_watermillTaskDispatcher_Dispatch_TransientPublishFailureHoldsTask(t *testing.T) {
 	t.Parallel()
 
 	eventBus := newMockEventBus()
+	var refuse atomic.Bool
+	refuse.Store(true)
 	eventBus.publishFunc = func(_ context.Context, _ string, _ orchestrator_domain.Event) error {
-		return assert.AnError
+		if refuse.Load() {
+			return assert.AnError
+		}
+		return nil
 	}
-	config := orchestrator_domain.DefaultDispatcherConfig()
-
 	store := &orchestrator_domain.MockTaskStore{}
-	d := newWatermillTaskDispatcher(config, eventBus, store)
+	d := newWatermillTaskDispatcher(orchestrator_domain.DefaultDispatcherConfig(), eventBus, store)
 	startPublishing(t, d)
-	ctx := t.Context()
 
-	task := &orchestrator_domain.Task{
-		ID:         "task-1",
-		WorkflowID: "wf-1",
-		Executor:   "test-executor",
+	task := &orchestrator_domain.Task{ID: "task-1", WorkflowID: "wf-1", Executor: "test-executor"}
+	require.NoError(t, d.Dispatch(t.Context(), task), "a bus that cannot take the message yet is not a dispatch failure")
+	assert.Equal(t, orchestrator_domain.StatusPending, task.Status, "a held task is not failed")
+	assert.Zero(t, store.UpdateTaskCallCount.Load(), "a held task's record is left pending")
+
+	stats := d.Stats()
+	assert.Equal(t, int64(1), stats.TasksDispatched)
+	assert.Equal(t, 1, stats.HeldTasks)
+	assert.False(t, d.IsIdle())
+
+	d.publishHeld(t.Context())
+	assert.Equal(t, 1, d.Stats().HeldTasks, "the task stays held while the bus refuses it")
+
+	refuse.Store(false)
+	d.publishHeld(t.Context())
+	assert.Zero(t, d.Stats().HeldTasks, "the task is published once the bus takes it")
+	assert.Equal(t, int64(1), d.Stats().TasksDispatched, "publishing a held task does not count it twice")
+}
+
+func Test_watermillTaskDispatcher_Dispatch_PermanentPublishFailureAbandonsTask(t *testing.T) {
+	t.Parallel()
+
+	eventBus := newMockEventBus()
+	eventBus.publishFunc = func(_ context.Context, topic string, _ orchestrator_domain.Event) error {
+		if topic == orchestrator_domain.TopicTaskCompleted {
+			return nil
+		}
+		return ErrEventPayloadTooLarge
 	}
+	store := &orchestrator_domain.MockTaskStore{}
+	d := newWatermillTaskDispatcher(orchestrator_domain.DefaultDispatcherConfig(), eventBus, store)
+	startPublishing(t, d)
 
-	err := d.Dispatch(ctx, task)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "publishing task")
+	task := &orchestrator_domain.Task{ID: "task-1", WorkflowID: "wf-1", Executor: "test-executor"}
+	err := d.Dispatch(t.Context(), task)
+	require.ErrorIs(t, err, ErrEventPayloadTooLarge)
 	assert.Equal(t, orchestrator_domain.StatusFailed, task.Status,
-		"a task whose message was never published is recorded as failed so its key is freed")
-	assert.Contains(t, task.LastError, assert.AnError.Error())
+		"a task whose message can never be published is failed so its key is freed")
 	assert.Equal(t, int64(1), store.UpdateTaskCallCount.Load())
 
 	stats := d.Stats()
-	assert.Equal(t, int64(0), stats.TasksDispatched, "an unpublished task is not counted as dispatched")
+	assert.Equal(t, int64(1), stats.TasksDispatched, "the abandoned task is counted as dispatched")
+	assert.Equal(t, int64(1), stats.TasksFailed, "and as failed, so completion checks settle it")
 	assert.True(t, d.IsIdle())
+
+	completions := 0
+	for _, published := range eventBus.getPublishedEvents() {
+		if published.Topic == orchestrator_domain.TopicTaskCompleted {
+			completions++
+		}
+	}
+	assert.Equal(t, 1, completions, "anyone waiting for the task hears that it failed")
 }
+
+func Test_watermillTaskDispatcher_HeldTasksWaitForCapacity(t *testing.T) {
+	t.Parallel()
+
+	bus := &capacityEventBus{mockEventBus: newMockEventBus(), signal: make(chan struct{}, 1)}
+	d := newWatermillTaskDispatcher(orchestrator_domain.DefaultDispatcherConfig(), bus, &orchestrator_domain.MockTaskStore{})
+	require.NotNil(t, d.capacity, "a bus that bounds its messages reports its capacity")
+	require.True(t, d.holdForCapacity(orchestrator_domain.TaskRef{ID: "early"}) == false,
+		"nothing is held for capacity before the dispatcher runs")
+	startPublishing(t, d)
+
+	for _, id := range []string{"a", "b", "c"} {
+		require.True(t, d.holdForCapacity(orchestrator_domain.TaskRef{ID: id}))
+	}
+
+	bus.free.Store(2)
+	d.publishHeld(t.Context())
+	assert.Len(t, bus.getPublishedEvents(), 2, "only as many messages as the bus has room for are published")
+	assert.Equal(t, 1, d.heldCount())
+
+	bus.free.Store(5)
+	d.publishHeld(t.Context())
+	assert.Len(t, bus.getPublishedEvents(), 3)
+	assert.Zero(t, d.heldCount())
+}
+
+func Test_watermillTaskDispatcher_ShutdownLeavesHeldTasksPending(t *testing.T) {
+	t.Parallel()
+
+	store := &orchestrator_domain.MockTaskStore{}
+	d := newWatermillTaskDispatcher(orchestrator_domain.DefaultDispatcherConfig(), newMockEventBus(), store)
+	task := &orchestrator_domain.Task{ID: "task-1", WorkflowID: "wf-1", Executor: "test-executor"}
+	require.NoError(t, d.Dispatch(t.Context(), task), "a dispatch before Start is held")
+	require.Equal(t, 1, d.Stats().HeldTasks)
+
+	d.dropHeld(t.Context())
+	assert.Equal(t, orchestrator_domain.StatusPending, task.Status, "a held task is left for the next sweep, not failed")
+	assert.Zero(t, store.UpdateTaskCallCount.Load())
+	assert.Zero(t, d.Stats().TasksDispatched)
+	assert.ErrorIs(t, d.Dispatch(t.Context(), &orchestrator_domain.Task{ID: "late", WorkflowID: "late", Executor: "x"}),
+		orchestrator_domain.ErrDispatcherStopped)
+}
+
+func Test_classifyPublishError(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, publishTransient, classifyPublishError(assert.AnError))
+	assert.Equal(t, publishPermanent, classifyPublishError(ErrEventPayloadTooLarge))
+	assert.Equal(t, publishPermanent, classifyPublishError(permanentError{}))
+	assert.Equal(t, publishUnavailable, classifyPublishError(orchestrator_domain.ErrServiceClosed))
+}
+
+type permanentError struct{}
+
+func (permanentError) Error() string   { return "permanent" }
+func (permanentError) Permanent() bool { return true }
+
+type capacityEventBus struct {
+	*mockEventBus
+	signal chan struct{}
+	free   atomic.Int64
+}
+
+func (b *capacityEventBus) CapacitySignal() <-chan struct{} { return b.signal }
+
+func (b *capacityEventBus) FreeCapacity() int { return int(b.free.Load()) }
 
 func Test_handleTaskEvent_ValidTask(t *testing.T) {
 	t.Parallel()
 
 	eventBus := newMockEventBus()
-	store := &orchestrator_domain.MockTaskStore{}
+	store := storedDispatcherTasks(t)
 	config := orchestrator_domain.DefaultDispatcherConfig()
-	config.SyncPersistence = true
 
 	d := newWatermillTaskDispatcher(config, eventBus, store)
 	executor := newMockExecutor()
@@ -803,7 +857,9 @@ func Test_handleTaskEvent_ValidTask(t *testing.T) {
 		Executor:   "test-executor",
 		Payload:    map[string]any{"input": "data"},
 	}
-	payload := d.taskToPayload(task)
+	task.Status = orchestrator_domain.StatusPending
+	require.NoError(t, store.CreateTask(t.Context(), task))
+	payload := refPayload(orchestrator_domain.RefOf(task))
 
 	event := orchestrator_domain.Event{
 		Type:    orchestrator_domain.EventType("task.dispatch"),
@@ -822,7 +878,6 @@ func Test_watermillTaskDispatcher_Dispatch_RetryPath(t *testing.T) {
 	eventBus := newMockEventBus()
 	store := &orchestrator_domain.MockTaskStore{}
 	config := orchestrator_domain.DefaultDispatcherConfig()
-	config.SyncPersistence = true
 
 	d := newWatermillTaskDispatcher(config, eventBus, store)
 	startPublishing(t, d)
@@ -839,7 +894,7 @@ func Test_watermillTaskDispatcher_Dispatch_RetryPath(t *testing.T) {
 	err := d.Dispatch(ctx, task)
 	require.NoError(t, err)
 
-	assert.Equal(t, orchestrator_domain.StatusPending, task.Status)
+	assert.Equal(t, orchestrator_domain.StatusRetrying, task.Status)
 	events := eventBus.getPublishedEvents()
 	require.Len(t, events, 1)
 }

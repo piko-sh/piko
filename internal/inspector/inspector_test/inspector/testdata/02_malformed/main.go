@@ -18,8 +18,5 @@
 
 package main
 
-// This file has a deliberate syntax error.
 type Response struct {
 	Message string
-
-// Missing closing brace '}'

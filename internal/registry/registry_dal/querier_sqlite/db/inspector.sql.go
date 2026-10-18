@@ -38,7 +38,7 @@ func (queries *Queries) ListAllArtefactsWithData(ctx context.Context) ([]ListAll
 const listrecentartefactswithdata = `SELECT id, source_path, created_at, updated_at, data_fbs
 FROM artefact
 ORDER BY updated_at DESC
-LIMIT ?;`
+LIMIT ?1;`
 
 type ListRecentArtefactsWithDataRow struct {
 	ID         string `json:"id"`
@@ -84,12 +84,16 @@ func (queries *Queries) ListVariantStatusCounts(ctx context.Context) ([]ListVari
 	}
 	defer rows.Close()
 	var results []ListVariantStatusCountsRow
-	for rows.Next() {
+	if rows.Next() {
 		var row ListVariantStatusCountsRow
-		if err := rows.Scan(&row.Status, &row.VariantCount); err != nil {
-			return nil, err
+		scanArgs := []any{&row.Status, &row.VariantCount}
+		for more := true; more; more = rows.Next() {
+			row = ListVariantStatusCountsRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

@@ -20,7 +20,6 @@ package main
 
 import "testcase_30_unexported_embedded_cross_package/auth"
 
-// Service embeds the exported wrapper type.
 type Service struct {
 	auth.AuthProvider
 }

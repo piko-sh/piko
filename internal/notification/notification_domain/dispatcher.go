@@ -35,7 +35,7 @@ import (
 	"piko.sh/piko/internal/shutdown"
 	"piko.sh/piko/wdk/clock"
 	"piko.sh/piko/wdk/goroutine"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 var (
@@ -545,8 +545,6 @@ func (d *NotificationDispatcher) GetProcessingStats(ctx context.Context) (Dispat
 
 // getOrCreateCircuitBreaker gets or creates a circuit breaker for a provider.
 //
-// Takes ctx (context.Context) which carries logging context for the state change
-// callback.
 // Takes providerName (string) which identifies the notification provider.
 //
 // Returns *gobreaker.CircuitBreaker[any] which is the circuit breaker for the provider.
@@ -842,8 +840,7 @@ func (d *NotificationDispatcher) sendToDeadLetter(ctx context.Context, qn *queue
 
 // produceRetryJobs monitors the retry heap and schedules items for retry.
 //
-// Takes ctx (context.Context) which carries tracing values with cancellation already
-// detached by Start.
+// Cancellation of ctx has already been detached by Start.
 //
 // Runs until shutdown is signalled. Blocks on the retry signal channel when the heap is
 // empty.

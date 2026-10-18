@@ -33,7 +33,7 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/wdk/logger"
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (
@@ -146,8 +146,6 @@ func (*ProvidersInspector) Name() string { return "grpc-providers" }
 
 // Health checks the underlying gRPC connection.
 //
-// Takes ctx (context.Context) which controls the call lifetime.
-//
 // Returns error when the health probe fails.
 func (p *ProvidersInspector) Health(ctx context.Context) error {
 	_, err := p.conn.healthClient.GetHealth(ctx, &pb.GetHealthRequest{})
@@ -162,14 +160,10 @@ func (p *ProvidersInspector) Health(ctx context.Context) error {
 // Returns error which is always nil.
 func (*ProvidersInspector) Close() error { return nil }
 
-// ListProviders fans out across known resource types and aggregates the responses into a
-// single flat list.
+// ListProviders aggregates provider responses across resource types.
 //
-// Concurrency is bounded at listProvidersMaxConcurrency; per-call deadlines stop a slow
-// type from stalling the whole list. Per-type errors are joined and returned alongside
-// the partial list so callers can both render what succeeded and surface what did not.
-//
-// Takes ctx (context.Context) which controls the fan-out lifetime.
+// Requests have bounded concurrency and individual deadlines. Failures are joined and
+// returned alongside successful results.
 //
 // Returns []tui_domain.ProviderEntry which is the aggregated list.
 // Returns error which is the joined per-type errors, or nil.
@@ -219,7 +213,6 @@ type listProvidersResult struct {
 
 // DescribeProvider fetches the per-provider sections + sub-resources.
 //
-// Takes ctx (context.Context) which controls the call lifetime.
 // Takes resourceType (string) which selects the provider resource type.
 // Takes name (string) which identifies the provider within that type.
 //
@@ -273,11 +266,8 @@ func (p *ProvidersInspector) DescribeProvider(ctx context.Context, resourceType,
 	}, nil
 }
 
-// listOneType issues ListProviders for a single resource type with per-call timeout and
-// panic recovery so a misbehaving server cannot take down the parent fan-out goroutine.
+// listOneType lists providers for one resource type with a timeout and panic recovery.
 //
-// Takes ctx (context.Context) which is the caller's context; a child context is derived
-// per call so individual slow types cannot stall the whole list.
 // Takes rt (string) which is the resource type to query.
 //
 // Returns listProvidersResult with either entries or err populated.
@@ -335,8 +325,6 @@ func (*DLQInspector) Name() string { return "grpc-dlq" }
 
 // Health checks the underlying gRPC connection.
 //
-// Takes ctx (context.Context) which controls the call lifetime.
-//
 // Returns error when the health probe fails.
 func (p *DLQInspector) Health(ctx context.Context) error {
 	_, err := p.conn.healthClient.GetHealth(ctx, &pb.GetHealthRequest{})
@@ -381,7 +369,6 @@ func (p *DLQInspector) DispatcherSummaries(ctx context.Context) ([]tui_domain.Di
 // dlqLimitMax both to defend against the int32 wire field overflowing and to bound the
 // returned slice when the server returns more rows than requested.
 //
-// Takes ctx (context.Context) which controls the call lifetime.
 // Takes dispatcherType (string) which selects the dispatcher.
 // Takes limit (int) which caps the requested row count.
 //
@@ -442,8 +429,6 @@ func (*RateLimiterInspector) Name() string { return "grpc-ratelimiter" }
 
 // Health checks the underlying gRPC connection.
 //
-// Takes ctx (context.Context) which controls the call lifetime.
-//
 // Returns error when the health probe fails.
 func (p *RateLimiterInspector) Health(ctx context.Context) error {
 	_, err := p.conn.healthClient.GetHealth(ctx, &pb.GetHealthRequest{})
@@ -501,8 +486,6 @@ func NewProfilingInspector(conn *Connection) *ProfilingInspector {
 func (*ProfilingInspector) Name() string { return "grpc-profiling" }
 
 // Health checks the underlying gRPC connection.
-//
-// Takes ctx (context.Context) which controls the call lifetime.
 //
 // Returns error when the health probe fails.
 func (p *ProfilingInspector) Health(ctx context.Context) error {

@@ -24,8 +24,6 @@ import (
 	"testcase_176_action_type_only_package/pkg/results"
 )
 
-// FetchAction returns a type from a package holding no action and takes no input, so the
-// registry names that package and the wrapper file never does.
 type FetchAction struct {
 	piko.ActionMetadata
 }

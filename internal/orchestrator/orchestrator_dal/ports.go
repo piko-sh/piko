@@ -29,6 +29,8 @@ import (
 // orchestrator_domain.TaskStore but is defined in the DAL layer to separate domain ports
 // from data access implementation.
 type TaskDAL interface {
+	orchestrator_domain.TaskStoreV2
+
 	// CreateTask saves a new task to the database.
 	//
 	// Takes task (*orchestrator_domain.Task) which is the task to save.
@@ -51,16 +53,6 @@ type TaskDAL interface {
 	//
 	// Returns error when the update fails.
 	UpdateTask(ctx context.Context, task *orchestrator_domain.Task) error
-
-	// FetchAndMarkDueTasks fetches tasks that are due and marks them as processing in a
-	// single atomic operation. This stops multiple workers from picking up the same task.
-	//
-	// Takes priority (TaskPriority) which filters tasks by their priority level.
-	// Takes limit (int) which sets the maximum number of tasks to fetch.
-	//
-	// Returns []*Task which contains the tasks now marked as processing.
-	// Returns error when the fetch or update fails.
-	FetchAndMarkDueTasks(ctx context.Context, priority orchestrator_domain.TaskPriority, limit int) ([]*orchestrator_domain.Task, error)
 
 	// GetTasksByID reads the tasks with the given IDs without changing them. IDs that do not
 	// exist are skipped.
@@ -99,73 +91,6 @@ type TaskDAL interface {
 	//
 	// Returns error when the task cannot be created or a duplicate exists.
 	CreateTaskWithDedup(ctx context.Context, task *orchestrator_domain.Task) error
-
-	// RecoverStaleTasks resets PROCESSING tasks that have exceeded the stale threshold.
-	// Tasks are marked as RETRYING if they have attempts remaining, or FAILED if they have
-	// exceeded max retries.
-	//
-	// Takes staleThreshold (time.Duration) which defines how long a task can be in
-	// PROCESSING before being considered stuck.
-	// Takes maxRetries (int) which is the maximum retry attempts before marking FAILED.
-	// Takes recoveryError (string) which is the error message to record on recovered tasks.
-	//
-	// Returns int which is the count of tasks recovered.
-	// Returns error when the recovery operation fails.
-	RecoverStaleTasks(ctx context.Context, staleThreshold time.Duration, maxRetries int, recoveryError string) (int, error)
-
-	// GetStaleProcessingTaskCount returns the count of tasks stuck in PROCESSING longer than
-	// the threshold.
-	//
-	// Takes staleThreshold (time.Duration) which defines when a PROCESSING task is
-	// considered stuck.
-	//
-	// Returns int64 which is the count of stale tasks.
-	// Returns error when the count cannot be retrieved.
-	GetStaleProcessingTaskCount(ctx context.Context, staleThreshold time.Duration) (int64, error)
-
-	// UpdateTaskHeartbeat updates the updated_at timestamp for a task that is currently in
-	// PROCESSING status. This prevents the task from being recovered by the stale task
-	// recovery mechanism while it is still actively being worked on.
-	//
-	// Takes taskID (string) which identifies the task to update.
-	//
-	// Returns error when the update fails (task not found or not in PROCESSING status).
-	UpdateTaskHeartbeat(ctx context.Context, taskID string) error
-
-	// ClaimStaleTasksForRecovery atomically claims stale PROCESSING tasks for recovery. It
-	// uses row-level locking (Postgres: FOR UPDATE SKIP LOCKED, SQLite: transaction) to
-	// prevent multiple nodes from recovering the same task.
-	//
-	// Takes nodeID (string) which identifies the node claiming the tasks.
-	// Takes staleThreshold (time.Duration) which defines when a task is considered stale.
-	// Takes leaseTimeout (time.Duration) which sets how long the claim is valid.
-	// Takes batchLimit (int) which limits the number of tasks to claim per call.
-	//
-	// Returns []orchestrator_domain.RecoveryClaimedTask which contains the claimed tasks.
-	// Returns error when the claim operation fails.
-	ClaimStaleTasksForRecovery(ctx context.Context, nodeID string, staleThreshold time.Duration, leaseTimeout time.Duration, batchLimit int) ([]orchestrator_domain.RecoveryClaimedTask, error)
-
-	// RecoverClaimedTasks recovers all tasks previously claimed by a node.
-	//
-	// Tasks are set to RETRYING if they have attempts remaining, or FAILED if they have
-	// exceeded max retries. The lease is cleared upon recovery.
-	//
-	// Takes nodeID (string) which identifies the node that claimed the tasks.
-	// Takes maxRetries (int) which is the maximum retry attempts before marking FAILED.
-	// Takes recoveryError (string) which is the error message to record.
-	//
-	// Returns int which is the count of tasks recovered.
-	// Returns error when the recovery fails.
-	RecoverClaimedTasks(ctx context.Context, nodeID string, maxRetries int, recoveryError string) (int, error)
-
-	// ReleaseRecoveryLeases releases all recovery leases held by this node. Called during
-	// graceful shutdown to allow other nodes to recover the tasks.
-	//
-	// Takes nodeID (string) which identifies the node releasing leases.
-	//
-	// Returns int which is the count of leases released.
-	// Returns error when the release fails.
-	ReleaseRecoveryLeases(ctx context.Context, nodeID string) (int, error)
 
 	// CreateWorkflowReceipt creates a new workflow receipt for tracking completion. Receipts
 	// are used to notify the originating node when a workflow completes, even if the tasks

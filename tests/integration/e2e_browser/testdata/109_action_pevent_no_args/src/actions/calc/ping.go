@@ -21,17 +21,14 @@ import (
 	"piko.sh/piko"
 )
 
-// PingAction responds with "pong" and takes no parameters.
 type PingAction struct {
 	piko.ActionMetadata
 }
 
-// PingResponse returns the pong result.
 type PingResponse struct {
 	Result string `json:"result"`
 }
 
-// Call takes no parameters and returns "pong".
 func (a PingAction) Call() (PingResponse, error) {
 	a.Response().AddHelper("showResult", "pong")
 

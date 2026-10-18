@@ -16,8 +16,6 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package results holds an action return type and no action of its own. Only the registry
-// names a return type, so the wrapper file must not import this package.
 package results
 
 type FetchOutput struct {

@@ -6,7 +6,7 @@ import "context"
 
 const createworkflowreceipt = `INSERT INTO workflow_receipts (
     id, workflow_id, node_id, status, created_at, updated_at
-) VALUES (?, ?, ?, 'PENDING', ?, ?);`
+) VALUES (?1, ?2, ?3, 'PENDING', ?4, ?5);`
 
 type CreateWorkflowReceiptParams struct {
 	ID         string
@@ -23,7 +23,7 @@ func (queries *Queries) CreateWorkflowReceipt(ctx context.Context, params Create
 
 const getpendingreceiptsbynode = `SELECT id, workflow_id, created_at
 FROM workflow_receipts
-WHERE node_id = ? AND status = 'PENDING';`
+WHERE node_id = ?1 AND status = 'PENDING';`
 
 type GetPendingReceiptsByNodeRow struct {
 	ID         string `json:"id"`
@@ -38,12 +38,16 @@ func (queries *Queries) GetPendingReceiptsByNode(ctx context.Context, nodeID str
 	}
 	defer rows.Close()
 	var results []GetPendingReceiptsByNodeRow
-	for rows.Next() {
+	if rows.Next() {
 		var row GetPendingReceiptsByNodeRow
-		if err := rows.Scan(&row.ID, &row.WorkflowID, &row.CreatedAt); err != nil {
-			return nil, err
+		scanArgs := []any{&row.ID, &row.WorkflowID, &row.CreatedAt}
+		for more := true; more; more = rows.Next() {
+			row = GetPendingReceiptsByNodeRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -53,7 +57,7 @@ func (queries *Queries) GetPendingReceiptsByNode(ctx context.Context, nodeID str
 
 const getpendingreceiptsbyworkflow = `SELECT id, workflow_id, node_id, created_at
 FROM workflow_receipts
-WHERE workflow_id = ? AND status = 'PENDING';`
+WHERE workflow_id = ?1 AND status = 'PENDING';`
 
 type GetPendingReceiptsByWorkflowRow struct {
 	ID         string `json:"id"`
@@ -69,12 +73,16 @@ func (queries *Queries) GetPendingReceiptsByWorkflow(ctx context.Context, workfl
 	}
 	defer rows.Close()
 	var results []GetPendingReceiptsByWorkflowRow
-	for rows.Next() {
+	if rows.Next() {
 		var row GetPendingReceiptsByWorkflowRow
-		if err := rows.Scan(&row.ID, &row.WorkflowID, &row.NodeID, &row.CreatedAt); err != nil {
-			return nil, err
+		scanArgs := []any{&row.ID, &row.WorkflowID, &row.NodeID, &row.CreatedAt}
+		for more := true; more; more = rows.Next() {
+			row = GetPendingReceiptsByWorkflowRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -84,7 +92,7 @@ func (queries *Queries) GetPendingReceiptsByWorkflow(ctx context.Context, workfl
 
 const getworkflowstatus = `SELECT EXISTS(
     SELECT 1 FROM tasks
-    WHERE workflow_id = ?
+    WHERE workflow_id = ?1
     AND status NOT IN ('COMPLETE', 'FAILED')
 ) AS has_incomplete;`
 
@@ -103,10 +111,10 @@ func (queries *Queries) GetWorkflowStatus(ctx context.Context, workflowID string
 
 const resolveworkflowreceipts = `UPDATE workflow_receipts
 SET status = 'RESOLVED',
-    error_message = ?,
-    updated_at = ?,
-    resolved_at = ?
-WHERE workflow_id = ? AND status = 'PENDING';`
+    error_message = ?1,
+    updated_at = ?2,
+    resolved_at = ?3
+WHERE workflow_id = ?4 AND status = 'PENDING';`
 
 type ResolveWorkflowReceiptsParams struct {
 	ErrorMessage *string

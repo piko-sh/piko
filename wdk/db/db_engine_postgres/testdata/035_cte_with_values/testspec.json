@@ -1,3 +1,0 @@
-{
-  "description": "CTE whose body is a VALUES clause. Validates that positional column types are inferred from literal types."
-}

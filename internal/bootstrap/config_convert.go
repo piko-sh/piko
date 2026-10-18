@@ -75,6 +75,7 @@ func NewDaemonConfig(sc *ServerConfig) daemon_domain.DaemonConfig {
 	return daemon_domain.DaemonConfig{
 		NetworkPort:          deref(sc.Network.Port, "8080"),
 		NetworkAutoNextPort:  deref(sc.Network.AutoNextPort, false),
+		NetworkBindAddress:   deref(sc.Network.BindAddress, ""),
 		HealthEnabled:        deref(sc.HealthProbe.Enabled, true),
 		HealthPort:           deref(sc.HealthProbe.Port, "9090"),
 		HealthBindAddress:    deref(sc.HealthProbe.BindAddress, "127.0.0.1"),

@@ -25,7 +25,7 @@ Piko supports SQLite, PostgreSQL, MySQL, MariaDB, CockroachDB, TimescaleDB, Duck
 |---|---|
 | SQL dialect in queries and migrations | Minor syntactic differences: placeholder tokens, data types, RETURNING support, UPSERT syntax. |
 | Engine config import | Swap `db_engine_sqlite.SQLite()` for the target's `Engine()` call. |
-| Dialect passed to `NewMigrationExecutor` | Swap `db.SQLiteDialect()` for the target's dialect. |
+| Engine passed to `db.NewMigrator` | Swap `db_engine_sqlite.SQLite()` for the target's constructor; the engine carries its migration dialect. |
 | Driver import | Swap `modernc.org/sqlite` for the target's driver (`github.com/jackc/pgx/v5/stdlib`, `github.com/go-sql-driver/mysql`, etc.). |
 | DSN format | Driver-specific. |
 
@@ -38,10 +38,10 @@ Piko supports SQLite, PostgreSQL, MySQL, MariaDB, CockroachDB, TimescaleDB, Duck
 | PostgreSQL (PgBouncer) | `piko.sh/piko/wdk/db/db_engine_postgres` | `db_engine_postgres.PostgresPgBouncer()` | `db.PostgresPgBouncerDialect()` | `github.com/jackc/pgx/v5/stdlib` |
 | MySQL | `piko.sh/piko/wdk/db/db_engine_mysql` | `db_engine_mysql.MySQL()` | `db.MySQLDialect()` or `db.MySQLDialectWithDSN(dsn)` | `github.com/go-sql-driver/mysql` |
 | MariaDB | `piko.sh/piko/wdk/db/db_engine_mariadb` | `db_engine_mariadb.MariaDB()` | `db.MySQLDialect()` | `github.com/go-sql-driver/mysql` |
-| CockroachDB | `piko.sh/piko/wdk/db/db_engine_cockroachdb` | `db_engine_cockroachdb.CockroachDB()` | `db.PostgresDialect()` | `github.com/jackc/pgx/v5/stdlib` |
-| TimescaleDB | `piko.sh/piko/wdk/db/db_engine_timescaledb` | `db_engine_timescaledb.TimescaleDB()` | `db.PostgresDialect()` (inherits postgres transactions and advisory locks) | `github.com/jackc/pgx/v5/stdlib` |
+| CockroachDB | `piko.sh/piko/wdk/db/db_engine_cockroachdb` | `db_engine_cockroachdb.CockroachDB()` | `db.CockroachDBDialect()` (table lock; CockroachDB has no advisory locks) | `github.com/jackc/pgx/v5/stdlib` |
+| TimescaleDB | `piko.sh/piko/wdk/db/db_engine_timescaledb` | `db_engine_timescaledb.TimescaleDB()` | `db.PostgresDialect()` (inherits postgres transactions and advisory locks; a migration that creates or refreshes a continuous aggregate runs outside a transaction) | `github.com/jackc/pgx/v5/stdlib` |
 | DuckDB | `piko.sh/piko/wdk/db/db_engine_duckdb` | `db_engine_duckdb.DuckDB()` | None. This is a codegen-only engine, so the `EngineConfig.MigrationDialect` is zero-valued. Do not point a `MigrationService` at a DuckDB connection. | `github.com/marcboeker/go-duckdb` |
-| ClickHouse | `piko.sh/piko/wdk/db/db_engine_clickhouse` | `db_engine_clickhouse.ClickHouse()` | None exported in `wdk/db`. The ClickHouse migration dialect uses a no-op lock and runs without transactions, so you must coordinate concurrent migrators externally (for example through a CI lock or a deployment gate). | `github.com/ClickHouse/clickhouse-go/v2` |
+| ClickHouse | `piko.sh/piko/wdk/db/db_engine_clickhouse` | `db_engine_clickhouse.ClickHouse()` | `db.ClickHouseDialect()`. The ClickHouse migration dialect uses a no-op lock and runs without transactions, so you must coordinate concurrent migrators externally (for example through a CI lock or a deployment gate). | `github.com/ClickHouse/clickhouse-go/v2` |
 
 Use `db_engine_postgres.PostgresPgBouncer()` when your application talks to PostgreSQL through PgBouncer in transaction-pooling mode. The pairing avoids advisory locks (which do not survive across pooled queries) and switches the migration runner to a table-based lock instead. `db_engine_mariadb.MariaDB()` ships as a MySQL variant - it returns the same `*MySQLEngine` underneath, with extra MariaDB-only function definitions registered.
 
@@ -60,7 +60,7 @@ import (
 
 database, _ := sql.Open("sqlite", "file:./data/app.db")
 
-executor := db.NewMigrationExecutor(database, db.SQLiteDialect())
+migrator, _ := db.NewMigrator(db_engine_sqlite.SQLite(), database, mydb.Migrations, "migrations")
 
 ssr := piko.New(
     piko.WithDatabase("primary", &db.DatabaseRegistration{
@@ -83,7 +83,7 @@ import (
 
 database, _ := sql.Open("pgx", os.Getenv("DATABASE_URL"))
 
-executor := db.NewMigrationExecutor(database, db.PostgresDialect())
+migrator, _ := db.NewMigrator(db_engine_postgres.Postgres(), database, mydb.Migrations, "migrations")
 
 ssr := piko.New(
     piko.WithDatabase("primary", &db.DatabaseRegistration{

@@ -24,7 +24,7 @@ import (
 	"testing"
 	"time"
 
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 func createTempTestFile(name, content string) (*os.File, error) {

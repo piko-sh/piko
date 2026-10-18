@@ -433,6 +433,11 @@ func (ds *daemonService) processNotification(ctx context.Context, notification *
 		return
 	}
 
+	if notification.Targeted {
+		l.Trace("Skipping SEO regeneration for a targeted build; its result covers only the rebuilt components")
+		return
+	}
+
 	ds.processSEOArtefacts(notification.Result)
 }
 
@@ -473,8 +478,6 @@ func (ds *daemonService) processSEOArtefacts(result *annotator_dto.ProjectAnnota
 
 // acquireSEOSlot reserves a permit on the SEO semaphore, blocking until one becomes free
 // or the daemon's SEO context is cancelled.
-//
-// Takes ctx (context.Context) which carries the SEO cancellation signal.
 //
 // Returns bool which is true when a slot was acquired; false when shutdown was triggered
 // before a slot became available, in which case the caller must skip launching the SEO

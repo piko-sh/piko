@@ -64,8 +64,9 @@ type AnnotatorPort interface {
 	) (*annotator_dto.ProjectAnnotationResult, *CompilationLogStore, error)
 
 	// AnnotateProjectWithCachedIntrospection annotates a project using cached type
-	// introspection data from a previous build, avoiding expensive recomputation. This fast
-	// path achieves 5-10x performance improvement for template-only changes.
+	// information.
+	//
+	// Cached arguments are unchanged; updated components are refreshed into a fork.
 	//
 	// Takes cachedComponentGraph (*annotator_dto.ComponentGraph) which contains the
 	// component relationships from a previous build.
@@ -75,8 +76,13 @@ type AnnotatorPort interface {
 	// information.
 	// Takes opts (...AnnotationOption) which configures annotation behaviour.
 	//
+	// The cached arguments are never written to; changed components are refreshed into a
+	// fork.
+	//
 	// Returns *annotator_dto.ProjectAnnotationResult which contains the annotated project
 	// data.
+	// Returns *IntrospectionSnapshot which is the cached state or refreshed fork that
+	// callers may cache. It is nil when refresh fails.
 	// Returns *CompilationLogStore which holds compilation messages and warnings.
 	// Returns error when annotation fails.
 	AnnotateProjectWithCachedIntrospection(
@@ -85,7 +91,7 @@ type AnnotatorPort interface {
 		cachedVirtualModule *annotator_dto.VirtualModule,
 		cachedTypeResolver *TypeResolver,
 		opts ...AnnotationOption,
-	) (*annotator_dto.ProjectAnnotationResult, *CompilationLogStore, error)
+	) (*annotator_dto.ProjectAnnotationResult, *IntrospectionSnapshot, *CompilationLogStore, error)
 
 	// RunPhase1IntrospectionAndAnnotate runs the full two-phase annotation pipeline and
 	// returns both introspection and annotation results.
@@ -182,8 +188,6 @@ type TypeInspectorPort interface {
 	// ResolveToUnderlyingASTWithContext resolves a type expression and returns both the
 	// underlying AST and the file path where the type is defined.
 	//
-	// Takes ctx (context.Context) which carries logging context for trace/request ID
-	// propagation.
 	// Takes typeExpr (goast.Expr) which is the type expression to resolve.
 	// Takes currentFilePath (string) which is the file path for context.
 	//
@@ -204,8 +208,6 @@ type TypeInspectorPort interface {
 	// ResolveExprToNamedTypeWithMemoization resolves a type expression to its named type DTO
 	// with memoization for performance.
 	//
-	// Takes ctx (context.Context) which carries logging context for trace/request ID
-	// propagation.
 	// Takes typeExpr (goast.Expr) which is the type expression to resolve.
 	// Takes importerPackagePath (string) which is the package path of the importer.
 	// Takes importerFilePath (string) which is the file path of the importer.
@@ -269,8 +271,6 @@ type TypeInspectorPort interface {
 
 	// FindFieldInfo finds information about a struct field.
 	//
-	// Takes ctx (context.Context) which carries logging context for trace/request ID
-	// propagation.
 	// Takes typeExpr (goast.Expr) which is the struct type expression.
 	// Takes fieldName (string) which is the field name.
 	// Takes packagePath (string) which is the package path.
@@ -357,4 +357,15 @@ type TypeInspectorBuilderPort interface {
 	// Returns TypeInspectorPort which provides type query capabilities.
 	// Returns bool which is false if Build has not been called or failed.
 	GetQuerier() (TypeInspectorPort, bool)
+
+	// BuildAndGetQuerier builds type information and returns the querier for that build in
+	// one step, so a concurrent build cannot replace the querier in between.
+	//
+	// Takes sourceOverlay (map[string][]byte) which contains in-memory source contents.
+	// Takes scriptHashes (map[string]string) which maps script paths to their hashes.
+	//
+	// Returns TypeInspectorPort which provides type query capabilities for this build.
+	// Returns error when the build fails, or inspector_domain.ErrQuerierUnavailable when no
+	// querier is available after a successful build.
+	BuildAndGetQuerier(ctx context.Context, sourceOverlay map[string][]byte, scriptHashes map[string]string) (TypeInspectorPort, error)
 }

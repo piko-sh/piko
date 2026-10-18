@@ -25,10 +25,10 @@ type DeleteGCHintsParams struct {
 }
 
 func (queries *Queries) DeleteGCHints(ctx context.Context, params DeleteGCHintsParams) error {
-	query, expansionError := pikoExpandSlicePlaceholders(deletegchints, []pikoSliceExpansionSpec{{Placeholder: 1, Count: len(params.IDs)}})
-	if expansionError != nil {
-		return expansionError
+	if err := pikoCheckBinds(len(params.IDs)); err != nil {
+		return err
 	}
+	query := pikoSplice(deletegchints, pikoList(pikoListMark{Empty: `= ANY('{}')`, Operator: 38, Start: 41, End: 45}, 1, len(params.IDs)))
 	args := make([]any, 0, len(params.IDs))
 	for _, v := range params.IDs {
 		args = append(args, v)
@@ -55,12 +55,16 @@ func (queries *Queries) PopGCHints(ctx context.Context, limit int) ([]PopGCHints
 	}
 	defer rows.Close()
 	var results []PopGCHintsRow
-	for rows.Next() {
+	if rows.Next() {
 		var row PopGCHintsRow
-		if err := rows.Scan(&row.ID, &row.BackendID, &row.StorageKey); err != nil {
-			return nil, err
+		scanArgs := []any{&row.ID, &row.BackendID, &row.StorageKey}
+		for more := true; more; more = rows.Next() {
+			row = PopGCHintsRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

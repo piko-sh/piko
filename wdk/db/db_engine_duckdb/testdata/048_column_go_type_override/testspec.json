@@ -1,3 +1,0 @@
-{
-  "description": "Query-level piko.column with `go_type:` maps a UUID column to uuid.UUID on DuckDB."
-}

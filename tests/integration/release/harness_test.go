@@ -37,13 +37,14 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	_ "modernc.org/sqlite"
 
-	"piko.sh/piko/internal/querier/querier_adapters/migration_sql"
-	"piko.sh/piko/internal/querier/querier_domain"
 	registry_otter "piko.sh/piko/internal/registry/registry_dal/otter"
 	registry_querier_postgres "piko.sh/piko/internal/registry/registry_dal/querier_postgres"
 	registry_querier_sqlite "piko.sh/piko/internal/registry/registry_dal/querier_sqlite"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
+	"piko.sh/piko/wdk/db"
+	"piko.sh/piko/wdk/db/db_engine_postgres"
+	"piko.sh/piko/wdk/db/db_engine_sqlite"
 	"piko.sh/piko/wdk/db/db_schema_registry_postgres"
 	"piko.sh/piko/wdk/db/db_schema_registry_sqlite"
 )
@@ -96,7 +97,7 @@ func newSQLiteStore(t *testing.T) registry_domain.MetadataStore {
 	database.SetMaxOpenConns(1)
 	t.Cleanup(func() { _ = database.Close() })
 
-	runRegistryMigrations(t, database, migration_sql.SQLiteDialect(), db_schema_registry_sqlite.Migrations)
+	runRegistryMigrations(t, database, db_engine_sqlite.SQLite(), db_schema_registry_sqlite.Migrations)
 	return registry_querier_sqlite.New(database)
 }
 
@@ -114,7 +115,7 @@ func newPostgresStore(t *testing.T) registry_domain.MetadataStore {
 		_ = database.Close()
 	})
 
-	runRegistryMigrations(t, database, migration_sql.PostgresDialect(), db_schema_registry_postgres.Migrations)
+	runRegistryMigrations(t, database, db_engine_postgres.Postgres(), db_schema_registry_postgres.Migrations)
 	return registry_querier_postgres.New(database)
 }
 
@@ -130,12 +131,11 @@ func postgresDSNWithSearchPath(dsn, schema string) string {
 	return dsn + separator + "options=" + url.QueryEscape(optionsValue)
 }
 
-func runRegistryMigrations(t *testing.T, database *sql.DB, dialect migration_sql.DialectConfig, migrations embed.FS) {
+func runRegistryMigrations(t *testing.T, database *sql.DB, engine db.EngineConfig, migrations embed.FS) {
 	t.Helper()
-	executor := migration_sql.NewExecutor(database, dialect)
-	reader := migration_sql.NewFSFileReader(migrations)
-	service := querier_domain.NewMigrationService(executor, reader, "migrations")
-	_, err := service.Up(t.Context())
+	service, err := db.NewMigrator(engine, database, migrations, "migrations")
+	require.NoError(t, err, "creating registry migration service")
+	_, err = service.Up(t.Context())
 	require.NoError(t, err, "running registry migrations")
 }
 

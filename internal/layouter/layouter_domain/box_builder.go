@@ -89,7 +89,6 @@ type BoxTreeInput struct {
 // BuildBoxTree constructs a LayoutBox tree from a TemplateAST and its resolved styles.
 // The returned root box represents the initial containing block with the page dimensions.
 //
-// Takes ctx (context.Context) which is the context for the build operation.
 // Takes input (BoxTreeInput) which holds the template, its styles, the image resolver,
 // the viewport size and the limit tracker.
 //
@@ -237,7 +236,6 @@ func (b *boxTreeBuilder) leaveElement() {
 // node, including box-type-specific setup, counter operations, pseudo-element insertion,
 // and recursive child processing.
 //
-// Takes ctx (context.Context) which carries the cancellation signal.
 // Takes node (*ast_domain.TemplateNode) which is the element node to process.
 // Takes style (*ComputedStyle) which is the computed style for the node.
 // Takes parent (*LayoutBox) which is the parent box to append to.
@@ -299,12 +297,9 @@ func (b *boxTreeBuilder) processElementNode(
 	fixAnonymousBoxes(box)
 }
 
-// applyBoxTypeSpecificSetup populates box fields that depend on the box type: intrinsic
-// dimensions for replaced elements (forms and other replaced content resolve differently)
-// and colspan/rowspan for table cells. Box types without type-specific setup are left
-// untouched.
+// applyBoxTypeSpecificSetup sets intrinsic dimensions for replaced elements and span
+// information for table cells.
 //
-// Takes ctx (context.Context) which carries the cancellation signal.
 // Takes box (*LayoutBox) which is the box to populate.
 // Takes node (*ast_domain.TemplateNode) which is the source element node.
 // Takes boxType (BoxType) which selects the type-specific setup to apply.

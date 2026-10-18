@@ -1,3 +1,0 @@
-{
-  "description": "INSERT IGNORE INTO syntax. Tests that the IGNORE modifier is correctly parsed and the statement is analysed as an INSERT."
-}

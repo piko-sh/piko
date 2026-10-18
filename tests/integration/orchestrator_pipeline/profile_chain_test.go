@@ -834,8 +834,8 @@ func TestProfileChain_DeterministicFailure_WastesRetries(t *testing.T) {
 	assert.Equal(t, 0, profileNames["gzip"], "gzip never dispatched")
 	assert.Equal(t, 0, profileNames["br"], "br never dispatched")
 
-	assert.Greater(t, elapsed, 8*time.Second,
-		"build should take >8s due to 10^1=10s retry backoff")
+	assert.Greater(t, elapsed, 4500*time.Millisecond,
+		"build should wait out the retry backoff: 10^1=10s, jittered down by up to half")
 	assert.Less(t, elapsed, 25*time.Second,
 		"build should complete within 25s (one 10s retry)")
 

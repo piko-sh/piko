@@ -1,7 +1,0 @@
-CREATE TABLE items (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    category VARCHAR(255) NOT NULL,
-    price INT NOT NULL,
-    description TEXT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

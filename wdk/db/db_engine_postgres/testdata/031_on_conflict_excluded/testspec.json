@@ -1,3 +1,0 @@
-{
-  "description": "ON CONFLICT EXCLUDED columns: EXCLUDED pseudo-table columns in DO UPDATE SET should resolve types correctly, including expressions referencing the target table."
-}

@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -80,6 +81,10 @@ type registryService struct {
 	// blobStores maps storage backend IDs to their blob store instances.
 	blobStores map[string]BlobStore
 
+	// owedEvents holds failed publications by event type and artefact ID and is guarded by
+	// owedEventsMu.
+	owedEvents map[string]orchestrator_domain.EventType
+
 	// defaultVariantOrigin is stamped on created variants whose Origin is otherwise unset.
 	defaultVariantOrigin registry_dto.VariantOrigin
 
@@ -92,10 +97,12 @@ type registryService struct {
 	// Empty for runtime services.
 	defaultBuildHash string
 
-	// artefactEventsPublished tracks the number of artefact events published. Used for
-	// pipeline flush detection: the daemon waits until the bridge has handled all published
-	// events before checking if idle.
-	artefactEventsPublished atomic.Int64
+	// artefactEventsIssued counts issued events, including failed publications retained for
+	// retry.
+	artefactEventsIssued atomic.Int64
+
+	// owedEventsMu guards owedEvents.
+	owedEventsMu sync.Mutex
 }
 
 // RegistryServiceOption configures optional registryService behaviour.
@@ -118,8 +125,8 @@ func WithDefaultVariantOrigin(origin registry_dto.VariantOrigin) RegistryService
 // build-origin variants the service creates when they do not already carry one. The
 // container supplies these during generation so the seed's variants are owned-by-release.
 //
-// Takes release which identifies the producing release.
-// Takes hash which is the full build-identity hash.
+// Takes release (string) which identifies the producing release.
+// Takes hash (string) which is the full build-identity hash.
 //
 // Returns RegistryServiceOption which applies the defaults.
 func WithDefaultBuildIdentity(release, hash string) RegistryServiceOption {
@@ -165,13 +172,22 @@ func (s *registryService) Check(ctx context.Context, checkType healthprobe_dto.C
 	return s.checkReadiness(ctx, checkType, startTime)
 }
 
-// ArtefactEventsPublished returns the number of artefact events published. Used for
-// pipeline flush detection - the daemon waits until the bridge has processed this many
-// events before checking if the dispatcher is idle.
+// ArtefactEventsIssued counts issued events, including failed publications retained until
+// FlushArtefactEvents delivers them.
 //
-// Returns int64 which is the count of artefact events published so far.
+// Returns int64 which is the count of artefact events issued so far.
+func (s *registryService) ArtefactEventsIssued() int64 {
+	return s.artefactEventsIssued.Load()
+}
+
+// ArtefactEventsPublished returns the number of artefact events issued.
+//
+// Returns int64 which is the count of artefact events issued so far.
+//
+// Deprecated: use ArtefactEventsIssued, which this returns; the count includes events
+// still owed after a failed publish.
 func (s *registryService) ArtefactEventsPublished() int64 {
-	return s.artefactEventsPublished.Load()
+	return s.ArtefactEventsIssued()
 }
 
 // checkLiveness performs a basic liveness check verifying the service is initialised.
@@ -333,15 +349,17 @@ func NewRegistryService(
 	opts ...RegistryServiceOption,
 ) RegistryService {
 	s := &registryService{
-		metaStore:               metaStore,
-		blobStores:              blobStores,
-		eventBus:                eventBus,
-		cache:                   cache,
-		loader:                  singleflight.Group{},
-		artefactEventsPublished: atomic.Int64{},
-		defaultVariantOrigin:    "",
-		defaultBuildRelease:     "",
-		defaultBuildHash:        "",
+		metaStore:            metaStore,
+		blobStores:           blobStores,
+		eventBus:             eventBus,
+		cache:                cache,
+		loader:               singleflight.Group{},
+		artefactEventsIssued: atomic.Int64{},
+		owedEvents:           make(map[string]orchestrator_domain.EventType),
+		defaultVariantOrigin: "",
+		defaultBuildRelease:  "",
+		defaultBuildHash:     "",
+		owedEventsMu:         sync.Mutex{},
 	}
 	for _, opt := range opts {
 		opt(s)

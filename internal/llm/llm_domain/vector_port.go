@@ -43,7 +43,6 @@ type VectorNamespaceConfig struct {
 type VectorStorePort interface {
 	// Store adds or updates a single document in the vector store.
 	//
-	// Takes ctx (context.Context) which controls cancellation.
 	// Takes namespace (string) which identifies the collection/index.
 	// Takes document (*llm_dto.VectorDocument) which is the document to store.
 	//
@@ -52,7 +51,6 @@ type VectorStorePort interface {
 
 	// BulkStore adds or updates multiple documents in a single operation.
 	//
-	// Takes ctx (context.Context) which controls cancellation.
 	// Takes namespace (string) which identifies the collection/index.
 	// Takes docs ([]*llm_dto.VectorDocument) which are the documents to store.
 	//
@@ -78,7 +76,6 @@ type VectorStorePort interface {
 
 	// Delete removes a document by its ID.
 	//
-	// Takes ctx (context.Context) which controls cancellation.
 	// Takes namespace (string) which identifies the collection/index.
 	// Takes id (string) which is the document ID.
 	//
@@ -105,15 +102,12 @@ type VectorStorePort interface {
 
 	// DeleteNamespace removes a namespace and all its documents.
 	//
-	// Takes ctx (context.Context) which controls cancellation.
 	// Takes namespace (string) which is the name of the namespace to delete.
 	//
 	// Returns error if the operation fails.
 	DeleteNamespace(ctx context.Context, namespace string) error
 
 	// Close releases any resources held by the vector store.
-	//
-	// Takes ctx (context.Context) which controls cancellation.
 	//
 	// Returns error if the operation fails.
 	Close(ctx context.Context) error

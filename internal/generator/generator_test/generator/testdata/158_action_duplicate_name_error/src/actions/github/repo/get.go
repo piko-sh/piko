@@ -24,8 +24,6 @@ type GetOutput struct {
 	Host string `json:"host"`
 }
 
-// GetAction derives the action name "repo.Get", which the identically named struct in
-// actions/gitlab/repo also derives.
 type GetAction struct {
 	piko.ActionMetadata
 }

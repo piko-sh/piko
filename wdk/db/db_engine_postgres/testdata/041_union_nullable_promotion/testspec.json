@@ -1,3 +1,0 @@
-{
-  "description": "UNION ALL where one branch has NULL literal. Validates that nullable promotion propagates across compound query branches."
-}

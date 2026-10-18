@@ -18,5 +18,4 @@
 
 package values
 
-// Value is a named type for map values.
 type Value struct{ Data string }

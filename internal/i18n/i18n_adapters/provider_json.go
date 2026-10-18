@@ -28,7 +28,7 @@ import (
 
 	"piko.sh/piko/internal/i18n/i18n_domain"
 	"piko.sh/piko/internal/json"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (

@@ -20,18 +20,10 @@ export interface GitlabGetOutput {
   path: string;
 }
 
-/**
- * GithubGetAction shares its package name, "repo", with the action in
- * actions/gitlab/repo: the two packages differ only by import path.
- */
 export function repoGithubGet(input: GithubGetInput): ActionBuilder<GithubGetOutput> {
   return createActionBuilder<GithubGetOutput>('repo.GithubGet', input);
 }
 
-/**
- * GitlabGetAction shares its package name, "repo", with the action in
- * actions/github/repo: the two packages differ only by import path.
- */
 export function repoGitlabGet(input: GitlabGetInput): ActionBuilder<GitlabGetOutput> {
   return createActionBuilder<GitlabGetOutput>('repo.GitlabGet', input);
 }

@@ -357,16 +357,16 @@ func copyLoopVarsWith(src map[string]bool, itemName, idxName string) map[string]
 	return dst
 }
 
-// getLoopVarNames extracts the variable names from a loop variables map.
+// getLoopVarNames returns sorted loop-variable names for generated event handlers.
 //
 // Takes loopVars (map[string]bool) which contains the loop variable names as keys.
 //
-// Returns []string which contains the variable names, or nil if loopVars is nil.
+// Returns []string which contains the sorted variable names, or nil if loopVars is nil.
 func getLoopVarNames(loopVars map[string]bool) []string {
 	if loopVars == nil {
 		return nil
 	}
-	return slices.Collect(maps.Keys(loopVars))
+	return slices.Sorted(maps.Keys(loopVars))
 }
 
 // buildElementNodeAST builds a JavaScript AST expression for an element node.
@@ -442,7 +442,6 @@ func dirHTMLElementValue(expression ast_domain.Expression, registry *RegistryCon
 // buildPikoElementNodeAST handles <piko:element :is="expr"> by compiling the dynamic :is
 // expression and using dom.resolveTag(expr) as the tag argument.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes n (*ast_domain.TemplateNode) which is the piko:element node.
 // Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
 // properties, and the module name for the build.

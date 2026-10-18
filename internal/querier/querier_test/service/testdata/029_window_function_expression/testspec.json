@@ -1,3 +1,0 @@
-{
-  "description": "Window function expressions delegate to inner function call resolution. Tests SUM OVER and ROW_NUMBER OVER."
-}

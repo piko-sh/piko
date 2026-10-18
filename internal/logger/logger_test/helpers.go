@@ -133,8 +133,8 @@ func AddPrettyOutput(level slog.Level) {
 
 // AddFileOutput adds a file output to the global logger with the specified configuration.
 //
-// Takes ctx (context.Context) which controls the lifetime of the background rotation
-// goroutine.
+// The background rotation goroutine runs until ctx is cancelled.
+//
 // Takes name (string) which identifies this output for later reference.
 // Takes path (string) which specifies the file path to write logs to.
 // Takes level (slog.Level) which sets the minimum log level for this output.
@@ -250,8 +250,8 @@ func addHandler(handler slog.Handler) {
 
 // createOutputHandler creates a slog.Handler based on the output configuration.
 //
-// Takes ctx (context.Context) which controls the lifetime of the background rotation
-// goroutine for file outputs.
+// The background rotation goroutine for file outputs runs until ctx is cancelled.
+//
 // Takes output (logger_dto.OutputConfig) which specifies the output type, format, and
 // destination settings.
 // Takes globalAddSource (bool) which sets the default for including source location in

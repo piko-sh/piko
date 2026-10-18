@@ -30,7 +30,7 @@ import (
 
 	"piko.sh/piko/cmd/piko/internal/inspector"
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (
@@ -786,14 +786,9 @@ func describeProvider(ctx context.Context, conn monitoringConnection, p *Printer
 	return nil
 }
 
-// appendSubResourceSections appends sub-resource detail to sections.
+// appendSubResourceSections appends provider sub-resources to sections and reports RPC
+// failures as printer warnings.
 //
-// Fetches sub-resources for the provider and adds them as a detail section if any are
-// found. When the underlying RPC fails the error is surfaced as a warning on the
-// printer's writer so the user knows the listing was incomplete instead of the call
-// silently returning only the parent sections.
-//
-// Takes ctx (context.Context) which controls the request lifecycle.
 // Takes conn (monitoringConnection) which provides the gRPC client.
 // Takes p (*Printer) which is used to emit warnings when the RPC fails.
 // Takes sections ([]inspector.DetailSection) which holds the existing sections to extend.

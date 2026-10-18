@@ -190,7 +190,8 @@ func (c *PresignConfig) ClampMaxSize(maxSize int64) int64 {
 
 // EnsureRIDCache initialises the random identifier cache if not already set.
 //
-// Takes ctx (context.Context) which is the parent context for background goroutines.
+// The background goroutines' context is derived from ctx.
+//
 // Takes cleanupInterval (time.Duration) which specifies how often to purge expired
 // identifiers.
 func (c *PresignConfig) EnsureRIDCache(ctx context.Context, cleanupInterval time.Duration) {

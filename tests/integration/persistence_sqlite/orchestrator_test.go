@@ -58,6 +58,28 @@ func createTask(t *testing.T, adapter orchestrator_domain.TaskStore, ctx context
 	require.NoError(t, err, "creating task via batch path")
 }
 
+func dueNow(t *testing.T, adapter orchestrator_domain.TaskStore, limit int) []*orchestrator_domain.Task {
+	t.Helper()
+	page, err := adapter.DispatchablePage(context.Background(), orchestrator_domain.DispatchQuery{
+		Now:   time.Now().UTC(),
+		Limit: limit,
+	})
+	require.NoError(t, err, "reading dispatchable tasks")
+	return page
+}
+
+func claim(t *testing.T, adapter orchestrator_domain.TaskStore, task *orchestrator_domain.Task) *orchestrator_domain.Task {
+	t.Helper()
+	claimed, err := adapter.ClaimTask(context.Background(), orchestrator_domain.ClaimRequest{
+		Now:     time.Now().UTC(),
+		ID:      task.ID,
+		Owner:   "test-instance",
+		Attempt: task.Attempt,
+	})
+	require.NoError(t, err, "claiming the task")
+	return claimed
+}
+
 func TestOrchestratorCreateAndGetTask(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
@@ -70,17 +92,18 @@ func TestOrchestratorCreateAndGetTask(t *testing.T) {
 	task := makeTask("task-create-001", "test-executor")
 	createTask(t, adapter, ctx, task)
 
-	fetched, err := adapter.FetchAndMarkDueTasks(ctx, orchestrator_domain.PriorityNormal, 10)
-	require.NoError(t, err, "fetching due tasks")
+	fetched, err := adapter.GetTasksByID(ctx, []string{task.ID})
+	require.NoError(t, err, "reading the task")
 	require.Len(t, fetched, 1)
 
 	assert.Equal(t, task.ID, fetched[0].ID)
 	assert.Equal(t, task.WorkflowID, fetched[0].WorkflowID)
 	assert.Equal(t, task.Executor, fetched[0].Executor)
 
-	second_fetch, err := adapter.FetchAndMarkDueTasks(ctx, orchestrator_domain.PriorityNormal, 10)
-	require.NoError(t, err)
-	assert.Empty(t, second_fetch, "second fetch should return nothing since all tasks are now PROCESSING")
+	require.Len(t, dueNow(t, adapter, 10), 1, "the new task is due")
+	claimed := claim(t, adapter, fetched[0])
+	assert.Equal(t, orchestrator_domain.StatusProcessing, claimed.Status)
+	assert.Empty(t, dueNow(t, adapter, 10), "a claimed task is no longer dispatchable")
 }
 
 func TestOrchestratorUpdateTask(t *testing.T) {
@@ -95,15 +118,12 @@ func TestOrchestratorUpdateTask(t *testing.T) {
 	task := makeTask("task-update-001", "test-executor")
 	createTask(t, adapter, ctx, task)
 
-	fetched, err := adapter.FetchAndMarkDueTasks(ctx, orchestrator_domain.PriorityNormal, 10)
-	require.NoError(t, err, "fetching due tasks")
-	require.Len(t, fetched, 1)
+	claimed := claim(t, adapter, task)
+	claimed.Status = orchestrator_domain.StatusComplete
+	claimed.Result = map[string]any{"output": "done"}
+	claimed.UpdatedAt = time.Now().UTC().Truncate(time.Second)
 
-	fetched[0].Status = orchestrator_domain.StatusComplete
-	fetched[0].Result = map[string]any{"output": "done"}
-	fetched[0].UpdatedAt = time.Now().UTC().Truncate(time.Second)
-
-	err = adapter.UpdateTask(ctx, fetched[0])
+	err := adapter.UpdateTask(ctx, claimed)
 	require.NoError(t, err, "updating task")
 
 	is_complete, err := adapter.GetWorkflowStatus(ctx, task.WorkflowID)
@@ -111,7 +131,7 @@ func TestOrchestratorUpdateTask(t *testing.T) {
 	assert.True(t, is_complete, "workflow should be complete")
 }
 
-func TestOrchestratorFetchAndMarkDueTasks(t *testing.T) {
+func TestOrchestratorDispatchablePagesDueTasks(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
@@ -128,13 +148,18 @@ func TestOrchestratorFetchAndMarkDueTasks(t *testing.T) {
 	err := adapter.CreateTasks(ctx, tasks)
 	require.NoError(t, err, "creating tasks")
 
-	fetched, err := adapter.FetchAndMarkDueTasks(ctx, orchestrator_domain.PriorityNormal, 2)
-	require.NoError(t, err, "fetching due tasks")
-	assert.Len(t, fetched, 2)
+	first := dueNow(t, adapter, 2)
+	require.Len(t, first, 2, "a page holds at most its limit")
 
-	remaining, err := adapter.FetchAndMarkDueTasks(ctx, orchestrator_domain.PriorityNormal, 10)
-	require.NoError(t, err, "fetching remaining tasks")
-	assert.Len(t, remaining, 1)
+	last := first[len(first)-1]
+	remaining, err := adapter.DispatchablePage(ctx, orchestrator_domain.DispatchQuery{
+		Now:       time.Now().UTC(),
+		AfterTime: last.ExecuteAt,
+		AfterID:   last.ID,
+		Limit:     10,
+	})
+	require.NoError(t, err, "reading the next page")
+	assert.Len(t, remaining, 1, "the next page continues after the cursor")
 }
 
 func TestOrchestratorPromoteScheduledTasks(t *testing.T) {
@@ -151,17 +176,14 @@ func TestOrchestratorPromoteScheduledTasks(t *testing.T) {
 	task.ExecuteAt = time.Now().UTC().Add(-1 * time.Hour).Truncate(time.Second)
 	createTask(t, adapter, ctx, task)
 
-	fetched, err := adapter.FetchAndMarkDueTasks(ctx, orchestrator_domain.PriorityNormal, 10)
-	require.NoError(t, err)
-	assert.Empty(t, fetched, "scheduled task should not be fetched before promotion")
+	assert.Empty(t, dueNow(t, adapter, 10), "scheduled task should not be dispatchable before promotion")
 
 	promoted_count, err := adapter.PromoteScheduledTasks(ctx)
 	require.NoError(t, err, "promoting scheduled tasks")
 	assert.Equal(t, 1, promoted_count)
 
-	fetched, err = adapter.FetchAndMarkDueTasks(ctx, orchestrator_domain.PriorityNormal, 10)
-	require.NoError(t, err)
-	assert.Len(t, fetched, 1)
+	fetched := dueNow(t, adapter, 10)
+	require.Len(t, fetched, 1)
 	assert.Equal(t, task.ID, fetched[0].ID)
 }
 

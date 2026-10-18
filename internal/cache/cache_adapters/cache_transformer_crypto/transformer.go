@@ -93,7 +93,6 @@ func (t *CryptoCacheTransformer) Priority() int {
 // Transform encrypts the input data using the crypto service. This is called when setting
 // values in the cache.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes input ([]byte) which contains the plaintext data to encrypt.
 //
 // Returns []byte which contains the encrypted ciphertext.
@@ -114,7 +113,6 @@ func (t *CryptoCacheTransformer) Transform(ctx context.Context, input []byte, _ 
 // Reverse decrypts the input data using the crypto service. This is called when getting
 // values from the cache.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes input ([]byte) which contains the encrypted ciphertext to decrypt.
 //
 // Returns []byte which contains the decrypted plaintext.

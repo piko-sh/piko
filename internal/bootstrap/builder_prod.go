@@ -245,7 +245,7 @@ func (b *prodDaemonBuilder) buildFinalDaemon(ctx context.Context) (daemon_domain
 		HealthServer:        healthServer,
 		HealthRouter:        healthRouter,
 		DrainSignaller:      drainSignaller,
-		TLSRedirectServer:   newTLSRedirectServerIfConfigured(daemonConfig),
+		TLSRedirectServer:   newTLSRedirectServerIfConfigured(&daemonConfig),
 		OnServerBound:       b.c.OnServerBound(),
 		OnHealthBound:       b.c.OnHealthBound(),
 		OrchestratorService: nil,
@@ -316,7 +316,8 @@ func (b *prodDaemonBuilder) newDaemonConfig() daemon_domain.DaemonConfig {
 //
 // Returns error when the adapter cannot be created.
 func (b *prodDaemonBuilder) buildMainServer(ctx context.Context) error {
-	serverAdapter, err := b.buildMainServerAdapter(ctx, b.newDaemonConfig())
+	daemonConfig := b.newDaemonConfig()
+	serverAdapter, err := b.buildMainServerAdapter(ctx, &daemonConfig)
 	if err != nil {
 		return err
 	}
@@ -329,13 +330,13 @@ func (b *prodDaemonBuilder) buildMainServer(ctx context.Context) error {
 // buildMainServerAdapter creates the main server adapter and registers its readiness
 // probe.
 //
-// Takes daemonConfig (daemon_domain.DaemonConfig) which supplies the TLS settings.
+// Takes daemonConfig (*daemon_domain.DaemonConfig) which supplies the TLS settings.
 //
 // Returns daemon_domain.ServerAdapter which serves the main traffic.
 // Returns error when the TLS configuration cannot be applied.
 func (b *prodDaemonBuilder) buildMainServerAdapter(
 	ctx context.Context,
-	daemonConfig daemon_domain.DaemonConfig,
+	daemonConfig *daemon_domain.DaemonConfig,
 ) (daemon_domain.ServerAdapter, error) {
 	serverAdapter, tlsCleanup, err := daemon_adapters.NewServerAdapterFromTLSConfig(
 		ctx,

@@ -75,7 +75,6 @@ func (a *CookieAccumulator) GetCookies() []*http.Cookie {
 
 // WithCookieAccumulator returns a new context with the given CookieAccumulator attached.
 //
-// Takes ctx (context.Context) which is the parent context.
 // Takes acc (*CookieAccumulator) which is the accumulator to attach.
 //
 // Returns context.Context which contains the accumulator.
@@ -83,10 +82,7 @@ func WithCookieAccumulator(ctx context.Context, acc *CookieAccumulator) context.
 	return context.WithValue(ctx, cookieAccumulatorKey{}, acc)
 }
 
-// CookieAccumulatorFromContext retrieves the CookieAccumulator from the context, or nil
-// if none is present.
-//
-// Takes ctx (context.Context) which may contain a CookieAccumulator.
+// CookieAccumulatorFromContext returns the accumulator stored in ctx, or nil.
 //
 // Returns *CookieAccumulator which is the accumulator, or nil if not found.
 func CookieAccumulatorFromContext(ctx context.Context) *CookieAccumulator {

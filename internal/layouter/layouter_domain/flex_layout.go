@@ -202,8 +202,6 @@ func preStretchColumnItems(lines []*flexLine) {
 // layoutFlexContainer performs the full CSS flexbox layout algorithm on the given
 // container box.
 //
-// Takes ctx (context.Context) which carries cancellation and deadline signals from the
-// caller.
 // Takes box (*LayoutBox) which is the flex container to lay out.
 // Takes input (layoutInput) which carries the available width and font metrics from the
 // parent context.
@@ -275,8 +273,6 @@ func collectFlexFragments(lines []*flexLine) []*Fragment {
 // collectFlexItems builds flex items from the container children, skipping absolutely
 // positioned elements.
 //
-// Takes ctx (context.Context) which carries cancellation and deadline signals from the
-// caller.
 // Takes container (*LayoutBox) which is the flex container whose children are collected.
 // Takes isRowDirection (bool) which is true when the main axis is horizontal.
 // Takes containerMainSize (float64) which is the main axis size of the container.
@@ -319,8 +315,6 @@ func collectFlexItems(
 // resolveFlexBaseSize computes the flex base size for a child box using flex-basis,
 // explicit size, or intrinsic content measurement.
 //
-// Takes ctx (context.Context) which carries cancellation and deadline signals from the
-// caller.
 // Takes child (*LayoutBox) which is the flex item box.
 // Takes isRowDirection (bool) which is true when the main axis is horizontal.
 // Takes containerMainSize (float64) which is the main axis size of the container.
@@ -394,7 +388,6 @@ func resolveExplicitMainSize(child *LayoutBox, isRowDirection bool, containerMai
 // flex-basis nor an explicit main-axis size is set. Uses max-content sizing so flex items
 // size to their content rather than filling 100% of the container.
 //
-// Takes ctx (context.Context) which carries cancellation signals.
 // Takes child (*LayoutBox) which is the flex item box.
 // Takes isRowDirection (bool) which selects horizontal or vertical measurement.
 // Takes containerMainSize (float64) which is the main axis size for column layout.
@@ -722,8 +715,6 @@ func buildFlexPositionContext(
 // positionFlexItems positions all flex items across all lines, respecting wrap-reverse
 // ordering.
 //
-// Takes ctx (context.Context) which carries cancellation and deadline signals from the
-// caller.
 // Takes lines ([]*flexLine) which is the slice of flex lines containing items to
 // position.
 // Takes isWrapReverse (bool) which is true when line ordering is reversed.
@@ -752,8 +743,6 @@ func positionFlexItems(ctx context.Context, lines []*flexLine, isWrapReverse boo
 // positionFlexLine positions all items within a single flex line using justify-content
 // and item ordering.
 //
-// Takes ctx (context.Context) which carries cancellation and deadline signals from the
-// caller.
 // Takes line (*flexLine) which is the flex line to position.
 // Takes crossOffset (float64) which is the cross axis offset for this line.
 // Takes positionContext (*flexPositionContext) which holds the positioning parameters.
@@ -770,7 +759,6 @@ func positionFlexLine(ctx context.Context, line *flexLine, crossOffset float64, 
 // layoutFlexLineItems performs the first layout pass for every item on the line, using
 // auto cross sizes so that intrinsic heights (aspect-ratio, table content) are preserved.
 //
-// Takes ctx (context.Context) which carries cancellation signals.
 // Takes line (*flexLine) which is the flex line to lay out.
 // Takes positionContext (*flexPositionContext) which provides flex positioning parameters
 // and shared layout inputs.
@@ -801,7 +789,6 @@ func clampLineCrossToContainer(line *flexLine, positionContext *flexPositionCont
 // and an auto cross dimension, using the line's definite cross size so children with
 // percentage heights and nested flex containers resolve correctly.
 //
-// Takes ctx (context.Context) which carries cancellation signals.
 // Takes line (*flexLine) which is the flex line to re-lay out.
 // Takes positionContext (*flexPositionContext) which provides flex positioning parameters
 // and shared layout inputs.
@@ -897,7 +884,6 @@ func positionFlexLineItems(
 // cross (height) size, enabling children with percentage heights and nested column flex
 // containers to resolve against the stretched cross size.
 //
-// Takes ctx (context.Context) which carries cancellation signals.
 // Takes item (*flexItem) which is the flex item to re-lay out.
 // Takes lineCrossSize (float64) which is the definite cross size.
 // Takes positionContext (*flexPositionContext) which provides flex positioning parameters
@@ -1017,8 +1003,6 @@ func placeFlexItemOnAxes(
 // layoutFlexItem resolves edges, margins, and content dimensions for a single flex item,
 // then lays out its children.
 //
-// Takes ctx (context.Context) which carries cancellation and deadline signals from the
-// caller.
 // Takes child (*LayoutBox) which is the flex item box.
 // Takes item (*flexItem) which is the flex item state.
 // Takes isRowDirection (bool) which is true when the main axis is horizontal.

@@ -20,10 +20,8 @@ package main
 
 import "testcase_06_type_aliases/models"
 
-// UserID is a type alias. Its TypeString should resolve to 'string'.
 type UserID = string
 
-// ProductID is a type definition. Its TypeString should be 'main.ProductID'.
 type ProductID string
 
 type Request struct {

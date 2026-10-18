@@ -47,7 +47,7 @@
                 }
               ],
               "composite_type": 1,
-              "definition_line": 27,
+              "definition_line": 24,
               "definition_column": 2,
               "is_internal_type": true,
               "is_embedded": false,
@@ -58,7 +58,7 @@
           "type_params": [],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 24,
+          "definition_line": 23,
           "definition_column": 6
         },
         "UserID": {
@@ -72,7 +72,7 @@
           "type_params": null,
           "stringability": 0,
           "is_alias": true,
-          "definition_line": 22,
+          "definition_line": 21,
           "definition_column": 6
         }
       },

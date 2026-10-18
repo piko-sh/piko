@@ -37,7 +37,7 @@ import (
 	"strings"
 	"time"
 
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -163,7 +163,6 @@ func assetName(version string, plat platform) string {
 // first and falling back to the latest published release (covering development builds
 // whose version was never released).
 //
-// Takes ctx (context.Context) which bounds the network operations.
 // Takes version (string) which is the running CLI version (with or without "v").
 // Takes plat (platform) which holds the host asset tokens.
 //
@@ -196,7 +195,6 @@ func fetchBinary(ctx context.Context, version string, plat platform) ([]byte, st
 
 // downloadAndExtract fetches one release archive and returns the executable inside it.
 //
-// Takes ctx (context.Context) which bounds the download.
 // Takes version (string) which is the release version without a leading "v".
 // Takes plat (platform) which holds the host asset tokens.
 //
@@ -220,7 +218,6 @@ func downloadAndExtract(ctx context.Context, version string, plat platform) ([]b
 
 // download performs a single GET and returns the body, bounded by downloadTimeout.
 //
-// Takes ctx (context.Context) which bounds the request.
 // Takes url (string) which is the asset URL.
 //
 // Returns []byte which is the response body.
@@ -250,8 +247,6 @@ func download(ctx context.Context, url string) ([]byte, error) {
 
 // latestVersion resolves the newest published release, preferring a stable release over a
 // prerelease, with the version returned without a leading "v".
-//
-// Takes ctx (context.Context) which bounds the request.
 //
 // Returns string which is the latest release version without "v".
 // Returns error when the lookup fails or no published release exists.

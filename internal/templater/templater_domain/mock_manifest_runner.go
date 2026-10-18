@@ -64,7 +64,6 @@ var (
 
 // RunPage renders a page from the given definition and request.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes pageDefinition (templater_dto.PageDefinition) which describes the page to render.
 // Takes request (*http.Request) which is the incoming HTTP request.
 //
@@ -84,7 +83,6 @@ func (m *MockManifestRunnerPort) RunPage(
 
 // RunPartial renders a partial template from the given page definition.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes pageDefinition (templater_dto.PageDefinition) which describes the partial to
 // render.
 // Takes request (*http.Request) which is the incoming HTTP request.
@@ -106,7 +104,6 @@ func (m *MockManifestRunnerPort) RunPartial(
 // RunPartialWithProps runs a partial and passes props data through to the compiled
 // template.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes pageDefinition (templater_dto.PageDefinition) which describes the partial to
 // render.
 // Takes request (*http.Request) which is the incoming HTTP request.
@@ -129,7 +126,6 @@ func (m *MockManifestRunnerPort) RunPartialWithProps(
 
 // GetPageEntry retrieves a page entry view by its manifest key.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes manifestKey (string) which identifies the page entry to look up.
 //
 // Returns (PageEntryView, error), or (nil, nil) if GetPageEntryFunc is nil.

@@ -46,34 +46,18 @@ func newDedupTask(id string) *Task {
 func TestTaskProcessingCore_PersistWithDedup_DecidesBeforeReturning(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name            string
-		syncPersistence bool
-	}{
-		{name: "synchronous persistence", syncPersistence: true},
-		{name: "asynchronous persistence", syncPersistence: false},
-	}
+	store := NewFakeTaskStore()
+	core := NewTaskProcessingCore(DefaultDispatcherConfig(), nil, store, nil)
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
+	first := newDedupTask("first")
+	require.NoError(t, core.PersistWithDedup(t.Context(), first))
+	assert.True(t, first.Persisted(), "a created task is marked as persisted")
 
-			store := NewFakeTaskStore()
-			config := DefaultDispatcherConfig()
-			config.SyncPersistence = tc.syncPersistence
-			core := NewTaskProcessingCore(config, nil, store, nil)
-
-			first := newDedupTask("first")
-			require.NoError(t, core.PersistWithDedup(t.Context(), first))
-			assert.True(t, first.Persisted(), "a created task is marked as persisted")
-
-			second := newDedupTask("second")
-			err := core.PersistWithDedup(t.Context(), second)
-			require.ErrorIs(t, err, ErrDuplicateTask,
-				"the duplicate must be reported to the caller before it can publish")
-			assert.False(t, second.Persisted())
-		})
-	}
+	second := newDedupTask("second")
+	err := core.PersistWithDedup(t.Context(), second)
+	require.ErrorIs(t, err, ErrDuplicateTask,
+		"the duplicate must be reported to the caller before it can publish")
+	assert.False(t, second.Persisted())
 }
 
 func TestTaskProcessingCore_PersistWithDedup_SkipsTaskAlreadyPersisted(t *testing.T) {
@@ -120,7 +104,6 @@ func TestTaskProcessingCore_ReleaseUnrequiredTask(t *testing.T) {
 
 		store := NewFakeTaskStore()
 		config := DefaultDispatcherConfig()
-		config.SyncPersistence = false
 		core := NewTaskProcessingCore(config, nil, store, mockClock)
 
 		claimed := newDedupTask("claimed")
@@ -254,129 +237,9 @@ func TestTaskProcessingCore_ScheduleTaskRetry_CapsBackoff(t *testing.T) {
 	core.ScheduleTaskRetry(t.Context(), task, trace.SpanFromContext(t.Context()))
 
 	delay := task.ScheduledExecuteAt.Sub(mockClock.Now())
-	assert.GreaterOrEqual(t, delay, time.Minute)
-	assert.Less(t, delay, time.Minute+time.Second, "only jitter may be added to the capped delay")
+	assert.LessOrEqual(t, delay, time.Minute, "jitter never takes the delay past the cap")
+	assert.GreaterOrEqual(t, delay, 30*time.Second, "jitter shortens the capped delay by at most half")
 	assert.Equal(t, StatusRetrying, task.Status)
-}
-
-type executorFunc func(ctx context.Context, payload map[string]any) (map[string]any, error)
-
-func (f executorFunc) Execute(ctx context.Context, payload map[string]any) (map[string]any, error) {
-	return f(ctx, payload)
-}
-
-func TestTaskProcessingCore_ExecuteTask_Outcomes(t *testing.T) {
-	t.Parallel()
-
-	testCases := []struct {
-		executor    executorFunc
-		wantResult  map[string]any
-		name        string
-		wantErr     string
-		wantTimeout bool
-	}{
-		{
-			name: "result is stored on the task",
-			executor: func(context.Context, map[string]any) (map[string]any, error) {
-				return map[string]any{"status": "ok"}, nil
-			},
-			wantResult: map[string]any{"status": "ok"},
-		},
-		{
-			name: "executor error is returned",
-			executor: func(context.Context, map[string]any) (map[string]any, error) {
-				return nil, errors.New("compile failed")
-			},
-			wantErr: "compile failed",
-		},
-		{
-			name: "executor panic becomes an error",
-			executor: func(context.Context, map[string]any) (map[string]any, error) {
-				panic("executor exploded")
-			},
-			wantErr: "panic in task executor: executor exploded",
-		},
-		{
-			name: "executor that honours cancellation reports the timeout",
-			executor: func(ctx context.Context, _ map[string]any) (map[string]any, error) {
-				<-ctx.Done()
-				return nil, context.Cause(ctx)
-			},
-			wantErr:     "task execution exceeded",
-			wantTimeout: true,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			core := NewTaskProcessingCore(DefaultDispatcherConfig(), nil, nil, nil)
-			task := &Task{ID: "task", Payload: map[string]any{}}
-
-			timeout := 5 * time.Second
-			if tc.wantTimeout {
-				timeout = 20 * time.Millisecond
-			}
-
-			err := core.ExecuteTask(t.Context(), task, tc.executor, timeout)
-			if tc.wantErr != "" {
-				require.Error(t, err)
-				assert.Contains(t, err.Error(), tc.wantErr)
-				return
-			}
-			require.NoError(t, err)
-			assert.Equal(t, tc.wantResult, task.Result)
-		})
-	}
-}
-
-func TestTaskProcessingCore_ExecuteTask_AbandonsExecutorIgnoringCancellation(t *testing.T) {
-	t.Parallel()
-
-	release := make(chan struct{})
-	finished := make(chan struct{})
-	t.Cleanup(func() {
-		close(release)
-		<-finished
-	})
-
-	config := DefaultDispatcherConfig()
-	config.ExecutorAbandonGrace = 20 * time.Millisecond
-	core := NewTaskProcessingCore(config, nil, nil, nil)
-
-	stuck := executorFunc(func(context.Context, map[string]any) (map[string]any, error) {
-		defer close(finished)
-		<-release
-		return map[string]any{"late": true}, nil
-	})
-	task := &Task{ID: "stuck", Payload: map[string]any{}}
-
-	err := core.ExecuteTask(t.Context(), task, stuck, 20*time.Millisecond)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "abandoned executor that ignored cancellation")
-	assert.Contains(t, err.Error(), "task execution exceeded",
-		"the abandonment carries the timeout as its cause")
-	assert.Empty(t, task.Result)
-}
-
-func TestTaskProcessingCore_ExecuteTask_ExecutorFinishingDuringGraceIsUsed(t *testing.T) {
-	t.Parallel()
-
-	config := DefaultDispatcherConfig()
-	config.ExecutorAbandonGrace = 5 * time.Second
-	core := NewTaskProcessingCore(config, nil, nil, nil)
-
-	slowToStop := executorFunc(func(ctx context.Context, _ map[string]any) (map[string]any, error) {
-		<-ctx.Done()
-		return map[string]any{"partial": true}, errors.New("stopped after cancellation")
-	})
-	task := &Task{ID: "slow", Payload: map[string]any{}}
-
-	err := core.ExecuteTask(t.Context(), task, slowToStop, 10*time.Millisecond)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "stopped after cancellation")
-	assert.Equal(t, map[string]any{"partial": true}, task.Result)
 }
 
 func TestTaskProcessingCore_TaskClock(t *testing.T) {
@@ -388,61 +251,58 @@ func TestTaskProcessingCore_TaskClock(t *testing.T) {
 	assert.Same(t, mockClock, (&TaskProcessingCore{Clock: mockClock}).taskClock())
 }
 
-func newRecoveryStore(readBack []*Task, readErr error) *MockTaskStore {
+func newRecoveryStore(orphans []*Task, listErr error) (*MockTaskStore, *[]TaskStatus) {
 	store := &MockTaskStore{}
-	store.ClaimStaleTasksForRecoveryFunc = func(context.Context, string, time.Duration, time.Duration, int) ([]RecoveryClaimedTask, error) {
-		return []RecoveryClaimedTask{{ID: "stale-retry"}, {ID: "stale-failed"}}, nil
+	var transitions []TaskStatus
+	store.ListOrphanedTasksFunc = func(context.Context, OrphanQuery) ([]*Task, error) {
+		return orphans, listErr
 	}
-	store.RecoverClaimedTasksFunc = func(context.Context, string, int, string) (int, error) {
-		return 2, nil
+	store.TransitionTaskFunc = func(_ context.Context, transition Transition) (TransitionOutcome, error) {
+		transitions = append(transitions, transition.Task.Status)
+		return TransitionOutcome{}, nil
 	}
-	store.GetTasksByIDFunc = func(_ context.Context, ids []string) ([]*Task, error) {
-		if readErr != nil {
-			return nil, readErr
-		}
-		if len(ids) != 2 {
-			return nil, errors.New("recovery must read back exactly the claimed tasks")
-		}
-		return readBack, nil
-	}
-	return store
+	return store, &transitions
 }
 
 func TestTaskProcessingCore_RecoverStaleTasks_ReturnsTasksToRetry(t *testing.T) {
 	t.Parallel()
 
-	retrying := &Task{ID: "stale-retry", Status: StatusRetrying, Attempt: 1}
-	failed := &Task{ID: "stale-failed", Status: StatusFailed, Attempt: 3}
-	store := newRecoveryStore([]*Task{retrying, failed}, nil)
-	core := NewTaskProcessingCore(DefaultDispatcherConfig(), nil, store, nil)
+	retrying := &Task{ID: "stale-retry", Status: StatusProcessing, Attempt: 1}
+	failed := &Task{ID: "stale-failed", Status: StatusProcessing, Attempt: 3}
+	store, transitions := newRecoveryStore([]*Task{retrying, failed}, nil)
+	config := DefaultDispatcherConfig()
+	config.DefaultMaxRetries = 3
+	core := NewTaskProcessingCore(config, nil, store, nil)
 
 	retry, err := core.RecoverStaleTasks(t.Context())
 	require.NoError(t, err)
 	require.Len(t, retry, 1, "only tasks moved back to RETRYING need dispatching again")
 	assert.Same(t, retrying, retry[0])
 	assert.True(t, retry[0].Persisted(), "dispatching a recovered task must update its record, not insert it")
+	assert.Equal(t, []TaskStatus{StatusRetrying, StatusFailed}, *transitions,
+		"an orphan with retries left is retried; one whose retries are spent fails")
 }
 
-func TestTaskProcessingCore_RecoverStaleTasks_ReadFailure(t *testing.T) {
+func TestTaskProcessingCore_RecoverStaleTasks_ListFailure(t *testing.T) {
 	t.Parallel()
 
-	store := newRecoveryStore(nil, errors.New("read failed"))
+	store, _ := newRecoveryStore(nil, errors.New("read failed"))
 	core := NewTaskProcessingCore(DefaultDispatcherConfig(), nil, store, nil)
 
 	retry, err := core.RecoverStaleTasks(t.Context())
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "reading recovered tasks")
+	assert.Contains(t, err.Error(), "listing orphaned tasks")
 	assert.Empty(t, retry)
 }
 
-func TestTaskProcessingCore_RecoverStaleTasks_NothingStale(t *testing.T) {
+func TestTaskProcessingCore_RecoverStaleTasks_StoreWithoutClaims(t *testing.T) {
 	t.Parallel()
 
 	store := &MockTaskStore{}
 	core := NewTaskProcessingCore(DefaultDispatcherConfig(), nil, store, nil)
 
 	retry, err := core.RecoverStaleTasks(t.Context())
-	require.NoError(t, err)
+	require.NoError(t, err, "a store without the claim API has nothing to recover")
 	assert.Empty(t, retry)
 	assert.Equal(t, int64(0), store.GetTasksByIDCallCount.Load())
 }
@@ -560,7 +420,6 @@ func TestTaskProcessingCore_OnTaskSettled(t *testing.T) {
 
 			recorder := newSettledRecorder(tc.updateErr)
 			config := DefaultDispatcherConfig()
-			config.SyncPersistence = false
 			config.HeartbeatInterval = 0
 			config.DefaultMaxRetries = max(tc.maxRetries, 1)
 			core := NewTaskProcessingCore(config, nil, recorder.store, nil)
@@ -573,7 +432,6 @@ func TestTaskProcessingCore_OnTaskSettled(t *testing.T) {
 			task.Config.MaxRetries = config.DefaultMaxRetries
 
 			tc.settle(core, task)
-			require.NoError(t, core.Shutdown(t.Context()))
 
 			if tc.wantNoCalls {
 				assert.Empty(t, recorder.settledStatuses())
@@ -585,30 +443,66 @@ func TestTaskProcessingCore_OnTaskSettled(t *testing.T) {
 	}
 }
 
-func TestTaskProcessingCore_ReleaseInFlightTasks_LeavesRunningTaskAlone(t *testing.T) {
+func TestTaskProcessingCore_ApplyDefaults_StampsAdmission(t *testing.T) {
 	t.Parallel()
 
-	store := NewFakeTaskStore()
-	config := DefaultDispatcherConfig()
-	config.SyncPersistence = true
-	config.HeartbeatInterval = 0
-	core := NewTaskProcessingCore(config, nil, store, nil)
+	for _, now := range []time.Time{
+		time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2100, 1, 1, 0, 0, 0, 0, time.UTC),
+	} {
+		t.Run("stamps unset times from the core clock at "+now.Format("2006"), func(t *testing.T) {
+			t.Parallel()
 
-	running := newDedupTask("running")
-	core.PrepareTaskExecution(t.Context(), running)
+			config := DefaultDispatcherConfig()
+			config.DefaultMaxRetries = 2
+			config.DefaultTimeout = 7 * time.Second
+			core := NewTaskProcessingCore(config, nil, nil, clockpkg.NewMockClock(now))
 
-	stored, ok := core.InFlightTasks.Load(running.ID)
-	require.True(t, ok)
-	snapshot, ok := stored.(*Task)
-	require.True(t, ok)
-	assert.NotSame(t, running, snapshot, "the in-flight entry is a snapshot, not the task its handler owns")
+			task := NewTask("test-executor", nil)
+			core.ApplyDefaults(task)
 
-	core.ReleaseInFlightTasks(t.Context())
+			assert.Equal(t, now, task.ExecuteAt)
+			assert.Equal(t, now, task.CreatedAt)
+			assert.Equal(t, now, task.UpdatedAt)
+			assert.Equal(t, 2, task.Config.MaxRetries)
+			assert.Equal(t, 7*time.Second, task.Config.Timeout)
+			assert.Equal(t, PriorityNormal, task.Config.Priority)
+		})
+	}
 
-	assert.Equal(t, StatusProcessing, running.Status, "shutdown release never writes to the running task")
-	assert.Equal(t, StatusPending, snapshot.Status)
-	released, err := store.GetTasksByID(t.Context(), []string{running.ID})
-	require.NoError(t, err)
-	require.Len(t, released, 1)
-	assert.Equal(t, StatusPending, released[0].Status)
+	t.Run("keeps times and settings the caller set", func(t *testing.T) {
+		t.Parallel()
+
+		core := NewTaskProcessingCore(DefaultDispatcherConfig(), nil, nil,
+			clockpkg.NewMockClock(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)))
+		due := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
+		created := time.Date(2025, 12, 31, 0, 0, 0, 0, time.UTC)
+
+		task := NewTask("test-executor", nil)
+		task.Status = StatusScheduled
+		task.ExecuteAt = due
+		task.CreatedAt = created
+		task.Config.MaxRetries = 9
+		task.Config.Timeout = time.Hour
+		core.ApplyDefaults(task)
+
+		assert.Equal(t, due, task.ExecuteAt)
+		assert.Equal(t, created, task.CreatedAt)
+		assert.Equal(t, StatusScheduled, task.Status)
+		assert.Equal(t, 9, task.Config.MaxRetries)
+		assert.Equal(t, time.Hour, task.Config.Timeout)
+	})
+
+	t.Run("falls back to the built-in timeout when the default is unset", func(t *testing.T) {
+		t.Parallel()
+
+		config := DefaultDispatcherConfig()
+		config.DefaultTimeout = 0
+		core := NewTaskProcessingCore(config, nil, nil, nil)
+
+		task := NewTask("test-executor", nil)
+		core.ApplyDefaults(task)
+
+		assert.Equal(t, defaultTaskTimeout, task.Config.Timeout)
+	})
 }

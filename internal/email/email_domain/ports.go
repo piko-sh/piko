@@ -52,7 +52,6 @@ type Service interface {
 
 	// RegisterProvider adds an email provider to the registry.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout control.
 	// Takes name (string) which identifies the provider.
 	// Takes provider (EmailProviderPort) which handles email delivery.
 	//
@@ -61,15 +60,12 @@ type Service interface {
 
 	// SetDefaultProvider sets the default provider to use by name.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout control.
 	// Takes name (string) which identifies the provider to set as default.
 	//
 	// Returns error when the named provider does not exist.
 	SetDefaultProvider(ctx context.Context, name string) error
 
 	// GetProviders returns the names of all registered providers.
-	//
-	// Takes ctx (context.Context) for cancellation and timeout control.
 	//
 	// Returns []string which contains the provider names.
 	GetProviders(ctx context.Context) []string
@@ -83,15 +79,12 @@ type Service interface {
 
 	// ListProviders returns detailed information about all registered providers.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout control.
-	//
 	// Returns []provider_domain.ProviderInfo which contains provider metadata, health
 	// status, and capabilities.
 	ListProviders(ctx context.Context) []provider_domain.ProviderInfo
 
 	// RegisterDispatcher sets the email dispatcher for sending notifications.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout control.
 	// Takes dispatcher (EmailDispatcherPort) which handles email delivery.
 	//
 	// Returns error when the dispatcher cannot be registered.

@@ -49,7 +49,7 @@ import (
 	"piko.sh/piko/internal/testutil/leakcheck"
 	browserpkg "piko.sh/piko/wdk/browser"
 	"piko.sh/piko/wdk/json"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (

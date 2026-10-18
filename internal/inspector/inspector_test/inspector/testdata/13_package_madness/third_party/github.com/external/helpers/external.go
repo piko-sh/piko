@@ -16,9 +16,8 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-package helpers // Same package name as our local one
+package helpers
 
-// This is our "EXTERNAL" helpers package.
 type ExternalHelper struct {
 	IsExternal bool
 }

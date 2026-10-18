@@ -52,8 +52,8 @@ import (
 	"piko.sh/piko/internal/storage/storage_adapters/presign_http"
 	"piko.sh/piko/internal/storage/storage_domain"
 	"piko.sh/piko/internal/templater/templater_domain"
-	"piko.sh/piko/wdk/safeconv"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safeconv"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -323,6 +323,7 @@ func (op *routerOperation) buildArtefactMetadataCache(ctx context.Context) cache
 
 	cacheService, err := op.container.GetCacheService()
 	if err != nil {
+		op.container.subscribeArtefactInvalidation(ctx, nil)
 		return nil
 	}
 
@@ -335,22 +336,47 @@ func (op *routerOperation) buildArtefactMetadataCache(ctx context.Context) cache
 	if err != nil {
 		l.Warn("Failed to create artefact metadata cache, metadata caching disabled",
 			logger_domain.Error(err))
+		op.container.subscribeArtefactInvalidation(ctx, nil)
 		return nil
 	}
 
-	eventBus, err := op.container.GetEventBus()
+	op.container.subscribeArtefactInvalidation(ctx, artefactMetaCache)
+	return artefactMetaCache
+}
+
+// subscribeArtefactInvalidation connects lifecycle events to artefact metadata and
+// derived caches.
+//
+// Takes artefactMetaCache (cache_domain.Cache) which is the artefact-metadata cache, or
+// nil when it is unavailable.
+func (c *Container) subscribeArtefactInvalidation(ctx context.Context, artefactMetaCache cache_domain.Cache[string, *registry_dto.ArtefactMeta]) {
+	ctx, l := logger_domain.From(ctx, log)
+
+	eventBus, err := c.GetEventBus()
 	if err != nil {
-		l.Warn("Failed to get event bus, artefact metadata cache invalidation disabled",
+		l.Warn("Failed to get event bus, artefact cache invalidation disabled",
 			logger_domain.Error(err))
-		return artefactMetaCache
+		return
 	}
 
-	if subscribeErr := daemon_adapters.SubscribeArtefactMetadataInvalidation(ctx, eventBus, artefactMetaCache); subscribeErr != nil {
-		l.Warn("Failed to subscribe artefact metadata cache invalidation",
+	if subscribeErr := daemon_adapters.SubscribeArtefactMetadataInvalidation(ctx, eventBus, artefactMetaCache, c.artefactInvalidators()...); subscribeErr != nil {
+		l.Warn("Failed to subscribe artefact cache invalidation",
 			logger_domain.Error(subscribeErr))
 	}
+}
 
-	return artefactMetaCache
+// artefactInvalidators returns the components outside the artefact-metadata cache that
+// cache artefact-derived data, so the artefact event subscriber can tell them when an
+// artefact changes. Today that is the render registry, which caches parsed SVGs and serve
+// paths.
+//
+// Returns []daemon_adapters.ArtefactInvalidator which lists the invalidators, or nil when
+// the render registry keeps no such cache.
+func (c *Container) artefactInvalidators() []daemon_adapters.ArtefactInvalidator {
+	if invalidator, ok := c.GetRenderRegistry().(daemon_adapters.ArtefactInvalidator); ok {
+		return []daemon_adapters.ArtefactInvalidator{invalidator}
+	}
+	return nil
 }
 
 // createCacheMiddleware creates and returns the cache middleware.

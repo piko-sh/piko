@@ -319,8 +319,6 @@ func (*engine) extractAssetRequests(rootCtx *TransformationContext) []*email_dto
 
 // autowrapTree starts the post-order autowrapping traversal for the entire AST.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes ast (*ast_domain.TemplateAST) which provides the tree to traverse.
 func (e *engine) autowrapTree(ctx context.Context, ast *ast_domain.TemplateAST) {
 	e.autowrapPostOrderRecursive(ctx, ast.RootNodes, nil)
@@ -330,8 +328,6 @@ func (e *engine) autowrapTree(ctx context.Context, ast *ast_domain.TemplateAST) 
 // children first and then applies autowrapping to that node's direct children, using a
 // bottom-up approach to prevent infinite loops.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes nodes ([]*ast_domain.TemplateNode) which are the nodes to process.
 func (e *engine) autowrapPostOrderRecursive(ctx context.Context, nodes []*ast_domain.TemplateNode, _ /* parent */ *ast_domain.TemplateNode) {
 	if nodes == nil {
@@ -353,8 +349,6 @@ func (e *engine) autowrapPostOrderRecursive(ctx context.Context, nodes []*ast_do
 // checkAndLogEndingTag checks if a node is an ending-tag PML component and logs debug
 // information.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 //
 // Returns bool which is true when the node is an ending-tag component.
@@ -385,8 +379,6 @@ func (e *engine) checkAndLogEndingTag(ctx context.Context, node *ast_domain.Temp
 // logFirstChildDetails logs details about the first child of a node for debugging
 // purposes.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes node (*ast_domain.TemplateNode) which is the parent node to inspect.
 func (*engine) logFirstChildDetails(ctx context.Context, node *ast_domain.TemplateNode) {
 	if len(node.Children) == 0 {

@@ -26,10 +26,6 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// CreateLinkingResult returns the hand-crafted LinkingResult for this test case.
-// It simulates the output of the ComponentLinker, providing a fully expanded and
-// linked AST. The AST is structurally complete but lacks the final semantic type
-// annotations that the SemanticAnnotator is responsible for adding.
 func CreateLinkingResult(t *testing.T, vm *annotator_dto.VirtualModule) *annotator_dto.LinkingResult {
 	findHashedName := func(relPath string) string {
 		for hash, comp := range vm.ComponentsByHash {

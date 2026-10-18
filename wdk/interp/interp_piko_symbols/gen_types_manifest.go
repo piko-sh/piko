@@ -24,6 +24,6 @@ var typesExportManifest = []typesExportEntry{
 	{Path: "piko.sh/piko", File: "gen_types_export/piko.sh_piko.bin.gz", Dependencies: []string{"piko.sh/piko/wdk/logger", "piko.sh/piko/wdk/runtime"}},
 	{Path: "piko.sh/piko/wdk/binder", File: "gen_types_export/piko.sh_piko_wdk_binder.bin.gz"},
 	{Path: "piko.sh/piko/wdk/logger", File: "gen_types_export/piko.sh_piko_wdk_logger.bin.gz"},
-	{Path: "piko.sh/piko/wdk/runtime", File: "gen_types_export/piko.sh_piko_wdk_runtime.bin.gz", Dependencies: []string{"piko.sh/piko/wdk/logger", "piko.sh/piko/wdk/safeconv"}},
-	{Path: "piko.sh/piko/wdk/safeconv", File: "gen_types_export/piko.sh_piko_wdk_safeconv.bin.gz"},
+	{Path: "piko.sh/piko/wdk/runtime", File: "gen_types_export/piko.sh_piko_wdk_runtime.bin.gz", Dependencies: []string{"piko.sh/piko/wdk/logger", "piko.sh/safeconv"}},
+	{Path: "piko.sh/safeconv", File: "gen_types_export/piko.sh_safeconv.bin.gz"},
 }

@@ -29,8 +29,6 @@ import (
 type RateLimitService interface {
 	// CheckLimit checks whether the given key has exceeded its rate limit.
 	//
-	// Takes ctx (context.Context) which carries cancellation and tracing metadata for the
-	// underlying counter store call.
 	// Takes key (string) which identifies the client or resource being limited.
 	// Takes limit (int) which specifies the maximum number of requests allowed.
 	// Takes window (time.Duration) which defines the time period for the limit.

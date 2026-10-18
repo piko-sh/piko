@@ -25,7 +25,7 @@ import (
 
 	"piko.sh/piko/internal/mem"
 	"piko.sh/piko/internal/wal/wal_domain"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (
@@ -80,6 +80,11 @@ var (
 //	[KeyLen:4][Key:var][ValueLen:4][Value:var]
 //	[TagCount:2][Tags:var]
 //
+// A batch shares the fixed fields and then carries its entries, each encoded as above:
+//
+//	[Version:1][Operation=Batch:1][Timestamp:8][ExpiresAt:8]
+//	[Count:4] Count x ([EntryLen:4][Entry:var])
+//
 // Tags format: For each tag: [TagLen:2][TagData:var] The caller (WAL) wraps this with:
 // [TotalLen:4][CRC32:4]Payload
 type BinaryCodec[K comparable, V any] struct {
@@ -106,6 +111,9 @@ type BinaryCodec[K comparable, V any] struct {
 // Returns []byte which contains the serialised entry data.
 // Returns error when encoding the key or value fails.
 func (c *BinaryCodec[K, V]) Encode(entry wal_domain.Entry[K, V]) ([]byte, error) {
+	if entry.Operation == wal_domain.OpBatch {
+		return c.encodeBatch(entry)
+	}
 	keyBytes, err := c.keyCodec.EncodeKey(entry.Key)
 	if err != nil {
 		return nil, fmt.Errorf("encoding key: %w", err)
@@ -143,7 +151,7 @@ func (c *BinaryCodec[K, V]) Encode(entry wal_domain.Entry[K, V]) ([]byte, error)
 // Returns EncodeResult which contains the encoded data and pool reference.
 // Returns error when encoding the key or value fails.
 func (c *BinaryCodec[K, V]) EncodePooled(entry wal_domain.Entry[K, V]) (EncodeResult, error) {
-	if c.fastKeyCodec == nil || c.fastValueCodec == nil {
+	if c.fastKeyCodec == nil || c.fastValueCodec == nil || entry.Operation == wal_domain.OpBatch {
 		data, err := c.Encode(entry)
 		if err != nil {
 			return EncodeResult{}, fmt.Errorf("encoding entry: %w", err)
@@ -231,6 +239,109 @@ func (c *BinaryCodec[K, V]) encodeValueFast(buffer []byte, offset int, entry wal
 	return offset, nil
 }
 
+// encodeBatch serialises a batch record holding the entries of one transaction.
+//
+// Takes entry (wal_domain.Entry[K, V]) which is the OpBatch entry whose Batch holds the
+// grouped entries.
+//
+// Returns []byte which contains the serialised batch.
+// Returns error when the batch is empty or nested, or an entry cannot be encoded.
+func (c *BinaryCodec[K, V]) encodeBatch(entry wal_domain.Entry[K, V]) ([]byte, error) {
+	if len(entry.Batch) == 0 {
+		return nil, fmt.Errorf("%w: empty batch", wal_domain.ErrInvalidEntry)
+	}
+	encoded := make([][]byte, len(entry.Batch))
+	totalSize := fixedPayloadSize + uint32Size
+	for i, member := range entry.Batch {
+		if member.Operation == wal_domain.OpBatch {
+			return nil, fmt.Errorf("%w: nested batch", wal_domain.ErrInvalidEntry)
+		}
+		data, err := c.Encode(member)
+		if err != nil {
+			return nil, fmt.Errorf("encoding batch entry %d: %w", i, err)
+		}
+		encoded[i] = data
+		totalSize += uint32Size + len(data)
+	}
+
+	buffer := make([]byte, totalSize)
+	offset := encodeFixedFields(buffer, wal_domain.OpBatch, entry.Timestamp, 0)
+	binary.BigEndian.PutUint32(buffer[offset:], safeconv.IntToUint32(len(encoded)))
+	offset += uint32Size
+	for _, data := range encoded {
+		offset = encodeBytes(buffer, offset, data)
+	}
+	return buffer, nil
+}
+
+// decodeBatch deserialises a batch record into an OpBatch entry. Its entries are decoded
+// with the allocating codecs, so none of them references data.
+//
+// Takes data ([]byte) which contains the raw batch payload.
+//
+// Returns wal_domain.Entry[K, V] which is the OpBatch entry.
+// Returns error when the payload is malformed or an entry cannot be decoded.
+func (c *BinaryCodec[K, V]) decodeBatch(data []byte) (wal_domain.Entry[K, V], error) {
+	var entry wal_domain.Entry[K, V]
+	if len(data) < fixedPayloadSize+uint32Size {
+		return entry, fmt.Errorf("%w: batch too short (%d bytes)", wal_domain.ErrInvalidEntry, len(data))
+	}
+	if version := data[0]; version != formatVersion {
+		return entry, fmt.Errorf("%w: got version %d, expected %d", wal_domain.ErrInvalidVersion, version, formatVersion)
+	}
+	entry.Operation = wal_domain.OpBatch
+	offset := 2
+	entry.Timestamp = safeconv.Uint64ToInt64(binary.BigEndian.Uint64(data[offset:]))
+	offset += uint64Size + uint64Size
+
+	count := binary.BigEndian.Uint32(data[offset:])
+	offset += uint32Size
+	if int64(count) > int64(len(data)-offset)/int64(uint32Size+minPayloadSize) {
+		return entry, fmt.Errorf("%w: batch claims %d entries in %d bytes", wal_domain.ErrInvalidEntry, count, len(data)-offset)
+	}
+
+	entry.Batch = make([]wal_domain.Entry[K, V], 0, count)
+	for i := range count {
+		if offset+uint32Size > len(data) {
+			return entry, fmt.Errorf("%w: batch truncated at entry %d", wal_domain.ErrInvalidEntry, i)
+		}
+		length := int(binary.BigEndian.Uint32(data[offset:]))
+		offset += uint32Size
+		if length > len(data)-offset {
+			return entry, fmt.Errorf("%w: batch entry %d overruns the record", wal_domain.ErrInvalidEntry, i)
+		}
+		member, err := c.decodeSlow(data[offset : offset+length])
+		if err != nil {
+			return entry, fmt.Errorf("decoding batch entry %d: %w", i, err)
+		}
+		entry.Batch = append(entry.Batch, member)
+		offset += length
+	}
+	if offset != len(data) {
+		return entry, fmt.Errorf("%w: %d trailing bytes after batch", wal_domain.ErrInvalidEntry, len(data)-offset)
+	}
+	return entry, nil
+}
+
+// EachApplied yields batch entries in order, or the single entry for a non-batch record.
+//
+// Takes entry (wal_domain.Entry[K, V]) which is a decoded log entry.
+// Takes yield (func(wal_domain.Entry[K, V]) bool) which receives each applied entry and
+// returns false to stop.
+//
+// Returns bool which is false when yield stopped the walk.
+func EachApplied[K comparable, V any](entry wal_domain.Entry[K, V], yield func(wal_domain.Entry[K, V]) bool) bool {
+	if entry.Operation != wal_domain.OpBatch {
+		return yield(entry)
+	}
+	for _, member := range entry.Batch {
+		if !yield(member) {
+			return false
+		}
+	}
+	return true
+}
+
 // decodeSlow deserialises bytes to an entry using allocating codecs.
 //
 // Takes data ([]byte) which contains the raw encoded entry payload.
@@ -254,7 +365,7 @@ func (c *BinaryCodec[K, V]) decodeSlow(data []byte) (wal_domain.Entry[K, V], err
 
 	entry.Operation = wal_domain.Operation(data[offset])
 	offset++
-	if !entry.Operation.IsValid() {
+	if !entry.Operation.IsValid() || entry.Operation == wal_domain.OpBatch {
 		return entry, fmt.Errorf("%w: invalid operation %d", wal_domain.ErrInvalidEntry, entry.Operation)
 	}
 
@@ -402,7 +513,26 @@ func (r *EncodeResult) Release() {
 // Returns EncodeResult which contains the encoded data and pooled buffer.
 // Returns error when encoding fails.
 func (c *BinaryCodec[K, V]) EncodeWithLengthAndCRC(entry wal_domain.Entry[K, V]) (EncodeResult, error) {
-	if c.fastKeyCodec != nil && c.fastValueCodec != nil {
+	result, err := c.encodeWithLengthAndCRC(entry)
+	if err != nil {
+		return EncodeResult{}, err
+	}
+	if len(result.Data)-lengthSize > maxEntrySize {
+		size := len(result.Data)
+		result.Release()
+		return EncodeResult{}, fmt.Errorf("%w: %d bytes, limit %d", wal_domain.ErrEntryTooLarge, size, maxEntrySize)
+	}
+	return result, nil
+}
+
+// encodeWithLengthAndCRC frames an entry without checking its size.
+//
+// Takes entry (wal_domain.Entry[K, V]) which is the entry to encode.
+//
+// Returns EncodeResult which contains the framed entry.
+// Returns error when encoding fails.
+func (c *BinaryCodec[K, V]) encodeWithLengthAndCRC(entry wal_domain.Entry[K, V]) (EncodeResult, error) {
+	if c.fastKeyCodec != nil && c.fastValueCodec != nil && entry.Operation != wal_domain.OpBatch {
 		return c.encodeWithLengthAndCRCFast(entry)
 	}
 
@@ -443,7 +573,7 @@ func (c *BinaryCodec[K, V]) EncodeWithLengthAndCRC(entry wal_domain.Entry[K, V])
 // Returns EncodeResult which contains the encoded data with CRC prefix.
 // Returns error when encoding fails.
 func (c *BinaryCodec[K, V]) EncodeWithCRC(entry wal_domain.Entry[K, V]) (EncodeResult, error) {
-	if c.fastKeyCodec != nil && c.fastValueCodec != nil {
+	if c.fastKeyCodec != nil && c.fastValueCodec != nil && entry.Operation != wal_domain.OpBatch {
 		return c.encodeWithCRCFast(entry)
 	}
 
@@ -625,6 +755,13 @@ func (c *BinaryCodec[K, V]) DecodeWithCRC(data []byte) (DecodeResult[K, V], erro
 // Returns DecodeResult[K, V] which holds the decoded entry and pool reference.
 // Returns error when decoding fails.
 func (c *BinaryCodec[K, V]) Decode(data []byte) (DecodeResult[K, V], error) {
+	if len(data) > 1 && wal_domain.Operation(data[1]) == wal_domain.OpBatch {
+		entry, err := c.decodeBatch(data)
+		if err != nil {
+			return DecodeResult[K, V]{}, fmt.Errorf("decoding batch: %w", err)
+		}
+		return DecodeResult[K, V]{Entry: entry, tagPool: nil}, nil
+	}
 	if c.fastKeyCodec != nil && c.fastValueCodec != nil {
 		return c.decodeFast(data)
 	}
@@ -658,7 +795,7 @@ func (c *BinaryCodec[K, V]) decodeFast(data []byte) (DecodeResult[K, V], error) 
 
 	result.Entry.Operation = wal_domain.Operation(data[offset])
 	offset++
-	if !result.Entry.Operation.IsValid() {
+	if !result.Entry.Operation.IsValid() || result.Entry.Operation == wal_domain.OpBatch {
 		return result, fmt.Errorf("%w: invalid operation %d", wal_domain.ErrInvalidEntry, result.Entry.Operation)
 	}
 

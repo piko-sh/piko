@@ -4,165 +4,143 @@ package db
 
 import (
 	"context"
+	"strconv"
 	"strings"
 )
 
 const createtask = `INSERT INTO orchestrator_tasks (
-    id, workflow_id, executor, priority, payload, config, status, execute_at, attempt, created_at, updated_at
+    id, workflow_id, executor, priority, payload, config, status, execute_at, attempt, created_at, updated_at,
+    deduplication_key, build_tag, is_fatal, scheduled_execute_at, background, owner_instance, last_error, result
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
 );`
 
 type CreateTaskParams struct {
-	ID         string
-	WorkflowID string
-	Executor   string
-	Priority   int32
-	Payload    string
-	Config     string
-	Status     string
-	ExecuteAt  int64
-	Attempt    int32
-	CreatedAt  int64
-	UpdatedAt  int64
+	ID                 string
+	WorkflowID         string
+	Executor           string
+	Priority           int32
+	Payload            string
+	Config             string
+	Status             string
+	ExecuteAt          int64
+	Attempt            int32
+	CreatedAt          int64
+	UpdatedAt          int64
+	DeduplicationKey   *string
+	BuildTag           string
+	IsFatal            bool
+	ScheduledExecuteAt int64
+	Background         bool
+	OwnerInstance      string
+	LastError          *string
+	Result             *string
 }
 
 func (queries *Queries) CreateTask(ctx context.Context, params CreateTaskParams) error {
-	_, err := queries.writer.ExecContext(ctx, createtask, params.ID, params.WorkflowID, params.Executor, params.Priority, params.Payload, params.Config, params.Status, params.ExecuteAt, params.Attempt, params.CreatedAt, params.UpdatedAt)
+	_, err := queries.writer.ExecContext(ctx, createtask, params.ID, params.WorkflowID, params.Executor, params.Priority, params.Payload, params.Config, params.Status, params.ExecuteAt, params.Attempt, params.CreatedAt, params.UpdatedAt, params.DeduplicationKey, params.BuildTag, params.IsFatal, params.ScheduledExecuteAt, params.Background, params.OwnerInstance, params.LastError, params.Result)
 	return err
 }
 
 const createtasksbatch = `INSERT INTO orchestrator_tasks (
     id, workflow_id, executor, priority, payload, config, status,
-    execute_at, attempt, created_at, updated_at, deduplication_key
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12);`
+    execute_at, attempt, created_at, updated_at, deduplication_key,
+    build_tag, is_fatal, scheduled_execute_at, background, owner_instance, last_error, result
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19);`
 
 type CreateTasksBatchParams struct {
-	ID               string
-	WorkflowID       string
-	Executor         string
-	Priority         int32
-	Payload          string
-	Config           string
-	Status           string
-	ExecuteAt        int64
-	Attempt          int32
-	CreatedAt        int64
-	UpdatedAt        int64
-	DeduplicationKey *string
-}
-type CreateTasksBatchRow struct {
+	ID                 string
+	WorkflowID         string
+	Executor           string
+	Priority           int32
+	Payload            string
+	Config             string
+	Status             string
+	ExecuteAt          int64
+	Attempt            int32
+	CreatedAt          int64
+	UpdatedAt          int64
+	DeduplicationKey   *string
+	BuildTag           string
+	IsFatal            bool
+	ScheduledExecuteAt int64
+	Background         bool
+	OwnerInstance      string
+	LastError          *string
+	Result             *string
 }
 
 func (queries *Queries) CreateTasksBatch(ctx context.Context, params []CreateTasksBatchParams) error {
 	if len(params) == 0 {
 		return nil
 	}
-	for offset := 0; offset < len(params); offset += 5461 {
-		end := min(offset+5461, len(params))
+	for offset := 0; offset < len(params); offset += 3449 {
+		end := min(offset+3449, len(params))
 		chunk := params[offset:end]
-		args := make([]any, 0, len(chunk)*12)
+		args := make([]any, 0, len(chunk)*19)
 		var values strings.Builder
+		values.Grow(271 + len(chunk)*154)
+		values.WriteString(createtasksbatch[:270])
 		for i, item := range chunk {
 			if i > 0 {
 				values.WriteString(", ")
 			}
-			values.WriteString("(?,?,?,?,?,?,?,?,?,?,?,?)")
-			args = append(args, item.ID)
-			args = append(args, item.WorkflowID)
-			args = append(args, item.Executor)
-			args = append(args, item.Priority)
-			args = append(args, item.Payload)
-			args = append(args, item.Config)
-			args = append(args, item.Status)
-			args = append(args, item.ExecuteAt)
-			args = append(args, item.Attempt)
-			args = append(args, item.CreatedAt)
-			args = append(args, item.UpdatedAt)
-			args = append(args, item.DeduplicationKey)
+			var digits [20]byte
+			values.WriteString("($")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*19+1), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*19+2), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*19+3), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*19+4), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*19+5), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*19+6), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*19+7), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*19+8), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*19+9), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*19+10), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*19+11), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*19+12), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*19+13), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*19+14), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*19+15), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*19+16), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*19+17), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*19+18), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*19+19), 10))
+			values.WriteString(")")
+			args = append(args, item.ID, item.WorkflowID, item.Executor, item.Priority, item.Payload, item.Config, item.Status, item.ExecuteAt, item.Attempt, item.CreatedAt, item.UpdatedAt, item.DeduplicationKey, item.BuildTag, item.IsFatal, item.ScheduledExecuteAt, item.Background, item.OwnerInstance, item.LastError, item.Result)
 		}
-		_, err := queries.writer.ExecContext(ctx, pikoBatchExpandValues(createtasksbatch, values.String()), args...)
-		if err != nil {
+		values.WriteString(createtasksbatch[356:])
+		if _, err := queries.writer.ExecContext(ctx, values.String(), args...); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-const fetchduetasks = `SELECT
-  id, workflow_id, executor, priority,
-  payload,
-  config,
-  result, status, execute_at, attempt, last_error, created_at, updated_at, deduplication_key
-FROM orchestrator_tasks
-WHERE
-    status IN ($1)
-    AND priority = $2
-    AND execute_at <= $3
-ORDER BY
-  priority DESC,
-  execute_at ASC,
-  created_at ASC
-LIMIT $4;`
-
-type FetchDueTasksParams struct {
-	Statuses  []string
-	Priority  int32
-	ExecuteAt int64
-	Limit     int
-}
-type FetchDueTasksRow struct {
-	ID               string  `json:"id"`
-	WorkflowID       string  `json:"workflow_id"`
-	Executor         string  `json:"executor"`
-	Priority         int32   `json:"priority"`
-	Payload          string  `json:"payload"`
-	Config           string  `json:"config"`
-	Result           *string `json:"result"`
-	Status           string  `json:"status"`
-	ExecuteAt        int64   `json:"execute_at"`
-	Attempt          int32   `json:"attempt"`
-	LastError        *string `json:"last_error"`
-	CreatedAt        int64   `json:"created_at"`
-	UpdatedAt        int64   `json:"updated_at"`
-	DeduplicationKey *string `json:"deduplication_key"`
-}
-
-func (queries *Queries) FetchDueTasks(ctx context.Context, params FetchDueTasksParams) ([]FetchDueTasksRow, error) {
-	query, expansionError := pikoExpandSlicePlaceholders(fetchduetasks, []pikoSliceExpansionSpec{{Placeholder: 1, Count: len(params.Statuses)}, {Placeholder: 2, Count: 1}, {Placeholder: 3, Count: 1}, {Placeholder: 4, Count: 1}})
-	if expansionError != nil {
-		return nil, expansionError
-	}
-	args := make([]any, 0, len(params.Statuses)+3)
-	for _, v := range params.Statuses {
-		args = append(args, v)
-	}
-	args = append(args, params.Priority)
-	args = append(args, params.ExecuteAt)
-	args = append(args, params.Limit)
-	rows, err := queries.reader.QueryContext(ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var results []FetchDueTasksRow
-	for rows.Next() {
-		var row FetchDueTasksRow
-		if err := rows.Scan(&row.ID, &row.WorkflowID, &row.Executor, &row.Priority, &row.Payload, &row.Config, &row.Result, &row.Status, &row.ExecuteAt, &row.Attempt, &row.LastError, &row.CreatedAt, &row.UpdatedAt, &row.DeduplicationKey); err != nil {
-			return nil, err
-		}
-		results = append(results, row)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return results, nil
-}
-
 const gettasksbyid = `SELECT
-  id, workflow_id, executor, priority,
-  payload, config,
-  result, status, execute_at, attempt, last_error, created_at, updated_at, deduplication_key
+    id, workflow_id, executor, priority,
+    payload, config,
+    result, status, execute_at, attempt, last_error, created_at, updated_at, deduplication_key,
+    build_tag, is_fatal, scheduled_execute_at, background, owner_instance, last_published_at,
+    rerun_id, rerun_payload, rerun_config
 FROM orchestrator_tasks
 WHERE
   id IN ($1);`
@@ -171,27 +149,36 @@ type GetTasksByIDParams struct {
 	IDs []string
 }
 type GetTasksByIDRow struct {
-	ID               string  `json:"id"`
-	WorkflowID       string  `json:"workflow_id"`
-	Executor         string  `json:"executor"`
-	Priority         int32   `json:"priority"`
-	Payload          string  `json:"payload"`
-	Config           string  `json:"config"`
-	Result           *string `json:"result"`
-	Status           string  `json:"status"`
-	ExecuteAt        int64   `json:"execute_at"`
-	Attempt          int32   `json:"attempt"`
-	LastError        *string `json:"last_error"`
-	CreatedAt        int64   `json:"created_at"`
-	UpdatedAt        int64   `json:"updated_at"`
-	DeduplicationKey *string `json:"deduplication_key"`
+	ID                 string  `json:"id"`
+	WorkflowID         string  `json:"workflow_id"`
+	Executor           string  `json:"executor"`
+	Priority           int32   `json:"priority"`
+	Payload            string  `json:"payload"`
+	Config             string  `json:"config"`
+	Result             *string `json:"result"`
+	Status             string  `json:"status"`
+	ExecuteAt          int64   `json:"execute_at"`
+	Attempt            int32   `json:"attempt"`
+	LastError          *string `json:"last_error"`
+	CreatedAt          int64   `json:"created_at"`
+	UpdatedAt          int64   `json:"updated_at"`
+	DeduplicationKey   *string `json:"deduplication_key"`
+	BuildTag           string  `json:"build_tag"`
+	IsFatal            bool    `json:"is_fatal"`
+	ScheduledExecuteAt int64   `json:"scheduled_execute_at"`
+	Background         bool    `json:"background"`
+	OwnerInstance      string  `json:"owner_instance"`
+	LastPublishedAt    int64   `json:"last_published_at"`
+	RerunID            *string `json:"rerun_id"`
+	RerunPayload       *string `json:"rerun_payload"`
+	RerunConfig        *string `json:"rerun_config"`
 }
 
 func (queries *Queries) GetTasksByID(ctx context.Context, params GetTasksByIDParams) ([]GetTasksByIDRow, error) {
-	query, expansionError := pikoExpandSlicePlaceholders(gettasksbyid, []pikoSliceExpansionSpec{{Placeholder: 1, Count: len(params.IDs)}})
-	if expansionError != nil {
-		return nil, expansionError
+	if err := pikoCheckBinds(len(params.IDs)); err != nil {
+		return nil, err
 	}
+	query := pikoSplice(gettasksbyid, pikoList(pikoListMark{Empty: `= ANY('{}')`, Operator: 336, Start: 339, End: 343}, 1, len(params.IDs)))
 	args := make([]any, 0, len(params.IDs))
 	for _, v := range params.IDs {
 		args = append(args, v)
@@ -204,7 +191,7 @@ func (queries *Queries) GetTasksByID(ctx context.Context, params GetTasksByIDPar
 	var results []GetTasksByIDRow
 	for rows.Next() {
 		var row GetTasksByIDRow
-		if err := rows.Scan(&row.ID, &row.WorkflowID, &row.Executor, &row.Priority, &row.Payload, &row.Config, &row.Result, &row.Status, &row.ExecuteAt, &row.Attempt, &row.LastError, &row.CreatedAt, &row.UpdatedAt, &row.DeduplicationKey); err != nil {
+		if err := rows.Scan(&row.ID, &row.WorkflowID, &row.Executor, &row.Priority, &row.Payload, &row.Config, &row.Result, &row.Status, &row.ExecuteAt, &row.Attempt, &row.LastError, &row.CreatedAt, &row.UpdatedAt, &row.DeduplicationKey, &row.BuildTag, &row.IsFatal, &row.ScheduledExecuteAt, &row.Background, &row.OwnerInstance, &row.LastPublishedAt, &row.RerunID, &row.RerunPayload, &row.RerunConfig); err != nil {
 			return nil, err
 		}
 		results = append(results, row)
@@ -215,52 +202,35 @@ func (queries *Queries) GetTasksByID(ctx context.Context, params GetTasksByIDPar
 	return results, nil
 }
 
-const marktasksasprocessing = `UPDATE orchestrator_tasks
-SET
-  status = 'PROCESSING',
-  updated_at = $2
-WHERE
-  id IN ($1);`
-
-type MarkTasksAsProcessingParams struct {
-	IDs       []string
-	UpdatedAt int64
-}
-
-func (queries *Queries) MarkTasksAsProcessing(ctx context.Context, params MarkTasksAsProcessingParams) error {
-	query, expansionError := pikoExpandSlicePlaceholders(marktasksasprocessing, []pikoSliceExpansionSpec{{Placeholder: 1, Count: len(params.IDs)}, {Placeholder: 2, Count: 1}})
-	if expansionError != nil {
-		return expansionError
-	}
-	args := make([]any, 0, len(params.IDs)+1)
-	for _, v := range params.IDs {
-		args = append(args, v)
-	}
-	args = append(args, params.UpdatedAt)
-	_, err := queries.writer.ExecContext(ctx, query, args...)
-	return err
-}
-
 const updatetask = `UPDATE orchestrator_tasks
 SET
-    status = $1, priority = $2, execute_at = $3, attempt = $4, last_error = $5, result = $6, payload = $7, config = $8, updated_at = $9
+    status = $1, priority = $2, execute_at = $3, attempt = $4, last_error = $5, result = $6, payload = $7, config = $8, updated_at = $9,
+    build_tag = $10, is_fatal = $11, scheduled_execute_at = $12, background = $13, owner_instance = $14
 WHERE
-    id = $10;`
+    id = $15;`
 
 type UpdateTaskParams struct {
-	Status    string
-	Priority  int32
-	ExecuteAt int64
-	Attempt   int32
-	LastError *string
-	Result    *string
-	Payload   string
-	Config    string
-	UpdatedAt int64
-	ID        string
+	Status             string
+	Priority           int32
+	ExecuteAt          int64
+	Attempt            int32
+	LastError          *string
+	Result             *string
+	Payload            string
+	Config             string
+	UpdatedAt          int64
+	BuildTag           string
+	IsFatal            bool
+	ScheduledExecuteAt int64
+	Background         bool
+	OwnerInstance      string
+	ID                 string
 }
 
-func (queries *Queries) UpdateTask(ctx context.Context, params UpdateTaskParams) error {
-	_, err := queries.writer.ExecContext(ctx, updatetask, params.Status, params.Priority, params.ExecuteAt, params.Attempt, params.LastError, params.Result, params.Payload, params.Config, params.UpdatedAt, params.ID)
-	return err
+func (queries *Queries) UpdateTask(ctx context.Context, params UpdateTaskParams) (int64, error) {
+	results, err := queries.writer.ExecContext(ctx, updatetask, params.Status, params.Priority, params.ExecuteAt, params.Attempt, params.LastError, params.Result, params.Payload, params.Config, params.UpdatedAt, params.BuildTag, params.IsFatal, params.ScheduledExecuteAt, params.Background, params.OwnerInstance, params.ID)
+	if err != nil {
+		return 0, err
+	}
+	return results.RowsAffected()
 }

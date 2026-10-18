@@ -26,11 +26,6 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// CreateExpansionResult returns the hand-crafted ExpansionResult for this test case.
-// It simulates the PartialExpander's output, providing an invocation where static string
-// attributes need to be mapped to different prop names and coerced into different types
-// (bool and int). This is the ideal input to test the ComponentLinker's `prop` and `coerce`
-// tag handling.
 func CreateExpansionResult(t *testing.T, vm *annotator_dto.VirtualModule) *annotator_dto.ExpansionResult {
 	findHash := func(relPath string) string {
 		for hash, comp := range vm.ComponentsByHash {

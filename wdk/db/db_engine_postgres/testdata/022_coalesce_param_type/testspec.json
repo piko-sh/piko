@@ -1,3 +1,0 @@
-{
-  "description": "COALESCE parameter type inference: COALESCE with a parameter should infer the type from the non-parameter argument."
-}

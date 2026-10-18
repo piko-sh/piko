@@ -67,8 +67,8 @@ func SeedTasks(t *testing.T, db *sql.DB, titles ...string) {
     q := generated.New(db)
     for i, title := range titles {
         if _, err := q.CreateTask(context.Background(), generated.CreateTaskParams{
-            P1: title,
-            P2: int32(1_700_000_000 + i),
+            Title:     title,
+            CreatedAt: int32(1_700_000_000 + i),
         }); err != nil {
             t.Fatalf("seed: %v", err)
         }
@@ -204,8 +204,8 @@ func (a CreateAction) Call(input CreateInput) (CreateResponse, error) {
 
     queries := generated.New(conn)
     row, err := queries.CreateTask(a.Ctx(), generated.CreateTaskParams{
-        P1: input.Title,
-        P2: int32(time.Now().Unix()),
+        Title:     input.Title,
+        CreatedAt: int32(time.Now().Unix()),
     })
     if err != nil {
         return CreateResponse{}, err

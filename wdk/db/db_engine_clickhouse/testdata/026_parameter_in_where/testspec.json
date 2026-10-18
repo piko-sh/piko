@@ -1,3 +1,0 @@
-{
-  "description": "Multiple distinct parameters in a single WHERE clause produce distinct parameter slots."
-}

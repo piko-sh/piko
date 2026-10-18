@@ -1,3 +1,0 @@
-{
-  "description": "COLLATE expressions in WHERE clauses. Verifies that COLLATE NOCASE and similar collation suffixes are consumed without breaking expression parsing or parameter tracking."
-}

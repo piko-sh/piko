@@ -39,7 +39,6 @@ import (
 //	    // ...
 //	}()
 //
-// Takes ctx (context.Context) which carries trace/baggage for OTel metrics.
 // Takes component (string) which identifies the goroutine for logging and diagnostics.
 // Use the format "package.functionName" for consistency.
 func RecoverPanic(ctx context.Context, component string) {
@@ -79,7 +78,6 @@ func RecoverPanic(ctx context.Context, component string) {
 //	    // ...
 //	}()
 //
-// Takes ctx (context.Context) which carries trace/baggage for OTel metrics.
 // Takes component (string) which identifies the goroutine for logging.
 // Takes errCh (chan<- error) which receives the panic converted to an error.
 func RecoverPanicToChannel(ctx context.Context, component string, errCh chan<- error) {

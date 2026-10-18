@@ -229,7 +229,6 @@ func RegisterCustomModule(ctx context.Context, name string, content []byte, etag
 
 // loadEmbeddedAsset reads and parses a single asset from the embedded file system.
 //
-// Takes ctx (context.Context) which carries the logger and trace context.
 // Takes assetPath (string) which specifies the path to the embedded asset.
 //
 // Returns *EmbeddedAsset which contains the asset content, ETag, MIME type, and encoding.
@@ -263,7 +262,6 @@ func loadEmbeddedAsset(ctx context.Context, assetPath string) (*EmbeddedAsset, e
 // loadAssetETag reads the ETag for an asset from its matching .etag file. Falls back to a
 // generated ETag if the .etag file is missing.
 //
-// Takes ctx (context.Context) which carries the logger context.
 // Takes assetPath (string) which is the path to the embedded asset.
 //
 // Returns string which is the ETag value from the file or a generated one.
@@ -285,7 +283,6 @@ func loadAssetETag(ctx context.Context, assetPath string) string {
 // loadAssetSRI reads the SRI hash for an asset from its matching .sri sidecar file. Falls
 // back to computing the hash at runtime if the .sri file is missing.
 //
-// Takes ctx (context.Context) which carries the logger context.
 // Takes assetPath (string) which is the path to the embedded asset.
 // Takes content ([]byte) which is the uncompressed asset content used as fallback when no
 // .sri file exists.

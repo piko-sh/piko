@@ -18,87 +18,103 @@
 
 package orchestrator_domain
 
-// scheduledTaskHeap is a min-heap of tasks ordered by their scheduled time. It allows
-// quick insertion and removal of tasks for timer-based scheduling.
-type scheduledTaskHeap []*Task
+import (
+	"time"
+)
 
-// Len returns the number of tasks in the heap.
+// scheduledRef is a task reference waiting for its due time.
+type scheduledRef struct {
+	// due is when the reference is published.
+	due time.Time
+
+	// ref identifies the task and attempt to publish.
+	ref TaskRef
+}
+
+// scheduledRefHeap is a min-heap of scheduled references ordered by due time. It holds
+// values, so scheduling a reference allocates nothing once the heap has grown, and never
+// keeps a task the caller may still change.
+type scheduledRefHeap []scheduledRef
+
+// Len returns the number of references in the heap.
 //
 // Returns int which is the current heap size.
-func (h *scheduledTaskHeap) Len() int { return len(*h) }
+func (h *scheduledRefHeap) Len() int { return len(*h) }
 
-// Less reports whether the element with index i should sort before the element with index
-// j.
+// Push adds an entry to the heap.
 //
-// Takes i (int) which is the index of the first element to compare.
-// Takes j (int) which is the index of the second element to compare.
-//
-// Returns bool which is true when element i has an earlier scheduled time than element j.
-func (h *scheduledTaskHeap) Less(i, j int) bool {
-	return (*h)[i].ScheduledExecuteAt.Before((*h)[j].ScheduledExecuteAt)
-}
-
-// Swap exchanges the elements at positions i and j.
-//
-// Takes i (int) which is the position of the first element.
-// Takes j (int) which is the position of the second element.
-func (h *scheduledTaskHeap) Swap(i, j int) {
-	(*h)[i], (*h)[j] = (*h)[j], (*h)[i]
-}
-
-// Push adds a task to the heap, maintaining the min-heap property.
-//
-// Takes x (any) which is the task to add; must be of type *Task.
-func (h *scheduledTaskHeap) Push(x any) {
-	*h = append(*h, x.(*Task))
+// Takes entry (scheduledRef) which is the reference and its due time.
+func (h *scheduledRefHeap) Push(entry scheduledRef) {
+	*h = append(*h, entry)
 	h.up(h.Len() - 1)
 }
 
-// Pop removes and returns the task with the earliest scheduled run time.
+// Pop removes and returns the entry due first.
 //
-// Returns *Task which is the removed task, or nil if the heap is empty.
-func (h *scheduledTaskHeap) Pop() *Task {
-	if h.Len() == 0 {
-		return nil
-	}
+// Returns scheduledRef which is the removed entry.
+// Returns bool which is false when the heap is empty.
+func (h *scheduledRefHeap) Pop() (scheduledRef, bool) {
 	n := h.Len() - 1
-	h.Swap(0, n)
-	task := (*h)[n]
+	if n < 0 {
+		return scheduledRef{}, false
+	}
+	h.swap(0, n)
+	entry := (*h)[n]
+	(*h)[n] = scheduledRef{}
 	*h = (*h)[:n]
-	if h.Len() > 0 {
+	if n > 0 {
 		h.down(0)
 	}
-	return task
+	return entry, true
 }
 
-// Peek returns the task with the earliest ScheduledExecuteAt without removing it.
+// Peek returns the entry due first without removing it.
 //
-// Returns *Task which is the next scheduled task, or nil if the heap is empty.
-func (h *scheduledTaskHeap) Peek() *Task {
+// Returns scheduledRef which is the next entry.
+// Returns bool which is false when the heap is empty.
+func (h *scheduledRefHeap) Peek() (scheduledRef, bool) {
 	if h.Len() == 0 {
-		return nil
+		return scheduledRef{}, false
 	}
-	return (*h)[0]
+	return (*h)[0], true
 }
 
-// up bubbles the element at index i up to maintain heap property.
+// less reports whether the entry at index i is due before the entry at index j.
 //
-// Takes i (int) which is the index of the element to bubble up.
-func (h *scheduledTaskHeap) up(i int) {
-	for {
+// Takes i (int) which is the index of the first entry.
+// Takes j (int) which is the index of the second entry.
+//
+// Returns bool which is true when entry i is due first.
+func (h *scheduledRefHeap) less(i, j int) bool {
+	return (*h)[i].due.Before((*h)[j].due)
+}
+
+// swap exchanges the entries at positions i and j.
+//
+// Takes i (int) which is the position of the first entry.
+// Takes j (int) which is the position of the second entry.
+func (h *scheduledRefHeap) swap(i, j int) {
+	(*h)[i], (*h)[j] = (*h)[j], (*h)[i]
+}
+
+// up moves the entry at index i up until the heap property holds.
+//
+// Takes i (int) which is the index of the entry.
+func (h *scheduledRefHeap) up(i int) {
+	for i > 0 {
 		parent := (i - 1) / 2
-		if parent == i || !h.Less(i, parent) {
+		if !h.less(i, parent) {
 			break
 		}
-		h.Swap(parent, i)
+		h.swap(parent, i)
 		i = parent
 	}
 }
 
-// down bubbles the element at index i down to maintain heap property.
+// down moves the entry at index i down until the heap property holds.
 //
-// Takes i (int) which is the index of the element to bubble down.
-func (h *scheduledTaskHeap) down(i int) {
+// Takes i (int) which is the index of the entry.
+func (h *scheduledRefHeap) down(i int) {
 	n := h.Len()
 	for {
 		left := 2*i + 1
@@ -106,20 +122,13 @@ func (h *scheduledTaskHeap) down(i int) {
 			break
 		}
 		smallest := left
-		if right := left + 1; right < n && h.Less(right, left) {
+		if right := left + 1; right < n && h.less(right, left) {
 			smallest = right
 		}
-		if !h.Less(smallest, i) {
+		if !h.less(smallest, i) {
 			break
 		}
-		h.Swap(i, smallest)
+		h.swap(i, smallest)
 		i = smallest
 	}
-}
-
-// newScheduledTaskHeap creates an empty scheduled task heap.
-//
-// Returns *scheduledTaskHeap which is an empty heap ready for use.
-func newScheduledTaskHeap() *scheduledTaskHeap {
-	return new(make(scheduledTaskHeap, 0))
 }

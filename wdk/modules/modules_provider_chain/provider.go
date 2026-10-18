@@ -62,7 +62,6 @@ func New(providers ...modules.ModuleProvider) *Provider {
 // short-circuits and is returned as-is. When every link returns ErrModuleNotFound,
 // Resolve returns the same sentinel.
 //
-// Takes ctx (context.Context) which is forwarded to each link.
 // Takes ref (modules.ModuleRef) which identifies the module to resolve.
 //
 // Returns *modules.ModuleBundle which is the first resolved bundle.

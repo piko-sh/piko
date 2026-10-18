@@ -34,42 +34,22 @@ export interface WriteOutput {
   written: boolean;
 }
 
-/**
- * ReadAction lives in a package called "context", which the generated files also import
- * from the standard library.
- */
 export function contextRead(key: string): ActionBuilder<ReadOutput> {
   return createActionBuilder<ReadOutput>('context.Read', { key });
 }
 
-/**
- * WriteAction lives in a package called "log", which is also the name the generated
- * wrapper file used to give its package-level logger variable.
- */
 export function logWrite(input: WriteInput): ActionBuilder<WriteOutput> {
   return createActionBuilder<WriteOutput>('log.Write', input);
 }
 
-/**
- * SendAction lives in a package called "multipart", which the generated wrapper file also
- * imports from the standard library whenever any action takes a file upload.
- */
 export function multipartSend(attachment: File): ActionBuilder<SendOutput> {
   return createActionBuilder<SendOutput>('multipart.Send', { attachment });
 }
 
-/**
- * BindAction lives in a package called "pikobinder", which is the alias the generated
- * wrapper file imports the piko binder under.
- */
 export function pikobinderBind(input: BindInput): ActionBuilder<BindOutput> {
   return createActionBuilder<BindOutput>('pikobinder.Bind', input);
 }
 
-/**
- * ScanAction lives in a package called "reflect", which the generated registry also
- * imports from the standard library to pretouch JSON types.
- */
 export function reflectScan(input: ScanInput): ActionBuilder<ScanOutput> {
   return createActionBuilder<ScanOutput>('reflect.Scan', input);
 }

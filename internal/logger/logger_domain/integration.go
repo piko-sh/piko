@@ -62,14 +62,10 @@ type Integration interface {
 type SpanProcessor interface {
 	// Shutdown flushes remaining spans and releases resources.
 	//
-	// Takes ctx (context.Context) which controls the shutdown deadline.
-	//
 	// Returns error when the shutdown fails or the context expires.
 	Shutdown(ctx context.Context) error
 
 	// ForceFlush immediately exports all buffered span data.
-	//
-	// Takes ctx (context.Context) which controls the flush deadline.
 	//
 	// Returns error when the flush fails or the context expires.
 	ForceFlush(ctx context.Context) error

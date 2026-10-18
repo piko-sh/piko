@@ -43,6 +43,9 @@ const (
 
 	// spaceChar is a single space used for padding in diagnostic output.
 	spaceChar = " "
+
+	// diagnosticDocsBaseURL is where each diagnostic code's explanation is published.
+	diagnosticDocsBaseURL = "https://piko.sh/diagnostics/"
 )
 
 // Severity represents how serious a diagnostic message is. It implements fmt.Stringer.
@@ -527,7 +530,30 @@ func formatSingleDiagnostic(builder *strings.Builder, d *Diagnostic, lines []str
 		caretPadding = strings.Repeat(spaceChar, adjustedColumn-1)
 	}
 	highlight := strings.Repeat("^", highlightLen)
-	_, _ = fmt.Fprintf(builder, "%s%s%s\n\n", gutterEmpty, caretPadding, primaryColour.Sprint(highlight))
+	_, _ = fmt.Fprintf(builder, "%s%s%s\n", gutterEmpty, caretPadding, primaryColour.Sprint(highlight))
+	if d.Code != "" {
+		_, _ = fmt.Fprintf(builder, "%s %s\n", gutterColour.Sprintf("%s= docs:", strings.Repeat(spaceChar, maxGutterWidth+1)), DiagnosticDocsLine(d.Code))
+	}
+	builder.WriteString("\n")
+}
+
+// DiagnosticDocsURL returns the address of the page that explains a diagnostic code.
+//
+// Takes code (string) which is the diagnostic code, such as "T141".
+//
+// Returns string which is the page address.
+func DiagnosticDocsURL(code string) string {
+	return diagnosticDocsBaseURL + code
+}
+
+// DiagnosticDocsLine returns a diagnostic's documentation URL and the command that
+// explains it.
+//
+// Takes code (string) which is the diagnostic code, such as "T141".
+//
+// Returns string which is the line's text.
+func DiagnosticDocsLine(code string) string {
+	return DiagnosticDocsURL(code) + " (or run: piko explain " + code + ")"
 }
 
 // calculateDisplayPosition converts an HTML-escaped line to its display form and adjusts

@@ -27,7 +27,7 @@ import (
 
 	"piko.sh/piko/internal/collection/collection_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // expandStaticCollection creates virtual entry points for each content item.
@@ -320,8 +320,6 @@ func (s *collectionService) fetchAndPrepareHybridContent(
 
 // registerHybridDirectiveSnapshot saves a snapshot to the hybrid registry.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
-// request-scoped values.
 // Takes providerName (string) which identifies the data provider.
 // Takes collectionName (string) which identifies the collection.
 // Takes blob ([]byte) which contains the snapshot data.

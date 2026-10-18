@@ -46,6 +46,11 @@ func TestOperation_String(t *testing.T) {
 			expected: "CLEAR",
 		},
 		{
+			name:     "OpBatch",
+			op:       OpBatch,
+			expected: "BATCH",
+		},
+		{
 			name:     "unknown operation",
 			op:       Operation(99),
 			expected: "UNKNOWN",
@@ -97,8 +102,13 @@ func TestOperation_IsValid(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:     "operation just above OpClear is invalid",
-			op:       Operation(4),
+			name:     "OpBatch is valid",
+			op:       OpBatch,
+			expected: true,
+		},
+		{
+			name:     "operation just above OpBatch is invalid",
+			op:       Operation(5),
 			expected: false,
 		},
 	}

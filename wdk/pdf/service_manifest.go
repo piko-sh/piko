@@ -38,7 +38,7 @@ import (
 	"piko.sh/piko/internal/pdfwriter/pdfwriter_domain"
 	"piko.sh/piko/internal/templater/templater_adapters"
 	"piko.sh/piko/internal/templater/templater_dto"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (

@@ -1,0 +1,27 @@
+{
+  "description": "A Tier 1 entry built from a subset of the entry points must not serve a later full build: a script edit rebuilt on its own caches introspection for main.pk only, and the next full build must still route /about",
+  "requestURL": "/about",
+  "isFragment": false,
+  "stages": [
+    {
+      "stage": 0,
+      "description": "Initial full build with all entry points (main.pk + about.pk)",
+      "expectedGolden": "stage_0.html",
+      "expectTier1Miss": true,
+      "expectTier2Miss": true,
+      "expectFullBuild": true
+    },
+    {
+      "stage": 1,
+      "description": "Script edit to main.pk rebuilt with only main.pk as an entry point - misses Tier 1 and caches introspection built from that subset under the project-wide hash",
+      "useTargetedRebuild": true,
+      "targetedEntryPoints": ["testcase_cache_staged_15/pages/main.pk"],
+      "expectTier1Miss": true
+    },
+    {
+      "stage": 2,
+      "description": "Full build with no further edits - the subset Tier 1 entry does not cover about.pk, so it must be treated as stale and /about must still render",
+      "expectedGolden": "stage_2.html"
+    }
+  ]
+}

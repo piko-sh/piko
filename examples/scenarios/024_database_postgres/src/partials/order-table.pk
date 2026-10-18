@@ -42,6 +42,8 @@
 package main
 
 import (
+    "fmt"
+
     "piko.sh/piko"
     "piko.sh/piko/wdk/db"
 
@@ -79,12 +81,16 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
 
     recent_orders := make([]RecentOrder, len(order_rows))
     for i, row := range order_rows {
+        total, err := row.Total.Float64()
+        if err != nil {
+            return Response{}, piko.Metadata{}, fmt.Errorf("reading order %d total: %w", row.ID, err)
+        }
         recent_orders[i] = RecentOrder{
             ID:              row.ID,
             ProductName:     row.ProductName,
             ProductCategory: row.ProductCategory,
             Quantity:        row.Quantity,
-            Total:           row.Total,
+            Total:           total,
         }
     }
 

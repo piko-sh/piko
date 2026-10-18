@@ -26,11 +26,6 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// CreateExpansionResult returns the hand-crafted ExpansionResult for this test case.
-// It simulates a scenario where a prop's type in the invoker's scope is a local
-// type alias (e.g., `type UserID = string`). The linker must be able to resolve
-// this alias to its underlying type to correctly validate it against the partial's
-// prop definition (which expects a primitive `string`).
 func CreateExpansionResult(t *testing.T, vm *annotator_dto.VirtualModule) *annotator_dto.ExpansionResult {
 	findHash := func(relPath string) string {
 		for hash, comp := range vm.ComponentsByHash {

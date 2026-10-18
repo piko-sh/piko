@@ -1,3 +1,0 @@
-{
-  "description": "SUM on floating-point columns: SUM(real) and SUM(double precision) should return float8, not int or numeric."
-}

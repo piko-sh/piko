@@ -71,9 +71,6 @@ type componentAnnotationPipeline struct {
 
 // run executes the full annotation pipeline through all stages.
 //
-// Takes ctx (context.Context) which controls cancellation and timeout for pipeline
-// stages.
-//
 // Returns *annotator_dto.AnnotationResult which contains the processed AST.
 // Returns []*ast_domain.Diagnostic which contains any warnings or errors.
 // Returns error when a pipeline stage fails.
@@ -116,8 +113,6 @@ func (p *componentAnnotationPipeline) run(ctx context.Context) (*annotator_dto.A
 
 // runExpansionStage runs the expansion stage of the annotation pipeline.
 //
-// Takes ctx (context.Context) which controls cancellation and timeout.
-//
 // Returns *annotator_dto.ExpansionResult which contains the expanded component tree with
 // a flat AST structure.
 // Returns error when the partial expander fails to process the component graph.
@@ -139,7 +134,6 @@ func (p *componentAnnotationPipeline) runExpansionStage(ctx context.Context) (*a
 
 // runLinkingStage resolves symbol references and links the expanded AST.
 //
-// Takes ctx (context.Context) which controls cancellation and timeout.
 // Takes expansionResult (*annotator_dto.ExpansionResult) which contains the expanded AST
 // to link.
 //
@@ -160,7 +154,6 @@ func (p *componentAnnotationPipeline) runLinkingStage(ctx context.Context, expan
 
 // runAnnotationStage processes the linked AST to produce annotations.
 //
-// Takes ctx (context.Context) which controls cancellation and timeout.
 // Takes linkingResult (*annotator_dto.LinkingResult) which contains the linked AST to
 // annotate.
 //
@@ -180,7 +173,6 @@ func (p *componentAnnotationPipeline) runAnnotationStage(ctx context.Context, li
 
 // runPropDataSourceLinking links prop references to their data sources.
 //
-// Takes ctx (context.Context) which controls cancellation and timeout.
 // Takes analysisResult (*annotator_dto.AnnotationResult) which contains the annotated AST
 // to process.
 func (p *componentAnnotationPipeline) runPropDataSourceLinking(ctx context.Context, analysisResult *annotator_dto.AnnotationResult) {
@@ -193,7 +185,6 @@ func (p *componentAnnotationPipeline) runPropDataSourceLinking(ctx context.Conte
 
 // runFinalTransformations applies final changes to the annotated AST.
 //
-// Takes ctx (context.Context) which controls cancellation and timeout.
 // Takes analysisResult (*annotator_dto.AnnotationResult) which holds the annotated AST to
 // transform and receives the computed asset dependencies and custom tags.
 func (p *componentAnnotationPipeline) runFinalTransformations(ctx context.Context, analysisResult *annotator_dto.AnnotationResult) {
@@ -216,7 +207,6 @@ func (p *componentAnnotationPipeline) runFinalTransformations(ctx context.Contex
 // logging and returning nil in fault-tolerant mode so the pipeline can continue with
 // partial results.
 //
-// Takes ctx (context.Context) which carries the logger.
 // Takes err (error) which is the stage error to handle.
 // Takes stage (string) which identifies the pipeline stage that failed.
 //

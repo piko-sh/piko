@@ -31,7 +31,7 @@ import (
 
 	"piko.sh/piko/internal/json"
 	"piko.sh/piko/wdk/clock"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (

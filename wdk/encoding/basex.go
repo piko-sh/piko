@@ -33,7 +33,7 @@ import (
 	"sync/atomic"
 
 	"piko.sh/piko/internal/mem"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (

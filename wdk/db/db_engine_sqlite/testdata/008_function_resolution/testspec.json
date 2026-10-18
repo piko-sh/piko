@@ -1,3 +1,0 @@
-{
-  "description": "Tests built-in function resolution: count(*), lower(), aggregate vs scalar nullability behaviour."
-}

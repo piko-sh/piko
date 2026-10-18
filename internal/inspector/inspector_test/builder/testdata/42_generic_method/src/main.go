@@ -20,15 +20,11 @@ package main
 
 type Processor struct{}
 
-// Process is a generic method: from Go 1.27 a method may declare its own type parameters.
-// The inspector must model it rather than silently dropping it from the type index.
 func (p Processor) Process[T any](value T) (T, error) {
 	var zero T
 	return zero, nil
 }
 
-// Convert is a generic method with two type parameters and a constraint, to exercise
-// constraint rendering and multi-parameter lists.
 func (p Processor) Convert[K comparable, V any](key K, value V) map[K]V {
 	return map[K]V{key: value}
 }

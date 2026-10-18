@@ -20,21 +20,12 @@ package main
 
 import "github.com/google/uuid"
 
-// This is a TYPE DEFINITION.
-// MyUUID is a new, distinct type. It does NOT inherit methods from uuid.UUID.
-// The inspector should NOT find the .String() method on this type.
 type MyUUID uuid.UUID
 
-// This is a TYPE ALIAS.
-// MyUUIDAlias is just another name for uuid.UUID. It shares the same method set.
-// The inspector SHOULD find the .String() method on this type.
 type MyUUIDAlias = uuid.UUID
 
-// Response uses both the defined type and the aliased type.
 type Response struct {
-	// A field using the new type definition.
 	DefinedUUID MyUUID
 
-	// A field using the type alias.
 	AliasedUUID MyUUIDAlias
 }

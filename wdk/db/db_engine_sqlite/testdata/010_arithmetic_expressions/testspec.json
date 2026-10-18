@@ -1,3 +1,0 @@
-{
-  "description": "Tests arithmetic expression type resolution through the SQLite parser. Binary operators *, +, - emit binary_op maps; type promotion applies."
-}

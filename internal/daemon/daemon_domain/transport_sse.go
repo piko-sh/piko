@@ -88,8 +88,6 @@ type SSEStream struct {
 // attached to ctx. Returns false when no carrier is present so default behaviour is the
 // safer production path.
 //
-// Takes ctx (context.Context) which carries the request scoped context.
-//
 // Returns bool which is true when the request context indicates development mode is
 // active.
 func isDevelopmentModeFromContext(ctx context.Context) bool {
@@ -142,8 +140,6 @@ func (s *SSEStream) EnableEventIDs() {
 // by inspecting the PikoRequestCtx attached to ctx. The flag controls whether SendError
 // forwards the raw internal error string or only the user-safe message extracted by
 // safeerror.ExtractSafeMessage.
-//
-// Takes ctx (context.Context) which carries the request scoped context.
 func (s *SSEStream) SetDevelopmentModeFromContext(ctx context.Context) {
 	s.developmentMode = isDevelopmentModeFromContext(ctx)
 }

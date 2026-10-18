@@ -105,7 +105,6 @@ func (s *Store) Record(ctx context.Context, scope string, cost *llm_dto.CostEsti
 // CheckAndReserve atomically checks whether the estimated cost fits within all configured
 // limits and, if so, reserves it by adding the cost to the current spend counters.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes scope (string) which identifies the budget scope.
 // Takes estimatedCost (maths.Money) which is the cost to reserve.
 // Takes limits (llm_dto.BudgetLimits) which carries the spend limits.
@@ -145,7 +144,6 @@ func (s *Store) CheckAndReserve(ctx context.Context, scope string, estimatedCost
 // Unreserve releases a previously reserved cost when the request fails before the actual
 // usage is recorded.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes scope (string) which identifies the budget scope.
 // Takes cost (maths.Money) which is the reserved cost to release.
 //

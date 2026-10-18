@@ -1,3 +1,0 @@
-{
-  "description": "ALTER TABLE DDL: adding columns in a second migration. Tests that the catalogue correctly reflects columns added via ALTER TABLE ADD COLUMN."
-}

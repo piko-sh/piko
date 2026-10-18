@@ -10,7 +10,7 @@ import (
 
 const findartefactbyvariantstoragekey = `SELECT artefact_id
 FROM variant
-WHERE storage_key = ?
+WHERE storage_key = ?1
 LIMIT 1;`
 
 type FindArtefactByVariantStorageKeyRow struct {
@@ -31,7 +31,7 @@ func (queries *Queries) FindArtefactByVariantStorageKey(ctx context.Context, sto
 
 const findartefactidsbytag = `SELECT DISTINCT artefact_id
 FROM variant_tag
-WHERE tag_key = ? AND tag_value = ?;`
+WHERE tag_key = ?1 AND tag_value = ?2;`
 
 type FindArtefactIDsByTagParams struct {
 	TagKey   string
@@ -48,12 +48,16 @@ func (queries *Queries) FindArtefactIDsByTag(ctx context.Context, params FindArt
 	}
 	defer rows.Close()
 	var results []FindArtefactIDsByTagRow
-	for rows.Next() {
+	if rows.Next() {
 		var row FindArtefactIDsByTagRow
-		if err := rows.Scan(&row.ArtefactID); err != nil {
-			return nil, err
+		scanArgs := []any{&row.ArtefactID}
+		for more := true; more; more = rows.Next() {
+			row = FindArtefactIDsByTagRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -74,11 +78,11 @@ type FindArtefactIDsByTagValuesRow struct {
 }
 
 func (queries *Queries) FindArtefactIDsByTagValues(ctx context.Context, params FindArtefactIDsByTagValuesParams) ([]FindArtefactIDsByTagValuesRow, error) {
-	query, expansionError := pikoExpandSlicePlaceholders(findartefactidsbytagvalues, []pikoSliceExpansionSpec{{Placeholder: 1, Count: 1}, {Placeholder: 2, Count: len(params.TagValues)}})
-	if expansionError != nil {
-		return nil, expansionError
+	if err := pikoCheckBinds(1 + len(params.TagValues)); err != nil {
+		return nil, err
 	}
-	args := make([]any, 0, len(params.TagValues)+1)
+	query := pikoSplice(findartefactidsbytagvalues, pikoList(pikoListMark{Empty: `IN (SELECT NULL WHERE 0)`, Operator: 78, Start: 81, End: 85}, 2, len(params.TagValues)))
+	args := make([]any, 0, 1+len(params.TagValues))
 	args = append(args, params.TagKey)
 	for _, v := range params.TagValues {
 		args = append(args, v)
@@ -89,12 +93,16 @@ func (queries *Queries) FindArtefactIDsByTagValues(ctx context.Context, params F
 	}
 	defer rows.Close()
 	var results []FindArtefactIDsByTagValuesRow
-	for rows.Next() {
+	if rows.Next() {
 		var row FindArtefactIDsByTagValuesRow
-		if err := rows.Scan(&row.ArtefactID); err != nil {
-			return nil, err
+		scanArgs := []any{&row.ArtefactID}
+		for more := true; more; more = rows.Next() {
+			row = FindArtefactIDsByTagValuesRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

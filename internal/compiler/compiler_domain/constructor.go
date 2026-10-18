@@ -33,7 +33,7 @@ import (
 	"piko.sh/piko/internal/esbuild/js_ast"
 	"piko.sh/piko/internal/esbuild/logger"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // EnsureStandardConstructor checks that a class has a standard constructor and creates
@@ -431,8 +431,6 @@ func findBlockInParts(parts []js_ast.Part) *js_ast.SBlock {
 // Unlike parseSnippetAsStatement, this does not wrap the snippet in a block, which is
 // needed for import statements that cannot appear inside blocks.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes snippet (string) which contains the TypeScript statement to parse.
 //
 // Returns js_ast.Stmt which is the parsed statement.
@@ -465,8 +463,6 @@ func parseModuleLevelStatement(ctx context.Context, snippet string) (js_ast.Stmt
 
 // findStatementInParts searches through all parts for any statement with data.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes parsedAST (*js_ast.AST) which contains the parsed JavaScript AST to search.
 //
 // Returns js_ast.Stmt which is the first statement found with non-nil data.

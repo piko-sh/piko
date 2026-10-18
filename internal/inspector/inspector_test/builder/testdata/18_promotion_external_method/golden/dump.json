@@ -23,7 +23,7 @@
               "name": "Amount",
               "type_string": "currency.Amount",
               "raw_tag": "",
-              "definition_line": 25,
+              "definition_line": 24,
               "definition_column": 11,
               "is_internal_type": false,
               "is_embedded": true,
@@ -38,7 +38,7 @@
               "name": "Locale",
               "type_string": "string",
               "raw_tag": "",
-              "definition_line": 26,
+              "definition_line": 25,
               "definition_column": 2,
               "is_underlying_primitive": true,
               "is_internal_type": true,
@@ -511,7 +511,7 @@
           "type_params": [],
           "stringability": 2,
           "is_alias": false,
-          "definition_line": 24,
+          "definition_line": 23,
           "definition_column": 6
         }
       },

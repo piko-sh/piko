@@ -28,8 +28,6 @@ type RunOutput struct {
 	Message string `json:"message"`
 }
 
-// RunAction names its Call parameter "in", which is ordinary Go and a reserved word in
-// TypeScript.
 type RunAction struct {
 	piko.ActionMetadata
 }

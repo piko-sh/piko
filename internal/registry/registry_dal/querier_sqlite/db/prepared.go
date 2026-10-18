@@ -16,26 +16,6 @@ type PreparedDBTX struct {
 	mu    sync.RWMutex
 }
 
-func Prepare(ctx context.Context, db *sql.DB) (*PreparedDBTX, error) {
-	staticQueries := []string{getartefact, getartefactforupdate, listallartefactids, upsertartefact, insertartefactlayerifabsent, deleteartefact, deleteartefactlayer, deleteartefactlayersforrelease, reclaimartefactlayersforrelease, incrementblobrefcount, decrementblobrefcount, getblobrefcount, deleteblobreferenceifzero, insertvariantchunk, getchunksforvariant, deletechunksforartefact, countchunksforvariant, findartefactbychunkstoragekey, addgchint, popgchints, listallartefactswithdata, listrecentartefactswithdata, listvariantstatuscounts, claimrelease, getrelease, markreleasepublished, heartbeatrelease, listexpiredreleases, deletereleaselease, deletestalepublishinglease, getdesiredprofilesforartefact, insertdesiredprofile, deletedesiredprofilesforartefact, findartefactidsbytag, findartefactbyvariantstoragekey, getvariantsforartefact, insertvariant, deletevariantsforartefact, insertvarianttag, deletevarianttagsforartefact, getalltagsforartefact, gettagsforvariant}
-	stmts := make(map[string]*sql.Stmt, len(staticQueries))
-	for _, query := range staticQueries {
-		statement, err := db.PrepareContext(ctx, query)
-		if err != nil {
-			for _, s := range stmts {
-				s.Close()
-			}
-			return nil, fmt.Errorf("preparing statement: %w", err)
-		}
-		stmts[query] = statement
-	}
-	return &PreparedDBTX{db: db, stmts: stmts}, nil
-}
-func (prepared *PreparedDBTX) cachedStatement(query string) *sql.Stmt {
-	prepared.mu.RLock()
-	defer prepared.mu.RUnlock()
-	return prepared.stmts[query]
-}
 func (prepared *PreparedDBTX) ExecContext(ctx context.Context, query string, arguments ...any) (sql.Result, error) {
 	statement := prepared.cachedStatement(query)
 	if statement == nil {
@@ -69,12 +49,67 @@ func (prepared *PreparedDBTX) UnderlyingDB() *sql.DB {
 func (prepared *PreparedDBTX) Close() error {
 	prepared.mu.Lock()
 	defer prepared.mu.Unlock()
+	err := pikoCloseStatements(prepared.stmts)
+	prepared.stmts = make(map[string]*sql.Stmt)
+	return err
+}
+func (prepared *PreparedDBTX) WrapDBTX(inner any) any {
+	transaction, ok := inner.(*sql.Tx)
+	if !ok {
+		return inner
+	}
+	return &preparedTx{source: prepared, transaction: transaction}
+}
+func (prepared *PreparedDBTX) cachedStatement(query string) *sql.Stmt {
+	prepared.mu.RLock()
+	defer prepared.mu.RUnlock()
+	return prepared.stmts[query]
+}
+
+type preparedTx struct {
+	source      *PreparedDBTX
+	transaction *sql.Tx
+}
+
+func (bound *preparedTx) ExecContext(ctx context.Context, query string, arguments ...any) (sql.Result, error) {
+	statement := bound.source.cachedStatement(query)
+	if statement == nil {
+		return bound.transaction.ExecContext(ctx, query, arguments...)
+	}
+	return bound.transaction.StmtContext(ctx, statement).ExecContext(ctx, arguments...)
+}
+func (bound *preparedTx) QueryContext(ctx context.Context, query string, arguments ...any) (*sql.Rows, error) {
+	statement := bound.source.cachedStatement(query)
+	if statement == nil {
+		return bound.transaction.QueryContext(ctx, query, arguments...)
+	}
+	return bound.transaction.StmtContext(ctx, statement).QueryContext(ctx, arguments...)
+}
+func (bound *preparedTx) QueryRowContext(ctx context.Context, query string, arguments ...any) *sql.Row {
+	statement := bound.source.cachedStatement(query)
+	if statement == nil {
+		return bound.transaction.QueryRowContext(ctx, query, arguments...)
+	}
+	return bound.transaction.StmtContext(ctx, statement).QueryRowContext(ctx, arguments...)
+}
+func Prepare(ctx context.Context, db *sql.DB) (*PreparedDBTX, error) {
+	staticQueries := []string{deleteartefact, deleteartefactlayer, deleteartefactlayersforrelease, getartefact, getartefactforupdate, insertartefactlayerifabsent, listallartefactids, reclaimartefactlayersforrelease, upsertartefact, decrementblobrefcount, deleteblobreferenceifzero, getblobrefcount, incrementblobrefcount, countchunksforvariant, deletechunksforartefact, findartefactbychunkstoragekey, getchunksforvariant, insertvariantchunk, addgchint, popgchints, listallartefactswithdata, listrecentartefactswithdata, listvariantstatuscounts, claimrelease, deletereleaselease, deletestalepublishinglease, getrelease, heartbeatrelease, listexpiredreleases, markreleasepublished, deletedesiredprofilesforartefact, getdesiredprofilesforartefact, insertdesiredprofile, findartefactbyvariantstoragekey, findartefactidsbytag, deletevarianttagsforartefact, deletevariantsforartefact, getalltagsforartefact, gettagsforvariant, getvariantsforartefact, insertvariant, insertvarianttag}
+	stmts := make(map[string]*sql.Stmt, len(staticQueries))
+	for _, query := range staticQueries {
+		statement, err := db.PrepareContext(ctx, query)
+		if err != nil {
+			return nil, errors.Join(fmt.Errorf("preparing statement: %w", err), pikoCloseStatements(stmts))
+		}
+		stmts[query] = statement
+	}
+	return &PreparedDBTX{db: db, stmts: stmts, mu: sync.RWMutex{}}, nil
+}
+func pikoCloseStatements(stmts map[string]*sql.Stmt) error {
 	var closeErrors []error
-	for _, statement := range prepared.stmts {
+	for _, statement := range stmts {
 		if err := statement.Close(); err != nil {
 			closeErrors = append(closeErrors, err)
 		}
 	}
-	prepared.stmts = make(map[string]*sql.Stmt)
 	return errors.Join(closeErrors...)
 }

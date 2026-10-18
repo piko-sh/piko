@@ -29,7 +29,7 @@ import (
 
 	"piko.sh/piko/wdk/logger"
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // monitoringConnection abstracts the gRPC connection so that handlers can be tested with

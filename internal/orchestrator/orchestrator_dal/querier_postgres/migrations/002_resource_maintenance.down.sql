@@ -1,0 +1,2 @@
+DROP INDEX IF EXISTS idx_orchestrator_workflow_receipts_resolved_cleanup;
+DROP INDEX IF EXISTS idx_orchestrator_tasks_pending_dispatch;

@@ -122,8 +122,12 @@ type NetworkConfig struct {
 	// MaxParallelBatchWorkers bounds how many entries of one parallel batch run at once.
 	MaxParallelBatchWorkers *int `json:"maxParallelBatchWorkers" yaml:"maxParallelBatchWorkers" default:"8" env:"PIKO_MAX_PARALLEL_BATCH_WORKERS" flag:"maxParallelBatchWorkers" usage:"Maximum entries of one parallel action batch that run at once."`
 
-	// AutoNextPort enables automatic port selection when the default port is in. use.
+	// AutoNextPort enables automatic port selection when the default port is in use.
 	AutoNextPort *bool `json:"autoNextPort" yaml:"autoNextPort" default:"false" env:"PIKO_AUTO_PORT" flag:"autoNextPort" usage:"Automatically find the next port if the default is in use."`
+
+	// BindAddress selects the HTTP listening address; empty binds all interfaces, while
+	// 127.0.0.1 restricts access to localhost.
+	BindAddress *string `json:"bindAddress" yaml:"bindAddress" env:"PIKO_BIND_ADDRESS" flag:"bindAddress" usage:"Address the HTTP server binds to; empty binds every interface."`
 
 	// ForceHTTPS enables redirection from HTTP to HTTPS; false allows plain HTTP.
 	ForceHTTPS *bool `json:"forceHttps" yaml:"forceHttps" default:"false" env:"PIKO_FORCE_HTTPS" flag:"forceHttps" usage:"Redirect all HTTP requests to HTTPS."`

@@ -30,7 +30,7 @@ type CreateInput struct {
 
 // CreateResponse defines the data returned after a successful creation.
 type CreateResponse struct {
-	ID    int32  `json:"id"`
+	ID    int64  `json:"id"`
 	Title string `json:"title"`
 }
 
@@ -43,8 +43,8 @@ func (a CreateAction) Call(input CreateInput) (CreateResponse, error) {
 
 	queries := generated.New(conn)
 	row, err := queries.CreateTask(a.Ctx(), generated.CreateTaskParams{
-		P1: input.Title,
-		P2: int32(time.Now().Unix()),
+		Title:     input.Title,
+		CreatedAt: int32(time.Now().Unix()),
 	})
 	if err != nil {
 		return CreateResponse{}, err

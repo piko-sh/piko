@@ -36,9 +36,9 @@ import (
 	"golang.org/x/sync/errgroup"
 	"piko.sh/piko/internal/healthprobe/healthprobe_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/internal/querier/querier_adapters/migration_sql"
-	"piko.sh/piko/internal/querier/querier_domain"
 	"piko.sh/piko/internal/shutdown"
+	"piko.sh/piko/internal/sqldb/sqldb_domain"
+	"piko.sh/piko/internal/sqldb/sqldb_dto"
 	"piko.sh/piko/wdk/goroutine"
 )
 
@@ -178,17 +178,13 @@ type EngineConfig struct {
 	// empty.
 	DriverName string
 
-	// Engine is the SQL dialect parser used for code generation.
-	Engine querier_domain.EnginePort
+	// Engine names the SQL dialect and supplies the toolchain that generates code and runs
+	// migrations and seeds for it.
+	Engine sqldb_domain.EngineToolchainPort
 
-	// CatalogueFactory creates a live-database catalogue provider for schema introspection.
-	// Nil when introspection is not supported or not needed.
-	CatalogueFactory func(database *sql.DB) querier_domain.CatalogueProviderPort
-
-	// MigrationDialect configures the migration executor for this engine's SQL dialect
-	// (locking strategy, placeholder syntax, DDL for the history table). Zero-valued for
-	// codegen-only engines.
-	MigrationDialect migration_sql.DialectConfig
+	// MigrationDialect selects the migration backend for this engine's SQL dialect. The zero
+	// value marks a codegen-only engine with no migration backend.
+	MigrationDialect sqldb_dto.DialectConfig
 }
 
 // Replica configures a single read replica connection.
@@ -279,7 +275,7 @@ type DatabaseRegistration struct {
 
 	// MigrationOptions holds optional migration service configuration such as non-blocking
 	// locks and lifecycle hooks.
-	MigrationOptions []querier_domain.MigrationServiceOption
+	MigrationOptions []sqldb_domain.MigrationServiceOption
 
 	// Replicas configures read replica connections for this database, where
 	// GetDatabaseReader returns a round-robin balancer across replicas when set or the
@@ -291,7 +287,7 @@ type DatabaseRegistration struct {
 	EngineConfig EngineConfig
 
 	// MigrationDialect configures the migration executor for this database's SQL dialect.
-	MigrationDialect migration_sql.DialectConfig
+	MigrationDialect sqldb_dto.DialectConfig
 
 	// ConnMaxLifetime sets the maximum amount of time a connection may be reused. Zero means
 	// connections are not closed due to age.
@@ -327,11 +323,11 @@ type databaseInstance struct {
 
 	// migrator holds the migration service for this database, or nil when no migration
 	// filesystem is configured.
-	migrator querier_domain.MigrationServicePort
+	migrator sqldb_domain.MigrationService
 
 	// seeder holds the seed service for this database, or nil when no seed filesystem is
 	// configured.
-	seeder querier_domain.SeedServicePort
+	seeder sqldb_domain.SeedService
 
 	// engineHealthChecker holds the optional engine-specific health checker discovered via
 	// type assertion on the engine.
@@ -986,10 +982,10 @@ func (c *Container) GetDatabaseWriter(name string) (DBTX, error) {
 //
 // Takes name (string) which identifies the database registered via AddDatabase.
 //
-// Returns querier_domain.MigrationServicePort which can apply and roll back migrations.
+// Returns sqldb_domain.MigrationService which can apply and roll back migrations.
 // Returns error when the database service cannot be created, the name is not registered,
 // or no migration filesystem was configured for this database.
-func (c *Container) GetQuerierMigrationService(name string) (querier_domain.MigrationServicePort, error) {
+func (c *Container) GetQuerierMigrationService(name string) (sqldb_domain.MigrationService, error) {
 	svc, err := c.GetDatabaseService()
 	if err != nil {
 		return nil, fmt.Errorf("get migration service %q: %w", name, err)
@@ -1034,10 +1030,10 @@ func (c *Container) runMigrationsIfConfigured(name string) error {
 //
 // Takes name (string) which identifies the database registered via AddDatabase.
 //
-// Returns querier_domain.SeedServicePort which can apply and inspect seeds.
+// Returns sqldb_domain.SeedService which can apply and inspect seeds.
 // Returns error when the database service cannot be created, the name is not registered,
 // or no seed filesystem was configured for this database.
-func (c *Container) GetQuerierSeedService(name string) (querier_domain.SeedServicePort, error) {
+func (c *Container) GetQuerierSeedService(name string) (sqldb_domain.SeedService, error) {
 	svc, err := c.GetDatabaseService()
 	if err != nil {
 		return nil, fmt.Errorf("get seed service %q: %w", name, err)
@@ -1144,8 +1140,14 @@ func (c *Container) openDatabaseInstance(
 		instance.reader = newOTelDBTX(instance.reader, databaseSystem, name, reg.QueryNameResolver, observer)
 	}
 
-	instance.migrator = c.createMigrationServiceForInstance(ctx, database, name, reg)
-	instance.seeder = c.createSeedServiceForInstance(ctx, database, name, reg)
+	instance.migrator, err = c.createMigrationServiceForInstance(ctx, database, name, reg)
+	if err != nil {
+		return nil, err
+	}
+	instance.seeder, err = c.createSeedServiceForInstance(ctx, database, name, reg)
+	if err != nil {
+		return nil, err
+	}
 
 	return instance, nil
 }
@@ -1334,38 +1336,42 @@ func (c *Container) attachReplicas(
 // Takes reg (*DatabaseRegistration) which provides the database registration and
 // migration configuration.
 //
-// Returns querier_domain.MigrationServicePort which is the migration service, or nil when
-// no migration filesystem is configured.
+// Returns sqldb_domain.MigrationService which is the migration service, or nil when no
+// migration filesystem is configured.
+// Returns error when the registration has no engine or its dialect has no migration
+// backend.
 func (*Container) createMigrationServiceForInstance(
 	ctx context.Context,
 	database *sql.DB,
 	name string,
 	reg *DatabaseRegistration,
-) querier_domain.MigrationServicePort {
+) (sqldb_domain.MigrationService, error) {
 	if reg.MigrationFS == nil {
-		return nil
+		return nil, nil
+	}
+	if reg.EngineConfig.Engine == nil {
+		return nil, fmt.Errorf("creating migration service for %q: %w", name, sqldb_domain.ErrNoSQLToolchain)
 	}
 
 	_, l := logger_domain.From(ctx, log)
 
-	dialect := reg.MigrationDialect
-	if reg.EngineConfig.MigrationDialect.CreateTableSQL != "" {
-		dialect = reg.EngineConfig.MigrationDialect
-	}
-
 	directory := cmp.Or(reg.MigrationDirectory, ".")
-
-	fileReader := migration_sql.NewFSFileReader(reg.MigrationFS)
-	executor := migration_sql.NewExecutor(database, dialect)
-	migrator := querier_domain.NewMigrationService(
-		executor, fileReader, directory, reg.MigrationOptions...,
+	migrator, err := reg.EngineConfig.Engine.Toolchain().NewMigrationService(
+		database,
+		resolveMigrationDialect(reg),
+		reg.MigrationFS,
+		directory,
+		sqldb_domain.BuildMigrationServiceConfig(reg.MigrationOptions...),
 	)
+	if err != nil {
+		return nil, fmt.Errorf("creating migration service for %q: %w", name, err)
+	}
 
 	l.Internal("Migration service created",
 		logger_domain.String(logFieldDatabaseName, name),
 		logger_domain.String("directory", directory))
 
-	return migrator
+	return migrator, nil
 }
 
 // createSeedServiceForInstance creates a seed service from the registration's SeedFS, or
@@ -1375,35 +1381,47 @@ func (*Container) createMigrationServiceForInstance(
 // Takes name (string) which identifies the database for logging.
 // Takes reg (*DatabaseRegistration) which provides seed configuration.
 //
-// Returns querier_domain.SeedServicePort or nil when SeedFS is not set.
+// Returns sqldb_domain.SeedService which runs seeds, or nil when SeedFS is not set.
+// Returns error when the registration has no engine or its dialect has no seed backend.
 func (*Container) createSeedServiceForInstance(
 	ctx context.Context,
 	database *sql.DB,
 	name string,
 	reg *DatabaseRegistration,
-) querier_domain.SeedServicePort {
+) (sqldb_domain.SeedService, error) {
 	if reg.SeedFS == nil {
-		return nil
+		return nil, nil
+	}
+	if reg.EngineConfig.Engine == nil {
+		return nil, fmt.Errorf("creating seed service for %q: %w", name, sqldb_domain.ErrNoSQLToolchain)
 	}
 
 	_, l := logger_domain.From(ctx, log)
 
-	dialect := reg.MigrationDialect
-	if reg.EngineConfig.MigrationDialect.CreateSeedTableSQL != "" {
-		dialect = reg.EngineConfig.MigrationDialect
-	}
-
 	directory := cmp.Or(reg.SeedDirectory, ".")
-
-	fileReader := migration_sql.NewFSFileReader(reg.SeedFS)
-	executor := migration_sql.NewSeedExecutor(database, dialect)
-	seeder := querier_domain.NewSeedService(executor, fileReader, directory)
+	seeder, err := reg.EngineConfig.Engine.Toolchain().NewSeedService(database, resolveMigrationDialect(reg), reg.SeedFS, directory)
+	if err != nil {
+		return nil, fmt.Errorf("creating seed service for %q: %w", name, err)
+	}
 
 	l.Internal("Seed service created",
 		logger_domain.String(logFieldDatabaseName, name),
 		logger_domain.String("directory", directory))
 
-	return seeder
+	return seeder, nil
+}
+
+// resolveMigrationDialect selects the engine's dialect when available, otherwise the
+// registration's dialect.
+//
+// Takes reg (*DatabaseRegistration) which provides both candidates.
+//
+// Returns sqldb_dto.DialectConfig which selects the backend.
+func resolveMigrationDialect(reg *DatabaseRegistration) sqldb_dto.DialectConfig {
+	if reg.EngineConfig.MigrationDialect.IsConfigured() {
+		return reg.EngineConfig.MigrationDialect
+	}
+	return reg.MigrationDialect
 }
 
 // openReplicas opens all replica connections for a database registration and returns them

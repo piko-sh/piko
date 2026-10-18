@@ -25,7 +25,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"piko.sh/piko/internal/annotator/annotator_dto"
@@ -33,6 +35,7 @@ import (
 	"piko.sh/piko/internal/lifecycle/lifecycle_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
+	"piko.sh/piko/wdk/clock"
 	"piko.sh/piko/wdk/goroutine"
 )
 
@@ -111,18 +114,15 @@ func (ls *lifecycleService) handleFileEvent(ctx context.Context, event lifecycle
 	ls.handleAssetChange(fec)
 }
 
-// maybeHandleStyleDependencyChange checks whether the changed file is an external
-// stylesheet imported by one or more components via CSS @import. If so it triggers a
-// rebuild of the importing components (a targeted rebuild in dev-i, otherwise a full
-// rebuild) and returns true.
+// maybeHandleStyleDependencyChange rebuilds components that import the changed
+// stylesheet.
+//
+// The style lookup uses styleDepsMu, and queued rebuilds are tracked by rebuildWG.
 //
 // Takes event (lifecycle_dto.FileEvent) which describes the file system event.
 //
 // Returns bool which is true when the event was handled as a stylesheet dependency
 // change.
-//
-// Concurrency: read-locks styleDepsMu via importersOfStyle and may launch a rebuild
-// goroutine tracked by rebuildWG.
 func (ls *lifecycleService) maybeHandleStyleDependencyChange(ctx context.Context, event lifecycle_dto.FileEvent) bool {
 	if !strings.HasSuffix(strings.ToLower(event.Path), ".css") {
 		return false
@@ -142,8 +142,7 @@ func (ls *lifecycleService) maybeHandleStyleDependencyChange(ctx context.Context
 		if rel, err := ls.fs.Rel(ls.pathsConfig.BaseDir, event.Path); err == nil {
 			cssRelPath = filepath.ToSlash(rel)
 		}
-		ls.rebuildWG.Add(1)
-		go ls.executeStyleDependencyRebuild(ctx, cssRelPath, importers)
+		ls.targetedRebuildBatcher().addStyleChange(ctx, cssRelPath, importers)
 		return true
 	}
 
@@ -190,6 +189,8 @@ func (ls *lifecycleService) buildFileEventContext(ctx context.Context, event lif
 
 // handleCoreSourceChange processes changes to core source files (.pk, etc.).
 //
+// Calls may run concurrently; targeted rebuilds are batched on a separate goroutine.
+//
 // In interpreted mode with an initialised orchestrator, this triggers a targeted rebuild
 // that only re-annotates and regenerates the changed component and its transitive
 // dependents. A change to a user Go package instead invalidates the interpreter's
@@ -199,8 +200,6 @@ func (ls *lifecycleService) buildFileEventContext(ctx context.Context, event lif
 // Takes fec (fileEventContext) which provides the file event details and logging context.
 // Takes initialSeed (bool) which indicates whether this is the initial file discovery
 // phase.
-//
-// Safe for concurrent use. Targeted rebuilds are spawned in a separate goroutine.
 func (ls *lifecycleService) handleCoreSourceChange(fec fileEventContext, initialSeed bool) {
 	ctx, l := logger_domain.From(fec.ctx, log)
 
@@ -230,8 +229,7 @@ func (ls *lifecycleService) handleCoreSourceChange(fec fileEventContext, initial
 			ls.handlePageRemoval(ctx, fec.relPath)
 			return
 		}
-		ls.rebuildWG.Add(1)
-		go ls.executeTargetedRebuild(ctx, fec.relPath, isPageCreate)
+		ls.targetedRebuildBatcher().addChange(ctx, fec.relPath, fec.relPath, isPageCreate)
 		return
 	}
 
@@ -360,7 +358,8 @@ func (ls *lifecycleService) clearComponentCacheIfNeeded(fec fileEventContext) {
 	}
 }
 
-// upsertAssetArtefact creates or updates an asset artefact in the registry.
+// upsertAssetArtefact creates or updates an asset while preserving its existing desired
+// profiles.
 //
 // Takes fec (fileEventContext) which provides the file event details and context for the
 // operation.
@@ -374,6 +373,11 @@ func (ls *lifecycleService) upsertAssetArtefact(fec fileEventContext) {
 	}
 
 	file, err := ls.fs.Open(fec.event.Path)
+	if errors.Is(err, fs.ErrNotExist) {
+		l.Trace("Asset file no longer exists, ignoring the event (likely an editor or tool temporary file)",
+			logger_domain.String(fieldPath, fec.relPath))
+		return
+	}
 	if err != nil {
 		l.Error("Failed to read updated asset file", logger_domain.Error(err))
 		return
@@ -382,7 +386,8 @@ func (ls *lifecycleService) upsertAssetArtefact(fec fileEventContext) {
 
 	profiles := GetProfilesForFile(fec.artefactID, ResolverModuleName(ls.resolver), nil)
 	normalisedID := NormaliseAssetArtefactID(fec.artefactID)
-	_, err = ls.registryService.UpsertArtefact(ctx, normalisedID, fec.relPath, file, "local_disk_cache", profiles)
+	_, err = ls.registryService.UpsertArtefact(ctx, normalisedID, fec.relPath, file, "local_disk_cache", profiles,
+		registry_domain.WithProfileMerge())
 	if err != nil {
 		l.Error("Failed to upsert asset artefact", logger_domain.Error(err))
 	}
@@ -512,77 +517,56 @@ func (ls *lifecycleService) removeEntryPoint(entryPointPath string) {
 	ls.entryPoints = newEntryPoints
 }
 
-// executeTargetedRebuild performs an incremental rebuild for a single changed file by
-// only re-annotating and regenerating the changed component and its transitive
-// dependents.
+// targetedRebuildBatcher returns the batcher that turns source changes into targeted
+// rebuilds, building it on first use.
 //
-// It queries the orchestrator's reverse dependency map to find affected components,
-// filters the entry point list to only those components, runs a synchronous coordinator
-// build with the targeted subset, then merges the result and proactively JIT-compiles all
-// dirty components.
-//
-// Falls back to a full coordinator rebuild if the targeted build fails.
-//
-// Takes relPath (string) which is the project-relative path of the changed file (e.g.
-// "pages/login.pk").
-// Takes reloadRoutes (bool) which requests a router reload after recompilation so a newly
-// created page becomes routable without a restart.
-//
-// Designed to run in a goroutine so the watch loop is not blocked.
-//
-// The caller must Add(1) on rebuildWG before launching this goroutine, and the rebuild
-// calls Done() on the WaitGroup on exit.
-func (ls *lifecycleService) executeTargetedRebuild(ctx context.Context, relPath string, reloadRoutes bool) {
-	defer ls.rebuildWG.Done()
-	defer goroutine.RecoverPanic(ctx, "lifecycle.executeTargetedRebuild")
-
-	affected := ls.interpretedOrchestrator.GetAffectedComponents(relPath)
-
-	allPaths := make([]string, 0, 1+len(affected))
-	allPaths = append(allPaths, relPath)
-	allPaths = append(allPaths, affected...)
-
-	ls.runTargetedRebuild(ctx, relPath, allPaths, reloadRoutes)
+// Returns *targetedRebuildBatcher which runs batches through executeTargetedRebuildBatch.
+func (ls *lifecycleService) targetedRebuildBatcher() *targetedRebuildBatcher {
+	ls.targetedRebuildsOnce.Do(func() {
+		clk := ls.clock
+		if clk == nil {
+			clk = clock.RealClock()
+		}
+		ls.targetedRebuilds = newTargetedRebuildBatcher(clk, targetedRebuildBatchWindow,
+			ls.tryStartRebuild, ls.finishRebuild, ls.executeTargetedRebuildBatch)
+	})
+	return ls.targetedRebuilds
 }
 
-// executeStyleDependencyRebuild rebuilds the components that import a changed external
-// stylesheet, plus their transitive dependents. The coordinator's input hash now folds in
-// imported-stylesheet contents, so the changed CSS makes the rebuild miss the cache and
-// re-inline the new styles.
+// executeTargetedRebuildBatch rebuilds changed components, stylesheet importers, and
+// their transitive dependents.
 //
-// Takes cssRelPath (string) which is the project-relative path of the changed stylesheet,
-// used for logging and build causation.
-// Takes importers ([]string) which are the project-relative paths of components that
-// import the stylesheet.
+// A failed targeted build falls back to a full coordinator rebuild.
 //
-// Designed to run in a goroutine; the caller must Add(1) on rebuildWG before launching
-// it.
-func (ls *lifecycleService) executeStyleDependencyRebuild(ctx context.Context, cssRelPath string, importers []string) {
-	defer ls.rebuildWG.Done()
-	defer goroutine.RecoverPanic(ctx, "lifecycle.executeStyleDependencyRebuild")
+// Takes batch (*targetedRebuildBatch) which lists the changes to rebuild.
+//
+// Called by the batcher on its own goroutine, one batch at a time. The rebuild is
+// cancelled if the service stops while it runs.
+func (ls *lifecycleService) executeTargetedRebuildBatch(batch *targetedRebuildBatch) {
+	ctx, cancel := ls.withLifetime(batch.ctx)
+	defer cancel()
+	defer goroutine.RecoverPanic(ctx, "lifecycle.executeTargetedRebuildBatch")
 
-	seen := make(map[string]bool, len(importers))
 	var allPaths []string
-	add := func(p string) {
-		if p == "" || seen[p] {
-			return
+	add := func(path string) {
+		if path != "" {
+			allPaths = appendUnique(allPaths, path)
 		}
-		seen[p] = true
-		allPaths = append(allPaths, p)
 	}
-	for _, importer := range importers {
-		add(importer)
-		for _, dep := range ls.interpretedOrchestrator.GetAffectedComponents(importer) {
-			add(dep)
+	for _, path := range slices.Concat(batch.changed, batch.styleImporters) {
+		add(path)
+		for _, dependent := range ls.interpretedOrchestrator.GetAffectedComponents(path) {
+			add(dependent)
 		}
 	}
 
-	ls.runTargetedRebuild(ctx, cssRelPath, allPaths, false)
+	ls.runTargetedRebuild(ctx, batch.label(), allPaths, batch.reloadRoutes)
 }
 
-// runTargetedRebuild filters the entry points to allPaths, runs a synchronous coordinator
-// build for that subset, marks the rebuilt components dirty, and proactively recompiles.
-// It falls back to a full rebuild when no entry points match or the build fails.
+// runTargetedRebuild rebuilds the entry points matching allPaths.
+//
+// An empty match or build failure triggers a full rebuild unless the build was
+// invalidated or the service is stopping.
 //
 // Takes changedLabel (string) which labels the rebuild for logging and build causation.
 // Takes allPaths ([]string) which are the project-relative paths to rebuild.
@@ -605,7 +589,14 @@ func (ls *lifecycleService) runTargetedRebuild(ctx context.Context, changedLabel
 		logger_domain.Int("affected_count", len(targetedEntryPoints)))
 
 	result, err := ls.coordinatorService.GetOrBuildProject(ctx, targetedEntryPoints,
-		coordinator_domain.WithCausationID(fmt.Sprintf("targeted:%s", changedLabel)))
+		coordinator_domain.WithCausationID(fmt.Sprintf("targeted:%s", changedLabel)),
+		coordinator_domain.WithTargeted(ls.GetEntryPoints()))
+	if errors.Is(err, coordinator_domain.ErrBuildInvalidated) || (err != nil && ctx.Err() != nil) {
+		l.Internal("Targeted rebuild abandoned; the build was invalidated or the service is stopping",
+			logger_domain.String(fieldPath, changedLabel),
+			logger_domain.Error(err))
+		return
+	}
 	if err != nil {
 		l.Error("Targeted rebuild failed, falling back to full rebuild",
 			logger_domain.String(fieldPath, changedLabel),

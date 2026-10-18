@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"os"
 
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // createSystemTempSandbox creates a sandboxed file system scoped to the system temp

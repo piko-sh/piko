@@ -25,7 +25,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // FileSystem defines file operations for reading and traversing files. Tests can use mock

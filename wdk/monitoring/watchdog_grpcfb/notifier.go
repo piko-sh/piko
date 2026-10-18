@@ -27,8 +27,8 @@ import (
 	"google.golang.org/grpc"
 
 	"piko.sh/piko/internal/monitoring/monitoring_domain"
-	"piko.sh/piko/wdk/safeconv"
 	"piko.sh/piko/wdk/telemetry/telemetry_grpcfb"
+	"piko.sh/safeconv"
 )
 
 const (

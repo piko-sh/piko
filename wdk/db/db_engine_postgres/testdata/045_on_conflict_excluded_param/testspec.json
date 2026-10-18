@@ -1,3 +1,0 @@
-{
-  "description": "INSERT ON CONFLICT DO UPDATE with parameters alongside EXCLUDED references. Validates parameter type inference in upsert context."
-}

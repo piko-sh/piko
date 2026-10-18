@@ -317,7 +317,6 @@ func (gb *GraphBuilder) runParsingWorkers(ctx context.Context, allPaths []string
 // aggregateParseResults collects parse results from the channel and builds a component
 // graph.
 //
-// Takes ctx (context.Context) which carries the logger.
 // Takes resultsChan (<-chan *parseResult) which provides parsed components.
 //
 // Returns *annotator_dto.ComponentGraph which contains the built graph.
@@ -376,31 +375,39 @@ func (*GraphBuilder) processParseResultError(result *parseResult) ([]*ast_domain
 	return nil, result.err
 }
 
-// registerParsedComponent adds a parsed component to the graph with computed metadata
-// such as source path, external status, and module import path.
+// registerParsedComponent adds a component to the graph without modifying the shared
+// cached component.
 //
 // Takes graph (*annotator_dto.ComponentGraph) which stores all components.
 // Takes result (*parseResult) which contains the parsed component data.
 func (gb *GraphBuilder) registerParsedComponent(graph *annotator_dto.ComponentGraph, result *parseResult) {
-	baseDir := gb.resolver.GetBaseDir()
-	isExternal := !pathutil.Contains(baseDir, result.path)
-
-	result.parsedComponent.SourcePath = result.path
-	result.parsedComponent.IsExternal = isExternal
-	result.parsedComponent.ModuleImportPath = gb.buildModuleImportPath(result.path, baseDir, isExternal)
-
-	relativePath, _ := filepath.Rel(baseDir, result.path)
+	relativePath, _ := filepath.Rel(gb.resolver.GetBaseDir(), result.path)
 	hash := buildAliasFromPath(relativePath)
 	graph.PathToHashedName[result.path] = hash
-	graph.HashedNameToPath[hash] = hash
+	graph.HashedNameToPath[hash] = result.path
 	graph.Components[hash] = result.parsedComponent
+}
+
+// setComponentLocation sets a freshly parsed component's path, type, and module metadata
+// before it is shared.
+//
+// Takes component (*annotator_dto.ParsedComponent) which is the newly parsed component to
+// update.
+// Takes path (string) which is the absolute path of the component's source file.
+func (gb *GraphBuilder) setComponentLocation(ctx context.Context, component *annotator_dto.ParsedComponent, path string) {
+	baseDir := gb.resolver.GetBaseDir()
+	isExternal := !pathutil.Contains(baseDir, path)
+
+	component.ComponentType = gb.determineComponentType(ctx, path)
+	component.SourcePath = path
+	component.IsExternal = isExternal
+	component.ModuleImportPath = gb.buildModuleImportPath(path, baseDir, isExternal)
 }
 
 // registerBrokenComponent registers a stub entry for a component that failed to parse.
 // Dependent files can still resolve the import path in fault-tolerant mode (LSP),
 // preventing cascading "could not find hash" errors.
 //
-// Takes ctx (context.Context) which carries the logger.
 // Takes graph (*annotator_dto.ComponentGraph) which stores all components.
 // Takes path (string) which is the absolute path to the broken component.
 func (gb *GraphBuilder) registerBrokenComponent(ctx context.Context, graph *annotator_dto.ComponentGraph, path string) {
@@ -471,20 +478,20 @@ func (gb *GraphBuilder) readAndParse(ctx context.Context, path string) (*annotat
 		return nil, nil, fmt.Errorf("reading file %q: %w", path, err)
 	}
 
-	cacheKey := generateCacheKey(path, fileData)
+	cacheKey := generateCacheKey(gb.resolver.GetBaseDir(), gb.resolver.GetModuleName(), path, fileData)
 
 	loader := func(ctx context.Context) (*annotator_dto.ParsedComponent, error) {
 		component, _, parseErr := ParsePK(ctx, fileData, path)
 
 		if parseErr != nil {
 			if gb.faultTolerant && component != nil {
-				component.ComponentType = gb.determineComponentType(ctx, path)
+				gb.setComponentLocation(ctx, component, path)
 				return component, parseErr
 			}
 			return nil, parseErr
 		}
 
-		component.ComponentType = gb.determineComponentType(ctx, path)
+		gb.setComponentLocation(ctx, component, path)
 
 		pmlUsageDiags := validatePMLUsage(component)
 		if len(pmlUsageDiags) > 0 && component.Template != nil {
@@ -507,11 +514,10 @@ func (gb *GraphBuilder) readAndParse(ctx context.Context, path string) (*annotat
 
 // determineComponentType finds the type of a component based on its file path.
 //
-// Takes ctx (context.Context) which carries the logger.
 // Takes absolutePath (string) which is the full path to the component file.
 //
-// Returns string which is the component type: "page", "email", "partial", or "component"
-// as the default.
+// Returns string which names the component type as "page", "email", "partial", or
+// "component" as the default.
 func (gb *GraphBuilder) determineComponentType(ctx context.Context, absolutePath string) string {
 	_, l := logger_domain.From(ctx, log)
 	baseDir := gb.resolver.GetBaseDir()
@@ -591,7 +597,6 @@ type cycleDetector struct {
 
 // dfs searches for circular dependencies using depth-first traversal.
 //
-// Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes hashedName (string) which is the unique name of the component to check.
 // Takes path ([]string) which holds the current path for cycle reporting.
 func (cd *cycleDetector) dfs(ctx context.Context, hashedName string, path []string) {
@@ -643,17 +648,23 @@ func (cd *cycleDetector) dfs(ctx context.Context, hashedName string, path []stri
 	cd.visiting[hashedName] = false
 }
 
-// generateCacheKey creates a hash from a file path and its content. Including the path
-// means that if a file is renamed, even with the same content, it will be treated as new
-// and parsed again.
+// generateCacheKey hashes the resolver's base directory, module name, file path, and
+// content into a parse cache key.
 //
+// Takes baseDir (string) which is the resolver's base directory.
+// Takes moduleName (string) which is the resolver's module name.
 // Takes path (string) which is the file location.
 // Takes content ([]byte) which is the raw file data.
 //
-// Returns string which is the hex-encoded hash of the path and content.
-func generateCacheKey(path string, content []byte) string {
+// Returns string which is the hex-encoded hash of the inputs.
+func generateCacheKey(baseDir, moduleName, path string, content []byte) string {
 	hasher := xxhash.New()
+	_, _ = hasher.WriteString(baseDir)
+	_, _ = hasher.WriteString("\x00")
+	_, _ = hasher.WriteString(moduleName)
+	_, _ = hasher.WriteString("\x00")
 	_, _ = hasher.WriteString(path)
+	_, _ = hasher.WriteString("\x00")
 	_, _ = hasher.Write(content)
 	return fmt.Sprintf("%x", hasher.Sum(nil))
 }

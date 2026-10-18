@@ -31,7 +31,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 var (

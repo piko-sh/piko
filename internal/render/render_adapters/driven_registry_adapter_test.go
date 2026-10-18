@@ -474,10 +474,12 @@ func TestFindSVGVariant(t *testing.T) {
 				{
 					VariantID:    "source-v",
 					MetadataTags: registry_dto.TagsFromMap(map[string]string{"type": "source"}),
+					Status:       registry_dto.VariantStatusReady,
 				},
 				{
 					VariantID:    "minified-v",
 					MetadataTags: registry_dto.TagsFromMap(map[string]string{"type": "minified-svg"}),
+					Status:       registry_dto.VariantStatusReady,
 				},
 			},
 		}
@@ -487,6 +489,33 @@ func TestFindSVGVariant(t *testing.T) {
 		require.NotNil(t, result)
 		assert.Equal(t, "minified-v", result.VariantID)
 	})
+
+	for _, status := range []registry_dto.VariantStatus{registry_dto.VariantStatusStale, registry_dto.VariantStatusPending} {
+		t.Run("falls back to source while minified-svg is "+string(status), func(t *testing.T) {
+			t.Parallel()
+
+			artefact := &registry_dto.ArtefactMeta{
+				ActualVariants: []registry_dto.Variant{
+					{
+						VariantID:    "minified-v",
+						MetadataTags: registry_dto.TagsFromMap(map[string]string{"type": "minified-svg"}),
+						Status:       status,
+					},
+					{
+						VariantID:    "source-v",
+						MetadataTags: registry_dto.TagsFromMap(map[string]string{"type": "source"}),
+						Status:       registry_dto.VariantStatusReady,
+					},
+				},
+			}
+
+			result := findSVGVariant(artefact)
+
+			require.NotNil(t, result)
+			assert.Equal(t, "source-v", result.VariantID,
+				"a minified variant that is still being rebuilt holds the previous drawing")
+		})
+	}
 
 	t.Run("falls back to source when no minified variant", func(t *testing.T) {
 		t.Parallel()
@@ -829,10 +858,12 @@ func svgArtefactWithMinifiedAndSource() *registry_dto.ArtefactMeta {
 			{
 				VariantID:    "minified",
 				MetadataTags: registry_dto.TagsFromMap(map[string]string{"type": "minified-svg"}),
+				Status:       registry_dto.VariantStatusReady,
 			},
 			{
 				VariantID:    "source",
 				MetadataTags: registry_dto.TagsFromMap(map[string]string{"type": "source"}),
+				Status:       registry_dto.VariantStatusReady,
 			},
 		},
 	}

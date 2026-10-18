@@ -188,13 +188,17 @@ func TestProvidedSymbolPathsIncludesStandardLibraryAndRuntime(t *testing.T) {
 	require.Len(t, provided, len(pipit.StandardLibraryPaths())+len(interp_piko_symbols.Symbols))
 }
 
-func TestRunExtractDiscoverReadsPKProjects(t *testing.T) {
-	t.Parallel()
+func writeExtractProject(t *testing.T) string {
+	t.Helper()
 
 	root := t.TempDir()
 	files := map[string]string{
-		"go.mod":             "module example.com/fixture\n\ngo 1.22\n",
-		"pkg/local/local.go": "package local\n\nfunc Something() int { return 1 }\n",
+		"go.mod":                       "module example.com/fixture\n\ngo 1.22\n\nrequire example.com/dep v0.0.0\n\nreplace example.com/dep => ./dep\n",
+		"dep/go.mod":                   "module example.com/dep\n\ngo 1.22\n",
+		"dep/thing/thing.go":           "package thing\n\nfunc Value() int { return 1 }\n",
+		"dep/nativeonly/nativeonly.go": "package nativeonly\n\nfunc Value() int { return 2 }\n",
+		"pkg/local/local.go":           "package local\n\nimport \"example.com/dep/thing\"\n\nfunc Something() int { return thing.Value() }\n",
+		"pkg/local/local_native.go":    "//go:build !interp\n\npackage local\n\nimport \"example.com/dep/nativeonly\"\n\nvar _ = nativeonly.Value\n",
 		"pages/home.pk": `<template><div></div></template>
 <script type="application/x-go">
 package main
@@ -209,7 +213,81 @@ var (
 	_ = local.Something
 )
 </script>`,
+		"pages/missing.pk": `<template><div></div></template>
+<script type="application/x-go">
+package main
+
+import "example.com/missing/pkg"
+
+var _ = pkg.Value
+</script>`,
 		"scripts/tool.go": "package main\n\nimport \"expvar\"\n\nvar _ = expvar.Do\n",
+	}
+	for name, content := range files {
+		path := filepath.Join(root, name)
+		require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
+		require.NoError(t, os.WriteFile(path, []byte(content), 0o644))
+	}
+	return root
+}
+
+func TestRunExtractDiscoverReadsPKProjects(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name      string
+		reason    string
+		arguments []string
+		want      []string
+	}{
+		{
+			name:      "follows the project's own packages by default",
+			arguments: nil,
+			want:      []string{"example.com/dep/thing"},
+			reason: "the project's packages are compiled from source, so the third-party package pkg/local " +
+				"imports is required, the !interp file's import is not, and fmt is already provided",
+		},
+		{
+			name:      "--include-project reports the project's packages instead",
+			arguments: []string{"--include-project"},
+			want:      []string{"example.com/fixture/pkg/local"},
+			reason:    "the old behaviour lists the project package the .pk script imports and does not follow it",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			root := writeExtractProject(t)
+			var stdout, stderr bytes.Buffer
+			code := RunExtractWithIO(append([]string{"discover", "--root", root}, testCase.arguments...), &stdout, &stderr)
+
+			require.Equal(t, 0, code, stderr.String())
+			require.Equal(t, testCase.want, strings.Fields(stdout.String()), testCase.reason)
+		})
+	}
+}
+
+func TestRunExtractDiscoverReachesActionsThroughPages(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	files := map[string]string{
+		"go.mod":                    "module example.com/fixture\n\ngo 1.22\n\nrequire example.com/dep v0.0.0\n\nreplace example.com/dep => ./dep\n",
+		"dep/go.mod":                "module example.com/dep\n\ngo 1.22\n",
+		"dep/used/used.go":          "package used\n\nfunc Value() int { return 1 }\n",
+		"dep/unused/unused.go":      "package unused\n\nfunc Value() int { return 2 }\n",
+		"actions/contact/submit.go": "package contact\n\nimport \"example.com/dep/used\"\n\nvar Value = used.Value\n",
+		"actions/orphan/orphan.go":  "package orphan\n\nimport \"example.com/dep/unused\"\n\nvar Value = unused.Value\n",
+		"pages/contact.pk": `<template><div></div></template>
+<script type="application/x-go">
+package main
+
+import "example.com/fixture/actions/contact"
+
+var _ = contact.Value
+</script>`,
 	}
 	for name, content := range files {
 		path := filepath.Join(root, name)
@@ -219,9 +297,36 @@ var (
 
 	var stdout, stderr bytes.Buffer
 	code := RunExtractWithIO([]string{"discover", "--root", root}, &stdout, &stderr)
+	require.Equal(t, 0, code, stderr.String())
+	require.Equal(t, []string{"example.com/dep/used"}, strings.Fields(stdout.String()),
+		"an action a page imports is followed; one no page imports is never compiled, so its imports are not needed")
+}
+
+func TestRunExtractDiscoverWarnsAboutUnresolvedImports(t *testing.T) {
+	t.Parallel()
+
+	root := writeExtractProject(t)
+	var stdout, stderr bytes.Buffer
+	code := RunExtractWithIO([]string{"discover", "--root", root}, &stdout, &stderr)
 
 	require.Equal(t, 0, code, stderr.String())
-	lines := strings.Fields(stdout.String())
-	require.Equal(t, []string{"example.com/fixture/pkg/local"}, lines,
-		"piko discovers project packages from .pk scripts, and fmt is already provided")
+	require.Contains(t, stderr.String(), "warning: example.com/missing/pkg cannot be extracted:",
+		"an import no module provides is reported rather than silently dropped")
+	require.NotContains(t, stdout.String(), "example.com/missing/pkg")
+}
+
+func TestRunExtractHelpDocumentsIncludeProject(t *testing.T) {
+	t.Parallel()
+
+	for _, name := range []string{"discover", "init", "check"} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			var stdout, stderr bytes.Buffer
+			code := RunExtractWithIO([]string{name, "--help"}, &stdout, &stderr)
+
+			require.Equal(t, 0, code)
+			require.Contains(t, stdout.String(), "--include-project")
+		})
+	}
 }

@@ -150,9 +150,11 @@ func TestHandleEvent_FetchArtefactFails(t *testing.T) {
 		Payload: map[string]any{"artefactID": "art-fail"},
 	}
 
-	initialCount := bridge.ArtefactEventsProcessed()
 	bridge.handleEvent(ctx, event)
-	assert.Equal(t, initialCount+1, bridge.ArtefactEventsProcessed())
+	assert.Zero(t, bridge.ArtefactEventsProcessed(), "a failed event is retried before it counts as processed")
+	require.Eventually(t, func() bool { return bridge.ArtefactEventsProcessed() == 1 }, 10*time.Second, 10*time.Millisecond,
+		"the event is given up on once its retries are spent")
+	assert.Equal(t, int64(bridgeEventMaxAttempts), reg.GetArtefactCallCount.Load())
 }
 
 func TestHandleEvent_ProfileAlreadyReady(t *testing.T) {

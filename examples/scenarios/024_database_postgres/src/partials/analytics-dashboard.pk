@@ -91,6 +91,7 @@ package main
 import (
     "piko.sh/piko"
     "piko.sh/piko/wdk/db"
+    "piko.sh/piko/wdk/maths"
 
     "testmodule/db/generated"
 )
@@ -126,6 +127,15 @@ type Response struct {
     DailyRevenue []DailyRevenueEntry `json:"daily_revenue"`
 }
 
+// decimalFloat reads a nullable decimal aggregate as a float64 for display, with
+// NULL as zero.
+func decimalFloat(value *maths.Decimal) (float64, error) {
+    if value == nil {
+        return 0, nil
+    }
+    return value.Float64()
+}
+
 // Render fetches analytics data from the database using read replicas and
 // returns it for display.
 func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
@@ -153,20 +163,32 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
 
     category_list := make([]CategorySummary, len(categories))
     for i, row := range categories {
+        revenue, err := decimalFloat(row.Revenue)
+        if err != nil {
+            return Response{}, piko.Metadata{}, err
+        }
+        running_total, err := decimalFloat(row.RunningTotal)
+        if err != nil {
+            return Response{}, piko.Metadata{}, err
+        }
         category_list[i] = CategorySummary{
             Category:     row.Category,
-            Revenue:      row.Revenue,
+            Revenue:      revenue,
             OrderCount:   row.OrderCount,
-            RunningTotal: row.RunningTotal,
+            RunningTotal: running_total,
         }
     }
 
     top_products := make([]TopProduct, len(top_products_rows))
     for i, row := range top_products_rows {
+        revenue, err := decimalFloat(row.Revenue)
+        if err != nil {
+            return Response{}, piko.Metadata{}, err
+        }
         top_products[i] = TopProduct{
             Name:         row.Name,
             Category:     row.Category,
-            Revenue:      row.Revenue,
+            Revenue:      revenue,
             OrderCount:   row.OrderCount,
             CategoryRank: row.CategoryRank,
         }
@@ -174,10 +196,14 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
 
     daily_revenue := make([]DailyRevenueEntry, len(daily_revenue_rows))
     for i, row := range daily_revenue_rows {
+        revenue, err := decimalFloat(row.Revenue)
+        if err != nil {
+            return Response{}, piko.Metadata{}, err
+        }
         daily_revenue[i] = DailyRevenueEntry{
             DayTimestamp: row.DayTimestamp,
-            Revenue:     row.Revenue,
-            OrderCount:  row.OrderCount,
+            Revenue:      revenue,
+            OrderCount:   row.OrderCount,
         }
     }
 

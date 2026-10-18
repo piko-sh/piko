@@ -34,7 +34,7 @@
           ],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 24,
+          "definition_line": 23,
           "definition_column": 6
         },
         "GenericResponse": {
@@ -64,7 +64,7 @@
           ],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 30,
+          "definition_line": 27,
           "definition_column": 6
         },
         "Response": {
@@ -110,7 +110,7 @@
                 }
               ],
               "composite_type": 2,
-              "definition_line": 37,
+              "definition_line": 32,
               "definition_column": 2,
               "is_internal_type": false,
               "is_embedded": false,
@@ -152,7 +152,7 @@
                 }
               ],
               "composite_type": 2,
-              "definition_line": 40,
+              "definition_line": 34,
               "definition_column": 2,
               "is_internal_type": false,
               "is_embedded": false,
@@ -163,7 +163,7 @@
           "type_params": [],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 35,
+          "definition_line": 31,
           "definition_column": 6
         }
       },
@@ -203,7 +203,7 @@
           ],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 22,
+          "definition_line": 21,
           "definition_column": 6
         }
       },

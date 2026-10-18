@@ -24,8 +24,8 @@ import (
 )
 
 var (
-	// errCapabilityNotFound is returned when a requested capability does not exist.
-	errCapabilityNotFound = errors.New("capability: not found")
+	// ErrCapabilityNotFound reports a capability that was not registered at startup.
+	ErrCapabilityNotFound = errors.New("capability: not found")
 
 	// errCapabilityExists is returned when attempting to register a capability that has
 	// already been registered.

@@ -25,7 +25,7 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 var (
@@ -136,9 +136,6 @@ func (c *metadataCache) Delete(ctx context.Context, artefactID string) {
 }
 
 // Close shuts down the cache and releases resources.
-//
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 //
 // Returns error when the cache cannot be closed cleanly.
 func (c *metadataCache) Close(ctx context.Context) error {

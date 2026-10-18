@@ -1,3 +1,0 @@
-{
-  "description": "Migration-level piko.column propagates uuid.UUID through passthrough projections on DuckDB. A cast in a second query drops the override."
-}

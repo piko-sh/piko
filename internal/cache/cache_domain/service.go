@@ -69,8 +69,6 @@ type service struct {
 
 // RegisterProvider adds a cache provider implementation to the service registry.
 //
-// Takes ctx (context.Context) which carries logging context for trace and request ID
-// propagation.
 // Takes name (string) which identifies the provider in the registry.
 // Takes provider (any) which must be a Provider instance.
 //
@@ -149,8 +147,6 @@ func (s *service) GetProviders() []string {
 
 // SetDefaultProvider sets the default cache provider to use when none is specified.
 //
-// Takes ctx (context.Context) which carries logging context for trace and request ID
-// propagation.
 // Takes name (string) which is the provider name to set as default.
 //
 // Returns error when the provider name is not registered.
@@ -183,9 +179,6 @@ func (s *service) GetDefaultProvider() string {
 }
 
 // Close shuts down all registered providers and releases their resources.
-//
-// Takes ctx (context.Context) which carries logging context for trace and request ID
-// propagation.
 //
 // Returns error when one or more providers fail to close.
 //

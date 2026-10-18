@@ -18,10 +18,8 @@
 
 package main
 
-// This file imports 'models' with a conflicting alias 'dbmodels'.
 import dbmodels "testcase_38_file_scoped_context_switch/models"
 
 type Response struct {
-	// This field is defined in main.go, so `dbmodels` is correct here.
 	MainUser dbmodels.User
 }

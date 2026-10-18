@@ -87,7 +87,6 @@ type expansionContext struct {
 
 // expandPartialsRecursive expands partial template nodes within the given list.
 //
-// Takes ctx (context.Context) which controls cancellation and timeout.
 // Takes nodes ([]*ast_domain.TemplateNode) which is the list of nodes to expand.
 // Takes invoker (*annotator_dto.ParsedComponent) which provides the import context for
 // resolving partial paths.
@@ -124,7 +123,6 @@ func (ec *expansionContext) expandPartialsRecursive(ctx context.Context, nodes [
 
 // expandNodeRecursive expands a template node and all its children.
 //
-// Takes ctx (context.Context) which controls cancellation and timeout.
 // Takes node (*ast_domain.TemplateNode) which is the node to expand.
 // Takes aliasToRawPath (map[string]string) which maps import aliases to their file paths.
 // Takes invoker (*annotator_dto.ParsedComponent) which is the component that started this
@@ -171,7 +169,6 @@ func (ec *expansionContext) expandNodeRecursive(
 
 // expandPartial creates and runs a task to expand a single partial template.
 //
-// Takes ctx (context.Context) which controls cancellation and timeout.
 // Takes invokerNode (*ast_domain.TemplateNode) which is the template node that calls the
 // partial.
 // Takes userAlias (string) which is the alias used to refer to the partial.
@@ -240,8 +237,6 @@ func (ec *expansionContext) getSortedPartialInvocations() []*annotator_dto.Parti
 // createPartialInfoAnnotation builds a partial invocation info record for a template
 // node.
 //
-// Takes ctx (context.Context) which controls cancellation and deadlines for expression
-// parsing.
 // Takes invokerNode (*ast_domain.TemplateNode) which is the node that calls the partial.
 // Takes userAlias (string) which is the alias used in the template.
 // Takes targetHash (string) which identifies the target partial.
@@ -524,8 +519,6 @@ func calculatePotentialInvocationKey(partialAlias string, reqOverrides, passedPr
 // extractPropsForLinking extracts properties from a template node for use in component
 // linking.
 //
-// Takes ctx (context.Context) which controls cancellation and deadlines for expression
-// parsing.
 // Takes node (*ast_domain.TemplateNode) which holds the template attributes to process.
 // Takes sourcePath (string) which gives the source file path for expression parsing.
 //

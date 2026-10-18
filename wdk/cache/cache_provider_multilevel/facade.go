@@ -38,8 +38,6 @@ type Config = provider_multilevel.Config
 //   - Back-populates L1 when data is found in L2
 //   - Protects against L2 failures using a circuit breaker
 //
-// Takes ctx (context.Context) which carries logging context for trace and request ID
-// propagation.
 // Takes name (string) which is a descriptive name for this multilevel cache instance,
 // used in metrics.
 // Takes l1 (cache.ProviderPort[K, V]) which is the L1 local cache provider (e.g. Otter).

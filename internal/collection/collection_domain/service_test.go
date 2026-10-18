@@ -31,7 +31,7 @@ import (
 	"piko.sh/piko/internal/collection/collection_dto"
 	"piko.sh/piko/internal/resolver/resolver_domain"
 	"piko.sh/piko/wdk/clock"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 func mustCastToCollectionService(t *testing.T, service CollectionService) *collectionService {

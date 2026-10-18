@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/chromedp/chromedp"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 func TestClick(t *testing.T) {

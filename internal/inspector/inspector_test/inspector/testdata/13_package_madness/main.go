@@ -19,44 +19,30 @@
 package main
 
 import (
-	// Scenario 7: Dot import
-	. "testproject_madness/pkg/dot"
-	// Scenario 8: Blank import
-	_ "testproject_madness/pkg/blank"
-	// Scenario 6: Alias to avoid stdlib collision
-	myhttp "testproject_madness/pkg/http"
-	// Standard library for comparison
 	"net/http"
-	// Scenario 4 & 5: Alias one `api` package
 	apiv1 "testproject_madness/pkg/api"
-	// Use the default name for the other `api` package
 	"testproject_madness/pkg/api/v2"
-	// Scenario 1 & 2: Alias our local `helpers` package
+	_ "testproject_madness/pkg/blank"
+	. "testproject_madness/pkg/dot"
+	myhttp "testproject_madness/pkg/http"
 	localhelpers "testproject_madness/pkg/utils"
-	// Use the default name for the external `helpers` package
 	"testproject_madness/third_party/github.com/external/helpers"
 )
 
-// The Response struct uses types from every chaotic scenario.
 type Response struct {
-	// Test Scenario 7: Dot imported type is used without a qualifier.
 	DotInfo DotImported
 
-	// Test Scenario 4 & 5: Distinguishing between two packages named `api`.
-	APIUser    apiv1.User  // Should resolve to `pkg/api`
-	APIProduct api.Product // Should resolve to `pkg/api/v2`
+	APIUser    apiv1.User
+	APIProduct api.Product
 
-	// Test Scenario 1, 2, 9 & 10: Distinguishing between two packages named `helpers`.
-	Local    localhelpers.UtilHelper      // Should resolve to `pkg/utils`
-	External helpers.ExternalHelper       // Should resolve to `vendor/.../helpers`
-	Boxed    localhelpers.Box[apiv1.User] // Test generics from an aliased, mismatched package
-	Embedded                              // Anonymous embedding to test method promotion
+	Local    localhelpers.UtilHelper
+	External helpers.ExternalHelper
+	Boxed    localhelpers.Box[apiv1.User]
+	Embedded
 
 	StdlibClient http.Client
 }
 
-// Embedded struct for Scenario 10
 type Embedded struct {
-	// Embed a type from a package that was aliased to avoid collision
 	myhttp.Client
 }

@@ -31,7 +31,7 @@ import (
 	"github.com/google/pprof/profile"
 
 	"piko.sh/piko/cmd/piko/internal/inspector"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (

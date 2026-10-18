@@ -189,8 +189,6 @@ func (c *inlineLayoutContext) flushLine() {
 // children are recursively processed within the same inline formatting context, then the
 // wrapper fragment is sized to cover its children's extent.
 //
-// Takes ctx (context.Context) which carries the cancellation signal through recursive
-// layout.
 // Takes child (*LayoutBox) which is the non-text inline box to position.
 // Takes parentStyle (*ComputedStyle) which is the style of the containing inline element;
 // used to resolve parent font metrics for vertical-align.
@@ -243,8 +241,6 @@ func (c *inlineLayoutContext) layoutNonTextChild(ctx context.Context, child *Lay
 // layoutAtomicInline sizes an inline-block or replaced element as a block formatting
 // context and places it on the current line as an atomic inline unit.
 //
-// Takes ctx (context.Context) which carries the cancellation signal through recursive
-// layout.
 // Takes child (*LayoutBox) which is the inline-block or replaced element to lay out.
 // Takes parentStyle (*ComputedStyle) which is the style of the containing inline element;
 // used to resolve parent font metrics for vertical-align.
@@ -807,8 +803,6 @@ func resolveRunDirection(runs []bidiRun, styleDirection DirectionType) Direction
 // children, returning child fragments with parent-relative offsets, the intrinsic content
 // height, and margin information.
 //
-// Takes ctx (context.Context) which carries the cancellation signal through recursive
-// layout.
 // Takes container (*LayoutBox) which is the box whose inline children are laid out.
 // Takes input (layoutInput) which carries the available width, font metrics, and cache
 // from the parent context.

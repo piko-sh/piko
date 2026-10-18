@@ -43,7 +43,6 @@ func NewNoOpComponentCache() *NoOpComponentCache {
 
 // GetOrSet always executes the loader function directly without caching.
 //
-// Takes ctx (context.Context) which is the request context.
 // Takes loader (func(ctx context.Context) (*annotator_dto.ParsedComponent, error)) which
 // fetches the component.
 //

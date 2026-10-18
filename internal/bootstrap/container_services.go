@@ -47,7 +47,7 @@ import (
 	"piko.sh/piko/internal/seo/seo_adapters"
 	"piko.sh/piko/internal/seo/seo_domain"
 	"piko.sh/piko/internal/video/video_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // GetCSRFService returns the CSRF token service, creating it if needed.

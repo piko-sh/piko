@@ -121,6 +121,9 @@ type orchestratorService struct {
 	// nodeID uniquely identifies this orchestrator instance for receipt tracking.
 	nodeID string
 
+	// receiptWork tracks receipt admission counts and reconciliation work.
+	receiptWork receiptWork
+
 	// wg tracks active goroutines to allow graceful shutdown.
 	wg sync.WaitGroup
 
@@ -190,7 +193,6 @@ func (s *orchestratorService) GetTaskDispatcher() TaskDispatcher {
 
 // RegisterExecutor adds a new TaskExecutor to the service under a given name.
 //
-// Takes ctx (context.Context) which carries logging context.
 // Takes name (string) which identifies the executor for later retrieval.
 // Takes executor (TaskExecutor) which handles task execution.
 //
@@ -244,10 +246,16 @@ func (s *orchestratorService) Dispatch(ctx context.Context, task *Task) (*Workfl
 
 	task.Status = StatusPending
 	task.ExecuteAt = s.clock.Now()
+	task.stampAdmission(task.ExecuteAt)
 
 	receiptID := uuid.New().String()
 	receipt := newWorkflowReceipt(task.WorkflowID)
-	s.registerReceipt(ctx, receiptID, receipt)
+	receipt.id = receiptID
+	receipt.awaitingAdmission = true
+	if err := s.registerReceiptInMemory(ctx, receipt); err != nil {
+		return nil, err
+	}
+	task.receiptID = receiptID
 
 	s.taskInsertMutex.RLock()
 	defer s.taskInsertMutex.RUnlock()
@@ -298,12 +306,18 @@ func (s *orchestratorService) DispatchDirect(ctx context.Context, task *Task) (*
 
 	task.Status = StatusPending
 	task.ExecuteAt = s.clock.Now()
+	task.stampAdmission(task.ExecuteAt)
 
 	receiptID := uuid.New().String()
 	receipt := newWorkflowReceipt(task.WorkflowID)
+	receipt.id = receiptID
+	receipt.awaitingAdmission = true
+	if err := s.registerReceiptInMemory(ctx, receipt); err != nil {
+		return nil, err
+	}
 
 	err := s.taskStore.RunAtomic(ctx, func(ctx context.Context, store TaskStore) error {
-		if err := store.CreateTask(ctx, task); err != nil {
+		if err := store.CreateTaskWithDedup(ctx, task); err != nil {
 			return fmt.Errorf("persisting task: %w", err)
 		}
 		if err := store.CreateWorkflowReceipt(ctx, receiptID, receipt.WorkflowID, s.nodeID); err != nil {
@@ -312,13 +326,13 @@ func (s *orchestratorService) DispatchDirect(ctx context.Context, task *Task) (*
 		return nil
 	})
 	if err != nil {
+		s.removeReceipt(receipt)
 		l.ReportError(span, err, "Failed to persist task and receipt")
 		TaskFailureCount.Add(ctx, 1)
 		return nil, fmt.Errorf("dispatching task directly: %w", err)
 	}
 	task.persisted = true
-
-	s.registerReceiptInMemory(ctx, receipt)
+	s.receiptAdmitted(task.WorkflowID, receiptID)
 
 	if s.taskDispatcher != nil {
 		if err := s.taskDispatcher.Dispatch(ctx, task); err != nil {
@@ -357,12 +371,20 @@ func (s *orchestratorService) Schedule(ctx context.Context, task *Task, executeA
 	startTime := s.clock.Now()
 	delay := executeAt.Sub(startTime)
 
+	executeAt = executeAt.UTC()
 	task.Status = StatusScheduled
 	task.ExecuteAt = executeAt
+	task.ScheduledExecuteAt = executeAt
+	task.stampAdmission(startTime)
 
 	receiptID := uuid.New().String()
 	receipt := newWorkflowReceipt(task.WorkflowID)
-	s.registerReceipt(ctx, receiptID, receipt)
+	receipt.id = receiptID
+	receipt.awaitingAdmission = true
+	if err := s.registerReceiptInMemory(ctx, receipt); err != nil {
+		return nil, err
+	}
+	task.receiptID = receiptID
 
 	s.taskInsertMutex.RLock()
 	defer s.taskInsertMutex.RUnlock()
@@ -423,7 +445,12 @@ func (s *orchestratorService) Run(ctx context.Context) {
 
 	s.wg.Go(s.batchInsertLoop)
 	s.wg.Go(s.schedulerLoop)
-	s.wg.Go(s.subscribeToCompletionEvents)
+	s.wg.Go(s.receiptMaintenanceLoop)
+	if local, ok := s.taskDispatcher.(LocalCompletions); ok && local.DeliverCompletionsTo(s.onLocalCompletion) {
+		l.Internal("Task completions are delivered in-process")
+	} else {
+		s.wg.Go(s.subscribeToCompletionEvents)
+	}
 
 	l.Internal("Orchestrator Service started successfully")
 
@@ -584,13 +611,30 @@ func WithServiceClock(c clock.Clock) ServiceOption {
 	}
 }
 
-// NewService creates a new orchestrator service with configurable settings.
+// serviceClock selects the service's clock so it stamps times consistently with the
+// dispatcher that runs its tasks.
 //
-// It requires a TaskStore for persistence and an EventBus for event-driven coordination.
-// Use ServiceOption functions to customise behaviour or inject test dependencies.
+// Takes config (ServiceConfig) which may set the service or dispatcher clock.
+// Takes taskDispatcher (TaskDispatcher) which may expose the clock it uses.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation through background goroutines.
+// Returns clock.Clock which is the service clock, then the dispatcher configuration's
+// clock, then the dispatcher's own clock, and otherwise the real clock.
+func serviceClock(config ServiceConfig, taskDispatcher TaskDispatcher) clock.Clock {
+	if config.Clock != nil {
+		return config.Clock
+	}
+	if config.DispatcherConfig != nil && config.DispatcherConfig.Clock != nil {
+		return config.DispatcherConfig.Clock
+	}
+	if source, ok := taskDispatcher.(interface{ TimeSource() clock.Clock }); ok {
+		return source.TimeSource()
+	}
+	return clock.RealClock()
+}
+
+// NewService creates an orchestrator with a task store, event bus, and optional
+// configuration.
+//
 // Takes store (TaskStore) which provides persistence for tasks.
 // Takes eventBus (EventBus) which handles event-driven coordination.
 // Takes opts (...ServiceOption) which customises behaviour or injects test dependencies.
@@ -603,13 +647,9 @@ func NewService(ctx context.Context, store TaskStore, eventBus EventBus, opts ..
 		opt(&config)
 	}
 
-	clk := config.Clock
-	if clk == nil {
-		clk = clock.RealClock()
-	}
-
 	ctx, nl := logger_domain.From(ctx, log)
 	taskDispatcher := config.TaskDispatcher
+	clk := serviceClock(config, taskDispatcher)
 	if taskDispatcher == nil {
 		nl.Warn("No TaskDispatcher injected. " +
 			"Use orchestrator_adapters.CreateTaskDispatcher() with WithTaskDispatcher() " +
@@ -635,6 +675,7 @@ func NewService(ctx context.Context, store TaskStore, eventBus EventBus, opts ..
 		executors:          make(map[string]TaskExecutor),
 		cancel:             nil,
 		receipts:           make(map[string][]*WorkflowReceipt),
+		receiptWork:        receiptWork{},
 		wg:                 sync.WaitGroup{},
 		schedulerInterval:  config.SchedulerInterval,
 		batchSize:          config.BatchSize,

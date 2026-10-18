@@ -26,10 +26,6 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// CreateExpansionResult returns the hand-crafted ExpansionResult for this test case.
-// It simulates an invocation of a component that does not have a Props struct, yet
-// is passed several props. This is the ideal input to test the ComponentLinker's
-// handling of unknown props and its ability to generate the correct warnings.
 func CreateExpansionResult(t *testing.T, vm *annotator_dto.VirtualModule) *annotator_dto.ExpansionResult {
 	findHash := func(relPath string) string {
 		for hash, comp := range vm.ComponentsByHash {

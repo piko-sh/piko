@@ -23,6 +23,5 @@ type Box[T any] struct {
 }
 
 type Response struct {
-	// A map where the value is a pointer to an instantiated generic type.
 	IntBoxes map[string]*Box[int]
 }

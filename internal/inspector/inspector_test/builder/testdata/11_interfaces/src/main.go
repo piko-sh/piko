@@ -20,12 +20,10 @@ package main
 
 import "io"
 
-// Custom interface with one method.
 type Logger interface {
 	Log(message string) error
 }
 
-// Complex interface embedding a local and a standard library interface.
 type Service interface {
 	Logger
 	io.Closer

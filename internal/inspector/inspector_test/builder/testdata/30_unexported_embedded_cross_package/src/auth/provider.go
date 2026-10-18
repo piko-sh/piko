@@ -18,13 +18,10 @@
 
 package auth
 
-// provider is unexported.
 type provider struct{}
 
-// Authenticate is an exported method on the unexported type.
 func (p provider) Authenticate() bool { return true }
 
-// AuthProvider is an EXPORTED type that embeds the unexported one.
 type AuthProvider struct {
 	provider
 }

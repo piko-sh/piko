@@ -87,7 +87,6 @@ func (e *ProviderTimeoutError) Unwrap() error {
 // context is still alive, the error is wrapped in a *ProviderTimeoutError to attribute
 // the timeout to the provider.
 //
-// Takes ctx (context.Context) which carries trace/baggage for OTel metrics.
 // Takes component (string) which identifies the provider for logging.
 // Takes operation (func() error) which is the provider method to call.
 //
@@ -110,7 +109,6 @@ func SafeCall(ctx context.Context, component string, operation func() error) (er
 // SafeCall1 calls operation and recovers from any panic, returning the panic as a
 // *PanicError. Designed for provider methods that return (T, error).
 //
-// Takes ctx (context.Context) which carries trace/baggage for OTel metrics.
 // Takes component (string) which identifies the provider for logging.
 // Takes operation (func() (T, error)) which is the provider method to call.
 //
@@ -133,7 +131,6 @@ func SafeCall1[T any](ctx context.Context, component string, operation func() (T
 // SafeCall2 calls operation and recovers from any panic, returning the panic as a
 // *PanicError. Designed for provider methods that return (T1, T2, error).
 //
-// Takes ctx (context.Context) which carries trace/baggage for OTel metrics.
 // Takes component (string) which identifies the provider for logging.
 // Takes operation (func() (T1, T2, error)) which is the provider method to call.
 //
@@ -154,13 +151,8 @@ func SafeCall2[T1, T2 any](ctx context.Context, component string, operation func
 	return r1, r2, err
 }
 
-// SafeCallValue calls operation and recovers from any panic, returning the zero value for
-// provider methods with no error return.
+// SafeCallValue calls operation, logging recovered panics and returning the zero value.
 //
-// The panic is logged and counted but cannot be propagated as an error since the method
-// signature has no error return.
-//
-// Takes ctx (context.Context) which carries trace/baggage for OTel metrics.
 // Takes component (string) which identifies the provider for logging.
 // Takes operation (func() T) which is the provider method to call.
 //

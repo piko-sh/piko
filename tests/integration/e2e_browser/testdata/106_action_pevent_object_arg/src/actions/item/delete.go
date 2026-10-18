@@ -21,27 +21,22 @@ import (
 	"piko.sh/piko"
 )
 
-// DeleteAction echoes back the received input fields so the test can verify
-// that object literal arguments from p-event are correctly passed through.
 type DeleteAction struct {
 	piko.ActionMetadata
 }
 
-// DeleteInput contains the fields passed as an inline object literal.
 type DeleteInput struct {
 	ItemID     string `json:"item_id"`
 	CategoryID string `json:"category_id"`
 	Label      string `json:"label"`
 }
 
-// DeleteResponse returns the received values for verification.
 type DeleteResponse struct {
 	ReceivedItemID     string `json:"received_item_id"`
 	ReceivedCategoryID string `json:"received_category_id"`
 	ReceivedLabel      string `json:"received_label"`
 }
 
-// Call echoes the input fields back and invokes a helper to update the DOM.
 func (a DeleteAction) Call(input DeleteInput) (DeleteResponse, error) {
 	a.Response().AddHelper("showResult", input.ItemID, input.CategoryID, input.Label)
 

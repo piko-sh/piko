@@ -24,8 +24,6 @@ type COutput struct {
 	From string `json:"from"`
 }
 
-// CAction produces the action name "zzaB.C", which folds onto the same PascalCase wrapper
-// name as "zza.BC" in actions/zza.
 type CAction struct {
 	piko.ActionMetadata
 }

@@ -27,7 +27,7 @@ import (
 	"piko.sh/piko/internal/inspector/inspector_domain"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 	"piko.sh/piko/internal/json"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // JSONCache provides JSON-based file caching for TypeData. It implements TypeDataProvider

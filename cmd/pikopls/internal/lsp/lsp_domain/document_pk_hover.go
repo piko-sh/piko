@@ -35,7 +35,7 @@ import (
 	"piko.sh/piko/internal/esbuild/js_parser"
 	"piko.sh/piko/internal/esbuild/logger"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // PKHoverContext holds the context needed to show hover information for a PK element,

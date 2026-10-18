@@ -73,7 +73,7 @@
                 }
               ],
               "composite_type": 1,
-              "definition_line": 28,
+              "definition_line": 26,
               "definition_column": 2,
               "is_internal_type": false,
               "is_embedded": false,
@@ -139,7 +139,7 @@
                 }
               ],
               "composite_type": 1,
-              "definition_line": 30,
+              "definition_line": 27,
               "definition_column": 2,
               "is_internal_type": false,
               "is_embedded": false,
@@ -150,7 +150,7 @@
           "type_params": [],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 26,
+          "definition_line": 25,
           "definition_column": 6
         },
         "UserGroups": {
@@ -164,7 +164,7 @@
           "type_params": null,
           "stringability": 0,
           "is_alias": true,
-          "definition_line": 24,
+          "definition_line": 23,
           "definition_column": 6
         }
       },

@@ -29,7 +29,7 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/resolver/resolver_domain"
 	"piko.sh/piko/wdk/clock"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -326,8 +326,6 @@ func (s *collectionService) validateCollectionProvider(
 
 // reportValidationErrors logs validation errors and returns an error.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
-// request-scoped values.
 // Takes errors ([]string) which contains the validation error messages to log.
 //
 // Returns error when called, with the error count in the message.
@@ -404,8 +402,6 @@ func (*collectionService) parseGetCollectionOptions(optionsRaw any) (collection_
 
 // resolveProviderName determines which provider to use, defaulting to "markdown".
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
-// request-scoped values.
 // Takes options (*collection_dto.FetchOptions) which contains the requested provider
 // name.
 //

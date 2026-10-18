@@ -16,8 +16,16 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package db_engine_mysql implements the querier EnginePort for MySQL and
-// MySQL-compatible databases (MariaDB) using a hand-written recursive-descent parser. The
-// dialect hook system allows MariaDB-specific features (RETURNING clauses, sequences,
-// UUID/INET6 types) to be added as a flavour without forking the parser.
+// Package db_engine_mysql is Piko's engine for MySQL and MySQL-compatible databases.
+//
+// Register it with a database to generate typed Go from SQL, run migrations and seeds,
+// and report engine-specific health diagnostics:
+//
+//	piko.WithDatabase("primary", &db.DatabaseRegistration{
+//	    DB:           database,
+//	    EngineConfig: db_engine_mysql.MySQL(),
+//	})
+//
+// The SQL analysis and code generation are provided by Seagull through
+// wdk/db/db_provider_seagull; db_engine_mysql selects and tunes the dialect.
 package db_engine_mysql

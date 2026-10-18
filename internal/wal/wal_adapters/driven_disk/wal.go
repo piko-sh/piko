@@ -36,7 +36,7 @@ import (
 	"piko.sh/piko/internal/wal/wal_domain"
 	"piko.sh/piko/wdk/clock"
 	"piko.sh/piko/wdk/goroutine"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -206,8 +206,6 @@ func (w *DiskWAL[K, V]) initialiseFileState(config wal_domain.Config) error {
 
 // closeOnInitFailure closes the file and sandbox during constructor failure, logging
 // warnings for any close errors.
-//
-// Takes ctx (context.Context) which provides logging context.
 func (w *DiskWAL[K, V]) closeOnInitFailure(ctx context.Context) {
 	_, l := logger_domain.From(context.WithoutCancel(ctx), log)
 	if closeErr := w.file.Close(); closeErr != nil {
@@ -221,9 +219,6 @@ func (w *DiskWAL[K, V]) closeOnInitFailure(ctx context.Context) {
 // commitLoop batches writes and syncs to reduce lock contention and fsync overhead when
 // many writes happen at the same time. Exits when the WAL is closed or a fatal I/O error
 // occurs.
-//
-// Takes ctx (context.Context) which provides logging and metrics context for background
-// operations.
 func (w *DiskWAL[K, V]) commitLoop(ctx context.Context) {
 	batch := make([]pendingWrite, 0, defaultMaxBatchSize)
 	timer := w.clock.NewTimer(defaultMaxBatchWait)
@@ -267,7 +262,6 @@ func (w *DiskWAL[K, V]) commitLoop(ctx context.Context) {
 
 // processCollectedBatch decides whether to flush writes now or wait for more.
 //
-// Takes ctx (context.Context) which provides logging and metrics context.
 // Takes batch (*[]pendingWrite) which holds the pending writes to process.
 // Takes timer (clock.ChannelTimer) which controls the batch collection delay.
 func (w *DiskWAL[K, V]) processCollectedBatch(ctx context.Context, batch *[]pendingWrite, timer clock.ChannelTimer) {
@@ -285,7 +279,6 @@ func (w *DiskWAL[K, V]) processCollectedBatch(ctx context.Context, batch *[]pend
 
 // flushAndClearBatch writes all pending items to disk and resets the batch.
 //
-// Takes ctx (context.Context) which provides logging and metrics context.
 // Takes batch (*[]pendingWrite) which holds the pending writes to flush.
 // Takes timer (clock.ChannelTimer) which is stopped before flushing.
 func (w *DiskWAL[K, V]) flushAndClearBatch(ctx context.Context, batch *[]pendingWrite, timer clock.ChannelTimer) {
@@ -313,7 +306,6 @@ func (w *DiskWAL[K, V]) drainPending(batch *[]pendingWrite) {
 
 // flushBatch writes all entries in the batch and performs a single sync.
 //
-// Takes ctx (context.Context) which provides logging and metrics context.
 // Takes batch ([]pendingWrite) which contains the entries to write.
 //
 // Safe for concurrent use. Holds the write lock for the full flush operation. On I/O
@@ -418,7 +410,6 @@ func (w *DiskWAL[K, V]) flushUnalignedLocked(batch []pendingWrite, totalBytes in
 
 // updateBatchStats updates counters and records metrics after a batch flush.
 //
-// Takes ctx (context.Context) which provides metrics context.
 // Takes startTime (time.Time) which marks when the batch operation began.
 // Takes count (int) which is the number of entries flushed.
 // Takes totalBytes (int64) which is the total size of the flushed data.
@@ -436,8 +427,6 @@ func (w *DiskWAL[K, V]) updateBatchStats(ctx context.Context, startTime time.Tim
 // handleSyncLocked performs a sync based on the configured sync mode. Must be called with
 // w.mu held.
 //
-// Takes ctx (context.Context) which provides metrics context.
-//
 // Returns error when the sync operation fails.
 func (w *DiskWAL[K, V]) handleSyncLocked(ctx context.Context) error {
 	switch w.config.SyncMode {
@@ -449,15 +438,14 @@ func (w *DiskWAL[K, V]) handleSyncLocked(ctx context.Context) error {
 			return w.syncLocked(ctx)
 		}
 
-	case wal_domain.SyncModeNone:
+	case wal_domain.SyncModeNone, wal_domain.SyncModeDefault:
+
 	}
 
 	return nil
 }
 
 // syncLocked performs fsync on the WAL file. Must be called with w.mu held.
-//
-// Takes ctx (context.Context) which provides metrics context.
 //
 // Returns error when the fsync operation fails.
 func (w *DiskWAL[K, V]) syncLocked(ctx context.Context) error {
@@ -485,23 +473,42 @@ func (w *DiskWAL[K, V]) syncLocked(ctx context.Context) error {
 //
 // Returns error when the WAL is closed, encoding fails, or context is cancelled.
 func (w *DiskWAL[K, V]) Append(ctx context.Context, entry wal_domain.Entry[K, V]) error {
+	wait, err := w.Enqueue(ctx, entry)
+	if err != nil {
+		return err
+	}
+	return wait()
+}
+
+// Enqueue queues an entry for the commit goroutine without waiting for it to be written.
+//
+// Entries are written in the order they are queued, so waiting for one entry also covers
+// every entry queued before it.
+//
+// Takes entry (wal_domain.Entry) which is the log entry to append.
+//
+// Returns func() error which waits until the entry is written and synced as the sync mode
+// requires, or until ctx is cancelled.
+// Returns error when the WAL is closed, encoding fails, or ctx is cancelled before the
+// entry is queued.
+func (w *DiskWAL[K, V]) Enqueue(ctx context.Context, entry wal_domain.Entry[K, V]) (func() error, error) {
 	if w.closed.Load() {
-		return wal_domain.ErrWALClosed
+		return nil, wal_domain.ErrWALClosed
 	}
 
 	if err := w.checkFatalErr(); err != nil {
-		return err
+		return nil, err
 	}
 
 	result, err := w.codec.EncodeWithLengthAndCRC(entry)
 	if err != nil {
-		return fmt.Errorf("encoding entry: %w", err)
+		return nil, fmt.Errorf("encoding entry: %w", err)
 	}
 
 	select {
 	case <-ctx.Done():
 		result.Release()
-		return cancellationError(ctx)
+		return nil, cancellationError(ctx)
 	default:
 	}
 
@@ -516,14 +523,23 @@ func (w *DiskWAL[K, V]) Append(ctx context.Context, entry wal_domain.Entry[K, V]
 	case <-ctx.Done():
 		result.Release()
 		putResultChan(resultChan)
-		return cancellationError(ctx)
+		return nil, cancellationError(ctx)
 	case <-w.stopChan:
 		result.Release()
 		putResultChan(resultChan)
-		return wal_domain.ErrWALClosed
+		return nil, wal_domain.ErrWALClosed
 	case w.pendingChan <- pw:
 	}
 
+	return func() error { return w.awaitWrite(ctx, resultChan) }, nil
+}
+
+// awaitWrite waits for the commit goroutine to report a queued entry's write.
+//
+// Takes resultChan (chan error) which receives the write's outcome.
+//
+// Returns error when the write failed, the WAL closed first, or ctx is cancelled.
+func (w *DiskWAL[K, V]) awaitWrite(ctx context.Context, resultChan chan error) error {
 	select {
 	case <-ctx.Done():
 		return cancellationError(ctx)
@@ -637,7 +653,7 @@ func (w *DiskWAL[K, V]) yieldRecoveryEntries(
 		currentPos += bytesRead
 		entryCount++
 
-		if !yield(*entry, nil) {
+		if !EachApplied(*entry, func(applied wal_domain.Entry[K, V]) bool { return yield(applied, nil) }) {
 			return truncatePosition, entryCount
 		}
 	}
@@ -1001,6 +1017,8 @@ func (w *DiskWAL[K, V]) drainAndFailAll(batch *[]pendingWrite) {
 }
 
 var (
+	_ wal_domain.DeferredAppender[string, string] = (*DiskWAL[string, string])(nil)
+
 	_ wal_domain.WAL[string, any] = (*DiskWAL[string, any])(nil)
 )
 
@@ -1033,16 +1051,12 @@ func WithSandbox[K comparable, V any](sandbox safedisk.Sandbox, file safedisk.Fi
 	}
 }
 
-// NewDiskWAL creates a new disk-based WAL.
+// NewDiskWAL creates a WAL in config.Dir using config.WALFileName, which defaults to
+// data.wal.
 //
-// The WAL file is created in config.Dir with the name specified in config.WALFileName
-// (default: "data.wal").
+// File access is sandboxed to that directory. WithSandbox supplies an alternative
+// sandbox.
 //
-// All file operations are sandboxed to the WAL directory for security. For testing, use
-// WithSandbox to provide a mock sandbox.
-//
-// Takes ctx (context.Context) which is threaded to background goroutines for logging and
-// metrics.
 // Takes config (wal_domain.Config) which specifies the WAL directory and file settings.
 // Takes codec (*BinaryCodec[K, V]) which encodes and decodes entries.
 // Takes opts (...WALOption[K, V]) which provide optional configuration.
@@ -1145,7 +1159,6 @@ func putResultChan(resultChannel chan error) {
 
 // openWALFile creates the sandbox and opens the WAL file.
 //
-// Takes ctx (context.Context) which provides the context for logging.
 // Takes config (wal_domain.Config) which specifies the WAL directory and file name
 // settings.
 //

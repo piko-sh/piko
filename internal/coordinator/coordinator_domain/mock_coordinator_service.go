@@ -94,7 +94,6 @@ func (m *MockCoordinatorService) Subscribe(name string) (<-chan BuildNotificatio
 
 // RequestRebuild schedules a build after a debounce period.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes entryPoints ([]annotator_dto.EntryPoint) which lists the components to build.
 // Takes opts (...BuildOption) which configure the requested build.
 func (m *MockCoordinatorService) RequestRebuild(
@@ -110,7 +109,6 @@ func (m *MockCoordinatorService) RequestRebuild(
 
 // GetResult returns the last successful build result, blocking on first run.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes entryPoints ([]annotator_dto.EntryPoint) which lists the components to build.
 // Takes opts (...BuildOption) which configure retrieval of the build result.
 //
@@ -129,7 +127,6 @@ func (m *MockCoordinatorService) GetResult(
 
 // GetOrBuildProject retrieves a cached build result or triggers a new build.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes entryPoints ([]annotator_dto.EntryPoint) which lists the components to build.
 // Takes opts (...BuildOption) which configure the project build.
 //
@@ -171,8 +168,6 @@ func (m *MockCoordinatorService) Invalidate(ctx context.Context) error {
 }
 
 // Shutdown performs a graceful shutdown of the coordinator service.
-//
-// Takes ctx (context.Context) which carries logging context for shutdown operations.
 func (m *MockCoordinatorService) Shutdown(ctx context.Context) {
 	m.ShutdownCallCount.Add(1)
 	if m.ShutdownFunc != nil {

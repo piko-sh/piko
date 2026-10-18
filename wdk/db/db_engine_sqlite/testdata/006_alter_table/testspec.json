@@ -1,3 +1,0 @@
-{
-  "description": "Tests ALTER TABLE mutations: ADD COLUMN and RENAME COLUMN are applied to the catalogue correctly."
-}
