@@ -130,6 +130,10 @@ type buildService struct {
 	// adoptLeftovers makes the build wait for every unsettled foreground task in its store;
 	// see WithLeftoverAdoption.
 	adoptLeftovers bool
+
+	// seedBarrier, when set, is closed once another producer has finished upserting the
+	// build's artefacts; see WithSeedBarrier.
+	seedBarrier <-chan struct{}
 }
 
 // upsertedArtefacts records the IDs of artefacts upserted during a build.
@@ -210,6 +214,10 @@ func (bs *buildService) RunBuild(ctx context.Context) (*lifecycle_domain.BuildRe
 
 	l.Internal("All assets have been seeded into the registry.",
 		logger_domain.Int64("fileCount", fileCount))
+
+	if err := bs.awaitSeedBarrier(ctx); err != nil {
+		return nil, buildWaitError(ctx, l, err)
+	}
 
 	l.Internal("Waiting for all asset processing tasks to complete...")
 	timedOut, err := bs.waitForBuild(ctx, dispatcher, buildTag, startTime)
@@ -1429,6 +1437,7 @@ func NewBuildService(
 		seedFailures:           seedFailureLog{},
 		upserted:               upsertedArtefacts{},
 		adoptLeftovers:         false,
+		seedBarrier:            nil,
 	}
 	for _, opt := range opts {
 		opt(bs)
@@ -1446,6 +1455,33 @@ type BuildServiceOption func(*buildService)
 func WithLeftoverAdoption() BuildServiceOption {
 	return func(bs *buildService) {
 		bs.adoptLeftovers = true
+	}
+}
+
+// WithSeedBarrier makes a build wait for done to close before it checks for completion.
+//
+// Takes done (<-chan struct{}) which is closed once the other producer has finished
+// upserting.
+//
+// Returns BuildServiceOption which applies the setting.
+func WithSeedBarrier(done <-chan struct{}) BuildServiceOption {
+	return func(bs *buildService) {
+		bs.seedBarrier = done
+	}
+}
+
+// awaitSeedBarrier blocks until the seed barrier closes, when one is set.
+//
+// Returns error when the context ends first.
+func (bs *buildService) awaitSeedBarrier(ctx context.Context) error {
+	if bs.seedBarrier == nil {
+		return nil
+	}
+	select {
+	case <-bs.seedBarrier:
+		return nil
+	case <-ctx.Done():
+		return fmt.Errorf("waiting for other artefact producers: %w", ctx.Err())
 	}
 }
 

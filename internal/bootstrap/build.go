@@ -379,7 +379,10 @@ func (op *buildOperation) runAnnotationEmitAndBuildAssets(ctx context.Context) e
 
 	g, gctx := errgroup.WithContext(ctx)
 
+	emitted := make(chan struct{})
+
 	g.Go(func() error {
+		defer close(emitted)
 		var legErr error
 		genDuration, legErr = op.runEmissionLeg(gctx, generatorService, annotationResult)
 		return legErr
@@ -387,7 +390,7 @@ func (op *buildOperation) runAnnotationEmitAndBuildAssets(ctx context.Context) e
 
 	g.Go(func() error {
 		var legErr error
-		buildResult, legErr = op.runAssetLeg(gctx, annotationResult)
+		buildResult, legErr = op.runAssetLeg(gctx, annotationResult, emitted)
 		return legErr
 	})
 
@@ -461,16 +464,19 @@ func (op *buildOperation) runEmissionLeg(
 //
 // Takes annotationResult (*annotator_dto.ProjectAnnotationResult) which contains the
 // FinalAssetManifest.
+// Takes emitted (<-chan struct{}) which is closed once the emission leg has finished
+// upserting artefacts.
 //
 // Returns the build result and any error.
 func (op *buildOperation) runAssetLeg(
 	ctx context.Context,
 	annotationResult *annotator_dto.ProjectAnnotationResult,
+	emitted <-chan struct{},
 ) (*lifecycle_domain.BuildResult, error) {
 	if err := op.processAnnotationForAssets(ctx, annotationResult); err != nil {
 		return nil, fmt.Errorf("processing annotation for assets: %w", err)
 	}
-	result, err := op.runStaticAssetBuild(ctx)
+	result, err := op.runStaticAssetBuild(ctx, lifecycle_adapters.WithSeedBarrier(emitted))
 	if errors.Is(err, lifecycle_domain.ErrBuildHasFailures) {
 		return result, nil
 	}
@@ -814,9 +820,15 @@ func (op *buildOperation) buildStaticAssets(ctx context.Context) error {
 // printing a summary. The caller is responsible for printing or combining the result with
 // other summaries.
 //
+// Takes opts (...lifecycle_adapters.BuildServiceOption) which are added to the build
+// service's options.
+//
 // Returns *lifecycle_domain.BuildResult which holds task counts and failure details.
 // Returns error when a required service cannot be obtained or the build fails.
-func (op *buildOperation) runStaticAssetBuild(ctx context.Context) (*lifecycle_domain.BuildResult, error) {
+func (op *buildOperation) runStaticAssetBuild(
+	ctx context.Context,
+	opts ...lifecycle_adapters.BuildServiceOption,
+) (*lifecycle_domain.BuildResult, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	l.Internal("Building static assets...")
 
@@ -850,7 +862,7 @@ func (op *buildOperation) runStaticAssetBuild(ctx context.Context) (*lifecycle_d
 		&op.container.websiteConfig, buildPathsConfig, registryService,
 		orchestratorService, bridge, eventBus, renderer, resolver,
 		op.container.externalComponents, buildFactory,
-		lifecycle_adapters.WithLeftoverAdoption(),
+		append([]lifecycle_adapters.BuildServiceOption{lifecycle_adapters.WithLeftoverAdoption()}, opts...)...,
 	)
 	defer orchestratorService.Stop()
 	result, err := buildService.RunBuild(ctx)
