@@ -16,15 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// main.go defines two related structs within the same package.
 package main
 
-// Address is a simple struct used as a field type.
 type Address struct {
 	Street string
 }
 
-// User contains a field of type Address.
 type User struct {
 	HomeAddress Address
 }

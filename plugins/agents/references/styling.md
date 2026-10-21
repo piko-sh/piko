@@ -70,7 +70,7 @@ Escape scoping for specific selectors within a scoped block:
 /* Global */
 :global(body) { font-family: sans-serif; }
 
-/* Mix scoped parent with global child */
+/* Any :global() unscopes the whole selector */
 .wrapper :global(.external-library-class) { color: red; }
 </style>
 ```
@@ -81,7 +81,7 @@ Escape scoping for specific selectors within a scoped block:
 
 ## Theme variables
 
-Define in `cmd/main/main.go` via `piko.WithWebsiteConfig`:
+Define in `internal/piko.go` via `piko.WithWebsiteConfig`:
 
 ```go
 piko.New(
@@ -118,12 +118,12 @@ Imported CSS inherits the scoping of its containing block:
 ```piko
 <!-- Scoped imports -->
 <style>
-@import url('/assets/styles/card.css');
+@import '@/styles/card.css';
 </style>
 
 <!-- Unscoped imports -->
 <style global>
-@import url('/assets/styles/reset.css');
+@import '@/styles/reset.css';
 </style>
 ```
 
@@ -133,9 +133,9 @@ Content passed into a partial's slot retains the **parent's** scope:
 
 ```piko
 <!-- parent.pk -->
-<card is="card">
+<piko:partial is="card">
   <span class="highlight">Text</span>  <!-- Gets parent's scope -->
-</card>
+</piko:partial>
 
 <style>
 .highlight { color: red; }  /* Styles the slotted content */

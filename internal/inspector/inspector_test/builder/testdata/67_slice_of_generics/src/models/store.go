@@ -18,7 +18,6 @@
 
 package models
 
-// A simple generic type in an external package.
 type Store[T any] struct {
 	Value T
 }

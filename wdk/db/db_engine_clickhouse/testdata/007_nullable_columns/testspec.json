@@ -1,3 +1,0 @@
-{
-  "description": "Nullable(T) wrappers strip during NormaliseTypeName and set the column's Nullable flag. Mixed nullable + non-nullable columns verify the per-column flag is correct."
-}

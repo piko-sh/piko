@@ -55,7 +55,6 @@ func NewInMemoryCoordinator(annotator annotator_domain.AnnotatorPort) *InMemoryC
 // GetResult performs annotation and returns the result. This is the only method called by
 // the generator service.
 //
-// Takes ctx (context.Context) which is the request context.
 // Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the files.
 //
 // Returns *annotator_dto.ProjectAnnotationResult which contains the result.
@@ -72,7 +71,6 @@ func (c *InMemoryCoordinator) GetResult(
 // GetOrBuildProject performs annotation and returns the result. Behaves the same as
 // GetResult for in-memory coordinator.
 //
-// Takes ctx (context.Context) which is the request context.
 // Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the files.
 //
 // Returns *annotator_dto.ProjectAnnotationResult which contains the result.

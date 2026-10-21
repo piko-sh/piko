@@ -43,6 +43,8 @@ func main() {
 			os.Exit(wizard.Run())
 		case "fmt":
 			os.Exit(cli.RunFmt(os.Args[2:]))
+		case "explain":
+			os.Exit(cli.RunExplain(os.Args[2:]))
 		case "agents":
 			os.Exit(cli.RunAgents(Version, os.Args[2:]))
 		case "extract":
@@ -86,6 +88,7 @@ Getting Started:
 
 Project Commands:
   fmt           Format Piko template files (.pk)
+  explain       Explain a diagnostic code, such as T141
   extract       Extract Go package symbols for the pipit interpreter (dev-i)
   inspect       Inspect FlatBuffers binary files
   agents        Configure AI coding tools with Piko knowledge
@@ -132,6 +135,7 @@ func printUsageCommands() {
   dev           Generate then run the dev server
   dev-i         Generate then run the dev server in interpreted mode
   fmt           Format Piko template files (.pk)
+  explain       Explain a diagnostic code from build output, such as T141 (piko explain T141)
   extract       Extract Go package symbols for the pipit interpreter (dev-i)
   inspect       Inspect FlatBuffers binary files (manifest, i18n, collection, search, bytecode)
   agents        Configure AI tools with Piko knowledge (Claude Code, Codex, Cursor, etc.)
@@ -173,6 +177,8 @@ func printUsageExamples() {
 	_, _ = fmt.Fprint(os.Stderr, `Examples:
   piko new                                 # Create a new Piko project
   piko fmt -w -r ./components              # Format all .pk files recursively
+  piko explain T141                        # Explain a diagnostic code
+  piko explain                             # List every diagnostic code
   piko get health                          # Show health status
   piko get health Liveness                 # Show only Liveness probe
   piko get tasks -n 10                     # Show 10 recent tasks
@@ -212,6 +218,7 @@ func printUsageExamples() {
 
 For subcommand-specific help:
   piko fmt -h
+  piko explain -h
   piko inspect -h
   piko profile -h
   piko get health --help

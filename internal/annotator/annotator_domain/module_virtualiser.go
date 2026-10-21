@@ -193,8 +193,6 @@ func (mv *ModuleVirtualiser) Virtualise(
 // component. If a component lacks either function, a safe default is inserted into its Go
 // AST before type analysis runs.
 //
-// Takes ctx (context.Context) which carries cancellation and logging.
-//
 // Returns error when injection fails.
 func (vc *virtualisationContext) injectDefaultBoilerplateFuncs(ctx context.Context) error {
 	_, l := logger_domain.From(ctx, log)

@@ -32,7 +32,7 @@ import (
 	"github.com/valyala/fasthttp"
 
 	"piko.sh/piko/internal/json"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (

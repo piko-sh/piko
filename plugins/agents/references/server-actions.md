@@ -17,7 +17,7 @@ Actions provide type-safe request handling without writing HTTP handlers. The fl
 
 ```piko
 <template>
-  <form p-on:submit.prevent="action.contact_submit()">
+  <form p-on:submit.prevent="action.contact.Submit($form)">
     <label for="name">Name</label>
     <input id="name" name="name" type="text" required />
 
@@ -32,30 +32,36 @@ Actions provide type-safe request handling without writing HTTP handlers. The fl
 </template>
 ```
 
-Key: `p-on:submit.prevent="action.contact_submit()"` prevents default form submission and sends via AJAX. Input `name` attributes map to `Call` method parameters.
+Key: `p-on:submit.prevent="action.contact.Submit($form)"` prevents default form submission and sends the form via AJAX. Input `name` attributes map to the input struct's `json` tags.
 
 ### Action file
 
-Create `actions/contact_submit.go`:
+Create `actions/contact/submit.go`:
 
 ```go
-package actions
+package contact
 
 import (
     "fmt"
     "piko.sh/piko"
 )
 
+type ContactInput struct {
+    Name    string `json:"name"`
+    Email   string `json:"email"`
+    Message string `json:"message"`
+}
+
 type ContactResponse struct {
     OK bool `json:"ok"`
 }
 
-type ContactSubmitAction struct {
+type SubmitAction struct {
     piko.ActionMetadata
 }
 
-func (a ContactSubmitAction) Call(name string, email string, message string) (ContactResponse, error) {
-    err := sendEmail(email, name, message)
+func (a SubmitAction) Call(input ContactInput) (ContactResponse, error) {
+    err := sendEmail(input.Email, input.Name, input.Message)
     if err != nil {
         a.Response().AddHelper("showToast", "Could not send message.", "error")
         return ContactResponse{}, fmt.Errorf("sending email: %w", err)
@@ -75,7 +81,7 @@ Actions are **auto-registered** by the build system. After creating an action fi
 Every action must:
 
 1. Embed `piko.ActionMetadata` - provides `a.Ctx()`, `a.Request()`, `a.Response()`
-2. Implement a `Call` method - parameters match form input `name` attributes
+2. Implement a `Call` method - one input struct (for forms) or individual parameters
 3. Return a typed response struct and an error
 
 ```go
@@ -84,27 +90,27 @@ type MyAction struct {
 }
 
 func (a MyAction) Call(username string, email string, age int) (MyResponse, error) {
-    // Parameters populated automatically from form data or JSON body
+    // Parameters read from JSON body keys named after them
 }
 ```
 
 ## Parameter mapping
 
-Form input `name` attributes map to `Call` parameters by name:
+Form input `name` attributes (sent with `$form`) map to the input struct's `json` tags:
 
 ```html
-<input name="username" />  →  username string
-<input name="email" />     →  email string
-<input name="age" />       →  age int
+<input name="username" />  →  Username string `json:"username"`
+<input name="email" />     →  Email string `json:"email"`
+<input name="age" />       →  Age int `json:"age"`
 ```
 
-For JSON requests, property names map directly. The dispatch layer handles type conversion.
+Individual `Call` parameters become positional arguments of the generated client function (`action.pkg.My(username, email, age)`).
 
 ## Validation
 
 ### Automatic (dispatch layer)
 
-Missing required parameters or type conversion failures return HTTP 400 with field-level errors automatically.
+Input-struct `validate` tags (enforced once `piko.WithValidator` is set) fail with HTTP 422 and field-level errors before `Call` runs.
 
 ### Custom (in Call)
 
@@ -186,11 +192,11 @@ a.Response().SetCookie(&http.Cookie{
 
 ## Optional parameters
 
-Use pointer types for optional parameters:
+Use pointer fields on the input struct (a pointer `Call` parameter is never nil):
 
 ```go
-func (a ProductUpsertAction) Call(id *int64, name string, price float64) (ProductResponse, error) {
-    if id != nil {
+func (a ProductUpsertAction) Call(input ProductInput) (ProductResponse, error) {
+    if input.ID != nil { // ID *int64 `json:"id"`
         // Update existing
     } else {
         // Create new
@@ -201,7 +207,7 @@ func (a ProductUpsertAction) Call(id *int64, name string, price float64) (Produc
 ## CSRF protection
 
 Automatic - no configuration needed:
-- `piko.ActionMetadata` handles token generation and validation
+- The dispatch layer validates tokens before `Call` runs
 - Forms submitted via `p-on:submit.prevent` with `action.` prefix include CSRF tokens
 - Failed validation returns HTTP 403
 
@@ -210,13 +216,13 @@ Automatic - no configuration needed:
 Actions don't require forms. Bind to any event:
 
 ```piko
-<button p-on:click="action.delete_product(state.ProductID)">Delete</button>
+<button p-on:click="action.product.Delete(state.ProductID)">Delete</button>
 ```
 
 Pass template expressions as arguments:
 
 ```piko
-<button p-on:click="action.toggle_status(item.ID, !item.IsActive)">Toggle</button>
+<button p-on:click="action.product.ToggleStatus(item.ID, !item.IsActive)">Toggle</button>
 ```
 
 ## SSE streaming (Server-Sent Events)
@@ -256,7 +262,7 @@ func (a *ProgressAction) StreamProgress(stream *piko.SSEStream) error {
 ### Client side
 
 ```typescript
-const result = await action.stream.Progress({ taskId: 'test-1' })
+const result = await action.stream.Progress('test-1')
     .withOnProgress((data, eventType) => {
         console.log(eventType, data.percent + '%');
     })
@@ -265,7 +271,7 @@ const result = await action.stream.Progress({ taskId: 'test-1' })
 console.log('Final:', result);
 ```
 
-Native `EventSource` API also works for GET-based SSE endpoints.
+Native `EventSource` (GET) works only for actions that implement `piko.SSEGetAliasable` (`SSEGetAlias()`).
 
 ## Advanced action patterns
 
@@ -371,15 +377,15 @@ async function runBatch() {
 func TestContactSubmit(t *testing.T) {
     ctx := context.Background()
     entry := piko.ActionHandlerEntry{
-        Name:   "ContactSubmit",
+        Name:   "contact.Submit",
         Method: http.MethodPost,
-        Create: func() any { return &actions.ContactSubmitAction{} },
+        Create: func() any { return &contact.SubmitAction{} },
         Invoke: func(ctx context.Context, action any, arguments map[string]any) (any, error) {
-            return action.(*actions.ContactSubmitAction).Call(
-                arguments["name"].(string),
-                arguments["email"].(string),
-                arguments["message"].(string),
-            )
+            return action.(*contact.SubmitAction).Call(contact.ContactInput{
+                Name:    arguments["name"].(string),
+                Email:   arguments["email"].(string),
+                Message: arguments["message"].(string),
+            })
         },
     }
     tester := piko.NewActionTester(t, entry)
@@ -397,8 +403,8 @@ func TestContactSubmit(t *testing.T) {
 
 - Forgetting to embed `piko.ActionMetadata` in the action struct
 - Forgetting to run `go run ./cmd/generator all` after creating a new action
-- Mismatching form input `name` attributes with `Call` parameter names
-- Using `action.MyAction()` in templates (use snake_case: `action.my_action()`)
+- Mismatching form input `name` attributes with the input struct's `json` tags
+- Using `action.my_action()` in templates (use `action.<package>.<Name>()`, e.g. `action.contact.Submit($form)`)
 - Using `a.Response().AddFieldError()` (does not exist - return `piko.ValidationField()` as an error instead)
 - Using `a.Response().AddCookie()` (the method is `SetCookie`, not `AddCookie`)
 - Returning an error without adding a user-facing helper (user sees nothing)
@@ -408,4 +414,4 @@ func TestContactSubmit(t *testing.T) {
 
 - `references/pk-file-format.md` - page templates with forms
 - `references/template-syntax.md` - `p-on` directive and event modifiers
-- `references/examples.md` - CRUD example
+- `references/examples.md` - form with server action example

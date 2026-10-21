@@ -31,7 +31,7 @@ import (
 
 	"github.com/chromedp/chromedp"
 	"piko.sh/piko/wdk/browser/internal/browser_provider_chromedp"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // Page wraps a browser page with a fluent testing API and implements io.Closer. Each test

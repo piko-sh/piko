@@ -54,7 +54,7 @@ Conditional rendering - removes elements from the DOM when false:
 Rules:
 - `p-else-if` and `p-else` must immediately follow `p-if`/`p-else-if` at the same level
 - **Type-strict**: `p-if` requires a boolean. Use `~` to coerce: `p-if="~state.Name"`
-- Truthy coercion with `~`: `""`, `"0"`, `"false"` (case-insensitive), `0`, `nil`/`null`, `false` → falsy; else truthy
+- Truthy coercion with `~`: zero, empty, `nil`/`null` and `false` values → falsy; else truthy
 
 ### p-for
 
@@ -129,7 +129,7 @@ Three handler types:
 <button p-on:click="handleClick">Click</button>
 
 <!-- Server action (action. prefix) -->
-<form p-on:submit.prevent="action.contact_submit()">
+<form p-on:submit.prevent="action.contact.Submit($form)">
 
 <!-- Helper function (helpers. prefix) -->
 <button p-on:click="helpers.reloadPartial('#target')">Refresh</button>
@@ -165,12 +165,6 @@ Three handler types:
 ```piko
 <form p-on:submit.prevent="handleSubmit">
 <a p-on:click.prevent.stop="navigate()">Link</a>
-```
-
-Cross-partial calls:
-
-```piko
-<button p-on:click="@modal.open()">Open Modal</button>
 ```
 
 ### p-event (custom DOM events)
@@ -305,7 +299,7 @@ Piko uses **Go-style built-in functions**, not JavaScript property access:
 | `99.99d` | Decimal | `state.Price > 10.00d` |
 | `d'2025-01-15'` | Date | `state.Date > d'2025-01-01'` |
 | `t'09:30:00'` | Time | `state.Time < t'17:00:00'` |
-| `dt'2025-01-15T09:30:00'` | DateTime | |
+| `dt'2025-01-15T09:30:00Z'` | DateTime | |
 | `du'1h30m'` | Duration | |
 | `123n` | BigInt | |
 | `r'a'` | Rune | |
@@ -360,7 +354,7 @@ Renders as `<a>` but intercepts clicks for SPA navigation. Supports locale-aware
 | `lang` | Override locale; empty string disables locale transformation |
 | Standard attrs | `class`, `id`, `target`, `rel`, etc. pass through |
 
-Links work without JS (graceful degradation). External URLs, `mailto:`, `tel:`, `#fragment` links are never intercepted.
+Links work without JS (graceful degradation). `mailto:`, `tel:` and other native-scheme links are never intercepted.
 
 ### piko:img (optimised images)
 
@@ -425,7 +419,7 @@ Static `is` resolves at compile time; dynamic `:is` at runtime:
 <piko:element :is="state.Tag">Dynamic</piko:element>
 ```
 
-When `:is` resolves to a piko: tag (`piko:a`, `piko:img`, `piko:svg`), it gets the same special behaviour. Empty/null falls back to `<div>`.
+When `:is` resolves to a piko: tag (`piko:a`, `piko:img`, `piko:svg`), it gets the same special behaviour. Empty falls back to `<div>`.
 
 ### piko:content (collection content)
 
@@ -480,10 +474,10 @@ piko.bus.off();
 Pass data to child partials with the `:server.` prefix:
 
 ```piko
-<card is="card"
+<piko:partial is="card"
     :server.title="state.PageTitle"
     :server.is_primary="true">
-</card>
+</piko:partial>
 ```
 
 Server props are stripped from rendered HTML. See `references/partials-and-slots.md`.

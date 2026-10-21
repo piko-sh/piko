@@ -27,7 +27,7 @@ import (
 
 	"piko.sh/piko/cmd/piko/internal/wizard/templates"
 	"piko.sh/piko/cmd/piko/internal/wizardbase"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 
 	tea "charm.land/bubbletea/v2"
 )

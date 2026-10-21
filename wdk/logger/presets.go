@@ -156,8 +156,8 @@ func AddJSONOutput(opts ...OutputOption) {
 // AddFileOutput adds a file output with rotation support. By default, it uses the
 // LOG_LEVEL environment variable, or INFO if not set.
 //
-// Takes ctx (context.Context) which controls the lifetime of the background rotation
-// goroutine.
+// The background rotation goroutine runs until ctx is cancelled.
+//
 // Takes name (string) which identifies this output for logging purposes.
 // Takes path (string) which specifies the file path for log output.
 // Takes opts (...OutputOption) which provides optional settings such as WithLevel() to
@@ -205,11 +205,10 @@ func AddFileOutput(ctx context.Context, name, path string, opts ...OutputOption)
 	logger_domain.GetLogger("logger").Info("Added file output.", slog.String("name", name), slog.String("path", path), slog.String("level", level.String()))
 }
 
-// AddFileOutputOnly clears all existing handlers and adds only a file output, bypassing
-// normal handler management to ensure no console output for use cases like LSP where
-// stdout/stderr must remain clean.
+// AddFileOutputOnly replaces existing handlers with a file output.
 //
-// Takes ctx (context.Context) which controls the background cleanup goroutine lifetime.
+// Background cleanup runs until ctx is cancelled.
+//
 // Takes path (string) which specifies the file path for log output.
 // Takes opts (...OutputOption) which provides optional settings such as WithLevel() to
 // override the log level, or WithJSON() for JSON format.

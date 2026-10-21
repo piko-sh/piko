@@ -23,7 +23,7 @@ import (
 	"strconv"
 	"strings"
 
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (

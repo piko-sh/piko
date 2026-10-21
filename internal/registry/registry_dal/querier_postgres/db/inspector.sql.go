@@ -84,12 +84,16 @@ func (queries *Queries) ListVariantStatusCounts(ctx context.Context) ([]ListVari
 	}
 	defer rows.Close()
 	var results []ListVariantStatusCountsRow
-	for rows.Next() {
+	if rows.Next() {
 		var row ListVariantStatusCountsRow
-		if err := rows.Scan(&row.Status, &row.VariantCount); err != nil {
-			return nil, err
+		scanArgs := []any{&row.Status, &row.VariantCount}
+		for more := true; more; more = rows.Next() {
+			row = ListVariantStatusCountsRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

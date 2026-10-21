@@ -31,7 +31,7 @@ import (
 
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/storage/storage_dto"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (

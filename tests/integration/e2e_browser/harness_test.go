@@ -52,7 +52,7 @@ import (
 	"piko.sh/piko/wdk/captcha/captcha_provider_hmac_challenge"
 	"piko.sh/piko/wdk/logger"
 	"piko.sh/piko/wdk/markdown/markdown_provider_goldmark"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 type E2EBrowserHarness struct {

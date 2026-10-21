@@ -21,25 +21,21 @@ import (
 	"piko.sh/piko"
 )
 
-// RegisterAction tests mixing a scalar argument with an object literal argument.
 type RegisterAction struct {
 	piko.ActionMetadata
 }
 
-// AddressInput is the struct for the object literal argument.
 type AddressInput struct {
 	City     string `json:"city"`
 	Postcode string `json:"postcode"`
 }
 
-// RegisterResponse echoes back the received values.
 type RegisterResponse struct {
 	ReceivedName     string `json:"received_name"`
 	ReceivedCity     string `json:"received_city"`
 	ReceivedPostcode string `json:"received_postcode"`
 }
 
-// Call accepts a scalar string and a struct to test mixed argument types.
 func (a RegisterAction) Call(Name string, Address AddressInput) (RegisterResponse, error) {
 	a.Response().AddHelper("showResult", Name, Address.City, Address.Postcode)
 

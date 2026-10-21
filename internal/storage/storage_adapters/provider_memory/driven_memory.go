@@ -38,7 +38,7 @@ import (
 	"piko.sh/piko/internal/storage/storage_domain"
 	"piko.sh/piko/internal/storage/storage_dto"
 	"piko.sh/piko/wdk/contextaware"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (

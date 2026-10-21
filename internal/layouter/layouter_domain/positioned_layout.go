@@ -25,8 +25,6 @@ import (
 // layoutPositionedElements applies CSS absolute and fixed positioning as a post-layout
 // pass over the tree rooted at root.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signal through
-// recursive layout.
 // Takes root (*LayoutBox) which is the root of the layout tree.
 // Takes input (layoutInput) which carries font metrics and cache from the parent context.
 func layoutPositionedElements(ctx context.Context, root *LayoutBox, input layoutInput) {

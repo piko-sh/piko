@@ -26,10 +26,6 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// CreateLinkingResult returns the hand-crafted LinkingResult for this test case.
-// It provides an AST with a `p-for` loop. This is the ideal input to test the
-// SemanticAnnotator's ability to create new lexical scopes, correctly type and
-// define loop variables, and detect when those variables are used out of scope.
 func CreateLinkingResult(t *testing.T, vm *annotator_dto.VirtualModule) *annotator_dto.LinkingResult {
 	findHashedName := func(relPath string) string {
 		for hash, comp := range vm.ComponentsByHash {

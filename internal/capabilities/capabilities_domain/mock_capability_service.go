@@ -60,7 +60,6 @@ func (m *MockCapabilityService) Register(name string, capability CapabilityFunc)
 
 // Execute runs a named capability with the given input data.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes capabilityName (string) which identifies the capability to execute.
 // Takes inputData (io.Reader) which provides the input data stream.
 // Takes params (CapabilityParams) which provides execution parameters.

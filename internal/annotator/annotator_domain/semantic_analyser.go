@@ -392,7 +392,6 @@ func createEmptyAnnotationResult(flattenedAST *ast_domain.TemplateAST, diagnosti
 // setupAndPopulateRootContext creates and fills the root analysis context with debug
 // logging.
 //
-// Takes ctx (context.Context) which carries the session logger.
 // Takes mainVirtualComponent (*annotator_dto.VirtualComponent) which provides the main
 // component to analyse.
 // Takes resolver (*TypeResolver) which resolves types during analysis.
@@ -500,7 +499,6 @@ func collectLocalTranslationKeys(vc *annotator_dto.VirtualComponent) map[string]
 
 // findMainComponent finds and checks the main component in the virtual module.
 //
-// Takes ctx (context.Context) which carries the session logger.
 // Takes virtualModule (*annotator_dto.VirtualModule) which contains the component graph
 // and hash mappings.
 // Takes entryPointPath (string) which specifies the path to look up in the component
@@ -533,7 +531,6 @@ func findMainComponent(ctx context.Context, virtualModule *annotator_dto.Virtual
 //
 // When the component has no client script, returns nil without creating a validator.
 //
-// Takes ctx (context.Context) which carries the session logger.
 // Takes comp (*annotator_dto.VirtualComponent) which provides the component source
 // containing the client script and imports.
 //
@@ -559,7 +556,6 @@ func createPKValidator(ctx context.Context, comp *annotator_dto.VirtualComponent
 
 // runASTTraversal walks through the AST using the given visitor.
 //
-// Takes ctx (context.Context) which carries the session logger.
 // Takes ast (*ast_domain.TemplateAST) which is the tree to traverse.
 // Takes visitor (*SemanticAnalyser) which processes each node.
 //

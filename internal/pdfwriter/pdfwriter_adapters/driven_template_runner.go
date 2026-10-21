@@ -48,7 +48,6 @@ func NewTemplateRunnerAdapter(runner templater_domain.ManifestRunnerPort) *Templ
 // RunPdfWithProps executes a PDF template with the given props and returns the AST and
 // styling.
 //
-// Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes templatePath (string) which is the path to the PDF template.
 // Takes request (*http.Request) which provides the HTTP context.
 // Takes props (any) which contains the data to pass to the template.

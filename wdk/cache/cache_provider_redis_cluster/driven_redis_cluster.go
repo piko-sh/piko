@@ -151,10 +151,8 @@ func (a *RedisClusterAdapter[K, V]) decodeKey(keyString string) (K, error) {
 // GetIfPresent retrieves a value from the cache if it exists, without blocking or
 // loading. When SearchSchema is configured, reads from JSON storage.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to retrieve.
 //
 // Returns V which is the cached value, or the zero value if not found.
@@ -207,7 +205,6 @@ func (a *RedisClusterAdapter[K, V]) GetIfPresent(ctx context.Context, key K) (V,
 // Get retrieves a value from the cache, loading it via the provided loader if not
 // present.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to retrieve.
 // Takes loader (Loader[K, V]) which loads the value on cache miss.
 //
@@ -250,10 +247,8 @@ func (a *RedisClusterAdapter[K, V]) Get(ctx context.Context, key K, loader cache
 // Set stores a key-value pair in the cache with optional tags for grouped invalidation.
 // When a SearchSchema is configured, values are stored as JSON for RediSearch indexing.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry.
 // Takes value (V) which is the data to store.
 // Takes tags (...string) which associate the key with groups for bulk removal.
@@ -461,10 +456,8 @@ func (a *RedisClusterAdapter[K, V]) BulkSet(ctx context.Context, items map[K]V, 
 
 // Invalidate removes a key from the cache and cleans up its tag links.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which specifies the cache key to remove.
 //
 // Returns error when the operation fails.
@@ -677,10 +670,8 @@ func (a *RedisClusterAdapter[K, V]) BulkGet(ctx context.Context, keys []K, bulkL
 
 // InvalidateByTags removes all cache entries associated with the given tags.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes tags (...string) which specifies the tags whose entries should be removed.
 //
 // Returns int which is the number of entries that were invalidated.
@@ -795,15 +786,11 @@ func (a *RedisClusterAdapter[K, V]) invalidateByNamespace(ctx context.Context) e
 // InvalidateAll flushes all data from the cluster. If search is enabled, also drops the
 // RediSearch index.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
-//
-// Takes ctx (context.Context) for cancellation and timeout.
+// A cancelled or expired context returns its error before work begins.
 //
 // Returns error when the operation fails.
 //
-// CLUSTER NOTE: FLUSHDB in cluster mode flushes all databases on all nodes. This is an
-// EXTREMELY destructive operation that affects the entire cluster.
+// FLUSHDB clears every database on every node in the cluster.
 func (a *RedisClusterAdapter[K, V]) InvalidateAll(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -827,7 +814,6 @@ func (a *RedisClusterAdapter[K, V]) InvalidateAll(ctx context.Context) error {
 
 // BulkRefresh asynchronously refreshes multiple cache entries using the bulk loader.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes keys ([]K) which specifies the cache keys to refresh.
 // Takes bulkLoader (BulkLoader) which loads the values for the given keys.
 //
@@ -853,7 +839,6 @@ func (a *RedisClusterAdapter[K, V]) BulkRefresh(ctx context.Context, keys []K, b
 
 // Refresh asynchronously refreshes a single cache entry using the provided loader.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to refresh.
 // Takes loader (Loader[K, V]) which loads the fresh value for the given key.
 //

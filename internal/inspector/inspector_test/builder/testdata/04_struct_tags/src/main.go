@@ -16,13 +16,10 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// main.go defines a struct with various tags to test parsing.
 package main
 
 type User struct {
-	// Should be required and have a custom prop name.
 	Email string `prop:"user_email" validate:"required,email"`
 
-	// Should not be required, and prop name should default to "FullName".
 	FullName string `json:"full_name"`
 }

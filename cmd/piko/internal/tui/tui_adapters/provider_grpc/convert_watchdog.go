@@ -24,7 +24,7 @@ import (
 
 	"piko.sh/piko/cmd/piko/internal/tui/tui_domain"
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // convertWatchdogStatus converts the gRPC status response into the TUI-friendly

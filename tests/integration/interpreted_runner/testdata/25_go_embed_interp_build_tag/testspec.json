@@ -1,0 +1,7 @@
+{
+  "description": "Tests that a user package embedding files with //go:embed loads in interpreted mode when the embedding file is guarded by //go:build !interp and a //go:build interp file declares the same variable from os.DirFS.",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "shouldError": false,
+  "isFragment": false
+}

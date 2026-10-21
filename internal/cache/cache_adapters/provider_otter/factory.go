@@ -22,8 +22,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"time"
+	"weak"
 
 	"github.com/maypok86/otter/v2"
 	"piko.sh/piko/internal/cache/cache_domain"
@@ -32,6 +36,12 @@ import (
 	"piko.sh/piko/internal/wal/wal_adapters/driven_disk"
 	"piko.sh/piko/internal/wal/wal_domain"
 	"piko.sh/vectormaths"
+)
+
+const (
+	// readOnlyLoadAttempts limits retries when an owner checkpoint interrupts a read-only
+	// load.
+	readOnlyLoadAttempts = 3
 )
 
 // entryData holds the final state of a cache entry after replay.
@@ -81,6 +91,8 @@ func OtterProviderFactory[K comparable, V any](options cache_dto.Options[K, V]) 
 		maxWALSize:        0,
 		checkpointMu:      sync.RWMutex{},
 		closeOnce:         sync.Once{},
+		openBatch:         atomic.Pointer[logBatch[K, V]]{},
+		logBatchGate:      sync.Mutex{},
 		walEnabled:        false,
 	}
 
@@ -175,6 +187,54 @@ func initialisePersistence[K comparable, V any](ctx context.Context, options cac
 
 	walConfig := persistConfig.WALConfig.WithDefaults()
 
+	if persistConfig.ReadOnly {
+		return loadReadOnly(ctx, walConfig, codec, adapter)
+	}
+
+	err := openPersistence(ctx, walConfig, codec, adapter)
+	if err != nil && persistConfig.QuarantineCorrupt {
+		moved, quarantineErr := quarantinePersistence(walConfig)
+		if quarantineErr != nil {
+			return errors.Join(err, quarantineErr)
+		}
+		_, l := logger_domain.From(ctx, log)
+		l.Error("Persisted cache state is unreadable; moved it aside and starting empty",
+			logger_domain.String("dir", walConfig.Dir),
+			logger_domain.Strings("moved", moved),
+			logger_domain.Error(err))
+		persistenceQuarantinedTotal.Add(ctx, 1)
+		adapter.clearAllIndexes()
+		adapter.client.InvalidateAll()
+		err = openPersistence(ctx, walConfig, codec, adapter)
+	}
+	if err != nil {
+		return err
+	}
+
+	_, l := logger_domain.From(ctx, log)
+	l.Internal("Persistence initialised",
+		logger_domain.String("dir", persistConfig.WALConfig.Dir),
+		logger_domain.Bool("compression", persistConfig.WALConfig.EnableCompression))
+
+	return nil
+}
+
+// openPersistence opens the write-ahead log and snapshot under walConfig and recovers the
+// cache from them.
+//
+// Takes walConfig (wal_domain.Config) which locates the directory.
+// Takes codec (*driven_disk.BinaryCodec[K, V]) which encodes and decodes entries.
+// Takes adapter (*OtterAdapter[K, V]) which receives the recovered entries and keeps the
+// log and snapshot.
+//
+// Returns error when the log or snapshot cannot be opened or recovered; nothing stays
+// open then.
+func openPersistence[K comparable, V any](
+	ctx context.Context,
+	walConfig wal_domain.Config,
+	codec *driven_disk.BinaryCodec[K, V],
+	adapter *OtterAdapter[K, V],
+) error {
 	wal, err := driven_disk.NewDiskWAL(ctx, walConfig, codec)
 	if err != nil {
 		return fmt.Errorf("creating WAL: %w", err)
@@ -195,15 +255,138 @@ func initialisePersistence[K comparable, V any](ctx context.Context, options cac
 	if err := recoverFromPersistence(adapter); err != nil {
 		_ = wal.Close()
 		_ = snapshot.Close()
+		adapter.wal = nil
+		adapter.snapshot = nil
+		adapter.walEnabled = false
 		return fmt.Errorf("recovering from persistence: %w", err)
 	}
+	return nil
+}
+
+// quarantinePersistence renames a cache's snapshot and write-ahead log aside, keeping
+// them for inspection, so the cache can start afresh in the same directory.
+//
+// Takes walConfig (wal_domain.Config) which locates the files.
+//
+// Returns []string which names the files moved aside.
+// Returns error when a file exists but cannot be moved.
+func quarantinePersistence(walConfig wal_domain.Config) ([]string, error) {
+	suffix := ".corrupt-" + time.Now().UTC().Format("20060102T150405.000000000Z")
+	var moved []string
+	for _, name := range []string{walConfig.SnapshotFileName, walConfig.WALFileName} {
+		path := filepath.Join(walConfig.Dir, name)
+		if err := os.Rename(path, path+suffix); err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				continue
+			}
+			return moved, fmt.Errorf("moving unreadable %s aside: %w", path, err)
+		}
+		moved = append(moved, path+suffix)
+	}
+	return moved, nil
+}
+
+// loadReadOnly loads a snapshot and complete log entries into an in-memory cache without
+// modifying persistence files.
+//
+// Takes walConfig (wal_domain.Config) which locates the directory.
+// Takes codec (*driven_disk.BinaryCodec[K, V]) which decodes its entries.
+// Takes adapter (*OtterAdapter[K, V]) which receives the entries.
+//
+// Returns error when the snapshot or log cannot be read.
+func loadReadOnly[K comparable, V any](
+	ctx context.Context,
+	walConfig wal_domain.Config,
+	codec *driven_disk.BinaryCodec[K, V],
+	adapter *OtterAdapter[K, V],
+) error {
+	nowNano := time.Now().UnixNano()
+	var (
+		state                       map[K]entryData[V]
+		snapshotEntries, walEntries int
+		err                         error
+	)
+	for range readOnlyLoadAttempts {
+		before := snapshotIdentity(walConfig)
+		state, snapshotEntries, walEntries, err = readPersistedState(ctx, walConfig, codec, nowNano)
+		if err != nil {
+			return err
+		}
+		if snapshotIdentity(walConfig) == before {
+			break
+		}
+
+	}
+	populateCacheFromState(adapter, state, nowNano)
 
 	_, l := logger_domain.From(ctx, log)
-	l.Internal("Persistence initialised",
-		logger_domain.String("dir", persistConfig.WALConfig.Dir),
-		logger_domain.Bool("compression", persistConfig.WALConfig.EnableCompression))
-
+	l.Internal("Cache loaded read-only from persistence",
+		logger_domain.String("dir", walConfig.Dir),
+		logger_domain.Int("snapshot_entries", snapshotEntries),
+		logger_domain.Int("wal_entries", walEntries),
+		logger_domain.Int("final_keys", len(state)))
 	return nil
+}
+
+// readPersistedState reads the snapshot and then the write-ahead log into one state map.
+//
+// Takes walConfig (wal_domain.Config) which locates the directory.
+// Takes codec (*driven_disk.BinaryCodec[K, V]) which decodes its entries.
+// Takes nowNano (int64) which drops entries already expired.
+//
+// Returns state (map[K]entryData[V]) which is the merged state.
+// Returns snapshotEntries (int) which is the number of snapshot entries read.
+// Returns walEntries (int) which is the number of log entries read.
+// Returns error when the snapshot or log cannot be read.
+func readPersistedState[K comparable, V any](
+	ctx context.Context,
+	walConfig wal_domain.Config,
+	codec *driven_disk.BinaryCodec[K, V],
+	nowNano int64,
+) (state map[K]entryData[V], snapshotEntries int, walEntries int, err error) {
+	state = make(map[K]entryData[V])
+	snapshot, err := driven_disk.NewDiskSnapshot(ctx, walConfig, codec)
+	if err != nil {
+		return nil, 0, 0, fmt.Errorf("opening snapshot read-only: %w", err)
+	}
+	snapshotEntries, err = loadSnapshotEntries(ctx, snapshot, state, nowNano)
+	_ = snapshot.Close()
+	if err != nil {
+		return nil, 0, 0, fmt.Errorf("reading snapshot: %w", err)
+	}
+
+	for entry, err := range driven_disk.ReadEntries(ctx, walConfig, codec) {
+		if err != nil {
+			return nil, 0, 0, fmt.Errorf("reading write-ahead log: %w", err)
+		}
+		applyEntryToState(state, entry, nowNano)
+		walEntries++
+	}
+	return state, snapshotEntries, walEntries, nil
+}
+
+// snapshotFileIdentity identifies one version of a snapshot file.
+type snapshotFileIdentity struct {
+	// modified is the file's modification time in nanoseconds.
+	modified int64
+
+	// size is the file's length in bytes.
+	size int64
+}
+
+// snapshotIdentity returns the snapshot file's current identity, or the zero identity
+// when it does not exist. The owner replaces the file whole on every checkpoint, so a
+// change in either field means a checkpoint ran.
+//
+// Takes walConfig (wal_domain.Config) which locates the snapshot.
+//
+// Returns snapshotFileIdentity which identifies the file's current version.
+func snapshotIdentity(walConfig wal_domain.Config) snapshotFileIdentity {
+	info, err := os.Stat(filepath.Join(walConfig.Dir, walConfig.SnapshotFileName))
+	if err != nil {
+		return snapshotFileIdentity{}
+	}
+	return snapshotFileIdentity{modified: info.ModTime().UnixNano(), size: info.Size()}
 }
 
 // recoverFromPersistence loads data from snapshot and WAL using streaming APIs, replaying
@@ -338,6 +521,9 @@ func applyEntryToState[K comparable, V any](state map[K]entryData[V], entry wal_
 
 	case wal_domain.OpClear:
 		clear(state)
+
+	case wal_domain.OpBatch:
+
 	}
 }
 
@@ -364,14 +550,20 @@ func buildOtterOptions[K comparable, V any](options cache_dto.Options[K, V], ada
 		Logger:            wrapLogger(options.Logger),
 	}
 
-	otterOpts.OnDeletion = buildDeletionHandler(adapter, wrapOnDeletion(options.OnDeletion))
+	evicts := options.MaximumEntries > 0 || options.MaximumWeight > 0 || options.ExpiryCalculator != nil
+	if evicts || options.OnDeletion != nil {
+		otterOpts.OnDeletion = buildDeletionHandler(adapter, wrapOnDeletion(options.OnDeletion))
+	}
 	otterOpts.OnAtomicDeletion = buildDeletionHandler(adapter, wrapOnAtomicDeletion(options.OnAtomicDeletion))
 
 	return otterOpts
 }
 
-// buildDeletionHandler creates a handler for deletion events that removes entries from
-// the tag index and search indexes, then calls any user-provided handler.
+// buildDeletionHandler creates a handler that updates indexes and invokes the optional
+// user handler.
+//
+// It holds the adapter weakly so the cache cleanup can run once the adapter becomes
+// unreachable.
 //
 // Takes adapter (*OtterAdapter[K, V]) which provides access to the indexes.
 // Takes userHandler (func(otter.DeletionEvent[K, V])) which is an optional callback to
@@ -380,10 +572,13 @@ func buildOtterOptions[K comparable, V any](options cache_dto.Options[K, V], ada
 // Returns func(otter.DeletionEvent[K, V]) which handles deletion events by removing the
 // key from all indexes and calling the user handler if provided.
 func buildDeletionHandler[K comparable, V any](adapter *OtterAdapter[K, V], userHandler func(otter.DeletionEvent[K, V])) func(otter.DeletionEvent[K, V]) {
+	ref := weak.Make(adapter)
 	return func(e otter.DeletionEvent[K, V]) {
 		if e.Cause != otter.CauseReplacement {
-			adapter.tagIndex.RemoveKey(e.Key)
-			adapter.removeFromSearchIndex(e.Key)
+			if live := ref.Value(); live != nil {
+				live.tagIndex.RemoveKey(e.Key)
+				live.removeFromSearchIndex(e.Key)
+			}
 		}
 		if userHandler != nil {
 			userHandler(e)

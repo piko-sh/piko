@@ -30,7 +30,7 @@ import (
 	"time"
 
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (

@@ -19,7 +19,6 @@
 package db_engine_clickhouse
 
 import (
-	"piko.sh/piko/internal/querier/querier_adapters/migration_sql"
 	"piko.sh/piko/wdk/db"
 )
 
@@ -35,7 +34,6 @@ func ClickHouse() db.EngineConfig {
 	return db.EngineConfig{
 		DriverName:       "clickhouse",
 		Engine:           NewClickHouseEngine(),
-		MigrationDialect: migration_sql.ClickHouseDialect(),
-		CatalogueFactory: nil,
+		MigrationDialect: db.ClickHouseDialect(),
 	}
 }

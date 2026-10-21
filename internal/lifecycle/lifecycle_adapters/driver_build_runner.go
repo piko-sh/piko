@@ -25,8 +25,10 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -45,7 +47,7 @@ import (
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/resolver/resolver_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -58,14 +60,12 @@ const (
 	// pollInterval is the delay between checks when waiting for background tasks.
 	pollInterval = 50 * time.Millisecond
 
-	// defaultTimeout is the longest time to wait for the dispatcher to become idle.
+	// defaultTimeout is the longest time to wait for the build's tasks to settle.
 	defaultTimeout = 5 * time.Minute
 
-	// pipelineFlushTimeout is the longest time to wait for the bridge to process all
-	// artefact events published by the registry during the pipeline-flush stage. If the
-	// bridge has not caught up within this window, it likely indicates a lost event or
-	// infrastructure failure.
-	pipelineFlushTimeout = 2 * time.Minute
+	// maxReconcileRounds bounds how many times a build re-checks its artefacts for profiles
+	// still to build once its tasks have settled.
+	maxReconcileRounds = 2
 
 	// localDiskCacheSource is the origin label for artefacts loaded from disk.
 	localDiskCacheSource = "local_disk_cache"
@@ -73,6 +73,11 @@ const (
 	// gcHintDrainBatchSize is the number of GC hints to pop per iteration when draining
 	// hints after a build.
 	gcHintDrainBatchSize = 100
+)
+
+var (
+	// errBuildTimedOut reports a build whose tasks did not settle within defaultTimeout.
+	errBuildTimedOut = fmt.Errorf("build tasks did not settle within %s", defaultTimeout)
 )
 
 // buildService implements lifecycle_domain.BuilderAdapter to manage the build process
@@ -113,23 +118,79 @@ type buildService struct {
 
 	// externalComponents holds component definitions needing module resolution.
 	externalComponents []component_dto.ComponentDefinition
+
+	// seedFailures collects the source files the build could not walk, read or upsert, which
+	// buildResult reports so they fail the build.
+	seedFailures seedFailureLog
+
+	// upserted records the artefacts this build upserted, for reconciliation once its tasks
+	// have settled.
+	upserted upsertedArtefacts
+
+	// adoptLeftovers makes the build wait for every unsettled foreground task in its store;
+	// see WithLeftoverAdoption.
+	adoptLeftovers bool
 }
 
-// RunBuild executes a full production build, processing all assets and waiting for
-// completion.
+// upsertedArtefacts records the IDs of artefacts upserted during a build.
+type upsertedArtefacts struct {
+	// ids holds the recorded artefact IDs in upsert order; mu guards it.
+	ids []string
+
+	// mu guards ids.
+	mu sync.Mutex
+}
+
+// record adds an upserted artefact ID.
+//
+// Takes artefactID (string) which identifies the artefact.
+//
+// Safe for concurrent use; guarded by mu.
+func (u *upsertedArtefacts) record(artefactID string) {
+	u.mu.Lock()
+	u.ids = append(u.ids, artefactID)
+	u.mu.Unlock()
+}
+
+// snapshot returns the recorded artefact IDs without duplicates.
+//
+// Returns []string which holds each recorded ID once.
+//
+// Safe for concurrent use; guarded by mu.
+func (u *upsertedArtefacts) snapshot() []string {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	seen := make(map[string]struct{}, len(u.ids))
+	unique := make([]string, 0, len(u.ids))
+	for _, id := range u.ids {
+		if _, dup := seen[id]; !dup {
+			seen[id] = struct{}{}
+			unique = append(unique, id)
+		}
+	}
+	return unique
+}
+
+// RunBuild seeds source artefacts and waits for task completion, reporting failed tasks,
+// unbuilt profiles, and timeouts.
 //
 // Returns *lifecycle_domain.BuildResult which holds task counts and failure details. This
 // is nil when an infrastructure error prevents the build from completing.
 // Returns error when an infrastructure failure prevents the build from completing
-// (context cancelled, flush timeout, theme build failure).
+// (context cancelled, theme build failure).
 func (bs *buildService) RunBuild(ctx context.Context) (*lifecycle_domain.BuildResult, error) {
 	ctx, span, l := log.Span(ctx, "runBuild")
 	defer span.End()
 
 	startTime := time.Now()
 
+	if locality, ok := bs.eventBus.(orchestrator_domain.NodeLocality); ok && !locality.NodeLocal() {
+		return nil, lifecycle_domain.ErrDistributedEventBus
+	}
+
 	dispatcher := bs.orchestratorService.GetTaskDispatcher()
-	dispatcher.SetBuildTag(uuid.NewString())
+	buildTag := uuid.NewString()
+	dispatcher.SetBuildTag(buildTag)
 	startStats := dispatcher.Stats()
 
 	l.Internal("Starting full build process...")
@@ -151,29 +212,46 @@ func (bs *buildService) RunBuild(ctx context.Context) (*lifecycle_domain.BuildRe
 		logger_domain.Int64("fileCount", fileCount))
 
 	l.Internal("Waiting for all asset processing tasks to complete...")
-	if err := bs.waitUntilIdle(ctx); err != nil {
-		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-			cause := context.Cause(ctx)
-			if cause == nil {
-				cause = err
-			}
-			l.Warn("Build context cancelled while waiting for tasks to complete.",
-				logger_domain.Error(err),
-				logger_domain.String("cause", cause.Error()))
-			return nil, fmt.Errorf("waiting for build tasks to complete: %w", err)
-		}
-		return nil, fmt.Errorf("asset processing failed while waiting for completion: %w", err)
+	timedOut, err := bs.waitForBuild(ctx, dispatcher, buildTag, startTime)
+	if err == nil && !timedOut {
+		timedOut, err = bs.reconcileArtefacts(ctx, dispatcher, buildTag, startTime)
+	}
+	if err != nil {
+		return nil, buildWaitError(ctx, l, err)
 	}
 
 	bs.drainGCHints(ctx)
 
 	result := bs.buildResult(ctx, startTime, startStats)
+	result.TimedOut = timedOut
+	bs.reportUnbuiltProfiles(ctx, result)
 	if result.HasFailures() {
 		span.SetStatus(codes.Error, "Build completed with task failures")
 	} else {
 		span.SetStatus(codes.Ok, "Build completed successfully")
 	}
 	return result, nil
+}
+
+// buildWaitError wraps a failure from waiting for, or reconciling, a build's tasks. A
+// cancelled or timed-out build context is logged with its cause.
+//
+// Takes l (logger_domain.Logger) which logs the cancellation within the build's span.
+// Takes err (error) which is the failure returned while waiting.
+//
+// Returns error which wraps err with the stage that failed.
+func buildWaitError(ctx context.Context, l logger_domain.Logger, err error) error {
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		cause := context.Cause(ctx)
+		if cause == nil {
+			cause = err
+		}
+		l.Warn("Build context cancelled while waiting for tasks to complete.",
+			logger_domain.Error(err),
+			logger_domain.String("cause", cause.Error()))
+		return fmt.Errorf("waiting for build tasks to complete: %w", err)
+	}
+	return fmt.Errorf("asset processing failed while waiting for completion: %w", err)
 }
 
 // buildThemeArtefact creates and stores the theme.css file.
@@ -192,6 +270,9 @@ func (bs *buildService) buildThemeArtefact(ctx context.Context) error {
 
 	desiredProfiles := lifecycle_domain.GetProfilesForFile(themeArtefactPath, lifecycle_domain.ResolverModuleName(bs.resolver), nil)
 	_, err = bs.registryService.UpsertArtefact(themeCtx, themeArtefactPath, themeArtefactPath, bytes.NewReader(cssBytes), localDiskCacheSource, desiredProfiles)
+	if err == nil {
+		bs.upserted.record(themeArtefactPath)
+	}
 	if err != nil {
 		themeLog.Error("Failed to upsert theme artefact", logger_domain.Error(err))
 		themeSpan.RecordError(err)
@@ -264,6 +345,9 @@ func (bs *buildService) startFileProcessingWorkers(
 
 // walkAndStreamFiles walks directories and streams file events to the channel.
 //
+// A path the walk cannot read is recorded as a seed failure and skipped, so the walk
+// carries on and the build still fails.
+//
 // Takes fileEvents (chan<- lifecycle_dto.FileEvent) which receives file events for each
 // file found during the walk.
 // Takes fileCount (*atomic.Int64) which is incremented for each file streamed.
@@ -280,22 +364,7 @@ func (bs *buildService) walkAndStreamFiles(
 	for _, directory := range dirs {
 		walkLog.Trace("Walking directory", logger_domain.String(fieldDir, directory))
 
-		err := filepath.WalkDir(directory, func(path string, d os.DirEntry, err error) error {
-			if err != nil {
-				walkLog.Trace("Error walking directory", logger_domain.String("path", path), logger_domain.String(fieldError, err.Error()))
-				return nil
-			}
-			if d.IsDir() {
-				return nil
-			}
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case fileEvents <- lifecycle_dto.FileEvent{Path: path, Type: lifecycle_dto.FileEventTypeCreate}:
-				fileCount.Add(1)
-			}
-			return nil
-		})
+		err := filepath.WalkDir(directory, bs.streamFilesWalkFunc(ctx, walkLog, fileEvents, fileCount))
 		if err != nil {
 			walkLog.Error("Failed to walk directory", logger_domain.String(fieldDir, directory), logger_domain.Error(err))
 			return fmt.Errorf("walking directory %q: %w", directory, err)
@@ -304,186 +373,248 @@ func (bs *buildService) walkAndStreamFiles(
 	return nil
 }
 
-// waitUntilIdle waits until all work is complete using state polling.
+// streamFilesWalkFunc records walk failures and skips entries it cannot read.
 //
-// This uses a two-stage approach to avoid race conditions:
+// Takes walkLog (logger_domain.Logger) which logs skipped temporary files.
+// Takes fileEvents (chan<- lifecycle_dto.FileEvent) which receives a file event for each
+// file found during the walk.
+// Takes fileCount (*atomic.Int64) which is incremented for each file streamed.
 //
-// Pipeline flush: Wait until the bridge has processed all artefact events published by
-// the registry. This means all tasks have been sent.
+// Returns fs.WalkDirFunc which stops the walk only when the context is cancelled.
+func (bs *buildService) streamFilesWalkFunc(
+	ctx context.Context,
+	walkLog logger_domain.Logger,
+	fileEvents chan<- lifecycle_dto.FileEvent,
+	fileCount *atomic.Int64,
+) fs.WalkDirFunc {
+	return func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			bs.recordSeedFailure(ctx, seedStageWalk, path, err)
+			return nil
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if lifecycle_domain.IsTemporaryFile(path) {
+			walkLog.Trace("Skipping editor temporary file", logger_domain.String("path", path))
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case fileEvents <- lifecycle_dto.FileEvent{Path: path, Type: lifecycle_dto.FileEventTypeCreate}:
+			fileCount.Add(1)
+		}
+		return nil
+	}
+}
+
+// waitForBuild waits until every task of the build has settled.
 //
-// Work completion: Poll the dispatcher until it reports idle state: all tasks completed,
-// all queues empty, no pending retries.
+// The build is complete when the dispatcher's counters show nothing outstanding, the
+// bridge has handled every artefact event the registry issued, and the task store has no
+// unsettled task with the build tag. Artefact events whose publish failed are retried
+// while waiting.
 //
-// Returns error when the pipeline flush or dispatcher idle wait fails.
-func (bs *buildService) waitUntilIdle(ctx context.Context) error {
-	ctx, span, l := log.Span(ctx, "buildService.waitUntilIdle")
+// Takes dispatcher (orchestrator_domain.TaskDispatcher) which runs the build's tasks.
+// Takes buildTag (string) which identifies the build's tasks.
+// Takes startTime (time.Time) which is when the build started, for the timeout.
+//
+// Returns bool which is true when the build ran out of time before its tasks settled.
+// Returns error when the context is cancelled or the store cannot be read.
+func (bs *buildService) waitForBuild(
+	ctx context.Context,
+	dispatcher orchestrator_domain.TaskDispatcher,
+	buildTag string,
+	startTime time.Time,
+) (bool, error) {
+	ctx, span, l := log.Span(ctx, "buildService.waitForBuild")
 	defer span.End()
 
-	startTime := time.Now()
-
-	l.Internal("Phase 1: Waiting for pipeline flush (bridge to process all artefact events)")
-	if err := bs.waitForPipelineFlush(ctx, startTime); err != nil {
-		return fmt.Errorf("waiting for pipeline flush: %w", err)
+	check := orchestrator_domain.BuildCompletionCheck{
+		Dispatcher:    dispatcher,
+		Outstanding:   bs.outstandingArtefactEvents,
+		BuildTag:      buildTag,
+		AllForeground: bs.adoptLeftovers,
+		Store:         nil,
 	}
-
-	l.Internal("Phase 2: Waiting for dispatcher to be idle")
-	if err := bs.waitForDispatcherIdle(ctx, startTime, span); err != nil {
-		return fmt.Errorf("waiting for dispatcher to become idle: %w", err)
-	}
-
-	span.SetStatus(codes.Ok, "Build completed")
-	return nil
-}
-
-// waitForPipelineFlush waits until the bridge has processed all artefact events sent by
-// the registry.
-//
-// Takes startTime (time.Time) which marks when the build started for timeout checks.
-//
-// Returns error when the context is cancelled or the flush times out.
-func (bs *buildService) waitForPipelineFlush(ctx context.Context, startTime time.Time) error {
-	ctx, l := logger_domain.From(ctx, log)
-	for {
-		if err := ctx.Err(); err != nil {
-			return fmt.Errorf("waiting for pipeline flush: %w", err)
-		}
-
-		if time.Since(startTime) > pipelineFlushTimeout {
-			published := bs.registryService.ArtefactEventsPublished()
-			processed := bs.bridge.ArtefactEventsProcessed()
-			return fmt.Errorf("pipeline flush timeout after %v: published=%d processed=%d remaining=%d",
-				pipelineFlushTimeout, published, processed, published-processed)
-		}
-
-		published := bs.registryService.ArtefactEventsPublished()
-		processed := bs.bridge.ArtefactEventsProcessed()
-
-		if published == 0 {
-			l.Internal("No artefact events published, skipping pipeline flush")
-			return nil
-		}
-
-		if processed >= published {
-			l.Internal("Pipeline flushed",
-				logger_domain.Int64("eventsPublished", published),
-				logger_domain.Int64("eventsProcessed", processed))
-			return nil
-		}
-
-		l.Internal("Waiting for pipeline flush",
-			logger_domain.Int64("eventsPublished", published),
-			logger_domain.Int64("eventsProcessed", processed),
-			logger_domain.Int64("remaining", published-processed))
-
-		time.Sleep(pollInterval)
-	}
-}
-
-// waitForDispatcherIdle polls the dispatcher until it reports idle state.
-//
-// Takes startTime (time.Time) which marks when the build started for timeout checks.
-// Takes span (trace.Span) which receives tracing events for observability.
-//
-// Returns error when the context is cancelled or the build times out.
-func (bs *buildService) waitForDispatcherIdle(
-	ctx context.Context,
-	startTime time.Time,
-	span trace.Span,
-) error {
-	ctx, _ = logger_domain.From(ctx, log)
-
-	dispatcher := bs.orchestratorService.GetTaskDispatcher()
+	settleSignal := settleSignalOf(dispatcher)
 	lastLogTime := time.Now()
 
 	for {
 		if err := ctx.Err(); err != nil {
-			return fmt.Errorf("waiting for dispatcher idle: %w", err)
+			return false, fmt.Errorf("waiting for build tasks: %w", err)
 		}
 
-		if err := bs.checkBuildTimeout(ctx, startTime, dispatcher, span); err != nil {
-			return fmt.Errorf("checking build timeout: %w", err)
+		bs.registryService.FlushArtefactEvents(ctx)
+		progress, complete, err := orchestrator_domain.CheckBuildComplete(ctx, check)
+		if err != nil {
+			return false, fmt.Errorf("checking build completion: %w", err)
+		}
+		if complete {
+			l.Internal("All build tasks have settled",
+				logger_domain.Duration("waitDuration", time.Since(startTime)),
+				logger_domain.Int64("tasksDispatched", progress.Dispatched),
+				logger_domain.Int64("tasksCompleted", progress.Completed),
+				logger_domain.Int64("tasksFailed", progress.Failed))
+			span.SetStatus(codes.Ok, "Build tasks settled")
+			return false, nil
 		}
 
-		if isBuildIdle(dispatcher) {
-			bs.logDispatcherIdle(ctx, startTime, dispatcher)
-			return nil
+		if time.Since(startTime) > defaultTimeout {
+			l.ReportError(span, errBuildTimedOut, "Build timed out with tasks outstanding",
+				buildProgressAttrs(progress)...)
+			return true, nil
 		}
 
-		bs.logDispatcherProgress(ctx, &lastLogTime, dispatcher)
-		time.Sleep(pollInterval)
+		if time.Since(lastLogTime) >= time.Second {
+			l.Notice("Waiting for build tasks to settle", buildProgressAttrs(progress)...)
+			lastLogTime = time.Now()
+		}
+		waitForSettle(ctx, settleSignal)
 	}
 }
 
-// isBuildIdle checks if the dispatcher has finished all build work, ignoring delayed
-// tasks that should not block build completion.
-//
-// Takes dispatcher (orchestrator_domain.TaskDispatcher) which provides the current task
-// statistics.
-//
-// Returns bool which is true when all dispatched tasks have completed or failed.
-func isBuildIdle(dispatcher orchestrator_domain.TaskDispatcher) bool {
-	stats := dispatcher.Stats()
-	allDone := stats.TasksDispatched <= stats.TasksCompleted+stats.TasksFailed+stats.TasksRetried
-	return allDone && stats.ActiveWorkers == 0
+// settleSignaller is implemented by dispatchers that signal as their tasks settle.
+type settleSignaller interface {
+	// SettleSignal returns a channel that receives after tasks settle.
+	//
+	// Returns <-chan struct{} which receives task settlement notifications.
+	SettleSignal() <-chan struct{}
 }
 
-// checkBuildTimeout checks if the build has gone over the time limit.
+// settleSignalOf returns the dispatcher's settle signal, or nil when it has none.
 //
-// Takes ctx (context.Context) which carries the logger.
-// Takes startTime (time.Time) which is when the build started.
-// Takes dispatcher (orchestrator_domain.TaskDispatcher) which gives task queue details
-// for error reporting.
-// Takes span (trace.Span) which is the tracing span for error reporting.
+// Takes dispatcher (orchestrator_domain.TaskDispatcher) which runs the build's tasks.
 //
-// Returns error when the time since startTime is more than the default timeout.
-func (*buildService) checkBuildTimeout(
-	ctx context.Context,
-	startTime time.Time,
-	dispatcher orchestrator_domain.TaskDispatcher,
-	span trace.Span,
-) error {
-	ctx, l := logger_domain.From(ctx, log)
-	if time.Since(startTime) <= defaultTimeout {
-		return nil
+// Returns <-chan struct{} which receives after tasks settle, or nil.
+func settleSignalOf(dispatcher orchestrator_domain.TaskDispatcher) <-chan struct{} {
+	if signaller, ok := dispatcher.(settleSignaller); ok {
+		return signaller.SettleSignal()
 	}
-
-	stats := dispatcher.Stats()
-	err := fmt.Errorf("timeout waiting for dispatcher to become idle after %v", defaultTimeout)
-	l.ReportError(span, err, "Build timeout",
-		logger_domain.Int64("tasksDispatched", stats.TasksDispatched),
-		logger_domain.Int64("tasksCompleted", stats.TasksCompleted),
-		logger_domain.Int64("tasksFailed", stats.TasksFailed),
-		logger_domain.Int("highQueueLen", stats.HighQueueLen),
-		logger_domain.Int("normalQueueLen", stats.NormalQueueLen),
-		logger_domain.Int("lowQueueLen", stats.LowQueueLen))
-	return fmt.Errorf("build timeout: %w", err)
+	return nil
 }
 
-// logDispatcherIdle logs that the dispatcher has become idle.
+// waitForSettle waits until a task settles or pollInterval passes, whichever is first.
+// The interval bounds the wait for changes that do not signal, such as artefact events.
 //
-// Takes ctx (context.Context) which carries the logger.
-// Takes startTime (time.Time) which marks when the build started.
-// Takes dispatcher (orchestrator_domain.TaskDispatcher) which provides stats.
-func (*buildService) logDispatcherIdle(
+// Takes signal (<-chan struct{}) which receives after tasks settle; nil waits the
+// interval.
+func waitForSettle(ctx context.Context, signal <-chan struct{}) {
+	timer := time.NewTimer(pollInterval)
+	defer timer.Stop()
+	select {
+	case <-signal:
+	case <-timer.C:
+	case <-ctx.Done():
+	}
+}
+
+// reconcileArtefacts dispatches any required artefact work missing from the build.
+//
+// Takes dispatcher (orchestrator_domain.TaskDispatcher) which runs the build's tasks.
+// Takes buildTag (string) which identifies the build's tasks.
+// Takes startTime (time.Time) which is when the build started, for the timeout.
+//
+// Returns bool which is true when the build ran out of time.
+// Returns error when the context is cancelled or the store cannot be read.
+func (bs *buildService) reconcileArtefacts(
 	ctx context.Context,
-	startTime time.Time,
 	dispatcher orchestrator_domain.TaskDispatcher,
-) {
+	buildTag string,
+	startTime time.Time,
+) (bool, error) {
+	reconciler, ok := bs.bridge.(lifecycle_domain.ArtefactReconciler)
+	if !ok {
+		return false, nil
+	}
 	ctx, l := logger_domain.From(ctx, log)
-	stats := dispatcher.Stats()
-	duration := time.Since(startTime)
-	l.Internal("Dispatcher is idle, build complete",
-		logger_domain.Duration("waitDuration", duration),
-		logger_domain.Int64("tasksDispatched", stats.TasksDispatched),
-		logger_domain.Int64("tasksCompleted", stats.TasksCompleted),
-		logger_domain.Int64("tasksFailed", stats.TasksFailed))
+	artefactIDs := bs.upserted.snapshot()
+
+	for round := range maxReconcileRounds {
+		dispatched, err := reconciler.ReconcileArtefacts(ctx, artefactIDs)
+		if err != nil {
+			l.Warn("Some artefacts could not be re-checked after the build", logger_domain.Error(err))
+		}
+		if dispatched == 0 {
+			return false, nil
+		}
+		l.Warn("Dispatched profiles that were missing after the build's tasks settled",
+			logger_domain.Int("tasks", dispatched),
+			logger_domain.Int("round", round+1))
+		timedOut, err := bs.waitForBuild(ctx, dispatcher, buildTag, startTime)
+		if err != nil || timedOut {
+			return timedOut, err
+		}
+	}
+	return false, nil
+}
+
+// reportUnbuiltProfiles records failures for desired profiles that remain unbuilt despite
+// having ready dependencies.
+//
+// Takes result (*lifecycle_domain.BuildResult) which receives the failures.
+func (bs *buildService) reportUnbuiltProfiles(ctx context.Context, result *lifecycle_domain.BuildResult) {
+	reconciler, ok := bs.bridge.(lifecycle_domain.ArtefactReconciler)
+	if !ok || result.TimedOut {
+		return
+	}
+	ctx, l := logger_domain.From(ctx, log)
+	unbuilt, err := reconciler.UnbuiltProfiles(ctx, bs.upserted.snapshot())
+	if err != nil {
+		l.Warn("Some artefacts could not be checked for unbuilt profiles", logger_domain.Error(err))
+	}
+	artefactIDs := slices.Sorted(maps.Keys(unbuilt))
+	for _, artefactID := range artefactIDs {
+		for _, profile := range unbuilt[artefactID] {
+			result.Failures = append(result.Failures, lifecycle_domain.BuildFailure{
+				ArtefactID: artefactID,
+				Executor:   "",
+				Profile:    profile,
+				Error:      "profile was never built",
+				Attempt:    0,
+				IsFatal:    false,
+			})
+		}
+	}
+}
+
+// outstandingArtefactEvents returns how many artefact events the registry has issued that
+// the bridge has not handled yet.
+//
+// Returns int64 which is the number of events still to handle.
+func (bs *buildService) outstandingArtefactEvents() int64 {
+	return max(bs.registryService.ArtefactEventsIssued()-bs.bridge.ArtefactEventsProcessed(), 0)
+}
+
+// buildProgressAttrs converts build progress into log attributes.
+//
+// Takes progress (orchestrator_domain.BuildProgress) which is the snapshot to describe.
+//
+// Returns []logger_domain.Attr which holds one attribute per counter.
+func buildProgressAttrs(progress orchestrator_domain.BuildProgress) []logger_domain.Attr {
+	return []logger_domain.Attr{
+		logger_domain.Int64("tasksDispatched", progress.Dispatched),
+		logger_domain.Int64("tasksCompleted", progress.Completed),
+		logger_domain.Int64("tasksFailed", progress.Failed),
+		logger_domain.Int64("tasksRetried", progress.Retried),
+		logger_domain.Int("tasksHeld", progress.Held),
+		logger_domain.Int("tasksInFlight", progress.InFlight),
+		logger_domain.Int("tasksDelayed", progress.Delayed),
+		logger_domain.Int("pendingReruns", progress.PendingReruns),
+		logger_domain.Int64("artefactEventsOutstanding", progress.Outstanding),
+		logger_domain.Int64("tasksUnsettled", progress.Unsettled),
+	}
 }
 
 // buildResult collects dispatcher statistics and any failure details into a BuildResult
-// struct for the caller to inspect and format.
+// struct for the caller to inspect and format. It also takes the seed failures recorded
+// during the walk, so they are reported once.
 //
-// Takes ctx (context.Context) which is passed to the dispatcher for querying failed
-// tasks.
+// Failures are read from the task store by build tag rather than inferred from the
+// dispatcher's counters, so a task failed outside the counted paths still fails the
+// build.
+//
 // Takes buildStartTime (time.Time) which marks when the build started.
 // Takes startStats (orchestrator_domain.DispatcherStats) which holds the counter snapshot
 // taken at the beginning of the build so that only the delta for this run is reported.
@@ -506,25 +637,24 @@ func (bs *buildService) buildResult(
 		TotalRetried:     endStats.TasksRetried - startStats.TasksRetried,
 		Duration:         time.Since(buildStartTime),
 		Failures:         nil,
+		SeedFailures:     bs.seedFailures.take(),
 		TimedOut:         false,
 	}
 
-	failed := endStats.TasksFailed - startStats.TasksFailed
-	if failed > 0 {
-		failures, err := dispatcher.FailedTasks(ctx)
-		if err != nil {
-			l.Warn("Failed to retrieve task failure details", logger_domain.Error(err))
-		} else {
-			result.Failures = make([]lifecycle_domain.BuildFailure, len(failures))
-			for i, f := range failures {
-				result.Failures[i] = lifecycle_domain.BuildFailure{
-					ArtefactID: f.WorkflowID,
-					Executor:   f.Executor,
-					Error:      f.LastError,
-					Attempt:    f.Attempt,
-					IsFatal:    f.IsFatal,
-					Profile:    "",
-				}
+	failures, err := dispatcher.FailedTasks(ctx)
+	if err != nil {
+		l.Warn("Failed to retrieve task failure details", logger_domain.Error(err))
+	} else {
+		result.TotalFailed = max(result.TotalFailed, int64(len(failures)))
+		result.Failures = make([]lifecycle_domain.BuildFailure, len(failures))
+		for i, f := range failures {
+			result.Failures[i] = lifecycle_domain.BuildFailure{
+				ArtefactID: f.WorkflowID,
+				Executor:   f.Executor,
+				Error:      f.LastError,
+				Attempt:    f.Attempt,
+				IsFatal:    f.IsFatal,
+				Profile:    "",
 			}
 		}
 	}
@@ -532,35 +662,9 @@ func (bs *buildService) buildResult(
 	return result
 }
 
-// logDispatcherProgress logs the dispatcher progress at most once per second to prevent
-// excessive log output.
-//
-// Takes ctx (context.Context) which carries the logger.
-// Takes lastLogTime (*time.Time) which tracks when the last log was written.
-// Takes dispatcher (TaskDispatcher) which provides the current task counts.
-func (*buildService) logDispatcherProgress(
-	ctx context.Context,
-	lastLogTime *time.Time,
-	dispatcher orchestrator_domain.TaskDispatcher,
-) {
-	ctx, l := logger_domain.From(ctx, log)
-	if time.Since(*lastLogTime) < time.Second {
-		return
-	}
-
-	stats := dispatcher.Stats()
-	l.Notice("Waiting for dispatcher to become idle",
-		logger_domain.Int64("tasksDispatched", stats.TasksDispatched),
-		logger_domain.Int64("tasksCompleted", stats.TasksCompleted),
-		logger_domain.Int64("tasksFailed", stats.TasksFailed),
-		logger_domain.Int("highQueueLen", stats.HighQueueLen),
-		logger_domain.Int("normalQueueLen", stats.NormalQueueLen),
-		logger_domain.Int("lowQueueLen", stats.LowQueueLen),
-		logger_domain.Int("activeWorkers", int(stats.ActiveWorkers)))
-	*lastLogTime = time.Now()
-}
-
 // handleFileEvent processes a file system event and updates the artefact store.
+//
+// A file that cannot be resolved, opened or upserted is recorded as a seed failure.
 //
 // Takes event (lifecycle_dto.FileEvent) which contains the file path and event type to
 // process.
@@ -573,6 +677,7 @@ func (bs *buildService) handleFileEvent(ctx context.Context, event lifecycle_dto
 
 	artefactID, relPath, err := bs.computeArtefactID(ctx, event.Path, span)
 	if err != nil {
+		bs.recordSeedFailure(ctx, seedStageRead, event.Path, err)
 		return
 	}
 
@@ -581,18 +686,20 @@ func (bs *buildService) handleFileEvent(ctx context.Context, event lifecycle_dto
 
 	fileData, err := bs.openFileForProcessing(ctx, event.Path, span)
 	if err != nil {
+		bs.recordSeedFailure(ctx, seedStageRead, event.Path, err)
 		return
 	}
 	defer func() { _ = fileData.Close() }()
 
-	bs.upsertFileArtefact(ctx, artefactID, relPath, fileData, span)
+	if err := bs.upsertFileArtefact(ctx, artefactID, relPath, fileData, span); err != nil {
+		bs.recordSeedFailure(ctx, seedStageUpsert, event.Path, err)
+	}
 }
 
 // computeArtefactID computes the module-absolute artefact ID and relative path from a
 // file path. This keeps artefact IDs matching what templates specify (e.g.,
 // "mymodule/lib/icons/arrow.svg").
 //
-// Takes ctx (context.Context) which carries the logger.
 // Takes filePath (string) which is the absolute path to the file.
 // Takes span (trace.Span) which records errors for tracing.
 //
@@ -652,12 +759,34 @@ func (sf *sandboxedFile) Close() error {
 	return nil
 }
 
+// seekableSandboxedFile is a sandboxedFile over a file that can seek. Exposing Seek lets
+// the registry hash the file first and skip storing content it already holds, which is
+// most of every warm build.
+type seekableSandboxedFile struct {
+	sandboxedFile
+
+	// seeker is the underlying file's seek method.
+	seeker io.Seeker
+}
+
+// Seek sets the offset of the next read on the underlying file.
+//
+// Takes offset (int64) which is the new offset, relative to whence.
+// Takes whence (int) which is io.SeekStart, io.SeekCurrent or io.SeekEnd.
+//
+// Returns int64 which is the new offset from the start of the file.
+// Returns error when the seek fails.
+func (sf *seekableSandboxedFile) Seek(offset int64, whence int) (int64, error) {
+	return sf.seeker.Seek(offset, whence)
+}
+
 // openFileForProcessing opens a file and returns the file handle.
 //
 // Takes filePath (string) which specifies the path to the file to open.
 // Takes parentSpan (trace.Span) which receives error status on failure.
 //
-// Returns io.ReadCloser which provides access to the file contents.
+// Returns io.ReadCloser which provides access to the file contents, and also implements
+// io.Seeker when the file can seek.
 // Returns error when the sandbox cannot be created or the file cannot be opened.
 func (bs *buildService) openFileForProcessing(
 	ctx context.Context,
@@ -699,23 +828,30 @@ func (bs *buildService) openFileForProcessing(
 	}
 
 	readSpan.SetStatus(codes.Ok, "File read successfully")
-	return &sandboxedFile{file: fileData, sandbox: sandbox}, nil
+	opened := sandboxedFile{file: fileData, sandbox: sandbox}
+	if seeker, ok := fileData.(io.Seeker); ok {
+		return &seekableSandboxedFile{sandboxedFile: opened, seeker: seeker}, nil
+	}
+	return &opened, nil
 }
 
-// upsertFileArtefact upserts the file artefact into the registry.
+// upsertFileArtefact seeds a file while preserving the artefact's existing desired
+// profiles.
 //
 // Takes artefactID (string) which identifies the artefact to upsert.
 // Takes sourcePath (string) which is the project-relative path for storage key
 // generation.
 // Takes fileData (io.ReadCloser) which provides the artefact content.
 // Takes parentSpan (trace.Span) which receives error status on failure.
+//
+// Returns error when the registry upsert fails.
 func (bs *buildService) upsertFileArtefact(
 	ctx context.Context,
 	artefactID string,
 	sourcePath string,
 	fileData io.ReadCloser,
 	parentSpan trace.Span,
-) {
+) error {
 	ctx, l := logger_domain.From(ctx, log)
 	profiles := lifecycle_domain.GetProfilesForFile(artefactID, lifecycle_domain.ResolverModuleName(bs.resolver), nil)
 	artefactID = lifecycle_domain.NormaliseAssetArtefactID(artefactID)
@@ -727,16 +863,17 @@ func (bs *buildService) upsertFileArtefact(
 	)
 	defer upsertSpan.End()
 
-	meta, err := bs.registryService.UpsertArtefact(upsertCtx, artefactID, sourcePath, fileData, localDiskCacheSource, profiles)
+	meta, err := bs.registryService.UpsertArtefact(upsertCtx, artefactID, sourcePath, fileData, localDiskCacheSource, profiles,
+		registry_domain.WithProfileMerge())
 	if err != nil {
-		upsertLog.Error("Failed to upsert source artefact", logger_domain.String(fieldError, err.Error()))
 		upsertSpan.RecordError(err)
 		upsertSpan.SetStatus(codes.Error, "Failed to upsert artefact")
 		parentSpan.RecordError(err)
 		parentSpan.SetStatus(codes.Error, "File event processing failed")
-		return
+		return fmt.Errorf("upserting artefact %q: %w", artefactID, err)
 	}
 
+	bs.upserted.record(artefactID)
 	if meta != nil {
 		for i := range meta.ActualVariants {
 			if meta.ActualVariants[i].SRIHash != "" {
@@ -748,6 +885,7 @@ func (bs *buildService) upsertFileArtefact(
 
 	upsertLog.Trace("Successfully upserted artefact")
 	upsertSpan.SetStatus(codes.Ok, "Artefact upserted successfully")
+	return nil
 }
 
 // getDirectories returns the list of source directories to watch for changes.
@@ -1002,7 +1140,8 @@ func (bs *buildService) walkAndSeedExternalDir(
 // Takes entry (os.DirEntry) which holds details about the directory entry.
 // Takes walkError (error) which is any error encountered during the walk.
 //
-// Returns error which is always nil; errors are logged and the walk continues.
+// Returns error which is always nil; failures are recorded as seed failures and the walk
+// continues.
 func (bs *buildService) seedExternalComponentEntry(
 	ctx context.Context,
 	absDir, modulePath, absPath string,
@@ -1010,16 +1149,16 @@ func (bs *buildService) seedExternalComponentEntry(
 	walkError error,
 ) error {
 	if walkError != nil {
+		bs.recordSeedFailure(ctx, seedStageWalk, absPath, walkError)
 		return nil
 	}
 	if entry.IsDir() || filepath.Ext(entry.Name()) != ".pkc" {
 		return nil
 	}
 
-	_, l := logger_domain.From(ctx, log)
-
 	relPath, relErr := filepath.Rel(absDir, absPath)
 	if relErr != nil {
+		bs.recordSeedFailure(ctx, seedStageRead, absPath, relErr)
 		return nil
 	}
 	relPathSlash := filepath.ToSlash(relPath)
@@ -1030,27 +1169,25 @@ func (bs *buildService) seedExternalComponentEntry(
 
 	sandbox, sandboxErr := bs.createExternalSandbox("build-external-component", parentDir)
 	if sandboxErr != nil {
-		l.Error("Failed to create sandbox for external component file",
-			logger_domain.String(fieldPath, absPath),
-			logger_domain.Error(sandboxErr))
+		bs.recordSeedFailure(ctx, seedStageRead, absPath,
+			fmt.Errorf("creating sandbox for external component file: %w", sandboxErr))
 		return nil
 	}
 
 	file, openErr := sandbox.Open(fileName)
 	if openErr != nil {
 		_ = sandbox.Close()
-		l.Error("Failed to read external component file",
-			logger_domain.String(fieldPath, absPath),
-			logger_domain.Error(openErr))
+		bs.recordSeedFailure(ctx, seedStageRead, absPath, openErr)
 		return nil
 	}
 	defer func() { _ = file.Close(); _ = sandbox.Close() }()
 
 	profiles := lifecycle_domain.GetProfilesForFile(artefactID, lifecycle_domain.ResolverModuleName(bs.resolver), nil)
 	if _, upsertErr := bs.registryService.UpsertArtefact(ctx, artefactID, relPathSlash, file, localDiskCacheSource, profiles); upsertErr != nil {
-		l.Error("Failed to seed external component artefact",
-			logger_domain.String("artefact_id", artefactID),
-			logger_domain.Error(upsertErr))
+		bs.recordSeedFailure(ctx, seedStageUpsert, absPath,
+			fmt.Errorf("seeding external component artefact %q: %w", artefactID, upsertErr))
+	} else {
+		bs.upserted.record(artefactID)
 	}
 
 	return nil
@@ -1162,8 +1299,8 @@ func (bs *buildService) walkAndSeedExternalAssetDir(
 	})
 }
 
-// seedExternalAssetEntry processes a single directory entry during an external asset
-// directory walk, seeding files into the registry.
+// seedExternalAssetEntry seeds an external asset while preserving its existing desired
+// profiles.
 //
 // Takes absDir (string) which is the root directory being walked.
 // Takes artefactPrefix (string) which provides the artefact ID prefix.
@@ -1171,21 +1308,25 @@ func (bs *buildService) walkAndSeedExternalAssetDir(
 // Takes entry (os.DirEntry) which holds details about the directory entry.
 // Takes walkError (error) which is any error encountered during the walk.
 //
-// Returns error which is always nil; errors are logged and the walk continues.
+// Returns error which is always nil; failures are recorded as seed failures and the walk
+// continues.
 func (bs *buildService) seedExternalAssetEntry(
 	ctx context.Context,
 	absDir, artefactPrefix, absPath string,
 	entry os.DirEntry,
 	walkError error,
 ) error {
-	if walkError != nil || entry.IsDir() {
+	if walkError != nil {
+		bs.recordSeedFailure(ctx, seedStageWalk, absPath, walkError)
+		return nil
+	}
+	if entry.IsDir() {
 		return nil
 	}
 
-	_, l := logger_domain.From(ctx, log)
-
 	relPath, relErr := filepath.Rel(absDir, absPath)
 	if relErr != nil {
+		bs.recordSeedFailure(ctx, seedStageRead, absPath, relErr)
 		return nil
 	}
 	relPathSlash := filepath.ToSlash(relPath)
@@ -1196,28 +1337,27 @@ func (bs *buildService) seedExternalAssetEntry(
 
 	sandbox, sandboxErr := bs.createExternalSandbox("build-external-asset", parentDir)
 	if sandboxErr != nil {
-		l.Error("Failed to create sandbox for external asset file",
-			logger_domain.String(fieldPath, absPath),
-			logger_domain.Error(sandboxErr))
+		bs.recordSeedFailure(ctx, seedStageRead, absPath,
+			fmt.Errorf("creating sandbox for external asset file: %w", sandboxErr))
 		return nil
 	}
 
 	file, openErr := sandbox.Open(fileName)
 	if openErr != nil {
 		_ = sandbox.Close()
-		l.Error("Failed to read external asset file",
-			logger_domain.String(fieldPath, absPath),
-			logger_domain.Error(openErr))
+		bs.recordSeedFailure(ctx, seedStageRead, absPath, openErr)
 		return nil
 	}
 	defer func() { _ = file.Close(); _ = sandbox.Close() }()
 
 	profiles := lifecycle_domain.GetProfilesForFile(artefactID, lifecycle_domain.ResolverModuleName(bs.resolver), nil)
 	artefactID = lifecycle_domain.NormaliseAssetArtefactID(artefactID)
-	if _, upsertErr := bs.registryService.UpsertArtefact(ctx, artefactID, relPathSlash, file, localDiskCacheSource, profiles); upsertErr != nil {
-		l.Error("Failed to seed external asset artefact",
-			logger_domain.String("artefact_id", artefactID),
-			logger_domain.Error(upsertErr))
+	if _, upsertErr := bs.registryService.UpsertArtefact(ctx, artefactID, relPathSlash, file, localDiskCacheSource, profiles,
+		registry_domain.WithProfileMerge()); upsertErr != nil {
+		bs.recordSeedFailure(ctx, seedStageUpsert, absPath,
+			fmt.Errorf("seeding external asset artefact %q: %w", artefactID, upsertErr))
+	} else {
+		bs.upserted.record(artefactID)
 	}
 
 	return nil
@@ -1255,6 +1395,7 @@ func (bs *buildService) createExternalSandbox(purpose, path string) (safedisk.Sa
 // Takes externalComponents ([]component_dto.ComponentDefinition) which holds component
 // definitions needing module resolution.
 // Takes sandboxFactory (safedisk.Factory) which creates sandboxes for filesystem access.
+// Takes opts (...BuildServiceOption) which adjust the build.
 //
 // Returns lifecycle_domain.BuilderAdapter which is the configured build service ready for
 // use.
@@ -1271,8 +1412,9 @@ func NewBuildService(
 	resolver resolver_domain.ResolverPort,
 	externalComponents []component_dto.ComponentDefinition,
 	sandboxFactory safedisk.Factory,
+	opts ...BuildServiceOption,
 ) lifecycle_domain.BuilderAdapter {
-	return &buildService{
+	bs := &buildService{
 		websiteConfig:          websiteConfig,
 		pathsConfig:            pathsConfig,
 		registryService:        registry,
@@ -1284,6 +1426,26 @@ func NewBuildService(
 		externalComponents:     externalComponents,
 		sandboxFactory:         sandboxFactory,
 		externalSandboxFactory: nil,
+		seedFailures:           seedFailureLog{},
+		upserted:               upsertedArtefacts{},
+		adoptLeftovers:         false,
+	}
+	for _, opt := range opts {
+		opt(bs)
+	}
+	return bs
+}
+
+// BuildServiceOption configures a build service.
+type BuildServiceOption func(*buildService)
+
+// WithLeftoverAdoption makes a build wait for all unsettled foreground tasks in its
+// store, including work from earlier builds.
+//
+// Returns BuildServiceOption which applies the setting.
+func WithLeftoverAdoption() BuildServiceOption {
+	return func(bs *buildService) {
+		bs.adoptLeftovers = true
 	}
 }
 

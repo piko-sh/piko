@@ -23,7 +23,7 @@ package layouter_adapters
 
 import (
 	"piko.sh/piko/internal/layouter/layouter_domain"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (

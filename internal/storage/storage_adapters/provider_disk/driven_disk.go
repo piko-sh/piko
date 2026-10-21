@@ -41,7 +41,7 @@ import (
 	"piko.sh/piko/internal/storage/storage_domain"
 	"piko.sh/piko/internal/storage/storage_dto"
 	"piko.sh/piko/wdk/contextaware"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -116,6 +116,9 @@ type DiskProvider struct {
 
 	// sandbox provides file system operations for safe disk access.
 	sandbox safedisk.Sandbox
+
+	// durability selects whether writes are synced before Put returns or at Flush.
+	durability Durability
 }
 
 var (
@@ -136,6 +139,10 @@ type Config struct {
 
 	// BaseDirectory is the root directory where all repositories and objects will be stored.
 	BaseDirectory string
+
+	// Durability is when writes are made durable. The zero value, DurabilityImmediate, syncs
+	// each object before Put returns.
+	Durability Durability
 }
 
 // Put saves an object from a reader to the disk using an atomic write operation.
@@ -174,7 +181,7 @@ func (d *DiskProvider) Put(ctx context.Context, params *storage_dto.PutParams) e
 	defer func() { _ = d.sandbox.Remove(tmpName) }()
 
 	bytesWritten, err := io.Copy(tmpFile, contextaware.NewReader(ctx, params.Reader))
-	if err == nil {
+	if err == nil && d.durability == DurabilityImmediate {
 		if syncErr := tmpFile.Sync(); syncErr != nil {
 			err = fmt.Errorf("failed to fsync temporary file '%s': %w", tmpName, syncErr)
 		}
@@ -192,7 +199,9 @@ func (d *DiskProvider) Put(ctx context.Context, params *storage_dto.PutParams) e
 		return fmt.Errorf("failed to atomically move file to '%s': %w", path, err)
 	}
 
-	d.syncDirectoryAfterRename(ctx, directory)
+	if d.durability == DurabilityImmediate {
+		d.syncDirectoryAfterRename(ctx, directory)
+	}
 
 	d.writeMetadataSidecar(ctx, path, params.Metadata)
 
@@ -756,8 +765,6 @@ func (d *DiskProvider) GetProviderMetadata() map[string]any {
 
 // handleRangeRequest prepares a file reader for a specific byte range.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
-// request-scoped values.
 // Takes file (safedisk.FileHandle) which is the open file to read from.
 // Takes key (string) which identifies the file for logging purposes.
 // Takes byteRange (*storage_dto.ByteRange) which specifies the range to read.
@@ -1074,24 +1081,23 @@ func NewDiskProvider(config Config, opts ...storage_domain.ProviderOption) (stor
 	}
 	rateLimiter := storage_domain.ApplyProviderOptions(defaultConfig, opts...)
 
+	durability := config.Durability
+	if durability == DurabilityDeferred && !deferredDurabilitySupported {
+		durability = DurabilityImmediate
+	}
 	d := &DiskProvider{
 		sandbox:     sandbox,
 		rateLimiter: rateLimiter,
+		durability:  durability,
 	}
 
 	return d, nil
 }
 
-// syncDirectoryAfterRename fsyncs the parent directory after a rename.
+// syncDirectoryAfterRename syncs the parent directory so the rename survives a crash.
 //
-// Required on filesystems where the metadata journal is flushed independently of file
-// data. Without this step, a crash between the rename and the next metadata flush can
-// leave the file invisible after recovery despite a successful rename return.
+// Errors are logged without being returned.
 //
-// The fsync is best-effort: any error is logged but not surfaced because the data itself
-// was already fsynced and callers cannot recover meaningfully.
-//
-// Takes ctx (context.Context) which carries the logger.
 // Takes directory (string) which is the relative path to the directory inside the
 // sandbox.
 func (d *DiskProvider) syncDirectoryAfterRename(ctx context.Context, directory string) {

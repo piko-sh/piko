@@ -54,7 +54,6 @@ var (
 
 // TryTake delegates to TryTakeFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes key (string) which identifies the token bucket.
 // Takes n (float64) which is the number of tokens to take.
 // Takes config (*ratelimiter_dto.TokenBucketConfig) which provides the bucket
@@ -71,7 +70,6 @@ func (m *MockTokenBucketStore) TryTake(ctx context.Context, key string, n float6
 
 // WaitDuration delegates to WaitDurationFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes key (string) which identifies the token bucket.
 // Takes n (float64) which is the number of tokens to wait for.
 // Takes config (*ratelimiter_dto.TokenBucketConfig) which provides the bucket
@@ -88,7 +86,6 @@ func (m *MockTokenBucketStore) WaitDuration(ctx context.Context, key string, n f
 
 // DeleteBucket delegates to DeleteBucketFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes key (string) which identifies the token bucket to delete.
 //
 // Returns nil if DeleteBucketFunc is nil.

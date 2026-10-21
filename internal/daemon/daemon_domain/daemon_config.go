@@ -47,6 +47,10 @@ type DaemonConfig struct {
 	// 301-redirects all requests to the HTTPS server.
 	TLSRedirectHTTPPort string
 
+	// NetworkBindAddress is the address the main server binds to; empty binds every
+	// interface.
+	NetworkBindAddress string
+
 	// TLS holds the resolved TLS settings for the main server.
 	TLS tlscert.TLSValues
 

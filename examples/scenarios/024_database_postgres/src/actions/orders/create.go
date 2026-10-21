@@ -6,6 +6,7 @@ import (
 
 	"piko.sh/piko"
 	"piko.sh/piko/wdk/db"
+	"piko.sh/piko/wdk/maths"
 
 	"testmodule/db/generated"
 )
@@ -52,20 +53,28 @@ func (a CreateAction) Call(input CreateInput) (CreateResponse, error) {
 		return CreateResponse{}, fmt.Errorf("fetching product %d: %w", input.ProductID, err)
 	}
 
-	total := product.Price * float64(input.Quantity)
-
 	order, err := queries.CreateOrder(a.Ctx(), generated.CreateOrderParams{
-		P1: input.ProductID,
-		P2: input.Quantity,
-		P3: total,
-		P4: time.Now().Unix(),
+		ProductID: input.ProductID,
+		Quantity:  input.Quantity,
+		Total:     orderTotal(product.Price, input.Quantity),
+		OrderedAt: time.Now().Unix(),
 	})
 	if err != nil {
 		return CreateResponse{}, err
 	}
 
+	total, err := order.Total.Float64()
+	if err != nil {
+		return CreateResponse{}, fmt.Errorf("reading order %d total: %w", order.ID, err)
+	}
+
 	return CreateResponse{
 		ID:    order.ID,
-		Total: order.Total,
+		Total: total,
 	}, nil
+}
+
+// orderTotal returns the exact total for a quantity of a product at its price.
+func orderTotal(price maths.Decimal, quantity int32) maths.Decimal {
+	return price.MultiplyInt(int64(quantity))
 }

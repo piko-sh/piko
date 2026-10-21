@@ -6,6 +6,7 @@ require (
 	piko.sh/piko v0.0.0
 	piko.sh/piko/wdk/db/db_engine_postgres v0.0.0
 	piko.sh/piko/wdk/db/db_engine_sqlite v0.0.0
+	piko.sh/safedisk v0.1.0
 )
 
 require (
@@ -14,6 +15,7 @@ require (
 	github.com/bojanz/currency v1.4.4 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cockroachdb/apd/v3 v3.2.3 // indirect
+	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/go-chi/chi/v5 v5.3.1 // indirect
 	github.com/go-chi/cors v1.2.2 // indirect
@@ -26,6 +28,7 @@ require (
 	github.com/klauspost/compress v1.19.1 // indirect
 	github.com/lithammer/shortuuid/v3 v3.0.7 // indirect
 	github.com/maypok86/otter/v2 v2.3.0 // indirect
+	github.com/ncruces/go-strftime v1.1.0 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/sony/gobreaker/v2 v2.4.0 // indirect
@@ -47,6 +50,10 @@ require (
 	golang.org/x/text v0.42.0 // indirect
 	golang.org/x/tools v0.50.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	piko.sh/goastutil v0.1.0 // indirect
+	modernc.org/memory v1.12.1 // indirect
+	piko.sh/goastutil v0.2.0 // indirect
+	piko.sh/piko/wdk/db/db_provider_seagull v0.0.0 // indirect
+	piko.sh/safeconv v0.1.0 // indirect
 	piko.sh/vectormaths v0.2.0 // indirect
+	seagull.sh/seagull v0.0.0-alpha.2 // indirect
 )

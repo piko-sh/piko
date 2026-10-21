@@ -61,10 +61,7 @@ func (b *StreamEncryptBuilder) KeyID(keyID string) *StreamEncryptBuilder {
 
 // Stream executes the streaming encryption operation.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
-//
-// Takes ctx (context.Context) which controls the operation lifecycle.
+// A cancelled or expired context returns its error before work begins.
 //
 // Returns io.WriteCloser which accepts plaintext to be encrypted.
 // Returns error when the key cannot be found or encryption setup fails.

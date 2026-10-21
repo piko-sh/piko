@@ -240,7 +240,7 @@ func TestOtterAdapter_InvalidateAllLogsTheClear(t *testing.T) {
 		name      string
 	}{
 		{name: "a recorded clear empties the cache", appendErr: nil},
-		{name: "a clear the log rejects still empties the cache", appendErr: errors.New("disk full")},
+		{name: "a clear the log rejects fails and leaves the cache as it was", appendErr: errors.New("disk full")},
 	}
 
 	for _, testCase := range testCases {
@@ -257,11 +257,17 @@ func TestOtterAdapter_InvalidateAllLogsTheClear(t *testing.T) {
 			cache.wal = wal
 			cache.walEnabled = true
 
-			require.NoError(t, cache.InvalidateAll(ctx))
+			clearErr := cache.InvalidateAll(ctx)
 
 			assert.Equal(t, []wal_domain.Operation{wal_domain.OpClear}, wal.appended)
 			_, found, err := cache.GetIfPresent(ctx, "page")
 			require.NoError(t, err)
+			if testCase.appendErr != nil {
+				require.ErrorIs(t, clearErr, testCase.appendErr, "the log's refusal is reported")
+				assert.True(t, found, "a clear the log never recorded must not empty the cache")
+				return
+			}
+			require.NoError(t, clearErr)
 			assert.False(t, found)
 		})
 	}

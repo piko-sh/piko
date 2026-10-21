@@ -406,7 +406,6 @@ func alpnProtocols(configured []string) []string {
 // recordServerCompletion records metrics and span status based on the server completion
 // result.
 //
-// Takes ctx (context.Context) which carries the logger context.
 // Takes span (trace.Span) which receives the status and any error details.
 // Takes err (error) which indicates the server completion state.
 func recordServerCompletion(ctx context.Context, span trace.Span, err error) {

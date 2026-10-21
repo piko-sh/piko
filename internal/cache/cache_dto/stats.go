@@ -21,7 +21,7 @@ package cache_dto
 import (
 	"time"
 
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // StatsRecorder defines a provider-agnostic interface for recording cache statistics. It

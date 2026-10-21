@@ -112,7 +112,6 @@ func (*MockLogger) ReportError(_ trace.Span, _ error, _ string, _ ...Attr) {}
 
 // RunInSpan executes the provided function with the mock logger, ignoring span creation.
 //
-// Takes ctx (context.Context) which is passed through to the function.
 // Takes operation (func(context.Context, Logger) error) which is the function to execute
 // within the mock span.
 //
@@ -146,8 +145,6 @@ func (m *MockLogger) WithSpanContext(_ context.Context) Logger {
 }
 
 // newMockLoggerWithContext creates a new MockLogger with the given context.
-//
-// Takes ctx (context.Context) which is the context for the new logger.
 //
 // Returns *MockLogger which is ready to use with the provided context.
 func newMockLoggerWithContext(ctx context.Context) *MockLogger { //nolint:unused // exported via export_test.go

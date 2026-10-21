@@ -595,8 +595,8 @@ func (ar *astRewriter) resolveImportPath(ctx context.Context, path, alias string
 	return path, alias, nil
 }
 
-// maybeAddTemplateOnlyUseDecl adds a use declaration when a package is only used in the
-// template and not in the script.
+// maybeAddTemplateOnlyUseDecl marks a template-only import as used through its
+// alphabetically first non-call member.
 //
 // Takes alias (string) which specifies the package alias to check.
 // Takes isPikoImport (bool) which indicates if this is a Piko framework import.
@@ -624,9 +624,8 @@ func (*astRewriter) maybeAddTemplateOnlyUseDecl(
 
 	var memberToUse string
 	for member, info := range members {
-		if !info.isCall {
+		if !info.isCall && (memberToUse == "" || member < memberToUse) {
 			memberToUse = member
-			break
 		}
 	}
 

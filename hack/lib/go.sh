@@ -94,6 +94,8 @@ piko::go::run_benchmarks() {
 #   $4 - Output file for profile data
 #   $5 - Report file to append results
 #   $6 - Top N entries to show (default: 40)
+#   $7 - Build tags (default: none)
+#   $8 - Memory profile rate, e.g. 1 to record every allocation (default: Go's default)
 piko::go::run_profile() {
     local pkg_path="$1"
     local bench_name="$2"
@@ -101,13 +103,24 @@ piko::go::run_profile() {
     local profile_out="$4"
     local report_file="$5"
     local top_n="${6:-40}"
+    local tags="${7:-}"
+    local mem_rate="${8:-}"
 
     piko::log::info "Running ${profile_type} profile for ${bench_name}..."
+
+    local extra_args=()
+    if [[ -n "$tags" ]]; then
+        extra_args+=("-tags=${tags}")
+    fi
+    if [[ -n "$mem_rate" && "$profile_type" == "mem" ]]; then
+        extra_args+=("-memprofilerate=${mem_rate}")
+    fi
 
     local test_output
     local exit_code=0
     test_output=$(go test -run='^$' -bench="${bench_name}" \
         -benchtime=3s -timeout=5m \
+        "${extra_args[@]}" \
         "-${profile_type}profile=${profile_out}" \
         "$pkg_path" 2>&1) || exit_code=$?
 
@@ -125,7 +138,12 @@ piko::go::run_profile() {
             echo "========================================================================"
             echo ""
             if [[ "$profile_type" == "mem" ]]; then
-                go tool pprof -top -inuse_space -nodecount="${top_n}" "$profile_out"
+                local sample_index
+                for sample_index in alloc_objects alloc_space inuse_space; do
+                    echo "--- ${sample_index} ---"
+                    go tool pprof -top -sample_index="${sample_index}" -nodecount="${top_n}" "$profile_out"
+                    echo ""
+                done
             else
                 go tool pprof -top -nodecount="${top_n}" "$profile_out"
             fi

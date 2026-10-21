@@ -22,20 +22,23 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"time"
 
-	"go.opentelemetry.io/otel/codes"
 	"piko.sh/piko/internal/logger/logger_domain"
 	clockpkg "piko.sh/piko/wdk/clock"
 	"piko.sh/piko/wdk/goroutine"
 )
 
-// TaskDispatchFunc is called when a delayed task is ready to run. It allows testing
-// without needing the full task dispatcher.
-type TaskDispatchFunc func(ctx context.Context, task *Task) error
+var (
+	// errZeroScheduledTime is returned when a task without a due time is scheduled.
+	errZeroScheduledTime = errors.New("task has zero ScheduledExecuteAt time")
+)
 
-// DelayedTaskPublisher handles scheduled task execution using a min-heap. Tasks are
-// sorted by their scheduled execution time.
+// TaskDispatchFunc publishes a reference to a task the store already holds once it is
+// due. It allows testing without needing the full task dispatcher.
+type TaskDispatchFunc func(ctx context.Context, ref TaskRef) error
+
+// DelayedTaskPublisher publishes task references when due without retaining the mutable
+// task objects.
 type DelayedTaskPublisher struct {
 	// ctx controls the publisher lifecycle; cancelled when Stop is called.
 	ctx context.Context
@@ -43,13 +46,10 @@ type DelayedTaskPublisher struct {
 	// clock provides time operations for scheduling and timer creation.
 	clock clockpkg.Clock
 
-	// dispatchFunc sends a task that is due to its target queue.
+	// dispatchFunc publishes a reference that is due.
 	dispatchFunc TaskDispatchFunc
 
-	// taskHeap stores tasks ordered by their scheduled execution time.
-	taskHeap *scheduledTaskHeap
-
-	// wakeChan signals the loop to wake up and check for newly scheduled tasks.
+	// wakeChan signals the loop to wake up and check for newly scheduled references.
 	wakeChan chan struct{}
 
 	// cancel stops the processing loop; set by Start.
@@ -58,7 +58,20 @@ type DelayedTaskPublisher struct {
 	// loopDone is closed when the processing loop has exited; set by Start.
 	loopDone chan struct{}
 
-	// mu protects taskHeap during scheduling and retrieval.
+	// refs holds the scheduled references ordered by due time; mu guards it.
+	refs scheduledRefHeap
+
+	// foreground counts the references in refs that are not background work; mu guards it.
+	foreground int
+
+	// inTransit counts due references being handed to the dispatcher and is guarded by mu.
+	inTransit int
+
+	// foregroundInTransit counts the in-transit references that are not background work; mu
+	// guards it.
+	foregroundInTransit int
+
+	// mu protects refs and the counters during scheduling and retrieval.
 	mu sync.Mutex
 }
 
@@ -70,19 +83,22 @@ var (
 // dependencies. Use this for unit testing the delayed publisher in isolation.
 //
 // Takes clock (Clock) which provides controllable time functions for testing.
-// Takes dispatchFunc (TaskDispatchFunc) which is called when a task is due to run.
+// Takes dispatchFunc (TaskDispatchFunc) which is called when a reference is due.
 //
 // Returns *DelayedTaskPublisher which is the configured publisher for testing.
 func NewDelayedTaskPublisherForTesting(clock clockpkg.Clock, dispatchFunc TaskDispatchFunc) *DelayedTaskPublisher {
 	return &DelayedTaskPublisher{
-		ctx:          nil,
-		clock:        clock,
-		dispatchFunc: dispatchFunc,
-		taskHeap:     newScheduledTaskHeap(),
-		wakeChan:     make(chan struct{}, 1),
-		cancel:       nil,
-		loopDone:     nil,
-		mu:           sync.Mutex{},
+		ctx:                 nil,
+		clock:               clock,
+		dispatchFunc:        dispatchFunc,
+		wakeChan:            make(chan struct{}, 1),
+		cancel:              nil,
+		loopDone:            nil,
+		refs:                nil,
+		foreground:          0,
+		inTransit:           0,
+		foregroundInTransit: 0,
+		mu:                  sync.Mutex{},
 	}
 }
 
@@ -106,7 +122,7 @@ func (p *DelayedTaskPublisher) Start(parentCtx context.Context) {
 }
 
 // Stop shuts down the publisher cleanly, waiting for the processing loop to exit so no
-// due task is dispatched after Stop returns.
+// due reference is published after Stop returns.
 func (p *DelayedTaskPublisher) Stop() {
 	if p.cancel != nil {
 		p.cancel(errors.New("delayed publisher stopped"))
@@ -116,191 +132,199 @@ func (p *DelayedTaskPublisher) Stop() {
 	}
 }
 
-// PendingCount returns the number of tasks waiting to be dispatched. Used for idle
-// detection - the dispatcher is not idle while tasks are pending.
+// PendingCount counts references queued or being handed to the dispatcher.
 //
-// Returns int which is the count of tasks currently in the pending queue.
+// Returns int which is the count of references currently waiting or in transit.
 //
 // Safe for concurrent use.
 func (p *DelayedTaskPublisher) PendingCount() int {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	return p.taskHeap.Len()
+	return p.refs.Len() + p.inTransit
 }
 
-// Schedule adds a task to be dispatched at the specified time.
+// ForegroundPendingCount counts pending foreground references, including references being
+// handed to the dispatcher.
 //
-// Takes task (*Task) which specifies the task to schedule with its execution time.
+// Returns int which is the count of foreground references waiting or in transit.
+//
+// Safe for concurrent use.
+func (p *DelayedTaskPublisher) ForegroundPendingCount() int {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.foreground + p.foregroundInTransit
+}
+
+// Schedule records the task's reference for publication at its ScheduledExecuteAt. Only
+// the reference and the due time are kept; the task is not read again.
+//
+// Takes task (*Task) which is the stored task to publish, with its due time set.
 //
 // Returns error when the task has a zero ScheduledExecuteAt time.
 //
-// Safe for concurrent use. Wakes the background dispatch loop to recalculate the next
-// sleep duration. Once pushed, the task belongs to the dispatch loop and is not read
-// again here.
-func (p *DelayedTaskPublisher) Schedule(ctx context.Context, task *Task) error {
-	ctx, l := logger_domain.From(ctx, log)
-	ctx, span, l := l.Span(ctx, "DelayedTaskPublisher.Schedule",
-		logger_domain.String(attributeKeyTaskID, task.ID),
-		logger_domain.Time("executeAt", task.ScheduledExecuteAt),
-	)
-	defer span.End()
-
-	scheduledAt := task.ScheduledExecuteAt
-	if scheduledAt.IsZero() {
-		err := errors.New("task has zero ScheduledExecuteAt time")
-		l.ReportError(span, err, "Cannot schedule task")
-		return err
+// Safe for concurrent use. Wakes the background loop to recalculate its next sleep.
+func (p *DelayedTaskPublisher) Schedule(_ context.Context, task *Task) error {
+	if task.ScheduledExecuteAt.IsZero() {
+		return errZeroScheduledTime
 	}
 
 	p.mu.Lock()
-	p.taskHeap.Push(task)
+	p.pushLocked(scheduledRef{due: task.ScheduledExecuteAt, ref: RefOf(task)})
 	p.mu.Unlock()
 
 	select {
 	case p.wakeChan <- struct{}{}:
 	default:
 	}
-
-	l.Trace("Task scheduled",
-		logger_domain.Duration("delay", scheduledAt.Sub(p.clock.Now())))
-	span.SetStatus(codes.Ok, "Task scheduled")
 	return nil
 }
 
-// loop is the main event loop that sleeps until tasks are due.
+// loop is the main event loop that sleeps until references are due.
 //
 // Concurrent goroutine runs this loop, started by Start. Exits when the publisher's
 // context is cancelled.
 func (p *DelayedTaskPublisher) loop() {
 	defer goroutine.RecoverPanic(p.ctx, "orchestrator.delayedPublisherLoop")
-	ctx, ll := logger_domain.From(p.ctx, log)
-	l := ll.With(logger_domain.String("component", "DelayedTaskPublisher"))
-	l.Internal("Delayed task publisher loop started")
+	ctx := p.ctx
 
 	for {
 		p.mu.Lock()
+		next, ok := p.refs.Peek()
+		p.mu.Unlock()
 
-		if p.taskHeap.Len() == 0 {
-			p.mu.Unlock()
-
+		if !ok {
 			select {
 			case <-p.wakeChan:
 				continue
 			case <-ctx.Done():
-				l.Trace("Delayed publisher shutting down")
 				return
 			}
 		}
 
-		nextTask := p.taskHeap.Peek()
-		scheduledAt := nextTask.ScheduledExecuteAt
-		p.mu.Unlock()
-
-		waitDuration := scheduledAt.Sub(p.clock.Now())
+		waitDuration := next.due.Sub(p.clock.Now())
 		if waitDuration <= 0 {
-			p.dispatchDueTask()
+			p.dispatchDue()
 			continue
 		}
 
 		timer := p.clock.NewTimer(waitDuration)
 
-		if scheduledAt.Sub(p.clock.Now()) <= 0 {
+		if next.due.Sub(p.clock.Now()) <= 0 {
 			timer.Stop()
-			p.dispatchDueTask()
+			p.dispatchDue()
 			continue
 		}
 
 		select {
 		case <-timer.C():
-			p.dispatchDueTask()
+			p.dispatchDue()
 
 		case <-p.wakeChan:
 			timer.Stop()
 
 		case <-ctx.Done():
 			timer.Stop()
-			l.Trace("Delayed publisher shutting down during sleep")
 			return
 		}
 	}
 }
 
-// dispatchDueTask pops and sends the next task that is due.
+// dispatchDue publishes the next due reference.
+//
+// Temporary failures are retried after dispatchFailureRetryDelay. Permanent failures
+// leave the stored task for the dispatcher's sweep.
 //
 // Safe for concurrent use. Uses a mutex to protect heap access.
-func (p *DelayedTaskPublisher) dispatchDueTask() {
-	ctx, dl := logger_domain.From(p.ctx, log)
-	ctx, span, l := dl.Span(ctx, "DelayedTaskPublisher.dispatchDueTask")
-	defer span.End()
-
+func (p *DelayedTaskPublisher) dispatchDue() {
 	p.mu.Lock()
-	if p.taskHeap.Len() == 0 {
+	entry, ok := p.refs.Pop()
+	if !ok {
 		p.mu.Unlock()
 		return
 	}
-
-	task := p.taskHeap.Pop()
+	p.takeLocked(entry.ref)
 	p.mu.Unlock()
+	defer p.landed(entry.ref)
 
-	if task == nil {
+	err := p.dispatchFunc(p.ctx, entry.ref)
+	if err == nil {
+		DelayedTaskPublishedCount.Add(p.ctx, 1)
 		return
 	}
 
-	l.Trace("Dispatching due task",
-		logger_domain.String(attributeKeyTaskID, task.ID),
-		logger_domain.Time("scheduledFor", task.ScheduledExecuteAt))
-
-	task.ScheduledExecuteAt = time.Time{}
-	task.Status = StatusPending
-
-	if err := p.dispatchFunc(ctx, task); err != nil {
-		if isPermanentDispatchError(err) {
-			l.Warn("Dropping due task that can never be dispatched",
-				logger_domain.Error(err),
-				logger_domain.String(attributeKeyTaskID, task.ID))
-			DelayedTaskDroppedCount.Add(ctx, 1)
-			span.RecordError(err)
-			span.SetStatus(codes.Error, "Due task can never be dispatched")
-			return
-		}
-
-		l.Warn("Failed to dispatch due task",
+	_, l := logger_domain.From(p.ctx, log)
+	if isPermanentDispatchError(err) {
+		l.Warn("Dropping due task that can never be dispatched",
 			logger_domain.Error(err),
-			logger_domain.String(attributeKeyTaskID, task.ID))
-
-		task.ScheduledExecuteAt = p.clock.Now().Add(dispatchFailureRetryDelay)
-		p.mu.Lock()
-		p.taskHeap.Push(task)
-		p.mu.Unlock()
-
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "Failed to dispatch due task")
+			logger_domain.String(attributeKeyTaskID, entry.ref.ID))
+		DelayedTaskDroppedCount.Add(p.ctx, 1)
 		return
 	}
 
-	DelayedTaskPublishedCount.Add(ctx, 1)
-	l.Trace("Delayed task dispatched successfully")
-	span.SetStatus(codes.Ok, "Delayed task dispatched")
+	l.Warn("Failed to dispatch due task",
+		logger_domain.Error(err),
+		logger_domain.String(attributeKeyTaskID, entry.ref.ID))
+	entry.due = p.clock.Now().Add(dispatchFailureRetryDelay)
+	p.mu.Lock()
+	p.pushLocked(entry)
+	p.mu.Unlock()
+}
+
+// pushLocked adds an entry to the heap and counts it. The caller must hold mu.
+//
+// Takes entry (scheduledRef) which is the reference and its due time.
+func (p *DelayedTaskPublisher) pushLocked(entry scheduledRef) {
+	p.refs.Push(entry)
+	if !isBackgroundRef(entry.ref) {
+		p.foreground++
+	}
+}
+
+// takeLocked moves a reference popped from the heap into transit. The caller must hold
+// mu.
+//
+// Takes ref (TaskRef) which is the due reference being published.
+func (p *DelayedTaskPublisher) takeLocked(ref TaskRef) {
+	p.inTransit++
+	if !isBackgroundRef(ref) {
+		p.foreground--
+		p.foregroundInTransit++
+	}
+}
+
+// landed ends a reference's transit once the dispatcher has counted it, dropped it, or it
+// has been scheduled again.
+//
+// Takes ref (TaskRef) which is the reference whose publication has finished.
+//
+// Safe for concurrent use; guarded by mu.
+func (p *DelayedTaskPublisher) landed(ref TaskRef) {
+	p.mu.Lock()
+	p.inTransit--
+	if !isBackgroundRef(ref) {
+		p.foregroundInTransit--
+	}
+	p.mu.Unlock()
+}
+
+// isBackgroundRef reports whether a reference is to background work no build waits for.
+//
+// Takes ref (TaskRef) which is the reference.
+//
+// Returns bool which is true for background work.
+func isBackgroundRef(ref TaskRef) bool {
+	return ref.Flags&TaskRefBackground != 0
 }
 
 // NewDelayedTaskPublisher creates a delayed task publisher with the given clock and
 // dispatch function.
 //
-// Takes dispatcherDispatch (TaskDispatchFunc) which is called when a task is due to run.
+// Takes dispatcherDispatch (TaskDispatchFunc) which publishes a reference once it is due.
 // Takes clock (Clock) which provides time functions for scheduling.
 //
 // Returns DelayedPublisher which is ready to schedule tasks for later dispatch.
 func NewDelayedTaskPublisher(dispatcherDispatch TaskDispatchFunc, clock clockpkg.Clock) DelayedPublisher {
-	return &DelayedTaskPublisher{
-		ctx:          nil,
-		clock:        clock,
-		dispatchFunc: dispatcherDispatch,
-		taskHeap:     newScheduledTaskHeap(),
-		wakeChan:     make(chan struct{}, 1),
-		cancel:       nil,
-		loopDone:     nil,
-		mu:           sync.Mutex{},
-	}
+	return NewDelayedTaskPublisherForTesting(clock, dispatcherDispatch)
 }
 
 // isPermanentDispatchError reports whether a dispatch failure will repeat however often

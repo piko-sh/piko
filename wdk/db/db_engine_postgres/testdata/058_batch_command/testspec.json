@@ -1,3 +1,0 @@
-{
-  "description": "Batch command directive (piko.command: batch). Tests query analysis recognises batch command and resolves parameters for pgx batch execution."
-}

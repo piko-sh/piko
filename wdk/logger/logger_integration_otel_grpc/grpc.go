@@ -73,8 +73,8 @@ func (grpcMetadataCreds) RequireTransportSecurity() bool {
 //
 // Takes config (driver_handlers.OtelSetupConfig) which provides exporter transport,
 // endpoint, and authentication settings.
-// Takes newExporter which receives the context and the established connection and returns
-// the SDK-specific exporter.
+// Takes newExporter (func(context.Context, *grpc.ClientConn) (any, error)) which receives
+// the context and the established connection and returns the SDK-specific exporter.
 //
 // Returns any which is the constructed exporter.
 // Returns io.Closer which is the gRPC connection to close on shutdown.

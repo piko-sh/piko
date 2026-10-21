@@ -18,16 +18,12 @@
 
 package main
 
-// User is a plain struct.
 type User struct {
 	Name string
 }
 
-// UserPtr is a new type definition on a pointer to User.
 type UserPtr *User
 
-// GetName is a method defined directly on the UserPtr type.
-// The receiver `p` has type UserPtr, which is already a pointer.
 func (p UserPtr) GetName() string {
 	if p != nil && (*p).Name != "" {
 		return (*p).Name

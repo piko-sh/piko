@@ -151,8 +151,6 @@ type defaultStaticCollectionRegistry struct {
 
 // Register implements StaticCollectionRegistryPort.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes collectionName (string) which identifies the collection to register.
 // Takes data ([]byte) which contains the collection content.
 func (*defaultStaticCollectionRegistry) Register(ctx context.Context, collectionName string, data []byte) {
@@ -162,8 +160,6 @@ func (*defaultStaticCollectionRegistry) Register(ctx context.Context, collection
 // GetItem retrieves a single item from the named collection by slug. Implements
 // StaticCollectionRegistryPort.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes collectionName (string) which identifies the collection to search.
 // Takes slug (string) which is the item's canonical identifier (e.g. "anthropic" for
 // content/integrations/anthropic.md).
@@ -231,7 +227,6 @@ type defaultASTDecoder struct{}
 
 // Decode implements ASTDecoderPort.
 //
-// Takes ctx (context.Context) which carries logging and cancellation context.
 // Takes data ([]byte) which contains the encoded AST representation.
 //
 // Returns *ast_domain.TemplateAST which is the decoded template AST.
@@ -242,7 +237,6 @@ func (*defaultASTDecoder) Decode(ctx context.Context, data []byte) (*ast_domain.
 
 // DecodeForRender implements ASTDecoderPort.
 //
-// Takes ctx (context.Context) which carries logging and cancellation context.
 // Takes data ([]byte) which contains the encoded AST representation.
 //
 // Returns *ast_domain.TemplateAST which is the decoded template AST with location and
@@ -407,14 +401,9 @@ func GetStaticCollectionItems(collectionName string) ([]map[string]any, error) {
 	return data.items, nil
 }
 
-// GetStaticCollectionNavigation returns a lazily initialised navigation tree for the
-// named static collection and configuration.
+// GetStaticCollectionNavigation returns the navigation tree initialised once for each
+// static collection and configuration.
 //
-// The first call for a given collection and config pair builds the tree; all subsequent
-// calls return the same instance. This is not a cache - it is deferred initialisation of
-// derived data from immutable inputs.
-//
-// Takes ctx (context.Context) which carries deadlines and request-scoped values.
 // Takes collectionName (string) which identifies the collection.
 // Takes config (collection_dto.NavigationConfig) which controls tree building.
 //
@@ -436,7 +425,6 @@ func GetStaticCollectionNavigation(
 // TryGetCachedNavigation returns cached navigation for items if they belong to a known
 // static collection, or false when the caller must rebuild.
 //
-// Takes ctx (context.Context) which carries request-scoped values.
 // Takes items ([]map[string]any) which is the metadata slice to identify.
 // Takes config (collection_dto.NavigationConfig) which controls tree building.
 //
@@ -493,18 +481,11 @@ func ResetStaticCollectionRegistry() {
 	staticItemsByPointer = sync.Map{}
 }
 
-// decodeAllItemMetadata decodes every item's JSON metadata from a FlatBuffer blob and
-// builds a slug index for O(1) lookups.
+// decodeAllItemMetadata decodes a FlatBuffer collection into metadata and a slug index.
 //
-// The FlatBuffer "route" field holds the item's slug (the schema field is named "route"
-// for legacy reasons; semantically it is now a slug). Items are looked up by slug at
-// runtime so multiple consuming pages can render the same item at different URL prefixes.
-// The decoded item count is capped against MaxStaticCollectionItems so a malformed or
-// hostile embedded blob cannot allocate unbounded slices and maps at registration time.
-// Items whose slug fails structural validation, or whose metadata fails to unmarshal, are
-// dropped with a warning log so silent corruption does not propagate.
+// The route field stores each item's slug. Item counts are bounded, and invalid slugs or
+// metadata are logged and skipped.
 //
-// Takes ctx (context.Context) which carries the logger for warning diagnostics.
 // Takes blob ([]byte) which contains the encoded collection data.
 //
 // Returns []map[string]any which holds pre-decoded metadata for each item.
@@ -667,7 +648,6 @@ func resolveMetadata(encoder CollectionEncoderPort, data *staticCollectionData, 
 // decodeASTPair decodes content and excerpt AST byte slices into their respective
 // TemplateAST structures.
 //
-// Takes ctx (context.Context) which carries logging and cancellation context.
 // Takes decoder (ASTDecoderPort) which decodes AST bytes.
 // Takes contentBytes ([]byte) which contains the encoded content AST.
 // Takes excerptBytes ([]byte) which contains the encoded excerpt AST.
@@ -748,7 +728,6 @@ func lookupItemWithEncoder(ctx context.Context, encoder CollectionEncoderPort, b
 // and config. The tree is built once and reused for all subsequent calls with the same
 // config.
 //
-// Takes ctx (context.Context) which carries request-scoped values.
 // Takes data (*staticCollectionData) which holds the pre-decoded items.
 // Takes config (collection_dto.NavigationConfig) which controls tree building.
 //

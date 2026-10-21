@@ -62,7 +62,6 @@ type Service interface {
 
 	// StreamWithProvider sends a streaming completion request to a specific provider.
 	//
-	// Takes ctx (context.Context) which controls cancellation and timeouts.
 	// Takes providerName (string) which identifies the provider to use.
 	// Takes request (*llm_dto.CompletionRequest) which contains the completion parameters.
 	//
@@ -72,8 +71,6 @@ type Service interface {
 
 	// RegisterProvider adds an LLM provider to the registry.
 	//
-	// Takes ctx (context.Context) which carries logging context for trace/request ID
-	// propagation.
 	// Takes name (string) which identifies the provider.
 	// Takes provider (LLMProviderPort) which handles LLM requests.
 	//
@@ -82,8 +79,6 @@ type Service interface {
 
 	// SetDefaultProvider sets the default provider to use by name.
 	//
-	// Takes ctx (context.Context) which carries logging context for trace/request ID
-	// propagation.
 	// Takes name (string) which identifies the provider to set as default.
 	//
 	// Returns error when the named provider does not exist.
@@ -108,8 +103,6 @@ type Service interface {
 
 	// Close releases resources held by all registered providers.
 	//
-	// Takes ctx (context.Context) which controls cancellation and timeouts.
-	//
 	// Returns error when any provider fails to close cleanly.
 	Close(ctx context.Context) error
 
@@ -121,7 +114,6 @@ type Service interface {
 
 	// GetBudgetStatus returns the current budget status for a scope.
 	//
-	// Takes ctx (context.Context) which controls cancellation.
 	// Takes scope (string) which identifies the budget scope.
 	//
 	// Returns *llm_dto.BudgetStatus which contains the current state.
@@ -206,8 +198,6 @@ type Service interface {
 
 	// RegisterEmbeddingProvider adds an embedding provider to the registry.
 	//
-	// Takes ctx (context.Context) which carries logging context for trace/request ID
-	// propagation.
 	// Takes name (string) which identifies the provider.
 	// Takes provider (EmbeddingProviderPort) which handles embedding requests.
 	//
@@ -239,7 +229,6 @@ type Service interface {
 	// AddText is a convenience method that embeds and stores a single piece of text in the
 	// vector store.
 	//
-	// Takes ctx (context.Context) which controls cancellation.
 	// Takes namespace (string) which identifies the target collection.
 	// Takes id (string) which is the document ID.
 	// Takes content (string) which is the raw text to embed and store.
@@ -250,7 +239,6 @@ type Service interface {
 	// AddDocuments embeds and stores multiple documents in the vector store. It handles
 	// batching of embedding requests for efficiency.
 	//
-	// Takes ctx (context.Context) which controls cancellation.
 	// Takes namespace (string) which identifies the target collection.
 	// Takes docs ([]Document) which contains the documents to process.
 	//
@@ -305,7 +293,6 @@ type LLMProviderPort interface {
 
 	// Stream sends a streaming completion request to the provider.
 	//
-	// Takes ctx (context.Context) which controls cancellation and timeouts.
 	// Takes request (*llm_dto.CompletionRequest) which contains the completion parameters.
 	//
 	// Returns <-chan llm_dto.StreamEvent which emits streaming events.
@@ -354,15 +341,11 @@ type LLMProviderPort interface {
 
 	// ListModels returns information about available models.
 	//
-	// Takes ctx (context.Context) which controls cancellation and timeouts.
-	//
 	// Returns []llm_dto.ModelInfo which contains model metadata.
 	// Returns error when the model list cannot be retrieved.
 	ListModels(ctx context.Context) ([]llm_dto.ModelInfo, error)
 
 	// Close releases any resources held by the provider.
-	//
-	// Takes ctx (context.Context) which controls cancellation and timeouts.
 	//
 	// Returns error when the provider cannot be closed cleanly.
 	Close(ctx context.Context) error

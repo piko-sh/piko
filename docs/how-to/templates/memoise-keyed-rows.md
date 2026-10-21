@@ -74,7 +74,7 @@ If you prefer mutation, add an explicit version dependency the row can change: `
 
 **Short lists.** The comparison is cheap, but it is not free, and the risk above is real. Use `p-memo` when profiling shows that patching costs too much, not by default.
 
-**Static values.** Writing `_memo="row"` as a plain attribute binds the string `"row"`. That string never changes, so the element stops updating after its first render. Use the `p-memo` directive instead. The compiler warns about the plain attribute with code `T032`.
+**Static values.** Writing `_memo="row"` as a plain attribute binds the string `"row"`. That string never changes, so the element stops updating after its first render. Use the `p-memo` directive instead. The compiler warns about the plain attribute with code [`T032`](../../reference/diagnostics.md#t032).
 
 ## Confirm it is working
 

@@ -26,7 +26,7 @@
               "name": "Product",
               "type_string": "db.Product",
               "raw_tag": "",
-              "definition_line": 26,
+              "definition_line": 24,
               "definition_column": 2,
               "is_internal_type": false,
               "is_embedded": false,
@@ -37,7 +37,7 @@
           "type_params": [],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 24,
+          "definition_line": 23,
           "definition_column": 6
         },
         "UserResponse": {
@@ -56,7 +56,7 @@
               "name": "User",
               "type_string": "m.User",
               "raw_tag": "",
-              "definition_line": 26,
+              "definition_line": 24,
               "definition_column": 2,
               "is_internal_type": false,
               "is_embedded": false,
@@ -67,7 +67,7 @@
           "type_params": [],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 24,
+          "definition_line": 23,
           "definition_column": 6
         }
       },

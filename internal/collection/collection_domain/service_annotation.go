@@ -135,8 +135,6 @@ func (s *collectionService) buildStaticAnnotation(
 // logStaticAnnotationDiagnostics logs debug information about a static collection
 // annotation.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
-// request-scoped values.
 // Takes annotation (*ast_domain.GoGeneratorAnnotation) which is the annotation to log
 // details for.
 // Takes processedItems ([]collection_dto.ContentItem) which are the items that were
@@ -244,8 +242,6 @@ func (s *collectionService) buildDynamicAnnotation(
 // logDynamicAnnotationDiagnostics logs debug details about a dynamic collection
 // annotation.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
-// request-scoped values.
 // Takes annotation (*ast_domain.GoGeneratorAnnotation) which is the annotation to log.
 // Takes dynamicInfo (*collection_dto.DynamicCollectionInfo) which holds the dynamic
 // collection data.

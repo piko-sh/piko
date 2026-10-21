@@ -1,3 +1,0 @@
-{
-  "description": "PostgreSQL enum types: CREATE TYPE AS ENUM and usage in table columns. Tests enum type registration in the catalogue and cast expression parameter inference."
-}

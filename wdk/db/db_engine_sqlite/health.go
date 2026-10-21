@@ -38,7 +38,6 @@ const (
 // Reports database file size, freelist page count, and journal mode. Each query handles
 // its own errors independently so a single failing diagnostic does not prevent others.
 //
-// Takes ctx (context.Context) which bounds the lifetime of each diagnostic query.
 // Takes database (*sql.DB) which is the SQLite connection pool.
 //
 // Returns []db.DatabaseHealthDiagnostic which holds one entry per diagnostic.
@@ -52,7 +51,6 @@ func (*SQLiteEngine) CheckHealth(ctx context.Context, database *sql.DB) []db.Dat
 
 // checkSQLiteDatabaseSize reports the on-disk size of the SQLite database.
 //
-// Takes ctx (context.Context) which bounds the lifetime of the query.
 // Takes database (*sql.DB) which is the SQLite connection pool.
 //
 // Returns []db.DatabaseHealthDiagnostic which holds one diagnostic describing the
@@ -77,7 +75,6 @@ func checkSQLiteDatabaseSize(ctx context.Context, database *sql.DB) []db.Databas
 
 // checkSQLiteFreelistPages reports the number of free pages held by the SQLite database.
 //
-// Takes ctx (context.Context) which bounds the lifetime of the query.
 // Takes database (*sql.DB) which is the SQLite connection pool.
 //
 // Returns []db.DatabaseHealthDiagnostic which holds one diagnostic describing the
@@ -102,7 +99,6 @@ func checkSQLiteFreelistPages(ctx context.Context, database *sql.DB) []db.Databa
 
 // checkSQLiteJournalMode reports the active SQLite journal mode.
 //
-// Takes ctx (context.Context) which bounds the lifetime of the query.
 // Takes database (*sql.DB) which is the SQLite connection pool.
 //
 // Returns []db.DatabaseHealthDiagnostic which holds one diagnostic describing the journal

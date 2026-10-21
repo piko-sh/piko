@@ -26,7 +26,7 @@
                   "int"
                 ]
               },
-              "definition_line": 25,
+              "definition_line": 23,
               "definition_column": 19,
               "is_pointer_receiver": false
             }
@@ -34,7 +34,7 @@
           "type_params": [],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 22,
+          "definition_line": 21,
           "definition_column": 6
         }
       },

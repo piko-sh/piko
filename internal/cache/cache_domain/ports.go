@@ -31,10 +31,8 @@ import (
 type Cache[K comparable, V any] interface {
 	// GetIfPresent returns the value for a key if it is present and not expired.
 	//
-	// When the context is already cancelled or has exceeded its deadline, returns the
-	// context's error without performing any work.
+	// A cancelled or expired context returns its error before work begins.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout.
 	// Takes key (K) which identifies the cached item to retrieve.
 	//
 	// Returns V which is the cached value.
@@ -55,10 +53,8 @@ type Cache[K comparable, V any] interface {
 	// Set stores a value with the given key, replacing any existing entry. It accepts
 	// optional tags for group-based invalidation.
 	//
-	// When the context is already cancelled or has exceeded its deadline, returns the
-	// context's error without performing any work.
+	// A cancelled or expired context returns its error before work begins.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout.
 	// Takes key (K) which identifies the value.
 	// Takes value (V) which is the data to store.
 	// Takes tags (...string) which are optional group names for invalidation.
@@ -81,10 +77,8 @@ type Cache[K comparable, V any] interface {
 
 	// Invalidate removes an entry from the cache.
 	//
-	// When the context is already cancelled or has exceeded its deadline, returns the
-	// context's error without performing any work.
+	// A cancelled or expired context returns its error before work begins.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout.
 	// Takes key (K) which identifies the entry to remove.
 	//
 	// Returns error when the operation fails.
@@ -93,10 +87,8 @@ type Cache[K comparable, V any] interface {
 	// Computes a new value atomically for the given key based on the current value. The
 	// compute function executes while holding a lock on the key.
 	//
-	// When the context is already cancelled or has exceeded its deadline, returns the
-	// context's error without performing any work.
+	// A cancelled or expired context returns its error before work begins.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout.
 	// Takes key (K) which identifies the cache entry to update.
 	// Takes computeFunction (func) which receives the current value and presence flag,
 	// returning the new value and an action (Set, Delete, or Noop).
@@ -109,10 +101,8 @@ type Cache[K comparable, V any] interface {
 	// ComputeIfAbsent atomically computes and stores a value if the key is absent. The
 	// compute function is only called if the key is not present.
 	//
-	// When the context is already cancelled or has exceeded its deadline, returns the
-	// context's error without performing any work.
+	// A cancelled or expired context returns its error before work begins.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout.
 	// Takes key (K) which identifies the entry to look up or create.
 	// Takes computeFunction (func() V) which generates the value if the key is absent.
 	//
@@ -124,10 +114,8 @@ type Cache[K comparable, V any] interface {
 	// ComputeIfPresent atomically computes a new value for the key if it is present. The
 	// compute function is only called if the key exists.
 	//
-	// When the context is already cancelled or has exceeded its deadline, returns the
-	// context's error without performing any work.
+	// A cancelled or expired context returns its error before work begins.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout.
 	// Takes key (K) which identifies the entry to update.
 	// Takes computeFunction (func(oldValue V) (newValue V, action ComputeAction)) which
 	// computes the new value from the existing value.
@@ -141,10 +129,8 @@ type Cache[K comparable, V any] interface {
 	// control. The compute function executes while holding a lock on the key and can specify
 	// a custom TTL for the entry.
 	//
-	// When the context is already cancelled or has exceeded its deadline, returns the
-	// context's error without performing any work.
+	// A cancelled or expired context returns its error before work begins.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout.
 	// Takes key (K) which identifies the cache entry to update.
 	// Takes computeFunction (func) which receives the current value and presence flag,
 	// returning a ComputeResult containing the new value, action, and optional TTL.
@@ -176,10 +162,8 @@ type Cache[K comparable, V any] interface {
 
 	// InvalidateByTags removes all entries associated with any of the given tags.
 	//
-	// When the context is already cancelled or has exceeded its deadline, returns the
-	// context's error without performing any work.
+	// A cancelled or expired context returns its error before work begins.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout.
 	// Takes tags (...string) which specifies the tags whose entries should be removed.
 	//
 	// Returns int which is the number of keys that were invalidated. The operation's
@@ -189,10 +173,7 @@ type Cache[K comparable, V any] interface {
 
 	// InvalidateAll removes all entries from the cache.
 	//
-	// When the context is already cancelled or has exceeded its deadline, returns the
-	// context's error without performing any work.
-	//
-	// Takes ctx (context.Context) for cancellation and timeout.
+	// A cancelled or expired context returns its error before work begins.
 	//
 	// Returns error when the operation fails.
 	InvalidateAll(ctx context.Context) error
@@ -235,10 +216,8 @@ type Cache[K comparable, V any] interface {
 	// GetEntry returns a snapshot of the entry, including metadata like weight and
 	// expiration. This operation resets the entry's access timer for TTL calculations.
 	//
-	// When the context is already cancelled or has exceeded its deadline, returns the
-	// context's error without performing any work.
+	// A cancelled or expired context returns its error before work begins.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout.
 	// Takes key (K) which identifies the entry to retrieve.
 	//
 	// Returns Entry[K, V] which contains the entry data and metadata.
@@ -249,10 +228,8 @@ type Cache[K comparable, V any] interface {
 	// ProbeEntry returns a snapshot of the entry without changing its access patterns. This
 	// does not reset the entry's access timer, making it useful for monitoring.
 	//
-	// When the context is already cancelled or has exceeded its deadline, returns the
-	// context's error without performing any work.
+	// A cancelled or expired context returns its error before work begins.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout.
 	// Takes key (K) which identifies the entry to probe.
 	//
 	// Returns cache_dto.Entry[K, V] which is the entry snapshot.
@@ -271,8 +248,6 @@ type Cache[K comparable, V any] interface {
 	Stats() cache_dto.Stats
 
 	// Close releases any resources used by the cache, such as background goroutines.
-	//
-	// Takes ctx (context.Context) for cancellation and timeout.
 	//
 	// Returns error when resources cannot be released cleanly.
 	Close(ctx context.Context) error
@@ -296,10 +271,8 @@ type Cache[K comparable, V any] interface {
 
 	// SetExpiresAfter sets or changes the expiry time for a key that already exists.
 	//
-	// When the context is already cancelled or has exceeded its deadline, returns the
-	// context's error without performing any work.
+	// A cancelled or expired context returns its error before work begins.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout.
 	// Takes key (K) which identifies the item to update.
 	// Takes expiresAfter (time.Duration) which specifies how long until the key expires.
 	//
@@ -308,23 +281,17 @@ type Cache[K comparable, V any] interface {
 
 	// SetRefreshableAfter manually sets or overrides the refresh time for an existing key.
 	//
-	// When the context is already cancelled or has exceeded its deadline, returns the
-	// context's error without performing any work.
+	// A cancelled or expired context returns its error before work begins.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout.
 	// Takes key (K) which identifies the cache entry to update.
 	// Takes refreshableAfter (time.Duration) which specifies the new refresh time.
 	//
 	// Returns error when the operation fails.
 	SetRefreshableAfter(ctx context.Context, key K, refreshableAfter time.Duration) error
 
-	// Search performs full-text search across indexed TEXT fields. This enables finding
-	// cached entries by content rather than just by key.
+	// Search matches tokenised queries against indexed TEXT fields and ranks results by
+	// relevance.
 	//
-	// The query string is tokenised and matched against TEXT fields defined in the
-	// SearchSchema. Results are ranked by relevance score.
-	//
-	// Takes ctx (context.Context) for cancellation and timeout.
 	// Takes query (string) which is the search query text.
 	// Takes opts (*SearchOptions) which configures pagination, sorting, and filters.
 	//
@@ -335,7 +302,6 @@ type Cache[K comparable, V any] interface {
 	// Query performs structured filtering, sorting, and pagination without full-text search.
 	// This is for finding entries by exact field values or ranges.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout.
 	// Takes opts (*QueryOptions) which specifies filters, sorting, and pagination.
 	//
 	// Returns SearchResult containing matched entries.
@@ -374,10 +340,27 @@ type Transactional[K comparable, V any] interface {
 	// All mutations through the returned TransactionCache are journalled. The caller MUST
 	// call either Commit or Rollback on the returned cache.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout.
-	//
 	// Returns TransactionCache[K, V] which wraps the cache with undo journalling.
 	BeginTransaction(ctx context.Context) TransactionCache[K, V]
+}
+
+// LogBatcher lets caches commit or discard a batch of logged writes.
+//
+// The caller must be the only writer between BeginLogBatch and CommitLogBatch or
+// AbortLogBatch because every write joins that batch.
+type LogBatcher interface {
+	// BeginLogBatch starts collecting log entries instead of writing them. It waits for any
+	// batch already open to finish.
+	BeginLogBatch()
+
+	// CommitLogBatch writes the collected entries as one record and ends the batch.
+	//
+	// Returns error when the record cannot be written; the cache then holds writes the log
+	// lacks, which the caller must undo inside another batch it aborts.
+	CommitLogBatch(ctx context.Context) error
+
+	// AbortLogBatch discards the collected entries and ends the batch.
+	AbortLogBatch()
 }
 
 // TransactionCache wraps a cache with undo journalling. Reads pass through to the
@@ -465,7 +448,6 @@ type Service interface {
 
 	// SetDefaultProvider sets the default cache provider to use when none is specified.
 	//
-	// Takes ctx (context.Context) which carries logging context.
 	// Takes name (string) which is the provider name to set as default.
 	//
 	// Returns error when the provider name is not registered.
@@ -477,8 +459,6 @@ type Service interface {
 	GetDefaultProvider() string
 
 	// Close shuts down all registered providers and releases their resources.
-	//
-	// Takes ctx (context.Context) which carries logging context.
 	//
 	// Returns error when any provider fails to close.
 	Close(ctx context.Context) error

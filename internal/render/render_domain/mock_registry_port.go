@@ -95,7 +95,6 @@ var (
 
 // GetComponentMetadata delegates to GetComponentMetadataFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes componentType (string) which identifies the component type to look up.
 //
 // Returns (nil, nil) if GetComponentMetadataFunc is nil.
@@ -109,7 +108,6 @@ func (m *MockRegistryPort) GetComponentMetadata(ctx context.Context, componentTy
 
 // BulkGetComponentMetadata delegates to BulkGetComponentMetadataFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes componentTypes ([]string) which lists the component types to look up.
 //
 // Returns (nil, nil) if BulkGetComponentMetadataFunc is nil.
@@ -123,7 +121,6 @@ func (m *MockRegistryPort) BulkGetComponentMetadata(ctx context.Context, compone
 
 // GetAssetRawSVG delegates to GetAssetRawSVGFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes assetID (string) which identifies the SVG asset to retrieve.
 //
 // Returns (nil, nil) if GetAssetRawSVGFunc is nil.
@@ -137,7 +134,6 @@ func (m *MockRegistryPort) GetAssetRawSVG(ctx context.Context, assetID string) (
 
 // BulkGetAssetRawSVG delegates to BulkGetAssetRawSVGFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes assetIDs ([]string) which lists the SVG asset IDs to retrieve.
 //
 // Returns (nil, nil) if BulkGetAssetRawSVGFunc is nil.
@@ -162,7 +158,6 @@ func (m *MockRegistryPort) GetStats() RegistryAdapterStats {
 
 // ClearComponentCache delegates to ClearComponentCacheFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes componentType (string) which identifies the component cache entry to clear.
 //
 // Does nothing if ClearComponentCacheFunc is nil.
@@ -175,7 +170,6 @@ func (m *MockRegistryPort) ClearComponentCache(ctx context.Context, componentTyp
 
 // ClearSvgCache delegates to ClearSvgCacheFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes svgID (string) which identifies the SVG cache entry to clear.
 //
 // Does nothing if ClearSvgCacheFunc is nil.
@@ -188,7 +182,6 @@ func (m *MockRegistryPort) ClearSvgCache(ctx context.Context, svgID string) {
 
 // GetArtefactServePath delegates to GetArtefactServePathFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes artefactID (string) which identifies the artefact.
 //
 // Returns empty string if GetArtefactServePathFunc is nil.
@@ -202,7 +195,6 @@ func (m *MockRegistryPort) GetArtefactServePath(ctx context.Context, artefactID 
 
 // UpsertArtefact delegates to UpsertArtefactFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes artefactID (string) which identifies the artefact to create or update.
 // Takes sourcePath (string) which is the original path of the source file.
 // Takes sourceData (io.Reader) which provides the source data to store.

@@ -12,6 +12,8 @@ nav:
 
 Piko's querier system generates type-safe Go code from plain `.sql` files. A project writes SQL, annotates each query with a small comment header, and runs the generator. Piko emits a `Queries` struct whose methods match the annotated queries exactly. The migration service runs schema changes with advisory locking, checksum verification, and dialect-specific SQL.
 
+The analyser, code generator and migration runner behind this API are [Seagull](https://github.com/piko-sh/seagull), a standalone SQL-to-Go generator that began as Piko's querier. Piko reaches it only through its database engines (`wdk/db/db_engine_*`), so projects keep using Piko's `piko.` directives, `piko_` tables and `wdk/db` types, and never import Seagull themselves.
+
 This page documents the generator annotations, the generated types, and the `piko.sh/piko/wdk/db` facade. For task recipes see the how-to guides on [migrations](../how-to/database/migrations.md), [writing queries](../how-to/database/queries.md), and [swapping database engines](../how-to/database/swapping-engines.md). Source of truth: [`wdk/db/`](https://github.com/piko-sh/piko/tree/master/wdk/db) and [`cmd/generate_dal/`](https://github.com/piko-sh/piko/tree/master/cmd/generate_dal).
 
 ## Project layout
@@ -356,7 +358,7 @@ SELECT id, name FROM items;
 
 ## Parameter types
 
-Positional parameters in SQL (`?` for SQLite/MySQL, `$1/$2` for Postgres) map to Go in one of two shapes.
+Positional parameters in SQL (`?` for SQLite/MySQL, `$1/$2` for Postgres) map to Go in one of two shapes. A parameter compared with a column or assigned to one is named after that column and takes its type. A parameter bound to no column is named after its position (`p1`, or `P1` in a params struct), and a `piko.param` directive names any parameter. The examples below use the `tasks` table of [Scenario 022](../../examples/scenarios/022_database_sqlite/), whose `id` is an `INTEGER PRIMARY KEY`, SQLite's 64-bit row id, and whose `created_at` is a plain `INTEGER`.
 
 **Single parameter** (one `?` or `$1`):
 
@@ -368,7 +370,7 @@ DELETE FROM tasks WHERE id = ?;
 Generator emits:
 
 ```go
-func (q *Queries) DeleteTask(ctx context.Context, p1 int32) error
+func (queries *Queries) DeleteTask(ctx context.Context, id int64) error
 ```
 
 **Multiple parameters** (two or more):
@@ -382,14 +384,14 @@ Generator emits a params struct:
 
 ```go
 type CreateTaskParams struct {
-    P1 string
-    P2 int32
+    Title     string
+    CreatedAt int32
 }
 
-func (q *Queries) CreateTask(ctx context.Context, params CreateTaskParams) (CreateTaskRow, error)
+func (queries *Queries) CreateTask(ctx context.Context, params CreateTaskParams) (CreateTaskRow, error)
 ```
 
-The types on the params struct come from the engine's type inference over the SQL expression. Override them with type hints if the inference is too loose (see the [writing queries how-to](../how-to/database/queries.md)).
+The SQL the generated code sends numbers SQLite's placeholders, so this `INSERT` is sent as `VALUES (?1, ?2)`. The types on the params struct come from the engine's type inference over the SQL expression. Override them with type hints if the inference is too loose (see the [writing queries how-to](../how-to/database/queries.md)).
 
 ## Generated types
 
@@ -404,8 +406,8 @@ type Queries struct { ... }
 
 func New(db DBTX) *Queries
 func NewWithReplica(writer DBTX, reader DBTX) *Queries
-func (q *Queries) WithTx(tx *sql.Tx) *Queries
-func (q *Queries) RunInTx(ctx context.Context, db *sql.DB, fn func(*Queries) error) error
+func (queries *Queries) WithTx(transaction *sql.Tx) *Queries
+func (queries *Queries) RunInTx(ctx context.Context, db *sql.DB, fn func(*Queries) error) error
 ```
 
 `NewWithReplica` routes read-only queries to the reader and writing queries to the writer, based on the analysed query's read/write nature. A query that only reads goes to the reader. Any statement that modifies data, including a writing CTE or a call to a data-modifying function, goes to the writer. The `readonly:` keyword on the query header overrides the automatic detection.
@@ -487,21 +489,29 @@ one to power one-click quick-fixes.
 
 The migration service applies `.up.sql` files in order, records a checksum per applied file, and refuses to run when the on-disk file has changed since the migrator applied it.
 
-### `db.NewMigrationService(executor, fileReader, directory, opts...) MigrationService`
+### `db.NewMigrator(engine, database, files, directory, opts...) (MigrationService, error)`
 
-Creates a migration service. Typical wiring:
+Creates a migration service from an engine configuration. The engine supplies the
+toolchain and its migration dialect. Typical wiring:
 
 ```go
-import "piko.sh/piko/wdk/db"
+import (
+    "piko.sh/piko/wdk/db"
+    "piko.sh/piko/wdk/db/db_engine_sqlite"
+)
 
-executor := db.NewMigrationExecutor(database, db.SQLiteDialect())
-reader := db.NewFSFileReader(embeddedFS)
-migrator := db.NewMigrationService(executor, reader, "migrations")
+migrator, err := db.NewMigrator(db_engine_sqlite.SQLite(), database, embeddedFS, "migrations")
+if err != nil {
+    panic(err)
+}
 
 if _, err := migrator.Up(ctx); err != nil {
     panic(err)
 }
 ```
+
+`files` is any `io/fs.FS`, typically a `go:embed` filesystem so migrations ship inside
+the binary; `os.DirFS` also works.
 
 ### `MigrationService` methods
 
@@ -516,7 +526,7 @@ if _, err := migrator.Up(ctx); err != nil {
 
 ### Migration service options
 
-Pass these as variadic `opts...` to `NewMigrationService`:
+Pass these as variadic `opts...` to `NewMigrator`:
 
 | Option | Purpose |
 |---|---|
@@ -528,21 +538,21 @@ Pass these as variadic `opts...` to `NewMigrationService`:
 
 The package exports the hook function types as `BeforeMigrationHook`, `AfterMigrationHook`, `BeforeRunHook`, and `AfterRunHook`.
 
-### `NewFSFileReader(filesystem fs.FS) FileReaderPort`
-
-Wraps any `io/fs.FS` (typically a `go:embed` filesystem, also accepts `os.DirFS`) so migrations ship inside the binary. Returns the `FileReaderPort` interface that `NewMigrationService` and `NewSeedService` accept.
-
 ### `DialectConfig`
 
-One per supported database dialect. Dialects set the SQL for locking, checksum storage, and version tracking.
+A descriptor that selects the migration backend for a database. Each engine configuration
+carries one in `EngineConfig.MigrationDialect`; set `HistoryTable` to rename the history
+table (the migration lock is keyed on that name).
 
 | Function | Dialect |
 |---|---|
 | `db.SQLiteDialect()` | SQLite. |
 | `db.PostgresDialect()` | PostgreSQL with advisory locks. |
 | `db.PostgresPgBouncerDialect()` | PostgreSQL behind PgBouncer (table-based locking). |
+| `db.CockroachDBDialect()` | CockroachDB (table-based locking; CockroachDB has no advisory locks). |
 | `db.MySQLDialect()` | MySQL and MariaDB. |
 | `db.MySQLDialectWithDSN(dsn)` | MySQL/MariaDB with detection of `multiStatements=true`. |
+| `db.ClickHouseDialect()` | ClickHouse (no-op lock, no transactions). |
 
 ### Migration errors
 
@@ -554,19 +564,21 @@ One per supported database dialect. Dialects set the SQL for locking, checksum s
 | `db.LockAcquisitionError` | Could not obtain the advisory lock. |
 | `db.MissingMigrationFileError` | Database records a version the disk does not have. |
 | `db.NoDownMigrationError` | Rollback requested for a version with no `.down.sql`. |
+| `db.DuplicateMigrationVersionError` | Two migration files share a version and direction. |
+| `db.DirtyMigrationError` | A migration stopped part-way through and does not line up with the next pending file. |
 | `db.ErrLockNotAcquired` | Sentinel returned when a non-blocking lock attempt fails. |
+| `db.ErrNoDownMigration` | Sentinel matched by `NoDownMigrationError`. |
 
 ## Seed service
 
 The seed service applies SQL seed files in order, recording a checksum per applied file. Construction mirrors the migration service.
 
-### `NewSeedService(executor SeedExecutorPort, fileReader FileReaderPort, directory string) SeedService`
+### `db.NewSeeder(engine, database, files, directory) (SeedService, error)`
 
-Creates a seed service that reads seed files from `directory` via `fileReader` and applies them through `executor`.
-
-### `NewSeedExecutor(database *sql.DB, dialect DialectConfig) SeedExecutorPort`
-
-Constructs a SQL-based seed executor for the given database connection and dialect.
+Creates a seed service that reads seed files from `directory` in `files` and applies them
+through the engine's migration backend. `SeedService` exposes `Apply`, `Status` and
+`Reseed`. Seed failures surface as `db.SeedExecutionError` and duplicate versions as
+`db.DuplicateSeedVersionError`.
 
 ## Database and service helpers
 
@@ -630,6 +642,11 @@ piko.WithDatabase("primary", &db.DatabaseRegistration{
 
 Values below one keep the default. Derived engines accept their base engine's options.
 
+| Option | Engines | Effect |
+|---|---|---|
+| `WithDialectName(name string)` | postgres, mysql, duckdb, clickhouse | Reports a different dialect name in logs and diagnostics, for a compatible database. |
+| `WithReturningSupport(supported bool)` | mysql | Overrides whether `RETURNING` is accepted on `INSERT`, `UPDATE` and `DELETE`. |
+
 | Constructor | Option type |
 |---|---|
 | `db_engine_mariadb.NewMariaDBEngine` | `db_engine_mysql.Option` |
@@ -647,15 +664,25 @@ Register a SQL database under either name to persist that subsystem across resta
 
 ## Code-generation config
 
-The generator accepts a `DatabaseConfig` that tunes type inference and adds custom functions:
+Piko runs generation during `go run ./cmd/generator/ sql` (or `all`) for every
+registered database that sets `QueryFS`. Tools can run it directly with `db.Generate`:
 
 ```go
-type DatabaseConfig = querier_dto.DatabaseConfig
-type TypeOverride = querier_dto.TypeOverride
-type CustomFunction = querier_dto.CustomFunctionConfig
+result, err := db.Generate(ctx, db_engine_postgres.Postgres(), db.GenerateRequest{
+    Files:              os.DirFS("db"),
+    PackageName:        "store",
+    MigrationDirectory: "migrations",
+    QueryDirectory:     "queries",
+    TypeOverrides:      []db.TypeOverride{{SQLTypeName: "public.mood", GoPackage: "example.com/app/domain", GoName: "Mood"}},
+    CustomFunctions:    nil,
+    Driver:             db.DriverDatabaseSQL,
+})
 ```
 
-Declare `TypeOverride` entries to force a SQL type to a specific Go type, or `CustomFunction` entries to register stored functions the engine would not otherwise know about.
+`result.Files` holds the generated Go, `result.Diagnostics` every error, warning and hint,
+and `result.QueryCount` the number of query methods. Declare `TypeOverride` entries to
+force a SQL type to a specific Go type, or `CustomFunction` entries to register stored
+functions the engine would not otherwise know about.
 
 ## See also
 
@@ -664,4 +691,4 @@ Declare `TypeOverride` entries to force a SQL type to a specific Go type, or `Cu
 - [How to swapping database engines](../how-to/database/swapping-engines.md).
 - Scenarios: [022 SQLite](../../examples/scenarios/022_database_sqlite/), [023 MySQL](../../examples/scenarios/023_database_mysql/), [024 PostgreSQL](../../examples/scenarios/024_database_postgres/), [025 DuckDB](../../examples/scenarios/025_database_duckdb/).
 
-Integration tests: [`tests/integration/querier_sqlite`](https://github.com/piko-sh/piko/tree/master/tests/integration/querier_sqlite), [`querier_postgres`](https://github.com/piko-sh/piko/tree/master/tests/integration/querier_postgres), [`querier_mariadb`](https://github.com/piko-sh/piko/tree/master/tests/integration/querier_mariadb), [`querier_cockroachdb`](https://github.com/piko-sh/piko/tree/master/tests/integration/querier_cockroachdb), [`querier_duckdb`](https://github.com/piko-sh/piko/tree/master/tests/integration/querier_duckdb), [`querier_clickhouse`](https://github.com/piko-sh/piko/tree/master/tests/integration/querier_clickhouse), [`querier_timescaledb`](https://github.com/piko-sh/piko/tree/master/tests/integration/querier_timescaledb).
+Integration tests for every dialect live in Seagull (`tests/integration/<dialect>`); Piko's own end-to-end suite is [`tests/integration/db_seagull_sqlite`](https://github.com/piko-sh/piko/tree/master/tests/integration/db_seagull_sqlite).

@@ -28,7 +28,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/typegen/typegen_frontend"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (

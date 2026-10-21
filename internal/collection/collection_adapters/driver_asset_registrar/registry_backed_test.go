@@ -32,7 +32,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/render/render_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 func TestNewRegistryBackedRegistrar_AppliesDefaults(t *testing.T) {

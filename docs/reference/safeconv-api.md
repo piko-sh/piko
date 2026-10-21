@@ -10,7 +10,7 @@ nav:
 
 # Safeconv API
 
-The `piko.sh/piko/wdk/safeconv` package provides integer type conversions that clamp (saturate) to the destination type's range instead of silently wrapping. Negative values become zero for unsigned destinations. Values above the maximum become the maximum. Values below the minimum become the minimum. The package exists so `gosec G115` analysis passes without sprinkling `if` branches at every narrowing conversion.
+The `piko.sh/safeconv` package provides integer type conversions that clamp (saturate) to the destination type's range instead of silently wrapping. Negative values become zero for unsigned destinations. Values above the maximum become the maximum. Values below the minimum become the minimum. The package exists so `gosec G115` analysis passes without sprinkling `if` branches at every narrowing conversion.
 
 ## Saturating conversions
 
@@ -121,4 +121,4 @@ Saturating cast from any integer-kind type to `uint64`. Prefer the typed functio
 
 ## See also
 
-- Source: [`wdk/safeconv/safeconv.go`](https://github.com/piko-sh/piko/blob/master/wdk/safeconv/safeconv.go).
+- Source: [`piko.sh/safeconv`](https://github.com/piko-sh/safeconv), a standalone module that Piko depends on.

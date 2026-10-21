@@ -38,6 +38,9 @@ type MockDelayedPublisher struct {
 	// PendingCountFunc is the function called by PendingCount.
 	PendingCountFunc func() int
 
+	// ForegroundPendingCountFunc is the function called by ForegroundPendingCount.
+	ForegroundPendingCountFunc func() int
+
 	// ScheduleCallCount tracks how many times Schedule was called.
 	ScheduleCallCount atomic.Int64
 
@@ -49,11 +52,14 @@ type MockDelayedPublisher struct {
 
 	// PendingCountCallCount tracks how many times PendingCount was called.
 	PendingCountCallCount atomic.Int64
+
+	// ForegroundPendingCountCallCount tracks how many times ForegroundPendingCount was
+	// called.
+	ForegroundPendingCountCallCount atomic.Int64
 }
 
 // Schedule enqueues a task for delayed execution.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes task (*Task) which is the task to schedule.
 //
 // Returns error, or nil if ScheduleFunc is nil.
@@ -88,6 +94,17 @@ func (m *MockDelayedPublisher) PendingCount() int {
 	m.PendingCountCallCount.Add(1)
 	if m.PendingCountFunc != nil {
 		return m.PendingCountFunc()
+	}
+	return 0
+}
+
+// ForegroundPendingCount returns the number of foreground tasks waiting to be dispatched.
+//
+// Returns int, or 0 if ForegroundPendingCountFunc is nil.
+func (m *MockDelayedPublisher) ForegroundPendingCount() int {
+	m.ForegroundPendingCountCallCount.Add(1)
+	if m.ForegroundPendingCountFunc != nil {
+		return m.ForegroundPendingCountFunc()
 	}
 	return 0
 }

@@ -9,6 +9,7 @@ require (
 	go.uber.org/goleak v1.3.0
 	google.golang.org/genai v1.66.0
 	piko.sh/piko v0.0.0
+	piko.sh/safeconv v0.1.0
 )
 
 require (
@@ -62,6 +63,7 @@ require (
 	google.golang.org/grpc v1.83.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	piko.sh/goastutil v0.1.0 // indirect
+	piko.sh/goastutil v0.2.0 // indirect
+	piko.sh/safedisk v0.1.0 // indirect
 	piko.sh/vectormaths v0.2.0 // indirect
 )

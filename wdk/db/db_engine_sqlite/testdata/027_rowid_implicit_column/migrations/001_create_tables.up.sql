@@ -1,8 +1,0 @@
-CREATE TABLE items (
-  name TEXT NOT NULL
-);
-
-CREATE TABLE strict_items (
-  id INTEGER PRIMARY KEY,
-  name TEXT NOT NULL
-) WITHOUT ROWID;

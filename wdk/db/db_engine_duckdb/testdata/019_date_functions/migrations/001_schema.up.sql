@@ -1,5 +1,0 @@
-CREATE TABLE events (
-    id INTEGER PRIMARY KEY,
-    name VARCHAR NOT NULL,
-    occurred_at TIMESTAMP NOT NULL
-);

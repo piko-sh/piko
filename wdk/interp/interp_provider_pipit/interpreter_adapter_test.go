@@ -22,6 +22,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -175,4 +176,42 @@ func TestPoolClonesShareTheSymbolRegistry(t *testing.T) {
 	fresh, err := NewProvider().NewInterpreterPool().Get()
 	require.NoError(t, err)
 	assert.False(t, fresh.HasRegisteredPackage("mod/util"), "a new pool starts with a fresh registry")
+}
+
+func TestCompilesFileFollowsTheInterpretedBuild(t *testing.T) {
+	t.Parallel()
+
+	otherOS := "windows"
+	if runtime.GOOS == otherOS {
+		otherOS = "linux"
+	}
+	testCases := []struct {
+		name    string
+		file    string
+		source  string
+		want    bool
+		wantErr bool
+	}{
+		{name: "an ordinary file", file: "content.go", source: "package content\n", want: true},
+		{name: "an interp file", file: "files_interp.go", source: "//go:build interp\n\npackage content\n", want: true},
+		{name: "a file kept from dev-i", file: "files_embed.go", source: "//go:build !interp\n\npackage content\n", want: false},
+		{name: "a file that needs cgo", file: "native_cgo.go", source: "//go:build cgo\n\npackage content\n", want: false},
+		{name: "a file for another OS", file: "other_" + otherOS + ".go", source: "package content\n", want: false},
+		{name: "an underscore file", file: "_scratch.go", source: "package content\n", want: false},
+		{name: "a malformed constraint", file: "broken_header.go", source: "//go:build (\n\npackage content\n", wantErr: true},
+	}
+	adapter := newTestInterpreter(t)
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			compiled, err := adapter.CompilesFile(testCase.file, []byte(testCase.source))
+			if testCase.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, testCase.want, compiled)
+		})
+	}
 }

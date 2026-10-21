@@ -20,10 +20,7 @@ package orchestrator_domain
 
 import (
 	"maps"
-	"sync"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 // TaskPriority defines how important a task is compared to other tasks. Tasks with higher
@@ -62,16 +59,6 @@ const (
 
 	// StatusComplete indicates the task has finished successfully.
 	StatusComplete TaskStatus = "COMPLETE"
-
-	// defaultNewTaskTimeout is the default time limit for newly created tasks.
-	defaultNewTaskTimeout = 5 * time.Minute
-
-	// defaultNewTaskMaxRetries is the most times a new task will retry if it fails.
-	defaultNewTaskMaxRetries = 3
-
-	// taskMapMaxRetainedEntries caps the Payload/Result map size on Reset; oversized maps
-	// are replaced with fresh small ones.
-	taskMapMaxRetainedEntries = 64
 )
 
 // TaskConfig holds the settings for running a task.
@@ -91,6 +78,9 @@ type TaskConfig struct {
 // Task represents a unit of work to be run by the orchestrator. Tasks belong to workflows
 // and are processed by registered executors.
 type Task struct {
+	// continuation holds the successor to persist when this task settles successfully.
+	continuation *settledContinuation
+
 	// ExecuteAt is when the task is due to be processed.
 	ExecuteAt time.Time `json:"execute_at"`
 
@@ -108,6 +98,15 @@ type Task struct {
 
 	// Result holds the output data from task execution; nil until the task completes.
 	Result map[string]any `json:"result,omitempty"`
+
+	// LastPublishedAt records the last task-message publication time; zero means unrecorded.
+	LastPublishedAt time.Time `json:"last_published_at,omitzero"`
+
+	// Rerun requests another run after settlement; nil means no request is pending.
+	Rerun *RerunRequest `json:"rerun,omitempty"`
+
+	// receiptID identifies the receipt pending admission with this task.
+	receiptID string
 
 	// Executor is the name of the registered handler that processes this task.
 	Executor string `json:"executor"`
@@ -135,15 +134,28 @@ type Task struct {
 	// reported where empty means untagged.
 	BuildTag string `json:"build_tag,omitempty"`
 
+	// OwnerInstance identifies the node instance executing the task while it is PROCESSING;
+	// empty otherwise.
+	OwnerInstance string `json:"owner_instance,omitempty"`
+
 	// Config holds task execution settings such as priority and timeout.
 	Config TaskConfig `json:"config"`
 
 	// Attempt is the current execution attempt number, starting from zero.
 	Attempt int `json:"attempt"`
 
+	// claimed identifies a delivery whose attempt was atomically persisted.
+	claimed bool
+
+	// settled marks attempts whose outcomes have already been handled.
+	settled bool
+
 	// IsFatal indicates the task failed due to a non-retryable error. When true, the task
 	// was not retried regardless of remaining retry budget.
 	IsFatal bool `json:"is_fatal,omitempty"`
+
+	// Background marks maintenance tasks excluded from build tags and completion checks.
+	Background bool `json:"background,omitempty"`
 
 	// persisted is a transient flag indicating the task has already been saved to the store
 	// by the batch inserter. PersistWithDedup checks this to avoid a redundant INSERT when
@@ -151,68 +163,45 @@ type Task struct {
 	persisted bool
 }
 
-var (
-	// TaskPool holds reusable Task objects to reduce allocations in high-throughput paths.
-	// It is exported so other packages (such as adapters) can get and put tasks from this
-	// central pool.
-	TaskPool = sync.Pool{
-		New: func() any {
-			return &Task{
-				ExecuteAt:          time.Time{},
-				CreatedAt:          time.Time{},
-				UpdatedAt:          time.Time{},
-				ScheduledExecuteAt: time.Time{},
-				Payload:            make(map[string]any),
-				Result:             make(map[string]any),
-				ID:                 "",
-				WorkflowID:         "",
-				Executor:           "",
-				Status:             "",
-				LastError:          "",
-				DeduplicationKey:   "",
-				Config:             TaskConfig{},
-				Attempt:            0,
-				BuildTag:           "",
-				IsFatal:            false,
-				persisted:          false,
-			}
-		},
-	}
-)
-
-// NewTask retrieves a Task from the sync.Pool, resets it, and initialises it with the
-// provided values. This is the primary factory function for creating tasks.
+// NewTask creates a task for an executor.
+//
+// Timestamps, timeout, and retry limit remain unset until admission applies the
+// configured clock and defaults.
 //
 // Takes executor (string) which specifies the task executor type.
-// Takes payload (map[string]any) which provides the task data.
+// Takes payload (map[string]any) which provides the task data; the task keeps a copy.
 //
-// Returns *Task which is a ready-to-use task with a unique ID and default configuration.
+// Returns *Task which is a ready-to-use task with a unique ID and normal priority.
 func NewTask(executor string, payload map[string]any) *Task {
-	task, ok := TaskPool.Get().(*Task)
-	if !ok {
-		task = &Task{}
+	taskID := NewTaskID()
+	task := &Task{
+		continuation:       nil,
+		ExecuteAt:          time.Time{},
+		CreatedAt:          time.Time{},
+		UpdatedAt:          time.Time{},
+		ScheduledExecuteAt: time.Time{},
+		Payload:            make(map[string]any, len(payload)),
+		Result:             nil,
+		LastPublishedAt:    time.Time{},
+		Rerun:              nil,
+		receiptID:          "",
+		Executor:           executor,
+		WorkflowID:         taskID,
+		ID:                 taskID,
+		Status:             StatusPending,
+		LastError:          "",
+		DeduplicationKey:   "",
+		BuildTag:           "",
+		OwnerInstance:      "",
+		Config:             TaskConfig{Timeout: 0, MaxRetries: 0, Priority: PriorityNormal},
+		Attempt:            0,
+		claimed:            false,
+		settled:            false,
+		IsFatal:            false,
+		Background:         false,
+		persisted:          false,
 	}
-	task.Reset()
-
-	now := time.Now().UTC()
-	taskID := uuid.NewString()
-
-	task.ID = taskID
-	task.WorkflowID = taskID
-	task.Executor = executor
-	task.Status = StatusPending
-	task.ExecuteAt = now
-	task.Attempt = 0
-	task.CreatedAt = now
-	task.UpdatedAt = now
-	task.Config = TaskConfig{
-		Priority:   PriorityNormal,
-		Timeout:    defaultNewTaskTimeout,
-		MaxRetries: defaultNewTaskMaxRetries,
-	}
-
 	maps.Copy(task.Payload, payload)
-
 	return task
 }
 
@@ -224,38 +213,29 @@ func (t *Task) Persisted() bool {
 	return t.persisted
 }
 
-// Reset clears all fields so the Task can be reused from sync.Pool. Payload and Result
-// maps that exceed taskMapMaxRetainedEntries are replaced with fresh small maps rather
-// than cleared in place.
-func (t *Task) Reset() {
-	t.ID = ""
-	t.WorkflowID = ""
-	t.Executor = ""
-	t.Status = ""
-	t.LastError = ""
-	t.DeduplicationKey = ""
-	t.BuildTag = ""
-	t.Attempt = 0
-	t.IsFatal = false
-	t.persisted = false
-	t.ExecuteAt = time.Time{}
-	t.CreatedAt = time.Time{}
-	t.UpdatedAt = time.Time{}
-	t.ScheduledExecuteAt = time.Time{}
-	t.Config = TaskConfig{}
+// ClearAttemptState removes the claim, settlement, successor, and receipt bookkeeping for
+// an attempt.
+func (t *Task) ClearAttemptState() {
+	t.continuation = nil
+	t.receiptID = ""
+	t.claimed = false
+	t.settled = false
+}
 
-	if len(t.Payload) > taskMapMaxRetainedEntries {
-		t.Payload = make(map[string]any)
-	} else {
-		for k := range t.Payload {
-			delete(t.Payload, k)
-		}
+// stampAdmission fills any unset creation, update, and execution times with now.
+//
+// Times already set by the caller, such as a scheduled execution time, are kept.
+//
+// Takes now (time.Time) which is the admitting component's current time.
+func (t *Task) stampAdmission(now time.Time) {
+	now = now.UTC()
+	if t.CreatedAt.IsZero() {
+		t.CreatedAt = now
 	}
-	if len(t.Result) > taskMapMaxRetainedEntries {
-		t.Result = make(map[string]any)
-	} else {
-		for k := range t.Result {
-			delete(t.Result, k)
-		}
+	if t.UpdatedAt.IsZero() {
+		t.UpdatedAt = now
+	}
+	if t.ExecuteAt.IsZero() {
+		t.ExecuteAt = now
 	}
 }

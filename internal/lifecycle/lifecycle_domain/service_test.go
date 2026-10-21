@@ -19,11 +19,13 @@
 package lifecycle_domain
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
 	"io/fs"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -43,6 +45,7 @@ import (
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/email/email_dto"
 	"piko.sh/piko/internal/lifecycle/lifecycle_dto"
+	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/render/render_domain"
@@ -1569,9 +1572,11 @@ func TestLifecycleService_upsertAssetArtefact(t *testing.T) {
 
 		assert.Len(t, mockRegistry.upsertedArtefacts, 1)
 		assert.Equal(t, "test-module/assets/logo.png", mockRegistry.upsertedArtefacts[0])
+		assert.Equal(t, []bool{true}, mockRegistry.profileMerges,
+			"the watcher must merge its file-type profiles so the annotation pipeline's profiles survive an edit")
 	})
 
-	t.Run("logs error when file cannot be opened", func(t *testing.T) {
+	t.Run("ignores a file that no longer exists without logging an error", func(t *testing.T) {
 		t.Parallel()
 
 		mockFS := NewMockFileSystem()
@@ -1584,8 +1589,12 @@ func TestLifecycleService_upsertAssetArtefact(t *testing.T) {
 
 		service := mustBuildLifecycleService(t, deps)
 
+		logOutput := new(bytes.Buffer)
+		ctx := logger_domain.WithLogger(context.Background(),
+			logger_domain.New(slog.New(slog.NewTextHandler(logOutput, nil)), "lifecycle-test"))
+
 		fec := fileEventContext{
-			ctx:        context.Background(),
+			ctx:        ctx,
 			relPath:    "assets/missing.png",
 			artefactID: "test-module/assets/missing.png",
 			event: lifecycle_dto.FileEvent{
@@ -1597,6 +1606,8 @@ func TestLifecycleService_upsertAssetArtefact(t *testing.T) {
 		service.upsertAssetArtefact(fec)
 
 		assert.Empty(t, mockRegistry.upsertedArtefacts)
+		assert.NotContains(t, logOutput.String(), "Failed to read updated asset file",
+			"a file removed before it is read (an editor or sed temporary file) is not an error")
 	})
 
 	t.Run("logs error when registry upsert fails", func(t *testing.T) {
@@ -2088,12 +2099,14 @@ type mockTrackingRegistryService struct {
 	deleteError       error
 	upsertedArtefacts []string
 	deletedArtefacts  []string
+	profileMerges     []bool
 	mu                sync.Mutex
 }
 
-func (m *mockTrackingRegistryService) UpsertArtefact(_ context.Context, artefactID string, _ string, _ io.Reader, _ string, _ []registry_dto.NamedProfile) (*registry_dto.ArtefactMeta, error) {
+func (m *mockTrackingRegistryService) UpsertArtefact(_ context.Context, artefactID string, _ string, _ io.Reader, _ string, _ []registry_dto.NamedProfile, opts ...registry_domain.UpsertOption) (*registry_dto.ArtefactMeta, error) {
 	m.mu.Lock()
 	m.upsertedArtefacts = append(m.upsertedArtefacts, artefactID)
+	m.profileMerges = append(m.profileMerges, registry_domain.UpsertMergesProfiles(opts...))
 	upsertError := m.upsertError
 	m.mu.Unlock()
 
@@ -2155,6 +2168,14 @@ func (m *mockTrackingRegistryService) ListBlobStoreIDs() []string {
 	return nil
 }
 func (m *mockTrackingRegistryService) ArtefactEventsPublished() int64 {
+	return 0
+}
+
+func (m *mockTrackingRegistryService) ArtefactEventsIssued() int64 {
+	return 0
+}
+
+func (m *mockTrackingRegistryService) FlushArtefactEvents(context.Context) int {
 	return 0
 }
 
@@ -2913,7 +2934,7 @@ type mockCountingRegistryService struct {
 	upsertCount atomic.Int64
 }
 
-func (m *mockCountingRegistryService) UpsertArtefact(_ context.Context, _ string, _ string, _ io.Reader, _ string, _ []registry_dto.NamedProfile) (*registry_dto.ArtefactMeta, error) {
+func (m *mockCountingRegistryService) UpsertArtefact(_ context.Context, _ string, _ string, _ io.Reader, _ string, _ []registry_dto.NamedProfile, _ ...registry_domain.UpsertOption) (*registry_dto.ArtefactMeta, error) {
 	m.upsertCount.Add(1)
 	return &registry_dto.ArtefactMeta{}, nil
 }
@@ -2965,6 +2986,14 @@ func (m *mockCountingRegistryService) ListBlobStoreIDs() []string {
 	return nil
 }
 func (m *mockCountingRegistryService) ArtefactEventsPublished() int64 {
+	return 0
+}
+
+func (m *mockCountingRegistryService) ArtefactEventsIssued() int64 {
+	return 0
+}
+
+func (m *mockCountingRegistryService) FlushArtefactEvents(context.Context) int {
 	return 0
 }
 

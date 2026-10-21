@@ -35,15 +35,23 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_domain"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/resolver/resolver_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 type mockAnnotator struct {
-	ResultToReturn *annotator_dto.ProjectAnnotationResult
-	ErrorToReturn  error
-	BuildDelay     time.Duration
-	Calls          int
-	mu             sync.Mutex
+	ResultToReturn    *annotator_dto.ProjectAnnotationResult
+	ErrorToReturn     error
+	BuildDelay        time.Duration
+	Calls             int
+	mu                sync.Mutex
+	phase1EntryPoints []annotator_dto.EntryPoint
+	phase1OptionCount int
+}
+
+func (m *mockAnnotator) lastPhase1Call() ([]annotator_dto.EntryPoint, int) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.phase1EntryPoints, m.phase1OptionCount
 }
 
 func (m *mockAnnotator) GetCallCount() int {
@@ -96,12 +104,14 @@ func (m *mockAnnotator) Annotate(_ context.Context, _ string, _ bool) (*annotato
 
 func (m *mockAnnotator) RunPhase1IntrospectionAndAnnotate(
 	ctx context.Context,
-	_ []annotator_dto.EntryPoint,
+	entryPoints []annotator_dto.EntryPoint,
 	_ map[string]string,
-	_ ...annotator_domain.AnnotationOption,
+	opts ...annotator_domain.AnnotationOption,
 ) (*annotator_domain.Phase1Result, error) {
 	m.mu.Lock()
 	m.Calls++
+	m.phase1EntryPoints = entryPoints
+	m.phase1OptionCount = len(opts)
 	buildDelay := m.BuildDelay
 	result := m.ResultToReturn
 	errToReturn := m.ErrorToReturn
@@ -132,8 +142,8 @@ func (m *mockAnnotator) AnnotateProjectWithCachedIntrospection(
 	_ *annotator_dto.VirtualModule,
 	_ *annotator_domain.TypeResolver,
 	_ ...annotator_domain.AnnotationOption,
-) (*annotator_dto.ProjectAnnotationResult, *annotator_domain.CompilationLogStore, error) {
-	return nil, nil, errors.New("AnnotateProjectWithCachedIntrospection not implemented in mock")
+) (*annotator_dto.ProjectAnnotationResult, *annotator_domain.IntrospectionSnapshot, *annotator_domain.CompilationLogStore, error) {
+	return nil, nil, nil, errors.New("AnnotateProjectWithCachedIntrospection not implemented in mock")
 }
 
 type mockCache struct {

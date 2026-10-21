@@ -135,8 +135,6 @@ type fallbackParams struct {
 
 // attemptProvider tries a single provider in the fallback chain.
 //
-// Takes ctx (context.Context) which carries request-scoped values, deadlines, and
-// cancellation signals.
 // Takes params (*fallbackParams) which contains the request config.
 // Takes providerName (string) which identifies the provider to attempt.
 // Takes result (*llm_dto.FallbackResult) which accumulates attempt results.
@@ -176,8 +174,6 @@ func (r *FallbackRouter) attemptProvider(
 
 // executeWithRetry executes a provider request with optional retry.
 //
-// Takes ctx (context.Context) which carries request-scoped values, deadlines, and
-// cancellation signals.
 // Takes params (*fallbackParams) which provides the retry policy and config.
 // Takes providerName (string) which identifies the provider to use.
 // Takes request (*llm_dto.CompletionRequest) which contains the completion request.
@@ -230,7 +226,6 @@ func (*FallbackRouter) handleProviderSuccess(
 // handleProviderFailure determines whether to continue to the next provider or return the
 // error.
 //
-// Takes ctx (context.Context) which carries request-scoped values for logging.
 // Takes params (*fallbackParams) which contains the fallback triggers.
 // Takes providerName (string) which identifies the provider that failed.
 // Takes err (error) which is the error from the failed provider.

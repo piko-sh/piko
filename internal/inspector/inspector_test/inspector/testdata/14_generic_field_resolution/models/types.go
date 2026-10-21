@@ -18,13 +18,10 @@
 
 package models
 
-// A generic container.
 type Box[T any] struct {
-	// The field whose type is the generic parameter.
 	Content T
 }
 
-// A concrete type that will be used as the type argument.
 type Item struct {
 	Value string
 }

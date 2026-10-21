@@ -56,43 +56,27 @@ type Driver interface {
 	//
 	// Takes params (UpdateTaskParams) which carries the new field values for the task.
 	//
+	// Returns int64 which counts updated rows and is zero for a missing task.
 	// Returns error when the update fails.
-	UpdateTask(ctx context.Context, params UpdateTaskParams) error
+	UpdateTask(ctx context.Context, params UpdateTaskParams) (int64, error)
 
-	// CreateWithDedup creates a task honouring its deduplication key.
+	// CreateWithDedup creates a task unless an active task already holds its deduplication
+	// key, as one atomic statement.
 	//
-	// It returns created == false when an active task with the same key already exists.
-	//
-	// Takes params (CreateTaskParams) which carries the fields of the task to insert.
-	// Takes deduplicationKey (string) which identifies duplicate work.
+	// Takes params (CreateTaskParams) which carries the fields of the task to insert,
+	// including its deduplication key.
 	//
 	// Returns bool which is true when the task was created.
 	// Returns error when the insert fails.
-	CreateWithDedup(ctx context.Context, params CreateTaskParams, deduplicationKey string) (created bool, err error)
-
-	// FetchDueTasks returns tasks that are due to run.
-	//
-	// Takes params (FetchDueTasksParams) which carries the filter for the fetch.
-	//
-	// Returns []FetchDueTaskRow which holds the tasks that are due.
-	// Returns error when the query fails.
-	FetchDueTasks(ctx context.Context, params FetchDueTasksParams) ([]FetchDueTaskRow, error)
+	CreateWithDedup(ctx context.Context, params CreateTaskParams) (created bool, err error)
 
 	// GetTasksByID returns the tasks with the given IDs, skipping IDs that do not exist.
 	//
 	// Takes ids ([]string) which lists the task IDs to read.
 	//
-	// Returns []FetchDueTaskRow which holds the tasks found.
+	// Returns []TaskRow which holds the tasks found.
 	// Returns error when the query fails.
-	GetTasksByID(ctx context.Context, ids []string) ([]FetchDueTaskRow, error)
-
-	// MarkTasksAsProcessing marks the given task IDs as processing.
-	//
-	// Takes updatedAt (int64) which is the update time in Unix seconds.
-	// Takes ids ([]string) which are the tasks to mark.
-	//
-	// Returns error when the update fails.
-	MarkTasksAsProcessing(ctx context.Context, updatedAt int64, ids []string) error
+	GetTasksByID(ctx context.Context, ids []string) ([]TaskRow, error)
 
 	// GetWorkflowStatus reports whether the workflow still has incomplete tasks.
 	//
@@ -117,80 +101,6 @@ type Driver interface {
 	// Returns int64 which is the number of pending tasks.
 	// Returns error when the query fails.
 	PendingTaskCount(ctx context.Context) (int64, error)
-
-	// RecoverStale resets stale processing tasks to retrying or failed and returns the
-	// count.
-	//
-	// Takes maxRetries (int32) which is the attempt limit before a task is failed.
-	// Takes recoveryError (*string) which is the error message recorded on the task, if any.
-	// Takes nowUnix (int64) which is the current time in Unix seconds.
-	// Takes staleThresholdUnix (int64) which is the time before which a task counts as
-	// stale.
-	//
-	// Returns int64 which is the number of tasks recovered.
-	// Returns error when the update fails.
-	RecoverStale(ctx context.Context, maxRetries int32, recoveryError *string, nowUnix, staleThresholdUnix int64) (int64, error)
-
-	// GetStaleProcessingTaskCount returns the number of tasks stuck in processing past the
-	// threshold.
-	//
-	// Takes staleThresholdUnix (int64) which is the time before which a task counts as
-	// stale.
-	//
-	// Returns int64 which is the number of stale processing tasks.
-	// Returns error when the query fails.
-	GetStaleProcessingTaskCount(ctx context.Context, staleThresholdUnix int64) (int64, error)
-
-	// UpdateTaskHeartbeat updates the heartbeat timestamp for a processing task.
-	//
-	// Takes updatedAt (int64) which is the heartbeat time in Unix seconds.
-	// Takes taskID (string) which identifies the task.
-	//
-	// Returns error when the update fails.
-	UpdateTaskHeartbeat(ctx context.Context, updatedAt int64, taskID string) error
-
-	// GetStaleTasksForRecovery returns candidate stale tasks for recovery claiming.
-	//
-	// Takes staleThresholdUnix (int64) which is the time before which a task counts as
-	// stale.
-	// Takes recoveryExpiresAt (*int64) which is the time an existing recovery lease expires,
-	// if any.
-	// Takes limit (int) which caps the number of candidates returned.
-	//
-	// Returns []StaleTaskRow which holds the candidate tasks.
-	// Returns error when the query fails.
-	GetStaleTasksForRecovery(ctx context.Context, staleThresholdUnix int64, recoveryExpiresAt *int64, limit int) ([]StaleTaskRow, error)
-
-	// ClaimTaskForRecovery attempts to claim a single stale task and returns rows affected.
-	//
-	// Takes recoveryNodeID (*string) which identifies the node making the claim, if any.
-	// Takes leaseExpiresAt (*int64) which is the lease expiry in Unix seconds, if any.
-	// Takes taskID (string) which identifies the task to claim.
-	// Takes nowUnix (*int64) which is the current time in Unix seconds, if any.
-	//
-	// Returns int64 which is the number of rows the claim affected.
-	// Returns error when the update fails.
-	ClaimTaskForRecovery(ctx context.Context, recoveryNodeID *string, leaseExpiresAt *int64, taskID string, nowUnix *int64) (int64, error)
-
-	// RecoverClaimed recovers all tasks previously claimed by a node and returns the count.
-	//
-	// Takes maxRetries (int32) which is the attempt limit before a task is failed.
-	// Takes recoveryError (*string) which is the error message recorded on the task, if any.
-	// Takes nowUnix (int64) which is the current time in Unix seconds.
-	// Takes nodeID (*string) which identifies the node holding the claims, if any.
-	//
-	// Returns int64 which is the number of tasks recovered.
-	// Returns error when the update fails.
-	RecoverClaimed(ctx context.Context, maxRetries int32, recoveryError *string, nowUnix int64, nodeID *string) (int64, error)
-
-	// ReleaseRecoveryLeases releases all recovery leases held by a node and returns the
-	// count.
-	//
-	// Takes nodeID (*string) which identifies the node holding the leases, if any.
-	//
-	// Returns int64 which is the number of leases released.
-	// Returns error when the update fails.
-	ReleaseRecoveryLeases(ctx context.Context, nodeID *string) (int64, error)
 
 	// CreateWorkflowReceipt creates a workflow-completion receipt.
 	//
@@ -230,11 +140,11 @@ type Driver interface {
 	// CleanupOldResolvedReceipts deletes resolved receipts older than the cutoff and returns
 	// the count.
 	//
-	// Takes olderThanUnix (*int64) which is the cutoff time in Unix seconds, if any.
+	// Takes olderThanUnix (int64) which is the cutoff time in Unix seconds.
 	//
 	// Returns int64 which is the number of receipts deleted.
 	// Returns error when the delete fails.
-	CleanupOldResolvedReceipts(ctx context.Context, olderThanUnix *int64) (int64, error)
+	CleanupOldResolvedReceipts(ctx context.Context, olderThanUnix int64) (int64, error)
 
 	// TimeoutStaleReceipts marks very old pending receipts as timed out and returns the
 	// count.
@@ -248,9 +158,9 @@ type Driver interface {
 
 	// ListFailedTasks returns all tasks in the failed state.
 	//
-	// Returns []FailedTaskRow which holds the failed tasks.
+	// Returns []TaskRow which holds the failed tasks.
 	// Returns error when the query fails.
-	ListFailedTasks(ctx context.Context) ([]FailedTaskRow, error)
+	ListFailedTasks(ctx context.Context) ([]TaskRow, error)
 
 	// ListTaskStatusCounts returns task counts grouped by status.
 	//
@@ -273,50 +183,162 @@ type Driver interface {
 	// Returns []WorkflowSummaryRow which holds the per-workflow aggregates.
 	// Returns error when the query fails.
 	ListWorkflowSummary(ctx context.Context, limit int) ([]WorkflowSummaryRow, error)
+
+	// ClaimTask moves a delivered attempt to processing in one fenced statement.
+	//
+	// Takes params (ClaimTaskParams) which describes the claim.
+	//
+	// Returns TaskRow which is the claimed row.
+	// Returns bool which is false when the row was not claimable.
+	// Returns error when the update fails.
+	ClaimTask(ctx context.Context, params ClaimTaskParams) (TaskRow, bool, error)
+
+	// SettleTask writes a processing task's settled state, fenced by its claimed attempt.
+	//
+	// Takes params (TaskWriteParams) which carries the new state.
+	//
+	// Returns TaskRow which is the settled row, still carrying any requested rerun.
+	// Returns bool which is false when the task is no longer processing that attempt.
+	// Returns error when the update fails.
+	SettleTask(ctx context.Context, params TaskWriteParams) (TaskRow, bool, error)
+
+	// TransitionTask writes a task's new state, fenced by its attempt and status.
+	//
+	// Takes params (TaskWriteParams) which carries the new state.
+	// Takes from ([]string) which lists the statuses the stored task may be in.
+	//
+	// Returns TaskRow which is the moved row, still carrying any requested rerun.
+	// Returns bool which is false when the task has moved on or does not exist.
+	// Returns error when the update fails.
+	TransitionTask(ctx context.Context, params TaskWriteParams, from []string) (TaskRow, bool, error)
+
+	// ClearRerun removes a task's rerun request.
+	//
+	// Takes id (string) which identifies the task.
+	//
+	// Returns error when the update fails.
+	ClearRerun(ctx context.Context, id string) error
+
+	// RequestRerun records a rerun on the active task holding a deduplication key.
+	//
+	// Takes params (RerunParams) which describes the rerun.
+	//
+	// Returns int64 which is the number of tasks updated.
+	// Returns error when the update fails.
+	RequestRerun(ctx context.Context, params RerunParams) (int64, error)
+
+	// CountUnsettledForBuild counts a build's foreground tasks that have not settled.
+	//
+	// Takes buildTag (string) which identifies the build.
+	//
+	// Returns int64 which is the count.
+	// Returns error when the query fails.
+	CountUnsettledForBuild(ctx context.Context, buildTag string) (int64, error)
+
+	// ListFailedForBuild returns a build's failed tasks.
+	//
+	// Takes buildTag (string) which identifies the build.
+	//
+	// Returns []TaskRow which holds the failed tasks.
+	// Returns error when the query fails.
+	ListFailedForBuild(ctx context.Context, buildTag string) ([]TaskRow, error)
+
+	// DispatchablePage reads a page of due pending and retrying tasks.
+	//
+	// Takes params (DispatchPageParams) which selects the page.
+	//
+	// Returns []TaskRow which holds the tasks in execution order.
+	// Returns error when the query fails.
+	DispatchablePage(ctx context.Context, params DispatchPageParams) ([]TaskRow, error)
+
+	// MarkPublished records when tasks were last published.
+	//
+	// Takes publishedAt (int64) which is the publication time in Unix seconds.
+	// Takes ids ([]string) which identifies the tasks.
+	//
+	// Returns error when the update fails.
+	MarkPublished(ctx context.Context, publishedAt int64, ids []string) error
+
+	// ListOrphanedTasks returns processing tasks whose owner holds no live lease.
+	//
+	// Takes staleBefore (int64) which is the write time, in Unix seconds, orphans predate.
+	// Takes now (int64) which is the time, in Unix seconds, leases are checked against.
+	// Takes limit (int) which caps the number of tasks returned.
+	//
+	// Returns []TaskRow which holds the orphans.
+	// Returns error when the query fails.
+	ListOrphanedTasks(ctx context.Context, staleBefore, now int64, limit int) ([]TaskRow, error)
+
+	// PurgeTerminal deletes completed and failed tasks last written before a cutoff whose
+	// workflows have no pending receipt.
+	//
+	// Takes before (int64) which is the cutoff in Unix seconds.
+	// Takes limit (int) which caps the number of tasks deleted.
+	//
+	// Returns int64 which is the number of tasks deleted.
+	// Returns error when the delete fails.
+	PurgeTerminal(ctx context.Context, before int64, limit int) (int64, error)
+
+	// UpsertNode records a node lease, replacing any earlier one for the instance.
+	//
+	// Takes params (NodeLeaseParams) which describes the lease.
+	//
+	// Returns error when the write fails.
+	UpsertNode(ctx context.Context, params NodeLeaseParams) error
+
+	// RenewNode extends a node lease.
+	//
+	// Takes params (NodeLeaseParams) which carries the renewal and expiry times.
+	//
+	// Returns int64 which counts renewed leases and is zero for a missing lease.
+	// Returns error when the update fails.
+	RenewNode(ctx context.Context, params NodeLeaseParams) (int64, error)
+
+	// DeleteNode removes a node lease.
+	//
+	// Takes instance (string) which identifies the instance.
+	//
+	// Returns error when the delete fails.
+	DeleteNode(ctx context.Context, instance string) error
+
+	// ListExpiredNodes returns instances whose leases lapsed before now.
+	//
+	// Takes now (int64) which is the current time in Unix seconds.
+	// Takes limit (int) which caps the number of instances returned.
+	//
+	// Returns []string which holds the instances in name order.
+	// Returns error when the query fails.
+	ListExpiredNodes(ctx context.Context, now int64, limit int) ([]string, error)
+
+	// TouchOwned stamps the tasks an instance is processing as written at a time.
+	//
+	// Takes instance (string) which identifies the instance.
+	// Takes at (int64) which is the time in Unix seconds.
+	//
+	// Returns int64 which is the number of tasks touched.
+	// Returns error when the update fails.
+	TouchOwned(ctx context.Context, instance string, at int64) (int64, error)
+
+	// IsTransient reports whether an error is a serialisation failure, deadlock or busy
+	// database, after which the whole transaction can be retried.
+	//
+	// Takes err (error) which is the error to classify.
+	//
+	// Returns bool which is true when retrying may succeed.
+	IsTransient(err error) bool
 }
 
 // CreateTaskParams carries the serialised fields required to insert a task.
 type CreateTaskParams struct {
-	// ID is the task identifier.
-	ID string
-
-	// WorkflowID is the owning workflow.
-	WorkflowID string
-
-	// Executor is the executor name.
-	Executor string
-
-	// Payload is the JSON-encoded task payload.
-	Payload string
-
-	// Config is the JSON-encoded task config.
-	Config string
-
-	// Status is the task status.
-	Status string
-
-	// ExecuteAt is the scheduled execution time in Unix seconds.
-	ExecuteAt int64
-
-	// CreatedAt is the creation time in Unix seconds.
-	CreatedAt int64
-
-	// UpdatedAt is the last-update time in Unix seconds.
-	UpdatedAt int64
-
-	// Priority is the task priority.
-	Priority int32
-
-	// Attempt is the current attempt count.
-	Attempt int32
-}
-
-// CreateTaskBatchParams carries the serialised fields required to insert a task as part
-// of a batch, including the optional deduplication key.
-type CreateTaskBatchParams struct {
 	// DeduplicationKey is the optional deduplication key.
 	DeduplicationKey *string
 
+	// LastError is the last recorded error, if any.
+	LastError *string
+
+	// Result is the JSON-encoded task result, if any.
+	Result *string
+
 	// ID is the task identifier.
 	ID string
 
@@ -335,8 +357,17 @@ type CreateTaskBatchParams struct {
 	// Status is the task status.
 	Status string
 
+	// BuildTag identifies the build the task belongs to, or is empty.
+	BuildTag string
+
+	// OwnerInstance identifies the instance processing the task, or is empty.
+	OwnerInstance string
+
 	// ExecuteAt is the scheduled execution time in Unix seconds.
 	ExecuteAt int64
+
+	// ScheduledExecuteAt is when a scheduled task is due, in Unix seconds, or zero.
+	ScheduledExecuteAt int64
 
 	// CreatedAt is the creation time in Unix seconds.
 	CreatedAt int64
@@ -349,7 +380,17 @@ type CreateTaskBatchParams struct {
 
 	// Attempt is the current attempt count.
 	Attempt int32
+
+	// IsFatal is true when the task failed in a way retries cannot fix.
+	IsFatal bool
+
+	// Background is true for tasks no build waits for.
+	Background bool
 }
+
+// CreateTaskBatchParams carries the serialised fields required to insert a task as part
+// of a batch.
+type CreateTaskBatchParams = CreateTaskParams
 
 // UpdateTaskParams carries the serialised fields required to update a task.
 type UpdateTaskParams struct {
@@ -371,8 +412,17 @@ type UpdateTaskParams struct {
 	// ID is the task identifier.
 	ID string
 
+	// BuildTag identifies the build the task belongs to, or is empty.
+	BuildTag string
+
+	// OwnerInstance identifies the instance processing the task, or is empty.
+	OwnerInstance string
+
 	// ExecuteAt is the scheduled execution time in Unix seconds.
 	ExecuteAt int64
+
+	// ScheduledExecuteAt is when a scheduled task is due, in Unix seconds, or zero.
+	ScheduledExecuteAt int64
 
 	// UpdatedAt is the last-update time in Unix seconds.
 	UpdatedAt int64
@@ -382,25 +432,16 @@ type UpdateTaskParams struct {
 
 	// Attempt is the current attempt count.
 	Attempt int32
+
+	// IsFatal is true when the task failed in a way retries cannot fix.
+	IsFatal bool
+
+	// Background is true for tasks no build waits for.
+	Background bool
 }
 
-// FetchDueTasksParams carries the filter for fetching due tasks.
-type FetchDueTasksParams struct {
-	// Statuses are the task statuses eligible to be fetched.
-	Statuses []string
-
-	// Priority is the priority level to fetch.
-	Priority int32
-
-	// ExecuteAt is the upper bound (inclusive) of scheduled execution time in Unix seconds.
-	ExecuteAt int64
-
-	// Limit is the maximum number of tasks to fetch.
-	Limit int
-}
-
-// FetchDueTaskRow is a due-task row.
-type FetchDueTaskRow struct {
+// TaskRow is a full task row.
+type TaskRow struct {
 	// Result is the JSON-encoded task result, if any.
 	Result *string
 
@@ -409,6 +450,15 @@ type FetchDueTaskRow struct {
 
 	// LastError is the last recorded error, if any.
 	LastError *string
+
+	// RerunID identifies the rerun requested while the task was active, if any.
+	RerunID *string
+
+	// RerunPayload is the JSON-encoded payload of the requested rerun, if any.
+	RerunPayload *string
+
+	// RerunConfig is the JSON-encoded config of the requested rerun, if any.
+	RerunConfig *string
 
 	// Payload is the JSON-encoded task payload.
 	Payload string
@@ -428,6 +478,12 @@ type FetchDueTaskRow struct {
 	// WorkflowID is the owning workflow.
 	WorkflowID string
 
+	// BuildTag identifies the build the task belongs to, or is empty.
+	BuildTag string
+
+	// OwnerInstance identifies the instance processing the task, or is empty.
+	OwnerInstance string
+
 	// ExecuteAt is the scheduled execution time in Unix seconds.
 	ExecuteAt int64
 
@@ -437,11 +493,127 @@ type FetchDueTaskRow struct {
 	// UpdatedAt is the last-update time in Unix seconds.
 	UpdatedAt int64
 
+	// ScheduledExecuteAt is when a scheduled task is due, in Unix seconds, or zero.
+	ScheduledExecuteAt int64
+
+	// LastPublishedAt is when the task was last published, in Unix seconds, or zero.
+	LastPublishedAt int64
+
 	// Priority is the task priority.
 	Priority int32
 
 	// Attempt is the current attempt count.
 	Attempt int32
+
+	// IsFatal is true when the task failed in a way retries cannot fix.
+	IsFatal bool
+
+	// Background is true for tasks no build waits for.
+	Background bool
+}
+
+// ClaimTaskParams carries a fenced claim.
+type ClaimTaskParams struct {
+	// ID is the task identifier.
+	ID string
+
+	// Owner identifies the instance claiming the task.
+	Owner string
+
+	// UpdatedAt is the claim time in Unix seconds.
+	UpdatedAt int64
+
+	// DueBy is the latest due time, in Unix seconds, a retrying or scheduled task may have.
+	DueBy int64
+
+	// Attempt is the delivered attempt.
+	Attempt int32
+}
+
+// TaskWriteParams carries the state a settle or transition writes. A task's payload,
+// settings and priority are fixed once it is created, so they are not written.
+type TaskWriteParams struct {
+	// LastError is the last recorded error, if any.
+	LastError *string
+
+	// Result is the JSON-encoded task result, if any.
+	Result *string
+
+	// ID is the task identifier.
+	ID string
+
+	// Status is the new status.
+	Status string
+
+	// OwnerInstance is the owner a transition leaves on the task; settles always clear it.
+	OwnerInstance string
+
+	// ExecuteAt is the execution time in Unix seconds.
+	ExecuteAt int64
+
+	// ScheduledExecuteAt is when a scheduled task is due, in Unix seconds, or zero.
+	ScheduledExecuteAt int64
+
+	// UpdatedAt is the write time in Unix seconds.
+	UpdatedAt int64
+
+	// Attempt is the attempt the stored task must be at.
+	Attempt int32
+
+	// IsFatal is true when the task failed in a way retries cannot fix.
+	IsFatal bool
+}
+
+// RerunParams carries a rerun request.
+type RerunParams struct {
+	// ID identifies the task the rerun becomes.
+	ID string
+
+	// Payload is the JSON-encoded rerun payload.
+	Payload string
+
+	// Config is the JSON-encoded rerun config.
+	Config string
+
+	// DeduplicationKey is the key of the active task that must run again.
+	DeduplicationKey string
+}
+
+// DispatchPageParams selects a page of due tasks.
+type DispatchPageParams struct {
+	// AfterID is the previous page's last task ID.
+	AfterID string
+
+	// Now is the time, in Unix seconds, tasks must be due by.
+	Now int64
+
+	// AfterTime is the previous page's last execution time in Unix seconds; a page starts
+	// after the task at (AfterTime, AfterID).
+	AfterTime int64
+
+	// PublishedBefore excludes tasks last published at or after this time, in Unix seconds.
+	PublishedBefore int64
+
+	// Limit caps the page size.
+	Limit int
+}
+
+// NodeLeaseParams carries a node lease.
+type NodeLeaseParams struct {
+	// Instance identifies the running instance.
+	Instance string
+
+	// NodeID identifies the node the instance runs on.
+	NodeID string
+
+	// StartedAt is when the instance registered, in Unix seconds.
+	StartedAt int64
+
+	// RenewedAt is when the lease was last renewed, in Unix seconds.
+	RenewedAt int64
+
+	// ExpiresAt is when the lease lapses, in Unix seconds.
+	ExpiresAt int64
 }
 
 // CreateWorkflowReceiptParams carries the fields required to create a workflow receipt.
@@ -460,36 +632,6 @@ type CreateWorkflowReceiptParams struct {
 
 	// UpdatedAt is the last-update time in Unix seconds.
 	UpdatedAt int64
-}
-
-// StaleTaskRow is a stale-task candidate.
-type StaleTaskRow struct {
-	// ID is the task identifier.
-	ID string
-
-	// WorkflowID is the owning workflow.
-	WorkflowID string
-
-	// Attempt is the current attempt count.
-	Attempt int32
-}
-
-// FailedTaskRow is a failed-task row.
-type FailedTaskRow struct {
-	// LastError is the last recorded error, if any.
-	LastError *string
-
-	// ID is the task identifier.
-	ID string
-
-	// WorkflowID is the owning workflow.
-	WorkflowID string
-
-	// Executor is the executor name.
-	Executor string
-
-	// Attempt is the current attempt count.
-	Attempt int32
 }
 
 // TaskStatusCountRow pairs a task status with the number of tasks in that status.

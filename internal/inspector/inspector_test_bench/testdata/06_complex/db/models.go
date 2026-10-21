@@ -20,16 +20,13 @@ package db
 
 import "time"
 
-// User represents the database entity for a user.
-// It has different fields from `api.User`. This tests name collision resolution.
 type User struct {
 	ID        int
 	Email     string
-	Password  string // This field is not in the API model.
+	Password  string
 	CreatedAt time.Time
 }
 
-// LoginEvent represents a record of a user login.
 type LoginEvent struct {
 	UserID    int
 	Timestamp time.Time

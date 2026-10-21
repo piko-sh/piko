@@ -296,7 +296,8 @@ func (l *Limiter) estimateWaitDuration(ctx context.Context, key string, n float6
 // Returns (cancelled=true, err) if the context was cancelled, or (cancelled=false, nil)
 // when the timer fires.
 //
-// Takes ctx (context.Context) which may cancel the wait early.
+// Cancelling ctx cuts the wait short.
+//
 // Takes d (time.Duration) which is how long to wait before proceeding.
 //
 // Returns cancelled (bool) which is true when the context was cancelled before the timer

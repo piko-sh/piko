@@ -23,7 +23,7 @@ import (
 
 	protocol "github.com/politepixels/golang-language-server"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // symbolReference identifies a symbol by its definition location in the source.

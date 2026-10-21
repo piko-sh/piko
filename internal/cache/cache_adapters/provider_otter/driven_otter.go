@@ -26,6 +26,7 @@ import (
 	"maps"
 	"slices"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/maypok86/otter/v2"
@@ -302,8 +303,8 @@ type OtterAdapter[K comparable, V any] struct {
 	// closeErr holds the result of the first Close so later calls report the same outcome.
 	closeErr error
 
-	// maxEntryWeight is the largest weight a single entry may have; 0 means no ceiling.
-	maxEntryWeight uint32
+	// openBatch is the log batch of the transaction in progress; nil when none is open.
+	openBatch atomic.Pointer[logBatch[K, V]]
 
 	// snapshotThreshold is the number of WAL entries before a checkpoint is made. When this
 	// limit is reached, a snapshot is saved and the WAL is cleared.
@@ -322,6 +323,13 @@ type OtterAdapter[K comparable, V any] struct {
 	// closeOnce guards single execution of Close to prevent double-checkpoint and
 	// double-close on the WAL or snapshot store.
 	closeOnce sync.Once
+
+	// logBatchGate is held from BeginLogBatch until the batch ends, so batches never overlap
+	// and an explicit checkpoint or close never splits one.
+	logBatchGate sync.Mutex
+
+	// maxEntryWeight is the largest weight a single entry may have; 0 means no ceiling.
+	maxEntryWeight uint32
 
 	// weightBounded records that the cache was configured with a weigher and a weight bound,
 	// so its WeightedSize is a byte total rather than an entry count.
@@ -361,12 +369,10 @@ func (a *OtterAdapter[K, V]) Get(ctx context.Context, key K, loader cache_dto.Lo
 // Takes value (V) which is the data to store.
 // Takes tags (...string) which are optional labels for grouping entries.
 //
-// Returns error which is always nil for the in-memory adapter.
+// Returns error when the write cannot be logged; the cache is then left unchanged.
 //
 // Safe for concurrent use. Uses a read lock during WAL operations.
 func (a *OtterAdapter[K, V]) Set(ctx context.Context, key K, value V, tags ...string) error {
-	ctx, l := logger_domain.From(ctx, log)
-
 	if a.walEnabled && a.wal != nil {
 		a.checkpointMu.RLock()
 		entry := wal_domain.Entry[K, V]{
@@ -376,9 +382,11 @@ func (a *OtterAdapter[K, V]) Set(ctx context.Context, key K, value V, tags ...st
 			Tags:      tags,
 			Timestamp: time.Now().UnixNano(),
 			ExpiresAt: 0,
+			Batch:     nil,
 		}
-		if err := a.wal.Append(context.WithoutCancel(ctx), entry); err != nil {
-			l.Warn("Failed to append to WAL", logger_domain.Error(err))
+		if err := a.logEntries(ctx, entry); err != nil {
+			a.checkpointMu.RUnlock()
+			return fmt.Errorf("logging write: %w", err)
 		}
 		a.tagIndex.Add(key, tags)
 		a.client.Set(key, value)
@@ -394,6 +402,62 @@ func (a *OtterAdapter[K, V]) Set(ctx context.Context, key K, value V, tags ...st
 	return nil
 }
 
+// SetDeferred stores and indexes a value, then queues its write-ahead log entry without
+// waiting for durability.
+//
+// Entries retain queue order, so waiting for the last entry covers preceding writes.
+//
+// Takes key (K) which identifies the cache entry.
+// Takes value (V) which is the data to store.
+// Takes tags (...string) which are optional labels for grouping entries.
+//
+// Returns func() error which waits until the entry is durable and reports a failure to
+// write it; it is a no-op when the cache keeps no log or a log batch is open, since the
+// batch's commit writes the entry.
+// Returns error when the entry cannot be queued; the cache is then left unchanged.
+//
+// Safe for concurrent use.
+func (a *OtterAdapter[K, V]) SetDeferred(ctx context.Context, key K, value V, tags ...string) (func() error, error) {
+	deferred, ok := a.wal.(wal_domain.DeferredAppender[K, V])
+	if !a.walEnabled || !ok {
+		return noWait, a.Set(ctx, key, value, tags...)
+	}
+
+	a.checkpointMu.RLock()
+	entry := wal_domain.Entry[K, V]{
+		Operation: wal_domain.OpSet,
+		Key:       key,
+		Value:     value,
+		Tags:      tags,
+		Timestamp: time.Now().UnixNano(),
+		ExpiresAt: 0,
+		Batch:     nil,
+	}
+	wait := noWait
+	if batch := a.openBatch.Load(); batch != nil {
+		batch.add(entry)
+	} else {
+		queued, err := deferred.Enqueue(context.WithoutCancel(ctx), entry)
+		if err != nil {
+			a.checkpointMu.RUnlock()
+			return noWait, fmt.Errorf("logging write: %w", err)
+		}
+		wait = queued
+	}
+	a.tagIndex.Add(key, tags)
+	a.client.Set(key, value)
+	a.indexDocument(key, value)
+	a.checkpointMu.RUnlock()
+	a.maybeCheckpoint()
+
+	return wait, nil
+}
+
+// noWait is the wait of a write that is already complete.
+//
+// Returns error which is always nil.
+func noWait() error { return nil }
+
 // SetWithTTL stores a value with a time-to-live duration.
 //
 // Takes key (K) which identifies the cache entry.
@@ -401,13 +465,11 @@ func (a *OtterAdapter[K, V]) Set(ctx context.Context, key K, value V, tags ...st
 // Takes ttl (time.Duration) which specifies how long the entry remains valid.
 // Takes tags (...string) which are optional labels for grouping entries.
 //
-// Returns error when the operation fails.
+// Returns error when the write cannot be logged; the cache is then left unchanged.
 //
 // Safe for concurrent use. Uses a read lock during WAL operations to allow concurrent
 // reads while ensuring checkpoint consistency.
 func (a *OtterAdapter[K, V]) SetWithTTL(ctx context.Context, key K, value V, ttl time.Duration, tags ...string) error {
-	ctx, l := logger_domain.From(ctx, log)
-
 	if a.walEnabled && a.wal != nil {
 		a.checkpointMu.RLock()
 		expiresAtNs := int64(0)
@@ -421,9 +483,11 @@ func (a *OtterAdapter[K, V]) SetWithTTL(ctx context.Context, key K, value V, ttl
 			Tags:      tags,
 			ExpiresAt: expiresAtNs,
 			Timestamp: time.Now().UnixNano(),
+			Batch:     nil,
 		}
-		if err := a.wal.Append(ctx, entry); err != nil {
-			l.Warn("Failed to append to WAL", logger_domain.Error(err))
+		if err := a.logEntries(ctx, entry); err != nil {
+			a.checkpointMu.RUnlock()
+			return fmt.Errorf("logging write: %w", err)
 		}
 		a.tagIndex.Add(key, tags)
 		a.client.Set(key, value)
@@ -445,14 +509,17 @@ func (a *OtterAdapter[K, V]) SetWithTTL(ctx context.Context, key K, value V, ttl
 //
 // Takes key (K) which identifies the cache entry to invalidate.
 //
-// Returns error which is always nil for the in-memory adapter.
+// Returns error when the removal cannot be logged; the cache is then left unchanged.
 //
 // Safe for concurrent use. Uses a read lock during WAL operations to allow concurrent
 // invalidations while blocking checkpoints.
 func (a *OtterAdapter[K, V]) Invalidate(ctx context.Context, key K) error {
 	if a.walEnabled && a.wal != nil {
 		a.checkpointMu.RLock()
-		a.appendDeleteToWAL(ctx, key)
+		if err := a.appendDeleteToWAL(ctx, key); err != nil {
+			a.checkpointMu.RUnlock()
+			return err
+		}
 		a.tagIndex.RemoveKey(key)
 		a.removeFromSearchIndex(key)
 		a.client.Invalidate(key)
@@ -472,17 +539,18 @@ func (a *OtterAdapter[K, V]) Invalidate(ctx context.Context, key K) error {
 //
 // Takes key (K) which identifies the entry being removed.
 //
+// Returns error when the removal cannot be logged.
+//
 // Must be called with checkpointMu held for reading.
-func (a *OtterAdapter[K, V]) appendDeleteToWAL(ctx context.Context, key K) {
-	ctx, l := logger_domain.From(ctx, log)
-
+func (a *OtterAdapter[K, V]) appendDeleteToWAL(ctx context.Context, key K) error {
 	entry := wal_domain.Entry[K, V]{}
 	entry.Operation = wal_domain.OpDelete
 	entry.Key = key
 	entry.Timestamp = time.Now().UnixNano()
-	if err := a.wal.Append(context.WithoutCancel(ctx), entry); err != nil {
-		l.Warn("Failed to append delete to WAL", logger_domain.Error(err))
+	if err := a.logEntries(ctx, entry); err != nil {
+		return fmt.Errorf("logging removal: %w", err)
 	}
+	return nil
 }
 
 // Compute computes and atomically updates the value in the cache using the provided
@@ -585,25 +653,27 @@ func (a *OtterAdapter[K, V]) BulkSet(ctx context.Context, items map[K]V, tags ..
 	ctx, l := logger_domain.From(ctx, log)
 
 	if a.walEnabled && a.wal != nil {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		a.checkpointMu.RLock()
 		nowNs := time.Now().UnixNano()
+		entries := make([]wal_domain.Entry[K, V], 0, len(items))
 		for key, value := range items {
-			if ctx.Err() != nil {
-				a.checkpointMu.RUnlock()
-				return ctx.Err()
-			}
-
-			entry := wal_domain.Entry[K, V]{
+			entries = append(entries, wal_domain.Entry[K, V]{
 				Operation: wal_domain.OpSet,
 				Key:       key,
 				Value:     value,
 				Tags:      tags,
 				Timestamp: nowNs,
 				ExpiresAt: 0,
-			}
-			if err := a.wal.Append(ctx, entry); err != nil {
-				l.Warn("Failed to append bulk item to WAL", logger_domain.Error(err))
-			}
+				Batch:     nil,
+			})
+		}
+		if err := a.logEntries(ctx, entries...); err != nil {
+			a.checkpointMu.RUnlock()
+			l.Warn("Failed to log bulk write", logger_domain.Error(err))
+			return fmt.Errorf("logging bulk write: %w", err)
 		}
 		for key, value := range items {
 			a.tagIndex.Add(key, tags)
@@ -650,21 +720,19 @@ func (a *OtterAdapter[K, V]) InvalidateByTags(ctx context.Context, tags ...strin
 	return removed, err
 }
 
-// invalidateKeys removes a set of keys, logging each removal when persistence is enabled.
-//
-// The work is done in bounded chunks. A tag can name any number of keys, and the write
-// lock that checkpoints and shutdown take is the same one held here, so a single large
-// invalidation would otherwise stall both for the length of the whole run. Chunking also
-// gives the WAL a chance to compact partway through rather than growing past both
-// triggers before anything checks.
+// invalidateKeys removes and logs keys in bounded chunks so checkpointing and shutdown
+// can proceed between chunks.
 //
 // Takes keys ([]K) which identifies the entries to remove.
 //
 // Returns int which is how many keys were removed before the context ended.
-// Returns error which is the context's error when the run was cut short.
+// Returns error which is the context's error when the run was cut short, or the log's
+// when a removal could not be logged.
 func (a *OtterAdapter[K, V]) invalidateKeys(ctx context.Context, keys []K) (int, error) {
 	if !a.walEnabled || a.wal == nil {
 		for _, key := range keys {
+			a.tagIndex.RemoveKey(key)
+			a.removeFromSearchIndex(key)
 			a.client.Invalidate(key)
 		}
 
@@ -678,8 +746,11 @@ func (a *OtterAdapter[K, V]) invalidateKeys(ctx context.Context, keys []K) (int,
 		}
 
 		end := min(start+invalidateChunkSize, len(keys))
-		a.invalidateChunkLocked(ctx, keys[start:end])
-		removed = end
+		chunkRemoved, err := a.invalidateChunkLocked(ctx, keys[start:end])
+		removed = start + chunkRemoved
+		if err != nil {
+			return removed, fmt.Errorf("invalidating tagged keys: %w", err)
+		}
 
 		a.maybeCheckpoint()
 	}
@@ -691,17 +762,25 @@ func (a *OtterAdapter[K, V]) invalidateKeys(ctx context.Context, keys []K) (int,
 //
 // Takes chunk ([]K) which identifies the entries to remove.
 //
+// Returns int which is how many keys were removed.
+// Returns error when a removal cannot be logged; that key and the rest stay.
+//
 // Concurrency: the caller holds checkpointMu for reading across this call and releases it
 // between chunks. Chunking exists so a tag matching a million keys cannot hold that lock
 // for the whole sweep and stall every checkpoint behind it.
-func (a *OtterAdapter[K, V]) invalidateChunkLocked(ctx context.Context, chunk []K) {
+func (a *OtterAdapter[K, V]) invalidateChunkLocked(ctx context.Context, chunk []K) (int, error) {
 	a.checkpointMu.RLock()
 	defer a.checkpointMu.RUnlock()
 
-	for _, key := range chunk {
-		a.appendDeleteToWAL(ctx, key)
+	for i, key := range chunk {
+		if err := a.appendDeleteToWAL(ctx, key); err != nil {
+			return i, err
+		}
+		a.tagIndex.RemoveKey(key)
+		a.removeFromSearchIndex(key)
 		a.client.Invalidate(key)
 	}
+	return len(chunk), nil
 }
 
 // InvalidateAll clears all entries from the cache.
@@ -718,8 +797,10 @@ func (a *OtterAdapter[K, V]) InvalidateAll(ctx context.Context) error {
 		entry := wal_domain.Entry[K, V]{}
 		entry.Operation = wal_domain.OpClear
 		entry.Timestamp = time.Now().UnixNano()
-		if err := a.wal.Append(context.WithoutCancel(ctx), entry); err != nil {
-			l.Warn("Failed to append clear to WAL", logger_domain.Error(err))
+		if err := a.logEntries(ctx, entry); err != nil {
+			a.checkpointMu.RUnlock()
+			l.Warn("Failed to log clear", logger_domain.Error(err))
+			return fmt.Errorf("logging clear: %w", err)
 		}
 		a.clearAllIndexes()
 		a.client.InvalidateAll()
@@ -864,6 +945,10 @@ func (a *OtterAdapter[K, V]) maybeCheckpoint() {
 	if !a.walEnabled || a.wal == nil || a.snapshot == nil {
 		return
 	}
+	if a.openBatch.Load() != nil {
+
+		return
+	}
 
 	if !a.checkpointDue() {
 		return
@@ -903,6 +988,8 @@ func (a *OtterAdapter[K, V]) Checkpoint(_ context.Context) error {
 	if !a.walEnabled || a.wal == nil || a.snapshot == nil {
 		return nil
 	}
+	a.logBatchGate.Lock()
+	defer a.logBatchGate.Unlock()
 	a.checkpointMu.Lock()
 	defer a.checkpointMu.Unlock()
 	return a.performCheckpointLocked()
@@ -937,6 +1024,14 @@ func (a *OtterAdapter[K, V]) performCheckpointLocked() error {
 	return nil
 }
 
+// SnapshotEntries returns the cache's current entries as a snapshot holds them, for
+// writing a snapshot somewhere other than the cache's own directory.
+//
+// Returns []wal_domain.Entry[K, V] which holds every live entry with its tags and expiry.
+func (a *OtterAdapter[K, V]) SnapshotEntries() []wal_domain.Entry[K, V] {
+	return a.collectSnapshotEntries()
+}
+
 // collectSnapshotEntries collects all current cache entries for snapshotting.
 //
 // Returns []wal_domain.Entry[K, V] which contains all current cache entries with their
@@ -953,6 +1048,7 @@ func (a *OtterAdapter[K, V]) collectSnapshotEntries() []wal_domain.Entry[K, V] {
 			Timestamp: nowNano,
 			Tags:      nil,
 			ExpiresAt: 0,
+			Batch:     nil,
 		}
 
 		if tags := a.tagIndex.GetTags(key); len(tags) > 0 {
@@ -992,6 +1088,8 @@ func (a *OtterAdapter[K, V]) Close(_ context.Context) error {
 // Concurrency: acquires checkpointMu while flushing pending WAL entries before closing
 // the WAL and snapshot stores.
 func (a *OtterAdapter[K, V]) closePersistenceLocked() error {
+	a.logBatchGate.Lock()
+	defer a.logBatchGate.Unlock()
 	a.checkpointMu.Lock()
 	if a.wal != nil && a.snapshot != nil && a.wal.EntryCount() > 0 {
 		_ = a.performCheckpointLocked()

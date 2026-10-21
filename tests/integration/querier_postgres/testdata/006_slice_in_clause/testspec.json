@@ -1,3 +1,0 @@
-{
-  "description": "Slice parameters in IN clauses: piko.slice expands to numbered $N placeholders at runtime"
-}

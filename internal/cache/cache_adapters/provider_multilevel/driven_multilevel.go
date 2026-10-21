@@ -75,7 +75,6 @@ var (
 // GetIfPresent returns the cached value if present in L1 or L2, with automatic
 // back-population from L2 to L1.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the value to retrieve from the cache.
 //
 // Returns V which is the cached value if found.
@@ -252,7 +251,6 @@ func (m *MultiLevelAdapter[K, V]) spawnBackgroundWorker(ctx context.Context, com
 
 // Set stores the value in both L1 and L2 caches using write-through policy.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry.
 // Takes value (V) which is the data to store.
 // Takes tags (...string) which are optional labels for cache invalidation.
@@ -312,7 +310,6 @@ func (m *MultiLevelAdapter[K, V]) SetWithTTL(ctx context.Context, key K, value V
 
 // Invalidate removes the key from both L1 and L2 caches.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which specifies the cache key to remove.
 //
 // Returns error when the operation fails.
@@ -330,7 +327,6 @@ func (m *MultiLevelAdapter[K, V]) Invalidate(ctx context.Context, key K) error {
 // Compute computes and atomically updates the value in L1 cache using the provided
 // function.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
 // Takes computeFunction (func(...)) which receives the old value and whether it was
 // found, and returns the new value with an action to perform.
@@ -344,7 +340,6 @@ func (m *MultiLevelAdapter[K, V]) Compute(ctx context.Context, key K, computeFun
 
 // ComputeIfAbsent atomically computes and stores a value in L1 if absent.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to look up or create.
 // Takes computeFunction (func() V) which computes the value if the key is absent.
 //
@@ -357,7 +352,6 @@ func (m *MultiLevelAdapter[K, V]) ComputeIfAbsent(ctx context.Context, key K, co
 
 // ComputeIfPresent atomically updates an existing value in L1 cache.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the entry to update.
 // Takes computeFunction (func(...)) which computes the new value from the old value.
 //
@@ -370,7 +364,6 @@ func (m *MultiLevelAdapter[K, V]) ComputeIfPresent(ctx context.Context, key K, c
 
 // ComputeWithTTL atomically computes a new value with per-call TTL control in L1 cache.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
 // Takes computeFunction (func(...)) which receives the old value and found flag,
 // returning a ComputeResult containing the new value, action, and optional TTL.
@@ -646,7 +639,6 @@ func (m *MultiLevelAdapter[K, V]) BulkSet(ctx context.Context, items map[K]V, ta
 
 // InvalidateByTags removes all entries with matching tags from both caches.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes tags (...string) which specifies the cache tags to match for removal.
 //
 // Returns int which is the count of entries invalidated from the L1 cache.
@@ -665,8 +657,6 @@ func (m *MultiLevelAdapter[K, V]) InvalidateByTags(ctx context.Context, tags ...
 }
 
 // InvalidateAll clears all entries from both L1 and L2 caches.
-//
-// Takes ctx (context.Context) for cancellation and timeout.
 //
 // Returns error when the operation fails.
 func (m *MultiLevelAdapter[K, V]) InvalidateAll(ctx context.Context) error {
@@ -720,11 +710,9 @@ func (m *MultiLevelAdapter[K, V]) Stats() cache_dto.Stats {
 
 // Close releases resources held by both L1 and L2 caches.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
-//
 // Returns error which is the joined errors from closing L1 and L2; nil when both close
-// cleanly. Idempotent: subsequent calls return the captured error without re-closing the
-// underlying providers.
+// cleanly. Subsequent calls return the captured error without re-closing the underlying
+// providers.
 func (m *MultiLevelAdapter[K, V]) Close(ctx context.Context) error {
 	var closeErr error
 	m.closeOnce.Do(func() {
@@ -755,7 +743,6 @@ func (m *MultiLevelAdapter[K, V]) Refresh(ctx context.Context, key K, loader cac
 
 // GetEntry returns the full entry metadata for a key from L1.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the entry to retrieve.
 //
 // Returns cache_dto.Entry[K, V] which contains the entry with metadata.
@@ -767,7 +754,6 @@ func (m *MultiLevelAdapter[K, V]) GetEntry(ctx context.Context, key K) (cache_dt
 
 // ProbeEntry returns entry metadata without affecting statistics.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the entry to probe.
 //
 // Returns cache_dto.Entry[K, V] which contains the entry with metadata.
@@ -800,7 +786,6 @@ func (m *MultiLevelAdapter[K, V]) WeightedSize() uint64 {
 
 // SetExpiresAfter manually sets the expiration time for a key in L1.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
 // Takes expiresAfter (time.Duration) which specifies the new expiration time.
 //
@@ -811,7 +796,6 @@ func (m *MultiLevelAdapter[K, V]) SetExpiresAfter(ctx context.Context, key K, ex
 
 // SetRefreshableAfter manually sets the refresh time for a key in L1.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
 // Takes refreshableAfter (time.Duration) which specifies when the entry becomes eligible
 // for background refresh.
@@ -823,7 +807,6 @@ func (m *MultiLevelAdapter[K, V]) SetRefreshableAfter(ctx context.Context, key K
 
 // Search performs full-text search across indexed fields. Delegates to the L1 provider.
 //
-// Takes ctx (context.Context) for cancellation.
 // Takes query (string) which is the search query.
 // Takes opts (*cache_dto.SearchOptions) which configures the search.
 //
@@ -837,7 +820,6 @@ func (m *MultiLevelAdapter[K, V]) Search(ctx context.Context, query string, opts
 // Query performs structured filtering, sorting, and pagination. Delegates to the L1
 // provider.
 //
-// Takes ctx (context.Context) for cancellation.
 // Takes opts (*cache_dto.QueryOptions) which configures the query.
 //
 // Returns cache_dto.SearchResult[K, V] which contains the query results from the L1
@@ -884,8 +866,6 @@ func WithBackgroundConcurrency[K comparable, V any](limit int) AdapterOption[K, 
 
 // NewMultiLevelAdapter creates a new multi-level cache provider.
 //
-// Takes ctx (context.Context) which carries logging context for circuit breaker
-// initialisation.
 // Takes name (string) which identifies this adapter for logging.
 // Takes l1 (ProviderPort[K, V]) which is the fast local cache.
 // Takes l2 (ProviderPort[K, V]) which is the remote backing cache.

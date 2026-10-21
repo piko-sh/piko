@@ -1,4 +1,0 @@
-CREATE TABLE products (
-    id INTEGER PRIMARY KEY,
-    name VARCHAR NOT NULL
-);

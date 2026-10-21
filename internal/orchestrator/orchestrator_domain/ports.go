@@ -38,6 +38,8 @@ type TaskExecutor interface {
 // TaskStore provides storage and retrieval for task state. It handles crash recovery and
 // workflow status queries.
 type TaskStore interface {
+	TaskStoreV2
+
 	// CreateTask creates a new task in the system.
 	//
 	// Takes task (*Task) which specifies the task to create.
@@ -58,15 +60,6 @@ type TaskStore interface {
 	//
 	// Returns error when the update fails.
 	UpdateTask(ctx context.Context, task *Task) error
-
-	// FetchAndMarkDueTasks retrieves tasks that are due and marks them as in progress.
-	//
-	// Takes priority (TaskPriority) which filters tasks by their priority level.
-	// Takes limit (int) which specifies the maximum number of tasks to fetch.
-	//
-	// Returns []*Task which contains the tasks that were fetched and marked.
-	// Returns error when the fetch or mark operation fails.
-	FetchAndMarkDueTasks(ctx context.Context, priority TaskPriority, limit int) ([]*Task, error)
 
 	// GetTasksByID reads the tasks with the given IDs without changing them. IDs that do not
 	// exist are skipped.
@@ -106,71 +99,6 @@ type TaskStore interface {
 	//
 	// Returns error when the task cannot be created or a duplicate exists.
 	CreateTaskWithDedup(ctx context.Context, task *Task) error
-
-	// RecoverStaleTasks resets PROCESSING tasks that have exceeded the stale threshold.
-	// Tasks are marked as RETRYING if they have attempts remaining, or FAILED if they have
-	// exceeded max retries.
-	//
-	// Takes staleThreshold (time.Duration) which defines how long a task can be in
-	// PROCESSING before being considered stuck.
-	// Takes maxRetries (int) which is the maximum retry count before a task is marked
-	// FAILED.
-	// Takes recoveryError (string) which is the error message to record on recovered tasks.
-	//
-	// Returns int which is the count of tasks recovered.
-	// Returns error when the recovery operation fails.
-	RecoverStaleTasks(ctx context.Context, staleThreshold time.Duration, maxRetries int, recoveryError string) (int, error)
-
-	// GetStaleProcessingTaskCount returns the count of tasks stuck in PROCESSING longer than
-	// the threshold.
-	//
-	// Takes staleThreshold (time.Duration) which defines when a PROCESSING task is
-	// considered stuck.
-	//
-	// Returns int64 which is the count of stale tasks.
-	// Returns error when the count cannot be retrieved.
-	GetStaleProcessingTaskCount(ctx context.Context, staleThreshold time.Duration) (int64, error)
-
-	// UpdateTaskHeartbeat updates the updated_at timestamp for a task that is currently in
-	// PROCESSING status. This prevents the task from being recovered by the stale task
-	// recovery mechanism while it is still actively being worked on.
-	//
-	// Takes taskID (string) which identifies the task to update.
-	//
-	// Returns error when the update fails (task not found or not in PROCESSING status).
-	UpdateTaskHeartbeat(ctx context.Context, taskID string) error
-
-	// ClaimStaleTasksForRecovery atomically claims stale PROCESSING tasks for recovery. It
-	// uses row-level locking to prevent multiple nodes from recovering the same task.
-	//
-	// Takes nodeID (string) which identifies the node claiming the tasks.
-	// Takes staleThreshold (time.Duration) which defines when a task is considered stale.
-	// Takes leaseTimeout (time.Duration) which sets how long the claim is valid.
-	// Takes batchLimit (int) which limits the number of tasks to claim per call.
-	//
-	// Returns []RecoveryClaimedTask which contains the claimed tasks.
-	// Returns error when the claim operation fails.
-	ClaimStaleTasksForRecovery(ctx context.Context, nodeID string, staleThreshold time.Duration, leaseTimeout time.Duration, batchLimit int) ([]RecoveryClaimedTask, error)
-
-	// RecoverClaimedTasks recovers tasks previously claimed by a node. Tasks are set to
-	// RETRYING if attempts remain, or FAILED otherwise, and the lease is cleared.
-	//
-	// Takes nodeID (string) which identifies the node that claimed the tasks.
-	// Takes maxRetries (int) which is the max retries before marking FAILED.
-	// Takes recoveryError (string) which is the error message to record.
-	//
-	// Returns int which is the count of tasks recovered.
-	// Returns error when the recovery fails.
-	RecoverClaimedTasks(ctx context.Context, nodeID string, maxRetries int, recoveryError string) (int, error)
-
-	// ReleaseRecoveryLeases releases all recovery leases held by this node. Called during
-	// graceful shutdown to allow other nodes to recover the tasks.
-	//
-	// Takes nodeID (string) which identifies the node releasing leases.
-	//
-	// Returns int which is the count of leases released.
-	// Returns error when the release fails.
-	ReleaseRecoveryLeases(ctx context.Context, nodeID string) (int, error)
 
 	// CreateWorkflowReceipt creates a new workflow receipt for tracking completion. Receipts
 	// are used to notify the originating node when a workflow completes, even if the tasks
@@ -233,25 +161,12 @@ type TaskStore interface {
 	// The provided TaskStore is scoped to the transaction; all reads and writes through it
 	// are atomic. If fn returns an error (or panics), all mutations are rolled back.
 	//
-	// Takes fn which receives a transactional TaskStore. The caller MUST use this
-	// transactional store for all operations that should be atomic.
+	// Takes fn (func(context.Context, TaskStore) error) which receives a transactional
+	// TaskStore. The caller MUST use this transactional store for all operations that should
+	// be atomic.
 	//
 	// Returns error when fn returns an error or the transaction fails to commit.
 	RunAtomic(ctx context.Context, fn func(ctx context.Context, transactionStore TaskStore) error) error
-}
-
-// RecoveryClaimedTask represents a task that has been claimed for recovery. This is
-// returned by ClaimStaleTasksForRecovery so the caller knows which tasks were claimed and
-// their current attempt count.
-type RecoveryClaimedTask struct {
-	// ID is the unique identifier for the claimed task.
-	ID string
-
-	// WorkflowID is the unique identifier for the workflow.
-	WorkflowID string
-
-	// Attempt is the retry attempt number for this task.
-	Attempt int32
 }
 
 // PendingReceipt represents a workflow receipt that is waiting to be resolved. Used for
@@ -275,7 +190,6 @@ type PendingReceipt struct {
 type OrchestratorService interface {
 	// RegisterExecutor adds a named task executor to the registry.
 	//
-	// Takes ctx (context.Context) which carries logging context.
 	// Takes name (string) which identifies the executor.
 	// Takes executor (TaskExecutor) which handles tasks of the named kind.
 	//
@@ -372,8 +286,6 @@ type EventBus interface {
 
 	// Close releases all resources and closes active subscriptions.
 	//
-	// Takes ctx (context.Context) which carries logging context for the shutdown operation.
-	//
 	// Returns error when the close operation fails.
 	Close(ctx context.Context) error
 }
@@ -386,7 +298,8 @@ type EventHandler func(ctx context.Context, event Event) error
 // DelayedPublisher handles scheduling tasks for future execution. It keeps a min-heap of
 // tasks ordered by their scheduled time and sends them when they become due.
 type DelayedPublisher interface {
-	// Schedule adds a task to run at its ScheduledExecuteAt time.
+	// Schedule publishes a reference to the stored task at its ScheduledExecuteAt time. Only
+	// the reference and the due time are kept, so the caller may change the task afterwards.
 	//
 	// Takes task (*Task) which is the task to schedule.
 	//
@@ -404,4 +317,11 @@ type DelayedPublisher interface {
 	//
 	// Returns int which is the count of tasks not yet dispatched.
 	PendingCount() int
+
+	// ForegroundPendingCount returns the number of tasks waiting to be dispatched that are
+	// not background work, including one being handed to the dispatcher. A build waits for
+	// these tasks but not for background ones.
+	//
+	// Returns int which is the count of foreground tasks not yet dispatched.
+	ForegroundPendingCount() int
 }

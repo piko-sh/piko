@@ -26,7 +26,7 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (
@@ -487,7 +487,6 @@ func findTopLevelExpressionOnNode(ctx context.Context, node *ast_domain.Template
 // findExprInPassedProps searches passed props for an expression at the given position.
 // This handles server.* prefixed attributes on partial invocations.
 //
-// Takes ctx (context.Context) which carries the request context for logging.
 // Takes node (*ast_domain.TemplateNode) which is the node to search.
 // Takes position (protocol.Position) which is the position to find.
 //

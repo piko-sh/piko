@@ -522,8 +522,6 @@ func (*S3Provider) SupportsPresignedURLs() bool {
 // Close marks the provider as shut down. The AWS SDK manages connection pools so there is
 // nothing to release; the closed flag exists so callers can detect double-close.
 //
-// Takes ctx (context.Context) which is unused but required by the interface.
-//
 // Returns error which is errS3ProviderClosed when invoked more than once, otherwise nil.
 func (p *S3Provider) Close(context.Context) error {
 	if !p.closed.CompareAndSwap(false, true) {
@@ -949,7 +947,6 @@ func isRetryableS3ErrorCode(code string) bool {
 // startBatchWorkers spawns concurrency worker goroutines tracked by the provided
 // WaitGroup; each processes jobs from the jobs channel.
 //
-// Takes ctx (context.Context) which is threaded to each worker for cancellation.
 // Takes wg (*sync.WaitGroup) which tracks worker completion.
 // Takes concurrency (int) which specifies the number of workers.
 // Takes jobs (<-chan batchJob[T]) which provides jobs for workers to process.
@@ -975,7 +972,6 @@ func startBatchWorkers[T any](
 // processBatchJobs reads jobs from a channel and processes each one until the channel is
 // closed or an error occurs (when continueOnError is false).
 //
-// Takes ctx (context.Context) which is passed to each worker function call.
 // Takes jobs (<-chan batchJob[T]) which provides the jobs to process.
 // Takes results (chan<- batchResult) which receives the processing results.
 // Takes continueOnError (bool) which controls whether to stop on the first error.
@@ -1036,7 +1032,6 @@ func collectBatchResults(results <-chan batchResult, result *storage.BatchResult
 
 // runBatchWorkers creates a worker pool to process a slice of items at the same time.
 //
-// Takes ctx (context.Context) which is threaded to workers for cancellation.
 // Takes items ([]T) which contains the items to process.
 // Takes concurrency (int) which sets the number of workers to run in parallel.
 // Takes continueOnError (bool) which controls whether processing continues after a
@@ -1077,7 +1072,6 @@ func runBatchWorkers[T any](ctx context.Context, items []T, concurrency int, con
 
 // logBatchResult logs the result of a batch operation in a standard format.
 //
-// Takes ctx (context.Context) which carries the logger.
 // Takes op (string) which names the batch operation that was run.
 // Takes provider (string) which identifies the storage provider used.
 // Takes concurrency (int) which shows how many workers ran at once.

@@ -42,6 +42,14 @@ type PersistenceConfig[K comparable, V any] struct {
 	// Enabled controls whether persistence is active; when false, the cache operates purely
 	// in-memory. Default: false.
 	Enabled bool
+
+	// ReadOnly loads persistent data into memory without modifying the persistence
+	// directory.
+	ReadOnly bool
+
+	// QuarantineCorrupt replaces unreadable persistence files with an empty cache and
+	// retains the damaged files for inspection.
+	QuarantineCorrupt bool
 }
 
 // Validate reports whether the persistence configuration is correct.

@@ -130,30 +130,30 @@ func (qs queueSelector) PollAttempts(priority TaskPriority) int {
 	}
 }
 
-// calculateRetryBackoff computes the delay before retrying a failed task.
+// calculateRetryBackoff returns how long to wait before retrying a failed attempt.
 //
-// Uses exponential backoff with configurable jitter. The formula is: base^attempt seconds
-// + random jitter milliseconds, where base is 10 seconds. The exponential part is capped
-// at maxBackoff before conversion, so large attempt numbers neither overflow nor produce
-// waits longer than the cap.
+// The delay grows exponentially with the attempt and is capped at maxBackoff. Jitter
+// shortens it by up to half, so tasks that failed together retry at different times while
+// no delay ever exceeds the cap.
 //
-// Takes attempt (int) which is the current attempt number (1-indexed after first
-// failure).
-// Takes maxBackoff (time.Duration) which caps the exponential part of the delay.
-// Takes randFunction (randFunc) which returns a random int in [0, n). Pass nil for no
-// jitter.
+// Takes attempt (int) which is the attempt that failed.
+// Takes maxBackoff (time.Duration) which caps the delay.
+// Takes randFunction (randFunc) which returns a random number below its argument, or nil
+// for no jitter.
 //
 // Returns time.Duration which is the calculated backoff delay.
 func calculateRetryBackoff(attempt int, maxBackoff time.Duration, randFunction randFunc) time.Duration {
 	backoffSeconds := min(math.Pow(backoffBase, float64(attempt)), maxBackoff.Seconds())
 	backoff := time.Duration(backoffSeconds * float64(time.Second))
-
-	var jitter time.Duration
-	if randFunction != nil {
-		jitter = time.Duration(randFunction(jitterMilliseconds)) * time.Millisecond
+	if randFunction == nil {
+		return backoff
 	}
 
-	return backoff + jitter
+	spreadMilliseconds := int(backoff / 2 / time.Millisecond)
+	if spreadMilliseconds <= 0 {
+		return backoff
+	}
+	return backoff - time.Duration(randFunction(spreadMilliseconds))*time.Millisecond
 }
 
 // buildCompletionEventPayload constructs the payload map for task completion events. This

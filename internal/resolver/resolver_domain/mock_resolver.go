@@ -122,7 +122,6 @@ func (m *MockResolver) GetBaseDir() string {
 
 // ResolvePKPath delegates to ResolvePKPathFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes importPath (string) which is the import path to resolve.
 // Takes containingFilePath (string) which is the path of the file containing the import.
 //
@@ -137,7 +136,6 @@ func (m *MockResolver) ResolvePKPath(ctx context.Context, importPath string, con
 
 // ResolveCSSPath delegates to ResolveCSSPathFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes importPath (string) which is the CSS import path to resolve.
 // Takes containingDir (string) which is the directory containing the importing file.
 //
@@ -152,7 +150,6 @@ func (m *MockResolver) ResolveCSSPath(ctx context.Context, importPath string, co
 
 // ResolveAssetPath delegates to ResolveAssetPathFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes importPath (string) which is the asset import path to resolve.
 // Takes containingFilePath (string) which is the path of the file containing the import.
 //
@@ -181,7 +178,6 @@ func (m *MockResolver) ConvertEntryPointPathToManifestKey(entryPointPath string)
 
 // GetModuleDir delegates to GetModuleDirFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes modulePath (string) which is the module path to resolve to a directory.
 //
 // Returns ("", nil) if GetModuleDirFunc is nil.
@@ -195,7 +191,6 @@ func (m *MockResolver) GetModuleDir(ctx context.Context, modulePath string) (str
 
 // FindModuleBoundary delegates to FindModuleBoundaryFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes importPath (string) which is the import path to find the module boundary for.
 //
 // Returns ("", "", nil) if FindModuleBoundaryFunc is nil.

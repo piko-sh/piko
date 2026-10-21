@@ -16,26 +16,26 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package db handles database migration management and SQL code generation for Piko
-// applications, with pluggable engine backends for different SQL dialects.
+// Package db handles database registration, migrations, seeds and SQL code generation for
+// Piko applications, with pluggable engine backends for different SQL dialects.
 //
-// Register an engine backend and use the migration service to apply, roll back, and
-// inspect migration state. Engine adapters live in the db_engine_* sub-packages; live
-// database introspection providers live in the db_catalogue_* sub-packages.
+// Register a database with an engine from one of the db_engine_* sub-packages. The engine
+// supplies the toolchain that analyses SQL, generates typed Go and runs migrations;
+// Piko's build runs generation for every registered database that has query files.
 //
 // # Usage
 //
-// Running migrations with a standalone executor:
+// Running migrations outside the framework:
 //
-//	executor := db.NewMigrationExecutor(sqlDB, postgresDialect)
-//	fileReader := db.NewFSFileReader(os.DirFS("migrations"))
-//	migrator := db.NewMigrationService(executor, fileReader, ".")
-//
+//	migrator, err := db.NewMigrator(db_engine_postgres.Postgres(), sqlDB, migrationsFS, ".")
+//	if err != nil {
+//	    return err
+//	}
 //	applied, err := migrator.Up(ctx)
 //
 // Using lifecycle hooks:
 //
-//	migrator := db.NewMigrationService(executor, fileReader, ".",
+//	migrator, err := db.NewMigrator(engine, sqlDB, migrationsFS, ".",
 //	    db.WithBeforeMigration(func(ctx context.Context, hook db.MigrationHookContext) error {
 //	        log.Printf("applying %s (v%d)", hook.Name, hook.Version)
 //	        return nil
@@ -44,6 +44,6 @@
 //
 // # Thread safety
 //
-// [MigrationService] uses advisory locking to prevent concurrent migration runs. The
-// service itself is safe for concurrent use.
+// [MigrationService] uses locking to prevent concurrent migration runs. The service
+// itself is safe for concurrent use.
 package db

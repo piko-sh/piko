@@ -239,7 +239,7 @@ func (p preEncodedBatch) Marshal() ([]byte, error) { return p.data, nil }
 
 // Unmarshal always fails because preEncodedBatch is send-only.
 //
-// Takes a []byte which is the wire payload, ignored.
+// Takes ([]byte) which is the wire payload, ignored.
 //
 // Returns error which always reports that the type cannot be decoded.
 func (preEncodedBatch) Unmarshal([]byte) error {

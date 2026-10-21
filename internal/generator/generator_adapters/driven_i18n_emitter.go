@@ -31,7 +31,7 @@ import (
 	"piko.sh/piko/internal/i18n/i18n_adapters"
 	"piko.sh/piko/internal/i18n/i18n_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // I18nEmitterConfig holds the settings needed by the i18n emitter.
@@ -137,7 +137,6 @@ func (e *DrivenI18nEmitter) resolveI18nSourceDir() string {
 
 // loadTranslationFiles reads all JSON translation files from the given directory.
 //
-// Takes ctx (context.Context) which carries logging context.
 // Takes dirPath (string) which is the directory to scan for translation files.
 //
 // Returns i18n_domain.Translations which contains all loaded translations.
@@ -171,7 +170,6 @@ func (e *DrivenI18nEmitter) loadTranslationFiles(ctx context.Context, dirPath st
 
 // loadSingleTranslationFile loads and parses a single translation JSON file.
 //
-// Takes ctx (context.Context) which carries logging context.
 // Takes dirPath (string) which is the directory containing the file.
 // Takes fileName (string) which is the name of the JSON file.
 // Takes translations (i18n_domain.Translations) which receives the parsed translations.

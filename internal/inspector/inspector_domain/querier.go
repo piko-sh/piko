@@ -342,8 +342,6 @@ func (ti *TypeQuerier) ResolveToUnderlyingASTWithContext(ctx context.Context, ty
 // resolve expands type aliases until it reaches the final type. It stops when no more
 // aliases can be found or the maximum depth is reached.
 //
-// Takes ctx (context.Context) which carries logging context for trace output.
-//
 // Returns goast.Expr which is the fully resolved type expression, or the current
 // expression if the maximum depth is reached.
 func (r *aliasResolver) resolve(ctx context.Context) goast.Expr {
@@ -412,8 +410,6 @@ func (r *aliasResolver) updateFilePathFromOriginalBase(originalBaseType goast.Ex
 
 // resolveNextAlias tries to resolve an alias using a two-step approach.
 //
-// Takes ctx (context.Context) which carries logging context for trace output.
-//
 // Returns bool which is true if an alias was resolved in either step.
 func (r *aliasResolver) resolveNextAlias(ctx context.Context) bool {
 	if r.tryResolveLocalAlias() {
@@ -446,8 +442,6 @@ func (r *aliasResolver) tryResolveLocalAlias() bool {
 
 // tryResolveDTOAlias tries to resolve the current expression as a cross-package alias
 // using the cached DTO. It updates the resolver's state on success.
-//
-// Takes ctx (context.Context) which carries logging context for trace output.
 //
 // Returns bool which is true when the alias was resolved.
 func (r *aliasResolver) tryResolveDTOAlias(ctx context.Context) bool {
@@ -502,7 +496,6 @@ func (r *aliasResolver) resolveGenericAliasTypeString(namedType *inspector_dto.T
 // updateFilePathForResolvedAlias updates the file path to point to where the resolved
 // alias type is defined.
 //
-// Takes ctx (context.Context) which carries logging context for trace output.
 // Takes namedType (*inspector_dto.Type) which is the alias type to resolve.
 func (r *aliasResolver) updateFilePathForResolvedAlias(ctx context.Context, namedType *inspector_dto.Type) {
 	_, l := logger_domain.From(ctx, log)
@@ -527,7 +520,6 @@ func (r *aliasResolver) updateFilePathForResolvedAlias(ctx context.Context, name
 
 // determineResolvedFilePath finds the best file path for the resolved alias.
 //
-// Takes ctx (context.Context) which carries logging context for trace output.
 // Takes resolvedType (*inspector_dto.Type) which is the resolved target type.
 // Takes namedType (*inspector_dto.Type) which is the original named alias type.
 //

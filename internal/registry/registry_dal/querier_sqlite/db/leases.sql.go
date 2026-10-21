@@ -9,7 +9,7 @@ import (
 )
 
 const claimrelease = `INSERT INTO release_lease (release_id, publish_digest, state, first_seen_at, heartbeat_at)
-VALUES (?, ?, 'publishing', ?, ?)
+VALUES (?1, ?2, 'publishing', ?3, ?4)
 ON CONFLICT(release_id) DO NOTHING
 RETURNING release_id;`
 
@@ -35,7 +35,7 @@ func (queries *Queries) ClaimRelease(ctx context.Context, params ClaimReleasePar
 	return row, true, nil
 }
 
-const deletereleaselease = `DELETE FROM release_lease WHERE release_id = ?;`
+const deletereleaselease = `DELETE FROM release_lease WHERE release_id = ?1;`
 
 func (queries *Queries) DeleteReleaseLease(ctx context.Context, releaseID string) error {
 	_, err := queries.writer.ExecContext(ctx, deletereleaselease, releaseID)
@@ -43,7 +43,7 @@ func (queries *Queries) DeleteReleaseLease(ctx context.Context, releaseID string
 }
 
 const deletestalepublishinglease = `DELETE FROM release_lease
-WHERE release_id = ? AND state = 'publishing' AND heartbeat_at < ?;`
+WHERE release_id = ?1 AND state = 'publishing' AND heartbeat_at < ?2;`
 
 type DeleteStalePublishingLeaseParams struct {
 	ReleaseID   string
@@ -57,7 +57,7 @@ func (queries *Queries) DeleteStalePublishingLease(ctx context.Context, params D
 
 const getrelease = `SELECT release_id, publish_digest, state, first_seen_at, published_at, heartbeat_at, retired_at
 FROM release_lease
-WHERE release_id = ?;`
+WHERE release_id = ?1;`
 
 type GetReleaseRow struct {
 	ReleaseID     string `json:"release_id"`
@@ -82,8 +82,8 @@ func (queries *Queries) GetRelease(ctx context.Context, releaseID string) (GetRe
 }
 
 const heartbeatrelease = `UPDATE release_lease
-SET heartbeat_at = ?
-WHERE release_id = ? AND heartbeat_at < ?;`
+SET heartbeat_at = ?1
+WHERE release_id = ?2 AND heartbeat_at < ?3;`
 
 type HeartbeatReleaseParams struct {
 	HeartbeatAt  int64
@@ -98,7 +98,7 @@ func (queries *Queries) HeartbeatRelease(ctx context.Context, params HeartbeatRe
 
 const listexpiredreleases = `SELECT release_id
 FROM release_lease
-WHERE state = 'published' AND heartbeat_at < ? AND release_id <> ?;`
+WHERE state = 'published' AND heartbeat_at < ?1 AND release_id <> ?2;`
 
 type ListExpiredReleasesParams struct {
 	HeartbeatAt int64
@@ -115,12 +115,16 @@ func (queries *Queries) ListExpiredReleases(ctx context.Context, params ListExpi
 	}
 	defer rows.Close()
 	var results []ListExpiredReleasesRow
-	for rows.Next() {
+	if rows.Next() {
 		var row ListExpiredReleasesRow
-		if err := rows.Scan(&row.ReleaseID); err != nil {
-			return nil, err
+		scanArgs := []any{&row.ReleaseID}
+		for more := true; more; more = rows.Next() {
+			row = ListExpiredReleasesRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -129,8 +133,8 @@ func (queries *Queries) ListExpiredReleases(ctx context.Context, params ListExpi
 }
 
 const markreleasepublished = `UPDATE release_lease
-SET state = 'published', published_at = ?, heartbeat_at = MAX(heartbeat_at, ?)
-WHERE release_id = ?;`
+SET state = 'published', published_at = ?1, heartbeat_at = MAX(heartbeat_at, ?2)
+WHERE release_id = ?3;`
 
 type MarkReleasePublishedParams struct {
 	PublishedAt int64

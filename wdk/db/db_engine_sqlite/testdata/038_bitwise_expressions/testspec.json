@@ -1,3 +1,0 @@
-{
-  "description": "Bitwise operators (&, |, <<, >>) in SELECT output columns. Verifies correct parsing and integer type resolution."
-}

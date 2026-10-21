@@ -18,7 +18,4 @@
 
 package testmodule
 
-// This file establishes testmodule as a Piko project.
-// The presence of a go.mod and this dependency marker enables module-based asset resolution.
-
 const PikoDependencyMarker = true

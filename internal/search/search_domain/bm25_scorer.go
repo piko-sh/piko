@@ -24,7 +24,7 @@ import (
 	"strings"
 
 	"piko.sh/piko/internal/search/search_dto"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // BM25Scorer implements the ScorerPort interface using the BM25 (Best Matching 25)

@@ -359,8 +359,6 @@ func (s *spamDetectService) Analyse(
 
 // IsEnabled reports whether at least one detector is registered.
 //
-// Takes ctx (context.Context) which is the caller context.
-//
 // Returns bool which is true when detectors are available.
 func (s *spamDetectService) IsEnabled(ctx context.Context) bool {
 	return len(s.registry.ListProviders(ctx)) > 0
@@ -419,7 +417,6 @@ func (s *spamDetectService) GetDetectors(ctx context.Context) []string {
 
 // HasDetector checks if a detector with the given name has been registered.
 //
-// Takes ctx (context.Context) which is the caller context.
 // Takes name (string) which is the detector name to look up.
 //
 // Returns bool which is true if the detector exists.
@@ -525,7 +522,6 @@ func (s *spamDetectService) ReportHam(ctx context.Context, submissionID string) 
 // prepareSubmission validates inputs, assigns a submission identifier if absent, and runs
 // the schema-aware sanitisation step.
 //
-// Takes ctx (context.Context) which is the caller context.
 // Takes submission (*spamdetect_dto.Submission) which is mutated in place.
 // Takes schema (*spamdetect_dto.Schema) which provides per-field limits.
 //
@@ -699,7 +695,6 @@ func (s *spamDetectService) notifyFeedbackDetectors(ctx context.Context, submiss
 // declared signals. The matching set is cached by schema identity since schemas are
 // immutable post-construction.
 //
-// Takes ctx (context.Context) which is the caller context.
 // Takes schema (*spamdetect_dto.Schema) which declares the required signals.
 //
 // Returns []detectorInfo which contains the matching detectors.
@@ -941,7 +936,6 @@ func (s *spamDetectService) runSingleDetector(
 // invokeDetectorHealthCheck runs a detector health check under a short timeout with panic
 // protection.
 //
-// Takes ctx (context.Context) which is the caller context.
 // Takes name (string) which identifies the detector.
 // Takes detector (Detector) which is the detector to probe.
 //

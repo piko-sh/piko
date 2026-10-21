@@ -60,7 +60,7 @@ type encoder struct {
 	// same type is encountered multiple times.
 	methodSetCache map[types.Type]*types.MethodSet
 
-	// primitiveGuard is a reusable recursion guard map for goastutil.IsPrimitiveRecursive
+	// primitiveGuard is a reusable recursion guard map for typecheck.IsPrimitiveRecursive
 	// calls. Cleared between uses to avoid allocating a new map per call.
 	primitiveGuard map[types.Type]bool
 }

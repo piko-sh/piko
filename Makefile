@@ -109,6 +109,39 @@ test-coverage: ## Generate coverage for a package (PKG=internal/ast)
 test-coverage-report: ## Generate full coverage report
 	@$(HACK_DIR)/test/coverage-report.sh
 
+.PHONY: bench-orchestrator
+bench-orchestrator: ## Record an orchestrator benchmark baseline (BENCH_COUNT, BENCH_FILTER)
+	@$(HACK_DIR)/bench/orchestrator.sh baseline
+
+.PHONY: bench-orchestrator-compare
+bench-orchestrator-compare: ## Compare orchestrator benchmarks (BASE=origin/master HEAD=.)
+	@$(HACK_DIR)/bench/orchestrator.sh compare $(or $(BASE),origin/master) $(or $(HEAD),.)
+
+.PHONY: bench-orchestrator-profile
+bench-orchestrator-profile: ## Profile one orchestrator benchmark (BENCH=regex PKG=package)
+	@$(HACK_DIR)/bench/orchestrator.sh profile '$(BENCH)' $(PKG)
+
+.PHONY: bench-orchestrator-escape
+bench-orchestrator-escape: ## Report heap escapes in the orchestrator hot path
+	@$(HACK_DIR)/bench/orchestrator.sh escape
+
+.PHONY: bench-orchestrator-gate
+bench-orchestrator-gate: ## Fail on a regression in an orchestrator comparison (CSV=benchstat.csv, default: last compare)
+	@$(HACK_DIR)/bench/orchestrator.sh gate $(CSV)
+
+.PHONY: soak-orchestrator
+soak-orchestrator: ## Soak the orchestrator under steady load (SOAK_DURATION=5m per store)
+	@PIKO_ORCHESTRATOR_SOAK=1 PIKO_ORCHESTRATOR_SOAK_DURATION=$(or $(SOAK_DURATION),5m) \
+		$(HACK_DIR)/test/run-capped.sh $(or $(CAP),8G) go test -count=1 -run '^TestSoak$$' -timeout 60m -v ./internal/orchestrator/orchestrator_test_bench/
+
+.PHONY: test-integration-suite
+test-integration-suite: ## Run one integration suite under -race and a memory cap (SUITE=orchestrator_pipeline CAP=8G)
+	@cd tests/integration/$(SUITE) && ../../../hack/test/run-capped.sh $(or $(CAP),8G) go test -race -count=1 -tags integration ./...
+
+.PHONY: alloc-budgets
+alloc-budgets: ## Check hot-path allocation budgets (no race detector)
+	@go test -count=1 -run 'AllocBudget' ./internal/... ./wdk/...
+
 .PHONY: test-profile
 test-profile: ## Profile a package (PKG=internal/ast)
 	@$(HACK_DIR)/test/profile.sh $(PKG)
@@ -209,7 +242,7 @@ tools-protoc: ## Download protoc (Protocol Buffers compiler)
 ##@ Generate
 
 .PHONY: generate-all
-generate-all: ## Run all code generators (dal, flatc, protoc, qt, interp symbols)
+generate-all: ## Run all code generators (dal, flatc, protoc, qt, interp symbols, diagnostics docs)
 	@$(HACK_DIR)/generate/all.sh
 
 .PHONY: generate-dal
@@ -239,6 +272,14 @@ generate-interp-piko-symbols: ## Generate bytecode interpreter piko runtime symb
 .PHONY: generate-interp-piko-symbols-validate
 generate-interp-piko-symbols-validate: ## Validate generated piko runtime symbol tables and types export data are up to date
 	@$(HACK_DIR)/generate/interp_piko_symbols.sh --validate
+
+.PHONY: generate-diagnostics-docs
+generate-diagnostics-docs: ## Generate docs/reference/diagnostics.md and .json from the diagnostics catalogue
+	@$(HACK_DIR)/generate/diagnostics_docs.sh
+
+.PHONY: generate-diagnostics-docs-validate
+generate-diagnostics-docs-validate: ## Validate the generated diagnostics reference is up to date
+	@$(HACK_DIR)/generate/diagnostics_docs.sh --validate
 
 .PHONY: generate-stdlib-bundle
 generate-stdlib-bundle: ## Generate the embedded stdlib type bundle for the wasm playground

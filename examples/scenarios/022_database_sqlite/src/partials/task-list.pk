@@ -46,7 +46,7 @@ import (
 
 // Task holds the display data for a single task row.
 type Task struct {
-    ID        int32  `json:"id"`
+    ID        int64  `json:"id"`
     Title     string `json:"title"`
     Completed bool   `json:"completed"`
 }

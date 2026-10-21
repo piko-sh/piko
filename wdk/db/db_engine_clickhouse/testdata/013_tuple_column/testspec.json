@@ -1,3 +1,0 @@
-{
-  "description": "Tuple(T1, T2) columns produce TypeCategoryStruct with synthesised _1 / _2 field names. Named tuples use the declared names."
-}

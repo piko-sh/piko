@@ -19,6 +19,5 @@
 package main
 
 type Response struct {
-	// A pointer to a map. This is a common pattern for optional complex fields.
 	Headers *map[string][]string
 }

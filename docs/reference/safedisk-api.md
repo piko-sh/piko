@@ -10,7 +10,7 @@ nav:
 
 # Safedisk API
 
-The `piko.sh/piko/wdk/safedisk` package provides a `Factory` that creates `Sandbox` instances rooted at validated absolute paths. A sandbox uses Go 1.24's `os.Root` (Linux: `openat2(..., RESOLVE_BENEATH)`) to confine reads and writes to a directory. Path traversal, symlink escape, and time-of-check-to-time-of-use (TOCTOU) attempts fail at the syscall layer instead of in user code. Use it for any code path that accepts untrusted file paths (uploads, browser-test fixtures, project-relative reads).
+The `piko.sh/safedisk` package provides a `Factory` that creates `Sandbox` instances rooted at validated absolute paths. A sandbox uses Go 1.24's `os.Root` (Linux: `openat2(..., RESOLVE_BENEATH)`) to confine reads and writes to a directory. Path traversal, symlink escape, and time-of-check-to-time-of-use (TOCTOU) attempts fail at the syscall layer instead of in user code. Use it for any code path that accepts untrusted file paths (uploads, browser-test fixtures, project-relative reads).
 
 ## Factory
 
@@ -134,5 +134,5 @@ The package exposes typed sentinel errors for the common rejection cases (empty 
 
 ## See also
 
-- Source: [`wdk/safedisk/`](https://github.com/piko-sh/piko/tree/master/wdk/safedisk).
+- Source: [`piko.sh/safedisk`](https://github.com/piko-sh/safedisk), a standalone module that Piko depends on.
 - [Hexagonal architecture explanation](../explanation/about-the-hexagonal-architecture.md) for why Piko exposes filesystem access as a port.

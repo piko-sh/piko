@@ -22,287 +22,105 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"piko.sh/piko/internal/testutil/allocbudget"
 )
 
-func Test_newScheduledTaskHeap(t *testing.T) {
-	t.Parallel()
-
-	heap := newScheduledTaskHeap()
-
-	if heap == nil {
-		t.Fatal("newScheduledTaskHeap returned nil")
-	}
-	if heap.Len() != 0 {
-		t.Errorf("new heap should be empty, got len=%d", heap.Len())
-	}
+func scheduledAt(id string, due time.Time) scheduledRef {
+	return scheduledRef{due: due, ref: TaskRef{ID: id}}
 }
 
-func Test_scheduledTaskHeap_PushAndPop(t *testing.T) {
-	t.Parallel()
-
-	baseTime := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
-
-	testCases := []struct {
-		name          string
-		tasks         []*Task
-		expectedOrder []string
-	}{
-		{
-			name:          "single task",
-			tasks:         []*Task{{ID: "task-1", ScheduledExecuteAt: baseTime}},
-			expectedOrder: []string{"task-1"},
-		},
-		{
-			name: "tasks in order",
-			tasks: []*Task{
-				{ID: "task-1", ScheduledExecuteAt: baseTime},
-				{ID: "task-2", ScheduledExecuteAt: baseTime.Add(1 * time.Hour)},
-				{ID: "task-3", ScheduledExecuteAt: baseTime.Add(2 * time.Hour)},
-			},
-			expectedOrder: []string{"task-1", "task-2", "task-3"},
-		},
-		{
-			name: "tasks in reverse order",
-			tasks: []*Task{
-				{ID: "task-3", ScheduledExecuteAt: baseTime.Add(2 * time.Hour)},
-				{ID: "task-2", ScheduledExecuteAt: baseTime.Add(1 * time.Hour)},
-				{ID: "task-1", ScheduledExecuteAt: baseTime},
-			},
-			expectedOrder: []string{"task-1", "task-2", "task-3"},
-		},
-		{
-			name: "tasks in random order",
-			tasks: []*Task{
-				{ID: "task-2", ScheduledExecuteAt: baseTime.Add(1 * time.Hour)},
-				{ID: "task-4", ScheduledExecuteAt: baseTime.Add(3 * time.Hour)},
-				{ID: "task-1", ScheduledExecuteAt: baseTime},
-				{ID: "task-3", ScheduledExecuteAt: baseTime.Add(2 * time.Hour)},
-			},
-			expectedOrder: []string{"task-1", "task-2", "task-3", "task-4"},
-		},
-		{
-			name: "tasks with same time preserve insertion for equal times",
-			tasks: []*Task{
-				{ID: "task-a", ScheduledExecuteAt: baseTime},
-				{ID: "task-b", ScheduledExecuteAt: baseTime},
-			},
-			expectedOrder: []string{"task-a", "task-b"},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			heap := newScheduledTaskHeap()
-
-			for _, task := range tc.tasks {
-				heap.Push(task)
-			}
-
-			if heap.Len() != len(tc.tasks) {
-				t.Errorf("expected len=%d, got len=%d", len(tc.tasks), heap.Len())
-			}
-
-			for i, expectedID := range tc.expectedOrder {
-				task := heap.Pop()
-				require.NotNil(t, task, "pop %d: expected task, got nil", i)
-				if task.ID != expectedID {
-					t.Errorf("pop %d: expected ID=%s, got ID=%s", i, expectedID, task.ID)
-				}
-			}
-
-			if heap.Len() != 0 {
-				t.Errorf("heap should be empty after popping all, got len=%d", heap.Len())
-			}
-		})
-	}
-}
-
-func Test_scheduledTaskHeap_Peek(t *testing.T) {
-	t.Parallel()
-
-	baseTime := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
-
-	t.Run("peek empty heap returns nil", func(t *testing.T) {
-		t.Parallel()
-
-		heap := newScheduledTaskHeap()
-		task := heap.Peek()
-
-		if task != nil {
-			t.Errorf("expected nil, got task with ID=%s", task.ID)
+func popIDs(t *testing.T, h *scheduledRefHeap) []string {
+	t.Helper()
+	var ids []string
+	for {
+		entry, ok := h.Pop()
+		if !ok {
+			return ids
 		}
+		ids = append(ids, entry.ref.ID)
+	}
+}
+
+func TestScheduledRefHeap_PopsInDueOrder(t *testing.T) {
+	t.Parallel()
+
+	base := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+	var h scheduledRefHeap
+	for i, id := range []string{"c", "a", "e", "b", "d"} {
+		offsets := []time.Duration{3, 1, 5, 2, 4}
+		h.Push(scheduledAt(id, base.Add(offsets[i]*time.Minute)))
+	}
+	require.Equal(t, 5, h.Len())
+
+	next, ok := h.Peek()
+	require.True(t, ok)
+	assert.Equal(t, "a", next.ref.ID, "peek returns the entry due first")
+	assert.Equal(t, 5, h.Len(), "peek does not remove it")
+
+	assert.Equal(t, []string{"a", "b", "c", "d", "e"}, popIDs(t, &h))
+}
+
+func TestScheduledRefHeap_EmptyHeap(t *testing.T) {
+	t.Parallel()
+
+	var h scheduledRefHeap
+	_, ok := h.Peek()
+	assert.False(t, ok)
+	_, ok = h.Pop()
+	assert.False(t, ok)
+	assert.Zero(t, h.Len())
+}
+
+func TestScheduledRefHeap_InterleavedPushPop(t *testing.T) {
+	t.Parallel()
+
+	base := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+	var h scheduledRefHeap
+	h.Push(scheduledAt("late", base.Add(time.Hour)))
+	h.Push(scheduledAt("soon", base.Add(time.Minute)))
+
+	first, ok := h.Pop()
+	require.True(t, ok)
+	assert.Equal(t, "soon", first.ref.ID)
+
+	h.Push(scheduledAt("sooner", base))
+	h.Push(scheduledAt("middle", base.Add(30*time.Minute)))
+	assert.Equal(t, []string{"sooner", "middle", "late"}, popIDs(t, &h))
+}
+
+func TestScheduledRefHeap_ManyEntries(t *testing.T) {
+	t.Parallel()
+
+	base := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+	var h scheduledRefHeap
+	for i := range 1000 {
+		h.Push(scheduledRef{due: base.Add(time.Duration((i*7919)%1000) * time.Second)})
+	}
+	previous := time.Time{}
+	for h.Len() > 0 {
+		entry, _ := h.Pop()
+		require.False(t, entry.due.Before(previous), "entries come out in due order")
+		previous = entry.due
+	}
+}
+
+func TestScheduledRefHeap_PopReleasesTheReference(t *testing.T) {
+	t.Parallel()
+
+	var h scheduledRefHeap
+	h.Push(scheduledAt("held", time.Now()))
+	_, _ = h.Pop()
+	assert.Equal(t, scheduledRef{}, h[:1][0], "a popped slot keeps no reference to its task ID")
+}
+
+func TestAllocBudget_ScheduledRefHeap(t *testing.T) {
+	base := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+	h := make(scheduledRefHeap, 0, 64)
+	ref := TaskRef{ID: "0192f0c4-7c1e-7b39-9d4e-3f2a1b0c9d8e", Attempt: 1}
+	allocbudget.Assert(t, allocbudget.Budget{Allocs: 0}, func() {
+		h.Push(scheduledRef{due: base, ref: ref})
+		_, _ = h.Pop()
 	})
-
-	t.Run("peek returns earliest without removing", func(t *testing.T) {
-		t.Parallel()
-
-		heap := newScheduledTaskHeap()
-		heap.Push(&Task{ID: "task-2", ScheduledExecuteAt: baseTime.Add(1 * time.Hour)})
-		heap.Push(&Task{ID: "task-1", ScheduledExecuteAt: baseTime})
-
-		task := heap.Peek()
-		if task == nil || task.ID != "task-1" {
-			t.Errorf("expected task-1, got %v", task)
-		}
-
-		task = heap.Peek()
-		if task == nil || task.ID != "task-1" {
-			t.Errorf("second peek: expected task-1, got %v", task)
-		}
-
-		if heap.Len() != 2 {
-			t.Errorf("expected len=2, got len=%d", heap.Len())
-		}
-	})
-}
-
-func Test_scheduledTaskHeap_PopEmpty(t *testing.T) {
-	t.Parallel()
-
-	heap := newScheduledTaskHeap()
-	task := heap.Pop()
-
-	if task != nil {
-		t.Errorf("expected nil from empty heap, got task with ID=%s", task.ID)
-	}
-}
-
-func Test_scheduledTaskHeap_Len(t *testing.T) {
-	t.Parallel()
-
-	baseTime := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
-
-	heap := newScheduledTaskHeap()
-
-	if heap.Len() != 0 {
-		t.Errorf("empty heap: expected len=0, got len=%d", heap.Len())
-	}
-
-	heap.Push(&Task{ID: "task-1", ScheduledExecuteAt: baseTime})
-	if heap.Len() != 1 {
-		t.Errorf("after 1 push: expected len=1, got len=%d", heap.Len())
-	}
-
-	heap.Push(&Task{ID: "task-2", ScheduledExecuteAt: baseTime.Add(time.Hour)})
-	heap.Push(&Task{ID: "task-3", ScheduledExecuteAt: baseTime.Add(2 * time.Hour)})
-	if heap.Len() != 3 {
-		t.Errorf("after 3 pushes: expected len=3, got len=%d", heap.Len())
-	}
-
-	heap.Pop()
-	if heap.Len() != 2 {
-		t.Errorf("after 1 pop: expected len=2, got len=%d", heap.Len())
-	}
-}
-
-func Test_scheduledTaskHeap_Less(t *testing.T) {
-	t.Parallel()
-
-	baseTime := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
-
-	heap := &scheduledTaskHeap{
-		{ID: "task-1", ScheduledExecuteAt: baseTime},
-		{ID: "task-2", ScheduledExecuteAt: baseTime.Add(time.Hour)},
-	}
-
-	if !heap.Less(0, 1) {
-		t.Error("expected task at index 0 to be less than task at index 1")
-	}
-
-	if heap.Less(1, 0) {
-		t.Error("expected task at index 1 to NOT be less than task at index 0")
-	}
-}
-
-func Test_scheduledTaskHeap_Swap(t *testing.T) {
-	t.Parallel()
-
-	baseTime := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
-
-	heap := &scheduledTaskHeap{
-		{ID: "task-1", ScheduledExecuteAt: baseTime},
-		{ID: "task-2", ScheduledExecuteAt: baseTime.Add(time.Hour)},
-	}
-
-	heap.Swap(0, 1)
-
-	if (*heap)[0].ID != "task-2" {
-		t.Errorf("after swap: expected index 0 to be task-2, got %s", (*heap)[0].ID)
-	}
-	if (*heap)[1].ID != "task-1" {
-		t.Errorf("after swap: expected index 1 to be task-1, got %s", (*heap)[1].ID)
-	}
-}
-
-func Test_scheduledTaskHeap_ManyTasks(t *testing.T) {
-	t.Parallel()
-
-	baseTime := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
-	heap := newScheduledTaskHeap()
-
-	for i := 99; i >= 0; i-- {
-		heap.Push(&Task{
-			ID:                 "",
-			ScheduledExecuteAt: baseTime.Add(time.Duration(i) * time.Minute),
-		})
-	}
-
-	if heap.Len() != 100 {
-		t.Fatalf("expected len=100, got len=%d", heap.Len())
-	}
-
-	var lastTime time.Time
-	for i := range 100 {
-		task := heap.Pop()
-		require.NotNil(t, task, "pop %d: unexpected nil", i)
-		if !lastTime.IsZero() && task.ScheduledExecuteAt.Before(lastTime) {
-			t.Errorf("pop %d: task time %v is before previous time %v",
-				i, task.ScheduledExecuteAt, lastTime)
-		}
-		lastTime = task.ScheduledExecuteAt
-	}
-}
-
-func Test_scheduledTaskHeap_InterleavedPushPop(t *testing.T) {
-	t.Parallel()
-
-	baseTime := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
-	heap := newScheduledTaskHeap()
-
-	heap.Push(&Task{ID: "task-3", ScheduledExecuteAt: baseTime.Add(2 * time.Hour)})
-	heap.Push(&Task{ID: "task-1", ScheduledExecuteAt: baseTime})
-
-	task := heap.Pop()
-	require.NotNil(t, task, "first pop: expected task-1, got nil")
-	if task.ID != "task-1" {
-		t.Errorf("first pop: expected task-1, got %s", task.ID)
-	}
-
-	heap.Push(&Task{ID: "task-2", ScheduledExecuteAt: baseTime.Add(1 * time.Hour)})
-	heap.Push(&Task{ID: "task-0", ScheduledExecuteAt: baseTime.Add(-1 * time.Hour)})
-
-	task = heap.Pop()
-	require.NotNil(t, task, "second pop: expected task-0, got nil")
-	if task.ID != "task-0" {
-		t.Errorf("second pop: expected task-0, got %s", task.ID)
-	}
-
-	task = heap.Pop()
-	require.NotNil(t, task, "third pop: expected task-2, got nil")
-	if task.ID != "task-2" {
-		t.Errorf("third pop: expected task-2, got %s", task.ID)
-	}
-
-	task = heap.Pop()
-	require.NotNil(t, task, "fourth pop: expected task-3, got nil")
-	if task.ID != "task-3" {
-		t.Errorf("fourth pop: expected task-3, got %s", task.ID)
-	}
-
-	if heap.Len() != 0 {
-		t.Errorf("expected empty heap, got len=%d", heap.Len())
-	}
 }

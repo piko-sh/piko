@@ -35,11 +35,11 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/collection/collection_dto"
 	"piko.sh/piko/internal/config"
+	"piko.sh/piko/internal/inspector/inspector_domain"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/resolver/resolver_domain"
-	"piko.sh/piko/internal/sfcparser"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -63,6 +63,10 @@ type annotationOptions struct {
 	// When nil, all components are processed. When set, only components in this set are
 	// refreshed, annotated, and have artefacts generated.
 	changedComponents map[string]bool
+
+	// changedEntryPoints restricts full-build annotation to these entry points unless
+	// changedComponents is set.
+	changedEntryPoints []annotator_dto.EntryPoint
 
 	// faultTolerant allows annotation to continue when errors occur. Used in LSP mode to
 	// return partial results instead of stopping on the first error.
@@ -311,18 +315,11 @@ func (s *AnnotatorService) AnnotateProject(
 	return s.runPhase2Annotation(ctx, componentGraph, virtualModule, typeResolver, phase1Diagnostics, nil, options)
 }
 
-// AnnotateProjectWithCachedIntrospection is the fast path for template-only changes. It
-// skips the introspection stage (expensive type introspection) and jumps directly to the
-// annotation stage using cached introspection data from a previous build.
+// AnnotateProjectWithCachedIntrospection annotates template changes using cached type
+// information.
 //
-// Achieves 5-10x performance improvement when only <template>, <style>, or <i18n> blocks
-// have changed, as it avoids the expensive packages.Load() call for Go type
-// introspection.
-//
-// Should be called by the coordinator when Tier 2 cache (full annotation) misses, Tier 1
-// cache (introspection) hits, and the introspection hash matches the cached entry.
-//
-// Actions are auto-discovered from the cached ActionManifest in VirtualModule.
+// Changed components are refreshed in a fork so concurrent readers can keep using the
+// cached state.
 //
 // Takes cachedComponentGraph (*annotator_dto.ComponentGraph) which provides the component
 // graph from a previous build.
@@ -334,6 +331,8 @@ func (s *AnnotatorService) AnnotateProject(
 //
 // Returns *annotator_dto.ProjectAnnotationResult which contains the annotation results
 // for the project.
+// Returns *IntrospectionSnapshot which is the cached state or a refreshed fork, or nil
+// when refreshing fails.
 // Returns *CompilationLogStore which contains the compilation logs.
 // Returns error when refreshing mutable component data fails.
 func (s *AnnotatorService) AnnotateProjectWithCachedIntrospection(
@@ -342,7 +341,7 @@ func (s *AnnotatorService) AnnotateProjectWithCachedIntrospection(
 	cachedVirtualModule *annotator_dto.VirtualModule,
 	cachedTypeResolver *TypeResolver,
 	opts ...AnnotationOption,
-) (*annotator_dto.ProjectAnnotationResult, *CompilationLogStore, error) {
+) (*annotator_dto.ProjectAnnotationResult, *IntrospectionSnapshot, *CompilationLogStore, error) {
 	options := &annotationOptions{}
 	for _, opt := range opts {
 		opt(options)
@@ -356,16 +355,25 @@ func (s *AnnotatorService) AnnotateProjectWithCachedIntrospection(
 
 	l.Internal("--- [FAST PATH] Skipping Phase 1, using cached type introspection data ---")
 
-	l.Internal("[FAST PATH] Re-parsing templates, styles, and i18n from current disk state...")
-	if err := s.refreshMutableComponentData(ctx, cachedComponentGraph, options.changedComponents); err != nil {
-		l.ReportError(span, err, "Failed to refresh mutable component data")
-		return nil, s.logStore, fmt.Errorf("fast path failed to refresh templates/styles: %w", err)
+	cached := &IntrospectionSnapshot{
+		ComponentGraph: cachedComponentGraph,
+		VirtualModule:  cachedVirtualModule,
+		TypeResolver:   cachedTypeResolver,
 	}
-	l.Internal("[FAST PATH] Successfully refreshed mutable content from disk")
+
+	l.Internal("[FAST PATH] Re-parsing changed templates, styles, and i18n from current disk state...")
+	snapshot, err := s.refreshMutableComponentData(ctx, cached, options.changedComponents)
+	if err != nil {
+		l.ReportError(span, err, "Failed to refresh mutable component data")
+		return nil, nil, s.logStore, fmt.Errorf("fast path failed to refresh templates/styles: %w", err)
+	}
+	l.Internal("[FAST PATH] Successfully refreshed mutable content from disk",
+		logger_domain.Bool("forked", snapshot != cached))
 
 	initialDiagnostics := make([]*ast_domain.Diagnostic, 0)
 
-	return s.runPhase2Annotation(ctx, cachedComponentGraph, cachedVirtualModule, cachedTypeResolver, initialDiagnostics, nil, options)
+	result, logs, err := s.runPhase2Annotation(ctx, snapshot.ComponentGraph, snapshot.VirtualModule, snapshot.TypeResolver, initialDiagnostics, nil, options)
+	return result, snapshot, logs, err
 }
 
 // Annotate runs the full annotation process for a single entry point. It is a helper for
@@ -469,6 +477,8 @@ func (s *AnnotatorService) RunPhase1IntrospectionAndAnnotate(
 	if phase1Err != nil {
 		return s.handlePhase1Error(ctx, phase1Result, phase1Err)
 	}
+
+	s.resolveChangedEntryPoints(ctx, options, phase1Result.ComponentGraph)
 
 	result, logs, err := s.runPhase2Annotation(ctx, phase1Result.ComponentGraph, phase1Result.VirtualModule, phase1Result.TypeResolver, phase1Result.Diagnostics, nil, options)
 	if err != nil {
@@ -594,13 +604,9 @@ func (s *AnnotatorService) runPhase2Annotation(
 	return handlePhase2Completion(ctx, finalResult, s.logStore, options)
 }
 
-// handlePhase1Error builds a Phase1Result when the introspection stage fails.
+// handlePhase1Error creates an introspection failure result containing the diagnostics
+// available to the language server.
 //
-// This helper makes sure the LSP can show error messages even when the introspection
-// stage does not complete. It creates a basic result with any error messages that are
-// ready, or an empty result if there are none.
-//
-// Takes ctx (context.Context) which carries the logger and tracing data.
 // Takes phase1Result (*Phase1IntrospectionResult) which holds partial results and error
 // messages from the failed step.
 // Takes phase1Err (error) which is the introspection-stage error.
@@ -1193,17 +1199,17 @@ func (s *AnnotatorService) initialiseTypeResolver(
 		})
 	}
 
-	if err := s.typeInspector.Build(ctx, virtualModule.SourceOverlay, scriptHashes); err != nil {
+	inspector, err := s.typeInspector.BuildAndGetQuerier(ctx, virtualModule.SourceOverlay, scriptHashes)
+	if errors.Is(err, inspector_domain.ErrQuerierUnavailable) {
+		return nil, errors.New("stage 3 (TypeInspector) failed: inspector could not be retrieved after build")
+	}
+	if err != nil {
 		diagnostics := convertTypeInspectorErrorToDiagnostics(ctx, err, virtualModule, s.fsReader)
 		if len(diagnostics) > 0 {
 			l.Internal("Converted Go compile errors to diagnostics", logger_domain.Int("count", len(diagnostics)))
 			return nil, NewSemanticError(diagnostics)
 		}
 		return nil, fmt.Errorf("stage 3 (TypeInspector) failed to build from virtual module: %w", err)
-	}
-	inspector, ok := s.typeInspector.GetQuerier()
-	if !ok {
-		return nil, errors.New("stage 3 (TypeInspector) failed: inspector could not be retrieved after build")
 	}
 
 	typeResolver := NewTypeResolver(inspector, virtualModule, s.collectionService)
@@ -1260,91 +1266,6 @@ func (s *AnnotatorService) collectOriginalGoFilesWithResolver(
 		return nil, fmt.Errorf("collecting Go files from %q: %w", baseDir, err)
 	}
 	return goFiles, nil
-}
-
-// refreshMutableComponentData re-parses only the parts of components that can change
-// without script changes (template, styles, i18n) from their current files on disk. The
-// fast path uses this to update cached component data without running expensive type
-// checking again.
-//
-// Takes componentGraph (*annotator_dto.ComponentGraph) which contains the cached
-// components to refresh.
-// Takes changedComponents (map[string]bool) which selects components to refresh by hashed
-// name, or is nil to refresh all components.
-//
-// Returns error when reading or parsing component files fails.
-//
-// Changes the cached ComponentGraph directly, updating:
-//   - Template (parsed TemplateAST)
-//   - StyleBlocks (raw style data)
-//   - LocalTranslations (i18n data)
-//
-// It keeps the cached Script data unchanged, as parsing scripts is expensive and script
-// content has not changed if we are on the fast path.
-//
-// Design note: The Tier 1 cache stores ComponentGraph, which includes parsed templates.
-// This is not ideal because templates can change on their own, without script changes.
-// Rather than changing the whole cache structure, we fix this by refreshing templates on
-// the fast path.
-func (s *AnnotatorService) refreshMutableComponentData(ctx context.Context, componentGraph *annotator_dto.ComponentGraph, changedComponents map[string]bool) error {
-	refreshCount := len(componentGraph.Components)
-	if changedComponents != nil {
-		refreshCount = len(changedComponents)
-	}
-	ctx, span, l := log.Span(ctx, "refreshMutableComponentData",
-		logger_domain.Int("component_count", refreshCount))
-	defer span.End()
-
-	for hashedName, component := range componentGraph.Components {
-		if changedComponents != nil && !changedComponents[hashedName] {
-			continue
-		}
-		sourcePath := component.SourcePath
-		if sourcePath == "" {
-			l.Warn("Component has no source path, skipping refresh",
-				logger_domain.String("hashed_name", hashedName))
-			continue
-		}
-
-		fileData, err := s.fsReader.ReadFile(ctx, sourcePath)
-		if err != nil {
-			return fmt.Errorf("failed to read component file '%s': %w", sourcePath, err)
-		}
-
-		sfcResult, err := sfcparser.Parse(fileData)
-		if err != nil {
-			return fmt.Errorf("failed to parse SFC for '%s': %w", sourcePath, err)
-		}
-
-		templateStartLocation := ast_domain.Location{
-			Line:   sfcResult.TemplateContentLocation.Line,
-			Column: sfcResult.TemplateContentLocation.Column,
-			Offset: 0,
-		}
-
-		freshTemplate, err := parseTemplateBlock(ctx, sfcResult.Template, sourcePath, templateStartLocation)
-		if err != nil {
-			l.Warn("Template parse error during refresh (will be caught in annotation phase)",
-				logger_domain.String(logKeyPath, sourcePath),
-				logger_domain.Error(err))
-		}
-
-		freshTranslations, err := parseI18nBlocksInto(freshTemplate, sfcResult, sourcePath)
-		if err != nil {
-			return fmt.Errorf("failed to parse i18n blocks for '%s': %w", sourcePath, err)
-		}
-
-		component.Template = freshTemplate
-		component.StyleBlocks = sfcResult.Styles
-		component.LocalTranslations = freshTranslations
-
-		l.Trace("Refreshed mutable data for component",
-			logger_domain.String(logKeyPath, sourcePath),
-			logger_domain.String("hashed_name", hashedName))
-	}
-
-	l.Internal("Successfully refreshed mutable content for all components")
-	return nil
 }
 
 // WithCompilationLogSandboxFactory sets the sandbox factory the compilation log store
@@ -1407,6 +1328,61 @@ func WithChangedComponents(hashedNames []string) AnnotationOption {
 			opts.changedComponents[name] = true
 		}
 	}
+}
+
+// WithChangedEntryPoints restricts annotation while retaining type introspection for the
+// full project.
+//
+// If no requested entry point matches the component graph, every component is annotated.
+//
+// Takes entryPoints ([]annotator_dto.EntryPoint) which lists the entry points to
+// annotate.
+//
+// Returns AnnotationOption which scopes annotation to those entry points.
+func WithChangedEntryPoints(entryPoints []annotator_dto.EntryPoint) AnnotationOption {
+	return func(opts *annotationOptions) {
+		opts.changedEntryPoints = entryPoints
+	}
+}
+
+// resolveChangedEntryPoints maps requested entry points to the component hashes that
+// restrict annotation.
+//
+// Takes options (*annotationOptions) which is updated in place.
+// Takes graph (*annotator_dto.ComponentGraph) which maps source paths to hashed names.
+func (s *AnnotatorService) resolveChangedEntryPoints(ctx context.Context, options *annotationOptions, graph *annotator_dto.ComponentGraph) {
+	if options.changedComponents != nil || len(options.changedEntryPoints) == 0 || graph == nil {
+		return
+	}
+	ctx, l := logger_domain.From(ctx, log)
+
+	resolver := s.getEffectiveResolver(options)
+	changed := make(map[string]bool, len(options.changedEntryPoints))
+	for _, entryPoint := range options.changedEntryPoints {
+		path := entryPoint.Path
+		if entryPoint.VirtualPageSource != nil && entryPoint.VirtualPageSource.TemplatePath != "" {
+			path = entryPoint.VirtualPageSource.TemplatePath
+		}
+		if !filepath.IsAbs(path) {
+			resolved, err := resolver.ResolvePKPath(ctx, path, "")
+			if err != nil {
+				continue
+			}
+			path = resolved
+		}
+		if hashedName, ok := graph.PathToHashedName[path]; ok {
+			changed[hashedName] = true
+		}
+	}
+
+	if len(changed) == 0 {
+		l.Internal("No changed entry point matched a component; annotating every component")
+		return
+	}
+	l.Internal("Scoped annotation to the changed entry points",
+		logger_domain.Int("targeted_components", len(changed)),
+		logger_domain.Int("total_components", len(graph.Components)))
+	options.changedComponents = changed
 }
 
 // newPhase1Result creates a Phase1IntrospectionResult with fields in a set order.

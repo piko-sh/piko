@@ -28,7 +28,7 @@ import (
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/generator/generator_adapters"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // EmbedScope selects how much of the runtime payload generation copies into the embed
@@ -101,6 +101,44 @@ func (c *Container) EmitEmbeddedRuntime(ctx context.Context) error {
 	}
 	defer func() { _ = destination.Close() }()
 
+	var opts []generator_adapters.EmbedEmitterOption
+	if c.dbProvider != nil && c.dbProvider.IsSecondary() {
+		snapshotSource, cleanup, err := c.stageRegistrySnapshot(ctx)
+		if err != nil {
+			return err
+		}
+		defer cleanup()
+		opts = append(opts, generator_adapters.WithSnapshotSource(snapshotSource))
+	}
+
 	l.Internal("Emitting the embedded runtime payload into dist/embed")
-	return generator_adapters.NewDrivenEmbedEmitter(source, destination).Emit(ctx)
+	return generator_adapters.NewDrivenEmbedEmitter(source, destination, opts...).Emit(ctx)
+}
+
+// stageRegistrySnapshot writes an in-memory registry to a private directory for
+// embedding.
+//
+// Returns safedisk.Sandbox which holds wal/persistence/registry/snapshot.piko.
+// Returns func() which closes the sandbox and removes the directory.
+// Returns error when the directory, snapshot, or sandbox cannot be created.
+func (c *Container) stageRegistrySnapshot(ctx context.Context) (safedisk.Sandbox, func(), error) {
+	staging, err := os.MkdirTemp("", "piko-registry-")
+	if err != nil {
+		return nil, nil, fmt.Errorf("creating a staging directory for the registry snapshot: %w", err)
+	}
+	removeStaging := func() { _ = os.RemoveAll(staging) }
+
+	if err := c.dbProvider.WriteRegistrySnapshot(ctx, filepath.Join(staging, "wal", "persistence")); err != nil {
+		removeStaging()
+		return nil, nil, fmt.Errorf("staging the registry snapshot: %w", err)
+	}
+	sandbox, err := safedisk.NewSandbox(staging, safedisk.ModeReadOnly)
+	if err != nil {
+		removeStaging()
+		return nil, nil, fmt.Errorf("creating the registry snapshot sandbox: %w", err)
+	}
+	return sandbox, func() {
+		_ = sandbox.Close()
+		removeStaging()
+	}, nil
 }

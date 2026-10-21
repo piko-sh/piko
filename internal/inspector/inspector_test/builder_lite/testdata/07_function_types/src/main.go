@@ -16,20 +16,16 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package main defines structs with function type fields for testing.
 package main
 
-// Handler is a function type.
 type Handler func(input string) (output string, err error)
 
-// Button represents a UI button with callbacks.
 type Button struct {
 	Label   string
 	OnClick func()
 	OnHover func(x, y int)
 }
 
-// EventEmitter demonstrates more complex function types.
 type EventEmitter struct {
 	Listeners map[string]func(data any)
 	OnError   func(error)

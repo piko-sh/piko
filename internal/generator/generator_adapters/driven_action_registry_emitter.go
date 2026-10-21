@@ -30,6 +30,7 @@ import (
 	"unicode/utf8"
 
 	"piko.sh/goastutil"
+	"piko.sh/goastutil/goimports"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 )
 
@@ -325,7 +326,7 @@ func (e *ActionRegistryEmitter) EmitRegistry(_ context.Context, specs []annotato
 	goastutil.AddImport(fset, file, actionReflectPackagePath)
 	naming.addPackageImports(fset, file)
 
-	return goastutil.FormatAST(fset, file)
+	return goimports.FormatAST(fset, file)
 }
 
 // buildRegistryAST constructs the complete AST for the registry file.

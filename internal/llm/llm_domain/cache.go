@@ -36,7 +36,6 @@ import (
 type CacheStorePort interface {
 	// Get retrieves a cache entry by key.
 	//
-	// Takes ctx (context.Context) which controls cancellation.
 	// Takes key (string) which is the cache key.
 	//
 	// Returns *llm_dto.CacheEntry if found, nil otherwise.
@@ -45,7 +44,6 @@ type CacheStorePort interface {
 
 	// Set stores a cache entry.
 	//
-	// Takes ctx (context.Context) which controls cancellation.
 	// Takes key (string) which is the cache key.
 	// Takes entry (*llm_dto.CacheEntry) which is the entry to store.
 	//
@@ -54,7 +52,6 @@ type CacheStorePort interface {
 
 	// Delete removes a cache entry by key.
 	//
-	// Takes ctx (context.Context) which controls cancellation.
 	// Takes key (string) which is the cache key.
 	//
 	// Returns error if the operation fails.
@@ -62,14 +59,10 @@ type CacheStorePort interface {
 
 	// Clear removes all cache entries.
 	//
-	// Takes ctx (context.Context) which controls cancellation.
-	//
 	// Returns error if the operation fails.
 	Clear(ctx context.Context) error
 
 	// GetStats returns cache statistics.
-	//
-	// Takes ctx (context.Context) which controls cancellation.
 	//
 	// Returns *llm_dto.CacheStats with current statistics.
 	// Returns error if the operation fails.

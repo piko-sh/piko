@@ -18,8 +18,6 @@
 
 package main
 
-// Cache is a generic struct that uses its own type parameters
-// in a map field.
 type Cache[K comparable, V any] struct {
 	Items map[K]V
 }

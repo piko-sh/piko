@@ -228,3 +228,5 @@ modernc.org/token v1.1.0 h1:Xl7Ap9dKaEs5kLoOQeQmPWevfnk/DM5qcLcYlA8ys6Y=
 modernc.org/token v1.1.0/go.mod h1:UGzOrNV1mAFSEB63lOFHIpNRUVMvYTc6yu1SMY/XTDM=
 piko.sh/asmgen v0.1.0 h1:2/Lg8s98sI2t+BqyJPI/2tuozTs3PRqiS06j21pGU5I=
 piko.sh/asmgen v0.1.0/go.mod h1:h7RiEB1cHZVOKf+NKK/R+qyJHwSfgc2IFj8Qm2AUOF0=
+seagull.sh/seagull v0.0.0-alpha.1 h1:rO+ZCTyKMjE1ABLNvUyRACs8gZGoE/J+M3Hyw6YLy34=
+seagull.sh/seagull v0.0.0-alpha.1/go.mod h1:DtUCN7MkgqHDY1mKxps1vg5hYHJrjp/5c+xn60Y6gJs=

@@ -34,7 +34,7 @@ import (
 	"piko.sh/piko/internal/markdown/markdown_domain"
 	"piko.sh/piko/internal/markdown/markdown_dto"
 	"piko.sh/piko/internal/markdown/markdown_testparser"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 func createTestMarkdownFile(t *testing.T, directory, filename, content string) string {

@@ -31,7 +31,7 @@ import (
 	"piko.sh/piko/internal/i18n/i18n_schema"
 	i18n_fb "piko.sh/piko/internal/i18n/i18n_schema/i18n_schema_gen"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -71,8 +71,6 @@ func NewFlatBufferEmitter(sandbox safedisk.Sandbox) *FlatBufferEmitter {
 // Emit serialises the translation store to a FlatBuffer file. The outputPath should be
 // relative to the sandbox root.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes store (*i18n_domain.Store) which contains the translations to serialise.
 // Takes defaultLocale (string) which specifies the fallback locale.
 // Takes outputPath (string) which is the destination path relative to the sandbox root.
@@ -114,8 +112,6 @@ func (e *FlatBufferEmitter) Emit(ctx context.Context, store *i18n_domain.Store, 
 // EmitFromTranslations serialises raw translations to a FlatBuffer file. Templates that
 // cannot be parsed are written as literal text and reported once as a warning.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes translations (i18n_domain.Translations) which contains the translation entries
 // keyed by locale.
 // Takes defaultLocale (string) which specifies the fallback locale.

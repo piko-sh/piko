@@ -24,7 +24,7 @@ import (
 	protocol "github.com/politepixels/golang-language-server"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (
@@ -388,7 +388,6 @@ func hasStandardDirectiveAtPosition(ctx context.Context, node *ast_domain.Templa
 
 // hasBindDirectiveAtPosition checks bind directives for a position match.
 //
-// Takes ctx (context.Context) which carries the request context for logging.
 // Takes binds (map[string]*ast_domain.Directive) which contains the bind directives to
 // search.
 // Takes position (protocol.Position) which specifies the position to check.

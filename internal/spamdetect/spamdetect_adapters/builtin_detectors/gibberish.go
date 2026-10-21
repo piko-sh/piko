@@ -93,7 +93,6 @@ func (*GibberishDetector) Mode() spamdetect_dto.DetectorMode {
 
 // Analyse runs bigram frequency analysis on all fields tagged with SignalGibberish.
 //
-// Takes ctx (context.Context) which is the caller context.
 // Takes submission (*spamdetect_dto.Submission) which contains the field values.
 // Takes schema (*spamdetect_dto.Schema) which identifies the fields to check.
 //
@@ -139,7 +138,6 @@ func (*GibberishDetector) HealthCheck(_ context.Context) error { return nil }
 // into the supplied maps and returning the total and the count of analysed fields.
 // Returns an error if the caller's context cancels mid-loop.
 //
-// Takes ctx (context.Context) which is the caller context.
 // Takes submission (*spamdetect_dto.Submission) which contains the field values.
 // Takes fields ([]spamdetect_dto.Field) which lists fields to analyse.
 // Takes threshold (float64) which is the per-field flag threshold.

@@ -57,7 +57,6 @@ const (
 // input/output types and capability interfaces, called during Stage 3.5 after the
 // TypeResolver is initialised.
 //
-// Takes ctx (context.Context) for cancellation and tracing.
 // Takes manifest (*annotator_dto.ActionManifest) containing discovered action candidates.
 // Takes typeResolver (*TypeResolver) providing type query capabilities.
 //
@@ -145,7 +144,6 @@ func resolveActionDefinition(
 
 // findActionPackage finds the package containing an action.
 //
-// Takes ctx (context.Context) which carries the logger and tracing data.
 // Takes action (*annotator_dto.ActionDefinition) which specifies the action to find.
 // Takes packages (map[string]*inspector_dto.Package) which maps package paths to their
 // definitions.
@@ -333,16 +331,12 @@ func extractTypeInfoFromString(
 	cleanTypeString := strings.TrimPrefix(typeString, pointerPrefix)
 
 	if packageAlias, typeName, found := strings.CutLast(cleanTypeString, "."); found {
-		for packagePath, pkg := range packages {
-			if pkg.Name == packageAlias || strings.HasSuffix(packagePath, "/"+packageAlias) {
-				if namedType, ok := pkg.NamedTypes[typeName]; ok {
-					typeInfo.Name = typeName
-					typeInfo.PackagePath = packagePath
-					typeInfo.PackageName = pkg.Name
-					typeInfo.Fields = extractFieldsFromType(namedType, packages)
-					break
-				}
-			}
+		if packagePath := findActionTypePackagePath(packages, packageAlias, typeName); packagePath != "" {
+			pkg := packages[packagePath]
+			typeInfo.Name = typeName
+			typeInfo.PackagePath = packagePath
+			typeInfo.PackageName = pkg.Name
+			typeInfo.Fields = extractFieldsFromType(pkg.NamedTypes[typeName], packages)
 		}
 	} else {
 		if isPrimitive(cleanTypeString) {
@@ -351,6 +345,36 @@ func extractTypeInfoFromString(
 	}
 
 	return typeInfo
+}
+
+// findActionTypePackagePath finds a package declaring the qualified action type.
+//
+// Package-name matches precede import-path suffix matches; the smallest import path
+// breaks ties.
+//
+// Takes packages (map[string]*inspector_dto.Package) which maps import paths to the
+// loaded packages.
+// Takes packageAlias (string) which is the qualifier used in the type string.
+// Takes typeName (string) which is the type the package must declare.
+//
+// Returns string which is the chosen import path, or empty when none matches.
+func findActionTypePackagePath(packages map[string]*inspector_dto.Package, packageAlias, typeName string) string {
+	var found string
+	foundByName := false
+	for packagePath, pkg := range packages {
+		byName := pkg.Name == packageAlias
+		if !byName && !strings.HasSuffix(packagePath, "/"+packageAlias) {
+			continue
+		}
+		if _, ok := pkg.NamedTypes[typeName]; !ok {
+			continue
+		}
+		if found == "" || (byName && !foundByName) || (byName == foundByName && packagePath < found) {
+			found = packagePath
+			foundByName = byName
+		}
+	}
+	return found
 }
 
 // extractFieldsFromType extracts field information from a struct type.

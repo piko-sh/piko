@@ -25,7 +25,7 @@ import (
 	"runtime/trace"
 
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // StartCapture begins capturing CPU and trace profiles to files in config.OutputDir. It

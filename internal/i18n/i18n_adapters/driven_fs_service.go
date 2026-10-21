@@ -28,7 +28,7 @@ import (
 
 	"piko.sh/piko/internal/i18n/i18n_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -102,7 +102,6 @@ func NewService(ctx context.Context, sandbox safedisk.Sandbox, defaultLocale, i1
 // NewFlatBufferService creates a translation service from a pre-compiled FlatBuffer
 // binary file. This gives zero-copy loading for fast startup.
 //
-// Takes ctx (context.Context) which carries logger and tracing data.
 // Takes sandbox (safedisk.Sandbox) which provides filesystem access.
 // Takes filePath (string) which is the path relative to the sandbox root.
 // Takes defaultLocale (string) which sets the fallback locale; uses "en" if empty.
@@ -150,7 +149,6 @@ func NewFSService(ctx context.Context, sandbox safedisk.Sandbox, defaultLocale, 
 
 // newFSServiceFromDir creates an i18n service from a specific directory path.
 //
-// Takes ctx (context.Context) which carries logger and tracing data.
 // Takes sandbox (safedisk.Sandbox) which provides safe file system access.
 // Takes dirPath (string) which is the path relative to the sandbox root.
 // Takes defaultLocale (string) which specifies the fallback locale.
@@ -202,7 +200,6 @@ func newEmptyService(defaultLocale string) *fsService {
 
 // loadJSONFiles loads all JSON translation files from a directory.
 //
-// Takes ctx (context.Context) which carries logger and tracing data.
 // Takes sandbox (safedisk.Sandbox) which provides safe file system access.
 // Takes files ([]fs.DirEntry) which contains the directory entries to check.
 // Takes dirPath (string) which specifies the path to the translation folder.

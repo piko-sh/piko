@@ -4,47 +4,43 @@ package db
 
 import "context"
 
-const checkduplicateactivetask = `SELECT EXISTS(
-    SELECT 1 FROM tasks
-    WHERE deduplication_key = ?
-    AND status IN ('SCHEDULED', 'PENDING', 'PROCESSING', 'RETRYING')
-) AS has_duplicate;`
-
-type CheckDuplicateActiveTaskRow struct {
-	HasDuplicate bool `json:"has_duplicate"`
-}
-
-func (queries *Queries) CheckDuplicateActiveTask(ctx context.Context, deduplicationKey *string) (CheckDuplicateActiveTaskRow, error) {
-	var row CheckDuplicateActiveTaskRow
-	err := queries.reader.QueryRowContext(ctx, checkduplicateactivetask, deduplicationKey).Scan(&row.HasDuplicate)
-	if err != nil {
-		return CheckDuplicateActiveTaskRow{}, err
-	}
-	return row, nil
-}
-
 const createtaskwithdedup = `INSERT INTO tasks (
-    id, workflow_id, executor, priority, payload, config, status, execute_at, attempt, created_at, updated_at, deduplication_key
-) VALUES (
-    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    id, workflow_id, executor, priority, payload, config, status, execute_at, attempt, created_at, updated_at,
+    deduplication_key, build_tag, is_fatal, scheduled_execute_at, background, owner_instance, last_error, result
+)
+SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19
+WHERE NOT EXISTS (
+    SELECT 1 FROM tasks
+    WHERE deduplication_key = ?12
+    AND status IN ('SCHEDULED', 'PENDING', 'PROCESSING', 'RETRYING')
 );`
 
 type CreateTaskWithDedupParams struct {
-	ID               string
-	WorkflowID       string
-	Executor         string
-	Priority         int32
-	Payload          string
-	Config           string
-	Status           string
-	ExecuteAt        int64
-	Attempt          int32
-	CreatedAt        int64
-	UpdatedAt        int64
-	DeduplicationKey *string
+	ID                 string
+	WorkflowID         string
+	Executor           string
+	Priority           int32
+	Payload            string
+	Config             string
+	Status             string
+	ExecuteAt          int64
+	Attempt            int32
+	CreatedAt          int64
+	UpdatedAt          int64
+	DeduplicationKey   *string
+	BuildTag           string
+	IsFatal            bool
+	ScheduledExecuteAt int64
+	Background         bool
+	OwnerInstance      string
+	LastError          *string
+	Result             *string
 }
 
-func (queries *Queries) CreateTaskWithDedup(ctx context.Context, params CreateTaskWithDedupParams) error {
-	_, err := queries.writer.ExecContext(ctx, createtaskwithdedup, params.ID, params.WorkflowID, params.Executor, params.Priority, params.Payload, params.Config, params.Status, params.ExecuteAt, params.Attempt, params.CreatedAt, params.UpdatedAt, params.DeduplicationKey)
-	return err
+func (queries *Queries) CreateTaskWithDedup(ctx context.Context, params CreateTaskWithDedupParams) (int64, error) {
+	results, err := queries.writer.ExecContext(ctx, createtaskwithdedup, params.ID, params.WorkflowID, params.Executor, params.Priority, params.Payload, params.Config, params.Status, params.ExecuteAt, params.Attempt, params.CreatedAt, params.UpdatedAt, params.DeduplicationKey, params.BuildTag, params.IsFatal, params.ScheduledExecuteAt, params.Background, params.OwnerInstance, params.LastError, params.Result)
+	if err != nil {
+		return 0, err
+	}
+	return results.RowsAffected()
 }

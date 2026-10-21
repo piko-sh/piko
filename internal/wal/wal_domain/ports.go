@@ -23,6 +23,19 @@ import (
 	"iter"
 )
 
+// DeferredAppender queues log entries and returns waits that callers can complete after
+// releasing their locks.
+type DeferredAppender[K comparable, V any] interface {
+	// Enqueue queues entry behind every entry queued before it.
+	//
+	// Takes entry (Entry[K, V]) which is the entry to append.
+	//
+	// Returns func() error which waits until the entry is written, and synced as the sync
+	// mode requires; waiting for an entry also covers every entry queued before it.
+	// Returns error when the WAL is closed or the entry cannot be encoded or queued.
+	Enqueue(ctx context.Context, entry Entry[K, V]) (wait func() error, err error)
+}
+
 // WAL is the driven port for write-ahead logging. Implementations must be safe for
 // concurrent Append calls.
 //
@@ -40,7 +53,6 @@ type WAL[K comparable, V any] interface {
 	// The entry is encoded with a CRC32 checksum for integrity validation. Depending on
 	// SyncMode, this may block until the data is durably written.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout.
 	// Takes entry (Entry[K, V]) which is the operation to log.
 	//
 	// Returns error when encoding fails or the write cannot complete.
@@ -64,17 +76,10 @@ type WAL[K comparable, V any] interface {
 	// This is typically called after a successful snapshot to prevent the WAL from growing
 	// unbounded.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout.
-	//
 	// Returns error when the truncation fails.
 	Truncate(ctx context.Context) error
 
-	// Sync forces all buffered data to stable storage.
-	//
-	// This performs an fsync on the underlying file, ensuring all previously written entries
-	// are durably stored.
-	//
-	// Takes ctx (context.Context) for cancellation and timeout.
+	// Sync flushes buffered data to stable storage.
 	//
 	// Returns error when the sync fails.
 	Sync(ctx context.Context) error
@@ -110,7 +115,6 @@ type SnapshotStore[K comparable, V any] interface {
 	// The snapshot is written atomically using a temp file and rename pattern. If
 	// compression is enabled, the data is compressed with zstd.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout.
 	// Takes entries ([]Entry[K, V]) which is the complete cache state.
 	//
 	// Returns error when the snapshot cannot be written.
@@ -132,8 +136,6 @@ type SnapshotStore[K comparable, V any] interface {
 	Load(ctx context.Context) iter.Seq2[Entry[K, V], error]
 
 	// Delete removes the snapshot file.
-	//
-	// Takes ctx (context.Context) for cancellation and timeout.
 	//
 	// Returns error when deletion fails (ErrSnapshotNotFound is not returned if the file
 	// doesn't exist).

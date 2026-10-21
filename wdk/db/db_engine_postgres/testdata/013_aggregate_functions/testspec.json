@@ -1,3 +1,0 @@
-{
-  "description": "Aggregate functions: COUNT, AVG, MAX. Tests that aggregate return types are correctly inferred (bigint for COUNT, numeric for AVG, column type for MAX)."
-}

@@ -25,8 +25,8 @@ type RawEntry struct {
 	// Key is the raw key bytes from the WAL entry.
 	Key []byte
 
-	// Value is the raw value bytes from the WAL entry. Only meaningful for OpSet; empty for
-	// OpDelete and OpClear.
+	// Value holds OpSet bytes or the undecoded OpBatch body and is empty for OpDelete and
+	// OpClear.
 	Value []byte
 
 	// Tags are the cache tags associated with this entry. Only meaningful for OpSet.

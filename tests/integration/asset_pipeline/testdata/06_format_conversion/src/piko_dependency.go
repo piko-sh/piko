@@ -18,5 +18,4 @@
 
 package testmodule
 
-// This file establishes testmodule as a Piko project.
 const PikoDependencyMarker = true

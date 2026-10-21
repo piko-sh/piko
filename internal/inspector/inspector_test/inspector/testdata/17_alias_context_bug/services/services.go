@@ -18,20 +18,14 @@
 
 package services
 
-// We import 'models' with its default package name.
 import "testproject_alias_bug/models"
 
-// GetUserFunc is a package-level function. The inspector must resolve its
-// return type using THIS file's import context.
 func GetUserFunc() *models.User {
 	return nil
 }
 
-// UserService demonstrates a method on a type.
 type UserService struct{}
 
-// GetUser is a method whose return type must also be resolved
-// using the 'services' package's import context.
 func (s *UserService) GetUser() *models.User {
 	return nil
 }

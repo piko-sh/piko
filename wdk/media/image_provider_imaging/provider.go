@@ -220,7 +220,6 @@ func (*Provider) GetDimensions(_ context.Context, input io.Reader) (width int, h
 
 // validateSpec runs the upfront spec and format checks.
 //
-// Takes ctx (context.Context) which carries cancellation.
 // Takes spec (media.TransformationSpec) which is the incoming spec to validate.
 // Takes l (logger.Logger) which is the request-scoped logger used to surface rejections.
 //
@@ -246,7 +245,6 @@ func (p *Provider) validateSpec(ctx context.Context, spec media.TransformationSp
 // header-declared dimensions or pixel count exceed configured limits, defending against
 // decompression bombs before imaging.Decode allocates RGBA pixels.
 //
-// Takes ctx (context.Context) which carries cancellation.
 // Takes input (io.Reader) which supplies the encoded image bytes.
 // Takes l (logger.Logger) which is the request-scoped logger used to surface rejections.
 //
@@ -287,7 +285,6 @@ func (p *Provider) bufferAndPeek(ctx context.Context, input io.Reader, l logger.
 
 // decodeImage decodes the input stream into an image.Image, applying size limits.
 //
-// Takes ctx (context.Context) which provides the request-scoped logger.
 // Takes input (io.Reader) which provides the image data to decode.
 //
 // Returns image.Image which is the decoded image with auto-orientation applied.

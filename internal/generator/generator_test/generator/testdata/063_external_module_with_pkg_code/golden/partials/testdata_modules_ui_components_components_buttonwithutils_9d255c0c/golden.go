@@ -14,7 +14,7 @@ import (
 	utils "github.com/example/ui-components/pkg/utils"
 	piko "piko.sh/piko"
 	pikoruntime "piko.sh/piko/wdk/runtime"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 var _ = fmt.Println

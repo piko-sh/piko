@@ -26,7 +26,7 @@
                   "T"
                 ]
               },
-              "definition_line": 23,
+              "definition_line": 22,
               "definition_column": 2,
               "is_pointer_receiver": false
             }
@@ -36,7 +36,7 @@
           ],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 22,
+          "definition_line": 21,
           "definition_column": 6
         },
         "StringProducer": {
@@ -60,7 +60,7 @@
                   "string"
                 ]
               },
-              "definition_line": 29,
+              "definition_line": 27,
               "definition_column": 25,
               "is_pointer_receiver": false
             }
@@ -68,7 +68,7 @@
           "type_params": [],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 27,
+          "definition_line": 25,
           "definition_column": 6
         }
       },

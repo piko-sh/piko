@@ -31,7 +31,7 @@ import (
 	"strings"
 	"time"
 
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (

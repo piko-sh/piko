@@ -32,7 +32,7 @@ import (
 	"charm.land/lipgloss/v2"
 
 	"piko.sh/piko/cmd/piko/internal/tui/tui_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -651,7 +651,6 @@ func runProfilePipeline(ctx context.Context, params profilePipelineParams) {
 // pollGoroutineCount periodically fetches the goroutine count from the pprof endpoint and
 // sends it to the channel until the context is cancelled.
 //
-// Takes ctx (context.Context) which controls the polling lifetime.
 // Takes pprofBase (string) which is the pprof endpoint base URL.
 // Takes goroutineChannel (chan<- goroutineMessage) which receives goroutine count
 // samples.

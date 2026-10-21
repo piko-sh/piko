@@ -19,6 +19,5 @@
 package main
 
 type Response struct {
-	// The definition of MyConfig depends on the build tag.
 	Config MyConfig
 }

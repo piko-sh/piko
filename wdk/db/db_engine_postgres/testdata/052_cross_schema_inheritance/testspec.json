@@ -1,3 +1,0 @@
-{
-  "description": "Cross-schema table inheritance via INHERITS. Child table inherits parent columns from a different schema."
-}

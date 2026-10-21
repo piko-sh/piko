@@ -23,6 +23,9 @@ gc-flags
 # Piko
 .piko
 
+# Benchmark results and scratch databases (hack/bench)
+.bench/
+
 # Generated benchmark caches
 internal/generator/generator_test_bench/testdata/*/cache/*.bin
 

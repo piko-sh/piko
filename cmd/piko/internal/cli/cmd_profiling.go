@@ -31,8 +31,8 @@ import (
 
 	"piko.sh/piko/cmd/piko/internal/inspector"
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
-	"piko.sh/piko/wdk/safeconv"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safeconv"
+	"piko.sh/safedisk"
 )
 
 const (

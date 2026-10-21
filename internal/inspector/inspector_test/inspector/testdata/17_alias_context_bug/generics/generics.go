@@ -18,16 +18,12 @@
 
 package generics
 
-// This package also imports 'models' with its default name.
 import "testproject_alias_bug/models"
 
-// A generic container.
 type Box[T any] struct {
 	Value T
 }
 
-// A function returning an instantiated generic. The inspector must resolve
-// the type argument `models.User` within this package's context.
 func GetUserModelBox() Box[models.User] {
 	return Box[models.User]{}
 }

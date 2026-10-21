@@ -21,7 +21,5 @@ package main
 import "testcase_55_map_named_key_primitive_value/models"
 
 type Response struct {
-	// This field has a named type as its key and a primitive as its value.
-	// This is the exact pattern that caused the validation failure.
 	UserScores map[models.UserKey]int
 }

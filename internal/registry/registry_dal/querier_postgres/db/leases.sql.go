@@ -115,12 +115,16 @@ func (queries *Queries) ListExpiredReleases(ctx context.Context, params ListExpi
 	}
 	defer rows.Close()
 	var results []ListExpiredReleasesRow
-	for rows.Next() {
+	if rows.Next() {
 		var row ListExpiredReleasesRow
-		if err := rows.Scan(&row.ReleaseID); err != nil {
-			return nil, err
+		scanArgs := []any{&row.ReleaseID}
+		for more := true; more; more = rows.Next() {
+			row = ListExpiredReleasesRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

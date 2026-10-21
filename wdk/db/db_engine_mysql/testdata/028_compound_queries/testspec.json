@@ -1,3 +1,0 @@
-{
-  "description": "Compound queries using UNION and UNION ALL. Tests that column types and nullability are correctly merged across compound branches."
-}

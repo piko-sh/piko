@@ -37,7 +37,7 @@
                 }
               ],
               "composite_type": 7,
-              "definition_line": 25,
+              "definition_line": 24,
               "definition_column": 2,
               "is_internal_type": false,
               "is_embedded": false,
@@ -79,7 +79,7 @@
                 }
               ],
               "composite_type": 7,
-              "definition_line": 27,
+              "definition_line": 25,
               "definition_column": 2,
               "is_internal_type": false,
               "is_embedded": false,
@@ -130,7 +130,7 @@
           ],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 22,
+          "definition_line": 21,
           "definition_column": 6
         }
       },

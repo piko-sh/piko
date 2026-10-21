@@ -168,7 +168,6 @@ func (c *PdfTransformerChain) IsEmpty() bool {
 // Transform applies all transformers in ascending priority order to the provided PDF
 // bytes.
 //
-// Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes pdf ([]byte) which is the input PDF document.
 //
 // Returns []byte which is the fully transformed PDF.

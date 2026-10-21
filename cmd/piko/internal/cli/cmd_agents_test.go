@@ -27,7 +27,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/cmd/piko/internal/wizard/templates"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 func TestCopyClaudeCodePlugin_WritesCorrectFiles(t *testing.T) {

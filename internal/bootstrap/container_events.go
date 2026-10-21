@@ -24,6 +24,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/ThreeDotsLabs/watermill/message"
+
 	"piko.sh/piko/internal/events/events_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/orchestrator/orchestrator_adapters"
@@ -54,10 +56,20 @@ func (c *Container) GetEventBus() (orchestrator_domain.EventBus, error) {
 		}
 
 		l.Internal("Creating EventBus using Watermill provider...")
+		var opts []orchestrator_adapters.WatermillEventBusOption
+		if locality, ok := provider.(orchestrator_domain.NodeLocality); ok && !locality.NodeLocal() {
+			opts = append(opts, orchestrator_adapters.WithDistributedTransport())
+		}
+		if broadcaster, ok := provider.(interface{ BroadcastSubscriber() message.Subscriber }); ok {
+			if subscriber := broadcaster.BroadcastSubscriber(); subscriber != nil {
+				opts = append(opts, orchestrator_adapters.WithBroadcastSubscriber(subscriber))
+			}
+		}
 		c.eventBus = orchestrator_adapters.NewWatermillEventBus(
 			provider.Publisher(),
 			provider.Subscriber(),
 			provider.Router(),
+			opts...,
 		)
 	})
 	return c.eventBus, c.eventBusErr
@@ -72,7 +84,7 @@ func (c *Container) GetEventBus() (orchestrator_domain.EventBus, error) {
 func (c *Container) GetEventsProvider() (events_domain.Provider, error) {
 	c.eventsProviderOnce.Do(func() {
 		_, l := logger_domain.From(c.GetAppContext(), log)
-		if c.eventsProviderOverride != nil {
+		if c.eventsProviderOverride != nil && !c.buildRefusesProvider(c.eventsProviderOverride) {
 			l.Internal("Using provided EventsProvider override.")
 			c.eventsProvider = c.eventsProviderOverride
 			return
@@ -80,6 +92,26 @@ func (c *Container) GetEventsProvider() (events_domain.Provider, error) {
 		c.createDefaultEventsProvider()
 	})
 	return c.eventsProvider, c.eventsProviderErr
+}
+
+// buildRefusesProvider reports whether a build must replace the configured events
+// provider with the in-process default. A build's task store lives only in this process,
+// so tasks published to a bus other processes consume would never be seen again.
+//
+// Takes provider (events_domain.Provider) which is the configured provider.
+//
+// Returns bool which is true at build time for a provider that leaves this process.
+func (c *Container) buildRefusesProvider(provider events_domain.Provider) bool {
+	if !c.isBuildTime {
+		return false
+	}
+	locality, ok := provider.(orchestrator_domain.NodeLocality)
+	if !ok || locality.NodeLocal() {
+		return false
+	}
+	_, l := logger_domain.From(c.GetAppContext(), log)
+	l.Notice("Building with the in-process events provider; the configured provider carries messages between processes, which a build cannot use")
+	return true
 }
 
 // SetEventsProvider sets a custom events provider implementation. This must be called

@@ -21,6 +21,7 @@ package render_domain
 import (
 	"context"
 	"fmt"
+	"maps"
 	"slices"
 
 	qt "github.com/valyala/quicktemplate"
@@ -92,15 +93,18 @@ func logCollectedDiagnostics(ctx context.Context, rctx *renderContext) {
 	}
 }
 
-// writeEventDirectives writes event directive attributes to the output. Go inlines this
-// small helper for better performance.
+// writeEventDirectives writes event attributes in event-name order.
 //
 // Takes events (map[string][]ast_domain.Directive) which holds the event directives to
 // write, grouped by event name.
 // Takes prefix ([]byte) which is the attribute prefix to write before each event name.
 // Takes qw (*qt.Writer) which is the output writer.
 func writeEventDirectives(events map[string][]ast_domain.Directive, prefix []byte, qw *qt.Writer) {
-	for eventName, directives := range events {
+	if len(events) == 0 {
+		return
+	}
+	for _, eventName := range slices.Sorted(maps.Keys(events)) {
+		directives := events[eventName]
 		for i := range directives {
 			qw.N().Z(prefix)
 			qw.N().S(eventName)

@@ -30,7 +30,7 @@ import (
 
 	protocol "github.com/politepixels/golang-language-server"
 	"piko.sh/piko/internal/sfcparser"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // parseSFC parses SFC file content and returns the parsed structure.

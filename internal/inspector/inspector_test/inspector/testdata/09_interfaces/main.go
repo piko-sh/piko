@@ -21,6 +21,6 @@ package main
 import "testproject_interfaces/services"
 
 type Response struct {
-	Logger  services.Logger    // Field is an interface
-	Handler func(string) error // Field is a function type
+	Logger  services.Logger
+	Handler func(string) error
 }

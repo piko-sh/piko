@@ -85,7 +85,6 @@ var (
 
 // BuildRunner creates a new manifest runner from a build result.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes result (*annotator_dto.ProjectAnnotationResult) which is the build output to
 // create a runner from.
 //
@@ -100,7 +99,6 @@ func (m *MockInterpretedOrchestrator) BuildRunner(ctx context.Context, result *a
 
 // MarkDirty marks changed components for recompilation on their next access.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes result (*annotator_dto.ProjectAnnotationResult) which is the build output
 // identifying dirty components.
 //

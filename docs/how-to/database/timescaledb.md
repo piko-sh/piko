@@ -48,7 +48,7 @@ ssr := piko.New(
 )
 ```
 
-The driver name remains `postgres` (TimescaleDB is wire-compatible) and Piko reuses the migration dialect unchanged.
+The driver name remains `postgres` (TimescaleDB is wire-compatible) and the migration dialect stays `db.PostgresDialect()`, with its `piko_` tables and advisory lock. Migrations are read with TimescaleDB's rules, though: a migration that creates a continuous aggregate with its data (without `WITH NO DATA`) or calls `refresh_continuous_aggregate` runs outside a transaction, as TimescaleDB requires, with no `no_transaction` directive needed.
 
 ## DDL forms Piko recognises
 
@@ -133,4 +133,12 @@ SELECT counter_agg(ts, value) AS state FROM readings WHERE device_id = $1;
 
 ## Extending the engine
 
-The TimescaleDB engine builds on the postgres engine's extension hooks (statement extensions, post-parse hooks, and a curated parser context). Those hooks are contributor-facing and not needed to use TimescaleDB through Piko. To write your own child engine, read `wdk/db/db_engine_postgres/extension_context.go` for the extension surface and `wdk/db/db_engine_timescaledb/` for the reference consumer.
+The TimescaleDB grammar, functions and DDL live in [Seagull](https://github.com/piko-sh/seagull), the SQL analyser behind Piko's engines, as its `timescaledb` dialect. Piko's engine only selects that dialect, so its options are the postgres engine's options.
+
+To use a dialect configured beyond what `DialectOptions` carries, such as a TimescaleDB dialect built with Seagull's engine options (`dialect_engine_timescaledb.New(dialect_engine_timescaledb.WithSearchPath(...))`), pass it to the escape hatch in `wdk/db/db_provider_seagull`:
+
+```go
+config := db_provider_seagull.NewEngine(myDialect, "pgx", db.PostgresDialect())
+```
+
+`NewEngine` returns a `db.EngineConfig` like the built-in engines, and Piko keeps its `piko.` directives, `piko_` tables and generated-file header. A dialect passed this way runs its migrations on the plain PostgreSQL backend, so mark a migration that creates or refreshes a continuous aggregate with `-- piko.migration(no_transaction: true)`.

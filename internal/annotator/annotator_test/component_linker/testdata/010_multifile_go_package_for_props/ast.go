@@ -26,12 +26,6 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// CreateExpansionResult returns the hand-crafted ExpansionResult for this test case.
-// It simulates a simple invocation of the 'card' component. The key aspect of this
-// test is not in this input, but in the test environment setup, which includes a
-// Props struct defined in a separate .go file. The ComponentLinker must be able
-// to find and use this Props struct from the multi-file virtual package to
-// validate the passed 'title' prop successfully.
 func CreateExpansionResult(t *testing.T, vm *annotator_dto.VirtualModule) *annotator_dto.ExpansionResult {
 	findHash := func(relPath string) string {
 		for hash, comp := range vm.ComponentsByHash {

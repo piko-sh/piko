@@ -20,23 +20,19 @@ package actions
 
 import "piko.sh/piko"
 
-// UpdateUserInput holds the input parameters for the update user action.
 type UpdateUserInput struct {
 	Name string `json:"name"`
 	Age  int    `json:"age"`
 }
 
-// UpdateUserOutput holds the result of the update user action.
 type UpdateUserOutput struct {
 	Success bool `json:"success"`
 }
 
-// UpdateUserAction handles updating a user.
 type UpdateUserAction struct {
 	piko.ActionMetadata
 }
 
-// Call processes the update user request.
 func (a *UpdateUserAction) Call(input UpdateUserInput) (UpdateUserOutput, error) {
 	return UpdateUserOutput{Success: true}, nil
 }

@@ -82,10 +82,17 @@ func newRerunTestDispatcher(t *testing.T) (*watermillTaskDispatcher, *mockEventB
 	t.Cleanup(func() { _ = store.Close() })
 
 	config := newLifecycleTestConfig()
-	config.SyncPersistence = false
 	config.DefaultMaxRetries = 1
 	eventBus := newMockEventBus()
 	return newWatermillTaskDispatcher(config, eventBus, store), eventBus
+}
+
+func recordedRerun(t *testing.T, d *watermillTaskDispatcher, id string) bool {
+	t.Helper()
+	rows, err := d.TaskStore.GetTasksByID(t.Context(), []string{id})
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	return rows[0].Rerun != nil
 }
 
 func requiredWhile(needed *atomic.Bool) orchestrator_domain.DispatchRequirement {
@@ -117,6 +124,9 @@ func TestWatermillTaskDispatcher_CoalescesReruns(t *testing.T) {
 			var needed atomic.Bool
 			executor := newGatedRerunExecutor(&needed)
 			d.RegisterExecutor(t.Context(), "test-executor", executor)
+			d.RegisterRequirementFactory("test-executor", func(*orchestrator_domain.Task) orchestrator_domain.DispatchRequirement {
+				return requiredWhile(&needed)
+			})
 			runDispatcher(t, d)
 			require.Eventually(t, func() bool {
 				return dispatcherPhaseOf(d) == dispatcherPhaseRunning
@@ -132,7 +142,8 @@ func TestWatermillTaskDispatcher_CoalescesReruns(t *testing.T) {
 				require.ErrorIs(t, err, orchestrator_domain.ErrDuplicateTask,
 					"a dispatch while the key is in use is coalesced, not run alongside")
 			}
-			assert.Equal(t, min(tc.changesDuringRun, 1), d.reruns.size(), "one pending rerun at most")
+			assert.Equal(t, tc.changesDuringRun > 0, recordedRerun(t, d, "first"),
+				"the store keeps one pending rerun on the running task")
 
 			if tc.coveredBeforeDone {
 				needed.Store(false)
@@ -147,7 +158,7 @@ func TestWatermillTaskDispatcher_CoalescesReruns(t *testing.T) {
 			assert.Equal(t, tc.wantExecutions, executor.calls.Load())
 			assert.Equal(t, int64(tc.wantExecutions), stats.TasksDispatched)
 			assert.Equal(t, int64(0), stats.TasksFailed)
-			assert.Equal(t, 0, d.reruns.size(), "no rerun is left pending once the key is idle")
+			assert.False(t, recordedRerun(t, d, "first"), "no rerun is left pending once the key is idle")
 		})
 	}
 }
@@ -304,7 +315,7 @@ func TestWatermillTaskDispatcher_onTaskSettled(t *testing.T) {
 		t.Parallel()
 
 		d := newWatermillTaskDispatcher(newLifecycleTestConfig(), newMockEventBus(), &orchestrator_domain.MockTaskStore{})
-		d.failBacklog(t.Context(), orchestrator_domain.ErrDispatcherStopped)
+		d.dropHeld(t.Context())
 		require.True(t, d.reruns.request(rerunTestKey, &rerunRequest{
 			task:     newKeyedTask("rerun"),
 			required: func(context.Context) (bool, error) { return true, nil },
@@ -395,4 +406,44 @@ func waitForTestSignal(t *testing.T, signal <-chan struct{}) {
 	case <-time.After(5 * time.Second):
 		require.FailNow(t, "timed out waiting for signal")
 	}
+}
+
+func TestRerunRequestedByAnotherDispatcherRuns(t *testing.T) {
+	t.Parallel()
+
+	store, err := orchestrator_otter.NewOtterDAL(orchestrator_otter.Config{Capacity: 1000})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = store.Close() })
+	newDispatcher := func() *watermillTaskDispatcher {
+		config := newLifecycleTestConfig()
+		config.DefaultMaxRetries = 1
+		config.Transport = orchestrator_domain.TransportLocal
+		return newWatermillTaskDispatcher(config, newMockEventBus(), store)
+	}
+	owner, requester := newDispatcher(), newDispatcher()
+
+	var needed atomic.Bool
+	executor := newGatedRerunExecutor(&needed)
+	for _, d := range []*watermillTaskDispatcher{owner, requester} {
+		d.RegisterExecutor(t.Context(), "test-executor", executor)
+		d.RegisterRequirementFactory("test-executor", func(*orchestrator_domain.Task) orchestrator_domain.DispatchRequirement {
+			return requiredWhile(&needed)
+		})
+	}
+	runDispatcher(t, owner)
+
+	needed.Store(true)
+	require.NoError(t, owner.DispatchIfRequired(t.Context(), newKeyedTask("first"), requiredWhile(&needed)))
+	waitForTestSignal(t, executor.entered)
+
+	needed.Store(true)
+	err = requester.DispatchIfRequired(t.Context(), newKeyedTask("changed"), requiredWhile(&needed))
+	require.ErrorIs(t, err, orchestrator_domain.ErrDuplicateTask)
+	assert.Zero(t, requester.reruns.size(), "the request is kept in the store, not in the requester's memory")
+	assert.True(t, recordedRerun(t, owner, "first"))
+
+	close(executor.gate)
+	require.Eventually(t, func() bool { return executor.calls.Load() == 2 }, 5*time.Second, 5*time.Millisecond,
+		"the owner runs the rerun the requester asked for")
+	require.Eventually(t, func() bool { return owner.IsIdle() }, 5*time.Second, 5*time.Millisecond)
 }

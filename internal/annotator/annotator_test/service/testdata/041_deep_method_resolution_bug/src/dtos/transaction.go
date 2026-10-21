@@ -20,7 +20,6 @@ package dtos
 
 import "piko.sh/piko/wdk/maths"
 
-// TransactionDto directly uses the third-party type.
 type TransactionDto struct {
 	Amount maths.Money
 }

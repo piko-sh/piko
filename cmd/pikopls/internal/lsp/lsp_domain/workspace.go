@@ -201,15 +201,13 @@ type workspace struct {
 	goplsDiagnosticsMu sync.Mutex
 }
 
-// Close waits for every tracked workspace goroutine to finish.
+// Close waits for tracked workspace goroutines until the shutdown timeout.
 //
-// Has an upper bound so a wedged goroutine cannot block shutdown. Safe to call multiple
-// times. Caller is expected to have stopped issuing fresh work (e.g. by cancelling the
-// server context) before calling Close.
-//
-// Takes ctx (context.Context) used for diagnostic logging.
+// Stop issuing new work before calling Close. Repeated calls are safe.
 //
 // Returns error when the drain timed out; nil on a clean drain.
+//
+// Concurrent access is guarded by spawnMu; a goroutine waits for tracked work to finish.
 func (w *workspace) Close(ctx context.Context) error {
 	if w == nil {
 		return nil
@@ -436,13 +434,10 @@ func (w *workspace) GetDocumentForCompletion(ctx context.Context, uri protocol.D
 	return w.RunAnalysisForURI(ctx, uri)
 }
 
-// spawnTracked starts a goroutine that increments the workspace WaitGroup, wraps
-// operation in goroutine.RecoverPanic so a single panic cannot crash the LSP server, and
-// decrements the WaitGroup on exit.
+// spawnTracked runs operation in a tracked goroutine with panic recovery.
 //
-// Takes ctx (context.Context) used by RecoverPanic for OTel attribution; the caller is
-// expected to detach from cancellable contexts using context.WithoutCancel when the
-// goroutine should outlive the request.
+// The caller must detach ctx when the operation should outlive the request.
+//
 // Takes component (string) which identifies the goroutine in panic logs (use the form
 // "lsp.workspace.<name>").
 // Takes operation (func()) which is the function body to run.
@@ -461,7 +456,6 @@ func (w *workspace) spawnTracked(ctx context.Context, component string, operatio
 // runFullAnalysis executes a full project build with all entry points. It stores the
 // result as the workspace-level cache for future scoped rebuilds.
 //
-// Takes ctx (context.Context) which is the outer context for diagnostics.
 // Takes analysisCtx (context.Context) which is the cancellable analysis context.
 // Takes uri (protocol.DocumentURI) which identifies the changed document.
 // Takes moduleCtx (*ModuleContext) which provides the module root and resolver.
@@ -539,7 +533,6 @@ func (w *workspace) runFullAnalysis(
 // component and its transitive dependents. It merges the partial result into the cached
 // full project result and publishes diagnostics for all affected files.
 //
-// Takes ctx (context.Context) which is the outer context for diagnostics.
 // Takes analysisCtx (context.Context) which is the cancellable analysis context.
 // Takes uri (protocol.DocumentURI) which identifies the changed document.
 // Takes moduleCtx (*ModuleContext) which provides the module root and resolver.
@@ -983,16 +976,12 @@ func (w *workspace) getCachedCleanDocument(ctx context.Context, uri protocol.Doc
 	return nil
 }
 
-// setupAnalysisContext claims a URI for the given generation and returns its analysis
-// context.
+// setupAnalysisContext replaces an equal-or-older analysis with one for the requested
+// generation.
 //
-// It supersedes an equal-or-older active analysis. Cancellation is ordered by content
-// generation, not goroutine setup order: if a strictly-newer generation already owns the
-// URI, it returns an already-cancelled context and a closed done channel without
-// disturbing that survivor, so an out-of-order older analysis self-aborts. The caller
-// detects the abort via analysisCtx.Err().
+// If a newer generation already owns the URI, it returns a cancelled context and closed
+// done channel.
 //
-// Takes ctx (context.Context) which is the parent context for the new analysis.
 // Takes uri (protocol.DocumentURI) which identifies the document being analysed.
 // Takes gen (uint64) which is the content generation this analysis intends to satisfy.
 //
@@ -1532,13 +1521,9 @@ func (w *workspace) publishDiagnostics(ctx context.Context, uri protocol.Documen
 	}
 }
 
-// publishErrorDiagnosticAsync schedules publishErrorDiagnostic on a tracked goroutine
-// using a context that survives the caller's cancellation. Replaces bare `go
-// w.publishErrorDiagnostic(...)` so that workspace shutdown can drain in-flight publishes
-// via Close.
+// publishErrorDiagnosticAsync publishes an error on a tracked goroutine independently of
+// request cancellation.
 //
-// Takes ctx (context.Context) which is detached via context.WithoutCancel so the publish
-// completes even after the caller's request finishes.
 // Takes uri (protocol.DocumentURI) which identifies the document to report the error
 // against.
 // Takes message (string) which describes the error to show to the user.

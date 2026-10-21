@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sync/atomic"
@@ -76,6 +77,39 @@ func TestBuildService_walkAndStreamFiles_Integration(t *testing.T) {
 		for _, event := range events {
 			assert.Equal(t, lifecycle_dto.FileEventTypeCreate, event.Type)
 		}
+	})
+
+	t.Run("skips editor and tool temporary files", func(t *testing.T) {
+		t.Parallel()
+
+		tmpDir := t.TempDir()
+		libDir := filepath.Join(tmpDir, "lib")
+		require.NoError(t, os.MkdirAll(libDir, 0755))
+
+		require.NoError(t, os.WriteFile(filepath.Join(libDir, "logo.svg"), []byte("<svg>"), 0644))
+		for _, name := range []string{"sed0Ob8Ey", "logo.svg___jb_tmp___", ".#logo.svg", "#logo.svg#", "logo.svg~", "logo.svg.swp"} {
+			require.NoError(t, os.WriteFile(filepath.Join(libDir, name), []byte("partial"), 0644))
+		}
+
+		bs := &buildService{
+			pathsConfig: lifecycle_domain.LifecyclePathsConfig{
+				BaseDir:         tmpDir,
+				AssetsSourceDir: "lib",
+			},
+		}
+
+		fileEvents := make(chan lifecycle_dto.FileEvent, 10)
+		var fileCount atomic.Int64
+		err := bs.walkAndStreamFiles(context.Background(), fileEvents, &fileCount)
+		close(fileEvents)
+
+		require.NoError(t, err)
+		var paths []string
+		for event := range fileEvents {
+			paths = append(paths, event.Path)
+		}
+		assert.Equal(t, []string{filepath.Join(libDir, "logo.svg")}, paths)
+		assert.Equal(t, int64(1), fileCount.Load())
 	})
 
 	t.Run("skips directories - only streams files", func(t *testing.T) {
@@ -263,6 +297,12 @@ func TestBuildService_openFileForProcessing_Integration(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, len(expectedContent), n)
 		assert.Equal(t, expectedContent, content)
+
+		seeker, ok := file.(io.Seeker)
+		require.True(t, ok, "the opened file must seek, so the registry can hash it and skip storing known content")
+		offset, err := seeker.Seek(0, io.SeekStart)
+		require.NoError(t, err)
+		assert.Zero(t, offset)
 	})
 
 	t.Run("returns error for non-existent file", func(t *testing.T) {

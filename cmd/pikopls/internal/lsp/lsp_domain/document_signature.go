@@ -23,7 +23,7 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_domain"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/inspector/inspector_dto"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // signatureHelpContext holds the checked context needed for signature help.

@@ -68,8 +68,6 @@ type registrationInfo[T any] struct {
 // RegisterProvider registers a new provider under the given name. It implements
 // ProviderRegistry.RegisterProvider.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes name (string) which is the unique identifier for the provider.
 // Takes provider (T) which is the provider instance to register.
 //
@@ -104,8 +102,6 @@ func (r *StandardRegistry[T]) RegisterProvider(ctx context.Context, name string,
 // SetDefaultProvider sets the named provider as the default for this registry. Implements
 // ProviderRegistry.SetDefaultProvider.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes name (string) which identifies the provider to set as default.
 //
 // Returns error when the named provider is not found in the registry.

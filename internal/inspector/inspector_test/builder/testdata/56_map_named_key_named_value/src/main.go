@@ -24,7 +24,5 @@ import (
 )
 
 type Response struct {
-	// This map has named types for both key and value.
-	// The serialiser should prioritise the value's package for PackagePath.
 	Lookup map[keys.Key]values.Value
 }

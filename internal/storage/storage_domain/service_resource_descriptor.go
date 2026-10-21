@@ -143,7 +143,6 @@ func (s *service) ResourceDescribeProvider(ctx context.Context, name string) (*p
 // findProviderInfo locates the ProviderInfo for the named provider from the registry
 // listing.
 //
-// Takes ctx (context.Context) which carries tracing and cancellation.
 // Takes name (string) which identifies the provider to find.
 //
 // Returns provider_domain.ProviderInfo which holds the matching entry, or a zero value

@@ -1,0 +1,1243 @@
+{
+  "families": [
+    {
+      "name": "Template expressions",
+      "slug": "template-expressions",
+      "prefix": "T0",
+      "introduction": "Reported while a template's expressions and directives are parsed, before any types are checked."
+    },
+    {
+      "name": "Template analysis",
+      "slug": "template-analysis",
+      "prefix": "T1",
+      "introduction": "Reported while templates are type-checked against their Go code, and while components, props, assets and styles are linked."
+    },
+    {
+      "name": "Rendering",
+      "slug": "rendering",
+      "prefix": "R0",
+      "introduction": "Reported by generated code while a page renders. They appear in the server log rather than in build output, and the page still renders: a nil read or an out-of-range index gives a zero value instead of a panic."
+    }
+  ],
+  "codes": [
+    {
+      "code": "T001",
+      "name": "InvalidNumberLiteral",
+      "family": "Template expressions",
+      "title": "Invalid number literal",
+      "summary": "A number in a template expression is malformed.",
+      "detail": "The expression parser could not read a numeric literal, for example because it has two decimal points or a stray letter.",
+      "fix": "Write the number as a plain integer or decimal, such as 42 or 3.5.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T002",
+      "name": "InvalidStringLiteral",
+      "family": "Template expressions",
+      "title": "Invalid string literal",
+      "summary": "A quoted string in a template expression is malformed.",
+      "detail": "The parser could not read a string literal, usually because of an unterminated quote or an invalid escape. It is also reported when an object literal's key is neither an identifier nor a valid string.",
+      "fix": "Close the string with the same quote it opened with, and escape any quote inside it.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T003",
+      "name": "InvalidEscapeSequence",
+      "family": "Template expressions",
+      "title": "Invalid escape sequence",
+      "summary": "A rune literal contains an escape sequence that is not valid.",
+      "detail": "Rune literals such as r'\\n' accept the usual Go escapes. Anything else after the backslash is rejected.",
+      "fix": "Use a valid escape, such as \\n, \\t, \\\\ or \\', or write the character directly.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T004",
+      "name": "InvalidTemporalFormat",
+      "family": "Template expressions",
+      "title": "Invalid date, time or duration",
+      "summary": "A date, time, datetime or duration literal does not match its expected format.",
+      "detail": "Temporal literals are parsed when the template is built. A datetime must be RFC 3339 (YYYY-MM-DDTHH:mm:ssZ), dates and times have their own fixed formats, and durations use Go's duration syntax, such as 1h30m.",
+      "fix": "Rewrite the value in the format the message names.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T005",
+      "name": "InvalidRuneLiteral",
+      "family": "Template expressions",
+      "title": "Invalid rune literal",
+      "summary": "A rune literal does not contain exactly one character.",
+      "detail": "A rune literal, written r'x', holds a single character or a single escape sequence. An empty literal or one with several characters is rejected.",
+      "fix": "Put exactly one character between the quotes, or use a string if you need more.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T006",
+      "name": "InvalidTemplateLiteral",
+      "family": "Template expressions",
+      "title": "Invalid template literal",
+      "summary": "A template literal is not enclosed in backticks.",
+      "detail": "Template literals, which interpolate values with ${...}, must start and end with a backtick.",
+      "fix": "Enclose the literal in backticks.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "example": {
+        "file": "pages/index.pk",
+        "source": "  \u003ch1\u003e{{ state.Title\u003c/h1\u003e",
+        "message": "Unterminated text interpolation: missing '}}'",
+        "line": 3,
+        "column": 7,
+        "width": 13
+      },
+      "code": "T007",
+      "name": "UnterminatedInterpolation",
+      "family": "Template expressions",
+      "title": "Unterminated interpolation",
+      "summary": "An interpolation is opened but never closed.",
+      "detail": "Text interpolation {{ ... }} needs a closing }}, and a ${...} inside a template literal needs a closing }. The parser reached the end of the text first.",
+      "fix": "Add the missing closing braces.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T008",
+      "name": "UnexpectedToken",
+      "family": "Template expressions",
+      "title": "Unexpected token",
+      "summary": "The parser found a token where it expected a value or a different token.",
+      "detail": "This is reported when an expression has an operator or punctuation in a position where a value belongs. It is also reported for composite type arguments such as []T, which template expressions do not support.",
+      "fix": "Check the expression around the highlighted token. For composite type arguments, declare a named type in the script block and use that instead.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T009",
+      "name": "UnexpectedEOF",
+      "family": "Template expressions",
+      "title": "Unexpected end of expression",
+      "summary": "The expression ended before it was complete.",
+      "detail": "The parser was still expecting a value, for example after an operator or an opening bracket, when the expression ran out.",
+      "fix": "Finish the expression, or remove the trailing operator.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T010",
+      "name": "MissingIdentifier",
+      "family": "Template expressions",
+      "title": "Missing identifier",
+      "summary": "An identifier is missing after '.', '?.' or '@'.",
+      "detail": "Member access and optional chaining need a field or method name after the dot, and the @ prefix needs a name after it.",
+      "fix": "Add the missing name, or remove the dangling dot.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T011",
+      "name": "MissingOperand",
+      "family": "Template expressions",
+      "title": "Missing operand",
+      "summary": "An operator has nothing to operate on.",
+      "detail": "A binary operator needs a value on its right, a unary operator needs a value after it, a p-for loop needs a collection after 'in', and an object key needs a value.",
+      "fix": "Add the missing value.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T012",
+      "name": "MissingClosingDelimiter",
+      "family": "Template expressions",
+      "title": "Missing closing bracket",
+      "summary": "A ']', ')' or '}' is missing.",
+      "detail": "An index expression, parenthesised expression, array literal or object literal was opened but not closed before something else appeared.",
+      "fix": "Add the closing bracket the message names.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T013",
+      "name": "MissingSeparator",
+      "family": "Template expressions",
+      "title": "Missing separator",
+      "summary": "A ',' or ':' is missing between parts of an expression.",
+      "detail": "Object literals need ':' between key and value and ',' between entries, function calls need ',' between arguments, and a ternary needs ':' between its two outcomes.",
+      "fix": "Add the separator the message names.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T014",
+      "name": "IncompleteConstruct",
+      "family": "Template expressions",
+      "title": "Incomplete expression",
+      "summary": "An index, function call, type argument list or ternary is not fully written.",
+      "detail": "Examples are an empty index such as items[], a call with a trailing comma such as f(a,), or a ternary with no value after '?' or ':'.",
+      "fix": "Complete the construct, or remove the stray separator.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T015",
+      "name": "ExpressionDepthExceeded",
+      "family": "Template expressions",
+      "title": "Expression nested too deeply",
+      "summary": "An expression is nested more deeply than the parser allows.",
+      "detail": "The parser limits nesting so that malformed or hostile templates cannot exhaust the stack. Real templates stay far below the limit.",
+      "fix": "Move the logic into a function in the script block and call it from the template.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T016",
+      "name": "DisallowedFeature",
+      "family": "Template expressions",
+      "title": "Feature not allowed here",
+      "summary": "The expression uses a feature this context does not allow.",
+      "detail": "Some places accept only a restricted kind of expression. For example, dynamic index access is not allowed where the value must be known when the template is built.",
+      "fix": "Use a simpler expression here, or compute the value in the script block.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T017",
+      "name": "LexerError",
+      "family": "Template expressions",
+      "title": "Unreadable expression",
+      "summary": "The expression contains characters the lexer cannot read.",
+      "detail": "The lexer turns an expression into tokens before it is parsed. This is reported when it meets a character or sequence that is not part of the expression language.",
+      "fix": "Remove or quote the character the message points at.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T018",
+      "name": "TrailingTokens",
+      "family": "Template expressions",
+      "title": "Unexpected text after expression",
+      "summary": "Tokens remain after a complete expression.",
+      "detail": "The parser read a whole expression but more text follows it, for example two values with no operator between them.",
+      "fix": "Join the parts with an operator, or remove the extra text.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "example": {
+        "file": "pages/index.pk",
+        "source": "  \u003cli p-for=\"index, item in state.Items\"\u003e{{ item }}\u003c/li\u003e",
+        "message": "Invalid syntax. A comma is not a valid operator here. If you are trying to write a for-loop, variables must be enclosed in parentheses, e.g., `(index, item) in collection`.",
+        "line": 4,
+        "column": 19,
+        "width": 1
+      },
+      "code": "T019",
+      "name": "UnexpectedComma",
+      "family": "Template expressions",
+      "title": "Unexpected comma",
+      "summary": "A comma is used where it is not an operator.",
+      "detail": "Commas only separate arguments, array items and object entries. The usual cause is a p-for loop with two variables written without parentheses.",
+      "fix": "Enclose loop variables in parentheses, such as (index, item) in collection.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T020",
+      "name": "ConflictingDirectives",
+      "family": "Template expressions",
+      "title": "Conflicting directives",
+      "summary": "An element has two directives that cannot be combined.",
+      "detail": "p-text and p-html both replace an element's content, so only one can apply. p-else and p-else-if both close a conditional chain, so an element can carry only one.",
+      "fix": "Remove one of the two directives.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T021",
+      "name": "DuplicateDirective",
+      "family": "Template expressions",
+      "title": "Duplicate directive",
+      "summary": "The same directive appears more than once on an element.",
+      "detail": "Only one instance of a directive, or of a p-bind for the same attribute, takes effect. The message gives the position of the first.",
+      "fix": "Remove the duplicate, or merge the two expressions.",
+      "severities": [
+        "warning"
+      ]
+    },
+    {
+      "code": "T022",
+      "name": "InvalidDirectiveValue",
+      "family": "Template expressions",
+      "title": "Invalid directive value",
+      "summary": "A directive's value is empty or not valid.",
+      "detail": "p-ref needs a name that is a valid JavaScript identifier, and p-slot needs a slot name.",
+      "fix": "Give the directive a valid value.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T023",
+      "name": "InvalidDirectivePlacement",
+      "family": "Template expressions",
+      "title": "p-else without p-if",
+      "summary": "A p-else or p-else-if does not follow an element with p-if or p-else-if.",
+      "detail": "A conditional chain must be made of sibling elements in order. Whitespace and comments between them are ignored, but any other node breaks the chain.",
+      "fix": "Move the element directly after its p-if, or remove what separates them.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T024",
+      "name": "DirectivePrecedence",
+      "family": "Template expressions",
+      "title": "Directive written before p-for",
+      "summary": "A directive is written before p-for, but p-for is evaluated first.",
+      "detail": "p-for always has the highest precedence, so another directive written before it still runs once per item. The order in the source suggests otherwise.",
+      "fix": "Write p-for before the element's other directives and dynamic attributes.",
+      "severities": [
+        "warning"
+      ]
+    },
+    {
+      "code": "T025",
+      "name": "InvalidDirectiveTarget",
+      "family": "Template expressions",
+      "title": "Directive not supported on this element",
+      "summary": "A directive is used on an element that does not support it.",
+      "detail": "p-model binds a form value, so it only works on \u003cinput\u003e, \u003ctextarea\u003e and \u003cselect\u003e.",
+      "fix": "Move the directive to a supported element.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "example": {
+        "file": "pages/index.pk",
+        "source": "  \u003cli p-for=\"item in state.Items\"\u003e{{ item.Name }}\u003c/li\u003e",
+        "message": "Elements with 'p-for' directives should have a unique 'p-key' binding for efficient updates. The framework will fall back to using the loop index, which may cause performance issues or unexpected behaviour with stateful components.",
+        "line": 4,
+        "column": 7,
+        "width": 28
+      },
+      "code": "T026",
+      "name": "MissingLoopKey",
+      "family": "Template expressions",
+      "title": "p-for without p-key",
+      "summary": "A p-for loop has no p-key.",
+      "detail": "Without a key, the loop index is used to match items between renders. When items are added, removed or reordered, that can reuse the wrong element and lose its state, and it does more work.",
+      "fix": "Add a p-key bound to a value that identifies each item, such as its ID.",
+      "severities": [
+        "warning"
+      ]
+    },
+    {
+      "code": "T027",
+      "name": "AttributeConflict",
+      "family": "Template expressions",
+      "title": "Static and dynamic attribute conflict",
+      "summary": "An attribute is set statically and also by a dynamic binding.",
+      "detail": "The dynamic :attr or p-bind:attr value overwrites the static one, so the static value never shows.",
+      "fix": "Remove the static attribute, or fold it into the binding's expression.",
+      "severities": [
+        "warning"
+      ]
+    },
+    {
+      "code": "T028",
+      "name": "DirectiveOverwritesContent",
+      "family": "Template expressions",
+      "title": "Directive overwrites content",
+      "summary": "An element has children that p-text or p-html will replace.",
+      "detail": "p-text and p-html set the element's whole content, so its existing children are discarded at runtime and only mislead readers.",
+      "fix": "Remove the children, or drop the directive.",
+      "severities": [
+        "warning"
+      ]
+    },
+    {
+      "code": "T029",
+      "name": "CSSParseError",
+      "family": "Template expressions",
+      "title": "Invalid CSS selector",
+      "summary": "A CSS selector could not be parsed.",
+      "detail": "Selectors used to query the template, for example in tests, are parsed with a CSS selector parser. This is reported when the selector is not valid CSS.",
+      "fix": "Correct the selector.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T030",
+      "name": "InternalParserError",
+      "family": "Template expressions",
+      "title": "Internal parser error",
+      "summary": "The expression parser reached a state it should not. This should not normally happen.",
+      "detail": "A defensive check in the parser fired. The expression may be unusual, but the parser should have reported a clearer error.",
+      "fix": "Open an issue on GitHub with the expression that caused it.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T031",
+      "name": "DuplicateAttribute",
+      "family": "Template expressions",
+      "title": "Duplicate attribute",
+      "summary": "The same static attribute is written more than once on an element.",
+      "detail": "HTML keeps the first occurrence and silently discards the rest, so the later value never takes effect.",
+      "fix": "Remove the duplicate.",
+      "severities": [
+        "warning"
+      ]
+    },
+    {
+      "example": {
+        "file": "partials/row.pk",
+        "source": "  \u003ctr _memo=\"row\"\u003e",
+        "message": "The '_memo' attribute is set statically. Its value never changes, so this element and its children are skipped on every re-render after the first. Use the p-memo directive instead, for example 'p-memo=\"item\"'.",
+        "line": 2,
+        "column": 8,
+        "width": 5
+      },
+      "code": "T032",
+      "name": "StaticMemoAttribute",
+      "family": "Template expressions",
+      "title": "Static _memo attribute",
+      "summary": "_memo is written as a static attribute instead of the p-memo directive.",
+      "detail": "A static value never changes, so the memo check always matches and the element and its children stop updating after their first render.",
+      "fix": "Use the p-memo directive with the value that should trigger a re-render, such as p-memo=\"item\".",
+      "severities": [
+        "warning"
+      ]
+    },
+    {
+      "example": {
+        "file": "pages/index.pk",
+        "source": "  \u003ch1\u003e{{ state.Titl }}\u003c/h1\u003e",
+        "message": "Undefined variable: state.Titl. Did you mean 'state.Title'?",
+        "line": 2,
+        "column": 9,
+        "width": 10
+      },
+      "code": "T100",
+      "name": "UndefinedVariable",
+      "family": "Template analysis",
+      "title": "Undefined variable",
+      "summary": "A template refers to a name that is not defined.",
+      "detail": "The name is not a field of state or props, a loop variable, an import, or a built-in. When a defined name is close, the message suggests it. It is also reported when the template calls an unexported function from the script block, which templates cannot see.",
+      "fix": "Fix the spelling, define the value in the script block, or export the function by capitalising its name.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T101",
+      "name": "TypeMismatch",
+      "family": "Template analysis",
+      "title": "Type mismatch",
+      "summary": "A value's type does not match the type expected where it is used.",
+      "detail": "It is an error when a function argument has the wrong type or a ternary's two outcomes have incompatible types. It is a warning when an array or object literal mixes element types, or when a field is read through a pointer that may be nil, which is then checked at runtime.",
+      "fix": "Convert the value to the expected type, or make the elements of the literal share one type.",
+      "severities": [
+        "error",
+        "warning"
+      ]
+    },
+    {
+      "code": "T102",
+      "name": "CircularDependency",
+      "family": "Template analysis",
+      "title": "Circular dependency",
+      "summary": "Components, partials or imports depend on each other in a cycle.",
+      "detail": "A component that renders a partial which, directly or through others, renders the first component again can never finish expanding. The message lists the cycle.",
+      "fix": "Break the cycle, for example by moving shared markup into a partial that neither side imports back.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T103",
+      "name": "UnresolvedImport",
+      "family": "Template analysis",
+      "title": "Unresolved import",
+      "summary": "An import path for a component, partial or Go package could not be resolved.",
+      "detail": "The import does not name a file in the project or a package the module can find. CSS @import paths that cannot be found are reported as T114.",
+      "fix": "Check the path against the module name and directory layout, such as myapp/partials/card.pk.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T104",
+      "name": "DeprecatedElement",
+      "family": "Template analysis",
+      "title": "Email element in a web page",
+      "summary": "A PikoML \u003cpml-*\u003e element is used outside an email template.",
+      "detail": "PikoML components are built for HTML email and render table-based layouts. They belong in .pk files under the emails directory.",
+      "fix": "Use standard HTML elements or Piko components (\u003cpiko:*\u003e) in web pages.",
+      "severities": [
+        "warning"
+      ]
+    },
+    {
+      "code": "T105",
+      "name": "MissingPartialAttribute",
+      "family": "Template analysis",
+      "title": "Missing is attribute",
+      "summary": "A \u003cpiko:partial\u003e or \u003cpiko:element\u003e has no is attribute.",
+      "detail": "\u003cpiko:partial\u003e needs is set to the alias of an imported partial, and \u003cpiko:element\u003e needs is set to the tag it should render.",
+      "fix": "Add the is attribute.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T106",
+      "name": "InvalidPartialAttribute",
+      "family": "Template analysis",
+      "title": "Invalid is attribute",
+      "summary": "The is attribute on \u003cpiko:partial\u003e or \u003cpiko:element\u003e has a value it cannot use.",
+      "detail": "\u003cpiko:partial is\u003e must be a static string, because partials are resolved when the project is built. \u003cpiko:element is\u003e cannot target piko:partial, piko:slot or piko:element.",
+      "fix": "Use a static partial alias, or a plain HTML tag name.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T107",
+      "name": "UndefinedPartialAlias",
+      "family": "Template analysis",
+      "title": "Undefined partial alias",
+      "summary": "A \u003cpiko:partial is\u003e names an alias that is not imported.",
+      "detail": "Partials are imported in the Go script block under an alias, and is refers to that alias.",
+      "fix": "Import the partial under that alias, or fix the alias in is.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T108",
+      "name": "PartialLoadError",
+      "family": "Template analysis",
+      "title": "Partial could not be loaded",
+      "summary": "An imported partial's file could not be loaded.",
+      "detail": "The file may be missing, or it may not contain a \u003ctemplate\u003e block.",
+      "fix": "Check that the file exists at the imported path and has a \u003ctemplate\u003e block.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T109",
+      "name": "SlotMismatch",
+      "family": "Template analysis",
+      "title": "No such slot",
+      "summary": "Content is passed to a slot the component does not have.",
+      "detail": "The component declares no \u003cpiko:slot\u003e with that name, so the content is never rendered. When a declared slot name is close, the message suggests it.",
+      "fix": "Use one of the component's slot names, or add the slot to the component.",
+      "severities": [
+        "warning"
+      ]
+    },
+    {
+      "code": "T110",
+      "name": "VariableShadowing",
+      "family": "Template analysis",
+      "title": "Name shadows a built-in",
+      "summary": "A function or variable has the same name as a built-in or an import alias.",
+      "detail": "A user-defined function that shadows a Piko system symbol or global function, or a local variable that shadows an import alias, makes the template call something other than what a reader expects.",
+      "fix": "Rename the function or variable.",
+      "severities": [
+        "warning"
+      ]
+    },
+    {
+      "code": "T111",
+      "name": "ScriptMissingLang",
+      "family": "Template analysis",
+      "title": "Script block has no language",
+      "summary": "A \u003cscript\u003e block has no lang or type attribute.",
+      "detail": "Piko needs to know whether a script is server-side Go or client-side TypeScript or JavaScript.",
+      "fix": "Add lang=\"go\" (or type=\"application/x-go\") for Go, lang=\"ts\" for TypeScript, or lang=\"js\" for JavaScript.",
+      "severities": [
+        "warning"
+      ]
+    },
+    {
+      "code": "T112",
+      "name": "AssetResolutionError",
+      "family": "Template analysis",
+      "title": "Asset not found",
+      "summary": "An asset path could not be resolved, or an image's responsive attributes are incomplete.",
+      "detail": "The path may use a module alias that cannot be expanded or point at a file that does not exist. For responsive images, densities needs width or sizes, and each density must look like x1, x2 or 2x.",
+      "fix": "Check the path and the file, and complete the responsive attributes the message names.",
+      "severities": [
+        "warning"
+      ]
+    },
+    {
+      "code": "T113",
+      "name": "AssetProfileError",
+      "family": "Template analysis",
+      "title": "Asset profile not found",
+      "summary": "An asset profile named on a tag is missing from the configuration or has no settings.",
+      "detail": "The tag is still processed, using only its explicit attributes.",
+      "fix": "Define the profile in the configuration, or remove the reference.",
+      "severities": [
+        "warning"
+      ]
+    },
+    {
+      "code": "T114",
+      "name": "CSSImportError",
+      "family": "Template analysis",
+      "title": "CSS import failed",
+      "summary": "A CSS @import could not be resolved, or imports form a cycle.",
+      "detail": "Piko inlines @import rules when it builds a component's styles. The imported file must exist and must not import, directly or indirectly, the file that imports it.",
+      "fix": "Fix the import path, or break the cycle.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T115",
+      "name": "CSSProcessingError",
+      "family": "Template analysis",
+      "title": "CSS error",
+      "summary": "The CSS processor reported a problem in a component's styles.",
+      "detail": "Styles are parsed and minified by esbuild. Its errors, warnings and notes are reported with this code and keep esbuild's severity.",
+      "fix": "Correct the CSS at the reported position.",
+      "severities": [
+        "error",
+        "warning",
+        "info"
+      ]
+    },
+    {
+      "code": "T116",
+      "name": "GoCompilationError",
+      "family": "Template analysis",
+      "title": "Go compilation error",
+      "summary": "The Go compiler rejected code generated from a component, and the error is mapped back to the .pk file.",
+      "detail": "Piko compiles each component's script block together with code generated from its template. Errors are reported at the matching place in the .pk source where possible.",
+      "fix": "Fix the Go code at the reported position, as you would for go build.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T117",
+      "name": "CollectionError",
+      "family": "Template analysis",
+      "title": "Collection error",
+      "summary": "The collection system failed while resolving a collection's types.",
+      "detail": "Templates that use p-collection or the collection functions need the collection service to read the collection's items when the project is built.",
+      "fix": "Check the collection's configuration and content, and the message for the underlying cause.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T118",
+      "name": "FatalAnnotationError",
+      "family": "Template analysis",
+      "title": "Analysis failed",
+      "summary": "A stage of template analysis failed and could not continue.",
+      "detail": "The build reports what it could and stops processing the affected components. The message names the stage and the underlying error.",
+      "fix": "Fix the cause in the message. If it looks like a bug, open an issue on GitHub with the component that triggers it.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T119",
+      "name": "EventPlaceholderMisuse",
+      "family": "Template analysis",
+      "title": "$event or $form misused",
+      "summary": "$event or $form is used outside an event handler, or used in a way it does not support.",
+      "detail": "$event and $form only exist inside p-on and p-event handlers, and are passed whole: reading a property from them in the template is not supported. The browser's own event object is $event, not event.",
+      "fix": "Pass $event or $form whole to the handler, and read their properties inside it.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T120",
+      "name": "InvalidLoopExpression",
+      "family": "Template analysis",
+      "title": "Invalid p-for expression",
+      "summary": "A p-for expression is not a valid loop, or loops over a type that cannot be iterated.",
+      "detail": "p-for takes the form item in items, or (index, item) in items, over a slice, array, map, string or integer.",
+      "fix": "Write the loop as item in items over an iterable value.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T121",
+      "name": "LoopVariableShadow",
+      "family": "Template analysis",
+      "title": "Loop variable shadows a built-in",
+      "summary": "A p-for loop variable has the same name as a built-in symbol or global function.",
+      "detail": "Inside the loop, the name refers to the loop variable, so the built-in cannot be used there.",
+      "fix": "Rename the loop variable.",
+      "severities": [
+        "warning"
+      ]
+    },
+    {
+      "code": "T122",
+      "name": "ConditionalTypeError",
+      "family": "Template analysis",
+      "title": "Condition is not a boolean",
+      "summary": "A p-if, p-else-if or p-show expression is not a boolean.",
+      "detail": "Conditions must be booleans. Piko does not treat strings, numbers or pointers as true or false implicitly.",
+      "fix": "Compare explicitly, such as len(items) \u003e 0, or use the ~ operator for truthiness, such as ~value.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T123",
+      "name": "ModelTypeError",
+      "family": "Template analysis",
+      "title": "p-model target is not assignable",
+      "summary": "A p-model expression is not a variable that can be assigned to.",
+      "detail": "p-model writes the input's value back, so it needs a field, such as state.Name, not a call or a computed value.",
+      "fix": "Bind p-model to a field.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T124",
+      "name": "BindingTypeError",
+      "family": "Template analysis",
+      "title": "Binding has the wrong type",
+      "summary": "A p-class, :class, p-style, p-key or p-context binding has a type it does not expect.",
+      "detail": "It is an error when :class is not a string, slice or map. It is a warning when p-class or p-style has another type, when p-key is a struct, map or slice, or when p-context does not resolve to a string.",
+      "fix": "Give the binding the type the message names.",
+      "severities": [
+        "error",
+        "warning"
+      ]
+    },
+    {
+      "code": "T125",
+      "name": "AttributeTypeError",
+      "family": "Template analysis",
+      "title": "Attribute value is not text",
+      "summary": "A dynamic attribute's value has no defined text form.",
+      "detail": "Without String or MarshalText, Go's default formatting is used, which is rarely what you want in HTML. It is also reported for p-timeline outside .pkc files, where it is not supported.",
+      "fix": "Implement fmt.Stringer or encoding.TextMarshaler on the type, convert the value to a string, or use a server. attribute if it is only needed on the server.",
+      "severities": [
+        "warning"
+      ]
+    },
+    {
+      "code": "T126",
+      "name": "UnknownProp",
+      "family": "Template analysis",
+      "title": "Unknown prop",
+      "summary": "A prop is passed to a component that does not define it.",
+      "detail": "The component's Props struct has no field for the prop, so the value is ignored. When a defined prop is close, the message suggests it.",
+      "fix": "Use the prop name the component defines, or add the field to its Props struct.",
+      "severities": [
+        "warning"
+      ]
+    },
+    {
+      "example": {
+        "file": "pages/index.pk",
+        "source": "  \u003cpiko:partial is=\"card\"\u003e\u003c/piko:partial\u003e",
+        "message": "Missing required prop 'title' for component \u003ccard\u003e",
+        "line": 5,
+        "column": 4,
+        "width": 24
+      },
+      "code": "T127",
+      "name": "MissingRequiredProp",
+      "family": "Template analysis",
+      "title": "Missing required prop",
+      "summary": "A component is used without a prop it requires.",
+      "detail": "The prop's field in the component's Props struct is marked required.",
+      "fix": "Pass the prop, or give it a default in the component.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T128",
+      "name": "PropTypeMismatch",
+      "family": "Template analysis",
+      "title": "Prop has the wrong type",
+      "summary": "The value passed to a prop does not match the prop's declared type.",
+      "detail": "When the value could be converted, the message suggests adding coerce:\"true\" to the prop's field.",
+      "fix": "Pass a value of the declared type, or add coerce:\"true\" to the field so Piko converts it.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T129",
+      "name": "DuplicatePropBinding",
+      "family": "Template analysis",
+      "title": "Prop bound twice",
+      "summary": "A prop is given both a standard binding and a server-only binding.",
+      "detail": "The server-only binding takes precedence, so the standard binding is ignored.",
+      "fix": "Remove one of the bindings.",
+      "severities": [
+        "warning"
+      ]
+    },
+    {
+      "code": "T130",
+      "name": "PropDefaultError",
+      "family": "Template analysis",
+      "title": "Invalid prop default",
+      "summary": "A prop's default value or default factory does not fit the prop's type.",
+      "detail": "It is an error when the default is invalid or a factory returns the wrong type. It is a warning when a default written as text cannot be parsed as the prop's type.",
+      "fix": "Correct the default so it has the prop's type.",
+      "severities": [
+        "error",
+        "warning"
+      ]
+    },
+    {
+      "code": "T131",
+      "name": "PropDefinitionError",
+      "family": "Template analysis",
+      "title": "Invalid Props struct",
+      "summary": "A component's Props struct is malformed.",
+      "detail": "Two fields map to the same prop name, tags conflict, or an embedded field's props cannot be collected.",
+      "fix": "Give each prop a unique name and consistent tags.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T132",
+      "name": "QueryPropError",
+      "family": "Template analysis",
+      "title": "Invalid query prop",
+      "summary": "A prop bound to a query parameter has an invalid query tag or type.",
+      "detail": "It is an error when the query tag is empty or the prop is a slice or map, which query binding does not support. It is a warning when the prop is not a string, because query parameters are strings.",
+      "fix": "Name the parameter in the tag, such as query:\"page\", and use a string prop or add coerce:\"true\".",
+      "severities": [
+        "error",
+        "warning"
+      ]
+    },
+    {
+      "code": "T133",
+      "name": "HandlerArgumentError",
+      "family": "Template analysis",
+      "title": "Handler arguments do not match",
+      "summary": "A handler or action call has the wrong number or types of arguments.",
+      "detail": "The call in the template does not match the exported client function's parameters or the action's input.",
+      "fix": "Pass the arguments the function or action declares.",
+      "severities": [
+        "warning"
+      ]
+    },
+    {
+      "code": "T134",
+      "name": "HandlerExpressionError",
+      "family": "Template analysis",
+      "title": "Invalid event handler",
+      "summary": "An event handler is not a function call, or uses an unknown or incompatible modifier.",
+      "detail": "p-on handlers must call a function or method. The supported modifiers are .prevent, .stop, .once, .self, .passive and .capture, and .passive cannot be combined with .prevent.",
+      "fix": "Write the handler as a call, such as save($event), and use supported modifiers.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T135",
+      "name": "BuiltinFunctionError",
+      "family": "Template analysis",
+      "title": "Built-in function misused",
+      "summary": "A built-in function such as len, cap, append, min or max is called incorrectly.",
+      "detail": "The call has the wrong number of arguments, or arguments of a type the function does not accept, such as len on a number or min with mixed types.",
+      "fix": "Call the function as Go does.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T136",
+      "name": "TranslationFunctionError",
+      "family": "Template analysis",
+      "title": "Translation function misused",
+      "summary": "A translation function such as T, LT or LTC is called incorrectly, or names a missing key.",
+      "detail": "It is an error when the function has no arguments or an argument is not a string. When the key is missing from a locale's translations, it is reported as info if a fallback is given and as a warning if not.",
+      "fix": "Pass the key as a string, and add the key to the translations or give a fallback.",
+      "severities": [
+        "error",
+        "info",
+        "warning"
+      ]
+    },
+    {
+      "code": "T137",
+      "name": "UndefinedMember",
+      "family": "Template analysis",
+      "title": "No such field or method",
+      "summary": "A field, method or package member does not exist.",
+      "detail": "The type, or the package, has no member with that name. When a member is close, the message suggests it, and it points out len() when a property such as .length is used.",
+      "fix": "Use a member the type defines.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T138",
+      "name": "InvalidIndexing",
+      "family": "Template analysis",
+      "title": "Invalid index",
+      "summary": "A value is indexed when it cannot be, or with an index of the wrong type.",
+      "detail": "Only slices, arrays, maps and strings can be indexed, each with its own index type. Several values in brackets are only valid as type arguments on a generic call.",
+      "fix": "Index a collection with the right index type.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T139",
+      "name": "InvalidFunctionCall",
+      "family": "Template analysis",
+      "title": "Invalid call",
+      "summary": "A value that is not a function is called, or a function is called with the wrong number of arguments.",
+      "detail": "The expression before the parentheses is not a function or method, or the call passes more or fewer arguments than it declares.",
+      "fix": "Call a function, with the arguments it declares.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T140",
+      "name": "LogicalOperatorError",
+      "family": "Template analysis",
+      "title": "Logical operator on non-booleans",
+      "summary": "An operand of \u0026\u0026, || or ! is not a boolean, or the operands of || are incompatible.",
+      "detail": "Piko does not treat non-boolean values as true or false implicitly.",
+      "fix": "Compare explicitly, or use the ~ operator for truthiness, such as ~value \u0026\u0026 ~other.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "example": {
+        "file": "pages/index.pk",
+        "source": "  \u003cspan p-if=\"state.Level == 'error'\"\u003e!\u003c/span\u003e",
+        "message": "Invalid operation: cannot strictly compare type 'app.Level' to 'string'",
+        "line": 6,
+        "column": 14,
+        "width": 27
+      },
+      "code": "T141",
+      "name": "ComparisonError",
+      "family": "Template analysis",
+      "title": "Invalid comparison",
+      "summary": "The two sides of a comparison cannot be compared.",
+      "detail": "Ordering operators (\u003c, \u003e, \u003c=, \u003e=) need ordered types of the same kind. Equality is checked strictly: a named type and a plain literal of its underlying type, such as a named string type and a string, cannot be compared directly.",
+      "fix": "Convert one side so both have the same type, or compare a field that has a comparable type.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T142",
+      "name": "ArithmeticError",
+      "family": "Template analysis",
+      "title": "Invalid arithmetic",
+      "summary": "An arithmetic operator is used with types it is not defined for.",
+      "detail": "Both operands of +, -, *, / and % must be compatible numbers, and unary - needs a number. Money only adds and subtracts Money, multiplies and divides by plain numbers, and has no %.",
+      "fix": "Convert the operands to compatible types, or use the Money methods.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T143",
+      "name": "CoalesceError",
+      "family": "Template analysis",
+      "title": "?? operands do not match",
+      "summary": "The two sides of ?? have incompatible types.",
+      "detail": "a ?? b gives b when a is nil, so b should have a's type.",
+      "fix": "Give the fallback the same type as the value it replaces.",
+      "severities": [
+        "warning"
+      ]
+    },
+    {
+      "code": "T144",
+      "name": "StringConcatError",
+      "family": "Template analysis",
+      "title": "String concatenation",
+      "summary": "A string concatenation involves a value that cannot be turned into a string.",
+      "detail": "This code is not currently reported: such concatenations are reported as invalid arithmetic (T142). The number stays assigned so it is never reused.",
+      "fix": "Nothing to fix.",
+      "severities": [
+        "error"
+      ],
+      "unused": true
+    },
+    {
+      "code": "T145",
+      "name": "CoercionError",
+      "family": "Template analysis",
+      "title": "Conversion failed",
+      "summary": "A value could not be converted to the type it is needed as.",
+      "detail": "It is an error when a conversion function has the wrong number of arguments or cannot convert the type. It is a warning when a static prop value cannot be converted to the prop's type, in which case the value is ignored.",
+      "fix": "Pass a value that can be converted, or change the prop's type.",
+      "severities": [
+        "error",
+        "warning"
+      ]
+    },
+    {
+      "code": "T146",
+      "name": "FormatDirectiveError",
+      "family": "Template analysis",
+      "title": "Formatting function misused",
+      "summary": "F or LF is called incorrectly, or with a value it may not format.",
+      "detail": "It is an error when F or LF does not get exactly one argument. It is a warning when the argument is not a number (int, float, Decimal, BigInt or Money), a time (time.Time or DateTime) or a string.",
+      "fix": "Pass one value of a supported type.",
+      "severities": [
+        "error",
+        "warning"
+      ]
+    },
+    {
+      "code": "T147",
+      "name": "ActionError",
+      "family": "Template analysis",
+      "title": "Action error",
+      "summary": "An action could not be discovered, or a template calls it incorrectly.",
+      "detail": "It is an error when the actions directory cannot be read or parsed, or an action has no Call method. It is a warning when a template calls an action that does not exist, or passes a field its input does not have, misses a required field, or passes the wrong type.",
+      "fix": "Fix the action in the actions directory, or the call in the template.",
+      "severities": [
+        "error",
+        "warning"
+      ]
+    },
+    {
+      "code": "T148",
+      "name": "GraphBuildError",
+      "family": "Template analysis",
+      "title": "Entry point not found",
+      "summary": "An entry point of the component dependency graph could not be resolved.",
+      "detail": "The build starts from the project's pages and other entry points. One of them could not be found.",
+      "fix": "Check the path in the message, and the project's configuration.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T149",
+      "name": "ClientScriptError",
+      "family": "Template analysis",
+      "title": "Client script problem",
+      "summary": "A client script cannot be parsed, an event handler is missing from it, or an imported partial is never used.",
+      "detail": "It is an error when a client script block cannot be parsed, or when a p-on handler names a function the client script does not export. It is a warning when a partial is imported but neither rendered nor used in reloadPartial or reloadGroup.",
+      "fix": "Fix the script's syntax, export the handler from the client script, or remove the unused import.",
+      "severities": [
+        "error",
+        "warning"
+      ]
+    },
+    {
+      "code": "T150",
+      "name": "PartialCSSError",
+      "family": "Template analysis",
+      "title": "Partial CSS error",
+      "summary": "A partial's CSS could not be processed when the partial was expanded.",
+      "detail": "When a partial is expanded into its parent, its styles are processed with the parent's. The message names the partial and the cause.",
+      "fix": "Fix the CSS in the named partial.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T151",
+      "name": "ComputedPropertyError",
+      "family": "Template analysis",
+      "title": "Computed property not supported",
+      "summary": "Member access with [...] is used where it is not supported.",
+      "detail": "Templates cannot access a package's members, or a variable's fields, by a computed name in brackets.",
+      "fix": "Use dot access, such as value.Field, or index a map instead.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "T152",
+      "name": "SuggestedPropName",
+      "family": "Template analysis",
+      "title": "Suggested prop name",
+      "summary": "An unknown prop name is close to one the component defines.",
+      "detail": "This code is not currently reported: suggestions appear in the unknown prop message (T126) instead. The number stays assigned so it is never reused.",
+      "fix": "Nothing to fix.",
+      "severities": [
+        "warning"
+      ],
+      "unused": true
+    },
+    {
+      "code": "T153",
+      "name": "CollectionProviderNotFound",
+      "family": "Template analysis",
+      "title": "Collection provider not registered",
+      "summary": "A p-collection names a provider that is not registered.",
+      "detail": "Pages that use the provider will not be available until it is registered.",
+      "fix": "Register the provider as the message describes, or fix its name.",
+      "severities": [
+        "warning"
+      ]
+    },
+    {
+      "code": "T154",
+      "name": "SitemapMarkerIgnored",
+      "family": "Template analysis",
+      "title": "sitemap marker ignored",
+      "summary": "The sitemap marker is on a tag that cannot add an image to the sitemap.",
+      "detail": "The build-only sitemap marker is honoured only on \u003cpiko:img\u003e and \u003cpiko:picture\u003e.",
+      "fix": "Move the marker to a \u003cpiko:img\u003e or \u003cpiko:picture\u003e, or remove it.",
+      "severities": [
+        "warning"
+      ]
+    },
+    {
+      "example": {
+        "file": "pages/docs/{slug}.pk",
+        "source": "\u003ctemplate p-collection=\"docs\" p-provider=\"markdown\" p-collection-source=\"docs\"\u003e",
+        "message": "p-collection-source \"docs\" does not match the name of any import in the Go script block; import the content module under that name",
+        "line": 1,
+        "column": 1,
+        "width": 10
+      },
+      "code": "T155",
+      "name": "CollectionSourceNotFound",
+      "family": "Template analysis",
+      "title": "Collection source not imported",
+      "summary": "A p-collection-source alias matches no import in the Go script block.",
+      "detail": "p-collection-source names the import alias of the module that holds the content. Piko does not fall back to the page's local content.",
+      "fix": "Import the content module under that alias, or correct the alias.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "R001",
+      "name": "RenderError",
+      "family": "Rendering",
+      "title": "Render returned an error",
+      "summary": "A page or component's Render function returned an error.",
+      "detail": "The error is recorded and logged with the page's other render diagnostics, and the request is answered with an error page.",
+      "fix": "Handle the cause in Render, or return a piko error with a safe message for the visitor.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "R002",
+      "name": "PartialRenderError",
+      "family": "Rendering",
+      "title": "Partial Render returned an error",
+      "summary": "A partial's Render function returned an error.",
+      "detail": "The partial's error is recorded with the page's render diagnostics and logged.",
+      "fix": "Handle the cause in the partial's Render function.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "R003",
+      "name": "NilPropertyAccess",
+      "family": "Rendering",
+      "title": "Field read through nil",
+      "summary": "A template read a field through a pointer that was nil.",
+      "detail": "Templates guard field access through pointers that may be nil. Instead of panicking, the expression gives the field's zero value and this warning is recorded. The build reports the risk ahead of time as T101.",
+      "fix": "Check the value before using it, such as p-if=\"state.User != nil\", or make sure Render sets it.",
+      "severities": [
+        "warning"
+      ]
+    },
+    {
+      "code": "R004",
+      "name": "NilIndexAccess",
+      "family": "Rendering",
+      "title": "Index into nil",
+      "summary": "A template indexed a slice or map that was nil.",
+      "detail": "Instead of panicking, the expression gives the zero value and this warning is recorded.",
+      "fix": "Make sure the slice or map is set before it is indexed, or check it first.",
+      "severities": [
+        "warning"
+      ]
+    },
+    {
+      "code": "R005",
+      "name": "IndexOutOfBounds",
+      "family": "Rendering",
+      "title": "Index out of range",
+      "summary": "A template indexed a slice outside its length.",
+      "detail": "Instead of panicking, the expression gives the zero value and this warning is recorded.",
+      "fix": "Check the length first, such as p-if=\"len(state.Items) \u003e 2\", or loop over the slice with p-for.",
+      "severities": [
+        "warning"
+      ]
+    },
+    {
+      "code": "R006",
+      "name": "EmptyElementTag",
+      "family": "Rendering",
+      "title": "\u003cpiko:element\u003e has no tag",
+      "summary": "A \u003cpiko:element :is\u003e expression resolved to an empty tag name.",
+      "detail": "The element cannot be rendered without a tag, so it is skipped.",
+      "fix": "Make sure the is expression always gives a tag name.",
+      "severities": [
+        "error"
+      ]
+    },
+    {
+      "code": "R007",
+      "name": "RejectedElementTag",
+      "family": "Rendering",
+      "title": "\u003cpiko:element\u003e tag not allowed",
+      "summary": "A \u003cpiko:element :is\u003e expression resolved to a reserved tag.",
+      "detail": "\u003cpiko:element\u003e cannot render piko:partial, piko:slot or piko:element, so the element is skipped.",
+      "fix": "Use a plain HTML tag name, or use \u003cpiko:partial\u003e for partials.",
+      "severities": [
+        "error"
+      ]
+    }
+  ],
+  "version": 1
+}

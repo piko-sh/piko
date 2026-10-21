@@ -31,7 +31,7 @@ import (
 
 	"github.com/mattn/go-sqlite3"
 
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (

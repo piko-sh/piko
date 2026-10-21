@@ -26,11 +26,6 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// CreateExpansionResult returns the hand-crafted ExpansionResult for this test case.
-// It simulates two invocations of a profile component: one with a correctly typed
-// struct pointer prop, and one with an incorrectly typed primitive prop. This allows
-// the test to validate the ComponentLinker's ability to type-check complex,
-// non-primitive prop types.
 func CreateExpansionResult(t *testing.T, vm *annotator_dto.VirtualModule) *annotator_dto.ExpansionResult {
 	findHash := func(relPath string) string {
 		for hash, comp := range vm.ComponentsByHash {

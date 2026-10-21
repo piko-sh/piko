@@ -775,7 +775,6 @@ func (p *Parser) consumeUntilTagClose() {
 // ParseAndTransform is the main entry point for the AST pipeline. It parses the template
 // source, validates it, and applies all transformation passes.
 //
-// Takes ctx (context.Context) which carries the request-scoped logger.
 // Takes raw (string) which contains the template source to parse.
 // Takes sourcePath (string) which identifies the file for error messages.
 //
@@ -793,7 +792,6 @@ func ParseAndTransform(ctx context.Context, raw string, sourcePath string) (*Tem
 
 // Parse parses a raw string into a TemplateAST.
 //
-// Takes ctx (context.Context) which carries the logger and trace spans.
 // Takes raw (string) which contains the template content to parse.
 // Takes sourcePath (string) which identifies the source file for error messages.
 // Takes startLocation (*Location) which offsets all line and column numbers if set.
@@ -806,7 +804,6 @@ func Parse(ctx context.Context, raw string, sourcePath string, startLocation *Lo
 
 // ParseWithOptions performs the initial parsing with configurable options.
 //
-// Takes ctx (context.Context) which carries the logger and trace spans.
 // Takes raw (string) which contains the template content to parse.
 // Takes sourcePath (string) which identifies the source file for diagnostics.
 // Takes startLocation (*Location) which optionally offsets all generated locations.

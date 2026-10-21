@@ -241,6 +241,8 @@ func BannerScheme(tlsEnabled bool) string {
 // Takes version (string) which specifies the application version.
 //
 // Returns StartupBannerInfo which holds the formatted banner details.
+//
+//nolint:gocritic // exported signature kept; the copy happens once at startup
 func BuildStartupBannerInfo(config DaemonConfig, mode string, version string) StartupBannerInfo {
 	info := StartupBannerInfo{
 		Version:           version,
@@ -268,13 +270,9 @@ func BuildStartupBannerInfo(config DaemonConfig, mode string, version string) St
 	return info
 }
 
-// PrintStartupBanner prints a formatted startup banner with server details. This bypasses
-// the logging system to provide a clean, formatted output.
+// PrintStartupBanner prints server details directly, or emits NOTICE logs when the banner
+// is disabled.
 //
-// When the banner is disabled, fallback NOTICE logs are printed instead.
-//
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes bannerEnabled (bool) which controls whether to print the banner or fallback logs.
 // Takes info (StartupBannerInfo) which contains the server details to show.
 func PrintStartupBanner(ctx context.Context, bannerEnabled bool, info StartupBannerInfo) {
@@ -514,8 +512,6 @@ func stripANSI(s string) string {
 // printFallbackLogs writes NOTICE-level logs when the startup banner is off. This means
 // key server details are still shown in the logs.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes info (StartupBannerInfo) which holds the server details to log.
 func printFallbackLogs(ctx context.Context, info StartupBannerInfo) {
 	_, l := logger_domain.From(ctx, log)

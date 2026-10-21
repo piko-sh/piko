@@ -38,24 +38,70 @@ const (
 	// defaultOutputChannelBuffer is the default buffer size for subscriber output channels.
 	defaultOutputChannelBuffer = 8192
 
+	// defaultPublishQueueCapacity bounds queued and delivering messages when no limit is
+	// configured.
+	defaultPublishQueueCapacity = 1024
+
+	// defaultPublishQueueBytes sets the default retained publication budget to 16 MiB.
+	defaultPublishQueueBytes = 16 << 20
+
+	// defaultMaxPublishTopics caps active topic delivery workers when no limit is
+	// configured.
+	defaultMaxPublishTopics = 64
+
 	// defaultCloseTimeoutSeconds is the default timeout in seconds for closing the router.
 	defaultCloseTimeoutSeconds = 30
+
+	// defaultReservedCapacityDivisor selects the default reserved capacity as this fraction
+	// of the publish queue capacity.
+	defaultReservedCapacityDivisor = 8
 )
+
+var (
+	_ events_domain.Provider = (*GoChannelProvider)(nil)
+)
+
+// DefaultReservedTopicPrefixes returns prefixes for artefact lifecycle and task
+// completion events.
+//
+// Returns []string which is a fresh slice the caller may modify.
+func DefaultReservedTopicPrefixes() []string {
+	return []string{"artefact.", "task.completed"}
+}
 
 // Config contains configuration options for the GoChannel provider.
 type Config struct {
+	// ReservedTopicPrefixes names the topics, by prefix, that may use ReservedCapacity. Nil
+	// selects DefaultReservedTopicPrefixes; an empty, non-nil slice reserves nothing.
+	ReservedTopicPrefixes []string
+
+	// PublishQueueCapacity bounds queued plus delivering messages; zero selects 1024.
+	PublishQueueCapacity int
+
+	// PublishQueueBytes bounds retained event bytes; zero selects 16 MiB.
+	PublishQueueBytes int64
+
+	// MaxPublishTopics bounds active delivery workers; zero selects 64.
+	MaxPublishTopics int
+
+	// ReservedCapacity reserves message capacity for ReservedTopicPrefixes and the same
+	// proportion of the byte budget.
+	//
+	// Zero reserves one eighth of PublishQueueCapacity.
+	ReservedCapacity int
+
+	// MaxTopicShare caps the fraction of PublishQueueCapacity one topic may hold, between 0
+	// and 1. Zero leaves topics uncapped.
+	MaxTopicShare float64
+
 	// OutputChannelBuffer is the buffer size for subscriber output channels. Larger buffers
-	// reduce blocking but use more memory; default is 1024.
+	// reduce blocking but use more memory; default is 8192.
 	OutputChannelBuffer int64
 
-	// BlockPublishUntilSubscriberAck controls back-pressure behaviour.
+	// BlockPublishUntilSubscriberAck makes Publish wait for acknowledgement when enabled.
 	//
-	// When true (default), Publish blocks until all subscribers have acknowledged. This
-	// guarantees no message loss but may reduce throughput. When false, messages are
-	// delivered asynchronously and may be dropped if subscriber channels are full.
-	//
-	// Unlike the old MemoryEventBus which silently dropped events, the default here blocks
-	// to guarantee delivery.
+	// By default, Publish returns after queue admission. A full queue returns
+	// ErrPublishOverloaded. Accepted messages retain capacity until acknowledgement.
 	BlockPublishUntilSubscriberAck bool
 
 	// Persistent controls whether messages are persisted until consumed, where true causes
@@ -67,13 +113,12 @@ type Config struct {
 	RouterConfig events_domain.RouterConfig
 }
 
-var (
-	_ events_domain.Provider = (*GoChannelProvider)(nil)
-)
-
 // GoChannelProvider provides in-memory message passing using Watermill's GoChannel
 // pub/sub. It implements the events_domain.Provider interface.
 type GoChannelProvider struct {
+	// bounded manages publication budgets for the non-persistent provider.
+	bounded *boundedPublisher
+
 	// logger adapts logging for the Watermill router.
 	logger watermill.LoggerAdapter
 
@@ -102,6 +147,9 @@ type GoChannelProvider struct {
 	// interleave.
 	startMutex sync.Mutex
 
+	// closed records permanent shutdown; startMutex guards access.
+	closed bool
+
 	// running indicates whether the router is currently active.
 	running bool
 }
@@ -115,6 +163,10 @@ type GoChannelProvider struct {
 // Returns *GoChannelProvider which is ready to use after calling Start().
 // Returns error when the provider cannot be created.
 func NewGoChannelProvider(config Config) (*GoChannelProvider, error) {
+	config, err := resolvePublicationLimits(config)
+	if err != nil {
+		return nil, err
+	}
 	pikoLogger := logger.GetLogger("piko/wdk/events/events_provider_gochannel")
 
 	wmLogger := watermilllogger.NewAdapter(pikoLogger)
@@ -122,10 +174,11 @@ func NewGoChannelProvider(config Config) (*GoChannelProvider, error) {
 	pubsub := gochannel.NewGoChannel(gochannel.Config{
 		OutputChannelBuffer:            config.OutputChannelBuffer,
 		Persistent:                     config.Persistent,
-		BlockPublishUntilSubscriberAck: config.BlockPublishUntilSubscriberAck,
+		BlockPublishUntilSubscriberAck: !config.Persistent || config.BlockPublishUntilSubscriberAck,
 	}, wmLogger)
 
-	return &GoChannelProvider{
+	provider := &GoChannelProvider{
+		bounded: nil, closed: false,
 		config:       config,
 		pubsub:       pubsub,
 		logger:       wmLogger,
@@ -136,7 +189,11 @@ func NewGoChannelProvider(config Config) (*GoChannelProvider, error) {
 		runningMutex: sync.RWMutex{},
 		startMutex:   sync.Mutex{},
 		running:      false,
-	}, nil
+	}
+	if !config.Persistent {
+		provider.bounded = newBoundedPublisher(pubsub, config)
+	}
+	return provider, nil
 }
 
 // Start initialises the Watermill router and starts processing messages. The provided
@@ -151,6 +208,9 @@ func (p *GoChannelProvider) Start(ctx context.Context) error {
 
 	p.startMutex.Lock()
 	defer p.startMutex.Unlock()
+	if p.closed {
+		return ErrPublisherClosed
+	}
 
 	p.runningMutex.RLock()
 	alreadyRunning := p.running
@@ -193,6 +253,9 @@ func (p *GoChannelProvider) Router() *message.Router {
 //
 // Returns message.Publisher which is the publisher for sending messages.
 func (p *GoChannelProvider) Publisher() message.Publisher {
+	if p.bounded != nil {
+		return p.bounded
+	}
 	return p.pubsub
 }
 
@@ -202,6 +265,13 @@ func (p *GoChannelProvider) Publisher() message.Publisher {
 // Returns message.Subscriber which provides topic subscription capabilities.
 func (p *GoChannelProvider) Subscriber() message.Subscriber {
 	return p.pubsub
+}
+
+// NodeLocal reports whether messages stay within this process.
+//
+// Returns bool which is true because GoChannel delivers messages in memory.
+func (*GoChannelProvider) NodeLocal() bool {
+	return true
 }
 
 // Running reports whether the router has been started and is active.
@@ -226,12 +296,16 @@ func (p *GoChannelProvider) Close() error {
 
 	p.startMutex.Lock()
 	defer p.startMutex.Unlock()
+	p.closed = true
 
 	p.runningMutex.Lock()
 	if !p.running {
 		p.runningMutex.Unlock()
 		p.pikoLogger.Internal("GoChannel provider already closed")
-		return nil
+		if p.bounded != nil {
+			return p.bounded.Close()
+		}
+		return p.pubsub.Close()
 	}
 	p.running = false
 	p.runningMutex.Unlock()
@@ -242,6 +316,9 @@ func (p *GoChannelProvider) Close() error {
 		p.cancel(errors.New("goChannel event provider closed"))
 	}
 
+	if p.bounded != nil {
+		_ = p.bounded.Close()
+	}
 	if p.router != nil {
 		if err := p.router.Close(); err != nil {
 			p.pikoLogger.Error("Error closing Watermill router", logger.Error(err))
@@ -262,6 +339,17 @@ func (p *GoChannelProvider) Close() error {
 		logger.Int64("durationMs", duration.Milliseconds()))
 
 	return nil
+}
+
+// PublicationStats reports retained publication work in the non-persistent provider.
+//
+// Returns PublicationStats which contains current accounting, or zero values when bounded
+// publication is disabled.
+func (p *GoChannelProvider) PublicationStats() PublicationStats {
+	if p.bounded == nil {
+		return PublicationStats{}
+	}
+	return p.bounded.snapshot()
 }
 
 // initialiseRouter creates and sets up the Watermill router.
@@ -320,15 +408,58 @@ func (p *GoChannelProvider) recordStartMetrics(ctx context.Context, startTime ti
 		logger.Int64("durationMs", duration.Milliseconds()))
 }
 
-// DefaultConfig returns sensible defaults for production use.
+// resolvePublicationLimits validates the publication limits and fills unset ones with
+// their defaults.
 //
-// BlockPublishUntilSubscriberAck is disabled to allow fire-and-forget publishing. This
-// supports high-throughput event streams without blocking. Large output buffers and
-// idempotent event handlers (via singleflight) prevent message loss.
+// Takes config (Config) which holds the limits as configured.
+//
+// Returns Config which holds the resolved limits.
+// Returns error when a limit is negative, the reserve leaves no room for other topics, or
+// MaxTopicShare lies outside 0 to 1.
+func resolvePublicationLimits(config Config) (Config, error) {
+	if config.PublishQueueCapacity < 0 || config.PublishQueueBytes < 0 || config.MaxPublishTopics < 0 ||
+		config.ReservedCapacity < 0 {
+		return config, errors.New("event publication limits must not be negative")
+	}
+	if config.MaxTopicShare < 0 || config.MaxTopicShare > 1 {
+		return config, fmt.Errorf("event publication MaxTopicShare %v must be between 0 and 1", config.MaxTopicShare)
+	}
+	if config.PublishQueueCapacity == 0 {
+		config.PublishQueueCapacity = defaultPublishQueueCapacity
+	}
+	if config.PublishQueueBytes == 0 {
+		config.PublishQueueBytes = defaultPublishQueueBytes
+	}
+	if config.MaxPublishTopics == 0 {
+		config.MaxPublishTopics = defaultMaxPublishTopics
+	}
+	if config.ReservedTopicPrefixes == nil {
+		config.ReservedTopicPrefixes = DefaultReservedTopicPrefixes()
+	}
+	if config.ReservedCapacity == 0 {
+		config.ReservedCapacity = config.PublishQueueCapacity / defaultReservedCapacityDivisor
+	}
+	if config.ReservedCapacity >= config.PublishQueueCapacity {
+		return config, fmt.Errorf("event publication ReservedCapacity %d must be below PublishQueueCapacity %d",
+			config.ReservedCapacity, config.PublishQueueCapacity)
+	}
+	return config, nil
+}
+
+// DefaultConfig returns bounded asynchronous publication defaults with reserved capacity
+// for artefact and task completion events.
+//
+// A full queue returns ErrPublishOverloaded for the caller to handle.
 //
 // Returns Config which contains the default settings for the event system.
 func DefaultConfig() Config {
 	return Config{
+		PublishQueueCapacity:           defaultPublishQueueCapacity,
+		PublishQueueBytes:              defaultPublishQueueBytes,
+		MaxPublishTopics:               defaultMaxPublishTopics,
+		ReservedTopicPrefixes:          DefaultReservedTopicPrefixes(),
+		ReservedCapacity:               0,
+		MaxTopicShare:                  0,
 		OutputChannelBuffer:            defaultOutputChannelBuffer,
 		BlockPublishUntilSubscriberAck: false,
 		Persistent:                     false,

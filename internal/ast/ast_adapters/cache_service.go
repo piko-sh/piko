@@ -27,7 +27,7 @@ import (
 	"github.com/maypok86/otter/v2"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (

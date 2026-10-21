@@ -148,7 +148,7 @@ func verifyFrameworkSource(resource, source, sriEntry string) (FrameworkRuntimeS
 // Takes source (string) which is the content to hash.
 // Takes expectedBase64 (string) which is the base64-encoded expected digest (no algorithm
 // prefix).
-// Takes factory which constructs a fresh hash.Hash.
+// Takes factory (func() hash.Hash) which constructs a fresh hash.Hash.
 //
 // Returns bool which is true when the digest matches.
 func verifySRI(source, expectedBase64 string, factory func() hash.Hash) bool {

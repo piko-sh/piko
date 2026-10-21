@@ -16,30 +16,16 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package db_engine_clickhouse provides the Piko querier engine adapter for ClickHouse.
-// It implements the querier_domain.EnginePort contract: SQL parsing, type system,
-// directive prefix configuration, builtin function and type catalogues, and per-engine
-// metadata.
+// Package db_engine_clickhouse is Piko's engine for ClickHouse.
 //
-// ClickHouse diverges from the SQL-standard family that postgres and mysql inhabit in
-// three notable ways the adapter must handle.
+// Register it with a database to generate typed Go from SQL, run migrations and seeds,
+// and report engine-specific health diagnostics:
 //
-// Parameter binding uses the brace form `{name:Type}` where the Go code generator must
-// emit both the placeholder identifier and its ClickHouse-native type tag. The engine
-// declares querier_dto.ParameterStyleClickHouseCurly and the emitter calls
-// FormatParameter to obtain the literal SQL string for each parameter site.
+//	piko.WithDatabase("primary", &db.DatabaseRegistration{
+//	    DB:           database,
+//	    EngineConfig: db_engine_clickhouse.ClickHouse(),
+//	})
 //
-// Nullability is encoded inside the SQL type name as `Nullable(T)` rather than tracked as
-// a separate column flag. The engine strips the wrapper during NormaliseTypeName and sets
-// the consumer's Nullable flag instead, so the rest of the pipeline sees the same shape
-// it sees from other engines.
-//
-// `CREATE TABLE ... ENGINE = MergeTree() PARTITION BY ... ORDER BY ... SETTINGS ...`
-// carries query-planning metadata that codegen does not interpret. The parser captures
-// these clauses verbatim into CatalogueMutation.EngineSpecific so later passes such as
-// PREWHERE eligibility and FINAL semantics can read them without round-trip loss.
-//
-// The adapter ships codegen and migration execution support. Migration execution uses a
-// table-based version tracker because ClickHouse has no advisory locks; concurrent
-// migrators rely on external coordination.
+// The SQL analysis and code generation are provided by Seagull through
+// wdk/db/db_provider_seagull; db_engine_clickhouse selects and tunes the dialect.
 package db_engine_clickhouse

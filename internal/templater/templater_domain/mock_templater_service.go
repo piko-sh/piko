@@ -67,7 +67,6 @@ var (
 
 // ProbePage probes a page to gather metadata and validation information.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes page (templater_dto.PageDefinition) which describes the page to probe.
 // Takes request (*http.Request) which is the incoming HTTP request.
 // Takes websiteConfig (*config.WebsiteConfig) which provides the website configuration.
@@ -88,7 +87,6 @@ func (m *MockTemplaterService) ProbePage(
 
 // RenderPage renders a page template to the given writer.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes request (RenderRequest) which bundles all values needed for rendering.
 //
 // Returns error, or nil if RenderPageFunc is nil.
@@ -102,7 +100,6 @@ func (m *MockTemplaterService) RenderPage(ctx context.Context, request RenderReq
 
 // ProbePartial probes a page definition for partial template resolution.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes page (templater_dto.PageDefinition) which describes the partial to probe.
 // Takes request (*http.Request) which is the incoming HTTP request.
 // Takes websiteConfig (*config.WebsiteConfig) which provides the website configuration.
@@ -123,7 +120,6 @@ func (m *MockTemplaterService) ProbePartial(
 
 // RenderPartial renders a partial page template to the provided writer.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes request (RenderRequest) which bundles all values needed for rendering.
 //
 // Returns error, or nil if RenderPartialFunc is nil.

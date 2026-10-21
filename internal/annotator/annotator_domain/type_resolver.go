@@ -158,6 +158,17 @@ func NewTypeResolver(
 	}
 }
 
+// WithVirtualModule creates a resolver for virtualModule that shares the receiver's type
+// inspector and collection service.
+//
+// Takes virtualModule (*annotator_dto.VirtualModule) which is the module the new view
+// resolves against.
+//
+// Returns *TypeResolver which is the new view, leaving the receiver unchanged.
+func (tr *TypeResolver) WithVirtualModule(virtualModule *annotator_dto.VirtualModule) *TypeResolver {
+	return NewTypeResolver(tr.inspector, virtualModule, tr.collectionService)
+}
+
 // Resolve is the primary entry point for the TypeResolver. It performs a full, recursive
 // semantic analysis on a single expression and attaches the final annotation to the AST
 // node.
@@ -659,15 +670,7 @@ func (tr *TypeResolver) newResolvedTypeInfo(ctx *AnalysisContext, typeExpr goast
 
 	if canonicalPath == "" && localAlias != "" {
 		typeName, _, _ := inspector_domain.DeconstructTypeExpr(typeExpr)
-
-		for packagePath, pkg := range tr.inspector.GetAllPackages() {
-			if pkg.Name == localAlias {
-				if _, hasType := pkg.NamedTypes[typeName]; hasType {
-					canonicalPath = packagePath
-					break
-				}
-			}
-		}
+		canonicalPath = findPackagePathDefiningType(tr.inspector.GetAllPackages(), localAlias, typeName)
 	}
 
 	return &ast_domain.ResolvedTypeInfo{
@@ -680,6 +683,28 @@ func (tr *TypeResolver) newResolvedTypeInfo(ctx *AnalysisContext, typeExpr goast
 		InitialFilePath:         "",
 		UnderlyingTypeString:    "",
 	}
+}
+
+// findPackagePathDefiningType returns the smallest import path whose package name and
+// declared type match.
+//
+// Takes packages (map[string]*inspector_dto.Package) which maps import paths to the
+// loaded packages.
+// Takes packageName (string) which is the package name to match.
+// Takes typeName (string) which is the type the package must declare.
+//
+// Returns string which is the matching import path, or empty when none matches.
+func findPackagePathDefiningType(packages map[string]*inspector_dto.Package, packageName, typeName string) string {
+	var found string
+	for packagePath, pkg := range packages {
+		if pkg.Name != packageName || (found != "" && packagePath >= found) {
+			continue
+		}
+		if _, hasType := pkg.NamedTypes[typeName]; hasType {
+			found = packagePath
+		}
+	}
+	return found
 }
 
 // validateCallArguments validates function call arguments against a function signature by

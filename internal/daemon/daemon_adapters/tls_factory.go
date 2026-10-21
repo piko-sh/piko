@@ -28,7 +28,7 @@ import (
 
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/tlscert"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // SandboxFactory creates a sandbox for a given directory with the specified access mode.

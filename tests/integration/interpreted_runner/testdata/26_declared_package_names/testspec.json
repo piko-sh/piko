@@ -1,0 +1,8 @@
+{
+  "description": "Tests that registered packages whose declared name differs from their import path's last element (pkg/go-labels declares labels, pkg/widget/v2 declares widget, pkg/declared declares naming) resolve by their declared names when a user package compiled from source imports them without aliases.",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "shouldError": false,
+  "isFragment": false,
+  "declaredPackageNames": true
+}

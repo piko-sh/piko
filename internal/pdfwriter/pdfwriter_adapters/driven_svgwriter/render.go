@@ -65,7 +65,6 @@ func New() *SVGWriter {
 // RenderSVG parses the SVG string and renders it as native PDF vector commands into the
 // provided content stream at the given position and size.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes svgData (string) which holds the raw SVG markup to parse.
 // Takes svgRenderContext (pdfwriter_domain.SVGRenderContext) which provides the PDF
 // stream and resource managers.
@@ -257,7 +256,6 @@ func computeAspectRatioTransform(
 
 // renderNode dispatches rendering for a single SVG node based on its tag type.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes rc (*renderContext) which provides the PDF stream and resource managers.
 // Takes node (*Node) which holds the SVG node to render.
 // Takes parentStyle (*Style) which holds the inherited style properties.
@@ -297,7 +295,6 @@ func renderNode(ctx context.Context, rc *renderContext, node *Node, parentStyle 
 // renderGroup renders an SVG group or nested SVG element by applying its transform and
 // rendering children.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes rc (*renderContext) which provides the PDF stream and resource managers.
 // Takes node (*Node) which holds the group node to render.
 // Takes style (*Style) which holds the resolved style properties.
@@ -318,7 +315,6 @@ func renderGroup(ctx context.Context, rc *renderContext, node *Node, style *Styl
 // renderShapeOrContent renders individual SVG shape or content elements such as rect,
 // circle, path, and text.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes rc (*renderContext) which provides the PDF stream and resource managers.
 // Takes node (*Node) which holds the shape node to render.
 // Takes style (*Style) which holds the resolved style properties.
@@ -399,7 +395,6 @@ func applyGroupOpacity(rc *renderContext, style *Style) {
 // renderUse renders an SVG use element by resolving its href to a definition and
 // rendering the referenced node.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes rc (*renderContext) which provides the PDF stream and resource managers.
 // Takes node (*Node) which holds the use element to resolve.
 // Takes parentStyle (*Style) which holds the inherited style properties.
@@ -589,7 +584,6 @@ func renderPath(ctx context.Context, rc *renderContext, node *Node, style *Style
 // renderImage renders an SVG <image> element by embedding the referenced raster image as
 // a PDF XObject.
 //
-// Takes ctx (context.Context) which controls cancellation of image data retrieval.
 // Takes rc (*renderContext) which provides the PDF stream and resource managers.
 // Takes node (*Node) which provides the SVG image element and its attributes.
 func renderImage(ctx context.Context, rc *renderContext, node *Node) {

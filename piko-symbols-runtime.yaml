@@ -14,4 +14,4 @@ packages:
   - piko.sh/piko/wdk/binder
   - piko.sh/piko/wdk/logger
   - piko.sh/piko/wdk/runtime
-  - piko.sh/piko/wdk/safeconv
+  - piko.sh/safeconv

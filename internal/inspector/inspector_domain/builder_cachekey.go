@@ -36,7 +36,7 @@ import (
 
 	"github.com/cespare/xxhash/v2"
 	"piko.sh/piko/internal/inspector/inspector_dto"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // generateCacheKey creates a stable hash from project dependencies, source content, and

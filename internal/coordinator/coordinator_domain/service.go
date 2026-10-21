@@ -33,7 +33,7 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/resolver/resolver_domain"
 	"piko.sh/piko/wdk/clock"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // coordinatorOptions holds configuration for the coordinator service. Fields are ordered
@@ -177,6 +177,9 @@ type coordinatorService struct {
 	// waiters stores pending build requests, keyed by input hash.
 	waiters sync.Map
 
+	// pendingOrder lists queued build signatures in their original arrival order.
+	pendingOrder []string
+
 	// wg tracks the build loop goroutine for graceful shutdown.
 	wg sync.WaitGroup
 
@@ -184,9 +187,9 @@ type coordinatorService struct {
 	// current epoch must not write to the cache, as their results are stale.
 	invalidationEpoch atomic.Uint64
 
-	// buildInFlight tracks whether a build is currently executing in the build loop.
-	// Invalidate() waits for it to complete before returning.
-	buildInFlight sync.WaitGroup
+	// buildMu serialises invalidation with the build loop until each build's waiters are
+	// notified.
+	buildMu sync.Mutex
 
 	// debounceDuration is the shortest time allowed between build triggers.
 	debounceDuration time.Duration
@@ -265,10 +268,11 @@ func (s *coordinatorService) GetResult(
 
 	s.mu.Lock()
 	s.lastBuildRequest = &coordinator_dto.BuildRequest{
-		CausationID:   buildOpts.CausationID,
-		EntryPoints:   entryPoints,
-		FaultTolerant: buildOpts.FaultTolerant,
-		Resolver:      buildOpts.Resolver,
+		CausationID:    buildOpts.CausationID,
+		EntryPoints:    entryPoints,
+		FaultTolerant:  buildOpts.FaultTolerant,
+		Resolver:       buildOpts.Resolver,
+		AllEntryPoints: nil,
 	}
 	s.mu.Unlock()
 
@@ -313,6 +317,10 @@ func (s *coordinatorService) Shutdown(ctx context.Context) {
 			logger_domain.String("timeout", coordinatorShutdownTimeout.String()))
 	}
 
+	s.drainRebuildTrigger(shutdownCtx)
+	s.notifyAllWaiters(shutdownCtx, ErrBuildInvalidated)
+	s.stopNotificationPumps()
+
 	if s.fileHashCache != nil {
 		if err := s.fileHashCache.Persist(shutdownCtx); err != nil {
 			sl.Error("Failed to persist file hash cache during shutdown.", logger_domain.Error(err))
@@ -349,10 +357,11 @@ func (s *coordinatorService) RequestRebuild(
 
 	s.mu.Lock()
 	s.lastBuildRequest = &coordinator_dto.BuildRequest{
-		CausationID:   buildOpts.CausationID,
-		EntryPoints:   entryPoints,
-		Resolver:      buildOpts.Resolver,
-		FaultTolerant: buildOpts.FaultTolerant,
+		CausationID:    buildOpts.CausationID,
+		EntryPoints:    entryPoints,
+		AllEntryPoints: buildOpts.AllEntryPoints,
+		Resolver:       buildOpts.Resolver,
+		FaultTolerant:  buildOpts.FaultTolerant,
 	}
 	s.status.State = stateBuilding
 	requestToBuild := s.lastBuildRequest
@@ -379,6 +388,8 @@ func (s *coordinatorService) RequestRebuild(
 	s.debounceTimer = s.clock.AfterFunc(s.debounceDuration, func() {
 		_, dl := logger_domain.From(ctx, log)
 		dl.Trace("Trailing-edge debounce timer fired.")
+		s.debounceMutex.Lock()
+		defer s.debounceMutex.Unlock()
 		s.lastTriggerTime = s.clock.Now()
 		s.signalRebuild(ctx)
 	})
@@ -411,11 +422,17 @@ func (s *coordinatorService) GetLastSuccessfulBuild() (*annotator_dto.ProjectAnn
 	return nil, false
 }
 
-// Invalidate clears the annotation cache (Tier 2) and in-memory state.
+// Invalidate discards queued builds and clears cached annotation state after the running
+// build finishes.
+//
+// The invalidation epoch prevents the running build from publishing stale results.
+// Discarded requests receive ErrBuildInvalidated.
 //
 // Returns error when the annotation cache cannot be cleared.
 //
-// Safe for concurrent use. Acquires a lock when clearing in-memory state.
+// Safe for concurrent use. Must not be called from inside a build (for example from a
+// build notification handled synchronously by the build loop), since it waits for the
+// running build and would deadlock.
 func (s *coordinatorService) Invalidate(ctx context.Context) error {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "CoordinatorService.Invalidate")
@@ -424,6 +441,17 @@ func (s *coordinatorService) Invalidate(ctx context.Context) error {
 	l.Internal("Invalidating Tier 2 (annotation cache) only. Tier 1 (introspection) preserved for fast-path rebuilds.")
 
 	s.invalidationEpoch.Add(1)
+
+	s.debounceMutex.Lock()
+	if s.debounceTimer != nil {
+		s.debounceTimer.Stop()
+	}
+	s.debounceMutex.Unlock()
+
+	s.drainRebuildTrigger(ctx)
+
+	s.buildMu.Lock()
+	defer s.buildMu.Unlock()
 
 	if err := s.cache.Clear(ctx); err != nil {
 		l.ReportError(span, err, "Failed to clear annotation cache")
@@ -435,16 +463,6 @@ func (s *coordinatorService) Invalidate(ctx context.Context) error {
 	s.mu.Lock()
 	s.status.Result = nil
 	s.mu.Unlock()
-
-	s.debounceMutex.Lock()
-	if s.debounceTimer != nil {
-		s.debounceTimer.Stop()
-	}
-	s.debounceMutex.Unlock()
-
-	s.drainRebuildTrigger(ctx)
-
-	s.buildInFlight.Wait()
 
 	l.Internal("In-memory status result cleared. Full invalidation complete.")
 	return nil
@@ -461,10 +479,11 @@ func (s *coordinatorService) drainRebuildTrigger(ctx context.Context) {
 		discarded = append(discarded, signature)
 	}
 	clear(s.pendingBuilds)
+	s.pendingOrder = nil
 	s.pendingMu.Unlock()
 
 	for _, signature := range discarded {
-		s.notifyWaiters(ctx, signature, nil, errBuildInvalidated)
+		s.notifyWaiters(ctx, signature, nil, ErrBuildInvalidated)
 	}
 	for {
 		select {
@@ -689,15 +708,9 @@ func WithVerifyGeneratedCode(enabled bool) CoordinatorOption {
 	}
 }
 
-// NewService creates a new coordinator service. It requires its core dependencies as
-// interfaces, adhering to the hexagonal architecture.
+// NewService creates a coordinator from its required dependencies and optional
+// configuration.
 //
-// Optional dependencies (file hash cache, code emitter, diagnostic output, context)
-// should be provided via functional options: WithFileHashCache, WithCodeEmitter,
-// WithDiagnosticOutput, WithContext.
-//
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation throughout the service lifetime.
 // Takes annotator (AnnotatorPort) which provides code annotation capabilities.
 // Takes cache (BuildResultCachePort) which stores build results.
 // Takes introspectionCache (IntrospectionCachePort) which caches introspection data.
@@ -797,6 +810,7 @@ func newCoordinatorService(
 		subscribers:               make(map[uint64]subscriber),
 		rebuildSignal:             make(chan struct{}, 1),
 		pendingBuilds:             make(map[string]*coordinator_dto.BuildRequest),
+		pendingOrder:              nil,
 		status:                    buildStatus{State: stateIdle, LastBuildTime: time.Time{}, LastBuildError: nil, Result: nil},
 		waiters:                   sync.Map{},
 		wg:                        sync.WaitGroup{},
@@ -815,7 +829,7 @@ func newCoordinatorService(
 		verifyGeneratedCode:       options.verifyGeneratedCode,
 		knownStyleDeps:            nil,
 		invalidationEpoch:         atomic.Uint64{},
-		buildInFlight:             sync.WaitGroup{},
+		buildMu:                   sync.Mutex{},
 		styleDepsMu:               sync.RWMutex{},
 	}
 }

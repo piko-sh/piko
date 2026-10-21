@@ -243,12 +243,12 @@ func setupHealthProbeServer(
 // newTLSRedirectServerIfConfigured returns a new HTTP server adapter when the daemon
 // config enables TLS redirect, or nil otherwise.
 //
-// Takes daemonConfig (daemon_domain.DaemonConfig) which provides the TLS redirect
+// Takes daemonConfig (*daemon_domain.DaemonConfig) which provides the TLS redirect
 // settings to check.
 //
 // Returns daemon_domain.ServerAdapter which is the redirect server, or nil when TLS
 // redirect is not enabled.
-func newTLSRedirectServerIfConfigured(daemonConfig daemon_domain.DaemonConfig) daemon_domain.ServerAdapter {
+func newTLSRedirectServerIfConfigured(daemonConfig *daemon_domain.DaemonConfig) daemon_domain.ServerAdapter {
 	if daemonConfig.TLSRedirectHTTPPort != "" {
 		return daemon_adapters.NewDriverHTTPServerAdapter()
 	}

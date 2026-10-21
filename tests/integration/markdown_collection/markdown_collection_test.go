@@ -34,7 +34,7 @@ import (
 	"piko.sh/piko/internal/markdown/markdown_domain"
 	"piko.sh/piko/tests/integration/testutil"
 	"piko.sh/piko/wdk/markdown/markdown_provider_goldmark"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 func createProvider(t *testing.T, testdataDir string) (*driver_markdown.MarkdownProvider, collection_dto.ContentSource) {

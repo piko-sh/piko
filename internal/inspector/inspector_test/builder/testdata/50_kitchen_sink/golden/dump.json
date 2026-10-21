@@ -37,7 +37,7 @@
           ],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 31,
+          "definition_line": 30,
           "definition_column": 6
         },
         "Report": {
@@ -83,7 +83,7 @@
                 }
               ],
               "composite_type": 7,
-              "definition_line": 38,
+              "definition_line": 35,
               "definition_column": 9,
               "is_internal_type": false,
               "is_embedded": true,
@@ -162,7 +162,7 @@
                 }
               ],
               "composite_type": 1,
-              "definition_line": 41,
+              "definition_line": 37,
               "definition_column": 2,
               "is_internal_type": false,
               "is_embedded": false,
@@ -190,7 +190,7 @@
                 }
               ],
               "composite_type": 5,
-              "definition_line": 44,
+              "definition_line": 39,
               "definition_column": 2,
               "is_internal_type": true,
               "is_embedded": false,
@@ -211,7 +211,7 @@
                   "uuid.UUID"
                 ]
               },
-              "definition_line": 27,
+              "definition_line": 25,
               "definition_column": 23,
               "is_pointer_receiver": false
             },
@@ -234,7 +234,7 @@
                   "error"
                 ]
               },
-              "definition_line": 48,
+              "definition_line": 42,
               "definition_column": 21,
               "is_pointer_receiver": true
             }
@@ -244,7 +244,7 @@
           ],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 36,
+          "definition_line": 34,
           "definition_column": 6
         }
       },
@@ -292,7 +292,7 @@
                   "I"
                 ]
               },
-              "definition_line": 27,
+              "definition_line": 25,
               "definition_column": 23,
               "is_pointer_receiver": false
             }
@@ -302,7 +302,7 @@
           ],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 22,
+          "definition_line": 21,
           "definition_column": 6
         }
       },

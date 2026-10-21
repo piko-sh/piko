@@ -42,7 +42,7 @@ import (
 	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/wdk/clock"
 	"piko.sh/piko/wdk/goroutine"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -132,6 +132,14 @@ type InterpretedBuildOrchestrator struct {
 	// moduleName is the Go module path used to resolve imports.
 	moduleName string
 
+	// hostImports holds the relative directories of the project packages the server binary's
+	// main package imports; set once by hostImportsOnce.
+	hostImports map[string]bool
+
+	// packageStateWarned records the project packages already reported by
+	// warnSeparatePackageState, keyed by relative directory.
+	packageStateWarned sync.Map
+
 	// jitCompileTimeout bounds one JIT compilation.
 	jitCompileTimeout time.Duration
 
@@ -143,6 +151,9 @@ type InterpretedBuildOrchestrator struct {
 	// by stateLock. The orchestrator reports itself uninitialised while it trails
 	// freshPoolRequested, so the next build runs in full with a fresh pool.
 	freshPoolBuilt uint64
+
+	// hostImportsOnce computes hostImports on the first build.
+	hostImportsOnce sync.Once
 
 	// stateLock guards access to orchestrator state fields for safe concurrent use.
 	stateLock sync.RWMutex
@@ -244,6 +255,9 @@ func NewInterpretedBuildOrchestrator(
 		jitCompileTimeout:     jitCompileTimeout,
 		freshPoolRequested:    0,
 		freshPoolBuilt:        0,
+		hostImports:           nil,
+		packageStateWarned:    sync.Map{},
+		hostImportsOnce:       sync.Once{},
 		stateLock:             sync.RWMutex{},
 	}
 }
@@ -323,13 +337,11 @@ func (o *InterpretedBuildOrchestrator) BuildRunner(
 	return templater_adapters.NewInterpretedManifestRunner(o.i18nService, progCache, o, o.getDefaultLocale()), nil
 }
 
-// MarkDirty is the fast-path method called on file save.
+// MarkDirty caches changed source and marks components and their dependents for later JIT
+// compilation.
 //
-// It marks components as dirty without recompiling them, enabling sub-second hot-reload
-// feedback. Stores new Go code for each changed component in dirtyCodeCache, propagates
-// dirty flags to all dependent components using reverseDepsMap, and returns immediately
-// (~10-50ms) without compilation. Actual compilation happens later via JITCompile when a
-// page is requested.
+// Partial results merge into the cached manifest; full results replace it. Both refresh
+// the reverse dependency map.
 //
 // Takes result (*annotator_dto.ProjectAnnotationResult) which contains the annotation
 // results for changed files.
@@ -354,6 +366,13 @@ func (o *InterpretedBuildOrchestrator) MarkDirty(
 		return nil
 	}
 
+	if !resultCoversVirtualModule(result) {
+		l.Internal("[JIT-MARK-DIRTY] Result covers part of the project; merging into the cached manifest",
+			logger_domain.Int("annotated", len(result.ComponentResults)),
+			logger_domain.Int("components", len(result.VirtualModule.ComponentsByHash)))
+		return o.markArtefactsDirty(ctx, artefacts)
+	}
+
 	manifest, err := o.buildManifest(ctx, artefacts)
 	if err != nil {
 		return fmt.Errorf("building manifest for mark-dirty: %w", err)
@@ -365,6 +384,8 @@ func (o *InterpretedBuildOrchestrator) MarkDirty(
 	o.cachedManifest = manifest
 
 	o.updateArtefactLookup(artefacts)
+
+	o.rebuildReverseDependencyMapFromState()
 
 	directlyChanged, allDirty := o.markDirectlyChangedComponents(ctx, artefacts)
 	o.propagateDirtyFlags(ctx, directlyChanged, allDirty)
@@ -517,20 +538,15 @@ func (o *InterpretedBuildOrchestrator) GetAffectedComponents(relPath string) []s
 	return affected
 }
 
-// MarkComponentsDirty marks changed components for recompilation, merging the partial
-// build result into the existing manifest rather than replacing it. This is used by
-// targeted rebuilds where the result only contains a subset of components.
+// MarkComponentsDirty merges changed components into the cached manifest and marks them
+// for recompilation.
 //
-// The method is identical to MarkDirty except that it merges the new manifest entries
-// into the cached manifest instead of replacing it, preserving entries for components not
-// included in the targeted build.
+// The delegated update protects shared state with stateLock.
 //
 // Takes result (*annotator_dto.ProjectAnnotationResult) which contains the annotation
 // results for changed files.
 //
 // Returns error when artefact extraction or manifest building fails.
-//
-// Safe for concurrent use; protects shared state with stateLock.
 func (o *InterpretedBuildOrchestrator) MarkComponentsDirty(
 	ctx context.Context,
 	result *annotator_dto.ProjectAnnotationResult,
@@ -548,29 +564,20 @@ func (o *InterpretedBuildOrchestrator) MarkComponentsDirty(
 		return nil
 	}
 
-	manifest, err := o.buildManifest(ctx, artefacts)
-	if err != nil {
-		return fmt.Errorf("building manifest for targeted mark-dirty: %w", err)
+	return o.markArtefactsDirty(ctx, artefacts)
+}
+
+// resultCoversVirtualModule reports whether a build result annotated every component of
+// its virtual module, as a full build does, rather than a subset.
+//
+// Takes result (*annotator_dto.ProjectAnnotationResult) which is the result to check.
+//
+// Returns bool which is true when no component of the virtual module is missing a result.
+func resultCoversVirtualModule(result *annotator_dto.ProjectAnnotationResult) bool {
+	if result == nil || result.VirtualModule == nil {
+		return true
 	}
-
-	o.stateLock.Lock()
-	defer o.stateLock.Unlock()
-
-	o.mergeManifest(manifest)
-
-	o.updateArtefactLookup(artefacts)
-
-	o.rebuildReverseDependencyMapFromState()
-
-	directlyChanged, allDirty := o.markDirectlyChangedComponents(ctx, artefacts)
-	o.propagateDirtyFlags(ctx, directlyChanged, allDirty)
-
-	l.Internal("[JIT-MARK-DIRTY] ========== Targeted Dirty Marking Complete ==========",
-		logger_domain.Int("directly_changed", len(directlyChanged)),
-		logger_domain.Int("total_dirty", len(allDirty)),
-		logger_domain.Int("dirty_code_stored", len(o.dirtyCodeCache)))
-
-	return nil
+	return len(result.ComponentResults) >= len(result.VirtualModule.ComponentsByHash)
 }
 
 // ProactiveRecompile JIT-compiles all components currently in the dirty code cache. This
@@ -627,10 +634,8 @@ func (o *InterpretedBuildOrchestrator) ProactiveRecompile(ctx context.Context) e
 	return nil
 }
 
-// RemoveComponent drops a component from the orchestrator's caches so its page key is no
-// longer reported by the runner and its compiled entry no longer serves requests. It
-// purges the program cache, the dirty code cache, and the artefact lookup, then rebuilds
-// the reverse dependency map.
+// RemoveComponent removes a component from the program, source, manifest, and artefact
+// caches and refreshes reverse dependencies.
 //
 // Takes relPath (string) which is the project-relative source path of the removed
 // component (e.g. "pages/old.pk"). For a regular page this is the program cache key.
@@ -645,6 +650,14 @@ func (o *InterpretedBuildOrchestrator) RemoveComponent(ctx context.Context, relP
 
 	delete(o.progCache, relPath)
 	delete(o.dirtyCodeCache, relPath)
+
+	if o.cachedManifest != nil {
+		delete(o.cachedManifest.Pages, relPath)
+		delete(o.cachedManifest.Partials, relPath)
+		delete(o.cachedManifest.Emails, relPath)
+		delete(o.cachedManifest.Pdfs, relPath)
+		delete(o.cachedManifest.ErrorPages, relPath)
+	}
 
 	for packagePath, artefact := range o.artefactByPackagePath {
 		component, _ := generator_domain.GetMainComponent(artefact.Result)
@@ -665,6 +678,49 @@ func (o *InterpretedBuildOrchestrator) RemoveComponent(ctx context.Context, relP
 	}
 
 	o.rebuildReverseDependencyMapFromState()
+}
+
+// markArtefactsDirty merges partial-build artefacts and marks them and their dependents
+// for recompilation.
+//
+// Manifest construction uses the full project context. The merge holds stateLock
+// throughout.
+//
+// Takes artefacts ([]*generator_dto.GeneratedArtefact) which are the rebuilt components.
+//
+// Returns error when the manifest cannot be built.
+//
+// Safe for concurrent use; acquires stateLock.
+func (o *InterpretedBuildOrchestrator) markArtefactsDirty(
+	ctx context.Context,
+	artefacts []*generator_dto.GeneratedArtefact,
+) error {
+	ctx, l := logger_domain.From(ctx, log)
+
+	o.stateLock.Lock()
+	defer o.stateLock.Unlock()
+
+	knownArtefacts := slices.Collect(maps.Values(o.artefactByPackagePath))
+	manifest, err := o.buildManifestWithContext(ctx, artefacts, knownArtefacts)
+	if err != nil {
+		return fmt.Errorf("building manifest for targeted mark-dirty: %w", err)
+	}
+
+	o.mergeManifest(manifest)
+
+	o.updateArtefactLookup(artefacts)
+
+	o.rebuildReverseDependencyMapFromState()
+
+	directlyChanged, allDirty := o.markDirectlyChangedComponents(ctx, artefacts)
+	o.propagateDirtyFlags(ctx, directlyChanged, allDirty)
+
+	l.Internal("[JIT-MARK-DIRTY] ========== Targeted Dirty Marking Complete ==========",
+		logger_domain.Int("directly_changed", len(directlyChanged)),
+		logger_domain.Int("total_dirty", len(allDirty)),
+		logger_domain.Int("dirty_code_stored", len(o.dirtyCodeCache)))
+
+	return nil
 }
 
 // isEmptyVirtualModule checks if the virtual module has no components.
@@ -702,7 +758,6 @@ func (o *InterpretedBuildOrchestrator) getDefaultLocale() string {
 
 // extractArtefacts gets and checks the artefacts from a build result.
 //
-// Takes ctx (context.Context) which carries the logger.
 // Takes result (*annotator_dto.ProjectAnnotationResult) which holds the build output with
 // the generated artefacts.
 //
@@ -739,7 +794,6 @@ func (*InterpretedBuildOrchestrator) extractArtefacts(
 
 // buildManifest creates a manifest from the given artefacts.
 //
-// Takes ctx (context.Context) which carries the logger.
 // Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains the generated items
 // to include in the manifest.
 //
@@ -761,6 +815,35 @@ func (o *InterpretedBuildOrchestrator) buildManifest(
 		logger_domain.Int("pages", len(manifest.Pages)),
 		logger_domain.Int("partials", len(manifest.Partials)),
 		logger_domain.Int("emails", len(manifest.Emails)))
+	return manifest, nil
+}
+
+// buildManifestWithContext creates manifest entries for the given artefacts, resolving
+// cross-component data against the other known artefacts too (see
+// ManifestBuilder.BuildWithContext).
+//
+// Takes artefacts ([]*generator_dto.GeneratedArtefact) which are the artefacts to create
+// entries for.
+// Takes contextArtefacts ([]*generator_dto.GeneratedArtefact) which are the project's
+// other known artefacts.
+//
+// Returns *generator_dto.Manifest which contains entries for artefacts only.
+// Returns error when the manifest builder fails to process the artefacts.
+func (o *InterpretedBuildOrchestrator) buildManifestWithContext(
+	ctx context.Context,
+	artefacts []*generator_dto.GeneratedArtefact,
+	contextArtefacts []*generator_dto.GeneratedArtefact,
+) (*generator_dto.Manifest, error) {
+	_, l := logger_domain.From(ctx, log)
+	manifestBuilder := generator_domain.NewManifestBuilder(o.pathsConfig, o.i18nDefaultLocale, o.projectRoot)
+	manifest, err := manifestBuilder.BuildWithContext(artefacts, contextArtefacts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build manifest from artefacts: %w", err)
+	}
+	l.Internal("[JIT-BUILD] Partial manifest built",
+		logger_domain.Int("pages", len(manifest.Pages)),
+		logger_domain.Int("partials", len(manifest.Partials)),
+		logger_domain.Int("context_artefacts", len(contextArtefacts)))
 	return manifest, nil
 }
 
@@ -922,16 +1005,11 @@ func (o *InterpretedBuildOrchestrator) collectArtefactSources(
 	return packages, components
 }
 
-// discoverUserPackages finds user-written Go packages that are actually imported by the
-// generated code and adds them to the packages map for batch compilation.
+// discoverUserPackages follows local imports transitively, skipping packages already
+// registered with the interpreter.
 //
-// Only packages reachable through the import graph are included; unrelated project
-// packages are ignored. Discovery is import-driven: import statements are parsed from the
-// generated sources, filtered to local imports (those prefixed with the module name), and
-// resolved from disk. Newly discovered packages are scanned for their own local imports,
-// repeating until all transitive dependencies are found. Packages that are already
-// available in the symbol registry are skipped because their types are pre-registered and
-// do not need source compilation.
+// Packages with exported variables receive a warning about separate host and interpreted
+// state.
 //
 // Takes packages (map[string]map[string]string) which is the mutable map to populate with
 // discovered package sources.
@@ -958,6 +1036,7 @@ func (o *InterpretedBuildOrchestrator) discoverUserPackages(
 	defer func() { _ = sandbox.Close() }()
 
 	modulePrefix := o.moduleName + "/"
+	generated := maps.Clone(packages)
 
 	pending := o.collectLocalImports(packages, modulePrefix)
 
@@ -973,6 +1052,14 @@ func (o *InterpretedBuildOrchestrator) discoverUserPackages(
 
 		pending = nextPending
 	}
+
+	userPackages := make(map[string]map[string]string)
+	for relativeDirectory, files := range packages {
+		if _, isGenerated := generated[relativeDirectory]; !isGenerated {
+			userPackages[relativeDirectory] = files
+		}
+	}
+	o.warnSeparatePackageState(ctx, sandbox, userPackages, hostMainPackagePath())
 }
 
 // resolveImportedPackage attempts to resolve a single local import path into a user
@@ -1012,7 +1099,7 @@ func (o *InterpretedBuildOrchestrator) resolveImportedPackage(
 		return nil
 	}
 
-	goFiles := o.readUserGoFiles(ctx, sandbox, relativeDirectory)
+	goFiles := o.readUserGoFiles(ctx, sandbox, relativeDirectory, interpreter)
 	if len(goFiles) == 0 {
 		return nil
 	}
@@ -1055,12 +1142,14 @@ func (*InterpretedBuildOrchestrator) collectLocalImports(
 	return localImports
 }
 
-// readUserGoFiles reads all non-test .go files from a directory using the provided
-// sandbox.
+// readUserGoFiles reads non-test Go files accepted by CompilesFile.
+//
+// Files with invalid build constraints are retained so compilation can report the error.
 //
 // Takes sandbox (safedisk.Sandbox) which provides safe filesystem access scoped to the
 // project root.
 // Takes relDir (string) which is the relative directory path to read Go files from.
+// Takes interpreter (templater_domain.InterpreterPort) which decides each file.
 //
 // Returns map[string]string mapping filenames to their source content, or nil when the
 // directory cannot be read.
@@ -1068,6 +1157,7 @@ func (*InterpretedBuildOrchestrator) readUserGoFiles(
 	ctx context.Context,
 	sandbox safedisk.Sandbox,
 	relDir string,
+	interpreter templater_domain.InterpreterPort,
 ) map[string]string {
 	_, l := logger_domain.From(ctx, log)
 	entries, readErr := sandbox.ReadDir(relDir)
@@ -1084,6 +1174,12 @@ func (*InterpretedBuildOrchestrator) readUserGoFiles(
 			l.Error("Failed to read user package file",
 				logger_domain.String(fieldPath, filepath.Join(relDir, e.Name())),
 				logger_domain.Error(readFileErr))
+			continue
+		}
+		compiled, matchErr := interpreter.CompilesFile(e.Name(), content)
+		if matchErr == nil && !compiled {
+			l.Trace("[JIT-BUILD] Skipping user package file excluded from the interpreted build",
+				logger_domain.String(fieldPath, filepath.Join(relDir, e.Name())))
 			continue
 		}
 		goFiles[e.Name()] = string(content)
@@ -1227,7 +1323,6 @@ func (o *InterpretedBuildOrchestrator) updateOrchestratorState(state orchestrato
 // extractMarkDirtyArtefacts gets artefacts from the annotation result for the MarkDirty
 // operation.
 //
-// Takes ctx (context.Context) which carries the logger.
 // Takes result (*annotator_dto.ProjectAnnotationResult) which holds the annotation result
 // with its generated artefacts.
 //
@@ -1277,7 +1372,6 @@ func (o *InterpretedBuildOrchestrator) updateArtefactLookup(artefacts []*generat
 // markDirectlyChangedComponents marks components as dirty based on generated code. Must
 // be called with stateLock held.
 //
-// Takes ctx (context.Context) which carries the logger.
 // Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains the generated code
 // to process.
 //
@@ -1321,7 +1415,6 @@ func (o *InterpretedBuildOrchestrator) markDirectlyChangedComponents(
 
 // propagateDirtyFlags marks all dependents as dirty using the reverse dependency map.
 //
-// Takes ctx (context.Context) which carries the logger.
 // Takes directlyChanged (map[string]bool) which contains paths that were changed and need
 // their dependents marked dirty.
 // Takes allDirty (map[string]bool) which collects all paths marked dirty, including those
@@ -1361,7 +1454,6 @@ func (o *InterpretedBuildOrchestrator) propagateDirtyFlags(
 //
 // Must be called with stateLock held.
 //
-// Takes ctx (context.Context) which carries the logger.
 // Takes dependent (string) which is the relative path of the file to add.
 // Takes changedComponent (string) which identifies the component that changed.
 func (o *InterpretedBuildOrchestrator) addDependentToDirtyCache(
@@ -1408,6 +1500,10 @@ func (o *InterpretedBuildOrchestrator) mergeManifest(newManifest *generator_dto.
 	maps.Copy(o.cachedManifest.Pages, newManifest.Pages)
 	maps.Copy(o.cachedManifest.Partials, newManifest.Partials)
 	maps.Copy(o.cachedManifest.Emails, newManifest.Emails)
+	if o.cachedManifest.Pdfs == nil {
+		o.cachedManifest.Pdfs = make(map[string]generator_dto.ManifestPdfEntry, len(newManifest.Pdfs))
+	}
+	maps.Copy(o.cachedManifest.Pdfs, newManifest.Pdfs)
 	maps.Copy(o.cachedManifest.ErrorPages, newManifest.ErrorPages)
 }
 

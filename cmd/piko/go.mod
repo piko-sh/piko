@@ -23,8 +23,10 @@ require (
 	piko.sh/piko/wdk/logger/logger_integration_otel_http v0.0.0
 	piko.sh/piko/wdk/logger/logger_otel_sdk v0.0.0
 	piko.sh/piko/wdk/monitoring/monitoring_api v0.0.0
-	pipit.sh/pipit v0.0.0-alpha.5
-	pipit.sh/pipit/sdk/extract v0.0.0-alpha.5
+	piko.sh/safeconv v0.1.0
+	piko.sh/safedisk v0.1.0
+	pipit.sh/pipit v0.0.0-alpha.8
+	pipit.sh/pipit/sdk/extract v0.0.0-alpha.8
 )
 
 require (
@@ -99,7 +101,7 @@ require (
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	piko.sh/asmgen v0.2.0 // indirect
-	piko.sh/goastutil v0.1.0 // indirect
+	piko.sh/goastutil v0.2.0 // indirect
 	piko.sh/vectormaths v0.2.0 // indirect
-	pipit.sh/pipit/sdk/link v0.0.0-alpha.5 // indirect
+	pipit.sh/pipit/sdk/link v0.0.0-alpha.8 // indirect
 )

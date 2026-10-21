@@ -62,7 +62,7 @@ import (
 	"piko.sh/piko/internal/resolver/resolver_domain"
 	"piko.sh/piko/internal/testutil"
 	"piko.sh/piko/internal/typegen/typegen_adapters"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 func newTestCacheService() cache_domain.Service {

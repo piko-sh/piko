@@ -27,7 +27,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"piko.sh/piko/internal/inspector/inspector_dto"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/json"

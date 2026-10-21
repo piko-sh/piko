@@ -111,14 +111,10 @@ func NewBrowserPool(opts BrowserOptions, size int, config ...BrowserPoolConfig) 
 	}, nil
 }
 
-// NewIncognitoPage creates a new isolated browser page, distributing across pool members
-// via round-robin. Each call selects the next browser in the pool, ensuring even load
-// distribution.
+// NewIncognitoPage creates an isolated page on the next browser in the pool.
 //
-// When MaxConcurrentPages is configured, blocks until a slot is available (or ctx is
-// cancelled) and automatically releases it when the returned page is closed.
-//
-// Takes ctx (context.Context) which controls the semaphore wait timeout.
+// At MaxConcurrentPages, it waits for capacity or cancellation. Closing the page releases
+// its slot.
 //
 // Returns *IncognitoPage which provides an isolated browsing context.
 // Returns error when page creation fails or ctx is cancelled while waiting.

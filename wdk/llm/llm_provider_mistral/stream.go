@@ -175,8 +175,6 @@ func classifyStreamErrorResponse(response *http.Response) error {
 // cancelled or the provider is closed. The returned cancel function must be called when
 // the stream goroutine completes to release the watcher.
 //
-// Takes ctx (context.Context) which is the caller's context.
-//
 // Returns context.Context which carries the merged cancellation signal.
 func (p *mistralProvider) streamContext(ctx context.Context) context.Context {
 	if p.closeContext == nil {

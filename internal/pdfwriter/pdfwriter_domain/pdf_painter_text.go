@@ -28,7 +28,6 @@ import (
 // paintImage renders a replaced element (img tag) into the PDF stream, attempting SVG
 // vector rendering first before falling back to raster.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes stream (*ContentStream) which receives PDF operators.
 // Takes box (*layouter_domain.LayoutBox) which is the replaced element box.
 func (painter *PdfPainter) paintImage(ctx context.Context, stream *ContentStream, box *layouter_domain.LayoutBox) {
@@ -63,7 +62,6 @@ func (painter *PdfPainter) paintImage(ctx context.Context, stream *ContentStream
 // apply. Missing image data, fetch errors and zero-dimension images are silently ignored,
 // leaving the stream unchanged.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes stream (*ContentStream) which receives PDF operators.
 // Takes box (*layouter_domain.LayoutBox) which is the replaced element box.
 // Takes source (string) which is the resolved image source reference.
@@ -88,7 +86,6 @@ func (painter *PdfPainter) paintRasterImage(ctx context.Context, stream *Content
 
 // trySVGVector attempts native SVG vector rendering, returning true on success.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes stream (*ContentStream) which receives PDF operators.
 // Takes box (*layouter_domain.LayoutBox) which is the target box.
 // Takes source (string) which identifies the image source to load as SVG.
@@ -165,7 +162,6 @@ func extractSrcAttribute(box *layouter_domain.LayoutBox) string {
 // paintSVGVector renders an SVG as native PDF vector commands using the configured
 // SVGWriterPort.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes stream (*ContentStream) which receives PDF operators.
 // Takes box (*layouter_domain.LayoutBox) which provides the content area.
 // Takes svgXML (string) which contains the SVG markup to render as vector content.

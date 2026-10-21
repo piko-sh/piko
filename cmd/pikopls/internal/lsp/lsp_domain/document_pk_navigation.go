@@ -27,7 +27,7 @@ import (
 	"piko.sh/piko/internal/esbuild/js_parser"
 	"piko.sh/piko/internal/esbuild/logger"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (

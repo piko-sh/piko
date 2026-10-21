@@ -152,7 +152,6 @@ type processAndScopeParams struct {
 // ProcessAndScope processes and bundles a CSS block, then applies scoped CSS rules. This
 // is used for component-specific, non-global style blocks.
 //
-// Takes ctx (context.Context) which carries cancellation, tracing, and logging.
 // Takes params (*processAndScopeParams) which contains the CSS block, scope ID, template,
 // and other processing options.
 //

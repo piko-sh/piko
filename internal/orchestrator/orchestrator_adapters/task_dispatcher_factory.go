@@ -27,8 +27,6 @@ import (
 
 // CreateTaskDispatcher creates a TaskDispatcher for distributed task processing.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes config (DispatcherConfig) which specifies the dispatcher settings including
 // handler counts per priority level.
 // Takes eventBus (EventBus) which provides pub/sub for task distribution via Watermill

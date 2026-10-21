@@ -35,12 +35,9 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// AnnotateSrcsetForWebImages performs a final pass on the AST after the asset manifest is
-// built. For each <piko:img> tag with responsive attributes, it finds all generated
-// variants in the manifest and attaches srcset metadata to the AST node for use by the
-// code generator.
+// AnnotateSrcsetForWebImages attaches generated responsive-image variants to piko:img
+// nodes after asset-manifest construction.
 //
-// Takes ctx (context.Context) which carries the logger.
 // Takes templateAST (*ast_domain.TemplateAST) which is the parsed template to annotate
 // with srcset metadata.
 // Takes assetDependencies ([]*annotator_dto.StaticAssetDependency) which contains the
@@ -85,7 +82,6 @@ func AnnotateSrcsetForWebImages(
 // processPikoImgNode handles a single piko:img node by adding srcset data when there are
 // image variants for its source.
 //
-// Takes ctx (context.Context) which carries the logger.
 // Takes node (*ast_domain.TemplateNode) which is the template node to process.
 // Takes variantsBySource (map[string][]*annotator_dto.StaticAssetDependency) which maps
 // source paths to their image variants.
@@ -139,7 +135,8 @@ func processPikoImgNode(
 // generation.
 //
 // Returns []ast_domain.ResponsiveVariantMetadata which contains the processed metadata
-// sorted by width, then by density.
+// sorted by width, then by density, then by variant key, URL and height so the order is
+// total and does not depend on the order the variants were collected in.
 func buildSrcsetMetadata(
 	variants []*annotator_dto.StaticAssetDependency,
 	pathsConfig AnnotatorPathsConfig,
@@ -180,14 +177,27 @@ func buildSrcsetMetadata(
 		})
 	}
 
-	slices.SortFunc(metadata, func(a, b ast_domain.ResponsiveVariantMetadata) int {
-		return cmp.Or(
-			cmp.Compare(a.Width, b.Width),
-			cmp.Compare(a.Density, b.Density),
-		)
-	})
+	slices.SortFunc(metadata, compareResponsiveVariantMetadata)
 
 	return metadata
+}
+
+// compareResponsiveVariantMetadata orders srcset variants by width, density, key, URL,
+// and height.
+//
+// Takes a (ast_domain.ResponsiveVariantMetadata) which is the first entry.
+// Takes b (ast_domain.ResponsiveVariantMetadata) which is the second entry.
+//
+// Returns int which is negative when a sorts first, positive when b does, and zero when
+// they are equal.
+func compareResponsiveVariantMetadata(a, b ast_domain.ResponsiveVariantMetadata) int {
+	return cmp.Or(
+		cmp.Compare(a.Width, b.Width),
+		cmp.Compare(a.Density, b.Density),
+		cmp.Compare(a.VariantKey, b.VariantKey),
+		cmp.Compare(a.URL, b.URL),
+		cmp.Compare(a.Height, b.Height),
+	)
 }
 
 // generateVariantKey creates a unique key for a variant that matches the registry's
@@ -201,10 +211,19 @@ func buildSrcsetMetadata(
 // the asset_pipeline.go profile naming pattern.
 func generateVariantKey(variant *annotator_dto.StaticAssetDependency) string {
 	width := variant.TransformationParams["width"]
-	format := cmp.Or(variant.TransformationParams["format"], "webp")
 	width = strings.TrimSuffix(width, "px")
 
-	return fmt.Sprintf("image_w%s_%s", width, format)
+	return fmt.Sprintf("image_w%s_%s", width, primaryFormat(variant.TransformationParams["format"]))
+}
+
+// primaryFormat selects the first listed format, defaulting to webp.
+//
+// Takes formats (string) which is the image's format attribute.
+//
+// Returns string which is the format of the srcset entries.
+func primaryFormat(formats string) string {
+	first, _, _ := strings.Cut(formats, ",")
+	return cmp.Or(strings.TrimSpace(first), "webp")
 }
 
 // generateAssetURL creates the URL for serving a specific variant of an asset. The URL

@@ -36,8 +36,8 @@ import (
 	"piko.sh/piko/wdk/json"
 
 	"piko.sh/piko/internal/profiler"
-	"piko.sh/piko/wdk/safeconv"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safeconv"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -687,7 +687,6 @@ func captureRollingTrace(
 // fetchProfilerStatus sends an HTTP GET to the profiler status endpoint and deserialises
 // the JSON response.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes profilerRoot (string) which is the base URL of the profiler server.
 //
 // Returns *profiler.ServerStatus which is the decoded status, or nil when the endpoint
@@ -732,7 +731,6 @@ func fetchProfilerStatus(ctx context.Context, profilerRoot string) (*profiler.Se
 // fetchProfilerBinary performs an HTTP GET for binary profiler data such as trace
 // snapshots.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes url (string) which is the full URL to fetch.
 // Takes timeout (time.Duration) which bounds the request duration.
 //

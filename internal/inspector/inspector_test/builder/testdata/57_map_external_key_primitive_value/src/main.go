@@ -21,7 +21,5 @@ package main
 import "github.com/google/uuid"
 
 type Response struct {
-	// The key is from an external dependency, while the value is a primitive.
-	// This tests that the serialiser correctly finds the PackagePath from the key.
 	ScoresByUUID map[uuid.UUID]int
 }

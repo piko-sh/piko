@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	protocol "github.com/politepixels/golang-language-server"
+	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
@@ -322,6 +323,25 @@ func TestBuildLSPDiagnostic(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestBuildLSPDiagnostic_LinksDocumentedCodes(t *testing.T) {
+	documented := buildLSPDiagnostic(&ast_domain.Diagnostic{
+		Message:  "Invalid operation: cannot compare type 'int' to 'string' with operator '<'",
+		Code:     "T141",
+		Severity: ast_domain.Error,
+		Location: ast_domain.Location{Line: 2, Column: 4},
+	})
+	require.NotNil(t, documented.CodeDescription)
+	require.Equal(t, "https://piko.sh/diagnostics/T141", string(documented.CodeDescription.Href))
+
+	undocumented := buildLSPDiagnostic(&ast_domain.Diagnostic{
+		Message:  "unresolved import",
+		Code:     "CSS-IMPORT-LIMIT",
+		Severity: ast_domain.Error,
+		Location: ast_domain.Location{Line: 1, Column: 1},
+	})
+	require.Nil(t, undocumented.CodeDescription)
 }
 
 func TestConvertRelatedInfoToLSP(t *testing.T) {

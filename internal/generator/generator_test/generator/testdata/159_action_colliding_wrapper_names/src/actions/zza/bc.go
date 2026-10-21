@@ -24,8 +24,6 @@ type BCOutput struct {
 	From string `json:"from"`
 }
 
-// BCAction produces the action name "zza.BC", which folds onto the same PascalCase
-// wrapper name as "zzaB.C" in actions/zzaB.
 type BCAction struct {
 	piko.ActionMetadata
 }

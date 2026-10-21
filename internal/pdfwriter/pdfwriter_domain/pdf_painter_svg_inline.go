@@ -41,7 +41,6 @@ const (
 //
 // An xmlns is added to the root <svg> when missing. Returns "" for non-svg nodes.
 //
-// Takes ctx (context.Context) which carries the logger used to warn on truncation.
 // Takes node (*ast_domain.TemplateNode) which is the inline <svg> subtree root.
 //
 // Returns string which holds the serialised SVG markup, or "" for non-svg nodes.
@@ -58,7 +57,6 @@ func serialiseInlineSVG(ctx context.Context, node *ast_domain.TemplateNode) stri
 // maxInlineSVGDepth. On early return the element is still closed so the emitted markup
 // stays well formed.
 //
-// Takes ctx (context.Context) which carries the logger used to warn on truncation.
 // Takes sb (*strings.Builder) which receives the serialised markup.
 // Takes node (*ast_domain.TemplateNode) which is the node to serialise.
 // Takes isRoot (bool) which marks the root <svg> element for xmlns injection.

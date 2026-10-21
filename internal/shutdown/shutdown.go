@@ -111,16 +111,10 @@ func NewManager(opts ...ManagerOption) *Manager {
 	return m
 }
 
-// Register adds a cleanup function to be executed during shutdown.
+// Register adds a named cleanup function to run in reverse registration order.
 //
-// Functions are executed in reverse registration order (LIFO) when shutdown is triggered.
-// The name is used for logging and tracing purposes to identify the cleanup function.
+// Registrations made after cleanup begins are logged and ignored.
 //
-// If cleanup is already in progress, logs a warning and returns without registering.
-// Prevents potential deadlocks from cleanup functions attempting to register new cleanup
-// handlers.
-//
-// Takes ctx (context.Context) which carries trace and logging context.
 // Takes name (string) which identifies the cleanup function in logs and traces.
 // Takes cleanupFunction (CleanupFunc) which is the function to call during shutdown.
 //
@@ -334,11 +328,11 @@ func (m *Manager) runCleanupFunctions(ctx context.Context, span trace.Span, func
 	l.Internal("All cleanup functions completed")
 }
 
-// executeCleanupFunction runs a single cleanup function with panic recovery. It wraps the
-// function execution in a span and recovers from any panic, converting it to an error.
+// executeCleanupFunction runs cleanup with tracing and converts recovered panics to
+// errors.
 //
-// Takes ctx (context.Context) which provides the parent context for the cleanup
-// operation.
+// The cleanup context is derived from ctx.
+//
 // Takes cleanup (namedCleanup) which is the cleanup function to execute.
 // Takes timeout (time.Duration) which limits how long the function may run.
 //
@@ -377,12 +371,10 @@ func WithClock(c clock.Clock) ManagerOption {
 	}
 }
 
-// Register adds a cleanup function to the global default manager.
+// Register adds a cleanup function to the default manager.
 //
-// This is a convenience function that delegates to defaultManager.Register. For testing,
-// create a new Manager instance using NewManager instead.
+// Use a separate Manager for isolated tests.
 //
-// Takes ctx (context.Context) which carries trace and logging context.
 // Takes name (string) which identifies the cleanup function for logging.
 // Takes cleanupFunction (CleanupFunc) which is the function to call during shutdown.
 func Register(ctx context.Context, name string, cleanupFunction CleanupFunc) {

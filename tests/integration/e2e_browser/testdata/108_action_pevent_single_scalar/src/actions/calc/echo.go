@@ -21,17 +21,14 @@ import (
 	"piko.sh/piko"
 )
 
-// EchoAction echoes back a single string argument.
 type EchoAction struct {
 	piko.ActionMetadata
 }
 
-// EchoResponse returns the echoed result.
 type EchoResponse struct {
 	Result string `json:"result"`
 }
 
-// Call accepts a single string parameter and echoes it back.
 func (a EchoAction) Call(Message string) (EchoResponse, error) {
 	a.Response().AddHelper("showResult", Message)
 

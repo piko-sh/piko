@@ -141,10 +141,10 @@ func (a *ListAction) Call(_ piko.NoInput) (ListResponse, error) {
 
 Positional placeholders (`?` for SQLite and MySQL, `$1/$2/...` for Postgres) become Go parameters:
 
-- **One placeholder** becomes a single typed argument named after the column it binds to: `DeleteTask(ctx, id int32) error`. Without a `piko.param` directive, Piko infers the name from the bound column.
-- **Multiple placeholders** become a typed params struct: `CreateTask(ctx, params CreateTaskParams) (CreateTaskRow, error)`.
+- **One placeholder** becomes a single typed argument named after the column it binds to: `DeleteTask(ctx, id int64) error`. Without a `piko.param` directive, Piko infers the name from the bound column, and a placeholder bound to no column is named after its position (`p1`).
+- **Multiple placeholders** become a typed params struct, its fields named the same way: `CreateTask(ctx, params CreateTaskParams) (CreateTaskRow, error)`, with `CreateTaskParams{Title: ..., CreatedAt: ...}`.
 
-The Go types come from the engine's type inference over the schema. A column declared `TEXT NOT NULL` infers `string`, while `INTEGER NOT NULL` infers `int32` on SQLite (or the appropriate size for the target dialect).
+The Go types come from the engine's type inference over the schema. A column declared `TEXT NOT NULL` infers `string`, while `INTEGER NOT NULL` infers `int32` on SQLite and an `INTEGER PRIMARY KEY`, SQLite's 64-bit row id, infers `int64` (or the appropriate size for the target dialect).
 
 ### Naming parameters with directives
 

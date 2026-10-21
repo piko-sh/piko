@@ -22,7 +22,7 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // LoadClientCAs reads a PEM file from the provided sandbox and creates an x509.CertPool

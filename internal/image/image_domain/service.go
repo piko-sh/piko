@@ -42,7 +42,7 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/wdk/contextaware"
 	"piko.sh/piko/wdk/goroutine"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // service provides image processing and health check functions. It implements the image
@@ -214,7 +214,6 @@ func (s *service) GeneratePlaceholder(ctx context.Context, input io.Reader, base
 // GetDimensions extracts width and height from image data using the default provider.
 // Delegates to the provider's GetDimensions implementation for format support.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes input (io.Reader) which provides the source image data.
 //
 // Returns width (int) which is the image width in pixels.
@@ -240,7 +239,6 @@ func (*service) Name() string {
 // Check implements the healthprobe_domain.Probe interface. It verifies the image
 // transformation pipeline is functional.
 //
-// Takes ctx (context.Context) which is the request context.
 // Takes checkType (healthprobe_dto.CheckType) which specifies the type of health check to
 // perform.
 //

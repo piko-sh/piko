@@ -639,6 +639,79 @@ func TestRegistryService_UpsertArtefact_MetadataOnly(t *testing.T) {
 	})
 }
 
+func TestRegistryService_UpsertArtefact_StoreReturnsNoArtefactAndNoError(t *testing.T) {
+	const (
+		artefactID       = "test-artefact"
+		sourcePath       = "path/to/source.js"
+		storageBackendID = "local_disk_cache"
+	)
+	desiredProfiles := []registry_dto.NamedProfile{{Name: "minified", Profile: registry_dto.DesiredProfile{}}}
+
+	t.Run("Metadata-only upsert creates a placeholder", func(t *testing.T) {
+		f := setupTest()
+		f.metaStore.GetArtefactFunc = func(_ context.Context, _ string) (*registry_dto.ArtefactMeta, error) {
+			return nil, nil
+		}
+		f.metaStore.AtomicUpdateFunc = func(_ context.Context, _ []registry_dto.AtomicAction) error { return nil }
+
+		var artefact *registry_dto.ArtefactMeta
+		var err error
+		require.NotPanics(t, func() {
+			artefact, err = f.service.UpsertArtefact(f.testContext, artefactID, sourcePath, nil, storageBackendID, desiredProfiles)
+		})
+
+		require.NoError(t, err)
+		require.NotNil(t, artefact)
+		assert.Empty(t, artefact.ActualVariants)
+		assert.Equal(t, desiredProfiles, artefact.DesiredProfiles)
+		assert.WithinDuration(t, time.Now(), artefact.CreatedAt, time.Second)
+		assert.Equal(t, int64(1), f.metaStore.AtomicUpdateCallCount.Load())
+	})
+
+	t.Run("Upsert with source data stores the source as a new artefact", func(t *testing.T) {
+		f := setupTest()
+		wireNewArtefactUpsertMocks(&f)
+		f.metaStore.GetArtefactFunc = func(_ context.Context, _ string) (*registry_dto.ArtefactMeta, error) {
+			return nil, nil
+		}
+
+		var artefact *registry_dto.ArtefactMeta
+		var err error
+		require.NotPanics(t, func() {
+			artefact, err = f.service.UpsertArtefact(f.testContext, artefactID, sourcePath,
+				strings.NewReader("console.log('hello');"), storageBackendID, desiredProfiles)
+		})
+
+		require.NoError(t, err)
+		require.NotNil(t, artefact)
+		require.Len(t, artefact.ActualVariants, 1)
+		assert.Equal(t, "source", artefact.ActualVariants[0].VariantID)
+		assert.WithinDuration(t, time.Now(), artefact.CreatedAt, time.Second)
+	})
+
+	t.Run("Cache hit holding no artefact falls through to the store", func(t *testing.T) {
+		f := setupTestWithCache()
+		f.cache.GetFunc = func(_ context.Context, _ string) (*registry_dto.ArtefactMeta, error) {
+			return nil, nil
+		}
+		f.metaStore.GetArtefactFunc = func(_ context.Context, _ string) (*registry_dto.ArtefactMeta, error) {
+			return nil, registry_domain.ErrArtefactNotFound
+		}
+		f.metaStore.AtomicUpdateFunc = func(_ context.Context, _ []registry_dto.AtomicAction) error { return nil }
+
+		var artefact *registry_dto.ArtefactMeta
+		var err error
+		require.NotPanics(t, func() {
+			artefact, err = f.service.UpsertArtefact(f.testContext, artefactID, sourcePath, nil, storageBackendID, desiredProfiles)
+		})
+
+		require.NoError(t, err)
+		require.NotNil(t, artefact)
+		assert.Equal(t, desiredProfiles, artefact.DesiredProfiles)
+		assert.Equal(t, int64(1), f.metaStore.GetArtefactCallCount.Load())
+	})
+}
+
 func TestRegistryService_UpsertArtefact_InputValidation(t *testing.T) {
 	storageBackendID := "local_disk_cache"
 	desiredProfiles := []registry_dto.NamedProfile{{Name: "minified", Profile: registry_dto.DesiredProfile{}}}
@@ -1596,6 +1669,25 @@ func TestBuildArtefactMeta(t *testing.T) {
 
 		assert.Equal(t, existingCreatedAt, result.CreatedAt)
 		assert.True(t, result.UpdatedAt.After(existingCreatedAt))
+	})
+
+	t.Run("Update Without Existing Artefact Does Not Panic", func(t *testing.T) {
+		var result *registry_dto.ArtefactMeta
+		require.NotPanics(t, func() {
+			result = registry_domain.BuildArtefactMeta(
+				"test-id",
+				"path/to/file.js",
+				variants,
+				profiles,
+				false,
+				nil,
+			)
+		})
+
+		require.NotNil(t, result)
+		assert.WithinDuration(t, time.Now(), result.CreatedAt, time.Second,
+			"with no previous record there is no CreatedAt to keep")
+		assert.Equal(t, profiles, result.DesiredProfiles)
 	})
 }
 

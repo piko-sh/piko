@@ -58,7 +58,7 @@ provider, err := crypto_provider_aws_kms.NewProvider(ctx,
 
 ### Builder API
 
-For advanced configuration, use the fluent builder. The constructor takes a service; chain `.Data(...)` and `.KeyID(...)`, then call `.Do(ctx)`:
+For advanced configuration, use the fluent builder. Build from the default service; chain `.Data(...)` and `.KeyID(...)`, then call `.Do(ctx)`:
 
 ```go
 builder, err := crypto.NewEncryptBuilderFromDefault()

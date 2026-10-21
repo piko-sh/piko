@@ -61,7 +61,6 @@ func (s *orchestratorService) batchInsertLoop() {
 
 // handleBatchShutdown drains remaining tasks from the channel and flushes them.
 //
-// Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes batch ([]*Task) which contains any pending tasks to include in flush.
 //
 // The write-lock acquisition waits for any in-flight Dispatch/Schedule callers holding
@@ -135,19 +134,31 @@ func (s *orchestratorService) flushTaskBatch(batch []*Task) []*Task {
 	ctx := context.WithoutCancel(s.runCtx)
 	ctx, fl := logger_domain.From(ctx, log)
 
-	err := s.taskStore.CreateTasks(ctx, batch)
-	if err != nil {
-		fl.Error("Failed to insert task batch", logger_domain.Error(err), logger_domain.Int("batchSize", len(batch)))
-		s.failBatchReceipts(batch, err)
-		return batch[:0]
-	}
-
+	accepted := batch[:0]
 	for _, task := range batch {
+		err := s.taskStore.RunAtomic(ctx, func(ctx context.Context, store TaskStore) error {
+			if err := store.CreateTaskWithDedup(ctx, task); err != nil {
+				return err
+			}
+			if task.receiptID != "" {
+				return store.CreateWorkflowReceipt(ctx, task.receiptID, task.WorkflowID, s.nodeID)
+			}
+			return nil
+		})
+		if err != nil {
+			s.failBatchReceipts([]*Task{task}, err)
+			continue
+		}
+		s.receiptAdmitted(task.WorkflowID, task.receiptID)
 		task.persisted = true
+		accepted = append(accepted, task)
 	}
+	clear(batch[len(accepted):])
+	batch = accepted
 
 	fl.Trace("Successfully inserted task batch", logger_domain.Int("batchSize", len(batch)))
 	s.dispatchPersistedTasks(ctx, batch)
+	clear(batch)
 	return batch[:0]
 }
 
@@ -167,16 +178,29 @@ func (s *orchestratorService) failBatchReceipts(batch []*Task, err error) {
 		if !ok {
 			continue
 		}
+		remaining := waiters[:0]
+		removed := 0
 		for _, receipt := range waiters {
-			receipt.resolve(err)
+			if task.receiptID == "" || receipt.id == task.receiptID {
+				receipt.resolve(err)
+				removed++
+			} else {
+				remaining = append(remaining, receipt)
+			}
 		}
-		delete(s.receipts, task.WorkflowID)
+		clear(waiters[len(remaining):])
+		if len(remaining) == 0 {
+			delete(s.receipts, task.WorkflowID)
+			ActiveWorkflowsCount.Add(context.Background(), -1)
+		} else {
+			s.receipts[task.WorkflowID] = remaining
+		}
+		s.removeReceiptWorkLocked(task.WorkflowID, removed)
 	}
 }
 
 // dispatchPersistedTasks sends tasks to the task dispatcher after they have been saved.
 //
-// Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes batch ([]*Task) which contains the tasks to send.
 func (s *orchestratorService) dispatchPersistedTasks(ctx context.Context, batch []*Task) {
 	if s.taskDispatcher == nil {
@@ -190,7 +214,6 @@ func (s *orchestratorService) dispatchPersistedTasks(ctx context.Context, batch 
 
 // dispatchSingleTask sends a task to the appropriate queue.
 //
-// Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes task (*Task) which is the task to dispatch.
 func (s *orchestratorService) dispatchSingleTask(ctx context.Context, task *Task) {
 	ctx, l := logger_domain.From(ctx, log)

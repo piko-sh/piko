@@ -57,7 +57,6 @@ var (
 type nodeTransformer interface {
 	// TransformNode converts an AST node into a template node.
 	//
-	// Takes ctx (context.Context) which carries the logger and trace spans.
 	// Takes node (markdown_ast.Node) which is the syntax tree node to transform.
 	//
 	// Returns *ast_domain.TemplateNode which is the transformed template node.
@@ -93,13 +92,10 @@ var (
 	_ nodeTransformer = (*transformer)(nil)
 )
 
-// TransformNode converts a piko markdown AST node to a template node.
+// TransformNode converts a Markdown node and its children to template nodes.
 //
-// It uses helper functions based on the node type and transforms any children. Nesting
-// deeper than markdown_ast.MaxMarkdownDepth is not rendered and is reported once as a
-// diagnostic, so a pathologically nested document cannot overflow the stack.
+// Content beyond MaxMarkdownDepth is omitted and reported once as a diagnostic.
 //
-// Takes ctx (context.Context) which carries the logger and trace spans.
 // Takes node (markdown_ast.Node) which is the piko markdown AST node to convert.
 //
 // Returns *ast_domain.TemplateNode which is the transformed node with all its children,
@@ -167,7 +163,6 @@ func (t *transformer) reportDepthLimit(node markdown_ast.Node) {
 // transformChildren iterates over a piko markdown node's children and transforms them
 // into a slice of Piko template nodes.
 //
-// Takes ctx (context.Context) which carries the logger and trace spans.
 // Takes parent (markdown_ast.Node) which is the node whose children to transform.
 // Takes parentDepth (int) which is the depth of parent; its children are one deeper.
 //
@@ -534,7 +529,6 @@ func (t *transformer) transformHTMLBlock(n *markdown_ast.HTMLBlock) *ast_domain.
 
 // transformFencedCodeBlock converts a fenced code block to a template node.
 //
-// Takes ctx (context.Context) which carries the logger and trace spans.
 // Takes n (*markdown_ast.FencedCodeBlock) which is the AST node to convert.
 // Takes depth (int) which is the depth of n, used to bound shortcode slot content.
 //
@@ -645,7 +639,6 @@ func (*transformer) renderPlainCodeBlock(code, language string, location ast_dom
 // transformPikoShortcode handles ` ```piko ` blocks by parsing the shortcode syntax and
 // converting it to a template node.
 //
-// Takes ctx (context.Context) which carries the logger and trace spans.
 // Takes infoString (string) which contains the fenced block info line with the component
 // name and optional props.
 // Takes fcb (*markdown_ast.FencedCodeBlock) which is the fenced code block to transform.

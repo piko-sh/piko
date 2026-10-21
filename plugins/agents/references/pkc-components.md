@@ -77,7 +77,7 @@ const state = {
 
 State variables use snake_case (not camelCase) because:
 
-1. **Two-way attribute sync**: State auto-syncs to HTML attributes. HTML is case-insensitive, so `isActive` → `isactive`. Snake_case (`is_active`) is valid as both identifier and attribute name.
+1. **Two-way attribute sync**: State auto-syncs to HTML attributes. camelCase is converted to kebab-case (`isActive` → `is-active`). Snake_case (`is_active`) is valid as both identifier and attribute name.
 2. **CSS styling via attributes**:
 
 ```css
@@ -91,7 +91,7 @@ State variables use snake_case (not camelCase) because:
 ```
 
 3. **`setAttribute` updates state**: `element.setAttribute('variant', 'secondary')` updates internal state. Only works cleanly with snake_case.
-4. **Boolean attributes follow HTML conventions**: `true` renders as bare attribute, `false`/`nil` removes it. Use `pkc.hasAttribute()`, `pkc.toggleAttribute()` - don't check for `"true"`/`"false"` strings.
+4. **Boolean attributes follow HTML conventions**: `true` renders as bare attribute, `false`/`null` removes it. Use `pkc.hasAttribute()`, `pkc.toggleAttribute()` - don't check for `"true"`/`"false"` strings.
 
 ### Non-reactive variables
 
@@ -169,7 +169,7 @@ function handle_input(event) {
 <button p-on:click="greet('Hello', $event)">Greet</button>
 ```
 
-**`$form` special value**: Pass form data as a `FormDataHandle`:
+**`$form` special value**: Pass the closest form's data as a native `FormData`:
 
 ```piko
 <form p-on:submit.prevent="handle_submit($form)">
@@ -412,7 +412,7 @@ function handle_click(event) {
 
 - **Using `{{ }}` inside attributes** - `{{ }}` is ONLY for text content between tags. For dynamic attributes use `:` prefix: `:href="state.url"`. Never write `href="{{ state.url }}"` or `href={{ state.url }}`
 - Putting `name` or `enable` on `<script>` instead of `<template>` (they live on `<template>`; `<script>` only takes `lang`)
-- Using camelCase for state variables (breaks HTML attribute sync - use snake_case)
+- Using camelCase for state variables (attributes become kebab-case - use snake_case)
 - Trying to nest PKC components inside each other's templates (use slots instead)
 - Using `<piko:slot>` instead of `<slot>` (PKC uses Web Component slots, not server slots)
 - Using Vue/React patterns (`v-if`, `useState`, `@click`) instead of Piko directives

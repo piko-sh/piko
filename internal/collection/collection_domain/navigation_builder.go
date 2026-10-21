@@ -30,7 +30,7 @@ import (
 	"piko.sh/piko/internal/collection/collection_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/markdown/markdown_dto"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (
@@ -58,8 +58,6 @@ func NewNavigationBuilder() *NavigationBuilder {
 
 // BuildNavigationGroups creates navigation groups from content items.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
-// request-scoped values.
 // Takes items ([]collection_dto.ContentItem) which contains the content to organise into
 // navigation structures.
 // Takes config (collection_dto.NavigationConfig) which specifies locale and grouping
@@ -165,8 +163,6 @@ func (*NavigationBuilder) collectGroupNames(
 
 // buildTreeForGroup constructs navigation trees for a single group across all locales.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
-// request-scoped values.
 // Takes items ([]collection_dto.ContentItem) which contains the content items to organise
 // into trees.
 // Takes groupName (string) which identifies the navigation group.
@@ -193,8 +189,6 @@ func (nb *NavigationBuilder) buildTreeForGroup(
 
 // buildTreeForLocale constructs a navigation tree for a single locale.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
-// request-scoped values.
 // Takes localeItems ([]collection_dto.ContentItem) which provides the content items to
 // include in the tree.
 // Takes locale (string) which identifies the locale for the tree.
@@ -223,8 +217,6 @@ func (nb *NavigationBuilder) buildTreeForLocale(
 
 // processItemsIntoSections processes content items into section nodes.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
-// request-scoped values.
 // Takes items ([]collection_dto.ContentItem) which contains the items to process.
 // Takes groupName (string) which identifies the group these items belong to.
 // Takes config (collection_dto.NavigationConfig) which controls processing behaviour.
@@ -270,8 +262,6 @@ type processingStats struct {
 
 // processItem processes a single content item into the sections map.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
-// request-scoped values.
 // Takes item (*collection_dto.ContentItem) which is the content to process.
 // Takes groupName (string) which identifies the group containing the item.
 // Takes config (collection_dto.NavigationConfig) which controls navigation behaviour.
@@ -308,8 +298,6 @@ func (nb *NavigationBuilder) processItem(
 
 // addItemToSection adds an item to the correct place within a section.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
-// request-scoped values.
 // Takes section (*collection_dto.NavigationNode) which is the parent section.
 // Takes item (*collection_dto.ContentItem) which is the content to add.
 // Takes groupMeta (*markdown_dto.NavGroupMetadata) which specifies grouping.
@@ -368,8 +356,6 @@ func (*NavigationBuilder) groupByLocale(
 // getGroupMetadata retrieves navigation metadata for a specific group from a content
 // item.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
-// request-scoped values.
 // Takes item (*collection_dto.ContentItem) which provides the content with navigation
 // metadata.
 // Takes groupName (string) which specifies the navigation group to look up.
@@ -432,12 +418,8 @@ func (*NavigationBuilder) getGroupMetadata(
 	return meta
 }
 
-// ensureSection gets or creates a section node.
+// ensureSection gets or creates a top-level navigation section.
 //
-// Sections are top-level category nodes in the navigation tree.
-//
-// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
-// request-scoped values.
 // Takes sections (map[string]*collection_dto.NavigationNode) which holds existing section
 // nodes keyed by their ID.
 // Takes sectionID (string) which identifies the section to get or create.
@@ -482,12 +464,8 @@ func (nb *NavigationBuilder) ensureSection(
 	return node
 }
 
-// ensureSubsection gets or creates a subsection node within a section.
+// ensureSubsection gets or creates a subsection within a navigation section.
 //
-// Subsections are second-level category nodes.
-//
-// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
-// request-scoped values.
 // Takes sectionNode (*collection_dto.NavigationNode) which is the parent section to
 // search or add the subsection to.
 // Takes subsectionID (string) which identifies the subsection to find or create.
@@ -669,8 +647,6 @@ func extractGroupNamesFromMapNav(navMap map[string]any, groups map[string]bool) 
 
 // logTreeStructure logs the tree structure for debugging purposes.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
-// request-scoped values.
 // Takes tree (*collection_dto.NavigationTree) which holds the navigation structure to
 // log.
 // Takes locale (string) which identifies the locale being processed.

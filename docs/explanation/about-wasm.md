@@ -26,7 +26,7 @@ The use cases fall into one shape. Client-side template evaluation. Live editors
 
 ## What sits outside
 
-A WASM build excludes the top-level `piko.sh/piko` package itself. In `piko-symbols-runtime.yaml`, that package carries a `!js` build tag, so the build strips its symbols from the WASM bundle. The smaller helper packages alongside it (`wdk/binder`, `wdk/logger`, `wdk/runtime`, `wdk/safeconv`) carry no such tag and remain available. Excluding the top-level package removes `ActionMetadata`, `RequestData`, and the entire bootstrap surface. That in turn removes the storage providers, email providers, cache services, LLM services, PDF renderer, and database drivers that bootstrap wires up. None of the hexagonal services ship into the browser.
+A WASM build excludes the top-level `piko.sh/piko` package itself. In `piko-symbols-runtime.yaml`, that package carries a `!js` build tag, so the build strips its symbols from the WASM bundle. The smaller helper packages alongside it (`wdk/binder`, `wdk/logger`, `wdk/runtime`, and the `piko.sh/safeconv` module) carry no such tag and remain available. Excluding the top-level package removes `ActionMetadata`, `RequestData`, and the entire bootstrap surface. That in turn removes the storage providers, email providers, cache services, LLM services, PDF renderer, and database drivers that bootstrap wires up. None of the hexagonal services ship into the browser.
 
 Calls to server actions, health endpoints, and the orchestrator are also unavailable. Those are server-side concerns by design.
 

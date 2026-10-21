@@ -19,7 +19,6 @@
 package main
 
 type Response struct {
-	// Field with an anonymous struct type.
 	Meta struct {
 		Status  int
 		Message string
@@ -27,7 +26,6 @@ type Response struct {
 }
 
 type Runner struct {
-	// Field with an anonymous interface type.
 	Task interface {
 		Run() error
 	}

@@ -26,10 +26,6 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// CreateExpansionResult returns the hand-crafted ExpansionResult for this test case.
-// It simulates an invocation that uses a `:request.` prefixed attribute to pass a prop.
-// This is the ideal input to test that the ComponentLinker correctly handles request
-// overrides, includes them in prop validation, and uses them for canonical key generation.
 func CreateExpansionResult(t *testing.T, vm *annotator_dto.VirtualModule) *annotator_dto.ExpansionResult {
 	findHash := func(relPath string) string {
 		for hash, comp := range vm.ComponentsByHash {

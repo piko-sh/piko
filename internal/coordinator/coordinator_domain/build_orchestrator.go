@@ -94,10 +94,11 @@ func (s *coordinatorService) setLastBuildRequest(
 ) {
 	s.mu.Lock()
 	s.lastBuildRequest = &coordinator_dto.BuildRequest{
-		EntryPoints:   entryPoints,
-		CausationID:   buildOpts.CausationID,
-		Resolver:      buildOpts.Resolver,
-		FaultTolerant: buildOpts.FaultTolerant,
+		EntryPoints:    entryPoints,
+		AllEntryPoints: buildOpts.AllEntryPoints,
+		CausationID:    buildOpts.CausationID,
+		Resolver:       buildOpts.Resolver,
+		FaultTolerant:  buildOpts.FaultTolerant,
 	}
 	s.mu.Unlock()
 }
@@ -158,7 +159,7 @@ func (s *coordinatorService) checkCacheHit(
 	}
 	l.Trace("Cache HIT (fast path).")
 	span.SetAttributes(attribute.String("cache.status", "HIT"))
-	s.updateStatus(ctx, stateReady, cachedResult, nil, buildOpts.CausationID)
+	s.markReady(ctx, cachedResult, buildOpts.CausationID, len(buildOpts.AllEntryPoints) > 0)
 	return cachedResult
 }
 
@@ -207,6 +208,12 @@ func (s *coordinatorService) waitForBuildResult(
 			s.waiters.CompareAndDelete(inputHash, waiter)
 		}
 		return nil, ctx.Err()
+	case <-s.shutdown:
+		l.Trace("Coordinator shut down while waiting for build result.")
+		if !loaded {
+			s.waiters.CompareAndDelete(inputHash, waiter)
+		}
+		return nil, ErrBuildInvalidated
 	case <-timeout.C():
 		l.Warn("Build wait timed out. Request likely superseded by newer build due to debouncing.")
 		if !loaded {
@@ -223,9 +230,18 @@ func (s *coordinatorService) waitForBuildResult(
 // Takes buildErr (error) which holds any build failure.
 // Takes causationID (string) which tracks the original request.
 //
+// Updates from a build that Invalidate has overtaken (see withBuildEpoch) are dropped, so
+// a stale build can neither restore its result nor publish it.
+//
 // Not safe for use at the same time as reads of the status field. Calls publish when the
 // state is ready and the result is not nil.
 func (s *coordinatorService) updateStatus(ctx context.Context, st state, result *annotator_dto.ProjectAnnotationResult, buildErr error, causationID string) {
+	if s.isStaleBuild(ctx) {
+		_, l := logger_domain.From(ctx, log)
+		l.Trace("Dropping a status update from a build overtaken by Invalidate.")
+		return
+	}
+
 	s.mu.Lock()
 	s.status = buildStatus{
 		State:          st,
@@ -239,6 +255,66 @@ func (s *coordinatorService) updateStatus(ctx context.Context, st state, result 
 		s.publish(ctx, BuildNotification{
 			Result:      result,
 			CausationID: causationID,
+			Targeted:    false,
+		})
+	}
+}
+
+// buildEpochKey is the context key carrying the invalidation epoch a build started in.
+type buildEpochKey struct{}
+
+// withBuildEpoch returns a context recording the invalidation epoch a build started in,
+// so status updates made by the build can be dropped once Invalidate has moved past it.
+//
+// Takes epoch (uint64) which is the epoch the build started in.
+//
+// Returns context.Context which carries the epoch.
+func withBuildEpoch(ctx context.Context, epoch uint64) context.Context {
+	return context.WithValue(ctx, buildEpochKey{}, epoch)
+}
+
+// isStaleBuild reports whether ctx belongs to a build that started before the latest
+// Invalidate. Contexts that carry no build epoch are never stale.
+//
+// Returns bool which is true when the build's result must not be recorded or published.
+func (s *coordinatorService) isStaleBuild(ctx context.Context) bool {
+	epoch, ok := ctx.Value(buildEpochKey{}).(uint64)
+	return ok && epoch != s.invalidationEpoch.Load()
+}
+
+// markReady records a successful build and notifies subscribers.
+//
+// Targeted builds leave the last full-build result unchanged and mark their notifications
+// as Targeted.
+//
+// Takes result (*annotator_dto.ProjectAnnotationResult) which holds the build output.
+// Takes causationID (string) which tracks the original request.
+// Takes targeted (bool) which is true for a targeted build.
+//
+// Concurrent status access is protected by mu.
+func (s *coordinatorService) markReady(ctx context.Context, result *annotator_dto.ProjectAnnotationResult, causationID string, targeted bool) {
+	if !targeted {
+		s.updateStatus(ctx, stateReady, result, nil, causationID)
+		return
+	}
+	if s.isStaleBuild(ctx) {
+		return
+	}
+
+	s.mu.Lock()
+	s.status = buildStatus{
+		State:          stateReady,
+		Result:         s.status.Result,
+		LastBuildError: nil,
+		LastBuildTime:  time.Now(),
+	}
+	s.mu.Unlock()
+
+	if result != nil {
+		s.publish(ctx, BuildNotification{
+			Result:      result,
+			CausationID: causationID,
+			Targeted:    true,
 		})
 	}
 }

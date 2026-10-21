@@ -38,7 +38,6 @@ type InterpreterPort interface {
 	// CompileAndExecute compiles all packages as a single program and executes their init
 	// functions, which register into the global FunctionRegistry.
 	//
-	// Takes ctx (context.Context) for cancellation and deadlines.
 	// Takes modulePath (string) which identifies the module (e.g. "myproject/dist").
 	// Takes packages (map[string]map[string]string) which maps relative package paths to
 	// filename-to-source maps.
@@ -53,6 +52,18 @@ type InterpreterPort interface {
 	//
 	// Returns true if the package is already available via the symbol registry.
 	HasRegisteredPackage(importPath string) bool
+
+	// CompilesFile reports whether the interpreter compiles a project Go file, by the rules
+	// go build applies for the running platform with the interp build tag set and cgo off. A
+	// file guarded by //go:build !interp, such as one holding a //go:embed variable, is left
+	// to the compiled binary.
+	//
+	// Takes name (string) which is the file's name; only the base name counts.
+	// Takes source ([]byte) which is the file's content.
+	//
+	// Returns bool which is true when the file is compiled.
+	// Returns error when the file's build constraints are malformed.
+	CompilesFile(name string, source []byte) (bool, error)
 }
 
 // InterpreterPoolPort hands out interpreters that share one pre-warmed symbol registry.

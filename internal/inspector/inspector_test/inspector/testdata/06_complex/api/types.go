@@ -18,10 +18,8 @@
 
 package api
 
-// User represents the data transfer object (DTO) for a user.
-// It is DIFFERENT from the database model `db.User`.
 type User struct {
 	ID       string `json:"id"`
 	Email    string `json:"email"`
-	FullName string `json:"fullName"` // Field with different casing
+	FullName string `json:"fullName"`
 }

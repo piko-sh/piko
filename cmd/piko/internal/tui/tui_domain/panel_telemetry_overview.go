@@ -285,7 +285,6 @@ func (p *TelemetryOverviewPanel) refresh() tea.Cmd {
 // telemetryProbeLiveness fetches the liveness probe and stores the result into the
 // per-field slot on msg.
 //
-// Takes ctx (context.Context) for cancellation.
 // Takes health (HealthProvider) which supplies the liveness call.
 // Takes msg (*telemetryOverviewMessage) which receives the result.
 func telemetryProbeLiveness(ctx context.Context, health HealthProvider, msg *telemetryOverviewMessage) {
@@ -300,7 +299,6 @@ func telemetryProbeLiveness(ctx context.Context, health HealthProvider, msg *tel
 // telemetryProbeReadiness fetches the readiness probe and stores the result into the
 // per-field slot on msg.
 //
-// Takes ctx (context.Context) for cancellation.
 // Takes health (HealthProvider) which supplies the readiness call.
 // Takes msg (*telemetryOverviewMessage) which receives the result.
 func telemetryProbeReadiness(ctx context.Context, health HealthProvider, msg *telemetryOverviewMessage) {
@@ -314,7 +312,6 @@ func telemetryProbeReadiness(ctx context.Context, health HealthProvider, msg *te
 
 // telemetryProbeTraces counts recent and error spans, writing the totals to msg.
 //
-// Takes ctx (context.Context) for cancellation.
 // Takes traces (TracesProvider) which supplies the recent-spans call.
 // Takes msg (*telemetryOverviewMessage) which receives the counts.
 func telemetryProbeTraces(ctx context.Context, traces TracesProvider, msg *telemetryOverviewMessage) {

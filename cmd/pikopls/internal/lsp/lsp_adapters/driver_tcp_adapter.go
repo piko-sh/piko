@@ -309,8 +309,6 @@ func (a *tcpAdapter) releaseConnectionSlot() {
 // drainHandlers waits for in-flight handler goroutines to finish, with an upper bound so
 // a wedged handler cannot block shutdown forever.
 //
-// Takes ctx (context.Context) used for diagnostic logging via logger_domain.
-//
 // Concurrency: spawns a goroutine that waits on a.goroutineWG and signals completion via
 // the done channel. Caller blocks until either drain completes or shutdownDrainTimeout
 // elapses.

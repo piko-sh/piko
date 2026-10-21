@@ -54,7 +54,6 @@ type RepetitionDetector = builtin_detectors.RepetitionDetector
 
 // RegisterDefaults creates and registers all six built-in detectors with the service.
 //
-// Takes ctx (context.Context) which is the caller context.
 // Takes service (spamdetect_domain.SpamDetectServicePort) which receives the detectors.
 // Takes config (Config) which configures the built-in detectors.
 //

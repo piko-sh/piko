@@ -205,8 +205,6 @@ type externalAssetPair struct {
 // collectExternalAssetPairs deduplicates (moduleBase, assetPath) pairs from external
 // component definitions by resolving each module boundary.
 //
-// Takes ctx (context.Context) which carries tracing and cancellation.
-//
 // Returns []externalAssetPair which contains the unique pairs.
 func (ls *lifecycleService) collectExternalAssetPairs(ctx context.Context) []externalAssetPair {
 	if ls.resolver == nil || ls.productionMode {
@@ -287,7 +285,6 @@ func (ls *lifecycleService) walkAndSeedExternalAssetDir(
 // goroutine. The caller must have already incremented wg and sent to limiter before
 // invoking it.
 //
-// Takes ctx (context.Context) which is the operation context.
 // Takes wg (*sync.WaitGroup) which tracks the goroutine's completion.
 // Takes limiter (chan struct{}) which controls concurrency.
 // Takes filePath (string) which is the absolute file path to read.

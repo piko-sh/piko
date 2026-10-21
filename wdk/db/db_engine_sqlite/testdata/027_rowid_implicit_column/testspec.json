@@ -1,3 +1,0 @@
-{
-  "description": "ROWID implicit column resolution. Verifies that rowid, _rowid_, and oid resolve as integer NOT NULL on standard tables but not on WITHOUT ROWID tables."
-}

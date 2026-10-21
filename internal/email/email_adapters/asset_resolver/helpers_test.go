@@ -56,6 +56,7 @@ func (m *mockRegistryService) GetVariantData(ctx context.Context, variant *regis
 
 func (*mockRegistryService) UpsertArtefact(
 	_ context.Context, _ string, _ string, _ io.Reader, _ string, _ []registry_dto.NamedProfile,
+	_ ...registry_domain.UpsertOption,
 ) (*registry_dto.ArtefactMeta, error) {
 	return nil, nil
 }
@@ -105,6 +106,14 @@ func (*mockRegistryService) PopGCHints(_ context.Context, _ int) ([]registry_dto
 }
 
 func (*mockRegistryService) ArtefactEventsPublished() int64 {
+	return 0
+}
+
+func (*mockRegistryService) ArtefactEventsIssued() int64 {
+	return 0
+}
+
+func (*mockRegistryService) FlushArtefactEvents(context.Context) int {
 	return 0
 }
 

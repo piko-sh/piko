@@ -546,9 +546,6 @@ func (tw *TransformerWrapper) PresignDownloadURL(ctx context.Context, params sto
 
 // Close passes the call directly to the underlying provider.
 //
-// Takes ctx (context.Context) which carries cancellation and tracing for the close
-// operation.
-//
 // Returns error when the underlying provider fails to close.
 func (tw *TransformerWrapper) Close(ctx context.Context) error {
 	if err := tw.provider.Close(ctx); err != nil {

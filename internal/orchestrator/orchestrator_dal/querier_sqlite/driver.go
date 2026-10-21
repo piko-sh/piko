@@ -30,8 +30,8 @@ import (
 // driver is the SQLite implementation of dalcore.Driver.
 //
 // It translates dalcore's dialect-neutral flat structs into the generated SQLite query
-// calls. Deduplication uses a check-then-insert pair because SQLite does not generate a
-// single dedup insert.
+// calls. Deduplication is a single INSERT ... SELECT ... WHERE NOT EXISTS, which SQLite's
+// single writer makes atomic.
 type driver struct {
 	// queries provides access to the generated SQLite query methods.
 	queries *orchestrator_db.Queries
@@ -47,13 +47,15 @@ var (
 // Takes db (orchestrator_db.DBTX) which provides the database connection to use for
 // queries. When it is a *sql.DB it is also used for transactions and health checks.
 //
+// Takes opts (...dalcore.Option) which customise the DAL, such as its clock.
+//
 // Returns orchestrator_dal.OrchestratorDALWithTx which is ready for use.
-func New(db orchestrator_db.DBTX) orchestrator_dal.OrchestratorDALWithTx {
+func New(db orchestrator_db.DBTX, opts ...dalcore.Option) orchestrator_dal.OrchestratorDALWithTx {
 	var sqlDB *sql.DB
 	if typedDB, ok := db.(*sql.DB); ok {
 		sqlDB = typedDB
 	}
-	return dalcore.New(sqlDB, &driver{queries: orchestrator_db.New(db)})
+	return dalcore.New(sqlDB, &driver{queries: orchestrator_db.New(db)}, opts...)
 }
 
 // NewObserved builds an orchestrator DAL whose statements run through queryDB while
@@ -62,9 +64,11 @@ func New(db orchestrator_db.DBTX) orchestrator_dal.OrchestratorDALWithTx {
 // Takes database (*sql.DB) which owns BeginTx and PingContext.
 // Takes queryDB (orchestrator_db.DBTX) which executes non-transactional statements.
 //
+// Takes opts (...dalcore.Option) which customise the DAL, such as its clock.
+//
 // Returns orchestrator_dal.OrchestratorDALWithTx which is ready for use.
-func NewObserved(database *sql.DB, queryDB orchestrator_db.DBTX) orchestrator_dal.OrchestratorDALWithTx {
-	return dalcore.New(database, &driver{queries: orchestrator_db.New(queryDB)})
+func NewObserved(database *sql.DB, queryDB orchestrator_db.DBTX, opts ...dalcore.Option) orchestrator_dal.OrchestratorDALWithTx {
+	return dalcore.New(database, &driver{queries: orchestrator_db.New(queryDB)}, opts...)
 }
 
 // WithTx returns a driver whose queries run inside tx.
@@ -93,21 +97,7 @@ func (d *driver) CreateTask(ctx context.Context, params dalcore.CreateTaskParams
 func (d *driver) CreateTasksBatch(ctx context.Context, params []dalcore.CreateTaskBatchParams) error {
 	batch := make([]orchestrator_db.CreateTasksBatchParams, len(params))
 	for i := range params {
-		param := &params[i]
-		batch[i] = orchestrator_db.CreateTasksBatchParams{
-			ID:               param.ID,
-			WorkflowID:       param.WorkflowID,
-			Executor:         param.Executor,
-			Priority:         param.Priority,
-			Payload:          param.Payload,
-			Config:           param.Config,
-			Status:           param.Status,
-			ExecuteAt:        param.ExecuteAt,
-			Attempt:          param.Attempt,
-			CreatedAt:        param.CreatedAt,
-			UpdatedAt:        param.UpdatedAt,
-			DeduplicationKey: param.DeduplicationKey,
-		}
+		batch[i] = orchestrator_db.CreateTasksBatchParams(toCreateTaskParams(params[i]))
 	}
 	return d.queries.CreateTasksBatch(ctx, batch)
 }
@@ -116,113 +106,59 @@ func (d *driver) CreateTasksBatch(ctx context.Context, params []dalcore.CreateTa
 //
 // Takes params (dalcore.UpdateTaskParams) which describes the task changes to apply.
 //
+// Returns int64 which is the number of rows updated.
 // Returns error when the update fails.
-func (d *driver) UpdateTask(ctx context.Context, params dalcore.UpdateTaskParams) error {
+func (d *driver) UpdateTask(ctx context.Context, params dalcore.UpdateTaskParams) (int64, error) {
 	return d.queries.UpdateTask(ctx, orchestrator_db.UpdateTaskParams{
-		Status:    params.Status,
-		Priority:  params.Priority,
-		ExecuteAt: params.ExecuteAt,
-		Attempt:   params.Attempt,
-		LastError: params.LastError,
-		Result:    params.Result,
-		Payload:   params.Payload,
-		Config:    params.Config,
-		UpdatedAt: params.UpdatedAt,
-		ID:        params.ID,
+		Status:             params.Status,
+		Priority:           params.Priority,
+		ExecuteAt:          params.ExecuteAt,
+		Attempt:            params.Attempt,
+		LastError:          params.LastError,
+		Result:             params.Result,
+		Payload:            params.Payload,
+		Config:             params.Config,
+		UpdatedAt:          params.UpdatedAt,
+		BuildTag:           params.BuildTag,
+		IsFatal:            params.IsFatal,
+		ScheduledExecuteAt: params.ScheduledExecuteAt,
+		Background:         params.Background,
+		OwnerInstance:      params.OwnerInstance,
+		ID:                 params.ID,
 	})
 }
 
-// CreateWithDedup creates a task honouring its deduplication key.
+// CreateWithDedup creates a task unless an active task already holds its deduplication
+// key.
 //
-// The insert uses a check-then-insert pair inside the caller's transaction and persists
-// the deduplication key so a later check can detect the row as an active duplicate.
+// The insert is a single INSERT ... SELECT ... WHERE NOT EXISTS, so no other writer can
+// slip a duplicate in between the check and the insert.
 //
 // Takes params (dalcore.CreateTaskParams) which describes the task to insert.
-// Takes deduplicationKey (string) which is the key that guards against duplicates.
 //
 // Returns bool which is true when a new task was inserted, or false when an active task
 // with the same key already existed.
-// Returns error when the check or insert fails.
-func (d *driver) CreateWithDedup(ctx context.Context, params dalcore.CreateTaskParams, deduplicationKey string) (bool, error) {
-	result, err := d.queries.CheckDuplicateActiveTask(ctx, &deduplicationKey)
+// Returns error when the insert fails.
+func (d *driver) CreateWithDedup(ctx context.Context, params dalcore.CreateTaskParams) (bool, error) {
+	rowsAffected, err := d.queries.CreateTaskWithDedup(ctx, orchestrator_db.CreateTaskWithDedupParams(toCreateTaskParams(params)))
 	if err != nil {
 		return false, err
 	}
-	if result.HasDuplicate {
-		return false, nil
-	}
-	if err := d.queries.CreateTaskWithDedup(ctx, orchestrator_db.CreateTaskWithDedupParams{
-		ID:               params.ID,
-		WorkflowID:       params.WorkflowID,
-		Executor:         params.Executor,
-		Priority:         params.Priority,
-		Payload:          params.Payload,
-		Config:           params.Config,
-		Status:           params.Status,
-		ExecuteAt:        params.ExecuteAt,
-		Attempt:          params.Attempt,
-		CreatedAt:        params.CreatedAt,
-		UpdatedAt:        params.UpdatedAt,
-		DeduplicationKey: &deduplicationKey,
-	}); err != nil {
-		return false, err
-	}
-	return true, nil
-}
-
-// FetchDueTasks returns tasks that are due to run.
-//
-// Takes params (dalcore.FetchDueTasksParams) which describes the status, priority, and
-// time filters to apply.
-//
-// Returns []dalcore.FetchDueTaskRow which holds the tasks that are due.
-// Returns error when the query fails.
-func (d *driver) FetchDueTasks(ctx context.Context, params dalcore.FetchDueTasksParams) ([]dalcore.FetchDueTaskRow, error) {
-	rows, err := d.queries.FetchDueTasks(ctx, orchestrator_db.FetchDueTasksParams{
-		Statuses:  params.Statuses,
-		Priority:  params.Priority,
-		ExecuteAt: params.ExecuteAt,
-		Limit:     params.Limit,
-	})
-	if err != nil {
-		return nil, err
-	}
-	out := make([]dalcore.FetchDueTaskRow, len(rows))
-	for i := range rows {
-		out[i] = toFetchDueTaskRow(&rows[i])
-	}
-	return out, nil
+	return rowsAffected > 0, nil
 }
 
 // GetTasksByID returns the tasks with the given IDs, skipping IDs that do not exist.
 //
 // Takes ids ([]string) which lists the task IDs to read.
 //
-// Returns []dalcore.FetchDueTaskRow which holds the tasks found.
+// Returns []dalcore.TaskRow which holds the tasks found.
 // Returns error when the query fails.
-func (d *driver) GetTasksByID(ctx context.Context, ids []string) ([]dalcore.FetchDueTaskRow, error) {
+func (d *driver) GetTasksByID(ctx context.Context, ids []string) ([]dalcore.TaskRow, error) {
 	rows, err := d.queries.GetTasksByID(ctx, orchestrator_db.GetTasksByIDParams{IDs: ids})
 	if err != nil {
 		return nil, err
 	}
-	out := make([]dalcore.FetchDueTaskRow, len(rows))
-	for i := range rows {
-		out[i] = toFetchDueTaskRow(new(orchestrator_db.FetchDueTasksRow(rows[i])))
-	}
-	return out, nil
-}
-
-// MarkTasksAsProcessing marks the given task IDs as processing.
-//
-// Takes updatedAt (int64) which is the Unix timestamp to record on the affected tasks.
-// Takes ids ([]string) which are the task IDs to mark as processing.
-//
-// Returns error when the update fails.
-func (d *driver) MarkTasksAsProcessing(ctx context.Context, updatedAt int64, ids []string) error {
-	return d.queries.MarkTasksAsProcessing(ctx, orchestrator_db.MarkTasksAsProcessingParams{
-		UpdatedAt: updatedAt,
-		IDs:       ids,
-	})
+	return toTaskRows(rows), nil
 }
 
 // GetWorkflowStatus reports whether the workflow still has incomplete tasks.
@@ -263,135 +199,6 @@ func (d *driver) PendingTaskCount(ctx context.Context) (int64, error) {
 		return 0, err
 	}
 	return row.Count, nil
-}
-
-// RecoverStale resets stale processing tasks to retrying or failed and returns the count.
-//
-// Takes maxRetries (int32) which is the attempt ceiling past which a task fails instead
-// of retrying.
-// Takes recoveryError (*string) which is the error message to record on recovered tasks.
-// Takes nowUnix (int64) which is the current Unix timestamp.
-// Takes staleThresholdUnix (int64) which is the Unix timestamp before which a processing
-// task is considered stale.
-//
-// Returns int64 which is the number of tasks reset.
-// Returns error when the update fails.
-func (d *driver) RecoverStale(ctx context.Context, maxRetries int32, recoveryError *string, nowUnix, staleThresholdUnix int64) (int64, error) {
-	return d.queries.RecoverStaleTasks(ctx, orchestrator_db.RecoverStaleTasksParams{
-		Attempt:    maxRetries,
-		Attempt2:   maxRetries,
-		LastError:  recoveryError,
-		UpdatedAt:  nowUnix,
-		ExecuteAt:  nowUnix,
-		UpdatedAt2: staleThresholdUnix,
-	})
-}
-
-// GetStaleProcessingTaskCount returns the number of tasks stuck in processing past the
-// threshold.
-//
-// Takes staleThresholdUnix (int64) which is the Unix timestamp before which a processing
-// task is considered stale.
-//
-// Returns int64 which is the number of stale processing tasks.
-// Returns error when the query fails.
-func (d *driver) GetStaleProcessingTaskCount(ctx context.Context, staleThresholdUnix int64) (int64, error) {
-	row, err := d.queries.GetStaleProcessingTaskCount(ctx, staleThresholdUnix)
-	if err != nil {
-		return 0, err
-	}
-	return row.Count, nil
-}
-
-// UpdateTaskHeartbeat updates the heartbeat timestamp for a processing task.
-//
-// Takes updatedAt (int64) which is the Unix timestamp to record as the latest heartbeat.
-// Takes taskID (string) which identifies the task to update.
-//
-// Returns error when the update fails.
-func (d *driver) UpdateTaskHeartbeat(ctx context.Context, updatedAt int64, taskID string) error {
-	return d.queries.UpdateTaskHeartbeat(ctx, orchestrator_db.UpdateTaskHeartbeatParams{
-		UpdatedAt: updatedAt,
-		ID:        taskID,
-	})
-}
-
-// GetStaleTasksForRecovery returns candidate stale tasks for recovery claiming.
-//
-// Takes staleThresholdUnix (int64) which is the Unix timestamp before which a processing
-// task is considered stale.
-// Takes recoveryExpiresAt (*int64) which is the Unix timestamp before which an existing
-// recovery lease counts as expired.
-// Takes limit (int) which caps the number of candidate tasks returned.
-//
-// Returns []dalcore.StaleTaskRow which holds the candidate stale tasks.
-// Returns error when the query fails.
-func (d *driver) GetStaleTasksForRecovery(ctx context.Context, staleThresholdUnix int64, recoveryExpiresAt *int64, limit int) ([]dalcore.StaleTaskRow, error) {
-	rows, err := d.queries.GetStaleTasksForRecovery(ctx, orchestrator_db.GetStaleTasksForRecoveryParams{
-		UpdatedAt:         staleThresholdUnix,
-		RecoveryExpiresAt: recoveryExpiresAt,
-		Limit:             limit,
-	})
-	if err != nil {
-		return nil, err
-	}
-	out := make([]dalcore.StaleTaskRow, len(rows))
-	for i, row := range rows {
-		out[i] = dalcore.StaleTaskRow{ID: row.ID, WorkflowID: row.WorkflowID, Attempt: row.Attempt}
-	}
-	return out, nil
-}
-
-// ClaimTaskForRecovery attempts to claim a single stale task and returns rows affected.
-//
-// Takes recoveryNodeID (*string) which identifies the node claiming the task.
-// Takes leaseExpiresAt (*int64) which is the Unix timestamp at which the claim lease
-// expires.
-// Takes taskID (string) which identifies the task to claim.
-// Takes nowUnix (*int64) which is the current Unix timestamp used to test the existing
-// lease.
-//
-// Returns int64 which is the number of rows claimed, either zero or one.
-// Returns error when the update fails.
-func (d *driver) ClaimTaskForRecovery(ctx context.Context, recoveryNodeID *string, leaseExpiresAt *int64, taskID string, nowUnix *int64) (int64, error) {
-	return d.queries.ClaimTaskForRecovery(ctx, orchestrator_db.ClaimTaskForRecoveryParams{
-		RecoveryNodeID:     recoveryNodeID,
-		RecoveryExpiresAt:  leaseExpiresAt,
-		ID:                 taskID,
-		RecoveryExpiresAt2: nowUnix,
-	})
-}
-
-// RecoverClaimed recovers all tasks previously claimed by a node and returns the count.
-//
-// Takes maxRetries (int32) which is the attempt ceiling past which a task fails instead
-// of retrying.
-// Takes recoveryError (*string) which is the error message to record on recovered tasks.
-// Takes nowUnix (int64) which is the current Unix timestamp.
-// Takes nodeID (*string) which identifies the node whose claimed tasks are recovered.
-//
-// Returns int64 which is the number of tasks recovered.
-// Returns error when the update fails.
-func (d *driver) RecoverClaimed(ctx context.Context, maxRetries int32, recoveryError *string, nowUnix int64, nodeID *string) (int64, error) {
-	return d.queries.RecoverClaimedTasks(ctx, orchestrator_db.RecoverClaimedTasksParams{
-		Attempt:        maxRetries,
-		Attempt2:       maxRetries,
-		LastError:      recoveryError,
-		UpdatedAt:      nowUnix,
-		ExecuteAt:      nowUnix,
-		RecoveryNodeID: nodeID,
-	})
-}
-
-// ReleaseRecoveryLeases releases all recovery leases held by a node and returns the
-// count.
-//
-// Takes nodeID (*string) which identifies the node whose leases are released.
-//
-// Returns int64 which is the number of leases released.
-// Returns error when the update fails.
-func (d *driver) ReleaseRecoveryLeases(ctx context.Context, nodeID *string) (int64, error) {
-	return d.queries.ReleaseRecoveryLeases(ctx, nodeID)
 }
 
 // CreateWorkflowReceipt creates a workflow-completion receipt.
@@ -468,12 +275,12 @@ func (d *driver) GetPendingReceiptsByWorkflow(ctx context.Context, workflowID st
 // CleanupOldResolvedReceipts deletes resolved receipts older than the cutoff and returns
 // the count.
 //
-// Takes olderThanUnix (*int64) which is the Unix timestamp before which resolved receipts
+// Takes olderThanUnix (int64) which is the Unix timestamp before which resolved receipts
 // are deleted.
 //
 // Returns int64 which is the number of receipts deleted.
 // Returns error when the delete fails.
-func (d *driver) CleanupOldResolvedReceipts(ctx context.Context, olderThanUnix *int64) (int64, error) {
+func (d *driver) CleanupOldResolvedReceipts(ctx context.Context, olderThanUnix int64) (int64, error) {
 	return d.queries.CleanupOldResolvedReceipts(ctx, olderThanUnix)
 }
 
@@ -495,24 +302,14 @@ func (d *driver) TimeoutStaleReceipts(ctx context.Context, updatedAt, olderThanU
 
 // ListFailedTasks returns all tasks in the failed state.
 //
-// Returns []dalcore.FailedTaskRow which holds the failed tasks.
+// Returns []dalcore.TaskRow which holds the failed tasks.
 // Returns error when the query fails.
-func (d *driver) ListFailedTasks(ctx context.Context) ([]dalcore.FailedTaskRow, error) {
+func (d *driver) ListFailedTasks(ctx context.Context) ([]dalcore.TaskRow, error) {
 	rows, err := d.queries.ListFailedTasks(ctx)
 	if err != nil {
 		return nil, err
 	}
-	out := make([]dalcore.FailedTaskRow, len(rows))
-	for i := range rows {
-		out[i] = dalcore.FailedTaskRow{
-			ID:         rows[i].ID,
-			WorkflowID: rows[i].WorkflowID,
-			Executor:   rows[i].Executor,
-			Attempt:    rows[i].Attempt,
-			LastError:  rows[i].LastError,
-		}
-	}
-	return out, nil
+	return toTaskRows(rows), nil
 }
 
 // ListTaskStatusCounts returns task counts grouped by status.
@@ -592,40 +389,88 @@ func (d *driver) ListWorkflowSummary(ctx context.Context, limit int) ([]dalcore.
 // Returns orchestrator_db.CreateTaskParams ready for the generated CreateTask query.
 func toCreateTaskParams(params dalcore.CreateTaskParams) orchestrator_db.CreateTaskParams {
 	return orchestrator_db.CreateTaskParams{
-		ID:         params.ID,
-		WorkflowID: params.WorkflowID,
-		Executor:   params.Executor,
-		Priority:   params.Priority,
-		Payload:    params.Payload,
-		Config:     params.Config,
-		Status:     params.Status,
-		ExecuteAt:  params.ExecuteAt,
-		Attempt:    params.Attempt,
-		CreatedAt:  params.CreatedAt,
-		UpdatedAt:  params.UpdatedAt,
+		ID:                 params.ID,
+		WorkflowID:         params.WorkflowID,
+		Executor:           params.Executor,
+		Priority:           params.Priority,
+		Payload:            params.Payload,
+		Config:             params.Config,
+		Status:             params.Status,
+		ExecuteAt:          params.ExecuteAt,
+		Attempt:            params.Attempt,
+		CreatedAt:          params.CreatedAt,
+		UpdatedAt:          params.UpdatedAt,
+		DeduplicationKey:   params.DeduplicationKey,
+		BuildTag:           params.BuildTag,
+		IsFatal:            params.IsFatal,
+		ScheduledExecuteAt: params.ScheduledExecuteAt,
+		Background:         params.Background,
+		OwnerInstance:      params.OwnerInstance,
+		LastError:          params.LastError,
+		Result:             params.Result,
 	}
 }
 
-// toFetchDueTaskRow converts a generated task row into the driver-neutral row shape.
+// wholeTaskRow is satisfied by every generated row type that selects a whole task.
+type wholeTaskRow interface {
+	orchestrator_db.GetTasksByIDRow | orchestrator_db.ListFailedTasksRow |
+		orchestrator_db.ListFailedForBuildRow | orchestrator_db.DispatchablePageRow |
+		orchestrator_db.ListOrphanedTasksRow | orchestrator_db.ClaimTaskRow |
+		orchestrator_db.SettleTaskRow | orchestrator_db.TransitionTaskRow
+}
+
+// toTaskRows converts generated whole-task rows into the driver-neutral row shape.
 //
-// Takes row (*orchestrator_db.FetchDueTasksRow) which is the generated row.
+// Takes rows ([]R) which are the generated rows.
 //
-// Returns dalcore.FetchDueTaskRow which carries the same columns.
-func toFetchDueTaskRow(row *orchestrator_db.FetchDueTasksRow) dalcore.FetchDueTaskRow {
-	return dalcore.FetchDueTaskRow{
-		ID:               row.ID,
-		WorkflowID:       row.WorkflowID,
-		Executor:         row.Executor,
-		Priority:         row.Priority,
-		Payload:          row.Payload,
-		Config:           row.Config,
-		Result:           row.Result,
-		Status:           row.Status,
-		ExecuteAt:        row.ExecuteAt,
-		Attempt:          row.Attempt,
-		LastError:        row.LastError,
-		CreatedAt:        row.CreatedAt,
-		UpdatedAt:        row.UpdatedAt,
-		DeduplicationKey: row.DeduplicationKey,
+// Returns []dalcore.TaskRow which carries the same columns.
+func toTaskRows[R wholeTaskRow](rows []R) []dalcore.TaskRow {
+	out := make([]dalcore.TaskRow, len(rows))
+	for i := range rows {
+		out[i] = toTaskRow(orchestrator_db.GetTasksByIDRow(rows[i]))
 	}
+	return out
+}
+
+// toTaskRow converts a generated task row into the driver-neutral row shape.
+//
+// Takes row (orchestrator_db.GetTasksByIDRow) which is the generated row.
+//
+// Returns dalcore.TaskRow which carries the same columns.
+func toTaskRow(row orchestrator_db.GetTasksByIDRow) dalcore.TaskRow {
+	return dalcore.TaskRow{
+		Result:             row.Result,
+		DeduplicationKey:   row.DeduplicationKey,
+		LastError:          row.LastError,
+		RerunID:            row.RerunID,
+		RerunPayload:       row.RerunPayload,
+		RerunConfig:        row.RerunConfig,
+		Payload:            row.Payload,
+		Config:             row.Config,
+		Status:             row.Status,
+		ID:                 row.ID,
+		Executor:           row.Executor,
+		WorkflowID:         row.WorkflowID,
+		BuildTag:           row.BuildTag,
+		OwnerInstance:      row.OwnerInstance,
+		ExecuteAt:          row.ExecuteAt,
+		CreatedAt:          row.CreatedAt,
+		UpdatedAt:          row.UpdatedAt,
+		ScheduledExecuteAt: row.ScheduledExecuteAt,
+		LastPublishedAt:    row.LastPublishedAt,
+		Priority:           row.Priority,
+		Attempt:            row.Attempt,
+		IsFatal:            row.IsFatal,
+		Background:         row.Background,
+	}
+}
+
+// WorkflowError reports a persisted workflow failure for receipt reconciliation.
+//
+// Takes workflowID (string) which identifies the workflow to inspect.
+//
+// Returns outcome (error) which is a persisted task failure, or nil when none is found.
+// Returns readErr (error) which reports a query failure.
+func (d *driver) WorkflowError(ctx context.Context, workflowID string) (outcome error, readErr error) {
+	return d.queries.WorkflowError(ctx, workflowID)
 }

@@ -42,7 +42,6 @@ var (
 
 // Search delegates to SearchFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes query (string) which is the search query string.
 // Takes reader (search_domain.IndexReaderPort) which provides access to the search index.
 // Takes scorer (search_domain.ScorerPort) which computes relevance scores.

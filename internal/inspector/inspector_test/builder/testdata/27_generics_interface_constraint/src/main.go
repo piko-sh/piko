@@ -20,7 +20,6 @@ package main
 
 import "io"
 
-// ReaderBox can only hold types that satisfy io.Reader.
 type ReaderBox[T io.Reader] struct {
 	Source T
 }

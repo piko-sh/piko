@@ -20,11 +20,13 @@ package orchestrator_dal
 
 import (
 	"errors"
+
+	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 )
 
 var (
-	// ErrTaskNotFound is returned when a task with the given ID does not exist.
-	ErrTaskNotFound = errors.New("task not found")
+	// ErrTaskNotFound is the domain error for a missing task ID.
+	ErrTaskNotFound = orchestrator_domain.ErrTaskNotFound
 
 	// ErrWorkflowNotFound is returned when a workflow cannot be found by its ID.
 	ErrWorkflowNotFound = errors.New("workflow not found")
@@ -36,4 +38,8 @@ var (
 	// ErrDatabaseClosed is returned when operations are attempted on a closed database
 	// connection.
 	ErrDatabaseClosed = errors.New("database connection is closed")
+
+	// ErrSchemaOutdated is returned at startup when the orchestrator database lacks columns
+	// or tables a migration adds, because the migrations were not applied.
+	ErrSchemaOutdated = errors.New("orchestrator database schema is outdated")
 )

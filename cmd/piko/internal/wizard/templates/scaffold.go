@@ -29,7 +29,7 @@ import (
 	"text/template"
 
 	"piko.sh/piko/plugins/agents"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (

@@ -53,7 +53,6 @@ var (
 
 // Watch begins watching the specified directories for file changes.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes recursiveDirs ([]string) which lists directories to watch recursively.
 // Takes nonRecursiveDirs ([]string) which lists directories to watch non-recursively.
 //
@@ -68,7 +67,6 @@ func (m *MockFileSystemWatcher) Watch(ctx context.Context, recursiveDirs []strin
 
 // UpdateWatchedFiles adds or removes files from the watch list.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes files ([]string) which lists the file paths to watch.
 //
 // Returns error, or nil if UpdateWatchedFilesFunc is nil.

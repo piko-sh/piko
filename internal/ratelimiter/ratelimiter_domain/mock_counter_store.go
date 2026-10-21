@@ -42,7 +42,6 @@ var (
 
 // IncrementAndGet delegates to IncrementAndGetFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes key (string) which identifies the counter to increment.
 // Takes delta (int64) which is the amount to add to the counter.
 // Takes window (time.Duration) which specifies the time window for the counter.

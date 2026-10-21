@@ -30,7 +30,7 @@ import (
 	"piko.sh/goastutil"
 	"piko.sh/piko/internal/collection/collection_dto"
 	"piko.sh/piko/internal/generator/generator_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 type mockCollectionEncoder struct {

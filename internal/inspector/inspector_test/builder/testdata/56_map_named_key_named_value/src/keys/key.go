@@ -18,5 +18,4 @@
 
 package keys
 
-// Key is a named type for map keys.
 type Key struct{ ID string }

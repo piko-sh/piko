@@ -37,9 +37,43 @@ type BuildRequest struct {
 	// CausationID is the identifier used to trace the cause of status updates.
 	CausationID string
 
-	// EntryPoints lists the files where the build should start.
+	// EntryPoints lists the files where the build should start. For a targeted build these
+	// are the only components annotated and generated.
 	EntryPoints []annotator_dto.EntryPoint
+
+	// AllEntryPoints supplies the full project entry points for introspection during a
+	// targeted build, or is nil for other builds.
+	AllEntryPoints []annotator_dto.EntryPoint
 
 	// FaultTolerant enables processing to continue when errors occur.
 	FaultTolerant bool
+}
+
+// IsTargeted reports whether the request rebuilds a subset of a larger entry point set.
+//
+// Returns bool which is true when AllEntryPoints is set.
+func (r *BuildRequest) IsTargeted() bool {
+	return r != nil && len(r.AllEntryPoints) > 0
+}
+
+// IntrospectionEntryPoints returns EntryPoints, including AllEntryPoints for targeted
+// requests.
+//
+// Returns []annotator_dto.EntryPoint which lists each path once, in a stable order.
+func (r *BuildRequest) IntrospectionEntryPoints() []annotator_dto.EntryPoint {
+	if !r.IsTargeted() {
+		return r.EntryPoints
+	}
+	union := make([]annotator_dto.EntryPoint, 0, len(r.AllEntryPoints)+len(r.EntryPoints))
+	seen := make(map[string]struct{}, cap(union))
+	for _, group := range [][]annotator_dto.EntryPoint{r.AllEntryPoints, r.EntryPoints} {
+		for _, entryPoint := range group {
+			if _, duplicate := seen[entryPoint.Path]; duplicate {
+				continue
+			}
+			seen[entryPoint.Path] = struct{}{}
+			union = append(union, entryPoint)
+		}
+	}
+	return union
 }

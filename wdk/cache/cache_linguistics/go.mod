@@ -40,4 +40,5 @@ require (
 	piko.sh/piko/wdk/linguistics/linguistics_stemmer_french v0.0.0 // indirect
 	piko.sh/piko/wdk/linguistics/linguistics_stopwords_english v0.0.0 // indirect
 	piko.sh/piko/wdk/linguistics/linguistics_stopwords_french v0.0.0 // indirect
+	piko.sh/safeconv v0.1.0 // indirect
 )

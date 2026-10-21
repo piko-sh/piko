@@ -288,7 +288,6 @@ func (st *StructTree) IsEmpty() bool {
 
 // WriteObjects serialises the structure tree into PDF objects.
 //
-// Takes ctx (context.Context) which carries the logger used to warn on excessive nesting.
 // Takes writer (*PdfDocumentWriter) which specifies the document writer to emit objects
 // to.
 // Takes pageObjNumbers ([]int) which specifies the PDF object numbers for each page.
@@ -337,7 +336,6 @@ type parentTreeEntry struct {
 
 // writeChildren recursively writes StructElem objects for a node's children.
 //
-// Takes ctx (context.Context) which carries the logger used to warn on excessive nesting.
 // Takes writer (*PdfDocumentWriter) which specifies the document writer to emit objects
 // to.
 // Takes node (*StructNode) which specifies the parent node whose children are written.
@@ -387,7 +385,6 @@ func (st *StructTree) writeChildren(
 // descendants, and any /Alt text. Each MCR encountered is also recorded in the parent
 // tree accumulator.
 //
-// Takes ctx (context.Context) which carries the logger used to warn on excessive nesting.
 // Takes writer (*PdfDocumentWriter) which specifies the document writer to emit objects
 // to.
 // Takes child (*StructNode) which is the node to write as a structure element.

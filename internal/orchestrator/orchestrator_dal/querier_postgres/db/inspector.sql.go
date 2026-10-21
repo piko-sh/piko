@@ -59,12 +59,16 @@ func (queries *Queries) ListTaskStatusCounts(ctx context.Context) ([]ListTaskSta
 	}
 	defer rows.Close()
 	var results []ListTaskStatusCountsRow
-	for rows.Next() {
+	if rows.Next() {
 		var row ListTaskStatusCountsRow
-		if err := rows.Scan(&row.Status, &row.TaskCount); err != nil {
-			return nil, err
+		scanArgs := []any{&row.Status, &row.TaskCount}
+		for more := true; more; more = rows.Next() {
+			row = ListTaskStatusCountsRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

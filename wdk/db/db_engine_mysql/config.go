@@ -19,7 +19,6 @@
 package db_engine_mysql
 
 import (
-	"piko.sh/piko/internal/querier/querier_adapters/migration_sql"
 	"piko.sh/piko/wdk/db"
 )
 
@@ -30,7 +29,6 @@ func MySQL() db.EngineConfig {
 	return db.EngineConfig{
 		DriverName:       "mysql",
 		Engine:           NewMySQLEngine(),
-		MigrationDialect: migration_sql.MySQLDialect(),
-		CatalogueFactory: nil,
+		MigrationDialect: db.MySQLDialect(),
 	}
 }

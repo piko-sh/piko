@@ -260,39 +260,14 @@ func GetAllCollectionItems(collectionName string) ([]map[string]any, error) {
 	return runtime.GetAllCollectionItems(collectionName)
 }
 
-// BuildNavigationFromMetadata constructs hierarchical navigation from collection
-// metadata.
-//
-// Takes metadata maps (from GetAllCollectionItems) and builds navigation trees based on
-// the "Navigation" field in each item's metadata.
-//
-// The navigation metadata should follow the layout below: metadata["Navigation"] =
-// NavigationMetadata with Groups["sidebar"], etc.
+// BuildNavigationFromMetadata constructs navigation from each collection item's
+// Navigation metadata.
 //
 // Takes items ([]map[string]interface{}) which is a slice of metadata maps from a
 // collection.
 // Takes config (NavigationConfig) which specifies navigation building options.
 //
 // Returns *NavigationGroups which contains all named navigation trees.
-//
-// Example usage in a template:
-//
-//	func Render(r *piko.RequestData) (Response, piko.Metadata, error) {
-//	    // Get all docs metadata (lightweight - no ASTs)
-//	    allDocuments, err := piko.GetAllCollectionItems("docs")
-//	    if err != nil {
-//	        return Response{}, piko.Metadata{}, err
-//	    }
-//	    // Build navigation
-//	    navGroups := piko.BuildNavigationFromMetadata(allDocuments, piko.DefaultNavigationConfig())
-//	    // Access navigation for different contexts
-//	    sidebar := navGroups.Groups["sidebar"]
-//	    footer := navGroups.Groups["footer"]
-//	    return Response{
-//	        Sidebar: sidebar,
-//	        Footer:  footer,
-//	    }, piko.Metadata{}, nil
-//	}
 func BuildNavigationFromMetadata(ctx context.Context, items []map[string]any, config NavigationConfig) *NavigationGroups {
 	return runtime.BuildNavigationFromMetadata(ctx, items, config)
 }

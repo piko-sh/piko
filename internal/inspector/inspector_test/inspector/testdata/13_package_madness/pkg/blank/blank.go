@@ -18,6 +18,4 @@
 
 package blank
 
-// This package is imported for side effects only.
-// The inspector should load it without issue.
 type BlankType struct{}

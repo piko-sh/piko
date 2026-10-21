@@ -3,7 +3,7 @@
 package generated
 
 type Tasks struct {
-	ID        int32  `json:"id"`
+	ID        int64  `json:"id"`
 	Title     string `json:"title"`
 	Completed int32  `json:"completed"`
 	CreatedAt int32  `json:"created_at"`

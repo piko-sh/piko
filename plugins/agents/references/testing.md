@@ -80,7 +80,7 @@ view.QueryAST("div").HasClass("container")
 
 // Indexing and iteration
 view.QueryAST(".stat-value").Index(0).HasText("100")
-view.QueryAST(".row").Each(func(i int, node *ast_domain.TemplateNode) {
+view.QueryAST(".row").Each(func(i int, node *runtime.TemplateNode) {
     id, ok := node.GetAttribute("data-id")
     assert.True(t, ok)
 })
@@ -413,7 +413,7 @@ go test -tags=e2e ./e2e/...            # E2E browser tests
 - Calling a non-existent `WithContext(ctx)` method on the request builder; pass `ctx` to `Build(ctx)` instead
 - Passing an action struct pointer (e.g. `&actions.Foo{}`) to `NewActionTester`; it expects an `ActionHandlerEntry` descriptor
 - Calling `tester.Invoke(args)` without a `ctx`; the real signature is `Invoke(ctx, args)`
-- Using `InvokeExpectError` when the action returns a validation error via response (not a Go error)
+- Calling a non-existent `InvokeExpectError`; call `Invoke` then `result.AssertError()` (validation errors are Go errors)
 - Forgetting `//go:build e2e` tag on E2E test files (they'll run with normal tests)
 - Forgetting `defer p.Close()` on browser pages (leaks browser contexts)
 - Using `browser.New(t)` without a `TestMain` harness (no server running)

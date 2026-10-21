@@ -35,7 +35,7 @@ import (
 	"piko.sh/piko/internal/storage/storage_adapters/transformer_crypto"
 	"piko.sh/piko/internal/storage/storage_domain"
 	"piko.sh/piko/internal/storage/storage_dto"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -311,6 +311,7 @@ func (c *Container) selectDiskStorageProvider() (string, storage_domain.StorageP
 		BaseDirectory:  storageDir,
 		Sandbox:        storageSandbox,
 		SandboxFactory: nil,
+		Durability:     provider_disk.DurabilityImmediate,
 	})
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to initialise default disk storage provider: %w", err)

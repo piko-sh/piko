@@ -113,7 +113,11 @@ gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c h1:Hei/4ADfdWqJk1ZMxUNpqntN
 gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c/go.mod h1:JHkPIbrfpd72SG/EVd6muEfDQjcINNoR0C8j2r3qZ4Q=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
-piko.sh/goastutil v0.1.0 h1:CDQ1DY6oBAU3E7+Ljd7Gm5U67xiaf3+ibJrTjYx6Zag=
-piko.sh/goastutil v0.1.0/go.mod h1:Pr2MuYthT1ViJ5heZ5RJ8wtFzQT/zF2srJ2Re97ADvg=
+piko.sh/goastutil v0.2.0 h1:WrHLSGlVleQeTOAGyXgSQGnKHO6LRzYRzFOySOsT9Ok=
+piko.sh/goastutil v0.2.0/go.mod h1:Pr2MuYthT1ViJ5heZ5RJ8wtFzQT/zF2srJ2Re97ADvg=
+piko.sh/safeconv v0.1.0 h1:BsPGkT4mhXeR5WTk7HYuVIlBcAOulGzASfrSrESwl7o=
+piko.sh/safeconv v0.1.0/go.mod h1:GKGH9YV6ArewC9CkOcLKcbkBr+o3FodkaGsmlNkNjdw=
+piko.sh/safedisk v0.1.0 h1:GPle6IztcFa3b2qnjWzNfR3m40lxUhUrFcWTvuCSKOQ=
+piko.sh/safedisk v0.1.0/go.mod h1:9Z3rpNdYrlEUQEMPg28+mXkBOR6t2lwl9nhtMkam4eo=
 piko.sh/vectormaths v0.2.0 h1:Nz1egFYwfFxYY6VvL+hjBpFvx1Vu0mldgtWi9R1JH8g=
 piko.sh/vectormaths v0.2.0/go.mod h1:wViOFV+X5fo2r0s5RkO9QTXtTdAgUdl46tzm3mWv+qY=

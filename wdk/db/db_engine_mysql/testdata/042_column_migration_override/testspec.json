@@ -1,3 +1,0 @@
-{
-  "description": "Migration-level piko.column propagates uuid.UUID through passthrough projections on MySQL. A second query that casts the column drops the override."
-}

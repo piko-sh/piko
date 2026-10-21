@@ -1,3 +1,0 @@
-{
-  "description": "SQL injection safety: runtime builder rejects malicious column, operator, direction, and value inputs"
-}

@@ -28,7 +28,7 @@ import (
 	"piko.sh/piko/internal/generator/generator_domain"
 	"piko.sh/piko/internal/generator/generator_dto"
 	"piko.sh/piko/internal/json"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // JSONManifestProvider implements ManifestProviderPort to load a project manifest from a

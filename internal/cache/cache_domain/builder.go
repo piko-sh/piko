@@ -639,7 +639,7 @@ type writeExpiryCalculator[K comparable, V any] struct {
 
 // ExpireAfterCreate returns the duration after which a newly created entry should expire.
 //
-// Takes cache_dto.Entry[K, V] which is the newly created cache entry.
+// Takes (cache_dto.Entry[K, V]) which is the newly created cache entry.
 //
 // Returns time.Duration which is the configured expiry duration.
 func (c *writeExpiryCalculator[K, V]) ExpireAfterCreate(cache_dto.Entry[K, V]) time.Duration {
@@ -649,8 +649,8 @@ func (c *writeExpiryCalculator[K, V]) ExpireAfterCreate(cache_dto.Entry[K, V]) t
 // ExpireAfterUpdate returns the duration after which an entry expires following an
 // update.
 //
-// Takes cache_dto.Entry[K, V] which is the existing cache entry.
-// Takes V which is the new value being written.
+// Takes (cache_dto.Entry[K, V]) which is the existing cache entry.
+// Takes (V) which is the new value being written.
 //
 // Returns time.Duration which is the fixed expiry duration for updated entries.
 func (c *writeExpiryCalculator[K, V]) ExpireAfterUpdate(cache_dto.Entry[K, V], V) time.Duration {
@@ -659,7 +659,7 @@ func (c *writeExpiryCalculator[K, V]) ExpireAfterUpdate(cache_dto.Entry[K, V], V
 
 // ExpireAfterRead returns the expiry duration after a read operation.
 //
-// Takes Entry[K, V] which is the cache entry that was read.
+// Takes (cache_dto.Entry[K, V]) which is the cache entry that was read.
 //
 // Returns time.Duration which is -1 to indicate no change to expiry.
 func (*writeExpiryCalculator[K, V]) ExpireAfterRead(cache_dto.Entry[K, V]) time.Duration {
@@ -676,7 +676,7 @@ type accessExpiryCalculator[K comparable, V any] struct {
 // ExpireAfterCreate returns the configured sliding expiry duration for a newly created
 // cache entry.
 //
-// Takes cache_dto.Entry[K, V] which is the newly created entry.
+// Takes (cache_dto.Entry[K, V]) which is the newly created entry.
 //
 // Returns time.Duration which is the configured expiry duration.
 func (c *accessExpiryCalculator[K, V]) ExpireAfterCreate(cache_dto.Entry[K, V]) time.Duration {
@@ -686,8 +686,8 @@ func (c *accessExpiryCalculator[K, V]) ExpireAfterCreate(cache_dto.Entry[K, V]) 
 // ExpireAfterUpdate returns the duration after which an entry expires following an
 // update.
 //
-// Takes cache_dto.Entry[K, V] which is the existing cache entry.
-// Takes V which is the new value being set.
+// Takes (cache_dto.Entry[K, V]) which is the existing cache entry.
+// Takes (V) which is the new value being set.
 //
 // Returns time.Duration which is the configured expiry duration.
 func (c *accessExpiryCalculator[K, V]) ExpireAfterUpdate(cache_dto.Entry[K, V], V) time.Duration {
@@ -696,7 +696,7 @@ func (c *accessExpiryCalculator[K, V]) ExpireAfterUpdate(cache_dto.Entry[K, V], 
 
 // ExpireAfterRead returns the duration after which an entry expires following a read.
 //
-// Takes Entry[K, V] which is the cache entry being accessed.
+// Takes (cache_dto.Entry[K, V]) which is the cache entry being accessed.
 //
 // Returns time.Duration which is the configured expiry duration.
 func (c *accessExpiryCalculator[K, V]) ExpireAfterRead(cache_dto.Entry[K, V]) time.Duration {

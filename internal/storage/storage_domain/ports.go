@@ -52,7 +52,6 @@ type Service interface {
 
 	// RegisterProvider adds a new storage provider to the service.
 	//
-	// Takes ctx (context.Context) for cancellation and logging propagation.
 	// Takes name (string) which identifies the storage backend, such as "s3", "gcs", or
 	// "disk".
 	// Takes provider (StorageProviderPort) which implements the storage operations.
@@ -82,15 +81,12 @@ type Service interface {
 
 	// ListProviders returns detailed information about all registered providers.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout control.
-	//
 	// Returns []provider_domain.ProviderInfo which contains provider metadata, health
 	// status, and capabilities.
 	ListProviders(ctx context.Context) []provider_domain.ProviderInfo
 
 	// RegisterTransformer adds a stream transformer for compression or encryption.
 	//
-	// Takes ctx (context.Context) for cancellation and logging propagation.
 	// Takes transformer (StreamTransformerPort) which processes the stream.
 	//
 	// Returns error when registration fails.
@@ -111,7 +107,6 @@ type Service interface {
 	// RegisterDispatcher registers and starts a storage dispatcher for asynchronous
 	// operations.
 	//
-	// Takes ctx (context.Context) for cancellation and logging propagation.
 	// Takes dispatcher (StorageDispatcherPort) which handles storage operations.
 	//
 	// Returns error when registration or startup fails.

@@ -1,3 +1,0 @@
-{
-  "description": "FTS5 virtual tables are parsed into catalogue entries with text columns and an implicit rank column. FTS5 auxiliary functions (highlight, snippet, bm25) resolve correctly."
-}

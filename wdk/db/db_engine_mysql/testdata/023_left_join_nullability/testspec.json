@@ -1,3 +1,0 @@
-{
-  "description": "LEFT JOIN nullable propagation. Tests that columns from the right side of a LEFT JOIN are marked as nullable even when defined as NOT NULL."
-}

@@ -1,3 +1,0 @@
-{
-  "description": "Scalar before slice: a leading scalar placeholder is preserved while the slice expands to numbered $N placeholders"
-}

@@ -1,3 +1,0 @@
-{
-  "description": "Nullable(T) round-trip: a NULL value and a non-NULL value scan into *T pointer fields on the generated Go struct."
-}

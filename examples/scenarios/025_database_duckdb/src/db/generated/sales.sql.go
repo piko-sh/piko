@@ -10,20 +10,20 @@ import (
 
 const monthlysales = `SELECT
   strftime('%Y-%m', sold_at)  AS month,
-  SUM(amount * quantity)::DECIMAL(12, 2)  AS revenue,
+  CAST(SUM(amount * quantity)::DECIMAL(12, 2) AS VARCHAR)  AS revenue,
   SUM(quantity)::INTEGER                  AS units
 FROM sales
 GROUP BY month
 ORDER BY month;`
 
 type MonthlySalesRow struct {
-	Month   string
-	Revenue *maths.Decimal
-	Units   *int32
+	Month   string         `json:"month"`
+	Revenue *maths.Decimal `json:"revenue"`
+	Units   *int32         `json:"units"`
 }
 
 func (queries *Queries) MonthlySales(ctx context.Context) ([]MonthlySalesRow, error) {
-	rows, err := queries.writer.QueryContext(ctx, monthlysales)
+	rows, err := queries.reader.QueryContext(ctx, monthlysales)
 	if err != nil {
 		return nil, err
 	}
@@ -44,20 +44,20 @@ func (queries *Queries) MonthlySales(ctx context.Context) ([]MonthlySalesRow, er
 
 const revenuebycategory = `SELECT
   category,
-  SUM(amount * quantity)::DECIMAL(12, 2)  AS revenue,
+  CAST(SUM(amount * quantity)::DECIMAL(12, 2) AS VARCHAR)  AS revenue,
   SUM(quantity)::INTEGER                  AS units_sold
 FROM sales
 GROUP BY category
 ORDER BY revenue DESC;`
 
 type RevenueByCategoryRow struct {
-	Category  string
-	Revenue   *maths.Decimal
-	UnitsSold *int32
+	Category  string         `json:"category"`
+	Revenue   *maths.Decimal `json:"revenue"`
+	UnitsSold *int32         `json:"units_sold"`
 }
 
 func (queries *Queries) RevenueByCategory(ctx context.Context) ([]RevenueByCategoryRow, error) {
-	rows, err := queries.writer.QueryContext(ctx, revenuebycategory)
+	rows, err := queries.reader.QueryContext(ctx, revenuebycategory)
 	if err != nil {
 		return nil, err
 	}
@@ -78,20 +78,20 @@ func (queries *Queries) RevenueByCategory(ctx context.Context) ([]RevenueByCateg
 
 const revenuebyregion = `SELECT
   region,
-  SUM(amount * quantity)::DECIMAL(12, 2)  AS revenue,
+  CAST(SUM(amount * quantity)::DECIMAL(12, 2) AS VARCHAR)  AS revenue,
   COUNT(*)::INTEGER                       AS order_count
 FROM sales
 GROUP BY region
 ORDER BY revenue DESC;`
 
 type RevenueByRegionRow struct {
-	Region     string
-	Revenue    *maths.Decimal
-	OrderCount int32
+	Region     string         `json:"region"`
+	Revenue    *maths.Decimal `json:"revenue"`
+	OrderCount int32          `json:"order_count"`
 }
 
 func (queries *Queries) RevenueByRegion(ctx context.Context) ([]RevenueByRegionRow, error) {
-	rows, err := queries.writer.QueryContext(ctx, revenuebyregion)
+	rows, err := queries.reader.QueryContext(ctx, revenuebyregion)
 	if err != nil {
 		return nil, err
 	}
@@ -112,21 +112,21 @@ func (queries *Queries) RevenueByRegion(ctx context.Context) ([]RevenueByRegionR
 
 const summarystats = `SELECT
   COUNT(*)::INTEGER                         AS total_orders,
-  SUM(amount * quantity)::DECIMAL(12, 2)    AS total_revenue,
-  (AVG(amount * quantity))::DECIMAL(10, 2)  AS avg_order_value,
+  CAST(SUM(amount * quantity)::DECIMAL(12, 2) AS VARCHAR)    AS total_revenue,
+  CAST((AVG(amount * quantity))::DECIMAL(10, 2) AS VARCHAR)  AS avg_order_value,
   COUNT(DISTINCT product)::INTEGER          AS unique_products
 FROM sales;`
 
 type SummaryStatsRow struct {
-	TotalOrders    int32
-	TotalRevenue   *maths.Decimal
-	AvgOrderValue  *maths.Decimal
-	UniqueProducts int32
+	TotalOrders    int32          `json:"total_orders"`
+	TotalRevenue   *maths.Decimal `json:"total_revenue"`
+	AvgOrderValue  *maths.Decimal `json:"avg_order_value"`
+	UniqueProducts int32          `json:"unique_products"`
 }
 
 func (queries *Queries) SummaryStats(ctx context.Context) (SummaryStatsRow, error) {
 	var row SummaryStatsRow
-	err := queries.writer.QueryRowContext(ctx, summarystats).Scan(&row.TotalOrders, &row.TotalRevenue, &row.AvgOrderValue, &row.UniqueProducts)
+	err := queries.reader.QueryRowContext(ctx, summarystats).Scan(&row.TotalOrders, &row.TotalRevenue, &row.AvgOrderValue, &row.UniqueProducts)
 	if err != nil {
 		return SummaryStatsRow{}, err
 	}
@@ -137,21 +137,21 @@ const topproducts = `SELECT
   product,
   category,
   SUM(quantity)::INTEGER                  AS total_units,
-  SUM(amount * quantity)::DECIMAL(12, 2)  AS total_revenue
+  CAST(SUM(amount * quantity)::DECIMAL(12, 2) AS VARCHAR)  AS total_revenue
 FROM sales
 GROUP BY product, category
 ORDER BY total_revenue DESC
 LIMIT 5;`
 
 type TopProductsRow struct {
-	Product      string
-	Category     string
-	TotalUnits   *int32
-	TotalRevenue *maths.Decimal
+	Product      string         `json:"product"`
+	Category     string         `json:"category"`
+	TotalUnits   *int32         `json:"total_units"`
+	TotalRevenue *maths.Decimal `json:"total_revenue"`
 }
 
 func (queries *Queries) TopProducts(ctx context.Context) ([]TopProductsRow, error) {
-	rows, err := queries.writer.QueryContext(ctx, topproducts)
+	rows, err := queries.reader.QueryContext(ctx, topproducts)
 	if err != nil {
 		return nil, err
 	}

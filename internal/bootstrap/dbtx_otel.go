@@ -183,7 +183,6 @@ func newOTelDBTX(
 // ExecContext executes a query without returning rows, wrapped with a span and metric
 // recording.
 //
-// Takes ctx (context.Context) for cancellation and span propagation.
 // Takes query (string) which is the SQL query.
 // Takes arguments (...any) which are the query parameters.
 //
@@ -217,7 +216,6 @@ func (o *otelDBTX) ExecContext(ctx context.Context, query string, arguments ...a
 // QueryContext executes a query that returns rows, wrapped with a span and metric
 // recording.
 //
-// Takes ctx (context.Context) for cancellation and span propagation.
 // Takes query (string) which is the SQL query.
 // Takes arguments (...any) which are the query parameters.
 //
@@ -246,7 +244,6 @@ func (o *otelDBTX) QueryContext(ctx context.Context, query string, arguments ...
 // duration metric. Errors are deferred to row.Scan and cannot be captured at the DBTX
 // level.
 //
-// Takes ctx (context.Context) for cancellation and span propagation.
 // Takes query (string) which is the SQL query.
 // Takes arguments (...any) which are the query parameters.
 //
@@ -296,7 +293,6 @@ func (o *otelDBTX) WrapDBTX(inner any) any {
 // none is set). It runs on the hottest path, so a panicking observer is recovered here
 // rather than allowed to crash the DB call it instruments.
 //
-// Takes ctx (context.Context) for cancellation and panic-recovery context.
 // Takes operation (string) which is the resolved operation name.
 // Takes statement (string) which is the SQL text.
 // Takes start (time.Time) which is when the call began, for the duration.
@@ -490,7 +486,6 @@ func trimSQLIdentifier(token string) string {
 
 // startSpan creates a new trace span with standard database attributes.
 //
-// Takes ctx (context.Context) which carries the parent span context.
 // Takes operation (string) which is the operation name for the span.
 //
 // Returns context.Context which carries the new span.
@@ -507,7 +502,6 @@ func (o *otelDBTX) startSpan(ctx context.Context, operation string) (context.Con
 
 // recordMetrics records duration and count metrics for a database operation.
 //
-// Takes ctx (context.Context) which carries the metric context.
 // Takes operation (string) which is the operation name for metric attributes.
 // Takes start (time.Time) which is the operation start time for duration calculation.
 // Takes err (error) which, when non-nil, increments the error counter.

@@ -28,6 +28,7 @@ import (
 )
 
 type mockTaskStoreHealth struct {
+	UnimplementedTaskStoreV2
 	healthState healthprobe_dto.State
 }
 
@@ -37,31 +38,12 @@ func (m *mockTaskStoreHealth) UpdateTask(_ context.Context, _ *Task) error    { 
 func (m *mockTaskStoreHealth) GetTasksByID(_ context.Context, _ []string) ([]*Task, error) {
 	return nil, nil
 }
-func (m *mockTaskStoreHealth) FetchAndMarkDueTasks(_ context.Context, _ TaskPriority, _ int) ([]*Task, error) {
-	return nil, nil
-}
 func (m *mockTaskStoreHealth) GetWorkflowStatus(_ context.Context, _ string) (bool, error) {
 	return false, nil
 }
 func (m *mockTaskStoreHealth) PendingTaskCount(_ context.Context) (int64, error)    { return 0, nil }
 func (m *mockTaskStoreHealth) PromoteScheduledTasks(_ context.Context) (int, error) { return 0, nil }
 func (m *mockTaskStoreHealth) CreateTaskWithDedup(_ context.Context, _ *Task) error { return nil }
-func (m *mockTaskStoreHealth) RecoverStaleTasks(_ context.Context, _ time.Duration, _ int, _ string) (int, error) {
-	return 0, nil
-}
-func (m *mockTaskStoreHealth) GetStaleProcessingTaskCount(_ context.Context, _ time.Duration) (int64, error) {
-	return 0, nil
-}
-func (m *mockTaskStoreHealth) UpdateTaskHeartbeat(_ context.Context, _ string) error { return nil }
-func (m *mockTaskStoreHealth) ClaimStaleTasksForRecovery(_ context.Context, _ string, _ time.Duration, _ time.Duration, _ int) ([]RecoveryClaimedTask, error) {
-	return nil, nil
-}
-func (m *mockTaskStoreHealth) RecoverClaimedTasks(_ context.Context, _ string, _ int, _ string) (int, error) {
-	return 0, nil
-}
-func (m *mockTaskStoreHealth) ReleaseRecoveryLeases(_ context.Context, _ string) (int, error) {
-	return 0, nil
-}
 func (m *mockTaskStoreHealth) CreateWorkflowReceipt(_ context.Context, _, _, _ string) error {
 	return nil
 }

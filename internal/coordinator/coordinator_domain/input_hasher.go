@@ -40,7 +40,7 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/resolver/resolver_domain"
 	"piko.sh/piko/internal/sfcparser"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -280,7 +280,6 @@ func (s *coordinatorService) discoverAndSortAllSourcePaths(
 // includeKnownStyleDeps adds previously discovered stylesheet @import dependencies to the
 // hashable file set.
 //
-// Takes ctx (context.Context) which controls cancellation for the stat checks.
 // Takes allSourceFiles (map[string]struct{}) which is the accumulating set of files to
 // hash; existing tracked stylesheets are added to it.
 func (s *coordinatorService) includeKnownStyleDeps(ctx context.Context, allSourceFiles map[string]struct{}) {
@@ -622,8 +621,6 @@ type hasherDependencyDiscoverer struct {
 
 // Discover finds all .pk files reachable from the given entry points.
 //
-// Takes ctx (context.Context) which carries cancellation and deadline signals for file
-// reading and import resolution.
 // Takes entryPointPaths ([]string) which specifies the starting paths to search from.
 //
 // Returns []string which contains all discovered file paths.
@@ -645,8 +642,6 @@ func (d *hasherDependencyDiscoverer) Discover(ctx context.Context, entryPointPat
 
 // enqueueEntryPoints resolves entry point paths and adds them to the queue.
 //
-// Takes ctx (context.Context) which carries cancellation and deadline signals for path
-// resolution.
 // Takes paths ([]string) which contains the entry point paths to process.
 // Takes queue (*[]string) which receives the resolved paths for processing.
 // Takes visited (map[string]bool) which tracks paths already processed.
@@ -669,8 +664,6 @@ func (d *hasherDependencyDiscoverer) enqueueEntryPoints(ctx context.Context, pat
 
 // processImportQueue discovers imports from each file in the queue.
 //
-// Takes ctx (context.Context) which carries cancellation and deadline signals for file
-// reading and import resolution.
 // Takes queue (*[]string) which holds the file paths to process.
 // Takes visited (map[string]bool) which tracks already processed files.
 //
@@ -687,8 +680,6 @@ func (d *hasherDependencyDiscoverer) processImportQueue(ctx context.Context, que
 
 // discoverImportsFromFile extracts and resolves imports from a single file.
 //
-// Takes ctx (context.Context) which carries cancellation and deadline signals for file
-// reading and import resolution.
 // Takes currentPath (string) which is the file path to extract imports from.
 // Takes queue (*[]string) which collects resolved paths for processing.
 // Takes visited (map[string]bool) which tracks paths already found.
@@ -714,8 +705,6 @@ func (d *hasherDependencyDiscoverer) discoverImportsFromFile(ctx context.Context
 
 // resolveEntryPoint resolves a single entry point path to an absolute path.
 //
-// Takes ctx (context.Context) which carries cancellation and deadline signals for path
-// resolution.
 // Takes path (string) which is the entry point path to resolve.
 // Takes moduleName (string) which is the module name for path prefixing.
 //
@@ -740,8 +729,6 @@ func (d *hasherDependencyDiscoverer) resolveEntryPoint(ctx context.Context, path
 
 // extractPKImports reads a .pk file and returns its .pk import paths.
 //
-// Takes ctx (context.Context) which carries cancellation and deadline signals for file
-// reading.
 // Takes currentPath (string) which specifies the path to the .pk file to read.
 //
 // Returns []string which contains the import paths ending in .pk found in the file's Go

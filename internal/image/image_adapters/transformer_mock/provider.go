@@ -201,7 +201,6 @@ func (p *Provider) Reset() {
 // GetDimensions returns mock dimensions for testing purposes. Always returns 800x600
 // unless configured otherwise.
 //
-// Takes ctx (context.Context) which is ignored in the mock.
 // Takes input (io.Reader) which is ignored in the mock.
 //
 // Returns width (int) which is mockImageWidth (800).

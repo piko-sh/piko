@@ -74,8 +74,6 @@ func NewRewriteContext(instanceProps []string) *RewriteContext {
 //
 // When the syntax tree is nil or has no statements, returns without changes.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes syntaxTree (*js_ast.AST) which is the syntax tree to change.
 // Takes instanceProps ([]string) which lists property names that need 'this'.
 func RewriteAST(ctx context.Context, syntaxTree *js_ast.AST, instanceProps []string) {

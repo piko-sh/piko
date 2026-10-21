@@ -91,7 +91,7 @@ func expandSingleResponsiveAsset(dependency *annotator_dto.StaticAssetDependency
 	densitiesString := dependency.TransformationParams[transformKeyDensities]
 	var densities []string
 	if densitiesString != "" {
-		densities = strings.Fields(densitiesString)
+		densities = strings.FieldsFunc(densitiesString, isCommaOrSpaceSeparator)
 	}
 
 	variants := calculateResponsiveVariants(

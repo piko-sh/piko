@@ -730,6 +730,32 @@ func TestResolveCollectionSourceAlias(t *testing.T) {
 			wantFound: true,
 		},
 		{
+			name:      "resolves an unnamed import by the name goimports assumes",
+			alias:     "yaml",
+			imports:   []*goast.ImportSpec{unnamedImport("gopkg.in/yaml.v3")},
+			wantPath:  "gopkg.in/yaml.v3",
+			wantFound: true,
+		},
+		{
+			name:      "drops a go- prefix from an unnamed import",
+			alias:     "content",
+			imports:   []*goast.ImportSpec{unnamedImport("github.com/myorg/go-content")},
+			wantPath:  "github.com/myorg/go-content",
+			wantFound: true,
+		},
+		{
+			name:      "resolves a major-version path under its parent's name",
+			alias:     "example",
+			imports:   []*goast.ImportSpec{unnamedImport("example.com/v3")},
+			wantPath:  "example.com/v3",
+			wantFound: true,
+		},
+		{
+			name:    "a package declaring another name needs an explicit name",
+			alias:   "v1",
+			imports: []*goast.ImportSpec{unnamedImport("k8s.io/api/core/v1")},
+		},
+		{
 			name:    "does not match the major-version suffix itself",
 			alias:   "v2",
 			imports: []*goast.ImportSpec{unnamedImport("github.com/myorg/docs/v2")},
@@ -812,32 +838,6 @@ func TestResolveCollectionSourceAlias(t *testing.T) {
 
 			assert.Equal(t, tc.wantFound, found)
 			assert.Equal(t, tc.wantPath, path)
-		})
-	}
-}
-
-func TestAssumedPackageName(t *testing.T) {
-	t.Parallel()
-
-	testCases := []struct {
-		importPath string
-		want       string
-	}{
-		{importPath: "fmt", want: "fmt"},
-		{importPath: "net/http", want: "http"},
-		{importPath: "github.com/org/repo/v2", want: "repo"},
-		{importPath: "github.com/org/repo/v10", want: "repo"},
-		{importPath: "example.com/v3", want: "example.com"},
-		{importPath: "github.com/org/version", want: "version"},
-		{importPath: "github.com/org/v", want: "v"},
-		{importPath: "github.com/org/v2beta", want: "v2beta"},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.importPath, func(t *testing.T) {
-			t.Parallel()
-
-			assert.Equal(t, tc.want, assumedPackageName(tc.importPath))
 		})
 	}
 }

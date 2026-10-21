@@ -23,10 +23,10 @@ func (queries *Queries) PendingTaskCount(ctx context.Context) (PendingTaskCountR
 const promotescheduledtasks = `UPDATE tasks
 SET
     status = 'PENDING',
-    updated_at = ?
+    updated_at = ?1
 WHERE
     status = 'SCHEDULED'
-    AND execute_at <= ?;`
+    AND execute_at <= ?2;`
 
 type PromoteScheduledTasksParams struct {
 	UpdatedAt int64

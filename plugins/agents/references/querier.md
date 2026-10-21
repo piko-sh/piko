@@ -2,6 +2,8 @@
 
 Piko generates type-safe Go from annotated `.sql` files. Authors write SQL; the generator emits a `Queries` struct whose methods match the annotated queries exactly. The migration service applies schema changes with advisory locking and per-file checksums.
 
+The analyser, generator and migration runner are [Seagull](https://seagull.sh), the standalone SQL-to-Go generator that began as Piko's querier. Piko reaches it only through `wdk/db` and its engines, so projects use `piko.` directives, `piko_` tables and `wdk/db` types, and never import Seagull. Seagull's own docs show `-- sgl.query(...)` and the `sgl` CLI: do not copy either into a Piko project.
+
 For full API surface and type catalogue see [`/docs/reference/querier.md`](../../../docs/reference/querier.md). For task recipes see [`/docs/how-to/database/migrations.md`](../../../docs/how-to/database/migrations.md), [`/docs/how-to/database/queries.md`](../../../docs/how-to/database/queries.md), and [`/docs/how-to/database/swapping-engines.md`](../../../docs/how-to/database/swapping-engines.md).
 
 ## Project layout
@@ -22,11 +24,11 @@ db/
     querier.go models.go prepared.go <name>.sql.go
 ```
 
-Re-run after any SQL change: `go run ./cmd/generator/main.go all`.
+Re-run after any SQL change: `go run ./cmd/generator/main.go all`. The generator's `WithDatabase` registration must set `QueryFS: os.DirFS("db")`, or that database is silently skipped. Generator diagnostics carry `Q` codes from Seagull; `piko explain <code>` explains one.
 
 ## Migration filenames
 
-Numeric prefix is the version (`int64` parsed from leading digits). Anything after the digits is decorative. The prefix is either zero-padded (`001_initial.up.sql`) or timestamped (`20260115143000_initial.up.sql`), and one scheme applies across a project. The `.down.sql` file is optional. Without one, rollback returns `db.NoDownMigrationError`.
+Files are named `<version>_<name>.up.sql`: the leading digits are the `int64` version and the non-empty name is decorative. The prefix is either zero-padded (`001_initial.up.sql`) or timestamped (`20260115143000_initial.up.sql`), and one scheme applies across a project. The `.down.sql` file is optional. Without one, rollback returns `db.NoDownMigrationError`.
 
 ```sql
 -- 001_initial.up.sql
@@ -69,22 +71,27 @@ DELETE FROM tasks WHERE id = ?;
 | `exec` | `(ctx, params) error` | Mutation, no result inspection. |
 | `execrows` | `(ctx, params) (int64, error)` | Need affected-row count. |
 | `execresult` | `(ctx, params) (sql.Result, error)` | Need `LastInsertId` plus `RowsAffected`. |
-| `stream` | `(ctx, params, fn func(<Name>Row) error) error` | Large result sets without buffering. |
-| `batch` | Batch handle with `Exec`/`Query`/`QueryRow` callbacks | Multiple parameter sets in one round-trip (driver-dependent). |
-| `copyfrom` | `(ctx, rows) (int64, error)` | Postgres `COPY FROM` bulk insert. |
+| `stream` | `(ctx, params) func(func(<Name>Row, error) bool)` | Range over large result sets without buffering. |
+| `batch` | `(ctx, params []<Name>Params) error` | Multiple parameter sets per call (chunked multi-row `INSERT`). |
+| `copyfrom` | `(ctx, params []<Name>Params) error` | Bulk insert; database/sql sends chunked multi-row `INSERT`s, not `COPY`. |
 | `asyncexec` | `(ctx, params) error` | Fire-and-forget mutation. The call returns once the server accepts the statement (engine-dependent, for example ClickHouse `ALTER UPDATE`/`DELETE`). A nil error does not guarantee the mutation has finished applying. |
 
 ### Placeholders
 
-- SQLite, MySQL, MariaDB, DuckDB, ClickHouse: `?` (positional)
-- PostgreSQL, CockroachDB, TimescaleDB: `$1`, `$2`
+- SQLite: `?` or `?NNN` (positional, sent as `?N`)
+- MySQL, MariaDB: `?` (positional)
+- PostgreSQL, CockroachDB, TimescaleDB, DuckDB: `$1`, `$2`
+- ClickHouse: `{name:Type}`
+- `:name` names a parameter on every engine but ClickHouse
 
-One placeholder -> single typed argument: `func DeleteTask(ctx, p1 int32) error`.
+A parameter compared with or assigned to a column is named after it and typed from it; one bound to no column is `p1`/`P1`. With Scenario 022's `tasks` (`id INTEGER PRIMARY KEY`, SQLite's 64-bit row id; `created_at INTEGER`):
+
+One placeholder -> single typed argument: `func DeleteTask(ctx, id int64) error`.
 Multiple placeholders -> typed params struct:
 
 ```go
-type CreateTaskParams struct { P1 string; P2 int32 }
-func (q *Queries) CreateTask(ctx context.Context, params CreateTaskParams) (CreateTaskRow, error)
+type CreateTaskParams struct { Title string; CreatedAt int32 }
+func (queries *Queries) CreateTask(ctx context.Context, params CreateTaskParams) (CreateTaskRow, error)
 ```
 
 ### Naming parameters with directives
@@ -102,7 +109,7 @@ WHERE id = $1 AND ($2 IS NULL OR email = $2);
 | Directive | Effect |
 |---|---|
 | `$1 as piko.param(<name>)` | Required field on params struct. |
-| `$1 as piko.param(<name>, optional: true)` | Nullable field; the predicate is dropped when the caller passes nil. |
+| `$1 as piko.param(<name>, optional: true)` | Pointer field; nil binds NULL, SQL unchanged (use `$1 IS NULL OR ...`). |
 | `$1 as piko.param(<name>, kind: slice)` | `IN (?1)` slice expansion. |
 | `$1 as piko.param(<name>, default:, max:)` in a LIMIT/OFFSET clause | Pagination: non-negative int, optional default/max clamp. |
 | `piko.sortable(<name>, columns: [col, ...])` | Standalone validated dynamic ORDER BY (no `$N` anchor). |
@@ -118,14 +125,14 @@ queries := generated.New(database)               // *sql.DB or any DBTX
 queries := generated.NewWithReplica(writer, reader)
 
 err := queries.RunInTx(ctx, database, func(q *generated.Queries) error {
-    if err := q.DebitAccount(ctx, p1); err != nil { return err }
-    return q.CreditAccount(ctx, p2)
+    if err := q.DebitAccount(ctx, debit); err != nil { return err }
+    return q.CreditAccount(ctx, credit)
 })
 
 txQueries := queries.WithTx(tx)                  // manual transaction
 ```
 
-`NewWithReplica` routes `one`/`many` (without `RETURNING`) to the reader; `exec` and `RETURNING` writes go to the writer.
+`NewWithReplica` routes read-only queries to the reader; every other query, including `RETURNING` writes, goes to the writer.
 
 Resolve registered databases at runtime:
 
@@ -146,11 +153,12 @@ import (
     mydb "myapp/db"
 )
 
-executor := db.NewMigrationExecutor(database, db.SQLiteDialect())
-reader   := db.NewFSFileReader(mydb.Migrations)            // io/fs.FS
-migrator := db.NewMigrationService(executor, reader, "migrations",
+migrator, err := db.NewMigrator(db_engine_sqlite.SQLite(), database, mydb.Migrations, "migrations",
     db.WithNonBlockingLock(),                              // optional
 )
+if err != nil {
+    return err
+}
 
 if _, err := migrator.Up(ctx); errors.Is(err, db.ErrLockNotAcquired) {
     // another process holds the lock
@@ -174,11 +182,11 @@ if _, err := migrator.Up(ctx); errors.Is(err, db.ErrLockNotAcquired) {
 
 ### Dialects
 
-`db.SQLiteDialect()`, `db.PostgresDialect()`, `db.PostgresPgBouncerDialect()`, `db.MySQLDialect()`, `db.MySQLDialectWithDSN(dsn)`.
+Each engine except codegen-only DuckDB carries its migration dialect (`EngineConfig.MigrationDialect`). The descriptors are `db.SQLiteDialect()`, `db.PostgresDialect()`, `db.PostgresPgBouncerDialect()`, `db.CockroachDBDialect()`, `db.MySQLDialect()`, `db.MySQLDialectWithDSN(dsn)` and `db.ClickHouseDialect()`.
 
 ### Errors
 
-`db.ChecksumMismatchError`, `db.DownChecksumMismatchError`, `db.MigrationExecutionError`, `db.LockAcquisitionError`, `db.MissingMigrationFileError`, `db.NoDownMigrationError`, `db.ErrLockNotAcquired` (sentinel - use `errors.Is`).
+`db.ChecksumMismatchError`, `db.DownChecksumMismatchError`, `db.MigrationExecutionError`, `db.LockAcquisitionError`, `db.MissingMigrationFileError`, `db.NoDownMigrationError`, `db.DuplicateMigrationVersionError`, `db.DirtyMigrationError`, `db.ErrLockNotAcquired` and `db.ErrNoDownMigration` (sentinels - use `errors.Is`).
 
 Recovery from interrupted runs is automatic: dirty rows resume from the next statement on the next `Up`. Recovery from checksum mismatch: revert the edit, add a new migration, or update the recorded checksum manually after review.
 
@@ -187,9 +195,9 @@ Recovery from interrupted runs is automatic: dirty rows resume from the next sta
 For reference data (countries, default roles, demo content). Same shape as migrations; recorded in `piko_seeds`. Files live under `db/seeds/`. Make seeds idempotent (`INSERT ... ON CONFLICT DO NOTHING`).
 
 ```go
-seedExecutor := db.NewSeedExecutor(database, db.SQLiteDialect())
-seeds := db.NewSeedService(seedExecutor, db.NewFSFileReader(mydb.Seeds), "seeds")
-if err := seeds.Apply(ctx); err != nil { panic(err) }
+seeds, err := db.NewSeeder(db_engine_sqlite.SQLite(), database, mydb.Seeds, "seeds")
+if err != nil { panic(err) }
+if _, err := seeds.Apply(ctx); err != nil { panic(err) }
 ```
 
 Registered via `WithDatabase` (with `SeedFS` on the registration) and resolved with `db.GetSeedService(name)`.
@@ -198,10 +206,12 @@ Registered via `WithDatabase` (with `SeedFS` on the registration) and resolved w
 
 ```go
 piko.WithDatabase("primary", &db.DatabaseRegistration{
-    DB:           sqlDB,
-    EngineConfig: db_engine_postgres.Postgres(),
-    MigrationFS:  mydb.Migrations,
-    SeedFS:       mydb.Seeds,
+    DB:                 sqlDB,
+    EngineConfig:       db_engine_postgres.Postgres(),
+    MigrationFS:        mydb.Migrations,
+    MigrationDirectory: "migrations", // runtime default is "."
+    SeedFS:             mydb.Seeds,
+    SeedDirectory:      "seeds",
 })
 ```
 
@@ -217,6 +227,8 @@ Parser limits are options on the engine constructor. Assign the result to the fa
 
 `NewMariaDBEngine` accepts `db_engine_mysql.Option`. `NewCockroachDBEngine` and `NewTimescaleDBEngine` accept `db_engine_postgres.Option`.
 
+A dialect configured beyond these options (for example Seagull's `timescaledb` dialect with its own engine options) goes through `db_provider_seagull.NewEngine(dialect, driverName, migrationDialect)`, which returns a `db.EngineConfig`.
+
 Reserved names: `db.DatabaseNameRegistry` (framework registry), `db.DatabaseNameOrchestrator` (orchestrator queue) - register a SQL database under either to persist that subsystem.
 
 ## Constraints and failure modes
@@ -224,12 +236,13 @@ Reserved names: `db.DatabaseNameRegistry` (framework registry), `db.DatabaseName
 | Constraint | Consequence when violated |
 |---|---|
 | Every query needs a `-- piko.query(name, command)` header. | The query does not generate. |
+| Directives use the `piko.` prefix. | A copied `sgl.` directive is read as a plain comment and silently ignored. |
 | A query uses one placeholder style per dialect (`?` or `$1`). | The dialect picks one. Mixing the two does not parse. |
 | Each migration ships a `.up.sql`/`.down.sql` pair. | A missing `.down.sql` makes rollback return `db.NoDownMigrationError`. |
 | Applied migrations are immutable on disk. | Editing one returns `db.ChecksumMismatchError`. The safe rollback is a new migration. |
 | `CREATE INDEX CONCURRENTLY` and `VACUUM` run outside a transaction. | Use `-- piko.migration(no_transaction: true)`. Wrapping them in `BEGIN`/`COMMIT` fails. |
 | `go run ./cmd/generator/main.go all` runs after every query-file change. | Stale generated code otherwise. |
-| `migrator.Up` runs before `piko.Run`. | Run migrations before the server accepts traffic. |
+| `migrator.Up` runs before `ssr.Run`. | Run migrations before the server accepts traffic. |
 | The SQLite cgo driver needs CGO enabled. | Without CGO, use `db_driver_sqlite_nocgo`. |
 
 ## Related

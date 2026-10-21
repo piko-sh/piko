@@ -24,7 +24,6 @@ type RunOutput struct {
 	Ran bool `json:"ran"`
 }
 
-// RunAction sits in package main, which the generated action registry cannot import.
 type RunAction struct {
 	piko.ActionMetadata
 }

@@ -248,7 +248,6 @@ func (qp *QueryProcessor) findCandidateDocuments(
 
 // findCandidatesForTerm finds candidate documents for a single search term.
 //
-// Takes ctx (context.Context) which carries the logger for warning on errors.
 // Takes term (string) which is the search term to find candidates for.
 // Takes reader (IndexReaderPort) which provides access to the search index.
 // Takes mode (search_fb.SearchMode) which sets how to search (smart or fast).

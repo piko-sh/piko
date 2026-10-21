@@ -62,7 +62,6 @@ func backgroundBox(box *layouter_domain.LayoutBox, value string) (x, y, w, h flo
 // paintBackground renders the background colour and all background layers (images,
 // gradients) for a layout box.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes stream (*ContentStream) which receives PDF operators.
 // Takes box (*layouter_domain.LayoutBox) which is the box to paint.
 func (painter *PdfPainter) paintBackground(ctx context.Context, stream *ContentStream, box *layouter_domain.LayoutBox) {
@@ -107,7 +106,6 @@ func (painter *PdfPainter) paintBackground(ctx context.Context, stream *ContentS
 // (cover, contain, explicit), background-position, and background-repeat (no-repeat,
 // repeat, repeat-x, repeat-y).
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes stream (*ContentStream) which receives PDF operators.
 // Takes box (*layouter_domain.LayoutBox) which is the target box.
 // Takes bg (layouter_domain.BackgroundImage) which specifies the background image or

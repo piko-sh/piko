@@ -4,14 +4,14 @@ Use this guide when configuring a Piko application: bootstrap options, secret re
 
 ## Configuration model
 
-Piko configures itself through Go code in `cmd/main/main.go`. No config files or env vars are read except `PIKO_LOG_LEVEL` (consulted once in `piko.New` to raise the bootstrap logger without rebuilding). Every other knob is a `With*` functional option to `piko.New`.
+Piko configures itself through Go code (the scaffold keeps it in `internal/piko.go`). No config files or env vars are read except `PIKO_LOG_LEVEL` (consulted once in `piko.New` to raise the bootstrap logger without rebuilding). Every other knob is a `With*` functional option to `piko.New`.
 
 ```go
 ssr := piko.New(
     piko.WithPort(8080),
     piko.WithCSRFSecret(secretBytes),
     piko.WithLogLevel("info"),
-    piko.WithRateLimit(piko.RateLimitConfig{Enabled: ptr(true)}),
+    piko.WithRateLimit(piko.RateLimitConfig{Enabled: new(true)}),
 )
 ```
 
@@ -50,7 +50,7 @@ piko.New(
 )
 ```
 
-For wholesale replacement use `piko.WithLogger(logger_dto.Config{...})`. Switch the output adapter in `func main`:
+For wholesale replacement use `piko.WithLogger(piko.LoggerConfig{...})`. Switch the output adapter in `func main`:
 
 ```go
 func main() {
@@ -316,7 +316,7 @@ type Config struct {
 
 handle, err := cfg.APIKey.Acquire(ctx)
 defer handle.Close()
-apiKey := handle.Value()
+apiKey, err := handle.Value()
 ```
 
 ## Docker deployment
@@ -326,12 +326,10 @@ FROM golang:1.27 as build
 WORKDIR /app
 COPY . .
 RUN go build -o bin/generator cmd/generator/main.go && bin/generator all
-RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o bin/app cmd/main/main.go
+RUN CGO_ENABLED=0 go build -tags piko_embed -ldflags="-s -w" -o bin/app cmd/main/main.go
 
 FROM gcr.io/distroless/static:nonroot
 COPY --from=build /app/bin/app /app/app
-COPY --from=build /app/.piko /app/.piko
-COPY --from=build /app/.out /app/.out
 CMD ["/app/app", "prod"]
 ```
 

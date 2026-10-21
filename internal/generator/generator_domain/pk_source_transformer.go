@@ -20,10 +20,12 @@ package generator_domain
 
 import (
 	"regexp"
+	"slices"
 	"strings"
 
-	"github.com/tdewolff/parse/v2"
 	parsejs "github.com/tdewolff/parse/v2/js"
+
+	"piko.sh/piko/internal/logger/logger_domain"
 )
 
 // exportedFunctionInfo holds details about a top-level function for code generation.
@@ -41,7 +43,7 @@ type exportedFunctionInfo struct {
 var (
 	// topLevelTokenHandlers maps token types to their scanning functions for top-level
 	// function detection. Each handler returns a function info if found.
-	topLevelTokenHandlers = map[parsejs.TokenType]func(*parsejs.Lexer) *exportedFunctionInfo{ //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
+	topLevelTokenHandlers = map[parsejs.TokenType]func(*pkScriptScanner) *exportedFunctionInfo{ //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		parsejs.ExportToken:   scanExportedFunctionWithFlag,
 		parsejs.FunctionToken: scanNonExportedFunction,
 		parsejs.ConstToken:    scanNonExportedArrowFunction,
@@ -60,37 +62,18 @@ var (
 	// pkContextPattern matches the "pk." prefix, indicating the source uses the pk context
 	// object.
 	pkContextPattern = regexp.MustCompile(`\bpk\.`)
+
+	// declaredFunctionPattern matches unindented function declarations and captures the
+	// function name.
+	declaredFunctionPattern = regexp.MustCompile(
+		`(?m)^(?:export[ \t]+)?(?:async[ \t]+)?function(?:[ \t]*\*[ \t]*|[ \t]+)([A-Za-z_$][\w$]*)[ \t]*[<(]`)
 )
 
-// TransformPKSource changes PK script source to support scoped refs.
+// TransformPKSource scopes script functions and refs to individual component instances.
 //
-// The change process:
-//  1. Wraps all top-level functions in a factory that creates scoped refs.
-//  2. Creates wrapper exports that route to the correct scoped instance.
-//  3. Uses WeakMap to store instances for each scope element.
-//
-// This lets users write simple code like:
-//
-//	function handleClick(event) {
-//	    refs.button.click();
-//	}
-//
-// Or with export (backwards compatible):
-//
-//	export function handleClick(event) {
-//	    refs.button.click();
-//	}
-//
-// And have it work correctly with multiple partial instances, each with their own scoped
-// refs.
-//
-// When the source is empty, returns it unchanged.
-//
-// When the source is a TypeScript module file with export interface declarations, returns
-// it unchanged. These ES modules should be transpiled directly without the scoped refs
-// change.
-//
-// When no top-level functions are found, only adds the required imports.
+// Empty sources and TypeScript modules declaring exported interfaces are unchanged.
+// Sources without top-level functions receive imports only. Undetected function
+// declarations produce a warning.
 //
 // Takes source (string) which is the PK script source code to change.
 // Takes componentName (string) which is the partial_name attribute value (e.g.
@@ -109,6 +92,7 @@ func TransformPKSource(source string, componentName string) string {
 	}
 
 	topLevelFunctions := findTopLevelFunctions(source)
+	warnOnUndetectedFunctions(log, source, componentName, topLevelFunctions)
 	if len(topLevelFunctions) == 0 {
 		if !sourceUsesRefs(source) {
 			return addImportsOnly(source)
@@ -119,6 +103,65 @@ func TransformPKSource(source string, componentName string) string {
 	usedIdentifiers := detectUsedIdentifiersExcludingRefs(source)
 
 	return buildTransformedSource(source, topLevelFunctions, usedIdentifiers, componentName)
+}
+
+// warnOnUndetectedFunctions warns about top-level functions missed by the script scanner.
+//
+// Takes l (logger_domain.Logger) which receives the warning.
+// Takes source (string) which is the PK script source that was scanned.
+// Takes componentName (string) which is the partial_name of the component, or empty for a
+// page.
+// Takes found ([]exportedFunctionInfo) which holds the functions the scanner found.
+func warnOnUndetectedFunctions(l logger_domain.Logger, source string, componentName string, found []exportedFunctionInfo) {
+	missing := undetectedFunctionNames(source, found)
+	if len(missing) == 0 {
+		return
+	}
+
+	component := componentName
+	if component == "" {
+		component = "(page)"
+	}
+
+	l.Warn("PK script declares top-level functions the scanner did not detect, so p-on handlers naming them will not be bound",
+		logger_domain.String("component", component),
+		logger_domain.Strings("functions", missing))
+}
+
+// undetectedFunctionNames lists the functions a source plainly declares at the top level
+// that are absent from the scanner's results.
+//
+// Takes source (string) which is the PK script source that was scanned.
+// Takes found ([]exportedFunctionInfo) which holds the functions the scanner found.
+//
+// Returns []string which holds the missing function names in source order.
+func undetectedFunctionNames(source string, found []exportedFunctionInfo) []string {
+	var missing []string
+	for _, name := range declaredTopLevelFunctionNames(source) {
+		wasFound := slices.ContainsFunc(found, func(function exportedFunctionInfo) bool {
+			return function.name == name
+		})
+		if !wasFound {
+			missing = append(missing, name)
+		}
+	}
+	return missing
+}
+
+// declaredTopLevelFunctionNames lists the functions a source plainly declares at the top
+// level, judged by declarations that start a line with no indentation. It is a cheap
+// cross-check on the scanner, not a replacement for it.
+//
+// Takes source (string) which is the PK script source to check.
+//
+// Returns []string which holds the declared function names in source order.
+func declaredTopLevelFunctionNames(source string) []string {
+	matches := declaredFunctionPattern.FindAllStringSubmatch(source, -1)
+	names := make([]string, 0, len(matches))
+	for _, match := range matches {
+		names = append(names, match[1])
+	}
+	return names
 }
 
 // isTypeScriptModuleFile reports whether the source appears to be a TypeScript module
@@ -135,48 +178,41 @@ func isTypeScriptModuleFile(source string) bool {
 // scanExportedFunctionWithFlag wraps scanExportedFunction and marks the result as
 // exported.
 //
-// Takes lexer (*parsejs.Lexer) which provides the token stream to scan.
+// Takes scanner (*pkScriptScanner) which provides the token stream to scan.
 //
 // Returns *exportedFunctionInfo which holds the function info with wasExported set to
 // true, or nil if no exported function was found.
-func scanExportedFunctionWithFlag(lexer *parsejs.Lexer) *exportedFunctionInfo {
-	function := scanExportedFunction(lexer)
+func scanExportedFunctionWithFlag(scanner *pkScriptScanner) *exportedFunctionInfo {
+	function := scanExportedFunction(scanner)
 	if function != nil {
 		function.wasExported = true
 	}
 	return function
 }
 
-// findTopLevelFunctions extracts all top-level function declarations from source code
-// using token scanning. Works with both JavaScript and TypeScript, unlike full AST
-// parsing which fails on TypeScript type hints.
-//
-// The function finds both exported and non-exported functions, and tracks whether each
-// function had an export keyword via the wasExported field.
+// findTopLevelFunctions finds exported and unexported top-level JavaScript and TypeScript
+// functions.
 //
 // Takes source (string) which contains the source code to parse.
 //
 // Returns []exportedFunctionInfo which contains details of each top-level function found,
 // including both regular function declarations and arrow functions.
 func findTopLevelFunctions(source string) []exportedFunctionInfo {
-	input := parse.NewInputString(source)
-	lexer := parsejs.NewLexer(input)
+	scanner := newPKScriptScanner(source)
 
 	var functions []exportedFunctionInfo
-	braceDepth := 0
 
 	for {
-		tt, _ := lexer.Next()
+		tt, _ := scanner.next()
 		if tt == parsejs.ErrorToken {
 			break
 		}
 
-		braceDepth = updateBraceDepth(tt, braceDepth)
-		if isBraceToken(tt) || braceDepth > 0 {
+		if isBraceToken(tt) || scanner.braceDepth > 0 {
 			continue
 		}
 
-		if function := processTopLevelToken(lexer, tt); function != nil {
+		if function := processTopLevelToken(scanner, tt); function != nil {
 			functions = append(functions, *function)
 		}
 	}
@@ -190,13 +226,14 @@ func findTopLevelFunctions(source string) []exportedFunctionInfo {
 // Takes depth (int) which is the current brace depth.
 //
 // Returns int which is the updated depth, incremented for open braces and decremented for
-// close braces.
+// close braces. It never drops below zero, so a stray close brace cannot make nested
+// declarations look top-level.
 func updateBraceDepth(tt parsejs.TokenType, depth int) int {
 	switch tt {
 	case parsejs.OpenBraceToken:
 		return depth + 1
 	case parsejs.CloseBraceToken:
-		return depth - 1
+		return max(depth-1, 0)
 	default:
 		return depth
 	}
@@ -213,37 +250,37 @@ func isBraceToken(tt parsejs.TokenType) bool {
 
 // processTopLevelToken finds and runs the right handler for a token type.
 //
-// Takes lexer (*parsejs.Lexer) which provides the token stream to process.
+// Takes scanner (*pkScriptScanner) which provides the token stream to process.
 // Takes tt (parsejs.TokenType) which specifies the token type to handle.
 //
 // Returns *exportedFunctionInfo which holds the parsed function details, or nil if no
 // handler exists for the token type.
-func processTopLevelToken(lexer *parsejs.Lexer, tt parsejs.TokenType) *exportedFunctionInfo {
+func processTopLevelToken(scanner *pkScriptScanner, tt parsejs.TokenType) *exportedFunctionInfo {
 	handler, ok := topLevelTokenHandlers[tt]
 	if !ok {
 		return nil
 	}
-	return handler(lexer)
+	return handler(scanner)
 }
 
 // scanExportedFunction scans tokens after an export keyword to check if it is a function
 // export and extract the function name.
 //
-// Takes lexer (*parsejs.Lexer) which provides the token stream to scan.
+// Takes scanner (*pkScriptScanner) which provides the token stream to scan.
 //
 // Returns *exportedFunctionInfo which contains the function name and whether it is an
 // arrow function.
 // Returns nil if no function export was found.
-func scanExportedFunction(lexer *parsejs.Lexer) *exportedFunctionInfo {
-	tt, _ := skipWhitespace(lexer)
+func scanExportedFunction(scanner *pkScriptScanner) *exportedFunctionInfo {
+	tt, _ := scanner.next()
 
 	if tt == parsejs.AsyncToken {
-		tt, _ = skipWhitespace(lexer)
+		tt, _ = scanner.next()
 	}
 
 	switch tt { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 	case parsejs.FunctionToken:
-		tt, data := skipWhitespace(lexer)
+		tt, data := scanner.next()
 		if tt == parsejs.IdentifierToken {
 			name := string(data)
 			return &exportedFunctionInfo{
@@ -254,25 +291,25 @@ func scanExportedFunction(lexer *parsejs.Lexer) *exportedFunctionInfo {
 		}
 
 	case parsejs.ConstToken:
-		tt, data := skipWhitespace(lexer)
+		tt, data := scanner.next()
 		if tt != parsejs.IdentifierToken {
 			return nil
 		}
 		name := string(data)
 
-		tt, _ = skipWhitespace(lexer)
+		tt, _ = scanner.next()
 		if tt != parsejs.EqToken {
 			return nil
 		}
 
-		tt, _ = skipWhitespace(lexer)
+		tt, _ = scanner.next()
 
 		if tt == parsejs.AsyncToken {
-			tt, _ = skipWhitespace(lexer)
+			tt, _ = scanner.next()
 		}
 
 		if tt == parsejs.LtToken {
-			tt = skipGenericTypeParams(lexer)
+			tt = skipGenericTypeParams(scanner)
 		}
 
 		if tt == parsejs.OpenParenToken || tt == parsejs.FunctionToken {
@@ -289,12 +326,12 @@ func scanExportedFunction(lexer *parsejs.Lexer) *exportedFunctionInfo {
 
 // scanNonExportedFunction scans tokens after a function keyword at top level.
 //
-// Takes lexer (*parsejs.Lexer) which provides the token stream to scan.
+// Takes scanner (*pkScriptScanner) which provides the token stream to scan.
 //
 // Returns *exportedFunctionInfo which holds the function name, or nil if no function name
 // is found.
-func scanNonExportedFunction(lexer *parsejs.Lexer) *exportedFunctionInfo {
-	tt, data := skipWhitespace(lexer)
+func scanNonExportedFunction(scanner *pkScriptScanner) *exportedFunctionInfo {
+	tt, data := scanner.next()
 	if tt == parsejs.IdentifierToken {
 		name := string(data)
 		return &exportedFunctionInfo{
@@ -309,30 +346,30 @@ func scanNonExportedFunction(lexer *parsejs.Lexer) *exportedFunctionInfo {
 // scanNonExportedArrowFunction scans for a const name = (...) => pattern at the top level
 // of a file.
 //
-// Takes lexer (*parsejs.Lexer) which provides the token stream to scan.
+// Takes scanner (*pkScriptScanner) which provides the token stream to scan.
 //
 // Returns *exportedFunctionInfo which contains the function name, or nil if no arrow
 // function pattern was found.
-func scanNonExportedArrowFunction(lexer *parsejs.Lexer) *exportedFunctionInfo {
-	tt, data := skipWhitespace(lexer)
+func scanNonExportedArrowFunction(scanner *pkScriptScanner) *exportedFunctionInfo {
+	tt, data := scanner.next()
 	if tt != parsejs.IdentifierToken {
 		return nil
 	}
 	name := string(data)
 
-	tt, _ = skipWhitespace(lexer)
+	tt, _ = scanner.next()
 	if tt != parsejs.EqToken {
 		return nil
 	}
 
-	tt, _ = skipWhitespace(lexer)
+	tt, _ = scanner.next()
 
 	if tt == parsejs.AsyncToken {
-		tt, _ = skipWhitespace(lexer)
+		tt, _ = scanner.next()
 	}
 
 	if tt == parsejs.LtToken {
-		tt = skipGenericTypeParams(lexer)
+		tt = skipGenericTypeParams(scanner)
 	}
 
 	if tt == parsejs.OpenParenToken || tt == parsejs.FunctionToken {
@@ -348,55 +385,54 @@ func scanNonExportedArrowFunction(lexer *parsejs.Lexer) *exportedFunctionInfo {
 // scanNonExportedAsyncFunction scans for a non-exported async function name at the top
 // level of the token stream.
 //
-// Takes lexer (*parsejs.Lexer) which provides the token stream to scan.
+// Takes scanner (*pkScriptScanner) which provides the token stream to scan.
 //
 // Returns *exportedFunctionInfo which contains the function name, or nil if no async
 // function pattern was found.
-func scanNonExportedAsyncFunction(lexer *parsejs.Lexer) *exportedFunctionInfo {
-	tt, _ := skipWhitespace(lexer)
+func scanNonExportedAsyncFunction(scanner *pkScriptScanner) *exportedFunctionInfo {
+	tt, _ := scanner.next()
 	if tt != parsejs.FunctionToken {
 		return nil
 	}
-	return scanNonExportedFunction(lexer)
+	return scanNonExportedFunction(scanner)
 }
 
 // skipGenericTypeParams skips over TypeScript generic type parameters such as <T> or <T
 // extends Foo, U> and returns the next token after the closing >.
 //
-// Takes lexer (*parsejs.Lexer) which provides the token stream to read from.
+// Takes scanner (*pkScriptScanner) which provides the token stream to read from.
 //
 // Returns parsejs.TokenType which is the next token after the closing angle bracket, or
 // ErrorToken if parsing fails.
-func skipGenericTypeParams(lexer *parsejs.Lexer) parsejs.TokenType {
+func skipGenericTypeParams(scanner *pkScriptScanner) parsejs.TokenType {
 	depth := 1
 	for depth > 0 {
-		tt, _ := lexer.Next()
-		switch tt { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
-		case parsejs.LtToken:
-			depth++
-		case parsejs.GtToken:
-			depth--
-		case parsejs.ErrorToken:
+		tt, data := scanner.next()
+		if tt == parsejs.ErrorToken {
 			return tt
 		}
+		depth += genericDepthChange(tt, data)
 	}
-	tt, _ := skipWhitespace(lexer)
+	tt, _ := scanner.next()
 	return tt
 }
 
-// skipWhitespace advances the lexer past whitespace and line terminator tokens, returning
-// the next meaningful token.
+// genericDepthChange returns how far a token moves the nesting depth of generic type
+// parameters. The lexer reads adjacent angle brackets, such as the closers of
+// Array<Array<T>>, as one shift token, which opens or closes a level per bracket.
 //
-// Takes lexer (*parsejs.Lexer) which provides the token stream to advance.
+// Takes tt (parsejs.TokenType) which is the token inside the type parameters.
+// Takes data ([]byte) which holds the raw bytes of the token.
 //
-// Returns parsejs.TokenType which is the type of the next non-whitespace token.
-// Returns []byte which contains the raw bytes of that token.
-func skipWhitespace(lexer *parsejs.Lexer) (parsejs.TokenType, []byte) {
-	for {
-		tt, data := lexer.Next()
-		if tt != parsejs.WhitespaceToken && tt != parsejs.LineTerminatorToken {
-			return tt, data
-		}
+// Returns int which is the change in depth.
+func genericDepthChange(tt parsejs.TokenType, data []byte) int {
+	switch tt {
+	case parsejs.LtToken, parsejs.LtLtToken:
+		return len(data)
+	case parsejs.GtToken, parsejs.GtGtToken, parsejs.GtGtGtToken:
+		return -len(data)
+	default:
+		return 0
 	}
 }
 

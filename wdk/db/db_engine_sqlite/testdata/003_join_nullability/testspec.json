@@ -1,3 +1,0 @@
-{
-  "description": "Tests LEFT JOIN nullability propagation: right-side columns become nullable, left-side columns retain their DDL nullability."
-}

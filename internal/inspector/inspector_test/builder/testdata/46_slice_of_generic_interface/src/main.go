@@ -18,13 +18,10 @@
 
 package main
 
-// A generic interface for any printable object.
 type Printable[T any] interface {
 	Print() T
 }
 
 type Document struct {
-	// A slice of interfaces, where the interface is a generic type
-	// instantiated with 'string'.
 	Content []Printable[string]
 }

@@ -1,3 +1,0 @@
-{
-  "description": "CREATE INDEX and DROP INDEX DDL statements. Tests that index mutations are correctly parsed including UNIQUE and IF NOT EXISTS modifiers."
-}

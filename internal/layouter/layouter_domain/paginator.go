@@ -301,7 +301,6 @@ func (s *paginationState) cloneForPage(original *LayoutBox, size int) *LayoutBox
 // paginateBox assigns page indices and Y offsets to a single box and recurses into its
 // children.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes box (*LayoutBox) which is the box to paginate.
 // Takes state (*paginationState) which holds the accumulated pagination state.
 func paginateBox(ctx context.Context, box *LayoutBox, state *paginationState) {
@@ -526,7 +525,6 @@ func isTextBlock(box *LayoutBox) bool {
 // collectTextLines separates text-run children from list markers. List markers are
 // paginated immediately; text-run lines are returned for orphans/widows processing.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes box (*LayoutBox) which is the text block whose children are separated.
 // Takes state (*paginationState) which tracks page geometry, offsets, and pagination
 // limits.
@@ -565,7 +563,6 @@ func findTextSplitIndex(lines []*LayoutBox, state *paginationState, contentEnd f
 
 // paginateAllLines paginates every line in the slice.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes lines ([]*LayoutBox) which holds the text-run lines to paginate.
 // Takes state (*paginationState) which tracks page geometry, offsets, and pagination
 // limits.
@@ -575,19 +572,11 @@ func paginateAllLines(ctx context.Context, lines []*LayoutBox, state *pagination
 	}
 }
 
-// paginateTextBlock handles pagination for a text block (paragraph), enforcing orphans
-// and widows constraints.
+// paginateTextBlock splits a paragraph across pages while respecting its orphans and
+// widows constraints.
 //
-// The algorithm finds the natural split point (first line whose bottom exceeds the page
-// boundary), then adjusts the split to satisfy the orphans (minimum lines before the
-// break) and widows (minimum lines after the break) properties. If both constraints
-// cannot be satisfied simultaneously, the entire paragraph is moved to the next page.
+// If both constraints cannot be satisfied, the whole paragraph moves to the next page.
 //
-// Lines before the split are paginated normally. Lines after the split are pushed to the
-// next page by adding an offset equal to the gap between the split line's position and
-// the next page start.
-//
-// Takes ctx (context.Context) which controls cancellation.
 // Takes box (*LayoutBox) which is the text block to paginate.
 // Takes state (*paginationState) which tracks page geometry, offsets, and pagination
 // limits.
@@ -653,7 +642,6 @@ func adjustSplitForOrphansWidows(
 // lines before the split stay on the current page and lines from the split onward are
 // pushed to the next page.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes box (*LayoutBox) which is the parent text block.
 // Takes state (*paginationState) which holds the pagination state.
 // Takes lines ([]*LayoutBox) which holds the text-run lines to paginate.
@@ -765,16 +753,11 @@ func adjustTfootSourceOffset(box *LayoutBox, tg *tableGroups, state *paginationS
 	}
 }
 
-// paginateTable handles pagination for tables, repeating thead row groups at the top and
-// tfoot row groups at the bottom of each continuation page.
+// paginateTable splits table rows across pages and repeats header and footer groups.
 //
-// The algorithm iterates over individual rows within each body row group. When a row's
-// bottom would overflow the current page (minus tfoot space), the row is pushed to the
-// next page. A cloned copy of the thead is inserted at the top and a cloned tfoot at the
-// bottom of each continuation page. Cloned boxes have their SourceNode set to nil to
-// avoid duplicate data-layout-id entries in position extraction.
+// Cloned headers and footers have no SourceNode to prevent duplicate data-layout-id
+// entries.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes box (*LayoutBox) which is the table box to paginate.
 // Takes state (*paginationState) which tracks page geometry, offsets, and pagination
 // limits.
@@ -827,7 +810,6 @@ func assignRowGroupPage(rg *LayoutBox, state *paginationState) {
 // paginateTableRows processes individual rows within a body row group, detecting page
 // transitions and cloning thead/tfoot groups as needed.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes rg (*LayoutBox) which is the body row group.
 // Takes state (*paginationState) which holds the pagination state.
 // Takes tg (*tableGroups) which holds the extracted thead/tfoot.

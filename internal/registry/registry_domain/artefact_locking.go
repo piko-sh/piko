@@ -36,14 +36,13 @@ type ArtefactLocker interface {
 	GetArtefactForUpdate(ctx context.Context, artefactID string) (*registry_dto.ArtefactMeta, error)
 }
 
-// ReadArtefactForLockedUpdate reads an artefact for a read-modify-write.
+// ReadArtefactForLockedUpdate reads an artefact with a row lock when the store supports
+// it.
 //
-// It uses the store's row-locking read (GetArtefactForUpdate) when the store implements
-// ArtefactLocker, and otherwise falls back to GetArtefact. Call it inside a RunAtomic so
-// the lock is held across the read and the subsequent write.
+// Call within RunAtomic to hold the lock through the subsequent write.
 //
-// Takes store which is the (transactional) metadata store.
-// Takes artefactID which identifies the artefact to read.
+// Takes store (MetadataStore) which is the (transactional) metadata store.
+// Takes artefactID (string) which identifies the artefact to read.
 //
 // Returns the artefact, or ErrArtefactNotFound when absent.
 func ReadArtefactForLockedUpdate(ctx context.Context, store MetadataStore, artefactID string) (*registry_dto.ArtefactMeta, error) {

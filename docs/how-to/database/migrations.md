@@ -99,9 +99,10 @@ func main() {
         panic(err)
     }
 
-    executor := db.NewMigrationExecutor(database, db.SQLiteDialect())
-    reader := db.NewFSFileReader(mydb.Migrations)
-    migrator := db.NewMigrationService(executor, reader, "migrations")
+    migrator, err := db.NewMigrator(db_engine_sqlite.SQLite(), database, mydb.Migrations, "migrations")
+    if err != nil {
+        panic(err)
+    }
 
     if _, err := migrator.Up(context.Background()); err != nil {
         panic(err)
@@ -131,8 +132,12 @@ Swap `db.SQLiteDialect()` for your target database:
 | `db.SQLiteDialect()` | No-op (`NoOpLock`) | SQLite has no advisory locks. The dialect installs a no-op lock and relies on SQLite's own single-writer serialisation. The migration runner does not add anything on top. |
 | `db.PostgresDialect()` | Advisory lock | Standard Postgres deployments. |
 | `db.PostgresPgBouncerDialect()` | Table-based lock | For Postgres behind PgBouncer in transaction mode, where advisory locks do not persist across queries. |
-| `db.MySQLDialect()` | `GET_LOCK()` | Works for MySQL and MariaDB. |
-| `db.MySQLDialectWithDSN(dsn)` | `GET_LOCK()` | Same as `MySQLDialect` but detects `multiStatements=true` and disables statement splitting when the driver handles it natively. |
+| `db.MySQLDialect()` | `GET_LOCK()` | Works for MySQL and MariaDB. The lock key is server-wide (`piko_migrations`), as in every earlier Piko release, so processes of different releases sharing a server take the same lock. |
+| `db.MySQLDialectWithDSN(dsn)` | `GET_LOCK()` | Same as `MySQLDialect`, and reads `multiStatements=true` from the DSN: seed files then run whole, in one call, instead of statement by statement. Migrations are always split, so their progress can be recorded. Piko reads only that flag; it does not link the MySQL driver. |
+| `db.CockroachDBDialect()` | Table-based lock | CockroachDB has no advisory locks. |
+| `db.ClickHouseDialect()` | None | ClickHouse has no locks; coordinate concurrent migrators externally. |
+
+The TimescaleDB engine (`db_engine_timescaledb.TimescaleDB()`) uses `db.PostgresDialect()`, and its migrations also recognise TimescaleDB's statements that cannot run inside a transaction: a migration that creates a continuous aggregate with its data (no `WITH NO DATA`) or calls `refresh_continuous_aggregate` runs outside one automatically, with the same `piko_` tables and advisory lock. The same holds behind PgBouncer with `db.PostgresPgBouncerDialect()`.
 
 ## Roll forward and back
 
@@ -177,14 +182,19 @@ CREATE INDEX CONCURRENTLY tasks_completed_idx ON tasks (completed);
 
 The directive applies per file. Other migrations stay transactional.
 
+Some engines never wrap a migration in a transaction, because their DDL commits implicitly: MySQL and MariaDB commit around every DDL statement, CockroachDB does not make schema changes atomic with the rest of a transaction, and ClickHouse has no transactions. On MySQL, MariaDB and CockroachDB each statement runs on its own and the history row records how far the migration got, so a migration that fails part-way stays dirty and resumes after its last completed statement (see below). Seeds still run in a transaction with their history row wherever the engine supports it.
+
 ## Lock acquisition mode
 
-`db.NewMigrationService` blocks waiting for the dialect lock by default. Pass `db.WithNonBlockingLock()` to fail fast when another process is mid-migration:
+`db.NewMigrator` returns a service that blocks waiting for the dialect lock by default. Pass `db.WithNonBlockingLock()` to fail fast when another process is mid-migration:
 
 ```go
-migrator := db.NewMigrationService(executor, reader, "migrations",
+migrator, err := db.NewMigrator(db_engine_sqlite.SQLite(), database, mydb.Migrations, "migrations",
     db.WithNonBlockingLock(),
 )
+if err != nil {
+    return err
+}
 
 if _, err := migrator.Up(ctx); errors.Is(err, db.ErrLockNotAcquired) {
     // another process holds the lock - retry, exit, or surface the state
@@ -198,6 +208,16 @@ This is the right default for short-lived CLI invocations or sidecar containers,
 If a process dies mid-migration, the row in `piko_migrations` keeps `dirty = 1` and `last_statement` pointing at the index of the statement that was running when the run died. On the next call to `Up`, the service spots the dirty row, lines it up with the matching pending file, and resumes from the next statement. Previously committed work is not redone. No manual cleanup applies for the common case of "retry the same migration after a transient failure".
 
 If the dirty record does not line up with the next pending file, the run fails fast with a domain-level dirty-migration error. This happens when the file is missing, when someone renumbered it, or when it sits behind other unrelated pending versions. The run refuses to apply anything else until the operator resolves the inconsistency.
+
+Resuming is safe only when the statements the interrupted run completed are still the leading statements of the file as it splits now. The history row therefore records the version of the statement splitter and a digest of the completed statements (the `splitter_version` and `statements_hash` columns). When either no longer matches, for example because the file was edited or the splitter changed between releases, the run stops instead of guessing, and the error matches `db.DirtyMigrationError` (`errors.As`) with the version and the last completed statement. Check which of the migration's statements ran, then correct the history row by hand.
+
+A dirty row written by a Piko release before these columns existed carries no digest, so it is not resumed automatically once any of its statements completed: finish or roll back that migration by hand before upgrading, or resolve the dirty row by hand afterwards.
+
+## Upgrade an existing database
+
+The first `Up` after upgrading Piko adds two columns to an existing `piko_migrations` table, under the migration lock and before anything writes to them: `splitter_version` and `statements_hash`. Rows recorded earlier keep them empty. Nothing else about the history, seed or lock tables changes: their names, the lock keys and the checksums stay as they were, so a database migrated by an earlier release keeps working without manual steps.
+
+On MySQL and MariaDB, migrations no longer run inside a transaction (see [Skip the transaction wrapper](#skip-the-transaction-wrapper)). A migration that fails part-way now leaves the statements before the failure applied and the migration dirty, ready to resume, instead of running in a transaction that MySQL's implicit commit around each DDL statement could not roll back.
 
 ## Recover from a checksum mismatch
 
@@ -227,11 +247,12 @@ Use hooks to log, emit metrics, or gate on environment checks.
 For reference data and fixtures - country lists, default roles, demo content - use the seed service instead of smuggling `INSERT` statements into schema migrations. Seed files live under their own directory (typically `db/seeds/`) and follow the same versioned naming as migrations (`001_countries.sql`, `002_default_roles.sql`). The runner records applied versions in a `piko_seeds` table so it runs each file at most once.
 
 ```go
-seedExecutor := db.NewSeedExecutor(database, db.SQLiteDialect())
-seedReader := db.NewFSFileReader(mydb.Seeds)
-seeds := db.NewSeedService(seedExecutor, seedReader, "seeds")
+seeds, err := db.NewSeeder(db_engine_sqlite.SQLite(), database, mydb.Seeds, "seeds")
+if err != nil {
+    panic(err)
+}
 
-if err := seeds.Apply(ctx); err != nil {
+if _, err := seeds.Apply(ctx); err != nil {
     panic(err)
 }
 ```

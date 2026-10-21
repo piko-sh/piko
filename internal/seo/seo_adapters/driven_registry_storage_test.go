@@ -49,6 +49,7 @@ func (m *mockRegistryService) UpsertArtefact(
 	sourceData io.Reader,
 	storageBackendID string,
 	desiredProfiles []registry_dto.NamedProfile,
+	_ ...registry_domain.UpsertOption,
 ) (*registry_dto.ArtefactMeta, error) {
 	if m.UpsertArtefactFunc != nil {
 		return m.UpsertArtefactFunc(ctx, artefactID, sourcePath, sourceData, storageBackendID, desiredProfiles)
@@ -117,6 +118,14 @@ func (*mockRegistryService) GetBlobRefCount(_ context.Context, _ string) (int, e
 }
 
 func (*mockRegistryService) ArtefactEventsPublished() int64 {
+	return 0
+}
+
+func (*mockRegistryService) ArtefactEventsIssued() int64 {
+	return 0
+}
+
+func (*mockRegistryService) FlushArtefactEvents(context.Context) int {
 	return 0
 }
 

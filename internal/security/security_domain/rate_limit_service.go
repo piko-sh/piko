@@ -35,8 +35,6 @@ type rateLimitService struct {
 
 // CheckLimit checks whether a rate limit has been exceeded for the given key.
 //
-// Takes ctx (context.Context) which propagates cancellation and tracing into the
-// underlying counter store call.
 // Takes key (string) which identifies the resource being rate limited.
 // Takes limit (int) which sets the maximum number of requests allowed.
 // Takes window (time.Duration) which sets the time period for the limit.

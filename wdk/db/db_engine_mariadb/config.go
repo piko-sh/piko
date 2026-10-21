@@ -19,7 +19,6 @@
 package db_engine_mariadb
 
 import (
-	"piko.sh/piko/internal/querier/querier_adapters/migration_sql"
 	"piko.sh/piko/wdk/db"
 )
 
@@ -31,7 +30,6 @@ func MariaDB() db.EngineConfig {
 	return db.EngineConfig{
 		DriverName:       "mysql",
 		Engine:           NewMariaDBEngine(),
-		MigrationDialect: migration_sql.MySQLDialect(),
-		CatalogueFactory: nil,
+		MigrationDialect: db.MySQLDialect(),
 	}
 }

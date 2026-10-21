@@ -56,6 +56,10 @@ generate_all() {
     piko::log::info "Running interp symbol extraction..."
     "${GENERATE_DIR}/interp_piko_symbols.sh"
 
+    piko::log::blank
+    piko::log::info "Generating the diagnostics reference..."
+    "${GENERATE_DIR}/diagnostics_docs.sh"
+
     piko::log::footer
     piko::log::success "All code generation complete!"
 }

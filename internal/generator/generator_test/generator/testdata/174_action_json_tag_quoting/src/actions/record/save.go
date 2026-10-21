@@ -30,8 +30,6 @@ type SaveOutput struct {
 	Version string `json:"2fa-version"`
 }
 
-// SaveAction carries JSON tags that are not identifiers, so the generated TypeScript has
-// to quote them rather than emit them bare.
 type SaveAction struct {
 	piko.ActionMetadata
 }

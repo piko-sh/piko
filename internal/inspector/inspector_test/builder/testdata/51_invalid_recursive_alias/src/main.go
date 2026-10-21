@@ -18,7 +18,5 @@
 
 package main
 
-// This is an invalid Go program. A type alias cannot be defined in terms of itself.
-// The go/packages loader should catch this during the type-checking phase.
 type A = B
 type B = A

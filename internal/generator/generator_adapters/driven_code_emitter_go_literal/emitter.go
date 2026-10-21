@@ -40,7 +40,7 @@ import (
 	"piko.sh/piko/internal/generator/generator_domain"
 	"piko.sh/piko/internal/generator/generator_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -96,14 +96,14 @@ var (
 
 	// emitterImportAliases maps each package the emitter references to its qualifier.
 	emitterImportAliases = map[string]string{
-		"cmp":                       "",
-		"fmt":                       "",
-		"html":                      "",
-		"strconv":                   "",
-		"sort":                      "",
-		"piko.sh/piko/wdk/runtime":  runtimePackageName,
-		"piko.sh/piko/wdk/safeconv": "",
-		pikoFacadePackagePath:       facadePackageName,
+		"cmp":                      "",
+		"fmt":                      "",
+		"html":                     "",
+		"strconv":                  "",
+		"sort":                     "",
+		"piko.sh/piko/wdk/runtime": runtimePackageName,
+		"piko.sh/safeconv":         "",
+		pikoFacadePackagePath:      facadePackageName,
 	}
 
 	// emitterReservedQualifiers maps each qualifier the emitter's own references use onto

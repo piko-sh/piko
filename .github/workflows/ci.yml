@@ -119,6 +119,10 @@ jobs:
       - name: Run unit tests with race detector
         run: go test -short -race -count=1 -shuffle=on piko.sh/piko/...
 
+      - name: Run the Seagull bridge tests, including the compatibility corpus
+        working-directory: wdk/db/db_provider_seagull
+        run: go test -count=1 ./...
+
   test-go-safe:
     name: Test Go (safe)
     runs-on: ubuntu-latest

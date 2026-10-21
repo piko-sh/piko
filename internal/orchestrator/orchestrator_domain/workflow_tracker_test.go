@@ -28,6 +28,7 @@ import (
 )
 
 type mockTaskStoreTracker struct {
+	UnimplementedTaskStoreV2
 	workflowErr      error
 	workflowComplete atomic.Bool
 	checkCount       atomic.Int32
@@ -39,9 +40,6 @@ func (m *mockTaskStoreTracker) UpdateTask(_ context.Context, _ *Task) error    {
 func (m *mockTaskStoreTracker) GetTasksByID(_ context.Context, _ []string) ([]*Task, error) {
 	return nil, nil
 }
-func (m *mockTaskStoreTracker) FetchAndMarkDueTasks(_ context.Context, _ TaskPriority, _ int) ([]*Task, error) {
-	return nil, nil
-}
 func (m *mockTaskStoreTracker) GetWorkflowStatus(_ context.Context, _ string) (bool, error) {
 	m.checkCount.Add(1)
 	return m.workflowComplete.Load(), m.workflowErr
@@ -49,22 +47,6 @@ func (m *mockTaskStoreTracker) GetWorkflowStatus(_ context.Context, _ string) (b
 func (m *mockTaskStoreTracker) PendingTaskCount(_ context.Context) (int64, error)    { return 0, nil }
 func (m *mockTaskStoreTracker) PromoteScheduledTasks(_ context.Context) (int, error) { return 0, nil }
 func (m *mockTaskStoreTracker) CreateTaskWithDedup(_ context.Context, _ *Task) error { return nil }
-func (m *mockTaskStoreTracker) RecoverStaleTasks(_ context.Context, _ time.Duration, _ int, _ string) (int, error) {
-	return 0, nil
-}
-func (m *mockTaskStoreTracker) GetStaleProcessingTaskCount(_ context.Context, _ time.Duration) (int64, error) {
-	return 0, nil
-}
-func (m *mockTaskStoreTracker) UpdateTaskHeartbeat(_ context.Context, _ string) error { return nil }
-func (m *mockTaskStoreTracker) ClaimStaleTasksForRecovery(_ context.Context, _ string, _ time.Duration, _ time.Duration, _ int) ([]RecoveryClaimedTask, error) {
-	return nil, nil
-}
-func (m *mockTaskStoreTracker) RecoverClaimedTasks(_ context.Context, _ string, _ int, _ string) (int, error) {
-	return 0, nil
-}
-func (m *mockTaskStoreTracker) ReleaseRecoveryLeases(_ context.Context, _ string) (int, error) {
-	return 0, nil
-}
 func (m *mockTaskStoreTracker) CreateWorkflowReceipt(_ context.Context, _, _, _ string) error {
 	return nil
 }

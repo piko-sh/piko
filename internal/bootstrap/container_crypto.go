@@ -113,7 +113,6 @@ func (c *Container) createDefaultCryptoService() {
 // selectCryptoProvider selects the appropriate crypto provider based on options or
 // config.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes securityConfig (*config.SecurityConfig) which provides the security settings
 // including the provider type and encryption key.
 //
@@ -245,7 +244,6 @@ func (*Container) cloudProviderConfigError(providerType string) error {
 
 // buildCryptoService creates the crypto service with the selected provider.
 //
-// Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes baseProvider (crypto_domain.EncryptionProvider) which provides the underlying
 // encryption operations.
 // Takes cacheService (cache_domain.Service) which handles data key caching.

@@ -21,19 +21,14 @@ import (
 	"piko.sh/piko"
 )
 
-// CombineAction echoes back three separately-passed scalar arguments so the
-// test can verify that multiple arguments from a p-event are correctly delivered.
 type CombineAction struct {
 	piko.ActionMetadata
 }
 
-// CombineResponse returns the concatenated result.
 type CombineResponse struct {
 	Result string `json:"result"`
 }
 
-// Call accepts three separate string parameters (not a struct) and
-// concatenates them. This tests the multi-param Call signature.
 func (a CombineAction) Call(A string, B string, C string) (CombineResponse, error) {
 	result := A + "-" + B + "-" + C
 	a.Response().AddHelper("showResult", result)

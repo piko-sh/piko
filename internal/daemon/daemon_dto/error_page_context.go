@@ -64,8 +64,6 @@ func WithErrorPageContext(parent context.Context, epc ErrorPageContext) context.
 // GetErrorPageContext retrieves the ErrorPageContext from the PikoRequestCtx carrier
 // first, falling back to a standalone context value.
 //
-// Takes ctx (context.Context) which is the request context to inspect.
-//
 // Returns ErrorPageContext which contains the error details.
 // Returns bool which indicates whether an error page context was found.
 func GetErrorPageContext(ctx context.Context) (ErrorPageContext, bool) {

@@ -22,7 +22,7 @@ import (
 	"strings"
 
 	protocol "github.com/politepixels/golang-language-server"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (

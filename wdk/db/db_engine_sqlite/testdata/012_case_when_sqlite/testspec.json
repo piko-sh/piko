@@ -1,3 +1,0 @@
-{
-  "description": "Tests CASE WHEN expression resolution through the SQLite parser. With ELSE and without ELSE (nullable)."
-}

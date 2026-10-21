@@ -22,6 +22,8 @@ import (
 	"fmt"
 	goast "go/ast"
 	"go/token"
+	"maps"
+	"slices"
 
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/collection/collection_dto"
@@ -121,8 +123,8 @@ func (ee *expressionEmitter) emitDynamicCollectionFetcher(dynamicInfo any) (goas
 
 	ee.emitter.addFetcherDeclaration(fetcherFunc)
 
-	for importPath, alias := range info.FetcherCode.RequiredImports {
-		ee.emitter.addImport(importPath, alias)
+	for _, importPath := range slices.Sorted(maps.Keys(info.FetcherCode.RequiredImports)) {
+		ee.emitter.addImport(importPath, info.FetcherCode.RequiredImports[importPath])
 	}
 
 	callExpr := &goast.CallExpr{

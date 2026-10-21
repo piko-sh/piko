@@ -1,3 +1,0 @@
-{
-  "description": "INSERT INTO ... VALUES against a MergeTree table. Verifies INSERT classification and column-list parsing."
-}

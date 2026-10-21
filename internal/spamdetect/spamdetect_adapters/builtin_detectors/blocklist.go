@@ -91,7 +91,6 @@ func (*BlocklistDetector) Mode() spamdetect_dto.DetectorMode {
 
 // Analyse matches all fields tagged with SignalBlocklist against the configured patterns.
 //
-// Takes ctx (context.Context) which is the caller context.
 // Takes submission (*spamdetect_dto.Submission) which contains the field values.
 // Takes schema (*spamdetect_dto.Schema) which identifies the fields to check.
 //

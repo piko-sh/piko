@@ -10,10 +10,6 @@ export interface RunOutput {
   message: string;
 }
 
-/**
- * RunAction names its Call parameter "in", which is ordinary Go and a reserved word in
- * TypeScript.
- */
 export function echoRun(in_: RunInput): ActionBuilder<RunOutput> {
   return createActionBuilder<RunOutput>('echo.Run', in_);
 }

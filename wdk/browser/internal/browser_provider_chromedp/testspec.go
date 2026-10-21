@@ -23,7 +23,7 @@ import (
 	"path/filepath"
 
 	"piko.sh/piko/wdk/json"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // LoadTestSpecOption configures the behaviour of LoadTestSpec.

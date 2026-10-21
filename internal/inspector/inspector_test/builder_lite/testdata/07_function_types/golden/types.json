@@ -19,7 +19,7 @@
               "name": "Label",
               "type_string": "string",
               "raw_tag": "",
-              "definition_line": 27,
+              "definition_line": 24,
               "definition_column": 2,
               "is_underlying_primitive": true,
               "is_internal_type": false,
@@ -33,7 +33,7 @@
               "name": "OnClick",
               "type_string": "func()",
               "raw_tag": "",
-              "definition_line": 28,
+              "definition_line": 25,
               "definition_column": 2,
               "is_internal_type": false,
               "is_embedded": false,
@@ -46,7 +46,7 @@
               "name": "OnHover",
               "type_string": "func(int)",
               "raw_tag": "",
-              "definition_line": 29,
+              "definition_line": 26,
               "definition_column": 2,
               "is_internal_type": false,
               "is_embedded": false,
@@ -57,7 +57,7 @@
           "type_params": null,
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 26,
+          "definition_line": 23,
           "definition_column": 6
         },
         "EventEmitter": {
@@ -98,7 +98,7 @@
                 }
               ],
               "composite_type": 1,
-              "definition_line": 34,
+              "definition_line": 30,
               "definition_column": 2,
               "is_internal_type": false,
               "is_embedded": false,
@@ -111,7 +111,7 @@
               "name": "OnError",
               "type_string": "func(error)",
               "raw_tag": "",
-              "definition_line": 35,
+              "definition_line": 31,
               "definition_column": 2,
               "is_internal_type": false,
               "is_embedded": false,
@@ -122,7 +122,7 @@
           "type_params": null,
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 33,
+          "definition_line": 29,
           "definition_column": 6
         },
         "Handler": {
@@ -136,7 +136,7 @@
           "type_params": null,
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 23,
+          "definition_line": 21,
           "definition_column": 6
         }
       },

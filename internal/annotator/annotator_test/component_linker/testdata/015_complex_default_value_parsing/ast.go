@@ -26,11 +26,6 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// CreateExpansionResult returns the hand-crafted ExpansionResult for this test case.
-// It simulates an invocation where a complex prop ('options') is omitted. The component's
-// Props struct defines a `factory` function to provide the default value for this prop.
-// This is the ideal input to test that the ComponentLinker can correctly parse the
-// factory function name and inject a CallExpr as the default value.
 func CreateExpansionResult(t *testing.T, vm *annotator_dto.VirtualModule) *annotator_dto.ExpansionResult {
 	findHash := func(relPath string) string {
 		for hash, comp := range vm.ComponentsByHash {

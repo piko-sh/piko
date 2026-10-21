@@ -56,7 +56,7 @@ import (
 	"piko.sh/piko/internal/resolver/resolver_adapters"
 	"piko.sh/piko/internal/testutil/leakcheck"
 	"piko.sh/piko/wdk/json"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 var (

@@ -35,20 +35,16 @@ import (
 type ProviderRegistry[T any] interface {
 	// RegisterProvider adds a named provider to the registry.
 	//
-	// Takes ctx (context.Context) which carries logging context for trace/request ID
-	// propagation.
 	// Takes name (string) which identifies the provider.
 	// Takes provider (T) which is the provider to register.
 	//
 	// Returns error when name is empty or a provider with this name already exists.
 	//
-	// Note: The default provider must be set with SetDefaultProvider.
+	// The default provider must be set with SetDefaultProvider.
 	RegisterProvider(ctx context.Context, name string, provider T) error
 
 	// SetDefaultProvider marks a provider as the default.
 	//
-	// Takes ctx (context.Context) which carries logging context for trace/request ID
-	// propagation.
 	// Takes name (string) which identifies the provider to set as default.
 	//
 	// Returns error when the provider is not found.

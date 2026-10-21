@@ -83,6 +83,10 @@ const (
 
 	// stdioWriteTimeout bounds a single write to the editor over stdio.
 	stdioWriteTimeout = 15 * time.Second
+
+	// lspMaxCachedTypeBuilds limits cached type builds across the language server's open
+	// modules.
+	lspMaxCachedTypeBuilds = 16
 )
 
 var (
@@ -256,6 +260,7 @@ func initialiseLSP() lspServices {
 	}
 
 	container.SetCompilerDebugLogsEnabled(false)
+	container.SetTypeInspectorMaxCachedBuilds(lspMaxCachedTypeBuilds)
 
 	docCache := lsp_domain.NewDocumentCache()
 	osReader := lsp_adapters.NewOsFSReader()

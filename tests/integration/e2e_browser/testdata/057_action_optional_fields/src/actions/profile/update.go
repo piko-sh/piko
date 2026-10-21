@@ -25,7 +25,7 @@ type UpdateAction struct {
 
 type UpdateInput struct {
 	Name string  `json:"name"`
-	Bio  *string `json:"bio"` // Optional pointer field
+	Bio  *string `json:"bio"`
 }
 
 type UpdateResponse struct {

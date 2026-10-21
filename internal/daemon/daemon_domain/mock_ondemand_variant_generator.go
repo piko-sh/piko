@@ -47,7 +47,6 @@ var (
 
 // GenerateVariant generates a variant for an artefact based on the profile.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes artefact (*registry_dto.ArtefactMeta) which is the artefact to generate a variant
 // for.
 // Takes profileName (string) which identifies the image profile to apply.

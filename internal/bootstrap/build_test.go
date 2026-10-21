@@ -25,7 +25,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"piko.sh/piko/internal/querier/querier_dto"
+	"piko.sh/piko/internal/sqldb/sqldb_dto"
 )
 
 func TestIsErrorPage(t *testing.T) {
@@ -95,27 +95,27 @@ func TestIsErrorPage(t *testing.T) {
 func TestCheckSQLDiagnostics(t *testing.T) {
 	t.Parallel()
 
-	warning := querier_dto.SourceError{}
+	warning := sqldb_dto.SourceError{}
 	warning.Filename = "queries/users.sql"
 	warning.Message = "unused parameter"
-	warning.Severity = querier_dto.SeverityWarning
-	failure := querier_dto.SourceError{}
+	warning.Severity = sqldb_dto.SeverityWarning
+	failure := sqldb_dto.SourceError{}
 	failure.Filename = "queries/users.sql"
 	failure.Line = 7
 	failure.Message = "unknown column"
-	failure.Severity = querier_dto.SeverityError
+	failure.Severity = sqldb_dto.SeverityError
 
 	testCases := []struct {
 		name        string
 		wantErrText string
-		diagnostics []querier_dto.SourceError
+		diagnostics []sqldb_dto.SourceError
 		wantErr     bool
 	}{
 		{name: "no diagnostics"},
-		{name: "warnings are logged, not fatal", diagnostics: []querier_dto.SourceError{warning}},
+		{name: "warnings are logged, not fatal", diagnostics: []sqldb_dto.SourceError{warning}},
 		{
 			name:        "an error stops generation",
-			diagnostics: []querier_dto.SourceError{warning, failure},
+			diagnostics: []sqldb_dto.SourceError{warning, failure},
 			wantErr:     true,
 			wantErrText: `SQL generation error in "main": queries/users.sql:7: unknown column`,
 		},

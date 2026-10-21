@@ -41,7 +41,7 @@
                   "any"
                 ]
               },
-              "definition_line": 32,
+              "definition_line": 28,
               "definition_column": 20,
               "is_pointer_receiver": false
             },
@@ -70,7 +70,7 @@
                   "any"
                 ]
               },
-              "definition_line": 25,
+              "definition_line": 23,
               "definition_column": 20,
               "is_pointer_receiver": false
             }

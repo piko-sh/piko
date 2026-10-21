@@ -1,3 +1,0 @@
-{
-  "description": "Array(T) columns produce TypeCategoryArray with ElementType set. Both primitive and nullable inner types are verified."
-}

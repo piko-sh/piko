@@ -161,7 +161,6 @@ linters:
         - switch
         - map
       default-signifies-exhaustive: true
-      ignore-enum-members: 'piko\.sh/piko/wdk/db/db_engine_postgres\.StatementKindExtensionBase'
 
     misspell:
       locale: UK
@@ -253,13 +252,6 @@ linters:
       - path: internal/config/
         linters: [revive]
         text: "line-length-limit"
-
-      - path: internal/querier/querier_adapters/emitter_shared/(constants|slice_helpers_emit)\.go
-        linters: [dupl]
-
-      - path: (wdk/db/db_engine_|internal/querier/)
-        linters: [misspell]
-        text: "(?i)(materializ|randomiz)"
 
       - path: (cmd/pikopls/|tests/integration/lsp/)
         linters: [misspell]

@@ -42,10 +42,10 @@ func main() {
 	fmt.Println("[mysql-blog] Connected to MySQL")
 
 	// Run migrations.
-	migrationDialect := db.MySQLDialect()
-	migrator := db.NewMigrationService(
-		db.NewMigrationExecutor(database, migrationDialect), db.NewFSFileReader(blogdb.Migrations), "migrations",
-	)
+	migrator, err := db.NewMigrator(db_engine_mysql.MySQL(), database, blogdb.Migrations, "migrations")
+	if err != nil {
+		panic(fmt.Sprintf("creating migration service: %v", err))
+	}
 
 	if _, err := migrator.Up(ctx); err != nil {
 		panic(fmt.Sprintf("running migrations: %v", err))
@@ -53,9 +53,10 @@ func main() {
 	fmt.Println("[mysql-blog] Migrations applied")
 
 	// Apply seed data if the database has not been seeded yet.
-	seeder := db.NewSeedService(
-		db.NewSeedExecutor(database, migrationDialect), db.NewFSFileReader(blogdb.Seeds), "seeds",
-	)
+	seeder, err := db.NewSeeder(db_engine_mysql.MySQL(), database, blogdb.Seeds, "seeds")
+	if err != nil {
+		panic(fmt.Sprintf("creating seed service: %v", err))
+	}
 
 	if applied, err := seeder.Apply(ctx); err != nil {
 		panic(fmt.Sprintf("applying seeds: %v", err))

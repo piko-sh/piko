@@ -77,7 +77,7 @@ func (ls *lifecycleService) processBuildNotification(ctx context.Context, notifi
 
 	ls.processAssetManifest(ctx, notification.Result)
 
-	if !strings.HasPrefix(notification.CausationID, "targeted:") {
+	if !notification.Targeted && !strings.HasPrefix(notification.CausationID, "targeted:") {
 		ls.handleInterpretedBuild(ctx, notification.Result)
 	}
 
@@ -403,7 +403,6 @@ func (ls *lifecycleService) handleIncrementalBuild(ctx context.Context, result *
 
 // reloadRoutesIfNeeded reloads routes if a router manager is set.
 //
-// Takes ctx (context.Context) which carries the logger.
 // Takes newRunner (templater_domain.ManifestRunnerPort) which provides the manifest data
 // for route creation.
 func (ls *lifecycleService) reloadRoutesIfNeeded(ctx context.Context, newRunner templater_domain.ManifestRunnerPort) {

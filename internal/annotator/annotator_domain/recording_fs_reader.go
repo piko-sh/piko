@@ -60,7 +60,6 @@ func newRecordingFSReader(inner FSReaderPort) *recordingFSReader {
 
 // ReadFile records the path when it is a .css file, then delegates to the inner reader.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes filePath (string) which is the path to read.
 //
 // Returns the file contents and any read error from the inner reader.

@@ -117,9 +117,6 @@ type invocationLinker struct {
 // process links an invocation through several passes to build a canonical key. It checks
 // the invoker context, works out which props are valid, and gathers dependency data.
 //
-// Takes ctx (context.Context) which controls cancellation and deadlines for expression
-// parsing during invocation linking.
-//
 // Returns *finalisedInvocationData which holds the canonical key, resolved props, and
 // dependency list for the invocation.
 // Returns error when the invoker context is nil or prop resolution fails.
@@ -681,9 +678,6 @@ func (il *invocationLinker) getFinalExprAfterCoercion(propName string, sourceExp
 
 // processOmittedProps handles props that were not provided, checking for required tags
 // and injecting defaults.
-//
-// Takes ctx (context.Context) which controls cancellation and deadlines for parsing
-// default values.
 func (il *invocationLinker) processOmittedProps(ctx context.Context) {
 	for propName, propInfo := range il.validProps {
 		if _, wasProvided := il.providedPropOrigins[propName]; wasProvided {
@@ -770,8 +764,6 @@ func (il *invocationLinker) handleFactoryDefault(ctx context.Context, propName s
 
 // handleLiteralDefault parses and checks a literal default value for a prop.
 //
-// Takes ctx (context.Context) which controls cancellation and deadlines for parsing the
-// default value expression.
 // Takes propName (string) which names the property being processed.
 // Takes propInfo (validPropInfo) which holds the default value and type.
 func (il *invocationLinker) handleLiteralDefault(ctx context.Context, propName string, propInfo validPropInfo) {

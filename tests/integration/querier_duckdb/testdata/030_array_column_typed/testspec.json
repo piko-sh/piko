@@ -1,3 +1,0 @@
-{
-  "description": "DuckDB array column auto-wrapped in to_json() and decoded into a typed []string; NULL scans to nil"
-}

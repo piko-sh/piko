@@ -35,7 +35,6 @@ const (
 
 // Stream sends a streaming completion that delivers a fortune word by word.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes request (*llm_dto.CompletionRequest) which is used for the model name.
 //
 // Returns <-chan llm_dto.StreamEvent which yields word-by-word chunks.
@@ -75,7 +74,6 @@ func (p *zoltaiProvider) Stream(ctx context.Context, request *llm_dto.Completion
 // processStream delivers a fortune word by word into the events channel, then sends a
 // done event.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes model (string) which is the model name for responses.
 // Takes full (string) which is the full text to stream.
 // Takes msgCount (int) which is the number of input messages for usage stats.
@@ -128,7 +126,6 @@ func (p *zoltaiProvider) processStream(ctx context.Context, model, full string, 
 
 // streamLines splits text into lines and words and sends each token as a stream chunk.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes model (string) which is the model name for chunk metadata.
 // Takes full (string) which is the full text to split and stream.
 // Takes events (chan<- llm_dto.StreamEvent) which receives the generated stream events.
@@ -164,7 +161,6 @@ func streamLines(ctx context.Context, model, full string, events chan<- llm_dto.
 // streamWords sends each word in a line as a separate stream chunk, with trailing spaces
 // between words.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes model (string) which is the model name for chunk metadata.
 // Takes line (string) which is the line to split into words.
 // Takes events (chan<- llm_dto.StreamEvent) which receives the generated stream events.
@@ -186,7 +182,6 @@ func streamWords(ctx context.Context, model, line string, events chan<- llm_dto.
 
 // sendChunk sends a single token as a stream chunk event.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes model (string) which is the model name for the chunk metadata.
 // Takes token (string) which is the text token to send.
 // Takes events (chan<- llm_dto.StreamEvent) which receives the chunk event.
@@ -219,7 +214,6 @@ func sendChunk(ctx context.Context, model, token string, events chan<- llm_dto.S
 // runToolStream is the streamWaitGroup-aware wrapper around processToolStream that
 // releases its slot in the wait group when streaming finishes.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes model (string) which is the model name for responses.
 // Takes tool (llm_dto.ToolDefinition) which is the tool to call.
 // Takes msgCount (int) which is the number of input messages for usage stats.
@@ -229,11 +223,9 @@ func (p *zoltaiProvider) runToolStream(ctx context.Context, model string, tool l
 	processToolStream(ctx, model, tool, msgCount, events)
 }
 
-// processToolStream sends a tool call via streaming deltas: one chunk with the tool call
-// header (ID, name) and one with the arguments, then a done event with
-// FinishReasonToolCalls.
+// processToolStream sends a tool-call header, arguments, and a FinishReasonToolCalls
+// completion event.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes model (string) which is the model name for responses.
 // Takes tool (llm_dto.ToolDefinition) which is the tool to call.
 // Takes msgCount (int) which is the number of input messages for usage stats.

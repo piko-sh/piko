@@ -20,7 +20,6 @@ package main
 
 import "testcase_10_generics_promoted_method/models"
 
-// StringBox embeds an instantiated generic type.
 type StringBox struct {
 	models.Box[string]
 }

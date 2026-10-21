@@ -22,16 +22,11 @@ import (
 	"context"
 )
 
-// BeginTransaction starts a transactional view on the given cache.
+// BeginTransaction uses the provider's transaction support or a journal that restores
+// mutations on rollback.
 //
-// If the cache implements Transactional (e.g. a Redis provider with native MULTI/EXEC),
-// the provider's own transaction support is used. Otherwise a generic journal-based
-// wrapper is returned that records undo entries for every mutation and replays them on
-// Rollback.
+// The caller must finish with Commit or Rollback.
 //
-// The caller MUST call either Commit or Rollback on the returned TransactionCache.
-//
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes cache (ProviderPort[K, V]) which is the cache to begin a transaction on.
 //
 // Returns TransactionCache[K, V] which provides transactional operations.

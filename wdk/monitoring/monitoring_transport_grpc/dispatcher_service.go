@@ -24,7 +24,7 @@ import (
 
 	"piko.sh/piko/internal/dispatcher/dispatcher_domain"
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // DispatcherInspectorService implements the gRPC service for inspecting dispatcher state

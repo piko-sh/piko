@@ -26,7 +26,7 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/inspector/inspector_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // GetImplementations finds all types that implement the interface at the given position.

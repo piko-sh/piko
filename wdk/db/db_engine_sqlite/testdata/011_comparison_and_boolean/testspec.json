@@ -1,3 +1,0 @@
-{
-  "description": "Tests comparison, IS NULL, and logical operator expression resolution through the SQLite parser. All produce boolean NOT NULL."
-}

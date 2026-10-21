@@ -1,3 +1,0 @@
-{
-  "description": "UNION ALL between two SELECT branches. Verifies CompoundBranches captures the operator."
-}

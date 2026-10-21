@@ -1002,7 +1002,6 @@ func (painter *PdfPainter) writePageObjects(writer *PdfDocumentWriter, pageObjs 
 
 // writeStructTree writes the structure tree for tagged PDF if present.
 //
-// Takes ctx (context.Context) which carries the logger used to warn on excessive nesting.
 // Takes writer (*PdfDocumentWriter) which specifies the document writer.
 // Takes pageObjNumbers ([]int) which holds the per-page object numbers.
 //

@@ -22,6 +22,7 @@ import (
 	"cmp"
 	"slices"
 	"sync"
+	"time"
 
 	"github.com/google/btree"
 )
@@ -595,6 +596,10 @@ func reverseSlice[K any](s []K) []K {
 // Returns int which is negative if a < b, zero if a == b, or positive if a > b.
 func compareValues(a, b any) int {
 	switch av := a.(type) {
+	case time.Time:
+		if bv, ok := b.(time.Time); ok {
+			return av.Round(0).Compare(bv.Round(0))
+		}
 	case int:
 		if bv, ok := b.(int); ok {
 			return cmp.Compare(av, bv)
@@ -614,4 +619,133 @@ func compareValues(a, b any) int {
 	}
 
 	return cmp.Compare(toString(a), toString(b))
+}
+
+// KeysLessThanOrEqualLimit returns at most limit keys whose values are at or below
+// threshold.
+//
+// Takes threshold (any) which is the inclusive upper bound for indexed values.
+// Takes limit (int) which caps the number of keys returned.
+//
+// Returns []K which contains keys in ascending value order, or nil when limit is
+// nonpositive.
+//
+// Safe for concurrent use; holds a read lock while collecting keys.
+func (idx *SortedIndex[K]) KeysLessThanOrEqualLimit(threshold any, limit int) []K {
+	if limit <= 0 {
+		return nil
+	}
+	idx.mu.RLock()
+	defer idx.mu.RUnlock()
+	result := make([]K, 0, min(limit, len(idx.keyToItem)))
+	idx.tree.Ascend(func(item btree.Item) bool {
+		value, ok := item.(*treeItem[K])
+		if !ok {
+			return false
+		}
+		if compareValues(value.value, threshold) > 0 {
+			return false
+		}
+		result = append(result, value.key)
+		return len(result) < limit
+	})
+	return result
+}
+
+// KeysLessThanOrEqualWhere collects at most limit matching keys in ascending value order.
+//
+// No slice is allocated for skipped keys.
+//
+// Takes threshold (any) which is the inclusive upper bound for indexed values.
+// Takes limit (int) which caps the number of matching keys returned.
+// Takes accept (func(K) bool) which selects keys while the index read lock is held.
+//
+// Returns []K which contains accepted keys, or nil when limit is nonpositive.
+//
+// Safe for concurrent use; accept must not mutate or re-enter the index while its read
+// lock is held.
+func (idx *SortedIndex[K]) KeysLessThanOrEqualWhere(threshold any, limit int, accept func(K) bool) []K {
+	if limit <= 0 {
+		return nil
+	}
+	idx.mu.RLock()
+	defer idx.mu.RUnlock()
+	result := make([]K, 0, min(limit, len(idx.keyToItem)))
+	idx.tree.Ascend(func(item btree.Item) bool {
+		value, ok := item.(*treeItem[K])
+		if !ok {
+			return false
+		}
+		if compareValues(value.value, threshold) > 0 {
+			return false
+		}
+		if accept(value.key) {
+			result = append(result, value.key)
+		}
+		return len(result) < limit
+	})
+	return result
+}
+
+// CountLessThan counts entries before threshold without materialising their keys.
+//
+// Takes threshold (any) which is the exclusive upper bound for indexed values.
+//
+// Returns int which is the number of entries below threshold.
+//
+// Safe for concurrent use; holds a read lock while counting entries.
+func (idx *SortedIndex[K]) CountLessThan(threshold any) int {
+	idx.mu.RLock()
+	defer idx.mu.RUnlock()
+	count := 0
+	idx.tree.Ascend(func(item btree.Item) bool {
+		if compareValues(item.(*treeItem[K]).value, threshold) >= 0 {
+			return false
+		}
+		count++
+		return true
+	})
+	return count
+}
+
+// KeysAfterThrough returns a bounded page after a stable value-and-key cursor.
+//
+// The cursor remains valid after its entry has been removed.
+//
+// Takes afterKey (K) which identifies the last key in the preceding page.
+// Takes afterValue (any) which is the preceding page's last value, or nil to start at the
+// beginning.
+// Takes through (any) which is the inclusive upper bound for indexed values.
+// Takes limit (int) which caps the number of keys returned.
+//
+// Returns []K which contains keys after the cursor in ascending value order, or nil when
+// limit is nonpositive.
+//
+// Safe for concurrent use; holds a read lock while collecting keys.
+func (idx *SortedIndex[K]) KeysAfterThrough(afterKey K, afterValue, through any, limit int) []K {
+	if limit <= 0 {
+		return nil
+	}
+	idx.mu.RLock()
+	defer idx.mu.RUnlock()
+	result := make([]K, 0, min(limit, len(idx.keyToItem)))
+	visit := func(item btree.Item) bool {
+		value, ok := item.(*treeItem[K])
+		if !ok {
+			return false
+		}
+		if compareValues(value.value, through) > 0 {
+			return false
+		}
+		if afterValue == nil || value.key != afterKey || compareValues(value.value, afterValue) != 0 {
+			result = append(result, value.key)
+		}
+		return len(result) < limit
+	}
+	if afterValue == nil {
+		idx.tree.Ascend(visit)
+	} else {
+		idx.tree.AscendGreaterOrEqual(&treeItem[K]{key: afterKey, value: afterValue, isPivot: false}, visit)
+	}
+	return result
 }

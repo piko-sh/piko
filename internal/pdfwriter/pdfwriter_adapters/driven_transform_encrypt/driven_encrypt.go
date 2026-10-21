@@ -262,7 +262,6 @@ func (t *EncryptTransformer) Priority() int { return t.priority }
 // Transform applies AES-256 encryption to the PDF. Options must be EncryptionOptions or
 // *EncryptionOptions.
 //
-// Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes pdf ([]byte) which is the input PDF document.
 // Takes options (any) which must be EncryptionOptions or *EncryptionOptions.
 //

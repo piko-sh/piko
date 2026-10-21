@@ -64,7 +64,6 @@ func (*HoneypotDetector) Mode() spamdetect_dto.DetectorMode {
 
 // Analyse checks the submission's honeypot field.
 //
-// Takes ctx (context.Context) which is the caller context.
 // Takes submission (*spamdetect_dto.Submission) which contains the honeypot value.
 //
 // Returns *spamdetect_dto.DetectorResult which contains the detection result.

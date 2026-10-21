@@ -27,6 +27,7 @@ import (
 
 	"piko.sh/goastutil"
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/generator/generator_dto"
 )
 
 // tryEmitOperatorExpression handles operator-based expressions.
@@ -231,7 +232,7 @@ func (ee *expressionEmitter) buildNilAccessDiagnostic(
 
 	return ee.buildDiagnosticCall(
 		message,
-		"R003",
+		generator_dto.CodeNilPropertyAccess,
 		"Warning",
 		ann,
 		n.String(),
@@ -813,7 +814,7 @@ func buildNilCheckWithContext(ctx *indexCheckContext) goast.Stmt {
 	nilCheckMessage := fmt.Sprintf("Cannot index a nil slice/map in expression '%s'", ctx.expression.String())
 	nilDiagnosticCall := ctx.emitter.buildDiagnosticCall(
 		nilCheckMessage,
-		"R004",
+		generator_dto.CodeNilIndexAccess,
 		"Warning",
 		ctx.ann,
 		ctx.expression.String(),
@@ -844,7 +845,7 @@ func buildBoundsCheckWithContext(ctx *indexCheckContext) goast.Stmt {
 	boundsCheckMessage := fmt.Sprintf("Index out of bounds while accessing '%s'", ctx.expression.String())
 	boundsDiagnosticCall := ctx.emitter.buildDiagnosticCall(
 		boundsCheckMessage,
-		"R005",
+		generator_dto.CodeIndexOutOfBounds,
 		"Warning",
 		ctx.ann,
 		ctx.expression.String(),

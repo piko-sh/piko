@@ -55,6 +55,20 @@ func (s *capabilityService) Register(name string, capability CapabilityFunc) err
 	return nil
 }
 
+// Has reports whether a capability is registered.
+//
+// Takes name (string) which identifies the capability.
+//
+// Returns bool which is true when Execute can run it.
+//
+// Safe for concurrent use.
+func (s *capabilityService) Has(name string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	_, exists := s.capabilities[name]
+	return exists
+}
+
 // Execute runs a named capability with the given input data and parameters.
 //
 // Takes capabilityName (string) which identifies the capability to execute.
@@ -62,7 +76,8 @@ func (s *capabilityService) Register(name string, capability CapabilityFunc) err
 // Takes params (CapabilityParams) which supplies execution parameters.
 //
 // Returns io.Reader which streams the capability's output.
-// Returns error when the capability is not registered.
+// Returns error when the capability is not registered; the error is fatal because
+// capabilities are registered at start-up, so retrying cannot find it.
 //
 // Safe for concurrent use.
 func (s *capabilityService) Execute(
@@ -76,7 +91,7 @@ func (s *capabilityService) Execute(
 	s.mu.RUnlock()
 
 	if !exists {
-		return nil, fmt.Errorf("%w: %s", errCapabilityNotFound, capabilityName)
+		return nil, NewFatalError(fmt.Errorf("%w: %s", ErrCapabilityNotFound, capabilityName))
 	}
 
 	return capability(ctx, inputData, params)

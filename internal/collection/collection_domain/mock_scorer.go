@@ -42,7 +42,6 @@ var (
 
 // Score delegates to ScoreFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes queryTerms ([]string) which is the list of query terms to score against.
 // Takes documentID (uint32) which identifies the document to score.
 // Takes reader (search_domain.IndexReaderPort) which provides access to the search index.

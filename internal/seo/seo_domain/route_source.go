@@ -37,7 +37,6 @@ type RouteSource interface {
 	// source. It runs during generation, in-process; it must honour ctx and should be
 	// deterministic across builds so the sitemap stays stable.
 	//
-	// Takes ctx (context.Context) for cancellation.
 	// Takes rc (RouteContext) which carries the page's real route pattern, dynamic param
 	// name, and the i18n configuration needed to build correct localised URLs.
 	//

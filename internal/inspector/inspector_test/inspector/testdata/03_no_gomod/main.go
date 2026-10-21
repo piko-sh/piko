@@ -18,7 +18,7 @@
 
 package main
 
-import "fmt" // Standard library imports should still work.
+import "fmt"
 
 type Response struct {
 	Message string

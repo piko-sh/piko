@@ -73,13 +73,9 @@ func (r *componentRegistry) Lookup(tagName string) (pml_domain.Component, error)
 	return comp, nil
 }
 
-// Register adds a component implementation to the registry.
+// Register adds a component by TagName, replacing any existing registration for that
+// name.
 //
-// It uses the component's TagName method as the key. If a component with the same name is
-// already registered, it will be overwritten.
-//
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes comp (pml_domain.Component) which is the component to register.
 //
 // Returns error when comp is nil or its TagName returns an empty string.
@@ -155,9 +151,6 @@ func NewRegistry() pml_domain.ComponentRegistry {
 
 // RegisterBuiltIns creates a new registry and populates it with all the standard,
 // built-in PikoML components. This is the typical way the engine is initialised.
-//
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 //
 // Returns pml_domain.ComponentRegistry which contains all registered built-in components.
 // Returns error when a built-in component fails to register.

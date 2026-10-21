@@ -30,7 +30,7 @@ import (
 	"piko.sh/piko/internal/generator/generator_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/pathutil"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (

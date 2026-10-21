@@ -23,6 +23,8 @@ import (
 	goast "go/ast"
 	"go/token"
 	"html"
+	"maps"
+	"slices"
 	"strings"
 
 	"piko.sh/piko/internal/ast/ast_domain"
@@ -169,6 +171,10 @@ func (*attributeEmitter) emitStaticAttributes(attributeSliceExpression goast.Exp
 
 // emitDynamicAttributes creates code for all dynamic attributes (p-bind and :).
 //
+// p-bind directives are held in a map, so they are emitted in attribute name order to
+// keep the generated code identical between runs. The : shorthand attributes follow in
+// source order.
+//
 // Takes nodeVar (*goast.Ident) which is the variable for the node.
 // Takes attributeSliceExpression (goast.Expr) which is the expression for the attribute
 // slice.
@@ -184,7 +190,8 @@ func (ae *attributeEmitter) emitDynamicAttributes(
 	var statements []goast.Stmt
 	var allDiags []*ast_domain.Diagnostic
 
-	for name, directive := range node.Binds {
+	for _, name := range slices.Sorted(maps.Keys(node.Binds)) {
+		directive := node.Binds[name]
 		dynAttr := &ast_domain.DynamicAttribute{
 			Name:           name,
 			Expression:     directive.Expression,
@@ -248,7 +255,8 @@ func (ae *attributeEmitter) emitDynamicAttributesOnly(
 }
 
 // emitBindAttributes processes bind directives for a template node. It skips boolean
-// types and delegates non-boolean attributes to DirectWriters.
+// types and delegates non-boolean attributes to DirectWriters in attribute name order, so
+// the generated code is identical between runs.
 //
 // Takes nodeVar (*goast.Ident) which identifies the node variable in the AST.
 // Takes node (*ast_domain.TemplateNode) which contains the bind directives.
@@ -261,7 +269,8 @@ func (ae *attributeEmitter) emitBindAttributes(
 ) ([]goast.Stmt, []*ast_domain.Diagnostic) {
 	var statements []goast.Stmt
 	var diagnostics []*ast_domain.Diagnostic
-	for name, directive := range node.Binds {
+	for _, name := range slices.Sorted(maps.Keys(node.Binds)) {
+		directive := node.Binds[name]
 		if isBindBooleanType(directive) {
 			continue
 		}

@@ -1,3 +1,0 @@
-{
-  "description": "Query-level piko.column with `go_type:` maps a BINARY(16) column to uuid.UUID on MySQL."
-}

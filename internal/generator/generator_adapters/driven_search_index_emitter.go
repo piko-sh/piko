@@ -36,7 +36,7 @@ import (
 	"piko.sh/piko/internal/generator/generator_dto"
 	"piko.sh/piko/internal/search/search_domain"
 	"piko.sh/piko/internal/search/search_schema/search_schema_gen"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (

@@ -30,8 +30,17 @@ import (
 
 	"piko.sh/piko/internal/analytics/analytics_dto"
 	"piko.sh/piko/internal/daemon/daemon_dto"
+	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
+	"piko.sh/piko/internal/registry/registry_domain"
+	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/security/security_domain"
 )
+
+type invalidatingRenderRegistry struct {
+	render_domain.MockRegistryPort
+}
+
+func (*invalidatingRenderRegistry) InvalidateArtefact(context.Context, string) {}
 
 type noAuthProvider struct{}
 
@@ -62,6 +71,9 @@ func TestInterpretedDaemonBuilder_RouterManagerConfigMatchesTheCompiledRouter(t 
 	c.rateLimitService = rateLimitService
 	c.cacheOnce.Do(func() {})
 	c.cacheErr = errors.New("cache unavailable")
+	eventBus := &orchestrator_domain.MockEventBus{}
+	c.eventBusOverride = eventBus
+	c.SetRenderRegistryOverride(&invalidatingRenderRegistry{})
 	c.AddAnalyticsCollector(discardingCollector{})
 	analyticsService := c.GetAnalyticsService()
 	require.NotNil(t, analyticsService)
@@ -88,6 +100,8 @@ func TestInterpretedDaemonBuilder_RouterManagerConfigMatchesTheCompiledRouter(t 
 	assert.True(t, managerConfig.RouterConfig.DisableHTTPCache)
 	assert.Nil(t, managerConfig.ArtefactCache, "no cache service means no metadata cache")
 	assert.Nil(t, managerConfig.ActionResponseCache, "no cache service means no response cache")
+	assert.Equal(t, int64(len(registry_domain.ArtefactTopics)), eventBus.SubscribeWithHandlerCallCount.Load(),
+		"artefact events must still reach the render registry's caches without a metadata cache")
 }
 
 func TestInterpretedDaemonBuilder_RouterManagerConfigNeedsTheRateLimitService(t *testing.T) {

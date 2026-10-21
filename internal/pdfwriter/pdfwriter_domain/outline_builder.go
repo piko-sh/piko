@@ -105,9 +105,8 @@ type outlineNode struct {
 }
 
 // WriteObjects writes the outline tree as PDF objects and returns the outline root object
-// number for inclusion in the catalog. Returns 0 if there are no entries.
+// number for inclusion in the catalogue. Returns 0 if there are no entries.
 //
-// Takes ctx (context.Context) which carries the logger used to warn on excessive nesting.
 // Takes writer (*PdfDocumentWriter) which receives the PDF objects.
 // Takes pageObjectNumbers ([]int) which maps page indices to their PDF object numbers for
 // destination references.
@@ -136,7 +135,6 @@ func (ob *OutlineBuilder) WriteObjects(ctx context.Context, writer *PdfDocumentW
 // writeChildren writes a list of sibling nodes and returns the first and last object
 // numbers plus the total visible item count.
 //
-// Takes ctx (context.Context) which carries the logger used to warn on excessive nesting.
 // Takes writer (*PdfDocumentWriter) which receives the PDF objects.
 // Takes nodes ([]*outlineNode) which is the sibling list to write.
 // Takes parentNumber (int) which is the parent object number for /Parent references.

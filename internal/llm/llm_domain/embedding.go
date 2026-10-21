@@ -42,8 +42,6 @@ type EmbeddingProviderPort interface {
 
 	// ListEmbeddingModels returns information about available embedding models.
 	//
-	// Takes ctx (context.Context) which controls cancellation and timeouts.
-	//
 	// Returns []llm_dto.ModelInfo which contains model metadata.
 	// Returns error when the model list cannot be retrieved.
 	ListEmbeddingModels(ctx context.Context) ([]llm_dto.ModelInfo, error)
@@ -82,8 +80,6 @@ type embeddingServiceOption func(*embeddingService)
 
 // RegisterEmbeddingProvider adds an embedding provider to the registry.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes name (string) which identifies the provider.
 // Takes provider (EmbeddingProviderPort) which handles embedding requests.
 //

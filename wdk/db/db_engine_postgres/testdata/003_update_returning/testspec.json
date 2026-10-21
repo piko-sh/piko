@@ -1,3 +1,0 @@
-{
-  "description": "UPDATE ... RETURNING clause: modifies rows and returns specified columns. Tests parameter inference in SET and WHERE clauses with RETURNING."
-}

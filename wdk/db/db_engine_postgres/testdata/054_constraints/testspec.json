@@ -1,3 +1,0 @@
-{
-  "description": "Constraint types: UNIQUE, CHECK, FOREIGN KEY on CREATE TABLE, and ALTER TABLE ADD CONSTRAINT. Tests catalogue constraint metadata for all constraint categories."
-}

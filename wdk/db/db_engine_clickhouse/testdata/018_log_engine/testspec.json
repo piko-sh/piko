@@ -1,3 +1,0 @@
-{
-  "description": "Log engine (and Memory, TinyLog cousins). No ORDER BY required; engine declaration is the only metadata captured."
-}

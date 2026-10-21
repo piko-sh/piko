@@ -31,7 +31,7 @@ import (
 	"sync"
 
 	"golang.org/x/tools/go/packages"
-	"piko.sh/goastutil"
+	"piko.sh/goastutil/typecheck"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 	"piko.sh/piko/internal/mem"
 )
@@ -432,11 +432,11 @@ func (s *encoder) buildStandardFieldDTO(
 	f := s.arena.Field()
 	f.Name = field.Name()
 	f.TypeString = typeString
-	f.IsInternalType = goastutil.IsGoInternalType(fieldTypeAfterSubst, s.allPackages)
+	f.IsInternalType = typecheck.IsGoInternalType(fieldTypeAfterSubst, s.allPackages)
 	f.UnderlyingTypeString = encodeTypeName(underlyingType, qualifier)
 	clear(s.primitiveGuard)
-	f.IsUnderlyingPrimitive = goastutil.IsPrimitiveRecursive(underlyingType, s.primitiveGuard)
-	f.IsUnderlyingInternalType = goastutil.IsGoInternalType(underlyingType, s.allPackages)
+	f.IsUnderlyingPrimitive = typecheck.IsPrimitiveRecursive(underlyingType, s.primitiveGuard)
+	f.IsUnderlyingInternalType = typecheck.IsGoInternalType(underlyingType, s.allPackages)
 	f.IsEmbedded = field.Embedded()
 	f.RawTag = rawTag
 	f.PackagePath = finalPackagePath
@@ -571,7 +571,7 @@ func finaliseFieldPackagePath(initialFieldType types.Type, canonicalPath string)
 	if canonicalPath != "" {
 		return canonicalPath
 	}
-	if goastutil.IsPrimitive(initialFieldType) {
+	if typecheck.IsPrimitive(initialFieldType) {
 		return ""
 	}
 	return canonicalPath
@@ -599,13 +599,13 @@ func mapComponentsArePrimitive(mapType *types.Map) bool {
 // Returns bool which is true if the type is a primitive or an alias that resolves to a
 // primitive.
 func isTypeEffectivelyPrimitive(typ types.Type) bool {
-	if goastutil.IsPrimitive(typ) {
+	if typecheck.IsPrimitive(typ) {
 		return true
 	}
 
 	if alias, isAlias := typ.(*types.Alias); isAlias {
 		underlying := resolveUnderlyingType(alias)
-		return goastutil.IsPrimitiveRecursive(underlying, make(map[types.Type]bool))
+		return typecheck.IsPrimitiveRecursive(underlying, make(map[types.Type]bool))
 	}
 
 	return false
@@ -698,10 +698,10 @@ func buildCompositePart(
 	} else {
 		underlyingType := resolveUnderlyingType(typ)
 		cp.UnderlyingTypeString = encodeTypeName(underlyingType, qualifier)
-		cp.IsUnderlyingPrimitive = goastutil.IsPrimitiveRecursive(underlyingType, make(map[types.Type]bool))
+		cp.IsUnderlyingPrimitive = typecheck.IsPrimitiveRecursive(underlyingType, make(map[types.Type]bool))
 		cp.PackagePath = determineCompositePackagePath(typ)
-		cp.IsInternalType = goastutil.IsGoInternalType(typ, allPackages)
-		cp.IsUnderlyingInternalType = goastutil.IsGoInternalType(underlyingType, allPackages)
+		cp.IsInternalType = typecheck.IsGoInternalType(typ, allPackages)
+		cp.IsUnderlyingInternalType = typecheck.IsGoInternalType(underlyingType, allPackages)
 		cp.CompositeParts = emptyCompositeParts
 		if isComposite {
 			cp.CompositeParts = extractCompositeParts(typ, qualifier, allPackages, arena)
@@ -857,7 +857,7 @@ func determineCompositePackagePath(typ types.Type) string {
 	if typ == nil {
 		return ""
 	}
-	if goastutil.IsPrimitive(typ) {
+	if typecheck.IsPrimitive(typ) {
 		return ""
 	}
 

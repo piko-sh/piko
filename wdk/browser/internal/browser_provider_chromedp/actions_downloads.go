@@ -35,7 +35,7 @@ import (
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
 	"piko.sh/piko/wdk/browser/internal/browser_provider_chromedp/scripts"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (

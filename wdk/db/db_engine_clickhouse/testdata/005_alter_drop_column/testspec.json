@@ -1,3 +1,0 @@
-{
-  "description": "ALTER TABLE ... DROP COLUMN removes a column. Verifies the catalogue mutates correctly and subsequent queries see the new shape."
-}

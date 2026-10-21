@@ -19,47 +19,15 @@
 package db_engine_mariadb
 
 import (
-	"piko.sh/piko/internal/querier/querier_dto"
 	"piko.sh/piko/wdk/db/db_engine_mysql"
 )
 
-const (
-	// mariaDBDefaultOptionCount is the number of options NewMariaDBEngine applies before the
-	// caller's own.
-	mariaDBDefaultOptionCount = 3
-)
-
-// NewMariaDBEngine creates a MariaDB engine adapter.
+// NewMariaDBEngine returns the MariaDB engine, a member of the MySQL family that shares
+// its parser, type system and migration backend.
 //
-// Configures the MySQL engine with MariaDB-specific dialect options, then applies the
-// caller's options so parser limits such as db_engine_mysql.WithMaxParseDepth and
-// db_engine_mysql.WithMaxTokensPerStatement can be tuned for MariaDB too.
+// Takes options (...db_engine_mysql.Option) which tune the engine.
 //
-// Takes options (...db_engine_mysql.Option) which further configure the dialect after the
-// MariaDB defaults.
-//
-// Returns *db_engine_mysql.MySQLEngine which is ready for catalogue introspection and
-// code generation against MariaDB.
+// Returns *db_engine_mysql.MySQLEngine which serves the MariaDB dialect.
 func NewMariaDBEngine(options ...db_engine_mysql.Option) *db_engine_mysql.MySQLEngine {
-	mariaDBOptions := make([]db_engine_mysql.Option, 0, mariaDBDefaultOptionCount+len(options))
-	mariaDBOptions = append(mariaDBOptions,
-		db_engine_mysql.WithDialectName("mariadb"),
-		db_engine_mysql.WithReturningSupport(true),
-		db_engine_mysql.WithExtraFunctions(registerMariaDBFunctions),
-	)
-	return db_engine_mysql.NewMySQLEngine(append(mariaDBOptions, options...)...)
-}
-
-// registerMariaDBFunctions registers MariaDB-specific built-in functions onto the shared
-// MySQL function catalogue.
-//
-// INET6_ATON / INET6_NTOA are standard MySQL functions and now live in the base
-// catalogue, so only genuinely MariaDB-exclusive functions (SYS_GUID) are registered
-// here.
-//
-// Takes builder (*db_engine_mysql.FunctionCatalogueBuilder) which receives the extra
-// function signatures.
-func registerMariaDBFunctions(builder *db_engine_mysql.FunctionCatalogueBuilder) {
-	guidType := querier_dto.NewSQLType(querier_dto.TypeCategoryText, "varchar")
-	builder.NeverNull("sys_guid", nil, guidType)
+	return db_engine_mysql.NewEngineForDialect("mariadb", options...)
 }

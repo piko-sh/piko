@@ -24,7 +24,7 @@ import (
 
 	"piko.sh/piko/internal/retry"
 	"piko.sh/piko/wdk/clock"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // ObjectInfo holds details about a stored object, returned by Stat methods.

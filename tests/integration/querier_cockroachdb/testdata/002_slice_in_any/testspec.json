@@ -1,3 +1,0 @@
-{
-  "description": "Basic slice with ANY: verifies CockroachDB handles array parameters"
-}

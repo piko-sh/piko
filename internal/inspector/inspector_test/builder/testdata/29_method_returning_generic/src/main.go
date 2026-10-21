@@ -18,13 +18,10 @@
 
 package main
 
-// Box is a simple generic type.
 type Box[T any] struct{}
 
-// Factory is a generic factory.
 type Factory[T any] struct{}
 
-// NewBox returns a Box instantiated with the Factory's type parameter T.
 func (f Factory[T]) NewBox() Box[T] {
 	return Box[T]{}
 }

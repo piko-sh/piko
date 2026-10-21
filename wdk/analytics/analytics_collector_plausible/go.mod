@@ -20,4 +20,5 @@ require (
 	go.opentelemetry.io/otel/trace v1.45.0 // indirect
 	go.uber.org/goleak v1.3.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
+	piko.sh/safeconv v0.1.0 // indirect
 )

@@ -57,7 +57,7 @@ import (
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/seo/seo_domain"
 	"piko.sh/piko/internal/shutdown"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // Option configures a Container during initialisation.

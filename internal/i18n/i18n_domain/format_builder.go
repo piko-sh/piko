@@ -26,7 +26,7 @@ import (
 	"time"
 
 	"piko.sh/piko/wdk/maths"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (

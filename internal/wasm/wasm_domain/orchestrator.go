@@ -485,7 +485,6 @@ type operationInstrumentation struct {
 // instrumentedOperation handles the common instrumentation, nil-adapter check, call
 // delegation, and error counting shared by Generate and Render.
 //
-// Takes ctx (context.Context) for metric recording.
 // Takes instruments (operationInstrumentation) holding the counter, histogram and error
 // counter.
 // Takes adapter (any) checked for nil; a nil adapter is treated as not configured.
@@ -798,12 +797,9 @@ func (o *Orchestrator) dynamicRenderHTML(
 	}, nil
 }
 
-// renderASTToHTML converts a template AST to HTML using the WASM renderer. CSS is
-// propagated through the renderer for any in-AST styling logic but the dynamic-render
-// path treats styleBlock as the source of truth, so the renderer's CSS echo is
-// intentionally not returned.
+// renderASTToHTML renders a template AST without returning the renderer's CSS echo;
+// styleBlock supplies dynamic-render styles.
 //
-// Takes ctx (context.Context) which is the request context.
 // Takes astNode (*ast_domain.TemplateAST) which is the template AST to render.
 // Takes metadata (*templater_dto.InternalMetadata) which contains template metadata.
 // Takes styleBlock (string) which is the CSS to apply during rendering.
@@ -877,13 +873,9 @@ func validateAnalyseRequest(ctx context.Context, request *wasm_dto.AnalyseReques
 	return nil
 }
 
-// checkSourceSize records the aggregate source size for OTel and returns
-// errSourceTooLarge wrapped with the actual size when the total exceeds maxSourceSize.
-// Used by every WASM orchestrator entrypoint that accepts arbitrary in-memory sources so
-// a single large payload cannot exhaust the runtime regardless of which entrypoint
-// receives it.
+// checkSourceSize records aggregate source size and returns errSourceTooLarge when
+// maxSourceSize is exceeded.
 //
-// Takes ctx (context.Context) used for the OTel size histogram.
 // Takes sources (map[string]string) which holds the request payload keyed by path.
 // Takes maxSourceSize (int) which is the configured cap; sizes <= 0 disable the check.
 //

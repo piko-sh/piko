@@ -48,8 +48,6 @@ var (
 
 // ReloadRoutes refreshes the routing configuration from the manifest store.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes store (templater_domain.ManifestStoreView) which provides the route definitions.
 //
 // Returns error, or nil if ReloadRoutesFunc is nil.

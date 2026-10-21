@@ -45,7 +45,7 @@ import (
 	"piko.sh/piko/internal/shutdown"
 	browserpkg "piko.sh/piko/wdk/browser"
 	"piko.sh/piko/wdk/logger"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 type ExamplesHarness struct {

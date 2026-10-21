@@ -28,6 +28,7 @@ Piko reads no configuration files and no environment variables apart from `PIKO_
 |---|---|
 | `WithPort(port int)` | HTTP listen port. Defaults to `8080`. |
 | `WithAutoNextPort(enabled bool)` | Pick the next available port if another process is already bound. |
+| `WithBindAddress(address string)` | Address the HTTP server binds to. Empty, the default, binds every interface; `127.0.0.1` keeps a development server off the network. |
 | `WithPublicDomain(domain string)` | Public hostname used to build absolute URLs. |
 | `WithForceHTTPS(enabled bool)` | Redirect HTTP requests to HTTPS. |
 | `WithRequestTimeout(d time.Duration)` | Per-request timeout. |

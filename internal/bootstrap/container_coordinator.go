@@ -52,7 +52,7 @@ import (
 	"piko.sh/piko/internal/search/search_domain"
 	"piko.sh/piko/internal/seo/seo_domain"
 	"piko.sh/piko/internal/shutdown"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // GetAnnotatorService returns the code annotation service, creating it if necessary.
@@ -730,6 +730,15 @@ func (c *Container) getSEOServiceOptional() seo_domain.SEOService {
 	return seoService
 }
 
+// SetTypeInspectorMaxCachedBuilds sets the default inspector's cache limit before the
+// inspector is first requested.
+//
+// Takes maxBuilds (int) which is the number of builds to keep; zero or less uses the
+// inspector's default.
+func (c *Container) SetTypeInspectorMaxCachedBuilds(maxBuilds int) {
+	c.typeInspectorMaxCachedBuilds = maxBuilds
+}
+
 // GetTypeInspectorManager returns the type inspection manager, creating it if needed.
 //
 // Returns *inspector_domain.TypeBuilder which provides type inspection.
@@ -783,9 +792,12 @@ func (c *Container) createDefaultTypeInspectorManager() {
 		c.typeInspectorBuilderErr = fmt.Errorf("could not detect Go module for type inspector: %w", err)
 		return
 	}
-	builderOptions := make([]inspector_domain.TypeBuilderOption, 0, 1)
+	builderOptions := make([]inspector_domain.TypeBuilderOption, 0, 2)
 	if provider != nil {
 		builderOptions = append(builderOptions, inspector_domain.WithProvider(provider))
+	}
+	if c.typeInspectorMaxCachedBuilds > 0 {
+		builderOptions = append(builderOptions, inspector_domain.WithMaxCachedBuilds(c.typeInspectorMaxCachedBuilds))
 	}
 	c.typeInspectorBuilder = inspector_domain.NewTypeBuilder(
 		inspector_dto.Config{

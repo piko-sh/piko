@@ -21,7 +21,6 @@ package main
 import "testcase_18_deep_method_resolution_with_alias_bug/services"
 import "testcase_18_deep_method_resolution_with_alias_bug/query"
 
-// This mirrors the `State` struct from your .pk file.
 type Response struct {
 	ServiceResponse services.TransactionServiceResponse
 }

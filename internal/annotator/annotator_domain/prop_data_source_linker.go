@@ -50,7 +50,6 @@ type pdsSetterVisitor struct {
 
 // Enter implements the ast_domain.Visitor interface.
 //
-// Takes ctx (context.Context) which carries the session logger.
 // Takes node (*ast_domain.TemplateNode) which is the current node in the tree.
 //
 // Returns ast_domain.Visitor which is this visitor to continue the traversal.
@@ -64,7 +63,6 @@ func (v *pdsSetterVisitor) Enter(_ context.Context, _ *ast_domain.TemplateNode) 
 // when leaving the AST, setting up property data sources for passed props that have
 // resolved annotations.
 //
-// Takes ctx (context.Context) which carries the session logger.
 // Takes node (*ast_domain.TemplateNode) which is the AST node being exited.
 //
 // Returns error when processing fails.
@@ -137,7 +135,6 @@ type pdsLinkerVisitor struct {
 
 // Enter implements the ast_domain.Visitor interface.
 //
-// Takes ctx (context.Context) which carries the session logger.
 // Takes node (*ast_domain.TemplateNode) which is the AST node to visit.
 //
 // Returns ast_domain.Visitor which is the visitor for child nodes, or nil if the node is
@@ -170,8 +167,6 @@ func (v *pdsLinkerVisitor) Enter(ctx context.Context, node *ast_domain.TemplateN
 // Exit implements the ast_domain.Visitor interface. It restores the invocation map to the
 // parent scope when leaving a template node.
 //
-// Takes ctx (context.Context) which carries the session logger.
-//
 // Returns error when the exit fails.
 func (v *pdsLinkerVisitor) Exit(_ context.Context, _ *ast_domain.TemplateNode) error {
 	v.depth--
@@ -184,7 +179,6 @@ func (v *pdsLinkerVisitor) Exit(_ context.Context, _ *ast_domain.TemplateNode) e
 // linkPropsForInvocation links property data sources for a partial invocation by walking
 // the invocation node's children and matching expressions against the partial's prop map.
 //
-// Takes ctx (context.Context) which carries the session logger.
 // Takes invocationNode (*ast_domain.TemplateNode) which is the template node representing
 // the partial invocation.
 // Takes partialInfo (*ast_domain.PartialInvocationInfo) which describes the partial being
@@ -216,7 +210,6 @@ func (v *pdsLinkerVisitor) linkPropsForInvocation(
 // linkDataSourceForExpression resolves and links data sources for property usages within
 // an expression tree.
 //
-// Takes ctx (context.Context) which carries the session logger.
 // Takes rootExpr (ast_domain.Expression) which is the expression to traverse.
 // Takes activePInfo (*ast_domain.PartialInvocationInfo) which provides the current
 // partial invocation context.
@@ -261,7 +254,6 @@ func (v *pdsLinkerVisitor) linkDataSourceForExpression(
 // resolveTransitiveDataSource finds the data source for an expression that references a
 // property passed from a parent partial invocation.
 //
-// Takes ctx (context.Context) which carries the session logger.
 // Takes currentExpr (ast_domain.Expression) which is the member expression being
 // resolved.
 // Takes activePInfo (*ast_domain.PartialInvocationInfo) which provides the current
@@ -298,7 +290,6 @@ func (v *pdsLinkerVisitor) resolveTransitiveDataSource(
 // to find the ultimate data source. Stops when the expression is no longer a prop usage
 // or when a transform is detected.
 //
-// Takes ctx (context.Context) which carries the session logger.
 // Takes sourceExpression (ast_domain.Expression) which is the starting expression to
 // trace.
 // Takes sourcePartialInfo (*ast_domain.PartialInvocationInfo) which is the invocation
@@ -346,7 +337,6 @@ func (v *pdsLinkerVisitor) followDataSourceChain(
 // didPropTransform checks if a prop was changed by coercion, defaults, or a factory at
 // its component boundary. This ends the data source chain.
 //
-// Takes ctx (context.Context) which carries the session logger.
 // Takes componentHash (string) which identifies the component to check.
 // Takes propUsageExpr (ast_domain.Expression) which is the property usage to check.
 //
@@ -381,7 +371,6 @@ func (v *pdsLinkerVisitor) didPropTransform(ctx context.Context, componentHash s
 // chain by looking up the invoker node and mapping the Go field name to the HTML prop
 // name in the next invocation.
 //
-// Takes ctx (context.Context) which carries the session logger.
 // Takes currentPropExpr (ast_domain.Expression) which is the current prop expression
 // being traced.
 // Takes currentPInfo (*ast_domain.PartialInvocationInfo) which is the current invocation
@@ -426,7 +415,6 @@ func (v *pdsLinkerVisitor) findNextLinkInChain(
 // getValidPropsForComponent retrieves the valid properties for a component, caching
 // results to avoid repeated lookups.
 //
-// Takes ctx (context.Context) which carries the session logger.
 // Takes hashedName (string) which identifies the component by its hash.
 //
 // Returns map[string]validPropInfo which contains the valid properties for the component.
@@ -468,7 +456,6 @@ func (v *pdsLinkerVisitor) getValidPropsForComponent(ctx context.Context, hashed
 
 // getPropMapForComponent retrieves or builds the Go field to prop name map.
 //
-// Takes ctx (context.Context) which carries the session logger.
 // Takes hashedName (string) which identifies the component by its hash.
 //
 // Returns map[string]string which maps Go struct field names to prop names, or nil when
@@ -494,7 +481,6 @@ func (v *pdsLinkerVisitor) getPropMapForComponent(ctx context.Context, hashedNam
 // LinkAllPropDataSources links all PropDataSource annotations in an annotated AST. It
 // runs two passes to trace data flow from each use back to its origin.
 //
-// Takes ctx (context.Context) which carries the session logger.
 // Takes tree (*ast_domain.TemplateAST) which is the annotated AST to process.
 // Takes virtualModule (*annotator_dto.VirtualModule) which provides module context for
 // the linking process.

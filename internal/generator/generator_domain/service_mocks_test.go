@@ -30,7 +30,7 @@ import (
 	"piko.sh/piko/internal/generator/generator_dto"
 	"piko.sh/piko/internal/resolver/resolver_domain"
 	"piko.sh/piko/internal/seo/seo_dto"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 type mockCoordinator struct {

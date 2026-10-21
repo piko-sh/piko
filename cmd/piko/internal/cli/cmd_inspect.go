@@ -31,7 +31,7 @@ import (
 	fbsI18n "piko.sh/piko/wdk/fbs/i18n"
 	fbsManifest "piko.sh/piko/wdk/fbs/manifest"
 	fbsSearch "piko.sh/piko/wdk/fbs/search"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 	"pipit.sh/pipit"
 )
 

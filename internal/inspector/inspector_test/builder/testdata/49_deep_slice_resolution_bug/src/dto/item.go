@@ -20,14 +20,12 @@ package dto
 
 import "piko.sh/piko/wdk/maths"
 
-// RangeItem is an element within a slice.
 type RangeItem struct {
 	From   int64
 	To     int64
 	Charge maths.Money
 }
 
-// ItemDto contains the slice of RangeItem. This is the critical type.
 type ItemDto struct {
 	ID     int64
 	Name   string

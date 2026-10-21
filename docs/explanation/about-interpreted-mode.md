@@ -42,6 +42,12 @@ Pipit supplies native symbol tables for the standard library, and Piko adds its 
 
 Native symbols belong to the server binary. Changes to those packages require a rebuild and restart, even in interpreted mode. This makes the distinction between template edits and native package edits relevant when choosing a development workflow.
 
+## Package state in dev-i
+
+Dev-i compiles your project's own packages from source and runs that copy in Pipit. The server binary still contains its compiled copy of every project package that `cmd/main` imports, directly or through other packages. The two copies do not share package variables. A value that `main` sets before `ssr.Run`, such as a flag that shows draft posts, changes only the compiled copy. Pages run the interpreted copy and see the variable's initial value. Compiled `dev` and `prod` have one copy, so the same code behaves differently there.
+
+Piko logs a warning at start-up for each package it compiles from source that the binary also links and that declares exported package variables. Two changes avoid the split. Pass the value through the request, for example by deciding with `piko.IsDevelopmentMode(r)` in the page instead of reading a variable set by `main`. Alternatively, register the package as native symbols with `piko extract --include-project`, so pages call the binary's copy. A native package needs a restart after each edit.
+
 ## When to use each mode
 
 **Use `dev` when**:

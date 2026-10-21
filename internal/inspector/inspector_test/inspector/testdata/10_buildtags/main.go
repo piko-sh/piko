@@ -19,5 +19,5 @@
 package main
 
 type Response struct {
-	Config MyConfig // This type is defined in a build-tagged file
+	Config MyConfig
 }

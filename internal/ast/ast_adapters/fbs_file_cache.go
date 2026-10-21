@@ -37,7 +37,7 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/wdk/clock"
 	"piko.sh/piko/wdk/goroutine"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -312,7 +312,6 @@ func (c *fbsFileCache) executeBackgroundDeletion(ctx context.Context, key string
 // enqueueDeletion sends a key to the deletion channel without blocking. If the channel is
 // full, it logs a warning and drops the task to prioritise read performance.
 //
-// Takes ctx (context.Context) which carries the request-scoped logger.
 // Takes key (string) which identifies the cache entry to delete.
 func (c *fbsFileCache) enqueueDeletion(ctx context.Context, key string) {
 	select {

@@ -18,7 +18,6 @@
 
 package uuid
 
-// This is our own local package, also named "uuid".
 type UUID struct {
 	IsLocal bool
 }

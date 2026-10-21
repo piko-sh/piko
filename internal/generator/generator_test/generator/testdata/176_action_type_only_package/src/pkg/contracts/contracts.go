@@ -16,8 +16,6 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package contracts holds action input types and no action of its own, so nothing about
-// the actions directory implies the generated files import it.
 package contracts
 
 type CreateInput struct {

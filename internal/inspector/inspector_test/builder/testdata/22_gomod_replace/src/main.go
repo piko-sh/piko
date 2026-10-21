@@ -18,7 +18,6 @@
 
 package main
 
-// The import path is the canonical one, but `replace` will redirect it.
 import "github.com/google/uuid"
 
 type Request struct {

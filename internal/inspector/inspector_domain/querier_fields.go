@@ -676,13 +676,8 @@ func (*TypeQuerier) requalifyIdent(t *goast.Ident, canonicalPackagePath string, 
 	return t
 }
 
-// findFieldInfoDeep resolves a dot-separated field path step by step.
+// findFieldInfoDeep resolves a dotted field path.
 //
-// It finds each part of the path (such as "A.B.C") in order. After finding each part, it
-// updates the context for the next lookup.
-//
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes finder (fieldSegmentFinder) which resolves single field segments.
 // Takes baseType (goast.Expr) which is the starting type for resolution.
 // Takes fieldName (string) which is the dot-separated field path to resolve.

@@ -25,6 +25,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"mime"
 	"path/filepath"
 	"strings"
@@ -135,12 +136,87 @@ func (wc *writeCounter) Write(p []byte) (int, error) {
 	return n, nil
 }
 
-// publishEvent sends artefact lifecycle events to the event bus.
+// publishEvent sends an artefact lifecycle event to the event bus.
+//
+// Events are counted before publication. Failed publications remain owed until delivered,
+// and newer events with the same key replace them without increasing the count.
 //
 // Takes eventType (orchestrator_domain.EventType) which specifies the type of lifecycle
 // event to send.
 // Takes artefactID (string) which identifies the artefact the event relates to.
+//
+// Concurrent publication accounting is protected by owedEventsMu.
 func (s *registryService) publishEvent(ctx context.Context, eventType orchestrator_domain.EventType, artefactID string) {
+	ctx, l := logger_domain.From(ctx, log)
+	if s.eventBus == nil {
+		l.Warn("Event bus is nil, skipping event publication")
+		return
+	}
+
+	key := owedEventKey(eventType, artefactID)
+	s.owedEventsMu.Lock()
+	if _, owed := s.owedEvents[key]; owed {
+		delete(s.owedEvents, key)
+	} else {
+		s.artefactEventsIssued.Add(1)
+	}
+	s.owedEventsMu.Unlock()
+
+	if err := s.sendEvent(ctx, eventType, artefactID); err != nil {
+		s.oweEvent(key, eventType)
+	}
+}
+
+// FlushArtefactEvents publishes artefact events whose earlier publish failed.
+//
+// Returns int which is the number of events still owed after the attempt.
+//
+// Safe for concurrent use; owedEventsMu guards the owed events.
+func (s *registryService) FlushArtefactEvents(ctx context.Context) int {
+	if s.eventBus == nil {
+		return 0
+	}
+	s.owedEventsMu.Lock()
+	owed := make(map[string]orchestrator_domain.EventType, len(s.owedEvents))
+	maps.Copy(owed, s.owedEvents)
+	clear(s.owedEvents)
+	s.owedEventsMu.Unlock()
+
+	for key, eventType := range owed {
+		if err := s.sendEvent(ctx, eventType, artefactIDFromOwedKey(key)); err != nil {
+			s.oweEvent(key, eventType)
+		}
+	}
+
+	s.owedEventsMu.Lock()
+	defer s.owedEventsMu.Unlock()
+	return len(s.owedEvents)
+}
+
+// oweEvent records an issued event whose publish failed, unless a newer event for the
+// same artefact and type is already owed.
+//
+// Takes key (string) which is the event's owed-event key.
+// Takes eventType (orchestrator_domain.EventType) which is the event type.
+//
+// Safe for concurrent use; guarded by owedEventsMu.
+func (s *registryService) oweEvent(key string, eventType orchestrator_domain.EventType) {
+	s.owedEventsMu.Lock()
+	defer s.owedEventsMu.Unlock()
+	if _, owed := s.owedEvents[key]; owed {
+		s.artefactEventsIssued.Add(-1)
+		return
+	}
+	s.owedEvents[key] = eventType
+}
+
+// sendEvent publishes one artefact lifecycle event.
+//
+// Takes eventType (orchestrator_domain.EventType) which is the event type and topic.
+// Takes artefactID (string) which identifies the artefact.
+//
+// Returns error when the bus refuses the event.
+func (s *registryService) sendEvent(ctx context.Context, eventType orchestrator_domain.EventType, artefactID string) error {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "RegistryService.publishEvent",
 		logger_domain.String("eventType", string(eventType)),
@@ -148,45 +224,49 @@ func (s *registryService) publishEvent(ctx context.Context, eventType orchestrat
 	)
 	defer span.End()
 
-	if s.eventBus == nil {
-		l.Warn("Event bus is nil, skipping event publication")
-		span.SetStatus(codes.Error, "Event bus is nil, skipping event publication")
-		return
-	}
-
-	l.Trace("Creating event payload")
-
 	payload := getEventPayload()
 	payload["artefactID"] = artefactID
 	payload["timestamp"] = time.Now().UTC()
 
 	carrier := propagation.MapCarrier{}
 	getTextMapPropagator().Inject(ctx, carrier)
-
 	for k, v := range carrier {
 		payload[k] = v
 	}
 
-	event := orchestrator_domain.Event{
+	err := s.eventBus.Publish(ctx, string(eventType), orchestrator_domain.Event{
 		Type:    eventType,
 		Payload: payload,
-	}
-
-	l.Trace("Publishing artefact event to topic",
-		logger_domain.String("topic", string(eventType)),
-		logger_domain.String("artefactID", artefactID))
-	err := s.eventBus.Publish(ctx, string(eventType), event)
-
+	})
 	putEventPayload(payload)
 
 	if err != nil {
-		l.ReportError(span, err, "Failed to publish artefact event")
-	} else {
-		l.Trace("Successfully published artefact event")
-		span.SetStatus(codes.Ok, "Successfully published event")
-		registryServiceEventPublishCount.Add(ctx, 1)
-		s.artefactEventsPublished.Add(1)
+		l.ReportError(span, err, "Failed to publish artefact event; it stays owed")
+		return err
 	}
+	span.SetStatus(codes.Ok, "Successfully published event")
+	registryServiceEventPublishCount.Add(ctx, 1)
+	return nil
+}
+
+// owedEventKey builds the key an owed event is stored under.
+//
+// Takes eventType (orchestrator_domain.EventType) which is the event type.
+// Takes artefactID (string) which identifies the artefact.
+//
+// Returns string which is the event type and artefact ID separated by a NUL byte.
+func owedEventKey(eventType orchestrator_domain.EventType, artefactID string) string {
+	return string(eventType) + "\x00" + artefactID
+}
+
+// artefactIDFromOwedKey extracts the artefact ID from an owed-event key.
+//
+// Takes key (string) which was built by owedEventKey.
+//
+// Returns string which is the artefact ID.
+func artefactIDFromOwedKey(key string) string {
+	_, artefactID, _ := strings.Cut(key, "\x00")
+	return artefactID
 }
 
 // upsertInput holds the checked input data for UpsertArtefact.
@@ -244,15 +324,11 @@ func (s *registryService) resolveVariantsForUpsert(
 	return existingArtefact.ActualVariants, nil
 }
 
-// UpsertArtefact creates or updates an artefact in the registry.
+// UpsertArtefact creates or updates an artefact and optionally uploads its source data.
 //
-// When sourceData is provided, it uploads the blob and creates or updates the source
-// variant. When sourceData is nil, it performs a metadata-only update, such as updating
-// desired profiles.
-//
-// For metadata-only updates where the artefact already exists with identical desired
-// profiles, the update and event publication are skipped entirely. This prevents
-// unnecessary event storms during rapid page reloads.
+// Nil sourceData updates metadata only. Desired profiles replace existing profiles unless
+// WithProfileMerge is set. Unchanged metadata-only updates skip writes and event
+// publication.
 //
 // Takes artefactID (string) which identifies the artefact to create or update.
 // Takes sourcePath (string) which specifies the path to the source file.
@@ -261,6 +337,7 @@ func (s *registryService) resolveVariantsForUpsert(
 // Takes storageBackendID (string) which identifies the storage backend to use.
 // Takes desiredProfiles ([]registry_dto.NamedProfile) which specifies the profiles to
 // associate with the artefact.
+// Takes opts (...UpsertOption) which adjust the upsert, such as WithProfileMerge.
 //
 // Returns *registry_dto.ArtefactMeta which contains the artefact metadata.
 // Returns error when the input is invalid or the operation fails.
@@ -271,6 +348,7 @@ func (s *registryService) UpsertArtefact(
 	sourceData io.Reader,
 	storageBackendID string,
 	desiredProfiles []registry_dto.NamedProfile,
+	opts ...UpsertOption,
 ) (*registry_dto.ArtefactMeta, error) {
 	startTime := time.Now()
 	ctx, l := logger_domain.From(ctx, log)
@@ -296,6 +374,10 @@ func (s *registryService) UpsertArtefact(
 		return nil, fmt.Errorf("failed to get existing artefact '%s': %w", artefactID, err)
 	}
 
+	if !isNewArtefact && resolveUpsertOptions(opts).mergeProfiles {
+		desiredProfiles = mergeDesiredProfiles(existingArtefact.DesiredProfiles, desiredProfiles)
+	}
+
 	if !isNewArtefact && sourceData == nil && profilesMatch(existingArtefact.DesiredProfiles, desiredProfiles) {
 		l.Trace("Skipping upsert, artefact unchanged",
 			logger_domain.Int("profileCount", len(desiredProfiles)))
@@ -311,18 +393,7 @@ func (s *registryService) UpsertArtefact(
 		storageBackendID: storageBackendID,
 	}
 
-	var finalArtefact *registry_dto.ArtefactMeta
-	err = s.metaStore.RunAtomic(ctx, func(ctx context.Context, transactionStore MetadataStore) error {
-		finalVariants, resolveErr := s.resolveVariantsForUpsert(ctx, transactionStore, input, isNewArtefact, existingArtefact)
-		if resolveErr != nil {
-			return fmt.Errorf("resolving variants for upsert of %q: %w", artefactID, resolveErr)
-		}
-
-		finalArtefact = buildArtefactMeta(artefactID, sourcePath, finalVariants, desiredProfiles,
-			isNewArtefact, existingArtefact)
-
-		return s.persistAndFinaliseUpsert(ctx, transactionStore, finalArtefact, isNewArtefact)
-	})
+	finalArtefact, err := s.runUpsertTransaction(ctx, input, isNewArtefact, existingArtefact)
 	if err != nil {
 		registryServiceUpsertArtefactErrorCount.Add(ctx, 1)
 		return nil, err
@@ -331,19 +402,58 @@ func (s *registryService) UpsertArtefact(
 	return finalArtefact, nil
 }
 
-// getArtefactForUpsert retrieves an artefact using the service-level cache before falling
-// back to the metadata store. This avoids a full SQLite read and FlatBuffer
-// deserialisation when the artefact is already cached.
+// runUpsertTransaction resolves an upsert's variants, builds the artefact metadata and
+// persists it, all within one metadata store transaction.
+//
+// Takes input (upsertInput) which holds the artefact identity, source data and desired
+// profiles.
+// Takes isNewArtefact (bool) which indicates if this is a new artefact.
+// Takes existingArtefact (*registry_dto.ArtefactMeta) which provides the current artefact
+// state for updates.
+//
+// Returns *registry_dto.ArtefactMeta which is the persisted artefact metadata.
+// Returns error when resolving the variants or persisting the artefact fails.
+func (s *registryService) runUpsertTransaction(
+	ctx context.Context,
+	input upsertInput,
+	isNewArtefact bool,
+	existingArtefact *registry_dto.ArtefactMeta,
+) (*registry_dto.ArtefactMeta, error) {
+	var finalArtefact *registry_dto.ArtefactMeta
+	err := s.metaStore.RunAtomic(ctx, func(ctx context.Context, transactionStore MetadataStore) error {
+		finalVariants, resolveErr := s.resolveVariantsForUpsert(ctx, transactionStore, input, isNewArtefact, existingArtefact)
+		if resolveErr != nil {
+			return fmt.Errorf("resolving variants for upsert of %q: %w", input.artefactID, resolveErr)
+		}
+
+		finalArtefact = buildArtefactMeta(input.artefactID, input.sourcePath, finalVariants, input.desiredProfiles,
+			isNewArtefact, existingArtefact)
+
+		return s.persistAndFinaliseUpsert(ctx, transactionStore, finalArtefact, isNewArtefact)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return finalArtefact, nil
+}
+
+// getArtefactForUpsert reads the service cache before the metadata store and reports
+// ErrArtefactNotFound for missing artefacts.
 //
 // Takes artefactID (string) which identifies the artefact to retrieve.
 //
 // Returns *registry_dto.ArtefactMeta which contains the artefact metadata.
-// Returns error when the artefact cannot be found or retrieval fails.
+// Returns error which is ErrArtefactNotFound when the artefact is absent, or the
+// retrieval error when the lookup fails.
 func (s *registryService) getArtefactForUpsert(ctx context.Context, artefactID string) (*registry_dto.ArtefactMeta, error) {
-	if cached, found := s.tryGetFromCache(ctx, artefactID); found {
+	if cached, found := s.tryGetFromCache(ctx, artefactID); found && cached != nil {
 		return cached, nil
 	}
-	return s.metaStore.GetArtefact(ctx, artefactID)
+	artefact, err := s.metaStore.GetArtefact(ctx, artefactID)
+	if err == nil && artefact == nil {
+		return nil, ErrArtefactNotFound
+	}
+	return artefact, err
 }
 
 // persistAndFinaliseUpsert saves the artefact to the store, updates cache, and publishes
@@ -1139,7 +1249,8 @@ func validateUpsertInput(artefactID, sourcePath string) error {
 // Takes desiredProfiles ([]registry_dto.NamedProfile) which lists the target profiles.
 // Takes isNewArtefact (bool) which is true when creating a new artefact.
 // Takes existingArtefact (*registry_dto.ArtefactMeta) which provides the previous
-// metadata when updating an existing artefact.
+// metadata when updating an existing artefact. When it is nil the artefact is stamped as
+// newly created.
 //
 // Returns *registry_dto.ArtefactMeta which is the built metadata with a computed status.
 func buildArtefactMeta(
@@ -1151,7 +1262,7 @@ func buildArtefactMeta(
 ) *registry_dto.ArtefactMeta {
 	metaNow := time.Now().UTC()
 	createdAt := metaNow
-	if !isNewArtefact {
+	if !isNewArtefact && existingArtefact != nil {
 		createdAt = existingArtefact.CreatedAt
 	}
 	meta := &registry_dto.ArtefactMeta{

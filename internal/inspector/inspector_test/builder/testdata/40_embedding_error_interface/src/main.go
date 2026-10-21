@@ -18,7 +18,6 @@
 
 package main
 
-// MyError is a custom error type that embeds the built-in error interface.
 type MyError struct {
 	error
 	Code int

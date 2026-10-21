@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -334,14 +335,19 @@ func TestExtractModuleImportPath(t *testing.T) {
 func TestGenerateCacheKey(t *testing.T) {
 	t.Parallel()
 
+	const (
+		baseDir    = "/project"
+		moduleName = "my-project"
+	)
+
 	t.Run("same content and path produces same key", func(t *testing.T) {
 		t.Parallel()
 
 		path := "/project/pages/home.pk"
 		content := []byte("<template><div>Hello</div></template>")
 
-		key1 := generateCacheKey(path, content)
-		key2 := generateCacheKey(path, content)
+		key1 := generateCacheKey(baseDir, moduleName, path, content)
+		key2 := generateCacheKey(baseDir, moduleName, path, content)
 
 		assert.Equal(t, key1, key2)
 	})
@@ -351,8 +357,8 @@ func TestGenerateCacheKey(t *testing.T) {
 
 		content := []byte("<template><div>Hello</div></template>")
 
-		key1 := generateCacheKey("/project/pages/home.pk", content)
-		key2 := generateCacheKey("/project/pages/about.pk", content)
+		key1 := generateCacheKey(baseDir, moduleName, "/project/pages/home.pk", content)
+		key2 := generateCacheKey(baseDir, moduleName, "/project/pages/about.pk", content)
 
 		assert.NotEqual(t, key1, key2)
 	})
@@ -362,18 +368,66 @@ func TestGenerateCacheKey(t *testing.T) {
 
 		path := "/project/pages/home.pk"
 
-		key1 := generateCacheKey(path, []byte("<template><div>Hello</div></template>"))
-		key2 := generateCacheKey(path, []byte("<template><div>Goodbye</div></template>"))
+		key1 := generateCacheKey(baseDir, moduleName, path, []byte("<template><div>Hello</div></template>"))
+		key2 := generateCacheKey(baseDir, moduleName, path, []byte("<template><div>Goodbye</div></template>"))
 
 		assert.NotEqual(t, key1, key2)
+	})
+
+	t.Run("different resolvers produce different keys", func(t *testing.T) {
+		t.Parallel()
+
+		path := "/project/pages/home.pk"
+		content := []byte("<template><div>Hello</div></template>")
+
+		key := generateCacheKey(baseDir, moduleName, path, content)
+
+		assert.NotEqual(t, key, generateCacheKey("/other", moduleName, path, content),
+			"the base directory decides IsExternal and ModuleImportPath, so it must be part of the key")
+		assert.NotEqual(t, key, generateCacheKey(baseDir, "other-module", path, content),
+			"the module name decides ModuleImportPath, so it must be part of the key")
 	})
 
 	t.Run("key is hexadecimal string", func(t *testing.T) {
 		t.Parallel()
 
-		key := generateCacheKey("/test.pk", []byte("content"))
+		key := generateCacheKey(baseDir, moduleName, "/test.pk", []byte("content"))
 
 		assert.Regexp(t, "^[0-9a-f]+$", key)
+	})
+}
+
+func TestRegisterParsedComponent(t *testing.T) {
+	t.Parallel()
+
+	baseDir := "/project/src"
+
+	t.Run("does not write to the component it registers", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := newGraphBuilderMockResolver("my-project", baseDir)
+		builder := NewGraphBuilder(resolver, nil, nil, AnnotatorPathsConfig{}, false)
+		graph := &annotator_dto.ComponentGraph{
+			Components:       make(map[string]*annotator_dto.ParsedComponent),
+			PathToHashedName: make(map[string]string),
+			HashedNameToPath: make(map[string]string),
+		}
+
+		shared := &annotator_dto.ParsedComponent{
+			SourcePath:       "/cached/elsewhere.pk",
+			ModuleImportPath: "cached/elsewhere.pk",
+			IsExternal:       true,
+		}
+		snapshot := *shared
+		path := filepath.Join(baseDir, "pages", "home.pk")
+
+		builder.registerParsedComponent(graph, &parseResult{path: path, parsedComponent: shared})
+
+		assert.Equal(t, snapshot, *shared, "a component shared with the parse cache must not be written to")
+		hash, ok := graph.PathToHashedName[path]
+		require.True(t, ok)
+		assert.Same(t, shared, graph.Components[hash])
+		assert.Equal(t, path, graph.HashedNameToPath[hash], "HashedNameToPath must map back to the source path, not the hash")
 	})
 }
 
@@ -774,6 +828,40 @@ func TestReadAndParse(t *testing.T) {
 		assert.Contains(t, string(data), "Hello")
 	})
 
+	t.Run("should set location metadata before the component is cached", func(t *testing.T) {
+		t.Parallel()
+
+		h := newTestHarness(t, "my-project", baseDir)
+		filePath := filepath.Join(baseDir, "pages", "home.pk")
+		h.fsReader.files[filePath] = []byte(`<template><div>Hello</div></template>`)
+
+		comp, _, err := h.builder.readAndParse(context.Background(), filePath)
+
+		require.NoError(t, err)
+		require.NotNil(t, comp)
+		assert.Equal(t, filePath, comp.SourcePath)
+		assert.False(t, comp.IsExternal)
+		assert.Equal(t, "my-project/pages/home.pk", comp.ModuleImportPath)
+	})
+
+	t.Run("should set location metadata on a partial component in fault-tolerant mode", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := newGraphBuilderMockResolver("my-project", baseDir)
+		filePath := filepath.Join(baseDir, "bad.pk")
+		fsReader := &mockFSReader{files: map[string][]byte{
+			filePath: []byte(`<template><div>{{ broken</template><script type="application/x-go">package main</script>`),
+		}}
+		builder := NewGraphBuilder(resolver, fsReader, &mockComponentCache{}, AnnotatorPathsConfig{}, true)
+
+		comp, _, err := builder.readAndParse(context.Background(), filePath)
+
+		require.Error(t, err)
+		require.NotNil(t, comp)
+		assert.Equal(t, filePath, comp.SourcePath)
+		assert.Equal(t, "my-project/bad.pk", comp.ModuleImportPath)
+	})
+
 	t.Run("should return error when file does not exist", func(t *testing.T) {
 		t.Parallel()
 
@@ -820,6 +908,69 @@ func TestReadAndParse(t *testing.T) {
 		require.Error(t, err, "should still return the parse error")
 		assert.NotNil(t, comp, "partial component should be returned in fault-tolerant mode")
 		assert.NotNil(t, data)
+	})
+}
+
+type memoComponentCache struct {
+	entries map[string]*annotator_dto.ParsedComponent
+	mu      sync.Mutex
+}
+
+func (m *memoComponentCache) GetOrSet(ctx context.Context, key string, loader func(context.Context) (*annotator_dto.ParsedComponent, error)) (*annotator_dto.ParsedComponent, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if component, ok := m.entries[key]; ok {
+		return component, nil
+	}
+	component, err := loader(ctx)
+	if err != nil {
+		return nil, err
+	}
+	m.entries[key] = component
+	return component, nil
+}
+
+func (m *memoComponentCache) Clear(_ context.Context) {}
+
+func TestReadAndParse_SharedParseCache(t *testing.T) {
+	t.Parallel()
+
+	baseDir := "/project/src"
+	filePath := filepath.Join(baseDir, "partials", "card.pk")
+	fsReader := &mockFSReader{files: map[string][]byte{
+		filePath: []byte(`<template><div>Card</div></template>`),
+	}}
+
+	t.Run("reuses the cached component for the same resolver", func(t *testing.T) {
+		t.Parallel()
+
+		cache := &memoComponentCache{entries: make(map[string]*annotator_dto.ParsedComponent)}
+		builder := NewGraphBuilder(newGraphBuilderMockResolver("my-project", baseDir), fsReader, cache, AnnotatorPathsConfig{}, false)
+
+		first, _, err := builder.readAndParse(context.Background(), filePath)
+		require.NoError(t, err)
+		second, _, err := builder.readAndParse(context.Background(), filePath)
+		require.NoError(t, err)
+
+		assert.Same(t, first, second)
+		assert.Equal(t, filePath, second.SourcePath)
+	})
+
+	t.Run("keeps components apart for resolvers with different modules", func(t *testing.T) {
+		t.Parallel()
+
+		cache := &memoComponentCache{entries: make(map[string]*annotator_dto.ParsedComponent)}
+		builderA := NewGraphBuilder(newGraphBuilderMockResolver("module-a", baseDir), fsReader, cache, AnnotatorPathsConfig{}, false)
+		builderB := NewGraphBuilder(newGraphBuilderMockResolver("module-b", baseDir), fsReader, cache, AnnotatorPathsConfig{}, false)
+
+		componentA, _, err := builderA.readAndParse(context.Background(), filePath)
+		require.NoError(t, err)
+		componentB, _, err := builderB.readAndParse(context.Background(), filePath)
+		require.NoError(t, err)
+
+		assert.NotSame(t, componentA, componentB)
+		assert.Equal(t, "module-a/partials/card.pk", componentA.ModuleImportPath)
+		assert.Equal(t, "module-b/partials/card.pk", componentB.ModuleImportPath)
 	})
 }
 

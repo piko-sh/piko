@@ -38,7 +38,7 @@ import (
 	"piko.sh/piko/internal/esbuild/css_parser"
 	es_logger "piko.sh/piko/internal/esbuild/logger"
 	"piko.sh/piko/internal/resolver/resolver_domain"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // cssParseCache stores parsed CSS files to avoid parsing the same file twice. The map key

@@ -241,7 +241,6 @@ func GetDefaultService() (ImageService, error) {
 // image service, reading only the image header (first few KB) and supporting all formats
 // registered with Go's image package (JPEG, PNG, GIF, WebP).
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes input (io.Reader) which provides the source image data. The caller retains
 // ownership and is responsible for closing it afterwards.
 //

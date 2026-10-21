@@ -27,27 +27,68 @@ const (
 	// vimProbeFileName is the name vim writes when probing whether a directory is writable;
 	// it is created and immediately removed and must never be treated as a source file.
 	vimProbeFileName = "4913"
+
+	// sedTempPrefix prefixes the six random characters in a GNU sed temporary file name.
+	sedTempPrefix = "sed"
+
+	// sedTempRandomLength is the number of random characters after sedTempPrefix.
+	sedTempRandomLength = 6
+
+	// jetBrainsTempMarker appears in the names JetBrains IDEs use for safe-write temporary
+	// and backup files, such as "logo.svg___jb_tmp___" and "logo.svg___jb_old___".
+	jetBrainsTempMarker = "___jb_"
+
+	// jetBrainsTempSuffix ends JetBrains safe-write temporary and backup file names.
+	jetBrainsTempSuffix = "___"
 )
 
-// IsTemporaryFile reports whether a path is an editor temporary or backup file that
-// should be ignored by both the initial discovery scan and the live watcher. It is the
-// single source of truth shared with the watcher adapter.
-//
-// Covered patterns are vim and Emacs backups (suffix "~"), vim swap files (suffix
-// ".swp"), generic temporary files (suffix ".tmp"), and vim's directory write-probe file
-// ("4913").
+// IsTemporaryFile reports editor temporary and backup paths ignored by discovery and
+// watching.
 //
 // Takes path (string) which is the file path or name to classify.
 //
 // Returns bool which is true when the path is a temporary or backup file.
 func IsTemporaryFile(path string) bool {
-	if filepath.Base(path) == vimProbeFileName {
+	base := filepath.Base(path)
+	if base == vimProbeFileName || isSedTempFileName(base) {
+		return true
+	}
+	if strings.HasPrefix(base, ".#") || (len(base) > 2 && strings.HasPrefix(base, "#") && strings.HasSuffix(base, "#")) {
+		return true
+	}
+	if strings.Contains(base, jetBrainsTempMarker) && strings.HasSuffix(base, jetBrainsTempSuffix) {
 		return true
 	}
 	lower := strings.ToLower(path)
 	return strings.HasSuffix(lower, "~") ||
 		strings.HasSuffix(lower, ".swp") ||
 		strings.HasSuffix(lower, ".tmp")
+}
+
+// isSedTempFileName recognises "sed" followed by six ASCII letters or digits without an
+// extension.
+//
+// At least one suffix character must be uppercase or a digit to avoid matching ordinary
+// lowercase words.
+//
+// Takes base (string) which is the file name without its directory.
+//
+// Returns bool which is true when the name matches.
+func isSedTempFileName(base string) bool {
+	suffix, found := strings.CutPrefix(base, sedTempPrefix)
+	if !found || len(suffix) != sedTempRandomLength {
+		return false
+	}
+	hasUpperOrDigit := false
+	for _, character := range suffix {
+		isLower := character >= 'a' && character <= 'z'
+		isUpperOrDigit := (character >= 'A' && character <= 'Z') || (character >= '0' && character <= '9')
+		if !isLower && !isUpperOrDigit {
+			return false
+		}
+		hasUpperOrDigit = hasUpperOrDigit || isUpperOrDigit
+	}
+	return hasUpperOrDigit
 }
 
 // isRelevantFileForProcessing checks if a file should be processed by the Piko build

@@ -16,7 +16,6 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// models/user.go defines a simple type in its own package.
 package models
 
 type User struct {

@@ -21,9 +21,7 @@ package orchestrator_domain
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -637,22 +635,6 @@ func TestTaskProcessingCore_Stats(t *testing.T) {
 	assert.Equal(t, int64(1), ps.Retried)
 }
 
-func TestTaskProcessingCore_InFlightCount(t *testing.T) {
-	t.Parallel()
-
-	config := DefaultDispatcherConfig()
-	core := NewTaskProcessingCore(config, nil, nil, nil)
-
-	assert.Equal(t, 0, core.InFlightCount())
-
-	core.InFlightTasks.Store("task-1", &Task{ID: "task-1"})
-	core.InFlightTasks.Store("task-2", &Task{ID: "task-2"})
-	assert.Equal(t, 2, core.InFlightCount())
-
-	core.InFlightTasks.Delete("task-1")
-	assert.Equal(t, 1, core.InFlightCount())
-}
-
 func TestTaskProcessingCore_NodeID(t *testing.T) {
 	t.Parallel()
 
@@ -662,99 +644,26 @@ func TestTaskProcessingCore_NodeID(t *testing.T) {
 	assert.Equal(t, "explicit-node", core.NodeID())
 }
 
-func TestTaskProcessingCore_recoveryParams(t *testing.T) {
+func TestTaskProcessingCore_recoveryBatchLimit(t *testing.T) {
 	t.Parallel()
 
-	t.Run("uses configured values", func(t *testing.T) {
+	for name, configured := range map[string]int{"zero": 0, "negative": -5} {
+		t.Run("uses the default when "+name, func(t *testing.T) {
+			t.Parallel()
+			config := DefaultDispatcherConfig()
+			config.RecoveryBatchLimit = configured
+			core := NewTaskProcessingCore(config, nil, nil, nil)
+			assert.Equal(t, defaultRecoveryBatchLimit, core.recoveryBatchLimit())
+		})
+	}
+
+	t.Run("uses the configured value", func(t *testing.T) {
 		t.Parallel()
 		config := DefaultDispatcherConfig()
-		config.RecoveryLeaseTimeout = 10 * time.Minute
 		config.RecoveryBatchLimit = 200
 		core := NewTaskProcessingCore(config, nil, nil, nil)
-
-		leaseTimeout, batchLimit := core.recoveryParams()
-		assert.Equal(t, 10*time.Minute, leaseTimeout)
-		assert.Equal(t, 200, batchLimit)
+		assert.Equal(t, 200, core.recoveryBatchLimit())
 	})
-
-	t.Run("uses defaults when zero", func(t *testing.T) {
-		t.Parallel()
-		config := DefaultDispatcherConfig()
-		config.RecoveryLeaseTimeout = 0
-		config.RecoveryBatchLimit = 0
-		core := NewTaskProcessingCore(config, nil, nil, nil)
-
-		leaseTimeout, batchLimit := core.recoveryParams()
-		assert.Equal(t, defaultRecoveryLeaseTimeout, leaseTimeout)
-		assert.Equal(t, defaultRecoveryBatchLimit, batchLimit)
-	})
-
-	t.Run("uses defaults when negative", func(t *testing.T) {
-		t.Parallel()
-		config := DefaultDispatcherConfig()
-		config.RecoveryLeaseTimeout = -1 * time.Second
-		config.RecoveryBatchLimit = -5
-		core := NewTaskProcessingCore(config, nil, nil, nil)
-
-		leaseTimeout, batchLimit := core.recoveryParams()
-		assert.Equal(t, defaultRecoveryLeaseTimeout, leaseTimeout)
-		assert.Equal(t, defaultRecoveryBatchLimit, batchLimit)
-	})
-}
-
-func TestTaskProcessingCore_Shutdown_NoTasks(t *testing.T) {
-	t.Parallel()
-
-	config := DefaultDispatcherConfig()
-	core := NewTaskProcessingCore(config, nil, nil, nil)
-
-	ctx, cancel := context.WithTimeoutCause(context.Background(), 1*time.Second, fmt.Errorf("test: shutdown with no tasks"))
-	defer cancel()
-
-	err := core.Shutdown(ctx)
-	assert.NoError(t, err)
-}
-
-func TestTaskProcessingCore_Shutdown_Idempotent(t *testing.T) {
-	t.Parallel()
-
-	config := DefaultDispatcherConfig()
-	core := NewTaskProcessingCore(config, nil, nil, nil)
-
-	ctx := context.Background()
-	assert.NoError(t, core.Shutdown(ctx))
-	assert.NoError(t, core.Shutdown(ctx))
-	assert.NoError(t, core.Shutdown(ctx))
-}
-
-func TestTaskProcessingCore_PersistTaskUpdate_NilStore(t *testing.T) {
-	t.Parallel()
-
-	config := DefaultDispatcherConfig()
-	core := NewTaskProcessingCore(config, nil, nil, nil)
-
-	core.PersistTaskUpdate(context.Background(), &Task{ID: "task-1"})
-}
-
-func TestTaskProcessingCore_PersistTaskUpdate_SyncMode(t *testing.T) {
-	t.Parallel()
-
-	store := NewFakeTaskStore()
-	config := DefaultDispatcherConfig()
-	config.SyncPersistence = true
-	core := NewTaskProcessingCore(config, nil, store, nil)
-
-	task := &Task{
-		ID:         "task-sync",
-		WorkflowID: "wf-1",
-		Status:     StatusComplete,
-	}
-	core.PersistTaskUpdate(context.Background(), task)
-
-	store.mu.Lock()
-	_, exists := store.tasks["task-sync"]
-	store.mu.Unlock()
-	assert.True(t, exists)
 }
 
 func TestTaskProcessingCore_PublishCompletionEvent_NilEventBus(t *testing.T) {
@@ -825,7 +734,6 @@ func TestTaskProcessingCore_HandleTaskSuccess(t *testing.T) {
 	eventBus := &MockEventBus{}
 	store := NewFakeTaskStore()
 	config := DefaultDispatcherConfig()
-	config.SyncPersistence = true
 	config.HeartbeatInterval = 0
 	core := NewTaskProcessingCore(config, eventBus, store, mockClock)
 
@@ -837,7 +745,6 @@ func TestTaskProcessingCore_HandleTaskSuccess(t *testing.T) {
 		Payload:    map[string]any{},
 		Result:     map[string]any{"data": "result"},
 	}
-	core.InFlightTasks.Store(task.ID, task)
 
 	startTime := mockClock.Now()
 	core.HandleTaskSuccess(context.Background(), task, startTime)
@@ -845,8 +752,7 @@ func TestTaskProcessingCore_HandleTaskSuccess(t *testing.T) {
 	assert.Equal(t, StatusComplete, task.Status)
 	assert.Empty(t, task.LastError)
 
-	_, loaded := core.InFlightTasks.Load(task.ID)
-	assert.False(t, loaded, "task should be removed from in-flight")
+	assert.Zero(t, core.PendingSettleCount(), "the settle was written, so nothing stays in flight")
 
 	assert.Equal(t, int64(1), core.TasksCompleted.Load())
 }
@@ -858,7 +764,6 @@ func TestTaskProcessingCore_HandleTaskFailure_NoRetriesLeft(t *testing.T) {
 	eventBus := &MockEventBus{}
 	store := NewFakeTaskStore()
 	config := DefaultDispatcherConfig()
-	config.SyncPersistence = true
 	config.HeartbeatInterval = 0
 	config.DefaultMaxRetries = 3
 	core := NewTaskProcessingCore(config, eventBus, store, mockClock)
@@ -871,7 +776,6 @@ func TestTaskProcessingCore_HandleTaskFailure_NoRetriesLeft(t *testing.T) {
 		Config:     TaskConfig{MaxRetries: 3},
 		Payload:    map[string]any{},
 	}
-	core.InFlightTasks.Store(task.ID, task)
 
 	startTime := mockClock.Now()
 	execErr := errors.New("permanent failure")
@@ -889,7 +793,6 @@ func TestTaskProcessingCore_HandleTaskFailure_WithRetries(t *testing.T) {
 	store := NewFakeTaskStore()
 	delayedPub := &MockDelayedPublisher{}
 	config := DefaultDispatcherConfig()
-	config.SyncPersistence = true
 	config.HeartbeatInterval = 0
 	config.DefaultMaxRetries = 3
 	core := NewTaskProcessingCore(config, nil, store, mockClock)
@@ -903,7 +806,6 @@ func TestTaskProcessingCore_HandleTaskFailure_WithRetries(t *testing.T) {
 		Config:     TaskConfig{MaxRetries: 3},
 		Payload:    map[string]any{},
 	}
-	core.InFlightTasks.Store(task.ID, task)
 
 	startTime := mockClock.Now()
 	execErr := errors.New("temporary failure")
@@ -913,8 +815,7 @@ func TestTaskProcessingCore_HandleTaskFailure_WithRetries(t *testing.T) {
 	assert.Equal(t, "temporary failure", task.LastError)
 	assert.Equal(t, int64(1), core.TasksRetried.Load())
 
-	_, loaded := core.InFlightTasks.Load(task.ID)
-	assert.False(t, loaded, "task should be removed from in-flight")
+	assert.Zero(t, core.PendingSettleCount(), "the settle was written, so nothing stays in flight")
 
 	assert.Equal(t, 1, int(delayedPub.ScheduleCallCount.Load()))
 }
@@ -924,7 +825,6 @@ func TestTaskProcessingCore_HandleExecutionResult_Success(t *testing.T) {
 
 	mockClock := clockpkg.NewMockClock(time.Date(2025, 6, 1, 12, 0, 0, 0, time.UTC))
 	config := DefaultDispatcherConfig()
-	config.SyncPersistence = true
 	config.HeartbeatInterval = 0
 	core := NewTaskProcessingCore(config, nil, NewFakeTaskStore(), mockClock)
 
@@ -936,7 +836,6 @@ func TestTaskProcessingCore_HandleExecutionResult_Success(t *testing.T) {
 		Payload:    map[string]any{},
 		Result:     map[string]any{},
 	}
-	core.InFlightTasks.Store(task.ID, task)
 
 	core.HandleExecutionResult(context.Background(), task, nil, mockClock.Now())
 	assert.Equal(t, StatusComplete, task.Status)
@@ -947,7 +846,6 @@ func TestTaskProcessingCore_HandleExecutionResult_Failure(t *testing.T) {
 
 	mockClock := clockpkg.NewMockClock(time.Date(2025, 6, 1, 12, 0, 0, 0, time.UTC))
 	config := DefaultDispatcherConfig()
-	config.SyncPersistence = true
 	config.HeartbeatInterval = 0
 	config.DefaultMaxRetries = 1
 	core := NewTaskProcessingCore(config, nil, NewFakeTaskStore(), mockClock)
@@ -960,134 +858,10 @@ func TestTaskProcessingCore_HandleExecutionResult_Failure(t *testing.T) {
 		Config:     TaskConfig{MaxRetries: 1},
 		Payload:    map[string]any{},
 	}
-	core.InFlightTasks.Store(task.ID, task)
 
 	execErr := errors.New("exec error")
 	core.HandleExecutionResult(context.Background(), task, execErr, mockClock.Now())
 	assert.Equal(t, StatusFailed, task.Status)
-}
-
-func TestTaskProcessingCore_PrepareTaskExecution(t *testing.T) {
-	t.Parallel()
-
-	mockClock := clockpkg.NewMockClock(time.Date(2025, 6, 1, 12, 0, 0, 0, time.UTC))
-	store := NewFakeTaskStore()
-	config := DefaultDispatcherConfig()
-	config.SyncPersistence = true
-	config.HeartbeatInterval = 0
-	core := NewTaskProcessingCore(config, nil, store, mockClock)
-
-	task := &Task{
-		ID:         "prep-task",
-		WorkflowID: "wf-prep",
-		Status:     StatusPending,
-		Attempt:    0,
-		Config:     TaskConfig{Timeout: 10 * time.Minute},
-		Payload:    map[string]any{},
-	}
-
-	timeout := core.PrepareTaskExecution(context.Background(), task)
-
-	assert.Equal(t, 1, task.Attempt)
-	assert.Equal(t, StatusProcessing, task.Status)
-	assert.Equal(t, 10*time.Minute, timeout)
-
-	_, loaded := core.InFlightTasks.Load(task.ID)
-	assert.True(t, loaded, "task should be tracked as in-flight")
-}
-
-func TestTaskProcessingCore_PrepareTaskExecution_DefaultTimeout(t *testing.T) {
-	t.Parallel()
-
-	mockClock := clockpkg.NewMockClock(time.Date(2025, 6, 1, 12, 0, 0, 0, time.UTC))
-	config := DefaultDispatcherConfig()
-	config.SyncPersistence = true
-	config.HeartbeatInterval = 0
-	core := NewTaskProcessingCore(config, nil, NewFakeTaskStore(), mockClock)
-
-	task := &Task{
-		ID:         "prep-default-timeout",
-		WorkflowID: "wf",
-		Status:     StatusPending,
-		Attempt:    0,
-		Config:     TaskConfig{},
-		Payload:    map[string]any{},
-	}
-
-	timeout := core.PrepareTaskExecution(context.Background(), task)
-	assert.Equal(t, config.DefaultTimeout, timeout)
-}
-
-func TestTaskProcessingCore_ExecuteTask_Success(t *testing.T) {
-	t.Parallel()
-
-	core := &TaskProcessingCore{}
-	executor := &RecordingExecutor{}
-	task := &Task{
-		ID:      "exec-task",
-		Payload: map[string]any{"taskID": "exec-task"},
-		Result:  map[string]any{},
-	}
-
-	err := core.ExecuteTask(context.Background(), task, executor, 5*time.Second)
-	assert.NoError(t, err)
-	assert.Equal(t, "ok", task.Result["status"])
-}
-
-func TestTaskProcessingCore_ExecuteTask_Error(t *testing.T) {
-	t.Parallel()
-
-	core := &TaskProcessingCore{}
-	executor := &AlwaysFailExecutor{}
-	task := &Task{
-		ID:      "exec-fail-task",
-		Payload: map[string]any{},
-		Result:  map[string]any{},
-	}
-
-	err := core.ExecuteTask(context.Background(), task, executor, 5*time.Second)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "always fails")
-}
-
-func TestTaskProcessingCore_ExecuteTask_Timeout(t *testing.T) {
-	t.Parallel()
-
-	core := &TaskProcessingCore{}
-	executor := &HangingExecutor{}
-	task := &Task{
-		ID:      "exec-timeout-task",
-		Payload: map[string]any{},
-		Result:  map[string]any{},
-	}
-
-	err := core.ExecuteTask(context.Background(), task, executor, 50*time.Millisecond)
-	assert.Error(t, err)
-}
-
-func TestTaskProcessingCore_ReleaseInFlightTasks(t *testing.T) {
-	t.Parallel()
-
-	mockClock := clockpkg.NewMockClock(time.Date(2025, 6, 1, 12, 0, 0, 0, time.UTC))
-	store := NewFakeTaskStore()
-	config := DefaultDispatcherConfig()
-	config.SyncPersistence = true
-	config.HeartbeatInterval = 0
-	core := NewTaskProcessingCore(config, nil, store, mockClock)
-
-	task1 := &Task{ID: "flight-1", WorkflowID: "wf-1", Status: StatusProcessing, Payload: map[string]any{}}
-	task2 := &Task{ID: "flight-2", WorkflowID: "wf-2", Status: StatusProcessing, Payload: map[string]any{}}
-	core.InFlightTasks.Store(task1.ID, task1)
-	core.InFlightTasks.Store(task2.ID, task2)
-
-	ctx, cancel := context.WithTimeoutCause(context.Background(), 5*time.Second, fmt.Errorf("test: releasing in-flight tasks"))
-	defer cancel()
-
-	core.ReleaseInFlightTasks(ctx)
-
-	assert.Equal(t, StatusPending, task1.Status)
-	assert.Equal(t, StatusPending, task2.Status)
-	assert.Equal(t, 0, core.InFlightCount())
 }
 
 func TestTaskProcessingCore_RecoverStaleTasks_NilStore(t *testing.T) {
@@ -1099,17 +873,6 @@ func TestTaskProcessingCore_RecoverStaleTasks_NilStore(t *testing.T) {
 	retry, err := core.RecoverStaleTasks(context.Background())
 	assert.NoError(t, err)
 	assert.Empty(t, retry)
-}
-
-func TestTaskProcessingCore_ReleaseRecoveryLeases_NilStore(t *testing.T) {
-	t.Parallel()
-
-	config := DefaultDispatcherConfig()
-	core := NewTaskProcessingCore(config, nil, nil, nil)
-
-	count, err := core.ReleaseRecoveryLeases(context.Background())
-	assert.NoError(t, err)
-	assert.Equal(t, 0, count)
 }
 
 func TestTaskProcessingCore_PersistWithDedup_NilStore(t *testing.T) {
@@ -1127,7 +890,6 @@ func TestTaskProcessingCore_PersistWithDedup_SyncMode(t *testing.T) {
 
 	store := NewFakeTaskStore()
 	config := DefaultDispatcherConfig()
-	config.SyncPersistence = true
 	core := NewTaskProcessingCore(config, nil, store, nil)
 
 	task := &Task{
@@ -1152,7 +914,6 @@ func TestTaskProcessingCore_PersistWithDedup_DuplicateBlocked(t *testing.T) {
 
 	store := NewFakeTaskStore()
 	config := DefaultDispatcherConfig()
-	config.SyncPersistence = true
 	core := NewTaskProcessingCore(config, nil, store, nil)
 
 	existing := &Task{
@@ -1175,28 +936,6 @@ func TestTaskProcessingCore_PersistWithDedup_DuplicateBlocked(t *testing.T) {
 
 	err = core.PersistWithDedup(context.Background(), duplicate)
 	assert.ErrorIs(t, err, ErrDuplicateTask)
-}
-
-func TestTaskProcessingCore_StartHeartbeat_Disabled(t *testing.T) {
-	t.Parallel()
-
-	config := DefaultDispatcherConfig()
-	config.HeartbeatInterval = 0
-	core := NewTaskProcessingCore(config, nil, NewFakeTaskStore(), nil)
-
-	core.StartHeartbeat(context.Background(), "task-1")
-
-	core.stopHeartbeat("task-1")
-}
-
-func TestTaskProcessingCore_StartHeartbeat_NilStore(t *testing.T) {
-	t.Parallel()
-
-	config := DefaultDispatcherConfig()
-	config.HeartbeatInterval = 30 * time.Second
-	core := NewTaskProcessingCore(config, nil, nil, nil)
-
-	core.StartHeartbeat(context.Background(), "task-1")
 }
 
 func TestCompletionEventData_Fields(t *testing.T) {
@@ -1289,20 +1028,6 @@ func TestWorkflowSummary_PopulatedFields(t *testing.T) {
 	assert.Equal(t, int64(1), ws.ActiveCount)
 }
 
-func TestRecoveryClaimedTask_Fields(t *testing.T) {
-	t.Parallel()
-
-	rct := RecoveryClaimedTask{
-		ID:         "task-1",
-		WorkflowID: "wf-1",
-		Attempt:    3,
-	}
-
-	assert.Equal(t, "task-1", rct.ID)
-	assert.Equal(t, "wf-1", rct.WorkflowID)
-	assert.Equal(t, int32(3), rct.Attempt)
-}
-
 func TestPendingReceipt_Fields(t *testing.T) {
 	t.Parallel()
 
@@ -1325,7 +1050,6 @@ func TestDispatcherConfig_AllFields(t *testing.T) {
 	config := DefaultDispatcherConfig()
 
 	assert.Equal(t, 30*time.Second, config.HeartbeatInterval)
-	assert.Equal(t, 5*time.Minute, config.RecoveryLeaseTimeout)
 	assert.Equal(t, 100, config.RecoveryBatchLimit)
 	assert.Empty(t, config.NodeID)
 }
@@ -1340,12 +1064,10 @@ func TestDispatcherConfig_CustomValues(t *testing.T) {
 		RecoveryInterval:        1 * time.Minute,
 		StaleTaskThreshold:      30 * time.Minute,
 		HeartbeatInterval:       15 * time.Second,
-		RecoveryLeaseTimeout:    10 * time.Minute,
 		RecoveryBatchLimit:      50,
 		WatermillHighHandlers:   20,
 		WatermillNormalHandlers: 10,
 		WatermillLowHandlers:    4,
-		SyncPersistence:         true,
 	}
 
 	assert.Equal(t, "custom-node", config.NodeID)
@@ -1354,12 +1076,10 @@ func TestDispatcherConfig_CustomValues(t *testing.T) {
 	assert.Equal(t, 1*time.Minute, config.RecoveryInterval)
 	assert.Equal(t, 30*time.Minute, config.StaleTaskThreshold)
 	assert.Equal(t, 15*time.Second, config.HeartbeatInterval)
-	assert.Equal(t, 10*time.Minute, config.RecoveryLeaseTimeout)
 	assert.Equal(t, 50, config.RecoveryBatchLimit)
 	assert.Equal(t, 20, config.WatermillHighHandlers)
 	assert.Equal(t, 10, config.WatermillNormalHandlers)
 	assert.Equal(t, 4, config.WatermillLowHandlers)
-	assert.True(t, config.SyncPersistence)
 }
 
 func TestDispatcherStats_PopulatedValues(t *testing.T) {
@@ -1392,7 +1112,7 @@ func TestNewDelayedTaskPublisher(t *testing.T) {
 	t.Parallel()
 
 	mockClock := clockpkg.NewMockClock(time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC))
-	dispatchFunc := func(_ context.Context, _ *Task) error { return nil }
+	dispatchFunc := func(_ context.Context, _ TaskRef) error { return nil }
 
 	publisher := NewDelayedTaskPublisher(dispatchFunc, mockClock)
 	require.NotNil(t, publisher)
@@ -1540,14 +1260,10 @@ func TestTask_DeduplicationKey(t *testing.T) {
 	t.Parallel()
 
 	task := NewTask("exec", map[string]any{})
-	defer TaskPool.Put(task)
 	assert.Empty(t, task.DeduplicationKey)
 
 	task.DeduplicationKey = "my-dedup-key"
 	assert.Equal(t, "my-dedup-key", task.DeduplicationKey)
-
-	task.Reset()
-	assert.Empty(t, task.DeduplicationKey)
 }
 
 func TestTaskProcessingCore_ConcurrentExecutorAccess(t *testing.T) {
@@ -1570,22 +1286,8 @@ func TestTaskProcessingCore_ConcurrentExecutorAccess(t *testing.T) {
 	wg.Wait()
 }
 
-func TestTaskProcessingCore_Shutdown_ContextTimeout(t *testing.T) {
-	t.Parallel()
-
-	store := NewFakeTaskStore()
-	config := DefaultDispatcherConfig()
-	config.SyncPersistence = false
-	core := NewTaskProcessingCore(config, nil, store, nil)
-
-	ctx, cancel := context.WithTimeoutCause(context.Background(), 2*time.Second, fmt.Errorf("test: shutdown with async persistence"))
-	defer cancel()
-
-	err := core.Shutdown(ctx)
-	assert.NoError(t, err)
-}
-
 type failingTaskStore struct {
+	UnimplementedTaskStoreV2
 	createErr error
 }
 
@@ -1597,9 +1299,6 @@ func (f *failingTaskStore) UpdateTask(_ context.Context, _ *Task) error { return
 func (f *failingTaskStore) GetTasksByID(_ context.Context, _ []string) ([]*Task, error) {
 	return nil, nil
 }
-func (f *failingTaskStore) FetchAndMarkDueTasks(_ context.Context, _ TaskPriority, _ int) ([]*Task, error) {
-	return nil, nil
-}
 func (f *failingTaskStore) GetWorkflowStatus(_ context.Context, _ string) (bool, error) {
 	return false, nil
 }
@@ -1609,22 +1308,6 @@ func (f *failingTaskStore) PromoteScheduledTasks(_ context.Context) (int, error)
 }
 func (f *failingTaskStore) CreateTaskWithDedup(_ context.Context, _ *Task) error {
 	return f.createErr
-}
-func (f *failingTaskStore) RecoverStaleTasks(_ context.Context, _ time.Duration, _ int, _ string) (int, error) {
-	return 0, nil
-}
-func (f *failingTaskStore) GetStaleProcessingTaskCount(_ context.Context, _ time.Duration) (int64, error) {
-	return 0, nil
-}
-func (f *failingTaskStore) UpdateTaskHeartbeat(_ context.Context, _ string) error { return nil }
-func (f *failingTaskStore) ClaimStaleTasksForRecovery(_ context.Context, _ string, _ time.Duration, _ time.Duration, _ int) ([]RecoveryClaimedTask, error) {
-	return nil, nil
-}
-func (f *failingTaskStore) RecoverClaimedTasks(_ context.Context, _ string, _ int, _ string) (int, error) {
-	return 0, nil
-}
-func (f *failingTaskStore) ReleaseRecoveryLeases(_ context.Context, _ string) (int, error) {
-	return 0, nil
 }
 func (f *failingTaskStore) CreateWorkflowReceipt(_ context.Context, _, _, _ string) error {
 	return nil
@@ -1656,7 +1339,6 @@ func TestTaskProcessingCore_HandleTaskFailure_FatalError(t *testing.T) {
 	eventBus := &MockEventBus{}
 	store := NewFakeTaskStore()
 	config := DefaultDispatcherConfig()
-	config.SyncPersistence = true
 	config.HeartbeatInterval = 0
 	config.DefaultMaxRetries = 3
 	core := NewTaskProcessingCore(config, eventBus, store, mockClock)
@@ -1669,7 +1351,6 @@ func TestTaskProcessingCore_HandleTaskFailure_FatalError(t *testing.T) {
 		Config:     TaskConfig{MaxRetries: 3},
 		Payload:    map[string]any{},
 	}
-	core.InFlightTasks.Store(task.ID, task)
 
 	startTime := mockClock.Now()
 	execErr := NewFatalError(errors.New("parse error: invalid syntax"))
@@ -1682,8 +1363,7 @@ func TestTaskProcessingCore_HandleTaskFailure_FatalError(t *testing.T) {
 	assert.Equal(t, int64(1), core.TasksFatalFailed.Load())
 	assert.Equal(t, int64(0), core.TasksRetried.Load(), "fatal errors should not trigger retries")
 
-	_, loaded := core.InFlightTasks.Load(task.ID)
-	assert.False(t, loaded, "task should be removed from in-flight after fatal failure")
+	assert.Zero(t, core.PendingSettleCount(), "the settle was written, so nothing stays in flight")
 }
 
 func TestTaskProcessingCore_HandleTaskFailure_FatalError_FirstAttempt(t *testing.T) {
@@ -1693,7 +1373,6 @@ func TestTaskProcessingCore_HandleTaskFailure_FatalError_FirstAttempt(t *testing
 	eventBus := &MockEventBus{}
 	store := NewFakeTaskStore()
 	config := DefaultDispatcherConfig()
-	config.SyncPersistence = true
 	config.HeartbeatInterval = 0
 	config.DefaultMaxRetries = 1
 	core := NewTaskProcessingCore(config, eventBus, store, mockClock)
@@ -1706,7 +1385,6 @@ func TestTaskProcessingCore_HandleTaskFailure_FatalError_FirstAttempt(t *testing
 		Config:     TaskConfig{MaxRetries: 1},
 		Payload:    map[string]any{},
 	}
-	core.InFlightTasks.Store(task.ID, task)
 
 	startTime := mockClock.Now()
 	execErr := NewFatalError(errors.New("parse error: unexpected token"))
@@ -1719,8 +1397,7 @@ func TestTaskProcessingCore_HandleTaskFailure_FatalError_FirstAttempt(t *testing
 	assert.Equal(t, int64(1), core.TasksFatalFailed.Load())
 	assert.Equal(t, int64(0), core.TasksRetried.Load())
 
-	_, loaded := core.InFlightTasks.Load(task.ID)
-	assert.False(t, loaded, "task should be removed from in-flight")
+	assert.Zero(t, core.PendingSettleCount(), "the settle was written, so nothing stays in flight")
 }
 
 func TestTaskProcessingCore_HandleTaskFailure_NonFatalError_StillRetries(t *testing.T) {
@@ -1730,7 +1407,6 @@ func TestTaskProcessingCore_HandleTaskFailure_NonFatalError_StillRetries(t *test
 	store := NewFakeTaskStore()
 	delayedPub := &MockDelayedPublisher{}
 	config := DefaultDispatcherConfig()
-	config.SyncPersistence = true
 	config.HeartbeatInterval = 0
 	config.DefaultMaxRetries = 3
 	core := NewTaskProcessingCore(config, nil, store, mockClock)
@@ -1744,7 +1420,6 @@ func TestTaskProcessingCore_HandleTaskFailure_NonFatalError_StillRetries(t *test
 		Config:     TaskConfig{MaxRetries: 3},
 		Payload:    map[string]any{},
 	}
-	core.InFlightTasks.Store(task.ID, task)
 
 	startTime := mockClock.Now()
 	execErr := errors.New("transient failure")
@@ -1755,8 +1430,7 @@ func TestTaskProcessingCore_HandleTaskFailure_NonFatalError_StillRetries(t *test
 	assert.Equal(t, int64(1), core.TasksRetried.Load())
 	assert.Equal(t, int64(0), core.TasksFatalFailed.Load(), "non-fatal errors should not increment TasksFatalFailed")
 
-	_, loaded := core.InFlightTasks.Load(task.ID)
-	assert.False(t, loaded, "task should be removed from in-flight after scheduling retry")
+	assert.Zero(t, core.PendingSettleCount(), "the settle was written, so nothing stays in flight")
 
 	assert.Equal(t, 1, int(delayedPub.ScheduleCallCount.Load()))
 }
@@ -1771,217 +1445,4 @@ func TestTaskProcessingCore_Stats_IncludesFatalFailed(t *testing.T) {
 
 	ps := core.Stats()
 	assert.Equal(t, int64(2), ps.FatalFailed, "Stats() should return TasksFatalFailed in FatalFailed field")
-}
-
-type slowMockTaskStore struct {
-	gate         chan struct{}
-	inFlight     atomic.Int64
-	peakInFlight atomic.Int64
-}
-
-func newSlowMockTaskStore() *slowMockTaskStore {
-	return &slowMockTaskStore{
-		gate: make(chan struct{}),
-	}
-}
-
-func (s *slowMockTaskStore) trackEntry() {
-	current := s.inFlight.Add(1)
-	for {
-		peak := s.peakInFlight.Load()
-		if current <= peak || s.peakInFlight.CompareAndSwap(peak, current) {
-			break
-		}
-	}
-}
-
-func (s *slowMockTaskStore) trackExit() {
-	s.inFlight.Add(-1)
-}
-
-func (s *slowMockTaskStore) PeakInFlight() int64 {
-	return s.peakInFlight.Load()
-}
-
-func (s *slowMockTaskStore) Release() {
-	close(s.gate)
-}
-
-func (s *slowMockTaskStore) blockUntilReleased(ctx context.Context) {
-	select {
-	case <-s.gate:
-	case <-ctx.Done():
-	}
-}
-
-func (s *slowMockTaskStore) CreateTask(_ context.Context, _ *Task) error    { return nil }
-func (s *slowMockTaskStore) CreateTasks(_ context.Context, _ []*Task) error { return nil }
-func (s *slowMockTaskStore) UpdateTask(ctx context.Context, _ *Task) error {
-	s.trackEntry()
-	defer s.trackExit()
-	s.blockUntilReleased(ctx)
-	return nil
-}
-func (s *slowMockTaskStore) GetTasksByID(_ context.Context, _ []string) ([]*Task, error) {
-	return nil, nil
-}
-func (s *slowMockTaskStore) FetchAndMarkDueTasks(_ context.Context, _ TaskPriority, _ int) ([]*Task, error) {
-	return nil, nil
-}
-func (s *slowMockTaskStore) GetWorkflowStatus(_ context.Context, _ string) (bool, error) {
-	return false, nil
-}
-func (s *slowMockTaskStore) PromoteScheduledTasks(_ context.Context) (int, error) { return 0, nil }
-func (s *slowMockTaskStore) PendingTaskCount(_ context.Context) (int64, error)    { return 0, nil }
-func (s *slowMockTaskStore) CreateTaskWithDedup(ctx context.Context, _ *Task) error {
-	s.trackEntry()
-	defer s.trackExit()
-	s.blockUntilReleased(ctx)
-	return nil
-}
-func (s *slowMockTaskStore) RecoverStaleTasks(_ context.Context, _ time.Duration, _ int, _ string) (int, error) {
-	return 0, nil
-}
-func (s *slowMockTaskStore) GetStaleProcessingTaskCount(_ context.Context, _ time.Duration) (int64, error) {
-	return 0, nil
-}
-func (s *slowMockTaskStore) UpdateTaskHeartbeat(_ context.Context, _ string) error { return nil }
-func (s *slowMockTaskStore) ClaimStaleTasksForRecovery(_ context.Context, _ string, _ time.Duration, _ time.Duration, _ int) ([]RecoveryClaimedTask, error) {
-	return nil, nil
-}
-func (s *slowMockTaskStore) RecoverClaimedTasks(_ context.Context, _ string, _ int, _ string) (int, error) {
-	return 0, nil
-}
-func (s *slowMockTaskStore) ReleaseRecoveryLeases(_ context.Context, _ string) (int, error) {
-	return 0, nil
-}
-func (s *slowMockTaskStore) CreateWorkflowReceipt(_ context.Context, _, _, _ string) error {
-	return nil
-}
-func (s *slowMockTaskStore) ResolveWorkflowReceipts(_ context.Context, _, _ string) (int, error) {
-	return 0, nil
-}
-func (s *slowMockTaskStore) GetPendingReceiptsByNode(_ context.Context, _ string) ([]PendingReceipt, error) {
-	return nil, nil
-}
-func (s *slowMockTaskStore) CleanupOldResolvedReceipts(_ context.Context, _ time.Time) (int, error) {
-	return 0, nil
-}
-func (s *slowMockTaskStore) TimeoutStaleReceipts(_ context.Context, _ time.Time) (int, error) {
-	return 0, nil
-}
-func (s *slowMockTaskStore) ListFailedTasks(_ context.Context) ([]*Task, error) {
-	return nil, nil
-}
-func (s *slowMockTaskStore) RunAtomic(ctx context.Context, fn func(ctx context.Context, transactionStore TaskStore) error) error {
-	return fn(ctx, s)
-}
-
-func TestPersistFanout_RespectsConcurrencyLimit(t *testing.T) {
-	t.Parallel()
-
-	const persistCap = 4
-
-	store := newSlowMockTaskStore()
-
-	config := DefaultDispatcherConfig()
-	config.MaxConcurrentPersistJobs = persistCap
-	core := NewTaskProcessingCore(config, nil, store, nil)
-
-	t.Cleanup(func() {
-		shutdownCtx, cancel := context.WithTimeoutCause(context.Background(),
-			5*time.Second, errors.New("test cleanup persist shutdown timeout"))
-		defer cancel()
-		store.Release()
-		_ = core.Shutdown(shutdownCtx)
-	})
-
-	for i := range persistCap {
-		core.PersistTaskUpdate(context.Background(), &Task{
-			ID:         fmt.Sprintf("task-%d", i),
-			WorkflowID: "wf-1",
-			Status:     StatusComplete,
-			Payload:    map[string]any{},
-		})
-	}
-
-	deadline := time.Now().Add(2 * time.Second)
-	for time.Now().Before(deadline) {
-		if store.inFlight.Load() >= int64(persistCap) {
-			break
-		}
-		time.Sleep(5 * time.Millisecond)
-	}
-
-	assert.Equal(t, int64(persistCap), store.inFlight.Load(),
-		"all async permits should be in flight together, none more")
-	assert.Equal(t, int64(persistCap), store.PeakInFlight(),
-		"peak should equal cap when only async dispatches were issued")
-}
-
-func TestPersistFanout_FallsBackToSyncWhenSaturated(t *testing.T) {
-	t.Parallel()
-
-	const persistCap = 2
-
-	store := newSlowMockTaskStore()
-
-	config := DefaultDispatcherConfig()
-	config.MaxConcurrentPersistJobs = persistCap
-	core := NewTaskProcessingCore(config, nil, store, nil)
-
-	t.Cleanup(func() {
-		shutdownCtx, cancel := context.WithTimeoutCause(context.Background(),
-			5*time.Second, errors.New("test cleanup persist shutdown timeout"))
-		defer cancel()
-		store.Release()
-		_ = core.Shutdown(shutdownCtx)
-	})
-
-	for i := range persistCap {
-		core.PersistTaskUpdate(context.Background(), &Task{
-			ID:         fmt.Sprintf("async-%d", i),
-			WorkflowID: "wf-1",
-			Status:     StatusComplete,
-			Payload:    map[string]any{},
-		})
-	}
-
-	deadline := time.Now().Add(2 * time.Second)
-	for time.Now().Before(deadline) {
-		if store.inFlight.Load() >= int64(persistCap) {
-			break
-		}
-		time.Sleep(5 * time.Millisecond)
-	}
-	require.Equal(t, int64(persistCap), store.inFlight.Load(),
-		"async dispatches should occupy all permits before saturation test runs")
-
-	syncDone := make(chan struct{})
-	go func() {
-		core.PersistTaskUpdate(context.Background(), &Task{
-			ID:         "sync-fallback",
-			WorkflowID: "wf-1",
-			Status:     StatusComplete,
-			Payload:    map[string]any{},
-		})
-		close(syncDone)
-	}()
-
-	deadline = time.Now().Add(2 * time.Second)
-	for time.Now().Before(deadline) {
-		if store.inFlight.Load() > int64(persistCap) {
-			break
-		}
-		time.Sleep(5 * time.Millisecond)
-	}
-
-	assert.GreaterOrEqual(t, store.inFlight.Load(), int64(persistCap+1),
-		"saturated caller should run synchronously and add to in-flight count")
-
-	select {
-	case <-syncDone:
-		t.Fatal("synchronous fallback should still be blocked on the gate")
-	default:
-	}
 }

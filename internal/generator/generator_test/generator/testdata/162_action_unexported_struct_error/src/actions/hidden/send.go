@@ -24,8 +24,6 @@ type SendOutput struct {
 	Sent bool `json:"sent"`
 }
 
-// sendAction is unexported, so the generated action registry, which lives in another
-// package, cannot name it.
 type sendAction struct {
 	piko.ActionMetadata
 }

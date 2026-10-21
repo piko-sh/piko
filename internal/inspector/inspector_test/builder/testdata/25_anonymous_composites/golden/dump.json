@@ -21,7 +21,7 @@
               "name": "Meta",
               "type_string": "struct{Status int; Message string}",
               "raw_tag": "",
-              "definition_line": 23,
+              "definition_line": 22,
               "definition_column": 2,
               "is_internal_type": false,
               "is_embedded": false,
@@ -51,7 +51,7 @@
               "name": "Task",
               "type_string": "interface{Run() error}",
               "raw_tag": "",
-              "definition_line": 31,
+              "definition_line": 29,
               "definition_column": 2,
               "is_internal_type": false,
               "is_embedded": false,
@@ -62,7 +62,7 @@
           "type_params": [],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 29,
+          "definition_line": 28,
           "definition_column": 6
         }
       },

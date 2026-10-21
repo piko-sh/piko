@@ -5,9 +5,9 @@ package db
 import "context"
 
 const cleanupoldresolvedreceipts = `DELETE FROM orchestrator_workflow_receipts
-WHERE status = 'RESOLVED' AND resolved_at < $1;`
+WHERE id IN (SELECT id FROM orchestrator_workflow_receipts WHERE status IN ('RESOLVED', 'TIMED_OUT') AND COALESCE(resolved_at, updated_at) < $1 ORDER BY COALESCE(resolved_at, updated_at), id LIMIT 100);`
 
-func (queries *Queries) CleanupOldResolvedReceipts(ctx context.Context, resolvedAt *int64) (int64, error) {
+func (queries *Queries) CleanupOldResolvedReceipts(ctx context.Context, resolvedAt int64) (int64, error) {
 	results, err := queries.writer.ExecContext(ctx, cleanupoldresolvedreceipts, resolvedAt)
 	if err != nil {
 		return 0, err
@@ -17,28 +17,38 @@ func (queries *Queries) CleanupOldResolvedReceipts(ctx context.Context, resolved
 
 const listfailedtasks = `SELECT
     id, workflow_id, executor, priority,
-    payload,
-    config,
-    result, status, execute_at, attempt, last_error, created_at, updated_at, deduplication_key
+    payload, config,
+    result, status, execute_at, attempt, last_error, created_at, updated_at, deduplication_key,
+    build_tag, is_fatal, scheduled_execute_at, background, owner_instance, last_published_at,
+    rerun_id, rerun_payload, rerun_config
 FROM orchestrator_tasks
 WHERE status = 'FAILED'
 ORDER BY updated_at DESC;`
 
 type ListFailedTasksRow struct {
-	ID               string  `json:"id"`
-	WorkflowID       string  `json:"workflow_id"`
-	Executor         string  `json:"executor"`
-	Priority         int32   `json:"priority"`
-	Payload          string  `json:"payload"`
-	Config           string  `json:"config"`
-	Result           *string `json:"result"`
-	Status           string  `json:"status"`
-	ExecuteAt        int64   `json:"execute_at"`
-	Attempt          int32   `json:"attempt"`
-	LastError        *string `json:"last_error"`
-	CreatedAt        int64   `json:"created_at"`
-	UpdatedAt        int64   `json:"updated_at"`
-	DeduplicationKey *string `json:"deduplication_key"`
+	ID                 string  `json:"id"`
+	WorkflowID         string  `json:"workflow_id"`
+	Executor           string  `json:"executor"`
+	Priority           int32   `json:"priority"`
+	Payload            string  `json:"payload"`
+	Config             string  `json:"config"`
+	Result             *string `json:"result"`
+	Status             string  `json:"status"`
+	ExecuteAt          int64   `json:"execute_at"`
+	Attempt            int32   `json:"attempt"`
+	LastError          *string `json:"last_error"`
+	CreatedAt          int64   `json:"created_at"`
+	UpdatedAt          int64   `json:"updated_at"`
+	DeduplicationKey   *string `json:"deduplication_key"`
+	BuildTag           string  `json:"build_tag"`
+	IsFatal            bool    `json:"is_fatal"`
+	ScheduledExecuteAt int64   `json:"scheduled_execute_at"`
+	Background         bool    `json:"background"`
+	OwnerInstance      string  `json:"owner_instance"`
+	LastPublishedAt    int64   `json:"last_published_at"`
+	RerunID            *string `json:"rerun_id"`
+	RerunPayload       *string `json:"rerun_payload"`
+	RerunConfig        *string `json:"rerun_config"`
 }
 
 func (queries *Queries) ListFailedTasks(ctx context.Context) ([]ListFailedTasksRow, error) {
@@ -50,7 +60,7 @@ func (queries *Queries) ListFailedTasks(ctx context.Context) ([]ListFailedTasksR
 	var results []ListFailedTasksRow
 	for rows.Next() {
 		var row ListFailedTasksRow
-		if err := rows.Scan(&row.ID, &row.WorkflowID, &row.Executor, &row.Priority, &row.Payload, &row.Config, &row.Result, &row.Status, &row.ExecuteAt, &row.Attempt, &row.LastError, &row.CreatedAt, &row.UpdatedAt, &row.DeduplicationKey); err != nil {
+		if err := rows.Scan(&row.ID, &row.WorkflowID, &row.Executor, &row.Priority, &row.Payload, &row.Config, &row.Result, &row.Status, &row.ExecuteAt, &row.Attempt, &row.LastError, &row.CreatedAt, &row.UpdatedAt, &row.DeduplicationKey, &row.BuildTag, &row.IsFatal, &row.ScheduledExecuteAt, &row.Background, &row.OwnerInstance, &row.LastPublishedAt, &row.RerunID, &row.RerunPayload, &row.RerunConfig); err != nil {
 			return nil, err
 		}
 		results = append(results, row)
@@ -63,7 +73,7 @@ func (queries *Queries) ListFailedTasks(ctx context.Context) ([]ListFailedTasksR
 
 const timeoutstalereceipts = `UPDATE orchestrator_workflow_receipts
 SET status = 'TIMED_OUT', updated_at = $1
-WHERE status = 'PENDING' AND created_at < $2;`
+WHERE id IN (SELECT id FROM orchestrator_workflow_receipts WHERE status = 'PENDING' AND created_at < $2 ORDER BY created_at, id LIMIT 500);`
 
 type TimeoutStaleReceiptsParams struct {
 	UpdatedAt int64

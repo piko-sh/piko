@@ -29,7 +29,7 @@ import (
 	"unicode/utf8"
 
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (
@@ -897,8 +897,6 @@ func (l *lexer) advanceWithLineCount(consumed string) {
 // lexInto splits input text into tokens and adds them to the given slice. The caller owns
 // the returned slice and may reuse it in later calls.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes input (string) which contains the text to split into tokens.
 // Takes tokens ([]lexerToken) which provides the slice to add tokens to.
 //

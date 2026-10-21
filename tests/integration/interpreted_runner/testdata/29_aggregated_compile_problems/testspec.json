@@ -1,0 +1,16 @@
+{
+  "description": "Tests that dev-i reports every compile problem of a project in one startup error: two packages embedding files without a //go:build !interp guard, and a package whose //go:build interp file does not type-check. Each problem is listed with an actionable hint.",
+  "requestURL": "/main",
+  "shouldGenerateError": true,
+  "errorContainsAll": [
+    "dev-i could not compile",
+    "3 problems",
+    "gallery.go",
+    "archive.go",
+    "pkg/feeds",
+    "undefinedLoader",
+    "//go:build !interp",
+    "//go:build interp"
+  ],
+  "isFragment": false
+}

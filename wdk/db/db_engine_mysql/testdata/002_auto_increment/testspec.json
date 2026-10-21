@@ -1,3 +1,0 @@
-{
-  "description": "AUTO_INCREMENT column modifier in CREATE TABLE. Tests INSERT without RETURNING clause since MySQL does not support it."
-}

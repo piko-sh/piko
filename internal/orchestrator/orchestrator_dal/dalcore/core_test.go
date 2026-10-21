@@ -85,43 +85,56 @@ func (t *txDoneTx) Rollback() error {
 	return nil
 }
 
-type stubDriver struct{}
+type noopCASDriver struct{}
+
+func (noopCASDriver) ClaimTask(context.Context, ClaimTaskParams) (TaskRow, bool, error) {
+	return TaskRow{}, false, nil
+}
+func (noopCASDriver) SettleTask(context.Context, TaskWriteParams) (TaskRow, bool, error) {
+	return TaskRow{}, false, nil
+}
+func (noopCASDriver) TransitionTask(context.Context, TaskWriteParams, []string) (TaskRow, bool, error) {
+	return TaskRow{}, false, nil
+}
+func (noopCASDriver) ClearRerun(context.Context, string) error                      { return nil }
+func (noopCASDriver) RequestRerun(context.Context, RerunParams) (int64, error)      { return 0, nil }
+func (noopCASDriver) CountUnsettledForBuild(context.Context, string) (int64, error) { return 0, nil }
+func (noopCASDriver) ListFailedForBuild(context.Context, string) ([]TaskRow, error) {
+	return nil, nil
+}
+func (noopCASDriver) DispatchablePage(context.Context, DispatchPageParams) ([]TaskRow, error) {
+	return nil, nil
+}
+func (noopCASDriver) MarkPublished(context.Context, int64, []string) error { return nil }
+func (noopCASDriver) ListOrphanedTasks(context.Context, int64, int64, int) ([]TaskRow, error) {
+	return nil, nil
+}
+func (noopCASDriver) PurgeTerminal(context.Context, int64, int) (int64, error)       { return 0, nil }
+func (noopCASDriver) UpsertNode(context.Context, NodeLeaseParams) error              { return nil }
+func (noopCASDriver) RenewNode(context.Context, NodeLeaseParams) (int64, error)      { return 0, nil }
+func (noopCASDriver) DeleteNode(context.Context, string) error                       { return nil }
+func (noopCASDriver) ListExpiredNodes(context.Context, int64, int) ([]string, error) { return nil, nil }
+func (noopCASDriver) TouchOwned(context.Context, string, int64) (int64, error)       { return 0, nil }
+func (noopCASDriver) IsTransient(error) bool                                         { return false }
+
+type stubDriver struct{ noopCASDriver }
 
 func (s stubDriver) WithTx(_ *sql.Tx) Driver { return s }
 
 func (stubDriver) CreateTask(context.Context, CreateTaskParams) error              { return nil }
 func (stubDriver) CreateTasksBatch(context.Context, []CreateTaskBatchParams) error { return nil }
-func (stubDriver) UpdateTask(context.Context, UpdateTaskParams) error              { return nil }
-func (stubDriver) CreateWithDedup(context.Context, CreateTaskParams, string) (bool, error) {
+func (stubDriver) UpdateTask(context.Context, UpdateTaskParams) (int64, error)     { return 1, nil }
+func (stubDriver) CreateWithDedup(context.Context, CreateTaskParams) (bool, error) {
 	return false, nil
 }
-func (stubDriver) FetchDueTasks(context.Context, FetchDueTasksParams) ([]FetchDueTaskRow, error) {
+func (stubDriver) GetTasksByID(context.Context, []string) ([]TaskRow, error) {
 	return nil, nil
 }
-func (stubDriver) GetTasksByID(context.Context, []string) ([]FetchDueTaskRow, error) {
-	return nil, nil
-}
-func (stubDriver) MarkTasksAsProcessing(context.Context, int64, []string) error { return nil }
-func (stubDriver) GetWorkflowStatus(context.Context, string) (bool, error)      { return false, nil }
+func (stubDriver) GetWorkflowStatus(context.Context, string) (bool, error) { return false, nil }
 func (stubDriver) PromoteScheduledTasks(context.Context, int64, int64) (int64, error) {
 	return 0, nil
 }
 func (stubDriver) PendingTaskCount(context.Context) (int64, error) { return 0, nil }
-func (stubDriver) RecoverStale(context.Context, int32, *string, int64, int64) (int64, error) {
-	return 0, nil
-}
-func (stubDriver) GetStaleProcessingTaskCount(context.Context, int64) (int64, error) { return 0, nil }
-func (stubDriver) UpdateTaskHeartbeat(context.Context, int64, string) error          { return nil }
-func (stubDriver) GetStaleTasksForRecovery(context.Context, int64, *int64, int) ([]StaleTaskRow, error) {
-	return nil, nil
-}
-func (stubDriver) ClaimTaskForRecovery(context.Context, *string, *int64, string, *int64) (int64, error) {
-	return 0, nil
-}
-func (stubDriver) RecoverClaimed(context.Context, int32, *string, int64, *string) (int64, error) {
-	return 0, nil
-}
-func (stubDriver) ReleaseRecoveryLeases(context.Context, *string) (int64, error) { return 0, nil }
 func (stubDriver) CreateWorkflowReceipt(context.Context, CreateWorkflowReceiptParams) error {
 	return nil
 }
@@ -134,9 +147,9 @@ func (stubDriver) GetPendingReceiptsByNode(context.Context, string) ([]PendingRe
 func (stubDriver) GetPendingReceiptsByWorkflow(context.Context, string) ([]PendingReceiptRow, error) {
 	return nil, nil
 }
-func (stubDriver) CleanupOldResolvedReceipts(context.Context, *int64) (int64, error) { return 0, nil }
+func (stubDriver) CleanupOldResolvedReceipts(context.Context, int64) (int64, error)  { return 0, nil }
 func (stubDriver) TimeoutStaleReceipts(context.Context, int64, int64) (int64, error) { return 0, nil }
-func (stubDriver) ListFailedTasks(context.Context) ([]FailedTaskRow, error)          { return nil, nil }
+func (stubDriver) ListFailedTasks(context.Context) ([]TaskRow, error)                { return nil, nil }
 func (stubDriver) ListTaskStatusCounts(context.Context) ([]TaskStatusCountRow, error) {
 	return nil, nil
 }
@@ -189,34 +202,25 @@ func TestCore_RollbackPropagatesNonErrTxDone(t *testing.T) {
 }
 
 type configurableStubDriver struct {
-	createTaskFunc              func(context.Context, CreateTaskParams) error
-	createTasksBatchFunc        func(context.Context, []CreateTaskBatchParams) error
-	updateTaskFunc              func(context.Context, UpdateTaskParams) error
-	createWithDedupFunc         func(context.Context, CreateTaskParams, string) (bool, error)
-	fetchDueTasksFunc           func(context.Context, FetchDueTasksParams) ([]FetchDueTaskRow, error)
-	getTasksByIDFunc            func(context.Context, []string) ([]FetchDueTaskRow, error)
-	markProcessingFunc          func(context.Context, int64, []string) error
-	getWorkflowStatusFunc       func(context.Context, string) (bool, error)
-	promoteFunc                 func(context.Context, int64, int64) (int64, error)
-	pendingCountFunc            func(context.Context) (int64, error)
-	recoverStaleFunc            func(context.Context, int32, *string, int64, int64) (int64, error)
-	staleCountFunc              func(context.Context, int64) (int64, error)
-	heartbeatFunc               func(context.Context, int64, string) error
-	getStaleTasksFunc           func(context.Context, int64, *int64, int) ([]StaleTaskRow, error)
-	claimTaskFunc               func(context.Context, *string, *int64, string, *int64) (int64, error)
-	recoverClaimedFunc          func(context.Context, int32, *string, int64, *string) (int64, error)
-	releaseLeasesFunc           func(context.Context, *string) (int64, error)
-	createReceiptFunc           func(context.Context, CreateWorkflowReceiptParams) error
-	resolveReceiptsFunc         func(context.Context, string, *string, int64) (int64, error)
-	pendingByNodeFunc           func(context.Context, string) ([]PendingReceiptRow, error)
-	pendingByWorkflowFunc       func(context.Context, string) ([]PendingReceiptRow, error)
-	cleanupReceiptsFunc         func(context.Context, *int64) (int64, error)
-	timeoutReceiptsFunc         func(context.Context, int64, int64) (int64, error)
-	listFailedFunc              func(context.Context) ([]FailedTaskRow, error)
-	listStatusCountsFunc        func(context.Context) ([]TaskStatusCountRow, error)
-	listRecentFunc              func(context.Context, int) ([]RecentTaskRow, error)
-	listWorkflowSummaryFunc     func(context.Context, int) ([]WorkflowSummaryRow, error)
-	markProcessingCalledWithIDs []string
+	noopCASDriver
+	createTaskFunc          func(context.Context, CreateTaskParams) error
+	createTasksBatchFunc    func(context.Context, []CreateTaskBatchParams) error
+	updateTaskFunc          func(context.Context, UpdateTaskParams) error
+	createWithDedupFunc     func(context.Context, CreateTaskParams, string) (bool, error)
+	getTasksByIDFunc        func(context.Context, []string) ([]TaskRow, error)
+	getWorkflowStatusFunc   func(context.Context, string) (bool, error)
+	promoteFunc             func(context.Context, int64, int64) (int64, error)
+	pendingCountFunc        func(context.Context) (int64, error)
+	createReceiptFunc       func(context.Context, CreateWorkflowReceiptParams) error
+	resolveReceiptsFunc     func(context.Context, string, *string, int64) (int64, error)
+	pendingByNodeFunc       func(context.Context, string) ([]PendingReceiptRow, error)
+	pendingByWorkflowFunc   func(context.Context, string) ([]PendingReceiptRow, error)
+	cleanupReceiptsFunc     func(context.Context, int64) (int64, error)
+	timeoutReceiptsFunc     func(context.Context, int64, int64) (int64, error)
+	listFailedFunc          func(context.Context) ([]TaskRow, error)
+	listStatusCountsFunc    func(context.Context) ([]TaskStatusCountRow, error)
+	listRecentFunc          func(context.Context, int) ([]RecentTaskRow, error)
+	listWorkflowSummaryFunc func(context.Context, int) ([]WorkflowSummaryRow, error)
 }
 
 func (d *configurableStubDriver) WithTx(*sql.Tx) Driver { return d }
@@ -235,40 +239,29 @@ func (d *configurableStubDriver) CreateTasksBatch(ctx context.Context, params []
 	return nil
 }
 
-func (d *configurableStubDriver) UpdateTask(ctx context.Context, params UpdateTaskParams) error {
+func (d *configurableStubDriver) UpdateTask(ctx context.Context, params UpdateTaskParams) (int64, error) {
 	if d.updateTaskFunc != nil {
-		return d.updateTaskFunc(ctx, params)
+		return 1, d.updateTaskFunc(ctx, params)
 	}
-	return nil
+	return 1, nil
 }
 
-func (d *configurableStubDriver) CreateWithDedup(ctx context.Context, params CreateTaskParams, key string) (bool, error) {
+func (d *configurableStubDriver) CreateWithDedup(ctx context.Context, params CreateTaskParams) (bool, error) {
 	if d.createWithDedupFunc != nil {
+		var key string
+		if params.DeduplicationKey != nil {
+			key = *params.DeduplicationKey
+		}
 		return d.createWithDedupFunc(ctx, params, key)
 	}
 	return false, nil
 }
 
-func (d *configurableStubDriver) FetchDueTasks(ctx context.Context, params FetchDueTasksParams) ([]FetchDueTaskRow, error) {
-	if d.fetchDueTasksFunc != nil {
-		return d.fetchDueTasksFunc(ctx, params)
-	}
-	return nil, nil
-}
-
-func (d *configurableStubDriver) GetTasksByID(ctx context.Context, ids []string) ([]FetchDueTaskRow, error) {
+func (d *configurableStubDriver) GetTasksByID(ctx context.Context, ids []string) ([]TaskRow, error) {
 	if d.getTasksByIDFunc != nil {
 		return d.getTasksByIDFunc(ctx, ids)
 	}
 	return nil, nil
-}
-
-func (d *configurableStubDriver) MarkTasksAsProcessing(ctx context.Context, updatedAt int64, ids []string) error {
-	d.markProcessingCalledWithIDs = ids
-	if d.markProcessingFunc != nil {
-		return d.markProcessingFunc(ctx, updatedAt, ids)
-	}
-	return nil
 }
 
 func (d *configurableStubDriver) GetWorkflowStatus(ctx context.Context, workflowID string) (bool, error) {
@@ -288,55 +281,6 @@ func (d *configurableStubDriver) PromoteScheduledTasks(ctx context.Context, upda
 func (d *configurableStubDriver) PendingTaskCount(ctx context.Context) (int64, error) {
 	if d.pendingCountFunc != nil {
 		return d.pendingCountFunc(ctx)
-	}
-	return 0, nil
-}
-
-func (d *configurableStubDriver) RecoverStale(ctx context.Context, maxRetries int32, recoveryError *string, nowUnix, staleThresholdUnix int64) (int64, error) {
-	if d.recoverStaleFunc != nil {
-		return d.recoverStaleFunc(ctx, maxRetries, recoveryError, nowUnix, staleThresholdUnix)
-	}
-	return 0, nil
-}
-
-func (d *configurableStubDriver) GetStaleProcessingTaskCount(ctx context.Context, staleThresholdUnix int64) (int64, error) {
-	if d.staleCountFunc != nil {
-		return d.staleCountFunc(ctx, staleThresholdUnix)
-	}
-	return 0, nil
-}
-
-func (d *configurableStubDriver) UpdateTaskHeartbeat(ctx context.Context, updatedAt int64, taskID string) error {
-	if d.heartbeatFunc != nil {
-		return d.heartbeatFunc(ctx, updatedAt, taskID)
-	}
-	return nil
-}
-
-func (d *configurableStubDriver) GetStaleTasksForRecovery(ctx context.Context, staleThresholdUnix int64, recoveryExpiresAt *int64, limit int) ([]StaleTaskRow, error) {
-	if d.getStaleTasksFunc != nil {
-		return d.getStaleTasksFunc(ctx, staleThresholdUnix, recoveryExpiresAt, limit)
-	}
-	return nil, nil
-}
-
-func (d *configurableStubDriver) ClaimTaskForRecovery(ctx context.Context, nodeID *string, leaseExpiresAt *int64, taskID string, nowUnix *int64) (int64, error) {
-	if d.claimTaskFunc != nil {
-		return d.claimTaskFunc(ctx, nodeID, leaseExpiresAt, taskID, nowUnix)
-	}
-	return 0, nil
-}
-
-func (d *configurableStubDriver) RecoverClaimed(ctx context.Context, maxRetries int32, recoveryError *string, nowUnix int64, nodeID *string) (int64, error) {
-	if d.recoverClaimedFunc != nil {
-		return d.recoverClaimedFunc(ctx, maxRetries, recoveryError, nowUnix, nodeID)
-	}
-	return 0, nil
-}
-
-func (d *configurableStubDriver) ReleaseRecoveryLeases(ctx context.Context, nodeID *string) (int64, error) {
-	if d.releaseLeasesFunc != nil {
-		return d.releaseLeasesFunc(ctx, nodeID)
 	}
 	return 0, nil
 }
@@ -369,7 +313,7 @@ func (d *configurableStubDriver) GetPendingReceiptsByWorkflow(ctx context.Contex
 	return nil, nil
 }
 
-func (d *configurableStubDriver) CleanupOldResolvedReceipts(ctx context.Context, olderThanUnix *int64) (int64, error) {
+func (d *configurableStubDriver) CleanupOldResolvedReceipts(ctx context.Context, olderThanUnix int64) (int64, error) {
 	if d.cleanupReceiptsFunc != nil {
 		return d.cleanupReceiptsFunc(ctx, olderThanUnix)
 	}
@@ -383,7 +327,7 @@ func (d *configurableStubDriver) TimeoutStaleReceipts(ctx context.Context, updat
 	return 0, nil
 }
 
-func (d *configurableStubDriver) ListFailedTasks(ctx context.Context) ([]FailedTaskRow, error) {
+func (d *configurableStubDriver) ListFailedTasks(ctx context.Context) ([]TaskRow, error) {
 	if d.listFailedFunc != nil {
 		return d.listFailedFunc(ctx)
 	}
@@ -534,7 +478,7 @@ func TestConvertDBTaskToDomain_Success(t *testing.T) {
 	result := `{"ok":true}`
 	lastError := "prior failure"
 	dedup := "dedup-1"
-	row := &FetchDueTaskRow{
+	row := &TaskRow{
 		ID:               "task-1",
 		WorkflowID:       "wf-1",
 		Executor:         "greeter",
@@ -553,7 +497,6 @@ func TestConvertDBTaskToDomain_Success(t *testing.T) {
 
 	task, err := convertDBTaskToDomain(row)
 	require.NoError(t, err, "valid row must convert")
-	defer orchestrator_domain.TaskPool.Put(task)
 
 	require.Equal(t, "task-1", task.ID, "ID must be copied")
 	require.Equal(t, orchestrator_domain.StatusRetrying, task.Status, "Status must be copied")
@@ -571,21 +514,21 @@ func TestConvertDBTaskToDomain_UnmarshalErrors(t *testing.T) {
 	testCases := []struct {
 		name   string
 		expect string
-		row    FetchDueTaskRow
+		row    TaskRow
 	}{
 		{
 			name:   "payload",
-			row:    FetchDueTaskRow{ID: "task-1", Payload: `{invalid`, Config: `{}`},
+			row:    TaskRow{ID: "task-1", Payload: `{invalid`, Config: `{}`},
 			expect: "unmarshal payload",
 		},
 		{
 			name:   "config",
-			row:    FetchDueTaskRow{ID: "task-1", Payload: `{}`, Config: `{invalid`},
+			row:    TaskRow{ID: "task-1", Payload: `{}`, Config: `{invalid`},
 			expect: "unmarshal config",
 		},
 		{
 			name:   "result",
-			row:    FetchDueTaskRow{ID: "task-1", Payload: `{}`, Config: `{}`, Result: &badResult},
+			row:    TaskRow{ID: "task-1", Payload: `{}`, Config: `{}`, Result: &badResult},
 			expect: "unmarshal result",
 		},
 	}
@@ -602,17 +545,16 @@ func TestConvertDBTaskToDomain_UnmarshalErrors(t *testing.T) {
 	}
 }
 
-func TestConvertFetchedRowsToDomain_ErrorFreesPool(t *testing.T) {
+func TestConvertTaskRowsToDomain_MalformedRowFailsTheBatch(t *testing.T) {
 	t.Parallel()
 
-	rows := []FetchDueTaskRow{
+	rows := []TaskRow{
 		{ID: "good", Payload: `{}`, Config: `{}`},
 		{ID: "bad", Payload: `{invalid`, Config: `{}`},
 	}
 
-	ids, tasks, err := convertFetchedRowsToDomain(rows)
+	tasks, err := convertTaskRowsToDomain(rows)
 	require.Error(t, err, "a malformed row must fail the batch")
-	require.Nil(t, ids, "failed batch must return nil ids")
 	require.Nil(t, tasks, "failed batch must return nil tasks")
 	require.Contains(t, err.Error(), "bad", "error must reference the offending task ID")
 }
@@ -655,22 +597,17 @@ func TestCore_GetWorkflowStatus_Error(t *testing.T) {
 	require.ErrorIs(t, err, sentinel, "driver error must be wrapped")
 }
 
-func TestCore_PendingAndStaleCounts(t *testing.T) {
+func TestCore_PendingCount(t *testing.T) {
 	t.Parallel()
 
 	stub := &configurableStubDriver{
 		pendingCountFunc: func(context.Context) (int64, error) { return 7, nil },
-		staleCountFunc:   func(context.Context, int64) (int64, error) { return 3, nil },
 	}
 	dal := &core{driver: stub, clock: clock.RealClock()}
 
 	pending, err := dal.PendingTaskCount(t.Context())
 	require.NoError(t, err, "pending count must succeed")
 	require.Equal(t, int64(7), pending, "pending count must be returned")
-
-	stale, err := dal.GetStaleProcessingTaskCount(t.Context(), time.Minute)
-	require.NoError(t, err, "stale count must succeed")
-	require.Equal(t, int64(3), stale, "stale count must be returned")
 }
 
 func TestCore_CountErrorsWrapped(t *testing.T) {
@@ -679,25 +616,23 @@ func TestCore_CountErrorsWrapped(t *testing.T) {
 	sentinel := errors.New("query failed")
 	stub := &configurableStubDriver{
 		pendingCountFunc: func(context.Context) (int64, error) { return 0, sentinel },
-		staleCountFunc:   func(context.Context, int64) (int64, error) { return 0, sentinel },
 	}
 	dal := &core{driver: stub, clock: clock.RealClock()}
 
 	_, pendingErr := dal.PendingTaskCount(t.Context())
 	require.ErrorIs(t, pendingErr, sentinel, "pending count error must be wrapped")
-
-	_, staleErr := dal.GetStaleProcessingTaskCount(t.Context(), time.Minute)
-	require.ErrorIs(t, staleErr, sentinel, "stale count error must be wrapped")
 }
 
 func TestCore_ListFailedTasks(t *testing.T) {
 	t.Parallel()
 
 	lastError := "kaboom"
-	stub := &configurableStubDriver{listFailedFunc: func(context.Context) ([]FailedTaskRow, error) {
-		return []FailedTaskRow{
-			{ID: "t1", WorkflowID: "wf", Executor: "e", Attempt: 4, LastError: &lastError},
-			{ID: "t2", WorkflowID: "wf", Executor: "e", Attempt: 0, LastError: nil},
+	stub := &configurableStubDriver{listFailedFunc: func(context.Context) ([]TaskRow, error) {
+		return []TaskRow{
+			{ID: "t1", WorkflowID: "wf", Executor: "e", Status: "FAILED", Payload: "{}", Config: "{}",
+				Attempt: 4, LastError: &lastError, BuildTag: "build-1", IsFatal: true},
+			{ID: "t2", WorkflowID: "wf", Executor: "e", Status: "FAILED", Payload: "{}", Config: "{}",
+				Attempt: 0, LastError: nil},
 		}, nil
 	}}
 	dal := &core{driver: stub, clock: clock.RealClock()}
@@ -705,9 +640,11 @@ func TestCore_ListFailedTasks(t *testing.T) {
 	tasks, err := dal.ListFailedTasks(t.Context())
 	require.NoError(t, err, "listing failed tasks must succeed")
 	require.Len(t, tasks, 2, "both rows must be mapped")
-	require.Equal(t, orchestrator_domain.StatusFailed, tasks[0].Status, "status must be forced to FAILED")
+	require.Equal(t, orchestrator_domain.StatusFailed, tasks[0].Status)
 	require.Equal(t, "kaboom", tasks[0].LastError, "non-nil LastError must be dereferenced")
 	require.Equal(t, 4, tasks[0].Attempt, "attempt must be copied")
+	require.Equal(t, "build-1", tasks[0].BuildTag, "the build tag must be copied, or a build cannot find its failures")
+	require.True(t, tasks[0].IsFatal, "fatality must be copied")
 	require.Empty(t, tasks[1].LastError, "nil LastError must map to an empty string")
 }
 
@@ -715,7 +652,7 @@ func TestCore_ListFailedTasks_Error(t *testing.T) {
 	t.Parallel()
 
 	sentinel := errors.New("boom")
-	stub := &configurableStubDriver{listFailedFunc: func(context.Context) ([]FailedTaskRow, error) {
+	stub := &configurableStubDriver{listFailedFunc: func(context.Context) ([]TaskRow, error) {
 		return nil, sentinel
 	}}
 	dal := &core{driver: stub, clock: clock.RealClock()}
@@ -911,7 +848,7 @@ func TestCore_CreateTasks(t *testing.T) {
 		task.Payload = map[string]any{"bad": make(chan int)}
 		err := dal.CreateTasks(t.Context(), []*orchestrator_domain.Task{task})
 		require.Error(t, err, "an unmarshalable payload must fail the batch")
-		require.Contains(t, err.Error(), "marshal payload", "error must identify the payload stage")
+		require.Contains(t, err.Error(), "marshal task payload", "error must identify the payload stage")
 	})
 }
 
@@ -1029,142 +966,13 @@ func TestCore_CreateTaskWithDedup(t *testing.T) {
 	})
 }
 
-func TestCore_FetchAndMarkDueTasks(t *testing.T) {
-	t.Parallel()
-
-	t.Run("empty returns empty slice", func(t *testing.T) {
-		t.Parallel()
-		stub := &configurableStubDriver{fetchDueTasksFunc: func(context.Context, FetchDueTasksParams) ([]FetchDueTaskRow, error) {
-			return nil, nil
-		}}
-		dal := newTxCore(t, stub)
-		tasks, err := dal.FetchAndMarkDueTasks(t.Context(), orchestrator_domain.PriorityNormal, 10)
-		require.NoError(t, err, "an empty fetch must succeed")
-		require.Empty(t, tasks, "no rows must yield an empty slice")
-	})
-
-	t.Run("rows are converted and marked", func(t *testing.T) {
-		t.Parallel()
-		stub := &configurableStubDriver{fetchDueTasksFunc: func(context.Context, FetchDueTasksParams) ([]FetchDueTaskRow, error) {
-			return []FetchDueTaskRow{
-				{ID: "t1", WorkflowID: "wf", Executor: "e", Status: "PENDING", Payload: `{}`, Config: `{}`},
-				{ID: "t2", WorkflowID: "wf", Executor: "e", Status: "PENDING", Payload: `{}`, Config: `{}`},
-			}, nil
-		}}
-		dal := newTxCore(t, stub)
-		tasks, err := dal.FetchAndMarkDueTasks(t.Context(), orchestrator_domain.PriorityNormal, 10)
-		require.NoError(t, err, "conversion and marking must succeed")
-		require.Len(t, tasks, 2, "both rows must be converted")
-		require.Equal(t, []string{"t1", "t2"}, stub.markProcessingCalledWithIDs, "the fetched IDs must be marked as processing")
-		for _, task := range tasks {
-			orchestrator_domain.TaskPool.Put(task)
-		}
-	})
-
-	t.Run("convert error returns error", func(t *testing.T) {
-		t.Parallel()
-		stub := &configurableStubDriver{fetchDueTasksFunc: func(context.Context, FetchDueTasksParams) ([]FetchDueTaskRow, error) {
-			return []FetchDueTaskRow{
-				{ID: "good", Payload: `{}`, Config: `{}`},
-				{ID: "bad", Payload: `{invalid`, Config: `{}`},
-			}, nil
-		}}
-		dal := newTxCore(t, stub)
-		tasks, err := dal.FetchAndMarkDueTasks(t.Context(), orchestrator_domain.PriorityNormal, 10)
-		require.Error(t, err, "a malformed row must fail the fetch")
-		require.Nil(t, tasks, "a failed fetch must return no tasks")
-		require.Nil(t, stub.markProcessingCalledWithIDs, "marking must not run when conversion fails")
-	})
-
-	t.Run("fetch error wrapped", func(t *testing.T) {
-		t.Parallel()
-		sentinel := errors.New("fetch failed")
-		stub := &configurableStubDriver{fetchDueTasksFunc: func(context.Context, FetchDueTasksParams) ([]FetchDueTaskRow, error) {
-			return nil, sentinel
-		}}
-		dal := newTxCore(t, stub)
-		_, err := dal.FetchAndMarkDueTasks(t.Context(), orchestrator_domain.PriorityNormal, 10)
-		require.ErrorIs(t, err, sentinel, "fetch error must be wrapped")
-	})
-}
-
-func TestCore_ClaimStaleTasksForRecovery(t *testing.T) {
-	t.Parallel()
-
-	t.Run("only claimed rows are returned", func(t *testing.T) {
-		t.Parallel()
-		stub := &configurableStubDriver{
-			getStaleTasksFunc: func(context.Context, int64, *int64, int) ([]StaleTaskRow, error) {
-				return []StaleTaskRow{
-					{ID: "t1", WorkflowID: "wf", Attempt: 1},
-					{ID: "t2", WorkflowID: "wf", Attempt: 2},
-					{ID: "t3", WorkflowID: "wf", Attempt: 3},
-				}, nil
-			},
-			claimTaskFunc: func(_ context.Context, _ *string, _ *int64, taskID string, _ *int64) (int64, error) {
-				if taskID == "t2" {
-					return 0, nil
-				}
-				return 1, nil
-			},
-		}
-		dal := newTxCore(t, stub)
-		claimed, err := dal.ClaimStaleTasksForRecovery(t.Context(), "node-a", time.Minute, time.Minute, 5)
-		require.NoError(t, err, "claiming must succeed")
-		require.Len(t, claimed, 2, "only rows whose claim affected rows must be returned")
-		require.Equal(t, "t1", claimed[0].ID, "first claimed task must be t1")
-		require.Equal(t, "t3", claimed[1].ID, "unclaimed t2 must be skipped")
-	})
-
-	t.Run("no candidates returns empty", func(t *testing.T) {
-		t.Parallel()
-		stub := &configurableStubDriver{getStaleTasksFunc: func(context.Context, int64, *int64, int) ([]StaleTaskRow, error) {
-			return nil, nil
-		}}
-		dal := newTxCore(t, stub)
-		claimed, err := dal.ClaimStaleTasksForRecovery(t.Context(), "node-a", time.Minute, time.Minute, 5)
-		require.NoError(t, err, "no candidates must succeed")
-		require.Empty(t, claimed, "no candidates must yield no claims")
-	})
-
-	t.Run("get candidates error wrapped", func(t *testing.T) {
-		t.Parallel()
-		sentinel := errors.New("candidates failed")
-		stub := &configurableStubDriver{getStaleTasksFunc: func(context.Context, int64, *int64, int) ([]StaleTaskRow, error) {
-			return nil, sentinel
-		}}
-		dal := newTxCore(t, stub)
-		_, err := dal.ClaimStaleTasksForRecovery(t.Context(), "node-a", time.Minute, time.Minute, 5)
-		require.ErrorIs(t, err, sentinel, "candidate error must be wrapped")
-	})
-
-	t.Run("claim error wrapped", func(t *testing.T) {
-		t.Parallel()
-		sentinel := errors.New("claim failed")
-		stub := &configurableStubDriver{
-			getStaleTasksFunc: func(context.Context, int64, *int64, int) ([]StaleTaskRow, error) {
-				return []StaleTaskRow{{ID: "t1"}}, nil
-			},
-			claimTaskFunc: func(context.Context, *string, *int64, string, *int64) (int64, error) {
-				return 0, sentinel
-			},
-		}
-		dal := newTxCore(t, stub)
-		_, err := dal.ClaimStaleTasksForRecovery(t.Context(), "node-a", time.Minute, time.Minute, 5)
-		require.ErrorIs(t, err, sentinel, "claim error must be wrapped")
-	})
-}
-
 func TestCore_TransactionCountMethods(t *testing.T) {
 	t.Parallel()
 
 	stub := &configurableStubDriver{
 		promoteFunc:         func(context.Context, int64, int64) (int64, error) { return 2, nil },
-		recoverStaleFunc:    func(context.Context, int32, *string, int64, int64) (int64, error) { return 3, nil },
-		recoverClaimedFunc:  func(context.Context, int32, *string, int64, *string) (int64, error) { return 4, nil },
-		releaseLeasesFunc:   func(context.Context, *string) (int64, error) { return 5, nil },
 		resolveReceiptsFunc: func(context.Context, string, *string, int64) (int64, error) { return 6, nil },
-		cleanupReceiptsFunc: func(context.Context, *int64) (int64, error) { return 7, nil },
+		cleanupReceiptsFunc: func(context.Context, int64) (int64, error) { return 7, nil },
 		timeoutReceiptsFunc: func(context.Context, int64, int64) (int64, error) { return 8, nil },
 	}
 	dal := newTxCore(t, stub)
@@ -1173,18 +981,6 @@ func TestCore_TransactionCountMethods(t *testing.T) {
 	promoted, err := dal.PromoteScheduledTasks(ctx)
 	require.NoError(t, err, "promote must succeed")
 	assert.Equal(t, 2, promoted, "promote count must be returned")
-
-	recovered, err := dal.RecoverStaleTasks(ctx, time.Minute, 3, "recovered")
-	require.NoError(t, err, "recover stale must succeed")
-	assert.Equal(t, 3, recovered, "recover stale count must be returned")
-
-	claimedRecovered, err := dal.RecoverClaimedTasks(ctx, "node-a", 3, "recovered")
-	require.NoError(t, err, "recover claimed must succeed")
-	assert.Equal(t, 4, claimedRecovered, "recover claimed count must be returned")
-
-	released, err := dal.ReleaseRecoveryLeases(ctx, "node-a")
-	require.NoError(t, err, "release leases must succeed")
-	assert.Equal(t, 5, released, "release count must be returned")
 
 	resolved, err := dal.ResolveWorkflowReceipts(ctx, "wf", "boom")
 	require.NoError(t, err, "resolve receipts must succeed")
@@ -1199,18 +995,13 @@ func TestCore_TransactionCountMethods(t *testing.T) {
 	assert.Equal(t, 8, timedOut, "timeout count must be returned")
 }
 
-func TestCore_CreateWorkflowReceiptAndHeartbeat(t *testing.T) {
+func TestCore_CreateWorkflowReceipt(t *testing.T) {
 	t.Parallel()
 
 	var receiptID string
-	var heartbeatTaskID string
 	stub := &configurableStubDriver{
 		createReceiptFunc: func(_ context.Context, params CreateWorkflowReceiptParams) error {
 			receiptID = params.ID
-			return nil
-		},
-		heartbeatFunc: func(_ context.Context, _ int64, taskID string) error {
-			heartbeatTaskID = taskID
 			return nil
 		},
 	}
@@ -1218,9 +1009,6 @@ func TestCore_CreateWorkflowReceiptAndHeartbeat(t *testing.T) {
 
 	require.NoError(t, dal.CreateWorkflowReceipt(t.Context(), "r1", "wf", "node-a"), "create receipt must succeed")
 	require.Equal(t, "r1", receiptID, "receipt ID must be forwarded")
-
-	require.NoError(t, dal.UpdateTaskHeartbeat(t.Context(), "task-1"), "heartbeat must succeed")
-	require.Equal(t, "task-1", heartbeatTaskID, "task ID must be forwarded to the heartbeat query")
 }
 
 func TestCore_TransactionErrorWrapping(t *testing.T) {
@@ -1294,14 +1082,9 @@ func TestCore_MockClockDeterministicTimestamps(t *testing.T) {
 	fixedTime := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
 
 	var receiptParams CreateWorkflowReceiptParams
-	var heartbeatSeconds int64
 	stub := &configurableStubDriver{
 		createReceiptFunc: func(_ context.Context, params CreateWorkflowReceiptParams) error {
 			receiptParams = params
-			return nil
-		},
-		heartbeatFunc: func(_ context.Context, updatedAt int64, _ string) error {
-			heartbeatSeconds = updatedAt
 			return nil
 		},
 	}
@@ -1311,16 +1094,13 @@ func TestCore_MockClockDeterministicTimestamps(t *testing.T) {
 	require.NoError(t, dal.CreateWorkflowReceipt(t.Context(), "r1", "wf", "node-a"), "create receipt must succeed")
 	require.Equal(t, fixedTime.Unix(), receiptParams.CreatedAt, "CreatedAt must equal the injected mock clock time")
 	require.Equal(t, fixedTime.Unix(), receiptParams.UpdatedAt, "UpdatedAt must equal the injected mock clock time")
-
-	require.NoError(t, dal.UpdateTaskHeartbeat(t.Context(), "task-1"), "heartbeat must succeed")
-	require.Equal(t, fixedTime.Unix(), heartbeatSeconds, "heartbeat timestamp must equal the injected mock clock time")
 }
 
 func TestCore_GetTasksByID(t *testing.T) {
 	t.Parallel()
 
-	rowFor := func(id string) FetchDueTaskRow {
-		return FetchDueTaskRow{ID: id, WorkflowID: "wf", Executor: "e", Status: "RETRYING", Payload: `{}`, Config: `{}`}
+	rowFor := func(id string) TaskRow {
+		return TaskRow{ID: id, WorkflowID: "wf", Executor: "e", Status: "RETRYING", Payload: `{}`, Config: `{}`}
 	}
 
 	t.Run("reads every ID in chunks below the bind limit", func(t *testing.T) {
@@ -1331,9 +1111,9 @@ func TestCore_GetTasksByID(t *testing.T) {
 			ids[i] = fmt.Sprintf("t%d", i)
 		}
 		var chunkSizes []int
-		stub := &configurableStubDriver{getTasksByIDFunc: func(_ context.Context, chunk []string) ([]FetchDueTaskRow, error) {
+		stub := &configurableStubDriver{getTasksByIDFunc: func(_ context.Context, chunk []string) ([]TaskRow, error) {
 			chunkSizes = append(chunkSizes, len(chunk))
-			rows := make([]FetchDueTaskRow, 0, len(chunk))
+			rows := make([]TaskRow, 0, len(chunk))
 			for _, id := range chunk {
 				rows = append(rows, rowFor(id))
 			}
@@ -1357,12 +1137,12 @@ func TestCore_GetTasksByID(t *testing.T) {
 			ids[i] = fmt.Sprintf("t%d", i)
 		}
 		var chunks int
-		stub := &configurableStubDriver{getTasksByIDFunc: func(_ context.Context, chunk []string) ([]FetchDueTaskRow, error) {
+		stub := &configurableStubDriver{getTasksByIDFunc: func(_ context.Context, chunk []string) ([]TaskRow, error) {
 			chunks++
 			if chunks > 1 {
 				return nil, errors.New("connection lost")
 			}
-			return []FetchDueTaskRow{rowFor(chunk[0])}, nil
+			return []TaskRow{rowFor(chunk[0])}, nil
 		}}
 		dal := newTxCore(t, stub)
 
@@ -1374,21 +1154,21 @@ func TestCore_GetTasksByID(t *testing.T) {
 
 	testCases := []struct {
 		ctx     func(t *testing.T) context.Context
-		rows    func(context.Context, []string) ([]FetchDueTaskRow, error)
+		rows    func(context.Context, []string) ([]TaskRow, error)
 		name    string
 		wantErr string
 	}{
 		{
 			name: "driver failure is reported",
-			rows: func(context.Context, []string) ([]FetchDueTaskRow, error) {
+			rows: func(context.Context, []string) ([]TaskRow, error) {
 				return nil, errors.New("connection lost")
 			},
 			wantErr: "connection lost",
 		},
 		{
 			name: "unreadable row is reported",
-			rows: func(context.Context, []string) ([]FetchDueTaskRow, error) {
-				return []FetchDueTaskRow{{ID: "bad", Payload: `{not json`, Config: `{}`}}, nil
+			rows: func(context.Context, []string) ([]TaskRow, error) {
+				return []TaskRow{{ID: "bad", Payload: `{not json`, Config: `{}`}}, nil
 			},
 			wantErr: "bad",
 		},
@@ -1399,7 +1179,7 @@ func TestCore_GetTasksByID(t *testing.T) {
 				cancel(errors.New("caller gave up"))
 				return ctx
 			},
-			rows: func(context.Context, []string) ([]FetchDueTaskRow, error) {
+			rows: func(context.Context, []string) ([]TaskRow, error) {
 				return nil, nil
 			},
 			wantErr: "context canceled",

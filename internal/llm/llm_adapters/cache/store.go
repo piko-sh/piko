@@ -179,7 +179,6 @@ func (s *Store) Close() {
 
 // New creates a new unified cache store backed by internal/cache.
 //
-// Takes ctx (context.Context) which controls cancellation during cache setup.
 // Takes config (Config) which configures the store.
 // Takes options (...StoreOption) which are optional functions to configure the store,
 // such as WithCache for injecting a test cache.

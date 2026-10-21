@@ -35,11 +35,8 @@ import (
 // page labels, SVG rendering, and post-processing transformations. The older Render
 // method is kept for backwards compatibility with existing daemon handler code.
 type PdfWriterService interface {
-	// Render executes the full PDF pipeline for a single PDF template: runs the template
-	// through the manifest runner, resolves CSS, builds the box tree, lays out, and paints
-	// to PDF.
+	// Render renders a PDF template through the manifest, CSS, layout, and painting stages.
 	//
-	// Takes ctx (context.Context) which carries cancellation and tracing.
 	// Takes request (*http.Request) which provides the HTTP context for template rendering.
 	// Takes templatePath (string) which is the path to the PDF template.
 	// Takes props (any) which contains the data to pass to the template.
@@ -72,7 +69,6 @@ type LayoutPort interface {
 	// Layout resolves CSS, builds the box tree, performs layout, and returns the result
 	// containing the positioned box tree.
 	//
-	// Takes ctx (context.Context) which carries cancellation and tracing.
 	// Takes tree (*ast_domain.TemplateAST) which is the template AST to lay out.
 	// Takes styling (string) which is the CSS from the template's style block.
 	// Takes config (layouter_dto.LayoutConfig) which specifies page dimensions and font
@@ -94,7 +90,6 @@ type LayoutPort interface {
 type ImageDataPort interface {
 	// GetImageData fetches the raw image bytes for the given source path.
 	//
-	// Takes ctx (context.Context) which carries cancellation and tracing.
 	// Takes source (string) which is the image source path or URL.
 	//
 	// Returns []byte which contains the raw image data (JPEG or PNG).
@@ -108,7 +103,6 @@ type ImageDataPort interface {
 type SVGDataPort interface {
 	// GetSVGData returns the raw SVG XML string for the given source.
 	//
-	// Takes ctx (context.Context) which carries cancellation and tracing.
 	// Takes source (string) which is the image source path or URL.
 	//
 	// Returns string which is the raw SVG XML markup.
@@ -123,7 +117,6 @@ type SVGWriterPort interface {
 	// RenderSVG parses an SVG string and emits PDF drawing operators into the provided
 	// render context at the given position and size.
 	//
-	// Takes ctx (context.Context) which carries cancellation and tracing.
 	// Takes svgData (string) which is the raw SVG XML markup.
 	// Takes renderContext (SVGRenderContext) which provides access to PDF drawing
 	// infrastructure.
@@ -198,7 +191,6 @@ type TemplateRunnerPort interface {
 	// RunPdfWithProps executes a PDF template with the given props and returns the AST and
 	// styling.
 	//
-	// Takes ctx (context.Context) which carries cancellation and tracing.
 	// Takes templatePath (string) which is the path to the PDF template.
 	// Takes request (*http.Request) which provides the HTTP context.
 	// Takes props (any) which contains the data to pass to the template.

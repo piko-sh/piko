@@ -30,6 +30,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"piko.sh/piko/internal/testutil/allocbudget"
 	clockpkg "piko.sh/piko/wdk/clock"
 )
 
@@ -49,16 +50,13 @@ func TestNewDelayedTaskPublisherForTesting(t *testing.T) {
 	t.Parallel()
 
 	clock := clockpkg.NewMockClock(time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC))
-	dispatchFunc := func(_ context.Context, _ *Task) error { return nil }
+	dispatchFunc := func(_ context.Context, _ TaskRef) error { return nil }
 
 	publisher := NewDelayedTaskPublisherForTesting(clock, dispatchFunc)
 
 	require.NotNil(t, publisher, "NewDelayedTaskPublisherForTesting returned nil")
 	if publisher.clock != clock {
 		t.Error("clock not set correctly")
-	}
-	if publisher.taskHeap == nil {
-		t.Error("taskHeap not initialised")
 	}
 	if publisher.wakeChan == nil {
 		t.Error("wakeChan not initialised")
@@ -99,8 +97,8 @@ func TestDelayedTaskPublisher_Schedule_AddsTaskToHeap(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if publisher.taskHeap.Len() != 1 {
-		t.Errorf("expected heap len=1, got %d", publisher.taskHeap.Len())
+	if publisher.refs.Len() != 1 {
+		t.Errorf("expected heap len=1, got %d", publisher.refs.Len())
 	}
 }
 
@@ -170,12 +168,12 @@ func TestDelayedTaskPublisher_DispatchesDueTask(t *testing.T) {
 	baseTime := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 	clock := clockpkg.NewMockClock(baseTime)
 
-	var dispatchedTasks []*Task
+	var dispatchedTasks []TaskRef
 	var mu sync.Mutex
 
-	dispatchFunc := func(_ context.Context, task *Task) error {
+	dispatchFunc := func(_ context.Context, ref TaskRef) error {
 		mu.Lock()
-		dispatchedTasks = append(dispatchedTasks, task)
+		dispatchedTasks = append(dispatchedTasks, ref)
 		mu.Unlock()
 		return nil
 	}
@@ -232,9 +230,9 @@ func TestDelayedTaskPublisher_DispatchesInOrder(t *testing.T) {
 	var dispatchedOrder []string
 	var mu sync.Mutex
 
-	dispatchFunc := func(_ context.Context, task *Task) error {
+	dispatchFunc := func(_ context.Context, ref TaskRef) error {
 		mu.Lock()
-		dispatchedOrder = append(dispatchedOrder, task.ID)
+		dispatchedOrder = append(dispatchedOrder, ref.ID)
 		mu.Unlock()
 		return nil
 	}
@@ -292,7 +290,7 @@ func TestDelayedTaskPublisher_RetriesFailedDispatch(t *testing.T) {
 	var attemptCount atomic.Int32
 	var retryBaseline atomic.Int64
 	dispatched := make(chan struct{}, 2)
-	dispatchFunc := func(_ context.Context, _ *Task) error {
+	dispatchFunc := func(_ context.Context, _ TaskRef) error {
 		count := attemptCount.Add(1)
 
 		retryBaseline.Store(clock.TimerCount())
@@ -351,56 +349,43 @@ func TestDelayedTaskPublisher_RetriesFailedDispatch(t *testing.T) {
 	}
 }
 
-func TestDelayedTaskPublisher_ClearsScheduledTimeBeforeDispatch(t *testing.T) {
+func TestDelayedTaskPublisher_KeepsOnlyTheReference(t *testing.T) {
 	t.Parallel()
 
 	baseTime := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 	clock := clockpkg.NewMockClock(baseTime)
 
-	var dispatchedTask *Task
-	var mu sync.Mutex
-
-	dispatchFunc := func(_ context.Context, task *Task) error {
-		mu.Lock()
-		dispatchedTask = task
-		mu.Unlock()
+	published := make(chan TaskRef, 1)
+	publisher := NewDelayedTaskPublisherForTesting(clock, func(_ context.Context, ref TaskRef) error {
+		published <- ref
 		return nil
-	}
-
-	publisher := NewDelayedTaskPublisherForTesting(clock, dispatchFunc)
+	})
 	baseline := clock.TimerCount()
-
 	publisher.Start(t.Context())
+	t.Cleanup(publisher.Stop)
 
 	task := &Task{
 		ID:                 "task-1",
-		Status:             StatusScheduled,
-		ScheduledExecuteAt: baseTime.Add(1 * time.Second),
+		Attempt:            2,
+		Status:             StatusRetrying,
+		ScheduledExecuteAt: baseTime.Add(time.Second),
+		Config:             TaskConfig{Priority: PriorityHigh},
 	}
-	if err := publisher.Schedule(context.Background(), task); err != nil {
-		t.Fatalf("failed to schedule: %v", err)
-	}
+	require.NoError(t, publisher.Schedule(t.Context(), task))
+	task.Attempt, task.Config.Priority = 7, PriorityLow
+	task.ScheduledExecuteAt = baseTime.Add(time.Hour)
 
-	if !clock.AwaitTimerSetup(baseline, time.Second) {
-		t.Fatal("timed out waiting for timer setup")
-	}
-
+	require.True(t, clock.AwaitTimerSetup(baseline, time.Second), "timer should be armed")
 	clock.Advance(2 * time.Second)
 
-	waitFor(t, 2*time.Second, func() bool {
-		mu.Lock()
-		defer mu.Unlock()
-		return dispatchedTask != nil
-	}, "task was not dispatched")
-
-	mu.Lock()
-	defer mu.Unlock()
-	if !dispatchedTask.ScheduledExecuteAt.IsZero() {
-		t.Error("ScheduledExecuteAt should be cleared before dispatch")
+	select {
+	case ref := <-published:
+		assert.Equal(t, TaskRef{ID: "task-1", Attempt: 2, Priority: PriorityHigh}, ref,
+			"the reference is taken when the task is scheduled; later changes to the task do not reach it")
+	case <-time.After(5 * time.Second):
+		t.Fatal("the due reference was not published")
 	}
-	if dispatchedTask.Status != StatusPending {
-		t.Errorf("status should be Pending, got %v", dispatchedTask.Status)
-	}
+	assert.Equal(t, StatusRetrying, task.Status, "the scheduled task is never written to")
 }
 
 func TestDelayedTaskPublisher_ShutdownDuringEmptyWait(t *testing.T) {
@@ -455,9 +440,9 @@ func TestDelayedTaskPublisher_EarlierTaskWakesLoop(t *testing.T) {
 	var dispatchedOrder []string
 	var mu sync.Mutex
 
-	dispatchFunc := func(_ context.Context, task *Task) error {
+	dispatchFunc := func(_ context.Context, ref TaskRef) error {
 		mu.Lock()
-		dispatchedOrder = append(dispatchedOrder, task.ID)
+		dispatchedOrder = append(dispatchedOrder, ref.ID)
 		mu.Unlock()
 		return nil
 	}
@@ -528,7 +513,7 @@ func TestDelayedTaskPublisher_DispatchDueTaskEmptyHeap(t *testing.T) {
 
 	clock := clockpkg.NewMockClock(time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC))
 	var called bool
-	dispatchFunc := func(_ context.Context, _ *Task) error {
+	dispatchFunc := func(_ context.Context, _ TaskRef) error {
 		called = true
 		return nil
 	}
@@ -536,7 +521,7 @@ func TestDelayedTaskPublisher_DispatchDueTaskEmptyHeap(t *testing.T) {
 	publisher := NewDelayedTaskPublisherForTesting(clock, dispatchFunc)
 	publisher.ctx = context.Background()
 
-	publisher.dispatchDueTask()
+	publisher.dispatchDue()
 
 	if called {
 		t.Error("dispatchFunc should not be called on empty heap")
@@ -559,8 +544,8 @@ func TestDelayedTaskPublisher_MultipleScheduleWakeSignals(t *testing.T) {
 		}
 	}
 
-	if publisher.taskHeap.Len() != 10 {
-		t.Errorf("expected 10 tasks in heap, got %d", publisher.taskHeap.Len())
+	if publisher.refs.Len() != 10 {
+		t.Errorf("expected 10 tasks in heap, got %d", publisher.refs.Len())
 	}
 }
 
@@ -571,7 +556,7 @@ func TestDelayedTaskPublisher_DropsTaskWhoseDispatchCanNeverSucceed(t *testing.T
 	clock := clockpkg.NewMockClock(baseTime)
 
 	dispatched := make(chan struct{}, 1)
-	dispatchFunc := func(_ context.Context, _ *Task) error {
+	dispatchFunc := func(_ context.Context, _ TaskRef) error {
 		dispatched <- struct{}{}
 		return fmt.Errorf("dispatching task: %w", ErrDispatcherStopped)
 	}
@@ -612,7 +597,7 @@ func TestIsPermanentDispatchError(t *testing.T) {
 		{name: "missing task ID", err: fmt.Errorf("validating: %w", errTaskIDRequired), want: true},
 		{name: "missing workflow ID", err: errTaskWorkflowIDRequired, want: true},
 		{name: "missing executor", err: errTaskExecutorRequired, want: true},
-		{name: "full backlog may drain", err: ErrDispatchBacklogFull, want: false},
+		{name: "full backlog may drain", err: ErrOverflowFull, want: false},
 		{name: "transient store failure", err: errors.New("connection reset"), want: false},
 	}
 
@@ -622,4 +607,52 @@ func TestIsPermanentDispatchError(t *testing.T) {
 			assert.Equal(t, tc.want, isPermanentDispatchError(tc.err))
 		})
 	}
+}
+
+func TestDelayedTaskPublisher_CountsTaskInTransitAndSkipsBackground(t *testing.T) {
+	t.Parallel()
+
+	clock := clockpkg.NewMockClock(time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC))
+	release := make(chan struct{})
+	entered := make(chan string, 2)
+	publisher := NewDelayedTaskPublisherForTesting(clock, func(_ context.Context, ref TaskRef) error {
+		entered <- ref.ID
+		<-release
+		return nil
+	})
+
+	due := clock.Now()
+	foreground := &Task{ID: "foreground", ScheduledExecuteAt: due}
+	background := &Task{ID: "background", ScheduledExecuteAt: due.Add(time.Hour), Background: true}
+	require.NoError(t, publisher.Schedule(t.Context(), foreground))
+	require.NoError(t, publisher.Schedule(t.Context(), background))
+	assert.Equal(t, 2, publisher.PendingCount())
+	assert.Equal(t, 1, publisher.ForegroundPendingCount(), "background work is not foreground")
+
+	publisher.Start(t.Context())
+	t.Cleanup(publisher.Stop)
+
+	require.Equal(t, "foreground", <-entered)
+	assert.Equal(t, 1, publisher.ForegroundPendingCount(),
+		"a due task being handed to the dispatcher is still pending")
+	assert.Equal(t, 2, publisher.PendingCount())
+
+	close(release)
+	waitFor(t, time.Second, func() bool { return publisher.ForegroundPendingCount() == 0 },
+		"the foreground task left transit")
+	assert.Equal(t, 1, publisher.PendingCount(), "the background task is still scheduled")
+}
+
+func TestAllocBudget_DelayedSchedule(t *testing.T) {
+	clock := clockpkg.NewMockClock(time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC))
+	publisher := NewDelayedTaskPublisherForTesting(clock, nil)
+	publisher.refs = make(scheduledRefHeap, 0, 512)
+	task := &Task{
+		ID:                 "0192f0c4-7c1e-7b39-9d4e-3f2a1b0c9d8e",
+		Attempt:            1,
+		ScheduledExecuteAt: clock.Now().Add(time.Hour),
+	}
+	allocbudget.Assert(t, allocbudget.Budget{Allocs: 0, Runs: 200}, func() {
+		_ = publisher.Schedule(t.Context(), task)
+	})
 }

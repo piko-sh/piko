@@ -1,0 +1,6 @@
+{
+  "description": "A user package indexes posts over Go's 128-byte inline map element by slug, formats them with fmt.Sprintf and builds paths from a shared prefix slice; the page is then rendered by 16 concurrent requests, each of which must match the golden.",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "concurrentRequests": 16
+}

@@ -2,16 +2,49 @@
 
 package db
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+	"strings"
+)
 
-// pikoMaxBindVariables is the engine's per-statement bind-variable cap. The
-// static slice expander and the dynamic IN / NOT IN dispatcher both return
-// errPikoTooManyBindVariables when an expansion would exceed this value so a
-// misshaped caller surfaces a developer-friendly diagnostic rather than a
-// silent driver-level truncation or a hard wire-protocol error.
 const pikoMaxBindVariables = 999
 
-// errPikoTooManyBindVariables is the sentinel returned when a slice parameter
-// expansion would exceed pikoMaxBindVariables. Callers can match it with
-// errors.Is to distinguish an oversized bind list from a driver-level failure.
-var errPikoTooManyBindVariables = errors.New("piko: too many bind variables")
+var ErrPikoTooManyBindVariables = errors.New("piko: too many bind variables")
+
+type pikoEdit struct {
+	Text  string
+	Start int
+	End   int
+}
+
+func pikoCheckBinds(count int) error {
+	if count > pikoMaxBindVariables {
+		return fmt.Errorf("piko: a statement of %d bind variables exceeds the limit of %d: %w", count, pikoMaxBindVariables, ErrPikoTooManyBindVariables)
+	}
+	return nil
+}
+func pikoSplice(query string, edits ...[]pikoEdit) string {
+	size, count := len(query), 0
+	for _, group := range edits {
+		for _, edit := range group {
+			size += len(edit.Text) - (edit.End - edit.Start)
+			count++
+		}
+	}
+	if count == 0 {
+		return query
+	}
+	var builder strings.Builder
+	builder.Grow(size)
+	cursor := 0
+	for _, group := range edits {
+		for _, edit := range group {
+			builder.WriteString(query[cursor:edit.Start])
+			builder.WriteString(edit.Text)
+			cursor = edit.End
+		}
+	}
+	builder.WriteString(query[cursor:])
+	return builder.String()
+}

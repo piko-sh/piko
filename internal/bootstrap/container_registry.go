@@ -53,7 +53,7 @@ import (
 	"piko.sh/piko/internal/storage/storage_domain"
 	"piko.sh/piko/internal/storage/storage_dto"
 	"piko.sh/piko/wdk/goroutine"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -381,13 +381,9 @@ func (c *Container) registrySeedFS() fs.FS {
 	return os.DirFS(filepath.Join(deref(c.serverConfig.Paths.BaseDir, "."), config.PikoInternalPath))
 }
 
-// RetireRegistryRelease removes a retired release's artefact layers from the registry
-// backend.
+// RetireRegistryRelease removes the retired release's artefact layers and publish lease.
 //
-// It deletes every `(id, release)` layer belonging to the release, leaving every other
-// release's layers untouched, and drops the release's publish lease.
-//
-// Takes release which is the release id to retire.
+// Takes release (string) which is the release id to retire.
 //
 // Returns error when the registry service cannot be built or the retire fails.
 func (c *Container) RetireRegistryRelease(ctx context.Context, release string) error {
@@ -808,19 +804,39 @@ func (c *Container) buildBlobOverlay(hasBase bool) (storage_domain.StorageProvid
 		return nil, nil
 	}
 
+	return c.buildDiskBlobOverlay()
+}
+
+// buildDiskBlobOverlay creates the default registry overlay and defers build-time
+// durability to FlushPersistenceSnapshot.
+//
+// Returns storage_domain.StorageProviderPort which is the disk-backed overlay.
+// Returns error when the sandbox or disk provider cannot be created.
+func (c *Container) buildDiskBlobOverlay() (storage_domain.StorageProviderPort, error) {
+	_, l := logger_domain.From(c.GetAppContext(), log)
+
 	l.Internal("Using built-in disk provider for registry blobs (no providers configured)")
 	blobDir := filepath.Join(deref(c.serverConfig.Paths.BaseDir, "."), config.PikoInternalPath, "blobs")
 	blobSandbox, sandboxErr := c.createSandbox("registry-blob-storage", blobDir, safedisk.ModeReadWrite)
 	if sandboxErr != nil {
 		return nil, fmt.Errorf("failed to create blob storage sandbox: %w", sandboxErr)
 	}
+	durability := provider_disk.DurabilityImmediate
+	if c.isBuildTime {
+
+		durability = provider_disk.DurabilityDeferred
+	}
 	diskProvider, err := provider_disk.NewDiskProvider(provider_disk.Config{
 		BaseDirectory:  blobDir,
 		Sandbox:        blobSandbox,
 		SandboxFactory: nil,
+		Durability:     durability,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create built-in disk provider for blobs: %w", err)
+	}
+	if flusher, ok := diskProvider.(blobFlusher); ok && durability == provider_disk.DurabilityDeferred {
+		c.deferredBlobStores = append(c.deferredBlobStores, flusher)
 	}
 	c.registerBlobOverlayShutdown(diskProvider)
 	return diskProvider, nil

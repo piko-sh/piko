@@ -33,10 +33,9 @@ type Content struct {
 }
 
 type FullPost struct {
-	Base           // Embed Base
-	Content        // Embed Content
-	ID      string // << Shadowing the ID from Base
+	Base
+	Content
+	ID string
 }
 
-// Method promotion
 func (p FullPost) GetTitle() string { return p.Title }

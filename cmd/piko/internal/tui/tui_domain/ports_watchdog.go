@@ -32,8 +32,6 @@ type WatchdogProvider interface {
 
 	// GetStatus returns the most recently cached watchdog status.
 	//
-	// Takes ctx (context.Context) which controls the request lifetime.
-	//
 	// Returns *WatchdogStatus which is the cached snapshot. Implementations that have not
 	// yet refreshed return a zero-value status with LastUpdated zero so callers can detect
 	// the stale state.
@@ -43,16 +41,12 @@ type WatchdogProvider interface {
 	// ListProfiles returns the cached list of stored profile artefacts in reverse
 	// chronological order.
 	//
-	// Takes ctx (context.Context) which controls the request lifetime.
-	//
 	// Returns []WatchdogProfile which is the cached profile inventory.
 	// Returns error when the underlying transport fails.
 	ListProfiles(ctx context.Context) ([]WatchdogProfile, error)
 
 	// GetStartupHistory returns the cached startup-history entries in chronological order
 	// (oldest first).
-	//
-	// Takes ctx (context.Context) which controls the request lifetime.
 	//
 	// Returns []WatchdogStartupEntry which is the cached history.
 	// Returns error when the underlying transport fails.
@@ -61,7 +55,6 @@ type WatchdogProvider interface {
 	// ListEvents queries historical events from the server's in-memory ring. This is a
 	// one-shot RPC; the streaming feed is exposed through SubscribeEvents.
 	//
-	// Takes ctx (context.Context) which controls the request lifetime.
 	// Takes query (WatchdogEventQuery) which describes the filter.
 	//
 	// Returns []WatchdogEvent which is the matching events in chronological order.
@@ -71,8 +64,8 @@ type WatchdogProvider interface {
 	// SubscribeEvents opens a streaming subscription to live events, optionally back-filling
 	// from since.
 	//
-	// Takes ctx (context.Context) which controls the subscription lifetime; cancelling it
-	// closes the channel.
+	// Cancelling ctx ends the subscription and closes the channel.
+	//
 	// Takes since (time.Time) which is the back-fill cutoff. Zero disables back-fill.
 	//
 	// Returns <-chan WatchdogEvent which delivers events in emission order.
@@ -89,7 +82,6 @@ type WatchdogProvider interface {
 	// PruneProfiles removes stored profiles. When profileType is empty every profile is
 	// removed.
 	//
-	// Takes ctx (context.Context) which controls the request lifetime.
 	// Takes profileType (string) which selects the profile category.
 	//
 	// Returns int which is the number of profiles removed.
@@ -98,7 +90,6 @@ type WatchdogProvider interface {
 
 	// DownloadProfile streams the raw compressed bytes of a profile to the supplied writer.
 	//
-	// Takes ctx (context.Context) which controls the request lifetime.
 	// Takes filename (string) which identifies the profile.
 	// Takes w (io.Writer) which receives the bytes.
 	//
@@ -107,7 +98,6 @@ type WatchdogProvider interface {
 
 	// DownloadSidecar fetches the JSON sidecar paired with a profile.
 	//
-	// Takes ctx (context.Context) which controls the request lifetime.
 	// Takes profileFilename (string) which is the profile filename.
 	//
 	// Returns []byte which is the sidecar JSON, or nil when no sidecar exists.
@@ -118,8 +108,6 @@ type WatchdogProvider interface {
 
 	// RunContentionDiagnostic triggers an on-demand contention diagnostic on the server. The
 	// call blocks until the diagnostic completes.
-	//
-	// Takes ctx (context.Context) which controls the request lifetime.
 	//
 	// Returns error when the diagnostic cannot start (already running, in cooldown, watchdog
 	// stopped) or fails partway through.

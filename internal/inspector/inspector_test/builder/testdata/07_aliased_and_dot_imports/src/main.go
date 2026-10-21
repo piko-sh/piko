@@ -19,13 +19,11 @@
 package main
 
 import (
-	// Aliased import
-	u "testcase_07_aliased_and_dot_imports/uuid"
-	// Dot import
 	. "testcase_07_aliased_and_dot_imports/timestamp"
+	u "testcase_07_aliased_and_dot_imports/uuid"
 )
 
 type Event struct {
 	EventID u.UUID
-	Created Time // Appears unqualified in source due to dot import
+	Created Time
 }

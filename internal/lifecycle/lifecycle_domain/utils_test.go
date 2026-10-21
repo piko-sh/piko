@@ -411,9 +411,21 @@ func TestIsTemporaryFile(t *testing.T) {
 		{name: "vim probe", path: "pages/4913", want: true},
 		{name: "vim probe nested", path: "assets/4913", want: true},
 		{name: "uppercase swap", path: "pages/INDEX.SWP", want: true},
+		{name: "sed in-place temp", path: "assets/sed0Ob8Ey", want: true},
+		{name: "sed in-place temp with digits", path: "pages/sedabc123", want: true},
+		{name: "emacs lock file", path: "pages/.#index.pk", want: true},
+		{name: "emacs auto-save file", path: "assets/#logo.svg#", want: true},
+		{name: "jetbrains safe-write temp", path: "assets/logo.svg___jb_tmp___", want: true},
+		{name: "jetbrains safe-write backup", path: "pages/index.pk___jb_old___", want: true},
 		{name: "normal pk", path: "pages/index.pk", want: false},
 		{name: "normal svg", path: "assets/logo.svg", want: false},
 		{name: "tilde in middle", path: "pages/file~backup.pk", want: false},
+		{name: "word starting with sed", path: "assets/sedan.svg", want: false},
+		{name: "sed prefix with extension", path: "assets/sedabc.js", want: false},
+		{name: "lower-case word starting with sed", path: "assets/sediments", want: false},
+		{name: "sed prefix too long", path: "assets/sedA1b2c3d4", want: false},
+		{name: "single hash", path: "assets/#", want: false},
+		{name: "hash in middle", path: "pages/c#sharp.pk", want: false},
 	}
 
 	for _, testCase := range tests {
@@ -438,6 +450,8 @@ func TestIsRelevantFileForProcessingRejectsTemporaryFiles(t *testing.T) {
 	assert.False(t, isRelevantFileForProcessing("pages/.index.pk.swp", paths))
 	assert.False(t, isRelevantFileForProcessing("assets/logo.svg.tmp", paths))
 	assert.False(t, isRelevantFileForProcessing("pages/4913", paths))
+	assert.False(t, isRelevantFileForProcessing("assets/sed0Ob8Ey", paths))
+	assert.False(t, isRelevantFileForProcessing("assets/logo.svg___jb_tmp___", paths))
 	assert.True(t, isRelevantFileForProcessing("pages/index.pk", paths))
 	assert.True(t, isRelevantFileForProcessing("assets/logo.svg", paths))
 }

@@ -18,11 +18,8 @@
 
 package main
 
-// UserID is a type alias to a primitive type. This is the key to the test case.
 type UserID = uint64
 
 type Response struct {
-	// This map uses the alias as its key. The validator was incorrectly
-	// flagging the composite part for 'UserID' as needing a PackagePath.
 	Scores map[UserID]int
 }

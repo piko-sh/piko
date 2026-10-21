@@ -18,10 +18,8 @@
 
 package main
 
-// IntSlice is a type definition on a slice, not an alias.
 type IntSlice []int
 
-// Sum is a method on the IntSlice type.
 func (s IntSlice) Sum() int {
 	sum := 0
 	for _, v := range s {

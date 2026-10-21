@@ -19,7 +19,6 @@
 package db_engine_cockroachdb
 
 import (
-	"piko.sh/piko/internal/querier/querier_adapters/migration_sql"
 	"piko.sh/piko/wdk/db"
 )
 
@@ -31,7 +30,6 @@ func CockroachDB() db.EngineConfig {
 	return db.EngineConfig{
 		DriverName:       "postgres",
 		Engine:           NewCockroachDBEngine(),
-		MigrationDialect: migration_sql.PostgresDialect(),
-		CatalogueFactory: nil,
+		MigrationDialect: db.CockroachDBDialect(),
 	}
 }

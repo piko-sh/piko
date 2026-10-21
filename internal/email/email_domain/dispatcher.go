@@ -35,7 +35,7 @@ import (
 	"piko.sh/piko/internal/shutdown"
 	"piko.sh/piko/wdk/clock"
 	"piko.sh/piko/wdk/goroutine"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (

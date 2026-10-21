@@ -27,7 +27,7 @@ import (
 	"time"
 
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // GetStartupHistory returns the most recent startup-history entries in chronological

@@ -19,6 +19,7 @@
 package seo_adapters
 
 import (
+	"maps"
 	"math"
 	"path/filepath"
 	"slices"
@@ -29,7 +30,7 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/collection/collection_dto"
 	"piko.sh/piko/internal/seo/seo_dto"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (
@@ -67,8 +68,7 @@ func NewProjectViewTranslator(i18nLocales []string) *ProjectViewTranslator {
 	return &ProjectViewTranslator{i18nLocales: i18nLocales}
 }
 
-// Translate converts a ProjectAnnotationResult into a ProjectView for the SEO hexagon.
-// This translation process extracts only the information relevant to SEO generation.
+// Translate extracts an SEO project view with components in hashed-name order.
 //
 // Takes result (*annotator_dto.ProjectAnnotationResult) which provides the annotated
 // project data to convert.
@@ -81,9 +81,10 @@ func (t *ProjectViewTranslator) Translate(result *annotator_dto.ProjectAnnotatio
 		}
 	}
 
-	components := make([]seo_dto.ComponentView, 0, len(result.VirtualModule.ComponentsByHash))
-	for hash, component := range result.VirtualModule.ComponentsByHash {
-		components = append(components, t.componentViews(hash, component, result)...)
+	componentsByHash := result.VirtualModule.ComponentsByHash
+	components := make([]seo_dto.ComponentView, 0, len(componentsByHash))
+	for _, hash := range slices.Sorted(maps.Keys(componentsByHash)) {
+		components = append(components, t.componentViews(hash, componentsByHash[hash], result)...)
 	}
 
 	return &seo_dto.ProjectView{

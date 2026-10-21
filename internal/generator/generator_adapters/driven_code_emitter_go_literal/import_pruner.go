@@ -24,6 +24,8 @@ import (
 	"go/token"
 	"slices"
 	"strings"
+
+	"piko.sh/piko/internal/goimportname"
 )
 
 // collectUsedQualifiers returns the package qualifiers the code references.
@@ -53,12 +55,8 @@ func collectUsedQualifiers(fileAST *goast.File) map[string]struct{} {
 	return used
 }
 
-// importSpecQualifier returns the local name a spec is referenced by.
-//
-// It uses the spec's explicit alias when present, otherwise the package's assumed name
-// (the final path segment). The emitter only leaves a spec unaliased for the standard
-// library / runtime packages it adds, whose package name equals the final segment, so the
-// segment is an accurate qualifier here.
+// importSpecQualifier returns an import alias or infers the package name as goimports
+// does.
 //
 // Takes spec (*goast.ImportSpec) which is the import spec to qualify.
 //
@@ -67,7 +65,7 @@ func importSpecQualifier(spec *goast.ImportSpec) string {
 	if spec.Name != nil {
 		return spec.Name.Name
 	}
-	return importPathBase(importSpecPath(spec))
+	return goimportname.Assumed(importSpecPath(spec))
 }
 
 // importSpecName returns a spec's explicit alias.
@@ -91,18 +89,6 @@ func importSpecPath(spec *goast.ImportSpec) string {
 	return strings.Trim(spec.Path.Value, `"`)
 }
 
-// importPathBase returns the final segment of an import path.
-//
-// Takes path (string) which is the import path to take the final segment of.
-//
-// Returns string which is the final path segment.
-func importPathBase(path string) string {
-	if _, after, ok := strings.CutLast(path, "/"); ok {
-		return after
-	}
-	return path
-}
-
 // resolvedQualifier returns the local name a resolver-recorded import is referenced by.
 //
 // It uses the alias when set, otherwise the package's assumed name.
@@ -115,7 +101,7 @@ func resolvedQualifier(alias, path string) string {
 	if alias != "" {
 		return alias
 	}
-	return importPathBase(path)
+	return goimportname.Assumed(path)
 }
 
 // synthesisedImportSpec builds the spec goimports would add for a dropped package.
@@ -130,7 +116,7 @@ func resolvedQualifier(alias, path string) string {
 // Returns *goast.ImportSpec which is the synthesised import spec.
 func synthesisedImportSpec(path, alias string) *goast.ImportSpec {
 	spec := &goast.ImportSpec{Path: strLit(path)}
-	if q := resolvedQualifier(alias, path); q != importPathBase(path) {
+	if q := resolvedQualifier(alias, path); q != goimportname.Assumed(path) {
 		spec.Name = cachedIdent(q)
 	}
 	return spec

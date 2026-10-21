@@ -32,7 +32,7 @@ import (
 	"piko.sh/piko/internal/orchestrator/orchestrator_dal"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 	"piko.sh/piko/wdk/clock"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (
@@ -43,16 +43,15 @@ const (
 	// getTasksByIDChunkSize bounds the IDs bound into one GetTasksByID statement, keeping
 	// every statement under the smallest engine bind-variable cap.
 	getTasksByIDChunkSize = 500
+
+	// maintenanceBatchSize caps the number of pending tasks read in one reconciliation page.
+	maintenanceBatchSize = 100
 )
 
 var (
 	// errDALNotInitialised is returned when a transaction is attempted but the core has not
 	// been initialised with a sql.DB connection.
 	errDALNotInitialised = errors.New("cannot create transaction: DAL not initialised with a sql.DB connection")
-
-	// errTaskPoolAssertFailed is returned when a value from the task pool cannot be asserted
-	// to *Task.
-	errTaskPoolAssertFailed = errors.New("failed to get task from pool: type assertion failed")
 
 	// log is the package-level logger for the dalcore package.
 	log = logger_domain.GetLogger("piko/internal/orchestrator/orchestrator_dal/dalcore")
@@ -86,21 +85,45 @@ type core struct {
 	inTransaction bool
 }
 
+// Option configures a core during construction.
+type Option func(*core)
+
+// WithClock sets the clock the core uses for stored timestamps and for stale, due, and
+// threshold computations.
+//
+// Use the same clock as the task dispatcher so stored times and due checks agree.
+//
+// Takes c (clock.Clock) which provides the time; nil keeps the real clock.
+//
+// Returns Option which configures the core's clock.
+func WithClock(c clock.Clock) Option {
+	return func(target *core) {
+		if c != nil {
+			target.clock = c
+		}
+	}
+}
+
 // New creates a core backed by the given database connection and dialect driver.
 //
 // Takes sqlDB (*sql.DB) which provides the database connection for transactions and
 // health checks; it may be nil when the driver is not backed by a *sql.DB.
 // Takes driver (Driver) which performs the dialect-specific generated-query calls.
+// Takes opts (...Option) which customise the core, such as its clock.
 //
 // Returns orchestrator_dal.OrchestratorDALWithTx which is the configured DAL ready for
 // use.
-func New(sqlDB *sql.DB, driver Driver) orchestrator_dal.OrchestratorDALWithTx {
-	return &core{
+func New(sqlDB *sql.DB, driver Driver, opts ...Option) orchestrator_dal.OrchestratorDALWithTx {
+	c := &core{
 		sqlDB:         sqlDB,
 		driver:        driver,
 		clock:         clock.RealClock(),
 		inTransaction: false,
 	}
+	for _, opt := range opts {
+		opt(c)
+	}
+	return c
 }
 
 // HealthCheck performs a health check on the database connection.
@@ -124,10 +147,13 @@ func (*core) Close() error {
 // level.
 //
 // The provided TaskStore is scoped to the transaction, so all reads and writes through it
-// are atomic. If fn returns an error (or panics), all mutations are rolled back.
+// are atomic. If fn returns an error (or panics), all mutations are rolled back. A
+// transaction that fails with a serialisation failure, deadlock or busy database is
+// rolled back and run again, fn included, a few times with jittered backoff.
 //
-// Takes fn which receives a transactional TaskStore. The caller MUST use this
-// transactional store for all operations that should be atomic.
+// Takes fn (func(context.Context, orchestrator_domain.TaskStore) error) which receives a
+// transactional TaskStore. The caller MUST use this transactional store for all
+// operations that should be atomic.
 //
 // Returns error when fn returns an error, the transaction fails to begin, or the commit
 // fails.
@@ -140,12 +166,14 @@ func (c *core) RunAtomic(ctx context.Context, fn func(ctx context.Context, trans
 		fmt.Errorf("transaction exceeded maximum duration of %s", maxTransactionTimeout))
 	defer cancel()
 
-	return c.withTransaction(ctx, func(ctx context.Context, transactionDAL orchestrator_dal.OrchestratorDAL) error {
-		store, ok := transactionDAL.(orchestrator_domain.TaskStore)
-		if !ok {
-			return errors.New("transaction DAL does not implement TaskStore")
-		}
-		return fn(ctx, store)
+	return c.retryTransient(ctx, func() error {
+		return c.withTransaction(ctx, func(ctx context.Context, transactionDAL orchestrator_dal.OrchestratorDAL) error {
+			store, ok := transactionDAL.(orchestrator_domain.TaskStore)
+			if !ok {
+				return errors.New("transaction DAL does not implement TaskStore")
+			}
+			return fn(ctx, store)
+		})
 	})
 }
 
@@ -180,41 +208,17 @@ func (c *core) CreateTasks(ctx context.Context, tasks []*orchestrator_domain.Tas
 		return nil
 	}
 
-	return c.runInTransaction(ctx, func(ctx context.Context, driver Driver) error {
-		batchParams := make([]CreateTaskBatchParams, len(tasks))
-		nowSeconds := c.clock.Now().UTC().Unix()
-
-		for i, task := range tasks {
-			payloadBytes, err := json.Marshal(task.Payload)
-			if err != nil {
-				return fmt.Errorf("failed to marshal payload for task %s: %w", task.ID, err)
-			}
-			configBytes, err := json.Marshal(task.Config)
-			if err != nil {
-				return fmt.Errorf("failed to marshal config for task %s: %w", task.ID, err)
-			}
-
-			var dedupKey *string
-			if task.DeduplicationKey != "" {
-				dedupKey = &task.DeduplicationKey
-			}
-
-			batchParams[i] = CreateTaskBatchParams{
-				ID:               task.ID,
-				WorkflowID:       task.WorkflowID,
-				Executor:         task.Executor,
-				Priority:         safeconv.IntToInt32(int(task.Config.Priority)),
-				Payload:          string(payloadBytes),
-				Config:           string(configBytes),
-				Status:           string(task.Status),
-				ExecuteAt:        task.ExecuteAt.Unix(),
-				Attempt:          safeconv.IntToInt32(task.Attempt),
-				CreatedAt:        task.CreatedAt.Unix(),
-				UpdatedAt:        nowSeconds,
-				DeduplicationKey: dedupKey,
-			}
+	now := c.clock.Now().UTC()
+	batchParams := make([]CreateTaskBatchParams, len(tasks))
+	for i, task := range tasks {
+		params, err := buildCreateTaskParams(task, now)
+		if err != nil {
+			return fmt.Errorf("building params for task %s: %w", task.ID, err)
 		}
+		batchParams[i] = params
+	}
 
+	return c.runInTransaction(ctx, func(ctx context.Context, driver Driver) error {
 		return driver.CreateTasksBatch(ctx, batchParams)
 	})
 }
@@ -223,7 +227,8 @@ func (c *core) CreateTasks(ctx context.Context, tasks []*orchestrator_domain.Tas
 //
 // Takes task (*orchestrator_domain.Task) which holds the updated task data.
 //
-// Returns error when the database update fails.
+// Returns error which is ErrTaskNotFound when the task does not exist, or another error
+// when the database update fails.
 func (c *core) UpdateTask(ctx context.Context, task *orchestrator_domain.Task) error {
 	params, err := buildUpdateTaskParams(task, c.clock.Now().UTC())
 	if err != nil {
@@ -231,8 +236,12 @@ func (c *core) UpdateTask(ctx context.Context, task *orchestrator_domain.Task) e
 	}
 
 	return c.runInTransaction(ctx, func(ctx context.Context, driver Driver) error {
-		if err := driver.UpdateTask(ctx, params); err != nil {
+		updated, err := driver.UpdateTask(ctx, params)
+		if err != nil {
 			return fmt.Errorf("executing update task query: %w", err)
+		}
+		if updated == 0 {
+			return fmt.Errorf("%w: %s", orchestrator_domain.ErrTaskNotFound, task.ID)
 		}
 		return nil
 	})
@@ -256,7 +265,7 @@ func (c *core) CreateTaskWithDedup(ctx context.Context, task *orchestrator_domai
 	}
 
 	return c.runInTransaction(ctx, func(ctx context.Context, driver Driver) error {
-		created, err := driver.CreateWithDedup(ctx, params, task.DeduplicationKey)
+		created, err := driver.CreateWithDedup(ctx, params)
 		if err != nil {
 			return fmt.Errorf("failed to create task with dedup: %w", err)
 		}
@@ -265,61 +274,6 @@ func (c *core) CreateTaskWithDedup(ctx context.Context, task *orchestrator_domai
 		}
 		return nil
 	})
-}
-
-// FetchAndMarkDueTasks atomically fetches due tasks and marks them as processing. The
-// fetch and mark happen within a single transaction to prevent multiple workers from
-// picking up the same task.
-//
-// Takes priority (orchestrator_domain.TaskPriority) which filters tasks by their priority
-// level.
-// Takes limit (int) which specifies the maximum number of tasks to fetch.
-//
-// Returns []*orchestrator_domain.Task which contains the fetched tasks marked as
-// processing.
-// Returns error when the fetch or mark operation fails.
-func (c *core) FetchAndMarkDueTasks(ctx context.Context, priority orchestrator_domain.TaskPriority, limit int) ([]*orchestrator_domain.Task, error) {
-	var domainTasks []*orchestrator_domain.Task
-	nowSeconds := c.clock.Now().UTC().Unix()
-
-	err := c.runInTransaction(ctx, func(ctx context.Context, driver Driver) error {
-		fetchedRows, err := driver.FetchDueTasks(ctx, FetchDueTasksParams{
-			Statuses: []string{
-				string(orchestrator_domain.StatusPending),
-				string(orchestrator_domain.StatusRetrying),
-			},
-			Priority:  safeconv.IntToInt32(int(priority)),
-			ExecuteAt: nowSeconds,
-			Limit:     limit,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to fetch due tasks: %w", err)
-		}
-
-		if len(fetchedRows) == 0 {
-			domainTasks = []*orchestrator_domain.Task{}
-			return nil
-		}
-
-		taskIDs, converted, err := convertFetchedRowsToDomain(fetchedRows)
-		if err != nil {
-			return err
-		}
-		domainTasks = converted
-
-		if err := driver.MarkTasksAsProcessing(ctx, c.clock.Now().UTC().Unix(), taskIDs); err != nil {
-			return fmt.Errorf("failed to mark tasks as processing: %w", err)
-		}
-		return nil
-	})
-	if err != nil {
-		for _, task := range domainTasks {
-			orchestrator_domain.TaskPool.Put(task)
-		}
-		return nil, err
-	}
-
-	return domainTasks, nil
 }
 
 // GetTasksByID returns the tasks with the given IDs, skipping IDs that do not exist.
@@ -334,19 +288,16 @@ func (c *core) GetTasksByID(ctx context.Context, ids []string) ([]*orchestrator_
 	tasks := make([]*orchestrator_domain.Task, 0, len(ids))
 	for chunk := range slices.Chunk(ids, getTasksByIDChunkSize) {
 		if err := ctx.Err(); err != nil {
-			releaseTasks(tasks)
 			return nil, fmt.Errorf("reading tasks by ID: %w", err)
 		}
 
 		rows, err := c.driver.GetTasksByID(ctx, chunk)
 		if err != nil {
-			releaseTasks(tasks)
 			return nil, fmt.Errorf("reading tasks by ID: %w", err)
 		}
 
-		_, converted, err := convertFetchedRowsToDomain(rows)
+		converted, err := convertTaskRowsToDomain(rows)
 		if err != nil {
-			releaseTasks(tasks)
 			return nil, err
 		}
 		tasks = append(tasks, converted...)
@@ -354,29 +305,22 @@ func (c *core) GetTasksByID(ctx context.Context, ids []string) ([]*orchestrator_
 	return tasks, nil
 }
 
-// convertFetchedRowsToDomain converts driver rows to domain tasks and collects their IDs
-// for subsequent marking.
+// convertTaskRowsToDomain converts driver rows to domain tasks.
 //
-// Takes fetchedRows ([]FetchDueTaskRow) which contains the rows to convert.
+// Takes rows ([]TaskRow) which contains the rows to convert.
 //
-// Returns []string which contains the task IDs.
 // Returns []*orchestrator_domain.Task which contains the converted domain tasks.
 // Returns error when a row cannot be converted.
-func convertFetchedRowsToDomain(fetchedRows []FetchDueTaskRow) ([]string, []*orchestrator_domain.Task, error) {
-	taskIDs := make([]string, len(fetchedRows))
-	domainTasks := make([]*orchestrator_domain.Task, len(fetchedRows))
-	for i := range fetchedRows {
-		taskIDs[i] = fetchedRows[i].ID
-		domainTask, err := convertDBTaskToDomain(&fetchedRows[i])
+func convertTaskRowsToDomain(rows []TaskRow) ([]*orchestrator_domain.Task, error) {
+	domainTasks := make([]*orchestrator_domain.Task, len(rows))
+	for i := range rows {
+		domainTask, err := convertDBTaskToDomain(&rows[i])
 		if err != nil {
-			for j := range i {
-				orchestrator_domain.TaskPool.Put(domainTasks[j])
-			}
-			return nil, nil, fmt.Errorf("failed to convert task '%s' from DB model: %w", fetchedRows[i].ID, err)
+			return nil, fmt.Errorf("failed to convert task '%s' from DB model: %w", rows[i].ID, err)
 		}
 		domainTasks[i] = domainTask
 	}
-	return taskIDs, domainTasks, nil
+	return domainTasks, nil
 }
 
 // GetWorkflowStatus checks if all tasks in a workflow are complete by querying whether
@@ -428,176 +372,6 @@ func (c *core) PendingTaskCount(ctx context.Context) (int64, error) {
 		return 0, fmt.Errorf("querying pending task count: %w", err)
 	}
 	return count, nil
-}
-
-// RecoverStaleTasks resets PROCESSING tasks that have exceeded the stale threshold. Tasks
-// are marked as RETRYING if they have attempts remaining, or FAILED if they have exceeded
-// max retries.
-//
-// Takes staleThreshold (time.Duration) which defines how long a task can be in PROCESSING
-// before being considered stuck.
-// Takes maxRetries (int) which is the maximum retry attempts before marking FAILED.
-// Takes recoveryError (string) which is the error message to record on recovered tasks.
-//
-// Returns int which is the count of tasks recovered.
-// Returns error when the recovery operation fails.
-func (c *core) RecoverStaleTasks(ctx context.Context, staleThreshold time.Duration, maxRetries int, recoveryError string) (int, error) {
-	now := c.clock.Now().UTC()
-	nowSeconds := now.Unix()
-	staleThresholdSeconds := now.Add(-staleThreshold).Unix()
-
-	var rowsAffected int64
-	err := c.runInTransaction(ctx, func(ctx context.Context, driver Driver) error {
-		var txErr error
-		rowsAffected, txErr = driver.RecoverStale(ctx, safeconv.IntToInt32(maxRetries), &recoveryError, nowSeconds, staleThresholdSeconds)
-		if txErr != nil {
-			return fmt.Errorf("executing stale task recovery: %w", txErr)
-		}
-		return nil
-	})
-	if err != nil {
-		return 0, fmt.Errorf("recovering stale tasks: %w", err)
-	}
-
-	return int(rowsAffected), nil
-}
-
-// GetStaleProcessingTaskCount returns the count of tasks stuck in PROCESSING longer than
-// the threshold.
-//
-// Takes staleThreshold (time.Duration) which defines when a PROCESSING task is considered
-// stuck.
-//
-// Returns int64 which is the count of stale tasks.
-// Returns error when the count cannot be retrieved.
-func (c *core) GetStaleProcessingTaskCount(ctx context.Context, staleThreshold time.Duration) (int64, error) {
-	staleThresholdSeconds := c.clock.Now().UTC().Add(-staleThreshold).Unix()
-
-	count, err := c.driver.GetStaleProcessingTaskCount(ctx, staleThresholdSeconds)
-	if err != nil {
-		return 0, fmt.Errorf("querying stale processing task count: %w", err)
-	}
-
-	return count, nil
-}
-
-// UpdateTaskHeartbeat updates the updated_at timestamp for a task in PROCESSING status.
-//
-// Takes taskID (string) which identifies the task to update.
-//
-// Returns error when the update fails.
-func (c *core) UpdateTaskHeartbeat(ctx context.Context, taskID string) error {
-	nowSeconds := c.clock.Now().UTC().Unix()
-	return c.driver.UpdateTaskHeartbeat(ctx, nowSeconds, taskID)
-}
-
-// ClaimStaleTasksForRecovery atomically claims stale PROCESSING tasks for recovery.
-//
-// The method fetches candidate stale tasks within a transaction and attempts to claim
-// each one individually, collecting only those where the claim succeeds. This
-// transaction-based claiming works on dialects that do not support FOR UPDATE SKIP
-// LOCKED.
-//
-// Takes nodeID (string) which identifies the node claiming the tasks.
-// Takes staleThreshold (time.Duration) which defines when a task is considered stale.
-// Takes leaseTimeout (time.Duration) which sets how long the claim is valid.
-// Takes batchLimit (int) which limits the number of tasks to claim per call.
-//
-// Returns []orchestrator_domain.RecoveryClaimedTask which contains the claimed tasks.
-// Returns error when the claim operation fails.
-func (c *core) ClaimStaleTasksForRecovery(
-	ctx context.Context, nodeID string, staleThreshold time.Duration, leaseTimeout time.Duration, batchLimit int,
-) ([]orchestrator_domain.RecoveryClaimedTask, error) {
-	now := c.clock.Now().UTC()
-	nowUnixSeconds := now.Unix()
-	staleThresholdSeconds := now.Add(-staleThreshold).Unix()
-	leaseExpiresAtSeconds := now.Add(leaseTimeout).Unix()
-
-	var claimed []orchestrator_domain.RecoveryClaimedTask
-
-	err := c.runInTransaction(ctx, func(ctx context.Context, driver Driver) error {
-		rows, err := driver.GetStaleTasksForRecovery(ctx, staleThresholdSeconds, &nowUnixSeconds, batchLimit)
-		if err != nil {
-			return fmt.Errorf("getting stale tasks for recovery: %w", err)
-		}
-
-		if len(rows) == 0 {
-			return nil
-		}
-
-		claimed = make([]orchestrator_domain.RecoveryClaimedTask, 0, len(rows))
-		for _, row := range rows {
-			rowsAffected, err := driver.ClaimTaskForRecovery(ctx, &nodeID, &leaseExpiresAtSeconds, row.ID, &nowUnixSeconds)
-			if err != nil {
-				return fmt.Errorf("claiming task for recovery: %w", err)
-			}
-			if rowsAffected > 0 {
-				claimed = append(claimed, orchestrator_domain.RecoveryClaimedTask{
-					ID:         row.ID,
-					WorkflowID: row.WorkflowID,
-					Attempt:    row.Attempt,
-				})
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return claimed, nil
-}
-
-// RecoverClaimedTasks recovers all tasks previously claimed by this node. Tasks are set
-// to RETRYING if they have attempts remaining, or FAILED otherwise, and the lease is
-// cleared.
-//
-// Takes nodeID (string) which identifies the node that claimed the tasks.
-// Takes maxRetries (int) which sets the maximum retries before marking FAILED.
-// Takes recoveryError (string) which is the error message to record.
-//
-// Returns int which is the count of tasks recovered.
-// Returns error when the recovery fails.
-func (c *core) RecoverClaimedTasks(ctx context.Context, nodeID string, maxRetries int, recoveryError string) (int, error) {
-	nowSeconds := c.clock.Now().UTC().Unix()
-
-	var rowsAffected int64
-	err := c.runInTransaction(ctx, func(ctx context.Context, driver Driver) error {
-		var txErr error
-		rowsAffected, txErr = driver.RecoverClaimed(ctx, safeconv.IntToInt32(maxRetries), &recoveryError, nowSeconds, &nodeID)
-		if txErr != nil {
-			return fmt.Errorf("recovering claimed tasks: %w", txErr)
-		}
-		return nil
-	})
-	if err != nil {
-		return 0, err
-	}
-
-	return int(rowsAffected), nil
-}
-
-// ReleaseRecoveryLeases releases all recovery leases held by this node.
-//
-// Takes nodeID (string) which identifies the node releasing leases.
-//
-// Returns int which is the count of leases released.
-// Returns error when the release fails.
-func (c *core) ReleaseRecoveryLeases(ctx context.Context, nodeID string) (int, error) {
-	var rowsAffected int64
-	err := c.runInTransaction(ctx, func(ctx context.Context, driver Driver) error {
-		var txErr error
-		rowsAffected, txErr = driver.ReleaseRecoveryLeases(ctx, &nodeID)
-		if txErr != nil {
-			return fmt.Errorf("releasing recovery leases: %w", txErr)
-		}
-		return nil
-	})
-	if err != nil {
-		return 0, err
-	}
-
-	return int(rowsAffected), nil
 }
 
 // CreateWorkflowReceipt creates a new workflow receipt for tracking completion.
@@ -716,7 +490,7 @@ func (c *core) CleanupOldResolvedReceipts(ctx context.Context, olderThan time.Ti
 	var rowsAffected int64
 	err := c.runInTransaction(ctx, func(ctx context.Context, driver Driver) error {
 		var txErr error
-		rowsAffected, txErr = driver.CleanupOldResolvedReceipts(ctx, &olderThanSeconds)
+		rowsAffected, txErr = driver.CleanupOldResolvedReceipts(ctx, olderThanSeconds)
 		if txErr != nil {
 			return fmt.Errorf("cleaning up old resolved receipts: %w", txErr)
 		}
@@ -760,37 +534,12 @@ func (c *core) TimeoutStaleReceipts(ctx context.Context, olderThan time.Time) (i
 // Returns []*orchestrator_domain.Task which contains the failed tasks.
 // Returns error when the query fails.
 func (c *core) ListFailedTasks(ctx context.Context) ([]*orchestrator_domain.Task, error) {
-	dbRows, err := c.driver.ListFailedTasks(ctx)
+	rows, err := c.driver.ListFailedTasks(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("querying failed tasks: %w", err)
 	}
-
-	tasks := make([]*orchestrator_domain.Task, len(dbRows))
-	for i := range dbRows {
-		row := &dbRows[i]
-		tasks[i] = &orchestrator_domain.Task{
-			ID:                 row.ID,
-			WorkflowID:         row.WorkflowID,
-			Executor:           row.Executor,
-			Status:             orchestrator_domain.StatusFailed,
-			Attempt:            int(row.Attempt),
-			ExecuteAt:          time.Time{},
-			CreatedAt:          time.Time{},
-			UpdatedAt:          time.Time{},
-			ScheduledExecuteAt: time.Time{},
-			Payload:            nil,
-			Result:             nil,
-			LastError:          "",
-			DeduplicationKey:   "",
-			BuildTag:           "",
-			Config:             orchestrator_domain.TaskConfig{},
-			IsFatal:            false,
-		}
-		if row.LastError != nil {
-			tasks[i].LastError = *row.LastError
-		}
-	}
-	return tasks, nil
+	tasks, err := convertTaskRowsToDomain(rows)
+	return tasks, err
 }
 
 // ListTaskSummary returns task counts grouped by status.
@@ -875,6 +624,48 @@ func (c *core) ListWorkflowSummary(ctx context.Context, limit int) ([]orchestrat
 	return results, nil
 }
 
+// WorkflowError reads the authoritative workflow failure, including child tasks.
+//
+// Takes workflowID (string) which identifies the workflow to inspect.
+//
+// Returns outcome (error) which is a persisted task failure, or nil when none is found.
+// Returns readErr (error) which reports a query failure or an unsupported driver
+// operation.
+func (c *core) WorkflowError(ctx context.Context, workflowID string) (outcome error, readErr error) {
+	if reader, ok := c.driver.(interface {
+		WorkflowError(context.Context, string) (error, error)
+	}); ok {
+		return reader.WorkflowError(ctx, workflowID)
+	}
+	return nil, errors.New("driver does not support workflow outcome lookup")
+}
+
+// PendingDispatchPage reads due tasks for reconciliation after publication loss or
+// restart.
+//
+// Takes afterID (string) which identifies the preceding page's last task, or is empty to
+// start at the beginning.
+// Takes afterTime (time.Time) which is the execution time of the preceding page's last
+// task.
+// Takes limit (int) which caps the page size, subject to maintenanceBatchSize.
+//
+// Returns []*orchestrator_domain.Task which contains pending or retrying tasks ordered by
+// execution time and ID.
+// Returns error when storage cannot be read.
+func (c *core) PendingDispatchPage(ctx context.Context, afterID string, afterTime time.Time, limit int) ([]*orchestrator_domain.Task, error) {
+	query := orchestrator_domain.DispatchQuery{
+		Now:             c.clock.Now(),
+		AfterTime:       time.Time{},
+		PublishedBefore: time.Time{},
+		AfterID:         afterID,
+		Limit:           min(limit, maintenanceBatchSize),
+	}
+	if afterID != "" {
+		query.AfterTime = afterTime
+	}
+	return c.DispatchablePage(ctx, query)
+}
+
 // derefInt64 returns the value behind a nullable int64 pointer, defaulting to zero when
 // nil.
 //
@@ -888,12 +679,12 @@ func derefInt64(value *int64) int64 {
 	return *value
 }
 
-// runInTransaction executes fn within a transaction using the dialect driver.
+// runInTransaction runs fn in a transaction and retries transient failures.
 //
-// If the core is already inside a transaction (inTransaction == true), it reuses the
-// existing driver to avoid deadlocking on SQLite's single-writer lock.
+// Nested calls reuse the current transaction and leave retries to the outermost call.
 //
-// Takes fn which is the callback executed inside the transaction.
+// Takes fn (func(context.Context, Driver) error) which is the callback executed inside
+// the transaction.
 //
 // Returns error when the transaction fails to begin, fn returns an error, or the commit
 // fails.
@@ -901,7 +692,19 @@ func (c *core) runInTransaction(ctx context.Context, fn func(ctx context.Context
 	if c.inTransaction {
 		return fn(ctx, c.driver)
 	}
+	return c.retryTransient(ctx, func() error {
+		return c.runInTransactionOnce(ctx, fn)
+	})
+}
 
+// runInTransactionOnce runs fn in one new transaction.
+//
+// Takes fn (func(context.Context, Driver) error) which is the callback executed inside
+// the transaction.
+//
+// Returns error when the transaction fails to begin, fn returns an error, or the commit
+// fails.
+func (c *core) runInTransactionOnce(ctx context.Context, fn func(ctx context.Context, driver Driver) error) error {
 	db, err := c.beginTxDB()
 	if err != nil {
 		return err
@@ -936,14 +739,11 @@ func (c *core) beginTxDB() (*sql.DB, error) {
 	return nil, errDALNotInitialised
 }
 
-// withTransaction is an internal helper that executes a function within a database
-// transaction, providing a transaction-scoped core clone.
+// withTransaction runs a function through a transaction-scoped core and rolls back before
+// propagating a panic.
 //
-// If transactionFunction panics, the deferred rollback runs before the panic propagates
-// so no half-committed state is left behind.
-//
-// Takes transactionFunction which is the function to execute within the transaction
-// scope.
+// Takes transactionFunction (func(context.Context, orchestrator_dal.OrchestratorDAL)
+// error) which is the function to execute within the transaction scope.
 //
 // Returns error when the core has no database connection, when beginning the transaction
 // fails, when transactionFunction returns an error, or when commit fails.
@@ -1000,18 +800,41 @@ func buildCreateTaskParams(task *orchestrator_domain.Task, now time.Time) (Creat
 		return CreateTaskParams{}, fmt.Errorf("failed to marshal task config: %w", err)
 	}
 
+	var deduplicationKey, lastError, result *string
+	if task.DeduplicationKey != "" {
+		deduplicationKey = &task.DeduplicationKey
+	}
+	if task.LastError != "" {
+		lastError = &task.LastError
+	}
+	if task.Result != nil {
+		resultBytes, err := json.Marshal(task.Result)
+		if err != nil {
+			return CreateTaskParams{}, fmt.Errorf("failed to marshal task result: %w", err)
+		}
+		result = new(string(resultBytes))
+	}
+
 	return CreateTaskParams{
-		ID:         task.ID,
-		WorkflowID: task.WorkflowID,
-		Executor:   task.Executor,
-		Priority:   safeconv.IntToInt32(int(task.Config.Priority)),
-		Payload:    string(payloadBytes),
-		Config:     string(configBytes),
-		Status:     string(task.Status),
-		ExecuteAt:  task.ExecuteAt.Unix(),
-		Attempt:    safeconv.IntToInt32(task.Attempt),
-		CreatedAt:  task.CreatedAt.Unix(),
-		UpdatedAt:  now.Unix(),
+		DeduplicationKey:   deduplicationKey,
+		LastError:          lastError,
+		Result:             result,
+		ID:                 task.ID,
+		WorkflowID:         task.WorkflowID,
+		Executor:           task.Executor,
+		Payload:            string(payloadBytes),
+		Config:             string(configBytes),
+		Status:             string(task.Status),
+		BuildTag:           task.BuildTag,
+		OwnerInstance:      task.OwnerInstance,
+		ExecuteAt:          task.ExecuteAt.Unix(),
+		ScheduledExecuteAt: unixOrZero(task.ScheduledExecuteAt),
+		CreatedAt:          task.CreatedAt.Unix(),
+		UpdatedAt:          now.Unix(),
+		Priority:           safeconv.IntToInt32(int(task.Config.Priority)),
+		Attempt:            safeconv.IntToInt32(task.Attempt),
+		IsFatal:            task.IsFatal,
+		Background:         task.Background,
 	}, nil
 }
 
@@ -1050,34 +873,33 @@ func buildUpdateTaskParams(task *orchestrator_domain.Task, now time.Time) (Updat
 	}
 
 	return UpdateTaskParams{
-		Status:    string(task.Status),
-		Priority:  safeconv.IntToInt32(int(task.Config.Priority)),
-		ExecuteAt: task.ExecuteAt.Unix(),
-		Attempt:   safeconv.IntToInt32(task.Attempt),
-		LastError: lastErrorPtr,
-		Result:    resultPtr,
-		Payload:   string(payloadBytes),
-		Config:    string(configBytes),
-		UpdatedAt: now.Unix(),
-		ID:        task.ID,
+		Status:             string(task.Status),
+		Priority:           safeconv.IntToInt32(int(task.Config.Priority)),
+		ExecuteAt:          task.ExecuteAt.Unix(),
+		Attempt:            safeconv.IntToInt32(task.Attempt),
+		LastError:          lastErrorPtr,
+		Result:             resultPtr,
+		Payload:            string(payloadBytes),
+		Config:             string(configBytes),
+		UpdatedAt:          now.Unix(),
+		ID:                 task.ID,
+		BuildTag:           task.BuildTag,
+		OwnerInstance:      task.OwnerInstance,
+		ScheduledExecuteAt: unixOrZero(task.ScheduledExecuteAt),
+		IsFatal:            task.IsFatal,
+		Background:         task.Background,
 	}, nil
 }
 
-// convertDBTaskToDomain converts a driver task row to a domain task. It obtains a task
-// from the pool and populates it with the database values.
+// convertDBTaskToDomain converts a driver task row to a domain task.
 //
-// Takes dbTask (*FetchDueTaskRow) which is the row to convert.
+// Takes dbTask (*TaskRow) which is the row to convert.
 //
-// Returns *orchestrator_domain.Task which is the populated domain task from the pool.
-// Returns error when the pool returns an invalid type or JSON unmarshalling fails for
-// payload, config, or result fields.
-func convertDBTaskToDomain(dbTask *FetchDueTaskRow) (*orchestrator_domain.Task, error) {
-	pooledTask, ok := orchestrator_domain.TaskPool.Get().(*orchestrator_domain.Task)
-	if !ok {
-		return nil, errTaskPoolAssertFailed
-	}
-	task := pooledTask
-	task.Reset()
+// Returns *orchestrator_domain.Task which is the populated domain task, owned by the
+// caller.
+// Returns error when JSON unmarshalling fails for payload, config, or result fields.
+func convertDBTaskToDomain(dbTask *TaskRow) (*orchestrator_domain.Task, error) {
+	task := &orchestrator_domain.Task{}
 
 	task.ID = dbTask.ID
 	task.WorkflowID = dbTask.WorkflowID
@@ -1087,6 +909,12 @@ func convertDBTaskToDomain(dbTask *FetchDueTaskRow) (*orchestrator_domain.Task, 
 	task.Attempt = int(dbTask.Attempt)
 	task.CreatedAt = time.Unix(dbTask.CreatedAt, 0).UTC()
 	task.UpdatedAt = time.Unix(dbTask.UpdatedAt, 0).UTC()
+	task.ScheduledExecuteAt = timeOrZero(dbTask.ScheduledExecuteAt)
+	task.LastPublishedAt = timeOrZero(dbTask.LastPublishedAt)
+	task.BuildTag = dbTask.BuildTag
+	task.OwnerInstance = dbTask.OwnerInstance
+	task.IsFatal = dbTask.IsFatal
+	task.Background = dbTask.Background
 
 	if dbTask.LastError != nil {
 		task.LastError = *dbTask.LastError
@@ -1097,11 +925,9 @@ func convertDBTaskToDomain(dbTask *FetchDueTaskRow) (*orchestrator_domain.Task, 
 	}
 
 	if err := json.UnmarshalString(dbTask.Payload, &task.Payload); err != nil {
-		orchestrator_domain.TaskPool.Put(task)
 		return nil, fmt.Errorf("unmarshal payload for task '%s': %w", dbTask.ID, err)
 	}
 	if err := json.UnmarshalString(dbTask.Config, &task.Config); err != nil {
-		orchestrator_domain.TaskPool.Put(task)
 		return nil, fmt.Errorf("unmarshal config for task '%s': %w", dbTask.ID, err)
 	}
 
@@ -1109,20 +935,17 @@ func convertDBTaskToDomain(dbTask *FetchDueTaskRow) (*orchestrator_domain.Task, 
 
 	if dbTask.Result != nil {
 		if err := json.UnmarshalString(*dbTask.Result, &task.Result); err != nil {
-			orchestrator_domain.TaskPool.Put(task)
 			return nil, fmt.Errorf("unmarshal result for task '%s': %w", dbTask.ID, err)
 		}
 	}
 
-	return task, nil
-}
-
-// releaseTasks returns converted tasks to the task pool when a multi-step read is
-// abandoned part way.
-//
-// Takes tasks ([]*orchestrator_domain.Task) which are the tasks to release.
-func releaseTasks(tasks []*orchestrator_domain.Task) {
-	for _, task := range tasks {
-		orchestrator_domain.TaskPool.Put(task)
+	if dbTask.RerunID != nil {
+		rerun, err := decodeRerun(dbTask)
+		if err != nil {
+			return nil, err
+		}
+		task.Rerun = rerun
 	}
+
+	return task, nil
 }

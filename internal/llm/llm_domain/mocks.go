@@ -112,7 +112,6 @@ func NewMockLLMProvider() *MockLLMProvider {
 
 // Complete delegates to CompleteFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes request (*llm_dto.CompletionRequest) which contains the completion request
 // parameters.
 //
@@ -155,7 +154,6 @@ func (m *MockLLMProvider) Complete(ctx context.Context, request *llm_dto.Complet
 
 // Stream delegates to StreamFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes request (*llm_dto.CompletionRequest) which contains the completion request
 // parameters.
 //
@@ -312,7 +310,6 @@ func (m *MockEmbeddingProvider) SetEmbedFunc(f func(ctx context.Context, request
 
 // Embed delegates to EmbedFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes request (*llm_dto.EmbeddingRequest) which contains the embedding request
 // parameters.
 //
@@ -606,7 +603,6 @@ func (m *MockBudgetStore) GetStatus(ctx context.Context, scope string) (*llm_dto
 
 // CheckAndReserve delegates to CheckAndReserveFunc if set.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes scope (string) which identifies the budget scope.
 // Takes estimatedCost (maths.Money) which is the cost to reserve.
 // Takes limits (llm_dto.BudgetLimits) which carries the spend limits.
@@ -644,7 +640,6 @@ func (m *MockBudgetStore) CheckAndReserve(ctx context.Context, scope string, est
 
 // Unreserve delegates to UnreserveFunc if set.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes scope (string) which identifies the budget scope.
 // Takes cost (maths.Money) which is the cost to release.
 //
@@ -856,7 +851,6 @@ func NewMockSummariser() *MockSummariser {
 
 // Complete delegates to CompleteFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes request (*llm_dto.CompletionRequest) which contains the completion request
 // parameters.
 //

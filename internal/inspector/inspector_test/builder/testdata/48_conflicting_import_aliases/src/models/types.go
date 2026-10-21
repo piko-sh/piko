@@ -18,6 +18,5 @@
 
 package models
 
-// The canonical types that will be imported.
 type User struct{ ID string }
 type Product struct{ SKU string }

@@ -57,23 +57,24 @@ func TestResourceLimitOptions(t *testing.T) {
 		wantOptions int
 	}{
 		{name: "development use is unlimited by default", options: nil, wantOptions: 0},
-		{name: "restricted mode applies six default caps", options: []ProviderOption{WithRestrictedSymbolSurface()}, wantOptions: 6},
+		{name: "restricted mode applies seven default caps", options: []ProviderOption{WithRestrictedSymbolSurface()}, wantOptions: 7},
 		{
 			name: "every limit configured",
 			options: []ProviderOption{
 				WithMaxExecutionTime(time.Second), WithCostBudget(10), WithMaxCallDepth(10), WithMaxAllocSize(10),
 				WithMaxOutputSize(10), WithMaxSourceSize(10), WithMaxStringSize(10), WithMaxGoroutines(10),
+				WithCallbackTimeout(time.Second),
 			},
-			wantOptions: 8,
+			wantOptions: 9,
 		},
 		{
 			name:        "explicit zero lifts a restricted cap",
 			options:     []ProviderOption{WithRestrictedSymbolSurface(), WithMaxExecutionTime(0)},
-			wantOptions: 5,
+			wantOptions: 6,
 		},
 		{
 			name:        "negative values are treated as unlimited",
-			options:     []ProviderOption{WithMaxGoroutines(-1), WithCostBudget(-1), WithMaxCallDepth(-5)},
+			options:     []ProviderOption{WithMaxGoroutines(-1), WithCostBudget(-1), WithMaxCallDepth(-5), WithCallbackTimeout(-time.Second)},
 			wantOptions: 0,
 		},
 	}

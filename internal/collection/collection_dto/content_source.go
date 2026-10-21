@@ -19,7 +19,7 @@
 package collection_dto
 
 import (
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // ContentSource describes where a collection's content files are located.

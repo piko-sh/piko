@@ -26,7 +26,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 type testEntry struct {

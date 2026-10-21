@@ -18,12 +18,10 @@
 
 package main
 
-// A generic interface.
 type Producer[T any] interface {
 	Produce() T
 }
 
 type Report struct {
-	// A map where the value is an instantiated generic interface.
 	IntProducers map[string]Producer[int]
 }

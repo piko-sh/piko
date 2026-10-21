@@ -1,3 +1,0 @@
-{
-  "description": "Extension loading with CREATE EXTENSION pgcrypto. Tests catalogue Extensions map and function availability (gen_random_uuid) from loaded extension."
-}

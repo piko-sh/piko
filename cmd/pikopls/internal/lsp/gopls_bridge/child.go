@@ -37,7 +37,7 @@ import (
 	"go.lsp.dev/uri"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/wdk/goroutine"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (

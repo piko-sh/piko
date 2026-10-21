@@ -44,35 +44,40 @@ func RunExtract(arguments []string) int {
 	return RunExtractWithIO(arguments, os.Stdout, os.Stderr)
 }
 
-// RunExtractWithIO runs the `piko extract` command with explicit output writers.
-//
-// The command itself is pipit's; piko supplies its own name, manifest defaults, the .pk
-// source scanner and the packages it already ships tables for.
+// RunExtractWithIO runs pipit extraction with Piko project defaults and explicit output
+// writers.
 //
 // Takes arguments ([]string) which contains the command-line arguments following
 // "extract".
 // Takes stdout (io.Writer) which receives normal output messages.
 // Takes stderr (io.Writer) which receives error and diagnostic messages.
 //
-// Returns int which is the exit code: 0 on success, 1 on error.
+// Returns int which is 0 on success or 1 on error.
 func RunExtractWithIO(arguments []string, stdout, stderr io.Writer) int {
 	return extract.RunCommand(context.Background(), arguments, stdout, stderr, pikoExtractConfig())
 }
 
-// pikoExtractConfig adapts pipit's extract command to piko projects.
+// pikoExtractConfig configures extraction for Piko projects.
 //
-// Returns extract.Config which scans the conventional .pk directories and treats the
-// standard library and piko's runtime API as already provided.
+// Discovery follows imports from project packages unless --include-project is set. It
+// starts from directories containing .pk files, so action packages are discovered only
+// when imported.
+//
+// Returns extract.Config which scans the conventional .pk directories, treats the
+// standard library and piko's runtime API as already provided, and follows the project's
+// imports.
 func pikoExtractConfig() extract.Config {
 	return extract.Config{
-		AlreadyProvided:     providedSymbolPaths,
-		ToolName:            "piko extract",
-		DefaultManifest:     "piko-symbols.yaml",
-		InitPackage:         "piko_symbols",
-		InitDirectory:       "internal/piko_symbols",
-		SourceDirs:          []string{"pages", "partials", "components", "emails", "pdfs", "pk", "actions"},
-		Scanners:            []extract.SourceScanner{pkScanner{}},
-		IgnoreProjectModule: false,
+		AlreadyProvided:      providedSymbolPaths,
+		ToolName:             "piko extract",
+		DefaultManifest:      "piko-symbols.yaml",
+		InitPackage:          "piko_symbols",
+		InitDirectory:        "internal/piko_symbols",
+		SourceDirs:           []string{"pages", "partials", "components", "emails", "pdfs", "pk"},
+		Scanners:             []extract.SourceScanner{pkScanner{}},
+		IgnoreProjectModule:  true,
+		FollowProjectImports: true,
+		FileFilter:           extract.FileFilter(pipit.NewFileFilter()),
 	}
 }
 

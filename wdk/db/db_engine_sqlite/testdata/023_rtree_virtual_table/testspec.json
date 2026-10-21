@@ -1,3 +1,0 @@
-{
-  "description": "R-Tree virtual tables are parsed into catalogue entries with an integer ID column and real coordinate columns. Column references resolve correctly in queries."
-}

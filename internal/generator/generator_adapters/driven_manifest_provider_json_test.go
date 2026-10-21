@@ -27,7 +27,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/generator/generator_dto"
 	"piko.sh/piko/internal/json"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 func TestNewJSONManifestProvider(t *testing.T) {

@@ -23,7 +23,7 @@ import (
 	"math/bits"
 
 	"github.com/google/uuid"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (

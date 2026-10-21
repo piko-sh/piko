@@ -18,7 +18,6 @@
 
 package models
 
-// Box is a generic container type.
 type Box[T any] struct {
 	Value T
 }

@@ -57,8 +57,8 @@ type Config struct {
 // The file will be rotated when it reaches 10MB, with up to 3 backups kept for 7 days.
 // Rotated files are compressed.
 //
-// Takes ctx (context.Context) which controls the lifetime of the background rotation
-// goroutine.
+// The background rotation goroutine runs until ctx is cancelled.
+//
 // Takes name (string) which is a descriptive name for this output handler.
 // Takes config (Config) which specifies the file output configuration.
 func Enable(ctx context.Context, name string, config Config) {

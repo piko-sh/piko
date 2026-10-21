@@ -152,7 +152,6 @@ func (ast *TemplateAST) NewPostOrderIterator() *PostOrderIterator {
 
 // Accept walks the AST using the Visitor pattern.
 //
-// Takes ctx (context.Context) which carries cancellation and trace data.
 // Takes v (Visitor) which receives calls for each node during the walk.
 //
 // Returns error when the visitor returns an error.
@@ -335,7 +334,6 @@ func (n *TemplateNode) NewPostOrderIterator() *PostOrderIterator {
 
 // Accept walks this node and its children using the Visitor pattern.
 //
-// Takes ctx (context.Context) which carries cancellation and trace data.
 // Takes v (Visitor) which provides callbacks for each node type.
 //
 // Returns error when the visitor returns an error during the walk.
@@ -552,7 +550,6 @@ func (it *PostOrderIterator) isLastChildVisited(peekNode *TemplateNode) bool {
 type Visitor interface {
 	// Enter begins visiting a template node in the AST.
 	//
-	// Takes ctx (context.Context) which carries cancellation and trace data.
 	// Takes node (*TemplateNode) which is the node to visit.
 	//
 	// Returns Visitor which continues the traversal, or nil to stop.
@@ -561,7 +558,6 @@ type Visitor interface {
 
 	// Exit is called when leaving a template node during traversal.
 	//
-	// Takes ctx (context.Context) which carries cancellation and trace data.
 	// Takes node (*TemplateNode) which is the node being exited.
 	//
 	// Returns error when post-processing of the node fails.
@@ -693,7 +689,6 @@ func (ast *TemplateAST) RemoveNodes(nodesToRemove []*TemplateNode) {
 
 // WalkWithVisitor traverses the tree using the Visitor pattern.
 //
-// Takes ctx (context.Context) which carries cancellation and trace data.
 // Takes v (Visitor) which receives callbacks for each node visited.
 // Takes node (*TemplateNode) which is the root node to start traversal from.
 //
@@ -777,7 +772,6 @@ func parallelWalkImpl(ctx context.Context, numWorkers int, f ParallelWalkFunc, w
 
 // processWorkerTasks handles task processing for a single worker.
 //
-// Takes ctx (context.Context) which controls cancellation of the worker.
 // Takes tasks (<-chan *TemplateNode) which provides nodes to process.
 // Takes f (ParallelWalkFunc) which is called for each node.
 // Takes once (*sync.Once) which ensures only the first error is recorded.
@@ -830,7 +824,6 @@ func resetIteratorFramePool() {
 // When v or node is nil, returns immediately without error. When depth exceeds
 // maxWalkDepth, stops recursion to prevent stack overflow.
 //
-// Takes ctx (context.Context) which carries cancellation and trace data.
 // Takes v (Visitor) which processes each node during traversal.
 // Takes node (*TemplateNode) which is the root of the subtree to traverse.
 // Takes depth (int) which tracks the current recursion depth.

@@ -42,3 +42,19 @@ func TestPikoRootDoesNotRequirePipit(t *testing.T) {
 			requirement.Mod.Path)
 	}
 }
+
+func TestPikoRootDoesNotRequireSeagull(t *testing.T) {
+	t.Parallel()
+
+	data, err := os.ReadFile("go.mod")
+	require.NoError(t, err)
+
+	file, err := modfile.Parse("go.mod", data, nil)
+	require.NoError(t, err)
+
+	for _, requirement := range file.Require {
+		require.Falsef(t, strings.HasPrefix(requirement.Mod.Path, "seagull.sh/"),
+			"root go.mod requires %s; seagull must only be reached through wdk/db/db_provider_seagull",
+			requirement.Mod.Path)
+	}
+}

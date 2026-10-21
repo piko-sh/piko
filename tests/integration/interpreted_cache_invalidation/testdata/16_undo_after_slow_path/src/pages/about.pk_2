@@ -1,0 +1,19 @@
+<template>
+<h1>About Page</h1>
+<p>This is the about page.</p>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+	"piko.sh/piko"
+)
+
+const edited = "script edit forces the slow path"
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+	_ = edited
+	return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>

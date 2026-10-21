@@ -140,6 +140,10 @@ type lifecycleService struct {
 	// in production mode.
 	devEventNotifier DevEventNotifier
 
+	// artefactReconciler dispatches, at startup, the desired profiles an earlier run left
+	// unbuilt; nil skips the check.
+	artefactReconciler ArtefactReconciler
+
 	// unsubscribe cancels the build notification subscription; nil if not subscribed.
 	unsubscribe func()
 
@@ -149,6 +153,17 @@ type lifecycleService struct {
 	// componentStyleDeps maps a component's project-relative path to the project-relative
 	// paths of the external stylesheets it pulled in via CSS @import.
 	componentStyleDeps map[string][]string
+
+	// targetedRebuilds batches source changes into targeted rebuilds that run one at a time;
+	// built on first use by targetedRebuildBatcher.
+	targetedRebuilds *targetedRebuildBatcher
+
+	// lifetime is the context the service owns for background rebuild work; beginStopping
+	// cancels it. Built on first use by lifetimeContext.
+	lifetime context.Context
+
+	// cancelLifetime cancels lifetime.
+	cancelLifetime context.CancelCauseFunc
 
 	// pathsConfig holds the resolved source directory paths for this lifecycle instance. All
 	// fields are value types; pointer-to-value conversion is performed in the bootstrap
@@ -172,11 +187,23 @@ type lifecycleService struct {
 	// drain before returning.
 	rebuildWG sync.WaitGroup
 
+	// targetedRebuildsOnce guards building targetedRebuilds.
+	targetedRebuildsOnce sync.Once
+
+	// lifetimeOnce guards building lifetime.
+	lifetimeOnce sync.Once
+
+	// spawnMu prevents new background work from joining rebuildWG once Stop begins.
+	spawnMu sync.Mutex
+
 	// styleDepsMu guards componentStyleDeps.
 	styleDepsMu sync.RWMutex
 
 	// stopOnce guards single execution of Stop.
 	stopOnce sync.Once
+
+	// stopping is set when Stop begins; no background rebuild work starts after it.
+	stopping bool
 
 	// productionMode reports whether this is a compiled production run, in which external
 	// component source is not present and re-seeding it from disk is redundant.
@@ -229,6 +256,11 @@ type LifecycleServiceDeps struct {
 	// DevEventNotifier broadcasts build-complete events to connected browsers. Nil in
 	// production mode.
 	DevEventNotifier DevEventNotifier
+
+	// ArtefactReconciler dispatches, at startup, the desired profiles an earlier run left
+	// unbuilt, such as those whose tasks were lost when it stopped mid-task. Nil skips the
+	// check, as a process that cannot write the registry's blobs must.
+	ArtefactReconciler ArtefactReconciler
 
 	// FileSystem provides filesystem operations; nil uses the OS filesystem.
 	FileSystem FileSystem
@@ -319,14 +351,16 @@ func (ls *lifecycleService) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop shuts down the lifecycle service and releases its resources. It waits for any
-// in-flight targeted rebuilds to drain, bounded by rebuildDrainTimeout, before returning.
+// Stop shuts down the lifecycle service and releases its resources. It refuses new
+// background rebuilds, cancels the ones running, and waits for them to drain, bounded by
+// rebuildDrainTimeout, before returning.
 //
 // Returns error when the file watcher fails to close or when outstanding rebuilds do not
 // drain within the timeout.
 //
 // Concurrency: idempotent via sync.Once; awaits the rebuild WaitGroup under a
-// context-bounded drain timeout.
+// context-bounded drain timeout. No work is added to the WaitGroup once stopping has
+// begun, so the wait cannot race an Add.
 func (ls *lifecycleService) Stop(ctx context.Context) error {
 	ctx, span, l := log.Span(ctx, "LifecycleService.Stop")
 	defer span.End()
@@ -334,6 +368,7 @@ func (ls *lifecycleService) Stop(ctx context.Context) error {
 	var stopErr error
 	ls.stopOnce.Do(func() {
 		l.Internal("Stopping lifecycle service...")
+		ls.beginStopping()
 		close(ls.stopChan)
 
 		if ls.gcTimer != nil {
@@ -344,6 +379,8 @@ func (ls *lifecycleService) Stop(ctx context.Context) error {
 		if ls.unsubscribe != nil {
 			ls.unsubscribe()
 		}
+
+		ls.targetedRebuildBatcher().stop()
 
 		drainCtx, cancel := context.WithTimeoutCause(ctx, rebuildDrainTimeout,
 			fmt.Errorf("targeted rebuild drain exceeded %s", rebuildDrainTimeout))
@@ -390,6 +427,8 @@ func (ls *lifecycleService) RunInitialTasks(ctx context.Context) error {
 			"Register a writable blob store (piko.WithSystemStorageProvider) to persist assets " +
 			"rendered or derived after the release.")
 	}
+
+	ls.reconcileUnbuiltProfiles(ctx)
 
 	var wg sync.WaitGroup
 	errChan := make(chan error, initialTaskErrChanBuffer)
@@ -475,13 +514,10 @@ func (ls *lifecycleService) RequestRebuild(ctx context.Context, causationID stri
 // registerInitialStyleDeps registers CSS @import dependency watches from the initial
 // build.
 //
-// Takes ctx (context.Context) which controls cancellation.
 // Takes entrypoints ([]annotator_dto.EntryPoint) which identify the project's entry
 // points.
 func (ls *lifecycleService) registerInitialStyleDeps(ctx context.Context, entrypoints []annotator_dto.EntryPoint) {
-	ls.rebuildWG.Go(func() {
-		defer goroutine.RecoverPanic(ctx, "lifecycle.registerInitialStyleDeps")
-
+	ls.trySpawn(ctx, "lifecycle.registerInitialStyleDeps", func(ctx context.Context) {
 		result, err := ls.coordinatorService.GetResult(ctx, entrypoints)
 		if err != nil || result == nil {
 			return
@@ -542,7 +578,6 @@ func (ls *lifecycleService) seedAllAssets(ctx context.Context, limiter chan stru
 
 // discoverAssetFiles walks all asset directories and collects relevant files.
 //
-// Takes ctx (context.Context) which allows cancellation of file discovery.
 // Takes assetDirs ([]string) which lists directories to scan for assets.
 //
 // Returns []lifecycle_dto.FileEvent which contains all discovered files.
@@ -576,7 +611,6 @@ func (ls *lifecycleService) discoverAssetFiles(ctx context.Context, assetDirs []
 
 // walkAssetDir walks a single directory and sends matching files to the channel.
 //
-// Takes ctx (context.Context) which carries the logger and cancellation.
 // Takes directory (string) which specifies the directory path to walk.
 // Takes fileChan (chan<- lifecycle_dto.FileEvent) which receives file events.
 // Takes wg (*sync.WaitGroup) which tracks when this walk completes.
@@ -594,7 +628,6 @@ func (ls *lifecycleService) walkAssetDir(ctx context.Context, directory string, 
 
 // processWalkedFile checks if a file is relevant and sends it to the channel.
 //
-// Takes ctx (context.Context) which carries the logger and cancellation.
 // Takes path (string) which is the absolute path to the file.
 // Takes paths (*LifecyclePathsConfig) which provides include and exclude rules.
 // Takes fileChan (chan<- lifecycle_dto.FileEvent) which receives file events.
@@ -873,7 +906,6 @@ func (ls *lifecycleService) discoverAndRegisterComponents(ctx context.Context) e
 
 // walkAndRegisterLocalComponents walks the directory and registers .pkc files.
 //
-// Takes ctx (context.Context) which carries the logger.
 // Takes absDir (string) which is the absolute path to walk.
 // Takes baseDir (string) which is the base for computing relative paths.
 //
@@ -1032,6 +1064,45 @@ func (ls *lifecycleService) getStaticWatchDirs() []string {
 	return dirs
 }
 
+// reconcileUnbuiltProfiles dispatches the profiles an earlier run left unbuilt.
+//
+// It runs before the initial seed, so it repairs what the earlier run left while the
+// seed's own events handle anything that changed since. It logs what it dispatched, and
+// does nothing when registry blobs are read-only, since nothing could be rebuilt.
+func (ls *lifecycleService) reconcileUnbuiltProfiles(ctx context.Context) {
+	if ls.artefactReconciler == nil || ls.registryService == nil || ls.registryBlobsReadOnly {
+		return
+	}
+	_, l := logger_domain.From(ctx, log)
+	dispatched, err := ReconcileUnbuiltProfiles(ctx, ls.registryService, ls.artefactReconciler)
+	if err != nil {
+		l.Warn("Some artefacts could not be checked for profiles an earlier run left unbuilt",
+			logger_domain.Error(err))
+	}
+	if dispatched > 0 {
+		l.Notice("Rebuilding profiles an earlier run left unbuilt", logger_domain.Int("tasks", dispatched))
+	}
+}
+
+// ReconcileUnbuiltProfiles dispatches the work every artefact in the registry still needs:
+// each desired profile that has no ready variant although the profiles it depends on do.
+//
+// Takes lister (ArtefactLister) which lists the registry's artefacts.
+// Takes reconciler (ArtefactReconciler) which re-checks them and dispatches their work.
+//
+// Returns int which is the number of tasks dispatched.
+// Returns error when the artefacts cannot be listed, or some could not be re-checked.
+func ReconcileUnbuiltProfiles(ctx context.Context, lister ArtefactLister, reconciler ArtefactReconciler) (int, error) {
+	artefactIDs, err := lister.ListAllArtefactIDs(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("listing artefacts to re-check: %w", err)
+	}
+	if len(artefactIDs) == 0 {
+		return 0, nil
+	}
+	return reconciler.ReconcileArtefacts(ctx, artefactIDs)
+}
+
 // NewLifecycleService creates a new lifecycle service with the provided dependencies.
 //
 // Takes deps (*LifecycleServiceDeps) which provides all required service dependencies. If
@@ -1068,6 +1139,7 @@ func NewLifecycleService(deps *LifecycleServiceDeps) LifecycleService {
 		routerManager:           deps.RouterManager,
 		buildCacheInvalidator:   deps.BuildCacheInvalidator,
 		devEventNotifier:        deps.DevEventNotifier,
+		artefactReconciler:      deps.ArtefactReconciler,
 		componentRegistry:       deps.ComponentRegistry,
 		externalComponents:      deps.ExternalComponents,
 		captchaService:          deps.CaptchaService,
@@ -1081,6 +1153,13 @@ func NewLifecycleService(deps *LifecycleServiceDeps) LifecycleService {
 		componentStyleDeps:      nil,
 		rebuildWG:               sync.WaitGroup{},
 		styleDepsMu:             sync.RWMutex{},
+		targetedRebuilds:        nil,
+		targetedRebuildsOnce:    sync.Once{},
+		lifetime:                nil,
+		cancelLifetime:          nil,
+		lifetimeOnce:            sync.Once{},
+		spawnMu:                 sync.Mutex{},
+		stopping:                false,
 	}
 }
 

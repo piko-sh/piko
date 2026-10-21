@@ -24,9 +24,11 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"maps"
 	paths "path"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"time"
 
@@ -42,7 +44,7 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/resolver/resolver_domain"
 	"piko.sh/piko/internal/seo/seo_adapters"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -1516,8 +1518,8 @@ func GetMainComponent(result *annotator_dto.AnnotationResult) (*annotator_dto.Vi
 	return vc, nil
 }
 
-// extractCollectionItemsFromModule groups virtual page instances by their collection
-// name.
+// extractCollectionItemsFromModule groups virtual page instances by collection in
+// hashed-name order.
 //
 // Takes vm (*annotator_dto.VirtualModule) which contains the components and instances to
 // process.
@@ -1527,7 +1529,8 @@ func GetMainComponent(result *annotator_dto.AnnotationResult) (*annotator_dto.Vi
 func extractCollectionItemsFromModule(vm *annotator_dto.VirtualModule) map[string][]collection_dto.ContentItem {
 	collectionItems := make(map[string][]collection_dto.ContentItem)
 
-	for _, vc := range vm.ComponentsByHash {
+	for _, hash := range slices.Sorted(maps.Keys(vm.ComponentsByHash)) {
+		vc := vm.ComponentsByHash[hash]
 		if !isCollectionTemplate(vc) {
 			continue
 		}
@@ -1599,7 +1602,6 @@ func calculateWorkerCount(componentCount int) int {
 
 // logCodeEmissionDebug logs debug details about generated code.
 //
-// Takes ctx (context.Context) which carries logging context.
 // Takes sourcePath (string) which is the path to the source file.
 // Takes code ([]byte) which is the generated code to log.
 func logCodeEmissionDebug(ctx context.Context, sourcePath string, code []byte) {

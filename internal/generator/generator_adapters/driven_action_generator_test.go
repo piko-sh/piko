@@ -30,7 +30,7 @@ import (
 
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/generator/generator_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 func TestNewActionGeneratorAdapter(t *testing.T) {

@@ -54,7 +54,7 @@ const (
 	// every long-lived entry across an upgrade. Bump when TransformPKSource semantics or the
 	// JSTranspiler import-rewrite rules change so a hot-reloaded WASM module never serves
 	// stale output.
-	pkJSCacheVersion = "v2"
+	pkJSCacheVersion = "v3"
 )
 
 var (

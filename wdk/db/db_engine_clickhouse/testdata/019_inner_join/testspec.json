@@ -1,3 +1,0 @@
-{
-  "description": "INNER JOIN over two tables. Verifies the analyser populates both FromTables entries and resolves output columns from both."
-}

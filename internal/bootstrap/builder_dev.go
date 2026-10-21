@@ -291,7 +291,7 @@ func (b *devDaemonBuilder) buildFinalDaemonDeps(ctx context.Context, fsWatcher l
 	daemonConfig.NetworkAutoNextPort = true
 	daemonConfig.HealthAutoNextPort = true
 
-	serverAdapter, err := b.setupTLSServerAdapter(ctx, daemonConfig)
+	serverAdapter, err := b.setupTLSServerAdapter(ctx, &daemonConfig)
 	if err != nil {
 		return nil, fmt.Errorf("setting up TLS server adapter: %w", err)
 	}
@@ -347,11 +347,11 @@ func (b *devDaemonBuilder) buildLifecycleService(fsWatcher lifecycle_domain.File
 // setupTLSServerAdapter creates the server adapter from TLS configuration and registers
 // the certificate loader for shutdown cleanup.
 //
-// Takes daemonConfig (daemon_domain.DaemonConfig) which provides the TLS settings.
+// Takes daemonConfig (*daemon_domain.DaemonConfig) which provides the TLS settings.
 //
 // Returns daemon_domain.ServerAdapter which is the configured server adapter.
 // Returns error when TLS initialisation fails.
-func (b *devDaemonBuilder) setupTLSServerAdapter(ctx context.Context, daemonConfig daemon_domain.DaemonConfig) (daemon_domain.ServerAdapter, error) {
+func (b *devDaemonBuilder) setupTLSServerAdapter(ctx context.Context, daemonConfig *daemon_domain.DaemonConfig) (daemon_domain.ServerAdapter, error) {
 	serverAdapter, tlsCleanup, err := daemon_adapters.NewServerAdapterFromTLSConfig(
 		ctx,
 		daemonConfig.TLS,

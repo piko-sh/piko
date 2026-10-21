@@ -30,7 +30,7 @@ import (
 
 	_ "modernc.org/sqlite" // register "sqlite" database/sql driver
 
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (

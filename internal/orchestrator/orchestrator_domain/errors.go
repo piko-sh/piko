@@ -57,13 +57,16 @@ var (
 	// has shut down. Nothing is published because no handler would receive it.
 	ErrDispatcherStopped = errors.New("orchestrator: task dispatcher is stopped")
 
-	// ErrDispatchBacklogFull is returned when a task is dispatched before the task
-	// dispatcher has started and the bounded backlog of tasks held until start is full.
-	ErrDispatchBacklogFull = errors.New("orchestrator: dispatch backlog is full")
+	// ErrOverflowFull reports exhausted reference capacity for dispatch before startup or
+	// deferred dispatch from a handler.
+	ErrOverflowFull = errors.New("orchestrator: dispatch overflow is full")
 
 	// ErrUndeliverableTask is recorded as the failure cause when a task message reaches a
 	// handler but cannot be decoded back into a task, so the task can never run.
 	ErrUndeliverableTask = errors.New("orchestrator: task message cannot be decoded")
+
+	// ErrTaskNotFound is returned when a task with the given ID does not exist.
+	ErrTaskNotFound = errors.New("task not found")
 )
 
 // NewFatalError wraps an error to mark it as a fatal orchestrator failure that should not

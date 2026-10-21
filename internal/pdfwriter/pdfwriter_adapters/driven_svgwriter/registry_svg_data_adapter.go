@@ -80,8 +80,7 @@ func NewRegistrySVGDataAdapter(registry SVGAssetResolver, fallback pdfwriter_dom
 
 // GetSVGData resolves source to raw SVG XML markup.
 //
-// Takes ctx (context.Context) which carries cancellation and tracing.
-// Takes source (string) which is the SVG source: a data: URI, a module-relative "@/..."
+// Takes source (string) which supplies the SVG as a data URI, a module-relative "@/..."
 // asset path, or another registry asset id.
 //
 // Returns string which is the SVG markup.

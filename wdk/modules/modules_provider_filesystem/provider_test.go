@@ -28,7 +28,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/wdk/modules"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 func helperBundle(path, version string) *modules.ModuleBundle {

@@ -76,6 +76,10 @@ type Config struct {
 	// EventBus handles event-driven communication between components.
 	EventBus orchestrator_domain.EventBus
 
+	// Dispatcher overrides the task dispatcher settings; nil uses
+	// orchestrator_domain.DefaultDispatcherConfig.
+	Dispatcher *orchestrator_domain.DispatcherConfig
+
 	// WorkerCount specifies the number of workers; 0 or negative uses the default.
 	WorkerCount int
 
@@ -102,6 +106,9 @@ func (c *Config) Validate() error {
 
 // NewTask creates a new task with the given executor name and payload.
 //
+// The task's timestamps, timeout, and retry limit are left unset; the dispatcher or
+// service that admits it stamps the times and applies the configured defaults.
+//
 // Takes executor (string) which specifies the name of the task executor.
 // Takes payload (map[string]any) which contains the data for the task.
 //
@@ -112,8 +119,6 @@ func NewTask(executor string, payload map[string]any) *Task {
 
 // NewService creates a new orchestrator service with the given configuration.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation through background goroutines.
 // Takes config (Config) which specifies the orchestrator settings including worker count,
 // scheduler interval, and dispatcher interval. Default values are used for any unset or
 // invalid fields.
@@ -136,6 +141,9 @@ func NewService(ctx context.Context, config Config) (Service, error) {
 	}
 
 	dispatcherConfig := orchestrator_domain.DefaultDispatcherConfig()
+	if config.Dispatcher != nil {
+		dispatcherConfig = *config.Dispatcher
+	}
 	taskDispatcher := orchestrator_adapters.CreateTaskDispatcher(ctx, dispatcherConfig, config.EventBus, config.TaskStore)
 
 	service := orchestrator_domain.NewService(

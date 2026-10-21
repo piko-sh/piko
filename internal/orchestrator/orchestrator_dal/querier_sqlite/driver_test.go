@@ -131,6 +131,8 @@ func (*taskRows) Columns() []string {
 	return []string{
 		"id", "workflow_id", "executor", "priority", "payload", "config", "result", "status",
 		"execute_at", "attempt", "last_error", "created_at", "updated_at", "deduplication_key",
+		"build_tag", "is_fatal", "scheduled_execute_at", "background", "owner_instance", "last_published_at",
+		"rerun_id", "rerun_payload", "rerun_config",
 	}
 }
 
@@ -149,6 +151,7 @@ func taskRow(id, status string) []sqldriver.Value {
 	return []sqldriver.Value{
 		id, "wf-" + id, "test-executor", int64(1), `{"artefactID":"a"}`, `{}`, nil, status,
 		int64(1700000000), int64(2), "worker crashed", int64(1700000000), int64(1700000100), "key-" + id,
+		"build-1", false, int64(0), false, "", int64(0), nil, nil, nil,
 	}
 }
 
@@ -173,6 +176,7 @@ func TestDriver_GetTasksByID(t *testing.T) {
 	assert.Equal(t, 2, tasks[0].Attempt)
 	assert.Equal(t, "worker crashed", tasks[0].LastError)
 	assert.Equal(t, "key-t1", tasks[0].DeduplicationKey)
+	assert.Equal(t, "build-1", tasks[0].BuildTag)
 	assert.Equal(t, "a", tasks[0].Payload["artefactID"])
 	assert.Equal(t, orchestrator_domain.StatusFailed, tasks[1].Status)
 

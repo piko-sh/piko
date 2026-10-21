@@ -148,7 +148,6 @@ func (*RepetitionDetector) Mode() spamdetect_dto.DetectorMode {
 
 // Analyse checks whether the submission content has been seen recently.
 //
-// Takes ctx (context.Context) which is the caller context.
 // Takes submission (*spamdetect_dto.Submission) which contains the field values.
 // Takes schema (*spamdetect_dto.Schema) which identifies the fields to check.
 //

@@ -94,14 +94,10 @@ func (p *Provider) Remove(ref modules.ModuleRef) {
 	delete(p.bundles, providerKey{path: ref.Path, version: ref.Version})
 }
 
-// Resolve implements modules.ModuleProvider.
+// Resolve looks up a bundle by path and version, returning ErrModuleNotFound when absent.
 //
-// Looks up the bundle stored for the ref's (Path, Version) tuple, yielding
-// modules.ErrModuleNotFound when no entry matches. The bundle's Pin is not verified here;
-// the interpreter checks it when the module is loaded.
+// The interpreter verifies pins. Cancellation is checked before lookup.
 //
-// Takes ctx (context.Context) which is observed for cancellation only; in-memory
-// resolution does no I/O.
 // Takes ref (modules.ModuleRef) which is the requested module.
 //
 // Returns *modules.ModuleBundle which is the stored bundle.

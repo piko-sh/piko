@@ -4,7 +4,7 @@ package db
 
 import "context"
 
-const deletedesiredprofilesforartefact = `DELETE FROM desired_profile WHERE artefact_id = ? AND release_id = ?;`
+const deletedesiredprofilesforartefact = `DELETE FROM desired_profile WHERE artefact_id = ?1 AND release_id = ?2;`
 
 type DeleteDesiredProfilesForArtefactParams struct {
 	ArtefactID string
@@ -18,7 +18,7 @@ func (queries *Queries) DeleteDesiredProfilesForArtefact(ctx context.Context, pa
 
 const getdesiredprofilesforartefact = `SELECT name, capability_name, priority, params_json, tags_json, depends_on_json
 FROM desired_profile
-WHERE artefact_id = ?;`
+WHERE artefact_id = ?1;`
 
 type GetDesiredProfilesForArtefactRow struct {
 	Name           string `json:"name"`
@@ -36,12 +36,16 @@ func (queries *Queries) GetDesiredProfilesForArtefact(ctx context.Context, artef
 	}
 	defer rows.Close()
 	var results []GetDesiredProfilesForArtefactRow
-	for rows.Next() {
+	if rows.Next() {
 		var row GetDesiredProfilesForArtefactRow
-		if err := rows.Scan(&row.Name, &row.CapabilityName, &row.Priority, &row.ParamsJSON, &row.TagsJSON, &row.DependsOnJSON); err != nil {
-			return nil, err
+		scanArgs := []any{&row.Name, &row.CapabilityName, &row.Priority, &row.ParamsJSON, &row.TagsJSON, &row.DependsOnJSON}
+		for more := true; more; more = rows.Next() {
+			row = GetDesiredProfilesForArtefactRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -67,10 +71,10 @@ type GetDesiredProfilesForArtefactIDsRow struct {
 }
 
 func (queries *Queries) GetDesiredProfilesForArtefactIDs(ctx context.Context, params GetDesiredProfilesForArtefactIDsParams) ([]GetDesiredProfilesForArtefactIDsRow, error) {
-	query, expansionError := pikoExpandSlicePlaceholders(getdesiredprofilesforartefactids, []pikoSliceExpansionSpec{{Placeholder: 1, Count: len(params.IDs)}})
-	if expansionError != nil {
-		return nil, expansionError
+	if err := pikoCheckBinds(len(params.IDs)); err != nil {
+		return nil, err
 	}
+	query := pikoSplice(getdesiredprofilesforartefactids, pikoList(pikoListMark{Empty: `IN (SELECT NULL WHERE 0)`, Operator: 132, Start: 135, End: 139}, 1, len(params.IDs)))
 	args := make([]any, 0, len(params.IDs))
 	for _, v := range params.IDs {
 		args = append(args, v)
@@ -81,12 +85,16 @@ func (queries *Queries) GetDesiredProfilesForArtefactIDs(ctx context.Context, pa
 	}
 	defer rows.Close()
 	var results []GetDesiredProfilesForArtefactIDsRow
-	for rows.Next() {
+	if rows.Next() {
 		var row GetDesiredProfilesForArtefactIDsRow
-		if err := rows.Scan(&row.ArtefactID, &row.Name, &row.CapabilityName, &row.Priority, &row.ParamsJSON, &row.TagsJSON, &row.DependsOnJSON); err != nil {
-			return nil, err
+		scanArgs := []any{&row.ArtefactID, &row.Name, &row.CapabilityName, &row.Priority, &row.ParamsJSON, &row.TagsJSON, &row.DependsOnJSON}
+		for more := true; more; more = rows.Next() {
+			row = GetDesiredProfilesForArtefactIDsRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -95,7 +103,7 @@ func (queries *Queries) GetDesiredProfilesForArtefactIDs(ctx context.Context, pa
 }
 
 const insertdesiredprofile = `INSERT INTO desired_profile (artefact_id, release_id, name, capability_name, priority, params_json, tags_json, depends_on_json)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?);`
+VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8);`
 
 type InsertDesiredProfileParams struct {
 	ArtefactID     string

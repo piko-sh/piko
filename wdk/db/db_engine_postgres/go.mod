@@ -6,6 +6,7 @@ require (
 	github.com/stretchr/testify v1.12.1
 	go.uber.org/goleak v1.3.0
 	piko.sh/piko v0.0.0
+	piko.sh/piko/wdk/db/db_provider_seagull v0.0.0
 )
 
 require (
@@ -46,6 +47,10 @@ require (
 	golang.org/x/text v0.42.0 // indirect
 	golang.org/x/tools v0.50.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	piko.sh/goastutil v0.1.0 // indirect
+	modernc.org/libc v1.77.1 // indirect
+	piko.sh/goastutil v0.2.0 // indirect
+	piko.sh/safeconv v0.1.0 // indirect
+	piko.sh/safedisk v0.1.0 // indirect
 	piko.sh/vectormaths v0.2.0 // indirect
+	seagull.sh/seagull v0.0.0-alpha.2 // indirect
 )

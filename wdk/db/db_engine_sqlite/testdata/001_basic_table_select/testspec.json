@@ -1,3 +1,0 @@
-{
-  "description": "Basic scenario: CREATE TABLE with SQLite types, simple SELECT with WHERE ? parameter. Tests catalogue building, SQLite type affinity, and parameter inference from comparison context."
-}

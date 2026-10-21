@@ -125,8 +125,6 @@ type CoordinatorService interface {
 	// Shutdown performs a graceful shutdown of the coordinator service, ensuring that
 	// background goroutines are terminated cleanly. This should be called once when the
 	// application is exiting.
-	//
-	// Takes ctx (context.Context) which carries logging context for shutdown operations.
 	Shutdown(ctx context.Context)
 }
 
@@ -263,6 +261,10 @@ type buildOptions struct {
 	// ChangedFiles lists the files that have changed; used with SkipInspection.
 	ChangedFiles []string
 
+	// AllEntryPoints is the project's full entry point set for a targeted build, set by
+	// WithTargeted; nil for a full build.
+	AllEntryPoints []annotator_dto.EntryPoint
+
 	// SkipInspection skips full inspection when true, checking only changed files.
 	SkipInspection bool
 
@@ -345,6 +347,22 @@ type DiagnosticOutputPort interface {
 func WithCausationID(id string) BuildOption {
 	return func(o *buildOptions) {
 		o.CausationID = id
+	}
+}
+
+// WithTargeted restricts annotation and generation to entryPoints while retaining
+// introspection for the full project.
+//
+// Targeted results leave the last full-build result unchanged and produce notifications
+// marked Targeted.
+//
+// Takes allEntryPoints ([]annotator_dto.EntryPoint) which is the project's full entry
+// point set; an empty set leaves the build untargeted.
+//
+// Returns BuildOption which marks the build as targeted.
+func WithTargeted(allEntryPoints []annotator_dto.EntryPoint) BuildOption {
+	return func(o *buildOptions) {
+		o.AllEntryPoints = allEntryPoints
 	}
 }
 

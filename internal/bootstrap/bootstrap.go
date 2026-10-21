@@ -79,7 +79,6 @@ var (
 // ConfigAndContainer creates the DI container and resolves all application configuration
 // during bootstrap setup.
 //
-// Takes ctx (context.Context) which carries the request-scoped logger.
 // Takes deps (*Dependencies) which provides core dependencies (currently just AppRouter;
 // nil is rejected).
 // Takes opts (...Option) which allows changes to container behaviour.
@@ -147,7 +146,6 @@ func ConfigAndContainer(ctx context.Context, deps *Dependencies, opts ...Option)
 // Daemon performs the second phase of initialisation. It takes a fully configured
 // container and assembles the final, runnable daemon service.
 //
-// Takes ctx (context.Context) which carries the request-scoped logger.
 // Takes runMode (string) which specifies the operating mode for builder selection.
 // Takes container (*Container) which provides the fully configured container.
 // Takes deps (*Dependencies) which supplies the required dependencies.
@@ -256,7 +254,6 @@ func validateBaseDir(sc *ServerConfig) error {
 // This includes the monitoring service's span processor and metrics reader, and the
 // metrics exporter's reader if configured.
 //
-// Takes ctx (context.Context) which carries the request-scoped logger.
 // Takes container (*Container) which provides access to OTEL components.
 //
 // Returns *driver_handlers.OtelSetupOptions with span processors and metric readers, or

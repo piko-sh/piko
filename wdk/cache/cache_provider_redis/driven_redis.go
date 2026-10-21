@@ -33,7 +33,7 @@ import (
 	"piko.sh/piko/wdk/cache"
 	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/logger"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (
@@ -147,10 +147,8 @@ func (a *RedisAdapter[K, V]) decodeKey(keyString string) (K, error) {
 // GetIfPresent retrieves a value from the cache if it exists, without blocking or
 // loading. When SearchSchema is configured, reads from JSON storage.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to retrieve.
 //
 // Returns V which is the cached value, or zero value if not found.
@@ -199,7 +197,6 @@ func (a *RedisAdapter[K, V]) GetIfPresent(ctx context.Context, key K) (V, bool, 
 // Get retrieves a value from the cache, loading it via the provided loader if not
 // present.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cached value to retrieve.
 // Takes loader (Loader[K, V]) which loads the value if not already cached.
 //
@@ -243,10 +240,8 @@ func (a *RedisAdapter[K, V]) Get(ctx context.Context, key K, loader cache.Loader
 // Set stores a key-value pair in the cache with optional tags for grouped invalidation.
 // When a SearchSchema is configured, values are stored as JSON for RediSearch indexing.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry.
 // Takes value (V) which is the data to store.
 // Takes tags (...string) which provide optional grouping for bulk invalidation.
@@ -347,10 +342,8 @@ func (a *RedisAdapter[K, V]) SetWithTTL(ctx context.Context, key K, value V, ttl
 
 // Invalidate removes a key from the cache and cleans up its tag links.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to remove.
 //
 // Returns error when the operation fails.
@@ -426,7 +419,6 @@ func (a *RedisAdapter[K, V]) executeComputeAction(ctx context.Context, pipe redi
 
 // handleComputeRetryResult processes the result of a compute transaction attempt.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which is the cache key being computed.
 // Takes keyString (string) which is the string representation of the key for logging.
 // Takes err (error) which is the error from the transaction attempt, or nil on success.
@@ -464,10 +456,8 @@ func (a *RedisAdapter[K, V]) handleComputeRetryResult(ctx context.Context, key K
 // Compute atomically updates a cache entry using a compute function with optimistic
 // locking. Computes and writes the new value in one round trip.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
 // Takes computeFunction (func(...)) which calculates the new value based on the current
 // value and whether it exists.
@@ -569,7 +559,6 @@ func (a *RedisAdapter[K, V]) computeIfAbsentWatchFunction(ctx context.Context, t
 // handleComputeIfAbsentResult processes the result of a ComputeIfAbsent transaction
 // attempt.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which is the cache key being computed.
 // Takes keyString (string) which is the string representation of key for logging.
 // Takes err (error) which is the result of the transaction attempt.
@@ -606,10 +595,8 @@ func (a *RedisAdapter[K, V]) handleComputeIfAbsentResult(ctx context.Context, ke
 
 // ComputeIfAbsent atomically computes and stores a value only if the key is not present.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to check or create.
 // Takes computeFunction (func() V) which generates the value if the key is absent.
 //
@@ -694,7 +681,6 @@ func (a *RedisAdapter[K, V]) computeIfPresentWatchFunction(ctx context.Context, 
 // handleComputeIfPresentResult processes the result of a ComputeIfPresent transaction
 // attempt.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which is the cache key being computed.
 // Takes keyString (string) which is the string form of the key for logging.
 // Takes err (error) which is the error from the transaction attempt.
@@ -732,10 +718,8 @@ func (a *RedisAdapter[K, V]) handleComputeIfPresentResult(ctx context.Context, k
 
 // ComputeIfPresent atomically updates a value only if the key exists in the cache.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
 // Takes computeFunction (func(...)) which receives the current value and returns the new
 // value along with an action indicating whether to update or remove.
@@ -804,10 +788,8 @@ func (a *RedisAdapter[K, V]) executeComputeActionWithTTL(ctx context.Context, pi
 
 // ComputeWithTTL atomically computes a new value with per-call TTL control.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
 // Takes computeFunction (func(...)) which receives the old value and found flag,
 // returning a ComputeResult containing the new value, action, and optional TTL.
@@ -1141,10 +1123,8 @@ func (a *RedisAdapter[K, V]) bulkSetJSON(ctx context.Context, items map[K]V, tag
 
 // InvalidateByTags removes all cache entries linked to the given tags.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes tags (...string) which specifies the tags whose entries to remove.
 //
 // Returns int which is the number of entries removed.
@@ -1234,10 +1214,7 @@ func (a *RedisAdapter[K, V]) invalidateByNamespace(ctx context.Context) error {
 // When no namespace is set and AllowUnsafeFLUSHDB is false, the operation is blocked and
 // an error is returned.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
-//
-// Takes ctx (context.Context) for cancellation and timeout.
+// A cancelled or expired context returns its error before work begins.
 //
 // Returns error when the operation fails.
 func (a *RedisAdapter[K, V]) InvalidateAll(ctx context.Context) error {
@@ -1259,7 +1236,6 @@ func (a *RedisAdapter[K, V]) InvalidateAll(ctx context.Context) error {
 
 // BulkRefresh updates several cache entries in the background using the bulk loader.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes keys ([]K) which specifies the cache keys to refresh.
 // Takes bulkLoader (BulkLoader) which loads values for the given keys.
 //
@@ -1284,7 +1260,6 @@ func (a *RedisAdapter[K, V]) BulkRefresh(ctx context.Context, keys []K, bulkLoad
 
 // Refresh asynchronously refreshes a single cache entry using the provided loader.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to refresh.
 // Takes loader (Loader[K, V]) which loads the fresh value for the given key.
 //
@@ -1312,10 +1287,8 @@ func (a *RedisAdapter[K, V]) Refresh(ctx context.Context, key K, loader cache.Lo
 
 // GetEntry retrieves the full entry metadata for a key including TTL information.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to retrieve.
 //
 // Returns Entry[K, V] which contains the value and metadata such as expiry time.
@@ -1327,10 +1300,8 @@ func (a *RedisAdapter[K, V]) GetEntry(ctx context.Context, key K) (cache.Entry[K
 
 // ProbeEntry retrieves entry metadata without affecting access patterns or TTL.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to probe.
 //
 // Returns Entry[K, V] which contains the value and metadata such as expiry time.
@@ -1485,10 +1456,8 @@ func (*RedisAdapter[K, V]) Close(ctx context.Context) error {
 // SetExpiresAfter updates the time-to-live for an existing key using the Redis EXPIRE
 // command.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
 // Takes expiresAfter (time.Duration) which specifies the new time-to-live.
 //
@@ -1568,8 +1537,6 @@ func (a *RedisAdapter[K, V]) WeightedSize() uint64 {
 }
 
 // SetRefreshableAfter is a no-op as Redis does not natively support refresh scheduling.
-//
-// Takes ctx (context.Context) for cancellation and timeout.
 //
 // Returns error (always nil for this no-op implementation).
 func (*RedisAdapter[K, V]) SetRefreshableAfter(ctx context.Context, _ K, _ time.Duration) error {

@@ -38,12 +38,16 @@ func (queries *Queries) GetPendingReceiptsByNode(ctx context.Context, nodeID str
 	}
 	defer rows.Close()
 	var results []GetPendingReceiptsByNodeRow
-	for rows.Next() {
+	if rows.Next() {
 		var row GetPendingReceiptsByNodeRow
-		if err := rows.Scan(&row.ID, &row.WorkflowID, &row.CreatedAt); err != nil {
-			return nil, err
+		scanArgs := []any{&row.ID, &row.WorkflowID, &row.CreatedAt}
+		for more := true; more; more = rows.Next() {
+			row = GetPendingReceiptsByNodeRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -69,12 +73,16 @@ func (queries *Queries) GetPendingReceiptsByWorkflow(ctx context.Context, workfl
 	}
 	defer rows.Close()
 	var results []GetPendingReceiptsByWorkflowRow
-	for rows.Next() {
+	if rows.Next() {
 		var row GetPendingReceiptsByWorkflowRow
-		if err := rows.Scan(&row.ID, &row.WorkflowID, &row.NodeID, &row.CreatedAt); err != nil {
-			return nil, err
+		scanArgs := []any{&row.ID, &row.WorkflowID, &row.NodeID, &row.CreatedAt}
+		for more := true; more; more = rows.Next() {
+			row = GetPendingReceiptsByWorkflowRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

@@ -26,12 +26,13 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/redis/go-redis/v9"
 	"piko.sh/piko/wdk/cache"
 	"piko.sh/piko/wdk/logger"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // buildScanPattern returns the SCAN pattern for the configured namespace.
@@ -158,10 +159,8 @@ func (a *RedisClusterAdapter[K, V]) Values() iter.Seq[V] {
 
 // GetEntry retrieves the full entry metadata for a key including TTL information.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to retrieve.
 //
 // Returns Entry[K, V] which contains the value and metadata such as expiry time.
@@ -173,10 +172,8 @@ func (a *RedisClusterAdapter[K, V]) GetEntry(ctx context.Context, key K) (cache.
 
 // ProbeEntry retrieves entry metadata without affecting access patterns or TTL.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to probe.
 //
 // Returns Entry[K, V] which contains the value and metadata such as expiry time.
@@ -275,13 +272,13 @@ func (a *RedisClusterAdapter[K, V]) EstimatedSize() int {
 	_, l := logger.From(ctx, log)
 
 	if a.namespace == "" {
-		totalSize := 0
+		var totalSize atomic.Int64
 		err := a.client.ForEachMaster(ctx, func(ctx context.Context, client *redis.Client) error {
 			size, err := client.DBSize(ctx).Result()
 			if err != nil {
 				return err
 			}
-			totalSize += int(size)
+			totalSize.Add(size)
 			return nil
 		})
 
@@ -290,15 +287,15 @@ func (a *RedisClusterAdapter[K, V]) EstimatedSize() int {
 			return 0
 		}
 
-		return totalSize
+		return int(totalSize.Load())
 	}
 
-	var count int
+	var count atomic.Int64
 	scanPattern := a.namespace + "*"
 	err := a.client.ForEachMaster(ctx, func(ctx context.Context, client *redis.Client) error {
 		scanIterator := client.Scan(ctx, 0, scanPattern, scanBatchSize).Iterator()
 		for scanIterator.Next(ctx) {
-			count++
+			count.Add(1)
 		}
 		return scanIterator.Err()
 	})
@@ -307,7 +304,7 @@ func (a *RedisClusterAdapter[K, V]) EstimatedSize() int {
 		l.Warn("Failed to scan keys for EstimatedSize", logger.Error(err))
 	}
 
-	return count
+	return int(count.Load())
 }
 
 // parseRedisStatsInfo extracts hits and misses from Redis INFO stats output.
@@ -345,7 +342,7 @@ func (a *RedisClusterAdapter[K, V]) Stats() cache.Stats {
 	defer cancel()
 	_, l := logger.From(ctx, log)
 
-	var totalHits, totalMisses uint64
+	var totalHits, totalMisses atomic.Uint64
 
 	err := a.client.ForEachMaster(ctx, func(ctx context.Context, client *redis.Client) error {
 		info, err := client.Info(ctx, "stats").Result()
@@ -355,10 +352,10 @@ func (a *RedisClusterAdapter[K, V]) Stats() cache.Stats {
 
 		hits, misses := a.parseRedisStatsInfo(ctx, info)
 		if hits > 0 {
-			totalHits += safeconv.Int64ToUint64(hits)
+			totalHits.Add(safeconv.Int64ToUint64(hits))
 		}
 		if misses > 0 {
-			totalMisses += safeconv.Int64ToUint64(misses)
+			totalMisses.Add(safeconv.Int64ToUint64(misses))
 		}
 		return nil
 	})
@@ -369,8 +366,8 @@ func (a *RedisClusterAdapter[K, V]) Stats() cache.Stats {
 	}
 
 	return cache.Stats{
-		Hits:             totalHits,
-		Misses:           totalMisses,
+		Hits:             totalHits.Load(),
+		Misses:           totalMisses.Load(),
 		Evictions:        0,
 		LoadSuccessCount: 0,
 		LoadFailureCount: 0,
@@ -391,10 +388,8 @@ func (*RedisClusterAdapter[K, V]) Close(ctx context.Context) error {
 // SetExpiresAfter updates the time to live for an existing key using the Redis EXPIRE
 // command.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
 // Takes expiresAfter (time.Duration) which specifies the new time to live.
 //
@@ -429,19 +424,22 @@ func (a *RedisClusterAdapter[K, V]) GetMaximum() uint64 {
 	ctx, cancel := context.WithTimeoutCause(context.Background(), a.operationTimeout, fmt.Errorf("redis cluster GetMaximum exceeded %s timeout", a.operationTimeout))
 	defer cancel()
 
-	var maxMemory uint64
+	var maxMemory atomic.Uint64
 	_ = a.client.ForEachMaster(ctx, func(ctx context.Context, client *redis.Client) error {
 		configResult, err := client.ConfigGet(ctx, "maxmemory").Result()
 		if err != nil {
 			return err
 		}
 		if maxString, ok := configResult["maxmemory"]; ok {
-			_, _ = fmt.Sscanf(maxString, "%d", &maxMemory)
+			var nodeMax uint64
+			if _, err := fmt.Sscanf(maxString, "%d", &nodeMax); err == nil {
+				maxMemory.Store(nodeMax)
+			}
 		}
 		return nil
 	})
 
-	return maxMemory
+	return maxMemory.Load()
 }
 
 // SetMaximum is not supported by the Redis Cluster provider as it is a server-level
@@ -460,7 +458,7 @@ func (a *RedisClusterAdapter[K, V]) WeightedSize() uint64 {
 	defer cancel()
 	_, l := logger.From(ctx, log)
 
-	var totalUsed uint64
+	var totalUsed atomic.Uint64
 	err := a.client.ForEachMaster(ctx, func(ctx context.Context, client *redis.Client) error {
 		_, innerL := logger.From(ctx, log)
 
@@ -476,7 +474,7 @@ func (a *RedisClusterAdapter[K, V]) WeightedSize() uint64 {
 					innerL.Trace("Failed to parse used_memory from cluster node", logger.String("line", line), logger.Error(err))
 					break
 				}
-				totalUsed += used
+				totalUsed.Add(used)
 				break
 			}
 		}
@@ -488,13 +486,11 @@ func (a *RedisClusterAdapter[K, V]) WeightedSize() uint64 {
 		return 0
 	}
 
-	return totalUsed
+	return totalUsed.Load()
 }
 
 // SetRefreshableAfter is a no-op as Redis Cluster does not natively support refresh
 // scheduling.
-//
-// Takes ctx (context.Context) for cancellation and timeout.
 //
 // Returns error (always nil as this is a no-op).
 func (*RedisClusterAdapter[K, V]) SetRefreshableAfter(ctx context.Context, _ K, _ time.Duration) error {

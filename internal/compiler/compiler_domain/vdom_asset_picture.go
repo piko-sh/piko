@@ -28,11 +28,9 @@ import (
 	"piko.sh/piko/internal/esbuild/js_ast"
 )
 
-// buildPikoPictureAST builds the JavaScript AST for a piko:picture element. Transforms
-// piko:picture into a picture element containing source elements for each format and a
-// fallback img element.
+// buildPikoPictureAST creates a picture element with per-format sources and a fallback
+// image.
 //
-// Takes ctx (context.Context) which carries the module name.
 // Takes n (*ast_domain.TemplateNode) which is the piko:picture element to process.
 // Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
 // properties, and the module name for the build.

@@ -25,7 +25,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"piko.sh/piko/internal/config"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 func TestDetermineLastMod_WithInjectedSandbox(t *testing.T) {

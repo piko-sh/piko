@@ -39,7 +39,7 @@ import (
 	"piko.sh/piko/internal/safeerror"
 	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/logger"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (
@@ -300,7 +300,6 @@ func (p *geminiProvider) DefaultModel() string {
 
 // Embed generates embeddings for the given input texts via the Gemini embedding API.
 //
-// Takes ctx (context.Context) which controls cancellation and timeouts.
 // Takes request (*llm_dto.EmbeddingRequest) which contains the embedding parameters.
 //
 // Returns *llm_dto.EmbeddingResponse which contains the generated embeddings.

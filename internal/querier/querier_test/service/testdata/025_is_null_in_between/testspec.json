@@ -1,3 +1,0 @@
-{
-  "description": "IS NULL, IS NOT NULL, IN list, and BETWEEN expressions all produce boolean NOT NULL."
-}

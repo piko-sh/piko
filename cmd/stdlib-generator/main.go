@@ -31,7 +31,7 @@ import (
 
 	"piko.sh/piko/internal/inspector/inspector_adapters"
 	"piko.sh/piko/internal/inspector/inspector_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (

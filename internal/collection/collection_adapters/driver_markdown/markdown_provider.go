@@ -38,7 +38,7 @@ import (
 	"piko.sh/piko/internal/markdown/markdown_domain"
 	"piko.sh/piko/internal/markdown/markdown_dto"
 	"piko.sh/piko/internal/render/render_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (

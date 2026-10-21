@@ -16,7 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-package api // The "v2" api, with the same package name
+package api
 
 type Product struct {
 	SKU string

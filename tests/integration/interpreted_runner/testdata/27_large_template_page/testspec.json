@@ -1,0 +1,7 @@
+{
+  "description": "Tests that a page whose template has more than 400 dynamic nodes compiles in interpreted mode. Its generated BuildAST declares one local per node, which overflowed the interpreter's 256 registers per bank.",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "shouldError": false,
+  "isFragment": false
+}

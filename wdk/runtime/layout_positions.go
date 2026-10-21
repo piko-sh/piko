@@ -33,7 +33,7 @@ import (
 	"piko.sh/piko/internal/templater/templater_adapters"
 	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/internal/templater/templater_dto"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (

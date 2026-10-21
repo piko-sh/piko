@@ -26,10 +26,6 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// CreateExpansionResult is the new test definition function.
-// It receives the fully built VirtualModule, allowing it to use real, dynamically
-// generated package hashes instead of hardcoded fakes. Its job is to return the
-// precise ExpansionResult DTO to be used as input for the ComponentLinker under test.
 func CreateExpansionResult(t *testing.T, vm *annotator_dto.VirtualModule) *annotator_dto.ExpansionResult {
 	findHash := func(relPath string) string {
 		for hash, comp := range vm.ComponentsByHash {

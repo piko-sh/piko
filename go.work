@@ -13,6 +13,7 @@ use (
 	./tests/integration/cache
 	./tests/integration/cache_rendering
 	./tests/integration/compiler_browser
+	./tests/integration/db_seagull_sqlite
 	./tests/integration/e2e_browser
 	./tests/integration/email
 	./tests/integration/interpreted_cache_invalidation
@@ -21,13 +22,12 @@ use (
 	./tests/integration/llm
 	./tests/integration/lsp
 	./tests/integration/markdown_collection
+	./tests/integration/orchestrator_dal
 	./tests/integration/orchestrator_pipeline
 	./tests/integration/pdf
 	./tests/integration/persistence_sqlite
 	./tests/integration/pikotest_meta
 	./tests/integration/pkc_serving
-	./tests/integration/querier_sqlite
-	./tests/integration/querier_sqlite_cgo
 	./tests/integration/registry
 	./tests/integration/release
 	./tests/integration/storage
@@ -54,22 +54,18 @@ use (
 	./wdk/crypto/crypto_provider_aws_kms
 	./wdk/crypto/crypto_provider_gcp_kms
 	./wdk/crypto/crypto_signer_mldsa
-	./wdk/db/db_catalogue_postgres
-	./wdk/db/db_catalogue_sqlite
 	./wdk/db/db_driver_d1
 	./wdk/db/db_driver_sqlite_cgo
 	./wdk/db/db_driver_sqlite_nocgo
-	./wdk/db/db_emitter_clickhouse
-	./wdk/db/db_emitter_pgx
 	./wdk/db/db_engine_clickhouse
 	./wdk/db/db_engine_cockroachdb
-	./wdk/db/db_engine_conformance
 	./wdk/db/db_engine_duckdb
 	./wdk/db/db_engine_mariadb
 	./wdk/db/db_engine_mysql
 	./wdk/db/db_engine_postgres
 	./wdk/db/db_engine_sqlite
 	./wdk/db/db_engine_timescaledb
+	./wdk/db/db_provider_seagull
 	./wdk/email/email_provider_gmail
 	./wdk/email/email_provider_mailchimp_transactional
 	./wdk/email/email_provider_mailgun
@@ -187,13 +183,12 @@ replace (
 	piko.sh/piko/tests/integration/llm v0.0.0 => ./tests/integration/llm
 	piko.sh/piko/tests/integration/lsp v0.0.0 => ./tests/integration/lsp
 	piko.sh/piko/tests/integration/markdown_collection v0.0.0 => ./tests/integration/markdown_collection
+	piko.sh/piko/tests/integration/orchestrator_dal v0.0.0 => ./tests/integration/orchestrator_dal
 	piko.sh/piko/tests/integration/orchestrator_pipeline v0.0.0 => ./tests/integration/orchestrator_pipeline
 	piko.sh/piko/tests/integration/pdf v0.0.0 => ./tests/integration/pdf
 	piko.sh/piko/tests/integration/persistence_sqlite v0.0.0 => ./tests/integration/persistence_sqlite
 	piko.sh/piko/tests/integration/pikotest_meta v0.0.0 => ./tests/integration/pikotest_meta
 	piko.sh/piko/tests/integration/pkc_serving v0.0.0 => ./tests/integration/pkc_serving
-	piko.sh/piko/tests/integration/querier_sqlite v0.0.0 => ./tests/integration/querier_sqlite
-	piko.sh/piko/tests/integration/querier_sqlite_cgo v0.0.0 => ./tests/integration/querier_sqlite_cgo
 	piko.sh/piko/tests/integration/registry v0.0.0 => ./tests/integration/registry
 	piko.sh/piko/tests/integration/release v0.0.0 => ./tests/integration/release
 	piko.sh/piko/tests/integration/storage v0.0.0 => ./tests/integration/storage
@@ -220,22 +215,18 @@ replace (
 	piko.sh/piko/wdk/crypto/crypto_provider_aws_kms v0.0.0 => ./wdk/crypto/crypto_provider_aws_kms
 	piko.sh/piko/wdk/crypto/crypto_provider_gcp_kms v0.0.0 => ./wdk/crypto/crypto_provider_gcp_kms
 	piko.sh/piko/wdk/crypto/crypto_signer_mldsa v0.0.0 => ./wdk/crypto/crypto_signer_mldsa
-	piko.sh/piko/wdk/db/db_catalogue_postgres v0.0.0 => ./wdk/db/db_catalogue_postgres
-	piko.sh/piko/wdk/db/db_catalogue_sqlite v0.0.0 => ./wdk/db/db_catalogue_sqlite
 	piko.sh/piko/wdk/db/db_driver_d1 v0.0.0 => ./wdk/db/db_driver_d1
 	piko.sh/piko/wdk/db/db_driver_sqlite_cgo v0.0.0 => ./wdk/db/db_driver_sqlite_cgo
 	piko.sh/piko/wdk/db/db_driver_sqlite_nocgo v0.0.0 => ./wdk/db/db_driver_sqlite_nocgo
-	piko.sh/piko/wdk/db/db_emitter_clickhouse v0.0.0 => ./wdk/db/db_emitter_clickhouse
-	piko.sh/piko/wdk/db/db_emitter_pgx v0.0.0 => ./wdk/db/db_emitter_pgx
 	piko.sh/piko/wdk/db/db_engine_clickhouse v0.0.0 => ./wdk/db/db_engine_clickhouse
 	piko.sh/piko/wdk/db/db_engine_cockroachdb v0.0.0 => ./wdk/db/db_engine_cockroachdb
-	piko.sh/piko/wdk/db/db_engine_conformance v0.0.0 => ./wdk/db/db_engine_conformance
 	piko.sh/piko/wdk/db/db_engine_duckdb v0.0.0 => ./wdk/db/db_engine_duckdb
 	piko.sh/piko/wdk/db/db_engine_mariadb v0.0.0 => ./wdk/db/db_engine_mariadb
 	piko.sh/piko/wdk/db/db_engine_mysql v0.0.0 => ./wdk/db/db_engine_mysql
 	piko.sh/piko/wdk/db/db_engine_postgres v0.0.0 => ./wdk/db/db_engine_postgres
 	piko.sh/piko/wdk/db/db_engine_sqlite v0.0.0 => ./wdk/db/db_engine_sqlite
 	piko.sh/piko/wdk/db/db_engine_timescaledb v0.0.0 => ./wdk/db/db_engine_timescaledb
+	piko.sh/piko/wdk/db/db_provider_seagull v0.0.0 => ./wdk/db/db_provider_seagull
 	piko.sh/piko/wdk/email/email_provider_gmail v0.0.0 => ./wdk/email/email_provider_gmail
 	piko.sh/piko/wdk/email/email_provider_mailchimp_transactional v0.0.0 => ./wdk/email/email_provider_mailchimp_transactional
 	piko.sh/piko/wdk/email/email_provider_mailgun v0.0.0 => ./wdk/email/email_provider_mailgun
@@ -331,3 +322,5 @@ replace (
 	piko.sh/piko/wdk/telemetry/telemetry_grpcfb v0.0.0 => ./wdk/telemetry/telemetry_grpcfb
 	piko.sh/piko/wdk/validation/validation_provider_playground v0.0.0 => ./wdk/validation/validation_provider_playground
 )
+
+replace piko.sh/piko/tests/integration/db_seagull_sqlite v0.0.0 => ./tests/integration/db_seagull_sqlite

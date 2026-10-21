@@ -626,7 +626,6 @@ func getNativeBinaryOp(operator ast_domain.BinaryOp, leftAnn, rightAnn *ast_doma
 //
 // Takes underlyingType (string) which names the underlying Go type to check for primitive
 // comparability.
-// Takes string which is the underlying type to determine if it is a primitive.
 //
 // Returns bool which is true if the underlying type is a primitive
 func isComparablePrimitiveUnderlying(underlyingType string) bool {

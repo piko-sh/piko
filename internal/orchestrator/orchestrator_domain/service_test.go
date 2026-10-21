@@ -30,6 +30,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	clockpkg "piko.sh/piko/wdk/clock"
 )
 
 func mustCastToOrchestratorService(t *testing.T, service OrchestratorService) *orchestratorService {
@@ -42,6 +43,7 @@ func mustCastToOrchestratorService(t *testing.T, service OrchestratorService) *o
 }
 
 type FakeTaskStore struct {
+	UnimplementedTaskStoreV2
 	tasks map[string]*Task
 	mu    sync.Mutex
 }
@@ -88,25 +90,6 @@ func (f *FakeTaskStore) GetWorkflowStatus(_ context.Context, workflowID string) 
 	return true, nil
 }
 
-func (f *FakeTaskStore) FetchAndMarkDueTasks(_ context.Context, priority TaskPriority, limit int) ([]*Task, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	var dueTasks []*Task
-	for _, task := range f.tasks {
-		if (task.Status == StatusPending || task.Status == StatusRetrying) &&
-			task.Config.Priority == priority &&
-			len(dueTasks) < limit {
-			task.Status = StatusProcessing
-			dueTasks = append(dueTasks, task)
-		}
-	}
-	tasksCopy := make([]*Task, len(dueTasks))
-	for i, task := range dueTasks {
-		tasksCopy[i] = new(*task)
-	}
-	return tasksCopy, nil
-}
-
 func (f *FakeTaskStore) GetTasksByID(_ context.Context, ids []string) ([]*Task, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -142,58 +125,6 @@ func (f *FakeTaskStore) CreateTaskWithDedup(_ context.Context, task *Task) error
 	return nil
 }
 
-func (f *FakeTaskStore) RecoverStaleTasks(_ context.Context, staleThreshold time.Duration, maxRetries int, recoveryError string) (int, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-
-	now := time.Now()
-	staleTime := now.Add(-staleThreshold)
-	recovered := 0
-
-	for _, task := range f.tasks {
-		if task.Status == StatusProcessing && task.UpdatedAt.Before(staleTime) {
-			if task.Attempt >= maxRetries {
-				task.Status = StatusFailed
-			} else {
-				task.Status = StatusRetrying
-				task.Attempt++
-			}
-			task.LastError = recoveryError
-			task.UpdatedAt = now
-			task.ExecuteAt = now
-			recovered++
-		}
-	}
-
-	return recovered, nil
-}
-
-func (f *FakeTaskStore) GetStaleProcessingTaskCount(_ context.Context, staleThreshold time.Duration) (int64, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-
-	staleTime := time.Now().Add(-staleThreshold)
-	var count int64
-
-	for _, task := range f.tasks {
-		if task.Status == StatusProcessing && task.UpdatedAt.Before(staleTime) {
-			count++
-		}
-	}
-
-	return count, nil
-}
-
-func (f *FakeTaskStore) UpdateTaskHeartbeat(_ context.Context, _ string) error { return nil }
-func (f *FakeTaskStore) ClaimStaleTasksForRecovery(_ context.Context, _ string, _ time.Duration, _ time.Duration, _ int) ([]RecoveryClaimedTask, error) {
-	return nil, nil
-}
-func (f *FakeTaskStore) RecoverClaimedTasks(_ context.Context, _ string, _ int, _ string) (int, error) {
-	return 0, nil
-}
-func (f *FakeTaskStore) ReleaseRecoveryLeases(_ context.Context, _ string) (int, error) {
-	return 0, nil
-}
 func (f *FakeTaskStore) CreateWorkflowReceipt(_ context.Context, _, _, _ string) error {
 	return nil
 }
@@ -322,100 +253,6 @@ func TestFakeTaskStore_CreateTaskWithDedup(t *testing.T) {
 			})
 		}
 	})
-}
-
-func TestFakeTaskStore_RecoverStaleTasks(t *testing.T) {
-	t.Parallel()
-
-	t.Run("recovers stale processing tasks", func(t *testing.T) {
-		t.Parallel()
-
-		store := NewFakeTaskStore()
-
-		staleTask := &Task{
-			ID:         "stale-task",
-			WorkflowID: "workflow-1",
-			Status:     StatusProcessing,
-			UpdatedAt:  time.Now().Add(-20 * time.Minute),
-			Attempt:    1,
-		}
-		err := store.CreateTask(context.Background(), staleTask)
-		require.NoError(t, err)
-
-		freshTask := &Task{
-			ID:         "fresh-task",
-			WorkflowID: "workflow-2",
-			Status:     StatusProcessing,
-			UpdatedAt:  time.Now(),
-			Attempt:    1,
-		}
-		err = store.CreateTask(context.Background(), freshTask)
-		require.NoError(t, err)
-
-		count, err := store.RecoverStaleTasks(context.Background(), 10*time.Minute, 3, "recovered by test")
-		require.NoError(t, err)
-		assert.Equal(t, 1, count)
-
-		store.mu.Lock()
-		recovered := store.tasks["stale-task"]
-		notRecovered := store.tasks["fresh-task"]
-		store.mu.Unlock()
-
-		assert.Equal(t, StatusRetrying, recovered.Status)
-		assert.Equal(t, 2, recovered.Attempt)
-		assert.Equal(t, "recovered by test", recovered.LastError)
-
-		assert.Equal(t, StatusProcessing, notRecovered.Status)
-	})
-
-	t.Run("marks task as failed when max retries exceeded", func(t *testing.T) {
-		t.Parallel()
-
-		store := NewFakeTaskStore()
-
-		staleTask := &Task{
-			ID:         "stale-task-max-retries",
-			WorkflowID: "workflow-1",
-			Status:     StatusProcessing,
-			UpdatedAt:  time.Now().Add(-20 * time.Minute),
-			Attempt:    3,
-		}
-		err := store.CreateTask(context.Background(), staleTask)
-		require.NoError(t, err)
-
-		count, err := store.RecoverStaleTasks(context.Background(), 10*time.Minute, 3, "max retries exceeded")
-		require.NoError(t, err)
-		assert.Equal(t, 1, count)
-
-		store.mu.Lock()
-		recovered := store.tasks["stale-task-max-retries"]
-		store.mu.Unlock()
-
-		assert.Equal(t, StatusFailed, recovered.Status)
-		assert.Equal(t, 3, recovered.Attempt)
-	})
-}
-
-func TestFakeTaskStore_GetStaleProcessingTaskCount(t *testing.T) {
-	t.Parallel()
-
-	store := NewFakeTaskStore()
-
-	tasks := []*Task{
-		{ID: "stale-1", Status: StatusProcessing, UpdatedAt: time.Now().Add(-20 * time.Minute)},
-		{ID: "stale-2", Status: StatusProcessing, UpdatedAt: time.Now().Add(-15 * time.Minute)},
-		{ID: "fresh", Status: StatusProcessing, UpdatedAt: time.Now()},
-		{ID: "pending", Status: StatusPending, UpdatedAt: time.Now().Add(-20 * time.Minute)},
-	}
-
-	for _, task := range tasks {
-		err := store.CreateTask(context.Background(), task)
-		require.NoError(t, err)
-	}
-
-	count, err := store.GetStaleProcessingTaskCount(context.Background(), 10*time.Minute)
-	require.NoError(t, err)
-	assert.Equal(t, int64(2), count)
 }
 
 type RecordingExecutor struct {
@@ -1029,4 +866,32 @@ func TestService_ConcurrentDispatchDuringShutdown(t *testing.T) {
 	require.Error(t, err)
 	require.ErrorIs(t, err, ErrOrchestratorShuttingDown,
 		"Schedule after shutdown must return ErrOrchestratorShuttingDown")
+}
+
+type clockedTaskDispatcher struct {
+	*MockTaskDispatcher
+	clock clockpkg.Clock
+}
+
+func (d clockedTaskDispatcher) TimeSource() clockpkg.Clock { return d.clock }
+
+func TestServiceClock_SharesTheDispatcherClock(t *testing.T) {
+	t.Parallel()
+
+	fromService := clockpkg.NewMockClock(time.Date(2001, 1, 1, 0, 0, 0, 0, time.UTC))
+	fromConfig := clockpkg.NewMockClock(time.Date(2002, 1, 1, 0, 0, 0, 0, time.UTC))
+	fromDispatcher := clockpkg.NewMockClock(time.Date(2003, 1, 1, 0, 0, 0, 0, time.UTC))
+	dispatcher := clockedTaskDispatcher{MockTaskDispatcher: &MockTaskDispatcher{}, clock: fromDispatcher}
+
+	assert.Same(t, fromService, serviceClock(ServiceConfig{
+		Clock:            fromService,
+		DispatcherConfig: &DispatcherConfig{Clock: fromConfig},
+	}, dispatcher), "an explicit service clock wins")
+	assert.Same(t, fromConfig, serviceClock(ServiceConfig{
+		DispatcherConfig: &DispatcherConfig{Clock: fromConfig},
+	}, dispatcher), "the dispatcher configuration's clock comes next")
+	assert.Same(t, fromDispatcher, serviceClock(ServiceConfig{}, dispatcher),
+		"the injected dispatcher's clock is shared when no clock is configured")
+	assert.Equal(t, clockpkg.RealClock(), serviceClock(ServiceConfig{}, &MockTaskDispatcher{}),
+		"the real clock is the fallback")
 }

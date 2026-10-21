@@ -81,7 +81,7 @@
               "name": "Logger",
               "type_string": "main.Logger",
               "raw_tag": "",
-              "definition_line": 31,
+              "definition_line": 30,
               "definition_column": 2,
               "is_internal_type": false,
               "is_embedded": true,
@@ -96,7 +96,7 @@
               "name": "DB",
               "type_string": "main.DB",
               "raw_tag": "",
-              "definition_line": 32,
+              "definition_line": 31,
               "definition_column": 2,
               "is_internal_type": false,
               "is_embedded": true,
@@ -107,7 +107,7 @@
           "type_params": [],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 30,
+          "definition_line": 29,
           "definition_column": 6
         }
       },

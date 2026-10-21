@@ -18,12 +18,10 @@
 
 package models
 
-// Auditable is a generic type for items that have an ID.
 type Auditable[I any] struct {
 	ID I
 }
 
-// GetID is a method on the generic type.
 func (a Auditable[I]) GetID() I {
 	return a.ID
 }

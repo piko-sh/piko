@@ -1,3 +1,0 @@
-{
-  "description": "MySQL conditional functions: IF(condition, then, else) and IFNULL(expr, default). Tests return type inference from conditional branches."
-}

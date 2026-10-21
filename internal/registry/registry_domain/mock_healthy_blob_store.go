@@ -57,7 +57,6 @@ func (m *MockHealthyBlobStore) Name() string {
 
 // Check performs the health check.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes checkType (healthprobe_dto.CheckType) which specifies the type of health check to
 // perform.
 //

@@ -23,6 +23,6 @@ type User struct {
 }
 
 type AdminUser struct {
-	User        // Embedded field
+	User
 	Permissions string
 }

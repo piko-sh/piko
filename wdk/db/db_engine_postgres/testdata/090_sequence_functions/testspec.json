@@ -1,3 +1,0 @@
-{
-  "description": "Sequence functions: nextval and setval are data-modifying (route to the writer), while a COUNT aggregate over the same table is read-only (route to the reader)."
-}

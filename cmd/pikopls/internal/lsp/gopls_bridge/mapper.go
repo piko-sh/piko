@@ -20,7 +20,7 @@ package gopls_bridge
 
 import (
 	protocol "github.com/politepixels/golang-language-server"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // Mapper translates positions and ranges between a .pk file and the virtual Go document

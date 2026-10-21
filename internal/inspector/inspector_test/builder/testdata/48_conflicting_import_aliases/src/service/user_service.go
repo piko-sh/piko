@@ -18,10 +18,8 @@
 
 package service
 
-// This file imports 'models' with the alias 'm'.
 import m "testcase_48_conflicting_import_aliases/models"
 
 type UserResponse struct {
-	// The TypeString for this field must be 'm.User'.
 	User m.User
 }

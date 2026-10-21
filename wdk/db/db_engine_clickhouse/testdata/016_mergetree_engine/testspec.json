@@ -1,3 +1,0 @@
-{
-  "description": "MergeTree engine declaration with PARTITION BY and ORDER BY clauses captured into EngineSpecific."
-}

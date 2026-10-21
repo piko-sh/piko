@@ -53,8 +53,6 @@ type RefreshableProvider interface {
 	// Refresh fetches the latest data from the data source. Called periodically by the TUI
 	// service.
 	//
-	// Takes ctx (context.Context) for cancellation.
-	//
 	// Returns error when the refresh operation fails.
 	Refresh(ctx context.Context) error
 
@@ -72,15 +70,12 @@ type MetricsProvider interface {
 
 	// ListMetrics returns available metric names.
 	//
-	// Takes ctx (context.Context) for cancellation.
-	//
 	// Returns []string which contains all available metric names.
 	// Returns error when the listing fails.
 	ListMetrics(ctx context.Context) ([]string, error)
 
 	// Query fetches a metric series for the given time range.
 	//
-	// Takes ctx (context.Context) for cancellation.
 	// Takes metric (string) which identifies the metric to query.
 	// Takes start (time.Time) which specifies the start of the range.
 	// Takes end (time.Time) which specifies the end of the range.
@@ -91,7 +86,6 @@ type MetricsProvider interface {
 
 	// Current fetches the current value of a metric.
 	//
-	// Takes ctx (context.Context) for cancellation.
 	// Takes metric (string) which identifies the metric to fetch.
 	//
 	// Returns *MetricValue which contains the current value.
@@ -106,7 +100,6 @@ type TracesProvider interface {
 
 	// Recent fetches the N most recent traces.
 	//
-	// Takes ctx (context.Context) for cancellation.
 	// Takes limit (int) which specifies the maximum traces to return.
 	//
 	// Returns []Span which contains the recent trace spans.
@@ -115,7 +108,6 @@ type TracesProvider interface {
 
 	// Errors fetches recent error spans.
 	//
-	// Takes ctx (context.Context) for cancellation.
 	// Takes limit (int) which specifies the maximum spans to return.
 	//
 	// Returns []Span which contains the error spans.
@@ -124,7 +116,6 @@ type TracesProvider interface {
 
 	// Get fetches all spans for a specific trace.
 	//
-	// Takes ctx (context.Context) for cancellation.
 	// Takes traceID (string) which identifies the trace.
 	//
 	// Returns []Span which contains all spans in the trace.
@@ -166,16 +157,12 @@ type HealthProvider interface {
 	// Liveness fetches the current liveness status. Liveness indicates if the application is
 	// running and not deadlocked.
 	//
-	// Takes ctx (context.Context) for cancellation.
-	//
 	// Returns *HealthStatus which contains the liveness check result.
 	// Returns error when the check cannot be performed.
 	Liveness(ctx context.Context) (*HealthStatus, error)
 
 	// Readiness fetches the current readiness status. Readiness indicates if the application
 	// is ready to serve traffic.
-	//
-	// Takes ctx (context.Context) for cancellation.
 	//
 	// Returns *HealthStatus which contains the readiness check result.
 	// Returns error when the check cannot be performed.
@@ -188,8 +175,6 @@ type SystemProvider interface {
 	RefreshableProvider
 
 	// GetStats returns the current system statistics.
-	//
-	// Takes ctx (context.Context) for cancellation.
 	//
 	// Returns *SystemStats which contains the current stats.
 	// Returns error when the stats cannot be fetched.
@@ -366,8 +351,6 @@ type FDsProvider interface {
 	RefreshableProvider
 
 	// GetFDs returns the current file descriptor information.
-	//
-	// Takes ctx (context.Context) for cancellation.
 	//
 	// Returns *FDsData which contains the current FD info.
 	// Returns error when the FDs cannot be fetched.

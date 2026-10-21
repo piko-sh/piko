@@ -29,7 +29,7 @@ import (
 	"piko.sh/piko/internal/component/component_dto"
 	"piko.sh/piko/internal/monitoring/monitoring_domain"
 	"piko.sh/piko/internal/seo/seo_dto"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 func TestWithCSRFTokenMaxAge(t *testing.T) {

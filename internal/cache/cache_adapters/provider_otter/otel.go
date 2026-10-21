@@ -36,6 +36,10 @@ var (
 
 	// invalidatedKeysByTagTotal counts keys invalidated via tag-based operations.
 	invalidatedKeysByTagTotal metric.Int64Counter
+
+	// persistenceQuarantinedTotal counts unreadable persisted states moved aside so a cache
+	// could start empty.
+	persistenceQuarantinedTotal metric.Int64Counter
 )
 
 func init() {
@@ -52,6 +56,14 @@ func init() {
 	invalidatedKeysByTagTotal, err = meter.Int64Counter(
 		"piko.cache.provider.otter.tags.invalidated_keys.total",
 		metric.WithDescription("Total number of keys invalidated via tag-based operations."),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	persistenceQuarantinedTotal, err = meter.Int64Counter(
+		"piko.cache.provider.otter.persistence.quarantined.total",
+		metric.WithDescription("Total number of unreadable persisted states moved aside so a cache could start empty."),
 	)
 	if err != nil {
 		otel.Handle(err)

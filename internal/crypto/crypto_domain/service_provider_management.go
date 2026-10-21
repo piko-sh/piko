@@ -39,7 +39,6 @@ var (
 
 // RegisterProvider adds a new crypto provider with the given name.
 //
-// Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes name (string) which identifies the provider for later retrieval.
 // Takes provider (EncryptionProvider) which is the crypto backend to register.
 //
@@ -76,8 +75,6 @@ func (s *cryptoService) SetDefaultProvider(name string) error {
 }
 
 // GetProviders returns a sorted list of all registered provider names.
-//
-// Takes ctx (context.Context) which carries cancellation and tracing.
 //
 // Returns []string which contains the provider names in alphabetical order.
 func (s *cryptoService) GetProviders(ctx context.Context) []string {

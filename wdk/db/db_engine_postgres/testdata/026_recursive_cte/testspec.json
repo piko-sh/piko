@@ -1,3 +1,0 @@
-{
-  "description": "WITH RECURSIVE: recursive CTEs should resolve column names and types correctly from both the base and recursive terms."
-}

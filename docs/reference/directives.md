@@ -338,7 +338,7 @@ Piko matches the value against imports in the page's Go script block:
 - An unnamed import matches by the last element of its path. Piko skips a trailing major-version element, so `import "github.com/example/docs/v2"` matches `docs`.
 - Blank (`_`) and dot (`.`) imports never match.
 
-A value that matches no import fails the build with diagnostic `T155`, reported at the `<template>` tag. Piko does not fall back to the page's local content when source resolution fails.
+A value that matches no import fails the build with diagnostic [`T155`](diagnostics.md#t155), reported at the `<template>` tag. Piko does not fall back to the page's local content when source resolution fails.
 
 The accessors that consume this attribute are `HasCollectionSource()` and `GetCollectionSource()` on `*sfcparser.ParseResult`. See [`internal/sfcparser/dto.go`](https://github.com/piko-sh/piko/blob/master/internal/sfcparser/dto.go).
 

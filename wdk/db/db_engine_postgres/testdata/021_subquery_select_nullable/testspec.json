@@ -1,3 +1,0 @@
-{
-  "description": "Scalar subquery nullability: a scalar subquery in the SELECT list should be nullable because it may return no rows."
-}

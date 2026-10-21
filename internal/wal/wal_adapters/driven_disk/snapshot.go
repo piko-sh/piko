@@ -35,8 +35,8 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/wal/wal_domain"
 	"piko.sh/piko/wdk/clock"
-	"piko.sh/piko/wdk/safeconv"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safeconv"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -280,8 +280,6 @@ func (s *DiskSnapshot[K, V]) writeSnapshotFile(ctx context.Context, header, data
 //
 // Errors are best-effort and silently dropped because the data on disk is already
 // durable; the worst case is a re-replay from the WAL on next start.
-//
-// Takes ctx (context.Context) which carries the logger for warning trace.
 func (s *DiskSnapshot[K, V]) syncSnapshotDirectory(ctx context.Context) {
 	dirHandle, err := s.sandbox.OpenFile(".", os.O_RDONLY, 0)
 	if err != nil {
@@ -697,8 +695,8 @@ func WithSnapshotClock[K comparable, V any](clk clock.Clock) SnapshotOption[K, V
 
 // NewDiskSnapshot creates a new disk-based snapshot store.
 //
-// Takes ctx (context.Context) which is stored for logging in initialisation and cleanup
-// paths.
+// ctx is kept for logging in the initialisation and cleanup paths.
+//
 // Takes config (wal_domain.Config) which specifies the snapshot directory and file
 // settings.
 // Takes codec (*BinaryCodec[K, V]) which encodes and decodes entries.

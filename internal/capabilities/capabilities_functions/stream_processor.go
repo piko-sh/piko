@@ -107,7 +107,6 @@ func processStream(ctx context.Context, inputData io.Reader, factory writerFacto
 // copyWithContext performs an io.Copy-like operation that is cancellable via the context,
 // reading from src, writing to dst, and checking for cancellation before each read.
 //
-// Takes ctx (context.Context) which controls cancellation of the copy operation.
 // Takes destination (io.Writer) which is the destination to write data to.
 // Takes source (io.Reader) which is the source to read data from.
 // Takes buffer ([]byte) which provides reusable storage for copying bytes between the

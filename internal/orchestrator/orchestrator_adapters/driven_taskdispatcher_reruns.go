@@ -21,6 +21,7 @@ package orchestrator_adapters
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 
 	"piko.sh/piko/internal/logger/logger_domain"
@@ -135,23 +136,63 @@ func (c *rerunCoalescer) size() int {
 	return len(c.pending)
 }
 
-// coalesceRerun records a dispatch rejected because its key is in use as the key's
-// pending rerun, then tries the claim once more.
+// coalesceRerun records a request to rerun a task after settlement.
 //
-// The holder may have released the key between the rejected claim and the request being
-// recorded, after it had already looked for a pending rerun; without the second attempt
-// that request would never run. If the second attempt is rejected too, the key is still
-// held and its holder will find the request when it settles.
+// Supporting stores persist the request and create its successor during settlement. Other
+// stores keep the request in this dispatcher's memory.
 //
-// Takes task (*orchestrator_domain.Task) which is the rejected, never-persisted task.
+// Takes task (*orchestrator_domain.Task) which is the task whose key was held.
 // Takes required (orchestrator_domain.DispatchRequirement) which confirms the work is
 // still needed.
-// Takes mode (publishMode) which selects how the second attempt publishes.
-// Takes rejection (error) which is the duplicate-task error of the rejected claim.
+// Takes mode (publishMode) which is the dispatch's publish mode.
+// Takes rejection (error) which is the duplicate-key error to return when the rerun is
+// recorded.
 //
-// Returns error which is rejection when the request stays pending, or the outcome of the
-// second attempt otherwise.
+// Returns error which is rejection when the rerun is recorded, or the outcome of
+// dispatching the task when its key was freed in the meantime.
 func (d *watermillTaskDispatcher) coalesceRerun(
+	ctx context.Context,
+	task *orchestrator_domain.Task,
+	required orchestrator_domain.DispatchRequirement,
+	mode publishMode,
+	rejection error,
+) error {
+	if d.TaskStore == nil {
+		return d.coalesceRerunInMemory(ctx, task, required, mode, rejection)
+	}
+	rerun := newRerunTask(task)
+	recorded, err := d.TaskStore.RequestRerun(ctx, task.DeduplicationKey, orchestrator_domain.RerunRequest{
+		Payload: rerun.Payload,
+		ID:      rerun.ID,
+		Config:  rerun.Config,
+	})
+	switch {
+	case errors.Is(err, orchestrator_domain.ErrStoreUnsupported):
+		return d.coalesceRerunInMemory(ctx, task, required, mode, rejection)
+	case err != nil:
+		return fmt.Errorf("recording rerun for %q: %w", task.DeduplicationKey, err)
+	case recorded:
+		orchestrator_domain.TaskRerunRequestedCount.Add(ctx, 1)
+		_, l := logger_domain.From(ctx, log)
+		l.Trace("Key in use, rerun recorded until its task settles",
+			logger_domain.String(payloadKeyDeduplicationKey, task.DeduplicationKey))
+		return rejection
+	}
+	return d.dispatch(ctx, task, required, mode)
+}
+
+// coalesceRerunInMemory keeps a rerun request in this dispatcher's memory, for a store
+// that cannot record it, and dispatches it when the key's task settles here.
+//
+// Takes task (*orchestrator_domain.Task) which is the task whose key was held.
+// Takes required (orchestrator_domain.DispatchRequirement) which confirms the work is
+// still needed.
+// Takes mode (publishMode) which is the dispatch's publish mode.
+// Takes rejection (error) which is the duplicate-key error to return when the rerun is
+// kept.
+//
+// Returns error which is rejection when the rerun is kept, or the outcome of dispatching.
+func (d *watermillTaskDispatcher) coalesceRerunInMemory(
 	ctx context.Context,
 	task *orchestrator_domain.Task,
 	required orchestrator_domain.DispatchRequirement,
@@ -181,6 +222,40 @@ func (d *watermillTaskDispatcher) coalesceRerun(
 	default:
 	}
 	return retryErr
+}
+
+// RegisterRequirementFactory makes the dispatcher check, before running a task for
+// executor that came without a requirement check, the check factory builds for it.
+//
+// Takes executor (string) which names the tasks' executor.
+// Takes factory (orchestrator_domain.RequirementFactory) which builds their checks.
+//
+// Safe for concurrent use; guarded by requirementsMu.
+func (d *watermillTaskDispatcher) RegisterRequirementFactory(executor string, factory orchestrator_domain.RequirementFactory) {
+	d.requirementsMu.Lock()
+	defer d.requirementsMu.Unlock()
+	if d.requirements == nil {
+		d.requirements = make(map[string]orchestrator_domain.RequirementFactory)
+	}
+	d.requirements[executor] = factory
+}
+
+// requirementFor builds the requirement check registered for a task's executor.
+//
+// Takes task (*orchestrator_domain.Task) which is the task.
+//
+// Returns orchestrator_domain.DispatchRequirement which is the check, or nil when the
+// executor registered none.
+//
+// Safe for concurrent use; guarded by requirementsMu.
+func (d *watermillTaskDispatcher) requirementFor(task *orchestrator_domain.Task) orchestrator_domain.DispatchRequirement {
+	d.requirementsMu.RLock()
+	factory := d.requirements[task.Executor]
+	d.requirementsMu.RUnlock()
+	if factory == nil {
+		return nil
+	}
+	return factory(task)
 }
 
 // onTaskSettled dispatches the pending rerun of a settled task's deduplication key.

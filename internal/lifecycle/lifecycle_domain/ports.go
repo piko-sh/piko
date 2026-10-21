@@ -102,8 +102,6 @@ type FileSystemWatcher interface {
 type RouterReloadNotifier interface {
 	// ReloadRoutes refreshes the routing configuration from the manifest store.
 	//
-	// Takes ctx (context.Context) which carries logging context for trace/request ID
-	// propagation.
 	// Takes store (ManifestStoreView) which provides access to route manifests.
 	//
 	// Returns error when the routes cannot be reloaded.
@@ -238,6 +236,38 @@ type BridgeWithCounter interface {
 	ArtefactEventsProcessed() int64
 }
 
+// ArtefactReconciler is implemented by bridges that can re-check artefacts after a build.
+// A build uses it to rebuild profiles whose events or dispatches were lost, and to report
+// profiles that were never built; a server uses it at startup to rebuild the profiles an
+// earlier run left unbuilt.
+type ArtefactReconciler interface {
+	// ReconcileArtefacts dispatches the tasks the given artefacts still need.
+	//
+	// Takes artefactIDs ([]string) which identifies the artefacts to re-check.
+	//
+	// Returns int which is the number of tasks dispatched.
+	// Returns error when an artefact could not be read or dispatched.
+	ReconcileArtefacts(ctx context.Context, artefactIDs []string) (int, error)
+
+	// UnbuiltProfiles reports desired profiles that are not built although every profile
+	// they depend on is.
+	//
+	// Takes artefactIDs ([]string) which identifies the artefacts to inspect.
+	//
+	// Returns map[string][]string which maps artefact IDs to unbuilt profile names.
+	// Returns error when an artefact could not be read.
+	UnbuiltProfiles(ctx context.Context, artefactIDs []string) (map[string][]string, error)
+}
+
+// ArtefactLister lists the artefacts a registry holds.
+type ArtefactLister interface {
+	// ListAllArtefactIDs returns the ID of every artefact.
+	//
+	// Returns []string which holds the IDs.
+	// Returns error when the registry cannot be read.
+	ListAllArtefactIDs(ctx context.Context) ([]string, error)
+}
+
 // DevEventNotifier sends browser-visible notifications when dev builds complete. It is
 // only wired in dev/dev-i modes; nil in production.
 type DevEventNotifier interface {
@@ -246,7 +276,6 @@ type DevEventNotifier interface {
 	// The affected paths are project-relative component paths (e.g. "pages/login.pk") which
 	// the implementation converts to URL route patterns.
 	//
-	// Takes ctx (context.Context) which carries logging context.
 	// Takes affectedPaths ([]string) which lists the components that were rebuilt.
 	NotifyRebuildComplete(ctx context.Context, affectedPaths []string)
 }

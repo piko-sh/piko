@@ -81,7 +81,6 @@ var (
 
 // CollectMetadata gathers metadata from the request and configuration.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes request (*http.Request) which is the incoming HTTP request.
 // Takes metadata (*templater_dto.InternalMetadata) which holds the page metadata.
 // Takes websiteConfig (*config.WebsiteConfig) which provides the website configuration.
@@ -102,7 +101,6 @@ func (m *MockRendererPort) CollectMetadata(
 
 // RenderPage renders a page using the provided parameters.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes params (RenderPageParams) which contains the page rendering parameters.
 //
 // Returns error, or nil if RenderPageFunc is nil.
@@ -116,7 +114,6 @@ func (m *MockRendererPort) RenderPage(ctx context.Context, params RenderPagePara
 
 // RenderPartial renders a partial page using the given parameters.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes params (RenderPageParams) which contains the partial rendering parameters.
 //
 // Returns error, or nil if RenderPartialFunc is nil.
@@ -130,7 +127,6 @@ func (m *MockRendererPort) RenderPartial(ctx context.Context, params RenderPageP
 
 // RenderEmail creates an email from the given template and data.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes params (RenderEmailParams) which contains the email rendering parameters.
 //
 // Returns error, or nil if RenderEmailFunc is nil.
@@ -144,7 +140,6 @@ func (m *MockRendererPort) RenderEmail(ctx context.Context, params RenderEmailPa
 
 // RenderASTToPlainText converts a template AST into plain text.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes templateAST (*ast_domain.TemplateAST) which is the AST to convert.
 //
 // Returns (string, error), or ("", nil) if RenderASTToPlainTextFunc is nil.

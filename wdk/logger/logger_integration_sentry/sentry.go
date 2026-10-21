@@ -287,8 +287,6 @@ func registerSentryShutdownHook() {
 // time falls back to a small positive value so sentry.Flush can observe the deadline
 // rather than blocking indefinitely.
 //
-// Takes ctx (context.Context) which may carry a shutdown deadline.
-//
 // Returns time.Duration which is the flush budget.
 func flushTimeoutFromContext(ctx context.Context) time.Duration {
 	deadline, ok := ctx.Deadline()

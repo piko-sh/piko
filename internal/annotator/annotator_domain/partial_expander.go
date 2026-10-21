@@ -206,7 +206,6 @@ func (exp *PartialExpander) Expand(
 
 // processEntryPointStyles processes style blocks for the entry point component.
 //
-// Takes ctx (context.Context) which carries the logger.
 // Takes expCtx (*expansionContext) which holds the expansion state.
 // Takes mainComponent (*annotator_dto.ParsedComponent) which is the entry point component
 // to process styles for.
@@ -264,7 +263,6 @@ func (exp *PartialExpander) processEntryPointStyles(
 
 // processStyleBlock handles a single style block from a Piko SFC.
 //
-// Takes ctx (context.Context) which controls cancellation and timeout.
 // Takes styleCtx (*styleProcessingContext) which holds the current processing state.
 // Takes styleBlock (sfcparser.Style) which is the style block to process.
 // Takes styleContent (*string) which holds the style text content.
@@ -288,7 +286,6 @@ func (exp *PartialExpander) processStyleBlock(
 
 // processGlobalStyleBlock processes a global style block.
 //
-// Takes ctx (context.Context) which controls cancellation and timeout.
 // Takes expCtx (*expansionContext) which holds the expansion state.
 // Takes mainComponent (*annotator_dto.ParsedComponent) which provides the source
 // component being processed.
@@ -317,7 +314,6 @@ func (exp *PartialExpander) processGlobalStyleBlock(
 
 // processScopedStyleBlock processes a scoped style block.
 //
-// Takes ctx (context.Context) which controls cancellation and timeout.
 // Takes styleCtx (*styleProcessingContext) which holds the processing state.
 // Takes styleContent (*string) which contains the CSS to process and scope.
 // Takes scopeID (string) which identifies the scope for CSS isolation.
@@ -351,7 +347,6 @@ func (exp *PartialExpander) processScopedStyleBlock(
 
 // finaliseExpansion builds the final expansion result.
 //
-// Takes ctx (context.Context) which controls cancellation and timeout.
 // Takes expCtx (*expansionContext) which holds the expansion state.
 // Takes finalRootNodes ([]*ast_domain.TemplateNode) which are the processed template
 // nodes.
@@ -408,7 +403,6 @@ func createEmptyExpansionResult() *annotator_dto.ExpansionResult {
 // checkForCriticalErrors looks for critical errors in the expansion context, such as
 // circular dependencies.
 //
-// Takes ctx (context.Context) which carries the logger.
 // Takes expCtx (*expansionContext) which contains the diagnostics to check.
 //
 // Returns error when a circular dependency is found in the expansion path.

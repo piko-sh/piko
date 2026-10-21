@@ -378,13 +378,9 @@ func coercePropType(sourceExpression ast_domain.Expression, destType goast.Expr)
 	return sourceExpression
 }
 
-// parseDefaultValue parses a string value into an AST expression node.
+// parseDefaultValue parses booleans, nil, integers, and floats, falling back to a string
+// literal.
 //
-// The function tries to parse the value in this order: boolean literals (true, false),
-// nil, integer, float. If none of these match, it falls back to a string literal.
-//
-// Takes ctx (context.Context) which controls cancellation and deadlines for expression
-// parsing.
 // Takes valueString (string) which is the default value to parse.
 // Takes sourcePath (string) which is the file path used for error messages.
 //

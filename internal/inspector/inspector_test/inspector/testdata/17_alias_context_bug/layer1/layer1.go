@@ -21,7 +21,5 @@ package layer1
 import "testproject_alias_bug/layer2"
 
 type Layer1Response struct {
-	// When inspecting this field, the inspector must "step into"
-	// the layer1 context to resolve `layer2.Layer2Data`.
 	Data layer2.Layer2Data
 }

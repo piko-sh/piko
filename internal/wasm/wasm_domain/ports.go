@@ -88,7 +88,6 @@ type WASMService interface {
 
 	// Generates code artefacts from in-memory sources.
 	//
-	// Takes ctx (context.Context) which is the request context.
 	// Takes request (*wasm_dto.GenerateFromSourcesRequest) which contains the source files
 	// and configuration.
 	//
@@ -100,7 +99,6 @@ type WASMService interface {
 	// Render produces HTML from in-memory sources. Only supports static templates (no Go
 	// code execution).
 	//
-	// Takes ctx (context.Context) which is the request context.
 	// Takes request (*wasm_dto.RenderFromSourcesRequest) which contains the source files and
 	// configuration.
 	//
@@ -157,7 +155,6 @@ type ConsolePort interface {
 type GeneratorPort interface {
 	// Generates code artefacts from in-memory sources.
 	//
-	// Takes ctx (context.Context) which is the request context.
 	// Takes request (*wasm_dto.GenerateFromSourcesRequest) which contains the source files
 	// and configuration.
 	//
@@ -200,7 +197,6 @@ type Option func(*Orchestrator)
 type RenderPort interface {
 	// Render produces HTML from in-memory sources.
 	//
-	// Takes ctx (context.Context) which is the request context.
 	// Takes request (*wasm_dto.RenderFromSourcesRequest) which contains the source files and
 	// configuration.
 	//
@@ -211,7 +207,6 @@ type RenderPort interface {
 	// RenderFromAST produces HTML from a pre-built TemplateAST. This is used for dynamic
 	// rendering where the AST comes from interpreter execution rather than annotation.
 	//
-	// Takes ctx (context.Context) which is the request context.
 	// Takes request (*wasm_dto.RenderFromASTRequest) which contains the AST and metadata.
 	//
 	// Returns *wasm_dto.RenderFromASTResponse which contains the rendered HTML.
@@ -224,7 +219,6 @@ type RenderPort interface {
 type InterpreterPort interface {
 	// Interpret executes generated Go code and returns the template AST.
 	//
-	// Takes ctx (context.Context) which is the request context.
 	// Takes request (*wasm_dto.InterpretRequest) which contains the generated code and
 	// configuration.
 	//
@@ -264,7 +258,6 @@ type InterpreterFactoryPort interface {
 type HeadlessRendererPort interface {
 	// RenderASTToString renders an AST to an HTML string without requiring HTTP context.
 	//
-	// Takes ctx (context.Context) which provides cancellation.
 	// Takes opts (HeadlessRenderOptions) which configures the rendering.
 	//
 	// Returns string which contains the rendered HTML.

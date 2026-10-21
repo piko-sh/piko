@@ -114,7 +114,6 @@ func NewRegistryImageDataAdapter(registryService registry_domain.RegistryService
 // It looks up the artefact, selects the source variant, and returns the bytes with the
 // detected format.
 //
-// Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes source (string) which is the image source path.
 //
 // Returns []byte which contains the raw image data.
@@ -219,7 +218,6 @@ func NewDataURIImageDataAdapter(fallback pdfwriter_domain.ImageDataPort) *DataUR
 // GetImageData decodes a data URI into raw image bytes and format. For non-data-URI
 // sources, delegates to the fallback adapter.
 //
-// Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes source (string) which is the image source (data URI or path).
 //
 // Returns []byte which contains the raw image data.

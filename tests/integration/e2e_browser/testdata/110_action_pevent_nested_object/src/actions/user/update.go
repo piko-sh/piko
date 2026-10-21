@@ -21,31 +21,26 @@ import (
 	"piko.sh/piko"
 )
 
-// UpdateAction tests nested struct binding from an object literal.
 type UpdateAction struct {
 	piko.ActionMetadata
 }
 
-// Address is a nested struct used inside UpdateInput.
 type Address struct {
 	City     string `json:"city"`
 	Postcode string `json:"postcode"`
 }
 
-// UpdateInput contains a flat field and a nested struct.
 type UpdateInput struct {
 	Name    string  `json:"name"`
 	Address Address `json:"address"`
 }
 
-// UpdateResponse echoes back the received values.
 type UpdateResponse struct {
 	ReceivedName     string `json:"received_name"`
 	ReceivedCity     string `json:"received_city"`
 	ReceivedPostcode string `json:"received_postcode"`
 }
 
-// Call echoes the nested input fields back.
 func (a UpdateAction) Call(input UpdateInput) (UpdateResponse, error) {
 	a.Response().AddHelper("showResult", input.Name, input.Address.City, input.Address.Postcode)
 

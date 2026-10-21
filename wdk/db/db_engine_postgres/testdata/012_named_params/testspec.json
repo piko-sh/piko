@@ -1,3 +1,0 @@
-{
-  "description": "Named parameters with : prefix: PostgreSQL-style named parameter binding. Tests that the engine correctly identifies named parameters and infers their types from column context."
-}

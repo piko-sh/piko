@@ -33,7 +33,7 @@ import (
 	"piko.sh/piko/internal/i18n/i18n_domain"
 	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/route_pattern"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -110,6 +110,22 @@ func NewManifestBuilder(pathsConfig GeneratorPathsConfig, i18nDefaultLocale stri
 // Returns *generator_dto.Manifest which is the complete manifest object.
 // Returns error when an artefact cannot be processed.
 func (mb *ManifestBuilder) Build(artefacts []*generator_dto.GeneratedArtefact) (*generator_dto.Manifest, error) {
+	return mb.BuildWithContext(artefacts, nil)
+}
+
+// BuildWithContext builds a manifest with references resolved against artefacts and
+// contextArtefacts.
+//
+// Entries in artefacts take precedence over matching contextArtefacts.
+//
+// Takes artefacts ([]*generator_dto.GeneratedArtefact) which are the artefacts to create
+// entries for.
+// Takes contextArtefacts ([]*generator_dto.GeneratedArtefact) which are other artefacts
+// of the project, used only for lookups; nil means artefacts is the whole project.
+//
+// Returns *generator_dto.Manifest which holds entries for artefacts only.
+// Returns error when an artefact cannot be processed.
+func (mb *ManifestBuilder) BuildWithContext(artefacts, contextArtefacts []*generator_dto.GeneratedArtefact) (*generator_dto.Manifest, error) {
 	manifest := &generator_dto.Manifest{
 		Pages:      make(map[string]generator_dto.ManifestPageEntry),
 		Partials:   make(map[string]generator_dto.ManifestPartialEntry),
@@ -118,7 +134,13 @@ func (mb *ManifestBuilder) Build(artefacts []*generator_dto.GeneratedArtefact) (
 		ErrorPages: make(map[string]generator_dto.ManifestErrorPageEntry),
 	}
 
-	jsResolver := newPartialJSDependencyResolver(artefacts)
+	resolverArtefacts := artefacts
+	if len(contextArtefacts) > 0 {
+		resolverArtefacts = make([]*generator_dto.GeneratedArtefact, 0, len(contextArtefacts)+len(artefacts))
+		resolverArtefacts = append(resolverArtefacts, contextArtefacts...)
+		resolverArtefacts = append(resolverArtefacts, artefacts...)
+	}
+	jsResolver := newPartialJSDependencyResolver(resolverArtefacts)
 
 	for _, artefact := range artefacts {
 		if err := mb.processArtefact(artefact, manifest, jsResolver); err != nil {

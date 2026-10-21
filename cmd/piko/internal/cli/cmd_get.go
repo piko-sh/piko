@@ -29,7 +29,7 @@ import (
 
 	"charm.land/lipgloss/v2"
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (

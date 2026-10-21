@@ -1220,6 +1220,27 @@ func TestPageEntry_logRenderDiagnostics(t *testing.T) {
 	}
 }
 
+func TestPageEntry_logRenderDiagnostics_NamesCodesAndDocs(t *testing.T) {
+	var buffer bytes.Buffer
+	captured := logger_domain.New(slog.New(slog.NewJSONHandler(&buffer, &slog.HandlerOptions{Level: slog.LevelDebug})), "test")
+
+	previous := log
+	log = captured
+	defer func() { log = previous }()
+
+	pe := &PageEntry{}
+	pe.logRenderDiagnostics(context.Background(), []*generator_dto.RuntimeDiagnostic{
+		{Severity: generator_dto.Warning, Message: "Cannot access property 'Name' because 'state.User' is nil", SourcePath: "pages/index.pk", Code: generator_dto.CodeNilPropertyAccess, Line: 4, Column: 9},
+		{Severity: generator_dto.Warning, Message: "Index out of bounds", SourcePath: "pages/index.pk", Code: generator_dto.CodeIndexOutOfBounds, Line: 7, Column: 3},
+		{Severity: generator_dto.Warning, Message: "Cannot access property 'Name' because 'state.User' is nil", SourcePath: "pages/index.pk", Code: generator_dto.CodeNilPropertyAccess, Line: 4, Column: 9},
+	})
+
+	output := buffer.String()
+	require.Contains(t, output, `"codes":"R003,R005"`)
+	require.Contains(t, output, `pages/index.pk:4:9: Cannot access property 'Name' because 'state.User' is nil`)
+	require.Contains(t, output, `"docs":"https://piko.sh/diagnostics/R003"`)
+}
+
 func TestPageEntry_GetAuthPolicy_FailsClosedWithoutLinkedFunction(t *testing.T) {
 	t.Parallel()
 

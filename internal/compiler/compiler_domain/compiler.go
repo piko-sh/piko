@@ -41,7 +41,7 @@ import (
 	"piko.sh/piko/internal/jsimport"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/sfcparser"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // SFCCompiler compiles single-file component bytes into build artefacts.
@@ -353,7 +353,6 @@ func (cc *sfcCompilationContext) setupNaming() error {
 
 // setupNamingAndContext sets up naming and adds context to logging and tracing.
 //
-// Takes ctx (context.Context) which carries the current logger.
 // Takes span (trace.Span) which receives the same attributes for tracing.
 //
 // Returns context.Context which is enriched with the component logger.

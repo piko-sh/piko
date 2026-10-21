@@ -107,8 +107,6 @@ func (o *InterpretedBuildOrchestrator) isComponentDirty(relPath string) bool {
 // validateJITPrerequisites checks that an initial build has populated the manifest. Must
 // be called with stateLock held.
 //
-// Takes ctx (context.Context) which carries the logger.
-//
 // Returns error when the cached manifest is nil.
 func (o *InterpretedBuildOrchestrator) validateJITPrerequisites(ctx context.Context) error {
 	ctx, l := logger_domain.From(ctx, log)
@@ -122,7 +120,6 @@ func (o *InterpretedBuildOrchestrator) validateJITPrerequisites(ctx context.Cont
 // collectAndSortDependencies collects dependencies and sorts them topologically. Must be
 // called with stateLock held.
 //
-// Takes ctx (context.Context) which carries the logger.
 // Takes relPath (string) which specifies the path to the target component.
 //
 // Returns []*generator_dto.GeneratedArtefact which contains the sorted dependencies ready
@@ -152,8 +149,6 @@ func (o *InterpretedBuildOrchestrator) collectAndSortDependencies(
 
 // getJITInterpreter gets an interpreter from the pool for JIT compilation. Must be called
 // with stateLock held.
-//
-// Takes ctx (context.Context) which carries the logger.
 //
 // Returns templater_domain.InterpreterPort which shares the symbol registry populated by
 // the initial build.
@@ -321,7 +316,6 @@ func (o *InterpretedBuildOrchestrator) linkBatchArtefacts(
 // getComponentCode returns the code to use for compilation and whether it is dirty. Must
 // be called with stateLock held.
 //
-// Takes ctx (context.Context) which carries the logger.
 // Takes artefact (*generator_dto.GeneratedArtefact) which provides the clean source
 // content.
 // Takes componentRelativePath (string) which identifies the component's relative path.
@@ -351,7 +345,6 @@ func (o *InterpretedBuildOrchestrator) getComponentCode(
 
 // createPageEntry creates a PageEntry from the manifest or as a private partial.
 //
-// Takes ctx (context.Context) which carries the logger.
 // Takes manifest (*generator_dto.Manifest) which contains page metadata.
 // Takes component (*annotator_dto.VirtualComponent) which provides the source info.
 //
@@ -388,7 +381,6 @@ func (o *InterpretedBuildOrchestrator) createPageEntry(
 // entry, through the same linker the compiled manifest store uses so the interpreted
 // build cannot miss a function kind (auth policy, preview and so on).
 //
-// Takes ctx (context.Context) which carries the logger.
 // Takes entry (*templater_adapters.PageEntry) which receives the linked function
 // pointers.
 // Takes component (*annotator_dto.VirtualComponent) which provides the package path used
@@ -436,13 +428,13 @@ func (*InterpretedBuildOrchestrator) linkFunctionsFromRegistry(
 // entry keyed by the .pk file's relative path, loses the per-instance routes, and leaves
 // /blog/post-slug unreachable in interpreted mode.
 //
-// Takes ctx (context.Context) which carries the logger.
 // Takes manifest (*generator_dto.Manifest) which holds the per-instance manifest entries.
 // Takes component (*annotator_dto.VirtualComponent) whose instances drive the expansion.
 // Takes componentRelativePath (string) which is the .pk file's path relative to the
 // project root, used when the component has no instances.
-// Takes linkFn which performs the function-pointer wiring. Called once per emitted entry
-// so that instance-specific caches (like the registered AST function) end up attached to
+// Takes linkFn (func(*templater_adapters.PageEntry, *annotator_dto.VirtualComponent)
+// error) which performs the function-pointer wiring. Called once per emitted entry so
+// that instance-specific caches (like the registered AST function) end up attached to
 // each entry.
 // Takes target (map[string]*templater_adapters.PageEntry) which receives the produced
 // entries.

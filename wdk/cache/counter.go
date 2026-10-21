@@ -26,10 +26,8 @@ import (
 // IncrementWithExpiry atomically increments a counter, setting TTL only on first
 // increment. This is the pattern required for rate limiting (fixed window counters).
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes c (Cache[K, int64]) which is the cache storing the counter.
 // Takes key (K) which identifies the counter.
 // Takes delta (int64) which is the amount to increment by.
@@ -62,10 +60,8 @@ func IncrementWithExpiry[K comparable](ctx context.Context, c Cache[K, int64], k
 
 // GetCounter retrieves the current value of a counter.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes c (Cache[K, int64]) which is the cache storing the counter.
 // Takes key (K) which identifies the counter.
 //
@@ -78,10 +74,8 @@ func GetCounter[K comparable](ctx context.Context, c Cache[K, int64], key K) (in
 
 // ResetCounter removes a counter from the cache.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes c (Cache[K, int64]) which is the cache that stores the counter.
 // Takes key (K) which identifies the counter to remove.
 //

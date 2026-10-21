@@ -23,6 +23,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -31,7 +32,7 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/generator/generator_dto"
 	"piko.sh/piko/wdk/clock"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 func TestBuildRunnerCompilesAndLinksEveryComponent(t *testing.T) {
@@ -172,13 +173,15 @@ func TestDiscoverUserPackages(t *testing.T) {
 	writeFile("util/util_test.go", "package util\n")
 	writeFile("helpers/helpers.go", "package helpers\n\nfunc Base() int { return 1 }\n")
 	writeFile("unused/unused.go", "package unused\n")
+	writeFile("util/assets_native.go", "//go:build !interp\n\npackage util\n\nimport _ \"discover_module/nativeonly\"\n")
+	writeFile("nativeonly/nativeonly.go", "package nativeonly\n")
 
 	testCases := []struct {
 		registered map[string]bool
 		name       string
 		want       []string
 	}{
-		{name: "follows imports transitively", registered: nil, want: []string{"pages/a", "util", "helpers"}},
+		{name: "follows imports transitively, skipping files the interp build excludes", registered: nil, want: []string{"pages/a", "util", "helpers"}},
 		{name: "skips registered packages", registered: map[string]bool{"discover_module/util": true}, want: []string{"pages/a"}},
 	}
 	for _, testCase := range testCases {
@@ -192,7 +195,10 @@ func TestDiscoverUserPackages(t *testing.T) {
 			packages := map[string]map[string]string{
 				"pages/a": {"generated.go": "package a\n\nimport \"discover_module/util\"\n\nvar _ = util.Answer\n"},
 			}
-			orchestrator.discoverUserPackages(context.Background(), packages, &fakeInterpreter{registered: testCase.registered})
+			interpreter := &fakeInterpreter{registered: testCase.registered, compilesFile: func(_ string, source []byte) (bool, error) {
+				return !strings.Contains(string(source), "//go:build !interp"), nil
+			}}
+			orchestrator.discoverUserPackages(context.Background(), packages, interpreter)
 			got := make([]string, 0, len(packages))
 			for relativePath := range packages {
 				got = append(got, relativePath)
@@ -201,6 +207,7 @@ func TestDiscoverUserPackages(t *testing.T) {
 			if files, ok := packages["util"]; ok {
 				assert.Contains(t, files, "util.go")
 				assert.NotContains(t, files, "util_test.go")
+				assert.NotContains(t, files, "assets_native.go", "a //go:build !interp file is left to the compiled binary")
 			}
 		})
 	}
@@ -341,6 +348,23 @@ func TestInterpretedBuildOrchestrator_ReadUserGoFiles(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(packageDirectory, "format_test.go"), []byte("package helpers\n"), 0o600))
 	require.NoError(t, os.WriteFile(filepath.Join(packageDirectory, "notes.md"), []byte("notes"), 0o600))
 	require.NoError(t, os.WriteFile(filepath.Join(packageDirectory, "secret.go"), []byte("package helpers\n"), 0o000))
+	constrainedDirectory := filepath.Join(root, "content")
+	require.NoError(t, os.MkdirAll(constrainedDirectory, 0o750))
+	constrainedFiles := map[string]string{
+		"content.go":       "package content\n",
+		"files_embed.go":   "//go:build !interp\n\npackage content\n",
+		"files_interp.go":  "//go:build interp\n\npackage content\n",
+		"broken_header.go": "//go:build (\n\npackage content\n",
+	}
+	for name, source := range constrainedFiles {
+		require.NoError(t, os.WriteFile(filepath.Join(constrainedDirectory, name), []byte(source), 0o600))
+	}
+	interpreter := &fakeInterpreter{compilesFile: func(name string, source []byte) (bool, error) {
+		if strings.Contains(string(source), "(\n") {
+			return false, errors.New(name + ": parsing //go:build line")
+		}
+		return !strings.Contains(string(source), "!interp"), nil
+	}}
 	sandbox, err := safedisk.NewSandbox(root, safedisk.ModeReadOnly)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = sandbox.Close() })
@@ -360,13 +384,22 @@ func TestInterpretedBuildOrchestrator_ReadUserGoFiles(t *testing.T) {
 			directory: "absent",
 			want:      nil,
 		},
+		{
+			name:      "keeps the files the interpreter compiles, and those it cannot judge",
+			directory: "content",
+			want: map[string]string{
+				"content.go":       "package content\n",
+				"files_interp.go":  "//go:build interp\n\npackage content\n",
+				"broken_header.go": "//go:build (\n\npackage content\n",
+			},
+		},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			files := (&InterpretedBuildOrchestrator{}).readUserGoFiles(context.Background(), sandbox, testCase.directory)
+			files := (&InterpretedBuildOrchestrator{}).readUserGoFiles(context.Background(), sandbox, testCase.directory, interpreter)
 
 			assert.Equal(t, testCase.want, files)
 		})

@@ -21,7 +21,7 @@
               "name": "GenericValue",
               "type_string": "main.Data",
               "raw_tag": "",
-              "definition_line": 25,
+              "definition_line": 24,
               "definition_column": 2,
               "is_underlying_primitive": true,
               "is_internal_type": true,
@@ -38,7 +38,7 @@
               "name": "OldValue",
               "type_string": "interface{}",
               "raw_tag": "",
-              "definition_line": 26,
+              "definition_line": 25,
               "definition_column": 2,
               "is_underlying_primitive": true,
               "is_internal_type": true,
@@ -50,7 +50,7 @@
           "type_params": [],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 24,
+          "definition_line": 23,
           "definition_column": 6
         },
         "Data": {
@@ -64,7 +64,7 @@
           "type_params": null,
           "stringability": 0,
           "is_alias": true,
-          "definition_line": 22,
+          "definition_line": 21,
           "definition_column": 6
         }
       },

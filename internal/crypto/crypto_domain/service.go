@@ -318,7 +318,6 @@ func WithLocalProviderFactory(factory LocalProviderFactory) ServiceOption {
 // The cacheService parameter can be nil to disable data key caching (e.g., for testing or
 // local providers).
 //
-// Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes cacheService (cache_domain.Service) which provides caching for data keys, or nil
 // to disable caching.
 // Takes config (*crypto_dto.ServiceConfig) which specifies encryption settings and cache

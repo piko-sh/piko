@@ -169,8 +169,8 @@ func TestIntegration_PersistenceRecovery(t *testing.T) {
 
 		orchDAL, ok := orchestratorDAL.(orchestrator_dal.OrchestratorDAL)
 		require.True(t, ok)
-		tasks, err := orchDAL.FetchAndMarkDueTasks(ctx, orchestrator_domain.PriorityNormal, 10)
-		require.NoError(t, err, "FetchAndMarkDueTasks failed")
+		tasks, err := orchDAL.GetTasksByID(ctx, []string{testTask.ID})
+		require.NoError(t, err, "GetTasksByID failed")
 
 		var foundTask *orchestrator_domain.Task
 		for _, task := range tasks {

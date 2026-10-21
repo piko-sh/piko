@@ -90,7 +90,7 @@ type Comment struct {
 type Response struct {
     PostID       int32     `json:"post_id"`
     Comments     []Comment `json:"comments"`
-    CommentCount int32     `json:"comment_count"`
+    CommentCount int64     `json:"comment_count"`
 }
 
 // Render fetches comments for the given post from the database.

@@ -56,7 +56,6 @@ func (a *ValkeyClusterAdapter[K, V]) fetchValueInDedicated(ctx context.Context, 
 
 // handleComputeRetryResult processes the result of a compute transaction attempt.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which is the cache key being computed.
 // Takes keyString (string) which is the string form of the key for logging.
 // Takes err (error) which is the error from the transaction attempt.
@@ -95,10 +94,8 @@ func (a *ValkeyClusterAdapter[K, V]) handleComputeRetryResult(ctx context.Contex
 // Compute atomically updates a cache entry using a compute function with optimistic
 // locking. Computes and writes the new value in one round trip.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
 // Takes computeFunction (func(...)) which receives the old value and found flag,
 // returning the new value and action to perform.
@@ -220,10 +217,8 @@ func (a *ValkeyClusterAdapter[K, V]) computeIfAbsentTransaction(ctx context.Cont
 
 // ComputeIfAbsent atomically computes and stores a value only if the key is not present.
 //
-// When the context is already cancelled or has exceeded its deadline, returns the
-// context's error without performing any work.
+// A cancelled or expired context returns its error before work begins.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which is the cache key to look up or compute.
 // Takes computeFunction (func() V) which computes the value if the key is absent.
 //
@@ -266,7 +261,6 @@ func (a *ValkeyClusterAdapter[K, V]) ComputeIfAbsent(ctx context.Context, key K,
 // handleComputeIfAbsentResult processes the result of a ComputeIfAbsent transaction
 // attempt.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which is the cache key being computed.
 // Takes keyString (string) which is the string form of the key for logging.
 // Takes err (error) which is the error from the transaction attempt.
@@ -307,7 +301,6 @@ func (a *ValkeyClusterAdapter[K, V]) handleComputeIfAbsentResult(ctx context.Con
 // When the context is already cancelled or has exceeded its deadline, returns the
 // context's error without performing any work.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the entry to update.
 // Takes computeFunction (func(...)) which computes the new value from the old value.
 //
@@ -411,7 +404,6 @@ func (a *ValkeyClusterAdapter[K, V]) buildComputePresentCommands(c valkey.Dedica
 // handleComputeIfPresentResult processes the result of a ComputeIfPresent transaction
 // attempt.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which is the cache key being computed.
 // Takes keyString (string) which is the string form of the key for logging.
 // Takes err (error) which is the error from the transaction attempt.
@@ -453,7 +445,6 @@ func (a *ValkeyClusterAdapter[K, V]) handleComputeIfPresentResult(ctx context.Co
 // When the context is already cancelled or has exceeded its deadline, returns the
 // context's error without performing any work.
 //
-// Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
 // Takes computeFunction (func(...)) which receives the old value and found flag,
 // returning a ComputeResult containing the new value, action, and optional TTL.

@@ -183,15 +183,10 @@ func (*PadesTransformer) Type() pdfwriter_dto.TransformerType {
 // Returns int which is the transformer's position in the processing order.
 func (t *PadesTransformer) Priority() int { return t.priority }
 
-// Transform applies a PAdES digital signature to the PDF. Options must be
-// PadesSignOptions or *PadesSignOptions.
+// Transform applies a PAdES B-B digital signature to a PDF.
 //
-// The implementation follows the PAdES B-B profile: it adds a signature dictionary with
-// /SubFilter /ETSI.CAdES.detached, reserves space for the CMS signature, computes the
-// SHA-256 hash over the byte ranges (everything except the /Contents hex string value),
-// constructs a CMS SignedData structure, and embeds the DER-encoded signature.
+// Options must be PadesSignOptions or *PadesSignOptions.
 //
-// Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes pdf ([]byte) which is the input PDF document.
 // Takes options (any) which must be PadesSignOptions or *PadesSignOptions.
 //
@@ -234,14 +229,9 @@ func contentsSize(level string) int {
 	}
 }
 
-// signPDFWithDocTimestamp performs the B-LTA signing operation.
+// signPDFWithDocTimestamp signs at B-LT level and appends a document timestamp for B-LTA
+// archival validation.
 //
-// It first signs the PDF at B-LT level (CMS signature with timestamp and DSS), then
-// appends a document timestamp as an incremental update. The document timestamp covers
-// the entire signed document including the DSS data, ensuring long-term archival
-// validity.
-//
-// Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes pdf ([]byte) which is the input PDF document.
 // Takes opts (*pdfwriter_dto.PadesSignOptions) which holds the signing configuration.
 //
@@ -261,11 +251,9 @@ func signPDFWithDocTimestamp(ctx context.Context, pdf []byte, opts *pdfwriter_dt
 	return result, nil
 }
 
-// signPDF performs the PAdES signing operation: parsing, adding signature structure (and
-// DSS for B-LT), serialising, hashing, signing, optionally timestamping, and embedding
-// the CMS signature.
+// signPDF signs the PDF and optionally adds a timestamp and validation data for the
+// requested PAdES level.
 //
-// Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes pdf ([]byte) which is the input PDF document.
 // Takes opts (*pdfwriter_dto.PadesSignOptions) which holds the signing configuration.
 //
@@ -341,7 +329,6 @@ func preparePDFStructure(pdf []byte, opts *pdfwriter_dto.PadesSignOptions) ([]by
 // timestamp from the TSA and rebuilding the CMS with the timestamp token as an unsigned
 // attribute.
 //
-// Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes digest ([]byte) which is the SHA-256 hash of the byte ranges.
 // Takes opts (*pdfwriter_dto.PadesSignOptions) which holds the signing configuration
 // including the TSA URL.

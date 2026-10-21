@@ -26,11 +26,6 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// CreateExpansionResult returns the hand-crafted ExpansionResult for this test case.
-// It simulates the output of the PartialExpander, providing three partial invocations.
-// Two of these invocations are semantically identical (passing the same props), while the
-// third is different. This allows the test to verify that the ComponentLinker correctly
-// canonicalizes the invocation keys.
 func CreateExpansionResult(t *testing.T, vm *annotator_dto.VirtualModule) *annotator_dto.ExpansionResult {
 	findHash := func(relPath string) string {
 		for hash, comp := range vm.ComponentsByHash {

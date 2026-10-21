@@ -28,8 +28,6 @@ type CreateOutput struct {
 	Reference string `json:"reference"`
 }
 
-// CreateAction takes its input from a package that holds no action, which is the only
-// thing that decides whether the generated files import that package.
 type CreateAction struct {
 	piko.ActionMetadata
 }

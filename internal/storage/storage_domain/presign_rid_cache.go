@@ -64,8 +64,8 @@ type PresignRIDCache struct {
 
 // NewPresignRIDCache creates a new random identifier cache with background cleanup.
 //
-// Takes ctx (context.Context) which is threaded to the background cleanup goroutine for
-// panic recovery.
+// ctx is passed to the background cleanup goroutine for panic recovery.
+//
 // Takes cleanupInterval (time.Duration) which specifies how often to purge expired
 // identifiers. Use DefaultRIDCleanupInterval for sensible defaults.
 // Takes opts (...PresignRIDCacheOption) which configure the clock used for expiry checks.
@@ -173,7 +173,6 @@ func (c *PresignRIDCache) Stop() {
 
 // cleanupLoop removes expired random identifiers at regular intervals.
 //
-// Takes ctx (context.Context) which provides context for panic recovery.
 // Takes interval (time.Duration) which sets how often cleanup runs.
 func (c *PresignRIDCache) cleanupLoop(ctx context.Context, interval time.Duration) {
 	ticker := c.clock.NewTicker(interval)

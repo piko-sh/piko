@@ -84,4 +84,8 @@ type BuildNotification struct {
 
 	// CausationID is the ID of the event that caused this build notification.
 	CausationID string
+
+	// Targeted is true when the build rebuilt only a subset of the project (see
+	// WithTargeted), so Result covers just those components.
+	Targeted bool
 }

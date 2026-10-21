@@ -25,6 +25,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/config"
 )
 
 func TestParseDensity(t *testing.T) {
@@ -955,4 +956,31 @@ func TestResponsiveVariantSpec(t *testing.T) {
 		assert.Equal(t, "", spec.Density)
 		assert.Equal(t, 0, spec.Width)
 	})
+}
+
+func TestExpandSingleResponsiveAsset_DensitySeparators(t *testing.T) {
+	t.Parallel()
+
+	for _, densities := range []string{"x1 x2", "x1,x2", "x1, x2"} {
+		t.Run(densities, func(t *testing.T) {
+			t.Parallel()
+
+			dependency := &annotator_dto.StaticAssetDependency{
+				SourcePath: "/img.jpg",
+				AssetType:  "img",
+				TransformationParams: map[string]string{
+					"width":     "300",
+					"densities": densities,
+				},
+			}
+
+			variants := expandSingleResponsiveAsset(dependency, &config.AssetsConfig{})
+
+			widths := make([]string, 0, len(variants))
+			for _, variant := range variants {
+				widths = append(widths, variant.TransformationParams["width"])
+			}
+			assert.Equal(t, []string{"300", "600"}, widths, "densities may be separated by commas, spaces or both")
+		})
+	}
 }

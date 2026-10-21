@@ -60,7 +60,6 @@ var (
 
 // ProcessGetCollectionCall delegates to ProcessGetCollectionCallFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes collectionName (string) which identifies the collection by name.
 // Takes targetTypeName (string) which is the target Go type name.
 // Takes targetTypeExpr (goast.Expr) which is the AST expression for the target type.
@@ -83,7 +82,6 @@ func (m *MockCollectionService) ProcessGetCollectionCall(
 
 // ProcessCollectionDirective delegates to ProcessCollectionDirectiveFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes directive (*collection_dto.CollectionDirectiveInfo) which contains the collection
 // directive to process.
 //

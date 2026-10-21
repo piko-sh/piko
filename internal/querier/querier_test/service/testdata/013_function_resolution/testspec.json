@@ -1,3 +1,0 @@
-{
-  "description": "Function overload resolution via expression type inference. Tests that function calls in expressions are resolved through the function resolver with correct overload scoring."
-}

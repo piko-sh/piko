@@ -399,11 +399,7 @@ func (b *RenderBuilder) LineHeight(height float64) *RenderBuilder {
 	return b
 }
 
-// Do executes the full PDF render pipeline: runs the template, resolves CSS, builds the
-// box tree, lays out, substitutes page numbers, instances variable fonts, paints to PDF,
-// and applies any post-processing transformations.
-//
-// Takes ctx (context.Context) which carries cancellation and tracing.
+// Do renders the template to PDF and applies configured post-processing transformations.
 //
 // Returns result (*pdfwriter_dto.PdfResult) which contains the rendered PDF bytes, page
 // count, and optional layout dump.
@@ -547,7 +543,6 @@ func (b *RenderBuilder) buildLayoutConfig() layouter_dto.LayoutConfig {
 // paintPDF instances variable fonts, creates and configures the painter, marks variable
 // font instances, and paints the layout to PDF bytes.
 //
-// Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes pageConfig (layouter_dto.PageConfig) which specifies the page dimensions.
 // Takes layoutResult (*layouter_dto.LayoutResult) which contains the laid-out pages to
 // paint into the PDF.
@@ -629,7 +624,6 @@ func (b *RenderBuilder) effectiveMaxImagePixels() int {
 
 // applyTransforms runs post-processing transform chains if configured.
 //
-// Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes pdfBytes ([]byte) which contains the rendered PDF to transform.
 //
 // Returns []byte which is the transformed PDF content.

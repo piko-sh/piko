@@ -18,12 +18,10 @@
 
 package services
 
-// This file imports 'models' with its default name.
 import "testcase_38_file_scoped_context_switch/models"
 
 type UserService struct{}
 
-// GetUser's signature uses the default 'models' import.
 func (s *UserService) GetUser() *models.User {
 	return nil
 }

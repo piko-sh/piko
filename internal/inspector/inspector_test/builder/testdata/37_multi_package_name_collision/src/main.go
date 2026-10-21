@@ -19,30 +19,21 @@
 package main
 
 import (
-	// The primary UUID from Google, imported with its default name.
 	"github.com/google/uuid"
 
-	// A second external UUID package, aliased.
 	gofrsuuid "github.com/gofrs/uuid/v5"
 
-	// A third conflicting UUID from a transitive-like dependency, aliased.
 	moderncuuid "modernc.org/libc/uuid/uuid"
 
-	// Our own local package named "uuid", aliased.
 	localuuid "testcase_37_multi_package_name_collision/pkg/uuid"
 )
 
-// Response uses all four conflicting types to test the serialiser's context-awareness.
 type Response struct {
-	// Should resolve to github.com/google/uuid
 	RealGoogleUUID uuid.UUID
 
-	// Should resolve to testcase_37.../pkg/uuid
 	LocalFakeUUID localuuid.UUID
 
-	// Should resolve to github.com/gofrs/uuid/v5
 	GofrsUUID gofrsuuid.UUID
 
-	// Should resolve to modernc.org/libc/uuid/uuid
 	ModerncUUID moderncuuid.Uuid_t
 }

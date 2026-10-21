@@ -1,3 +1,0 @@
-{
-  "description": "Foreign key CASCADE behaviour: ON DELETE CASCADE removes child rows"
-}

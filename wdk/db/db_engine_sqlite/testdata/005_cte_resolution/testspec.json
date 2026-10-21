@@ -1,3 +1,0 @@
-{
-  "description": "Tests WITH clause (CTE) resolution: CTE columns are resolved and available for querying in the main SELECT."
-}

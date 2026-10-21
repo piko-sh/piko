@@ -20,11 +20,8 @@ package main
 
 import "testproject_generics/models"
 
-// A type alias to an instantiated generic type.
-// The inspector needs to resolve through this.
 type ItemBox = models.Box[models.Item]
 
-// The top-level struct to be inspected.
 type Response struct {
 	BoxedItem ItemBox
 }

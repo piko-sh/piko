@@ -1,0 +1,254 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div>
+    <h1>{{ state.Label }}</h1>
+    <ul>
+      <li class="row">{{ state.Label }} 001 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 002 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 003 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 004 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 005 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 006 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 007 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 008 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 009 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 010 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 011 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 012 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 013 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 014 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 015 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 016 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 017 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 018 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 019 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 020 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 021 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 022 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 023 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 024 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 025 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 026 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 027 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 028 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 029 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 030 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 031 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 032 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 033 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 034 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 035 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 036 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 037 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 038 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 039 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 040 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 041 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 042 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 043 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 044 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 045 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 046 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 047 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 048 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 049 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 050 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 051 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 052 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 053 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 054 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 055 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 056 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 057 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 058 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 059 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 060 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 061 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 062 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 063 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 064 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 065 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 066 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 067 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 068 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 069 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 070 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 071 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 072 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 073 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 074 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 075 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 076 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 077 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 078 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 079 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 080 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 081 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 082 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 083 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 084 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 085 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 086 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 087 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 088 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 089 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 090 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 091 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 092 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 093 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 094 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 095 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 096 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 097 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 098 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 099 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 100 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 101 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 102 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 103 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 104 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 105 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 106 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 107 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 108 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 109 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 110 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 111 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 112 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 113 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 114 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 115 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 116 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 117 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 118 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 119 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 120 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 121 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 122 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 123 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 124 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 125 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 126 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 127 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 128 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 129 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 130 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 131 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 132 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 133 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 134 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 135 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 136 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 137 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 138 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 139 of {{ state.Total }}</li>
+      <li class="row">{{ state.Label }} 140 of {{ state.Total }}</li>
+    </ul>
+    <section>
+      <p><b>{{ state.Label }}</b> paragraph 001</p>
+      <p><b>{{ state.Label }}</b> paragraph 002</p>
+      <p><b>{{ state.Label }}</b> paragraph 003</p>
+      <p><b>{{ state.Label }}</b> paragraph 004</p>
+      <p><b>{{ state.Label }}</b> paragraph 005</p>
+      <p><b>{{ state.Label }}</b> paragraph 006</p>
+      <p><b>{{ state.Label }}</b> paragraph 007</p>
+      <p><b>{{ state.Label }}</b> paragraph 008</p>
+      <p><b>{{ state.Label }}</b> paragraph 009</p>
+      <p><b>{{ state.Label }}</b> paragraph 010</p>
+      <p><b>{{ state.Label }}</b> paragraph 011</p>
+      <p><b>{{ state.Label }}</b> paragraph 012</p>
+      <p><b>{{ state.Label }}</b> paragraph 013</p>
+      <p><b>{{ state.Label }}</b> paragraph 014</p>
+      <p><b>{{ state.Label }}</b> paragraph 015</p>
+      <p><b>{{ state.Label }}</b> paragraph 016</p>
+      <p><b>{{ state.Label }}</b> paragraph 017</p>
+      <p><b>{{ state.Label }}</b> paragraph 018</p>
+      <p><b>{{ state.Label }}</b> paragraph 019</p>
+      <p><b>{{ state.Label }}</b> paragraph 020</p>
+      <p><b>{{ state.Label }}</b> paragraph 021</p>
+      <p><b>{{ state.Label }}</b> paragraph 022</p>
+      <p><b>{{ state.Label }}</b> paragraph 023</p>
+      <p><b>{{ state.Label }}</b> paragraph 024</p>
+      <p><b>{{ state.Label }}</b> paragraph 025</p>
+      <p><b>{{ state.Label }}</b> paragraph 026</p>
+      <p><b>{{ state.Label }}</b> paragraph 027</p>
+      <p><b>{{ state.Label }}</b> paragraph 028</p>
+      <p><b>{{ state.Label }}</b> paragraph 029</p>
+      <p><b>{{ state.Label }}</b> paragraph 030</p>
+      <p><b>{{ state.Label }}</b> paragraph 031</p>
+      <p><b>{{ state.Label }}</b> paragraph 032</p>
+      <p><b>{{ state.Label }}</b> paragraph 033</p>
+      <p><b>{{ state.Label }}</b> paragraph 034</p>
+      <p><b>{{ state.Label }}</b> paragraph 035</p>
+      <p><b>{{ state.Label }}</b> paragraph 036</p>
+      <p><b>{{ state.Label }}</b> paragraph 037</p>
+      <p><b>{{ state.Label }}</b> paragraph 038</p>
+      <p><b>{{ state.Label }}</b> paragraph 039</p>
+      <p><b>{{ state.Label }}</b> paragraph 040</p>
+      <p><b>{{ state.Label }}</b> paragraph 041</p>
+      <p><b>{{ state.Label }}</b> paragraph 042</p>
+      <p><b>{{ state.Label }}</b> paragraph 043</p>
+      <p><b>{{ state.Label }}</b> paragraph 044</p>
+      <p><b>{{ state.Label }}</b> paragraph 045</p>
+      <p><b>{{ state.Label }}</b> paragraph 046</p>
+      <p><b>{{ state.Label }}</b> paragraph 047</p>
+      <p><b>{{ state.Label }}</b> paragraph 048</p>
+      <p><b>{{ state.Label }}</b> paragraph 049</p>
+      <p><b>{{ state.Label }}</b> paragraph 050</p>
+      <p><b>{{ state.Label }}</b> paragraph 051</p>
+      <p><b>{{ state.Label }}</b> paragraph 052</p>
+      <p><b>{{ state.Label }}</b> paragraph 053</p>
+      <p><b>{{ state.Label }}</b> paragraph 054</p>
+      <p><b>{{ state.Label }}</b> paragraph 055</p>
+      <p><b>{{ state.Label }}</b> paragraph 056</p>
+      <p><b>{{ state.Label }}</b> paragraph 057</p>
+      <p><b>{{ state.Label }}</b> paragraph 058</p>
+      <p><b>{{ state.Label }}</b> paragraph 059</p>
+      <p><b>{{ state.Label }}</b> paragraph 060</p>
+      <p><b>{{ state.Label }}</b> paragraph 061</p>
+      <p><b>{{ state.Label }}</b> paragraph 062</p>
+      <p><b>{{ state.Label }}</b> paragraph 063</p>
+      <p><b>{{ state.Label }}</b> paragraph 064</p>
+      <p><b>{{ state.Label }}</b> paragraph 065</p>
+      <p><b>{{ state.Label }}</b> paragraph 066</p>
+      <p><b>{{ state.Label }}</b> paragraph 067</p>
+      <p><b>{{ state.Label }}</b> paragraph 068</p>
+      <p><b>{{ state.Label }}</b> paragraph 069</p>
+      <p><b>{{ state.Label }}</b> paragraph 070</p>
+    </section>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct {
+	Label string
+	Total int
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	return Response{Label: "Row", Total: 140}, piko.Metadata{}, nil
+}
+</script>

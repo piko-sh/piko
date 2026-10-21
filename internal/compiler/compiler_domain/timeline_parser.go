@@ -45,6 +45,16 @@ const (
 	errFormatOutsideAt = "%s must be inside a piko:at element"
 )
 
+var (
+	// timelineActionEncoder encodes actions with sorted map keys and standard HTML escaping.
+	timelineActionEncoder = json.Freeze(json.Config{
+		SortMapKeys: true,
+		CopyString:  false,
+		UseInt64:    false,
+		EscapeHTML:  true,
+	})
+)
+
 // timelineAction represents a single timed action in a piko:timeline block.
 type timelineAction struct {
 	// Action is the type of action: "show", "hide", "type", "typehtml", "addclass",
@@ -391,7 +401,7 @@ func serialiseActions(actions []timelineAction) (string, error) {
 	if len(actions) == 0 {
 		return "[]", nil
 	}
-	data, err := json.Marshal(actions)
+	data, err := timelineActionEncoder.Marshal(actions)
 	if err != nil {
 		return "", fmt.Errorf("serialising timeline actions: %w", err)
 	}

@@ -23,7 +23,7 @@
               "name": "UserData",
               "type_string": "models.User",
               "raw_tag": "",
-              "definition_line": 25,
+              "definition_line": 24,
               "definition_column": 2,
               "is_internal_type": false,
               "is_embedded": false,
@@ -34,7 +34,7 @@
           "type_params": [],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 24,
+          "definition_line": 23,
           "definition_column": 6
         }
       },
@@ -63,7 +63,7 @@
               "name": "ID",
               "type_string": "int",
               "raw_tag": "",
-              "definition_line": 23,
+              "definition_line": 22,
               "definition_column": 2,
               "is_underlying_primitive": true,
               "is_internal_type": true,
@@ -75,7 +75,7 @@
           "type_params": [],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 22,
+          "definition_line": 21,
           "definition_column": 6
         }
       },

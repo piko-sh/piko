@@ -1,3 +1,0 @@
-{
-  "description": "Query references an unknown column in an expression context, producing a Q004 warning about expression type resolution failure."
-}

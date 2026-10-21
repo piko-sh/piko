@@ -142,16 +142,10 @@ func DefaultScrollCaptureOptions() ScrollCaptureOptions {
 	}
 }
 
-// InjectObserverOverride injects a script that runs before any page JavaScript and
-// overrides IntersectionObserver so that every observed element immediately triggers its
-// callback with isIntersecting=true. This forces frameworks like Angular and React that
-// use IntersectionObserver for lazy-loading to load all content eagerly rather than
-// waiting for elements to enter the viewport.
+// InjectObserverOverride makes observed elements immediately report isIntersecting=true
+// for eager loading.
 //
-// Must be called before navigation so the override is in place when the page's JavaScript
-// initialises.
-//
-// Takes ctx (context.Context) which is the chromedp browser context.
+// Call before navigation so the override precedes page scripts.
 //
 // Returns error when the script injection fails.
 func InjectObserverOverride(ctx context.Context) error {
@@ -167,8 +161,6 @@ func InjectObserverOverride(ctx context.Context) error {
 // checking known consent libraries (CookieBot, OneTrust, etc.) and falling back to
 // text-matching heuristics for generic accept buttons on a best-effort basis where errors
 // are ignored since not all pages have banners.
-//
-// Takes ctx (context.Context) which is the chromedp browser context.
 func DismissCookieConsent(ctx context.Context) {
 	js := scripts.MustGet("dismiss_cookie_consent.js")
 
@@ -183,7 +175,6 @@ func DismissCookieConsent(ctx context.Context) {
 // NavigateToURL navigates to an absolute URL and waits for the page to load and
 // stabilise. Unlike the test-oriented Navigate, this does not prepend a server URL.
 //
-// Takes ctx (context.Context) which is the chromedp browser context.
 // Takes url (string) which is the absolute URL to navigate to.
 // Takes timeout (time.Duration) which is the maximum time to wait for navigation.
 //
@@ -213,7 +204,6 @@ func NavigateToURL(ctx context.Context, url string, timeout time.Duration) error
 // scroll container (common in Angular/React SPAs) or the normal window scroll, and
 // scrolls the correct element.
 //
-// Takes ctx (context.Context) which is the chromedp browser context.
 // Takes opts (ScrollCaptureOptions) which configures scroll behaviour.
 //
 // Returns error when a critical scroll operation fails.
@@ -244,8 +234,6 @@ func ScrollForLazyContent(ctx context.Context, opts ScrollCaptureOptions) error 
 // UnwrapScrollContainer removes overflow/height constraints from the page so that
 // chromedp.FullScreenshot can capture the entire page content. This is necessary for SPA
 // sites that use a nested scroll container with html,body{height:100%;overflow:hidden}.
-//
-// Takes ctx (context.Context) which is the chromedp browser context.
 //
 // Returns error when the JavaScript evaluation fails.
 func UnwrapScrollContainer(ctx context.Context) error {
@@ -278,7 +266,6 @@ func UnwrapScrollContainer(ctx context.Context) error {
 // fetching them, and waits for all images to complete. Call this after
 // UnwrapScrollContainer and before taking a screenshot.
 //
-// Takes ctx (context.Context) which is the chromedp browser context.
 // Takes timeout (time.Duration) which is the maximum time to wait for all images to load.
 //
 // Returns error when the JavaScript evaluation fails.
@@ -297,8 +284,6 @@ func ForceLoadAllImages(ctx context.Context, timeout time.Duration) error {
 
 // GetFullPageHTML captures the complete outer HTML of the document.
 //
-// Takes ctx (context.Context) which is the chromedp browser context.
-//
 // Returns string which contains the full HTML source of the page.
 // Returns error when the HTML cannot be captured.
 func GetFullPageHTML(ctx context.Context) (string, error) {
@@ -315,8 +300,6 @@ func GetFullPageHTML(ctx context.Context) (string, error) {
 // FullPageScreenshot captures a PNG screenshot of the entire page, including content
 // below the viewport.
 //
-// Takes ctx (context.Context) which is the chromedp browser context.
-//
 // Returns []byte which contains the PNG image data.
 // Returns error when the screenshot cannot be captured.
 func FullPageScreenshot(ctx context.Context) ([]byte, error) {
@@ -332,7 +315,6 @@ func FullPageScreenshot(ctx context.Context) ([]byte, error) {
 // format and quality. Unlike FullPageScreenshot which always produces PNG, this supports
 // JPEG and WebP output.
 //
-// Takes ctx (context.Context) which is the chromedp browser context.
 // Takes format (ScreenshotFormat) which specifies the image format.
 // Takes quality (int) which specifies the quality for lossy formats (0-100).
 //
@@ -369,7 +351,6 @@ func FullPageScreenshotWithFormat(
 // at most viewportWidth x viewportHeight pixels (before scaling), making them suitable
 // for APIs with per-image dimension limits.
 //
-// Takes ctx (context.Context) which is the chromedp browser context.
 // Takes viewportWidth (int64) which is the configured viewport width.
 // Takes viewportHeight (int64) which is the configured viewport height.
 // Takes opts (ChunkScreenshotOptions) which configures format, quality, and scale.
@@ -429,8 +410,6 @@ func FullPageScreenshotChunks(
 // DOM content. Shadow roots are emitted as <template shadowrootmode="open"> elements
 // within the captured HTML.
 //
-// Takes ctx (context.Context) which is the chromedp browser context.
-//
 // Returns string which contains the full HTML source with shadow roots.
 // Returns error when the HTML cannot be captured.
 func GetFullPageHTMLWithShadow(ctx context.Context) (string, error) {
@@ -449,8 +428,6 @@ func GetFullPageHTMLWithShadow(ctx context.Context) (string, error) {
 // findScrollContainer detects whether the page scrolls via the window or via a nested
 // container (common in Angular/React SPAs that set
 // html,body{height:100%;overflow:hidden}).
-//
-// Takes ctx (context.Context) which is the chromedp browser context.
 //
 // Returns scrollContainerInfo which identifies the scroll container.
 // Returns error when the JavaScript evaluation fails.
@@ -510,8 +487,6 @@ func mapGetFloat64(m map[string]any, key string) float64 {
 
 // getPageDimensions returns the current page scroll height and viewport height.
 //
-// Takes ctx (context.Context) which is the chromedp browser context.
-//
 // Returns pageDimensions which contains the scroll and viewport heights.
 // Returns error when the JavaScript evaluation fails.
 func getPageDimensions(ctx context.Context) (pageDimensions, error) {
@@ -533,7 +508,6 @@ func getPageDimensions(ctx context.Context) (pageDimensions, error) {
 // scrollTo scrolls either the window or a specific container element to the given Y
 // position.
 //
-// Takes ctx (context.Context) which is the chromedp browser context.
 // Takes selector (string) which is the CSS selector of the scroll container, or empty
 // string to scroll the window.
 // Takes y (float64) which is the target scroll position in pixels.
@@ -564,7 +538,6 @@ func scrollTo(ctx context.Context, selector string, y float64) error {
 // getScrollDimensions returns the scroll height and client height of either the window or
 // a specific container element.
 //
-// Takes ctx (context.Context) which is the chromedp browser context.
 // Takes selector (string) which is the CSS selector of the scroll container, or empty
 // string for the window.
 //
@@ -596,7 +569,6 @@ func getScrollDimensions(
 // runScrollPass performs a single top-to-bottom scroll pass and reports whether the page
 // grew.
 //
-// Takes ctx (context.Context) which is the chromedp browser context.
 // Takes selector (string) which is the CSS selector of the scroll container, or empty
 // string for the window.
 // Takes pass (int) which is the zero-based pass index.
@@ -650,7 +622,6 @@ func runScrollPass(
 // waitNetworkIdle waits for network activity to cease. This is best-effort; timeout
 // errors are ignored since some pages have persistent connections.
 //
-// Takes ctx (context.Context) which is the chromedp browser context.
 // Takes idleDuration (time.Duration) which is how long the network must be quiet.
 // Takes timeout (time.Duration) which is the maximum time to wait.
 func waitNetworkIdle(ctx context.Context, idleDuration, timeout time.Duration) {
@@ -669,7 +640,6 @@ func waitNetworkIdle(ctx context.Context, idleDuration, timeout time.Duration) {
 // waitForVisibleImages waits for images currently in or near the viewport to finish
 // loading. This is best-effort; timeout errors are ignored.
 //
-// Takes ctx (context.Context) which is the chromedp browser context.
 // Takes timeout (time.Duration) which is the maximum time to wait.
 func waitForVisibleImages(ctx context.Context, timeout time.Duration) {
 	js, err := scripts.Execute("wait_images_loaded.js.tmpl", map[string]any{
@@ -685,7 +655,6 @@ func waitForVisibleImages(ctx context.Context, timeout time.Duration) {
 
 // captureChunk captures a single screenshot chunk at the given Y offset.
 //
-// Takes ctx (context.Context) which is the chromedp browser context.
 // Takes p (chunkCaptureParams) which holds the format, quality, scale, and dimension
 // settings.
 // Takes y (float64) which is the vertical offset in pixels for this chunk.

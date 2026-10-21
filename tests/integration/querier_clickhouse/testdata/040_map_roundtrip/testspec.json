@@ -1,3 +1,0 @@
-{
-  "description": "Map column round-trip: inserts and reads Map(String, UInt32) values. Verifies codegen produces a working map[string]uint32 destination and the driver preserves key-value ordering."
-}

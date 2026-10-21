@@ -25,7 +25,7 @@ import (
 	"slices"
 	"strings"
 
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (

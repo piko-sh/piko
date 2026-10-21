@@ -22,10 +22,12 @@ package bootstrap
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"piko.sh/piko/internal/capabilities"
@@ -36,6 +38,7 @@ import (
 	esbuildconfig "piko.sh/piko/internal/esbuild/config"
 	"piko.sh/piko/internal/generator/generator_adapters"
 	"piko.sh/piko/internal/image/image_domain"
+	"piko.sh/piko/internal/lifecycle/lifecycle_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/orchestrator"
 	"piko.sh/piko/internal/orchestrator/orchestrator_adapters"
@@ -47,7 +50,31 @@ import (
 	"piko.sh/piko/internal/resolver/resolver_domain"
 	"piko.sh/piko/internal/shutdown"
 	"piko.sh/piko/internal/video/video_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
+)
+
+const (
+	// buildMaxRetryBackoff caps a failed task's retry delay during a build.
+	buildMaxRetryBackoff = 2 * time.Second
+
+	// schemaCheckTimeout bounds the startup probe of the orchestrator database's schema.
+	schemaCheckTimeout = 10 * time.Second
+
+	// gcHintsBatchSize is the number of GC hints each blob GC hints task processes.
+	gcHintsBatchSize = 100
+
+	// gcHintsRescheduleSeconds is the delay, in seconds, before the blob GC hints task runs
+	// again.
+	gcHintsRescheduleSeconds = 30
+
+	// gcHintsInitialDelay is how long after startup the first blob GC hints task runs.
+	gcHintsInitialDelay = 10 * time.Second
+)
+
+var (
+	// errOrchestratorTopology is returned when the orchestrator's task store and event bus
+	// cannot work together.
+	errOrchestratorTopology = errors.New("orchestrator topology is not supported")
 )
 
 // GetCapabilityService returns the capability detection service, creating it if
@@ -239,6 +266,68 @@ func (c *Container) GetArtefactBridge() *orchestrator_adapters.ArtefactWorkflowB
 	return c.artefactBridge
 }
 
+// startupArtefactReconciler returns what dispatches, when a server starts, the desired
+// profiles an earlier run left unbuilt. It resolves the artefact bridge only when that
+// check runs, so creating a lifecycle service starts no orchestrator; see
+// startupReconciler.
+//
+// Returns lifecycle_domain.ArtefactReconciler which defers to the artefact bridge, or nil
+// when this process cannot write the registry's blobs, so nothing could be rebuilt.
+func (c *Container) startupArtefactReconciler() lifecycle_domain.ArtefactReconciler {
+	if c.registryBlobsReadOnly() {
+		return nil
+	}
+	return startupReconciler{container: c}
+}
+
+// startupReconciler hands a server's startup re-check to the artefact bridge, resolved when
+// the check runs. It does nothing in a process running from a copy of .piko that another
+// process owns, since the owner's own startup does that work.
+type startupReconciler struct {
+	// container provides the artefact bridge and the persistence provider.
+	container *Container
+}
+
+// ReconcileArtefacts dispatches the work the given artefacts still need.
+//
+// Takes artefactIDs ([]string) which identifies the artefacts to re-check.
+//
+// Returns int which is the number of tasks dispatched.
+// Returns error when an artefact could not be read or dispatched.
+func (r startupReconciler) ReconcileArtefacts(ctx context.Context, artefactIDs []string) (int, error) {
+	bridge := r.bridge()
+	if bridge == nil {
+		return 0, nil
+	}
+	return bridge.ReconcileArtefacts(ctx, artefactIDs)
+}
+
+// UnbuiltProfiles reports desired profiles that are not built although every profile they
+// depend on is.
+//
+// Takes artefactIDs ([]string) which identifies the artefacts to inspect.
+//
+// Returns map[string][]string which maps artefact IDs to unbuilt profile names.
+// Returns error when an artefact could not be read.
+func (r startupReconciler) UnbuiltProfiles(ctx context.Context, artefactIDs []string) (map[string][]string, error) {
+	bridge := r.bridge()
+	if bridge == nil {
+		return nil, nil
+	}
+	return bridge.UnbuiltProfiles(ctx, artefactIDs)
+}
+
+// bridge returns the artefact bridge, or nil in a secondary or when there is none.
+//
+// Returns *orchestrator_adapters.ArtefactWorkflowBridge which is the bridge, or nil.
+func (r startupReconciler) bridge() *orchestrator_adapters.ArtefactWorkflowBridge {
+	c := r.container
+	if c.dbProvider != nil && c.dbProvider.IsSecondary() {
+		return nil
+	}
+	return c.GetArtefactBridge()
+}
+
 // createDefaultOrchestratorService sets up the default orchestrator service and its
 // supporting parts.
 func (c *Container) createDefaultOrchestratorService() {
@@ -287,9 +376,15 @@ func (c *Container) createOrchestratorServiceCore() (orchestrator.Service, regis
 		return nil, nil, fmt.Errorf("getting event bus for orchestrator: %w", err)
 	}
 
+	dispatcherConfig := c.orchestratorDispatcherConfig()
+	dispatcherConfig.Transport, err = resolveOrchestratorTopology(c.GetAppContext(), taskStore, eventBus)
+	if err != nil {
+		return nil, nil, err
+	}
 	orcService, err := orchestrator.NewService(c.GetAppContext(), orchestrator.Config{
 		TaskStore:          taskStore,
 		EventBus:           eventBus,
+		Dispatcher:         &dispatcherConfig,
 		WorkerCount:        0,
 		SchedulerInterval:  0,
 		DispatcherInterval: 0,
@@ -298,7 +393,8 @@ func (c *Container) createOrchestratorServiceCore() (orchestrator.Service, regis
 		return nil, nil, fmt.Errorf("failed to create orchestrator service: %w", err)
 	}
 
-	compilerExecutor := orchestrator_adapters.NewCompilerExecutor(registryService, capabilityService)
+	compilerExecutor := orchestrator_adapters.NewCompilerExecutor(registryService, capabilityService,
+		orchestrator_adapters.WithEmptyOutputs(c.compileEmptyOutputs()))
 	if err := orcService.RegisterExecutor(c.GetAppContext(), orchestrator_adapters.ExecutorNameArtefactCompiler, compilerExecutor); err != nil {
 		return nil, nil, fmt.Errorf("failed to register compiler executor: %w", err)
 	}
@@ -309,6 +405,85 @@ func (c *Container) createOrchestratorServiceCore() (orchestrator.Service, regis
 	}
 
 	return orcService, registryService, nil
+}
+
+// resolveOrchestratorTopology selects and validates task-store and event-bus locality.
+//
+// A distributed bus requires a shared store. A local bus with a shared store is allowed
+// with a warning because replicas share work only through store sweeps.
+//
+// Takes taskStore (orchestrator_domain.TaskStore) which holds the tasks.
+// Takes eventBus (orchestrator_domain.EventBus) which carries the orchestrator's events.
+//
+// Returns orchestrator_domain.TransportMode which is the transport to use.
+// Returns error when the store and bus cannot work together.
+func resolveOrchestratorTopology(
+	ctx context.Context,
+	taskStore orchestrator_domain.TaskStore,
+	eventBus orchestrator_domain.EventBus,
+) (orchestrator_domain.TransportMode, error) {
+	_, l := logger_domain.From(ctx, log)
+	localStore := false
+	if local, ok := taskStore.(interface{ LocalStore() bool }); ok {
+		localStore = local.LocalStore()
+	}
+	distributedBus := false
+	if locality, ok := eventBus.(orchestrator_domain.NodeLocality); ok {
+		distributedBus = !locality.NodeLocal()
+	}
+
+	storeKind, busKind := "shared database", "in-process"
+	if localStore {
+		storeKind = "in-process"
+	}
+	if distributedBus {
+		busKind = "distributed"
+	}
+
+	switch {
+	case distributedBus && localStore:
+		return orchestrator_domain.TransportAuto, fmt.Errorf("%w: the event bus is distributed but the task store is "+
+			"in-process, so other nodes would be handed tasks they cannot find; register an orchestrator database "+
+			"with AddDatabase(%q) to share tasks between replicas, or use an in-process events provider",
+			errOrchestratorTopology, DatabaseNameOrchestrator)
+	case distributedBus:
+		l.Internal("Orchestrator is clustered",
+			logger_domain.String("store", storeKind),
+			logger_domain.String("tasks", orchestrator_domain.TransportBus.String()),
+			logger_domain.String("events", busKind))
+		return orchestrator_domain.TransportBus, nil
+	case !localStore:
+		l.Warn("Orchestrator shares a task database but its event bus is in-process; replicas share work only "+
+			"through the store's periodic sweep. Configure a distributed events provider for prompt sharing.",
+			logger_domain.String("store", storeKind),
+			logger_domain.String("events", busKind))
+	}
+	l.Internal("Orchestrator is standalone",
+		logger_domain.String("store", storeKind),
+		logger_domain.String("tasks", orchestrator_domain.TransportLocal.String()),
+		logger_domain.String("events", busKind))
+	return orchestrator_domain.TransportLocal, nil
+}
+
+// orchestratorDispatcherConfig selects dispatcher settings for the container.
+//
+// Builds cap retry delays and allocate workers per CPU. Processes using a read-only
+// persistence copy do not recover the owner's tasks.
+//
+// Returns orchestrator_domain.DispatcherConfig which holds the settings.
+func (c *Container) orchestratorDispatcherConfig() orchestrator_domain.DispatcherConfig {
+	config := orchestrator_domain.DefaultDispatcherConfig()
+	if c.dbProvider != nil && c.dbProvider.IsSecondary() {
+		config.SkipRecovery = true
+	}
+	if c.isBuildTime {
+		config.MaxRetryBackoff = buildMaxRetryBackoff
+		workers := runtime.GOMAXPROCS(0)
+		config.WatermillHighHandlers = max(config.WatermillHighHandlers, workers)
+		config.WatermillNormalHandlers = max(config.WatermillNormalHandlers, workers)
+		config.WatermillLowHandlers = max(config.WatermillLowHandlers, workers/2)
+	}
+	return config
 }
 
 // setupOrchestratorBridge creates and starts the artefact workflow bridge.
@@ -326,7 +501,8 @@ func (c *Container) setupOrchestratorBridge(orcService orchestrator.Service, reg
 	if err != nil {
 		return nil, fmt.Errorf("getting event bus for orchestrator bridge: %w", err)
 	}
-	bridge := orchestrator_adapters.NewArtefactWorkflowBridge(registryService, orcService, orcService.GetTaskDispatcher(), eventBus)
+	bridge := orchestrator_adapters.NewArtefactWorkflowBridge(registryService, orcService, orcService.GetTaskDispatcher(), eventBus,
+		orchestrator_adapters.WithBridgeEmptyOutputs(c.compileEmptyOutputs()))
 
 	wait, err := bridge.StartListening(c.GetAppContext(), eventBus)
 	if err != nil {
@@ -334,6 +510,18 @@ func (c *Container) setupOrchestratorBridge(orcService orchestrator.Service, reg
 	}
 	go wait()
 	return bridge, nil
+}
+
+// compileEmptyOutputs returns the shared record of profiles compiled without output.
+//
+// The record is initialised once and shared across callers.
+//
+// Returns *orchestrator_adapters.EmptyOutputs which is the shared record.
+func (c *Container) compileEmptyOutputs() *orchestrator_adapters.EmptyOutputs {
+	c.emptyOutputsOnce.Do(func() {
+		c.emptyOutputs = orchestrator_adapters.NewEmptyOutputs()
+	})
+	return c.emptyOutputs
 }
 
 // startOrchestratorBackground starts the orchestrator service in the background.
@@ -359,16 +547,32 @@ func (c *Container) ScheduleGCTasks() {
 		return
 	}
 
-	hintsTask := orchestrator_domain.NewTask(orchestrator_adapters.ExecutorNameBlobGC, map[string]any{
-		"mode":               "hints",
-		"batch_size":         100,
-		"reschedule_seconds": 30,
-	})
-	hintsTask.DeduplicationKey = "blob.gc.hints"
-	hintsTask.Config.Priority = orchestrator_domain.PriorityLow
-	_, err := orcService.Schedule(ctx, hintsTask, time.Now().Add(10*time.Second))
+	hints := orchestrator_domain.RecurringTask{
+		Payload: map[string]any{
+			"mode":               "hints",
+			"batch_size":         gcHintsBatchSize,
+			"reschedule_seconds": gcHintsRescheduleSeconds,
+		},
+		Key:        "blob.gc.hints",
+		Executor:   orchestrator_adapters.ExecutorNameBlobGC,
+		Delay:      gcHintsInitialDelay,
+		Priority:   orchestrator_domain.PriorityLow,
+		Background: true,
+	}
+	if recurring, ok := orcService.GetTaskDispatcher().(orchestrator_domain.RecurringRegistry); ok {
+		if err := recurring.RegisterRecurring(ctx, hints); err != nil && !errors.Is(err, orchestrator_domain.ErrDispatcherStopped) {
+			l.Warn("Failed to schedule the GC hints task", logger_domain.Error(err))
+		}
+		return
+	}
+
+	hintsTask := orchestrator_domain.NewTask(hints.Executor, hints.Payload)
+	hintsTask.DeduplicationKey = hints.Key
+	hintsTask.Config.Priority = hints.Priority
+	hintsTask.Background = hints.Background
+	_, err := orcService.Schedule(ctx, hintsTask, time.Now().Add(hints.Delay))
 	switch {
-	case err == nil:
+	case err == nil, errors.Is(err, orchestrator_domain.ErrDuplicateTask):
 	case errors.Is(err, orchestrator_domain.ErrOrchestratorShuttingDown):
 		l.Trace("Skipped GC task scheduling because the orchestrator is shutting down")
 	default:
@@ -407,6 +611,10 @@ func (c *Container) createQuerierOrchestratorDAL() (orchestrator_domain.TaskStor
 		return nil, err
 	}
 
+	if err := checkOrchestratorSchema(database, isPostgresDriver(driver)); err != nil {
+		return nil, err
+	}
+
 	if isPostgresDriver(driver) {
 		dal := orchestrator_querier_postgres.NewObserved(database, observed)
 		if inspector, ok := dal.(orchestrator_domain.OrchestratorInspector); ok {
@@ -421,6 +629,23 @@ func (c *Container) createQuerierOrchestratorDAL() (orchestrator_domain.TaskStor
 	}
 
 	return dal, nil
+}
+
+// checkOrchestratorSchema verifies the orchestrator database has every migration applied,
+// so an outdated schema fails at startup with its remedy rather than on the first task.
+//
+// Takes database (*sql.DB) which is the orchestrator database.
+// Takes postgres (bool) which selects the Postgres schema over SQLite's.
+//
+// Returns error which wraps orchestrator_dal.ErrSchemaOutdated when a migration is
+// missing.
+func checkOrchestratorSchema(database *sql.DB, postgres bool) error {
+	ctx, cancel := context.WithTimeout(context.Background(), schemaCheckTimeout)
+	defer cancel()
+	if postgres {
+		return orchestrator_querier_postgres.CheckSchema(ctx, database)
+	}
+	return orchestrator_querier_sqlite.CheckSchema(ctx, database)
 }
 
 // createProviderOrchestratorDAL creates an orchestrator DAL from the default otter

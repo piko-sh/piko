@@ -1,3 +1,0 @@
-{
-  "description": "WITH RECURSIVE for hierarchical tree traversal. Validates self-referential CTE column resolution and alias scoping."
-}

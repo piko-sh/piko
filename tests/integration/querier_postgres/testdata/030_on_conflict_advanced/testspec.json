@@ -1,3 +1,0 @@
-{
-  "description": "Conditional upsert with ON CONFLICT DO UPDATE WHERE clause and version tracking"
-}

@@ -109,8 +109,11 @@ func TestExecute(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error for missing capability, got nil")
 		}
-		if !errors.Is(err, errCapabilityNotFound) {
-			t.Errorf("expected errCapabilityNotFound, got: %v", err)
+		if !errors.Is(err, ErrCapabilityNotFound) {
+			t.Errorf("expected ErrCapabilityNotFound, got: %v", err)
+		}
+		if !IsFatalError(err) {
+			t.Errorf("a missing capability can never be found by retrying, so it must be fatal: %v", err)
 		}
 	})
 

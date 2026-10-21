@@ -23,7 +23,7 @@ package metric_collector_grpcfb
 import (
 	"syscall"
 
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // fdLimit returns the soft RLIMIT_NOFILE (max open files). Unix-only: the

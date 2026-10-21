@@ -7,6 +7,7 @@ require (
 	github.com/testcontainers/testcontainers-go v0.43.0
 	piko.sh/piko v0.0.0
 	piko.sh/piko/wdk/db/db_engine_mysql v0.0.0
+	piko.sh/safeconv v0.1.0
 )
 
 require (
@@ -28,6 +29,7 @@ require (
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/go-connections v0.8.1 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
+	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/ebitengine/purego v0.10.2 // indirect
 	github.com/felixge/httpsnoop v1.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
@@ -54,6 +56,7 @@ require (
 	github.com/moby/sys/user v0.4.1 // indirect
 	github.com/moby/sys/userns v0.1.0 // indirect
 	github.com/moby/term v0.5.2 // indirect
+	github.com/ncruces/go-strftime v1.1.0 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
@@ -85,11 +88,16 @@ require (
 	golang.org/x/text v0.42.0 // indirect
 	golang.org/x/tools v0.50.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	piko.sh/goastutil v0.1.0 // indirect
+	modernc.org/memory v1.12.1 // indirect
+	piko.sh/goastutil v0.2.0 // indirect
+	piko.sh/piko/wdk/db/db_provider_seagull v0.0.0 // indirect
+	piko.sh/safedisk v0.1.0 // indirect
 	piko.sh/vectormaths v0.2.0 // indirect
+	seagull.sh/seagull v0.0.0-alpha.2 // indirect
 )
 
 replace (
 	piko.sh/piko => ../../../../
 	piko.sh/piko/wdk/db/db_engine_mysql => ../../../../wdk/db/db_engine_mysql
+	piko.sh/piko/wdk/db/db_provider_seagull => ../../../../wdk/db/db_provider_seagull
 )

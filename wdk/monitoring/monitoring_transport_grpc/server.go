@@ -189,8 +189,6 @@ func (s *Server) Start(ctx context.Context) error {
 // shutdown does not complete within the timeout, the server is forcefully stopped to
 // prevent indefinite blocking.
 //
-// Takes ctx (context.Context) for logging context propagation.
-//
 // Safe for concurrent use. The spawned goroutine runs until GracefulStop completes or the
 // timeout expires.
 func (s *Server) Stop(ctx context.Context) {

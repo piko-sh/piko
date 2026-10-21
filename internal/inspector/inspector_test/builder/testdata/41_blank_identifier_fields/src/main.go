@@ -18,12 +18,9 @@
 
 package main
 
-// Aligned uses blank identifiers for memory alignment/padding purposes.
 type Aligned struct {
 	A int64
-	// This field should be completely ignored by the serialiser.
 	_ [0]byte
 	B int32
-	// This one too.
 	_ [4]byte
 }

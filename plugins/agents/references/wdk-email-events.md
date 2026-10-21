@@ -108,7 +108,7 @@ config := email.DispatcherConfig{
 ### Testing with mock
 
 ```go
-mockProvider := email_provider_mock.NewMockEmailProvider()
+mockProvider := email_provider_mock.NewMockEmailProvider().(*email_provider_mock.MockEmailProvider)
 // ... send emails ...
 calls := mockProvider.GetSendCalls()
 ```

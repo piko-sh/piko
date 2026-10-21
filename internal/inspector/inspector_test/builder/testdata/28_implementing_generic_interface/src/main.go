@@ -18,17 +18,14 @@
 
 package main
 
-// Producer is a generic interface.
 type Producer[T any] interface {
 	Produce() T
 }
 
-// StringProducer implements Producer[string].
 type StringProducer struct{}
 
 func (s StringProducer) Produce() string {
 	return "hello"
 }
 
-// Ensure the implementation is valid at compile time.
 var _ Producer[string] = StringProducer{}

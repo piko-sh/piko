@@ -125,7 +125,6 @@ func NewEmailTemplateService(runner ManifestRunnerPort, renderer RendererPort) E
 // buildRenderedEmailContent builds the final email content and logs debug information
 // about the result.
 //
-// Takes ctx (context.Context) which carries the logger and tracing data.
 // Takes htmlContent (string) which provides the HTML body of the email.
 // Takes plainTextContent (string) which provides the plain text body.
 // Takes styling (string) which provides CSS styling for the email.

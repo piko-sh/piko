@@ -48,6 +48,10 @@ const (
 	// restrictedMaxGoroutines caps the goroutines interpreted code may run at once in
 	// restricted mode when no explicit limit is configured.
 	restrictedMaxGoroutines int32 = 1024
+
+	// restrictedCallbackTimeout caps one call of an interpreted closure from native code in
+	// restricted mode when no explicit limit is configured.
+	restrictedCallbackTimeout = 30 * time.Second
 )
 
 // limitValue is the set of numeric types the interpreter's resource limits use.
@@ -91,6 +95,9 @@ type resourceLimits struct {
 
 	// maxGoroutines caps the goroutines interpreted code may run at once.
 	maxGoroutines limitSetting[int32]
+
+	// callbackTimeout caps one call of an interpreted closure from native code.
+	callbackTimeout limitSetting[time.Duration]
 }
 
 // resolve returns the configured limit when set, the restricted-mode default when
@@ -143,6 +150,9 @@ func (l *resourceLimits) pipitOptions(restricted bool) []pipit.Option {
 	}
 	if limit := l.maxGoroutines.resolve(restricted, restrictedMaxGoroutines); limit > 0 {
 		options = append(options, pipit.WithMaxGoroutines(limit))
+	}
+	if limit := l.callbackTimeout.resolve(restricted, restrictedCallbackTimeout); limit > 0 {
+		options = append(options, pipit.WithCallbackTimeout(limit))
 	}
 	return options
 }
@@ -258,5 +268,19 @@ func WithMaxStringSize(maximum int) ProviderOption {
 func WithMaxGoroutines(maximum int32) ProviderOption {
 	return func(p *Provider) {
 		p.limits.maxGoroutines = limitSetting[int32]{value: max(maximum, 0), configured: true}
+	}
+}
+
+// WithCallbackTimeout limits each interpreted closure call made by native code.
+//
+// Calls during an evaluation also obey its deadline. Restricted mode defaults to 30
+// seconds; zero disables the callback limit.
+//
+// Takes timeout (time.Duration) which is the limit for one call.
+//
+// Returns ProviderOption which configures the provider.
+func WithCallbackTimeout(timeout time.Duration) ProviderOption {
+	return func(p *Provider) {
+		p.limits.callbackTimeout = limitSetting[time.Duration]{value: max(timeout, 0), configured: true}
 	}
 }

@@ -35,7 +35,7 @@ import (
 	"github.com/klauspost/compress/gzip"
 	"piko.sh/piko/wdk/clock"
 	"piko.sh/piko/wdk/goroutine"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -173,13 +173,10 @@ var (
 	_ io.WriteCloser = (*Writer)(nil)
 )
 
-// New creates a new rotating log file writer with the given configuration.
+// New creates a rotating log writer.
 //
-// The provided context controls the lifetime of the background cleanup goroutine;
-// cancelling it causes the goroutine to stop accepting new work. Call Writer.Close for
-// deterministic shutdown regardless of context state.
+// Cancelling ctx stops background cleanup. Call Writer.Close for deterministic shutdown.
 //
-// Takes ctx (context.Context) which controls the background goroutine lifetime.
 // Takes config (Config) which specifies the rotation settings.
 //
 // Returns *Writer which is ready for use.

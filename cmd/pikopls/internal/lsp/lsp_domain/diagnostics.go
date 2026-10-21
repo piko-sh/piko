@@ -24,8 +24,9 @@ import (
 
 	protocol "github.com/politepixels/golang-language-server"
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/diagnostic_docs"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // convertDiagnosticsToLSP converts AST diagnostics to LSP protocol format. It filters to
@@ -98,7 +99,8 @@ func shouldIncludeDiagnostic(ctx context.Context, d *ast_domain.Diagnostic, absP
 	return true
 }
 
-// buildLSPDiagnostic converts an AST diagnostic to LSP protocol format.
+// buildLSPDiagnostic converts an AST diagnostic to LSP protocol format. A documented code
+// carries a link to the page that explains it, which editors show on the code.
 //
 // Takes d (*ast_domain.Diagnostic) which is the diagnostic to convert.
 //
@@ -107,8 +109,12 @@ func buildLSPDiagnostic(d *ast_domain.Diagnostic) protocol.Diagnostic {
 	endChar := calculateEndChar(d)
 
 	var code any
+	var codeDescription *protocol.CodeDescription
 	if d.Code != "" {
 		code = d.Code
+		if entry, documented := diagnostic_docs.Lookup(d.Code); documented {
+			codeDescription = &protocol.CodeDescription{Href: protocol.URI(entry.URL())}
+		}
 	}
 
 	return protocol.Diagnostic{
@@ -124,6 +130,7 @@ func buildLSPDiagnostic(d *ast_domain.Diagnostic) protocol.Diagnostic {
 		},
 		Severity:           convertSeverityToLSP(d.Severity),
 		Code:               code,
+		CodeDescription:    codeDescription,
 		Source:             "piko",
 		Message:            d.Message,
 		RelatedInformation: convertRelatedInfoToLSP(d),

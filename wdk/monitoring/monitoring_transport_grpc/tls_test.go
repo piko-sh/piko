@@ -36,7 +36,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/tlscert"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 func testSandboxFactory(t *testing.T, allowedPaths ...string) safedisk.Factory {

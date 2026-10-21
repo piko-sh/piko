@@ -204,5 +204,9 @@ google.golang.org/protobuf v1.36.11 h1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBN
 google.golang.org/protobuf v1.36.11/go.mod h1:HTf+CrKn2C3g5S8VImy6tdcUvCska2kB7j23XfzDpco=
 piko.sh/asmgen v0.1.0 h1:2/Lg8s98sI2t+BqyJPI/2tuozTs3PRqiS06j21pGU5I=
 piko.sh/asmgen v0.1.0/go.mod h1:h7RiEB1cHZVOKf+NKK/R+qyJHwSfgc2IFj8Qm2AUOF0=
+piko.sh/safeconv v0.1.0 h1:BsPGkT4mhXeR5WTk7HYuVIlBcAOulGzASfrSrESwl7o=
+piko.sh/safeconv v0.1.0/go.mod h1:GKGH9YV6ArewC9CkOcLKcbkBr+o3FodkaGsmlNkNjdw=
+piko.sh/safedisk v0.1.0 h1:GPle6IztcFa3b2qnjWzNfR3m40lxUhUrFcWTvuCSKOQ=
+piko.sh/safedisk v0.1.0/go.mod h1:9Z3rpNdYrlEUQEMPg28+mXkBOR6t2lwl9nhtMkam4eo=
 rsc.io/pdf v0.1.1 h1:k1MczvYDUvJBe93bYd7wrZLLUEcLZAuF824/I4e5Xr4=
 rsc.io/pdf v0.1.1/go.mod h1:n8OzWcQ6Sp37PL01nO98y4iUCRdTGarVfzxY20ICaU4=

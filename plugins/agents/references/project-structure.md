@@ -1,6 +1,6 @@
 # Project Structure
 
-Use this guide when scaffolding a new Piko project or understanding directory conventions. The wizard scaffolds a fixed shape; the framework reads no config files at runtime apart from an optional `config.json` (only when `WithWebsiteConfig` is not set).
+Use this guide when scaffolding a new Piko project or understanding directory conventions. The wizard scaffolds a fixed shape; the framework reads no config files apart from an optional `config.json` that the generator reads for i18n routes.
 
 ## Scaffolding
 
@@ -31,9 +31,10 @@ my-app/
 │   └── index_test.go       # Scaffolded ComponentTester example
 ├── partials/               # Reusable .pk fragments invoked via <piko:partial is="...">
 │   ├── layout.pk
-│   └── feature-card.pk
+│   └── code-window.pk
 ├── pkg/                    # Public Go packages (empty by default; create as needed)
 ├── lib/icons/              # SVG icons used by the scaffolded layout
+├── styles/theme.css        # Design tokens (--g-* custom properties)
 ├── dist/                   # Generator output. Committed; cmd/main blank-imports it.
 │   └── generated.go        # Stub so a fresh checkout builds before running the generator.
 ├── e2e/                    # End-to-end tests
@@ -54,7 +55,7 @@ Optional, only when the wizard's "interpreted mode" toggle is on:
 └── .air.interpreted.toml
 ```
 
-Other folders (`emails/`, `pdfs/`, `content/`, `locales/`, `assets/`, `styles/`, `db/`) are not scaffolded - create them when a feature requires them.
+Other folders (`emails/`, `pdfs/`, `content/`, `locales/`, `assets/`, `db/`) are not scaffolded - create them when a feature requires them.
 
 ## Single source of configuration
 
@@ -65,7 +66,7 @@ Other folders (`emails/`, `pdfs/`, `content/`, `locales/`, `assets/`, `styles/`,
 
 Both `cmd/main/main.go` and `cmd/generator/main.go` are deliberately thin: they parse `os.Args[1]`, call the appropriate constructor, and run. Do not put options in `cmd/*/main.go`. Edit `internal/piko.go` and every binary picks up the change.
 
-The scaffolded baseOptions includes `WithCSSReset`, `WithAutoMemoryLimit`, `WithImageProvider("imaging", ...)`, `WithAutoNextPort(true)`, and a default `WithWebsiteConfig` (Inter font + grey palette). Optional toggles add `WithJSONProvider(sonicjson.New())` and `WithValidator(playground.NewValidator())`.
+The scaffolded baseOptions includes `WithCSSReset`, `WithAutoMemoryLimit`, `WithImageProvider("imaging", ...)`, `WithAutoNextPort(true)`, and a default `WithWebsiteConfig` (DynaPuff, Figtree and JetBrains Mono fonts). Optional toggles add `WithJSONProvider(sonicjson.New())` and `WithValidator(playground.NewValidator())`.
 
 ## Action layout
 
@@ -89,7 +90,6 @@ Invoked from a template as `action.greeting.Print()`. Registration is generated 
 |---|---|---|
 | `dist/` | committed | `cmd/main` blank-imports `_ "<module>/dist"` so action `init()` registration runs at startup. |
 | `.piko/` | gitignored | Generator working files. |
-| `.out/` | gitignored | Build artefact registry. |
 
 Run `go run ./cmd/generator/main.go all` after adding pages, partials, or actions. Modes: `manifest` (default), `assets`, `sql`, `all`.
 
@@ -106,7 +106,7 @@ Run modes accepted by `cmd/main` from `os.Args[1]`: `dev` (default), `dev-i` (in
 
 ## Environment variables
 
-The framework reads no environment variables at framework level apart from `LOG_LEVEL` (raises the bootstrap logger before options apply). Individual config struct fields may expose env overrides via struct tags (`PIKO_PORT`, `PIKO_I18N_SOURCE_DIR`, `PIKO_ACTION_SERVE_PATH`, etc.) - see `references/configuration.md`.
+The framework reads no configuration environment variables apart from `PIKO_LOG_LEVEL` (raises the bootstrap logger before options apply); the scaffolded `logger.AddPrettyOutput()` reads `LOG_LEVEL`. Config struct `env:` tags (`PIKO_PORT`, etc.) are not read - use `With*` options (see `references/configuration.md`).
 
 ## LLM mistake checklist
 
@@ -116,12 +116,12 @@ The framework reads no environment variables at framework level apart from `LOG_
 - Adding options to `cmd/main/main.go` instead of `internal/piko.go`.
 - Looking for `actions/actions.go` (does not exist; registration is in generated `dist/`).
 - Writing `actions/<file>.go` at the top level (real layout is `actions/<package>/<file>.go`).
-- Looking for `cmd/tui/` (does not exist; the TUI is a CLI subcommand: `piko watch`).
+- Looking for `cmd/tui/` (does not exist; the TUI is a CLI subcommand: `piko tui`).
 - Looking for a config file (none - everything is `With*` options in `internal/piko.go`).
 
 ## Related
 
 - `references/configuration.md` - the full surface of `With*` options.
-- `references/cli-reference.md` - `piko new`, `piko watch`, `piko agents install`.
+- `references/cli-reference.md` - `piko new`, `piko fmt`, generator, dev server, LSP.
 - `references/server-actions.md` - action conventions and testing.
 - `references/routing.md` - how `pages/` filenames map to URLs.

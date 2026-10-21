@@ -24,8 +24,6 @@ type SendOutput struct {
 	FileName string `json:"file_name"`
 }
 
-// SendAction lives in a package called "multipart", which the generated wrapper file also
-// imports from the standard library whenever any action takes a file upload.
 type SendAction struct {
 	piko.ActionMetadata
 }

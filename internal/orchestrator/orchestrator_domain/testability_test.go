@@ -67,13 +67,13 @@ func Test_calculateRetryBackoff(t *testing.T) {
 			expectedMaximum: 10 * time.Second,
 		},
 		{
-			name:    "attempt 1 with max jitter",
+			name:    "attempt 1 with max jitter shortens the delay by at most half",
 			attempt: 1,
 			randFunction: func(n int) int {
 				return n - 1
 			},
-			expectedMinimum: 10*time.Second + 999*time.Millisecond,
-			expectedMaximum: 10*time.Second + 999*time.Millisecond,
+			expectedMinimum: 5*time.Second + time.Millisecond,
+			expectedMaximum: 5*time.Second + time.Millisecond,
 		},
 		{
 			name:    "attempt 1 with 500ms jitter",
@@ -81,8 +81,8 @@ func Test_calculateRetryBackoff(t *testing.T) {
 			randFunction: func(n int) int {
 				return 500
 			},
-			expectedMinimum: 10*time.Second + 500*time.Millisecond,
-			expectedMaximum: 10*time.Second + 500*time.Millisecond,
+			expectedMinimum: 9*time.Second + 500*time.Millisecond,
+			expectedMaximum: 9*time.Second + 500*time.Millisecond,
 		},
 		{
 			name:            "attempt 0 with no jitter",
@@ -106,13 +106,13 @@ func Test_calculateRetryBackoff(t *testing.T) {
 			expectedMaximum: 30 * time.Minute,
 		},
 		{
-			name:    "capped backoff still adds jitter",
+			name:    "capped backoff with jitter never exceeds the cap",
 			attempt: 25,
 			randFunction: func(n int) int {
 				return 250
 			},
-			expectedMinimum: 30*time.Minute + 250*time.Millisecond,
-			expectedMaximum: 30*time.Minute + 250*time.Millisecond,
+			expectedMinimum: 30*time.Minute - 250*time.Millisecond,
+			expectedMaximum: 30*time.Minute - 250*time.Millisecond,
 		},
 	}
 

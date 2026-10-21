@@ -283,8 +283,6 @@ type SEOServicePort interface {
 type RouterManager interface {
 	// ReloadRoutes refreshes the routing configuration from the manifest store.
 	//
-	// Takes ctx (context.Context) which carries logging context for trace/request ID
-	// propagation.
 	// Takes store (ManifestStoreView) which provides access to route manifests.
 	//
 	// Returns error when the routes cannot be reloaded.

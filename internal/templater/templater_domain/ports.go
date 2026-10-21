@@ -450,7 +450,7 @@ type PageEntryView interface {
 	// use-cases.
 	//
 	// Takes *templater_dto.RequestData which provides the request context.
-	// Takes any which supplies the props for template rendering.
+	// Takes (any) which supplies the props for template rendering.
 	//
 	// Returns *ast_domain.TemplateAST which is the parsed template tree.
 	// Returns templater_dto.InternalMetadata which contains rendering metadata.

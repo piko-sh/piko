@@ -318,7 +318,7 @@ await piko.partials.reload('customer-list', {
 
 // Reload multiple partials
 await piko.partials.reloadGroup(['sidebar', 'content'], {
-    mode: 'parallel',
+    concurrency: 'parallel',
     onProgress: (done, total) => { /* ... */ },
 });
 
@@ -438,10 +438,10 @@ const result = await action.customer.Create({
     email: 'contact@acme.com',
 }).call();
 
-// With debounce and loading indicator
+// With timeout and abort signal
 const result = await action.search.Query({ q: searchTerm })
-    .withDebounce(300)
-    .withLoading('#search-btn')
+    .withTimeout(5000)
+    .withSignal(controller.signal)
     .call();
 
 // SSE streaming with progress
@@ -459,7 +459,7 @@ const result = await action.item.Delete({ id: '123' })
 
 Pattern: `action.<namespace>.<Method>({args}).<chainable>().call()`.
 
-Chainable methods: `.withDebounce(ms)`, `.withLoading(selector|element)`, `.withOnProgress(cb)`, `.suppressHelpers()`.
+Chainable methods: `.withTimeout(ms)`, `.withSignal(signal)`, `.withOnProgress(cb)`, `.suppressHelpers()`. `.call()` ignores `.withDebounce()`/`.withLoading()`.
 
 ## Partial refresh
 
@@ -505,11 +505,11 @@ Per-element decorators still work for fine-grained control inside the morph:
 | `pk-no-refresh-attrs="a,b"` (any element) | Preserve listed attributes on that element during morph |
 | `pk-loading` | CSS class automatically toggled during partial reload |
 
-The earlier partial-root decorators (`pk-refresh-root`, `pk-own-attrs`, partial-root `pk-no-refresh-attrs`) are no longer honoured. The framework logs a one-time console warning when it sees one of them in a server response or on a `pk-sync` container. Migration map:
+The earlier partial-root decorators (`pk-refresh-root`, `pk-own-attrs`, partial-root `pk-no-refresh-attrs`) are no longer honoured. Migration map:
 
 ```ts
 // pk-refresh-root           → reload(name, { mode: 'replace' })
-// pk-own-attrs="a,b"        → reload(name, { mode: 'replace', ownedAttrs: ['a','b'] })
+// pk-own-attrs="a,b"        → reload(name, { ownedAttrs: ['a','b'] })
 // pk-no-refresh-attrs        → reload(name, { mode: 'replace' })
 // pk-no-refresh-attrs="a,b"  → reload(name, { mode: 'replace', preserveAttrs: ['a','b'] })
 ```

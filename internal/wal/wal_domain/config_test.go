@@ -48,6 +48,11 @@ func TestSyncMode_String(t *testing.T) {
 			expected: "BATCHED",
 		},
 		{
+			name:     "SyncModeDefault",
+			mode:     SyncModeDefault,
+			expected: "DEFAULT",
+		},
+		{
 			name:     "unknown mode",
 			mode:     SyncMode(99),
 			expected: "UNKNOWN",
@@ -194,14 +199,14 @@ func TestConfig_WithDefaults(t *testing.T) {
 		assert.Equal(t, "custom.snap", config.SnapshotFileName)
 	})
 
-	t.Run("SyncModeNone is preserved as zero value", func(t *testing.T) {
+	t.Run("SyncModeNone is kept rather than defaulted", func(t *testing.T) {
 
 		config := Config{
 			Dir:      "/tmp/wal",
 			SyncMode: SyncModeNone,
 		}.WithDefaults()
 
-		assert.Equal(t, DefaultSyncMode, config.SyncMode)
+		assert.Equal(t, SyncModeNone, config.SyncMode)
 	})
 }
 

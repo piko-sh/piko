@@ -28,7 +28,7 @@ import (
 	"piko.sh/piko/internal/ast/ast_schema/ast_schema_gen"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/mem"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 var (
@@ -944,7 +944,6 @@ func (d *decoder) unpackTemplateAST(ctx context.Context, fb *ast_schema_gen.Temp
 // unpackTemplateNodeVector deserialises a vector of TemplateNodeFB entries, threading ctx
 // through each node for logging within DirectWriter unpacking.
 //
-// Takes ctx (context.Context) which carries the request-scoped logger.
 // Takes length (int) which is the number of entries in the vector.
 // Takes accessor (func(*ast_schema_gen.TemplateNodeFB, int) bool) which retrieves the
 // entry at the given index into the provided flatbuffer.
@@ -975,7 +974,6 @@ func (d *decoder) unpackTemplateNodeVector(ctx context.Context, length int, acce
 // unpackDirectWriters deserialises the attribute writer vector from a TemplateNodeFB,
 // threading ctx for the logging site in unpackDirectWriter.
 //
-// Takes ctx (context.Context) which carries the request-scoped logger.
 // Takes fb (*ast_schema_gen.TemplateNodeFB) which provides the serialised writer vector.
 //
 // Returns []*ast_domain.DirectWriter which contains the deserialised writers.

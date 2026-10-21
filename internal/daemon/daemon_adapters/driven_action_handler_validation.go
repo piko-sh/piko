@@ -141,17 +141,11 @@ func (h *ActionHandler) writeCSRFError(w http.ResponseWriter, err error) {
 	})
 }
 
-// validateCaptcha checks captcha verification for actions that implement
-// CaptchaProtected. The captcha token is extracted from arguments and deleted before
-// binding, following the same pattern as CSRF token handling.
+// validateCaptcha verifies and removes captcha arguments for protected actions.
 //
-// If the action does not implement CaptchaProtected or returns a nil config, the token is
-// cleaned up and the request is allowed through.
+// Actions without protection or a captcha configuration are allowed. Protected actions
+// fail with ErrCaptchaDisabled when no captcha service is configured.
 //
-// If no captcha service is configured but the action requires captcha, the request is
-// rejected with ErrCaptchaDisabled (fail-closed).
-//
-// Takes ctx (context.Context) which carries tracing and cancellation.
 // Takes request (*http.Request) which provides the client IP.
 // Takes action (any) which may implement daemon_domain.CaptchaProtected.
 // Takes arguments (map[string]any) which contains the parsed request body; the captcha

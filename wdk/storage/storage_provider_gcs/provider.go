@@ -870,7 +870,6 @@ func queueDeleteJobs(keys []string) <-chan deleteJob {
 // startDeleteWorkers spawns workers simultaneously to consume delete jobs and send
 // results to the results channel.
 //
-// Takes ctx (context.Context) which controls cancellation of all workers.
 // Takes concurrency (int) which sets the number of workers.
 // Takes jobs (<-chan deleteJob) which provides delete jobs for workers.
 // Takes results (chan<- deleteJobResult) which receives deletion outcomes.
@@ -899,7 +898,6 @@ func startDeleteWorkers(ctx context.Context, concurrency int, jobs <-chan delete
 // When a job returns an error and ContinueOnError is false, the worker drains the
 // remaining jobs so the producer is not left blocked, then exits.
 //
-// Takes ctx (context.Context) which controls cancellation of the worker loop.
 // Takes jobs (<-chan deleteJob) which provides delete jobs for the worker to consume.
 // Takes results (chan<- deleteJobResult) which receives the outcome of each delete
 // attempt.
@@ -924,7 +922,6 @@ func runDeleteWorker(ctx context.Context, jobs <-chan deleteJob, results chan<- 
 
 // processDeleteJob runs a single delete and forwards its result.
 //
-// Takes ctx (context.Context) which controls cancellation of the operation.
 // Takes job (deleteJob) which is the delete job to execute.
 // Takes jobs (<-chan deleteJob) which is drained on a fatal error when ContinueOnError is
 // false.
@@ -986,7 +983,6 @@ func queueUploadJobs(objects []storage.PutObjectSpec) <-chan uploadJob {
 // startUploadWorkers spawns workers simultaneously to consume upload jobs and send
 // results to the results channel.
 //
-// Takes ctx (context.Context) which controls cancellation of all workers.
 // Takes concurrency (int) which sets the number of workers.
 // Takes jobs (<-chan uploadJob) which provides upload jobs for workers.
 // Takes results (chan<- uploadJobResult) which receives upload outcomes.
@@ -1012,7 +1008,6 @@ func startUploadWorkers(ctx context.Context, concurrency int, jobs <-chan upload
 // runUploadWorker consumes upload jobs and publishes results until either the jobs
 // channel closes or ctx is cancelled.
 //
-// Takes ctx (context.Context) which controls cancellation of the worker loop.
 // Takes jobs (<-chan uploadJob) which provides upload jobs for the worker to consume.
 // Takes results (chan<- uploadJobResult) which receives the outcome of each upload
 // attempt.
@@ -1037,7 +1032,6 @@ func runUploadWorker(ctx context.Context, jobs <-chan uploadJob, results chan<- 
 
 // processUploadJob runs a single put and forwards its result.
 //
-// Takes ctx (context.Context) which controls cancellation of the operation.
 // Takes job (uploadJob) which is the upload job to execute.
 // Takes jobs (<-chan uploadJob) which is drained on a fatal error when ContinueOnError is
 // false.
@@ -1105,7 +1099,6 @@ func collectBatchResults[T jobResult](resultsChan <-chan T, total int) *storage.
 
 // logBatchResult logs the result of a batch operation at trace level.
 //
-// Takes ctx (context.Context) which carries the logger.
 // Takes op (string) which names the batch operation.
 // Takes provider (string) which identifies the storage provider.
 // Takes concurrency (int) which is the level of parallelism used.

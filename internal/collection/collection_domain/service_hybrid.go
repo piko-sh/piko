@@ -301,8 +301,6 @@ func (s *collectionService) buildHybridAnnotation(
 
 // logHybridAnnotationDiagnostics logs debug details about a hybrid collection annotation.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
-// request-scoped values.
 // Takes annotation (*ast_domain.GoGeneratorAnnotation) which holds the parsed annotation
 // data to check.
 // Takes dynamicInfo (*collection_dto.DynamicCollectionInfo) which provides the dynamic

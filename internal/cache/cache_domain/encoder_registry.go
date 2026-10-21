@@ -64,8 +64,6 @@ func NewEncodingRegistry(defaultEncoder AnyEncoder) *EncodingRegistry {
 
 // Register adds an encoder for a specific type to the registry.
 //
-// Takes ctx (context.Context) which carries logging context for trace and request ID
-// propagation.
 // Takes encoder (AnyEncoder) which provides the type-specific encoding logic.
 //
 // Returns error when encoder is nil, handles no concrete type, or an encoder for the same

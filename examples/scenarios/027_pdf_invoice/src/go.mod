@@ -5,6 +5,7 @@ go 1.27.0
 require (
 	piko.sh/piko v0.0.0
 	piko.sh/piko/wdk/validation/validation_provider_playground v0.0.0
+	piko.sh/safeconv v0.1.0
 )
 
 require (
@@ -52,7 +53,8 @@ require (
 	golang.org/x/text v0.42.0 // indirect
 	golang.org/x/tools v0.50.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	piko.sh/goastutil v0.1.0 // indirect
+	piko.sh/goastutil v0.2.0 // indirect
+	piko.sh/safedisk v0.1.0 // indirect
 	piko.sh/vectormaths v0.2.0 // indirect
 )
 

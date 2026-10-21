@@ -175,8 +175,6 @@ type Logger interface {
 
 	// WithContext returns a new Logger with the given context attached.
 	//
-	// Takes ctx (context.Context) which is the context to use for logging.
-	//
 	// Returns Logger which is a new logger that uses the given context.
 	WithContext(ctx context.Context) Logger
 
@@ -195,18 +193,8 @@ type Logger interface {
 	// Returns Logger which is a child logger bound to the span context.
 	Span(ctx context.Context, spanName string, attrs ...slog.Attr) (context.Context, trace.Span, Logger)
 
-	// WithSpanContext returns a logger bound to the given span context without calling
-	// WithAttrs on the underlying handler. Acts as a low-allocation alternative to Span()
-	// for hot paths where the OTEL span is created directly and only the logger is needed
-	// for correlation.
-	//
-	// Use when:
-	//   - The span is created via otel.Tracer().Start() directly
-	//   - Attributes are set on the span via span.SetAttributes()
-	//   - A logger that correlates with the span is needed without repeating the attributes
-	//     on every log line
-	//
-	// Takes ctx (context.Context) which contains the span from tracer.Start().
+	// WithSpanContext binds a logger to the span in ctx without copying span attributes into
+	// every log record.
 	//
 	// Returns Logger which is bound to the span context for log correlation.
 	WithSpanContext(ctx context.Context) Logger

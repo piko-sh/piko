@@ -286,7 +286,6 @@ func findVirtualComponentForGeneratedFile(generatedPath string, vm *annotator_dt
 // mapGeneratedLineToSource attempts to map a line number from the generated Go file back
 // to the PK source file.
 //
-// Takes ctx (context.Context) which is the context for file operations.
 // Takes goErr (*goCompileError) which contains the error location.
 // Takes vc (*annotator_dto.VirtualComponent) which provides the component context.
 // Takes fsReader (FSReaderPort) which provides safe file reading operations.

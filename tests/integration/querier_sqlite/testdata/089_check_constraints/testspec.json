@@ -1,3 +1,0 @@
-{
-  "description": "CHECK constraints: validates balance >= 0 and status IN ('active', 'inactive', 'suspended')"
-}

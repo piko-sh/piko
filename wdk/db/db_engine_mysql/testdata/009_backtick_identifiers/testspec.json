@@ -1,3 +1,0 @@
-{
-  "description": "Backtick-quoted identifiers in DDL and DML. Tests that MySQL backtick quoting is correctly tokenised for table names, column names, and reserved words used as identifiers."
-}

@@ -25,7 +25,7 @@ import (
 	"github.com/maypok86/otter/v2"
 	"github.com/maypok86/otter/v2/stats"
 	"piko.sh/piko/internal/cache/cache_dto"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 // expiryCalculatorAdapter wraps a cache_dto.ExpiryCalculator to implement

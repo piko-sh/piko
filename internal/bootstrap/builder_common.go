@@ -41,7 +41,7 @@ import (
 	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/internal/typegen/typegen_adapters"
 	"piko.sh/piko/wdk/goroutine"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 // runInitialTasksInBackground spawns a goroutine that runs the lifecycle service's
@@ -110,8 +110,6 @@ func enableDevProfilingPortFallback(c *Container) {
 // buildDaemonWithWatcher is a common helper for building a daemon that requires a
 // filesystem watcher, typically for development modes.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes modeName (string) which describes the mode for error messages.
 // Takes sandboxFactory (safedisk.Factory) which creates sandboxes for filesystem access
 // within the watcher.
@@ -154,7 +152,6 @@ func buildDaemonWithWatcher(
 // and event broadcaster. Each provider is best-effort; failures are logged and the
 // handler gracefully degrades to returning {"available": false} for that endpoint.
 //
-// Takes ctx (context.Context) which carries logging context.
 // Takes c (*Container) which provides the dependency injection container.
 // Takes devAPIHandler (*daemon_adapters.DevAPIHandler) which is the handler to configure.
 // Takes devEventBroadcaster (*daemon_adapters.DevEventBroadcaster) which is the
@@ -190,7 +187,6 @@ func wireDevAPIOptionalDeps(
 // integration, enabling autocomplete for the piko namespace and server-side actions.
 // Errors are logged but do not fail the build.
 //
-// Takes ctx (context.Context) which carries logging context.
 // Takes c (*Container) which provides the application context and server configuration.
 func ensureTypeDefinitions(ctx context.Context, c *Container) {
 	_, l := logger_domain.From(ctx, log)

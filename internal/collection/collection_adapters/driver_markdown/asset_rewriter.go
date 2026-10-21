@@ -27,7 +27,7 @@ import (
 	"piko.sh/piko/internal/collection/collection_domain"
 	"piko.sh/piko/internal/htmllexer"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/wdk/safedisk"
+	"piko.sh/safedisk"
 )
 
 const (
@@ -151,22 +151,11 @@ type rewriteParams struct {
 	MdRelativePath string
 }
 
-// rewriteRelativeURLs rewrites relative <img src> and <a href> references in a raw HTML
-// blob.
+// rewriteRelativeURLs resolves relative image assets and sibling Markdown links in HTML.
 //
-// Two rewrites run in a single pass:
+// Image rewriting requires Registrar; Markdown links require Analyser. Absolute URLs,
+// fragments, data URIs, and paths outside the sandbox are unchanged.
 //
-//  1. <img src="..."> values that point at relative asset files. Each resolved path is
-//     registered via Registrar and the src is replaced with the returned serve URL.
-//     Skipped when Registrar is nil.
-//  2. <a href="..."> values that point at sibling .md files in the same collection. Each
-//     resolved path is mapped to its public URL via Analyser. Skipped when Analyser is
-//     nil.
-//
-// Absolute URLs, fragment-only hrefs (#section), data URIs, and paths that escape the
-// sandbox are always left untouched.
-//
-// Takes ctx (context.Context) which carries cancellation and the logger.
 // Takes params (rewriteParams) which bundles the rewrite dependencies and the per-blob
 // context (sandbox, registrar, analyser, mdDirectory, collectionName, mdRelativePath).
 // Takes raw (string) which is the raw HTML blob to rewrite.

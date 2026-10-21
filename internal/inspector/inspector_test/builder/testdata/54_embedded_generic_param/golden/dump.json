@@ -26,7 +26,7 @@
                   "string"
                 ]
               },
-              "definition_line": 24,
+              "definition_line": 23,
               "definition_column": 17,
               "is_pointer_receiver": false
             }
@@ -34,7 +34,7 @@
           "type_params": [],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 22,
+          "definition_line": 21,
           "definition_column": 6
         },
         "StringWorker": {
@@ -67,7 +67,7 @@
                 }
               ],
               "composite_type": 7,
-              "definition_line": 43,
+              "definition_line": 38,
               "definition_column": 2,
               "is_internal_type": false,
               "is_embedded": true,
@@ -88,7 +88,7 @@
                   "string"
                 ]
               },
-              "definition_line": 36,
+              "definition_line": 33,
               "definition_column": 20,
               "is_pointer_receiver": false
             }
@@ -96,7 +96,7 @@
           "type_params": [],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 42,
+          "definition_line": 37,
           "definition_column": 6
         },
         "Worker": {
@@ -134,7 +134,7 @@
                   "T"
                 ]
               },
-              "definition_line": 36,
+              "definition_line": 33,
               "definition_column": 20,
               "is_pointer_receiver": false
             }
@@ -144,7 +144,7 @@
           ],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 32,
+          "definition_line": 29,
           "definition_column": 6
         },
         "Wrapper": {
@@ -174,7 +174,7 @@
           ],
           "stringability": 0,
           "is_alias": false,
-          "definition_line": 27,
+          "definition_line": 25,
           "definition_column": 6
         }
       },
