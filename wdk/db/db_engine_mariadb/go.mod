@@ -4,8 +4,8 @@ go 1.27.0
 
 require (
 	go.uber.org/goleak v1.3.0
-	piko.sh/piko v0.0.0
-	piko.sh/piko/wdk/db/db_engine_mysql v0.0.0
+	piko.sh/piko v0.0.0-alpha.41
+	piko.sh/piko/wdk/db/db_engine_mysql v0.0.0-alpha.41
 )
 
 require (
@@ -51,7 +51,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
 	piko.sh/goastutil v0.2.0 // indirect
-	piko.sh/piko/wdk/db/db_provider_seagull v0.0.0 // indirect
+	piko.sh/piko/wdk/db/db_provider_seagull v0.0.0-alpha.41 // indirect
 	piko.sh/safeconv v0.1.0 // indirect
 	piko.sh/safedisk v0.1.0 // indirect
 	piko.sh/vectormaths v0.2.0 // indirect

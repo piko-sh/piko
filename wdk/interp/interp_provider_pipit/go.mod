@@ -4,8 +4,8 @@ go 1.27.0
 
 require (
 	github.com/stretchr/testify v1.12.1
-	piko.sh/piko v0.0.0
-	piko.sh/piko/wdk/interp/interp_piko_symbols v0.0.0
+	piko.sh/piko v0.0.0-alpha.41
+	piko.sh/piko/wdk/interp/interp_piko_symbols v0.0.0-alpha.41
 	piko.sh/safedisk v0.1.0
 	pipit.sh/pipit v0.0.0-alpha.8
 	pipit.sh/pipit/sdk/stdlib v0.0.0-alpha.8

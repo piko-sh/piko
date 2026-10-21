@@ -8,7 +8,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.45.0
 	go.opentelemetry.io/otel/trace v1.45.0
 	modernc.org/sqlite v1.56.0
-	piko.sh/piko v0.0.0
+	piko.sh/piko v0.0.0-alpha.41
 	seagull.sh/seagull v0.0.0-alpha.2
 )
 

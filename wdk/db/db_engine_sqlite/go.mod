@@ -4,8 +4,8 @@ go 1.27.0
 
 require (
 	go.uber.org/goleak v1.3.0
-	piko.sh/piko v0.0.0
-	piko.sh/piko/wdk/db/db_provider_seagull v0.0.0
+	piko.sh/piko v0.0.0-alpha.41
+	piko.sh/piko/wdk/db/db_provider_seagull v0.0.0-alpha.41
 )
 
 require (
