@@ -3,7 +3,7 @@ module piko.sh/piko/cmd/stdlib-generator
 go 1.27.0
 
 require (
-	piko.sh/piko v0.0.0
+	piko.sh/piko v0.0.0-alpha.40
 	piko.sh/safedisk v0.1.0
 )
 
