@@ -125,9 +125,8 @@ func (painter *PdfPainter) buildFormField(box *layouter_domain.LayoutBox) *FormF
 		field.Name = fmt.Sprintf("field_%d", painter.acroformBuilder.fieldCount+1)
 	}
 
-	pdfX := box.BorderBoxX()
-	pdfBottom := painter.pageHeight + painter.pageYOffset - box.BorderBoxY() - box.BorderBoxHeight()
-	pdfTop := painter.pageHeight + painter.pageYOffset - box.BorderBoxY()
+	pdfX, pdfTop := painter.toPageSpace(box.BorderBoxX(), box.BorderBoxY())
+	_, pdfBottom := painter.toPageSpace(0, box.BorderBoxY()+box.BorderBoxHeight())
 	field.Rect = [rectangleCoordinates]float64{pdfX, pdfBottom, pdfX + box.BorderBoxWidth(), pdfTop}
 
 	switch tag {

@@ -1,0 +1,40 @@
+{
+    "description": "Verifies a container whose first unbreakable piece does not fit moves to the next page whole, so its top border is not left at the foot of a page with nothing under it.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 400,
+    "viewportHeight": 800,
+    "pageWidthPx": 400,
+    "pageHeightPx": 200,
+    "pageMarginPx": 0,
+    "expectedPositions": {
+        "filler": {
+            "pageIndex": 0,
+            "x": 0,
+            "y": 0,
+            "width": 400,
+            "height": 170
+        },
+        "section": {
+            "pageIndex": 1,
+            "x": 0,
+            "y": 0,
+            "width": 400,
+            "height": 130
+        },
+        "first": {
+            "pageIndex": 1,
+            "x": 0,
+            "y": 10,
+            "width": 400,
+            "height": 60
+        },
+        "second": {
+            "pageIndex": 1,
+            "x": 0,
+            "y": 70,
+            "width": 400,
+            "height": 60
+        }
+    }
+}

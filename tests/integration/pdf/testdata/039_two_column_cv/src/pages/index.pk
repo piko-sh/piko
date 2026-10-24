@@ -1,0 +1,135 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <article class="cv">
+    <header class="cv-head">
+      <h1 class="cv-name">{{ state.Name }}</h1>
+      <p class="cv-tagline">{{ state.Tagline }}</p>
+    </header>
+
+    <section>
+      <h2 class="cv-h">Toolkit</h2>
+      <div class="cv-chips">
+        <span class="cv-chip" p-for="skill in state.Skills">
+          {{ skill }}
+        </span>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="cv-h">Experience</h2>
+      <article class="cv-entry" p-for="role in state.Roles">
+        <div class="cv-meta">
+          <p class="cv-date">{{ role.Date }}</p>
+          <p class="cv-org">{{ role.Org }}</p>
+          <p class="cv-place">{{ role.Place }}</p>
+        </div>
+        <div class="cv-body">
+          <h3 class="cv-title">{{ role.Title }}</h3>
+          <ul class="cv-bullets">
+            <li p-for="bullet in role.Bullets">{{ bullet }}</li>
+          </ul>
+          <div class="cv-kv">
+            <p class="cv-k">Tech</p>
+            <p class="cv-v">{{ role.Tech }}</p>
+          </div>
+        </div>
+      </article>
+    </section>
+  </article>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Role struct {
+    Date    string
+    Org     string
+    Place   string
+    Title   string
+    Bullets []string
+    Tech    string
+}
+
+type Response struct {
+    Name    string
+    Tagline string
+    Skills  []string
+    Roles   []Role
+}
+
+var bullets = []string{
+    "Rebuilt the deployment pipeline so that every service shipped through the same reviewed path, which cut release preparation from days to under an hour",
+    "Ran the container platform and its monitoring through a period of fast growth, keeping the service within its availability target",
+    "Moved a legacy reporting system onto managed storage, checking every migrated record against its source before the old system was retired",
+    "Introduced load testing to the release process, so capacity problems surfaced in staging instead of during traffic peaks",
+    "Wrote the operating guides and trained the internal team to run the platform after handover",
+}
+
+func role(date, org, place, title string, count int) Role {
+    return Role{Date: date, Org: org, Place: place, Title: title, Bullets: bullets[:count],
+        Tech: "Go, Kubernetes, Terraform, PostgreSQL, Kafka, Prometheus, Grafana, AWS, GCP"}
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{
+        Name:    "Alex Example",
+        Tagline: "Platform engineer / Go / Kubernetes",
+        Skills:  []string{"Go", "C / C++", "Distributed Systems", "Data Platforms (Kafka, Spark)", "Kubernetes", "Terraform", "AWS / GCP", "Observability / SRE"},
+        Roles: []Role{
+            role("2022-Present", "Example Studio", "Remote", "Founder and Principal Engineer", 3),
+            role("2020-2022", "Harbour Logistics", "Rotterdam, The Netherlands", "Lead Infrastructure Engineer", 5),
+            role("2018-2020", "Northwind Finance", "Amsterdam, The Netherlands", "Senior Platform Engineer", 4),
+            role("2016-2018", "Contoso Telemetry", "Utrecht, The Netherlands", "Site Reliability Engineer", 5),
+            role("2014-2016", "Fabrikam Games", "London, United Kingdom", "Full-Stack Developer", 3),
+            role("2012-2014", "Tailspin Services", "Leeds, United Kingdom", "Systems Administrator", 4),
+        },
+    }, piko.Metadata{Title: "Two Column CV Test"}, nil
+}
+</script>
+
+<style>
+@page {
+  size: A4;
+  margin: 14mm 15mm;
+}
+
+.cv { font-size: 9.5pt; line-height: 1.45; color: #232a31; }
+.cv-name { font-size: 22pt; font-weight: 400; margin: 0; }
+.cv-tagline { margin: 2pt 0 10pt; color: #5b6470; }
+.cv-h { font-size: 9pt; text-transform: uppercase; letter-spacing: 0.08em; margin: 14pt 0 6pt; padding-bottom: 3pt; border-bottom: 1px solid #c9ced6; break-after: avoid; break-inside: avoid; }
+.cv-chips { display: flex; flex-wrap: wrap; gap: 4pt; }
+.cv-chip { display: inline-flex; padding: 1pt 6pt; border: 1px solid #b9a8e0; border-radius: 8pt; font-size: 8pt; }
+.cv-entry { display: grid; grid-template-columns: 9rem 1fr; padding: 6pt 0; border-top: 1px solid #e3e6ea; }
+.cv-meta { align-self: start; break-inside: avoid; padding-right: 1.5rem; }
+.cv-meta p { margin: 0 0 2pt; }
+.cv-date { font-weight: 700; font-size: 8.5pt; }
+.cv-org, .cv-place { color: #5b6470; font-size: 8.5pt; }
+.cv-body { border-left: 1px solid #e3e6ea; padding-left: 1rem; }
+.cv-title { font-size: 11pt; font-weight: 400; margin: 0 0 4pt; break-after: avoid; }
+.cv-bullets { margin: 0; padding-left: 1rem; }
+.cv-bullets li { margin-bottom: 3pt; break-inside: avoid; }
+.cv-kv { margin-top: 4pt; break-inside: avoid; }
+.cv-kv p { margin: 0; }
+.cv-k { font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.08em; color: #5b6470; }
+</style>

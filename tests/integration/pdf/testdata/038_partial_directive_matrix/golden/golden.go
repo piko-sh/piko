@@ -65,6 +65,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 									s.FontWeight = 600
 									s.Display = layouter_domain.DisplayBlock
 									s.BoxSizing = border - box
+									s.PageBreakAfter = layouter_domain.PageBreakAvoid
+									s.PageBreakInside = layouter_domain.PageBreakAvoid
 								}),
 								Margin: layouter_domain.BoxEdges{
 									Bottom: 4.5,
@@ -82,6 +84,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 											s.FontSize = 9.75
 											s.LineHeight = 13.649999999999999
 											s.FontWeight = 600
+											s.PageBreakAfter = layouter_domain.PageBreakAvoid
+											s.PageBreakInside = layouter_domain.PageBreakAvoid
 										}),
 										Text:          "F · direct p-html in the PDF template (no partial)",
 										ContentX:      15,
@@ -207,6 +211,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 									s.FontWeight = 700
 									s.Display = layouter_domain.DisplayBlock
 									s.BoxSizing = border - box
+									s.PageBreakAfter = layouter_domain.PageBreakAvoid
+									s.PageBreakInside = layouter_domain.PageBreakAvoid
 								}),
 								Margin: layouter_domain.BoxEdges{
 									Bottom: 12,
@@ -224,6 +230,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 											s.FontSize = 15
 											s.LineHeight = 21
 											s.FontWeight = 700
+											s.PageBreakAfter = layouter_domain.PageBreakAvoid
+											s.PageBreakInside = layouter_domain.PageBreakAvoid
 										}),
 										Text:          "Template directive matrix",
 										ContentX:      15,
@@ -273,6 +281,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 											s.FontWeight = 600
 											s.Display = layouter_domain.DisplayBlock
 											s.BoxSizing = border - box
+											s.PageBreakAfter = layouter_domain.PageBreakAvoid
+											s.PageBreakInside = layouter_domain.PageBreakAvoid
 										}),
 										Margin: layouter_domain.BoxEdges{
 											Bottom: 4.5,
@@ -290,6 +300,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 													s.FontSize = 9.75
 													s.LineHeight = 13.649999999999999
 													s.FontWeight = 600
+													s.PageBreakAfter = layouter_domain.PageBreakAvoid
+													s.PageBreakInside = layouter_domain.PageBreakAvoid
 												}),
 												Text:          "A · direct p-for + interpolation",
 												ContentX:      15,
@@ -518,6 +530,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 											s.FontWeight = 600
 											s.Display = layouter_domain.DisplayBlock
 											s.BoxSizing = border - box
+											s.PageBreakAfter = layouter_domain.PageBreakAvoid
+											s.PageBreakInside = layouter_domain.PageBreakAvoid
 										}),
 										Margin: layouter_domain.BoxEdges{
 											Bottom: 4.5,
@@ -535,6 +549,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 													s.FontSize = 9.75
 													s.LineHeight = 13.649999999999999
 													s.FontWeight = 600
+													s.PageBreakAfter = layouter_domain.PageBreakAvoid
+													s.PageBreakInside = layouter_domain.PageBreakAvoid
 												}),
 												Text:          "B · template p-for + interpolation",
 												ContentX:      15,
@@ -763,6 +779,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 											s.FontWeight = 600
 											s.Display = layouter_domain.DisplayBlock
 											s.BoxSizing = border - box
+											s.PageBreakAfter = layouter_domain.PageBreakAvoid
+											s.PageBreakInside = layouter_domain.PageBreakAvoid
 										}),
 										Margin: layouter_domain.BoxEdges{
 											Bottom: 4.5,
@@ -780,6 +798,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 													s.FontSize = 9.75
 													s.LineHeight = 13.649999999999999
 													s.FontWeight = 600
+													s.PageBreakAfter = layouter_domain.PageBreakAvoid
+													s.PageBreakInside = layouter_domain.PageBreakAvoid
 												}),
 												Text:          "C · single element p-html (no loop)",
 												ContentX:      15,
@@ -954,6 +974,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 											s.FontWeight = 600
 											s.Display = layouter_domain.DisplayBlock
 											s.BoxSizing = border - box
+											s.PageBreakAfter = layouter_domain.PageBreakAvoid
+											s.PageBreakInside = layouter_domain.PageBreakAvoid
 										}),
 										Margin: layouter_domain.BoxEdges{
 											Bottom: 4.5,
@@ -971,6 +993,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 													s.FontSize = 9.75
 													s.LineHeight = 13.649999999999999
 													s.FontWeight = 600
+													s.PageBreakAfter = layouter_domain.PageBreakAvoid
+													s.PageBreakInside = layouter_domain.PageBreakAvoid
 												}),
 												Text:          "D · template p-for + p-html",
 												ContentX:      15,
@@ -1337,6 +1361,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 											s.FontWeight = 600
 											s.Display = layouter_domain.DisplayBlock
 											s.BoxSizing = border - box
+											s.PageBreakAfter = layouter_domain.PageBreakAvoid
+											s.PageBreakInside = layouter_domain.PageBreakAvoid
 										}),
 										Margin: layouter_domain.BoxEdges{
 											Bottom: 4.5,
@@ -1354,6 +1380,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 													s.FontSize = 9.75
 													s.LineHeight = 13.649999999999999
 													s.FontWeight = 600
+													s.PageBreakAfter = layouter_domain.PageBreakAvoid
+													s.PageBreakInside = layouter_domain.PageBreakAvoid
 												}),
 												Text:          "E · direct p-for + p-html (co-located)",
 												ContentX:      15,
@@ -1720,6 +1748,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 											s.FontWeight = 600
 											s.Display = layouter_domain.DisplayBlock
 											s.BoxSizing = border - box
+											s.PageBreakAfter = layouter_domain.PageBreakAvoid
+											s.PageBreakInside = layouter_domain.PageBreakAvoid
 										}),
 										Margin: layouter_domain.BoxEdges{
 											Bottom: 4.5,
@@ -1737,6 +1767,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 													s.FontSize = 9.75
 													s.LineHeight = 13.649999999999999
 													s.FontWeight = 600
+													s.PageBreakAfter = layouter_domain.PageBreakAvoid
+													s.PageBreakInside = layouter_domain.PageBreakAvoid
 												}),
 												Text:          "G · inline span inside a block (control)",
 												ContentX:      15,
@@ -1865,6 +1897,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 											s.FontWeight = 600
 											s.Display = layouter_domain.DisplayBlock
 											s.BoxSizing = border - box
+											s.PageBreakAfter = layouter_domain.PageBreakAvoid
+											s.PageBreakInside = layouter_domain.PageBreakAvoid
 										}),
 										Margin: layouter_domain.BoxEdges{
 											Bottom: 4.5,
@@ -1882,6 +1916,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 													s.FontSize = 9.75
 													s.LineHeight = 13.649999999999999
 													s.FontWeight = 600
+													s.PageBreakAfter = layouter_domain.PageBreakAvoid
+													s.PageBreakInside = layouter_domain.PageBreakAvoid
 												}),
 												Text:          "H · flex: plain text item + flex-grow rule",
 												ContentX:      15,
@@ -2007,6 +2043,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 											s.FontWeight = 600
 											s.Display = layouter_domain.DisplayBlock
 											s.BoxSizing = border - box
+											s.PageBreakAfter = layouter_domain.PageBreakAvoid
+											s.PageBreakInside = layouter_domain.PageBreakAvoid
 										}),
 										Margin: layouter_domain.BoxEdges{
 											Bottom: 4.5,
@@ -2024,6 +2062,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 													s.FontSize = 9.75
 													s.LineHeight = 13.649999999999999
 													s.FontWeight = 600
+													s.PageBreakAfter = layouter_domain.PageBreakAvoid
+													s.PageBreakInside = layouter_domain.PageBreakAvoid
 												}),
 												Text:          "I · flex: nested inline span + text + rule (the CV heading pattern)",
 												ContentX:      15,
@@ -2179,6 +2219,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 											s.FontWeight = 600
 											s.Display = layouter_domain.DisplayBlock
 											s.BoxSizing = border - box
+											s.PageBreakAfter = layouter_domain.PageBreakAvoid
+											s.PageBreakInside = layouter_domain.PageBreakAvoid
 										}),
 										Margin: layouter_domain.BoxEdges{
 											Bottom: 4.5,
@@ -2196,6 +2238,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 													s.FontSize = 9.75
 													s.LineHeight = 13.649999999999999
 													s.FontWeight = 600
+													s.PageBreakAfter = layouter_domain.PageBreakAvoid
+													s.PageBreakInside = layouter_domain.PageBreakAvoid
 												}),
 												Text:          "J · flex row: label + right-aligned value (the CV aside pattern)",
 												ContentX:      15,
@@ -2327,6 +2371,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 											s.FontWeight = 600
 											s.Display = layouter_domain.DisplayBlock
 											s.BoxSizing = border - box
+											s.PageBreakAfter = layouter_domain.PageBreakAvoid
+											s.PageBreakInside = layouter_domain.PageBreakAvoid
 										}),
 										Margin: layouter_domain.BoxEdges{
 											Bottom: 4.5,
@@ -2344,6 +2390,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 													s.FontSize = 9.75
 													s.LineHeight = 13.649999999999999
 													s.FontWeight = 600
+													s.PageBreakAfter = layouter_domain.PageBreakAvoid
+													s.PageBreakInside = layouter_domain.PageBreakAvoid
 												}),
 												Text:          "K · raw inline <svg>",
 												ContentX:      15,
@@ -2443,6 +2491,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 											s.FontWeight = 600
 											s.Display = layouter_domain.DisplayBlock
 											s.BoxSizing = border - box
+											s.PageBreakAfter = layouter_domain.PageBreakAvoid
+											s.PageBreakInside = layouter_domain.PageBreakAvoid
 										}),
 										Margin: layouter_domain.BoxEdges{
 											Bottom: 4.5,
@@ -2461,6 +2511,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 													s.FontSize = 9.75
 													s.LineHeight = 13.649999999999999
 													s.FontWeight = 600
+													s.PageBreakAfter = layouter_domain.PageBreakAvoid
+													s.PageBreakInside = layouter_domain.PageBreakAvoid
 												}),
 												Text:          "L · piko:svg inlined from an asset",
 												ContentX:      15,
@@ -2564,6 +2616,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 											s.FontWeight = 600
 											s.Display = layouter_domain.DisplayBlock
 											s.BoxSizing = border - box
+											s.PageBreakAfter = layouter_domain.PageBreakAvoid
+											s.PageBreakInside = layouter_domain.PageBreakAvoid
 										}),
 										Margin: layouter_domain.BoxEdges{
 											Bottom: 4.5,
@@ -2582,6 +2636,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 													s.FontSize = 9.75
 													s.LineHeight = 13.649999999999999
 													s.FontWeight = 600
+													s.PageBreakAfter = layouter_domain.PageBreakAvoid
+													s.PageBreakInside = layouter_domain.PageBreakAvoid
 												}),
 												Text:          "S · p-html wrapping multi-word bold in a flex column",
 												ContentX:      15,
@@ -2873,6 +2929,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 											s.FontWeight = 600
 											s.Display = layouter_domain.DisplayBlock
 											s.BoxSizing = border - box
+											s.PageBreakAfter = layouter_domain.PageBreakAvoid
+											s.PageBreakInside = layouter_domain.PageBreakAvoid
 										}),
 										Margin: layouter_domain.BoxEdges{
 											Bottom: 4.5,
@@ -2891,6 +2949,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 													s.FontSize = 9.75
 													s.LineHeight = 13.649999999999999
 													s.FontWeight = 600
+													s.PageBreakAfter = layouter_domain.PageBreakAvoid
+													s.PageBreakInside = layouter_domain.PageBreakAvoid
 												}),
 												Text:          "M · p-if (show / hide)",
 												ContentX:      15,
@@ -2977,6 +3037,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 											s.FontWeight = 600
 											s.Display = layouter_domain.DisplayBlock
 											s.BoxSizing = border - box
+											s.PageBreakAfter = layouter_domain.PageBreakAvoid
+											s.PageBreakInside = layouter_domain.PageBreakAvoid
 										}),
 										Margin: layouter_domain.BoxEdges{
 											Bottom: 4.5,
@@ -2995,6 +3057,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 													s.FontSize = 9.75
 													s.LineHeight = 13.649999999999999
 													s.FontWeight = 600
+													s.PageBreakAfter = layouter_domain.PageBreakAvoid
+													s.PageBreakInside = layouter_domain.PageBreakAvoid
 												}),
 												Text:          "N · :class bound from state",
 												ContentX:      15,
@@ -3083,6 +3147,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 											s.FontWeight = 600
 											s.Display = layouter_domain.DisplayBlock
 											s.BoxSizing = border - box
+											s.PageBreakAfter = layouter_domain.PageBreakAvoid
+											s.PageBreakInside = layouter_domain.PageBreakAvoid
 										}),
 										Margin: layouter_domain.BoxEdges{
 											Bottom: 4.5,
@@ -3101,6 +3167,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 													s.FontSize = 9.75
 													s.LineHeight = 13.649999999999999
 													s.FontWeight = 600
+													s.PageBreakAfter = layouter_domain.PageBreakAvoid
+													s.PageBreakInside = layouter_domain.PageBreakAvoid
 												}),
 												Text:          "O · p-class object syntax",
 												ContentX:      15,
@@ -3189,6 +3257,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 											s.FontWeight = 600
 											s.Display = layouter_domain.DisplayBlock
 											s.BoxSizing = border - box
+											s.PageBreakAfter = layouter_domain.PageBreakAvoid
+											s.PageBreakInside = layouter_domain.PageBreakAvoid
 										}),
 										Margin: layouter_domain.BoxEdges{
 											Bottom: 4.5,
@@ -3207,6 +3277,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 													s.FontSize = 9.75
 													s.LineHeight = 13.649999999999999
 													s.FontWeight = 600
+													s.PageBreakAfter = layouter_domain.PageBreakAvoid
+													s.PageBreakInside = layouter_domain.PageBreakAvoid
 												}),
 												Text:          "P · flex gap",
 												ContentX:      15,
@@ -3372,8 +3444,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 								Type: layouter_domain.BoxBlock,
 								Style: withStyle(func(s *layouter_domain.ComputedStyle) {
 									s.CustomProperties = map[string]string{
-										"--probe-colour": "#2563eb",
 										"--probe-size":   "18px",
+										"--probe-colour": "#2563eb",
 									}
 									s.FontFamily = "Helvetica"
 									s.Colour = layouter_domain.NewRGBA(0.12156862745098039, 0.1607843137254902, 0.21568627450980393, 1)
@@ -3417,6 +3489,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 											s.FontWeight = 600
 											s.Display = layouter_domain.DisplayBlock
 											s.BoxSizing = border - box
+											s.PageBreakAfter = layouter_domain.PageBreakAvoid
+											s.PageBreakInside = layouter_domain.PageBreakAvoid
 										}),
 										Margin: layouter_domain.BoxEdges{
 											Bottom: 4.5,
@@ -3439,6 +3513,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 													s.FontSize = 9.75
 													s.LineHeight = 13.649999999999999
 													s.FontWeight = 600
+													s.PageBreakAfter = layouter_domain.PageBreakAvoid
+													s.PageBreakInside = layouter_domain.PageBreakAvoid
 												}),
 												Text:          "Q · CSS variable for size + border colour",
 												ContentX:      15,
@@ -3501,8 +3577,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 												Type: layouter_domain.BoxTextRun,
 												Style: withStyle(func(s *layouter_domain.ComputedStyle) {
 													s.CustomProperties = map[string]string{
-														"--probe-size":   "18px",
 														"--probe-colour": "#2563eb",
+														"--probe-size":   "18px",
 													}
 													s.FontFamily = "Helvetica"
 													s.BorderTopColour = layouter_domain.NewRGBA(0.1450980392156863, 0.38823529411764707, 0.9215686274509803, 1)
@@ -3569,6 +3645,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 											s.FontWeight = 600
 											s.Display = layouter_domain.DisplayBlock
 											s.BoxSizing = border - box
+											s.PageBreakAfter = layouter_domain.PageBreakAvoid
+											s.PageBreakInside = layouter_domain.PageBreakAvoid
 										}),
 										Margin: layouter_domain.BoxEdges{
 											Bottom: 4.5,
@@ -3587,6 +3665,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 													s.FontSize = 9.75
 													s.LineHeight = 13.649999999999999
 													s.FontWeight = 600
+													s.PageBreakAfter = layouter_domain.PageBreakAvoid
+													s.PageBreakInside = layouter_domain.PageBreakAvoid
 												}),
 												Text:          "R · literal inline <b> / <em> (written in template, not p-html)",
 												ContentX:      15,

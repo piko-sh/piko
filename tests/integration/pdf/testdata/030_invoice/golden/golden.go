@@ -421,7 +421,7 @@ Right: 6,
 },
  ContentX: 24.75,
  ContentY: 156.75,
- ContentWidth: 167.625,
+ ContentWidth: 170.625,
  ContentHeight: 65.4,
  Children: []*layouter_domain.LayoutBox{
 &layouter_domain.LayoutBox{
@@ -442,7 +442,7 @@ Bottom: 4.5,
 },
  ContentX: 24.75,
  ContentY: 156.75,
- ContentWidth: 167.625,
+ ContentWidth: 170.625,
  ContentHeight: 8.399999999999999,
  Children: []*layouter_domain.LayoutBox{
 &layouter_domain.LayoutBox{
@@ -475,7 +475,7 @@ Type: layouter_domain.BoxBlock,
 	}),
  ContentX: 24.75,
  ContentY: 169.65,
- ContentWidth: 167.625,
+ ContentWidth: 170.625,
  ContentHeight: 10.5,
  Children: []*layouter_domain.LayoutBox{
 &layouter_domain.LayoutBox{
@@ -505,7 +505,7 @@ Type: layouter_domain.BoxBlock,
 	}),
  ContentX: 24.75,
  ContentY: 180.15,
- ContentWidth: 167.625,
+ ContentWidth: 170.625,
  ContentHeight: 10.5,
  Children: []*layouter_domain.LayoutBox{
 &layouter_domain.LayoutBox{
@@ -534,7 +534,7 @@ Type: layouter_domain.BoxBlock,
 	}),
  ContentX: 24.75,
  ContentY: 190.65,
- ContentWidth: 167.625,
+ ContentWidth: 170.625,
  ContentHeight: 10.5,
  Children: []*layouter_domain.LayoutBox{
 &layouter_domain.LayoutBox{
@@ -563,7 +563,7 @@ Type: layouter_domain.BoxBlock,
 	}),
  ContentX: 24.75,
  ContentY: 201.15,
- ContentWidth: 167.625,
+ ContentWidth: 170.625,
  ContentHeight: 10.5,
  Children: []*layouter_domain.LayoutBox{
 &layouter_domain.LayoutBox{
@@ -592,7 +592,7 @@ Type: layouter_domain.BoxBlock,
 	}),
  ContentX: 24.75,
  ContentY: 211.65,
- ContentWidth: 167.625,
+ ContentWidth: 170.625,
  ContentHeight: 10.5,
  Children: []*layouter_domain.LayoutBox{
 &layouter_domain.LayoutBox{
@@ -656,9 +656,9 @@ Top: 0.75,
  Bottom: 0.75,
  Left: 0.75,
 },
- ContentX: 217.875,
+ ContentX: 220.875,
  ContentY: 156.75,
- ContentWidth: 173.625,
+ ContentWidth: 170.625,
  ContentHeight: 65.4,
  Children: []*layouter_domain.LayoutBox{
 &layouter_domain.LayoutBox{
@@ -677,9 +677,9 @@ Type: layouter_domain.BoxBlock,
  Margin: layouter_domain.BoxEdges{
 Bottom: 4.5,
 },
- ContentX: 217.875,
+ ContentX: 220.875,
  ContentY: 156.75,
- ContentWidth: 173.625,
+ ContentWidth: 170.625,
  ContentHeight: 8.399999999999999,
  Children: []*layouter_domain.LayoutBox{
 &layouter_domain.LayoutBox{
@@ -693,7 +693,7 @@ Type: layouter_domain.BoxTextRun,
 		s.TextTransform = layouter_domain.TextTransformUppercase
 	}),
  Text: "SHIP TO",
- ContentX: 217.875,
+ ContentX: 220.875,
  ContentY: 156.75,
  ContentWidth: 28.8515625,
  ContentHeight: 8.399999999999999,
@@ -710,9 +710,9 @@ Type: layouter_domain.BoxBlock,
 		s.Display = layouter_domain.DisplayBlock
 		s.BoxSizing = border-box
 	}),
- ContentX: 217.875,
+ ContentX: 220.875,
  ContentY: 169.65,
- ContentWidth: 173.625,
+ ContentWidth: 170.625,
  ContentHeight: 10.5,
  Children: []*layouter_domain.LayoutBox{
 &layouter_domain.LayoutBox{
@@ -724,7 +724,7 @@ Type: layouter_domain.BoxTextRun,
 		s.FontWeight = 700
 	}),
  Text: "Whitfield Construction Group",
- ContentX: 217.875,
+ ContentX: 220.875,
  ContentY: 169.65,
  ContentWidth: 109.58203125,
  ContentHeight: 10.5,
@@ -740,9 +740,9 @@ Type: layouter_domain.BoxBlock,
 		s.Display = layouter_domain.DisplayBlock
 		s.BoxSizing = border-box
 	}),
- ContentX: 217.875,
+ ContentX: 220.875,
  ContentY: 180.15,
- ContentWidth: 173.625,
+ ContentWidth: 170.625,
  ContentHeight: 10.5,
  Children: []*layouter_domain.LayoutBox{
 &layouter_domain.LayoutBox{
@@ -753,7 +753,7 @@ Type: layouter_domain.BoxTextRun,
 		s.LineHeight = 10.5
 	}),
  Text: "Site Office, Plot 7",
- ContentX: 217.875,
+ ContentX: 220.875,
  ContentY: 180.15,
  ContentWidth: 59.61328125,
  ContentHeight: 10.5,
@@ -769,9 +769,9 @@ Type: layouter_domain.BoxBlock,
 		s.Display = layouter_domain.DisplayBlock
 		s.BoxSizing = border-box
 	}),
- ContentX: 217.875,
+ ContentX: 220.875,
  ContentY: 190.65,
- ContentWidth: 173.625,
+ ContentWidth: 170.625,
  ContentHeight: 10.5,
  Children: []*layouter_domain.LayoutBox{
 &layouter_domain.LayoutBox{
@@ -782,7 +782,7 @@ Type: layouter_domain.BoxTextRun,
 		s.LineHeight = 10.5
 	}),
  Text: "Riverside Development",
- ContentX: 217.875,
+ ContentX: 220.875,
  ContentY: 190.65,
  ContentWidth: 81.328125,
  ContentHeight: 10.5,
@@ -798,9 +798,9 @@ Type: layouter_domain.BoxBlock,
 		s.Display = layouter_domain.DisplayBlock
 		s.BoxSizing = border-box
 	}),
- ContentX: 217.875,
+ ContentX: 220.875,
  ContentY: 201.15,
- ContentWidth: 173.625,
+ ContentWidth: 170.625,
  ContentHeight: 10.5,
  Children: []*layouter_domain.LayoutBox{
 &layouter_domain.LayoutBox{
@@ -811,7 +811,7 @@ Type: layouter_domain.BoxTextRun,
 		s.LineHeight = 10.5
 	}),
  Text: "Cardiff, CF10 5AL",
- ContentX: 217.875,
+ ContentX: 220.875,
  ContentY: 201.15,
  ContentWidth: 59.71875,
  ContentHeight: 10.5,
@@ -827,9 +827,9 @@ Type: layouter_domain.BoxBlock,
 		s.Display = layouter_domain.DisplayBlock
 		s.BoxSizing = border-box
 	}),
- ContentX: 217.875,
+ ContentX: 220.875,
  ContentY: 211.65,
- ContentWidth: 173.625,
+ ContentWidth: 170.625,
  ContentHeight: 10.5,
  Children: []*layouter_domain.LayoutBox{
 &layouter_domain.LayoutBox{
@@ -840,7 +840,7 @@ Type: layouter_domain.BoxTextRun,
 		s.LineHeight = 10.5
 	}),
  Text: "United Kingdom",
- ContentX: 217.875,
+ ContentX: 220.875,
  ContentY: 211.65,
  ContentWidth: 57.55078125,
  ContentHeight: 10.5,

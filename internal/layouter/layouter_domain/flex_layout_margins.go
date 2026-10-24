@@ -54,7 +54,7 @@ func countAutoMainMargins(line *flexLine, isRowDirection bool, mainGap float64) 
 	autoCount := 0
 	usedSpace := mainGap * float64(len(line.items)-1)
 	for _, item := range line.items {
-		usedSpace += item.mainSize
+		usedSpace += item.mainSize + item.outerMargin
 		autoCount += countItemAutoMainMargins(item, isRowDirection)
 	}
 	return autoCount, usedSpace

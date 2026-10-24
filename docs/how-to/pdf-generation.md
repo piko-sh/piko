@@ -18,7 +18,7 @@ PDF templates use the same PK syntax as HTML pages, with four conventions that m
 
 - A single root element (typically `<main>` or `<article>`) so the PDF has one logical page body.
 - Explicit widths and paddings on containers; the renderer honours CSS dimensions.
-- Page breaks via `page-break-before`, `page-break-after`, and `page-break-inside` CSS properties.
+- Page breaks via `break-before`, `break-after`, and `break-inside`, or their `page-break-*` aliases. See [control page breaks](#control-page-breaks).
 - Print-oriented typography: specify point sizes, avoid viewport-relative units (`vw`, `vh`, `vmin`, `vmax`).
 
 ```piko

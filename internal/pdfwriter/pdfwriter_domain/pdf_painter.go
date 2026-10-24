@@ -300,6 +300,10 @@ type PdfPainter struct {
 	// structStack holds the current stack of structure tree nodes during painting.
 	structStack []*StructNode
 
+	// structNodes holds the structure node made for each box, so a box painted on several
+	// pages marks its content on each against the one node.
+	structNodes map[*layouter_domain.LayoutBox]*StructNode
+
 	// namedDests holds collected named destinations for internal linking.
 	namedDests []namedDestination
 
@@ -416,6 +420,7 @@ func NewPdfPainter(pageWidth, pageHeight float64, fontEntries []layouter_dto.Fon
 		metadata:          nil,
 		writer:            nil,
 		structTree:        nil,
+		structNodes:       nil,
 		watermark:         nil,
 		maskFormObjects:   nil,
 		structStack:       nil,
@@ -843,31 +848,28 @@ func (painter *PdfPainter) renderPageStreams(
 		if err := ctx.Err(); err != nil {
 			return nil, fmt.Errorf("pdfwriter: painting cancelled at page %d: %w", i, err)
 		}
-		streams[i] = &ContentStream{}
-		if watermarkPrefix != "" {
-			streams[i].builder.WriteString(watermarkPrefix)
-		}
 		painter.basePageYOffset = float64(i) * painter.pageStride()
 		painter.pageYOffset = painter.basePageYOffset
-
-		hasMargins := painter.marginLeft != 0 || painter.marginTop != 0
-		if hasMargins {
-			streams[i].builder.WriteString("q\n")
-			fmt.Fprintf(&streams[i].builder, "1 0 0 1 %s %s cm\n",
-				FormatNumber(painter.marginLeft), FormatNumber(-painter.marginTop))
-		}
-		for _, box := range entries[i] {
-			painter.paintBoxToStream(ctx, streams[i], box, i)
-		}
-		if hasMargins {
-			streams[i].builder.WriteString("Q\n")
-		}
+		streams[i] = painter.renderPageStream(ctx, entries[i], i, pageCount > 1, watermarkPrefix)
 	}
 	painter.pageYOffset = 0
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("pdfwriter: painting cancelled: %w", err)
 	}
 	return streams, nil
+}
+
+// writePageContentClip clips a page of a multi-page document to its content area, so a
+// box that continues onto the next page is cut at the page end rather than drawn through
+// the bottom margin. Content may still overhang the left and right margins.
+//
+// Takes stream (*ContentStream) which is the page's content stream, already translated to
+// the content box's origin.
+func (painter *PdfPainter) writePageContentClip(stream *ContentStream) {
+	height := painter.pageStride()
+	fmt.Fprintf(&stream.builder, "%s %s %s %s re W n\n",
+		FormatNumber(-painter.marginLeft), FormatNumber(painter.pageHeight-height),
+		FormatNumber(painter.pageWidth), FormatNumber(height))
 }
 
 // writeFontResources writes font objects and returns the resource entries string.
@@ -1260,13 +1262,65 @@ func (painter *PdfPainter) paintPageBoxes(ctx context.Context, stream *ContentSt
 	if box.Type == layouter_domain.BoxNone {
 		return
 	}
-	if box.PageIndex == pageIndex {
+	if coversPage(box, pageIndex) {
 		painter.paintBoxToStream(ctx, stream, box, pageIndex)
 		return
 	}
 	for _, child := range box.Children {
 		painter.paintPageBoxes(ctx, stream, child, pageIndex)
 	}
+}
+
+// coversPage reports whether a box is drawn on a page: the page it starts on, or any page
+// a slice of it reaches when pagination split it.
+//
+// Takes box (*layouter_domain.LayoutBox) which is the box.
+// Takes pageIndex (int) which is the page.
+//
+// Returns bool which is true when the box is drawn on the page.
+func coversPage(box *layouter_domain.LayoutBox, pageIndex int) bool {
+	if box.PageIndex == pageIndex {
+		return true
+	}
+	for _, fragment := range box.Fragments {
+		if fragment.PageIndex == pageIndex {
+			return true
+		}
+	}
+	return false
+}
+
+// stitchedForPage returns the geometry a split box's background and borders are drawn
+// with on a page: the box as if unbroken, its slices laid end to end, placed so that this
+// page's slice sits where pagination put it.
+//
+// Takes box (*layouter_domain.LayoutBox) which is the box.
+// Takes pageIndex (int) which is the page being painted.
+//
+// Returns *layouter_domain.LayoutBox which is a shallow copy in effective coordinates, or
+// nil for a box that is not split.
+func stitchedForPage(box *layouter_domain.LayoutBox, pageIndex int) *layouter_domain.LayoutBox {
+	if len(box.Fragments) == 0 {
+		return nil
+	}
+	before, total := 0.0, 0.0
+	var current *layouter_domain.BoxFragment
+	for i := range box.Fragments {
+		fragment := &box.Fragments[i]
+		if fragment.PageIndex == pageIndex {
+			current = fragment
+			before = total
+		}
+		total += fragment.Bottom - fragment.Top
+	}
+	if current == nil {
+		return nil
+	}
+	stitched := *box
+	stitched.PageYOffset = 0
+	stitched.ContentY = current.Top - before + box.Border.Top + box.Padding.Top
+	stitched.ContentHeight = total - box.Border.Top - box.Padding.Top - box.Padding.Bottom - box.Border.Bottom
+	return &stitched
 }
 
 // paintBoxToStream renders a single layout box and its descendants that belong to the
@@ -1291,7 +1345,7 @@ func (painter *PdfPainter) paintBoxToStream(ctx context.Context, stream *Content
 	painter.pageYOffset = painter.basePageYOffset - box.PageYOffset
 	defer func() { painter.pageYOffset = savedOffset }()
 
-	states := painter.applyBoxStates(stream, box)
+	states := painter.applyBoxStates(stream, box, pageIndex)
 	painter.paintBoxContent(ctx, stream, box, states, pageIndex)
 	painter.restoreBoxStates(stream, states)
 }
@@ -1327,9 +1381,10 @@ type boxRenderStates struct {
 //
 // Takes stream (*ContentStream) which holds the page content stream.
 // Takes box (*layouter_domain.LayoutBox) which holds the box to apply states for.
+// Takes pageIndex (int) which is the page being painted.
 //
 // Returns boxRenderStates which tracks which states were applied for later restoration.
-func (painter *PdfPainter) applyBoxStates(stream *ContentStream, box *layouter_domain.LayoutBox) boxRenderStates {
+func (painter *PdfPainter) applyBoxStates(stream *ContentStream, box *layouter_domain.LayoutBox, pageIndex int) boxRenderStates {
 	var s boxRenderStates
 	s.hasOverflowClip = box.Style.OverflowX == layouter_domain.OverflowHidden ||
 		box.Style.OverflowY == layouter_domain.OverflowHidden
@@ -1353,7 +1408,7 @@ func (painter *PdfPainter) applyBoxStates(stream *ContentStream, box *layouter_d
 	s.hasFilterOpacity = painter.applyFilterOpacity(stream, box)
 	s.hasClipPath = painter.applyClipPath(stream, box)
 	s.hasTransform = painter.applyTransform(stream, box)
-	s.hasStructTag = painter.applyStructTag(stream, box)
+	s.hasStructTag = painter.applyStructTag(stream, box, pageIndex)
 	return s
 }
 
@@ -1420,9 +1475,10 @@ func (painter *PdfPainter) applyTransform(stream *ContentStream, box *layouter_d
 //
 // Takes stream (*ContentStream) which holds the page content stream.
 // Takes box (*layouter_domain.LayoutBox) which holds the box with source node metadata.
+// Takes pageIndex (int) which is the page being painted.
 //
 // Returns bool which indicates whether a structure tag was opened.
-func (painter *PdfPainter) applyStructTag(stream *ContentStream, box *layouter_domain.LayoutBox) bool {
+func (painter *PdfPainter) applyStructTag(stream *ContentStream, box *layouter_domain.LayoutBox, pageIndex int) bool {
 	if painter.structTree == nil || box.SourceNode == nil {
 		return false
 	}
@@ -1430,8 +1486,18 @@ func (painter *PdfPainter) applyStructTag(stream *ContentStream, box *layouter_d
 	if tag == "" {
 		return false
 	}
+	if node, seen := painter.structNodes[box]; seen {
+		mcid := painter.structTree.MarkContent(node, pageIndex)
+		stream.BeginMarkedContent(string(tag), mcid)
+		painter.structStack = append(painter.structStack, node)
+		return true
+	}
 	parent := painter.structTreeParent()
 	node := painter.structTree.AddChild(parent, tag)
+	if painter.structNodes == nil {
+		painter.structNodes = make(map[*layouter_domain.LayoutBox]*StructNode)
+	}
+	painter.structNodes[box] = node
 
 	if tag == TagFigure {
 		for i := range box.SourceNode.Attributes {
@@ -1442,10 +1508,124 @@ func (painter *PdfPainter) applyStructTag(stream *ContentStream, box *layouter_d
 		}
 	}
 
-	mcid := painter.structTree.MarkContent(node, box.PageIndex)
+	mcid := painter.structTree.MarkContent(node, pageIndex)
 	stream.BeginMarkedContent(string(tag), mcid)
 	painter.structStack = append(painter.structStack, node)
 	return true
+}
+
+// decorationPass paints a box's decorations: from the stitched copy of the whole box, at
+// the page's base offset, when the box spans pages, else from the box itself.
+type decorationPass struct {
+	// painter is the painter whose offset is adjusted.
+	painter *PdfPainter
+
+	// box is the box being painted.
+	box *layouter_domain.LayoutBox
+
+	// decorated is the geometry the decorations are painted from.
+	decorated *layouter_domain.LayoutBox
+
+	// boxOffset is the page offset the box itself is painted at.
+	boxOffset float64
+}
+
+// run paints with the decorated geometry, at the offset that geometry needs.
+//
+// Takes paint (func(*layouter_domain.LayoutBox)) which paints from the geometry.
+func (d decorationPass) run(paint func(*layouter_domain.LayoutBox)) {
+	if d.decorated != d.box {
+		d.painter.pageYOffset = d.painter.basePageYOffset
+		defer func() { d.painter.pageYOffset = d.boxOffset }()
+	}
+	paint(d.decorated)
+}
+
+// decorationFor returns how a box's decorations are painted on a page.
+//
+// Takes box (*layouter_domain.LayoutBox) which is the box.
+// Takes pageIndex (int) which is the zero-based page being painted.
+//
+// Returns decorationPass which paints them.
+func (painter *PdfPainter) decorationFor(box *layouter_domain.LayoutBox, pageIndex int) decorationPass {
+	decorated := box
+	if stitched := stitchedForPage(box, pageIndex); stitched != nil {
+		decorated = stitched
+	}
+	return decorationPass{painter: painter, box: box, decorated: decorated, boxOffset: painter.pageYOffset}
+}
+
+// paintVisibleBox paints a visible box: its decorations on every page it covers, and its
+// own content, links and form fields only on the page it starts on.
+//
+// Takes stream (*ContentStream) which holds the page content stream.
+// Takes box (*layouter_domain.LayoutBox) which is the box.
+// Takes decoration (decorationPass) which paints its decorations.
+// Takes ownPage (bool) which is true on the page the box starts on.
+func (painter *PdfPainter) paintVisibleBox(
+	ctx context.Context, stream *ContentStream, box *layouter_domain.LayoutBox, decoration decorationPass, ownPage bool,
+) {
+	decoration.run(func(decorated *layouter_domain.LayoutBox) {
+		painter.paintOuterBoxShadows(stream, decorated)
+		painter.paintBackground(ctx, stream, decorated)
+		painter.paintInsetBoxShadows(stream, decorated)
+		painter.paintBorders(stream, decorated)
+		painter.paintBorderImage(ctx, stream, decorated)
+	})
+	if ownPage {
+		painter.paintImage(ctx, stream, box)
+		painter.paintTextShadows(stream, box)
+		painter.paintText(stream, box)
+		painter.paintTextDecorations(stream, box)
+	}
+	decoration.run(func(decorated *layouter_domain.LayoutBox) { painter.paintOutline(stream, decorated) })
+	if ownPage {
+		painter.paintColumnRules(stream, box)
+		painter.collectLinkAnnotation(box)
+		painter.collectNamedDestination(box)
+		painter.collectOutlineEntry(box)
+		painter.paintFormVisual(stream, box)
+		painter.collectFormField(box)
+	}
+}
+
+// renderPageStream paints one page's boxes into a new content stream, inside the page's
+// margin translation and, when the document has more than one page, its content-area
+// clip.
+//
+// Takes boxes ([]*layouter_domain.LayoutBox) which holds the boxes that start or cover
+// the page.
+// Takes pageIndex (int) which is the zero-based page.
+// Takes clipsPage (bool) which is true when the content is clipped to the page.
+// Takes watermarkPrefix (string) which holds the watermark stream prefix.
+//
+// Returns *ContentStream which holds the page's content.
+func (painter *PdfPainter) renderPageStream(
+	ctx context.Context, boxes []*layouter_domain.LayoutBox, pageIndex int, clipsPage bool, watermarkPrefix string,
+) *ContentStream {
+	stream := &ContentStream{}
+	if watermarkPrefix != "" {
+		stream.builder.WriteString(watermarkPrefix)
+	}
+	hasMargins := painter.marginLeft != 0 || painter.marginTop != 0
+	wrapped := hasMargins || clipsPage
+	if wrapped {
+		stream.builder.WriteString("q\n")
+	}
+	if hasMargins {
+		fmt.Fprintf(&stream.builder, "1 0 0 1 %s %s cm\n",
+			FormatNumber(painter.marginLeft), FormatNumber(-painter.marginTop))
+	}
+	if clipsPage {
+		painter.writePageContentClip(stream)
+	}
+	for _, box := range boxes {
+		painter.paintBoxToStream(ctx, stream, box, pageIndex)
+	}
+	if wrapped {
+		stream.builder.WriteString("Q\n")
+	}
+	return stream
 }
 
 // paintBoxContent paints the visible content and children of a box.
@@ -1456,34 +1636,17 @@ func (painter *PdfPainter) applyStructTag(stream *ContentStream, box *layouter_d
 // Takes pageIndex (int) which specifies the zero-based page being painted, so children
 // belonging to other pages are skipped rather than drawn on this page.
 func (painter *PdfPainter) paintBoxContent(ctx context.Context, stream *ContentStream, box *layouter_domain.LayoutBox, states boxRenderStates, pageIndex int) {
-	isVisible := box.Style.Visibility == layouter_domain.VisibilityVisible
-
-	if isVisible {
-		painter.paintOuterBoxShadows(stream, box)
-		painter.paintBackground(ctx, stream, box)
-		painter.paintInsetBoxShadows(stream, box)
-		painter.paintBorders(stream, box)
-		painter.paintBorderImage(ctx, stream, box)
-		painter.paintImage(ctx, stream, box)
-		painter.paintTextShadows(stream, box)
-		painter.paintText(stream, box)
-		painter.paintTextDecorations(stream, box)
-		painter.paintOutline(stream, box)
-		painter.paintColumnRules(stream, box)
-		painter.collectLinkAnnotation(box)
-		painter.collectNamedDestination(box)
-		painter.collectOutlineEntry(box)
-		painter.paintFormVisual(stream, box)
-		painter.collectFormField(box)
+	decoration := painter.decorationFor(box, pageIndex)
+	if box.Style.Visibility == layouter_domain.VisibilityVisible {
+		painter.paintVisibleBox(ctx, stream, box, decoration, box.PageIndex == pageIndex)
 	}
 
 	if states.hasOverflowClip {
 		stream.SaveState()
-		painter.emitOverflowClip(stream, box)
+		decoration.run(func(decorated *layouter_domain.LayoutBox) { painter.emitOverflowClip(stream, decorated) })
 	}
 
-	skipChildren := box.SourceNode != nil && isEditableFormElement(box.SourceNode.TagName)
-	if !skipChildren {
+	if box.SourceNode == nil || !isEditableFormElement(box.SourceNode.TagName) {
 		for _, child := range box.Children {
 			painter.paintPageBoxes(ctx, stream, child, pageIndex)
 		}
@@ -1624,9 +1787,11 @@ func appendPageEntryBoxes(box *layouter_domain.LayoutBox, entries [][]*layouter_
 	if box == nil || box.Type == layouter_domain.BoxNone {
 		return
 	}
-	page := box.PageIndex
-	onPage := page >= 0 && page < len(entries)
-	if onPage {
+	pages := coveredPages(box)
+	for _, page := range pages {
+		if page < 0 || page >= len(entries) {
+			continue
+		}
 		if claimedByAncestor[page] == 0 {
 			entries[page] = append(entries[page], box)
 		}
@@ -1635,9 +1800,27 @@ func appendPageEntryBoxes(box *layouter_domain.LayoutBox, entries [][]*layouter_
 	for _, child := range box.Children {
 		appendPageEntryBoxes(child, entries, claimedByAncestor)
 	}
-	if onPage {
-		claimedByAncestor[page]--
+	for _, page := range pages {
+		if page >= 0 && page < len(entries) {
+			claimedByAncestor[page]--
+		}
 	}
+}
+
+// coveredPages lists the pages a box is drawn on: the page it starts on and, for a box
+// pagination split, every page a slice of it reaches.
+//
+// Takes box (*layouter_domain.LayoutBox) which is the box.
+//
+// Returns []int which holds the pages, the start page first.
+func coveredPages(box *layouter_domain.LayoutBox) []int {
+	pages := []int{box.PageIndex}
+	for _, fragment := range box.Fragments {
+		if fragment.PageIndex != box.PageIndex {
+			pages = append(pages, fragment.PageIndex)
+		}
+	}
+	return pages
 }
 
 // allocatePageObjects reserves the page and content stream object numbers for every page.

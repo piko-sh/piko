@@ -43,8 +43,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 								Style: withStyle(func(s *layouter_domain.ComputedStyle) {
 									s.LineHeight = 16.799999999999997
 								}),
-								Text:          "Text before ",
-								ContentWidth:  72,
+								Text:          "Text before",
+								ContentWidth:  66,
 								ContentHeight: 16.799999999999997,
 							},
 						},

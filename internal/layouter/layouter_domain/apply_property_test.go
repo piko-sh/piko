@@ -1162,6 +1162,12 @@ func TestCopyPropertyFromStyle_Comprehensive(t *testing.T) {
 			setup:    func(s *ComputedStyle) { s.PageBreakInside = PageBreakAvoid },
 			verify:   func(t *testing.T, d *ComputedStyle) { assert.Equal(t, PageBreakAvoid, d.PageBreakInside) },
 		},
+		{
+			name:     "box-decoration-break",
+			property: "box-decoration-break",
+			setup:    func(s *ComputedStyle) { s.BoxDecorationBreak = BoxDecorationBreakClone },
+			verify:   func(t *testing.T, d *ComputedStyle) { assert.Equal(t, BoxDecorationBreakClone, d.BoxDecorationBreak) },
+		},
 
 		{
 			name:     "orphans",
@@ -1780,6 +1786,30 @@ func TestApplyProperty_AllBranches(t *testing.T) {
 		}},
 		{"page-break-inside", "avoid", func(t *testing.T, s *ComputedStyle) {
 			assert.Equal(t, PageBreakAvoid, s.PageBreakInside)
+		}},
+		{"break-inside", "avoid-page", func(t *testing.T, s *ComputedStyle) {
+			assert.Equal(t, PageBreakAvoid, s.PageBreakInside)
+		}},
+		{"break-after", "avoid-page", func(t *testing.T, s *ComputedStyle) {
+			assert.Equal(t, PageBreakAvoid, s.PageBreakAfter)
+		}},
+		{"break-before", "recto", func(t *testing.T, s *ComputedStyle) {
+			assert.Equal(t, PageBreakRight, s.PageBreakBefore)
+		}},
+		{"break-before", "verso", func(t *testing.T, s *ComputedStyle) {
+			assert.Equal(t, PageBreakLeft, s.PageBreakBefore)
+		}},
+		{"break-after", "column", func(t *testing.T, s *ComputedStyle) {
+			assert.Equal(t, PageBreakAuto, s.PageBreakAfter)
+		}},
+		{"box-decoration-break", "clone", func(t *testing.T, s *ComputedStyle) {
+			assert.Equal(t, BoxDecorationBreakClone, s.BoxDecorationBreak)
+		}},
+		{"-webkit-box-decoration-break", "clone", func(t *testing.T, s *ComputedStyle) {
+			assert.Equal(t, BoxDecorationBreakClone, s.BoxDecorationBreak)
+		}},
+		{"box-decoration-break", "slice", func(t *testing.T, s *ComputedStyle) {
+			assert.Equal(t, BoxDecorationBreakSlice, s.BoxDecorationBreak)
 		}},
 		{"break-before", "always", func(t *testing.T, s *ComputedStyle) {
 			assert.Equal(t, PageBreakAlways, s.PageBreakBefore)

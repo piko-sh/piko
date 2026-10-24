@@ -252,20 +252,14 @@ func (painter *PdfPainter) collectLinkAnnotation(box *layouter_domain.LayoutBox)
 	if box.SourceNode == nil || box.SourceNode.TagName != "a" {
 		return
 	}
-	href := ""
-	for i := range box.SourceNode.Attributes {
-		if box.SourceNode.Attributes[i].Name == "href" {
-			href = box.SourceNode.Attributes[i].Value
-			break
-		}
-	}
+
+	href, _ := box.SourceNode.GetAttribute("href")
 	if href == "" {
 		return
 	}
 
-	pdfX := box.BorderBoxX()
-	pdfBottom := painter.pageHeight + painter.pageYOffset - box.BorderBoxY() - box.BorderBoxHeight()
-	pdfTop := painter.pageHeight + painter.pageYOffset - box.BorderBoxY()
+	pdfX, pdfTop := painter.toPageSpace(box.BorderBoxX(), box.BorderBoxY())
+	_, pdfBottom := painter.toPageSpace(0, box.BorderBoxY()+box.BorderBoxHeight())
 
 	annot := pdfAnnotation{
 		pageIndex: box.PageIndex,
@@ -285,6 +279,21 @@ func (painter *PdfPainter) collectLinkAnnotation(box *layouter_domain.LayoutBox)
 	painter.annotations = append(painter.annotations, annot)
 }
 
+// toPageSpace converts a layout position on the page being painted to PDF page space.
+// Content is drawn inside the page's margin translation, but link annotations, form
+// fields, named destinations and outline targets are placed in page space, so they add
+// the margins themselves.
+//
+// Takes x (float64) which is the layout X position.
+// Takes y (float64) which is the layout Y position.
+//
+// Returns pageX (float64) which is the page-space X position.
+// Returns pageY (float64) which is the page-space Y position, measured up from the bottom
+// of the page.
+func (painter *PdfPainter) toPageSpace(x, y float64) (pageX, pageY float64) {
+	return x + painter.marginLeft, painter.pageHeight + painter.pageYOffset - painter.marginTop - y
+}
+
 // collectNamedDestination checks whether the box has an id attribute.
 //
 // Takes box (*layouter_domain.LayoutBox) which is the layout box to inspect.
@@ -302,7 +311,7 @@ func (painter *PdfPainter) collectNamedDestination(box *layouter_domain.LayoutBo
 	if id == "" {
 		return
 	}
-	pdfY := painter.pageHeight + painter.pageYOffset - box.BorderBoxY()
+	_, pdfY := painter.toPageSpace(0, box.BorderBoxY())
 	painter.namedDests = append(painter.namedDests, namedDestination{
 		name:      id,
 		pageIndex: box.PageIndex,
@@ -327,7 +336,7 @@ func (painter *PdfPainter) collectOutlineEntry(box *layouter_domain.LayoutBox) {
 		return
 	}
 
-	pdfY := painter.pageHeight + painter.pageYOffset - box.BorderBoxY()
+	_, pdfY := painter.toPageSpace(0, box.BorderBoxY())
 
 	painter.outlineBuilder.AddEntry(OutlineEntry{
 		Title:     title,

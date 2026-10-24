@@ -280,9 +280,9 @@ func (c *Container) startupArtefactReconciler() lifecycle_domain.ArtefactReconci
 	return startupReconciler{container: c}
 }
 
-// startupReconciler hands a server's startup re-check to the artefact bridge, resolved when
-// the check runs. It does nothing in a process running from a copy of .piko that another
-// process owns, since the owner's own startup does that work.
+// startupReconciler hands a server's startup re-check to the artefact bridge, resolved
+// when the check runs. It does nothing in a process running from a copy of .piko that
+// another process owns, since the owner's own startup does that work.
 type startupReconciler struct {
 	// container provides the artefact bridge and the persistence provider.
 	container *Container

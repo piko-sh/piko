@@ -29,6 +29,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 					s.LineHeight = 33.599999999999994
 					s.FontWeight = 700
 					s.Display = layouter_domain.DisplayBlock
+					s.PageBreakAfter = layouter_domain.PageBreakAvoid
+					s.PageBreakInside = layouter_domain.PageBreakAvoid
 				}),
 				Margin: layouter_domain.BoxEdges{
 					Bottom: 8.040000000000001,
@@ -43,6 +45,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 							s.FontSize = 24
 							s.LineHeight = 33.599999999999994
 							s.FontWeight = 700
+							s.PageBreakAfter = layouter_domain.PageBreakAvoid
+							s.PageBreakInside = layouter_domain.PageBreakAvoid
 						}),
 						Text:          "Title",
 						ContentY:      8.040000000000001,
@@ -60,6 +64,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 					s.LineHeight = 25.2
 					s.FontWeight = 700
 					s.Display = layouter_domain.DisplayBlock
+					s.PageBreakAfter = layouter_domain.PageBreakAvoid
+					s.PageBreakInside = layouter_domain.PageBreakAvoid
 				}),
 				Margin: layouter_domain.BoxEdges{
 					Bottom: 9.959999999999999,
@@ -74,6 +80,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 							s.FontSize = 18
 							s.LineHeight = 25.2
 							s.FontWeight = 700
+							s.PageBreakAfter = layouter_domain.PageBreakAvoid
+							s.PageBreakInside = layouter_domain.PageBreakAvoid
 						}),
 						Text:          "Subtitle",
 						ContentY:      51.599999999999994,

@@ -130,6 +130,7 @@ func BuildBoxTree(ctx context.Context, input BoxTreeInput) (*LayoutBox, error) {
 	}
 
 	fixAnonymousBoxes(rootBox)
+	collapseWhiteSpace(rootBox)
 
 	return rootBox, nil
 }
@@ -294,7 +295,11 @@ func (b *boxTreeBuilder) processElementNode(
 
 	b.popCounterResets(style, resetCount)
 
-	fixAnonymousBoxes(box)
+	if isFlexOrGridContainer(box) {
+		wrapFlexGridTextRuns(box)
+	} else {
+		fixAnonymousBoxes(box)
+	}
 }
 
 // applyBoxTypeSpecificSetup sets intrinsic dimensions for replaced elements and span
@@ -936,7 +941,7 @@ func fixAnonymousBoxes(box *LayoutBox) {
 	var currentInlineGroup []*LayoutBox
 
 	for _, child := range box.Children {
-		if child.Type.IsInlineLevel() && child.Type != BoxListMarker {
+		if isInlineLevelChild(child) && child.Type != BoxListMarker {
 			currentInlineGroup = append(currentInlineGroup, child)
 		} else {
 			if len(currentInlineGroup) > 0 {
@@ -970,7 +975,7 @@ func hasMixedChildren(box *LayoutBox) bool {
 		if child.Type == BoxListMarker {
 			continue
 		}
-		if child.Type.IsInlineLevel() {
+		if isInlineLevelChild(child) {
 			hasInline = true
 		}
 		if child.Type.IsBlockLevel() {

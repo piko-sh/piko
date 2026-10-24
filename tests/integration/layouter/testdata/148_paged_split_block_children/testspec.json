@@ -1,0 +1,47 @@
+{
+    "description": "Verifies a container shorter than two pages splits between its children instead of moving whole, and its bottom padding and border follow the last child.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 400,
+    "viewportHeight": 800,
+    "pageWidthPx": 400,
+    "pageHeightPx": 200,
+    "pageMarginPx": 0,
+    "expectedPositions": {
+        "section": {
+            "pageIndex": 0,
+            "x": 0,
+            "y": 0,
+            "width": 400,
+            "height": 260
+        },
+        "child-a": {
+            "pageIndex": 0,
+            "x": 10,
+            "y": 10,
+            "width": 380,
+            "height": 80
+        },
+        "child-b": {
+            "pageIndex": 0,
+            "x": 10,
+            "y": 90,
+            "width": 380,
+            "height": 80
+        },
+        "child-c": {
+            "pageIndex": 1,
+            "x": 10,
+            "y": 0,
+            "width": 380,
+            "height": 80
+        },
+        "after": {
+            "pageIndex": 1,
+            "x": 0,
+            "y": 90,
+            "width": 400,
+            "height": 20
+        }
+    }
+}

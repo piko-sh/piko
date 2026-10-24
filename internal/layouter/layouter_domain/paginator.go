@@ -153,6 +153,9 @@ func Paginate(ctx context.Context, root *LayoutBox, geometry PageGeometry, limit
 		maxPages:     limits.Limits().MaxPages,
 		headerHeight: 0,
 		footerHeight: 0,
+		root:         root,
+		firstPieces:  nil,
+		bandItem:     nil,
 	}
 
 	headerBox, footerBox := extractLayoutRoleBoxes(root, state)
@@ -174,6 +177,16 @@ func Paginate(ctx context.Context, root *LayoutBox, geometry PageGeometry, limit
 type paginationState struct {
 	// limits enforces the page and box limits and records the first breach.
 	limits *LimitTracker
+
+	// root is the box pagination started from, which is never fragmented.
+	root *LayoutBox
+
+	// firstPieces memoises firstPieceEnd for each box looked ahead at.
+	firstPieces map[*LayoutBox]float64
+
+	// bandItem is the grid or flex item a band is paginating, which must not move on its
+	// own: the band as a whole has already been placed.
+	bandItem *LayoutBox
 
 	// geometry holds the page content-area heights.
 	geometry PageGeometry
@@ -298,100 +311,6 @@ func (s *paginationState) cloneForPage(original *LayoutBox, size int) *LayoutBox
 	return cloneBoxSubtree(original)
 }
 
-// paginateBox assigns page indices and Y offsets to a single box and recurses into its
-// children.
-//
-// Takes box (*LayoutBox) which is the box to paginate.
-// Takes state (*paginationState) which holds the accumulated pagination state.
-func paginateBox(ctx context.Context, box *LayoutBox, state *paginationState) {
-	if ctx.Err() != nil || state.limits.failed() {
-		return
-	}
-
-	effectiveY := box.ContentY + state.offset
-	page := max(state.geometry.pageForY(effectiveY), 0)
-
-	page, effectiveY = applyLayoutRoleOverflow(box, state, page, effectiveY)
-	page, effectiveY = applyBreakBefore(box, state, page, effectiveY)
-	page, effectiveY = applyBreakInsideAvoid(box, state, page, effectiveY)
-
-	box.PageIndex = page
-	box.PageYOffset = state.offset
-	if !state.trackPage(page) {
-		return
-	}
-
-	if isTextBlock(box) {
-		paginateTextBlock(ctx, box, state)
-		return
-	}
-	if box.Type == BoxTable {
-		paginateTable(ctx, box, state)
-		return
-	}
-
-	for i, child := range box.Children {
-		applyChildOverflow(child, state)
-		paginateBox(ctx, child, state)
-		applyBreakAfter(box, child, i, state)
-	}
-}
-
-// applyChildOverflow pushes a child box to the next page when its margin-box bottom
-// overflows the current page boundary. Implements the design doc's splitBox algorithm for
-// block containers: split between children by pushing overflowing children to the next
-// page.
-//
-// A child whose page lies beyond the page limit records the breach and is left in place,
-// since pagination stops at the breach. Otherwise a child is pushed only when:
-//
-//	(1) its bottom exceeds the page content end,
-//	(2) its top is past the page content start (avoids infinite
-//	    loops for boxes taller than a page), and
-//	(3) it fits on a fresh page.
-//
-// Takes child (*LayoutBox) which is the child box to check.
-// Takes state (*paginationState) which holds the accumulated pagination state.
-func applyChildOverflow(child *LayoutBox, state *paginationState) {
-	effectiveY := child.ContentY + state.offset
-	page := max(state.geometry.pageForY(effectiveY), 0)
-	if !state.withinPageLimit(page) {
-		return
-	}
-	bottom := effectiveY + child.MarginBoxHeight()
-	contentEnd := state.contentEnd(page)
-
-	if bottom > contentEnd &&
-		effectiveY > state.contentStart(page) &&
-		child.MarginBoxHeight() <= state.geometry.heightForPage(page+1) {
-		state.advanceToPage(page, effectiveY)
-	}
-}
-
-// applyLayoutRoleOverflow pushes a box to the next page when data-layout-role headers or
-// footers reduce the content area and the box overflows into the footer zone.
-//
-// Takes box (*LayoutBox) which is the box to check.
-// Takes state (*paginationState) which holds the pagination state.
-// Takes page (int) which specifies the current page index.
-// Takes effectiveY (float64) which specifies the effective Y coordinate of the box.
-//
-// Returns int which holds the updated page index.
-// Returns float64 which holds the updated effective Y coordinate.
-func applyLayoutRoleOverflow(
-	box *LayoutBox, state *paginationState, page int, effectiveY float64,
-) (int, float64) {
-	if state.headerHeight == 0 && state.footerHeight == 0 {
-		return page, effectiveY
-	}
-	boxBottom := effectiveY + box.MarginBoxHeight()
-	contentEnd := state.contentEnd(page)
-	if boxBottom > contentEnd && effectiveY > state.contentStart(page) {
-		return state.advanceToPage(page, effectiveY)
-	}
-	return page, effectiveY
-}
-
 // needsParityAdvance reports whether the page must be advanced to satisfy a left/right
 // parity constraint. Even pages (0, 2, 4...) are right; odd pages are left.
 //
@@ -404,270 +323,73 @@ func needsParityAdvance(breakVal PageBreakType, page int) bool {
 		(breakVal == PageBreakRight && page%2 != 0)
 }
 
-// applyBreakBefore handles break-before: page/always/left/right by forcing this box to
-// the next page (or the next page with the required parity).
+// applyBreakBefore handles a forced break-before (page, always, left, right), its own or
+// propagated from its first child, by moving the box to the next page, or the next page
+// with the required parity.
 //
-// Takes box (*LayoutBox) which is the box whose break-before property is checked.
+// Takes box (*LayoutBox) which is the box whose break-before is checked.
 // Takes state (*paginationState) which holds the pagination state.
 // Takes page (int) which specifies the current page index.
-// Takes effectiveY (float64) which specifies the effective Y coordinate of the box.
+// Takes effectiveY (float64) which specifies the effective border-box top of the box.
 //
 // Returns int which holds the updated page index.
-// Returns float64 which holds the updated effective Y coordinate.
+// Returns float64 which holds the updated effective top.
 func applyBreakBefore(
 	box *LayoutBox, state *paginationState, page int, effectiveY float64,
 ) (int, float64) {
-	switch box.Style.PageBreakBefore {
-	case PageBreakAlways, PageBreakLeft, PageBreakRight:
-	default:
+	value := effectiveBreakBefore(box)
+	if !isForcedBreak(value) {
 		return page, effectiveY
 	}
-
-	ps := state.contentStart(page)
-	if effectiveY > ps {
+	if !state.atPageStart(page, effectiveY) {
 		page, effectiveY = state.advanceToPage(page, effectiveY)
 	}
-
-	if needsParityAdvance(box.Style.PageBreakBefore, page) {
+	if needsParityAdvance(value, page) {
 		page, effectiveY = state.advanceToPage(page, effectiveY)
 	}
 	return page, effectiveY
 }
 
-// applyBreakInsideAvoid moves the entire box to the next page if it would be split across
-// a page boundary and the box fits on a single page. If the box is taller than a page,
-// the move is skipped and the existing child recursion distributes children across pages
-// naturally.
-//
-// Takes box (*LayoutBox) which is the box whose break-inside property is checked.
-// Takes state (*paginationState) which holds the pagination state.
-// Takes page (int) which specifies the current page index.
-// Takes effectiveY (float64) which specifies the effective Y coordinate of the box.
-//
-// Returns int which holds the updated page index.
-// Returns float64 which holds the updated effective Y coordinate.
-func applyBreakInsideAvoid(
-	box *LayoutBox, state *paginationState, page int, effectiveY float64,
-) (int, float64) {
-	if box.Style.PageBreakInside != PageBreakAvoid {
-		return page, effectiveY
-	}
-	boxBottom := effectiveY + box.MarginBoxHeight()
-	contentEnd := state.contentEnd(page)
-	if boxBottom > contentEnd && box.MarginBoxHeight() <= state.geometry.heightForPage(page) {
-		return state.advanceToPage(page, effectiveY)
-	}
-	return page, effectiveY
-}
-
-// applyBreakAfter handles break-after: page/always/left/right on a child by adjusting the
-// offset so the next sibling starts on a new page (with the required parity for
-// left/right).
+// applyBreakAfter handles a forced break-after on a child, its own or propagated from its
+// last child, by moving the next in-flow sibling to the page after the child's last page,
+// or the next page with the required parity.
 //
 // Takes parent (*LayoutBox) which is the parent box containing the child.
 // Takes child (*LayoutBox) which is the child whose break-after property is checked.
 // Takes childIdx (int) which specifies the index of the child within the parent's
 // children.
 // Takes state (*paginationState) which holds the pagination state.
+//
+// A last child's break-after propagates to its parent instead, which applies it to the
+// parent's next sibling.
 func applyBreakAfter(parent, child *LayoutBox, childIdx int, state *paginationState) {
-	switch child.Style.PageBreakAfter {
-	case PageBreakAlways, PageBreakLeft, PageBreakRight:
-	default:
+	value := effectiveBreakAfter(child)
+	if !isForcedBreak(value) {
 		return
 	}
-
-	childBottom := child.ContentY + state.offset + child.MarginBoxHeight()
-	childPage := child.PageIndex
-	contentEnd := state.contentEnd(childPage)
-	if childBottom < contentEnd && childIdx+1 < len(parent.Children) {
-		state.offset += contentEnd - childBottom
+	var next *LayoutBox
+	for _, sibling := range parent.Children[childIdx+1:] {
+		if !isOutOfFlow(sibling) && sibling.Type != BoxListMarker {
+			next = sibling
+			break
+		}
 	}
-
-	if childIdx+1 >= len(parent.Children) {
+	if next == nil {
 		return
 	}
-
-	nextEffY := parent.Children[childIdx+1].ContentY + state.offset
-	nextPage := max(state.geometry.pageForY(nextEffY), 0)
-	if needsParityAdvance(child.Style.PageBreakAfter, nextPage) {
-		newStart := state.contentStart(nextPage + 1)
-		state.offset += newStart - nextEffY
-	}
-}
-
-// isTextBlock reports whether a box is a block-level container whose children are all
-// text-run lines (ignoring list markers).
-//
-// Takes box (*LayoutBox) which is the box to check.
-//
-// Returns bool which indicates whether the box is a text block subject to orphans and
-// widows constraints.
-func isTextBlock(box *LayoutBox) bool {
-	if len(box.Children) == 0 {
-		return false
-	}
-	switch box.Type {
-	case BoxBlock, BoxAnonymousBlock, BoxListItem:
-	default:
-		return false
-	}
-	for _, child := range box.Children {
-		if child.Type == BoxListMarker {
-			continue
+	nextTop := next.BorderBoxY() + state.offset
+	nextPage := max(state.geometry.pageForY(nextTop), 0)
+	if nextPage <= child.LastPageIndex || !state.atPageStart(nextPage, nextTop) {
+		target := max(child.LastPageIndex+1, nextPage)
+		if nextPage == target && state.atPageStart(nextPage, nextTop) {
+			return
 		}
-		if child.Type != BoxTextRun {
-			return false
-		}
+		state.withinPageLimit(target)
+		state.offset += state.contentStart(target) - nextTop
+		nextPage, nextTop = target, state.contentStart(target)
 	}
-	return true
-}
-
-// collectTextLines separates text-run children from list markers. List markers are
-// paginated immediately; text-run lines are returned for orphans/widows processing.
-//
-// Takes box (*LayoutBox) which is the text block whose children are separated.
-// Takes state (*paginationState) which tracks page geometry, offsets, and pagination
-// limits.
-//
-// Returns []*LayoutBox which holds the text-run lines for orphans/widows processing.
-func collectTextLines(ctx context.Context, box *LayoutBox, state *paginationState) []*LayoutBox {
-	var lines []*LayoutBox
-	for _, child := range box.Children {
-		if child.Type == BoxListMarker {
-			paginateBox(ctx, child, state)
-			continue
-		}
-		lines = append(lines, child)
-	}
-	return lines
-}
-
-// findTextSplitIndex returns the index of the first text line whose bottom exceeds the
-// page boundary.
-//
-// Takes lines ([]*LayoutBox) which holds the text-run lines to check.
-// Takes state (*paginationState) which holds the pagination state.
-// Takes contentEnd (float64) which specifies the Y coordinate of the page content end.
-//
-// Returns int which holds the split index, or len(lines) when all lines fit on the
-// current page.
-func findTextSplitIndex(lines []*LayoutBox, state *paginationState, contentEnd float64) int {
-	for i, line := range lines {
-		lineBottom := line.ContentY + state.offset + line.MarginBoxHeight()
-		if lineBottom > contentEnd {
-			return i
-		}
-	}
-	return len(lines)
-}
-
-// paginateAllLines paginates every line in the slice.
-//
-// Takes lines ([]*LayoutBox) which holds the text-run lines to paginate.
-// Takes state (*paginationState) which tracks page geometry, offsets, and pagination
-// limits.
-func paginateAllLines(ctx context.Context, lines []*LayoutBox, state *paginationState) {
-	for _, line := range lines {
-		paginateBox(ctx, line, state)
-	}
-}
-
-// paginateTextBlock splits a paragraph across pages while respecting its orphans and
-// widows constraints.
-//
-// If both constraints cannot be satisfied, the whole paragraph moves to the next page.
-//
-// Takes box (*LayoutBox) which is the text block to paginate.
-// Takes state (*paginationState) which tracks page geometry, offsets, and pagination
-// limits.
-func paginateTextBlock(ctx context.Context, box *LayoutBox, state *paginationState) {
-	lines := collectTextLines(ctx, box, state)
-	if len(lines) == 0 {
-		return
-	}
-
-	boxTop := box.ContentY + state.offset
-	boxBottom := boxTop + box.MarginBoxHeight()
-	contentEnd := state.contentEnd(box.PageIndex)
-
-	if boxBottom <= contentEnd {
-		paginateAllLines(ctx, lines, state)
-		return
-	}
-
-	splitIndex := findTextSplitIndex(lines, state, contentEnd)
-
-	if splitIndex == len(lines) {
-		paginateAllLines(ctx, lines, state)
-		return
-	}
-
-	splitIndex = adjustSplitForOrphansWidows(box, state, lines, splitIndex, boxTop)
-	paginateSplitLines(ctx, box, state, lines, splitIndex)
-}
-
-// adjustSplitForOrphansWidows adjusts the split index to satisfy orphans and widows
-// constraints.
-//
-// Takes box (*LayoutBox) which is the text block whose orphans and widows properties are
-// read.
-// Takes lines ([]*LayoutBox) which holds the text-run lines.
-// Takes splitIndex (int) which specifies the natural split point.
-//
-// Returns int which holds the adjusted split index, or -1 when the entire paragraph must
-// be moved to the next page.
-func adjustSplitForOrphansWidows(
-	box *LayoutBox, _ *paginationState, lines []*LayoutBox, splitIndex int, _ float64,
-) int {
-	orphans := box.Style.Orphans
-	widows := box.Style.Widows
-	total := len(lines)
-
-	if splitIndex < orphans {
-		return -1
-	}
-	if total-splitIndex < widows {
-		adjusted := total - widows
-		if adjusted < orphans {
-			return -1
-		}
-		return adjusted
-	}
-	return splitIndex
-}
-
-// paginateSplitLines paginates lines across a page break.
-//
-// When splitIndex is negative, the entire paragraph is moved to the next page. Otherwise,
-// lines before the split stay on the current page and lines from the split onward are
-// pushed to the next page.
-//
-// Takes box (*LayoutBox) which is the parent text block.
-// Takes state (*paginationState) which holds the pagination state.
-// Takes lines ([]*LayoutBox) which holds the text-run lines to paginate.
-// Takes splitIndex (int) which identifies the first line to move to the next page, or is
-// negative to move the whole block.
-func paginateSplitLines(
-	ctx context.Context, box *LayoutBox, state *paginationState, lines []*LayoutBox, splitIndex int,
-) {
-	boxTop := box.ContentY + state.offset
-	if splitIndex < 0 {
-		nextStart := state.contentStart(box.PageIndex + 1)
-		state.offset += nextStart - boxTop
-		paginateAllLines(ctx, lines, state)
-		return
-	}
-
-	for i := range splitIndex {
-		paginateBox(ctx, lines[i], state)
-	}
-	if splitIndex < len(lines) {
-		splitLineTop := lines[splitIndex].ContentY + state.offset
-		nextStart := state.contentStart(box.PageIndex + 1)
-		state.offset += nextStart - splitLineTop
-		for i := splitIndex; i < len(lines); i++ {
-			paginateBox(ctx, lines[i], state)
-		}
+	if needsParityAdvance(value, nextPage) {
+		state.advanceToPage(nextPage, nextTop)
 	}
 }
 
@@ -804,6 +526,8 @@ func assignRowGroupPage(rg *LayoutBox, state *paginationState) {
 	rgPage := max(state.geometry.pageForY(rgEffectiveY), 0)
 	rg.PageIndex = rgPage
 	rg.PageYOffset = state.offset
+	rg.LastPageIndex = rgPage
+	rg.Fragments = nil
 	state.trackPage(rgPage)
 }
 
@@ -840,6 +564,7 @@ func paginateTableRows(
 		}
 
 		paginateBox(ctx, row, state)
+		rg.LastPageIndex = max(rg.LastPageIndex, row.LastPageIndex)
 	}
 	return lastPage, headers, footers
 }
@@ -1099,6 +824,8 @@ func cloneBoxSubtree(original *LayoutBox) *LayoutBox {
 func assignPageRecursive(box *LayoutBox, page int, offset float64) {
 	box.PageIndex = page
 	box.PageYOffset = offset
+	box.LastPageIndex = page
+	box.Fragments = nil
 	for _, child := range box.Children {
 		assignPageRecursive(child, page, offset)
 	}

@@ -16,7 +16,7 @@ PDFs are a different medium from HTML. They have a fixed page size, paginated fl
 
 The alternative would be a programmatic PDF SDK. An API that draws rectangles, places text, measures fonts. Java's iText and Go's `gofpdf` work this way. The cost is imperative code that describes every layout decision. A template abstraction (HTML + CSS) is declarative and already familiar.
 
-Piko chose templates. The renderer compiles the PK template, runs the CSS engine, builds a box tree, paginates, and paints. CSS properties for page breaks (`page-break-before`, `page-break-after`, `page-break-inside`) map cleanly onto the paginated output. `@page` rules control page size and margins. The whole lifecycle, from template authoring to paginated output, is familiar to anyone who has styled a print sheet in a browser.
+Piko chose templates. The renderer compiles the PK template, runs the CSS engine, builds a box tree, paginates, and paints. CSS properties for page breaks (`break-before`, `break-after`, `break-inside`, and their `page-break-*` aliases) map cleanly onto the paginated output. `@page` rules control page size and margins. The whole lifecycle, from template authoring to paginated output, is familiar to anyone who has styled a print sheet in a browser.
 
 The trade-off is that not every PDF feature maps onto CSS. Precise coordinate drawing, multi-column interleaving, and some advanced typographic controls need special handling. Piko supports these through SVG embedding (`SVGWriterPort`) and a low-level painter config, but they are escape hatches, not the default path.
 

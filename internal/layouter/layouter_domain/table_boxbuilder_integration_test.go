@@ -525,5 +525,6 @@ func TestBuildBoxTree_PseudoElement(t *testing.T) {
 
 	pseudo_box := div_box.Children[0]
 	assert.Equal(t, BoxTextRun, pseudo_box.Type)
-	assert.Equal(t, "Before: ", pseudo_box.Text)
+
+	assert.Equal(t, "Before:", pseudo_box.Text)
 }

@@ -55,7 +55,7 @@ func resolveFlexibleLengths(line *flexLine, containerMainSize, mainGap float64, 
 func isFlexLineGrowing(line *flexLine, totalGaps float64, isRowDirection bool, containerMainSize float64) bool {
 	used := totalGaps
 	for _, item := range line.items {
-		used += clampFlexMainSize(item.flexBaseSize, item.box, isRowDirection, containerMainSize)
+		used += clampFlexMainSize(item.flexBaseSize, item.box, isRowDirection, containerMainSize) + item.outerMargin
 	}
 	return used <= containerMainSize
 }
@@ -127,6 +127,7 @@ func computeFlexFreeSpace(
 ) (freeSpace float64, totalFactor float64) {
 	usedByFrozen := totalGaps
 	for i, item := range line.items {
+		usedByFrozen += item.outerMargin
 		if frozen[i] {
 			usedByFrozen += item.mainSize
 		} else {

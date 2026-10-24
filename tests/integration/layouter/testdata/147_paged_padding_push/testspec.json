@@ -1,0 +1,54 @@
+{
+    "description": "Verifies a pushed box lands with its border-box top at the next page's start, keeping its border and padding, and that the top margin of a box pushed by an unforced break is dropped.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 400,
+    "viewportHeight": 800,
+    "pageWidthPx": 400,
+    "pageHeightPx": 200,
+    "pageMarginPx": 0,
+    "expectedPositions": {
+        "filler": {
+            "pageIndex": 0,
+            "x": 0,
+            "y": 0,
+            "width": 400,
+            "height": 150
+        },
+        "card": {
+            "pageIndex": 1,
+            "x": 0,
+            "y": 0,
+            "width": 400,
+            "height": 84
+        },
+        "card-inner": {
+            "pageIndex": 1,
+            "x": 12,
+            "y": 12,
+            "width": 376,
+            "height": 60
+        },
+        "after": {
+            "pageIndex": 1,
+            "x": 0,
+            "y": 84,
+            "width": 400,
+            "height": 20
+        },
+        "filler-b": {
+            "pageIndex": 1,
+            "x": 0,
+            "y": 104,
+            "width": 400,
+            "height": 80
+        },
+        "margined": {
+            "pageIndex": 2,
+            "x": 0,
+            "y": 0,
+            "width": 400,
+            "height": 40
+        }
+    }
+}

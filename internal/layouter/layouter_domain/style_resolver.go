@@ -109,6 +109,8 @@ func ResolveStyle(properties map[string]string, parentStyle *ComputedStyle, cont
 
 	if style.LineHeightAuto {
 		style.LineHeight = style.FontSize * defaultLineHeightMultiplier
+	} else if style.LineHeightFactor > 0 {
+		style.LineHeight = style.FontSize * style.LineHeightFactor
 	}
 
 	return style
@@ -224,6 +226,7 @@ func inheritFromParent(style *ComputedStyle, parent *ComputedStyle) {
 	style.FontWeight = parent.FontWeight
 	style.LetterSpacing = parent.LetterSpacing
 	style.LineHeight = parent.LineHeight
+	style.LineHeightFactor = parent.LineHeightFactor
 	style.LineHeightAuto = parent.LineHeightAuto
 	style.TextAlign = parent.TextAlign
 	style.TextDecoration = parent.TextDecoration
@@ -354,6 +357,15 @@ func applyProperty(style *ComputedStyle, property, value string, context Resolut
 		style.MarginLeft = dim
 		style.MarginRight = dim
 
+	case "margin-block-start":
+		style.MarginTop = parseDimension(value, context)
+	case "margin-block-end":
+		style.MarginBottom = parseDimension(value, context)
+	case "margin-block":
+		start, end := splitBlockAxisPair(value)
+		style.MarginTop = parseDimension(start, context)
+		style.MarginBottom = parseDimension(end, context)
+
 	case "padding-top":
 		style.PaddingTop = resolveLength(value, context)
 	case "padding-right":
@@ -381,6 +393,15 @@ func applyProperty(style *ComputedStyle, property, value string, context Resolut
 		resolved := resolveLength(value, context)
 		style.PaddingLeft = resolved
 		style.PaddingRight = resolved
+
+	case "padding-block-start":
+		style.PaddingTop = resolveLength(value, context)
+	case "padding-block-end":
+		style.PaddingBottom = resolveLength(value, context)
+	case "padding-block":
+		start, end := splitBlockAxisPair(value)
+		style.PaddingTop = resolveLength(start, context)
+		style.PaddingBottom = resolveLength(end, context)
 
 	case "border-top-width":
 		style.BorderTopWidth = resolveLength(value, context)
@@ -442,12 +463,14 @@ func applyProperty(style *ComputedStyle, property, value string, context Resolut
 	case "font-style":
 		style.FontStyle = parseFontStyle(value)
 	case "line-height":
+		style.LineHeightFactor = 0
 		if value == cssKeywordNormal {
 			style.LineHeightAuto = true
 			style.LineHeight = style.FontSize * defaultLineHeightMultiplier
 		} else {
 			style.LineHeightAuto = false
 			style.LineHeight = resolveLineHeight(value, style.FontSize, context)
+			style.LineHeightFactor = lineHeightFactor(value)
 		}
 	case "text-align":
 		style.TextAlign = parseTextAlign(value)
@@ -581,6 +604,8 @@ func applyProperty(style *ComputedStyle, property, value string, context Resolut
 		style.PageBreakAfter = parsePageBreak(value)
 	case "break-inside":
 		style.PageBreakInside = parsePageBreak(value)
+	case "box-decoration-break", "-webkit-box-decoration-break":
+		style.BoxDecorationBreak = parseBoxDecorationBreak(value)
 	case "orphans":
 		style.Orphans = parseIntValue(value)
 	case "widows":

@@ -66,6 +66,10 @@ const (
 	// fixedPointScale converts a floating-point ppem value to the fixed.Int26_6
 	// representation used by go-text.
 	fixedPointScale = 64.0
+
+	// asciiDelete is the DEL control character, which shaping replaces like the C0 controls
+	// below it.
+	asciiDelete = 0x7f
 )
 
 // fontKey uniquely identifies a registered font by family, weight, and style.
@@ -347,6 +351,7 @@ func (m *GoTextFontMetrics) ShapeAndMeasureText(
 	if len(runes) == 0 {
 		return nil, 0
 	}
+	replaceControlCharacters(runes)
 
 	session := m.acquireSession()
 	output := session.shape(record, runes, size/layouter_domain.PixelsToPoints, direction)
@@ -739,4 +744,17 @@ func detectScriptAndLanguage(runes []rune) (language.Script, language.Language) 
 // Returns float64 which is the floating-point equivalent.
 func fixedToFloat(value fixed.Int26_6) float64 {
 	return float64(value) / fixedPointScale
+}
+
+// replaceControlCharacters turns C0 control characters and DEL into spaces before
+// shaping.
+//
+// Takes runes ([]rune) which is the text to clean, changed in place so that each glyph
+// still maps to the character at the same index.
+func replaceControlCharacters(runes []rune) {
+	for i, r := range runes {
+		if r < ' ' || r == asciiDelete {
+			runes[i] = ' '
+		}
+	}
 }

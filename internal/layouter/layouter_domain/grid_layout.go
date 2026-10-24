@@ -482,11 +482,7 @@ func layoutGridItemFragments(
 			childContentWidth = 0
 		}
 
-		isStretch := box.Style.JustifyItems == JustifyItemsStretch
-		if placement.item.Style.JustifySelf != JustifySelfAuto {
-			isStretch = placement.item.Style.JustifySelf == JustifySelfStretch
-		}
-		fixedSize := isStretch || placement.item.Style.Width.IsAuto()
+		fixedSize := placement.item.Style.Width.IsAuto()
 
 		rowHeight := definiteRowHeight(
 			placement.row, box.Style.GridTemplateRows,
@@ -574,6 +570,12 @@ func relayoutStretchedGridItems(
 ) {
 	for index := range placements {
 		placement := &placements[index]
+
+		height := placement.item.Style.Height
+		if height.Unit == DimensionUnitPoints || (height.IsAuto() &&
+			resolveEffectiveAlign(placement.fragment, box.Style.AlignItems) != AlignItemsStretch) {
+			continue
+		}
 		cellHeight := spanTrackSize(rowHeights, placement.row, placement.rowEnd, box.Style.RowGap)
 		naturalHeight := placement.fragment.MarginBoxHeight()
 
@@ -627,11 +629,7 @@ func relayoutSingleGridItem(
 		childContentWidth = 0
 	}
 
-	isStretch := box.Style.JustifyItems == JustifyItemsStretch
-	if placement.item.Style.JustifySelf != JustifySelfAuto {
-		isStretch = placement.item.Style.JustifySelf == JustifySelfStretch
-	}
-	fixedSize := isStretch || placement.item.Style.Width.IsAuto()
+	fixedSize := placement.item.Style.Width.IsAuto()
 
 	stretchedHeight := cellHeight -
 		childEdges.Padding.Vertical() -
@@ -1467,6 +1465,9 @@ func positionGridItems(
 
 	childFragments := make([]*Fragment, 0, len(placements))
 	for _, placement := range placements {
+		placement.item.gridRowStart = placement.row
+		placement.item.gridRowEnd = placement.rowEnd
+		placement.item.gridPlaced = true
 		itemX := columnOffsets[placement.column]
 		itemY := rowOffsets[placement.row]
 

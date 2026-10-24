@@ -104,3 +104,18 @@ func TestPdfLayoutLimits(t *testing.T) {
 
 	assert.Len(t, pdfServiceLimitOptions(config.PdfConfig{}), 2)
 }
+
+func TestWithPdfFont_AddsFacesAfterTheBundledOnes(t *testing.T) {
+	t.Parallel()
+
+	c := NewContainer()
+	regular := layouter_dto.FontEntry{Family: "Alan Sans", Weight: 400, Data: []byte{1}}
+	variable := layouter_dto.FontEntry{Family: "Alan Sans", WeightMin: 300, WeightMax: 900, IsVariable: true, Data: []byte{2}}
+	WithPdfFont(regular)(c)
+	WithPdfFont(variable)(c)
+
+	assert.Equal(t, []layouter_dto.FontEntry{regular, variable}, c.pdfFontEntries)
+	entries := append(newDefaultPdfFontEntries(), c.pdfFontEntries...)
+	require.Len(t, entries, len(newDefaultPdfFontEntries())+2)
+	assert.Equal(t, "Alan Sans", entries[len(entries)-1].Family)
+}

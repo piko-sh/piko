@@ -28,6 +28,10 @@ import (
 // information, making the margin-collapsing protocol between block layout and layoutBox
 // explicit rather than hidden inside Fragment.Margin.
 type formattingContextResult struct {
+	// replacements maps each text run an inline layout split into line segments to those
+	// segments.
+	replacements map[*LayoutBox][]*LayoutBox
+
 	// Children are the child fragments in document order.
 	Children []*Fragment
 
@@ -164,6 +168,7 @@ func newFormattingContextResult(
 		Margin:        margin,
 		Border:        BoxEdges{},
 		HasBorder:     false,
+		replacements:  nil,
 	}
 }
 

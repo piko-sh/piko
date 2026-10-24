@@ -338,3 +338,32 @@ func TestResolveVarReferences(t *testing.T) {
 		})
 	}
 }
+
+func TestResolveStyle_UnitlessLineHeightInheritsAsAFactor(t *testing.T) {
+	context := defaultResolutionContext()
+	parent := ResolveStyle(map[string]string{"font-size": "10pt", "line-height": "1.5"}, nil, context)
+	child := ResolveStyle(map[string]string{"font-size": "8pt"}, &parent, context)
+	grandchild := ResolveStyle(map[string]string{"font-size": "20pt"}, &child, context)
+
+	assert.InDelta(t, 15, parent.LineHeight, 0.001)
+	assert.InDelta(t, 12, child.LineHeight, 0.001)
+	assert.InDelta(t, 30, grandchild.LineHeight, 0.001)
+
+	fixed := ResolveStyle(map[string]string{"font-size": "10pt", "line-height": "15pt"}, nil, context)
+	fixedChild := ResolveStyle(map[string]string{"font-size": "8pt"}, &fixed, context)
+	assert.InDelta(t, 15, fixedChild.LineHeight, 0.001)
+}
+
+func TestResolveStyle_BlockAxisLogicalEdges(t *testing.T) {
+	context := defaultResolutionContext()
+	style := ResolveStyle(map[string]string{"padding-block": "4pt 8pt", "margin-block": "2pt"}, nil, context)
+
+	assert.InDelta(t, 4, style.PaddingTop, 0.001)
+	assert.InDelta(t, 8, style.PaddingBottom, 0.001)
+	assert.Equal(t, DimensionPt(2), style.MarginTop)
+	assert.Equal(t, DimensionPt(2), style.MarginBottom)
+
+	sides := ResolveStyle(map[string]string{"padding-block-start": "3pt", "margin-block-end": "5pt"}, nil, context)
+	assert.InDelta(t, 3, sides.PaddingTop, 0.001)
+	assert.Equal(t, DimensionPt(5), sides.MarginBottom)
+}

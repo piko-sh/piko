@@ -76,7 +76,7 @@ func alignGridItem(
 }
 
 // applyGridJustifyStretch stretches a grid item's content width to fill the cell when
-// justify-items is stretch.
+// justify-items is stretch and the item's width is auto; a set width is kept.
 //
 // Takes fragment (*Fragment) which is the grid item to stretch.
 // Takes justify (JustifyItemsType) which is the effective justify-items value.
@@ -84,7 +84,7 @@ func alignGridItem(
 //
 // Returns float64 which is the updated margin-box width.
 func applyGridJustifyStretch(fragment *Fragment, justify JustifyItemsType, cellWidth float64) float64 {
-	if justify == JustifyItemsStretch {
+	if justify == JustifyItemsStretch && fragment.Box.Style.Width.IsAuto() {
 		stretchWidth := cellWidth -
 			fragment.Padding.Horizontal() -
 			fragment.Border.Horizontal() -
@@ -117,7 +117,7 @@ func computeGridJustifyOffset(justify JustifyItemsType, cellWidth, itemMarginWid
 }
 
 // applyGridAlignStretch stretches a grid item's content height to fill the cell when
-// align-items is stretch.
+// align-items is stretch and the item's height is auto; a set height is kept.
 //
 // Takes fragment (*Fragment) which is the grid item to stretch.
 // Takes align (AlignItemsType) which is the effective align-items value.
@@ -125,7 +125,7 @@ func computeGridJustifyOffset(justify JustifyItemsType, cellWidth, itemMarginWid
 //
 // Returns float64 which is the updated margin-box height.
 func applyGridAlignStretch(fragment *Fragment, align AlignItemsType, cellHeight float64) float64 {
-	if align == AlignItemsStretch {
+	if align == AlignItemsStretch && fragment.Box.Style.Height.IsAuto() {
 		stretchHeight := cellHeight -
 			fragment.Padding.Vertical() -
 			fragment.Border.Vertical() -

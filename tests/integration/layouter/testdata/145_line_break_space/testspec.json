@@ -1,0 +1,7 @@
+{
+    "description": "Verifies the space a line ends with is not counted for alignment, and a word glued to an inline box, such as punctuation after bold text, never starts a line on its own.",
+    "requestURL": "/main",
+    "tolerance": 2.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

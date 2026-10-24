@@ -96,6 +96,7 @@ func (c *inlineLayoutContext) layoutWrappedTextRun(
 
 	if hasLeadingSpace {
 		c.cursorX += spaceWidth
+		c.breakOK = true
 	}
 
 	state := wrappedWordState{
@@ -142,6 +143,7 @@ func (c *inlineLayoutContext) emitFinalWrappedSegment(state *wrappedWordState, h
 	if hasTrailingSpace {
 		emitText += spaceChar
 		c.cursorX += state.spaceWidth
+		c.breakOK = true
 	}
 	c.emitTextSegment(
 		state.child, state.font, state.fontSize, emitText,
@@ -168,7 +170,8 @@ func (c *inlineLayoutContext) tryFitWordOnLine(
 		requiredWidth += state.spaceWidth
 	}
 
-	if c.cursorX+requiredWidth > c.effectiveAvailableWidth() && c.cursorX > 0 {
+	breakAllowed := needsSpace || c.breakOK || state.lastWasSoftHyphen
+	if c.overflowsLine(c.cursorX+requiredWidth) && c.cursorX > 0 && breakAllowed {
 		if !state.segmentEmpty {
 			emitText := state.segmentText
 			if state.lastWasSoftHyphen {
@@ -188,13 +191,14 @@ func (c *inlineLayoutContext) tryFitWordOnLine(
 		needsSpace = false
 	}
 
-	if wordWidth > c.effectiveAvailableWidth() && c.cursorX == 0 &&
+	if c.overflowsLine(wordWidth) && c.cursorX == 0 &&
 		state.child.Style.OverflowWrap != OverflowWrapNormal {
 		c.layoutCharacterBreakSingleWord(state.child, state.font, state.fontSize, displayWord, state.textLineHeight, state.parentMetrics, state.effectiveVA)
 		state.segmentStartX = c.cursorX
 		state.segmentText = ""
 		state.segmentEmpty = true
 		state.lastWasSoftHyphen = false
+		c.breakOK = false
 		return
 	}
 
@@ -203,6 +207,7 @@ func (c *inlineLayoutContext) tryFitWordOnLine(
 		state.segmentText += spaceChar
 	}
 	c.cursorX += wordWidth
+	c.breakOK = false
 	state.segmentText += displayWord
 	state.segmentEmpty = false
 	state.lastWasSoftHyphen = isHyphenFragment
@@ -223,7 +228,7 @@ func (c *inlineLayoutContext) tryFitWordOnLine(
 // Takes state (*wrappedWordState) which holds the mutable wrap state.
 func (c *inlineLayoutContext) handleSoftHyphenBreak(state *wrappedWordState) {
 	hyphenWidth := c.fontMetrics.MeasureText(state.font, state.fontSize, "-", state.direction)
-	if c.cursorX+hyphenWidth > c.effectiveAvailableWidth() {
+	if c.overflowsLine(c.cursorX + hyphenWidth) {
 		if !state.segmentEmpty {
 			c.cursorX += hyphenWidth
 			c.emitTextSegment(
@@ -303,7 +308,7 @@ func (c *inlineLayoutContext) breakClustersAtBoundaries(
 		candidate := strings.Join(clusters[segmentStart:i+1], "")
 		candidateWidth := c.fontMetrics.MeasureText(font, fontSize, candidate, direction)
 
-		if segmentStartX+candidateWidth > c.effectiveAvailableWidth() && i > segmentStart {
+		if c.overflowsLine(segmentStartX+candidateWidth) && i > segmentStart {
 			segment := strings.Join(clusters[segmentStart:i], "")
 			segmentWidth := c.fontMetrics.MeasureText(font, fontSize, segment, direction)
 			c.cursorX = segmentStartX + segmentWidth

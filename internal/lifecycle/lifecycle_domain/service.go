@@ -1084,8 +1084,9 @@ func (ls *lifecycleService) reconcileUnbuiltProfiles(ctx context.Context) {
 	}
 }
 
-// ReconcileUnbuiltProfiles dispatches the work every artefact in the registry still needs:
-// each desired profile that has no ready variant although the profiles it depends on do.
+// ReconcileUnbuiltProfiles dispatches the work every artefact in the registry still
+// needs: each desired profile that has no ready variant although the profiles it depends
+// on do.
 //
 // Takes lister (ArtefactLister) which lists the registry's artefacts.
 // Takes reconciler (ArtefactReconciler) which re-checks them and dispatches their work.
