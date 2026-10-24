@@ -59,10 +59,10 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 							s.LineHeight = 16.799999999999997
 							s.LetterSpacing = 3.75
 						}),
-						Text:          "Spaced out letters ",
+						Text:          "Spaced out letters",
 						ContentX:      22.5,
 						ContentY:      22.5,
-						ContentWidth:  176.25,
+						ContentWidth:  169.3828125,
 						ContentHeight: 16.799999999999997,
 					},
 				},
@@ -106,10 +106,10 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 							s.LineHeight = 16.799999999999997
 							s.WordSpacing = 15
 						}),
-						Text:          "Words with extra spacing between them ",
+						Text:          "Words with extra spacing between them",
 						ContentX:      22.5,
 						ContentY:      69.3,
-						ContentWidth:  229.83984375,
+						ContentWidth:  226.72265625,
 						ContentHeight: 16.799999999999997,
 					},
 				},
@@ -155,10 +155,10 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 							s.LetterSpacing = 2.25
 							s.WordSpacing = 7.5
 						}),
-						Text:          "Both letter and word spacing combined ",
+						Text:          "Both letter and word spacing combined",
 						ContentX:      22.5,
 						ContentY:      116.1,
-						ContentWidth:  311.4375,
+						ContentWidth:  306.0703125,
 						ContentHeight: 16.799999999999997,
 					},
 				},

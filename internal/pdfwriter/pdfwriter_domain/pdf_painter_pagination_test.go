@@ -163,6 +163,7 @@ func TestRenderPageStreams_MatchesWholeTreeWalk(t *testing.T) {
 		reference.basePageYOffset = float64(page) * reference.pageStride()
 		reference.pageYOffset = reference.basePageYOffset
 		expected.builder.WriteString("q\n1 0 0 1 10 -20 cm\n")
+		reference.writePageContentClip(expected)
 		reference.paintPageBoxes(context.Background(), expected, root, page)
 		expected.builder.WriteString("Q\n")
 
@@ -181,4 +182,84 @@ func TestRenderPageStreams_CancelledContext(t *testing.T) {
 
 	assert.Nil(t, streams)
 	assert.ErrorIs(t, err, context.Canceled)
+}
+
+func TestRenderPageStreams_SplitBoxDecoratesEveryPage(t *testing.T) {
+	t.Parallel()
+
+	const fill = "0.30 0.60 0.90 rg"
+
+	split := newLayoutBox().WithContentRect(0, 800, 595, 100).WithBoxType(layouter_domain.BoxBlock).
+		WithBackground(testColour(0.3, 0.6, 0.9, 1)).WithPageIndex(0).Build()
+	split.LastPageIndex = 1
+	split.Fragments = []layouter_domain.BoxFragment{
+		{PageIndex: 0, Top: 800, Bottom: 842},
+		{PageIndex: 1, Top: 842, Bottom: 900},
+	}
+	root := newLayoutBox().WithContentRect(0, 0, 595, 1684).WithBoxType(layouter_domain.BoxBlock).
+		WithPageIndex(0).WithChildren(split).Build()
+
+	entries := collectPageEntryBoxes(root, 2)
+	assert.Equal(t, []*layouter_domain.LayoutBox{split}, entries[1], "the split box starts page 1's painting")
+
+	painter := newPainterWithDefaults()
+	painter.setPageMargins(0, 0, 842)
+	streams, err := painter.renderPageStreams(context.Background(), root, 2, "")
+	require.NoError(t, err)
+	assert.Contains(t, streams[0].String(), fill)
+	assert.Contains(t, streams[1].String(), fill, "the slice on page 1 is painted too")
+	for _, stream := range streams {
+		assert.Contains(t, stream.String(), " re W n\n", "a multi-page document clips each page to its content area")
+	}
+}
+
+func TestStitchedForPage(t *testing.T) {
+	t.Parallel()
+
+	box := newLayoutBox().WithContentRect(0, 810, 595, 80).WithBoxType(layouter_domain.BoxBlock).Build()
+	box.Border = layouter_domain.BoxEdges{Top: 10, Bottom: 10}
+	box.Fragments = []layouter_domain.BoxFragment{
+		{PageIndex: 0, Top: 800, Bottom: 842},
+		{PageIndex: 1, Top: 842, Bottom: 900},
+	}
+
+	first := stitchedForPage(box, 0)
+	second := stitchedForPage(box, 1)
+	require.NotNil(t, first)
+	require.NotNil(t, second)
+	assert.InDelta(t, 800, first.BorderBoxY(), 0.001)
+	assert.InDelta(t, 100, first.BorderBoxHeight(), 0.001)
+	assert.InDelta(t, 842-42, second.BorderBoxY(), 0.001, "page 1's slice starts 42 points into the stitched box")
+	assert.Nil(t, stitchedForPage(box, 2))
+	assert.Nil(t, stitchedForPage(newLayoutBox().Build(), 0))
+}
+
+func TestRenderPageStreams_SinglePageIsNotClipped(t *testing.T) {
+	t.Parallel()
+
+	root := newLayoutBox().WithContentRect(0, 0, 595, 842).WithBoxType(layouter_domain.BoxBlock).
+		WithBackground(testColour(1, 1, 1, 1)).WithPageIndex(0).Build()
+	painter := newPainterWithDefaults()
+	painter.setPageMargins(0, 0, 842)
+	streams, err := painter.renderPageStreams(context.Background(), root, 1, "")
+	require.NoError(t, err)
+	assert.NotContains(t, streams[0].String(), " re W n\n")
+}
+
+func TestApplyStructTag_ReusesTheNodeOnLaterPages(t *testing.T) {
+	t.Parallel()
+
+	painter := newPainterWithDefaults()
+	painter.enableTaggedPDF()
+	box := newLayoutBox().WithSourceNode(testSourceNode("p")).Build()
+
+	require.True(t, painter.applyStructTag(&ContentStream{}, box, 0))
+	painter.structStack = painter.structStack[:len(painter.structStack)-1]
+	require.True(t, painter.applyStructTag(&ContentStream{}, box, 1))
+
+	node := painter.structNodes[box]
+	require.NotNil(t, node)
+	require.Len(t, node.mcids, 2)
+	assert.Equal(t, []int{0, 1}, []int{node.mcids[0].pageIndex, node.mcids[1].pageIndex})
+	assert.Len(t, painter.structTree.root.children, 1, "one element for the box")
 }

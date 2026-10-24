@@ -216,7 +216,7 @@ func ensureTypeDefinitions(ctx context.Context, c *Container) {
 //
 // Returns error when the font metrics cannot be created.
 func setupPdfWriterService(c *Container, runner templater_domain.ManifestRunnerPort, modeName string) error {
-	fontEntries := newDefaultPdfFontEntries()
+	fontEntries := append(newDefaultPdfFontEntries(), c.pdfFontEntries...)
 	fontMetrics, fontMetricsError := layouter_adapters.NewGoTextFontMetrics(fontEntries)
 	if fontMetricsError != nil {
 		return fmt.Errorf("failed to create font metrics for %s: %w", modeName, fontMetricsError)

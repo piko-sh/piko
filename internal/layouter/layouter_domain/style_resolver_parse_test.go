@@ -318,7 +318,10 @@ func TestParseFontFamily(t *testing.T) {
 	}{
 		{"double quoted", `"Helvetica"`, "Helvetica"},
 		{"single quoted", `'Arial'`, "Arial"},
-		{"comma separated takes first", `"Times New Roman", serif`, `"Times New Roman"`},
+		{"comma separated takes first", `"Times New Roman", serif`, "Times New Roman"},
+		{"quoted family before fallbacks", `'Alan Sans', system-ui, sans-serif`, "Alan Sans"},
+		{"comma inside the quotes", `"Foo, Bar", serif`, "Foo, Bar"},
+		{"unquoted list takes first", "Arial, sans-serif", "Arial"},
 		{"unquoted generic", "sans-serif", "sans-serif"},
 		{"empty string", "", ""},
 	}

@@ -274,8 +274,10 @@ func buildPositionedFragment(
 	)
 
 	var children []*Fragment
+	var replacements map[*LayoutBox][]*LayoutBox
 	if childResult != nil {
 		children = childResult.Children
+		replacements = childResult.replacements
 	}
 
 	fragment := &Fragment{
@@ -288,6 +290,7 @@ func buildPositionedFragment(
 		Padding:       ctx.edges.Padding,
 		Border:        ctx.edges.Border,
 		Margin:        ctx.margin,
+		replacements:  replacements,
 	}
 	writeFragmentsToBoxTree(fragment, containingBlock.ContentX, containingBlock.ContentY)
 }

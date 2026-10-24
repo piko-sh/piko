@@ -25,6 +25,10 @@ type Fragment struct {
 	// Box is a back-reference to the input LayoutBox that produced this fragment.
 	Box *LayoutBox
 
+	// replacements maps each of Box's text runs that inline layout split into line segments
+	// to those segments, applied when the fragment is written back to the tree.
+	replacements map[*LayoutBox][]*LayoutBox
+
 	// Children are the child fragments in document order.
 	Children []*Fragment
 
@@ -152,6 +156,7 @@ func newFragment(box *LayoutBox, offsetX, offsetY, contentWidth, contentHeight f
 		Padding:       BoxEdges{},
 		Border:        BoxEdges{},
 		Margin:        BoxEdges{},
+		replacements:  nil,
 	}
 }
 
@@ -174,6 +179,7 @@ func newOffsetFragmentCopy(fragment *Fragment, offsetX, offsetY float64) *Fragme
 		Padding:       fragment.Padding,
 		Border:        fragment.Border,
 		Margin:        fragment.Margin,
+		replacements:  fragment.replacements,
 	}
 }
 
@@ -197,8 +203,32 @@ func writeFragmentsToBoxTree(fragment *Fragment, parentContentX, parentContentY 
 		box.Padding = fragment.Padding
 		box.Border = fragment.Border
 		box.Margin = fragment.Margin
+		if len(fragment.replacements) > 0 {
+			applyChildReplacements(box, fragment.replacements)
+		}
+		box.lines = recordLines(fragment, box.lines[:0])
 	}
 	for _, child := range fragment.Children {
 		writeFragmentsToBoxTree(child, contentX, contentY)
 	}
+}
+
+// recordLines collects the line boxes among a fragment's children, the fragments with no
+// box of their own, so that pagination can break between lines.
+//
+// Takes fragment (*Fragment) which is the container's fragment.
+// Takes lines ([]lineRecord) which is the slice to append to.
+//
+// Returns []lineRecord which holds the container's lines in order, or nil when it has
+// none.
+func recordLines(fragment *Fragment, lines []lineRecord) []lineRecord {
+	for _, child := range fragment.Children {
+		if child.Box == nil {
+			lines = append(lines, lineRecord{top: child.OffsetY, height: child.ContentHeight})
+		}
+	}
+	if len(lines) == 0 {
+		return nil
+	}
+	return lines
 }

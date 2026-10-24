@@ -23,6 +23,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"piko.sh/piko/internal/ast/ast_domain"
 )
 
 func TestWriteAnnotations_EmitsLinkAnnotations(t *testing.T) {
@@ -64,4 +66,37 @@ func TestWriteAnnotations_EncodesUnicodeURI(t *testing.T) {
 	output := string(writer.Bytes())
 	assert.NotContains(t, output, "caf\xc3\xa9", "expected non-ASCII URI to be UTF-16BE encoded, not raw UTF-8")
 	assert.Contains(t, output, "/URI <FEFF", "expected UTF-16BE URI token")
+}
+
+func TestCollectLinkAnnotation_ReadsABoundHref(t *testing.T) {
+	writer := ast_domain.GetDirectWriter()
+	writer.SetName("href")
+	writer.AppendString("https://example.com/?a=1&b=2")
+	node := &ast_domain.TemplateNode{
+		NodeType:         ast_domain.NodeElement,
+		TagName:          "a",
+		AttributeWriters: []*ast_domain.DirectWriter{writer},
+	}
+	painter := newPainterWithDefaults()
+	painter.collectLinkAnnotation(newLayoutBox().WithContentRect(10, 10, 100, 20).WithBorder(0, 0, 0, 0).
+		WithSourceNode(node).Build())
+
+	require.Len(t, painter.annotations, 1)
+	assert.Equal(t, "https://example.com/?a=1&b=2", painter.annotations[0].uri)
+}
+
+func TestCollectLinkAnnotation_RectIncludesThePageMargins(t *testing.T) {
+	painter := newPainterWithDefaults()
+	painter.pageHeight = 800
+	painter.marginLeft = 40
+	painter.marginTop = 30
+	painter.collectLinkAnnotation(newLayoutBox().WithContentRect(10, 50, 100, 20).WithBorder(0, 0, 0, 0).
+		WithSourceNode(testSourceNode("a", "href", "https://example.com")).Build())
+
+	require.Len(t, painter.annotations, 1)
+	annot := painter.annotations[0]
+	assert.InDelta(t, 50, annot.x1, 0.001)
+	assert.InDelta(t, 150, annot.x2, 0.001)
+	assert.InDelta(t, 800-30-50, annot.y2, 0.001)
+	assert.InDelta(t, 800-30-70, annot.y1, 0.001)
 }

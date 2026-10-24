@@ -79,7 +79,9 @@ func layoutMultiColumnContainer(ctx context.Context, box *LayoutBox, input layou
 
 	resultFragments := positionColumns(columns, columnWidth, gap)
 
-	return newFormattingContextResult(resultFragments, columnHeight, singleColumnResult.Margin)
+	result := newFormattingContextResult(resultFragments, columnHeight, singleColumnResult.Margin)
+	result.replacements = singleColumnResult.replacements
+	return result
 }
 
 // resolveColumnDimensions computes the actual column count and column width from the CSS

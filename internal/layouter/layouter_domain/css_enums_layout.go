@@ -226,6 +226,20 @@ const (
 	PageBreakRight
 )
 
+// BoxDecorationBreakType represents the CSS box-decoration-break property: how a box's
+// borders, padding and background are drawn where a page break fragments it.
+type BoxDecorationBreakType int
+
+const (
+	// BoxDecorationBreakSlice draws the box as if unbroken and slices it at the break, so
+	// only the first fragment has the top edge and only the last the bottom.
+	BoxDecorationBreakSlice BoxDecorationBreakType = iota
+
+	// BoxDecorationBreakClone draws every fragment with the box's full borders, padding and
+	// rounded corners.
+	BoxDecorationBreakClone
+)
+
 // WritingModeType represents the CSS writing-mode property.
 type WritingModeType int
 

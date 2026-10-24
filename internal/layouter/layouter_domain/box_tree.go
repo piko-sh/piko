@@ -209,8 +209,22 @@ type LayoutBox struct {
 	// Text is the string content for TextRun boxes.
 	Text string
 
+	// sourceText is a text run's text as the box tree built it, before any layout pass
+	// rewrote Text (text-transform, tab expansion, leading-space trimming, ellipsis), so
+	// that every pass starts from the same text.
+	sourceText string
+
 	// Glyphs holds the shaped glyph positions for TextRun boxes, or nil for non-text boxes.
 	Glyphs []GlyphPosition
+
+	// Fragments lists the slices of a box that pagination split across pages, in page order
+	// and in effective coordinates (layout Y plus offset), or is nil for a box that sits on
+	// one page.
+	Fragments []BoxFragment
+
+	// lines records the line boxes of an inline formatting context this box holds, as
+	// written back from layout: each line's top relative to ContentY and its height.
+	lines []lineRecord
 
 	// Style is the fully resolved computed style for this box.
 	Style ComputedStyle
@@ -249,6 +263,18 @@ type LayoutBox struct {
 	// PageIndex identifies which page this box appears on (zero-based).
 	PageIndex int
 
+	// LastPageIndex is the last page this box or any of its descendants falls on; it equals
+	// PageIndex for a box on one page.
+	LastPageIndex int
+
+	// gridRowStart and gridRowEnd are a grid item's zero-based row span (end exclusive),
+	// valid when gridPlaced is true.
+	gridRowStart, gridRowEnd int
+
+	// flexLine is the one-based flex line of an item in a row-direction flex container, or
+	// zero.
+	flexLine int
+
 	// PageYOffset is the cumulative Y displacement from forced page breaks (break-before,
 	// break-after). Used by position extraction to compute correct page-relative Y
 	// coordinates.
@@ -277,6 +303,12 @@ type LayoutBox struct {
 	// IsListMarker is true for text runs that represent a list marker generated for
 	// list-style-position: inside.
 	IsListMarker bool
+
+	// hasSourceText is true once sourceText has been captured.
+	hasSourceText bool
+
+	// gridPlaced is true for a grid item whose row span layout recorded.
+	gridPlaced bool
 }
 
 // BorderBoxWidth returns the total width including padding, borders, and content.
@@ -369,4 +401,46 @@ func newLayoutBox(boxType BoxType, style *ComputedStyle, parent *LayoutBox) *Lay
 	box.Style = *style
 	box.Parent = parent
 	return &box
+}
+
+// resetToSourceText restores a text run's Text to the text the box tree built, capturing
+// it on the first call, so a layout pass never starts from an earlier pass's rewrite.
+func (b *LayoutBox) resetToSourceText() {
+	if !b.hasSourceText {
+		b.sourceText = b.Text
+		b.hasSourceText = true
+		return
+	}
+	b.Text = b.sourceText
+}
+
+// layoutSourceText returns a text run's text as the box tree built it.
+//
+// Returns string which is the source text, or Text when no pass has captured it yet.
+func (b *LayoutBox) layoutSourceText() string {
+	if b.hasSourceText {
+		return b.sourceText
+	}
+	return b.Text
+}
+
+// BoxFragment is one page's slice of a box that pagination split across pages.
+type BoxFragment struct {
+	// PageIndex is the page the slice is on.
+	PageIndex int
+
+	// Top is the slice's top edge in effective coordinates.
+	Top float64
+
+	// Bottom is the slice's bottom edge in effective coordinates.
+	Bottom float64
+}
+
+// lineRecord is one line box of an inline formatting context.
+type lineRecord struct {
+	// top is the line's top relative to the container's ContentY.
+	top float64
+
+	// height is the line's height.
+	height float64
 }

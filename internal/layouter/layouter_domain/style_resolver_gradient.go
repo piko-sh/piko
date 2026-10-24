@@ -973,6 +973,20 @@ func resolveLineHeight(value string, fontSize float64, context ResolutionContext
 	return resolveLength(value, context)
 }
 
+// lineHeightFactor returns a unitless line-height number, which inherits as the number
+// rather than as the length it resolves to (CSS Inline 3 section 4.2).
+//
+// Takes value (string) which is the CSS line-height string.
+//
+// Returns float64 which is the number, or zero for any other value.
+func lineHeightFactor(value string) float64 {
+	number, err := strconv.ParseFloat(value, 64)
+	if err != nil || number <= 0 {
+		return 0
+	}
+	return number
+}
+
 // parseFilterList parses a CSS filter property value into a slice of FilterValue structs.
 //
 // Takes value (string) which is the CSS filter property value string.

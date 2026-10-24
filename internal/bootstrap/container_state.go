@@ -52,6 +52,7 @@ import (
 	"piko.sh/piko/internal/image/image_domain"
 	"piko.sh/piko/internal/image/image_dto"
 	"piko.sh/piko/internal/inspector/inspector_domain"
+	"piko.sh/piko/internal/layouter/layouter_dto"
 	"piko.sh/piko/internal/llm/llm_domain"
 	"piko.sh/piko/internal/markdown/markdown_domain"
 	"piko.sh/piko/internal/monitoring/monitoring_domain"
@@ -575,6 +576,10 @@ type containerOverrides struct {
 
 	// typeInspectorBuilderOverride is a custom type inspector builder; nil uses the default.
 	typeInspectorBuilderOverride *inspector_domain.TypeBuilder
+
+	// pdfFontEntries holds the fonts registered with WithPdfFont, added to the PDF writer's
+	// bundled Noto Sans faces.
+	pdfFontEntries []layouter_dto.FontEntry
 }
 
 // containerProviders holds the providers, adapters, and extensions registered through

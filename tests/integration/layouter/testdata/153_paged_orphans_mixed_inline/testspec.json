@@ -1,0 +1,33 @@
+{
+    "description": "Verifies widows apply to a paragraph that contains an inline element: three lines move to the next page, and the inline element moves with its line.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 400,
+    "viewportHeight": 800,
+    "pageWidthPx": 400,
+    "pageHeightPx": 200,
+    "pageMarginPx": 0,
+    "expectedPositions": {
+        "filler": {
+            "pageIndex": 0,
+            "x": 0,
+            "y": 0,
+            "width": 400,
+            "height": 130
+        },
+        "mark": {
+            "pageIndex": 1,
+            "x": 0,
+            "y": 0,
+            "width": 10,
+            "height": 10
+        },
+        "after": {
+            "pageIndex": 1,
+            "x": 0,
+            "y": 60,
+            "width": 400,
+            "height": 20
+        }
+    }
+}

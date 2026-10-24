@@ -430,9 +430,11 @@ func parseOverflowWrap(value string) OverflowWrapType {
 // Returns string which is the extracted font family name.
 func parseFontFamily(value string) string {
 	value = strings.TrimSpace(value)
-	if len(value) >= 2 && ((value[0] == '"' && value[len(value)-1] == '"') ||
-		(value[0] == '\'' && value[len(value)-1] == '\'')) {
-		return value[1 : len(value)-1]
+	if len(value) >= 2 && (value[0] == '"' || value[0] == '\'') {
+
+		if end := strings.IndexByte(value[1:], value[0]); end >= 0 {
+			return value[1 : end+1]
+		}
 	}
 	if before, _, found := strings.Cut(value, commaDelimiter); found {
 		return strings.TrimSpace(before)
@@ -709,15 +711,29 @@ func parsePageBreak(value string) PageBreakType {
 	switch value {
 	case "always", "page":
 		return PageBreakAlways
-	case "avoid":
+	case "avoid", "avoid-page":
 		return PageBreakAvoid
-	case cssKeywordLeft:
+	case cssKeywordLeft, "verso":
 		return PageBreakLeft
-	case cssKeywordRight:
+	case cssKeywordRight, "recto":
 		return PageBreakRight
 	default:
+
 		return PageBreakAuto
 	}
+}
+
+// parseBoxDecorationBreak maps a CSS box-decoration-break value to its enum, defaulting
+// to slice.
+//
+// Takes value (string) which is the CSS box-decoration-break value.
+//
+// Returns BoxDecorationBreakType which is the corresponding enum.
+func parseBoxDecorationBreak(value string) BoxDecorationBreakType {
+	if value == "clone" {
+		return BoxDecorationBreakClone
+	}
+	return BoxDecorationBreakSlice
 }
 
 // parseWritingMode parses a CSS writing-mode value into a WritingModeType, defaulting to

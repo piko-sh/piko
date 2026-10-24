@@ -20,6 +20,7 @@ package layouter_adapters
 
 import (
 	"bytes"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -589,5 +590,26 @@ func TestDetectScriptAndLanguage(t *testing.T) {
 			assert.Equal(t, testCase.wantScript, script.String())
 			assert.NotEmpty(t, string(language))
 		})
+	}
+}
+
+func TestGoTextFontMetrics_ShapeAndMeasureText_ControlCharactersShapeAsSpaces(t *testing.T) {
+	t.Parallel()
+
+	metrics := newTestMetrics(t, staticNotoEntries()...)
+	descriptor := layouter_domain.FontDescriptor{Family: fonts.NotoSansFamilyName, Weight: 400}
+
+	for _, text := range []string{"Go\n", "a\tb", "\r\nx"} {
+		glyphs, width := metrics.ShapeAndMeasureText(descriptor, 12, text, layouter_domain.DirectionLTR)
+		for _, glyph := range glyphs {
+			assert.NotZero(t, glyph.GlyphID, "%q shaped a missing glyph", text)
+		}
+		spaced := strings.Map(func(r rune) rune {
+			if r < ' ' {
+				return ' '
+			}
+			return r
+		}, text)
+		assert.InDelta(t, metrics.MeasureText(descriptor, 12, spaced, layouter_domain.DirectionLTR), width, 1e-9)
 	}
 }

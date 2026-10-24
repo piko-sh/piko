@@ -1,0 +1,54 @@
+{
+    "description": "Verifies a heading, through the default stylesheet, and a box with break-after: avoid move to the next page with the box that follows them.",
+    "requestURL": "/main",
+    "tolerance": 1.0,
+    "viewportWidth": 400,
+    "viewportHeight": 800,
+    "pageWidthPx": 400,
+    "pageHeightPx": 200,
+    "pageMarginPx": 0,
+    "expectedPositions": {
+        "filler-a": {
+            "pageIndex": 0,
+            "x": 0,
+            "y": 0,
+            "width": 400,
+            "height": 150
+        },
+        "heading": {
+            "pageIndex": 1,
+            "x": 0,
+            "y": 0,
+            "width": 400,
+            "height": 30
+        },
+        "block-a": {
+            "pageIndex": 1,
+            "x": 0,
+            "y": 30,
+            "width": 400,
+            "height": 60
+        },
+        "filler-b": {
+            "pageIndex": 1,
+            "x": 0,
+            "y": 90,
+            "width": 400,
+            "height": 80
+        },
+        "caption": {
+            "pageIndex": 2,
+            "x": 0,
+            "y": 0,
+            "width": 400,
+            "height": 20
+        },
+        "block-b": {
+            "pageIndex": 2,
+            "x": 0,
+            "y": 20,
+            "width": 400,
+            "height": 40
+        }
+    }
+}

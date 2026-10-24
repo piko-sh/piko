@@ -209,10 +209,10 @@ func TestPaginate_BreakInsideAvoid_TallerThanPage(t *testing.T) {
 		ContentHeight: 400,
 		Style:         ComputedStyle{PageBreakInside: PageBreakAvoid},
 		Children: []*LayoutBox{
-			{ContentY: 0, ContentHeight: 100},
-			{ContentY: 100, ContentHeight: 100},
-			{ContentY: 200, ContentHeight: 100},
-			{ContentY: 300, ContentHeight: 100},
+			{ContentY: 0, ContentHeight: 100, Style: ComputedStyle{PageBreakInside: PageBreakAvoid}},
+			{ContentY: 100, ContentHeight: 100, Style: ComputedStyle{PageBreakInside: PageBreakAvoid}},
+			{ContentY: 200, ContentHeight: 100, Style: ComputedStyle{PageBreakInside: PageBreakAvoid}},
+			{ContentY: 300, ContentHeight: 100, Style: ComputedStyle{PageBreakInside: PageBreakAvoid}},
 		},
 	}
 	root := &LayoutBox{
@@ -1040,9 +1040,9 @@ func TestPaginate_ChildOverflow_PushToNextPage(t *testing.T) {
 	root := &LayoutBox{
 		ContentY: 0,
 		Children: []*LayoutBox{
-			{ContentY: 0, ContentHeight: 100},
-			{ContentY: 100, ContentHeight: 100},
-			{ContentY: 200, ContentHeight: 100},
+			{ContentY: 0, ContentHeight: 100, Style: ComputedStyle{PageBreakInside: PageBreakAvoid}},
+			{ContentY: 100, ContentHeight: 100, Style: ComputedStyle{PageBreakInside: PageBreakAvoid}},
+			{ContentY: 200, ContentHeight: 100, Style: ComputedStyle{PageBreakInside: PageBreakAvoid}},
 		},
 	}
 
@@ -1064,8 +1064,37 @@ func TestPaginate_ChildOverflow_TallerThanPage(t *testing.T) {
 	}
 
 	maxPage := mustPaginate(t, root, UniformPageGeometry(200))
-	assert.Equal(t, 0, maxPage)
-	assert.Equal(t, 0, root.Children[0].PageIndex)
+	assert.Equal(t, 1, maxPage, "a box taller than a page continues onto the next")
+	child := root.Children[0]
+	assert.Equal(t, 0, child.PageIndex)
+	assert.Equal(t, 1, child.LastPageIndex)
+	assert.Equal(t, []BoxFragment{
+		{PageIndex: 0, Top: 0, Bottom: 200},
+		{PageIndex: 1, Top: 200, Bottom: 300},
+	}, child.Fragments)
+}
+
+func TestPaginate_ChildOverflow_EmptyBoxSplits(t *testing.T) {
+
+	root := &LayoutBox{
+		ContentY: 0,
+		Children: []*LayoutBox{
+			{ContentY: 0, ContentHeight: 100},
+			{ContentY: 100, ContentHeight: 100},
+			{ContentY: 200, ContentHeight: 100},
+		},
+	}
+
+	maxPage := mustPaginate(t, root, UniformPageGeometry(250))
+	assert.Equal(t, 1, maxPage)
+
+	split := root.Children[2]
+	assert.Equal(t, 0, split.PageIndex)
+	assert.Equal(t, 1, split.LastPageIndex)
+	assert.Equal(t, []BoxFragment{
+		{PageIndex: 0, Top: 200, Bottom: 250},
+		{PageIndex: 1, Top: 250, Bottom: 300},
+	}, split.Fragments)
 }
 
 func TestPaginate_ChildOverflow_FitsExactly(t *testing.T) {
@@ -1088,10 +1117,10 @@ func TestPaginate_ChildOverflow_ChainedPush(t *testing.T) {
 	root := &LayoutBox{
 		ContentY: 0,
 		Children: []*LayoutBox{
-			{ContentY: 0, ContentHeight: 80},
-			{ContentY: 80, ContentHeight: 80},
-			{ContentY: 160, ContentHeight: 80},
-			{ContentY: 240, ContentHeight: 80},
+			{ContentY: 0, ContentHeight: 80, Style: ComputedStyle{PageBreakInside: PageBreakAvoid}},
+			{ContentY: 80, ContentHeight: 80, Style: ComputedStyle{PageBreakInside: PageBreakAvoid}},
+			{ContentY: 160, ContentHeight: 80, Style: ComputedStyle{PageBreakInside: PageBreakAvoid}},
+			{ContentY: 240, ContentHeight: 80, Style: ComputedStyle{PageBreakInside: PageBreakAvoid}},
 		},
 	}
 

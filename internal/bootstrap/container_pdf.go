@@ -76,6 +76,18 @@ func WithPdfMaxImagePixels(pixels int) Option {
 	}
 }
 
+// WithPdfFont registers a font face for PDF rendering, alongside the bundled Noto Sans,
+// so that a document's font-family can name it.
+//
+// Takes entry (layouter_dto.FontEntry) which is the face to register.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithPdfFont(entry layouter_dto.FontEntry) Option {
+	return func(c *Container) {
+		c.pdfFontEntries = append(c.pdfFontEntries, entry)
+	}
+}
+
 // pdfServiceLimitOptions converts the resolved PDF configuration into the PDF writer
 // service options carrying its layout limits and image pixel cap. Unset fields become
 // zero, which the PDF pipeline treats as its built-in default.

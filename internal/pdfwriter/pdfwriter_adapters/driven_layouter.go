@@ -93,11 +93,7 @@ func (adapter *LayouterAdapter) Layout(
 		rootFontSize = defaultRootFontSize
 	}
 
-	layoutHeight := config.Page.Height
-	if config.Page.AutoHeight {
-		layoutHeight = autoHeightSentinel
-	}
-
+	layoutHeight := layoutViewportHeight(config.Page)
 	contentWidth := config.Page.ContentAreaWidth()
 	limits := layouter_domain.NewLimitTracker(config.Limits)
 
@@ -367,4 +363,18 @@ func buildPages(
 // Returns int which is the estimated number of elements.
 func estimateElementCount(raw string) int {
 	return strings.Count(raw, "<") - strings.Count(raw, "</")
+}
+
+// layoutViewportHeight returns the height vh resolves against: the page's content area,
+// as in a browser's print layout, so a 100vh cover fills one page rather than spilling
+// the height of its margins onto the next. An auto-height page has no fixed viewport.
+//
+// Takes page (layouter_dto.PageConfig) which is the page geometry.
+//
+// Returns float64 which is the viewport height in points.
+func layoutViewportHeight(page layouter_dto.PageConfig) float64 {
+	if page.AutoHeight {
+		return autoHeightSentinel
+	}
+	return page.ContentAreaHeight()
 }

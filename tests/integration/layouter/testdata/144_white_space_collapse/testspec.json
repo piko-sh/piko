@@ -1,0 +1,7 @@
+{
+    "description": "Verifies CSS white-space collapsing, measured through the max-content width of a flex item: newlines, tabs and runs of spaces become one space, the edges of an inline formatting context are trimmed, and no-break spaces and pre text are kept.",
+    "requestURL": "/main",
+    "tolerance": 2.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

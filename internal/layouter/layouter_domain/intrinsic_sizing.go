@@ -18,6 +18,10 @@
 
 package layouter_domain
 
+import (
+	"strings"
+)
+
 // measureIntrinsicWidth returns the intrinsic width for the given box in the specified
 // sizing mode. For min-content this is the narrowest width that avoids overflow; for
 // max-content this is the width with no line breaks taken.
@@ -108,7 +112,7 @@ func measureTextIntrinsicWidth(box *LayoutBox, mode SizingMode, fontMetrics Font
 		Style:  box.Style.FontStyle,
 	}
 
-	text := applyTextTransform(box.Text, box.Style.TextTransform)
+	text := applyTextTransform(box.layoutSourceText(), box.Style.TextTransform)
 
 	if mode == SizingModeMinContent {
 		words := splitIntoWords(text)
@@ -125,11 +129,41 @@ func measureTextIntrinsicWidth(box *LayoutBox, mode SizingMode, fontMetrics Font
 		return widest
 	}
 
-	totalWidth := fontMetrics.MeasureText(font, box.Style.FontSize, text, box.Style.Direction)
-	if box.Style.LetterSpacing != 0 {
-		totalWidth += box.Style.LetterSpacing * float64(len([]rune(text)))
+	if preservesLineBreaks(box.Style.WhiteSpace) && strings.Contains(text, "\n") {
+
+		widest := 0.0
+		for line := range strings.SplitSeq(text, "\n") {
+			widest = max(widest, measureTextLineWidth(font, box, line, fontMetrics))
+		}
+		return widest
 	}
-	return totalWidth
+	return measureTextLineWidth(font, box, text, fontMetrics)
+}
+
+// preservesLineBreaks reports whether a white-space mode keeps line feeds as forced line
+// breaks.
+//
+// Takes mode (WhiteSpaceType) which is the computed white-space value.
+//
+// Returns bool which is true for pre, pre-wrap and pre-line.
+func preservesLineBreaks(mode WhiteSpaceType) bool {
+	return mode == WhiteSpacePre || mode == WhiteSpacePreWrap || mode == WhiteSpacePreLine
+}
+
+// measureTextLineWidth measures one line of a text run, letter spacing included.
+//
+// Takes font (FontDescriptor) which is the run's font.
+// Takes box (*LayoutBox) which is the text run, for its size, spacing and direction.
+// Takes line (string) which is the text to measure.
+// Takes fontMetrics (FontMetricsPort) which provides text measurement.
+//
+// Returns float64 which is the line's width in points.
+func measureTextLineWidth(font FontDescriptor, box *LayoutBox, line string, fontMetrics FontMetricsPort) float64 {
+	width := fontMetrics.MeasureText(font, box.Style.FontSize, line, box.Style.Direction)
+	if box.Style.LetterSpacing != 0 {
+		width += box.Style.LetterSpacing * float64(len([]rune(line)))
+	}
+	return width
 }
 
 // measureBlockIntrinsicWidth computes the intrinsic width of a block box.
@@ -186,7 +220,7 @@ func measureMaxContentChildrenWidth(box *LayoutBox, fontMetrics FontMetricsPort)
 			continue
 		}
 		childWidth := measureIntrinsicWidth(child, SizingModeMaxContent, fontMetrics)
-		if child.Type.IsInlineLevel() {
+		if isInlineLevelChild(child) {
 			currentRun += childWidth
 			if currentRun > maxChildWidth {
 				maxChildWidth = currentRun
@@ -277,7 +311,8 @@ func measureFlexIntrinsicWidth(box *LayoutBox, mode SizingMode, fontMetrics Font
 	total := 0.0
 	maxItemWidth := 0.0
 	for index, child := range box.Children {
-		itemWidth := measureIntrinsicWidth(child, mode, fontMetrics)
+		itemWidth := measureIntrinsicWidth(child, mode, fontMetrics) +
+			child.Style.MarginLeft.Resolve(0, 0) + child.Style.MarginRight.Resolve(0, 0)
 
 		if isRow && mode == SizingModeMaxContent {
 			if index > 0 {

@@ -1,0 +1,5 @@
+{
+    "description": "A two-column CV built from a grid per entry: a short meta column that keeps itself whole beside a long body column. Entries break across pages with the meta column staying at the top, the body's divider continuing on the next page, headings kept with the first entry, and interpolated chip text trimmed.",
+    "pdfPath": "pdfs/main.pk",
+    "comparisonURL": "/"
+}

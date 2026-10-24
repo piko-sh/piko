@@ -355,6 +355,7 @@ func (s *ComputedStyle) InheritedComputedStyle() ComputedStyle {
 	result.FontStyle = s.FontStyle
 	result.Colour = s.Colour
 	result.LineHeight = s.LineHeight
+	result.LineHeightFactor = s.LineHeightFactor
 	result.LineHeightAuto = s.LineHeightAuto
 	result.LetterSpacing = s.LetterSpacing
 	result.WordSpacing = s.WordSpacing

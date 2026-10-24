@@ -3876,6 +3876,62 @@ func WithPdfLayoutLimits(limits PdfLayoutLimits) Option {
 	return bootstrap.WithPdfLayoutLimits(limits)
 }
 
+// WithPdfFont registers a static font face for PDF rendering, so that a document whose
+// font-family names it is set in it rather than in the bundled Noto Sans. Register one
+// face per weight and style; a weight with no face of its own uses the family's 400 face.
+//
+// Takes family (string) which is the CSS font-family name the face answers to.
+// Takes weight (int) which is the face's CSS font-weight, 100 to 900.
+// Takes italic (bool) which is true for an italic face.
+// Takes data ([]byte) which is the face's TrueType or OpenType file.
+//
+// Returns Option which registers the face.
+func WithPdfFont(family string, weight int, italic bool, data []byte) Option {
+	return bootstrap.WithPdfFont(layouter_dto.FontEntry{
+		Family:     family,
+		Data:       data,
+		Weight:     weight,
+		Style:      pdfFontStyle(italic),
+		WeightMin:  0,
+		WeightMax:  0,
+		IsVariable: false,
+	})
+}
+
+// WithPdfVariableFont registers an OpenType variable font for PDF rendering, covering
+// every weight on its weight axis between weightMin and weightMax.
+//
+// Takes family (string) which is the CSS font-family name the font answers to.
+// Takes weightMin (int) which is the lightest weight the font covers.
+// Takes weightMax (int) which is the heaviest weight the font covers.
+// Takes italic (bool) which is true for an italic font.
+// Takes data ([]byte) which is the font's TrueType or OpenType file.
+//
+// Returns Option which registers the font.
+func WithPdfVariableFont(family string, weightMin, weightMax int, italic bool, data []byte) Option {
+	return bootstrap.WithPdfFont(layouter_dto.FontEntry{
+		Family:     family,
+		Data:       data,
+		Weight:     weightMin,
+		Style:      pdfFontStyle(italic),
+		WeightMin:  weightMin,
+		WeightMax:  weightMax,
+		IsVariable: true,
+	})
+}
+
+// pdfFontStyle maps an italic flag to the font entry's style value.
+//
+// Takes italic (bool) which is true for an italic face.
+//
+// Returns int which is 1 for italic and 0 for normal.
+func pdfFontStyle(italic bool) int {
+	if italic {
+		return 1
+	}
+	return 0
+}
+
 // WithPdfMaxImagePixels caps the pixel area (width times height) of any image a PDF
 // render embeds. Non-positive values keep the default of one hundred million pixels.
 //

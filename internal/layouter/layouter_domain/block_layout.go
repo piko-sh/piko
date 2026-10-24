@@ -135,8 +135,9 @@ func layoutBox(ctx context.Context, box *LayoutBox, input layoutInput) *Fragment
 			Left:   dims.marginLeft,
 			Right:  dims.marginRight,
 		},
-		OffsetX: 0,
-		OffsetY: 0,
+		OffsetX:      0,
+		OffsetY:      0,
+		replacements: fcResult.replacements,
 	}
 	input.Cache.Store(box, input, fragment)
 	return fragment
@@ -1072,11 +1073,7 @@ func hasOnlyInlineChildren(box *LayoutBox) bool {
 		if child.Type == BoxListMarker {
 			continue
 		}
-		if child.Type.IsInlineLevel() {
-			continue
-		}
-
-		if child.Type == BoxReplaced && child.Style.Display == DisplayInline {
+		if isInlineLevelChild(child) {
 			continue
 		}
 		return false

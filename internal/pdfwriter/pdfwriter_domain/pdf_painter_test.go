@@ -971,7 +971,7 @@ func TestApplyBoxStates_WithOpacityAndBlendMode(t *testing.T) {
 		Build()
 	box.Style.MixBlendMode = layouter_domain.BlendModeMultiply
 
-	states := painter.applyBoxStates(stream, box)
+	states := painter.applyBoxStates(stream, box, 0)
 	assert.True(t, states.hasOpacity, "expected hasOpacity to be true")
 	assert.True(t, states.hasBlendMode, "expected hasBlendMode to be true")
 
@@ -989,7 +989,7 @@ func TestApplyBoxStates_WithOverflowHidden(t *testing.T) {
 		WithOverflow(layouter_domain.OverflowHidden, layouter_domain.OverflowHidden).
 		Build()
 
-	states := painter.applyBoxStates(stream, box)
+	states := painter.applyBoxStates(stream, box, 0)
 	assert.True(t, states.hasOverflowClip, "expected hasOverflowClip to be true")
 }
 
@@ -1030,7 +1030,7 @@ func TestApplyStructTag_NilStructTree_ReturnsFalse(t *testing.T) {
 		WithSourceNode(testSourceNode("div")).
 		Build()
 
-	result := painter.applyStructTag(stream, box)
+	result := painter.applyStructTag(stream, box, 0)
 	assert.False(t, result, "expected false when struct tree is nil")
 }
 
@@ -1042,7 +1042,7 @@ func TestApplyStructTag_NilSourceNode_ReturnsFalse(t *testing.T) {
 	stream := &ContentStream{}
 	box := newLayoutBox().Build()
 
-	result := painter.applyStructTag(stream, box)
+	result := painter.applyStructTag(stream, box, 0)
 	assert.False(t, result, "expected false when source node is nil")
 }
 

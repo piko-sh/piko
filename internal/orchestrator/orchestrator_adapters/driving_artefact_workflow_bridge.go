@@ -58,8 +58,8 @@ const (
 	// logKeyReference is the log field key for the related component name.
 	logKeyReference = "reference"
 
-	// reconcileBatchSize is how many artefacts ReconcileArtefacts reads from the registry
-	// in one query.
+	// reconcileBatchSize is how many artefacts ReconcileArtefacts reads from the registry in
+	// one query.
 	reconcileBatchSize = 256
 )
 

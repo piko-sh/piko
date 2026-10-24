@@ -270,6 +270,11 @@ type styleNumericValues struct {
 	// LineHeight holds the resolved CSS line-height in points.
 	LineHeight float64
 
+	// LineHeightFactor holds a unitless line-height number, which inherits as the number and
+	// multiplies each element's own font size. It is zero for a length, a percentage or
+	// normal.
+	LineHeightFactor float64
+
 	// LetterSpacing holds the resolved CSS letter-spacing in points.
 	LetterSpacing float64
 
@@ -478,6 +483,9 @@ type styleKeywordValues struct {
 	// PageBreakInside holds the resolved CSS page-break-inside mode.
 	PageBreakInside PageBreakType
 
+	// BoxDecorationBreak holds the resolved CSS box-decoration-break mode.
+	BoxDecorationBreak BoxDecorationBreakType
+
 	// GridAutoFlow holds the resolved CSS grid-auto-flow placement algorithm.
 	GridAutoFlow GridAutoFlowType
 
@@ -600,6 +608,7 @@ func newStyleKeywordValues() styleKeywordValues {
 		Display:             DisplayInline,
 		Position:            PositionStatic,
 		BoxSizing:           BoxSizingContentBox,
+		BoxDecorationBreak:  BoxDecorationBreakSlice,
 		Float:               FloatNone,
 		Clear:               ClearNone,
 		OverflowX:           OverflowVisible,

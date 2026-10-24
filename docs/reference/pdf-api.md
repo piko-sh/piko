@@ -93,6 +93,17 @@ The fluent `RenderBuilder` composes a single render operation. Chain setters, th
 | Transformer type | `TransformerContent`, `TransformerCompliance`, `TransformerDelivery`, `TransformerSecurity`, `TransformerCompression` |
 | Compression algorithm | `CompressZstd` |
 
+## Pagination CSS
+
+| Property | Values |
+|---|---|
+| `break-before`, `break-after` (alias `page-break-before`, `page-break-after`) | `auto`, `avoid`, `avoid-page`, `page`, `always`, `left`, `right`, `recto`, `verso`. `column` and `avoid-column` act as `auto`. |
+| `break-inside` (alias `page-break-inside`) | `auto`, `avoid`, `avoid-page`. |
+| `orphans`, `widows` | An integer, default 2. |
+| `box-decoration-break` | `slice`. `clone` acts as `slice`. |
+
+The default stylesheet gives `h1` to `h6` `break-after: avoid` and `break-inside: avoid`. Replaced elements, inline blocks, table rows and cells, scrolling, transformed, clipped, or masked boxes, floats, absolutely and fixed-positioned boxes, and multi-column containers never break inside. See [control page breaks](../how-to/pdf-generation.md#control-page-breaks) for behaviour and limits.
+
 ## Limits
 
 Layout limits bound raw HTML expansion, document structure, and pagination. Exceeding a limit returns an error, except for `MaxColspan` and `MaxRowspan`, which clamp table-cell spans to their configured maxima.
@@ -283,6 +294,15 @@ type TransformerPort interface {
 ## Bootstrap
 
 Piko constructs the default service from the generated PDF manifest when the project has a `pdfs/` directory. `piko.WithPdfLayoutLimits` sets layout limits, and `piko.WithPdfMaxImagePixels` sets the image pixel cap. `PdfLayoutLimits` aliases `LayoutLimits`. See [Limits](#limits) for defaults and precedence.
+
+The default service registers the bundled Noto Sans regular and bold, followed by any fonts passed to `piko.New`:
+
+| Option | Purpose |
+|---|---|
+| `piko.WithPdfFont(family string, weight int, italic bool, data []byte)` | Registers a static TrueType or OpenType face under a CSS `font-family` name. |
+| `piko.WithPdfVariableFont(family string, weightMin, weightMax int, italic bool, data []byte)` | Registers an OpenType variable font covering a weight range. |
+
+See [set the PDF in your own font](../how-to/pdf-generation.md#set-the-pdf-in-your-own-font) for how a `font-family` list resolves.
 
 ```go
 ssr := piko.New(

@@ -615,3 +615,68 @@ func TestGridLayout_RowGapColumnGap(t *testing.T) {
 		"row gap should push item3 Y (%f) away from item1 Y (%f) by more than 50",
 		item3.ContentY, item1.ContentY)
 }
+
+func TestGridLayout_AlignSelfStartIsNotStretchedInAnAutoRow(t *testing.T) {
+	root := makeRoot(300)
+
+	grid := &LayoutBox{Type: BoxGrid, Style: DefaultComputedStyle(), Parent: root}
+	grid.Style.Display = DisplayGrid
+	grid.Style.Width = DimensionPt(300)
+	grid.Style.GridTemplateColumns = []GridTrack{
+		{Value: 100, Unit: GridTrackPoints},
+		{Value: 100, Unit: GridTrackPoints},
+		{Value: 100, Unit: GridTrackPoints},
+	}
+
+	itemWithContent := func(height float64) *LayoutBox {
+		item := &LayoutBox{Type: BoxGridItem, Style: DefaultComputedStyle(), Parent: grid}
+		item.Style.Display = DisplayBlock
+		content := &LayoutBox{Type: BoxBlock, Style: DefaultComputedStyle(), Parent: item}
+		content.Style.Display = DisplayBlock
+		content.Style.Height = DimensionPt(height)
+		item.Children = []*LayoutBox{content}
+		return item
+	}
+	start := itemWithContent(20)
+	start.Style.AlignSelf = AlignSelfFlexStart
+	stretched := itemWithContent(20)
+	tall := itemWithContent(100)
+
+	grid.Children = []*LayoutBox{start, stretched, tall}
+	root.Children = []*LayoutBox{grid}
+
+	require.NotPanics(t, func() { runLayout(root) })
+
+	assert.InDelta(t, 20, start.ContentHeight, 0.001)
+	assert.InDelta(t, 100, stretched.ContentHeight, 0.001)
+	assert.InDelta(t, start.ContentY, tall.ContentY, 0.001)
+}
+
+func TestGridLayout_StretchKeepsASetSize(t *testing.T) {
+	root := makeRoot(300)
+
+	grid := &LayoutBox{Type: BoxGrid, Style: DefaultComputedStyle(), Parent: root}
+	grid.Style.Display = DisplayGrid
+	grid.Style.Width = DimensionPt(300)
+	grid.Style.GridTemplateColumns = []GridTrack{
+		{Value: 100, Unit: GridTrackPoints},
+		{Value: 100, Unit: GridTrackPoints},
+	}
+
+	sized := &LayoutBox{Type: BoxGridItem, Style: DefaultComputedStyle(), Parent: grid}
+	sized.Style.Display = DisplayBlock
+	sized.Style.Width = DimensionPt(50)
+	sized.Style.Height = DimensionPt(40)
+	tall := &LayoutBox{Type: BoxGridItem, Style: DefaultComputedStyle(), Parent: grid}
+	tall.Style.Display = DisplayBlock
+	tall.Style.Height = DimensionPt(100)
+
+	grid.Children = []*LayoutBox{sized, tall}
+	root.Children = []*LayoutBox{grid}
+
+	require.NotPanics(t, func() { runLayout(root) })
+
+	assert.InDelta(t, 50, sized.ContentWidth, 0.001)
+	assert.InDelta(t, 40, sized.ContentHeight, 0.001)
+	assert.InDelta(t, tall.ContentY, sized.ContentY, 0.001)
+}

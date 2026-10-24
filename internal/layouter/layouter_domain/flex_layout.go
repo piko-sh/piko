@@ -59,6 +59,11 @@ type flexItem struct {
 	// autoMarginEnd is the resolved auto margin on the end side of the main axis (right for
 	// row, bottom for column). Zero when the margin is not auto.
 	autoMarginEnd float64
+
+	// outerMargin is the sum of the item's non-auto margins along the main axis. As in a
+	// browser they sit outside mainSize: they take line space, count against free space and
+	// push the next item along.
+	outerMargin float64
 }
 
 // flexLine holds a group of flex items that share a single line in the flex container.
@@ -179,7 +184,7 @@ func adjustIndefiniteMainSize(containerMainSize float64, items []*flexItem, main
 	}
 	total := 0.0
 	for _, item := range items {
-		total += item.flexBaseSize
+		total += item.flexBaseSize + item.outerMargin
 	}
 	return total + float64(len(items)-1)*mainGap
 }
@@ -211,7 +216,7 @@ func preStretchColumnItems(lines []*flexLine) {
 func layoutFlexContainer(ctx context.Context, box *LayoutBox, input layoutInput) formattingContextResult {
 	params := resolveFlexContainerParams(box, input)
 
-	items := collectFlexItems(ctx, box, params.isRowDirection, params.containerMainSize, input)
+	items := collectFlexItems(ctx, box, params.isRowDirection, params.containerMainSize, params.containerCrossSize, input)
 	params.containerMainSize = adjustIndefiniteMainSize(
 		params.containerMainSize, items, params.mainGap, params.mainSizeIndefinite,
 	)
@@ -227,6 +232,7 @@ func layoutFlexContainer(ctx context.Context, box *LayoutBox, input layoutInput)
 	sortItemsByOrder(items)
 
 	lines := collectFlexLines(items, params.containerMainSize, params.mainGap, params.isWrap)
+	recordFlexLines(lines, params.isRowDirection)
 
 	for _, line := range lines {
 		resolveFlexibleLengths(line, params.containerMainSize, params.mainGap, params.isRowDirection)
@@ -245,7 +251,7 @@ func layoutFlexContainer(ctx context.Context, box *LayoutBox, input layoutInput)
 		params.mainGap, params.crossGap, input,
 	)))
 
-	containerHeight := computeFlexContainerHeight(box, lines, params.isRowDirection, params.crossGap)
+	containerHeight := computeFlexContainerHeight(box, lines, params.isRowDirection, params.mainGap, params.crossGap)
 
 	return newFormattingContextResult(
 		collectFlexFragments(lines),
@@ -276,6 +282,8 @@ func collectFlexFragments(lines []*flexLine) []*Fragment {
 // Takes container (*LayoutBox) which is the flex container whose children are collected.
 // Takes isRowDirection (bool) which is true when the main axis is horizontal.
 // Takes containerMainSize (float64) which is the main axis size of the container.
+// Takes containerCrossSize (float64) which is the cross axis size of the container, the
+// width a column item's content height is probed at.
 // Takes input (layoutInput) which carries font metrics and cache from the parent context.
 //
 // Returns the slice of flex items ready for layout.
@@ -284,6 +292,7 @@ func collectFlexItems(
 	container *LayoutBox,
 	isRowDirection bool,
 	containerMainSize float64,
+	containerCrossSize float64,
 	input layoutInput,
 ) []*flexItem {
 	items := make([]*flexItem, 0, len(container.Children))
@@ -293,7 +302,12 @@ func collectFlexItems(
 			continue
 		}
 
-		baseSize := resolveFlexBaseSize(ctx, child, isRowDirection, containerMainSize, input)
+		baseSize := resolveFlexBaseSize(ctx, child, flexBaseSizeQuery{
+			isRowDirection:     isRowDirection,
+			containerMainSize:  containerMainSize,
+			containerCrossSize: containerCrossSize,
+			alignItems:         container.Style.AlignItems,
+		}, input)
 
 		items = append(items, &flexItem{
 			box:             child,
@@ -306,37 +320,72 @@ func collectFlexItems(
 			targetMainSize:  0,
 			autoMarginStart: 0,
 			autoMarginEnd:   0,
+			outerMargin:     flexMainMargins(child, isRowDirection, containerMainSize, containerCrossSize),
 		})
 	}
 
 	return items
 }
 
-// resolveFlexBaseSize computes the flex base size for a child box using flex-basis,
-// explicit size, or intrinsic content measurement.
+// flexMainMargins sums a flex item's non-auto margins along the main axis. Percentages
+// resolve against the container's inline size, as margins in both axes do; an auto margin
+// counts as zero here and is shared out from the free space separately.
 //
 // Takes child (*LayoutBox) which is the flex item box.
 // Takes isRowDirection (bool) which is true when the main axis is horizontal.
 // Takes containerMainSize (float64) which is the main axis size of the container.
+// Takes containerCrossSize (float64) which is the cross axis size of the container.
+//
+// Returns float64 which is the sum in points.
+func flexMainMargins(child *LayoutBox, isRowDirection bool, containerMainSize, containerCrossSize float64) float64 {
+	start, end, inlineSize := child.Style.MarginTop, child.Style.MarginBottom, containerCrossSize
+	if isRowDirection {
+		start, end, inlineSize = child.Style.MarginLeft, child.Style.MarginRight, containerMainSize
+	}
+	return start.Resolve(inlineSize, 0) + end.Resolve(inlineSize, 0)
+}
+
+// resolveFlexBaseSize computes the flex base size for a child box using flex-basis,
+// explicit size, or intrinsic content measurement.
+//
+// Takes child (*LayoutBox) which is the flex item box.
+// Takes query (flexBaseSizeQuery) which carries the container's direction, sizes and
+// alignment.
 // Takes input (layoutInput) which carries font metrics and cache from the parent context.
 //
 // Returns the resolved base size in points.
 func resolveFlexBaseSize(
 	ctx context.Context,
 	child *LayoutBox,
-	isRowDirection bool,
-	containerMainSize float64,
+	query flexBaseSizeQuery,
 	input layoutInput,
 ) float64 {
 	if !child.Style.FlexBasis.IsAuto() {
-		return resolveFlexDimension(child, child.Style.FlexBasis, containerMainSize, isRowDirection)
+		return resolveFlexDimension(child, child.Style.FlexBasis, query.containerMainSize, query.isRowDirection)
 	}
 
-	if size, ok := resolveExplicitMainSize(child, isRowDirection, containerMainSize); ok {
+	if size, ok := resolveExplicitMainSize(child, query.isRowDirection, query.containerMainSize); ok {
 		return size
 	}
 
-	return resolveFlexIntrinsicSize(ctx, child, isRowDirection, containerMainSize, input)
+	return resolveFlexIntrinsicSize(ctx, child, query, input)
+}
+
+// flexBaseSizeQuery carries what resolving a flex item's base size needs to know about
+// its container.
+type flexBaseSizeQuery struct {
+	// isRowDirection is true when the main axis is horizontal.
+	isRowDirection bool
+
+	// containerMainSize is the main axis size of the container.
+	containerMainSize float64
+
+	// containerCrossSize is the cross axis size of the container.
+	containerCrossSize float64
+
+	// alignItems is the container's align-items value, which an item's align-self falls back
+	// to.
+	alignItems AlignItemsType
 }
 
 // resolveFlexDimension resolves a dimension value for a flex item, adding edge widths
@@ -388,27 +437,56 @@ func resolveExplicitMainSize(child *LayoutBox, isRowDirection bool, containerMai
 // flex-basis nor an explicit main-axis size is set. Uses max-content sizing so flex items
 // size to their content rather than filling 100% of the container.
 //
+// Down a column, the item's content height is probed by laying it out at the width it
+// will be laid out at afterwards (columnProbeWidth). Probing at the container's main
+// size, its height and zero when indefinite, put every word on a line of its own.
+//
 // Takes child (*LayoutBox) which is the flex item box.
-// Takes isRowDirection (bool) which selects horizontal or vertical measurement.
-// Takes containerMainSize (float64) which is the main axis size for column layout.
+// Takes query (flexBaseSizeQuery) which carries the container's direction, sizes and
+// alignment.
 // Takes input (layoutInput) which provides available dimensions, font metrics, and shared
 // layout state.
 //
 // Returns float64 which is the intrinsic content size in points.
 func resolveFlexIntrinsicSize(
-	ctx context.Context, child *LayoutBox, isRowDirection bool, containerMainSize float64, input layoutInput,
+	ctx context.Context, child *LayoutBox, query flexBaseSizeQuery, input layoutInput,
 ) float64 {
-	if isRowDirection {
+	if query.isRowDirection {
 		return measureMaxContentWidth(child, input.FontMetrics)
 	}
 
 	fragment := layoutBox(ctx, child, newLayoutInput(
 		input,
-		containerMainSize,
+		columnProbeWidth(child, query.containerCrossSize, query.alignItems, input.FontMetrics),
 		0,
 		resolvedEdges{},
 	))
 	return fragment.ContentHeight + fragment.Padding.Vertical() + fragment.Border.Vertical()
+}
+
+// columnProbeWidth is the available width a column flex item's content height is probed
+// at: the container's cross size when the item stretches across it, has a width of its
+// own or has auto horizontal margins, else the margin box of its fit-content width.
+//
+// Takes child (*LayoutBox) which is the flex item.
+// Takes containerCrossSize (float64) which is the width the container offers.
+// Takes alignItems (AlignItemsType) which is the container's align-items value.
+// Takes fontMetrics (FontMetricsPort) which measures the item's content.
+//
+// Returns float64 which is the available width for the probe layout.
+func columnProbeWidth(child *LayoutBox, containerCrossSize float64, alignItems AlignItemsType, fontMetrics FontMetricsPort) float64 {
+	style := &child.Style
+	stretches := resolveAlignSelf(style.AlignSelf, alignItems) == AlignItemsStretch
+	autoMargins := style.MarginLeft.IsAuto() || style.MarginRight.IsAuto()
+	if stretches || !style.Width.IsAuto() || autoMargins {
+		return containerCrossSize
+	}
+	horizontalEdges := style.PaddingLeft + style.PaddingRight + style.BorderLeftWidth + style.BorderRightWidth
+	margins := style.MarginLeft.Resolve(containerCrossSize, 0) + style.MarginRight.Resolve(containerCrossSize, 0)
+	maxContent := measureMaxContentWidth(child, fontMetrics) - horizontalEdges
+	minContent := measureMinContentWidth(child, fontMetrics) - horizontalEdges
+	fit := max(minContent, min(maxContent, containerCrossSize-horizontalEdges-margins))
+	return fit + horizontalEdges + margins
 }
 
 // sortItemsByOrder sorts flex items in place by their CSS order property using a stable
@@ -439,7 +517,7 @@ func collectFlexLines(
 	if !isWrap {
 		totalMainSize := 0.0
 		for index, item := range items {
-			totalMainSize += item.flexBaseSize
+			totalMainSize += item.flexBaseSize + item.outerMargin
 			if index > 0 {
 				totalMainSize += mainGap
 			}
@@ -452,7 +530,7 @@ func collectFlexLines(
 	lineMainSize := 0.0
 
 	for index, item := range items {
-		candidateSize := lineMainSize + item.flexBaseSize
+		candidateSize := lineMainSize + item.flexBaseSize + item.outerMargin
 		if index > lineStart {
 			candidateSize += mainGap
 		}
@@ -464,7 +542,7 @@ func collectFlexLines(
 				crossSize: 0,
 			})
 			lineStart = index
-			lineMainSize = item.flexBaseSize
+			lineMainSize = item.flexBaseSize + item.outerMargin
 		} else {
 			lineMainSize = candidateSize
 		}
@@ -866,7 +944,7 @@ func positionFlexLineItems(
 		autoBefore, autoAfter := itemAutoMainMargins(item, positionContext.isRowDirection)
 		placementOffset += autoBefore
 		placeFlexItemOnAxes(item, line.crossSize, crossOffset, placementOffset, positionContext)
-		placementOffset += item.mainSize + autoAfter + itemSpacing
+		placementOffset += item.mainSize + item.outerMargin + autoAfter + itemSpacing
 	}
 
 	if positionContext.isReversed {
@@ -891,12 +969,9 @@ func positionFlexLineItems(
 func relayoutFlexItemWithCrossSize(ctx context.Context, item *flexItem, lineCrossSize float64, positionContext *flexPositionContext) {
 	child := item.box
 	childEdges := resolveEdgesFromStyle(&child.Style, positionContext.containerMainSize)
-	childMarginLeft := child.Style.MarginLeft.Resolve(positionContext.containerMainSize, 0)
-	childMarginRight := child.Style.MarginRight.Resolve(positionContext.containerMainSize, 0)
 
 	childContentWidth := item.mainSize -
-		childEdges.Padding.Horizontal() - childEdges.Border.Horizontal() -
-		childMarginLeft - childMarginRight
+		childEdges.Padding.Horizontal() - childEdges.Border.Horizontal()
 	childContentWidth = math.Max(0, childContentWidth)
 
 	crossContentHeight := lineCrossSize -
@@ -1025,8 +1100,7 @@ func layoutFlexItem(
 
 	if isRowDirection {
 		childContentWidth := item.mainSize -
-			childEdges.Padding.Horizontal() - childEdges.Border.Horizontal() -
-			childMarginLeft - childMarginRight
+			childEdges.Padding.Horizontal() - childEdges.Border.Horizontal()
 		childContentWidth = math.Max(0, childContentWidth)
 
 		item.fragment = layoutBox(ctx, child, newFixedInlineSizeInput(
@@ -1078,7 +1152,7 @@ func computeJustifyOffset(
 ) float64 {
 	totalItemSize := 0.0
 	for _, item := range line.items {
-		totalItemSize += item.mainSize
+		totalItemSize += item.mainSize + item.outerMargin
 	}
 	totalGaps := mainGap * float64(len(line.items)-1)
 	freeSpace := containerMainSize - totalItemSize - totalGaps
@@ -1120,7 +1194,7 @@ func computeJustifySpacing(
 ) float64 {
 	totalItemSize := 0.0
 	for _, item := range line.items {
-		totalItemSize += item.mainSize
+		totalItemSize += item.mainSize + item.outerMargin
 	}
 	totalGaps := mainGap * float64(len(line.items)-1)
 	freeSpace := containerMainSize - totalItemSize - totalGaps
@@ -1316,6 +1390,8 @@ func resolveAlignSelf(alignSelf AlignSelfType, containerAlignItems AlignItemsTyp
 // Takes container (*LayoutBox) which is the flex container box used for style queries.
 // Takes lines ([]*flexLine) which is the slice of resolved flex lines.
 // Takes isRowDirection (bool) which is true when the main axis is horizontal.
+// Takes mainGap (float64) which is the gap between items along the main axis, which a
+// column's height includes.
 // Takes crossGap (float64) which is the gap between lines along the cross axis.
 //
 // Returns float64 which is the resolved content height.
@@ -1323,6 +1399,7 @@ func computeFlexContainerHeight(
 	container *LayoutBox,
 	lines []*flexLine,
 	isRowDirection bool,
+	mainGap float64,
 	crossGap float64,
 ) float64 {
 	if isRowDirection {
@@ -1339,9 +1416,9 @@ func computeFlexContainerHeight(
 	} else {
 		maxMainSize := 0.0
 		for _, line := range lines {
-			lineMainSize := 0.0
+			lineMainSize := mainGap * float64(max(len(line.items)-1, 0))
 			for _, item := range line.items {
-				lineMainSize += item.mainSize
+				lineMainSize += item.mainSize + item.outerMargin
 			}
 			maxMainSize = math.Max(maxMainSize, lineMainSize)
 		}
@@ -1350,4 +1427,22 @@ func computeFlexContainerHeight(
 		}
 	}
 	return adjustForBoxSizing(container.Style.Height.Resolve(0, 0), &container.Style, false)
+}
+
+// recordFlexLines notes on each item of a row-direction flex container which line it is
+// on, so that pagination lays a line's items out side by side; a column's items stack and
+// need no note.
+//
+// Takes lines ([]*flexLine) which holds the container's lines.
+// Takes isRowDirection (bool) which is true when the main axis is horizontal.
+func recordFlexLines(lines []*flexLine, isRowDirection bool) {
+	for index, line := range lines {
+		for _, item := range line.items {
+			if isRowDirection {
+				item.box.flexLine = index + 1
+			} else {
+				item.box.flexLine = 0
+			}
+		}
+	}
 }

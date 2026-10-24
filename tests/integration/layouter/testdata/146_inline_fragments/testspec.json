@@ -1,0 +1,7 @@
+{
+    "description": "Verifies text inside inline elements that wrap across lines breaks at the same places as in a browser, with one text fragment per line positioned as the browser places it.",
+    "requestURL": "/main",
+    "tolerance": 2.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

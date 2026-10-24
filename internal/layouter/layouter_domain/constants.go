@@ -136,6 +136,11 @@ h6 {
 	margin-bottom: 2.33em;
 }
 
+h1, h2, h3, h4, h5, h6 {
+	break-after: avoid;
+	break-inside: avoid;
+}
+
 p {
 	margin-top: 1em;
 	margin-bottom: 1em;

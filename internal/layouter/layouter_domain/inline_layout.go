@@ -38,6 +38,11 @@ const (
 	// displacement applied to vertical-align: sub and super items per CSS 2.1 ss10.8.1. Sub
 	// lowers by +0.5 * x-height, super raises by -0.5 * x-height.
 	subSuperOffsetFactor = 0.5
+
+	// lineFitSlack is the tolerance a line's content may exceed the available width by and
+	// still fit: one layout unit (1/64 px, in points), so that measurement rounding never
+	// wraps text that a browser keeps on the line.
+	lineFitSlack = 0.75 / 64
 )
 
 // lineItem pairs a fragment with its horizontal position and width within a line box.
@@ -134,6 +139,10 @@ type inlineLayoutContext struct {
 	// isEllipsisMode is true when text-overflow: ellipsis is active (requires overflow:
 	// hidden and no wrapping).
 	isEllipsisMode bool
+
+	// breakOK is true when the content placed so far on the line ends at a break
+	// opportunity: the start of the line, a collapsible space, or an atomic inline.
+	breakOK bool
 }
 
 // effectiveAvailableWidth returns the available width for the current line, narrowed by
@@ -163,9 +172,70 @@ func (c *inlineLayoutContext) lineContentOffsetX() float64 {
 	return c.contentOffsetX + c.floats.leftOffsetAtY(bfcY, 0, c.floatContainerX)
 }
 
+// overflowsLine reports whether content reaching x would overflow the line.
+//
+// Takes x (float64) which is the position the content would end at.
+//
+// Returns bool which is true when it overflows by more than lineFitSlack.
+func (c *inlineLayoutContext) overflowsLine(x float64) bool {
+	return x > c.effectiveAvailableWidth()+lineFitSlack
+}
+
+// endsAtBreakOpportunity reports whether a run's text ends where a line may break: a
+// space, whether collapsible or preserved by pre-wrap.
+//
+// Takes box (*LayoutBox) which is the text run.
+//
+// Returns bool which is true when it ends in a space.
+func endsAtBreakOpportunity(box *LayoutBox) bool {
+	return strings.HasSuffix(box.Text, spaceChar)
+}
+
+// dropLineEndSpace removes the collapsible space a line ends with (CSS Text 3 section
+// 4.1.2), so the line's width, and so its alignment, does not count it.
+func (c *inlineLayoutContext) dropLineEndSpace() {
+
+	last := len(c.currentLineItems) - 1
+	for last >= 0 && c.currentLineItems[last].fragment.Box != nil &&
+		isInlineBox(c.currentLineItems[last].fragment.Box) && c.currentLineItems[last].width == 0 {
+		last--
+	}
+	if last < 0 {
+		return
+	}
+	item := &c.currentLineItems[last]
+	box := item.fragment.Box
+	if box == nil || box.Type != BoxTextRun || preservesWhitespace(box.Style.WhiteSpace) {
+		return
+	}
+	trimmed := strings.TrimRight(box.Text, spaceChar)
+	if trimmed == box.Text {
+		return
+	}
+	font := FontDescriptor{Family: box.Style.FontFamily, Weight: box.Style.FontWeight, Style: box.Style.FontStyle}
+	var glyphs []GlyphPosition
+	width := 0.0
+	if trimmed != "" {
+		glyphs, width = c.fontMetrics.ShapeAndMeasureText(font, box.Style.FontSize, trimmed, box.Style.Direction)
+		if box.Style.LetterSpacing != 0 {
+			width += box.Style.LetterSpacing * float64(len([]rune(trimmed)))
+		}
+	}
+	removed := item.width - width
+	if removed <= 0 {
+		return
+	}
+	box.Text = trimmed
+	box.Glyphs = glyphs
+	item.fragment.ContentWidth = width
+	item.width = width
+	c.cursorX -= removed
+}
+
 // flushLine finalises the current line, applies vertical alignment, and advances the
 // cursor to the next line.
 func (c *inlineLayoutContext) flushLine() {
+	c.dropLineEndSpace()
 	if len(c.currentLineItems) > 0 || c.currentLineHeight > 0 {
 		applyInlineVerticalAlign(c.currentLineItems, c.currentLineHeight)
 
@@ -180,6 +250,7 @@ func (c *inlineLayoutContext) flushLine() {
 	c.cursorY += c.currentLineHeight
 	c.cursorX = 0
 	c.currentLineHeight = 0
+	c.breakOK = true
 }
 
 // layoutNonTextChild sizes and positions a non-text inline child.
@@ -261,7 +332,7 @@ func (c *inlineLayoutContext) layoutAtomicInline(ctx context.Context, child *Lay
 	inlineWidth := childFragment.MarginBoxWidth()
 	inlineHeight := childFragment.MarginBoxHeight()
 
-	if c.wrapsText && c.cursorX+inlineWidth > c.effectiveAvailableWidth() && c.cursorX > 0 {
+	if c.wrapsText && c.overflowsLine(c.cursorX+inlineWidth) && c.cursorX > 0 {
 		c.flushLine()
 	}
 
@@ -278,6 +349,7 @@ func (c *inlineLayoutContext) layoutAtomicInline(ctx context.Context, child *Lay
 		effectiveVerticalAlign: effectiveVA,
 	})
 	c.cursorX += inlineWidth
+	c.breakOK = true
 	if inlineHeight > c.currentLineHeight {
 		c.currentLineHeight = inlineHeight
 	}
@@ -304,6 +376,7 @@ func (c *inlineLayoutContext) layoutUnwrappedTextRun(child *LayoutBox, totalWidt
 		effectiveVerticalAlign: effectiveVA,
 	})
 	c.cursorX += totalWidth
+	c.breakOK = endsAtBreakOpportunity(child)
 	if textLineHeight > c.currentLineHeight {
 		c.currentLineHeight = textLineHeight
 	}
@@ -425,6 +498,8 @@ func (c *inlineLayoutContext) emitTextSegment(
 //
 // Returns bool which is true if the text is non-empty and layout should continue.
 func (c *inlineLayoutContext) preprocessTextChild(child *LayoutBox) bool {
+	child.resetToSourceText()
+
 	if preservesWhitespace(child.Style.WhiteSpace) && strings.Contains(child.Text, tabChar) {
 		tabSpaces := int(child.Style.TabSize)
 		if tabSpaces < 1 {
@@ -488,12 +563,12 @@ func (c *inlineLayoutContext) layoutTextChild(child *LayoutBox, parentStyle *Com
 	parentMetrics := parentFontMetrics(c.fontMetrics, parentStyle)
 	effectiveVA := resolveEffectiveVerticalAlign(child.Style.VerticalAlign, inheritedVA)
 
-	if c.isEllipsisMode && totalWidth > c.effectiveAvailableWidth()-c.cursorX {
+	if c.isEllipsisMode && c.overflowsLine(c.cursorX+totalWidth) {
 		c.layoutEllipsisTextRun(child, font, fontSize, totalWidth, textLineHeight, parentMetrics, effectiveVA)
 		return
 	}
 
-	if !c.wrapsText || totalWidth <= c.effectiveAvailableWidth()-c.cursorX {
+	if !c.wrapsText || !c.overflowsLine(c.cursorX+totalWidth) {
 		c.layoutUnwrappedTextRun(child, totalWidth, textLineHeight, parentMetrics, effectiveVA)
 	} else if child.Style.WordBreak == WordBreakBreakAll {
 		c.layoutCharacterBreakTextRun(child, font, fontSize, textLineHeight, parentMetrics, effectiveVA)
@@ -831,6 +906,7 @@ func layoutInlineContent(ctx context.Context, container *LayoutBox, input layout
 		lines:             nil,
 		childReplacements: nil,
 		currentLineHeight: 0,
+		breakOK:           true,
 	}
 
 	for _, child := range container.Children {
@@ -846,10 +922,6 @@ func layoutInlineContent(ctx context.Context, container *LayoutBox, input layout
 
 	inlineLayoutCtx.flushLine()
 
-	if len(inlineLayoutCtx.childReplacements) > 0 {
-		applyChildReplacements(container, inlineLayoutCtx.childReplacements)
-	}
-
 	applyTextAlignment(inlineLayoutCtx.lines, container.Style.TextAlign, container.Style.Direction, inlineLayoutCtx.availableWidth, contentOffsetX)
 
 	if container.Style.Direction == DirectionRTL {
@@ -858,11 +930,13 @@ func layoutInlineContent(ctx context.Context, container *LayoutBox, input layout
 
 	lineFragments, totalHeight := buildLineFragments(inlineLayoutCtx.lines)
 
-	return newFormattingContextResult(
+	result := newFormattingContextResult(
 		lineFragments,
 		totalHeight,
 		newVerticalMarginEdges(input.Edges.MarginTop, input.Edges.MarginBottom),
 	)
+	result.replacements = inlineLayoutCtx.childReplacements
+	return result
 }
 
 // applyChildReplacements recursively swaps original text-run boxes for their line-segment
@@ -1254,6 +1328,7 @@ func preservesWhitespace(whiteSpace WhiteSpaceType) bool {
 //
 // Returns *Fragment with the text run's layout results.
 func layoutTextRun(box *LayoutBox, fontMetrics FontMetricsPort) *Fragment {
+	box.resetToSourceText()
 	box.Text = applyTextTransform(box.Text, box.Style.TextTransform)
 
 	font := FontDescriptor{

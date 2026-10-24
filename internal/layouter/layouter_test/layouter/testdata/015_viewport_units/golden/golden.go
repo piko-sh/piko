@@ -38,8 +38,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 							s.FontSize = 17.8584
 							s.LineHeight = 25.001759999999997
 						}),
-						Text:          "Viewport-relative sizing ",
-						ContentWidth:  223.23,
+						Text:          "Viewport-relative sizing",
+						ContentWidth:  214.30079999999998,
 						ContentHeight: 25.001759999999997,
 					},
 				},

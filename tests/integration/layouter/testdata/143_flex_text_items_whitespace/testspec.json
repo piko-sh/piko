@@ -1,0 +1,7 @@
+{
+    "description": "Verifies text directly inside flex containers, including interpolated text with the template's newlines and indentation, becomes one anonymous item with its edge white space trimmed, and white space between items makes no item.",
+    "requestURL": "/main",
+    "tolerance": 2.0,
+    "viewportWidth": 800,
+    "viewportHeight": 600
+}

@@ -81,6 +81,9 @@ func copyPropertyFromStyle(dst *ComputedStyle, property string, src *ComputedSty
 	case "margin-inline-start", "margin-inline-end", "margin-inline":
 		dst.MarginLeft = src.MarginLeft
 		dst.MarginRight = src.MarginRight
+	case "margin-block-start", "margin-block-end", "margin-block":
+		dst.MarginTop = src.MarginTop
+		dst.MarginBottom = src.MarginBottom
 	case "padding-top":
 		dst.PaddingTop = src.PaddingTop
 	case "padding-right":
@@ -92,6 +95,9 @@ func copyPropertyFromStyle(dst *ComputedStyle, property string, src *ComputedSty
 	case "padding-inline-start", "padding-inline-end", "padding-inline":
 		dst.PaddingLeft = src.PaddingLeft
 		dst.PaddingRight = src.PaddingRight
+	case "padding-block-start", "padding-block-end", "padding-block":
+		dst.PaddingTop = src.PaddingTop
+		dst.PaddingBottom = src.PaddingBottom
 	case "border-top-width":
 		dst.BorderTopWidth = src.BorderTopWidth
 	case "border-right-width":
@@ -137,6 +143,7 @@ func copyPropertyFromStyle(dst *ComputedStyle, property string, src *ComputedSty
 		dst.FontStyle = src.FontStyle
 	case "line-height":
 		dst.LineHeight = src.LineHeight
+		dst.LineHeightFactor = src.LineHeightFactor
 		dst.LineHeightAuto = src.LineHeightAuto
 	case "text-align":
 		dst.TextAlign = src.TextAlign
@@ -240,6 +247,8 @@ func copyPropertyFromStyle(dst *ComputedStyle, property string, src *ComputedSty
 		dst.PageBreakAfter = src.PageBreakAfter
 	case "break-inside":
 		dst.PageBreakInside = src.PageBreakInside
+	case "box-decoration-break", "-webkit-box-decoration-break":
+		dst.BoxDecorationBreak = src.BoxDecorationBreak
 	case "orphans":
 		dst.Orphans = src.Orphans
 	case "widows":
@@ -673,4 +682,23 @@ func finiteOrZero(value float64) float64 {
 		return 0
 	}
 	return value
+}
+
+// splitBlockAxisPair splits a margin-block or padding-block value into its start and end
+// values; a single value applies to both.
+//
+// Takes value (string) which is the CSS value.
+//
+// Returns start (string) which is the block-start value.
+// Returns end (string) which is the block-end value.
+func splitBlockAxisPair(value string) (start, end string) {
+	fields := strings.Fields(value)
+	switch len(fields) {
+	case 0:
+		return value, value
+	case 1:
+		return fields[0], fields[0]
+	default:
+		return fields[0], fields[1]
+	}
 }
