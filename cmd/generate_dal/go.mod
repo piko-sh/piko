@@ -3,9 +3,9 @@ module piko.sh/piko/cmd/generate_dal
 go 1.27.0
 
 require (
-	piko.sh/piko v0.0.0
-	piko.sh/piko/wdk/db/db_engine_postgres v0.0.0
-	piko.sh/piko/wdk/db/db_engine_sqlite v0.0.0
+	piko.sh/piko v0.0.0-alpha.42
+	piko.sh/piko/wdk/db/db_engine_postgres v0.0.0-alpha.42
+	piko.sh/piko/wdk/db/db_engine_sqlite v0.0.0-alpha.42
 	piko.sh/safedisk v0.1.0
 )
 
@@ -52,7 +52,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
 	piko.sh/goastutil v0.2.0 // indirect
-	piko.sh/piko/wdk/db/db_provider_seagull v0.0.0 // indirect
+	piko.sh/piko/wdk/db/db_provider_seagull v0.0.0-alpha.42 // indirect
 	piko.sh/safeconv v0.1.0 // indirect
 	piko.sh/vectormaths v0.2.0 // indirect
 	seagull.sh/seagull v0.0.0-alpha.2 // indirect

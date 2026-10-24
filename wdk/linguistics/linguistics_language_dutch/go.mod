@@ -3,9 +3,9 @@ module piko.sh/piko/wdk/linguistics/linguistics_language_dutch
 go 1.27.0
 
 require (
-	piko.sh/piko/wdk/linguistics/linguistics_phonetic_dutch v0.0.0
-	piko.sh/piko/wdk/linguistics/linguistics_stemmer_dutch v0.0.0
-	piko.sh/piko/wdk/linguistics/linguistics_stopwords_dutch v0.0.0
+	piko.sh/piko/wdk/linguistics/linguistics_phonetic_dutch v0.0.0-alpha.42
+	piko.sh/piko/wdk/linguistics/linguistics_stemmer_dutch v0.0.0-alpha.42
+	piko.sh/piko/wdk/linguistics/linguistics_stopwords_dutch v0.0.0-alpha.42
 )
 
 require (
@@ -22,7 +22,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.45.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/text v0.42.0 // indirect
-	piko.sh/piko v0.0.0 // indirect
+	piko.sh/piko v0.0.0-alpha.42 // indirect
 	piko.sh/safeconv v0.1.0 // indirect
 	piko.sh/safedisk v0.1.0 // indirect
 )

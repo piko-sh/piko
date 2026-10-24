@@ -5,8 +5,8 @@ go 1.27.0
 require (
 	github.com/stretchr/testify v1.12.1
 	go.uber.org/goleak v1.3.0
-	piko.sh/piko v0.0.0
-	piko.sh/piko/wdk/db/db_provider_seagull v0.0.0
+	piko.sh/piko v0.0.0-alpha.42
+	piko.sh/piko/wdk/db/db_provider_seagull v0.0.0-alpha.42
 )
 
 require (
