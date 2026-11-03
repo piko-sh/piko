@@ -232,3 +232,225 @@ func TestRouterManager_ReloadRoutesRefusesRateLimitingWithoutAService(t *testing
 	response := serveThroughCarrier(manager, httptest.NewRequest(http.MethodGet, "/members", nil))
 	assert.Equal(t, http.StatusServiceUnavailable, response.Code, "no router is installed after a failed build")
 }
+
+func routeTrace(label string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Add("X-Trace", label)
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func applicationRouteFixture() *chi.Mux {
+	router := chi.NewRouter()
+	router.Use(routeTrace("root"))
+	router.Get("/custom/{id}", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(chi.URLParam(r, "id") + ":" + r.URL.Query().Get("q")))
+	})
+	router.With(routeTrace("inline")).Get("/inline", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusAccepted)
+	})
+	router.Route("/api", func(child chi.Router) {
+		child.Use(routeTrace("child"))
+		child.Get("/", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })
+		child.Get("/{id}", func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte(chi.URLParam(r, "id"))) })
+		child.NotFound(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusGone) })
+		child.MethodNotAllowed(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNotImplemented) })
+	})
+	router.Mount("/opaque", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(r.URL.Path))
+	}))
+	router.Route("/number/{id:[0-9]+}", func(child chi.Router) {
+		child.Get("/", func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte(chi.URLParam(r, "id"))) })
+	})
+	router.Get("/api", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusCreated) })
+	router.MethodNotAllowed(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusForbidden) })
+	router.HandleFunc("/override", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusAccepted) })
+	router.Get("/override", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusCreated) })
+	return router
+}
+
+func TestRouterManagerReloadPreservesApplicationRoutes(t *testing.T) {
+	t.Parallel()
+	managerConfig := newParityRouterManagerConfig(nil, nil)
+	managerConfig.AppRouter = applicationRouteFixture()
+	manager := NewRouterManager(managerConfig)
+	t.Cleanup(manager.Close)
+	cases := []struct{ method, path string }{
+		{http.MethodGet, "/custom/value?q=query"},
+		{http.MethodGet, "/custom/encoded%2Fvalue?q=query"},
+		{http.MethodGet, "/inline"},
+		{http.MethodGet, "/api"},
+		{http.MethodGet, "/number/123"},
+		{http.MethodGet, "/number/123/"},
+		{http.MethodGet, "/number/123/missing"},
+		{http.MethodGet, "/api/"},
+		{http.MethodGet, "/api/value"},
+		{http.MethodGet, "/api/absent/path"},
+		{http.MethodPost, "/api/value"},
+		{http.MethodGet, "/opaque"},
+		{http.MethodGet, "/opaque/"},
+		{http.MethodGet, "/opaque/file"},
+		{http.MethodGet, "/override"},
+		{http.MethodPost, "/override"},
+		{http.MethodPost, "/custom/value"},
+	}
+	for range 3 {
+		reloaded, _ := manager.buildReloadedAppRouter(t.Context(), &templater_domain.MockManifestStoreView{})
+		for _, test := range cases {
+			original := httptest.NewRecorder()
+			managerConfig.AppRouter.ServeHTTP(original, httptest.NewRequest(test.method, test.path, nil))
+			actual := httptest.NewRecorder()
+			reloaded.ServeHTTP(actual, httptest.NewRequest(test.method, test.path, nil))
+			require.Equal(t, original.Code, actual.Code, "%s %s", test.method, test.path)
+			require.Equal(t, original.Body.String(), actual.Body.String(), "%s %s", test.method, test.path)
+			require.Equal(t, original.Header(), actual.Header(), "%s %s", test.method, test.path)
+		}
+	}
+}
+
+func TestRouterManagerReloadProtectsCustomRoutesWithTheAuthGuard(t *testing.T) {
+	t.Parallel()
+	managerConfig := newParityRouterManagerConfig(nil, nil)
+	managerConfig.RouterConfig.RateLimit.Enabled = false
+	managerConfig.RateLimitConfig.Enabled = false
+	managerConfig.AppRouter = applicationRouteFixture()
+	manager := NewRouterManager(managerConfig)
+	t.Cleanup(manager.Close)
+	for range 2 {
+		require.NoError(t, manager.ReloadRoutes(context.Background(), &templater_domain.MockManifestStoreView{}))
+		request := httptest.NewRequest(http.MethodGet, "/custom/value", nil)
+		response := serveThroughCarrier(manager, request)
+		require.Equal(t, http.StatusSeeOther, response.Code)
+		require.Contains(t, response.Header().Get("Location"), "/login")
+		request.Header.Set(testUserHeader, "user")
+		response = serveThroughCarrier(manager, request)
+		require.Equal(t, http.StatusOK, response.Code)
+		require.Equal(t, "value:", response.Body.String())
+	}
+}
+
+type changingRouteProvider struct{ path string }
+
+func (provider *changingRouteProvider) MountRoutes(router *chi.Mux) {
+	router.Get(provider.path, func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("generated"))
+	})
+}
+
+func TestRouterManagerReloadKeepsGeneratedRoutersIndependent(t *testing.T) {
+	t.Parallel()
+	managerConfig := newParityRouterManagerConfig(nil, nil)
+	managerConfig.AppRouter = applicationRouteFixture()
+	provider := &changingRouteProvider{path: "/before"}
+	managerConfig.RouteProviders = []daemon_domain.RouteProvider{provider}
+	manager := NewRouterManager(managerConfig)
+	t.Cleanup(manager.Close)
+	before, _ := manager.buildReloadedAppRouter(t.Context(), &templater_domain.MockManifestStoreView{})
+	provider.path = "/after"
+	after, _ := manager.buildReloadedAppRouter(t.Context(), &templater_domain.MockManifestStoreView{})
+	for _, test := range []struct {
+		router http.Handler
+		path   string
+		status int
+	}{
+		{before, "/before", http.StatusOK},
+		{before, "/after", http.StatusNotFound},
+		{after, "/before", http.StatusNotFound},
+		{after, "/after", http.StatusOK},
+		{managerConfig.AppRouter, "/before", http.StatusNotFound},
+		{managerConfig.AppRouter, "/after", http.StatusNotFound},
+	} {
+		recorder := httptest.NewRecorder()
+		test.router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, test.path, nil))
+		require.Equal(t, test.status, recorder.Code, test.path)
+		require.Equal(t, []string{"root"}, recorder.Header().Values("X-Trace"))
+	}
+}
+
+func TestRouterManagerReloadKeepsApplicationMethodsAtGeneratedPaths(t *testing.T) {
+	t.Parallel()
+	managerConfig := newParityRouterManagerConfig(nil, nil)
+	managerConfig.AppRouter = applicationRouteFixture()
+	managerConfig.AppRouter.Post("/override", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })
+	managerConfig.RouteProviders = []daemon_domain.RouteProvider{&changingRouteProvider{path: "/override"}}
+	manager := NewRouterManager(managerConfig)
+	t.Cleanup(manager.Close)
+	reloaded, _ := manager.buildReloadedAppRouter(t.Context(), &templater_domain.MockManifestStoreView{})
+	response := httptest.NewRecorder()
+	reloaded.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/override", nil))
+	require.Equal(t, http.StatusOK, response.Code)
+	require.Equal(t, "generated", response.Body.String())
+	require.Equal(t, []string{"root"}, response.Header().Values("X-Trace"))
+	response = httptest.NewRecorder()
+	reloaded.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/override", nil))
+	require.Equal(t, http.StatusNoContent, response.Code)
+	require.Equal(t, []string{"root"}, response.Header().Values("X-Trace"))
+}
+
+func TestRouterManagerReloadPreservesConcurrentApplicationRequests(t *testing.T) {
+	t.Parallel()
+	managerConfig := newParityRouterManagerConfig(nil, nil)
+	managerConfig.RouterConfig.RateLimit.Enabled = false
+	managerConfig.RateLimitConfig.Enabled = false
+	managerConfig.AppRouter = applicationRouteFixture()
+	manager := NewRouterManager(managerConfig)
+	t.Cleanup(manager.Close)
+	require.NoError(t, manager.ReloadRoutes(t.Context(), &templater_domain.MockManifestStoreView{}))
+	const workers = 4
+	const requests = 20
+	responses := make(chan *httptest.ResponseRecorder, workers*requests)
+	var group sync.WaitGroup
+	for range workers {
+		group.Go(func() {
+			for range requests {
+				request := httptest.NewRequest(http.MethodGet, "/custom/value?q=query", nil)
+				request.Header.Set(testUserHeader, "user")
+				responses <- serveThroughCarrier(manager, request)
+			}
+		})
+	}
+	for range 4 {
+		require.NoError(t, manager.ReloadRoutes(t.Context(), &templater_domain.MockManifestStoreView{}))
+	}
+	group.Wait()
+	close(responses)
+	for response := range responses {
+		require.Equal(t, http.StatusOK, response.Code)
+		require.Equal(t, "value:query", response.Body.String())
+		require.Equal(t, []string{"root"}, response.Header().Values("X-Trace"))
+	}
+}
+
+func TestRouterManagerReloadPreservesChiRoutePrecedence(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		application, generated, path, body string
+	}{
+		{"/status", "/{page}", "/status", "application"},
+		{"/{page}", "/status", "/status", "generated"},
+		{"/api/*", "/api/status", "/api/status", "generated"},
+		{"/api/status", "/api/*", "/api/status", "application"},
+		{"/{id:[0-9]+}", "/{page}", "/123", "application"},
+		{"/same/{first}", "/same/{second}", "/same/value", "generated"},
+	}
+	for _, test := range cases {
+		t.Run(test.application+"_"+test.generated, func(t *testing.T) {
+			t.Parallel()
+			managerConfig := newParityRouterManagerConfig(nil, nil)
+			managerConfig.AppRouter = chi.NewRouter()
+			managerConfig.AppRouter.Get(test.application, func(w http.ResponseWriter, _ *http.Request) {
+				_, _ = w.Write([]byte("application"))
+			})
+			managerConfig.RouteProviders = []daemon_domain.RouteProvider{&changingRouteProvider{path: test.generated}}
+			manager := NewRouterManager(managerConfig)
+			t.Cleanup(manager.Close)
+			router, _ := manager.buildReloadedAppRouter(t.Context(), &templater_domain.MockManifestStoreView{})
+			response := httptest.NewRecorder()
+			router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, test.path, nil))
+			require.Equal(t, http.StatusOK, response.Code)
+			require.Equal(t, test.body, response.Body.String())
+		})
+	}
+}

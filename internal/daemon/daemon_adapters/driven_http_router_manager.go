@@ -349,10 +349,10 @@ func (rm *RouterManager) Close() {
 //
 // Takes store (templater_domain.ManifestStoreView) which provides the new manifest data.
 //
-// Returns chi.Router which is the populated application router.
+// Returns http.Handler which combines generated and application routes.
 // Returns http.Handler which is the not-found handler resolving custom error pages
 // against store.
-func (rm *RouterManager) buildReloadedAppRouter(ctx context.Context, store templater_domain.ManifestStoreView) (chi.Router, http.Handler) {
+func (rm *RouterManager) buildReloadedAppRouter(ctx context.Context, store templater_domain.ManifestStoreView) (router, notFound http.Handler) {
 	newAppRouter := chi.NewRouter()
 	newAppRouter.Use(rm.appRouter.Middlewares()...)
 
@@ -384,5 +384,103 @@ func (rm *RouterManager) buildReloadedAppRouter(ctx context.Context, store templ
 		Entry:         nil,
 		Span:          nil,
 	})
-	return newAppRouter, notFoundHandler
+	return retainApplicationRoutes(newAppRouter, rm.appRouter), notFoundHandler
+}
+
+// applicationRouteMatcher identifies registrations without invoking middleware or
+// handlers.
+//
+// Find records the outer route in RoutePatterns even when a mounted child will return its
+// own 404 or 405. This also retains exact mount roots, which Chi omits from Routes. The
+// flat path matcher handles method refusals.
+type applicationRouteMatcher struct {
+	// router holds the original registrations, including mounted handlers.
+	router *chi.Mux
+
+	// paths matches registered paths independently of the request method.
+	paths *chi.Mux
+}
+
+// newApplicationRouteMatcher builds a matcher for application registrations and paths.
+//
+// Takes router (*chi.Mux) which contains the original route registrations.
+//
+// Returns applicationRouteMatcher which supports method and path lookups.
+func newApplicationRouteMatcher(router *chi.Mux) applicationRouteMatcher {
+	matcher := applicationRouteMatcher{router: router, paths: chi.NewRouter()}
+	for _, route := range router.Routes() {
+		matcher.paths.Handle(route.Pattern, http.NotFoundHandler())
+	}
+	return matcher
+}
+
+// find identifies the outer registered route for a request method and path.
+//
+// Takes method (string) which is the HTTP request method.
+// Takes path (string) which is the request path to match.
+//
+// Returns string which is the outer route pattern, or an empty string if none matches.
+func (matcher applicationRouteMatcher) find(method, path string) string {
+	routeContext := chi.NewRouteContext()
+	matcher.router.Find(routeContext, method, path)
+	if len(routeContext.RoutePatterns) == 0 {
+		return ""
+	}
+	return routeContext.RoutePatterns[0]
+}
+
+// preferGeneratedRoute applies Chi's precedence to generated and application patterns.
+//
+// Static segments precede parameters and wildcards, and generated registrations win equal
+// patterns. Only overlapping, distinct patterns need a comparison.
+//
+// Takes generated (string) which is the matching generated pattern, or an empty string.
+// Takes application (string) which is the matching application pattern, or an empty
+// string.
+// Takes path (string) which is the request path used to compare route precedence.
+//
+// Returns bool which is true when the generated route takes precedence.
+func preferGeneratedRoute(generated, application, path string) bool {
+	if generated == "" {
+		return false
+	}
+	if application == "" || generated == application {
+		return true
+	}
+	priority := chi.NewRouter()
+	priority.Handle(application, http.NotFoundHandler())
+	priority.Handle(generated, http.NotFoundHandler())
+	return priority.Find(chi.NewRouteContext(), http.MethodGet, path) == generated
+}
+
+// retainApplicationRoutes composes a generated router with the original application
+// router.
+//
+// Takes generated (*chi.Mux) which contains this reload's framework routes.
+// Takes application (*chi.Mux) which contains the original application registrations.
+//
+// Returns http.Handler which dispatches to the router owning the requested route.
+func retainApplicationRoutes(generated, application *chi.Mux) http.Handler {
+	generatedRoutes := newApplicationRouteMatcher(generated)
+	applicationRoutes := newApplicationRouteMatcher(application)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.RawPath
+		if path == "" {
+			path = r.URL.Path
+		}
+		if routeContext := chi.RouteContext(r.Context()); routeContext != nil && routeContext.RoutePath != "" {
+			path = routeContext.RoutePath
+		}
+		generatedPattern := generatedRoutes.find(r.Method, path)
+		applicationPattern := applicationRoutes.find(r.Method, path)
+		if generatedPattern == "" && applicationPattern == "" {
+			generatedPattern = generatedRoutes.paths.Find(chi.NewRouteContext(), http.MethodGet, path)
+			applicationPattern = applicationRoutes.paths.Find(chi.NewRouteContext(), http.MethodGet, path)
+		}
+		if applicationPattern != "" && !preferGeneratedRoute(generatedPattern, applicationPattern, path) {
+			application.ServeHTTP(w, r)
+			return
+		}
+		generated.ServeHTTP(w, r)
+	})
 }
