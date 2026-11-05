@@ -33,7 +33,7 @@ func TestRunner_DelayedJobsRunsOnTimeNotEarly(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
 
-	run := newRunner(t, withPromoteInterval(50 * time.Millisecond))
+	run := newRunner(t, withPromoteInterval(50*time.Millisecond))
 
 	workerNode := &recordingWorker{}
 	worker.Register[welcomeArgs](run.Service(), workerNode)

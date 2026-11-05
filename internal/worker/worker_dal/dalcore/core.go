@@ -28,7 +28,7 @@ import (
 	"piko.sh/piko/internal/worker/worker_domain"
 	"piko.sh/piko/internal/worker/worker_dto"
 	"piko.sh/piko/wdk/clock"
-	"piko.sh/piko/wdk/safeconv"
+	"piko.sh/safeconv"
 )
 
 const (
@@ -72,18 +72,38 @@ type core struct {
 	clock clock.Clock
 }
 
-// New builds a worker Store from an open *sql.DB, a dialect driver and a clock.
+// Option configures a core during construction.
+type Option func(*core)
+
+// WithClock sets the clock every row timestamp is stamped from and every due, stale and
+// visibility computation is measured against.
+//
+// Use the same clock as the worker service so stored times and due checks agree.
+//
+// Takes clk (clock.Clock) which provides the time; nil keeps the real clock.
+//
+// Returns Option which configures the core's clock.
+func WithClock(clk clock.Clock) Option {
+	return func(target *core) {
+		if clk != nil {
+			target.clock = clk
+		}
+	}
+}
+
+// New builds a worker Store from an open *sql.DB and a dialect driver.
 //
 // Takes database (*sql.DB) which the transaction lifecycle runs against.
 // Takes driver (Driver) which is the per-dialect query implementation.
-// Takes clk (clock.Clock) which is the time source; nil falls back to RealClock().
+// Takes opts (...Option) which customise the store, such as its clock.
 //
 // Returns worker_domain.Store which is the ready store.
-func New(database *sql.DB, driver Driver, clk clock.Clock) worker_domain.Store {
-	if clk == nil {
-		clk = clock.RealClock()
+func New(database *sql.DB, driver Driver, opts ...Option) worker_domain.Store {
+	c := &core{sqlDB: database, driver: driver, clock: clock.RealClock()}
+	for _, opt := range opts {
+		opt(c)
 	}
-	return &core{sqlDB: database, driver: driver, clock: clk}
+	return c
 }
 
 // PromoteDue promotes due scheduled and retryable jobs to pending, up to limit.

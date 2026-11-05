@@ -26,7 +26,6 @@ import (
 	"piko.sh/piko/internal/worker/worker_dal/dalcore"
 	"piko.sh/piko/internal/worker/worker_dal/querier_sqlite/db"
 	"piko.sh/piko/internal/worker/worker_domain"
-	"piko.sh/piko/wdk/clock"
 )
 
 // driver is the SQLite implementation of dalcore.Driver. It translates dalcore's
@@ -40,14 +39,32 @@ var (
 	_ dalcore.Driver = (*driver)(nil)
 )
 
-// New creates a worker Store backed by the given SQLite database connection and clock.
+// New creates a worker Store backed by the given SQLite database connection.
 //
-// Takes database (*sql.DB) which is the open SQLite connection.
-// Takes clk (clock.Clock) which is the time source; nil falls back to RealClock().
+// Takes database (db.DBTX) which provides the connection queries run against. When it is
+// a *sql.DB it is also used for transactions.
+// Takes opts (...dalcore.Option) which customise the store, such as its clock.
 //
 // Returns worker_domain.Store which is ready for use.
-func New(database *sql.DB, clk clock.Clock) worker_domain.Store {
-	return dalcore.New(database, &driver{queries: db.New(database)}, clk)
+func New(database db.DBTX, opts ...dalcore.Option) worker_domain.Store {
+	var sqlDB *sql.DB
+	if typedDB, ok := database.(*sql.DB); ok {
+		sqlDB = typedDB
+	}
+	return dalcore.New(sqlDB, &driver{queries: db.New(database)}, opts...)
+}
+
+// NewObserved creates a worker Store whose statements run through queryDB while
+// transactions use database directly.
+//
+// Takes database (*sql.DB) which owns BeginTx.
+// Takes queryDB (db.DBTX) which executes non-transactional statements, typically the
+// OTel-observed writer.
+// Takes opts (...dalcore.Option) which customise the store, such as its clock.
+//
+// Returns worker_domain.Store which is ready for use.
+func NewObserved(database *sql.DB, queryDB db.DBTX, opts ...dalcore.Option) worker_domain.Store {
+	return dalcore.New(database, &driver{queries: db.New(queryDB)}, opts...)
 }
 
 func (d *driver) HeartbeatJob(ctx context.Context, params dalcore.HeartbeatJobParams) error {

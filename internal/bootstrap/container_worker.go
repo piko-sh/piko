@@ -22,11 +22,13 @@ package bootstrap
 
 import (
 	"context"
-	"errors"
+	"database/sql"
 	"fmt"
 
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/shutdown"
+	"piko.sh/piko/internal/worker/worker_dal/dalcore"
+	worker_otter "piko.sh/piko/internal/worker/worker_dal/otter"
 	worker_querier_postgres "piko.sh/piko/internal/worker/worker_dal/querier_postgres"
 	worker_querier_sqlite "piko.sh/piko/internal/worker/worker_dal/querier_sqlite"
 	"piko.sh/piko/internal/worker/worker_domain"
@@ -34,9 +36,8 @@ import (
 )
 
 // GetWorkerService returns the worker service, creating it on first call. When no worker
-// database is registered via WithDatabase(DatabaseNameWorker, ...), it defaults to the
-// in-memory otter store obtained from the shared persistence provider, mirroring the
-// registry and orchestrator subsystems.
+// database is registered via WithDatabase(DatabaseNameWorker, ...), it defaults to a fresh
+// in-memory otter store.
 //
 // Returns worker_domain.Service which runs and drains the job pool.
 // Returns error when the store or service cannot be created.
@@ -88,21 +89,26 @@ func (c *Container) buildWorkerService(opts ...worker_domain.ServiceOption) (wor
 
 // createWorkerStore resolves the worker Store behind the composition-root switch-off: a
 // database registered under DatabaseNameWorker selects the querier-backed DAL, otherwise
-// the default in-memory otter store from the shared persistence provider is used. The
-// bootstrap never registers the worker database itself - the user's WithDatabase does.
+// a fresh in-memory otter store is used. Build-time containers always use the in-memory
+// store. The bootstrap never registers the worker database itself - the user's
+// WithDatabase does.
 //
-// Takes clk (clock.Clock) which the SQL-backed stores stamp timestamps from.
+// Takes clk (clock.Clock) which the stores stamp timestamps from.
 //
 // Returns worker_domain.Store which is the resolved store.
 // Returns error when the store cannot be created.
 func (c *Container) createWorkerStore(clk clock.Clock) (worker_domain.Store, error) {
+	if c.isBuildTime {
+		return createInMemoryWorkerDAL(clk)
+	}
+
 	if c.dbRegistrations != nil {
 		if _, registered := c.dbRegistrations[DatabaseNameWorker]; registered {
 			return c.createQuerierWorkerDAL(clk)
 		}
 	}
 
-	return c.createProviderWorkerDAL()
+	return createInMemoryWorkerDAL(clk)
 }
 
 // createQuerierWorkerDAL creates a worker Store from a querier-managed database
@@ -111,37 +117,54 @@ func (c *Container) createWorkerStore(clk clock.Clock) (worker_domain.Store, err
 // Takes clk (clock.Clock) which the store stamps timestamps from.
 //
 // Returns worker_domain.Store which is the querier-backed store.
-// Returns error when the database connection cannot be obtained.
+// Returns error when the database connection cannot be obtained or its schema is
+// outdated.
 func (c *Container) createQuerierWorkerDAL(clk clock.Clock) (worker_domain.Store, error) {
-	database, driver, err := c.resolveQuerierDatabase(DatabaseNameWorker, "worker")
+	database, observed, driver, err := c.resolveQuerierDatabase(DatabaseNameWorker, "worker")
 	if err != nil {
 		return nil, err
 	}
 
-	if isPostgresDriver(driver) {
-		return worker_querier_postgres.New(database, clk), nil
+	if err := checkWorkerSchema(database, isPostgresDriver(driver)); err != nil {
+		return nil, err
 	}
 
-	return worker_querier_sqlite.New(database, clk), nil
+	if isPostgresDriver(driver) {
+		return worker_querier_postgres.NewObserved(database, observed, dalcore.WithClock(clk)), nil
+	}
+
+	return worker_querier_sqlite.NewObserved(database, observed, dalcore.WithClock(clk)), nil
 }
 
-// createProviderWorkerDAL creates a worker Store from the default otter in-memory backend
-// via the shared persistence provider.
+// checkWorkerSchema verifies the worker database has every migration applied, so an
+// outdated schema fails at startup with its remedy rather than on the first job.
 //
-// Returns worker_domain.Store which is the otter-backed store.
-// Returns error when the otter DAL cannot be created or does not implement the Store
-// interface.
-func (c *Container) createProviderWorkerDAL() (worker_domain.Store, error) {
-	dalAny, err := c.createOtterWorkerDAL()
+// Takes database (*sql.DB) which is the worker database.
+// Takes postgres (bool) which selects the Postgres schema over SQLite's.
+//
+// Returns error which wraps worker_domain.ErrSchemaOutdated when a migration is missing.
+func checkWorkerSchema(database *sql.DB, postgres bool) error {
+	ctx, cancel := context.WithTimeout(context.Background(), schemaCheckTimeout)
+	defer cancel()
+	if postgres {
+		return worker_querier_postgres.CheckSchema(ctx, database)
+	}
+	return worker_querier_sqlite.CheckSchema(ctx, database)
+}
+
+// createInMemoryWorkerDAL creates a fresh in-memory otter worker Store. The store has no
+// WAL persistence, so it never writes to the persistence directory and is safe in
+// build-time containers and single-binary deploys.
+//
+// Takes clk (clock.Clock) which the store stamps timestamps from.
+//
+// Returns worker_domain.Store which is the in-memory store.
+// Returns error when the otter DAL cannot be created.
+func createInMemoryWorkerDAL(clk clock.Clock) (worker_domain.Store, error) {
+	store, err := worker_otter.NewOtterDAL(worker_otter.Config{}, worker_otter.WithClock(clk))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create otter worker DAL: %w", err)
 	}
-
-	store, ok := dalAny.(worker_domain.Store)
-	if !ok {
-		return nil, errors.New("otter worker DAL does not implement worker_domain.Store")
-	}
-
 	return store, nil
 }
 

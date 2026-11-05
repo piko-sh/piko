@@ -97,18 +97,18 @@ WHERE unique_key = ?
 LIMIT 1;
 
 -- piko.query(name: CountPendingJobs, command: one)
-SELECT COUNT(*) AS jobCount
+SELECT COUNT(*) AS job_count
 FROM job_index
 WHERE status = 'pending' AND deleted_at IS NULL;
 
 -- piko.query(name: CountClaimableJobs, command: many)
-SELECT queue, COUNT(*) AS jobCount
+SELECT queue, COUNT(*) AS job_count
 FROM job_index
 WHERE status IN ('pending', 'scheduled') AND deleted_at IS NULL
 GROUP BY queue;
 
 -- piko.query(name: CountNonTerminalJobs, command: one)
-SELECT COUNT(*) AS jobCount
+SELECT COUNT(*) AS job_count
 FROM job_index
 WHERE status NOT IN ('completed', 'failed', 'timeout', 'cancelled', 'discarded') AND deleted_at IS NULL;
 

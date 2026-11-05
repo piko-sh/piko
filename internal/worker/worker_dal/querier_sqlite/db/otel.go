@@ -2,8 +2,20 @@
 
 package db
 
-var queryNameMap = map[string]string{insertjobroot: "InsertJobRoot", insertjobrootwithuniquekey: "InsertJobRootWithUniqueKey", appendjobversion: "AppendJobVersion", insertjobrootbatch: "InsertJobRootBatch", claimcandidates: "ClaimCandidates", promotecandidates: "PromoteCandidates", getjob: "GetJob", listjobversions: "ListJobVersions", getjobindex: "GetJobIndex", stalerunningjobs: "StaleRunningJobs", getjobidbyuniquekey: "GetJobIDByUniqueKey", countpendingjobs: "CountPendingJobs", countclaimablejobs: "CountClaimableJobs", countnonterminaljobs: "CountNonTerminalJobs", heartbeatjob: "HeartbeatJob", heartbeatjobs: "HeartbeatJobs"}
+import "strings"
+
+var queryNameMap = map[string]string{appendjobversion: "AppendJobVersion", appendjobversionbatch: "AppendJobVersionBatch", claimcandidates: "ClaimCandidates", countclaimablejobs: "CountClaimableJobs", countnonterminaljobs: "CountNonTerminalJobs", countpendingjobs: "CountPendingJobs", getjob: "GetJob", getjobidbyuniquekey: "GetJobIDByUniqueKey", getjobindex: "GetJobIndex", heartbeatjob: "HeartbeatJob", heartbeatjobs: "HeartbeatJobs", insertjobroot: "InsertJobRoot", insertjobrootbatch: "InsertJobRootBatch", insertjobrootwithuniquekey: "InsertJobRootWithUniqueKey", listjobversions: "ListJobVersions", promotecandidates: "PromoteCandidates", stalerunningjobs: "StaleRunningJobs"}
+var queryNamePrefixes = []string{heartbeatjobs[:237], appendjobversionbatch[:190], insertjobrootbatch[:100]}
+var queryNamePrefixNames = []string{"HeartbeatJobs", "AppendJobVersionBatch", "InsertJobRootBatch"}
 
 func QueryNameResolver(query string) string {
-	return queryNameMap[query]
+	if name, ok := queryNameMap[query]; ok {
+		return name
+	}
+	for index, prefix := range queryNamePrefixes {
+		if strings.HasPrefix(query, prefix) {
+			return queryNamePrefixNames[index]
+		}
+	}
+	return ""
 }

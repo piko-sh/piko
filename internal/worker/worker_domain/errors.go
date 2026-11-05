@@ -46,6 +46,10 @@ var (
 	// ErrNotifierClosed is returned by Subscribe once the notifier has been closed.
 	ErrNotifierClosed = errors.New("worker: notifier closed")
 
+	// ErrSchemaOutdated is returned at startup when the worker database lacks tables or
+	// columns a migration adds, because the migrations were not applied.
+	ErrSchemaOutdated = errors.New("worker: database schema is outdated")
+
 	// ErrSnooze marks a deferral, not a failure.
 	//
 	// A worker returns Snooze(duration), which the dispatcher uses to reschedule the

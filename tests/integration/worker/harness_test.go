@@ -35,6 +35,7 @@ import (
 	_ "modernc.org/sqlite"
 	"piko.sh/piko/wdk/worker"
 
+	"piko.sh/piko/internal/worker/worker_dal/dalcore"
 	"piko.sh/piko/internal/worker/worker_dal/querier_sqlite"
 	"piko.sh/piko/internal/worker/worker_domain"
 	"piko.sh/piko/internal/worker/worker_dto"
@@ -81,14 +82,14 @@ func newStore(t *testing.T) worker_domain.Store {
 	t.Helper()
 	database := openDatabase(t)
 	applyMigrations(t, database, "001_worker.up.sql")
-	return querier_sqlite.New(database, clock.RealClock())
+	return querier_sqlite.New(database)
 }
 
 func newStoreWithClock(t *testing.T, clk clock.Clock) worker_domain.Store {
 	t.Helper()
 	database := openDatabase(t)
 	applyMigrations(t, database, "001_worker.up.sql")
-	return querier_sqlite.New(database, clk)
+	return querier_sqlite.New(database, dalcore.WithClock(clk))
 }
 
 type runner struct {
@@ -146,7 +147,7 @@ func newRunner(t *testing.T, opts ...runnerOption) *runner {
 	}
 	database := openDatabase(t)
 	applyMigrations(t, database, "001_worker.up.sql")
-	store := querier_sqlite.New(database, clock.RealClock())
+	store := querier_sqlite.New(database)
 	serviceOpts := append([]worker.ServiceOption{
 		worker.WithClock(config.clk),
 		worker.WithConfig(config.workersConfig),

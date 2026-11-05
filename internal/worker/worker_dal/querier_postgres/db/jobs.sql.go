@@ -4,6 +4,7 @@ package db
 
 import (
 	"context"
+	"strconv"
 	"strings"
 )
 
@@ -33,7 +34,8 @@ func (queries *Queries) AppendJobVersion(ctx context.Context, params AppendJobVe
 	return err
 }
 
-const appendjobversionbatch = `INSERT INTO worker_job_versions (
+const appendjobversionbatch = `-- AppendJobVersionBatch
+INSERT INTO worker_job_versions (
     job_id, event, status, priority, scheduled_at, attempt,
     last_error, result, claimed_by_worker_id, claimed_at, deleted_at
 ) VALUES (
@@ -53,8 +55,6 @@ type AppendJobVersionBatchParams struct {
 	ClaimedAt         *string
 	DeletedAt         *string
 }
-type AppendJobVersionBatchRow struct {
-}
 
 func (queries *Queries) AppendJobVersionBatch(ctx context.Context, params []AppendJobVersionBatchParams) error {
 	if len(params) == 0 {
@@ -65,25 +65,40 @@ func (queries *Queries) AppendJobVersionBatch(ctx context.Context, params []Appe
 		chunk := params[offset:end]
 		args := make([]any, 0, len(chunk)*11)
 		var values strings.Builder
+		values.Grow(198 + len(chunk)*96)
+		values.WriteString(appendjobversionbatch[:197])
 		for i, item := range chunk {
 			if i > 0 {
 				values.WriteString(", ")
 			}
-			values.WriteString("(?,?,?,?,?,?,?,?,?,?,?)")
-			args = append(args, item.JobID)
-			args = append(args, item.Event)
-			args = append(args, item.Status)
-			args = append(args, item.Priority)
-			args = append(args, item.ScheduledAt)
-			args = append(args, item.Attempt)
-			args = append(args, item.LastError)
-			args = append(args, item.Result)
-			args = append(args, item.ClaimedByWorkerID)
-			args = append(args, item.ClaimedAt)
-			args = append(args, item.DeletedAt)
+			var digits [20]byte
+			values.WriteString("(\n    $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*11+1), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*11+2), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*11+3), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*11+4), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*11+5), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*11+6), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*11+7), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*11+8), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*11+9), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*11+10), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*11+11), 10))
+			values.WriteString("\n)")
+			args = append(args, item.JobID, item.Event, item.Status, item.Priority, item.ScheduledAt, item.Attempt, item.LastError, item.Result, item.ClaimedByWorkerID, item.ClaimedAt, item.DeletedAt)
 		}
-		_, err := queries.writer.ExecContext(ctx, pikoBatchExpandValues(appendjobversionbatch, values.String()), args...)
-		if err != nil {
+		values.WriteString(appendjobversionbatch[249:])
+		if _, err := queries.writer.ExecContext(ctx, values.String(), args...); err != nil {
 			return err
 		}
 	}
@@ -127,12 +142,16 @@ func (queries *Queries) ClaimCandidates(ctx context.Context, params ClaimCandida
 	}
 	defer rows.Close()
 	var results []ClaimCandidatesRow
-	for rows.Next() {
+	if rows.Next() {
 		var row ClaimCandidatesRow
-		if err := rows.Scan(&row.JobID, &row.CurrentVersionSequence, &row.Priority, &row.ScheduledAt, &row.Attempt, &row.Kind, &row.Queue, &row.Payload, &row.MaxAttempts, &row.TimeoutSeconds, &row.CreatedAt); err != nil {
-			return nil, err
+		scanArgs := []any{&row.JobID, &row.CurrentVersionSequence, &row.Priority, &row.ScheduledAt, &row.Attempt, &row.Kind, &row.Queue, &row.Payload, &row.MaxAttempts, &row.TimeoutSeconds, &row.CreatedAt}
+		for more := true; more; more = rows.Next() {
+			row = ClaimCandidatesRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -140,14 +159,14 @@ func (queries *Queries) ClaimCandidates(ctx context.Context, params ClaimCandida
 	return results, nil
 }
 
-const countclaimablejobs = `SELECT queue, COUNT(*) AS jobCount
+const countclaimablejobs = `SELECT queue, COUNT(*) AS job_count
 FROM worker_job_index
 WHERE status IN ('pending', 'scheduled') AND deleted_at IS NULL
 GROUP BY queue;`
 
 type CountClaimableJobsRow struct {
 	Queue    string `json:"queue"`
-	JobCount int64  `json:"jobCount"`
+	JobCount int64  `json:"job_count"`
 }
 
 func (queries *Queries) CountClaimableJobs(ctx context.Context) ([]CountClaimableJobsRow, error) {
@@ -157,12 +176,16 @@ func (queries *Queries) CountClaimableJobs(ctx context.Context) ([]CountClaimabl
 	}
 	defer rows.Close()
 	var results []CountClaimableJobsRow
-	for rows.Next() {
+	if rows.Next() {
 		var row CountClaimableJobsRow
-		if err := rows.Scan(&row.Queue, &row.JobCount); err != nil {
-			return nil, err
+		scanArgs := []any{&row.Queue, &row.JobCount}
+		for more := true; more; more = rows.Next() {
+			row = CountClaimableJobsRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -170,12 +193,12 @@ func (queries *Queries) CountClaimableJobs(ctx context.Context) ([]CountClaimabl
 	return results, nil
 }
 
-const countnonterminaljobs = `SELECT COUNT(*) AS jobCount
+const countnonterminaljobs = `SELECT COUNT(*) AS job_count
 FROM worker_job_index
 WHERE status NOT IN ('completed', 'failed', 'timeout', 'cancelled', 'discarded') AND deleted_at IS NULL;`
 
 type CountNonTerminalJobsRow struct {
-	JobCount int64 `json:"jobCount"`
+	JobCount int64 `json:"job_count"`
 }
 
 func (queries *Queries) CountNonTerminalJobs(ctx context.Context) (CountNonTerminalJobsRow, error) {
@@ -187,12 +210,12 @@ func (queries *Queries) CountNonTerminalJobs(ctx context.Context) (CountNonTermi
 	return row, nil
 }
 
-const countpendingjobs = `SELECT COUNT(*) AS jobCount
+const countpendingjobs = `SELECT COUNT(*) AS job_count
 FROM worker_job_index
 WHERE status = 'pending' AND deleted_at IS NULL;`
 
 type CountPendingJobsRow struct {
-	JobCount int64 `json:"jobCount"`
+	JobCount int64 `json:"job_count"`
 }
 
 func (queries *Queries) CountPendingJobs(ctx context.Context) (CountPendingJobsRow, error) {
@@ -314,11 +337,11 @@ type HeartbeatJobsParams struct {
 }
 
 func (queries *Queries) HeartbeatJobs(ctx context.Context, params HeartbeatJobsParams) (int64, error) {
-	query, expansionError := pikoExpandSlicePlaceholders(heartbeatjobs, []pikoSliceExpansionSpec{{Placeholder: 1, Count: 1}, {Placeholder: 2, Count: 1}, {Placeholder: 3, Count: len(params.IDs)}})
-	if expansionError != nil {
-		return 0, expansionError
+	if err := pikoCheckBinds(2 + len(params.IDs)); err != nil {
+		return 0, err
 	}
-	args := make([]any, 0, len(params.IDs)+2)
+	query := pikoSplice(heartbeatjobs, pikoList(pikoListMark{Empty: `= ANY('{}')`, Operator: 251, Start: 254, End: 258}, 3, len(params.IDs)))
+	args := make([]any, 0, 2+len(params.IDs))
 	args = append(args, params.ClaimedByWorkerID)
 	args = append(args, params.ClaimedAt)
 	for _, v := range params.IDs {
@@ -368,8 +391,6 @@ type InsertJobRootBatchParams struct {
 	TimeoutSeconds int32
 	CreatedAt      string
 }
-type InsertJobRootBatchRow struct {
-}
 
 func (queries *Queries) InsertJobRootBatch(ctx context.Context, params []InsertJobRootBatchParams) error {
 	if len(params) == 0 {
@@ -380,21 +401,32 @@ func (queries *Queries) InsertJobRootBatch(ctx context.Context, params []InsertJ
 		chunk := params[offset:end]
 		args := make([]any, 0, len(chunk)*7)
 		var values strings.Builder
+		values.Grow(108 + len(chunk)*64)
+		values.WriteString(insertjobrootbatch[:107])
 		for i, item := range chunk {
 			if i > 0 {
 				values.WriteString(", ")
 			}
-			values.WriteString("(?,?,?,?,?,?,?)")
-			args = append(args, item.ID)
-			args = append(args, item.Kind)
-			args = append(args, item.Queue)
-			args = append(args, item.Payload)
-			args = append(args, item.MaxAttempts)
-			args = append(args, item.TimeoutSeconds)
-			args = append(args, item.CreatedAt)
+			var digits [20]byte
+			values.WriteString("(\n    $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*7+1), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*7+2), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*7+3), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*7+4), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*7+5), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*7+6), 10))
+			values.WriteString(", $")
+			values.Write(strconv.AppendInt(digits[:0], int64(i*7+7), 10))
+			values.WriteString("\n)")
+			args = append(args, item.ID, item.Kind, item.Queue, item.Payload, item.MaxAttempts, item.TimeoutSeconds, item.CreatedAt)
 		}
-		_, err := queries.writer.ExecContext(ctx, pikoBatchExpandValues(insertjobrootbatch, values.String()), args...)
-		if err != nil {
+		values.WriteString(insertjobrootbatch[141:])
+		if _, err := queries.writer.ExecContext(ctx, values.String(), args...); err != nil {
 			return err
 		}
 	}
@@ -504,12 +536,16 @@ func (queries *Queries) PromoteCandidates(ctx context.Context, params PromoteCan
 	}
 	defer rows.Close()
 	var results []PromoteCandidatesRow
-	for rows.Next() {
+	if rows.Next() {
 		var row PromoteCandidatesRow
-		if err := rows.Scan(&row.JobID, &row.Priority, &row.ScheduledAt, &row.Attempt); err != nil {
-			return nil, err
+		scanArgs := []any{&row.JobID, &row.Priority, &row.ScheduledAt, &row.Attempt}
+		for more := true; more; more = rows.Next() {
+			row = PromoteCandidatesRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -538,12 +574,16 @@ func (queries *Queries) StaleRunningJobs(ctx context.Context, claimedAt *string)
 	}
 	defer rows.Close()
 	var results []StaleRunningJobsRow
-	for rows.Next() {
+	if rows.Next() {
 		var row StaleRunningJobsRow
-		if err := rows.Scan(&row.JobID, &row.CurrentVersionSequence, &row.Priority, &row.ScheduledAt, &row.Attempt); err != nil {
-			return nil, err
+		scanArgs := []any{&row.JobID, &row.CurrentVersionSequence, &row.Priority, &row.ScheduledAt, &row.Attempt}
+		for more := true; more; more = rows.Next() {
+			row = StaleRunningJobsRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

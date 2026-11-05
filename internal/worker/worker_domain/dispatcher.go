@@ -26,9 +26,9 @@ import (
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
-	"piko.sh/piko/internal/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/worker/worker_dto"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 // Dispatch routes a claimed job to the worker registered for its kind and runs it.

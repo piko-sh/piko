@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"piko.sh/piko/internal/worker/worker_dal/dalcore"
 	"piko.sh/piko/internal/worker/worker_dal/querier_sqlite"
 	"piko.sh/piko/internal/worker/worker_domain"
 	"piko.sh/piko/wdk/worker"
@@ -251,7 +252,7 @@ func TestRunner_WaitFromSecondService(t *testing.T) {
 	})
 	require.NoError(t, err, "Enqueue")
 
-	storeB := querier_sqlite.New(runA.database, runA.clk)
+	storeB := querier_sqlite.New(runA.database, dalcore.WithClock(runA.clk))
 	serviceB := worker_domain.NewService(storeB, worker_domain.WithClock(runA.clk))
 	handleB := worker_domain.NewHandle(handle.ID, serviceB)
 

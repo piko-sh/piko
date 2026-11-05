@@ -735,6 +735,9 @@ type containerSettings struct {
 	// for static sites.
 	embeddedPikoFS fs.FS
 
+	// workerOptions holds the service options applied when building the worker service.
+	workerOptions []worker_domain.ServiceOption
+
 	// registryMetadataCacheConfig holds the settings for the registry metadata cache; nil
 	// means no cache is used.
 	registryMetadataCacheConfig *RegistryMetadataCacheConfig
@@ -873,9 +876,6 @@ type containerSettings struct {
 	// inMemoryRuntimeStoreBytes is the byte budget for the opt-in in-memory registry blob
 	// overlay, used only when inMemoryRuntimeStoreEnabled is set.
 	inMemoryRuntimeStoreBytes int64
-
-	// workerOptions holds the service options applied when building the worker service.
-	workerOptions []worker_domain.ServiceOption
 }
 
 // containerFeatureFlags holds the boolean toggles and state flags that switch container
