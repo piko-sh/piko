@@ -1450,3 +1450,31 @@ func TestLaunchReportsAFatalFailureOnce(t *testing.T) {
 		t.Fatal("a fatal failure must be published")
 	}
 }
+
+func TestStartServer_UsesConfiguredLoopback(t *testing.T) {
+	t.Parallel()
+
+	var usedAddress string
+	mockServer := &MockServerAdapter{
+		ListenAndServeFunc: func(addr string, _ http.Handler) error {
+			usedAddress = addr
+			return http.ErrServerClosed
+		},
+	}
+
+	daemonConfig := testDaemonConfig()
+	daemonConfig.NetworkPort = "9999"
+	daemonConfig.NetworkBindAddress = "127.0.0.1"
+
+	deps := &DaemonServiceDeps{
+		DaemonConfig: daemonConfig,
+		Server:       mockServer,
+		FinalRouter:  http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200) }),
+	}
+
+	service := mustBuildDaemonService(t, deps)
+
+	_ = service.startServer(context.Background(), http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200) }))
+
+	assert.Equal(t, "127.0.0.1:9999", usedAddress, "Expected address ':9999'")
+}

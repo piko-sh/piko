@@ -164,8 +164,7 @@ type StartupBannerInfo struct {
 	// HealthExposed indicates whether the health probe is bound to all interfaces (0.0.0.0).
 	HealthExposed bool
 
-	// ServerExposed indicates whether the server is bound to all interfaces (always true
-	// currently).
+	// ServerExposed indicates whether the server is bound to all interfaces.
 	ServerExposed bool
 
 	// LargeMascot indicates whether the large pixel-art mascot should be displayed in the
@@ -247,12 +246,12 @@ func BuildStartupBannerInfo(config DaemonConfig, mode string, version string) St
 	info := StartupBannerInfo{
 		Version:           version,
 		Mode:              mode,
-		ServerURL:         fmt.Sprintf("http://localhost:%s", config.NetworkPort),
+		ServerURL:         "http://" + BannerServerAddress(net.JoinHostPort(normaliseBindAddress(config.NetworkBindAddress), config.NetworkPort)),
 		HealthProbeURL:    "",
 		LivePath:          "",
 		ReadyPath:         "",
 		AutoPort:          config.NetworkAutoNextPort,
-		ServerExposed:     true,
+		ServerExposed:     IsExposedBindAddress(config.NetworkBindAddress),
 		HealthExposed:     false,
 		LargeMascot:       !config.IAmACatPerson,
 		MonitoringURL:     "",
@@ -547,4 +546,17 @@ func printFallbackLogs(ctx context.Context, info StartupBannerInfo) {
 			logger_domain.String("url", info.ProfilingURL),
 		)
 	}
+}
+
+// BannerServerAddress renders a usable URL authority for the actual listener.
+// Wildcard listeners use localhost; explicit IPv4 and IPv6 addresses are retained.
+func BannerServerAddress(address string) string {
+	host, port, err := net.SplitHostPort(address)
+	if err != nil {
+		return address
+	}
+	if IsExposedBindAddress(host) {
+		host = "localhost"
+	}
+	return net.JoinHostPort(host, port)
 }

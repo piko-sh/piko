@@ -394,6 +394,9 @@ func (ds *daemonService) startServer(ctx context.Context, handler http.Handler) 
 	ctx, span, l := log.Span(ctx, "startServer")
 	defer span.End()
 
+	if err := validateBindAddress(ds.daemonConfig.NetworkBindAddress, "WithPort"); err != nil {
+		return err
+	}
 	initialPort, err := strconv.Atoi(ds.daemonConfig.NetworkPort)
 	if err != nil {
 		l.Error("Invalid initial port in configuration", logger_domain.Error(err), logger_domain.String(keyPort, ds.daemonConfig.NetworkPort))
@@ -435,7 +438,7 @@ func (ds *daemonService) tryStartOnPort(ctx context.Context, span trace.Span, ha
 	ctx, l := logger_domain.From(ctx, log)
 	for i := range maxPortRetries {
 		currentPort := initialPort + i
-		addr := net.JoinHostPort(ds.daemonConfig.NetworkBindAddress, strconv.Itoa(currentPort))
+		addr := net.JoinHostPort(normaliseBindAddress(ds.daemonConfig.NetworkBindAddress), strconv.Itoa(currentPort))
 
 		if i > 0 {
 			l.Notice("HTTP server using alternative port",

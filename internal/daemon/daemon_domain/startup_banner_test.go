@@ -512,3 +512,12 @@ func TestIsExposedBindAddressCoversEverySpelling(t *testing.T) {
 		assert.False(t, IsExposedBindAddress(address), "address %q does not publish everywhere", address)
 	}
 }
+
+func TestBannerUsesActualBindAddress(t *testing.T) {
+	for _, tc := range []struct{ address, want string }{{":8080", "localhost:8080"}, {"127.0.0.1:8123", "127.0.0.1:8123"}, {"[::1]:8080", "[::1]:8080"}, {"0.0.0.0:8080", "localhost:8080"}} {
+		assert.Equal(t, tc.want, BannerServerAddress(tc.address))
+	}
+	info := BuildStartupBannerInfo(DaemonConfig{NetworkPort: "8080", NetworkBindAddress: "127.0.0.1"}, "dev", "")
+	assert.Equal(t, "http://127.0.0.1:8080", info.ServerURL)
+	assert.False(t, info.ServerExposed)
+}

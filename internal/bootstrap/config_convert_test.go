@@ -31,6 +31,7 @@ func TestNewDaemonConfig(t *testing.T) {
 		sc := &ServerConfig{
 			Network: config.NetworkConfig{
 				Port:         new("3000"),
+				BindAddress:  new("127.0.0.1"),
 				AutoNextPort: new(true),
 			},
 			HealthProbe: config.HealthProbeConfig{
@@ -46,6 +47,7 @@ func TestNewDaemonConfig(t *testing.T) {
 		dc := NewDaemonConfig(sc)
 
 		assert.Equal(t, "3000", dc.NetworkPort)
+		assert.Equal(t, "127.0.0.1", dc.NetworkBindAddress)
 		assert.True(t, dc.NetworkAutoNextPort)
 		assert.True(t, dc.HealthEnabled)
 		assert.Equal(t, "9999", dc.HealthPort)

@@ -782,7 +782,7 @@ func (s *SSRServer) startAndRunDaemon(ctx context.Context, runMode string, conta
 
 	container.SetOnServerBound(func(address string) {
 		bannerInfo.ServerURL = fmt.Sprintf(
-			"%s://localhost%s", daemon_domain.BannerScheme(daemonConfig.TLS.Enabled()), address,
+			"%s://%s", daemon_domain.BannerScheme(daemonConfig.TLS.Enabled()), daemon_domain.BannerServerAddress(address),
 		)
 		bannerInfo.AutoPort = false
 
