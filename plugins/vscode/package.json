@@ -1,13 +1,19 @@
 {
   "name": "piko",
   "displayName": "Piko Language Support",
-  "description": "Language support for Piko template files (.pk) with embedded Go, CSS, and JSON support",
+  "description": "Language support for Piko single-file components (.pk and .pkc): template intelligence, Go script blocks through gopls, and TypeScript client scripts",
   "version": "0.0.0",
   "publisher": "politepixels",
   "license": "Apache-2.0",
+  "icon": "icons/extension-icon.png",
+  "homepage": "https://piko.sh",
+  "bugs": {
+    "url": "https://github.com/piko-sh/piko/issues"
+  },
   "repository": {
     "type": "git",
-    "url": "https://piko.sh/piko"
+    "url": "https://github.com/piko-sh/piko.git",
+    "directory": "plugins/vscode"
   },
   "engines": {
     "vscode": "^1.107.0"
@@ -26,6 +32,24 @@
   "activationEvents": [
     "onLanguage:piko"
   ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "In untrusted workspaces Piko ignores workspace-level settings that choose which executables to run or which server to connect to.",
+      "restrictedConfigurations": [
+        "piko.lspPath",
+        "piko.goBinPath",
+        "piko.goplsPath",
+        "piko.useExternalServer",
+        "piko.externalServerPort",
+        "piko.detectGoFromExtension"
+      ]
+    },
+    "virtualWorkspaces": {
+      "supported": false,
+      "description": "Piko needs a local file system to run pikopls and Go."
+    }
+  },
   "main": "./out/extension.js",
   "contributes": {
     "languages": [
@@ -56,8 +80,16 @@
           "meta.embedded.block.css": "css",
           "meta.embedded.block.json": "json",
           "meta.embedded.block.javascript": "javascript",
-          "meta.embedded.block.typescript": "typescript"
+          "meta.embedded.block.typescript": "typescript",
+          "meta.embedded.block.yaml": "yaml"
         }
+      },
+      {
+        "scopeName": "piko.directives.injection",
+        "path": "./syntaxes/piko-directives.injection.json",
+        "injectTo": [
+          "source.piko"
+        ]
       }
     ],
     "breakpoints": [
@@ -125,8 +157,8 @@
         "piko.lspPath": {
           "type": "string",
           "default": "",
-          "description": "Custom path to the pikopls binary. Leave empty to use the bundled binary.",
-          "scope": "machine-overridable"
+          "scope": "machine-overridable",
+          "markdownDescription": "Custom path to the `pikopls` binary. Leave empty to use the bundled binary. Supports `~`, `${userHome}` and `${workspaceFolder}`; a bare name such as `pikopls` is looked up on `PATH`, and relative paths resolve against the first workspace folder. Ignored at workspace level in untrusted workspaces."
         },
         "piko.trace.server": {
           "type": "string",
@@ -148,30 +180,42 @@
         "piko.useExternalServer": {
           "type": "boolean",
           "default": false,
-          "description": "Connect to an external LSP server instead of starting one automatically. For debugging.",
+          "description": "Connect to an already-running pikopls on a TCP port instead of starting one. For debugging.",
           "scope": "machine-overridable"
         },
         "piko.externalServerPort": {
-          "type": "number",
+          "type": "integer",
           "default": 4389,
-          "description": "Port for external LSP server (used when useExternalServer is enabled).",
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "Port of the external LSP server (used when useExternalServer is enabled).",
           "scope": "machine-overridable"
         },
-        "piko.useStdioTransport": {
-          "type": "boolean",
-          "default": false,
-          "markdownDescription": "**⚠️ Experimental:** Use stdio transport instead of TCP. This may cause IDE freezes on some systems due to pipe buffer deadlocks. Only enable for debugging.",
+        "piko.transport": {
+          "type": "string",
+          "enum": [
+            "stdio",
+            "tcp"
+          ],
+          "enumDescriptions": [
+            "Talk to pikopls over stdin/stdout (default).",
+            "Start pikopls on a local TCP port, limited to one connection. For debugging only."
+          ],
+          "default": "stdio",
+          "description": "How the extension talks to the pikopls language server.",
           "scope": "machine-overridable"
         },
         "piko.enablePprof": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "Enable pprof profiling server for the LSP. Access at `http://localhost:<port>/debug/pprof/`. For debugging only.",
+          "markdownDescription": "Enable the pprof profiling server for pikopls. Access it at `http://localhost:<port>/_piko/debug/pprof/`. For debugging only.",
           "scope": "machine-overridable"
         },
         "piko.pprofPort": {
-          "type": "number",
+          "type": "integer",
           "default": 6060,
+          "minimum": 1,
+          "maximum": 65535,
           "description": "Port for the pprof HTTP server (used when enablePprof is enabled).",
           "scope": "machine-overridable"
         },
@@ -183,8 +227,8 @@
         },
         "piko.enableFileLogging": {
           "type": "boolean",
-          "default": true,
-          "markdownDescription": "Enable file logging to `/tmp/pikopls-<pid>.log`. Useful for debugging LSP issues.",
+          "default": false,
+          "markdownDescription": "Write pikopls debug logs to `pikopls.log` in the extension's log directory. Open it with **Piko: Open LSP Logs**. Useful for debugging LSP issues.",
           "scope": "machine-overridable"
         },
         "piko.goBinPath": {
@@ -196,13 +240,41 @@
         "piko.detectGoFromExtension": {
           "type": "boolean",
           "default": true,
-          "description": "Detect Go path from the VSCode Go extension settings (go.goroot, go.alternateTools).",
+          "description": "Detect the Go path from the VS Code Go extension settings (go.goroot, go.alternateTools).",
           "scope": "machine-overridable"
         },
         "piko.searchGlobalGoLocations": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Search common Go installation locations like `/usr/local/go/bin`, Homebrew paths, and `~/sdk/go*/bin`.",
+          "markdownDescription": "When `go` is not on `PATH`, search common Go installation locations such as `/usr/local/go/bin`, Homebrew paths and `~/sdk/go*/bin` (newest version first).",
+          "scope": "machine-overridable"
+        },
+        "piko.goplsPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Path to the `gopls` executable used for Go script blocks. Leave empty to let pikopls find it on `PATH` or in the Go bin directories. Supports `~`, `${userHome}` and `${workspaceFolder}`. Ignored at workspace level in untrusted workspaces.",
+          "scope": "machine-overridable"
+        },
+        "piko.goplsDisable": {
+          "type": "boolean",
+          "default": false,
+          "description": "Disable the gopls bridge, so Go script blocks get no Go completions, hover or diagnostics from gopls.",
+          "scope": "machine-overridable"
+        },
+        "piko.goplsMaxChildren": {
+          "type": "integer",
+          "default": 0,
+          "minimum": 0,
+          "maximum": 256,
+          "markdownDescription": "Maximum number of concurrent `gopls` child processes. `0` uses the server default; raise it for large multi-module workspaces.",
+          "scope": "machine-overridable"
+        },
+        "piko.goplsMaxOverlays": {
+          "type": "integer",
+          "default": 0,
+          "minimum": 0,
+          "maximum": 65536,
+          "markdownDescription": "Maximum number of open Go-block overlays per `gopls` child. `0` uses the server default.",
           "scope": "machine-overridable"
         }
       }
@@ -213,7 +285,7 @@
     "precompile": "npm run copy:types",
     "vscode:prepublish": "npm run compile:production",
     "compile": "node esbuild.js",
-    "compile:production": "npm run copy:types && node esbuild.js --production",
+    "compile:production": "rm -rf out && npm run copy:types && node esbuild.js --production",
     "watch": "npm run copy:types && node esbuild.js --watch",
     "lint": "npm run lint:eslint && npm run lint:typecheck && npm run lint:cpd",
     "lint:eslint": "eslint 'src/**/*.ts'",
@@ -223,15 +295,15 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "npm run compile && node ./out/test/runTest.js",
     "package": "vsce package",
     "publish": "vsce publish",
     "release": "cd ../.. && make plugin-vscode-build",
     "release:install": "cd ../.. && make plugin-vscode-install",
-    "release:clean": "cd ../.. && make plugin-vscode-clean"
+    "release:clean": "cd ../.. && make plugin-vscode-clean",
+    "test:grammar": "vscode-tmgrammar-test -g test/grammar/stubs/html.tmLanguage.json -g test/grammar/stubs/go.tmLanguage.json -g test/grammar/stubs/ts.tmLanguage.json -g test/grammar/stubs/js.tmLanguage.json -g test/grammar/stubs/css.tmLanguage.json -g test/grammar/stubs/json.tmLanguage.json -g test/grammar/stubs/yaml.tmLanguage.json \"test/grammar/**/*.test.pk\""
   },
   "dependencies": {
-    "vscode-languageclient": "^9.0.1"
+    "vscode-languageclient": "^11.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
@@ -240,14 +312,19 @@
     "@typescript-eslint/eslint-plugin": "^8.50.1",
     "@typescript-eslint/parser": "^8.50.1",
     "@vitest/coverage-v8": "^4.0.18",
-    "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.7.1",
     "esbuild": "^0.27.2",
     "eslint": "^9.39.2",
     "eslint-plugin-jsdoc": "^61.5.0",
     "eslint-plugin-promise": "^7.2.1",
-    "typescript": "^5.9.3",
     "jscpd": "^4",
-    "vitest": "^4.0.0"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.0",
+    "vscode-tmgrammar-test": "^0.1.3"
+  },
+  "overrides": {
+    "vscode-languageclient": {
+      "minimatch": "^11.0.4"
+    }
   }
 }

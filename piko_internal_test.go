@@ -357,3 +357,65 @@ func TestGenerate_RejectsNonGenerateModes(t *testing.T) {
 		assert.ErrorContains(t, err, "is not one of")
 	}
 }
+
+func TestEnvironmentDefaultOptions(t *testing.T) {
+	t.Parallel()
+
+	environment := func(values map[string]string) func(string) string {
+		return func(key string) string { return values[key] }
+	}
+
+	t.Run("nothing set seeds nothing", func(t *testing.T) {
+		t.Parallel()
+
+		options, err := environmentDefaultOptions(environment(nil))
+		require.NoError(t, err)
+		assert.Empty(t, options)
+	})
+
+	t.Run("a true value turns line directives on", func(t *testing.T) {
+		t.Parallel()
+
+		options, err := environmentDefaultOptions(environment(map[string]string{envDwarfLineDirectives: " true "}))
+		require.NoError(t, err)
+		assert.True(t, bootstrap.NewContainer(options...).IsExperimentalDwarfLineDirectivesEnabled())
+	})
+
+	t.Run("a false value keeps line directives off", func(t *testing.T) {
+		t.Parallel()
+
+		options, err := environmentDefaultOptions(environment(map[string]string{envDwarfLineDirectives: "0"}))
+		require.NoError(t, err)
+		require.Len(t, options, 1)
+		assert.False(t, bootstrap.NewContainer(options...).IsExperimentalDwarfLineDirectivesEnabled())
+	})
+
+	t.Run("an unparsable value is reported and ignored", func(t *testing.T) {
+		t.Parallel()
+
+		options, err := environmentDefaultOptions(environment(map[string]string{
+			envDwarfLineDirectives: "sometimes",
+			"PIKO_LOG_LEVEL":       "debug",
+		}))
+		require.ErrorIs(t, err, errInvalidEnvironmentValue)
+		assert.ErrorContains(t, err, envDwarfLineDirectives)
+		assert.Len(t, options, 1, "the valid log level is still seeded")
+	})
+
+	t.Run("an explicit option overrides the environment", func(t *testing.T) {
+		t.Parallel()
+
+		seeded, err := environmentDefaultOptions(environment(map[string]string{envDwarfLineDirectives: "1"}))
+		require.NoError(t, err)
+		options := append(seeded, bootstrap.WithExperimentalDwarfLineDirectives(false))
+		assert.False(t, bootstrap.NewContainer(options...).IsExperimentalDwarfLineDirectivesEnabled())
+	})
+
+	t.Run("the log level is still seeded", func(t *testing.T) {
+		t.Parallel()
+
+		options, err := environmentDefaultOptions(environment(map[string]string{"PIKO_LOG_LEVEL": "debug"}))
+		require.NoError(t, err)
+		assert.Len(t, options, 1)
+	})
+}

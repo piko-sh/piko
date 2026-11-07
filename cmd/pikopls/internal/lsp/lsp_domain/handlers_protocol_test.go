@@ -488,33 +488,6 @@ func TestReferences_ReturnsEmptyForDocWithoutAnnotations(t *testing.T) {
 	}
 }
 
-func TestSemanticTokensFullDelta_ReturnsEmptyEdits(t *testing.T) {
-	server := &Server{}
-
-	params := &protocol.SemanticTokensDeltaParams{
-		TextDocument: protocol.TextDocumentIdentifier{
-			URI: "file:///test.pk",
-		},
-		PreviousResultID: "prev-id",
-	}
-
-	result, err := server.SemanticTokensFullDelta(context.Background(), params)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if result == nil {
-		t.Fatal("expected non-nil result")
-	}
-
-	delta, ok := result.(*protocol.SemanticTokensDelta)
-	if !ok {
-		t.Fatalf("expected *protocol.SemanticTokensDelta, got %T", result)
-	}
-	if len(delta.Edits) != 0 {
-		t.Errorf("expected empty edits, got %d", len(delta.Edits))
-	}
-}
-
 func TestRequest_InlayHint(t *testing.T) {
 	ws := createTestWorkspace()
 	testURI := protocol.DocumentURI("file:///test.pk")

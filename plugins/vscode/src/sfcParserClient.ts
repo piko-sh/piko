@@ -16,11 +16,13 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
+import {parseSfcBlocks, SfcBlockKind} from './sfcBlocks';
+
 /**
- * A lightweight parser for extracting blocks from Piko (.pk) files.
+ * A content-oriented view of the blocks in a Piko (.pk or .pkc) file.
  *
- * Uses simple regex patterns for fast parsing. This is enough for the LSP
- * to find template, script, style, and i18n blocks.
+ * Thin adapter over the shared block parser in sfcBlocks.ts, which mirrors
+ * the server's internal/sfcparser.
  */
 
 /**
@@ -28,7 +30,7 @@
  */
 export interface SfcBlock {
     /** The type of block. */
-    type: 'template' | 'script' | 'script-ts' | 'style' | 'i18n';
+    type: SfcBlockKind;
     /** The text content inside the block tags. */
     content: string;
     /** The start offset of the block in the file. */
@@ -38,80 +40,16 @@ export interface SfcBlock {
 }
 
 /**
- * Parses a Piko file and extracts all blocks.
- *
- * Finds template, script (Go and TypeScript), style, and i18n blocks using regex.
- * Go script blocks use type="application/x-go".
- * TypeScript script blocks use lang="ts" or type="application/typescript".
+ * Parses a Piko file and extracts all blocks in source order.
  *
  * @param text - The full text of the Piko file.
  * @returns The list of blocks found in the file.
  */
 export function parseSfc(text: string): SfcBlock[] {
-    const blocks: SfcBlock[] = [];
-
-    const scriptGoRegex = /<script\s+type\s*=\s*["']application\/x-go["'][^>]*>([\s\S]*?)<\/script>/gi;
-    const scriptTsLangRegex = /<script\s+lang\s*=\s*["'](ts|typescript)["'][^>]*>([\s\S]*?)<\/script>/gi;
-    const scriptTsTypeRegex = /<script\s+type\s*=\s*["'](application\/typescript|text\/typescript)["'][^>]*>([\s\S]*?)<\/script>/gi;
-    const templateRegex = /<template>([\s\S]*?)<\/template>/gi;
-    const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
-    const i18nRegex = /<i18n[^>]*>([\s\S]*?)<\/i18n>/gi;
-
-    let match;
-
-    while ((match = scriptGoRegex.exec(text)) !== null) {
-        blocks.push({
-            type: 'script',
-            content: match[1],
-            start: match.index,
-            end: match.index + match[0].length,
-        });
-    }
-
-    while ((match = scriptTsLangRegex.exec(text)) !== null) {
-        blocks.push({
-            type: 'script-ts',
-            content: match[2],
-            start: match.index,
-            end: match.index + match[0].length,
-        });
-    }
-
-    while ((match = scriptTsTypeRegex.exec(text)) !== null) {
-        blocks.push({
-            type: 'script-ts',
-            content: match[2],
-            start: match.index,
-            end: match.index + match[0].length,
-        });
-    }
-
-    while ((match = templateRegex.exec(text)) !== null) {
-        blocks.push({
-            type: 'template',
-            content: match[1],
-            start: match.index,
-            end: match.index + match[0].length,
-        });
-    }
-
-    while ((match = styleRegex.exec(text)) !== null) {
-        blocks.push({
-            type: 'style',
-            content: match[1],
-            start: match.index,
-            end: match.index + match[0].length,
-        });
-    }
-
-    while ((match = i18nRegex.exec(text)) !== null) {
-        blocks.push({
-            type: 'i18n',
-            content: match[1],
-            start: match.index,
-            end: match.index + match[0].length,
-        });
-    }
-
-    return blocks;
+    return parseSfcBlocks(text).map(block => ({
+        type: block.kind,
+        content: block.content,
+        start: block.start,
+        end: block.end,
+    }));
 }

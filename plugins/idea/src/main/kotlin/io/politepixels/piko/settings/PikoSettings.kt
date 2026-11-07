@@ -23,6 +23,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.util.xmlb.XmlSerializerUtil
 
 /**
@@ -47,14 +48,14 @@ class PikoSettings : PersistentStateComponent<PikoSettings.State> {
      * @property lspPath Custom path to the pikopls binary. Empty uses standard locations.
      * @property lspEnabled Whether LSP support is enabled.
      * @property showLspNotFoundNotification Whether to show a notification when LSP is missing.
-     * @property useStdioTransport Whether to use stdio instead of TCP. Experimental.
+     * @property useTcpTransport Whether to launch the server over loopback TCP instead of stdio. For debugging.
      * @property useTcpMode Whether to connect to an external LSP server.
      * @property tcpHost The host address for external server connection.
      * @property tcpPort The port number for external server connection.
      * @property pprofEnabled Whether to enable the pprof profiling server.
      * @property pprofPort The port number for the pprof HTTP server.
      * @property formattingEnabled Whether to enable document formatting.
-     * @property fileLoggingEnabled Whether to enable file logging to /tmp/pikopls-<pid>.log.
+     * @property fileLoggingEnabled Whether the server writes a debug log under the IDE log directory.
      * @property goBinPath Custom path to directory containing the Go binary. Empty uses auto-detection.
      * @property detectGoFromIde Whether to detect Go SDK from IntelliJ/GoLand configuration.
      * @property searchGlobalGoLocations Whether to search common Go installation locations.
@@ -64,14 +65,14 @@ class PikoSettings : PersistentStateComponent<PikoSettings.State> {
         var lspPath: String = "",
         var lspEnabled: Boolean = true,
         var showLspNotFoundNotification: Boolean = true,
-        var useStdioTransport: Boolean = false,
+        var useTcpTransport: Boolean = false,
         var useTcpMode: Boolean = false,
         var tcpHost: String = DEFAULT_TCP_HOST,
         var tcpPort: Int = DEFAULT_TCP_PORT,
         var pprofEnabled: Boolean = false,
         var pprofPort: Int = DEFAULT_PPROF_PORT,
         var formattingEnabled: Boolean = false,
-        var fileLoggingEnabled: Boolean = true,
+        var fileLoggingEnabled: Boolean = false,
         var goBinPath: String = "",
         var detectGoFromIde: Boolean = true,
         var searchGlobalGoLocations: Boolean = true,
@@ -92,6 +93,7 @@ class PikoSettings : PersistentStateComponent<PikoSettings.State> {
      */
     override fun loadState(state: State) {
         XmlSerializerUtil.copyBean(state, myState)
+        sanitise(myState)
     }
 
     /** Custom path to the pikopls binary. Empty uses standard locations. */
@@ -115,11 +117,11 @@ class PikoSettings : PersistentStateComponent<PikoSettings.State> {
             myState.showLspNotFoundNotification = value
         }
 
-    /** Whether to use stdio transport instead of TCP. Experimental feature. */
-    var useStdioTransport: Boolean
-        get() = myState.useStdioTransport
+    /** Whether to launch the server over loopback TCP instead of stdio. Intended for debugging. */
+    var useTcpTransport: Boolean
+        get() = myState.useTcpTransport
         set(value) {
-            myState.useStdioTransport = value
+            myState.useTcpTransport = value
         }
 
     /** Whether to connect to an external LSP server instead of starting one. */
@@ -164,7 +166,7 @@ class PikoSettings : PersistentStateComponent<PikoSettings.State> {
             myState.formattingEnabled = value
         }
 
-    /** Whether to enable file logging to /tmp/pikopls-<pid>.log. */
+    /** Whether the server writes a debug log under the IDE log directory. */
     var fileLoggingEnabled: Boolean
         get() = myState.fileLoggingEnabled
         set(value) {
@@ -208,6 +210,50 @@ class PikoSettings : PersistentStateComponent<PikoSettings.State> {
 
         /** Default port for the pprof HTTP server. */
         const val DEFAULT_PPROF_PORT = 6060
+
+        /** The range of valid TCP port numbers. */
+        val VALID_PORTS = 1..65535
+
+        /** Logger for settings validation. */
+        private val log = Logger.getInstance(PikoSettings::class.java)
+
+        /**
+         * Checks whether a host name or IP address is usable.
+         *
+         * @param host The host to check.
+         * @return True when the host is not blank and has no whitespace.
+         */
+        @JvmStatic
+        fun isValidHost(host: String): Boolean {
+            val trimmed = host.trim()
+            return trimmed.isNotEmpty() && trimmed.none { it.isWhitespace() }
+        }
+
+        /**
+         * Replaces stored values that are out of range with their defaults.
+         *
+         * A hand-edited or old settings file must not start the server on an
+         * invalid port or host.
+         *
+         * @param state The state to correct in place.
+         */
+        internal fun sanitise(state: PikoSettings.State) {
+            state.lspPath = state.lspPath.trim()
+            state.goBinPath = state.goBinPath.trim()
+            if (!isValidHost(state.tcpHost)) {
+                log.warn("Stored Piko LSP host '${state.tcpHost}' is invalid, using $DEFAULT_TCP_HOST")
+                state.tcpHost = DEFAULT_TCP_HOST
+            }
+            state.tcpHost = state.tcpHost.trim()
+            if (state.tcpPort !in VALID_PORTS) {
+                log.warn("Stored Piko LSP port ${state.tcpPort} is out of range, using $DEFAULT_TCP_PORT")
+                state.tcpPort = DEFAULT_TCP_PORT
+            }
+            if (state.pprofPort !in VALID_PORTS) {
+                log.warn("Stored pprof port ${state.pprofPort} is out of range, using $DEFAULT_PPROF_PORT")
+                state.pprofPort = DEFAULT_PPROF_PORT
+            }
+        }
 
         /**
          * Returns the application-wide settings instance.

@@ -2,15 +2,10 @@
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
   "name": "Piko",
   "scopeName": "source.piko",
-  "injections": {
-    "L:text.html.piko meta.tag": {
-      "patterns": [
-        { "include": "#piko-bound-attributes" },
-        { "include": "#piko-directives" }
-      ]
-    }
-  },
   "patterns": [
+    {
+      "include": "#comment"
+    },
     {
       "include": "#script-block"
     },
@@ -18,202 +13,473 @@
       "include": "#template-block"
     },
     {
+      "include": "#timeline-block"
+    },
+    {
       "include": "#style-block"
     },
     {
       "include": "#i18n-block"
-    },
-    {
-      "include": "#comment"
     }
   ],
   "repository": {
     "script-block": {
       "patterns": [
         {
-          "comment": "Go script block: <script type=\"application/x-go\">",
+          "comment": "Go script block: type is application/x-go or application/go, or lang is go, golang, application/x-go or application/go (any attribute order).",
           "name": "meta.block.script.piko",
-          "begin": "(<)(script)\\s+(type)\\s*=\\s*([\"'])(application/x-go|text/x-go)\\4\\s*(>)",
+          "begin": "(<)(script)\\b(?=[^>]*\\b(?:type\\s*=\\s*[\"']?(?:application/x-go|application/go)|lang\\s*=\\s*[\"']?(?:go|golang|application/x-go|application/go))[\"'\\s/>])",
           "beginCaptures": {
-            "1": { "name": "punctuation.definition.tag.begin.piko" },
-            "2": { "name": "entity.name.tag.script.piko" },
-            "3": { "name": "entity.other.attribute-name.type.piko" },
-            "4": { "name": "punctuation.definition.string.begin.piko" },
-            "5": { "name": "string.quoted.double.piko" },
-            "6": { "name": "punctuation.definition.tag.end.piko" }
+            "1": {
+              "name": "punctuation.definition.tag.begin.piko"
+            },
+            "2": {
+              "name": "entity.name.tag.script.piko"
+            }
           },
-          "end": "(</)(script)(>)",
+          "end": "(</)(script)\\s*(>)|(/>)",
           "endCaptures": {
-            "1": { "name": "punctuation.definition.tag.begin.piko" },
-            "2": { "name": "entity.name.tag.script.piko" },
-            "3": { "name": "punctuation.definition.tag.end.piko" }
+            "1": {
+              "name": "punctuation.definition.tag.begin.piko"
+            },
+            "2": {
+              "name": "entity.name.tag.script.piko"
+            },
+            "3": {
+              "name": "punctuation.definition.tag.end.piko"
+            },
+            "4": {
+              "name": "punctuation.definition.tag.end.piko"
+            }
           },
-          "contentName": "meta.embedded.block.go source.go",
-          "patterns": [{ "include": "source.go" }]
+          "patterns": [
+            {
+              "begin": "(>)",
+              "beginCaptures": {
+                "1": {
+                  "name": "punctuation.definition.tag.end.piko"
+                }
+              },
+              "end": "(?=</script\\s*>)",
+              "contentName": "meta.embedded.block.go source.go",
+              "patterns": [
+                {
+                  "include": "source.go"
+                }
+              ]
+            },
+            {
+              "include": "#tag-attributes"
+            }
+          ]
         },
         {
-          "comment": "JavaScript script block: <script type=\"application/javascript\"> or <script type=\"text/javascript\">",
+          "comment": "TypeScript script block: lang is ts or typescript, or type is application/typescript.",
           "name": "meta.block.script.piko",
-          "begin": "(<)(script)\\s+(type)\\s*=\\s*([\"'])(application/javascript|text/javascript)\\4\\s*(>)",
+          "begin": "(<)(script)\\b(?=[^>]*\\b(?:lang\\s*=\\s*[\"']?(?:ts|typescript)|type\\s*=\\s*[\"']?(?i:application/typescript))[\"'\\s/>])",
           "beginCaptures": {
-            "1": { "name": "punctuation.definition.tag.begin.piko" },
-            "2": { "name": "entity.name.tag.script.piko" },
-            "3": { "name": "entity.other.attribute-name.type.piko" },
-            "4": { "name": "punctuation.definition.string.begin.piko" },
-            "5": { "name": "string.quoted.double.piko" },
-            "6": { "name": "punctuation.definition.tag.end.piko" }
+            "1": {
+              "name": "punctuation.definition.tag.begin.piko"
+            },
+            "2": {
+              "name": "entity.name.tag.script.piko"
+            }
           },
-          "end": "(</)(script)(>)",
+          "end": "(</)(script)\\s*(>)|(/>)",
           "endCaptures": {
-            "1": { "name": "punctuation.definition.tag.begin.piko" },
-            "2": { "name": "entity.name.tag.script.piko" },
-            "3": { "name": "punctuation.definition.tag.end.piko" }
+            "1": {
+              "name": "punctuation.definition.tag.begin.piko"
+            },
+            "2": {
+              "name": "entity.name.tag.script.piko"
+            },
+            "3": {
+              "name": "punctuation.definition.tag.end.piko"
+            },
+            "4": {
+              "name": "punctuation.definition.tag.end.piko"
+            }
           },
-          "contentName": "meta.embedded.block.javascript source.js",
-          "patterns": [{ "include": "source.js" }]
+          "patterns": [
+            {
+              "begin": "(>)",
+              "beginCaptures": {
+                "1": {
+                  "name": "punctuation.definition.tag.end.piko"
+                }
+              },
+              "end": "(?=</script\\s*>)",
+              "contentName": "meta.embedded.block.typescript source.ts",
+              "patterns": [
+                {
+                  "include": "source.ts"
+                }
+              ]
+            },
+            {
+              "include": "#tag-attributes"
+            }
+          ]
         },
         {
-          "comment": "TypeScript script block: <script type=\"application/typescript\"> or <script type=\"text/typescript\">",
+          "comment": "Any other script block is JavaScript.",
           "name": "meta.block.script.piko",
-          "begin": "(<)(script)\\s+(type)\\s*=\\s*([\"'])(application/typescript|text/typescript)\\4\\s*(>)",
+          "begin": "(<)(script)\\b",
           "beginCaptures": {
-            "1": { "name": "punctuation.definition.tag.begin.piko" },
-            "2": { "name": "entity.name.tag.script.piko" },
-            "3": { "name": "entity.other.attribute-name.type.piko" },
-            "4": { "name": "punctuation.definition.string.begin.piko" },
-            "5": { "name": "string.quoted.double.piko" },
-            "6": { "name": "punctuation.definition.tag.end.piko" }
+            "1": {
+              "name": "punctuation.definition.tag.begin.piko"
+            },
+            "2": {
+              "name": "entity.name.tag.script.piko"
+            }
           },
-          "end": "(</)(script)(>)",
+          "end": "(</)(script)\\s*(>)|(/>)",
           "endCaptures": {
-            "1": { "name": "punctuation.definition.tag.begin.piko" },
-            "2": { "name": "entity.name.tag.script.piko" },
-            "3": { "name": "punctuation.definition.tag.end.piko" }
+            "1": {
+              "name": "punctuation.definition.tag.begin.piko"
+            },
+            "2": {
+              "name": "entity.name.tag.script.piko"
+            },
+            "3": {
+              "name": "punctuation.definition.tag.end.piko"
+            },
+            "4": {
+              "name": "punctuation.definition.tag.end.piko"
+            }
           },
-          "contentName": "meta.embedded.block.typescript source.ts",
-          "patterns": [{ "include": "source.ts" }]
-        },
-        {
-          "comment": "JavaScript script block with lang attribute: <script lang=\"js\"> or <script lang=\"javascript\">",
-          "name": "meta.block.script.piko",
-          "begin": "(<)(script)\\s+(lang)\\s*=\\s*([\"'])(js|javascript)\\4\\s*(>)",
-          "beginCaptures": {
-            "1": { "name": "punctuation.definition.tag.begin.piko" },
-            "2": { "name": "entity.name.tag.script.piko" },
-            "3": { "name": "entity.other.attribute-name.lang.piko" },
-            "4": { "name": "punctuation.definition.string.begin.piko" },
-            "5": { "name": "string.quoted.double.piko" },
-            "6": { "name": "punctuation.definition.tag.end.piko" }
-          },
-          "end": "(</)(script)(>)",
-          "endCaptures": {
-            "1": { "name": "punctuation.definition.tag.begin.piko" },
-            "2": { "name": "entity.name.tag.script.piko" },
-            "3": { "name": "punctuation.definition.tag.end.piko" }
-          },
-          "contentName": "meta.embedded.block.javascript source.js",
-          "patterns": [{ "include": "source.js" }]
-        },
-        {
-          "comment": "TypeScript script block with lang attribute: <script lang=\"ts\"> or <script lang=\"typescript\">",
-          "name": "meta.block.script.piko",
-          "begin": "(<)(script)\\s+(lang)\\s*=\\s*([\"'])(ts|typescript)\\4\\s*(>)",
-          "beginCaptures": {
-            "1": { "name": "punctuation.definition.tag.begin.piko" },
-            "2": { "name": "entity.name.tag.script.piko" },
-            "3": { "name": "entity.other.attribute-name.lang.piko" },
-            "4": { "name": "punctuation.definition.string.begin.piko" },
-            "5": { "name": "string.quoted.double.piko" },
-            "6": { "name": "punctuation.definition.tag.end.piko" }
-          },
-          "end": "(</)(script)(>)",
-          "endCaptures": {
-            "1": { "name": "punctuation.definition.tag.begin.piko" },
-            "2": { "name": "entity.name.tag.script.piko" },
-            "3": { "name": "punctuation.definition.tag.end.piko" }
-          },
-          "contentName": "meta.embedded.block.typescript source.ts",
-          "patterns": [{ "include": "source.ts" }]
-        },
-        {
-          "comment": "Go script block with lang attribute: <script lang=\"go\">",
-          "name": "meta.block.script.piko",
-          "begin": "(<)(script)\\s+(lang)\\s*=\\s*([\"'])(go)\\4\\s*(>)",
-          "beginCaptures": {
-            "1": { "name": "punctuation.definition.tag.begin.piko" },
-            "2": { "name": "entity.name.tag.script.piko" },
-            "3": { "name": "entity.other.attribute-name.lang.piko" },
-            "4": { "name": "punctuation.definition.string.begin.piko" },
-            "5": { "name": "string.quoted.double.piko" },
-            "6": { "name": "punctuation.definition.tag.end.piko" }
-          },
-          "end": "(</)(script)(>)",
-          "endCaptures": {
-            "1": { "name": "punctuation.definition.tag.begin.piko" },
-            "2": { "name": "entity.name.tag.script.piko" },
-            "3": { "name": "punctuation.definition.tag.end.piko" }
-          },
-          "contentName": "meta.embedded.block.go source.go",
-          "patterns": [{ "include": "source.go" }]
+          "patterns": [
+            {
+              "begin": "(>)",
+              "beginCaptures": {
+                "1": {
+                  "name": "punctuation.definition.tag.end.piko"
+                }
+              },
+              "end": "(?=</script\\s*>)",
+              "contentName": "meta.embedded.block.javascript source.js",
+              "patterns": [
+                {
+                  "include": "source.js"
+                }
+              ]
+            },
+            {
+              "include": "#tag-attributes"
+            }
+          ]
         }
       ]
     },
     "style-block": {
+      "comment": "Style block with any attributes.",
       "name": "meta.block.style.piko",
-      "begin": "(<)(style)(?:\\s+([^>]*))?(>)",
+      "begin": "(<)(style)\\b",
       "beginCaptures": {
-        "1": { "name": "punctuation.definition.tag.begin.piko" },
-        "2": { "name": "entity.name.tag.style.piko" },
-        "3": { "name": "entity.other.attribute-name.piko" },
-        "4": { "name": "punctuation.definition.tag.end.piko" }
+        "1": {
+          "name": "punctuation.definition.tag.begin.piko"
+        },
+        "2": {
+          "name": "entity.name.tag.style.piko"
+        }
       },
-      "end": "(</)(style)(>)",
+      "end": "(</)(style)\\s*(>)|(/>)",
       "endCaptures": {
-        "1": { "name": "punctuation.definition.tag.begin.piko" },
-        "2": { "name": "entity.name.tag.style.piko" },
-        "3": { "name": "punctuation.definition.tag.end.piko" }
+        "1": {
+          "name": "punctuation.definition.tag.begin.piko"
+        },
+        "2": {
+          "name": "entity.name.tag.style.piko"
+        },
+        "3": {
+          "name": "punctuation.definition.tag.end.piko"
+        },
+        "4": {
+          "name": "punctuation.definition.tag.end.piko"
+        }
       },
-      "contentName": "meta.embedded.block.css source.css",
-      "patterns": [{ "include": "source.css" }]
+      "patterns": [
+        {
+          "begin": "(>)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.tag.end.piko"
+            }
+          },
+          "end": "(?=</style\\s*>)",
+          "contentName": "meta.embedded.block.css source.css",
+          "patterns": [
+            {
+              "include": "source.css"
+            }
+          ]
+        },
+        {
+          "include": "#tag-attributes"
+        }
+      ]
     },
     "i18n-block": {
-      "name": "meta.block.i18n.piko",
-      "begin": "(<)(i18n)(?:\\s+([^>]*))?(>)",
-      "beginCaptures": {
-        "1": { "name": "punctuation.definition.tag.begin.piko" },
-        "2": { "name": "entity.name.tag.i18n.piko" },
-        "3": { "name": "entity.other.attribute-name.piko" },
-        "4": { "name": "punctuation.definition.tag.end.piko" }
-      },
-      "end": "(</)(i18n)(>)",
-      "endCaptures": {
-        "1": { "name": "punctuation.definition.tag.begin.piko" },
-        "2": { "name": "entity.name.tag.i18n.piko" },
-        "3": { "name": "punctuation.definition.tag.end.piko" }
-      },
-      "contentName": "meta.embedded.block.json source.json",
-      "patterns": [{ "include": "source.json" }]
+      "patterns": [
+        {
+          "comment": "YAML i18n block: lang is yaml or yml.",
+          "name": "meta.block.i18n.piko",
+          "begin": "(<)(i18n)\\b(?=[^>]*\\blang\\s*=\\s*[\"']?(?:yaml|yml)[\"'\\s/>])",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.tag.begin.piko"
+            },
+            "2": {
+              "name": "entity.name.tag.i18n.piko"
+            }
+          },
+          "end": "(</)(i18n)\\s*(>)|(/>)",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.tag.begin.piko"
+            },
+            "2": {
+              "name": "entity.name.tag.i18n.piko"
+            },
+            "3": {
+              "name": "punctuation.definition.tag.end.piko"
+            },
+            "4": {
+              "name": "punctuation.definition.tag.end.piko"
+            }
+          },
+          "patterns": [
+            {
+              "begin": "(>)",
+              "beginCaptures": {
+                "1": {
+                  "name": "punctuation.definition.tag.end.piko"
+                }
+              },
+              "end": "(?=</i18n\\s*>)",
+              "contentName": "meta.embedded.block.yaml source.yaml",
+              "patterns": [
+                {
+                  "include": "source.yaml"
+                }
+              ]
+            },
+            {
+              "include": "#tag-attributes"
+            }
+          ]
+        },
+        {
+          "comment": "JSON i18n block (the default).",
+          "name": "meta.block.i18n.piko",
+          "begin": "(<)(i18n)\\b",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.tag.begin.piko"
+            },
+            "2": {
+              "name": "entity.name.tag.i18n.piko"
+            }
+          },
+          "end": "(</)(i18n)\\s*(>)|(/>)",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.tag.begin.piko"
+            },
+            "2": {
+              "name": "entity.name.tag.i18n.piko"
+            },
+            "3": {
+              "name": "punctuation.definition.tag.end.piko"
+            },
+            "4": {
+              "name": "punctuation.definition.tag.end.piko"
+            }
+          },
+          "patterns": [
+            {
+              "begin": "(>)",
+              "beginCaptures": {
+                "1": {
+                  "name": "punctuation.definition.tag.end.piko"
+                }
+              },
+              "end": "(?=</i18n\\s*>)",
+              "contentName": "meta.embedded.block.json source.json",
+              "patterns": [
+                {
+                  "include": "source.json"
+                }
+              ]
+            },
+            {
+              "include": "#tag-attributes"
+            }
+          ]
+        }
+      ]
     },
     "template-block": {
+      "comment": "Top-level template block with any attributes (name, public, p-collection, ...). Nested templates are tracked by #template-nested so the block ends at its own closing tag.",
       "name": "meta.block.template.piko",
-      "begin": "(<)(template)(?:\\s+([^>]*))?(>)",
+      "begin": "(<)(template)\\b",
       "beginCaptures": {
-        "1": { "name": "punctuation.definition.tag.begin.piko" },
-        "2": { "name": "entity.name.tag.template.piko" },
-        "3": { "name": "entity.other.attribute-name.piko" },
-        "4": { "name": "punctuation.definition.tag.end.piko" }
+        "1": {
+          "name": "punctuation.definition.tag.begin.piko"
+        },
+        "2": {
+          "name": "entity.name.tag.template.piko"
+        }
       },
-      "end": "(</)(template)(>)",
+      "end": "(</)(template)\\s*(>)|(/>)",
       "endCaptures": {
-        "1": { "name": "punctuation.definition.tag.begin.piko" },
-        "2": { "name": "entity.name.tag.template.piko" },
-        "3": { "name": "punctuation.definition.tag.end.piko" }
+        "1": {
+          "name": "punctuation.definition.tag.begin.piko"
+        },
+        "2": {
+          "name": "entity.name.tag.template.piko"
+        },
+        "3": {
+          "name": "punctuation.definition.tag.end.piko"
+        },
+        "4": {
+          "name": "punctuation.definition.tag.end.piko"
+        }
       },
-      "contentName": "text.html.piko",
       "patterns": [
+        {
+          "begin": "(>)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.tag.end.piko"
+            }
+          },
+          "end": "(?=</template\\s*>)",
+          "contentName": "text.html.piko",
+          "patterns": [
+            {
+              "include": "#template-content"
+            }
+          ]
+        },
+        {
+          "include": "#tag-attributes"
+        }
+      ]
+    },
+    "timeline-block": {
+      "comment": "Top-level piko:timeline block.",
+      "name": "meta.block.timeline.piko",
+      "begin": "(<)(piko:timeline)\\b",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.tag.begin.piko"
+        },
+        "2": {
+          "name": "entity.name.tag.piko-timeline.piko"
+        }
+      },
+      "end": "(</)(piko:timeline)\\s*(>)|(/>)",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.definition.tag.begin.piko"
+        },
+        "2": {
+          "name": "entity.name.tag.piko-timeline.piko"
+        },
+        "3": {
+          "name": "punctuation.definition.tag.end.piko"
+        },
+        "4": {
+          "name": "punctuation.definition.tag.end.piko"
+        }
+      },
+      "patterns": [
+        {
+          "begin": "(>)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.tag.end.piko"
+            }
+          },
+          "end": "(?=</piko:timeline\\s*>)",
+          "contentName": "text.html.piko",
+          "patterns": [
+            {
+              "include": "#template-content"
+            }
+          ]
+        },
+        {
+          "include": "#tag-attributes"
+        }
+      ]
+    },
+    "template-nested": {
+      "comment": "A <template> nested inside template content (for example <template p-for>). Matching it as its own region keeps the depth, so its closing tag does not end the outer block.",
+      "name": "meta.tag.template.nested.piko",
+      "begin": "(<)(template)\\b",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.tag.begin.html"
+        },
+        "2": {
+          "name": "entity.name.tag.template.html"
+        }
+      },
+      "end": "(</)(template)\\s*(>)|(/>)",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.definition.tag.begin.html"
+        },
+        "2": {
+          "name": "entity.name.tag.template.html"
+        },
+        "3": {
+          "name": "punctuation.definition.tag.end.html"
+        },
+        "4": {
+          "name": "punctuation.definition.tag.end.html"
+        }
+      },
+      "patterns": [
+        {
+          "begin": "(>)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.tag.end.html"
+            }
+          },
+          "end": "(?=</template\\s*>)",
+          "patterns": [
+            {
+              "include": "#template-content"
+            }
+          ]
+        },
+        {
+          "include": "#tag-attributes"
+        }
+      ]
+    },
+    "template-content": {
+      "patterns": [
+        {
+          "include": "#template-nested"
+        },
         {
           "include": "#piko-special-tags"
         },
+        {
+          "include": "#piko-interpolation"
+        },
+        {
+          "include": "text.html.basic"
+        }
+      ]
+    },
+    "tag-attributes": {
+      "patterns": [
         {
           "include": "#piko-bound-attributes"
         },
@@ -221,10 +487,37 @@
           "include": "#piko-directives"
         },
         {
-          "include": "#piko-interpolation"
-        },
-        {
-          "include": "text.html.basic"
+          "comment": "Any other attribute, quoted or unquoted.",
+          "match": "([^\\s\"'<>/=]+)(?:\\s*(=)\\s*(?:(\")([^\"]*)(\")|(')([^']*)(')|([^\\s\"'=<>`]+)))?",
+          "captures": {
+            "1": {
+              "name": "entity.other.attribute-name.piko"
+            },
+            "2": {
+              "name": "punctuation.separator.key-value.piko"
+            },
+            "3": {
+              "name": "punctuation.definition.string.begin.piko"
+            },
+            "4": {
+              "name": "string.quoted.double.piko"
+            },
+            "5": {
+              "name": "punctuation.definition.string.end.piko"
+            },
+            "6": {
+              "name": "punctuation.definition.string.begin.piko"
+            },
+            "7": {
+              "name": "string.quoted.single.piko"
+            },
+            "8": {
+              "name": "punctuation.definition.string.end.piko"
+            },
+            "9": {
+              "name": "string.unquoted.piko"
+            }
+          }
         }
       ]
     },
@@ -256,9 +549,9 @@
           "match": "\\bp-(ref|slot|key|context)\\b"
         },
         {
-          "comment": "Special directives: p-scaffold",
+          "comment": "Special directives: p-scaffold, p-memo, p-timeline, p-collection, p-provider, p-fragment",
           "name": "keyword.control.directive.piko",
-          "match": "\\bp-scaffold\\b"
+          "match": "\\bp-(scaffold|memo|timeline|collection|provider|fragment)\\b"
         },
         {
           "comment": "Shorthand bind: :attr",
@@ -278,157 +571,258 @@
           "comment": "Static string directives with double quotes: p-ref=\"name\", p-slot=\"name\"",
           "match": "(p-(?:ref|slot))(=)(\")((?:[^\"])*)(\")",
           "captures": {
-            "1": { "name": "keyword.control.directive.piko" },
-            "2": { "name": "punctuation.separator.key-value.piko" },
-            "3": { "name": "punctuation.definition.string.begin.piko" },
-            "4": { "name": "string.quoted.double.piko" },
-            "5": { "name": "punctuation.definition.string.end.piko" }
+            "1": {
+              "name": "keyword.control.directive.piko"
+            },
+            "2": {
+              "name": "punctuation.separator.key-value.piko"
+            },
+            "3": {
+              "name": "punctuation.definition.string.begin.piko"
+            },
+            "4": {
+              "name": "string.quoted.double.piko"
+            },
+            "5": {
+              "name": "punctuation.definition.string.end.piko"
+            }
           }
         },
         {
           "comment": "Static string directives with single quotes: p-ref='name', p-slot='name'",
-          "match": "(p-(?:ref|slot))(=)(')((?:[^'])*)(')","captures": {
-            "1": { "name": "keyword.control.directive.piko" },
-            "2": { "name": "punctuation.separator.key-value.piko" },
-            "3": { "name": "punctuation.definition.string.begin.piko" },
-            "4": { "name": "string.quoted.single.piko" },
-            "5": { "name": "punctuation.definition.string.end.piko" }
+          "match": "(p-(?:ref|slot))(=)(')((?:[^'])*)(')",
+          "captures": {
+            "1": {
+              "name": "keyword.control.directive.piko"
+            },
+            "2": {
+              "name": "punctuation.separator.key-value.piko"
+            },
+            "3": {
+              "name": "punctuation.definition.string.begin.piko"
+            },
+            "4": {
+              "name": "string.quoted.single.piko"
+            },
+            "5": {
+              "name": "punctuation.definition.string.end.piko"
+            }
           }
         },
         {
           "comment": "Directive with argument and double quotes: p-bind:href=\"expr\", p-on:click.prevent=\"expr\"",
           "begin": "(p-(?:bind|on|event):[a-zA-Z][a-zA-Z0-9-]*(?:\\.[a-zA-Z]+)*)(=)(\")",
           "beginCaptures": {
-            "1": { "name": "keyword.control.directive.piko" },
-            "2": { "name": "punctuation.separator.key-value.piko" },
-            "3": { "name": "punctuation.definition.string.begin.piko" }
+            "1": {
+              "name": "keyword.control.directive.piko"
+            },
+            "2": {
+              "name": "punctuation.separator.key-value.piko"
+            },
+            "3": {
+              "name": "punctuation.definition.string.begin.piko"
+            }
           },
           "end": "(\")",
           "endCaptures": {
-            "1": { "name": "punctuation.definition.string.end.piko" }
+            "1": {
+              "name": "punctuation.definition.string.end.piko"
+            }
           },
           "contentName": "meta.embedded.expression.piko",
           "patterns": [
-            { "include": "#go-expression" }
+            {
+              "include": "#go-expression"
+            }
           ]
         },
         {
           "comment": "Simple directive with double quotes: p-if=\"expr\", p-for=\"expr\"",
-          "begin": "(p-(?:if|else-if|else|for|show|text|html|model|class|style|key|context|scaffold))(=)(\")",
+          "begin": "(p-(?:if|else-if|else|for|show|text|html|model|class|style|key|context|scaffold|memo|timeline|collection|provider|fragment))(=)(\")",
           "beginCaptures": {
-            "1": { "name": "keyword.control.directive.piko" },
-            "2": { "name": "punctuation.separator.key-value.piko" },
-            "3": { "name": "punctuation.definition.string.begin.piko" }
+            "1": {
+              "name": "keyword.control.directive.piko"
+            },
+            "2": {
+              "name": "punctuation.separator.key-value.piko"
+            },
+            "3": {
+              "name": "punctuation.definition.string.begin.piko"
+            }
           },
           "end": "(\")",
           "endCaptures": {
-            "1": { "name": "punctuation.definition.string.end.piko" }
+            "1": {
+              "name": "punctuation.definition.string.end.piko"
+            }
           },
           "contentName": "meta.embedded.expression.piko",
           "patterns": [
-            { "include": "#go-expression" }
+            {
+              "include": "#go-expression"
+            }
           ]
         },
         {
           "comment": "Bound attribute shorthand with double quotes: :attr=\"expression\"",
           "begin": "(:[a-zA-Z_][a-zA-Z0-9._-]*)(=)(\")",
           "beginCaptures": {
-            "1": { "name": "keyword.control.directive.piko" },
-            "2": { "name": "punctuation.separator.key-value.piko" },
-            "3": { "name": "punctuation.definition.string.begin.piko" }
+            "1": {
+              "name": "keyword.control.directive.piko"
+            },
+            "2": {
+              "name": "punctuation.separator.key-value.piko"
+            },
+            "3": {
+              "name": "punctuation.definition.string.begin.piko"
+            }
           },
           "end": "(\")",
           "endCaptures": {
-            "1": { "name": "punctuation.definition.string.end.piko" }
+            "1": {
+              "name": "punctuation.definition.string.end.piko"
+            }
           },
           "contentName": "meta.embedded.expression.piko",
           "patterns": [
-            { "include": "#go-expression" }
+            {
+              "include": "#go-expression"
+            }
           ]
         },
         {
           "comment": "Event shorthand with double quotes: @click=\"handler\"",
           "begin": "(@[a-zA-Z][a-zA-Z0-9-]*(?:\\.[a-zA-Z]+)*)(=)(\")",
           "beginCaptures": {
-            "1": { "name": "keyword.control.directive.piko" },
-            "2": { "name": "punctuation.separator.key-value.piko" },
-            "3": { "name": "punctuation.definition.string.begin.piko" }
+            "1": {
+              "name": "keyword.control.directive.piko"
+            },
+            "2": {
+              "name": "punctuation.separator.key-value.piko"
+            },
+            "3": {
+              "name": "punctuation.definition.string.begin.piko"
+            }
           },
           "end": "(\")",
           "endCaptures": {
-            "1": { "name": "punctuation.definition.string.end.piko" }
+            "1": {
+              "name": "punctuation.definition.string.end.piko"
+            }
           },
           "contentName": "meta.embedded.expression.piko",
           "patterns": [
-            { "include": "#go-expression" }
+            {
+              "include": "#go-expression"
+            }
           ]
         },
         {
           "comment": "Directive with argument and single quotes: p-bind:href='expr'",
           "begin": "(p-(?:bind|on|event):[a-zA-Z][a-zA-Z0-9-]*(?:\\.[a-zA-Z]+)*)(=)(')",
           "beginCaptures": {
-            "1": { "name": "keyword.control.directive.piko" },
-            "2": { "name": "punctuation.separator.key-value.piko" },
-            "3": { "name": "punctuation.definition.string.begin.piko" }
+            "1": {
+              "name": "keyword.control.directive.piko"
+            },
+            "2": {
+              "name": "punctuation.separator.key-value.piko"
+            },
+            "3": {
+              "name": "punctuation.definition.string.begin.piko"
+            }
           },
           "end": "(')",
           "endCaptures": {
-            "1": { "name": "punctuation.definition.string.end.piko" }
+            "1": {
+              "name": "punctuation.definition.string.end.piko"
+            }
           },
           "contentName": "meta.embedded.expression.piko",
           "patterns": [
-            { "include": "#go-expression" }
+            {
+              "include": "#go-expression"
+            }
           ]
         },
         {
           "comment": "Simple directive with single quotes: p-if='expr'",
-          "begin": "(p-(?:if|else-if|else|for|show|text|html|model|class|style|key|context|scaffold))(=)(')",
+          "begin": "(p-(?:if|else-if|else|for|show|text|html|model|class|style|key|context|scaffold|memo|timeline|collection|provider|fragment))(=)(')",
           "beginCaptures": {
-            "1": { "name": "keyword.control.directive.piko" },
-            "2": { "name": "punctuation.separator.key-value.piko" },
-            "3": { "name": "punctuation.definition.string.begin.piko" }
+            "1": {
+              "name": "keyword.control.directive.piko"
+            },
+            "2": {
+              "name": "punctuation.separator.key-value.piko"
+            },
+            "3": {
+              "name": "punctuation.definition.string.begin.piko"
+            }
           },
           "end": "(')",
           "endCaptures": {
-            "1": { "name": "punctuation.definition.string.end.piko" }
+            "1": {
+              "name": "punctuation.definition.string.end.piko"
+            }
           },
           "contentName": "meta.embedded.expression.piko",
           "patterns": [
-            { "include": "#go-expression" }
+            {
+              "include": "#go-expression"
+            }
           ]
         },
         {
           "comment": "Bound attribute shorthand with single quotes: :attr='expression'",
           "begin": "(:[a-zA-Z_][a-zA-Z0-9._-]*)(=)(')",
           "beginCaptures": {
-            "1": { "name": "keyword.control.directive.piko" },
-            "2": { "name": "punctuation.separator.key-value.piko" },
-            "3": { "name": "punctuation.definition.string.begin.piko" }
+            "1": {
+              "name": "keyword.control.directive.piko"
+            },
+            "2": {
+              "name": "punctuation.separator.key-value.piko"
+            },
+            "3": {
+              "name": "punctuation.definition.string.begin.piko"
+            }
           },
           "end": "(')",
           "endCaptures": {
-            "1": { "name": "punctuation.definition.string.end.piko" }
+            "1": {
+              "name": "punctuation.definition.string.end.piko"
+            }
           },
           "contentName": "meta.embedded.expression.piko",
           "patterns": [
-            { "include": "#go-expression" }
+            {
+              "include": "#go-expression"
+            }
           ]
         },
         {
           "comment": "Event shorthand with single quotes: @click='handler'",
           "begin": "(@[a-zA-Z][a-zA-Z0-9-]*(?:\\.[a-zA-Z]+)*)(=)(')",
           "beginCaptures": {
-            "1": { "name": "keyword.control.directive.piko" },
-            "2": { "name": "punctuation.separator.key-value.piko" },
-            "3": { "name": "punctuation.definition.string.begin.piko" }
+            "1": {
+              "name": "keyword.control.directive.piko"
+            },
+            "2": {
+              "name": "punctuation.separator.key-value.piko"
+            },
+            "3": {
+              "name": "punctuation.definition.string.begin.piko"
+            }
           },
           "end": "(')",
           "endCaptures": {
-            "1": { "name": "punctuation.definition.string.end.piko" }
+            "1": {
+              "name": "punctuation.definition.string.end.piko"
+            }
           },
           "contentName": "meta.embedded.expression.piko",
           "patterns": [
-            { "include": "#go-expression" }
+            {
+              "include": "#go-expression"
+            }
           ]
         }
       ]
@@ -438,28 +832,40 @@
         {
           "comment": "Opening tag for piko:* namespaced components",
           "name": "meta.tag.piko-component.piko",
-          "begin": "(<)(piko:[a-zA-Z][a-zA-Z0-9]*)",
+          "begin": "(<)(piko:[a-zA-Z][a-zA-Z0-9-]*)",
           "beginCaptures": {
-            "1": { "name": "punctuation.definition.tag.begin.piko" },
-            "2": { "name": "support.class.component.piko" }
+            "1": {
+              "name": "punctuation.definition.tag.begin.piko"
+            },
+            "2": {
+              "name": "support.class.component.piko"
+            }
           },
           "end": "(/?>)",
           "endCaptures": {
-            "1": { "name": "punctuation.definition.tag.end.piko" }
+            "1": {
+              "name": "punctuation.definition.tag.end.piko"
+            }
           },
           "patterns": [
-            { "include": "#piko-bound-attributes" },
-            { "include": "#piko-directives" },
-            { "include": "text.html.basic#attribute" }
+            {
+              "include": "#tag-attributes"
+            }
           ]
         },
         {
           "comment": "Closing tag for piko:* namespaced components",
-          "match": "(</)(piko:[a-zA-Z][a-zA-Z0-9]*)(>)",
+          "match": "(</)(piko:[a-zA-Z][a-zA-Z0-9-]*)\\s*(>)",
           "captures": {
-            "1": { "name": "punctuation.definition.tag.begin.piko" },
-            "2": { "name": "support.class.component.piko" },
-            "3": { "name": "punctuation.definition.tag.end.piko" }
+            "1": {
+              "name": "punctuation.definition.tag.begin.piko"
+            },
+            "2": {
+              "name": "support.class.component.piko"
+            },
+            "3": {
+              "name": "punctuation.definition.tag.end.piko"
+            }
           }
         }
       ]
@@ -576,7 +982,9 @@
           "comment": "Function/method call",
           "match": "([a-zA-Z_][a-zA-Z0-9_]*)(?=\\s*\\()",
           "captures": {
-            "1": { "name": "entity.name.function.piko" }
+            "1": {
+              "name": "entity.name.function.piko"
+            }
           }
         },
         {
@@ -589,14 +997,20 @@
       "comment": "Interpolation inside backtick strings: ${expression}",
       "begin": "(\\$\\{)",
       "beginCaptures": {
-        "1": { "name": "punctuation.definition.template-expression.begin.piko" }
+        "1": {
+          "name": "punctuation.definition.template-expression.begin.piko"
+        }
       },
       "end": "(\\})",
       "endCaptures": {
-        "1": { "name": "punctuation.definition.template-expression.end.piko" }
+        "1": {
+          "name": "punctuation.definition.template-expression.end.piko"
+        }
       },
       "patterns": [
-        { "include": "#go-expression" }
+        {
+          "include": "#go-expression"
+        }
       ]
     },
     "comment": {

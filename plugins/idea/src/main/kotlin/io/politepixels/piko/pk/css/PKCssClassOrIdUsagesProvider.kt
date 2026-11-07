@@ -26,6 +26,7 @@ import com.intellij.psi.css.CssSelectorSuffixType
 import com.intellij.psi.css.usages.CssClassOrIdUsagesProvider
 import io.politepixels.piko.pk.PKLanguage
 import io.politepixels.piko.pk.PKTokenTypes
+import io.politepixels.piko.pk.PKTreeUtils
 
 /**
  * Provides CSS class and ID usage detection for PK template files.
@@ -95,7 +96,7 @@ class PKCssClassOrIdUsagesProvider : CssClassOrIdUsagesProvider {
         className: String,
         offset: Int
     ): Boolean {
-        val attrName = findPrecedingAttrName(candidate) ?: return false
+        val attrName = PKTreeUtils.findOwningAttrName(candidate) ?: return false
         if (attrName.text != "class") return false
 
         val text = candidate.text
@@ -127,28 +128,6 @@ class PKCssClassOrIdUsagesProvider : CssClassOrIdUsagesProvider {
 
         val directiveName = findPrecedingDirectiveName(candidate) ?: return false
         return directiveName.text == "p-class"
-    }
-
-    /**
-     * Walks backwards through siblings from an `HTML_ATTR_VALUE` token to
-     * find the preceding `HTML_ATTR_NAME`, skipping quotes, equals signs,
-     * and whitespace.
-     *
-     * @param element The starting PSI element.
-     * @return The preceding attribute name element, or null if not found.
-     */
-    private fun findPrecedingAttrName(element: PsiElement): PsiElement? {
-        var prev = element.prevSibling
-        while (prev != null) {
-            when (prev.node?.elementType) {
-                PKTokenTypes.HTML_ATTR_QUOTE,
-                PKTokenTypes.HTML_ATTR_EQ,
-                TokenType.WHITE_SPACE -> prev = prev.prevSibling
-                PKTokenTypes.HTML_ATTR_NAME -> return prev
-                else -> return null
-            }
-        }
-        return null
     }
 
     /**

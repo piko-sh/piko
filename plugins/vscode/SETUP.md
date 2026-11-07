@@ -1,288 +1,142 @@
-# Piko VS Code Extension - Quick Setup Guide
+<!--
+Copyright 2026 PolitePixels Limited
 
-Quick runbook for setting up and testing the Piko LSP extension locally.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+This project stands against fascism, authoritarianism, and all forms of
+oppression. We built this to empower people, not to enable those who would
+strip others of their rights and dignity.
+-->
+
+# Piko VS Code Extension: Quick Setup Guide
+
+A runbook for building, installing and checking the extension locally.
 
 ## Prerequisites
 
-Ensure you have the following installed:
-
 ```bash
-# Check Go version (requires 1.27+)
-go version
-
-# Check VS Code is available
-code --version
-
-# Check npm is installed
+go version      # must satisfy the go directive in the repository's go.mod
+code --version  # VS Code 1.107 or later
 npm --version
 ```
 
-## Setup Steps
-
-### 1. Install gopls (Go Language Server)
-
-Required for Go support in `<script>` blocks:
+Install gopls for Go intelligence in script blocks:
 
 ```bash
 go install golang.org/x/tools/gopls@latest
-
-# Verify installation
 gopls version
 ```
 
-### 2. Build LSP Binaries
+## Build and install
 
-From the project root:
-
-```bash
-make build-lsp-all
-```
-
-This creates binaries in `bin/lsp/` for:
-- darwin-amd64 (macOS Intel)
-- darwin-arm64 (macOS Apple Silicon)
-- linux-amd64 (Linux)
-- windows-amd64 (Windows)
-
-To build only for your current platform:
+From the repository root:
 
 ```bash
-make build-lsp
+make plugin-vscode-install
 ```
 
-### 3. Build and Package Extension
+This stops any `pikopls` started from `plugins/vscode/bin/`, builds `pikopls` for all six platforms, clears and refills `plugins/vscode/bin/`, compiles the extension with esbuild, packages a `.vsix` and installs it with `code --install-extension`. Reload the window afterwards (**Developer: Reload Window**).
 
-```bash
-cd plugins/vscode
+The six bundled platforms are:
 
-# Install dependencies (first time only)
-npm install
+- `linux-amd64`, `linux-arm64`
+- `darwin-amd64`, `darwin-arm64`
+- `windows-amd64`, `windows-arm64`
 
-# Build and package
-npm run package
-```
+Each lives in `plugins/vscode/bin/<os>-<arch>/pikopls` (`pikopls.exe` on Windows). The extension maps VS Code's platform names onto these (`win32` becomes `windows`, `x64` becomes `amd64`).
 
-This creates `piko-0.1.0.vsix` (approximately 45MB).
+The packaged `.vsix` is roughly 120 MB, almost all of it the six binaries.
 
-**Bundling:** The extension uses esbuild to bundle all dependencies into a single optimised file:
-- Reduces from 336 files to 13 files
-- Tree-shakes unused code
-- Minifies for production
-- Improves load performance
-- See `esbuild.js` for configuration
+To build without installing, use `make plugin-vscode-build`; to remove build output, `make plugin-vscode-clean`.
 
-### 4. Install Extension in VS Code
+## Verify
 
-```bash
-code --install-extension piko-0.1.0.vsix
-```
+1. Open a `.pk` or `.pkc` file.
+2. Run **Piko: Show Output**. You should see `Starting LSP over stdio: ...` followed by `Piko LSP client started`. There is no status bar item.
+3. Hover a template expression such as `{{ state.Title }}`; you should get type information.
+4. Type `p-` inside a tag; you should get directive completions.
+5. Hover a Go identifier inside `<script type="application/x-go">`; with gopls installed you should get Go hover text.
 
-Alternatively:
-- Open VS Code
-- Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on macOS)
-- Run: `Extensions: Install from VSIX...`
-- Select `piko-0.1.0.vsix`
-
-### 5. Reload VS Code
-
-```bash
-# Reload window to activate extension
-# In VS Code: Ctrl+Shift+P > "Developer: Reload Window"
-```
-
-## Verification
-
-### Check Extension is Active
-
-1. Open a `.pk` file
-2. Check status bar for "Piko" indicator
-3. Open Output panel: `View > Output`
-4. Select "Piko Language Server" from dropdown
-5. Should see: "Piko LSP server started successfully"
-
-### Test Features
-
-**Hover in `<template>` block:**
-```html
-<template>
-  <h1>{{ title }}</h1>
-</template>
-```
-Hover over `title` - should show type information.
-
-**Completion in `<template>` block:**
-Type `p-` - should see directive completions (`p-if`, `p-for`, etc.).
-
-**Go support in `<script>` block:**
-```html
-<script type="application/x-go">
-package main
-
-type Props struct {
-    Title string
-}
-</script>
-```
-Hover over `string` - should show Go type information from gopls.
+To see exactly which server binary is running, check the path in the output channel and run it with `--version`.
 
 ## Troubleshooting
 
-### Extension Not Activating
+### Server logs
 
-```bash
-# Check LSP logs
-cat /tmp/pikopls-main.log
-
-# In VS Code, enable verbose logging
-# Settings > Piko: Trace Server > "verbose"
-```
-
-### LSP Binary Not Found
-
-```bash
-# Verify binaries exist
-ls -lh bin/lsp/*/pikopls*
-
-# Rebuild if missing
-make build-lsp-all
-```
-
-### gopls Not Working
-
-```bash
-# Verify gopls is in PATH
-which gopls
-
-# Install Go extension for VS Code
-# Extension ID: golang.go
-code --install-extension golang.go
-```
-
-### Rebuild After Changes
-
-```bash
-# After modifying LSP code
-make build-lsp-all
-
-# After modifying extension code
-cd plugins/vscode
-npm run compile
-npm run package
-code --install-extension piko-0.1.0.vsix
-```
-
-## Development Workflow
-
-### Test Without Installing
-
-Press `F5` in VS Code while in the `plugins/vscode` directory to launch Extension Development Host with live reloading.
-
-### Development with Watch Mode
-
-```bash
-cd plugins/vscode
-
-# Run esbuild in watch mode for live rebuilding
-npm run watch
-```
-
-This automatically rebuilds the extension when you modify TypeScript files. Press `F5` to test changes in Extension Development Host.
-
-### Hot Reload LSP Binary
-
-During development, use a custom LSP path:
-
-```json
-// settings.json
-{
-  "piko.lspPath": "/path/to/piko/cmd/pikopls/pikopls"
-}
-```
-
-Build the binary separately:
-```bash
-go build -o /tmp/pikopls ./cmd/pikopls
-```
-
-Then update the setting to `/tmp/pikopls` and restart the language server.
-
-## Configuration
-
-### Recommended Settings
+Server logs are off by default. Enable them with:
 
 ```json
 {
-  "piko.lspPath": "",
-  "piko.trace.server": "off",
-  "piko.enableTemplateSupport": true,
-  "[piko]": {
-    "editor.formatOnSave": true,
-    "editor.defaultFormatter": "politepixels.piko"
-  }
-}
-```
-
-### Enable Debug Logging
-
-```json
-{
+  "piko.enableFileLogging": true,
   "piko.trace.server": "verbose"
 }
 ```
 
-Then check:
-- VS Code Output: "Piko Language Server"
-- Log file: `/tmp/pikopls-main.log`
+Then run **Piko: Open LSP Logs**. The log is `pikopls.log` in the extension's log directory (the path is shown if the file does not exist yet). Protocol traces go to the "Piko Language Server" output channel.
 
-## Quick Commands
+### Binary not found
 
 ```bash
-# Full rebuild and install (recommended)
-make plugin-vscode-install
-
-# Or manually:
-make build-lsp-all && \
-  cd plugins/vscode && \
-  npm run package && \
-  code --install-extension piko-0.1.0.vsix
-
-# Restart LSP server in VS Code
-# Ctrl+Shift+P > "Piko: Restart Language Server"
-
-# View LSP logs
-tail -f /tmp/pikopls-main.log
+ls -lh plugins/vscode/bin/*/pikopls*
+make plugin-vscode-build
 ```
 
-## Multi-Language Support
-
-The extension automatically provides language support for all block types:
-
-| Block Type | Language Server | Auto-Installed |
-|------------|----------------|----------------|
-| `<template>` | Piko LSP | Yes (bundled) |
-| `<script type="application/x-go">` | gopls | No (manual install) |
-| `<style>` | VS Code built-in CSS LS | Yes |
-| `<i18n>` | VS Code built-in JSON LS | Yes |
-
-**Note:** Only gopls requires manual installation. CSS and JSON support is built into VS Code.
-
-## CI/CD Notes
-
-For automated builds:
+### gopls not working
 
 ```bash
-# Build LSP for all platforms
-make build-lsp-all
+which gopls
+```
 
-# Package extension
+If gopls is installed somewhere VS Code cannot see (for example `~/go/bin` missing from the `PATH` VS Code was launched with), set `piko.goplsPath`.
+
+## Development workflow
+
+```bash
 cd plugins/vscode
-npm ci
-npm run package
-
-# Artefact: piko-0.1.0.vsix
+npm install
+npm run watch
 ```
+
+Press `F5` to launch an Extension Development Host with the `test-workspace` folder. The watch task uses the esbuild problem matcher, which comes from the recommended `connor4312.esbuild-problem-matchers` extension.
+
+### Use a locally built server
+
+```bash
+go build -o /tmp/pikopls ./cmd/pikopls
+```
+
+```json
+{
+  "piko.lspPath": "/tmp/pikopls"
+}
+```
+
+Then run **Piko: Restart Language Server**. `piko.lspPath` also accepts `~/...`, `${workspaceFolder}/...` or a bare `pikopls` found on `PATH`.
+
+### Debug over TCP
+
+Set `"piko.transport": "tcp"` to start pikopls on a free local port (one connection only), or start pikopls yourself with `--tcp --port=4389` and set `"piko.useExternalServer": true`.
+
+## Block support at a glance
+
+| Block | Served by |
+| --- | --- |
+| `<template>` | pikopls |
+| Go `<script>` | pikopls, which delegates to gopls |
+| TypeScript `<script>` | VS Code's TypeScript service through a virtual document |
+| `<style>`, `<i18n>`, JavaScript `<script>` | Syntax highlighting and comment toggling only |
 
 ## Support
 
-- Issue Tracker: https://piko.sh/piko/issues
-- Documentation: See `README.md` in this directory
+- Issue tracker: https://github.com/piko-sh/piko/issues
+- See [README.md](README.md) for settings and features, and [RELEASE.md](RELEASE.md) for packaging.

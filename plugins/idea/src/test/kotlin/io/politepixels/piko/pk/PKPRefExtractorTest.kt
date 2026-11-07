@@ -185,4 +185,17 @@ class PKPRefExtractorTest {
             result.contains("hasSlotContent(slotName?: string): boolean")
         )
     }
+
+    @Test
+    fun `generatePKDeclaration quotes hyphenated ref names`() {
+        val result = PKPRefExtractor.generatePKDeclaration(listOf("submit-button", "plain"))
+        assertTrue(result.contains("readonly \"submit-button\": HTMLElement | null"))
+        assertTrue(result.contains("readonly plain: HTMLElement | null"))
+    }
+
+    @Test
+    fun `generatePKCDeclaration quotes hyphenated ref names`() {
+        val result = PKPRefExtractor.generatePKCDeclaration(listOf("nav-menu"))
+        assertTrue(result.contains("readonly \"nav-menu\": HTMLElement | null"))
+    }
 }

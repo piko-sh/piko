@@ -26,6 +26,7 @@ import com.intellij.usages.impl.rules.UsageType
 import com.intellij.usages.impl.rules.UsageTypeProvider
 import io.politepixels.piko.pk.PKLanguage
 import io.politepixels.piko.pk.PKTokenTypes
+import io.politepixels.piko.pk.PKTreeUtils
 import io.politepixels.piko.pk.psi.impl.PkCssStyleContentElementImpl
 import io.politepixels.piko.pk.psi.impl.PkGoScriptContentElementImpl
 import io.politepixels.piko.pk.psi.impl.PkJsScriptContentElementImpl
@@ -119,19 +120,8 @@ class PKUsageTypeProvider : UsageTypeProvider {
      * @param element The PSI element to check.
      * @return True if the preceding attribute name is "class".
      */
-    private fun isPrecededByClassAttr(element: PsiElement): Boolean {
-        var prev = element.prevSibling
-        while (prev != null) {
-            when (prev.node?.elementType) {
-                PKTokenTypes.HTML_ATTR_QUOTE,
-                PKTokenTypes.HTML_ATTR_EQ,
-                TokenType.WHITE_SPACE -> prev = prev.prevSibling
-                PKTokenTypes.HTML_ATTR_NAME -> return prev.text == "class"
-                else -> return false
-            }
-        }
-        return false
-    }
+    private fun isPrecededByClassAttr(element: PsiElement): Boolean =
+        PKTreeUtils.findOwningAttrName(element)?.text == "class"
 
     /**
      * Checks whether the element is preceded by a `p-class` directive name.

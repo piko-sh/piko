@@ -44,9 +44,6 @@ async function main() {
         outfile: 'out/extension.js',
         external: ['vscode'],
         logLevel: 'info',
-        loader: {
-            '.pk': 'text',
-        },
         plugins: [
             fallbackTypesTextPlugin,
             esbuildProblemMatcherPlugin,

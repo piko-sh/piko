@@ -21,6 +21,7 @@ package io.politepixels.piko.pk.actions
 
 import com.intellij.ide.actions.CreateFileFromTemplateAction
 import com.intellij.ide.actions.CreateFileFromTemplateDialog
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDirectory
@@ -30,7 +31,7 @@ import io.politepixels.piko.pk.PKIcons
  * Action for creating new Piko template files.
  *
  * Adds a "Piko File" option to the New menu in the Project view.
- * Users can choose between a basic component template or a full page template.
+ * Users can choose between a page, a partial, or a client-side `.pkc` component.
  */
 class CreatePikoFileAction : CreateFileFromTemplateAction(
     "Piko File",
@@ -54,6 +55,7 @@ class CreatePikoFileAction : CreateFileFromTemplateAction(
             .setTitle("New Piko File")
             .addKind("Page", PKIcons.FILE, "Piko Page")
             .addKind("Partial", PKIcons.FILE, "Piko Partial")
+            .addKind("Client component (.pkc)", PKIcons.FILE, "Piko Component")
     }
 
     /**
@@ -69,4 +71,11 @@ class CreatePikoFileAction : CreateFileFromTemplateAction(
         newName: String,
         templateName: String?
     ): String = "Create Piko File $newName"
+
+    /**
+     * Runs [update] on a background thread, as the base action supports.
+     *
+     * @return [ActionUpdateThread.BGT].
+     */
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 }

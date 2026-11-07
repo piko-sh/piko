@@ -173,6 +173,7 @@ jobs:
         working-directory: plugins/vscode
         run: |
           npm ci
+          npm run lint
           npm test
 
   test-idea:

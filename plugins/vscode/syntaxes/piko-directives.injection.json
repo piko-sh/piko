@@ -1,0 +1,14 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "scopeName": "piko.directives.injection",
+  "injectionSelector": "L:meta.block.template.piko meta.tag -comment -meta.embedded.expression.piko, L:meta.block.timeline.piko meta.tag -comment -meta.embedded.expression.piko",
+  "comment": "Highlights Piko directives (p-if, :attr, @event, ...) on ordinary HTML tags inside template and timeline blocks. Injected only into source.piko.",
+  "patterns": [
+    {
+      "include": "source.piko#piko-bound-attributes"
+    },
+    {
+      "include": "source.piko#piko-directives"
+    }
+  ]
+}

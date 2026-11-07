@@ -22,7 +22,9 @@ package io.politepixels.piko.pk
 import com.intellij.lang.BracePair
 import com.intellij.lang.PairedBraceMatcher
 import com.intellij.psi.PsiFile
+import com.intellij.psi.TokenType
 import com.intellij.psi.tree.IElementType
+import com.intellij.psi.tree.TokenSet
 
 /**
  * Provides brace matching for PK template files.
@@ -32,6 +34,7 @@ import com.intellij.psi.tree.IElementType
  * - ( ) for expression parentheses
  * - [ ] for expression brackets
  * - { } for expression braces
+ * - ${ } for interpolations inside backtick strings
  */
 class PKBraceMatcher : PairedBraceMatcher {
 
@@ -43,16 +46,16 @@ class PKBraceMatcher : PairedBraceMatcher {
     override fun getPairs(): Array<BracePair> = PAIRS
 
     /**
-     * Determines if a paired brace is allowed before the given context type.
+     * Determines if a closing brace may be auto-inserted before the given token.
      *
      * @param lbraceType The type of the left brace.
      * @param contextType The element type following the brace, or null.
-     * @return true, allowing braces in all contexts.
+     * @return true when a matching closing brace may be inserted.
      */
     override fun isPairedBracesAllowedBeforeType(
         lbraceType: IElementType,
         contextType: IElementType?
-    ): Boolean = true
+    ): Boolean = contextType == null || contextType in ALLOWED_BEFORE
 
     /**
      * Returns the start offset of the code construct containing the brace.
@@ -72,6 +75,20 @@ class PKBraceMatcher : PairedBraceMatcher {
             BracePair(PKTokenTypes.EXPR_PAREN_OPEN, PKTokenTypes.EXPR_PAREN_CLOSE, false),
             BracePair(PKTokenTypes.EXPR_BRACKET_OPEN, PKTokenTypes.EXPR_BRACKET_CLOSE, false),
             BracePair(PKTokenTypes.EXPR_BRACE_OPEN, PKTokenTypes.EXPR_BRACE_CLOSE, false)
+        )
+
+        /** Tokens before which a closing brace may be auto-inserted. */
+        private val ALLOWED_BEFORE = TokenSet.create(
+            TokenType.WHITE_SPACE,
+            PKTokenTypes.INTERPOLATION_CLOSE,
+            PKTokenTypes.TEMPLATE_INTERP_CLOSE,
+            PKTokenTypes.EXPR_PAREN_CLOSE,
+            PKTokenTypes.EXPR_BRACKET_CLOSE,
+            PKTokenTypes.EXPR_BRACE_CLOSE,
+            PKTokenTypes.EXPR_COMMA,
+            PKTokenTypes.EXPR_COLON,
+            PKTokenTypes.HTML_ATTR_QUOTE,
+            PKTokenTypes.EXPR_STRING_QUOTE
         )
     }
 }

@@ -31,6 +31,7 @@ import com.intellij.psi.PsiFile
 import io.politepixels.piko.pk.PKConstants
 import io.politepixels.piko.pk.PKIcons
 import io.politepixels.piko.pk.PKTokenTypes
+import io.politepixels.piko.pk.PKTreeUtils
 import io.politepixels.piko.pk.psi.impl.PkPsiElementImpl
 import javax.swing.Icon
 
@@ -283,15 +284,9 @@ class PKStructureViewElement(
      * @return The script tag name with optional lang attribute.
      */
     private fun getScriptBlockName(): String {
-        var child = element.firstChild
-        while (child != null) {
-            if (child.node?.elementType == PKTokenTypes.ATTR_VALUE) {
-                val value = child.text.trim('"', '\'')
-                if (PKConstants.ScriptLang.isJsLanguage(value)) {
-                    return PKConstants.StructureDisplay.scriptTagWithLang(value)
-                }
-            }
-            child = child.nextSibling
+        val lang = element.node?.let { PKTreeUtils.findScriptLang(it) }
+        if (lang != null && PKConstants.ScriptLang.isJsLanguage(lang)) {
+            return PKConstants.StructureDisplay.scriptTagWithLang(lang)
         }
         return PKConstants.StructureDisplay.SCRIPT_TAG
     }
@@ -349,15 +344,9 @@ class PKStructureViewElement(
      * @return JavaScript icon for JS/TS scripts, function icon for Go.
      */
     private fun getScriptIcon(): Icon {
-        var child = element.firstChild
-        while (child != null) {
-            if (child.node?.elementType == PKTokenTypes.ATTR_VALUE) {
-                val value = child.text.trim('"', '\'')
-                if (PKConstants.ScriptLang.isJsLanguage(value)) {
-                    return AllIcons.FileTypes.JavaScript
-                }
-            }
-            child = child.nextSibling
+        val lang = element.node?.let { PKTreeUtils.findScriptLang(it) }
+        if (lang != null && PKConstants.ScriptLang.isJsLanguage(lang)) {
+            return AllIcons.FileTypes.JavaScript
         }
         return AllIcons.Nodes.Function
     }

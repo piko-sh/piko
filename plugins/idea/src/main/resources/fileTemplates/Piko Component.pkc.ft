@@ -1,0 +1,16 @@
+<template name="${NAME}">
+  <div class="${NAME}">
+    <p p-text="state.message"></p>
+  </div>
+</template>
+
+<script lang="ts">
+  const state = {
+    message: "Hello from ${NAME}" as string,
+  };
+</script>
+
+<style>
+  .${NAME} {
+  }
+</style>

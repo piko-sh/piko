@@ -1,5 +1,8 @@
 # Compiled output files
-bin
+/bin/
+/plugins/vscode/bin/
+/plugins/idea/src/main/resources/bin/
+/examples/**/bin/
 compiled
 out
 .out

@@ -823,7 +823,6 @@ func (c *Container) buildDiskBlobOverlay() (storage_domain.StorageProviderPort, 
 	}
 	durability := provider_disk.DurabilityImmediate
 	if c.isBuildTime {
-
 		durability = provider_disk.DurabilityDeferred
 	}
 	diskProvider, err := provider_disk.NewDiskProvider(provider_disk.Config{

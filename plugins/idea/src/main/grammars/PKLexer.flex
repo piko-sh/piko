@@ -39,6 +39,7 @@ import io.politepixels.piko.pk.PKTokenTypes;
 %state IN_STRUCTURAL_TAG_CLOSING
 %state IN_GO_SCRIPT_CONTENT
 %state IN_JS_SCRIPT_CONTENT
+%state IN_TEXT_SCRIPT_CONTENT
 %state IN_CSS_STYLE_CONTENT
 %state IN_I18N_CONTENT
 %state IN_TEMPLATE_CONTENT
@@ -58,6 +59,19 @@ import io.politepixels.piko.pk.PKTokenTypes;
   private boolean pendingDirective = false;
   private boolean seenTagName = false;
   private int stringReturnState = IN_INTERPOLATION;
+  private int templateDepth = 0;
+  private boolean openingTemplateTag = false;
+  private int interpolationReturnState = IN_TEMPLATE_CONTENT;
+  private int backtickInterpolationDepth = 0;
+
+  private static boolean isJsLanguage(String lang) {
+    return lang.equals("js") || lang.equals("ts") ||
+        lang.equals("javascript") || lang.equals("typescript");
+  }
+
+  private static boolean isGoLanguage(String lang) {
+    return lang.equals("go") || lang.equals("golang");
+  }
 %}
 
 WHITE_SPACE           = [ \t\r\n\f]+
@@ -72,6 +86,8 @@ I18N_TAG_CLOSE        = "</i18n"
 IDENTIFIER            = [a-zA-Z_][a-zA-Z0-9_]*
 HTML_TAG_NAME_CHARS   = [a-zA-Z][a-zA-Z0-9\-]*
 NUMBER                = [0-9]+(\.[0-9]+)?
+LINE_BREAK            = \r\n|\r|\n
+LINE_BREAK_BEFORE_TAG = {LINE_BREAK} [ \t\f]* "<" [a-zA-Z/!]
 BUILTIN               = "len"|"cap"|"make"|"new"|"append"|"copy"|"delete"|"panic"|"recover"|"print"|"println"
 
 %%
@@ -82,6 +98,8 @@ BUILTIN               = "len"|"cap"|"make"|"new"|"append"|"copy"|"delete"|"panic
 
     {TEMPLATE_TAG_OPEN} {
         currentStructuralTagType = PKTokenTypes.TEMPLATE_TAG_START;
+        templateDepth = 0;
+        openingTemplateTag = false;
         yybegin(IN_STRUCTURAL_TAG_ATTRS);
         return PKTokenTypes.TEMPLATE_TAG_START;
     }
@@ -111,11 +129,12 @@ BUILTIN               = "len"|"cap"|"make"|"new"|"append"|"copy"|"delete"|"panic
         if (currentStructuralTagType == PKTokenTypes.TEMPLATE_TAG_START) {
             yybegin(IN_TEMPLATE_CONTENT);
         } else if (currentStructuralTagType == PKTokenTypes.SCRIPT_TAG_START) {
-            if (pendingScriptLang.equals("js") || pendingScriptLang.equals("ts") ||
-                pendingScriptLang.equals("javascript") || pendingScriptLang.equals("typescript")) {
+            if (isJsLanguage(pendingScriptLang)) {
                 yybegin(IN_JS_SCRIPT_CONTENT);
-            } else {
+            } else if (isGoLanguage(pendingScriptLang)) {
                 yybegin(IN_GO_SCRIPT_CONTENT);
+            } else {
+                yybegin(IN_TEXT_SCRIPT_CONTENT);
             }
         } else if (currentStructuralTagType == PKTokenTypes.STYLE_TAG_START) {
             yybegin(IN_CSS_STYLE_CONTENT);
@@ -188,6 +207,15 @@ BUILTIN               = "len"|"cap"|"make"|"new"|"append"|"copy"|"delete"|"panic
 
 <IN_TEMPLATE_CONTENT> {
     {TEMPLATE_TAG_CLOSE} {
+        if (templateDepth > 0) {
+            templateDepth--;
+            yypushback(yylength() - 2);
+            seenTagName = false;
+            pendingDirective = false;
+            openingTemplateTag = false;
+            yybegin(IN_HTML_TAG);
+            return PKTokenTypes.HTML_END_TAG_OPEN;
+        }
         yybegin(IN_STRUCTURAL_TAG_CLOSING);
         return PKTokenTypes.TEMPLATE_TAG_END;
     }
@@ -195,18 +223,32 @@ BUILTIN               = "len"|"cap"|"make"|"new"|"append"|"copy"|"delete"|"panic
     "<!--" ~"-->"             { return PKTokenTypes.HTML_COMMENT; }
 
     "{{" {
+        interpolationReturnState = IN_TEMPLATE_CONTENT;
         yybegin(IN_INTERPOLATION);
         return PKTokenTypes.INTERPOLATION_OPEN;
     }
 
     "</" {
         seenTagName = false;
+        pendingDirective = false;
+        openingTemplateTag = false;
         yybegin(IN_HTML_TAG);
         return PKTokenTypes.HTML_END_TAG_OPEN;
     }
 
+    "<" / "template" [ \t\r\n\f/>] {
+        templateDepth++;
+        seenTagName = false;
+        pendingDirective = false;
+        openingTemplateTag = true;
+        yybegin(IN_HTML_TAG);
+        return PKTokenTypes.HTML_TAG_OPEN;
+    }
+
     "<" {
         seenTagName = false;
+        pendingDirective = false;
+        openingTemplateTag = false;
         yybegin(IN_HTML_TAG);
         return PKTokenTypes.HTML_TAG_OPEN;
     }
@@ -219,12 +261,23 @@ BUILTIN               = "len"|"cap"|"make"|"new"|"append"|"copy"|"delete"|"panic
 <IN_HTML_TAG> {
     {WHITE_SPACE}             { return TokenType.WHITE_SPACE; }
 
+    {TEMPLATE_TAG_CLOSE} {
+        yypushback(yylength());
+        openingTemplateTag = false;
+        yybegin(IN_TEMPLATE_CONTENT);
+    }
+
     "/>" {
+        if (openingTemplateTag && templateDepth > 0) {
+            templateDepth--;
+        }
+        openingTemplateTag = false;
         yybegin(IN_TEMPLATE_CONTENT);
         return PKTokenTypes.HTML_TAG_SELF_CLOSE;
     }
 
     ">" {
+        openingTemplateTag = false;
         yybegin(IN_TEMPLATE_CONTENT);
         return PKTokenTypes.HTML_TAG_CLOSE;
     }
@@ -263,6 +316,11 @@ BUILTIN               = "len"|"cap"|"make"|"new"|"append"|"copy"|"delete"|"panic
     }
 
     "p-ref" | "p-slot" | "p-key" | "p-context" | "p-scaffold" {
+        pendingDirective = true;
+        return PKTokenTypes.DIRECTIVE_NAME;
+    }
+
+    "p-memo" | "p-timeline" | "p-fragment" | "p-param" | "p-nil" | "p-kf" | "p-collection" | "p-provider" {
         pendingDirective = true;
         return PKTokenTypes.DIRECTIVE_NAME;
     }
@@ -325,9 +383,23 @@ BUILTIN               = "len"|"cap"|"make"|"new"|"append"|"copy"|"delete"|"panic
         yybegin(IN_HTML_TAG);
         return PKTokenTypes.HTML_ATTR_QUOTE;
     }
-    [^\"]+ {
-        return PKTokenTypes.HTML_ATTR_VALUE;
+    "{{" {
+        interpolationReturnState = IN_HTML_ATTR_VALUE_DQ;
+        yybegin(IN_INTERPOLATION);
+        return PKTokenTypes.INTERPOLATION_OPEN;
     }
+    {TEMPLATE_TAG_CLOSE} {
+        yypushback(yylength());
+        yybegin(IN_TEMPLATE_CONTENT);
+    }
+    {LINE_BREAK_BEFORE_TAG} {
+        yypushback(2);
+        yybegin(IN_TEMPLATE_CONTENT);
+        return TokenType.WHITE_SPACE;
+    }
+    [^\"{<\r\n]+              { return PKTokenTypes.HTML_ATTR_VALUE; }
+    {LINE_BREAK} [ \t\f]*     { return PKTokenTypes.HTML_ATTR_VALUE; }
+    "{" | "<"                 { return PKTokenTypes.HTML_ATTR_VALUE; }
 }
 
 <IN_HTML_ATTR_VALUE_SQ> {
@@ -335,17 +407,36 @@ BUILTIN               = "len"|"cap"|"make"|"new"|"append"|"copy"|"delete"|"panic
         yybegin(IN_HTML_TAG);
         return PKTokenTypes.HTML_ATTR_QUOTE;
     }
-    [^\']+ {
-        return PKTokenTypes.HTML_ATTR_VALUE;
+    "{{" {
+        interpolationReturnState = IN_HTML_ATTR_VALUE_SQ;
+        yybegin(IN_INTERPOLATION);
+        return PKTokenTypes.INTERPOLATION_OPEN;
     }
+    {TEMPLATE_TAG_CLOSE} {
+        yypushback(yylength());
+        yybegin(IN_TEMPLATE_CONTENT);
+    }
+    {LINE_BREAK_BEFORE_TAG} {
+        yypushback(2);
+        yybegin(IN_TEMPLATE_CONTENT);
+        return TokenType.WHITE_SPACE;
+    }
+    [^\'{<\r\n]+              { return PKTokenTypes.HTML_ATTR_VALUE; }
+    {LINE_BREAK} [ \t\f]*     { return PKTokenTypes.HTML_ATTR_VALUE; }
+    "{" | "<"                 { return PKTokenTypes.HTML_ATTR_VALUE; }
 }
 
 <IN_INTERPOLATION> {
     {WHITE_SPACE}             { return TokenType.WHITE_SPACE; }
 
     "}}" {
-        yybegin(IN_TEMPLATE_CONTENT);
+        yybegin(interpolationReturnState);
         return PKTokenTypes.INTERPOLATION_CLOSE;
+    }
+
+    {TEMPLATE_TAG_CLOSE} {
+        yypushback(yylength());
+        yybegin(IN_TEMPLATE_CONTENT);
     }
 
     "true" | "false" | "nil"  { return PKTokenTypes.EXPR_BOOLEAN; }
@@ -363,6 +454,7 @@ BUILTIN               = "len"|"cap"|"make"|"new"|"append"|"copy"|"delete"|"panic
     }
     ` {
         stringReturnState = IN_INTERPOLATION;
+        backtickInterpolationDepth = 0;
         yybegin(IN_EXPR_STRING_BACKTICK);
         return PKTokenTypes.EXPR_STRING_QUOTE;
     }
@@ -395,6 +487,11 @@ BUILTIN               = "len"|"cap"|"make"|"new"|"append"|"copy"|"delete"|"panic
 <IN_DIRECTIVE_VALUE_DQ> {
     {WHITE_SPACE}             { return TokenType.WHITE_SPACE; }
 
+    {TEMPLATE_TAG_CLOSE} {
+        yypushback(yylength());
+        yybegin(IN_TEMPLATE_CONTENT);
+    }
+
     \" {
         yybegin(IN_HTML_TAG);
         return PKTokenTypes.HTML_ATTR_QUOTE;
@@ -410,6 +507,7 @@ BUILTIN               = "len"|"cap"|"make"|"new"|"append"|"copy"|"delete"|"panic
     }
     ` {
         stringReturnState = IN_DIRECTIVE_VALUE_DQ;
+        backtickInterpolationDepth = 0;
         yybegin(IN_EXPR_STRING_BACKTICK);
         return PKTokenTypes.EXPR_STRING_QUOTE;
     }
@@ -442,6 +540,11 @@ BUILTIN               = "len"|"cap"|"make"|"new"|"append"|"copy"|"delete"|"panic
 <IN_DIRECTIVE_VALUE_SQ> {
     {WHITE_SPACE}             { return TokenType.WHITE_SPACE; }
 
+    {TEMPLATE_TAG_CLOSE} {
+        yypushback(yylength());
+        yybegin(IN_TEMPLATE_CONTENT);
+    }
+
     \' {
         yybegin(IN_HTML_TAG);
         return PKTokenTypes.HTML_ATTR_QUOTE;
@@ -457,6 +560,7 @@ BUILTIN               = "len"|"cap"|"make"|"new"|"append"|"copy"|"delete"|"panic
     }
     ` {
         stringReturnState = IN_DIRECTIVE_VALUE_SQ;
+        backtickInterpolationDepth = 0;
         yybegin(IN_EXPR_STRING_BACKTICK);
         return PKTokenTypes.EXPR_STRING_QUOTE;
     }
@@ -502,8 +606,14 @@ BUILTIN               = "len"|"cap"|"make"|"new"|"append"|"copy"|"delete"|"panic
         return PKTokenTypes.EXPR_STRING_QUOTE;
     }
 
-    [^\"\\]+                  { return PKTokenTypes.EXPR_STRING; }
+    {TEMPLATE_TAG_CLOSE} {
+        yypushback(yylength());
+        yybegin(IN_TEMPLATE_CONTENT);
+    }
+
+    [^\"\\<]+                 { return PKTokenTypes.EXPR_STRING; }
     \\                        { return PKTokenTypes.EXPR_STRING; }
+    "<"                       { return PKTokenTypes.EXPR_STRING; }
 }
 
 <IN_EXPR_STRING_SINGLE> {
@@ -522,12 +632,34 @@ BUILTIN               = "len"|"cap"|"make"|"new"|"append"|"copy"|"delete"|"panic
         return PKTokenTypes.EXPR_STRING_QUOTE;
     }
 
-    [^\'\\]+                  { return PKTokenTypes.EXPR_STRING; }
+    {TEMPLATE_TAG_CLOSE} {
+        yypushback(yylength());
+        yybegin(IN_TEMPLATE_CONTENT);
+    }
+
+    [^\'\\<]+                 { return PKTokenTypes.EXPR_STRING; }
     \\                        { return PKTokenTypes.EXPR_STRING; }
+    "<"                       { return PKTokenTypes.EXPR_STRING; }
 }
 
 <IN_EXPR_STRING_BACKTICK> {
-    "${"                      { return PKTokenTypes.TEMPLATE_INTERP_OPEN; }
+    "${" {
+        backtickInterpolationDepth++;
+        return PKTokenTypes.TEMPLATE_INTERP_OPEN;
+    }
+
+    "}" {
+        if (backtickInterpolationDepth > 0) {
+            backtickInterpolationDepth--;
+            return PKTokenTypes.TEMPLATE_INTERP_CLOSE;
+        }
+        return PKTokenTypes.EXPR_STRING;
+    }
+
+    {TEMPLATE_TAG_CLOSE} {
+        yypushback(yylength());
+        yybegin(IN_TEMPLATE_CONTENT);
+    }
 
     ` {
         if (stringReturnState == IN_INTERPOLATION) {
@@ -542,7 +674,8 @@ BUILTIN               = "len"|"cap"|"make"|"new"|"append"|"copy"|"delete"|"panic
         return PKTokenTypes.EXPR_STRING_QUOTE;
     }
 
-    [^`$]+                    { return PKTokenTypes.EXPR_STRING; }
+    [^`$}<]+                  { return PKTokenTypes.EXPR_STRING; }
+    "<"                       { return PKTokenTypes.EXPR_STRING; }
     "$" / [^{]                { return PKTokenTypes.EXPR_STRING; }
     "$"                       { return PKTokenTypes.EXPR_STRING; }
 }
@@ -563,6 +696,15 @@ BUILTIN               = "len"|"cap"|"make"|"new"|"append"|"copy"|"delete"|"panic
     }
     [^<]+                     { return PKTokenTypes.JS_SCRIPT_CONTENT; }
     "<"                       { return PKTokenTypes.JS_SCRIPT_CONTENT; }
+}
+
+<IN_TEXT_SCRIPT_CONTENT> {
+    {SCRIPT_TAG_CLOSE} {
+        yybegin(IN_STRUCTURAL_TAG_CLOSING);
+        return PKTokenTypes.SCRIPT_TAG_END;
+    }
+    [^<]+                     { return PKTokenTypes.SCRIPT_TEXT_CONTENT; }
+    "<"                       { return PKTokenTypes.SCRIPT_TEXT_CONTENT; }
 }
 
 <IN_CSS_STYLE_CONTENT> {

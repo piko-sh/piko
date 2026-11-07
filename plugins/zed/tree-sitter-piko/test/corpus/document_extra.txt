@@ -1,0 +1,135 @@
+================================================================================
+PKC component with timeline
+================================================================================
+
+<template name="pp-demo" enable="animation">
+	<h1 p-ref="title">Demo</h1>
+</template>
+
+<piko:timeline>
+	<piko:at time="1s">
+		<piko:show ref="title" />
+	</piko:at>
+</piko:timeline>
+
+<script lang="ts">
+const state = { count: 0 };
+</script>
+
+--------------------------------------------------------------------------------
+
+(document
+  (template_element
+    (start_tag
+      name: (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value)))
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value))))
+    (start_tag
+      name: (tag_name)
+      (attribute
+        (directive
+          name: (directive_name)
+          value: (directive_value
+            (expression)))))
+    (text)
+    (end_tag
+      name: (tag_name))
+    (end_tag
+      name: (tag_name)))
+  (start_tag
+    name: (tag_name))
+  (start_tag
+    name: (tag_name)
+    (attribute
+      name: (attribute_name)
+      value: (quoted_attribute_value
+        (attribute_value))))
+  (self_closing_tag
+    name: (tag_name)
+    (attribute
+      name: (attribute_name)
+      value: (quoted_attribute_value
+        (attribute_value))))
+  (end_tag
+    name: (tag_name))
+  (end_tag
+    name: (tag_name))
+  (script_element
+    (start_tag
+      name: (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value))))
+    (raw_text)
+    (end_tag
+      name: (tag_name))))
+
+================================================================================
+Comment ending with three dashes
+================================================================================
+
+<template>
+	<!-- a comment --->
+	<!-- has - and -- inside -->
+	<!---->
+</template>
+
+--------------------------------------------------------------------------------
+
+(document
+  (template_element
+    (start_tag
+      name: (tag_name))
+    (comment)
+    (comment)
+    (comment)
+    (end_tag
+      name: (tag_name))))
+
+================================================================================
+Partial and slot elements
+================================================================================
+
+<template>
+	<piko:partial is="card" :title="state.Title">
+		<piko:slot name="footer">f</piko:slot>
+	</piko:partial>
+</template>
+
+--------------------------------------------------------------------------------
+
+(document
+  (template_element
+    (start_tag
+      name: (tag_name))
+    (start_tag
+      name: (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value)))
+      (attribute
+        (directive
+          name: (directive_name)
+          value: (directive_value
+            (expression)))))
+    (start_tag
+      name: (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value))))
+    (text)
+    (end_tag
+      name: (tag_name))
+    (end_tag
+      name: (tag_name))
+    (end_tag
+      name: (tag_name))))

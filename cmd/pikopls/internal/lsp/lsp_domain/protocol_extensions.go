@@ -41,6 +41,30 @@ type InlayHint struct {
 	PaddingRight bool `json:"paddingRight,omitempty"`
 }
 
+// extendedServerCapabilities adds LSP 3.17 capabilities that the protocol library's
+// ServerCapabilities type has no field for. The embedded struct's fields serialise at the
+// same level, so the result is a single flat capabilities object.
+type extendedServerCapabilities struct {
+	protocol.ServerCapabilities
+
+	// InlayHintProvider advertises textDocument/inlayHint, served through Request.
+	InlayHintProvider bool `json:"inlayHintProvider,omitempty"`
+
+	// TypeHierarchyProvider advertises textDocument/prepareTypeHierarchy and the
+	// typeHierarchy/supertypes and typeHierarchy/subtypes requests, served through Request.
+	TypeHierarchyProvider bool `json:"typeHierarchyProvider,omitempty"`
+}
+
+// ExtendedInitialiseResult mirrors protocol.InitializeResult with the extended
+// capabilities object.
+type ExtendedInitialiseResult struct {
+	// ServerInfo carries the server name and version.
+	ServerInfo *protocol.ServerInfo `json:"serverInfo,omitempty"`
+
+	// Capabilities lists every capability the server provides.
+	Capabilities extendedServerCapabilities `json:"capabilities"`
+}
+
 // InlayHintKind represents the kind of inlay hint.
 type InlayHintKind int
 
@@ -113,4 +137,26 @@ type TypeHierarchyData struct {
 
 	// TypeName is the name of the type.
 	TypeName string `json:"typeName"`
+}
+
+// ExtendInitialiseResult decorates an initialisation reply with the capabilities that
+// Server handles through Request but that protocol.ServerCapabilities cannot express:
+// inlay hints and type hierarchy.
+//
+// Takes result (*protocol.InitializeResult) which is the reply Initialize produced.
+//
+// Returns *ExtendedInitialiseResult which carries the same server information and
+// capabilities plus the extensions, or nil when result is nil.
+func ExtendInitialiseResult(result *protocol.InitializeResult) *ExtendedInitialiseResult {
+	if result == nil {
+		return nil
+	}
+	return &ExtendedInitialiseResult{
+		ServerInfo: result.ServerInfo,
+		Capabilities: extendedServerCapabilities{
+			ServerCapabilities:    result.Capabilities,
+			InlayHintProvider:     true,
+			TypeHierarchyProvider: true,
+		},
+	}
 }

@@ -16,12 +16,29 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-/**
- * TypeScript declaration for .pk file imports.
- * Allows importing .pk files as string content via esbuild's text loader.
- */
-declare module '*.pk' {
-    /** The text content of the .pk file. */
-    const content: string;
-    export default content;
+package driven_code_emitter_go_literal
+
+import (
+	"errors"
+	"path/filepath"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func TestResolveBaseDirectory(t *testing.T) {
+	t.Parallel()
+
+	t.Run("makes the directory absolute", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, "/project", resolveBaseDirectory(t.Context(), "/project", filepath.Abs))
+	})
+
+	t.Run("keeps the directory when it cannot be made absolute", func(t *testing.T) {
+		t.Parallel()
+
+		failing := func(string) (string, error) { return "", errors.New("no working directory") }
+		assert.Equal(t, "project", resolveBaseDirectory(t.Context(), "project", failing))
+	})
 }

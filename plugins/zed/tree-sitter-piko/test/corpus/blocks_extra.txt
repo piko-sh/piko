@@ -1,0 +1,368 @@
+================================================================================
+Empty script block
+================================================================================
+
+<script type="application/x-go"></script>
+
+--------------------------------------------------------------------------------
+
+(document
+  (script_element
+    (start_tag
+      name: (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value))))
+    (end_tag
+      name: (tag_name))))
+
+================================================================================
+Empty template
+================================================================================
+
+<template></template>
+
+--------------------------------------------------------------------------------
+
+(document
+  (template_element
+    (start_tag
+      name: (tag_name))
+    (end_tag
+      name: (tag_name))))
+
+================================================================================
+Multiple blocks of each kind
+================================================================================
+
+<template>
+	<p>{{ state.Title }}</p>
+</template>
+
+<script type="application/x-go">
+package main
+</script>
+
+<script lang="ts">
+export const n = 1;
+</script>
+
+<style>
+p { color: red; }
+</style>
+
+<style lang="scss">
+p { a { color: blue; } }
+</style>
+
+<i18n lang="json">
+{ "en": { "a": "b" } }
+</i18n>
+
+--------------------------------------------------------------------------------
+
+(document
+  (template_element
+    (start_tag
+      name: (tag_name))
+    (start_tag
+      name: (tag_name))
+    (interpolation
+      (expression))
+    (end_tag
+      name: (tag_name))
+    (end_tag
+      name: (tag_name)))
+  (script_element
+    (start_tag
+      name: (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value))))
+    (raw_text)
+    (end_tag
+      name: (tag_name)))
+  (script_element
+    (start_tag
+      name: (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value))))
+    (raw_text)
+    (end_tag
+      name: (tag_name)))
+  (style_element
+    (start_tag
+      name: (tag_name))
+    (raw_text)
+    (end_tag
+      name: (tag_name)))
+  (style_element
+    (start_tag
+      name: (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value))))
+    (raw_text)
+    (end_tag
+      name: (tag_name)))
+  (i18n_element
+    (start_tag
+      name: (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value))))
+    (raw_text)
+    (end_tag
+      name: (tag_name))))
+
+================================================================================
+Self-closing style block with src
+================================================================================
+
+<style src="./card.css" />
+
+--------------------------------------------------------------------------------
+
+(document
+  (style_element
+    (self_closing_tag
+      name: (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value))))))
+
+================================================================================
+Self-closing script and i18n blocks
+================================================================================
+
+<script type="application/x-go" src="./page.go"/>
+<i18n src="./messages.yaml" />
+
+--------------------------------------------------------------------------------
+
+(document
+  (script_element
+    (self_closing_tag
+      name: (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value)))
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value)))))
+  (i18n_element
+    (self_closing_tag
+      name: (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value))))))
+
+================================================================================
+Case-insensitive block start tags
+================================================================================
+
+<SCRIPT type="application/x-go">
+package main
+</script>
+<Template>
+	<p>x</p>
+</TEMPLATE>
+<STYLE>p {}</style>
+
+--------------------------------------------------------------------------------
+
+(document
+  (script_element
+    (start_tag
+      name: (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value))))
+    (raw_text)
+    (end_tag
+      name: (tag_name)))
+  (template_element
+    (start_tag
+      name: (tag_name))
+    (start_tag
+      name: (tag_name))
+    (text)
+    (end_tag
+      name: (tag_name))
+    (end_tag
+      name: (tag_name)))
+  (style_element
+    (start_tag
+      name: (tag_name))
+    (raw_text)
+    (end_tag
+      name: (tag_name))))
+
+================================================================================
+YAML i18n block
+================================================================================
+
+<i18n lang="yaml">
+en:
+  greeting: "Hello <b>there</b>"
+fr:
+  greeting: Bonjour
+</i18n>
+
+--------------------------------------------------------------------------------
+
+(document
+  (i18n_element
+    (start_tag
+      name: (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value))))
+    (raw_text)
+    (end_tag
+      name: (tag_name))))
+
+================================================================================
+Close tag inside a Go string stays in the raw text
+================================================================================
+
+<script type="application/x-go">
+package main
+
+const snippet = "</script>"
+</script>
+
+<template>
+	<p>ok</p>
+</template>
+
+--------------------------------------------------------------------------------
+
+(document
+  (script_element
+    (start_tag
+      name: (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value))))
+    (raw_text)
+    (end_tag
+      name: (tag_name)))
+  (template_element
+    (start_tag
+      name: (tag_name))
+    (start_tag
+      name: (tag_name))
+    (text)
+    (end_tag
+      name: (tag_name))
+    (end_tag
+      name: (tag_name))))
+
+================================================================================
+Close tag inside raw text before the next block opener
+================================================================================
+
+<script lang="ts">
+const a = "</script>";
+const b = "</script>";
+</script>
+<style>
+p::after { content: "</style>"; }
+</style>
+
+--------------------------------------------------------------------------------
+
+(document
+  (script_element
+    (start_tag
+      name: (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value))))
+    (raw_text)
+    (end_tag
+      name: (tag_name)))
+  (style_element
+    (start_tag
+      name: (tag_name))
+    (raw_text)
+    (end_tag
+      name: (tag_name))))
+
+================================================================================
+Close tag needs a terminator after the tag name
+================================================================================
+
+<script lang="ts">
+const tag = "</scripts>";
+const other = "</SCRIPT>";
+</script>
+
+--------------------------------------------------------------------------------
+
+(document
+  (script_element
+    (start_tag
+      name: (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value))))
+    (raw_text)
+    (end_tag
+      name: (tag_name))))
+
+================================================================================
+Script module type
+================================================================================
+
+<script type="module">
+import { a } from "./a.js";
+</script>
+
+--------------------------------------------------------------------------------
+
+(document
+  (script_element
+    (start_tag
+      name: (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value))))
+    (raw_text)
+    (end_tag
+      name: (tag_name))))
+
+================================================================================
+Bare script defaults to JavaScript
+================================================================================
+
+<script>
+console.log(1 < 2);
+</script>
+
+--------------------------------------------------------------------------------
+
+(document
+  (script_element
+    (start_tag
+      name: (tag_name))
+    (raw_text)
+    (end_tag
+      name: (tag_name))))

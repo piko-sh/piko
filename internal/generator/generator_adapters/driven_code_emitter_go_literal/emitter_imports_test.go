@@ -265,7 +265,7 @@ func TestCopyUserCode(t *testing.T) {
 			},
 		}
 
-		require.NoError(t, copyUserCode(fileAST, mainComponent, nil))
+		require.NoError(t, copyUserCode(t.Context(), fileAST, mainComponent, nil))
 
 		assert.Len(t, fileAST.Decls, 2, "Should copy 2 non-import declarations")
 
@@ -287,7 +287,7 @@ func TestCopyUserCode(t *testing.T) {
 
 		mainComponent := &annotator_dto.VirtualComponent{}
 
-		require.NoError(t, copyUserCode(fileAST, mainComponent, nil))
+		require.NoError(t, copyUserCode(t.Context(), fileAST, mainComponent, nil))
 
 		assert.Empty(t, fileAST.Decls, "Should not add declarations when script is nil")
 	})
@@ -299,7 +299,7 @@ func TestCopyUserCode(t *testing.T) {
 			Decls: []goast.Decl{},
 		}
 
-		require.NoError(t, copyUserCode(fileAST, nil, nil))
+		require.NoError(t, copyUserCode(t.Context(), fileAST, nil, nil))
 
 		assert.Empty(t, fileAST.Decls, "Should handle nil component gracefully")
 	})

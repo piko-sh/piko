@@ -1,0 +1,244 @@
+================================================================================
+p-on, p-event and p-bind directives
+================================================================================
+
+<template>
+	<button p-on:click="handle()" p-event:saved="onSaved($event)" p-bind:aria-label="label">x</button>
+</template>
+
+--------------------------------------------------------------------------------
+
+(document
+  (template_element
+    (start_tag
+      name: (tag_name))
+    (start_tag
+      name: (tag_name)
+      (attribute
+        (directive
+          name: (directive_name)
+          value: (directive_value
+            (expression))))
+      (attribute
+        (directive
+          name: (directive_name)
+          value: (directive_value
+            (expression))))
+      (attribute
+        (directive
+          name: (directive_name)
+          value: (directive_value
+            (expression)))))
+    (text)
+    (end_tag
+      name: (tag_name))
+    (end_tag
+      name: (tag_name))))
+
+================================================================================
+Directive argument with more than one colon
+================================================================================
+
+<template>
+	<piko:input p-on:update:model="value = $event" p-bind:data:id="id" />
+</template>
+
+--------------------------------------------------------------------------------
+
+(document
+  (template_element
+    (start_tag
+      name: (tag_name))
+    (self_closing_tag
+      name: (tag_name)
+      (attribute
+        (directive
+          name: (directive_name)
+          value: (directive_value
+            (expression))))
+      (attribute
+        (directive
+          name: (directive_name)
+          value: (directive_value
+            (expression)))))
+    (end_tag
+      name: (tag_name))))
+
+================================================================================
+p-class object and p-else without a value
+================================================================================
+
+<template>
+	<div p-if="ok" p-class="{ active: isActive }">a</div>
+	<div p-else>b</div>
+</template>
+
+--------------------------------------------------------------------------------
+
+(document
+  (template_element
+    (start_tag
+      name: (tag_name))
+    (start_tag
+      name: (tag_name)
+      (attribute
+        (directive
+          name: (directive_name)
+          value: (directive_value
+            (expression))))
+      (attribute
+        (directive
+          name: (directive_name)
+          value: (directive_value
+            (expression)))))
+    (text)
+    (end_tag
+      name: (tag_name))
+    (start_tag
+      name: (tag_name)
+      (attribute
+        (directive
+          name: (directive_name))))
+    (text)
+    (end_tag
+      name: (tag_name))
+    (end_tag
+      name: (tag_name))))
+
+================================================================================
+p-timeline directive
+================================================================================
+
+<template enable="animation">
+	<h1 p-ref="title" p-timeline:hidden>Hello</h1>
+</template>
+
+--------------------------------------------------------------------------------
+
+(document
+  (template_element
+    (start_tag
+      name: (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value))))
+    (start_tag
+      name: (tag_name)
+      (attribute
+        (directive
+          name: (directive_name)
+          value: (directive_value
+            (expression))))
+      (attribute
+        (directive
+          name: (directive_name))))
+    (text)
+    (end_tag
+      name: (tag_name))
+    (end_tag
+      name: (tag_name))))
+
+================================================================================
+Single-quoted attribute and directive values
+================================================================================
+
+<template>
+	<a href='/home' p-show='visible'>home</a>
+</template>
+
+--------------------------------------------------------------------------------
+
+(document
+  (template_element
+    (start_tag
+      name: (tag_name))
+    (start_tag
+      name: (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value)))
+      (attribute
+        (directive
+          name: (directive_name)
+          value: (directive_value
+            (expression)))))
+    (text)
+    (end_tag
+      name: (tag_name))
+    (end_tag
+      name: (tag_name))))
+
+================================================================================
+Unquoted attribute and directive values
+================================================================================
+
+<template>
+	<input type=text p-show=visible>
+</template>
+
+--------------------------------------------------------------------------------
+
+(document
+  (template_element
+    (start_tag
+      name: (tag_name))
+    (start_tag
+      name: (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (attribute_value))
+      (attribute
+        (directive
+          name: (directive_name)
+          value: (directive_value
+            (expression)))))
+    (end_tag
+      name: (tag_name))))
+
+================================================================================
+Directive with empty value
+================================================================================
+
+<template>
+	<div p-text=""></div>
+</template>
+
+--------------------------------------------------------------------------------
+
+(document
+  (template_element
+    (start_tag
+      name: (tag_name))
+    (start_tag
+      name: (tag_name)
+      (attribute
+        (directive
+          name: (directive_name)
+          value: (directive_value))))
+    (end_tag
+      name: (tag_name))
+    (end_tag
+      name: (tag_name))))
+
+================================================================================
+Attribute with no value
+================================================================================
+
+<template>
+	<input disabled>
+</template>
+
+--------------------------------------------------------------------------------
+
+(document
+  (template_element
+    (start_tag
+      name: (tag_name))
+    (start_tag
+      name: (tag_name)
+      (attribute
+        name: (attribute_name)))
+    (end_tag
+      name: (tag_name))))

@@ -23,7 +23,6 @@ import com.intellij.lang.injection.InjectedLanguageManager
 import com.intellij.openapi.application.QueryExecutorBase
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiRecursiveElementVisitor
 import com.intellij.psi.PsiReference
 import com.intellij.psi.PsiReferenceBase
 import com.intellij.psi.TokenType
@@ -31,7 +30,9 @@ import com.intellij.psi.css.CssClass
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.openapi.util.TextRange
 import com.intellij.util.Processor
+import io.politepixels.piko.pk.PKTemplateReferenceScanner
 import io.politepixels.piko.pk.PKTokenTypes
+import io.politepixels.piko.pk.PKTreeUtils
 import io.politepixels.piko.pk.psi.impl.PkCssStyleContentElementImpl
 
 /**
@@ -78,13 +79,14 @@ class PKCssReferencesSearchContributor :
     }
 
     /**
-     * Walks the PK file's PSI tree looking for template tokens that reference
-     * the given CSS class name.
+     * Scans a PK file for usages of a CSS class name.
      *
-     * @param file      The PK file to scan.
+     * Stops as soon as the consumer returns false.
+     *
+     * @param file The PK file to scan.
      * @param className The CSS class name to search for.
-     * @param target    The CSS class element that references resolve to.
-     * @param consumer  The processor that receives found references.
+     * @param target The CSS class element being searched.
+     * @param consumer The processor to receive found references.
      */
     private fun scanForClassUsages(
         file: PsiFile,
@@ -92,43 +94,35 @@ class PKCssReferencesSearchContributor :
         target: CssClass,
         consumer: Processor<in PsiReference>
     ) {
-        file.accept(object : PsiRecursiveElementVisitor() {
-            override fun visitElement(element: PsiElement) {
-                val elementType = element.node?.elementType
-
-                if (elementType == PKTokenTypes.HTML_ATTR_VALUE) {
-                    if (!processAttrValue(element, className, target, consumer)) return
-                }
-
-                if (elementType == PKTokenTypes.DIRECTIVE_BIND) {
-                    if (!processDirectiveBind(element, className, target, consumer)) return
-                }
-
-                super.visitElement(element)
+        PKTemplateReferenceScanner.scan(file, CANDIDATE_TYPES, consumer) { element ->
+            when (element.node?.elementType) {
+                PKTokenTypes.HTML_ATTR_VALUE -> attrValueReferences(element, className, target)
+                PKTokenTypes.DIRECTIVE_BIND -> directiveBindReferences(element, className, target)
+                else -> emptyList()
             }
-        })
+        }
     }
 
     /**
-     * Checks an `HTML_ATTR_VALUE` token for class name references.
+     * Builds references for whole-word occurrences of a class name in a `class`
+     * attribute value token.
      *
-     * Verifies the preceding attribute name is "class", then finds all
-     * whole-word occurrences of the class name within the value.
-     *
-     * @return False if the consumer signalled to stop processing.
+     * @param element The HTML_ATTR_VALUE element.
+     * @param className The CSS class name to search for.
+     * @param target The CSS class element being searched.
+     * @return The references found in this token.
      */
-    private fun processAttrValue(
+    private fun attrValueReferences(
         element: PsiElement,
         className: String,
-        target: CssClass,
-        consumer: Processor<in PsiReference>
-    ): Boolean {
-        val attrName = findPrecedingAttrName(element) ?: return true
-        if (attrName.text != "class") return true
+        target: CssClass
+    ): List<PsiReference> {
+        val attrName = PKTreeUtils.findOwningAttrName(element) ?: return emptyList()
+        if (attrName.text != "class") return emptyList()
 
         val text = element.text
+        val references = mutableListOf<PsiReference>()
         var offset = 0
-
         while (true) {
             val idx = text.indexOf(className, offset)
             if (idx == -1) break
@@ -136,59 +130,35 @@ class PKCssReferencesSearchContributor :
             val endIdx = idx + className.length
             val isWordStart = idx == 0 || text[idx - 1].isWhitespace()
             val isWordEnd = endIdx == text.length || text[endIdx].isWhitespace()
-
             if (isWordStart && isWordEnd) {
-                val ref = PKCssClassReference(element, TextRange(idx, endIdx), target)
-                if (!consumer.process(ref)) return false
+                references.add(PKCssClassReference(element, TextRange(idx, endIdx), target))
             }
-
             offset = endIdx
         }
-
-        return true
+        return references
     }
 
     /**
-     * Checks a `DIRECTIVE_BIND` token for a `p-class:name` shorthand usage.
+     * Builds a reference for a `p-class:name` binding that names the class.
      *
-     * @return False if the consumer signalled to stop processing.
+     * @param element The DIRECTIVE_BIND element (e.g. `:active`).
+     * @param className The CSS class name to search for.
+     * @param target The CSS class element being searched.
+     * @return The reference, or an empty list when the binding names another class.
      */
-    private fun processDirectiveBind(
+    private fun directiveBindReferences(
         element: PsiElement,
         className: String,
-        target: CssClass,
-        consumer: Processor<in PsiReference>
-    ): Boolean {
+        target: CssClass
+    ): List<PsiReference> {
         val text = element.text
-        if (!text.startsWith(":")) return true
-        if (text.substring(1) != className) return true
+        if (!text.startsWith(":")) return emptyList()
+        if (text.substring(1) != className) return emptyList()
 
-        val directiveName = findPrecedingDirectiveName(element) ?: return true
-        if (directiveName.text != "p-class") return true
+        val directiveName = findPrecedingDirectiveName(element) ?: return emptyList()
+        if (directiveName.text != "p-class") return emptyList()
 
-        val ref = PKCssClassReference(element, TextRange(1, text.length), target)
-        return consumer.process(ref)
-    }
-
-    /**
-     * Walks backwards from an `HTML_ATTR_VALUE` token to find the preceding
-     * `HTML_ATTR_NAME`, skipping quotes, equals signs, and whitespace.
-     *
-     * @param element The starting PSI element.
-     * @return The preceding attribute name element, or null if not found.
-     */
-    private fun findPrecedingAttrName(element: PsiElement): PsiElement? {
-        var prev = element.prevSibling
-        while (prev != null) {
-            when (prev.node?.elementType) {
-                PKTokenTypes.HTML_ATTR_QUOTE,
-                PKTokenTypes.HTML_ATTR_EQ,
-                TokenType.WHITE_SPACE -> prev = prev.prevSibling
-                PKTokenTypes.HTML_ATTR_NAME -> return prev
-                else -> return null
-            }
-        }
-        return null
+        return listOf(PKCssClassReference(element, TextRange(1, text.length), target))
     }
 
     /**
@@ -208,6 +178,11 @@ class PKCssReferencesSearchContributor :
             }
         }
         return null
+    }
+
+    companion object {
+        /** Tokens that can contain a class name. */
+        private val CANDIDATE_TYPES = setOf(PKTokenTypes.HTML_ATTR_VALUE, PKTokenTypes.DIRECTIVE_BIND)
     }
 }
 

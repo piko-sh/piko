@@ -19,11 +19,16 @@
 import {describe, expect, it} from 'vitest';
 
 import {
-    buildLspArgsFromConfig,
+    buildServerArgs,
+    nodePlatformToGoOs,
     getBinaryName,
     isValidFileName,
     LspConfig,
+    MAX_FILE_NAME_LENGTH,
+    MAX_TCP_PORT,
     nodeArchToGoArch,
+    parseLimit,
+    parsePort,
     resolvePlatformBinaryPath,
     validateFileName,
 } from './extensionUtils';
@@ -123,111 +128,65 @@ describe('extensionUtils', () => {
 
         describe('Windows', () => {
             it('should resolve Windows x64 path with .exe extension', () => {
-                expect(resolvePlatformBinaryPath('win32', 'x64')).toBe('bin/win32-amd64/pikopls.exe');
+                expect(resolvePlatformBinaryPath('win32', 'x64')).toBe('bin/windows-amd64/pikopls.exe');
             });
 
             it('should resolve Windows arm64 path with .exe extension', () => {
-                expect(resolvePlatformBinaryPath('win32', 'arm64')).toBe('bin/win32-arm64/pikopls.exe');
+                expect(resolvePlatformBinaryPath('win32', 'arm64')).toBe('bin/windows-arm64/pikopls.exe');
             });
         });
     });
 
-    describe('buildLspArgsFromConfig', () => {
-        it('should include basic TCP args', () => {
-            const config: LspConfig = {
-                enablePprof: false,
-                pprofPort: 6060,
-                enableFormatting: false,
-                enableFileLogging: false,
-            };
+    describe('buildServerArgs', () => {
+        const baseConfig: LspConfig = {
+            enablePprof: false,
+            pprofPort: 6060,
+            enableFormatting: false,
+            enableFileLogging: false,
+        };
 
-            const args = buildLspArgsFromConfig(4389, config);
-
-            expect(args).toEqual(['--tcp', '--port=4389']);
+        it('should pass no transport flags for stdio', () => {
+            expect(buildServerArgs({kind: 'stdio'}, baseConfig)).toEqual([]);
         });
 
-        it('should include pprof when enabled', () => {
-            const config: LspConfig = {
-                enablePprof: true,
-                pprofPort: 6060,
-                enableFormatting: false,
-                enableFileLogging: false,
-            };
-
-            const args = buildLspArgsFromConfig(4389, config);
-
-            expect(args).toContain('--pprof');
-            expect(args).toContain('--pprof-port=6060');
-        });
-
-        it('should use custom pprof port', () => {
-            const config: LspConfig = {
-                enablePprof: true,
-                pprofPort: 7070,
-                enableFormatting: false,
-                enableFileLogging: false,
-            };
-
-            const args = buildLspArgsFromConfig(4389, config);
-
-            expect(args).toContain('--pprof-port=7070');
-        });
-
-        it('should include formatting when enabled', () => {
-            const config: LspConfig = {
-                enablePprof: false,
-                pprofPort: 6060,
-                enableFormatting: true,
-                enableFileLogging: false,
-            };
-
-            const args = buildLspArgsFromConfig(4389, config);
-
-            expect(args).toContain('--formatting');
-        });
-
-        it('should include file-logging when enabled', () => {
-            const config: LspConfig = {
-                enablePprof: false,
-                pprofPort: 6060,
-                enableFormatting: false,
-                enableFileLogging: true,
-            };
-
-            const args = buildLspArgsFromConfig(4389, config);
-
-            expect(args).toContain('--file-logging');
-        });
-
-        it('should include all flags when all enabled', () => {
-            const config: LspConfig = {
-                enablePprof: true,
-                pprofPort: 6060,
-                enableFormatting: true,
-                enableFileLogging: true,
-            };
-
-            const args = buildLspArgsFromConfig(5000, config);
-
-            expect(args).toContain('--tcp');
-            expect(args).toContain('--port=5000');
-            expect(args).toContain('--pprof');
-            expect(args).toContain('--pprof-port=6060');
-            expect(args).toContain('--formatting');
-            expect(args).toContain('--file-logging');
+        it('should limit TCP to a single connection', () => {
+            expect(buildServerArgs({kind: 'tcp', port: 4389}, baseConfig))
+                .toEqual(['--tcp', '--port=4389', '--max-connections=1']);
         });
 
         it('should use different ports correctly', () => {
-            const config: LspConfig = {
-                enablePprof: false,
-                pprofPort: 6060,
-                enableFormatting: false,
-                enableFileLogging: false,
-            };
+            expect(buildServerArgs({kind: 'tcp', port: 1234}, baseConfig)).toContain('--port=1234');
+            expect(buildServerArgs({kind: 'tcp', port: 0}, baseConfig)).toContain('--port=0');
+        });
 
-            expect(buildLspArgsFromConfig(1234, config)).toContain('--port=1234');
-            expect(buildLspArgsFromConfig(8080, config)).toContain('--port=8080');
-            expect(buildLspArgsFromConfig(0, config)).toContain('--port=0');
+        it.each<[string, Partial<LspConfig>, string[]]>([
+            ['pprof', {enablePprof: true}, ['--pprof', '--pprof-port=6060']],
+            ['custom pprof port', {enablePprof: true, pprofPort: 7070}, ['--pprof', '--pprof-port=7070']],
+            ['formatting', {enableFormatting: true}, ['--formatting']],
+            ['file logging without a path', {enableFileLogging: true}, ['--file-logging']],
+            ['file logging with a path', {enableFileLogging: true, logFilePath: '/logs/pikopls.log'}, ['--file-logging', '--log-file=/logs/pikopls.log']],
+            ['log path ignored when logging is off', {logFilePath: '/logs/pikopls.log'}, []],
+            ['gopls path', {goplsPath: ' /usr/bin/gopls '}, ['--gopls-path=/usr/bin/gopls']],
+            ['blank gopls path', {goplsPath: '   '}, []],
+            ['gopls disable', {goplsDisable: true}, ['--gopls-disable']],
+            ['gopls limits', {goplsMaxChildren: 4, goplsMaxOverlays: 32}, ['--gopls-max-children=4', '--gopls-max-overlays=32']],
+            ['zero gopls limits use server defaults', {goplsMaxChildren: 0, goplsMaxOverlays: 0}, []],
+        ])('should map %s identically for both transports', (_name, overrides, expected) => {
+            const config = {...baseConfig, ...overrides};
+
+            expect(buildServerArgs({kind: 'stdio'}, config)).toEqual(expected);
+            expect(buildServerArgs({kind: 'tcp', port: 9}, config).slice(3)).toEqual(expected);
+        });
+    });
+
+    describe('nodePlatformToGoOs', () => {
+        it.each([
+            ['win32', 'windows'],
+            ['darwin', 'darwin'],
+            ['linux', 'linux'],
+            ['freebsd', 'freebsd'],
+        ])('should map %s to %s', (platform, expected) => {
+            expect(nodePlatformToGoOs(platform)).toBe(expected);
         });
     });
 
@@ -276,6 +235,33 @@ describe('extensionUtils', () => {
         it('should preserve other architectures', () => {
             expect(nodeArchToGoArch('arm')).toBe('arm');
             expect(nodeArchToGoArch('ia32')).toBe('ia32');
+        });
+    });
+
+    describe('validateFileName length', () => {
+        it('accepts names up to the limit and rejects longer ones', () => {
+            expect(validateFileName('a'.repeat(MAX_FILE_NAME_LENGTH))).toBeNull();
+            expect(validateFileName('a'.repeat(MAX_FILE_NAME_LENGTH + 1))).toContain('longer than');
+        });
+    });
+
+    describe('parsePort', () => {
+        it.each([1, 4389, MAX_TCP_PORT])('accepts %s', value => {
+            expect(parsePort(value)).toBe(value);
+        });
+
+        it.each([0, -1, MAX_TCP_PORT + 1, 80.5, Number.NaN, '4389', undefined, null])('rejects %s', value => {
+            expect(parsePort(value)).toBeUndefined();
+        });
+    });
+
+    describe('parseLimit', () => {
+        it.each([0, 1, 8])('accepts %s', value => {
+            expect(parseLimit(value, 8)).toBe(value);
+        });
+
+        it.each([-1, 9, 1.5, Number.POSITIVE_INFINITY, '2', undefined])('rejects %s', value => {
+            expect(parseLimit(value, 8)).toBeUndefined();
         });
     });
 });

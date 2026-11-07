@@ -21,6 +21,7 @@ package io.politepixels.piko.pk
 
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -127,14 +128,39 @@ class PKEditorFeaturesTest {
     }
 
     @Test
-    fun `PKBraceMatcher allows paired braces before any type`() {
+    fun `PKBraceMatcher allows paired braces before whitespace and closing tokens`() {
         val matcher = PKBraceMatcher()
         assertTrue(
             matcher.isPairedBracesAllowedBeforeType(
-                PKTokenTypes.INTERPOLATION_OPEN,
-                PKTokenTypes.TEXT_CONTENT
+                PKTokenTypes.EXPR_PAREN_OPEN,
+                com.intellij.psi.TokenType.WHITE_SPACE
             )
         )
+        assertTrue(
+            matcher.isPairedBracesAllowedBeforeType(
+                PKTokenTypes.EXPR_PAREN_OPEN,
+                PKTokenTypes.INTERPOLATION_CLOSE
+            )
+        )
+    }
+
+    @Test
+    fun `PKBraceMatcher does not pair braces before an identifier`() {
+        val matcher = PKBraceMatcher()
+        assertFalse(
+            matcher.isPairedBracesAllowedBeforeType(
+                PKTokenTypes.EXPR_PAREN_OPEN,
+                PKTokenTypes.EXPR_IDENTIFIER
+            )
+        )
+    }
+
+    @Test
+    fun `PKQuoteHandler excludes string content tokens`() {
+        assertFalse(PKQuoteHandler.QUOTE_TOKENS.contains(PKTokenTypes.HTML_ATTR_VALUE))
+        assertFalse(PKQuoteHandler.QUOTE_TOKENS.contains(PKTokenTypes.EXPR_STRING))
+        assertTrue(PKQuoteHandler.QUOTE_TOKENS.contains(PKTokenTypes.HTML_ATTR_QUOTE))
+        assertTrue(PKQuoteHandler.QUOTE_TOKENS.contains(PKTokenTypes.EXPR_STRING_QUOTE))
     }
 
     @Test

@@ -23,6 +23,9 @@ import (
 	"testing"
 
 	protocol "github.com/politepixels/golang-language-server"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.lsp.dev/jsonrpc2"
 )
 
 func TestTypeDefinition_NilDocument_ReturnsEmptyList(t *testing.T) {
@@ -458,4 +461,21 @@ func TestMoniker_ReturnsEmptyList(t *testing.T) {
 	if len(result) != 0 {
 		t.Errorf("expected empty slice, got %d monikers", len(result))
 	}
+}
+
+func TestSemanticTokens_RejectedAsMethodNotFound(t *testing.T) {
+	server := &Server{}
+	document := protocol.TextDocumentIdentifier{URI: "file:///test.pk"}
+
+	fullResult, err := server.SemanticTokensFull(t.Context(), &protocol.SemanticTokensParams{TextDocument: document})
+	require.ErrorIs(t, err, jsonrpc2.ErrMethodNotFound)
+	assert.Nil(t, fullResult)
+
+	rangeResult, err := server.SemanticTokensRange(t.Context(), &protocol.SemanticTokensRangeParams{TextDocument: document})
+	require.ErrorIs(t, err, jsonrpc2.ErrMethodNotFound)
+	assert.Nil(t, rangeResult)
+
+	deltaResult, err := server.SemanticTokensFullDelta(t.Context(), &protocol.SemanticTokensDeltaParams{TextDocument: document})
+	require.ErrorIs(t, err, jsonrpc2.ErrMethodNotFound)
+	assert.Nil(t, deltaResult)
 }

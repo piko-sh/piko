@@ -144,7 +144,7 @@ func (Response) BuildAST() {}
 	component := parseScriptComponent(t, source, 1)
 	fileAST := &goast.File{Decls: []goast.Decl{}}
 
-	require.NoError(t, copyUserCode(fileAST, component, newLocatingEmitter()))
+	require.NoError(t, copyUserCode(t.Context(), fileAST, component, newLocatingEmitter()))
 	assert.Len(t, fileAST.Decls, 7, "every non-import declaration is copied")
 }
 

@@ -347,24 +347,18 @@ func (d *document) trySymbolDefinition(ctx context.Context, ann *ast_domain.GoGe
 	}
 
 	defLocation := ann.Symbol.DeclarationLocation
-	defPath := *ann.OriginalSourcePath
+	definitionPath, definitionLine, definitionColumn := d.symbolDeclarationPosition(ctx, ann)
 
 	l.Debug("GetDefinition: Resolved as a symbol definition.",
 		logger_domain.String("symbol", ann.Symbol.Name),
-		logger_domain.String("path", defPath),
+		logger_domain.String("path", definitionPath),
 		logger_domain.Int("defLocation.Line", defLocation.Line),
 		logger_domain.Int("defLocation.Column", defLocation.Column),
+		logger_domain.Int("finalLine", definitionLine),
+		logger_domain.Int("finalColumn", definitionColumn),
 	)
 
-	unmappedPath, unmappedLine, unmappedColumn := d.unmapVirtualPosition(ctx, defPath, defLocation.Line, defLocation.Column)
-
-	l.Debug("GetDefinition: After virtual position unmapping.",
-		logger_domain.String("finalPath", unmappedPath),
-		logger_domain.Int("finalLine", unmappedLine),
-		logger_domain.Int("finalColumn", unmappedColumn),
-	)
-
-	if unmappedPath == d.URI.Filename() {
+	if definitionPath == d.URI.Filename() {
 		if localLocation := d.tryLocalSymbolDefinition(ctx, ann.Symbol.Name); localLocation != nil {
 			return localLocation
 		}
@@ -374,7 +368,49 @@ func (d *document) trySymbolDefinition(ctx context.Context, ann *ast_domain.GoGe
 		return nil
 	}
 
-	return []protocol.Location{d.buildSymbolLocation(unmappedPath, unmappedLine, unmappedColumn, ann.Symbol.Name)}
+	return []protocol.Location{d.buildSymbolLocation(definitionPath, definitionLine, definitionColumn, ann.Symbol.Name)}
+}
+
+// symbolDeclarationPosition works out the file and position where a symbol is declared.
+//
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which holds the symbol to locate.
+//
+// Returns path (string) which is the file that declares the symbol.
+// Returns line (int) which is the 1-based declaration line.
+// Returns column (int) which is the 1-based declaration column.
+func (d *document) symbolDeclarationPosition(
+	ctx context.Context,
+	ann *ast_domain.GoGeneratorAnnotation,
+) (path string, line, column int) {
+	declaration := ann.Symbol.DeclarationLocation
+	if ann.GeneratedSourcePath == nil || *ann.GeneratedSourcePath == "" {
+		return d.unmapVirtualPosition(ctx, *ann.OriginalSourcePath, declaration.Line, declaration.Column)
+	}
+
+	declaringFile := *ann.GeneratedSourcePath
+	if sourcePath, found := d.componentSourcePathForVirtualFile(declaringFile); found {
+		return sourcePath, declaration.Line, declaration.Column
+	}
+	return declaringFile, declaration.Line, declaration.Column
+}
+
+// componentSourcePathForVirtualFile finds the .pk file that produced a generated Go file.
+//
+// Takes virtualPath (string) which is the generated Go file path to look up.
+//
+// Returns string which is the component's .pk source path.
+// Returns bool which is true when a component produced the file.
+func (d *document) componentSourcePathForVirtualFile(virtualPath string) (string, bool) {
+	if d.AnnotationResult == nil || d.AnnotationResult.VirtualModule == nil {
+		return "", false
+	}
+	for _, component := range d.AnnotationResult.VirtualModule.ComponentsByHash {
+		if component.VirtualGoFilePath != virtualPath || component.Source == nil {
+			continue
+		}
+		return component.Source.SourcePath, true
+	}
+	return "", false
 }
 
 // tryLocalSymbolDefinition tries to find a symbol in the local .pk script.

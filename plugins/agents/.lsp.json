@@ -3,7 +3,7 @@
     "command": "pikopls",
     "extensionToLanguage": {
       ".pk": "piko",
-      ".pkc": "piko-component"
+      ".pkc": "piko"
     },
     "initializationOptions": {
       "goBridge": true

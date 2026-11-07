@@ -5,7 +5,14 @@
         <implicitUsageProvider implementation="io.politepixels.piko.pk.go.PKGoImplicitUsageProvider"/>
         <referencesSearch
                 implementation="io.politepixels.piko.pk.go.PKGoReferencesSearchContributor"/>
+        <xdebugger.breakpointType implementation="io.politepixels.piko.pk.debug.PKLineBreakpointType"/>
+        <postStartupActivity implementation="io.politepixels.piko.pk.debug.PKBreakpointMigrationActivity"/>
     </extensions>
+
+    <projectListeners>
+        <listener class="io.politepixels.piko.pk.debug.PKBreakpointBridge"
+                  topic="com.intellij.xdebugger.breakpoints.XBreakpointListener"/>
+    </projectListeners>
 
     <extensions defaultExtensionNs="com.goide">
         <rootsProvider implementation="io.politepixels.piko.pk.injection.PkGoRootsProvider" order="first"/>

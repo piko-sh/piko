@@ -1,0 +1,27 @@
+{
+  "comment": "Minimal stand-in for VS Code's built-in HTML grammar, so the Piko grammar fixtures can assert injected directive scopes offline. Test use only.",
+  "scopeName": "text.html.basic",
+  "patterns": [
+    {
+      "name": "meta.tag.stub.html",
+      "begin": "(</?)([a-zA-Z][a-zA-Z0-9-]*)",
+      "beginCaptures": {
+        "1": {"name": "punctuation.definition.tag.begin.html"},
+        "2": {"name": "entity.name.tag.html"}
+      },
+      "end": "(/?>)",
+      "endCaptures": {
+        "1": {"name": "punctuation.definition.tag.end.html"}
+      },
+      "patterns": [
+        {
+          "match": "([^\\s\"'<>/=]+)(?:\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+))?",
+          "captures": {
+            "1": {"name": "entity.other.attribute-name.html"},
+            "2": {"name": "string.quoted.html"}
+          }
+        }
+      ]
+    }
+  ]
+}

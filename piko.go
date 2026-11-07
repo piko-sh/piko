@@ -27,6 +27,8 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -67,6 +69,10 @@ const (
 	// dirPermOwnerRWX is the file permission for directories (rwxr-x---).
 	dirPermOwnerRWX = 0750
 
+	// envDwarfLineDirectives names the environment variable that turns on compiler-honoured
+	// //line directives in generated code, so debuggers can set breakpoints in .pk files.
+	envDwarfLineDirectives = "PIKO_DWARF_LINE_DIRECTIVES"
+
 	// defaultComponentStartTimeout is the maximum time allowed for a lifecycle component to
 	// start before the start is considered failed.
 	defaultComponentStartTimeout = 30 * time.Second
@@ -104,6 +110,10 @@ var (
 
 	// log is the package-level logger for the piko package.
 	log = logger_domain.GetLogger("piko")
+
+	// errInvalidEnvironmentValue is returned when a consulted environment variable holds
+	// a value that cannot be parsed.
+	errInvalidEnvironmentValue = errors.New("invalid environment variable value")
 
 	// WithComponents registers external PKC components with the Piko framework, letting
 	// third-party component libraries provide components that can be used in templates.
@@ -1088,18 +1098,22 @@ type I18nConfig = config.I18nConfig
 // New creates and sets up a new SSRServer instance.
 //
 // Configure the server through the supplied With* options. piko reads no configuration
-// files and no environment variables by default. The single exception is the
-// PIKO_LOG_LEVEL environment variable, which is consulted here to seed the bootstrap
-// logger level before options are applied. Any explicit WithLogLevel option in opts
-// overrides it.
+// files and almost no environment variables. The exceptions are PIKO_LOG_LEVEL, which
+// seeds the bootstrap logger level, and PIKO_DWARF_LINE_DIRECTIVES, which seeds
+// WithExperimentalDwarfLineDirectives so a development build can turn on .pk breakpoints
+// without a code change. Both are applied before opts, so an explicit option in opts
+// overrides them.
 //
 // Takes opts (...bootstrap.Option) which configure the server behaviour.
 //
 // Returns *SSRServer which is ready for use with default router and config.
 func New(opts ...bootstrap.Option) *SSRServer {
-	if level := os.Getenv("PIKO_LOG_LEVEL"); level != "" {
-		opts = append([]bootstrap.Option{bootstrap.WithLogLevel(level)}, opts...)
+	environmentOptions, err := environmentDefaultOptions(os.Getenv)
+	if err != nil {
+		_, l := logger_domain.From(context.Background(), log)
+		l.Warn("Ignoring an invalid environment variable", logger_domain.Error(err))
 	}
+	opts = append(environmentOptions, opts...)
 	server := SSRServer{}
 	server.AppRouter = chi.NewRouter()
 	server.options = opts
@@ -1278,4 +1292,31 @@ func ensurePikoInternalDir(baseDir, internalPath string) error {
 		return fmt.Errorf("could not create .piko directory: %w", err)
 	}
 	return nil
+}
+
+// environmentDefaultOptions builds the options seeded from the few environment variables
+// piko consults.
+//
+// Takes lookup (func(string) string) which reads an environment variable, returning empty
+// when it is unset.
+//
+// Returns []bootstrap.Option which holds the seeded options, to be applied before the
+// caller's own options so those win. Valid variables are still seeded when another is
+// invalid.
+// Returns error which wraps errInvalidEnvironmentValue when a variable cannot be parsed.
+func environmentDefaultOptions(lookup func(string) string) ([]bootstrap.Option, error) {
+	var options []bootstrap.Option
+	if level := lookup("PIKO_LOG_LEVEL"); level != "" {
+		options = append(options, bootstrap.WithLogLevel(level))
+	}
+
+	rawDwarf := strings.TrimSpace(lookup(envDwarfLineDirectives))
+	if rawDwarf == "" {
+		return options, nil
+	}
+	enabled, err := strconv.ParseBool(rawDwarf)
+	if err != nil {
+		return options, fmt.Errorf("%w: %s=%q is not a boolean: %w", errInvalidEnvironmentValue, envDwarfLineDirectives, rawDwarf, err)
+	}
+	return append(options, bootstrap.WithExperimentalDwarfLineDirectives(enabled)), nil
 }

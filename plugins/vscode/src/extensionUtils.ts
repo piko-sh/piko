@@ -17,7 +17,7 @@
 // strip others of their rights and dignity.
 
 /**
- * Pure utility functions for the Piko VSCode extension.
+ * Pure utility functions for the Piko VS Code extension.
  */
 
 /**
@@ -32,7 +32,53 @@ export interface LspConfig {
     enableFormatting: boolean;
     /** Whether to enable file-based logging. */
     enableFileLogging: boolean;
+    /** The log file path used when file logging is enabled. */
+    logFilePath?: string;
+    /** An explicit gopls executable path, or empty to let pikopls discover it. */
+    goplsPath?: string;
+    /** Whether to hard-disable the gopls bridge for Go script blocks. */
+    goplsDisable?: boolean;
+    /** The maximum number of gopls child processes (0 uses the server default). */
+    goplsMaxChildren?: number;
+    /** The maximum number of Go-block overlays per gopls child (0 uses the server default). */
+    goplsMaxOverlays?: number;
 }
+
+/**
+ * Describes how the extension talks to pikopls.
+ *
+ * `stdio` is the default. `tcp` is a debugging opt-in and is limited to a
+ * single connection so a stray client cannot attach to the editor's server.
+ */
+export type LspTransport = { kind: 'stdio' } | { kind: 'tcp'; port: number };
+
+/** The single connection allowed when the extension starts pikopls over TCP. */
+export const TCP_MAX_CONNECTIONS = 1;
+
+/** The lowest valid TCP port. */
+export const MIN_TCP_PORT = 1;
+
+/** The highest valid TCP port. */
+export const MAX_TCP_PORT = 65_535;
+
+/** The longest file name accepted for new Piko files, before the extension. */
+export const MAX_FILE_NAME_LENGTH = 128;
+
+/** The highest accepted `piko.goplsMaxChildren` value. */
+export const MAX_GOPLS_CHILDREN = 256;
+
+/** The highest accepted `piko.goplsMaxOverlays` value. */
+export const MAX_GOPLS_OVERLAYS = 65_536;
+
+/**
+ * Maps Node.js `process.platform` values to Go GOOS values, which name the
+ * bundled binary directories.
+ */
+const NODE_PLATFORM_TO_GO_OS: Readonly<Record<string, string>> = {
+    win32: 'windows',
+    darwin: 'darwin',
+    linux: 'linux',
+};
 
 /**
  * Checks if a file name is valid for new Piko files.
@@ -46,6 +92,9 @@ export function validateFileName(value: string): string | null {
     if (!value || value.trim() === '') {
         return 'File name cannot be empty';
     }
+    if (value.length > MAX_FILE_NAME_LENGTH) {
+        return `File name cannot be longer than ${MAX_FILE_NAME_LENGTH} characters`;
+    }
     if (!/^[a-zA-Z0-9_-]+$/.test(value)) {
         return 'File name can only contain letters, numbers, hyphens, and underscores';
     }
@@ -53,27 +102,71 @@ export function validateFileName(value: string): string | null {
 }
 
 /**
- * Builds the path to the LSP binary for the current platform.
+ * Checks a TCP port setting.
  *
- * @param platform - The OS name (linux, darwin, or win32).
- * @param arch - The CPU type (x64 or arm64).
- * @returns The relative path to the binary file.
+ * @param value - The configured value.
+ * @returns The port, or undefined when it is not a whole number from 1 to 65535.
  */
-export function resolvePlatformBinaryPath(platform: string, arch: string): string {
-    const binaryName = platform === 'win32' ? 'pikopls.exe' : 'pikopls';
-    const goArch = arch === 'x64' ? 'amd64' : arch;
-    return `bin/${platform}-${goArch}/${binaryName}`;
+export function parsePort(value: unknown): number | undefined {
+    if (typeof value !== 'number' || !Number.isInteger(value) || value < MIN_TCP_PORT || value > MAX_TCP_PORT) {
+        return undefined;
+    }
+    return value;
 }
 
 /**
- * Creates command-line arguments for starting the LSP server.
+ * Checks a numeric limit setting where 0 means "use the server default".
  *
- * @param port - The TCP port for the server to listen on.
+ * @param value - The configured value.
+ * @param max - The highest accepted value.
+ * @returns The limit, or undefined when it is not a whole number from 0 to `max`.
+ */
+export function parseLimit(value: unknown, max: number): number | undefined {
+    if (typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > max) {
+        return undefined;
+    }
+    return value;
+}
+
+/**
+ * Converts a Node.js platform name to a Go GOOS name.
+ *
+ * @param platform - The Node.js platform (linux, darwin, or win32).
+ * @returns The Go OS name (linux, darwin, or windows); unknown values pass through.
+ */
+export function nodePlatformToGoOs(platform: string): string {
+    return NODE_PLATFORM_TO_GO_OS[platform] ?? platform;
+}
+
+/**
+ * Builds the path to the bundled LSP binary for the current platform.
+ *
+ * The bundled directories use Go naming (`windows-amd64`, `darwin-arm64`), as
+ * produced by hack/lib/lsp.sh.
+ *
+ * @param platform - The Node.js platform (linux, darwin, or win32).
+ * @param arch - The Node.js CPU type (x64 or arm64).
+ * @returns The relative path to the binary file.
+ */
+export function resolvePlatformBinaryPath(platform: string, arch: string): string {
+    return `bin/${nodePlatformToGoOs(platform)}-${nodeArchToGoArch(arch)}/${getBinaryName(platform)}`;
+}
+
+/**
+ * Creates the command-line arguments for starting pikopls.
+ *
+ * One builder serves both transports so the flags never drift between them.
+ *
+ * @param transport - How the extension connects to the server.
  * @param config - The server settings.
  * @returns The list of command-line arguments.
  */
-export function buildLspArgsFromConfig(port: number, config: LspConfig): string[] {
-    const args = ['--tcp', `--port=${port}`];
+export function buildServerArgs(transport: LspTransport, config: LspConfig): string[] {
+    const args: string[] = [];
+
+    if (transport.kind === 'tcp') {
+        args.push('--tcp', `--port=${transport.port}`, `--max-connections=${TCP_MAX_CONNECTIONS}`);
+    }
 
     if (config.enablePprof) {
         args.push('--pprof', `--pprof-port=${config.pprofPort}`);
@@ -85,6 +178,26 @@ export function buildLspArgsFromConfig(port: number, config: LspConfig): string[
 
     if (config.enableFileLogging) {
         args.push('--file-logging');
+        if (config.logFilePath) {
+            args.push(`--log-file=${config.logFilePath}`);
+        }
+    }
+
+    const goplsPath = config.goplsPath?.trim();
+    if (goplsPath) {
+        args.push(`--gopls-path=${goplsPath}`);
+    }
+
+    if (config.goplsDisable) {
+        args.push('--gopls-disable');
+    }
+
+    if (config.goplsMaxChildren !== undefined && config.goplsMaxChildren > 0) {
+        args.push(`--gopls-max-children=${config.goplsMaxChildren}`);
+    }
+
+    if (config.goplsMaxOverlays !== undefined && config.goplsMaxOverlays > 0) {
+        args.push(`--gopls-max-overlays=${config.goplsMaxOverlays}`);
     }
 
     return args;

@@ -15,12 +15,12 @@ Nested template control-flow tag
 (document
   (template_element
     (start_tag
-      (tag_name))
+      name: (tag_name))
     (start_tag
       name: (tag_name))
     (template_element
       (start_tag
-        (tag_name)
+        name: (tag_name)
         (attribute
           (directive
             name: (directive_name)
@@ -33,12 +33,11 @@ Nested template control-flow tag
       (end_tag
         name: (tag_name))
       (end_tag
-        (tag_name)))
+        name: (tag_name)))
     (end_tag
       name: (tag_name))
     (end_tag
-      (tag_name)))
-  (text))
+      name: (tag_name))))
 
 ================================================================================
 Less-than in template text
@@ -53,12 +52,11 @@ Less-than in template text
 (document
   (template_element
     (start_tag
-      (tag_name))
+      name: (tag_name))
     (start_tag
       name: (tag_name))
     (text)
     (end_tag
       name: (tag_name))
     (end_tag
-      (tag_name)))
-  (text))
+      name: (tag_name))))

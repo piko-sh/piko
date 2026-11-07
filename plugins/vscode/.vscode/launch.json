@@ -9,7 +9,9 @@
         "--extensionDevelopmentPath=${workspaceFolder}",
         "${workspaceFolder}/test-workspace"
       ],
-      "outFiles": ["${workspaceFolder}/out/**/*.js"],
+      "outFiles": [
+        "${workspaceFolder}/out/**/*.js"
+      ],
       "preLaunchTask": "${defaultBuildTask}",
       "sourceMaps": true
     },
@@ -22,20 +24,11 @@
         "${workspaceFolder}/test-workspace",
         "--disable-extensions"
       ],
-      "outFiles": ["${workspaceFolder}/out/**/*.js"],
+      "outFiles": [
+        "${workspaceFolder}/out/**/*.js"
+      ],
       "preLaunchTask": "${defaultBuildTask}",
       "sourceMaps": true
-    },
-    {
-      "name": "Extension Tests",
-      "type": "extensionHost",
-      "request": "launch",
-      "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}",
-        "--extensionTestsPath=${workspaceFolder}/out/test/suite/index"
-      ],
-      "outFiles": ["${workspaceFolder}/out/test/**/*.js"],
-      "preLaunchTask": "${defaultBuildTask}"
     }
   ]
 }

@@ -22,10 +22,10 @@ package io.politepixels.piko.pk.debug
 import com.intellij.xdebugger.breakpoints.XBreakpointProperties
 
 /**
- * Properties for Piko line breakpoints.
+ * Properties for Piko gutter shim breakpoints.
  *
- * Currently carries no additional state beyond the base class.
- * The breakpoint location (file + line) is stored by the framework.
+ * Carries no state beyond the base class. A shim breakpoint is replaced by
+ * a Delve breakpoint as soon as it is created, so nothing here persists.
  */
 class PKBreakpointProperties : XBreakpointProperties<PKBreakpointProperties>() {
 

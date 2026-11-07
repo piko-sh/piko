@@ -22,11 +22,14 @@ package io.politepixels.piko.pk.service
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.util.CachedValue
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
+import java.io.IOException
 import java.nio.file.Paths
 import java.util.concurrent.ConcurrentHashMap
 
@@ -62,8 +65,16 @@ class PikoModuleIndexService(private val project: Project) {
         val cachedValue = cache.computeIfAbsent(goModVFile) {
             CachedValuesManager.getManager(project).createCachedValue {
                 log.debug("Computing PikoModuleInfo for ${goModVFile.path}")
-                val moduleInfo = computeModuleInfo(goModVFile)
-                CachedValueProvider.Result.create(moduleInfo, goModVFile)
+                val (moduleInfo, missingReplacement) = computeModuleInfo(goModVFile)
+                if (missingReplacement) {
+                    CachedValueProvider.Result.create(
+                        moduleInfo,
+                        goModVFile,
+                        VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS
+                    )
+                } else {
+                    CachedValueProvider.Result.create(moduleInfo, goModVFile)
+                }
             }
         }
         return cachedValue.value
@@ -73,30 +84,55 @@ class PikoModuleIndexService(private val project: Project) {
      * Parses a go.mod file to extract module information.
      *
      * @param goModVFile The go.mod file to parse.
-     * @return The parsed module info, or null if parsing fails.
+     * @return The parsed module info (or null if parsing fails) and whether a
+     *         local replacement directory could not be found.
      */
-    private fun computeModuleInfo(goModVFile: VirtualFile): PikoModuleInfo? {
-        val moduleRoot = goModVFile.parent ?: return null
-        val goModContent = VfsUtil.loadText(goModVFile)
+    private fun computeModuleInfo(goModVFile: VirtualFile): Pair<PikoModuleInfo?, Boolean> {
+        val moduleRoot = goModVFile.parent ?: return null to false
+        val goModContent = loadGoMod(goModVFile) ?: return null to false
 
         val modulePath = GoModParser.parseModulePath(goModContent)
         if (modulePath == null) {
             log.warn("Could not parse module path from ${goModVFile.path}")
-            return null
+            return null to false
         }
 
+        var missingReplacement = false
         val replacements = mutableMapOf<String, VirtualFile>()
         GoModParser.parseReplacements(goModContent).forEach { (oldPath, newPath) ->
-            if (newPath.startsWith(".")) {
-                val normalizedPath = Paths.get(moduleRoot.path, newPath).normalize().toString()
-                val replacedDir = VfsUtil.findFileByIoFile(Paths.get(normalizedPath).toFile(), true)
-                if (replacedDir != null && replacedDir.isDirectory) {
-                    replacements[oldPath] = replacedDir
+            if (!GoModParser.isLocalPath(newPath)) return@forEach
+
+            val replacedPath = Paths.get(moduleRoot.path).resolve(newPath).normalize()
+            val replacedDir = LocalFileSystem.getInstance().findFileByNioFile(replacedPath)
+            when {
+                replacedDir == null -> {
+                    missingReplacement = true
+                    LocalFileSystem.getInstance().refreshNioFiles(listOf(replacedPath), true, false, null)
                 }
+                replacedDir.isDirectory -> replacements[oldPath] = replacedDir
             }
         }
 
-        return PikoModuleInfo(modulePath, moduleRoot, replacements)
+        return PikoModuleInfo(modulePath, moduleRoot, replacements) to missingReplacement
+    }
+
+    /**
+     * Reads a go.mod file, refusing files too large to be a real module file.
+     *
+     * @param goModVFile The go.mod file to read.
+     * @return The file text, or null when it is too large or cannot be read.
+     */
+    private fun loadGoMod(goModVFile: VirtualFile): String? {
+        if (goModVFile.length > MAX_GO_MOD_BYTES) {
+            log.warn("Skipping ${goModVFile.path}: ${goModVFile.length} bytes exceeds the $MAX_GO_MOD_BYTES byte limit")
+            return null
+        }
+        return try {
+            VfsUtil.loadText(goModVFile)
+        } catch (e: IOException) {
+            log.warn("Could not read ${goModVFile.path}: ${e.message}")
+            null
+        }
     }
 
     /**
@@ -106,15 +142,21 @@ class PikoModuleIndexService(private val project: Project) {
      * @return The go.mod file, or null if not found.
      */
     private fun findGoMod(startFile: VirtualFile): VirtualFile? {
+        val projectRoot = project.basePath?.let { VfsUtil.findFileByIoFile(java.io.File(it), false) }
         var current: VirtualFile? = if (startFile.isDirectory) startFile else startFile.parent
         while (current != null) {
             val goMod = current.findChild("go.mod")
             if (goMod != null && !goMod.isDirectory) {
                 return goMod
             }
-            if (current == project.basePath?.let { VfsUtil.findFileByIoFile(java.io.File(it), false) }) break
+            if (current == projectRoot) break
             current = current.parent
         }
-        return project.basePath?.let { VfsUtil.findFileByIoFile(java.io.File(it), false)?.findChild("go.mod") }
+        return projectRoot?.findChild("go.mod")
+    }
+
+    companion object {
+        /** Largest go.mod file that is parsed; real module files are far smaller. */
+        private const val MAX_GO_MOD_BYTES = 4L * 1024 * 1024
     }
 }

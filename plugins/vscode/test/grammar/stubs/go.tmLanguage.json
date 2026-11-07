@@ -1,0 +1,12 @@
+{
+  "comment": "Minimal stand-in for the source.go grammar (strings only) so the Piko grammar fixtures run offline. Test use only.",
+  "scopeName": "source.go",
+  "patterns": [
+    {
+      "name": "string.quoted.double.go",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [{"name": "constant.character.escape.go", "match": "\\\\."}]
+    }
+  ]
+}

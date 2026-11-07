@@ -21,9 +21,11 @@ package lsp_adapters
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
+	"path/filepath"
 
 	protocol "github.com/politepixels/golang-language-server"
 	"go.lsp.dev/jsonrpc2"
@@ -73,11 +75,18 @@ type stdioAdapter struct {
 	pathsConfig *config.PathsConfig
 
 	// sandboxFactory creates sandboxes for filesystem access. When nil, a sandbox scoped to
-	// the temp directory is used as a fallback.
+	// the protocol log directory is used as a fallback.
 	sandboxFactory safedisk.Factory
+
+	// protocolLogPath is the file that receives the JSON-RPC protocol log; empty disables
+	// protocol logging.
+	protocolLogPath string
 
 	// goplsManager owns the shared gopls child processes for Go-block requests.
 	goplsManager *gopls_bridge.Manager
+
+	// serverVersion is the version reported to clients in serverInfo.
+	serverVersion string
 
 	// formattingEnabled controls whether formatting features are shown to clients.
 	formattingEnabled bool
@@ -123,7 +132,7 @@ func (r *lspLogResources) close() {
 func (a *stdioAdapter) Run(ctx context.Context, stream io.ReadWriteCloser) error {
 	ctx, l := logger_domain.From(ctx, log)
 
-	logRes := setupLogFile(nil, a.sandboxFactory)
+	logRes := setupLogFile(ctx, a.protocolLogPath, nil, a.sandboxFactory)
 	defer logRes.close()
 
 	if a.goplsManager != nil {
@@ -148,6 +157,7 @@ func (a *stdioAdapter) Run(ctx context.Context, stream io.ReadWriteCloser) error
 		GoplsManager:         a.goplsManager,
 		FormattingEnabled:    a.formattingEnabled,
 		GoplsBridgeEnabled:   a.goplsBridgeEnabled,
+		ServerVersion:        a.serverVersion,
 		Clock:                nil,
 	})
 
@@ -183,6 +193,15 @@ type StdioAdapterDeps struct {
 
 	// GoplsManager owns the shared gopls child processes for Go-block requests.
 	GoplsManager *gopls_bridge.Manager
+
+	// ServerVersion is the version reported to clients in serverInfo. Empty falls back to
+	// the domain default.
+	ServerVersion string
+
+	// ProtocolLogPath is the file that receives the JSON-RPC protocol log. Empty disables
+	// protocol logging, which is the default so nothing is written unless file logging is
+	// enabled.
+	ProtocolLogPath string
 
 	// FormattingEnabled controls whether formatting is applied.
 	FormattingEnabled bool
@@ -223,56 +242,84 @@ func NewStdioAdapter(deps StdioAdapterDeps) (lsp_domain.LSPServerPort, error) {
 		goplsManager:         deps.GoplsManager,
 		formattingEnabled:    deps.FormattingEnabled,
 		goplsBridgeEnabled:   deps.GoplsBridgeEnabled,
+		serverVersion:        deps.ServerVersion,
 		sandboxFactory:       nil,
+		protocolLogPath:      deps.ProtocolLogPath,
 	}, nil
 }
 
 // setupLogFile creates the log file and sandbox for LSP protocol logging.
 //
+// Takes logPath (string) which is the protocol log file path. When empty, protocol logging
+// is disabled and nil is returned without touching the filesystem.
 // Takes injectedSandbox (safedisk.Sandbox) which is an optional sandbox for testing. When
-// nil, a sandbox is created for the temp directory.
+// nil, a sandbox is created for the directory containing logPath.
 // Takes factory (safedisk.Factory) which creates sandboxes for filesystem access. When
-// nil, a real sandbox scoped to the temp directory is created directly, so the protocol
+// nil, a real sandbox scoped to the log directory is created directly, so the protocol
 // log writer is still confined and never falls back to unsandboxed access.
 //
-// Returns *lspLogResources which holds the log file and sandbox handles, or nil if the
-// log file could not be created. The LSP server will continue without protocol logging in
-// that case.
-func setupLogFile(injectedSandbox safedisk.Sandbox, factory safedisk.Factory) *lspLogResources {
-	_, l := logger_domain.From(context.Background(), log)
+// Returns *lspLogResources which holds the log file and sandbox handles, or nil if protocol
+// logging is disabled or the log file could not be created. The LSP server will continue
+// without protocol logging in that case.
+func setupLogFile(ctx context.Context, logPath string, injectedSandbox safedisk.Sandbox, factory safedisk.Factory) *lspLogResources {
+	if logPath == "" {
+		return nil
+	}
 
-	const logFileName = "pikopls.log"
+	_, l := logger_domain.From(ctx, log)
+
+	logDirectory := filepath.Dir(logPath)
 
 	sandbox := injectedSandbox
 	sandboxOwned := false
 	if sandbox == nil {
-		var err error
-		if factory != nil {
-			sandbox, err = factory.Create("lsp-log", os.TempDir(), safedisk.ModeReadWrite)
-		} else {
-			sandbox, err = safedisk.NewSandbox(os.TempDir(), safedisk.ModeReadWrite)
-		}
+		created, err := openLogSandbox(logDirectory, factory)
 		if err != nil {
-			l.Warn("LSP protocol logging disabled: could not create sandbox for temp directory",
+			l.Warn("LSP protocol logging disabled: could not create sandbox for log directory",
+				logger_domain.String("directory", logDirectory),
 				logger_domain.Error(err))
 			return nil
 		}
+		sandbox = created
 		sandboxOwned = true
 	}
 
-	f, err := sandbox.OpenFile(logFileName, os.O_CREATE|os.O_RDWR|os.O_APPEND, lspLogFilePermissions)
+	logFile, err := sandbox.OpenFile(filepath.Base(logPath), os.O_CREATE|os.O_RDWR|os.O_APPEND, lspLogFilePermissions)
 	if err != nil {
 		if sandboxOwned {
-			_ = sandbox.Close()
+			err = errors.Join(err, sandbox.Close())
 		}
 		l.Warn("LSP protocol logging disabled: could not open log file",
+			logger_domain.String("path", logPath),
 			logger_domain.Error(err))
 		return nil
 	}
 
-	var resSandbox safedisk.Sandbox
-	if sandboxOwned {
-		resSandbox = sandbox
+	if !sandboxOwned {
+		return &lspLogResources{logFile: logFile, sandbox: nil}
 	}
-	return &lspLogResources{logFile: f, sandbox: resSandbox}
+	return &lspLogResources{logFile: logFile, sandbox: sandbox}
+}
+
+// openLogSandbox opens a read-write sandbox rooted at the protocol log directory.
+//
+// Takes logDirectory (string) which is the directory that holds the protocol log.
+// Takes factory (safedisk.Factory) which creates the sandbox, or nil to create a real
+// sandbox directly.
+//
+// Returns safedisk.Sandbox which is scoped to logDirectory.
+// Returns error when the sandbox cannot be created.
+func openLogSandbox(logDirectory string, factory safedisk.Factory) (safedisk.Sandbox, error) {
+	if factory != nil {
+		sandbox, err := factory.Create("lsp-log", logDirectory, safedisk.ModeReadWrite)
+		if err != nil {
+			return nil, fmt.Errorf("creating log sandbox from factory: %w", err)
+		}
+		return sandbox, nil
+	}
+	sandbox, err := safedisk.NewSandbox(logDirectory, safedisk.ModeReadWrite)
+	if err != nil {
+		return nil, fmt.Errorf("creating log sandbox: %w", err)
+	}
+	return sandbox, nil
 }

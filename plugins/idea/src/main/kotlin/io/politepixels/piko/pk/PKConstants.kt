@@ -34,6 +34,9 @@ object PKConstants {
         /** JavaScript shorthand lang value. */
         const val JS = "js"
 
+        /** TypeScript shorthand lang value. */
+        const val TS = "ts"
+
         /** JavaScript full lang value. */
         const val JAVASCRIPT = "javascript"
 
@@ -41,13 +44,13 @@ object PKConstants {
         const val TYPESCRIPT = "typescript"
 
         /** All JavaScript-like language values. */
-        val JS_LANGUAGES = setOf(JS, JAVASCRIPT, TYPESCRIPT)
+        val JS_LANGUAGES = setOf(JS, TS, JAVASCRIPT, TYPESCRIPT)
 
         /**
          * Checks if a value represents a JavaScript-like language.
          *
          * @param value The lang attribute value.
-         * @return true if the value is js, javascript, or typescript.
+         * @return true if the value is js, ts, javascript, or typescript.
          */
         @JvmStatic
         fun isJsLanguage(value: String): Boolean = value in JS_LANGUAGES

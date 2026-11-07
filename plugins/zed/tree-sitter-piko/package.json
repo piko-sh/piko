@@ -4,7 +4,6 @@
   "description": "Tree-sitter grammar for Piko single-file components (.pk / .pkc)",
   "repository": "https://github.com/piko-sh/piko",
   "license": "Apache-2.0",
-  "main": "bindings/node",
   "keywords": [
     "parser",
     "lexer",
@@ -15,7 +14,7 @@
     "grammar.js",
     "tree-sitter.json",
     "src",
-    "queries"
+    "test/corpus"
   ],
   "devDependencies": {
     "tree-sitter-cli": "^0.24.0"

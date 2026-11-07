@@ -20,11 +20,14 @@ package lsp_adapters
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"sync/atomic"
 
 	protocol "github.com/politepixels/golang-language-server"
 	"go.lsp.dev/jsonrpc2"
+	"piko.sh/piko/cmd/pikopls/internal/lsp/lsp_domain"
+	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/wdk/goroutine"
 )
 
@@ -47,7 +50,7 @@ func serveProtocol(ctx context.Context, server protocol.Server, stream jsonrpc2.
 	client := protocol.ClientDispatcher(conn, logger.With("component", "client"))
 	ctx = protocol.WithClient(ctx, client)
 
-	conn.Go(ctx, protocol.Handlers(recoverHandlerPanics(protocol.ServerHandler(server, jsonrpc2.MethodNotFoundHandler))))
+	conn.Go(ctx, protocol.Handlers(recoverHandlerPanics(advertiseExtensionCapabilities(protocol.ServerHandler(server, jsonrpc2.MethodNotFoundHandler)))))
 
 	return conn, client
 }
@@ -81,5 +84,43 @@ func recoverHandlerPanics(handler jsonrpc2.Handler) jsonrpc2.Handler {
 		}()
 
 		return handler(ctx, trackedReply, request)
+	}
+}
+
+// advertiseExtensionCapabilities wraps a JSON-RPC handler so the initialisation reply also
+// advertises the LSP 3.17 capabilities the protocol library has no fields for (inlay
+// hints and type hierarchy). Every other message passes through untouched.
+//
+// Takes handler (jsonrpc2.Handler) which handles each message.
+//
+// Returns jsonrpc2.Handler which decorates the initialisation reply produced by handler.
+func advertiseExtensionCapabilities(handler jsonrpc2.Handler) jsonrpc2.Handler {
+	return func(ctx context.Context, reply jsonrpc2.Replier, request jsonrpc2.Request) error {
+		if request.Method() != protocol.MethodInitialize {
+			return handler(ctx, reply, request)
+		}
+		return handler(ctx, extendInitialiseReply(reply), request)
+	}
+}
+
+// extendInitialiseReply wraps the initialisation replier so a successful reply carries the
+// extension capabilities.
+//
+// Takes reply (jsonrpc2.Replier) which sends the reply to the client.
+//
+// Returns jsonrpc2.Replier which sends the decorated reply.
+func extendInitialiseReply(reply jsonrpc2.Replier) jsonrpc2.Replier {
+	return func(ctx context.Context, result any, replyErr error) error {
+		if replyErr != nil {
+			return reply(ctx, result, replyErr)
+		}
+		initialiseResult, ok := result.(*protocol.InitializeResult)
+		if !ok || initialiseResult == nil {
+			_, l := logger_domain.From(ctx, log)
+			l.Warn("Initialisation reply has an unexpected type; extension capabilities are not advertised",
+				logger_domain.String("type", fmt.Sprintf("%T", result)))
+			return reply(ctx, result, nil)
+		}
+		return reply(ctx, lsp_domain.ExtendInitialiseResult(initialiseResult), nil)
 	}
 }

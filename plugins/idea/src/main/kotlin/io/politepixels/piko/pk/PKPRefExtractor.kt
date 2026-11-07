@@ -21,6 +21,7 @@ package io.politepixels.piko.pk
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiRecursiveElementVisitor
+import com.intellij.psi.TokenType
 import io.politepixels.piko.pk.psi.impl.PkJsScriptContentElementImpl
 
 /**
@@ -35,6 +36,9 @@ object PKPRefExtractor {
 
     /** The directive name token text that identifies a p-ref directive. */
     private const val P_REF_DIRECTIVE = "p-ref"
+
+    /** Matches names that can be used as bare TypeScript property keys. */
+    private val IDENTIFIER_PATTERN = Regex("^[A-Za-z_$][A-Za-z0-9_$]*$")
 
     /** Namespace member declarations for the `pk` context object. */
     private val PK_NAMESPACE_MEMBERS = listOf(
@@ -68,8 +72,8 @@ object PKPRefExtractor {
      * the given script content element.
      *
      * Walks the file's PSI tree looking for `DIRECTIVE_NAME` tokens with text
-     * `"p-ref"`, then reads the following `EXPR_IDENTIFIER` sibling (skipping
-     * `HTML_ATTR_EQ` and `HTML_ATTR_QUOTE` tokens) to get the ref name.
+     * `"p-ref"`, then reads the raw attribute value between the quotes, so
+     * names containing hyphens (`p-ref="submit-button"`) are kept whole.
      *
      * @param scriptContent The JS/TS script content element.
      * @return Ordered list of unique p-ref names, or empty list if none found.
@@ -84,7 +88,7 @@ object PKPRefExtractor {
             override fun visitElement(element: PsiElement) {
                 val elementType = element.node?.elementType
                 if (elementType == PKTokenTypes.DIRECTIVE_NAME && element.text == P_REF_DIRECTIVE) {
-                    val refName = findRefValueIdentifier(element)
+                    val refName = findRefValue(element)
                     if (refName != null && seen.add(refName)) {
                         refNames.add(refName)
                     }
@@ -141,30 +145,62 @@ object PKPRefExtractor {
      */
     private fun buildRefsType(refNames: List<String>): String {
         if (refNames.isEmpty()) return "{}"
-        val fields = refNames.joinToString("; ") { "readonly $it: HTMLElement | null" }
+        val fields = refNames.joinToString("; ") { "readonly ${propertyKey(it)}: HTMLElement | null" }
         return "{ $fields }"
     }
 
     /**
-     * Starting from a `DIRECTIVE_NAME` element (`"p-ref"`), finds the
-     * `EXPR_IDENTIFIER` token that contains the ref name value.
+     * Formats a ref name as a TypeScript property key.
      *
-     * Walks forward through sibling tokens, skipping `HTML_ATTR_EQ`,
-     * `HTML_ATTR_QUOTE`, and whitespace. Stops at the first `EXPR_IDENTIFIER`
-     * or at any unexpected token type.
+     * @param name The ref name.
+     * @return The bare name when it is a valid identifier, otherwise a quoted string.
+     */
+    private fun propertyKey(name: String): String {
+        if (IDENTIFIER_PATTERN.matches(name)) return name
+        val escaped = name.replace("\\", "\\\\").replace("\"", "\\\"")
+        return "\"$escaped\""
+    }
+
+    /**
+     * Starting from a `DIRECTIVE_NAME` element (`"p-ref"`), reads the raw text
+     * of its quoted value.
      *
      * Token sequence: `DIRECTIVE_NAME` -> `HTML_ATTR_EQ` -> `HTML_ATTR_QUOTE`
-     * -> `EXPR_IDENTIFIER` -> `HTML_ATTR_QUOTE`
+     * -> value tokens -> `HTML_ATTR_QUOTE`. The value tokens are concatenated
+     * whatever the lexer classified them as, because `p-ref` values are plain
+     * names rather than expressions.
      *
      * @param directiveElement The DIRECTIVE_NAME PSI element for "p-ref".
-     * @return The ref name string, or null if not found.
+     * @return The trimmed ref name, or null if the directive has no value.
      */
-    private fun findRefValueIdentifier(directiveElement: PsiElement): String? {
-        val identifierElement = PKTreeUtils.findNextSiblingOfTypeUntil(
-            directiveElement,
-            setOf(PKTokenTypes.EXPR_IDENTIFIER),
-            PKTreeUtils.TAG_CLOSE_TYPES
-        )
-        return identifierElement?.text
+    private fun findRefValue(directiveElement: PsiElement): String? {
+        val equals = nextNonWhitespaceSibling(directiveElement)
+        if (equals?.node?.elementType != PKTokenTypes.HTML_ATTR_EQ) return null
+        val openingQuote = nextNonWhitespaceSibling(equals)
+        if (openingQuote?.node?.elementType != PKTokenTypes.HTML_ATTR_QUOTE) return null
+
+        val value = StringBuilder()
+        var current = openingQuote.nextSibling
+        while (current != null) {
+            val type = current.node?.elementType
+            if (type == PKTokenTypes.HTML_ATTR_QUOTE || type in PKTreeUtils.TAG_CLOSE_TYPES) break
+            value.append(current.text)
+            current = current.nextSibling
+        }
+        return value.toString().trim().ifEmpty { null }
+    }
+
+    /**
+     * Returns the next sibling that is not whitespace.
+     *
+     * @param element The element to start after.
+     * @return The next non-whitespace sibling, or null.
+     */
+    private fun nextNonWhitespaceSibling(element: PsiElement): PsiElement? {
+        var sibling = element.nextSibling
+        while (sibling != null && sibling.node?.elementType == TokenType.WHITE_SPACE) {
+            sibling = sibling.nextSibling
+        }
+        return sibling
     }
 }

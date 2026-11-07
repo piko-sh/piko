@@ -21,9 +21,11 @@ package main
 import (
 	"cmp"
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
+	"io/fs"
 	"log/slog"
 	"net"
 	"os"
@@ -45,6 +47,7 @@ import (
 	"piko.sh/piko/internal/coordinator/coordinator_adapters"
 	"piko.sh/piko/internal/profiler"
 	"piko.sh/piko/wdk/logger"
+	"piko.sh/safedisk"
 )
 
 // stdrwc combines stdin and stdout into a single read-write-closer for JSON-RPC streams.
@@ -87,9 +90,28 @@ const (
 	// lspMaxCachedTypeBuilds limits cached type builds across the language server's open
 	// modules.
 	lspMaxCachedTypeBuilds = 16
+
+	// staleLogMaxAge is how old a pikopls log in the temporary directory must be before
+	// start-up removes it.
+	staleLogMaxAge = 24 * time.Hour
+
+	// staleLogPattern matches pikopls debug logs and their protocol logs.
+	staleLogPattern = "pikopls-*.log*"
+
+	// maxStaleLogRemovals caps how many stale logs one start-up removes.
+	maxStaleLogRemovals = 256
+
+	// minPort is the lowest valid TCP port.
+	minPort = 1
+
+	// maxPort is the highest valid TCP port.
+	maxPort = 65535
 )
 
 var (
+	// errInvalidFlag is returned when a command-line flag holds an out-of-range value.
+	errInvalidFlag = errors.New("invalid flag value")
+
 	// flagTCP holds the --tcp flag that switches from stdio to TCP transport.
 	flagTCP = flag.Bool("tcp", false, "Use TCP mode instead of stdio")
 
@@ -109,7 +131,18 @@ var (
 	flagFormatting = flag.Bool("formatting", false, "Enable document formatting capabilities")
 
 	// flagFileLogging holds the --file-logging flag that enables logging to a file.
-	flagFileLogging = flag.Bool("file-logging", false, "Enable file logging to /tmp/pikopls-<pid>.log")
+	flagFileLogging = flag.Bool("file-logging", false, "Enable file logging to "+filepath.Join(os.TempDir(), "pikopls-<pid>.log")+" (or the --log-file path)")
+
+	// flagLogFile holds the --log-file flag naming the exact log file path. Setting it
+	// enables file logging, so an editor plugin can choose the path and open it later.
+	flagLogFile = flag.String("log-file", "", "Write debug logs to this file path (implies --file-logging)")
+
+	// flagVersion holds the --version flag that prints the server version and exits.
+	flagVersion = flag.Bool("version", false, "Print the pikopls version and exit")
+
+	// flagMaxConnections holds the --max-connections flag capping concurrent TCP
+	// connections. Editor plugins launching a private TCP server pass 1.
+	flagMaxConnections = flag.Int("max-connections", lsp_adapters.DefaultMaxConcurrentLSPConnections, "Maximum concurrent LSP connections in TCP mode (used with --tcp)")
 
 	// flagGoplsBridge holds the --gopls-bridge flag that enables delegating Go script blocks
 	// to a child gopls process. It is off by default; editors opt in (VS Code via
@@ -149,27 +182,43 @@ type lspServices struct {
 func main() {
 	sonicjson.New().Activate()
 	flag.Parse()
-	validatePortFlags()
+
+	version := resolveVersion()
+	if *flagVersion {
+		_, _ = fmt.Fprintf(os.Stdout, "pikopls %s\n", version)
+		return
+	}
+
+	if err := validateNumericFlags(*flagPort, *flagPprofPort, *flagMaxConnections); err != nil {
+		fatalf("%v", err)
+	}
 
 	driverMode, tcpAddr := getDriverConfig()
 
 	ctx := context.Background()
 
-	if *flagFileLogging {
-		cleanStaleLSPLogs()
-		logFile := fmt.Sprintf("/tmp/pikopls-%d.log", os.Getpid())
+	protocolLogPath := ""
+	logFileAttribute := "disabled"
+	if logFile, enabled := resolveLogFile(*flagFileLogging, *flagLogFile); enabled {
+		protocolLogPath = protocolLogPathFor(logFile)
+		logFileAttribute = logFile
+		if *flagLogFile == "" {
+			removeStaleLSPLogs(os.TempDir(), time.Now().Add(-staleLogMaxAge))
+		}
 		logger.AddFileOutputOnly(ctx, "lsp-log", logFile, logger.WithLevel(slog.LevelDebug), logger.WithJSON())
-		getLog().Info("Piko LSP server starting...", logger.String("driver", driverMode), logger.String("tcpAddr", tcpAddr), logger.String("logFile", logFile))
-	} else {
-		getLog().Info("Piko LSP server starting...", logger.String("driver", driverMode), logger.String("tcpAddr", tcpAddr), logger.String("fileLogging", "disabled"))
 	}
+	getLog().Info("Piko LSP server starting...",
+		logger.String("version", version),
+		logger.String("driver", driverMode),
+		logger.String("tcpAddr", tcpAddr),
+		logger.String("logFile", logFileAttribute))
 
 	if *flagPprof {
 		startPprofServer(ctx, *flagPprofPort)
 	}
 
 	service := initialiseLSP()
-	driver := createDriver(driverMode, tcpAddr, service)
+	driver := createDriver(driverMode, tcpAddr, version, protocolLogPath, service)
 
 	runServer(ctx, driverMode, driver)
 }
@@ -285,10 +334,13 @@ func initialiseLSP() lspServices {
 //
 // Takes driverMode (string) which specifies the driver type ("stdio" or "tcp").
 // Takes tcpAddr (string) which specifies the TCP address when using TCP mode.
+// Takes version (string) which is the server version reported in serverInfo.
+// Takes protocolLogPath (string) which is the stdio JSON-RPC protocol log file, or empty
+// to disable protocol logging.
 // Takes service (lspServices) which provides the required service dependencies.
 //
 // Returns lsp_domain.LSPServerPort which is the configured LSP server driver.
-func createDriver(driverMode, tcpAddr string, service lspServices) lsp_domain.LSPServerPort {
+func createDriver(driverMode, tcpAddr, version, protocolLogPath string, service lspServices) lsp_domain.LSPServerPort {
 	coordinatorService, err := service.container.GetCoordinatorService()
 	if err != nil {
 		fatalf("Failed to get coordinator service: %v", err)
@@ -318,7 +370,8 @@ func createDriver(driverMode, tcpAddr string, service lspServices) lsp_domain.LS
 			GoplsManager:                goplsManager,
 			GoplsBridgeEnabled:          goplsBridgeEnabled,
 			FormattingEnabled:           *flagFormatting,
-			MaxConcurrentConnections:    0,
+			ServerVersion:               version,
+			MaxConcurrentConnections:    *flagMaxConnections,
 			ConnectionInactivityTimeout: 0,
 			MaxMessageBytes:             0,
 		})
@@ -327,8 +380,7 @@ func createDriver(driverMode, tcpAddr string, service lspServices) lsp_domain.LS
 		}
 		return driver
 	case "stdio":
-		getLog().Info("Creating STDIO driver adapter")
-		driver, driverErr := lsp_adapters.NewStdioAdapter(lsp_adapters.StdioAdapterDeps{
+		return createStdioDriver(lsp_adapters.StdioAdapterDeps{
 			CoordinatorService:   coordinatorService,
 			Resolver:             resolver,
 			TypeInspectorManager: typeInspectorMgr,
@@ -338,15 +390,28 @@ func createDriver(driverMode, tcpAddr string, service lspServices) lsp_domain.LS
 			GoplsManager:         goplsManager,
 			GoplsBridgeEnabled:   goplsBridgeEnabled,
 			FormattingEnabled:    *flagFormatting,
+			ServerVersion:        version,
+			ProtocolLogPath:      protocolLogPath,
 		})
-		if driverErr != nil {
-			fatalf("Failed to create STDIO driver adapter: %v", driverErr)
-		}
-		return driver
 	default:
 		fatalf("Unknown driver mode: %s (must be 'stdio' or 'tcp')", driverMode)
 		return nil
 	}
+}
+
+// createStdioDriver builds the stdio driver adapter, exiting the process when the
+// dependencies are invalid.
+//
+// Takes deps (lsp_adapters.StdioAdapterDeps) which supplies the adapter dependencies.
+//
+// Returns lsp_domain.LSPServerPort which is the configured stdio driver.
+func createStdioDriver(deps lsp_adapters.StdioAdapterDeps) lsp_domain.LSPServerPort {
+	getLog().Info("Creating STDIO driver adapter")
+	driver, err := lsp_adapters.NewStdioAdapter(deps)
+	if err != nil {
+		fatalf("Failed to create STDIO driver adapter: %v", err)
+	}
+	return driver
 }
 
 // buildGoplsManager resolves the gopls bridge configuration and builds the shared
@@ -441,39 +506,75 @@ func runServer(ctx context.Context, driverMode string, driver lsp_domain.LSPServ
 	getLog().Info("Piko LSP server stopped gracefully.")
 }
 
-// cleanStaleLSPLogs removes pikopls log files from /tmp that are older than 24 hours as
-// best-effort cleanup, silently ignoring errors.
-func cleanStaleLSPLogs() {
-	const maxAge = 24 * time.Hour
-	cutoff := time.Now().Add(-maxAge)
+// resolveLogFile decides whether file logging is enabled and which path it writes to.
+//
+// Takes fileLogging (bool) which is the --file-logging flag value.
+// Takes explicitPath (string) which is the --log-file flag value, or empty for none.
+//
+// Returns path (string) which is the log file path, empty when logging is disabled.
+// Returns enabled (bool) which is true when file logging should be configured.
+func resolveLogFile(fileLogging bool, explicitPath string) (path string, enabled bool) {
+	if trimmed := strings.TrimSpace(explicitPath); trimmed != "" {
+		return filepath.Clean(trimmed), true
+	}
+	if !fileLogging {
+		return "", false
+	}
+	return filepath.Join(os.TempDir(), fmt.Sprintf("pikopls-%d.log", os.Getpid())), true
+}
 
-	matches, err := filepath.Glob("/tmp/pikopls-*.log*")
+// protocolLogPathFor derives the JSON-RPC protocol log path from the debug log path, so
+// the protocol trace sits next to the debug log and shares its lifecycle and cleanup.
+//
+// Takes logFile (string) which is the resolved debug log file path.
+//
+// Returns string which is the protocol log file path.
+func protocolLogPathFor(logFile string) string {
+	return logFile + ".protocol"
+}
+
+// removeStaleLSPLogs removes pikopls log files in directory that were last changed
+// before cutoff. Cleanup is best effort, so a failure is logged and never stops the
+// server.
+//
+// Takes directory (string) which is the directory holding the default logs, normally
+// the operating system's temporary directory.
+// Takes cutoff (time.Time) which is the modification time older logs are removed below.
+func removeStaleLSPLogs(directory string, cutoff time.Time) {
+	sandbox, err := safedisk.NewSandbox(directory, safedisk.ModeReadWrite)
 	if err != nil {
+		getLog().Warn("Skipping stale log cleanup: cannot open the log directory",
+			logger.String("directory", directory), logger.Error(err))
 		return
 	}
 
-	for _, path := range matches {
-		info, err := os.Stat(path)
-		if err != nil {
-			continue
-		}
-		if info.ModTime().Before(cutoff) {
-			_ = os.Remove(path)
-		}
+	removed, err := removeStaleLogsIn(sandbox, cutoff)
+	err = errors.Join(err, sandbox.Close())
+	if err != nil {
+		getLog().Warn("Stale log cleanup was incomplete", logger.Int("removed", removed), logger.Error(err))
 	}
 }
 
-// validatePortFlags rejects out-of-range --port and --pprof-port values up front so a
-// misconfiguration fails with a clear message rather than an opaque late net.Listen
-// error.
-func validatePortFlags() {
-	const minPort, maxPort = 1, 65535
-	if *flagPort < minPort || *flagPort > maxPort {
-		fatalf("invalid --port %d: must be between %d and %d", *flagPort, minPort, maxPort)
+// validateNumericFlags rejects out-of-range --port, --pprof-port and --max-connections
+// values up front so a misconfiguration fails with a clear message rather than an opaque
+// late net.Listen error or a silently ignored cap.
+//
+// Takes port (int) which is the --port value.
+// Takes pprofPort (int) which is the --pprof-port value.
+// Takes maxConnections (int) which is the --max-connections value.
+//
+// Returns error wrapping errInvalidFlag naming the first invalid flag.
+func validateNumericFlags(port, pprofPort, maxConnections int) error {
+	if port < minPort || port > maxPort {
+		return fmt.Errorf("%w: --port %d must be between %d and %d", errInvalidFlag, port, minPort, maxPort)
 	}
-	if *flagPprofPort < minPort || *flagPprofPort > maxPort {
-		fatalf("invalid --pprof-port %d: must be between %d and %d", *flagPprofPort, minPort, maxPort)
+	if pprofPort < minPort || pprofPort > maxPort {
+		return fmt.Errorf("%w: --pprof-port %d must be between %d and %d", errInvalidFlag, pprofPort, minPort, maxPort)
 	}
+	if maxConnections < 1 {
+		return fmt.Errorf("%w: --max-connections %d must be at least 1", errInvalidFlag, maxConnections)
+	}
+	return nil
 }
 
 // fatalf logs an error message and stops the program with exit code 1.
@@ -485,4 +586,58 @@ func fatalf(format string, arguments ...any) {
 	getLog().Error(message)
 	_, _ = os.Stderr.WriteString(message + "\n")
 	os.Exit(1)
+}
+
+// removeStaleLogsIn removes pikopls log files at the root of sandbox that were last
+// changed before cutoff. At most maxStaleLogRemovals files are removed in one pass, so a
+// crowded temporary directory cannot stall start-up.
+//
+// Takes sandbox (safedisk.Sandbox) which is rooted at the directory holding the logs.
+// Takes cutoff (time.Time) which is the modification time older logs are removed below.
+//
+// Returns int which is the number of files removed.
+// Returns error which joins every listing, stat, and remove failure.
+func removeStaleLogsIn(sandbox safedisk.Sandbox, cutoff time.Time) (int, error) {
+	entries, err := sandbox.ReadDir(".")
+	if err != nil {
+		return 0, fmt.Errorf("listing log directory: %w", err)
+	}
+
+	var failures []error
+	removed := 0
+	for _, entry := range entries {
+		if removed >= maxStaleLogRemovals {
+			break
+		}
+		if !isLSPLogFile(entry) {
+			continue
+		}
+		info, infoErr := entry.Info()
+		if infoErr != nil {
+			failures = append(failures, fmt.Errorf("reading %s: %w", entry.Name(), infoErr))
+			continue
+		}
+		if !info.ModTime().Before(cutoff) {
+			continue
+		}
+		if removeErr := sandbox.Remove(entry.Name()); removeErr != nil {
+			failures = append(failures, fmt.Errorf("removing %s: %w", entry.Name(), removeErr))
+			continue
+		}
+		removed++
+	}
+	return removed, errors.Join(failures...)
+}
+
+// isLSPLogFile reports whether a directory entry is a pikopls debug or protocol log.
+//
+// Takes entry (fs.DirEntry) which is the entry to check.
+//
+// Returns bool which is true for regular files matching staleLogPattern.
+func isLSPLogFile(entry fs.DirEntry) bool {
+	if !entry.Type().IsRegular() {
+		return false
+	}
+	matched, err := filepath.Match(staleLogPattern, entry.Name())
+	return err == nil && matched
 }

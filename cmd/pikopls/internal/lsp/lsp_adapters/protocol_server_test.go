@@ -29,6 +29,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.lsp.dev/jsonrpc2"
+	"piko.sh/piko/cmd/pikopls/internal/lsp/lsp_domain"
 	"piko.sh/piko/wdk/goroutine"
 )
 
@@ -45,6 +46,21 @@ func (panickingProtocolServer) Hover(context.Context, *protocol.HoverParams) (*p
 }
 
 func (panickingProtocolServer) Shutdown(context.Context) error {
+	return nil
+}
+
+type initialisingProtocolServer struct {
+	protocol.Server
+}
+
+func (initialisingProtocolServer) Initialize(context.Context, *protocol.InitializeParams) (*protocol.InitializeResult, error) {
+	return &protocol.InitializeResult{
+		Capabilities: protocol.ServerCapabilities{HoverProvider: true},
+		ServerInfo:   &protocol.ServerInfo{Name: "pikopls", Version: "9.9.9"},
+	}, nil
+}
+
+func (initialisingProtocolServer) Shutdown(context.Context) error {
 	return nil
 }
 
@@ -162,4 +178,81 @@ func requirePanicError(t *testing.T, err error) {
 	assert.Equal(t, requestPanicComponentPrefix+protocol.MethodTextDocumentHover, panicErr.Component)
 	assert.Equal(t, "boom", panicErr.Value)
 	assert.NotContains(t, err.Error(), "goroutine ", "the error carries no stack trace")
+}
+
+func TestServeProtocolAdvertisesExtensionCapabilitiesOnInitialise(t *testing.T) {
+	t.Parallel()
+
+	serverEnd, clientEnd := net.Pipe()
+	serverConn, _ := serveProtocol(t.Context(), initialisingProtocolServer{}, jsonrpc2.NewStream(serverEnd), slog.Default())
+	clientConn := jsonrpc2.NewConn(jsonrpc2.NewStream(clientEnd))
+	clientConn.Go(t.Context(), jsonrpc2.MethodNotFoundHandler)
+	t.Cleanup(func() {
+		_ = clientConn.Close()
+		_ = serverConn.Close()
+		<-clientConn.Done()
+		<-serverConn.Done()
+	})
+
+	var result struct {
+		Capabilities map[string]any      `json:"capabilities"`
+		ServerInfo   protocol.ServerInfo `json:"serverInfo"`
+	}
+	_, err := clientConn.Call(t.Context(), protocol.MethodInitialize, &protocol.InitializeParams{}, &result)
+	require.NoError(t, err)
+
+	assert.Equal(t, true, result.Capabilities["hoverProvider"])
+	assert.Equal(t, true, result.Capabilities["inlayHintProvider"])
+	assert.Equal(t, true, result.Capabilities["typeHierarchyProvider"])
+	assert.Equal(t, "9.9.9", result.ServerInfo.Version)
+}
+
+func TestAdvertiseExtensionCapabilities(t *testing.T) {
+	t.Parallel()
+
+	initialiseResult := &protocol.InitializeResult{}
+	testCases := []struct {
+		result      any
+		replyErr    error
+		name        string
+		method      string
+		wantWrapped bool
+	}{
+		{name: "initialisation replies are decorated", method: protocol.MethodInitialize, result: initialiseResult, wantWrapped: true},
+		{name: "initialisation errors pass through", method: protocol.MethodInitialize, result: nil, replyErr: errReplyFailed},
+		{name: "other methods pass through", method: protocol.MethodTextDocumentHover, result: "hover"},
+		{name: "unexpected initialisation results pass through", method: protocol.MethodInitialize, result: "unexpected"},
+		{name: "nil initialisation results pass through", method: protocol.MethodInitialize, result: (*protocol.InitializeResult)(nil)},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			request, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), testCase.method, nil)
+			require.NoError(t, err)
+
+			var replied any
+			var repliedErr error
+			reply := func(_ context.Context, result any, replyErr error) error {
+				replied = result
+				repliedErr = replyErr
+				return nil
+			}
+			handler := func(ctx context.Context, innerReply jsonrpc2.Replier, _ jsonrpc2.Request) error {
+				return innerReply(ctx, testCase.result, testCase.replyErr)
+			}
+
+			require.NoError(t, advertiseExtensionCapabilities(handler)(t.Context(), reply, request))
+
+			assert.Equal(t, testCase.replyErr, repliedErr)
+			if testCase.wantWrapped {
+				extended, ok := replied.(*lsp_domain.ExtendedInitialiseResult)
+				require.True(t, ok, "the initialisation result is replaced by the extended form")
+				assert.NotNil(t, extended)
+				return
+			}
+			assert.Equal(t, testCase.result, replied)
+		})
+	}
 }

@@ -1,0 +1,57 @@
+<!-- SYNTAX TEST "source.piko" "top-level blocks with any attributes"
+<template public>
+<!-- <~-------- meta.block.template.piko entity.name.tag.template.piko
+<!-- <~~~~~~~~~~------ meta.block.template.piko entity.other.attribute-name.piko
+  <div p-if="state.Open">x</div>
+<!-- <~~~~~~~---- meta.block.template.piko keyword.control.directive.piko
+<!-- <~~~~~~~~~~~~~----- meta.block.template.piko meta.embedded.expression.piko variable.language.piko
+</template>
+<!-- <~~-------- meta.block.template.piko entity.name.tag.template.piko
+<script data-x="1" type="application/x-go" lang="go">
+<!-- <~~~~~~~~------ meta.block.script.piko entity.other.attribute-name.piko
+<!-- <~~~~~~~~~~~~~~~~~~~~~~~~~---------------- meta.block.script.piko string.quoted.double.piko
+package main
+<!-- <------- meta.block.script.piko meta.embedded.block.go source.go
+var s = "<script>alert(1)</script>"
+<!-- <~~~~~~~~~~~~~~~~~~~~~~~~~--------- meta.embedded.block.go source.go
+</script>
+<!-- <~~------ meta.block.script.piko entity.name.tag.script.piko
+<script lang="golang">
+package main
+<!-- <------- meta.embedded.block.go
+</script>
+<script type="application/go">
+package main
+<!-- <------- meta.embedded.block.go
+</script>
+<script defer lang="ts">
+const a = 1;
+<!-- <----- meta.embedded.block.typescript source.ts
+</script>
+<script type="text/x-go">
+var a = 1;
+<!-- <--- meta.embedded.block.javascript - meta.embedded.block.go
+</script>
+<script>
+let b = 2;
+<!-- <--- meta.embedded.block.javascript
+</script>
+<style scoped>
+<!-- <~~~~~~~------ meta.block.style.piko entity.other.attribute-name.piko
+.a { color: red; }
+<!-- <-- meta.embedded.block.css source.css
+</style>
+<i18n lang="json">
+{"en": {}}
+<!-- <- meta.embedded.block.json source.json
+</i18n>
+<i18n lang="yaml">
+en: {}
+<!-- <-- meta.embedded.block.yaml source.yaml
+</i18n>
+<piko:timeline>
+<!-- <~------------- meta.block.timeline.piko
+  <div p-show="state.Visible"></div>
+<!-- <~~~~~~~------ meta.block.timeline.piko keyword.control.directive.piko
+</piko:timeline>
+<!-- <~~------------- meta.block.timeline.piko

@@ -201,8 +201,8 @@ type emitter struct {
 // Returns []byte which contains the formatted Go source code.
 // Returns []*ast_domain.Diagnostic which contains any warnings or issues found during
 // generation.
-// Returns error when the main component validation fails, AST building fails, or code
-// formatting fails.
+// Returns error when the generated file path cannot be resolved, the main component
+// validation fails, AST building fails, or code formatting fails.
 func (em *emitter) EmitCode(
 	ctx context.Context,
 	result *annotator_dto.AnnotationResult,
@@ -213,9 +213,51 @@ func (em *emitter) EmitCode(
 
 	CodeEmissionCount.Add(ctx, 1)
 
-	absBaseDir := request.BaseDir
-	if absBaseDirResolved, err := filepath.Abs(request.BaseDir); err == nil {
-		absBaseDir = absBaseDirResolved
+	if err := em.prepareEmission(ctx, result, request); err != nil {
+		return nil, nil, err
+	}
+
+	mainComponent, err := em.validateMainComponent(request.HashedName, result)
+	if err != nil {
+		return nil, nil, fmt.Errorf("validating main component %q: %w", request.HashedName, err)
+	}
+
+	fileSet := token.NewFileSet()
+	fileAST, allDiags, err := em.buildFileAST(ctx, request, result, mainComponent)
+	if err != nil {
+		return nil, allDiags, fmt.Errorf("building file AST for %q: %w", request.SourcePath, err)
+	}
+	if fileAST == nil {
+		return nil, allDiags, nil
+	}
+
+	generatedBytes, err := em.formatAndVerify(ctx, request, fileSet, fileAST)
+	if err != nil {
+		CodeEmissionErrorCount.Add(ctx, 1)
+		l.Error("Failed to format or verify generated code.", logger_domain.Error(err))
+		return nil, allDiags, fmt.Errorf("formatting generated code for %q: %w", request.SourcePath, err)
+	}
+
+	l.Trace("Successfully generated Go code.", logger_domain.String("source", request.SourcePath))
+	return generatedBytes, allDiags, nil
+}
+
+// prepareEmission resets the emitter's state and configuration for a new emission.
+//
+// Takes result (*annotator_dto.AnnotationResult) which is the annotation being emitted.
+// Takes request (generator_dto.GenerateRequest) which provides the generation settings.
+//
+// Returns error when the generated file path for line directives cannot be resolved.
+func (em *emitter) prepareEmission(
+	ctx context.Context,
+	result *annotator_dto.AnnotationResult,
+	request generator_dto.GenerateRequest,
+) error {
+	absBaseDir := resolveBaseDirectory(ctx, request.BaseDir, filepath.Abs)
+
+	generatedFilePath, err := resolveGeneratedFilePath(ctx, request)
+	if err != nil {
+		return fmt.Errorf("preparing line directives for %q: %w", request.SourcePath, err)
 	}
 
 	em.config = EmitterConfig{
@@ -234,6 +276,7 @@ func (em *emitter) EmitCode(
 		StripHTMLComments:         request.StripHTMLComments,
 		EnableDwarfLineDirectives: request.EnableDwarfLineDirectives,
 		FormatGeneratedCode:       request.FormatGeneratedCode,
+		GeneratedFilePath:         generatedFilePath,
 	}
 	em.ctx = NewEmitterContext()
 	em.AnnotationResult = result
@@ -243,29 +286,7 @@ func (em *emitter) EmitCode(
 
 	em.resetState()
 
-	mainComponent, err := em.validateMainComponent(request.HashedName, result)
-	if err != nil {
-		return nil, nil, fmt.Errorf("validating main component %q: %w", request.HashedName, err)
-	}
-
-	fileSet := token.NewFileSet()
-	fileAST, allDiags, err := em.buildFileAST(ctx, request, result, mainComponent)
-	if err != nil {
-		return nil, allDiags, fmt.Errorf("building file AST for %q: %w", request.SourcePath, err)
-	}
-	if fileAST == nil {
-		return nil, allDiags, nil
-	}
-
-	generatedBytes, err := em.formatAndVerify(request, fileSet, fileAST)
-	if err != nil {
-		CodeEmissionErrorCount.Add(ctx, 1)
-		l.Error("Failed to format or verify generated code.", logger_domain.Error(err))
-		return nil, allDiags, fmt.Errorf("formatting generated code for %q: %w", request.SourcePath, err)
-	}
-
-	l.Trace("Successfully generated Go code.", logger_domain.String("source", request.SourcePath))
-	return generatedBytes, allDiags, nil
+	return nil
 }
 
 // conditionallyGuardedKeys returns the conditionally-guarded invocation keys for the
@@ -350,7 +371,7 @@ func (em *emitter) buildFileAST(
 		return nil, append(allDiags, diagnostic), nil
 	}
 
-	if err := em.addBoilerplateAndUserCode(fileAST, mainComponent); err != nil {
+	if err := em.addBoilerplateAndUserCode(ctx, fileAST, mainComponent); err != nil {
 		return nil, allDiags, err
 	}
 
@@ -386,11 +407,12 @@ func (em *emitter) buildFileAST(
 //
 // Returns error when the script declares a name the emitter generates itself.
 func (em *emitter) addBoilerplateAndUserCode(
+	ctx context.Context,
 	fileAST *goast.File,
 	mainComponent *annotator_dto.VirtualComponent,
 ) error {
 	fileAST.Decls = append(fileAST.Decls, buildBoilerplateVarAcks()...)
-	return copyUserCode(fileAST, mainComponent, em)
+	return copyUserCode(ctx, fileAST, mainComponent, em)
 }
 
 // generateBuildASTFunction creates the BuildAST function when an annotated AST exists.
@@ -567,7 +589,7 @@ func (em *emitter) appendStaticDeclarations(fileAST *goast.File) {
 //
 // Uses a pooled buffer to reduce memory use. Set request.VerifyGeneratedCode to false to
 // skip syntax checking for faster builds.
-func (em *emitter) formatAndVerify(request generator_dto.GenerateRequest, fset *token.FileSet, fileAST *goast.File) ([]byte, error) {
+func (em *emitter) formatAndVerify(ctx context.Context, request generator_dto.GenerateRequest, fset *token.FileSet, fileAST *goast.File) ([]byte, error) {
 	buffer, ok := formatterBufferPool.Get().(*bytes.Buffer)
 	if !ok {
 		buffer = new(bytes.Buffer)
@@ -595,6 +617,16 @@ func (em *emitter) formatAndVerify(request generator_dto.GenerateRequest, fset *
 
 	formattedBytes = injectUserCodeLineDirectives(formattedBytes, em.ctx.userCodeLineDirectives)
 	formattedBytes = dedentLineDirectives(formattedBytes)
+	if em.config.EnableDwarfLineDirectives {
+		if err := context.Cause(ctx); err != nil {
+			return nil, fmt.Errorf("placing line directive resets for %s: %w", request.SourcePath, err)
+		}
+		withResets, resetErr := appendLineDirectiveResets(formattedBytes, em.config.GeneratedFilePath)
+		if resetErr != nil {
+			return nil, fmt.Errorf("placing line directive resets for %s: %w", request.SourcePath, resetErr)
+		}
+		formattedBytes = withResets
+	}
 
 	if request.VerifyGeneratedCode {
 		if err := verifyGeneratedCode(request, formattedBytes); err != nil {
@@ -1112,7 +1144,9 @@ type userCodeLineDirective struct {
 
 // copyUserCode moves all declarations except imports from the user's script into the
 // target AST. When source location data is available, it records //line directive
-// metadata for post-processing by injectUserCodeLineDirectives.
+// metadata for post-processing by injectUserCodeLineDirectives, and when compiler-honoured
+// directives are enabled it also maps every statement of each user function to its .pk
+// line (see userCodeStatementMapper).
 //
 // The line mapping uses the ORIGINAL script AST (Source.Script.AST) rather than
 // RewrittenScriptAST because the rewriter's deepCopyASTFile discards the FileSet used for
@@ -1126,32 +1160,30 @@ type userCodeLineDirective struct {
 // Takes em (*emitter) which provides path computation for //line directives.
 //
 // Returns error when a declaration cannot be copied.
-func copyUserCode(fileAST *goast.File, mainComponent *annotator_dto.VirtualComponent, em *emitter) error {
+func copyUserCode(ctx context.Context, fileAST *goast.File, mainComponent *annotator_dto.VirtualComponent, em *emitter) error {
 	if mainComponent == nil || mainComponent.RewrittenScriptAST == nil {
 		return nil
 	}
 
 	userDeclLines := buildUserDeclLineMap(mainComponent, em)
+	statementMapper := newUserCodeStatementMapper(mainComponent, em)
+	pairedFunctions := pairFunctionsForMapping(ctx, statementMapper, mainComponent)
 
 	for _, declaration := range mainComponent.RewrittenScriptAST.Decls {
 		if genDecl, isGen := declaration.(*goast.GenDecl); isGen && genDecl.Tok == token.IMPORT {
 			continue
 		}
 
-		if userDeclLines != nil {
-			name, sig := declNameAndSignature(declaration)
-			if pkLine, ok := userDeclLines[name]; ok && sig != "" {
-				relPath := em.computeRelativePath(mainComponent.Source.SourcePath)
-				em.ctx.userCodeLineDirectives = append(em.ctx.userCodeLineDirectives, userCodeLineDirective{
-					declSignature: sig,
-					directive:     em.formatLineDirective(relPath, pkLine, 0),
-				})
-			}
+		em.recordUserDeclLineDirective(declaration, mainComponent, userDeclLines)
+
+		if functionDecl, isFunc := declaration.(*goast.FuncDecl); isFunc && statementMapper != nil {
+			declaration = statementMapper.mapDeclaration(functionDecl, pairedFunctions[functionDecl])
 		}
 
 		fileAST.Decls = append(fileAST.Decls, declaration)
 	}
 
+	statementMapper.reportIncompleteMapping(ctx)
 	return nil
 }
 

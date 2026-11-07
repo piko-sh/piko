@@ -19,11 +19,13 @@
 package driven_code_emitter_go_literal
 
 import (
+	"context"
 	goast "go/ast"
 	"sync/atomic"
 
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/generator/generator_dto"
+	"piko.sh/piko/internal/logger/logger_domain"
 )
 
 // EmitterConfig holds settings for code generation. It is created once per EmitCode call
@@ -51,6 +53,11 @@ type EmitterConfig struct {
 
 	// ModuleName is the Go module name used to resolve import paths.
 	ModuleName string
+
+	// GeneratedFilePath is the absolute, slash-separated path the generated file is written
+	// to. Compiler-honoured line directives use it to reset positions back to the generated
+	// file after mapped code; empty disables the resets.
+	GeneratedFilePath string
 
 	// VirtualInstances holds virtual page instance data used in code generation.
 	VirtualInstances []generator_dto.VirtualPageInstanceData
@@ -157,4 +164,24 @@ func NewEmitterContext() *EmitterContext {
 		staticAttrVarCtr:       atomic.Int64{},
 		loopIterCtr:            atomic.Int64{},
 	}
+}
+
+// resolveBaseDirectory makes the project base directory absolute so that source paths
+// in generated comments and diagnostics are relative to a fixed root.
+//
+// Takes baseDirectory (string) which is the project base directory from the request.
+// Takes absolute (func(string) (string, error)) which makes a path absolute.
+//
+// Returns string which is the absolute base directory, or baseDirectory unchanged when
+// it cannot be made absolute.
+func resolveBaseDirectory(ctx context.Context, baseDirectory string, absolute func(string) (string, error)) string {
+	absoluteDirectory, err := absolute(baseDirectory)
+	if err != nil {
+		_, l := logger_domain.From(ctx, log)
+		l.Warn("Could not make the base directory absolute; source paths in generated comments may be wrong",
+			logger_domain.String("baseDir", baseDirectory),
+			logger_domain.Error(err))
+		return baseDirectory
+	}
+	return absoluteDirectory
 }

@@ -149,7 +149,7 @@ func TestNewTCPAdapter(t *testing.T) {
 		require.True(t, ok)
 		assert.Equal(t, int64(defaultMaxLSPMessageBytes), concrete.maxMessageBytes)
 		assert.Equal(t, defaultLSPConnectionInactivityTimeout, concrete.connectionInactivityTimeout)
-		assert.Equal(t, defaultMaxConcurrentLSPConnections, cap(concrete.connectionSemaphore))
+		assert.Equal(t, DefaultMaxConcurrentLSPConnections, cap(concrete.connectionSemaphore))
 	})
 
 	t.Run("respects explicit knob overrides", func(t *testing.T) {
@@ -422,6 +422,99 @@ func TestWriteDeadlineConn(t *testing.T) {
 		require.NoError(t, err)
 		assert.True(t, recorder.deadline.IsZero(), "no deadline is set when the timeout is non-positive")
 	})
+}
+
+type readRecorderConn struct {
+	net.Conn
+	deadlines []time.Time
+	reads     int
+}
+
+func (c *readRecorderConn) SetReadDeadline(deadline time.Time) error {
+	c.deadlines = append(c.deadlines, deadline)
+	return nil
+}
+
+func (c *readRecorderConn) Read(payload []byte) (int, error) {
+	c.reads++
+	return copy(payload, "x"), nil
+}
+
+type failingDeadlineConn struct {
+	readRecorderConn
+}
+
+func (*failingDeadlineConn) SetReadDeadline(time.Time) error {
+	return net.ErrClosed
+}
+
+func TestReadDeadlineConn(t *testing.T) {
+	t.Parallel()
+
+	t.Run("refreshes the read deadline before every read", func(t *testing.T) {
+		t.Parallel()
+
+		recorder := &readRecorderConn{}
+		conn := &readDeadlineConn{Conn: recorder, timeout: time.Minute}
+		buffer := make([]byte, 4)
+
+		before := time.Now()
+		for range 3 {
+			count, err := conn.Read(buffer)
+			require.NoError(t, err)
+			assert.Equal(t, 1, count)
+		}
+
+		require.Len(t, recorder.deadlines, 3, "each read sets a fresh deadline")
+		assert.Equal(t, 3, recorder.reads)
+		for _, deadline := range recorder.deadlines {
+			assert.WithinDuration(t, before.Add(time.Minute), deadline, 5*time.Second)
+		}
+		assert.False(t, recorder.deadlines[2].Before(recorder.deadlines[0]), "later reads never move the deadline backwards")
+	})
+
+	t.Run("skips the deadline when the timeout is non-positive", func(t *testing.T) {
+		t.Parallel()
+
+		recorder := &readRecorderConn{}
+		conn := &readDeadlineConn{Conn: recorder, timeout: 0}
+
+		_, err := conn.Read(make([]byte, 1))
+		require.NoError(t, err)
+		assert.Empty(t, recorder.deadlines)
+	})
+
+	t.Run("fails the read when the deadline cannot be set", func(t *testing.T) {
+		t.Parallel()
+
+		failing := &failingDeadlineConn{}
+		conn := &readDeadlineConn{Conn: failing, timeout: time.Minute}
+
+		_, err := conn.Read(make([]byte, 1))
+		require.ErrorIs(t, err, net.ErrClosed)
+		assert.Zero(t, failing.reads, "the read is not attempted without a deadline")
+	})
+}
+
+func TestNewTCPAdapter_HonoursMaxConnectionsAndVersion(t *testing.T) {
+	t.Parallel()
+
+	deps := validTCPDeps(t)
+	deps.MaxConcurrentConnections = 1
+	deps.ServerVersion = "1.2.3"
+
+	adapter, err := NewTCPAdapter(deps)
+	require.NoError(t, err)
+	concrete, ok := adapter.(*tcpAdapter)
+	require.True(t, ok)
+
+	assert.Equal(t, 1, cap(concrete.connectionSemaphore))
+	assert.Equal(t, "1.2.3", concrete.serverVersion)
+	assert.True(t, concrete.acquireConnectionSlot(), "the first connection takes the only slot")
+	assert.False(t, concrete.acquireConnectionSlot(), "a second concurrent connection is rejected")
+	concrete.releaseConnectionSlot()
+	assert.True(t, concrete.acquireConnectionSlot(), "a released slot is reusable")
+	concrete.releaseConnectionSlot()
 }
 
 func TestBackoffOnAcceptError(t *testing.T) {

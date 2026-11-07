@@ -10,7 +10,7 @@ path = "src/piko.rs"
 crate-type = ["cdylib"]
 
 [dependencies]
-zed_extension_api = "0.6.0"
+zed_extension_api = "0.7.0"
 
 [lints.clippy]
 all = { level = "warn", priority = -1 }

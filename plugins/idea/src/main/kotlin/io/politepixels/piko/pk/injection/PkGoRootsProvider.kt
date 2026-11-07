@@ -61,7 +61,7 @@ class PkGoRootsProvider : GoRootsProvider {
     ): Collection<VirtualFile>? {
         if (file == null) return null
 
-        if (file.extension != "pk" && file.fileType.name != "go") {
+        if (!isPkOrGoFile(file)) {
             return emptyList()
         }
 
@@ -132,4 +132,21 @@ class PkGoRootsProvider : GoRootsProvider {
      * @return YES to enable indexing.
      */
     override fun indexGoPathSources(project: Project): ThreeState = ThreeState.YES
+
+    companion object {
+        /** Name of the Go plugin's file type, as reported by `FileType.getName`. */
+        private const val GO_FILE_TYPE_NAME = "Go"
+
+        /**
+         * Checks whether a file is a `.pk` file or a Go file, including an
+         * injected Go fragment whose window file reports the Go file type.
+         *
+         * @param file The file to check.
+         * @return True for `.pk` and Go files.
+         */
+        internal fun isPkOrGoFile(file: VirtualFile): Boolean =
+            file.extension == "pk" ||
+                file.extension == "go" ||
+                file.fileType.name.equals(GO_FILE_TYPE_NAME, ignoreCase = true)
+    }
 }

@@ -1,4 +1,14 @@
-(template_element) @indent
-(script_element) @indent
-(style_element) @indent
-(i18n_element) @indent
+(template_element
+  .
+  (start_tag) @start
+  (end_tag) @end .) @indent
+
+(style_element
+  (start_tag) @start
+  (end_tag) @end) @indent
+
+(start_tag
+  ">" @end) @indent
+
+(self_closing_tag
+  "/>" @end) @indent

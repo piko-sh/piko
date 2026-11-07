@@ -6,5 +6,9 @@
   "author": {
     "name": "PolitePixels Limited",
     "url": "https://github.com/piko-sh/piko"
-  }
+  },
+  "homepage": "https://piko.sh",
+  "repository": "https://github.com/piko-sh/piko",
+  "license": "Apache-2.0",
+  "keywords": ["piko", "go", "lsp", "pk", "pkc", "web-framework"]
 }

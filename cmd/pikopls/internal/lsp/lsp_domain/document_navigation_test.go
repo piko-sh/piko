@@ -25,6 +25,8 @@ import (
 	"testing"
 
 	protocol "github.com/politepixels/golang-language-server"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.lsp.dev/uri"
 	"piko.sh/piko/internal/annotator/annotator_domain"
 	"piko.sh/piko/internal/annotator/annotator_dto"
@@ -792,6 +794,67 @@ func TestTrySymbolDefinition(t *testing.T) {
 			t.Errorf("Start.Character = %d, want 2", result[0].Range.Start.Character)
 		}
 	})
+}
+
+func TestTrySymbolDefinition_DeclaringFile(t *testing.T) {
+	partialComponent := &annotator_dto.VirtualComponent{
+		VirtualGoFilePath: "/project/dist/partials/card_abc/generated.go",
+		Source:            &annotator_dto.ParsedComponent{SourcePath: "/project/partials/card.pk"},
+	}
+	document := newTestDocumentBuilder().
+		WithURI("file:///project/pages/about.pk").
+		WithAnnotationResult(&annotator_dto.AnnotationResult{
+			VirtualModule: &annotator_dto.VirtualModule{
+				ComponentsByHash: map[string]*annotator_dto.VirtualComponent{"card": partialComponent},
+			},
+		}).
+		Build()
+
+	testCases := []struct {
+		name          string
+		generatedPath string
+		symbolName    string
+		wantURI       string
+		line          int
+		column        int
+	}{
+		{
+			name:          "field on a type from another Go package goes to that package file",
+			generatedPath: "/project/internal/listen/listen.go",
+			symbolName:    "URL",
+			line:          27,
+			column:        2,
+			wantURI:       "/project/internal/listen/listen.go",
+		},
+		{
+			name:          "field declared in another component goes to its .pk file",
+			generatedPath: "/project/dist/partials/card_abc/generated.go",
+			symbolName:    "Title",
+			line:          12,
+			column:        2,
+			wantURI:       "/project/partials/card.pk",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			ann := &ast_domain.GoGeneratorAnnotation{
+				Symbol: &ast_domain.ResolvedSymbol{
+					Name:                testCase.symbolName,
+					DeclarationLocation: ast_domain.Location{Line: testCase.line, Column: testCase.column},
+				},
+				OriginalSourcePath:  new("/project/pages/about.pk"),
+				GeneratedSourcePath: new(testCase.generatedPath),
+			}
+
+			result := document.trySymbolDefinition(t.Context(), ann)
+
+			require.Len(t, result, 1)
+			assert.Equal(t, uri.File(testCase.wantURI), result[0].URI)
+			assert.Equal(t, uint32(testCase.line-1), result[0].Range.Start.Line)
+			assert.Equal(t, uint32(testCase.column-1), result[0].Range.Start.Character)
+		})
+	}
 }
 
 func TestTryLocalSymbolDefinition(t *testing.T) {

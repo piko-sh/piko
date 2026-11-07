@@ -1,335 +1,152 @@
+<!--
+Copyright 2026 PolitePixels Limited
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+This project stands against fascism, authoritarianism, and all forms of
+oppression. We built this to empower people, not to enable those who would
+strip others of their rights and dignity.
+-->
+
 # Piko Language Support for VS Code
 
-Official VS Code extension providing language support for Piko template files (`.pk`).
+Official VS Code extension for Piko single-file components: pages and partials (`.pk`) and client components (`.pkc`).
 
 ## Features
 
-### Multi-Language Support with Embedded Language Servers
+The extension bundles the `pikopls` language server for Linux, macOS and Windows (x64 and arm64) and starts it automatically when you open a `.pk` or `.pkc` file.
 
-This extension provides full language support for all blocks in `.pk` files:
+### `<template>` blocks (pikopls)
 
-- **`<template>` blocks**: Piko template DSL with custom directives (`p-if`, `p-for`, etc.)
-  - Hover information
-  - Code completion
-  - Go to definition
-  - Document symbols
-  - Formatting
-  - Syntax highlighting
+- Hover, completion, go to definition, find references and document highlights for template expressions and directives (`p-if`, `p-for`, `:attr`, `@event`, ...)
+- Diagnostics, code actions, rename and linked editing
+- Document symbols (outline and breadcrumbs) and folding
+- Optional formatting (`piko.enableFormatting`)
+- Syntax highlighting, including nested `<template p-for>` elements, attributed templates (`<template name="...">`, `<template public>`) and `<piko:*>` elements
 
-- **`<script type="application/x-go">` blocks**: Full Go language support via gopls
-  - Go IntelliSense, diagnostics, and all features from the official Go extension
-  - Automatically handled by the gopls language server
+### Go `<script>` blocks (pikopls with gopls)
 
-- **`<style>` blocks**: Full CSS language support
-  - CSS IntelliSense and validation
-  - Handled by VS Code's built-in CSS language server
+Go script blocks are recognised by `type="application/x-go"` or `type="application/go"`, or by `lang="go"`, `lang="golang"`, `lang="application/x-go"` or `lang="application/go"`, in any attribute order.
 
-- **`<i18n>` blocks**: JSON language support
-  - JSON schema validation
-  - Handled by VS Code's built-in JSON language server
+pikopls forwards Go blocks to a `gopls` child process (the gopls bridge), so you get Go completion, hover, definition and diagnostics inside the `.pk` file. Install gopls with:
 
-### Architecture: Language Injection Pattern
-
-This extension follows the same architecture as the IntelliJ plugin:
-- Each block type is handled by its specialized language server
-- No reimplementation of parsers - we use existing, established language servers
-- The Piko LSP focuses exclusively on template block features
-- TextMate grammar scopes trigger the appropriate language server for each block
-
-## Prerequisites
-
-### Required
-
-1. **VS Code** version 1.75.0 or higher
-2. **Go** toolchain (for `<script>` block support)
-   - **CRITICAL**: Your Go version must match or exceed your project's `go.mod` requirement
-   - The Piko LSP uses Go to analyse template code and build type information
-   - Check your version: `go version`
-   - If you see errors like "go.mod requires go >= X.Y.Z", upgrade Go or set `GOTOOLCHAIN=auto`
-3. **gopls** (Go language server)
-   ```bash
-   go install golang.org/x/tools/gopls@latest
-   ```
-
-### Recommended
-
-- **Go extension** for VS Code (provides additional Go features)
-  - Install: `ms-vscode.go`
-
-## Installation
-
-### From `.vsix` Package (Local Development)
-
-1. Build the extension:
-   ```bash
-   cd plugins/vscode
-   npm install
-   npm run compile
-   npm run package
-   ```
-
-2. Install the generated `.vsix` file:
-   ```bash
-   code --install-extension piko-0.1.0.vsix
-   ```
-
-### From VS Code Marketplace (Future)
-
-Search for "Piko" in the Extensions view (`Ctrl+Shift+X` / `Cmd+Shift+X`)
-
-## Configuration
-
-### Settings
-
-Access settings via `File > Preferences > Settings` (or `Code > Preferences > Settings` on macOS), then search for "Piko":
-
-- **`piko.lspPath`** (string, default: `""`)
-  - Custom path to the `pikopls` binary
-  - Leave empty to use the bundled binary
-  - Example: `/usr/local/bin/pikopls`
-
-- **`piko.trace.server`** (enum, default: `"off"`)
-  - Trace LSP communication for debugging
-  - Options: `"off"`, `"messages"`, `"verbose"`
-  - View traces in the "Piko Language Server" output channel
-
-- **`piko.enableTemplateSupport`** (boolean, default: `true`)
-  - Enable/disable Piko LSP for `<template>` blocks
-  - Disable if experiencing issues
-
-### Example Configuration
-
-Add to your `settings.json`:
-
-```json
-{
-  "piko.lspPath": "",
-  "piko.trace.server": "off",
-  "piko.enableTemplateSupport": true
-}
+```bash
+go install golang.org/x/tools/gopls@latest
 ```
 
-## Usage
+pikopls looks for gopls on `PATH` and in the Go bin directories. Use `piko.goplsPath` to point at a specific binary, or `piko.goplsDisable` to turn the bridge off.
 
-### Opening a Piko File
+### TypeScript `<script>` blocks
 
-1. Open any `.pk` file
-2. The extension activates automatically
-3. Check the "Piko Language Server" output channel for status
+Scripts with `lang="ts"`, `lang="typescript"` or `type="application/typescript"` (the usual form in `.pkc` components) are served by VS Code's built-in TypeScript support through a virtual document. It includes the Piko client types (`dist/ts/piko-ide.d.ts` and `dist/ts/piko-actions.d.ts`) and a per-file `pk` (or `pkc`) declaration built from the template's `p-ref` attributes. Hover, completion, signature help and go to definition are available.
 
-### Testing Different Block Types
+If the type files are missing, the extension writes fallback copies into `dist/ts/` of the project, but only when that project is inside an open workspace folder. They are replaced when `piko run` generates the real files.
 
-**Template Block**:
-```html
-<template>
-  <div class="container">
-    <h1>{{ title }}</h1>
-    <button p-if="showButton">Click me</button>
-  </div>
-</template>
-```
-- Hover over `title` to see information from Piko LSP
-- Type `p-` to see directive completions
+### `<style>` and `<i18n>` blocks
 
-**Script Block**:
-```html
-<script type="application/x-go">
-package main
+These blocks get syntax highlighting (CSS, and JSON or YAML for `<i18n lang="yaml">`), bracket matching and comment toggling in the block's own syntax. They do not get CSS or JSON language-server features such as completion or validation.
 
-type Props struct {
-    Title string
-}
+### Comment toggling
 
-func Render(props Props) any {
-    return map[string]any{
-        "title": props.Title,
-    }
-}
-</script>
-```
-- Hover over `Props` to see Go type information from gopls
-- Press `F12` on `Render` to go to definition (handled by gopls)
+`Ctrl+/` and `Ctrl+Shift+/` (`Cmd` on macOS) use `<!-- -->` in template markup and `/* */` inside template expressions. In script, style and i18n blocks they use the embedded language's comment syntax.
 
-**Style Block**:
-```html
-<style>
-.container {
-    padding: 20px;
-    background-color: #f0f0f0;
-}
-</style>
-```
-- Get CSS completions (e.g., type `col` to see color properties)
-- Hover over color values to see color picker
+### New file command
+
+**Piko: New Piko File** creates a page (`.pk`), a partial (`.pk`) or a client component (`.pkc`) from a template. It uses the folder of the active file, falls back to the workspace root, and asks before overwriting an existing file.
+
+## Requirements
+
+- VS Code 1.107 or later
+- A Go toolchain that satisfies your project's `go.mod` (`go version`). If you see "go.mod requires go >= X.Y.Z", upgrade Go or set `GOTOOLCHAIN=auto`.
+- gopls, for Go intelligence in script blocks
+
+The extension finds `go` from `piko.goBinPath`, then the Go extension's settings (`go.alternateTools`, `go.goroot`, `GOROOT`), then `PATH`, then common install locations (`/usr/local/go/bin`, Homebrew, `~/sdk/go*`, newest first).
+
+## Settings
+
+| Setting | Default | Description |
+| --- | --- | --- |
+| `piko.lspPath` | `""` | Custom `pikopls` binary. Empty uses the bundled binary. Supports `~`, `${userHome}` and `${workspaceFolder}`; a bare name such as `pikopls` is looked up on `PATH`; relative paths resolve against the first workspace folder. |
+| `piko.transport` | `"stdio"` | `stdio`, or `tcp` to start pikopls on a free local port limited to one connection (debugging only). |
+| `piko.trace.server` | `"off"` | Trace LSP messages (`off`, `messages`, `verbose`) to the "Piko Language Server" output channel. |
+| `piko.enableTemplateSupport` | `true` | Start pikopls. When off, the extension still provides highlighting, comment toggling, outline and folding. |
+| `piko.enableFormatting` | `false` | Enable document formatting from pikopls. |
+| `piko.enableFileLogging` | `false` | Write pikopls debug logs to `pikopls.log` in the extension's log directory. Open it with **Piko: Open LSP Logs**. |
+| `piko.enablePprof` | `false` | Start the pprof server at `http://localhost:<port>/_piko/debug/pprof/`. |
+| `piko.pprofPort` | `6060` | Port for the pprof server, from 1 to 65535. |
+| `piko.useExternalServer` | `false` | Connect to an already-running pikopls over TCP instead of starting one. |
+| `piko.externalServerPort` | `4389` | Port for `piko.useExternalServer`, from 1 to 65535. |
+| `piko.goBinPath` | `""` | Directory containing the `go` binary. Empty means auto-detect. |
+| `piko.detectGoFromExtension` | `true` | Use the Go extension's `go.alternateTools` and `go.goroot` settings. |
+| `piko.searchGlobalGoLocations` | `true` | When `go` is not on `PATH`, search common install locations. |
+| `piko.goplsPath` | `""` | gopls executable for the gopls bridge. Empty lets pikopls find it. |
+| `piko.goplsDisable` | `false` | Turn the gopls bridge off. |
+| `piko.goplsMaxChildren` | `0` | Maximum concurrent gopls child processes, up to 256 (`0` uses the server default). |
+| `piko.goplsMaxOverlays` | `0` | Maximum open Go-block overlays per gopls child, up to 65536 (`0` uses the server default). |
+
+Changing any of these restarts the language server.
+
+### Workspace trust
+
+In untrusted workspaces the extension runs in limited mode: workspace-level values of `piko.lspPath`, `piko.goBinPath`, `piko.goplsPath`, `piko.useExternalServer`, `piko.externalServerPort` and `piko.detectGoFromExtension` are ignored, so a cloned repository cannot choose which executables run. Virtual workspaces are not supported.
 
 ## Commands
 
-Access commands via the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`):
-
-- **`Piko: Restart Language Server`**
-  - Restart the Piko LSP server
-  - Useful if the server becomes unresponsive
-
-- **`Piko: Show Output`**
-  - Open the "Piko Language Server" output channel
-  - View LSP communication logs and status
-
-- **`Piko: Open LSP Logs`**
-  - Open the LSP server log file at `/tmp/pikopls-main.log`
-  - Useful for debugging server-side issues
+- **Piko: New Piko File**
+- **Piko: Restart Language Server** (works even if the server failed to start)
+- **Piko: Show Output**
+- **Piko: Open LSP Logs** (needs `piko.enableFileLogging`)
+- **Piko: Toggle Line Comment** and **Piko: Toggle Block Comment** (bound to the usual comment keys in Piko files)
 
 ## Troubleshooting
 
-### Extension Not Activating
-
-1. Check the "Piko Language Server" output channel
-2. Verify the file extension is `.pk`
-3. Ensure `piko.enableTemplateSupport` is `true`
-
-### LSP Binary Not Found
-
-**Error**: `Bundled pikopls binary not found`
-
-**Solution**:
-1. Build the LSP binaries:
-   ```bash
-   cd /path/to/piko
-   make build-lsp-all
-   ```
-2. Rebuild the extension:
-   ```bash
-   cd plugins/vscode
-   npm run compile
-   ```
-
-### Go Features Not Working in `<script>` Blocks
-
-**Error: "go.mod requires go >= X.Y.Z"**
-
-Your installed Go version is too old for your project. Fix:
-
-1. **Check Go version:**
-   ```bash
-   go version
-   # Compare with your go.mod requirement
-   ```
-
-2. **Option A: Enable auto-toolchain (recommended):**
-   ```bash
-   export GOTOOLCHAIN=auto
-   # Restart VS Code
-   ```
-
-3. **Option B: Upgrade Go:**
-   - Download from https://go.dev/dl/
-   - Install and verify: `go version`
-
-**Other Issues:**
-
-1. Verify `gopls` is installed:
-   ```bash
-   gopls version
-   ```
-2. Install if missing:
-   ```bash
-   go install golang.org/x/tools/gopls@latest
-   ```
-3. Ensure the Go extension is installed in VS Code
-
-### CSS/JSON Features Not Working
-
-- These are built into VS Code and should work automatically
-- Try reloading the window: `Developer: Reload Window`
-
-### Server Unresponsive
-
-1. Run: `Piko: Restart Language Server` command
-2. Check `/tmp/pikopls-main.log` for errors
-3. Increase trace level: Set `piko.trace.server` to `"verbose"`
+- **The server did not start.** Open **Piko: Show Output**. A missing bundled binary means the extension was packaged without `bin/<os>-<arch>/pikopls`; a bad `piko.lspPath` is reported with the expanded path.
+- **Go features are missing in script blocks.** Check `gopls version`, set `piko.goplsPath` if gopls is not on `PATH`, and make sure `piko.goplsDisable` is off.
+- **Something looks stale.** Run **Piko: Restart Language Server**. For server-side detail, enable `piko.enableFileLogging` and `piko.trace.server`.
+- **Check which server is running.** `pikopls --version` prints the version of a given binary.
 
 ## Development
 
-### Building from Source
-
 ```bash
-# Clone the repository
-git clone https://piko.sh/piko
-cd piko
-
-# Build LSP binaries
-make build-lsp-all
-
-# Build the extension
 cd plugins/vscode
 npm install
-npm run compile
+npm run compile          # development build into out/
+npm run lint             # eslint, tsc --noEmit and duplicate detection
+npm test                 # vitest unit tests
+npm run test:coverage    # unit tests with coverage thresholds
+npm run test:grammar     # TextMate grammar fixtures in test/grammar
 ```
 
-### Testing
+Press `F5` to launch an Extension Development Host. `make plugin-vscode-build` from the repository root builds the six platform binaries and packages the `.vsix`; see [RELEASE.md](RELEASE.md) and [SETUP.md](SETUP.md).
 
-Press `F5` in VS Code to launch the Extension Development Host with the extension loaded.
-
-### Packaging
-
-```bash
-npm run package
-```
-
-This creates `piko-0.1.0.vsix` which can be installed locally or published to the marketplace.
-
-## Architecture
-
-### Request Flow
+### How requests are routed
 
 ```text
-.pk file opened
-    ↓
-TextMate grammar assigns scopes:
-  - <script> content → source.go
-  - <style> content → source.css
-  - <i18n> content → source.json
-  - <template> content → text.html.piko
-    ↓
-VS Code routes requests based on scope:
-  - source.go → gopls
-  - source.css → Built-in CSS LS
-  - source.json → Built-in JSON LS
-  - text.html.piko → Piko LSP (with middleware filter)
-    ↓
-Middleware in extension.ts:
-  - Checks cursor position
-  - Only forwards template block requests to Piko LSP
-  - Returns null for other blocks (handled by their respective servers)
+.pk / .pkc document
+  template block           -> pikopls
+  Go script block          -> pikopls -> gopls (bridge)
+  TypeScript script block  -> virtual document -> VS Code TypeScript
+  style / i18n / JS blocks -> highlighting only (not sent to pikopls)
 ```
 
-### Components
+Block boundaries come from `src/sfcBlocks.ts`, which mirrors the server's parser (`internal/sfcparser`), so the extension and pikopls always agree on where each block starts and ends.
 
-1. **TextMate Grammar** (`syntaxes/piko.tmLanguage.json`)
-   - Defines syntax highlighting
-   - Uses `contentName` to assign language scopes
+## Licence
 
-2. **Block Detector** (`src/blockDetector.ts`)
-   - Regex-based block position detection
-   - Determines which block the cursor is in
-
-3. **Middleware** (`src/middleware.ts`)
-   - Filters LSP requests by block type
-   - Only forwards template block requests to Piko LSP
-
-4. **Extension Activation** (`src/extension.ts`)
-   - Discovers and launches the Piko LSP binary
-   - Configures the LSP client with middleware
-
-## Contributing
-
-Contributions are welcome! Please see the main Piko repository for contribution guidelines.
-
-## License
-
-MIT License - See LICENSE file in the Piko repository.
+Apache-2.0. See [LICENSE](LICENSE).
 
 ## Links
 
-- [Piko Repository](https://piko.sh/piko)
-- [Issue Tracker](https://piko.sh/piko/issues)
-- [Documentation](https://piko.politepixels.io)
+- [Piko repository](https://github.com/piko-sh/piko)
+- [Issue tracker](https://github.com/piko-sh/piko/issues)
+- [Website](https://piko.sh)

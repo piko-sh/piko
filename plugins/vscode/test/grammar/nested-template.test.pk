@@ -1,0 +1,30 @@
+<!-- SYNTAX TEST "source.piko" "nested templates keep the outer block open"
+<template name="my-list">
+  <dl>
+    <template p-for="item in state.Items" p-key="item.ID">
+<!-- <~~~~~-------- meta.block.template.piko meta.tag.template.nested.piko entity.name.tag.template.html
+<!-- <~~~~~~~~~~~~~~----- meta.tag.template.nested.piko keyword.control.directive.piko
+<!-- <~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~----- keyword.control.directive.piko
+      <dt p-text="item.Term"></dt>
+<!-- <~~~~~~~~~~------ meta.block.template.piko meta.tag.template.nested.piko keyword.control.directive.piko
+    </template>
+<!-- <~~~~~~-------- meta.tag.template.nested.piko entity.name.tag.template.html
+    <dd p-memo="item.ID" :title="item.Term" @click="open">x</dd>
+<!-- <~~~~~~~~------ meta.block.template.piko keyword.control.directive.piko
+<!-- <~~~~~~~~~~~~~~~~~~~~~~~~~------ meta.block.template.piko keyword.control.directive.piko
+<!-- <~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~------ meta.block.template.piko keyword.control.directive.piko
+    <p>a:b and user@example.com</p>
+<!-- <~~~~~~~--- meta.block.template.piko - keyword.control.directive.piko
+<!-- <~~~~~~~~~~~~~~~~~~~-------- - keyword.control.directive.piko
+    <piko:svg-icon src="a.svg" p-if="x"></piko:svg-icon>
+<!-- <~~~~~------------- support.class.component.piko
+<!-- <~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~---- keyword.control.directive.piko
+  </dl>
+<!-- <~~~~-- meta.block.template.piko
+</template>
+<!-- <~~-------- meta.block.template.piko entity.name.tag.template.piko
+<script type="application/x-go">
+<!-- <~------ meta.block.script.piko entity.name.tag.script.piko - meta.block.template.piko
+package main
+<!-- <------- meta.embedded.block.go
+</script>

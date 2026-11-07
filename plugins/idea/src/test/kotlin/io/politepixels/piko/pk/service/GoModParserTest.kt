@@ -20,6 +20,7 @@
 package io.politepixels.piko.pk.service
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -251,5 +252,75 @@ class GoModParserTest {
     fun `handles module path with underscore`() {
         val content = "module example.com/my_module"
         assertEquals("example.com/my_module", GoModParser.parseModulePath(content))
+    }
+
+
+    @Test
+    fun `parses replace blocks`() {
+        val content = """
+            module example.com/app
+
+            replace (
+                example.com/lib => ../lib
+                example.com/other v1.2.0 => ./other // local fork
+            )
+        """.trimIndent()
+
+        assertEquals(
+            listOf("example.com/lib" to "../lib", "example.com/other" to "./other"),
+            GoModParser.parseReplacements(content)
+        )
+    }
+
+    @Test
+    fun `parses versioned left-hand sides on a single line`() {
+        val content = "replace example.com/lib v1.0.0 => ../lib"
+        assertEquals(listOf("example.com/lib" to "../lib"), GoModParser.parseReplacements(content))
+    }
+
+    @Test
+    fun `parses module replacements with versions on the right`() {
+        val content = "replace example.com/lib => example.com/fork v1.1.0"
+        assertEquals(listOf("example.com/lib" to "example.com/fork"), GoModParser.parseReplacements(content))
+    }
+
+    @Test
+    fun `parses absolute replacement paths`() {
+        val content = "replace example.com/lib => /home/user/lib"
+        assertEquals(listOf("example.com/lib" to "/home/user/lib"), GoModParser.parseReplacements(content))
+    }
+
+    @Test
+    fun `ignores commented-out replacements`() {
+        val content = """
+            // replace example.com/lib => ../lib
+            replace example.com/real => ../real
+        """.trimIndent()
+        assertEquals(listOf("example.com/real" to "../real"), GoModParser.parseReplacements(content))
+    }
+
+    @Test
+    fun `strips quotes from module and replacement paths`() {
+        assertEquals("example.com/app", GoModParser.parseModulePath("module \"example.com/app\""))
+        assertEquals(
+            listOf("example.com/lib" to "../lib"),
+            GoModParser.parseReplacements("replace \"example.com/lib\" => \"../lib\"")
+        )
+    }
+
+    @Test
+    fun `module path stops at a trailing comment`() {
+        assertEquals("example.com/app", GoModParser.parseModulePath("module example.com/app // main module"))
+    }
+
+    @Test
+    fun `local paths follow the go command rules`() {
+        assertTrue(GoModParser.isLocalPath("./lib"))
+        assertTrue(GoModParser.isLocalPath("../lib"))
+        assertTrue(GoModParser.isLocalPath("/abs/lib"))
+        assertTrue(GoModParser.isLocalPath("C:\\work\\lib"))
+        assertTrue(GoModParser.isLocalPath("C:/work/lib"))
+        assertFalse(GoModParser.isLocalPath("example.com/fork"))
+        assertFalse(GoModParser.isLocalPath("lib"))
     }
 }

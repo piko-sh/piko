@@ -15,15 +15,14 @@ func Render(props Props) (data any) {
 (document
   (script_element
     (start_tag
-      (tag_name)
+      name: (tag_name)
       (attribute
         name: (attribute_name)
         value: (quoted_attribute_value
           (attribute_value))))
     (raw_text)
     (end_tag
-      (tag_name)))
-  (text))
+      name: (tag_name))))
 
 ================================================================================
 TypeScript script block via lang
@@ -38,15 +37,14 @@ const state = { count: 0 };
 (document
   (script_element
     (start_tag
-      (tag_name)
+      name: (tag_name)
       (attribute
         name: (attribute_name)
         value: (quoted_attribute_value
           (attribute_value))))
     (raw_text)
     (end_tag
-      (tag_name)))
-  (text))
+      name: (tag_name))))
 
 ================================================================================
 Style block
@@ -61,11 +59,10 @@ Style block
 (document
   (style_element
     (start_tag
-      (tag_name))
+      name: (tag_name))
     (raw_text)
     (end_tag
-      (tag_name)))
-  (text))
+      name: (tag_name))))
 
 ================================================================================
 i18n block
@@ -80,11 +77,10 @@ i18n block
 (document
   (i18n_element
     (start_tag
-      (tag_name))
+      name: (tag_name))
     (raw_text)
     (end_tag
-      (tag_name)))
-  (text))
+      name: (tag_name))))
 
 ================================================================================
 Go expression with less-than is kept in raw_text
@@ -99,12 +95,11 @@ x := a < b
 (document
   (script_element
     (start_tag
-      (tag_name)
+      name: (tag_name)
       (attribute
         name: (attribute_name)
         value: (quoted_attribute_value
           (attribute_value))))
     (raw_text)
     (end_tag
-      (tag_name)))
-  (text))
+      name: (tag_name))))

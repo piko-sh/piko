@@ -19,6 +19,7 @@
 
 package io.politepixels.piko.pk.actions
 
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAware
@@ -57,4 +58,11 @@ class ShowLspOutputAction : AnAction("Show Piko LSP Output"), DumbAware {
     override fun update(e: AnActionEvent) {
         e.presentation.isEnabledAndVisible = e.project != null
     }
+
+    /**
+     * Runs [update] on a background thread; it only reads the project from the event.
+     *
+     * @return [ActionUpdateThread.BGT].
+     */
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 }

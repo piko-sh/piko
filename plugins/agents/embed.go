@@ -23,9 +23,10 @@ import (
 )
 
 var (
-	// FS contains all agent integration files. The all: prefix includes dotfiles
-	// (.claude-plugin/, .lsp.json) which a plain glob would skip.
+	// FS contains the agent integration files. Dotfiles are named directly, and
+	// the all: prefix keeps dotfiles inside .claude-plugin/, so Go source and
+	// test files are left out of the binary.
 	//
-	//go:embed all:*
+	//go:embed AGENTS.md SKILL.md .lsp.json all:.claude-plugin references skills
 	FS embed.FS
 )

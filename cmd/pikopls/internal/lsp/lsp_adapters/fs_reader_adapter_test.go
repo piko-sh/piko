@@ -197,34 +197,3 @@ func TestOsFSReader_ReadFileWithoutInjectedSandbox(t *testing.T) {
 		})
 	}
 }
-
-func TestSetupLogFile(t *testing.T) {
-	t.Parallel()
-
-	t.Run("creates log file with injected sandbox", func(t *testing.T) {
-		t.Parallel()
-
-		sandbox := safedisk.NewMockSandbox("/tmp", safedisk.ModeReadWrite)
-		defer func() { _ = sandbox.Close() }()
-
-		logSetup := setupLogFile(sandbox, nil)
-
-		require.NotNil(t, logSetup)
-		assert.NotNil(t, logSetup.logFile)
-
-		assert.Nil(t, logSetup.sandbox)
-		logSetup.close()
-	})
-
-	t.Run("returns nil when OpenFile fails with injected sandbox", func(t *testing.T) {
-		t.Parallel()
-
-		sandbox := safedisk.NewMockSandbox("/tmp", safedisk.ModeReadWrite)
-		defer func() { _ = sandbox.Close() }()
-		sandbox.OpenFileErr = errors.New("permission denied")
-
-		logSetup := setupLogFile(sandbox, nil)
-
-		assert.Nil(t, logSetup)
-	})
-}

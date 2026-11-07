@@ -21,6 +21,7 @@ package io.politepixels.piko.pk
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
+import com.intellij.psi.TokenType
 import com.intellij.psi.tree.IElementType
 import java.util.Collections
 
@@ -265,6 +266,59 @@ object PKTreeUtils {
             PKTokenTypes.HTML_TAG_CLOSE,
             PKTokenTypes.HTML_TAG_SELF_CLOSE
         )
+    )
+
+    /**
+     * Finds the attribute name that owns an `HTML_ATTR_VALUE` token.
+     *
+     * @param valueElement The attribute value token.
+     * @return The `HTML_ATTR_NAME` element, or null if not found.
+     */
+    @JvmStatic
+    fun findOwningAttrName(valueElement: PsiElement): PsiElement? {
+        var previous = valueElement.prevSibling
+        while (previous != null && previous.node?.elementType != PKTokenTypes.HTML_ATTR_QUOTE) {
+            if (previous.node?.elementType in TAG_BOUNDARY_TYPES) return null
+            previous = previous.prevSibling
+        }
+        previous = previous?.prevSibling
+        while (previous != null) {
+            when (previous.node?.elementType) {
+                PKTokenTypes.HTML_ATTR_EQ,
+                TokenType.WHITE_SPACE -> previous = previous.prevSibling
+                PKTokenTypes.HTML_ATTR_NAME -> return previous
+                else -> return null
+            }
+        }
+        return null
+    }
+
+    /** Matches the lang attribute as the lexer emits it, e.g. `lang="ts"` in one token. */
+    private val LANG_ATTRIBUTE_PATTERN = Regex("""^lang\s*=\s*["']([^"']*)["']$""")
+
+    /**
+     * Reads the `lang` attribute of a structural block such as `<script lang="ts">`.
+     *
+     * @param blockNode The script, style or i18n block node.
+     * @return The lowercased lang value, or null when there is no lang attribute.
+     */
+    @JvmStatic
+    fun findScriptLang(blockNode: ASTNode): String? {
+        var child = blockNode.firstChildNode
+        while (child != null && child.elementType != PKTokenTypes.TAG_END_GT) {
+            if (child.elementType == PKTokenTypes.ATTR_NAME) {
+                LANG_ATTRIBUTE_PATTERN.find(child.text)?.let { return it.groupValues[1].lowercase() }
+            }
+            child = child.treeNext
+        }
+        return null
+    }
+
+    /** Token types that start or end a tag, beyond which an attribute value cannot belong. */
+    private val TAG_BOUNDARY_TYPES: Set<IElementType> = setOf(
+        PKTokenTypes.HTML_TAG_OPEN,
+        PKTokenTypes.HTML_TAG_CLOSE,
+        PKTokenTypes.HTML_TAG_SELF_CLOSE
     )
 
     /** Token types for attribute names. */

@@ -27,6 +27,9 @@ import fallbackPikoActionsTypes from './fallbackTypes/piko-actions.txt';
 /** File permission mode for created type definition files. */
 const TYPE_FILE_PERMISSIONS = 0o640;
 
+/** File permission mode for the created dist/ts directory. */
+const TYPE_DIRECTORY_PERMISSIONS = 0o750;
+
 /** Fallback type definition files to write. */
 const FALLBACK_FILES = [
     {name: 'piko-ide.d.ts', content: fallbackPikoIdeTypes},
@@ -51,14 +54,28 @@ export function ensureFallbackTypes(projectRoot: string, log?: (msg: string) => 
 
     for (const file of FALLBACK_FILES) {
         const filePath = path.join(distTsDir, file.name);
-        if (!fs.existsSync(filePath)) {
-            try {
-                fs.mkdirSync(distTsDir, {recursive: true, mode: 0o750});
-                fs.writeFileSync(filePath, file.content, {encoding: 'utf-8', mode: TYPE_FILE_PERMISSIONS});
-                log?.(`[FallbackTypes] Wrote fallback ${file.name} to ${filePath}`);
-            } catch (error) {
-                log?.(`[FallbackTypes] Failed to write ${file.name}: ${error}`);
+        if (fs.existsSync(filePath)) {
+            continue;
+        }
+        try {
+            fs.mkdirSync(distTsDir, {recursive: true, mode: TYPE_DIRECTORY_PERMISSIONS});
+            fs.writeFileSync(filePath, file.content, {encoding: 'utf-8', mode: TYPE_FILE_PERMISSIONS, flag: 'wx'});
+            log?.(`[FallbackTypes] Wrote fallback ${file.name} to ${filePath}`);
+        } catch (error) {
+            if (isAlreadyExistsError(error)) {
+                continue;
             }
+            log?.(`[FallbackTypes] Failed to write ${file.name}: ${error}`);
         }
     }
+}
+
+/**
+ * Reports whether an error means the file was created by someone else first.
+ *
+ * @param error - The error thrown by the write.
+ * @returns True for an `EEXIST` error.
+ */
+function isAlreadyExistsError(error: unknown): boolean {
+    return error instanceof Error && 'code' in error && error.code === 'EEXIST';
 }

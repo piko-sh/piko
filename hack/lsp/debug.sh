@@ -90,7 +90,7 @@ run_debugger() {
     piko::log::info "Starting Delve debugger server on: 127.0.0.1:2345"
     piko::log::footer
 
-    dlv exec "$DEBUG_BINARY" --headless --listen=:2345 --api-version=2 --accept-multiclient
+    dlv exec "$DEBUG_BINARY" --headless --listen=127.0.0.1:2345 --api-version=2 --accept-multiclient
 }
 
 # main starts the LSP debugger session.

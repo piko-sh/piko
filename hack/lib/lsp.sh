@@ -28,6 +28,12 @@ if [[ -n "${_PIKO_LSP_LOADED:-}" ]]; then
 fi
 readonly _PIKO_LSP_LOADED=1
 
+# Version to embed in LSP binaries via ldflags. Override with PIKO_VERSION env var.
+PIKO_LSP_VERSION="${PIKO_VERSION:-dev}"
+
+# Ldflags for LSP builds: strip symbols and embed version.
+PIKO_LSP_LDFLAGS="-s -w -X main.Version=${PIKO_LSP_VERSION}"
+
 # Default platforms for LSP builds.
 readonly PIKO_LSP_PLATFORMS=(
     "linux/amd64"
@@ -59,13 +65,28 @@ piko::lsp::build() {
     piko::util::ensure_dir "$(dirname "$output_path")"
 
     CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" \
-        go build -trimpath -ldflags="-s -w" \
+        go build -trimpath -ldflags="$PIKO_LSP_LDFLAGS" \
         -o "$output_path" \
         "${PIKO_ROOT}/cmd/pikopls"
 
     local size
     size=$(du -h "$output_path" | cut -f1)
     piko::log::success "Built ${goos}/${goarch} (${size})"
+}
+
+# piko::lsp::remove_stale_binaries deletes LSP binaries left by earlier builds,
+# including the old piko-lsp name, so they are never packaged again. Only the
+# known binary names are removed, so other files in the folder are kept.
+# Arguments:
+#   $1 - Output directory
+piko::lsp::remove_stale_binaries() {
+    local output_dir="$1"
+    [[ -d "$output_dir" ]] || return 0
+
+    piko::log::info "Removing earlier LSP binaries from ${output_dir}..."
+    find "$output_dir" -maxdepth 2 -type f \
+        \( -name 'piko-lsp' -o -name 'piko-lsp.exe' -o -name 'pikopls' -o -name 'pikopls.exe' \) \
+        -delete
 }
 
 # piko::lsp::build_all builds LSP binaries for all default platforms.
@@ -75,6 +96,8 @@ piko::lsp::build_all() {
     local output_dir="$1"
 
     piko::log::header "Building Piko LSP binaries"
+
+    piko::lsp::remove_stale_binaries "$output_dir"
 
     local platform
     for platform in "${PIKO_LSP_PLATFORMS[@]}"; do
@@ -111,5 +134,5 @@ piko::lsp::build_current() {
     local output_path="${output_dir}/${binary_name}"
 
     piko::util::ensure_dir "$output_dir"
-    piko::go::build "$output_path" "${PIKO_ROOT}/cmd/pikopls" "$goos" "$goarch"
+    piko::go::build "$output_path" "${PIKO_ROOT}/cmd/pikopls" "$goos" "$goarch" "$PIKO_LSP_LDFLAGS"
 }

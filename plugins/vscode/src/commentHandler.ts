@@ -39,10 +39,48 @@ export const EXPRESSION_DIRECTIVES = new Set([
 ]);
 
 /**
+ * How a comment toggle is carried out for a block.
+ *
+ * `delegate` hands the toggle to VS Code's built-in comment commands, which
+ * use the embedded language's comment syntax (Go, TypeScript, CSS, JSON).
+ * `markup` uses Piko's own HTML or expression comment handling.
+ */
+export type CommentStrategy = 'delegate' | 'markup';
+
+/**
+ * Decides how to toggle comments in a block.
+ *
+ * @param blockType - The block containing the cursor.
+ * @returns The comment strategy.
+ */
+export function resolveCommentStrategy(blockType: BlockType): CommentStrategy {
+    switch (blockType) {
+        case BlockType.Script:
+        case BlockType.ScriptTS:
+        case BlockType.ScriptJS:
+        case BlockType.Style:
+        case BlockType.I18n:
+            return 'delegate';
+        default:
+            return 'markup';
+    }
+}
+
+/**
+ * Runs VS Code's built-in comment command.
+ *
+ * @param isBlockComment - Whether to toggle a block comment.
+ */
+async function runBuiltInCommentCommand(isBlockComment: boolean): Promise<void> {
+    await vscode.commands.executeCommand(isBlockComment ? 'editor.action.blockComment' : 'editor.action.commentLine');
+}
+
+/**
  * Registers the context-aware comment commands for Piko files.
  *
- * Overrides VSCode's default toggle comment to use the right syntax:
- * HTML comments for regular content, expression comments for interpolations.
+ * Overrides VS Code's default toggle comment to use the right syntax:
+ * HTML comments for template markup, expression comments for interpolations,
+ * and the embedded language's own syntax in script, style and i18n blocks.
  *
  * @param context - The extension context for managing subscriptions.
  */
@@ -77,15 +115,17 @@ async function toggleComment(isBlockComment: boolean): Promise<void> {
 
     const document = editor.document;
     if (document.languageId !== 'piko') {
-        if (isBlockComment) {
-            await vscode.commands.executeCommand('editor.action.blockComment');
-        } else {
-            await vscode.commands.executeCommand('editor.action.commentLine');
-        }
+        await runBuiltInCommentCommand(isBlockComment);
         return;
     }
 
     const selection = editor.selection;
+    const blockType = detectBlockAtPosition(document, selection.active).type;
+    if (resolveCommentStrategy(blockType) === 'delegate') {
+        await runBuiltInCommentCommand(isBlockComment);
+        return;
+    }
+
     const isExpression = isInExpressionContext(document, selection);
 
     const prefix = isExpression ? EXPR_COMMENT_PREFIX : HTML_COMMENT_PREFIX;

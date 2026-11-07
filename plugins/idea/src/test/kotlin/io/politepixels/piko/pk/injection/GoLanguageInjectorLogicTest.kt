@@ -68,8 +68,28 @@ class GoLanguageInjectorLogicTest {
     }
 
     @Test
-    fun `comment before package is false`() {
-        assertFalse(PKGoLanguageInjector.hasPackageDeclaration("// comment\npackage main"))
+    fun `line comment before package is detected`() {
+        assertTrue(PKGoLanguageInjector.hasPackageDeclaration("// comment\npackage main"))
+    }
+
+    @Test
+    fun `build constraint before package is detected`() {
+        assertTrue(PKGoLanguageInjector.hasPackageDeclaration("//go:build linux\n\npackage main"))
+    }
+
+    @Test
+    fun `block comment before package is detected`() {
+        assertTrue(PKGoLanguageInjector.hasPackageDeclaration("/* licence\n header */\npackage main"))
+    }
+
+    @Test
+    fun `package only inside a comment is false`() {
+        assertFalse(PKGoLanguageInjector.hasPackageDeclaration("// package main\nfunc main() {}"))
+    }
+
+    @Test
+    fun `unterminated block comment is false`() {
+        assertFalse(PKGoLanguageInjector.hasPackageDeclaration("/* package main"))
     }
 
     @Test

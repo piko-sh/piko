@@ -1451,7 +1451,8 @@ func WithExperimentalCommentStripping(enabled bool) Option {
 // compiler processes and embeds into DWARF debug info, enabling debuggers like Delve to
 // map breakpoints back to .pk source files. When disabled (default), the generator emits
 // "// line file:line" (with a space) which is treated as a plain comment and has no DWARF
-// effect.
+// effect. piko.New also applies this option from the PIKO_DWARF_LINE_DIRECTIVES
+// environment variable before the caller's options.
 //
 // Takes enabled (bool) which specifies whether DWARF line directives are active.
 //

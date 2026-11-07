@@ -1,0 +1,142 @@
+================================================================================
+Recovery from an unterminated attribute
+================================================================================
+
+<template>
+	<div class="a>text</div>
+</template>
+<style>
+p {}
+</style>
+
+--------------------------------------------------------------------------------
+
+(document
+  (ERROR
+    (start_tag
+      name: (tag_name))
+    (tag_name)
+    (attribute_name)
+    (attribute_value)))
+
+================================================================================
+Recovery from an unclosed template
+================================================================================
+
+<template>
+	<div>
+<script type="application/x-go">
+package main
+</script>
+
+--------------------------------------------------------------------------------
+
+(document
+  (ERROR
+    (start_tag
+      name: (tag_name))
+    (start_tag
+      name: (tag_name))
+    (script_element
+      (start_tag
+        name: (tag_name)
+        (attribute
+          name: (attribute_name)
+          value: (quoted_attribute_value
+            (attribute_value))))
+      (raw_text)
+      (end_tag
+        name: (tag_name)))))
+
+================================================================================
+Unterminated script block
+================================================================================
+
+<script lang="ts">
+const a = 1;
+
+--------------------------------------------------------------------------------
+
+(document
+  (ERROR
+    (start_tag
+      name: (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value))))))
+
+================================================================================
+Recovery from a directive with a missing value keeps later blocks
+================================================================================
+
+<template>
+	<div p-if=>x</div>
+</template>
+<style>
+p {}
+</style>
+
+--------------------------------------------------------------------------------
+
+(document
+  (template_element
+    (start_tag
+      name: (tag_name))
+    (start_tag
+      name: (tag_name)
+      (attribute
+        (directive
+          name: (directive_name)))
+      (ERROR))
+    (text)
+    (end_tag
+      name: (tag_name))
+    (end_tag
+      name: (tag_name)))
+  (style_element
+    (start_tag
+      name: (tag_name))
+    (raw_text)
+    (end_tag
+      name: (tag_name))))
+
+================================================================================
+Recovery from a stray equals sign keeps the script raw text
+================================================================================
+
+<template>
+	<div class="a" =>x</div>
+</template>
+<script lang="ts">
+const a = "</div>";
+</script>
+
+--------------------------------------------------------------------------------
+
+(document
+  (template_element
+    (start_tag
+      name: (tag_name))
+    (start_tag
+      name: (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value)))
+      (ERROR))
+    (text)
+    (end_tag
+      name: (tag_name))
+    (end_tag
+      name: (tag_name)))
+  (script_element
+    (start_tag
+      name: (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value))))
+    (raw_text)
+    (end_tag
+      name: (tag_name))))

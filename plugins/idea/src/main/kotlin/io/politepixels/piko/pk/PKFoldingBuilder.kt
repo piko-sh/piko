@@ -168,7 +168,8 @@ class PKFoldingBuilder : FoldingBuilderEx(), DumbAware {
     }
 
     /**
-     * Recursively processes a node and its children for interpolations.
+     * Pairs interpolation open and close tokens among a node's children in
+     * one pass, then recurses into composite children.
      *
      * @param node The current AST node to process.
      * @param document The document containing the content.
@@ -179,34 +180,36 @@ class PKFoldingBuilder : FoldingBuilderEx(), DumbAware {
         document: Document,
         descriptors: MutableList<FoldingDescriptor>
     ) {
+        val openNodes = ArrayList<ASTNode>()
         var current: ASTNode? = node.firstChildNode
         while (current != null) {
-            if (current.elementType == PKTokenTypes.INTERPOLATION_OPEN) {
-                tryAddInterpolationFold(current, document, descriptors)
+            when (current.elementType) {
+                PKTokenTypes.INTERPOLATION_OPEN -> openNodes.add(current)
+                PKTokenTypes.INTERPOLATION_CLOSE -> openNodes.removeLastOrNull()?.let { openNode ->
+                    addInterpolationFold(openNode, current, document, descriptors)
+                }
             }
-            processInterpolationsInNode(current, document, descriptors)
+            if (current.firstChildNode != null) {
+                processInterpolationsInNode(current, document, descriptors)
+            }
             current = current.treeNext
         }
     }
 
     /**
-     * Attempts to add a fold region for an interpolation expression.
+     * Adds a fold region for an interpolation expression when it spans lines.
      *
      * @param openNode The interpolation open token node.
+     * @param closeNode The matching interpolation close token node.
      * @param document The document containing the content.
      * @param descriptors The list to add the fold descriptor to.
      */
-    private fun tryAddInterpolationFold(
+    private fun addInterpolationFold(
         openNode: ASTNode,
+        closeNode: ASTNode,
         document: Document,
         descriptors: MutableList<FoldingDescriptor>
     ) {
-        val closeNode = findMatchingClose(
-            openNode,
-            PKTokenTypes.INTERPOLATION_OPEN,
-            PKTokenTypes.INTERPOLATION_CLOSE
-        ) ?: return
-
         val range = TextRange(openNode.startOffset, closeNode.startOffset + closeNode.textLength)
         if (isMultiLine(range, document)) {
             descriptors.add(FoldingDescriptor(openNode, range))
@@ -238,70 +241,77 @@ class PKFoldingBuilder : FoldingBuilderEx(), DumbAware {
         document: Document,
         descriptors: MutableList<FoldingDescriptor>
     ) {
-        var node = root.node?.firstChildNode
-        while (node != null) {
-            processHtmlTagsInNode(node, document, descriptors)
-            node = node.treeNext
-        }
+        val rootNode = root.node ?: return
+        processHtmlTagsInChildren(rootNode, document, descriptors)
     }
 
     /**
-     * Recursively processes a node and its children for HTML tags.
+     * Matches open and end tags among a node's children in one pass, then
+     * recurses into composite children.
      *
-     * @param node The current AST node to process.
+     * @param parent The node whose children are processed.
      * @param document The document containing the content.
      * @param descriptors The list to add fold descriptors to.
      */
-    private fun processHtmlTagsInNode(
-        node: ASTNode,
+    private fun processHtmlTagsInChildren(
+        parent: ASTNode,
         document: Document,
         descriptors: MutableList<FoldingDescriptor>
     ) {
-        var current: ASTNode? = node.firstChildNode
+        val openTags = ArrayList<Pair<String, ASTNode>>()
+        var current: ASTNode? = parent.firstChildNode
         while (current != null) {
-            if (current.elementType == PKTokenTypes.HTML_TAG_OPEN) {
-                tryAddHtmlTagFold(current, document, descriptors)
+            when (current.elementType) {
+                PKTokenTypes.HTML_TAG_OPEN -> {
+                    val tagName = findTagName(current)
+                    if (tagName != null && !isSelfClosingTag(current) && openTags.size < MAX_OPEN_TAGS) {
+                        openTags.add(tagName to current)
+                    }
+                }
+                PKTokenTypes.HTML_END_TAG_OPEN -> {
+                    val tagName = findClosingTagName(current)
+                    if (tagName != null) {
+                        closeOpenTag(openTags, tagName, current, document, descriptors)
+                    }
+                }
             }
-            processHtmlTagsInNode(current, document, descriptors)
+            if (current.firstChildNode != null) {
+                processHtmlTagsInChildren(current, document, descriptors)
+            }
             current = current.treeNext
         }
     }
 
     /**
-     * Attempts to add a fold region for an HTML tag.
+     * Pops the nearest open tag with the given name and adds its fold region.
      *
-     * @param openNode The tag open token node.
+     * @param openTags The stack of open tags, innermost last.
+     * @param tagName The name in the end tag.
+     * @param endTagOpenNode The end tag open token node.
      * @param document The document containing the content.
      * @param descriptors The list to add the fold descriptor to.
      */
-    private fun tryAddHtmlTagFold(
-        openNode: ASTNode,
+    private fun closeOpenTag(
+        openTags: MutableList<Pair<String, ASTNode>>,
+        tagName: String,
+        endTagOpenNode: ASTNode,
         document: Document,
         descriptors: MutableList<FoldingDescriptor>
     ) {
-        val tagName = findTagName(openNode) ?: return
-        if (isSelfClosingTag(openNode)) return
-        val closeNode = findMatchingEndTag(openNode, tagName) ?: return
+        val index = openTags.indexOfLast { it.first == tagName }
+        if (index < 0) return
 
+        val openNode = openTags[index].second
+        while (openTags.size > index) {
+            openTags.removeAt(openTags.size - 1)
+        }
+
+        val closeNode = findTagCloseToken(endTagOpenNode) ?: return
         val range = TextRange(openNode.startOffset, closeNode.startOffset + closeNode.textLength)
         if (isMultiLine(range, document)) {
             descriptors.add(FoldingDescriptor(openNode, range))
         }
     }
-
-    /**
-     * Finds the matching close token for a given open token type.
-     *
-     * @param openNode The opening token node.
-     * @param openType The element type of the open token.
-     * @param closeType The element type of the close token.
-     * @return The matching close node, or null if not found.
-     */
-    private fun findMatchingClose(
-        openNode: ASTNode,
-        openType: com.intellij.psi.tree.IElementType,
-        closeType: com.intellij.psi.tree.IElementType
-    ): ASTNode? = PKTreeUtils.findMatchingClose(openNode, openType, closeType)
 
     /**
      * Finds the tag name following a tag open node.
@@ -318,48 +328,6 @@ class PKFoldingBuilder : FoldingBuilderEx(), DumbAware {
      * @return true if the tag ends with a self-close token.
      */
     private fun isSelfClosingTag(tagOpenNode: ASTNode): Boolean = PKTreeUtils.isSelfClosingTag(tagOpenNode)
-
-    /**
-     * Finds the matching end tag for a given tag name.
-     *
-     * @param tagOpenNode The tag open token node.
-     * @param tagName The tag name to match.
-     * @return The close token node, or null if not found.
-     */
-    private fun findMatchingEndTag(tagOpenNode: ASTNode, tagName: String): ASTNode? {
-        var depth = 1
-        var current = tagOpenNode.treeNext
-        while (current != null && depth > 0) {
-            depth = updateDepthForTag(current, tagName, depth)
-            if (depth == 0) {
-                return findTagCloseToken(current)
-            }
-            current = current.treeNext
-        }
-        return null
-    }
-
-    /**
-     * Updates the nesting depth based on tag open/close elements.
-     *
-     * @param node The current AST node being examined.
-     * @param tagName The tag name being matched.
-     * @param currentDepth The current nesting depth.
-     * @return The updated depth after processing this node.
-     */
-    private fun updateDepthForTag(node: ASTNode, tagName: String, currentDepth: Int): Int {
-        return when (node.elementType) {
-            PKTokenTypes.HTML_TAG_OPEN -> {
-                val name = findTagName(node)
-                if (name == tagName && !isSelfClosingTag(node)) currentDepth + 1 else currentDepth
-            }
-            PKTokenTypes.HTML_END_TAG_OPEN -> {
-                val closingTagName = findClosingTagName(node)
-                if (closingTagName == tagName) currentDepth - 1 else currentDepth
-            }
-            else -> currentDepth
-        }
-    }
 
     /**
      * Finds the tag name in a closing tag.
@@ -387,17 +355,8 @@ class PKFoldingBuilder : FoldingBuilderEx(), DumbAware {
      * @return The placeholder string with optional lang attribute.
      */
     private fun getScriptPlaceholder(node: ASTNode): String {
-        var child = node.firstChildNode
-        while (child != null) {
-            if (child.elementType == PKTokenTypes.ATTR_VALUE) {
-                val value = child.text.trim('"', '\'')
-                if (PKConstants.ScriptLang.isJsLanguage(value)) {
-                    return PKConstants.FoldingPlaceholder.scriptWithLang(value)
-                }
-            }
-            child = child.treeNext
-        }
-        return PKConstants.FoldingPlaceholder.SCRIPT
+        val lang = PKTreeUtils.findScriptLang(node) ?: return PKConstants.FoldingPlaceholder.SCRIPT
+        return PKConstants.FoldingPlaceholder.scriptWithLang(lang)
     }
 
     /**
@@ -532,10 +491,10 @@ class PKFoldingBuilder : FoldingBuilderEx(), DumbAware {
         name: String,
         descriptors: MutableList<FoldingDescriptor>
     ) {
-        regionPlaceholders[range] = "#region $name"
+        val placeholder = "#region $name"
         descriptors.add(
             object : FoldingDescriptor(RegionLeafElement(range), range) {
-                override fun getPlaceholderText(): String = regionPlaceholders[range] ?: "#region"
+                override fun getPlaceholderText(): String = placeholder
             }
         )
     }
@@ -564,8 +523,8 @@ class PKFoldingBuilder : FoldingBuilderEx(), DumbAware {
         private val REGION_END_PATTERN: Pattern =
             Pattern.compile("<!--\\s*#endregion\\s*-->")
 
-        /** Cache for region placeholder texts. */
-        private val regionPlaceholders = mutableMapOf<TextRange, String>()
+        /** Maximum number of unclosed HTML tags tracked while pairing tags for folding. */
+        private const val MAX_OPEN_TAGS = 1024
 
         /**
          * Returns the placeholder text for the given element type.

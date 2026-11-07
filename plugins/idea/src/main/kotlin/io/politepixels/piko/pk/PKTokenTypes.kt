@@ -73,6 +73,9 @@ object PKTokenTypes {
     /** Raw JavaScript/TypeScript source content inside a script block. */
     @JvmField val JS_SCRIPT_CONTENT = PKElementType("PK_JS_SCRIPT_CONTENT")
 
+    /** Raw content of a script block whose `lang` is not recognised; it is not injected. */
+    @JvmField val SCRIPT_TEXT_CONTENT = PKElementType("PK_SCRIPT_TEXT_CONTENT")
+
     /** Raw CSS source content inside a style block. */
     @JvmField val CSS_STYLE_CONTENT = PKElementType("PK_CSS_STYLE_CONTENT")
 

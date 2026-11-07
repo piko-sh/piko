@@ -71,12 +71,12 @@ describe('sfcParserClient', () => {
             expect(result[0].content).toBe('const x: number = 1;');
         });
 
-        it('should parse a TypeScript script block with type="text/typescript"', () => {
+        it('should treat type="text/typescript" as a non-TypeScript script, matching the server', () => {
             const input = '<script type="text/typescript">const x: number = 1;</script>';
             const result = parseSfc(input);
 
             expect(result).toHaveLength(1);
-            expect(result[0].type).toBe('script-ts');
+            expect(result[0].type).toBe('script-js');
             expect(result[0].content).toBe('const x: number = 1;');
         });
 
@@ -196,11 +196,12 @@ func Render() string {
             expect(style!.content).toContain('max-width: 800px');
         });
 
-        it('should not match regular script tags without x-go type', () => {
+        it('should classify plain script tags as JavaScript rather than Go', () => {
             const input = '<script>console.log("hello")</script>';
             const result = parseSfc(input);
 
-            expect(result).toHaveLength(0);
+            expect(result).toHaveLength(1);
+            expect(result[0].type).toBe('script-js');
         });
 
         it('should handle empty blocks', () => {

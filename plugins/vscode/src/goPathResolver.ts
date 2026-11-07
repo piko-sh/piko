@@ -19,6 +19,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import {compareGoVersionsDescending, findExecutableOnPath, withPrependedPath} from './pathUtils';
 
 /** Common Go installation locations on Linux. */
 const LINUX_LOCATIONS = [
@@ -40,14 +41,18 @@ const WINDOWS_LOCATIONS = [
     'C:\\Program Files\\Go\\bin',
 ];
 
+/** The most Go SDK manager installs (`~/sdk/go*`) considered. */
+const MAX_SDK_ENTRIES = 256;
+
 /**
  * Resolves the Go binary directory path using a priority chain.
  *
  * Resolution order:
  * 1. Manual override from piko.goBinPath setting
  * 2. IDE detection from Go extension settings (go.goroot, go.alternateTools)
- * 3. Global fallback locations (common installation paths)
- * 4. Return undefined (use system PATH)
+ * 3. The `go` found on the current PATH
+ * 4. Global fallback locations (common installation paths, newest ~/sdk first)
+ * 5. Return undefined (leave PATH unchanged)
  *
  * @param outputChannel - Optional output channel for logging.
  * @returns The resolved Go bin directory path, or undefined if not found.
@@ -73,8 +78,14 @@ export function resolveGoBinPath(outputChannel?: vscode.OutputChannel): string |
         }
     }
 
+    const pathGo = findGoOnPath();
+    if (pathGo) {
+        outputChannel?.appendLine(`Found Go on PATH: ${pathGo}`);
+        return pathGo;
+    }
+
     if (config.get<boolean>('searchGlobalGoLocations', true)) {
-        const globalPath = findInGlobalLocations(outputChannel);
+        const globalPath = findInGlobalLocations();
         if (globalPath) {
             outputChannel?.appendLine(`Found Go bin in global location: ${globalPath}`);
             return globalPath;
@@ -86,7 +97,7 @@ export function resolveGoBinPath(outputChannel?: vscode.OutputChannel): string |
 }
 
 /**
- * Detects the Go binary path from the VSCode Go extension settings.
+ * Detects the Go binary path from the VS Code Go extension settings.
  *
  * Checks go.alternateTools.go and go.goroot settings.
  *
@@ -134,51 +145,42 @@ function detectFromGoExtension(outputChannel?: vscode.OutputChannel): string | u
 /**
  * Searches common global installation locations for Go.
  *
- * @param _outputChannel - Optional output channel for logging (unused, reserved for future).
  * @returns The first valid Go bin directory found, or undefined if none found.
  */
-function findInGlobalLocations(_outputChannel?: vscode.OutputChannel): string | undefined {
+function findInGlobalLocations(): string | undefined {
     const homeDir = process.env['HOME'] ?? process.env['USERPROFILE'] ?? '';
+    return listGlobalGoLocations(process.platform, homeDir).find(isValidGoBinDirectory);
+}
 
-    let locations: string[];
-    switch (process.platform) {
+/**
+ * Lists the Go bin directories to try when `go` is not on PATH, in order.
+ *
+ * @param platform - The Node.js platform.
+ * @param homeDir - The user's home directory.
+ * @returns The common install locations, then `~/go/bin`, then the Go SDK
+ * manager installs (newest first).
+ */
+export function listGlobalGoLocations(platform: string, homeDir: string): string[] {
+    let locations: readonly string[];
+    switch (platform) {
         case 'win32':
-            locations = [
-                ...WINDOWS_LOCATIONS,
-                path.join(homeDir, 'go', 'bin'),
-            ];
+            locations = WINDOWS_LOCATIONS;
             break;
         case 'darwin':
-            locations = [
-                ...MACOS_LOCATIONS,
-                path.join(homeDir, 'go', 'bin'),
-            ];
+            locations = MACOS_LOCATIONS;
             break;
         default:
-            locations = [
-                ...LINUX_LOCATIONS,
-                path.join(homeDir, 'go', 'bin'),
-            ];
+            locations = LINUX_LOCATIONS;
             break;
     }
-
-    const goSdkLocations = findGoSdkManagerInstalls(homeDir);
-    const allLocations = [...locations, ...goSdkLocations];
-
-    for (const loc of allLocations) {
-        if (isValidGoBinDirectory(loc)) {
-            return loc;
-        }
-    }
-
-    return undefined;
+    return [...locations, path.join(homeDir, 'go', 'bin'), ...findGoSdkManagerInstalls(homeDir)];
 }
 
 /**
  * Finds Go installations from the Go SDK manager (~/sdk/go*).
  *
  * @param homeDir - The user's home directory.
- * @returns A list of bin directories, sorted by version (newest first).
+ * @returns A list of bin directories, sorted semantically by version (newest first).
  */
 function findGoSdkManagerInstalls(homeDir: string): string[] {
     const sdkDir = path.join(homeDir, 'sdk');
@@ -195,8 +197,8 @@ function findGoSdkManagerInstalls(homeDir: string): string[] {
 
         const entries = fs.readdirSync(sdkDir)
             .filter(name => name.startsWith('go'))
-            .sort()
-            .reverse();
+            .sort(compareGoVersionsDescending)
+            .slice(0, MAX_SDK_ENTRIES);
 
         return entries.map(name => path.join(sdkDir, name, 'bin'));
     } catch {
@@ -212,32 +214,40 @@ function findGoSdkManagerInstalls(homeDir: string): string[] {
  */
 function isValidGoBinDirectory(dirPath: string): boolean {
     try {
-        if (!fs.existsSync(dirPath)) {
+        if (!fs.statSync(dirPath).isDirectory()) {
             return false;
         }
+    } catch {
+        return false;
+    }
+    const goBinary = process.platform === 'win32' ? 'go.exe' : 'go';
+    return isExecutableFile(path.join(dirPath, goBinary));
+}
 
-        const stats = fs.statSync(dirPath);
-        if (!stats.isDirectory()) {
+/**
+ * Finds the directory of the `go` executable on the current PATH.
+ *
+ * @returns The directory containing `go`, or undefined when not on PATH.
+ */
+function findGoOnPath(): string | undefined {
+    const goPath = findExecutableOnPath('go', process.env, process.platform, isExecutableFile);
+    return goPath ? path.dirname(goPath) : undefined;
+}
+
+/**
+ * Reports whether a path is an executable regular file.
+ *
+ * @param candidate - The path to check.
+ * @returns True when the file exists and can be executed.
+ */
+export function isExecutableFile(candidate: string): boolean {
+    try {
+        if (!fs.statSync(candidate).isFile()) {
             return false;
         }
-
-        const goBinary = process.platform === 'win32' ? 'go.exe' : 'go';
-        const binaryPath = path.join(dirPath, goBinary);
-
-        if (!fs.existsSync(binaryPath)) {
-            return false;
+        if (process.platform !== 'win32') {
+            fs.accessSync(candidate, fs.constants.X_OK);
         }
-
-        const binaryStats = fs.statSync(binaryPath);
-        if (!binaryStats.isFile()) {
-            return false;
-        }
-
-        if (process.platform === 'win32') {
-            return true;
-        }
-
-        fs.accessSync(binaryPath, fs.constants.X_OK);
         return true;
     } catch {
         return false;
@@ -245,18 +255,17 @@ function isValidGoBinDirectory(dirPath: string): boolean {
 }
 
 /**
- * Builds the PATH environment variable with Go bin prepended.
+ * Builds the environment for pikopls with the Go bin directory prepended to
+ * PATH.
+ *
+ * On Windows the `Path`/`PATH` keys are normalised into one.
  *
  * @param goBinPath - The Go bin directory to prepend, or undefined.
- * @returns The modified PATH string.
+ * @returns The environment for the child process.
  */
-export function buildPathWithGo(goBinPath: string | undefined): string {
-    const currentPath = process.env['PATH'] ?? '';
-
-    if (!goBinPath) {
-        return currentPath;
-    }
-
-    const separator = process.platform === 'win32' ? ';' : ':';
-    return `${goBinPath}${separator}${currentPath}`;
+export function buildEnvWithGo(goBinPath: string | undefined): NodeJS.ProcessEnv {
+    return {
+        ...withPrependedPath(process.env, goBinPath, process.platform),
+        PIKO_DISABLE_CONSOLE_LOG: 'true',
+    };
 }

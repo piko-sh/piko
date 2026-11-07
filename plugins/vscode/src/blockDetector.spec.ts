@@ -77,13 +77,13 @@ describe('blockDetector', () => {
             expect(result.type).toBe(BlockType.ScriptTS);
         });
 
-        it('should detect TypeScript block with type="text/typescript"', () => {
+        it('should treat type="text/typescript" as a non-TypeScript script, matching the server', () => {
             const doc = createMockDocument('<script type="text/typescript">const x: number = 1;</script>');
             const position = createPosition(0, 35);
 
             const result = detectBlockAtPosition(doc as never, position as never);
 
-            expect(result.type).toBe(BlockType.ScriptTS);
+            expect(result.type).toBe(BlockType.ScriptJS);
         });
 
         it('should detect style block', () => {

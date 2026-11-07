@@ -8,7 +8,7 @@ repository = "https://github.com/piko-sh/piko"
 
 [language_servers.pikopls]
 name = "pikopls"
-language = "Piko"
+languages = ["Piko"]
 
 [grammars.piko]
 repository = "file:///home/mhaddon/git/piko-sh/piko"

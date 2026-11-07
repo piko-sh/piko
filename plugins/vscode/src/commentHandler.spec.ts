@@ -16,7 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-import {describe, expect, it, vi} from 'vitest';
+import {beforeEach, describe, expect, it, vi} from 'vitest';
+import * as vscode from 'vscode';
+import {BlockType} from './blockDetector';
 import {
     EXPR_COMMENT_PREFIX,
     EXPR_COMMENT_SUFFIX,
@@ -33,7 +35,12 @@ import {
     isInsideInterpolation,
     isTagBoundary,
     isWhitespace,
+    registerCommentCommands,
+    resolveCommentStrategy,
 } from './commentHandler';
+import {createMockDocument} from './test/mockTextDocument';
+
+const handlers = new Map<string, () => Promise<void>>();
 
 vi.mock('vscode', () => ({
     Position: class {
@@ -61,7 +68,10 @@ vi.mock('vscode', () => ({
         file: (path: string) => ({fsPath: path}),
     },
     commands: {
-        registerCommand: vi.fn(),
+        registerCommand: (name: string, handler: () => Promise<void>) => {
+            handlers.set(name, handler);
+            return {dispose: () => undefined};
+        },
         executeCommand: vi.fn(),
     },
     window: {
@@ -549,5 +559,133 @@ describe('commentHandler', () => {
             expect(isInsideExpressionDirective(text, 14)).toBe(false);
             expect(isInsideExpressionDirective(text, 32)).toBe(true);
         });
+    });
+});
+
+const SOURCE = `<template>
+  <p>Hello</p>
+</template>
+<script type="application/x-go">
+package main
+</script>
+<style>
+.a {}
+</style>
+<i18n lang="json">
+{}
+</i18n>
+<script lang="ts">
+const a = 1;
+</script>`;
+
+/**
+ * Builds a fake editor positioned on a line, recording edits.
+ *
+ * @param line - The cursor line.
+ * @param character - The cursor character.
+ * @param languageId - The document language.
+ * @returns The editor and the recorded replacements.
+ */
+function makeEditor(line: number, character: number, languageId = 'piko') {
+    const doc = createMockDocument(SOURCE, languageId);
+    const lines = SOURCE.split('\n');
+    const replacements: string[] = [];
+    const position = {line, character};
+    const editor = {
+        document: {
+            ...doc,
+            lineAt: (index: number) => ({text: lines[index], range: {start: {line: index, character: 0}, end: {line: index, character: lines[index].length}}}),
+        },
+        selection: {active: position, anchor: position, isEmpty: true},
+        edit: async (callback: (builder: { replace: (range: unknown, text: string) => void }) => void) => {
+            callback({replace: (_range, text) => replacements.push(text)});
+            return true;
+        },
+    };
+    return {editor, replacements};
+}
+
+/**
+ * Runs a registered comment command against an editor.
+ *
+ * @param name - The command name.
+ * @param editor - The active editor.
+ */
+async function run(name: string, editor: unknown): Promise<void> {
+    (vscode.window as { activeTextEditor: unknown }).activeTextEditor = editor;
+    const handler = handlers.get(name);
+    if (!handler) {
+        throw new Error(`command ${name} not registered`);
+    }
+    await handler();
+}
+
+describe('resolveCommentStrategy', () => {
+    it.each([
+        [BlockType.Script, 'delegate'],
+        [BlockType.ScriptTS, 'delegate'],
+        [BlockType.ScriptJS, 'delegate'],
+        [BlockType.Style, 'delegate'],
+        [BlockType.I18n, 'delegate'],
+        [BlockType.Template, 'markup'],
+        [BlockType.Timeline, 'markup'],
+        [BlockType.Unknown, 'markup'],
+    ])('%s uses %s', (blockType, expected) => {
+        expect(resolveCommentStrategy(blockType)).toBe(expected);
+    });
+});
+
+describe('comment commands', () => {
+    const executeCommand = vscode.commands.executeCommand as unknown as ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+        executeCommand.mockReset();
+        handlers.clear();
+        registerCommentCommands({subscriptions: []} as never);
+    });
+
+    it.each([
+        ['Go', 4],
+        ['CSS', 7],
+        ['i18n', 10],
+        ['TypeScript', 13],
+    ])('delegates line comments in %s blocks to VS Code', async (_name, line) => {
+        const {editor, replacements} = makeEditor(line, 1);
+
+        await run('piko.toggleLineComment', editor);
+
+        expect(executeCommand).toHaveBeenCalledWith('editor.action.commentLine');
+        expect(replacements).toEqual([]);
+    });
+
+    it('delegates block comments in script blocks', async () => {
+        const {editor} = makeEditor(4, 1);
+
+        await run('piko.toggleBlockComment', editor);
+
+        expect(executeCommand).toHaveBeenCalledWith('editor.action.blockComment');
+    });
+
+    it('uses HTML comments in the template', async () => {
+        const {editor, replacements} = makeEditor(1, 4);
+
+        await run('piko.toggleLineComment', editor);
+
+        expect(executeCommand).not.toHaveBeenCalled();
+        expect(replacements).toEqual(['  <!-- <p>Hello</p> -->']);
+    });
+
+    it('delegates for other languages', async () => {
+        const {editor} = makeEditor(1, 4, 'html');
+
+        await run('piko.toggleBlockComment', editor);
+
+        expect(executeCommand).toHaveBeenCalledWith('editor.action.blockComment');
+    });
+
+    it('does nothing without an editor', async () => {
+        await run('piko.toggleLineComment', undefined);
+
+        expect(executeCommand).not.toHaveBeenCalled();
     });
 });

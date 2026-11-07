@@ -9,7 +9,7 @@
       <option name="PIKO" value="true"/>
     </context>
   </template>
-  <template name="pscriptjs" value="&lt;script lang=&quot;js&quot;&gt;&#10;$END$&#10;&lt;/script&gt;" description="JavaScript script block" toReformat="false" toShortenFQNames="true">
+  <template name="pscriptjs" value="&lt;script lang=&quot;ts&quot;&gt;&#10;$END$&#10;&lt;/script&gt;" description="TypeScript client script block" toReformat="false" toShortenFQNames="true">
     <context>
       <option name="PIKO" value="true"/>
     </context>

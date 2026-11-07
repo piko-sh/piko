@@ -17,7 +17,7 @@
 # oppression. We built this to empower people, not to enable those who would
 # strip others of their rights and dignity.
 
-# hack/plugin/vscode.sh - Build and release VSCode extension
+# hack/plugin/vscode.sh - Build and release VS Code extension
 #
 # This script is called by Makefile targets:
 #   make plugin-vscode-build    Build and package
@@ -27,7 +27,7 @@
 # shellcheck source=../lib/init.sh
 source "$(dirname "$0")/../lib/init.sh"
 
-# Path to the VSCode extension directory.
+# Path to the VS Code extension directory.
 VSCODE_DIR="${PIKO_ROOT}/plugins/vscode"
 
 # Central location for built LSP binaries.
@@ -36,17 +36,24 @@ LSP_BIN_DIR="${PIKO_ROOT}/bin/lsp"
 # Target directory for LSP binaries within the plugin.
 PLUGIN_BIN_DIR="${VSCODE_DIR}/bin"
 
-# kill_lsp_processes terminates any running LSP processes.
+# kill_lsp_processes terminates pikopls processes started from this plugin's
+# bin/ directory. Language servers started elsewhere (other editors, an
+# installed extension, a debug session) are left alone.
+# Globals:
+#   PLUGIN_BIN_DIR - Read
 kill_lsp_processes() {
-    piko::log::header "Killing Running LSP Processes"
+    piko::log::header "Killing Plugin LSP Processes"
 
-    if pgrep -f "pikopls" >/dev/null 2>&1; then
-        piko::log::info "Found running LSP processes, killing them..."
-        pkill -f "pikopls" || true
+    local pattern
+    pattern="^$(printf '%s' "${PLUGIN_BIN_DIR}/" | sed 's/[][\\.*^$+?(){}|]/\\&/g')[^ ]*pikopls"
+
+    if pgrep -f "$pattern" >/dev/null 2>&1; then
+        piko::log::info "Found pikopls processes running from ${PLUGIN_BIN_DIR}, killing them..."
+        pkill -f "$pattern" || true
         sleep 1
-        piko::log::success "LSP processes killed"
+        piko::log::success "Plugin LSP processes killed"
     else
-        piko::log::info "No running LSP processes found"
+        piko::log::info "No pikopls processes running from ${PLUGIN_BIN_DIR}"
     fi
 }
 
@@ -59,6 +66,9 @@ build_lsp_binaries() {
 
     piko::log::header "Copying LSP Binaries to Plugin"
     piko::util::ensure_dir "$PLUGIN_BIN_DIR"
+
+    piko::log::info "Clearing stale binaries from $PLUGIN_BIN_DIR..."
+    rm -rf "${PLUGIN_BIN_DIR:?}"/*
 
     piko::log::info "Copying from $LSP_BIN_DIR to $PLUGIN_BIN_DIR..."
     if cp -r "$LSP_BIN_DIR"/* "$PLUGIN_BIN_DIR/"; then
@@ -77,10 +87,16 @@ compile_typescript() {
     cd "$VSCODE_DIR" || exit 1
 
     piko::log::info "Running npm install..."
-    npm install >/dev/null 2>&1
+    local npm_output
+    if ! npm_output=$(npm install 2>&1); then
+        printf '%s\n' "$npm_output" >&2
+        piko::log::fatal "npm install failed"
+    fi
 
     piko::log::info "Compiling with esbuild (production mode)..."
-    npm run compile:production
+    if ! npm run compile:production; then
+        piko::log::fatal "Production build failed"
+    fi
 
     piko::log::success "TypeScript compiled"
 }
@@ -94,7 +110,9 @@ package_extension() {
     cd "$VSCODE_DIR" || exit 1
 
     piko::log::info "Creating VSIX package..."
-    npm run package
+    if ! npm run package; then
+        piko::log::fatal "Packaging failed"
+    fi
 
     local vsix_file
     vsix_file=$(find_vsix_file)
@@ -127,11 +145,11 @@ find_vsix_file() {
     fi
 }
 
-# install_extension installs the VSIX into VSCode.
+# install_extension installs the VSIX into VS Code.
 # Globals:
 #   VSCODE_DIR - Read
 install_extension() {
-    piko::log::header "Installing Extension in VSCode"
+    piko::log::header "Installing Extension in VS Code"
 
     cd "$VSCODE_DIR" || exit 1
 
@@ -151,11 +169,11 @@ install_extension() {
     if code --install-extension "$vsix_file" --force; then
         piko::log::success "Extension installed"
         piko::log::blank
-        piko::log::warn "Please reload VSCode window to activate the new extension:"
+        piko::log::warn "Please reload VS Code window to activate the new extension:"
         piko::log::detail "Ctrl+Shift+P -> 'Developer: Reload Window'"
     else
         piko::log::error "Failed to install extension"
-        piko::log::info "You may need to manually restart VSCode and run:"
+        piko::log::info "You may need to manually restart VS Code and run:"
         piko::log::detail "code --install-extension $vsix_file --force"
         exit 1
     fi

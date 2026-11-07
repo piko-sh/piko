@@ -96,6 +96,31 @@ func TestGoEnv(t *testing.T) {
 	})
 }
 
+func TestExecutableFileName(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		binary   string
+		goos     string
+		expected string
+	}{
+		{name: "linux keeps the bare name", binary: "gopls", goos: "linux", expected: "gopls"},
+		{name: "darwin keeps the bare name", binary: "gopls", goos: "darwin", expected: "gopls"},
+		{name: "windows appends the exe suffix", binary: "gopls", goos: "windows", expected: "gopls.exe"},
+		{name: "windows keeps an explicit exe suffix", binary: "gopls.exe", goos: "windows", expected: "gopls.exe"},
+		{name: "windows keeps another explicit extension", binary: "gopls.cmd", goos: "windows", expected: "gopls.cmd"},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, testCase.expected, executableFileName(testCase.binary, testCase.goos))
+		})
+	}
+}
+
 func TestExecutableAtRejectsMissingAndDirectory(t *testing.T) {
 	t.Parallel()
 

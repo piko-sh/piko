@@ -18,6 +18,10 @@
         "required": false,
         "types": [
           {
+            "type": "attribute_value",
+            "named": true
+          },
+          {
             "type": "quoted_attribute_value",
             "named": true
           }
@@ -139,7 +143,7 @@
     "fields": {
       "name": {
         "multiple": false,
-        "required": false,
+        "required": true,
         "types": [
           {
             "type": "tag_name",
@@ -147,16 +151,6 @@
           }
         ]
       }
-    },
-    "children": {
-      "multiple": false,
-      "required": false,
-      "types": [
-        {
-          "type": "tag_name",
-          "named": true
-        }
-      ]
     }
   },
   {
@@ -178,6 +172,10 @@
         },
         {
           "type": "raw_text",
+          "named": true
+        },
+        {
+          "type": "self_closing_tag",
           "named": true
         },
         {
@@ -218,6 +216,11 @@
     }
   },
   {
+    "type": "raw_text",
+    "named": true,
+    "fields": {}
+  },
+  {
     "type": "script_element",
     "named": true,
     "fields": {},
@@ -231,6 +234,10 @@
         },
         {
           "type": "raw_text",
+          "named": true
+        },
+        {
+          "type": "self_closing_tag",
           "named": true
         },
         {
@@ -272,7 +279,7 @@
     "fields": {
       "name": {
         "multiple": false,
-        "required": false,
+        "required": true,
         "types": [
           {
             "type": "tag_name",
@@ -287,10 +294,6 @@
       "types": [
         {
           "type": "attribute",
-          "named": true
-        },
-        {
-          "type": "tag_name",
           "named": true
         }
       ]
@@ -310,6 +313,10 @@
         },
         {
           "type": "raw_text",
+          "named": true
+        },
+        {
+          "type": "self_closing_tag",
           "named": true
         },
         {
@@ -424,19 +431,11 @@
     "named": false
   },
   {
-    "type": "raw_text",
-    "named": true
-  },
-  {
     "type": "script",
     "named": false
   },
   {
     "type": "style",
-    "named": false
-  },
-  {
-    "type": "template",
     "named": false
   },
   {

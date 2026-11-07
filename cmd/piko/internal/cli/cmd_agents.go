@@ -685,11 +685,7 @@ func newAgentsModel(factory safedisk.Factory, version string) *agentsModel {
 			destDesc: claudeDest,
 			scope:    "skill + LSP, all Piko projects",
 			install: func() (string, error) {
-				if err := templates.CopyClaudeCodePlugin(claudeFullDest); err != nil {
-					return "", err
-				}
-				lspStatus := EnsureInstalled(context.Background(), version)
-				return fmt.Sprintf("Claude Code      %s\n  %s", claudeFullDest, lspStatus), nil
+				return installClaudeCodeTarget(context.Background(), claudeFullDest, version)
 			},
 		},
 		{
@@ -965,4 +961,28 @@ func runAgentsUninstall(arguments []string) int {
 	}
 
 	return 0
+}
+
+// installClaudeCodeTarget copies the Claude Code plugin into destination, makes sure
+// pikopls is installed, and pins the plugin's language-server command to the installed
+// binary so the plugin works even when that binary is not on the inherited PATH.
+//
+// Takes destination (string) which is the plugin directory to install into.
+// Takes version (string) which is the Piko CLI version, used to fetch a matching pikopls.
+//
+// Returns string which is the summary line for the installer output.
+// Returns error when the plugin files cannot be copied. A failed pikopls install or pin
+// is reported in the summary rather than as an error, because the plugin still works
+// once pikopls is installed by hand.
+func installClaudeCodeTarget(ctx context.Context, destination, version string) (string, error) {
+	if err := templates.CopyClaudeCodePlugin(destination); err != nil {
+		return "", fmt.Errorf("copying Claude Code plugin: %w", err)
+	}
+	lspStatus, binaryPath := ensureInstalled(ctx, version)
+	if binaryPath != "" {
+		if err := pinLSPCommand(destination, binaryPath); err != nil {
+			lspStatus += fmt.Sprintf("\n  could not pin pikopls path in %s: %v", lspConfigFileName, err)
+		}
+	}
+	return fmt.Sprintf("Claude Code      %s\n  %s", destination, lspStatus), nil
 }

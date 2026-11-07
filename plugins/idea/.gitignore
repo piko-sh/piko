@@ -14,8 +14,8 @@ src/main/java/io/politepixels/gen/
 # IntelliJ Platform
 .intellijPlatform/
 
-# Bundled LSP binaries (built by release.sh)
-src/main/resources/bin/*/pikopls*
+# Bundled LSP binaries (copied in by hack/plugin/idea.sh and the release workflow)
+src/main/resources/bin/
 
 # Embedded type definitions (copied by Gradle from internal/typegen)
 src/main/resources/types/

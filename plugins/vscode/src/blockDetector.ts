@@ -17,21 +17,26 @@
 // strip others of their rights and dignity.
 
 import * as vscode from 'vscode';
+import {findBlockAtOffset, parseSfcBlocks, SfcBlock} from './sfcBlocks';
 
 /**
- * The type of block in a Piko (.pk) file.
+ * The type of block in a Piko (.pk or .pkc) file.
  */
 export enum BlockType {
     /** The HTML template block. */
     Template = 'template',
-    /** The Go script block (type="application/x-go"). */
+    /** The Go script block (type="application/x-go", lang="go" and friends). */
     Script = 'script',
-    /** The TypeScript script block (lang="ts"). */
+    /** The TypeScript script block (lang="ts" or type="application/typescript"). */
     ScriptTS = 'script-ts',
+    /** Any other script block (JavaScript or an unrecognised type). */
+    ScriptJS = 'script-js',
     /** The CSS style block. */
     Style = 'style',
     /** The internationalisation block. */
     I18n = 'i18n',
+    /** The piko:timeline block. */
+    Timeline = 'timeline',
     /** Fallback when no block is found at a position. */
     Unknown = 'unknown'
 }
@@ -54,34 +59,6 @@ export interface BlockInfo {
     contentEndOffset: number;
 }
 
-/** Regex patterns for matching each block type in a Piko file. */
-const BLOCK_PATTERNS: Array<{ regex: RegExp; type: BlockType }> = [
-    {
-        regex: /<script\s+lang\s*=\s*["'](ts|typescript)["'][^>]*>([\s\S]*?)<\/script>/gi,
-        type: BlockType.ScriptTS
-    },
-    {
-        regex: /<script\s+type\s*=\s*["'](application\/typescript|text\/typescript)["'][^>]*>([\s\S]*?)<\/script>/gi,
-        type: BlockType.ScriptTS
-    },
-    {
-        regex: /<script\s+type\s*=\s*["']application\/x-go["'][^>]*>([\s\S]*?)<\/script>/gi,
-        type: BlockType.Script
-    },
-    {
-        regex: /<template>([\s\S]*?)<\/template>/gi,
-        type: BlockType.Template
-    },
-    {
-        regex: /<style>([\s\S]*?)<\/style>/gi,
-        type: BlockType.Style
-    },
-    {
-        regex: /<i18n>([\s\S]*?)<\/i18n>/gi,
-        type: BlockType.I18n
-    }
-];
-
 /** Default block info returned when no block is found at a position. */
 const UNKNOWN_BLOCK: BlockInfo = {
     type: BlockType.Unknown,
@@ -93,9 +70,51 @@ const UNKNOWN_BLOCK: BlockInfo = {
 };
 
 /**
+ * Caches the parsed blocks of each document by version, so the many
+ * per-request block lookups do not reparse an unchanged document.
+ */
+const blockCache = new WeakMap<object, { version: number; text: string; blocks: SfcBlock[] }>();
+
+/**
+ * Returns the parsed top-level blocks of a document.
+ *
+ * @param document - The Piko document.
+ * @returns The parsed blocks in source order.
+ */
+export function getDocumentBlocks(document: vscode.TextDocument): SfcBlock[] {
+    const text = document.getText();
+    const version = typeof document.version === 'number' ? document.version : -1;
+    const cached = blockCache.get(document);
+    if (cached?.version === version && cached.text === text) {
+        return cached.blocks;
+    }
+    const blocks = parseSfcBlocks(text);
+    blockCache.set(document, {version, text, blocks});
+    return blocks;
+}
+
+/**
+ * Converts a parsed block into the position-based block info.
+ *
+ * @param document - The Piko document.
+ * @param block - The parsed block.
+ * @returns The block info.
+ */
+export function toBlockInfo(document: vscode.TextDocument, block: SfcBlock): BlockInfo {
+    return {
+        type: block.kind as BlockType,
+        startLine: document.positionAt(block.start).line,
+        endLine: document.positionAt(block.end).line,
+        contentStartLine: document.positionAt(block.contentStart).line,
+        contentStartOffset: block.contentStart,
+        contentEndOffset: block.contentEnd
+    };
+}
+
+/**
  * Finds the block at a position in a Piko document.
  *
- * Uses regex to find template, script, style, and i18n blocks.
+ * Uses the shared SFC block parser, which mirrors the server's parser.
  *
  * @param document - The Piko document to search.
  * @param position - The cursor position to check.
@@ -105,42 +124,12 @@ export function detectBlockAtPosition(
     document: vscode.TextDocument,
     position: vscode.Position
 ): BlockInfo {
-    const text = document.getText();
-    const offset = document.offsetAt(position);
-
-    for (const {regex, type} of BLOCK_PATTERNS) {
-        regex.lastIndex = 0;
-
-        let match: RegExpExecArray | null;
-        while ((match = regex.exec(text)) !== null) {
-            const blockStart = match.index;
-            const blockEnd = blockStart + match[0].length;
-
-            if (offset < blockStart || offset > blockEnd) {
-                continue;
-            }
-
-            const openTagEnd = text.indexOf('>', blockStart);
-            const contentStart = openTagEnd + 1;
-
-            return {
-                type,
-                startLine: document.positionAt(blockStart).line,
-                endLine: document.positionAt(blockEnd).line,
-                contentStartLine: document.positionAt(contentStart).line,
-                contentStartOffset: contentStart,
-                contentEndOffset: text.lastIndexOf('</', blockEnd)
-            };
-        }
-    }
-
-    return UNKNOWN_BLOCK;
+    const block = findBlockAtOffset(getDocumentBlocks(document), document.offsetAt(position));
+    return block ? toBlockInfo(document, block) : UNKNOWN_BLOCK;
 }
 
 /**
  * Checks if a position is inside a template block.
- *
- * Only template blocks are handled by the Piko LSP.
  *
  * @param document - The Piko document.
  * @param position - The position to check.
@@ -150,8 +139,7 @@ export function isInTemplateBlock(
     document: vscode.TextDocument,
     position: vscode.Position
 ): boolean {
-    const blockInfo = detectBlockAtPosition(document, position);
-    return blockInfo.type === BlockType.Template;
+    return detectBlockAtPosition(document, position).type === BlockType.Template;
 }
 
 /**
@@ -165,6 +153,21 @@ export function isInTypeScriptBlock(
     document: vscode.TextDocument,
     position: vscode.Position
 ): boolean {
-    const blockInfo = detectBlockAtPosition(document, position);
-    return blockInfo.type === BlockType.ScriptTS;
+    return detectBlockAtPosition(document, position).type === BlockType.ScriptTS;
+}
+
+/**
+ * Checks if a position is in a region served by pikopls: the template or the
+ * Go script block.
+ *
+ * @param document - The Piko document.
+ * @param position - The position to check.
+ * @returns True when pikopls should handle requests at the position.
+ */
+export function isInServerBlock(
+    document: vscode.TextDocument,
+    position: vscode.Position
+): boolean {
+    const type = detectBlockAtPosition(document, position).type;
+    return type === BlockType.Template || type === BlockType.Script;
 }

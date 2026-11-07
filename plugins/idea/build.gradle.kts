@@ -1,4 +1,5 @@
 import org.jetbrains.grammarkit.tasks.GenerateLexerTask
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
     id("java")
@@ -10,7 +11,9 @@ plugins {
 }
 
 group = "io.politepixels"
-version = findProperty("version") as String? ?: "0.0.0"
+version = providers.gradleProperty("version").orNull
+    ?.takeIf { it.isNotBlank() && it != "unspecified" }
+    ?: providers.gradleProperty("pluginVersion").get()
 
 repositories {
     mavenCentral()
@@ -21,6 +24,7 @@ repositories {
 
 dependencies {
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.opentest4j:opentest4j:1.3.0")
 
     intellijPlatform {
         goland("2025.3")
@@ -49,6 +53,17 @@ intellijPlatform {
 
     publishing {
         token = providers.environmentVariable("PUBLISH_TOKEN")
+    }
+
+    pluginVerification {
+        ides {
+            val localIdePaths = providers.gradleProperty("verifyLocalIdes").orNull
+            if (localIdePaths.isNullOrBlank()) {
+                recommended()
+            } else {
+                localIdePaths.split(',').map(String::trim).filter(String::isNotEmpty).forEach { local(file(it)) }
+            }
+        }
     }
 }
 
@@ -117,6 +132,15 @@ tasks {
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+        apiVersion.set(KotlinVersion.KOTLIN_2_2)
+    }
+}
+
+configurations.matching { it.name == "detekt" }.configureEach {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "org.jetbrains.kotlin") {
+            useVersion("2.0.21")
+        }
     }
 }
 

@@ -20,7 +20,9 @@ root = "."
 tmp_dir = "tmp"
 
 [build]
-cmd = "go build -o ./bin/generator ./cmd/generator/main.go && ./bin/generator all && go build -gcflags \"all=-N -l\" -o ./bin/main ./cmd/main/main.go"
+# PIKO_DWARF_LINE_DIRECTIVES makes the generator emit compiler-honoured //line directives,
+# so breakpoints set in .pk files resolve in the -N -l debug build below.
+cmd = "go build -o ./bin/generator ./cmd/generator/main.go && PIKO_DWARF_LINE_DIRECTIVES=true ./bin/generator all && go build -gcflags \"all=-N -l\" -o ./bin/main ./cmd/main/main.go"
 bin = "./bin/main"
 full_bin = "./bin/main"
 # full_bin = "dlv --continue --accept-multiclient --listen=:2345 --headless=true --api-version=2 exec ./bin/main --"

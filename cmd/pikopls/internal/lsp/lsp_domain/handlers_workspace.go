@@ -184,7 +184,7 @@ func (s *Server) ExecuteCommand(ctx context.Context, params *protocol.ExecuteCom
 	l.Debug("ExecuteCommand", logger_domain.String("command", params.Command), logger_domain.Int("arguments", len(params.Arguments)))
 
 	switch params.Command {
-	case "piko.refreshDiagnostics":
+	case commandRefreshDiagnostics:
 
 		s.scheduleWatchedAnalysis(s.docCache.GetAllURIs())
 		return "Diagnostics refresh started", nil
@@ -445,7 +445,7 @@ func (s *Server) CodeAction(ctx context.Context, params *protocol.CodeActionPara
 		Kind:  protocol.Source,
 		Command: &protocol.Command{
 			Title:     "Refresh Diagnostics",
-			Command:   "piko.refreshDiagnostics",
+			Command:   commandRefreshDiagnostics,
 			Arguments: []any{},
 		},
 	}

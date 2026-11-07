@@ -17,57 +17,73 @@
 // strip others of their rights and dignity.
 
 /**
- * Creates a mock VS Code TextDocument for testing purposes.
- * This allows testing blockDetector without requiring the actual VS Code API.
+ * A zero-based line and character, like vscode.Position.
  */
 export interface MockPosition {
+    /** The zero-based line. */
     line: number;
+    /** The zero-based character within the line. */
     character: number;
 }
 
+/**
+ * The subset of vscode.TextDocument used by the code under test.
+ */
 export interface MockTextDocument {
+    /** The document URI. */
     uri: { fsPath: string };
+    /** The document language. */
     languageId: string;
 
+    /** Returns the full document text. */
     getText(): string;
 
+    /** Converts a position to an offset. */
     offsetAt(position: MockPosition): number;
 
+    /** Converts an offset to a position. */
     positionAt(offset: number): MockPosition;
 }
 
 /**
  * Creates a mock TextDocument from a string.
- * Implements the subset of vscode.TextDocument needed for blockDetector.
+ *
+ * Implements the subset of vscode.TextDocument the providers use. Offsets
+ * and positions are converted with a binary search over line starts, so
+ * large documents stay fast.
+ *
+ * @param text - The document text.
+ * @param languageId - The document language.
+ * @returns The mock document.
  */
 export function createMockDocument(text: string, languageId = 'piko'): MockTextDocument {
-    const lines = text.split('\n');
+    const lineStarts = computeLineStarts(text);
 
     return {
         getText: () => text,
 
         offsetAt: (position: MockPosition): number => {
-            let offset = 0;
-            for (let i = 0; i < position.line && i < lines.length; i++) {
-                offset += lines[i].length + 1; // +1 for newline
+            if (position.line >= lineStarts.length) {
+                return text.length;
             }
-            offset += Math.min(position.character, lines[position.line]?.length ?? 0);
-            return offset;
+            const lineStart = lineStarts[position.line];
+            const lineEnd = position.line + 1 < lineStarts.length ? lineStarts[position.line + 1] - 1 : text.length;
+            return lineStart + Math.min(position.character, lineEnd - lineStart);
         },
 
         positionAt: (offset: number): MockPosition => {
-            let remaining = offset;
-            let line = 0;
-
-            while (line < lines.length && remaining > lines[line].length) {
-                remaining -= lines[line].length + 1; // +1 for newline
-                line++;
+            const clamped = Math.max(0, Math.min(offset, text.length));
+            let low = 0;
+            let high = lineStarts.length - 1;
+            while (low < high) {
+                const middle = Math.ceil((low + high) / 2);
+                if (lineStarts[middle] <= clamped) {
+                    low = middle;
+                } else {
+                    high = middle - 1;
+                }
             }
-
-            return {
-                line,
-                character: Math.max(0, remaining)
-            };
+            return {line: low, character: clamped - lineStarts[low]};
         },
 
         uri: {fsPath: '/test/file.pk'},
@@ -76,8 +92,26 @@ export function createMockDocument(text: string, languageId = 'piko'): MockTextD
 }
 
 /**
- * Creates a MockPosition (simulates vscode.Position)
+ * Creates a MockPosition (simulates vscode.Position).
+ *
+ * @param line - The zero-based line.
+ * @param character - The zero-based character.
+ * @returns The position.
  */
 export function createPosition(line: number, character: number): MockPosition {
     return {line, character};
+}
+
+/**
+ * Lists the offset where each line starts.
+ *
+ * @param text - The document text.
+ * @returns The line start offsets, beginning with 0.
+ */
+function computeLineStarts(text: string): number[] {
+    const starts = [0];
+    for (let index = text.indexOf('\n'); index !== -1; index = text.indexOf('\n', index + 1)) {
+        starts.push(index + 1);
+    }
+    return starts;
 }

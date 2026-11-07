@@ -66,7 +66,7 @@ jobs:
         run: |
           mkdir -p dist/lsp
           go build -trimpath \
-            -ldflags="-s -w" \
+            -ldflags="-s -w -X main.Version=${{ steps.version.outputs.version }}" \
             -o "dist/lsp/pikopls${{ steps.ext.outputs.lsp }}" \
             ./cmd/pikopls
 

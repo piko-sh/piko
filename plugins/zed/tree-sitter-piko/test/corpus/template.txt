@@ -11,7 +11,7 @@ Interpolation
 (document
   (template_element
     (start_tag
-      (tag_name))
+      name: (tag_name))
     (start_tag
       name: (tag_name))
     (interpolation
@@ -19,8 +19,7 @@ Interpolation
     (end_tag
       name: (tag_name))
     (end_tag
-      (tag_name)))
-  (text))
+      name: (tag_name))))
 
 ================================================================================
 Control-flow and binding directives
@@ -35,7 +34,7 @@ Control-flow and binding directives
 (document
   (template_element
     (start_tag
-      (tag_name))
+      name: (tag_name))
     (start_tag
       name: (tag_name)
       (attribute
@@ -51,15 +50,14 @@ Control-flow and binding directives
     (end_tag
       name: (tag_name))
     (end_tag
-      (tag_name)))
-  (text))
+      name: (tag_name))))
 
 ================================================================================
-Shorthand bind and event directives with modifiers
+Shorthand bind and event directive with modifiers
 ================================================================================
 
 <template>
-	<button :id="props.name" @click.prevent="handle">x</button>
+	<button :id="props.name" p-on:click.prevent="handle">x</button>
 </template>
 
 --------------------------------------------------------------------------------
@@ -67,7 +65,7 @@ Shorthand bind and event directives with modifiers
 (document
   (template_element
     (start_tag
-      (tag_name))
+      name: (tag_name))
     (start_tag
       name: (tag_name)
       (attribute
@@ -84,8 +82,7 @@ Shorthand bind and event directives with modifiers
     (end_tag
       name: (tag_name))
     (end_tag
-      (tag_name)))
-  (text))
+      name: (tag_name))))
 
 ================================================================================
 Piko component self-closing tag
@@ -100,7 +97,7 @@ Piko component self-closing tag
 (document
   (template_element
     (start_tag
-      (tag_name))
+      name: (tag_name))
     (self_closing_tag
       name: (tag_name)
       (attribute
@@ -113,8 +110,7 @@ Piko component self-closing tag
           value: (directive_value
             (expression)))))
     (end_tag
-      (tag_name)))
-  (text))
+      name: (tag_name))))
 
 ================================================================================
 Comment inside template
@@ -129,8 +125,7 @@ Comment inside template
 (document
   (template_element
     (start_tag
-      (tag_name))
+      name: (tag_name))
     (comment)
     (end_tag
-      (tag_name)))
-  (text))
+      name: (tag_name))))

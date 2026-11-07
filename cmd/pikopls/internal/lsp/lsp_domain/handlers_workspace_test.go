@@ -550,54 +550,6 @@ func TestShowDocument_ReturnsFalse(t *testing.T) {
 	}
 }
 
-func TestSemanticTokensFull_ReturnsEmptyData(t *testing.T) {
-	server := &Server{}
-
-	params := &protocol.SemanticTokensParams{
-		TextDocument: protocol.TextDocumentIdentifier{
-			URI: "file:///test.pk",
-		},
-	}
-
-	result, err := server.SemanticTokensFull(context.Background(), params)
-
-	if err != nil {
-		t.Errorf("expected no error, got %v", err)
-	}
-	if result == nil {
-		t.Fatal("expected non-nil result")
-	}
-	if len(result.Data) != 0 {
-		t.Errorf("expected empty data, got %d items", len(result.Data))
-	}
-}
-
-func TestSemanticTokensRange_ReturnsEmptyData(t *testing.T) {
-	server := &Server{}
-
-	params := &protocol.SemanticTokensRangeParams{
-		TextDocument: protocol.TextDocumentIdentifier{
-			URI: "file:///test.pk",
-		},
-		Range: protocol.Range{
-			Start: protocol.Position{},
-			End:   protocol.Position{Line: 10, Character: 0},
-		},
-	}
-
-	result, err := server.SemanticTokensRange(context.Background(), params)
-
-	if err != nil {
-		t.Errorf("expected no error, got %v", err)
-	}
-	if result == nil {
-		t.Fatal("expected non-nil result")
-	}
-	if len(result.Data) != 0 {
-		t.Errorf("expected empty data, got %d items", len(result.Data))
-	}
-}
-
 func TestCodeLensRefresh_NoError(t *testing.T) {
 	server := &Server{}
 

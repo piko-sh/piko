@@ -52,6 +52,13 @@ const (
 
 	// executablePermBits masks the POSIX owner/group/other execute permission bits.
 	executablePermBits = 0o111
+
+	// windowsGOOS is the runtime.GOOS value for Windows, where executables carry an .exe
+	// suffix.
+	windowsGOOS = "windows"
+
+	// windowsExecutableSuffix is the file extension of a Windows executable.
+	windowsExecutableSuffix = ".exe"
 )
 
 var (
@@ -84,13 +91,28 @@ func DiscoverGoplsPath(explicit string) (string, bool) {
 		return resolved, true
 	}
 
+	fallbackName := executableFileName(name, runtime.GOOS)
 	for _, directory := range goplsSearchDirectories() {
-		if resolved, found := executableAt(filepath.Join(directory, name)); found {
+		if resolved, found := executableAt(filepath.Join(directory, fallbackName)); found {
 			return resolved, true
 		}
 	}
 
 	return "", false
+}
+
+// executableFileName returns the on-disk file name of an executable for the target
+// operating system.
+//
+// Takes name (string) which is the bare executable name.
+// Takes goos (string) which is the target operating system, as runtime.GOOS reports it.
+//
+// Returns string which is name with .exe appended on Windows when it has no extension.
+func executableFileName(name, goos string) string {
+	if goos != windowsGOOS || filepath.Ext(name) != "" {
+		return name
+	}
+	return name + windowsExecutableSuffix
 }
 
 // executableAt reports whether candidate names an existing, executable regular file,
@@ -105,7 +127,7 @@ func executableAt(candidate string) (string, bool) {
 		return "", false
 	}
 
-	if runtime.GOOS != "windows" && info.Mode().Perm()&executablePermBits == 0 {
+	if runtime.GOOS != windowsGOOS && info.Mode().Perm()&executablePermBits == 0 {
 		return "", false
 	}
 	absolute, absErr := filepath.Abs(candidate)

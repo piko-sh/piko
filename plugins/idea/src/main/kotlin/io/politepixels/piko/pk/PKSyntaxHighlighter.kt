@@ -225,6 +225,60 @@ class PKSyntaxHighlighter : SyntaxHighlighterBase() {
 
         /** Empty dispatch key for tokens with no highlighting. */
         private val EMPTY_KEYS = emptyArray<TextAttributesKey>()
+
+        /** Highlight keys for each token type; token types not listed are left unhighlighted. */
+        private val TOKEN_HIGHLIGHTS: Map<IElementType, Array<TextAttributesKey>> = mapOf(
+            PKTokenTypes.TEMPLATE_TAG_START to STRUCTURAL_TAG_KEYS,
+            PKTokenTypes.TEMPLATE_TAG_END to STRUCTURAL_TAG_KEYS,
+            PKTokenTypes.SCRIPT_TAG_START to STRUCTURAL_TAG_KEYS,
+            PKTokenTypes.SCRIPT_TAG_END to STRUCTURAL_TAG_KEYS,
+            PKTokenTypes.STYLE_TAG_START to STRUCTURAL_TAG_KEYS,
+            PKTokenTypes.STYLE_TAG_END to STRUCTURAL_TAG_KEYS,
+            PKTokenTypes.I18N_TAG_START to STRUCTURAL_TAG_KEYS,
+            PKTokenTypes.I18N_TAG_END to STRUCTURAL_TAG_KEYS,
+            PKTokenTypes.TAG_END_GT to TAG_BRACKET_KEYS,
+            PKTokenTypes.ATTR_NAME to ATTRIBUTE_KEYS,
+            PKTokenTypes.ATTR_VALUE to ATTRIBUTE_VALUE_KEYS,
+            PKTokenTypes.HTML_TAG_NAME to HTML_TAG_NAME_KEYS,
+            PKTokenTypes.HTML_TAG_OPEN to HTML_TAG_BRACKET_KEYS,
+            PKTokenTypes.HTML_TAG_CLOSE to HTML_TAG_BRACKET_KEYS,
+            PKTokenTypes.HTML_TAG_SELF_CLOSE to HTML_TAG_BRACKET_KEYS,
+            PKTokenTypes.HTML_END_TAG_OPEN to HTML_TAG_BRACKET_KEYS,
+            PKTokenTypes.PIKO_TAG_NAME to PIKO_COMPONENT_KEYS,
+            PKTokenTypes.HTML_ATTR_NAME to ATTRIBUTE_KEYS,
+            PKTokenTypes.HTML_ATTR_VALUE to ATTRIBUTE_VALUE_KEYS,
+            PKTokenTypes.HTML_ATTR_QUOTE to ATTRIBUTE_QUOTE_KEYS,
+            PKTokenTypes.DIRECTIVE_NAME to DIRECTIVE_KEYS,
+            PKTokenTypes.DIRECTIVE_BIND to DIRECTIVE_BIND_KEYS,
+            PKTokenTypes.DIRECTIVE_EVENT to DIRECTIVE_EVENT_KEYS,
+            PKTokenTypes.INTERPOLATION_OPEN to INTERPOLATION_BRACKET_KEYS,
+            PKTokenTypes.INTERPOLATION_CLOSE to INTERPOLATION_BRACKET_KEYS,
+            PKTokenTypes.EXPR_BOOLEAN to EXPR_BOOLEAN_KEYS,
+            PKTokenTypes.EXPR_NUMBER to EXPR_NUMBER_KEYS,
+            PKTokenTypes.EXPR_STRING to EXPR_STRING_KEYS,
+            PKTokenTypes.EXPR_STRING_QUOTE to EXPR_STRING_QUOTE_KEYS,
+            PKTokenTypes.EXPR_ESCAPE to EXPR_ESCAPE_KEYS,
+            PKTokenTypes.EXPR_OP_COMPARISON to EXPR_OPERATOR_KEYS,
+            PKTokenTypes.EXPR_OP_LOGICAL to EXPR_OPERATOR_KEYS,
+            PKTokenTypes.EXPR_OP_ARITHMETIC to EXPR_OPERATOR_KEYS,
+            PKTokenTypes.EXPR_OP_DOT to EXPR_DOT_KEYS,
+            PKTokenTypes.EXPR_PAREN_OPEN to EXPR_PAREN_KEYS,
+            PKTokenTypes.EXPR_PAREN_CLOSE to EXPR_PAREN_KEYS,
+            PKTokenTypes.EXPR_BRACKET_OPEN to EXPR_BRACKET_KEYS,
+            PKTokenTypes.EXPR_BRACKET_CLOSE to EXPR_BRACKET_KEYS,
+            PKTokenTypes.EXPR_BRACE_OPEN to EXPR_BRACE_KEYS,
+            PKTokenTypes.EXPR_BRACE_CLOSE to EXPR_BRACE_KEYS,
+            PKTokenTypes.EXPR_COMMA to EXPR_COMMA_KEYS,
+            PKTokenTypes.EXPR_COLON to EXPR_COLON_KEYS,
+            PKTokenTypes.EXPR_BUILTIN to EXPR_BUILTIN_KEYS,
+            PKTokenTypes.EXPR_CONTEXT_VAR to EXPR_CONTEXT_VAR_KEYS,
+            PKTokenTypes.EXPR_FUNCTION_NAME to EXPR_FUNCTION_KEYS,
+            PKTokenTypes.EXPR_IDENTIFIER to EXPR_IDENTIFIER_KEYS,
+            PKTokenTypes.TEMPLATE_INTERP_OPEN to TEMPLATE_INTERP_KEYS,
+            PKTokenTypes.TEMPLATE_INTERP_CLOSE to TEMPLATE_INTERP_KEYS,
+            PKTokenTypes.TEXT_CONTENT to TEXT_KEYS,
+            PKTokenTypes.HTML_COMMENT to COMMENT_KEYS
+        )
     }
 
     /**
@@ -241,83 +295,6 @@ class PKSyntaxHighlighter : SyntaxHighlighterBase() {
      * @return An array of text attribute keys for highlighting, or empty if none.
      */
     override fun getTokenHighlights(tokenType: IElementType?): Array<TextAttributesKey> {
-        return when (tokenType) {
-            PKTokenTypes.TEMPLATE_TAG_START,
-            PKTokenTypes.TEMPLATE_TAG_END,
-            PKTokenTypes.SCRIPT_TAG_START,
-            PKTokenTypes.SCRIPT_TAG_END,
-            PKTokenTypes.STYLE_TAG_START,
-            PKTokenTypes.STYLE_TAG_END,
-            PKTokenTypes.I18N_TAG_START,
-            PKTokenTypes.I18N_TAG_END -> STRUCTURAL_TAG_KEYS
-
-            PKTokenTypes.TAG_END_GT -> TAG_BRACKET_KEYS
-
-            PKTokenTypes.ATTR_NAME -> ATTRIBUTE_KEYS
-            PKTokenTypes.ATTR_VALUE -> ATTRIBUTE_VALUE_KEYS
-
-            PKTokenTypes.HTML_TAG_NAME -> HTML_TAG_NAME_KEYS
-
-            PKTokenTypes.HTML_TAG_OPEN,
-            PKTokenTypes.HTML_TAG_CLOSE,
-            PKTokenTypes.HTML_TAG_SELF_CLOSE,
-            PKTokenTypes.HTML_END_TAG_OPEN -> HTML_TAG_BRACKET_KEYS
-
-            PKTokenTypes.PIKO_TAG_NAME -> PIKO_COMPONENT_KEYS
-
-            PKTokenTypes.HTML_ATTR_NAME -> ATTRIBUTE_KEYS
-            PKTokenTypes.HTML_ATTR_VALUE -> ATTRIBUTE_VALUE_KEYS
-            PKTokenTypes.HTML_ATTR_QUOTE -> ATTRIBUTE_QUOTE_KEYS
-
-            PKTokenTypes.DIRECTIVE_NAME -> DIRECTIVE_KEYS
-            PKTokenTypes.DIRECTIVE_BIND -> DIRECTIVE_BIND_KEYS
-            PKTokenTypes.DIRECTIVE_EVENT -> DIRECTIVE_EVENT_KEYS
-
-            PKTokenTypes.INTERPOLATION_OPEN,
-            PKTokenTypes.INTERPOLATION_CLOSE -> INTERPOLATION_BRACKET_KEYS
-
-            PKTokenTypes.EXPR_BOOLEAN -> EXPR_BOOLEAN_KEYS
-            PKTokenTypes.EXPR_NUMBER -> EXPR_NUMBER_KEYS
-            PKTokenTypes.EXPR_STRING -> EXPR_STRING_KEYS
-            PKTokenTypes.EXPR_STRING_QUOTE -> EXPR_STRING_QUOTE_KEYS
-            PKTokenTypes.EXPR_ESCAPE -> EXPR_ESCAPE_KEYS
-
-            PKTokenTypes.EXPR_OP_COMPARISON,
-            PKTokenTypes.EXPR_OP_LOGICAL,
-            PKTokenTypes.EXPR_OP_ARITHMETIC -> EXPR_OPERATOR_KEYS
-
-            PKTokenTypes.EXPR_OP_DOT -> EXPR_DOT_KEYS
-
-            PKTokenTypes.EXPR_PAREN_OPEN,
-            PKTokenTypes.EXPR_PAREN_CLOSE -> EXPR_PAREN_KEYS
-
-            PKTokenTypes.EXPR_BRACKET_OPEN,
-            PKTokenTypes.EXPR_BRACKET_CLOSE -> EXPR_BRACKET_KEYS
-
-            PKTokenTypes.EXPR_BRACE_OPEN,
-            PKTokenTypes.EXPR_BRACE_CLOSE -> EXPR_BRACE_KEYS
-
-            PKTokenTypes.EXPR_COMMA -> EXPR_COMMA_KEYS
-            PKTokenTypes.EXPR_COLON -> EXPR_COLON_KEYS
-
-            PKTokenTypes.EXPR_BUILTIN -> EXPR_BUILTIN_KEYS
-            PKTokenTypes.EXPR_CONTEXT_VAR -> EXPR_CONTEXT_VAR_KEYS
-            PKTokenTypes.EXPR_FUNCTION_NAME -> EXPR_FUNCTION_KEYS
-            PKTokenTypes.EXPR_IDENTIFIER -> EXPR_IDENTIFIER_KEYS
-
-            PKTokenTypes.TEMPLATE_INTERP_OPEN,
-            PKTokenTypes.TEMPLATE_INTERP_CLOSE -> TEMPLATE_INTERP_KEYS
-
-            PKTokenTypes.TEXT_CONTENT -> TEXT_KEYS
-
-            PKTokenTypes.HTML_COMMENT -> COMMENT_KEYS
-
-            PKTokenTypes.GO_SCRIPT_CONTENT,
-            PKTokenTypes.JS_SCRIPT_CONTENT,
-            PKTokenTypes.CSS_STYLE_CONTENT,
-            PKTokenTypes.I18N_CONTENT -> EMPTY_KEYS
-
-            else -> EMPTY_KEYS
-        }
+        return TOKEN_HIGHLIGHTS[tokenType] ?: EMPTY_KEYS
     }
 }

@@ -27,7 +27,7 @@ export default createEslintConfig({
   js, tseslint, tsparser, jsdoc, promise,
   globals: NODE_GLOBALS,
   testGlobals: NODE_TEST_GLOBALS,
-  ignores: ["node_modules/**", "out/**", ".vscode-test/**"],
+  ignores: ["node_modules/**", "out/**", ".vscode-test/**", "coverage/**", "vitest.config.ts"],
   extraConfigBlocks: [
     {
       files: ["**/*.ts"],
@@ -35,6 +35,7 @@ export default createEslintConfig({
     },
     {
       files: ["esbuild.js"],
+      languageOptions: { globals: NODE_GLOBALS, sourceType: "commonjs" },
       rules: {
         "jsdoc/require-jsdoc": "off",
         "@typescript-eslint/no-magic-numbers": "off",

@@ -19,16 +19,15 @@
 
 package io.politepixels.piko.pk.injection
 
-import com.intellij.openapi.components.serviceIfCreated
 import com.intellij.lang.Language
 import com.intellij.lang.injection.MultiHostInjector
 import com.intellij.lang.injection.MultiHostRegistrar
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import io.politepixels.piko.pk.PKPRefExtractor
 import io.politepixels.piko.pk.psi.impl.PkJsScriptContentElementImpl
-import io.politepixels.piko.pk.service.PikoTypeDefinitionService
 
 /** Logger for the TypeScript language injector. */
 private val LOG = Logger.getInstance(PKTypeScriptLanguageInjector::class.java)
@@ -40,13 +39,11 @@ private val LOG = Logger.getInstance(PKTypeScriptLanguageInjector::class.java)
  * ECMAScript 6 or JavaScript if TypeScript is not available. Enables
  * IntelliJ's JavaScript plugin to provide code intelligence.
  *
- * Type definitions from `dist/ts/` are injected as a suffix to provide
- * autocomplete for the `piko` namespace and server-side actions without
- * requiring explicit imports. Placing them in the suffix (rather than
- * the prefix) keeps user code element offsets small, avoiding
- * `LineMarkerInfo.createElementRef` range validation failures when
- * `JavaScriptLineMarkerProvider` maps injected offsets against the
- * host file bounds.
+ * The `piko` namespace and action declarations come from `piko-ide.d.ts`
+ * and `piko-actions.d.ts`, which [io.politepixels.piko.pk.js.PikoTypeDefinitionsLibraryProvider]
+ * exposes as a library, so they are indexed once rather than re-parsed into
+ * every fragment. Only the small per-file `pk`/`pkc` declaration, which
+ * depends on the file's `p-ref` names, is injected as a suffix.
  */
 class PKTypeScriptLanguageInjector : MultiHostInjector {
 
@@ -75,8 +72,8 @@ class PKTypeScriptLanguageInjector : MultiHostInjector {
      *
      * Tries TypeScript first, then ECMAScript 6, then JavaScript as fallbacks.
      * Lib reference directives go in the prefix (must precede code for the
-     * TypeScript compiler to process them). Type definitions go in the suffix
-     * so that user code element offsets stay small.
+     * TypeScript compiler to process them). The per-file context declaration
+     * goes in the suffix so that user code element offsets stay small.
      *
      * @param registrar The registrar for adding injection places.
      * @param context The PSI element to inject TypeScript into.
@@ -93,11 +90,10 @@ class PKTypeScriptLanguageInjector : MultiHostInjector {
             return
         }
 
-        val typeSuffix = getTypeSuffix(context)
         val refsDeclaration = getRefsDeclaration(context)
 
         registrar.startInjecting(language)
-        registrar.addPlace(LIB_REFERENCES, typeSuffix + refsDeclaration, context, TextRange(0, context.textLength))
+        registrar.addPlace(LIB_REFERENCES, refsDeclaration, context, TextRange(0, context.textLength))
         registrar.doneInjecting()
     }
 
@@ -122,31 +118,10 @@ class PKTypeScriptLanguageInjector : MultiHostInjector {
             } else {
                 PKPRefExtractor.generatePKDeclaration(refNames)
             }
+        } catch (e: ProcessCanceledException) {
+            throw e
         } catch (e: Exception) {
-            LOG.debug("Failed to extract p-ref names: ${e.message}")
-            ""
-        }
-    }
-
-    /**
-     * Gets the type definition suffix for injection.
-     *
-     * Retrieves cached type definitions from the PikoTypeDefinitionService,
-     * which reads `.d.ts` files from the project's `dist/ts/` directory.
-     *
-     * Only accesses the service after IDE components are fully loaded to avoid
-     * initialization errors during early startup.
-     *
-     * @param context The PSI element context to get the project from.
-     * @return The type definition content to inject as a suffix, or empty string
-     *         if no definitions are available or IDE is not fully loaded.
-     */
-    private fun getTypeSuffix(context: PsiElement): String {
-        val typeService = context.project.serviceIfCreated<PikoTypeDefinitionService>() ?: return ""
-        return try {
-            typeService.getTypePrefix()
-        } catch (e: Exception) {
-            LOG.debug("Failed to get type definitions: ${e.message}")
+            LOG.warn("Failed to extract p-ref names: ${e.message}", e)
             ""
         }
     }

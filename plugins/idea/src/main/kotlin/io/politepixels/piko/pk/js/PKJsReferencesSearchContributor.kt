@@ -16,7 +16,6 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-
 package io.politepixels.piko.pk.js
 
 import com.intellij.lang.injection.InjectedLanguageManager
@@ -26,114 +25,95 @@ import com.intellij.openapi.application.QueryExecutorBase
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiRecursiveElementVisitor
+import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.PsiReference
 import com.intellij.psi.PsiReferenceBase
 import com.intellij.psi.search.searches.ReferencesSearch
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.Processor
-import io.politepixels.piko.pk.PKTokenTypes
+import io.politepixels.piko.pk.PKTemplateReferenceScanner
 import io.politepixels.piko.pk.psi.impl.PkJsScriptContentElementImpl
 
 /**
- * Contributes Find Usages results for JavaScript functions defined in PK
- * script blocks.
+ * Finds template usages of JavaScript/TypeScript functions and variables
+ * declared at the top level of a `.pk` or `.pkc` script block.
  *
- * When the user invokes "Find Usages" on a JS function or variable inside a
- * PK file's `<script>` block, this contributor scans the same file's template
- * section for matching handler references in directive expressions:
- *
- * - **Function call references** - `p-on:click="openModal()"` where
- *   `openModal` is an `EXPR_FUNCTION_NAME` token.
- *
- * - **Bare identifier references** - `p-on:click="handler"` where `handler`
- *   is an `EXPR_IDENTIFIER` token.
- *
- * Results are returned as [PsiReference] objects that resolve back to the
- * original JS function or variable, enabling navigation from usage to
- * definition.
+ * Handlers such as `p-on:click="togglePanel"` name script declarations from
+ * the PK template, which the JavaScript plugin cannot see. Only bare
+ * identifiers are candidates, and each is resolved against the script's
+ * top-level declarations before it is reported, so a nested local with the
+ * same name is never matched.
  */
 class PKJsReferencesSearchContributor :
     QueryExecutorBase<PsiReference, ReferencesSearch.SearchParameters>(true) {
 
     /**
-     * Processes a Find Usages query for a JS function inside a PK script block.
+     * Processes a reference search for a JS function or variable.
      *
      * @param parameters The search parameters containing the target element.
-     * @param consumer   The processor that receives found references.
+     * @param consumer The processor to receive found references.
      */
     override fun processQuery(
         parameters: ReferencesSearch.SearchParameters,
         consumer: Processor<in PsiReference>
     ) {
         val target = parameters.elementToSearch
-        val functionName = when (target) {
-            is JSFunction -> target.name
-            is JSVariable -> target.name
-            else -> return
-        } ?: return
+        if (target !is JSFunction && target !is JSVariable) return
+        val name = (target as? PsiNamedElement)?.name ?: return
 
         val project = target.project
-        val host = InjectedLanguageManager.getInstance(project)
-            .getInjectionHost(target) ?: return
+        val host = InjectedLanguageManager.getInstance(project).getInjectionHost(target)
         if (host !is PkJsScriptContentElementImpl) return
-
+        val scriptFile = target.containingFile ?: return
         val pkFile = host.containingFile ?: return
-        scanForHandlerUsages(pkFile, functionName, target, consumer)
-    }
+        val manager = target.manager
 
-    /**
-     * Walks the PK file's PSI tree looking for template tokens that reference
-     * the given function name.
-     *
-     * @param file     The PK file to scan.
-     * @param functionName The JS function name to search for.
-     * @param target   The JS function element that references resolve to.
-     * @param consumer The processor that receives found references.
-     */
-    private fun scanForHandlerUsages(
-        file: PsiFile,
-        functionName: String,
-        target: PsiElement,
-        consumer: Processor<in PsiReference>
-    ) {
-        file.accept(object : PsiRecursiveElementVisitor() {
-            override fun visitElement(element: PsiElement) {
-                val elementType = element.node?.elementType
+        val declaration = PKJsTemplateReference.findTopLevelDeclaration(scriptFile, name)
+        if (!manager.areElementsEquivalent(declaration, target)) return
 
-                if (elementType == PKTokenTypes.EXPR_FUNCTION_NAME ||
-                    elementType == PKTokenTypes.EXPR_IDENTIFIER
-                ) {
-                    if (element.text == functionName) {
-                        val range = TextRange(0, element.textLength)
-                        val ref = PKJsFunctionReference(element, range, target)
-                        if (!consumer.process(ref)) return
-                    }
-                }
-
-                super.visitElement(element)
+        PKTemplateReferenceScanner.scan(pkFile, PKTemplateReferenceScanner.IDENTIFIER_TYPES, consumer) { element ->
+            if (element.text != name || PKTemplateReferenceScanner.isMemberAccess(element)) {
+                emptyList()
+            } else {
+                listOf(PKJsTemplateReference(element, scriptFile))
             }
-        })
+        }
     }
 }
 
 /**
- * A lightweight PSI reference from a PK template expression token to a
- * JavaScript function or variable in the script block.
+ * Reference from a template identifier to a top-level script declaration.
  *
- * @param element The PK template PSI element containing the handler reference.
- * @param range   The text range of the function name within the element.
- * @param target  The JS function or variable this reference resolves to.
+ * @param element The template identifier token.
+ * @param scriptFile The injected JavaScript/TypeScript file of the same PK file.
  */
-private class PKJsFunctionReference(
+private class PKJsTemplateReference(
     element: PsiElement,
-    range: TextRange,
-    private val target: PsiElement
-) : PsiReferenceBase<PsiElement>(element, range, true) {
+    private val scriptFile: PsiFile
+) : PsiReferenceBase<PsiElement>(element, TextRange(0, element.textLength), true) {
 
     /**
-     * Resolves this reference to the target JS function element.
+     * Resolves the identifier to a top-level function or variable.
      *
-     * @return The JS function or variable this reference points to.
+     * @return The declaration, or null when the script declares none with this name.
      */
-    override fun resolve(): PsiElement = target
+    override fun resolve(): PsiElement? = findTopLevelDeclaration(scriptFile, element.text)
+
+    companion object {
+        /**
+         * Finds the top-level function or variable with the given name.
+         *
+         * @param scriptFile The injected JavaScript/TypeScript file.
+         * @param name The identifier text.
+         * @return The declaration, or null when the script declares none with this name.
+         */
+        fun findTopLevelDeclaration(scriptFile: PsiFile, name: String): PsiElement? =
+            PsiTreeUtil.findChildrenOfAnyType(scriptFile, JSFunction::class.java, JSVariable::class.java)
+                .asSequence()
+                .filterIsInstance<PsiNamedElement>()
+                .firstOrNull { declaration ->
+                    declaration.name == name &&
+                        PsiTreeUtil.getParentOfType(declaration, JSFunction::class.java, true) == null
+                }
+    }
 }

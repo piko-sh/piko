@@ -40,9 +40,10 @@ private val LOG = Logger.getInstance(PkGoImportResolver::class.java)
 /**
  * Resolves Go import paths for injected Go code in PK files.
  *
- * Handles import resolution for local modules and replacement modules defined
- * in go.mod. Defers standard library and external module imports to the
- * default Go import resolver.
+ * Handles import resolution for local modules, replacement modules defined
+ * in go.mod, and `.pk` component imports (which resolve to the component's
+ * injected Go script). Defers standard library and external module imports
+ * to the default Go import resolver.
  */
 class PkGoImportResolver : GoImportResolver {
 
@@ -82,15 +83,14 @@ class PkGoImportResolver : GoImportResolver {
 
         LOG.debug("PkGoImportResolver: Handling import '$importPath' in PK context: ${hostVirtualFile.path}")
 
-        if (importPath.endsWith(".pk")) {
-            LOG.debug("  -> Deferring .pk import to PkGoImportPathReference.")
-            return null
-        }
-
         val moduleInfo = project.service<PikoModuleIndexService>().getModuleInfo(hostVirtualFile)
         if (moduleInfo == null) {
             LOG.debug("  -> Could not find module info for host file. Deferring.")
             return null
+        }
+
+        if (PkComponentImports.isComponentImport(importPath)) {
+            return resolveComponentImport(importPath, moduleInfo, project)
         }
 
         tryResolveReplacement(importPath, moduleInfo, project, module)?.let { return it }
@@ -98,6 +98,34 @@ class PkGoImportResolver : GoImportResolver {
 
         LOG.debug("  -> FAILED to resolve '$importPath' as a local/replaced module path. Deferring.")
         return null
+    }
+
+    /**
+     * Resolves a `.pk` component import to the component's injected Go package.
+     *
+     * @param importPath The `.pk` import path.
+     * @param moduleInfo The module containing the importing file.
+     * @param project The current project.
+     * @return The component package, or null when the component or its Go script cannot be found.
+     */
+    private fun resolveComponentImport(
+        importPath: String,
+        moduleInfo: PikoModuleInfo,
+        project: Project
+    ): Collection<GoPackage>? {
+        val componentFile = PkComponentImports.resolveFile(importPath, moduleInfo)
+        if (componentFile == null) {
+            LOG.debug("  -> Component '$importPath' not found under module '${moduleInfo.modulePath}'.")
+            return null
+        }
+        val goFile = PkComponentImports.findInjectedGoFile(project, componentFile)
+        if (goFile == null) {
+            LOG.debug("  -> Component '${componentFile.path}' has no Go script block.")
+            return null
+        }
+        val componentDirectory = componentFile.parent ?: return null
+        LOG.debug("    -> SUCCESS (Component): Resolved '$importPath' to '${componentFile.path}'")
+        return listOf(PkComponentGoPackage(project, goFile, componentFile, componentDirectory, importPath))
     }
 
     /**

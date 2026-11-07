@@ -41,10 +41,15 @@
 //   - --tcp: Use TCP mode instead of stdio
 //   - --host: TCP host to bind to (default 127.0.0.1)
 //   - --port: TCP port to listen on (default 4389)
+//   - --max-connections: Maximum concurrent TCP connections (default 64; plugins that
+//     launch a private TCP server pass 1)
 //   - --formatting: Enable document formatting capabilities
-//   - --file-logging: Enable file logging to /tmp/pikopls-<pid>.log
+//   - --file-logging: Enable file logging to pikopls-<pid>.log in the OS temporary
+//     directory
+//   - --log-file: Write debug logs to this exact path (implies --file-logging)
 //   - --pprof: Enable pprof profiling server
 //   - --pprof-port: Port for the pprof HTTP server (default 6060)
+//   - --version: Print the pikopls version and exit
 //
 // # Integration
 //

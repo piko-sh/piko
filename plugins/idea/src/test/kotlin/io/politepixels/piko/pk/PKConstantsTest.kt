@@ -31,7 +31,8 @@ class PKConstantsTest {
         assertTrue("Should contain js", PKConstants.ScriptLang.JS in PKConstants.ScriptLang.JS_LANGUAGES)
         assertTrue("Should contain javascript", PKConstants.ScriptLang.JAVASCRIPT in PKConstants.ScriptLang.JS_LANGUAGES)
         assertTrue("Should contain typescript", PKConstants.ScriptLang.TYPESCRIPT in PKConstants.ScriptLang.JS_LANGUAGES)
-        assertEquals("Should have exactly 3 languages", 3, PKConstants.ScriptLang.JS_LANGUAGES.size)
+        assertTrue("Should contain ts", PKConstants.ScriptLang.TS in PKConstants.ScriptLang.JS_LANGUAGES)
+        assertEquals("Should have exactly 4 languages", 4, PKConstants.ScriptLang.JS_LANGUAGES.size)
     }
 
     @Test

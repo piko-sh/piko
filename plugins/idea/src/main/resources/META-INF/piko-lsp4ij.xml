@@ -1,4 +1,10 @@
 <idea-plugin>
+    <extensions defaultExtensionNs="com.intellij">
+        <applicationService
+            serviceInterface="io.politepixels.piko.pk.lsp.PikoLspController"
+            serviceImplementation="io.politepixels.piko.pk.lsp.Lsp4ijPikoLspController"/>
+    </extensions>
+
     <extensions defaultExtensionNs="com.redhat.devtools.lsp4ij">
         <server
             id="pikoLsp"
@@ -14,4 +20,20 @@
             language="PK"
             serverId="pikoLsp"/>
     </extensions>
+
+    <actions>
+        <action id="Piko.RestartLsp"
+                class="io.politepixels.piko.pk.actions.RestartLspAction"
+                text="Restart LSP Server"
+                description="Restart the Piko language server">
+            <add-to-group group-id="Piko.ToolsMenu" anchor="first"/>
+        </action>
+
+        <action id="Piko.ShowLspOutput"
+                class="io.politepixels.piko.pk.actions.ShowLspOutputAction"
+                text="Show LSP Output"
+                description="Show the Piko LSP output panel">
+            <add-to-group group-id="Piko.ToolsMenu" anchor="after" relative-to-action="Piko.RestartLsp"/>
+        </action>
+    </actions>
 </idea-plugin>

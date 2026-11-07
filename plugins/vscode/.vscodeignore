@@ -1,34 +1,40 @@
 # Source files (we only need compiled output)
 src/**
 tsconfig.json
+esbuild.js
+eslint.config.mjs
+vitest.config.ts
+.jscpd.json
 
 # Development files
 .vscode-test/**
 .vscode/**
+launch.json
 .gitignore
-.eslintrc.json
+test/**
+test-workspace/**
+coverage/**
 
 # Build artefacts
-*.map
-*.ts
-!*.d.ts
+**/*.map
+**/*.ts
+*.vsix
+
+# Stray files at the root of bin/ (only bin/<os>-<arch>/ directories ship)
+bin/*
+!bin/*-*/
 
 # Node modules (bundled by esbuild, no need to include)
 node_modules/**
 
-# Documentation for development
-CONTRIBUTING.md
+# Documentation for development (README.md and CHANGELOG.md ship)
 *.md
 !README.md
+!CHANGELOG.md
 
 # Git files
 .git/**
 .github/**
-
-# Test files
-test/**
-**/*.test.ts
-**/*.test.js
 
 # Editor files
 .DS_Store
@@ -45,6 +51,3 @@ yarn-error.log*
 # Temporary files
 tmp/**
 temp/**
-
-# esbuild files
-esbuild.js

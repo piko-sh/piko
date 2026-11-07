@@ -27,6 +27,7 @@ import (
 func init() {
 	pretouchTypes := []reflect.Type{
 		reflect.TypeFor[loadErrorRecord](),
+		reflect.TypeFor[[]githubRelease](),
 	}
 
 	for _, t := range pretouchTypes {

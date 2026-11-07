@@ -75,36 +75,27 @@ extern "C" {
     old_count, new_count, new_contents                                 \
   )
 
-
 #define array_insert(self, _index, element) \
   _array__splice((Array *)(self), array_elem_size(self), _index, 0, 1, &(element))
-
 
 #define array_erase(self, _index) \
   _array__erase((Array *)(self), array_elem_size(self), _index)
 
-
 #define array_pop(self) ((self)->contents[--(self)->size])
-
 
 #define array_assign(self, other) \
   _array__assign((Array *)(self), (const Array *)(other), array_elem_size(self))
 
-
 #define array_swap(self, other) \
   _array__swap((Array *)(self), (Array *)(other))
 
-
 #define array_elem_size(self) (sizeof *(self)->contents)
-
 
 #define array_search_sorted_with(self, compare, needle, _index, _exists) \
   _array__search_sorted(self, 0, compare, , needle, _index, _exists)
 
-
 #define array_search_sorted_by(self, field, needle, _index, _exists) \
   _array__search_sorted(self, 0, _compare_int, field, needle, _index, _exists)
-
 
 #define array_insert_sorted_with(self, compare, value) \
   do { \
@@ -112,7 +103,6 @@ extern "C" {
     array_search_sorted_with(self, compare, &(value), &_index, &_exists); \
     if (!_exists) array_insert(self, _index, value); \
   } while (0)
-
 
 #define array_insert_sorted_by(self, field, value) \
   do { \

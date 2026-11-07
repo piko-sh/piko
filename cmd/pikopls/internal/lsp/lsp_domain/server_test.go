@@ -20,13 +20,14 @@ package lsp_domain
 
 import (
 	"context"
-	"slices"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	protocol "github.com/politepixels/golang-language-server"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/config"
 )
 
@@ -63,85 +64,6 @@ func TestNewServer_FormattingDisabled(t *testing.T) {
 
 	if server.formattingEnabled {
 		t.Error("expected formattingEnabled to be false")
-	}
-}
-
-func TestBuildServerCapabilities_FormattingEnabled(t *testing.T) {
-	caps := buildServerCapabilities(true)
-
-	if enabled, ok := caps.DocumentFormattingProvider.(bool); !ok || !enabled {
-		t.Error("expected DocumentFormattingProvider to be true")
-	}
-	if enabled, ok := caps.DocumentRangeFormattingProvider.(bool); !ok || !enabled {
-		t.Error("expected DocumentRangeFormattingProvider to be true")
-	}
-	if caps.DocumentOnTypeFormattingProvider == nil {
-		t.Error("expected DocumentOnTypeFormattingProvider to be non-nil")
-	}
-}
-
-func TestBuildServerCapabilities_FormattingDisabled(t *testing.T) {
-	caps := buildServerCapabilities(false)
-
-	if enabled, ok := caps.DocumentFormattingProvider.(bool); ok && enabled {
-		t.Error("expected DocumentFormattingProvider to be false")
-	}
-	if enabled, ok := caps.DocumentRangeFormattingProvider.(bool); ok && enabled {
-		t.Error("expected DocumentRangeFormattingProvider to be false")
-	}
-	if caps.DocumentOnTypeFormattingProvider != nil {
-		t.Error("expected DocumentOnTypeFormattingProvider to be nil")
-	}
-}
-
-func TestBuildServerCapabilities_CoreCapabilities(t *testing.T) {
-	caps := buildServerCapabilities(true)
-
-	if enabled, ok := caps.HoverProvider.(bool); !ok || !enabled {
-		t.Error("expected HoverProvider to be true")
-	}
-	if enabled, ok := caps.DefinitionProvider.(bool); !ok || !enabled {
-		t.Error("expected DefinitionProvider to be true")
-	}
-	if enabled, ok := caps.DocumentSymbolProvider.(bool); !ok || !enabled {
-		t.Error("expected DocumentSymbolProvider to be true")
-	}
-	if enabled, ok := caps.FoldingRangeProvider.(bool); !ok || !enabled {
-		t.Error("expected FoldingRangeProvider to be true")
-	}
-	if enabled, ok := caps.CodeActionProvider.(bool); !ok || !enabled {
-		t.Error("expected CodeActionProvider to be true")
-	}
-	if caps.CompletionProvider == nil {
-		t.Error("expected CompletionProvider to be non-nil")
-	}
-	if caps.SignatureHelpProvider == nil {
-		t.Error("expected SignatureHelpProvider to be non-nil")
-	}
-	if caps.RenameProvider == nil {
-		t.Error("expected RenameProvider to be non-nil")
-	}
-}
-
-func TestBuildOnTypeFormattingOptions_Enabled(t *testing.T) {
-	opts := buildOnTypeFormattingOptions(true)
-
-	if opts == nil {
-		t.Fatal("expected non-nil options")
-	}
-	if opts.FirstTriggerCharacter != "\n" {
-		t.Errorf("expected FirstTriggerCharacter to be newline, got %q", opts.FirstTriggerCharacter)
-	}
-	if len(opts.MoreTriggerCharacter) == 0 {
-		t.Error("expected MoreTriggerCharacter to have elements")
-	}
-}
-
-func TestBuildOnTypeFormattingOptions_Disabled(t *testing.T) {
-	opts := buildOnTypeFormattingOptions(false)
-
-	if opts != nil {
-		t.Error("expected nil options when disabled")
 	}
 }
 
@@ -350,49 +272,6 @@ func TestServer_ExtractRootURI_FallbackToRootURI(t *testing.T) {
 	}
 }
 
-func TestServer_CompletionProvider_HasTriggerCharacters(t *testing.T) {
-	caps := buildServerCapabilities(true)
-
-	if caps.CompletionProvider == nil {
-		t.Fatal("expected non-nil CompletionProvider")
-	}
-	if len(caps.CompletionProvider.TriggerCharacters) == 0 {
-		t.Error("expected TriggerCharacters to have elements")
-	}
-
-	triggers := make(map[string]bool)
-	for _, triggerCharacter := range caps.CompletionProvider.TriggerCharacters {
-		triggers[triggerCharacter] = true
-	}
-
-	if !triggers["."] {
-		t.Error("expected dot (.) in TriggerCharacters for member access")
-	}
-
-	if !triggers["-"] {
-		t.Error("expected hyphen (-) in TriggerCharacters for directive completions")
-	}
-
-	if !triggers["\""] {
-		t.Error("expected quote (\") in TriggerCharacters for directive value completions")
-	}
-}
-
-func TestServer_SignatureHelpProvider_HasTriggerCharacters(t *testing.T) {
-	caps := buildServerCapabilities(true)
-
-	if caps.SignatureHelpProvider == nil {
-		t.Fatal("expected non-nil SignatureHelpProvider")
-	}
-	if len(caps.SignatureHelpProvider.TriggerCharacters) == 0 {
-		t.Error("expected TriggerCharacters to have elements")
-	}
-
-	if !slices.Contains(caps.SignatureHelpProvider.TriggerCharacters, "(") {
-		t.Error("expected open paren (() in TriggerCharacters")
-	}
-}
-
 func TestServer_GoBackground_TracksGoroutines(t *testing.T) {
 	server := &Server{}
 
@@ -481,4 +360,68 @@ func TestServer_GoBackground_NilContext_UsesBackground(t *testing.T) {
 	if !gotContext.Load() {
 		t.Error("expected non-nil context to be passed")
 	}
+}
+
+func TestServer_Initialized_RegistersWatchedFilesWhenSupported(t *testing.T) {
+	client := &registrationRecordingClient{}
+	server := NewServer(ServerDeps{DocCache: NewDocumentCache()})
+	server.client = client
+	server.initialisationParameters = watchedFilesParameters(true)
+
+	require.NoError(t, server.Initialized(t.Context(), &protocol.InitializedParams{}))
+	server.backgroundWg.Wait()
+
+	registrations := client.recorded()
+	require.Len(t, registrations, 1)
+	require.Len(t, registrations[0].Registrations, 1)
+
+	registration := registrations[0].Registrations[0]
+	assert.Equal(t, methodDidChangeWatchedFiles, registration.Method)
+	assert.Equal(t, watchedFilesRegistrationID, registration.ID)
+
+	options, ok := registration.RegisterOptions.(protocol.DidChangeWatchedFilesRegistrationOptions)
+	require.True(t, ok)
+	globs := make([]string, 0, len(options.Watchers))
+	for _, watcher := range options.Watchers {
+		globs = append(globs, watcher.GlobPattern)
+	}
+	assert.Equal(t, []string{"**/*.{pk,pkc,go}", "**/go.mod", "**/go.work"}, globs)
+}
+
+func TestServer_Initialized_SkipsRegistrationWithoutDynamicSupport(t *testing.T) {
+	testCases := []struct {
+		parameters *protocol.InitializeParams
+		name       string
+	}{
+		{name: "no initialisation parameters", parameters: nil},
+		{name: "no workspace capabilities", parameters: &protocol.InitializeParams{}},
+		{name: "dynamic registration disabled", parameters: watchedFilesParameters(false)},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			client := &registrationRecordingClient{}
+			server := NewServer(ServerDeps{DocCache: NewDocumentCache()})
+			server.client = client
+			server.initialisationParameters = testCase.parameters
+
+			require.NoError(t, server.Initialized(t.Context(), &protocol.InitializedParams{}))
+			server.backgroundWg.Wait()
+
+			assert.Empty(t, client.recorded())
+		})
+	}
+}
+
+func TestServer_Initialized_SkipsRegistrationWithoutClient(t *testing.T) {
+	server := NewServer(ServerDeps{DocCache: NewDocumentCache()})
+	server.initialisationParameters = watchedFilesParameters(true)
+
+	require.NoError(t, server.Initialized(t.Context(), &protocol.InitializedParams{}))
+	server.backgroundWg.Wait()
+}
+
+func TestNewServer_ServerVersion(t *testing.T) {
+	assert.Equal(t, defaultServerVersion, NewServer(ServerDeps{}).serverVersion)
+	assert.Equal(t, "1.2.3", NewServer(ServerDeps{ServerVersion: "1.2.3"}).serverVersion)
 }

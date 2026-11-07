@@ -17,7 +17,7 @@
 // strip others of their rights and dignity.
 
 import {describe, expect, it, vi} from 'vitest';
-import {PikoFoldingRangeProvider} from './foldingRangeProvider';
+import {MAX_FOLDING_RANGES, MAX_TAG_DEPTH, PikoFoldingRangeProvider} from './foldingRangeProvider';
 import {createMockDocument} from './test/mockTextDocument';
 
 vi.mock('vscode', () => ({
@@ -241,6 +241,100 @@ package main
 
             const innerUl = ranges.find(r => r.start === 3 && r.end === 5);
             expect(innerUl).toBeDefined();
+        });
+
+        it('should fold <piko:*> elements', () => {
+            const doc = createMockDocument(`<template>
+  <piko:svg src="icon.svg">
+    <title>Icon</title>
+  </piko:svg>
+</template>`);
+
+            const ranges = provider.provideFoldingRanges(doc as never, {} as never, {} as never);
+
+            expect(ranges.find(r => r.start === 1 && r.end === 3)).toBeDefined();
+        });
+
+        it('should fold nested <template p-for> elements and attributed templates', () => {
+            const doc = createMockDocument(`<template public>
+  <dl>
+    <template p-for="item in state.Items" p-key="item.ID">
+      <dt p-text="item.Term"></dt>
+    </template>
+  </dl>
+</template>`);
+
+            const ranges = provider.provideFoldingRanges(doc as never, {} as never, {} as never);
+
+            expect(ranges.find(r => r.start === 0 && r.end === 6 && r.kind === 3)).toBeDefined();
+            expect(ranges.find(r => r.start === 2 && r.end === 4)).toBeDefined();
+        });
+
+        it('should not fold markup-like text inside Go scripts', () => {
+            const doc = createMockDocument(`<script type="application/x-go">
+var s = "<div>
+</div>"
+</script>`);
+
+            const ranges = provider.provideFoldingRanges(doc as never, {} as never, {} as never);
+
+            expect(ranges).toHaveLength(1);
+            expect(ranges[0].kind).toBe(3);
+        });
+    });
+
+    describe('limits', () => {
+        it('folds an element whose children are left unclosed', () => {
+            const doc = createMockDocument(`<template>
+  <div>
+    <p>one
+    <p>two
+  </div>
+</template>`);
+
+            const ranges = provider.provideFoldingRanges(doc as never, {} as never, {} as never);
+
+            expect(ranges.find(r => r.start === 1 && r.end === 4)).toBeDefined();
+        });
+
+        it('stays fast on pathological markup', () => {
+            const body = '<div>\n{{\n<!--\n'.repeat(20_000);
+            const doc = createMockDocument(`<template>\n${body}</template>`);
+            const startedAt = performance.now();
+
+            provider.provideFoldingRanges(doc as never, {} as never, {} as never);
+
+            expect(performance.now() - startedAt).toBeLessThan(5000);
+        });
+
+        it('stops collecting once the request is cancelled', () => {
+            const doc = createMockDocument(`<template>
+  <div>
+  </div>
+</template>`);
+
+            const ranges = provider.provideFoldingRanges(doc as never, {} as never, {isCancellationRequested: true} as never);
+
+            expect(ranges).toHaveLength(0);
+        });
+
+        it('returns at most the maximum number of ranges', () => {
+            const body = '<b>\n</b>\n'.repeat(MAX_FOLDING_RANGES + 10);
+            const doc = createMockDocument(`<template>\n${body}</template>`);
+
+            const ranges = provider.provideFoldingRanges(doc as never, {} as never, {} as never);
+
+            expect(ranges).toHaveLength(MAX_FOLDING_RANGES);
+        });
+
+        it('does not fold elements nested deeper than the depth limit', () => {
+            const depth = MAX_TAG_DEPTH + 1;
+            const body = `${'<i>\n'.repeat(depth)}${'</i>\n'.repeat(depth)}`;
+            const doc = createMockDocument(`<template>\n${body}</template>`);
+
+            const ranges = provider.provideFoldingRanges(doc as never, {} as never, {} as never);
+
+            expect(ranges.filter(r => r.kind === undefined)).toHaveLength(MAX_TAG_DEPTH);
         });
     });
 });

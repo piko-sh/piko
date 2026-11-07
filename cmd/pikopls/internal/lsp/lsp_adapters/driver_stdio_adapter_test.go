@@ -19,6 +19,9 @@
 package lsp_adapters
 
 import (
+	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -30,6 +33,7 @@ import (
 	"piko.sh/piko/internal/inspector/inspector_domain"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 	"piko.sh/piko/internal/resolver/resolver_domain"
+	"piko.sh/safedisk"
 )
 
 type stdioStubCoordinatorService struct {
@@ -139,4 +143,107 @@ func TestNewStdioAdapter(t *testing.T) {
 		assert.Nil(t, adapter)
 		assert.Contains(t, err.Error(), "pathsConfig cannot be nil")
 	})
+}
+
+func TestSetupLogFile(t *testing.T) {
+	t.Parallel()
+
+	t.Run("creates log file with injected sandbox", func(t *testing.T) {
+		t.Parallel()
+
+		sandbox := safedisk.NewMockSandbox("/tmp", safedisk.ModeReadWrite)
+		defer func() { _ = sandbox.Close() }()
+
+		logSetup := setupLogFile(t.Context(), "/tmp/pikopls.log.protocol", sandbox, nil)
+
+		require.NotNil(t, logSetup)
+		assert.NotNil(t, logSetup.logFile)
+
+		assert.Nil(t, logSetup.sandbox)
+		logSetup.close()
+	})
+
+	t.Run("returns nil when OpenFile fails with injected sandbox", func(t *testing.T) {
+		t.Parallel()
+
+		sandbox := safedisk.NewMockSandbox("/tmp", safedisk.ModeReadWrite)
+		defer func() { _ = sandbox.Close() }()
+		sandbox.OpenFileErr = errors.New("permission denied")
+
+		logSetup := setupLogFile(t.Context(), "/tmp/pikopls.log.protocol", sandbox, nil)
+
+		assert.Nil(t, logSetup)
+	})
+
+	t.Run("returns nil without touching the filesystem when no path is configured", func(t *testing.T) {
+		t.Parallel()
+
+		sandbox := safedisk.NewMockSandbox("/tmp", safedisk.ModeReadWrite)
+		defer func() { _ = sandbox.Close() }()
+		sandbox.OpenFileErr = errors.New("must not be called")
+
+		assert.Nil(t, setupLogFile(t.Context(), "", sandbox, nil))
+		assert.Nil(t, setupLogFile(t.Context(), "", nil, nil))
+	})
+
+	t.Run("creates the protocol log at the configured path", func(t *testing.T) {
+		t.Parallel()
+
+		logPath := filepath.Join(t.TempDir(), "pikopls-test.log.protocol")
+
+		logSetup := setupLogFile(t.Context(), logPath, nil, nil)
+		require.NotNil(t, logSetup)
+		assert.NotNil(t, logSetup.sandbox, "a sandbox it created itself is owned and closed by the resources")
+		logSetup.close()
+
+		_, err := os.Stat(logPath)
+		assert.NoError(t, err)
+	})
+}
+
+func TestSetupLogFile_ReportsSandboxFailures(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns nil when the factory cannot create the sandbox", func(t *testing.T) {
+		t.Parallel()
+
+		factory := &failingSandboxFactory{err: errors.New("sandbox denied")}
+		assert.Nil(t, setupLogFile(t.Context(), filepath.Join(t.TempDir(), "pikopls.log.protocol"), nil, factory))
+	})
+
+	t.Run("returns nil when the log directory cannot be created", func(t *testing.T) {
+		t.Parallel()
+
+		blocker := filepath.Join(t.TempDir(), "file")
+		require.NoError(t, os.WriteFile(blocker, []byte("x"), 0o600))
+		assert.Nil(t, setupLogFile(t.Context(), filepath.Join(blocker, "pikopls.log.protocol"), nil, nil))
+	})
+}
+
+func TestOpenLogSandbox(t *testing.T) {
+	t.Parallel()
+
+	directory := t.TempDir()
+	factory, err := safedisk.NewCLIFactory(directory)
+	require.NoError(t, err)
+
+	sandbox, err := openLogSandbox(directory, factory)
+	require.NoError(t, err)
+	require.NoError(t, sandbox.Close())
+
+	sandbox, err = openLogSandbox(directory, nil)
+	require.NoError(t, err)
+	require.NoError(t, sandbox.Close())
+
+	_, err = openLogSandbox(directory, &failingSandboxFactory{err: errors.New("sandbox denied")})
+	require.Error(t, err)
+}
+
+type failingSandboxFactory struct {
+	safedisk.Factory
+	err error
+}
+
+func (f *failingSandboxFactory) Create(string, string, safedisk.Mode) (safedisk.Sandbox, error) {
+	return nil, f.err
 }

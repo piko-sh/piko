@@ -476,4 +476,90 @@ package main
             expect(ranges).toHaveLength(1);
         });
     });
+
+    describe('enclosing elements', () => {
+        /**
+         * Lists the line spans of a selection range chain, innermost first.
+         *
+         * @param range - The innermost selection range.
+         * @returns The spans as `start-end` line pairs.
+         */
+        function lineSpans(range: vscode.SelectionRange): string[] {
+            const spans: string[] = [];
+            let current: vscode.SelectionRange | undefined = range;
+            while (current) {
+                const {start, end} = current.range as unknown as { start: vscode.Position; end: vscode.Position };
+                spans.push(`${start.line}-${end.line}`);
+                current = current.parent;
+            }
+            return spans;
+        }
+
+        it('selects the innermost element, then its parents and the block', () => {
+            const doc = createTestDocument(`<template>
+  <div>
+    <section>
+      text
+    </section>
+  </div>
+</template>`);
+
+            const ranges = provider.provideSelectionRanges(doc as never, [new vscode.Position(3, 7)], {} as never) as vscode.SelectionRange[];
+
+            expect(lineSpans(ranges[0])).toEqual(['3-3', '2-4', '1-5', '0-6']);
+        });
+
+        it('skips sibling elements that close before the cursor', () => {
+            const doc = createTestDocument(`<template>
+  <div>
+    <p>
+    </p>
+    <span>
+      x
+    </span>
+  </div>
+</template>`);
+
+            const ranges = provider.provideSelectionRanges(doc as never, [new vscode.Position(5, 6)], {} as never) as vscode.SelectionRange[];
+
+            expect(lineSpans(ranges[0])).toContain('4-6');
+            expect(lineSpans(ranges[0])).not.toContain('2-3');
+        });
+
+        it('ignores elements opened after the cursor', () => {
+            const doc = createTestDocument(`<template>
+  <div>
+    x
+    <p>
+    </p>
+  </div>
+</template>`);
+
+            const ranges = provider.provideSelectionRanges(doc as never, [new vscode.Position(2, 4)], {} as never) as vscode.SelectionRange[];
+
+            expect(lineSpans(ranges[0])).toContain('1-5');
+            expect(lineSpans(ranges[0])).not.toContain('3-4');
+        });
+
+        it('offers no element ranges inside a Go script', () => {
+            const doc = createTestDocument(`<script type="application/x-go">
+var s = "<div>
+x
+</div>"
+</script>`);
+
+            const ranges = provider.provideSelectionRanges(doc as never, [new vscode.Position(2, 0)], {} as never) as vscode.SelectionRange[];
+
+            expect(lineSpans(ranges[0])).toEqual(['2-2', '1-3', '0-4']);
+        });
+
+        it('stays fast with many unclosed elements before the cursor', () => {
+            const doc = createTestDocument(`<template>\n${'<div>\n'.repeat(20_000)}x\n</template>`);
+            const startedAt = performance.now();
+
+            provider.provideSelectionRanges(doc as never, [new vscode.Position(20_001, 0)], {} as never);
+
+            expect(performance.now() - startedAt).toBeLessThan(5000);
+        });
+    });
 });

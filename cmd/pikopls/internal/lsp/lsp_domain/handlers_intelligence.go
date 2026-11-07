@@ -22,6 +22,7 @@ import (
 	"context"
 
 	protocol "github.com/politepixels/golang-language-server"
+	"go.lsp.dev/jsonrpc2"
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
@@ -259,57 +260,33 @@ func (s *Server) SignatureHelp(ctx context.Context, params *protocol.SignatureHe
 	return document.GetSignatureHelp(params.Position)
 }
 
-// SemanticTokensFull provides semantic tokens for a whole document.
+// SemanticTokensFull rejects textDocument/semanticTokens/full. Semantic tokens are not
+// advertised, so a conforming client never sends this request; the method exists only to
+// satisfy protocol.Server and answers method-not-found rather than empty data that would
+// imply support.
 //
-// Takes params (*protocol.SemanticTokensParams) which identifies the document to
-// tokenise.
-//
-// Returns *protocol.SemanticTokens which contains the encoded token data for syntax
-// highlighting.
-// Returns error when token generation fails.
-func (*Server) SemanticTokensFull(ctx context.Context, params *protocol.SemanticTokensParams) (*protocol.SemanticTokens, error) {
-	_, l := logger_domain.From(ctx, log)
-
-	l.Debug("SemanticTokensFull", logger_domain.String(keyURI, params.TextDocument.URI.Filename()))
-
-	return &protocol.SemanticTokens{
-		Data: []uint32{},
-	}, nil
+// Returns *protocol.SemanticTokens which is always nil.
+// Returns error which is always jsonrpc2.ErrMethodNotFound.
+func (*Server) SemanticTokensFull(_ context.Context, _ *protocol.SemanticTokensParams) (*protocol.SemanticTokens, error) {
+	return nil, jsonrpc2.ErrMethodNotFound
 }
 
-// SemanticTokensFullDelta provides incremental updates to semantic tokens.
+// SemanticTokensFullDelta rejects textDocument/semanticTokens/full/delta because semantic
+// tokens are not advertised.
 //
-// Takes params (*protocol.SemanticTokensDeltaParams) which identifies the document and
-// the previous result to compute changes against.
-//
-// Returns any which contains the semantic tokens delta with edit operations.
-// Returns error when the delta cannot be computed.
-func (*Server) SemanticTokensFullDelta(ctx context.Context, params *protocol.SemanticTokensDeltaParams) (any, error) {
-	_, l := logger_domain.From(ctx, log)
-
-	l.Debug("SemanticTokensFullDelta", logger_domain.String(keyURI, params.TextDocument.URI.Filename()))
-
-	return &protocol.SemanticTokensDelta{
-		Edits: []protocol.SemanticTokensEdit{},
-	}, nil
+// Returns any which is always nil.
+// Returns error which is always jsonrpc2.ErrMethodNotFound.
+func (*Server) SemanticTokensFullDelta(_ context.Context, _ *protocol.SemanticTokensDeltaParams) (any, error) {
+	return nil, jsonrpc2.ErrMethodNotFound
 }
 
-// SemanticTokensRange provides semantic tokens for a specific range in a document.
+// SemanticTokensRange rejects textDocument/semanticTokens/range because semantic tokens
+// are not advertised.
 //
-// Takes params (*protocol.SemanticTokensRangeParams) which specifies the document and
-// range to analyse.
-//
-// Returns *protocol.SemanticTokens which contains the semantic tokens for the requested
-// range.
-// Returns error when token analysis fails.
-func (*Server) SemanticTokensRange(ctx context.Context, params *protocol.SemanticTokensRangeParams) (*protocol.SemanticTokens, error) {
-	_, l := logger_domain.From(ctx, log)
-
-	l.Debug("SemanticTokensRange", logger_domain.String(keyURI, params.TextDocument.URI.Filename()))
-
-	return &protocol.SemanticTokens{
-		Data: []uint32{},
-	}, nil
+// Returns *protocol.SemanticTokens which is always nil.
+// Returns error which is always jsonrpc2.ErrMethodNotFound.
+func (*Server) SemanticTokensRange(_ context.Context, _ *protocol.SemanticTokensRangeParams) (*protocol.SemanticTokens, error) {
+	return nil, jsonrpc2.ErrMethodNotFound
 }
 
 // CodeLensResolve fills in additional details for a CodeLens item.

@@ -43,14 +43,47 @@ class PKGoLanguageInjector : MultiHostInjector {
         /** The prefix added when no package declaration is present. */
         const val DEFAULT_PACKAGE_PREFIX = "package main\n\n"
 
+        /** The keyword that opens a Go package clause. */
+        private const val PACKAGE_KEYWORD = "package"
+
         /**
          * Checks if the content starts with a package declaration.
          *
          * @param content The Go script content to check.
-         * @return True if content starts with "package " after trimming.
+         * @return True if the first token after comments is the `package` keyword.
          */
-        fun hasPackageDeclaration(content: String): Boolean =
-            content.trim().startsWith("package ")
+        fun hasPackageDeclaration(content: String): Boolean {
+            val start = skipLeadingCommentsAndWhitespace(content)
+            if (!content.startsWith(PACKAGE_KEYWORD, start)) return false
+            val after = start + PACKAGE_KEYWORD.length
+            return after < content.length && content[after].isWhitespace()
+        }
+
+        /**
+         * Returns the offset of the first character that is not whitespace or
+         * part of a comment.
+         *
+         * @param content The Go source to scan.
+         * @return The offset, or the content length when only comments remain.
+         */
+        private fun skipLeadingCommentsAndWhitespace(content: String): Int {
+            var index = 0
+            while (index < content.length) {
+                when {
+                    content[index].isWhitespace() -> index++
+                    content.startsWith("//", index) -> {
+                        val lineEnd = content.indexOf('\n', index)
+                        index = if (lineEnd < 0) content.length else lineEnd + 1
+                    }
+                    content.startsWith("/*", index) -> {
+                        val blockEnd = content.indexOf("*/", index + 2)
+                        index = if (blockEnd < 0) content.length else blockEnd + 2
+                    }
+                    else -> return index
+                }
+            }
+            return index
+        }
 
         /**
          * Computes the prefix to prepend for Go injection.

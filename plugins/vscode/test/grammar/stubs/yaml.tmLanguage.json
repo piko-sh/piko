@@ -1,0 +1,5 @@
+{
+  "comment": "Empty stand-in for the source.yaml grammar so the Piko grammar fixtures run offline. Test use only.",
+  "scopeName": "source.yaml",
+  "patterns": []
+}

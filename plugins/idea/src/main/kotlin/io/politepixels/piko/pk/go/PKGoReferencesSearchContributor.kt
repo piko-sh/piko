@@ -16,122 +16,115 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-
 package io.politepixels.piko.pk.go
 
+import com.goide.psi.GoFile
+import com.goide.psi.GoFunctionDeclaration
+import com.goide.psi.GoFunctionOrMethodDeclaration
+import com.goide.psi.GoMethodDeclaration
 import com.intellij.lang.injection.InjectedLanguageManager
 import com.intellij.openapi.application.QueryExecutorBase
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiRecursiveElementVisitor
 import com.intellij.psi.PsiReference
 import com.intellij.psi.PsiReferenceBase
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.util.Processor
-import com.goide.psi.GoFunctionDeclaration
-import com.goide.psi.GoMethodDeclaration
-import io.politepixels.piko.pk.PKTokenTypes
+import io.politepixels.piko.pk.PKTemplateReferenceScanner
 import io.politepixels.piko.pk.psi.impl.PkGoScriptContentElementImpl
 
 /**
- * Contributes Find Usages results for Go functions defined in PK script blocks.
+ * Finds template usages of Go functions and methods declared in a `.pk`
+ * file's script block.
  *
- * When the user invokes "Find Usages" on a Go function inside a PK file's
- * `<script type="application/x-go">` block, this contributor scans the same
- * file's template section for matching handler references in directive
- * expressions:
+ * Template expressions such as `{{ formatDate(post.Date) }}` and
+ * `p-on:click="handleClick"` name script functions directly, but they live in
+ * the PK template rather than Go code, so the Go plugin cannot find them.
  *
- * - **Function call references** - `p-on:click="FormatPrice()"` where
- *   `FormatPrice` is an `EXPR_FUNCTION_NAME` token.
- *
- * - **Bare identifier references** - `p-text="FormatPrice"` where
- *   `FormatPrice` is an `EXPR_IDENTIFIER` token.
- *
- * Results are returned as [PsiReference] objects that resolve back to the
- * original Go function, enabling navigation from usage to definition.
+ * A bare identifier is only a candidate for a function and a member access
+ * (`item.Method`) only for a method. Each candidate is then resolved against
+ * the script block, and reported only when it resolves to the searched
+ * declaration, so a struct field or loop variable with the same name is not
+ * reported as a usage.
  */
 class PKGoReferencesSearchContributor :
     QueryExecutorBase<PsiReference, ReferencesSearch.SearchParameters>(true) {
 
     /**
-     * Processes a Find Usages query for a Go function inside a PK script block.
+     * Processes a reference search for a Go function or method.
      *
      * @param parameters The search parameters containing the target element.
-     * @param consumer   The processor that receives found references.
+     * @param consumer The processor to receive found references.
      */
     override fun processQuery(
         parameters: ReferencesSearch.SearchParameters,
         consumer: Processor<in PsiReference>
     ) {
-        val target = parameters.elementToSearch
-        val functionName = when (target) {
-            is GoFunctionDeclaration -> target.name
-            is GoMethodDeclaration -> target.name
-            else -> return
-        } ?: return
+        val target = parameters.elementToSearch as? GoFunctionOrMethodDeclaration ?: return
+        if (target !is GoFunctionDeclaration && target !is GoMethodDeclaration) return
+        val name = target.name ?: return
 
-        val host = InjectedLanguageManager.getInstance(target.project)
-            .getInjectionHost(target) ?: return
+        val host = InjectedLanguageManager.getInstance(target.project).getInjectionHost(target)
         if (host !is PkGoScriptContentElementImpl) return
-
+        val goFile = target.containingFile as? GoFile ?: return
         val pkFile = host.containingFile ?: return
-        scanForHandlerUsages(pkFile, functionName, target, consumer)
-    }
+        val isMethod = target is GoMethodDeclaration
+        val manager = target.manager
 
-    /**
-     * Walks the PK file's PSI tree looking for template tokens that reference
-     * the given function name.
-     *
-     * @param file     The PK file to scan.
-     * @param functionName The Go function name to search for.
-     * @param target   The Go function element that references resolve to.
-     * @param consumer The processor that receives found references.
-     */
-    private fun scanForHandlerUsages(
-        file: PsiFile,
-        functionName: String,
-        target: PsiElement,
-        consumer: Processor<in PsiReference>
-    ) {
-        file.accept(object : PsiRecursiveElementVisitor() {
-            override fun visitElement(element: PsiElement) {
-                val elementType = element.node?.elementType
+        val declaration = PKGoTemplateReference.resolveDeclaration(goFile, name, isMethod, target)
+        if (!manager.areElementsEquivalent(declaration, target)) return
 
-                if (elementType == PKTokenTypes.EXPR_FUNCTION_NAME ||
-                    elementType == PKTokenTypes.EXPR_IDENTIFIER
-                ) {
-                    if (element.text == functionName) {
-                        val range = TextRange(0, element.textLength)
-                        val ref = PKGoFunctionReference(element, range, target)
-                        if (!consumer.process(ref)) return
-                    }
-                }
-
-                super.visitElement(element)
+        PKTemplateReferenceScanner.scan(pkFile, PKTemplateReferenceScanner.IDENTIFIER_TYPES, consumer) { element ->
+            if (element.text != name || PKTemplateReferenceScanner.isMemberAccess(element) != isMethod) {
+                emptyList()
+            } else {
+                listOf(PKGoTemplateReference(element, goFile, isMethod, target))
             }
-        })
+        }
     }
 }
 
 /**
- * A lightweight PSI reference from a PK template expression token to a
- * Go function in the script block.
+ * Reference from a template identifier to a Go declaration in the script block.
  *
- * @param element The PK template PSI element containing the handler reference.
- * @param range   The text range of the function name within the element.
- * @param target  The Go function this reference resolves to.
+ * @param element The template identifier token.
+ * @param goFile The injected Go file of the same `.pk` file.
+ * @param isMethod Whether the identifier is a member access, resolved against methods.
+ * @param preferred The searched declaration, chosen when several methods share the name.
  */
-private class PKGoFunctionReference(
+private class PKGoTemplateReference(
     element: PsiElement,
-    range: TextRange,
-    private val target: PsiElement
-) : PsiReferenceBase<PsiElement>(element, range, true) {
+    private val goFile: GoFile,
+    private val isMethod: Boolean,
+    private val preferred: PsiElement
+) : PsiReferenceBase<PsiElement>(element, TextRange(0, element.textLength), true) {
 
     /**
-     * Resolves this reference to the target Go function element.
+     * Resolves the identifier to a top-level function, or to a method of that name.
      *
-     * @return The Go function this reference points to.
+     * Methods cannot be told apart without type information, so when several
+     * receivers declare the name the searched declaration is preferred.
+     *
+     * @return The declaration, or null when the script declares none with this name.
      */
-    override fun resolve(): PsiElement = target
+    override fun resolve(): PsiElement? = resolveDeclaration(goFile, element.text, isMethod, preferred)
+
+    companion object {
+        /**
+         * Finds the script declaration a template identifier names.
+         *
+         * @param goFile The injected Go file of the `.pk` file.
+         * @param name The identifier text.
+         * @param isMethod Whether the identifier is a member access.
+         * @param preferred The declaration chosen when several methods share the name.
+         * @return The declaration, or null when the script declares none with this name.
+         */
+        fun resolveDeclaration(goFile: GoFile, name: String, isMethod: Boolean, preferred: PsiElement): PsiElement? {
+            if (!isMethod) {
+                return goFile.getFunctions(name).firstOrNull()
+            }
+            val methods = goFile.getMethods(name)
+            return methods.firstOrNull { it.isEquivalentTo(preferred) } ?: methods.firstOrNull()
+        }
+    }
 }

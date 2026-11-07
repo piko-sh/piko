@@ -51,6 +51,13 @@ const (
 	// maxConcurrentAnalysis limits how many analysis tasks can run at the same time. This
 	// applies to bulk operations like DidChangeWatchedFiles and ExecuteCommand.
 	maxConcurrentAnalysis = 4
+
+	// defaultServerVersion is the serverInfo version reported when the composition root
+	// does not supply one.
+	defaultServerVersion = "dev"
+
+	// serverName is the serverInfo name reported to clients.
+	serverName = "pikopls"
 )
 
 // Server holds the state for the language server. It implements the protocol.Server
@@ -126,6 +133,9 @@ type Server struct {
 	// request goroutines never read the shared, mutable pathsConfig.BaseDir.
 	moduleRoot string
 
+	// serverVersion is the version reported to clients in serverInfo.
+	serverVersion string
+
 	// backgroundWg tracks background goroutines started by the server. Shutdown waits for
 	// all tracked goroutines to finish before it returns.
 	backgroundWg sync.WaitGroup
@@ -190,6 +200,10 @@ type ServerDeps struct {
 	// disabled the server behaves as if the bridge is off.
 	GoplsManager *gopls_bridge.Manager
 
+	// ServerVersion is the version reported to clients in serverInfo. Empty falls back to
+	// defaultServerVersion.
+	ServerVersion string
+
 	// FormattingEnabled controls whether formatting features are shown to clients.
 	FormattingEnabled bool
 
@@ -206,6 +220,10 @@ func NewServer(deps ServerDeps) *Server {
 	clk := deps.Clock
 	if clk == nil {
 		clk = clock.RealClock()
+	}
+	serverVersion := deps.ServerVersion
+	if serverVersion == "" {
+		serverVersion = defaultServerVersion
 	}
 	return &Server{
 		coordinator:              deps.Coordinator,
@@ -230,6 +248,7 @@ func NewServer(deps ServerDeps) *Server {
 		goplsUnsubscribe:         nil,
 		goplsSatellites:          nil,
 		moduleRoot:               "",
+		serverVersion:            serverVersion,
 		backgroundWg:             sync.WaitGroup{},
 		goplsConnectionID:        0,
 		goplsShutdownOnce:        sync.Once{},
@@ -336,17 +355,38 @@ func (s *Server) Initialize(ctx context.Context, params *protocol.InitializePara
 
 	return &protocol.InitializeResult{
 		Capabilities: buildServerCapabilities(s.formattingEnabled),
-		ServerInfo:   &protocol.ServerInfo{Name: "pikopls", Version: "0.0.1"},
+		ServerInfo:   &protocol.ServerInfo{Name: serverName, Version: s.serverVersion},
 	}, nil
 }
 
 // Initialized handles the notification that the client has finished its initialisation.
 //
 // Returns error when the notification cannot be processed.
-func (*Server) Initialized(ctx context.Context, _ *protocol.InitializedParams) error {
+//
+// Concurrency: takes s.mu to read the client and registration support, then registers
+// watchers in a tracked background goroutine using the server context. Shutdown cancels
+// that context and waits for background tasks to finish.
+func (s *Server) Initialized(ctx context.Context, _ *protocol.InitializedParams) error {
 	_, l := logger_domain.From(ctx, log)
 
 	l.Debug("Client is initialised")
+
+	s.mu.Lock()
+	client := s.client
+	register := clientSupportsWatchedFilesRegistration(s.initialisationParameters)
+	s.mu.Unlock()
+
+	if !register {
+		return nil
+	}
+	if client == nil {
+		l.Warn("Skipping workspace file watcher registration: no client connection is set")
+		return nil
+	}
+
+	s.goBackground(func(backgroundCtx context.Context) {
+		registerWatchedFiles(backgroundCtx, client)
+	})
 	return nil
 }
 
@@ -815,53 +855,4 @@ func (*Server) ensureTypeDefinitionsIfNotExists(ctx context.Context, rootPath st
 	}
 
 	l.Internal("TypeScript type definitions ensured for IDE (only if not present)")
-}
-
-// buildServerCapabilities creates the server capabilities for the LSP response.
-//
-// Takes formattingEnabled (bool) which controls whether formatting features are shown to
-// the client.
-//
-// Returns protocol.ServerCapabilities which lists the features this server supports,
-// including text sync, hover, completion, and optionally formatting.
-func buildServerCapabilities(formattingEnabled bool) protocol.ServerCapabilities {
-	return protocol.ServerCapabilities{
-		TextDocumentSync: protocol.TextDocumentSyncOptions{
-			OpenClose:         true,
-			Change:            protocol.TextDocumentSyncKindFull,
-			Save:              &protocol.SaveOptions{IncludeText: true},
-			WillSave:          true,
-			WillSaveWaitUntil: true,
-		},
-		HoverProvider:                    true,
-		DefinitionProvider:               true,
-		DocumentSymbolProvider:           true,
-		DocumentFormattingProvider:       formattingEnabled,
-		DocumentRangeFormattingProvider:  formattingEnabled,
-		DocumentOnTypeFormattingProvider: buildOnTypeFormattingOptions(formattingEnabled),
-		FoldingRangeProvider:             true,
-		LinkedEditingRangeProvider:       true,
-		CompletionProvider:               &protocol.CompletionOptions{TriggerCharacters: []string{".", "-", "\""}, ResolveProvider: false},
-		SignatureHelpProvider:            &protocol.SignatureHelpOptions{TriggerCharacters: []string{"(", ","}, RetriggerCharacters: []string{","}},
-		CodeActionProvider:               true,
-		RenameProvider:                   &protocol.RenameOptions{PrepareProvider: true},
-		MonikerProvider:                  true,
-		ImplementationProvider:           true,
-	}
-}
-
-// buildOnTypeFormattingOptions creates the on-type formatting options.
-//
-// Takes enabled (bool) which controls whether on-type formatting is available.
-//
-// Returns *protocol.DocumentOnTypeFormattingOptions which lists the characters that start
-// formatting as the user types, or nil if disabled.
-func buildOnTypeFormattingOptions(enabled bool) *protocol.DocumentOnTypeFormattingOptions {
-	if !enabled {
-		return nil
-	}
-	return &protocol.DocumentOnTypeFormattingOptions{
-		FirstTriggerCharacter: "\n",
-		MoreTriggerCharacter:  []string{">", "}"},
-	}
 }

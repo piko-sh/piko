@@ -99,6 +99,15 @@ class PKPsiParser : PsiParser {
 
         skipToTagEnd(builder)
 
+        if (builder.tokenType == PKTokenTypes.SCRIPT_TEXT_CONTENT) {
+            while (!builder.eof() && builder.tokenType != PKTokenTypes.SCRIPT_TAG_END) {
+                builder.advanceLexer()
+            }
+            skipClosingTag(builder)
+            blockMarker.done(PKTokenTypes.SCRIPT_BLOCK_ELEMENT)
+            return
+        }
+
         val isJsScript = builder.tokenType == PKTokenTypes.JS_SCRIPT_CONTENT
 
         val bodyMarker = builder.mark()

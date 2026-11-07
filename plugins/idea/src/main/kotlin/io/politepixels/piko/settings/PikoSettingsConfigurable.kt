@@ -23,6 +23,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.Configurable
+import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.ui.dsl.builder.AlignX
@@ -30,7 +31,7 @@ import com.intellij.ui.dsl.builder.bindIntText
 import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.bindText
 import com.intellij.ui.dsl.builder.panel
-import com.redhat.devtools.lsp4ij.LanguageServerManager
+import io.politepixels.piko.pk.lsp.PikoLspController
 import javax.swing.JComponent
 
 /**
@@ -59,8 +60,8 @@ class PikoSettingsConfigurable : Configurable {
     /** UI binding for whether to show the LSP not found notification. */
     private var showLspNotFoundNotification = settings.showLspNotFoundNotification
 
-    /** UI binding for whether to use stdio transport instead of TCP. */
-    private var useStdioTransport = settings.useStdioTransport
+    /** UI binding for whether to launch the server over loopback TCP instead of stdio. */
+    private var useTcpTransport = settings.useTcpTransport
 
     /** UI binding for whether to connect to an external LSP server. */
     private var useTcpMode = settings.useTcpMode
@@ -125,7 +126,10 @@ class PikoSettingsConfigurable : Configurable {
     private fun com.intellij.ui.dsl.builder.Panel.languageServerGroup() = group("Language Server") {
         row { checkBox("Enable LSP support").bindSelected(::lspEnabled) }
         row { checkBox("Enable formatting").bindSelected(::formattingEnabled) }
-        row { checkBox("Enable file logging").bindSelected(::fileLoggingEnabled).comment("Logs to /tmp/pikopls-&lt;pid&gt;.log") }
+        row {
+            checkBox("Enable file logging").bindSelected(::fileLoggingEnabled)
+                .comment("Writes a debug log under the IDE log directory. Open it with Tools > Piko > Open LSP Logs.")
+        }
         row { checkBox("Show notification when LSP binary is not found").bindSelected(::showLspNotFoundNotification) }
     }
 
@@ -173,12 +177,12 @@ class PikoSettingsConfigurable : Configurable {
     /**
      * Creates the Transport settings group for advanced configuration.
      *
-     * @return The settings group with stdio transport toggle.
+     * @return The settings group with the TCP transport toggle.
      */
     private fun com.intellij.ui.dsl.builder.Panel.transportGroup() = group("Transport (Advanced)") {
         row {
-            checkBox("Use stdio transport (experimental)").bindSelected(::useStdioTransport)
-                .comment("<b>Warning:</b> May cause IDE freezes due to pipe buffer deadlocks.<br>Only enable for debugging purposes.")
+            checkBox("Use TCP transport").bindSelected(::useTcpTransport)
+                .comment("Launches the server on a random loopback port, limited to one connection. Stdio is the default; use TCP only for debugging.")
         }
     }
 
@@ -192,7 +196,15 @@ class PikoSettingsConfigurable : Configurable {
             checkBox("Connect to external LSP server").bindSelected(::useTcpMode)
                 .comment("Connect to an already-running LSP server instead of starting one automatically.")
         }
-        row("Host:") { textField().bindText(::tcpHost).comment("Default: 127.0.0.1") }
+        row("Host:") {
+            textField().bindText(::tcpHost).comment("Default: 127.0.0.1")
+                .validationOnInput { field ->
+                    if (PikoSettings.isValidHost(field.text)) null else error("Enter a host name or IP address without spaces")
+                }
+                .validationOnApply { field ->
+                    if (PikoSettings.isValidHost(field.text)) null else error("Enter a host name or IP address without spaces")
+                }
+        }
         row("Port:") {
             intTextField(1..65535).bindIntText(::tcpPort)
                 .comment("Default: 4389. Start external server with: pikopls --tcp --port=4389")
@@ -245,7 +257,7 @@ class PikoSettingsConfigurable : Configurable {
     override fun apply() {
         val oldLspPath = settings.lspPath
         val oldLspEnabled = settings.lspEnabled
-        val oldUseStdioTransport = settings.useStdioTransport
+        val oldUseTcpTransport = settings.useTcpTransport
         val oldUseTcpMode = settings.useTcpMode
         val oldTcpHost = settings.tcpHost
         val oldTcpPort = settings.tcpPort
@@ -258,11 +270,14 @@ class PikoSettingsConfigurable : Configurable {
         val oldSearchGlobalGoLocations = settings.searchGlobalGoLocations
 
         settingsPanel.apply()
+        lspPath = lspPath.trim()
+        tcpHost = tcpHost.trim()
+        goBinPath = goBinPath.trim()
 
         settings.lspPath = lspPath
         settings.lspEnabled = lspEnabled
         settings.showLspNotFoundNotification = showLspNotFoundNotification
-        settings.useStdioTransport = useStdioTransport
+        settings.useTcpTransport = useTcpTransport
         settings.useTcpMode = useTcpMode
         settings.tcpHost = tcpHost
         settings.tcpPort = tcpPort
@@ -276,7 +291,7 @@ class PikoSettingsConfigurable : Configurable {
 
         val needsRestart = lspPath != oldLspPath ||
                 lspEnabled != oldLspEnabled ||
-                useStdioTransport != oldUseStdioTransport ||
+                useTcpTransport != oldUseTcpTransport ||
                 useTcpMode != oldUseTcpMode ||
                 tcpHost != oldTcpHost ||
                 tcpPort != oldTcpPort ||
@@ -296,10 +311,15 @@ class PikoSettingsConfigurable : Configurable {
     /**
      * Restarts the Piko LSP server for all open projects.
      *
-     * Stops the existing server connection (which properly cleans up the process)
-     * and starts a new one with the updated configuration.
+     * Goes through [PikoLspController], which is only registered when LSP4IJ
+     * is installed, so this class never loads LSP4IJ classes itself.
      */
     private fun restartLspForAllProjects() {
+        val controller = PikoLspController.getInstance()
+        if (controller == null) {
+            log.debug("LSP4IJ is not installed, nothing to restart")
+            return
+        }
         log.info("Settings changed, restarting Piko LSP for all projects...")
 
         ApplicationManager.getApplication().executeOnPooledThread {
@@ -308,14 +328,9 @@ class PikoSettingsConfigurable : Configurable {
                 if (project.isDisposed) continue
 
                 try {
-                    val manager = LanguageServerManager.getInstance(project)
-                    log.info("Stopping Piko LSP for project: ${project.name}")
-                    manager.stop("pikoLsp")
-
-                    Thread.sleep(LSP_RESTART_DELAY_MS)
-
-                    log.info("Starting Piko LSP for project: ${project.name}")
-                    manager.start("pikoLsp")
+                    controller.restart(project)
+                } catch (e: ProcessCanceledException) {
+                    throw e
                 } catch (e: Exception) {
                     log.warn("Failed to restart Piko LSP for project ${project.name}: ${e.message}", e)
                 }
@@ -334,7 +349,7 @@ class PikoSettingsConfigurable : Configurable {
         lspPath = settings.lspPath
         lspEnabled = settings.lspEnabled
         showLspNotFoundNotification = settings.showLspNotFoundNotification
-        useStdioTransport = settings.useStdioTransport
+        useTcpTransport = settings.useTcpTransport
         useTcpMode = settings.useTcpMode
         tcpHost = settings.tcpHost
         tcpPort = settings.tcpPort
@@ -347,10 +362,5 @@ class PikoSettingsConfigurable : Configurable {
         searchGlobalGoLocations = settings.searchGlobalGoLocations
 
         settingsPanel.reset()
-    }
-
-    companion object {
-        /** Delay in milliseconds between stopping and starting the LSP server during restart. */
-        private const val LSP_RESTART_DELAY_MS = 100L
     }
 }

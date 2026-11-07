@@ -17,11 +17,12 @@
 
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.lang</depends>
+    <depends>com.intellij.modules.xml</depends>
 
     <depends optional="true" config-file="piko-go.xml">org.jetbrains.plugins.go</depends>
     <depends optional="true" config-file="piko-css.xml">com.intellij.css</depends>
     <depends optional="true" config-file="piko-javascript.xml">JavaScript</depends>
-    <depends optional="true" config-file="pikopls4ij.xml">com.redhat.devtools.lsp4ij</depends>
+    <depends optional="true" config-file="piko-lsp4ij.xml">com.redhat.devtools.lsp4ij</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <fileType
@@ -34,6 +35,29 @@
         <lang.parserDefinition
             language="PK"
             implementationClass="io.politepixels.piko.pk.PKParserDefinition"/>
+
+        <lang.ast.factory
+            language="PK"
+            implementationClass="io.politepixels.piko.pk.psi.impl.PKASTFactory"/>
+
+        <lang.elementManipulator
+            forClass="io.politepixels.piko.pk.psi.impl.PkLeafPsiElement"
+            implementationClass="io.politepixels.piko.pk.psi.impl.PkLeafManipulator"/>
+        <lang.elementManipulator
+            forClass="io.politepixels.piko.pk.psi.impl.PkTemplateBodyElementImpl"
+            implementationClass="io.politepixels.piko.pk.psi.impl.PkInjectionHostManipulator"/>
+        <lang.elementManipulator
+            forClass="io.politepixels.piko.pk.psi.impl.PkGoScriptContentElementImpl"
+            implementationClass="io.politepixels.piko.pk.psi.impl.PkInjectionHostManipulator"/>
+        <lang.elementManipulator
+            forClass="io.politepixels.piko.pk.psi.impl.PkJsScriptContentElementImpl"
+            implementationClass="io.politepixels.piko.pk.psi.impl.PkInjectionHostManipulator"/>
+        <lang.elementManipulator
+            forClass="io.politepixels.piko.pk.psi.impl.PkCssStyleContentElementImpl"
+            implementationClass="io.politepixels.piko.pk.psi.impl.PkInjectionHostManipulator"/>
+        <lang.elementManipulator
+            forClass="io.politepixels.piko.pk.psi.impl.PkI18nContentElementImpl"
+            implementationClass="io.politepixels.piko.pk.psi.impl.PkInjectionHostManipulator"/>
 
         <lang.syntaxHighlighterFactory
             language="PK"
@@ -74,9 +98,6 @@
         <applicationService
             serviceImplementation="io.politepixels.piko.settings.PikoSettings"/>
 
-        <projectService
-            serviceImplementation="io.politepixels.piko.pk.service.PikoTypeDefinitionService"/>
-
         <applicationConfigurable
             parentId="language"
             instance="io.politepixels.piko.settings.PikoSettingsConfigurable"
@@ -86,13 +107,14 @@
         <notificationGroup
             id="Piko"
             displayType="BALLOON"
-            toolWindowId="Problems"/>
+            toolWindowId="Problems View"/>
 
         <postStartupActivity
             implementation="io.politepixels.piko.pk.Lsp4ijCheckActivity"/>
 
         <internalFileTemplate name="Piko Page"/>
         <internalFileTemplate name="Piko Partial"/>
+        <internalFileTemplate name="Piko Component"/>
 
         <liveTemplateContext
             contextId="PIKO"
@@ -106,9 +128,6 @@
         <xml.zenCodingGenerator
             implementation="io.politepixels.piko.pk.PKEmmetSupport"
             order="first"/>
-
-        <xdebugger.breakpointType
-            implementation="io.politepixels.piko.pk.debug.PKLineBreakpointType"/>
     </extensions>
 
     <actions>
@@ -121,16 +140,6 @@
 
         <group id="Piko.ToolsMenu" text="Piko" popup="true">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
-
-            <action id="Piko.RestartLsp"
-                    class="io.politepixels.piko.pk.actions.RestartLspAction"
-                    text="Restart LSP Server"
-                    description="Restart the Piko language server"/>
-
-            <action id="Piko.ShowLspOutput"
-                    class="io.politepixels.piko.pk.actions.ShowLspOutputAction"
-                    text="Show LSP Output"
-                    description="Show the Piko LSP output panel"/>
 
             <action id="Piko.OpenLspLogs"
                     class="io.politepixels.piko.pk.actions.OpenLspLogsAction"

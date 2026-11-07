@@ -23,12 +23,13 @@ import com.intellij.psi.TokenType
 import com.intellij.psi.tree.IElementType
 import io.politepixels.gen.pk.PKLexer
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PKLexerScriptLanguageTest {
 
-    private fun tokenize(input: String): List<Pair<IElementType, String>> {
+    private fun tokenise(input: String): List<Pair<IElementType, String>> {
         val lexer = PKLexer(null)
         lexer.reset(input, 0, input.length, PKLexer.YYINITIAL)
 
@@ -43,7 +44,7 @@ class PKLexerScriptLanguageTest {
     }
 
     private fun tokenTypes(input: String, includeWhitespace: Boolean = false): List<String> {
-        return tokenize(input)
+        return tokenise(input)
             .filter { includeWhitespace || it.first != TokenType.WHITE_SPACE }
             .map { it.first.toString() }
     }
@@ -154,9 +155,11 @@ class PKLexerScriptLanguageTest {
     }
 
     @Test
-    fun `test script with unknown lang defaults to Go content`() {
+    fun `test script with unknown lang is plain text`() {
         val tokens = tokenTypes("<script lang=\"python\">def main(): pass</script>")
-        assertTrue("Should default to Go for unknown lang", hasGoContent(tokens))
+        assertFalse("Should not treat unknown lang as Go", hasGoContent(tokens))
+        assertFalse("Should not treat unknown lang as JS", hasJsContent(tokens))
+        assertTrue("Should lex unknown lang as plain text", tokens.contains("PK_SCRIPT_TEXT_CONTENT"))
     }
 
     @Test

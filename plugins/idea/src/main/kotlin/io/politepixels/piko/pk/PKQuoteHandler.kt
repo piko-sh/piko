@@ -31,12 +31,10 @@ import com.intellij.psi.tree.TokenSet
 class PKQuoteHandler : SimpleTokenSetQuoteHandler(QUOTE_TOKENS) {
 
     companion object {
-        /** Token set containing all quote-related token types for auto-pairing. */
-        private val QUOTE_TOKENS = TokenSet.create(
+        /** Token set containing the quote-delimited token types for auto-pairing. */
+        internal val QUOTE_TOKENS = TokenSet.create(
             PKTokenTypes.HTML_ATTR_QUOTE,
             PKTokenTypes.EXPR_STRING_QUOTE,
-            PKTokenTypes.HTML_ATTR_VALUE,
-            PKTokenTypes.EXPR_STRING,
             PKTokenTypes.ATTR_VALUE
         )
     }

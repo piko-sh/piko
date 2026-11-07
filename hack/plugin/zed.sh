@@ -241,7 +241,7 @@ print_install_instructions() {
     piko::log::blank
     piko::log::info "Ensure pikopls is on PATH (the binary must be named pikopls):"
     piko::log::detail "make build-lsp && cp ${PIKO_ROOT}/bin/lsp/pikopls /usr/local/bin/"
-    piko::log::detail "# go install names the binary 'lsp'; rename it to pikopls if you use that route"
+    piko::log::detail "# or: go install piko.sh/piko/cmd/pikopls@latest"
 }
 
 # clean_build removes build artefacts.

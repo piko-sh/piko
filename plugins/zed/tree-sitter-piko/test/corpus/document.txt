@@ -18,17 +18,17 @@ package main
     name: (tag_name))
   (script_element
     (start_tag
-      (tag_name)
+      name: (tag_name)
       (attribute
         name: (attribute_name)
         value: (quoted_attribute_value
           (attribute_value))))
     (raw_text)
     (end_tag
-      (tag_name)))
+      name: (tag_name)))
   (template_element
     (start_tag
-      (tag_name))
+      name: (tag_name))
     (start_tag
       name: (tag_name))
     (interpolation
@@ -36,10 +36,9 @@ package main
     (end_tag
       name: (tag_name))
     (end_tag
-      (tag_name)))
+      name: (tag_name)))
   (end_tag
-    name: (tag_name))
-  (text))
+    name: (tag_name)))
 
 ================================================================================
 Doctype and embedded close tag in a Go string
@@ -57,18 +56,17 @@ s := "</div>"
 (document
   (template_element
     (start_tag
-      (tag_name))
+      name: (tag_name))
     (doctype)
     (script_element
       (start_tag
-        (tag_name)
+        name: (tag_name)
         (attribute
           name: (attribute_name)
           value: (quoted_attribute_value
             (attribute_value))))
       (raw_text)
       (end_tag
-        (tag_name)))
+        name: (tag_name)))
     (end_tag
-      (tag_name)))
-  (text))
+      name: (tag_name))))

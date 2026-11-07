@@ -17,84 +17,48 @@
 // strip others of their rights and dignity.
 
 import * as vscode from 'vscode';
+import {findLastTagIndex, parseSfcBlocks, scanMarkupTags, SfcBlock, VOID_ELEMENTS} from './sfcBlocks';
 
 /**
- * Holds data about a block in a Piko file.
+ * The furthest the interpolation search looks either side of the cursor, in
+ * UTF-16 code units.
  */
-interface BlockInfo {
-    /** The type of block. */
-    type: 'template' | 'script' | 'style' | 'i18n';
-    /** The line where the opening tag starts. */
-    startLine: number;
-    /** The line where the closing tag ends. */
-    endLine: number;
-    /** The line where the block body content starts. */
-    bodyStartLine: number;
-    /** The line where the block body content ends. */
-    bodyEndLine: number;
-}
+export const MAX_INTERPOLATION_SEARCH_LENGTH = 10_000;
 
 /**
- * Holds data about an HTML tag and its position.
+ * The deepest element nesting tracked while matching tags. Deeper elements
+ * are not offered as selection ranges.
  */
-interface TagInfo {
-    /** The tag name in lowercase. */
+export const MAX_TAG_DEPTH = 512;
+
+/** The length of the `{{` and `}}` interpolation delimiters. */
+const INTERPOLATION_DELIMITER_LENGTH = 2;
+
+/**
+ * Holds an element whose closing tag has not been seen yet.
+ */
+interface OpenElement {
+    /** The lower-case tag name. */
     name: string;
-    /** The line where the opening tag starts. */
-    openStartLine: number;
-    /** The line where the opening tag ends. */
-    openEndLine: number;
-    /** The line where the closing tag starts. */
-    closeStartLine: number;
-    /** The line where the closing tag ends. */
-    closeEndLine: number;
-    /** The line where the tag content starts. */
-    contentStartLine: number;
-    /** The line where the tag content ends. */
-    contentEndLine: number;
-}
-
-/**
- * Holds data about an opening tag candidate.
- */
-interface TagCandidate {
-    /** The tag name in lowercase. */
-    name: string;
-    /** The start offset of the opening tag. */
+    /** The offset of the opening tag's `<`. */
     start: number;
-    /** The end offset of the opening tag. */
+    /** The offset just after the opening tag's `>`. */
     end: number;
 }
 
 /**
- * Holds the regex patterns for a block type.
+ * Holds the offsets of an element that encloses the cursor.
  */
-interface BlockPattern {
-    /** The block type. */
-    type: 'template' | 'script' | 'style' | 'i18n';
-    /** The regex pattern for the opening tag. */
-    open: RegExp;
-    /** The regex pattern for the closing tag. */
-    close: RegExp;
+interface EnclosingElement {
+    /** The offset of the opening tag's `<`. */
+    openStart: number;
+    /** The offset just after the opening tag's `>`. */
+    openEnd: number;
+    /** The offset of the closing tag's `<`. */
+    closeStart: number;
+    /** The offset just after the closing tag's `>`. */
+    closeEnd: number;
 }
-
-/**
- * HTML tags that are self-closing and cannot contain content.
- */
-const SELF_CLOSING_TAGS = new Set([
-    'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
-    'link', 'meta', 'param', 'source', 'track', 'wbr'
-]);
-
-/**
- * Regex patterns for finding top-level Piko blocks.
- */
-const BLOCK_PATTERNS: BlockPattern[] = [
-    {type: 'template', open: /<template[^>]*>/gi, close: /<\/template>/gi},
-    {type: 'script', open: /<script[^>]*>/gi, close: /<\/script>/gi},
-    {type: 'style', open: /<style[^>]*>/gi, close: /<\/style>/gi},
-    {type: 'i18n', open: /<i18n[^>]*>/gi, close: /<\/i18n>/gi}
-];
 
 /**
  * Provides selection ranges for Piko template files.
@@ -117,22 +81,27 @@ export class PikoSelectionRangeProvider implements vscode.SelectionRangeProvider
         positions: vscode.Position[],
         _token: vscode.CancellationToken
     ): vscode.ProviderResult<vscode.SelectionRange[]> {
-        return positions.map(position => this.buildSelectionRangeChain(document, position));
+        const text = document.getText();
+        const blocks = parseSfcBlocks(text);
+        return positions.map(position => this.buildSelectionRangeChain(document, text, blocks, position));
     }
 
     /**
      * Builds the chain of selection ranges for a position.
      *
      * @param document - The Piko document.
+     * @param text - The document text.
+     * @param blocks - The parsed top-level blocks.
      * @param position - The cursor position.
      * @returns The innermost selection range with parents linked.
      */
     private buildSelectionRangeChain(
         document: vscode.TextDocument,
+        text: string,
+        blocks: readonly SfcBlock[],
         position: vscode.Position
     ): vscode.SelectionRange {
         const ranges: vscode.Range[] = [];
-        const text = document.getText();
         const offset = document.offsetAt(position);
 
         const wordRange = document.getWordRangeAtPosition(position);
@@ -150,11 +119,8 @@ export class PikoSelectionRangeProvider implements vscode.SelectionRangeProvider
             ranges.push(attrRange);
         }
 
-        const tagRanges = this.findHtmlTagRanges(document, position);
-        ranges.push(...tagRanges);
-
-        const blockRanges = this.findBlockRanges(document, position);
-        ranges.push(...blockRanges);
+        ranges.push(...this.findHtmlTagRanges(document, text, blocks, position));
+        ranges.push(...this.findBlockRanges(document, blocks, position));
 
         return this.buildChain(this.deduplicateAndSort(ranges, document));
     }
@@ -167,11 +133,12 @@ export class PikoSelectionRangeProvider implements vscode.SelectionRangeProvider
      * @returns The index of the first { or -1 if not found.
      */
     private findOpeningBraces(text: string, offset: number): number {
-        for (let i = offset; i >= 1; i--) {
+        const limit = Math.max(1, offset - MAX_INTERPOLATION_SEARCH_LENGTH);
+        for (let i = Math.min(offset, text.length - 1); i >= limit; i--) {
             if (text[i] === '{' && text[i - 1] === '{') {
                 return i - 1;
             }
-            if (text[i] === '}' && i > 0 && text[i - 1] === '}') {
+            if (text[i] === '}' && text[i - 1] === '}') {
                 return -1;
             }
         }
@@ -186,11 +153,12 @@ export class PikoSelectionRangeProvider implements vscode.SelectionRangeProvider
      * @returns The index after the second } or -1 if not found.
      */
     private findClosingBraces(text: string, offset: number): number {
-        for (let i = offset; i < text.length - 1; i++) {
+        const limit = Math.min(text.length - 1, offset + MAX_INTERPOLATION_SEARCH_LENGTH);
+        for (let i = offset; i < limit; i++) {
             if (text[i] === '}' && text[i + 1] === '}') {
-                return i + 2;
+                return i + INTERPOLATION_DELIMITER_LENGTH;
             }
-            if (text[i] === '{' && i < text.length - 1 && text[i + 1] === '{') {
+            if (text[i] === '{' && text[i + 1] === '{') {
                 return -1;
             }
         }
@@ -220,8 +188,8 @@ export class PikoSelectionRangeProvider implements vscode.SelectionRangeProvider
             return null;
         }
 
-        const contentStart = openIndex + 2;
-        const contentEnd = closeIndex - 2;
+        const contentStart = openIndex + INTERPOLATION_DELIMITER_LENGTH;
+        const contentEnd = closeIndex - INTERPOLATION_DELIMITER_LENGTH;
 
         if (contentEnd <= contentStart) {
             return null;
@@ -308,334 +276,92 @@ export class PikoSelectionRangeProvider implements vscode.SelectionRangeProvider
     }
 
     /**
-     * Finds HTML tag ranges containing the position.
+     * Finds the ranges of the innermost HTML element that encloses the
+     * position, when the position is inside template or timeline markup.
      *
      * @param document - The Piko document.
+     * @param text - The document text.
+     * @param blocks - The parsed top-level blocks.
      * @param position - The cursor position.
-     * @returns The content range and full tag range if found.
+     * @returns The content range and full element range, if found.
      */
     private findHtmlTagRanges(
         document: vscode.TextDocument,
+        text: string,
+        blocks: readonly SfcBlock[],
         position: vscode.Position
     ): vscode.Range[] {
-        const ranges: vscode.Range[] = [];
-        const text = document.getText();
         const offset = document.offsetAt(position);
-
-        const tagInfo = this.findEnclosingTag(text, offset, document);
-        if (!tagInfo) {
-            return ranges;
+        const region = blocks.find(block =>
+            (block.kind === 'template' || block.kind === 'timeline') &&
+            offset >= block.contentStart && offset <= block.contentEnd);
+        if (region === undefined) {
+            return [];
         }
 
-        if (tagInfo.contentStartLine <= tagInfo.contentEndLine) {
-            const contentRange = new vscode.Range(
-                new vscode.Position(tagInfo.contentStartLine, 0),
-                document.lineAt(tagInfo.contentEndLine).range.end
-            );
-            if (contentRange.contains(position)) {
-                ranges.push(contentRange);
-            }
+        const element = findEnclosingElement(text, region.contentStart, region.contentEnd, offset);
+        if (element === undefined) {
+            return [];
         }
 
-        const fullRange = new vscode.Range(
-            new vscode.Position(tagInfo.openStartLine, 0),
-            document.lineAt(tagInfo.closeEndLine).range.end
+        const ranges: vscode.Range[] = [];
+        const contentStartLine = document.positionAt(element.openEnd).line;
+        const contentEndLine = document.positionAt(element.closeStart).line;
+        const contentRange = new vscode.Range(
+            new vscode.Position(contentStartLine, 0),
+            document.lineAt(contentEndLine).range.end
         );
-        ranges.push(fullRange);
+        if (contentRange.contains(position)) {
+            ranges.push(contentRange);
+        }
 
+        ranges.push(new vscode.Range(
+            new vscode.Position(document.positionAt(element.openStart).line, 0),
+            document.lineAt(document.positionAt(element.closeEnd).line).range.end
+        ));
         return ranges;
     }
 
     /**
-     * Finds the enclosing HTML tag for a position.
-     *
-     * @param text - The document text.
-     * @param offset - The cursor offset.
-     * @param document - The Piko document.
-     * @returns The tag info, or null if no enclosing tag is found.
-     */
-    private findEnclosingTag(
-        text: string,
-        offset: number,
-        document: vscode.TextDocument
-    ): TagInfo | null {
-        const candidates = this.collectTagCandidates(text, offset);
-
-        for (let i = candidates.length - 1; i >= 0; i--) {
-            const tagInfo = this.tryMatchCandidate(text, offset, candidates[i], document);
-            if (tagInfo) {
-                return tagInfo;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Collects opening tag candidates before the offset.
-     *
-     * @param text - The document text.
-     * @param offset - The cursor offset.
-     * @returns The list of tag candidates.
-     */
-    private collectTagCandidates(text: string, offset: number): TagCandidate[] {
-        const openTagPattern = /<([a-zA-Z][a-zA-Z0-9-]*)[^>]*>/g;
-        const candidates: TagCandidate[] = [];
-        let match: RegExpExecArray | null;
-
-        while ((match = openTagPattern.exec(text)) !== null) {
-            if (match.index > offset) {
-                break;
-            }
-
-            const tagName = match[1].toLowerCase();
-            if (SELF_CLOSING_TAGS.has(tagName)) {
-                continue;
-            }
-            if (match[0].endsWith('/>')) {
-                continue;
-            }
-
-            candidates.push({
-                name: tagName,
-                start: match.index,
-                end: match.index + match[0].length
-            });
-        }
-
-        return candidates;
-    }
-
-    /**
-     * Tries to match a candidate tag with its closing tag.
-     *
-     * @param text - The document text.
-     * @param offset - The cursor offset.
-     * @param candidate - The tag candidate.
-     * @param document - The Piko document.
-     * @returns The tag info if the candidate encloses the offset, or null.
-     */
-    private tryMatchCandidate(
-        text: string,
-        offset: number,
-        candidate: TagCandidate,
-        document: vscode.TextDocument
-    ): TagInfo | null {
-        const closeTag = this.findMatchingCloseTag(text, candidate.end, candidate.name);
-        if (!closeTag || closeTag.end <= offset) {
-            return null;
-        }
-
-        const openStartPos = document.positionAt(candidate.start);
-        const openEndPos = document.positionAt(candidate.end);
-        const closeStartPos = document.positionAt(closeTag.start);
-        const closeEndPos = document.positionAt(closeTag.end);
-
-        return {
-            name: candidate.name,
-            openStartLine: openStartPos.line,
-            openEndLine: openEndPos.line,
-            closeStartLine: closeStartPos.line,
-            closeEndLine: closeEndPos.line,
-            contentStartLine: openEndPos.line,
-            contentEndLine: closeStartPos.line
-        };
-    }
-
-    /**
-     * Finds the matching close tag for an opening tag.
-     *
-     * @param text - The document text.
-     * @param startOffset - Where to start searching.
-     * @param tagName - The tag name to find.
-     * @returns The close tag position, or null if not found.
-     */
-    private findMatchingCloseTag(
-        text: string,
-        startOffset: number,
-        tagName: string
-    ): { start: number; end: number } | null {
-        const openPattern = new RegExp(`<${tagName}(?:\\s|>)`, 'gi');
-        const closePattern = new RegExp(`</${tagName}>`, 'gi');
-
-        let depth = 1;
-        let searchOffset = startOffset;
-
-        while (depth > 0 && searchOffset < text.length) {
-            openPattern.lastIndex = searchOffset;
-            closePattern.lastIndex = searchOffset;
-
-            const nextOpen = openPattern.exec(text);
-            const nextClose = closePattern.exec(text);
-
-            const step = this.processTagMatch(text, nextOpen, nextClose, depth);
-            if (!step) {
-                return null;
-            }
-            if ('result' in step) {
-                return step.result;
-            }
-
-            depth = step.depth;
-            searchOffset = step.searchOffset;
-        }
-
-        return null;
-    }
-
-    /**
-     * Processes a single step in the close tag search.
-     *
-     * @param text - The document text.
-     * @param nextOpen - The next opening tag match.
-     * @param nextClose - The next closing tag match.
-     * @param depth - The current nesting depth.
-     * @returns The close tag position if found, or updated search state.
-     */
-    private processTagMatch(
-        text: string,
-        nextOpen: RegExpExecArray | null,
-        nextClose: RegExpExecArray | null,
-        depth: number
-    ): { result: { start: number; end: number } } | { depth: number; searchOffset: number } | null {
-        if (!nextClose) {
-            return null;
-        }
-
-        if (nextOpen && nextOpen.index < nextClose.index) {
-            const tagEnd = text.indexOf('>', nextOpen.index);
-            const isSelfClosed = tagEnd !== -1 && text[tagEnd - 1] === '/';
-            return {
-                depth: isSelfClosed ? depth : depth + 1,
-                searchOffset: nextOpen.index + 1
-            };
-        }
-
-        const newDepth = depth - 1;
-        if (newDepth === 0) {
-            return {result: {start: nextClose.index, end: nextClose.index + nextClose[0].length}};
-        }
-
-        return {depth: newDepth, searchOffset: nextClose.index + 1};
-    }
-
-    /**
-     * Finds block ranges containing the position.
+     * Finds the ranges of the top-level block containing the position.
      *
      * @param document - The Piko document.
+     * @param blocks - The parsed top-level blocks.
      * @param position - The cursor position.
      * @returns The body range and full block range if found.
      */
     private findBlockRanges(
         document: vscode.TextDocument,
+        blocks: readonly SfcBlock[],
         position: vscode.Position
     ): vscode.Range[] {
-        const ranges: vscode.Range[] = [];
-        const blocks = this.parseBlocks(document);
-
         for (const block of blocks) {
-            if (position.line < block.startLine || position.line > block.endLine) {
+            const startLine = document.positionAt(block.start).line;
+            const endLine = document.positionAt(block.end).line;
+            if (position.line < startLine || position.line > endLine) {
                 continue;
             }
 
-            if (block.bodyStartLine <= block.bodyEndLine) {
-                const bodyRange = new vscode.Range(
-                    new vscode.Position(block.bodyStartLine, 0),
-                    document.lineAt(block.bodyEndLine).range.end
-                );
-                ranges.push(bodyRange);
+            const ranges: vscode.Range[] = [];
+            const openEndLine = document.positionAt(block.contentStart).line;
+            const closeStartLine = document.positionAt(block.contentEnd).line;
+            const bodyStartLine = openEndLine === startLine ? openEndLine + 1 : openEndLine;
+            const bodyEndLine = closeStartLine === endLine ? closeStartLine - 1 : closeStartLine;
+            if (bodyStartLine <= bodyEndLine) {
+                ranges.push(new vscode.Range(
+                    new vscode.Position(bodyStartLine, 0),
+                    document.lineAt(bodyEndLine).range.end
+                ));
             }
 
-            const fullRange = new vscode.Range(
-                new vscode.Position(block.startLine, 0),
-                document.lineAt(block.endLine).range.end
-            );
-            ranges.push(fullRange);
-
-            break;
+            ranges.push(new vscode.Range(
+                new vscode.Position(startLine, 0),
+                document.lineAt(endLine).range.end
+            ));
+            return ranges;
         }
 
-        return ranges;
-    }
-
-    /**
-     * Parses the document to find all top-level blocks.
-     *
-     * @param document - The Piko document.
-     * @returns The list of blocks found.
-     */
-    private parseBlocks(document: vscode.TextDocument): BlockInfo[] {
-        const text = document.getText();
-        const blocks: BlockInfo[] = [];
-
-        for (const pattern of BLOCK_PATTERNS) {
-            const patternBlocks = this.parseBlocksOfType(text, document, pattern);
-            blocks.push(...patternBlocks);
-        }
-
-        return blocks.sort((a, b) => a.startLine - b.startLine);
-    }
-
-    /**
-     * Parses all blocks of a single type from the document.
-     *
-     * @param text - The document text.
-     * @param document - The Piko document.
-     * @param pattern - The block pattern to match.
-     * @returns The list of blocks found.
-     */
-    private parseBlocksOfType(
-        text: string,
-        document: vscode.TextDocument,
-        pattern: BlockPattern
-    ): BlockInfo[] {
-        const blocks: BlockInfo[] = [];
-        pattern.open.lastIndex = 0;
-
-        let openMatch: RegExpExecArray | null;
-        while ((openMatch = pattern.open.exec(text)) !== null) {
-            const block = this.parseBlockMatch(text, document, pattern, openMatch);
-            if (block) {
-                blocks.push(block);
-            }
-        }
-
-        return blocks;
-    }
-
-    /**
-     * Parses a single block from an opening tag match.
-     *
-     * @param text - The document text.
-     * @param document - The Piko document.
-     * @param pattern - The block pattern.
-     * @param openMatch - The opening tag match.
-     * @returns The block info, or null if no closing tag found.
-     */
-    private parseBlockMatch(
-        text: string,
-        document: vscode.TextDocument,
-        pattern: BlockPattern,
-        openMatch: RegExpExecArray
-    ): BlockInfo | null {
-        pattern.close.lastIndex = openMatch.index + openMatch[0].length;
-        const closeMatch = pattern.close.exec(text);
-        if (!closeMatch) {
-            return null;
-        }
-
-        const startPos = document.positionAt(openMatch.index);
-        const openEndPos = document.positionAt(openMatch.index + openMatch[0].length);
-        const closeStartPos = document.positionAt(closeMatch.index);
-        const endPos = document.positionAt(closeMatch.index + closeMatch[0].length);
-
-        return {
-            type: pattern.type,
-            startLine: startPos.line,
-            endLine: endPos.line,
-            bodyStartLine: openEndPos.line === startPos.line ? openEndPos.line + 1 : openEndPos.line,
-            bodyEndLine: closeStartPos.line === endPos.line ? closeStartPos.line - 1 : closeStartPos.line
-        };
+        return [];
     }
 
     /**
@@ -698,4 +424,49 @@ export function registerSelectionRangeProvider(
         {language: 'piko'},
         new PikoSelectionRangeProvider()
     );
+}
+
+/**
+ * Finds the innermost element that encloses an offset, in a single pass.
+ *
+ * @param text - The document text.
+ * @param start - The offset where the markup region starts.
+ * @param end - The offset where the markup region ends.
+ * @param offset - The cursor offset.
+ * @returns The enclosing element, or undefined when none encloses the offset.
+ */
+function findEnclosingElement(text: string, start: number, end: number, offset: number): EnclosingElement | undefined {
+    const enclosing: OpenElement[] = [];
+    const openedAfter: OpenElement[] = [];
+    let result: EnclosingElement | undefined;
+
+    scanMarkupTags(text, start, end, tag => {
+        const isBeforeCursor = tag.kind === 'open' ? tag.start <= offset : tag.end <= offset;
+        const stack = isBeforeCursor ? enclosing : openedAfter;
+        if (tag.kind === 'open') {
+            if (!tag.selfClosing && !VOID_ELEMENTS.has(tag.name) && stack.length < MAX_TAG_DEPTH) {
+                stack.push({name: tag.name, start: tag.start, end: tag.end});
+            }
+            return true;
+        }
+
+        const stackIndex = findLastTagIndex(stack, tag.name);
+        if (stackIndex !== -1) {
+            stack.length = stackIndex;
+            return true;
+        }
+        if (isBeforeCursor) {
+            return true;
+        }
+
+        const enclosingIndex = findLastTagIndex(enclosing, tag.name);
+        if (enclosingIndex === -1) {
+            return true;
+        }
+        const element = enclosing[enclosingIndex];
+        result = {openStart: element.start, openEnd: element.end, closeStart: tag.start, closeEnd: tag.end};
+        return false;
+    });
+
+    return result;
 }

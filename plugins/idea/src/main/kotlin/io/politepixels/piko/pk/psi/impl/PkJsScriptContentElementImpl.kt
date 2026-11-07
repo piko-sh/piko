@@ -44,15 +44,12 @@ class PkJsScriptContentElementImpl(node: ASTNode) :
     override fun isValidHost(): Boolean = true
 
     /**
-     * Updates the text content of this injection host.
+     * Replaces the host's text, for edits made through the injected language.
      *
-     * @param text The new text content.
-     * @return This method always throws as text updates are not supported.
-     * @throws UnsupportedOperationException Always thrown.
+     * @param text The new host text.
+     * @return The replacement host now in the tree.
      */
-    override fun updateText(text: String): PsiLanguageInjectionHost {
-        throw UnsupportedOperationException("updateText() not supported in PK JS script content")
-    }
+    override fun updateText(text: String): PsiLanguageInjectionHost = PkInjectionHostText.replace(this, text)
 
     /**
      * Creates a text escaper for mapping positions between host and injected content.

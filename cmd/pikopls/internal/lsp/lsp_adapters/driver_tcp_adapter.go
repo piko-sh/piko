@@ -60,17 +60,16 @@ const (
 	// deadline and the connection is torn down.
 	defaultLSPConnectionWriteTimeout = 15 * time.Second
 
-	// defaultMaxConcurrentLSPConnections caps concurrent in-flight LSP connections handled
-	// by the TCP adapter. Excess connections are accepted, rejected with an error
-	// notification, and immediately closed so a hostile peer cannot exhaust file descriptors
-	// or goroutines.
-	defaultMaxConcurrentLSPConnections = 64
+	// DefaultMaxConcurrentLSPConnections caps concurrent in-flight LSP connections handled
+	// by the TCP adapter when no explicit cap is configured. Excess connections are
+	// accepted and immediately closed so a hostile peer cannot exhaust file descriptors or
+	// goroutines.
+	DefaultMaxConcurrentLSPConnections = 64
 
-	// defaultLSPConnectionInactivityTimeout sets the initial read deadline on each accepted
-	// connection. Editors keep the conn open for the lifetime of the workspace, so a
-	// per-message reset is impractical at this layer; we instead expose a long inactivity
-	// window that protects against leaked half-open connections without disrupting normal
-	// usage.
+	// defaultLSPConnectionInactivityTimeout is the idle window after which a connection
+	// that has sent nothing is closed. The read deadline is refreshed before every read, so
+	// an active editor session is never cut off while leaked half-open connections are
+	// still reclaimed.
 	defaultLSPConnectionInactivityTimeout = 30 * time.Minute
 
 	// shutdownDrainTimeout caps how long Run waits for in-flight handler goroutines to
@@ -103,9 +102,9 @@ type tcpAdapter struct {
 	// lspReader provides file system access for the LSP server.
 	lspReader annotator_domain.FSReaderPort
 
-	// connectionSemaphore caps concurrent in-flight handler goroutines. nil means unlimited
-	// (only used when MaxConcurrentConnections is set to a non-positive value via the
-	// option).
+	// connectionSemaphore caps concurrent in-flight handler goroutines. Its capacity is the
+	// configured connection cap, which is always at least one; the nil checks in the slot
+	// helpers only guard a zero-value adapter.
 	connectionSemaphore chan struct{}
 
 	// docCache stores parsed documentation for files to avoid repeated parsing.
@@ -124,13 +123,17 @@ type tcpAdapter struct {
 	// addr is the TCP address to listen on (e.g. "localhost:8080").
 	addr string
 
+	// serverVersion is the version reported to clients in serverInfo.
+	serverVersion string
+
 	// goroutineWG tracks spawned handler goroutines so Run can drain them on shutdown.
 	goroutineWG sync.WaitGroup
 
 	// maxMessageBytes caps the size of a single LSP message read from the wire.
 	maxMessageBytes int64
 
-	// connectionInactivityTimeout sets the initial conn read deadline.
+	// connectionInactivityTimeout is the idle window applied as a read deadline that is
+	// refreshed before every read.
 	connectionInactivityTimeout time.Duration
 
 	// formattingEnabled controls whether formatting capabilities are advertised.
@@ -170,13 +173,18 @@ type TCPAdapterDeps struct {
 	// Addr is the TCP address to listen on (e.g. "localhost:8080").
 	Addr string
 
+	// ServerVersion is the version reported to clients in serverInfo. Empty falls back to
+	// the domain default.
+	ServerVersion string
+
 	// MaxConcurrentConnections caps concurrent handler goroutines. Zero or negative falls
-	// back to defaultMaxConcurrentLSPConnections; pass a very large value to effectively
+	// back to DefaultMaxConcurrentLSPConnections; pass a very large value to effectively
 	// disable the cap.
 	MaxConcurrentConnections int
 
-	// ConnectionInactivityTimeout sets the initial conn read deadline. Zero or negative
-	// falls back to defaultLSPConnectionInactivityTimeout.
+	// ConnectionInactivityTimeout is the idle window after which a silent connection is
+	// closed; the read deadline is refreshed before every read. Zero or negative falls back
+	// to defaultLSPConnectionInactivityTimeout.
 	ConnectionInactivityTimeout time.Duration
 
 	// MaxMessageBytes caps the size of a single LSP message read from the wire. Zero or
@@ -333,8 +341,9 @@ func (a *tcpAdapter) drainHandlers(ctx context.Context) {
 // handleConnection manages a single client connection over TCP.
 //
 // The conn is wrapped with a cappedReadWriteCloser so a hostile peer cannot announce a
-// massive Content-Length and force io.ReadFull to allocate it. An initial read deadline
-// is set so leaked half-open connections are closed once the deadline elapses.
+// massive Content-Length and force io.ReadFull to allocate it. A read deadline is
+// refreshed before every read so leaked half-open connections are closed once they have
+// been idle for the inactivity window, while active sessions stay open indefinitely.
 //
 // Takes conn (net.Conn) which is the TCP connection to handle.
 func (a *tcpAdapter) handleConnection(ctx context.Context, conn net.Conn) {
@@ -344,15 +353,8 @@ func (a *tcpAdapter) handleConnection(ctx context.Context, conn net.Conn) {
 	l.Debug("LSP client connected", logger_domain.String(attributeKeyRemoteAddr, remoteAddr))
 	defer func() { _ = conn.Close() }()
 
-	if a.connectionInactivityTimeout > 0 {
-		if err := conn.SetReadDeadline(time.Now().Add(a.connectionInactivityTimeout)); err != nil {
-			l.Debug("Failed to set LSP TCP read deadline",
-				logger_domain.Error(err),
-				logger_domain.String(attributeKeyRemoteAddr, remoteAddr))
-		}
-	}
-
-	deadlined := &writeDeadlineConn{Conn: conn, timeout: defaultLSPConnectionWriteTimeout}
+	idleBounded := &readDeadlineConn{Conn: conn, timeout: a.connectionInactivityTimeout}
+	deadlined := &writeDeadlineConn{Conn: idleBounded, timeout: defaultLSPConnectionWriteTimeout}
 	capped := newCappedReadWriteCloser(deadlined, a.maxMessageBytes)
 	stream := jsonrpc2.NewStream(capped)
 	formatter := formatter_domain.NewFormatterService()
@@ -368,6 +370,7 @@ func (a *tcpAdapter) handleConnection(ctx context.Context, conn net.Conn) {
 		GoplsManager:         a.goplsManager,
 		FormattingEnabled:    a.formattingEnabled,
 		GoplsBridgeEnabled:   a.goplsBridgeEnabled,
+		ServerVersion:        a.serverVersion,
 		Clock:                nil,
 	})
 
@@ -440,7 +443,7 @@ func NewTCPAdapter(deps TCPAdapterDeps) (lsp_domain.LSPServerPort, error) {
 
 	maxConnections := deps.MaxConcurrentConnections
 	if maxConnections <= 0 {
-		maxConnections = defaultMaxConcurrentLSPConnections
+		maxConnections = DefaultMaxConcurrentLSPConnections
 	}
 
 	inactivity := deps.ConnectionInactivityTimeout
@@ -459,6 +462,7 @@ func NewTCPAdapter(deps TCPAdapterDeps) (lsp_domain.LSPServerPort, error) {
 		goplsManager:                deps.GoplsManager,
 		formattingEnabled:           deps.FormattingEnabled,
 		goplsBridgeEnabled:          deps.GoplsBridgeEnabled,
+		serverVersion:               deps.ServerVersion,
 		maxMessageBytes:             maxMessageBytes,
 		connectionInactivityTimeout: inactivity,
 		connectionSemaphore:         make(chan struct{}, maxConnections),
@@ -549,6 +553,16 @@ func (c *cappedReadWriteCloser) Close() error {
 	return c.inner.Close()
 }
 
+// readDeadlineConn refreshes the read deadline before every read so the connection is
+// closed only after it has been idle for the whole timeout, not a fixed time after it
+// was accepted.
+type readDeadlineConn struct {
+	net.Conn
+
+	// timeout is the idle window applied before each read; non-positive disables it.
+	timeout time.Duration
+}
+
 // writeDeadlineConn applies a per-write deadline to an editor connection so a client that
 // stops reading cannot block the server. On timeout the write returns an error, jsonrpc2
 // surfaces it, and the connection is torn down.
@@ -571,4 +585,20 @@ func (c *writeDeadlineConn) Write(p []byte) (int, error) {
 		_ = c.SetWriteDeadline(time.Now().Add(c.timeout))
 	}
 	return c.Conn.Write(p)
+}
+
+// Read refreshes the read deadline before delegating, so the inactivity window restarts
+// on every read rather than expiring a fixed time after the connection was accepted.
+//
+// Takes p ([]byte) which receives the read bytes.
+//
+// Returns int which is the number of bytes read.
+// Returns error which is the deadline error or the inner Read error.
+func (c *readDeadlineConn) Read(p []byte) (int, error) {
+	if c.timeout > 0 {
+		if err := c.SetReadDeadline(time.Now().Add(c.timeout)); err != nil {
+			return 0, fmt.Errorf("refreshing LSP TCP read deadline: %w", err)
+		}
+	}
+	return c.Conn.Read(p)
 }

@@ -364,3 +364,32 @@ func TestAppendGitignoreEntries_SkipsIfAlreadyPresent(t *testing.T) {
 
 	assert.False(t, strings.Count(string(content), "AGENTS.md") > 1, "AGENTS.md should not be duplicated in .gitignore")
 }
+
+func TestInstallClaudeCodeTarget_PinsInstalledBinary(t *testing.T) {
+	original := lookPath
+	t.Cleanup(func() { lookPath = original })
+	binaryPath := filepath.Join(t.TempDir(), "pikopls")
+	lookPath = func(string) (string, error) { return binaryPath, nil }
+
+	destination := filepath.Join(t.TempDir(), "plugin")
+	summary, err := installClaudeCodeTarget(t.Context(), destination, "1.2.3")
+	require.NoError(t, err)
+	assert.Contains(t, summary, destination)
+	assert.Contains(t, summary, "already on PATH")
+
+	config, err := os.ReadFile(filepath.Join(destination, lspConfigFileName))
+	require.NoError(t, err)
+	assert.Contains(t, string(config), binaryPath, "the plugin launches the installed binary by absolute path")
+}
+
+func TestInstallClaudeCodeTarget_FailsWhenPluginCannotBeCopied(t *testing.T) {
+	original := lookPath
+	t.Cleanup(func() { lookPath = original })
+	lookPath = func(string) (string, error) { return filepath.Join(t.TempDir(), "pikopls"), nil }
+
+	blocker := filepath.Join(t.TempDir(), "file")
+	require.NoError(t, os.WriteFile(blocker, []byte("x"), 0o600))
+
+	_, err := installClaudeCodeTarget(t.Context(), filepath.Join(blocker, "plugin"), "1.2.3")
+	require.Error(t, err, "a destination that cannot be created fails the install")
+}

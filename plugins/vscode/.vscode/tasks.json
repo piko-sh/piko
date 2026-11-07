@@ -4,7 +4,7 @@
     {
       "type": "npm",
       "script": "watch",
-      "problemMatcher": "$tsc-watch",
+      "problemMatcher": "$esbuild-watch",
       "isBackground": true,
       "presentation": {
         "reveal": "never"
@@ -17,7 +17,7 @@
     {
       "type": "npm",
       "script": "compile",
-      "problemMatcher": "$tsc",
+      "problemMatcher": "$esbuild",
       "presentation": {
         "reveal": "silent"
       },

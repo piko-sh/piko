@@ -65,6 +65,8 @@ This matches the SSR-framework convention: Nuxt, Next.js, Astro, SvelteKit, Remi
 PIKO_LOG_LEVEL=debug ./my-app prod
 ```
 
+`piko.New` reads `PIKO_DWARF_LINE_DIRECTIVES` the same way. Set it to `true` on the generator to map generated code back to `.pk` files for breakpoint debugging; an explicit `WithExperimentalDwarfLineDirectives(...)` option overrides it. A value that is not a boolean is logged as a warning and ignored. See [How to debug your Piko app with breakpoints](../how-to/debug-with-breakpoints.md).
+
 Other `PIKO_*` variables (`PIKO_PORT`, `PIKO_I18N_SOURCE_DIR`, `PIKO_ACTION_SERVE_PATH`, and similar) provide defaults for the matching `With*` options when those options are not set in code. They are deliberately limited. Anything secret, environment-specific, or composed from multiple sources is your `func main`'s problem.
 
 ## Deploy-time values: bring your own loader
