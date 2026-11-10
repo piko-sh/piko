@@ -103,6 +103,6 @@ require (
 	piko.sh/piko/wdk/linguistics/linguistics_stemmer_english v0.0.0 // indirect
 	piko.sh/piko/wdk/linguistics/linguistics_stopwords_english v0.0.0 // indirect
 	piko.sh/safeconv v0.1.0 // indirect
-	piko.sh/safedisk v0.1.0 // indirect
+	piko.sh/safedisk v0.3.0 // indirect
 	piko.sh/vectormaths v0.2.0 // indirect
 )

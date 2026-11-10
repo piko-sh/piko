@@ -97,8 +97,14 @@ func run() error {
 		return fmt.Errorf("factory: %w", err)
 	}
 
+	inputSandbox, err := factory.Create("dal-input", base, safedisk.ModeReadOnly)
+	if err != nil {
+		return fmt.Errorf("input sandbox: %w", err)
+	}
+	defer func() { _ = inputSandbox.Close() }()
+
 	result, err := db.Generate(context.Background(), engine, db.GenerateRequest{
-		Files:              os.DirFS(base),
+		Files:              inputSandbox.FS(),
 		PackageName:        packageName,
 		MigrationDirectory: "migrations",
 		QueryDirectory:     "queries",
@@ -145,7 +151,7 @@ func writeOutput(factory safedisk.Factory, base string, files []db.GeneratedFile
 		return fmt.Errorf("mkdir %s: %w", outputDirectory, err)
 	}
 
-	innerSandbox, err := factory.Create("dal-output", outputDirectory, safedisk.ModeReadWrite)
+	innerSandbox, err := outputSandbox.OpenRoot(filepath.Base(outputDirectory), safedisk.ModeReadWrite)
 	if err != nil {
 		return fmt.Errorf("sandbox: %w", err)
 	}

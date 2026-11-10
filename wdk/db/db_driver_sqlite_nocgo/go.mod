@@ -6,7 +6,7 @@ require (
 	github.com/stretchr/testify v1.12.1
 	go.uber.org/goleak v1.3.0
 	modernc.org/sqlite v1.56.0
-	piko.sh/safedisk v0.1.0
+	piko.sh/safedisk v0.3.0
 )
 
 require (

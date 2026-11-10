@@ -55,7 +55,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	piko.sh/goastutil v0.2.0 // indirect
-	piko.sh/safedisk v0.1.0 // indirect
+	piko.sh/safedisk v0.3.0 // indirect
 	piko.sh/vectormaths v0.2.0 // indirect
 )
 

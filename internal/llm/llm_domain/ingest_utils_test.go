@@ -430,3 +430,30 @@ func TestFromDirectory_MissingDir_ErrorNamesPath(t *testing.T) {
 	assert.Contains(t, err.Error(), missing,
 		"FromDirectory should record the path so the error names it")
 }
+
+func TestFromDirectory_DoesNotFollowSymlinkOutsideDirectory(t *testing.T) {
+	outside := t.TempDir()
+	secret := filepath.Join(outside, "secret.md")
+	require.NoError(t, os.WriteFile(secret, []byte("outside the directory"), 0o600))
+
+	directory := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(directory, "inside.md"), []byte("inside"), 0o600))
+	if err := os.Symlink(secret, filepath.Join(directory, "linked.md")); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+
+	for _, pattern := range []string{"*.md", "**/*.md"} {
+		t.Run(pattern, func(t *testing.T) {
+			b := (&IngestBuilder{}).FromDirectory(directory, pattern)
+
+			docs, err := b.loader.Load(context.Background())
+			require.Error(t, err, "the escaping symlink should be reported as unreadable")
+			assert.Contains(t, err.Error(), "linked.md")
+			for _, document := range docs {
+				assert.NotContains(t, document.Content, "outside the directory")
+			}
+			require.Len(t, docs, 1)
+			assert.Equal(t, "inside", docs[0].Content)
+		})
+	}
+}

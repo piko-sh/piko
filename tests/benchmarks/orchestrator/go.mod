@@ -79,7 +79,7 @@ require (
 	piko.sh/goastutil v0.2.0 // indirect
 	piko.sh/piko/wdk/db/db_engine_sqlite v0.0.0 // indirect
 	piko.sh/piko/wdk/db/db_provider_seagull v0.0.0 // indirect
-	piko.sh/safedisk v0.1.0 // indirect
+	piko.sh/safedisk v0.3.0 // indirect
 	piko.sh/vectormaths v0.2.0 // indirect
 	seagull.sh/seagull v0.0.0-alpha.2 // indirect
 )

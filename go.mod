@@ -36,7 +36,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 	piko.sh/goastutil v0.2.0
 	piko.sh/safeconv v0.1.0
-	piko.sh/safedisk v0.1.0
+	piko.sh/safedisk v0.3.0
 	piko.sh/vectormaths v0.2.0
 )
 

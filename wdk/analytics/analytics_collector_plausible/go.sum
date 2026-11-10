@@ -33,5 +33,5 @@ gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
 piko.sh/safeconv v0.1.0 h1:BsPGkT4mhXeR5WTk7HYuVIlBcAOulGzASfrSrESwl7o=
 piko.sh/safeconv v0.1.0/go.mod h1:GKGH9YV6ArewC9CkOcLKcbkBr+o3FodkaGsmlNkNjdw=
-piko.sh/safedisk v0.1.0 h1:GPle6IztcFa3b2qnjWzNfR3m40lxUhUrFcWTvuCSKOQ=
-piko.sh/safedisk v0.1.0/go.mod h1:9Z3rpNdYrlEUQEMPg28+mXkBOR6t2lwl9nhtMkam4eo=
+piko.sh/safedisk v0.3.0 h1:qQZdhppiUeeuLCmIZBCH/8Zb7PdsIvfT6pOsNlIy/Qg=
+piko.sh/safedisk v0.3.0/go.mod h1:9Z3rpNdYrlEUQEMPg28+mXkBOR6t2lwl9nhtMkam4eo=

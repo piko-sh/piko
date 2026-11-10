@@ -227,9 +227,11 @@ func (c *Container) GetSandboxFactory() (safedisk.Factory, error) {
 	c.sandboxFactoryOnce.Do(func() {
 		serverConfig := c.serverConfig
 		c.sandboxFactoryInstance, c.sandboxFactoryErr = safedisk.NewFactory(safedisk.FactoryConfig{
-			Enabled:      deref(serverConfig.Security.Sandbox.Enabled, true),
-			AllowedPaths: serverConfig.Security.Sandbox.AllowedPaths,
-			CWD:          deref(serverConfig.Paths.BaseDir, "."),
+			Enabled:           deref(serverConfig.Security.Sandbox.Enabled, true),
+			AllowedPaths:      serverConfig.Security.Sandbox.AllowedPaths,
+			CWD:               deref(serverConfig.Paths.BaseDir, "."),
+			RequireSingleLink: false,
+			NoSymlinks:        !deref(serverConfig.Security.Sandbox.AllowSymlinks, true),
 		})
 	})
 	return c.sandboxFactoryInstance, c.sandboxFactoryErr

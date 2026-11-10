@@ -50,7 +50,7 @@ require (
 	piko.sh/goastutil v0.2.0 // indirect
 	piko.sh/piko/wdk/interp/interp_piko_symbols v0.0.0 // indirect
 	piko.sh/safeconv v0.1.0 // indirect
-	piko.sh/safedisk v0.1.0 // indirect
+	piko.sh/safedisk v0.3.0 // indirect
 	piko.sh/vectormaths v0.2.0 // indirect
 	pipit.sh/pipit v0.0.0-alpha.8 // indirect
 	pipit.sh/pipit/sdk/link v0.0.0-alpha.8 // indirect

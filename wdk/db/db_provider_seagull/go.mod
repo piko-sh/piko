@@ -57,6 +57,6 @@ require (
 	modernc.org/memory v1.11.0 // indirect
 	piko.sh/goastutil v0.2.0 // indirect
 	piko.sh/safeconv v0.1.0 // indirect
-	piko.sh/safedisk v0.1.0 // indirect
+	piko.sh/safedisk v0.3.0 // indirect
 	piko.sh/vectormaths v0.2.0 // indirect
 )

@@ -6,7 +6,7 @@ require (
 	piko.sh/piko v0.0.0
 	piko.sh/piko/wdk/db/db_engine_postgres v0.0.0
 	piko.sh/piko/wdk/db/db_engine_sqlite v0.0.0
-	piko.sh/safedisk v0.1.0
+	piko.sh/safedisk v0.3.0
 )
 
 require (

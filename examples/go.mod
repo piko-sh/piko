@@ -8,7 +8,7 @@ require (
 	piko.sh/goastutil v0.2.0
 	piko.sh/piko v0.0.0
 	piko.sh/piko/wdk/browser v0.0.0
-	piko.sh/safedisk v0.1.0
+	piko.sh/safedisk v0.3.0
 )
 
 require (

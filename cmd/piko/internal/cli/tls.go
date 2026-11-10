@@ -22,7 +22,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"google.golang.org/grpc/credentials"
@@ -81,11 +80,8 @@ func loadTLSCredentials(factory safedisk.Factory, directory string) (credentials
 		MinVersion: tls.VersionTLS12,
 	}
 
-	clientCertPath := filepath.Join(directory, clientCertFilename)
-	clientKeyPath := filepath.Join(directory, clientKeyFilename)
-
-	if fileExists(clientCertPath) && fileExists(clientKeyPath) {
-		clientCert, err := tls.LoadX509KeyPair(clientCertPath, clientKeyPath)
+	if fileExists(sandbox, clientCertFilename) && fileExists(sandbox, clientKeyFilename) {
+		clientCert, err := loadClientKeyPair(sandbox)
 		if err != nil {
 			return nil, fmt.Errorf("loading client certificate: %w", err)
 		}
@@ -95,12 +91,32 @@ func loadTLSCredentials(factory safedisk.Factory, directory string) (credentials
 	return credentials.NewTLS(tlsConfig), nil
 }
 
-// fileExists reports whether the named file exists and is not a directory.
+// loadClientKeyPair reads the client certificate and private key through the sandbox.
 //
-// Takes path (string) which is the file path to check.
+// Takes sandbox (safedisk.Sandbox) which is rooted at the certificate directory.
 //
-// Returns bool which is true when the path exists and is a regular file.
-func fileExists(path string) bool {
-	info, err := os.Stat(path)
+// Returns tls.Certificate which is the parsed client key pair.
+// Returns error when either file cannot be read or the pair cannot be parsed.
+func loadClientKeyPair(sandbox safedisk.Sandbox) (tls.Certificate, error) {
+	certPEM, err := sandbox.ReadFile(clientCertFilename)
+	if err != nil {
+		return tls.Certificate{}, fmt.Errorf("reading %s: %w", clientCertFilename, err)
+	}
+	keyPEM, err := sandbox.ReadFile(clientKeyFilename)
+	if err != nil {
+		return tls.Certificate{}, fmt.Errorf("reading %s: %w", clientKeyFilename, err)
+	}
+	return tls.X509KeyPair(certPEM, keyPEM)
+}
+
+// fileExists reports whether the named file exists in the sandbox and is not a
+// directory.
+//
+// Takes sandbox (safedisk.Sandbox) which is rooted at the certificate directory.
+// Takes name (string) which is the file name within the sandbox.
+//
+// Returns bool which is true when the path exists and is not a directory.
+func fileExists(sandbox safedisk.Sandbox, name string) bool {
+	info, err := sandbox.Stat(name)
 	return err == nil && !info.IsDir()
 }

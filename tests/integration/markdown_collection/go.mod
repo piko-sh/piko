@@ -7,7 +7,7 @@ require (
 	piko.sh/piko v0.0.0
 	piko.sh/piko/tests/integration/testutil v0.0.0
 	piko.sh/piko/wdk/markdown/markdown_provider_goldmark v0.0.0
-	piko.sh/safedisk v0.1.0
+	piko.sh/safedisk v0.3.0
 )
 
 require (

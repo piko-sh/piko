@@ -388,9 +388,11 @@ func (b *interpretedDaemonBuilder) createAnnotatorReaderAndProcessor(
 	serverConfig := b.c.serverConfig
 	baseDir := deref(serverConfig.Paths.BaseDir, ".")
 	sandboxFactory, err := safedisk.NewFactory(safedisk.FactoryConfig{
-		Enabled:      deref(serverConfig.Security.Sandbox.Enabled, true),
-		AllowedPaths: serverConfig.Security.Sandbox.AllowedPaths,
-		CWD:          baseDir,
+		Enabled:           deref(serverConfig.Security.Sandbox.Enabled, true),
+		AllowedPaths:      serverConfig.Security.Sandbox.AllowedPaths,
+		CWD:               baseDir,
+		RequireSingleLink: false,
+		NoSymlinks:        !deref(serverConfig.Security.Sandbox.AllowSymlinks, true),
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("creating sandbox factory: %w", err)

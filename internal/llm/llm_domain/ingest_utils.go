@@ -27,6 +27,8 @@ import (
 	"path/filepath"
 	"strings"
 	"unicode/utf8"
+
+	"piko.sh/safedisk"
 )
 
 // FSLoader loads documents from a file system.
@@ -130,6 +132,49 @@ type RecursiveFSLoader struct {
 
 	// patterns contains the glob patterns matched against file names.
 	patterns []string
+}
+
+// directoryLoader loads documents from a local directory through a read-only sandbox,
+// which is open only while Load runs.
+type directoryLoader struct {
+	// path is the directory to load from.
+	path string
+
+	// patterns contains the glob patterns, where a "**/" prefix walks recursively.
+	patterns []string
+}
+
+// Load opens the directory as a read-only sandbox and loads the matching files from its
+// file system view.
+//
+// Returns []Document which contains all successfully loaded documents.
+// Returns error when the directory cannot be opened, or as the underlying loader does.
+func (l *directoryLoader) Load(ctx context.Context) ([]Document, error) {
+	sandbox, err := safedisk.NewSandbox(l.path, safedisk.ModeReadOnly)
+	if err != nil {
+		return nil, fmt.Errorf("opening documentation source %q: %w", l.path, err)
+	}
+	defer func() { _ = sandbox.Close() }()
+
+	loader := newPatternLoader(sandbox.FS(), l.patterns)
+	if setter, ok := loader.(sourceSetter); ok {
+		setter.setSource(l.path)
+	}
+	return loader.Load(ctx)
+}
+
+// newPatternLoader creates a loader for fsys, walking recursively when any pattern has
+// a "**/" prefix and globbing a single level otherwise.
+//
+// Takes fsys (fs.FS) which provides the file system to load from.
+// Takes patterns ([]string) which specifies the glob patterns to match.
+//
+// Returns LoaderPort which is a *RecursiveFSLoader or an *FSLoader.
+func newPatternLoader(fsys fs.FS, patterns []string) LoaderPort {
+	if hasRecursivePattern(patterns) {
+		return NewRecursiveFSLoader(fsys, stripRecursivePrefix(patterns)...)
+	}
+	return NewFSLoader(fsys, patterns...)
 }
 
 // sourceSetter lets a loader record the human-readable source it was created from.

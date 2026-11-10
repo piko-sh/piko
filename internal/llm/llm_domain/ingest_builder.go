@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"os"
 	"strings"
 
 	"piko.sh/piko/internal/logger/logger_domain"
@@ -79,27 +78,22 @@ func NewIngestBuilder(service *service, namespace string) *IngestBuilder {
 //
 // Returns *IngestBuilder which allows for method chaining.
 func (b *IngestBuilder) FromFS(fsys fs.FS, patterns ...string) *IngestBuilder {
-	if hasRecursivePattern(patterns) {
-		b.loader = NewRecursiveFSLoader(fsys, stripRecursivePrefix(patterns)...)
-	} else {
-		b.loader = NewFSLoader(fsys, patterns...)
-	}
+	b.loader = newPatternLoader(fsys, patterns)
 	return b
 }
 
 // FromDirectory configures file loading from a local directory using glob patterns.
 // Patterns with "**/" prefix walk recursively; plain patterns match a single level.
 //
+// The directory is read through a read-only sandbox, so a symbolic link that points
+// outside it is not followed and its file is reported as unreadable.
+//
 // Takes path (string) which specifies the directory to load files from.
 // Takes patterns (...string) which specifies the glob patterns to match.
 //
 // Returns *IngestBuilder which allows method chaining.
 func (b *IngestBuilder) FromDirectory(path string, patterns ...string) *IngestBuilder {
-	b.FromFS(os.DirFS(path), patterns...)
-
-	if s, ok := b.loader.(sourceSetter); ok {
-		s.setSource(path)
-	}
+	b.loader = &directoryLoader{path: path, patterns: patterns}
 	return b
 }
 

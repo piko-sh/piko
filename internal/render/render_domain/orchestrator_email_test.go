@@ -589,16 +589,16 @@ func TestPerformPmlTransformation(t *testing.T) {
 			},
 			transformForEmailFunction: func(_ *ast_domain.TemplateAST, _ *pml_dto.Config) (*ast_domain.TemplateAST, string, []*email_dto.EmailAssetRequest, []*pml_domain.Error) {
 				return &ast_domain.TemplateAST{
-						RootNodes: []*ast_domain.TemplateNode{
-							{
-								NodeType: ast_domain.NodeElement,
-								TagName:  "img",
-							},
+					RootNodes: []*ast_domain.TemplateNode{
+						{
+							NodeType: ast_domain.NodeElement,
+							TagName:  "img",
 						},
-					}, "", []*email_dto.EmailAssetRequest{
-						{SourcePath: "assets/logo.png", Profile: "email-default"},
-						{SourcePath: "assets/banner.jpg", Profile: "email-outlook"},
-					}, nil
+					},
+				}, "", []*email_dto.EmailAssetRequest{
+					{SourcePath: "assets/logo.png", Profile: "email-default"},
+					{SourcePath: "assets/banner.jpg", Profile: "email-outlook"},
+				}, nil
 			},
 			wantNilAST:           false,
 			wantCSS:              "",

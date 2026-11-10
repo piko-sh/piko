@@ -31,54 +31,54 @@ import (
 )
 
 const (
-	pluginManifestPath = ".claude-plugin/plugin.json"
-	lspConfigPath = ".lsp.json"
+	pluginManifestPath      = ".claude-plugin/plugin.json"
+	lspConfigPath           = ".lsp.json"
 	marketplaceManifestPath = "../../.claude-plugin/marketplace.json"
-	pikoLanguageID = "piko"
+	pikoLanguageID          = "piko"
 )
 
 var (
-	kebabCase = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
+	kebabCase       = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 	semanticVersion = regexp.MustCompile(`^\d+\.\d+\.\d+([-+][0-9A-Za-z.-]+)?$`)
 )
 
 type manifestAuthor struct {
-	Name string `json:"name"`
+	Name  string `json:"name"`
 	Email string `json:"email,omitempty"`
-	URL string `json:"url,omitempty"`
+	URL   string `json:"url,omitempty"`
 }
 
 type pluginManifest struct {
-	Author *manifestAuthor `json:"author"`
-	Name string `json:"name"`
-	DisplayName string `json:"displayName"`
-	Description string `json:"description"`
-	Version string `json:"version"`
-	Homepage string `json:"homepage"`
-	Repository string `json:"repository"`
-	Licence string `json:"license"`
-	Keywords []string `json:"keywords"`
+	Author      *manifestAuthor `json:"author"`
+	Name        string          `json:"name"`
+	DisplayName string          `json:"displayName"`
+	Description string          `json:"description"`
+	Version     string          `json:"version"`
+	Homepage    string          `json:"homepage"`
+	Repository  string          `json:"repository"`
+	Licence     string          `json:"license"`
+	Keywords    []string        `json:"keywords"`
 }
 
 type lspServer struct {
-	ExtensionToLanguage map[string]string `json:"extensionToLanguage"`
-	InitialisationOptions map[string]any `json:"initializationOptions"`
-	Env map[string]string `json:"env"`
-	Command string `json:"command"`
-	Args []string `json:"args"`
+	ExtensionToLanguage   map[string]string `json:"extensionToLanguage"`
+	InitialisationOptions map[string]any    `json:"initializationOptions"`
+	Env                   map[string]string `json:"env"`
+	Command               string            `json:"command"`
+	Args                  []string          `json:"args"`
 }
 
 type marketplacePlugin struct {
-	Name string `json:"name"`
-	Source string `json:"source"`
+	Name        string `json:"name"`
+	Source      string `json:"source"`
 	Description string `json:"description"`
 }
 
 type marketplaceManifest struct {
-	Owner *manifestAuthor `json:"owner"`
-	Name string `json:"name"`
-	Description string `json:"description"`
-	Plugins []marketplacePlugin `json:"plugins"`
+	Owner       *manifestAuthor     `json:"owner"`
+	Name        string              `json:"name"`
+	Description string              `json:"description"`
+	Plugins     []marketplacePlugin `json:"plugins"`
 }
 
 func TestPluginManifestSchema(t *testing.T) {

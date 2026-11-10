@@ -35,6 +35,7 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/wal/wal_adapters/driven_disk"
 	"piko.sh/piko/internal/wal/wal_domain"
+	"piko.sh/safedisk"
 	"piko.sh/vectormaths"
 )
 
@@ -269,13 +270,20 @@ func openPersistence[K comparable, V any](
 // Takes walConfig (wal_domain.Config) which locates the files.
 //
 // Returns []string which names the files moved aside.
-// Returns error when a file exists but cannot be moved.
+// Returns error when the directory cannot be opened, or a file exists but cannot be
+// moved.
 func quarantinePersistence(walConfig wal_domain.Config) ([]string, error) {
+	sandbox, err := safedisk.NewSandbox(walConfig.Dir, safedisk.ModeReadWrite)
+	if err != nil {
+		return nil, fmt.Errorf("opening persistence directory %s: %w", walConfig.Dir, err)
+	}
+	defer func() { _ = sandbox.Close() }()
+
 	suffix := ".corrupt-" + time.Now().UTC().Format("20060102T150405.000000000Z")
 	var moved []string
 	for _, name := range []string{walConfig.SnapshotFileName, walConfig.WALFileName} {
 		path := filepath.Join(walConfig.Dir, name)
-		if err := os.Rename(path, path+suffix); err != nil {
+		if err := sandbox.Rename(name, name+suffix); err != nil {
 			if errors.Is(err, os.ErrNotExist) {
 				continue
 			}

@@ -172,21 +172,31 @@ func TestFileExists_ExistingFile(t *testing.T) {
 	t.Parallel()
 
 	directory := t.TempDir()
-	path := filepath.Join(directory, "test.txt")
-	require.NoError(t, os.WriteFile(path, []byte("hello"), 0600))
+	require.NoError(t, os.WriteFile(filepath.Join(directory, "test.txt"), []byte("hello"), 0600))
 
-	assert.True(t, fileExists(path))
+	assert.True(t, fileExists(newReadOnlySandbox(t, directory), "test.txt"))
 }
 
 func TestFileExists_NonExistent(t *testing.T) {
 	t.Parallel()
 
-	assert.False(t, fileExists("/nonexistent/file.txt"))
+	assert.False(t, fileExists(newReadOnlySandbox(t, t.TempDir()), "file.txt"))
 }
 
 func TestFileExists_Directory(t *testing.T) {
 	t.Parallel()
 
 	directory := t.TempDir()
-	assert.False(t, fileExists(directory))
+	require.NoError(t, os.Mkdir(filepath.Join(directory, "sub"), 0o700))
+
+	assert.False(t, fileExists(newReadOnlySandbox(t, directory), "sub"))
+}
+
+func newReadOnlySandbox(t *testing.T, directory string) safedisk.Sandbox {
+	t.Helper()
+
+	sandbox, err := safedisk.NewSandbox(directory, safedisk.ModeReadOnly)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sandbox.Close() })
+	return sandbox
 }

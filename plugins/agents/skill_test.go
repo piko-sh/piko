@@ -30,15 +30,15 @@ import (
 )
 
 const (
-	canonicalSkillPath = "SKILL.md"
+	canonicalSkillPath   = "SKILL.md"
 	marketplaceSkillPath = "skills/piko/SKILL.md"
 	frontmatterDelimiter = "---\n"
-	generatedNotice = "\n<!-- Generated from plugins/agents/SKILL.md by `go test ./plugins/agents/ -update`. Do not edit by hand. -->\n"
+	generatedNotice      = "\n<!-- Generated from plugins/agents/SKILL.md by `go test ./plugins/agents/ -update`. Do not edit by hand. -->\n"
 )
 
 var (
-	update = flag.Bool("update", false, "regenerate skills/piko/SKILL.md from SKILL.md")
-	rootReferencePrefix = []byte("`references/")
+	update                     = flag.Bool("update", false, "regenerate skills/piko/SKILL.md from SKILL.md")
+	rootReferencePrefix        = []byte("`references/")
 	marketplaceReferencePrefix = []byte("`../../references/")
 )
 

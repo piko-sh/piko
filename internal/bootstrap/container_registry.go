@@ -25,7 +25,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -168,7 +167,7 @@ func (c *Container) createRegistryMetadataStore() (registry_domain.MetadataStore
 				return nil, err
 			}
 
-			seed, err := persistence.LoadRegistryArtefactsFromFS(c.GetAppContext(), c.registrySeedFS())
+			seed, err := c.loadRegistrySeed()
 			if err != nil {
 				return nil, fmt.Errorf("loading registry seed to publish into SQL backend: %w", err)
 			}
@@ -366,19 +365,32 @@ func (c *Container) buildEmbeddedRegistryOverlay() (registry_domain.MetadataStor
 	return dal, nil
 }
 
-// registrySeedFS returns the filesystem holding the build registry seed snapshot.
+// loadRegistrySeed loads the build registry seed snapshot.
 //
 // The source is the embedded seed for a single-binary deploy, otherwise the on-disk .piko
-// where generation wrote the snapshot for a file-based deploy. The returned FS always
-// loads: LoadRegistryArtefactsFromFS no-ops when the snapshot is absent, so a project
-// that never produced a snapshot publishes nothing.
+// where generation wrote the snapshot for a file-based deploy, read through a read-only
+// sandbox. A project that never produced a snapshot, or has no .piko directory,
+// publishes nothing.
 //
-// Returns fs.FS which holds the build registry seed snapshot.
-func (c *Container) registrySeedFS() fs.FS {
+// Returns []*registry_dto.ArtefactMeta which holds the seeded artefacts.
+// Returns error when the .piko sandbox cannot be opened or the snapshot cannot be read.
+func (c *Container) loadRegistrySeed() ([]*registry_dto.ArtefactMeta, error) {
+	ctx := c.GetAppContext()
 	if c.embeddedPikoFS != nil {
-		return c.embeddedPikoFS
+		return persistence.LoadRegistryArtefactsFromFS(ctx, c.embeddedPikoFS)
 	}
-	return os.DirFS(filepath.Join(deref(c.serverConfig.Paths.BaseDir, "."), config.PikoInternalPath))
+
+	pikoDir := filepath.Join(deref(c.serverConfig.Paths.BaseDir, "."), config.PikoInternalPath)
+	sandbox, err := c.createSandbox("registry-seed", pikoDir, safedisk.ModeReadOnly)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("opening registry seed directory %q: %w", pikoDir, err)
+	}
+	defer func() { _ = sandbox.Close() }()
+
+	return persistence.LoadRegistryArtefactsFromFS(ctx, sandbox.FS())
 }
 
 // RetireRegistryRelease removes the retired release's artefact layers and publish lease.

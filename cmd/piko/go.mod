@@ -24,7 +24,7 @@ require (
 	piko.sh/piko/wdk/logger/logger_otel_sdk v0.0.0
 	piko.sh/piko/wdk/monitoring/monitoring_api v0.0.0
 	piko.sh/safeconv v0.1.0
-	piko.sh/safedisk v0.1.0
+	piko.sh/safedisk v0.3.0
 	pipit.sh/pipit v0.0.0-alpha.8
 	pipit.sh/pipit/sdk/extract v0.0.0-alpha.8
 )

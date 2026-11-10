@@ -489,18 +489,21 @@ type CSRFConfig struct {
 	SecFetchSiteEnforcement *bool `json:"secFetchSiteEnforcement" yaml:"secFetchSiteEnforcement" default:"true" env:"PIKO_CSRF_SEC_FETCH_SITE_ENFORCEMENT" flag:"csrfSecFetchSiteEnforcement" usage:"Require CSRF tokens on browser requests identified by Sec-Fetch-Site header."`
 }
 
-// SandboxConfig configures filesystem sandboxing for Piko internals. It uses Go 1.24's
-// os.Root to restrict file access, providing kernel-level protection against path
-// traversal attacks.
+// SandboxConfig configures filesystem sandboxing for Piko internals. It uses os.Root to
+// confine file access to configured directories, refusing paths that would leave them,
+// including through symbolic links.
 type SandboxConfig struct {
 	// Enabled controls whether filesystem sandboxing is active, requiring Go 1.24 or later
 	// and defaulting to true.
 	Enabled *bool `json:"enabled" yaml:"enabled" default:"true" env:"PIKO_SANDBOX_ENABLED" flag:"sandboxEnabled" usage:"Enable filesystem sandboxing (requires Go 1.24+)."`
 
-	// AllowSymlinks controls whether symbolic links can be followed within sandboxed
-	// directories, where disabling (the default) provides stronger security but may break
-	// setups that rely on symlinks.
-	AllowSymlinks *bool `json:"allowSymlinks" yaml:"allowSymlinks" default:"false" env:"PIKO_SANDBOX_ALLOW_SYMLINKS" flag:"sandboxAllowSymlinks" usage:"Allow following symbolic links in sandboxed directories."`
+	// AllowSymlinks controls whether sandboxes follow and create symbolic links that stay
+	// inside them (default: true); links that leave a sandbox are always refused.
+	//
+	// Setting it to false also refuses links within a sandbox, which breaks pnpm
+	// node_modules, symlinked project directories and Kubernetes secret mounts. The check
+	// is not atomic, so it narrows but does not close the window for a racing process.
+	AllowSymlinks *bool `json:"allowSymlinks" yaml:"allowSymlinks" default:"true" env:"PIKO_SANDBOX_ALLOW_SYMLINKS" flag:"sandboxAllowSymlinks" usage:"Allow following symbolic links that stay inside sandboxed directories."`
 
 	// AllowedPaths is a list of additional absolute or relative paths accessible to
 	// sandboxes, where CWD is always implicitly allowed and an empty list restricts access

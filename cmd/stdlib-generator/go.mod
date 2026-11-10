@@ -4,7 +4,7 @@ go 1.27.0
 
 require (
 	piko.sh/piko v0.0.0
-	piko.sh/safedisk v0.1.0
+	piko.sh/safedisk v0.3.0
 )
 
 require (

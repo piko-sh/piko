@@ -71,11 +71,10 @@ var (
 // starting. SetTraceback errors do propagate because they indicate a programming error in
 // option construction (an invalid level constant).
 //
-// Path validation is delegated to a safedisk sandbox rooted at the parent directory of
-// the configured path. The sandbox catches typos, traversal, and unwritable parents at
-// Open time. The actual file is then opened with os.OpenFile because
-// runtime/debug.SetCrashOutput requires *os.File and safedisk's FileHandle interface
-// intentionally hides the underlying type.
+// The file is opened through a safedisk sandbox rooted at the parent directory of the
+// configured path, which catches typos, traversal, and unwritable parents. The *os.File
+// behind that handle is passed to runtime/debug.SetCrashOutput, so the file the runtime
+// writes to is the one the sandbox opened.
 //
 // Takes container (*Container) which provides the configured crash output path and
 // traceback level.
@@ -99,16 +98,16 @@ func InstallCrashOutput(ctx context.Context, container *Container) (closeFn func
 		return nil, nil
 	}
 
-	cleanPath, validateErr := validateCrashOutputPath(path)
-	if validateErr != nil {
-		l.Warn("Crash output path failed sandbox validation; continuing without crash mirroring",
+	file, cleanPath, openErr := openCrashOutputFile(path)
+	if openErr != nil {
+		l.Warn("Failed to open crash output file via sandbox; continuing without crash mirroring",
 			logger_domain.String(crashOutputPathLogField, path),
-			logger_domain.Error(validateErr),
+			logger_domain.Error(openErr),
 		)
 		return nil, nil
 	}
 
-	return openAndRegisterCrashFile(ctx, cleanPath)
+	return registerCrashFile(ctx, file, cleanPath)
 }
 
 // applyCrashTraceback validates and applies the configured GOTRACEBACK level when one is
@@ -135,27 +134,19 @@ func applyCrashTraceback(ctx context.Context, level string) error {
 	return nil
 }
 
-// openAndRegisterCrashFile opens the validated path with os.OpenFile (the runtime API
-// requires *os.File) and registers it with runtime/debug.SetCrashOutput.
+// registerCrashFile registers an opened crash output file with
+// runtime/debug.SetCrashOutput.
 //
-// Takes cleanPath (string) which is the safedisk-validated absolute file path to open in
-// append mode.
+// Takes file (*os.File) which is the sandbox-opened crash output file. It is closed when
+// registration fails.
+// Takes cleanPath (string) which is the absolute file path, used for logging.
 //
 // Returns func() which detaches the FD from the runtime and closes it, or nil when the
-// file could not be opened or registered (best-effort).
+// file could not be registered (best-effort).
 // Returns error which is always nil and exists for symmetry with callers that may surface
 // a real error.
-func openAndRegisterCrashFile(ctx context.Context, cleanPath string) (func(), error) {
+func registerCrashFile(ctx context.Context, file *os.File, cleanPath string) (func(), error) {
 	_, l := logger_domain.From(ctx, log)
-
-	file, err := os.OpenFile(cleanPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, crashOutputFileMode) //nolint:gosec // path is operator-supplied trusted config validated via safedisk above
-	if err != nil {
-		l.Warn("Failed to open crash output file; continuing without crash mirroring",
-			logger_domain.String(crashOutputPathLogField, cleanPath),
-			logger_domain.Error(err),
-		)
-		return nil, nil
-	}
 
 	if registerErr := debug.SetCrashOutput(file, debug.CrashOptions{}); registerErr != nil {
 		_ = file.Close()
@@ -176,36 +167,41 @@ func openAndRegisterCrashFile(ctx context.Context, cleanPath string) (func(), er
 	}, nil
 }
 
-// validateCrashOutputPath sandbox-validates the crash output path.
+// openCrashOutputFile opens the crash output file in append mode through a sandbox
+// rooted at its parent directory.
 //
-// The safedisk sandbox catches relative paths that escape the parent (".." traversal),
-// parent directories that don't exist or aren't writable, and symlink-based escapes
-// (subject to the sandbox implementation).
+// The sandbox refuses relative paths that escape the parent (".." traversal), parent
+// directories that don't exist or aren't writable, and symlink-based escapes. Closing the
+// sandbox afterwards does not close the file.
 //
 // Takes path (string) which is the operator-supplied crash output file path, possibly
 // relative or unclean.
 //
-// Returns string which is the cleaned absolute path on success.
-// Returns error which wraps the underlying safedisk failure when the path cannot be
-// sandbox-validated.
-func validateCrashOutputPath(path string) (string, error) {
+// Returns *os.File which is the opened file, owned by the caller.
+// Returns string which is the cleaned file path.
+// Returns error which wraps the underlying safedisk failure when the file cannot be
+// opened, or when the sandbox handle has no underlying *os.File.
+func openCrashOutputFile(path string) (*os.File, string, error) {
 	cleanPath := filepath.Clean(path)
 	parent := filepath.Dir(cleanPath)
 	base := filepath.Base(cleanPath)
 
 	sandbox, err := safedisk.NewSandbox(parent, safedisk.ModeReadWrite)
 	if err != nil {
-		return "", fmt.Errorf("creating crash output sandbox at %q: %w", parent, err)
+		return nil, "", fmt.Errorf("creating crash output sandbox at %q: %w", parent, err)
 	}
 	defer func() { _ = sandbox.Close() }()
 
-	probe, err := sandbox.OpenFile(base, os.O_WRONLY|os.O_CREATE|os.O_APPEND, crashOutputFileMode)
+	handle, err := sandbox.OpenFile(base, os.O_WRONLY|os.O_CREATE|os.O_APPEND, crashOutputFileMode)
 	if err != nil {
-		return "", fmt.Errorf("validating crash output path %q via sandbox: %w", cleanPath, err)
-	}
-	if closeErr := probe.Close(); closeErr != nil {
-		return "", fmt.Errorf("closing sandbox probe for %q: %w", cleanPath, closeErr)
+		return nil, "", fmt.Errorf("opening crash output file %q via sandbox: %w", cleanPath, err)
 	}
 
-	return cleanPath, nil
+	sandboxFile, isFile := handle.(*safedisk.File)
+	if !isFile || sandboxFile.OSFile() == nil {
+		_ = handle.Close()
+		return nil, "", fmt.Errorf("crash output file %q has no underlying *os.File", cleanPath)
+	}
+
+	return sandboxFile.OSFile(), cleanPath, nil
 }
