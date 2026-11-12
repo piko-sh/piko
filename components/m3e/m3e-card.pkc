@@ -57,7 +57,7 @@
         position: relative;
         border-radius: var(--_shape-md);
         color: var(--_on-surface);
-        overflow: hidden;
+        overflow: var(--m3e-card-overflow, hidden);
         transition: box-shadow var(--_duration-short) var(--_easing-standard);
 
         &.elevated {

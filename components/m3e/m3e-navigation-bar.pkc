@@ -29,13 +29,33 @@
         selectedIndex: 0 as number,
     };
 
+    function needsSync() {
+        const items = pkc.querySelectorAll('[data-nav-item]');
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].hasAttribute('data-active') !== (i === state.selectedIndex)) return true;
+            if (!items[i].querySelector('[data-nav-indicator]')) return true;
+        }
+        return false;
+    }
+
+    const itemObserver = new MutationObserver(() => {
+        if (needsSync()) syncItems();
+    });
+
     pkc.onConnected(() => {
         pkc.addEventListener('click', handleItemClick);
         syncItems();
+        itemObserver.observe(pkc, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['data-active'],
+        });
     });
 
     pkc.onDisconnected(() => {
         pkc.removeEventListener('click', handleItemClick);
+        itemObserver.disconnect();
     });
 
     pkc.onUpdated((changedProps) => {

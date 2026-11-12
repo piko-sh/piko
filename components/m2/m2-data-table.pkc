@@ -77,14 +77,14 @@
         const header = pkc.querySelector('m2-data-table-header');
         if (header) {
             if (count === 0) {
-                header.removeAttribute('all-selected');
-                header.removeAttribute('some-selected');
+                header.removeAttribute('all_selected');
+                header.removeAttribute('some_selected');
             } else if (count === total) {
-                header.setAttribute('all-selected', '');
-                header.removeAttribute('some-selected');
+                header.setAttribute('all_selected', '');
+                header.removeAttribute('some_selected');
             } else {
-                header.removeAttribute('all-selected');
-                header.setAttribute('some-selected', '');
+                header.removeAttribute('all_selected');
+                header.setAttribute('some_selected', '');
             }
         }
 
@@ -125,7 +125,7 @@
         const allCells = Array.from(pkc.querySelectorAll('m2-data-table-cell[sortable]'));
         allCells.forEach(function(cell) {
             if (cell.getAttribute('column') !== detail.column) {
-                cell.setAttribute('sort-direction', '');
+                cell.setAttribute('sort_direction', '');
             }
         });
 

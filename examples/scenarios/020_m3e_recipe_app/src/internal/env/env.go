@@ -29,6 +29,9 @@ import (
 type Env struct {
 	// NormanKitchenEmail is the recipient email for contact form submissions.
 	NormanKitchenEmail string `env:"NORMAN_KITCHEN_EMAIL,default=hello@thenormankitchen.com"`
+
+	// NormanKitchenFromEmail is the sender address used for outbound email.
+	NormanKitchenFromEmail string `env:"NORMAN_KITCHEN_FROM_EMAIL,default=no-reply@thenormankitchen.com"`
 }
 
 var envInstance *Env

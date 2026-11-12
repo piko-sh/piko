@@ -22,6 +22,7 @@
     <piko:a p-if="state.href"
          class="list-item interactive"
          :href="state.href"
+         p-on:click="handleAnchorClick"
          p-class="{
              'one-line': state.lines == 1,
              'two-line': state.lines == 2,
@@ -83,8 +84,28 @@
         has_trailing: false as boolean,
     };
 
-    function handleClick() {
+    function handleAnchorClick(event) {
+        if (event.defaultPrevented || event.button !== 0) return;
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        if (!state.href || state.href.charAt(0) === '#') return;
+
+        let target;
+        try {
+            target = new URL(state.href, window.location.href);
+        } catch (error) {
+            return;
+        }
+
+        // Leaves external links, mailto: and tel: to the browser.
+        if (target.origin !== window.location.origin) return;
+
+        event.preventDefault();
+        piko.nav.navigateTo(target.pathname + target.search + target.hash);
+    }
+
+    function handleClick(event) {
         if (state.interactive) {
+            if (event) event.stopPropagation();
             pkc.dispatchEvent(new CustomEvent('click', {
                 bubbles: true,
                 composed: true,

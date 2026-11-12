@@ -1,0 +1,446 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div id="app">
+        <piko:partial is="layout"
+            server.title="Hallou-mi, It's Me"
+            server.current-page="recipes">
+
+            <article class="page-section page-section--reading">
+                <piko:img class="recipe-hero" src="@/lib/images/cheese-halloumi.jpg" alt="Hallou-mi, It's Me"></piko:img>
+
+                <header class="mt-lg">
+                    <h1 class="recipe-title">Hallou-mi, It's Me</h1>
+                    <p class="recipe-pun">Grilled halloumi that always picks up</p>
+
+                    <div class="recipe-meta-row tag-row">
+                        <span class="tag">Halloumi</span>
+                        <span class="tag">20 mins</span>
+                        <span class="tag">Easy</span>
+                        <span class="tag">4 servings</span>
+                    </div>
+
+                    <div class="recipe-actions">
+                        <m3e-split-button variant="filled" p-on:click="saveRecipe">
+                            Save recipe
+                            <m3e-menu-item slot="menu" p-on:select="addToMealPlan">Add to meal plan</m3e-menu-item>
+                            <m3e-menu-item slot="menu" p-on:select="shareRecipe">Share recipe</m3e-menu-item>
+                            <m3e-menu-item slot="menu" p-on:select="printRecipe">Print</m3e-menu-item>
+                        </m3e-split-button>
+
+                        <m3e-tooltip text="Add to favourites">
+                            <m3e-icon-button toggle aria-label="Add to favourites">
+                                <piko:svg src="@/lib/icons/favourite.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                            </m3e-icon-button>
+                        </m3e-tooltip>
+
+                        <m3e-tooltip text="Squeak peek: cooking tips">
+                            <m3e-icon-button aria-label="Show cooking tips" p-on:click="openTips">
+                                <piko:svg src="@/lib/icons/info.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                            </m3e-icon-button>
+                        </m3e-tooltip>
+
+                        <label class="switch-field">
+                            <m3e-switch p-on:change="toggleUnits" aria-label="Use imperial measurements"></m3e-switch>
+                            <span p-ref="unitLabel">Metric</span>
+                        </label>
+                    </div>
+                </header>
+
+                <m3e-tabs class="recipe-tabs" p-on:change="selectPanel">
+                    <m3e-tab active>Ingredients</m3e-tab>
+                    <m3e-tab>Method</m3e-tab>
+                    <m3e-tab>Nutrition</m3e-tab>
+                    <m3e-tab>Reviews (7)</m3e-tab>
+                </m3e-tabs>
+
+                <!-- Ingredients -->
+                <section class="recipe-panel" p-ref="panel0" aria-label="Ingredients">
+                    <div class="panel-header">
+                        <h2 class="subsection-title">Ingredients</h2>
+                        <div class="servings-control">
+                            <span id="servings-label">Servings</span>
+                            <m3e-slider class="servings-slider"
+                                        discrete
+                                        min="1"
+                                        max="12"
+                                        value="4"
+                                        step="1"
+                                        aria-labelledby="servings-label"
+                                        p-on:change="changeServings"></m3e-slider>
+                            <strong p-ref="servingsValue">4</strong>
+                        </div>
+                    </div>
+
+                    <div p-ref="ingredients">
+                        <m3e-list>
+                            <m3e-list-item><span class="ingredient"><span class="qty" data-base="450" data-unit="g">450g</span> halloumi, cut into 2cm cubes</span></m3e-list-item>
+                            <m3e-list-item><span class="ingredient"><span class="qty" data-base="2">2</span> courgettes, sliced into thick ribbons</span></m3e-list-item>
+                            <m3e-list-item><span class="ingredient"><span class="qty" data-base="250" data-unit="g">250g</span> cherry tomatoes on the vine</span></m3e-list-item>
+                            <m3e-list-item><span class="ingredient"><span class="qty" data-base="3" data-unit="tbsp">3 tbsp</span> olive oil</span></m3e-list-item>
+                            <m3e-list-item><span class="ingredient"><span class="qty" data-base="1" data-unit="tbsp">1 tbsp</span> dried oregano</span></m3e-list-item>
+                            <m3e-list-item><span class="ingredient"><span class="qty" data-base="1">1</span> unwaxed lemon, zest and juice</span></m3e-list-item>
+                            <m3e-list-item><span class="ingredient"><span class="qty" data-base="2" data-unit="tbsp">2 tbsp</span> honey</span></m3e-list-item>
+                            <m3e-list-item><span class="ingredient">A large handful of fresh mint, roughly torn</span></m3e-list-item>
+                            <m3e-list-item><span class="ingredient">Chilli flakes, to taste</span></m3e-list-item>
+                            <m3e-list-item><span class="ingredient">Flatbreads, to serve</span></m3e-list-item>
+                        </m3e-list>
+                    </div>
+                </section>
+
+                <!-- Method -->
+                <section class="recipe-panel" p-ref="panel1" aria-label="Method" hidden>
+                    <h2 class="subsection-title">Method</h2>
+                    <ol class="step-list">
+                        <li>Pat the halloumi dry with kitchen paper. This is not optional and we will not be taking questions. Wet halloumi steams instead of browning, and a steamed halloumi is a sad, pale thing that has let everybody down. Dry it properly and it will reward you with a crust.</li>
+                        <li>Toss the halloumi, courgette and tomatoes with the olive oil and oregano. Thread onto skewers, alternating as the mood takes you. There is no correct order. The mice have argued about this for years and reached no conclusion.</li>
+                        <li>Get a griddle pan properly, alarmingly hot. Lay the skewers down and then leave them alone for three minutes. Do not poke. Do not fuss. Do not turn them &ldquo;just to check&rdquo;. The crust forms in the stillness. This is the whole secret of the dish and possibly of life.</li>
+                        <li>Turn once, give them another three minutes, and listen for the squeak. Halloumi squeaks against the tooth, which is the noise of a cheese that knows exactly what it is doing. Fresh from the pan it squeaks loudest.</li>
+                        <li>Whisk the lemon juice and zest with the honey and pour it over the hot skewers so it hisses and catches. Scatter the mint and chilli flakes, pile onto warm flatbreads, and serve at once. Halloumi waits for nobody. Ten minutes cold and it turns to rubber, so eat it standing up if you have to. We usually do.</li>
+                    </ol>
+                </section>
+
+                <!-- Nutrition -->
+                <section class="recipe-panel" p-ref="panel2" aria-label="Nutrition" hidden>
+                    <h2 class="subsection-title">Nutrition (per serving)</h2>
+                    <ul class="nutrition-list">
+                            <li class="nutrition-row"><span class="nutrition-label">Calories</span><span class="nutrition-value">410 kcal</span></li>
+                            <li class="nutrition-row"><span class="nutrition-label">Protein</span><span class="nutrition-value">24g</span></li>
+                            <li class="nutrition-row"><span class="nutrition-label">Fat</span><span class="nutrition-value">29g</span></li>
+                            <li class="nutrition-row"><span class="nutrition-label">Carbohydrates</span><span class="nutrition-value">12g</span></li>
+                    </ul>
+                </section>
+
+                <!-- Reviews -->
+                <section class="recipe-panel" p-ref="panel3" aria-label="Reviews" hidden>
+                    <h2 class="subsection-title">Reviews</h2>
+
+                        <m3e-card variant="outlined" class="review">
+                            <div class="card-pad">
+                                <div class="review-header">
+                                    <strong class="review-author">GrillSergeant</strong>
+                                    <span class="stars" role="img" aria-label="5 out of 5 stars">
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    </span>
+                                </div>
+                                <p class="review-body">Squeaky, salty, golden. I have made this four times this week and I regret nothing. The lemon at the end is not optional, whatever your flatmate says.</p>
+                            </div>
+                        </m3e-card>
+                        <m3e-card variant="outlined" class="review">
+                            <div class="card-pad">
+                                <div class="review-header">
+                                    <strong class="review-author">HalloumiHalloudon't</strong>
+                                    <span class="stars" role="img" aria-label="5 out of 5 stars">
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    </span>
+                                </div>
+                                <p class="review-body">Hallou-mi, it&rsquo;s me, I was wondering if after all these years you&rsquo;d like to meet. Reader: I met it. I ate it. Ten out of ten.</p>
+                            </div>
+                        </m3e-card>
+                        <m3e-card variant="outlined" class="review">
+                            <div class="card-pad">
+                                <div class="review-header">
+                                    <strong class="review-author">SkewerEnthusiast</strong>
+                                    <span class="stars" role="img" aria-label="5 out of 5 stars">
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    </span>
+                                </div>
+                                <p class="review-body">The trick is a properly hot pan. I went in too cool the first time and got sad grey cubes. Second attempt: proper char, proper squeak, proper joy.</p>
+                            </div>
+                        </m3e-card>
+                        <m3e-card variant="outlined" class="review">
+                            <div class="card-pad">
+                                <div class="review-header">
+                                    <strong class="review-author">MintyFresh</strong>
+                                    <span class="stars" role="img" aria-label="4 out of 5 stars">
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16" class="star-off"></piko:svg>
+                                    </span>
+                                </div>
+                                <p class="review-body">Lovely, though I would double the mint. Actually triple it. Actually just serve a bowl of mint with a bit of halloumi in it. Minus one star because I ran out of mint.</p>
+                            </div>
+                        </m3e-card>
+                        <m3e-card variant="outlined" class="review">
+                            <div class="card-pad">
+                                <div class="review-header">
+                                    <strong class="review-author">BarbecueBrenda</strong>
+                                    <span class="stars" role="img" aria-label="5 out of 5 stars">
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    </span>
+                                </div>
+                                <p class="review-body">Took these to a barbecue and came home with an empty plate and three marriage proposals. The courgette ribbons char beautifully alongside.</p>
+                            </div>
+                        </m3e-card>
+                        <m3e-card variant="outlined" class="review">
+                            <div class="card-pad">
+                                <div class="review-header">
+                                    <strong class="review-author">CautiousCook</strong>
+                                    <span class="stars" role="img" aria-label="5 out of 5 stars">
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    </span>
+                                </div>
+                                <p class="review-body">I was suspicious of a cheese you can grill. I was wrong. I have apologised to the cheese. We are on good terms now.</p>
+                            </div>
+                        </m3e-card>
+                        <m3e-card variant="outlined" class="review">
+                            <div class="card-pad">
+                                <div class="review-header">
+                                    <strong class="review-author">FormerlySensible</strong>
+                                    <span class="stars" role="img" aria-label="5 out of 5 stars">
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                    </span>
+                                </div>
+                                <p class="review-body">I ate eleven skewers standing over the hob. The family got two. I told them the packet was small. The packet was not small. I would do it again.</p>
+                            </div>
+                        </m3e-card>
+
+                    <m3e-card variant="filled" class="review-form">
+                        <div class="card-pad--lg">
+                            <h3 class="subsection-title">Leave a review</h3>
+                            <form class="form-stack" p-ref="reviewForm" p-on:submit.prevent="submitReview">
+                                <m3e-text-field variant="filled"
+                                                label="Your name"
+                                                name="name"
+                                                supporting-text="How should we address you?"
+                                                class="form-field"></m3e-text-field>
+
+                                <m3e-text-field variant="filled"
+                                                label="Your review"
+                                                name="review"
+                                                multiline
+                                                rows="3"
+                                                maxlength="500"
+                                                supporting-text="500 characters max"
+                                                class="form-field"></m3e-text-field>
+
+                                <m3e-select variant="filled" label="Rating" name="rating" class="form-field">
+                                    <m3e-menu-item value="5">5 - The mice approve!</m3e-menu-item>
+                                    <m3e-menu-item value="4">4 - Gouda job!</m3e-menu-item>
+                                    <m3e-menu-item value="3">3 - Not bad, not bad</m3e-menu-item>
+                                    <m3e-menu-item value="2">2 - Needs more cheese</m3e-menu-item>
+                                    <m3e-menu-item value="1">1 - Un-brie-lievably disappointing</m3e-menu-item>
+                                </m3e-select>
+
+                                <div class="form-actions form-actions--centre">
+                                    <m3e-button variant="filled" size="l" p-on:click="submitReview">Submit review</m3e-button>
+                                </div>
+                            </form>
+                        </div>
+                    </m3e-card>
+                </section>
+            </article>
+
+            <!-- Squeak peek bottom sheet -->
+            <m3e-bottom-sheet p-ref="tipsSheet" modal>
+                <h2 class="subsection-title">Squeak peek: cooking tips</h2>
+                <m3e-list>
+                    <m3e-list-item>Soak wooden skewers for twenty minutes first, or they will char faster than the cheese does and everyone will pretend not to notice.</m3e-list-item>
+                    <m3e-list-item>Halloumi is already salty, so hold the salt until the very end and taste before you reach for it. The lemon does most of the seasoning work anyway.</m3e-list-item>
+                    <m3e-list-item>No griddle pan? A heavy frying pan works, and so does a barbecue. What matters is the heat, not the hardware.</m3e-list-item>
+                </m3e-list>
+            </m3e-bottom-sheet>
+
+            <!-- Cheese fact dialog -->
+            <m3e-dialog p-ref="cheeseFact" headline="Cheese fact!">
+                <p class="prose">Halloumi comes from Cyprus, where it has been made since at least the medieval period. Its high melting point comes from the way the curds are heated before brining, which is why it grills instead of running away.</p>
+                <m3e-button variant="filled" slot="actions" p-on:click="closeCheeseFact">Gouda to know!</m3e-button>
+            </m3e-dialog>
+
+            <!-- Snackbar -->
+            <m3e-snackbar p-ref="snackbar"></m3e-snackbar>
+
+            <!-- Cooking timer FAB -->
+            <m3e-tooltip text="Set a cooking timer" position="left">
+                <m3e-fab colour="secondary" class="floating-fab" p-on:click="openTimer" aria-label="Set a cooking timer">
+                    <piko:svg src="@/lib/icons/timer.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                </m3e-fab>
+            </m3e-tooltip>
+
+        </piko:partial>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Hallou-mi, It's Me - The Norman Kitchen",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+    const BASE_SERVINGS = 4;
+
+    let servings = BASE_SERVINGS;
+    let imperial = false;
+
+    /* -- Tab panels ------------------------------------------------------- */
+
+    /** Shows the panel matching the tab the user activated. */
+    function selectPanel(event: CustomEvent): void {
+        const index = event.detail.index as number;
+
+        for (let i = 0; i < 4; i++) {
+            const panel = pk.refs['panel' + i] as HTMLElement | undefined;
+            if (panel) panel.hidden = i !== index;
+        }
+    }
+
+    /* -- Ingredient quantities -------------------------------------------- */
+
+    /**
+     * Metric to imperial conversions. Spoon measures are the same in both
+     * systems, so they are left alone.
+     */
+    const CONVERSIONS: Record<string, { unit: string; factor: number }> = {
+        g:  { unit: 'oz',    factor: 1 / 28.35 },
+        kg: { unit: 'lb',    factor: 2.205 },
+        ml: { unit: 'fl oz', factor: 1 / 28.41 },
+        l:  { unit: 'pints', factor: 1.76 },
+    };
+
+    /** Rounds to a precision that reads naturally at the given magnitude. */
+    function tidy(value: number): string {
+        if (value >= 100) return String(Math.round(value / 5) * 5);
+        if (value >= 10) return String(Math.round(value));
+        return String(Math.round(value * 10) / 10);
+    }
+
+    /** Recomputes every ingredient quantity for the current servings and units. */
+    function renderQuantities(): void {
+        const root = pk.refs.ingredients as HTMLElement | undefined;
+        if (!root) return;
+
+        const scale = servings / BASE_SERVINGS;
+
+        root.querySelectorAll<HTMLElement>('.qty').forEach((el) => {
+            const base = parseFloat(el.dataset.base || '0');
+            const unit = el.dataset.unit || '';
+            let amount = base * scale;
+            let label = unit;
+
+            const conversion = imperial ? CONVERSIONS[unit] : undefined;
+            if (conversion) {
+                amount *= conversion.factor;
+                label = conversion.unit;
+            }
+
+            el.textContent = label && label.length > 2
+                ? tidy(amount) + ' ' + label
+                : tidy(amount) + label;
+        });
+    }
+
+    function changeServings(event: CustomEvent): void {
+        servings = Number(event.detail.value);
+
+        const readout = pk.refs.servingsValue as HTMLElement | undefined;
+        if (readout) readout.textContent = String(servings);
+
+        renderQuantities();
+    }
+
+    function toggleUnits(event: CustomEvent): void {
+        imperial = Boolean(event.detail.checked);
+
+        const label = pk.refs.unitLabel as HTMLElement | undefined;
+        if (label) label.textContent = imperial ? 'Imperial' : 'Metric';
+
+        renderQuantities();
+    }
+
+    /* -- Overlays --------------------------------------------------------- */
+
+    function notify(message: string): void {
+        const snackbar = pk.refs.snackbar as any;
+        if (snackbar) snackbar.show(message);
+    }
+
+    function openTips(): void {
+        const sheet = pk.refs.tipsSheet as any;
+        if (sheet) sheet.show();
+    }
+
+    function closeCheeseFact(): void {
+        const dialog = pk.refs.cheeseFact as any;
+        if (dialog) dialog.close();
+    }
+
+    function openTimer(): void {
+        notify('Timer feature coming soon! Melting in progress...');
+    }
+
+    /* -- Actions ---------------------------------------------------------- */
+
+    function saveRecipe(): void {
+        notify('Saved! This one is a keeper.');
+    }
+
+    function addToMealPlan(): void {
+        notify('Added to your meal plan. Gouda choice!');
+    }
+
+    function shareRecipe(): void {
+        notify('Link copied. Go on, spread the cheese.');
+    }
+
+    function printRecipe(): void {
+        window.print();
+    }
+
+    function submitReview(): void {
+        notify('Thanks! Your review is with the mice for approval.');
+    }
+</script>

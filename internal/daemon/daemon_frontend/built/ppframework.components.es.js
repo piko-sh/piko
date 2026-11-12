@@ -1304,20 +1304,28 @@ function buildSlotSelector(slotName) {
 function createSlotManager(options) {
   const { getShadowRoot, tagName } = options;
   const pendingListeners = [];
+  const MAX_ATTACH_ATTEMPTS = 5;
   function doAttach(shadowRoot, slotName, callback) {
     const selector = buildSlotSelector(slotName);
     const slotElement = shadowRoot.querySelector(selector);
     if (!slotElement) {
-      console.warn(
-        `PPElement: Slot "${selector}" not found in ${tagName} for attaching listener.`
-      );
-      return;
+      return false;
     }
     const handleSlotChange = () => {
       callback(slotElement.assignedElements({ flatten: true }));
     };
     slotElement.addEventListener("slotchange", handleSlotChange);
     handleSlotChange();
+    return true;
+  }
+  function requeue(slotName, callback, attempts) {
+    if (attempts >= MAX_ATTACH_ATTEMPTS) {
+      console.warn(
+        `PPElement: Slot "${buildSlotSelector(slotName)}" not found in ${tagName} for attaching listener.`
+      );
+      return;
+    }
+    pendingListeners.push({ slotName, callback, attempts });
   }
   return {
     getSlottedElements(slotName = "") {
@@ -1332,10 +1340,12 @@ function createSlotManager(options) {
     attachSlotListener(slotName, callback) {
       const shadowRoot = getShadowRoot();
       if (!shadowRoot) {
-        pendingListeners.push({ slotName, callback });
+        requeue(slotName, callback, 0);
         return;
       }
-      doAttach(shadowRoot, slotName, callback);
+      if (!doAttach(shadowRoot, slotName, callback)) {
+        requeue(slotName, callback, 1);
+      }
     },
     flushPendingListeners() {
       if (pendingListeners.length === 0) {
@@ -1346,8 +1356,10 @@ function createSlotManager(options) {
         return;
       }
       const listeners = pendingListeners.splice(0);
-      for (const { slotName, callback } of listeners) {
-        doAttach(shadowRoot, slotName, callback);
+      for (const { slotName, callback, attempts } of listeners) {
+        if (!doAttach(shadowRoot, slotName, callback)) {
+          requeue(slotName, callback, attempts + 1);
+        }
       }
     },
     hasSlotContent(slotName = "") {

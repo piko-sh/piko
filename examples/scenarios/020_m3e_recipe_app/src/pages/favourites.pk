@@ -25,76 +25,55 @@
             server.current-page="favourites">
 
             <section class="page-section">
-                <h2 class="section-title">My Favourites</h2>
+                <h1 class="page-title">My favourites</h1>
                 <p class="section-subtitle">Your personal collection of cheesy treasures</p>
 
-                <!-- Filter Button Group -->
-                <m3e-button-group class="mb-lg">
-                    <m3e-button selected>All</m3e-button>
-                    <m3e-button>Quick</m3e-button>
-                    <m3e-button>Dinner</m3e-button>
-                    <m3e-button>Dessert</m3e-button>
+                <!-- m3e-button-group tracks [data-group-item] children. -->
+                <m3e-button-group class="mb-lg" p-on:change="changeFilter">
+                    <button type="button" data-group-item="all" data-selected>All</button>
+                    <button type="button" data-group-item="quick">Under 30 mins</button>
+                    <button type="button" data-group-item="easy">Easy</button>
+                    <button type="button" data-group-item="medium">Medium</button>
                 </m3e-button-group>
 
-                <!-- Saved Recipes Grid -->
-                <div class="recipe-grid">
-                    <piko:partial is="recipe_card"
-                        server.title="The Grate Burger"
-                        server.slug="the-grate-burger"
-                        server.pun="The gratest burger you'll ever taste"
-                        server.description="A towering double cheeseburger with aged cheddar, caramelised onions, and our secret sauce."
-                        server.image="@/lib/images/recipe-the-grate-burger.jpg"
-                        server.cook-time="25 mins"
-                        server.cheese="Cheddar"
-                        server.difficulty="Easy"
-                        server.href="/recipe/the-grate-burger"
-                    ></piko:partial>
+                <p class="text-muted text-sm mb-md" p-ref="resultCount" role="status"></p>
 
+                <!-- Saved recipes -->
+                <div class="recipe-grid" p-ref="grid" p-if="len(state.Favourites) > 0">
                     <piko:partial is="recipe_card"
-                        server.title="Camembert Believe It"
-                        server.slug="camembert-believe-it"
-                        server.pun="The king of cheeses, baked to perfection"
-                        server.description="Whole baked Camembert with rosemary, garlic, and crusty bread soldiers."
-                        server.image="@/lib/images/recipe-camembert-believe-it.jpg"
-                        server.cook-time="30 mins"
-                        server.cheese="Camembert"
-                        server.difficulty="Easy"
-                        server.href="/recipe/camembert-believe-it"
-                    ></piko:partial>
-
-                    <piko:partial is="recipe_card"
-                        server.title="Raclette & Roll"
-                        server.slug="raclette-and-roll"
-                        server.pun="Ready to raclette and roll!"
-                        server.description="Classic Swiss raclette with baby potatoes, cornichons, pickled onions, and charcuterie."
-                        server.image="@/lib/images/recipe-raclette-and-roll.jpg"
-                        server.cook-time="40 mins"
-                        server.cheese="Raclette"
-                        server.difficulty="Medium"
-                        server.href="/recipe/raclette-and-roll"
+                        p-for="(i, recipe) in state.Favourites"
+                        p-key="recipe.Slug"
+                        :server.title="recipe.Title"
+                        :server.slug="recipe.Slug"
+                        :server.pun="recipe.Pun"
+                        :server.description="recipe.Description"
+                        :server.image="recipe.Image"
+                        :server.cook-time="recipe.CookTime"
+                        :server.cheese="recipe.Cheese"
+                        :server.difficulty="recipe.Difficulty"
+                        :server.href="recipe.Href"
                     ></piko:partial>
                 </div>
 
-                <m3e-divider class="mt-xl mb-xl"></m3e-divider>
+                <!-- Shown when the group filter excludes everything. -->
+                <div class="empty-state" p-ref="noResults" hidden>
+                    <h2 class="empty-state-title">Nothing in that group</h2>
+                    <p class="empty-state-subtitle">None of your saved recipes match. Try another group.</p>
+                </div>
 
-                <!-- Empty State Preview -->
-                <div class="empty-state" style="text-align: center; padding: 48px 24px;">
-                    <div style="max-width: 360px; margin: 0 auto;">
-                        <piko:img src="@/lib/images/empty-state-mouse.jpg" alt="No favourites yet" style="width: 200px; height: 200px; border-radius: 50%; object-fit: cover; margin: 0 auto 16px;"></piko:img>
-                        <h3 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 8px;">The mice got to it first!</h3>
-                        <p class="text-muted" style="margin-bottom: 24px;">Brie-lieve in yourself &mdash; save some recipes to see them here!</p>
-                        <m3e-button variant="filled" href="/recipes">Browse Recipes</m3e-button>
-                    </div>
+                <!-- Shown only when nothing is saved. -->
+                <div class="empty-state" p-if="len(state.Favourites) == 0">
+                    <piko:img src="@/lib/images/empty-state-mouse.jpg" alt="" class="empty-state-image"></piko:img>
+                    <h2 class="empty-state-title">The mice got to it first!</h2>
+                    <p class="empty-state-subtitle">Brie-lieve in yourself, and save some recipes to see them here!</p>
+                    <m3e-button variant="filled" href="/recipes">Browse recipes</m3e-button>
                 </div>
             </section>
 
-            <!-- Remove Confirmation Dialog -->
-            <m3e-dialog p-ref="removeDialog">
-                <div slot="headline">Remove Favourite</div>
-                <div slot="content">
-                    <p>Are you sure? This is un-brie-lievable...</p>
-                    <p class="text-muted mt-sm">You can always add it back later. No hard feelings &mdash; just hard cheeses.</p>
-                </div>
+            <!-- Remove confirmation dialog -->
+            <m3e-dialog p-ref="removeDialog" headline="Remove favourite">
+                <p class="prose">Are you sure? This is un-brie-lievable...</p>
+                <p class="prose">You can always add it back later. No hard feelings, just hard cheeses.</p>
                 <div slot="actions">
                     <m3e-button variant="text" p-on:click="closeDialog">Cancel</m3e-button>
                     <m3e-button variant="filled" p-on:click="confirmRemove">Remove</m3e-button>
@@ -105,7 +84,7 @@
             <m3e-snackbar p-ref="snackbar"></m3e-snackbar>
 
             <!-- Extended FAB -->
-            <m3e-extended-fab href="/recipes" style="position: fixed; bottom: 80px; right: 24px;">
+            <m3e-extended-fab class="floating-fab" p-on:click="discoverRecipes">
                 <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="24" height="24" slot="icon"></piko:svg>
                 Discover Recipes
             </m3e-extended-fab>
@@ -121,40 +100,128 @@ import (
     "piko.sh/piko"
     layout "testmodule/partials/layout.pk"
     recipe_card "testmodule/partials/recipe-card.pk"
-    footer "testmodule/partials/footer.pk"
 )
 
-func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
-    return piko.NoResponse{}, piko.Metadata{
+// Favourite is a recipe the visitor has saved.
+type Favourite struct {
+    Title       string
+    Slug        string
+    Pun         string
+    Description string
+    Image       string
+    CookTime    string
+    Cheese      string
+    Difficulty  string
+    Href        string
+}
+
+type Response struct {
+    Favourites []Favourite
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{
+        Favourites: []Favourite{
+            {
+                Title:       "The Grate Burger",
+                Slug:        "the-grate-burger",
+                Pun:         "The gratest burger you'll ever taste",
+                Description: "A towering double cheeseburger with aged cheddar, caramelised onions, and our secret sauce.",
+                Image:       "@/lib/images/recipe-the-grate-burger.jpg",
+                CookTime:    "25 mins",
+                Cheese:      "Cheddar",
+                Difficulty:  "Easy",
+                Href:        "/recipe/the-grate-burger",
+            },
+            {
+                Title:       "Camembert Believe It",
+                Slug:        "camembert-believe-it",
+                Pun:         "The king of cheeses, baked to perfection",
+                Description: "Whole baked Camembert with rosemary, garlic, and crusty bread soldiers.",
+                Image:       "@/lib/images/recipe-camembert-believe-it.jpg",
+                CookTime:    "30 mins",
+                Cheese:      "Camembert",
+                Difficulty:  "Easy",
+                Href:        "/recipe/camembert-believe-it",
+            },
+            {
+                Title:       "Raclette & Roll",
+                Slug:        "raclette-and-roll",
+                Pun:         "Ready to raclette and roll!",
+                Description: "Classic Swiss raclette with baby potatoes, cornichons, pickled onions, and charcuterie.",
+                Image:       "@/lib/images/recipe-raclette-and-roll.jpg",
+                CookTime:    "40 mins",
+                Cheese:      "Raclette",
+                Difficulty:  "Medium",
+                Href:        "/recipe/raclette-and-roll",
+            },
+        },
+    }, piko.Metadata{
         Title: "Favourites - The Norman Kitchen",
     }, nil
 }
 </script>
 
 <script lang="ts">
-    function openRemoveDialog() {
-        const dialog = pk.refs.removeDialog;
-        if (dialog) {
-            dialog.show();
-        }
+    function notify(message: string): void {
+        const snackbar = pk.refs.snackbar as any;
+        if (snackbar) snackbar.show(message);
     }
 
-    function closeDialog() {
-        const dialog = pk.refs.removeDialog;
-        if (dialog) {
-            dialog.close();
-        }
+    function closeDialog(): void {
+        const dialog = pk.refs.removeDialog as any;
+        if (dialog) dialog.close();
     }
 
-    function confirmRemove() {
+    function confirmRemove(): void {
         closeDialog();
-        showSnackbar("Removed from favourites. Whey to go... wait, that's sad.");
+        notify("Removed from favourites. Whey to go... wait, that's sad.");
     }
 
-    function showSnackbar(message: string) {
-        const snackbar = pk.refs.snackbar;
-        if (snackbar) {
-            snackbar.show(message);
+    function changeFilter(event: CustomEvent): void {
+        const selected = (event.detail.selected as string[]) || [];
+        apply(selected[0] || 'all');
+    }
+
+    function apply(group: string): void {
+        const grid = pk.refs.grid as HTMLElement | undefined;
+        const empty = pk.refs.noResults as HTMLElement | undefined;
+        const count = pk.refs.resultCount as HTMLElement | undefined;
+        if (!grid) return;
+
+        const cards = Array.from(grid.querySelectorAll<HTMLElement>('.recipe-card'));
+        let shown = 0;
+
+        cards.forEach((card) => {
+            const minutes = parseInt(card.dataset.time || '', 10) || 0;
+            const difficulty = (card.dataset.difficulty || '').toLowerCase();
+
+            let match = true;
+            if (group === 'quick') match = minutes > 0 && minutes < 30;
+            else if (group === 'easy' || group === 'medium') match = difficulty === group;
+
+            card.hidden = !match;
+            if (match) shown++;
+        });
+
+        if (empty) empty.hidden = shown > 0;
+        if (count) {
+            count.textContent = shown === cards.length
+                ? 'Showing all ' + cards.length + ' saved recipes'
+                : 'Showing ' + shown + ' of ' + cards.length + ' saved recipes';
         }
+    }
+
+    apply('all');
+
+    piko.hooks.on(piko.hooks.events.NAVIGATION_COMPLETE, () => {
+        // Global hook, so check this is its own page before touching any ref.
+        if (!document.querySelector('[p-ref="removeDialog"]')) return;
+
+        apply('all');
+    });
+
+    function discoverRecipes(): void {
+        piko.nav.navigate('/recipes');
     }
 </script>

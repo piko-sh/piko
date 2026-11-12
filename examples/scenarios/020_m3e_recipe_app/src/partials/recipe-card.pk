@@ -19,27 +19,37 @@
 -->
 
 <template>
-    <m3e-card variant="elevated" clickable>
-        <piko:img :src="props.Image" :alt="props.Title" class="recipe-card-image"></piko:img>
-        <div class="recipe-card-body">
-            <div class="recipe-card-title" p-text="props.Title"></div>
-            <div class="recipe-card-pun" p-text="props.Pun"></div>
-            <div class="recipe-card-desc" p-text="props.Description"></div>
-            <div class="recipe-card-meta">
-                <m3e-chip p-text="props.Cheese" size="s"></m3e-chip>
-                <span p-text="props.CookTime"></span>
-                <span p-text="props.Difficulty"></span>
+    <m3e-card variant="elevated" class="card-open recipe-card"
+              :data-title="props.Title"
+              :data-cheese="props.Cheese"
+              :data-difficulty="props.Difficulty"
+              :data-time="props.CookTime"
+              :data-new="props.IsNew">
+        <div class="card-fill">
+            <piko:img :src="props.Image" :alt="props.Title" class="recipe-card-image"></piko:img>
+
+            <div class="card-body">
+                <div class="recipe-card-title" p-text="props.Title"></div>
+                <div class="recipe-card-pun" p-text="props.Pun"></div>
+                <div class="recipe-card-desc" p-text="props.Description"></div>
+                <div class="recipe-card-meta">
+                    <span class="tag" p-text="props.Cheese"></span>
+                    <span class="tag tag--primary" p-if="props.IsNew">New</span>
+                    <span p-text="props.CookTime"></span>
+                    <span aria-hidden="true">&middot;</span>
+                    <span p-text="props.Difficulty"></span>
+                </div>
+            </div>
+
+            <div class="recipe-card-actions">
+                <m3e-button variant="filled" :href="props.Href">View recipe</m3e-button>
+                <m3e-tooltip text="Add to favourites">
+                    <m3e-icon-button toggle aria-label="Add to favourites">
+                        <piko:svg src="@/lib/icons/favourite.svg" fill="currentColor" width="20" height="20"></piko:svg>
+                    </m3e-icon-button>
+                </m3e-tooltip>
             </div>
         </div>
-        <div class="recipe-card-actions">
-            <m3e-button variant="filled" size="s" :href="props.Href">View Recipe</m3e-button>
-            <m3e-tooltip text="Add to favourites">
-                <m3e-icon-button toggle>
-                    <piko:svg src="@/lib/icons/favourite.svg" fill="currentColor" width="20" height="20"></piko:svg>
-                </m3e-icon-button>
-            </m3e-tooltip>
-        </div>
-        <m3e-badge value="New" p-if="props.IsNew"></m3e-badge>
     </m3e-card>
 </template>
 

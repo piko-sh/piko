@@ -20,22 +20,24 @@
 
 <template>
     <footer class="app-footer">
-        <div class="footer-brand">The Norman Kitchen</div>
-        <div class="footer-tagline">Made with cheese and love</div>
+        <div class="footer-inner">
+            <div class="footer-brand">The Norman Kitchen</div>
+            <div class="footer-tagline">Made with cheese and love</div>
 
-        <div class="footer-links">
-            <piko:a href="/">Home</piko:a>
-            <piko:a href="/recipes">Recipes</piko:a>
-            <piko:a href="/recipe-index">Recipe Index</piko:a>
-            <piko:a href="/cheese-guide">Cheese Guide</piko:a>
-            <piko:a href="/favourites">Favourites</piko:a>
-            <piko:a href="/meal-planner">Meal Planner</piko:a>
-            <piko:a href="/about">About</piko:a>
+            <nav class="footer-links" aria-label="Footer">
+                <piko:a href="/">Home</piko:a>
+                <piko:a href="/recipes">Recipes</piko:a>
+                <piko:a href="/recipe-index">Recipe index</piko:a>
+                <piko:a href="/cheese-guide">Cheese guide</piko:a>
+                <piko:a href="/favourites">Favourites</piko:a>
+                <piko:a href="/meal-planner">Meal planner</piko:a>
+                <piko:a href="/about">About</piko:a>
+            </nav>
+
+            <m3e-divider></m3e-divider>
+
+            <p class="footer-joke mt-md">In queso emergency, eat cheese. 🧀</p>
         </div>
-
-        <m3e-divider></m3e-divider>
-
-        <p class="footer-joke mt-md">In queso emergency, eat cheese. 🧀</p>
     </footer>
 </template>
 

@@ -20,104 +20,119 @@
 
 <template>
     <div class="app-shell">
-        <!-- Top App Bar -->
-        <m3e-top-app-bar variant="center-aligned" headline="The Norman Kitchen">
-            <m3e-icon-button slot="leading" p-on:click="toggleDrawer">
+        <div class="mobile-menu-bar">
+            <m3e-icon-button aria-label="Open navigation menu" p-on:click="toggleDrawer">
                 <piko:svg src="@/lib/icons/menu.svg" fill="currentColor" width="24" height="24"></piko:svg>
             </m3e-icon-button>
-            <m3e-icon-button slot="trailing" p-on:click="openSearch">
-                <piko:svg src="@/lib/icons/search.svg" fill="currentColor" width="24" height="24"></piko:svg>
-            </m3e-icon-button>
-        </m3e-top-app-bar>
+        </div>
 
         <div class="app-body">
-            <!-- Desktop Navigation Drawer -->
             <div class="app-drawer">
-                <m3e-navigation-drawer open>
+                <m3e-navigation-drawer open pk-no-refresh-attrs="open,modal">
                     <div class="drawer-header">
-                        <piko:img src="@/lib/images/logo-norman-kitchen.jpg" alt="The Norman Kitchen" class="drawer-logo"></piko:img>
                         <div class="drawer-brand">The Norman Kitchen</div>
-                        <div class="drawer-tagline">Where Every Dish is Grate!</div>
+                        <div class="drawer-tagline">Where every dish is grate!</div>
                     </div>
 
                     <piko:a href="/" class="drawer-link" p-class="{ 'active': props.CurrentPage == 'home' }">
-                        <piko:svg src="@/lib/icons/home.svg" fill="currentColor" width="20" height="20"></piko:svg>
+                        <piko:svg src="@/lib/icons/home.svg" fill="currentColor" width="20" height="20" class="drawer-link-icon"></piko:svg>
                         Home
                     </piko:a>
                     <piko:a href="/recipes" class="drawer-link" p-class="{ 'active': props.CurrentPage == 'recipes' }">
-                        <piko:svg src="@/lib/icons/menu.svg" fill="currentColor" width="20" height="20"></piko:svg>
+                        <piko:svg src="@/lib/icons/restaurant.svg" fill="currentColor" width="20" height="20" class="drawer-link-icon"></piko:svg>
                         Recipes
                     </piko:a>
                     <piko:a href="/recipe-index" class="drawer-link" p-class="{ 'active': props.CurrentPage == 'recipe-index' }">
-                        <piko:svg src="@/lib/icons/menu.svg" fill="currentColor" width="20" height="20"></piko:svg>
-                        Recipe Index
+                        <piko:svg src="@/lib/icons/menu.svg" fill="currentColor" width="20" height="20" class="drawer-link-icon"></piko:svg>
+                        Recipe index
                     </piko:a>
                     <piko:a href="/cheese-guide" class="drawer-link" p-class="{ 'active': props.CurrentPage == 'cheese-guide' }">
-                        <piko:svg src="@/lib/icons/info.svg" fill="currentColor" width="20" height="20"></piko:svg>
-                        Cheese Guide
+                        <piko:svg src="@/lib/icons/info.svg" fill="currentColor" width="20" height="20" class="drawer-link-icon"></piko:svg>
+                        Cheese guide
                     </piko:a>
                     <piko:a href="/favourites" class="drawer-link" p-class="{ 'active': props.CurrentPage == 'favourites' }">
-                        <piko:svg src="@/lib/icons/favourite.svg" fill="currentColor" width="20" height="20"></piko:svg>
+                        <piko:svg src="@/lib/icons/favourite.svg" fill="currentColor" width="20" height="20" class="drawer-link-icon"></piko:svg>
                         Favourites
-                        <m3e-badge value="3"></m3e-badge>
+                        <span class="drawer-link-count" aria-label="3 saved recipes">3</span>
                     </piko:a>
                     <piko:a href="/meal-planner" class="drawer-link" p-class="{ 'active': props.CurrentPage == 'meal-planner' }">
-                        <piko:svg src="@/lib/icons/edit.svg" fill="currentColor" width="20" height="20"></piko:svg>
-                        Meal Planner
+                        <piko:svg src="@/lib/icons/edit.svg" fill="currentColor" width="20" height="20" class="drawer-link-icon"></piko:svg>
+                        Meal planner
                     </piko:a>
                     <piko:a href="/ask-the-mouse" class="drawer-link" p-class="{ 'active': props.CurrentPage == 'ask-the-mouse' }">
-                        <piko:svg src="@/lib/icons/cheese.svg" fill="currentColor" width="20" height="20"></piko:svg>
-                        Ask the Mouse
+                        <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="20" height="20" class="drawer-link-icon"></piko:svg>
+                        Ask the mouse
                     </piko:a>
                     <piko:a href="/kitchen-feed" class="drawer-link" p-class="{ 'active': props.CurrentPage == 'kitchen-feed' }">
-                        <piko:svg src="@/lib/icons/live.svg" fill="currentColor" width="20" height="20"></piko:svg>
-                        Live Feed
+                        <piko:svg src="@/lib/icons/live.svg" fill="currentColor" width="20" height="20" class="drawer-link-icon"></piko:svg>
+                        Live feed
                     </piko:a>
                     <piko:a href="/about" class="drawer-link" p-class="{ 'active': props.CurrentPage == 'about' }">
-                        <piko:svg src="@/lib/icons/info.svg" fill="currentColor" width="20" height="20"></piko:svg>
+                        <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="20" height="20" class="drawer-link-icon"></piko:svg>
                         About
                     </piko:a>
-
-                    <m3e-divider></m3e-divider>
-
-                    <div class="drawer-footer">
-                        <p class="text-muted" style="font-size: 0.75rem; font-style: italic;">
-                            "In queso emergency, eat cheese."
-                        </p>
-                    </div>
                 </m3e-navigation-drawer>
             </div>
 
-            <!-- Main Content -->
-            <main class="app-main">
-                <piko:slot></piko:slot>
+            <div class="app-rail">
+                <m3e-navigation-rail alignment="top" :selected-index="state.NavIndex">
+                    <m3e-icon-button slot="menu" aria-label="Open navigation menu" p-on:click="toggleDrawer">
+                        <piko:svg src="@/lib/icons/menu.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                    </m3e-icon-button>
 
-                <!-- Footer -->
-                <piko:partial is="footer"></piko:partial>
+                    <piko:a href="/" data-nav-item class="rail-item">
+                        <piko:svg src="@/lib/icons/home.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        Home
+                    </piko:a>
+                    <piko:a href="/recipes" data-nav-item class="rail-item">
+                        <piko:svg src="@/lib/icons/restaurant.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        Recipes
+                    </piko:a>
+                    <piko:a href="/favourites" data-nav-item class="rail-item">
+                        <piko:svg src="@/lib/icons/favourite.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        Saved
+                    </piko:a>
+                    <piko:a href="/ask-the-mouse" data-nav-item class="rail-item">
+                        <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        Ask
+                    </piko:a>
+                    <piko:a href="/kitchen-feed" data-nav-item class="rail-item">
+                        <piko:svg src="@/lib/icons/live.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                        Live
+                    </piko:a>
+                </m3e-navigation-rail>
+            </div>
+
+            <!-- Main content -->
+            <main class="app-main" id="main">
+                <piko:slot></piko:slot>
             </main>
         </div>
 
-        <!-- Mobile Bottom Navigation -->
+        <piko:partial is="footer"></piko:partial>
+
         <div class="mobile-nav">
-            <m3e-navigation-bar>
-                <piko:a href="/">
-                    <piko:svg src="@/lib/icons/home.svg" fill="currentColor" width="24" height="24" slot="icon"></piko:svg>
+            <m3e-navigation-bar :selected-index="state.NavIndex">
+                <piko:a href="/" data-nav-item class="mobile-nav-item">
+                    <piko:svg src="@/lib/icons/home.svg" fill="currentColor" width="24" height="24"></piko:svg>
                     Home
                 </piko:a>
-                <piko:a href="/recipes">
-                    <piko:svg src="@/lib/icons/menu.svg" fill="currentColor" width="24" height="24" slot="icon"></piko:svg>
+                <piko:a href="/recipes" data-nav-item class="mobile-nav-item">
+                    <piko:svg src="@/lib/icons/restaurant.svg" fill="currentColor" width="24" height="24"></piko:svg>
                     Recipes
                 </piko:a>
-                <piko:a href="/favourites">
-                    <piko:svg src="@/lib/icons/favourite.svg" fill="currentColor" width="24" height="24" slot="icon"></piko:svg>
+                <piko:a href="/favourites" data-nav-item class="mobile-nav-item">
+                    <m3e-badge value="3">
+                        <piko:svg src="@/lib/icons/favourite.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                    </m3e-badge>
                     Favourites
                 </piko:a>
-                <piko:a href="/ask-the-mouse">
-                    <piko:svg src="@/lib/icons/cheese.svg" fill="currentColor" width="24" height="24" slot="icon"></piko:svg>
+                <piko:a href="/ask-the-mouse" data-nav-item class="mobile-nav-item">
+                    <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="24" height="24"></piko:svg>
                     Ask
                 </piko:a>
-                <piko:a href="/kitchen-feed">
-                    <piko:svg src="@/lib/icons/live.svg" fill="currentColor" width="24" height="24" slot="icon"></piko:svg>
+                <piko:a href="/kitchen-feed" data-nav-item class="mobile-nav-item">
+                    <piko:svg src="@/lib/icons/live.svg" fill="currentColor" width="24" height="24"></piko:svg>
                     Live
                 </piko:a>
             </m3e-navigation-bar>
@@ -138,22 +153,60 @@ type Props struct {
     CurrentPage string `prop:"current-page"`
 }
 
-func Render(r *piko.RequestData, props Props) (piko.NoResponse, piko.Metadata, error) {
-    return piko.NoResponse{}, piko.Metadata{}, nil
+type Response struct {
+    NavIndex int
+}
+
+var bottomNavPages = []string{"home", "recipes", "favourites", "ask-the-mouse", "kitchen-feed"}
+
+func Render(r *piko.RequestData, props Props) (Response, piko.Metadata, error) {
+    navIndex := -1
+    for i, page := range bottomNavPages {
+        if page == props.CurrentPage {
+            navIndex = i
+            break
+        }
+    }
+
+    return Response{NavIndex: navIndex}, piko.Metadata{}, nil
 }
 </script>
 
 <script lang="ts">
-    function toggleDrawer() {
-        const drawer = document.querySelector('m3e-navigation-drawer');
-        if (drawer) {
-            drawer.toggle();
-        }
+    const DESKTOP = '(min-width: 1024px)';
+    const TABLET = '(min-width: 768px)';
+
+    function drawer() {
+        return document.querySelector('m3e-navigation-drawer') as any;
     }
 
-    function openSearch() {
-        window.location.href = '/recipes';
+    function syncDrawerMode(): void {
+        const el = drawer();
+        if (!el) return;
+
+        if (window.matchMedia(DESKTOP).matches) {
+            el.removeAttribute('modal');
+            el.setAttribute('open', '');
+            return;
+        }
+
+        el.setAttribute('modal', '');
+        el.removeAttribute('open');
     }
+
+    function toggleDrawer(): void {
+        const el = drawer();
+        if (el) el.toggle();
+    }
+
+    syncDrawerMode();
+    window.matchMedia(DESKTOP).addEventListener('change', syncDrawerMode);
+    window.matchMedia(TABLET).addEventListener('change', syncDrawerMode);
+
+    piko.hooks.on(piko.hooks.events.NAVIGATION_COMPLETE, () => {
+        const el = drawer();
+        if (el && el.hasAttribute('modal')) el.close();
+    });
 </script>
 
 <style global>

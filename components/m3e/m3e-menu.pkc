@@ -149,6 +149,7 @@
         top: 0;
         left: 0;
         z-index: 1000;
+        width: max-content;
         min-width: 112px;
         max-width: 280px;
         background: var(--_surface-container);

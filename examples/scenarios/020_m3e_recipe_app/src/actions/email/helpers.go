@@ -34,6 +34,7 @@ func sendContactInternalEmail(ctx context.Context, props dto.ContactInternalEmai
 		return err
 	}
 	return builder.
+		From(env.Get().NormanKitchenFromEmail).
 		To(env.Get().NormanKitchenEmail).
 		Subject("New Contact Form Submission - " + props.Name).
 		BodyTemplate("emails/contact_internal.pk").
@@ -49,6 +50,7 @@ func sendContactConfirmationEmail(ctx context.Context, toEmail string, props dto
 		return err
 	}
 	return builder.
+		From(env.Get().NormanKitchenFromEmail).
 		To(toEmail).
 		Subject("Thank you for contacting The Norman Kitchen!").
 		BodyTemplate("emails/contact_confirmation.pk").

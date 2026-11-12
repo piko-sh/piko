@@ -25,57 +25,50 @@
             server.current-page="recipes">
 
             <section class="page-section">
-                <h2 class="section-title">All Recipes</h2>
+                <h1 class="page-title">All recipes</h1>
                 <p class="section-subtitle">Mouse-watering meals, all featuring the finest cheeses</p>
 
-                <!-- Search Bar -->
-                <m3e-search variant="docked" placeholder="Search recipes..." class="mb-lg">
-                    <m3e-list slot="suggestions">
-                        <m3e-list-item>The Grate Burger</m3e-list-item>
-                        <m3e-list-item>Camembert Believe It</m3e-list-item>
-                        <m3e-list-item>Raclette &amp; Roll</m3e-list-item>
-                        <m3e-list-item>Feta Accompli Pizza</m3e-list-item>
-                    </m3e-list>
-                </m3e-search>
 
-                <!-- Active Filters + View Toggle Row -->
-                <div class="flex-between flex-wrap mb-md">
-                    <m3e-chip-set>
-                        <m3e-chip variant="filter" selected>All Cheeses</m3e-chip>
-                        <m3e-chip variant="filter">Cheddar</m3e-chip>
-                        <m3e-chip variant="filter">Brie</m3e-chip>
-                        <m3e-chip variant="filter">Mozzarella</m3e-chip>
-                        <m3e-chip variant="filter">Parmesan</m3e-chip>
-                        <m3e-chip variant="filter">Camembert</m3e-chip>
-                        <m3e-chip variant="filter">Raclette</m3e-chip>
+                <m3e-search placeholder="Search recipes by name or cheese..."
+                            class="mb-lg"
+                            p-on:input="changeSearch"></m3e-search>
+
+                <div class="toolbar-row mb-lg">
+                    <m3e-chip-set p-ref="cheeseChips" p-on:click="changeCheese">
+                        <m3e-chip variant="filter" data-cheese="all" selected>All cheeses</m3e-chip>
+                        <m3e-chip variant="filter" data-cheese="cheddar">Cheddar</m3e-chip>
+                        <m3e-chip variant="filter" data-cheese="brie">Brie</m3e-chip>
+                        <m3e-chip variant="filter" data-cheese="feta">Feta</m3e-chip>
+                        <m3e-chip variant="filter" data-cheese="parmesan">Parmesan</m3e-chip>
+                        <m3e-chip variant="filter" data-cheese="camembert">Camembert</m3e-chip>
+                        <m3e-chip variant="filter" data-cheese="raclette">Raclette</m3e-chip>
+                        <m3e-chip variant="filter" data-cheese="gouda">Gouda</m3e-chip>
+                        <m3e-chip variant="filter" data-cheese="ricotta">Ricotta</m3e-chip>
+                        <m3e-chip variant="filter" data-cheese="halloumi">Halloumi</m3e-chip>
                     </m3e-chip-set>
 
-                    <div class="flex-row">
-                        <!-- Sort Menu -->
-                        <m3e-menu>
-                            <m3e-button variant="outlined" size="s" slot="trigger">
-                                <piko:svg src="@/lib/icons/arrow-drop-down.svg" fill="currentColor" width="18" height="18" slot="icon"></piko:svg>
-                                Sort
-                            </m3e-button>
-                            <m3e-menu-item>Most Popular</m3e-menu-item>
-                            <m3e-menu-item>Newest First</m3e-menu-item>
-                            <m3e-menu-item>Quickest</m3e-menu-item>
-                            <m3e-menu-item>A to Z</m3e-menu-item>
-                        </m3e-menu>
+                    <div class="toolbar-controls">
+                        <m3e-select variant="outlined"
+                                    label="Sort by"
+                                    class="sort-select"
+                                    p-on:change="applySort">
+                            <m3e-menu-item value="popular">Most popular</m3e-menu-item>
+                            <m3e-menu-item value="newest">Newest first</m3e-menu-item>
+                            <m3e-menu-item value="quickest">Quickest</m3e-menu-item>
+                            <m3e-menu-item value="alpha">A to Z</m3e-menu-item>
+                        </m3e-select>
 
-                        <!-- View Toggle -->
-                        <m3e-segmented-button>
-                            <m3e-button selected>Grid</m3e-button>
-                            <m3e-button>List</m3e-button>
+                        <m3e-segmented-button p-on:change="changeView">
+                            <button type="button" data-segment="grid" data-selected>Grid</button>
+                            <button type="button" data-segment="list">List</button>
                         </m3e-segmented-button>
                     </div>
                 </div>
 
-                <!-- Progress Bar (shown while filtering) -->
-                <m3e-progress variant="linear" style="margin-bottom: 16px;"></m3e-progress>
+                <p class="text-muted text-sm mb-md" p-ref="resultCount" role="status"></p>
 
-                <!-- Recipe Grid -->
-                <div class="recipe-grid">
+                <!-- Recipe grid -->
+                <div class="recipe-grid" p-ref="grid">
                     <piko:partial is="recipe_card"
                         server.title="The Grate Burger"
                         server.slug="the-grate-burger"
@@ -127,7 +120,7 @@
                     <piko:partial is="recipe_card"
                         server.title="Ricotta Be Kidding Me Lasagna"
                         server.slug="ricotta-be-kidding-lasagna"
-                        server.pun="You ricotta be kidding me - three cheese layers!"
+                        server.pun="You ricotta be kidding me! Three cheese layers!"
                         server.description="Three-cheese lasagna with ricotta, parmesan béchamel, and rich bolognese."
                         server.image="@/lib/images/recipe-ricotta-be-kidding-lasagna.jpg"
                         server.cook-time="90 mins"
@@ -173,86 +166,109 @@
                         server.href="/recipe/raclette-and-roll"
                         :server.is-new="true"
                     ></piko:partial>
+
+                    <piko:partial is="recipe_card"
+                        server.title="Hallou-mi, It's Me"
+                        server.slug="hallou-mi-its-me"
+                        server.pun="Grilled halloumi that always picks up"
+                        server.description="Charred halloumi skewers with courgette, cherry tomatoes, lemon, honey and a great deal of mint."
+                        server.image="@/lib/images/cheese-halloumi.jpg"
+                        server.cook-time="20 mins"
+                        server.cheese="Halloumi"
+                        server.difficulty="Easy"
+                        server.href="/recipe/hallou-mi-its-me"
+                        :server.is-new="true"
+                    ></piko:partial>
+                </div>
+
+                <div class="empty-state" p-ref="noResults" hidden>
+                    <h2 class="empty-state-title">Nothing matches that</h2>
+                    <p class="empty-state-subtitle">No recipe fits those filters. Try loosening one, or clear them all.</p>
+                    <m3e-button variant="filled" p-on:click="clearFilters">Clear all filters</m3e-button>
                 </div>
             </section>
 
-            <!-- Filter Side Sheet -->
+            <!-- Filter side sheet -->
             <m3e-side-sheet p-ref="filterSheet">
-                <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 16px;">Filter Recipes</h3>
+                <h2 class="subsection-title">Filter recipes</h2>
 
                 <div class="filter-section">
                     <div class="filter-title">Difficulty</div>
-                    <div class="filter-options">
-                        <div class="filter-row">
-                            <m3e-radio name="difficulty" value="easy" checked></m3e-radio>
-                            <label>Easy</label>
-                        </div>
-                        <div class="filter-row">
+                    <m3e-radio-group name="difficulty" value="any" class="filter-options" p-ref="difficultyOptions">
+                        <label class="filter-row">
+                            <m3e-radio name="difficulty" value="any" checked></m3e-radio>
+                            <span>Any</span>
+                        </label>
+                        <label class="filter-row">
+                            <m3e-radio name="difficulty" value="easy"></m3e-radio>
+                            <span>Easy</span>
+                        </label>
+                        <label class="filter-row">
                             <m3e-radio name="difficulty" value="medium"></m3e-radio>
-                            <label>Medium</label>
-                        </div>
-                        <div class="filter-row">
-                            <m3e-radio name="difficulty" value="hard"></m3e-radio>
-                            <label>Hard</label>
-                        </div>
+                            <span>Medium</span>
+                        </label>
+                    </m3e-radio-group>
+                </div>
+
+                <div class="filter-section">
+                    <div class="filter-title">Cheese type</div>
+                    <div class="filter-options" p-ref="cheeseOptions">
+                        <label class="filter-row"><m3e-checkbox value="cheddar" checked></m3e-checkbox><span>Cheddar</span></label>
+                        <label class="filter-row"><m3e-checkbox value="brie" checked></m3e-checkbox><span>Brie</span></label>
+                        <label class="filter-row"><m3e-checkbox value="feta" checked></m3e-checkbox><span>Feta</span></label>
+                        <label class="filter-row"><m3e-checkbox value="parmesan" checked></m3e-checkbox><span>Parmesan</span></label>
+                        <label class="filter-row"><m3e-checkbox value="gouda" checked></m3e-checkbox><span>Gouda</span></label>
+                        <label class="filter-row"><m3e-checkbox value="camembert" checked></m3e-checkbox><span>Camembert</span></label>
+                        <label class="filter-row"><m3e-checkbox value="raclette" checked></m3e-checkbox><span>Raclette</span></label>
+                        <label class="filter-row"><m3e-checkbox value="ricotta" checked></m3e-checkbox><span>Ricotta</span></label>
+                        <label class="filter-row"><m3e-checkbox value="halloumi" checked></m3e-checkbox><span>Halloumi</span></label>
                     </div>
                 </div>
 
                 <div class="filter-section">
-                    <div class="filter-title">Cheese Type</div>
-                    <div class="filter-options">
-                        <div class="filter-row"><m3e-checkbox checked></m3e-checkbox><label>Cheddar</label></div>
-                        <div class="filter-row"><m3e-checkbox checked></m3e-checkbox><label>Brie</label></div>
-                        <div class="filter-row"><m3e-checkbox checked></m3e-checkbox><label>Mozzarella</label></div>
-                        <div class="filter-row"><m3e-checkbox checked></m3e-checkbox><label>Parmesan</label></div>
-                        <div class="filter-row"><m3e-checkbox checked></m3e-checkbox><label>Feta</label></div>
-                        <div class="filter-row"><m3e-checkbox checked></m3e-checkbox><label>Gouda</label></div>
-                        <div class="filter-row"><m3e-checkbox checked></m3e-checkbox><label>Camembert</label></div>
-                        <div class="filter-row"><m3e-checkbox checked></m3e-checkbox><label>Raclette</label></div>
-                        <div class="filter-row"><m3e-checkbox checked></m3e-checkbox><label>Ricotta</label></div>
-                    </div>
+                    <div class="filter-title">Max cook time</div>
+                    <m3e-slider min="15" max="120" value="120" discrete step="15" show_ticks
+                                p-ref="maxTimeSlider"
+                                aria-label="Maximum cook time in minutes"
+                                p-on:change="changeMaxTime"></m3e-slider>
+                    <p class="text-muted text-sm mt-sm" p-ref="maxTimeLabel">Up to 120 minutes</p>
                 </div>
 
-                <div class="filter-section">
-                    <div class="filter-title">Max Cook Time</div>
-                    <m3e-slider min="0" max="120" value="60" discrete step="15" show_ticks></m3e-slider>
-                    <p class="text-muted" style="font-size: 0.8125rem;">Up to 60 minutes</p>
-                </div>
-
-                <div class="filter-section">
-                    <div class="filter-title">Dietary</div>
-                    <div class="filter-row">
-                        <m3e-switch></m3e-switch>
-                        <label>Vegetarian only</label>
-                    </div>
-                </div>
-
-                <div class="flex-row mt-lg">
-                    <m3e-button variant="filled">Apply Filters</m3e-button>
-                    <m3e-button variant="text">Clear All</m3e-button>
+                <div class="form-actions mt-lg">
+                    <m3e-button variant="filled" p-on:click="applyFilters">Apply filters</m3e-button>
+                    <m3e-button variant="text" p-on:click="clearFilters">Clear all</m3e-button>
                 </div>
             </m3e-side-sheet>
 
-            <!-- Floating Toolbar (mobile) -->
-            <m3e-toolbar variant="floating" style="position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 50;">
-                <m3e-icon-button>
-                    <piko:svg src="@/lib/icons/search.svg" fill="currentColor" width="24" height="24"></piko:svg>
-                </m3e-icon-button>
+            <m3e-toolbar variant="floating" class="floating-toolbar">
+                <m3e-tooltip text="Search recipes">
+                    <m3e-icon-button aria-label="Search recipes" p-on:click="focusSearch">
+                        <piko:svg src="@/lib/icons/search.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                    </m3e-icon-button>
+                </m3e-tooltip>
                 <m3e-tooltip text="Filter recipes">
-                    <m3e-icon-button p-on:click="openFilters">
-                        <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                    <m3e-icon-button aria-label="Filter recipes" p-on:click="openFilters">
+                        <piko:svg src="@/lib/icons/sort.svg" fill="currentColor" width="24" height="24"></piko:svg>
                     </m3e-icon-button>
                 </m3e-tooltip>
             </m3e-toolbar>
 
-            <!-- Speed Dial FAB Menu -->
-            <m3e-fab-menu variant="primary" style="position: fixed; bottom: 80px; right: 24px;">
-                <m3e-icon-button slot="fab">
+            <m3e-fab-menu class="floating-fab">
+                <m3e-fab slot="fab" colour="secondary" aria-label="More actions">
                     <piko:svg src="@/lib/icons/add.svg" fill="currentColor" width="24" height="24"></piko:svg>
-                </m3e-icon-button>
-                <m3e-button variant="filled-tonal">Add to Meal Plan</m3e-button>
-                <m3e-button variant="filled-tonal">Share Collection</m3e-button>
-                <m3e-button variant="filled-tonal">Random Recipe</m3e-button>
+                </m3e-fab>
+                <button type="button" p-on:click="openFilters">
+                    <piko:svg src="@/lib/icons/sort.svg" fill="currentColor" width="20" height="20"></piko:svg>
+                    Filter recipes
+                </button>
+                <button type="button" p-on:click="shareCollection">
+                    <piko:svg src="@/lib/icons/save.svg" fill="currentColor" width="20" height="20"></piko:svg>
+                    Share collection
+                </button>
+                <button type="button" p-on:click="randomRecipe">
+                    <piko:svg src="@/lib/icons/shuffle.svg" fill="currentColor" width="20" height="20"></piko:svg>
+                    Random recipe
+                </button>
             </m3e-fab-menu>
 
             <!-- Snackbar for filter feedback -->
@@ -269,21 +285,281 @@ import (
     "piko.sh/piko"
     layout "testmodule/partials/layout.pk"
     recipe_card "testmodule/partials/recipe-card.pk"
-    footer "testmodule/partials/footer.pk"
 )
 
 func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
     return piko.NoResponse{}, piko.Metadata{
-        Title: "All Recipes - The Norman Kitchen",
+        Title: "All recipes - The Norman Kitchen",
     }, nil
 }
 </script>
 
 <script lang="ts">
-    function openFilters() {
-        const sheet = pk.refs.filterSheet;
-        if (sheet) {
-            sheet.show();
+    const RECIPES = [
+        '/recipe/the-grate-burger',
+        '/recipe/brie-lliant-caesar',
+        '/recipe/feta-accompli-pizza',
+        '/recipe/gouda-gracious-mac',
+        '/recipe/ricotta-be-kidding-lasagna',
+        '/recipe/hallou-mi-its-me',
+        '/recipe/parm-ageddon-chicken',
+        '/recipe/camembert-believe-it',
+        '/recipe/raclette-and-roll',
+    ];
+
+    const filters = {
+        query: '',
+        cheeses: [] as string[],   // empty means no cheese restriction
+        difficulty: 'any',
+        maxTime: 120,
+    };
+
+    let sortBy = 'popular';
+
+    function notify(message: string): void {
+        const snackbar = pk.refs.snackbar as any;
+        if (snackbar) snackbar.show(message);
+    }
+
+    function cards(): HTMLElement[] {
+        const grid = pk.refs.grid as HTMLElement | undefined;
+        if (!grid) return [];
+        return Array.from(grid.querySelectorAll<HTMLElement>('.recipe-card'));
+    }
+
+    function minutes(card: HTMLElement): number {
+        const parsed = parseInt(card.dataset.time || '', 10);
+        return isNaN(parsed) ? 0 : parsed;
+    }
+
+    function matches(card: HTMLElement): boolean {
+        const title = (card.dataset.title || '').toLowerCase();
+        const cheese = (card.dataset.cheese || '').toLowerCase();
+
+        if (filters.query && !title.includes(filters.query) && !cheese.includes(filters.query)) {
+            return false;
+        }
+        if (filters.cheeses.length > 0 && !filters.cheeses.includes(cheese)) {
+            return false;
+        }
+        if (filters.difficulty !== 'any'
+            && (card.dataset.difficulty || '').toLowerCase() !== filters.difficulty) {
+            return false;
+        }
+        if (minutes(card) > filters.maxTime) {
+            return false;
+        }
+        return true;
+    }
+
+    function apply(): void {
+        const grid = pk.refs.grid as HTMLElement | undefined;
+        const empty = pk.refs.noResults as HTMLElement | undefined;
+        const count = pk.refs.resultCount as HTMLElement | undefined;
+        if (!grid) return;
+
+        const all = cards();
+        let shown = 0;
+
+        all.forEach((card) => {
+            const visible = matches(card);
+            card.hidden = !visible;
+            if (visible) shown++;
+        });
+
+        const ordered = all.slice().sort(compare);
+        ordered.forEach((card) => grid.appendChild(card));
+
+        if (empty) empty.hidden = shown > 0;
+        if (count) {
+            count.textContent = shown === all.length
+                ? 'Showing all ' + all.length + ' recipes'
+                : 'Showing ' + shown + ' of ' + all.length + ' recipes';
         }
     }
+
+    function compare(a: HTMLElement, b: HTMLElement): number {
+        if (sortBy === 'alpha') {
+            return (a.dataset.title || '').localeCompare(b.dataset.title || '');
+        }
+        if (sortBy === 'quickest') {
+            return minutes(a) - minutes(b);
+        }
+        if (sortBy === 'newest') {
+            const newA = a.dataset.new === 'true' ? 0 : 1;
+            const newB = b.dataset.new === 'true' ? 0 : 1;
+            if (newA !== newB) return newA - newB;
+        }
+        return Number(a.dataset.rank || 0) - Number(b.dataset.rank || 0);
+    }
+
+    /* -- Controls ---------------------------------------------------------- */
+
+    function changeSearch(event: CustomEvent): void {
+        filters.query = String(event.detail.value || '').trim().toLowerCase();
+        apply();
+    }
+
+    function changeCheese(event: Event): void {
+        const chip = (event.target as HTMLElement).closest('m3e-chip') as HTMLElement | null;
+        const set = pk.refs.cheeseChips as HTMLElement | undefined;
+        if (!chip || !set) return;
+
+        const all = Array.from(set.querySelectorAll<HTMLElement>('m3e-chip'));
+        const isAll = chip.dataset.cheese === 'all';
+
+        if (isAll) {
+            all.forEach((c) => c.toggleAttribute('selected', c === chip));
+        } else {
+            const allChip = all.find((c) => c.dataset.cheese === 'all');
+            if (allChip) allChip.removeAttribute('selected');
+        }
+
+        let selected = all
+            .filter((c) => c.hasAttribute('selected') && c.dataset.cheese !== 'all')
+            .map((c) => c.dataset.cheese as string);
+
+        if (selected.length === 0) {
+            const allChip = all.find((c) => c.dataset.cheese === 'all');
+            if (allChip) allChip.setAttribute('selected', '');
+        }
+
+        filters.cheeses = selected;
+        apply();
+    }
+
+    function applySort(event: CustomEvent): void {
+        sortBy = String(event.detail.value || 'popular');
+        apply();
+    }
+
+    function changeView(event: CustomEvent): void {
+        const grid = pk.refs.grid as HTMLElement | undefined;
+        const selected = (event.detail.selected as string[]) || [];
+        if (grid) grid.classList.toggle('recipe-grid--list', selected.includes('list'));
+    }
+
+    function changeMaxTime(event: CustomEvent): void {
+        const label = pk.refs.maxTimeLabel as HTMLElement | undefined;
+        if (label) label.textContent = 'Up to ' + event.detail.value + ' minutes';
+    }
+
+    function focusSearch(): void {
+        const search = document.querySelector('m3e-search') as any;
+        if (!search) return;
+
+        search.focusInput();
+        search.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function openFilters(): void {
+        const sheet = pk.refs.filterSheet as any;
+        if (sheet) sheet.show();
+    }
+
+    function applyFilters(): void {
+        const options = pk.refs.difficultyOptions as HTMLElement | undefined;
+        if (options) {
+            const checked = options.querySelector('m3e-radio[checked]') as HTMLElement | null;
+            filters.difficulty = checked ? String(checked.getAttribute('value')) : 'any';
+        }
+
+        const cheeses = pk.refs.cheeseOptions as HTMLElement | undefined;
+        if (cheeses) {
+            const boxes = Array.from(cheeses.querySelectorAll<HTMLElement>('m3e-checkbox'));
+            const ticked = boxes
+                .filter((box) => box.hasAttribute('checked'))
+                .map((box) => String(box.getAttribute('value')));
+
+            // All ticked is the same as no restriction, and matches the chips.
+            filters.cheeses = ticked.length === boxes.length ? [] : ticked;
+            syncChips();
+        }
+
+        const slider = pk.refs.maxTimeSlider as HTMLElement | undefined;
+        if (slider) filters.maxTime = Number(slider.getAttribute('value') || 120);
+
+        apply();
+
+        const sheet = pk.refs.filterSheet as any;
+        if (sheet) sheet.close();
+        notify('Filters applied. Only the finest cheeses remain.');
+    }
+
+    function clearFilters(): void {
+        filters.query = '';
+        filters.cheeses = [];
+        filters.difficulty = 'any';
+        filters.maxTime = 120;
+
+        const cheeses = pk.refs.cheeseOptions as HTMLElement | undefined;
+        if (cheeses) {
+            cheeses.querySelectorAll<HTMLElement>('m3e-checkbox')
+                .forEach((box) => box.setAttribute('checked', ''));
+        }
+
+        syncChips();
+
+        const search = document.querySelector('m3e-search') as any;
+        if (search) search.setAttribute('value', '');
+
+        apply();
+        notify('Filters cleared. Everything is back on the menu.');
+    }
+
+    function syncChips(): void {
+        const set = pk.refs.cheeseChips as HTMLElement | undefined;
+        if (!set) return;
+
+        const none = filters.cheeses.length === 0;
+        set.querySelectorAll<HTMLElement>('m3e-chip').forEach((chip) => {
+            const cheese = chip.dataset.cheese as string;
+            chip.toggleAttribute('selected',
+                cheese === 'all' ? none : filters.cheeses.includes(cheese));
+        });
+    }
+
+    function shareCollection(): void {
+        notify('Link copied. Share the cheese.');
+    }
+
+    function randomRecipe(): void {
+        piko.nav.navigate(RECIPES[Math.floor(Math.random() * RECIPES.length)]);
+    }
+
+    function applyQueryString(): void {
+        const wanted = new URLSearchParams(window.location.search).get('cheese');
+        if (!wanted) return;
+
+        const set = pk.refs.cheeseChips as HTMLElement | undefined;
+        const chip = set?.querySelector<HTMLElement>('m3e-chip[data-cheese="' + wanted + '"]');
+        if (!chip) return;
+
+        filters.cheeses = [wanted];
+        syncChips();
+
+        const cheeses = pk.refs.cheeseOptions as HTMLElement | undefined;
+        if (cheeses) {
+            cheeses.querySelectorAll<HTMLElement>('m3e-checkbox').forEach((box) => {
+                box.toggleAttribute('checked', box.getAttribute('value') === wanted);
+            });
+        }
+    }
+
+    function setUp(): void {
+        if (!document.querySelector('[p-ref="cheeseChips"]')) return;
+
+        filters.query = '';
+        filters.cheeses = [];
+        filters.difficulty = 'any';
+        filters.maxTime = 120;
+        sortBy = 'popular';
+
+        cards().forEach((card, index) => { card.dataset.rank = String(index); });
+        applyQueryString();
+        apply();
+    }
+
+    setUp();
+    piko.hooks.on(piko.hooks.events.NAVIGATION_COMPLETE, setUp);
 </script>

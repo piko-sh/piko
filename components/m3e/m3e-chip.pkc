@@ -68,8 +68,10 @@
         state.has_icon = elements.length > 0;
     });
 
-    function handleClick() {
+
+    function handleClick(event) {
         if (state.disabled || state.soft_disabled) return;
+        if (event) event.stopPropagation();
 
         if (state.variant === 'filter') {
             state.selected = !state.selected;

@@ -21,75 +21,81 @@
 <template>
     <div id="app">
         <piko:partial is="layout"
-            server.title="Ask the Mouse"
+            server.title="Ask the mouse"
             server.current-page="ask-the-mouse">
 
-            <section class="page-section">
+            <section class="page-section page-section--reading">
                 <!-- Hero -->
                 <div class="ask-hero">
                     <piko:img src="@/lib/images/mascot-ask.jpg" alt="Gouda the Gourmet, cheese oracle" class="ask-hero-image"></piko:img>
                     <div class="ask-hero-text">
-                        <h1 class="section-title" style="font-size: 2rem;">Ask the Mouse</h1>
+                        <h1 class="page-title">Ask the mouse</h1>
                         <p class="section-subtitle">Our resident cheese oracle, Gouda the Gourmet, will dispense wisdom from beyond the cheese counter</p>
                     </div>
                 </div>
 
-                <!-- Question Form -->
-                <m3e-card variant="elevated" style="padding: 32px; max-width: 640px; margin: 0 auto;">
-                    <m3e-elevation></m3e-elevation>
-                    <form action="/ask-the-mouse" method="get">
-                        <div class="mb-md">
-                            <m3e-text-field
-                                variant="outlined"
-                                label="Ask the mouse a question..."
-                                name="q"
-                                :value="state.Question"
-                                supporting-text="The mouse knows all things cheese-related (and some things that aren't)"
-                                style="width: 100%;">
-                            </m3e-text-field>
-                        </div>
-                        <div class="flex-row">
-                            <m3e-button variant="filled" type="submit">Consult the Oracle</m3e-button>
+                <!-- Question form -->
+                <m3e-card variant="elevated" class="form-card">
+                    <form action="/ask-the-mouse" method="get" class="form-stack card-pad--lg" p-ref="askForm">
+                        <m3e-text-field
+                            variant="outlined"
+                            label="Ask the mouse a question..."
+                            name="q"
+                            :value="state.Question"
+                            supporting-text="The mouse knows all things cheese-related (and some things that aren't)"
+                            class="form-field"></m3e-text-field>
+
+                        <div class="form-actions form-actions--centre">
+                            <!-- m3e-button always renders type="button". -->
+                            <m3e-button variant="filled" size="l" p-on:click="ask">Consult the oracle</m3e-button>
                         </div>
                     </form>
                 </m3e-card>
 
-                <!-- Answer Section -->
-                <div p-if="state.Question != ''" style="max-width: 640px; margin: 16px auto 0;">
+                <!-- Answer -->
+                <div class="ask-response" p-if="state.Question != ''">
                     <!-- Error -->
-                    <m3e-card variant="outlined" p-if="state.Error != ''" style="padding: 24px; border-color: var(--m3e-error);">
-                        <p style="color: var(--m3e-error); margin: 0;">{{ state.Error }}</p>
+                    <m3e-card variant="outlined" class="ask-error" p-if="state.Error != ''">
+                        <div class="card-pad">
+                            <p>{{ state.Error }}</p>
+                        </div>
                     </m3e-card>
 
-                    <!-- Fortune -->
-                    <m3e-card variant="filled" p-if="state.Answer != '' && state.Error == ''" style="padding: 32px; border-left: 4px solid var(--m3e-primary);">
-                        <div class="fortune-label">The Mouse Speaks</div>
-                        <div class="fortune-body" p-html="state.Answer"></div>
+                    <m3e-card variant="outlined" class="fortune" p-if="state.Answer != '' && state.Error == ''">
+                        <div class="card-pad--lg">
+                            <div class="fortune-label">
+                                <m3e-icon size="sm">
+                                    <piko:svg src="@/lib/icons/lightbulb.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                </m3e-icon>
+                                The mouse speaks
+                            </div>
+                            <div class="fortune-body" p-html="state.Answer"></div>
+                        </div>
                     </m3e-card>
                 </div>
 
-                <!-- Suggestion Chips (initial state) -->
-                <div p-if="state.Question == ''" style="max-width: 640px; margin: 24px auto 0;">
-                    <p class="text-muted" style="font-size: 0.875rem; margin-bottom: 12px;">Not sure what to ask? Try one of these:</p>
+                <!-- Suggestion chips (shown before a question is asked) -->
+                <div class="ask-response" p-if="state.Question == ''">
+                    <p class="text-muted text-sm mb-md">Not sure what to ask? Try one of these:</p>
                     <m3e-chip-set>
-                        <a href="/ask-the-mouse?q=Which+cheese+goes+best+with+red+wine%3F">
-                            <m3e-chip variant="outlined">Which cheese goes best with red wine?</m3e-chip>
-                        </a>
-                        <a href="/ask-the-mouse?q=Is+it+ever+too+early+for+cheese%3F">
-                            <m3e-chip variant="outlined">Is it ever too early for cheese?</m3e-chip>
-                        </a>
-                        <a href="/ask-the-mouse?q=What+is+the+meaning+of+brie%3F">
-                            <m3e-chip variant="outlined">What is the meaning of brie?</m3e-chip>
-                        </a>
-                        <a href="/ask-the-mouse?q=Should+I+add+more+cheese%3F">
-                            <m3e-chip variant="outlined">Should I add more cheese?</m3e-chip>
-                        </a>
-                        <a href="/ask-the-mouse?q=How+do+I+know+if+a+Camembert+is+ripe%3F">
-                            <m3e-chip variant="outlined">How do I know if a Camembert is ripe?</m3e-chip>
-                        </a>
-                        <a href="/ask-the-mouse?q=Tell+me+something+gouda">
-                            <m3e-chip variant="outlined">Tell me something gouda</m3e-chip>
-                        </a>
+                        <piko:a href="/ask-the-mouse?q=Which+cheese+goes+best+with+red+wine%3F">
+                            <m3e-chip variant="suggestion">Which cheese goes best with red wine?</m3e-chip>
+                        </piko:a>
+                        <piko:a href="/ask-the-mouse?q=Is+it+ever+too+early+for+cheese%3F">
+                            <m3e-chip variant="suggestion">Is it ever too early for cheese?</m3e-chip>
+                        </piko:a>
+                        <piko:a href="/ask-the-mouse?q=What+is+the+meaning+of+brie%3F">
+                            <m3e-chip variant="suggestion">What is the meaning of brie?</m3e-chip>
+                        </piko:a>
+                        <piko:a href="/ask-the-mouse?q=Should+I+add+more+cheese%3F">
+                            <m3e-chip variant="suggestion">Should I add more cheese?</m3e-chip>
+                        </piko:a>
+                        <piko:a href="/ask-the-mouse?q=How+do+I+know+if+a+Camembert+is+ripe%3F">
+                            <m3e-chip variant="suggestion">How do I know if a Camembert is ripe?</m3e-chip>
+                        </piko:a>
+                        <piko:a href="/ask-the-mouse?q=Tell+me+something+gouda">
+                            <m3e-chip variant="suggestion">Tell me something gouda</m3e-chip>
+                        </piko:a>
                     </m3e-chip-set>
                 </div>
             </section>
@@ -106,7 +112,6 @@ import (
     "piko.sh/piko/wdk/llm"
     markdown "piko.sh/piko/wdk/markdown/markdown_provider_goldmark"
     layout "testmodule/partials/layout.pk"
-    footer "testmodule/partials/footer.pk"
 )
 
 type Response struct {
@@ -123,7 +128,7 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
 
     if question == "" {
         return Response{}, piko.Metadata{
-            Title:       "Ask the Mouse - The Norman Kitchen",
+            Title:       "Ask the mouse - The Norman Kitchen",
             Description: "Consult Gouda the Gourmet, our resident cheese oracle, for wisdom from beyond the cheese counter.",
         }, nil
     }
@@ -134,7 +139,7 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
             Question: question,
             Error:    "The mouse is napping. Please try again in a moment.",
         }, piko.Metadata{
-            Title: "Ask the Mouse - The Norman Kitchen",
+            Title: "Ask the mouse - The Norman Kitchen",
         }, nil
     }
 
@@ -144,13 +149,23 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
             Question: question,
             Error:    "The mouse got distracted by a piece of cheese. Please try again.",
         }, piko.Metadata{
-            Title: "Ask the Mouse - The Norman Kitchen",
+            Title: "Ask the mouse - The Norman Kitchen",
+        }, nil
+    }
+
+    answer, err := markdown.ToHTML(r.Context(), resp.Content())
+    if err != nil {
+        return Response{
+            Question: question,
+            Error:    "The mouse mumbled something we couldn't make out. Please try again.",
+        }, piko.Metadata{
+            Title: "Ask the mouse - The Norman Kitchen",
         }, nil
     }
 
     return Response{
         Question: question,
-        Answer:   markdown.ToHTML(r.Context(), resp.Content()),
+        Answer:   answer,
     }, piko.Metadata{
         Title:       "Ask: " + question + " - The Norman Kitchen",
         Description: "The mouse has spoken on: " + question,
@@ -158,19 +173,25 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
 }
 </script>
 
+<script lang="ts">
+    function ask(): void {
+        const form = pk.refs.askForm as HTMLFormElement | undefined;
+        if (form) form.requestSubmit();
+    }
+</script>
+
 <style>
 .ask-hero {
     display: flex;
     align-items: center;
-    gap: 24px;
-    margin-bottom: 32px;
+    gap: var(--nk-space-5);
+    margin-bottom: var(--nk-space-6);
     flex-wrap: wrap;
-    justify-content: center;
 }
 
 .ask-hero-image {
-    width: 200px;
-    height: 200px;
+    width: 160px;
+    height: 160px;
     border-radius: 50%;
     object-fit: cover;
     border: 4px solid var(--m3e-primary);
@@ -182,28 +203,8 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
     min-width: 250px;
 }
 
-.fortune-label {
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--m3e-primary);
-    margin-bottom: 12px;
-}
-
-.fortune-body {
-    font-size: 1.0625rem;
-    line-height: 1.8;
-    color: var(--m3e-on-surface);
-}
-
-.fortune-body p {
-    margin: 0.75em 0;
-}
-
-.fortune-body em {
-    font-style: italic;
-    color: var(--m3e-on-surface-variant);
+.ask-response {
+    margin-top: var(--nk-space-5);
 }
 
 @media (max-width: 640px) {
@@ -213,9 +214,8 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
     }
 
     .ask-hero-image {
-        width: 150px;
-        height: 150px;
-        margin: 0 auto;
+        width: 128px;
+        height: 128px;
     }
 }
 </style>

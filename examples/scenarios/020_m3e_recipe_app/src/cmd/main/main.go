@@ -19,6 +19,7 @@
 package main
 
 import (
+	"context"
 	"os"
 
 	_ "testmodule/dist"
@@ -26,9 +27,11 @@ import (
 
 	"piko.sh/piko"
 	"piko.sh/piko/components"
+	"piko.sh/piko/wdk/email/email_provider_stdout"
 	"piko.sh/piko/wdk/llm/llm_provider_zoltai"
 	"piko.sh/piko/wdk/logger"
 	_ "piko.sh/piko/wdk/markdown/markdown_provider_goldmark"
+	playground "piko.sh/piko/wdk/validation/validation_provider_playground"
 )
 
 func main() {
@@ -44,26 +47,38 @@ func main() {
 		FormatFortune: func(fortune string) string {
 			return "*The mouse strokes its whiskers thoughtfully...*\n\n" +
 				fortune +
-				"\n\n- Gouda the Gourmet, Head Oracle"
+				"\n\n*Gouda the Gourmet, Head oracle*"
 		},
 	})
 	if err != nil {
 		panic(err)
 	}
 
+	emailProvider, err := email_provider_stdout.NewStdoutProvider(context.Background())
+	if err != nil {
+		panic(err)
+	}
+
 	ssr := piko.New(
 		piko.WithCSSReset(piko.WithCSSResetComplete()),
+		piko.WithValidator(playground.NewValidator()),
 		piko.WithWebsiteConfig(piko.WebsiteConfig{
+			Name:        "The Norman Kitchen",
+			Description: "Cheese-forward recipes from three mice in Normandy.",
 			Fonts: []piko.FontDefinition{
-				{Type: "google", URL: "https://fonts.googleapis.com/css2?family=DynaPuff:wght@400..700&display=swap"},
 				{Type: "google", URL: "https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&display=swap"},
-				{Type: "google", URL: "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap"},
+			},
+			Favicons: []piko.FaviconDefinition{
+				{Rel: "icon", Src: "@/lib/images/mascot-cheddar-chef.jpg", Type: "image/jpeg"},
+				{Rel: "apple-touch-icon", Src: "@/lib/images/mascot-cheddar-chef.jpg"},
 			},
 		}),
 		piko.WithComponents(components.M2()...),
 		piko.WithComponents(components.M3E()...),
 		piko.WithLLMProvider("zoltai", zoltaiProvider),
 		piko.WithDefaultLLMProvider("zoltai"),
+		piko.WithEmailProvider("default", emailProvider),
+		piko.WithFrontendModule(piko.ModuleToasts),
 		piko.WithAutoNextPort(true),
 		piko.WithDevWidget(),
 		piko.WithDevHotreload(),

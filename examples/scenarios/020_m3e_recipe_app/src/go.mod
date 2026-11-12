@@ -7,6 +7,8 @@ require (
 	piko.sh/piko v0.0.0
 	piko.sh/piko/wdk/llm/llm_provider_zoltai v0.0.0
 	piko.sh/piko/wdk/markdown/markdown_provider_goldmark v0.0.0
+	piko.sh/piko/wdk/validation/validation_provider_playground v0.0.0
+	piko.sh/safeconv v0.1.0
 )
 
 require (
@@ -16,15 +18,20 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cockroachdb/apd/v3 v3.2.3 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.15 // indirect
 	github.com/go-chi/chi/v5 v5.3.1 // indirect
 	github.com/go-chi/cors v1.2.2 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
+	github.com/go-playground/locales v0.14.1 // indirect
+	github.com/go-playground/universal-translator v0.18.1 // indirect
+	github.com/go-playground/validator/v10 v10.30.3 // indirect
 	github.com/go-text/typesetting v0.3.4 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/flatbuffers v25.12.19+incompatible // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/klauspost/compress v1.19.1 // indirect
+	github.com/leodido/go-urn v1.5.0 // indirect
 	github.com/lithammer/shortuuid/v3 v3.0.7 // indirect
 	github.com/maypok86/otter/v2 v2.3.0 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
@@ -43,6 +50,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.45.0 // indirect
 	go.opentelemetry.io/otel/trace v1.45.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
+	golang.org/x/crypto v0.57.0 // indirect
 	golang.org/x/image v0.44.0 // indirect
 	golang.org/x/mod v0.41.0 // indirect
 	golang.org/x/net v0.59.0 // indirect
@@ -53,7 +61,6 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	piko.sh/goastutil v0.2.0 // indirect
-	piko.sh/safeconv v0.1.0 // indirect
 	piko.sh/safedisk v0.3.0 // indirect
 	piko.sh/vectormaths v0.2.0 // indirect
 )
@@ -62,4 +69,5 @@ replace (
 	piko.sh/piko => ../../../../
 	piko.sh/piko/wdk/llm/llm_provider_zoltai => ../../../../wdk/llm/llm_provider_zoltai
 	piko.sh/piko/wdk/markdown/markdown_provider_goldmark => ../../../../wdk/markdown/markdown_provider_goldmark
+	piko.sh/piko/wdk/validation/validation_provider_playground => ../../../../wdk/validation/validation_provider_playground
 )

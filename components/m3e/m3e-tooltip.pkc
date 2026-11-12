@@ -78,6 +78,54 @@
         return pos;
     }
 
+    function place() {
+        const tooltip = pkc.shadowRoot.querySelector('.tooltip');
+        const anchor = pkc.refs.anchor;
+        if (!tooltip || !anchor) return;
+
+        const a = anchor.getBoundingClientRect();
+        const width = tooltip.offsetWidth;
+        const height = tooltip.offsetHeight;
+        const gap = 8;
+        const margin = 8;
+
+        const viewportWidth = document.documentElement.clientWidth;
+        const viewportHeight = document.documentElement.clientHeight;
+
+        let top;
+        let left;
+
+        if (state.position === 'top') {
+            top = a.top - gap - height;
+            left = a.left + a.width / 2 - width / 2;
+        } else if (state.position === 'bottom') {
+            top = a.bottom + gap;
+            left = a.left + a.width / 2 - width / 2;
+        } else if (state.position === 'left') {
+            top = a.top + a.height / 2 - height / 2;
+            left = a.left - gap - width;
+        } else {
+            top = a.top + a.height / 2 - height / 2;
+            left = a.right + gap;
+        }
+
+        left = Math.min(Math.max(left, margin), Math.max(margin, viewportWidth - margin - width));
+        top = Math.min(Math.max(top, margin), Math.max(margin, viewportHeight - margin - height));
+
+        pkc.style.setProperty('--_tooltip-x', left + 'px');
+        pkc.style.setProperty('--_tooltip-y', top + 'px');
+    }
+
+    function handleReflow() {
+        place();
+    }
+
+    function trackAnchor(on) {
+        const method = on ? 'addEventListener' : 'removeEventListener';
+        window[method]('scroll', handleReflow, {capture: true, passive: true});
+        window[method]('resize', handleReflow);
+    }
+
     function show() {
         if (hideTimeout) {
             clearTimeout(hideTimeout);
@@ -91,6 +139,8 @@
                 state.position = resolvePosition(rect);
             }
             state.visible = true;
+            requestAnimationFrame(place);
+            trackAnchor(true);
         }, delay);
     }
 
@@ -102,6 +152,7 @@
         const delay = state.hide_delay >= 0 ? state.hide_delay : (state.variant === 'rich' ? 200 : 0);
         hideTimeout = setTimeout(() => {
             state.visible = false;
+            trackAnchor(false);
         }, delay || 1);
     }
 
@@ -121,6 +172,7 @@
     }
 
     pkc.onDisconnected(() => {
+        trackAnchor(false);
         if (showTimeout) clearTimeout(showTimeout);
         if (hideTimeout) clearTimeout(hideTimeout);
     });
@@ -145,7 +197,9 @@
     }
 
     .tooltip {
-        position: absolute;
+        position: fixed;
+        top: var(--_tooltip-y, 0px);
+        left: var(--_tooltip-x, 0px);
         z-index: 1000;
         padding: 4px 8px;
         background: var(--_inverse-surface);
@@ -166,7 +220,8 @@
         }
 
         &.rich {
-            max-width: 320px;
+            width: max-content;
+            max-width: var(--m3e-tooltip-rich-max-width, 320px);
             white-space: normal;
             padding: 12px 16px;
             background: var(--_surface-container, #f3edf7);
@@ -177,45 +232,11 @@
         }
     }
 
-    .top {
-        bottom: calc(100% + 8px);
-        left: 50%;
-        transform: translateX(-50%) scale(0.9);
 
-        &.visible {
-            transform: translateX(-50%) scale(1);
-        }
-    }
-
-    .bottom {
-        top: calc(100% + 8px);
-        left: 50%;
-        transform: translateX(-50%) scale(0.9);
-
-        &.visible {
-            transform: translateX(-50%) scale(1);
-        }
-    }
-
-    .left {
-        right: calc(100% + 8px);
-        top: 50%;
-        transform: translateY(-50%) scale(0.9);
-
-        &.visible {
-            transform: translateY(-50%) scale(1);
-        }
-    }
-
-    .right {
-        left: calc(100% + 8px);
-        top: 50%;
-        transform: translateY(-50%) scale(0.9);
-
-        &.visible {
-            transform: translateY(-50%) scale(1);
-        }
-    }
+    .top { transform-origin: bottom center; }
+    .bottom { transform-origin: top center; }
+    .left { transform-origin: right center; }
+    .right { transform-origin: left center; }
 
     .tooltip-title {
         font-size: 0.875rem;

@@ -41,7 +41,7 @@
        :tabindex="state.disabled ? '-1' : '0'"
        :aria-disabled="state.disabled || state.soft_disabled ? 'true' : 'false'"
        :aria-pressed="state.toggle ? (state.selected ? 'true' : 'false') : null"
-       p-on:click="handleClick">
+       p-on:click="handleAnchorClick">
         <span class="state-layer"></span>
         <span class="icon-slot" p-show="state.has_icon"><slot name="icon"></slot></span>
         <span class="label"><slot></slot></span>
@@ -88,13 +88,37 @@
         has_icon: false as boolean,
     };
 
-    pkc.onConnected(() => {
-        console.log("onConnected")
-    });
-
     pkc.attachSlotListener('icon', (elements) => {
         state.has_icon = elements.length > 0;
     });
+
+    function routeClick(event) {
+        if (event.defaultPrevented || event.button !== 0) return;
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        if (!state.href || state.href.charAt(0) === '#') return;
+
+        let target;
+        try {
+            target = new URL(state.href, window.location.href);
+        } catch (error) {
+            return;
+        }
+
+        // Leaves external links, mailto: and tel: to the browser.
+        if (target.origin !== window.location.origin) return;
+
+        event.preventDefault();
+        piko.nav.navigateTo(target.pathname + target.search + target.hash);
+    }
+
+    function handleAnchorClick(event) {
+        if (state.disabled || state.soft_disabled) {
+            event.preventDefault();
+            return;
+        }
+        handleClick();
+        routeClick(event);
+    }
 
     function handleClick() {
         if (state.disabled || state.soft_disabled) return;

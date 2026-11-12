@@ -219,19 +219,50 @@ describe("SlotManager", () => {
         });
 
         describe("attachSlotListener()", () => {
-            it("should warn when slot element is not found", () => {
+            it("should not warn on the first miss, so a slot behind a p-if can still arrive", () => {
                 const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
                 slotManager.attachSlotListener("nonexistent", vi.fn());
 
+                expect(warnSpy).not.toHaveBeenCalled();
+                warnSpy.mockRestore();
+            });
+
+            it("should warn once the slot has failed to appear across several renders", () => {
+                const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+                slotManager.attachSlotListener("nonexistent", vi.fn());
+
+                for (let i = 0; i < 10; i++) {
+                    slotManager.flushPendingListeners();
+                }
+
+                expect(warnSpy).toHaveBeenCalledTimes(1);
                 expect(warnSpy).toHaveBeenCalledWith(
                     expect.stringContaining("not found")
                 );
                 warnSpy.mockRestore();
             });
 
+            it("should attach a listener whose slot only appears on a later render", () => {
+                const callback = vi.fn();
+                slotManager.attachSlotListener("late", callback);
+
+                expect(callback).not.toHaveBeenCalled();
+
+                const slot = document.createElement("slot");
+                slot.setAttribute("name", "late");
+                shadowRoot.appendChild(slot);
+                slotManager.flushPendingListeners();
+
+                expect(callback).toHaveBeenCalledWith([]);
+            });
+
             it("should include the tag name in the not-found warning", () => {
                 const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
                 slotManager.attachSlotListener("missing", vi.fn());
+
+                for (let i = 0; i < 10; i++) {
+                    slotManager.flushPendingListeners();
+                }
 
                 expect(warnSpy).toHaveBeenCalledWith(
                     expect.stringContaining("TEST-ELEMENT")
@@ -416,7 +447,7 @@ describe("SlotManager", () => {
             expect(callback).toHaveBeenCalledWith([]);
         });
 
-        it("should warn for queued listener when slot element is not found on flush", () => {
+        it("should warn for a queued listener once its slot has missed enough flushes", () => {
             const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
             const callback = vi.fn();
             slotManager.attachSlotListener("missing", callback);
@@ -424,6 +455,11 @@ describe("SlotManager", () => {
             shadowRoot = host.attachShadow({mode: "open"});
 
             slotManager.flushPendingListeners();
+            expect(warnSpy).not.toHaveBeenCalled();
+
+            for (let i = 0; i < 10; i++) {
+                slotManager.flushPendingListeners();
+            }
 
             expect(callback).not.toHaveBeenCalled();
             expect(warnSpy).toHaveBeenCalledWith(

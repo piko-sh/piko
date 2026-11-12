@@ -21,26 +21,45 @@
 <template>
     <div id="app">
         <piko:partial is="layout"
-            server.title="Recipe Index"
+            server.title="Recipe index"
             server.current-page="recipe-index">
 
-            <h1 class="page-title">Recipe Index</h1>
-            <p class="text-muted mb-lg">A whey to compare all our recipes at a glance &mdash; sort, select, and find the perfect dish for tonight.</p>
+            <section class="page-section">
+            <h1 class="page-title">Recipe index</h1>
+            <p class="section-subtitle">A whey to compare all our recipes at a glance. Sort, select, and find the perfect dish for tonight.</p>
+            <div class="toolbar-row mb-md">
+                <p class="text-muted text-sm" p-ref="selectionCount" role="status">No recipes selected</p>
 
-            <m2-data-table selectable aria-label="Complete recipe index">
+                <div class="toolbar-controls">
+                    <m3e-split-button variant="tonal" p-ref="bulkButton" disabled p-on:click="bulkPlan">
+                        Add to meal plan
+                        <m3e-menu-item slot="menu" value="favourite" p-on:select="bulkAction">Save to favourites</m3e-menu-item>
+                        <m3e-menu-item slot="menu" value="export" p-on:select="bulkAction">Export as a shopping list</m3e-menu-item>
+                        <m3e-menu-item slot="menu" value="clear" p-on:select="bulkAction">Clear the selection</m3e-menu-item>
+                    </m3e-split-button>
+                </div>
+            </div>
+
+            <div class="table-scroll">
+            <m2-data-table selectable class="recipe-table"
+                           p-ref="table"
+                           aria-label="Complete recipe index"
+                           p-on:selection-change="changeSelection"
+                           p-on:page-change="changePage"
+                           p-on:sort-change="changeSort">
                 <m2-data-table-header slot="header" selectable>
                     <m2-data-table-cell header sortable column="recipe">Recipe</m2-data-table-cell>
                     <m2-data-table-cell header>Cheese</m2-data-table-cell>
                     <m2-data-table-cell header>Difficulty</m2-data-table-cell>
-                    <m2-data-table-cell header numeric sortable column="time">Time (mins)</m2-data-table-cell>
-                    <m2-data-table-cell header numeric>Servings</m2-data-table-cell>
-                    <m2-data-table-cell header numeric sortable column="calories" sort-direction="asc">Calories</m2-data-table-cell>
+                    <m2-data-table-cell header numeric sortable column="time">Mins</m2-data-table-cell>
+                    <m2-data-table-cell header numeric>Serves</m2-data-table-cell>
+                    <m2-data-table-cell header numeric sortable column="calories" sort_direction="asc">Kcal</m2-data-table-cell>
                     <m2-data-table-cell header numeric sortable column="protein">Protein</m2-data-table-cell>
                     <m2-data-table-cell header numeric sortable column="fat">Fat</m2-data-table-cell>
                     <m2-data-table-cell header numeric sortable column="carbs">Carbs</m2-data-table-cell>
                 </m2-data-table-header>
 
-                <m2-data-table-row selectable row-id="grate-burger">
+                <m2-data-table-row selectable row_id="grate-burger">
                     <m2-data-table-cell>The Grate Burger</m2-data-table-cell>
                     <m2-data-table-cell>Cheddar</m2-data-table-cell>
                     <m2-data-table-cell>Easy</m2-data-table-cell>
@@ -52,7 +71,7 @@
                     <m2-data-table-cell numeric>35g</m2-data-table-cell>
                 </m2-data-table-row>
 
-                <m2-data-table-row selectable row-id="caesar-salad">
+                <m2-data-table-row selectable row_id="caesar-salad">
                     <m2-data-table-cell>Brie-lliant Caesar Salad</m2-data-table-cell>
                     <m2-data-table-cell>Brie</m2-data-table-cell>
                     <m2-data-table-cell>Easy</m2-data-table-cell>
@@ -64,7 +83,7 @@
                     <m2-data-table-cell numeric>16g</m2-data-table-cell>
                 </m2-data-table-row>
 
-                <m2-data-table-row selectable row-id="pizza" selected>
+                <m2-data-table-row selectable row_id="pizza">
                     <m2-data-table-cell>Feta Accompli Pizza</m2-data-table-cell>
                     <m2-data-table-cell>Feta</m2-data-table-cell>
                     <m2-data-table-cell>Medium</m2-data-table-cell>
@@ -76,7 +95,7 @@
                     <m2-data-table-cell numeric>48g</m2-data-table-cell>
                 </m2-data-table-row>
 
-                <m2-data-table-row selectable row-id="mac-cheese">
+                <m2-data-table-row selectable row_id="mac-cheese">
                     <m2-data-table-cell>Gouda Gracious Mac &amp; Cheese</m2-data-table-cell>
                     <m2-data-table-cell>Gouda</m2-data-table-cell>
                     <m2-data-table-cell>Easy</m2-data-table-cell>
@@ -88,7 +107,7 @@
                     <m2-data-table-cell numeric>52g</m2-data-table-cell>
                 </m2-data-table-row>
 
-                <m2-data-table-row selectable row-id="lasagna">
+                <m2-data-table-row selectable row_id="lasagna">
                     <m2-data-table-cell>Ricotta Be Kidding Me Lasagna</m2-data-table-cell>
                     <m2-data-table-cell>Ricotta</m2-data-table-cell>
                     <m2-data-table-cell>Medium</m2-data-table-cell>
@@ -100,7 +119,7 @@
                     <m2-data-table-cell numeric>38g</m2-data-table-cell>
                 </m2-data-table-row>
 
-                <m2-data-table-row selectable row-id="chicken">
+                <m2-data-table-row selectable row_id="chicken">
                     <m2-data-table-cell>Parm-ageddon Chicken</m2-data-table-cell>
                     <m2-data-table-cell>Parmesan</m2-data-table-cell>
                     <m2-data-table-cell>Medium</m2-data-table-cell>
@@ -112,7 +131,7 @@
                     <m2-data-table-cell numeric>52g</m2-data-table-cell>
                 </m2-data-table-row>
 
-                <m2-data-table-row selectable row-id="camembert">
+                <m2-data-table-row selectable row_id="camembert">
                     <m2-data-table-cell>Camembert Believe It</m2-data-table-cell>
                     <m2-data-table-cell>Camembert</m2-data-table-cell>
                     <m2-data-table-cell>Easy</m2-data-table-cell>
@@ -124,7 +143,7 @@
                     <m2-data-table-cell numeric>14g</m2-data-table-cell>
                 </m2-data-table-row>
 
-                <m2-data-table-row selectable row-id="raclette">
+                <m2-data-table-row selectable row_id="raclette">
                     <m2-data-table-cell>Raclette &amp; Roll</m2-data-table-cell>
                     <m2-data-table-cell>Raclette</m2-data-table-cell>
                     <m2-data-table-cell>Medium</m2-data-table-cell>
@@ -136,23 +155,33 @@
                     <m2-data-table-cell numeric>26g</m2-data-table-cell>
                 </m2-data-table-row>
 
+                <m2-data-table-row selectable row_id="halloumi">
+                    <m2-data-table-cell>Hallou-mi, It&rsquo;s Me</m2-data-table-cell>
+                    <m2-data-table-cell>Halloumi</m2-data-table-cell>
+                    <m2-data-table-cell>Easy</m2-data-table-cell>
+                    <m2-data-table-cell numeric>20</m2-data-table-cell>
+                    <m2-data-table-cell numeric>4</m2-data-table-cell>
+                    <m2-data-table-cell numeric>410</m2-data-table-cell>
+                    <m2-data-table-cell numeric>24g</m2-data-table-cell>
+                    <m2-data-table-cell numeric>29g</m2-data-table-cell>
+                    <m2-data-table-cell numeric>12g</m2-data-table-cell>
+                </m2-data-table-row>
+
                 <m2-data-table-pagination slot="pagination"
-                    total-rows="8"
-                    rows-per-page="10"
-                    rows-per-page-options="5,10">
+                    p-ref="pagination"
+                    total_rows="9"
+                    rows_per_page="5"
+                    rows_per_page_options="5,10,25">
                 </m2-data-table-pagination>
             </m2-data-table>
+            </div>
 
-            <m3e-card variant="outlined" class="mt-lg" style="padding: 24px; max-width: 480px;">
-                <p style="font-size: 0.875rem; font-style: italic; color: var(--m3e-on-surface-variant, #49454f);">
-                    "Life is gouda when you know what you&rsquo;re eating."
-                </p>
-                <div class="mt-md">
-                    <piko:a href="/recipes">
-                        <m3e-button variant="tonal">View All Recipes</m3e-button>
-                    </piko:a>
-                </div>
-            </m3e-card>
+            <div class="closing-cta">
+                <p class="closing-cta-quote">&ldquo;Life is gouda when you know what you&rsquo;re eating.&rdquo;</p>
+                <m3e-button variant="filled" size="l" href="/recipes">View all recipes</m3e-button>
+            </div>
+
+            </section>
 
             <!-- Snackbar -->
             <m3e-snackbar p-ref="snackbar"></m3e-snackbar>
@@ -161,18 +190,148 @@
     </div>
 </template>
 
+<script lang="ts">
+    const FIRST_PAGE = 1;
+    const DEFAULT_ROWS_PER_PAGE = 5;
+
+    let page = FIRST_PAGE;
+    let rowsPerPage = DEFAULT_ROWS_PER_PAGE;
+
+    function rows(): HTMLElement[] {
+        const table = pk.refs.table as HTMLElement | undefined;
+        if (!table) return [];
+        return Array.from(table.querySelectorAll<HTMLElement>('m2-data-table-row'));
+    }
+
+    function render(): void {
+        const all = rows();
+        const start = (page - 1) * rowsPerPage;
+        const end = start + rowsPerPage;
+
+        all.forEach((row, index) => {
+            row.hidden = index < start || index >= end;
+        });
+    }
+
+    function changePage(event: CustomEvent): void {
+        page = Number(event.detail.page) || 1;
+        rowsPerPage = Number(event.detail.rowsPerPage) || rowsPerPage;
+        render();
+    }
+
+    let selectedIds: string[] = [];
+
+    function changeSelection(event: CustomEvent): void {
+        selectedIds = (event.detail.selected as string[]) || [];
+        updateSelectionUi(selectedIds.length);
+    }
+
+    function updateSelectionUi(count: number): void {
+        const label = pk.refs.selectionCount as HTMLElement | undefined;
+        if (label) {
+            label.textContent = count === 0
+                ? 'No recipes selected'
+                : (count === 1 ? '1 recipe selected' : count + ' recipes selected');
+        }
+
+        const button = pk.refs.bulkButton as HTMLElement | undefined;
+        if (button) button.toggleAttribute('disabled', count === 0);
+    }
+
+    function bulkPlan(): void {
+        runBulk('plan');
+    }
+
+    function bulkAction(event: CustomEvent): void {
+        runBulk(String(event.detail.value || ''));
+    }
+
+    function runBulk(action: string): void {
+        const snackbar = pk.refs.snackbar as any;
+        if (!snackbar) return;
+
+        const count = selectedIds.length;
+        const noun = count === 1 ? '1 recipe' : count + ' recipes';
+        const messages: Record<string, string> = {
+            plan: noun + ' added to your meal plan.',
+            favourite: noun + ' saved to favourites.',
+            export: 'Shopping list for ' + noun + ' is on its way.',
+            clear: 'Selection cleared.',
+        };
+
+        if (action === 'clear') clearSelection();
+        snackbar.show(messages[action] || 'Done.');
+    }
+
+    function clearSelection(): void {
+        const table = pk.refs.table as HTMLElement | undefined;
+        if (!table) return;
+
+        table.querySelectorAll<HTMLElement>('m2-data-table-row[selected]')
+            .forEach((row) => row.removeAttribute('selected'));
+
+        const header = table.querySelector('m2-data-table-header') as HTMLElement | null;
+        if (header) {
+            header.removeAttribute('all_selected');
+            header.removeAttribute('some_selected');
+        }
+
+        selectedIds = [];
+        updateSelectionUi(0);
+    }
+
+    function changeSort(event: CustomEvent): void {
+        const table = pk.refs.table as HTMLElement | undefined;
+        if (!table) return;
+
+        const COLUMNS: Record<string, number> = {
+            recipe: 0, time: 3, calories: 5, protein: 6, fat: 7, carbs: 8,
+        };
+        const index = COLUMNS[event.detail.column as string];
+        if (index === undefined) return;
+
+        const descending = event.detail.direction === 'desc';
+        const value = (row: HTMLElement): string =>
+            (row.querySelectorAll('m2-data-table-cell')[index]?.textContent || '').trim();
+
+        const sorted = rows().sort((a, b) => {
+            const av = value(a);
+            const bv = value(b);
+            const an = parseFloat(av);
+            const bn = parseFloat(bv);
+            const result = (!isNaN(an) && !isNaN(bn)) ? an - bn : av.localeCompare(bv);
+            return descending ? -result : result;
+        });
+
+        sorted.forEach((row) => table.appendChild(row));
+
+        // A new order means the first page shows different rows.
+        page = 1;
+        render();
+    }
+
+    render();
+
+    piko.hooks.on(piko.hooks.events.NAVIGATION_COMPLETE, () => {
+        if (!document.querySelector('[p-ref="table"]')) return;
+
+        page = FIRST_PAGE;
+        rowsPerPage = DEFAULT_ROWS_PER_PAGE;
+        render();
+    });
+</script>
+
 <script type="application/x-go">
 package main
 
 import (
     "piko.sh/piko"
     layout "testmodule/partials/layout.pk"
-    footer "testmodule/partials/footer.pk"
 )
 
 func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
     return piko.NoResponse{}, piko.Metadata{
-        Title: "Recipe Index - The Norman Kitchen",
+        Title: "Recipe index - The Norman Kitchen",
     }, nil
 }
 </script>

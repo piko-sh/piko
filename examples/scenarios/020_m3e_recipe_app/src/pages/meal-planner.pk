@@ -21,295 +21,183 @@
 <template>
     <div id="app">
         <piko:partial is="layout"
-            server.title="Meal Planner"
+            server.title="Meal planner"
             server.current-page="meal-planner">
 
             <section class="page-section">
-                <!-- Hero Banner -->
-                <div style="position: relative; margin-bottom: 24px; border-radius: var(--m3e-shape-xl); overflow: hidden;">
-                    <piko:img src="@/lib/images/meal-planner-bg.jpg" alt="" style="width: 100%; aspect-ratio: 16/5; object-fit: cover; filter: brightness(0.7);"></piko:img>
-                    <div style="position: absolute; bottom: 0; left: 0; right: 0; padding: 24px 32px; background: linear-gradient(transparent, rgba(0,0,0,0.6)); color: white;">
-                        <h2 style="font-size: 2rem; font-weight: 700; margin-bottom: 4px;">Meal Planner</h2>
-                        <p style="opacity: 0.9;">Gouda things come to those who plan</p>
+                <!-- Banner -->
+                <div class="page-banner">
+                    <piko:img src="@/lib/images/meal-planner-bg.jpg" alt="" class="page-banner-image"></piko:img>
+                    <div class="page-banner-content">
+                        <h1 class="page-banner-title">Meal planner</h1>
+                        <p class="page-banner-subtitle">Gouda things come to those who plan</p>
                     </div>
                 </div>
 
-                <div class="flex-between mb-lg">
-                    <div class="flex-row gap-sm">
-                        <m3e-button variant="outlined" p-on:click="toggleDatePicker">Select Week</m3e-button>
-                        <m3e-button variant="filled" p-on:click="savePlan">Save Plan</m3e-button>
+                <div class="control-bar">
+                    <div class="control-group">
+                        <div class="picker-anchor">
+                            <m3e-button variant="outlined" p-on:click="toggleDatePicker">
+                                <piko:svg src="@/lib/icons/calendar.svg" fill="currentColor" width="18" height="18" slot="icon"></piko:svg>
+                                <span p-ref="weekLabel">Select week</span>
+                            </m3e-button>
+                            <div class="picker-pop" p-ref="datePickerContainer" hidden>
+                                <m3e-date-picker p-on:change="changeWeek"></m3e-date-picker>
+                            </div>
+                        </div>
+
+                        <div class="picker-anchor">
+                            <m3e-button variant="outlined" p-on:click="toggleReminder">
+                                <piko:svg src="@/lib/icons/notifications.svg" fill="currentColor" width="18" height="18" slot="icon"></piko:svg>
+                                <span p-ref="reminderLabel">Remind me</span>
+                            </m3e-button>
+                            <div class="picker-pop" p-ref="reminderContainer" hidden>
+                                <m3e-time-picker p-on:change="changeReminder"></m3e-time-picker>
+                            </div>
+                        </div>
+
+                        <div class="control-sep" aria-hidden="true"></div>
+
+                        <m3e-button variant="filled-tonal" p-on:click="openAddRecipe">
+                            <piko:svg src="@/lib/icons/add.svg" fill="currentColor" width="18" height="18" slot="icon"></piko:svg>
+                            Add meal
+                        </m3e-button>
+
+                        <m3e-button variant="text" p-on:click="openRecipeBrowser">
+                            <piko:svg src="@/lib/icons/restaurant.svg" fill="currentColor" width="18" height="18" slot="icon"></piko:svg>
+                            Browse recipes
+                        </m3e-button>
                     </div>
-                    <div p-ref="datePickerContainer" style="display: none; position: absolute; right: 32px; top: 80px; z-index: 50;">
-                        <m3e-date-picker label="Week of"></m3e-date-picker>
-                    </div>
+
+                    <label class="switch-field">
+                        <m3e-switch p-on:change="toggleLeftovers"></m3e-switch>
+                        <piko:svg src="@/lib/icons/lightbulb.svg" fill="currentColor" width="18" height="18"></piko:svg>
+                        <span>Leftover suggestions</span>
+                    </label>
                 </div>
 
-                <div class="flex-row mb-md">
-                    <m3e-switch></m3e-switch>
-                    <span class="text-muted" style="font-size: 0.875rem;">Show leftover suggestions</span>
+                <m3e-progress variant="linear" p-ref="saveProgress" indeterminate class="mb-md" hidden></m3e-progress>
+
+                <div class="planner-board" p-ref="board" data-leftovers="off">
+                    <div class="planner-head" aria-hidden="true">
+                        <div class="planner-head-cell"></div>
+                        <div class="planner-head-cell">Breakfast</div>
+                        <div class="planner-head-cell">Lunch</div>
+                        <div class="planner-head-cell">Dinner</div>
+                    </div>
+
+                    <m3e-elevation level="1" p-for="(i, day) in state.Days" p-key="day.Name">
+                        <div class="planner-row">
+                            <h2 class="planner-day-title" p-text="day.Name"></h2>
+
+                            <div class="planner-slot"
+                                 p-for="(j, slot) in day.Slots"
+                                 p-key="slot.Slot"
+                                 :data-day="day.Name"
+                                 :data-slot="slot.Slot"
+                                 :data-leftover="slot.Leftover">
+                                <span class="planner-slot-label" p-text="slot.Slot"></span>
+
+                                <button type="button" class="planner-meal" p-if="slot.Recipe != ''" p-on:click="openQuickAdd">
+                                    <piko:img class="planner-meal-image" :src="slot.Image" alt=""></piko:img>
+                                    <span class="planner-meal-text">
+                                        <span class="planner-meal-title" p-text="slot.Recipe"></span>
+                                        <span class="planner-meal-cheese" p-text="slot.Cheese"></span>
+                                    </span>
+                                </button>
+
+                                <m3e-ripple class="planner-slot-ripple" p-if="slot.Recipe == ''">
+                                    <button type="button" class="planner-slot-empty" p-on:click="openQuickAdd">
+                                        <piko:svg src="@/lib/icons/add.svg" fill="currentColor" width="16" height="16"></piko:svg>
+                                        Add
+                                    </button>
+                                </m3e-ripple>
+
+                                <button type="button" class="planner-leftover" p-if="slot.Leftover != ''" p-on:click="acceptLeftover">
+                                    <piko:svg src="@/lib/icons/lightbulb.svg" fill="currentColor" width="14" height="14"></piko:svg>
+                                    <span p-text="'Leftovers: ' + slot.Leftover"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </m3e-elevation>
                 </div>
 
-                <!-- Planner Grid -->
-                <div class="planner-grid">
-                    <!-- Monday -->
-                    <div class="planner-day">
-                        <div class="planner-day-title">Monday</div>
-                        <div class="planner-slot">
-                            <div class="planner-slot-label">Breakfast</div>
-                            <m3e-chip size="s">-</m3e-chip>
-                        </div>
-                        <div class="planner-slot">
-                            <div class="planner-slot-label">Lunch</div>
-                            <m3e-card variant="filled" style="padding: 8px;">
-                                <span style="font-size: 0.8125rem;">Brie-lliant Caesar</span>
-                                <m3e-chip size="s">Brie</m3e-chip>
-                            </m3e-card>
-                        </div>
-                        <div class="planner-slot">
-                            <div class="planner-slot-label">Dinner</div>
-                            <m3e-card variant="filled" style="padding: 8px;">
-                                <span style="font-size: 0.8125rem;">The Grate Burger</span>
-                                <m3e-chip size="s">Cheddar</m3e-chip>
-                            </m3e-card>
-                        </div>
-                    </div>
-
-                    <!-- Tuesday -->
-                    <div class="planner-day">
-                        <div class="planner-day-title">Tuesday</div>
-                        <div class="planner-slot">
-                            <div class="planner-slot-label">Breakfast</div>
-                            <m3e-chip size="s">-</m3e-chip>
-                        </div>
-                        <div class="planner-slot">
-                            <div class="planner-slot-label">Lunch</div>
-                            <m3e-chip size="s">-</m3e-chip>
-                        </div>
-                        <div class="planner-slot">
-                            <div class="planner-slot-label">Dinner</div>
-                            <m3e-card variant="filled" style="padding: 8px;">
-                                <span style="font-size: 0.8125rem;">Feta Accompli Pizza</span>
-                                <m3e-chip size="s">Feta</m3e-chip>
-                            </m3e-card>
-                        </div>
-                    </div>
-
-                    <!-- Wednesday -->
-                    <div class="planner-day">
-                        <div class="planner-day-title">Wednesday</div>
-                        <div class="planner-slot">
-                            <div class="planner-slot-label">Breakfast</div>
-                            <m3e-chip size="s">-</m3e-chip>
-                        </div>
-                        <div class="planner-slot">
-                            <div class="planner-slot-label">Lunch</div>
-                            <m3e-chip size="s">-</m3e-chip>
-                        </div>
-                        <div class="planner-slot">
-                            <div class="planner-slot-label">Dinner</div>
-                            <m3e-card variant="filled" style="padding: 8px;">
-                                <span style="font-size: 0.8125rem;">Camembert Believe It</span>
-                                <m3e-chip size="s">Camembert</m3e-chip>
-                            </m3e-card>
-                        </div>
-                    </div>
-
-                    <!-- Thursday -->
-                    <div class="planner-day">
-                        <div class="planner-day-title">Thursday</div>
-                        <div class="planner-slot">
-                            <div class="planner-slot-label">Breakfast</div>
-                            <div class="planner-slot-empty">
-                                <m3e-chip size="s">-</m3e-chip>
-                                <m3e-icon-button size="s" p-on:click="openQuickAdd">
-                                    <piko:svg src="@/lib/icons/add.svg" fill="currentColor" width="18" height="18"></piko:svg>
-                                </m3e-icon-button>
-                            </div>
-                        </div>
-                        <div class="planner-slot">
-                            <div class="planner-slot-label">Lunch</div>
-                            <div class="planner-slot-empty">
-                                <m3e-chip size="s">-</m3e-chip>
-                                <m3e-icon-button size="s" p-on:click="openQuickAdd">
-                                    <piko:svg src="@/lib/icons/add.svg" fill="currentColor" width="18" height="18"></piko:svg>
-                                </m3e-icon-button>
-                            </div>
-                        </div>
-                        <div class="planner-slot">
-                            <div class="planner-slot-label">Dinner</div>
-                            <div class="planner-slot-empty">
-                                <m3e-chip size="s">-</m3e-chip>
-                                <m3e-icon-button size="s" p-on:click="openQuickAdd">
-                                    <piko:svg src="@/lib/icons/add.svg" fill="currentColor" width="18" height="18"></piko:svg>
-                                </m3e-icon-button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Friday -->
-                    <div class="planner-day">
-                        <div class="planner-day-title">Friday</div>
-                        <div class="planner-slot">
-                            <div class="planner-slot-label">Breakfast</div>
-                            <div class="planner-slot-empty">
-                                <m3e-chip size="s">-</m3e-chip>
-                                <m3e-icon-button size="s" p-on:click="openQuickAdd">
-                                    <piko:svg src="@/lib/icons/add.svg" fill="currentColor" width="18" height="18"></piko:svg>
-                                </m3e-icon-button>
-                            </div>
-                        </div>
-                        <div class="planner-slot">
-                            <div class="planner-slot-label">Lunch</div>
-                            <div class="planner-slot-empty">
-                                <m3e-chip size="s">-</m3e-chip>
-                                <m3e-icon-button size="s" p-on:click="openQuickAdd">
-                                    <piko:svg src="@/lib/icons/add.svg" fill="currentColor" width="18" height="18"></piko:svg>
-                                </m3e-icon-button>
-                            </div>
-                        </div>
-                        <div class="planner-slot">
-                            <div class="planner-slot-label">Dinner</div>
-                            <div class="planner-slot-empty">
-                                <m3e-chip size="s">-</m3e-chip>
-                                <m3e-icon-button size="s" p-on:click="openQuickAdd">
-                                    <piko:svg src="@/lib/icons/add.svg" fill="currentColor" width="18" height="18"></piko:svg>
-                                </m3e-icon-button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Saturday -->
-                    <div class="planner-day">
-                        <div class="planner-day-title">Saturday</div>
-                        <div class="planner-slot">
-                            <div class="planner-slot-label">Breakfast</div>
-                            <div class="planner-slot-empty">
-                                <m3e-chip size="s">-</m3e-chip>
-                                <m3e-icon-button size="s" p-on:click="openQuickAdd">
-                                    <piko:svg src="@/lib/icons/add.svg" fill="currentColor" width="18" height="18"></piko:svg>
-                                </m3e-icon-button>
-                            </div>
-                        </div>
-                        <div class="planner-slot">
-                            <div class="planner-slot-label">Lunch</div>
-                            <div class="planner-slot-empty">
-                                <m3e-chip size="s">-</m3e-chip>
-                                <m3e-icon-button size="s" p-on:click="openQuickAdd">
-                                    <piko:svg src="@/lib/icons/add.svg" fill="currentColor" width="18" height="18"></piko:svg>
-                                </m3e-icon-button>
-                            </div>
-                        </div>
-                        <div class="planner-slot">
-                            <div class="planner-slot-label">Dinner</div>
-                            <div class="planner-slot-empty">
-                                <m3e-chip size="s">-</m3e-chip>
-                                <m3e-icon-button size="s" p-on:click="openQuickAdd">
-                                    <piko:svg src="@/lib/icons/add.svg" fill="currentColor" width="18" height="18"></piko:svg>
-                                </m3e-icon-button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Sunday -->
-                    <div class="planner-day">
-                        <div class="planner-day-title">Sunday</div>
-                        <div class="planner-slot">
-                            <div class="planner-slot-label">Breakfast</div>
-                            <div class="planner-slot-empty">
-                                <m3e-chip size="s">-</m3e-chip>
-                                <m3e-icon-button size="s" p-on:click="openQuickAdd">
-                                    <piko:svg src="@/lib/icons/add.svg" fill="currentColor" width="18" height="18"></piko:svg>
-                                </m3e-icon-button>
-                            </div>
-                        </div>
-                        <div class="planner-slot">
-                            <div class="planner-slot-label">Lunch</div>
-                            <div class="planner-slot-empty">
-                                <m3e-chip size="s">-</m3e-chip>
-                                <m3e-icon-button size="s" p-on:click="openQuickAdd">
-                                    <piko:svg src="@/lib/icons/add.svg" fill="currentColor" width="18" height="18"></piko:svg>
-                                </m3e-icon-button>
-                            </div>
-                        </div>
-                        <div class="planner-slot">
-                            <div class="planner-slot-label">Dinner</div>
-                            <div class="planner-slot-empty">
-                                <m3e-chip size="s">-</m3e-chip>
-                                <m3e-icon-button size="s" p-on:click="openQuickAdd">
-                                    <piko:svg src="@/lib/icons/add.svg" fill="currentColor" width="18" height="18"></piko:svg>
-                                </m3e-icon-button>
-                            </div>
-                        </div>
-                    </div>
+                <div class="planner-footer">
+                    <m3e-button variant="filled" size="l" p-on:click="savePlan">
+                        <piko:svg src="@/lib/icons/save.svg" fill="currentColor" width="18" height="18" slot="icon"></piko:svg>
+                        Save plan
+                    </m3e-button>
                 </div>
-
-                <!-- Add Recipe Dialog -->
-                <m3e-dialog p-ref="addRecipeDialog">
-                    <h3 slot="headline">Add Recipe to Slot</h3>
-                    <m3e-select label="Meal type" class="mb-md">
-                        <option value="breakfast">Breakfast</option>
-                        <option value="lunch">Lunch</option>
-                        <option value="dinner">Dinner</option>
-                    </m3e-select>
-                    <m3e-list>
-                        <m3e-list-item>The Grate Burger</m3e-list-item>
-                        <m3e-list-item>Brie-lliant Caesar Salad</m3e-list-item>
-                        <m3e-list-item>Feta Accompli Pizza</m3e-list-item>
-                        <m3e-list-item>Gouda Gracious Mac &amp; Cheese</m3e-list-item>
-                        <m3e-list-item>Ricotta Be Kidding Me Lasagna</m3e-list-item>
-                        <m3e-list-item>Parm-ageddon Chicken</m3e-list-item>
-                        <m3e-list-item>Camembert Believe It</m3e-list-item>
-                        <m3e-list-item>Raclette &amp; Roll</m3e-list-item>
-                    </m3e-list>
-                    <div slot="actions">
-                        <m3e-button variant="text" p-on:click="closeAddRecipe">Cancel</m3e-button>
-                        <m3e-button variant="filled" p-on:click="addRecipe">Add</m3e-button>
-                    </div>
-                </m3e-dialog>
-
-                <!-- Reminder Tooltip -->
-                <div class="flex-row gap-sm" style="margin-top: 16px;">
-                    <m3e-tooltip text="Set a meal reminder">
-                        <m3e-icon-button p-on:click="openReminder">
-                            <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="24" height="24"></piko:svg>
-                        </m3e-icon-button>
-                    </m3e-tooltip>
-                    <!-- Time Picker for reminders (hidden until triggered) -->
-                    <div p-ref="reminderContainer" style="display: none;">
-                        <m3e-time-picker p-ref="reminderPicker" label="Reminder time"></m3e-time-picker>
-                    </div>
-                </div>
-
-                <!-- Side Sheet for full recipe browser -->
-                <m3e-side-sheet p-ref="recipeSheet">
-                    <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 12px;">Browse Recipes</h3>
-                    <m3e-list>
-                        <m3e-list-item>The Grate Burger - 25 mins</m3e-list-item>
-                        <m3e-list-item>Brie-lliant Caesar - 15 mins</m3e-list-item>
-                        <m3e-list-item>Feta Accompli Pizza - 30 mins</m3e-list-item>
-                        <m3e-list-item>Gouda Gracious Mac - 45 mins</m3e-list-item>
-                        <m3e-list-item>Ricotta Lasagna - 90 mins</m3e-list-item>
-                        <m3e-list-item>Parm-ageddon Chicken - 45 mins</m3e-list-item>
-                        <m3e-list-item>Camembert Believe It - 30 mins</m3e-list-item>
-                        <m3e-list-item>Raclette &amp; Roll - 40 mins</m3e-list-item>
-                    </m3e-list>
-                </m3e-side-sheet>
-
-                <!-- Bottom Sheet for quick add -->
-                <m3e-bottom-sheet p-ref="quickAdd">
-                    <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 12px;">Quick Add</h3>
-                    <p class="text-muted mb-md">Tap a recipe to add it to your selected slot</p>
-                    <m3e-chip-set>
-                        <m3e-chip>The Grate Burger</m3e-chip>
-                        <m3e-chip>Camembert Believe It</m3e-chip>
-                        <m3e-chip>Raclette &amp; Roll</m3e-chip>
-                        <m3e-chip>Brie-lliant Caesar</m3e-chip>
-                    </m3e-chip-set>
-                </m3e-bottom-sheet>
-
-                <m3e-progress variant="linear" p-ref="saveProgress" style="display: none;"></m3e-progress>
-                <m3e-snackbar p-ref="snackbar"></m3e-snackbar>
             </section>
+
+            <!-- Add meal dialog -->
+            <m3e-dialog p-ref="addRecipeDialog" headline="Add a meal">
+                <div class="dialog-body form-stack">
+                    <div class="flex-row gap-sm flex-wrap">
+                        <m3e-select variant="outlined" label="Day" p-ref="daySelect" p-on:change="changeDay">
+                            <m3e-menu-item p-for="(i, day) in state.Days" p-key="day.Name"
+                                           :value="day.Name" p-text="day.Name"></m3e-menu-item>
+                        </m3e-select>
+
+                        <m3e-select variant="outlined" label="Meal type" p-ref="mealSelect" p-on:change="changeMeal">
+                            <m3e-menu-item value="Breakfast">Breakfast</m3e-menu-item>
+                            <m3e-menu-item value="Lunch">Lunch</m3e-menu-item>
+                            <m3e-menu-item value="Dinner">Dinner</m3e-menu-item>
+                        </m3e-select>
+                    </div>
+
+                    <div>
+                        <p class="filter-title">Recipe</p>
+                        <div class="pick-list" p-ref="pickList">
+                            <button type="button" class="pick-row"
+                                    p-for="(i, recipe) in state.AllRecipes"
+                                    p-key="recipe.Title"
+                                    aria-pressed="false"
+                                    :data-title="recipe.Title"
+                                    :data-cheese="recipe.Cheese"
+                                    p-on:click="pickRecipe">
+                                <piko:img :src="recipe.Image" alt=""></piko:img>
+                                <span p-text="recipe.Title"></span>
+                                <span class="pick-row-time" p-text="recipe.CookTime"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div slot="actions">
+                    <m3e-button variant="outlined" p-on:click="closeAddRecipe">Cancel</m3e-button>
+                    <m3e-button variant="filled" p-on:click="addRecipe">Add to plan</m3e-button>
+                </div>
+            </m3e-dialog>
+
+            <!-- Side sheet: full recipe browser -->
+            <m3e-side-sheet p-ref="recipeSheet" modal>
+                <h2 class="subsection-title">Browse recipes</h2>
+                <m3e-list dividers>
+                    <m3e-list-item interactive p-for="(i, recipe) in state.AllRecipes" p-key="recipe.Title"
+                                   :href="recipe.Href" :headline="recipe.Title" :supporting-text="recipe.CookTime" lines="2"></m3e-list-item>
+                </m3e-list>
+            </m3e-side-sheet>
+
+            <m3e-bottom-sheet p-ref="quickAdd" modal>
+                <h2 class="subsection-title">Quick add</h2>
+                <p class="quick-add-target" p-ref="quickAddTarget">Choose a slot</p>
+                <div class="quick-add-grid">
+                    <m3e-card variant="outlined" clickable
+                              class="quick-add-item"
+                              p-for="(i, recipe) in state.AllRecipes"
+                              p-key="recipe.Title"
+                              :data-title="recipe.Title"
+                              :data-cheese="recipe.Cheese"
+                              p-on:click="quickPick">
+                        <div class="quick-add-item-body">
+                            <piko:img :src="recipe.Image" alt=""></piko:img>
+                            <span p-text="recipe.Title"></span>
+                        </div>
+                    </m3e-card>
+                </div>
+            </m3e-bottom-sheet>
+
+            <m3e-snackbar p-ref="snackbar"></m3e-snackbar>
 
         </piko:partial>
     </div>
@@ -321,79 +209,321 @@ package main
 import (
     "piko.sh/piko"
     layout "testmodule/partials/layout.pk"
-    footer "testmodule/partials/footer.pk"
 )
 
-func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
-    return piko.NoResponse{}, piko.Metadata{
-        Title: "Meal Planner - The Norman Kitchen",
+type Slot struct {
+    Slot     string
+    Recipe   string
+    Cheese   string
+    Image    string
+    Leftover string
+}
+
+type Day struct {
+    Name  string
+    Slots []Slot
+}
+
+type Recipe struct {
+    Title    string
+    Cheese   string
+    CookTime string
+    Image    string
+    Href     string
+}
+
+type Response struct {
+    Days       []Day
+    AllRecipes []Recipe
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    recipes := []Recipe{
+        {Title: "The Grate Burger", Cheese: "Cheddar", CookTime: "25 mins", Image: "@/lib/images/recipe-the-grate-burger.jpg", Href: "/recipe/the-grate-burger"},
+        {Title: "Brie-lliant Caesar Salad", Cheese: "Brie", CookTime: "15 mins", Image: "@/lib/images/recipe-brie-lliant-caesar.jpg", Href: "/recipe/brie-lliant-caesar"},
+        {Title: "Feta Accompli Pizza", Cheese: "Feta", CookTime: "30 mins", Image: "@/lib/images/recipe-feta-accompli-pizza.jpg", Href: "/recipe/feta-accompli-pizza"},
+        {Title: "Gouda Gracious Mac & Cheese", Cheese: "Gouda", CookTime: "45 mins", Image: "@/lib/images/recipe-gouda-gracious-mac.jpg", Href: "/recipe/gouda-gracious-mac"},
+        {Title: "Ricotta Be Kidding Me Lasagna", Cheese: "Ricotta", CookTime: "90 mins", Image: "@/lib/images/recipe-ricotta-be-kidding-lasagna.jpg", Href: "/recipe/ricotta-be-kidding-lasagna"},
+        {Title: "Parm-ageddon Chicken", Cheese: "Parmesan", CookTime: "45 mins", Image: "@/lib/images/recipe-parm-ageddon-chicken.jpg", Href: "/recipe/parm-ageddon-chicken"},
+        {Title: "Camembert Believe It", Cheese: "Camembert", CookTime: "30 mins", Image: "@/lib/images/recipe-camembert-believe-it.jpg", Href: "/recipe/camembert-believe-it"},
+        {Title: "Raclette & Roll", Cheese: "Raclette", CookTime: "40 mins", Image: "@/lib/images/recipe-raclette-and-roll.jpg", Href: "/recipe/raclette-and-roll"},
+        {Title: "Hallou-mi, It's Me", Cheese: "Halloumi", CookTime: "20 mins", Image: "@/lib/images/cheese-halloumi.jpg", Href: "/recipe/hallou-mi-its-me"},
+    }
+
+    days := []Day{
+        {
+            Name: "Monday",
+            Slots: []Slot{
+                {Slot: "Breakfast"},
+                {Slot: "Lunch", Recipe: "Brie-lliant Caesar Salad", Cheese: "Brie", Image: "@/lib/images/recipe-brie-lliant-caesar.jpg"},
+                {Slot: "Dinner", Recipe: "The Grate Burger", Cheese: "Cheddar", Image: "@/lib/images/recipe-the-grate-burger.jpg"},
+            },
+        },
+        {
+            Name: "Tuesday",
+            Slots: []Slot{
+                {Slot: "Breakfast"},
+                {Slot: "Lunch"},
+                {Slot: "Dinner", Recipe: "Feta Accompli Pizza", Cheese: "Feta", Image: "@/lib/images/recipe-feta-accompli-pizza.jpg"},
+            },
+        },
+        {
+            Name: "Wednesday",
+            Slots: []Slot{
+                {Slot: "Breakfast"},
+                {Slot: "Lunch"},
+                {Slot: "Dinner", Recipe: "Camembert Believe It", Cheese: "Camembert", Image: "@/lib/images/recipe-camembert-believe-it.jpg"},
+            },
+        },
+        {Name: "Thursday", Slots: []Slot{{Slot: "Breakfast"}, {Slot: "Lunch"}, {Slot: "Dinner"}}},
+        {Name: "Friday", Slots: []Slot{{Slot: "Breakfast"}, {Slot: "Lunch"}, {Slot: "Dinner"}}},
+        {Name: "Saturday", Slots: []Slot{{Slot: "Breakfast"}, {Slot: "Lunch"}, {Slot: "Dinner"}}},
+        {Name: "Sunday", Slots: []Slot{{Slot: "Breakfast"}, {Slot: "Lunch"}, {Slot: "Dinner"}}},
+    }
+
+    return Response{Days: withLeftovers(days), AllRecipes: recipes}, piko.Metadata{
+        Title: "Meal planner - The Norman Kitchen",
     }, nil
+}
+
+func withLeftovers(days []Day) []Day {
+    for i := 1; i < len(days); i++ {
+        previousDinner := ""
+        for _, slot := range days[i-1].Slots {
+            if slot.Slot == "Dinner" {
+                previousDinner = slot.Recipe
+            }
+        }
+        if previousDinner == "" {
+            continue
+        }
+
+        for j, slot := range days[i].Slots {
+            if slot.Slot == "Lunch" && slot.Recipe == "" {
+                days[i].Slots[j].Leftover = previousDinner
+            }
+        }
+    }
+    return days
 }
 </script>
 
 <script lang="ts">
-    function savePlan() {
-        const progress = pk.refs.saveProgress;
-        if (progress) {
-            progress.style.display = 'block';
+    let targetDay = 'Monday';
+    let targetMeal = 'Breakfast';
+    let pickedRecipe: { title: string; cheese: string; image: string } | null = null;
+
+    function notify(message: string): void {
+        const snackbar = pk.refs.snackbar as any;
+        if (snackbar) snackbar.show(message);
+    }
+
+    function pictureOf(element: HTMLElement): string {
+        return (element.querySelector('img') as HTMLImageElement | null)?.src || '';
+    }
+
+    function slotElement(day: string, meal: string): HTMLElement | null {
+        const board = pk.refs.board as HTMLElement | undefined;
+        if (!board) return null;
+        return board.querySelector<HTMLElement>(
+            '.planner-slot[data-day="' + day + '"][data-slot="' + meal + '"]'
+        );
+    }
+
+    function fillSlot(day: string, meal: string, recipe: { title: string; cheese: string; image: string }): void {
+        const slot = slotElement(day, meal);
+        if (!slot) return;
+
+        const label = slot.querySelector('.planner-slot-label');
+        slot.innerHTML = '';
+        if (label) slot.appendChild(label);
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'planner-meal';
+        button.addEventListener('click', () => openQuickAddFor(day, meal));
+
+        const image = document.createElement('img');
+        image.className = 'planner-meal-image';
+        image.src = recipe.image;
+        image.alt = '';
+
+        const text = document.createElement('span');
+        text.className = 'planner-meal-text';
+
+        const title = document.createElement('span');
+        title.className = 'planner-meal-title';
+        title.textContent = recipe.title;
+
+        const cheese = document.createElement('span');
+        cheese.className = 'planner-meal-cheese';
+        cheese.textContent = recipe.cheese;
+
+        text.append(title, cheese);
+        button.append(image, text);
+        slot.appendChild(button);
+
+        slot.removeAttribute('data-leftover');
+    }
+
+    /* -- Quick add --------------------------------------------------------- */
+
+    function openQuickAddFor(day: string, meal: string): void {
+        targetDay = day;
+        targetMeal = meal;
+
+        const label = pk.refs.quickAddTarget as HTMLElement | undefined;
+        if (label) label.textContent = day + ' · ' + meal;
+
+        const sheet = pk.refs.quickAdd as any;
+        if (sheet) sheet.show();
+    }
+
+    function openQuickAdd(event: Event): void {
+        const slot = (event.target as HTMLElement).closest('.planner-slot') as HTMLElement | null;
+        if (!slot) return;
+        openQuickAddFor(slot.dataset.day || '', slot.dataset.slot || '');
+    }
+
+    function quickPick(event: Event): void {
+        const button = (event.target as HTMLElement).closest('.quick-add-item') as HTMLElement | null;
+        if (!button) return;
+
+        fillSlot(targetDay, targetMeal, {
+            title: button.dataset.title || '',
+            cheese: button.dataset.cheese || '',
+            image: pictureOf(button),
+        });
+
+        const sheet = pk.refs.quickAdd as any;
+        if (sheet) sheet.close();
+        notify(button.dataset.title + ' added to ' + targetDay + ' ' + targetMeal.toLowerCase() + '.');
+    }
+
+    /* -- Add meal dialog --------------------------------------------------- */
+
+    function openAddRecipe(): void {
+        const dialog = pk.refs.addRecipeDialog as any;
+        if (dialog) dialog.show();
+    }
+
+    function closeAddRecipe(): void {
+        const dialog = pk.refs.addRecipeDialog as any;
+        if (dialog) dialog.close();
+    }
+
+    function changeDay(event: CustomEvent): void {
+        targetDay = String(event.detail.value || 'Monday');
+    }
+
+    function changeMeal(event: CustomEvent): void {
+        targetMeal = String(event.detail.value || 'Breakfast');
+    }
+
+    function pickRecipe(event: Event): void {
+        const button = (event.target as HTMLElement).closest('.pick-row') as HTMLElement | null;
+        const list = pk.refs.pickList as HTMLElement | undefined;
+        if (!button) return;
+
+        if (list) {
+            list.querySelectorAll<HTMLElement>('.pick-row').forEach((row) => {
+                row.setAttribute('aria-pressed', String(row === button));
+            });
         }
+
+        pickedRecipe = {
+            title: button.dataset.title || '',
+            cheese: button.dataset.cheese || '',
+            image: pictureOf(button),
+        };
+    }
+
+    function addRecipe(): void {
+        if (!pickedRecipe) {
+            notify('Pick a recipe first.');
+            return;
+        }
+
+        fillSlot(targetDay, targetMeal, pickedRecipe);
+        closeAddRecipe();
+        notify(pickedRecipe.title + ' added to ' + targetDay + ' ' + targetMeal.toLowerCase() + '.');
+    }
+
+    /* -- Leftovers --------------------------------------------------------- */
+
+    function toggleLeftovers(event: CustomEvent): void {
+        const board = pk.refs.board as HTMLElement | undefined;
+        const on = Boolean(event.detail.checked);
+        if (board) board.dataset.leftovers = on ? 'on' : 'off';
+
+        notify(on
+            ? 'Showing what last night could cover.'
+            : 'Leftover suggestions hidden.');
+    }
+
+    function acceptLeftover(event: Event): void {
+        const slot = (event.target as HTMLElement).closest('.planner-slot') as HTMLElement | null;
+        if (!slot) return;
+
+        const title = slot.dataset.leftover || '';
+
+        let image = '';
+        (pk.refs.board as HTMLElement)
+            .querySelectorAll<HTMLElement>('.planner-meal')
+            .forEach((meal) => {
+                const name = meal.querySelector('.planner-meal-title')?.textContent;
+                if (name === title) image = pictureOf(meal);
+            });
+
+        fillSlot(slot.dataset.day || '', slot.dataset.slot || '', {
+            title: 'Leftover ' + title,
+            cheese: 'From last night',
+            image: image,
+        });
+        notify('Leftovers it is. Waste not, whey not.');
+    }
+
+    /* -- Pickers, browser and saving --------------------------------------- */
+
+    function toggle(ref: string): void {
+        const el = pk.refs[ref] as HTMLElement | undefined;
+        if (el) el.hidden = !el.hidden;
+    }
+
+    function toggleDatePicker(): void {
+        toggle('datePickerContainer');
+    }
+
+    function toggleReminder(): void {
+        toggle('reminderContainer');
+    }
+
+    function changeWeek(event: CustomEvent): void {
+        toggle('datePickerContainer');
+
+        const label = pk.refs.weekLabel as HTMLElement | undefined;
+        if (label) label.textContent = 'Week of ' + event.detail.value;
+    }
+
+    function changeReminder(event: CustomEvent): void {
+        toggle('reminderContainer');
+
+        const label = pk.refs.reminderLabel as HTMLElement | undefined;
+        if (label) label.textContent = 'Remind at ' + event.detail.value;
+    }
+
+    function openRecipeBrowser(): void {
+        const sheet = pk.refs.recipeSheet as any;
+        if (sheet) sheet.show();
+    }
+
+    function savePlan(): void {
+        const progress = pk.refs.saveProgress as HTMLElement | undefined;
+        if (progress) progress.hidden = false;
 
         setTimeout(() => {
-            if (progress) {
-                progress.style.display = 'none';
-            }
-
-            const snackbar = pk.refs.snackbar;
-            if (snackbar) {
-                snackbar.show('Gouda job! Meal plan saved!');
-            }
-        }, 1500);
-    }
-
-    function openAddRecipe() {
-        const dialog = pk.refs.addRecipeDialog;
-        if (dialog) {
-            dialog.show();
-        }
-    }
-
-    function closeAddRecipe() {
-        const dialog = pk.refs.addRecipeDialog;
-        if (dialog) {
-            dialog.close();
-        }
-    }
-
-    function addRecipe() {
-        const dialog = pk.refs.addRecipeDialog;
-        if (dialog) {
-            dialog.close();
-        }
-
-        const snackbar = pk.refs.snackbar;
-        if (snackbar) {
-            snackbar.show('Recipe added to your meal plan!');
-        }
-    }
-
-    function toggleDatePicker() {
-        const container = pk.refs.datePickerContainer;
-        if (container) {
-            container.style.display = container.style.display === 'none' ? '' : 'none';
-        }
-    }
-
-    function openReminder() {
-        const container = pk.refs.reminderContainer;
-        if (container) {
-            container.style.display = container.style.display === 'none' ? '' : 'none';
-        }
-    }
-
-    function openQuickAdd() {
-        const sheet = pk.refs.quickAdd;
-        if (sheet) {
-            sheet.show();
-        }
+            if (progress) progress.hidden = true;
+            notify('Gouda job! Meal plan saved.');
+        }, 1200);
     }
 </script>

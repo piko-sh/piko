@@ -45,7 +45,7 @@
                 <piko:svg src="piko.sh/piko/lib/icons/arrow-drop-down.svg" fill="currentColor" width="22" height="22"></piko:svg>
             </span>
         </button>
-        <div class="menu" p-if="state.open" role="menu">
+        <div class="menu" p-if="state.open" role="menu" p-on:click="stopNativeClick">
             <slot name="menu"></slot>
             <p class="menu-empty" p-if="!state.has_menu" role="none">No options</p>
         </div>
@@ -60,7 +60,13 @@
         has_menu: false as boolean,
     };
 
-    function handlePrimaryClick() {
+
+    function stopNativeClick(event) {
+        event.stopPropagation();
+    }
+
+    function handlePrimaryClick(event) {
+        if (event) event.stopPropagation();
         if (state.disabled) return;
         pkc.dispatchEvent(new CustomEvent('click', {
             bubbles: true,
@@ -73,23 +79,41 @@
         return nodes.some((node) => node.children.length > 0 || node.textContent.trim() !== '');
     }
 
-    function toggleMenu() {
+    function toggleMenu(event) {
+        if (event) event.stopPropagation();
         if (state.disabled) return;
-        state.has_menu = hasMenuContent();
-        state.open = !state.open;
 
         if (state.open) {
-            setTimeout(() => {
-                document.addEventListener('click', closeOnOutsideClick, { once: true });
-            }, 0);
+            closeMenu();
+            return;
         }
+
+        state.has_menu = hasMenuContent();
+        state.open = true;
+        setTimeout(() => {
+            document.addEventListener('click', closeOnOutsideClick, { once: true });
+        }, 0);
+    }
+
+    function closeMenu() {
+        state.open = false;
+        document.removeEventListener('click', closeOnOutsideClick);
     }
 
     const closeOnOutsideClick = () => {
         state.open = false;
     };
 
+    const closeOnSelect = () => {
+        closeMenu();
+    };
+
+    pkc.onConnected(() => {
+        pkc.addEventListener('select', closeOnSelect);
+    });
+
     pkc.onDisconnected(() => {
+        pkc.removeEventListener('select', closeOnSelect);
         document.removeEventListener('click', closeOnOutsideClick);
     });
 </script>

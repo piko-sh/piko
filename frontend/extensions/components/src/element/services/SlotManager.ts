@@ -64,17 +64,25 @@ function buildSlotSelector(slotName: string): string {
  */
 export function createSlotManager(options: SlotManagerOptions): SlotManager {
     const {getShadowRoot, tagName} = options;
-    const pendingListeners: Array<{slotName: string; callback: SlotChangeCallback}> = [];
+    const pendingListeners: Array<{slotName: string; callback: SlotChangeCallback; attempts: number}> = [];
 
-    function doAttach(shadowRoot: ShadowRoot, slotName: string, callback: SlotChangeCallback): void {
+    const MAX_ATTACH_ATTEMPTS = 5;
+
+    /**
+     * Attaches a listener to a slot, or returns false when the slot is not in
+     * the shadow root yet so the caller can try again after the next render.
+     *
+     * @param shadowRoot - The shadow root to search.
+     * @param slotName - The name of the slot, or an empty string for the default slot.
+     * @param callback - Invoked with the slot's assigned elements.
+     * @returns Whether the listener was attached.
+     */
+    function doAttach(shadowRoot: ShadowRoot, slotName: string, callback: SlotChangeCallback): boolean {
         const selector = buildSlotSelector(slotName);
         const slotElement = shadowRoot.querySelector(selector) as HTMLSlotElement | null;
 
         if (!slotElement) {
-            console.warn(
-                `PPElement: Slot "${selector}" not found in ${tagName} for attaching listener.`
-            );
-            return;
+            return false;
         }
 
         const handleSlotChange = (): void => {
@@ -83,6 +91,26 @@ export function createSlotManager(options: SlotManagerOptions): SlotManager {
 
         slotElement.addEventListener("slotchange", handleSlotChange);
         handleSlotChange();
+        return true;
+    }
+
+    /**
+     * Queues a listener for the next render pass, reporting the miss once the
+     * slot has failed to appear across enough of them.
+     *
+     * @param slotName - The name of the slot, or an empty string for the default slot.
+     * @param callback - Invoked with the slot's assigned elements.
+     * @param attempts - How many attach attempts have already been made.
+     */
+    function requeue(slotName: string, callback: SlotChangeCallback, attempts: number): void {
+        if (attempts >= MAX_ATTACH_ATTEMPTS) {
+            console.warn(
+                `PPElement: Slot "${buildSlotSelector(slotName)}" not found in ${tagName} for attaching listener.`
+            );
+            return;
+        }
+
+        pendingListeners.push({slotName, callback, attempts});
     }
 
     return {
@@ -100,11 +128,13 @@ export function createSlotManager(options: SlotManagerOptions): SlotManager {
         attachSlotListener(slotName: string, callback: SlotChangeCallback): void {
             const shadowRoot = getShadowRoot();
             if (!shadowRoot) {
-                pendingListeners.push({slotName, callback});
+                requeue(slotName, callback, 0);
                 return;
             }
 
-            doAttach(shadowRoot, slotName, callback);
+            if (!doAttach(shadowRoot, slotName, callback)) {
+                requeue(slotName, callback, 1);
+            }
         },
 
         flushPendingListeners(): void {
@@ -118,8 +148,10 @@ export function createSlotManager(options: SlotManagerOptions): SlotManager {
             }
 
             const listeners = pendingListeners.splice(0);
-            for (const {slotName, callback} of listeners) {
-                doAttach(shadowRoot, slotName, callback);
+            for (const {slotName, callback, attempts} of listeners) {
+                if (!doAttach(shadowRoot, slotName, callback)) {
+                    requeue(slotName, callback, attempts + 1);
+                }
             }
         },
 

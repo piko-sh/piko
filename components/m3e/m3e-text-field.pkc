@@ -131,6 +131,7 @@
     }
 
     function handleInput(event) {
+        event.stopPropagation();
         state.value = event.target.value;
         pkc.dispatchEvent(new CustomEvent('input', {
             detail: { value: state.value },
@@ -140,6 +141,7 @@
     }
 
     function handleChange(event) {
+        event.stopPropagation();
         state.value = event.target.value;
         pkc.dispatchEvent(new CustomEvent('change', {
             detail: { value: state.value },

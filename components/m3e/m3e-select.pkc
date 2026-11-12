@@ -88,15 +88,23 @@
 
     function toggleMenu() {
         if (state.disabled) return;
-        state.open = !state.open;
 
         if (state.open) {
-            setTimeout(() => {
-                const firstItem = pkc.querySelector('m3e-menu-item:not([disabled])');
-                if (firstItem) firstItem.focus();
-                document.addEventListener('click', closeOnOutsideClick, { once: true });
-            }, 0);
+            closeMenu();
+            return;
         }
+
+        state.open = true;
+        setTimeout(() => {
+            const firstItem = pkc.querySelector('m3e-menu-item:not([disabled])');
+            if (firstItem) firstItem.focus();
+            document.addEventListener('click', closeOnOutsideClick, { once: true });
+        }, 0);
+    }
+
+    function closeMenu() {
+        state.open = false;
+        document.removeEventListener('click', closeOnOutsideClick);
     }
 
     const closeOnOutsideClick = () => {
@@ -109,7 +117,7 @@
 
     function handleKeydown(event) {
         if (event.key === 'Escape') {
-            state.open = false;
+            closeMenu();
             return;
         }
         if (event.key === 'Enter' || event.key === ' ') {
@@ -171,7 +179,7 @@
             state.value = detail.value || '';
             state.displayText = detail.text || detail.value || '';
         }
-        state.open = false;
+        closeMenu();
 
         pkc.dispatchEvent(new CustomEvent('change', {
             detail: { value: state.value },

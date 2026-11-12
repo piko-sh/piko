@@ -45,6 +45,9 @@
         can_scroll_right: false as boolean,
     };
 
+    let trackObserver = null;
+    let trackSize = null;
+
     pkc.onConnected(() => {
         pkc.addEventListener('tab-click', handleTabClick);
 
@@ -68,10 +71,34 @@
             scroller.addEventListener('scroll', () => checkScroll());
         }
         checkScroll();
+
+        if (typeof ResizeObserver !== 'undefined') {
+            const track = pkc.shadowRoot.querySelector('.tabs');
+            if (track) {
+                trackObserver = new ResizeObserver((entries) => {
+                    const box = entries[0] && entries[0].contentRect;
+                    if (!box) return;
+
+                    const width = Math.round(box.width);
+                    const height = Math.round(box.height);
+                    if (trackSize && width === trackSize.width && height === trackSize.height) return;
+
+                    trackSize = { width: width, height: height };
+                    positionIndicator({ immediate: true });
+                    checkScroll();
+                });
+                trackObserver.observe(track);
+            }
+        }
     });
 
     pkc.onDisconnected(() => {
         pkc.removeEventListener('tab-click', handleTabClick);
+        if (trackObserver) {
+            trackObserver.disconnect();
+            trackObserver = null;
+        }
+        trackSize = null;
     });
 
     pkc.onUpdated((changedProps) => {
@@ -165,19 +192,28 @@
         positionIndicator();
     }
 
-    function positionIndicator() {
+    function positionIndicator(options) {
+        const immediate = Boolean(options && options.immediate);
+
         requestAnimationFrame(() => {
             const tabs = pkc.querySelectorAll('m3e-tab');
             const activeTab = tabs[state.selectedIndex];
             const indicator = pkc.refs.indicator;
-            const scroller = pkc.refs.tabsScroller;
-            if (!activeTab || !indicator || !scroller) return;
+            const track = pkc.shadowRoot.querySelector('.tabs');
+            if (!activeTab || !indicator || !track) return;
 
-            const scrollerRect = scroller.getBoundingClientRect();
+            const trackRect = track.getBoundingClientRect();
             const tabRect = activeTab.getBoundingClientRect();
 
-            indicator.style.left = (tabRect.left - scrollerRect.left + scroller.scrollLeft) + 'px';
-            indicator.style.width = tabRect.width + 'px';
+            if (immediate) indicator.classList.add('no-transition');
+
+            pkc.style.setProperty('--_indicator-left', (tabRect.left - trackRect.left) + 'px');
+            pkc.style.setProperty('--_indicator-width', tabRect.width + 'px');
+
+            if (immediate) {
+                void indicator.offsetWidth;
+                indicator.classList.remove('no-transition');
+            }
         });
     }
 </script>
@@ -220,12 +256,18 @@
     .indicator {
         position: absolute;
         bottom: 0;
+        left: var(--_indicator-left, 0px);
+        width: var(--_indicator-width, 0px);
         height: 3px;
         border-radius: 3px 3px 0 0;
         background: var(--m3e-primary, #6750a4);
         transition: left 300ms cubic-bezier(0.05, 0.7, 0.1, 1),
                     width 300ms cubic-bezier(0.05, 0.7, 0.1, 1);
         z-index: 2;
+
+        &.no-transition {
+            transition: none;
+        }
     }
 
     .scroll-button {

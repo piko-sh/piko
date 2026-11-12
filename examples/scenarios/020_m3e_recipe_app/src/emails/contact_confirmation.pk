@@ -22,9 +22,9 @@
   <pml-container class="body-container">
     <pml-row class="header-row">
       <pml-col>
-        <pml-img src="@/lib/images/norman-kitchen-logo.jpg" profile="email-logo" width="300px" alt="The Norman Kitchen"></pml-img>
+        <pml-img src="@/lib/images/norman-kitchen-logo.jpg" width="300px" alt="The Norman Kitchen"></pml-img>
         <pml-br height="8px"></pml-br>
-        <pml-p class="header-subtitle">Where Every Dish is Grate!</pml-p>
+        <pml-p class="header-subtitle">Where every dish is grate!</pml-p>
       </pml-col>
     </pml-row>
 
@@ -43,7 +43,7 @@
 
         <pml-p class="main-text">
           In the meantime, why not browse our latest recipes? We promise they're all
-          <strong>gouda</strong> &mdash; some might even say <strong>grate</strong>.
+          <strong>gouda</strong>. Some might even say <strong>grate</strong>.
         </pml-p>
 
         <pml-br height="15px"></pml-br>
@@ -59,7 +59,7 @@
     <pml-row class="footer">
       <pml-col>
         <pml-p class="footer-text">
-          The Norman Kitchen &mdash; Established in the heart of Normandy
+          The Norman Kitchen. Established in the heart of Normandy
           <pml-br></pml-br>
           Home of Camembert, naturally
         </pml-p>
