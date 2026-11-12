@@ -25,7 +25,7 @@ import (
 	"sync"
 
 	"go.opentelemetry.io/otel/attribute"
-	semconv "go.opentelemetry.io/otel/semconv/v1.40.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.43.0"
 )
 
 // envMapping defines how a single environment variable maps to slog and OTEL attributes.
@@ -72,7 +72,7 @@ var (
 		{envKey: "CONTAINER_APP_REVISION", slogKey: "azure.container_app.revision", otelFunction: func(v string) attribute.KeyValue { return attribute.String("azure.container_app.revision", v) }},
 		{envKey: "CONTAINER_APP_REPLICA_NAME", slogKey: "azure.container_app.replica", otelFunction: func(v string) attribute.KeyValue { return attribute.String("azure.container_app.replica", v) }},
 		// Piko-specific / generic overrides (applied last).
-		{envKey: "PIKO_ENVIRONMENT", slogKey: "deployment.environment.name", otelFunction: semconv.DeploymentEnvironmentName},
+		{envKey: "PIKO_ENVIRONMENT", slogKey: "deployment.environment.name", otelFunction: semconv.DeploymentEnvironmentNameKey.String},
 		{envKey: "PIKO_SERVICE_NAME", slogKey: "service.name", otelFunction: semconv.ServiceName},
 		{envKey: "PIKO_SERVICE_VERSION", slogKey: "service.version", otelFunction: semconv.ServiceVersion},
 	}
