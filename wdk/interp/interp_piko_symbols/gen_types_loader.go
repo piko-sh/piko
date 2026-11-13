@@ -13,7 +13,6 @@ import (
 	"go/token"
 	"go/types"
 	"io"
-	"log/slog"
 	"sync"
 
 	"golang.org/x/tools/go/gcexportdata"
@@ -71,11 +70,8 @@ func loadTypesPackages() {
 	if len(loader.errs) == 0 {
 		return
 	}
-	typesPackagesLoadError = errors.Join(loader.errs...)
-	slog.Warn("embedded types export data failed to decode; generic type checking is degraded",
-		slog.String("generated_with", typesExportGoVersion),
-		slog.Any("error", typesPackagesLoadError),
-	)
+	typesPackagesLoadError = fmt.Errorf("embedded types export data generated with %s failed to decode: %w",
+		typesExportGoVersion, errors.Join(loader.errs...))
 }
 
 // typesExportLoader carries the shared decode state across the dependency walk.

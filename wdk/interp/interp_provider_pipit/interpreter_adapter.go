@@ -210,7 +210,7 @@ func (a *interpreterAdapter) emitCompilationOutput(
 	}}
 	if compiledFileSet != nil {
 		outputs = append(outputs,
-			packedBytecodeOutput(suffix, compiledFileSet),
+			packedBytecodeOutput(ctx, suffix, compiledFileSet),
 			emittedFile{name: fmt.Sprintf("bytecode-%s.pkasm", suffix), content: []byte(pipit.DisassembleAssembly(compiledFileSet))},
 		)
 	}
@@ -234,8 +234,8 @@ func (a *interpreterAdapter) emitCompilationOutput(
 // Takes compiledFileSet (*pipit.CompiledFileSet) which is the compiled program.
 //
 // Returns emittedFile which holds the packed bytecode, or the packing error as text.
-func packedBytecodeOutput(suffix string, compiledFileSet *pipit.CompiledFileSet) emittedFile {
-	packed, err := pipit.PackCompiledFileSetToBytes(compiledFileSet)
+func packedBytecodeOutput(ctx context.Context, suffix string, compiledFileSet *pipit.CompiledFileSet) emittedFile {
+	packed, err := pipit.PackCompiledFileSetToBytes(ctx, compiledFileSet)
 	if err != nil {
 		return emittedFile{name: fmt.Sprintf("bytecode-%s.pack-error.txt", suffix), content: []byte(err.Error() + "\n")}
 	}

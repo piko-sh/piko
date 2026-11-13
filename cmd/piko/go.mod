@@ -25,8 +25,8 @@ require (
 	piko.sh/piko/wdk/monitoring/monitoring_api v0.0.0
 	piko.sh/safeconv v0.1.0
 	piko.sh/safedisk v0.3.0
-	pipit.sh/pipit v0.0.0-alpha.8
-	pipit.sh/pipit/sdk/extract v0.0.0-alpha.8
+	pipit.sh/pipit v0.0.0-alpha.9
+	pipit.sh/pipit/sdk/extract v0.0.0-alpha.9
 )
 
 require (
@@ -94,14 +94,15 @@ require (
 	golang.org/x/mod v0.41.0 // indirect
 	golang.org/x/net v0.59.0 // indirect
 	golang.org/x/sync v0.23.0 // indirect
-	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/tools v0.50.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260803160001-6ac0973c030d // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260803160001-6ac0973c030d // indirect
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	piko.sh/asmgen v0.2.0 // indirect
+	piko.sh/asmgen v0.3.0 // indirect
 	piko.sh/goastutil v0.2.0 // indirect
+	piko.sh/stablepool v0.3.0 // indirect
 	piko.sh/vectormaths v0.2.0 // indirect
-	pipit.sh/pipit/sdk/link v0.0.0-alpha.8 // indirect
+	pipit.sh/pipit/sdk/link v0.0.0-alpha.9 // indirect
 )

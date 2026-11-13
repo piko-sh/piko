@@ -7,7 +7,7 @@ require (
 	golang.org/x/tools v0.50.0
 	piko.sh/piko v0.0.0
 	piko.sh/safeconv v0.1.0
-	pipit.sh/pipit/sdk/link v0.0.0-alpha.8
+	pipit.sh/pipit/sdk/link v0.0.0-alpha.9
 )
 
 require (
@@ -45,11 +45,11 @@ require (
 	golang.org/x/mod v0.41.0 // indirect
 	golang.org/x/net v0.59.0 // indirect
 	golang.org/x/sync v0.23.0 // indirect
-	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/text v0.42.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	piko.sh/goastutil v0.2.0 // indirect
 	piko.sh/safedisk v0.3.0 // indirect
 	piko.sh/vectormaths v0.2.0 // indirect
-	pipit.sh/pipit v0.0.0-alpha.8 // indirect
+	pipit.sh/pipit v0.0.0-alpha.9 // indirect
 )
