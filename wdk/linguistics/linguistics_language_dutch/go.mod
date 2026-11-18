@@ -3,9 +3,9 @@ module piko.sh/piko/wdk/linguistics/linguistics_language_dutch
 go 1.27.0
 
 require (
-	piko.sh/piko/wdk/linguistics/linguistics_phonetic_dutch v0.0.0
-	piko.sh/piko/wdk/linguistics/linguistics_stemmer_dutch v0.0.0
-	piko.sh/piko/wdk/linguistics/linguistics_stopwords_dutch v0.0.0
+	piko.sh/piko/wdk/linguistics/linguistics_phonetic_dutch v0.0.0-alpha.45
+	piko.sh/piko/wdk/linguistics/linguistics_stemmer_dutch v0.0.0-alpha.45
+	piko.sh/piko/wdk/linguistics/linguistics_stopwords_dutch v0.0.0-alpha.45
 )
 
 require (
@@ -24,7 +24,7 @@ require (
 	golang.org/x/sys v0.50.0 // indirect
 	golang.org/x/text v0.44.0 // indirect
 	piko.sh/json v0.1.1 // indirect
-	piko.sh/piko v0.0.0 // indirect
+	piko.sh/piko v0.0.0-alpha.45 // indirect
 	piko.sh/safeconv v0.1.0 // indirect
 	piko.sh/safedisk v0.3.0 // indirect
 	piko.sh/sharded v0.2.0 // indirect
