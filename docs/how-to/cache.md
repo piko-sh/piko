@@ -194,7 +194,9 @@ This avoids scanning the whole cache and avoids tracking key lists in applicatio
 customerCache.SetWithTTL(ctx, id, customer, 10*time.Minute, "tenant:"+tenantID)
 ```
 
-Set per-entry TTLs through `SetWithTTL` or `ComputeWithTTL`. Set a Redis-level default through `cache_provider_redis.Config.DefaultTTL`. For background refresh, set `Options.RefreshCalculator`. See [cache API reference](../reference/cache-api.md) for the full options surface.
+Build the cache with `PerEntryExpiration()` when entries need their own TTLs, then use `SetWithTTL`, `ComputeWithTTL` or `SetExpiresAfter`. The in-memory provider ignores per-entry TTLs, with a warning, if the cache has no expiration option.
+
+Use `cache.NoExpiry` to remove an entry's expiry. A later `Set` keeps an existing expiry under `PerEntryExpiration()`. For background refresh, set `Options.RefreshCalculator`. See the [cache API reference](../reference/cache-api.md#ttl-contract) for the full TTL rules.
 
 ## Search cached values
 

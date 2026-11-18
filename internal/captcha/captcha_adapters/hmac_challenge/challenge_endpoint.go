@@ -21,7 +21,7 @@ package hmac_challenge
 import (
 	"net/http"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 // challengeResponse is the JSON body returned by the challenge endpoint.

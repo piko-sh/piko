@@ -21,7 +21,7 @@ package cache_domain
 import (
 	"reflect"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 var (

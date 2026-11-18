@@ -43,6 +43,10 @@ const (
 
 	// urlReferencePrefix is the opening of a CSS url() reference such as url(#gradient).
 	urlReferencePrefix = "url("
+
+	// rewrittenURLSpareBytes is the extra room reserved when rewriting url() references,
+	// since namespaced identifiers are longer than the originals.
+	rewrittenURLSpareBytes = 16
 )
 
 // svgTokenKind classifies a token produced while tokenising SVG fragment content.
@@ -579,7 +583,7 @@ func rewriteURLRefs(value string, renameMap map[string]string) string {
 	}
 
 	var builder strings.Builder
-	builder.Grow(len(value) + 16)
+	builder.Grow(len(value) + rewrittenURLSpareBytes)
 
 	rest := value
 	for {

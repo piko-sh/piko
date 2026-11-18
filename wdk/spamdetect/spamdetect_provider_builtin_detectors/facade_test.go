@@ -19,11 +19,13 @@
 package spamdetect_provider_builtin_detectors_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"piko.sh/piko/internal/spamdetect/spamdetect_domain"
 	"piko.sh/piko/wdk/spamdetect/spamdetect_provider_builtin_detectors"
 )
 
@@ -74,4 +76,33 @@ func TestFacade_NewRepetitionDetector_NilCache(t *testing.T) {
 	detector := spamdetect_provider_builtin_detectors.NewRepetitionDetector(nil, time.Minute, true)
 	require.NotNil(t, detector)
 	assert.Equal(t, "repetition", detector.Name())
+}
+
+func TestFacade_RegisterDefaults_RegistersEveryDetector(t *testing.T) {
+	t.Parallel()
+
+	service, err := spamdetect_domain.NewSpamDetectService(nil)
+	require.NoError(t, err)
+	t.Cleanup(func() { assert.NoError(t, service.Close(context.Background())) })
+
+	err = spamdetect_provider_builtin_detectors.RegisterDefaults(t.Context(), service,
+		spamdetect_provider_builtin_detectors.Config{})
+	require.NoError(t, err)
+
+	assert.ElementsMatch(t,
+		[]string{"honeypot", "gibberish", "link_density", "blocklist", "timing", "repetition"},
+		service.GetDetectors(t.Context()))
+}
+
+func TestFacade_RegisterDefaults_InvalidBlocklistPatternFails(t *testing.T) {
+	t.Parallel()
+
+	service, err := spamdetect_domain.NewSpamDetectService(nil)
+	require.NoError(t, err)
+	t.Cleanup(func() { assert.NoError(t, service.Close(context.Background())) })
+
+	err = spamdetect_provider_builtin_detectors.RegisterDefaults(t.Context(), service,
+		spamdetect_provider_builtin_detectors.Config{BlocklistPatterns: []string{"[invalid"}})
+	require.Error(t, err)
+	assert.Empty(t, service.GetDetectors(t.Context()))
 }

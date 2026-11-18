@@ -25,7 +25,7 @@ import (
 	"reflect"
 	"testing"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 func TestMoneyValueRetrievers(t *testing.T) {

@@ -25,6 +25,11 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const (
+	// frontmatterDelimiter marks the start and end of a YAML frontmatter block.
+	frontmatterDelimiter = "---"
+)
+
 // FrontmatterOption configures the behaviour of ExtractFrontmatter.
 type FrontmatterOption func(*frontmatterConfig)
 
@@ -199,11 +204,11 @@ func mergeFrontmatterMetadata(metadata, parsed map[string]any, keySet map[string
 // Returns body (string) which is the remaining content after the frontmatter.
 // Returns ok (bool) which is false if no frontmatter delimiters are found.
 func extractRawFrontmatter(content string) (raw, body string, ok bool) {
-	if !strings.HasPrefix(content, "---") {
+	if !strings.HasPrefix(content, frontmatterDelimiter) {
 		return "", content, false
 	}
 
-	yamlBlock, after, found := strings.Cut(content[3:], "\n---")
+	yamlBlock, after, found := strings.Cut(content[len(frontmatterDelimiter):], "\n"+frontmatterDelimiter)
 	if !found {
 		return "", content, false
 	}
@@ -218,11 +223,11 @@ func extractRawFrontmatter(content string) (raw, body string, ok bool) {
 //
 // Returns string which is the content with frontmatter removed.
 func stripFrontmatter(markdown string) string {
-	if !strings.HasPrefix(markdown, "---") {
+	if !strings.HasPrefix(markdown, frontmatterDelimiter) {
 		return markdown
 	}
 
-	_, after, found := strings.Cut(markdown[3:], "\n---")
+	_, after, found := strings.Cut(markdown[len(frontmatterDelimiter):], "\n"+frontmatterDelimiter)
 	if !found {
 		return markdown
 	}

@@ -40,6 +40,9 @@ func TestMigrationBackendKeepsPikoPersistedNames(t *testing.T) {
 		SeedLockConstraint:      "piko_seed_lock_single_row",
 		LockKey:                 "piko_migrations",
 		SeedLockKey:             "piko_seeds",
+		MigrationLease:          "piko_migration_lock_lease",
+		SeedLease:               "piko_seed_lock_lease",
+		SeedProgress:            "piko_seeds_progress",
 	}
 	renamedNames := pikoNames
 	renamedNames.History = "app_schema_history"

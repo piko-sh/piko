@@ -26,6 +26,7 @@ import (
 	"sync"
 
 	"golang.org/x/sync/singleflight"
+	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/wdk/cache"
 	"piko.sh/piko/wdk/logger"
 )
@@ -107,6 +108,7 @@ func createNamespaceGeneric[K comparable, V any](p *ValkeyClusterProvider, names
 		sf:                     singleflight.Group{},
 		registry:               p.config.Registry,
 		client:                 p.client,
+		listNodes:              nil,
 		keyRegistry:            p.config.KeyRegistry,
 		namespace:              formattedNamespace,
 		ttl:                    p.config.DefaultTTL,
@@ -121,6 +123,7 @@ func createNamespaceGeneric[K comparable, V any](p *ValkeyClusterProvider, names
 		indexName:              indexName,
 		indexMu:                sync.Mutex{},
 		indexCreated:           false,
+		perEntry:               cache_domain.IsPerEntryExpiry(options.ExpiryCalculator),
 	}
 
 	p.caches[namespace] = adapter

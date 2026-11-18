@@ -18,11 +18,6 @@
 
 package ast_domain
 
-// Defines the Expression interface and concrete expression types for template
-// interpolations and directive values. Includes identifiers, member access, binary
-// operations, function calls, literals, and ternary expressions with cloning and
-// transformation support.
-
 import (
 	"fmt"
 	"strconv"
@@ -131,6 +126,20 @@ const (
 	// precPostfix is the precedence level for postfix operators such as function calls,
 	// indexing, and member access.
 	precPostfix
+)
+
+const (
+	// indexExpressionPunctuationLength is the byte length of the brackets and optional
+	// chaining marker written around an index expression.
+	indexExpressionPunctuationLength = len("?.[]")
+
+	// binaryExpressionPunctuationLength is the byte length of the parentheses and spaces
+	// written around a binary expression.
+	binaryExpressionPunctuationLength = len("(  )")
+
+	// ternaryExpressionPunctuationLength is the byte length of the parentheses and operators
+	// written around a ternary expression.
+	ternaryExpressionPunctuationLength = len("( ?  : )")
 )
 
 var (
@@ -427,7 +436,7 @@ type IndexExpression struct {
 // uses optional chaining syntax (?.[) instead of standard brackets.
 func (ie *IndexExpression) String() string {
 	var builder strings.Builder
-	builder.Grow(len(ie.Base.String()) + len(ie.Index.String()) + 3)
+	builder.Grow(len(ie.Base.String()) + len(ie.Index.String()) + indexExpressionPunctuationLength)
 	builder.WriteString(ie.Base.String())
 	if ie.Optional {
 		builder.WriteString("?.[")
@@ -671,7 +680,7 @@ func (b *BinaryExpression) String() string {
 	leftString := b.Left.String()
 	rightString := b.Right.String()
 	var builder strings.Builder
-	builder.Grow(len(leftString) + len(rightString) + len(b.Operator) + 4)
+	builder.Grow(len(leftString) + len(rightString) + len(b.Operator) + binaryExpressionPunctuationLength)
 	_ = builder.WriteByte('(')
 	builder.WriteString(leftString)
 	_ = builder.WriteByte(' ')

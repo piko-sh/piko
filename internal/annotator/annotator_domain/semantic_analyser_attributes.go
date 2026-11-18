@@ -18,10 +18,6 @@
 
 package annotator_domain
 
-// Analyses template attributes during semantic analysis, validating attribute expressions
-// and resolving their types. Handles special attributes like p-if, p-for, p-bind, and
-// validates attribute values against expected types.
-
 import (
 	"context"
 	"fmt"
@@ -933,15 +929,15 @@ func isActionNumericString(t string) bool {
 func createEventContextWithSymbols(ctx *AnalysisContext) *AnalysisContext {
 	eventCtx := ctx.ForChildScope()
 	eventCtx.Symbols.Define(Symbol{
-		Name:                "$event",
+		Name:                eventPlaceholderName,
 		TypeInfo:            newSyntheticTypeInfo(jsEventTypeName),
-		CodeGenVarName:      "$event",
+		CodeGenVarName:      eventPlaceholderName,
 		SourceInvocationKey: "",
 	})
 	eventCtx.Symbols.Define(Symbol{
-		Name:                "$form",
+		Name:                formPlaceholderName,
 		TypeInfo:            newSyntheticTypeInfo(jsFormTypeName),
-		CodeGenVarName:      "$form",
+		CodeGenVarName:      formPlaceholderName,
 		SourceInvocationKey: "",
 	})
 	return eventCtx

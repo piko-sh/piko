@@ -19,11 +19,14 @@
 package bootstrap
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	cache_provider_mock "piko.sh/piko/internal/cache/cache_adapters/provider_mock"
+	"piko.sh/piko/internal/cache/cache_domain"
 	email_mock "piko.sh/piko/internal/email/email_adapters/provider_mock"
 	storage_mock "piko.sh/piko/internal/storage/storage_adapters/provider_mock"
 )
@@ -129,4 +132,80 @@ func TestValidateProviderConfiguration_DefaultPointsToWrongProvider(t *testing.T
 	require.Error(t, err, "expected error when default points to unregistered provider")
 	assert.Contains(t, err.Error(), "provider-b", "error should mention the missing provider name")
 	assert.Contains(t, err.Error(), "provider-a", "error should list available providers")
+}
+
+func TestValidateProviderConfiguration_NamedCacheProviders(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name            string
+		registered      string
+		rateLimiterName string
+		llmName         string
+		wantErr         string
+	}{
+		{name: "no names set"},
+		{name: "built-in otter without registered providers", rateLimiterName: "otter", llmName: "otter"},
+		{name: "registered provider", registered: "redis", rateLimiterName: "redis", llmName: "redis"},
+		{name: "rate limiter provider without registered providers", rateLimiterName: "redis", wantErr: `rate limiter cache provider "redis" specified but no cache providers registered`},
+		{name: "unregistered LLM provider", registered: "redis", llmName: "valkey", wantErr: `LLM cache provider "valkey" not found in registered cache providers: redis`},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			container := NewContainer()
+			if testCase.registered != "" {
+				container.cacheProviders = map[string]cache_domain.Provider{testCase.registered: cache_provider_mock.NewMockProvider()}
+			}
+			container.SetRateLimiterCacheProvider(testCase.rateLimiterName)
+			container.SetLLMCacheProvider(testCase.llmName)
+
+			err := container.ValidateProviderConfiguration()
+
+			if testCase.wantErr == "" {
+				require.NoError(t, err)
+				return
+			}
+			require.ErrorContains(t, err, testCase.wantErr)
+		})
+	}
+}
+
+func TestValidateProviderConfiguration_NamedCacheProvidersOnSuppliedService(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name            string
+		rateLimiterName string
+		llmName         string
+		wantErr         string
+	}{
+		{name: "provider registered on the supplied service", rateLimiterName: "redis", llmName: "redis"},
+		{name: "provider missing from the supplied service", llmName: "valkey", wantErr: `LLM cache provider "valkey" not found in registered cache providers: redis`},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			service := cache_domain.NewService("redis")
+			require.NoError(t, service.RegisterProvider(t.Context(), "redis", cache_provider_mock.NewMockProvider()))
+			t.Cleanup(func() { _ = service.Close(context.Background()) })
+
+			container := NewContainer()
+			container.SetCacheService(service)
+			container.SetRateLimiterCacheProvider(testCase.rateLimiterName)
+			container.SetLLMCacheProvider(testCase.llmName)
+
+			err := container.ValidateProviderConfiguration()
+
+			if testCase.wantErr == "" {
+				require.NoError(t, err)
+				return
+			}
+			require.ErrorContains(t, err, testCase.wantErr)
+		})
+	}
 }

@@ -18,16 +18,6 @@
 
 package bootstrap
 
-// This file provides a lightweight, manual Dependency Injection (DI) container for the
-// Piko application. It centralises the creation and wiring of all major services,
-// ensuring they are initialised lazily and used as singletons.
-//
-// This container is designed for flexibility using the Functional Options pattern. The
-// NewContainer constructor accepts a series of Option functions that can override default
-// service implementations or configure how they are built. This approach avoids external
-// DI frameworks while providing clean, testable, and highly maintainable service
-// management.
-
 import (
 	"context"
 	"errors"
@@ -83,6 +73,9 @@ const (
 
 	// logKeyPath is the structured log key for file system paths.
 	logKeyPath = "path"
+
+	// bytesPerMebibyte is the number of bytes in one mebibyte.
+	bytesPerMebibyte = 1024 * 1024
 )
 
 // SandboxFactory is a function type that creates sandboxes. Inject a custom factory to
@@ -688,7 +681,7 @@ func (c *Container) StartProfilingServer() {
 	if profilingConfig.EnableRollingTrace {
 		noticeAttrs = append(noticeAttrs,
 			logger_domain.String("rolling_trace_min_age", profilingConfig.RollingTraceMinAge.String()),
-			logger_domain.String("rolling_trace_max_bytes", fmt.Sprintf("%.1f MiB", float64(profilingConfig.RollingTraceMaxBytes)/(1024*1024))),
+			logger_domain.String("rolling_trace_max_bytes", fmt.Sprintf("%.1f MiB", float64(profilingConfig.RollingTraceMaxBytes)/bytesPerMebibyte)),
 		)
 	}
 
@@ -816,7 +809,7 @@ func (c *Container) applyAutoMemoryLimit(ctx context.Context) {
 	}
 
 	l.Info("Auto memory limit applied",
-		logger_domain.String("GOMEMLIMIT", fmt.Sprintf("%d MiB", limit/(1024*1024))))
+		logger_domain.String("GOMEMLIMIT", fmt.Sprintf("%d MiB", limit/bytesPerMebibyte)))
 }
 
 // ensureOverrides lazily initialises the configServerOverrides struct so that option
@@ -1001,7 +994,7 @@ func registerCloseableForShutdown(ctx context.Context, name string, service any)
 		return
 	}
 
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 	shutdownName := fmt.Sprintf("%s-Override", name)
 
 	if closer, ok := service.(contextCloser); ok {

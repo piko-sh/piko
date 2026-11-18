@@ -67,6 +67,11 @@ type Cache[K comparable, V any] interface {
 	// This overrides the cache's default expiration policy. The operation is atomic and
 	// performs better than calling Set followed by SetExpiresAfter for remote caches.
 	//
+	// A positive ttl sets the entry's lifetime. Remote providers round a ttl below one
+	// millisecond up to one millisecond. A zero or negative ttl follows Set's expiry policy.
+	// Under PerEntryExpiration, an existing entry keeps its current expiry.
+	// cache_dto.NoExpiry removes any expiry.
+	//
 	// Takes key (K) which identifies the cached entry.
 	// Takes value (V) which is the data to store.
 	// Takes ttl (time.Duration) which sets when this entry expires.
@@ -128,6 +133,9 @@ type Cache[K comparable, V any] interface {
 	// ComputeWithTTL atomically computes a new value for the given key with per-call TTL
 	// control. The compute function executes while holding a lock on the key and can specify
 	// a custom TTL for the entry.
+	//
+	// The TTL follows the same rules as SetWithTTL and applies only when the action is
+	// ComputeActionSet; a noop or delete never changes an expiry.
 	//
 	// A cancelled or expired context returns its error before work begins.
 	//
@@ -269,7 +277,11 @@ type Cache[K comparable, V any] interface {
 	// Returns uint64 which is the current total weight.
 	WeightedSize() uint64
 
-	// SetExpiresAfter sets or changes the expiry time for a key that already exists.
+	// SetExpiresAfter sets or changes the expiry time for a key that already exists. It
+	// never creates a key.
+	//
+	// A zero or negative expiresAfter does nothing, and cache_dto.NoExpiry removes any
+	// expiry.
 	//
 	// A cancelled or expired context returns its error before work begins.
 	//
@@ -344,16 +356,24 @@ type Transactional[K comparable, V any] interface {
 	BeginTransaction(ctx context.Context) TransactionCache[K, V]
 }
 
-// LogBatcher lets caches commit or discard a batch of logged writes.
-//
-// The caller must be the only writer between BeginLogBatch and CommitLogBatch or
-// AbortLogBatch because every write joins that batch.
-type LogBatcher interface {
-	// BeginLogBatch starts collecting log entries instead of writing them. It waits for any
-	// batch already open to finish.
-	BeginLogBatch()
+// LogBatcher is implemented by caches that can write the log entries of a transaction as
+// one record.
+type LogBatcher[K comparable, V any] interface {
+	// BeginLogBatch starts a batch and returns a view of the cache whose writes join it.
+	// Writes made on the cache itself never join the batch, so other goroutines writing at
+	// the same time are logged as usual.
+	//
+	// Returns LogBatch[K, V] which the caller writes through and must end with
+	// CommitLogBatch or AbortLogBatch.
+	BeginLogBatch() LogBatch[K, V]
+}
 
-	// CommitLogBatch writes the collected entries as one record and ends the batch.
+// LogBatch is a view of a cache whose writes collect in one batch until it ends.
+type LogBatch[K comparable, V any] interface {
+	ProviderPort[K, V]
+
+	// CommitLogBatch writes the collected entries as one record and ends the batch. Writes
+	// made through the view after it ends are logged on their own.
 	//
 	// Returns error when the record cannot be written; the cache then holds writes the log
 	// lacks, which the caller must undo inside another batch it aborts.

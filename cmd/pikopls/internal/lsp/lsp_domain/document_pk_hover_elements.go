@@ -421,8 +421,8 @@ func findPikoTagStart(line string, cursor int) int {
 		return -1
 	}
 
-	searchEnd := min(cursor+20, len(line))
-	searchStart := max(0, cursor-20)
+	searchEnd := min(cursor+patternSearchRadius, len(line))
+	searchStart := max(0, cursor-patternSearchRadius)
 
 	if searchStart >= searchEnd {
 		return -1

@@ -22,7 +22,7 @@ import (
 	"io"
 	"reflect"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 // Provider supplies JSON encoding and decoding operations.
@@ -39,6 +39,10 @@ type Encoder = json.Encoder
 
 // Decoder reads JSON values from an input stream.
 type Decoder = json.Decoder
+
+// Pretoucher is implemented by JSON APIs that can prepare a type's codec before first
+// use.
+type Pretoucher = json.Pretoucher
 
 // Marshal encodes v as JSON bytes.
 //

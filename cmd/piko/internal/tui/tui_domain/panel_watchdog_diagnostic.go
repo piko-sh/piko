@@ -34,6 +34,9 @@ import (
 )
 
 const (
+	// contentionDiagnosticTimeout bounds a contention diagnostic run.
+	contentionDiagnosticTimeout = 5 * time.Minute
+
 	// WatchdogDiagnosticPanelID identifies the Diagnostic Launcher.
 	WatchdogDiagnosticPanelID = "watchdog-diagnostic"
 
@@ -380,7 +383,7 @@ func (p *WatchdogDiagnosticPanel) fetchCmd() tea.Cmd {
 		return nil
 	}
 	return func() tea.Msg {
-		ctx, cancel := context.WithTimeoutCause(context.Background(), 5*time.Second, errors.New("watchdog diagnostic status fetch timed out"))
+		ctx, cancel := context.WithTimeoutCause(context.Background(), DefaultRefreshTimeout, errors.New("watchdog diagnostic status fetch timed out"))
 		defer cancel()
 		status, err := p.provider.GetStatus(ctx)
 		return diagnosticSnapshotMsg{Status: status, Err: err}
@@ -411,7 +414,7 @@ func (p *WatchdogDiagnosticPanel) runCmd() tea.Cmd {
 	p.mu.Unlock()
 
 	return func() tea.Msg {
-		ctx, cancel := context.WithTimeoutCause(context.Background(), 5*time.Minute, errors.New("contention diagnostic timed out"))
+		ctx, cancel := context.WithTimeoutCause(context.Background(), contentionDiagnosticTimeout, errors.New("contention diagnostic timed out"))
 		defer cancel()
 		err := p.provider.RunContentionDiagnostic(ctx)
 		return diagnosticRunDoneMsg{Err: err, StartAt: now}

@@ -56,7 +56,7 @@ func TestLifecycle_TwoPhaseDetection_Success(t *testing.T) {
 	assert.Equal(t, int64(1), stats.TasksCompleted, "one task completed")
 	assert.Equal(t, int64(0), stats.TasksFailed, "no failures")
 
-	published := h.registryService.ArtefactEventsPublished()
+	published := h.registryService.ArtefactEventsIssued()
 	processed := h.bridge.ArtefactEventsProcessed()
 	assert.GreaterOrEqual(t, processed, published,
 		"processed (%d) should be >= published (%d)", processed, published)
@@ -88,7 +88,7 @@ func TestLifecycle_TwoPhaseDetection_Failure(t *testing.T) {
 	assert.Equal(t, int64(1), stats.TasksFailed, "one task failed permanently")
 	assert.Equal(t, int64(0), stats.TasksCompleted, "no tasks completed")
 
-	published := h.registryService.ArtefactEventsPublished()
+	published := h.registryService.ArtefactEventsIssued()
 	processed := h.bridge.ArtefactEventsProcessed()
 	assert.GreaterOrEqual(t, processed, published,
 		"processed (%d) should be >= published (%d)", processed, published)
@@ -165,7 +165,7 @@ func TestLifecycle_EventCounterTracking(t *testing.T) {
 	require.True(t, flushed, "flush should complete")
 	require.True(t, idle, "idle should complete")
 
-	published := h.registryService.ArtefactEventsPublished()
+	published := h.registryService.ArtefactEventsIssued()
 	processed := h.bridge.ArtefactEventsProcessed()
 
 	assert.Equal(t, int64(count), published, "published event count")
@@ -254,7 +254,7 @@ func TestLifecycle_RealCompiler_InvalidPKC_FullRoundTrip(t *testing.T) {
 	assert.Equal(t, int64(0), stats.TasksCompleted, "compilation fails on invalid PKC")
 	assert.Equal(t, int64(1), stats.TasksFailed, "one fatal failure from duplicate declaration")
 
-	published := h.registryService.ArtefactEventsPublished()
+	published := h.registryService.ArtefactEventsIssued()
 	processed := h.bridge.ArtefactEventsProcessed()
 	t.Logf("Published: %d, Processed: %d", published, processed)
 	assert.GreaterOrEqual(t, published, int64(1),
@@ -312,7 +312,7 @@ func TestLifecycle_RealCompiler_ValidPKC_SuccessRoundTrip(t *testing.T) {
 	assert.Equal(t, int64(1), stats.TasksCompleted, "one task completed")
 	assert.Equal(t, int64(0), stats.TasksFailed, "no failures")
 
-	published := h.registryService.ArtefactEventsPublished()
+	published := h.registryService.ArtefactEventsIssued()
 	processed := h.bridge.ArtefactEventsProcessed()
 
 	t.Logf("Published: %d, Processed: %d", published, processed)
@@ -353,7 +353,7 @@ func TestLifecycle_MultipleArtefacts_ProductionConfig_RealClock(t *testing.T) {
 	assert.Equal(t, int64(2), stats.TasksCompleted, "two tasks succeeded")
 	assert.Equal(t, int64(3), stats.TasksFailed, "three tasks failed")
 
-	published := h.registryService.ArtefactEventsPublished()
+	published := h.registryService.ArtefactEventsIssued()
 	processed := h.bridge.ArtefactEventsProcessed()
 	assert.GreaterOrEqual(t, processed, published,
 		"processed (%d) >= published (%d)", processed, published)

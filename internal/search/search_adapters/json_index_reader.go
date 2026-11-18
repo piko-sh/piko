@@ -24,7 +24,7 @@ import (
 	"sort"
 	"strings"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 	"piko.sh/piko/internal/search/search_domain"
 	"piko.sh/piko/internal/search/search_dto"
 	"piko.sh/piko/internal/search/search_schema/search_schema_gen"

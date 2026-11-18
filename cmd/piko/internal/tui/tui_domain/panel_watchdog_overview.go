@@ -581,7 +581,7 @@ func (p *WatchdogOverviewPanel) fetchSnapshotCmd() tea.Cmd {
 		return nil
 	}
 	return func() tea.Msg {
-		ctx, cancel := context.WithTimeoutCause(context.Background(), 5*time.Second, errors.New("watchdog overview fetch timed out"))
+		ctx, cancel := context.WithTimeoutCause(context.Background(), DefaultRefreshTimeout, errors.New("watchdog overview fetch timed out"))
 		defer cancel()
 		status, err := p.provider.GetStatus(ctx)
 		return overviewSnapshotMsg{Status: status, Err: err}

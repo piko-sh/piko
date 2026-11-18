@@ -56,6 +56,9 @@ const (
 
 	// filePermissions is the permission mode used when creating log files.
 	filePermissions fs.FileMode = 0o640
+
+	// day is the length of one day, used to turn MaxAge in days into a duration.
+	day = 24 * time.Hour
 )
 
 var (
@@ -602,7 +605,7 @@ func (w *Writer) selectRemovals(backups []backupInfo) []string {
 	}
 
 	if w.config.MaxAge > 0 {
-		cutoff := w.clock.Now().Add(-time.Duration(w.config.MaxAge) * 24 * time.Hour)
+		cutoff := w.clock.Now().Add(-time.Duration(w.config.MaxAge) * day)
 		for _, backup := range backups {
 			if backup.timestamp.Before(cutoff) {
 				marked[backup.name] = true

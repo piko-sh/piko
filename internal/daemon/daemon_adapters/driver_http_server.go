@@ -136,10 +136,11 @@ func (a *driverHTTPServerAdapter) ListenAndServe(
 		return fmt.Errorf("creating listener: %w", err)
 	}
 
-	a.logServerReady(spanCtx, address)
+	boundAddress := listener.Addr().String()
+	a.logServerReady(spanCtx, boundAddress)
 
 	if a.onBound != nil {
-		a.onBound(address)
+		a.onBound(boundAddress)
 	}
 	a.markBound()
 

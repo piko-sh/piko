@@ -28,6 +28,11 @@ import (
 	"piko.sh/piko/internal/email/email_dto"
 )
 
+const (
+	// bytesPerMegabyte is the number of bytes in one megabyte as shown in size errors.
+	bytesPerMegabyte = 1024 * 1024
+)
+
 // validateSingle validates a single SendParams object. It checks for required content,
 // validates the syntax of all recipient email addresses, and enforces limits for DoS
 // protection.
@@ -63,7 +68,7 @@ func validateSingle(params *email_dto.SendParams, config ServiceConfig) error {
 
 	if totalSize > config.MaxPayloadSizeBytes {
 		return fmt.Errorf("validation failed: total message size (%.2f MB) exceeds the limit of %.2f MB",
-			float64(totalSize)/1024/1024, float64(config.MaxPayloadSizeBytes)/1024/1024)
+			float64(totalSize)/bytesPerMegabyte, float64(config.MaxPayloadSizeBytes)/bytesPerMegabyte)
 	}
 
 	if err := validateAddressList(params.To, "To"); err != nil {

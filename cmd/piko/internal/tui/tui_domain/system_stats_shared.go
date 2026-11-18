@@ -110,7 +110,7 @@ func pointsFromHistory(values []float64, now time.Time) []ChartPoint {
 //
 // Returns string with a trailing % sign.
 func percentageString(fraction float64) string {
-	return fmt.Sprintf("%.2f%%", fraction*100)
+	return fmt.Sprintf("%.2f%%", fraction*percentageScale)
 }
 
 // formatDurationNs renders a nanosecond count as a friendly duration.

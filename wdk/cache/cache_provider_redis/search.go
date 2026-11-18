@@ -34,6 +34,9 @@ import (
 )
 
 const (
+	// float32Bytes is the size in bytes of one float32 in a vector blob.
+	float32Bytes = 4
+
 	// DefaultSearchResultLimit is the default number of search results returned when no
 	// explicit limit is specified.
 	DefaultSearchResultLimit = 10
@@ -340,13 +343,13 @@ func (a *RedisAdapter[K, V]) parseSearchHit(ctx context.Context, rawResults []an
 
 // setJSONValue stores a value as JSON for RediSearch indexing.
 //
+// The caller sets the document's TTL afterwards.
+//
 // Takes keyString (string) which is the Redis key where the value is stored.
 // Takes value (V) which is the value to serialise and store.
-// Takes ttl (int) which is the time-to-live in seconds; zero means no expiry.
 //
 // Returns error when JSON marshalling fails or the Redis operation fails.
-func (a *RedisAdapter[K, V]) setJSONValue(ctx context.Context, keyString string, value V, ttl int) error {
-	ctx, l := logger.From(ctx, log)
+func (a *RedisAdapter[K, V]) setJSONValue(ctx context.Context, keyString string, value V) error {
 	jsonBytes, err := json.Marshal(value)
 	if err != nil {
 		return fmt.Errorf("failed to marshal value to JSON: %w", err)
@@ -355,14 +358,6 @@ func (a *RedisAdapter[K, V]) setJSONValue(ctx context.Context, keyString string,
 	arguments := []any{"JSON.SET", keyString, redisJSONPath, string(jsonBytes)}
 	if err := a.client.Do(ctx, arguments...).Err(); err != nil {
 		return fmt.Errorf("JSON.SET failed: %w", err)
-	}
-
-	if ttl > 0 {
-		if err := a.client.Expire(ctx, keyString, a.ttl).Err(); err != nil {
-			l.Warn("Failed to set TTL on JSON document",
-				logger.String(redisLogKeyField, keyString),
-				logger.Error(err))
-		}
 	}
 
 	return nil
@@ -386,8 +381,7 @@ func (a *RedisAdapter[K, V]) indexDocument(ctx context.Context, keyString string
 		return
 	}
 
-	ttlSeconds := int(a.ttl.Seconds())
-	if err := a.setJSONValue(ctx, keyString, value, ttlSeconds); err != nil {
+	if err := a.setJSONValue(ctx, keyString, value); err != nil {
 		l.Warn("Failed to index document",
 			logger.String(redisLogKeyField, keyString),
 			logger.Error(err))
@@ -825,9 +819,9 @@ func vectorDistanceMetric(metric string) string {
 //
 // Returns []byte which is the raw little-endian float32 blob.
 func vectorToBlob(v []float32) []byte {
-	buffer := make([]byte, len(v)*4)
+	buffer := make([]byte, len(v)*float32Bytes)
 	for i, f := range v {
-		binary.LittleEndian.PutUint32(buffer[i*4:], math.Float32bits(f))
+		binary.LittleEndian.PutUint32(buffer[i*float32Bytes:], math.Float32bits(f))
 	}
 	return buffer
 }

@@ -23,16 +23,26 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/daemon/daemon_dto"
+	"piko.sh/piko/internal/ratelimiter/ratelimiter_adapters"
+	"piko.sh/piko/internal/ratelimiter/ratelimiter_domain"
 	"piko.sh/piko/internal/ratelimiter/ratelimiter_dto"
 	"piko.sh/piko/internal/security/security_domain"
 	"piko.sh/piko/internal/security/security_dto"
 	"piko.sh/piko/wdk/clock"
+)
+
+const (
+	windowTestRequestsPerMinute = 3
+	windowTestClientIP = "203.0.113.7"
 )
 
 func requestWithClientIP(method, target, clientIP string) *http.Request {
@@ -408,4 +418,230 @@ func TestNewRateLimitMiddleware_CustomClock(t *testing.T) {
 	)
 
 	assert.Equal(t, mockClock, middleware.clock)
+}
+
+type rateLimitedPath func(middleware *rateLimitMiddleware, clientIP string) *httptest.ResponseRecorder
+
+func TestRateLimitMiddleware_AllowsClientAgainAfterWindow(t *testing.T) {
+	t.Parallel()
+
+	tier := security_dto.RateLimitTierValues{RequestsPerMinute: windowTestRequestsPerMinute}
+
+	paths := []struct {
+		send   rateLimitedPath
+		name   string
+		config security_dto.RateLimitValues
+	}{
+		{
+			name:   "global limit",
+			config: security_dto.RateLimitValues{Global: tier, HeadersEnabled: true},
+			send:   sendGlobalRequest,
+		},
+		{
+			name:   "per-action limit",
+			config: security_dto.RateLimitValues{Actions: tier, HeadersEnabled: true},
+			send:   sendActionRequest,
+		},
+	}
+
+	testCases := []struct {
+		name       string
+		advance    time.Duration
+		wantStatus int
+	}{
+		{
+			name:       "still limited before the window ends",
+			advance:    time.Minute - time.Second,
+			wantStatus: http.StatusTooManyRequests,
+		},
+		{
+			name:       "allowed again once the window ends",
+			advance:    time.Minute,
+			wantStatus: http.StatusOK,
+		},
+		{
+			name:       "allowed again long after the window ends",
+			advance:    time.Hour,
+			wantStatus: http.StatusOK,
+		},
+	}
+
+	for _, path := range paths {
+		for _, testCase := range testCases {
+			t.Run(path.name+"/"+testCase.name, func(t *testing.T) {
+				t.Parallel()
+
+				mockClock := clock.NewMockClock(time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC))
+				middleware := newRateLimitMiddleware(path.config, newCacheBackedRateLimitService(t, mockClock),
+					withRateLimitClock(mockClock))
+
+				for range windowTestRequestsPerMinute {
+					require.Equal(t, http.StatusOK, path.send(middleware, windowTestClientIP).Code)
+				}
+				require.Equal(t, http.StatusTooManyRequests, path.send(middleware, windowTestClientIP).Code,
+					"the request after the limit is rejected")
+
+				mockClock.Advance(testCase.advance)
+
+				recorder := path.send(middleware, windowTestClientIP)
+				assert.Equal(t, testCase.wantStatus, recorder.Code)
+
+				resetAt, err := strconv.ParseInt(recorder.Header().Get(headerRateLimitReset), 10, 64)
+				require.NoError(t, err)
+				assert.Greater(t, resetAt, mockClock.Now().Unix(), "X-RateLimit-Reset is never in the past")
+			})
+		}
+	}
+}
+
+func sendGlobalRequest(middleware *rateLimitMiddleware, clientIP string) *httptest.ResponseRecorder {
+	handler := middleware.Handler(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, requestWithClientIP(http.MethodGet, "/page", clientIP))
+	return recorder
+}
+
+func sendActionRequest(middleware *rateLimitMiddleware, clientIP string) *httptest.ResponseRecorder {
+	recorder := httptest.NewRecorder()
+	if middleware.ActionHandler(recorder, requestWithClientIP(http.MethodPost, "/_piko/actions/contact.Send", clientIP), nil) {
+		recorder.WriteHeader(http.StatusOK)
+	}
+	return recorder
+}
+
+func newCacheBackedRateLimitService(t *testing.T, serviceClock clock.Clock) security_domain.RateLimitService {
+	t.Helper()
+
+	store, err := ratelimiter_adapters.NewCacheCounterStore(t.Context(), ratelimiter_adapters.CacheCounterStoreConfig{
+		CacheService:   cache_domain.NewService(""),
+		Clock:          serviceClock,
+		Provider:       "",
+		Namespace:      "",
+		MaximumEntries: 0,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { assert.NoError(t, store.Close(context.Background())) })
+
+	limiter := ratelimiter_domain.NewLimiter(ratelimiter_adapters.NoopTokenBucketStore{}, store,
+		ratelimiter_domain.WithClock(serviceClock))
+
+	return security_domain.NewRateLimitService(limiter)
+}
+
+func TestRateLimitMiddleware_GroupsIPv6ClientsByNetworkPrefix(t *testing.T) {
+	t.Parallel()
+
+	single := security_dto.RateLimitTierValues{RequestsPerMinute: 1}
+
+	paths := []struct {
+		send rateLimitedPath
+		name string
+	}{
+		{name: "global limit", send: sendGlobalRequest},
+		{name: "per-action limit", send: sendActionRequest},
+	}
+
+	testCases := []struct {
+		name       string
+		secondIP   string
+		prefixBits int
+		wantStatus int
+	}{
+		{
+			name:       "another address in the same /64 shares the limit",
+			secondIP:   "2001:db8:1:1::2",
+			wantStatus: http.StatusTooManyRequests,
+		},
+		{
+			name:       "an address in another /64 has its own limit",
+			secondIP:   "2001:db8:1:2::1",
+			wantStatus: http.StatusOK,
+		},
+		{
+			name:       "a configured /48 groups neighbouring /64s",
+			secondIP:   "2001:db8:1:2::1",
+			prefixBits: 48,
+			wantStatus: http.StatusTooManyRequests,
+		},
+		{
+			name:       "IPv4 addresses are never grouped",
+			secondIP:   "203.0.113.8",
+			wantStatus: http.StatusOK,
+		},
+	}
+
+	for _, path := range paths {
+		for _, testCase := range testCases {
+			t.Run(path.name+"/"+testCase.name, func(t *testing.T) {
+				t.Parallel()
+
+				firstIP := "2001:db8:1:1::1"
+				if strings.Contains(testCase.secondIP, ".") {
+					firstIP = "203.0.113.7"
+				}
+
+				mockClock := clock.NewMockClock(time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC))
+				config := security_dto.RateLimitValues{Global: single, Actions: single, IPv6PrefixBits: testCase.prefixBits}
+				middleware := newRateLimitMiddleware(config, newCacheBackedRateLimitService(t, mockClock),
+					withRateLimitClock(mockClock))
+
+				require.Equal(t, http.StatusOK, path.send(middleware, firstIP).Code)
+
+				assert.Equal(t, testCase.wantStatus, path.send(middleware, testCase.secondIP).Code)
+			})
+		}
+	}
+}
+
+func TestRateLimitMiddleware_RefusesARequestWithNoKnownAddress(t *testing.T) {
+	t.Parallel()
+
+	serviceCalled := false
+	mockService := &security_domain.MockRateLimitService{
+		CheckLimitFunc: func(_ context.Context, _ string, limit int, _ time.Duration) (ratelimiter_dto.Result, error) {
+			serviceCalled = true
+			return ratelimiter_dto.Result{Allowed: true, Limit: limit}, nil
+		},
+	}
+	middleware := newRateLimitMiddleware(
+		security_dto.RateLimitValues{Global: security_dto.RateLimitTierValues{RequestsPerMinute: 100}},
+		mockService,
+	)
+	handler := middleware.Handler(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	request := httptest.NewRequest(http.MethodGet, "/test", nil)
+	request.RemoteAddr = ""
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, request)
+
+	assert.Equal(t, http.StatusTooManyRequests, recorder.Code,
+		"a request with no known address must not share one bucket with every other such request")
+	assert.False(t, serviceCalled)
+}
+
+func TestRateLimitMiddleware_ActionIdentityStillKeysARequestWithNoKnownAddress(t *testing.T) {
+	t.Parallel()
+
+	var capturedKey string
+	mockService := &security_domain.MockRateLimitService{
+		CheckLimitFunc: func(_ context.Context, key string, limit int, _ time.Duration) (ratelimiter_dto.Result, error) {
+			capturedKey = key
+			return ratelimiter_dto.Result{Allowed: true, Limit: limit}, nil
+		},
+	}
+	middleware := newRateLimitMiddleware(
+		security_dto.RateLimitValues{Actions: security_dto.RateLimitTierValues{RequestsPerMinute: 100}},
+		mockService,
+	)
+
+	request := httptest.NewRequest(http.MethodPost, "/action", nil)
+	request.RemoteAddr = ""
+
+	assert.True(t, middleware.CheckActionAllowed(request, &security_dto.RateLimitOverride{Identity: "account-7"}))
+	assert.Equal(t, "ratelimit:action:account-7", capturedKey)
 }

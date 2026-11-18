@@ -59,6 +59,12 @@ const (
 	// mediaBoxElements is the number of elements in a PDF MediaBox array.
 	mediaBoxElements = 4
 
+	// mediaBoxURXIndex is the position of the upper right x coordinate in a /MediaBox.
+	mediaBoxURXIndex = 2
+
+	// mediaBoxURYIndex is the position of the upper right y coordinate in a /MediaBox.
+	mediaBoxURYIndex = 3
+
 	// defaultPageWidth is the US Letter width in points.
 	defaultPageWidth = 612.0
 
@@ -348,8 +354,8 @@ func extractMediaBox(pageDict pdfparse.Dict, doc *pdfparse.Document) (width floa
 		mediaBox = resolveInheritedMediaBox(pageDict, doc)
 	}
 	if len(mediaBox) >= mediaBoxElements {
-		return objectToFloat(mediaBox[2]) - objectToFloat(mediaBox[0]),
-			objectToFloat(mediaBox[3]) - objectToFloat(mediaBox[1])
+		return objectToFloat(mediaBox[mediaBoxURXIndex]) - objectToFloat(mediaBox[0]),
+			objectToFloat(mediaBox[mediaBoxURYIndex]) - objectToFloat(mediaBox[1])
 	}
 	return defaultPageWidth, defaultPageHeight
 }

@@ -40,6 +40,9 @@ import (
 )
 
 const (
+	// closeDrainTimeout bounds how long Close waits for in-flight requests to finish.
+	closeDrainTimeout = 30 * time.Second
+
 	// httpClientTimeout is a top-level HTTP client timeout that bounds requests even when
 	// the caller does not supply a per-request deadline. It is generous enough to allow
 	// long-running completions but prevents stuck connections from leaking goroutines
@@ -247,7 +250,7 @@ func (p *openaiProvider) Close(ctx context.Context) error {
 			close(done)
 		}()
 
-		waitContext, cancel := context.WithTimeoutCause(ctx, 30*time.Second,
+		waitContext, cancel := context.WithTimeoutCause(ctx, closeDrainTimeout,
 			errors.New("openai provider close drain exceeded 30s"))
 		defer cancel()
 

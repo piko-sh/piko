@@ -30,8 +30,8 @@ var (
 )
 
 type stubValidator struct {
-	calls  int
 	seen   any
+	calls  int
 	reject bool
 }
 
@@ -51,11 +51,11 @@ type validationTarget struct {
 
 func TestBindValidation(t *testing.T) {
 	testCases := []struct {
+		validator   *stubValidator
 		name        string
+		wantCalls   int
 		setValidate bool
 		validate    bool
-		validator   *stubValidator
-		wantCalls   int
 		wantErr     bool
 	}{
 		{
@@ -205,8 +205,8 @@ func TestBindMapAndBindJSONValidate(t *testing.T) {
 
 func TestBindValidationRunsExactlyOnce(t *testing.T) {
 	testCases := []struct {
-		name string
 		bind func(*ASTBinder, *validationTarget) error
+		name string
 	}{
 		{
 			name: "Bind",

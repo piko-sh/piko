@@ -30,6 +30,12 @@ import (
 	"piko.sh/safedisk"
 )
 
+const (
+	// standardMetadataKeyCount is the number of standard keys that convertItemMetadata adds
+	// on top of the user metadata.
+	standardMetadataKeyCount = 9
+)
+
 // expandStaticCollection creates virtual entry points for each content item.
 //
 // Takes provider (CollectionProvider) which supplies the static content.
@@ -420,7 +426,7 @@ func buildHybridConfigFromDirective(directive *collection_dto.CollectionDirectiv
 // Returns map[string]any which contains the item metadata with standard keys for template
 // use.
 func convertItemMetadata(item *collection_dto.ContentItem) map[string]any {
-	metadata := make(map[string]any, len(item.Metadata)+9)
+	metadata := make(map[string]any, len(item.Metadata)+standardMetadataKeyCount)
 	maps.Copy(metadata, item.Metadata)
 
 	metadata[collection_dto.MetaKeyID] = item.ID

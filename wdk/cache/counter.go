@@ -23,8 +23,12 @@ import (
 	"time"
 )
 
-// IncrementWithExpiry atomically increments a counter, setting TTL only on first
-// increment. This is the pattern required for rate limiting (fixed window counters).
+// IncrementWithExpiry atomically adds delta to a counter and sets ttl on its first
+// increment.
+//
+// Build c with PerEntryExpiration so later increments keep the first expiry. A cache with
+// a default TTL restarts the window on every increment. A cache without expiry never
+// resets the counter.
 //
 // A cancelled or expired context returns its error before work begins.
 //

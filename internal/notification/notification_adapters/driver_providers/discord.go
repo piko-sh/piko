@@ -25,7 +25,7 @@ import (
 	"strings"
 	"time"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 	"piko.sh/piko/internal/notification/notification_domain"
 	"piko.sh/piko/internal/notification/notification_dto"
 )

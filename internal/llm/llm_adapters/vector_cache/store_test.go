@@ -409,3 +409,88 @@ func TestMatchesFilter(t *testing.T) {
 		})
 	}
 }
+
+func TestStore_RejectsAVectorTheNamespaceCannotHold(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name   string
+		vector []float32
+	}{
+		{name: "an empty vector", vector: nil},
+		{name: "a shorter vector", vector: []float32{1, 0}},
+		{name: "a longer vector", vector: []float32{1, 0, 0, 0}},
+		{name: "a zero vector under cosine", vector: []float32{0, 0, 0}},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			s := newTestStore(t)
+			createTestNamespace(t, s, "test", 3)
+			ctx := t.Context()
+
+			err := s.Store(ctx, "test", &llm_dto.VectorDocument{ID: "single", Content: "single", Vector: testCase.vector})
+			require.ErrorIs(t, err, llm_domain.ErrInvalidVector)
+
+			err = s.BulkStore(ctx, "test", []*llm_dto.VectorDocument{
+				{ID: "valid", Content: "valid", Vector: []float32{1, 0, 0}},
+				{ID: "invalid", Content: "invalid", Vector: testCase.vector},
+			})
+			require.ErrorIs(t, err, llm_domain.ErrInvalidVector)
+
+			for _, id := range []string{"single", "valid", "invalid"} {
+				got, err := s.Get(ctx, "test", id)
+				require.NoError(t, err)
+				assert.Nil(t, got, "nothing is stored when a vector is refused: %s", id)
+			}
+		})
+	}
+}
+
+func TestStore_AcceptsAZeroVectorUnderEuclidean(t *testing.T) {
+	t.Parallel()
+
+	s := newTestStore(t)
+	ctx := t.Context()
+	require.NoError(t, s.CreateNamespace(ctx, "origin", &llm_domain.VectorNamespaceConfig{
+		Metric:    llm_dto.SimilarityEuclidean,
+		Dimension: 3,
+	}))
+
+	require.NoError(t, s.Store(ctx, "origin", &llm_dto.VectorDocument{ID: "origin", Content: "origin", Vector: []float32{0, 0, 0}}))
+
+	response, err := s.Search(ctx, &llm_dto.VectorSearchRequest{Namespace: "origin", Vector: []float32{0, 0, 0}, TopK: 1})
+	require.NoError(t, err)
+	require.Len(t, response.Results, 1)
+	assert.Equal(t, "origin", response.Results[0].ID)
+}
+
+func TestStore_SearchRejectsAQueryVectorTheNamespaceCannotCompare(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name   string
+		vector []float32
+	}{
+		{name: "a query of the wrong dimension", vector: []float32{1, 0}},
+		{name: "a zero query under cosine", vector: []float32{0, 0, 0}},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			s := newTestStore(t)
+			createTestNamespace(t, s, "test", 3)
+			ctx := t.Context()
+			require.NoError(t, s.Store(ctx, "test", &llm_dto.VectorDocument{ID: "a", Content: "alpha", Vector: []float32{1, 0, 0}}))
+
+			response, err := s.Search(ctx, &llm_dto.VectorSearchRequest{Namespace: "test", Vector: testCase.vector, TopK: 1})
+
+			require.ErrorIs(t, err, cache_domain.ErrInvalidQueryVector)
+			assert.Nil(t, response)
+		})
+	}
+}

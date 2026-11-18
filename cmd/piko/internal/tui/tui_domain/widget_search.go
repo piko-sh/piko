@@ -25,6 +25,13 @@ import (
 )
 
 const (
+	// searchBoxInputChromeWidth is the columns the search box reserves for its label, border
+	// and padding before the input field.
+	searchBoxInputChromeWidth = 12
+
+	// searchBoxBorderWidth is the columns taken by the search box border and padding.
+	searchBoxBorderWidth = 4
+
 	// searchBoxCharLimit is the maximum number of characters allowed in the search box.
 	searchBoxCharLimit = 128
 
@@ -91,7 +98,7 @@ func NewSearchBox() *SearchBox {
 // Takes w (int) which specifies the width in characters.
 func (s *SearchBox) SetWidth(w int) {
 	s.width = w
-	s.input.SetWidth(max(searchBoxMinInputWidth, w-12))
+	s.input.SetWidth(max(searchBoxMinInputWidth, w-searchBoxInputChromeWidth))
 }
 
 // SetOnClose sets the callback for when search is closed.
@@ -188,5 +195,5 @@ func (s *SearchBox) View() string {
 	inputView := s.input.View()
 
 	content := lipgloss.JoinHorizontal(lipgloss.Center, label, inputView)
-	return searchBoxStyle.Width(s.width - 4).Render(content)
+	return searchBoxStyle.Width(s.width - searchBoxBorderWidth).Render(content)
 }

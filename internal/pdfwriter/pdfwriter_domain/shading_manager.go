@@ -18,11 +18,6 @@
 
 package pdfwriter_domain
 
-// Manages PDF shading dictionaries for gradient backgrounds. Produces native PDF Type 2
-// (axial/linear) and Type 3 (radial) shading objects using stitching functions (Type 3
-// function) that compose piecewise Type 2 exponential interpolation functions between
-// adjacent colour stops. This gives vector-quality gradients with no rasterisation.
-
 import (
 	"fmt"
 	"math"
@@ -37,6 +32,12 @@ const (
 
 	// degreesToRadiansDivisor holds the divisor for converting degrees to radians.
 	degreesToRadiansDivisor = 180.0
+
+	// shadingTypeAxial holds the PDF shading type for an axial (linear) gradient.
+	shadingTypeAxial = 2
+
+	// shadingTypeRadial holds the PDF shading type for a radial gradient.
+	shadingTypeRadial = 3
 )
 
 // ShadingEntry holds a registered shading's resource name and the data needed to write
@@ -133,7 +134,7 @@ func (m *ShadingManager) RegisterLinearGradient(
 	name := fmt.Sprintf(shadingNameFmt, len(m.entries)+1)
 	m.entries = append(m.entries, ShadingEntry{
 		name:        name,
-		shadingType: 2,
+		shadingType: shadingTypeAxial,
 		x0:          x0,
 		y0:          y0,
 		x1:          x1,
@@ -162,7 +163,7 @@ func (m *ShadingManager) RegisterRadialGradient(
 	name := fmt.Sprintf(shadingNameFmt, len(m.entries)+1)
 	m.entries = append(m.entries, ShadingEntry{
 		name:        name,
-		shadingType: 3,
+		shadingType: shadingTypeRadial,
 		x0:          cx,
 		y0:          cy,
 		r0:          0,
@@ -193,7 +194,7 @@ func (m *ShadingManager) RegisterLinearGradientGray(
 	name := fmt.Sprintf(shadingNameFmt, len(m.entries)+1)
 	m.entries = append(m.entries, ShadingEntry{
 		name:        name,
-		shadingType: 2,
+		shadingType: shadingTypeAxial,
 		x0:          x0,
 		y0:          y0,
 		x1:          x1,
@@ -223,7 +224,7 @@ func (m *ShadingManager) RegisterRadialGradientGray(
 	name := fmt.Sprintf(shadingNameFmt, len(m.entries)+1)
 	m.entries = append(m.entries, ShadingEntry{
 		name:        name,
-		shadingType: 3,
+		shadingType: shadingTypeRadial,
 		x0:          cx,
 		y0:          cy,
 		r0:          0,
@@ -268,7 +269,7 @@ func (m *ShadingManager) WriteObjects(writer *PdfDocumentWriter) string {
 		}
 
 		var body string
-		if entry.shadingType == 2 {
+		if entry.shadingType == shadingTypeAxial {
 			body = fmt.Sprintf(
 				"<< /ShadingType 2 /ColorSpace %s /Coords [%s %s %s %s] /Function %s /Extend [true true] >>",
 				colourSpace,

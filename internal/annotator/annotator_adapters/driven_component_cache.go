@@ -30,6 +30,14 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
+const (
+	// componentCacheMaximumSize is the most parsed components the cache holds.
+	componentCacheMaximumSize = 2000
+
+	// componentCacheInitialCapacity is the number of entries the cache reserves up front.
+	componentCacheInitialCapacity = 100
+)
+
 // otterComponentCache is a driven adapter that implements ComponentCachePort using the
 // high-performance Otter v2 in-memory cache. It uses Otter's loading mechanism to provide
 // atomic, stampede-proof parsing of component files.
@@ -91,8 +99,8 @@ func (c *otterComponentCache) Clear(ctx context.Context) {
 // Returns annotator_domain.ComponentCachePort which is ready for use.
 func NewComponentCache() annotator_domain.ComponentCachePort {
 	cache := otter.Must(&otter.Options[string, *annotator_dto.ParsedComponent]{
-		MaximumSize:     2000,
-		InitialCapacity: 100,
+		MaximumSize:     componentCacheMaximumSize,
+		InitialCapacity: componentCacheInitialCapacity,
 		StatsRecorder:   stats.NewCounter(),
 	})
 

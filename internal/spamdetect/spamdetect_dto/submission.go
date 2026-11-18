@@ -26,7 +26,8 @@ import (
 	"slices"
 	"strings"
 	"time"
-	"unicode/utf8"
+
+	"piko.sh/piko/internal/runeutil"
 )
 
 const (
@@ -265,7 +266,7 @@ func (s *Submission) Clone() *Submission {
 //
 // Returns string which is the truncated value.
 func (s *Submission) truncateAndTrack(key string, value string, maximum int) string {
-	truncated := TruncateStringUTF8(value, maximum)
+	truncated := runeutil.TruncateBytes(value, maximum)
 	if len(truncated) < len(value) {
 		s.markTruncated(key)
 	}
@@ -327,31 +328,6 @@ func (s *Submission) sanitiseMap(name string, entries map[string]string, maxEntr
 			entries[key] = s.truncateAndTrack(name, entries[key], maxValueLength)
 		}
 	}
-}
-
-// TruncateStringUTF8 truncates a string to a maximum byte length, respecting rune
-// boundaries so the returned value is always valid UTF-8.
-//
-// Takes value (string) which is the string to truncate.
-// Takes maximum (int) which is the byte length limit.
-//
-// Returns string which is the truncated value.
-func TruncateStringUTF8(value string, maximum int) string {
-	if maximum < 0 {
-		maximum = 0
-	}
-	if len(value) <= maximum {
-		return value
-	}
-	if maximum == 0 {
-		return ""
-	}
-
-	cut := maximum
-	for cut > 0 && !utf8.RuneStart(value[cut]) {
-		cut--
-	}
-	return value[:cut]
 }
 
 // NormaliseRemoteIP returns a canonical string form of a client IP suitable for cache

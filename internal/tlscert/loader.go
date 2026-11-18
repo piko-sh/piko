@@ -40,6 +40,9 @@ const (
 	// certExpiryWarningDays is the number of days before expiry at which a warning is
 	// logged.
 	certExpiryWarningDays = 30
+
+	// hoursPerDay converts a number of hours into whole days.
+	hoursPerDay = 24
 )
 
 var (
@@ -166,7 +169,7 @@ func (cl *CertificateLoader) checkCertificateExpiry(ctx context.Context) {
 			if err != nil {
 				return
 			}
-			daysUntilExpiry := int(time.Until(parsed.NotAfter).Hours() / 24)
+			daysUntilExpiry := int(time.Until(parsed.NotAfter).Hours() / hoursPerDay)
 			if daysUntilExpiry < certExpiryWarningDays {
 				l.Warn("TLS certificate expires soon",
 					logger_domain.Int("days_until_expiry", daysUntilExpiry),
@@ -287,7 +290,7 @@ func (cl *CertificateLoader) isCertificateFile(name string) bool {
 // reloadCertificate attempts to reload the certificate from disk. On failure, the old
 // certificate is kept.
 func (cl *CertificateLoader) reloadCertificate(ctx context.Context) {
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 	if err := cl.loadCertificate(); err != nil {
 		l.Warn("Failed to reload TLS certificate, keeping current certificate",
 			logger_domain.Error(err),

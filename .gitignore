@@ -3,6 +3,11 @@
 /plugins/vscode/bin/
 /plugins/idea/src/main/resources/bin/
 /examples/**/bin/
+/cmd/generate_dal/generate_dal
+/cmd/piko/piko
+/cmd/pikopls/pikopls
+/cmd/stdlib-generator/stdlib-generator
+/cmd/wasm/*.wasm
 compiled
 out
 .out

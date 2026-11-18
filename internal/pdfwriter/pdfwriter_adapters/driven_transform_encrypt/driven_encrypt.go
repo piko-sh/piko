@@ -127,6 +127,14 @@ const (
 	// determine the next hash function in algorithm 2.B.
 	algorithm2BHashPrefixLen = 16
 
+	// algorithm2BCipherKeyLen is the number of leading bytes of K used as the AES-128 key in
+	// algorithm 2.B.
+	algorithm2BCipherKeyLen = 16
+
+	// algorithm2BCipherIVEnd is the end offset of the bytes of K, following the key, used as
+	// the AES-128 initialisation vector in algorithm 2.B.
+	algorithm2BCipherIVEnd = 32
+
 	// algorithm2BHashModulus selects the next hash function in algorithm 2.B.
 	algorithm2BHashModulus = 3
 
@@ -479,11 +487,11 @@ func algorithm2B(input, password, userKey []byte) ([]byte, error) {
 			k1 = append(k1, single...)
 		}
 
-		block, err := aes.NewCipher(k[:16])
+		block, err := aes.NewCipher(k[:algorithm2BCipherKeyLen])
 		if err != nil {
 			return nil, fmt.Errorf("creating AES cipher in algorithm 2.B: %w", err)
 		}
-		mode := cipher.NewCBCEncrypter(block, k[16:32])
+		mode := cipher.NewCBCEncrypter(block, k[algorithm2BCipherKeyLen:algorithm2BCipherIVEnd])
 		encrypted := make([]byte, len(k1))
 		mode.CryptBlocks(encrypted, k1)
 

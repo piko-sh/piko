@@ -33,8 +33,8 @@ import (
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
 
+	"piko.sh/json"
 	"piko.sh/piko/cmd/piko/internal/inspector"
-	"piko.sh/piko/internal/json"
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
 )
 
@@ -605,10 +605,10 @@ func formatNanos(nanoseconds int64) string {
 		return fmt.Sprintf("%dns", nanoseconds)
 	}
 	if d < time.Millisecond {
-		return fmt.Sprintf("%.1fus", float64(nanoseconds)/1000)
+		return fmt.Sprintf("%.1fus", float64(nanoseconds)/float64(time.Microsecond))
 	}
 	if d < time.Second {
-		return fmt.Sprintf("%.1fms", float64(nanoseconds)/1e6)
+		return fmt.Sprintf("%.1fms", float64(nanoseconds)/float64(time.Millisecond))
 	}
 	return fmt.Sprintf("%.2fs", d.Seconds())
 }

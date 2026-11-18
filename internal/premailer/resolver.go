@@ -33,6 +33,9 @@ const (
 	// limit prevents infinite loops from circular references where variables refer to each
 	// other.
 	maxResolveDepth = 20
+
+	// closeParen is the closing parenthesis of a CSS function such as var().
+	closeParen = ")"
 )
 
 // resolverContext holds state needed during CSS variable resolution. It groups related
@@ -420,7 +423,7 @@ func parseThemeValue(value string) []css_ast.Token {
 		return nil
 	}
 
-	if strings.HasPrefix(value, "var(") && strings.HasSuffix(value, ")") {
+	if strings.HasPrefix(value, "var(") && strings.HasSuffix(value, closeParen) {
 		return parseNestedVarFunction(value)
 	}
 
@@ -526,12 +529,12 @@ func parseFunctionToken(word string, parenIndex int) []css_ast.Token {
 	tokens = append(tokens, css_ast.Token{Kind: css_lexer.TFunction, Text: functionName})
 
 	rest := word[parenIndex+1:]
-	if rest != "" && rest != ")" {
-		tokens = append(tokens, css_ast.Token{Kind: css_lexer.TIdent, Text: strings.TrimSuffix(rest, ")")})
+	if rest != "" && rest != closeParen {
+		tokens = append(tokens, css_ast.Token{Kind: css_lexer.TIdent, Text: strings.TrimSuffix(rest, closeParen)})
 	}
 
-	if strings.HasSuffix(word, ")") {
-		tokens = append(tokens, css_ast.Token{Kind: css_lexer.TCloseParen, Text: ")"})
+	if strings.HasSuffix(word, closeParen) {
+		tokens = append(tokens, css_ast.Token{Kind: css_lexer.TCloseParen, Text: closeParen})
 	}
 
 	return tokens

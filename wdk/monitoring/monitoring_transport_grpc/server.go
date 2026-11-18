@@ -45,6 +45,10 @@ const (
 	// maxPortRetries is the maximum number of port increments to try when AutoNextPort is
 	// enabled.
 	maxPortRetries = 100
+
+	// gracefulStopTimeout bounds how long Stop waits for in-flight calls before forcing the
+	// server to stop.
+	gracefulStopTimeout = 10 * time.Second
 )
 
 // ServerConfig holds settings for the gRPC monitoring server.
@@ -204,7 +208,7 @@ func (s *Server) Stop(ctx context.Context) {
 	select {
 	case <-done:
 		l.Notice("gRPC monitoring server stopped gracefully")
-	case <-time.After(10 * time.Second):
+	case <-time.After(gracefulStopTimeout):
 		l.Warn("gRPC monitoring server graceful stop timed out, forcing stop")
 		s.grpcServer.Stop()
 	}

@@ -85,8 +85,8 @@ type pendingWrite struct {
 	// data holds the serialised entry with its length prefix.
 	data []byte
 
-	// enc holds the pooled buffer result to be released after writing.
-	enc EncodeResult
+	// encoded owns data and returns its buffer to the pool once written.
+	encoded wal_domain.EncodedEntry
 }
 
 // DiskWAL implements the WAL interface using disk-based storage.
@@ -119,6 +119,10 @@ type DiskWAL[K comparable, V any] struct {
 
 	// pendingChan coordinates group commit operations.
 	pendingChan chan pendingWrite
+
+	// wakeChan wakes the commit goroutine to drain pendingChan. Writers queue first and
+	// signal after, so one signal covers every write queued before it.
+	wakeChan chan struct{}
 
 	// codec converts WAL entries to and from binary format.
 	codec *BinaryCodec[K, V]
@@ -223,11 +227,15 @@ func (w *DiskWAL[K, V]) commitLoop(ctx context.Context) {
 	batch := make([]pendingWrite, 0, defaultMaxBatchSize)
 	timer := w.clock.NewTimer(defaultMaxBatchWait)
 	timer.Stop()
+	syncTimer := w.newIntervalSync()
+	defer syncTimer.stop()
 
 	defer close(w.commitDone)
 	defer goroutine.RecoverPanic(context.WithoutCancel(ctx), "wal.commitLoop")
 
 	for {
+		w.armIntervalSync(&syncTimer)
+
 		if w.fatalErr.Load() != nil {
 			w.drainAndFailAll(&batch)
 			return
@@ -239,10 +247,11 @@ func (w *DiskWAL[K, V]) commitLoop(ctx context.Context) {
 			w.flushAndClearBatch(ctx, &batch, timer)
 			return
 
-		case pw := <-w.pendingChan:
-			batch = append(batch, pw)
+		case <-w.wakeChan:
 			w.drainPending(&batch)
-			w.processCollectedBatch(ctx, &batch, timer)
+			if len(batch) > 0 {
+				w.processCollectedBatch(ctx, &batch, timer)
+			}
 
 			if w.fatalErr.Load() != nil {
 				w.drainAndFailAll(&batch)
@@ -256,7 +265,100 @@ func (w *DiskWAL[K, V]) commitLoop(ctx context.Context) {
 				w.drainAndFailAll(&batch)
 				return
 			}
+
+		case <-syncTimer.fired():
+			syncTimer.armed = false
+			w.syncPending(ctx)
 		}
+	}
+}
+
+// intervalSync bounds how long written entries stay unsynced in batched mode, so a quiet
+// log still reaches the disk within BatchSyncInterval of its last write.
+type intervalSync struct {
+	// timer fires when the oldest unsynced write reaches the interval. It is nil when the
+	// sync mode needs no timer.
+	timer clock.ChannelTimer
+
+	// interval is the longest time written entries may wait for a sync.
+	interval time.Duration
+
+	// armed records that the timer is running.
+	armed bool
+}
+
+// newIntervalSync makes the interval sync timer for the commit loop.
+//
+// Returns intervalSync which is inert unless the log syncs in batches on an interval.
+func (w *DiskWAL[K, V]) newIntervalSync() intervalSync {
+	if w.config.SyncMode != wal_domain.SyncModeBatched || w.config.BatchSyncInterval <= 0 {
+		return intervalSync{timer: nil, interval: 0, armed: false}
+	}
+	timer := w.clock.NewTimer(w.config.BatchSyncInterval)
+	timer.Stop()
+	return intervalSync{timer: timer, interval: w.config.BatchSyncInterval, armed: false}
+}
+
+// armIntervalSync starts the interval sync timer when written entries wait for a sync and
+// it is not already running. The timer is set for what remains of the interval since the
+// last sync.
+//
+// Takes s (*intervalSync) which is the commit loop's timer.
+func (w *DiskWAL[K, V]) armIntervalSync(s *intervalSync) {
+	if s.timer == nil || s.armed {
+		return
+	}
+	since, pending := w.unsyncedFor()
+	if !pending {
+		return
+	}
+	s.timer.Reset(max(0, s.interval-since))
+	s.armed = true
+}
+
+// fired returns the timer's channel, or nil when there is no timer, so the commit loop's
+// select never picks it.
+//
+// Returns <-chan time.Time which receives when the interval passes.
+func (s *intervalSync) fired() <-chan time.Time {
+	if s.timer == nil {
+		return nil
+	}
+	return s.timer.C()
+}
+
+// stop stops the timer.
+func (s *intervalSync) stop() {
+	if s.timer != nil {
+		s.timer.Stop()
+	}
+}
+
+// unsyncedFor reports whether written entries wait for a sync and how long ago the last
+// sync was.
+//
+// Returns time.Duration which is the time since the last sync.
+// Returns bool which is true when entries wait for a sync.
+//
+// Concurrency: Takes the write lock.
+func (w *DiskWAL[K, V]) unsyncedFor() (time.Duration, bool) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.clock.Now().Sub(w.lastSync), w.pendingSyncs > 0
+}
+
+// syncPending syncs entries that were written but not yet synced. A failed sync is fatal,
+// as it is for a sync after a batch.
+//
+// Concurrency: Takes the write lock.
+func (w *DiskWAL[K, V]) syncPending(ctx context.Context) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if w.pendingSyncs == 0 || w.fatalErr.Load() != nil {
+		return
+	}
+	if err := w.syncLocked(ctx); err != nil {
+		w.setFatalErr(err)
 	}
 }
 
@@ -434,15 +536,22 @@ func (w *DiskWAL[K, V]) handleSyncLocked(ctx context.Context) error {
 		return w.syncLocked(ctx)
 
 	case wal_domain.SyncModeBatched:
-		if w.pendingSyncs >= w.config.BatchSyncCount {
+		if w.pendingSyncs >= w.config.BatchSyncCount || w.intervalElapsedLocked() {
 			return w.syncLocked(ctx)
 		}
 
 	case wal_domain.SyncModeNone, wal_domain.SyncModeDefault:
-
 	}
 
 	return nil
+}
+
+// intervalElapsedLocked reports whether BatchSyncInterval has passed since the last sync.
+// Must be called with w.mu held.
+//
+// Returns bool which is true when a batched sync is due on time.
+func (w *DiskWAL[K, V]) intervalElapsedLocked() bool {
+	return w.config.BatchSyncInterval > 0 && w.clock.Now().Sub(w.lastSync) >= w.config.BatchSyncInterval
 }
 
 // syncLocked performs fsync on the WAL file. Must be called with w.mu held.
@@ -489,49 +598,170 @@ func (w *DiskWAL[K, V]) Append(ctx context.Context, entry wal_domain.Entry[K, V]
 //
 // Returns func() error which waits until the entry is written and synced as the sync mode
 // requires, or until ctx is cancelled.
-// Returns error when the WAL is closed, encoding fails, or ctx is cancelled before the
-// entry is queued.
+// Returns error when the WAL is closed, encoding fails, the queue stays full for the
+// queue timeout, or ctx is cancelled before the entry is queued.
 func (w *DiskWAL[K, V]) Enqueue(ctx context.Context, entry wal_domain.Entry[K, V]) (func() error, error) {
-	if w.closed.Load() {
-		return nil, wal_domain.ErrWALClosed
-	}
-
-	if err := w.checkFatalErr(); err != nil {
+	if err := w.checkWritable(); err != nil {
 		return nil, err
 	}
 
-	result, err := w.codec.EncodeWithLengthAndCRC(entry)
+	encoded, err := w.Encode(entry)
 	if err != nil {
-		return nil, fmt.Errorf("encoding entry: %w", err)
+		return nil, err
 	}
 
+	return w.enqueuePending(ctx, pendingWrite{
+		data:    encoded.Data(),
+		result:  nil,
+		encoded: encoded,
+	}, true)
+}
+
+// Encode encodes an entry for EnqueueEncoded, so the caller can encode before it takes
+// its own locks.
+//
+// Takes entry (wal_domain.Entry) which is the log entry to encode.
+//
+// Returns wal_domain.EncodedEntry which the caller queues or releases.
+// Returns error when encoding fails.
+func (w *DiskWAL[K, V]) Encode(entry wal_domain.Entry[K, V]) (wal_domain.EncodedEntry, error) {
+	result, err := w.codec.EncodeWithLengthAndCRC(entry)
+	if err != nil {
+		return wal_domain.EncodedEntry{}, fmt.Errorf("encoding entry: %w", err)
+	}
+	return wal_domain.NewEncodedEntry(result.Data, result.pool, PutByteBuffer), nil
+}
+
+// EnqueueEncoded queues an entry made by Encode, taking ownership of it.
+//
+// Takes encoded (wal_domain.EncodedEntry) which is the entry to queue.
+//
+// Returns func() error which waits as the wait from Enqueue does.
+// Returns error when the WAL is closed, the queue stays full for the queue timeout, or
+// ctx is cancelled before the entry is queued.
+func (w *DiskWAL[K, V]) EnqueueEncoded(ctx context.Context, encoded wal_domain.EncodedEntry) (func() error, error) {
+	if err := w.checkWritable(); err != nil {
+		encoded.Release()
+		return nil, err
+	}
+
+	return w.enqueuePending(ctx, pendingWrite{
+		data:    encoded.Data(),
+		result:  nil,
+		encoded: encoded,
+	}, true)
+}
+
+// QueueEncoded queues an entry made by Encode without waking the commit goroutine, taking
+// ownership of it. The caller signals once it has released its locks, and the returned
+// wait signals before it waits.
+//
+// Takes encoded (wal_domain.EncodedEntry) which is the entry to queue.
+//
+// Returns func() error which waits for the queued write to complete.
+// Returns error when the WAL is closed, the queue stays full, or the context is
+// cancelled.
+func (w *DiskWAL[K, V]) QueueEncoded(ctx context.Context, encoded wal_domain.EncodedEntry) (func() error, error) {
+	if err := w.checkWritable(); err != nil {
+		encoded.Release()
+		return nil, err
+	}
+
+	return w.enqueuePending(ctx, pendingWrite{
+		data:    encoded.Data(),
+		result:  nil,
+		encoded: encoded,
+	}, false)
+}
+
+// Signal wakes the commit goroutine to write every entry queued so far. A pending signal
+// covers this one, so Signal never blocks.
+func (w *DiskWAL[K, V]) Signal() {
 	select {
-	case <-ctx.Done():
-		result.Release()
-		return nil, cancellationError(ctx)
+	case w.wakeChan <- struct{}{}:
 	default:
+	}
+}
+
+// checkWritable reports whether the WAL still takes writes.
+//
+// Returns error when the WAL is closed or a fatal I/O error has occurred.
+func (w *DiskWAL[K, V]) checkWritable() error {
+	if w.closed.Load() {
+		return wal_domain.ErrWALClosed
+	}
+	return w.checkFatalErr()
+}
+
+// enqueuePending hands an encoded write to the commit goroutine.
+//
+// The send is tried without waiting first. When the queue is full it waits at most the
+// queue timeout, so a stalled disk fails the write instead of blocking the caller and any
+// locks it holds.
+//
+// The encoded buffers are released if queueing fails. When signal is false, the caller
+// signals later or the returned wait signals before waiting.
+//
+// Takes pw (pendingWrite) which holds the encoded write.
+// Takes signal (bool) which selects whether to wake the writer after queueing.
+//
+// Returns func() error which waits for the write's outcome.
+// Returns error when ctx is cancelled, the WAL stops, or the queue stays full.
+func (w *DiskWAL[K, V]) enqueuePending(ctx context.Context, pw pendingWrite, signal bool) (func() error, error) {
+	if ctx.Err() != nil {
+		pw.release()
+		return nil, cancellationError(ctx)
 	}
 
 	resultChan := getResultChan()
-	pw := pendingWrite{
-		data:   result.Data,
-		result: resultChan,
-		enc:    result,
+	pw.result = resultChan
+	wait := func() error { return w.awaitWrite(ctx, resultChan) }
+	if !signal {
+		wait = func() error {
+			w.Signal()
+			return w.awaitWrite(ctx, resultChan)
+		}
 	}
 
 	select {
-	case <-ctx.Done():
-		result.Release()
-		putResultChan(resultChan)
-		return nil, cancellationError(ctx)
-	case <-w.stopChan:
-		result.Release()
-		putResultChan(resultChan)
-		return nil, wal_domain.ErrWALClosed
 	case w.pendingChan <- pw:
+	default:
+		if err := w.sendWithTimeout(ctx, pw); err != nil {
+			pw.release()
+			putResultChan(resultChan)
+			return nil, err
+		}
 	}
+	if signal {
+		w.Signal()
+	}
+	return wait, nil
+}
 
-	return func() error { return w.awaitWrite(ctx, resultChan) }, nil
+// sendWithTimeout waits for room in the queue for at most the queue timeout.
+//
+// Takes pw (pendingWrite) which is the write to queue.
+//
+// Returns error when ctx is cancelled, the WAL stops, or the timeout passes first.
+func (w *DiskWAL[K, V]) sendWithTimeout(ctx context.Context, pw pendingWrite) error {
+	timeout := w.config.QueueTimeout
+	if timeout <= 0 {
+		timeout = wal_domain.DefaultQueueTimeout
+	}
+	timer := w.clock.NewTimer(timeout)
+	defer timer.Stop()
+	w.Signal()
+
+	select {
+	case <-ctx.Done():
+		return cancellationError(ctx)
+	case <-w.stopChan:
+		return wal_domain.ErrWALClosed
+	case <-timer.C():
+		return fmt.Errorf("%w: no room in the queue after %s", wal_domain.ErrQueueStalled, timeout)
+	case w.pendingChan <- pw:
+		return nil
+	}
 }
 
 // awaitWrite waits for the commit goroutine to report a queued entry's write.
@@ -630,6 +860,7 @@ func (w *DiskWAL[K, V]) yieldRecoveryEntries(
 	truncatePosition = -1
 	var currentPos int64
 	var zero wal_domain.Entry[K, V]
+	yieldApplied := func(applied wal_domain.Entry[K, V]) bool { return yield(applied, nil) }
 
 	for {
 		if ctx.Err() != nil {
@@ -646,14 +877,14 @@ func (w *DiskWAL[K, V]) yieldRecoveryEntries(
 		if shouldTruncate {
 			return currentPos, entryCount
 		}
-		if entry == nil {
+		if bytesRead == 0 {
 			return truncatePosition, entryCount
 		}
 
 		currentPos += bytesRead
 		entryCount++
 
-		if !EachApplied(*entry, func(applied wal_domain.Entry[K, V]) bool { return yield(applied, nil) }) {
+		if !EachApplied(entry, yieldApplied) {
 			return truncatePosition, entryCount
 		}
 	}
@@ -678,14 +909,21 @@ func (w *DiskWAL[K, V]) handleRecoveryCleanup(ctx context.Context, startTime tim
 
 // readNextEntry reads a single entry from the reader.
 //
+// The entry is returned by value and the logger is only fetched on the paths that log, so
+// reading an entry costs no allocation beyond its data and its decoding.
+//
+// Zero bytes consumed with no truncation and no error means the end of the log.
+//
 // Takes reader (io.Reader) which provides the input data stream.
 // Takes entryStart (int64) which is the byte offset of this entry.
 //
-// Returns *wal_domain.Entry[K, V] which is the decoded entry, or nil on EOF.
+// Returns wal_domain.Entry[K, V] which is the decoded entry, valid when the bytes
+// consumed are above zero.
 // Returns int64 which is the number of bytes consumed.
 // Returns bool which is true when the WAL should be truncated at this position.
 // Returns error when a non-recoverable read or decode error occurs.
-func (w *DiskWAL[K, V]) readNextEntry(ctx context.Context, reader io.Reader, entryStart int64) (*wal_domain.Entry[K, V], int64, bool, error) {
+func (w *DiskWAL[K, V]) readNextEntry(ctx context.Context, reader io.Reader, entryStart int64) (wal_domain.Entry[K, V], int64, bool, error) {
+	var zero wal_domain.Entry[K, V]
 	var lenBuf [lengthSize]byte
 	n, err := io.ReadFull(reader, lenBuf[:])
 	if err != nil {
@@ -695,18 +933,13 @@ func (w *DiskWAL[K, V]) readNextEntry(ctx context.Context, reader io.Reader, ent
 	length := binary.BigEndian.Uint32(lenBuf[:])
 
 	if length == 0 {
-		_, l := logger_domain.From(ctx, log)
-		l.Trace("Zero-length entry detected (alignment padding), truncating",
-			logger_domain.Int64(recoverLogKey, entryStart))
-		return nil, 0, true, nil
+		logPaddingReached(ctx, entryStart)
+		return zero, 0, true, nil
 	}
 
 	if length > maxEntrySize || length < crcSize+minPayloadSize {
-		_, l := logger_domain.From(ctx, log)
-		l.Warn("Invalid entry length detected, truncating",
-			logger_domain.Int64(recoverLogKey, entryStart),
-			logger_domain.Int64("length", int64(length)))
-		return nil, 0, true, nil
+		logInvalidLength(ctx, entryStart, length)
+		return zero, 0, true, nil
 	}
 
 	data := make([]byte, length)
@@ -718,16 +951,13 @@ func (w *DiskWAL[K, V]) readNextEntry(ctx context.Context, reader io.Reader, ent
 	result, err := w.codec.DecodeWithCRC(data)
 	if err != nil {
 		if errors.Is(err, wal_domain.ErrCorrupted) {
-			_, l := logger_domain.From(ctx, log)
-			l.Warn("Corrupted entry detected, truncating",
-				logger_domain.Int64(recoverLogKey, entryStart),
-				logger_domain.Error(err))
-			return nil, 0, true, nil
+			logCorruptedEntry(ctx, entryStart, err)
+			return zero, 0, true, nil
 		}
-		return nil, 0, false, fmt.Errorf("decoding entry: %w", err)
+		return zero, 0, false, fmt.Errorf("decoding entry: %w", err)
 	}
 
-	return &result.Entry, int64(lengthSize + n), false, nil
+	return result.Entry, int64(lengthSize + n), false, nil
 }
 
 // handleLengthReadError handles errors when reading the length prefix.
@@ -736,21 +966,22 @@ func (w *DiskWAL[K, V]) readNextEntry(ctx context.Context, reader io.Reader, ent
 // Takes bytesRead (int) which is the number of bytes read before the error.
 // Takes entryStart (int64) which is the byte offset where the entry starts.
 //
-// Returns *wal_domain.Entry[K, V] which is always nil.
+// Returns wal_domain.Entry[K, V] which is always the zero entry.
 // Returns int64 which is always zero.
 // Returns bool which is true when truncation is needed.
 // Returns error when the read error is not EOF-related.
-func (*DiskWAL[K, V]) handleLengthReadError(ctx context.Context, err error, bytesRead int, entryStart int64) (*wal_domain.Entry[K, V], int64, bool, error) {
+func (*DiskWAL[K, V]) handleLengthReadError(ctx context.Context, err error, bytesRead int, entryStart int64) (wal_domain.Entry[K, V], int64, bool, error) {
+	var zero wal_domain.Entry[K, V]
 	if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
 		if bytesRead > 0 {
 			_, l := logger_domain.From(ctx, log)
 			l.Warn("Partial length prefix detected, truncating",
 				logger_domain.Int64(recoverLogKey, entryStart))
-			return nil, 0, true, nil
+			return zero, 0, true, nil
 		}
-		return nil, 0, false, nil
+		return zero, 0, false, nil
 	}
-	return nil, 0, false, fmt.Errorf("reading length prefix: %w", err)
+	return zero, 0, false, fmt.Errorf("reading length prefix: %w", err)
 }
 
 // handleDataReadError handles errors when reading entry data.
@@ -758,11 +989,11 @@ func (*DiskWAL[K, V]) handleLengthReadError(ctx context.Context, err error, byte
 // Takes err (error) which is the read error to handle.
 // Takes entryStart (int64) which is the byte offset where the entry starts.
 //
-// Returns *wal_domain.Entry[K, V] which is always nil.
+// Returns wal_domain.Entry[K, V] which is always the zero entry.
 // Returns int64 which is always zero.
 // Returns bool which is always true, indicating truncation is needed.
 // Returns error which is always nil as truncation handles recovery.
-func (*DiskWAL[K, V]) handleDataReadError(ctx context.Context, err error, entryStart int64) (*wal_domain.Entry[K, V], int64, bool, error) {
+func (*DiskWAL[K, V]) handleDataReadError(ctx context.Context, err error, entryStart int64) (wal_domain.Entry[K, V], int64, bool, error) {
 	_, l := logger_domain.From(ctx, log)
 	if errors.Is(err, io.ErrUnexpectedEOF) {
 		l.Warn("Partial entry detected, truncating",
@@ -772,7 +1003,7 @@ func (*DiskWAL[K, V]) handleDataReadError(ctx context.Context, err error, entryS
 			logger_domain.Int64(recoverLogKey, entryStart),
 			logger_domain.Error(err))
 	}
-	return nil, 0, true, nil
+	return wal_domain.Entry[K, V]{}, 0, true, nil
 }
 
 // handleTruncation performs truncation if corruption was detected.
@@ -1011,9 +1242,14 @@ func (w *DiskWAL[K, V]) drainAndFailAll(batch *[]pendingWrite) {
 	w.drainPending(batch)
 	for _, pw := range *batch {
 		sendResult(pw, wal_domain.ErrWriterInBadState)
-		pw.enc.Release()
+		pw.release()
 	}
 	*batch = (*batch)[:0]
+}
+
+// release returns the write's encoding buffers to their pools.
+func (pw *pendingWrite) release() {
+	pw.encoded.Release()
 }
 
 var (
@@ -1081,29 +1317,7 @@ func NewDiskWAL[K comparable, V any](
 		return nil, fmt.Errorf("validating WAL config: %w", err)
 	}
 
-	wal := &DiskWAL[K, V]{
-		closeCtx: context.WithoutCancel(ctx),
-		codec:    codec,
-		config:   config,
-
-		clock:        clock.RealClock(),
-		pendingChan:  make(chan pendingWrite, defaultChannelSize),
-		commitDone:   make(chan struct{}),
-		stopChan:     make(chan struct{}),
-		lastSync:     time.Time{},
-		file:         nil,
-		sandbox:      nil,
-		fatalErr:     atomic.Pointer[error]{},
-		tailBuf:      nil,
-		alignedBuf:   nil,
-		entryCount:   atomic.Int64{},
-		fileSize:     atomic.Int64{},
-		nextOffset:   0,
-		pendingSyncs: 0,
-		mu:           sync.Mutex{},
-		alignWrites:  false,
-		closed:       atomic.Bool{},
-	}
+	wal := newDiskWALState(ctx, config, codec)
 
 	for _, opt := range opts {
 		opt(wal)
@@ -1132,6 +1346,40 @@ func NewDiskWAL[K comparable, V any](
 		logger_domain.Int64("initial_size", wal.fileSize.Load()))
 
 	return wal, nil
+}
+
+// newDiskWALState builds a DiskWAL with its channels made and nothing opened yet.
+//
+// Takes config (wal_domain.Config) which is the validated configuration.
+// Takes codec (*BinaryCodec[K, V]) which encodes and decodes entries.
+//
+// Returns *DiskWAL[K, V] which still needs its file opened and its commit goroutine
+// started.
+func newDiskWALState[K comparable, V any](ctx context.Context, config wal_domain.Config, codec *BinaryCodec[K, V]) *DiskWAL[K, V] {
+	return &DiskWAL[K, V]{
+		closeCtx: context.WithoutCancel(ctx),
+		codec:    codec,
+		config:   config,
+
+		clock:        clock.RealClock(),
+		pendingChan:  make(chan pendingWrite, defaultChannelSize),
+		wakeChan:     make(chan struct{}, 1),
+		commitDone:   make(chan struct{}),
+		stopChan:     make(chan struct{}),
+		lastSync:     time.Time{},
+		file:         nil,
+		sandbox:      nil,
+		fatalErr:     atomic.Pointer[error]{},
+		tailBuf:      nil,
+		alignedBuf:   nil,
+		entryCount:   atomic.Int64{},
+		fileSize:     atomic.Int64{},
+		nextOffset:   0,
+		pendingSyncs: 0,
+		mu:           sync.Mutex{},
+		alignWrites:  false,
+		closed:       atomic.Bool{},
+	}
 }
 
 // getResultChan returns a result channel from the pool.
@@ -1216,7 +1464,7 @@ func createWALSandbox(directory string) (safedisk.Sandbox, error) {
 func notifyBatchWaiters(batch []pendingWrite, err error) {
 	for _, pw := range batch {
 		sendResult(pw, err)
-		pw.enc.Release()
+		pw.release()
 	}
 }
 
@@ -1245,4 +1493,36 @@ func cancellationError(ctx context.Context) error {
 		return err
 	}
 	return fmt.Errorf("%w: %w", err, cause)
+}
+
+// logPaddingReached records that recovery reached the zero padding after the last entry.
+// Recovery logs from helpers like this so reading an entry never fetches the logger.
+//
+// Takes entryStart (int64) which is the offset of the padding.
+func logPaddingReached(ctx context.Context, entryStart int64) {
+	_, l := logger_domain.From(ctx, log)
+	l.Trace("Zero-length entry detected (alignment padding), truncating",
+		logger_domain.Int64(recoverLogKey, entryStart))
+}
+
+// logInvalidLength records that recovery found an entry length out of range.
+//
+// Takes entryStart (int64) which is the offset of the entry.
+// Takes length (uint32) which is the length it read.
+func logInvalidLength(ctx context.Context, entryStart int64, length uint32) {
+	_, l := logger_domain.From(ctx, log)
+	l.Warn("Invalid entry length detected, truncating",
+		logger_domain.Int64(recoverLogKey, entryStart),
+		logger_domain.Int64("length", int64(length)))
+}
+
+// logCorruptedEntry records that recovery found an entry that failed its checks.
+//
+// Takes entryStart (int64) which is the offset of the entry.
+// Takes err (error) which describes the corruption.
+func logCorruptedEntry(ctx context.Context, entryStart int64, err error) {
+	_, l := logger_domain.From(ctx, log)
+	l.Warn("Corrupted entry detected, truncating",
+		logger_domain.Int64(recoverLogKey, entryStart),
+		logger_domain.Error(err))
 }

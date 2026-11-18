@@ -51,7 +51,13 @@ func (p *StoragePanel) buildDetailBody() inspector.DetailBody {
 //
 // Returns inspector.DetailBody describing artefact status counts.
 func (p *StoragePanel) overviewDetailBody() inspector.DetailBody {
-	counts := map[ResourceStatus]int{}
+	counts := map[ResourceStatus]int{
+		ResourceStatusUnknown:   0,
+		ResourceStatusHealthy:   0,
+		ResourceStatusDegraded:  0,
+		ResourceStatusUnhealthy: 0,
+		ResourceStatusPending:   0,
+	}
 	for i := range p.artefacts {
 		counts[p.artefacts[i].Status]++
 	}

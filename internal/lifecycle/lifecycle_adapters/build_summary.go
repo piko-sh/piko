@@ -47,6 +47,22 @@ const (
 	// error snippets with source location and caret information.
 	minDiagnosticLineParts = 3
 
+	// locationLineStartIndex is the submatch index slot where the line number starts in a
+	// locationPattern match.
+	locationLineStartIndex = 2
+
+	// locationLineEndIndex is the submatch index slot where the line number ends in a
+	// locationPattern match.
+	locationLineEndIndex = 3
+
+	// locationColumnStartIndex is the submatch index slot where the column number starts in
+	// a locationPattern match.
+	locationColumnStartIndex = 4
+
+	// locationColumnEndIndex is the submatch index slot where the column number ends in a
+	// locationPattern match.
+	locationColumnEndIndex = 5
+
 	// summaryLineFormat is the format string for individual summary lines.
 	summaryLineFormat = "   %s %d %s\n"
 
@@ -477,8 +493,8 @@ func extractBuildErrorSnippet(cleaned string) *buildErrorSnippet {
 		return nil
 	}
 
-	line, _ := strconv.Atoi(firstLine[match[2]:match[3]])
-	column, _ := strconv.Atoi(firstLine[match[4]:match[5]])
+	line, _ := strconv.Atoi(firstLine[match[locationLineStartIndex]:match[locationLineEndIndex]])
+	column, _ := strconv.Atoi(firstLine[match[locationColumnStartIndex]:match[locationColumnEndIndex]])
 
 	coreMessage := extractCoreMessage(firstLine[:match[0]])
 

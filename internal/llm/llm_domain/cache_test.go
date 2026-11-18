@@ -21,6 +21,7 @@ package llm_domain
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -31,12 +32,12 @@ import (
 )
 
 func TestNewCacheKeyGenerator(t *testing.T) {
-	gen := NewCacheKeyGenerator()
-	require.NotNil(t, gen)
+	generator := NewCacheKeyGenerator()
+	require.NotNil(t, generator)
 }
 
 func TestCacheKeyGenerator_Generate(t *testing.T) {
-	gen := NewCacheKeyGenerator()
+	generator := NewCacheKeyGenerator()
 
 	t.Run("generates consistent keys for same request", func(t *testing.T) {
 		request := &llm_dto.CompletionRequest{
@@ -46,29 +47,29 @@ func TestCacheKeyGenerator_Generate(t *testing.T) {
 			},
 		}
 
-		key1 := gen.Generate(request, "openai")
-		key2 := gen.Generate(request, "openai")
+		key1 := generator.Generate(request, "openai")
+		key2 := generator.Generate(request, "openai")
 
 		assert.Equal(t, key1, key2)
 		assert.Len(t, key1, 64)
 	})
 
 	t.Run("generates different keys for different messages", func(t *testing.T) {
-		req1 := &llm_dto.CompletionRequest{
+		firstRequest := &llm_dto.CompletionRequest{
 			Model: "gpt-4o",
 			Messages: []llm_dto.Message{
 				{Role: llm_dto.RoleUser, Content: "Hello"},
 			},
 		}
-		req2 := &llm_dto.CompletionRequest{
+		secondRequest := &llm_dto.CompletionRequest{
 			Model: "gpt-4o",
 			Messages: []llm_dto.Message{
 				{Role: llm_dto.RoleUser, Content: "Goodbye"},
 			},
 		}
 
-		key1 := gen.Generate(req1, "openai")
-		key2 := gen.Generate(req2, "openai")
+		key1 := generator.Generate(firstRequest, "openai")
+		key2 := generator.Generate(secondRequest, "openai")
 
 		assert.NotEqual(t, key1, key2)
 	})
@@ -81,41 +82,41 @@ func TestCacheKeyGenerator_Generate(t *testing.T) {
 			},
 		}
 
-		key1 := gen.Generate(request, "openai")
-		key2 := gen.Generate(request, "azure")
+		key1 := generator.Generate(request, "openai")
+		key2 := generator.Generate(request, "azure")
 
 		assert.NotEqual(t, key1, key2)
 	})
 
 	t.Run("generates different keys for different models", func(t *testing.T) {
-		req1 := &llm_dto.CompletionRequest{
+		firstRequest := &llm_dto.CompletionRequest{
 			Model: "gpt-4o",
 			Messages: []llm_dto.Message{
 				{Role: llm_dto.RoleUser, Content: "Hello"},
 			},
 		}
-		req2 := &llm_dto.CompletionRequest{
+		secondRequest := &llm_dto.CompletionRequest{
 			Model: "gpt-4o-mini",
 			Messages: []llm_dto.Message{
 				{Role: llm_dto.RoleUser, Content: "Hello"},
 			},
 		}
 
-		key1 := gen.Generate(req1, "openai")
-		key2 := gen.Generate(req2, "openai")
+		key1 := generator.Generate(firstRequest, "openai")
+		key2 := generator.Generate(secondRequest, "openai")
 
 		assert.NotEqual(t, key1, key2)
 	})
 
 	t.Run("generates different keys for different temperatures", func(t *testing.T) {
-		req1 := &llm_dto.CompletionRequest{
+		firstRequest := &llm_dto.CompletionRequest{
 			Model: "gpt-4o",
 			Messages: []llm_dto.Message{
 				{Role: llm_dto.RoleUser, Content: "Hello"},
 			},
 			Temperature: new(0.5),
 		}
-		req2 := &llm_dto.CompletionRequest{
+		secondRequest := &llm_dto.CompletionRequest{
 			Model: "gpt-4o",
 			Messages: []llm_dto.Message{
 				{Role: llm_dto.RoleUser, Content: "Hello"},
@@ -123,8 +124,8 @@ func TestCacheKeyGenerator_Generate(t *testing.T) {
 			Temperature: new(0.7),
 		}
 
-		key1 := gen.Generate(req1, "openai")
-		key2 := gen.Generate(req2, "openai")
+		key1 := generator.Generate(firstRequest, "openai")
+		key2 := generator.Generate(secondRequest, "openai")
 
 		assert.NotEqual(t, key1, key2)
 	})
@@ -151,7 +152,7 @@ func TestNewCacheManager(t *testing.T) {
 }
 
 func TestCacheManager_GetOrExecute(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("executes when cache disabled", func(t *testing.T) {
 		store := NewMockCacheStore()
@@ -318,7 +319,7 @@ func TestCacheManager_GetOrExecute(t *testing.T) {
 		customKey := "my-custom-cache-key-12345"
 		config := &llm_dto.CacheConfig{Enabled: true, Key: customKey}
 
-		err := store.Set(ctx, customKey, &llm_dto.CacheEntry{
+		err := store.Set(ctx, hashCustomKey("openai", "gpt-4o", customKey), &llm_dto.CacheEntry{
 			Response:  &llm_dto.CompletionResponse{ID: "cached-with-custom-key"},
 			ExpiresAt: mockClock.Now().Add(time.Hour),
 		})
@@ -380,7 +381,7 @@ func TestCacheManager_GetOrExecute(t *testing.T) {
 }
 
 func TestCacheManager_Get(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("returns nil for non-existent key", func(t *testing.T) {
 		store := NewMockCacheStore()
@@ -425,7 +426,7 @@ func TestCacheManager_Get(t *testing.T) {
 }
 
 func TestCacheManager_Set(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	store := NewMockCacheStore()
 	manager := NewCacheManager(store, time.Hour)
 
@@ -444,7 +445,7 @@ func TestCacheManager_Set(t *testing.T) {
 }
 
 func TestCacheManager_Delete(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	store := NewMockCacheStore()
 	manager := NewCacheManager(store, time.Hour)
 
@@ -460,7 +461,7 @@ func TestCacheManager_Delete(t *testing.T) {
 }
 
 func TestCacheManager_Clear(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	store := NewMockCacheStore()
 	manager := NewCacheManager(store, time.Hour)
 
@@ -474,7 +475,7 @@ func TestCacheManager_Clear(t *testing.T) {
 }
 
 func TestCacheManager_GetStats(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	store := NewMockCacheStore()
 	manager := NewCacheManager(store, time.Hour)
 
@@ -505,7 +506,7 @@ func TestCacheManager_GenerateKey(t *testing.T) {
 }
 
 func TestCacheKeyGenerator_Generate_WithTools(t *testing.T) {
-	gen := NewCacheKeyGenerator()
+	generator := NewCacheKeyGenerator()
 
 	base := &llm_dto.CompletionRequest{
 		Model: "gpt-4o",
@@ -524,14 +525,14 @@ func TestCacheKeyGenerator_Generate_WithTools(t *testing.T) {
 		},
 	}
 
-	keyBase := gen.Generate(base, "openai")
-	keyWithTools := gen.Generate(withTools, "openai")
+	keyBase := generator.Generate(base, "openai")
+	keyWithTools := generator.Generate(withTools, "openai")
 
 	assert.NotEqual(t, keyBase, keyWithTools)
 }
 
 func TestCacheKeyGenerator_Generate_WithResponseFormat(t *testing.T) {
-	gen := NewCacheKeyGenerator()
+	generator := NewCacheKeyGenerator()
 
 	base := &llm_dto.CompletionRequest{
 		Model: "gpt-4o",
@@ -548,8 +549,159 @@ func TestCacheKeyGenerator_Generate_WithResponseFormat(t *testing.T) {
 		ResponseFormat: &llm_dto.ResponseFormat{Type: llm_dto.ResponseFormatJSONObject},
 	}
 
-	keyBase := gen.Generate(base, "openai")
-	keyWithFormat := gen.Generate(withFormat, "openai")
+	keyBase := generator.Generate(base, "openai")
+	keyWithFormat := generator.Generate(withFormat, "openai")
 
 	assert.NotEqual(t, keyBase, keyWithFormat)
+}
+
+func TestCacheManager_GetOrExecute_ShortCustomKey(t *testing.T) {
+	t.Parallel()
+
+	store := NewMockCacheStore()
+	manager := NewCacheManager(store, time.Hour)
+	request := &llm_dto.CompletionRequest{
+		Model:    "gpt-4o",
+		Messages: []llm_dto.Message{{Role: llm_dto.RoleUser, Content: "Hi"}},
+	}
+	config := &llm_dto.CacheConfig{Enabled: true, Key: "k"}
+
+	for range 2 {
+		require.NotPanics(t, func() {
+			_, _, err := manager.GetOrExecute(t.Context(), config, request, "openai", func() (*llm_dto.CompletionResponse, error) {
+				return &llm_dto.CompletionResponse{ID: "new"}, nil
+			})
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestCacheManager_CustomKeyIsScopedToProviderAndModel(t *testing.T) {
+	t.Parallel()
+
+	store := NewMockCacheStore()
+	manager := NewCacheManager(store, time.Hour)
+	config := &llm_dto.CacheConfig{Enabled: true, Key: "shared-key"}
+
+	calls := []struct {
+		provider string
+		model    string
+	}{
+		{provider: "openai", model: "gpt-4o"},
+		{provider: "anthropic", model: "gpt-4o"},
+		{provider: "openai", model: "gpt-4o-mini"},
+	}
+
+	for _, call := range calls {
+		request := &llm_dto.CompletionRequest{
+			Model:    call.model,
+			Messages: []llm_dto.Message{{Role: llm_dto.RoleUser, Content: "Hi"}},
+		}
+		wantID := call.provider + "/" + call.model
+
+		response, fromCache, err := manager.GetOrExecute(t.Context(), config, request, call.provider, func() (*llm_dto.CompletionResponse, error) {
+			return &llm_dto.CompletionResponse{ID: wantID}, nil
+		})
+
+		require.NoError(t, err)
+		assert.False(t, fromCache, "%s must not reuse another provider or model's entry", wantID)
+		assert.Equal(t, wantID, response.ID)
+	}
+}
+
+func TestCacheManager_CustomKeyReachesEntryStoredWithCustomKey(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	store := NewMockCacheStore()
+	manager := NewCacheManager(store, time.Hour)
+	config := &llm_dto.CacheConfig{Enabled: true, Key: "report-42"}
+	request := &llm_dto.CompletionRequest{
+		Model:    "gpt-4o",
+		Messages: []llm_dto.Message{{Role: llm_dto.RoleUser, Content: "Hi"}},
+	}
+
+	_, _, err := manager.GetOrExecute(ctx, config, request, "openai", func() (*llm_dto.CompletionResponse, error) {
+		return &llm_dto.CompletionResponse{ID: "cached"}, nil
+	})
+	require.NoError(t, err)
+
+	key := manager.CustomKey("openai", "gpt-4o", "report-42")
+	entry, err := manager.Get(ctx, key)
+	require.NoError(t, err)
+	require.NotNil(t, entry, "the custom key must find the entry GetOrExecute stored")
+	assert.Equal(t, "cached", entry.Response.ID)
+
+	require.NoError(t, manager.Delete(ctx, key))
+	entry, err = manager.Get(ctx, key)
+	require.NoError(t, err)
+	assert.Nil(t, entry, "deleting by the custom key removes the entry")
+}
+
+func TestHashCustomKey(t *testing.T) {
+	t.Parallel()
+
+	key := hashCustomKey("openai", "gpt-4o", "custom")
+
+	assert.Len(t, key, 64)
+	assert.Equal(t, key, hashCustomKey("openai", "gpt-4o", "custom"))
+	assert.NotEqual(t, key, hashCustomKey("openai", "gpt-4o"+"\x00", "custom"[1:]), "the separator keeps fields apart")
+}
+
+func TestShortKey(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name string
+		key  string
+		want string
+	}{
+		{name: "empty key", key: "", want: "..."},
+		{name: "short key", key: "abc", want: "abc..."},
+		{name: "long key", key: "0123456789abcdef0123", want: "0123456789abcdef..."},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, testCase.want, shortKey(testCase.key))
+		})
+	}
+}
+
+func TestCacheManager_GetOrExecute_DoesNotChangeStoredEntry(t *testing.T) {
+	t.Parallel()
+
+	const readers = 8
+
+	mockClock := clock.NewMockClock(time.Date(2026, 3, 28, 10, 0, 0, 0, time.UTC))
+	shared := &llm_dto.CacheEntry{
+		Response:  &llm_dto.CompletionResponse{ID: "cached"},
+		ExpiresAt: mockClock.Now().Add(time.Hour),
+	}
+	store := NewMockCacheStore()
+	store.GetFunc = func(context.Context, string) (*llm_dto.CacheEntry, error) {
+		return shared, nil
+	}
+	manager := NewCacheManager(store, time.Hour, WithCacheManagerClock(mockClock))
+	request := &llm_dto.CompletionRequest{
+		Model:    "gpt-4o",
+		Messages: []llm_dto.Message{{Role: llm_dto.RoleUser, Content: "Hi"}},
+	}
+	config := &llm_dto.CacheConfig{Enabled: true}
+
+	var wg sync.WaitGroup
+	for range readers {
+		wg.Go(func() {
+			_, fromCache, err := manager.GetOrExecute(t.Context(), config, request, "openai", func() (*llm_dto.CompletionResponse, error) {
+				return nil, errors.New("must be served from the cache")
+			})
+			assert.NoError(t, err)
+			assert.True(t, fromCache)
+		})
+	}
+	wg.Wait()
+
+	assert.Zero(t, shared.HitCount, "the manager must not change the entry the store returned")
 }

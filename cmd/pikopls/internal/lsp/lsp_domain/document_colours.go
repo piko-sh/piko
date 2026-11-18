@@ -39,6 +39,16 @@ const (
 	// hexLengthWithAlpha is the length of a hex colour with alpha (#RRGGBBAA).
 	hexLengthWithAlpha = 8
 
+	// hexDigitBase is the numeric base of a hexadecimal digit.
+	hexDigitBase = 16
+
+	// hexLetterValueOffset is the value of the hex digit 'a' or 'A'.
+	hexLetterValueOffset = 10
+
+	// alphaArgumentIndex is the position of the alpha argument in rgba() and hsla() colour
+	// functions.
+	alphaArgumentIndex = 3
+
 	// rgbChannelMax is the maximum value for an RGB colour channel.
 	rgbChannelMax = 255
 
@@ -490,7 +500,7 @@ func parseRGBColour(match *colorFuncMatch) (protocol.Color, bool) {
 	a := 1.0
 
 	if isRGBA {
-		a = parseAlphaComponent(arguments[3])
+		a = parseAlphaComponent(arguments[alphaArgumentIndex])
 	}
 
 	return protocol.Color{Red: r, Green: g, Blue: b, Alpha: a}, true
@@ -527,7 +537,7 @@ func parseHSLColour(match *colorFuncMatch) (protocol.Color, bool) {
 	a := 1.0
 
 	if isHSLA {
-		a = parseAlphaComponent(arguments[3])
+		a = parseAlphaComponent(arguments[alphaArgumentIndex])
 	}
 
 	r, g, b := hslToRGB(h, s, l)
@@ -916,24 +926,31 @@ func isHexDigit(c byte) bool {
 // Returns a (float64) which is the alpha channel value, defaulting to 1.0.
 func parseHexColor(hex string) (r, g, b, a float64) {
 	a = 1.0
-	const hexBase = 16
+	channels := []*float64{&r, &g, &b, &a}
 
-	if len(hex) == hexLengthShort {
-		r = float64(hexCharToInt(hex[0])*hexBase+hexCharToInt(hex[0])) / rgbChannelMaxF
-		g = float64(hexCharToInt(hex[1])*hexBase+hexCharToInt(hex[1])) / rgbChannelMaxF
-		b = float64(hexCharToInt(hex[2])*hexBase+hexCharToInt(hex[2])) / rgbChannelMaxF
-	} else if len(hex) == hexLengthStandard {
-		r = float64(hexCharToInt(hex[0])*hexBase+hexCharToInt(hex[1])) / rgbChannelMaxF
-		g = float64(hexCharToInt(hex[2])*hexBase+hexCharToInt(hex[3])) / rgbChannelMaxF
-		b = float64(hexCharToInt(hex[4])*hexBase+hexCharToInt(hex[5])) / rgbChannelMaxF
-	} else if len(hex) == hexLengthWithAlpha {
-		r = float64(hexCharToInt(hex[0])*hexBase+hexCharToInt(hex[1])) / rgbChannelMaxF
-		g = float64(hexCharToInt(hex[2])*hexBase+hexCharToInt(hex[3])) / rgbChannelMaxF
-		b = float64(hexCharToInt(hex[4])*hexBase+hexCharToInt(hex[5])) / rgbChannelMaxF
-		a = float64(hexCharToInt(hex[6])*hexBase+hexCharToInt(hex[7])) / rgbChannelMaxF
+	switch len(hex) {
+	case hexLengthShort:
+		for index := range len(hex) {
+			*channels[index] = hexPairToChannel(hex[index], hex[index])
+		}
+	case hexLengthStandard, hexLengthWithAlpha:
+		for index := range len(hex) / 2 {
+			*channels[index] = hexPairToChannel(hex[2*index], hex[2*index+1])
+		}
 	}
 
 	return r, g, b, a
+}
+
+// hexPairToChannel converts two hexadecimal digits into a channel value normalised to the
+// range 0.0 to 1.0.
+//
+// Takes high (byte) which is the most significant hex digit.
+// Takes low (byte) which is the least significant hex digit.
+//
+// Returns float64 which is the normalised channel value.
+func hexPairToChannel(high, low byte) float64 {
+	return float64(hexCharToInt(high)*hexDigitBase+hexCharToInt(low)) / rgbChannelMaxF
 }
 
 // hexCharToInt converts a hexadecimal character to its integer value.
@@ -945,9 +962,9 @@ func hexCharToInt(c byte) int {
 	if c >= '0' && c <= '9' {
 		return int(c - '0')
 	} else if c >= 'a' && c <= 'f' {
-		return int(c - 'a' + 10)
+		return int(c - 'a' + hexLetterValueOffset)
 	} else if c >= 'A' && c <= 'F' {
-		return int(c - 'A' + 10)
+		return int(c - 'A' + hexLetterValueOffset)
 	}
 	return 0
 }

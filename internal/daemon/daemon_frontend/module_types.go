@@ -24,7 +24,7 @@ import (
 	"fmt"
 	"strings"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 // FrontendModule represents a built-in Piko frontend module that implements fmt.Stringer.
@@ -52,6 +52,11 @@ const (
 	// Unlike other modules, this is not injected site-wide; it is loaded on demand when a
 	// page contains PKC components.
 	ModuleComponents
+)
+
+const (
+	// etagHashBytes is the number of leading SHA-256 bytes used to build an ETag.
+	etagHashBytes = 8
 )
 
 // AnalyticsConfig holds settings for the analytics module. It supports Google Analytics
@@ -371,5 +376,5 @@ func writeModuleScriptTag(buf *strings.Builder, url, sriHash string) {
 // Returns string which is the quoted hash prefix in hexadecimal format.
 func computeETag(content []byte) string {
 	hash := sha256.Sum256(content)
-	return fmt.Sprintf("%q", hex.EncodeToString(hash[:8]))
+	return fmt.Sprintf("%q", hex.EncodeToString(hash[:etagHashBytes]))
 }

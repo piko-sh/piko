@@ -18,10 +18,6 @@
 
 package annotator_domain
 
-// Provides the core context and symbol table structures for analysing component
-// templates. Tracks variables, scopes, and type information whilst collecting diagnostics
-// during template processing.
-
 import (
 	"fmt"
 	goast "go/ast"
@@ -493,9 +489,9 @@ func PopulateRootContext(ctx *AnalysisContext, typeResolver *TypeResolver, virtu
 func defineGlobalSymbols(ctx *AnalysisContext, typeResolver *TypeResolver) {
 	requestTypeExpr := &goast.StarExpr{X: &goast.SelectorExpr{X: goast.NewIdent(pikoFacadeAlias), Sel: goast.NewIdent(requestDataStruct)}}
 	requestTypeInfo := typeResolver.newResolvedTypeInfo(ctx, requestTypeExpr)
-	ctx.Symbols.Define(Symbol{Name: "request", CodeGenVarName: "r", TypeInfo: requestTypeInfo, SourceInvocationKey: ""})
-	ctx.Symbols.Define(Symbol{Name: "req", CodeGenVarName: "r", TypeInfo: requestTypeInfo, SourceInvocationKey: ""})
-	ctx.Symbols.Define(Symbol{Name: "r", CodeGenVarName: "r", TypeInfo: requestTypeInfo, SourceInvocationKey: ""})
+	ctx.Symbols.Define(Symbol{Name: "request", CodeGenVarName: requestParamName, TypeInfo: requestTypeInfo, SourceInvocationKey: ""})
+	ctx.Symbols.Define(Symbol{Name: "req", CodeGenVarName: requestParamName, TypeInfo: requestTypeInfo, SourceInvocationKey: ""})
+	ctx.Symbols.Define(Symbol{Name: requestParamName, CodeGenVarName: requestParamName, TypeInfo: requestTypeInfo, SourceInvocationKey: ""})
 
 	imports := typeResolver.inspector.GetImportsForFile(ctx.CurrentGoFullPackagePath, ctx.CurrentGoSourcePath)
 	templaterDtoCanonicalPath := imports[pikoFacadeAlias]

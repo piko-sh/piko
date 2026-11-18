@@ -18,8 +18,7 @@
 
 package security_dto
 
-// SecurityHeadersValues holds the resolved security header configuration. All fields are
-// value types; pointer-to-value conversion is performed in the bootstrap layer.
+// SecurityHeadersValues holds the resolved security header configuration.
 type SecurityHeadersValues struct {
 	// XFrameOptions controls the X-Frame-Options header.
 	XFrameOptions string
@@ -55,8 +54,7 @@ type SecurityHeadersValues struct {
 	StripPoweredByHeader bool
 }
 
-// CookieSecurityValues holds the resolved cookie security configuration. All fields are
-// value types; pointer-to-value conversion is performed in the bootstrap layer.
+// CookieSecurityValues holds the resolved cookie security configuration.
 type CookieSecurityValues struct {
 	// DefaultSameSite is the default SameSite attribute for cookies.
 	DefaultSameSite string
@@ -68,16 +66,14 @@ type CookieSecurityValues struct {
 	ForceSecureOnHTTPS bool
 }
 
-// ReportingValues holds the resolved reporting endpoints configuration. All fields are
-// value types; pointer-to-value conversion is performed in the bootstrap layer.
+// ReportingValues holds the resolved reporting endpoints configuration.
 type ReportingValues struct {
 	// HeaderValue is the pre-built Reporting-Endpoints header value. Empty string means the
 	// header will not be set.
 	HeaderValue string
 }
 
-// RateLimitValues holds the resolved rate limit configuration. All fields are value
-// types; pointer-to-value conversion is performed in the bootstrap layer.
+// RateLimitValues holds the resolved rate limit configuration.
 type RateLimitValues struct {
 	// Storage specifies the backend for rate limit counters.
 	Storage string
@@ -93,6 +89,9 @@ type RateLimitValues struct {
 
 	// Actions sets rate limits for server action endpoints.
 	Actions RateLimitTierValues
+
+	// IPv6PrefixBits is how many leading bits of an IPv6 address identify one caller.
+	IPv6PrefixBits int
 
 	// CloudflareEnabled enables trust of the CF-Connecting-IP header.
 	CloudflareEnabled bool

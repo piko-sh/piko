@@ -21,8 +21,8 @@ package encoder_mock
 import (
 	"fmt"
 
+	"piko.sh/json"
 	"piko.sh/piko/internal/cache/cache_domain"
-	"piko.sh/piko/internal/json"
 )
 
 // New creates a mock encoder for testing purposes. The mock encoder wraps JSON encoding

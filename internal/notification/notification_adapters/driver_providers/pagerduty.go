@@ -28,9 +28,10 @@ import (
 	"time"
 
 	"github.com/cespare/xxhash/v2"
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 	"piko.sh/piko/internal/notification/notification_domain"
 	"piko.sh/piko/internal/notification/notification_dto"
+	"piko.sh/piko/internal/runeutil"
 	"piko.sh/piko/internal/safeerror"
 )
 
@@ -243,7 +244,7 @@ func buildSummary(title, message string) string {
 	if title != "" {
 		summary = title
 	}
-	return truncateRunes(summary, pagerDutySummaryMaxLength)
+	return runeutil.TruncateWithEllipsis(summary, pagerDutySummaryMaxLength)
 }
 
 // getSource returns the source hostname or a fallback.

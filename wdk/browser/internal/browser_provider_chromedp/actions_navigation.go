@@ -56,7 +56,7 @@ func Navigate(ctx *ActionContext, path string) error {
 //
 // Returns error when the navigation fails.
 func GoBack(ctx *ActionContext) error {
-	timedCtx, cancel := context.WithTimeoutCause(ctx.Ctx, 5*time.Second, fmt.Errorf("navigation GoBack exceeded %s timeout", 5*time.Second))
+	timedCtx, cancel := context.WithTimeoutCause(ctx.Ctx, historyNavigationTimeout, fmt.Errorf("navigation GoBack exceeded %s timeout", historyNavigationTimeout))
 	defer cancel()
 
 	err := chromedp.Run(timedCtx, chromedp.NavigateBack())
@@ -64,7 +64,7 @@ func GoBack(ctx *ActionContext) error {
 		return fmt.Errorf("navigating back: %w", err)
 	}
 
-	_ = WaitStable(timedCtx, 500*time.Millisecond)
+	_ = WaitStable(timedCtx, stableCheckInterval)
 	return nil
 }
 
@@ -74,7 +74,7 @@ func GoBack(ctx *ActionContext) error {
 //
 // Returns error when navigation fails.
 func GoForward(ctx *ActionContext) error {
-	timedCtx, cancel := context.WithTimeoutCause(ctx.Ctx, 5*time.Second, fmt.Errorf("navigation GoForward exceeded %s timeout", 5*time.Second))
+	timedCtx, cancel := context.WithTimeoutCause(ctx.Ctx, historyNavigationTimeout, fmt.Errorf("navigation GoForward exceeded %s timeout", historyNavigationTimeout))
 	defer cancel()
 
 	err := chromedp.Run(timedCtx, chromedp.NavigateForward())
@@ -82,7 +82,7 @@ func GoForward(ctx *ActionContext) error {
 		return fmt.Errorf("navigating forward: %w", err)
 	}
 
-	_ = WaitStable(timedCtx, 500*time.Millisecond)
+	_ = WaitStable(timedCtx, stableCheckInterval)
 	return nil
 }
 
@@ -146,7 +146,7 @@ func Stop(ctx *ActionContext) error {
 // Returns error when navigation fails, the page appears empty, or the page becomes
 // unresponsive after loading.
 func navigateOnce(ctx *ActionContext, url string) error {
-	timedCtx, cancel := context.WithTimeoutCause(ctx.Ctx, 15*time.Second, fmt.Errorf("navigation navigateOnce exceeded %s timeout", 15*time.Second))
+	timedCtx, cancel := context.WithTimeoutCause(ctx.Ctx, navigationTimeout, fmt.Errorf("navigation navigateOnce exceeded %s timeout", navigationTimeout))
 	defer cancel()
 
 	err := chromedp.Run(timedCtx,
@@ -161,7 +161,7 @@ func navigateOnce(ctx *ActionContext, url string) error {
 		return fmt.Errorf("page loaded but appears empty at %s: %w", url, err)
 	}
 
-	_ = WaitStable(timedCtx, 500*time.Millisecond)
+	_ = WaitStable(timedCtx, stableCheckInterval)
 
 	jsHealth := scripts.MustGet("document_ready_state.js")
 	var readyState string
@@ -208,7 +208,7 @@ func verifyPageHasContent(ctx context.Context) error {
 //
 // Returns string which is the page URL, or "<unknown>" if retrieval fails.
 func getCurrentURL(ctx context.Context) string {
-	timedCtx, cancel := context.WithTimeoutCause(ctx, 500*time.Millisecond, fmt.Errorf("navigation getCurrentURL exceeded %s timeout", 500*time.Millisecond))
+	timedCtx, cancel := context.WithTimeoutCause(ctx, domQueryTimeout, fmt.Errorf("navigation getCurrentURL exceeded %s timeout", domQueryTimeout))
 	defer cancel()
 
 	var url string

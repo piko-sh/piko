@@ -64,6 +64,10 @@ const (
 	jsonPayloadSuffixZeroArgs = `","a":[]}`
 	// hexDigits is a lookup table for hex encoding.
 	hexDigits = "0123456789abcdef"
+	// nibbleBits is the number of bits in one hex digit.
+	nibbleBits = 4
+	// lowNibbleMask keeps the low four bits of a byte.
+	lowNibbleMask = 0x0f
 )
 
 // EncodeActionPayloadBytes encodes an ActionPayload to a base64 URL-safe byte slice using
@@ -589,7 +593,7 @@ func escapeJSONString(bufferPointer *[]byte, s string) {
 // Takes bufferPointer (*[]byte) which points to the buffer to append to.
 // Takes c (byte) which is the control character to escape.
 func appendControlChar(bufferPointer *[]byte, c byte) {
-	*bufferPointer = append(*bufferPointer, '\\', 'u', '0', '0', hexDigits[c>>4], hexDigits[c&0x0f])
+	*bufferPointer = append(*bufferPointer, '\\', 'u', '0', '0', hexDigits[c>>nibbleBits], hexDigits[c&lowNibbleMask])
 }
 
 // encodeBase64InPlace performs base64 encoding in-place within the buffer.

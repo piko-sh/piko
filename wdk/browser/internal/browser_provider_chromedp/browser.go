@@ -312,14 +312,14 @@ func (b *Browser) NewIncognitoPage() (*IncognitoPage, error) {
 		ip, err := b.createIncognitoPageOnce()
 		if err != nil {
 			lastErr = err
-			time.Sleep(time.Duration(100*(attempt+1)) * time.Millisecond)
+			time.Sleep(time.Duration(attempt+1) * pageCreationBackoffStep)
 			continue
 		}
 
 		if err := b.verifyPageHealthy(ip.Ctx); err != nil {
 			ip.Cancel()
 			lastErr = fmt.Errorf("page health check failed (attempt %d): %w", attempt+1, err)
-			time.Sleep(time.Duration(100*(attempt+1)) * time.Millisecond)
+			time.Sleep(time.Duration(attempt+1) * pageCreationBackoffStep)
 			continue
 		}
 
@@ -409,7 +409,7 @@ func (b *Browser) createIncognitoPageOnce() (*IncognitoPage, error) {
 		return nil, errors.Join(initialiseErr, b.closeTarget(targetID))
 	}
 
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(pageInitialiseDelay)
 
 	return &IncognitoPage{
 		Ctx:              pageCtx,
@@ -580,7 +580,7 @@ func (ph *PageHelper) ClearConsoleLogs() {
 	defer cancel()
 	_ = chromedp.Run(clearContext, chromedp.Evaluate(js, nil))
 
-	time.Sleep(50 * time.Millisecond)
+	time.Sleep(consoleClearDelay)
 
 	ph.consoleMutex.Lock()
 	ph.consoleLogs = []string{}
@@ -669,7 +669,7 @@ func (ph *PageHelper) Close() {
 //
 // Returns error when navigation fails or the page does not become ready.
 func (ph *PageHelper) Navigate(url string) error {
-	timedCtx, cancel := context.WithTimeoutCause(ph.ctx, 15*time.Second, fmt.Errorf("browser Navigate exceeded %s timeout", 15*time.Second))
+	timedCtx, cancel := context.WithTimeoutCause(ph.ctx, navigationTimeout, fmt.Errorf("browser Navigate exceeded %s timeout", navigationTimeout))
 	defer cancel()
 
 	err := chromedp.Run(timedCtx,
@@ -680,7 +680,7 @@ func (ph *PageHelper) Navigate(url string) error {
 		return fmt.Errorf("navigating to %s: %w", url, err)
 	}
 
-	_ = WaitStable(timedCtx, 500*time.Millisecond)
+	_ = WaitStable(timedCtx, stableCheckInterval)
 
 	return nil
 }
@@ -758,7 +758,7 @@ func WaitStable(ctx context.Context, interval time.Duration) error {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
-	deadline := time.Now().Add(5 * time.Second)
+	deadline := time.Now().Add(stableMaxWait)
 
 	for {
 		select {

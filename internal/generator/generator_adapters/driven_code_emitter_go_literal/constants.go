@@ -362,4 +362,28 @@ const (
 
 	// identCtx is the variable name for the context parameter in generated code.
 	identCtx = "ctx"
+
+	// timePackageName is the identifier used to reference the standard time package in
+	// generated code.
+	timePackageName = "time"
+
+	// mergeClassesBytesArenaHelper is the runtime helper that merges dynamic class values
+	// into an arena-backed byte buffer.
+	mergeClassesBytesArenaHelper = "MergeClassesBytesArena"
+
+	// propsSetupStmtCount is the number of statements that declare and assert the props
+	// before the collection and query fallbacks.
+	propsSetupStmtCount = 2
+
+	// renderCallStmtCount is the number of statements that call the render function, handle
+	// its error and read the cache policy.
+	renderCallStmtCount = 3
+
+	// estimatedLineDirectiveBytes is the guessed size of one injected line directive, used
+	// to pre-size the output buffer.
+	estimatedLineDirectiveBytes = 64
+
+	// estimatedStmtsPerChild is the guessed number of statements emitted for each child
+	// node, used to pre-size the statement slice.
+	estimatedStmtsPerChild = 10
 )

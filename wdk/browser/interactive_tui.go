@@ -49,6 +49,9 @@ const (
 	// truncationSuffixLen is the length of the "..." suffix used when truncating.
 	truncationSuffixLen = 3
 
+	// tuiQuitDelay is the pause after the last step before the TUI quits.
+	tuiQuitDelay = 500 * time.Millisecond
+
 	// tuiSectionSeparator is a blank line used to separate sections in the TUI output.
 	tuiSectionSeparator = "\n\n"
 )
@@ -371,7 +374,7 @@ func (m tuiModel) handleKeyPress(message tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m tuiModel) handleStepUpdate(step Step) (tea.Model, tea.Cmd) {
 	if step.Action == "__done__" {
 		m.completed = true
-		return m, tea.Tick(500*time.Millisecond, func(_ time.Time) tea.Msg {
+		return m, tea.Tick(tuiQuitDelay, func(_ time.Time) tea.Msg {
 			return tea.QuitMsg{}
 		})
 	}

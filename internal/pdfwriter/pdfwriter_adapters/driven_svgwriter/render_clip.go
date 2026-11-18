@@ -182,20 +182,7 @@ func emitPathClip(rc *renderContext, node *Node) {
 	if err != nil {
 		return
 	}
-	for _, cmd := range commands {
-		switch cmd.Type {
-		case 'M':
-			rc.stream.MoveTo(cmd.Args[0], cmd.Args[1])
-		case 'L':
-			rc.stream.LineTo(cmd.Args[0], cmd.Args[1])
-		case 'C':
-			rc.stream.CurveTo(cmd.Args[0], cmd.Args[1],
-				cmd.Args[2], cmd.Args[3],
-				cmd.Args[4], cmd.Args[5])
-		case 'Z':
-			rc.stream.ClosePath()
-		}
-	}
+	emitPathCommands(rc.stream, commands)
 }
 
 // emitUseClip resolves a <use> element's href and emits the referenced shape as a clip

@@ -140,7 +140,7 @@ func executeBrowserSteps(t testing.TB, page *Page, steps []browser_provider_chro
 			}
 		}
 
-		time.Sleep(50 * time.Millisecond)
+		time.Sleep(specStepDelay)
 	}
 }
 

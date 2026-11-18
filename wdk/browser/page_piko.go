@@ -51,7 +51,7 @@ func (p *Page) TriggerPartialReload(name string, data map[string]any) *Page {
 func (p *Page) WaitForPartialReload(name string) *Page {
 	p.beforeAction("WaitForPartialReload", name)
 	start := time.Now()
-	err := browser_provider_chromedp.WaitForPartialReload(p.actionCtx(), name, 5*time.Second)
+	err := browser_provider_chromedp.WaitForPartialReload(p.actionCtx(), name, defaultWaitTimeout)
 	p.afterAction("WaitForPartialReload", name, err != nil, time.Since(start))
 	if err != nil {
 		p.t.Fatalf("WaitForPartialReload(%q) failed: %v", name, err)

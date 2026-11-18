@@ -18,9 +18,6 @@
 
 package bootstrap
 
-// This file contains the otter in-memory backend setup for the default persistence path
-// (when no SQL database is registered via AddDatabase).
-
 import (
 	"context"
 	"errors"
@@ -32,6 +29,16 @@ import (
 	"piko.sh/piko/internal/persistence"
 	"piko.sh/piko/internal/shutdown"
 	"piko.sh/piko/internal/wal/wal_domain"
+)
+
+const (
+	// defaultOrchestratorCapacity is the default maximum number of orchestrator records held
+	// in the embedded otter cache.
+	defaultOrchestratorCapacity = 100_000
+
+	// defaultOtterSnapshotThreshold is the number of WAL entries written before the otter
+	// persistence layer takes a new snapshot.
+	defaultOtterSnapshotThreshold = 10_000
 )
 
 // getOtterProvider returns the default otter persistence provider, creating and
@@ -52,13 +59,13 @@ func (c *Container) getOtterProvider() (*persistence.Provider, error) {
 		)
 
 		provider := persistence.NewProvider(persistence.Config{
-			RegistryCapacity:     100_000,
-			OrchestratorCapacity: 100_000,
+			RegistryCapacity:     defaultRegistryCapacity,
+			OrchestratorCapacity: defaultOrchestratorCapacity,
 			Persistence: &persistence.PersistenceProviderConfig{
 				Enabled:           true,
 				WALDir:            walDir,
 				SyncMode:          wal_domain.SyncModeBatched,
-				SnapshotThreshold: 10_000,
+				SnapshotThreshold: defaultOtterSnapshotThreshold,
 			},
 			Clock: nil,
 		})

@@ -29,7 +29,7 @@ import (
 	"piko.sh/piko/internal/sqldb/sqldb_dto"
 )
 
-func TestJoinUseNullsDecidesWhetherOuterJoinColumnsArePointers(t *testing.T) {
+func TestJoinUseNullsDecidesWhetherOuterJoinColumnsAreNullable(t *testing.T) {
 	t.Parallel()
 
 	files := fstest.MapFS{
@@ -52,7 +52,7 @@ func TestJoinUseNullsDecidesWhetherOuterJoinColumnsArePointers(t *testing.T) {
 	}{
 		{name: "server default", joinUseNulls: nil, expected: "Title string"},
 		{name: "off", joinUseNulls: &disabled, expected: "Title string"},
-		{name: "on", joinUseNulls: &enabled, expected: "Title *string"},
+		{name: "on", joinUseNulls: &enabled, expected: "Title Null[string]"},
 	}
 
 	for _, testCase := range testCases {

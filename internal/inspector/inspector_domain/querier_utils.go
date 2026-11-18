@@ -18,9 +18,6 @@
 
 package inspector_domain
 
-// This file contains the core business logic and helper utilities for the Go source code
-// querier.
-
 import (
 	"fmt"
 	goast "go/ast"
@@ -550,7 +547,7 @@ func appendFileScopedImports(lines []string, pkgData *inspector_dto.Package, imp
 		slices.Sort(aliases)
 
 		for _, alias := range aliases {
-			lines = append(lines, fmt.Sprintf("      * %-20s -> %s", `"`+alias+`"`, importMap[alias]))
+			lines = append(lines, fmt.Sprintf("      * %-20s -> %s", importAliasQuote+alias+importAliasQuote, importMap[alias]))
 		}
 	}
 	return lines
@@ -626,7 +623,7 @@ func appendLiveASTImports(localPackageFiles map[string]*goast.File, lines []stri
 		} else {
 			alias = "(default)"
 		}
-		lines = append(lines, fmt.Sprintf("    * import %-15s %s", `"`+alias+`"`, imp.Path.Value))
+		lines = append(lines, fmt.Sprintf("    * import %-15s %s", importAliasQuote+alias+importAliasQuote, imp.Path.Value))
 	}
 	return lines
 }

@@ -31,7 +31,7 @@ import (
 
 	"github.com/valyala/fasthttp"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 	"piko.sh/safedisk"
 )
 
@@ -47,6 +47,9 @@ const (
 
 	// loadLatencyChBuffer is the buffer size for the latency sampling channel.
 	loadLatencyChBuffer = 4096
+
+	// percentScale converts a percentile from 0 to 100 into a fraction.
+	percentScale = 100
 
 	// loadSampleRate is the sampling rate for latencies in continuous mode (every Nth
 	// request).
@@ -199,7 +202,7 @@ func (r *loadResult) percentile(p float64) time.Duration {
 	if len(r.latencies) == 0 {
 		return 0
 	}
-	index := int(p / 100 * float64(len(r.latencies)))
+	index := int(p / percentScale * float64(len(r.latencies)))
 	if index >= len(r.latencies) {
 		index = len(r.latencies) - 1
 	}
@@ -736,7 +739,7 @@ func latencyPercentileMs(sorted []time.Duration, p float64) float64 {
 	if len(sorted) == 0 {
 		return 0
 	}
-	index := int(p / 100 * float64(len(sorted)))
+	index := int(p / percentScale * float64(len(sorted)))
 	if index >= len(sorted) {
 		index = len(sorted) - 1
 	}

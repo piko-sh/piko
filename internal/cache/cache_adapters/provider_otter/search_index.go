@@ -42,6 +42,10 @@ const (
 	// bm25B is the BM25 document length normalisation parameter. Values range from 0 (no
 	// normalisation) to 1 (full normalisation), with 0.75 being standard.
 	bm25B = 0.75
+
+	// bm25IDFSmoothing is added to the document counts in the BM25 inverse document
+	// frequency so that a term found in every document still scores above zero.
+	bm25IDFSmoothing = 0.5
 )
 
 // TermMatch specifies how multi-term queries are matched.
@@ -97,7 +101,9 @@ type ScoredResult[K comparable] struct {
 // text into terms and maintains a reverse mapping from terms to the set of keys
 // containing those terms.
 //
-// Thread-safe for concurrent read/write access.
+// Index reads and writes can run concurrently. Configure a custom analyser before adding
+// documents or running concurrent operations. A custom analyser must also support
+// concurrent calls.
 type InvertedIndex[K comparable] struct {
 	// index maps terms to the set of keys that contain each term.
 	index map[string]map[K]struct{}
@@ -136,53 +142,142 @@ func (idx *InvertedIndex[K]) SetAnalyseFunction(analyseFunction cache_dto.TextAn
 	idx.analyseFunc = analyseFunction
 }
 
-// Add indexes text content for a key. If the key already exists, it removes old terms
-// first before adding new ones.
+// Add indexes nonempty text for key, replacing its old terms. Text with no indexed terms
+// leaves the old terms unchanged.
 //
 // Takes key (K) which identifies the document.
 // Takes texts ([]string) which are the text fields to tokenise and index.
-//
-// Safe for concurrent use.
 func (idx *InvertedIndex[K]) Add(key K, texts []string) {
 	terms := idx.tokeniseAll(texts)
 	if len(terms) == 0 {
 		return
 	}
-
-	idx.mu.Lock()
-	defer idx.mu.Unlock()
-
-	idx.addUnsafe(key, texts)
+	idx.replaceTerms(key, terms)
 }
 
-// addUnsafe indexes text without holding the lock. The caller must hold the write lock.
+// replaceTerms stores terms for key, removing the key when terms is empty. The caller
+// analyses terms before taking the index lock.
 //
-// Takes key (K) which identifies the entry to index.
-// Takes texts ([]string) which contains the text content to tokenise.
-func (idx *InvertedIndex[K]) addUnsafe(key K, texts []string) {
-	terms := idx.tokeniseAll(texts)
-	if len(terms) == 0 {
+// Takes key (K) which identifies the document.
+// Takes terms ([]string) which holds each analysed term once.
+//
+// Safe for concurrent use.
+func (idx *InvertedIndex[K]) replaceTerms(key K, terms []string) {
+	idx.mu.RLock()
+	unchanged := idx.holdsExactTermsLocked(key, terms)
+	idx.mu.RUnlock()
+	if unchanged {
 		return
 	}
 
-	idx.removeKeyUnsafe(key)
+	idx.mu.Lock()
+	defer idx.mu.Unlock()
+	if len(terms) == 0 {
+		idx.removeKeyUnsafe(key)
+		return
+	}
+	idx.replaceTermsLocked(key, terms)
+}
 
-	termSet := make(map[string]struct{}, len(terms))
+// holdsExactTermsLocked reports whether key is indexed under exactly the given terms.
+//
+// Must be called with the lock held for reading or writing.
+//
+// Takes key (K) which identifies the document.
+// Takes terms ([]string) which holds each term once.
+//
+// Returns bool which is true when the index already matches terms, including when an
+// absent key is given no terms.
+func (idx *InvertedIndex[K]) holdsExactTermsLocked(key K, terms []string) bool {
+	current, ok := idx.keyTerms[key]
+	if !ok {
+		return len(terms) == 0
+	}
+	if len(current) != len(terms) || idx.docLengths[key] != len(terms) {
+		return false
+	}
 	for _, term := range terms {
-		if _, exists := idx.index[term]; !exists {
+		if _, linked := current[term]; !linked {
+			return false
+		}
+	}
+	return true
+}
+
+// replaceTermsLocked makes terms the indexed terms of key, unlinking only the terms it no
+// longer has and linking only the new ones. A new term is skipped once the vocabulary is
+// at its limit.
+//
+// Must be called with the write lock held.
+//
+// Takes key (K) which identifies the document.
+// Takes terms ([]string) which holds each term once; it must not be empty.
+func (idx *InvertedIndex[K]) replaceTermsLocked(key K, terms []string) {
+	current, ok := idx.keyTerms[key]
+	if ok {
+		wanted := newStringLookup(terms)
+		for term := range current {
+			if !wanted.contains(term) {
+				idx.unlinkTermLocked(term, key)
+				delete(current, term)
+			}
+		}
+	} else {
+		current = make(map[string]struct{}, len(terms))
+		idx.keyTerms[key] = current
+	}
+	idx.linkTermsLocked(key, current, terms)
+
+	if previous, indexed := idx.docLengths[key]; indexed {
+		idx.totalTerms -= int64(previous)
+	} else {
+		idx.totalDocuments++
+	}
+	idx.docLengths[key] = len(terms)
+	idx.totalTerms += int64(len(terms))
+}
+
+// linkTermsLocked links key to each term it is not yet linked to, skipping a new term
+// once the vocabulary is at its limit.
+//
+// Must be called with the write lock held.
+//
+// Takes key (K) which identifies the document.
+// Takes current (map[string]struct{}) which holds the terms key is linked to, and
+// receives the terms linked here.
+// Takes terms ([]string) which holds each term once.
+func (idx *InvertedIndex[K]) linkTermsLocked(key K, current map[string]struct{}, terms []string) {
+	for _, term := range terms {
+		if _, linked := current[term]; linked {
+			continue
+		}
+		keys, exists := idx.index[term]
+		if !exists {
 			if idx.maxTokens > 0 && len(idx.index) >= idx.maxTokens {
 				continue
 			}
-			idx.index[term] = make(map[K]struct{})
+			keys = make(map[K]struct{})
+			idx.index[term] = keys
 		}
-		idx.index[term][key] = struct{}{}
-		termSet[term] = struct{}{}
+		keys[key] = struct{}{}
+		current[term] = struct{}{}
 	}
-	idx.keyTerms[key] = termSet
+}
 
-	idx.docLengths[key] = len(terms)
-	idx.totalDocuments++
-	idx.totalTerms += int64(len(terms))
+// unlinkTermLocked removes key from the keys of term, dropping the term once no key has
+// it.
+//
+// Must be called with the write lock held.
+//
+// Takes term (string) which is the term to unlink.
+// Takes key (K) which identifies the document.
+func (idx *InvertedIndex[K]) unlinkTermLocked(term string, key K) {
+	if keys, exists := idx.index[term]; exists {
+		delete(keys, key)
+		if len(keys) == 0 {
+			delete(idx.index, term)
+		}
+	}
 }
 
 // Remove removes a key from the index.
@@ -207,12 +302,7 @@ func (idx *InvertedIndex[K]) removeKeyUnsafe(key K) {
 	}
 
 	for term := range terms {
-		if keys, exists := idx.index[term]; exists {
-			delete(keys, key)
-			if len(keys) == 0 {
-				delete(idx.index, term)
-			}
-		}
+		idx.unlinkTermLocked(term, key)
 	}
 
 	if dl, exists := idx.docLengths[key]; exists {
@@ -450,7 +540,7 @@ func (idx *InvertedIndex[K]) searchScoredAll(terms []string) []ScoredResult[K] {
 
 		df := float64(len(termKeys))
 		n := float64(idx.totalDocuments)
-		idf := math.Log(1.0 + (n-df+0.5)/(df+0.5))
+		idf := math.Log(1.0 + (n-df+bm25IDFSmoothing)/(df+bm25IDFSmoothing))
 
 		for key := range candidates {
 			if _, inTerm := termKeys[key]; !inTerm {
@@ -486,7 +576,7 @@ func (idx *InvertedIndex[K]) searchScoredAny(terms []string) []ScoredResult[K] {
 
 		df := float64(len(termKeys))
 		n := float64(idx.totalDocuments)
-		idf := math.Log(1.0 + (n-df+0.5)/(df+0.5))
+		idf := math.Log(1.0 + (n-df+bm25IDFSmoothing)/(df+bm25IDFSmoothing))
 
 		for key := range termKeys {
 			dl := float64(idx.docLengths[key])
@@ -576,6 +666,9 @@ func (idx *InvertedIndex[K]) copySingleTermKeys(term string) map[K]struct{} {
 //
 // Returns []string which contains the unique terms from all inputs.
 func (idx *InvertedIndex[K]) tokeniseAll(texts []string) []string {
+	if len(texts) == 1 && idx.analyseFunc == nil {
+		return idx.tokeniseDefault(texts[0])
+	}
 	seen := make(map[string]struct{})
 	var result []string
 

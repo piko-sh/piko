@@ -21,6 +21,7 @@ package storage_domain
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"piko.sh/piko/internal/provider/provider_domain"
@@ -51,10 +52,7 @@ func (*service) ResourceType() string {
 	return "storage"
 }
 
-// ProbeName returns the readiness health-probe name of the storage service, bridging the
-// "storage" resource type to the "StorageService" readiness dependency so a readiness
-// collector can attach this descriptor's provider info to the matching dependency. It
-// returns the same constant the service's health-probe Name method returns.
+// ProbeName returns the storage service's readiness probe name.
 //
 // Returns string which is serviceName ("StorageService").
 func (*service) ProbeName() string {
@@ -276,9 +274,9 @@ func (s *service) ResourceDescribeType(ctx context.Context) *provider_domain.Pro
 			Title: "Overview",
 			Entries: []provider_domain.InfoEntry{
 				{Key: "Resource Type", Value: "storage"},
-				{Key: "Provider Count", Value: fmt.Sprintf("%d", len(providers))},
+				{Key: "Provider Count", Value: strconv.Itoa(len(providers))},
 				{Key: "Default Provider", Value: defaultProvider},
-				{Key: "Repository Count", Value: fmt.Sprintf("%d", repoCount)},
+				{Key: "Repository Count", Value: strconv.Itoa(repoCount)},
 			},
 		},
 	}
@@ -288,10 +286,10 @@ func (s *service) ResourceDescribeType(ctx context.Context) *provider_domain.Pro
 		sections = append(sections, provider_domain.InfoSection{
 			Title: "Statistics",
 			Entries: []provider_domain.InfoEntry{
-				{Key: "Total Operations", Value: fmt.Sprintf("%d", total)},
-				{Key: "Successful", Value: fmt.Sprintf("%d", s.stats.SuccessfulOperations.Load())},
-				{Key: "Failed", Value: fmt.Sprintf("%d", s.stats.FailedOperations.Load())},
-				{Key: "Retries", Value: fmt.Sprintf("%d", s.stats.RetryAttempts.Load())},
+				{Key: "Total Operations", Value: strconv.FormatInt(total, 10)},
+				{Key: "Successful", Value: strconv.FormatInt(s.stats.SuccessfulOperations.Load(), 10)},
+				{Key: "Failed", Value: strconv.FormatInt(s.stats.FailedOperations.Load(), 10)},
+				{Key: "Retries", Value: strconv.FormatInt(s.stats.RetryAttempts.Load(), 10)},
 			},
 		})
 	}

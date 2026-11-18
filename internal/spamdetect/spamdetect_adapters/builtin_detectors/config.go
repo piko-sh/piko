@@ -82,6 +82,10 @@ type Config struct {
 	// LinkDensityMaxLinks is the maximum number of links allowed before scoring as spam.
 	// Default 3.
 	LinkDensityMaxLinks int
+
+	// RepetitionIPv6PrefixBits is how many leading bits of an IPv6 client address form the
+	// repetition IP scope. Zero or a value outside 1 to 128 keeps the default of 64.
+	RepetitionIPv6PrefixBits int
 }
 
 // applyDefaults fills in zero-valued fields with sensible defaults.

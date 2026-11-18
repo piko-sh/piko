@@ -1460,14 +1460,14 @@ func TestRedirectToCanonicalSlash(t *testing.T) {
 
 	cases := []struct {
 		path     string
-		redirect bool
 		target   string
+		redirect bool
 	}{
-		{"/fr/managed-cloud-services", true, "/fr/managed-cloud-services/"},
-		{"/managed-cloud-services", true, "/managed-cloud-services/"},
-		{"/managed-cloud-services/aws/", true, "/managed-cloud-services/aws"},
-		{"/managed-cloud-services/", false, ""},
-		{"/totally-unknown", false, ""},
+		{"/fr/managed-cloud-services", "/fr/managed-cloud-services/", true},
+		{"/managed-cloud-services", "/managed-cloud-services/", true},
+		{"/managed-cloud-services/aws/", "/managed-cloud-services/aws", true},
+		{"/managed-cloud-services/", "", false},
+		{"/totally-unknown", "", false},
 	}
 	for _, tc := range cases {
 		req := httptest.NewRequest(http.MethodGet, "https://example.com"+tc.path, nil)

@@ -39,6 +39,12 @@ import (
 	"piko.sh/piko/wdk/goroutine"
 )
 
+const (
+	// gracefulShutdownTimeout bounds how long the daemon waits for its services to shut down
+	// after a stop signal.
+	gracefulShutdownTimeout = 10 * time.Second
+)
+
 var (
 	// defaultMaxConcurrentSEOJobs is the fallback semaphore size for SEO artefact
 	// regeneration. It scales with the host's CPU count so smaller machines do not stack
@@ -380,7 +386,7 @@ func (ds *daemonService) awaitShutdownDev(
 	}
 
 	l.Internal("Starting graceful shutdown of services...")
-	shutdownCtx, cancelShutdown := context.WithTimeoutCause(context.WithoutCancel(signalCtx), 10*time.Second,
+	shutdownCtx, cancelShutdown := context.WithTimeoutCause(context.WithoutCancel(signalCtx), gracefulShutdownTimeout,
 		errors.New("graceful shutdown exceeded 10s timeout"))
 	defer cancelShutdown()
 
@@ -493,7 +499,7 @@ func (ds *daemonService) acquireSEOSlot(ctx context.Context) bool {
 	default:
 	}
 
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 	l.Trace("SEO semaphore saturated, waiting for a free slot",
 		logger_domain.Int("max_concurrent_jobs", cap(ds.seoSemaphore)),
 	)

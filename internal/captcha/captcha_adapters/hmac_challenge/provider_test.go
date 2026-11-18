@@ -24,9 +24,13 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"hash/maphash"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -393,11 +397,9 @@ func TestProvider_UsedTokenCapacity(t *testing.T) {
 
 	p := newTestProvider(t)
 
-	p.usedMutex.Lock()
 	for i := range maxUsedTokens {
-		p.usedTokens[fmt.Sprintf("fake-id-%d", i)] = p.clock.Now()
+		require.True(t, p.claimChallengeID(fmt.Sprintf("fake-id-%d", i), p.clock.Now()))
 	}
-	p.usedMutex.Unlock()
 
 	token, err := p.GenerateChallenge("submit")
 	require.NoError(t, err)
@@ -452,4 +454,208 @@ func TestProvider_RenderRequirements(t *testing.T) {
 	requirements := hmacProvider.RenderRequirements()
 	require.NotNil(t, requirements)
 	assert.True(t, requirements.ServerSideToken)
+}
+
+const (
+	benchmarkEvictionSteps = 5
+)
+
+func usedTokenCount(p *provider) int {
+	return int(p.usedCount.Load())
+}
+
+func newMockClockProvider(t testing.TB, ttl time.Duration) (*provider, *clock.MockClock) {
+	t.Helper()
+
+	mockClock := clock.NewMockClock(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+	p, err := NewProvider(Config{
+		Secret: testSecret(),
+		TTL:    ttl,
+		Clock:  mockClock,
+	})
+	require.NoError(t, err)
+
+	hmacProvider, ok := p.(*provider)
+	require.True(t, ok, "expected *provider type")
+	return hmacProvider, mockClock
+}
+
+func TestProvider_ClaimRejectsReplayAfterEntryWouldBeEvicted(t *testing.T) {
+	t.Parallel()
+
+	p, mockClock := newMockClockProvider(t, 5*time.Minute)
+	challengeTime := mockClock.Now()
+
+	require.True(t, p.claimChallengeID("replayed-id", challengeTime), "first claim must succeed")
+
+	mockClock.Advance(5*time.Minute + time.Second)
+
+	assert.False(t, p.claimChallengeID("replayed-id", challengeTime),
+		"a claim racing past the expiry boundary must not succeed a second time")
+}
+
+func TestProvider_ConcurrentVerifySameToken(t *testing.T) {
+	t.Parallel()
+
+	const goroutines = 64
+
+	p := newTestProvider(t)
+	token, err := p.GenerateChallenge("submit")
+	require.NoError(t, err)
+
+	var (
+		wg        sync.WaitGroup
+		successes atomic.Int64
+		start     = make(chan struct{})
+	)
+	for range goroutines {
+		wg.Go(func() {
+			<-start
+			response, verifyErr := p.Verify(t.Context(), &captcha_dto.VerifyRequest{Token: token, Action: "submit"})
+			if verifyErr == nil && response.Success {
+				successes.Add(1)
+			}
+		})
+	}
+	close(start)
+	wg.Wait()
+
+	assert.Equal(t, int64(1), successes.Load(), "exactly one concurrent verification must succeed")
+}
+
+func TestProvider_ExpiredEntriesAreEvicted(t *testing.T) {
+	t.Parallel()
+
+	ttl := 5 * time.Minute
+	p, mockClock := newMockClockProvider(t, ttl)
+
+	oldTime := mockClock.Now()
+	for index := range 100 {
+		require.True(t, p.claimChallengeID(fmt.Sprintf("old-%d", index), oldTime))
+	}
+
+	mockClock.Advance(ttl / 2)
+	recentTime := mockClock.Now()
+	for index := range 10 {
+		require.True(t, p.claimChallengeID(fmt.Sprintf("recent-%d", index), recentTime))
+	}
+	assert.Equal(t, 110, usedTokenCount(p))
+
+	mockClock.Advance(ttl/2 + time.Second)
+	p.evictAllExpired(mockClock.Now())
+
+	assert.Equal(t, 10, usedTokenCount(p), "only expired entries must be evicted")
+	assert.False(t, p.claimChallengeID("recent-3", recentTime), "unexpired entries must still be rejected")
+}
+
+func TestProvider_ClaimEvictsExpiredEntriesOfItsShard(t *testing.T) {
+	t.Parallel()
+
+	ttl := 5 * time.Minute
+	p, mockClock := newMockClockProvider(t, ttl)
+
+	require.True(t, p.claimChallengeID("first", mockClock.Now()))
+	mockClock.Advance(ttl + time.Second)
+
+	shard := &p.shards[maphash.String(p.shardSeed, "first")&(usedTokenShardCount-1)]
+	claimed, full := p.tryClaim(shard, "second", mockClock.Now(), mockClock.Now())
+
+	require.True(t, claimed)
+	require.False(t, full)
+	assert.Equal(t, 1, usedTokenCount(p), "the expired entry in the same shard must be evicted")
+	assert.NotContains(t, shard.claimed, "first")
+}
+
+func TestProvider_CapacitySweepsExpiredEntriesInOtherShards(t *testing.T) {
+	t.Parallel()
+
+	ttl := 5 * time.Minute
+	p, mockClock := newMockClockProvider(t, ttl)
+	shardOf := func(id string) uint64 {
+		return maphash.String(p.shardSeed, id) & (usedTokenShardCount - 1)
+	}
+
+	const probeID = "probe"
+	oldTime := mockClock.Now()
+	for index := 0; usedTokenCount(p) < maxUsedTokens; index++ {
+		id := fmt.Sprintf("old-%d", index)
+		if shardOf(id) == shardOf(probeID) {
+			continue
+		}
+		require.True(t, p.claimChallengeID(id, oldTime))
+	}
+	require.False(t, p.claimChallengeID(probeID, oldTime), "a full store must reject new claims")
+
+	mockClock.Advance(ttl + time.Second)
+
+	assert.True(t, p.claimChallengeID(probeID, mockClock.Now()),
+		"expired entries in other shards must free capacity")
+	assert.Equal(t, 1, usedTokenCount(p))
+}
+
+func TestUsedTokenShard_PopsInChallengeTimeOrder(t *testing.T) {
+	t.Parallel()
+
+	base := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	offsets := []int{7, 3, 9, 1, 5, 3, 8, 0, 2, 6}
+
+	shard := &usedTokenShard{claimed: map[string]struct{}{}}
+	for index, offset := range offsets {
+		shard.push(usedToken{challengeTime: base.Add(time.Duration(offset) * time.Second), challengeID: strconv.Itoa(index)})
+	}
+
+	previous := time.Time{}
+	for range offsets {
+		token := shard.popOldest()
+		assert.False(t, token.challengeTime.Before(previous), "tokens must come out oldest first")
+		previous = token.challengeTime
+	}
+	assert.Empty(t, shard.expiry)
+}
+
+func BenchmarkProvider_ClaimWithEviction(b *testing.B) {
+	for _, entries := range []int{1_000, 10_000, 90_000} {
+		b.Run(fmt.Sprintf("entries=%d", entries), func(b *testing.B) {
+			ttl := 5 * time.Minute
+			p, mockClock := newMockClockProvider(b, ttl)
+
+			farFuture := mockClock.Now().Add(24 * time.Hour)
+			for index := range entries {
+				require.True(b, p.claimChallengeID(fmt.Sprintf("held-%d", index), farFuture))
+			}
+
+			ids := make([]string, b.N)
+			for index := range ids {
+				ids[index] = fmt.Sprintf("bench-%d", index)
+			}
+
+			b.ReportAllocs()
+			b.ResetTimer()
+			for index := range b.N {
+				mockClock.Advance(ttl / benchmarkEvictionSteps)
+				p.claimChallengeID(ids[index], mockClock.Now())
+			}
+		})
+	}
+}
+
+func BenchmarkProvider_ClaimParallel(b *testing.B) {
+	const advanceEvery = 1024
+
+	ttl := 5 * time.Minute
+	p, mockClock := newMockClockProvider(b, ttl)
+
+	var nextID atomic.Int64
+	b.ReportAllocs()
+	b.RunParallel(func(pb *testing.PB) {
+		buffer := make([]byte, 0, 32)
+		for pb.Next() {
+			id := nextID.Add(1)
+			if id%advanceEvery == 0 {
+				mockClock.Advance(ttl / benchmarkEvictionSteps)
+			}
+			buffer = strconv.AppendInt(buffer[:0], id, 10)
+			p.claimChallengeID(string(buffer), mockClock.Now())
+		}
+	})
 }

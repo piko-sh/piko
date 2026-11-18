@@ -24,13 +24,12 @@ import (
 )
 
 const (
-	// maxDrainBytes caps how much of an unread HTTP response body is discarded before
-	// Close.
+	// maxDrainBytes caps how much of an unread HTTP response body is discarded before Close.
 	maxDrainBytes = 64 * 1024
 )
 
-// readBoundedBody reads at most maxBytes from body through io.LimitReader, failing
-// rather than returning a silently truncated payload when the body is larger.
+// readBoundedBody accepts at most maxBytes from body, reading one extra byte to detect
+// oversized payloads.
 //
 // Takes body (io.Reader) which is the stream to read; the caller still owns Close.
 // Takes maxBytes (int64) which is the largest accepted payload in bytes.
@@ -50,9 +49,8 @@ func readBoundedBody(body io.Reader, maxBytes int64, tooLargeErr error) ([]byte,
 	return data, nil
 }
 
-// drainAndClose discards up to maxDrainBytes of what is left in an HTTP response body
-// and then closes it, so the underlying connection can be reused on every path,
-// including error paths that never read the body.
+// drainAndClose discards up to maxDrainBytes from an HTTP response body before closing
+// it. Draining a small unread body may let the transport reuse the connection.
 //
 // Takes body (io.ReadCloser) which is the response body to drain and close.
 func drainAndClose(body io.ReadCloser) {

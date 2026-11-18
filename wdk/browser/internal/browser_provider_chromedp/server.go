@@ -55,7 +55,7 @@ func WaitForServerReady(port int, timeout time.Duration) error {
 	ctx, cancel := context.WithTimeoutCause(context.Background(), timeout, fmt.Errorf("browser server startup exceeded %s timeout", timeout))
 	defer cancel()
 
-	ticker := time.NewTicker(100 * time.Millisecond)
+	ticker := time.NewTicker(DefaultPollingInterval)
 	defer ticker.Stop()
 
 	for {
@@ -63,7 +63,7 @@ func WaitForServerReady(port int, timeout time.Duration) error {
 		case <-ctx.Done():
 			return fmt.Errorf("timed out waiting for server on port %d to become ready", port)
 		case <-ticker.C:
-			conn, err := net.DialTimeout("tcp", fmt.Sprintf("localhost:%d", port), 50*time.Millisecond)
+			conn, err := net.DialTimeout("tcp", fmt.Sprintf("localhost:%d", port), serverDialTimeout)
 			if err == nil {
 				_ = conn.Close()
 				return nil

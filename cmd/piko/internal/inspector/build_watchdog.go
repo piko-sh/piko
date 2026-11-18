@@ -34,6 +34,9 @@ const (
 	// watchdogEventPriorityHigh is the int wire value for the High watchdog event priority.
 	watchdogEventPriorityHigh = 2
 
+	// watchdogPercentageFactor scales a 0..1 ratio into a percentage for display.
+	watchdogPercentageFactor = 100
+
 	// watchdogEventPriorityCritical is the int wire value for the Critical watchdog event
 	// priority.
 	watchdogEventPriorityCritical = 3
@@ -128,7 +131,7 @@ func BuildWatchdogStatusThresholdRows(response *pb.GetWatchdogStatusResponse) []
 		NewDetailRow("Goroutine Threshold", fmt.Sprintf(fmtDecimalInt, response.GetGoroutineThreshold())),
 		NewDetailRow("Goroutine Safety Ceiling", fmt.Sprintf(fmtDecimalInt, response.GetGoroutineSafetyCeiling())),
 		NewDetailRow("Goroutine Baseline", fmt.Sprintf(fmtDecimalInt, response.GetGoroutineBaseline())),
-		NewDetailRow("FD Pressure Threshold", fmt.Sprintf("%.0f%%", response.GetFdPressureThresholdPercent()*100)),
+		NewDetailRow("FD Pressure Threshold", fmt.Sprintf("%.0f%%", response.GetFdPressureThresholdPercent()*watchdogPercentageFactor)),
 		NewDetailRow(
 			"Scheduler Latency p99 Threshold",
 			FormatDurationNanos(response.GetSchedulerLatencyP99ThresholdNs()),

@@ -715,21 +715,24 @@ func TestMockCacheStore_Get(t *testing.T) {
 		assert.Nil(t, entry)
 	})
 
-	t.Run("nil GetFunc returns stored entry", func(t *testing.T) {
+	t.Run("nil GetFunc returns a counted copy of the stored entry", func(t *testing.T) {
 		t.Parallel()
 
-		m := NewMockCacheStore()
-		ctx := context.Background()
-		expected := &llm_dto.CacheEntry{
+		store := NewMockCacheStore()
+		ctx := t.Context()
+		stored := &llm_dto.CacheEntry{
 			Response: &llm_dto.CompletionResponse{ID: "cached"},
 		}
 
-		require.NoError(t, m.Set(ctx, "key1", expected))
+		require.NoError(t, store.Set(ctx, "key1", stored))
 
-		entry, err := m.Get(ctx, "key1")
+		entry, err := store.Get(ctx, "key1")
 
 		require.NoError(t, err)
-		assert.Equal(t, expected, entry)
+		assert.Equal(t, "cached", entry.Response.ID)
+		assert.Equal(t, int64(1), entry.HitCount)
+		assert.NotSame(t, stored, entry)
+		assert.NotSame(t, stored.Response, entry.Response)
 	})
 
 	t.Run("delegates to GetFunc", func(t *testing.T) {
@@ -768,21 +771,22 @@ func TestMockCacheStore_Get(t *testing.T) {
 func TestMockCacheStore_Set(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil SetFunc stores entry in map", func(t *testing.T) {
+	t.Run("nil SetFunc stores a copy of the entry in map", func(t *testing.T) {
 		t.Parallel()
 
-		m := NewMockCacheStore()
-		ctx := context.Background()
+		store := NewMockCacheStore()
+		ctx := t.Context()
 		entry := &llm_dto.CacheEntry{
 			Response: &llm_dto.CompletionResponse{ID: "stored"},
 		}
 
-		err := m.Set(ctx, "k", entry)
+		err := store.Set(ctx, "k", entry)
 		require.NoError(t, err)
+		entry.Response.ID = "changed after Set"
 
-		got, err := m.Get(ctx, "k")
+		got, err := store.Get(ctx, "k")
 		require.NoError(t, err)
-		assert.Equal(t, entry, got)
+		assert.Equal(t, "stored", got.Response.ID)
 	})
 
 	t.Run("delegates to SetFunc", func(t *testing.T) {

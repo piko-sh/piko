@@ -21,6 +21,7 @@ package collection_domain
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"testing"
 
@@ -484,4 +485,71 @@ func containsStringHelper(s, substr string) bool {
 		}
 	}
 	return false
+}
+
+func TestRegisterProvider_ConcurrentWithReadersLosesNoProvider(t *testing.T) {
+	ResetRuntimeProviderRegistry()
+	t.Cleanup(ResetRuntimeProviderRegistry)
+
+	const writers = 64
+
+	if err := RegisterProvider(&MockRuntimeProvider{NameFunc: func() string { return "base" }}); err != nil {
+		t.Fatalf("RegisterProvider() failed: %v", err)
+	}
+
+	stop := make(chan struct{})
+	var readers sync.WaitGroup
+	for range 4 {
+		readers.Go(func() {
+			for {
+				select {
+				case <-stop:
+					return
+				default:
+				}
+				if _, err := GetProvider("base"); err != nil {
+					t.Errorf("a registered provider must stay visible during writes: %v", err)
+					return
+				}
+			}
+		})
+	}
+
+	var writersDone sync.WaitGroup
+	for index := range writers {
+		writersDone.Go(func() {
+			name := fmt.Sprintf("provider-%d", index)
+			if err := RegisterProvider(&MockRuntimeProvider{NameFunc: func() string { return name }}); err != nil {
+				t.Errorf("RegisterProvider(%q) failed: %v", name, err)
+			}
+		})
+	}
+	writersDone.Wait()
+	close(stop)
+	readers.Wait()
+
+	if got := len(NewDefaultRuntimeProviderRegistry().List()); got != writers+1 {
+		t.Fatalf("expected %d providers after concurrent registration, got %d", writers+1, got)
+	}
+}
+
+func BenchmarkGetProvider_Parallel(b *testing.B) {
+	ResetRuntimeProviderRegistry()
+	b.Cleanup(ResetRuntimeProviderRegistry)
+
+	for _, name := range []string{"cms", "search", "feeds", "shop"} {
+		if err := RegisterProvider(&MockRuntimeProvider{NameFunc: func() string { return name }}); err != nil {
+			b.Fatal(err)
+		}
+	}
+
+	b.ReportAllocs()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			if _, err := GetProvider("search"); err != nil {
+				b.Error(err)
+				return
+			}
+		}
+	})
 }

@@ -300,7 +300,7 @@ func TestNewRouterManager_CreatesManager(t *testing.T) {
 	rm := NewRouterManager(routerManagerConfig)
 
 	require.NotNil(t, rm, "RouterManager should not be nil")
-	assert.Nil(t, rm.currentRouter, "currentRouter should be nil initially")
+	assert.Nil(t, rm.current.Load(), "current router should be nil initially")
 }
 
 func TestRouterManager_ServeHTTP_ReturnsServiceUnavailable_WhenNoRouter(t *testing.T) {
@@ -356,9 +356,7 @@ func TestRouterManager_ServeHTTP_DelegatesToRouter(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("OK"))
 	})
-	rm.mu.Lock()
-	rm.currentRouter = mockHandler
-	rm.mu.Unlock()
+	installRouterForTest(rm, mockHandler)
 
 	request := httptest.NewRequest(http.MethodGet, "/", nil)
 	recorder := httptest.NewRecorder()

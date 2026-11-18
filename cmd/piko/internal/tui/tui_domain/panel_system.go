@@ -575,7 +575,7 @@ func (p *SystemPanel) refresh() tea.Cmd {
 			return SystemRefreshMessage{Stats: nil, Err: errNoSystemProvider}
 		}
 
-		ctx, cancel := context.WithTimeoutCause(context.Background(), 5*time.Second,
+		ctx, cancel := context.WithTimeoutCause(context.Background(), DefaultRefreshTimeout,
 			errors.New("system panel data fetch exceeded 5s timeout"))
 		defer cancel()
 
@@ -842,7 +842,7 @@ func renderGCDetails(stats *SystemStats, now time.Time, dimStyle *lipgloss.Style
 		dimStyle.Render(fmt.Sprintf("NumGC: %d", stats.GC.NumGC)),
 		dimStyle.Render(fmt.Sprintf("LastGC: %s ago", now.Sub(lastGCTime).Round(time.Second))),
 		dimStyle.Render(fmt.Sprintf("PauseTotalNs: %s", pauseTotalDur)),
-		dimStyle.Render(fmt.Sprintf("GCCPUFraction: %.4f%%", stats.GC.GCCPUFraction*100)),
+		dimStyle.Render(fmt.Sprintf("GCCPUFraction: %.4f%%", stats.GC.GCCPUFraction*percentageScale)),
 		dimStyle.Render(fmt.Sprintf("NextGC: %s", inspector.FormatBytes(stats.GC.NextGC))),
 	}
 	if len(stats.GC.RecentPauses) > 0 {

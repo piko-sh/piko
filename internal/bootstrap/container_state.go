@@ -18,10 +18,6 @@
 
 package bootstrap
 
-// This file defines the embedded sub-structs that group the Container's state by concern.
-// NewContainer starts every sub-struct from its zero value except containerLifecycle,
-// whose constructor installs the default registry metadata cache provider.
-
 import (
 	"context"
 	"io/fs"
@@ -668,6 +664,14 @@ type containerProviders struct {
 	// registered provider becomes the default.
 	cacheDefaultProvider string
 
+	// rateLimiterCacheProvider names the cache provider for rate limiter state. Empty keeps
+	// the state in memory in each process.
+	rateLimiterCacheProvider string
+
+	// llmCacheProvider names the cache provider for the LLM response cache and budget store.
+	// Empty keeps them in memory in each process.
+	llmCacheProvider string
+
 	// captchaDefaultProvider is the name of the default captcha provider.
 	captchaDefaultProvider string
 
@@ -852,6 +856,10 @@ type containerSettings struct {
 	// hybridCacheMaxBytesOverride is the operator-supplied byte cap on the
 	// hybrid-collections cache.
 	hybridCacheMaxBytesOverride uint64
+
+	// llmCacheMaxBytesOverride is the operator-supplied byte cap on the in-memory LLM
+	// response cache. Zero keeps the default.
+	llmCacheMaxBytesOverride uint64
 
 	// inMemoryRuntimeStoreBytes is the byte budget for the opt-in in-memory registry blob
 	// overlay, used only when inMemoryRuntimeStoreEnabled is set.

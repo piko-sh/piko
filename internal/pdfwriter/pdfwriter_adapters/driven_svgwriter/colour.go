@@ -68,6 +68,9 @@ const (
 
 	// commaSplitter holds the comma delimiter used for CSS function argument parsing.
 	commaSplitter = ","
+
+	// alphaComponentIndex holds the position of the alpha value in rgba() and hsla().
+	alphaComponentIndex = 3
 )
 
 // Colour represents an RGBA colour with components in [0,1].
@@ -119,18 +122,18 @@ func ParseColour(s string) (Colour, bool) {
 		return parseHexColour(s[1:])
 	}
 
-	if strings.HasPrefix(lower, "rgba(") && strings.HasSuffix(lower, closeParen) {
-		return parseRGBA(lower[5 : len(lower)-1])
+	if arguments, found := cutColourFunction(lower, "rgba("); found {
+		return parseRGBA(arguments)
 	}
-	if strings.HasPrefix(lower, "rgb(") && strings.HasSuffix(lower, closeParen) {
-		return parseRGB(lower[4 : len(lower)-1])
+	if arguments, found := cutColourFunction(lower, "rgb("); found {
+		return parseRGB(arguments)
 	}
 
-	if strings.HasPrefix(lower, "hsla(") && strings.HasSuffix(lower, closeParen) {
-		return parseHSLA(lower[5 : len(lower)-1])
+	if arguments, found := cutColourFunction(lower, "hsla("); found {
+		return parseHSLA(arguments)
 	}
-	if strings.HasPrefix(lower, "hsl(") && strings.HasSuffix(lower, closeParen) {
-		return parseHSL(lower[4 : len(lower)-1])
+	if arguments, found := cutColourFunction(lower, "hsl("); found {
+		return parseHSL(arguments)
 	}
 
 	return Colour{}, false
@@ -179,6 +182,21 @@ func parseHexColour(hex string) (Colour, bool) {
 	}
 }
 
+// cutColourFunction strips a CSS colour function name and its closing parenthesis.
+//
+// Takes value (string) which holds the lower-cased colour value.
+// Takes prefix (string) which holds the function name with its opening parenthesis.
+//
+// Returns string which holds the text between the parentheses.
+// Returns bool which is true when value has the prefix and a closing parenthesis.
+func cutColourFunction(value, prefix string) (string, bool) {
+	rest, found := strings.CutPrefix(value, prefix)
+	if !found {
+		return "", false
+	}
+	return strings.CutSuffix(rest, closeParen)
+}
+
 // parseRGB parses the arguments of an rgb() CSS function into a Colour value.
 //
 // Takes args (string) which specifies the comma-separated RGB components.
@@ -216,7 +234,7 @@ func parseRGBA(args string) (Colour, bool) {
 	if !ok1 || !ok2 || !ok3 {
 		return Colour{}, false
 	}
-	a, err := strconv.ParseFloat(strings.TrimSpace(parts[3]), 64)
+	a, err := strconv.ParseFloat(strings.TrimSpace(parts[alphaComponentIndex]), 64)
 	if err != nil {
 		return Colour{}, false
 	}
@@ -284,7 +302,7 @@ func parseHSLA(args string) (Colour, bool) {
 	if !ok1 || !ok2 || !ok3 {
 		return Colour{}, false
 	}
-	a, err := strconv.ParseFloat(strings.TrimSpace(parts[3]), 64)
+	a, err := strconv.ParseFloat(strings.TrimSpace(parts[alphaComponentIndex]), 64)
 	if err != nil {
 		return Colour{}, false
 	}

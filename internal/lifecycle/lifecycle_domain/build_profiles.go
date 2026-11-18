@@ -54,6 +54,24 @@ const (
 	// mimeTypeJS is the MIME type for JavaScript files.
 	mimeTypeJS = "application/javascript"
 
+	// fileExtensionJS is the file extension for JavaScript files.
+	fileExtensionJS = ".js"
+
+	// tagKeyType is the profile tag key naming the artefact type.
+	tagKeyType = "type"
+
+	// tagKeyStorageBackendID is the profile tag key naming the storage backend.
+	tagKeyStorageBackendID = "storageBackendId"
+
+	// tagKeyMIMEType is the profile tag key holding the output MIME type.
+	tagKeyMIMEType = "mimeType"
+
+	// tagKeyFileExtension is the profile tag key holding the output file extension.
+	tagKeyFileExtension = "fileExtension"
+
+	// tagKeyContentEncoding is the profile tag key holding the output content encoding.
+	tagKeyContentEncoding = "contentEncoding"
+
 	// mimeTypeCSS is the MIME type for CSS stylesheets.
 	mimeTypeCSS = "text/css"
 
@@ -99,14 +117,14 @@ type profileBuilder func(ctx profileContext) []registry_dto.NamedProfile
 var (
 	// extensionProfiles maps file extensions to their profile builders.
 	extensionProfiles = map[string]profileBuilder{
-		".pkc":         buildComponentProfiles,
-		".ico":         buildStaticAssetProfiles,
-		".png":         buildStaticAssetProfiles,
-		".webmanifest": buildStaticAssetProfiles,
-		".svg":         buildSVGProfiles,
-		".css":         buildCSSProfiles,
-		".js":          buildJSProfiles,
-		".ts":          buildTypeScriptProfiles,
+		".pkc":          buildComponentProfiles,
+		".ico":          buildStaticAssetProfiles,
+		".png":          buildStaticAssetProfiles,
+		".webmanifest":  buildStaticAssetProfiles,
+		".svg":          buildSVGProfiles,
+		".css":          buildCSSProfiles,
+		fileExtensionJS: buildJSProfiles,
+		".ts":           buildTypeScriptProfiles,
 	}
 )
 
@@ -199,12 +217,12 @@ func buildComponentProfiles(ctx profileContext) []registry_dto.NamedProfile {
 	profiles := make([]registry_dto.NamedProfile, 0, profileSliceCapacity)
 	profiles = append(profiles, makeProfile(profileCompiledJS, registry_dto.PriorityNeed, capabilities_dto.CapabilityCompileComponent.String(), profileSource,
 		map[string]string{
-			"type":             "component-js",
-			"role":             "entrypoint",
-			"storageBackendId": blobStoreID,
-			"mimeType":         mimeTypeJS,
-			"tagName":          componentName,
-			"fileExtension":    ".js",
+			tagKeyType:             "component-js",
+			"role":                 "entrypoint",
+			tagKeyStorageBackendID: blobStoreID,
+			tagKeyMIMEType:         mimeTypeJS,
+			"tagName":              componentName,
+			tagKeyFileExtension:    fileExtensionJS,
 		},
 		map[string]string{"tagName": componentName, "sourcePath": ctx.artefactID},
 	))
@@ -267,7 +285,7 @@ func buildCSSProfiles(_ profileContext) []registry_dto.NamedProfile {
 // ".js" extension.
 func isPreMinified(name string) bool {
 	base := filepath.Base(name)
-	withoutJS := strings.TrimSuffix(base, ".js")
+	withoutJS := strings.TrimSuffix(base, fileExtensionJS)
 	if withoutJS == base {
 		return false
 	}
@@ -291,10 +309,10 @@ func buildJSProfiles(ctx profileContext) []registry_dto.NamedProfile {
 		profiles = append(profiles, makeProfile("readable", registry_dto.PriorityWant,
 			capabilities_dto.CapabilityCopyJS.String(), profileSource,
 			map[string]string{
-				"type":             "readable-pk-js",
-				"storageBackendId": blobStoreID,
-				"mimeType":         mimeTypeJS,
-				"fileExtension":    ".js",
+				tagKeyType:             "readable-pk-js",
+				tagKeyStorageBackendID: blobStoreID,
+				tagKeyMIMEType:         mimeTypeJS,
+				tagKeyFileExtension:    fileExtensionJS,
 			},
 			nil,
 		))
@@ -347,10 +365,10 @@ func buildTypeScriptProfiles(ctx profileContext) []registry_dto.NamedProfile {
 	profiles = append(profiles, makeProfile(profileTranspiledJS, registry_dto.PriorityNeed,
 		capabilities_dto.CapabilityTranspileTypeScript.String(), profileSource,
 		map[string]string{
-			"type":             "transpiled-js",
-			"storageBackendId": blobStoreID,
-			"mimeType":         mimeTypeJS,
-			"fileExtension":    ".js",
+			tagKeyType:             "transpiled-js",
+			tagKeyStorageBackendID: blobStoreID,
+			tagKeyMIMEType:         mimeTypeJS,
+			tagKeyFileExtension:    fileExtensionJS,
 		},
 		map[string]string{"sourcePath": ctx.artefactID, "moduleName": ctx.moduleName},
 	))
@@ -373,7 +391,7 @@ func buildTypeScriptProfiles(ctx profileContext) []registry_dto.NamedProfile {
 // Returns string which is the normalised artefact ID.
 func NormaliseAssetArtefactID(artefactID string) string {
 	if base, ok := strings.CutSuffix(artefactID, ".ts"); ok {
-		return base + ".js"
+		return base + fileExtensionJS
 	}
 	return artefactID
 }
@@ -422,30 +440,30 @@ func buildMinifyCompressChainWithPriority(
 	return []registry_dto.NamedProfile{
 		makeProfile(profileMinified, minifyPriority, minifyCapability, dependsOn,
 			map[string]string{
-				"type":             minifiedType,
-				"storageBackendId": blobStoreID,
-				"mimeType":         mimeType,
-				"fileExtension":    minExt,
+				tagKeyType:             minifiedType,
+				tagKeyStorageBackendID: blobStoreID,
+				tagKeyMIMEType:         mimeType,
+				tagKeyFileExtension:    minExt,
 			},
 			nil,
 		),
 		makeProfile(profileGzip, registry_dto.PriorityWant, capabilities_dto.CapabilityCompressGzip.String(), profileMinified,
 			map[string]string{
-				"type":             compressedType,
-				"contentEncoding":  "gzip",
-				"storageBackendId": blobStoreID,
-				"mimeType":         mimeType,
-				"fileExtension":    minExt + ".gz",
+				tagKeyType:             compressedType,
+				tagKeyContentEncoding:  "gzip",
+				tagKeyStorageBackendID: blobStoreID,
+				tagKeyMIMEType:         mimeType,
+				tagKeyFileExtension:    minExt + ".gz",
 			},
 			nil,
 		),
 		makeProfile(profileBrotli, registry_dto.PriorityWant, capabilities_dto.CapabilityCompressBrotli.String(), profileMinified,
 			map[string]string{
-				"type":             compressedType,
-				"contentEncoding":  "br",
-				"storageBackendId": blobStoreID,
-				"mimeType":         mimeType,
-				"fileExtension":    minExt + ".br",
+				tagKeyType:             compressedType,
+				tagKeyContentEncoding:  "br",
+				tagKeyStorageBackendID: blobStoreID,
+				tagKeyMIMEType:         mimeType,
+				tagKeyFileExtension:    minExt + ".br",
 			},
 			nil,
 		),
@@ -465,21 +483,21 @@ func buildCompressChain(dependsOn, assetType, mimeType, ext string) []registry_d
 	return []registry_dto.NamedProfile{
 		makeProfile(profileGzip, registry_dto.PriorityWant, capabilities_dto.CapabilityCompressGzip.String(), dependsOn,
 			map[string]string{
-				"type":             assetType,
-				"contentEncoding":  "gzip",
-				"storageBackendId": blobStoreID,
-				"mimeType":         mimeType,
-				"fileExtension":    ext + ".gz",
+				tagKeyType:             assetType,
+				tagKeyContentEncoding:  "gzip",
+				tagKeyStorageBackendID: blobStoreID,
+				tagKeyMIMEType:         mimeType,
+				tagKeyFileExtension:    ext + ".gz",
 			},
 			nil,
 		),
 		makeProfile(profileBrotli, registry_dto.PriorityWant, capabilities_dto.CapabilityCompressBrotli.String(), dependsOn,
 			map[string]string{
-				"type":             assetType,
-				"contentEncoding":  "br",
-				"storageBackendId": blobStoreID,
-				"mimeType":         mimeType,
-				"fileExtension":    ext + ".br",
+				tagKeyType:             assetType,
+				tagKeyContentEncoding:  "br",
+				tagKeyStorageBackendID: blobStoreID,
+				tagKeyMIMEType:         mimeType,
+				tagKeyFileExtension:    ext + ".br",
 			},
 			nil,
 		),

@@ -19,6 +19,8 @@
 package provider_otter
 
 import (
+	"cmp"
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -75,4 +77,54 @@ func TestOtterProviderFactory_AcceptsAValidWeightBound(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, provider)
+}
+
+func TestOtterProviderFactory_RejectsAnInvalidVectorField(t *testing.T) {
+	t.Parallel()
+
+	unknownMetric := cache_dto.VectorField("Embedding", 3)
+	unknownMetric.DistanceMetric = "manhattan"
+	negativeDimension := cache_dto.VectorField("Embedding", -1)
+
+	testCases := []struct {
+		name  string
+		field cache_dto.FieldSchema
+	}{
+		{name: "an unknown distance metric", field: unknownMetric},
+		{name: "a negative dimension", field: negativeDimension},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			provider, err := OtterProviderFactory(cache_dto.Options[string, testVecDocument]{
+				MaximumEntries: 16,
+				SearchSchema:   cache_dto.NewSearchSchema(testCase.field),
+			})
+
+			require.ErrorIs(t, err, errInvalidVectorField)
+			assert.Nil(t, provider)
+		})
+	}
+}
+
+func TestOtterProviderFactory_AcceptsEverySupportedDistanceMetric(t *testing.T) {
+	t.Parallel()
+
+	for _, metric := range []string{"", "cosine", "euclidean", "dot_product"} {
+		t.Run(cmp.Or(metric, "default"), func(t *testing.T) {
+			t.Parallel()
+
+			field := cache_dto.VectorField("Embedding", 3)
+			field.DistanceMetric = metric
+			provider, err := OtterProviderFactory(cache_dto.Options[string, testVecDocument]{
+				MaximumEntries: 16,
+				SearchSchema:   cache_dto.NewSearchSchema(field),
+			})
+
+			require.NoError(t, err)
+			t.Cleanup(func() { assert.NoError(t, provider.Close(context.Background())) })
+		})
+	}
 }

@@ -21,7 +21,7 @@ package wizard
 import (
 	"reflect"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 func init() {

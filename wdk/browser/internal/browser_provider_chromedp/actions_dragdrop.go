@@ -247,7 +247,7 @@ func getElementCentre(ctx *ActionContext, selector string) (centreX float64, cen
 	}
 
 	js := scripts.MustExecute("get_element_centre.js.tmpl", map[string]any{
-		"Selector": selector,
+		tmplKeySelector: selector,
 	})
 
 	var result map[string]any

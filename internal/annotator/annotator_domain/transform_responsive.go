@@ -18,11 +18,6 @@
 
 package annotator_domain
 
-// Transforms responsive image elements by applying media transformation profiles and
-// generating appropriate asset dependencies. Processes piko:img elements with responsive
-// profiles, extracts transformation parameters, and registers asset dependencies for
-// image processing.
-
 import (
 	"cmp"
 	"fmt"
@@ -43,6 +38,11 @@ type ResponsiveVariantSpec struct {
 	// Width is the target width in pixels.
 	Width int
 }
+
+const (
+	// percentScale converts a percentage value into a fraction.
+	percentScale = 100.0
+)
 
 // expandResponsiveAssets takes assets marked as responsive and creates multiple assets
 // for each required variant (one per width and density pair). Assets that are not
@@ -340,7 +340,7 @@ func extractViewportWidth(sizeValue string, screens map[string]int, breakpoint s
 		return 0
 	}
 	viewportWidth := getViewportWidth(screens, breakpoint)
-	return int(float64(viewportWidth) * percent / 100.0)
+	return int(float64(viewportWidth) * percent / percentScale)
 }
 
 // extractPercentageWidth converts a percentage value to a pixel width based on the
@@ -361,7 +361,7 @@ func extractPercentageWidth(sizeValue string, screens map[string]int, breakpoint
 		return 0
 	}
 	viewportWidth := getViewportWidth(screens, breakpoint)
-	return int(float64(viewportWidth) * percent / 100.0)
+	return int(float64(viewportWidth) * percent / percentScale)
 }
 
 // getViewportWidth returns the viewport width for a given breakpoint.

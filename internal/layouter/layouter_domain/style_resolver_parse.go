@@ -431,7 +431,6 @@ func parseOverflowWrap(value string) OverflowWrapType {
 func parseFontFamily(value string) string {
 	value = strings.TrimSpace(value)
 	if len(value) >= 2 && (value[0] == '"' || value[0] == '\'') {
-
 		if end := strings.IndexByte(value[1:], value[0]); end >= 0 {
 			return value[1 : end+1]
 		}

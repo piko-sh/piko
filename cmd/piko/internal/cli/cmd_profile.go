@@ -53,6 +53,18 @@ const (
 	// profileDefaultPprofPort is the default port for pprof endpoints.
 	profileDefaultPprofPort = 6060
 
+	// profileStatusFetchTimeout bounds short pprof and profiler status requests.
+	profileStatusFetchTimeout = 5 * time.Second
+
+	// profileSnapshotTimeout bounds goroutine snapshot requests.
+	profileSnapshotTimeout = 30 * time.Second
+
+	// profileLoadWarmupDelay is how long load runs before a profile is fetched.
+	profileLoadWarmupDelay = 500 * time.Millisecond
+
+	// profileFetchGraceSeconds is added to the profile duration to form the fetch timeout.
+	profileFetchGraceSeconds = 30
+
 	// profileDefaultConcurrency is the default number of concurrent HTTP workers.
 	profileDefaultConcurrency = 100
 
@@ -684,7 +696,7 @@ func captureRollingTrace(
 // returns 404.
 // Returns error which wraps network or deserialisation failures.
 func fetchProfilerStatus(ctx context.Context, profilerRoot string) (*profiler.ServerStatus, error) {
-	reqCtx, cancel := context.WithTimeoutCause(ctx, 5*time.Second,
+	reqCtx, cancel := context.WithTimeoutCause(ctx, profileStatusFetchTimeout,
 		errors.New("profiler status fetch exceeded 5s timeout"))
 	defer cancel()
 
@@ -786,7 +798,7 @@ func capturePhase(
 		loadDone <- runLoad(loadCtx, pipeline.buildLoadConfig(spec.name, errorCh))
 	}()
 
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(profileLoadWarmupDelay)
 
 	data, fetchErr := fetchProfileData(ctx, spec, pipeline.pprofBase, pipeline.flags.duration)
 
@@ -839,8 +851,8 @@ func fetchProfile(ctx context.Context, pprofBase, endpoint string, durationSecs 
 		fetchURL = fmt.Sprintf("%s?seconds=%d", fetchURL, durationSecs)
 	}
 
-	reqCtx, cancel := context.WithTimeoutCause(ctx, time.Duration(durationSecs+30)*time.Second,
-		fmt.Errorf("pprof %s fetch exceeded %ds timeout", endpoint, durationSecs+30))
+	reqCtx, cancel := context.WithTimeoutCause(ctx, time.Duration(durationSecs+profileFetchGraceSeconds)*time.Second,
+		fmt.Errorf("pprof %s fetch exceeded %ds timeout", endpoint, durationSecs+profileFetchGraceSeconds))
 	defer cancel()
 
 	request, err := http.NewRequestWithContext(reqCtx, http.MethodGet, fetchURL, nil)
@@ -1139,7 +1151,7 @@ Examples:
 //
 // Returns int which is the goroutine count, or 0 if the fetch fails.
 func fetchGoroutineCount(ctx context.Context, pprofBase string) int {
-	reqCtx, cancel := context.WithTimeoutCause(ctx, 5*time.Second,
+	reqCtx, cancel := context.WithTimeoutCause(ctx, profileStatusFetchTimeout,
 		errors.New("pprof goroutine count fetch exceeded 5s timeout"))
 	defer cancel()
 
@@ -1179,7 +1191,7 @@ func fetchGoroutineCount(ctx context.Context, pprofBase string) int {
 func snapshotGoroutines(ctx context.Context, stdout, stderr io.Writer, pprofBase, phase string, sandbox safedisk.Sandbox) {
 	count := fetchGoroutineCount(ctx, pprofBase)
 
-	reqCtx, cancel := context.WithTimeoutCause(ctx, 30*time.Second,
+	reqCtx, cancel := context.WithTimeoutCause(ctx, profileSnapshotTimeout,
 		errors.New("pprof goroutine snapshot exceeded 30s timeout"))
 	defer cancel()
 

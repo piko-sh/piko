@@ -38,6 +38,10 @@ const (
 	// randBMask is the bitmask for the top 6 bits of rand_b from byte 8.
 	randBMask = 0x3F
 
+	// lowNibbleMask keeps the low four bits of a byte, such as the rand_a bits that share a
+	// byte with the UUID version.
+	lowNibbleMask = 0x0F
+
 	// versionShift is the bit shift for the version nibble in byte 6.
 	versionShift = 4
 
@@ -271,7 +275,7 @@ func extractTimestamp(id uuid.UUID) uint64 {
 // Returns uint64 which holds the 12-bit rand_a value. This combines the low nibble of
 // byte 6 with byte 7.
 func extractRandA(id uuid.UUID) uint64 {
-	return uint64(id[uuidByteVersion]&0x0F)<<timestampShift8 | uint64(id[uuidByteRandA])
+	return uint64(id[uuidByteVersion]&lowNibbleMask)<<timestampShift8 | uint64(id[uuidByteRandA])
 }
 
 // extractRandB extracts the 62-bit rand_b field from a UUID v7.

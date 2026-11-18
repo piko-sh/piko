@@ -24,9 +24,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/internal/cache/cache_adapters/provider_otter"
+	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/cache/cache_dto"
+	"piko.sh/piko/internal/cache/cache_test/conformance"
 	"piko.sh/piko/wdk/cache"
+	"piko.sh/piko/wdk/clock"
 )
 
 func createTestCache(t *testing.T) cache.Cache[string, int64] {
@@ -222,5 +228,54 @@ func TestIncrementWithExpiry_MultipleCounters(t *testing.T) {
 	}
 	if valueC != 125 {
 		t.Errorf("counter-c: expected 125, got %d", valueC)
+	}
+}
+
+func TestIncrementWithExpiry_FixedWindowWithPerEntryExpiration(t *testing.T) {
+	t.Parallel()
+
+	const window = time.Minute
+
+	testCases := []struct {
+		name      string
+		gaps      []time.Duration
+		wantValue int64
+	}{
+		{
+			name:      "increments inside the window accumulate",
+			gaps:      []time.Duration{20 * time.Second, 20 * time.Second},
+			wantValue: 3,
+		},
+		{
+			name:      "the window is fixed from the first increment",
+			gaps:      []time.Duration{30 * time.Second, 30 * time.Second},
+			wantValue: 1,
+		},
+		{
+			name:      "an increment long after the window starts a new counter",
+			gaps:      []time.Duration{time.Hour},
+			wantValue: 1,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx := t.Context()
+			mockClock := clock.NewMockClock(time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC))
+			counterCache := conformance.BuildPerEntryCache(t, provider_otter.OtterProviderFactory[string, int64],
+				func(builder *cache_domain.CacheBuilder[string, int64]) { builder.Clock(mockClock) })
+
+			value, _, err := cache.IncrementWithExpiry(ctx, counterCache, "counter", 1, window)
+			require.NoError(t, err)
+			for _, gap := range testCase.gaps {
+				mockClock.Advance(gap)
+				value, _, err = cache.IncrementWithExpiry(ctx, counterCache, "counter", 1, window)
+				require.NoError(t, err)
+			}
+
+			assert.Equal(t, testCase.wantValue, value)
+		})
 	}
 }

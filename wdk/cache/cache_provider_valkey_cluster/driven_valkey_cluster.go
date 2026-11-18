@@ -38,6 +38,12 @@ const (
 	// scanBatchSize is the number of keys to fetch in each Valkey SCAN call.
 	scanBatchSize = 100
 
+	// keepTTL is the writeExpiry result that keeps a key's current TTL.
+	keepTTL time.Duration = -1
+
+	// errFmtWatchFailed formats the error returned when a WATCH command fails.
+	errFmtWatchFailed = "WATCH failed: %w"
+
 	// logKeyField is the attribute key used when logging Valkey cache keys.
 	logKeyField = "key"
 
@@ -74,6 +80,10 @@ type ValkeyClusterAdapter[K comparable, V any] struct {
 
 	// client is the Valkey Cluster client used for cluster operations.
 	client valkey.Client
+
+	// listNodes returns every cluster node by address; nil uses client.Nodes. Tests set it
+	// to stand in a replica beside a primary.
+	listNodes func() map[string]valkey.Client
 
 	// keyRegistry handles complex key types; defaults to fmt.Sprintf if nil.
 	keyRegistry *cache.EncodingRegistry
@@ -123,9 +133,16 @@ type ValkeyClusterAdapter[K comparable, V any] struct {
 
 	// indexCreated indicates whether the search index has been created.
 	indexCreated bool
+
+	// perEntry records that the cache was built with PerEntryExpiration, so a write without
+	// a TTL keeps the key's current TTL instead of applying a default one.
+	perEntry bool
 }
 
 var (
+	// errEmptyRoleReply is returned when a node answers ROLE with an empty reply.
+	errEmptyRoleReply = errors.New("empty ROLE reply")
+
 	_ cache.ProviderPort[any, any] = (*ValkeyClusterAdapter[any, any])(nil)
 )
 
@@ -275,22 +292,11 @@ func (a *ValkeyClusterAdapter[K, V]) Set(ctx context.Context, key K, value V, ta
 		return fmt.Errorf(errFmtEncodeKey, err)
 	}
 
-	ttl := a.ttl
-	if a.expiryCalculator != nil {
-		entry := cache.Entry[K, V]{
-			Key:               key,
-			Value:             value,
-			Weight:            0,
-			ExpiresAtNano:     0,
-			RefreshableAtNano: 0,
-			SnapshotAtNano:    time.Now().UnixNano(),
-		}
-		ttl = a.expiryCalculator.ExpireAfterCreate(entry)
-	}
+	ttl := a.writeExpiry(0, a.defaultWriteTTL(key, value))
 
 	if a.needsJSONStorage() {
 		a.indexDocument(timeoutCtx, keyString, value)
-		if err := a.client.Do(timeoutCtx, a.client.B().Expire().Key(keyString).Seconds(int64(ttl.Seconds())).Build()).Error(); err != nil {
+		if err := a.applyJSONExpiry(timeoutCtx, keyString, ttl); err != nil {
 			l.Warn("Failed to set TTL on JSON document", logger.String(logKeyField, keyString), logger.Error(err))
 		}
 	} else {
@@ -304,7 +310,7 @@ func (a *ValkeyClusterAdapter[K, V]) Set(ctx context.Context, key K, value V, ta
 			return fmt.Errorf("failed to marshal value for valkey cluster: %w", err)
 		}
 
-		if err := a.client.Do(timeoutCtx, a.client.B().Set().Key(keyString).Value(string(valBytes)).Px(ttl).Build()).Error(); err != nil {
+		if err := a.client.Do(timeoutCtx, buildSet(a.client.B(), keyString, string(valBytes), ttl)).Error(); err != nil {
 			return fmt.Errorf("valkey cluster set failed: %w", err)
 		}
 	}
@@ -320,11 +326,16 @@ func (a *ValkeyClusterAdapter[K, V]) Set(ctx context.Context, key K, value V, ta
 //
 // Takes key (K) which is the cache key to store.
 // Takes value (V) which is the value to cache.
-// Takes ttl (time.Duration) which specifies how long the entry remains valid.
+// Takes ttl (time.Duration) which sets how long the entry stays valid. cache.NoExpiry
+// removes any TTL. Other nonpositive values write as Set does.
 // Takes tags (...string) which are optional tags to associate with the key.
 //
 // Returns error when encoding fails, marshalling fails, or the Valkey operation fails.
 func (a *ValkeyClusterAdapter[K, V]) SetWithTTL(ctx context.Context, key K, value V, ttl time.Duration, tags ...string) error {
+	if ttl <= 0 {
+		return a.Set(ctx, key, value, tags...)
+	}
+
 	ctx, l := logger.From(ctx, log)
 
 	timeoutCtx, cancel := context.WithTimeoutCause(ctx, a.operationTimeout, fmt.Errorf("valkey cluster SetWithTTL exceeded %s timeout", a.operationTimeout))
@@ -333,6 +344,17 @@ func (a *ValkeyClusterAdapter[K, V]) SetWithTTL(ctx context.Context, key K, valu
 	keyString, err := a.encodeKey(key)
 	if err != nil {
 		return fmt.Errorf(errFmtEncodeKey, err)
+	}
+
+	if a.needsJSONStorage() {
+		a.indexDocument(timeoutCtx, keyString, value)
+		if err := a.applyJSONExpiry(timeoutCtx, keyString, a.writeExpiry(ttl, 0)); err != nil {
+			l.Warn("Failed to set TTL on JSON document", logger.String(logKeyField, keyString), logger.Error(err))
+		}
+		if err := addTagsToKey(timeoutCtx, a.client, a.namespace, keyString, tags); err != nil {
+			l.Warn("Failed to add tags to key", logger.String(logKeyField, keyString), logger.Error(err))
+		}
+		return nil
 	}
 
 	encoder, err := a.registry.Get(value)
@@ -347,7 +369,7 @@ func (a *ValkeyClusterAdapter[K, V]) SetWithTTL(ctx context.Context, key K, valu
 		return fmt.Errorf("marshal failed: %w", err)
 	}
 
-	if err := a.client.Do(timeoutCtx, a.client.B().Set().Key(keyString).Value(string(valBytes)).Px(ttl).Build()).Error(); err != nil {
+	if err := a.client.Do(timeoutCtx, buildSet(a.client.B(), keyString, string(valBytes), a.writeExpiry(ttl, 0))).Error(); err != nil {
 		l.Warn("Valkey Cluster Set with TTL failed", logger.String(logKeyField, keyString), logger.Error(err))
 		return fmt.Errorf("valkey set failed: %w", err)
 	}
@@ -394,7 +416,7 @@ func (a *ValkeyClusterAdapter[K, V]) prepareBulkSetItem(ctx context.Context, key
 	}
 
 	entryTTL := defaultTTL
-	if a.expiryCalculator != nil {
+	if a.expiryCalculator != nil && !a.perEntry {
 		entry := cache.Entry[K, V]{
 			Key: key, Value: value, SnapshotAtNano: time.Now().UnixNano(),
 			Weight:            0,
@@ -431,7 +453,7 @@ func (a *ValkeyClusterAdapter[K, V]) BulkSet(ctx context.Context, items map[K]V,
 			continue
 		}
 
-		cmds = append(cmds, a.client.B().Set().Key(keyString).Value(string(valBytes)).Px(entryTTL).Build())
+		cmds = append(cmds, buildSet(a.client.B(), keyString, string(valBytes), a.writeExpiry(0, entryTTL)))
 
 		for _, tag := range tags {
 			cmds = append(cmds, a.client.B().Sadd().Key(tagPrefix+clusterHashTag(a.namespace+tag)).Member(keyString).Build())
@@ -594,7 +616,7 @@ func (a *ValkeyClusterAdapter[K, V]) storeLoadedValues(ctx context.Context, load
 			l.Warn("Failed to marshal loaded value for Valkey Cluster", logger.String(logKeyField, keyString), logger.Error(marshalErr))
 			continue
 		}
-		cmds = append(cmds, a.client.B().Set().Key(keyString).Value(string(valBytes)).Px(a.ttl).Build())
+		cmds = append(cmds, buildSet(a.client.B(), keyString, string(valBytes), a.writeExpiry(0, a.ttl)))
 		results[k] = v
 	}
 
@@ -699,7 +721,7 @@ func (a *ValkeyClusterAdapter[K, V]) flushClusterUnsafe(ctx context.Context) err
 		logger.Bool("unsafe_mode", true))
 
 	var errs []error
-	for addr, nodeClient := range a.client.Nodes() {
+	for addr, nodeClient := range a.primaryNodes(ctx) {
 		if err := nodeClient.Do(ctx, nodeClient.B().Flushdb().Build()).Error(); err != nil {
 			l.Error("Valkey Cluster FLUSHDB failed on node",
 				logger.String(logKeyNode, addr),
@@ -745,7 +767,7 @@ func (a *ValkeyClusterAdapter[K, V]) invalidateByNamespace(ctx context.Context) 
 		logger.String("namespace", a.namespace),
 		logger.String("pattern", scanPattern))
 
-	for addr, nodeClient := range a.client.Nodes() {
+	for addr, nodeClient := range a.primaryNodes(ctx) {
 		var cursor uint64
 		for {
 			response := nodeClient.Do(ctx, nodeClient.B().Scan().Cursor(cursor).Match(scanPattern).Count(scanBatchSize).Build())
@@ -918,4 +940,86 @@ func (a *ValkeyClusterAdapter[K, V]) SupportsSearch() bool {
 // Returns *cache.SearchSchema which is the schema, or nil if not searchable.
 func (a *ValkeyClusterAdapter[K, V]) GetSchema() *cache.SearchSchema {
 	return a.schema
+}
+
+// writeExpiry chooses the expiration for a write with ttl.
+//
+// buildSet rounds a positive duration up to one millisecond when needed.
+//
+// Takes ttl (time.Duration) which is the TTL the caller asked for.
+// Takes fallback (time.Duration) which is the expiration a write without a TTL gets when
+// the cache is not built with PerEntryExpiration.
+//
+// Returns time.Duration which is zero for no expiry, keepTTL to keep the key's current
+// TTL, or a positive duration.
+func (a *ValkeyClusterAdapter[K, V]) writeExpiry(ttl, fallback time.Duration) time.Duration {
+	switch {
+	case ttl == cache.NoExpiry:
+		return 0
+	case ttl > 0:
+		return max(ttl, time.Millisecond)
+	case a.perEntry:
+		return keepTTL
+	}
+	return max(fallback, 0)
+}
+
+// defaultWriteTTL finds the TTL Set gives a key outside PerEntryExpiration. It uses the
+// expiry calculator's create TTL when configured, or the default TTL otherwise.
+//
+// Takes key (K) which identifies the entry.
+// Takes value (V) which is the value being written.
+//
+// Returns time.Duration which is the TTL. Zero means no expiry.
+func (a *ValkeyClusterAdapter[K, V]) defaultWriteTTL(key K, value V) time.Duration {
+	if a.expiryCalculator == nil || a.perEntry {
+		return a.ttl
+	}
+	return a.expiryCalculator.ExpireAfterCreate(cache.Entry[K, V]{
+		Key:               key,
+		Value:             value,
+		Weight:            0,
+		ExpiresAtNano:     0,
+		RefreshableAtNano: 0,
+		SnapshotAtNano:    time.Now().UnixNano(),
+	})
+}
+
+// applyJSONExpiry sets the TTL of a JSON document after JSON.SET wrote it. A TTL under
+// one millisecond is rounded up, because PEXPIRE 0 would delete the document.
+//
+// Takes keyString (string) which is the document's key.
+// Takes expiration (time.Duration) which is a writeExpiry result.
+//
+// Returns error when the TTL cannot be set.
+func (a *ValkeyClusterAdapter[K, V]) applyJSONExpiry(ctx context.Context, keyString string, expiration time.Duration) error {
+	switch {
+	case expiration == keepTTL:
+		return nil
+	case expiration > 0:
+		return a.client.Do(ctx, a.client.B().Pexpire().Key(keyString).Milliseconds(max(expiration, time.Millisecond).Milliseconds()).Build()).Error()
+	}
+	return a.client.Do(ctx, a.client.B().Persist().Key(keyString).Build()).Error()
+}
+
+// buildSet builds a SET command for value with the requested expiration.
+//
+// It uses PX for positive durations because EX counts whole seconds and the server
+// rejects EX 0 for a TTL under one second.
+//
+// Takes builder (valkey.Builder) which builds the command.
+// Takes keyString (string) which is the key to write.
+// Takes value (string) which is the encoded value.
+// Takes expiration (time.Duration) which is a writeExpiry result.
+//
+// Returns valkey.Completed which is the command to send.
+func buildSet(builder valkey.Builder, keyString, value string, expiration time.Duration) valkey.Completed {
+	set := builder.Set().Key(keyString).Value(value)
+	switch {
+	case expiration == keepTTL:
+		return set.Keepttl().Build()
+	case expiration > 0:
+		return set.Px(max(expiration, time.Millisecond)).Build()
+	}
+	return set.Build()
 }

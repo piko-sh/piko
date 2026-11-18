@@ -18,11 +18,6 @@
 
 package bootstrap
 
-// This file is responsible for assembling the complete HTTP routing and middleware stack
-// for the application. It orchestrates the process by resolving dependencies from the DI
-// container, mounting application-specific routes, and wrapping the final handler in
-// essential system-level middleware.
-
 import (
 	"context"
 	"errors"
@@ -85,6 +80,10 @@ const (
 	// defaultArtefactMetadataCacheTTL is how long artefact metadata stays cached before
 	// expiring (5 minutes).
 	defaultArtefactMetadataCacheTTL = 5 * time.Minute
+
+	// defaultCacheWriteConcurrency is how many cache writes the page cache middleware runs
+	// at once.
+	defaultCacheWriteConcurrency = 5
 )
 
 // actionResponseWeigher returns the byte cost of an action response cache entry as the
@@ -387,7 +386,7 @@ func (op *routerOperation) createCacheMiddleware(ctx context.Context) *daemon_ad
 
 	cacheMiddleware := daemon_adapters.NewCacheMiddleware(
 		daemon_adapters.CacheMiddlewareConfig{
-			CacheWriteConcurrency:  5,
+			CacheWriteConcurrency:  defaultCacheWriteConcurrency,
 			PersistenceDisabled:    op.container.registryBlobsReadOnly(),
 			StreamCompressionLevel: 0,
 		},
@@ -435,9 +434,17 @@ func (op *routerOperation) mountApplicationRoutes(ctx context.Context, cacheMidd
 //
 // Returns *daemon_domain.RouterConfig which contains exactly the fields the router needs.
 func (op *routerOperation) buildRouterConfig(ctx context.Context) *daemon_domain.RouterConfig {
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 
 	serverConfig := op.container.serverConfig
+
+	if configured := serverConfig.Security.RateLimit.IPv6PrefixBits; configured != nil {
+		if err := security_dto.ValidateIPv6PrefixBits(*configured); err != nil {
+			l.Warn("Ignoring the configured IPv6 rate limit prefix and using the default",
+				logger_domain.Error(err),
+				logger_domain.Int("default_bits", security_dto.DefaultIPv6RateLimitPrefixBits))
+		}
+	}
 
 	securityHeaders := serverConfig.Security.Headers
 	corpOverride := op.container.GetCrossOriginResourcePolicy()
@@ -538,8 +545,7 @@ func buildRouter(
 //
 // Returns security_dto.CSPRuntimeConfig which contains the computed CSP settings.
 func buildCSPRuntimeConfig(c *Container) security_dto.CSPRuntimeConfig {
-	ctx := c.GetAppContext()
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(c.GetAppContext(), log)
 
 	if builder := c.GetCSPConfig(); builder != nil {
 		mergeCaptchaCSPDomains(ctx, c, builder)
@@ -759,6 +765,7 @@ func newPresignHandlers(
 	}
 
 	presignConfig := presignConfigFor(storageService)
+	presignConfig.RateLimitIPv6PrefixBits = resolveIPv6PrefixBits(c.serverConfig.Security.RateLimit.IPv6PrefixBits)
 
 	if rateLimitService != nil {
 		presignConfig.RateLimiter = rateLimitService

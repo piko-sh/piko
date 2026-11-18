@@ -57,9 +57,9 @@ func GetLocalStorageItem(ctx *ActionContext, key string) (string, bool, error) {
 // Returns error when the browser action fails.
 func SetLocalStorageItem(ctx *ActionContext, key, value string) error {
 	js := scripts.MustExecute("storage_set_item.js.tmpl", map[string]any{
-		"StorageType": "localStorage",
-		"Key":         key,
-		"Value":       value,
+		tmplKeyStorageType: "localStorage",
+		tmplKeyKey:         key,
+		"Value":            value,
 	})
 
 	err := chromedp.Run(ctx.Ctx, chromedp.Evaluate(js, nil))
@@ -77,8 +77,8 @@ func SetLocalStorageItem(ctx *ActionContext, key, value string) error {
 // Returns error when the item cannot be removed from localStorage.
 func RemoveLocalStorageItem(ctx *ActionContext, key string) error {
 	js := scripts.MustExecute("storage_remove_item.js.tmpl", map[string]any{
-		"StorageType": "localStorage",
-		"Key":         key,
+		tmplKeyStorageType: "localStorage",
+		tmplKeyKey:         key,
 	})
 
 	err := chromedp.Run(ctx.Ctx, chromedp.Evaluate(js, nil))
@@ -163,9 +163,9 @@ func GetSessionStorageItem(ctx *ActionContext, key string) (string, bool, error)
 // Returns error when the JavaScript execution fails.
 func SetSessionStorageItem(ctx *ActionContext, key, value string) error {
 	js := scripts.MustExecute("storage_set_item.js.tmpl", map[string]any{
-		"StorageType": "sessionStorage",
-		"Key":         key,
-		"Value":       value,
+		tmplKeyStorageType: "sessionStorage",
+		tmplKeyKey:         key,
+		"Value":            value,
 	})
 
 	err := chromedp.Run(ctx.Ctx, chromedp.Evaluate(js, nil))
@@ -183,8 +183,8 @@ func SetSessionStorageItem(ctx *ActionContext, key, value string) error {
 // Returns error when the storage item cannot be removed.
 func RemoveSessionStorageItem(ctx *ActionContext, key string) error {
 	js := scripts.MustExecute("storage_remove_item.js.tmpl", map[string]any{
-		"StorageType": "sessionStorage",
-		"Key":         key,
+		tmplKeyStorageType: "sessionStorage",
+		tmplKeyKey:         key,
 	})
 
 	err := chromedp.Run(ctx.Ctx, chromedp.Evaluate(js, nil))
@@ -259,8 +259,8 @@ func GetSessionStorageLength(ctx *ActionContext) (int, error) {
 // Returns error when the storage operation fails.
 func getStorageItem(ctx *ActionContext, storageType StorageType, key string) (string, bool, error) {
 	js := scripts.MustExecute("get_storage_item.js.tmpl", map[string]any{
-		"StorageType": string(storageType),
-		"Key":         key,
+		tmplKeyStorageType: string(storageType),
+		tmplKeyKey:         key,
 	})
 
 	var result map[string]any

@@ -20,9 +20,10 @@ package json_provider_sonic
 
 import (
 	"io"
+	"reflect"
 
 	"github.com/bytedance/sonic"
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 // sonicAPI wraps a frozen sonic.API to implement json.API.
@@ -82,6 +83,15 @@ func (s *sonicAPI) NewEncoder(w io.Writer) json.Encoder {
 // Returns json.Decoder which reads JSON from r.
 func (s *sonicAPI) NewDecoder(r io.Reader) json.Decoder {
 	return s.inner.NewDecoder(r)
+}
+
+// Pretouch compiles sonic's codec for t ahead of its first use.
+//
+// Takes t (reflect.Type) which is the type to compile for.
+//
+// Returns error when sonic cannot compile the codec.
+func (*sonicAPI) Pretouch(t reflect.Type) error {
+	return sonicPretouch(t)
 }
 
 // sonicFreeze maps a json.Config to a sonic.Config and freezes it.

@@ -70,7 +70,7 @@ func (a *RedisClusterAdapter[K, V]) executeComputeAction(ctx context.Context, pi
 		if err != nil {
 			return err
 		}
-		pipe.Set(ctx, keyString, valBytes, a.ttl)
+		pipe.Set(ctx, keyString, valBytes, a.writeExpiry(0, a.ttl))
 	case cache.ComputeActionDelete:
 		if found {
 			pipe.Del(ctx, keyString)
@@ -95,7 +95,7 @@ func (a *RedisClusterAdapter[K, V]) executeComputeActionPresent(ctx context.Cont
 		if err != nil {
 			return err
 		}
-		pipe.Set(ctx, keyString, valBytes, a.ttl)
+		pipe.Set(ctx, keyString, valBytes, a.writeExpiry(0, a.ttl))
 	case cache.ComputeActionDelete:
 		pipe.Del(ctx, keyString)
 	case cache.ComputeActionNoop:
@@ -232,7 +232,7 @@ func (a *RedisClusterAdapter[K, V]) computeIfAbsentWatchFunction(ctx context.Con
 		if err != nil {
 			return err
 		}
-		pipe.Set(ctx, keyString, valBytes, a.ttl)
+		pipe.Set(ctx, keyString, valBytes, a.writeExpiry(0, a.ttl))
 		return nil
 	})
 	return txErr
@@ -421,11 +421,7 @@ func (a *RedisClusterAdapter[K, V]) executeComputeActionWithTTL(
 		if err != nil {
 			return err
 		}
-		effectiveTTL := a.ttl
-		if ttl > 0 {
-			effectiveTTL = ttl
-		}
-		pipe.Set(ctx, keyString, valBytes, effectiveTTL)
+		pipe.Set(ctx, keyString, valBytes, a.writeExpiry(ttl, a.ttl))
 	case cache.ComputeActionDelete:
 		if found {
 			pipe.Del(ctx, keyString)

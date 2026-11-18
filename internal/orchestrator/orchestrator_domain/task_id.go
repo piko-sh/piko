@@ -52,6 +52,10 @@ const (
 
 	// uuidVariantRFC9562 is the variant bits of an RFC 9562 UUID.
 	uuidVariantRFC9562 = 0x80
+
+	// uuidTimestampBytes is the number of leading UUID bytes that hold the version 7
+	// millisecond timestamp.
+	uuidTimestampBytes = 6
 )
 
 var (
@@ -94,7 +98,7 @@ func NewTaskID() string {
 
 	var stamp [8]byte
 	binary.BigEndian.PutUint64(stamp[:], uint64(time.Now().UnixMilli()))
-	copy(id[0:6], stamp[2:8])
+	copy(id[:uuidTimestampBytes], stamp[len(stamp)-uuidTimestampBytes:])
 	id[uuidVersionByte] = (id[uuidVersionByte] & uuidVersionMask) | uuidVersion7
 	id[uuidVariantByte] = (id[uuidVariantByte] & uuidVariantMask) | uuidVariantRFC9562
 	return id.String()

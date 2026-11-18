@@ -72,15 +72,15 @@ func (b *Breadcrumb) Render(theme *Theme, width int) string {
 	rightWidth := TextWidth(right)
 	available := width - leftWidth - rightWidth - 2
 
-	gap := " "
+	gap := SingleSpace
 	if available > 0 {
-		gap = strings.Repeat(" ", available)
+		gap = strings.Repeat(SingleSpace, available)
 	} else if available < 0 {
 		leftPath = TruncateANSI(leftPath, max(1, width-rightWidth-2))
-		gap = " "
+		gap = SingleSpace
 	}
 
-	return PadRightANSI(" "+leftPath+gap+right+" ", width)
+	return PadRightANSI(SingleSpace+leftPath+gap+right+SingleSpace, width)
 }
 
 // renderLeft assembles the path side of the breadcrumb.

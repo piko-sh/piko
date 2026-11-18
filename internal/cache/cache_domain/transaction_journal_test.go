@@ -20,25 +20,35 @@ package cache_domain
 
 import (
 	"context"
+	"errors"
 	"iter"
 	"maps"
+	"math"
+	"slices"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/cache/cache_dto"
+	"piko.sh/piko/wdk/clock"
 )
 
 type testCache struct {
-	data    map[string]string
-	expires map[string]int64
+	data           map[string]string
+	expires        map[string]int64
+	ttls           map[string]time.Duration
+	failures       map[string]error
+	snapshotAtNano int64
 }
 
 func newTestCache() *testCache {
 	return &testCache{
-		data:    make(map[string]string),
-		expires: make(map[string]int64),
+		data:     make(map[string]string),
+		expires:  make(map[string]int64),
+		ttls:     make(map[string]time.Duration),
+		failures: make(map[string]error),
 	}
 }
 
@@ -66,12 +76,23 @@ func (c *testCache) Set(_ context.Context, key string, value string, _ ...string
 }
 
 func (c *testCache) SetWithTTL(_ context.Context, key string, value string, ttl time.Duration, _ ...string) error {
+	if err := c.failures[key]; err != nil {
+		return err
+	}
 	c.data[key] = value
+	c.ttls[key] = ttl
+	if ttl == cache_dto.NoExpiry {
+		c.expires[key] = 0
+		return nil
+	}
 	c.expires[key] = time.Now().Add(ttl).UnixNano()
 	return nil
 }
 
 func (c *testCache) Invalidate(_ context.Context, key string) error {
+	if err := c.failures[key]; err != nil {
+		return err
+	}
 	delete(c.data, key)
 	delete(c.expires, key)
 	return nil
@@ -216,20 +237,25 @@ func (c *testCache) GetEntry(_ context.Context, key string) (cache_dto.Entry[str
 	if !ok {
 		return cache_dto.Entry[string, string]{}, false, nil
 	}
-	return cache_dto.Entry[string, string]{Key: key, Value: v, ExpiresAtNano: c.expires[key]}, true, nil
+	return cache_dto.Entry[string, string]{Key: key, Value: v, ExpiresAtNano: c.expires[key], SnapshotAtNano: c.snapshotAtNano}, true, nil
 }
 
 func (c *testCache) ProbeEntry(ctx context.Context, key string) (cache_dto.Entry[string, string], bool, error) {
 	return c.GetEntry(ctx, key)
 }
 
-func (c *testCache) EstimatedSize() int                                                 { return len(c.data) }
-func (c *testCache) Stats() cache_dto.Stats                                             { return cache_dto.Stats{} }
-func (c *testCache) Close(_ context.Context) error                                      { return nil }
-func (c *testCache) GetMaximum() uint64                                                 { return 0 }
-func (c *testCache) SetMaximum(_ uint64)                                                {}
-func (c *testCache) WeightedSize() uint64                                               { return 0 }
-func (c *testCache) SetExpiresAfter(_ context.Context, _ string, _ time.Duration) error { return nil }
+func (c *testCache) EstimatedSize() int            { return len(c.data) }
+func (c *testCache) Stats() cache_dto.Stats        { return cache_dto.Stats{} }
+func (c *testCache) Close(_ context.Context) error { return nil }
+func (c *testCache) GetMaximum() uint64            { return 0 }
+func (c *testCache) SetMaximum(_ uint64)           {}
+func (c *testCache) WeightedSize() uint64          { return 0 }
+func (c *testCache) SetExpiresAfter(_ context.Context, key string, expiresAfter time.Duration) error {
+	if _, ok := c.data[key]; ok && expiresAfter > 0 {
+		c.expires[key] = time.Now().Add(expiresAfter).UnixNano()
+	}
+	return nil
+}
 func (c *testCache) SetRefreshableAfter(_ context.Context, _ string, _ time.Duration) error {
 	return nil
 }
@@ -247,10 +273,10 @@ func (c *testCache) GetSchema() *cache_dto.SearchSchema { return nil }
 
 func TestTransactionJournal_CommitPreservesMutations(t *testing.T) {
 	tests := []struct {
-		name      string
 		setup     map[string]string
 		mutate    func(t *testing.T, tx TransactionCache[string, string])
 		wantAfter map[string]string
+		name      string
 	}{
 		{
 			name:  "set new key and commit",
@@ -385,10 +411,10 @@ func TestTransactionJournal_CommitPreservesMutations(t *testing.T) {
 
 func TestTransactionJournal_RollbackRestoresState(t *testing.T) {
 	tests := []struct {
-		name      string
 		setup     map[string]string
 		mutate    func(t *testing.T, tx TransactionCache[string, string])
 		wantAfter map[string]string
+		name      string
 	}{
 		{
 			name:  "rollback new key removes it",
@@ -585,22 +611,6 @@ func TestTransactionJournal_RollbackExpiredTTLInvalidatesKey(t *testing.T) {
 	require.False(t, exists, "key with elapsed TTL should be invalidated on rollback")
 }
 
-func TestTransactionJournal_RollbackNoTTLUsesPlainSet(t *testing.T) {
-	ctx := context.Background()
-	cache := newTestCache()
-
-	cache.data["a"] = "original"
-
-	tx := newTransactionJournal[string, string](cache)
-
-	require.NoError(t, tx.Set(ctx, "a", "modified"))
-
-	require.NoError(t, tx.Rollback(ctx))
-
-	require.Equal(t, "original", cache.data["a"])
-	require.Zero(t, cache.expires["a"], "no TTL should be set when original had none")
-}
-
 func TestTransactionJournal_RollbackUndoesLoaderPopulation(t *testing.T) {
 	ctx := context.Background()
 	cache := newTestCache()
@@ -651,8 +661,8 @@ func TestTransactionJournal_RollbackUndoesBulkLoaderPopulation(t *testing.T) {
 
 func TestTransactionJournal_EmptyTransaction(t *testing.T) {
 	tests := []struct {
-		name   string
 		action func(tx TransactionCache[string, string]) error
+		name   string
 	}{
 		{
 			name: "empty commit",
@@ -865,3 +875,329 @@ func TestTransactionJournal_RollbackThenCommitReturnsSentinel(t *testing.T) {
 	_, ok, _ := cache.GetIfPresent(ctx, "a")
 	require.False(t, ok)
 }
+
+func TestTransactionJournal_RollbackOfEntryWithoutTTLRestoresNoExpiry(t *testing.T) {
+	testCases := []struct {
+		write         func(ctx context.Context, transaction *transactionJournal[string, string]) error
+		name          string
+		expiresAtNano int64
+	}{
+		{
+			name:          "zero expiry undone after Set",
+			expiresAtNano: 0,
+			write: func(ctx context.Context, transaction *transactionJournal[string, string]) error {
+				return transaction.Set(ctx, "a", "modified")
+			},
+		},
+		{
+			name:          "largest representable expiry, as Otter reports an entry without a TTL",
+			expiresAtNano: math.MaxInt64,
+			write: func(ctx context.Context, transaction *transactionJournal[string, string]) error {
+				return transaction.SetWithTTL(ctx, "a", "modified", time.Minute)
+			},
+		},
+		{
+			name:          "an expiry the transaction gave the entry",
+			expiresAtNano: 0,
+			write: func(ctx context.Context, transaction *transactionJournal[string, string]) error {
+				return transaction.SetExpiresAfter(ctx, "a", time.Minute)
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			ctx := t.Context()
+			cache := newTestCache()
+			cache.data["a"] = "original"
+			cache.expires["a"] = testCase.expiresAtNano
+
+			transaction := newTransactionJournal[string, string](cache)
+			require.NoError(t, testCase.write(ctx, transaction))
+			require.NoError(t, transaction.Rollback(ctx))
+
+			require.Equal(t, "original", cache.data["a"])
+			require.Equal(t, cache_dto.NoExpiry, cache.ttls["a"],
+				"rollback must clear any TTL the transaction set, not leave it in place with a plain Set")
+			require.Zero(t, cache.expires["a"])
+		})
+	}
+}
+
+func TestTransactionJournal_RollbackMeasuresTheTTLOnTheProviderClock(t *testing.T) {
+	ctx := t.Context()
+	cache := newTestCache()
+	providerNow := time.Date(2020, 3, 1, 12, 0, 0, 0, time.UTC)
+	cache.snapshotAtNano = providerNow.UnixNano()
+	cache.data["a"] = "original"
+	cache.expires["a"] = providerNow.Add(10 * time.Minute).UnixNano()
+
+	transaction := newTransactionJournal[string, string](cache)
+	require.NoError(t, transaction.Set(ctx, "a", "modified"))
+	require.NoError(t, transaction.Rollback(ctx))
+
+	require.Equal(t, "original", cache.data["a"],
+		"an entry with ten minutes left on its own clock must not be dropped because the system clock differs")
+	assert.Greater(t, cache.ttls["a"], 10*time.Minute-time.Second)
+	assert.LessOrEqual(t, cache.ttls["a"], 10*time.Minute)
+}
+
+func TestTransactionJournal_WithTransactionClockMeasuresTheTransaction(t *testing.T) {
+	ctx := t.Context()
+	cache := newTestCache()
+	mockClock := clock.NewMockClock(time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC))
+	cache.data["a"] = "original"
+	cache.expires["a"] = mockClock.Now().Add(10 * time.Minute).UnixNano()
+
+	transaction := BeginTransaction[string, string](ctx, cache, WithTransactionClock(mockClock))
+	require.NoError(t, transaction.Set(ctx, "a", "modified"))
+	mockClock.Advance(3 * time.Minute)
+	require.NoError(t, transaction.Rollback(ctx))
+
+	assert.Equal(t, 7*time.Minute, cache.ttls["a"],
+		"the time the transaction ran comes off the TTL the entry had left")
+}
+
+func TestTransactionJournal_RollbackJoinsEveryRestoreFailure(t *testing.T) {
+	ctx := t.Context()
+	cache := newTestCache()
+	firstFailure := errors.New("first failure")
+	secondFailure := errors.New("second failure")
+	cache.data["first"] = "original"
+	cache.data["second"] = "original"
+	cache.data["third"] = "original"
+	cache.failures["first"] = firstFailure
+	cache.failures["second"] = secondFailure
+
+	transaction := newTransactionJournal[string, string](cache)
+	for _, key := range []string{"first", "second", "third"} {
+		require.NoError(t, transaction.Set(ctx, key, "modified"))
+	}
+
+	err := transaction.Rollback(ctx)
+
+	require.ErrorIs(t, err, firstFailure)
+	require.ErrorIs(t, err, secondFailure)
+	assert.Contains(t, err.Error(), "first")
+	assert.Contains(t, err.Error(), "second")
+	assert.Equal(t, "original", cache.data["third"], "one failed restore must not stop the others")
+}
+
+func TestTransactionJournal_RollbackErrorsLeaveOutKeys(t *testing.T) {
+	ctx := t.Context()
+	cache := newTestCache()
+	const restoredKey = "restored-user@example.com"
+	const addedKey = "added-user@example.com"
+	cache.data[restoredKey] = "original"
+	cache.failures[restoredKey] = errors.New("restore refused")
+	cache.failures[addedKey] = errors.New("removal refused")
+
+	transaction := newTransactionJournal[string, string](cache)
+	require.NoError(t, transaction.Set(ctx, restoredKey, "modified"))
+	require.NoError(t, transaction.Set(ctx, addedKey, "added"))
+
+	err := transaction.Rollback(ctx)
+
+	require.Error(t, err)
+	assert.NotContains(t, err.Error(), restoredKey, "a rollback error must not carry the key, which may hold user data")
+	assert.NotContains(t, err.Error(), addedKey, "a rollback error must not carry the key, which may hold user data")
+	assert.Contains(t, err.Error(), "journal entry 1 of 2")
+	assert.Contains(t, err.Error(), "journal entry 2 of 2")
+}
+
+func TestTransactionJournal_EveryMutationAfterCommitReturnsSentinel(t *testing.T) {
+	loader := cache_dto.LoaderFunc[string, string](func(context.Context, string) (string, error) { return "loaded", nil })
+	bulkLoader := cache_dto.BulkLoaderFunc[string, string](func(_ context.Context, keys []string) (map[string]string, error) {
+		return map[string]string{keys[0]: "loaded"}, nil
+	})
+
+	testCases := []struct {
+		mutate func(ctx context.Context, transaction TransactionCache[string, string]) error
+		name   string
+	}{
+		{name: "SetWithTTL", mutate: func(ctx context.Context, transaction TransactionCache[string, string]) error {
+			return transaction.SetWithTTL(ctx, "a", "1", time.Minute)
+		}},
+		{name: "Invalidate", mutate: func(ctx context.Context, transaction TransactionCache[string, string]) error {
+			return transaction.Invalidate(ctx, "a")
+		}},
+		{name: "Compute", mutate: func(ctx context.Context, transaction TransactionCache[string, string]) error {
+			_, _, err := transaction.Compute(ctx, "a", func(string, bool) (string, cache_dto.ComputeAction) {
+				return "1", cache_dto.ComputeActionSet
+			})
+			return err
+		}},
+		{name: "ComputeIfAbsent", mutate: func(ctx context.Context, transaction TransactionCache[string, string]) error {
+			_, _, err := transaction.ComputeIfAbsent(ctx, "a", func() string { return "1" })
+			return err
+		}},
+		{name: "ComputeIfPresent", mutate: func(ctx context.Context, transaction TransactionCache[string, string]) error {
+			_, _, err := transaction.ComputeIfPresent(ctx, "a", func(string) (string, cache_dto.ComputeAction) {
+				return "1", cache_dto.ComputeActionSet
+			})
+			return err
+		}},
+		{name: "ComputeWithTTL", mutate: func(ctx context.Context, transaction TransactionCache[string, string]) error {
+			_, _, err := transaction.ComputeWithTTL(ctx, "a", func(string, bool) cache_dto.ComputeResult[string] {
+				return cache_dto.ComputeResult[string]{Value: "1", Action: cache_dto.ComputeActionSet}
+			})
+			return err
+		}},
+		{name: "BulkSet", mutate: func(ctx context.Context, transaction TransactionCache[string, string]) error {
+			return transaction.BulkSet(ctx, map[string]string{"a": "1"})
+		}},
+		{name: "Get", mutate: func(ctx context.Context, transaction TransactionCache[string, string]) error {
+			_, err := transaction.Get(ctx, "a", loader)
+			return err
+		}},
+		{name: "BulkGet", mutate: func(ctx context.Context, transaction TransactionCache[string, string]) error {
+			_, err := transaction.BulkGet(ctx, []string{"a"}, bulkLoader)
+			return err
+		}},
+		{name: "SetExpiresAfter", mutate: func(ctx context.Context, transaction TransactionCache[string, string]) error {
+			return transaction.SetExpiresAfter(ctx, "a", time.Minute)
+		}},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			ctx := t.Context()
+			cache := newTestCache()
+			transaction := newTransactionJournal[string, string](cache)
+			require.NoError(t, transaction.Commit(ctx))
+
+			require.ErrorIs(t, testCase.mutate(ctx, transaction), ErrTransactionFinalised)
+			assert.Empty(t, cache.data, "a finalised transaction must not reach the cache")
+		})
+	}
+}
+
+func TestTransactionJournal_ReadsAndSettingsDelegateToInner(t *testing.T) {
+	ctx := t.Context()
+	cache := newTestCache()
+	cache.data["a"] = "1"
+	transaction := newTransactionJournal[string, string](cache)
+
+	assert.Equal(t, []string{"a"}, slices.Collect(transaction.Keys()))
+	assert.Equal(t, []string{"1"}, slices.Collect(transaction.Values()))
+	entry, found, err := transaction.GetEntry(ctx, "a")
+	require.NoError(t, err)
+	assert.True(t, found)
+	assert.Equal(t, "1", entry.Value)
+	entry, found, err = transaction.ProbeEntry(ctx, "a")
+	require.NoError(t, err)
+	assert.True(t, found)
+	assert.Equal(t, "1", entry.Value)
+	assert.Equal(t, cache_dto.Stats{}, transaction.Stats())
+	assert.Zero(t, transaction.GetMaximum())
+	transaction.SetMaximum(10)
+	assert.Zero(t, transaction.WeightedSize())
+	require.NoError(t, transaction.SetRefreshableAfter(ctx, "a", time.Minute))
+	_, err = transaction.Search(ctx, "query", nil)
+	require.ErrorIs(t, err, ErrSearchNotSupported)
+	_, err = transaction.Query(ctx, nil)
+	require.ErrorIs(t, err, ErrSearchNotSupported)
+	assert.False(t, transaction.SupportsSearch())
+	assert.Nil(t, transaction.GetSchema())
+	transaction.BulkRefresh(ctx, []string{"a"}, nil)
+	for range transaction.Refresh(ctx, "a", nil) {
+		require.Fail(t, "the test cache closes the refresh channel without a result")
+	}
+	require.NoError(t, transaction.Rollback(ctx))
+}
+
+func TestTransactionJournal_GroupsLogWritesIntoOneBatch(t *testing.T) {
+	commitFailed := errors.New("log full")
+
+	testCases := []struct {
+		commitErr  error
+		finish     func(ctx context.Context, transaction *transactionJournal[string, string]) error
+		name       string
+		wantBegins int
+		wantCommit int
+		wantAborts int
+		wantErr    bool
+	}{
+		{
+			name: "commit writes the batch",
+			finish: func(ctx context.Context, transaction *transactionJournal[string, string]) error {
+				return transaction.Commit(ctx)
+			},
+			wantBegins: 1,
+			wantCommit: 1,
+		},
+		{
+			name:      "a failed commit is reported and the transaction can still roll back",
+			commitErr: commitFailed,
+			finish: func(ctx context.Context, transaction *transactionJournal[string, string]) error {
+				return transaction.Commit(ctx)
+			},
+			wantBegins: 1,
+			wantCommit: 1,
+			wantErr:    true,
+		},
+		{
+			name: "rollback discards the batch",
+			finish: func(ctx context.Context, transaction *transactionJournal[string, string]) error {
+				return transaction.Rollback(ctx)
+			},
+			wantBegins: 1,
+			wantAborts: 1,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			ctx := t.Context()
+			cache := &batchingTestCache{testCache: newTestCache(), commitErr: testCase.commitErr}
+			transaction := newTransactionJournal[string, string](cache)
+			require.NoError(t, transaction.Set(ctx, "a", "1"))
+
+			err := testCase.finish(ctx, transaction)
+
+			if testCase.wantErr {
+				require.ErrorIs(t, err, commitFailed)
+				require.NoError(t, transaction.Rollback(ctx), "the transaction stays open after a failed commit")
+				assert.Equal(t, 2, cache.begins, "rollback opens a fresh batch to discard")
+				assert.Equal(t, 1, cache.aborts)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, 1, cache.batched, "the transaction writes through its batch")
+			assert.Equal(t, testCase.wantBegins, cache.begins)
+			assert.Equal(t, testCase.wantCommit, cache.commits)
+			assert.Equal(t, testCase.wantAborts, cache.aborts)
+		})
+	}
+}
+
+type batchingTestCache struct {
+	*testCache
+	commitErr error
+	begins    int
+	commits   int
+	aborts    int
+	batched   int
+}
+
+func (c *batchingTestCache) BeginLogBatch() LogBatch[string, string] {
+	c.begins++
+	return &batchingTestView{testCache: c.testCache, parent: c}
+}
+
+type batchingTestView struct {
+	*testCache
+	parent *batchingTestCache
+}
+
+func (v *batchingTestView) Set(ctx context.Context, key string, value string, tags ...string) error {
+	v.parent.batched++
+	return v.testCache.Set(ctx, key, value, tags...)
+}
+
+func (v *batchingTestView) CommitLogBatch(context.Context) error {
+	v.parent.commits++
+	return v.parent.commitErr
+}
+
+func (v *batchingTestView) AbortLogBatch() { v.parent.aborts++ }

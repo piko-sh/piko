@@ -454,3 +454,131 @@ func TestRouterManagerReloadPreservesChiRoutePrecedence(t *testing.T) {
 		})
 	}
 }
+
+func TestRouterManagerConcurrentReloadsServeACompleteRouter(t *testing.T) {
+	t.Parallel()
+	managerConfig := newParityRouterManagerConfig(nil, nil)
+	managerConfig.RouterConfig.RateLimit.Enabled = false
+	managerConfig.RateLimitConfig.Enabled = false
+	managerConfig.AppRouter = applicationRouteFixture()
+	manager := NewRouterManager(managerConfig)
+	t.Cleanup(manager.Close)
+	require.NoError(t, manager.ReloadRoutes(t.Context(), &templater_domain.MockManifestStoreView{}))
+
+	const (
+		reloaders        = 4
+		reloadsPerWorker = 3
+		requestWorkers   = 4
+		requests         = 25
+	)
+	responses := make(chan *httptest.ResponseRecorder, requestWorkers*requests)
+	reloadErrors := make(chan error, reloaders*reloadsPerWorker)
+	var group sync.WaitGroup
+	for range reloaders {
+		group.Go(func() {
+			for range reloadsPerWorker {
+				reloadErrors <- manager.ReloadRoutes(t.Context(), &templater_domain.MockManifestStoreView{})
+			}
+		})
+	}
+	for range requestWorkers {
+		group.Go(func() {
+			for range requests {
+				request := httptest.NewRequest(http.MethodGet, "/custom/value?q=query", nil)
+				request.Header.Set(testUserHeader, "user")
+				responses <- serveThroughCarrier(manager, request)
+			}
+		})
+	}
+	group.Wait()
+	close(responses)
+	close(reloadErrors)
+
+	for err := range reloadErrors {
+		require.NoError(t, err)
+	}
+	for response := range responses {
+		require.Equal(t, http.StatusOK, response.Code)
+		require.Equal(t, "value:query", response.Body.String())
+	}
+	active := manager.current.Load()
+	require.NotNil(t, active)
+	require.NotNil(t, active.handler)
+	require.NotNil(t, active.builder, "the published router must carry the builder that created it")
+}
+
+func BenchmarkRouterManager_ServeHTTPParallel(b *testing.B) {
+	manager := NewRouterManager(newParityRouterManagerConfig(nil, nil))
+	installRouterForTest(manager, http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	request := httptest.NewRequest(http.MethodGet, "/", nil)
+
+	b.ReportAllocs()
+	b.RunParallel(func(pb *testing.PB) {
+		var writer discardResponseWriter
+		for pb.Next() {
+			manager.ServeHTTP(&writer, request)
+		}
+	})
+}
+
+type discardResponseWriter struct{}
+
+func (*discardResponseWriter) Header() http.Header { return nil }
+
+func (*discardResponseWriter) Write(data []byte) (int, error) { return len(data), nil }
+
+func (*discardResponseWriter) WriteHeader(int) {}
+
+func installRouterForTest(manager *RouterManager, handler http.Handler) {
+	manager.current.Store(&activeRouter{handler: handler, builder: nil})
+}
+
+func newReloadableRouterManager() *RouterManager {
+	rateLimitService := &security_domain.MockRateLimitService{
+		CheckLimitFunc: func(context.Context, string, int, time.Duration) (ratelimiter_dto.Result, error) {
+			return ratelimiter_dto.Result{Allowed: true, Limit: 600, Remaining: 599}, nil
+		},
+	}
+	return NewRouterManager(newParityRouterManagerConfig(rateLimitService, nil))
+}
+
+func TestRouterManager_ReloadAfterCloseIsRefused(t *testing.T) {
+	t.Parallel()
+
+	manager := newReloadableRouterManager()
+	require.NoError(t, manager.ReloadRoutes(t.Context(), &templater_domain.MockManifestStoreView{}))
+	published := manager.current.Load()
+	require.NotNil(t, published)
+
+	manager.Close()
+	manager.Close()
+
+	err := manager.ReloadRoutes(t.Context(), &templater_domain.MockManifestStoreView{})
+
+	require.ErrorIs(t, err, errRouterManagerClosed)
+	assert.Same(t, published, manager.current.Load(), "a reload after Close must not publish a router")
+}
+
+func TestRouterManager_CloseDuringReloadsLeavesNoRouterPublishedAfterIt(t *testing.T) {
+	t.Parallel()
+
+	manager := newReloadableRouterManager()
+	require.NoError(t, manager.ReloadRoutes(t.Context(), &templater_domain.MockManifestStoreView{}))
+
+	var group sync.WaitGroup
+	for range 4 {
+		group.Go(func() {
+			for range 5 {
+				err := manager.ReloadRoutes(t.Context(), &templater_domain.MockManifestStoreView{})
+				if err != nil {
+					assert.ErrorIs(t, err, errRouterManagerClosed)
+				}
+			}
+		})
+	}
+	manager.Close()
+	closedAt := manager.current.Load()
+	group.Wait()
+
+	assert.Same(t, closedAt, manager.current.Load(), "no reload may publish after Close returns")
+}

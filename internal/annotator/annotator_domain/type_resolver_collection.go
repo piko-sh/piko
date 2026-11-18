@@ -18,10 +18,6 @@
 
 package annotator_domain
 
-// Resolves types for collection operations including indexing, slicing, and iteration
-// over arrays, slices, and maps. Validates index expressions, determines element types,
-// and enforces type safety for collection access patterns in templates.
-
 import (
 	"context"
 	"errors"
@@ -136,7 +132,7 @@ func (*TypeResolver) extractGenericGetCollectionMemberExpr(indexExpr *ast_domain
 	}
 
 	baseIdent, ok := baseMemberExpr.Base.(*ast_domain.Identifier)
-	if !ok || baseIdent.Name != "r" {
+	if !ok || baseIdent.Name != requestParamName {
 		return nil
 	}
 
@@ -171,7 +167,7 @@ func (*TypeResolver) extractGenericGetCollectionMemberExpr(indexExpr *ast_domain
 // Returns bool which is true if the expression is r.GetCollection, false otherwise.
 func (*TypeResolver) isGetCollectionMemberExpr(memberExpr *ast_domain.MemberExpression) bool {
 	baseIdent, ok := memberExpr.Base.(*ast_domain.Identifier)
-	if !ok || baseIdent.Name != "r" {
+	if !ok || baseIdent.Name != requestParamName {
 		return false
 	}
 

@@ -18,8 +18,6 @@
 
 package bootstrap
 
-// This file contains registry service related container methods.
-
 import (
 	"context"
 	"errors"
@@ -71,6 +69,9 @@ const (
 	// registryReleaseTTL is how stale a release lease's heartbeat must become before a
 	// reaper retires it.
 	registryReleaseTTL = 30 * time.Minute
+
+	// logKeyRelease is the structured log key for a registry release identifier.
+	logKeyRelease = "release"
 )
 
 // GetRegistryService returns the template registry service, creating it if necessary.
@@ -269,17 +270,17 @@ func (c *Container) publishReleaseLayer(ctx context.Context, overlay registry_do
 		l.Error("Release digest conflict: two different builds share one release id, so this "+
 			"node's assets cannot be published for cross-release serving; set WithReleaseID per "+
 			"build (or retire the conflicting release) to fix the deploy",
-			logger_domain.String("release", release), logger_domain.Error(err))
+			logger_domain.String(logKeyRelease, release), logger_domain.Error(err))
 		return
 	}
 	if err != nil {
 		l.Warn("Publishing release layers into the shared overlay failed; this node still serves "+
 			"its own base, but cross-release serving is degraded until publish succeeds",
-			logger_domain.String("release", release), logger_domain.Error(err))
+			logger_domain.String(logKeyRelease, release), logger_domain.Error(err))
 		return
 	}
 	l.Internal("Registry release publish complete",
-		logger_domain.String("release", release),
+		logger_domain.String(logKeyRelease, release),
 		logger_domain.String("outcome", outcome.String()))
 
 	if shouldStartReleaseHeartbeat(outcome) {
@@ -331,10 +332,10 @@ func (c *Container) startRegistryReleaseHeartbeat(overlay registry_domain.Metada
 				if err := registry_domain.HeartbeatRelease(ctx, overlay, releaseID, time.Now()); err != nil {
 					l.Warn("Release heartbeat failed; other nodes will reap this release once the "+
 						"lease heartbeat passes the TTL",
-						logger_domain.String("release", releaseID), logger_domain.Error(err))
+						logger_domain.String(logKeyRelease, releaseID), logger_domain.Error(err))
 				}
 				if _, err := registry_domain.ReapExpiredReleases(ctx, overlay, releaseID, registryReleaseTTL, time.Now()); err != nil {
-					l.Warn("Release reaper failed", logger_domain.String("release", releaseID), logger_domain.Error(err))
+					l.Warn("Release reaper failed", logger_domain.String(logKeyRelease, releaseID), logger_domain.Error(err))
 				}
 			}
 		}
@@ -369,8 +370,8 @@ func (c *Container) buildEmbeddedRegistryOverlay() (registry_domain.MetadataStor
 //
 // The source is the embedded seed for a single-binary deploy, otherwise the on-disk .piko
 // where generation wrote the snapshot for a file-based deploy, read through a read-only
-// sandbox. A project that never produced a snapshot, or has no .piko directory,
-// publishes nothing.
+// sandbox. A project that never produced a snapshot, or has no .piko directory, publishes
+// nothing.
 //
 // Returns []*registry_dto.ArtefactMeta which holds the seeded artefacts.
 // Returns error when the .piko sandbox cannot be opened or the snapshot cannot be read.

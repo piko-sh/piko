@@ -40,6 +40,22 @@ const (
 
 	// batchSpanExportMaxBatch is the maximum number of spans exported in a single batch.
 	batchSpanExportMaxBatch = 256
+
+	// batchSpanExportTimeout is how long one span export may take before it is abandoned.
+	batchSpanExportTimeout = 10 * time.Second
+
+	// metricExportInterval is how often metrics are pushed to the OTLP collector.
+	metricExportInterval = 30 * time.Second
+
+	// setupCleanupTimeout bounds how long a failed setup waits to release what it already
+	// created.
+	setupCleanupTimeout = 5 * time.Second
+)
+
+var (
+	// errSetupCleanupTimeout is the cause given when releasing a failed setup takes longer
+	// than setupCleanupTimeout.
+	errSetupCleanupTimeout = errors.New("OTEL setup cleanup timed out")
 )
 
 func init() {
@@ -51,7 +67,9 @@ func init() {
 //
 // The additionalProcessors and additionalReaders slices contain values whose concrete
 // types satisfy sdktrace.SpanProcessor and sdkmetric.Reader respectively. Elements that
-// do not match these types are silently skipped.
+// do not match these types are skipped with a warning. When the meter provider cannot be
+// created, the tracer provider is shut down, and that shuts down the additional span
+// processors too.
 //
 // Takes config (driver_handlers.OtelSetupConfig) which specifies OTLP endpoint, protocol,
 // and sampling settings.
@@ -86,7 +104,10 @@ func createProviders(
 
 	sdkMP, meterClosers, err := buildMeterProvider(ctx, config, sdkReaders)
 	if err != nil {
-		return driver_handlers.OtelProviderResult{}, fmt.Errorf("failed to create meter provider: %w", err)
+		return driver_handlers.OtelProviderResult{}, errors.Join(
+			fmt.Errorf("failed to create meter provider: %w", err),
+			releaseTracerResources(ctx, sdkTP, closers),
+		)
 	}
 	closers = append(closers, meterClosers...)
 
@@ -197,6 +218,57 @@ func buildShutdownFunc(sdkTP *sdktrace.TracerProvider, sdkMP *sdkmetric.MeterPro
 	}
 }
 
+// releaseTracerResources shuts down the tracer provider and closes its connections after
+// setup fails.
+//
+// The provider owns every registered span processor, including caller-supplied ones. They
+// must not be reused after failed setup.
+//
+// Cleanup uses a separate timeout because the caller's context may be cancelled.
+//
+// Takes sdkTP (*sdktrace.TracerProvider) which is the provider to shut down.
+// Takes closers ([]io.Closer) which holds the connections opened for it.
+//
+// Returns error when the shutdown or a close fails.
+func releaseTracerResources(ctx context.Context, sdkTP *sdktrace.TracerProvider, closers []io.Closer) error {
+	cleanupCtx, cancel := context.WithTimeoutCause(context.WithoutCancel(ctx), setupCleanupTimeout, errSetupCleanupTimeout)
+	defer cancel()
+
+	if err := buildShutdownFunc(sdkTP, nil, closers)(cleanupCtx); err != nil {
+		return fmt.Errorf("releasing tracer provider after failed setup: %w", err)
+	}
+
+	return nil
+}
+
+// releaseExporter shuts down an exporter and closes its connection after a later setup
+// step has failed.
+//
+// Cleanup uses a separate timeout because the caller's context may be cancelled.
+//
+// Takes shutdown (func(context.Context) error) which shuts down the exporter, or nil when
+// there is no exporter to shut down.
+// Takes closer (io.Closer) which is the exporter's connection, or nil when there is none.
+//
+// Returns error which joins the shutdown and close errors, or nil when both succeed.
+func releaseExporter(ctx context.Context, shutdown func(context.Context) error, closer io.Closer) error {
+	cleanupCtx, cancel := context.WithTimeoutCause(context.WithoutCancel(ctx), setupCleanupTimeout, errSetupCleanupTimeout)
+	defer cancel()
+
+	var errs []error
+	if shutdown != nil {
+		if err := shutdown(cleanupCtx); err != nil {
+			errs = append(errs, fmt.Errorf("exporter shutdown after failed setup: %w", err))
+		}
+	}
+	if closer != nil {
+		if err := closer.Close(); err != nil {
+			errs = append(errs, fmt.Errorf("OTLP connection close after failed setup: %w", err))
+		}
+	}
+	return errors.Join(errs...)
+}
+
 // createOtlpTracerProvider creates an OpenTelemetry tracer provider with OTLP export
 // configured based on the specified protocol.
 //
@@ -221,19 +293,15 @@ func createOtlpTracerProvider(ctx context.Context, config driver_handlers.OtelSe
 
 	exporter, ok := exporterAny.(sdktrace.SpanExporter)
 	if !ok {
-		if closer != nil {
-			_ = closer.Close()
-		}
-		return nil, nil, fmt.Errorf("trace exporter factory returned %T, expected sdktrace.SpanExporter", exporterAny)
+		return nil, nil, errors.Join(
+			fmt.Errorf("trace exporter factory returned %T, expected sdktrace.SpanExporter", exporterAny),
+			releaseExporter(ctx, nil, closer),
+		)
 	}
 
 	otelResource, err := createResource()
 	if err != nil {
-		_ = exporter.Shutdown(ctx)
-		if closer != nil {
-			_ = closer.Close()
-		}
-		return nil, nil, err
+		return nil, nil, errors.Join(err, releaseExporter(ctx, exporter.Shutdown, closer))
 	}
 
 	providerOptions := []sdktrace.TracerProviderOption{
@@ -243,7 +311,7 @@ func createOtlpTracerProvider(ctx context.Context, config driver_handlers.OtelSe
 
 	bsp := sdktrace.NewBatchSpanProcessor(exporter,
 		sdktrace.WithBatchTimeout(1*time.Second),
-		sdktrace.WithExportTimeout(10*time.Second),
+		sdktrace.WithExportTimeout(batchSpanExportTimeout),
 		sdktrace.WithMaxQueueSize(batchSpanQueueSize),
 		sdktrace.WithMaxExportBatchSize(batchSpanExportMaxBatch),
 	)
@@ -307,23 +375,19 @@ func createOtlpMeterProvider(ctx context.Context, config driver_handlers.OtelSet
 
 	exporter, ok := exporterAny.(sdkmetric.Exporter)
 	if !ok {
-		if closer != nil {
-			_ = closer.Close()
-		}
-		return nil, nil, fmt.Errorf("metric exporter factory returned %T, expected sdkmetric.Exporter", exporterAny)
+		return nil, nil, errors.Join(
+			fmt.Errorf("metric exporter factory returned %T, expected sdkmetric.Exporter", exporterAny),
+			releaseExporter(ctx, nil, closer),
+		)
 	}
 
 	otelResource, err := createResource()
 	if err != nil {
-		_ = exporter.Shutdown(ctx)
-		if closer != nil {
-			_ = closer.Close()
-		}
-		return nil, nil, err
+		return nil, nil, errors.Join(err, releaseExporter(ctx, exporter.Shutdown, closer))
 	}
 
 	metricReader := sdkmetric.NewPeriodicReader(exporter,
-		sdkmetric.WithInterval(30*time.Second),
+		sdkmetric.WithInterval(metricExportInterval),
 	)
 
 	opts := []sdkmetric.Option{
@@ -367,6 +431,9 @@ func createLocalMeterProvider(readers []sdkmetric.Reader) (*sdkmetric.MeterProvi
 // environment attributes detected at startup (K8s, Lambda, Cloud Run, Azure Container
 // Apps, Piko-specific overrides).
 //
+// Application attributes have no schema URL, so the merge keeps the default resource's
+// schema URL without a schema conflict.
+//
 // Returns *resource.Resource which contains the merged default resource and service
 // attributes.
 // Returns error when the resource merge fails.
@@ -382,8 +449,5 @@ func createResource() (*resource.Resource, error) {
 	}
 	attrs = append(attrs, envAttrs...)
 
-	return resource.Merge(resource.Default(), resource.NewWithAttributes(
-		semconv.SchemaURL,
-		attrs...,
-	))
+	return resource.Merge(resource.Default(), resource.NewSchemaless(attrs...))
 }

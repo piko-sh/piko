@@ -972,8 +972,8 @@ func runAgentsUninstall(arguments []string) int {
 //
 // Returns string which is the summary line for the installer output.
 // Returns error when the plugin files cannot be copied. A failed pikopls install or pin
-// is reported in the summary rather than as an error, because the plugin still works
-// once pikopls is installed by hand.
+// is reported in the summary rather than as an error, because the plugin still works once
+// pikopls is installed by hand.
 func installClaudeCodeTarget(ctx context.Context, destination, version string) (string, error) {
 	if err := templates.CopyClaudeCodePlugin(destination); err != nil {
 		return "", fmt.Errorf("copying Claude Code plugin: %w", err)

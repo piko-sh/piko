@@ -24,10 +24,13 @@ import (
 	"errors"
 	"fmt"
 	"image/color"
+	"maps"
 	"net"
+	"net/http"
 	"net/mail"
 	"net/url"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -4802,12 +4805,12 @@ func TestBindMap_OpaqueNestedFields(t *testing.T) {
 		Elements map[string]any `json:"elements"`
 	}
 	type Input struct {
-		Project string          `json:"project"`
-		Rev     int             `json:"rev"`
-		DocRaw  json.RawMessage `json:"docRaw"`
-		Doc     *Scene          `json:"doc"`
-		Tags    []string        `json:"tags"`
 		At      time.Time       `json:"at"`
+		Doc     *Scene          `json:"doc"`
+		Project string          `json:"project"`
+		DocRaw  json.RawMessage `json:"docRaw"`
+		Tags    []string        `json:"tags"`
+		Rev     int             `json:"rev"`
 	}
 
 	source := map[string]any{
@@ -4853,8 +4856,8 @@ func TestBindMap_OpaqueNestedFields(t *testing.T) {
 
 func TestBindMap_InterfaceField(t *testing.T) {
 	type Input struct {
-		Name    string `json:"name"`
 		Payload any    `json:"payload"`
+		Name    string `json:"name"`
 	}
 	source := map[string]any{
 		"name":    "x",
@@ -4911,8 +4914,8 @@ func TestBindJSON_NestedBindTag(t *testing.T) {
 
 func TestBindJSON_PreservesLargeIntegersAndRawMessage(t *testing.T) {
 	type Input struct {
-		ID  int64           `json:"id"`
 		Raw json.RawMessage `json:"raw"`
+		ID  int64           `json:"id"`
 	}
 	source := []byte(`{"id":9007199254740993,"raw":{"big":12345678901234567890,"id":9007199254740993}}`)
 
@@ -4928,8 +4931,8 @@ func TestBindJSON_PreservesLargeIntegersAndRawMessage(t *testing.T) {
 
 func TestBindJSON_SubtreeDoSLimits(t *testing.T) {
 	type Input struct {
-		Items []map[string]any `json:"items"`
 		Meta  map[string]any   `json:"meta"`
+		Items []map[string]any `json:"items"`
 	}
 
 	t.Run("maxSliceSize rejects an oversized subtree slice", func(t *testing.T) {
@@ -5006,4 +5009,256 @@ func TestBindJSON_EmbeddedOpaqueField(t *testing.T) {
 	inner, ok := in.Meta["a"].(map[string]any)
 	require.True(t, ok)
 	assert.Contains(t, inner, "b")
+}
+
+func TestASTBinder_CapFieldErrors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name          string
+		wantTruncated string
+		limit         int64
+		fieldCount    int
+		wantLen       int
+	}{
+		{name: "keeps a list under the limit", limit: 3, fieldCount: 2, wantLen: 2},
+		{name: "keeps a list at the limit", limit: 3, fieldCount: 3, wantLen: 3},
+		{name: "trims a list past the limit", limit: 3, fieldCount: 5, wantLen: 4, wantTruncated: "reporting 3 of 5 failed fields"},
+		{name: "keeps every field when the limit is off", limit: 0, fieldCount: 5, wantLen: 5},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			astBinder := NewASTBinder()
+			astBinder.SetMaxFieldErrors(testCase.limit)
+
+			fields := make(map[string][]string, testCase.fieldCount)
+			for index := range testCase.fieldCount {
+				fields["Field"+strconv.Itoa(index)] = []string{"is required"}
+			}
+
+			capped := astBinder.capFieldErrors(fields)
+
+			assert.Len(t, capped, testCase.wantLen)
+			if testCase.wantTruncated == "" {
+				assert.NotContains(t, capped, FieldErrorsTruncatedKey)
+				return
+			}
+			assert.Equal(t, []string{testCase.wantTruncated}, capped[FieldErrorsTruncatedKey])
+		})
+	}
+}
+
+type limitAnswer interface {
+	error
+	StatusCode() int
+	ErrorCode() string
+	SafeMessage() string
+}
+
+func TestBind_CancellationIsReturnedOutsideTheFieldErrors(t *testing.T) {
+	t.Parallel()
+
+	cause := errors.New("client went away")
+	ctx, cancel := context.WithCancelCause(t.Context())
+	cancel(cause)
+
+	source := make(map[string][]string, bindCancellationCheckInterval*2)
+	for index := range bindCancellationCheckInterval * 2 {
+		source["Unknown"+strconv.Itoa(index)] = []string{"value"}
+	}
+
+	var destination struct{ Name string }
+	err := NewASTBinder().Bind(ctx, &destination, source, IgnoreUnknownKeys(true))
+
+	require.Error(t, err)
+	assert.ErrorIs(t, err, context.Canceled)
+	assert.ErrorIs(t, err, cause, "the cancellation cause must be kept")
+	_, isFieldError := errors.AsType[MultiError](err)
+	assert.False(t, isFieldError, "a cancelled bind is not a problem with the input")
+}
+
+func TestBindMap_CancellationWinsOverSubtreeFieldErrors(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	source := make(map[string]any, bindCancellationCheckInterval*2)
+	for index := range bindCancellationCheckInterval * 2 {
+		source["unknown"+strconv.Itoa(index)] = "value"
+	}
+	source["meta"] = "not-an-object"
+
+	var destination struct {
+		Meta map[string]any `json:"meta"`
+	}
+	err := NewASTBinder().BindMap(ctx, &destination, source, IgnoreUnknownKeys(true))
+
+	require.Error(t, err)
+	assert.ErrorIs(t, err, context.Canceled)
+	_, isFieldError := errors.AsType[MultiError](err)
+	assert.False(t, isFieldError, "a cancelled bind must not be merged into the field errors")
+}
+
+func TestBind_LimitBreachesAnswerPayloadTooLarge(t *testing.T) {
+	t.Parallel()
+
+	type sliceTarget struct {
+		Items []int `json:"items"`
+	}
+	type subtreeTarget struct {
+		Meta map[string]any `json:"meta"`
+	}
+
+	wideSubtree := make(map[string]any, 50)
+	for index := range 50 {
+		wideSubtree["k"+strconv.Itoa(index)] = map[string]any{}
+	}
+	wideSubtreeJSON, err := json.Marshal(map[string]any{"meta": wideSubtree})
+	require.NoError(t, err)
+
+	testCases := []struct {
+		bind     func() error
+		sentinel error
+		name     string
+	}{
+		{
+			name: "too many form fields",
+			bind: func() error {
+				var destination SimpleForm
+				return NewASTBinder().Bind(t.Context(), &destination, map[string][]string{
+					"Name": {"Alice"}, "Age": {"30"}, "IsActive": {"true"},
+				}, WithMaxFieldCount(2))
+			},
+			sentinel: ErrTooManyFields,
+		},
+		{
+			name: "too many entries in a decoded subtree",
+			bind: func() error {
+				var destination subtreeTarget
+				return NewASTBinder().BindMap(t.Context(), &destination, map[string]any{"meta": wideSubtree}, WithMaxFieldCount(10))
+			},
+			sentinel: ErrTooManyFields,
+		},
+		{
+			name: "too many entries in a raw JSON subtree",
+			bind: func() error {
+				var destination subtreeTarget
+				return NewASTBinder().BindJSON(t.Context(), &destination, wideSubtreeJSON, WithMaxFieldCount(10))
+			},
+			sentinel: ErrTooManyFields,
+		},
+		{
+			name: "slice element budget exhausted",
+			bind: func() error {
+				var destination sliceTarget
+				return NewASTBinder().Bind(t.Context(), &destination, map[string][]string{
+					"items[49999]": {"1"},
+				}, WithDocumentScaleLimits())
+			},
+			sentinel: ErrSliceElementBudgetExhausted,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			bindErr := testCase.bind()
+
+			require.Error(t, bindErr)
+			assert.ErrorIs(t, bindErr, testCase.sentinel)
+
+			_, isFieldError := errors.AsType[MultiError](bindErr)
+			assert.False(t, isFieldError, "a limit breach is not a per-field failure")
+
+			answer, ok := errors.AsType[limitAnswer](bindErr)
+			require.True(t, ok, "a limit breach must carry its own status, got %T", bindErr)
+			assert.Equal(t, http.StatusRequestEntityTooLarge, answer.StatusCode())
+			assert.Equal(t, "PAYLOAD_TOO_LARGE", answer.ErrorCode())
+			assert.Equal(t, "request has too many fields or elements", answer.SafeMessage())
+		})
+	}
+}
+
+func TestBind_SetMaxFieldErrorsCapsBindingFailures(t *testing.T) {
+	t.Parallel()
+
+	source := make(map[string][]string, 10)
+	for index := range 10 {
+		source["Items["+strconv.Itoa(index)+"]"] = []string{"not-a-number"}
+	}
+
+	astBinder := NewASTBinder()
+	astBinder.SetMaxFieldErrors(3)
+
+	var firstKeys []string
+	for range 20 {
+		var destination struct{ Items []int }
+		err := astBinder.Bind(t.Context(), &destination, source)
+
+		bindingErrors, ok := errors.AsType[MultiError](err)
+		require.True(t, ok, "expected a MultiError, got %T", err)
+		require.Len(t, bindingErrors, 4, "three fields and the truncation marker")
+		require.Contains(t, bindingErrors, FieldErrorsTruncatedKey)
+
+		messages := bindingErrors.FieldMessages()
+		assert.Equal(t, "reporting 3 of 10 failed fields", messages[FieldErrorsTruncatedKey])
+
+		keys := slices.Sorted(maps.Keys(bindingErrors))
+		if firstKeys == nil {
+			firstKeys = keys
+		}
+		assert.Equal(t, firstKeys, keys, "the kept fields must not depend on map order")
+	}
+	assert.Equal(t, []string{"Items[0]", "Items[1]", "Items[2]", FieldErrorsTruncatedKey}, firstKeys)
+}
+
+func TestBindJSON_RefusedInputAnswersAClientStatus(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		wantSentinel error
+		name         string
+		source       string
+		wantCode     string
+		wantStatus   int
+	}{
+		{
+			name:         "payload over the size limit",
+			source:       `{"name":"` + strings.Repeat("a", 64) + `"}`,
+			wantSentinel: ErrBindJSONTooLarge,
+			wantStatus:   http.StatusRequestEntityTooLarge,
+			wantCode:     errorCodePayloadTooLarge,
+		},
+		{name: "truncated JSON", source: `{"name":`, wantStatus: http.StatusBadRequest, wantCode: errorCodeBadRequest},
+		{name: "invalid character", source: `{"name":}`, wantStatus: http.StatusBadRequest, wantCode: errorCodeBadRequest},
+		{name: "array instead of an object", source: `["name"]`, wantStatus: http.StatusBadRequest, wantCode: errorCodeBadRequest},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			astBinder := NewASTBinder()
+			astBinder.SetMaxBindJSONBytes(32)
+			var destination struct{ Name string }
+
+			err := astBinder.BindJSON(t.Context(), &destination, []byte(testCase.source))
+
+			require.Error(t, err)
+			if testCase.wantSentinel != nil {
+				assert.ErrorIs(t, err, testCase.wantSentinel)
+			}
+			answer, ok := errors.AsType[limitAnswer](err)
+			require.True(t, ok, "a refused payload must state the status it answers with")
+			assert.Equal(t, testCase.wantStatus, answer.StatusCode())
+			assert.Equal(t, testCase.wantCode, answer.ErrorCode())
+			assert.NotContains(t, answer.SafeMessage(), "invalid character", "the decoder's text must not reach the client")
+			assert.NotContains(t, answer.SafeMessage(), "32", "the limit must not reach the client")
+		})
+	}
 }

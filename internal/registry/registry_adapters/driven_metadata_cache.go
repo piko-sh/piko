@@ -36,6 +36,10 @@ const (
 	// approxProfileConfigSize is the approximate memory size of a profile configuration in
 	// bytes.
 	approxProfileConfigSize = 128
+
+	// expectedMissDivisor sizes the miss slice on the assumption that about one in this many
+	// lookups misses the cache.
+	expectedMissDivisor = 5
 )
 
 // metadataCache wraps the cache hexagon to provide artefact metadata caching for the
@@ -85,7 +89,7 @@ func (c *metadataCache) Get(ctx context.Context, artefactID string) (*registry_d
 // Returns misses ([]string) which contains the IDs not found in the cache.
 func (c *metadataCache) GetMultiple(ctx context.Context, artefactIDs []string) (hits []*registry_dto.ArtefactMeta, misses []string) {
 	hits = make([]*registry_dto.ArtefactMeta, 0, len(artefactIDs))
-	misses = make([]string, 0, max(1, len(artefactIDs)/5))
+	misses = make([]string, 0, max(1, len(artefactIDs)/expectedMissDivisor))
 
 	for _, id := range artefactIDs {
 		artefact, ok, _ := c.cache.GetIfPresent(ctx, id)

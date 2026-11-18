@@ -23,7 +23,7 @@ import (
 	"reflect"
 	"testing"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 func TestBigIntValueRetrievers(t *testing.T) {

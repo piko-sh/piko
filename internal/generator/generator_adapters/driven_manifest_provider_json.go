@@ -25,9 +25,9 @@ import (
 	"io/fs"
 	"path/filepath"
 
+	"piko.sh/json"
 	"piko.sh/piko/internal/generator/generator_domain"
 	"piko.sh/piko/internal/generator/generator_dto"
-	"piko.sh/piko/internal/json"
 	"piko.sh/safedisk"
 )
 

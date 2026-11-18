@@ -19,7 +19,7 @@
 package orchestrator_domain
 
 import (
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 // EventType identifies the kind of event for routing and handling.

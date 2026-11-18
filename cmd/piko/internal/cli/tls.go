@@ -109,8 +109,7 @@ func loadClientKeyPair(sandbox safedisk.Sandbox) (tls.Certificate, error) {
 	return tls.X509KeyPair(certPEM, keyPEM)
 }
 
-// fileExists reports whether the named file exists in the sandbox and is not a
-// directory.
+// fileExists reports whether the named file exists in the sandbox and is not a directory.
 //
 // Takes sandbox (safedisk.Sandbox) which is rooted at the certificate directory.
 // Takes name (string) which is the file name within the sandbox.

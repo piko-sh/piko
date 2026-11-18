@@ -307,8 +307,8 @@ func getOutlookHRWidth(width string, styles *pml_domain.StyleManager, ctx *pml_d
 			paddingRight = mustParsePixels(parts[1])
 			paddingLeft = mustParsePixels(parts[1])
 		case paddingPartsFull:
-			paddingRight = mustParsePixels(parts[1])
-			paddingLeft = mustParsePixels(parts[3])
+			paddingRight = mustParsePixels(parts[paddingIndexSecond])
+			paddingLeft = mustParsePixels(parts[paddingIndexFourth])
 		}
 	}
 

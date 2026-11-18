@@ -32,6 +32,12 @@ var (
 	// suggesting an alternative provider (e.g., RediSearch instead of Redis).
 	ErrSearchNotSupported = errors.New("search operations not supported by this provider")
 
+	// ErrInvalidQueryVector is returned when a vector search is given a query vector the
+	// index cannot compare, such as one whose dimension differs from the indexed vectors or
+	// one with zero magnitude under cosine similarity. Providers wrap it with the specific
+	// reason.
+	ErrInvalidQueryVector = errors.New("query vector cannot be compared with the indexed vectors")
+
 	// errInvalidConfiguration is returned when the options provided to NewCache are invalid.
 	errInvalidConfiguration = errors.New("invalid cache configuration")
 

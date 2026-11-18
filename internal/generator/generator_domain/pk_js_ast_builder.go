@@ -24,6 +24,11 @@ import (
 	parsejs "github.com/tdewolff/parse/v2/js"
 )
 
+const (
+	// jsDoubleQuote is the double quote that wraps a JavaScript string literal.
+	jsDoubleQuote = `"`
+)
+
 // jsASTBuilder provides methods for building JavaScript AST nodes using the tdewolff
 // parsejs library.
 type jsASTBuilder struct{}
@@ -52,7 +57,7 @@ func (*jsASTBuilder) newIdentifier(name string) *parsejs.LiteralExpr {
 //
 // Returns *parsejs.LiteralExpr which is the quoted string literal expression.
 func (*jsASTBuilder) newStringLiteral(value string) *parsejs.LiteralExpr {
-	return &parsejs.LiteralExpr{TokenType: parsejs.StringToken, Data: []byte(`"` + value + `"`)}
+	return &parsejs.LiteralExpr{TokenType: parsejs.StringToken, Data: []byte(jsDoubleQuote + value + jsDoubleQuote)}
 }
 
 // newCall creates a function call expression.
@@ -309,7 +314,7 @@ func (*jsASTBuilder) newImport(names []string, modulePath string) *parsejs.Impor
 	}
 	return &parsejs.ImportStmt{
 		List:   aliases,
-		Module: []byte(`"` + modulePath + `"`),
+		Module: []byte(jsDoubleQuote + modulePath + jsDoubleQuote),
 	}
 }
 

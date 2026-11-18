@@ -18,10 +18,6 @@
 
 package annotator_domain
 
-// Parses component template files into structured AST representations by extracting
-// template, script, and style blocks. Handles Go script parsing, validates template
-// structure, and produces source objects ready for further compilation stages.
-
 import (
 	"context"
 	"errors"
@@ -34,11 +30,11 @@ import (
 	"strconv"
 	"strings"
 
+	"piko.sh/json"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/goimportname"
 	"piko.sh/piko/internal/i18n/i18n_domain"
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/sfcparser"
 )
 

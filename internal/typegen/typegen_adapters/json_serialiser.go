@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"time"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 	"piko.sh/piko/internal/typegen/typegen_dto"
 )
 

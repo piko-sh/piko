@@ -32,6 +32,10 @@ import (
 const (
 	// jsImportKeyword is the JavaScript import keyword used in dynamic imports.
 	jsImportKeyword = "import"
+
+	// jsTemplateLiteralQuote is the backtick that opens and closes a JavaScript template
+	// literal.
+	jsTemplateLiteralQuote = "`"
 )
 
 var (
@@ -727,7 +731,7 @@ func (c *ASTConverter) applyTemplateTag(converted parsejs.IExpr, tag js_ast.Expr
 func (*ASTConverter) convertSimpleTemplate(e *js_ast.ETemplate) (parsejs.IExpr, error) {
 	return &parsejs.TemplateExpr{
 		List: nil,
-		Tail: []byte("`" + templateHeadText(e) + "`"),
+		Tail: []byte(jsTemplateLiteralQuote + templateHeadText(e) + jsTemplateLiteralQuote),
 	}, nil
 }
 
@@ -752,7 +756,7 @@ func (c *ASTConverter) convertInterpolatedTemplate(e *js_ast.ETemplate) (parsejs
 
 		var prefix string
 		if i == 0 {
-			prefix = "`" + previousString + "${"
+			prefix = jsTemplateLiteralQuote + previousString + "${"
 		} else {
 			prefix = "}" + previousString + "${"
 		}
@@ -768,7 +772,7 @@ func (c *ASTConverter) convertInterpolatedTemplate(e *js_ast.ETemplate) (parsejs
 
 	return &parsejs.TemplateExpr{
 		List: parts,
-		Tail: []byte("}" + finalTail + "`"),
+		Tail: []byte("}" + finalTail + jsTemplateLiteralQuote),
 	}, nil
 }
 

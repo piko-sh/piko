@@ -485,9 +485,9 @@ func (painter *PdfPainter) paintRoundedBorderSide(
 	stream.SaveState()
 
 	stream.MoveTo(side.clipX[0], side.clipY[0])
-	stream.LineTo(side.clipX[1], side.clipY[1])
-	stream.LineTo(side.clipX[2], side.clipY[2])
-	stream.LineTo(side.clipX[3], side.clipY[3])
+	for corner := 1; corner < borderSideCount; corner++ {
+		stream.LineTo(side.clipX[corner], side.clipY[corner])
+	}
 	stream.ClosePath()
 	stream.ClipNonZero()
 

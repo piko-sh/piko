@@ -50,10 +50,12 @@ func (profileCapabilities) Execute(_ context.Context, name string, input io.Read
 	return bytes.NewReader(append([]byte(name+":"), data...)), nil
 }
 
-var sharedCapabilities = []string{
-	string(capabilities_dto.CapabilityMinifyJS),
-	string(capabilities_dto.CapabilityCopyJS),
-}
+var (
+	sharedCapabilities = []string{
+		string(capabilities_dto.CapabilityMinifyJS),
+		string(capabilities_dto.CapabilityCopyJS),
+	}
+)
 
 func withNormalWorkers(workers int) harnessOption {
 	return func(c *harnessConfig) {

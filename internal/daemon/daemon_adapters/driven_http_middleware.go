@@ -31,6 +31,11 @@ import (
 	"piko.sh/piko/internal/security/security_domain"
 )
 
+const (
+	// corsPreflightMaxAgeSeconds is how long a browser may cache a CORS preflight answer.
+	corsPreflightMaxAgeSeconds = 300
+)
+
 var (
 	// errRateLimitServiceMissing is returned when rate limiting is enabled without a rate
 	// limit service to enforce it.
@@ -122,6 +127,6 @@ func (*HTTPRouterBuilder) setupCORS(r chi.Router, routerConfig *daemon_domain.Ro
 		AllowedHeaders:   []string{"Accept", "Authorization", headerContentType, "X-CSRF-Token", "X-CSRF-Action-Token"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: true,
-		MaxAge:           300,
+		MaxAge:           corsPreflightMaxAgeSeconds,
 	}))
 }

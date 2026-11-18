@@ -18,12 +18,6 @@
 
 package pdfwriter_domain
 
-// Provides PDF/A-2b conformance support. Generates the sRGB IEC61966-2.1 ICC colour
-// profile, XMP metadata stream, and output intent dictionary required by the PDF/A
-// standard. PDF/A-2b requires embedded fonts (already handled by CIDFont Type2
-// embedding), an output intent with an ICC profile, and XMP metadata with the pdfaid
-// part/conformance fields.
-
 import (
 	"encoding/binary"
 	"fmt"
@@ -113,6 +107,37 @@ const (
 
 	// srgbLinearCutoff holds the threshold below which sRGB uses linear interpolation.
 	srgbLinearCutoff = 0.04045
+
+	// srgbCurveScale holds the scale applied to the input of the sRGB power segment.
+	srgbCurveScale = 1.055
+
+	// srgbCurveOffset holds the offset added to the input of the sRGB power segment.
+	srgbCurveOffset = 0.055
+
+	// srgbLinearSlope holds the divisor of the linear segment of the sRGB curve.
+	srgbLinearSlope = 12.92
+
+	// s15Fixed16Scale holds the scale factor between a float and an s15Fixed16Number.
+	s15Fixed16Scale = 1 << 16
+)
+
+const (
+	// iccHeaderSignatureOffset holds the byte offset of the "acsp" profile file signature in
+	// the ICC header.
+	iccHeaderSignatureOffset = 36
+
+	// iccHeaderIlluminantOffset holds the byte offset of the illuminant XYZ values in the
+	// ICC header.
+	iccHeaderIlluminantOffset = 68
+
+	// iccDateFieldFirst holds the value written for the creation month and day.
+	iccDateFieldFirst = 1
+
+	// iccUint32Size holds the byte length of a big-endian uint32 field.
+	iccUint32Size = 4
+
+	// iccUint16Size holds the byte length of a big-endian uint16 field.
+	iccUint16Size = 2
 )
 
 const (
@@ -550,6 +575,56 @@ type iccTagEntry struct {
 	size int
 }
 
+// iccWriter writes big-endian values into a byte buffer at a moving cursor.
+type iccWriter struct {
+	// buf holds the destination buffer.
+	buf []byte
+
+	// position holds the byte offset of the next write.
+	position int
+}
+
+// putString copies text into the buffer and advances the cursor past it.
+//
+// Takes text (string) which specifies the bytes to write.
+func (w *iccWriter) putString(text string) {
+	w.position += copy(w.buf[w.position:w.position+len(text)], text)
+}
+
+// putUint32 writes value as a big-endian uint32 and advances the cursor.
+//
+// Takes value (uint32) which specifies the value to write.
+func (w *iccWriter) putUint32(value uint32) {
+	end := w.position + iccUint32Size
+	binary.BigEndian.PutUint32(w.buf[w.position:end], value)
+	w.position = end
+}
+
+// putUint16 writes value as a big-endian uint16 and advances the cursor.
+//
+// Takes value (uint16) which specifies the value to write.
+func (w *iccWriter) putUint16(value uint16) {
+	end := w.position + iccUint16Size
+	binary.BigEndian.PutUint16(w.buf[w.position:end], value)
+	w.position = end
+}
+
+// putXYZ writes the three components of value as big-endian s15Fixed16Numbers.
+//
+// Takes value (iccXYZ) which specifies the colour value to write.
+func (w *iccWriter) putXYZ(value iccXYZ) {
+	w.putUint32(safeconv.Int32ToUint32(value.x))
+	w.putUint32(safeconv.Int32ToUint32(value.y))
+	w.putUint32(safeconv.Int32ToUint32(value.z))
+}
+
+// seek moves the cursor to an absolute byte offset.
+//
+// Takes position (int) which specifies the new cursor offset.
+func (w *iccWriter) seek(position int) {
+	w.position = position
+}
+
 // buildICCTags constructs the nine ICC tag data blocks.
 //
 // Takes red (iccXYZ) which specifies the red colourant XYZ values.
@@ -587,11 +662,10 @@ func buildICCTags(red, green, blue, white iccXYZ) []iccTagData {
 // Returns []byte which holds the serialised XYZ tag data.
 func buildICCXyz(v iccXYZ) []byte {
 	buf := make([]byte, iccXyzTagSize)
-	copy(buf[0:4], "XYZ ")
-	binary.BigEndian.PutUint32(buf[4:8], 0)
-	binary.BigEndian.PutUint32(buf[8:12], safeconv.Int32ToUint32(v.x))
-	binary.BigEndian.PutUint32(buf[12:16], safeconv.Int32ToUint32(v.y))
-	binary.BigEndian.PutUint32(buf[16:20], safeconv.Int32ToUint32(v.z))
+	w := iccWriter{buf: buf, position: 0}
+	w.putString("XYZ ")
+	w.putUint32(0)
+	w.putXYZ(v)
 	return buf
 }
 
@@ -608,10 +682,11 @@ func buildICCDesc(text string) []byte {
 		total += iccAlignBoundary - total%iccAlignBoundary
 	}
 	buf := make([]byte, total)
-	copy(buf[0:4], "desc")
-	binary.BigEndian.PutUint32(buf[4:8], 0)
-	binary.BigEndian.PutUint32(buf[8:12], safeconv.IntToUint32(asciiLen))
-	copy(buf[12:12+len(text)], text)
+	w := iccWriter{buf: buf, position: 0}
+	w.putString("desc")
+	w.putUint32(0)
+	w.putUint32(safeconv.IntToUint32(asciiLen))
+	w.putString(text)
 	return buf
 }
 
@@ -620,15 +695,16 @@ func buildICCDesc(text string) []byte {
 // Returns []byte which holds the serialised parametric curve tag data.
 func buildICCParaTrc() []byte {
 	buf := make([]byte, iccParaTagSize)
-	copy(buf[0:4], "para")
-	binary.BigEndian.PutUint32(buf[4:8], 0)
-	binary.BigEndian.PutUint16(buf[8:10], iccParaFuncType)
-	binary.BigEndian.PutUint16(buf[10:12], 0)
-	binary.BigEndian.PutUint32(buf[12:16], s15Fixed16(srgbGamma))
-	binary.BigEndian.PutUint32(buf[16:20], s15Fixed16(1.0/1.055))
-	binary.BigEndian.PutUint32(buf[20:24], s15Fixed16(0.055/1.055))
-	binary.BigEndian.PutUint32(buf[24:28], s15Fixed16(1.0/12.92))
-	binary.BigEndian.PutUint32(buf[28:32], s15Fixed16(srgbLinearCutoff))
+	w := iccWriter{buf: buf, position: 0}
+	w.putString("para")
+	w.putUint32(0)
+	w.putUint16(iccParaFuncType)
+	w.putUint16(0)
+	w.putUint32(s15Fixed16(srgbGamma))
+	w.putUint32(s15Fixed16(1.0 / srgbCurveScale))
+	w.putUint32(s15Fixed16(srgbCurveOffset / srgbCurveScale))
+	w.putUint32(s15Fixed16(1.0 / srgbLinearSlope))
+	w.putUint32(s15Fixed16(srgbLinearCutoff))
 	return buf
 }
 
@@ -707,21 +783,23 @@ func assembleICCProfile(
 // field.
 // Takes white (iccXYZ) which specifies the media white point XYZ values for the header.
 func writeICCHeader(profile []byte, profileSize int, white iccXYZ) {
-	binary.BigEndian.PutUint32(profile[0:4], safeconv.IntToUint32(profileSize))
-	copy(profile[4:8], "none")
-	binary.BigEndian.PutUint32(profile[8:12], iccVersion240)
-	copy(profile[12:16], "mntr")
-	copy(profile[16:20], "RGB ")
-	copy(profile[20:24], "XYZ ")
-	binary.BigEndian.PutUint16(profile[24:26], iccProfileYear)
-	binary.BigEndian.PutUint16(profile[26:28], 1)
-	binary.BigEndian.PutUint16(profile[28:30], 1)
-	copy(profile[36:40], "acsp")
-	copy(profile[40:44], "APPL")
+	w := iccWriter{buf: profile, position: 0}
+	w.putUint32(safeconv.IntToUint32(profileSize))
+	w.putString("none")
+	w.putUint32(iccVersion240)
+	w.putString("mntr")
+	w.putString("RGB ")
+	w.putString("XYZ ")
+	w.putUint16(iccProfileYear)
+	w.putUint16(iccDateFieldFirst)
+	w.putUint16(iccDateFieldFirst)
 
-	binary.BigEndian.PutUint32(profile[68:72], safeconv.Int32ToUint32(white.x))
-	binary.BigEndian.PutUint32(profile[72:76], safeconv.Int32ToUint32(white.y))
-	binary.BigEndian.PutUint32(profile[76:80], safeconv.Int32ToUint32(white.z))
+	w.seek(iccHeaderSignatureOffset)
+	w.putString("acsp")
+	w.putString("APPL")
+
+	w.seek(iccHeaderIlluminantOffset)
+	w.putXYZ(white)
 }
 
 // writeICCTagTable writes the tag count and per-tag offset/size entries.
@@ -740,11 +818,11 @@ func writeICCTagTable(profile []byte, entries []iccTagEntry, tagCount int) {
 	}
 }
 
-// s15Fixed16 converts a float64 to an ICC s15Fixed16Number (big-endian uint32).
+// s15Fixed16 converts a float64 to an ICC s15Fixed16Number.
 //
 // Takes f (float64) which specifies the floating-point value to convert.
 //
 // Returns uint32 which holds the s15Fixed16Number representation.
 func s15Fixed16(f float64) uint32 {
-	return uint32(math.Round(f * 65536.0))
+	return uint32(math.Round(f * s15Fixed16Scale))
 }

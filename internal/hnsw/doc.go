@@ -40,5 +40,5 @@
 //
 //	g := hnsw.New[string](128, vectormaths.Cosine)
 //	g.Insert("doc1", embedding)
-//	results := g.Search(query, 10, 0)
+//	results, err := g.Search(query, 10, 0)
 package hnsw

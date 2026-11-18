@@ -34,7 +34,7 @@ import (
 	"golang.org/x/mod/modfile"
 	"golang.org/x/sync/singleflight"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/pathutil"
 	"piko.sh/piko/internal/resolver/resolver_domain"

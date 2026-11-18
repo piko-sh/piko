@@ -69,6 +69,9 @@ const (
 	// goroutineLeakProfileName is the pprof lookup name for the Go 1.26 goroutine leak
 	// profile.
 	goroutineLeakProfileName = "goroutineleak"
+
+	// serverShutdownTimeout bounds how long the pprof server may take to shut down.
+	serverShutdownTimeout = 5 * time.Second
 )
 
 var (
@@ -269,7 +272,7 @@ func (c *Controller) Disable(ctx context.Context) (bool, error) {
 
 	var shutdownErr error
 	if serverToShutdown != nil {
-		shutdownCtx, cancel := context.WithTimeoutCause(ctx, 5*time.Second,
+		shutdownCtx, cancel := context.WithTimeoutCause(ctx, serverShutdownTimeout,
 			errors.New("pprof server shutdown exceeded 5s"))
 		shutdownErr = serverToShutdown.Shutdown(shutdownCtx)
 		cancel()
@@ -481,7 +484,7 @@ func (c *Controller) handleEnableRace(
 	_, l := logger_domain.From(ctx, log)
 
 	c.mu.Unlock()
-	shutdownCtx, cancel := context.WithTimeoutCause(ctx, 5*time.Second,
+	shutdownCtx, cancel := context.WithTimeoutCause(ctx, serverShutdownTimeout,
 		errors.New("pprof server shutdown exceeded 5s (enable race)"))
 	if shutdownErr := server.Shutdown(shutdownCtx); shutdownErr != nil {
 		l.Warn("Failed to shut down duplicate pprof server", logger_domain.Error(shutdownErr))

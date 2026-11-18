@@ -37,8 +37,7 @@ const (
 )
 
 var (
-	// Version holds the current version of the Piko language server. Override at build
-	// time using: go build -ldflags "-X main.Version=1.0.0" ./cmd/pikopls.
+	// Version overrides the reported language server version when set at build time.
 	Version = develVersion
 )
 
@@ -60,8 +59,8 @@ func resolveVersion() string {
 //
 // Takes info (*debug.BuildInfo) which is the build information to inspect, or nil.
 //
-// Returns string which is the module version, a dev version tagged with the VCS
-// revision, or the bare dev version when neither is available.
+// Returns string which is the module version, a dev version tagged with the VCS revision,
+// or the bare dev version when neither is available.
 func versionFromBuildInfo(info *debug.BuildInfo) string {
 	if info == nil {
 		return develVersion

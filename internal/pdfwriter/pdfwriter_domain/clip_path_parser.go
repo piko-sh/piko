@@ -61,6 +61,9 @@ const (
 
 	// clipMinInsetFieldsRadii is the field count when all four inset edges are specified.
 	clipMinInsetFieldsRadii = 4
+
+	// clipInsetLeftIndex is the position of the left inset when all four edges are given.
+	clipInsetLeftIndex = 3
 )
 
 // ClipShape holds the parsed parameters of a CSS clip-path basic shape.
@@ -249,7 +252,7 @@ func parseClipInset(inner string, boxWidth, boxHeight float64) ClipShape {
 		shape.InsetTop = resolveClipLength(fields[0], boxHeight)
 		shape.InsetRight = resolveClipLength(fields[1], boxWidth)
 		shape.InsetBottom = resolveClipLength(fields[2], boxHeight)
-		shape.InsetLeft = resolveClipLength(fields[3], boxWidth)
+		shape.InsetLeft = resolveClipLength(fields[clipInsetLeftIndex], boxWidth)
 	}
 
 	return shape

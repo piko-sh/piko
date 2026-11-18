@@ -169,7 +169,7 @@ func usesLocalTransport(
 func (d *watermillTaskDispatcher) newExecutionPool() {
 	d.pool = orchestrator_domain.NewExecutionPool(orchestrator_domain.ExecutionPoolConfig{
 		Clock: d.Clock,
-		Workers: [3]int{
+		Workers: [...]int{
 			orchestrator_domain.PriorityLow:    d.Config.WatermillLowHandlers,
 			orchestrator_domain.PriorityNormal: d.Config.WatermillNormalHandlers,
 			orchestrator_domain.PriorityHigh:   d.Config.WatermillHighHandlers,
@@ -229,6 +229,7 @@ func (d *watermillTaskDispatcher) publishLocal(ctx context.Context, ref orchestr
 // Takes ref (orchestrator_domain.TaskRef) which is the delivered reference.
 // Takes slot (*orchestrator_domain.ExecutionSlot) which runs the task.
 func (d *watermillTaskDispatcher) handleLocalRef(ctx context.Context, ref orchestrator_domain.TaskRef, slot *orchestrator_domain.ExecutionSlot) {
+	ctx, l := logger_domain.From(ctx, log)
 	d.pendingTasks.Add(-1)
 	task := refTask(ref)
 	if err := d.ClaimDelivery(ctx, task); err != nil {
@@ -240,7 +241,6 @@ func (d *watermillTaskDispatcher) handleLocalRef(ctx context.Context, ref orches
 			orchestrator_domain.ObsoleteDeliveryCount.Add(ctx, 1)
 		default:
 			d.TasksDispatched.Add(-1)
-			_, l := logger_domain.From(ctx, log)
 			l.Warn("Could not claim task; it stays pending for the sweep",
 				logger_domain.String(attributeKeyTaskID, ref.ID),
 				logger_domain.Error(err))
@@ -373,7 +373,7 @@ func (d *watermillTaskDispatcher) beat(leased bool, interval time.Duration) bool
 //
 // Returns bool which reports whether the node holds a lease afterwards.
 func (d *watermillTaskDispatcher) renewNode(ctx context.Context, now time.Time, interval time.Duration) bool {
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 	err := d.TaskStore.RenewNode(ctx, orchestrator_domain.NodeLease{
 		StartedAt: time.Time{},
 		RenewedAt: now,
@@ -398,19 +398,18 @@ func (d *watermillTaskDispatcher) renewNode(ctx context.Context, now time.Time, 
 //
 // Queued references release their dispatch counts and remain pending for the next start.
 func (d *watermillTaskDispatcher) stopLocal(ctx context.Context) {
+	ctx, l := logger_domain.From(ctx, log)
 	grace, cancelGrace := context.WithTimeout(context.WithoutCancel(ctx), shutdownGrace)
 	defer cancelGrace()
 	wait, cancelWait := context.WithTimeout(context.WithoutCancel(ctx), shutdownGrace+shutdownReleaseTimeout)
 	defer cancelWait()
 	if err := d.pool.Stop(wait, grace, errDispatcherShutdown); err != nil {
-		_, l := logger_domain.From(ctx, log)
 		l.Warn("Execution workers did not stop in time", logger_domain.Error(err))
 	}
 	queued := len(d.pool.DrainQueued()) + len(d.localOverflow.takeAll())
 	if queued > 0 {
 		d.TasksDispatched.Add(-int64(queued))
 		d.pendingTasks.Add(-int64(queued))
-		_, l := logger_domain.From(ctx, log)
 		l.Internal("Left queued tasks pending for the next start", logger_domain.Int(attributeKeyCount, queued))
 	}
 }

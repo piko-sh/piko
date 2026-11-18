@@ -45,6 +45,10 @@ import (
 const (
 	// payloadKeyArtefactID is the payload key for artefact identifiers.
 	payloadKeyArtefactID = "artefactID"
+
+	// shortHashBytes is the number of leading hash bytes used in short content hashes for
+	// logs and storage keys.
+	shortHashBytes = 8
 )
 
 var (
@@ -190,7 +194,7 @@ func (*compilerExecutor) enrichContext(ctx context.Context, p *compilerPayload) 
 // Returns map[string]any which contains the compilation result.
 // Returns error when any pipeline step fails.
 func (e *compilerExecutor) runCompilation(ctx context.Context, span trace.Span, startTime time.Time, p *compilerPayload) (map[string]any, error) {
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 
 	artefact, sourceVariant, desiredProfile, err := e.fetchTaskMetadata(ctx, p)
 	if err != nil {
@@ -567,10 +571,10 @@ func (*compilerExecutor) streamToStorage(
 	finalSize := counter.Count
 	l.Trace("Finalised stream processing",
 		logger_domain.Int64("size", finalSize),
-		logger_domain.String("hash", fmt.Sprintf("%x", finalHash[:8])))
+		logger_domain.String("hash", fmt.Sprintf("%x", finalHash[:shortHashBytes])))
 
 	outputExtension, _ := desiredProfile.ResultingTags.GetByName("fileExtension")
-	shortHash := fmt.Sprintf("%x", finalHash[:8])
+	shortHash := fmt.Sprintf("%x", finalHash[:shortHashBytes])
 	basePath := strings.TrimSuffix(artefact.SourcePath, path.Ext(artefact.SourcePath))
 	finalStorageKey := path.Join("generated", fmt.Sprintf("%s_%s%s", basePath, shortHash, outputExtension))
 

@@ -194,7 +194,7 @@ func (a *RedisClusterAdapter[K, V]) ProbeEntry(ctx context.Context, key K) (cach
 
 	pipe := a.client.Pipeline()
 	getCmd := pipe.Get(timeoutCtx, keyString)
-	ttlCmd := pipe.TTL(timeoutCtx, keyString)
+	ttlCmd := pipe.PTTL(timeoutCtx, keyString)
 	if _, err = pipe.Exec(timeoutCtx); err != nil {
 		if errors.Is(err, redis.Nil) {
 			return cache.Entry[K, V]{}, false, nil
@@ -242,20 +242,19 @@ func (a *RedisClusterAdapter[K, V]) buildProbeEntry(
 		return cache.Entry[K, V]{}, false, fmt.Errorf("type assertion failed after unmarshal for key %q", keyString)
 	}
 
-	ttl, _ := ttlCmd.Result()
-
-	var expiresAtNano int64
-	if ttl > 0 {
-		expiresAtNano = time.Now().Add(ttl).UnixNano()
+	ttl, err := ttlCmd.Result()
+	if err != nil {
+		return cache.Entry[K, V]{}, false, fmt.Errorf("redis PTTL failed for key %q: %w", keyString, err)
 	}
 
+	now := time.Now()
 	entry := cache.Entry[K, V]{
 		Key:               key,
 		Value:             value,
 		Weight:            0,
-		ExpiresAtNano:     expiresAtNano,
+		ExpiresAtNano:     expiryFromPTTL(now, ttl),
 		RefreshableAtNano: 0,
-		SnapshotAtNano:    time.Now().UnixNano(),
+		SnapshotAtNano:    now.UnixNano(),
 	}
 
 	return entry, true, nil
@@ -385,18 +384,22 @@ func (*RedisClusterAdapter[K, V]) Close(ctx context.Context) error {
 	return ctx.Err()
 }
 
-// SetExpiresAfter updates the time to live for an existing key using the Redis EXPIRE
-// command.
+// SetExpiresAfter updates the time to live for an existing key using the Redis PEXPIRE
+// command, or PERSIST for cache.NoExpiry. It never creates a key.
 //
 // A cancelled or expired context returns its error before work begins.
 //
 // Takes key (K) which identifies the cache entry to update.
-// Takes expiresAfter (time.Duration) which specifies the new time to live.
+// Takes expiresAfter (time.Duration) which specifies the new time-to-live. cache.NoExpiry
+// removes the TTL. Other nonpositive values do nothing.
 //
 // Returns error when the operation fails.
 func (a *RedisClusterAdapter[K, V]) SetExpiresAfter(ctx context.Context, key K, expiresAfter time.Duration) error {
 	if err := ctx.Err(); err != nil {
 		return err
+	}
+	if expiresAfter <= 0 {
+		return nil
 	}
 
 	timeoutCtx, cancel := context.WithTimeoutCause(ctx, a.operationTimeout, fmt.Errorf("redis cluster SetExpiresAfter exceeded %s timeout", a.operationTimeout))
@@ -407,7 +410,14 @@ func (a *RedisClusterAdapter[K, V]) SetExpiresAfter(ctx context.Context, key K, 
 		return fmt.Errorf(errFmtEncodeKey, err)
 	}
 
-	if err := a.client.PExpire(timeoutCtx, keyString, expiresAfter).Err(); err != nil {
+	if expiresAfter == cache.NoExpiry {
+		if err := a.client.Persist(timeoutCtx, keyString).Err(); err != nil {
+			return fmt.Errorf("redis cluster Persist failed: %w", err)
+		}
+		return nil
+	}
+
+	if err := a.client.PExpire(timeoutCtx, keyString, max(expiresAfter, time.Millisecond)).Err(); err != nil {
 		return fmt.Errorf("redis cluster PExpire failed: %w", err)
 	}
 
@@ -507,4 +517,22 @@ func (*RedisClusterAdapter[K, V]) SetRefreshableAfter(ctx context.Context, _ K, 
 // Returns bool which is true if the key has a tag metadata prefix.
 func isTagMetadataKey(keyString string) bool {
 	return strings.HasPrefix(keyString, tagPrefix) || strings.HasPrefix(keyString, keyTagsPrefix)
+}
+
+// expiryFromPTTL turns a PTTL reply into an absolute expiry in Unix nanoseconds.
+//
+// PTTL counts whole milliseconds, so a key with less than one millisecond left reports
+// zero. That is read as one millisecond left, not as no expiry, because a key without a
+// TTL reports a negative value. Treating zero as no expiry would make a transaction
+// rollback remove the key's TTL.
+//
+// Takes now (time.Time) which is when the reply was read.
+// Takes ttl (time.Duration) which is the PTTL reply.
+//
+// Returns int64 which is the expiry, or zero when the key has no TTL.
+func expiryFromPTTL(now time.Time, ttl time.Duration) int64 {
+	if ttl < 0 {
+		return 0
+	}
+	return now.Add(max(ttl, time.Millisecond)).UnixNano()
 }

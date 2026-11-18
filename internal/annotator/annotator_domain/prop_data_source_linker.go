@@ -18,10 +18,6 @@
 
 package annotator_domain
 
-// Links prop data sources by resolving p-data attributes and connecting them to their
-// corresponding component props. Validates data source expressions, enforces type
-// compatibility, and annotates the AST with resolved data bindings.
-
 import (
 	"context"
 	"errors"
@@ -76,7 +72,7 @@ func (v *pdsSetterVisitor) Exit(ctx context.Context, node *ast_domain.TemplateNo
 	partialInfo := node.GoAnnotations.PartialInfo
 	_, l := logger_domain.From(ctx, log)
 	l.Trace("[PDS-SETTER Exit] Processing invocation.",
-		logger_domain.Int("depth", v.depth),
+		logger_domain.Int(logKeyDepth, v.depth),
 		logger_domain.String("alias", partialInfo.PartialAlias),
 		logger_domain.String("key", partialInfo.InvocationKey),
 	)
@@ -90,7 +86,7 @@ func (v *pdsSetterVisitor) Exit(ctx context.Context, node *ast_domain.TemplateNo
 
 		if sourceAnn.PropDataSource == nil {
 			l.Trace("[PDS-SETTER] Creating initial PropDataSource.",
-				logger_domain.Int("depth", v.depth),
+				logger_domain.Int(logKeyDepth, v.depth),
 				logger_domain.String("prop", htmlPropName),
 				logger_domain.String("expr", sourceExpressionession.String()),
 			)
@@ -145,8 +141,8 @@ func (v *pdsLinkerVisitor) Enter(ctx context.Context, node *ast_domain.TemplateN
 		return nil, nil
 	}
 
-	_, l := logger_domain.From(ctx, log)
-	l.Trace("[PDS-LINKER Enter] Visiting node.", logger_domain.Int("depth", v.depth), logger_domain.String("tag", node.TagName))
+	ctx, l := logger_domain.From(ctx, log)
+	l.Trace("[PDS-LINKER Enter] Visiting node.", logger_domain.Int(logKeyDepth, v.depth), logger_domain.String("tag", node.TagName))
 
 	v.depth++
 	v.invocationMapStack = append(v.invocationMapStack, v.invocationByNode)
@@ -241,7 +237,7 @@ func (v *pdsLinkerVisitor) linkDataSourceForExpression(
 			if ultimateDataSource.BaseCodeGenVarName != nil {
 				_, l := logger_domain.From(ctx, log)
 				l.Trace("[PDS-LINKER] Successfully linked prop to data source.",
-					logger_domain.Int("depth", v.depth),
+					logger_domain.Int(logKeyDepth, v.depth),
 					logger_domain.String("expr", currentExpr.String()),
 					logger_domain.String("source_var", *ultimateDataSource.BaseCodeGenVarName),
 				)
@@ -342,10 +338,10 @@ func (v *pdsLinkerVisitor) followDataSourceChain(
 //
 // Returns bool which is true if the prop was changed at this boundary.
 func (v *pdsLinkerVisitor) didPropTransform(ctx context.Context, componentHash string, propUsageExpr ast_domain.Expression) bool {
+	ctx, l := logger_domain.From(ctx, log)
 	validProps, err := v.getValidPropsForComponent(ctx, componentHash)
 	if err != nil {
-		_, errL := logger_domain.From(ctx, log)
-		errL.Error("[PDS-LINKER] Could not get valid props to check for transformation",
+		l.Error("[PDS-LINKER] Could not get valid props to check for transformation",
 			logger_domain.String("hash", componentHash),
 			logger_domain.Error(err),
 		)

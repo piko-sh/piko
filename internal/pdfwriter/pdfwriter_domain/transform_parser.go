@@ -18,10 +18,6 @@
 
 package pdfwriter_domain
 
-// Parses CSS transform function lists into a 2D affine matrix suitable for the PDF cm
-// operator. Supports translate, scale, rotate, skew, and matrix functions. Multiple
-// functions are composed by left-to-right matrix multiplication.
-
 import (
 	"math"
 	"strconv"
@@ -31,6 +27,15 @@ import (
 const (
 	// matrixArgCount is the number of arguments in a CSS matrix() function.
 	matrixArgCount = 6
+
+	// matrixIndexD is the position of the d component in a CSS matrix() function.
+	matrixIndexD = 3
+
+	// matrixIndexE is the position of the e component in a CSS matrix() function.
+	matrixIndexE = 4
+
+	// matrixIndexF is the position of the f component in a CSS matrix() function.
+	matrixIndexF = 5
 
 	// gradToPiFactor converts gradians to radians (pi / 200).
 	gradToPiFactor = 200
@@ -324,8 +329,8 @@ func parseMatrix(parts []string) (AffineMatrix, bool) {
 	}
 	return AffineMatrix{
 		a: parseNumber(parts[0]), b: parseNumber(parts[1]),
-		c: parseNumber(parts[2]), d: parseNumber(parts[3]),
-		e: parseNumber(parts[4]), f: parseNumber(parts[5]),
+		c: parseNumber(parts[2]), d: parseNumber(parts[matrixIndexD]),
+		e: parseNumber(parts[matrixIndexE]), f: parseNumber(parts[matrixIndexF]),
 	}, true
 }
 

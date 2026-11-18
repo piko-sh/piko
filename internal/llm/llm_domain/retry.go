@@ -36,6 +36,10 @@ import (
 const (
 	// DefaultJitterFallback is the fallback jitter value when crypto/rand fails.
 	DefaultJitterFallback = 0.5
+
+	// float64MantissaShift drops the low bits of a random uint64 so that the remaining 53
+	// bits fit exactly in a float64 mantissa.
+	float64MantissaShift = 11
 )
 
 var (
@@ -335,5 +339,5 @@ func cryptoRandFloat64() float64 {
 	}
 	u := binary.LittleEndian.Uint64(b[:])
 	const maxUint53 = 1 << 53
-	return float64(u>>11) / maxUint53
+	return float64(u>>float64MantissaShift) / maxUint53
 }

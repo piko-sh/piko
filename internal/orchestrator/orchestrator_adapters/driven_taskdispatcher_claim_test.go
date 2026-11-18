@@ -26,7 +26,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 	"piko.sh/piko/internal/orchestrator/orchestrator_dal/otter"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 	clockpkg "piko.sh/piko/wdk/clock"

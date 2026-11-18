@@ -30,6 +30,14 @@ import (
 const (
 	// receiptWorkflowID is the workflow the receipt lifecycle case queues a receipt for.
 	receiptWorkflowID = "wf-r"
+
+	// receiptCleanupAge is how old a resolved receipt must be for the cleanup case to remove
+	// it.
+	receiptCleanupAge = 30 * time.Minute
+
+	// subSecondOffset is an offset with a fractional second, used to check that stores keep
+	// whole seconds.
+	subSecondOffset = 1500 * time.Millisecond
 )
 
 // newProcessing creates a task that is processing its given attempt, stamped now.
@@ -76,7 +84,7 @@ func receiptCases() []testCase {
 			assert.Empty(t, pending)
 
 			h.Clock.Advance(time.Hour)
-			cleaned, err := h.Store.CleanupOldResolvedReceipts(ctx, h.Clock.Now().Add(-30*time.Minute))
+			cleaned, err := h.Store.CleanupOldResolvedReceipts(ctx, h.Clock.Now().Add(-receiptCleanupAge))
 			require.NoError(t, err)
 			assert.Equal(t, 1, cleaned, "only the resolved receipt is old enough to clean up")
 
@@ -109,7 +117,7 @@ func semanticsCases() []testCase {
 	return []testCase{
 		{name: "time/stored-at-second-precision", run: func(t *testing.T, h *Harness) {
 			task := h.newTask("precise")
-			task.ExecuteAt = Epoch.Add(1500 * time.Millisecond)
+			task.ExecuteAt = Epoch.Add(subSecondOffset)
 			h.create(t, task)
 			assert.True(t, h.get(t, "precise").ExecuteAt.Equal(Epoch.Add(time.Second)),
 				"every store keeps whole seconds, so the backends order and compare times alike")

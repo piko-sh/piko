@@ -43,6 +43,9 @@ const (
 	// filenameTimestampFormat defines the timestamp format for .eml filenames.
 	filenameTimestampFormat = "20060102_150405.000000"
 
+	// filenameSeparatorReplacement is the underscore used to sanitise recipient filenames.
+	filenameSeparatorReplacement = "_"
+
 	// metricStatusSuccess is the metric attribute value for a successful operation.
 	metricStatusSuccess = "success"
 
@@ -351,7 +354,12 @@ func (p *DiskProvider) validateSendParams(ctx context.Context, params *email_dto
 func (*DiskProvider) generateEmailFilename(recipient string) string {
 	timestamp := time.Now().Format(filenameTimestampFormat)
 	safeRecipient := strings.NewReplacer(
-		"@", "_at_", ".", "_", "/", "_", "\\", "_", "..", "_", ":", "_",
+		"@", "_at_",
+		".", filenameSeparatorReplacement,
+		"/", filenameSeparatorReplacement,
+		"\\", filenameSeparatorReplacement,
+		"..", filenameSeparatorReplacement,
+		":", filenameSeparatorReplacement,
 	).Replace(recipient)
 
 	return fmt.Sprintf("%s_%s.eml", timestamp, safeRecipient)
@@ -385,7 +393,7 @@ func (p *DiskProvider) writeEmailFile(ctx context.Context, filename string, para
 // recordDiskSendMetrics records metrics for a single email send.
 //
 // Takes duration (time.Duration) which is the time taken to send the email.
-// Takes sendErr (error) which shows if the send failed; nil means success.
+// Takes sendErr (error) which is nil when the send succeeded.
 func recordDiskSendMetrics(ctx context.Context, duration time.Duration, sendErr error) {
 	durationMs := float64(duration.Milliseconds())
 	status := metricStatusSuccess

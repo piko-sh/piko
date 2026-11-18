@@ -31,8 +31,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"piko.sh/json"
 	"piko.sh/piko/cmd/piko/internal/inspector"
-	"piko.sh/piko/internal/json"
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
 )
 

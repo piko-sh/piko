@@ -31,6 +31,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/monitoring/monitoring_domain"
+	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
+	"piko.sh/piko/internal/provider/provider_domain"
 )
 
 func TestDevEventBroadcaster_ClientLifecycle(t *testing.T) {
@@ -284,4 +286,299 @@ func TestDevEventBroadcaster_Close_NoStatsGoroutine(t *testing.T) {
 	b.addClient(ch)
 
 	require.NoError(t, b.Close(), "Close should succeed even when no stats provider is configured")
+}
+
+type broadcasterHealthProbe struct{}
+
+func (broadcasterHealthProbe) CheckLiveness(context.Context) monitoring_domain.HealthProbeStatus {
+	return monitoring_domain.HealthProbeStatus{Name: "liveness", State: "HEALTHY"}
+}
+
+func (broadcasterHealthProbe) CheckReadiness(context.Context) monitoring_domain.HealthProbeStatus {
+	return monitoring_domain.HealthProbeStatus{Name: "readiness", State: "HEALTHY"}
+}
+
+type broadcasterResourceProvider struct{}
+
+func (broadcasterResourceProvider) GetResources() monitoring_domain.ResourceData {
+	return monitoring_domain.ResourceData{Total: 7}
+}
+
+type broadcasterProviderInspector struct {
+	monitoring_domain.ProviderInfoInspector
+}
+
+func (broadcasterProviderInspector) ListResourceTypes(context.Context) []string {
+	return []string{"cache", "broken"}
+}
+
+func (broadcasterProviderInspector) ListProviders(_ context.Context, resourceType string) (*monitoring_domain.ProviderListResult, error) {
+	if resourceType == "broken" {
+		return nil, errors.New("listing failed")
+	}
+	return &monitoring_domain.ProviderListResult{
+		Rows: []provider_domain.ProviderListEntry{{Name: "otter"}, {Name: "redis"}},
+	}, nil
+}
+
+func (broadcasterProviderInspector) DescribeProvider(_ context.Context, _, name string) (*provider_domain.ProviderDetail, error) {
+	if name == "redis" {
+		return nil, errors.New("describe failed")
+	}
+	return &provider_domain.ProviderDetail{Name: name}, nil
+}
+
+func (broadcasterProviderInspector) ListSubResources(_ context.Context, _, name string) (*monitoring_domain.ProviderListResult, error) {
+	if name == "redis" {
+		return nil, errors.New("sub-resources failed")
+	}
+	return &monitoring_domain.ProviderListResult{
+		Rows: []provider_domain.ProviderListEntry{{Name: "namespace-a"}},
+	}, nil
+}
+
+type broadcasterOrchestrator struct {
+	err error
+}
+
+func (o broadcasterOrchestrator) ListTaskSummary(context.Context) ([]orchestrator_domain.TaskSummary, error) {
+	return []orchestrator_domain.TaskSummary{}, o.err
+}
+
+func (o broadcasterOrchestrator) ListRecentTasks(context.Context, int) ([]orchestrator_domain.TaskListItem, error) {
+	return []orchestrator_domain.TaskListItem{}, o.err
+}
+
+func (o broadcasterOrchestrator) ListWorkflowSummary(context.Context, int) ([]orchestrator_domain.WorkflowSummary, error) {
+	return []orchestrator_domain.WorkflowSummary{}, o.err
+}
+
+type nonFlushingResponseWriter struct {
+	http.ResponseWriter
+}
+
+func newFullyWiredBroadcaster() *DevEventBroadcaster {
+	broadcaster := NewDevEventBroadcaster()
+	broadcaster.SetHealthProbeService(broadcasterHealthProbe{})
+	broadcaster.SetResourceProvider(broadcasterResourceProvider{})
+	broadcaster.SetProviderInfoInspector(broadcasterProviderInspector{})
+	broadcaster.SetOrchestratorInspector(broadcasterOrchestrator{})
+	return broadcaster
+}
+
+func drainEvents(t *testing.T, channel chan []byte) string {
+	t.Helper()
+
+	var collected strings.Builder
+	for {
+		select {
+		case message := <-channel:
+			collected.Write(message)
+		default:
+			return collected.String()
+		}
+	}
+}
+
+func TestDevEventBroadcaster_ServeHTTP_RejectsWritersThatCannotStream(t *testing.T) {
+	t.Parallel()
+
+	broadcaster := NewDevEventBroadcaster()
+	defer func() { _ = broadcaster.Close() }()
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/_piko/dev/events", nil)
+
+	broadcaster.ServeHTTP(nonFlushingResponseWriter{ResponseWriter: recorder}, request)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+	assert.Contains(t, recorder.Body.String(), "streaming unsupported")
+}
+
+func TestDevEventBroadcaster_ServeHTTP_SendsInitialStateAndBroadcasts(t *testing.T) {
+	t.Parallel()
+
+	broadcaster := newFullyWiredBroadcaster()
+	broadcaster.SetSystemStatsProvider(stubSystemStatsProvider{})
+	defer func() { _ = broadcaster.Close() }()
+
+	ctx, cancel := context.WithCancelCause(t.Context())
+	request := httptest.NewRequestWithContext(ctx, http.MethodGet, "/_piko/dev/events", nil)
+	writer := &flushRecorder{ResponseRecorder: httptest.NewRecorder()}
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		broadcaster.ServeHTTP(writer, request)
+	}()
+
+	require.Eventually(t, func() bool { return broadcaster.ClientCount() == 1 }, time.Second, time.Millisecond)
+
+	body := writer.Body()
+	for _, event := range []string{"system-stats", "memory-detail", "build-update", "health-update", "resources-update", "providers-update"} {
+		assert.Contains(t, body, "event: "+event, "a new client must receive %s straight away", event)
+	}
+
+	broadcaster.BroadcastBuildSummary(DevBuildSummary{ComponentCount: 3, DurationMs: 40, ErrorCount: 0, TimestampMs: 1})
+	require.Eventually(t, func() bool {
+		return strings.Contains(writer.Body(), "event: build-summary")
+	}, time.Second, time.Millisecond)
+
+	cancel(errors.New("client went away"))
+	<-done
+	assert.Equal(t, 0, broadcaster.ClientCount())
+}
+
+func TestDevEventBroadcaster_ServeHTTP_ReturnsWhenTheBroadcasterCloses(t *testing.T) {
+	t.Parallel()
+
+	broadcaster := NewDevEventBroadcaster()
+	request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/_piko/dev/events", nil)
+	writer := &flushRecorder{ResponseRecorder: httptest.NewRecorder()}
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		broadcaster.ServeHTTP(writer, request)
+	}()
+
+	require.Eventually(t, func() bool { return broadcaster.ClientCount() == 1 }, time.Second, time.Millisecond)
+	require.NoError(t, broadcaster.Close())
+	<-done
+}
+
+func TestDevEventBroadcaster_BroadcastFullState(t *testing.T) {
+	t.Parallel()
+
+	broadcaster := newFullyWiredBroadcaster()
+	defer func() { _ = broadcaster.Close() }()
+
+	channel := make(chan []byte, devSSEClientBuffer)
+	broadcaster.addClient(channel)
+	defer broadcaster.removeClient(channel)
+
+	broadcaster.broadcastFullState(t.Context(), stubSystemStatsProvider{})
+
+	events := drainEvents(t, channel)
+	for _, event := range []string{"build-update", "health-update", "resources-update", "providers-update", "memory-detail"} {
+		assert.Contains(t, events, "event: "+event)
+	}
+	assert.Contains(t, events, `"otter"`)
+	assert.Contains(t, events, "namespace-a")
+	assert.NotContains(t, events, `"broken":`, "a resource type that cannot be listed is left out")
+}
+
+func TestDevEventBroadcaster_BroadcastFullState_SkipsMissingProviders(t *testing.T) {
+	t.Parallel()
+
+	broadcaster := NewDevEventBroadcaster()
+	defer func() { _ = broadcaster.Close() }()
+
+	channel := make(chan []byte, devSSEClientBuffer)
+	broadcaster.addClient(channel)
+	defer broadcaster.removeClient(channel)
+
+	broadcaster.broadcastFullState(t.Context(), nil)
+
+	assert.Empty(t, drainEvents(t, channel))
+}
+
+func TestDevEventBroadcaster_BroadcastSystemStats(t *testing.T) {
+	t.Parallel()
+
+	broadcaster := NewDevEventBroadcaster()
+	defer func() { _ = broadcaster.Close() }()
+
+	channel := make(chan []byte, devSSEClientBuffer)
+	broadcaster.addClient(channel)
+	defer broadcaster.removeClient(channel)
+
+	broadcaster.broadcastSystemStats(stubSystemStatsProvider{})
+
+	events := drainEvents(t, channel)
+	assert.Contains(t, events, "event: system-stats")
+	assert.Contains(t, events, `"goroutines"`)
+}
+
+func TestDevEventBroadcaster_BroadcastBuildUpdate_SkipsWhenTheOrchestratorFails(t *testing.T) {
+	t.Parallel()
+
+	broadcaster := NewDevEventBroadcaster()
+	defer func() { _ = broadcaster.Close() }()
+
+	channel := make(chan []byte, devSSEClientBuffer)
+	broadcaster.addClient(channel)
+	defer broadcaster.removeClient(channel)
+
+	broadcaster.broadcastBuildUpdate(t.Context(), broadcasterOrchestrator{err: errors.New("database closed")})
+
+	assert.Empty(t, drainEvents(t, channel))
+}
+
+func TestWriteInitialBuildUpdate_WritesNothingWhenEveryQueryFails(t *testing.T) {
+	t.Parallel()
+
+	recorder := httptest.NewRecorder()
+
+	writeInitialBuildUpdate(t.Context(), recorder, broadcasterOrchestrator{err: errors.New("database closed")})
+
+	assert.Empty(t, recorder.Body.String())
+}
+
+func TestDevEventBroadcaster_BroadcastBuildSummary_DropsForAFullClient(t *testing.T) {
+	t.Parallel()
+
+	broadcaster := NewDevEventBroadcaster()
+	defer func() { _ = broadcaster.Close() }()
+
+	channel := make(chan []byte, 1)
+	broadcaster.addClient(channel)
+	defer broadcaster.removeClient(channel)
+
+	broadcaster.BroadcastBuildSummary(DevBuildSummary{ComponentCount: 1})
+	broadcaster.BroadcastBuildSummary(DevBuildSummary{ComponentCount: 2})
+
+	assert.Contains(t, string(<-channel), `"componentCount":1`)
+	assert.Empty(t, drainEvents(t, channel), "the second summary is dropped for a full client")
+}
+
+func TestDevEventBroadcaster_NilReceiverIgnoresBroadcasts(t *testing.T) {
+	t.Parallel()
+
+	var broadcaster *DevEventBroadcaster
+
+	assert.NotPanics(t, func() {
+		broadcaster.Broadcast(DevBuildEvent{Type: "rebuild-complete"})
+		broadcaster.BroadcastBuildSummary(DevBuildSummary{})
+	})
+}
+
+func TestFormatSSEMessage(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, "event: ping\ndata: {\"ok\":true}\n\n", string(formatSSEMessage("ping", map[string]bool{"ok": true})))
+	assert.Nil(t, formatSSEMessage("broken", make(chan int)), "a payload that cannot be encoded produces no message")
+}
+
+func TestDevEventBroadcaster_BroadcastEvent_SkipsAPayloadThatCannotBeEncoded(t *testing.T) {
+	t.Parallel()
+
+	broadcaster := NewDevEventBroadcaster()
+	defer func() { _ = broadcaster.Close() }()
+
+	channel := make(chan []byte, devSSEClientBuffer)
+	broadcaster.addClient(channel)
+	defer broadcaster.removeClient(channel)
+
+	broadcaster.broadcastEvent("broken", make(chan int))
+
+	assert.Empty(t, drainEvents(t, channel))
+}
+
+func TestResolveSSEFlusher_FallsBackWhenTheWriterCannotFlush(t *testing.T) {
+	t.Parallel()
+
+	fallback := httptest.NewRecorder()
+
+	assert.Same(t, fallback, resolveSSEFlusher(&strings.Builder{}, fallback))
 }

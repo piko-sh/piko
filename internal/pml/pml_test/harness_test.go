@@ -29,8 +29,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"piko.sh/json"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/pml/pml_adapters"
 	"piko.sh/piko/internal/pml/pml_components"
 	"piko.sh/piko/internal/pml/pml_domain"

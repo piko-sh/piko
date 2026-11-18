@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"regexp"
 
+	"piko.sh/piko/internal/runeutil"
 	"piko.sh/piko/internal/spamdetect/spamdetect_dto"
 )
 
@@ -110,7 +111,7 @@ func (d *LinkDensityDetector) Analyse(ctx context.Context, submission *spamdetec
 		if value == "" {
 			continue
 		}
-		value = spamdetect_dto.TruncateStringUTF8(value, maxAnalyseFieldLength)
+		value = runeutil.TruncateBytes(value, maxAnalyseFieldLength)
 
 		matches := linkPattern.FindAllStringIndex(value, maxLinks+1)
 		linkCount := len(matches)

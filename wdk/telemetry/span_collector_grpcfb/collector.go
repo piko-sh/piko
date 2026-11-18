@@ -36,6 +36,10 @@ import (
 )
 
 const (
+	// markerAttributeSlots is the number of marker attributes (dropped count, truncated
+	// count and status description) that may follow the copied span attributes.
+	markerAttributeSlots = 3
+
 	// defaultMaxAttrValueLen bounds a single (non-redacted) span attribute value so one
 	// pathological attribute cannot bloat a frame; the value is truncated UTF-8 safe.
 	defaultMaxAttrValueLen = 2048
@@ -324,7 +328,7 @@ func (c *Collector) collectAttributes(s sdktrace.ReadOnlySpan) []telemetry_grpcf
 
 	attrs := s.Attributes()
 
-	out := make([]telemetry_grpcfb.KV, 0, min(len(attrs), maxAttributes)+3)
+	out := make([]telemetry_grpcfb.KV, 0, min(len(attrs), maxAttributes)+markerAttributeSlots)
 	var dropped, truncated int
 	for _, a := range attrs {
 		if len(out) >= maxAttributes {

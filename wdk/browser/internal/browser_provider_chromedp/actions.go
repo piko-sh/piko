@@ -141,7 +141,7 @@ func DoubleClick(ctx *ActionContext, selector string) error {
 // Returns error when the element is not found or the context expires.
 func pollForClickableElement(ctx context.Context, selector string) (clickablePosition, error) {
 	js := scripts.MustExecute("click_element.js.tmpl", map[string]any{
-		"Selector": selector,
+		tmplKeySelector: selector,
 	})
 
 	ticker := time.NewTicker(DefaultPollingInterval)
@@ -179,7 +179,7 @@ func Hover(ctx *ActionContext, selector string) error {
 	}
 
 	js := scripts.MustExecute("hover_element.js.tmpl", map[string]any{
-		"Selector": selector,
+		tmplKeySelector: selector,
 	})
 
 	var hovered bool
@@ -206,7 +206,7 @@ func RightClick(ctx *ActionContext, selector string) error {
 	}
 
 	js := scripts.MustExecute("right_click_element.js.tmpl", map[string]any{
-		"Selector": selector,
+		tmplKeySelector: selector,
 	})
 
 	var clicked bool
@@ -241,7 +241,7 @@ func Fill(ctx *ActionContext, selector, value string) error {
 	defer cancel()
 
 	focusJS := scripts.MustExecute("focus.js.tmpl", map[string]any{
-		"Selector": selector,
+		tmplKeySelector: selector,
 	})
 
 	var focused bool
@@ -253,7 +253,7 @@ func Fill(ctx *ActionContext, selector, value string) error {
 	}
 
 	selectJS := scripts.MustExecute("select_all_text.js.tmpl", map[string]any{
-		"Selector": selector,
+		tmplKeySelector: selector,
 	})
 	if err := chromedp.Run(timedCtx, chromedp.Evaluate(selectJS, nil)); err != nil {
 		return fmt.Errorf("selecting text on %s: %w", selector, err)
@@ -266,7 +266,7 @@ func Fill(ctx *ActionContext, selector, value string) error {
 	}
 
 	inputJS := scripts.MustExecute("dispatch_input_event.js.tmpl", map[string]any{
-		"Selector": selector,
+		tmplKeySelector: selector,
 	})
 	if err := chromedp.Run(timedCtx, chromedp.Evaluate(inputJS, nil)); err != nil {
 		return fmt.Errorf("dispatching input event on %s: %w", selector, err)
@@ -292,7 +292,7 @@ func Clear(ctx *ActionContext, selector string) error {
 	defer cancel()
 
 	focusJS := scripts.MustExecute("focus.js.tmpl", map[string]any{
-		"Selector": selector,
+		tmplKeySelector: selector,
 	})
 
 	var focused bool
@@ -304,7 +304,7 @@ func Clear(ctx *ActionContext, selector string) error {
 	}
 
 	selectJS := scripts.MustExecute("select_all_text.js.tmpl", map[string]any{
-		"Selector": selector,
+		tmplKeySelector: selector,
 	})
 	if err := chromedp.Run(timedCtx, chromedp.Evaluate(selectJS, nil)); err != nil {
 		return fmt.Errorf("selecting text on %s: %w", selector, err)
@@ -331,7 +331,7 @@ func Clear(ctx *ActionContext, selector string) error {
 	}
 
 	inputJS := scripts.MustExecute("dispatch_input_event.js.tmpl", map[string]any{
-		"Selector": selector,
+		tmplKeySelector: selector,
 	})
 	_ = chromedp.Run(timedCtx, chromedp.Evaluate(inputJS, nil))
 
@@ -350,7 +350,7 @@ func Submit(ctx *ActionContext, selector string) error {
 	}
 
 	js := scripts.MustExecute("submit_form.js.tmpl", map[string]any{
-		"Selector": selector,
+		tmplKeySelector: selector,
 	})
 
 	var submitted bool
@@ -377,7 +377,7 @@ func Check(ctx *ActionContext, selector string) error {
 	}
 
 	js := scripts.MustExecute("check_checkbox.js.tmpl", map[string]any{
-		"Selector": selector,
+		tmplKeySelector: selector,
 	})
 
 	var checked bool
@@ -403,7 +403,7 @@ func Uncheck(ctx *ActionContext, selector string) error {
 	}
 
 	js := scripts.MustExecute("uncheck_checkbox.js.tmpl", map[string]any{
-		"Selector": selector,
+		tmplKeySelector: selector,
 	})
 
 	var unchecked bool
@@ -451,7 +451,7 @@ func SetFiles(ctx *ActionContext, selector string, filePaths []string) error {
 	}
 
 	js := scripts.MustExecute("dispatch_change_event.js.tmpl", map[string]any{
-		"Selector": selector,
+		tmplKeySelector: selector,
 	})
 	_ = chromedp.Run(timedCtx, chromedp.Evaluate(js, nil))
 
@@ -506,7 +506,7 @@ func runTimedJSAction(
 	defer cancel()
 
 	js := scripts.MustExecute(templateName, map[string]any{
-		"Selector": selector,
+		tmplKeySelector: selector,
 	})
 
 	var found bool
@@ -537,14 +537,14 @@ func Scroll(ctx *ActionContext, selector string, position string) error {
 	} else if strings.Contains(selector, ShadowDOMSeparator) {
 		host, shadow, _ := strings.Cut(selector, ShadowDOMSeparator)
 		js = scripts.MustExecute("shadow_scroll_element.js.tmpl", map[string]any{
-			"Host":     host,
-			"Shadow":   shadow,
-			"Position": position,
+			tmplKeyHost:   host,
+			tmplKeyShadow: shadow,
+			"Position":    position,
 		})
 	} else {
 		js = scripts.MustExecute("scroll_element.js.tmpl", map[string]any{
-			"Selector": selector,
-			"Position": position,
+			tmplKeySelector: selector,
+			"Position":      position,
 		})
 	}
 
@@ -638,22 +638,22 @@ func DispatchEvent(ctx *ActionContext, selector, eventName string, detail map[st
 	var js string
 	if selector == "*" || selector == "document" {
 		js = scripts.MustExecute("dispatch_document_event.js.tmpl", map[string]any{
-			"EventName":  eventName,
-			"DetailJSON": string(detailJSON),
+			tmplKeyEventName:  eventName,
+			tmplKeyDetailJSON: string(detailJSON),
 		})
 	} else if strings.Contains(selector, ShadowDOMSeparator) {
 		host, shadow, _ := strings.Cut(selector, ShadowDOMSeparator)
 		js = scripts.MustExecute("shadow_dispatch_event.js.tmpl", map[string]any{
-			"Host":       host,
-			"Shadow":     shadow,
-			"EventName":  eventName,
-			"DetailJSON": string(detailJSON),
+			tmplKeyHost:       host,
+			tmplKeyShadow:     shadow,
+			tmplKeyEventName:  eventName,
+			tmplKeyDetailJSON: string(detailJSON),
 		})
 	} else {
 		js = scripts.MustExecute("dispatch_custom_event.js.tmpl", map[string]any{
-			"Selector":   selector,
-			"EventName":  eventName,
-			"DetailJSON": string(detailJSON),
+			tmplKeySelector:   selector,
+			tmplKeyEventName:  eventName,
+			tmplKeyDetailJSON: string(detailJSON),
 		})
 	}
 
@@ -747,8 +747,8 @@ func TriggerBusEvent(ctx *ActionContext, eventName string, detail map[string]any
 	}
 
 	jsCall := scripts.MustExecute("bus_emit.js.tmpl", map[string]any{
-		"EventName":  eventName,
-		"DetailJSON": string(detailJSON),
+		tmplKeyEventName:  eventName,
+		tmplKeyDetailJSON: string(detailJSON),
 	})
 
 	err = chromedp.Run(ctx.Ctx, chromedp.Evaluate(jsCall, nil))
@@ -773,14 +773,14 @@ func Eval(ctx *ActionContext, selector, script string) error {
 	} else if strings.Contains(selector, ShadowDOMSeparator) {
 		host, shadow, _ := strings.Cut(selector, ShadowDOMSeparator)
 		js = scripts.MustExecute("shadow_eval_statement.js.tmpl", map[string]any{
-			"Host":   host,
-			"Shadow": shadow,
-			"JS":     script,
+			tmplKeyHost:   host,
+			tmplKeyShadow: shadow,
+			"JS":          script,
 		})
 	} else {
 		js = scripts.MustExecute("eval_statement.js.tmpl", map[string]any{
-			"Selector": selector,
-			"JS":       script,
+			tmplKeySelector: selector,
+			"JS":            script,
 		})
 	}
 
@@ -818,7 +818,7 @@ func WaitForPartialReload(ctx *ActionContext, partialName string, timeout time.D
 
 	for {
 		js := scripts.MustExecute("check_partial_not_loading.js.tmpl", map[string]any{
-			"Selector": selector,
+			tmplKeySelector: selector,
 		})
 
 		var notLoading bool
@@ -952,8 +952,8 @@ func submitInShadowDOM(ctx context.Context, selector string) error {
 	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	js := scripts.MustExecute("shadow_submit_form.js.tmpl", map[string]any{
-		"Host":   hostSelector,
-		"Shadow": shadowSelector,
+		tmplKeyHost:   hostSelector,
+		tmplKeyShadow: shadowSelector,
 	})
 
 	var submitted bool
@@ -972,7 +972,7 @@ func submitInShadowDOM(ctx context.Context, selector string) error {
 // Returns string which contains the body HTML, truncated to DebugHTMLPreviewLength
 // characters, or an error message if the body cannot be retrieved.
 func getBodyPreview(ctx context.Context) string {
-	timedCtx, cancel := context.WithTimeoutCause(ctx, 500*time.Millisecond, fmt.Errorf("browser getBodyPreview exceeded %s timeout", 500*time.Millisecond))
+	timedCtx, cancel := context.WithTimeoutCause(ctx, domQueryTimeout, fmt.Errorf("browser getBodyPreview exceeded %s timeout", domQueryTimeout))
 	defer cancel()
 
 	var html string

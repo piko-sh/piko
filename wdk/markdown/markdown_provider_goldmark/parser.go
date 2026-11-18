@@ -63,9 +63,10 @@ var (
 // Returns *Parser which is ready to parse Markdown content.
 func NewParser(options ...Option) *Parser {
 	config := newParserConfig(options)
-	extensions := make([]goldmark.Extender, 0, 4+len(config.extensions))
-	extensions = append(extensions, extension.GFM, extension.Footnote, meta.New(), &fences.Extender{})
-	extensions = append(extensions, config.extensions...)
+	extensions := slices.Concat(
+		[]goldmark.Extender{extension.GFM, extension.Footnote, meta.New(), &fences.Extender{}},
+		config.extensions,
+	)
 
 	gm := goldmark.New(
 		goldmark.WithExtensions(extensions...),

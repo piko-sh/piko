@@ -20,7 +20,19 @@ package cache_domain
 
 import (
 	"context"
+
+	"piko.sh/piko/internal/cache/cache_dto"
 )
+
+// TransactionOption configures a transaction started by BeginTransaction.
+type TransactionOption func(*transactionOptions)
+
+// transactionOptions holds the settings a TransactionOption changes.
+type transactionOptions struct {
+	// clock measures how long the transaction ran, so a rolled-back entry gets back the TTL
+	// it had left; nil uses the system clock.
+	clock cache_dto.Clock
+}
 
 // BeginTransaction uses the provider's transaction support or a journal that restores
 // mutations on rollback.
@@ -28,11 +40,27 @@ import (
 // The caller must finish with Commit or Rollback.
 //
 // Takes cache (ProviderPort[K, V]) which is the cache to begin a transaction on.
+// Takes options (...TransactionOption) which configure the journal; a provider with its
+// own transaction support ignores them.
 //
 // Returns TransactionCache[K, V] which provides transactional operations.
-func BeginTransaction[K comparable, V any](ctx context.Context, cache ProviderPort[K, V]) TransactionCache[K, V] {
+func BeginTransaction[K comparable, V any](ctx context.Context, cache ProviderPort[K, V], options ...TransactionOption) TransactionCache[K, V] {
 	if tc, ok := cache.(Transactional[K, V]); ok {
 		return tc.BeginTransaction(ctx)
 	}
-	return newTransactionJournal(cache)
+	return newTransactionJournal(cache, options...)
+}
+
+// WithTransactionClock sets the clock a journal uses to measure how long the transaction
+// ran. Pass the cache's own clock when it is not the system clock, so a rolled-back entry
+// gets back exactly the TTL it had left.
+//
+// Takes clock (cache_dto.Clock) which supplies the current time; nil keeps the system
+// clock.
+//
+// Returns TransactionOption which applies the clock.
+func WithTransactionClock(clock cache_dto.Clock) TransactionOption {
+	return func(options *transactionOptions) {
+		options.clock = clock
+	}
 }

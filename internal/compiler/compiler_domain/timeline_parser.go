@@ -25,8 +25,8 @@ import (
 	"strconv"
 	"strings"
 
+	"piko.sh/json"
 	"piko.sh/piko/internal/htmllexer"
-	"piko.sh/piko/internal/json"
 )
 
 const (

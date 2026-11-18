@@ -307,10 +307,10 @@ func embeddedIPv4(addr netip.Addr) netip.Addr {
 	switch {
 	case nat64Prefix.Contains(addr):
 		bytes := addr.As16()
-		return netip.AddrFrom4([4]byte(bytes[nat64EmbeddedOffset:]))
+		return netip.AddrFrom4([net.IPv4len]byte(bytes[nat64EmbeddedOffset:]))
 	case sixToFourPrefix.Contains(addr):
 		bytes := addr.As16()
-		return netip.AddrFrom4([4]byte(bytes[sixToFourEmbeddedOffset : sixToFourEmbeddedOffset+net.IPv4len]))
+		return netip.AddrFrom4([net.IPv4len]byte(bytes[sixToFourEmbeddedOffset : sixToFourEmbeddedOffset+net.IPv4len]))
 	default:
 		return addr
 	}

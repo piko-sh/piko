@@ -27,7 +27,7 @@ import (
 	"slices"
 	"time"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 	"piko.sh/safeconv"
 )

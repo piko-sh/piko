@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"path"
 	"path/filepath"
@@ -493,7 +494,7 @@ func (builder *HTTPRouterBuilder) resolveVariant(
 	lookup artefactLookupResult,
 	artefactID, variantParam string,
 ) *registry_dto.Variant {
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 
 	artefact := lookup.artefact
 
@@ -1459,7 +1460,7 @@ func buildVariantPlaylist(variant *registry_dto.Variant) string {
 		maxDuration = hlsDefaultSegmentDuration
 	}
 
-	_, _ = fmt.Fprintf(&buffer, "#EXT-X-TARGETDURATION:%d\n", int(maxDuration+0.5))
+	_, _ = fmt.Fprintf(&buffer, "#EXT-X-TARGETDURATION:%d\n", int(math.Round(maxDuration)))
 	_, _ = buffer.WriteString("#EXT-X-MEDIA-SEQUENCE:0\n")
 
 	for i := range variant.Chunks {

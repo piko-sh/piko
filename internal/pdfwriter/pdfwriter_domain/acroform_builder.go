@@ -116,6 +116,19 @@ const (
 	// rectY2Index is the index of the top edge in a rect [x1,y1,x2,y2].
 	rectY2Index = 3
 
+	// checkboxGlyphSizeRatio sizes the checkbox tick glyph relative to the widget height.
+	checkboxGlyphSizeRatio = 0.8
+
+	// checkboxGlyphInsetRatio offsets the checkbox tick glyph from the widget's lower left
+	// corner, as a fraction of the widget size.
+	checkboxGlyphInsetRatio = 0.15
+
+	// pdfStreamOpen separates a stream dictionary from its stream data.
+	pdfStreamOpen = "\nstream\n"
+
+	// pdfStreamClose terminates the data of a stream object.
+	pdfStreamClose = "\nendstream"
+
 	// pushButtonHelveticaWidthFactor is the approximate average glyph advance for Helvetica
 	// expressed as a fraction of the font size, used for crude horizontal centring of push
 	// button captions.
@@ -518,7 +531,7 @@ func (b *AcroFormBuilder) writeRadioChild(
 	fmt.Fprintf(&wDict, " /Parent %s", FormatReference(parentNum))
 	fmt.Fprintf(&wDict, " /Rect [%s %s %s %s]",
 		FormatNumber(child.Rect[0]), FormatNumber(child.Rect[1]),
-		FormatNumber(child.Rect[2]), FormatNumber(child.Rect[3]))
+		FormatNumber(child.Rect[rectX2Index]), FormatNumber(child.Rect[rectY2Index]))
 
 	if child.PageIndex >= 0 && child.PageIndex < len(pageObjNumbers) {
 		fmt.Fprintf(&wDict, " /P %s", FormatReference(pageObjNumbers[child.PageIndex]))
@@ -577,9 +590,9 @@ func (*AcroFormBuilder) writeCheckboxAppearance(
 
 	yesContent := border + fmt.Sprintf(
 		"q\n0 0 0 rg\nBT\n/ZaDb %s Tf\n%s %s Td\n(4) Tj\nET\nQ",
-		FormatNumber(h*0.8),
-		FormatNumber(w*0.15),
-		FormatNumber(h*0.15))
+		FormatNumber(h*checkboxGlyphSizeRatio),
+		FormatNumber(w*checkboxGlyphInsetRatio),
+		FormatNumber(h*checkboxGlyphInsetRatio))
 
 	yesNum := writer.AllocateObject()
 	yesDict := fmt.Sprintf(
@@ -588,13 +601,13 @@ func (*AcroFormBuilder) writeCheckboxAppearance(
 		FormatReference(zapfFontNum),
 		len(yesContent))
 	writer.WriteObject(yesNum,
-		yesDict+"\nstream\n"+yesContent+"\nendstream")
+		yesDict+pdfStreamOpen+yesContent+pdfStreamClose)
 
 	offNum := writer.AllocateObject()
 	offDict := fmt.Sprintf(
 		"<< /Type /XObject /Subtype /Form /BBox [0 0 %s %s] /Length %d >>",
 		FormatNumber(w), FormatNumber(h), len(border))
-	writer.WriteObject(offNum, offDict+"\nstream\n"+border+"\nendstream")
+	writer.WriteObject(offNum, offDict+pdfStreamOpen+border+pdfStreamClose)
 
 	return fmt.Sprintf(" /AP << /N << /Yes %s /Off %s >> >>",
 		FormatReference(yesNum), FormatReference(offNum))
@@ -638,14 +651,14 @@ func (*AcroFormBuilder) writeRadioAppearance(
 	onDict := fmt.Sprintf(
 		"<< /Type /XObject /Subtype /Form /BBox [0 0 %s %s] /Length %d >>",
 		FormatNumber(w), FormatNumber(h), len(onContent))
-	writer.WriteObject(onNum, onDict+"\nstream\n"+onContent+"\nendstream")
+	writer.WriteObject(onNum, onDict+pdfStreamOpen+onContent+pdfStreamClose)
 
 	offContent := radioCircleStream(cx, cy, r, false)
 	offNum := writer.AllocateObject()
 	offDict := fmt.Sprintf(
 		"<< /Type /XObject /Subtype /Form /BBox [0 0 %s %s] /Length %d >>",
 		FormatNumber(w), FormatNumber(h), len(offContent))
-	writer.WriteObject(offNum, offDict+"\nstream\n"+offContent+"\nendstream")
+	writer.WriteObject(offNum, offDict+pdfStreamOpen+offContent+pdfStreamClose)
 
 	return fmt.Sprintf(" /AP << /N << /%s %s /Off %s >> >>",
 		escapePdfName(exportVal), FormatReference(onNum), FormatReference(offNum))
@@ -764,7 +777,7 @@ func (*AcroFormBuilder) writeTextFieldAppearance(
 		FormatNumber(w), FormatNumber(h),
 		FormatReference(helveticaNum),
 		len(streamBody))
-	writer.WriteObject(apNum, apDict+"\nstream\n"+streamBody+"\nendstream")
+	writer.WriteObject(apNum, apDict+pdfStreamOpen+streamBody+pdfStreamClose)
 
 	return FormatReference(apNum)
 }
@@ -841,7 +854,7 @@ func (*AcroFormBuilder) writePushButtonAppearance(
 		FormatNumber(w), FormatNumber(h),
 		FormatReference(helveticaNum),
 		len(streamBody))
-	writer.WriteObject(apNum, apDict+"\nstream\n"+streamBody+"\nendstream")
+	writer.WriteObject(apNum, apDict+pdfStreamOpen+streamBody+pdfStreamClose)
 
 	return FormatReference(apNum)
 }

@@ -120,6 +120,11 @@ var (
 	// configured vector store.
 	ErrVectorStoreNotConfigured = errors.New("vector store is not configured")
 
+	// ErrInvalidVector reports a vector that cannot be stored in its namespace. The vector
+	// may be empty, have the wrong dimension, or have zero magnitude where cosine similarity
+	// is used.
+	ErrInvalidVector = errors.New("vector cannot be stored in the namespace")
+
 	// retryableStatusCodes contains HTTP status codes that indicate transient failures worth
 	// retrying.
 	retryableStatusCodes = map[int]struct{}{

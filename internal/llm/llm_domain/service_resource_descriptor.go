@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strconv"
 
 	"piko.sh/piko/internal/provider/provider_domain"
 )
@@ -219,8 +220,8 @@ func (s *service) ResourceListSubResources(ctx context.Context, providerName str
 			Name: m.ID,
 			Values: map[string]string{
 				"model":      m.ID,
-				"context":    fmt.Sprintf("%d", m.ContextWindow),
-				"max_output": fmt.Sprintf("%d", m.MaxOutputTokens),
+				"context":    strconv.Itoa(m.ContextWindow),
+				"max_output": strconv.Itoa(m.MaxOutputTokens),
 			},
 			IsDefault: false,
 		}
@@ -243,7 +244,7 @@ func (s *service) ResourceDescribeType(_ context.Context) *provider_domain.Provi
 
 	entries := []provider_domain.InfoEntry{
 		{Key: "Resource Type", Value: "llm"},
-		{Key: "Completion Provider Count", Value: fmt.Sprintf("%d", providerCount)},
+		{Key: "Completion Provider Count", Value: strconv.Itoa(providerCount)},
 		{Key: "Default Completion Provider", Value: defaultProvider},
 	}
 
@@ -254,7 +255,7 @@ func (s *service) ResourceDescribeType(_ context.Context) *provider_domain.Provi
 		s.embeddingService.mu.RUnlock()
 
 		entries = append(entries,
-			provider_domain.InfoEntry{Key: "Embedding Provider Count", Value: fmt.Sprintf("%d", embeddingCount)},
+			provider_domain.InfoEntry{Key: "Embedding Provider Count", Value: strconv.Itoa(embeddingCount)},
 			provider_domain.InfoEntry{Key: "Default Embedding Provider", Value: embeddingDefault},
 		)
 	}

@@ -27,4 +27,9 @@ var (
 	// graph's configured dimension. It guards against panics caused by out-of-range slice
 	// access in the distance computations.
 	ErrVectorDimensionMismatch = errors.New("hnsw: vector dimension does not match graph dimension")
+
+	// ErrZeroVector is returned when a graph that uses cosine similarity is given a vector
+	// with zero magnitude. Such a vector has no direction, so its cosine similarity to any
+	// other vector is undefined.
+	ErrZeroVector = errors.New("hnsw: vector has zero magnitude, which cosine similarity cannot compare")
 )

@@ -17,8 +17,10 @@ package security_dto
 import (
 	"context"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"piko.sh/piko/internal/daemon/daemon_dto"
 )
 
@@ -150,4 +152,52 @@ func TestRequestIDFromRequest(t *testing.T) {
 	if got := RequestIDFromRequest(request); got != "xyz-789" {
 		t.Errorf("RequestIDFromRequest = %q, want %q", got, "xyz-789")
 	}
+}
+
+func TestRateLimitClientAddress(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		clientIP   string
+		remoteAddr string
+		expected   string
+	}{
+		{name: "resolved client IP wins", clientIP: "198.51.100.4", remoteAddr: "10.0.0.1:4321", expected: "198.51.100.4"},
+		{name: "IPv4 peer loses its port", remoteAddr: "203.0.113.5:4321", expected: "203.0.113.5"},
+		{name: "IPv6 peer loses its port", remoteAddr: "[2001:db8::1]:443", expected: "2001:db8::1"},
+		{name: "peer without a port is kept", remoteAddr: "203.0.113.5", expected: "203.0.113.5"},
+		{name: "padded peer is trimmed", remoteAddr: "  203.0.113.5:80  ", expected: "203.0.113.5"},
+		{name: "port without a host is unknown", remoteAddr: ":8080", expected: ""},
+		{name: "blank peer is unknown", remoteAddr: "   ", expected: ""},
+		{name: "no peer is unknown", remoteAddr: "", expected: ""},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			request := httptest.NewRequest(http.MethodGet, "/", nil)
+			request.RemoteAddr = testCase.remoteAddr
+			if testCase.clientIP != "" {
+				request = request.WithContext(daemon_dto.WithPikoRequestCtx(request.Context(), &daemon_dto.PikoRequestCtx{
+					ClientIP: testCase.clientIP,
+				}))
+			}
+
+			assert.Equal(t, testCase.expected, RateLimitClientAddress(request))
+		})
+	}
+}
+
+func TestRateLimitClientAddressGivesEachPortOfOnePeerOneKey(t *testing.T) {
+	t.Parallel()
+
+	first := httptest.NewRequest(http.MethodGet, "/", nil)
+	first.RemoteAddr = "203.0.113.5:1111"
+	second := httptest.NewRequest(http.MethodGet, "/", nil)
+	second.RemoteAddr = "203.0.113.5:2222"
+
+	assert.Equal(t, SanitiseRateLimitKey(RateLimitClientAddress(first)), SanitiseRateLimitKey(RateLimitClientAddress(second)),
+		"one peer must not get a fresh bucket for every source port")
 }

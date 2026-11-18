@@ -210,7 +210,7 @@ func (c *Child) WaitReady(ctx context.Context) bool {
 	case <-time.After(goplsReadyTimeout):
 		_, l := logger_domain.From(ctx, log)
 		l.Trace("gopls did not signal workspace-load completion before the ready timeout; forwarding overlays anyway",
-			logger_domain.String("moduleRoot", c.moduleRoot))
+			logger_domain.String(logKeyModuleRoot, c.moduleRoot))
 		c.handler.markReady()
 		return true
 	}
@@ -283,7 +283,7 @@ func (c *Child) monitor(ctx context.Context) {
 
 	if exitErr != nil {
 		l.Internal("gopls child process exited",
-			logger_domain.String("moduleRoot", c.moduleRoot),
+			logger_domain.String(logKeyModuleRoot, c.moduleRoot),
 			logger_domain.Error(exitErr))
 	}
 	if c.onDead != nil {

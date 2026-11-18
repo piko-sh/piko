@@ -47,6 +47,10 @@ import (
 )
 
 const (
+	// maxColourChannelValue is the largest value of an 8-bit colour channel, used to scale a
+	// channel into the range zero to one.
+	maxColourChannelValue = 255.0
+
 	// rotationAngle90 is the angle in degrees for a 90-degree rotation.
 	rotationAngle90 = 90
 
@@ -853,7 +857,7 @@ func applyVipsTint(img *vips.ImageRef, modifiers map[string]string) error {
 	if _, err := fmt.Sscanf(tint, "#%02x%02x%02x", &r, &g, &b); err != nil {
 		return nil
 	}
-	if err := img.Modulate(1.0, 1.0, float64(r)/255.0); err != nil {
+	if err := img.Modulate(1.0, 1.0, float64(r)/maxColourChannelValue); err != nil {
 		return fmt.Errorf("vips tint transformation failed: %w", err)
 	}
 	return nil

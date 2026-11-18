@@ -24,6 +24,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/stretchr/testify/assert"
@@ -87,56 +88,48 @@ func TestRefresh_ErrDoNotStore_RemovesTheSupersededEntry(t *testing.T) {
 func TestGet_ErrDoNotStore_AgreesAcrossSingleflightWaiters(t *testing.T) {
 	t.Parallel()
 
-	cache := newStringCache(t, cache_dto.Options[string, string]{MaximumEntries: 100})
-	ctx := context.Background()
+	synctest.Test(t, func(t *testing.T) {
+		cache := newStringCache(t, cache_dto.Options[string, string]{MaximumEntries: 100})
+		ctx := context.Background()
 
-	release := make(chan struct{})
-	entered := make(chan struct{}, 1)
-	var loadCount, arrived atomic.Int64
+		release := make(chan struct{})
+		var loadCount atomic.Int64
 
-	const waiters = 16
-	values := make([]string, waiters)
-	errs := make([]error, waiters)
+		const waiters = 16
+		values := make([]string, waiters)
+		errs := make([]error, waiters)
 
-	var finished sync.WaitGroup
-	finished.Add(waiters)
+		var finished sync.WaitGroup
+		for i := range waiters {
+			finished.Go(func() {
+				values[i], errs[i] = cache.Get(ctx, "shared", loaderFunc{
+					load: func(context.Context, string) (string, error) {
+						loadCount.Add(1)
+						<-release
 
-	for i := range waiters {
-		go func() {
-			defer finished.Done()
-			arrived.Add(1)
-			values[i], errs[i] = cache.Get(ctx, "shared", loaderFunc{
-				load: func(context.Context, string) (string, error) {
-					loadCount.Add(1)
-					select {
-					case entered <- struct{}{}:
-					default:
-					}
-					<-release
-
-					return "one-answer", cache_dto.ErrDoNotStore
-				},
+						return "one-answer", cache_dto.ErrDoNotStore
+					},
+				})
 			})
-		}()
-	}
+		}
 
-	<-entered
-	require.Eventually(t, func() bool { return arrived.Load() == waiters }, time.Second, time.Millisecond,
-		"every caller must reach Get before the in-flight load is allowed to finish")
-	close(release)
-	finished.Wait()
+		synctest.Wait()
+		require.Equal(t, int64(1), loadCount.Load(),
+			"every caller must join the in-flight load rather than run its own; a wrapper that defeated stampede protection would run one load per caller")
 
-	for i := range waiters {
-		require.NoError(t, errs[i], "waiter %d", i)
-		assert.Equal(t, "one-answer", values[i], "waiter %d", i)
-	}
+		close(release)
+		finished.Wait()
 
-	assert.Less(t, loadCount.Load(), int64(waiters),
-		"a wrapper that defeated stampede protection would run one load per caller")
+		for i := range waiters {
+			require.NoError(t, errs[i], "waiter %d", i)
+			assert.Equal(t, "one-answer", values[i], "waiter %d", i)
+		}
+		assert.Equal(t, int64(1), loadCount.Load(), "the shared answer must not trigger further loads")
 
-	_, found, err := cache.GetIfPresent(ctx, "shared")
-	require.NoError(t, err)
-	assert.False(t, found)
+		_, found, err := cache.GetIfPresent(ctx, "shared")
+		require.NoError(t, err)
+		assert.False(t, found)
+	})
 }
 
 func TestGet_ErrDoNotStore_CountsAsALoadSuccess(t *testing.T) {

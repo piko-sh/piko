@@ -54,6 +54,10 @@ import (
 )
 
 const (
+	// defaultActionMaxBodyBytes is the largest action request body accepted when the route
+	// settings set no limit.
+	defaultActionMaxBodyBytes int64 = 10 << 20
+
 	// buildHeadersMaxParts is the maximum number of parts in a Link header (URL + rel + as +
 	// type + crossorigin).
 	buildHeadersMaxParts = 5
@@ -397,7 +401,7 @@ func NewNotFoundHandler(
 // dependencies.
 // Takes entry (templater_domain.PageEntryView) which is the page to register.
 func registerPageRoute(ctx context.Context, regDeps *routeRegistrationDeps, entry templater_domain.PageEntryView) {
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 	routePatterns := entry.GetRoutePatterns()
 	if len(routePatterns) == 0 {
 		l.Warn("Skipping page entry (no route patterns configured)",
@@ -1344,7 +1348,7 @@ func mountActionRoutes(cfg *MountRoutesConfig) {
 
 	l.Internal("Starting action registration", logger_domain.Int(logFieldActionCount, len(cfg.Actions)))
 
-	maxBodyBytes := int64(10 * 1024 * 1024)
+	maxBodyBytes := defaultActionMaxBodyBytes
 	if cfg.RouteSettings.ActionMaxBodyBytes > 0 {
 		maxBodyBytes = cfg.RouteSettings.ActionMaxBodyBytes
 	}

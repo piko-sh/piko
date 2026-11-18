@@ -23,10 +23,15 @@ import (
 	"time"
 )
 
+const (
+	// defaultJitterDivisor sets the default jitter range to one tenth of the delay.
+	defaultJitterDivisor = 10
+)
+
 // Config holds settings for retrying failed operations with exponential backoff.
 type Config struct {
 	// JitterFunc adds randomness to retry delays to spread out requests. If nil, defaults to
-	// DefaultJitter which adds 10% of the delay.
+	// DefaultJitter which adds up to 10% of the delay.
 	JitterFunc func(delay time.Duration) time.Duration `json:"-"`
 
 	// InitialDelay is the wait time before the first retry attempt.
@@ -88,15 +93,17 @@ func (c Config) getJitter(delay time.Duration) time.Duration {
 	return DefaultJitter(delay)
 }
 
-// DefaultJitter returns a random duration between 0 and 10% of the given delay. This is
-// the default jitter strategy used when Config.JitterFunc is nil.
+// DefaultJitter returns a random duration below one tenth of delay. Delays shorter than
+// 10 nanoseconds produce no jitter.
 //
 // Takes delay (time.Duration) which is the base delay to calculate jitter from.
 //
-// Returns time.Duration which is a random value in [0, delay/10).
+// Returns time.Duration which is zero for short delays or a random value in [0,
+// delay/10).
 func DefaultJitter(delay time.Duration) time.Duration {
-	if delay <= 0 {
+	jitterRange := int64(delay) / defaultJitterDivisor
+	if jitterRange <= 0 {
 		return 0
 	}
-	return time.Duration(mathrand.Int64N(int64(delay) / 10)) //nolint:gosec // jitter, not security
+	return time.Duration(mathrand.Int64N(jitterRange)) //nolint:gosec // jitter, not security
 }

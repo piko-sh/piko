@@ -127,17 +127,17 @@ func (h *ActionHandler) validateCSRFWithToken(request *http.Request, ephemeralTo
 func (h *ActionHandler) writeCSRFError(w http.ResponseWriter, err error) {
 	if csrfErr, ok := errors.AsType[*security_domain.CSRFValidationError](err); ok {
 		h.writeJSON(w, http.StatusForbidden, map[string]any{
-			"status":  http.StatusForbidden,
-			"error":   csrfErr.Code,
-			"message": csrfErr.Message,
+			responseKeyStatus:  http.StatusForbidden,
+			"error":            csrfErr.Code,
+			responseKeyMessage: csrfErr.Message,
 		})
 		return
 	}
 
 	h.writeJSON(w, http.StatusForbidden, map[string]any{
-		"status":  http.StatusForbidden,
-		"error":   "csrf_invalid",
-		"message": "CSRF validation failed",
+		responseKeyStatus:  http.StatusForbidden,
+		"error":            "csrf_invalid",
+		responseKeyMessage: "CSRF validation failed",
 	})
 }
 
@@ -185,10 +185,7 @@ func (h *ActionHandler) validateCaptcha(ctx context.Context, request *http.Reque
 		providerAction = captchaConfig.Action
 	}
 
-	remoteIP := security_dto.ClientIPFromRequest(request)
-	if remoteIP == "" {
-		remoteIP = request.RemoteAddr
-	}
+	remoteIP := security_dto.RateLimitClientAddress(request)
 
 	var response *captcha_dto.VerifyResponse
 	var err error
@@ -237,9 +234,9 @@ func recordCaptchaScore(action any, response *captcha_dto.VerifyResponse) {
 // Takes w (http.ResponseWriter) which receives the JSON error response.
 func (h *ActionHandler) writeCaptchaError(w http.ResponseWriter) {
 	h.writeJSON(w, http.StatusForbidden, map[string]any{
-		"status":  http.StatusForbidden,
-		"code":    "CAPTCHA_FAILED",
-		"message": "Captcha verification failed",
+		responseKeyStatus:  http.StatusForbidden,
+		responseKeyCode:    "CAPTCHA_FAILED",
+		responseKeyMessage: "Captcha verification failed",
 	})
 }
 
@@ -249,9 +246,9 @@ func (h *ActionHandler) writeCaptchaError(w http.ResponseWriter) {
 // Takes w (http.ResponseWriter) which receives the JSON error response.
 func (h *ActionHandler) writeCaptchaRateLimitError(w http.ResponseWriter) {
 	h.writeJSON(w, http.StatusTooManyRequests, map[string]any{
-		"status":  http.StatusTooManyRequests,
-		"code":    "RATE_LIMITED",
-		"message": "Too many captcha attempts",
+		responseKeyStatus:  http.StatusTooManyRequests,
+		responseKeyCode:    "RATE_LIMITED",
+		responseKeyMessage: "Too many captcha attempts",
 	})
 }
 
@@ -545,7 +542,8 @@ func (h *ActionHandler) resolveRateLimitIdentity(
 		return ""
 	}
 
-	return security_dto.SanitiseRateLimitKey(identity)
+	return security_dto.SanitiseRateLimitKey(identity,
+		security_dto.WithIPv6PrefixBits(h.rateLimitMw.config.IPv6PrefixBits))
 }
 
 // checkRateLimit enforces per-action rate limiting using the action's RateLimitable

@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"piko.sh/piko/internal/ratelimiter/ratelimiter_dto"
+	"piko.sh/piko/internal/security/security_dto"
 )
 
 const (
@@ -85,6 +86,10 @@ type PresignConfig struct {
 	// RateLimitPerMinute is the per-IP rate limit for upload requests. Set to 0 to disable
 	// rate limiting.
 	RateLimitPerMinute int
+
+	// RateLimitIPv6PrefixBits is how many leading bits of an IPv6 address identify one
+	// caller. Zero or an out of range value uses the default of 64.
+	RateLimitIPv6PrefixBits int
 }
 
 // PresignRateLimiter counts presigned upload requests against a per-caller budget.
@@ -205,14 +210,15 @@ func (c *PresignConfig) EnsureRIDCache(ctx context.Context, cleanupInterval time
 // Returns PresignConfig which is ready for use with default settings.
 func DefaultPresignConfig() PresignConfig {
 	return PresignConfig{
-		Secret:             nil,
-		DefaultExpiry:      DefaultPresignExpiry,
-		MaxExpiry:          MaxPresignExpiry,
-		DefaultMaxSize:     DefaultPresignMaxSize,
-		MaxMaxSize:         MaxPresignMaxSize,
-		RateLimitPerMinute: DefaultPresignRateLimit,
-		BaseURL:            "",
-		RIDCache:           nil,
-		RateLimiter:        nil,
+		Secret:                  nil,
+		DefaultExpiry:           DefaultPresignExpiry,
+		MaxExpiry:               MaxPresignExpiry,
+		DefaultMaxSize:          DefaultPresignMaxSize,
+		MaxMaxSize:              MaxPresignMaxSize,
+		RateLimitPerMinute:      DefaultPresignRateLimit,
+		RateLimitIPv6PrefixBits: security_dto.DefaultIPv6RateLimitPrefixBits,
+		BaseURL:                 "",
+		RIDCache:                nil,
+		RateLimiter:             nil,
 	}
 }

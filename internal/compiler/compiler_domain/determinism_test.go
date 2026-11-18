@@ -23,7 +23,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 const (

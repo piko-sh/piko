@@ -55,18 +55,39 @@ Builder method groups:
 | Capacity | `MaximumEntries(int)`, `MaximumWeight(uint64)`, `MaxEntryWeight(uint32)`, `InitialCapacity(int)`, `Weigher(func(K, V) uint32)` |
 | Transformers | `Transformer(name, configs...)`, `Compression()`, `Encryption()`, `EncryptionWithService(any)` |
 | Encoders | `Encoder(AnyEncoder)`, `TypedEncoder(EncoderPort[V])`, `DefaultEncoder(AnyEncoder)` |
-| Time | `Expiration(time.Duration)`, `WriteExpiration(time.Duration)`, `AccessExpiration(time.Duration)`, `ExpiryCalculator(...)`, `RefreshCalculator(...)` |
+| Time | `Expiration(time.Duration)`, `WriteExpiration(time.Duration)`, `AccessExpiration(time.Duration)`, `PerEntryExpiration()`, `ExpiryCalculator(...)`, `RefreshCalculator(...)` |
 | Hooks | `OnDeletion(func(DeletionEvent[K, V]))`, `OnAtomicDeletion(func(DeletionEvent[K, V]))` |
 | Stats / observability | `StatsRecorder(StatsRecorder)`, `Logger(Logger)` |
 | Other | `Executor(func(operation func()))`, `Clock(Clock)`, `Searchable(*SearchSchema)` |
 
 `Build(ctx)` creates the cache and returns any configuration error.
 
-`Expiration` is a convenience for `WriteExpiration` (a fixed TTL applied on creation and updates only). `AccessExpiration` sets a sliding TTL that resets on every access (read, write, compute).
+`Expiration` sets a fixed TTL on writes. `AccessExpiration` resets the
+TTL on each access. `PerEntryExpiration` enables per-entry TTLs without a
+default expiry.
+
+The in-memory provider needs an expiration option to track per-entry TTLs. Without one, it ignores TTLs supplied to `SetWithTTL`, `ComputeWithTTL` and `SetExpiresAfter` and logs a warning.
+
+#### TTL contract
+
+Providers use these TTL rules:
+
+| TTL | `SetWithTTL` and `ComputeWithTTL` | `SetExpiresAfter` |
+|---|---|---|
+| Positive | Expires after the TTL. Remote providers round values below one millisecond up to one millisecond. | Updates an existing entry's expiry. |
+| Zero or negative, except `NoExpiry` | Writes as `Set` does. Under `PerEntryExpiration`, an existing entry keeps its expiry and a new entry has none. | Does nothing. |
+| `NoExpiry` | Removes any expiry. | Removes any expiry. |
+
+`ComputeWithTTL` applies its TTL only for `ComputeActionSet`. Remote
+providers ignore `DefaultTTL` under `PerEntryExpiration`. Without that
+option, they use `DefaultTTL` for writes without a TTL. If persistence
+is enabled, in-memory entries keep their expiry across restarts.
 
 ### Multi-level configuration
 
 `MultiLevel(l1, l2)` selects both providers and stores values without builder-level encoding or transformation.
+
+Computes run on L2 and then remove the key from L1. The next read copies the value and its remaining TTL from L2. A remote L2 may call the compute function more than once, so keep it free of side effects. If L2 is unavailable, the compute runs on L1 alone.
 
 | Setting | Behaviour in a multi-level cache |
 |---|---|
@@ -99,7 +120,7 @@ Builder method groups:
 | Method | Purpose |
 |---|---|
 | `Set(ctx, key, value, tags...) error` | Stores with optional tag groups. |
-| `SetWithTTL(ctx, key, value, ttl, tags...) error` | Per-entry TTL override. |
+| `SetWithTTL(ctx, key, value, ttl, tags...) error` | Per-entry TTL override. See the TTL contract above. |
 | `Compute(ctx, key, fn) (V, bool, error)` | Atomic update. `fn` receives `(oldValue, found)` and returns `(newValue, ComputeAction)`. |
 | `ComputeIfAbsent(ctx, key, fn) (V, bool, error)` | Compute only when the key is missing. |
 | `ComputeIfPresent(ctx, key, fn) (V, bool, error)` | Compute only when the key exists. |
@@ -126,7 +147,7 @@ Builder method groups:
 
 | Method | Purpose |
 |---|---|
-| `SetExpiresAfter(ctx, key, duration) error` | Update the expiry on an existing entry. |
+| `SetExpiresAfter(ctx, key, duration) error` | Updates an existing entry's expiry. |
 | `SetRefreshableAfter(ctx, key, duration) error` | Update the refresh window on an existing entry. |
 
 ### Capacity / stats / lifecycle
@@ -150,7 +171,11 @@ Builder method groups:
 | `SupportsSearch() bool` | Capability check. |
 | `GetSchema() *SearchSchema` | Returns the configured schema, or `nil`. |
 
-`Search` and `Query` return `ErrSearchNotSupported` on providers without search support.
+`Search` and `Query` return `ErrSearchNotSupported` on providers without
+search support. With a populated vector index, the in-memory provider
+returns `ErrInvalidQueryVector` when a query vector has the wrong
+dimension or zero magnitude on a cosine index. An entry with an invalid
+vector remains cached but does not appear in vector search.
 
 ### Transactional providers
 
@@ -162,7 +187,7 @@ type Transactional[K, V] interface {
 }
 ```
 
-`TransactionCache[K, V]` embeds the cache plus `Commit(ctx) error` and `Rollback(ctx) error`. Providers that do not implement `Transactional` still participate in transactions via Piko's generic journal-based fallback.
+`TransactionCache[K, V]` embeds the cache plus `Commit(ctx) error` and `Rollback(ctx) error`. Providers without `Transactional` use a journal that restores each entry's value and remaining TTL on rollback.
 
 ### Deletion-event hook
 
@@ -311,6 +336,7 @@ Chain order: `Compression().Encryption()` compresses first, then encrypts.
 | `ComputeActionSet` | `Compute` (or one of its variants) returned a value to store. |
 | `ComputeActionDelete` | Handler returned a delete signal. |
 | `ComputeActionNoop` | Handler signalled no change. |
+| `NoExpiry` | A TTL that removes any expiry from an entry. |
 
 ## Providers
 
@@ -347,7 +373,7 @@ Types: `EncoderPort[V]`, `AnyEncoder`, `EncodingRegistry`.
 
 ## Errors
 
-A `Loader` returns `ErrNotFound` when a value is missing from the data source. Cache instances return `ErrSearchNotSupported` on providers without search.
+A `Loader` returns `ErrNotFound` when a value is missing from the data source.
 
 ## See also
 

@@ -92,7 +92,7 @@ func TestGraph_Clear(t *testing.T) {
 
 	assert.Equal(t, 0, g.Len())
 
-	results := g.Search([]float32{1, 0, 0}, 1, 0)
+	results := mustSearch(t, g, []float32{1, 0, 0}, 1, 0)
 	assert.Nil(t, results)
 
 	g.Insert("c", []float32{0, 0, 1})

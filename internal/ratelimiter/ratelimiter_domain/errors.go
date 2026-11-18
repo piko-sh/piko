@@ -29,4 +29,8 @@ var (
 	// ErrStoreFailure is returned when the backing store encounters an error and the fail
 	// policy is set to FailClosed.
 	ErrStoreFailure = errors.New("rate limit store failure")
+
+	// ErrInvalidConfig is returned when a rate limit configuration cannot be enforced, such
+	// as a fixed window with no limit or a token bucket with no refill rate.
+	ErrInvalidConfig = errors.New("invalid rate limit configuration")
 )

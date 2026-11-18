@@ -43,6 +43,12 @@ const (
 	// mimeContentType is the Content-Type MIME header name.
 	mimeContentType = "Content-Type"
 
+	// mimeParamBoundary is the media type parameter that names a multipart boundary.
+	mimeParamBoundary = "boundary"
+
+	// mimeCharsetUTF8 is the character set name for UTF-8 encoded content.
+	mimeCharsetUTF8 = "utf-8"
+
 	// mimeTransferEncoding is the Content-Transfer-Encoding MIME header name.
 	mimeTransferEncoding = "Content-Transfer-Encoding"
 
@@ -162,7 +168,7 @@ func splitAttachments(attachments []email_dto.Attachment) (regular []email_dto.A
 func writeBodyWithoutAttachments(buffer *bytes.Buffer, params *email_dto.SendParams, hasBothBodies bool) {
 	if hasBothBodies {
 		boundary := generateBoundary()
-		writeHeader(buffer, mimeContentType, mime.FormatMediaType("multipart/alternative", map[string]string{"boundary": boundary}))
+		writeHeader(buffer, mimeContentType, mime.FormatMediaType("multipart/alternative", map[string]string{mimeParamBoundary: boundary}))
 		_, _ = buffer.WriteString(mimeCRLF)
 		writeTextPart(buffer, boundary, mimeTextPlain, params.BodyPlain)
 		writeTextPart(buffer, boundary, mimeTextHTML, params.BodyHTML)
@@ -198,7 +204,7 @@ func writeBodyWithAttachments(
 	inlineAttachments []email_dto.Attachment,
 ) {
 	mixedBoundary := generateBoundary()
-	writeHeader(buffer, mimeContentType, mime.FormatMediaType("multipart/mixed", map[string]string{"boundary": mixedBoundary}))
+	writeHeader(buffer, mimeContentType, mime.FormatMediaType("multipart/mixed", map[string]string{mimeParamBoundary: mixedBoundary}))
 	_, _ = buffer.WriteString(mimeCRLF)
 
 	_, _ = fmt.Fprintf(buffer, mimeBoundaryOpen, mixedBoundary)
@@ -237,7 +243,7 @@ func writeRelatedPart(
 	inlineAttachments []email_dto.Attachment,
 ) {
 	relatedBoundary := generateBoundary()
-	writeHeader(buffer, mimeContentType, mime.FormatMediaType("multipart/related", map[string]string{"boundary": relatedBoundary}))
+	writeHeader(buffer, mimeContentType, mime.FormatMediaType("multipart/related", map[string]string{mimeParamBoundary: relatedBoundary}))
 	_, _ = buffer.WriteString(mimeCRLF)
 
 	_, _ = fmt.Fprintf(buffer, mimeBoundaryOpen, relatedBoundary)
@@ -265,7 +271,7 @@ func writeRelatedPart(
 // Takes html (string) which is the HTML body.
 func writeAlternativeBodyPart(buffer *bytes.Buffer, plain string, html string) {
 	alternativeBoundary := generateBoundary()
-	writeHeader(buffer, mimeContentType, mime.FormatMediaType("multipart/alternative", map[string]string{"boundary": alternativeBoundary}))
+	writeHeader(buffer, mimeContentType, mime.FormatMediaType("multipart/alternative", map[string]string{mimeParamBoundary: alternativeBoundary}))
 	_, _ = buffer.WriteString(mimeCRLF)
 	writeTextPart(buffer, alternativeBoundary, mimeTextPlain, plain)
 	writeTextPart(buffer, alternativeBoundary, mimeTextHTML, html)
@@ -348,7 +354,7 @@ func generateMessageID() string {
 func encodeSubject(subject string) string {
 	for _, r := range subject {
 		if r > maxASCII {
-			return mime.QEncoding.Encode("utf-8", subject)
+			return mime.QEncoding.Encode(mimeCharsetUTF8, subject)
 		}
 	}
 	return subject
@@ -390,7 +396,7 @@ func writeHeader(buffer *bytes.Buffer, key string, value string) {
 // Takes contentType (string) which is the MIME content type.
 // Takes body (string) which is the text content.
 func writeSingleBody(buffer *bytes.Buffer, contentType string, body string) {
-	writeHeader(buffer, mimeContentType, mime.FormatMediaType(contentType, map[string]string{"charset": "utf-8"}))
+	writeHeader(buffer, mimeContentType, mime.FormatMediaType(contentType, map[string]string{"charset": mimeCharsetUTF8}))
 	writeHeader(buffer, mimeTransferEncoding, "quoted-printable")
 	_, _ = buffer.WriteString(mimeCRLF)
 	writeQuotedPrintable(buffer, body)
@@ -403,7 +409,7 @@ func writeSingleBody(buffer *bytes.Buffer, contentType string, body string) {
 // Takes contentType (string) which is the MIME content type.
 // Takes body (string) which is the text content.
 func writeSingleBodyPart(buffer *bytes.Buffer, contentType string, body string) {
-	writeHeader(buffer, mimeContentType, mime.FormatMediaType(contentType, map[string]string{"charset": "utf-8"}))
+	writeHeader(buffer, mimeContentType, mime.FormatMediaType(contentType, map[string]string{"charset": mimeCharsetUTF8}))
 	writeHeader(buffer, mimeTransferEncoding, "quoted-printable")
 	_, _ = buffer.WriteString(mimeCRLF)
 	writeQuotedPrintable(buffer, body)
@@ -417,7 +423,7 @@ func writeSingleBodyPart(buffer *bytes.Buffer, contentType string, body string) 
 // Takes body (string) which is the text content.
 func writeTextPart(buffer *bytes.Buffer, boundary string, contentType string, body string) {
 	_, _ = fmt.Fprintf(buffer, mimeBoundaryOpen, boundary)
-	writeHeader(buffer, mimeContentType, mime.FormatMediaType(contentType, map[string]string{"charset": "utf-8"}))
+	writeHeader(buffer, mimeContentType, mime.FormatMediaType(contentType, map[string]string{"charset": mimeCharsetUTF8}))
 	writeHeader(buffer, mimeTransferEncoding, "quoted-printable")
 	_, _ = buffer.WriteString(mimeCRLF)
 	writeQuotedPrintable(buffer, body)

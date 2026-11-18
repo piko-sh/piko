@@ -52,8 +52,8 @@ const (
 	// applies to bulk operations like DidChangeWatchedFiles and ExecuteCommand.
 	maxConcurrentAnalysis = 4
 
-	// defaultServerVersion is the serverInfo version reported when the composition root
-	// does not supply one.
+	// defaultServerVersion is the serverInfo version reported when the composition root does
+	// not supply one.
 	defaultServerVersion = "dev"
 
 	// serverName is the serverInfo name reported to clients.

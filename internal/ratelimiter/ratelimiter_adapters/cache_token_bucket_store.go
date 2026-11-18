@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"time"
 
 	"piko.sh/piko/internal/cache/cache_domain"
@@ -38,6 +39,11 @@ const (
 	// defaultTokenBucketMaxSize is the default maximum number of entries for in-memory cache
 	// providers.
 	defaultTokenBucketMaxSize = 10000
+
+	// tokenBucketExpiryMargin is added to the time a bucket needs to refill completely
+	// before its key expires, so a bucket is never dropped while it could still be short of
+	// tokens.
+	tokenBucketExpiryMargin = time.Second
 )
 
 // CacheTokenBucketStoreConfig configures a cache-backed token bucket store.
@@ -48,7 +54,10 @@ type CacheTokenBucketStoreConfig struct {
 	// Clock provides time operations. If nil, clock.RealClock() is used.
 	Clock clock.Clock
 
-	// Provider specifies the cache provider. If empty, uses the service's default provider.
+	// Provider names the cache provider that holds buckets.
+	//
+	// Empty uses an in-memory cache local to this process. Instances share buckets only when
+	// they use the same remote provider.
 	Provider string
 
 	// Namespace is the key prefix for all entries. Defaults to "ratelimiter:tb".
@@ -59,9 +68,10 @@ type CacheTokenBucketStoreConfig struct {
 	MaximumEntries int
 }
 
-// CacheTokenBucketStore implements TokenBucketStorePort using a cache backend. It uses
-// the cache's atomic Compute method to ensure thread-safe token bucket operations across
-// all backends (Otter, Redis, Redis Cluster).
+// CacheTokenBucketStore keeps token buckets in a cache.
+//
+// Updates are atomic. A bucket expires after it could have refilled completely because an
+// expired bucket is recreated full.
 type CacheTokenBucketStore struct {
 	// clock provides the current time for refill calculations.
 	clock clock.Clock
@@ -84,6 +94,7 @@ func NewCacheTokenBucketStore(ctx context.Context, config CacheTokenBucketStoreC
 	cache, clk, err := newCacheStore[*ratelimiter_domain.TokenBucketState](ctx, cacheStoreParams{
 		CacheService:     config.CacheService,
 		Clock:            config.Clock,
+		Provider:         config.Provider,
 		Blueprint:        "ratelimiter-token-bucket",
 		Namespace:        config.Namespace,
 		DefaultNamespace: defaultTokenBucketNamespace,
@@ -108,7 +119,7 @@ func NewCacheTokenBucketStore(ctx context.Context, config CacheTokenBucketStoreC
 // Takes config (*ratelimiter_dto.TokenBucketConfig) which defines bucket parameters.
 //
 // Returns bool which is true if tokens were successfully taken.
-// Returns error when the config is nil.
+// Returns error when config is nil or the cache operation fails.
 func (s *CacheTokenBucketStore) TryTake(ctx context.Context, key string, n float64, config *ratelimiter_dto.TokenBucketConfig) (bool, error) {
 	if config == nil {
 		return false, errors.New("token bucket config is required")
@@ -116,7 +127,8 @@ func (s *CacheTokenBucketStore) TryTake(ctx context.Context, key string, n float
 
 	var success bool
 
-	_, _, err := s.cache.Compute(ctx, key, func(state *ratelimiter_domain.TokenBucketState, found bool) (*ratelimiter_domain.TokenBucketState, cache_dto.ComputeAction) {
+	_, _, err := s.cache.ComputeWithTTL(ctx, key, func(state *ratelimiter_domain.TokenBucketState, found bool) cache_dto.ComputeResult[*ratelimiter_domain.TokenBucketState] {
+		success = false
 		now := s.clock.Now().UnixNano()
 
 		if !found || state == nil {
@@ -135,7 +147,7 @@ func (s *CacheTokenBucketStore) TryTake(ctx context.Context, key string, n float
 			success = true
 		}
 
-		return state, cache_dto.ComputeActionSet
+		return storeBucket(state)
 	})
 	if err != nil {
 		return false, fmt.Errorf("computing token bucket state: %w", err)
@@ -152,7 +164,7 @@ func (s *CacheTokenBucketStore) TryTake(ctx context.Context, key string, n float
 //
 // Returns time.Duration which is zero if tokens are available, otherwise the estimated
 // wait time.
-// Returns error when the config is nil.
+// Returns error when config is nil or the cache operation fails.
 func (s *CacheTokenBucketStore) WaitDuration(ctx context.Context, key string, n float64, config *ratelimiter_dto.TokenBucketConfig) (time.Duration, error) {
 	if config == nil {
 		return 0, errors.New("token bucket config is required")
@@ -160,28 +172,25 @@ func (s *CacheTokenBucketStore) WaitDuration(ctx context.Context, key string, n 
 
 	var waitDuration time.Duration
 
-	_, _, err := s.cache.Compute(ctx, key, func(state *ratelimiter_domain.TokenBucketState, found bool) (*ratelimiter_domain.TokenBucketState, cache_dto.ComputeAction) {
+	_, _, err := s.cache.ComputeWithTTL(ctx, key, func(state *ratelimiter_domain.TokenBucketState, found bool) cache_dto.ComputeResult[*ratelimiter_domain.TokenBucketState] {
+		waitDuration = 0
 		now := s.clock.Now().UnixNano()
 
 		if !found || state == nil {
-			waitDuration = 0
-			return ratelimiter_domain.NewBucketState(config, now), cache_dto.ComputeActionSet
+			return storeBucket(ratelimiter_domain.NewBucketState(config, now))
 		}
 
 		state = ratelimiter_domain.RefillBucket(state, now)
 
-		if state.Tokens >= n {
-			waitDuration = 0
-		} else {
-			needed := n - state.Tokens
-			if state.RefillRate > 0 {
-				waitDuration = time.Duration(needed / state.RefillRate)
-			} else {
-				waitDuration = time.Hour
-			}
+		if state.Tokens < n {
+			waitDuration = ratelimiter_domain.TokenWaitDuration(n-state.Tokens, state.RefillRate)
 		}
 
-		return state, cache_dto.ComputeActionNoop
+		return cache_dto.ComputeResult[*ratelimiter_domain.TokenBucketState]{
+			Value:  state,
+			Action: cache_dto.ComputeActionNoop,
+			TTL:    0,
+		}
 	})
 	if err != nil {
 		return 0, fmt.Errorf("computing wait duration: %w", err)
@@ -194,12 +203,50 @@ func (s *CacheTokenBucketStore) WaitDuration(ctx context.Context, key string, n 
 //
 // Takes key (string) which identifies the rate limit bucket.
 //
-// Returns error which is always nil for this implementation.
+// Returns error when the cache fails to remove the bucket.
 func (s *CacheTokenBucketStore) DeleteBucket(ctx context.Context, key string) error {
 	return s.cache.Invalidate(ctx, key)
 }
 
 // Close releases resources held by the store.
-func (s *CacheTokenBucketStore) Close() {
-	_ = s.cache.Close(context.Background())
+//
+// Returns error when the underlying cache fails to close.
+func (s *CacheTokenBucketStore) Close(ctx context.Context) error {
+	return s.cache.Close(ctx)
+}
+
+// storeBucket builds the compute result that stores state until it would have refilled
+// completely.
+//
+// Takes state (*ratelimiter_domain.TokenBucketState) which is the bucket to store.
+//
+// Returns cache_dto.ComputeResult[*ratelimiter_domain.TokenBucketState] which stores the
+// bucket with its expiry.
+func storeBucket(state *ratelimiter_domain.TokenBucketState) cache_dto.ComputeResult[*ratelimiter_domain.TokenBucketState] {
+	return cache_dto.ComputeResult[*ratelimiter_domain.TokenBucketState]{
+		Value:  state,
+		Action: cache_dto.ComputeActionSet,
+		TTL:    bucketTTL(state),
+	}
+}
+
+// bucketTTL returns how long a bucket must be kept. Dropping a bucket after it has
+// refilled loses nothing, because a missing bucket is recreated full.
+//
+// Takes state (*ratelimiter_domain.TokenBucketState) which is the bucket after the take.
+//
+// Returns time.Duration which is the time to refill completely plus a margin, or
+// cache_dto.NoExpiry when the bucket never refills or the time does not fit a Duration.
+func bucketTTL(state *ratelimiter_domain.TokenBucketState) time.Duration {
+	if state.RefillRate <= 0 || math.IsNaN(state.RefillRate) {
+		return cache_dto.NoExpiry
+	}
+
+	missing := max(state.MaxTokens-state.Tokens, 0)
+	refillNanos := math.Ceil(missing / state.RefillRate)
+	if refillNanos >= float64(math.MaxInt64-tokenBucketExpiryMargin) {
+		return cache_dto.NoExpiry
+	}
+
+	return time.Duration(refillNanos) + tokenBucketExpiryMargin
 }

@@ -37,21 +37,12 @@ const (
 	// but also the slowest, so use it when data loss is unacceptable.
 	SyncModeEveryWrite
 
-	// SyncModeBatched performs fsync periodically based on time interval and/or write count
-	// thresholds. This provides a balance between durability and performance.
+	// SyncModeBatched syncs after BatchSyncCount writes or BatchSyncInterval, whichever
+	// comes first.
 	//
-	// DATA LOSS WINDOW: With SyncModeBatched, there is a small window where data could be
-	// lost on crash:
-	//   - Up to BatchSyncCount entries pending in memory
-	//   - Up to BatchSyncInterval duration (~50us default) between flushes
-	//
-	// This is acceptable for cache persistence where:
-	//   - Data can be reconstructed from source
-	//   - Occasional re-computation on recovery is tolerable
-	//   - High throughput is prioritised over zero-data-loss guarantees
-	//
-	// For applications requiring zero data loss, use SyncModeEveryWrite (at the cost of ~10x
-	// lower throughput due to per-write fsync).
+	// A machine crash can lose writes that have not been synced, up to BatchSyncCount
+	// entries or BatchSyncInterval of writes. The default interval is 100 milliseconds, and
+	// a quiet log still syncs when the interval elapses.
 	SyncModeBatched
 )
 
@@ -82,6 +73,10 @@ const (
 
 	// DefaultMaxWALSize is the default maximum WAL file size before compaction.
 	DefaultMaxWALSize = 64 * 1024 * 1024
+
+	// DefaultQueueTimeout is the default longest time a write waits for room in the write
+	// queue.
+	DefaultQueueTimeout = 5 * time.Second
 )
 
 // String returns the string representation of the sync mode.
@@ -134,6 +129,11 @@ type Config struct {
 	// recommended, where the WAL may temporarily exceed this limit (default: 64MB).
 	MaxWALSize int64
 
+	// QueueTimeout bounds how long a write waits for room in the write queue before it fails
+	// with ErrQueueStalled, so a stalled disk cannot block writers, and the locks they hold,
+	// indefinitely. It defaults to 5 seconds.
+	QueueTimeout time.Duration
+
 	// CompressionLevel sets the zstd compression level (1-19), where higher levels provide
 	// better compression at the cost of speed (default: 3).
 	CompressionLevel int
@@ -170,6 +170,9 @@ func (c Config) Validate() error {
 	if c.BatchSyncCount < 0 {
 		return ErrInvalidConfig
 	}
+	if c.QueueTimeout < 0 {
+		return ErrInvalidConfig
+	}
 	return nil
 }
 
@@ -192,6 +195,9 @@ func (c Config) WithDefaults() Config {
 	}
 	if c.MaxWALSize == 0 {
 		c.MaxWALSize = DefaultMaxWALSize
+	}
+	if c.QueueTimeout == 0 {
+		c.QueueTimeout = DefaultQueueTimeout
 	}
 	if c.CompressionLevel == 0 {
 		c.CompressionLevel = DefaultCompressionLevel
@@ -218,6 +224,7 @@ func DefaultConfig(directory string) Config {
 		BatchSyncCount:       DefaultBatchSyncCount,
 		SnapshotThreshold:    DefaultSnapshotThreshold,
 		MaxWALSize:           DefaultMaxWALSize,
+		QueueTimeout:         DefaultQueueTimeout,
 		EnableCompression:    true,
 		CompressionLevel:     DefaultCompressionLevel,
 		WALFileName:          "data.wal",

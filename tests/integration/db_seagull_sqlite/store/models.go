@@ -5,15 +5,15 @@ package store
 import "piko.sh/piko/wdk/maths"
 
 type Authors struct {
-	ID       int64  `json:"id"`
-	Name     string `json:"name"`
-	BornYear *int32 `json:"born_year"`
+	ID       int64       `json:"id"`
+	Name     string      `json:"name"`
+	BornYear Null[int32] `json:"born_year"`
 }
 type Books struct {
 	ID       int64         `json:"id"`
 	AuthorID int32         `json:"author_id"`
 	Title    string        `json:"title"`
 	Price    maths.Decimal `json:"price"`
-	Metadata *string       `json:"metadata"`
-	Rating   *int32        `json:"rating"`
+	Metadata Null[string]  `json:"metadata"`
+	Rating   Null[int32]   `json:"rating"`
 }

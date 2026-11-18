@@ -894,3 +894,150 @@ func TestChallengeRateLimit_UsesSanitisedIPInKey(t *testing.T) {
 	assert.NotContains(t, suffix, "\n", "newline must not survive sanitisation")
 	assert.Len(t, suffix, 64, "malformed input should produce hex digest segment")
 }
+
+func TestRateLimitKeyGroupsIPv6Callers(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		expected string
+		options  []ServiceOption
+	}{
+		{name: "DefaultPrefix", expected: "captcha:verify:2001:db8:1:2::"},
+		{
+			name:     "ConfiguredPrefix",
+			expected: "captcha:verify:2001:db8:1::",
+			options:  []ServiceOption{WithIPv6RateLimitPrefixBits(48)},
+		},
+		{
+			name:     "InvalidPrefixKeepsDefault",
+			expected: "captcha:verify:2001:db8:1:2::",
+			options:  []ServiceOption{WithIPv6RateLimitPrefixBits(200)},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			config := captcha_dto.DefaultServiceConfig()
+			config.VerifyRateLimit = 5
+
+			var capturedKey string
+			limiter := &mockRateLimiter{
+				isAllowedFunc: func(_ context.Context, key string, _ int, _ time.Duration) (bool, error) {
+					capturedKey = key
+					return true, nil
+				},
+			}
+
+			service, err := NewCaptchaService(config, append(testCase.options, WithRateLimiter(limiter))...)
+			require.NoError(t, err)
+
+			provider := &mockCaptchaProvider{}
+			require.NoError(t, service.RegisterProvider(t.Context(), "test", provider))
+			require.NoError(t, service.SetDefaultProvider("test"))
+
+			require.NoError(t, service.Verify(t.Context(), "token", "2001:db8:1:2:aaaa::7", "submit"))
+			assert.Equal(t, testCase.expected, capturedKey)
+		})
+	}
+}
+
+func TestService_VerifyRefusesACallerWithNoKnownAddress(t *testing.T) {
+	t.Parallel()
+
+	config := captcha_dto.DefaultServiceConfig()
+	config.VerifyRateLimit = 5
+
+	limiterCalled := false
+	limiter := &mockRateLimiter{
+		isAllowedFunc: func(_ context.Context, _ string, _ int, _ time.Duration) (bool, error) {
+			limiterCalled = true
+			return true, nil
+		},
+	}
+
+	service, err := NewCaptchaService(config, WithRateLimiter(limiter))
+	require.NoError(t, err)
+	require.NoError(t, service.RegisterProvider(t.Context(), "test", &mockCaptchaProvider{}))
+	require.NoError(t, service.SetDefaultProvider("test"))
+
+	err = service.Verify(t.Context(), "token-value", "  ", "submit")
+
+	require.ErrorIs(t, err, captcha_dto.ErrRateLimited)
+	assert.False(t, limiterCalled, "an empty address must not be keyed into one shared bucket")
+}
+
+func TestService_ChallengeRateLimitKeysThePeerWithoutItsPort(t *testing.T) {
+	t.Parallel()
+
+	config := captcha_dto.DefaultServiceConfig()
+	config.ChallengeRateLimit = 5
+
+	var capturedKeys []string
+	limiter := &mockRateLimiter{
+		isAllowedFunc: func(_ context.Context, key string, _ int, _ time.Duration) (bool, error) {
+			capturedKeys = append(capturedKeys, key)
+			return true, nil
+		},
+	}
+
+	service, err := NewCaptchaService(config, WithRateLimiter(limiter), WithClientIPExtractor(&mockIPExtractor{ip: ""}))
+	require.NoError(t, err)
+	challenger := &mockChallengeProvider{
+		handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}),
+	}
+	require.NoError(t, service.RegisterProvider(t.Context(), "test", challenger))
+	require.NoError(t, service.SetDefaultProvider("test"))
+	handler := service.(*captchaService).ChallengeHandler()
+	require.NotNil(t, handler)
+
+	for _, remoteAddr := range []string{"192.168.1.1:1111", "192.168.1.1:2222"} {
+		request, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, "/challenge", nil)
+		request.RemoteAddr = remoteAddr
+		handler.ServeHTTP(httptest.NewRecorder(), request)
+	}
+
+	assert.Equal(t, []string{"captcha:challenge:192.168.1.1", "captcha:challenge:192.168.1.1"}, capturedKeys)
+}
+
+func TestService_ChallengeRateLimitRefusesACallerWithNoKnownAddress(t *testing.T) {
+	t.Parallel()
+
+	config := captcha_dto.DefaultServiceConfig()
+	config.ChallengeRateLimit = 5
+
+	limiterCalled := false
+	limiter := &mockRateLimiter{
+		isAllowedFunc: func(_ context.Context, _ string, _ int, _ time.Duration) (bool, error) {
+			limiterCalled = true
+			return true, nil
+		},
+	}
+
+	service, err := NewCaptchaService(config, WithRateLimiter(limiter), WithClientIPExtractor(&mockIPExtractor{ip: ""}))
+	require.NoError(t, err)
+	innerCalled := false
+	challenger := &mockChallengeProvider{
+		handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			innerCalled = true
+			w.WriteHeader(http.StatusOK)
+		}),
+	}
+	require.NoError(t, service.RegisterProvider(t.Context(), "test", challenger))
+	require.NoError(t, service.SetDefaultProvider("test"))
+	handler := service.(*captchaService).ChallengeHandler()
+	require.NotNil(t, handler)
+
+	request, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, "/challenge", nil)
+	request.RemoteAddr = ""
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, request)
+
+	assert.Equal(t, http.StatusTooManyRequests, recorder.Code)
+	assert.False(t, innerCalled)
+	assert.False(t, limiterCalled, "an empty address must not be keyed into one shared bucket")
+}

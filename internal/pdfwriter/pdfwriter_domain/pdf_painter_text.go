@@ -25,6 +25,12 @@ import (
 	"piko.sh/piko/internal/layouter/layouter_domain"
 )
 
+const (
+	// textDecorationThicknessDivisor sets the text decoration line width as a fraction of
+	// the font size.
+	textDecorationThicknessDivisor = 14.0
+)
+
 // paintImage renders a replaced element (img tag) into the PDF stream, attempting SVG
 // vector rendering first before falling back to raster.
 //
@@ -582,7 +588,7 @@ func (painter *PdfPainter) paintTextDecorations(stream *ContentStream, box *layo
 	}
 
 	fontSize := box.Style.FontSize
-	lineWidth := math.Max(fontSize/14.0, 1.0)
+	lineWidth := math.Max(fontSize/textDecorationThicknessDivisor, 1.0)
 	decoStyle := box.Style.TextDecorationStyle
 
 	stream.SaveState()

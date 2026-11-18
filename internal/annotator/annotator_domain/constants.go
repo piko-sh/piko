@@ -22,6 +22,14 @@ const (
 	// logKeyDepth is the logging key for visitor nesting depth.
 	logKeyDepth = "depth"
 
+	// eventPlaceholderName is the template identifier that injects the DOM event into an
+	// event handler call.
+	eventPlaceholderName = "$event"
+
+	// formPlaceholderName is the template identifier that injects the enclosing form data
+	// into an event handler call.
+	formPlaceholderName = "$form"
+
 	// logKeyName is the log attribute key for identifier names.
 	logKeyName = "name"
 

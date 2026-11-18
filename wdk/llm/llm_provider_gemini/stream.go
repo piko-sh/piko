@@ -25,7 +25,7 @@ import (
 
 	"google.golang.org/genai"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 	"piko.sh/piko/internal/llm/llm_dto"
 	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/logger"

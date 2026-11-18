@@ -20,6 +20,7 @@ package cache_provider_redis_cluster_test
 
 import (
 	"context"
+	"fmt"
 	"maps"
 	"testing"
 	"time"
@@ -27,9 +28,14 @@ import (
 	"github.com/alicebob/miniredis/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"piko.sh/piko/internal/cache/cache_test/conformance"
 	"piko.sh/piko/wdk/cache"
 	"piko.sh/piko/wdk/cache/cache_encoder_json"
 	"piko.sh/piko/wdk/cache/cache_provider_redis_cluster"
+)
+
+const (
+	perEntryOperationTimeout = time.Minute
 )
 
 func createRedisClusterCache[K comparable, V any](t *testing.T, defaultTTL time.Duration) (*cache_provider_redis_cluster.RedisClusterAdapter[K, V], *miniredis.Miniredis) {
@@ -527,4 +533,134 @@ func TestRedisClusterAdapter_CloseLeavesOtherNamespacesUsable(t *testing.T) {
 	assert.True(t, found)
 	assert.Equal(t, "rendered", value)
 	assert.NoError(t, provider.Close(), "the provider still owns an open client")
+}
+
+func TestRedisCluster_PerEntryExpiryConformance(t *testing.T) {
+	t.Parallel()
+
+	conformance.RunPerEntryExpirySuite(t, conformance.PerEntryConfig{
+		NewHarness: func(t *testing.T) conformance.PerEntryHarness {
+			provider, mr := newPerEntryClusterProvider(t, time.Hour)
+			return conformance.PerEntryHarness{
+				Cache:       conformance.BuildPerEntryCache(t, clusterFactory[string](provider)),
+				AdvanceTime: mr.FastForward,
+			}
+		},
+	})
+}
+
+func TestRedisCluster_TTLContractWithoutPerEntryExpiration(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		write       func(ctx context.Context, c *cache_provider_redis_cluster.RedisClusterAdapter[string, string]) error
+		name        string
+		advance     time.Duration
+		wantPresent bool
+	}{
+		{
+			name: "SetWithTTL zero writes as Set does",
+			write: func(ctx context.Context, c *cache_provider_redis_cluster.RedisClusterAdapter[string, string]) error {
+				return c.SetWithTTL(ctx, "key", "value", 0)
+			},
+			advance:     time.Minute,
+			wantPresent: false,
+		},
+		{
+			name: "SetWithTTL with NoExpiry stores without a TTL",
+			write: func(ctx context.Context, c *cache_provider_redis_cluster.RedisClusterAdapter[string, string]) error {
+				return c.SetWithTTL(ctx, "key", "value", cache.NoExpiry)
+			},
+			advance:     24 * time.Hour,
+			wantPresent: true,
+		},
+		{
+			name: "SetExpiresAfter zero neither expires nor deletes",
+			write: func(ctx context.Context, c *cache_provider_redis_cluster.RedisClusterAdapter[string, string]) error {
+				if err := c.SetWithTTL(ctx, "key", "value", cache.NoExpiry); err != nil {
+					return err
+				}
+				return c.SetExpiresAfter(ctx, "key", 0)
+			},
+			advance:     24 * time.Hour,
+			wantPresent: true,
+		},
+		{
+			name: "SetExpiresAfter with NoExpiry removes the TTL",
+			write: func(ctx context.Context, c *cache_provider_redis_cluster.RedisClusterAdapter[string, string]) error {
+				if err := c.Set(ctx, "key", "value"); err != nil {
+					return err
+				}
+				return c.SetExpiresAfter(ctx, "key", cache.NoExpiry)
+			},
+			advance:     24 * time.Hour,
+			wantPresent: true,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx := t.Context()
+			c, mr := createRedisClusterCache[string, string](t, time.Minute)
+
+			require.NoError(t, testCase.write(ctx, c))
+			mr.FastForward(testCase.advance)
+
+			_, found, err := c.GetIfPresent(ctx, "key")
+			require.NoError(t, err)
+			assert.Equal(t, testCase.wantPresent, found)
+		})
+	}
+}
+
+func newPerEntryClusterProvider(t *testing.T, defaultTTL time.Duration) (*cache_provider_redis_cluster.RedisClusterProvider, *miniredis.Miniredis) {
+	t.Helper()
+
+	mr := miniredis.RunT(t)
+	valueEncoder := cache_encoder_json.New[string]()
+	provider, err := cache_provider_redis_cluster.NewRedisClusterProvider(cache_provider_redis_cluster.Config{
+		Addrs:                  []string{mr.Addr()},
+		DefaultTTL:             defaultTTL,
+		Registry:               cache.NewEncodingRegistry(valueEncoder.(cache.AnyEncoder)),
+		OperationTimeout:       perEntryOperationTimeout,
+		AtomicOperationTimeout: perEntryOperationTimeout,
+		AllowUnsafeFLUSHDB:     true,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { assert.NoError(t, provider.Close()) })
+
+	return provider, mr
+}
+
+func clusterFactory[V any](provider *cache_provider_redis_cluster.RedisClusterProvider) func(cache.Options[string, V]) (cache.ProviderPort[string, V], error) {
+	return func(options cache.Options[string, V]) (cache.ProviderPort[string, V], error) {
+		created, err := provider.CreateNamespaceTyped("per-entry", options)
+		if err != nil {
+			return nil, err
+		}
+		adapter, ok := created.(cache.ProviderPort[string, V])
+		if !ok {
+			return nil, fmt.Errorf("redis cluster provider created %T", created)
+		}
+		return adapter, nil
+	}
+}
+
+func TestRedisCluster_ProbeEntryReportsSubMillisecondTTL(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	c, mr := createRedisClusterCache[string, string](t, 0)
+	require.NoError(t, c.SetWithTTL(ctx, "key", "value", time.Minute))
+	stored := mr.Keys()
+	require.Len(t, stored, 1)
+	mr.SetTTL(stored[0], 500*time.Microsecond)
+
+	entry, found, err := c.ProbeEntry(ctx, "key")
+	require.NoError(t, err)
+	require.True(t, found)
+
+	assert.NotZero(t, entry.ExpiresAtNano, "a TTL under one millisecond must not read as no expiry")
 }

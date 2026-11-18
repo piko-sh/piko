@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"regexp"
 
+	"piko.sh/piko/internal/runeutil"
 	"piko.sh/piko/internal/spamdetect/spamdetect_dto"
 )
 
@@ -146,7 +147,7 @@ func (d *BlocklistDetector) matchField(key string, value string, fieldScores map
 	if value == "" {
 		return
 	}
-	value = spamdetect_dto.TruncateStringUTF8(value, maxAnalyseFieldLength)
+	value = runeutil.TruncateBytes(value, maxAnalyseFieldLength)
 
 	for _, compiled := range d.compiledPatterns {
 		if compiled.MatchString(value) {

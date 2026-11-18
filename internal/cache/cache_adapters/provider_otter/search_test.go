@@ -23,8 +23,12 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/cache/cache_dto"
+	"piko.sh/piko/internal/hnsw"
 )
 
 type Product struct {
@@ -939,4 +943,218 @@ func splitWords(text string) []string {
 		}
 	}
 	return result
+}
+
+type catalogueMeta struct {
+	Region string
+	Rank   int
+}
+
+type catalogueItem struct {
+	Title string
+	Meta  catalogueMeta
+}
+
+func newCatalogueCache(t *testing.T) *OtterAdapter[string, catalogueItem] {
+	t.Helper()
+	schema := cache_dto.NewSearchSchema(
+		cache_dto.TextField("Title"),
+		cache_dto.TagField("Meta.Region"),
+		cache_dto.NumericField("Meta.Rank"),
+	)
+	adapter, err := OtterProviderFactory(cache_dto.Options[string, catalogueItem]{MaximumEntries: 100, SearchSchema: schema})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = adapter.Close(context.Background()) })
+	cache, ok := adapter.(*OtterAdapter[string, catalogueItem])
+	require.True(t, ok)
+
+	ctx := context.Background()
+	for key, item := range map[string]catalogueItem{
+		"uk-1": {Title: "first", Meta: catalogueMeta{Region: "eu-west", Rank: 1}},
+		"uk-2": {Title: "second", Meta: catalogueMeta{Region: "eu-north", Rank: 5}},
+		"us-1": {Title: "third", Meta: catalogueMeta{Region: "us-east", Rank: 9}},
+	} {
+		require.NoError(t, cache.Set(ctx, key, item))
+	}
+	return cache
+}
+
+func TestOtterAdapter_Query_FiltersOnNestedFields(t *testing.T) {
+	t.Parallel()
+
+	cache := newCatalogueCache(t)
+	testCases := []struct {
+		name   string
+		want   []string
+		filter cache_dto.Filter
+	}{
+		{name: "equal", filter: cache_dto.Filter{Field: "Meta.Region", Operation: cache_dto.FilterOpEq, Value: "us-east"}, want: []string{"us-1"}},
+		{name: "not equal", filter: cache_dto.Filter{Field: "Meta.Region", Operation: cache_dto.FilterOpNe, Value: "us-east"}, want: []string{"uk-1", "uk-2"}},
+		{name: "prefix", filter: cache_dto.Filter{Field: "Meta.Region", Operation: cache_dto.FilterOpPrefix, Value: "eu-"}, want: []string{"uk-1", "uk-2"}},
+		{name: "prefix longer than the value", filter: cache_dto.Filter{Field: "Meta.Region", Operation: cache_dto.FilterOpPrefix, Value: "eu-west-and-more"}, want: nil},
+		{name: "in", filter: cache_dto.Filter{Field: "Meta.Region", Operation: cache_dto.FilterOpIn, Values: []any{"eu-north", "us-east"}}, want: []string{"uk-2", "us-1"}},
+		{name: "in by number", filter: cache_dto.Filter{Field: "Meta.Rank", Operation: cache_dto.FilterOpIn, Values: []any{1, "9"}}, want: []string{"uk-1", "us-1"}},
+		{name: "greater than", filter: cache_dto.Filter{Field: "Meta.Rank", Operation: cache_dto.FilterOpGt, Value: 1}, want: []string{"uk-2", "us-1"}},
+		{name: "greater or equal", filter: cache_dto.Filter{Field: "Meta.Rank", Operation: cache_dto.FilterOpGe, Value: 5.0}, want: []string{"uk-2", "us-1"}},
+		{name: "less than", filter: cache_dto.Filter{Field: "Meta.Rank", Operation: cache_dto.FilterOpLt, Value: int64(5)}, want: []string{"uk-1"}},
+		{name: "less or equal", filter: cache_dto.Filter{Field: "Meta.Rank", Operation: cache_dto.FilterOpLe, Value: 5}, want: []string{"uk-1", "uk-2"}},
+		{name: "between", filter: cache_dto.Filter{Field: "Meta.Rank", Operation: cache_dto.FilterOpBetween, Values: []any{2, 9}}, want: []string{"uk-2", "us-1"}},
+		{name: "between without two bounds", filter: cache_dto.Filter{Field: "Meta.Rank", Operation: cache_dto.FilterOpBetween, Values: []any{2}}, want: nil},
+		{name: "text compared as text", filter: cache_dto.Filter{Field: "Meta.Region", Operation: cache_dto.FilterOpGt, Value: "eu-west"}, want: []string{"us-1"}},
+		{name: "unknown field", filter: cache_dto.Filter{Field: "Meta.Missing", Operation: cache_dto.FilterOpEq, Value: "x"}, want: nil},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			result, err := cache.Query(context.Background(), &cache_dto.QueryOptions{
+				Filters: []cache_dto.Filter{testCase.filter},
+				Limit:   10,
+			})
+			require.NoError(t, err)
+			keys := make([]string, 0, len(result.Items))
+			for _, item := range result.Items {
+				keys = append(keys, item.Key)
+			}
+			assert.ElementsMatch(t, testCase.want, keys)
+		})
+	}
+}
+
+func TestOtterAdapter_Query_SortsByAFieldWithoutASortedIndex(t *testing.T) {
+	t.Parallel()
+
+	cache := newCatalogueCache(t)
+	assert.Same(t, cache.schema, cache.GetSchema())
+
+	ascending, err := cache.Query(context.Background(), &cache_dto.QueryOptions{SortBy: "Meta.Rank", SortOrder: cache_dto.SortAsc, Limit: 10})
+	require.NoError(t, err)
+	descending, err := cache.Query(context.Background(), &cache_dto.QueryOptions{SortBy: "Meta.Rank", SortOrder: cache_dto.SortDesc, Limit: 10})
+	require.NoError(t, err)
+
+	keysOf := func(result cache_dto.SearchResult[string, catalogueItem]) []string {
+		keys := make([]string, 0, len(result.Items))
+		for _, item := range result.Items {
+			keys = append(keys, item.Key)
+		}
+		return keys
+	}
+	assert.Equal(t, []string{"uk-1", "uk-2", "us-1"}, keysOf(ascending))
+	assert.Equal(t, []string{"us-1", "uk-2", "uk-1"}, keysOf(descending))
+}
+
+func TestOtterAdapter_Query_ByVector(t *testing.T) {
+	t.Parallel()
+
+	schema := cache_dto.NewSearchSchema(cache_dto.TextField("Title"), cache_dto.VectorField("Embedding", 3))
+	adapter, err := OtterProviderFactory(cache_dto.Options[string, testVecDocument]{MaximumEntries: 100, SearchSchema: schema})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = adapter.Close(context.Background()) })
+	ctx := context.Background()
+	require.NoError(t, adapter.Set(ctx, "x", testVecDocument{Title: "x axis", Embedding: []float32{1, 0, 0}}))
+	require.NoError(t, adapter.Set(ctx, "y", testVecDocument{Title: "y axis", Embedding: []float32{0, 1, 0}}))
+	require.NoError(t, adapter.Set(ctx, "near-x", testVecDocument{Title: "near x", Embedding: []float32{0.9, 0.1, 0}}))
+
+	result, err := adapter.Query(ctx, &cache_dto.QueryOptions{Vector: []float32{1, 0, 0}, Limit: 2})
+	require.NoError(t, err)
+	require.Len(t, result.Items, 2)
+	assert.Equal(t, "x", result.Items[0].Key, "the closest vector comes first")
+	assert.Equal(t, "near-x", result.Items[1].Key)
+
+	missing, err := adapter.Query(ctx, &cache_dto.QueryOptions{Vector: []float32{1, 0, 0}, VectorField: "Missing", Limit: 2})
+	require.NoError(t, err)
+	assert.Empty(t, missing.Items, "a vector field the schema does not have finds nothing")
+}
+
+func TestOtterAdapter_VectorSearchRejectsAQueryVectorItCannotCompare(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		wantErr error
+		name    string
+		vector  []float32
+	}{
+		{name: "a shorter query vector", vector: []float32{1, 0}, wantErr: hnsw.ErrVectorDimensionMismatch},
+		{name: "a longer query vector", vector: []float32{1, 0, 0, 0}, wantErr: hnsw.ErrVectorDimensionMismatch},
+		{name: "a zero query vector under cosine", vector: []float32{0, 0, 0}, wantErr: hnsw.ErrZeroVector},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			adapter := newVectorTestAdapter(t)
+			ctx := t.Context()
+			require.NoError(t, adapter.Set(ctx, "x", testVecDocument{Title: "x axis", Embedding: []float32{1, 0, 0}}))
+
+			queried, err := adapter.Query(ctx, &cache_dto.QueryOptions{Vector: testCase.vector, Limit: 2})
+			require.ErrorIs(t, err, cache_domain.ErrInvalidQueryVector)
+			require.ErrorIs(t, err, testCase.wantErr)
+			assert.Empty(t, queried.Items)
+
+			searched, err := adapter.Search(ctx, "axis", &cache_dto.SearchOptions{Vector: testCase.vector, Limit: 2})
+			require.ErrorIs(t, err, cache_domain.ErrInvalidQueryVector)
+			require.ErrorIs(t, err, testCase.wantErr)
+			assert.Empty(t, searched.Items)
+		})
+	}
+}
+
+func TestOtterAdapter_ValueWithAnUnindexableVectorStaysCachedButIsNotFound(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name      string
+		embedding []float32
+	}{
+		{name: "a vector of the wrong dimension", embedding: []float32{1, 0}},
+		{name: "a zero vector under cosine", embedding: []float32{0, 0, 0}},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			adapter := newVectorTestAdapter(t)
+			ctx := t.Context()
+			require.NoError(t, adapter.Set(ctx, "kept", testVecDocument{Title: "kept", Embedding: []float32{1, 0, 0}}))
+			require.NoError(t, adapter.Set(ctx, "odd", testVecDocument{Title: "odd", Embedding: []float32{0, 1, 0}}))
+
+			require.NoError(t, adapter.Set(ctx, "odd", testVecDocument{Title: "odd", Embedding: testCase.embedding}))
+
+			_, found, err := adapter.GetIfPresent(ctx, "odd")
+			require.NoError(t, err)
+			assert.True(t, found, "the value is still cached")
+			result, err := adapter.Query(ctx, &cache_dto.QueryOptions{Vector: []float32{0, 1, 0}, Limit: 5})
+			require.NoError(t, err)
+			require.Len(t, result.Items, 1, "the old vector must not stay indexed")
+			assert.Equal(t, "kept", result.Items[0].Key)
+		})
+	}
+}
+
+func TestOtterAdapter_VectorQueryDefaultsToTheFirstVectorFieldByName(t *testing.T) {
+	t.Parallel()
+
+	schema := cache_dto.NewSearchSchema(cache_dto.VectorField("Embedding", 3), cache_dto.VectorField("Alternate", 2))
+	provider, err := OtterProviderFactory(cache_dto.Options[string, testVecDocument]{MaximumEntries: 100, SearchSchema: schema})
+	require.NoError(t, err)
+	adapter, ok := provider.(*OtterAdapter[string, testVecDocument])
+	require.True(t, ok)
+	t.Cleanup(func() { assert.NoError(t, adapter.Close(context.Background())) })
+
+	for range 20 {
+		assert.Equal(t, "Alternate", adapter.resolveVectorField(""), "the default field must not depend on map order")
+	}
+}
+
+func newVectorTestAdapter(t *testing.T) cache_domain.ProviderPort[string, testVecDocument] {
+	t.Helper()
+
+	schema := cache_dto.NewSearchSchema(cache_dto.TextField("Title"), cache_dto.VectorField("Embedding", 3))
+	adapter, err := OtterProviderFactory(cache_dto.Options[string, testVecDocument]{MaximumEntries: 100, SearchSchema: schema})
+	require.NoError(t, err)
+	t.Cleanup(func() { assert.NoError(t, adapter.Close(context.Background())) })
+	return adapter
 }

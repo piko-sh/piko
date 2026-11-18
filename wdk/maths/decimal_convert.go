@@ -26,7 +26,7 @@ import (
 	"reflect"
 	"strconv"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 // String returns the decimal value as a text string.

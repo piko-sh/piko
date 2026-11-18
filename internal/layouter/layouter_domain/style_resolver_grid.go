@@ -305,10 +305,10 @@ func parseGridAreaShorthand(style *ComputedStyle, value string) {
 		style.GridColumnStart = parseGridLine(strings.TrimSpace(parts[1]))
 	}
 	if len(parts) >= gridAreaRowEndIndex {
-		style.GridRowEnd = parseGridLine(strings.TrimSpace(parts[2]))
+		style.GridRowEnd = parseGridLine(strings.TrimSpace(parts[gridAreaRowEndIndex-1]))
 	}
 	if len(parts) >= gridAreaColumnEndIndex {
-		style.GridColumnEnd = parseGridLine(strings.TrimSpace(parts[3]))
+		style.GridColumnEnd = parseGridLine(strings.TrimSpace(parts[gridAreaColumnEndIndex-1]))
 	}
 }
 

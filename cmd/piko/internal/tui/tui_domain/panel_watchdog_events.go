@@ -32,6 +32,10 @@ import (
 )
 
 const (
+	// eventsBodyChromeRows is the rows the events body reserves for its header, spacer and
+	// status line.
+	eventsBodyChromeRows = 3
+
 	// WatchdogEventsPanelID is the identifier used by the model to look up the watchdog
 	// Events panel.
 	WatchdogEventsPanelID = "watchdog-events"
@@ -200,13 +204,11 @@ func (p *WatchdogEventsPanel) composeBody(width, height int) string {
 	rows := make([]string, 0, height)
 	rows = append(rows, p.renderHeaderRow(width), "")
 
-	listHeight := max(
-
-		height-3, 1)
+	listHeight := max(height-eventsBodyChromeRows, 1)
 	rows = append(rows, p.renderEventList(width, listHeight)...)
 
 	for len(rows) < height-1 {
-		rows = append(rows, strings.Repeat(" ", width))
+		rows = append(rows, strings.Repeat(SingleSpace, width))
 	}
 	rows = append(rows, p.renderFooterRow(width))
 
@@ -241,7 +243,7 @@ func (p *WatchdogEventsPanel) renderHeaderRow(width int) string {
 	leftWidth := TextWidth(left)
 	rightWidth := TextWidth(right)
 	gap := max(1, width-leftWidth-rightWidth)
-	return PadRightANSI(left+strings.Repeat(" ", gap)+right, width)
+	return PadRightANSI(left+strings.Repeat(SingleSpace, gap)+right, width)
 }
 
 // renderEventList composes the event rows shown in the list area.
@@ -285,7 +287,7 @@ func (p *WatchdogEventsPanel) renderEventList(width, height int) []string {
 	}
 
 	for len(rows) < height {
-		rows = append(rows, strings.Repeat(" ", width))
+		rows = append(rows, strings.Repeat(SingleSpace, width))
 	}
 	return rows
 }
@@ -512,7 +514,7 @@ func (p *WatchdogEventsPanel) waitForNextEventCmd() tea.Cmd {
 // Returns tea.Cmd which is the resulting command, or nil.
 func (p *WatchdogEventsPanel) handleKey(message tea.KeyPressMsg) tea.Cmd {
 	switch message.String() {
-	case "space", " ":
+	case "space", SingleSpace:
 		p.paused = !p.paused
 		return nil
 	case "enter":

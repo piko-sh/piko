@@ -22,6 +22,7 @@ import (
 	"context"
 	"fmt"
 	"runtime/debug"
+	"slices"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -249,12 +250,11 @@ func newServer(opts []ServerOption, grpcOpts []grpc.ServerOption) *grpc.Server {
 			opt(&o)
 		}
 	}
-	base := make([]grpc.ServerOption, 0, 4+len(grpcOpts))
-	base = append(base,
+	base := []grpc.ServerOption{
 		grpc.ForceServerCodec(Codec{}),
 		grpc.MaxRecvMsgSize(o.maxReceiveMessageSize),
 		grpc.MaxConcurrentStreams(o.maxConcurrentStreams),
 		grpc.ChainStreamInterceptor(recoverStreamInterceptor),
-	)
-	return grpc.NewServer(append(base, grpcOpts...)...)
+	}
+	return grpc.NewServer(slices.Concat(base, grpcOpts)...)
 }

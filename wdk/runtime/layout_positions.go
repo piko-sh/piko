@@ -42,6 +42,9 @@ const (
 
 	// defaultRootFontSize is the default root font size in points.
 	defaultRootFontSize = 12.0
+
+	// regularFontWeight is the CSS weight of the regular face of the default font.
+	regularFontWeight = 400
 )
 
 // LayoutPositionRect represents a positioned element's bounding box in pixels.
@@ -218,7 +221,7 @@ func buildLayoutBoxTree(
 	fontMetrics, err := layouter_adapters.NewGoTextFontMetrics([]layouter_dto.FontEntry{
 		{
 			Family:     "NotoSans",
-			Weight:     400,
+			Weight:     regularFontWeight,
 			Style:      int(layouter_domain.FontStyleNormal),
 			Data:       config.FontData,
 			WeightMin:  0,

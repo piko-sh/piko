@@ -27,6 +27,7 @@ import (
 
 	"github.com/go-text/typesetting/di"
 	"github.com/go-text/typesetting/font"
+	"github.com/go-text/typesetting/font/opentype"
 	"github.com/go-text/typesetting/font/opentype/tables"
 	"github.com/go-text/typesetting/language"
 	"github.com/go-text/typesetting/segmenter"
@@ -645,7 +646,7 @@ func newShapingSession() *shapingSession {
 //
 // Returns font.Tag which is the corresponding OpenType tag.
 func mustTag(s string) font.Tag {
-	return font.Tag(uint32(s[0])<<24 | uint32(s[1])<<16 | uint32(s[2])<<8 | uint32(s[3]))
+	return opentype.MustNewTag(s)
 }
 
 // convertGlyphs converts shaped go-text glyphs into layouter glyph positions, scaling the

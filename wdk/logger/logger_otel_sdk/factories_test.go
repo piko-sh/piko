@@ -15,25 +15,27 @@
 // This project stands against fascism, authoritarianism, and all forms of
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
+package logger_otel_sdk
 
-package json
+import (
+	"testing"
+	"time"
 
-// Encoder writes JSON values to an output stream.
-type Encoder interface {
-	// Encode serialises v as JSON and writes it to the underlying stream.
-	//
-	// Takes v (any) which is the value to serialise.
-	//
-	// Returns error when the value cannot be serialised or written.
-	Encode(v any) error
-}
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
-// Decoder reads JSON values from an input stream.
-type Decoder interface {
-	// Decode reads the next JSON value from the underlying stream into v.
-	//
-	// Takes v (any) which is a pointer to the destination value.
-	//
-	// Returns error when the stream cannot be read or the value cannot be parsed.
-	Decode(v any) error
+	"piko.sh/piko/internal/monitoring/monitoring_domain"
+)
+
+func TestOtelServiceFactoriesBuildSDKAdapters(t *testing.T) {
+	t.Parallel()
+
+	factories := OtelServiceFactories()
+	require.NotNil(t, factories.SpanProcessorFactory)
+	require.NotNil(t, factories.MetricsCollectorFactory)
+
+	store := monitoring_domain.NewTelemetryStore()
+
+	assert.IsType(t, &SpanProcessor{}, factories.SpanProcessorFactory(store))
+	assert.IsType(t, &MetricsCollector{}, factories.MetricsCollectorFactory(store, time.Minute))
 }

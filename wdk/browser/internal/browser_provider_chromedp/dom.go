@@ -43,7 +43,7 @@ var (
 		IndentSize:          2,
 		PreserveEmptyLines:  false,
 		SortAttributes:      false,
-		MaxLineLength:       120,
+		MaxLineLength:       formattedHTMLMaxLineLength,
 		AttributeWrapIndent: 1,
 		RawHTMLMode:         true,
 	})
@@ -114,7 +114,7 @@ func NormaliseDOM(html string, opts NormaliseOptions) string {
 				IndentSize:          2,
 				PreserveEmptyLines:  false,
 				SortAttributes:      false,
-				MaxLineLength:       120,
+				MaxLineLength:       formattedHTMLMaxLineLength,
 				AttributeWrapIndent: 1,
 				RawHTMLMode:         true,
 			},
@@ -139,7 +139,7 @@ func NormaliseDOM(html string, opts NormaliseOptions) string {
 // Returns []*cdp.Node which contains the matching DOM nodes.
 // Returns error when no elements match or the selector is invalid.
 func FindElement(ctx context.Context, selector string) ([]*cdp.Node, error) {
-	fastCtx, cancel := context.WithTimeoutCause(ctx, 500*time.Millisecond, fmt.Errorf("DOM FindElement exceeded %s timeout", 500*time.Millisecond))
+	fastCtx, cancel := context.WithTimeoutCause(ctx, domQueryTimeout, fmt.Errorf("DOM FindElement exceeded %s timeout", domQueryTimeout))
 	defer cancel()
 
 	if strings.Contains(selector, ShadowDOMSeparator) {
@@ -170,7 +170,7 @@ func FindElement(ctx context.Context, selector string) ([]*cdp.Node, error) {
 // found.
 // Returns error when the selector query fails.
 func FindElements(ctx context.Context, selector string) ([]*cdp.Node, error) {
-	fastCtx, cancel := context.WithTimeoutCause(ctx, 500*time.Millisecond, fmt.Errorf("DOM FindElements exceeded %s timeout", 500*time.Millisecond))
+	fastCtx, cancel := context.WithTimeoutCause(ctx, domQueryTimeout, fmt.Errorf("DOM FindElements exceeded %s timeout", domQueryTimeout))
 	defer cancel()
 
 	if strings.Contains(selector, ShadowDOMSeparator) {
@@ -205,7 +205,7 @@ func ElementExists(ctx context.Context, selector string) bool {
 // Returns string which is the trimmed text content of the element.
 // Returns error when the text cannot be retrieved from the element.
 func GetElementText(ctx context.Context, selector string) (string, error) {
-	fastCtx, cancel := context.WithTimeoutCause(ctx, 500*time.Millisecond, fmt.Errorf("DOM GetElementText exceeded %s timeout", 500*time.Millisecond))
+	fastCtx, cancel := context.WithTimeoutCause(ctx, domQueryTimeout, fmt.Errorf("DOM GetElementText exceeded %s timeout", domQueryTimeout))
 	defer cancel()
 
 	if strings.Contains(selector, ShadowDOMSeparator) {
@@ -230,7 +230,7 @@ func GetElementText(ctx context.Context, selector string) (string, error) {
 // Returns *string which is the attribute value, or nil if the attribute does not exist.
 // Returns error when the attribute cannot be retrieved.
 func GetElementAttribute(ctx context.Context, selector, attributeName string) (*string, error) {
-	fastCtx, cancel := context.WithTimeoutCause(ctx, 500*time.Millisecond, fmt.Errorf("DOM GetElementAttribute exceeded %s timeout", 500*time.Millisecond))
+	fastCtx, cancel := context.WithTimeoutCause(ctx, domQueryTimeout, fmt.Errorf("DOM GetElementAttribute exceeded %s timeout", domQueryTimeout))
 	defer cancel()
 
 	if strings.Contains(selector, ShadowDOMSeparator) {
@@ -261,7 +261,7 @@ func GetElementAttribute(ctx context.Context, selector, attributeName string) (*
 // Returns string which contains the outer HTML of the matched element.
 // Returns error when the element cannot be found or the operation times out.
 func GetElementHTML(ctx context.Context, selector string) (string, error) {
-	fastCtx, cancel := context.WithTimeoutCause(ctx, 500*time.Millisecond, fmt.Errorf("DOM GetElementHTML exceeded %s timeout", 500*time.Millisecond))
+	fastCtx, cancel := context.WithTimeoutCause(ctx, domQueryTimeout, fmt.Errorf("DOM GetElementHTML exceeded %s timeout", domQueryTimeout))
 	defer cancel()
 
 	if strings.Contains(selector, ShadowDOMSeparator) {
@@ -286,7 +286,7 @@ func GetElementHTML(ctx context.Context, selector string) (string, error) {
 // Returns string which is the current value of the input element.
 // Returns error when the element cannot be found or the value cannot be read.
 func GetElementValue(ctx context.Context, selector string) (string, error) {
-	fastCtx, cancel := context.WithTimeoutCause(ctx, 500*time.Millisecond, fmt.Errorf("DOM GetElementValue exceeded %s timeout", 500*time.Millisecond))
+	fastCtx, cancel := context.WithTimeoutCause(ctx, domQueryTimeout, fmt.Errorf("DOM GetElementValue exceeded %s timeout", domQueryTimeout))
 	defer cancel()
 
 	if strings.Contains(selector, ShadowDOMSeparator) {
@@ -310,7 +310,7 @@ func GetElementValue(ctx context.Context, selector string) (string, error) {
 // Returns bool which indicates whether the element is visible.
 // Returns error when the visibility check fails.
 func IsElementVisible(ctx context.Context, selector string) (bool, error) {
-	fastCtx, cancel := context.WithTimeoutCause(ctx, 500*time.Millisecond, fmt.Errorf("DOM IsElementVisible exceeded %s timeout", 500*time.Millisecond))
+	fastCtx, cancel := context.WithTimeoutCause(ctx, domQueryTimeout, fmt.Errorf("DOM IsElementVisible exceeded %s timeout", domQueryTimeout))
 	defer cancel()
 
 	if strings.Contains(selector, ShadowDOMSeparator) {
@@ -318,7 +318,7 @@ func IsElementVisible(ctx context.Context, selector string) (bool, error) {
 	}
 
 	js := scripts.MustExecute("is_element_visible.js.tmpl", map[string]any{
-		"Selector": selector,
+		tmplKeySelector: selector,
 	})
 
 	var visible bool
@@ -381,8 +381,8 @@ func EvalOnElement(ctx context.Context, selector, js string, arguments ...any) (
 	}
 
 	fullJS := scripts.MustExecute("eval_on_element.js.tmpl", map[string]any{
-		"Selector": selector,
-		"JS":       js,
+		tmplKeySelector: selector,
+		"JS":            js,
 	})
 
 	var result any
@@ -407,7 +407,7 @@ func ScrollIntoView(ctx context.Context, selector string) error {
 	}
 
 	js := scripts.MustExecute("scroll_into_view.js.tmpl", map[string]any{
-		"Selector": selector,
+		tmplKeySelector: selector,
 	})
 
 	var found bool
@@ -429,7 +429,7 @@ func ScrollIntoView(ctx context.Context, selector string) error {
 // Returns map[string]string which contains all attribute name-value pairs.
 // Returns error when the element is not found or the query fails.
 func GetAllAttributes(ctx context.Context, selector string) (map[string]string, error) {
-	fastCtx, cancel := context.WithTimeoutCause(ctx, 500*time.Millisecond, fmt.Errorf("DOM GetAllAttributes exceeded %s timeout", 500*time.Millisecond))
+	fastCtx, cancel := context.WithTimeoutCause(ctx, domQueryTimeout, fmt.Errorf("DOM GetAllAttributes exceeded %s timeout", domQueryTimeout))
 	defer cancel()
 
 	if strings.Contains(selector, ShadowDOMSeparator) {
@@ -437,7 +437,7 @@ func GetAllAttributes(ctx context.Context, selector string) (map[string]string, 
 	}
 
 	js := scripts.MustExecute("get_all_attributes.js.tmpl", map[string]any{
-		"Selector": selector,
+		tmplKeySelector: selector,
 	})
 
 	var result map[string]any
@@ -465,7 +465,7 @@ func GetAllAttributes(ctx context.Context, selector string) (map[string]string, 
 //
 // Returns error when the element cannot be found or the attribute cannot be set.
 func SetElementAttribute(ctx context.Context, selector, attributeName, attributeValue string) error {
-	fastCtx, cancel := context.WithTimeoutCause(ctx, 500*time.Millisecond, fmt.Errorf("DOM SetElementAttribute exceeded %s timeout", 500*time.Millisecond))
+	fastCtx, cancel := context.WithTimeoutCause(ctx, domQueryTimeout, fmt.Errorf("DOM SetElementAttribute exceeded %s timeout", domQueryTimeout))
 	defer cancel()
 
 	if strings.Contains(selector, ShadowDOMSeparator) {
@@ -473,9 +473,9 @@ func SetElementAttribute(ctx context.Context, selector, attributeName, attribute
 	}
 
 	js := scripts.MustExecute("set_attribute.js.tmpl", map[string]any{
-		"Selector":  selector,
-		"AttrName":  attributeName,
-		"AttrValue": attributeValue,
+		tmplKeySelector: selector,
+		tmplKeyAttrName: attributeName,
+		"AttrValue":     attributeValue,
 	})
 
 	var found bool
@@ -497,7 +497,7 @@ func SetElementAttribute(ctx context.Context, selector, attributeName, attribute
 //
 // Returns error when the element is not found or the attribute cannot be removed.
 func RemoveElementAttribute(ctx context.Context, selector, attributeName string) error {
-	fastCtx, cancel := context.WithTimeoutCause(ctx, 500*time.Millisecond, fmt.Errorf("DOM RemoveElementAttribute exceeded %s timeout", 500*time.Millisecond))
+	fastCtx, cancel := context.WithTimeoutCause(ctx, domQueryTimeout, fmt.Errorf("DOM RemoveElementAttribute exceeded %s timeout", domQueryTimeout))
 	defer cancel()
 
 	if strings.Contains(selector, ShadowDOMSeparator) {
@@ -505,8 +505,8 @@ func RemoveElementAttribute(ctx context.Context, selector, attributeName string)
 	}
 
 	js := scripts.MustExecute("remove_attribute.js.tmpl", map[string]any{
-		"Selector": selector,
-		"AttrName": attributeName,
+		tmplKeySelector: selector,
+		tmplKeyAttrName: attributeName,
 	})
 
 	var found bool
@@ -527,7 +527,7 @@ func RemoveElementAttribute(ctx context.Context, selector, attributeName string)
 // Returns *Dimensions which contains the position and size of the element.
 // Returns error when the element cannot be found or the query fails.
 func GetElementDimensions(ctx context.Context, selector string) (*Dimensions, error) {
-	fastCtx, cancel := context.WithTimeoutCause(ctx, 500*time.Millisecond, fmt.Errorf("DOM GetElementDimensions exceeded %s timeout", 500*time.Millisecond))
+	fastCtx, cancel := context.WithTimeoutCause(ctx, domQueryTimeout, fmt.Errorf("DOM GetElementDimensions exceeded %s timeout", domQueryTimeout))
 	defer cancel()
 
 	if strings.Contains(selector, ShadowDOMSeparator) {
@@ -535,7 +535,7 @@ func GetElementDimensions(ctx context.Context, selector string) (*Dimensions, er
 	}
 
 	js := scripts.MustExecute("get_element_rect.js.tmpl", map[string]any{
-		"Selector": selector,
+		tmplKeySelector: selector,
 	})
 
 	var result map[string]float64
@@ -563,11 +563,11 @@ func GetElementDimensions(ctx context.Context, selector string) (*Dimensions, er
 // Returns bool which is true if the element has a shadow root attached.
 // Returns error when the shadow root check fails or times out.
 func HasShadowRoot(ctx context.Context, hostSelector string) (bool, error) {
-	fastCtx, cancel := context.WithTimeoutCause(ctx, 500*time.Millisecond, fmt.Errorf("DOM HasShadowRoot exceeded %s timeout", 500*time.Millisecond))
+	fastCtx, cancel := context.WithTimeoutCause(ctx, domQueryTimeout, fmt.Errorf("DOM HasShadowRoot exceeded %s timeout", domQueryTimeout))
 	defer cancel()
 
 	js := scripts.MustExecute("shadow_has_root.js.tmpl", map[string]any{
-		"Host": hostSelector,
+		tmplKeyHost: hostSelector,
 	})
 
 	var hasShadow bool
@@ -587,11 +587,11 @@ func HasShadowRoot(ctx context.Context, hostSelector string) (bool, error) {
 // element has no shadow root.
 // Returns error when the element cannot be found or the shadow root cannot be accessed.
 func GetShadowRootHTML(ctx context.Context, hostSelector string) (string, error) {
-	fastCtx, cancel := context.WithTimeoutCause(ctx, 500*time.Millisecond, fmt.Errorf("DOM GetShadowRootHTML exceeded %s timeout", 500*time.Millisecond))
+	fastCtx, cancel := context.WithTimeoutCause(ctx, domQueryTimeout, fmt.Errorf("DOM GetShadowRootHTML exceeded %s timeout", domQueryTimeout))
 	defer cancel()
 
 	js := scripts.MustExecute("shadow_get_root_html.js.tmpl", map[string]any{
-		"Host": hostSelector,
+		tmplKeyHost: hostSelector,
 	})
 
 	var html *string
@@ -653,9 +653,9 @@ func ListenForEvent(ctx context.Context, selector, eventName string) error {
 	}
 
 	js := scripts.MustExecute("listen_for_event.js.tmpl", map[string]any{
-		"CallbackName":  callbackName,
-		"FindElementJS": findElementJS,
-		"EventName":     eventName,
+		"CallbackName":   callbackName,
+		"FindElementJS":  findElementJS,
+		tmplKeyEventName: eventName,
 	})
 
 	var ok bool
@@ -707,8 +707,8 @@ func findElementInShadowDOM(ctx context.Context, selector string) ([]*cdp.Node, 
 	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	js := scripts.MustExecute("shadow_find_element.js.tmpl", map[string]any{
-		"Host":   hostSelector,
-		"Shadow": shadowSelector,
+		tmplKeyHost:   hostSelector,
+		tmplKeyShadow: shadowSelector,
 	})
 
 	var result any
@@ -736,8 +736,8 @@ func findElementsInShadowDOM(ctx context.Context, selector string) ([]*cdp.Node,
 	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	js := scripts.MustExecute("shadow_find_elements_count.js.tmpl", map[string]any{
-		"Host":   hostSelector,
-		"Shadow": shadowSelector,
+		tmplKeyHost:   hostSelector,
+		tmplKeyShadow: shadowSelector,
 	})
 
 	var count int
@@ -764,8 +764,8 @@ func getTextFromShadowDOM(ctx context.Context, selector string) (string, error) 
 	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	js := scripts.MustExecute("shadow_get_text.js.tmpl", map[string]any{
-		"Host":   hostSelector,
-		"Shadow": shadowSelector,
+		tmplKeyHost:   hostSelector,
+		tmplKeyShadow: shadowSelector,
 	})
 
 	var text string
@@ -789,9 +789,9 @@ func getAttributeFromShadowDOM(ctx context.Context, selector, attributeName stri
 	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	js := scripts.MustExecute("shadow_get_attribute.js.tmpl", map[string]any{
-		"Host":     hostSelector,
-		"Shadow":   shadowSelector,
-		"AttrName": attributeName,
+		tmplKeyHost:     hostSelector,
+		tmplKeyShadow:   shadowSelector,
+		tmplKeyAttrName: attributeName,
 	})
 
 	var result any
@@ -816,8 +816,8 @@ func getHTMLFromShadowDOM(ctx context.Context, selector string) (string, error) 
 	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	js := scripts.MustExecute("shadow_get_html.js.tmpl", map[string]any{
-		"Host":   hostSelector,
-		"Shadow": shadowSelector,
+		tmplKeyHost:   hostSelector,
+		tmplKeyShadow: shadowSelector,
 	})
 
 	var html string
@@ -839,8 +839,8 @@ func getValueFromShadowDOM(ctx context.Context, selector string) (string, error)
 	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	js := scripts.MustExecute("shadow_get_value.js.tmpl", map[string]any{
-		"Host":   hostSelector,
-		"Shadow": shadowSelector,
+		tmplKeyHost:   hostSelector,
+		tmplKeyShadow: shadowSelector,
 	})
 
 	var value string
@@ -862,8 +862,8 @@ func isVisibleInShadowDOM(ctx context.Context, selector string) (bool, error) {
 	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	js := scripts.MustExecute("shadow_is_visible.js.tmpl", map[string]any{
-		"Host":   hostSelector,
-		"Shadow": shadowSelector,
+		tmplKeyHost:   hostSelector,
+		tmplKeyShadow: shadowSelector,
 	})
 
 	var visible bool
@@ -892,7 +892,7 @@ func queryDOMBoolProperty(
 	selector, jsTemplate, shadowJSTemplate, errorContext, nilErrorFmt string,
 	shadowNilErrorFmt string,
 ) (bool, error) {
-	fastCtx, cancel := context.WithTimeoutCause(ctx, 500*time.Millisecond, fmt.Errorf("DOM queryDOMBoolProperty exceeded %s timeout", 500*time.Millisecond))
+	fastCtx, cancel := context.WithTimeoutCause(ctx, domQueryTimeout, fmt.Errorf("DOM queryDOMBoolProperty exceeded %s timeout", domQueryTimeout))
 	defer cancel()
 
 	if strings.Contains(selector, ShadowDOMSeparator) {
@@ -900,7 +900,7 @@ func queryDOMBoolProperty(
 	}
 
 	js := scripts.MustExecute(jsTemplate, map[string]any{
-		"Selector": selector,
+		tmplKeySelector: selector,
 	})
 
 	var result any
@@ -933,8 +933,8 @@ func queryBoolPropertyInShadowDOM(ctx context.Context, selector, shadowJSTemplat
 	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	js := scripts.MustExecute(shadowJSTemplate, map[string]any{
-		"Host":   hostSelector,
-		"Shadow": shadowSelector,
+		tmplKeyHost:   hostSelector,
+		tmplKeyShadow: shadowSelector,
 	})
 
 	var result any
@@ -965,9 +965,9 @@ func evalOnShadowDOMElement(ctx context.Context, selector, js string, _ ...any) 
 	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	fullJS := scripts.MustExecute("shadow_eval_on_element.js.tmpl", map[string]any{
-		"Host":   hostSelector,
-		"Shadow": shadowSelector,
-		"JS":     js,
+		tmplKeyHost:   hostSelector,
+		tmplKeyShadow: shadowSelector,
+		"JS":          js,
 	})
 
 	var result any
@@ -988,8 +988,8 @@ func scrollIntoViewInShadowDOM(ctx context.Context, selector string) error {
 	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	js := scripts.MustExecute("shadow_scroll_into_view.js.tmpl", map[string]any{
-		"Host":   hostSelector,
-		"Shadow": shadowSelector,
+		tmplKeyHost:   hostSelector,
+		tmplKeyShadow: shadowSelector,
 	})
 
 	var found bool
@@ -1014,8 +1014,8 @@ func getAllAttributesInShadowDOM(ctx context.Context, selector string) (map[stri
 	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	js := scripts.MustExecute("shadow_get_all_attributes.js.tmpl", map[string]any{
-		"Host":   hostSelector,
-		"Shadow": shadowSelector,
+		tmplKeyHost:   hostSelector,
+		tmplKeyShadow: shadowSelector,
 	})
 
 	var result map[string]any
@@ -1047,10 +1047,10 @@ func setAttributeInShadowDOM(ctx context.Context, selector, attributeName, attri
 	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	js := scripts.MustExecute("shadow_set_attribute.js.tmpl", map[string]any{
-		"Host":      hostSelector,
-		"Shadow":    shadowSelector,
-		"AttrName":  attributeName,
-		"AttrValue": attributeValue,
+		tmplKeyHost:     hostSelector,
+		tmplKeyShadow:   shadowSelector,
+		tmplKeyAttrName: attributeName,
+		"AttrValue":     attributeValue,
 	})
 
 	var found bool
@@ -1075,9 +1075,9 @@ func removeAttributeInShadowDOM(ctx context.Context, selector, attributeName str
 	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	js := scripts.MustExecute("shadow_remove_attribute.js.tmpl", map[string]any{
-		"Host":     hostSelector,
-		"Shadow":   shadowSelector,
-		"AttrName": attributeName,
+		tmplKeyHost:     hostSelector,
+		tmplKeyShadow:   shadowSelector,
+		tmplKeyAttrName: attributeName,
 	})
 
 	var found bool
@@ -1102,8 +1102,8 @@ func getDimensionsInShadowDOM(ctx context.Context, selector string) (*Dimensions
 	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	js := scripts.MustExecute("shadow_get_rect.js.tmpl", map[string]any{
-		"Host":   hostSelector,
-		"Shadow": shadowSelector,
+		tmplKeyHost:   hostSelector,
+		tmplKeyShadow: shadowSelector,
 	})
 
 	var result map[string]float64

@@ -31,6 +31,7 @@ import (
 	"slices"
 	"strings"
 	"sync/atomic"
+	"unicode/utf8"
 
 	"piko.sh/piko/internal/mem"
 	"piko.sh/safeconv"
@@ -551,7 +552,7 @@ func (enc *Encoding) encodeBytesASCII(digits []int, leadingZeroCount int) string
 // Returns string which is the encoded result using alphabet runes.
 func (enc *Encoding) encodeBytesRunes(digits []int, leadingZeroCount int) string {
 	buffer := bytes.Buffer{}
-	buffer.Grow(leadingZeroCount + len(digits)*4)
+	buffer.Grow(leadingZeroCount + len(digits)*utf8.UTFMax)
 
 	for range leadingZeroCount {
 		_, _ = buffer.WriteRune(enc.zeroRune)
@@ -768,8 +769,8 @@ func (enc *Encoding) encode8BytesFast(data []byte, leadingZeroCount int) string 
 //
 // Returns string which is the encoded representation.
 func (enc *Encoding) encode16BytesFast(data []byte, leadingZeroCount int) string {
-	hi := binary.BigEndian.Uint64(data[:8])
-	lo := binary.BigEndian.Uint64(data[8:])
+	hi := binary.BigEndian.Uint64(data[:fastPathSize8])
+	lo := binary.BigEndian.Uint64(data[fastPathSize8:])
 
 	if hi == 0 && lo == 0 {
 		return strings.Repeat(enc.zeroString, fastPathSize16)

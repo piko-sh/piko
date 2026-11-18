@@ -44,6 +44,21 @@ const (
 
 	// getTruncateLen is the default truncation length used in table rendering.
 	getTruncateLen = 3
+
+	// getDescriptionTruncateLen is the truncation length for description columns.
+	getDescriptionTruncateLen = 60
+
+	// getTraceIDTruncateLen is the truncation length for trace ID columns.
+	getTraceIDTruncateLen = 16
+
+	// getSpanIDTruncateLen is the truncation length for span ID columns.
+	getSpanIDTruncateLen = 12
+
+	// getDLQIDTruncateLen is the truncation length for dead letter entry ID columns.
+	getDLQIDTruncateLen = 16
+
+	// getErrorTruncateLen is the truncation length for error message columns.
+	getErrorTruncateLen = 40
 )
 
 var (
@@ -519,7 +534,7 @@ func getMetrics(ctx context.Context, conn monitoringConnection, p *Printer, argu
 			m.GetType(),
 			strconv.Itoa(len(m.GetDataPoints())),
 			m.GetUnit(),
-			truncate(m.GetDescription(), 60),
+			truncate(m.GetDescription(), getDescriptionTruncateLen),
 		})
 	}
 	p.PrintResource(metricColumns, rows)
@@ -566,8 +581,8 @@ func getTraces(ctx context.Context, conn monitoringConnection, p *Printer, argum
 			continue
 		}
 		rows = append(rows, []string{
-			truncate(s.GetTraceId(), 16),
-			truncate(s.GetSpanId(), 12),
+			truncate(s.GetTraceId(), getTraceIDTruncateLen),
+			truncate(s.GetSpanId(), getSpanIDTruncateLen),
 			s.GetName(),
 			s.GetServiceName(),
 			p.ColourisedStatus(s.GetStatus()),
@@ -750,9 +765,9 @@ func getDLQEntries(ctx context.Context, conn monitoringConnection, p *Printer, d
 	rows := make([][]string, 0, len(response.GetEntries()))
 	for _, e := range response.GetEntries() {
 		rows = append(rows, []string{
-			truncate(e.GetId(), 16),
+			truncate(e.GetId(), getDLQIDTruncateLen),
 			e.GetType(),
-			truncate(e.GetOriginalError(), 40),
+			truncate(e.GetOriginalError(), getErrorTruncateLen),
 			strconv.Itoa(int(e.GetTotalAttempts())),
 			formatTimestamp(e.GetAddedAtMs()),
 			formatTimestamp(e.GetFirstAttemptMs()),

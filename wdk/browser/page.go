@@ -159,14 +159,14 @@ func (p *Page) Reload() *Page {
 	start := time.Now()
 
 	timedCtx, cancel := context.WithTimeoutCause(
-		p.incognitoPage.Ctx, 5*time.Second,
+		p.incognitoPage.Ctx, pageSettleTimeout,
 		errors.New("page Reload exceeded 5s timeout"),
 	)
 	defer cancel()
 
 	err := chromedp.Run(timedCtx, chromedp.Reload())
 	if err == nil {
-		_ = browser_provider_chromedp.WaitStable(timedCtx, 500*time.Millisecond)
+		_ = browser_provider_chromedp.WaitStable(timedCtx, pageStableInterval)
 	}
 	p.afterAction("Reload", "", err != nil, time.Since(start))
 	if err != nil {
@@ -263,7 +263,7 @@ func (p *Page) WaitFor(selector string) *Page {
 
 	var lastErr error
 	for attempt := range maxWaitForRetries {
-		err := browser_provider_chromedp.WaitForSelector(p.actionCtx(), selector, 5*time.Second)
+		err := browser_provider_chromedp.WaitForSelector(p.actionCtx(), selector, defaultWaitTimeout)
 		if err == nil {
 			p.afterAction("WaitFor", selector, false, time.Since(start))
 			return p
@@ -307,7 +307,7 @@ func (p *Page) WaitForText(selector, text string) *Page {
 	detail := fmt.Sprintf(fmtKeyValue, selector, text)
 	p.beforeAction("WaitForText", detail)
 	start := time.Now()
-	err := browser_provider_chromedp.WaitForText(p.actionCtx(), selector, text, 5*time.Second)
+	err := browser_provider_chromedp.WaitForText(p.actionCtx(), selector, text, defaultWaitTimeout)
 	p.afterAction("WaitForText", detail, err != nil, time.Since(start))
 	if err != nil {
 		p.t.Fatalf("WaitForText(%q, %q) failed: %v", selector, text, err)
@@ -322,11 +322,11 @@ func (p *Page) WaitStable() *Page {
 	p.beforeAction("WaitStable", "")
 	start := time.Now()
 	timedCtx, cancel := context.WithTimeoutCause(
-		p.incognitoPage.Ctx, 5*time.Second,
+		p.incognitoPage.Ctx, pageSettleTimeout,
 		errors.New("page WaitStable exceeded 5s timeout"),
 	)
 	defer cancel()
-	_ = browser_provider_chromedp.WaitStable(timedCtx, 500*time.Millisecond)
+	_ = browser_provider_chromedp.WaitStable(timedCtx, pageStableInterval)
 	p.afterAction("WaitStable", "", false, time.Since(start))
 	return p
 }

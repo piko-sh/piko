@@ -31,6 +31,12 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
+const (
+	// standardItemFieldCount is the number of standard fields (such as Slug and URL) that
+	// may be appended after the user metadata fields of an item literal.
+	standardItemFieldCount = 3
+)
+
 // buildSliceLiteral creates a typed AST slice literal from content-item metadata.
 //
 // Takes targetType (ast.Expr) which specifies the element type for the slice.
@@ -106,7 +112,7 @@ var (
 // Returns ast.Expr which is the composite literal representing the item.
 // Returns error when a metadata value cannot be converted to an AST expression.
 func (s *collectionService) buildItemLiteral(ctx context.Context, item *collection_dto.ContentItem) (ast.Expr, error) {
-	kvPairs := make([]ast.Expr, 0, len(item.Metadata)+3)
+	kvPairs := make([]ast.Expr, 0, len(item.Metadata)+standardItemFieldCount)
 
 	addedFields := make(map[string]bool)
 

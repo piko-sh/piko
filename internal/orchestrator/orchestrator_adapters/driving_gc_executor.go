@@ -51,6 +51,9 @@ const (
 	// them.
 	gcModeOrphans = "orphans"
 
+	// orphanKeySeparator joins a backend ID and a storage key into one orphan tracker key.
+	orphanKeySeparator = "|"
+
 	// gcPayloadKeyMode is the payload key for the GC execution mode.
 	gcPayloadKeyMode = "mode"
 
@@ -377,7 +380,7 @@ func (e *gcExecutor) scanBlobStore(
 		if _, referenced := referencedKeys[key]; referenced {
 			continue
 		}
-		observedOrphans[backendID+"|"+key] = struct{}{}
+		observedOrphans[backendID+orphanKeySeparator+key] = struct{}{}
 		if e.orphanTooYoungToDelete(ctx, store, backendID, key) {
 			continue
 		}
@@ -412,7 +415,7 @@ func (e *gcExecutor) scanBlobStore(
 func (e *gcExecutor) pruneOrphanTracker(backendID string, observedOrphans map[string]struct{}) {
 	e.orphanFirstSeenMu.Lock()
 	defer e.orphanFirstSeenMu.Unlock()
-	prefix := backendID + "|"
+	prefix := backendID + orphanKeySeparator
 	for seenKey := range e.orphanFirstSeen {
 		if !strings.HasPrefix(seenKey, prefix) {
 			continue
@@ -477,7 +480,7 @@ func (e *gcExecutor) orphanTooYoungToDelete(
 	if e.orphanFirstSeen == nil {
 		e.orphanFirstSeen = make(map[string]time.Time)
 	}
-	seenKey := backendID + "|" + key
+	seenKey := backendID + orphanKeySeparator + key
 	firstSeen, seen := e.orphanFirstSeen[seenKey]
 	now := e.clock.Now()
 	if !seen {
@@ -497,7 +500,7 @@ func (e *gcExecutor) orphanTooYoungToDelete(
 func (e *gcExecutor) forgetOrphan(backendID, key string) {
 	e.orphanFirstSeenMu.Lock()
 	defer e.orphanFirstSeenMu.Unlock()
-	delete(e.orphanFirstSeen, backendID+"|"+key)
+	delete(e.orphanFirstSeen, backendID+orphanKeySeparator+key)
 }
 
 // collectReferencedKeys builds a set of all storage keys that are currently referenced by
@@ -552,7 +555,7 @@ func collectArtefactKeys(artefact *registry_dto.ArtefactMeta, referenced map[str
 // Takes payload (map[string]any) which is forwarded as the rescheduled task's payload.
 // Takes delay (time.Duration) which is the delay before the rescheduled task executes.
 func (e *gcExecutor) reschedule(ctx context.Context, payload map[string]any, delay time.Duration) {
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 
 	mode := gcPayloadString(payload, gcPayloadKeyMode, gcModeHints)
 

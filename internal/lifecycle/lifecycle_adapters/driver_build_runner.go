@@ -113,6 +113,9 @@ type buildService struct {
 	// websiteConfig provides theme/font/favicon metadata for theme building.
 	websiteConfig *config.WebsiteConfig
 
+	// seedBarrier closes when another producer finishes upserting the build's artefacts.
+	seedBarrier <-chan struct{}
+
 	// pathsConfig holds the resolved path settings for file system operations.
 	pathsConfig lifecycle_domain.LifecyclePathsConfig
 
@@ -130,10 +133,6 @@ type buildService struct {
 	// adoptLeftovers makes the build wait for every unsettled foreground task in its store;
 	// see WithLeftoverAdoption.
 	adoptLeftovers bool
-
-	// seedBarrier, when set, is closed once another producer has finished upserting the
-	// build's artefacts; see WithSeedBarrier.
-	seedBarrier <-chan struct{}
 }
 
 // upsertedArtefacts records the IDs of artefacts upserted during a build.
@@ -934,11 +933,11 @@ func (bs *buildService) getDirectories() []string {
 //
 // Returns error when directory resolution fails fatally.
 func (bs *buildService) seedExternalComponentFiles(ctx context.Context) error {
+	ctx, l := logger_domain.From(ctx, log)
 	dirMap := bs.resolveExternalComponentDirs(ctx)
 	assetDirMap := bs.resolveExternalAssetDirs(ctx)
 
 	if err := bs.buildExternalSandboxFactory(ctx, dirMap, assetDirMap); err != nil {
-		_, l := logger_domain.From(ctx, log)
 		l.Warn("Failed to create sandbox factory for external modules, external files will be skipped",
 			logger_domain.Error(err))
 		return nil

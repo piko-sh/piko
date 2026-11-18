@@ -167,8 +167,8 @@ func registerCrashFile(ctx context.Context, file *os.File, cleanPath string) (fu
 	}, nil
 }
 
-// openCrashOutputFile opens the crash output file in append mode through a sandbox
-// rooted at its parent directory.
+// openCrashOutputFile opens the crash output file in append mode through a sandbox rooted
+// at its parent directory.
 //
 // The sandbox refuses relative paths that escape the parent (".." traversal), parent
 // directories that don't exist or aren't writable, and symlink-based escapes. Closing the

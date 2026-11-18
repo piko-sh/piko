@@ -27,7 +27,7 @@ import (
 
 	"github.com/bojanz/currency"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 // Amount returns the underlying numeric value of the Money object as a Decimal. This is

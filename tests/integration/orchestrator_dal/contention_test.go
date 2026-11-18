@@ -41,7 +41,9 @@ import (
 	"piko.sh/piko/wdk/db/db_engine_sqlite"
 )
 
-const contentionTasks = 60
+const (
+	contentionTasks = 60
+)
 
 func runContention(t *testing.T, store orchestrator_domain.TaskStore, workers int) {
 	ctx := t.Context()

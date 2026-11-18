@@ -27,6 +27,10 @@ import (
 )
 
 const (
+	// statusBarEdgePadding is the columns the status bar reserves for its horizontal
+	// padding.
+	statusBarEdgePadding = 4
+
 	// statusBarEllipsisPadding is the width kept for the ellipsis in the status bar.
 	statusBarEllipsisPadding = 5
 
@@ -144,7 +148,7 @@ func StatusBar(data StatusBarData, config *StatusBarConfig, width int) string {
 
 	leftLen := lipgloss.Width(left)
 	rightLen := lipgloss.Width(right)
-	spacing := max(1, width-leftLen-rightLen-4)
+	spacing := max(1, width-leftLen-rightLen-statusBarEdgePadding)
 
 	bar := fmt.Sprintf("%s%s%s", left, strings.Repeat(" ", spacing), right)
 
@@ -170,7 +174,7 @@ func MiniStatusBar(panelName string, itemCount int, selectedIndex int, config *S
 
 	leftLen := lipgloss.Width(left)
 	rightLen := lipgloss.Width(right)
-	spacing := max(1, width-leftLen-rightLen-4)
+	spacing := max(1, width-leftLen-rightLen-statusBarEdgePadding)
 
 	bar := fmt.Sprintf("%s%s%s", left, strings.Repeat(" ", spacing), right)
 

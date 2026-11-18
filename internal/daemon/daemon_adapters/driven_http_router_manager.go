@@ -20,9 +20,11 @@ package daemon_adapters
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"sync"
+	"sync/atomic"
 
 	"github.com/go-chi/chi/v5"
 	"piko.sh/piko/internal/analytics/analytics_domain"
@@ -116,11 +118,11 @@ type RouterManagerConfig struct {
 	// RouteProviders is the list of route providers that supply HTTP routes.
 	RouteProviders []daemon_domain.RouteProvider
 
-	// RateLimitConfig holds the per-action rate limit settings applied to action routes.
-	RateLimitConfig security_dto.RateLimitValues
-
 	// RouteSettings provides typed route settings for route mounting.
 	RouteSettings RouteSettings
+
+	// RateLimitConfig holds the per-action rate limit settings applied to action routes.
+	RateLimitConfig security_dto.RateLimitValues
 }
 
 // RouterManager is an http.Handler that reloads its routes while running. It implements
@@ -140,9 +142,11 @@ type RouterManager struct {
 	// variantGenerator builds image variants when routes are set up.
 	variantGenerator daemon_domain.OnDemandVariantGenerator
 
-	// currentRouter is the active router that handles requests; it is swapped during route
-	// reloads.
-	currentRouter http.Handler
+	// current holds the active router and the builder that created it. Requests load it
+	// without locking.
+	//
+	// Reloads publish a new value.
+	current atomic.Pointer[activeRouter]
 
 	// presignUploadHandler provides presigned URL uploads; nil disables this feature.
 	presignUploadHandler http.Handler
@@ -168,10 +172,6 @@ type RouterManager struct {
 
 	// csrfService creates and checks CSRF tokens.
 	csrfService security_domain.CSRFTokenService
-
-	// currentBuilder holds the builder that created the current router, so its resources
-	// (e.g. metadata cache) can be closed on the next reload.
-	currentBuilder daemon_domain.RouterBuilder
 
 	// cacheMiddleware wraps handlers to add response caching.
 	cacheMiddleware func(next http.Handler) http.Handler
@@ -207,14 +207,33 @@ type RouterManager struct {
 	// cspConfig holds the CSP settings from startup; read-only after start.
 	cspConfig security_dto.CSPRuntimeConfig
 
-	// rateLimitConfig holds the per-action rate limit settings.
-	rateLimitConfig security_dto.RateLimitValues
-
 	// routeSettings stores typed route settings used when mounting routes.
 	routeSettings RouteSettings
 
-	// mu guards access to currentRouter during hot-reloads.
-	mu sync.RWMutex
+	// rateLimitConfig holds the per-action rate limit settings.
+	rateLimitConfig security_dto.RateLimitValues
+
+	// reloadMu serialises ReloadRoutes and Close, so concurrent reloads publish in call
+	// order and every builder is closed exactly once.
+	reloadMu sync.Mutex
+
+	// closed is set by Close so later reloads publish nothing. Guarded by reloadMu.
+	closed bool
+}
+
+var (
+	// errRouterManagerClosed is returned by ReloadRoutes after Close has run.
+	errRouterManagerClosed = errors.New("router manager is closed")
+)
+
+// activeRouter pairs a built router with the builder that owns its resources. A value is
+// never changed after it is published.
+type activeRouter struct {
+	// handler is the router that serves requests.
+	handler http.Handler
+
+	// builder created handler. The builder is closed when the router is replaced.
+	builder daemon_domain.RouterBuilder
 }
 
 // NewRouterManager creates a new RouterManager that is not yet set up.
@@ -225,7 +244,6 @@ type RouterManager struct {
 // Returns *RouterManager which is ready for use after setup.
 func NewRouterManager(routerManagerConfig *RouterManagerConfig) *RouterManager {
 	return &RouterManager{
-		currentRouter:          nil,
 		csrfService:            routerManagerConfig.CSRFService,
 		registryService:        routerManagerConfig.RegistryService,
 		variantGenerator:       routerManagerConfig.VariantGenerator,
@@ -251,25 +269,22 @@ func NewRouterManager(routerManagerConfig *RouterManagerConfig) *RouterManager {
 		artefactCache:          routerManagerConfig.ArtefactCache,
 		captchaService:         routerManagerConfig.CaptchaService,
 		spamdetectService:      routerManagerConfig.SpamDetectService,
-		mu:                     sync.RWMutex{},
-		currentBuilder:         nil,
+		current:                atomic.Pointer[activeRouter]{},
+		reloadMu:               sync.Mutex{},
+		closed:                 false,
 	}
 }
 
-// ServeHTTP handles an HTTP request by passing it to the current router. Satisfies the
-// http.Handler interface.
+// ServeHTTP passes each request to the router active when handling starts.
+//
+// A request stays with that router during a route reload. Before a router is installed,
+// ServeHTTP responds with HTTP 503.
 //
 // Takes w (http.ResponseWriter) which receives the HTTP response.
 // Takes r (*http.Request) which contains the incoming HTTP request.
-//
-// Safe for concurrent use. Acquires a read lock to access the current router.
 func (rm *RouterManager) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	rm.mu.RLock()
-	router := rm.currentRouter
-	rm.mu.RUnlock()
-
-	if router != nil {
-		router.ServeHTTP(w, r)
+	if active := rm.current.Load(); active != nil {
+		active.handler.ServeHTTP(w, r)
 	} else {
 		http.Error(w, "Service is initialising, please try again shortly.", http.StatusServiceUnavailable)
 	}
@@ -281,13 +296,20 @@ func (rm *RouterManager) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // Takes store (ManifestStoreView) which provides the new manifest data for route
 // configuration.
 //
-// Returns error when the router build fails.
+// Returns error when the router build fails, or errRouterManagerClosed after Close.
 //
-// Safe for concurrent use. Uses a write lock during the atomic swap of the current
-// router.
+// Safe for concurrent use. Reloads are serialised so they publish in call order, and
+// requests keep using the previous router until the new one is swapped in.
 func (rm *RouterManager) ReloadRoutes(ctx context.Context, store templater_domain.ManifestStoreView) error {
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 	l.Internal("Hot-reloading Chi router with new manifest...")
+
+	rm.reloadMu.Lock()
+	defer rm.reloadMu.Unlock()
+
+	if rm.closed {
+		return errRouterManagerClosed
+	}
 
 	newAppRouter, notFoundHandler := rm.buildReloadedAppRouter(ctx, store)
 
@@ -313,14 +335,9 @@ func (rm *RouterManager) ReloadRoutes(ctx context.Context, store templater_domai
 		return fmt.Errorf("failed to build new router during reload: %w", err)
 	}
 
-	rm.mu.Lock()
-	oldBuilder := rm.currentBuilder
-	rm.currentRouter = finalRouter
-	rm.currentBuilder = builder
-	rm.mu.Unlock()
-
-	if oldBuilder != nil {
-		oldBuilder.Close()
+	previous := rm.current.Swap(&activeRouter{handler: finalRouter, builder: builder})
+	if previous != nil {
+		previous.builder.Close()
 	}
 
 	l.Internal("Chi router hot-reload complete.")
@@ -332,14 +349,20 @@ func (rm *RouterManager) ReloadRoutes(ctx context.Context, store templater_domai
 // This includes resources such as the artefact metadata cache. Call during application
 // shutdown.
 //
-// Safe for concurrent use. Acquires a read lock to access the current builder.
+// Safe for concurrent use. Close waits for a reload in progress, closes the current
+// builder once, and stops later reloads from publishing a router whose builder would
+// never be closed. Calling Close again does nothing.
 func (rm *RouterManager) Close() {
-	rm.mu.RLock()
-	b := rm.currentBuilder
-	rm.mu.RUnlock()
+	rm.reloadMu.Lock()
+	defer rm.reloadMu.Unlock()
 
-	if b != nil {
-		b.Close()
+	if rm.closed {
+		return
+	}
+	rm.closed = true
+
+	if active := rm.current.Load(); active != nil {
+		active.builder.Close()
 	}
 }
 

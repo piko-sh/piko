@@ -51,7 +51,7 @@ func TestPipelineFlush_EventCountsMatch(t *testing.T) {
 	flushed := h.waitForFlush(5 * time.Second)
 	require.True(t, flushed, "pipeline should flush within timeout")
 
-	published := h.registryService.ArtefactEventsPublished()
+	published := h.registryService.ArtefactEventsIssued()
 	processed := h.bridge.ArtefactEventsProcessed()
 	assert.Equal(t, int64(3), published, "expected 3 events published")
 	assert.GreaterOrEqual(t, processed, published,
@@ -102,7 +102,7 @@ func TestPipelineFlush_MultipleArtefactsFlushBeforeIdle(t *testing.T) {
 	flushed := h.waitForFlush(5 * time.Second)
 	require.True(t, flushed, "pipeline should flush all events")
 
-	published := h.registryService.ArtefactEventsPublished()
+	published := h.registryService.ArtefactEventsIssued()
 	assert.Equal(t, int64(artefactCount), published, "all artefacts should publish events")
 
 	idle := h.waitForIdle(5 * time.Second)

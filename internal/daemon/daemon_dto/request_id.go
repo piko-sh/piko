@@ -21,10 +21,16 @@ package daemon_dto
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/binary"
+	"errors"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
-	"sync/atomic"
+	"time"
+
+	"piko.sh/safeconv"
+	"piko.sh/sharded"
 )
 
 const (
@@ -35,6 +41,10 @@ const (
 	// requestIDCounterPadding is the number of digits to pad the request counter to. With 6
 	// digits, the counter can reach 999,999 before it goes past the padding width.
 	requestIDCounterPadding = 6
+
+	// firstRequestIDCounter is the first counter value handed out. Zero is kept free so that
+	// PikoRequestCtx can use it to mean "no generated ID".
+	firstRequestIDCounter = 1
 
 	// baseDecimal is the base value for formatting numbers as decimal strings.
 	baseDecimal = 10
@@ -52,18 +62,43 @@ var (
 	// "hostname/random10chars".
 	requestIDPrefix string
 
-	// requestIDCounter is an atomic counter for generating unique request IDs.
-	requestIDCounter atomic.Uint64
+	// requestIDSequence hands out the unique counter values for request IDs. It is nil only
+	// when requestIDSequenceErr is set.
+	requestIDSequence *sharded.Sequence
+
+	// requestIDSequenceErr holds the error from creating requestIDSequence, if any.
+	requestIDSequenceErr error
+
+	// errNilRequestIDSequence is returned when there is no sequence to take a counter from.
+	errNilRequestIDSequence = errors.New("request id sequence is nil")
 )
 
-// NextRequestIDCounter atomically increments and returns the next request ID counter
-// value. The middleware stores this lightweight uint64 in the context instead of a
-// pre-formatted string; the string is produced lazily by FormatRequestID only when
-// actually read.
+// NextRequestIDCounter returns a process-unique counter when available.
 //
-// Returns uint64 which is the next unique counter value.
-func NextRequestIDCounter() uint64 {
-	return requestIDCounter.Add(1)
+// Values are unique for the life of the process and never zero, but they are not in
+// arrival order and may have gaps, because each processor hands out values from its own
+// block.
+//
+// Callers should use FallbackRequestIDCounter if no counter is available.
+//
+// Returns uint64 which is the next unique counter value, zero when error is set.
+// Returns error which wraps sharded.ErrSequenceExhausted when no value is left, or the
+// creation error when the sequence could not be made.
+func NextRequestIDCounter() (uint64, error) {
+	return nextRequestIDCounterFrom(requestIDSequence, requestIDSequenceErr)
+}
+
+// FallbackRequestIDCounter returns a random, non-zero counter value for use when
+// NextRequestIDCounter fails. The value is not guaranteed to be unique, but a collision
+// is very unlikely.
+//
+// Returns uint64 which is never zero.
+func FallbackRequestIDCounter() uint64 {
+	var buffer [8]byte
+	if _, err := rand.Read(buffer[:]); err != nil {
+		return safeconv.Int64ToUint64(time.Now().UnixNano()) | firstRequestIDCounter
+	}
+	return binary.LittleEndian.Uint64(buffer[:]) | firstRequestIDCounter
 }
 
 // FormatRequestID formats a counter value into the full request ID string
@@ -106,6 +141,8 @@ func init() {
 	b64 = strings.NewReplacer("+", "", "/", "").Replace(b64)
 
 	requestIDPrefix = hostname + "/" + b64[:requestIDPrefixLength]
+
+	requestIDSequence, requestIDSequenceErr = sharded.NewSequence(sharded.WithStart(firstRequestIDCounter))
 }
 
 // AcceptForwardedRequestID reports whether a request id received from a proxy may be used
@@ -154,4 +191,25 @@ func isRequestIDByte(candidate byte) bool {
 
 		return candidate == '-' || candidate == '_' || candidate == '.'
 	}
+}
+
+// nextRequestIDCounterFrom takes the next counter value from sequence.
+//
+// Takes sequence (*sharded.Sequence) which hands out the values.
+// Takes creationErr (error) which is the error from creating sequence, if any.
+//
+// Returns uint64 which is the next unique counter value, zero when error is set.
+// Returns error which explains why no value could be taken.
+func nextRequestIDCounterFrom(sequence *sharded.Sequence, creationErr error) (uint64, error) {
+	if creationErr != nil {
+		return 0, fmt.Errorf("creating request id sequence: %w", creationErr)
+	}
+	if sequence == nil {
+		return 0, errNilRequestIDSequence
+	}
+	counter, err := sequence.Next()
+	if err != nil {
+		return 0, fmt.Errorf("taking next request id counter: %w", err)
+	}
+	return counter, nil
 }

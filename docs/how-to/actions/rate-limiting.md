@@ -46,6 +46,23 @@ Piko composes the bucket key from the registered action name (`<package>.<Struct
 
 `piko.RateLimitBySession` works the same way against the session ID. To define your own suffix, supply a `RateLimitKeyFunc` that returns the suffix string for a given request.
 
+## Share limits across instances
+
+Each process keeps its own rate limiter state by default. To enforce one limit across instances, register a shared remote cache provider and name it for the rate limiter:
+
+```go
+ssr := piko.New(
+    piko.WithCacheProvider("redis", redisProvider),
+    piko.WithRateLimiterCacheProvider("redis"),
+)
+```
+
+A remote counter can remain active for up to two seconds past its nominal
+window end to tolerate clock skew between instances. Rate limit headers
+still report the nominal reset time.
+
+The server refuses to start if the named provider cannot be used for rate limiting.
+
 ## See also
 
 - [Server actions reference](../../reference/server-actions.md) for the action surface.

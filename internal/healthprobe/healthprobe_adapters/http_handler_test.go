@@ -25,8 +25,8 @@ import (
 	"testing"
 	"time"
 
+	"piko.sh/json"
 	"piko.sh/piko/internal/healthprobe/healthprobe_dto"
-	"piko.sh/piko/internal/json"
 )
 
 type mockService struct {

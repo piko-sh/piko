@@ -33,6 +33,10 @@ import (
 const (
 	// cacheKeyAttr is the attribute key for logging cache operations.
 	cacheKeyAttr = "cache.key"
+
+	// l1RefreshFraction is the share of the L1 time to live after which an entry is
+	// refreshed in the background.
+	l1RefreshFraction = 0.9
 )
 
 // ASTCacheService provides a high-level, configured caching solution for ASTs. It
@@ -92,7 +96,7 @@ func NewASTCacheService(config ASTCacheConfig) (*ASTCacheService, error) {
 		return nil, errors.New("L2CacheBaseDir must be provided")
 	}
 
-	refreshTTL := time.Duration(float64(config.L1CacheTTL) * 0.9)
+	refreshTTL := time.Duration(float64(config.L1CacheTTL) * l1RefreshFraction)
 
 	l1Cache := otter.Must(&otter.Options[string, *ast_domain.TemplateAST]{
 		MaximumSize:       config.L1CacheCapacity,

@@ -26,12 +26,12 @@ import (
 	"strings"
 	"time"
 
+	"piko.sh/json"
 	"piko.sh/piko/internal/ast/ast_domain"
 	es_ast "piko.sh/piko/internal/esbuild/ast"
 	"piko.sh/piko/internal/esbuild/css_parser"
 	"piko.sh/piko/internal/esbuild/css_printer"
 	es_logger "piko.sh/piko/internal/esbuild/logger"
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/sfcparser"
 )

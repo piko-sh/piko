@@ -83,7 +83,7 @@ during normalisation and surfaces the resulting Go type:
 |---|---|
 | `UInt64` | `uint64` |
 | `Int32` | `int32` |
-| `Nullable(String)` | `*string` |
+| `Nullable(String)` | `Null[string]` |
 | `Array(String)` | `[]string` |
 | `Array(Nullable(UInt32))` | `[]*uint32` |
 | `LowCardinality(String)` | `string` (storage hint only) |
@@ -96,9 +96,10 @@ during normalisation and surfaces the resulting Go type:
 | `Enum8('a' = 1, 'b' = 2)` | string-backed enum |
 | `UUID` | `github.com/google/uuid.UUID` or `string` |
 
-`Nullable(T)` always becomes `*T` in the row struct. Piko strips `LowCardinality(T)`
-because it is a storage-side compression hint with no
-client-side impact.
+`Nullable(T)` becomes `Null[T]` in a row struct. A nullable array
+element stays a `*T`, and a custom `go_type:` mapping stays a `*Type`.
+Piko strips `LowCardinality(T)` because it is a storage-side compression
+hint with no client-side impact.
 
 ## CREATE TABLE engine clauses
 
@@ -168,7 +169,7 @@ ClickHouse fills the unmatched side of a `LEFT`, `RIGHT` or `FULL`
 join according to the server's `join_use_nulls` setting. By default
 it is off, and an unmatched row carries each column type's default
 value (`0`, `''`) rather than NULL, so Piko generates a joined column
-as a pointer only when its type is `Nullable(T)`:
+as a `Null[T]` only when its type is `Nullable(T)`:
 
 ```sql
 -- piko.query(ListAuthorsWithBooks, many)
@@ -179,7 +180,7 @@ FROM authors LEFT JOIN books ON books.author_id = authors.id;
 With the default, `Title` is a `string` and an author without books
 reads as an empty title. If your servers or settings profile turn
 `join_use_nulls` on, tell the engine, so the outer side's columns
-become pointers that can hold the NULLs the server then returns:
+become `Null[T]` fields that can hold the NULLs the server then returns:
 
 ```go
 config := db_engine_clickhouse.ClickHouse()

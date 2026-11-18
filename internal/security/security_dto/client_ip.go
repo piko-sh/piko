@@ -16,7 +16,9 @@ package security_dto
 
 import (
 	"context"
+	"net"
 	"net/http"
+	"strings"
 
 	"piko.sh/piko/internal/daemon/daemon_dto"
 )
@@ -72,4 +74,35 @@ func RequestIDFromContext(ctx context.Context) string {
 // Returns string which is the request ID, or empty if not set.
 func RequestIDFromRequest(r *http.Request) string {
 	return RequestIDFromContext(r.Context())
+}
+
+// RateLimitClientAddress finds the address used to count a request against a rate limit.
+// It uses the resolved client IP or, when that is empty, the host from RemoteAddr without
+// its port so source port changes do not create new buckets.
+//
+// An empty result means the address is unknown. A rate limiter must refuse the request
+// because an empty key would put every unknown peer into one bucket.
+//
+// Takes r (*http.Request) which supplies the client IP and peer address.
+//
+// Returns string which is the address, or empty when it is unknown.
+func RateLimitClientAddress(r *http.Request) string {
+	if clientIP := ClientIPFromRequest(r); clientIP != "" {
+		return clientIP
+	}
+	return remoteAddrHost(r.RemoteAddr)
+}
+
+// remoteAddrHost returns the host part of a peer address.
+//
+// Takes remoteAddr (string) which is a host:port pair or a bare host.
+//
+// Returns string which is the parsed host, or the trimmed input when it is not a
+// host:port pair.
+func remoteAddrHost(remoteAddr string) string {
+	trimmed := strings.TrimSpace(remoteAddr)
+	if host, _, err := net.SplitHostPort(trimmed); err == nil {
+		return host
+	}
+	return trimmed
 }

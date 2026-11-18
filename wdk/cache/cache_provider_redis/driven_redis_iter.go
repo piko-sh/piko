@@ -34,7 +34,7 @@ func (a *RedisAdapter[K, V]) All() iter.Seq2[K, V] {
 		ctx := context.Background()
 
 		scanPattern := a.allScanPattern()
-		scanIterator := a.client.Scan(ctx, 0, scanPattern, 100).Iterator()
+		scanIterator := a.client.Scan(ctx, 0, scanPattern, scanBatchSize).Iterator()
 		for scanIterator.Next(ctx) {
 			if !a.yieldScannedEntry(ctx, scanIterator.Val(), yield) {
 				return

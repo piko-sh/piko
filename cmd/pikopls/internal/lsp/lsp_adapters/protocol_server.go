@@ -87,8 +87,8 @@ func recoverHandlerPanics(handler jsonrpc2.Handler) jsonrpc2.Handler {
 	}
 }
 
-// advertiseExtensionCapabilities wraps a JSON-RPC handler so the initialisation reply also
-// advertises the LSP 3.17 capabilities the protocol library has no fields for (inlay
+// advertiseExtensionCapabilities wraps a JSON-RPC handler so the initialisation reply
+// also advertises the LSP 3.17 capabilities the protocol library has no fields for (inlay
 // hints and type hierarchy). Every other message passes through untouched.
 //
 // Takes handler (jsonrpc2.Handler) which handles each message.
@@ -103,8 +103,8 @@ func advertiseExtensionCapabilities(handler jsonrpc2.Handler) jsonrpc2.Handler {
 	}
 }
 
-// extendInitialiseReply wraps the initialisation replier so a successful reply carries the
-// extension capabilities.
+// extendInitialiseReply wraps the initialisation replier so a successful reply carries
+// the extension capabilities.
 //
 // Takes reply (jsonrpc2.Replier) which sends the reply to the client.
 //

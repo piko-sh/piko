@@ -24,7 +24,7 @@ import (
 	"maps"
 	"slices"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 const (

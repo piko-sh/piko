@@ -18,10 +18,6 @@
 
 package inspector_domain
 
-// This file defines the TypeBuilder, which orchestrates the parsing, caching, and
-// serialisation of Go source code type information. It is designed to be highly testable
-// through the use of dependency injection.
-
 import (
 	"cmp"
 	"context"
@@ -56,6 +52,9 @@ const (
 
 	// logKeyCacheKey is the log field key for a build's cache key.
 	logKeyCacheKey = "cacheKey"
+
+	// cacheKeyLogPrefixLength is the number of leading cache key characters written to logs.
+	cacheKeyLogPrefixLength = 8
 )
 
 var (
@@ -66,15 +65,15 @@ var (
 
 // builderCacheKeyGenerator defines how to create a stable cache key.
 type builderCacheKeyGenerator interface {
-	// Generates documentation output from the analysed source files.
+	// Generate creates a cache key for the inspection inputs.
 	//
-	// Takes config (inspector_dto.Config) which specifies the generation settings.
+	// Takes config (inspector_dto.Config) which specifies the inspection settings.
 	// Takes sourceContents (map[string][]byte) which provides the source file contents keyed
 	// by file path.
 	// Takes scriptHashes (map[string]string) which maps file paths to their content hashes.
 	//
-	// Returns string which is the generated documentation.
-	// Returns error when generation fails.
+	// Returns string which is the generated cache key.
+	// Returns error when key generation fails.
 	Generate(ctx context.Context, config inspector_dto.Config, sourceContents map[string][]byte, scriptHashes map[string]string) (string, error)
 }
 
@@ -443,7 +442,7 @@ func (m *TypeBuilder) buildLocked(ctx context.Context, sourceContents map[string
 			m.touchLocked(cacheKey)
 			m.currentCacheKey = cacheKey
 			l.Internal("[INSPECTOR] Build skipped: module already cached in memory.",
-				logger_domain.String(logKeyCacheKey, cacheKey[:min(8, len(cacheKey))]))
+				logger_domain.String(logKeyCacheKey, cacheKey[:min(cacheKeyLogPrefixLength, len(cacheKey))]))
 			return nil
 		}
 	}
@@ -531,13 +530,13 @@ func (m *TypeBuilder) buildFromCache(ctx context.Context, cacheKey string, sourc
 // Returns typeData (*inspector_dto.TypeData) which is the cached type data.
 // Returns err (error) when the provider fails or panics.
 func (m *TypeBuilder) loadCachedTypeData(ctx context.Context, cacheKey string) (typeData *inspector_dto.TypeData, err error) {
+	ctx, l := logger_domain.From(ctx, log)
 	defer func() {
 		recovered := recover()
 		if recovered == nil {
 			return
 		}
 		typeData = nil
-		_, l := logger_domain.From(ctx, log)
 		l.Warn("Recovered from panic while loading cached type data; invalidating the entry",
 			logger_domain.String(logKeyCacheKey, cacheKey),
 			logger_domain.String("recovered", fmt.Sprintf("%v", recovered)),
@@ -637,7 +636,7 @@ func (m *TypeBuilder) storeLocked(ctx context.Context, cacheKey string, typeData
 
 		_, l := logger_domain.From(ctx, log)
 		l.Internal("[INSPECTOR] Evicted least recently used build from memory.",
-			logger_domain.String(logKeyCacheKey, evicted[:min(8, len(evicted))]),
+			logger_domain.String(logKeyCacheKey, evicted[:min(cacheKeyLogPrefixLength, len(evicted))]),
 			logger_domain.Int("cached_builds", len(m.cachedKeyOrder)))
 	}
 }

@@ -20,6 +20,12 @@ func BindMap(ctx context.Context, destination any, source map[string]any, opts .
 func BindJSON(ctx context.Context, destination any, source []byte, opts ...Option) error
 ```
 
+`BindJSON` returns an error for input over its size cap. The error maps to
+413 `PAYLOAD_TOO_LARGE` and matches
+`errors.Is(err, binder.ErrBindJSONTooLarge)`. JSON arrays and scalar
+values other than `null` map to 400 `BAD_REQUEST`. The response does not
+expose decoder details.
+
 ## Options
 
 ```go

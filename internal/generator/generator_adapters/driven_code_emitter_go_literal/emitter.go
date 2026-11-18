@@ -1142,17 +1142,9 @@ type userCodeLineDirective struct {
 	directive string
 }
 
-// copyUserCode moves all declarations except imports from the user's script into the
-// target AST. When source location data is available, it records //line directive
-// metadata for post-processing by injectUserCodeLineDirectives, and when compiler-honoured
-// directives are enabled it also maps every statement of each user function to its .pk
-// line (see userCodeStatementMapper).
-//
-// The line mapping uses the ORIGINAL script AST (Source.Script.AST) rather than
-// RewrittenScriptAST because the rewriter's deepCopyASTFile discards the FileSet used for
-// re-parsing, making RewrittenScriptAST positions unresolvable. Auto-generated
-// declarations (default Render, CachePolicy) have Pos()=0 in the original AST and are
-// correctly excluded from //line emission.
+// copyUserCode adds the user's non-import declarations and source line directives to the
+// target AST. It uses the original script for line positions because the rewritten AST
+// loses its FileSet.
 //
 // Takes fileAST (*goast.File) which is the target AST to add declarations to.
 // Takes mainComponent (*annotator_dto.VirtualComponent) which provides the rewritten
@@ -1425,7 +1417,7 @@ func injectUserCodeLineDirectives(src []byte, directives []userCodeLineDirective
 		return src
 	}
 
-	result := make([]byte, 0, len(src)+len(directives)*64)
+	result := make([]byte, 0, len(src)+len(directives)*estimatedLineDirectiveBytes)
 	remaining := src
 
 	for len(remaining) > 0 {
@@ -1527,7 +1519,7 @@ func buildBoilerplateVarAcks() []goast.Decl {
 		acks = append(acks, &goast.GenDecl{
 			Tok: token.VAR,
 			Specs: []goast.Spec{&goast.ValueSpec{
-				Names:  []*goast.Ident{cachedIdent("_")},
+				Names:  []*goast.Ident{cachedIdent(BlankIdentifier)},
 				Values: []goast.Expr{&goast.SelectorExpr{X: cachedIdent(ack.name), Sel: cachedIdent(ack.symbol)}},
 			}},
 		})
@@ -1536,7 +1528,7 @@ func buildBoilerplateVarAcks() []goast.Decl {
 		acks = append(acks, &goast.GenDecl{
 			Tok: token.VAR,
 			Specs: []goast.Spec{&goast.ValueSpec{
-				Names:  []*goast.Ident{cachedIdent("_")},
+				Names:  []*goast.Ident{cachedIdent(BlankIdentifier)},
 				Values: []goast.Expr{expression},
 			}},
 		})
@@ -1600,7 +1592,7 @@ func buildPolicyRegisterCall(pkgPathLit goast.Expr, registerFuncName, policyType
 					Type: &goast.FuncType{
 						Params: &goast.FieldList{
 							List: []*goast.Field{{
-								Names: []*goast.Ident{cachedIdent("_")},
+								Names: []*goast.Ident{cachedIdent(BlankIdentifier)},
 								Type: &goast.StarExpr{
 									X: &goast.SelectorExpr{
 										X:   cachedIdent(facadePackageName),

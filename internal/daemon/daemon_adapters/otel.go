@@ -19,7 +19,9 @@
 package daemon_adapters
 
 import (
+	"maps"
 	"sync"
+	"sync/atomic"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -109,18 +111,27 @@ var (
 	// tlsCertificateReloadErrorCount tracks failed TLS certificate reload attempts.
 	tlsCertificateReloadErrorCount metric.Int64Counter
 
-	// metricAttrMu guards metricAttrCache.
+	// metricAttrCache holds an immutable map of pre-built metric measurement options keyed
+	// by path and method, so page and partial requests read it without locking.
 	//
-	// The cache stores metric.MeasurementOption by path and method to avoid re-creating the
-	// attribute.Set on every request. The number of unique path+method combinations is
-	// bounded by the route table (typically < 100), so this cache is small and never needs
-	// eviction.
-	metricAttrMu sync.RWMutex
+	// A new map is published only the first time a path and method pair is seen. The number
+	// of pairs is bounded by the route table and the methods each route accepts (typically a
+	// few hundred at most), so the copies made on those rare writes stay small and the map
+	// never needs eviction.
+	metricAttrCache atomic.Pointer[map[metricAttrKey]metric.MeasurementOption]
 
-	// metricAttrCache stores pre-built metric measurement options keyed by path and method
-	// to avoid repeated attribute allocations.
-	metricAttrCache = make(map[string]map[string]metric.MeasurementOption)
+	// metricAttrWriteMu serialises the copy-on-write updates of metricAttrCache.
+	metricAttrWriteMu sync.Mutex
 )
+
+// metricAttrKey identifies a cached metric option by route path and HTTP method.
+type metricAttrKey struct {
+	// path is the matched route pattern.
+	path string
+
+	// method is the HTTP method of the request.
+	method string
+}
 
 // cachedMetricOption returns a metric.MeasurementOption with the given path and method
 // attributes. Results are cached so repeat calls with the same arguments produce zero
@@ -131,30 +142,40 @@ var (
 //
 // Returns metric.MeasurementOption which contains the cached path and method attributes.
 //
-// Safe for concurrent use. Uses a read-write mutex to protect the shared cache map.
+// Concurrency: Reads use the published map without locking. The first use of a pair
+// copies the map under a writer mutex and publishes the copy.
 func cachedMetricOption(path, method string) metric.MeasurementOption {
-	metricAttrMu.RLock()
-	if methods, ok := metricAttrCache[path]; ok {
-		if opt, ok := methods[method]; ok {
-			metricAttrMu.RUnlock()
+	key := metricAttrKey{path: path, method: method}
+	if cache := metricAttrCache.Load(); cache != nil {
+		if opt, ok := (*cache)[key]; ok {
 			return opt
 		}
 	}
-	metricAttrMu.RUnlock()
+
+	metricAttrWriteMu.Lock()
+	defer metricAttrWriteMu.Unlock()
+
+	current := metricAttrCache.Load()
+	if current != nil {
+		if opt, ok := (*current)[key]; ok {
+			return opt
+		}
+	}
 
 	opt := metric.WithAttributeSet(attribute.NewSet(
 		attribute.String("path", path),
 		attribute.String("method", method),
 	))
 
-	metricAttrMu.Lock()
-	methods := metricAttrCache[path]
-	if methods == nil {
-		methods = make(map[string]metric.MeasurementOption, 4)
-		metricAttrCache[path] = methods
+	var next map[metricAttrKey]metric.MeasurementOption
+	if current == nil {
+		next = make(map[metricAttrKey]metric.MeasurementOption, 1)
+	} else {
+		next = make(map[metricAttrKey]metric.MeasurementOption, len(*current)+1)
+		maps.Copy(next, *current)
 	}
-	methods[method] = opt
-	metricAttrMu.Unlock()
+	next[key] = opt
+	metricAttrCache.Store(&next)
 
 	return opt
 }

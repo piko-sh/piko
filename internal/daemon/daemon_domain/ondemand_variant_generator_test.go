@@ -22,8 +22,13 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
+	"runtime"
+	"slices"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -654,41 +659,61 @@ func TestGenerateFinalStorageKey_IncludesHash(t *testing.T) {
 	assert.True(t, strings.HasSuffix(key, ".webp"), "Expected final key to end with .webp")
 }
 
-func TestGetOrCreateVariantMutex_CreatesNew(t *testing.T) {
+func TestAcquireVariantLock_CreatesEntryWithOneReference(t *testing.T) {
 	t.Parallel()
 
 	generator := mustAsGeneratorImpl(t, createTestGenerator(t))
 
-	mu := generator.getOrCreateVariantMutex("new-key")
+	lock := generator.acquireVariantLock("new-key")
+	t.Cleanup(func() { generator.releaseVariantLock("new-key", lock) })
 
-	assert.NotNil(t, mu, "Expected non-nil mutex")
+	generator.inProgressMutex.Lock()
+	defer generator.inProgressMutex.Unlock()
+	require.Same(t, lock, generator.inProgress["new-key"])
+	assert.Equal(t, 1, lock.references)
 }
 
-func TestGetOrCreateVariantMutex_ReturnsExisting(t *testing.T) {
+func TestAcquireVariantLock_SharesEntryWithWaiters(t *testing.T) {
 	t.Parallel()
 
 	generator := mustAsGeneratorImpl(t, createTestGenerator(t))
 
-	mu1 := generator.getOrCreateVariantMutex("same-key")
-	mu2 := generator.getOrCreateVariantMutex("same-key")
+	first := generator.acquireVariantLock("same-key")
 
-	assert.Same(t, mu1, mu2, "Expected same mutex for same key")
+	acquired := make(chan *variantLock)
+	go func() { acquired <- generator.acquireVariantLock("same-key") }()
+
+	require.Eventually(t, func() bool {
+		generator.inProgressMutex.Lock()
+		defer generator.inProgressMutex.Unlock()
+		return first.references == 2
+	}, time.Second, time.Millisecond, "waiter must register before it blocks")
+
+	generator.releaseVariantLock("same-key", first)
+
+	generator.inProgressMutex.Lock()
+	_, exists := generator.inProgress["same-key"]
+	generator.inProgressMutex.Unlock()
+	assert.True(t, exists, "entry must stay while a waiter remains")
+
+	second := <-acquired
+	assert.Same(t, first, second, "waiter must receive the same lock")
+	generator.releaseVariantLock("same-key", second)
 }
 
-func TestCleanupVariantMutex_RemovesMutex(t *testing.T) {
+func TestReleaseVariantLock_RemovesEntryWhenUnreferenced(t *testing.T) {
 	t.Parallel()
 
 	generator := mustAsGeneratorImpl(t, createTestGenerator(t))
 
-	_ = generator.getOrCreateVariantMutex("test-key")
-
-	generator.cleanupVariantMutex("test-key")
+	lock := generator.acquireVariantLock("test-key")
+	generator.releaseVariantLock("test-key", lock)
 
 	generator.inProgressMutex.Lock()
 	_, exists := generator.inProgress["test-key"]
 	generator.inProgressMutex.Unlock()
 
-	assert.False(t, exists, "Expected mutex to be removed after cleanup")
+	assert.False(t, exists, "Expected entry to be removed after the last release")
 }
 
 func TestCountingHashReader_CountsBytes(t *testing.T) {
@@ -1035,4 +1060,130 @@ func TestGenerateVariant_ReturnsError_WhenGetVariantDataFails(t *testing.T) {
 
 	require.Error(t, err, "Expected error when GetVariantData fails")
 	assert.ErrorContains(t, err, "failed to get source data", "Expected error about source data failure")
+}
+
+type variantRaceHarness struct {
+	firstStarted   chan struct{}
+	releaseFirst   chan struct{}
+	variants       []registry_dto.Variant
+	executeCalls   atomic.Int64
+	activeCount    atomic.Int64
+	maxActive      atomic.Int64
+	successfulAdds atomic.Int64
+	mu             sync.Mutex
+}
+
+func newVariantRaceHarness() *variantRaceHarness {
+	return &variantRaceHarness{
+		firstStarted: make(chan struct{}),
+		releaseFirst: make(chan struct{}),
+		variants: []registry_dto.Variant{
+			{VariantID: "source", StorageKey: "source.png"},
+		},
+	}
+}
+
+func (h *variantRaceHarness) registry() *registry_domain.MockRegistryService {
+	return &registry_domain.MockRegistryService{
+		GetArtefactFunc: func(_ context.Context, artefactID string) (*registry_dto.ArtefactMeta, error) {
+			for range 4 {
+				runtime.Gosched()
+			}
+			h.mu.Lock()
+			defer h.mu.Unlock()
+			return &registry_dto.ArtefactMeta{ID: artefactID, ActualVariants: slices.Clone(h.variants)}, nil
+		},
+		GetVariantDataFunc: func(_ context.Context, _ *registry_dto.Variant) (io.ReadCloser, error) {
+			return io.NopCloser(bytes.NewReader([]byte("image data"))), nil
+		},
+		GetBlobStoreFunc: func(_ string) (registry_domain.BlobStore, error) {
+			return &registry_domain.MockBlobStore{
+				PutFunc: func(_ context.Context, _ string, data io.Reader) error {
+					_, err := io.Copy(io.Discard, data)
+					return err
+				},
+			}, nil
+		},
+		AddVariantFunc: func(_ context.Context, artefactID string, variant *registry_dto.Variant) (*registry_dto.ArtefactMeta, error) {
+			h.successfulAdds.Add(1)
+			h.mu.Lock()
+			defer h.mu.Unlock()
+			h.variants = append(h.variants, *variant)
+			return &registry_dto.ArtefactMeta{ID: artefactID, ActualVariants: slices.Clone(h.variants)}, nil
+		},
+	}
+}
+
+func (h *variantRaceHarness) capability() *capabilities_domain.MockCapabilityService {
+	return &capabilities_domain.MockCapabilityService{
+		ExecuteFunc: func(_ context.Context, _ string, _ io.Reader, _ capabilities_domain.CapabilityParams) (io.Reader, error) {
+			if h.executeCalls.Add(1) == 1 {
+				close(h.firstStarted)
+				<-h.releaseFirst
+				return nil, errors.New("transient transform failure")
+			}
+			active := h.activeCount.Add(1)
+			defer h.activeCount.Add(-1)
+			for {
+				current := h.maxActive.Load()
+				if active <= current || h.maxActive.CompareAndSwap(current, active) {
+					break
+				}
+			}
+			for range 16 {
+				runtime.Gosched()
+			}
+			return bytes.NewReader([]byte("transformed image data")), nil
+		},
+	}
+}
+
+func TestGenerateVariant_GeneratesOncePerKey_AfterFailedAttemptUnderContention(t *testing.T) {
+	t.Parallel()
+
+	const (
+		iterations      = 200
+		earlyWaiters    = 8
+		lateArrivals    = 8
+		profileName     = "image_w240_webp"
+		sourceHashValue = "0000000000000000000000000000000000000000000000000000000000000001"
+	)
+
+	for iteration := range iterations {
+		harness := newVariantRaceHarness()
+		generator := createTestGeneratorWithDeps(t, harness.registry(), harness.capability())
+		artefact := &registry_dto.ArtefactMeta{
+			ID:         fmt.Sprintf("artefact-%d", iteration),
+			SourcePath: "images/test.png",
+			ActualVariants: []registry_dto.Variant{
+				{VariantID: "source", StorageKey: "source.png", ContentHash: sourceHashValue},
+			},
+		}
+
+		var wg sync.WaitGroup
+		call := func() {
+			defer wg.Done()
+			_, _ = generator.GenerateVariant(context.Background(), artefact, profileName)
+		}
+
+		wg.Add(1)
+		go call()
+		<-harness.firstStarted
+
+		wg.Add(earlyWaiters)
+		for range earlyWaiters {
+			go call()
+		}
+		close(harness.releaseFirst)
+		wg.Add(lateArrivals)
+		for range lateArrivals {
+			go call()
+		}
+		wg.Wait()
+
+		require.Equalf(t, int64(1), harness.successfulAdds.Load(),
+			"iteration %d: exactly one generation must succeed per key", iteration)
+		require.Equalf(t, int64(1), harness.maxActive.Load(),
+			"iteration %d: generations for the same key must never overlap", iteration)
+	}
 }

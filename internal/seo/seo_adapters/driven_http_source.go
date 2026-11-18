@@ -27,7 +27,7 @@ import (
 	"time"
 
 	"github.com/sony/gobreaker/v2"
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 	"piko.sh/piko/internal/seo/seo_domain"
 	"piko.sh/piko/internal/seo/seo_dto"
 )

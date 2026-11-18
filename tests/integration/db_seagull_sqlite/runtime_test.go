@@ -73,20 +73,20 @@ func TestGeneratedQueriesRunAgainstMigratedDatabase(t *testing.T) {
 	author, err := queries.GetAuthor(ctx, 1)
 	require.NoError(t, err)
 	require.Equal(t, "Ursula K. Le Guin", author.Name)
-	require.NotNil(t, author.BornYear)
-	require.Equal(t, int32(1929), *author.BornYear)
+	bornYear, valid := author.BornYear.Get()
+	require.True(t, valid)
+	require.Equal(t, int32(1929), bornYear)
 
 	authors, err := queries.ListAuthors(ctx)
 	require.NoError(t, err)
 	require.Len(t, authors, 2)
-	require.Nil(t, authors[1].BornYear)
+	require.True(t, authors[1].BornYear.IsZero())
 
-	rating := int32(5)
 	book, err := queries.CreateBook(ctx, store.CreateBookParams{
 		AuthorID: 1,
 		Title:    "The Dispossessed",
 		Price:    maths.NewDecimalFromString("12.50"),
-		Rating:   &rating,
+		Rating:   store.NullOf(int32(5)),
 	})
 	require.NoError(t, err)
 	require.Equal(t, "The Dispossessed", book.Title)
@@ -97,10 +97,11 @@ func TestGeneratedQueriesRunAgainstMigratedDatabase(t *testing.T) {
 	rows, err := queries.ListAuthorsWithBooks(ctx)
 	require.NoError(t, err)
 	require.Len(t, rows, 2)
-	require.NotNil(t, rows[0].BookID)
-	require.Equal(t, book.ID, *rows[0].BookID)
-	require.Nil(t, rows[1].BookID)
-	require.Nil(t, rows[1].Title)
+	bookID, valid := rows[0].BookID.Get()
+	require.True(t, valid)
+	require.Equal(t, book.ID, bookID)
+	require.True(t, rows[1].BookID.IsZero())
+	require.True(t, rows[1].Title.IsZero())
 
 	count, err := queries.CountBooksByAuthor(ctx, 1)
 	require.NoError(t, err)

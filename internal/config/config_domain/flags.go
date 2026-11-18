@@ -25,6 +25,12 @@ import (
 	"strings"
 )
 
+const (
+	// estimatedMapEntryBytes is the guessed size of one formatted key and value pair, used
+	// to pre-size the builder when a map flag is turned into a string.
+	estimatedMapEntryBytes = 16
+)
+
 // stringSliceValue wraps a string slice pointer for use as a flag value, implementing
 // fmt.Stringer, where slice points to the target slice that stores the parsed flag
 // values.
@@ -85,7 +91,7 @@ func (m *stringMapValue) String() string {
 	}
 
 	var builder strings.Builder
-	builder.Grow(len(*m.sMap) * 16)
+	builder.Grow(len(*m.sMap) * estimatedMapEntryBytes)
 
 	i := 0
 	for key, value := range *m.sMap {

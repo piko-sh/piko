@@ -50,7 +50,7 @@ func (c *artefactMetadataCache) Get(ctx context.Context, artefactID string) (*re
 	if c.cache == nil {
 		return nil, false
 	}
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 	artefact, ok, _ := c.cache.GetIfPresent(ctx, artefactID)
 	if ok {
 		l.Trace("Artefact metadata cache HIT",

@@ -39,6 +39,10 @@ const (
 	// emission.
 	directoryPermission = 0o750
 
+	// batchHashBytes is the number of leading SHA-256 bytes used to name a batch of
+	// packages.
+	batchHashBytes = 8
+
 	// filePermission is the permission mode for files written during bytecode emission.
 	filePermission = 0o600
 
@@ -266,7 +270,7 @@ func bytecodeFileSuffix(packages map[string]map[string]string) (string, []string
 	}
 
 	hash := sha256.Sum256([]byte(strings.Join(paths, "\n")))
-	return fmt.Sprintf("batch-%s-%dpkgs", hex.EncodeToString(hash[:8]), len(paths)), paths
+	return fmt.Sprintf("batch-%s-%dpkgs", hex.EncodeToString(hash[:batchHashBytes]), len(paths)), paths
 }
 
 // sanitisePath replaces path separators with underscores to produce a safe filename

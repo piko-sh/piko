@@ -20,6 +20,8 @@ package presign_http
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -454,11 +456,11 @@ func TestHandleTokenValidationError(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name            string
 		inputError      error
-		expectedStatus  int
+		name            string
 		expectedCode    string
 		expectedMessage string
+		expectedStatus  int
 	}{
 		{
 			name:            "expired token",
@@ -658,4 +660,48 @@ func TestNewPublicDownloadHandler(t *testing.T) {
 
 	handler := NewPublicDownloadHandler(nil)
 	require.NotNil(t, handler)
+}
+
+func TestHandleUploadError(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		err        error
+		name       string
+		wantCode   string
+		wantStatus int
+	}{
+		{
+			name:       "body over the limit",
+			err:        fmt.Errorf("storage write failed: %w", &http.MaxBytesError{Limit: 10}),
+			wantStatus: http.StatusRequestEntityTooLarge,
+			wantCode:   "file_too_large",
+		},
+		{
+			name:       "error that only mentions the limit in its text",
+			err:        errors.New("storage write failed: http: request body too large"),
+			wantStatus: http.StatusInternalServerError,
+			wantCode:   "upload_failed",
+		},
+		{
+			name:       "storage failure",
+			err:        errors.New("storage write failed: disk full"),
+			wantStatus: http.StatusInternalServerError,
+			wantCode:   "upload_failed",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			handler := NewHandler(nil, storage_domain.PresignConfig{})
+			recorder := httptest.NewRecorder()
+
+			handler.handleUploadError(t.Context(), recorder, testCase.err, 10)
+
+			assert.Equal(t, testCase.wantStatus, recorder.Code)
+			assert.Contains(t, recorder.Body.String(), testCase.wantCode)
+		})
+	}
 }

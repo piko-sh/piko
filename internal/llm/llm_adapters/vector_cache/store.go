@@ -28,6 +28,7 @@ import (
 	"piko.sh/piko/internal/cache/cache_dto"
 	"piko.sh/piko/internal/llm/llm_domain"
 	"piko.sh/piko/internal/llm/llm_dto"
+	"piko.sh/vectormaths"
 )
 
 const (
@@ -83,14 +84,18 @@ var (
 // Takes namespace (string) which specifies the namespace for the document.
 // Takes document (*llm_dto.VectorDocument) which is the document to store.
 //
-// Returns error when document is nil, document.ID is empty, or the namespace does not
-// exist.
+// Returns error when document is nil, its ID is empty, or cache creation, vector
+// validation, or storage fails. Invalid vectors wrap llm_domain.ErrInvalidVector.
 func (s *Store) Store(ctx context.Context, namespace string, document *llm_dto.VectorDocument) error {
 	if document == nil {
 		return errDocumentNil
 	}
 	if document.ID == "" {
 		return errDocumentIDEmpty
+	}
+
+	if err := validateVector(document.Vector, s.lookupConfig(namespace)); err != nil {
+		return fmt.Errorf("storing document %q in namespace %q: %w", document.ID, namespace, err)
 	}
 
 	c, err := s.getCache(namespace)
@@ -103,16 +108,21 @@ func (s *Store) Store(ctx context.Context, namespace string, document *llm_dto.V
 
 // BulkStore adds or updates multiple documents in a single operation.
 //
+// Nil documents are skipped.
+//
 // Takes namespace (string) which identifies the collection/index.
 // Takes docs ([]*llm_dto.VectorDocument) which are the documents to store.
 //
-// Returns error when the namespace does not exist or a document is invalid.
+// Returns error when the namespace cache cannot be created or a document is invalid.
+// Invalid vectors wrap llm_domain.ErrInvalidVector. Nothing is stored when a document is
+// invalid.
 func (s *Store) BulkStore(ctx context.Context, namespace string, docs []*llm_dto.VectorDocument) error {
 	c, err := s.getCache(namespace)
 	if err != nil {
 		return fmt.Errorf("bulk storing in namespace %q: %w", namespace, err)
 	}
 
+	config := s.lookupConfig(namespace)
 	items := make(map[string]llm_dto.VectorDocument, len(docs))
 	for _, document := range docs {
 		if document == nil {
@@ -120,6 +130,9 @@ func (s *Store) BulkStore(ctx context.Context, namespace string, docs []*llm_dto
 		}
 		if document.ID == "" {
 			return errDocumentIDEmpty
+		}
+		if err := validateVector(document.Vector, config); err != nil {
+			return fmt.Errorf("bulk storing document %q in namespace %q: %w", document.ID, namespace, err)
 		}
 		items[document.ID] = *document
 	}
@@ -392,6 +405,20 @@ func (s *Store) getCache(namespace string) (cache_domain.Cache[string, llm_dto.V
 	return c, nil
 }
 
+// lookupConfig returns the configuration a namespace was created with.
+//
+// Takes namespace (string) which is the namespace to look up.
+//
+// Returns *llm_domain.VectorNamespaceConfig which is the configuration, or nil when the
+// namespace was created without one.
+//
+// Safe for concurrent use.
+func (s *Store) lookupConfig(namespace string) *llm_domain.VectorNamespaceConfig {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.configs[namespace]
+}
+
 // New creates a new cache-backed vector store.
 //
 // Takes factory (CacheFactory) which creates cache instances per namespace.
@@ -406,6 +433,33 @@ func New(factory CacheFactory) *Store {
 		mu:      sync.RWMutex{},
 		closed:  false,
 	}
+}
+
+// validateVector checks that vector can be stored in a namespace with config, so a
+// document is refused at the edge rather than cached but left out of vector search.
+//
+// Takes vector ([]float32) which is the document's vector.
+// Takes config (*llm_domain.VectorNamespaceConfig) which is the namespace's
+// configuration. When nil, only checks that need no configuration run.
+//
+// Returns error which wraps llm_domain.ErrInvalidVector when the vector is empty, its
+// dimension differs from the namespace's, or it has zero magnitude in a namespace that
+// uses cosine similarity, which is also the default.
+func validateVector(vector []float32, config *llm_domain.VectorNamespaceConfig) error {
+	if len(vector) == 0 {
+		return fmt.Errorf("%w: vector is empty", llm_domain.ErrInvalidVector)
+	}
+	if config == nil {
+		return nil
+	}
+	if config.Dimension > 0 && len(vector) != config.Dimension {
+		return fmt.Errorf("%w: vector has dimension %d, want %d", llm_domain.ErrInvalidVector, len(vector), config.Dimension)
+	}
+	usesCosine := config.Metric == "" || config.Metric == llm_dto.SimilarityCosine
+	if usesCosine && vectormaths.NormF32(vector) == 0 {
+		return fmt.Errorf("%w: vector has zero magnitude, which cosine similarity cannot compare", llm_domain.ErrInvalidVector)
+	}
+	return nil
 }
 
 // matchesFilter checks whether a document's metadata satisfies all filter criteria. Each

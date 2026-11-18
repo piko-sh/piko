@@ -50,8 +50,8 @@ type mockEntry[V any] struct {
 // interface. It implements io.Closer and is designed for testing, providing call
 // recording, state simulation, and error injection.
 type MockAdapter[K comparable, V any] struct {
-	// clock provides time operations for testing.
-	clock clock.Clock
+	// clock provides the current time; tests set it to control expiry.
+	clock cache_dto.Clock
 
 	// errToReturn is the error to return from mock method calls.
 	errToReturn error
@@ -121,6 +121,10 @@ type MockAdapter[K comparable, V any] struct {
 	// closeCount tracks the number of times Close has been called.
 	closeCount int
 
+	// perEntry records that the cache was built with PerEntryExpiration, so a write without
+	// a TTL keeps the entry's current expiry.
+	perEntry bool
+
 	// mu guards concurrent access to the mock's state.
 	mu sync.RWMutex
 }
@@ -152,7 +156,8 @@ func (m *MockAdapter[K, V]) GetIfPresent(_ context.Context, key K) (V, bool, err
 		return *new(V), false, nil
 	}
 
-	if !entry.expiresAt.IsZero() && m.clock.Now().After(entry.expiresAt) {
+	if m.expiredUnsafe(entry) {
+		m.unlinkTagsUnsafe(key)
 		delete(m.storage, key)
 		return *new(V), false, nil
 	}
@@ -179,10 +184,8 @@ func (m *MockAdapter[K, V]) Get(ctx context.Context, key K, loader cache_dto.Loa
 		return *new(V), m.errToReturn
 	}
 
-	if entry, ok := m.storage[key]; ok {
-		if entry.expiresAt.IsZero() || m.clock.Now().Before(entry.expiresAt) {
-			return entry.value, nil
-		}
+	if entry, ok := m.lookupUnsafe(key); ok {
+		return entry.value, nil
 	}
 
 	loadedVal, err := loader.Load(ctx, key)
@@ -201,9 +204,34 @@ func (m *MockAdapter[K, V]) Get(ctx context.Context, key K, loader cache_dto.Loa
 // Takes tags (...string) which are optional labels for grouping entries.
 //
 // Returns error when the operation fails.
+func (m *MockAdapter[K, V]) Set(_ context.Context, key K, value V, tags ...string) error {
+	return m.write(key, value, 0, tags)
+}
+
+// SetWithTTL stores a value with a time-to-live duration.
+//
+// Takes key (K) which identifies the cache entry.
+// Takes value (V) which is the data to store.
+// Takes ttl (time.Duration) which specifies how long the entry remains valid; zero or
+// negative writes as Set does, and cache_dto.NoExpiry removes any expiry.
+// Takes tags (...string) which are optional labels for grouping entries.
+//
+// Returns error when the operation fails.
+func (m *MockAdapter[K, V]) SetWithTTL(_ context.Context, key K, value V, ttl time.Duration, tags ...string) error {
+	return m.write(key, value, ttl, tags)
+}
+
+// write records and stores one Set or SetWithTTL.
+//
+// Takes key (K) which identifies the cache entry.
+// Takes value (V) which is the data to store.
+// Takes ttl (time.Duration) which is the TTL of the write, as SetWithTTL takes it.
+// Takes tags ([]string) which are optional labels for grouping entries.
+//
+// Returns error when the configured error is set.
 //
 // Safe for concurrent use; protected by a mutex.
-func (m *MockAdapter[K, V]) Set(_ context.Context, key K, value V, tags ...string) error {
+func (m *MockAdapter[K, V]) write(key K, value V, ttl time.Duration, tags []string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -217,9 +245,10 @@ func (m *MockAdapter[K, V]) Set(_ context.Context, key K, value V, tags ...strin
 		return m.errToReturn
 	}
 
+	expiresAt := m.expiryForUnsafe(key, ttl)
 	m.unlinkTagsUnsafe(key)
 
-	entry := &mockEntry[V]{value: value, expiresAt: time.Time{}, tags: nil}
+	entry := &mockEntry[V]{value: value, expiresAt: expiresAt, tags: nil}
 	m.storage[key] = entry
 
 	if len(tags) > 0 {
@@ -237,19 +266,94 @@ func (m *MockAdapter[K, V]) Set(_ context.Context, key K, value V, tags ...strin
 	return nil
 }
 
-// SetWithTTL stores a value with a time-to-live duration.
+// lookupUnsafe returns the live entry for key, removing it when it has expired.
 //
-// Takes key (K) which identifies the cache entry.
-// Takes value (V) which is the data to store.
-// Takes ttl (time.Duration) which specifies how long the entry remains valid.
-// Takes tags (...string) which are optional labels for grouping entries.
+// The caller must hold m.mu.
 //
-// Returns error when the operation fails.
-func (m *MockAdapter[K, V]) SetWithTTL(ctx context.Context, key K, value V, ttl time.Duration, tags ...string) error {
-	if err := m.Set(ctx, key, value, tags...); err != nil {
-		return err
+// Takes key (any) which identifies the entry.
+//
+// Returns *mockEntry[V] which is the entry.
+// Returns bool which is false when the key is absent or expired.
+func (m *MockAdapter[K, V]) lookupUnsafe(key any) (*mockEntry[V], bool) {
+	entry, ok := m.storage[key]
+	if !ok {
+		return nil, false
 	}
-	return m.SetExpiresAfter(ctx, key, ttl)
+	if m.expiredUnsafe(entry) {
+		m.unlinkTagsUnsafe(key)
+		delete(m.storage, key)
+		return nil, false
+	}
+	return entry, true
+}
+
+// expiredUnsafe reports whether entry's expiry has been reached.
+//
+// Takes entry (*mockEntry[V]) which is the entry to check.
+//
+// Returns bool which is true once the clock reaches the entry's expiry.
+func (m *MockAdapter[K, V]) expiredUnsafe(entry *mockEntry[V]) bool {
+	return !entry.expiresAt.IsZero() && !m.clock.Now().Before(entry.expiresAt)
+}
+
+// expiryForUnsafe returns the expiry a write of key with ttl gives the entry.
+//
+// A positive ttl expires after that long and cache_dto.NoExpiry never expires. Otherwise
+// a cache built with PerEntryExpiration keeps the expiry of a live entry, and any other
+// cache sets none.
+//
+// The caller must hold m.mu.
+//
+// Takes key (any) which identifies the entry being written.
+// Takes ttl (time.Duration) which is the TTL of the write.
+//
+// Returns time.Time which is the new expiry; zero means none.
+func (m *MockAdapter[K, V]) expiryForUnsafe(key any, ttl time.Duration) time.Time {
+	switch {
+	case ttl == cache_dto.NoExpiry:
+		return time.Time{}
+	case ttl > 0:
+		return m.clock.Now().Add(ttl)
+	case !m.perEntry:
+		return time.Time{}
+	}
+	if entry, ok := m.lookupUnsafe(key); ok {
+		return entry.expiresAt
+	}
+	return time.Time{}
+}
+
+// storeComputedUnsafe stores the value a compute produced, keeping the entry's tags.
+//
+// The caller must hold m.mu.
+//
+// Takes key (any) which identifies the entry.
+// Takes previous (*mockEntry[V]) which is the live entry before the compute, or nil.
+// Takes value (V) which is the computed value.
+// Takes ttl (time.Duration) which is the TTL of the compute, as ComputeResult.TTL.
+func (m *MockAdapter[K, V]) storeComputedUnsafe(key any, previous *mockEntry[V], value V, ttl time.Duration) {
+	stored := &mockEntry[V]{value: value, expiresAt: m.expiryForUnsafe(key, ttl), tags: nil}
+	if previous != nil {
+		stored.tags = previous.tags
+	}
+	m.storage[key] = stored
+}
+
+// expiresAtNano returns the expiry of key in Unix nanoseconds, or zero when it has none.
+//
+// Takes key (K) which identifies the entry.
+//
+// Returns int64 which is the expiry.
+//
+// Concurrency: Safe for concurrent use.
+func (m *MockAdapter[K, V]) expiresAtNano(key K) int64 {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	entry, ok := m.storage[key]
+	if !ok || entry.expiresAt.IsZero() {
+		return 0
+	}
+	return entry.expiresAt.UnixNano()
 }
 
 // BulkSet stores multiple values in the cache with optional tags.
@@ -329,7 +433,7 @@ func (m *MockAdapter[K, V]) Compute(_ context.Context, key K, computeFunction fu
 		return *new(V), false, m.errToReturn
 	}
 
-	entry, found := m.storage[key]
+	entry, found := m.lookupUnsafe(key)
 	var oldValue V
 	if found {
 		oldValue = entry.value
@@ -339,10 +443,11 @@ func (m *MockAdapter[K, V]) Compute(_ context.Context, key K, computeFunction fu
 
 	switch action {
 	case cache_dto.ComputeActionSet:
-		m.storage[key] = &mockEntry[V]{value: newValue, expiresAt: time.Time{}, tags: nil}
+		m.storeComputedUnsafe(key, entry, newValue, 0)
 		return newValue, true, nil
 	case cache_dto.ComputeActionDelete:
 		if found {
+			m.unlinkTagsUnsafe(key)
 			delete(m.storage, key)
 		}
 		return *new(V), false, nil
@@ -374,7 +479,7 @@ func (m *MockAdapter[K, V]) ComputeIfAbsent(_ context.Context, key K, computeFun
 		return *new(V), false, m.errToReturn
 	}
 
-	entry, found := m.storage[key]
+	entry, found := m.lookupUnsafe(key)
 	if found {
 		return entry.value, false, nil
 	}
@@ -403,7 +508,7 @@ func (m *MockAdapter[K, V]) ComputeIfPresent(_ context.Context, key K, computeFu
 		return *new(V), false, m.errToReturn
 	}
 
-	entry, found := m.storage[key]
+	entry, found := m.lookupUnsafe(key)
 	if !found {
 		return *new(V), false, nil
 	}
@@ -412,9 +517,10 @@ func (m *MockAdapter[K, V]) ComputeIfPresent(_ context.Context, key K, computeFu
 
 	switch action {
 	case cache_dto.ComputeActionSet:
-		m.storage[key] = &mockEntry[V]{value: newValue, expiresAt: time.Time{}, tags: nil}
+		m.storeComputedUnsafe(key, entry, newValue, 0)
 		return newValue, true, nil
 	case cache_dto.ComputeActionDelete:
+		m.unlinkTagsUnsafe(key)
 		delete(m.storage, key)
 		return *new(V), false, nil
 	default:
@@ -441,7 +547,7 @@ func (m *MockAdapter[K, V]) ComputeWithTTL(_ context.Context, key K, computeFunc
 		return *new(V), false, m.errToReturn
 	}
 
-	entry, found := m.storage[key]
+	entry, found := m.lookupUnsafe(key)
 	var oldValue V
 	if found {
 		oldValue = entry.value
@@ -451,14 +557,11 @@ func (m *MockAdapter[K, V]) ComputeWithTTL(_ context.Context, key K, computeFunc
 
 	switch result.Action {
 	case cache_dto.ComputeActionSet:
-		newEntry := &mockEntry[V]{value: result.Value, expiresAt: time.Time{}, tags: nil}
-		if result.TTL > 0 {
-			newEntry.expiresAt = m.clock.Now().Add(result.TTL)
-		}
-		m.storage[key] = newEntry
+		m.storeComputedUnsafe(key, entry, result.Value, result.TTL)
 		return result.Value, true, nil
 	case cache_dto.ComputeActionDelete:
 		if found {
+			m.unlinkTagsUnsafe(key)
 			delete(m.storage, key)
 		}
 		return *new(V), false, nil
@@ -679,7 +782,7 @@ func (m *MockAdapter[K, V]) GetEntry(ctx context.Context, key K) (cache_dto.Entr
 		Key:               key,
 		Value:             value,
 		Weight:            0,
-		ExpiresAtNano:     0,
+		ExpiresAtNano:     m.expiresAtNano(key),
 		RefreshableAtNano: 0,
 		SnapshotAtNano:    m.clock.Now().UnixNano(),
 	}, true, nil
@@ -738,10 +841,11 @@ func (m *MockAdapter[K, V]) Close(_ context.Context) error {
 	return nil
 }
 
-// SetExpiresAfter sets the expiration duration for a key.
+// SetExpiresAfter sets the expiration duration for an existing key; it never creates one.
 //
 // Takes key (K) which identifies the cache entry to update.
-// Takes expiresAfter (time.Duration) which specifies when the entry expires.
+// Takes expiresAfter (time.Duration) which specifies when the entry expires; zero or
+// negative does nothing, and cache_dto.NoExpiry removes any expiry.
 //
 // Returns error when the operation fails.
 //
@@ -750,8 +854,14 @@ func (m *MockAdapter[K, V]) SetExpiresAfter(_ context.Context, key K, expiresAft
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.setExpiresAfterCalls[key] = expiresAfter
-	if entry, ok := m.storage[key]; ok {
-		entry.expiresAt = m.clock.Now().Add(expiresAfter)
+	if m.errToReturn != nil {
+		return m.errToReturn
+	}
+	if expiresAfter <= 0 {
+		return nil
+	}
+	if entry, ok := m.lookupUnsafe(key); ok {
+		entry.expiresAt = m.expiryForUnsafe(key, expiresAfter)
 	}
 	return nil
 }
@@ -941,12 +1051,20 @@ func (*MockAdapter[K, V]) GetSchema() *cache_dto.SearchSchema {
 }
 
 // MockProviderFactory is the factory function for creating the mock adapter. It accepts
-// typed Options and returns a properly configured MockAdapter.
+// typed Options and returns a properly configured MockAdapter that follows the options'
+// clock and, under PerEntryExpiration, keeps an entry's expiry on writes without a TTL.
+//
+// Takes options (cache_dto.Options[K, V]) which configures the adapter.
 //
 // Returns cache_domain.ProviderPort[K, V] which is the mock cache adapter.
 // Returns error which is always nil for this mock factory.
-func MockProviderFactory[K comparable, V any](_ cache_dto.Options[K, V]) (cache_domain.ProviderPort[K, V], error) {
-	return NewMockAdapter[K, V](), nil
+func MockProviderFactory[K comparable, V any](options cache_dto.Options[K, V]) (cache_domain.ProviderPort[K, V], error) {
+	adapter := NewMockAdapter[K, V]()
+	adapter.perEntry = cache_domain.IsPerEntryExpiry(options.ExpiryCalculator)
+	if options.Clock != nil {
+		adapter.clock = options.Clock
+	}
+	return adapter, nil
 }
 
 // WithMockClock sets a custom clock for time operations. This is primarily used for

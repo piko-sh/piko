@@ -200,6 +200,30 @@ See the [querier reference](../../reference/querier.md) for the full
 directive surface, including `piko.embed` for nested struct
 projections and `piko.migration(readonly:)` for migration-side function overrides.
 
+### Nullable columns
+
+A column that can hold NULL becomes a `Null[T]` field, which the
+generator declares in `piko_null.go` beside your queries. `Valid`
+reports whether the field holds a value and `V` holds it. `Get()`
+returns both, `Ptr()` converts to a `*T`, and `NullOf(value)` and
+`NullFrom(pointer)` build one. A non-optional parameter that accepts
+NULL uses the same type.
+
+After fetching an author, check whether a nullable field has a value:
+
+```go
+if bornYear, ok := author.BornYear.Get(); ok {
+    fmt.Println("born", bornYear)
+}
+```
+
+Pass `generated.NullOf(int32(5))` for a nullable argument that holds a value.
+
+Three cases keep a pointer. An `optional: true` parameter is a `*T`,
+so passing nil drops its WHERE predicate. A nullable column mapped to
+a custom `go_type:` is a `*Type`. A nullable array element is a `*T`
+inside the slice.
+
 ### Custom Go types per column
 
 Sometimes the analyser cannot infer a column's Go type precisely. You

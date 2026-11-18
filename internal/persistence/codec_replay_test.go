@@ -26,8 +26,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"piko.sh/json"
 	cache_adapters_otter "piko.sh/piko/internal/cache/cache_adapters/provider_otter"
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/orchestrator/orchestrator_dal/otter"
 	d "piko.sh/piko/internal/orchestrator/orchestrator_domain"
 	"piko.sh/piko/internal/wal/wal_domain"

@@ -310,7 +310,7 @@ func writeFontObjects(
 		p.postScriptName,
 		p.descriptorInfo.Flags,
 		p.descriptorInfo.BBox[0], p.descriptorInfo.BBox[1],
-		p.descriptorInfo.BBox[2], p.descriptorInfo.BBox[3],
+		p.descriptorInfo.BBox[rectX2Index], p.descriptorInfo.BBox[rectY2Index],
 		formatFloat(p.descriptorInfo.ItalicAngle),
 		p.descriptorInfo.Ascent,
 		p.descriptorInfo.Descent,

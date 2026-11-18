@@ -27,8 +27,8 @@ import (
 	"strings"
 	"time"
 
+	"piko.sh/json"
 	"piko.sh/piko/internal/captcha/captcha_dto"
-	"piko.sh/piko/internal/json"
 )
 
 const (

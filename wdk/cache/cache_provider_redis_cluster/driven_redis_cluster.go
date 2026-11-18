@@ -121,6 +121,10 @@ type RedisClusterAdapter[K comparable, V any] struct {
 
 	// indexCreated indicates whether the search index has been created.
 	indexCreated bool
+
+	// perEntry records that the cache was built with PerEntryExpiration, so a write without
+	// a TTL keeps the key's current TTL instead of applying a default one.
+	perEntry bool
 }
 
 var (
@@ -269,22 +273,11 @@ func (a *RedisClusterAdapter[K, V]) Set(ctx context.Context, key K, value V, tag
 		return fmt.Errorf(errFmtEncodeKey, err)
 	}
 
-	ttl := a.ttl
-	if a.expiryCalculator != nil {
-		entry := cache.Entry[K, V]{
-			Key:               key,
-			Value:             value,
-			Weight:            0,
-			ExpiresAtNano:     0,
-			RefreshableAtNano: 0,
-			SnapshotAtNano:    time.Now().UnixNano(),
-		}
-		ttl = a.expiryCalculator.ExpireAfterCreate(entry)
-	}
+	ttl := a.writeExpiry(0, a.defaultWriteTTL(key, value))
 
 	if a.needsJSONStorage() {
 		a.indexDocument(timeoutCtx, keyString, value)
-		if err := a.client.Expire(timeoutCtx, keyString, ttl).Err(); err != nil {
+		if err := a.applyJSONExpiry(timeoutCtx, keyString, ttl); err != nil {
 			return fmt.Errorf("failed to set TTL on JSON document: %w", err)
 		}
 	} else {
@@ -314,11 +307,16 @@ func (a *RedisClusterAdapter[K, V]) Set(ctx context.Context, key K, value V, tag
 //
 // Takes key (K) which is the cache key to store.
 // Takes value (V) which is the value to cache.
-// Takes ttl (time.Duration) which specifies how long the entry remains valid.
+// Takes ttl (time.Duration) which sets how long the entry stays valid. cache.NoExpiry
+// removes any TTL. Other nonpositive values write as Set does.
 // Takes tags (...string) which are optional tags to associate with the key.
 //
 // Returns error when encoding fails, marshalling fails, or the Redis operation fails.
 func (a *RedisClusterAdapter[K, V]) SetWithTTL(ctx context.Context, key K, value V, ttl time.Duration, tags ...string) error {
+	if ttl <= 0 {
+		return a.Set(ctx, key, value, tags...)
+	}
+
 	ctx, l := logger.From(ctx, log)
 
 	timeoutCtx, cancel := context.WithTimeoutCause(ctx, a.operationTimeout, fmt.Errorf("redis cluster SetWithTTL exceeded %s timeout", a.operationTimeout))
@@ -327,6 +325,17 @@ func (a *RedisClusterAdapter[K, V]) SetWithTTL(ctx context.Context, key K, value
 	keyString, err := a.encodeKey(key)
 	if err != nil {
 		return fmt.Errorf(errFmtEncodeKey, err)
+	}
+
+	if a.needsJSONStorage() {
+		a.indexDocument(timeoutCtx, keyString, value)
+		if err := a.applyJSONExpiry(timeoutCtx, keyString, a.writeExpiry(ttl, 0)); err != nil {
+			return fmt.Errorf("failed to set TTL on JSON document: %w", err)
+		}
+		if err := addTagsToKey(timeoutCtx, a.client, a.namespace, keyString, tags); err != nil {
+			l.Warn("Failed to add tags to key", logger.String(logKeyField, keyString), logger.Error(err))
+		}
+		return nil
 	}
 
 	encoder, err := a.registry.Get(value)
@@ -341,7 +350,7 @@ func (a *RedisClusterAdapter[K, V]) SetWithTTL(ctx context.Context, key K, value
 		return fmt.Errorf("marshal failed: %w", err)
 	}
 
-	if err := a.client.Set(timeoutCtx, keyString, valBytes, ttl).Err(); err != nil {
+	if err := a.client.Set(timeoutCtx, keyString, valBytes, a.writeExpiry(ttl, 0)).Err(); err != nil {
 		l.Warn("Redis Cluster Set with TTL failed", logger.String(logKeyField, keyString), logger.Error(err))
 		return fmt.Errorf("redis set failed: %w", err)
 	}
@@ -388,7 +397,7 @@ func (a *RedisClusterAdapter[K, V]) prepareBulkSetItem(ctx context.Context, key 
 	}
 
 	entryTTL := defaultTTL
-	if a.expiryCalculator != nil {
+	if a.expiryCalculator != nil && !a.perEntry {
 		entry := cache.Entry[K, V]{
 			Key: key, Value: value, SnapshotAtNano: time.Now().UnixNano(),
 			Weight:            0,
@@ -429,7 +438,7 @@ func (a *RedisClusterAdapter[K, V]) BulkSet(ctx context.Context, items map[K]V, 
 			continue
 		}
 
-		pipe.Set(timeoutCtx, keyString, valBytes, entryTTL)
+		pipe.Set(timeoutCtx, keyString, valBytes, a.writeExpiry(0, entryTTL))
 
 		for _, tag := range tags {
 			pipe.SAdd(timeoutCtx, tagPrefix+clusterHashTag(a.namespace+tag), keyString)
@@ -598,7 +607,7 @@ func (a *RedisClusterAdapter[K, V]) storeLoadedValues(ctx context.Context, loade
 			l.Warn("Failed to marshal loaded value for Redis Cluster", logger.String(logKeyField, keyString), logger.Error(marshalErr))
 			continue
 		}
-		pipe.Set(ctx, keyString, valBytes, a.ttl)
+		pipe.Set(ctx, keyString, valBytes, a.writeExpiry(0, a.ttl))
 		results[k] = v
 	}
 
@@ -924,4 +933,66 @@ func (a *RedisClusterAdapter[K, V]) SupportsSearch() bool {
 // Returns *cache.SearchSchema which is the schema, or nil if not searchable.
 func (a *RedisClusterAdapter[K, V]) GetSchema() *cache.SearchSchema {
 	return a.schema
+}
+
+// writeExpiry returns the expiration to pass to a go-redis SET for a write with ttl.
+//
+// A nonpositive fallback means no expiry. Passing -1 through would tell go-redis to keep
+// the old TTL even when the expiry calculator did not request that behaviour.
+//
+// Takes ttl (time.Duration) which is the TTL the caller asked for.
+// Takes fallback (time.Duration) which is the expiration a write without a TTL gets when
+// the cache is not built with PerEntryExpiration.
+//
+// Returns time.Duration which is zero for no expiry, redis.KeepTTL to keep the key's
+// current TTL, or a duration of at least one millisecond.
+func (a *RedisClusterAdapter[K, V]) writeExpiry(ttl, fallback time.Duration) time.Duration {
+	switch {
+	case ttl == cache.NoExpiry:
+		return 0
+	case ttl > 0:
+		return max(ttl, time.Millisecond)
+	case a.perEntry:
+		return redis.KeepTTL
+	case fallback <= 0:
+		return 0
+	}
+	return max(fallback, time.Millisecond)
+}
+
+// defaultWriteTTL finds the TTL Set gives a key outside PerEntryExpiration. It uses the
+// expiry calculator's create TTL when configured, or the default TTL otherwise.
+//
+// Takes key (K) which identifies the entry.
+// Takes value (V) which is the value being written.
+//
+// Returns time.Duration which is the TTL. Zero means no expiry.
+func (a *RedisClusterAdapter[K, V]) defaultWriteTTL(key K, value V) time.Duration {
+	if a.expiryCalculator == nil || a.perEntry {
+		return a.ttl
+	}
+	return a.expiryCalculator.ExpireAfterCreate(cache.Entry[K, V]{
+		Key:               key,
+		Value:             value,
+		Weight:            0,
+		ExpiresAtNano:     0,
+		RefreshableAtNano: 0,
+		SnapshotAtNano:    time.Now().UnixNano(),
+	})
+}
+
+// applyJSONExpiry sets the TTL of a JSON document after JSON.SET wrote it.
+//
+// Takes keyString (string) which is the document's key.
+// Takes expiration (time.Duration) which is a writeExpiry result.
+//
+// Returns error when the TTL cannot be set.
+func (a *RedisClusterAdapter[K, V]) applyJSONExpiry(ctx context.Context, keyString string, expiration time.Duration) error {
+	switch {
+	case expiration == redis.KeepTTL:
+		return nil
+	case expiration > 0:
+		return a.client.PExpire(ctx, keyString, expiration).Err()
+	}
+	return a.client.Persist(ctx, keyString).Err()
 }

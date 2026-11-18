@@ -107,9 +107,9 @@ func WithMaxTypeParseDepth(depth int) Option {
 //
 // By default the analysis assumes ClickHouse's default, off, under which a LEFT, RIGHT or
 // FULL JOIN fills an unmatched row with the column type's default value, so a joined
-// column is a pointer only when its type is Nullable. Pass true when a server or settings
-// profile turns join_use_nulls on, so the outer side's columns become pointers that can
-// hold the NULLs it then returns.
+// column is a Null[T] only when its type is Nullable. Pass true when a server or settings
+// profile turns join_use_nulls on, so the outer side's columns become Null[T] fields that
+// can hold the NULLs it then returns.
 //
 // Takes enabled (bool) which is the server's join_use_nulls setting.
 //

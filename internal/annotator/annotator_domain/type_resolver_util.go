@@ -18,10 +18,6 @@
 
 package annotator_domain
 
-// Provides utility functions for type resolution including stringability checks, type
-// comparison, and diagnostic helpers. Supports the type resolver with common operations
-// for determining type compatibility and formatting type information.
-
 import (
 	"fmt"
 
@@ -242,7 +238,7 @@ func capitaliseFirstLetter(s string) string {
 		return s
 	}
 	if s[0] >= 'a' && s[0] <= 'z' {
-		return string(s[0]-32) + s[1:]
+		return string(s[0]-'a'+'A') + s[1:]
 	}
 	return s
 }

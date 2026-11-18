@@ -130,8 +130,8 @@ func TestPresignUploadSkipsLimitWhenUnconfigured(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		name    string
 		limiter storage_domain.PresignRateLimiter
+		name    string
 		limit   int
 	}{
 		{name: "NoLimiter", limiter: nil, limit: 5},
@@ -175,4 +175,55 @@ func TestPresignRateLimitKeyIsNamespacedAndSanitised(t *testing.T) {
 
 	assert.Equal(t, presignRateLimitKeyPrefix+"203.0.113.4", limiter.key)
 	assert.True(t, strings.HasPrefix(limiter.key, "ratelimit:presign:"))
+}
+
+func TestPresignRateLimitKeyGroupsIPv6Callers(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		expected string
+		bits     int
+	}{
+		{name: "DefaultPrefix", bits: 0, expected: presignRateLimitKeyPrefix + "2001:db8:1:2::"},
+		{name: "ConfiguredPrefix", bits: 48, expected: presignRateLimitKeyPrefix + "2001:db8:1::"},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			limiter := &stubPresignRateLimiter{allowed: true}
+			handler := NewHandler(nil, storage_domain.PresignConfig{
+				RateLimiter:             limiter,
+				RateLimitPerMinute:      5,
+				RateLimitIPv6PrefixBits: testCase.bits,
+			})
+
+			request := httptest.NewRequest(http.MethodPut, "/upload", nil)
+			request.RemoteAddr = "[2001:db8:1:2:aaaa::7]:51000"
+
+			require.True(t, handler.checkRateLimit(t.Context(), httptest.NewRecorder(), request))
+			assert.Equal(t, testCase.expected, limiter.key)
+		})
+	}
+}
+
+func TestPresignRateLimitRefusesACallerWithNoKnownAddress(t *testing.T) {
+	t.Parallel()
+
+	limiter := &stubPresignRateLimiter{allowed: true}
+	handler := NewHandler(nil, storage_domain.PresignConfig{
+		RateLimiter:        limiter,
+		RateLimitPerMinute: 5,
+	})
+
+	request := httptest.NewRequest(http.MethodPut, "/upload", nil)
+	request.RemoteAddr = ""
+	recorder := httptest.NewRecorder()
+
+	assert.False(t, handler.checkRateLimit(t.Context(), recorder, request),
+		"a caller with no known address must not share one bucket with every other such caller")
+	assert.Equal(t, httpStatusTooManyRequests, recorder.Code)
+	assert.Empty(t, limiter.key, "the limiter must not be asked about an empty identity")
 }

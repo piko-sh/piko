@@ -39,7 +39,7 @@ import (
 	"strings"
 	"time"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/safeconv"
 	"piko.sh/safedisk"
@@ -51,8 +51,8 @@ const (
 	// `go install piko.sh/piko/cmd/pikopls@latest` produces a `pikopls` binary directly.
 	binaryName = "pikopls"
 
-	// downloadTimeout bounds each release download. Release binaries are tens of
-	// megabytes, so this is generous compared with the API lookup.
+	// downloadTimeout bounds each release download. Release binaries are tens of megabytes,
+	// so this is generous compared with the API lookup.
 	downloadTimeout = 90 * time.Second
 
 	// apiTimeout bounds the GitHub API lookup used for the latest-release fallback.
@@ -126,8 +126,8 @@ const (
 	// up. Release archives hold a handful of files.
 	maxArchiveEntries = 4096
 
-	// maxVersionLength caps a release version taken from the CLI or the releases API
-	// before it is placed in a download URL.
+	// maxVersionLength caps a release version taken from the CLI or the releases API before
+	// it is placed in a download URL.
 	maxVersionLength = 128
 
 	// tarFramingHeadroom is the allowance for tar headers and padding on top of the
@@ -164,8 +164,8 @@ var (
 	// apiTimeout.
 	errReleaseLookupTimeout = errors.New("release lookup timed out")
 
-	// errUnexpectedStatus is returned when the release host answers with a status other
-	// than 200 OK.
+	// errUnexpectedStatus is returned when the release host answers with a status other than
+	// 200 OK.
 	errUnexpectedStatus = errors.New("unexpected HTTP status")
 
 	// errBinaryTooLarge is returned when the executable inside a release archive
@@ -176,8 +176,8 @@ var (
 	// language-server executable.
 	errBinaryNotInArchive = errors.New("language server binary not found in archive")
 
-	// errTooManyArchiveEntries is returned when an archive holds more than
-	// maxArchiveEntries entries.
+	// errTooManyArchiveEntries is returned when an archive holds more than maxArchiveEntries
+	// entries.
 	errTooManyArchiveEntries = errors.New("archive holds too many entries")
 
 	// errChecksumUnavailable is returned when the release checksums file cannot be fetched
@@ -185,8 +185,8 @@ var (
 	// an unverified binary.
 	errChecksumUnavailable = errors.New("release checksum unavailable")
 
-	// errChecksumMismatch is returned when a downloaded archive's SHA-256 does not match
-	// the published checksum.
+	// errChecksumMismatch is returned when a downloaded archive's SHA-256 does not match the
+	// published checksum.
 	errChecksumMismatch = errors.New("release checksum mismatch")
 
 	// errUnsupportedPlatform is returned when no release binary is published for the host
@@ -333,9 +333,9 @@ func ensureInstalled(ctx context.Context, version string) (status string, binary
 	return fmt.Sprintf("installed pikopls %s to %s", resolvedVersion, installed), absolutePath(installed)
 }
 
-// pinLSPCommand rewrites the plugin's .lsp.json so its piko server launches binaryPath
-// by absolute path. This keeps the language server working when its directory is not on
-// the PATH that the editor or agent inherits.
+// pinLSPCommand rewrites the plugin's .lsp.json so its piko server launches binaryPath by
+// absolute path. This keeps the language server working when its directory is not on the
+// PATH that the editor or agent inherits.
 //
 // Takes pluginDirectory (string) which is the installed plugin directory holding
 // .lsp.json.
@@ -417,16 +417,16 @@ func assetName(version string, plat platform) string {
 }
 
 // fetchBinary downloads and extracts the pikopls executable. It tries the exact CLI
-// version first and falls back to the latest published release, which covers
-// development builds whose version was never released.
+// version first and falls back to the latest published release, which covers development
+// builds whose version was never released.
 //
 // Takes version (string) which is the running CLI version (with or without "v").
 // Takes plat (platform) which holds the host asset tokens.
 //
 // Returns []byte which is the extracted executable.
 // Returns string which is the version actually downloaded.
-// Returns error when neither the exact nor the latest release could be fetched, or when
-// a checksum check fails.
+// Returns error when neither the exact nor the latest release could be fetched, or when a
+// checksum check fails.
 func fetchBinary(ctx context.Context, version string, plat platform) ([]byte, string, error) {
 	wanted := strings.TrimPrefix(strings.TrimSpace(version), "v")
 
@@ -891,8 +891,8 @@ func closeSandbox(sandbox safedisk.Sandbox, err *error) {
 	closeInto(sandbox, "sandbox", err)
 }
 
-// closeInto closes closer and joins any close error into the caller's error, so a
-// failed close is reported instead of dropped.
+// closeInto closes closer and joins any close error into the caller's error, so a failed
+// close is reported instead of dropped.
 //
 // Takes closer (io.Closer) which is the resource to close.
 // Takes what (string) which names the resource in the error message.
@@ -993,8 +993,8 @@ func pinCommandInLSPConfig(data []byte, command string) ([]byte, error) {
 	return append(rewritten, '\n'), nil
 }
 
-// absolutePath resolves path to an absolute path, falling back to path unchanged when
-// the working directory cannot be determined.
+// absolutePath resolves path to an absolute path, falling back to path unchanged when the
+// working directory cannot be determined.
 //
 // Takes path (string) which is the path to resolve.
 //

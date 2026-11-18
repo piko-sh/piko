@@ -54,7 +54,9 @@ type TokenBucketConfig struct {
 // The fixed window divides time into discrete windows of the specified duration and
 // allows up to Limit operations per window.
 type FixedWindowConfig struct {
-	// Limit is the maximum number of operations per window. Must be greater than zero.
+	// Limit is the maximum number of operations per window. Zero denies every operation.
+	//
+	// Negative values are rejected.
 	Limit int
 
 	// Window is the duration of each rate limit window. Must be greater than zero.

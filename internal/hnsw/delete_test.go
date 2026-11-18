@@ -87,7 +87,7 @@ func TestGraph_DeletedKeysNotInResults(t *testing.T) {
 	g.Insert("c", []float32{0, 0, 1})
 	g.Delete("a")
 
-	results := g.Search([]float32{1, 0, 0}, 5, 0)
+	results := mustSearch(t, g, []float32{1, 0, 0}, 5, 0)
 	for _, r := range results {
 		assert.NotEqual(t, "a", r.Key, "deleted key should not appear in results")
 	}
@@ -101,7 +101,7 @@ func TestGraph_DeleteAllThenSearch(t *testing.T) {
 	g.Delete("a")
 	g.Delete("b")
 
-	results := g.Search([]float32{1, 0, 0}, 5, 0)
+	results := mustSearch(t, g, []float32{1, 0, 0}, 5, 0)
 	assert.Nil(t, results)
 }
 
@@ -119,7 +119,7 @@ func TestGraph_DeleteEntryPoint(t *testing.T) {
 	g.Delete(entryKey)
 	assert.Equal(t, 2, g.Len())
 
-	results := g.Search([]float32{0, 1, 0}, 1, 0)
+	results := mustSearch(t, g, []float32{0, 1, 0}, 1, 0)
 	require.Len(t, results, 1)
 }
 
@@ -137,7 +137,7 @@ func TestGraph_DeleteAndSearch(t *testing.T) {
 
 	assert.Equal(t, n/2, g.Len())
 
-	results := g.Search([]float32{25, 25, 1}, 5, 50)
+	results := mustSearch(t, g, []float32{25, 25, 1}, 5, 50)
 	require.NotEmpty(t, results)
 
 	for _, r := range results {
@@ -152,7 +152,7 @@ func TestGraph_ElectNewEntry(t *testing.T) {
 		g.Delete("only")
 
 		assert.Equal(t, 0, g.Len())
-		assert.Nil(t, g.Search([]float32{1, 0, 0}, 1, 0))
+		assert.Nil(t, mustSearch(t, g, []float32{1, 0, 0}, 1, 0))
 	})
 
 	t.Run("fallback to nodes map when layers empty", func(t *testing.T) {

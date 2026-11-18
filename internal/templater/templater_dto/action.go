@@ -21,7 +21,7 @@ package templater_dto
 import (
 	"reflect"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 // ActionArgument represents a single argument passed to a client-side action. It

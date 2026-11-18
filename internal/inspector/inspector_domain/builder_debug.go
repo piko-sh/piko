@@ -18,11 +18,6 @@
 
 package inspector_domain
 
-// This file provides debug utilities for the TypeBuilder, allowing inspection of the
-// final, serialised TypeData artefact. It sanitises file paths and filters output to keep
-// debug information focused and portable, which is critical for creating stable
-// regression tests.
-
 import (
 	"errors"
 	"fmt"
@@ -30,8 +25,8 @@ import (
 	"slices"
 	"strings"
 
+	"piko.sh/json"
 	"piko.sh/piko/internal/inspector/inspector_dto"
-	"piko.sh/piko/internal/json"
 )
 
 // DumpFormat specifies the output format for type data dumps.
@@ -58,6 +53,12 @@ const (
 	// gorootPlaceholder replaces the machine-specific GOROOT path in sanitised output,
 	// making golden files portable across Go installations.
 	gorootPlaceholder = "$GOROOT"
+
+	// importAliasQuote is the double quote placed around import aliases in debug output.
+	importAliasQuote = `"`
+	// estimatedLinesPerFileImports is the guessed number of output lines for each file's
+	// imports, used to pre-size the line slice.
+	estimatedLinesPerFileImports = 3
 )
 
 // DumpOptions holds settings for changing how DumpTypeData writes its output.
@@ -290,7 +291,7 @@ func dumpReadable(td *inspector_dto.TypeData) string {
 //
 // Returns []string which contains the formatted lines ready for display.
 func formatFileImportsLines(fileImports map[string]map[string]string) []string {
-	lines := make([]string, 0, len(fileImports)*3)
+	lines := make([]string, 0, len(fileImports)*estimatedLinesPerFileImports)
 	if len(fileImports) == 0 {
 		lines = append(lines, "  (none)")
 		return lines
@@ -315,7 +316,7 @@ func formatFileImportsLines(fileImports map[string]map[string]string) []string {
 		}
 		slices.Sort(aliases)
 		for _, alias := range aliases {
-			lines = append(lines, fmt.Sprintf("    - import %-20s -> %s", `"`+alias+`"`, importMap[alias]))
+			lines = append(lines, fmt.Sprintf("    - import %-20s -> %s", importAliasQuote+alias+importAliasQuote, importMap[alias]))
 		}
 	}
 	return lines

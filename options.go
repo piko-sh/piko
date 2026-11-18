@@ -22,6 +22,7 @@ import (
 	"io/fs"
 	"time"
 
+	"piko.sh/json"
 	"piko.sh/piko/internal/bootstrap"
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/capabilities"
@@ -35,7 +36,6 @@ import (
 	"piko.sh/piko/internal/highlight/highlight_domain"
 	"piko.sh/piko/internal/i18n/i18n_domain"
 	"piko.sh/piko/internal/image/image_domain"
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/layouter/layouter_dto"
 	"piko.sh/piko/internal/llm/llm_domain"
 	"piko.sh/piko/internal/logger/logger_dto"
@@ -528,6 +528,36 @@ func WithDefaultCacheProvider(name string) Option {
 	}
 }
 
+// WithRateLimiterCacheProvider names the cache provider that holds rate limiter state.
+//
+// By default the state is kept in memory in each process, so every instance enforces its
+// own limits. Name a remote provider that every instance shares, such as Redis or Valkey,
+// to enforce limits across instances.
+//
+// Takes name (string) which is a provider registered with WithCacheProvider.
+//
+// Returns Option which configures the rate limiter cache provider.
+func WithRateLimiterCacheProvider(name string) Option {
+	return func(c *bootstrap.Container) {
+		c.SetRateLimiterCacheProvider(name)
+	}
+}
+
+// WithLLMCacheProvider names the cache provider that holds the LLM response cache and
+// budget data.
+//
+// By default both are kept in memory in each process. Name a remote provider that every
+// instance shares to share cached responses and enforce budgets across instances.
+//
+// Takes name (string) which is a provider registered with WithCacheProvider.
+//
+// Returns Option which configures the LLM cache provider.
+func WithLLMCacheProvider(name string) Option {
+	return func(c *bootstrap.Container) {
+		c.SetLLMCacheProvider(name)
+	}
+}
+
 // WithCacheService sets a fully configured cache service instance. This overrides the
 // default cache service creation and provider registration.
 //
@@ -563,6 +593,16 @@ func WithCacheService(service cache_domain.Service) Option {
 // Returns Option which configures the cap on the container.
 func WithHybridCacheMaxBytes(maxBytes uint64) Option {
 	return bootstrap.WithHybridCacheMaxBytes(maxBytes)
+}
+
+// WithLLMCacheMaxBytes overrides the default weight cap, 256 MiB, on the in-memory LLM
+// response cache.
+//
+// Takes maxBytes (uint64) which is the cap in bytes. Zero keeps the default.
+//
+// Returns Option which configures the cap on the container.
+func WithLLMCacheMaxBytes(maxBytes uint64) Option {
+	return bootstrap.WithLLMCacheMaxBytes(maxBytes)
 }
 
 // WithHybridCacheWriteExpiration overrides the framework default write-expiration on the
@@ -2169,12 +2209,14 @@ func WithQueryObserver(o QueryObserver) Option {
 //
 //	app := piko.New(
 //	    piko.WithDatabase(db.DatabaseNameRegistry, &db.DatabaseRegistration{
-//	        DB:           db_driver_sqlite_cgo.Open(ctx, "data/registry.db", db_driver_sqlite_cgo.Config{}),
+//	        DB: db_driver_sqlite_cgo.Open(ctx,
+//	            "data/registry.db", db_driver_sqlite_cgo.Config{}),
 //	        EngineConfig: db_engine_sqlite.SQLite(),
 //	        MigrationFS:  db_schema_registry_sqlite.Migrations,
 //	    }),
 //	    piko.WithDatabase(db.DatabaseNameOrchestrator, &db.DatabaseRegistration{
-//	        DB:           db_driver_sqlite_cgo.Open(ctx, "data/orchestrator.db", db_driver_sqlite_cgo.Config{}),
+//	        DB: db_driver_sqlite_cgo.Open(ctx,
+//	            "data/orchestrator.db", db_driver_sqlite_cgo.Config{}),
 //	        EngineConfig: db_engine_sqlite.SQLite(),
 //	        MigrationFS:  db_schema_orchestrator_sqlite.Migrations,
 //	    }),
@@ -2542,6 +2584,19 @@ func WithTrustedProxies(cidrs ...string) Option {
 // Returns Option which configures the Cloudflare setting on the server.
 func WithCloudflareEnabled(enabled bool) Option {
 	return bootstrap.WithCloudflareEnabled(enabled)
+}
+
+// WithRateLimitIPv6PrefixBits sets how many leading bits of an IPv6 address identify one
+// rate limited caller.
+//
+// The default is 64 because one subscriber usually holds a whole /64 and could otherwise
+// spread requests over many addresses. Values outside 1 to 128 use the default instead.
+//
+// Takes bits (int) which is the IPv6 prefix length to key on.
+//
+// Returns Option which configures the IPv6 prefix length on the server.
+func WithRateLimitIPv6PrefixBits(bits int) Option {
+	return bootstrap.WithRateLimitIPv6PrefixBits(bits)
 }
 
 // WithRateLimitEnabled enables or disables HTTP request rate limiting. Rate limiting is

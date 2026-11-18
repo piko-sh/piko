@@ -21,6 +21,8 @@ package hnsw
 import (
 	"fmt"
 	"math"
+
+	"piko.sh/vectormaths"
 )
 
 const (
@@ -35,13 +37,14 @@ const (
 // Takes key (K) which identifies the vector.
 // Takes vector ([]float32) which is the vector data. Must match the graph's dimension.
 //
-// Returns ErrVectorDimensionMismatch if the vector length does not match the graph's
-// configured dimension.
+// Returns error which wraps ErrVectorDimensionMismatch when the vector is empty or its
+// length does not match the graph's dimension, or ErrZeroVector when the graph uses
+// cosine similarity and the vector has zero magnitude.
 //
 // Safe for concurrent use.
 func (g *Graph[K]) Insert(key K, vector []float32) error {
-	if len(vector) != g.dimension {
-		return fmt.Errorf("%w: got %d, want %d", ErrVectorDimensionMismatch, len(vector), g.dimension)
+	if err := g.validateVector(vector); err != nil {
+		return err
 	}
 
 	g.mu.Lock()
@@ -61,8 +64,8 @@ func (g *Graph[K]) Insert(key K, vector []float32) error {
 // Each vector must match the graph's dimension. If lengths differ or either slice is
 // empty, this is a no-op.
 //
-// Returns ErrVectorDimensionMismatch if any vector length does not match the graph's
-// configured dimension. No vectors are inserted in that case.
+// Returns error which wraps ErrVectorDimensionMismatch or ErrZeroVector, as Insert does,
+// for the first vector that cannot be inserted. No vectors are inserted in that case.
 //
 // Safe for concurrent use.
 func (g *Graph[K]) InsertBatch(keys []K, vectors [][]float32) error {
@@ -71,8 +74,8 @@ func (g *Graph[K]) InsertBatch(keys []K, vectors [][]float32) error {
 	}
 
 	for i, vector := range vectors {
-		if len(vector) != g.dimension {
-			return fmt.Errorf("%w: index %d got %d, want %d", ErrVectorDimensionMismatch, i, len(vector), g.dimension)
+		if err := g.validateVector(vector); err != nil {
+			return fmt.Errorf("vector at index %d: %w", i, err)
 		}
 	}
 
@@ -83,6 +86,34 @@ func (g *Graph[K]) InsertBatch(keys []K, vectors [][]float32) error {
 		g.insertLocked(key, vectors[i])
 	}
 	return nil
+}
+
+// validateVector checks that vector can be stored in or searched against the graph.
+//
+// Every vector in the graph, and every query, passes this check, so the distance
+// functions on the hot search path can use the unchecked kernels.
+//
+// Takes vector ([]float32) which is the vector to check.
+//
+// Returns error which wraps ErrVectorDimensionMismatch when the vector is empty or does
+// not match the graph's dimension, or ErrZeroVector when the graph uses cosine similarity
+// and the vector has zero magnitude.
+func (g *Graph[K]) validateVector(vector []float32) error {
+	if len(vector) == 0 || len(vector) != g.dimension {
+		return fmt.Errorf("%w: got %d, want %d", ErrVectorDimensionMismatch, len(vector), g.dimension)
+	}
+	if g.usesCosine() && vectormaths.NormF32(vector) == 0 {
+		return ErrZeroVector
+	}
+	return nil
+}
+
+// usesCosine reports whether the graph measures distance with cosine similarity, which is
+// also what New falls back to for an unknown metric.
+//
+// Returns bool which is true when distances are cosine distances.
+func (g *Graph[K]) usesCosine() bool {
+	return g.metric != vectormaths.Euclidean && g.metric != vectormaths.DotProduct
 }
 
 // insertLocked performs the insert logic without acquiring the lock.

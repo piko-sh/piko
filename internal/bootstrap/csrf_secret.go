@@ -56,6 +56,13 @@ const (
 	// fallbackGoldenRatio is the golden ratio constant used to mix entropy in fallback
 	// generation. Derived from 2^32 / phi (the golden ratio).
 	fallbackGoldenRatio = 0x9E3779B9
+
+	// fallbackWordBytes is the number of bytes in the 64-bit mixed value that each output
+	// byte is taken from.
+	fallbackWordBytes = 8
+
+	// bitsPerByte is the number of bits in one byte.
+	bitsPerByte = 8
 )
 
 var (
@@ -242,7 +249,7 @@ func generateFallbackSecret() []byte {
 	fallback := make([]byte, csrfSecretLength)
 	for i := range fallback {
 		mixed := now ^ (pid << fallbackPIDShift) ^ safeconv.IntToUint64(i)*fallbackGoldenRatio
-		fallback[i] = byte(mixed >> ((i % 8) * 8)) //nolint:gosec // intentional byte extraction
+		fallback[i] = byte(mixed >> ((i % fallbackWordBytes) * bitsPerByte)) //nolint:gosec // intentional byte extraction
 		now = (now >> 1) | (now << fallbackRotateBits)
 	}
 

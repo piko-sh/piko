@@ -40,6 +40,10 @@ import (
 const (
 	// newline is the line break character used when writing log output.
 	newline = "\n"
+
+	// spareAttrCapacity is the extra room left in a derived handler's attribute slice so
+	// that a few later additions do not force a regrowth.
+	spareAttrCapacity = 4
 )
 
 var (
@@ -159,7 +163,7 @@ func (h *prettyHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 		return h
 	}
 	newHandler := *h
-	newHandler.attrs = make([]slog.Attr, len(h.attrs), len(h.attrs)+len(attrs)+4)
+	newHandler.attrs = make([]slog.Attr, len(h.attrs), len(h.attrs)+len(attrs)+spareAttrCapacity)
 	copy(newHandler.attrs, h.attrs)
 	newHandler.attrs = append(newHandler.attrs, attrs...)
 	return &newHandler

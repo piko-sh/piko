@@ -18,8 +18,6 @@
 
 package bootstrap
 
-// This file contains provider configuration validation for the container.
-
 import (
 	"fmt"
 	"maps"
@@ -41,6 +39,12 @@ func (c *Container) ValidateProviderConfiguration() error {
 		errs = append(errs, err)
 	}
 	if err := c.validateCacheProviders(); err != "" {
+		errs = append(errs, err)
+	}
+	if err := c.validateNamedCacheProvider("rate limiter cache provider", c.rateLimiterCacheProvider); err != "" {
+		errs = append(errs, err)
+	}
+	if err := c.validateNamedCacheProvider("LLM cache provider", c.llmCacheProvider); err != "" {
 		errs = append(errs, err)
 	}
 	if err := c.validateCryptoProviders(); err != "" {
@@ -113,6 +117,35 @@ func (c *Container) validateCacheProviders() string {
 	if _, ok := c.cacheProviders[c.cacheDefaultProvider]; !ok {
 		return fmt.Sprintf("cache default provider %q not found in registered providers: %s",
 			c.cacheDefaultProvider, providerNames(c.cacheProviders))
+	}
+	return ""
+}
+
+// validateNamedCacheProvider checks whether a feature's cache provider is available.
+//
+// It checks a configured cache service when present. With no registered providers, only
+// the built-in "otter" provider is valid.
+//
+// Takes label (string) which names the setting in the message.
+// Takes name (string) which is the configured provider name. Empty is always valid.
+//
+// Returns string which is empty when valid, or describes the problem found.
+func (c *Container) validateNamedCacheProvider(label, name string) string {
+	if name == "" {
+		return ""
+	}
+	if c.cacheService != nil {
+		return validateNameInService(label, name, c.cacheService.GetProviders())
+	}
+	if len(c.cacheProviders) == 0 {
+		if name == defaultCacheProviderName {
+			return ""
+		}
+		return fmt.Sprintf("%s %q specified but no cache providers registered", label, name)
+	}
+	if _, ok := c.cacheProviders[name]; !ok {
+		return fmt.Sprintf("%s %q not found in registered cache providers: %s",
+			label, name, providerNames(c.cacheProviders))
 	}
 	return ""
 }
@@ -217,4 +250,22 @@ func providerNames[T any](m map[string]T) string {
 		return "(none)"
 	}
 	return strings.Join(slices.Collect(maps.Keys(m)), ", ")
+}
+
+// validateNameInService checks that name is one of the providers a cache service holds.
+//
+// Takes label (string) which names the setting in the message.
+// Takes name (string) which is the configured provider name.
+// Takes registered ([]string) which are the provider names the service holds.
+//
+// Returns string which is empty when valid, or describes the problem found.
+func validateNameInService(label, name string, registered []string) string {
+	if len(registered) == 0 {
+		return fmt.Sprintf("%s %q specified but no cache providers registered", label, name)
+	}
+	if !slices.Contains(registered, name) {
+		return fmt.Sprintf("%s %q not found in registered cache providers: %s",
+			label, name, strings.Join(registered, ", "))
+	}
+	return ""
 }

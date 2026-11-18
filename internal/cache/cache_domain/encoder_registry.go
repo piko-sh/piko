@@ -19,6 +19,7 @@
 package cache_domain
 
 import (
+	"bytes"
 	"cmp"
 	"context"
 	"errors"
@@ -28,6 +29,11 @@ import (
 	"sync"
 
 	"piko.sh/piko/internal/logger/logger_domain"
+)
+
+var (
+	// bytesType is the reflect.Type of []byte.
+	bytesType = reflect.TypeFor[[]byte]()
 )
 
 // EncodingRegistry maps Go types to their corresponding encoders. It provides runtime
@@ -45,6 +51,42 @@ type EncodingRegistry struct {
 
 	// mu guards the encoders map for safe concurrent access.
 	mu sync.RWMutex
+}
+
+// bytesIdentityEncoder stores []byte values as they are. A cache behind a transformer or
+// typed encoder already holds encoded bytes, so encoding them again would only waste
+// space, and a remote provider with no other []byte encoder could not store them at all.
+type bytesIdentityEncoder struct{}
+
+// MarshalAny returns the bytes unchanged.
+//
+// Takes value (any) which must be a []byte.
+//
+// Returns []byte which is value itself.
+// Returns error when value is not a []byte.
+func (bytesIdentityEncoder) MarshalAny(value any) ([]byte, error) {
+	data, ok := value.([]byte)
+	if !ok {
+		return nil, fmt.Errorf("byte identity encoder cannot encode %T", value)
+	}
+	return data, nil
+}
+
+// UnmarshalAny returns a copy of the bytes, so the caller owns what it receives.
+//
+// Takes data ([]byte) which is the stored bytes.
+//
+// Returns any which is a []byte copy of data.
+// Returns error which is always nil.
+func (bytesIdentityEncoder) UnmarshalAny(data []byte) (any, error) {
+	return bytes.Clone(data), nil
+}
+
+// HandlesType returns the []byte type.
+//
+// Returns reflect.Type which is the type of []byte.
+func (bytesIdentityEncoder) HandlesType() reflect.Type {
+	return bytesType
 }
 
 // NewEncodingRegistry creates a new registry with an optional default encoder. The
@@ -96,18 +138,16 @@ func (r *EncodingRegistry) Register(ctx context.Context, encoder AnyEncoder) err
 	return nil
 }
 
-// Get finds the appropriate encoder for a given value. It first checks for a
-// type-specific registration, then falls back to the default encoder.
+// Get finds an encoder for value, using the default when no type-specific encoder exists.
 //
-// This is the primary method used by providers during Set operations.
+// A []byte value uses an identity encoder only when neither other encoder is available.
 //
 // Takes value (any) which is the value whose type determines the encoder.
 //
-// Returns AnyEncoder which is the matched or default encoder.
-// Returns error when value is nil, or when no type-specific match exists and no default
-// encoder is configured.
+// Returns AnyEncoder which is the type-specific, default, or []byte identity encoder.
+// Returns error when value is nil or no encoder handles its type.
 //
-// Safe for concurrent use; protected by a read lock.
+// Concurrency: Get is safe for concurrent use.
 func (r *EncodingRegistry) Get(value any) (AnyEncoder, error) {
 	t := reflect.TypeOf(value)
 	if t == nil {
@@ -117,29 +157,19 @@ func (r *EncodingRegistry) Get(value any) (AnyEncoder, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	if encoder, ok := r.encoders[t]; ok {
-		return encoder, nil
-	}
-
-	if r.defaultEncoder != nil {
-		return r.defaultEncoder, nil
-	}
-
-	return nil, fmt.Errorf("no encoder found for type %s and no default encoder configured", t.String())
+	return r.lookupLocked(t)
 }
 
 // GetByType finds an encoder by its reflect.Type.
 //
-// This is used during Get operations when the type is known but the value has not been
-// unmarshalled yet.
+// A []byte type uses an identity encoder only when no other encoder is available.
 //
 // Takes t (reflect.Type) which specifies the type to find an encoder for.
 //
-// Returns AnyEncoder which handles encoding for the given type.
-// Returns error when t is nil, or no encoder is registered for the type and no default
-// encoder is configured.
+// Returns AnyEncoder which is the type-specific, default, or []byte identity encoder.
+// Returns error when t is nil or no encoder handles the type.
 //
-// Safe for concurrent use; protected by a read lock.
+// Concurrency: GetByType is safe for concurrent use.
 func (r *EncodingRegistry) GetByType(t reflect.Type) (AnyEncoder, error) {
 	if t == nil {
 		return nil, errors.New("type cannot be nil")
@@ -148,15 +178,7 @@ func (r *EncodingRegistry) GetByType(t reflect.Type) (AnyEncoder, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	if encoder, ok := r.encoders[t]; ok {
-		return encoder, nil
-	}
-
-	if r.defaultEncoder != nil {
-		return r.defaultEncoder, nil
-	}
-
-	return nil, fmt.Errorf("no encoder found for type %s and no default encoder configured", t.String())
+	return r.lookupLocked(t)
 }
 
 // Has checks if an encoder for the given type is explicitly registered, not counting the
@@ -216,4 +238,30 @@ func (r *EncodingRegistry) HasDefault() bool {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return r.defaultEncoder != nil
+}
+
+// lookupLocked finds an explicit encoder for t, then the default encoder.
+//
+// It uses the identity encoder for []byte only when neither other encoder is available.
+//
+// The caller must hold r.mu for reading.
+//
+// Takes t (reflect.Type) which is the type to encode.
+//
+// Returns AnyEncoder which handles t.
+// Returns error when nothing handles t.
+func (r *EncodingRegistry) lookupLocked(t reflect.Type) (AnyEncoder, error) {
+	if encoder, ok := r.encoders[t]; ok {
+		return encoder, nil
+	}
+
+	if r.defaultEncoder != nil {
+		return r.defaultEncoder, nil
+	}
+
+	if t == bytesType {
+		return bytesIdentityEncoder{}, nil
+	}
+
+	return nil, fmt.Errorf("no encoder found for type %s and no default encoder configured", t.String())
 }

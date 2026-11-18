@@ -74,6 +74,10 @@ const (
 	// arcAlphaDivisor holds the divisor used in the arc-to-cubic alpha calculation.
 	arcAlphaDivisor = 3
 
+	// arcAlphaBase holds the constant term inside the square root of the arc control point
+	// length formula.
+	arcAlphaBase = 4
+
 	// maxPathCommands bounds the number of commands a single path d attribute may produce.
 	//
 	// It guards against denial-of-service via an enormous d attribute that would otherwise
@@ -370,7 +374,7 @@ func applySmoothQuadCommand(state *pathState, args []float64) {
 func applyArcCommand(state *pathState, args []float64) {
 	endX, endY := args[arcEndXIndex], args[arcEndYIndex]
 	cubics := ArcToCubics(state.cx, state.cy, args[0], args[1], args[2],
-		args[3] != 0, args[4] != 0, endX, endY)
+		args[arcLargeArcFlagIndex] != 0, args[arcSweepFlagIndex] != 0, endX, endY)
 	state.commands = append(state.commands, cubics...)
 	state.cx, state.cy = endX, endY
 	state.lastCPX, state.lastCPY = state.cx, state.cy
@@ -554,7 +558,7 @@ func emitArcSegments(centreX, centreY, rx, ry, phi, theta1, dtheta float64) []Pa
 //
 // Returns PathCommand which holds the cubic Bezier approximation of the segment.
 func arcSegmentToCubic(cx, cy, rx, ry, phi, theta1, theta2 float64) PathCommand {
-	alpha := math.Sin(theta2-theta1) * (math.Sqrt(4+arcAlphaDivisor*math.Pow(math.Tan((theta2-theta1)/2), 2)) - 1) / arcAlphaDivisor
+	alpha := math.Sin(theta2-theta1) * (math.Sqrt(arcAlphaBase+arcAlphaDivisor*math.Pow(math.Tan((theta2-theta1)/2), 2)) - 1) / arcAlphaDivisor
 
 	cos1 := math.Cos(theta1)
 	sin1 := math.Sin(theta1)

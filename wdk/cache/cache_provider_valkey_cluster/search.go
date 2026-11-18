@@ -357,13 +357,11 @@ func (a *ValkeyClusterAdapter[K, V]) parseSearchHit(ctx context.Context, rawResu
 // setJSONValue stores a value as JSON for Valkey Search indexing.
 //
 // Takes keyString (string) which is the Valkey key to store the value under.
-// Takes value (V) which is the value to marshal and store as JSON.
-// Takes ttl (int) which is the time-to-live in seconds; zero means no expiry.
+// Takes value (V) which is the value to marshal and store as JSON. The caller sets the
+// document's TTL afterwards.
 //
 // Returns error when marshalling fails or the JSON.SET command fails.
-func (a *ValkeyClusterAdapter[K, V]) setJSONValue(ctx context.Context, keyString string, value V, ttl int) error {
-	ctx, l := logger.From(ctx, log)
-
+func (a *ValkeyClusterAdapter[K, V]) setJSONValue(ctx context.Context, keyString string, value V) error {
 	jsonBytes, err := json.Marshal(value)
 	if err != nil {
 		return fmt.Errorf("failed to marshal value to JSON: %w", err)
@@ -372,14 +370,6 @@ func (a *ValkeyClusterAdapter[K, V]) setJSONValue(ctx context.Context, keyString
 	command := a.client.B().Arbitrary("JSON.SET").Keys(keyString).Args(valkeyJSONPath, string(jsonBytes)).Build()
 	if err := a.client.Do(ctx, command).Error(); err != nil {
 		return fmt.Errorf("JSON.SET failed: %w", err)
-	}
-
-	if ttl > 0 {
-		if err := a.client.Do(ctx, a.client.B().Expire().Key(keyString).Seconds(int64(ttl)).Build()).Error(); err != nil {
-			l.Warn("Failed to set TTL on JSON document",
-				logger.String(valkeyLogKeyField, keyString),
-				logger.Error(err))
-		}
 	}
 
 	return nil
@@ -404,8 +394,7 @@ func (a *ValkeyClusterAdapter[K, V]) indexDocument(ctx context.Context, keyStrin
 		return
 	}
 
-	ttlSeconds := int(a.ttl.Seconds())
-	if err := a.setJSONValue(ctx, keyString, value, ttlSeconds); err != nil {
+	if err := a.setJSONValue(ctx, keyString, value); err != nil {
 		l.Warn("Failed to index document",
 			logger.String(valkeyLogKeyField, keyString),
 			logger.Error(err))

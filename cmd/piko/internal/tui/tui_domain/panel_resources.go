@@ -533,7 +533,7 @@ func (p *ResourcesPanel) refresh() tea.Cmd {
 			return ResourcesRefreshMessage{Err: errNoResourcesProvider, Data: nil}
 		}
 
-		ctx, cancel := context.WithTimeoutCause(context.Background(), 5*time.Second,
+		ctx, cancel := context.WithTimeoutCause(context.Background(), DefaultRefreshTimeout,
 			errors.New("resources panel data fetch exceeded 5s timeout"))
 		defer cancel()
 

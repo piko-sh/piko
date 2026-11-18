@@ -96,9 +96,7 @@ var (
 		actionHandlerTypeName,
 		actionRegistryFuncName,
 		actionInitFuncName,
-		actionLogVarName,
 		wrapperIdentPiko,
-		wrapperIdentLogger,
 	}
 )
 

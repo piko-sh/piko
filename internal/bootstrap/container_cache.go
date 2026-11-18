@@ -18,8 +18,6 @@
 
 package bootstrap
 
-// This file contains cache service related container methods.
-
 import (
 	"context"
 	"fmt"
@@ -28,6 +26,12 @@ import (
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/shutdown"
+)
+
+const (
+	// defaultCacheProviderName is the name of the built-in Otter provider registered when no
+	// cache providers are configured.
+	defaultCacheProviderName = "otter"
 )
 
 // AddCacheProvider registers a named cache provider.
@@ -65,8 +69,12 @@ func (c *Container) GetCacheService() (cache_domain.Service, error) {
 }
 
 // createDefaultCacheService sets up the cache service with user-provided providers, or
-// with Otter as the default if none are given.
+// with Otter as the default if none are given. A service supplied through SetCacheService
+// is kept as it is.
 func (c *Container) createDefaultCacheService() {
+	if c.cacheService != nil {
+		return
+	}
 	_, l := logger_domain.From(c.GetAppContext(), log)
 
 	defaultProviderName := c.cacheDefaultProvider
@@ -119,14 +127,14 @@ func (c *Container) registerDefaultOtterProvider() error {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 
 	otterProvider := cache_adapters_otter.NewOtterProvider()
-	if err := c.cacheService.RegisterProvider(c.GetAppContext(), "otter", otterProvider); err != nil {
+	if err := c.cacheService.RegisterProvider(c.GetAppContext(), defaultCacheProviderName, otterProvider); err != nil {
 		_ = otterProvider.Close()
 		l.Error("Failed to register Otter provider", logger_domain.Error(err))
 		c.cacheErr = err
 		return fmt.Errorf("registering default Otter cache provider: %w", err)
 	}
 
-	if err := c.cacheService.SetDefaultProvider(c.GetAppContext(), "otter"); err != nil {
+	if err := c.cacheService.SetDefaultProvider(c.GetAppContext(), defaultCacheProviderName); err != nil {
 		_ = otterProvider.Close()
 		l.Error("Failed to set default Otter provider", logger_domain.Error(err))
 		c.cacheErr = err

@@ -84,6 +84,14 @@ const (
 	// byteRangeSize is the number of elements in a /ByteRange array.
 	byteRangeSize = 4
 
+	// byteRangeSecondStart is the position in /ByteRange of the start of the range that
+	// follows the signature contents.
+	byteRangeSecondStart = 2
+
+	// byteRangeSecondLength is the position in /ByteRange of the length of the range that
+	// follows the signature contents.
+	byteRangeSecondLength = 3
+
 	// asn1TagSequence is the ASN.1 tag byte for SEQUENCE.
 	asn1TagSequence = 0x30
 
@@ -794,7 +802,7 @@ func patchByteRange(pdf []byte, byteRange [byteRangeSize]int64) []byte {
 
 	newBR := fmt.Sprintf("%-*s",
 		brEnd-brStart,
-		fmt.Sprintf("%d %d %d %d", byteRange[0], byteRange[1], byteRange[2], byteRange[3]),
+		fmt.Sprintf("%d %d %d %d", byteRange[0], byteRange[1], byteRange[byteRangeSecondStart], byteRange[byteRangeSecondLength]),
 	)
 
 	result := make([]byte, len(pdf))
@@ -813,7 +821,7 @@ func patchByteRange(pdf []byte, byteRange [byteRangeSize]int64) []byte {
 func computeByteRangeDigest(pdf []byte, byteRange [byteRangeSize]int64) []byte {
 	h := sha256.New()
 	_, _ = h.Write(pdf[byteRange[0] : byteRange[0]+byteRange[1]])
-	_, _ = h.Write(pdf[byteRange[2] : byteRange[2]+byteRange[3]])
+	_, _ = h.Write(pdf[byteRange[byteRangeSecondStart] : byteRange[byteRangeSecondStart]+byteRange[byteRangeSecondLength]])
 	return h.Sum(nil)
 }
 

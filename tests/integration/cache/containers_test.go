@@ -26,6 +26,7 @@ import (
 	"net/netip"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -86,6 +87,13 @@ func setupTestEnvironment(ctx context.Context) (*testEnv, error) {
 	}
 
 	if len(env.redisClusterAddrs) > 0 {
+		if err := waitForClusterReady(ctx, env.redisClusterAddrs, clusterReadyTimeout); err != nil {
+			for _, cleanup := range slices.Backward(cleanups) {
+				cleanup()
+			}
+			_ = env.rawClient.Close()
+			return nil, fmt.Errorf("waiting for the redis cluster at %s: %w", strings.Join(env.redisClusterAddrs, ","), err)
+		}
 		env.rawClusterClient = redis.NewClusterClient(&redis.ClusterOptions{Addrs: env.redisClusterAddrs})
 	}
 
@@ -217,7 +225,94 @@ func startRedisClusterContainer(ctx context.Context) (testcontainers.Container, 
 		addrs = append(addrs, "127.0.0.1:"+p)
 	}
 
-	time.Sleep(2 * time.Second)
-
 	return ctr, addrs, nil
+}
+
+const (
+	clusterSlotCount = 16384
+	clusterReadyTimeout = 120 * time.Second
+)
+
+type clusterNodeState struct {
+	err error
+	state string
+	slotsOK int
+	knownNodes int
+}
+
+func (s clusterNodeState) ready(want int) bool {
+	return s.err == nil && s.state == "ok" && s.slotsOK == clusterSlotCount && s.knownNodes >= want
+}
+
+func (s clusterNodeState) String() string {
+	if s.err != nil {
+		return "error: " + s.err.Error()
+	}
+	return fmt.Sprintf("cluster_state:%s cluster_slots_ok:%d cluster_known_nodes:%d", s.state, s.slotsOK, s.knownNodes)
+}
+
+func waitForClusterReady(ctx context.Context, addrs []string, timeout time.Duration) error {
+	clients := make([]*redis.Client, len(addrs))
+	for index, addr := range addrs {
+		clients[index] = redis.NewClient(&redis.Options{Addr: addr, DialTimeout: 2 * time.Second, ReadTimeout: 2 * time.Second})
+	}
+	defer func() {
+		for _, client := range clients {
+			_ = client.Close()
+		}
+	}()
+
+	ctx, cancel := context.WithTimeoutCause(ctx, timeout, fmt.Errorf("cluster not ready after %s", timeout))
+	defer cancel()
+	ticker := time.NewTicker(250 * time.Millisecond)
+	defer ticker.Stop()
+
+	states := make([]clusterNodeState, len(addrs))
+	for {
+		allReady := true
+		for index, client := range clients {
+			states[index] = readClusterNodeState(ctx, client)
+			allReady = allReady && states[index].ready(len(addrs))
+		}
+		if allReady {
+			return nil
+		}
+
+		select {
+		case <-ctx.Done():
+			report := make([]string, len(addrs))
+			for index, addr := range addrs {
+				report[index] = addr + " " + states[index].String()
+			}
+			return fmt.Errorf("%w; node states: %s", context.Cause(ctx), strings.Join(report, "; "))
+		case <-ticker.C:
+		}
+	}
+}
+
+func readClusterNodeState(ctx context.Context, client *redis.Client) clusterNodeState {
+	info, err := client.ClusterInfo(ctx).Result()
+	if err != nil {
+		return clusterNodeState{err: err}
+	}
+	var state clusterNodeState
+	for line := range strings.SplitSeq(info, "\r\n") {
+		name, value, found := strings.Cut(line, ":")
+		if !found {
+			continue
+		}
+		var parseErr error
+		switch name {
+		case "cluster_state":
+			state.state = value
+		case "cluster_slots_ok":
+			state.slotsOK, parseErr = strconv.Atoi(value)
+		case "cluster_known_nodes":
+			state.knownNodes, parseErr = strconv.Atoi(value)
+		}
+		if parseErr != nil {
+			return clusterNodeState{err: fmt.Errorf("parsing %s: %w", name, parseErr)}
+		}
+	}
+	return state
 }

@@ -24,9 +24,9 @@ import (
 	"slices"
 
 	flatbuffers "github.com/google/flatbuffers/go"
+	"piko.sh/json"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/ast/ast_schema/ast_schema_gen"
-	"piko.sh/piko/internal/json"
 )
 
 // buildOnEventsMap serialises an event handlers map to FlatBuffers format.

@@ -76,7 +76,7 @@ func TestPipeline_TasksDispatchedBeforeDispatcherStartsAreProcessed(t *testing.T
 
 	stats := h.dispatcher.Stats()
 	assert.Equal(t, int64(1), stats.TasksDispatched, "first profile dispatched before start")
-	assert.False(t, h.dispatcher.IsIdle(), "a task held until start keeps the dispatcher busy")
+	assert.False(t, h.buildComplete(), "a task held until start keeps the dispatcher busy")
 
 	h.startDispatcher()
 
@@ -119,7 +119,7 @@ func TestPipeline_RecoveredStaleTaskIsDispatchedAgain(t *testing.T) {
 	h.clock.Advance(30 * time.Second)
 
 	require.True(t, waitForCondition(10*time.Second, func() bool {
-		return exec.getCallCount() == 1 && h.dispatcher.IsIdle()
+		return exec.getCallCount() == 1 && h.buildComplete()
 	}), "the recovered task must be dispatched and run again")
 
 	stored, err := h.taskStore.GetTasksByID(h.ctx, []string{"stale-task"})

@@ -26,9 +26,14 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"unicode"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/unicode/norm"
 
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/cache/cache_dto"
+	"piko.sh/piko/internal/security/security_dto"
 	"piko.sh/piko/internal/spamdetect/spamdetect_dto"
 	"piko.sh/piko/wdk/clock"
 )
@@ -50,7 +55,11 @@ type RepetitionEntry struct {
 	// FirstSeen is when this content hash was first recorded.
 	FirstSeen time.Time
 
-	// Count is the number of times this content has been submitted.
+	// LastSeen is when this content hash was most recently recorded.
+	LastSeen time.Time
+
+	// Count is the number of times this content has been submitted since FirstSeen, with no
+	// gap between submissions as long as the tracking window.
 	Count int
 }
 
@@ -66,12 +75,29 @@ type RepetitionDetector struct {
 	// ttl is the time window for tracking repetitions.
 	ttl time.Duration
 
+	// ipv6PrefixBits is how many leading bits of an IPv6 client address form the IP scope.
+	// Zero keeps the shared default.
+	ipv6PrefixBits int
+
 	// ipScoped scopes cache keys by IP for per-client tracking.
 	ipScoped bool
 }
 
 // RepetitionOption configures a RepetitionDetector.
 type RepetitionOption func(*RepetitionDetector)
+
+// WithRepetitionIPv6PrefixBits sets how many leading bits of an IPv6 client address form
+// the IP scope, so every address in one allocation shares a count. Values outside 1 to
+// 128 keep the default of security_dto.DefaultIPv6RateLimitPrefixBits.
+//
+// Takes bits (int) which is the prefix length to keep.
+//
+// Returns RepetitionOption which applies the prefix length.
+func WithRepetitionIPv6PrefixBits(bits int) RepetitionOption {
+	return func(d *RepetitionDetector) {
+		d.ipv6PrefixBits = bits
+	}
+}
 
 // WithRepetitionClock sets the clock source used for FirstSeen timestamps. Tests inject a
 // mock clock for deterministic behaviour.
@@ -90,7 +116,8 @@ func WithRepetitionClock(c clock.Clock) RepetitionOption {
 // NewRepetitionDetector creates a repetition detector.
 //
 // Takes cache (cache_domain.Cache[string, RepetitionEntry]) which stores content hashes.
-// Pass nil to disable repetition detection.
+// Pass nil to disable repetition detection. Build it with PerEntryExpiration so hashes
+// that stop recurring are dropped; counts reset after a quiet window either way.
 // Takes ttl (time.Duration) which is the tracking window. Zero uses the default of 10
 // minutes.
 // Takes ipScoped (bool) which scopes tracking per client IP when true.
@@ -108,10 +135,11 @@ func NewRepetitionDetector(
 		ttl = defaultRepetitionTTL
 	}
 	detector := &RepetitionDetector{
-		cache:    cache,
-		clock:    clock.RealClock(),
-		ttl:      ttl,
-		ipScoped: ipScoped,
+		cache:          cache,
+		clock:          clock.RealClock(),
+		ttl:            ttl,
+		ipv6PrefixBits: 0,
+		ipScoped:       ipScoped,
 	}
 	for _, opt := range opts {
 		opt(detector)
@@ -209,6 +237,10 @@ func (d *RepetitionDetector) HealthCheck(ctx context.Context) error {
 // hashFieldContent returns a truncated SHA-256 hex digest of the sorted field key-value
 // pairs.
 //
+// Each value is normalised first, so changes in case, spacing or Unicode form do not hide
+// a repeat. Values are already capped to their schema MaxLength by Submission.Sanitise,
+// so the work done here is bounded.
+//
 // Takes submission (*spamdetect_dto.Submission) which provides values.
 // Takes fields ([]spamdetect_dto.Field) which lists the fields to hash.
 //
@@ -220,10 +252,11 @@ func (*RepetitionDetector) hashFieldContent(submission *spamdetect_dto.Submissio
 	}
 	slices.Sort(keys)
 
+	caser := cases.Fold()
 	hasher := sha256.New()
 	var separator = []byte{0}
 	for _, key := range keys {
-		value := submission.FieldString(key)
+		value := normaliseRepetitionValue(caser, submission.FieldString(key))
 		_, _ = hasher.Write([]byte(key))
 		_, _ = hasher.Write(separator)
 		_, _ = hasher.Write([]byte(value))
@@ -238,7 +271,8 @@ func (*RepetitionDetector) hashFieldContent(submission *spamdetect_dto.Submissio
 }
 
 // buildCacheKey assembles the cache key from the prefix, optional IP scope, and content
-// hash.
+// hash. The IP is sanitised so a malformed value cannot shape the key and every address
+// in one IPv6 /64 shares a scope.
 //
 // Takes contentHash (string) which is the content digest.
 // Takes remoteIP (string) which is the client IP for scoping.
@@ -248,15 +282,17 @@ func (d *RepetitionDetector) buildCacheKey(contentHash string, remoteIP string) 
 	var builder strings.Builder
 	builder.WriteString(repetitionCachePrefix)
 	if d.ipScoped && remoteIP != "" {
-		builder.WriteString(remoteIP)
+		builder.WriteString(security_dto.SanitiseRateLimitKey(remoteIP, security_dto.WithIPv6PrefixBits(d.ipv6PrefixBits)))
 		builder.WriteByte(':')
 	}
 	builder.WriteString(contentHash)
 	return builder.String()
 }
 
-// recordAndCount atomically increments the hit count for cacheKey and returns the new
-// total.
+// recordAndCount atomically increments the hit count for cacheKey.
+//
+// A submission at or after the tracking window starts a new count. The detector resets
+// the count itself because its cache may keep entries after expiry.
 //
 // Takes cacheKey (string) which is the cache key to increment.
 //
@@ -266,15 +302,12 @@ func (d *RepetitionDetector) recordAndCount(ctx context.Context, cacheKey string
 	now := d.clock.Now()
 
 	newEntry, _, err := d.cache.ComputeWithTTL(ctx, cacheKey, func(oldValue RepetitionEntry, found bool) cache_dto.ComputeResult[RepetitionEntry] {
-		if found {
-			return cache_dto.ComputeResult[RepetitionEntry]{
-				Value:  RepetitionEntry{FirstSeen: oldValue.FirstSeen, Count: oldValue.Count + 1},
-				Action: cache_dto.ComputeActionSet,
-				TTL:    d.ttl,
-			}
+		entry := RepetitionEntry{FirstSeen: now, LastSeen: now, Count: 1}
+		if found && d.seenWithinWindow(oldValue, now) {
+			entry = RepetitionEntry{FirstSeen: oldValue.FirstSeen, LastSeen: now, Count: oldValue.Count + 1}
 		}
 		return cache_dto.ComputeResult[RepetitionEntry]{
-			Value:  RepetitionEntry{FirstSeen: now, Count: 1},
+			Value:  entry,
 			Action: cache_dto.ComputeActionSet,
 			TTL:    d.ttl,
 		}
@@ -284,6 +317,17 @@ func (d *RepetitionDetector) recordAndCount(ctx context.Context, cacheKey string
 	}
 
 	return newEntry.Count, nil
+}
+
+// seenWithinWindow reports whether the content was last recorded less than a tracking
+// window before now.
+//
+// Takes entry (RepetitionEntry) which is the stored record for the content.
+// Takes now (time.Time) which is the time of the current submission.
+//
+// Returns bool which is true when the current submission continues the count.
+func (d *RepetitionDetector) seenWithinWindow(entry RepetitionEntry, now time.Time) bool {
+	return now.Sub(entry.LastSeen) < d.ttl
 }
 
 // scoreFromCount maps a hit count to a spam score and optional human-readable reason.
@@ -301,4 +345,38 @@ func (*RepetitionDetector) scoreFromCount(count int) (float64, string) {
 	default:
 		return 1.0, fmt.Sprintf("identical content submitted %d times", count)
 	}
+}
+
+// normaliseRepetitionValue reduces a field value to the form compared for repeats.
+//
+// The value is matched caselessly in the canonical way, NFKC(fold(NFD(value))), so
+// fullwidth letters, ligatures, accents written as combining marks and case variants all
+// reduce to one form. Characters that render as nothing, such as U+200B ZERO WIDTH SPACE,
+// U+00AD SOFT HYPHEN and U+2060 WORD JOINER, are then removed so they cannot be slipped
+// in to make a repeat look new. Last, leading and trailing space is removed and every run
+// of whitespace becomes one space.
+//
+// Takes caser (cases.Caser) which folds case; it holds state, so each caller passes its
+// own.
+// Takes value (string) which is the raw field value.
+//
+// Returns string which is the normalised value.
+func normaliseRepetitionValue(caser cases.Caser, value string) string {
+	folded := norm.NFKC.String(caser.String(norm.NFD.String(value)))
+	visible := strings.Map(dropInvisibleRune, folded)
+
+	return strings.Join(strings.Fields(visible), " ")
+}
+
+// dropInvisibleRune removes a rune that renders as nothing, for use with strings.Map.
+//
+// Takes r (rune) which is the rune to check.
+//
+// Returns rune which is r, or -1 to drop a format character, a variation selector or any
+// other default ignorable code point.
+func dropInvisibleRune(r rune) rune {
+	if unicode.In(r, unicode.Cf, unicode.Other_Default_Ignorable_Code_Point, unicode.Variation_Selector) {
+		return -1
+	}
+	return r
 }

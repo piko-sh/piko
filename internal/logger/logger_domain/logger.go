@@ -36,8 +36,8 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
+	"piko.sh/json"
 	"piko.sh/piko/internal/caller"
-	"piko.sh/piko/internal/json"
 )
 
 const (

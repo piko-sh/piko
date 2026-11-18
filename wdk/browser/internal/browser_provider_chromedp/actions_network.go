@@ -383,7 +383,7 @@ func WaitForRequest(ctx *ActionContext, matcher RequestMatcher, timeout time.Dur
 			}
 		}
 
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(DefaultPollingInterval)
 	}
 
 	return nil, fmt.Errorf("timeout waiting for request matching %+v", matcher)

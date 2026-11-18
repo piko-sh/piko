@@ -35,6 +35,10 @@ import (
 )
 
 const (
+	// providerRowChromeWidth is the columns a provider row reserves for its cursor and
+	// default marker before the label.
+	providerRowChromeWidth = 6
+
 	// providersRefreshTimeout caps the providers RPC fetch.
 	providersRefreshTimeout = 5 * time.Second
 )
@@ -289,7 +293,7 @@ func (p *ProvidersPanel) renderRow(entry ProviderEntry, selected bool) string {
 		star = "* "
 	}
 	label := fmt.Sprintf("%s/%s", entry.ResourceType, entry.Name)
-	return cursor + star + RenderName(label, max(0, p.ContentWidth()-6), selected, p.Focused())
+	return cursor + star + RenderName(label, max(0, p.ContentWidth()-providerRowChromeWidth), selected, p.Focused())
 }
 
 // handleKey routes a key press to the appropriate navigation handler.

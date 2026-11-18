@@ -32,6 +32,9 @@ import (
 const (
 	// infoCategoryList is the formatted list of available category names.
 	infoCategoryList = "system, build, runtime, memory, gc, process"
+
+	// millisecondsPerSecond converts millisecond timestamps to seconds.
+	millisecondsPerSecond = 1000
 )
 
 var (
@@ -312,7 +315,7 @@ func infoSystem(response *pb.GetSystemStatsResponse, p *Printer) {
 		{"CGO Calls", strconv.FormatInt(response.GetNumCgoCalls(), 10)},
 		{"Cgroup Path", response.GetCgroupPath()},
 		{"Monitoring Address", response.GetMonitoringListenAddr()},
-		{"Timestamp", formatTimestamp(response.GetTimestampMs() / 1000)},
+		{"Timestamp", formatTimestamp(response.GetTimestampMs() / millisecondsPerSecond)},
 	}
 	p.PrintResource(infoDetailColumns, rows)
 }

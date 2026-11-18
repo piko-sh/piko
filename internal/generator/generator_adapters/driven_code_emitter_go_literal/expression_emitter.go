@@ -225,7 +225,7 @@ func (ee *expressionEmitter) tryEmitLiteralExpression(expression ast_domain.Expr
 	case *ast_domain.RuneLiteral:
 		return &goast.BasicLit{Kind: TokenKindChar, Value: strconv.QuoteRune(n.Value)}, nil, nil, true
 	case *ast_domain.DateTimeLiteral:
-		return ee.emitTemporalParseLiteral(&goast.SelectorExpr{X: cachedIdent("time"), Sel: cachedIdent("RFC3339")}, n.Value), nil, nil, true
+		return ee.emitTemporalParseLiteral(&goast.SelectorExpr{X: cachedIdent(timePackageName), Sel: cachedIdent("RFC3339")}, n.Value), nil, nil, true
 	case *ast_domain.DateLiteral:
 		return ee.emitTemporalParseLiteral(strLit(timeDateFormat), n.Value), nil, nil, true
 	case *ast_domain.TimeLiteral:
@@ -249,7 +249,7 @@ func (ee *expressionEmitter) emitTemporalParseLiteral(layoutExpr goast.Expr, val
 	ee.emitter.addImport(timePackagePath, "")
 
 	parseCall := &goast.CallExpr{
-		Fun:  &goast.SelectorExpr{X: cachedIdent("time"), Sel: cachedIdent(timeParseFunc)},
+		Fun:  &goast.SelectorExpr{X: cachedIdent(timePackageName), Sel: cachedIdent(timeParseFunc)},
 		Args: []goast.Expr{layoutExpr, strLit(value)},
 	}
 
@@ -267,7 +267,7 @@ func (ee *expressionEmitter) emitDurationParseLiteral(value string) goast.Expr {
 	ee.emitter.addImport(timePackagePath, "")
 
 	parseCall := &goast.CallExpr{
-		Fun:  &goast.SelectorExpr{X: cachedIdent("time"), Sel: cachedIdent(timeParseDuration)},
+		Fun:  &goast.SelectorExpr{X: cachedIdent(timePackageName), Sel: cachedIdent(timeParseDuration)},
 		Args: []goast.Expr{strLit(value)},
 	}
 
@@ -425,7 +425,7 @@ func buildTemporalIIFE(typeName, varName string, parseCall goast.Expr) *goast.Ca
 			Type: &goast.FuncType{
 				Params: &goast.FieldList{},
 				Results: &goast.FieldList{List: []*goast.Field{{
-					Type: &goast.SelectorExpr{X: cachedIdent("time"), Sel: cachedIdent(typeName)},
+					Type: &goast.SelectorExpr{X: cachedIdent(timePackageName), Sel: cachedIdent(typeName)},
 				}}},
 			},
 			Body: &goast.BlockStmt{List: []goast.Stmt{

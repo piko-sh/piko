@@ -79,7 +79,6 @@ func SubscribeArtefactMetadataInvalidation(
 
 	handler := newArtefactMetadataInvalidationHandler(cache, invalidators)
 	for _, topic := range registry_domain.ArtefactTopics {
-
 		if err := orchestrator_domain.SubscribeBroadcast(ctx, eventBus, topic, handler); err != nil {
 			return fmt.Errorf("subscribing artefact metadata invalidation to topic %q: %w", topic, err)
 		}

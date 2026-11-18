@@ -563,3 +563,68 @@ func TestSortedIndex_KeysBetween_SeeksFromTheRangeStart(t *testing.T) {
 	require.Len(t, keys, 5)
 	assert.ElementsMatch(t, []string{"k40", "k41", "k42", "k43", "k44"}, keys)
 }
+
+func newScoredIndex(t *testing.T) *SortedIndex[string] {
+	t.Helper()
+	index := NewSortedIndex[string]()
+	for position, key := range []string{"a", "b", "c", "d", "e"} {
+		index.Add(key, float64(position+1))
+	}
+	return index
+}
+
+func TestSortedIndex_KeysBetweenDescending(t *testing.T) {
+	t.Parallel()
+
+	index := newScoredIndex(t)
+
+	assert.Equal(t, []string{"d", "c", "b"}, index.KeysBetween(2.0, 4.0, false))
+	assert.Empty(t, index.KeysBetween(10.0, 20.0, false))
+}
+
+func TestSortedIndex_KeysLessThanOrEqualWhere(t *testing.T) {
+	t.Parallel()
+
+	index := newScoredIndex(t)
+	skipB := func(key string) bool { return key != "b" }
+
+	assert.Equal(t, []string{"a", "c"}, index.KeysLessThanOrEqualWhere(3.0, 10, skipB),
+		"keys at or below the threshold, in value order, without the rejected ones")
+	assert.Equal(t, []string{"a"}, index.KeysLessThanOrEqualWhere(5.0, 1, skipB), "the limit caps the result")
+	assert.Nil(t, index.KeysLessThanOrEqualWhere(5.0, 0, skipB), "a nonpositive limit returns nothing")
+}
+
+func TestSortedIndex_CountLessThan(t *testing.T) {
+	t.Parallel()
+
+	index := newScoredIndex(t)
+
+	assert.Equal(t, 0, index.CountLessThan(1.0))
+	assert.Equal(t, 2, index.CountLessThan(3.0), "the threshold itself is not counted")
+	assert.Equal(t, 5, index.CountLessThan(100.0))
+}
+
+func TestSortedIndex_KeysFilteredSliceSortsLargeFilters(t *testing.T) {
+	t.Parallel()
+
+	index := NewSortedIndex[string]()
+	filter := make([]string, 0, smallFilterThreshold*2)
+	for position := range smallFilterThreshold * 2 {
+		key := fmt.Sprintf("key-%03d", position)
+		index.Add(key, float64(smallFilterThreshold*2-position))
+		if position%2 == 0 {
+			filter = append(filter, key)
+		}
+	}
+	filter = append(filter, "not-indexed")
+
+	ascending := index.KeysFilteredSlice(filter, true)
+	descending := index.KeysFilteredSlice(filter, false)
+
+	require.Len(t, ascending, smallFilterThreshold, "only indexed keys from the filter are kept")
+	assert.Equal(t, filter[len(filter)-2], ascending[0], "the key with the smallest value comes first")
+	assert.Equal(t, filter[0], descending[0], "the key with the largest value comes first when descending")
+	for position := 1; position < len(ascending); position++ {
+		assert.Equal(t, ascending[position-1], descending[len(descending)-position])
+	}
+}

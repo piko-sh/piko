@@ -26,6 +26,7 @@ import (
 	"unicode"
 
 	"piko.sh/piko/internal/linguistics/linguistics_domain"
+	"piko.sh/piko/internal/runeutil"
 	"piko.sh/piko/internal/spamdetect/spamdetect_dto"
 )
 
@@ -252,7 +253,7 @@ func (d *GibberishDetector) analyseField(text string) (float64, bool) {
 // Returns ratio (float64) which is the uncommon bigram ratio.
 // Returns analysed (bool) which is true when sufficient letters were found.
 func fallbackGibberishRatio(text string) (ratio float64, analysed bool) {
-	text = spamdetect_dto.TruncateStringUTF8(text, maxAnalyseFieldLength)
+	text = runeutil.TruncateBytes(text, maxAnalyseFieldLength)
 
 	lower := strings.ToLower(text)
 	letters := make([]rune, 0, len(lower))

@@ -142,6 +142,18 @@ func TestInMemoryTokenBucketStore_WaitDuration_TokensExhausted(t *testing.T) {
 	assert.LessOrEqual(t, dur, 15*time.Millisecond, "wait duration should be reasonable")
 }
 
+func TestInMemoryTokenBucketStore_WaitDuration_SlowRefillIsCapped(t *testing.T) {
+	store, _ := newTestInMemoryStore(t)
+	config := &ratelimiter_dto.TokenBucketConfig{Rate: 1e-300, Burst: 1}
+
+	_, _ = store.TryTake(context.Background(), "key", 1, config)
+
+	dur, err := store.WaitDuration(context.Background(), "key", 1, config)
+	require.NoError(t, err)
+
+	assert.Equal(t, time.Hour, dur, "a wait too long for time.Duration is capped, never negative")
+}
+
 func TestInMemoryTokenBucketStore_DeleteBucket(t *testing.T) {
 	store, _ := newTestInMemoryStore(t)
 	config := &ratelimiter_dto.TokenBucketConfig{Rate: 10, Burst: 1}

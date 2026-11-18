@@ -21,8 +21,10 @@ package collection_domain
 import (
 	"context"
 	"fmt"
+	"maps"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"unicode/utf8"
 
 	"piko.sh/piko/internal/ast/ast_adapters"
@@ -82,21 +84,16 @@ var (
 	//
 	staticItemsByPointer sync.Map
 
-	// staticCollectionRegistry stores all static collection data with pre-decoded metadata.
+	// staticCollectionRegistry holds published static collection data.
 	//
-	// Generated code populates this during package initialisation via //go:embed directives.
-	// Each collection is stored as a compact FlatBuffer binary for AST lookups, with
-	// metadata pre-decoded at registration time so that runtime access is a zero-allocation
-	// field read.
-	//
-	// Thread-safety: Safe for concurrent reads after initialisation.
+	// Registration publishes a new immutable map under writeMu. Readers load the published
+	// map without locking.
 	staticCollectionRegistry = struct {
-		collections map[string]*staticCollectionData
+		collections atomic.Pointer[map[string]*staticCollectionData]
 		encoder     CollectionEncoderPort
-		mu          sync.RWMutex
+		writeMu     sync.Mutex
 	}{
-		collections: make(map[string]*staticCollectionData),
-		encoder:     collection_adapters.NewFlatBufferEncoder(),
+		encoder: collection_adapters.NewFlatBufferEncoder(),
 	}
 )
 
@@ -210,16 +207,11 @@ func (*defaultStaticCollectionRegistry) Has(collectionName string) bool {
 	return HasStaticCollection(collectionName)
 }
 
-// List returns all registered static collection names. Implements
-// StaticCollectionRegistryPort.
+// List copies collection names from one registry snapshot during concurrent registration.
 //
-// Returns []string which contains the names of all registered collections.
-//
-// Safe for concurrent use.
+// Returns []string which contains the names in one registry snapshot.
 func (*defaultStaticCollectionRegistry) List() []string {
-	staticCollectionRegistry.mu.RLock()
-	defer staticCollectionRegistry.mu.RUnlock()
-	return listStaticCollectionNames()
+	return listStaticCollectionNames(loadStaticCollections())
 }
 
 // defaultASTDecoder implements ASTDecoderPort using the ast_adapters package.
@@ -310,14 +302,11 @@ func NewDefaultASTDecoder() ASTDecoderPort {
 // The blob is not copied (zero-copy registration). The byte slice points to read-only
 // memory in the executable.
 //
-// Safe for concurrent use during package initialisation. Uses a mutex to protect the
-// registry.
+// Safe for concurrent use. Writers are serialised by a mutex and publish a new copy of
+// the registry map, so concurrent readers never block.
 func RegisterStaticCollectionBlob(ctx context.Context, collectionName string, data []byte) {
 	ctx, l := logger_domain.From(ctx, log)
 	items, slugIndex := decodeAllItemMetadata(ctx, data)
-
-	staticCollectionRegistry.mu.Lock()
-	defer staticCollectionRegistry.mu.Unlock()
 
 	collData := &staticCollectionData{
 		blob:       data,
@@ -326,11 +315,18 @@ func RegisterStaticCollectionBlob(ctx context.Context, collectionName string, da
 		navigation: sync.Map{},
 		astCache:   sync.Map{},
 	}
-	staticCollectionRegistry.collections[collectionName] = collData
 
+	staticCollectionRegistry.writeMu.Lock()
+	current := loadStaticCollections()
+	next := make(map[string]*staticCollectionData, len(current)+1)
+	maps.Copy(next, current)
+	next[collectionName] = collData
+	staticCollectionRegistry.collections.Store(&next)
 	if ptr := sliceDataPointer(items); ptr != 0 {
 		staticItemsByPointer.Store(ptr, collData)
 	}
+	staticCollectionRegistry.writeMu.Unlock()
+
 	l.Internal("Static collection blob registered",
 		logger_domain.String(logKeyCollection, collectionName),
 		logger_domain.Int("blob_size", len(data)),
@@ -450,21 +446,14 @@ func TryGetCachedNavigation(
 	return getOrBuildNavigation(ctx, data, config), true
 }
 
-// HasStaticCollection checks if a static collection is registered.
-//
-// Use it to decide whether to use static or dynamic collection fetching in search
-// operations.
+// HasStaticCollection checks a registry snapshot for a static collection during
+// concurrent registration.
 //
 // Takes collectionName (string) which is the collection identifier.
 //
-// Returns bool which is true if the collection is registered.
-//
-// Safe for concurrent use by multiple goroutines.
+// Returns bool which reports whether the collection is registered.
 func HasStaticCollection(collectionName string) bool {
-	staticCollectionRegistry.mu.RLock()
-	defer staticCollectionRegistry.mu.RUnlock()
-
-	_, exists := staticCollectionRegistry.collections[collectionName]
+	_, exists := loadStaticCollections()[collectionName]
 	return exists
 }
 
@@ -475,10 +464,10 @@ func HasStaticCollection(collectionName string) bool {
 //
 // Safe for use from any goroutine, but not concurrently with other registry operations.
 func ResetStaticCollectionRegistry() {
-	staticCollectionRegistry.mu.Lock()
-	defer staticCollectionRegistry.mu.Unlock()
-	staticCollectionRegistry.collections = make(map[string]*staticCollectionData)
-	staticItemsByPointer = sync.Map{}
+	staticCollectionRegistry.writeMu.Lock()
+	defer staticCollectionRegistry.writeMu.Unlock()
+	staticCollectionRegistry.collections.Store(nil)
+	staticItemsByPointer.Clear()
 }
 
 // decodeAllItemMetadata decodes a FlatBuffer collection into metadata and a slug index.
@@ -675,20 +664,18 @@ func decodeASTPair(ctx context.Context, decoder ASTDecoderPort, contentBytes, ex
 
 // getCollectionData retrieves the pre-decoded data for a named collection.
 //
+// Lookups use a published registry snapshot and can run concurrently with registration.
+//
 // Takes collectionName (string) which identifies the collection to retrieve.
 //
 // Returns *staticCollectionData which contains the blob and pre-decoded items.
 // Returns error when the collection name is not found in the registry.
-//
-// Safe for concurrent use by multiple goroutines.
 func getCollectionData(collectionName string) (*staticCollectionData, error) {
-	staticCollectionRegistry.mu.RLock()
-	data, exists := staticCollectionRegistry.collections[collectionName]
-	staticCollectionRegistry.mu.RUnlock()
-
+	collections := loadStaticCollections()
+	data, exists := collections[collectionName]
 	if !exists {
 		return nil, fmt.Errorf("static collection %q not found; available collections: %v",
-			collectionName, listStaticCollectionNames())
+			collectionName, listStaticCollectionNames(collections))
 	}
 
 	return data, nil
@@ -786,15 +773,28 @@ func metadataToContentItems(items []map[string]any) []collection_dto.ContentItem
 	return contentItems
 }
 
-// listStaticCollectionNames returns all registered static collection names.
+// listStaticCollectionNames returns the names of the given static collections.
+//
+// Takes collections (map[string]*staticCollectionData) which is a published registry
+// snapshot.
 //
 // Returns []string which contains the names of all static collections.
-//
-// The caller must hold the read lock or call from within a locked section.
-func listStaticCollectionNames() []string {
-	names := make([]string, 0, len(staticCollectionRegistry.collections))
-	for name := range staticCollectionRegistry.collections {
+func listStaticCollectionNames(collections map[string]*staticCollectionData) []string {
+	names := make([]string, 0, len(collections))
+	for name := range collections {
 		names = append(names, name)
 	}
 	return names
+}
+
+// loadStaticCollections returns the published registry snapshot. The map must not be
+// changed by callers.
+//
+// Returns map[string]*staticCollectionData which maps collection names to their data, or
+// nil when nothing is registered.
+func loadStaticCollections() map[string]*staticCollectionData {
+	if collections := staticCollectionRegistry.collections.Load(); collections != nil {
+		return *collections
+	}
+	return nil
 }

@@ -32,7 +32,9 @@ import (
 	"piko.sh/piko/internal/lifecycle/lifecycle_domain"
 )
 
-const barrierQuietPeriod = 150 * time.Millisecond
+const (
+	barrierQuietPeriod = 150 * time.Millisecond
+)
 
 type countingBridge struct {
 	processed *atomic.Int64

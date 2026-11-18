@@ -24,8 +24,8 @@ import (
 
 	protocol "github.com/politepixels/golang-language-server"
 	"go.lsp.dev/uri"
+	"piko.sh/json"
 	"piko.sh/piko/internal/inspector/inspector_domain"
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/safeconv"
 )

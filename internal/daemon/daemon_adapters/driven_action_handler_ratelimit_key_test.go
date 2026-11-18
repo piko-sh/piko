@@ -140,3 +140,31 @@ func TestRateLimitKeyFuncEmptyFallsBackToClientAddress(t *testing.T) {
 
 	assert.Equal(t, "ratelimit:SendMessage:203.0.113.5", key)
 }
+
+func TestRateLimitKeyFuncGroupsIPv6IdentitiesByDefaultPrefix(t *testing.T) {
+	t.Parallel()
+
+	first := captureRateLimitKey(t,
+		&keyFuncAction{request: &daemon_dto.RequestMetadata{}, identity: "2001:db8:1:2::a"}, "203.0.113.1")
+	second := captureRateLimitKey(t,
+		&keyFuncAction{request: &daemon_dto.RequestMetadata{}, identity: "2001:db8:1:2:ffff::b"}, "203.0.113.1")
+
+	assert.Equal(t, "ratelimit:SendMessage:2001:db8:1:2::", first)
+	assert.Equal(t, first, second)
+}
+
+func TestRateLimitKeyFuncHonoursConfiguredIPv6PrefixBits(t *testing.T) {
+	t.Parallel()
+
+	handler := &ActionHandler{rateLimitMw: newRateLimitMiddleware(
+		security_dto.RateLimitValues{IPv6PrefixBits: 48},
+		&security_domain.MockRateLimitService{},
+	)}
+	action := &keyFuncAction{request: &daemon_dto.RequestMetadata{}, identity: "2001:db8:1:2::a"}
+	request := requestWithClientIP(http.MethodPost, "/action", "203.0.113.1")
+
+	identity := handler.resolveRateLimitIdentity(request, action, action.RateLimit(),
+		ActionHandlerEntry{Name: "SendMessage"})
+
+	assert.Equal(t, "2001:db8:1::", identity)
+}

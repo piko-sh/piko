@@ -123,6 +123,10 @@ const (
 
 	// maxSuggestionDistance bounds how different a suggestion may be from the input.
 	maxSuggestionDistance = 3
+
+	// suggestionLengthDivisor sets how many input characters allow one more edit in a
+	// suggestion.
+	suggestionLengthDivisor = 3
 )
 
 var (
@@ -180,7 +184,7 @@ func Suggest(id string) string {
 	if input == "" || codePattern.MatchString(input) {
 		return ""
 	}
-	threshold := min(len(input)/3+1, maxSuggestionDistance)
+	threshold := min(len(input)/suggestionLengthDivisor+1, maxSuggestionDistance)
 	best, bestDistance := "", threshold+1
 	for index := range catalogue {
 		distance := linguistics_domain.WagnerFischer(input, strings.ToLower(catalogue[index].Name), 1, 1, 1)

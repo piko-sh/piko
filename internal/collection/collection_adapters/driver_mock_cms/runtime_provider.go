@@ -23,8 +23,8 @@ import (
 	"fmt"
 	"sync"
 
+	"piko.sh/json"
 	"piko.sh/piko/internal/collection/collection_dto"
-	"piko.sh/piko/internal/json"
 )
 
 // MockCMSRuntimeProvider is a runtime provider that simulates fetching from a CMS.

@@ -19,6 +19,7 @@
 package hnsw
 
 import (
+	"fmt"
 	"math"
 
 	"piko.sh/vectormaths"
@@ -31,20 +32,25 @@ import (
 // Takes efSearch (int) which is the search-time candidate list size. A value of 0 uses
 // the graph's default.
 //
-// Returns []Result[K] sorted by distance (nearest first).
-// Returns nil for an empty graph or zero topK.
+// Returns []Result[K] which is sorted by distance, nearest first, or nil for an empty
+// graph or zero or negative topK after a valid query.
+// Returns error which wraps ErrVectorDimensionMismatch or ErrZeroVector when the query
+// fails validation, even if the graph is empty or topK is zero or negative.
 //
-// Safe for concurrent use.
-func (g *Graph[K]) Search(query []float32, topK, efSearch int) []Result[K] {
+// Concurrency: Search is safe for concurrent use.
+func (g *Graph[K]) Search(query []float32, topK, efSearch int) ([]Result[K], error) {
+	if err := g.validateVector(query); err != nil {
+		return nil, fmt.Errorf("checking query vector: %w", err)
+	}
 	if topK <= 0 {
-		return nil
+		return nil, nil
 	}
 
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 
 	if !g.hasEntry {
-		return nil
+		return nil, nil
 	}
 
 	if efSearch <= 0 {
@@ -79,7 +85,7 @@ func (g *Graph[K]) Search(query []float32, topK, efSearch int) []Result[K] {
 
 	g.putPQSlice(candidates)
 
-	return results
+	return results, nil
 }
 
 // searchLayer performs a beam search at the given layer, returning the closest
@@ -156,6 +162,11 @@ func (g *Graph[K]) searchLayer(entry *node[K], target []float32, candidateCount,
 // similarity metrics (cosine, dot product), the distance is 1 - similarity so that lower
 // values mean closer vectors.
 //
+// It runs in the inner loop of every insert and search, so it uses the unchecked
+// vectormaths kernels. That is safe because Insert, InsertBatch and Search pass every
+// vector through validateVector first: all vectors share the graph's non-zero dimension,
+// and under cosine none has zero magnitude.
+//
 // Takes a ([]float32) which is the first vector.
 // Takes b ([]float32) which is the second vector.
 //
@@ -172,7 +183,8 @@ func (g *Graph[K]) distance(a, b []float32) float32 {
 // Takes b ([]float32) which is the second vector.
 //
 // Returns float32 which is the squared distance, or MaxFloat32 if the vectors have
-// different lengths.
+// different lengths. Validation makes that case unreachable, but the check is kept
+// because EuclidSqF32 would return 0 for it, which would rank the vector as the closest.
 func euclideanDistance(a, b []float32) float32 {
 	if len(a) != len(b) {
 		return float32(math.MaxFloat32)

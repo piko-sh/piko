@@ -41,6 +41,9 @@ import (
 const (
 	// devWidgetTag is the custom element tag name for the dev tools overlay widget.
 	devWidgetTag = "piko-dev-widget"
+
+	// preloadAsScript marks a preload link as fetching a script.
+	preloadAsScript = "script"
 )
 
 const (
@@ -287,7 +290,7 @@ func (ro *RenderOrchestrator) preloadAssetsAndComponentsForTags(
 			rctx.addLinkHeaderIfUnique(render_dto.LinkHeader{
 				URL:         compMeta.BaseJSPath,
 				Rel:         "modulepreload",
-				As:          "script",
+				As:          preloadAsScript,
 				Type:        "",
 				CrossOrigin: "",
 			})
@@ -456,7 +459,7 @@ func addStandardLinkHeaders(rctx *renderContext) {
 	rctx.addLinkHeaderIfUnique(render_dto.LinkHeader{
 		URL:         "/_piko/dist/ppframework.core.es.js",
 		Rel:         "preload",
-		As:          "script",
+		As:          preloadAsScript,
 		Type:        "",
 		CrossOrigin: "",
 	})
@@ -482,7 +485,7 @@ func addComponentsExtensionLinkHeader(rctx *renderContext) {
 	rctx.addLinkHeaderIfUnique(render_dto.LinkHeader{
 		URL:         "/_piko/dist/ppframework.components.es.js",
 		Rel:         "modulepreload",
-		As:          "script",
+		As:          preloadAsScript,
 		Type:        "",
 		CrossOrigin: "",
 	})
@@ -499,7 +502,7 @@ func addJSLinkHeaders(jsMetas []templater_dto.JSScriptMeta, rctx *renderContext)
 		rctx.addLinkHeaderIfUnique(render_dto.LinkHeader{
 			URL:         meta.URL,
 			Rel:         "modulepreload",
-			As:          "script",
+			As:          preloadAsScript,
 			Type:        "",
 			CrossOrigin: "",
 		})

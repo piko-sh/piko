@@ -21,7 +21,7 @@ package daemon_adapters
 import (
 	"reflect"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 	"piko.sh/piko/internal/monitoring/monitoring_domain"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 	"piko.sh/piko/internal/provider/provider_domain"

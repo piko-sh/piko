@@ -35,6 +35,10 @@ import (
 )
 
 const (
+	// historyBodyChromeRows is the rows the history body reserves for its header, crash loop
+	// row, spacer, table header and status line.
+	historyBodyChromeRows = 5
+
 	// WatchdogHistoryPanelID identifies the watchdog History panel.
 	WatchdogHistoryPanelID = "watchdog-history"
 
@@ -220,7 +224,7 @@ func (p *WatchdogHistoryPanel) composeBody(width, height int) string {
 		p.renderTableHeader(width),
 	)
 
-	listHeight := max(height-5, 1)
+	listHeight := max(height-historyBodyChromeRows, 1)
 	rows = append(rows, p.renderRows(width, listHeight)...)
 
 	for len(rows) < height-1 {
@@ -499,7 +503,7 @@ func (p *WatchdogHistoryPanel) fetchCmd() tea.Cmd {
 		return nil
 	}
 	return func() tea.Msg {
-		ctx, cancel := context.WithTimeoutCause(context.Background(), 5*time.Second, errors.New("watchdog history fetch timed out"))
+		ctx, cancel := context.WithTimeoutCause(context.Background(), DefaultRefreshTimeout, errors.New("watchdog history fetch timed out"))
 		defer cancel()
 		entries, historyErr := p.provider.GetStartupHistory(ctx)
 		status, statusErr := p.provider.GetStatus(ctx)

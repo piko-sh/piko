@@ -28,6 +28,7 @@ import (
 	"path/filepath"
 	"slices"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -1320,6 +1321,7 @@ func TestNotifyBatchWaiters_ReleasesAllBuffers(t *testing.T) {
 	const batchSize = 5
 	batch := make([]pendingWrite, batchSize)
 	channels := make([]chan error, batchSize)
+	var released atomic.Int32
 
 	for i := range batchSize {
 		resultChannel := make(chan error, 1)
@@ -1331,12 +1333,16 @@ func TestNotifyBatchWaiters_ReleasesAllBuffers(t *testing.T) {
 		batch[i] = pendingWrite{
 			result: resultChannel,
 			data:   buffer,
-			enc:    EncodeResult{pool: ptr, Data: buffer},
+			encoded: wal_domain.NewEncodedEntry(buffer, ptr, func(handle *[]byte, data []byte) {
+				released.Add(1)
+				PutByteBuffer(handle, data)
+			}),
 		}
 	}
 
 	testErr := errors.New("batch write error")
 	notifyBatchWaiters(batch, testErr)
+	assert.Equal(t, int32(batchSize), released.Load(), "every buffer should go back to its pool")
 
 	for i, resultChannel := range channels {
 		select {
@@ -1769,4 +1775,269 @@ func TestDiskWAL_RecoveryAndAppendReportTheCancellationCause(t *testing.T) {
 			assert.ErrorIs(t, err, context.Canceled)
 		})
 	}
+}
+
+func TestDiskWAL_EnqueueEncodedRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	wal, _ := newTestWAL(t)
+	ctx := context.Background()
+
+	encoded, err := wal.Encode(wal_domain.Entry[string, testValue]{
+		Operation: wal_domain.OpSet,
+		Key:       "encoded",
+		Value:     testValue{Name: "ahead", Count: 3},
+		Timestamp: time.Now().UnixNano(),
+	})
+	require.NoError(t, err)
+	wait, err := wal.EnqueueEncoded(ctx, encoded)
+	require.NoError(t, err)
+	require.NoError(t, wait())
+
+	recovered, err := collectEntries(wal.Recover(ctx))
+	require.NoError(t, err)
+	require.Len(t, recovered, 1)
+	assert.Equal(t, "encoded", recovered[0].Key)
+	assert.Equal(t, "ahead", recovered[0].Value.Name)
+}
+
+func TestDiskWAL_EnqueueEncodedOnClosedWALReleasesTheEntry(t *testing.T) {
+	t.Parallel()
+
+	wal, _ := newTestWAL(t)
+	encoded, err := wal.Encode(wal_domain.Entry[string, testValue]{
+		Operation: wal_domain.OpSet,
+		Key:       "late",
+		Timestamp: time.Now().UnixNano(),
+	})
+	require.NoError(t, err)
+	require.NoError(t, wal.Close())
+
+	_, err = wal.EnqueueEncoded(context.Background(), encoded)
+
+	require.ErrorIs(t, err, wal_domain.ErrWALClosed)
+}
+
+func TestDiskWAL_EnqueueFailsWhenTheQueueStaysFull(t *testing.T) {
+	t.Parallel()
+
+	mockClock := clock.NewMockClock(time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC))
+	stalled := &DiskWAL[string, testValue]{
+		clock:       mockClock,
+		codec:       newTestCodec(),
+		pendingChan: make(chan pendingWrite),
+		stopChan:    make(chan struct{}),
+		config:      wal_domain.Config{QueueTimeout: time.Second},
+	}
+	entry := wal_domain.Entry[string, testValue]{
+		Operation: wal_domain.OpSet,
+		Key:       "stalled",
+		Timestamp: mockClock.Now().UnixNano(),
+	}
+
+	baseline := mockClock.TimerCount()
+	result := make(chan error, 1)
+	go func() {
+		_, err := stalled.Enqueue(context.Background(), entry)
+		result <- err
+	}()
+	require.True(t, mockClock.AwaitTimerSetup(baseline, 5*time.Second), "the write waits on the queue timer")
+	mockClock.Advance(time.Second)
+
+	select {
+	case err := <-result:
+		require.ErrorIs(t, err, wal_domain.ErrQueueStalled)
+	case <-time.After(5 * time.Second):
+		t.Fatal("a write to a stalled queue must fail once the queue timeout passes")
+	}
+}
+
+type syncCountingFile struct {
+	*safedisk.MockFileHandle
+	syncs atomic.Int32
+}
+
+func (f *syncCountingFile) Sync() error {
+	f.syncs.Add(1)
+	return f.MockFileHandle.Sync()
+}
+
+func newIntervalSyncWAL(t *testing.T, mockClock *clock.MockClock) (*DiskWAL[string, testValue], *syncCountingFile) {
+	t.Helper()
+	file := &syncCountingFile{MockFileHandle: safedisk.NewMockFileHandle("data.wal", "/test/data.wal", nil)}
+	config := wal_domain.Config{
+		Dir:               "/test",
+		WALFileName:       "data.wal",
+		SyncMode:          wal_domain.SyncModeBatched,
+		BatchSyncCount:    1000,
+		BatchSyncInterval: 100 * time.Millisecond,
+	}
+	wal, err := NewDiskWAL(context.Background(), config, newTestCodec(),
+		WithSandbox[string, testValue](safedisk.NewMockSandbox("/test", safedisk.ModeReadWrite), file),
+		WithWALClock[string, testValue](mockClock))
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = wal.Close() })
+	return wal, file
+}
+
+func TestDiskWAL_BatchedModeSyncsAQuietLogWithinTheInterval(t *testing.T) {
+	t.Parallel()
+
+	mockClock := clock.NewMockClock(time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC))
+	wal, file := newIntervalSyncWAL(t, mockClock)
+
+	require.NoError(t, wal.Append(context.Background(), wal_domain.Entry[string, testValue]{
+		Operation: wal_domain.OpSet, Key: "quiet", Value: testValue{Name: "v"}, Timestamp: 1,
+	}))
+	assert.Equal(t, int32(0), file.syncs.Load(), "one write is below the batch count, so it is not synced at once")
+
+	require.Eventually(t, func() bool {
+		mockClock.Advance(50 * time.Millisecond)
+		return file.syncs.Load() == 1
+	}, 5*time.Second, time.Millisecond, "a written entry must be synced once the batch interval passes")
+
+	for range 5 {
+		mockClock.Advance(time.Second)
+	}
+	assert.Equal(t, int32(1), file.syncs.Load(), "nothing waits for a sync, so no further sync runs")
+}
+
+func TestDiskWAL_BatchedModeSyncsInlineOnceTheIntervalHasPassed(t *testing.T) {
+	t.Parallel()
+
+	mockClock := clock.NewMockClock(time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC))
+	wal, file := newIntervalSyncWAL(t, mockClock)
+	mockClock.Advance(time.Second)
+
+	require.NoError(t, wal.Append(context.Background(), wal_domain.Entry[string, testValue]{
+		Operation: wal_domain.OpSet, Key: "late", Value: testValue{Name: "v"}, Timestamp: 1,
+	}))
+
+	assert.Equal(t, int32(1), file.syncs.Load(), "a batch written after the interval is synced before its writers are told")
+}
+
+func TestDiskWAL_IntervalSyncFailureIsFatal(t *testing.T) {
+	t.Parallel()
+
+	mockClock := clock.NewMockClock(time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC))
+	wal, file := newIntervalSyncWAL(t, mockClock)
+	file.SyncErr = errors.New("sync failed")
+
+	require.NoError(t, wal.Append(context.Background(), wal_domain.Entry[string, testValue]{
+		Operation: wal_domain.OpSet, Key: "doomed", Value: testValue{Name: "v"}, Timestamp: 1,
+	}))
+	require.Eventually(t, func() bool {
+		mockClock.Advance(50 * time.Millisecond)
+		return wal.fatalErr.Load() != nil
+	}, 5*time.Second, time.Millisecond)
+
+	err := wal.Append(context.Background(), wal_domain.Entry[string, testValue]{
+		Operation: wal_domain.OpSet, Key: "after", Value: testValue{Name: "v"}, Timestamp: 2,
+	})
+	require.ErrorIs(t, err, wal_domain.ErrWriterInBadState)
+}
+
+func TestDiskWAL_ReadsBackEveryEntryAfterTheLengthOnlyEndSignal(t *testing.T) {
+	t.Parallel()
+
+	directory := t.TempDir()
+	config := wal_domain.Config{Dir: directory, SyncMode: wal_domain.SyncModeNone}
+	ctx := context.Background()
+	wal, err := NewDiskWAL(ctx, config, newSlowTestCodec())
+	require.NoError(t, err)
+	for index := range 50 {
+		require.NoError(t, wal.Append(ctx, wal_domain.Entry[string, testValue]{
+			Operation: wal_domain.OpSet, Key: fmt.Sprintf("key-%d", index), Value: testValue{Name: "v", Count: index}, Timestamp: int64(index),
+		}))
+	}
+	require.NoError(t, wal.Close())
+
+	reopened, err := NewDiskWAL(ctx, config, newSlowTestCodec())
+	require.NoError(t, err)
+	defer func() { _ = reopened.Close() }()
+	entries, err := collectEntries(reopened.Recover(ctx))
+	require.NoError(t, err)
+	require.Len(t, entries, 50)
+	for index, entry := range entries {
+		assert.Equal(t, fmt.Sprintf("key-%d", index), entry.Key, "recovery keeps the order entries were written in")
+		assert.Equal(t, index, entry.Value.Count)
+	}
+}
+
+func TestDiskWAL_QueueEncodedKeepsQueueOrderAndWritesOnSignal(t *testing.T) {
+	t.Parallel()
+
+	directory := t.TempDir()
+	ctx := context.Background()
+	config := wal_domain.Config{Dir: directory, SyncMode: wal_domain.SyncModeNone}
+	wal, err := NewDiskWAL(ctx, config, newTestCodec())
+	require.NoError(t, err)
+
+	waits := make([]func() error, 0, 3)
+	for index := range 3 {
+		encoded, err := wal.Encode(wal_domain.Entry[string, testValue]{
+			Operation: wal_domain.OpSet, Key: fmt.Sprintf("quiet-%d", index), Value: testValue{Name: "v", Count: index}, Timestamp: int64(index),
+		})
+		require.NoError(t, err)
+		wait, err := wal.QueueEncoded(ctx, encoded)
+		require.NoError(t, err)
+		waits = append(waits, wait)
+	}
+	wal.Signal()
+	require.Eventually(t, func() bool { return wal.EntryCount() == 3 }, 5*time.Second, time.Millisecond,
+		"a signal writes every entry queued before it")
+	for _, wait := range waits {
+		require.NoError(t, wait())
+	}
+
+	encoded, err := wal.Encode(wal_domain.Entry[string, testValue]{Operation: wal_domain.OpSet, Key: "waited", Timestamp: 3})
+	require.NoError(t, err)
+	wait, err := wal.QueueEncoded(ctx, encoded)
+	require.NoError(t, err)
+	require.NoError(t, wait(), "the wait of a quietly queued entry signals before it waits")
+	require.NoError(t, wal.Close())
+
+	reopened, err := NewDiskWAL(ctx, config, newTestCodec())
+	require.NoError(t, err)
+	defer func() { _ = reopened.Close() }()
+	entries, err := collectEntries(reopened.Recover(ctx))
+	require.NoError(t, err)
+	keys := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		keys = append(keys, entry.Key)
+	}
+	assert.Equal(t, []string{"quiet-0", "quiet-1", "quiet-2", "waited"}, keys, "entries reach the file in the order they were queued")
+}
+
+func TestDiskWAL_QuietEntryIsWrittenByTheNextSignalledWrite(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	wal, err := NewDiskWAL(ctx, wal_domain.Config{Dir: t.TempDir(), SyncMode: wal_domain.SyncModeNone}, newTestCodec())
+	require.NoError(t, err)
+	defer func() { _ = wal.Close() }()
+
+	encoded, err := wal.Encode(wal_domain.Entry[string, testValue]{Operation: wal_domain.OpSet, Key: "quiet", Timestamp: 1})
+	require.NoError(t, err)
+	_, err = wal.QueueEncoded(ctx, encoded)
+	require.NoError(t, err)
+
+	require.NoError(t, wal.Append(ctx, wal_domain.Entry[string, testValue]{Operation: wal_domain.OpSet, Key: "loud", Timestamp: 2}))
+	assert.Equal(t, 2, wal.EntryCount(), "a write that signals also writes the quiet entry queued before it")
+}
+
+func TestDiskWAL_QueueEncodedRefusesAClosedLog(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	wal, err := NewDiskWAL(ctx, wal_domain.Config{Dir: t.TempDir(), SyncMode: wal_domain.SyncModeNone}, newTestCodec())
+	require.NoError(t, err)
+	encoded, err := wal.Encode(wal_domain.Entry[string, testValue]{Operation: wal_domain.OpSet, Key: "late", Timestamp: 1})
+	require.NoError(t, err)
+	require.NoError(t, wal.Close())
+
+	_, err = wal.QueueEncoded(ctx, encoded)
+
+	require.ErrorIs(t, err, wal_domain.ErrWALClosed)
+	assert.NotPanics(t, wal.Signal, "signalling a closed log does nothing")
 }

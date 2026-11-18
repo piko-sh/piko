@@ -21,17 +21,22 @@ package collection_domain
 import (
 	"context"
 	"fmt"
+	"maps"
 	"sync"
+	"sync/atomic"
 
 	"piko.sh/piko/internal/collection/collection_dto"
 )
 
 var (
-	// runtimeProviders is the registry of runtime providers.
-	runtimeProviders = make(map[string]RuntimeProvider)
+	// runtimeProviders holds the published registry of runtime providers.
+	//
+	// Render-time lookups read the immutable map without locking. Registration copies the
+	// map and publishes the copy.
+	runtimeProviders atomic.Pointer[map[string]RuntimeProvider]
 
-	// runtimeProvidersMutex guards concurrent access to runtimeProviders.
-	runtimeProvidersMutex sync.RWMutex
+	// runtimeProvidersWriteMu serialises the copy-on-write updates of runtimeProviders.
+	runtimeProvidersWriteMu sync.Mutex
 )
 
 // defaultRuntimeProviderRegistry implements RuntimeProviderRegistryPort using the
@@ -63,30 +68,20 @@ func (*defaultRuntimeProviderRegistry) Get(name string) (RuntimeProvider, error)
 	return GetProvider(name)
 }
 
-// List returns all registered runtime provider names. Implements
-// RuntimeProviderRegistryPort.
+// List copies provider names from one registry snapshot during concurrent registration.
 //
-// Returns []string which contains the names of all registered providers.
-//
-// Safe for concurrent use.
+// Returns []string which contains the names in one registry snapshot.
 func (*defaultRuntimeProviderRegistry) List() []string {
-	runtimeProvidersMutex.RLock()
-	defer runtimeProvidersMutex.RUnlock()
-	return listProviderNames()
+	return listProviderNames(loadRuntimeProviders())
 }
 
-// Has reports whether a provider with the given name is registered. Implements
-// RuntimeProviderRegistryPort.
+// Has checks a registry snapshot for a provider during concurrent registration.
 //
 // Takes name (string) which is the provider name to look up.
 //
-// Returns bool which is true if the provider exists.
-//
-// Safe for concurrent use; protected by a read lock.
+// Returns bool which reports whether the provider exists.
 func (*defaultRuntimeProviderRegistry) Has(name string) bool {
-	runtimeProvidersMutex.RLock()
-	defer runtimeProvidersMutex.RUnlock()
-	_, exists := runtimeProviders[name]
+	_, exists := loadRuntimeProviders()[name]
 	return exists
 }
 
@@ -126,34 +121,36 @@ func NewDefaultRuntimeProviderRegistry() RuntimeProviderRegistryPort {
 //
 // Safe for concurrent use by multiple goroutines during setup.
 func RegisterProvider(provider RuntimeProvider) error {
-	runtimeProvidersMutex.Lock()
-	defer runtimeProvidersMutex.Unlock()
-
 	name := provider.Name()
-	if _, exists := runtimeProviders[name]; exists {
+
+	runtimeProvidersWriteMu.Lock()
+	defer runtimeProvidersWriteMu.Unlock()
+
+	current := loadRuntimeProviders()
+	if _, exists := current[name]; exists {
 		return fmt.Errorf("runtime provider '%s' already registered", name)
 	}
 
-	runtimeProviders[name] = provider
+	next := make(map[string]RuntimeProvider, len(current)+1)
+	maps.Copy(next, current)
+	next[name] = provider
+	runtimeProviders.Store(&next)
 	return nil
 }
 
-// GetProvider retrieves a runtime provider by name.
+// GetProvider finds a runtime provider by name in one registry snapshot during concurrent
+// registration.
 //
 // Takes name (string) which is the provider's unique identifier.
 //
 // Returns RuntimeProvider which is the requested provider if found.
 // Returns error when the provider is not found.
-//
-// Safe for concurrent use; protected by an internal read lock.
 func GetProvider(name string) (RuntimeProvider, error) {
-	runtimeProvidersMutex.RLock()
-	defer runtimeProvidersMutex.RUnlock()
-
-	provider, ok := runtimeProviders[name]
+	providers := loadRuntimeProviders()
+	provider, ok := providers[name]
 	if !ok {
 		return nil, fmt.Errorf("runtime provider '%s' not found; available providers: %v",
-			name, listProviderNames())
+			name, listProviderNames(providers))
 	}
 
 	return provider, nil
@@ -196,20 +193,32 @@ func FetchCollection(
 //
 // Safe for concurrent use; protected by an internal mutex.
 func ResetRuntimeProviderRegistry() {
-	runtimeProvidersMutex.Lock()
-	defer runtimeProvidersMutex.Unlock()
-	runtimeProviders = make(map[string]RuntimeProvider)
+	runtimeProvidersWriteMu.Lock()
+	defer runtimeProvidersWriteMu.Unlock()
+	runtimeProviders.Store(nil)
 }
 
-// listProviderNames returns a list of registered provider names.
+// listProviderNames returns the names of the given providers.
 //
-// Returns []string which contains all currently registered provider names.
+// Takes providers (map[string]RuntimeProvider) which is a published registry snapshot.
 //
-// Caller must hold the read lock or call from within a locked section.
-func listProviderNames() []string {
-	names := make([]string, 0, len(runtimeProviders))
-	for name := range runtimeProviders {
+// Returns []string which contains all provider names in the snapshot.
+func listProviderNames(providers map[string]RuntimeProvider) []string {
+	names := make([]string, 0, len(providers))
+	for name := range providers {
 		names = append(names, name)
 	}
 	return names
+}
+
+// loadRuntimeProviders returns the published registry snapshot. The map must not be
+// changed by callers.
+//
+// Returns map[string]RuntimeProvider which maps provider names to providers, or nil when
+// nothing is registered.
+func loadRuntimeProviders() map[string]RuntimeProvider {
+	if providers := runtimeProviders.Load(); providers != nil {
+		return *providers
+	}
+	return nil
 }

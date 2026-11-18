@@ -78,6 +78,9 @@ const (
 	// fieldFormat is the parameter key for the image format setting.
 	fieldFormat = "format"
 
+	// fieldQuality is the parameter key for the image quality setting.
+	fieldQuality = "quality"
+
 	// imageFormatWebP is the WebP image format, the default output format for image
 	// variants.
 	imageFormatWebP = "webp"
@@ -516,7 +519,7 @@ func (p *AssetPipelineOrchestrator) generateImageProfiles(asset *annotator_dto.F
 func (p *AssetPipelineOrchestrator) parseImageConfig(params map[string][]string, sourcePath string) imageProfileConfig {
 	return imageProfileConfig{
 		requiredWidths: p.calculateRequiredWidths(params["sizes"], params["densities"]),
-		quality:        p.parseQuality(params["quality"]),
+		quality:        p.parseQuality(params[fieldQuality]),
 		formats:        p.parseFormats(params[fieldFormat], sourcePath),
 		standardParams: p.extractStandardParams(params),
 		modifiers:      p.getPassthroughModifiers(params),
@@ -769,11 +772,11 @@ func (*AssetPipelineOrchestrator) getPassthroughModifiers(params map[string][]st
 	modifiers := make(map[string]string)
 
 	reservedKeys := map[string]struct{}{
-		"src":       {},
-		"sizes":     {},
-		"densities": {},
-		fieldFormat: {},
-		"quality":   {},
+		"src":        {},
+		"sizes":      {},
+		"densities":  {},
+		fieldFormat:  {},
+		fieldQuality: {},
 
 		"width":              {},
 		"height":             {},
@@ -912,9 +915,9 @@ func (*AssetPipelineOrchestrator) buildVideoProfiles(
 			videoCapabilityName.String(),
 			assetDependencySource,
 			map[string]string{
-				"Type":     videoVariantTypeTag,
-				"quality":  quality,
-				"mimeType": "application/x-mpegURL",
+				"Type":       videoVariantTypeTag,
+				fieldQuality: quality,
+				"mimeType":   "application/x-mpegURL",
 			},
 			map[string]string{
 				"resolution":       qualityConfig.resolution,
@@ -1014,7 +1017,7 @@ func buildVariantParams(width int, format string, imageConfig imageProfileConfig
 	var params registry_dto.ProfileParams
 	params.SetByName("width", strconv.Itoa(width))
 	params.SetByName(fieldFormat, format)
-	params.SetByName("quality", strconv.Itoa(imageConfig.quality))
+	params.SetByName(fieldQuality, strconv.Itoa(imageConfig.quality))
 
 	for k, v := range imageConfig.standardParams {
 		params.SetByName(k, v)

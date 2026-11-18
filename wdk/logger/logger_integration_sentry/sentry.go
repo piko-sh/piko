@@ -332,15 +332,15 @@ func parseSlogLevels(levels string) []slog.Level {
 	for p := range strings.SplitSeq(strings.ToLower(levels), ",") {
 		switch strings.TrimSpace(p) {
 		case "trace":
-			result = append(result, slog.Level(-8))
+			result = append(result, logger_domain.LevelTrace)
 		case "internal":
-			result = append(result, slog.Level(-6))
+			result = append(result, logger_domain.LevelInternal)
 		case "debug":
 			result = append(result, slog.LevelDebug)
 		case "info":
 			result = append(result, slog.LevelInfo)
 		case "notice":
-			result = append(result, slog.Level(2))
+			result = append(result, logger_domain.LevelNotice)
 		case "warn":
 			result = append(result, slog.LevelWarn)
 		case "error":

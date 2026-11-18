@@ -323,3 +323,33 @@ func TestNewReportingValues(t *testing.T) {
 		assert.Equal(t, "", rv.HeaderValue)
 	})
 }
+
+func TestNewRateLimitValuesIPv6PrefixBits(t *testing.T) {
+	t.Parallel()
+
+	t.Run("unset uses the default prefix", func(t *testing.T) {
+		t.Parallel()
+
+		values := NewRateLimitValues(&config.RateLimitConfig{})
+
+		assert.Equal(t, 64, values.IPv6PrefixBits)
+	})
+
+	t.Run("configured prefix is carried through", func(t *testing.T) {
+		t.Parallel()
+
+		values := NewRateLimitValues(&config.RateLimitConfig{IPv6PrefixBits: new(56)})
+
+		assert.Equal(t, 56, values.IPv6PrefixBits)
+	})
+
+	t.Run("out of range prefix falls back to the default", func(t *testing.T) {
+		t.Parallel()
+
+		for _, bits := range []int{0, -1, 129} {
+			values := NewRateLimitValues(&config.RateLimitConfig{IPv6PrefixBits: new(bits)})
+
+			assert.Equal(t, 64, values.IPv6PrefixBits, "bits %d", bits)
+		}
+	})
+}

@@ -999,7 +999,7 @@ func CaptureDOM(ctx *ActionContext, selector string, includeShadowRoots bool) (s
 
 	var html string
 	js := scripts.MustExecute("capture_dom_with_shadow.js.tmpl", map[string]any{
-		"Selector": selector,
+		tmplKeySelector: selector,
 	})
 
 	err := chromedp.Run(ctx.Ctx,

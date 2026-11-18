@@ -61,15 +61,13 @@ const (
 	defaultLSPConnectionWriteTimeout = 15 * time.Second
 
 	// DefaultMaxConcurrentLSPConnections caps concurrent in-flight LSP connections handled
-	// by the TCP adapter when no explicit cap is configured. Excess connections are
-	// accepted and immediately closed so a hostile peer cannot exhaust file descriptors or
+	// by the TCP adapter when no explicit cap is configured. Excess connections are accepted
+	// and immediately closed so a hostile peer cannot exhaust file descriptors or
 	// goroutines.
 	DefaultMaxConcurrentLSPConnections = 64
 
-	// defaultLSPConnectionInactivityTimeout is the idle window after which a connection
-	// that has sent nothing is closed. The read deadline is refreshed before every read, so
-	// an active editor session is never cut off while leaked half-open connections are
-	// still reclaimed.
+	// defaultLSPConnectionInactivityTimeout is how long the TCP adapter waits without
+	// incoming data before closing a connection. Each read restarts the idle window.
 	defaultLSPConnectionInactivityTimeout = 30 * time.Minute
 
 	// shutdownDrainTimeout caps how long Run waits for in-flight handler goroutines to
@@ -554,8 +552,8 @@ func (c *cappedReadWriteCloser) Close() error {
 }
 
 // readDeadlineConn refreshes the read deadline before every read so the connection is
-// closed only after it has been idle for the whole timeout, not a fixed time after it
-// was accepted.
+// closed only after it has been idle for the whole timeout, not a fixed time after it was
+// accepted.
 type readDeadlineConn struct {
 	net.Conn
 

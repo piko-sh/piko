@@ -21,7 +21,15 @@ package cache_dto
 import (
 	"context"
 	"errors"
+	"math"
 	"time"
+)
+
+const (
+	// NoExpiry is a TTL that removes any expiry from an entry, so it stays until it is
+	// evicted or removed. Pass it to SetWithTTL, as ComputeResult.TTL, or to
+	// SetExpiresAfter.
+	NoExpiry time.Duration = math.MaxInt64
 )
 
 const (
@@ -94,8 +102,11 @@ func (de DeletionEvent[K, V]) WasEvicted() bool {
 // ComputeAction represents the action to be taken after a compute function executes.
 type ComputeAction int
 
-// ComputeResult holds the result of a compute operation with optional TTL override. A
-// zero TTL means use the cache's default expiration policy.
+// ComputeResult holds the result of a compute operation with optional TTL override.
+//
+// A positive TTL sets the entry's lifetime. A zero or negative TTL leaves expiry to the
+// cache's policy. Under PerEntryExpiration, an existing entry keeps its expiry and a new
+// entry gets none. NoExpiry removes any expiry.
 type ComputeResult[V any] struct {
 	// Value is the computed value to store (when Action is ComputeActionSet).
 	Value V
@@ -103,8 +114,9 @@ type ComputeResult[V any] struct {
 	// Action specifies whether to set, delete, or do nothing.
 	Action ComputeAction
 
-	// TTL specifies a custom time-to-live for this entry; zero means use default. Only
-	// meaningful when Action is ComputeActionSet.
+	// TTL specifies a custom time-to-live for this entry; zero means the cache's policy
+	// decides and NoExpiry removes any expiry. Only meaningful when Action is
+	// ComputeActionSet.
 	TTL time.Duration
 }
 

@@ -66,6 +66,22 @@ const (
 	// (#RRGGBBAA).
 	colourHexWithAlphaLength = 8
 
+	// colourChannelRed is the position of the red channel in a parsed colour value.
+	colourChannelRed = 0
+
+	// colourChannelGreen is the position of the green channel in a parsed colour value.
+	colourChannelGreen = 1
+
+	// colourChannelBlue is the position of the blue channel in a parsed colour value.
+	colourChannelBlue = 2
+
+	// colourChannelAlpha is the position of the alpha channel in a parsed colour value.
+	colourChannelAlpha = 3
+
+	// colourHexDigitsPerChannel is the number of hex digits per channel in full-form hex
+	// colours.
+	colourHexDigitsPerChannel = 2
+
 	// colourMaxChannel is the maximum value of an 8-bit colour channel.
 	colourMaxChannel = 255.0
 
@@ -264,8 +280,8 @@ func (c Colour) String() string {
 //
 // Takes value (string) which is the CSS colour string to parse.
 //
-// Returns the parsed Colour and true on success, or ColourBlack and false when the string
-// is not recognised.
+// Returns Colour which is ColourBlack when the string is not recognised.
+// Returns bool which reports whether the string was recognised.
 func ParseColour(value string) (Colour, bool) {
 	value = strings.TrimSpace(strings.ToLower(value))
 
@@ -297,32 +313,57 @@ func ParseColour(value string) (Colour, bool) {
 
 // parseHexColourValue parses a hex colour string into a Colour.
 //
+// Invalid hex digits produce zero-valued channels. An unsupported length is rejected.
+//
 // Takes value (string) which is the hex string including the leading "#".
 //
-// Returns the parsed Colour and true on success, or ColourBlack and false for invalid hex
-// lengths.
+// Returns Colour which is ColourBlack when the length is unsupported.
+// Returns bool which reports whether the length is supported.
 func parseHexColourValue(value string) (Colour, bool) {
 	hex := strings.TrimPrefix(value, "#")
 	switch len(hex) {
 	case colourHexShortLength:
-		red := parseHexByteValue(hex[0:1] + hex[0:1])
-		green := parseHexByteValue(hex[1:2] + hex[1:2])
-		blue := parseHexByteValue(hex[2:3] + hex[2:3])
+		red := parseShortHexChannel(hex, colourChannelRed)
+		green := parseShortHexChannel(hex, colourChannelGreen)
+		blue := parseShortHexChannel(hex, colourChannelBlue)
 		return NewRGBA(red, green, blue, 1), true
 	case colourHexFullLength:
-		red := parseHexByteValue(hex[0:2])
-		green := parseHexByteValue(hex[2:4])
-		blue := parseHexByteValue(hex[4:6])
+		red := parseFullHexChannel(hex, colourChannelRed)
+		green := parseFullHexChannel(hex, colourChannelGreen)
+		blue := parseFullHexChannel(hex, colourChannelBlue)
 		return NewRGBA(red, green, blue, 1), true
 	case colourHexWithAlphaLength:
-		red := parseHexByteValue(hex[0:2])
-		green := parseHexByteValue(hex[2:4])
-		blue := parseHexByteValue(hex[4:6])
-		alpha := parseHexByteValue(hex[6:8])
+		red := parseFullHexChannel(hex, colourChannelRed)
+		green := parseFullHexChannel(hex, colourChannelGreen)
+		blue := parseFullHexChannel(hex, colourChannelBlue)
+		alpha := parseFullHexChannel(hex, colourChannelAlpha)
 		return NewRGBA(red, green, blue, alpha), true
 	default:
 		return ColourBlack, false
 	}
+}
+
+// parseShortHexChannel parses one single-digit channel of a short-form hex colour by
+// doubling the digit.
+//
+// Takes hex (string) which is the hex colour without the leading "#".
+// Takes channel (int) which is the position of the channel to read.
+//
+// Returns float64 which is the channel value between 0 and 1.
+func parseShortHexChannel(hex string, channel int) float64 {
+	digit := hex[channel : channel+1]
+	return parseHexByteValue(digit + digit)
+}
+
+// parseFullHexChannel parses one two-digit channel of a full-form hex colour.
+//
+// Takes hex (string) which is the hex colour without the leading "#".
+// Takes channel (int) which is the position of the channel to read.
+//
+// Returns float64 which is the channel value between 0 and 1.
+func parseFullHexChannel(hex string, channel int) float64 {
+	start := channel * colourHexDigitsPerChannel
+	return parseHexByteValue(hex[start : start+colourHexDigitsPerChannel])
 }
 
 // parseHexByteValue converts a two-character hex string to a normalised 0-1 float64
@@ -330,7 +371,7 @@ func parseHexColourValue(value string) (Colour, bool) {
 //
 // Takes hexPair (string) which is the two-character hex string to convert.
 //
-// Returns the normalised channel value, or 0 on parse failure.
+// Returns float64 which is the channel value from 0 to 1, or 0 on parse failure.
 func parseHexByteValue(hexPair string) float64 {
 	value, err := strconv.ParseUint(hexPair, 16, 8)
 	if err != nil {
@@ -341,10 +382,12 @@ func parseHexByteValue(hexPair string) float64 {
 
 // parseRGBColourValue parses an rgb() or rgba() functional notation string into a Colour.
 //
+// Invalid channel values produce zero-valued channels. An invalid alpha uses 1.
+//
 // Takes value (string) which is the CSS rgb/rgba string to parse.
 //
-// Returns the parsed Colour and true on success, or ColourBlack and false when too few
-// parts are present.
+// Returns Colour which is ColourBlack when fewer than three parts are present.
+// Returns bool which reports whether at least three parts are present.
 func parseRGBColourValue(value string) (Colour, bool) {
 	inner := value
 	inner = strings.TrimPrefix(inner, "rgba(")
@@ -356,13 +399,13 @@ func parseRGBColourValue(value string) (Colour, bool) {
 		return ColourBlack, false
 	}
 
-	red := parseColourChannelValue(parts[0])
-	green := parseColourChannelValue(parts[1])
-	blue := parseColourChannelValue(parts[2])
+	red := parseColourChannelValue(parts[colourChannelRed])
+	green := parseColourChannelValue(parts[colourChannelGreen])
+	blue := parseColourChannelValue(parts[colourChannelBlue])
 	alpha := 1.0
 
 	if len(parts) >= colourParseRGBAPartCount {
-		parsed, err := strconv.ParseFloat(strings.TrimSpace(parts[3]), 64)
+		parsed, err := strconv.ParseFloat(strings.TrimSpace(parts[colourChannelAlpha]), 64)
 		if err == nil {
 			alpha = parsed
 		}
@@ -373,10 +416,12 @@ func parseRGBColourValue(value string) (Colour, bool) {
 
 // parseHSLColourValue parses an hsl() or hsla() functional notation string into a Colour.
 //
+// An invalid saturation or lightness uses zero. An invalid alpha uses 1.
+//
 // Takes value (string) which is the CSS hsl/hsla string to parse.
 //
-// Returns the parsed Colour and true on success, or ColourBlack and false when parsing
-// fails.
+// Returns Colour which is ColourBlack when the hue is invalid or parts are missing.
+// Returns bool which reports whether a colour was parsed.
 func parseHSLColourValue(value string) (Colour, bool) {
 	inner := value
 	inner = strings.TrimPrefix(inner, "hsla(")
@@ -398,7 +443,7 @@ func parseHSLColourValue(value string) (Colour, bool) {
 	alpha := 1.0
 
 	if len(parts) >= colourParseHSLAPartCount {
-		parsed, err := strconv.ParseFloat(strings.TrimSpace(parts[3]), 64)
+		parsed, err := strconv.ParseFloat(strings.TrimSpace(parts[colourChannelAlpha]), 64)
 		if err == nil {
 			alpha = parsed
 		}

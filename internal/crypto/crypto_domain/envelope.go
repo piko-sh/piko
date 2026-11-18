@@ -22,7 +22,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 // envelopeData holds the envelope format for encrypted data. It provides the details
@@ -40,7 +40,7 @@ type envelopeData struct {
 	// Ciphertext is the encrypted data payload.
 	Ciphertext string `json:"ct"`
 
-	// Version is the envelope format version; currently only version 1 is supported.
+	// Version is the envelope format version. Only version 1 is supported.
 	Version int `json:"v"`
 }
 

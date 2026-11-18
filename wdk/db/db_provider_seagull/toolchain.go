@@ -50,6 +50,10 @@ const (
 	// timescaleDBDialect is the built-in dialect whose PostgreSQL-family migrations run on
 	// Seagull's TimescaleDB backend.
 	timescaleDBDialect = "timescaledb"
+
+	// fixedMigrationOptionCount is the most migration options added regardless of hooks: the
+	// directive prefixes, the observer and the non-blocking lock.
+	fixedMigrationOptionCount = 3
 )
 
 // postgresFamilyBackend names the Seagull backend that PostgreSQL-family migrations run
@@ -221,7 +225,7 @@ func (t *Toolchain) NewSeedService(
 // Returns []migrate.Option which configures the migrator.
 func (t *Toolchain) migrationOptions(config sqldb_dto.MigrationServiceConfig) []migrate.Option {
 	options := make([]migrate.Option, 0,
-		len(config.BeforeMigration)+len(config.AfterMigration)+len(config.BeforeRun)+len(config.AfterRun)+3)
+		len(config.BeforeMigration)+len(config.AfterMigration)+len(config.BeforeRun)+len(config.AfterRun)+fixedMigrationOptionCount)
 	options = append(options, migrate.WithDirectivePrefixes(pikoPrefix), migrate.WithObserver(t.observer))
 	if config.NonBlockingLock {
 		options = append(options, migrate.WithNonBlockingLock())

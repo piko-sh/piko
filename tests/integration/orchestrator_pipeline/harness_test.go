@@ -45,7 +45,9 @@ import (
 	"piko.sh/piko/wdk/events/events_provider_gochannel"
 )
 
-const harnessBuildTag = "harness-build"
+const (
+	harnessBuildTag = "harness-build"
+)
 
 type pipelineHarness struct {
 	eventBusProvider *events_provider_gochannel.GoChannelProvider
@@ -334,7 +336,7 @@ func (h *pipelineHarness) startDispatcher() {
 func (h *pipelineHarness) waitForIdle(timeout time.Duration) bool {
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
-		if h.dispatcher.IsIdle() {
+		if h.buildComplete() {
 			return true
 		}
 		time.Sleep(20 * time.Millisecond)
@@ -389,7 +391,7 @@ func (h *pipelineHarness) advanceUntilIdle(timeout time.Duration) bool {
 	h.t.Helper()
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
-		if h.dispatcher.IsIdle() {
+		if h.buildComplete() {
 			return true
 		}
 
@@ -397,7 +399,7 @@ func (h *pipelineHarness) advanceUntilIdle(timeout time.Duration) bool {
 
 		time.Sleep(100 * time.Millisecond)
 	}
-	return h.dispatcher.IsIdle()
+	return h.buildComplete()
 }
 
 func (h *pipelineHarness) buildCompletionCheck() orchestrator_domain.BuildCompletionCheck {
@@ -433,7 +435,7 @@ func (h *pipelineHarness) waitForBuildComplete(timeout time.Duration) bool {
 func (h *pipelineHarness) waitForFlush(timeout time.Duration) bool {
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
-		published := h.registryService.ArtefactEventsPublished()
+		published := h.registryService.ArtefactEventsIssued()
 		if published > 0 && h.bridge.ArtefactEventsProcessed() >= published {
 			return true
 		}

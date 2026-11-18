@@ -18,6 +18,11 @@
 
 package llm_dto
 
+import (
+	"maps"
+	"slices"
+)
+
 // CompletionResponse represents the response from an LLM completion request.
 type CompletionResponse struct {
 	// Usage holds token counts for the request; nil when not available.
@@ -141,4 +146,133 @@ func (r *CompletionResponse) ToolCalls() []ToolCall {
 		return nil
 	}
 	return r.Choices[0].Message.ToolCalls
+}
+
+// Clone copies the response.
+//
+// Metadata maps on sources are copied one level deep. Nested values inside those maps
+// remain shared.
+//
+// Returns *CompletionResponse which is the copy, or nil when r is nil.
+func (r *CompletionResponse) Clone() *CompletionResponse {
+	if r == nil {
+		return nil
+	}
+
+	clone := *r
+	clone.Usage = r.Usage.clone()
+	clone.FallbackInfo = r.FallbackInfo.clone()
+	clone.Choices = cloneChoices(r.Choices)
+	clone.Sources = cloneSources(r.Sources)
+	return &clone
+}
+
+// clone returns a copy of the usage, including its cost estimate.
+//
+// Returns *Usage which is the copy, or nil when u is nil.
+func (u *Usage) clone() *Usage {
+	if u == nil {
+		return nil
+	}
+
+	clone := *u
+	if u.EstimatedCost != nil {
+		clone.EstimatedCost = new(*u.EstimatedCost)
+	}
+	return &clone
+}
+
+// clone returns a copy of the fallback result with its own map and slice.
+//
+// Returns *FallbackResult which is the copy, or nil when r is nil.
+func (r *FallbackResult) clone() *FallbackResult {
+	if r == nil {
+		return nil
+	}
+
+	clone := *r
+	clone.Errors = maps.Clone(r.Errors)
+	clone.AttemptedProviders = slices.Clone(r.AttemptedProviders)
+	return &clone
+}
+
+// clone returns a deep copy of the message.
+//
+// Returns Message which is the copy.
+func (m Message) clone() Message {
+	clone := m
+	clone.Name = clonePointer(m.Name)
+	clone.ToolCallID = clonePointer(m.ToolCallID)
+	clone.ToolCalls = slices.Clone(m.ToolCalls)
+	if m.ContentParts != nil {
+		clone.ContentParts = make([]ContentPart, len(m.ContentParts))
+		for index, part := range m.ContentParts {
+			clone.ContentParts[index] = part.clone()
+		}
+	}
+	return clone
+}
+
+// clone returns a deep copy of the content part.
+//
+// Returns ContentPart which is the copy.
+func (p ContentPart) clone() ContentPart {
+	clone := p
+	clone.Text = clonePointer(p.Text)
+	clone.ImageData = clonePointer(p.ImageData)
+	if p.ImageURL != nil {
+		imageURL := *p.ImageURL
+		imageURL.Detail = clonePointer(p.ImageURL.Detail)
+		clone.ImageURL = &imageURL
+	}
+	return clone
+}
+
+// cloneChoices returns a deep copy of the choices.
+//
+// Takes choices ([]Choice) which are the choices to copy.
+//
+// Returns []Choice which is the copy, or nil when choices is nil.
+func cloneChoices(choices []Choice) []Choice {
+	if choices == nil {
+		return nil
+	}
+
+	clone := make([]Choice, len(choices))
+	for index, choice := range choices {
+		clone[index] = choice
+		clone[index].Message = choice.Message.clone()
+	}
+	return clone
+}
+
+// cloneSources returns a copy of the sources with their own vectors and metadata maps.
+//
+// Takes sources ([]VectorSearchResult) which are the sources to copy.
+//
+// Returns []VectorSearchResult which is the copy, or nil when sources is nil.
+func cloneSources(sources []VectorSearchResult) []VectorSearchResult {
+	if sources == nil {
+		return nil
+	}
+
+	clone := make([]VectorSearchResult, len(sources))
+	for index, source := range sources {
+		clone[index] = source
+		clone[index].Metadata = maps.Clone(source.Metadata)
+		clone[index].Vector = slices.Clone(source.Vector)
+	}
+	return clone
+}
+
+// clonePointer copies the value referenced by value.
+//
+// Takes value (*T) which is the pointer to copy.
+//
+// Returns *T which points to the copy, or nil when value is nil.
+func clonePointer[T any](value *T) *T {
+	if value == nil {
+		return nil
+	}
+	return new(*value)
 }

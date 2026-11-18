@@ -32,7 +32,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 
 	"piko.sh/piko/internal/notification/notification_dto"
 	"piko.sh/piko/internal/safeerror"
@@ -977,39 +977,6 @@ func TestNewWebhookProvider_NilClient(t *testing.T) {
 	provider := NewWebhookProvider("http://example.com", nil, nil)
 	if provider == nil {
 		t.Fatal("expected non-nil provider")
-	}
-}
-
-func TestTruncateRunes(t *testing.T) {
-	t.Parallel()
-
-	multiByte := strings.Repeat("é", 50)
-	hugeMultiByte := strings.Repeat("文", 200)
-
-	cases := []struct {
-		name     string
-		input    string
-		want     string
-		maxRunes int
-	}{
-		{name: "short ascii unchanged", input: "hello", maxRunes: 10, want: "hello"},
-		{name: "exact ascii unchanged", input: "abcdef", maxRunes: 6, want: "abcdef"},
-		{name: "ascii truncated with ellipsis", input: "abcdefghij", maxRunes: 7, want: "abcd..."},
-		{name: "tiny budget skips ellipsis", input: "abcdef", maxRunes: 2, want: "ab"},
-		{name: "zero budget", input: "anything", maxRunes: 0, want: ""},
-		{name: "negative budget", input: "anything", maxRunes: -3, want: ""},
-		{name: "multi-byte runes preserved", input: multiByte, maxRunes: 10, want: strings.Repeat("é", 7) + "..."},
-		{name: "long multi-byte truncates without splitting", input: hugeMultiByte, maxRunes: 50, want: strings.Repeat("文", 47) + "..."},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			got := truncateRunes(tc.input, tc.maxRunes)
-			if got != tc.want {
-				t.Fatalf("truncateRunes(%q, %d) = %q, want %q", tc.input, tc.maxRunes, got, tc.want)
-			}
-		})
 	}
 }
 

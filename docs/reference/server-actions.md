@@ -160,9 +160,26 @@ The `piko.Cookie` constructor accepts functional options:
 | `nil` | 200 | Response body is the typed response, JSON-encoded. |
 | `piko.ValidationField(field, message)` | 422 | Field-level validation error rendered into the form. |
 | `piko.NewValidationError(fields)` | 422 | Multi-field validation error. |
+| Other `piko.ActionError` values | Their status from 400 to 599 | Piko uses the error's status and code. |
 | Any other `error` | 500 | Piko logs the error with full detail, and the client sees a generic failure message. |
 
 Internal errors are never exposed to the client verbatim. Wrap them with `fmt.Errorf` to preserve context for logs.
+
+The dispatcher rejects invalid input before `Call` runs:
+
+| Request problem | HTTP status | Code | Behaviour |
+|---|---|---|---|
+| A field cannot convert to its Go type, or a `validate:"..."` tag rejects it | 422 | `VALIDATION_FAILED` | The `errors` map has a message for each affected field and does not repeat submitted values. |
+| The body, field count or slice element count exceeds a limit | 413 | `PAYLOAD_TOO_LARGE` | Applies to single calls and batches. |
+| The body is malformed or exceeds the nesting limit | 400 | | The request cannot be parsed. |
+
+An action error with a status outside 400 to 599 returns 500. If a 4xx
+error also wraps a server failure, Piko reports that failure. Recovered
+panics are logged with a stack trace.
+
+If the client disconnects, Piko sends no response. Piko reports a server
+timeout as a server error. Response helpers set before an action returns
+an error are included in the error response.
 
 ## HTTP method override
 

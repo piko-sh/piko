@@ -22,7 +22,7 @@ import (
 	"context"
 	"fmt"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 	"piko.sh/piko/internal/search/search_adapters"
 	"piko.sh/piko/internal/search/search_domain"
 	"piko.sh/piko/internal/search/search_dto"

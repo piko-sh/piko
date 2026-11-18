@@ -81,6 +81,10 @@ const (
 	// XObjects may reference each other through their own /Resources/XObject dictionaries;
 	// this cap defends against malformed or adversarial nesting.
 	maxXObjectDepth = 64
+
+	// regionStreamBytesEstimate is the expected number of content stream bytes written per
+	// redaction region, used to size the output buffer.
+	regionStreamBytesEstimate = 64
 )
 
 var (
@@ -898,7 +902,7 @@ func redactRegionsOnPage(
 //
 // Returns string which is the PDF content stream operators.
 func buildRegionStream(regions []pdfwriter_dto.RedactionRegion) string {
-	buf := make([]byte, 0, len(regions)*64)
+	buf := make([]byte, 0, len(regions)*regionStreamBytesEstimate)
 	for _, r := range regions {
 		buf = append(buf, fmt.Sprintf("q 0 0 0 rg %g %g %g %g re f Q\n", r.X, r.Y, r.Width, r.Height)...)
 	}

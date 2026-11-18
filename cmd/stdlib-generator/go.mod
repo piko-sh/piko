@@ -15,12 +15,15 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/google/flatbuffers v25.12.19+incompatible // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
-	go.opentelemetry.io/otel v1.45.0 // indirect
-	go.opentelemetry.io/otel/metric v1.45.0 // indirect
-	go.opentelemetry.io/otel/trace v1.45.0 // indirect
-	golang.org/x/mod v0.41.0 // indirect
-	golang.org/x/sync v0.23.0 // indirect
-	golang.org/x/tools v0.50.0 // indirect
+	go.opentelemetry.io/otel v1.47.0 // indirect
+	go.opentelemetry.io/otel/log v1.47.0 // indirect
+	go.opentelemetry.io/otel/metric v1.47.0 // indirect
+	go.opentelemetry.io/otel/trace v1.47.0 // indirect
+	golang.org/x/mod v0.43.0 // indirect
+	golang.org/x/sync v0.25.0 // indirect
+	golang.org/x/tools v0.53.0 // indirect
 	piko.sh/goastutil v0.2.0 // indirect
+	piko.sh/json v0.1.1 // indirect
 	piko.sh/safeconv v0.1.0 // indirect
+	piko.sh/sharded v0.2.0 // indirect
 )

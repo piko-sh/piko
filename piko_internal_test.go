@@ -419,3 +419,27 @@ func TestEnvironmentDefaultOptions(t *testing.T) {
 		assert.Len(t, options, 1)
 	})
 }
+
+func TestBannerURL(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		address    string
+		expected   string
+		tlsEnabled bool
+	}{
+		{name: "IPv6 wildcard health listener", address: "[::]:9090", expected: "http://localhost:9090"},
+		{name: "IPv4 wildcard listener", address: "0.0.0.0:8080", expected: "http://localhost:8080"},
+		{name: "loopback listener is kept", address: "127.0.0.1:9090", expected: "http://127.0.0.1:9090"},
+		{name: "TLS listener", address: "[::]:8443", tlsEnabled: true, expected: "https://localhost:8443"},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, testCase.expected, bannerURL(testCase.tlsEnabled, testCase.address))
+		})
+	}
+}

@@ -71,6 +71,10 @@ const (
 	// noMergedImportRecord marks a rebuilt statement that carries no import record of its
 	// own, so there is nothing in the component's record list for it to resolve.
 	noMergedImportRecord = -1
+
+	// frameworkImportSlots is the maximum number of framework statements added to a rebuilt
+	// component script.
+	frameworkImportSlots = 6
 )
 
 var (
@@ -358,7 +362,7 @@ func (cc *sfcCompilationContext) setupNaming() error {
 // Returns context.Context which is enriched with the component logger.
 // Returns error when naming validation fails.
 func (cc *sfcCompilationContext) setupNamingAndContext(ctx context.Context, span trace.Span) (context.Context, error) {
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 	if err := cc.setupNaming(); err != nil {
 		return ctx, err
 	}
@@ -735,48 +739,10 @@ func compileSFC(ctx context.Context, sourceID string, rawSFC []byte, moduleName 
 		return nil, fmt.Errorf("sfcparser failed: %w", err)
 	}
 
-	cc.extractScriptAndStyles()
-	if err := cc.preProcessStyles(ccCtx); err != nil {
-		l.ReportError(span, err, "style pre-processing failed")
-		SFCCompilationErrorCount.Add(ctx, 1)
-		return nil, err
-	}
-	cc.extractTimeline(ccCtx)
-
-	ccCtx, err = cc.setupNamingAndContext(ccCtx, span)
+	ccCtx, err = cc.runCompilationStages(ccCtx, span)
 	if err != nil {
-		l.ReportError(span, err, "naming validation failed")
 		SFCCompilationErrorCount.Add(ctx, 1)
 		return nil, err
-	}
-
-	if err := cc.processJavaScript(ccCtx); err != nil {
-		l.Trace("JavaScript processing failed", logger_domain.Error(err))
-		SFCCompilationErrorCount.Add(ctx, 1)
-		return nil, fmt.Errorf("processing javascript: %w", err)
-	}
-
-	if err := cc.injectTimelineData(ccCtx); err != nil {
-		l.ReportError(span, err, "timeline injection failed")
-		SFCCompilationErrorCount.Add(ctx, 1)
-		return nil, fmt.Errorf("injecting timeline: %w", err)
-	}
-
-	if err := cc.processTemplate(ccCtx); err != nil {
-		SFCCompilationErrorCount.Add(ctx, 1)
-		return nil, fmt.Errorf("processing template: %w", err)
-	}
-
-	if err := cc.insertStaticCSS(ccCtx); err != nil {
-		l.ReportError(span, err, "static CSS insertion failed")
-		SFCCompilationErrorCount.Add(ctx, 1)
-		return nil, err
-	}
-
-	if err := cc.finaliseAST(ccCtx); err != nil {
-		l.ReportError(span, err, "finalising script failed")
-		SFCCompilationErrorCount.Add(ctx, 1)
-		return nil, fmt.Errorf("finalising script: %w", err)
 	}
 
 	artefact, err := cc.buildArtefact(ccCtx)
@@ -788,6 +754,56 @@ func compileSFC(ctx context.Context, sourceID string, rawSFC []byte, moduleName 
 
 	cc.recordCompilationMetrics(ctx, span, startTime, artefact)
 	return artefact, nil
+}
+
+// runCompilationStages prepares a parsed SFC for artefact creation.
+//
+// Takes span (trace.Span) which receives error reports from failing stages.
+//
+// Returns context.Context which carries the naming information needed to build the
+// artefact.
+// Returns error when any stage fails.
+func (cc *sfcCompilationContext) runCompilationStages(ctx context.Context, span trace.Span) (context.Context, error) {
+	ctx, l := logger_domain.From(ctx, log)
+
+	cc.extractScriptAndStyles()
+	if err := cc.preProcessStyles(ctx); err != nil {
+		l.ReportError(span, err, "style pre-processing failed")
+		return ctx, err
+	}
+	cc.extractTimeline(ctx)
+
+	ctx, err := cc.setupNamingAndContext(ctx, span)
+	if err != nil {
+		l.ReportError(span, err, "naming validation failed")
+		return ctx, err
+	}
+
+	if err := cc.processJavaScript(ctx); err != nil {
+		l.Trace("JavaScript processing failed", logger_domain.Error(err))
+		return ctx, fmt.Errorf("processing javascript: %w", err)
+	}
+
+	if err := cc.injectTimelineData(ctx); err != nil {
+		l.ReportError(span, err, "timeline injection failed")
+		return ctx, fmt.Errorf("injecting timeline: %w", err)
+	}
+
+	if err := cc.processTemplate(ctx); err != nil {
+		return ctx, fmt.Errorf("processing template: %w", err)
+	}
+
+	if err := cc.insertStaticCSS(ctx); err != nil {
+		l.ReportError(span, err, "static CSS insertion failed")
+		return ctx, err
+	}
+
+	if err := cc.finaliseAST(ctx); err != nil {
+		l.ReportError(span, err, "finalising script failed")
+		return ctx, fmt.Errorf("finalising script: %w", err)
+	}
+
+	return ctx, nil
 }
 
 // ensurePPElementClass creates a default PPElement subclass if one does not already exist
@@ -918,7 +934,7 @@ func prependPreambleToAST(ctx context.Context, tree *js_ast.AST, sourceCode stri
 	componentsImport := buildComponentsImport(tree)
 	actionsImport := buildActionsImport(tree)
 
-	newStmtList := make([]js_ast.Stmt, 0, 6+len(userImportStmts))
+	newStmtList := make([]js_ast.Stmt, 0, frameworkImportSlots+len(userImportStmts))
 
 	if slices.Contains(enabledBehaviours, "animation") {
 		animationImport := buildAnimationExtensionImport(tree)

@@ -16,6 +16,8 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
+//go:build integration
+
 package orchestrator_pipeline_test
 
 import (

@@ -194,7 +194,6 @@ func endsAtBreakOpportunity(box *LayoutBox) bool {
 // dropLineEndSpace removes the collapsible space a line ends with (CSS Text 3 section
 // 4.1.2), so the line's width, and so its alignment, does not count it.
 func (c *inlineLayoutContext) dropLineEndSpace() {
-
 	last := len(c.currentLineItems) - 1
 	for last >= 0 && c.currentLineItems[last].fragment.Box != nil &&
 		isInlineBox(c.currentLineItems[last].fragment.Box) && c.currentLineItems[last].width == 0 {

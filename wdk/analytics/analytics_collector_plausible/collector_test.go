@@ -33,8 +33,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"piko.sh/json"
 	"piko.sh/piko/internal/analytics/analytics_dto"
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/wdk/analytics"
 	"piko.sh/piko/wdk/clock"
 	"piko.sh/piko/wdk/maths"

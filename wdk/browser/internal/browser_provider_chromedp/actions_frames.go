@@ -90,7 +90,7 @@ func GetFrames(ctx *ActionContext) ([]FrameInfo, error) {
 // Returns error when the frame info cannot be retrieved or the iframe is not found.
 func GetFrameBySelector(ctx *ActionContext, selector string) (*FrameInfo, error) {
 	js := scripts.MustExecute("iframe_get_info.js.tmpl", map[string]any{
-		"Selector": selector,
+		tmplKeySelector: selector,
 	})
 
 	var result map[string]any
@@ -121,8 +121,8 @@ func GetFrameBySelector(ctx *ActionContext, selector string) (*FrameInfo, error)
 // Returns error when the script cannot be evaluated in the frame.
 func EvalInFrame(ctx *ActionContext, frameSelector, script string) (any, error) {
 	js := scripts.MustExecute("iframe_eval.js.tmpl", map[string]any{
-		"FrameSelector": frameSelector,
-		"Script":        script,
+		tmplKeyFrameSelector: frameSelector,
+		"Script":             script,
 	})
 
 	var result any
@@ -143,8 +143,8 @@ func EvalInFrame(ctx *ActionContext, frameSelector, script string) (any, error) 
 // Returns error when the click action fails to execute.
 func ClickInFrame(ctx *ActionContext, frameSelector, elementSelector string) error {
 	js := scripts.MustExecute("iframe_click.js.tmpl", map[string]any{
-		"FrameSelector":   frameSelector,
-		"ElementSelector": elementSelector,
+		tmplKeyFrameSelector:   frameSelector,
+		tmplKeyElementSelector: elementSelector,
 	})
 
 	var result bool
@@ -166,8 +166,8 @@ func ClickInFrame(ctx *ActionContext, frameSelector, elementSelector string) err
 // Returns error when the script execution fails.
 func GetTextInFrame(ctx *ActionContext, frameSelector, elementSelector string) (string, error) {
 	js := scripts.MustExecute("iframe_get_text.js.tmpl", map[string]any{
-		"FrameSelector":   frameSelector,
-		"ElementSelector": elementSelector,
+		tmplKeyFrameSelector:   frameSelector,
+		tmplKeyElementSelector: elementSelector,
 	})
 
 	var result string
@@ -189,9 +189,9 @@ func GetTextInFrame(ctx *ActionContext, frameSelector, elementSelector string) (
 // Returns error when the JavaScript execution fails or the element cannot be found.
 func FillInFrame(ctx *ActionContext, frameSelector, elementSelector, value string) error {
 	js := scripts.MustExecute("iframe_fill.js.tmpl", map[string]any{
-		"FrameSelector":   frameSelector,
-		"ElementSelector": elementSelector,
-		"Value":           value,
+		tmplKeyFrameSelector:   frameSelector,
+		tmplKeyElementSelector: elementSelector,
+		"Value":                value,
 	})
 
 	var result bool
@@ -212,8 +212,8 @@ func FillInFrame(ctx *ActionContext, frameSelector, elementSelector, value strin
 // Returns error when the element cannot be found or the evaluation fails.
 func WaitForElementInFrame(ctx *ActionContext, frameSelector, elementSelector string) error {
 	js := scripts.MustExecute("iframe_wait_for_element_poll.js.tmpl", map[string]any{
-		"FrameSelector":   frameSelector,
-		"ElementSelector": elementSelector,
+		tmplKeyFrameSelector:   frameSelector,
+		tmplKeyElementSelector: elementSelector,
 	})
 
 	const (
@@ -247,7 +247,7 @@ func WaitForElementInFrame(ctx *ActionContext, frameSelector, elementSelector st
 // Returns error when the frame cannot be found or the script fails to execute.
 func GetFrameDocument(ctx *ActionContext, frameSelector string) (string, error) {
 	js := scripts.MustExecute("iframe_get_html.js.tmpl", map[string]any{
-		"Selector": frameSelector,
+		tmplKeySelector: frameSelector,
 	})
 
 	var result string
@@ -268,7 +268,7 @@ func GetFrameDocument(ctx *ActionContext, frameSelector string) (string, error) 
 // Returns error when the frame check fails.
 func IsFrameLoaded(ctx *ActionContext, frameSelector string) (bool, error) {
 	js := scripts.MustExecute("iframe_is_loaded.js.tmpl", map[string]any{
-		"Selector": frameSelector,
+		tmplKeySelector: frameSelector,
 	})
 
 	var result bool

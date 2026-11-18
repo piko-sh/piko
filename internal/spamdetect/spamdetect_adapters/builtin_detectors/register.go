@@ -55,7 +55,11 @@ func RegisterDefaults(ctx context.Context, service spamdetect_domain.SpamDetectS
 		{detector: NewLinkDensityDetector(config.LinkDensityMaxLinks), name: "link_density"},
 		{detector: blocklistDetector, name: "blocklist"},
 		{detector: NewTimingDetector(config.TimingMinDuration), name: "timing"},
-		{detector: NewRepetitionDetector(config.RepetitionCache, config.RepetitionTTL, resolveIPScoped(config.RepetitionIPScoped)), name: "repetition"},
+		{
+			detector: NewRepetitionDetector(config.RepetitionCache, config.RepetitionTTL,
+				resolveIPScoped(config.RepetitionIPScoped), WithRepetitionIPv6PrefixBits(config.RepetitionIPv6PrefixBits)),
+			name: "repetition",
+		},
 	}
 
 	for _, entry := range detectors {

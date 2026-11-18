@@ -39,6 +39,12 @@ const (
 	// rectElements is the expected number of elements in a PDF Rect or BBox array.
 	rectElements = 4
 
+	// rectURXIndex is the position of the upper right x coordinate in a PDF rectangle.
+	rectURXIndex = 2
+
+	// rectURYIndex is the position of the upper right y coordinate in a PDF rectangle.
+	rectURYIndex = 3
+
 	// contentsKey is the PDF dictionary key for page content streams.
 	contentsKey = "Contents"
 
@@ -472,12 +478,7 @@ func extractRect(dict pdfparse.Dict) pdfRect {
 	if len(arr) < rectElements {
 		return pdfRect{}
 	}
-	return pdfRect{
-		llx: objectToFloat(arr[0]),
-		lly: objectToFloat(arr[1]),
-		urx: objectToFloat(arr[2]),
-		ury: objectToFloat(arr[3]),
-	}
+	return pdfRectFromArray(arr)
 }
 
 // extractAppearanceBBox reads the /BBox from an appearance stream's dictionary.
@@ -496,11 +497,21 @@ func extractAppearanceBBox(fctx *flattenContext, objNum int) pdfRect {
 	if len(arr) < rectElements {
 		return pdfRect{urx: 1, ury: 1, llx: 0, lly: 0}
 	}
+	return pdfRectFromArray(arr)
+}
+
+// pdfRectFromArray converts a four-element PDF rectangle array into a pdfRect. It panics
+// when arr has fewer than four elements.
+//
+// Takes arr ([]pdfparse.Object) which must contain at least four elements.
+//
+// Returns pdfRect which holds the rectangle corners.
+func pdfRectFromArray(arr []pdfparse.Object) pdfRect {
 	return pdfRect{
 		llx: objectToFloat(arr[0]),
 		lly: objectToFloat(arr[1]),
-		urx: objectToFloat(arr[2]),
-		ury: objectToFloat(arr[3]),
+		urx: objectToFloat(arr[rectURXIndex]),
+		ury: objectToFloat(arr[rectURYIndex]),
 	}
 }
 

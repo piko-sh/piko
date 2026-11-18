@@ -28,9 +28,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 	"piko.sh/piko/internal/monitoring/monitoring_domain"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
+	"piko.sh/piko/internal/provider/provider_domain"
 )
 
 type mockSystemStatsProvider struct {
@@ -305,4 +306,180 @@ func TestDevAPIHandler_Mount_RegistersRoutes(t *testing.T) {
 		assert.Equal(t, "application/json", rec.Header().Get("Content-Type"),
 			"endpoint %s should return JSON", endpoint)
 	}
+}
+
+type stubHealthProbeService struct {
+	liveness  monitoring_domain.HealthProbeStatus
+	readiness monitoring_domain.HealthProbeStatus
+}
+
+func (s *stubHealthProbeService) CheckLiveness(context.Context) monitoring_domain.HealthProbeStatus {
+	return s.liveness
+}
+
+func (s *stubHealthProbeService) CheckReadiness(context.Context) monitoring_domain.HealthProbeStatus {
+	return s.readiness
+}
+
+type stubProviderInfoInspector struct {
+	monitoring_domain.ProviderInfoInspector
+	providers     map[string]*monitoring_domain.ProviderListResult
+	subResources  map[string]*monitoring_domain.ProviderListResult
+	resourceTypes []string
+}
+
+func (s *stubProviderInfoInspector) ListResourceTypes(context.Context) []string {
+	return s.resourceTypes
+}
+
+func (s *stubProviderInfoInspector) ListProviders(_ context.Context, resourceType string) (*monitoring_domain.ProviderListResult, error) {
+	list, ok := s.providers[resourceType]
+	if !ok {
+		return nil, errors.New("resource type not found")
+	}
+	return list, nil
+}
+
+func (*stubProviderInfoInspector) DescribeProvider(_ context.Context, _, name string) (*provider_domain.ProviderDetail, error) {
+	if name == "broken" {
+		return nil, errors.New("describe failed")
+	}
+	return &provider_domain.ProviderDetail{Name: name, Sections: nil}, nil
+}
+
+func (s *stubProviderInfoInspector) ListSubResources(_ context.Context, _, providerName string) (*monitoring_domain.ProviderListResult, error) {
+	sub, ok := s.subResources[providerName]
+	if !ok {
+		return nil, errors.New("no sub-resources")
+	}
+	return sub, nil
+}
+
+func serveDevAPI(t *testing.T, handler *DevAPIHandler, path string) map[string]any {
+	t.Helper()
+
+	request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, path, nil)
+	recorder := httptest.NewRecorder()
+	newTestRouter(handler).ServeHTTP(recorder, request)
+
+	require.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, "application/json", recorder.Header().Get("Content-Type"))
+
+	var body map[string]any
+	require.NoError(t, json.ConfigDefault.Unmarshal(recorder.Body.Bytes(), &body))
+	return body
+}
+
+func TestDevAPIHandler_OptionalEndpointsReportUnavailableWithoutDependencies(t *testing.T) {
+	t.Parallel()
+
+	for _, path := range []string{
+		"/_piko/dev/api/health",
+		"/_piko/dev/api/resources",
+		"/_piko/dev/api/providers",
+		"/_piko/dev/api/memory",
+	} {
+		t.Run(path, func(t *testing.T) {
+			t.Parallel()
+
+			body := serveDevAPI(t, NewDevAPIHandler(nil, nil), path)
+
+			assert.Equal(t, false, body["available"])
+		})
+	}
+}
+
+func TestDevAPIHandler_Health_WithProbeService(t *testing.T) {
+	t.Parallel()
+
+	handler := NewDevAPIHandler(nil, nil)
+	handler.SetHealthProbeService(&stubHealthProbeService{
+		liveness:  monitoring_domain.HealthProbeStatus{Name: "liveness", State: "HEALTHY"},
+		readiness: monitoring_domain.HealthProbeStatus{Name: "readiness", State: "DEGRADED"},
+	})
+
+	body := serveDevAPI(t, handler, "/_piko/dev/api/health")
+
+	assert.Contains(t, body, "liveness")
+	assert.Contains(t, body, "readiness")
+	assert.NotContains(t, body, "available")
+}
+
+func TestDevAPIHandler_Resources_WithProvider(t *testing.T) {
+	t.Parallel()
+
+	handler := NewDevAPIHandler(nil, nil)
+	handler.SetResourceProvider(&monitoring_domain.MockResourceProvider{
+		GetResourcesFunc: func() monitoring_domain.ResourceData {
+			return monitoring_domain.ResourceData{Categories: nil, Total: 7, TimestampMs: 42}
+		},
+	})
+
+	body := serveDevAPI(t, handler, "/_piko/dev/api/resources")
+
+	assert.NotContains(t, body, "available")
+	assert.Len(t, body, 3)
+}
+
+func TestDevAPIHandler_Providers_WithInspector(t *testing.T) {
+	t.Parallel()
+
+	handler := NewDevAPIHandler(nil, nil)
+	handler.SetProviderInfoInspector(&stubProviderInfoInspector{
+		resourceTypes: []string{"email", "storage", "missing"},
+		providers: map[string]*monitoring_domain.ProviderListResult{
+			"email":   {Rows: []provider_domain.ProviderListEntry{{Name: "smtp"}, {Name: "broken"}}},
+			"storage": {Rows: []provider_domain.ProviderListEntry{{Name: "disk"}}},
+		},
+		subResources: map[string]*monitoring_domain.ProviderListResult{
+			"smtp": {Rows: []provider_domain.ProviderListEntry{{Name: "queue"}}},
+			"disk": {Rows: nil},
+		},
+	})
+
+	body := serveDevAPI(t, handler, "/_piko/dev/api/providers")
+
+	assert.Equal(t, []any{"email", "storage", "missing"}, body["resourceTypes"])
+	providers, ok := body["providers"].(map[string]any)
+	require.True(t, ok)
+	assert.NotContains(t, providers, "missing", "a resource type that cannot be listed is skipped")
+
+	email, ok := providers["email"].(map[string]any)
+	require.True(t, ok)
+	details, ok := email["details"].(map[string]any)
+	require.True(t, ok)
+	assert.Contains(t, details, "smtp")
+	assert.NotContains(t, details, "broken", "a provider that cannot be described is left out")
+	subResources, ok := email["subResources"].(map[string]any)
+	require.True(t, ok)
+	assert.Contains(t, subResources, "smtp")
+
+	storage, ok := providers["storage"].(map[string]any)
+	require.True(t, ok)
+	storageSubResources, ok := storage["subResources"].(map[string]any)
+	require.True(t, ok)
+	assert.Empty(t, storageSubResources, "an empty sub-resource list is left out")
+}
+
+func TestDevAPIHandler_Memory_WithProvider(t *testing.T) {
+	t.Parallel()
+
+	handler := NewDevAPIHandler(&mockSystemStatsProvider{}, nil)
+
+	body := serveDevAPI(t, handler, "/_piko/dev/api/memory")
+
+	for _, key := range []string{"memory", "process", "gc", "runtime", "build"} {
+		assert.Contains(t, body, key)
+	}
+}
+
+func TestWriteJSON_ReportsAValueThatCannotBeEncoded(t *testing.T) {
+	t.Parallel()
+
+	recorder := httptest.NewRecorder()
+
+	writeJSON(recorder, http.StatusOK, map[string]any{"channel": make(chan int)})
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+	assert.Contains(t, recorder.Body.String(), "marshal failed")
 }

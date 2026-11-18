@@ -19,10 +19,11 @@
 package provider_multilevel
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"runtime"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -30,9 +31,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/cache/cache_adapters/provider_mock"
+	"piko.sh/piko/internal/cache/cache_adapters/provider_otter"
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/cache/cache_dto"
+	"piko.sh/piko/internal/cache/cache_test/conformance"
 	"piko.sh/piko/internal/daemon/daemon_dto"
+	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/wdk/clock"
 )
 
 func newTestAdapter() (
@@ -49,9 +54,12 @@ func newTestAdapter() (
 	return adapter, l1, l2
 }
 
-func waitForAsync() {
-	runtime.Gosched()
-	time.Sleep(50 * time.Millisecond)
+func requireEventuallyHolds(t *testing.T, provider *provider_mock.MockAdapter[string, string], key, want string) {
+	t.Helper()
+	require.Eventually(t, func() bool {
+		value, ok, err := provider.GetIfPresent(context.Background(), key)
+		return err == nil && ok && value == want
+	}, 5*time.Second, time.Millisecond, "expected %q to hold %q", key, want)
 }
 
 func TestGetIfPresent_L1Hit(t *testing.T) {
@@ -201,7 +209,7 @@ func TestGet_BothMiss_LoaderCalled(t *testing.T) {
 		t.Errorf("L1 value: got %q, want %q", l1Val, "loaded-key1")
 	}
 
-	waitForAsync()
+	requireEventuallyHolds(t, l2, "key1", "loaded-key1")
 	l2Val, l2Ok, l2Err := l2.GetIfPresent(ctx, "key1")
 	if l2Err != nil {
 		t.Fatalf("unexpected L2 error: %v", l2Err)
@@ -411,7 +419,7 @@ func TestBulkGet_L1Miss_L2Hit(t *testing.T) {
 		t.Errorf("key 'b': got %q, want %q", results["b"], "2")
 	}
 
-	waitForAsync()
+	requireEventuallyHolds(t, l1, "b", "2")
 	l1Val, l1Ok, l1Err := l1.GetIfPresent(ctx, "b")
 	if l1Err != nil {
 		t.Fatalf("unexpected L1 error: %v", l1Err)
@@ -447,7 +455,7 @@ func TestBulkGet_AllMiss_LoaderCalled(t *testing.T) {
 		t.Errorf("L1 key 'x': got (%q, %v), want (%q, true)", v, ok, "loaded-x")
 	}
 
-	waitForAsync()
+	requireEventuallyHolds(t, l2, "x", "loaded-x")
 	if v, ok, _ := l2.GetIfPresent(ctx, "x"); !ok || v != "loaded-x" {
 		t.Errorf("L2 key 'x': got (%q, %v), want (%q, true)", v, ok, "loaded-x")
 	}
@@ -541,10 +549,10 @@ func TestBulkSet_WithTags(t *testing.T) {
 	}
 }
 
-func TestCompute_DelegatesToL1(t *testing.T) {
-	adapter, l1, _ := newTestAdapter()
+func TestCompute_RunsOnL2(t *testing.T) {
+	adapter, _, l2 := newTestAdapter()
 	ctx := context.Background()
-	_ = l1.Set(ctx, "key1", "old")
+	_ = l2.Set(ctx, "key1", "old")
 
 	value, ok, err := adapter.Compute(ctx, "key1", func(oldValue string, found bool) (string, cache_dto.ComputeAction) {
 		if !found || oldValue != "old" {
@@ -560,7 +568,7 @@ func TestCompute_DelegatesToL1(t *testing.T) {
 	}
 }
 
-func TestComputeIfAbsent_DelegatesToL1(t *testing.T) {
+func TestComputeIfAbsent_ComputesWhenAbsent(t *testing.T) {
 	adapter, _, _ := newTestAdapter()
 	ctx := context.Background()
 
@@ -573,10 +581,10 @@ func TestComputeIfAbsent_DelegatesToL1(t *testing.T) {
 	}
 }
 
-func TestComputeIfPresent_DelegatesToL1(t *testing.T) {
-	adapter, l1, _ := newTestAdapter()
+func TestComputeIfPresent_RunsOnL2(t *testing.T) {
+	adapter, _, l2 := newTestAdapter()
 	ctx := context.Background()
-	_ = l1.Set(ctx, "key1", "old")
+	_ = l2.Set(ctx, "key1", "old")
 
 	value, ok, err := adapter.ComputeIfPresent(ctx, "key1", func(oldValue string) (string, cache_dto.ComputeAction) {
 		return "updated", cache_dto.ComputeActionSet
@@ -586,25 +594,6 @@ func TestComputeIfPresent_DelegatesToL1(t *testing.T) {
 	}
 	if !ok || value != "updated" {
 		t.Errorf("ComputeIfPresent: got (%q, %v), want (%q, true)", value, ok, "updated")
-	}
-}
-
-func TestComputeWithTTL_DelegatesToL1(t *testing.T) {
-	adapter, _, _ := newTestAdapter()
-	ctx := context.Background()
-
-	value, ok, err := adapter.ComputeWithTTL(ctx, "key1", func(_ string, _ bool) cache_dto.ComputeResult[string] {
-		return cache_dto.ComputeResult[string]{
-			Value:  "ttl-value",
-			Action: cache_dto.ComputeActionSet,
-			TTL:    time.Minute,
-		}
-	})
-	if err != nil {
-		t.Fatalf("ComputeWithTTL failed: %v", err)
-	}
-	if !ok || value != "ttl-value" {
-		t.Errorf("ComputeWithTTL: got (%q, %v), want (%q, true)", value, ok, "ttl-value")
 	}
 }
 
@@ -711,20 +700,6 @@ func TestProbeEntry_DelegatesToL1(t *testing.T) {
 	}
 }
 
-func TestSetExpiresAfter_DelegatesToL1(t *testing.T) {
-	adapter, l1, _ := newTestAdapter()
-	ctx := context.Background()
-	_ = l1.Set(ctx, "key1", "value1")
-
-	if err := adapter.SetExpiresAfter(ctx, "key1", 5*time.Minute); err != nil {
-		t.Fatalf("SetExpiresAfter failed: %v", err)
-	}
-
-	if _, ok, _ := l1.GetIfPresent(ctx, "key1"); !ok {
-		t.Error("expected key still present after SetExpiresAfter")
-	}
-}
-
 func TestSetRefreshableAfter_DelegatesToL1(t *testing.T) {
 	adapter, l1, _ := newTestAdapter()
 	ctx := context.Background()
@@ -761,16 +736,23 @@ func TestBulkRefresh_DelegatesToL1(t *testing.T) {
 	_ = l1.Set(ctx, "a", "1")
 	_ = l1.Set(ctx, "b", "2")
 
+	loaded := make(chan []string, 1)
 	adapter.BulkRefresh(ctx, []string{"a", "b"},
 		cache_dto.BulkLoaderFunc[string, string](func(_ context.Context, keys []string) (map[string]string, error) {
 			out := make(map[string]string, len(keys))
 			for _, k := range keys {
 				out[k] = "refreshed-" + k
 			}
+			loaded <- keys
 			return out, nil
 		}))
 
-	waitForAsync()
+	select {
+	case keys := <-loaded:
+		assert.ElementsMatch(t, []string{"a", "b"}, keys, "L1 must run the loader for every key")
+	case <-time.After(5 * time.Second):
+		t.Fatal("BulkRefresh never reached the L1 loader")
+	}
 }
 
 func TestSupportsSearch_DelegatesToL1(t *testing.T) {
@@ -807,7 +789,7 @@ func TestGet_AsyncWritebackCompletesAfterContextCancellation(t *testing.T) {
 		t.Errorf("got %q, want %q", value, "loaded-key1")
 	}
 
-	waitForAsync()
+	requireEventuallyHolds(t, l2, "key1", "loaded-key1")
 	l2Val, l2Ok, l2Err := l2.GetIfPresent(context.Background(), "key1")
 	if l2Err != nil {
 		t.Fatalf("unexpected L2 error: %v", l2Err)
@@ -840,7 +822,7 @@ func TestBulkGet_L2BackPopulationCompletesAfterContextCancellation(t *testing.T)
 		t.Errorf("got %q, want %q", results["a"], "from-l2")
 	}
 
-	waitForAsync()
+	requireEventuallyHolds(t, l1, "a", "from-l2")
 	l1Val, l1Ok, l1Err := l1.GetIfPresent(bgCtx, "a")
 	if l1Err != nil {
 		t.Fatalf("unexpected L1 error: %v", l1Err)
@@ -874,7 +856,7 @@ func TestBulkGet_L2WritebackCompletesAfterContextCancellation(t *testing.T) {
 		t.Errorf("got %q, want %q", results["x"], "loaded-x")
 	}
 
-	waitForAsync()
+	requireEventuallyHolds(t, l2, "x", "loaded-x")
 	l2Val, l2Ok, l2Err := l2.GetIfPresent(context.Background(), "x")
 	if l2Err != nil {
 		t.Fatalf("unexpected L2 error: %v", l2Err)
@@ -1214,4 +1196,560 @@ func TestBackgroundL2WritesSurviveL2Failures(t *testing.T) {
 			assert.Equal(t, "loaded-key", value)
 		})
 	}
+}
+
+func TestComputeWithTTL_ComputesOnL2AndDropsTheL1Copy(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name        string
+		action      cache_dto.ComputeAction
+		existing    bool
+		wantPresent bool
+	}{
+		{name: "a set writes L2 with its TTL", action: cache_dto.ComputeActionSet, wantPresent: true},
+		{name: "a delete removes the key from both levels", action: cache_dto.ComputeActionDelete, existing: true, wantPresent: false},
+		{name: "a noop keeps the L2 entry", action: cache_dto.ComputeActionNoop, existing: true, wantPresent: true},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx := t.Context()
+			mockClock := clock.NewMockClock(time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC))
+			adapter, l1, l2 := newClockedTestAdapter(mockClock)
+			if testCase.existing {
+				require.NoError(t, l1.Set(ctx, "key", "original"))
+				require.NoError(t, l2.Set(ctx, "key", "original"))
+			}
+
+			_, present, err := adapter.ComputeWithTTL(ctx, "key", func(string, bool) cache_dto.ComputeResult[string] {
+				return cache_dto.ComputeResult[string]{Value: "computed", Action: testCase.action, TTL: time.Minute}
+			})
+			require.NoError(t, err)
+
+			assert.Equal(t, testCase.wantPresent, present)
+			_, inL2, err := l2.GetIfPresent(ctx, "key")
+			require.NoError(t, err)
+			assert.Equal(t, testCase.wantPresent, inL2, "L2 holds the result of the compute")
+			_, inL1, err := l1.GetIfPresent(ctx, "key")
+			require.NoError(t, err)
+			assert.False(t, inL1, "L1 drops its copy after an L2 compute")
+			if testCase.action == cache_dto.ComputeActionSet {
+				entry, found, probeErr := l2.ProbeEntry(ctx, "key")
+				require.NoError(t, probeErr)
+				require.True(t, found)
+				assert.Equal(t, mockClock.Now().Add(time.Minute).UnixNano(), entry.ExpiresAtNano,
+					"L2 carries the TTL the compute set")
+			}
+		})
+	}
+}
+
+func TestComputeWithTTL_FallsBackToL1WhenL2Fails(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	adapter, l1, l2 := newTestAdapter()
+	l2.SetError(errors.New("l2 down"))
+
+	value, present, err := adapter.ComputeWithTTL(ctx, "key", func(string, bool) cache_dto.ComputeResult[string] {
+		return cache_dto.ComputeResult[string]{Value: "local", Action: cache_dto.ComputeActionSet}
+	})
+	require.NoError(t, err)
+
+	assert.True(t, present)
+	assert.Equal(t, "local", value)
+	stored, found, err := l1.GetIfPresent(ctx, "key")
+	require.NoError(t, err)
+	assert.True(t, found)
+	assert.Equal(t, "local", stored)
+}
+
+func TestSetExpiresAfter_ReachesBothLevels(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name         string
+		expiresAfter time.Duration
+		wantExpiry   bool
+	}{
+		{name: "a positive TTL reaches L2 and L1", expiresAfter: time.Minute, wantExpiry: true},
+		{name: "zero does nothing on either level", expiresAfter: 0, wantExpiry: false},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx := t.Context()
+			mockClock := clock.NewMockClock(time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC))
+			adapter, l1, l2 := newClockedTestAdapter(mockClock)
+			require.NoError(t, adapter.Set(ctx, "key", "value"))
+
+			require.NoError(t, adapter.SetExpiresAfter(ctx, "key", testCase.expiresAfter))
+
+			for _, level := range []*provider_mock.MockAdapter[string, string]{l1, l2} {
+				entry, found, err := level.ProbeEntry(ctx, "key")
+				require.NoError(t, err)
+				require.True(t, found)
+				assert.Equal(t, testCase.wantExpiry, entry.ExpiresAtNano != 0)
+			}
+		})
+	}
+}
+
+func TestSetExpiresAfter_ReportsLevelFailures(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	levelDown := errors.New("level down")
+
+	adapter, l1, _ := newTestAdapter()
+	l1.SetError(levelDown)
+	require.ErrorIs(t, adapter.SetExpiresAfter(ctx, "key", time.Minute), levelDown)
+
+	adapter, _, l2 := newTestAdapter()
+	l2.SetError(levelDown)
+	require.ErrorIs(t, adapter.SetExpiresAfter(ctx, "key", time.Minute), levelDown)
+}
+
+func TestMultiLevelAdapter_PerEntryExpiryConformance(t *testing.T) {
+	t.Parallel()
+
+	conformance.RunPerEntryExpirySuite(t, conformance.PerEntryConfig{
+		NewHarness: func(t *testing.T) conformance.PerEntryHarness {
+			mockClock := clock.NewMockClock(time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC))
+			withClock := func(builder *cache_domain.CacheBuilder[string, string]) { builder.Clock(mockClock) }
+			l1 := conformance.BuildPerEntryCache(t, provider_otter.OtterProviderFactory[string, string], withClock)
+			l2 := conformance.BuildPerEntryCache(t, provider_mock.MockProviderFactory[string, string], withClock)
+			adapter := NewMultiLevelAdapter[string, string](t.Context(), "per-entry", l1, l2, Config{
+				MaxConsecutiveFailures: 5,
+				OpenStateTimeout:       30 * time.Second,
+			})
+			return conformance.PerEntryHarness{Cache: adapter, AdvanceTime: mockClock.Advance, Clock: mockClock}
+		},
+	})
+}
+
+func newClockedTestAdapter(mockClock *clock.MockClock) (
+	*MultiLevelAdapter[string, string],
+	*provider_mock.MockAdapter[string, string],
+	*provider_mock.MockAdapter[string, string],
+) {
+	l1 := provider_mock.NewMockAdapter[string, string](provider_mock.WithMockClock[string, string](mockClock))
+	l2 := provider_mock.NewMockAdapter[string, string](provider_mock.WithMockClock[string, string](mockClock))
+	adapter := NewMultiLevelAdapter[string, string](context.Background(), "test", l1, l2, Config{
+		MaxConsecutiveFailures: 5,
+		OpenStateTimeout:       30 * time.Second,
+	})
+	return adapter, l1, l2
+}
+
+func TestComputeWithTTL_ZeroTTLOnAnExistingL2EntryLeavesNoLastingL1Copy(t *testing.T) {
+	t.Parallel()
+
+	mockClock := clock.NewMockClock(time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC))
+	withClock := func(builder *cache_domain.CacheBuilder[string, string]) { builder.Clock(mockClock) }
+	l1 := conformance.BuildPerEntryCache(t, provider_otter.OtterProviderFactory[string, string], withClock)
+	l2 := conformance.BuildPerEntryCache(t, provider_mock.MockProviderFactory[string, string], withClock)
+	adapter := NewMultiLevelAdapter[string, string](t.Context(), "zero-ttl", l1, l2, Config{
+		MaxConsecutiveFailures: 5,
+		OpenStateTimeout:       30 * time.Second,
+	})
+	ctx := t.Context()
+
+	require.NoError(t, l2.SetWithTTL(ctx, "counter", "1", time.Minute))
+	_, _, err := adapter.ComputeWithTTL(ctx, "counter", func(oldValue string, found bool) cache_dto.ComputeResult[string] {
+		if !found {
+			return cache_dto.ComputeResult[string]{Value: "1", Action: cache_dto.ComputeActionSet, TTL: time.Minute}
+		}
+		return cache_dto.ComputeResult[string]{Value: oldValue + "+", Action: cache_dto.ComputeActionSet}
+	})
+	require.NoError(t, err)
+
+	mockClock.Advance(2 * time.Minute)
+
+	_, inL2, err := l2.GetIfPresent(ctx, "counter")
+	require.NoError(t, err)
+	require.False(t, inL2, "the window has passed in L2")
+	_, present, err := adapter.GetIfPresent(ctx, "counter")
+	require.NoError(t, err)
+	assert.False(t, present, "L1 must not outlive the window L2 keeps")
+}
+
+func TestComputeWithTTL_InvalidatesL1AfterAnL2Compute(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	mockClock := clock.NewMockClock(time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC))
+	adapter, l1, l2 := newClockedTestAdapter(mockClock)
+	require.NoError(t, l1.Set(ctx, "key", "stale"))
+	require.NoError(t, l2.Set(ctx, "key", "original"))
+
+	value, present, err := adapter.ComputeWithTTL(ctx, "key", func(oldValue string, _ bool) cache_dto.ComputeResult[string] {
+		return cache_dto.ComputeResult[string]{Value: oldValue + "+", Action: cache_dto.ComputeActionSet, TTL: time.Minute}
+	})
+	require.NoError(t, err)
+	assert.True(t, present)
+	assert.Equal(t, "original+", value, "the compute reads the value L2 holds")
+
+	_, inL1, err := l1.GetIfPresent(ctx, "key")
+	require.NoError(t, err)
+	assert.False(t, inL1, "L1 drops its copy so the next read takes L2's value and TTL")
+}
+
+func TestComputeWithTTL_LogsRatherThanReturnsAnL1Failure(t *testing.T) {
+	t.Parallel()
+
+	l1 := &failingInvalidateProvider{MockAdapter: provider_mock.NewMockAdapter[string, string]()}
+	l2 := provider_mock.NewMockAdapter[string, string]()
+	adapter := NewMultiLevelAdapter[string, string](t.Context(), "test", l1, l2, Config{
+		MaxConsecutiveFailures: 5,
+		OpenStateTimeout:       30 * time.Second,
+	})
+	ctx, logOutput := newLoggedContext(t)
+
+	value, present, err := adapter.ComputeWithTTL(ctx, "key", func(string, bool) cache_dto.ComputeResult[string] {
+		return cache_dto.ComputeResult[string]{Value: "computed", Action: cache_dto.ComputeActionSet}
+	})
+
+	require.NoError(t, err, "L2 committed the compute, so a retry would apply it twice")
+	assert.True(t, present)
+	assert.Equal(t, "computed", value)
+	stored, found, err := l2.GetIfPresent(ctx, "key")
+	require.NoError(t, err)
+	assert.True(t, found)
+	assert.Equal(t, "computed", stored)
+	assert.Contains(t, logOutput.String(), "level=WARN", "the L1 failure is logged")
+}
+
+func TestComputes_RunOnL2AndInvalidateL1(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		run         func(ctx context.Context, adapter *MultiLevelAdapter[string, string]) (string, bool, error)
+		name        string
+		wantValue   string
+		skipPresent bool
+	}{
+		{
+			name:      "Compute",
+			wantValue: "original+",
+			run: func(ctx context.Context, adapter *MultiLevelAdapter[string, string]) (string, bool, error) {
+				return adapter.Compute(ctx, "key", func(oldValue string, _ bool) (string, cache_dto.ComputeAction) {
+					return oldValue + "+", cache_dto.ComputeActionSet
+				})
+			},
+		},
+		{
+			name:        "ComputeIfAbsent",
+			wantValue:   "original",
+			skipPresent: true,
+			run: func(ctx context.Context, adapter *MultiLevelAdapter[string, string]) (string, bool, error) {
+				return adapter.ComputeIfAbsent(ctx, "key", func() string { return "fresh" })
+			},
+		},
+		{
+			name:      "ComputeIfPresent",
+			wantValue: "original+",
+			run: func(ctx context.Context, adapter *MultiLevelAdapter[string, string]) (string, bool, error) {
+				return adapter.ComputeIfPresent(ctx, "key", func(oldValue string) (string, cache_dto.ComputeAction) {
+					return oldValue + "+", cache_dto.ComputeActionSet
+				})
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx := t.Context()
+			adapter, l1, l2 := newTestAdapter()
+			require.NoError(t, l1.Set(ctx, "key", "stale"))
+			require.NoError(t, l2.Set(ctx, "key", "original"))
+
+			value, present, err := testCase.run(ctx, adapter)
+			require.NoError(t, err)
+			if !testCase.skipPresent {
+				assert.True(t, present)
+			}
+			assert.Equal(t, testCase.wantValue, value, "L2 is the source of truth")
+
+			stored, found, err := l2.GetIfPresent(ctx, "key")
+			require.NoError(t, err)
+			assert.True(t, found)
+			assert.Equal(t, testCase.wantValue, stored)
+			_, inL1, err := l1.GetIfPresent(ctx, "key")
+			require.NoError(t, err)
+			assert.False(t, inL1, "L1 drops its copy after an L2 compute")
+		})
+	}
+}
+
+func TestComputes_FallBackToL1WhenL2Fails(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	adapter, l1, l2 := newTestAdapter()
+	l2.SetError(errors.New("l2 down"))
+
+	value, present, err := adapter.Compute(ctx, "key", func(string, bool) (string, cache_dto.ComputeAction) {
+		return "local", cache_dto.ComputeActionSet
+	})
+	require.NoError(t, err)
+	assert.True(t, present)
+	assert.Equal(t, "local", value)
+	stored, found, err := l1.GetIfPresent(ctx, "key")
+	require.NoError(t, err)
+	assert.True(t, found)
+	assert.Equal(t, "local", stored)
+}
+
+func TestConcurrentComputes_LeaveNoStaleL1Copy(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	adapter, l1, l2 := newTestAdapter()
+	require.NoError(t, l2.Set(ctx, "counter", ""))
+
+	const workers = 8
+	const increments = 50
+	start := make(chan struct{})
+	finished := make(chan error, workers)
+	for range workers {
+		go func() {
+			<-start
+			for range increments {
+				_, _, err := adapter.ComputeWithTTL(ctx, "counter", func(oldValue string, _ bool) cache_dto.ComputeResult[string] {
+					return cache_dto.ComputeResult[string]{Value: oldValue + "+", Action: cache_dto.ComputeActionSet, TTL: time.Minute}
+				})
+				if err != nil {
+					finished <- err
+					return
+				}
+			}
+			finished <- nil
+		}()
+	}
+	close(start)
+	for range workers {
+		require.NoError(t, <-finished)
+	}
+
+	stored, found, err := l2.GetIfPresent(ctx, "counter")
+	require.NoError(t, err)
+	require.True(t, found)
+	require.Len(t, stored, workers*increments)
+	cached, inL1, err := l1.GetIfPresent(ctx, "counter")
+	require.NoError(t, err)
+	if inL1 {
+		assert.Equal(t, stored, cached, "any L1 copy must match L2")
+	}
+	value, present, err := adapter.GetIfPresent(ctx, "counter")
+	require.NoError(t, err)
+	assert.True(t, present)
+	assert.Equal(t, stored, value)
+}
+
+func TestGetIfPresent_BackfillCarriesL2RemainingTTL(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		read func(ctx context.Context, adapter *MultiLevelAdapter[string, string]) error
+		name string
+	}{
+		{
+			name: "GetIfPresent",
+			read: func(ctx context.Context, adapter *MultiLevelAdapter[string, string]) error {
+				_, _, err := adapter.GetIfPresent(ctx, "key")
+				return err
+			},
+		},
+		{
+			name: "Get",
+			read: func(ctx context.Context, adapter *MultiLevelAdapter[string, string]) error {
+				_, err := adapter.Get(ctx, "key", cache_dto.LoaderFunc[string, string](func(context.Context, string) (string, error) {
+					return "", errors.New("loader must not run on an L2 hit")
+				}))
+				return err
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx := t.Context()
+			mockClock := clock.NewMockClock(time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC))
+			adapter, l1, l2 := newClockedTestAdapter(mockClock)
+			require.NoError(t, l2.SetWithTTL(ctx, "key", "value", time.Minute))
+			mockClock.Advance(20 * time.Second)
+
+			require.NoError(t, testCase.read(ctx, adapter))
+
+			entry, found, err := l1.ProbeEntry(ctx, "key")
+			require.NoError(t, err)
+			require.True(t, found, "an L2 hit fills L1")
+			assert.Equal(t, mockClock.Now().Add(40*time.Second).UnixNano(), entry.ExpiresAtNano,
+				"L1 keeps the copy only as long as L2 keeps the entry")
+		})
+	}
+}
+
+func TestBulkGet_BackfillCarriesL2RemainingTTL(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	mockClock := clock.NewMockClock(time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC))
+	l1 := &setRecordingProvider{
+		MockAdapter: provider_mock.NewMockAdapter[string, string](provider_mock.WithMockClock[string, string](mockClock)),
+		sets:        make(chan recordedSet, 4),
+	}
+	l2 := provider_mock.NewMockAdapter[string, string](provider_mock.WithMockClock[string, string](mockClock))
+	adapter := NewMultiLevelAdapter[string, string](ctx, "test", l1, l2, Config{
+		MaxConsecutiveFailures: 5,
+		OpenStateTimeout:       30 * time.Second,
+	})
+	require.NoError(t, l2.SetWithTTL(ctx, "key", "value", time.Minute))
+	mockClock.Advance(20 * time.Second)
+
+	results, err := adapter.BulkGet(ctx, []string{"key"}, cache_dto.BulkLoaderFunc[string, string](func(context.Context, []string) (map[string]string, error) {
+		return nil, errors.New("loader must not run on an L2 hit")
+	}))
+	require.NoError(t, err)
+	assert.Equal(t, map[string]string{"key": "value"}, results)
+
+	require.Eventually(t, func() bool {
+		_, found, probeErr := l1.ProbeEntry(ctx, "key")
+		return probeErr == nil && found
+	}, 5*time.Second, time.Millisecond)
+	entry, _, err := l1.ProbeEntry(ctx, "key")
+	require.NoError(t, err)
+	assert.Equal(t, mockClock.Now().Add(40*time.Second).UnixNano(), entry.ExpiresAtNano)
+}
+
+func TestGetIfPresent_SkipsBackfillOfAnEntryWithNoTimeLeft(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	mockClock := clock.NewMockClock(time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC))
+	_, l1, l2 := newClockedTestAdapter(mockClock)
+	expired := cache_dto.Entry[string, string]{
+		Key:            "key",
+		Value:          "value",
+		ExpiresAtNano:  mockClock.Now().UnixNano(),
+		SnapshotAtNano: mockClock.Now().UnixNano(),
+	}
+	l2Port := &fixedEntryProvider{MockAdapter: l2, entry: expired}
+	adapter := NewMultiLevelAdapter[string, string](ctx, "test", l1, l2Port, Config{
+		MaxConsecutiveFailures: 5,
+		OpenStateTimeout:       30 * time.Second,
+	})
+
+	value, present, err := adapter.GetIfPresent(ctx, "key")
+	require.NoError(t, err)
+	assert.True(t, present)
+	assert.Equal(t, "value", value)
+	_, inL1, err := l1.GetIfPresent(ctx, "key")
+	require.NoError(t, err)
+	assert.False(t, inL1, "an entry with no time left is not copied into L1")
+}
+
+func TestLevelWrites_ReportAnL2FailureOnce(t *testing.T) {
+	t.Parallel()
+
+	levelDown := errors.New("level down")
+	testCases := []struct {
+		run  func(ctx context.Context, adapter *MultiLevelAdapter[string, string]) error
+		name string
+	}{
+		{
+			name: "SetWithTTL",
+			run: func(ctx context.Context, adapter *MultiLevelAdapter[string, string]) error {
+				return adapter.SetWithTTL(ctx, "key", "value", time.Minute)
+			},
+		},
+		{
+			name: "BulkSet",
+			run: func(ctx context.Context, adapter *MultiLevelAdapter[string, string]) error {
+				return adapter.BulkSet(ctx, map[string]string{"key": "value"})
+			},
+		},
+		{
+			name: "SetExpiresAfter",
+			run: func(ctx context.Context, adapter *MultiLevelAdapter[string, string]) error {
+				return adapter.SetExpiresAfter(ctx, "key", time.Minute)
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			adapter, _, l2 := newTestAdapter()
+			l2.SetError(levelDown)
+			ctx, logOutput := newLoggedContext(t)
+
+			require.ErrorIs(t, testCase.run(ctx, adapter), levelDown)
+			assert.NotContains(t, logOutput.String(), "level=ERROR",
+				"the error is returned, so it is not also logged at error level")
+		})
+	}
+}
+
+type fixedEntryProvider struct {
+	*provider_mock.MockAdapter[string, string]
+	entry cache_dto.Entry[string, string]
+}
+
+func (p *fixedEntryProvider) GetEntry(context.Context, string) (cache_dto.Entry[string, string], bool, error) {
+	return p.entry, true, nil
+}
+
+func newLoggedContext(t *testing.T) (context.Context, *bytes.Buffer) {
+	t.Helper()
+
+	logOutput := new(bytes.Buffer)
+	ctx := logger_domain.WithLogger(t.Context(),
+		logger_domain.New(slog.New(slog.NewTextHandler(logOutput, nil)), "multilevel-test"))
+	return ctx, logOutput
+}
+
+type failingInvalidateProvider struct {
+	*provider_mock.MockAdapter[string, string]
+}
+
+func (*failingInvalidateProvider) Invalidate(context.Context, string) error {
+	return errors.New("l1 down")
+}
+
+func TestEntryReads_FallBackToL2OnAnL1Miss(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	mockClock := clock.NewMockClock(time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC))
+	adapter, l1, l2 := newClockedTestAdapter(mockClock)
+	require.NoError(t, l2.SetWithTTL(ctx, "key", "value", time.Minute))
+
+	probed, found, err := adapter.ProbeEntry(ctx, "key")
+	require.NoError(t, err)
+	require.True(t, found, "ProbeEntry reports what L2 holds")
+	assert.Equal(t, "value", probed.Value)
+	assert.Equal(t, mockClock.Now().Add(time.Minute).UnixNano(), probed.ExpiresAtNano)
+	_, inL1, err := l1.GetIfPresent(ctx, "key")
+	require.NoError(t, err)
+	assert.False(t, inL1, "ProbeEntry does not fill L1")
+
+	entry, found, err := adapter.GetEntry(ctx, "key")
+	require.NoError(t, err)
+	require.True(t, found, "GetEntry reports what L2 holds")
+	assert.Equal(t, "value", entry.Value)
+	_, inL1, err = l1.GetIfPresent(ctx, "key")
+	require.NoError(t, err)
+	assert.True(t, inL1, "GetEntry fills L1 as any read does")
 }

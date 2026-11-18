@@ -25,7 +25,6 @@ import (
 	"io"
 	"net/http"
 	"time"
-	"unicode/utf8"
 
 	"piko.sh/piko/internal/notification/notification_domain"
 	"piko.sh/piko/internal/safeerror"
@@ -56,10 +55,6 @@ const (
 	// safeNotificationDeliveryFailed is the user-facing message returned when a notification
 	// provider rejects the delivery with a client-error response.
 	safeNotificationDeliveryFailed = "notification delivery failed"
-
-	// truncateRunesEllipsisLength is the rune length of the ellipsis suffix appended when
-	// truncateRunes shortens an oversized string.
-	truncateRunesEllipsisLength = 3
 )
 
 var (
@@ -150,26 +145,4 @@ func buildProviderStatusError(providerName string, response *http.Response) erro
 // Returns bool which is true when the status code lies in [400, 500).
 func isClientError(statusCode int) bool {
 	return statusCode >= httpStatusClientErrorMin && statusCode < httpStatusClientErrorMax
-}
-
-// truncateRunes shortens s to at most maxRunes runes, appending "..." when the original
-// string was longer. The function is rune-aware so it never cuts through a multi-byte
-// UTF-8 sequence.
-//
-// Takes s (string) which is the input to truncate.
-// Takes maxRunes (int) which is the maximum number of runes the result may contain.
-//
-// Returns string which is at most maxRunes runes long.
-func truncateRunes(s string, maxRunes int) string {
-	if maxRunes <= 0 {
-		return ""
-	}
-	if utf8.RuneCountInString(s) <= maxRunes {
-		return s
-	}
-	runes := []rune(s)
-	if maxRunes <= truncateRunesEllipsisLength {
-		return string(runes[:maxRunes])
-	}
-	return string(runes[:maxRunes-truncateRunesEllipsisLength]) + "..."
 }

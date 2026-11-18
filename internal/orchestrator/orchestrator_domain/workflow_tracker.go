@@ -21,7 +21,6 @@ package orchestrator_domain
 import (
 	"context"
 	"errors"
-	"time"
 
 	"go.opentelemetry.io/otel/codes"
 	"piko.sh/piko/internal/logger/logger_domain"
@@ -105,7 +104,7 @@ func (s *orchestratorService) registerReceipt(ctx context.Context, receiptID str
 	}
 
 	if s.taskStore != nil {
-		ctx, cancel := context.WithTimeoutCause(context.WithoutCancel(ctx), 5*time.Second,
+		ctx, cancel := context.WithTimeoutCause(context.WithoutCancel(ctx), workflowReceiptStoreTimeout,
 			errors.New("workflow receipt persistence exceeded 5s timeout"))
 		if err := s.taskStore.CreateWorkflowReceipt(ctx, receiptID, receipt.WorkflowID, s.nodeID); err != nil {
 			l.Warn("Failed to persist workflow receipt",
@@ -214,7 +213,7 @@ func (s *orchestratorService) resolveReceipts(ctx context.Context, workflowID st
 	}
 
 	if s.taskStore != nil {
-		ctx, cancel := context.WithTimeoutCause(context.WithoutCancel(ctx), 5*time.Second,
+		ctx, cancel := context.WithTimeoutCause(context.WithoutCancel(ctx), workflowReceiptStoreTimeout,
 			errors.New("workflow receipt resolution exceeded 5s timeout"))
 		errMessage := ""
 		if err != nil {

@@ -19,6 +19,9 @@
 package i18n_domain
 
 import (
+	"fmt"
+	"strings"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -209,6 +212,81 @@ func TestStore_ConcurrentAccess(t *testing.T) {
 	}
 }
 
+func TestStore_ConcurrentWritesAreSeenAtomically(t *testing.T) {
+	t.Parallel()
+
+	const (
+		batches = 200
+		readers = 4
+	)
+
+	store := NewStore("en")
+	store.AddTranslations("en", map[string]string{"greeting": "Hello"})
+
+	stop := make(chan struct{})
+	var readersDone sync.WaitGroup
+	for range readers {
+		readersDone.Go(func() {
+			for {
+				select {
+				case <-stop:
+					return
+				default:
+				}
+
+				entry, found := store.Get("en-GB", "greeting")
+				if !assert.True(t, found, "the default locale entry must always be reachable") {
+					return
+				}
+				if !assert.Contains(t, []string{"Hello", "Hiya"}, entry.Template) {
+					return
+				}
+
+				locales := store.Locales()
+				for _, locale := range locales {
+					pair, isFirst := strings.CutSuffix(locale, "-a")
+					if isFirst && !assert.Contains(t, locales, pair+"-b",
+						"locales added in one batch must become visible together") {
+						return
+					}
+				}
+			}
+		})
+	}
+
+	for index := range batches {
+		prefix := fmt.Sprintf("x%d", index)
+		store.AddAllTranslations(Translations{
+			prefix + "-a": {"greeting": "a"},
+			prefix + "-b": {"greeting": "b"},
+		})
+		if index == batches/2 {
+			store.AddTranslations("en-GB", map[string]string{"greeting": "Hiya"})
+		}
+		store.SetDefaultLocale("en")
+	}
+	close(stop)
+	readersDone.Wait()
+
+	assert.Len(t, store.Locales(), 2*batches+2)
+}
+
+func TestStore_SnapshotsArePublishedNotMutated(t *testing.T) {
+	t.Parallel()
+
+	store := NewStore("en")
+	store.AddTranslations("en", map[string]string{"greeting": "Hello"})
+	before := store.snapshot.Load()
+
+	store.AddTranslations("fr", map[string]string{"greeting": "Bonjour"})
+	store.SetDefaultLocale("fr")
+
+	assert.NotContains(t, before.locales, "fr", "an earlier snapshot must not change")
+	assert.Equal(t, "en", before.defaultLocale)
+	assert.Equal(t, "fr", store.DefaultLocale())
+	assert.True(t, store.HasLocale("fr"))
+}
+
 func TestBuildFallbackChain(t *testing.T) {
 	tests := []struct {
 		locale        string
@@ -396,4 +474,18 @@ func TestStore_AddAllTranslations_OrdersProblemsByLocale(t *testing.T) {
 	assert.Equal(t, []string{"en-GB:a", "fr-FR:b"}, described)
 	assert.True(t, store.HasLocale("en-GB"))
 	assert.True(t, store.HasLocale("fr-FR"))
+}
+
+func BenchmarkStore_GetParallel(b *testing.B) {
+	store := NewStore("en")
+	store.AddTranslations("en", map[string]string{"greeting": "Hello", "farewell": "Goodbye"})
+	store.AddTranslations("en-GB", map[string]string{"greeting": "Hiya"})
+
+	b.ReportAllocs()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_, _ = store.Get("en-GB", "greeting")
+			_, _ = store.Get("en-GB", "farewell")
+		}
+	})
 }

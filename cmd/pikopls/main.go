@@ -533,12 +533,11 @@ func protocolLogPathFor(logFile string) string {
 	return logFile + ".protocol"
 }
 
-// removeStaleLSPLogs removes pikopls log files in directory that were last changed
-// before cutoff. Cleanup is best effort, so a failure is logged and never stops the
-// server.
+// removeStaleLSPLogs removes pikopls log files in directory that were last changed before
+// cutoff. Cleanup is best effort, so a failure is logged and never stops the server.
 //
-// Takes directory (string) which is the directory holding the default logs, normally
-// the operating system's temporary directory.
+// Takes directory (string) which is the directory holding the default logs, normally the
+// operating system's temporary directory.
 // Takes cutoff (time.Time) which is the modification time older logs are removed below.
 func removeStaleLSPLogs(directory string, cutoff time.Time) {
 	sandbox, err := safedisk.NewSandbox(directory, safedisk.ModeReadWrite)

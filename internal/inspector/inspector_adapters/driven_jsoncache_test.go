@@ -30,7 +30,7 @@ import (
 	"piko.sh/safedisk"
 
 	"github.com/stretchr/testify/require"
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 func TestJSONCache(t *testing.T) {

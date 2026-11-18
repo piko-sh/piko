@@ -624,7 +624,7 @@ func (p *HealthPanel) refresh() tea.Cmd {
 			return HealthRefreshMessage{Liveness: nil, Readiness: nil, Err: errNoHealthProvider}
 		}
 
-		ctx, cancel := context.WithTimeoutCause(context.Background(), 5*time.Second,
+		ctx, cancel := context.WithTimeoutCause(context.Background(), DefaultRefreshTimeout,
 			errors.New("health panel data fetch exceeded 5s timeout"))
 		defer cancel()
 

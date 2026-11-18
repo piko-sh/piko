@@ -77,7 +77,7 @@ func (h *clientHandler) Progress(ctx context.Context, params *protocol.ProgressP
 	if !ok {
 		_, l := logger_domain.From(ctx, log)
 		l.Trace("gopls progress value was not the expected object; readiness relies on the WaitReady timeout",
-			logger_domain.String("moduleRoot", h.moduleRoot))
+			logger_domain.String(logKeyModuleRoot, h.moduleRoot))
 		return nil
 	}
 	if kind, isString := value["kind"].(string); isString && kind == "end" {

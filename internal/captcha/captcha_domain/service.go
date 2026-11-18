@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/sony/gobreaker/v2"
@@ -58,6 +59,10 @@ const (
 	// maxActionLength is the maximum allowed length of an action name at the service level.
 	// This provides defence-in-depth above the provider layer.
 	maxActionLength = 256
+
+	// challengeRetryAfterSeconds is the Retry-After value a refused challenge request is
+	// sent, matching the one minute rate limit window.
+	challengeRetryAfterSeconds = "60"
 )
 
 var (
@@ -92,6 +97,10 @@ type captchaService struct {
 
 	// defaultScoreThreshold is the minimum score for score-based providers.
 	defaultScoreThreshold float64
+
+	// ipv6PrefixBits is how many leading bits of an IPv6 address identify one caller in a
+	// rate limit key.
+	ipv6PrefixBits int
 }
 
 // ServiceOption configures the captcha service.
@@ -134,6 +143,20 @@ func WithClientIPExtractor(extractor ClientIPExtractor) ServiceOption {
 	}
 }
 
+// WithIPv6RateLimitPrefixBits sets how many leading bits of an IPv6 address identify one
+// caller in the verify and challenge rate limits.
+//
+// Values outside 1 to 128 leave the default of 64 in place.
+//
+// Takes bits (int) which is the IPv6 prefix length to key on.
+//
+// Returns ServiceOption which applies the prefix length.
+func WithIPv6RateLimitPrefixBits(bits int) ServiceOption {
+	return func(s *captchaService) {
+		s.ipv6PrefixBits = bits
+	}
+}
+
 // WithClock sets the time source for the captcha service.
 //
 // Takes c (clock.Clock) which provides the time source.
@@ -165,6 +188,7 @@ func NewCaptchaService(config *captcha_dto.ServiceConfig, options ...ServiceOpti
 		defaultScoreThreshold: config.DefaultScoreThreshold,
 		rateLimiter:           nil,
 		ipExtractor:           nil,
+		ipv6PrefixBits:        security_dto.DefaultIPv6RateLimitPrefixBits,
 	}
 
 	for _, option := range options {
@@ -426,15 +450,19 @@ func (s *captchaService) Close(ctx context.Context) error {
 //
 // Takes remoteIP (string) which is the client's IP address used as the rate limit key.
 //
-// Returns error which is ErrRateLimited if the limit is exceeded or the backing store
-// fails, or nil when the limiter is unconfigured, the configured limit is non-positive,
-// or the limiter explicitly allowed the request.
+// Returns error which is ErrRateLimited if the limit is exceeded, the backing store fails
+// or remoteIP is empty, or nil when the limiter is unconfigured, the configured limit is
+// non-positive, or the limiter explicitly allowed the request.
 func (s *captchaService) checkVerifyRateLimit(ctx context.Context, remoteIP string) error {
 	if s.rateLimiter == nil || s.config.VerifyRateLimit <= 0 {
 		return nil
 	}
 	ctx, l := logger_domain.From(ctx, log)
-	keyIP := security_dto.SanitiseRateLimitKey(remoteIP)
+	if strings.TrimSpace(remoteIP) == "" {
+		l.Warn("Captcha verify could not tell where the request came from, so it is refused")
+		return fmt.Errorf("captcha verify caller has no known address: %w", captcha_dto.ErrRateLimited)
+	}
+	keyIP := s.rateLimitKey(remoteIP)
 	allowed, err := s.rateLimiter.IsAllowed(ctx,
 		"captcha:verify:"+keyIP, s.config.VerifyRateLimit, time.Minute)
 	if err != nil {
@@ -453,7 +481,9 @@ func (s *captchaService) checkVerifyRateLimit(ctx context.Context, remoteIP stri
 // wrapChallengeRateLimit adds per-IP challenge rate limiting to a handler.
 //
 // Backend failures fail closed (the request is rate limited) and are surfaced via the
-// structured logger so an unavailable backing store cannot be used to bypass the limit.
+// structured logger so an unavailable backing store cannot be used to bypass the limit. A
+// request whose address is unknown is refused the same way, since keying it would put
+// every such caller into one shared bucket.
 //
 // Takes next (http.Handler) which is the handler to wrap with rate limiting.
 //
@@ -464,34 +494,55 @@ func (s *captchaService) wrapChallengeRateLimit(next http.Handler) http.Handler 
 		return next
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		clientIP := r.RemoteAddr
-		if s.ipExtractor != nil {
-			clientIP = s.ipExtractor.ExtractClientIP(r)
-		}
 		ctx, l := logger_domain.From(r.Context(), log)
-		keyIP := security_dto.SanitiseRateLimitKey(clientIP)
+		clientIP := s.challengeClientAddress(r)
+		if clientIP == "" {
+			l.Warn("Captcha challenge could not tell where the request came from, so it is refused")
+			writeChallengeRateLimited(w)
+			return
+		}
 		allowed, err := s.rateLimiter.IsAllowed(ctx,
-			"captcha:challenge:"+keyIP, s.config.ChallengeRateLimit, time.Minute)
+			"captcha:challenge:"+s.rateLimitKey(clientIP), s.config.ChallengeRateLimit, time.Minute)
 		if err != nil {
 			l.Warn("Captcha challenge rate limiter unavailable; failing closed",
 				logger_domain.String("remote_ip", clientIP),
 				logger_domain.Error(err),
 			)
-			w.Header().Set("Content-Type", "application/json")
-			w.Header().Set("Retry-After", "60")
-			w.WriteHeader(http.StatusTooManyRequests)
-			_, _ = w.Write([]byte(`{"error":"rate limit exceeded"}`))
+			writeChallengeRateLimited(w)
 			return
 		}
 		if !allowed {
-			w.Header().Set("Content-Type", "application/json")
-			w.Header().Set("Retry-After", "60")
-			w.WriteHeader(http.StatusTooManyRequests)
-			_, _ = w.Write([]byte(`{"error":"rate limit exceeded"}`))
+			writeChallengeRateLimited(w)
 			return
 		}
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+// challengeClientAddress returns the address a challenge request is counted against.
+//
+// The configured extractor is asked first. When it is missing or finds nothing, the
+// resolved client IP or the peer address without its port is used.
+//
+// Takes r (*http.Request) which supplies the request identity.
+//
+// Returns string which is the address, or empty when it is unknown.
+func (s *captchaService) challengeClientAddress(r *http.Request) string {
+	if s.ipExtractor != nil {
+		if clientIP := strings.TrimSpace(s.ipExtractor.ExtractClientIP(r)); clientIP != "" {
+			return clientIP
+		}
+	}
+	return security_dto.RateLimitClientAddress(r)
+}
+
+// rateLimitKey turns a client address into the segment used in a rate limit key.
+//
+// Takes clientIP (string) which is the address the request came from.
+//
+// Returns string which is the sanitised key segment.
+func (s *captchaService) rateLimitKey(clientIP string) string {
+	return security_dto.SanitiseRateLimitKey(clientIP, security_dto.WithIPv6PrefixBits(s.ipv6PrefixBits))
 }
 
 // callProvider executes the captcha verification against the provider with circuit
@@ -637,4 +688,14 @@ func newCaptchaCircuitBreaker() *gobreaker.CircuitBreaker[*captcha_dto.VerifyRes
 		},
 	}
 	return gobreaker.NewCircuitBreaker[*captcha_dto.VerifyResponse](settings)
+}
+
+// writeChallengeRateLimited sends the 429 a refused challenge request receives.
+//
+// Takes w (http.ResponseWriter) which receives the response.
+func writeChallengeRateLimited(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Retry-After", challengeRetryAfterSeconds)
+	w.WriteHeader(http.StatusTooManyRequests)
+	_, _ = w.Write([]byte(`{"error":"rate limit exceeded"}`))
 }

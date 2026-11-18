@@ -27,6 +27,11 @@ import (
 	"piko.sh/piko/internal/safeerror"
 )
 
+const (
+	// devAPIKeyAvailable is the response key that says whether an inspector is wired up.
+	devAPIKeyAvailable = "available"
+)
+
 // DevAPIHandler serves JSON REST endpoints for the dev tools overlay widget. These
 // endpoints provide system stats, build pipeline info, health probes, file descriptor
 // data, and provider info at /_piko/dev/api/*.
@@ -143,7 +148,7 @@ func (h *DevAPIHandler) Mount(router chi.Router) {
 // Takes w (http.ResponseWriter) which is the response writer for the JSON response.
 func (h *DevAPIHandler) handleStats(w http.ResponseWriter, _ *http.Request) {
 	if h.systemStats == nil {
-		writeJSON(w, http.StatusOK, map[string]any{"available": false})
+		writeJSON(w, http.StatusOK, map[string]any{devAPIKeyAvailable: false})
 		return
 	}
 	writeJSON(w, http.StatusOK, h.systemStats.GetStats())
@@ -155,7 +160,7 @@ func (h *DevAPIHandler) handleStats(w http.ResponseWriter, _ *http.Request) {
 // Takes r (*http.Request) which provides the request context.
 func (h *DevAPIHandler) handleBuild(w http.ResponseWriter, r *http.Request) {
 	if h.orchestrator == nil {
-		writeJSON(w, http.StatusOK, map[string]any{"available": false})
+		writeJSON(w, http.StatusOK, map[string]any{devAPIKeyAvailable: false})
 		return
 	}
 
@@ -163,8 +168,8 @@ func (h *DevAPIHandler) handleBuild(w http.ResponseWriter, r *http.Request) {
 	summary, err := h.orchestrator.ListTaskSummary(ctx)
 	if err != nil {
 		writeJSON(w, http.StatusOK, map[string]any{
-			"available": false,
-			"error":     safeerror.ExtractSafeMessage(err, h.developmentMode),
+			devAPIKeyAvailable: false,
+			"error":            safeerror.ExtractSafeMessage(err, h.developmentMode),
 		})
 		return
 	}
@@ -216,7 +221,7 @@ func (h *DevAPIHandler) handleOverview(w http.ResponseWriter, r *http.Request) {
 // Takes r (*http.Request) which provides the request context.
 func (h *DevAPIHandler) handleHealth(w http.ResponseWriter, r *http.Request) {
 	if h.healthProbe == nil {
-		writeJSON(w, http.StatusOK, map[string]any{"available": false})
+		writeJSON(w, http.StatusOK, map[string]any{devAPIKeyAvailable: false})
 		return
 	}
 
@@ -232,7 +237,7 @@ func (h *DevAPIHandler) handleHealth(w http.ResponseWriter, r *http.Request) {
 // Takes w (http.ResponseWriter) which is the response writer for the JSON response.
 func (h *DevAPIHandler) handleResources(w http.ResponseWriter, _ *http.Request) {
 	if h.resources == nil {
-		writeJSON(w, http.StatusOK, map[string]any{"available": false})
+		writeJSON(w, http.StatusOK, map[string]any{devAPIKeyAvailable: false})
 		return
 	}
 
@@ -246,7 +251,7 @@ func (h *DevAPIHandler) handleResources(w http.ResponseWriter, _ *http.Request) 
 // Takes r (*http.Request) which provides the request context.
 func (h *DevAPIHandler) handleProviders(w http.ResponseWriter, r *http.Request) {
 	if h.providerInfo == nil {
-		writeJSON(w, http.StatusOK, map[string]any{"available": false})
+		writeJSON(w, http.StatusOK, map[string]any{devAPIKeyAvailable: false})
 		return
 	}
 
@@ -290,7 +295,7 @@ func (h *DevAPIHandler) handleProviders(w http.ResponseWriter, r *http.Request) 
 // Takes w (http.ResponseWriter) which is the response writer for the JSON response.
 func (h *DevAPIHandler) handleMemory(w http.ResponseWriter, _ *http.Request) {
 	if h.systemStats == nil {
-		writeJSON(w, http.StatusOK, map[string]any{"available": false})
+		writeJSON(w, http.StatusOK, map[string]any{devAPIKeyAvailable: false})
 		return
 	}
 

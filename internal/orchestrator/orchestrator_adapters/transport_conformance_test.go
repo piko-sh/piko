@@ -407,7 +407,8 @@ func TestTransport_RerunOfAReleasedTaskRunsWithoutTheSweep(t *testing.T) {
 			return nil, nil
 		}),
 	})
-	require.Eventually(t, func() bool { return r.dispatcher.started.Load() }, time.Second, time.Millisecond)
+	require.Eventually(t, func() bool { return r.dispatcher.startupSwept.Load() }, time.Second, time.Millisecond,
+		"the startup sweep would otherwise publish the first task while its check is held")
 
 	checking, release := make(chan struct{}), make(chan struct{})
 	first := orchestrator_domain.NewTask("work", map[string]any{"version": "first"})

@@ -22,12 +22,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync/atomic"
+	"math"
 	"time"
 
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/ratelimiter/ratelimiter_dto"
 	"piko.sh/piko/wdk/clock"
+	"piko.sh/sharded"
 )
 
 // Limiter enforces rate limits using strategy-specific methods and cache-backed storage.
@@ -44,6 +45,18 @@ type Limiter struct {
 	// counterStore provides atomic counter operations for fixed windows.
 	counterStore CounterStorePort
 
+	// totalAllowed counts the checks that allowed the request, including store errors under
+	// the fail-open policy.
+	totalAllowed *sharded.Adder
+
+	// totalDenied counts the checks that denied the request, including store errors under
+	// the fail-closed policy.
+	totalDenied *sharded.Adder
+
+	// totalErrors counts the store errors encountered. Each error is also counted as allowed
+	// or denied by the fail policy.
+	totalErrors *sharded.Adder
+
 	// keyPrefix is prepended to all rate limit keys.
 	keyPrefix string
 
@@ -57,18 +70,6 @@ type Limiter struct {
 
 	// failPolicy determines behaviour when the store is unavailable.
 	failPolicy ratelimiter_dto.FailPolicy
-
-	// totalChecks counts the total number of rate limit checks.
-	totalChecks atomic.Int64
-
-	// totalAllowed counts the number of allowed requests.
-	totalAllowed atomic.Int64
-
-	// totalDenied counts the number of denied requests.
-	totalDenied atomic.Int64
-
-	// totalErrors counts the number of store errors encountered.
-	totalErrors atomic.Int64
 }
 
 var (
@@ -93,10 +94,9 @@ func NewLimiter(tokenStore TokenBucketStorePort, counterStore CounterStorePort, 
 		keyPrefix:        "",
 		tokenStoreName:   "",
 		counterStoreName: "",
-		totalChecks:      atomic.Int64{},
-		totalAllowed:     atomic.Int64{},
-		totalDenied:      atomic.Int64{},
-		totalErrors:      atomic.Int64{},
+		totalAllowed:     sharded.NewAdder(),
+		totalDenied:      sharded.NewAdder(),
+		totalErrors:      sharded.NewAdder(),
 	}
 	for _, opt := range opts {
 		opt(l)
@@ -114,14 +114,22 @@ func NewLimiter(tokenStore TokenBucketStorePort, counterStore CounterStorePort, 
 // Takes n (float64) which is the number of tokens to consume.
 // Takes config (ratelimiter_dto.TokenBucketConfig) which defines the bucket parameters.
 //
-// Returns error which is nil if allowed, ErrRateLimited if denied, or a wrapped error on
-// store failure (subject to FailPolicy).
+// Returns error which is nil if allowed, ErrRateLimited if denied, ErrInvalidConfig when
+// config has no positive rate or a negative burst, or when n is not a finite number from
+// zero to the bucket's capacity, or a wrapped error on store failure (subject to
+// FailPolicy).
 func (l *Limiter) AllowTokenBucket(ctx context.Context, key string, n float64, config ratelimiter_dto.TokenBucketConfig) error {
+	if err := validateTokenBucketConfig(config); err != nil {
+		return err
+	}
+	if err := validateTokenCount(n, config); err != nil {
+		return err
+	}
+
 	start := l.clock.Now()
 	fullKey := l.buildKey(key)
 
 	checksTotal.Add(ctx, 1)
-	l.totalChecks.Add(1)
 
 	allowed, err := l.tokenStore.TryTake(ctx, fullKey, n, &config)
 	if err != nil {
@@ -142,13 +150,15 @@ func (l *Limiter) AllowTokenBucket(ctx context.Context, key string, n float64, c
 }
 
 // WaitTokenBucket blocks until n tokens are available in the bucket identified by key, or
-// until the context is cancelled.
+// until the context is cancelled. A request the bucket can never satisfy, such as more
+// tokens than it holds, fails at once with ErrInvalidConfig instead of waiting.
 //
 // Takes key (string) which identifies the rate limit bucket.
 // Takes n (float64) which is the number of tokens to consume.
 // Takes config (ratelimiter_dto.TokenBucketConfig) which defines the bucket parameters.
 //
-// Returns error which is nil on success, or a context error if cancelled.
+// Returns error which is nil on success, wraps ErrInvalidConfig when the request cannot
+// be enforced, or is a context error if cancelled.
 func (l *Limiter) WaitTokenBucket(ctx context.Context, key string, n float64, config ratelimiter_dto.TokenBucketConfig) error {
 	for {
 		if ctx.Err() != nil {
@@ -181,19 +191,23 @@ func (l *Limiter) WaitTokenBucket(ctx context.Context, key string, n float64, co
 // Takes config (ratelimiter_dto.FixedWindowConfig) which defines the window parameters.
 //
 // Returns ratelimiter_dto.Result which contains the rate limit decision and metadata.
-// Returns error when the store operation fails (subject to FailPolicy).
+// Returns error which wraps ErrInvalidConfig when the limit is negative or the window is
+// not positive, or reports a store failure (subject to FailPolicy). A limit of zero is
+// valid and denies every request.
 func (l *Limiter) CheckFixedWindow(ctx context.Context, key string, config ratelimiter_dto.FixedWindowConfig) (ratelimiter_dto.Result, error) {
+	if err := validateFixedWindowConfig(config); err != nil {
+		return ratelimiter_dto.Result{}, err
+	}
+
 	start := l.clock.Now()
 	fullKey := l.buildKey(key)
 
 	checksTotal.Add(ctx, 1)
-	l.totalChecks.Add(1)
 
 	counterResult, err := l.counterStore.IncrementAndGet(ctx, fullKey, 1, config.Window)
 	if err != nil {
 		storeErr := l.handleStoreError(ctx, start, err, "fixed window IncrementAndGet", key)
 		if l.failPolicy == ratelimiter_dto.FailOpen {
-			l.totalAllowed.Add(1)
 			return ratelimiter_dto.Result{
 				Allowed:    true,
 				Limit:      config.Limit,
@@ -245,19 +259,24 @@ func (l *Limiter) DeleteBucket(ctx context.Context, key string) error {
 
 // GetStatus returns the current inspectable state of the rate limiter.
 //
+// Every counted check ends as either allowed or denied, so the total number of checks is
+// the sum of the two and is not stored separately.
+//
 // Returns ratelimiter_dto.Status which contains store names, fail policy, and aggregate
 // counters.
 // Returns error (always nil for the in-process limiter).
 func (l *Limiter) GetStatus(_ context.Context) (ratelimiter_dto.Status, error) {
+	allowed := l.totalAllowed.Value()
+	denied := l.totalDenied.Value()
 	return ratelimiter_dto.Status{
 		TokenBucketStore: l.tokenStoreName,
 		CounterStore:     l.counterStoreName,
 		FailPolicy:       failPolicyString(l.failPolicy),
 		KeyPrefix:        l.keyPrefix,
-		TotalChecks:      l.totalChecks.Load(),
-		TotalAllowed:     l.totalAllowed.Load(),
-		TotalDenied:      l.totalDenied.Load(),
-		TotalErrors:      l.totalErrors.Load(),
+		TotalChecks:      allowed + denied,
+		TotalAllowed:     allowed,
+		TotalDenied:      denied,
+		TotalErrors:      l.totalErrors.Value(),
 	}, nil
 }
 
@@ -281,12 +300,12 @@ func (l *Limiter) buildKey(key string) string {
 // Takes n (float64) which specifies the number of tokens requested.
 // Takes config (ratelimiter_dto.TokenBucketConfig) which defines the bucket rules.
 //
-// Returns time.Duration which is the estimated wait time, or one millisecond if
-// unavailable.
+// Returns time.Duration which is the estimated wait time, or one millisecond if the
+// estimate is unavailable or not positive, so the caller never retries in a tight loop.
 func (l *Limiter) estimateWaitDuration(ctx context.Context, key string, n float64, config ratelimiter_dto.TokenBucketConfig) time.Duration {
 	fullKey := l.buildKey(key)
 	wait, err := l.tokenStore.WaitDuration(ctx, fullKey, n, &config)
-	if err != nil || wait == 0 {
+	if err != nil || wait <= 0 {
 		return time.Millisecond
 	}
 	return wait
@@ -354,6 +373,51 @@ func (l *Limiter) handleStoreError(ctx context.Context, start time.Time, err err
 func (l *Limiter) recordLatency(ctx context.Context, start time.Time) {
 	elapsed := float64(l.clock.Now().Sub(start).Milliseconds())
 	checkDuration.Record(ctx, elapsed)
+}
+
+// validateFixedWindowConfig checks that a fixed window can be enforced.
+//
+// Takes config (ratelimiter_dto.FixedWindowConfig) which is the window to check.
+//
+// Returns error which wraps ErrInvalidConfig with the offending values when the limit is
+// negative or the window is not positive, or nil when the config is valid. A limit of
+// zero is valid and denies every request.
+func validateFixedWindowConfig(config ratelimiter_dto.FixedWindowConfig) error {
+	if config.Limit < 0 || config.Window <= 0 {
+		return fmt.Errorf("%w: fixed window needs a limit of zero or more and a positive window, got limit %d and window %s",
+			ErrInvalidConfig, config.Limit, config.Window)
+	}
+	return nil
+}
+
+// validateTokenBucketConfig checks that a token bucket can be enforced.
+//
+// Takes config (ratelimiter_dto.TokenBucketConfig) which is the bucket to check.
+//
+// Returns error which wraps ErrInvalidConfig with the offending values when the rate is
+// not a positive finite number or the burst is negative, or nil when the config is valid.
+func validateTokenBucketConfig(config ratelimiter_dto.TokenBucketConfig) error {
+	if math.IsNaN(config.Rate) || math.IsInf(config.Rate, 1) || config.Rate <= 0 || config.Burst < 0 {
+		return fmt.Errorf("%w: token bucket needs a positive finite rate and a burst of zero or more, got rate %g and burst %d",
+			ErrInvalidConfig, config.Rate, config.Burst)
+	}
+	return nil
+}
+
+// validateTokenCount checks that n tokens can ever be taken from a bucket.
+//
+// Takes n (float64) which is the number of tokens asked for.
+// Takes config (ratelimiter_dto.TokenBucketConfig) which defines the bucket's capacity.
+//
+// Returns error which wraps ErrInvalidConfig when n is not a finite number from zero to
+// the bucket's capacity, or nil when n is valid.
+func validateTokenCount(n float64, config ratelimiter_dto.TokenBucketConfig) error {
+	maxTokens := config.MaxTokens()
+	if math.IsNaN(n) || math.IsInf(n, 0) || n < 0 || n > maxTokens {
+		return fmt.Errorf("%w: token bucket request needs a finite count from 0 to %g tokens, got %g",
+			ErrInvalidConfig, maxTokens, n)
+	}
+	return nil
 }
 
 // failPolicyString returns the human-readable string for a FailPolicy value.

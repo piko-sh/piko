@@ -216,8 +216,8 @@ func fromPipitRef(ref pipitmodule.Ref) modules.ModuleRef {
 // Takes descriptor (modules.ModuleDescriptor) which declares the module's identity.
 // Takes modulePath (string) which is the module's import path.
 // Takes packages (map[string]map[string]string) which are its sources by package path.
-// Takes pack (func(context.Context, *pipit.CompiledFileSet) ([]byte, error)) which serialises the compiled
-// output, or reports why it cannot.
+// Takes pack (func(context.Context, *pipit.CompiledFileSet) ([]byte, error)) which
+// serialises the compiled output, or reports why it cannot.
 //
 // Returns *modules.ModuleBundle which is the packaged module.
 // Returns error when compilation or packaging fails, matching piko's module sentinels

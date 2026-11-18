@@ -805,7 +805,7 @@ func waitForDownloadCompletion(downloadCh chan *DownloadInfo, timeout time.Durat
 // Returns *DownloadInfo which has its state set to completed when found.
 // Returns error when the file does not appear within the timeout period.
 func waitForFileExists(info *DownloadInfo, timeout time.Duration) (*DownloadInfo, error) {
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(downloadStartDelay)
 
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
@@ -813,7 +813,7 @@ func waitForFileExists(info *DownloadInfo, timeout time.Duration) (*DownloadInfo
 			info.State = "completed"
 			return info, nil
 		}
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(DefaultPollingInterval)
 	}
 	return nil, fmt.Errorf("download file not found after timeout: %s", info.Path)
 }

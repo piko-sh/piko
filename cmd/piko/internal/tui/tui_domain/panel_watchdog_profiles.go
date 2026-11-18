@@ -37,6 +37,13 @@ import (
 )
 
 const (
+	// profilesBodyChromeRows is the rows the profiles body reserves for its header, spacer,
+	// table header and status line.
+	profilesBodyChromeRows = 4
+
+	// profilesPruneTimeout bounds a profile prune request.
+	profilesPruneTimeout = 30 * time.Second
+
 	// WatchdogProfilesPanelID identifies the watchdog Profiles panel.
 	WatchdogProfilesPanelID = "watchdog-profiles"
 
@@ -234,7 +241,7 @@ func (p *WatchdogProfilesPanel) composeBody(width, height int) string {
 	rows := make([]string, 0, height)
 	rows = append(rows, p.renderHeaderRow(width), "", p.renderTableHeader(width))
 
-	listHeight := max(height-4, 1)
+	listHeight := max(height-profilesBodyChromeRows, 1)
 	rows = append(rows, p.renderRows(width, listHeight)...)
 
 	for len(rows) < height-1 {
@@ -464,7 +471,7 @@ func (p *WatchdogProfilesPanel) fetchCmd() tea.Cmd {
 		return nil
 	}
 	return func() tea.Msg {
-		ctx, cancel := context.WithTimeoutCause(context.Background(), 5*time.Second, errors.New("watchdog profiles fetch timed out"))
+		ctx, cancel := context.WithTimeoutCause(context.Background(), DefaultRefreshTimeout, errors.New("watchdog profiles fetch timed out"))
 		defer cancel()
 		profiles, err := p.provider.ListProfiles(ctx)
 		return profilesSnapshotMsg{Profiles: profiles, Err: err}
@@ -485,7 +492,7 @@ func (p *WatchdogProfilesPanel) pruneCmd() tea.Cmd {
 	}
 	p.pruneInFlight = true
 	return func() tea.Msg {
-		ctx, cancel := context.WithTimeoutCause(context.Background(), 30*time.Second, errors.New("watchdog prune timed out"))
+		ctx, cancel := context.WithTimeoutCause(context.Background(), profilesPruneTimeout, errors.New("watchdog prune timed out"))
 		defer cancel()
 		removed, err := p.provider.PruneProfiles(ctx, pruneType)
 		return profilesPruneCompletedMsg{ProfileType: pruneType, Removed: removed, Err: err}

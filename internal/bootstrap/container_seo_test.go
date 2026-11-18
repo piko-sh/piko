@@ -154,8 +154,8 @@ func TestCreateDefaultSEOService_GuardBranches(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		name      string
 		seoConfig *config.SEOConfig
+		name      string
 	}{
 		{name: "no configuration supplied", seoConfig: nil},
 		{name: "disabled", seoConfig: &config.SEOConfig{}},
@@ -228,8 +228,8 @@ func TestBuildRouterConfig_RobotsTxtBlock(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		robots    config.RobotsConfig
 		name      string
+		robots    config.RobotsConfig
 		wantBlock bool
 	}{
 		{name: "an indexable deploy attaches no block", robots: config.RobotsConfig{}, wantBlock: false},

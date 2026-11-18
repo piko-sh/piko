@@ -21,7 +21,7 @@ package orchestrator_adapters
 import (
 	"testing"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 	"piko.sh/piko/internal/testutil/allocbudget"
 )

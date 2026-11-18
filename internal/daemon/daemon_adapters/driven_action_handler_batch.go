@@ -35,11 +35,11 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
+	"piko.sh/json"
 	"piko.sh/piko/internal/binder"
 	"piko.sh/piko/internal/captcha/captcha_dto"
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/daemon/daemon_dto"
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/safeerror"
 	"piko.sh/piko/wdk/goroutine"
@@ -60,7 +60,7 @@ func (h *ActionHandler) handleBatch(w http.ResponseWriter, request *http.Request
 	h.trackBatchMetrics(ctx, request)
 	l.Trace("Handling batch action request")
 
-	batchReq, ok := h.parseBatchRequest(ctx, w, request, span)
+	batchReq, ok := h.parseBatchRequest(ctx, w, request)
 	if !ok {
 		return
 	}
@@ -96,7 +96,6 @@ func (h *ActionHandler) handleBatch(w http.ResponseWriter, request *http.Request
 //
 // Takes w (http.ResponseWriter) which receives any HTTP error responses.
 // Takes request (*http.Request) which provides the batch request body and headers.
-// Takes span (trace.Span) which records errors encountered during parsing.
 //
 // Returns daemon_dto.BatchActionRequest which contains the decoded batch request when
 // parsing succeeds, or a zero value on failure.
@@ -106,32 +105,13 @@ func (h *ActionHandler) parseBatchRequest(
 	ctx context.Context,
 	w http.ResponseWriter,
 	request *http.Request,
-	span trace.Span,
 ) (daemon_dto.BatchActionRequest, bool) {
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 
 	var batchReq daemon_dto.BatchActionRequest
 
-	developmentMode := isDevelopmentModeFromContext(request.Context())
-
-	body, err := io.ReadAll(request.Body)
-	if err != nil {
-		l.ReportError(span, err, "Failed to read batch request body")
-		h.writeError(w, http.StatusBadRequest, "Invalid batch request body", err, developmentMode)
-		return batchReq, false
-	}
-
-	if err := validateJSONStructuralDepth(body, defaultMaxJSONBodyDepth); err != nil {
-		l.ReportError(span, err, "Batch request body exceeds nesting limit")
-		h.writeError(w, http.StatusBadRequest, "Invalid batch request body", err, developmentMode)
-		return batchReq, false
-	}
-
-	decoder := stdjson.NewDecoder(bytes.NewReader(body))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&batchReq); err != nil {
-		l.ReportError(span, err, "Failed to parse batch request body")
-		h.writeError(w, http.StatusBadRequest, "Invalid batch request body", err, developmentMode)
+	if err := decodeBatchRequest(request.Body, &batchReq); err != nil {
+		h.writeBodyError(ctx, w, err, "Invalid batch request body")
 		return batchReq, false
 	}
 
@@ -314,7 +294,7 @@ func (h *ActionHandler) executeGuardedBatchEntry(
 			return batchResult, action, nil
 		})
 	if err != nil {
-		return h.buildBatchErrorResult(item.Name, err, isDevelopmentModeFromContext(request.Context())), nil
+		return h.buildBatchErrorResult(ctx, item.Name, err, isDevelopmentModeFromContext(request.Context())), nil
 	}
 
 	return result, instance
@@ -390,7 +370,7 @@ func (h *ActionHandler) executeSingleAction(
 
 	result, err := entry.Invoke(ctx, action, arguments)
 	if err != nil {
-		return h.buildBatchErrorResult(item.Name, err, isDevelopmentModeFromContext(request.Context())), action
+		return h.buildBatchErrorResult(ctx, item.Name, err, isDevelopmentModeFromContext(request.Context())), action
 	}
 
 	return daemon_dto.BatchActionResult{
@@ -438,32 +418,11 @@ func buildBatchCaptchaResult(ctx context.Context, name string, captchaErr error)
 	}
 }
 
-// isRequestFault reports whether err describes the request rather than the server.
-//
-// A payload rejected by its `validate:"..."` tags, or one the binder could not convert,
-// is the input layer doing its job. Reporting it as a server error would attach a stack
-// trace and mark the span failed, which lets anyone drive the error rate and the log
-// volume by posting malformed forms. The generated wrapper has already logged the failure
-// at its source, with the parameter that caused it, so it is not reported again here
-// either.
-//
-// Takes err (error) which is the failure returned by an action invocation.
-//
-// Returns bool which is true when the request, not the server, is at fault.
-func isRequestFault(err error) bool {
-	if errors.Is(err, binder.ErrValidationFailed) {
-		return true
-	}
-
-	var bindErrors binder.MultiError
-	return errors.As(err, &bindErrors)
-}
-
 // fieldErrorsFor extracts per-field validation messages from err, whichever layer
 // produced them, so a failure raised by an action and one raised by the binder answer
 // with the same response body.
 //
-// The error itself is never replaced. Both sources already carry their own status and
+// The error itself is never replaced. Every source already carries its own status and
 // safe message, and rewriting the error would override a status the action chose
 // deliberately and discard the context a developer needs.
 //
@@ -473,6 +432,10 @@ func isRequestFault(err error) bool {
 func fieldErrorsFor(err error) map[string]string {
 	if validationErr, ok := errors.AsType[*daemon_dto.ValidationError](err); ok && len(validationErr.Fields) > 0 {
 		return validationErr.Fields
+	}
+
+	if bindingErrors, ok := errors.AsType[binder.MultiError](err); ok {
+		return bindingErrors.FieldMessages()
 	}
 
 	bindErr, ok := errors.AsType[*binder.ValidationFailedError](err)
@@ -487,7 +450,11 @@ func fieldErrorsFor(err error) map[string]string {
 	return fields
 }
 
-// buildBatchErrorResult creates a BatchActionResult from an error.
+// buildBatchErrorResult creates a BatchActionResult from an error and logs the failure
+// once.
+//
+// A server fault is reported with its stack. Refused requests use the same log levels as
+// single actions.
 //
 // Takes name (string) which identifies the action that failed.
 // Takes err (error) which is the error to convert.
@@ -496,26 +463,24 @@ func fieldErrorsFor(err error) map[string]string {
 //
 // Returns daemon_dto.BatchActionResult which contains the error details with appropriate
 // status code and error code extracted from ActionError, or a generic internal error if
-// the error is not an ActionError.
-func (*ActionHandler) buildBatchErrorResult(name string, err error, developmentMode bool) daemon_dto.BatchActionResult {
-	if actionErr, ok := errors.AsType[daemon_dto.ActionError](err); ok {
-		return daemon_dto.BatchActionResult{
-			Name:   name,
-			Status: actionErr.StatusCode(),
-			Error:  safeerror.ExtractSafeMessage(err, developmentMode),
-			Code:   actionErr.ErrorCode(),
-			Errors: fieldErrorsFor(err),
-			Data:   nil,
-		}
+// the error is not an ActionError or its status is outside 400 to 599.
+func (*ActionHandler) buildBatchErrorResult(ctx context.Context, name string, err error, developmentMode bool) daemon_dto.BatchActionResult {
+	reportActionFailure(ctx, trace.SpanFromContext(ctx), name, err, "Batch action execution failed")
+
+	status, code, valid := resolveActionErrorAnswer(err)
+
+	var fields map[string]string
+	if valid {
+		fields = fieldErrorsFor(err)
 	}
 
 	return daemon_dto.BatchActionResult{
 		Name:   name,
-		Status: http.StatusInternalServerError,
+		Status: status,
 		Error:  safeerror.ExtractSafeMessage(err, developmentMode),
-		Code:   "INTERNAL_ERROR",
+		Code:   code,
+		Errors: fields,
 		Data:   nil,
-		Errors: nil,
 	}
 }
 
@@ -559,9 +524,17 @@ func (h *ActionHandler) writeError(w http.ResponseWriter, status int, message st
 // Takes action (any) which provides response metadata and optional helpers.
 // Takes err (error) which is the error to process.
 //
-// It discriminates between structured ActionError types and generic errors. If the action
-// set helpers before returning an error, they are included in the response.
+// It discriminates between structured ActionError types and generic errors. An action
+// error whose status is outside 400 to 599 answers 500. If the action set helpers before
+// returning an error, they are included in the response, whether the error is an action
+// error or a generic 500, so a helper such as a redirect or a toast still runs. Nothing
+// is written when the client has gone away, since no one is left to read it.
 func (h *ActionHandler) handleActionError(w http.ResponseWriter, request *http.Request, action any, err error) {
+	ctx := request.Context()
+	if isClientAbort(ctx, err) {
+		return
+	}
+
 	h.applyResponseMetadata(w, action)
 
 	var helpers []daemon_dto.HelperCall
@@ -573,38 +546,23 @@ func (h *ActionHandler) handleActionError(w http.ResponseWriter, request *http.R
 		}
 	}
 
-	developmentMode := isDevelopmentModeFromContext(request.Context())
+	status, code, valid := resolveActionErrorAnswer(err)
 
-	if actionErr, ok := errors.AsType[daemon_dto.ActionError](err); ok {
-		response := map[string]any{
-			"status":  actionErr.StatusCode(),
-			"code":    actionErr.ErrorCode(),
-			"message": safeerror.ExtractSafeMessage(err, developmentMode),
-		}
-
+	response := map[string]any{
+		responseKeyStatus:  status,
+		responseKeyCode:    code,
+		responseKeyMessage: safeerror.ExtractSafeMessage(err, isDevelopmentModeFromContext(ctx)),
+	}
+	if valid {
 		if fields := fieldErrorsFor(err); fields != nil {
 			response["errors"] = fields
 		}
-
-		if len(helpers) > 0 {
-			response["_helpers"] = helpers
-		}
-
-		h.writeJSON(w, actionErr.StatusCode(), response)
-		return
-	}
-
-	message := safeerror.ExtractSafeMessage(err, developmentMode)
-
-	response := map[string]any{
-		"status":  http.StatusInternalServerError,
-		"code":    "INTERNAL_ERROR",
-		"message": message,
 	}
 	if len(helpers) > 0 {
 		response["_helpers"] = helpers
 	}
-	h.writeJSON(w, http.StatusInternalServerError, response)
+
+	h.writeJSON(w, status, response)
 }
 
 // customCacheKey asks the action's own key func for the cache identity.
@@ -835,4 +793,29 @@ func attributeBatchAnalytics(request *http.Request, batchReq daemon_dto.BatchAct
 	if truncated {
 		pctx.SetAnalyticsProperty("batch.actions_truncated", "true", maxBatchAnalyticsProperties)
 	}
+}
+
+// decodeBatchRequest reads a batch request body, checks its nesting depth and decodes it.
+//
+// Takes body (io.Reader) which is the request body, already bounded by the body limit.
+// Takes batchReq (*daemon_dto.BatchActionRequest) which receives the decoded request.
+//
+// Returns error which wraps *http.MaxBytesError when the body is larger than the limit,
+// or describes why the body could not be decoded.
+func decodeBatchRequest(body io.Reader, batchReq *daemon_dto.BatchActionRequest) error {
+	data, err := io.ReadAll(body)
+	if err != nil {
+		return fmt.Errorf("reading batch request body: %w", err)
+	}
+
+	if err := validateJSONStructuralDepth(data, defaultMaxJSONBodyDepth); err != nil {
+		return fmt.Errorf("validating batch request body depth: %w", err)
+	}
+
+	decoder := stdjson.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(batchReq); err != nil {
+		return fmt.Errorf("decoding batch request body: %w", err)
+	}
+	return nil
 }

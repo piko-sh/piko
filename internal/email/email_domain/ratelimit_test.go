@@ -20,6 +20,7 @@ package email_domain
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -242,4 +243,19 @@ func TestApplyProviderOptions(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestProviderRateLimiter_FractionalRateAllowsOneCall(t *testing.T) {
+	t.Parallel()
+
+	limiter := newProviderRateLimiter(ProviderRateLimitConfig{
+		CallsPerSecond: 0.5,
+		Clock:          clock.NewMockClock(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)),
+	})
+	require.NotNil(t, limiter)
+
+	ctx, cancel := context.WithTimeoutCause(t.Context(), time.Second, errors.New("test: wait did not return"))
+	defer cancel()
+
+	require.NoError(t, limiter.Wait(ctx), "a rate below one call per second must still allow a single call")
 }

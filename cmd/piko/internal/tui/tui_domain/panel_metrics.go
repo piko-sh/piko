@@ -34,6 +34,9 @@ import (
 )
 
 const (
+	// metricsQueryWindow is how far back the metrics panel queries.
+	metricsQueryWindow = 5 * time.Minute
+
 	// metricsCursorWidth is the width of the cursor column in characters.
 	metricsCursorWidth = 2
 
@@ -500,7 +503,7 @@ func (p *MetricsPanel) refresh() tea.Cmd {
 			return MetricsRefreshMessage{Err: errNoMetricsProvider, Metrics: nil}
 		}
 
-		ctx, cancel := context.WithTimeoutCause(context.Background(), 5*time.Second,
+		ctx, cancel := context.WithTimeoutCause(context.Background(), DefaultRefreshTimeout,
 			errors.New("metrics panel data fetch exceeded 5s timeout"))
 		defer cancel()
 
@@ -513,7 +516,7 @@ func (p *MetricsPanel) refresh() tea.Cmd {
 
 		metrics := make([]metricDisplay, 0, len(names))
 		end := p.clock.Now()
-		start := end.Add(-5 * time.Minute)
+		start := end.Add(-metricsQueryWindow)
 
 		for _, name := range names {
 			series, err := p.provider.Query(ctx, name, start, end)

@@ -95,7 +95,7 @@ These integrate with action forms. The dispatch layer maps each field error to t
 
 ## HTTP status mapping
 
-Action `Call` and page `Render` return an `error` that Piko maps to an HTTP status:
+Piko maps common action and page errors to HTTP statuses:
 
 | Error shape | HTTP status |
 |---|---|
@@ -108,7 +108,10 @@ Action `Call` and page `Render` return an `error` that Piko maps to an HTTP stat
 | `piko.ConflictError` | 409 |
 | `piko.TeapotError` | 418 |
 | `piko.GenericPageError` | 500 |
+| Other `piko.ActionError` values returned by actions | Their status from 400 to 599 |
 | Any other `error` | 500 (logged with full detail; user sees a generic message) |
+
+The action dispatcher can reject invalid input before `Call` runs. See [server action error handling](server-actions.md#error-handling) for its response codes.
 
 ## Error-page context
 

@@ -35,6 +35,9 @@ const (
 	// defaultMaxGoplsChildren caps the number of concurrent gopls processes.
 	defaultMaxGoplsChildren = 8
 
+	// logKeyModuleRoot is the log attribute key for a gopls module root.
+	logKeyModuleRoot = "moduleRoot"
+
 	// defaultMaxOverlaysPerChild caps how many virtual Go documents one gopls child holds.
 	defaultMaxOverlaysPerChild = 1024
 
@@ -366,6 +369,7 @@ func (m *Manager) Existing(moduleRoot string) (*Child, bool) {
 // Concurrency: holds mu while flipping closed and draining the children map, then fans
 // the per-child Close calls out across goroutines and joins them with a bounded wait.
 func (m *Manager) Close(ctx context.Context) error {
+	ctx, l := logger_domain.From(ctx, log)
 	m.mu.Lock()
 	if m.closed {
 		m.mu.Unlock()
@@ -382,21 +386,18 @@ func (m *Manager) Close(ctx context.Context) error {
 		waitGroup.Go(func() {
 			defer goroutine.RecoverPanic(ctx, "gopls_bridge.manager.close")
 			if closeErr := child.Close(ctx); closeErr != nil {
-				_, l := logger_domain.From(ctx, log)
 				l.Warn("gopls child did not shut down cleanly",
-					logger_domain.String("moduleRoot", child.moduleRoot),
+					logger_domain.String(logKeyModuleRoot, child.moduleRoot),
 					logger_domain.Error(closeErr))
 			}
 		})
 	}
 
 	if !waitWithTimeout(&waitGroup, managerCloseTimeout) {
-		_, l := logger_domain.From(ctx, log)
 		l.Warn("gopls children did not all close within the deadline; abandoning the wait",
 			logger_domain.String("timeout", managerCloseTimeout.String()))
 	}
 	if !waitWithTimeout(&m.reaperWG, managerCloseTimeout) {
-		_, l := logger_domain.From(ctx, log)
 		l.Warn("gopls reaper did not stop within the deadline; abandoning the wait",
 			logger_domain.String("timeout", managerCloseTimeout.String()))
 	}
@@ -563,13 +564,13 @@ func (m *Manager) spawnChild(ctx context.Context, moduleRoot string) (*Child, er
 
 	stream, command, spawnErr := spawnGopls(resolvedPath, moduleRoot)
 	if spawnErr != nil {
-		l.Warn("failed to start gopls", logger_domain.String("moduleRoot", moduleRoot), logger_domain.Error(spawnErr))
+		l.Warn("failed to start gopls", logger_domain.String(logKeyModuleRoot, moduleRoot), logger_domain.Error(spawnErr))
 		return nil, spawnErr
 	}
 
 	child, dialErr := dialChild(ctx, stream, command, moduleRoot, m.fanOut, m.onChildDeath)
 	if dialErr != nil {
-		l.Warn("failed to handshake with gopls", logger_domain.String("moduleRoot", moduleRoot), logger_domain.Error(dialErr))
+		l.Warn("failed to handshake with gopls", logger_domain.String(logKeyModuleRoot, moduleRoot), logger_domain.Error(dialErr))
 		return nil, dialErr
 	}
 
@@ -580,7 +581,7 @@ func (m *Manager) spawnChild(ctx context.Context, moduleRoot string) (*Child, er
 		return nil, registerErr
 	}
 
-	l.Info("started gopls child", logger_domain.String("moduleRoot", moduleRoot))
+	l.Info("started gopls child", logger_domain.String(logKeyModuleRoot, moduleRoot))
 	return registered, nil
 }
 

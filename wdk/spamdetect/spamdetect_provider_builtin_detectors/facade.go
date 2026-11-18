@@ -113,8 +113,11 @@ type RepetitionEntry = builtin_detectors.RepetitionEntry
 
 // NewRepetitionDetector creates a repetition detector.
 //
+// Build the cache with PerEntryExpiration so hashes that stop recurring are dropped.
+// Counts reset after a quiet window.
+//
 // Takes cache (cache_domain.Cache[string, RepetitionEntry]) which stores content hashes.
-// Pass nil to disable repetition detection.
+// Passing nil disables repetition detection.
 // Takes ttl (time.Duration) which is the tracking window.
 // Takes ipScoped (bool) which scopes tracking per client IP when true.
 // Takes opts (...RepetitionOption) which override defaults (e.g. clock).
@@ -130,7 +133,10 @@ func NewRepetitionDetector(
 }
 
 var (
+	// WithRepetitionIPv6PrefixBits sets how many leading bits of an IPv6 client address form
+	// the repetition IP scope.
+	WithRepetitionIPv6PrefixBits = builtin_detectors.WithRepetitionIPv6PrefixBits
+
 	// WithRepetitionClock sets the clock source used for repetition FirstSeen timestamps.
-	// Tests inject a mock clock for deterministic behaviour.
 	WithRepetitionClock = builtin_detectors.WithRepetitionClock
 )

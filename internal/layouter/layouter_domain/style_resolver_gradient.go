@@ -197,8 +197,8 @@ func parseGradientDirection(first string) (angle float64, consumed bool) {
 	if degStr, ok := strings.CutSuffix(first, "deg"); ok {
 		return parseFloatValue(degStr), true
 	}
-	if strings.HasPrefix(first, "to ") {
-		switch strings.TrimSpace(first[3:]) {
+	if direction, ok := strings.CutPrefix(first, "to "); ok {
+		switch strings.TrimSpace(direction) {
 		case cssKeywordTop:
 			return 0, true
 		case "right":
@@ -479,10 +479,10 @@ func parseBoxShadowLayer(layer string, context ResolutionContext) (BoxShadowValu
 	shadow.OffsetX = resolveLength(lengthTokens[0], context)
 	shadow.OffsetY = resolveLength(lengthTokens[1], context)
 	if len(lengthTokens) >= shadowBlurTokenIndex {
-		shadow.BlurRadius = resolveLength(lengthTokens[2], context)
+		shadow.BlurRadius = resolveLength(lengthTokens[shadowBlurTokenIndex-1], context)
 	}
 	if len(lengthTokens) >= shadowSpreadTokenIndex {
-		shadow.SpreadRadius = resolveLength(lengthTokens[3], context)
+		shadow.SpreadRadius = resolveLength(lengthTokens[shadowSpreadTokenIndex-1], context)
 	}
 
 	return shadow, true
@@ -611,9 +611,9 @@ func parseAspectRatio(value string) (float64, bool) {
 	}
 
 	autoPrefix := false
-	if strings.HasPrefix(normalised, "auto ") {
+	if rest, ok := strings.CutPrefix(normalised, "auto "); ok {
 		autoPrefix = true
-		normalised = strings.TrimSpace(normalised[5:])
+		normalised = strings.TrimSpace(rest)
 	}
 
 	if strings.Contains(normalised, "/") {
@@ -784,7 +784,7 @@ func parseTextShadowLayer(layer string, context ResolutionContext) (TextShadowVa
 	shadow.OffsetX = resolveLength(lengthTokens[0], context)
 	shadow.OffsetY = resolveLength(lengthTokens[1], context)
 	if len(lengthTokens) >= textShadowBlurTokenCount {
-		shadow.BlurRadius = resolveLength(lengthTokens[2], context)
+		shadow.BlurRadius = resolveLength(lengthTokens[shadowBlurTokenIndex-1], context)
 	}
 
 	return shadow, true

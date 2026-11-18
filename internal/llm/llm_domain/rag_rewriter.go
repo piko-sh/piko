@@ -26,7 +26,7 @@ import (
 	"slices"
 	"strings"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 	"piko.sh/piko/internal/llm/llm_dto"
 )
 

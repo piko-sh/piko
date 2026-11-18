@@ -40,6 +40,14 @@ const (
 	// defaultRefreshInterval is the default interval between data refreshes.
 	defaultRefreshInterval = 2 * time.Second
 
+	// keepaliveTime is how long the client waits without activity before sending a keepalive
+	// ping.
+	keepaliveTime = 30 * time.Second
+
+	// keepaliveTimeout is how long the client waits for a keepalive ping acknowledgement
+	// before closing the connection.
+	keepaliveTimeout = 10 * time.Second
+
 	// defaultMaxRecvMsgSize is the maximum size of a single gRPC response message accepted
 	// by the client.
 	//
@@ -136,8 +144,8 @@ func NewConnection(address string, opts ...Option) (*Connection, error) {
 	conn, err := grpc.NewClient(config.Address,
 		grpc.WithTransportCredentials(transportCreds),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
-			Time:                30 * time.Second,
-			Timeout:             10 * time.Second,
+			Time:                keepaliveTime,
+			Timeout:             keepaliveTimeout,
 			PermitWithoutStream: true,
 		}),
 		grpc.WithConnectParams(grpc.ConnectParams{

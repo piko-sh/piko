@@ -39,16 +39,17 @@ const (
 	// wrapperIdentOK is the identifier name for the boolean result of type assertions.
 	wrapperIdentOK = "ok"
 
-	// wrapperIdentLogger is the package identifier for the logger in generated code.
-	wrapperIdentLogger = "logger"
-
-	// actionLogVarName is the package-level logger variable the wrapper file declares. It is
-	// deliberately not "log": that is a plausible name for a user action package, and the
-	// variable and the import of such a package would then redeclare one another.
-	actionLogVarName = "pikoActionLog"
-
 	// goTypeString is the Go type name for string.
 	goTypeString = "string"
+
+	// goTypeAny is the Go type name for any.
+	goTypeAny = "any"
+
+	// wrapperIdentCtx is the identifier for the context parameter in generated code.
+	wrapperIdentCtx = "ctx"
+
+	// wrapperIdentFileHeader is the identifier for a single uploaded file in generated code.
+	wrapperIdentFileHeader = "fh"
 
 	// goTypeInt is the Go type name for int.
 	goTypeInt = "int"
@@ -86,7 +87,7 @@ var (
 	// for itself. A call parameter named after one of these would shadow it, so each
 	// parameter claims a name against this set rather than using the user's spelling.
 	wrapperBodyLocalNames = []string{
-		"a", "action", "argsMap", "ctx", "err", "fh", "fhs", "fu", "i", "l", "ok", "raw",
+		"a", "action", "argsMap", "ctx", "err", "fh", "fhs", "fu", "i", "ok", "raw",
 		"rawMap", "rb", "result",
 	}
 )
@@ -150,7 +151,6 @@ func (e *ActionWrapperEmitter) EmitWrappers(_ context.Context, specs []annotator
 	needsPiko, needsMultipart := e.checkSpecialTypeImports(specs)
 	needsBinder := e.checkBinderImport(specs)
 
-	goastutil.AddImport(fset, file, actionLoggerPackagePath)
 	goastutil.AddImport(fset, file, actionContextPackagePath)
 	if needsBinder {
 		goastutil.AddNamedImport(fset, file, actionBinderPackageAlias, actionBinderPackagePath)
@@ -234,36 +234,11 @@ func (*ActionWrapperEmitter) checkBinderImport(specs []annotator_dto.ActionSpec)
 				return true
 			}
 			switch param.GoType {
-			case "string", "int", "int64", "float64", "bool":
+			case goTypeString, goTypeInt, goTypeInt64, goTypeFloat64, goTypeBool:
 				continue
 			default:
 				return true
 			}
-		}
-	}
-	return false
-}
-
-// specNeedsBinder checks whether a single action spec requires the binder package for
-// JSON-to-struct binding.
-//
-// Takes spec (*annotator_dto.ActionSpec) which is the action specification to check.
-//
-// Returns bool which indicates if the spec has any parameters that need binder-based
-// extraction.
-func specNeedsBinder(spec *annotator_dto.ActionSpec) bool {
-	for _, param := range spec.CallParams {
-		if param.Name == blankParamName || param.IsFileUpload || param.IsFileUploadSlice || param.IsRawBody {
-			continue
-		}
-		if param.Struct != nil {
-			return true
-		}
-		switch param.GoType {
-		case "string", "int", "int64", "float64", "bool":
-			continue
-		default:
-			return true
 		}
 	}
 	return false
@@ -276,8 +251,7 @@ func specNeedsBinder(spec *annotator_dto.ActionSpec) bool {
 //
 // Returns *ast.File which is the complete AST ready for code generation.
 func (e *ActionWrapperEmitter) buildWrappersAST(naming *actionNaming) *ast.File {
-	decls := make([]ast.Decl, 0, len(naming.specs)*2+1)
-	decls = append(decls, e.buildLogVarDecl())
+	decls := make([]ast.Decl, 0, len(naming.specs)*2)
 
 	for i := range naming.specs {
 		decls = append(decls, e.buildWrapperFunc(naming, i))
@@ -289,27 +263,6 @@ func (e *ActionWrapperEmitter) buildWrappersAST(naming *actionNaming) *ast.File 
 	return &ast.File{
 		Name:  goastutil.CachedIdent(actionGeneratedPackageName),
 		Decls: decls,
-	}
-}
-
-// buildLogVarDecl builds a variable declaration AST node for the logger. It creates: var
-// pikoActionLog = logger.GetLogger("piko/actions").
-//
-// Returns *ast.GenDecl which is the variable declaration node.
-func (*ActionWrapperEmitter) buildLogVarDecl() *ast.GenDecl {
-	return &ast.GenDecl{
-		Tok: token.VAR,
-		Specs: []ast.Spec{
-			&ast.ValueSpec{
-				Names: []*ast.Ident{goastutil.CachedIdent(actionLogVarName)},
-				Values: []ast.Expr{
-					goastutil.CallExpr(
-						goastutil.SelectorExpr(wrapperIdentLogger, "GetLogger"),
-						goastutil.StrLit("piko/actions"),
-					),
-				},
-			},
-		},
 	}
 }
 
@@ -343,7 +296,7 @@ func (e *ActionWrapperEmitter) buildWrapperFunc(naming *actionNaming, index int)
 		functionName,
 		e.buildDispatchParams(),
 		goastutil.FieldList(
-			goastutil.Field("", goastutil.CachedIdent("any")),
+			goastutil.Field("", goastutil.CachedIdent(goTypeAny)),
 			goastutil.Field("", goastutil.CachedIdent("error")),
 		),
 		goastutil.BlockStmt(statements...),
@@ -380,9 +333,9 @@ func (e *ActionWrapperEmitter) buildBindFunc(naming *actionNaming, index int) *a
 // Returns *ast.FieldList which declares (ctx, action, argsMap).
 func (*ActionWrapperEmitter) buildDispatchParams() *ast.FieldList {
 	return goastutil.FieldList(
-		goastutil.Field("ctx", goastutil.SelectorExpr(actionContextPackageAlias, "Context")),
-		goastutil.Field("action", goastutil.CachedIdent("any")),
-		goastutil.Field(wrapperIdentArgsMap, goastutil.MapType(goastutil.CachedIdent("string"), goastutil.CachedIdent("any"))),
+		goastutil.Field(wrapperIdentCtx, goastutil.SelectorExpr(actionContextPackageAlias, "Context")),
+		goastutil.Field("action", goastutil.CachedIdent(goTypeAny)),
+		goastutil.Field(wrapperIdentArgsMap, goastutil.MapType(goastutil.CachedIdent(goTypeString), goastutil.CachedIdent(goTypeAny))),
 	)
 }
 
@@ -402,18 +355,7 @@ func (e *ActionWrapperEmitter) buildBindStatements(
 	locals []string,
 	style bindReturnStyle,
 ) []ast.Stmt {
-	statements := make([]ast.Stmt, 0, len(spec.CallParams)+1)
-
-	if specNeedsBinder(spec) {
-		statements = append(statements, goastutil.DefineStmtMulti(
-			[]string{"ctx", "l"},
-			goastutil.CallExpr(
-				goastutil.SelectorExpr(wrapperIdentLogger, "From"),
-				goastutil.CachedIdent("ctx"),
-				goastutil.CachedIdent(actionLogVarName),
-			),
-		))
-	}
+	statements := make([]ast.Stmt, 0, len(spec.CallParams))
 
 	for index := range spec.CallParams {
 		if spec.CallParams[index].Name == blankParamName {
@@ -522,7 +464,7 @@ func (e *ActionWrapperEmitter) buildParamExtraction(
 // Returns []ast.Stmt which contains the AST statements for JSON unmarshalling.
 func (e *ActionWrapperEmitter) buildStructParamExtraction(naming *actionNaming, varName, jsonKey string, typeSpec *annotator_dto.TypeSpec, style bindReturnStyle) []ast.Stmt {
 	if structSpecHasFileUpload(typeSpec) {
-		return e.buildStructParamWithFileUploads(naming, varName, jsonKey, typeSpec, style)
+		return e.buildStructParamWithFileUploads(naming, varName, typeSpec, style)
 	}
 	qualifiedType := wrapperQualifiedTypeName(naming, typeSpec)
 	return e.buildStructBindExtraction(varName, jsonKey, qualifiedType, style)
@@ -537,13 +479,12 @@ func (e *ActionWrapperEmitter) buildStructParamExtraction(naming *actionNaming, 
 // Takes naming (*actionNaming) which provides the alias the struct's package is qualified
 // by.
 // Takes varName (string) which is the local variable name for the struct.
-// Takes jsonKey (string) which is the JSON key, used for binder error context.
 // Takes typeSpec (*annotator_dto.TypeSpec) which describes the struct and its fields.
 // Takes style (bindReturnStyle) which selects the result shape of any bind failure
 // return.
 //
 // Returns []ast.Stmt which declares the struct, extracts its files, and binds the rest.
-func (*ActionWrapperEmitter) buildStructParamWithFileUploads(naming *actionNaming, varName, jsonKey string, typeSpec *annotator_dto.TypeSpec, style bindReturnStyle) []ast.Stmt {
+func (*ActionWrapperEmitter) buildStructParamWithFileUploads(naming *actionNaming, varName string, typeSpec *annotator_dto.TypeSpec, style bindReturnStyle) []ast.Stmt {
 	qualifiedType := wrapperQualifiedTypeName(naming, typeSpec)
 	stmts := []ast.Stmt{goastutil.VarDecl(varName, parseTypeExpr(qualifiedType))}
 
@@ -555,7 +496,7 @@ func (*ActionWrapperEmitter) buildStructParamWithFileUploads(naming *actionNamin
 		stmts = append(stmts, buildStructFileUploadFieldExtraction(varName, field.Name, field.JSONName, field.IsPointer)...)
 	}
 
-	stmts = append(stmts, buildFlatBindBlock(varName, jsonKey, style))
+	stmts = append(stmts, buildFlatBindBlock(varName, style))
 	return stmts
 }
 
@@ -629,7 +570,7 @@ func (*ActionWrapperEmitter) buildFileUploadExtraction(varName, jsonKey string) 
 		goastutil.VarDecl(varName, goastutil.SelectorExpr(wrapperIdentPiko, "FileUpload")),
 		goastutil.IfStmt(
 			goastutil.DefineStmtMulti(
-				[]string{"fh", wrapperIdentOK},
+				[]string{wrapperIdentFileHeader, wrapperIdentOK},
 				goastutil.TypeAssertExpr(
 					goastutil.IndexExpr(goastutil.CachedIdent(wrapperIdentArgsMap), goastutil.StrLit(jsonKey)),
 					goastutil.StarExpr(goastutil.SelectorExpr(actionMultipartPackageAlias, "FileHeader")),
@@ -641,7 +582,7 @@ func (*ActionWrapperEmitter) buildFileUploadExtraction(varName, jsonKey string) 
 					goastutil.CachedIdent(varName),
 					goastutil.CallExpr(
 						goastutil.SelectorExpr(wrapperIdentPiko, "NewFileUpload"),
-						goastutil.CachedIdent("fh"),
+						goastutil.CachedIdent(wrapperIdentFileHeader),
 					),
 				),
 			),
@@ -683,7 +624,7 @@ func (*ActionWrapperEmitter) buildFileUploadSliceExtraction(varName, jsonKey str
 				),
 				&ast.RangeStmt{
 					Key:   goastutil.CachedIdent("i"),
-					Value: goastutil.CachedIdent("fh"),
+					Value: goastutil.CachedIdent(wrapperIdentFileHeader),
 					Tok:   token.DEFINE,
 					X:     goastutil.CachedIdent("fhs"),
 					Body: goastutil.BlockStmt(
@@ -691,7 +632,7 @@ func (*ActionWrapperEmitter) buildFileUploadSliceExtraction(varName, jsonKey str
 							goastutil.IndexExpr(goastutil.CachedIdent(varName), goastutil.CachedIdent("i")),
 							goastutil.CallExpr(
 								goastutil.SelectorExpr(wrapperIdentPiko, "NewFileUpload"),
-								goastutil.CachedIdent("fh"),
+								goastutil.CachedIdent(wrapperIdentFileHeader),
 							),
 						),
 					),
@@ -756,7 +697,7 @@ func (*ActionWrapperEmitter) buildStructBindExtraction(varName, jsonKey, typeNam
 
 	return []ast.Stmt{
 		goastutil.VarDecl(varName, typeExpr),
-		buildBindMapStmt(source, varName, jsonKey, "Failed to bind action parameter", style),
+		buildBindMapStmt(source, varName, style),
 	}
 }
 
@@ -787,12 +728,12 @@ func (*ActionWrapperEmitter) buildGuardedBindExtraction(varName, jsonKey, typeNa
 						[]string{"rawMap", wrapperIdentOK},
 						goastutil.TypeAssertExpr(
 							goastutil.CachedIdent("raw"),
-							goastutil.MapType(goastutil.CachedIdent("string"), goastutil.CachedIdent("any")),
+							goastutil.MapType(goastutil.CachedIdent(goTypeString), goastutil.CachedIdent(goTypeAny)),
 						),
 					),
 					Cond: goastutil.CachedIdent(wrapperIdentOK),
 					Body: goastutil.BlockStmt(
-						buildBindMapStmt(goastutil.CachedIdent("rawMap"), varName, jsonKey, "Failed to bind action parameter", style),
+						buildBindMapStmt(goastutil.CachedIdent("rawMap"), varName, style),
 					),
 				},
 			),
@@ -803,7 +744,7 @@ func (*ActionWrapperEmitter) buildGuardedBindExtraction(varName, jsonKey, typeNa
 					Y:  goastutil.IntLit(0),
 				},
 				Body: goastutil.BlockStmt(
-					buildBindMapStmt(goastutil.CachedIdent(wrapperIdentArgsMap), varName, jsonKey, "Failed to bind action parameter from flat argsMap", style),
+					buildBindMapStmt(goastutil.CachedIdent(wrapperIdentArgsMap), varName, style),
 				),
 			},
 		},
@@ -870,24 +811,21 @@ func parseTypeExpr(typeName string) ast.Expr {
 
 // buildBindMapStmt builds the AST for binding a map[string]any to a struct.
 //
-// The failure branch logs at warning level: every error it reports describes the
-// request's payload, whether a value would not convert or a `validate:"..."` tag rejected
-// it, and malformed input from a client is not a fault of the server.
+// The action handler logs binding failures once, so generated wrappers return the error
+// without logging it.
 //
 // Takes sourceExpression (ast.Expr) which is the map expression to bind from.
 // Takes varName (string) which is the name of the variable to bind into.
-// Takes jsonKey (string) which is the JSON key name for error logging.
-// Takes errorContext (string) which is the context message for error logging.
 // Takes style (bindReturnStyle) which selects the result shape of the failure return.
 //
 // Returns ast.Stmt which contains the bind call and error handling.
-func buildBindMapStmt(sourceExpression ast.Expr, varName, jsonKey, errorContext string, style bindReturnStyle) ast.Stmt {
+func buildBindMapStmt(sourceExpression ast.Expr, varName string, style bindReturnStyle) ast.Stmt {
 	return &ast.IfStmt{
 		Init: goastutil.DefineStmt(
 			"err",
 			goastutil.CallExpr(
 				goastutil.SelectorExpr(actionBinderPackageAlias, "BindMap"),
-				goastutil.CachedIdent("ctx"),
+				goastutil.CachedIdent(wrapperIdentCtx),
 				goastutil.AddressExpr(goastutil.CachedIdent(varName)),
 				sourceExpression,
 				goastutil.CallExpr(
@@ -908,17 +846,7 @@ func buildBindMapStmt(sourceExpression ast.Expr, varName, jsonKey, errorContext 
 			Op: token.NEQ,
 			Y:  goastutil.NilIdent(),
 		},
-		Body: goastutil.BlockStmt(
-			goastutil.ExprStmt(
-				goastutil.CallExpr(
-					goastutil.SelectorExpr("l", "Warn"),
-					goastutil.StrLit(errorContext),
-					goastutil.CallExpr(goastutil.SelectorExpr(wrapperIdentLogger, "String"), goastutil.StrLit("param"), goastutil.StrLit(jsonKey)),
-					goastutil.CallExpr(goastutil.SelectorExpr(wrapperIdentLogger, "Error"), goastutil.ErrIdent()),
-				),
-			),
-			style.returnStmt(),
-		),
+		Body: goastutil.BlockStmt(style.returnStmt()),
 	}
 }
 
@@ -1004,7 +932,7 @@ func buildStructFileUploadFieldExtraction(varName, fieldName, jsonKey string, is
 	target := goastutil.SelectorExprFrom(goastutil.CachedIdent(varName), fieldName)
 	newUpload := goastutil.CallExpr(
 		goastutil.SelectorExpr(wrapperIdentPiko, "NewFileUpload"),
-		goastutil.CachedIdent("fh"),
+		goastutil.CachedIdent(wrapperIdentFileHeader),
 	)
 
 	var body *ast.BlockStmt
@@ -1020,7 +948,7 @@ func buildStructFileUploadFieldExtraction(varName, fieldName, jsonKey string, is
 	return []ast.Stmt{
 		goastutil.IfStmt(
 			goastutil.DefineStmtMulti(
-				[]string{"fh", wrapperIdentOK},
+				[]string{wrapperIdentFileHeader, wrapperIdentOK},
 				goastutil.TypeAssertExpr(
 					goastutil.IndexExpr(goastutil.CachedIdent(wrapperIdentArgsMap), goastutil.StrLit(jsonKey)),
 					goastutil.StarExpr(goastutil.SelectorExpr(actionMultipartPackageAlias, "FileHeader")),
@@ -1046,17 +974,10 @@ func buildStructFileUploadFieldExtraction(varName, fieldName, jsonKey string, is
 // struct's non-file fields must still face their `validate:"..."` tags.
 //
 // Takes varName (string) which is the struct variable name.
-// Takes jsonKey (string) which is the JSON key, used for binder error context.
 // Takes style (bindReturnStyle) which selects the result shape of any bind failure
 // return.
 //
 // Returns ast.Stmt which is the BindMap call and its error handling.
-func buildFlatBindBlock(varName, jsonKey string, style bindReturnStyle) ast.Stmt {
-	return buildBindMapStmt(
-		goastutil.CachedIdent(wrapperIdentArgsMap),
-		varName,
-		jsonKey,
-		"Failed to bind action parameter from flat argsMap",
-		style,
-	)
+func buildFlatBindBlock(varName string, style bindReturnStyle) ast.Stmt {
+	return buildBindMapStmt(goastutil.CachedIdent(wrapperIdentArgsMap), varName, style)
 }

@@ -432,7 +432,7 @@ func (ne *nodeEmitter) emitChildren(
 	loopInfoByIndex map[int]*LoopIterableInfo,
 	partialScopeID string,
 ) ([]goast.Stmt, []*ast_domain.Diagnostic) {
-	statements := make([]goast.Stmt, 0, len(node.Children)*10)
+	statements := make([]goast.Stmt, 0, len(node.Children)*estimatedStmtsPerChild)
 	var allDiags []*ast_domain.Diagnostic
 	childSliceExpr := &goast.SelectorExpr{X: tempVarIdent, Sel: cachedIdent(fieldChildren)}
 

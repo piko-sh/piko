@@ -86,6 +86,7 @@ func (d *watermillTaskDispatcher) seedRecurring(ctx context.Context, task orches
 //
 // Safe for concurrent use; the chains are read under recurringMu.
 func (d *watermillTaskDispatcher) keepRecurringAlive(ctx context.Context) {
+	ctx, l := logger_domain.From(ctx, log)
 	d.recurringMu.Lock()
 	chains := make([]orchestrator_domain.RecurringTask, 0, len(d.recurring))
 	for _, task := range d.recurring {
@@ -95,7 +96,6 @@ func (d *watermillTaskDispatcher) keepRecurringAlive(ctx context.Context) {
 
 	for _, task := range chains {
 		seeded, err := d.seedRecurring(ctx, task)
-		_, l := logger_domain.From(ctx, log)
 		switch {
 		case err != nil:
 			l.Warn("Failed to check a recurring task chain", logger_domain.String(payloadKeyDeduplicationKey, task.Key), logger_domain.Error(err))
@@ -121,7 +121,7 @@ func (d *watermillTaskDispatcher) maintainStore(ctx context.Context) {
 	if !d.lastMaintenance.CompareAndSwap(last, now.UnixNano()) {
 		return
 	}
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 
 	purged, err := d.TaskStore.PurgeTerminal(ctx, now.Add(-terminalRetention), maintenanceBatch)
 	switch {
@@ -180,6 +180,7 @@ func (d *watermillTaskDispatcher) runSweepLoop(heldAtStart map[string]struct{}) 
 			Budget:           0,
 		})
 	}
+	d.startupSwept.Store(true)
 
 	interval := d.Config.EffectiveSweepInterval()
 	if interval < 0 {
@@ -187,7 +188,6 @@ func (d *watermillTaskDispatcher) runSweepLoop(heldAtStart map[string]struct{}) 
 	}
 	var deadBefore time.Time
 	if d.localTransport {
-
 		deadBefore = startedAt.Truncate(time.Second)
 	}
 	ticker := d.Clock.NewTicker(interval)
@@ -278,7 +278,6 @@ func (d *watermillTaskDispatcher) sweepOnce(request orchestrator_domain.SweepReq
 //
 // Returns bool which is false when the dispatcher stopped first.
 func (d *watermillTaskDispatcher) waitForRoom() bool {
-
 	ticker := time.NewTicker(sweepRoomPollInterval)
 	defer ticker.Stop()
 	for d.heldCount() > 0 || d.localOverflow.size() > 0 {
@@ -340,7 +339,7 @@ func (d *watermillTaskDispatcher) recoverOrphansAtStart(ctx context.Context) {
 //
 // Takes retry ([]*orchestrator_domain.Task) which holds the recovered tasks.
 func (d *watermillTaskDispatcher) redispatchRecovered(ctx context.Context, retry []*orchestrator_domain.Task) {
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 	scheduled := 0
 	now := d.Clock.Now()
 	for _, task := range retry {

@@ -21,7 +21,8 @@ package linguistics_domain
 import (
 	"strings"
 	"unicode"
-	"unicode/utf8"
+
+	"piko.sh/piko/internal/runeutil"
 )
 
 const (
@@ -186,14 +187,7 @@ func (p *PhoneticEncoder) finalisePhoneticCode(code string) string {
 // Returns string which is at most maxRunes runes long. If s is already short enough, s is
 // returned unchanged.
 func TruncateRunes(s string, maxRunes int) string {
-	if maxRunes <= 0 {
-		return ""
-	}
-	if utf8.RuneCountInString(s) <= maxRunes {
-		return s
-	}
-	runes := []rune(s)
-	return string(runes[:maxRunes])
+	return runeutil.Truncate(s, maxRunes)
 }
 
 // handleC processes the letter 'C' based on the letters that follow it.

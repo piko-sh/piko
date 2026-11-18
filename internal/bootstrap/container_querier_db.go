@@ -18,10 +18,6 @@
 
 package bootstrap
 
-// This file contains database (querier) service related container methods. It provides
-// named database connection management, migration services, and health probing for SQL
-// databases registered via AddDatabase.
-
 import (
 	"cmp"
 	"context"
@@ -71,6 +67,9 @@ const (
 	// poolUtilisationUnhealthyThreshold defines the connection pool utilisation ratio above
 	// which the health state is reported as unhealthy.
 	poolUtilisationUnhealthyThreshold = 0.95
+
+	// ratioToPercent converts a ratio between zero and one into a percentage.
+	ratioToPercent = 100
 
 	// databaseHealthPingTimeout caps each individual liveness/readiness ping so one
 	// unresponsive database cannot consume the whole probe's time budget; the remaining
@@ -738,12 +737,12 @@ func poolUtilisationState(stats sql.DBStats) (healthprobe_dto.State, string) {
 
 	if utilisation >= poolUtilisationUnhealthyThreshold {
 		return healthprobe_dto.StateUnhealthy,
-			fmt.Sprintf("pool %.0f%% utilised (>%.0f%%)", utilisation*100, poolUtilisationUnhealthyThreshold*100)
+			fmt.Sprintf("pool %.0f%% utilised (>%.0f%%)", utilisation*ratioToPercent, poolUtilisationUnhealthyThreshold*ratioToPercent)
 	}
 
 	if utilisation >= poolUtilisationDegradedThreshold {
 		return healthprobe_dto.StateDegraded,
-			fmt.Sprintf("pool %.0f%% utilised (>%.0f%%)", utilisation*100, poolUtilisationDegradedThreshold*100)
+			fmt.Sprintf("pool %.0f%% utilised (>%.0f%%)", utilisation*ratioToPercent, poolUtilisationDegradedThreshold*ratioToPercent)
 	}
 
 	return healthprobe_dto.StateHealthy, ""
@@ -1053,7 +1052,7 @@ func (c *Container) GetQuerierSeedService(name string) (sqldb_domain.SeedService
 // services. Errors are stored in c.querierDBErr.
 func (c *Container) createDatabaseService() {
 	ctx := c.GetAppContext()
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 
 	if len(c.dbRegistrations) == 0 {
 		l.Internal("No databases registered, skipping database service creation")

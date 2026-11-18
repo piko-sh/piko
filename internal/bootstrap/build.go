@@ -18,10 +18,6 @@
 
 package bootstrap
 
-// This file orchestrates the command-line build process for a Piko project. It translates
-// a CLI command into a series of calls to the core services, handling discovery,
-// compilation, and artefact writing.
-
 import (
 	"context"
 	"errors"
@@ -77,6 +73,10 @@ const (
 	// buildGCPercent is the GOGC percentage used during builds to reduce GC pressure at the
 	// cost of higher peak memory.
 	buildGCPercent = 500
+
+	// buildMemoryLimitBytes is the soft memory limit applied while a build runs, so the
+	// raised GOGC does not let the heap grow without bound.
+	buildMemoryLimitBytes = 512 << 20
 )
 
 var (
@@ -141,7 +141,7 @@ type walkEntryContext struct {
 //
 // Returns error when any step fails.
 func (op *buildOperation) execute(ctx context.Context) error {
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 	l.Notice("Starting Piko project build...", logger_domain.String("mode", op.runMode))
 
 	if op.runMode == GenerateModeSQL {
@@ -225,7 +225,7 @@ func (op *buildOperation) discoverEntryPointsWithFallback(ctx context.Context) (
 //
 // Returns error when any generation or write step fails.
 func (op *buildOperation) generateAndWriteArtefacts(ctx context.Context) error {
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 
 	genStart := time.Now()
 	if err := op.runGeneration(ctx); err != nil {
@@ -494,7 +494,7 @@ func (op *buildOperation) runAssetLeg(
 //
 // Returns error when directory discovery fails or no public entry points are found.
 func (op *buildOperation) discoverEntryPoints(ctx context.Context) error {
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 
 	serverConfig := op.container.serverConfig
 	pagesDir := deref(serverConfig.Paths.PagesSourceDir, "pages")
@@ -913,7 +913,7 @@ func BuildProject(
 	}
 
 	previousGOGC := debug.SetGCPercent(buildGCPercent)
-	debug.SetMemoryLimit(512 << 20)
+	debug.SetMemoryLimit(buildMemoryLimitBytes)
 	defer func() {
 		debug.SetGCPercent(previousGOGC)
 		debug.SetMemoryLimit(math.MaxInt64)
@@ -993,7 +993,7 @@ func isErrorPage(filename string) errorPageResult {
 //
 // Returns error when any database's code generation fails.
 func (op *buildOperation) generateSQL(ctx context.Context) error {
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 
 	if len(op.container.dbRegistrations) == 0 {
 		l.Internal("No databases registered, skipping SQL generation")
@@ -1031,7 +1031,7 @@ func (op *buildOperation) generateSQL(ctx context.Context) error {
 // Returns int which is the number of query methods generated.
 // Returns error when code generation or file writing fails.
 func (op *buildOperation) generateSQLForDatabase(ctx context.Context, name string, reg *DatabaseRegistration) (int, error) {
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 	l.Internal("Generating SQL code", logger_domain.String("database", name))
 
 	result, genErr := reg.EngineConfig.Engine.Toolchain().Generate(ctx, sqldb_dto.GenerateRequest{

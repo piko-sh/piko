@@ -22,6 +22,7 @@ package cache_integration_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -274,4 +275,138 @@ func newValkeyClusterConformanceCache(t *testing.T, _ cache_dto.Options[string, 
 	})
 
 	return c
+}
+
+func TestRedisPerEntryExpiryConformance(t *testing.T) {
+	t.Parallel()
+
+	conformance.RunPerEntryExpirySuite(t, conformance.PerEntryConfig{
+		NewHarness: func(t *testing.T) conformance.PerEntryHarness {
+			return conformance.PerEntryHarness{Cache: newRedisPerEntryCache(t)}
+		},
+	})
+}
+
+func TestRedisClusterPerEntryExpiryConformance(t *testing.T) {
+	skipIfNoCluster(t)
+	t.Parallel()
+
+	conformance.RunPerEntryExpirySuite(t, conformance.PerEntryConfig{
+		NewHarness: func(t *testing.T) conformance.PerEntryHarness {
+			return conformance.PerEntryHarness{Cache: newRedisClusterPerEntryCache(t)}
+		},
+	})
+}
+
+func TestValkeyPerEntryExpiryConformance(t *testing.T) {
+	skipIfNoValkey(t)
+	t.Parallel()
+
+	conformance.RunPerEntryExpirySuite(t, conformance.PerEntryConfig{
+		NewHarness: func(t *testing.T) conformance.PerEntryHarness {
+			return conformance.PerEntryHarness{Cache: newValkeyPerEntryCache(t)}
+		},
+	})
+}
+
+func TestValkeyClusterPerEntryExpiryConformance(t *testing.T) {
+	skipIfNoValkey(t)
+	skipIfNoCluster(t)
+	t.Parallel()
+
+	conformance.RunPerEntryExpirySuite(t, conformance.PerEntryConfig{
+		NewHarness: func(t *testing.T) conformance.PerEntryHarness {
+			return conformance.PerEntryHarness{Cache: newValkeyClusterPerEntryCache(t)}
+		},
+	})
+}
+
+func newRedisPerEntryCache(t *testing.T) cache_domain.ProviderPort[string, string] {
+	t.Helper()
+
+	namespace := t.Name() + ":"
+	provider, err := cache_provider_redis.NewRedisProvider(cache_provider_redis.Config{
+		Address:            globalEnv.redisAddr,
+		DefaultTTL:         time.Hour,
+		Registry:           newStringRegistry(),
+		AllowUnsafeFLUSHDB: true,
+		Namespace:          namespace,
+	})
+	require.NoError(t, err, "creating redis provider")
+	t.Cleanup(func() { _ = provider.Close() })
+
+	return conformance.BuildPerEntryCache(t, namespaceFactory(namespace, provider.CreateNamespaceTyped))
+}
+
+func newRedisClusterPerEntryCache(t *testing.T) cache_domain.ProviderPort[string, string] {
+	t.Helper()
+
+	namespace := t.Name() + ":"
+	provider, err := cache_provider_redis_cluster.NewRedisClusterProvider(cache_provider_redis_cluster.Config{
+		Addrs:              globalEnv.redisClusterAddrs,
+		DefaultTTL:         time.Hour,
+		Registry:           newStringRegistry(),
+		AllowUnsafeFLUSHDB: true,
+		Namespace:          namespace,
+	})
+	require.NoError(t, err, "creating redis cluster provider")
+	t.Cleanup(func() { _ = provider.Close() })
+
+	return conformance.BuildPerEntryCache(t, namespaceFactory(namespace, provider.CreateNamespaceTyped))
+}
+
+func newValkeyPerEntryCache(t *testing.T) cache_domain.ProviderPort[string, string] {
+	t.Helper()
+
+	namespace := t.Name() + ":"
+	provider, err := cache_provider_valkey.NewValkeyProvider(cache_provider_valkey.Config{
+		Address:            globalEnv.valkeyAddr,
+		DefaultTTL:         time.Hour,
+		Registry:           newStringRegistry(),
+		AllowUnsafeFLUSHDB: true,
+		Namespace:          namespace,
+	})
+	require.NoError(t, err, "creating valkey provider")
+	t.Cleanup(func() { _ = provider.Close() })
+
+	return conformance.BuildPerEntryCache(t, namespaceFactory(namespace, provider.CreateNamespaceTyped))
+}
+
+func newValkeyClusterPerEntryCache(t *testing.T) cache_domain.ProviderPort[string, string] {
+	t.Helper()
+
+	namespace := t.Name() + ":"
+	provider, err := cache_provider_valkey_cluster.NewValkeyClusterProvider(cache_provider_valkey_cluster.Config{
+		InitAddress:        globalEnv.redisClusterAddrs,
+		DefaultTTL:         time.Hour,
+		Registry:           newStringRegistry(),
+		AllowUnsafeFLUSHDB: true,
+		Namespace:          namespace,
+	})
+	require.NoError(t, err, "creating valkey cluster provider")
+	t.Cleanup(func() { _ = provider.Close() })
+
+	return conformance.BuildPerEntryCache(t, namespaceFactory(namespace, provider.CreateNamespaceTyped))
+}
+
+func newStringRegistry() *cache.EncodingRegistry {
+	valueEncoder := cache_encoder_json.New[string]()
+	return cache.NewEncodingRegistry(valueEncoder.(cache.AnyEncoder))
+}
+
+func namespaceFactory(
+	namespace string,
+	create func(namespace string, options any) (any, error),
+) func(cache_dto.Options[string, string]) (cache_domain.ProviderPort[string, string], error) {
+	return func(options cache_dto.Options[string, string]) (cache_domain.ProviderPort[string, string], error) {
+		created, err := create(namespace, options)
+		if err != nil {
+			return nil, err
+		}
+		adapter, ok := created.(cache_domain.ProviderPort[string, string])
+		if !ok {
+			return nil, fmt.Errorf("provider created %T", created)
+		}
+		return adapter, nil
+	}
 }

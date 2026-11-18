@@ -33,6 +33,10 @@ import (
 )
 
 const (
+	// dlqRowChromeWidth is the columns a dispatcher row reserves for its cursor and spacing
+	// before the label.
+	dlqRowChromeWidth = 3
+
 	// dlqRefreshTimeout caps the dispatcher summary RPC fetch.
 	dlqRefreshTimeout = 5 * time.Second
 
@@ -280,7 +284,7 @@ func (p *DLQPanel) renderItems(content *strings.Builder, displayItems []int, hea
 func (p *DLQPanel) renderRow(summary DispatcherSummary, selected bool) string {
 	cursor := RenderCursor(selected, p.Focused())
 	label := fmt.Sprintf("%-12s queued=%d  dlq=%d  failed=%d", summary.Type, summary.QueuedItems, summary.DeadLetterCount, summary.TotalFailed)
-	return cursor + " " + RenderName(label, max(0, p.ContentWidth()-3), selected, p.Focused())
+	return cursor + SingleSpace + RenderName(label, max(0, p.ContentWidth()-dlqRowChromeWidth), selected, p.Focused())
 }
 
 // handleKey routes a key press to the appropriate navigation handler.
@@ -477,18 +481,17 @@ func dlqEntryFocusSection(e DLQEntry) inspector.DetailSection {
 	return inspector.NewDetailSection("Selected entry", rows)
 }
 
-// oneLineError collapses error messages to a single line so the row summary stays
-// readable; the full message is rendered in the "Selected entry" focus section when entry
-// mode is active.
+// oneLineError replaces line breaks with spaces and trims surrounding whitespace only
+// when the message contains a line break.
 //
 // Takes message (string) which is the original error message.
 //
-// Returns string with newlines replaced by " ".
+// Returns string with line breaks replaced by spaces.
 func oneLineError(message string) string {
 	if !strings.ContainsAny(message, "\r\n") {
 		return message
 	}
-	collapsed := strings.NewReplacer("\r\n", " ", "\n", " ", "\r", " ").Replace(message)
+	collapsed := strings.NewReplacer("\r\n", SingleSpace, "\n", SingleSpace, "\r", SingleSpace).Replace(message)
 	return strings.TrimSpace(collapsed)
 }
 

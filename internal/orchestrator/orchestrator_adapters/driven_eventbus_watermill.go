@@ -33,7 +33,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 	"piko.sh/piko/wdk/goroutine"
@@ -42,6 +42,10 @@ import (
 const (
 	// logKeyTopic is the logging field key for the event bus topic name.
 	logKeyTopic = "topic"
+
+	// handlerErrorRetryDelay is how long a subscriber waits after a handler error before it
+	// lets the message be redelivered.
+	handlerErrorRetryDelay = 100 * time.Millisecond
 
 	// logKeyMessageID is the log key for the unique ID of a Watermill message.
 	logKeyMessageID = "messageID"
@@ -895,7 +899,7 @@ func (b *watermillEventBus) processMessage(
 		msgLog.ReportError(msgSpan, err, "Handler returned error, message Nacked")
 		WatermillEventBusDroppedEvents.Add(msgCtx, 1)
 
-		timer := time.NewTimer(100 * time.Millisecond)
+		timer := time.NewTimer(handlerErrorRetryDelay)
 		select {
 		case <-timer.C:
 		case <-ctx.Done():

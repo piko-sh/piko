@@ -29,7 +29,7 @@ import (
 	"sync"
 	"time"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 	"piko.sh/piko/internal/llm/llm_domain"
 	"piko.sh/piko/internal/llm/llm_dto"
 	"piko.sh/piko/internal/safeerror"
@@ -38,6 +38,9 @@ import (
 )
 
 const (
+	// closeDrainTimeout bounds how long Close waits for in-flight requests to finish.
+	closeDrainTimeout = 30 * time.Second
+
 	// toolTypeFunction is the type value for function tools in the Mistral API.
 	toolTypeFunction = "function"
 
@@ -502,7 +505,7 @@ func (p *mistralProvider) Close(ctx context.Context) error {
 			close(done)
 		}()
 
-		waitContext, cancel := context.WithTimeoutCause(ctx, 30*time.Second,
+		waitContext, cancel := context.WithTimeoutCause(ctx, closeDrainTimeout,
 			errors.New("mistral provider close drain exceeded 30s"))
 		defer cancel()
 

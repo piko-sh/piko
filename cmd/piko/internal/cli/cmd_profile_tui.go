@@ -48,6 +48,9 @@ const (
 	// tuiChannelBuffer is the buffer size for TUI message channels.
 	tuiChannelBuffer = 16
 
+	// tuiTickInterval is how often the profile TUI refreshes.
+	tuiTickInterval = 200 * time.Millisecond
+
 	// tuiMetricsFmt is the format string for labelled TUI metric lines.
 	tuiMetricsFmt = "  %s  %s\n"
 )
@@ -539,7 +542,7 @@ func newProfileTUIModel(
 //
 // Returns tea.Cmd which sends a profileTickMessage after the delay.
 func tickProfileTUI() tea.Cmd {
-	return tea.Tick(200*time.Millisecond, func(t time.Time) tea.Msg {
+	return tea.Tick(tuiTickInterval, func(t time.Time) tea.Msg {
 		return profileTickMessage(t)
 	})
 }

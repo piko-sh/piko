@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"iter"
 	"maps"
+	"math"
 	"runtime"
 	"sync"
 	"time"
@@ -68,6 +69,24 @@ type MultiLevelAdapter[K comparable, V any] struct {
 	closeOnce sync.Once
 }
 
+// computeOutcome holds what a level reports after a compute.
+type computeOutcome[V any] struct {
+	// value is the value present after the compute.
+	value V
+
+	// present reports whether a value is present after the compute.
+	present bool
+}
+
+// levelEntry is an entry together with the level it was read from.
+type levelEntry[K comparable, V any] struct {
+	// Entry is the entry as the level reported it.
+	cache_dto.Entry[K, V]
+
+	// fromL2 records that the entry came from L2 after an L1 miss.
+	fromL2 bool
+}
+
 var (
 	_ cache_domain.ProviderPort[any, any] = (*MultiLevelAdapter[any, any])(nil)
 )
@@ -92,34 +111,8 @@ func (m *MultiLevelAdapter[K, V]) GetIfPresent(ctx context.Context, key K) (V, b
 		return cacheValue, true, nil
 	}
 
-	result, err := m.l2Circuit.Execute(func() (any, error) {
-		cacheValue, ok, l2Err := m.l2Provider.GetIfPresent(ctx, key)
-		if l2Err != nil {
-			return nil, l2Err
-		}
-		if !ok {
-			return nil, cache_dto.ErrNotFound
-		}
-		return cacheValue, nil
-	})
-
-	if err == nil {
-		cacheValue, ok := result.(V)
-		if !ok {
-			return *new(V), false, nil
-		}
-
-		_ = m.l1Provider.Set(ctx, key, cacheValue)
-		l2HitsTotal.Add(ctx, 1)
-		backPopulations.Add(ctx, 1)
-		return cacheValue, true, nil
-	}
-
-	if !errors.Is(err, gobreaker.ErrOpenState) {
-		l2ErrorsTotal.Add(ctx, 1)
-	}
-	totalMissesTotal.Add(ctx, 1)
-	return *new(V), false, nil
+	cacheValue, ok := m.tryL2Get(ctx, key)
+	return cacheValue, ok, nil
 }
 
 // Get retrieves a value from L1 cache, L2 cache, or loads it using the provided loader
@@ -151,22 +144,25 @@ func (m *MultiLevelAdapter[K, V]) Get(ctx context.Context, key K, loader cache_d
 }
 
 // tryL2Get attempts to retrieve a value from L2 cache through the circuit breaker. On
-// success, it back-populates the L1 cache with the retrieved value.
+// success, it back-populates L1 with the retrieved value and the TTL L2 reported when it
+// read the entry.
 //
 // Takes key (K) which identifies the cache entry to retrieve.
 //
 // Returns V which is the cached value, or the zero value if not found.
 // Returns bool which indicates whether the value was found in L2 cache.
 func (m *MultiLevelAdapter[K, V]) tryL2Get(ctx context.Context, key K) (V, bool) {
-	l2Res, l2Err := m.l2Circuit.Execute(func() (any, error) {
-		cacheValue, ok, err := m.l2Provider.GetIfPresent(ctx, key)
+	var entry cache_dto.Entry[K, V]
+	_, l2Err := m.l2Circuit.Execute(func() (any, error) {
+		found, ok, err := m.l2Provider.GetEntry(ctx, key)
 		if err != nil {
-			return nil, fmt.Errorf("L2 GetIfPresent during tryL2Get: %w", err)
+			return nil, fmt.Errorf("L2 GetEntry during tryL2Get: %w", err)
 		}
 		if !ok {
 			return nil, cache_dto.ErrNotFound
 		}
-		return cacheValue, nil
+		entry = found
+		return nil, nil
 	})
 
 	if l2Err != nil {
@@ -177,15 +173,37 @@ func (m *MultiLevelAdapter[K, V]) tryL2Get(ctx context.Context, key K) (V, bool)
 		return *new(V), false
 	}
 
-	cacheValue, ok := l2Res.(V)
-	if !ok {
-		return *new(V), false
-	}
-
-	_ = m.l1Provider.Set(ctx, key, cacheValue)
+	m.backfillL1(ctx, entry)
 	l2HitsTotal.Add(ctx, 1)
 	backPopulations.Add(ctx, 1)
-	return cacheValue, true
+	return entry.Value, true
+}
+
+// backfillL1 copies an entry read from L2 into L1.
+//
+// It uses the TTL at L2's snapshot. Time spent before the L1 write can make the copy
+// outlive the L2 entry. An entry with no time left at the snapshot is not copied. An
+// entry without expiry is written as Set writes it.
+//
+// Takes entry (cache_dto.Entry[K, V]) which is the entry as L2 reported it.
+func (m *MultiLevelAdapter[K, V]) backfillL1(ctx context.Context, entry cache_dto.Entry[K, V]) {
+	ctx, l := logger_domain.From(ctx, log)
+
+	var err error
+	if entry.ExpiresAtNano == 0 || entry.ExpiresAtNano == math.MaxInt64 {
+		err = m.l1Provider.Set(ctx, entry.Key, entry.Value)
+	} else {
+		remaining := remainingTTL(entry)
+		if remaining <= 0 {
+			return
+		}
+		err = m.l1Provider.SetWithTTL(ctx, entry.Key, entry.Value, remaining)
+	}
+	if err != nil {
+		l.Warn("Failed to back-populate L1 from L2",
+			logger_domain.String(fieldKey, fmt.Sprintf(fmtVerb, entry.Key)),
+			logger_domain.Error(err))
+	}
 }
 
 // createWriteBackLoader wraps a loader to add asynchronous L2 write-back after loading.
@@ -249,13 +267,13 @@ func (m *MultiLevelAdapter[K, V]) spawnBackgroundWorker(ctx context.Context, com
 	}()
 }
 
-// Set stores the value in both L1 and L2 caches using write-through policy.
+// Set attempts an L2 write and stores the value in L1 even if L2 is unavailable.
 //
 // Takes key (K) which identifies the cache entry.
 // Takes value (V) which is the data to store.
 // Takes tags (...string) which are optional labels for cache invalidation.
 //
-// Returns error when the operation fails.
+// Returns error when the L1 write fails. An L2 failure is logged.
 func (m *MultiLevelAdapter[K, V]) Set(ctx context.Context, key K, value V, tags ...string) error {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -273,17 +291,15 @@ func (m *MultiLevelAdapter[K, V]) Set(ctx context.Context, key K, value V, tags 
 	return m.l1Provider.Set(ctx, key, value, tags...)
 }
 
-// SetWithTTL stores the value with a TTL in both L1 and L2 caches.
+// SetWithTTL writes the value with a TTL to L1 and attempts the same write in L2.
 //
 // Takes key (K) which identifies the cache entry.
 // Takes value (V) which is the data to store.
 // Takes ttl (time.Duration) which specifies how long the entry remains valid.
 // Takes tags (...string) which provides optional labels for cache invalidation.
 //
-// Returns error when the L1 cache write fails, or when L2 fails after L1 succeeds.
+// Returns error when the L1 write fails, or when L1 succeeds but the L2 write failed.
 func (m *MultiLevelAdapter[K, V]) SetWithTTL(ctx context.Context, key K, value V, ttl time.Duration, tags ...string) error {
-	ctx, l := logger_domain.From(ctx, log)
-
 	var l2Err error
 	_, err := m.l2Circuit.Execute(func() (any, error) {
 		l2Err = m.l2Provider.SetWithTTL(ctx, key, value, ttl, tags...)
@@ -292,9 +308,6 @@ func (m *MultiLevelAdapter[K, V]) SetWithTTL(ctx context.Context, key K, value V
 
 	if err != nil && !errors.Is(err, gobreaker.ErrOpenState) {
 		l2ErrorsTotal.Add(ctx, 1)
-		l.Error("Failed to SetWithTTL to L2 cache",
-			logger_domain.String(fieldKey, fmt.Sprintf(fmtVerb, key)),
-			logger_domain.Error(err))
 	}
 
 	if l1Err := m.l1Provider.SetWithTTL(ctx, key, value, ttl, tags...); l1Err != nil {
@@ -308,11 +321,11 @@ func (m *MultiLevelAdapter[K, V]) SetWithTTL(ctx context.Context, key K, value V
 	return nil
 }
 
-// Invalidate removes the key from both L1 and L2 caches.
+// Invalidate removes the key from L1 and attempts to remove it from L2.
 //
 // Takes key (K) which specifies the cache key to remove.
 //
-// Returns error when the operation fails.
+// Returns error when the L1 invalidation fails. An L2 failure is recorded separately.
 func (m *MultiLevelAdapter[K, V]) Invalidate(ctx context.Context, key K) error {
 	_, err := m.l2Circuit.Execute(func() (any, error) {
 		return nil, m.l2Provider.Invalidate(ctx, key)
@@ -324,55 +337,130 @@ func (m *MultiLevelAdapter[K, V]) Invalidate(ctx context.Context, key K) error {
 	return m.l1Provider.Invalidate(ctx, key)
 }
 
-// Compute computes and atomically updates the value in L1 cache using the provided
-// function.
+// Compute atomically computes a new value for a key.
+//
+// L2 is the source of truth, so the compute runs there and L1 then drops its copy; the
+// next read fills L1 from L2 with the TTL L2 has left. When L2 cannot be reached the
+// compute runs on L1 alone. The compute function may run more than once, because a remote
+// L2 retries it when the key changes underneath, so it must not have side effects.
 //
 // Takes key (K) which identifies the cache entry to update.
-// Takes computeFunction (func(...)) which receives the old value and whether it was
-// found, and returns the new value with an action to perform.
+// Takes computeFunction (func(V, bool) (V, cache_dto.ComputeAction)) which computes a new
+// value and action from the old value and presence flag.
 //
 // Returns V which is the resulting value after the computation.
 // Returns bool which indicates whether a value exists after the operation.
-// Returns error when the operation fails.
+// Returns error when the compute fails on the level that ran it.
 func (m *MultiLevelAdapter[K, V]) Compute(ctx context.Context, key K, computeFunction func(oldValue V, found bool) (newValue V, action cache_dto.ComputeAction)) (V, bool, error) {
-	return m.l1Provider.Compute(ctx, key, computeFunction)
+	return m.computeOnLevels(ctx, key, "Compute", func(level cache_domain.ProviderPort[K, V]) (V, bool, error) {
+		return level.Compute(ctx, key, computeFunction)
+	})
 }
 
-// ComputeIfAbsent atomically computes and stores a value in L1 if absent.
+// ComputeIfAbsent atomically computes and stores a value if the key is absent.
+//
+// L2 is the source of truth, as for Compute, and L1 falls back to running it alone when
+// L2 cannot be reached. The compute function may run more than once on a remote L2, so it
+// must not have side effects.
 //
 // Takes key (K) which identifies the cache entry to look up or create.
 // Takes computeFunction (func() V) which computes the value if the key is absent.
 //
 // Returns V which is the existing or newly computed value.
-// Returns bool which is true if the value was already present.
-// Returns error when the operation fails.
+// Returns bool which reports whether a value is present afterwards.
+// Returns error when the compute fails on the level that ran it.
 func (m *MultiLevelAdapter[K, V]) ComputeIfAbsent(ctx context.Context, key K, computeFunction func() V) (V, bool, error) {
-	return m.l1Provider.ComputeIfAbsent(ctx, key, computeFunction)
+	return m.computeOnLevels(ctx, key, "ComputeIfAbsent", func(level cache_domain.ProviderPort[K, V]) (V, bool, error) {
+		return level.ComputeIfAbsent(ctx, key, computeFunction)
+	})
 }
 
-// ComputeIfPresent atomically updates an existing value in L1 cache.
+// ComputeIfPresent atomically updates an existing value.
+//
+// L2 is the source of truth, as for Compute, and L1 falls back to running it alone when
+// L2 cannot be reached. The compute function may run more than once on a remote L2, so it
+// must not have side effects.
 //
 // Takes key (K) which identifies the entry to update.
-// Takes computeFunction (func(...)) which computes the new value from the old value.
+// Takes computeFunction (func(V) (V, cache_dto.ComputeAction)) which computes the new
+// value and action from the old value.
 //
 // Returns V which is the computed value, or the zero value if the key was not present.
 // Returns bool which indicates whether the key was present and updated.
-// Returns error when the operation fails.
+// Returns error when the compute fails on the level that ran it.
 func (m *MultiLevelAdapter[K, V]) ComputeIfPresent(ctx context.Context, key K, computeFunction func(oldValue V) (newValue V, action cache_dto.ComputeAction)) (V, bool, error) {
-	return m.l1Provider.ComputeIfPresent(ctx, key, computeFunction)
+	return m.computeOnLevels(ctx, key, "ComputeIfPresent", func(level cache_domain.ProviderPort[K, V]) (V, bool, error) {
+		return level.ComputeIfPresent(ctx, key, computeFunction)
+	})
 }
 
-// ComputeWithTTL atomically computes a new value with per-call TTL control in L1 cache.
+// ComputeWithTTL atomically computes a new value with per-call TTL control.
+//
+// L2 is the source of truth, so the compute runs there and L1 then drops its copy.
+// Mirroring a result could apply the wrong TTL or reorder concurrent computes. The next
+// read backfills L1 from L2. If L2 fails, the compute runs on L1. A remote L2 may retry
+// the compute function, so it must not have side effects.
 //
 // Takes key (K) which identifies the cache entry to update.
-// Takes computeFunction (func(...)) which receives the old value and found flag,
-// returning a ComputeResult containing the new value, action, and optional TTL.
+// Takes computeFunction (func(V, bool) cache_dto.ComputeResult[V]) which computes the new
+// value, action, and optional TTL from the old value and presence flag.
 //
 // Returns V which is the resulting value after the operation.
 // Returns bool which indicates whether a value is now present.
-// Returns error when the operation fails.
+// Returns error when the compute fails on the level that ran it.
 func (m *MultiLevelAdapter[K, V]) ComputeWithTTL(ctx context.Context, key K, computeFunction func(oldValue V, found bool) cache_dto.ComputeResult[V]) (V, bool, error) {
-	return m.l1Provider.ComputeWithTTL(ctx, key, computeFunction)
+	return m.computeOnLevels(ctx, key, "ComputeWithTTL", func(level cache_domain.ProviderPort[K, V]) (V, bool, error) {
+		return level.ComputeWithTTL(ctx, key, computeFunction)
+	})
+}
+
+// computeOnLevels runs a compute on L2 and drops the L1 copy of the key afterwards, or
+// runs it on L1 alone when L2 cannot be reached.
+//
+// Once L2 has committed the compute its result is returned even when L1 cannot drop its
+// copy, because a caller that retried on that error would apply the compute twice. The L1
+// failure is logged instead.
+//
+// Takes key (K) which identifies the entry.
+// Takes operation (string) which names the compute in log output.
+// Takes compute (func(cache_domain.ProviderPort[K, V]) (V, bool, error)) which runs the
+// compute on the given level.
+//
+// Returns V which is the value present afterwards.
+// Returns bool which reports whether a value is present afterwards.
+// Returns error when the compute fails on the level that ran it.
+func (m *MultiLevelAdapter[K, V]) computeOnLevels(
+	ctx context.Context,
+	key K,
+	operation string,
+	compute func(level cache_domain.ProviderPort[K, V]) (V, bool, error),
+) (V, bool, error) {
+	ctx, l := logger_domain.From(ctx, log)
+
+	var computed computeOutcome[V]
+	_, err := m.l2Circuit.Execute(func() (any, error) {
+		value, present, l2Err := compute(m.l2Provider)
+		computed = computeOutcome[V]{value: value, present: present}
+		return nil, l2Err
+	})
+	if err != nil {
+		if !errors.Is(err, gobreaker.ErrOpenState) {
+			l2ErrorsTotal.Add(ctx, 1)
+			l.Warn("L2 compute failed, computing on L1 alone",
+				logger_domain.String("operation", operation),
+				logger_domain.String(fieldKey, fmt.Sprintf(fmtVerb, key)),
+				logger_domain.Error(err))
+		}
+		return compute(m.l1Provider)
+	}
+
+	if invalidateErr := m.l1Provider.Invalidate(ctx, key); invalidateErr != nil {
+		l.Warn("Failed to drop the L1 copy after an L2 compute; L1 may serve the old value until it expires",
+			logger_domain.String("operation", operation),
+			logger_domain.String(fieldKey, fmt.Sprintf(fmtVerb, key)),
+			logger_domain.Error(invalidateErr))
+	}
+	return computed.value, computed.present, nil
 }
 
 // BulkGet retrieves multiple values from L1/L2 with fallback to the bulk loader.
@@ -458,30 +546,26 @@ func (m *MultiLevelAdapter[K, V]) bulkGetFromL2(ctx context.Context, keys []K, r
 //
 // Takes keys ([]K) which specifies the cache keys to look up.
 //
-// Returns map[K]V which contains the values found in the L2 cache.
-// Returns error when the circuit breaker rejects the request.
-func (m *MultiLevelAdapter[K, V]) fetchFromL2(ctx context.Context, keys []K) (map[K]V, error) {
-	l2Result, l2Err := m.l2Circuit.Execute(func() (any, error) {
-		l2Values := make(map[K]V)
+// Returns map[K]cache_dto.Entry[K, V] which contains the entries found in the L2 cache,
+// with the expiry L2 reports for each.
+// Returns error when the circuit breaker rejects the request or an L2 read fails.
+func (m *MultiLevelAdapter[K, V]) fetchFromL2(ctx context.Context, keys []K) (map[K]cache_dto.Entry[K, V], error) {
+	l2Hits := make(map[K]cache_dto.Entry[K, V])
+	_, l2Err := m.l2Circuit.Execute(func() (any, error) {
 		for _, key := range keys {
-			cacheValue, ok, err := m.l2Provider.GetIfPresent(ctx, key)
+			entry, ok, err := m.l2Provider.GetEntry(ctx, key)
 			if err != nil {
-				return nil, fmt.Errorf("L2 GetIfPresent during fetchFromL2: %w", err)
+				return nil, fmt.Errorf("L2 GetEntry during fetchFromL2: %w", err)
 			}
 			if ok {
-				l2Values[key] = cacheValue
+				l2Hits[key] = entry
 			}
 		}
-		return l2Values, nil
+		return nil, nil
 	})
 
 	if l2Err != nil {
 		return nil, l2Err
-	}
-
-	l2Hits, ok := l2Result.(map[K]V)
-	if !ok {
-		return make(map[K]V), nil
 	}
 	return l2Hits, nil
 }
@@ -501,26 +585,26 @@ func (*MultiLevelAdapter[K, V]) handleL2Error(ctx context.Context, err error, mi
 	}
 }
 
-// processL2Hits adds L2 hits to results and back-populates L1 asynchronously.
+// processL2Hits adds L2 hits to results and back-populates L1 asynchronously, using the
+// TTL reported at each entry's L2 snapshot.
 //
-// Takes l2Hits (map[K]V) which contains the cache hits from the L2 provider.
+// Takes l2Hits (map[K]cache_dto.Entry[K, V]) which contains the cache hits from the L2
+// provider.
 // Takes results (map[K]V) which is the destination map for collected results.
-func (m *MultiLevelAdapter[K, V]) processL2Hits(ctx context.Context, l2Hits map[K]V, results map[K]V) {
+func (m *MultiLevelAdapter[K, V]) processL2Hits(ctx context.Context, l2Hits map[K]cache_dto.Entry[K, V], results map[K]V) {
 	if len(l2Hits) == 0 {
 		return
 	}
 
-	for key, cacheValue := range l2Hits {
-		results[key] = cacheValue
+	for key, entry := range l2Hits {
+		results[key] = entry.Value
 		l2HitsTotal.Add(ctx, 1)
 		backPopulations.Add(ctx, 1)
 	}
 
-	hits := l2Hits
-
 	m.spawnBackgroundWorker(ctx, "cache.multilevelBackPopulateL1", func(backgroundCtx context.Context) {
-		for k, v := range hits {
-			_ = m.l1Provider.Set(backgroundCtx, k, v)
+		for _, entry := range l2Hits {
+			m.backfillL1(backgroundCtx, entry)
 		}
 	})
 }
@@ -528,10 +612,10 @@ func (m *MultiLevelAdapter[K, V]) processL2Hits(ctx context.Context, l2Hits map[
 // collectRemainingMisses returns keys that were not found in L2 hits.
 //
 // Takes keys ([]K) which is the list of keys to check.
-// Takes l2Hits (map[K]V) which contains the keys found in L2 cache.
+// Takes l2Hits (map[K]cache_dto.Entry[K, V]) which contains the keys found in L2 cache.
 //
 // Returns []K which contains the keys not present in l2Hits.
-func (*MultiLevelAdapter[K, V]) collectRemainingMisses(keys []K, l2Hits map[K]V) []K {
+func (*MultiLevelAdapter[K, V]) collectRemainingMisses(keys []K, l2Hits map[K]cache_dto.Entry[K, V]) []K {
 	misses := make([]K, 0, len(keys))
 	for _, key := range keys {
 		if _, found := l2Hits[key]; !found {
@@ -600,18 +684,16 @@ func (m *MultiLevelAdapter[K, V]) storeLoadedValues(ctx context.Context, values 
 	})
 }
 
-// BulkSet stores multiple key-value pairs in both L1 and L2 caches.
+// BulkSet writes multiple entries to L1 and attempts the same write in L2.
 //
 // Takes items (map[K]V) which contains the key-value pairs to store.
 // Takes tags (...string) which specifies optional cache tags for the entries.
 //
-// Returns error when the L1 cache fails, or when L2 fails but L1 succeeds.
+// Returns error when the L1 write fails, or when L1 succeeds but the L2 write failed.
 func (m *MultiLevelAdapter[K, V]) BulkSet(ctx context.Context, items map[K]V, tags ...string) error {
 	if len(items) == 0 {
 		return nil
 	}
-
-	ctx, l := logger_domain.From(ctx, log)
 
 	var l2Err error
 	_, err := m.l2Circuit.Execute(func() (any, error) {
@@ -621,9 +703,6 @@ func (m *MultiLevelAdapter[K, V]) BulkSet(ctx context.Context, items map[K]V, ta
 
 	if err != nil && !errors.Is(err, gobreaker.ErrOpenState) {
 		l2ErrorsTotal.Add(ctx, 1)
-		l.Error("Failed to BulkSet to L2 cache",
-			logger_domain.Int("item_count", len(items)),
-			logger_domain.Error(err))
 	}
 
 	if l1Err := m.l1Provider.BulkSet(ctx, items, tags...); l1Err != nil {
@@ -637,12 +716,12 @@ func (m *MultiLevelAdapter[K, V]) BulkSet(ctx context.Context, items map[K]V, ta
 	return nil
 }
 
-// InvalidateByTags removes all entries with matching tags from both caches.
+// InvalidateByTags removes matching entries from L1 and attempts to remove them from L2.
 //
 // Takes tags (...string) which specifies the cache tags to match for removal.
 //
 // Returns int which is the count of entries invalidated from the L1 cache.
-// Returns error when the operation fails.
+// Returns error when the L1 invalidation fails. An L2 failure is recorded separately.
 func (m *MultiLevelAdapter[K, V]) InvalidateByTags(ctx context.Context, tags ...string) (int, error) {
 	_, err := m.l2Circuit.Execute(func() (any, error) {
 		_, l2Err := m.l2Provider.InvalidateByTags(ctx, tags...)
@@ -656,9 +735,9 @@ func (m *MultiLevelAdapter[K, V]) InvalidateByTags(ctx context.Context, tags ...
 	return invalidatedCount, l1Err
 }
 
-// InvalidateAll clears all entries from both L1 and L2 caches.
+// InvalidateAll clears L1 and attempts to clear L2.
 //
-// Returns error when the operation fails.
+// Returns error when the L1 clear fails. An L2 failure is logged.
 func (m *MultiLevelAdapter[K, V]) InvalidateAll(ctx context.Context) error {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -710,9 +789,8 @@ func (m *MultiLevelAdapter[K, V]) Stats() cache_dto.Stats {
 
 // Close releases resources held by both L1 and L2 caches.
 //
-// Returns error which is the joined errors from closing L1 and L2; nil when both close
-// cleanly. Subsequent calls return the captured error without re-closing the underlying
-// providers.
+// Returns error which joins the L1 and L2 close errors on the first call. Later calls
+// return nil without closing either provider again.
 func (m *MultiLevelAdapter[K, V]) Close(ctx context.Context) error {
 	var closeErr error
 	m.closeOnce.Do(func() {
@@ -741,26 +819,73 @@ func (m *MultiLevelAdapter[K, V]) Refresh(ctx context.Context, key K, loader cac
 	return m.l1Provider.Refresh(ctx, key, loader)
 }
 
-// GetEntry returns the full entry metadata for a key from L1.
+// GetEntry returns the full entry metadata for a key from L1, or from L2 on an L1 miss,
+// back-populating L1 as any read does.
 //
 // Takes key (K) which identifies the entry to retrieve.
 //
 // Returns cache_dto.Entry[K, V] which contains the entry with metadata.
 // Returns bool which indicates whether the key was found.
-// Returns error when the operation fails.
+// Returns error when L1 fails or L2 fails while its circuit is closed.
 func (m *MultiLevelAdapter[K, V]) GetEntry(ctx context.Context, key K) (cache_dto.Entry[K, V], bool, error) {
-	return m.l1Provider.GetEntry(ctx, key)
+	entry, found, err := m.entryFromLevels(ctx, func(level cache_domain.ProviderPort[K, V]) (cache_dto.Entry[K, V], bool, error) {
+		return level.GetEntry(ctx, key)
+	})
+	if err == nil && found && entry.fromL2 {
+		m.backfillL1(ctx, entry.Entry)
+	}
+	return entry.Entry, found, err
 }
 
-// ProbeEntry returns entry metadata without affecting statistics.
+// ProbeEntry returns entry metadata from L1, or from L2 on an L1 miss, without affecting
+// statistics or back-populating L1.
 //
 // Takes key (K) which identifies the entry to probe.
 //
 // Returns cache_dto.Entry[K, V] which contains the entry with metadata.
 // Returns bool which indicates whether the key was found.
-// Returns error when the operation fails.
+// Returns error when L1 fails or L2 fails while its circuit is closed.
 func (m *MultiLevelAdapter[K, V]) ProbeEntry(ctx context.Context, key K) (cache_dto.Entry[K, V], bool, error) {
-	return m.l1Provider.ProbeEntry(ctx, key)
+	entry, found, err := m.entryFromLevels(ctx, func(level cache_domain.ProviderPort[K, V]) (cache_dto.Entry[K, V], bool, error) {
+		return level.ProbeEntry(ctx, key)
+	})
+	return entry.Entry, found, err
+}
+
+// entryFromLevels reads an entry from L1 and, on a miss, from L2, since computes leave L2
+// holding entries that L1 has dropped.
+//
+// Takes read (func(cache_domain.ProviderPort[K, V]) (cache_dto.Entry[K, V], bool, error))
+// which reads the entry from the given level.
+//
+// Returns levelEntry[K, V] which is the entry and the level it came from.
+// Returns bool which indicates whether the key was found.
+// Returns error when L1 fails or L2 fails while its circuit is closed; an open circuit
+// reports a miss.
+func (m *MultiLevelAdapter[K, V]) entryFromLevels(
+	ctx context.Context,
+	read func(level cache_domain.ProviderPort[K, V]) (cache_dto.Entry[K, V], bool, error),
+) (levelEntry[K, V], bool, error) {
+	entry, found, err := read(m.l1Provider)
+	if err != nil || found {
+		return levelEntry[K, V]{Entry: entry, fromL2: false}, found, err
+	}
+
+	var l2Entry cache_dto.Entry[K, V]
+	var l2Found bool
+	_, err = m.l2Circuit.Execute(func() (any, error) {
+		var l2Err error
+		l2Entry, l2Found, l2Err = read(m.l2Provider)
+		return nil, l2Err
+	})
+	if errors.Is(err, gobreaker.ErrOpenState) {
+		return levelEntry[K, V]{}, false, nil
+	}
+	if err != nil {
+		l2ErrorsTotal.Add(ctx, 1)
+		return levelEntry[K, V]{}, false, fmt.Errorf("reading entry from L2: %w", err)
+	}
+	return levelEntry[K, V]{Entry: l2Entry, fromL2: true}, l2Found, nil
 }
 
 // GetMaximum returns the maximum capacity of the L1 cache.
@@ -784,14 +909,34 @@ func (m *MultiLevelAdapter[K, V]) WeightedSize() uint64 {
 	return m.l1Provider.WeightedSize()
 }
 
-// SetExpiresAfter manually sets the expiration time for a key in L1.
+// SetExpiresAfter attempts to set the key's expiry in L2 and then updates L1.
 //
 // Takes key (K) which identifies the cache entry to update.
 // Takes expiresAfter (time.Duration) which specifies the new expiration time.
+// cache_dto.NoExpiry removes the TTL. Other nonpositive values do nothing.
 //
-// Returns error when the operation fails.
+// Returns error when the L1 update fails, or when L1 succeeds but the L2 update failed.
 func (m *MultiLevelAdapter[K, V]) SetExpiresAfter(ctx context.Context, key K, expiresAfter time.Duration) error {
-	return m.l1Provider.SetExpiresAfter(ctx, key, expiresAfter)
+	if expiresAfter <= 0 {
+		return nil
+	}
+
+	var l2Err error
+	_, err := m.l2Circuit.Execute(func() (any, error) {
+		l2Err = m.l2Provider.SetExpiresAfter(ctx, key, expiresAfter)
+		return nil, l2Err
+	})
+	if err != nil && !errors.Is(err, gobreaker.ErrOpenState) {
+		l2ErrorsTotal.Add(ctx, 1)
+	}
+
+	if l1Err := m.l1Provider.SetExpiresAfter(ctx, key, expiresAfter); l1Err != nil {
+		return fmt.Errorf("L1 SetExpiresAfter failed: %w", l1Err)
+	}
+	if l2Err != nil {
+		return fmt.Errorf("L2 SetExpiresAfter failed (L1 succeeded): %w", l2Err)
+	}
+	return nil
 }
 
 // SetRefreshableAfter manually sets the refresh time for a key in L1.
@@ -897,4 +1042,20 @@ func NewMultiLevelAdapter[K comparable, V any](
 		opt(adapter)
 	}
 	return adapter
+}
+
+// remainingTTL finds the time between an entry's reported expiry and L2 snapshot. The
+// result does not account for time spent before the L1 write, but it does not require the
+// L2 and local clocks to agree.
+//
+// Takes entry (cache_dto.Entry[K, V]) which carries the expiry L2 reported.
+//
+// Returns time.Duration which is the TTL at the L2 snapshot, or zero or negative if the
+// entry had expired by then.
+func remainingTTL[K comparable, V any](entry cache_dto.Entry[K, V]) time.Duration {
+	anchorNano := entry.SnapshotAtNano
+	if anchorNano <= 0 {
+		anchorNano = time.Now().UnixNano()
+	}
+	return time.Duration(entry.ExpiresAtNano - anchorNano)
 }

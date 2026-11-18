@@ -61,7 +61,8 @@ func TestGraph_ConcurrentInsertAndSearch(t *testing.T) {
 				for j := range dim {
 					q[j] = randomSource.Float32()
 				}
-				g.Search(q, 5, 0)
+				_, err := g.Search(q, 5, 0)
+				assert.NoError(t, err)
 			}
 		})
 	}
@@ -104,7 +105,8 @@ func TestGraph_ConcurrentDeleteAndSearch(t *testing.T) {
 				for j := range dim {
 					q[j] = r.Float32()
 				}
-				g.Search(q, 5, 0)
+				_, err := g.Search(q, 5, 0)
+				assert.NoError(t, err)
 			}
 		})
 	}

@@ -21,7 +21,7 @@ package llm_provider_mistral
 import (
 	"reflect"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 func init() {

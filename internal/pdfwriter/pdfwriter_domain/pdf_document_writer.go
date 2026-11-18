@@ -18,14 +18,16 @@
 
 package pdfwriter_domain
 
-// Minimal PDF file writer. Produces a valid PDF 1.7 document by writing the header,
-// indirect objects with tracked byte offsets, a cross-reference table, and the trailer.
-// No external dependencies.
-
 import (
 	"bytes"
 	"compress/zlib"
 	"fmt"
+)
+
+const (
+	// pdfBinaryCommentLine holds the comment line after the PDF header whose high-bit bytes
+	// mark the file as binary for transfer tools.
+	pdfBinaryCommentLine = "%\xe2\xe3\xcf\xd3\n"
 )
 
 // pdfObject holds the byte offset of a single PDF indirect object.
@@ -60,7 +62,7 @@ func (writer *PdfDocumentWriter) AllocateObject() int {
 // a binary PDF.
 func (writer *PdfDocumentWriter) WriteHeader() {
 	_, _ = writer.buffer.WriteString("%PDF-1.7\n")
-	_, _ = writer.buffer.Write([]byte{'%', 0xe2, 0xe3, 0xcf, 0xd3, '\n'})
+	_, _ = writer.buffer.WriteString(pdfBinaryCommentLine)
 }
 
 // WriteObject writes an indirect object with the given number and body content. The byte

@@ -36,28 +36,28 @@ func TestCacheControlForArtefact(t *testing.T) {
 	imageVariant := &registry_dto.Variant{MimeType: "image/avif"}
 
 	testCases := []struct {
+		variant           *registry_dto.Variant
 		name              string
+		want              string
 		disableHTTPCache  bool
 		foundByStorageKey bool
-		variant           *registry_dto.Variant
-		want              string
 	}{
 
-		{"content-addressed is immutable", false, true, nil, cacheControlImmutable},
-		{"content-addressed is immutable even for image", false, true, imageVariant, cacheControlImmutable},
+		{nil, "content-addressed is immutable", cacheControlImmutable, false, true},
+		{imageVariant, "content-addressed is immutable even for image", cacheControlImmutable, false, true},
 
-		{"stable-URL JS bundle revalidates", false, false, jsVariant, jitCacheControl},
-		{"stable-URL CSS revalidates", false, false, cssVariant, jitCacheControl},
+		{jsVariant, "stable-URL JS bundle revalidates", jitCacheControl, false, false},
+		{cssVariant, "stable-URL CSS revalidates", jitCacheControl, false, false},
 
-		{"transpiled .ts source revalidates despite linguist mime", false, false, tsSourceVariant, jitCacheControl},
-		{"transpiled .mts source revalidates despite video mime", false, false, mtsSourceVariant, jitCacheControl},
-		{"unidentified stable-URL variant revalidates", false, false, nil, jitCacheControl},
+		{tsSourceVariant, "transpiled .ts source revalidates despite linguist mime", jitCacheControl, false, false},
+		{mtsSourceVariant, "transpiled .mts source revalidates despite video mime", jitCacheControl, false, false},
+		{nil, "unidentified stable-URL variant revalidates", jitCacheControl, false, false},
 
-		{"stable-URL image uses bounded media tier", false, false, imageVariant, cacheControlMutableAsset},
+		{imageVariant, "stable-URL image uses bounded media tier", cacheControlMutableAsset, false, false},
 
-		{"dev mode no-cache for content-addressed", true, true, nil, cacheControlNoCache},
-		{"dev mode no-cache for stable JS", true, false, jsVariant, cacheControlNoCache},
-		{"dev mode no-cache for image", true, false, imageVariant, cacheControlNoCache},
+		{nil, "dev mode no-cache for content-addressed", cacheControlNoCache, true, true},
+		{jsVariant, "dev mode no-cache for stable JS", cacheControlNoCache, true, false},
+		{imageVariant, "dev mode no-cache for image", cacheControlNoCache, true, false},
 	}
 
 	for _, tc := range testCases {
@@ -73,13 +73,13 @@ func TestSitemapCacheControlValue(t *testing.T) {
 
 	testCases := []struct {
 		name          string
-		maxAgeSeconds int
 		want          string
+		maxAgeSeconds int
 	}{
-		{"zero disables caching with no-cache", 0, cacheControlNoCache},
-		{"negative disables caching with no-cache", -1, cacheControlNoCache},
-		{"one minute serves public with revalidation window", 60, "public, max-age=60, stale-while-revalidate=86400"},
-		{"ten minutes serves public with revalidation window", 600, "public, max-age=600, stale-while-revalidate=86400"},
+		{"zero disables caching with no-cache", cacheControlNoCache, 0},
+		{"negative disables caching with no-cache", cacheControlNoCache, -1},
+		{"one minute serves public with revalidation window", "public, max-age=60, stale-while-revalidate=86400", 60},
+		{"ten minutes serves public with revalidation window", "public, max-age=600, stale-while-revalidate=86400", 600},
 	}
 
 	for _, tc := range testCases {

@@ -23,6 +23,17 @@ import (
 	"strings"
 )
 
+const (
+	// levelTrace is the custom trace log level.
+	levelTrace = slog.Level(-8)
+
+	// levelInternal is the custom log level for internal framework messages.
+	levelInternal = slog.Level(-6)
+
+	// levelNotice is the custom log level between info and warn.
+	levelNotice = slog.Level(2)
+)
+
 // SentryConfig holds settings for connecting to the Sentry error tracking service.
 type SentryConfig struct {
 	// DSN is the Sentry Data Source Name used to connect to Sentry.
@@ -146,15 +157,15 @@ type Config struct {
 func ParseLogLevel(level string, defaultLevel slog.Level) slog.Level {
 	switch strings.ToLower(level) {
 	case "trace":
-		return slog.Level(-8)
+		return levelTrace
 	case "internal":
-		return slog.Level(-6)
+		return levelInternal
 	case "debug":
 		return slog.LevelDebug
 	case "info":
 		return slog.LevelInfo
 	case "notice":
-		return slog.Level(2)
+		return levelNotice
 	case "warn", "warning":
 		return slog.LevelWarn
 	case "error":
@@ -180,15 +191,15 @@ func parseSlogLevels(levels string) []slog.Level {
 	for p := range strings.SplitSeq(strings.ToLower(levels), ",") {
 		switch strings.TrimSpace(p) {
 		case "trace":
-			result = append(result, slog.Level(-8))
+			result = append(result, levelTrace)
 		case "internal":
-			result = append(result, slog.Level(-6))
+			result = append(result, levelInternal)
 		case "debug":
 			result = append(result, slog.LevelDebug)
 		case "info":
 			result = append(result, slog.LevelInfo)
 		case "notice":
-			result = append(result, slog.Level(2))
+			result = append(result, levelNotice)
 		case "warn":
 			result = append(result, slog.LevelWarn)
 		case "error":

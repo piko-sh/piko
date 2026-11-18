@@ -21,7 +21,7 @@ package captcha_provider_recaptcha_v3
 import (
 	"reflect"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 func init() {

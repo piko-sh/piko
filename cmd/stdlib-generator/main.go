@@ -37,6 +37,12 @@ import (
 const (
 	// filePermissions defines the permissions for the output file.
 	filePermissions = 0640
+
+	// generationTimeout bounds the whole stdlib generation run.
+	generationTimeout = 5 * time.Minute
+
+	// bytesPerKilobyte converts a byte count to kilobytes for display.
+	bytesPerKilobyte = 1024
 )
 
 // main generates standard library type data and writes it to a FlatBuffers binary file.
@@ -56,7 +62,7 @@ func run() error {
 	customPackages := flag.String("packages", "", "Comma-separated list of additional packages to include")
 	flag.Parse()
 
-	ctx, cancel := context.WithTimeoutCause(context.Background(), 5*time.Minute, errors.New("stdlib generation exceeded 5m timeout"))
+	ctx, cancel := context.WithTimeoutCause(context.Background(), generationTimeout, errors.New("stdlib generation exceeded 5m timeout"))
 	defer cancel()
 
 	fmt.Println("Generating stdlib type data...")
@@ -89,7 +95,7 @@ func run() error {
 
 	fbsBytes := inspector_adapters.EncodeTypeDataToFBS(typeData)
 
-	fmt.Printf("FlatBuffers size: %d bytes (%.2f KB)\n", len(fbsBytes), float64(len(fbsBytes))/1024)
+	fmt.Printf("FlatBuffers size: %d bytes (%.2f KB)\n", len(fbsBytes), float64(len(fbsBytes))/bytesPerKilobyte)
 
 	factory, factoryErr := safedisk.NewCLIFactory("")
 	if factoryErr != nil {

@@ -22,10 +22,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
+	"math"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
-	"sync/atomic"
 	"time"
 	"weak"
 
@@ -53,9 +55,16 @@ type entryData[V any] struct {
 	// Tags contains the tag strings associated with this entry.
 	Tags []string
 
-	// ExpiresAt is the Unix timestamp when this entry expires; 0 means no expiry.
+	// ExpiresAt is the Unix timestamp in nanoseconds when this entry expires. Zero means the
+	// cache's policy decides on restore, and math.MaxInt64 means it never expires.
 	ExpiresAt int64
 }
+
+var (
+	// errInvalidVectorField is returned when a vector field in the search schema has a
+	// negative dimension or a distance metric the vector index does not support.
+	errInvalidVectorField = errors.New("invalid vector field in search schema")
+)
 
 // OtterProviderFactory is the factory function for creating Otter adapters that accepts
 // typed Options and returns a properly configured OtterAdapter with cache_dto-to-otter
@@ -70,15 +79,21 @@ func OtterProviderFactory[K comparable, V any](options cache_dto.Options[K, V]) 
 	if err := cache_domain.ValidateOptions(options); err != nil {
 		return nil, err
 	}
+	if err := validateVectorFields(options.SearchSchema); err != nil {
+		return nil, err
+	}
 
 	cache_domain.WarnUnbounded(context.Background(), options)
 
 	adapter := &OtterAdapter[K, V]{
 		client:            nil,
 		tagIndex:          newTagIndex[K](),
+		expiryOverrides:   &expiryOverrides[K]{},
+		clock:             options.Clock,
 		weigher:           options.Weigher,
 		onDeletion:        options.OnDeletion,
 		closeErr:          nil,
+		namespace:         options.Namespace,
 		maxEntryWeight:    options.MaxEntryWeight,
 		weightBounded:     options.Weigher != nil && options.MaximumWeight > 0,
 		wal:               nil,
@@ -87,14 +102,18 @@ func OtterProviderFactory[K comparable, V any](options cache_dto.Options[K, V]) 
 		invertedIndex:     nil,
 		sortedIndexes:     nil,
 		vectorIndexes:     nil,
+		sortedFields:      nil,
+		vectorFields:      nil,
 		schema:            nil,
 		snapshotThreshold: 0,
 		maxWALSize:        0,
 		checkpointMu:      sync.RWMutex{},
 		closeOnce:         sync.Once{},
-		openBatch:         atomic.Pointer[logBatch[K, V]]{},
-		logBatchGate:      sync.Mutex{},
+		logBatchGate:      sync.RWMutex{},
+		ttlWarningOnce:    sync.Once{},
 		walEnabled:        false,
+		expiryEnabled:     options.ExpiryCalculator != nil,
+		perEntry:          cache_domain.IsPerEntryExpiry(options.ExpiryCalculator),
 	}
 
 	if options.SearchSchema != nil {
@@ -116,6 +135,48 @@ func OtterProviderFactory[K comparable, V any](options cache_dto.Options[K, V]) 
 	}
 
 	return adapter, nil
+}
+
+// validateVectorFields checks the vector fields of schema before any index is built.
+//
+// An unknown distance metric would otherwise fall back to cosine without a word, and a
+// negative dimension would build an index that rejects every vector.
+//
+// Takes schema (*cache_dto.SearchSchema) which is the schema to check; nil has no vector
+// fields.
+//
+// Returns error which wraps errInvalidVectorField for the first invalid field.
+func validateVectorFields(schema *cache_dto.SearchSchema) error {
+	if schema == nil {
+		return nil
+	}
+	for _, field := range schema.Fields {
+		if field.Type != cache_dto.FieldTypeVector {
+			continue
+		}
+		if field.Dimension < 0 {
+			return fmt.Errorf("%w: field %q has negative dimension %d", errInvalidVectorField, field.Name, field.Dimension)
+		}
+		if !isSupportedDistanceMetric(field.DistanceMetric) {
+			return fmt.Errorf("%w: field %q has unsupported distance metric %q", errInvalidVectorField, field.Name, field.DistanceMetric)
+		}
+	}
+	return nil
+}
+
+// isSupportedDistanceMetric reports whether the vector index supports metric. An empty
+// metric selects cosine.
+//
+// Takes metric (string) which is the distance metric named in the schema.
+//
+// Returns bool which is true for an empty metric, cosine, euclidean and dot product.
+func isSupportedDistanceMetric(metric string) bool {
+	switch vectormaths.Metric(metric) {
+	case "", vectormaths.Cosine, vectormaths.Euclidean, vectormaths.DotProduct:
+		return true
+	default:
+		return false
+	}
 }
 
 // configureSearchSchema sets up the tag, inverted, sorted, and vector indexes on the
@@ -164,6 +225,13 @@ func configureFieldIndexes[K comparable, V any](adapter *OtterAdapter[K, V], sch
 			adapter.vectorIndexes[field.Name] = vi
 		}
 	}
+
+	for _, name := range slices.Sorted(maps.Keys(adapter.sortedIndexes)) {
+		adapter.sortedFields = append(adapter.sortedFields, sortedField[K]{index: adapter.sortedIndexes[name], name: name})
+	}
+	for _, name := range slices.Sorted(maps.Keys(adapter.vectorIndexes)) {
+		adapter.vectorFields = append(adapter.vectorFields, vectorField[K]{index: adapter.vectorIndexes[name], name: name})
+	}
 }
 
 // initialisePersistence initialises WAL and snapshot store if persistence is configured.
@@ -175,6 +243,8 @@ func configureFieldIndexes[K comparable, V any](adapter *OtterAdapter[K, V], sch
 // Returns error when persistence configuration is invalid, WAL creation fails, snapshot
 // store creation fails, or recovery from persistence fails.
 func initialisePersistence[K comparable, V any](ctx context.Context, options cache_dto.Options[K, V], adapter *OtterAdapter[K, V]) error {
+	ctx, l := logger_domain.From(ctx, log)
+
 	persistConfig, ok := options.ProviderSpecific.(PersistenceConfig[K, V])
 	if !ok || !persistConfig.Enabled {
 		return nil
@@ -198,7 +268,6 @@ func initialisePersistence[K comparable, V any](ctx context.Context, options cac
 		if quarantineErr != nil {
 			return errors.Join(err, quarantineErr)
 		}
-		_, l := logger_domain.From(ctx, log)
 		l.Error("Persisted cache state is unreadable; moved it aside and starting empty",
 			logger_domain.String("dir", walConfig.Dir),
 			logger_domain.Strings("moved", moved),
@@ -212,7 +281,6 @@ func initialisePersistence[K comparable, V any](ctx context.Context, options cac
 		return err
 	}
 
-	_, l := logger_domain.From(ctx, log)
 	l.Internal("Persistence initialised",
 		logger_domain.String("dir", persistConfig.WALConfig.Dir),
 		logger_domain.Bool("compression", persistConfig.WALConfig.EnableCompression))
@@ -253,7 +321,7 @@ func openPersistence[K comparable, V any](
 	adapter.snapshotThreshold = walConfig.SnapshotThreshold
 	adapter.maxWALSize = walConfig.MaxWALSize
 
-	if err := recoverFromPersistence(adapter); err != nil {
+	if err := recoverFromPersistence(ctx, adapter); err != nil {
 		_ = wal.Close()
 		_ = snapshot.Close()
 		adapter.wal = nil
@@ -308,7 +376,7 @@ func loadReadOnly[K comparable, V any](
 	codec *driven_disk.BinaryCodec[K, V],
 	adapter *OtterAdapter[K, V],
 ) error {
-	nowNano := time.Now().UnixNano()
+	nowNano := adapter.nowNano()
 	var (
 		state                       map[K]entryData[V]
 		snapshotEntries, walEntries int
@@ -323,7 +391,6 @@ func loadReadOnly[K comparable, V any](
 		if snapshotIdentity(walConfig) == before {
 			break
 		}
-
 	}
 	populateCacheFromState(adapter, state, nowNano)
 
@@ -403,11 +470,10 @@ func snapshotIdentity(walConfig wal_domain.Config) snapshotFileIdentity {
 // Takes adapter (*OtterAdapter) which provides the cache and persistence layer.
 //
 // Returns error when loading snapshot or WAL entries fails.
-func recoverFromPersistence[K comparable, V any](adapter *OtterAdapter[K, V]) error {
-	ctx := context.Background()
+func recoverFromPersistence[K comparable, V any](ctx context.Context, adapter *OtterAdapter[K, V]) error {
 	ctx, l := logger_domain.From(ctx, log)
 
-	nowNano := time.Now().UnixNano()
+	nowNano := adapter.nowNano()
 	state := make(map[K]entryData[V])
 
 	snapshotEntries, err := loadSnapshotEntries(ctx, adapter.snapshot, state, nowNano)
@@ -494,17 +560,41 @@ func loadWALEntries[K comparable, V any](
 // Takes nowNano (int64) which is the current time in nanoseconds for expiry calculations.
 func populateCacheFromState[K comparable, V any](adapter *OtterAdapter[K, V], state map[K]entryData[V], nowNano int64) {
 	for key, data := range state {
-		adapter.tagIndex.Add(key, data.Tags)
-		adapter.client.Set(key, data.Value)
-		adapter.indexDocument(key, data.Value)
-
-		if data.ExpiresAt > 0 {
-			remaining := time.Duration(data.ExpiresAt - nowNano)
-			if remaining > 0 {
-				adapter.client.SetExpiresAfter(key, remaining)
-			}
+		if !restoreRecoveredEntry(adapter, key, data, nowNano) {
+			continue
 		}
+		adapter.tagIndex.Add(key, data.Tags)
+		adapter.indexDocument(key, data.Value)
 	}
+}
+
+// restoreRecoveredEntry writes one recovered entry into the cache with the expiry it had.
+//
+// The remaining TTL is not capped here: otter adds it to a later clock reading than
+// nowNano, so overrideDuration caps it against that reading instead.
+//
+// Takes adapter (*OtterAdapter[K, V]) which is the cache to write to.
+// Takes key (K) which identifies the entry.
+// Takes data (entryData[V]) which is the recovered entry.
+// Takes nowNano (int64) which is the current time in nanoseconds.
+//
+// Returns bool which is false when the entry has expired since it was logged and was not
+// restored.
+func restoreRecoveredEntry[K comparable, V any](adapter *OtterAdapter[K, V], key K, data entryData[V], nowNano int64) bool {
+	switch data.ExpiresAt {
+	case 0:
+		adapter.client.Set(key, data.Value)
+		return true
+	case math.MaxInt64:
+		adapter.writeWithExpiry(key, data.Value, cache_dto.NoExpiry)
+		return true
+	}
+	remaining := time.Duration(data.ExpiresAt - nowNano)
+	if remaining <= 0 {
+		return false
+	}
+	adapter.writeWithExpiry(key, data.Value, remaining)
+	return true
 }
 
 // applyEntryToState applies a single WAL entry to the state map.
@@ -531,7 +621,6 @@ func applyEntryToState[K comparable, V any](state map[K]entryData[V], entry wal_
 		clear(state)
 
 	case wal_domain.OpBatch:
-
 	}
 }
 
@@ -551,16 +640,15 @@ func buildOtterOptions[K comparable, V any](options cache_dto.Options[K, V], ada
 		InitialCapacity:   options.InitialCapacity,
 		Weigher:           options.Weigher,
 		Executor:          options.Executor,
-		ExpiryCalculator:  wrapExpiryCalculator(options.ExpiryCalculator),
+		ExpiryCalculator:  buildExpiryCalculator(options.ExpiryCalculator, adapter.expiryOverrides),
 		RefreshCalculator: wrapRefreshCalculator(options.RefreshCalculator),
 		StatsRecorder:     wrapStatsRecorder(options.StatsRecorder),
 		Clock:             wrapClock(options.Clock),
 		Logger:            wrapLogger(options.Logger),
 	}
 
-	evicts := options.MaximumEntries > 0 || options.MaximumWeight > 0 || options.ExpiryCalculator != nil
-	if evicts || options.OnDeletion != nil {
-		otterOpts.OnDeletion = buildDeletionHandler(adapter, wrapOnDeletion(options.OnDeletion))
+	if options.OnDeletion != nil {
+		otterOpts.OnDeletion = wrapOnDeletion(options.OnDeletion)
 	}
 	otterOpts.OnAtomicDeletion = buildDeletionHandler(adapter, wrapOnAtomicDeletion(options.OnAtomicDeletion))
 
@@ -569,6 +657,10 @@ func buildOtterOptions[K comparable, V any](options cache_dto.Options[K, V], ada
 
 // buildDeletionHandler creates a handler that updates indexes and invokes the optional
 // user handler.
+//
+// Otter runs it inside the lock that deletes the entry, for every cause, so the indexes
+// change in the same step as the cache and a later write of the key is never undone by a
+// late handler.
 //
 // It holds the adapter weakly so the cache cleanup can run once the adapter becomes
 // unreachable.
@@ -592,4 +684,23 @@ func buildDeletionHandler[K comparable, V any](adapter *OtterAdapter[K, V], user
 			userHandler(e)
 		}
 	}
+}
+
+// buildExpiryCalculator wraps the configured expiry calculator for otter so that the TTL
+// of a write takes precedence over it.
+//
+// Takes calculator (cache_dto.ExpiryCalculator[K, V]) which is the configured calculator;
+// nil means the cache does not expire entries.
+// Takes overrides (*expiryOverrides[K]) which holds the TTLs of writes in progress.
+//
+// Returns otter.ExpiryCalculator[K, V] which is the calculator otter uses, or nil when
+// the cache does not expire entries.
+func buildExpiryCalculator[K comparable, V any](
+	calculator cache_dto.ExpiryCalculator[K, V],
+	overrides *expiryOverrides[K],
+) otter.ExpiryCalculator[K, V] {
+	if calculator == nil {
+		return nil
+	}
+	return newOverridingExpiryCalculator(wrapExpiryCalculator(calculator), overrides)
 }

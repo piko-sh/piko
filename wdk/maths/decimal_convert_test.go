@@ -22,7 +22,7 @@ import (
 	"reflect"
 	"testing"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 func TestValueRetrievers(t *testing.T) {

@@ -18,9 +18,6 @@
 
 package annotator_domain
 
-// Helper-call handling, client event handler validation, directive validation utilities,
-// and expression pattern matching for the attribute analyser.
-
 import (
 	"context"
 	"fmt"
@@ -90,7 +87,7 @@ func (aa *AttributeAnalyser) resolveClientEventHandlerArgs(ctx context.Context, 
 	if callExpr, isCall := d.Expression.(*ast_domain.CallExpression); isCall {
 		eventCtx := analysisContext.ForChildScope()
 		eventCtx.Symbols.Define(Symbol{
-			Name: "$event",
+			Name: eventPlaceholderName,
 			TypeInfo: &ast_domain.ResolvedTypeInfo{
 				TypeExpression:          goast.NewIdent(jsEventTypeName),
 				PackageAlias:            "",
@@ -101,11 +98,11 @@ func (aa *AttributeAnalyser) resolveClientEventHandlerArgs(ctx context.Context, 
 				InitialFilePath:         "",
 				UnderlyingTypeString:    "",
 			},
-			CodeGenVarName:      "$event",
+			CodeGenVarName:      eventPlaceholderName,
 			SourceInvocationKey: "",
 		})
 		eventCtx.Symbols.Define(Symbol{
-			Name: "$form",
+			Name: formPlaceholderName,
 			TypeInfo: &ast_domain.ResolvedTypeInfo{
 				TypeExpression:          goast.NewIdent(jsFormTypeName),
 				PackageAlias:            "",
@@ -116,7 +113,7 @@ func (aa *AttributeAnalyser) resolveClientEventHandlerArgs(ctx context.Context, 
 				InitialFilePath:         "",
 				UnderlyingTypeString:    "",
 			},
-			CodeGenVarName:      "$form",
+			CodeGenVarName:      formPlaceholderName,
 			SourceInvocationKey: "",
 		})
 
@@ -652,7 +649,7 @@ func isCallExpr(expression ast_domain.Expression) bool {
 func containsEventPlaceholder(expression ast_domain.Expression) bool {
 	found := false
 	ast_domain.VisitExpression(expression, func(e ast_domain.Expression) bool {
-		if identifier, ok := e.(*ast_domain.Identifier); ok && identifier.Name == "$event" {
+		if identifier, ok := e.(*ast_domain.Identifier); ok && identifier.Name == eventPlaceholderName {
 			found = true
 			return false
 		}
@@ -674,7 +671,7 @@ func findEventPropertyAccess(expression ast_domain.Expression) *ast_domain.Membe
 	ast_domain.VisitExpression(expression, func(e ast_domain.Expression) bool {
 		if member, ok := e.(*ast_domain.MemberExpression); ok {
 			if identifier, ok := member.Base.(*ast_domain.Identifier); ok {
-				if identifier.Name == "$event" {
+				if identifier.Name == eventPlaceholderName {
 					found = member
 					return false
 				}
@@ -739,7 +736,7 @@ func rejectEventPlaceholderInDirective(d *ast_domain.Directive, ctx *AnalysisCon
 func containsFormPlaceholder(expression ast_domain.Expression) bool {
 	found := false
 	ast_domain.VisitExpression(expression, func(e ast_domain.Expression) bool {
-		if identifier, ok := e.(*ast_domain.Identifier); ok && identifier.Name == "$form" {
+		if identifier, ok := e.(*ast_domain.Identifier); ok && identifier.Name == formPlaceholderName {
 			found = true
 			return false
 		}
@@ -761,7 +758,7 @@ func findFormPropertyAccess(expression ast_domain.Expression) *ast_domain.Member
 	ast_domain.VisitExpression(expression, func(e ast_domain.Expression) bool {
 		if member, ok := e.(*ast_domain.MemberExpression); ok {
 			if identifier, ok := member.Base.(*ast_domain.Identifier); ok {
-				if identifier.Name == "$form" {
+				if identifier.Name == formPlaceholderName {
 					found = member
 					return false
 				}
@@ -822,7 +819,7 @@ func expressionHasDynamicScopeRefs(expression ast_domain.Expression) bool {
 	ast_domain.VisitExpression(expression, func(e ast_domain.Expression) bool {
 		switch node := e.(type) {
 		case *ast_domain.Identifier:
-			if node.Name == "$event" || node.Name == "$form" {
+			if node.Name == eventPlaceholderName || node.Name == formPlaceholderName {
 				return true
 			}
 			hasDynamic = true

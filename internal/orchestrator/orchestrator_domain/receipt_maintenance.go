@@ -33,6 +33,16 @@ const (
 
 	// defaultReceiptCapacity bounds in-memory receipts when the store supplies no limit.
 	defaultReceiptCapacity = 100000
+
+	// receiptMaintenanceInterval is how often the maintenance loop reconciles receipts.
+	receiptMaintenanceInterval = 30 * time.Second
+
+	// receiptMaintenancePassTimeout caps how long one maintenance pass may run.
+	receiptMaintenancePassTimeout = 5 * time.Second
+
+	// workflowReceiptStoreTimeout caps how long persisting or resolving one workflow receipt
+	// may take.
+	workflowReceiptStoreTimeout = 5 * time.Second
 )
 
 // receiptWork provides bounded round-robin reconciliation of accepted workflows.
@@ -84,7 +94,7 @@ func (s *orchestratorService) removeReceiptWorkLocked(id string, count int) {
 // Runs in the service's maintenance goroutine and owns the pending-dispatch cursor.
 func (s *orchestratorService) receiptMaintenanceLoop() {
 	defer goroutine.RecoverPanic(s.runCtx, "orchestrator.receiptMaintenanceLoop")
-	ticker := s.clock.NewTicker(30 * time.Second)
+	ticker := s.clock.NewTicker(receiptMaintenanceInterval)
 	defer ticker.Stop()
 	for {
 		select {
@@ -106,7 +116,8 @@ func (s *orchestratorService) maintainReceipts(ctx context.Context) {
 	if s.taskStore == nil {
 		return
 	}
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	ctx, cancel := context.WithTimeoutCause(ctx, receiptMaintenancePassTimeout,
+		errors.New("receipt maintenance pass exceeded 5s timeout"))
 	defer cancel()
 	s.receiptsMutex.Lock()
 	ids := make([]string, 0, min(receiptMaintenanceBatch, s.receiptWork.queue.Len()))

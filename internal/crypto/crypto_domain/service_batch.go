@@ -31,23 +31,22 @@ import (
 	"piko.sh/piko/wdk/goroutine"
 )
 
-// EncryptBatch encrypts multiple values using either envelope encryption or direct KMS
-// mode.
+const (
+	// dataKeyIDPrefixLength is the number of leading encrypted key characters used to label
+	// a decrypted data key.
+	dataKeyIDPrefixLength = 8
+)
+
+// EncryptBatch encrypts values in their input order.
 //
-// When EnableEnvelopeEncryption is true (default):
-//   - 1 KMS call (GenerateDataKey) + fast local encryption
-//   - Data key is briefly in memory (in SecureBytes with mlock)
-//   - Best for: High throughput, cost-sensitive scenarios
-//
-// When EnableEnvelopeEncryption is false:
-//   - N parallel KMS calls (one per item, limited by DirectModeMaxConcurrency)
-//   - Encryption keys NEVER enter application memory
-//   - Best for: Maximum security, compliance-heavy scenarios (HIPAA, PCI-DSS, SOC2)
+// Envelope mode uses one data key for the batch. Direct mode calls the provider for each
+// item, with concurrency limited by DirectModeMaxConcurrency. If an item fails, its
+// result is empty and successful results remain at their original indices.
 //
 // Takes plaintexts ([]string) which contains the values to encrypt.
 //
-// Returns []string which contains the encrypted ciphertexts in the same order.
-// Returns error when encryption fails or KMS is unavailable.
+// Returns []string which contains ciphertexts at their input indices.
+// Returns error when setup or any item fails.
 func (s *cryptoService) EncryptBatch(ctx context.Context, plaintexts []string) ([]string, error) {
 	if len(plaintexts) == 0 {
 		return []string{}, nil
@@ -216,11 +215,11 @@ func (*cryptoService) runWithSemaphore(ctx context.Context, input string, semaph
 // encryption.
 //
 // Returns EncryptionProvider which is the ephemeral provider for encrypting batch items.
-// Returns *crypto_dto.DataKey which contains the encrypted data key for storage.
+// Returns *crypto_dto.DataKey which the caller must close after encryption.
 // Returns error when key generation fails or the local provider factory is not
 // configured.
 //
-// Safe for concurrent use. Uses a read lock to access the local provider factory.
+// Concurrency: Safe for concurrent use.
 func (s *cryptoService) setupBatchEncryption(ctx context.Context) (EncryptionProvider, *crypto_dto.DataKey, error) {
 	provider, err := s.getProvider(ctx)
 	if err != nil {
@@ -283,21 +282,16 @@ func (*cryptoService) encryptBatchItems(ctx context.Context, provider Encryption
 	return ciphertexts, encryptionErrors
 }
 
-// DecryptBatch decrypts multiple values using either envelope decryption or direct KMS
-// mode.
+// DecryptBatch decrypts values in their input order.
 //
-// When EnableEnvelopeEncryption is true (default):
-//   - Detects envelope format and uses single data key decryption
-//   - Falls back to direct decryption for non-envelope ciphertexts
-//
-// When EnableEnvelopeEncryption is false:
-//   - Uses parallel direct KMS decryption for all items
-//   - No keys enter application memory
+// In envelope mode, the first ciphertext selects envelope or direct decryption for the
+// batch. Direct mode calls the provider for each item with bounded concurrency. If an
+// item fails, its result is empty and successful results retain their indices.
 //
 // Takes ciphertexts ([]string) which contains the encrypted values to decrypt.
 //
-// Returns []string which contains the decrypted plaintext values.
-// Returns error when decryption fails for any value.
+// Returns []string which contains plaintexts at their input indices.
+// Returns error when setup or any item fails.
 func (s *cryptoService) DecryptBatch(ctx context.Context, ciphertexts []string) ([]string, error) {
 	if len(ciphertexts) == 0 {
 		return []string{}, nil
@@ -310,8 +304,7 @@ func (s *cryptoService) DecryptBatch(ctx context.Context, ciphertexts []string) 
 	return s.decryptBatchEnvelope(ctx, ciphertexts)
 }
 
-// decryptBatchEnvelope tries envelope decryption first, then falls back to direct
-// decryption for non-envelope ciphertexts.
+// decryptBatchEnvelope selects envelope or direct decryption from the first ciphertext.
 //
 // Takes ciphertexts ([]string) which contains the encrypted data to decrypt.
 //
@@ -449,24 +442,18 @@ func (s *cryptoService) decryptSingleBatchItem(ctx context.Context, ephemeralPro
 	return s.Decrypt(ctx, ciphertext)
 }
 
-// decryptDataKeyWithCache decrypts an encrypted data key using the provider, with caching
-// to reduce KMS API calls for frequently-used keys.
+// decryptDataKeyWithCache decrypts a data key or clones its cached value.
+//
+// The caller owns the returned SecureBytes and must close it.
+//
+// On a cache miss, successful decryption panics if encryptedKey is shorter than 8 bytes.
 //
 // Takes encryptedKey (string) which is the encrypted data key to decrypt.
 //
-// Returns *crypto_dto.SecureBytes which is a clone with independent lifecycle.
+// Returns *crypto_dto.SecureBytes which is owned by the caller.
 // Returns error when decryption fails or secure bytes cannot be created.
 //
-// Safe for concurrent use. Uses a read lock when accessing the cache.
-//
-// Critical for performance in high-throughput scenarios where many small operations share
-// the same encrypted data key.
-//
-// Security considerations:
-//   - Cache stores SecureBytes (locked memory, prevents swap)
-//   - Short TTL (default 5 minutes) to limit exposure window
-//   - Returns a clone to ensure caller has independent lifecycle
-//   - Caller is responsible for calling Close() on the returned SecureBytes
+// Concurrency: Safe for concurrent use.
 func (s *cryptoService) decryptDataKeyWithCache(ctx context.Context, encryptedKey string) (*crypto_dto.SecureBytes, error) {
 	s.mu.RLock()
 	cache := s.dataKeyCache
@@ -505,7 +492,7 @@ func (s *cryptoService) decryptDataKeyWithCache(ctx context.Context, encryptedKe
 		plaintextKey = []byte(decryptResp.Plaintext)
 	}
 
-	secureKey, err := crypto_dto.NewSecureBytesFromSlice(plaintextKey, crypto_dto.WithID("data-key-"+encryptedKey[:8]))
+	secureKey, err := crypto_dto.NewSecureBytesFromSlice(plaintextKey, crypto_dto.WithID("data-key-"+encryptedKey[:dataKeyIDPrefixLength]))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create secure bytes for data key: %w", err)
 	}

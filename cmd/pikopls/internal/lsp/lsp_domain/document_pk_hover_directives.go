@@ -342,8 +342,8 @@ func (*document) getDirectiveHover(ctx *PKHoverContext) (*protocol.Hover, error)
 // Returns startPosition (int) which is the start position of the directive.
 // Returns endPosition (int) which is the end position of the directive.
 func findDirectiveAtCursor(line string, cursor int) (directiveName string, startPosition, endPosition int) {
-	searchStart := max(0, cursor-50)
-	searchEnd := min(cursor+30, len(line))
+	searchStart := max(0, cursor-directiveSearchBehind)
+	searchEnd := min(cursor+directiveSearchAhead, len(line))
 
 	lastIndex := findDirectiveStartPosition(line, searchStart, searchEnd, cursor)
 	if lastIndex == -1 {

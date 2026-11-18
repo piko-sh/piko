@@ -18,10 +18,6 @@
 
 package annotator_domain
 
-// Maps Go compiler errors from generated code back to their original template source
-// locations. Parses error messages, resolves virtual file paths, and creates diagnostics
-// with accurate line and column information for developers.
-
 import (
 	"context"
 	"path/filepath"
@@ -79,6 +75,10 @@ const (
 
 	// goErrorMatchMessage is the index for the error message capture group.
 	goErrorMatchMessage = 4
+
+	// generatedLinePreambleEstimate is the rough number of lines the generator adds before
+	// the user script in a generated file.
+	generatedLinePreambleEstimate = 10
 )
 
 var (
@@ -422,7 +422,7 @@ func isCommentLine(line string) bool {
 // Returns int which is the estimated line number in the source file.
 func estimateLineFromGeneratedLine(generatedLine int, vc *annotator_dto.VirtualComponent) int {
 	if vc.Source.Script != nil && vc.Source.Script.ScriptStartLocation.Line > 0 {
-		offset := max(generatedLine-10, 1)
+		offset := max(generatedLine-generatedLinePreambleEstimate, 1)
 		return vc.Source.Script.ScriptStartLocation.Line + offset
 	}
 

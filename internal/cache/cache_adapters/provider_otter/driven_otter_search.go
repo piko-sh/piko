@@ -20,6 +20,7 @@ package provider_otter
 
 import (
 	"context"
+	"fmt"
 	"slices"
 	"sync"
 
@@ -28,6 +29,10 @@ import (
 )
 
 const (
+	// inlineSearchFields is how many sortable or vector fields a search entry holds without
+	// allocating; a schema with more allocates for them.
+	inlineSearchFields = 2
+
 	// defaultSearchLimit is the default number of results to return when no limit is
 	// specified.
 	defaultSearchLimit = 10
@@ -40,6 +45,59 @@ const (
 	// Sized to handle typical sort operations without reallocation.
 	initialKeyWithValueCapacity = 128
 )
+
+// searchEntry is what one value contributes to the search indexes, worked out from the
+// value alone so that it can be built before otter's bucket lock is taken and only
+// committed under it.
+type searchEntry struct {
+	// terms holds the value's analysed text terms, each once.
+	terms []string
+
+	// sortable holds the value of each sortable field, in the order of the adapter's
+	// sortedFields.
+	sortable []sortableValue
+
+	// vectors holds the vector of each vector field, in the order of the adapter's
+	// vectorFields; an empty vector means the value has none.
+	vectors [][]float32
+
+	// sortableBuffer backs sortable when the schema has few sortable fields, so the entry
+	// needs no allocation of its own for them.
+	sortableBuffer [inlineSearchFields]sortableValue
+
+	// vectorBuffer backs vectors when the schema has few vector fields, so the entry needs
+	// no allocation of its own for them.
+	vectorBuffer [inlineSearchFields][]float32
+}
+
+// sortableValue is the value of one sortable field.
+type sortableValue struct {
+	// value is the field's value, valid when present.
+	value any
+
+	// present reports whether the value has the field.
+	present bool
+}
+
+// sortedField pairs a sortable field with its index, so a write walks a slice rather than
+// a map.
+type sortedField[K comparable] struct {
+	// index is the field's sorted index.
+	index *SortedIndex[K]
+
+	// name is the field's name in the schema.
+	name string
+}
+
+// vectorField pairs a vector field with its index, so a write walks a slice rather than a
+// map.
+type vectorField[K comparable] struct {
+	// index is the field's vector index.
+	index *VectorIndex[K]
+
+	// name is the field's name in the schema.
+	name string
+}
 
 // keyWithValue holds a key and its extracted field value for sorting.
 type keyWithValue[K comparable] struct {
@@ -60,61 +118,94 @@ var (
 	}
 )
 
-// indexDocument adds a value to the search indexes if search is enabled.
+// indexDocument brings the search indexes in line with a value stored for key.
 //
 // Takes key (K) which identifies the document in the indexes.
 // Takes value (V) which is the document to extract fields from for indexing.
 func (a *OtterAdapter[K, V]) indexDocument(key K, value V) {
-	if a.schema == nil || a.fieldExtractor == nil {
-		return
-	}
-
-	a.indexTextFields(key, value)
-	a.indexSortedFields(key, value)
-	a.indexVectorFields(key, value)
-}
-
-// indexTextFields adds a value's text fields to the inverted index.
-//
-// Takes key (K) which identifies the entry in the index.
-// Takes value (V) which contains the text fields to extract and index.
-func (a *OtterAdapter[K, V]) indexTextFields(key K, value V) {
-	if a.invertedIndex == nil {
-		return
-	}
-	texts := a.fieldExtractor.ExtractTextFields(value)
-	if len(texts) > 0 {
-		a.invertedIndex.Add(key, texts)
+	if entry := a.prepareSearchEntry(value); entry != nil {
+		a.commitSearchEntry(key, entry)
 	}
 }
 
-// indexSortedFields adds a value's sortable fields to the sorted indexes.
+// prepareSearchEntry builds the search entry of a write whose value is known before
+// otter's bucket lock is taken.
 //
-// Takes key (K) which identifies the entry being indexed.
-// Takes value (V) which contains the fields to extract and index.
-func (a *OtterAdapter[K, V]) indexSortedFields(key K, value V) {
-	if a.sortedIndexes == nil {
-		return
+// Takes value (V) which is the value the write stores.
+//
+// Returns *searchEntry which is the value's entry, or nil when the cache keeps no search
+// indexes, so a cache without them carries nothing extra on its writes.
+func (a *OtterAdapter[K, V]) prepareSearchEntry(value V) *searchEntry {
+	if !a.indexesSearch() {
+		return nil
 	}
-	for fieldName := range a.sortedIndexes {
-		if sortableValue, ok := a.fieldExtractor.ExtractSortableValue(value, fieldName); ok {
-			a.sortedIndexes[fieldName].Add(key, sortableValue)
+	entry := new(searchEntry)
+	a.fillSearchEntry(entry, value)
+	return entry
+}
+
+// indexesSearch reports whether the cache keeps search indexes.
+//
+// Returns bool which is true when a search schema is configured.
+func (a *OtterAdapter[K, V]) indexesSearch() bool {
+	return a.schema != nil && a.fieldExtractor != nil
+}
+
+// fillSearchEntry works out what value contributes to the search indexes: its analysed
+// text terms and its sortable and vector field values. It reads only the value, so a
+// write whose value is known up front calls it before otter's bucket lock is taken.
+//
+// Takes entry (*searchEntry) which is an empty entry to fill; its slices may point into
+// its own buffers, so it must not be copied once filled.
+// Takes value (V) which is the document to extract fields from.
+//
+// Must only be called when the cache keeps search indexes.
+func (a *OtterAdapter[K, V]) fillSearchEntry(entry *searchEntry, value V) {
+	if a.invertedIndex != nil && len(a.fieldExtractor.textFields) > 0 {
+		entry.terms = a.invertedIndex.tokeniseAll(a.fieldExtractor.ExtractTextFields(value))
+	}
+	if count := len(a.sortedFields); count > 0 {
+		entry.sortable = entry.sortableBuffer[:0]
+		if count > inlineSearchFields {
+			entry.sortable = make([]sortableValue, 0, count)
+		}
+		for _, field := range a.sortedFields {
+			sortable, present := a.fieldExtractor.ExtractSortableValue(value, field.name)
+			entry.sortable = append(entry.sortable, sortableValue{value: sortable, present: present})
+		}
+	}
+	if count := len(a.vectorFields); count > 0 {
+		entry.vectors = entry.vectorBuffer[:0]
+		if count > inlineSearchFields {
+			entry.vectors = make([][]float32, 0, count)
+		}
+		for _, field := range a.vectorFields {
+			vector, _ := a.fieldExtractor.ExtractVectorValue(value, field.name)
+			entry.vectors = append(entry.vectors, vector)
 		}
 	}
 }
 
-// indexVectorFields adds a value's vector fields to the vector indexes.
+// commitSearchEntry updates the search indexes for key and entry. A missing field removes
+// the key from that field's index.
 //
-// Takes key (K) which identifies the entry being indexed.
-// Takes value (V) which contains the vector fields to extract and index.
-func (a *OtterAdapter[K, V]) indexVectorFields(key K, value V) {
-	if a.vectorIndexes == nil {
-		return
+// Takes key (K) which identifies the document.
+// Takes entry (*searchEntry) which is what the stored value contributes.
+//
+// Must only be called when the cache keeps search indexes.
+func (a *OtterAdapter[K, V]) commitSearchEntry(key K, entry *searchEntry) {
+	if a.invertedIndex != nil && len(a.fieldExtractor.textFields) > 0 {
+		a.invertedIndex.replaceTerms(key, entry.terms)
 	}
-	for fieldName, index := range a.vectorIndexes {
-		if vec, ok := a.fieldExtractor.ExtractVectorValue(value, fieldName); ok {
-			index.Add(key, vec)
+	for position, field := range a.sortedFields {
+		if sortable := entry.sortable[position]; sortable.present {
+			field.index.Add(key, sortable.value)
+		} else {
+			field.index.Remove(key)
 		}
+	}
+	for position, field := range a.vectorFields {
+		field.index.Replace(key, entry.vectors[position])
 	}
 }
 
@@ -125,92 +216,11 @@ func (a *OtterAdapter[K, V]) removeFromSearchIndex(key K) {
 	if a.invertedIndex != nil {
 		a.invertedIndex.Remove(key)
 	}
-	if a.sortedIndexes != nil {
-		for _, index := range a.sortedIndexes {
-			index.Remove(key)
-		}
+	for _, field := range a.sortedFields {
+		field.index.Remove(key)
 	}
-	if a.vectorIndexes != nil {
-		for _, index := range a.vectorIndexes {
-			index.Remove(key)
-		}
-	}
-}
-
-// indexDocumentsBatch indexes multiple documents with batched lock access.
-//
-// Takes items (map[K]V) which contains the key-value pairs to index.
-func (a *OtterAdapter[K, V]) indexDocumentsBatch(items map[K]V) {
-	if a.schema == nil || a.fieldExtractor == nil {
-		return
-	}
-
-	a.batchIndexTextFields(items)
-	a.batchIndexSortableFields(items)
-	a.batchIndexVectorFields(items)
-}
-
-// batchIndexTextFields indexes text fields for the inverted index with a single lock.
-//
-// Takes items (map[K]V) which contains the key-value pairs to index.
-//
-// Safe for concurrent use. Acquires the inverted index lock for the entire batch
-// operation.
-func (a *OtterAdapter[K, V]) batchIndexTextFields(items map[K]V) {
-	if a.invertedIndex == nil {
-		return
-	}
-
-	a.invertedIndex.mu.Lock()
-	defer a.invertedIndex.mu.Unlock()
-
-	for key, value := range items {
-		texts := a.fieldExtractor.ExtractTextFields(value)
-		if len(texts) > 0 {
-			a.invertedIndex.addUnsafe(key, texts)
-		}
-	}
-}
-
-// batchIndexSortableFields indexes sortable fields with per-field locking.
-//
-// Takes items (map[K]V) which contains the key-value pairs to index.
-//
-// Safe for concurrent use. Each sorted index is locked individually during updates to
-// allow concurrent indexing of different fields.
-func (a *OtterAdapter[K, V]) batchIndexSortableFields(items map[K]V) {
-	if a.sortedIndexes == nil {
-		return
-	}
-
-	for fieldName, index := range a.sortedIndexes {
-		index.mu.Lock()
-		for key, value := range items {
-			if sortableValue, ok := a.fieldExtractor.ExtractSortableValue(value, fieldName); ok {
-				index.addUnsafe(key, sortableValue)
-			}
-		}
-		index.mu.Unlock()
-	}
-}
-
-// batchIndexVectorFields indexes vector fields for all items.
-//
-// Takes items (map[K]V) which contains the key-value pairs to index.
-//
-// The HNSW graph handles its own internal locking, so no external synchronisation is
-// needed here.
-func (a *OtterAdapter[K, V]) batchIndexVectorFields(items map[K]V) {
-	if a.vectorIndexes == nil {
-		return
-	}
-
-	for fieldName, index := range a.vectorIndexes {
-		for key, value := range items {
-			if vec, ok := a.fieldExtractor.ExtractVectorValue(value, fieldName); ok {
-				index.Add(key, vec)
-			}
-		}
+	for _, field := range a.vectorFields {
+		field.index.Remove(key)
 	}
 }
 
@@ -220,15 +230,11 @@ func (a *OtterAdapter[K, V]) clearAllIndexes() {
 	if a.invertedIndex != nil {
 		a.invertedIndex.Clear()
 	}
-	if a.sortedIndexes != nil {
-		for _, index := range a.sortedIndexes {
-			index.Clear()
-		}
+	for _, field := range a.sortedFields {
+		field.index.Clear()
 	}
-	if a.vectorIndexes != nil {
-		for _, index := range a.vectorIndexes {
-			index.Clear()
-		}
+	for _, field := range a.vectorFields {
+		field.index.Clear()
 	}
 }
 
@@ -240,7 +246,8 @@ func (a *OtterAdapter[K, V]) clearAllIndexes() {
 // filters.
 //
 // Returns cache_dto.SearchResult[K, V] which contains matched entries with metadata.
-// Returns error when no schema is configured (ErrSearchNotSupported).
+// Returns error when no schema is configured (ErrSearchNotSupported), or when a vector
+// search is given a query vector the index cannot compare (ErrInvalidQueryVector).
 func (a *OtterAdapter[K, V]) Search(_ context.Context, query string, opts *cache_dto.SearchOptions) (cache_dto.SearchResult[K, V], error) {
 	if a.schema == nil {
 		return cache_dto.SearchResult[K, V]{}, cache_domain.ErrSearchNotSupported
@@ -303,7 +310,8 @@ func (a *OtterAdapter[K, V]) Search(_ context.Context, query string, opts *cache
 // Takes opts (*cache_dto.QueryOptions) which specifies filters, sorting, and pagination.
 //
 // Returns cache_dto.SearchResult[K, V] which contains matched entries.
-// Returns error when no schema is configured (ErrSearchNotSupported).
+// Returns error when no schema is configured (ErrSearchNotSupported), or when a vector
+// query is given a query vector the index cannot compare (ErrInvalidQueryVector).
 func (a *OtterAdapter[K, V]) Query(_ context.Context, opts *cache_dto.QueryOptions) (cache_dto.SearchResult[K, V], error) {
 	if a.schema == nil {
 		return cache_dto.SearchResult[K, V]{}, cache_domain.ErrSearchNotSupported
@@ -726,7 +734,9 @@ func (a *OtterAdapter[K, V]) buildSearchResultWithScores(keys []K, scores map[K]
 // Takes opts (*cache_dto.SearchOptions) which provides the vector, filters, and
 // pagination parameters.
 //
-// Returns SearchResult with items sorted by score (highest first).
+// Returns cache_dto.SearchResult[K, V] which holds hits in descending score order.
+// Returns error which wraps cache_domain.ErrInvalidQueryVector when the query vector
+// cannot be compared with the indexed vectors.
 func (a *OtterAdapter[K, V]) vectorSearch(query string, opts *cache_dto.SearchOptions) (cache_dto.SearchResult[K, V], error) {
 	vectorField := a.resolveVectorField(opts.VectorField)
 	index, ok := a.vectorIndexes[vectorField]
@@ -747,7 +757,10 @@ func (a *OtterAdapter[K, V]) vectorSearch(query string, opts *cache_dto.SearchOp
 		topK = defaultSearchLimit
 	}
 
-	hits := index.Search(opts.Vector, topK, opts.MinScore)
+	hits, err := index.Search(opts.Vector, topK, opts.MinScore)
+	if err != nil {
+		return cache_dto.SearchResult[K, V]{}, fmt.Errorf("searching vector field %q: %w", vectorField, err)
+	}
 
 	if a.invertedIndex != nil && query != "" {
 		textScored := a.invertedIndex.SearchScored(query, WithTermMatch(TermMatchAny))
@@ -764,7 +777,9 @@ func (a *OtterAdapter[K, V]) vectorSearch(query string, opts *cache_dto.SearchOp
 // Takes opts (*cache_dto.QueryOptions) which provides the vector, filters, and pagination
 // parameters.
 //
-// Returns SearchResult with items sorted by similarity score (highest first).
+// Returns cache_dto.SearchResult[K, V] which holds hits in descending score order.
+// Returns error which wraps cache_domain.ErrInvalidQueryVector when the query vector
+// cannot be compared with the indexed vectors.
 func (a *OtterAdapter[K, V]) vectorQuery(opts *cache_dto.QueryOptions) (cache_dto.SearchResult[K, V], error) {
 	vectorField := a.resolveVectorField(opts.VectorField)
 	index, ok := a.vectorIndexes[vectorField]
@@ -785,13 +800,16 @@ func (a *OtterAdapter[K, V]) vectorQuery(opts *cache_dto.QueryOptions) (cache_dt
 		topK = defaultSearchLimit
 	}
 
-	hits := index.Search(opts.Vector, topK, opts.MinScore)
+	hits, err := index.Search(opts.Vector, topK, opts.MinScore)
+	if err != nil {
+		return cache_dto.SearchResult[K, V]{}, fmt.Errorf("querying vector field %q: %w", vectorField, err)
+	}
 
 	return a.buildVectorSearchResult(hits, nil, opts.Filters, opts.Offset, opts.Limit)
 }
 
 // resolveVectorField returns the explicit vector field name if provided, or defaults to
-// the first vector field in the schema.
+// the first vector field by name, so the default is the same on every call.
 //
 // Takes explicit (string) which is the caller-specified field name (may be empty).
 //
@@ -800,11 +818,10 @@ func (a *OtterAdapter[K, V]) resolveVectorField(explicit string) string {
 	if explicit != "" {
 		return explicit
 	}
-
-	for name := range a.vectorIndexes {
-		return name
+	if len(a.vectorFields) == 0 {
+		return ""
 	}
-	return ""
+	return a.vectorFields[0].name
 }
 
 // buildVectorSearchResult constructs a SearchResult from vector hits, applying optional

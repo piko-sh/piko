@@ -26,6 +26,7 @@ import (
 	"sync"
 
 	"golang.org/x/sync/singleflight"
+	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/wdk/cache"
 	"piko.sh/piko/wdk/logger"
 )
@@ -123,6 +124,7 @@ func createNamespaceGeneric[K comparable, V any](p *RedisClusterProvider, namesp
 		indexMu:                sync.Mutex{},
 		vectorSkipWarning:      sync.Once{},
 		indexCreated:           false,
+		perEntry:               cache_domain.IsPerEntryExpiry(options.ExpiryCalculator),
 	}
 
 	p.caches[namespace] = adapter

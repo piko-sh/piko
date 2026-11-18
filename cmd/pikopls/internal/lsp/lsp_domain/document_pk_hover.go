@@ -227,7 +227,7 @@ func (*document) checkIsAttributeHoverContext(line string, cursor int, position 
 	patterns := []string{`is="`, `is='`}
 
 	for _, pattern := range patterns {
-		index := strings.LastIndex(line[:min(cursor+20, len(line))], pattern)
+		index := strings.LastIndex(line[:min(cursor+patternSearchRadius, len(line))], pattern)
 		if index == -1 || index > cursor {
 			continue
 		}
@@ -915,7 +915,7 @@ func (*document) makeCodeHover(ctx *PKHoverContext, code, language string) (*pro
 // Returns *PKHoverContext which holds the hover context if found, or nil if no valid
 // handler context could be extracted.
 func tryExtractHandlerHoverContext(line string, cursor int, position protocol.Position, pattern string) *PKHoverContext {
-	index := strings.LastIndex(line[:min(cursor+20, len(line))], pattern)
+	index := strings.LastIndex(line[:min(cursor+patternSearchRadius, len(line))], pattern)
 	if index == -1 || index > cursor {
 		return nil
 	}

@@ -45,6 +45,10 @@ const (
 	// defaultFlushInterval is the default time between queue flushes.
 	defaultFlushInterval = 30 * time.Second
 
+	// shutdownCleanupTimeout caps how long the dispatcher waits for in-flight work when it
+	// shuts down.
+	shutdownCleanupTimeout = 30 * time.Second
+
 	// defaultQueueSize is the default number of emails that can be queued.
 	defaultQueueSize = 1000
 
@@ -1062,7 +1066,7 @@ func (d *EmailDispatcher) shutdownCleanup(ctx context.Context) error {
 	_, l := logger_domain.From(ctx, log)
 	l.Internal("Executing email dispatcher shutdown cleanup")
 
-	shutdownCtx, cancel := context.WithTimeoutCause(context.Background(), 30*time.Second,
+	shutdownCtx, cancel := context.WithTimeoutCause(context.Background(), shutdownCleanupTimeout,
 		errors.New("email dispatcher shutdown exceeded 30s timeout"))
 	defer cancel()
 

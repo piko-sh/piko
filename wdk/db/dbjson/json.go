@@ -35,7 +35,7 @@ import (
 	"strings"
 	"time"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 // ScanInto returns a sql.Scanner that decodes a JSON column into dest.

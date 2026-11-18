@@ -78,6 +78,15 @@ ToolChoiceSpecific(name string) ToolChoice
 
 `NewCacheManager(store, defaultTTL)` returns a manager that short-circuits completions whose inputs match a previously cached request.
 
+`CacheStorePort.Get` returns an entry copy, and `Set` stores a copy.
+Source metadata maps are copied one level deep, so nested values can
+remain shared. An in-memory entry's `HitCount` counts reads within its
+process, though concurrent readers may see an earlier count. Remote
+providers decode a new entry on each read, so the count does not carry
+over.
+
+To read or remove an entry stored with a custom `CacheConfig.Key`, pass `manager.CustomKey(provider, model, key)` to `CacheManager.Get` or `CacheManager.Delete`. The key includes the provider and model.
+
 ## Memory
 
 | Function | Purpose |

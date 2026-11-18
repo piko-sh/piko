@@ -53,7 +53,7 @@ func TestGraph_Insert(t *testing.T) {
 		g.Insert("a", []float32{0, 1, 0})
 		assert.Equal(t, 1, g.Len())
 
-		results := g.Search([]float32{0, 1, 0}, 1, 0)
+		results := mustSearch(t, g, []float32{0, 1, 0}, 1, 0)
 		require.Len(t, results, 1)
 		assert.Equal(t, "a", results[0].Key)
 		assert.InDelta(t, 0.0, results[0].Distance, 0.001)
@@ -83,7 +83,7 @@ func TestGraph_InsertLargeCorpus(t *testing.T) {
 	assert.Equal(t, n, g.Len())
 
 	query := vectors[0]
-	results := g.Search(query, topK, 100)
+	results := mustSearch(t, g, query, topK, 100)
 	require.Len(t, results, topK)
 
 	assert.Equal(t, 0, results[0].Key, "query vector itself should be the nearest match")
@@ -120,7 +120,7 @@ func TestGraph_RecallQuality(t *testing.T) {
 	}
 
 	query := vectors[0]
-	hnswResults := g.Search(query, topK, 200)
+	hnswResults := mustSearch(t, g, query, topK, 200)
 
 	bruteForce := bruteForceSearch(vectors, query, topK)
 
@@ -223,7 +223,7 @@ func TestGraph_InsertBatch(t *testing.T) {
 		g.InsertBatch(keys, vecs)
 		assert.Equal(t, 5, g.Len())
 
-		results := g.Search([]float32{1, 0, 0}, 2, 0)
+		results := mustSearch(t, g, []float32{1, 0, 0}, 2, 0)
 		require.Len(t, results, 2)
 		assert.Equal(t, 0, results[0].Key)
 	})
@@ -239,7 +239,7 @@ func TestGraph_InsertBatch(t *testing.T) {
 		g.InsertBatch(keys, vecs)
 		assert.Equal(t, 2, g.Len())
 
-		results := g.Search([]float32{0, 0, 1}, 1, 0)
+		results := mustSearch(t, g, []float32{0, 0, 1}, 1, 0)
 		require.Len(t, results, 1)
 		assert.Equal(t, 1, results[0].Key)
 	})
@@ -270,8 +270,8 @@ func TestGraph_InsertBatch(t *testing.T) {
 		assert.Equal(t, gSeq.Len(), gBatch.Len())
 
 		query := vecs[0]
-		rBatch := gBatch.Search(query, 5, 100)
-		rSeq := gSeq.Search(query, 5, 100)
+		rBatch := mustSearch(t, gBatch, query, 5, 100)
+		rSeq := mustSearch(t, gSeq, query, 5, 100)
 
 		require.Len(t, rBatch, 5)
 		require.Len(t, rSeq, 5)
@@ -311,6 +311,54 @@ func TestHNSW_Insert_RejectsWrongDimensionVector(t *testing.T) {
 		require.ErrorIs(t, err, ErrVectorDimensionMismatch)
 		assert.Equal(t, 0, batchGraph.Len(), "no vectors should be inserted on mismatch")
 	})
+}
+
+func TestHNSW_Insert_RejectsAnEmptyOrZeroVector(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		wantErr   error
+		name      string
+		metric    vectormaths.Metric
+		vector    []float32
+		dimension int
+	}{
+		{name: "an empty vector in a graph of dimension zero", metric: vectormaths.Euclidean, dimension: 0, vector: []float32{}, wantErr: ErrVectorDimensionMismatch},
+		{name: "a nil vector", metric: vectormaths.Cosine, dimension: 3, vector: nil, wantErr: ErrVectorDimensionMismatch},
+		{name: "a zero vector under cosine", metric: vectormaths.Cosine, dimension: 3, vector: []float32{0, 0, 0}, wantErr: ErrZeroVector},
+		{name: "a zero vector under an unknown metric, which falls back to cosine", metric: vectormaths.Metric("unknown"), dimension: 3, vector: []float32{0, 0, 0}, wantErr: ErrZeroVector},
+		{name: "a zero vector under euclidean", metric: vectormaths.Euclidean, dimension: 3, vector: []float32{0, 0, 0}, wantErr: nil},
+		{name: "a zero vector under dot product", metric: vectormaths.DotProduct, dimension: 3, vector: []float32{0, 0, 0}, wantErr: nil},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			g := New[string](testCase.dimension, testCase.metric, WithRandomSeed(42))
+
+			err := g.Insert("key", testCase.vector)
+
+			if testCase.wantErr == nil {
+				require.NoError(t, err)
+				assert.Equal(t, 1, g.Len())
+				return
+			}
+			require.ErrorIs(t, err, testCase.wantErr)
+			assert.Zero(t, g.Len(), "a rejected vector must not be stored")
+		})
+	}
+}
+
+func TestHNSW_InsertBatch_RejectsAZeroVectorUnderCosine(t *testing.T) {
+	t.Parallel()
+
+	g := New[int](3, vectormaths.Cosine, WithRandomSeed(42))
+
+	err := g.InsertBatch([]int{1, 2}, [][]float32{{1, 0, 0}, {0, 0, 0}})
+
+	require.ErrorIs(t, err, ErrZeroVector)
+	assert.Zero(t, g.Len(), "no vectors are inserted when one is rejected")
 }
 
 func bruteForceSearch(vectors [][]float32, query []float32, topK int) []int {

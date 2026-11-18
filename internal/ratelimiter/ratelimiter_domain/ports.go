@@ -77,15 +77,17 @@ type TokenBucketStorePort interface {
 }
 
 // CounterStorePort is the driven port for fixed-window counter storage. Implementations
-// must provide atomic increment operations with TTL support.
+// must provide atomic increment operations.
 type CounterStorePort interface {
-	// IncrementAndGet atomically increments the counter for key by delta. The TTL is set
-	// only when the counter is first created, implementing a fixed-window strategy where the
-	// window starts on first request.
+	// IncrementAndGet atomically increments key's fixed-window counter.
+	//
+	// The first increment at or after a window and any configured clock skew tolerance
+	// starts a new window holding delta. Implementations must reset the counter even when
+	// its storage has not expired.
 	//
 	// Takes key (string) which identifies the rate limit counter.
 	// Takes delta (int64) which is the amount to increment by.
-	// Takes window (time.Duration) which is the TTL for new counters.
+	// Takes window (time.Duration) which is the length of each window.
 	//
 	// Returns ratelimiter_dto.CounterResult which contains the counter value after
 	// incrementing and the window start time.

@@ -18,10 +18,6 @@
 
 package daemon_domain
 
-// This file implements on-demand variant generation for responsive images. When a srcset
-// URL like /_piko/assets/{id}?v=image_w240_webp is requested but the variant doesn't
-// exist, this service generates it lazily on first request.
-
 import (
 	"cmp"
 	"context"
@@ -91,14 +87,26 @@ type onDemandVariantGeneratorImpl struct {
 	// clock provides the current time for timestamps.
 	clock clock.Clock
 
-	// inProgress maps variant keys to mutexes for generation tasks in progress.
-	inProgress map[string]*sync.Mutex
+	// inProgress maps variant keys to the reference-counted locks of generation tasks that
+	// are running or waiting.
+	inProgress map[string]*variantLock
 
 	// config holds settings for on-demand variant generation.
 	config OnDemandGeneratorConfig
 
 	// inProgressMutex guards access to the inProgress map.
 	inProgressMutex sync.Mutex
+}
+
+// variantLock serialises generation of one variant key. All requesters for the key share
+// the entry, which is removed when the last requester releases it.
+type variantLock struct {
+	// references counts active requests for mu, including queued requests. It is protected
+	// by inProgressMutex.
+	references int
+
+	// mu is held for the whole generation of the variant.
+	mu sync.Mutex
 }
 
 const (
@@ -113,6 +121,10 @@ const (
 
 	// defaultStorageBackend is the storage backend used when none is set.
 	defaultStorageBackend = "local_disk_cache"
+
+	// storageKeyHashBytes is how many leading bytes of the content hash go into a generated
+	// storage key.
+	storageKeyHashBytes = 8
 )
 
 // OnDemandGeneratorConfig holds settings for the on-demand image generator.
@@ -176,17 +188,16 @@ func (g *onDemandVariantGeneratorImpl) ParseProfileName(profileName string) *Par
 	}
 }
 
-// GenerateVariant generates a variant on-demand.
+// GenerateVariant creates an image variant on demand, or returns one already stored.
+// Requests for the same artefact and profile wait in turn so later requests can reuse the
+// variant created by an earlier one.
 //
 // Takes artefact (*registry_dto.ArtefactMeta) which specifies the source artefact to
 // generate a variant from.
 // Takes profileName (string) which identifies the transformation profile to apply.
 //
-// Returns *registry_dto.Variant which is the generated variant metadata.
+// Returns *registry_dto.Variant which is the variant metadata.
 // Returns error when the profile name is invalid or generation fails.
-//
-// Safe for concurrent use. Uses per-variant locking to prevent duplicate generation of
-// the same variant.
 func (g *onDemandVariantGeneratorImpl) GenerateVariant(
 	ctx context.Context,
 	artefact *registry_dto.ArtefactMeta,
@@ -205,12 +216,8 @@ func (g *onDemandVariantGeneratorImpl) GenerateVariant(
 	}
 
 	variantKey := fmt.Sprintf("%s:%s", artefact.ID, profileName)
-	variantMutex := g.getOrCreateVariantMutex(variantKey)
-	variantMutex.Lock()
-	defer func() {
-		variantMutex.Unlock()
-		g.cleanupVariantMutex(variantKey)
-	}()
+	lock := g.acquireVariantLock(variantKey)
+	defer g.releaseVariantLock(variantKey, lock)
 
 	if existing := g.checkExistingVariant(ctx, artefact.ID, profileName); existing != nil {
 		return existing, nil
@@ -480,7 +487,7 @@ func (*onDemandVariantGeneratorImpl) writeToBlobStore(
 //
 // Returns string which is the generated storage key with path, hash, and extension.
 func (g *onDemandVariantGeneratorImpl) generateFinalStorageKey(sourcePath string, finalHash []byte, format string) string {
-	shortHash := fmt.Sprintf("%x", finalHash[:8])
+	shortHash := fmt.Sprintf("%x", finalHash[:storageKeyHashBytes])
 	extension := g.getExtensionForFormat(format)
 	basePath := strings.TrimSuffix(sourcePath, path.Ext(sourcePath))
 	return path.Join("generated", fmt.Sprintf("%s_%s%s", basePath, shortHash, extension))
@@ -668,31 +675,48 @@ func (*onDemandVariantGeneratorImpl) getMimeTypeForFormat(format string) string 
 	}
 }
 
-// getOrCreateVariantMutex gets or creates a mutex for a specific variant key.
+// acquireVariantLock registers interest in the lock for a variant key and then blocks
+// until the caller holds it.
+//
+// The reference count is raised before waiting, so the entry stays in the map while any
+// goroutine holds or waits on it. This makes sure every caller for the same key shares
+// one mutex.
 //
 // Takes key (string) which identifies the variant to lock.
 //
-// Returns *sync.Mutex which is the mutex for the given key.
-func (g *onDemandVariantGeneratorImpl) getOrCreateVariantMutex(key string) *sync.Mutex {
+// Returns *variantLock which the caller must pass to releaseVariantLock.
+//
+// Concurrency: Callers for the same key share one lock and acquire it in turn.
+func (g *onDemandVariantGeneratorImpl) acquireVariantLock(key string) *variantLock {
 	g.inProgressMutex.Lock()
-	defer g.inProgressMutex.Unlock()
-
-	if mu, exists := g.inProgress[key]; exists {
-		return mu
+	lock, exists := g.inProgress[key]
+	if !exists {
+		lock = &variantLock{}
+		g.inProgress[key] = lock
 	}
+	lock.references++
+	g.inProgressMutex.Unlock()
 
-	mu := &sync.Mutex{}
-	g.inProgress[key] = mu
-	return mu
+	lock.mu.Lock()
+	return lock
 }
 
-// cleanupVariantMutex removes the mutex for a variant key if no longer needed.
+// releaseVariantLock unlocks the variant and removes the map entry after the last
+// requester releases it.
 //
-// Takes key (string) which identifies the variant mutex to remove.
-func (g *onDemandVariantGeneratorImpl) cleanupVariantMutex(key string) {
+// Takes key (string) which identifies the variant lock.
+// Takes lock (*variantLock) which is the lock returned by acquireVariantLock.
+//
+// Concurrency: Other requesters keep the shared lock registered until they release it.
+func (g *onDemandVariantGeneratorImpl) releaseVariantLock(key string, lock *variantLock) {
+	lock.mu.Unlock()
+
 	g.inProgressMutex.Lock()
 	defer g.inProgressMutex.Unlock()
-	delete(g.inProgress, key)
+	lock.references--
+	if lock.references == 0 {
+		delete(g.inProgress, key)
+	}
 }
 
 // countingHashReader wraps a reader to count bytes and compute a hash. It implements
@@ -760,7 +784,7 @@ func NewOnDemandVariantGenerator(
 		registryService:   registryService,
 		capabilityService: capabilityService,
 		clock:             clk,
-		inProgress:        make(map[string]*sync.Mutex),
+		inProgress:        make(map[string]*variantLock),
 		config:            config,
 		inProgressMutex:   sync.Mutex{},
 	}

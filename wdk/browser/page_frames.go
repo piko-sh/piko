@@ -188,7 +188,7 @@ func (p *Page) SetDownloadPath(path string) *Page {
 func (p *Page) WaitForDownload(downloadDir string, trigger func()) *browser_provider_chromedp.DownloadInfo {
 	p.beforeAction("WaitForDownload", downloadDir)
 	start := time.Now()
-	info, err := browser_provider_chromedp.WaitForDownload(p.actionCtx(), downloadDir, 30*time.Second, func() error {
+	info, err := browser_provider_chromedp.WaitForDownload(p.actionCtx(), downloadDir, downloadWaitTimeout, func() error {
 		trigger()
 		return nil
 	})

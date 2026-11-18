@@ -30,8 +30,8 @@ import (
 	"io"
 	"math"
 
+	"piko.sh/json"
 	"piko.sh/piko/internal/crypto/crypto_dto"
-	"piko.sh/piko/internal/json"
 	"piko.sh/safeconv"
 )
 
@@ -44,13 +44,14 @@ const (
 
 	// maxHeaderSizeBytes is the largest header size allowed, which is one megabyte.
 	maxHeaderSizeBytes = 1024 * 1024
+
+	// ivPrefixBytes is the number of base IV bytes kept before the big-endian chunk number.
+	ivPrefixBytes = 8
 )
 
 // encryptingWriter implements io.WriteCloser for streaming encryption. It chunks the
 // plaintext, encrypts each chunk with a unique IV, and writes the encrypted chunks to the
 // destination writer.
-//
-// Memory usage: O(chunk_size) - typically 64KB, regardless of total data size.
 type encryptingWriter struct {
 	// dst is the writer where encrypted chunks are written.
 	dst io.Writer
@@ -480,27 +481,23 @@ func GenerateIV() ([]byte, error) {
 	return iv, nil
 }
 
-// deriveIV creates a unique IV for a given chunk by combining the base IV with the chunk
-// number. Each chunk needs a unique IV for AES-GCM security.
+// deriveIV derives a chunk IV and panics unless baseIV is IVSize bytes long.
 //
-// Format: baseIV[0:8] || chunkNum (as 4 bytes, big-endian)
-//
-// The scheme supports up to 2^32 chunks per stream (up to 256TB with 64KB chunks).
+// The IV combines baseIV's first eight bytes with the four-byte big-endian chunk number,
+// so distinct chunk numbers produce distinct IVs for the same baseIV.
 //
 // Takes baseIV ([]byte) which provides the base IV to derive from.
 // Takes chunkNum (uint32) which specifies the chunk index.
 //
-// Returns []byte which is the derived IV unique to this chunk.
-//
-// Panics if baseIV length does not equal IVSize.
+// Returns []byte which is the IV for the chunk.
 func deriveIV(baseIV []byte, chunkNum uint32) []byte {
 	if len(baseIV) != IVSize {
 		panic(fmt.Sprintf("invalid base IV length: expected %d, got %d", IVSize, len(baseIV)))
 	}
 
 	iv := make([]byte, IVSize)
-	copy(iv, baseIV[:8])
-	binary.BigEndian.PutUint32(iv[8:], chunkNum)
+	copy(iv, baseIV[:ivPrefixBytes])
+	binary.BigEndian.PutUint32(iv[ivPrefixBytes:], chunkNum)
 
 	return iv
 }

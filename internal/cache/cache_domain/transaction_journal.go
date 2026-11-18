@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"iter"
+	"math"
 	"slices"
 	"time"
 
@@ -40,20 +41,31 @@ var (
 // retrieval. This is acceptable because DAL consumers manage their own tag indexes
 // separately from the cache.
 type journalEntry[K comparable, V any] struct {
+	// probedAt is when the entry was read, on the journal's clock. With the system clock it
+	// carries a monotonic reading, so the time the transaction ran is measured without being
+	// affected by changes to the wall clock.
+	probedAt time.Time
+
 	// key is the cache key that was mutated.
 	key K
 
 	// oldValue holds the value that existed before the mutation.
 	oldValue V
 
+	// expiresAtNano is the Unix timestamp in nanoseconds when the entry was due to expire.
+	// Zero or math.MaxInt64 means no TTL was set, and on rollback the remaining TTL is
+	// computed from any other value.
+	expiresAtNano int64
+
+	// snapshotAtNano is the provider's own time, in Unix nanoseconds, when it reported the
+	// entry. The remaining TTL is measured from it so that a provider clock that differs
+	// from the journal's clock still gives the right answer; zero means the provider did not
+	// report one.
+	snapshotAtNano int64
+
 	// existed is true when the key was present before the mutation. When false, rollback
 	// removes the key rather than restoring a value.
 	existed bool
-
-	// expiresAtNano is the Unix timestamp in nanoseconds when the entry was due to expire.
-	// Zero means no TTL was set, and on rollback the remaining TTL is computed from this
-	// value.
-	expiresAtNano int64
 }
 
 // transactionJournal wraps any ProviderPort and adds undo-journal-based rollback.
@@ -71,13 +83,20 @@ type transactionJournal[K comparable, V any] struct {
 	// inner is the underlying cache that receives all operations.
 	inner ProviderPort[K, V]
 
+	// clock measures how long the transaction ran; nil uses the system clock.
+	clock cache_dto.Clock
+
 	// snapshotted tracks which keys already have a journal entry so that only the first
 	// mutation per key is recorded.
 	snapshotted map[K]struct{}
 
 	// batcher groups the transaction's log entries into one record when inner logs its
 	// writes; nil otherwise.
-	batcher LogBatcher
+	batcher LogBatcher[K, V]
+
+	// batch is the view of inner that the transaction writes through while its log batch is
+	// open; nil when no batch is open.
+	batch LogBatch[K, V]
 
 	// journal records pre-mutation state for each key, in mutation order.
 	journal []journalEntry[K, V]
@@ -85,32 +104,45 @@ type transactionJournal[K comparable, V any] struct {
 	// finalised is true after Commit or Rollback has been called. Subsequent mutations or
 	// double-finalise attempts return an error.
 	finalised bool
-
-	// batchOpen is true while the batch begun for this transaction collects entries.
-	batchOpen bool
 }
 
 // newTransactionJournal creates a transaction journal wrapping the given cache.
 //
 // Takes inner (ProviderPort[K, V]) which is the underlying cache that receives all
 // operations.
+// Takes options (...TransactionOption) which configure the journal.
 //
 // Returns *transactionJournal[K, V] which wraps inner with undo journalling.
-func newTransactionJournal[K comparable, V any](inner ProviderPort[K, V]) *transactionJournal[K, V] {
+func newTransactionJournal[K comparable, V any](inner ProviderPort[K, V], options ...TransactionOption) *transactionJournal[K, V] {
+	settings := transactionOptions{clock: nil}
+	for _, option := range options {
+		option(&settings)
+	}
 	t := &transactionJournal[K, V]{
 		inner:       inner,
+		clock:       settings.clock,
 		snapshotted: make(map[K]struct{}),
 		journal:     nil,
 		finalised:   false,
 		batcher:     nil,
-		batchOpen:   false,
+		batch:       nil,
 	}
-	if batcher, ok := inner.(LogBatcher); ok {
-		batcher.BeginLogBatch()
+	if batcher, ok := inner.(LogBatcher[K, V]); ok {
 		t.batcher = batcher
-		t.batchOpen = true
+		t.batch = batcher.BeginLogBatch()
 	}
 	return t
+}
+
+// writer returns the cache the transaction's writes go to: the view of its open log
+// batch, or inner when no batch is open.
+//
+// Returns ProviderPort[K, V] which receives the writes.
+func (t *transactionJournal[K, V]) writer() ProviderPort[K, V] {
+	if t.batch != nil {
+		return t.batch
+	}
+	return t.inner
 }
 
 // snapshotKey records the current state of key before a mutation. Only the first mutation
@@ -135,14 +167,27 @@ func (t *transactionJournal[K, V]) snapshotKey(ctx context.Context, key K) error
 	if err != nil {
 		return fmt.Errorf("snapshotting key before mutation: %w", err)
 	}
+	probedAt := t.now()
 	t.snapshotted[key] = struct{}{}
 	t.journal = append(t.journal, journalEntry[K, V]{
-		key:           key,
-		oldValue:      entry.Value,
-		existed:       existed,
-		expiresAtNano: entry.ExpiresAtNano,
+		key:            key,
+		oldValue:       entry.Value,
+		existed:        existed,
+		probedAt:       probedAt,
+		expiresAtNano:  entry.ExpiresAtNano,
+		snapshotAtNano: entry.SnapshotAtNano,
 	})
 	return nil
+}
+
+// now returns the current time on the journal's clock.
+//
+// Returns time.Time which is the current time.
+func (t *transactionJournal[K, V]) now() time.Time {
+	if t.clock != nil {
+		return t.clock.Now()
+	}
+	return time.Now()
 }
 
 // Commit discards the undo journal, making all mutations permanent. When the cache logs
@@ -154,10 +199,9 @@ func (t *transactionJournal[K, V]) Commit(ctx context.Context) error {
 	if t.finalised {
 		return ErrTransactionFinalised
 	}
-	if t.batchOpen {
-		t.batchOpen = false
-		if err := t.batcher.CommitLogBatch(ctx); err != nil {
-
+	if batch := t.batch; batch != nil {
+		t.batch = nil
+		if err := batch.CommitLogBatch(ctx); err != nil {
 			return fmt.Errorf("logging transaction: %w", err)
 		}
 	}
@@ -172,9 +216,10 @@ func (t *transactionJournal[K, V]) Commit(ctx context.Context) error {
 // original value is restored last (though with the snapshotted-once design each key
 // appears at most once).
 //
-// When the original entry had a TTL, the remaining duration is computed from the
-// snapshotted expiry time and restored via SetWithTTL. If the TTL has already elapsed the
-// entry is not restored (it would have expired anyway).
+// When the original entry had a TTL, the time it had left when it was snapshotted, less
+// the time the transaction ran, is restored via SetWithTTL. If the TTL has already
+// elapsed the entry is not restored (it would have expired anyway). An entry without a
+// TTL is restored with cache_dto.NoExpiry, so it does not keep a TTL the transaction set.
 //
 // All entries are attempted even when individual restores fail; errors are collected and
 // returned via errors.Join so that a single failure does not leave remaining entries
@@ -189,24 +234,26 @@ func (t *transactionJournal[K, V]) Rollback(ctx context.Context) error {
 	t.finalised = true
 
 	if t.batcher != nil {
-		if !t.batchOpen {
-			t.batcher.BeginLogBatch()
+		if t.batch == nil {
+			t.batch = t.batcher.BeginLogBatch()
 		}
-		t.batchOpen = false
-		defer t.batcher.AbortLogBatch()
+		batch := t.batch
+		defer func() {
+			batch.AbortLogBatch()
+			t.batch = nil
+		}()
 	}
 
-	nowNano := time.Now().UnixNano()
 	var errs []error
-	for _, entry := range slices.Backward(t.journal) {
+	for index, entry := range slices.Backward(t.journal) {
 		if entry.existed {
-			if err := t.restoreEntry(ctx, entry, nowNano); err != nil {
-				errs = append(errs, fmt.Errorf("restoring key during rollback: %w", err))
+			if err := t.restoreEntry(ctx, entry); err != nil {
+				errs = append(errs, fmt.Errorf("restoring journal entry %d of %d during rollback: %w", index+1, len(t.journal), err))
 			}
-		} else {
-			if err := t.inner.Invalidate(ctx, entry.key); err != nil {
-				errs = append(errs, fmt.Errorf("invalidating key during rollback: %w", err))
-			}
+			continue
+		}
+		if err := t.writer().Invalidate(ctx, entry.key); err != nil {
+			errs = append(errs, fmt.Errorf("invalidating journal entry %d of %d during rollback: %w", index+1, len(t.journal), err))
 		}
 	}
 	t.journal = nil
@@ -218,19 +265,33 @@ func (t *transactionJournal[K, V]) Rollback(ctx context.Context) error {
 // set and invalidating the key when the TTL has already elapsed.
 //
 // Takes entry (journalEntry[K, V]) which holds the pre-mutation state to restore.
-// Takes nowNano (int64) which is the current Unix time in nanoseconds, used to compute
-// remaining TTL.
 //
 // Returns error when the underlying cache operation fails.
-func (t *transactionJournal[K, V]) restoreEntry(ctx context.Context, entry journalEntry[K, V], nowNano int64) error {
-	if entry.expiresAtNano == 0 {
-		return t.inner.Set(ctx, entry.key, entry.oldValue)
+func (t *transactionJournal[K, V]) restoreEntry(ctx context.Context, entry journalEntry[K, V]) error {
+	if neverExpires(entry.expiresAtNano) {
+		return t.writer().SetWithTTL(ctx, entry.key, entry.oldValue, cache_dto.NoExpiry)
 	}
-	remaining := time.Duration(entry.expiresAtNano - nowNano)
+	remaining := t.remainingTTL(entry)
 	if remaining <= 0 {
-		return t.inner.Invalidate(ctx, entry.key)
+		return t.writer().Invalidate(ctx, entry.key)
 	}
-	return t.inner.SetWithTTL(ctx, entry.key, entry.oldValue, remaining)
+	return t.writer().SetWithTTL(ctx, entry.key, entry.oldValue, remaining)
+}
+
+// remainingTTL works out how long a snapshotted entry has left now. The time left at the
+// snapshot is measured on the provider's clock, and the time since on the journal's
+// clock, so the two clocks never have to agree on the current time.
+//
+// Takes entry (journalEntry[K, V]) which holds the snapshotted expiry.
+//
+// Returns time.Duration which is the TTL left; zero or negative when it has passed.
+func (t *transactionJournal[K, V]) remainingTTL(entry journalEntry[K, V]) time.Duration {
+	anchorNano := entry.snapshotAtNano
+	if anchorNano <= 0 {
+		anchorNano = entry.probedAt.UnixNano()
+	}
+	leftAtSnapshot := time.Duration(entry.expiresAtNano - anchorNano)
+	return leftAtSnapshot - t.now().Sub(entry.probedAt)
 }
 
 // Set stores a value, snapshotting the key's prior state for rollback.
@@ -244,7 +305,7 @@ func (t *transactionJournal[K, V]) Set(ctx context.Context, key K, value V, tags
 	if err := t.snapshotKey(ctx, key); err != nil {
 		return err
 	}
-	return t.inner.Set(ctx, key, value, tags...)
+	return t.writer().Set(ctx, key, value, tags...)
 }
 
 // SetWithTTL stores a value with TTL, snapshotting the key's prior state.
@@ -259,7 +320,7 @@ func (t *transactionJournal[K, V]) SetWithTTL(ctx context.Context, key K, value 
 	if err := t.snapshotKey(ctx, key); err != nil {
 		return err
 	}
-	return t.inner.SetWithTTL(ctx, key, value, ttl, tags...)
+	return t.writer().SetWithTTL(ctx, key, value, ttl, tags...)
 }
 
 // Invalidate removes a key, snapshotting the key's prior state for rollback.
@@ -271,7 +332,7 @@ func (t *transactionJournal[K, V]) Invalidate(ctx context.Context, key K) error 
 	if err := t.snapshotKey(ctx, key); err != nil {
 		return err
 	}
-	return t.inner.Invalidate(ctx, key)
+	return t.writer().Invalidate(ctx, key)
 }
 
 // Compute computes a new value atomically for a key, snapshotting the key's prior state.
@@ -288,7 +349,7 @@ func (t *transactionJournal[K, V]) Compute(ctx context.Context, key K, fn func(o
 		var zero V
 		return zero, false, err
 	}
-	return t.inner.Compute(ctx, key, fn)
+	return t.writer().Compute(ctx, key, fn)
 }
 
 // ComputeIfAbsent computes a value if absent, snapshotting the key's prior state.
@@ -304,7 +365,7 @@ func (t *transactionJournal[K, V]) ComputeIfAbsent(ctx context.Context, key K, f
 		var zero V
 		return zero, false, err
 	}
-	return t.inner.ComputeIfAbsent(ctx, key, fn)
+	return t.writer().ComputeIfAbsent(ctx, key, fn)
 }
 
 // ComputeIfPresent updates a key if present, snapshotting the key's prior state.
@@ -320,7 +381,7 @@ func (t *transactionJournal[K, V]) ComputeIfPresent(ctx context.Context, key K, 
 		var zero V
 		return zero, false, err
 	}
-	return t.inner.ComputeIfPresent(ctx, key, fn)
+	return t.writer().ComputeIfPresent(ctx, key, fn)
 }
 
 // ComputeWithTTL atomically computes a value with TTL, snapshotting the key's prior
@@ -338,7 +399,7 @@ func (t *transactionJournal[K, V]) ComputeWithTTL(ctx context.Context, key K, fn
 		var zero V
 		return zero, false, err
 	}
-	return t.inner.ComputeWithTTL(ctx, key, fn)
+	return t.writer().ComputeWithTTL(ctx, key, fn)
 }
 
 // BulkSet stores multiple values, snapshotting each key's prior state.
@@ -353,7 +414,7 @@ func (t *transactionJournal[K, V]) BulkSet(ctx context.Context, items map[K]V, t
 			return err
 		}
 	}
-	return t.inner.BulkSet(ctx, items, tags...)
+	return t.writer().BulkSet(ctx, items, tags...)
 }
 
 // InvalidateByTags is not supported within a transaction because the Cache interface does
@@ -400,7 +461,7 @@ func (t *transactionJournal[K, V]) Get(ctx context.Context, key K, loader cache_
 		var zero V
 		return zero, err
 	}
-	return t.inner.Get(ctx, key, loader)
+	return t.writer().Get(ctx, key, loader)
 }
 
 // BulkGet returns values for all keys, using the bulk loader to populate missing entries.
@@ -418,7 +479,7 @@ func (t *transactionJournal[K, V]) BulkGet(ctx context.Context, keys []K, bulkLo
 			return nil, err
 		}
 	}
-	return t.inner.BulkGet(ctx, keys, bulkLoader)
+	return t.writer().BulkGet(ctx, keys, bulkLoader)
 }
 
 // BulkRefresh triggers asynchronous refresh for the given keys, bypassing the undo
@@ -527,15 +588,18 @@ func (t *transactionJournal[K, V]) WeightedSize() uint64 {
 	return t.inner.WeightedSize()
 }
 
-// SetExpiresAfter sets or changes the expiry time for a key, delegating to the inner
-// cache.
+// SetExpiresAfter sets or changes the expiry time for a key, snapshotting the key's prior
+// state so rollback restores the expiry it had.
 //
 // Takes key (K) which identifies the item to update.
 // Takes expiresAfter (time.Duration) which specifies how long until the key expires.
 //
-// Returns error when the operation fails.
+// Returns error when snapshotting or the operation fails.
 func (t *transactionJournal[K, V]) SetExpiresAfter(ctx context.Context, key K, expiresAfter time.Duration) error {
-	return t.inner.SetExpiresAfter(ctx, key, expiresAfter)
+	if err := t.snapshotKey(ctx, key); err != nil {
+		return err
+	}
+	return t.writer().SetExpiresAfter(ctx, key, expiresAfter)
 }
 
 // SetRefreshableAfter sets or overrides the refresh time for a key, delegating to the
@@ -593,4 +657,16 @@ func (t *transactionJournal[K, V]) GetSchema() *cache_dto.SearchSchema {
 // Returns error which is always nil.
 func (*transactionJournal[K, V]) Close(_ context.Context) error {
 	return nil
+}
+
+// neverExpires reports whether an entry's expiry timestamp means it has no TTL. Providers
+// report a missing TTL either as zero or, as Otter does, as the largest representable
+// time.
+//
+// Takes expiresAtNano (int64) which is the entry's expiry as a Unix timestamp in
+// nanoseconds.
+//
+// Returns bool which is true when the entry does not expire.
+func neverExpires(expiresAtNano int64) bool {
+	return expiresAtNano == 0 || expiresAtNano == math.MaxInt64
 }

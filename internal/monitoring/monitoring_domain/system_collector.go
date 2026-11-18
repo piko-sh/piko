@@ -36,6 +36,9 @@ import (
 )
 
 const (
+	// millisecondsPerSecond converts a duration in seconds to milliseconds.
+	millisecondsPerSecond = 1000
+
 	// systemSampleInterval is the time between CPU usage samples.
 	systemSampleInterval = time.Second
 
@@ -872,7 +875,7 @@ func readSystemUptime() int64 {
 		return 0
 	}
 
-	return int64(seconds * 1000)
+	return int64(seconds * millisecondsPerSecond)
 }
 
 // readCgroupPath reads the cgroup v2 path from /proc/self/cgroup.

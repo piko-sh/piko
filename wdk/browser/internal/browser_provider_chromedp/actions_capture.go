@@ -226,7 +226,7 @@ func ScrollForLazyContent(ctx context.Context, opts ScrollCaptureOptions) error 
 	}
 
 	_ = scrollTo(ctx, selector, 0)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(scrollResetDelay)
 
 	return nil
 }
@@ -248,7 +248,7 @@ func UnwrapScrollContainer(ctx context.Context) error {
 	}
 
 	js := scripts.MustExecute("unwrap_scroll_container.js.tmpl", map[string]any{
-		"Selector": selector,
+		tmplKeySelector: selector,
 	})
 
 	var result bool
@@ -257,7 +257,7 @@ func UnwrapScrollContainer(ctx context.Context) error {
 		return fmt.Errorf("unwrapping scroll container: %w", err)
 	}
 
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(unwrapSettleDelay)
 
 	return nil
 }
@@ -414,7 +414,7 @@ func FullPageScreenshotChunks(
 // Returns error when the HTML cannot be captured.
 func GetFullPageHTMLWithShadow(ctx context.Context) (string, error) {
 	js := scripts.MustExecute("capture_dom_with_shadow.js.tmpl", map[string]any{
-		"Selector": "html",
+		tmplKeySelector: "html",
 	})
 
 	var html string
@@ -523,8 +523,8 @@ func scrollTo(ctx context.Context, selector string, y float64) error {
 		})
 	} else {
 		js = scripts.MustExecute("scroll_element_to.js.tmpl", map[string]any{
-			"Selector": selector,
-			"Position": position,
+			tmplKeySelector: selector,
+			"Position":      position,
 		})
 	}
 
@@ -552,7 +552,7 @@ func getScrollDimensions(
 		js = scripts.MustGet("get_scroll_dimensions_window.js")
 	} else {
 		js = scripts.MustExecute("get_scroll_dimensions_element.js.tmpl", map[string]any{
-			"Selector": selector,
+			tmplKeySelector: selector,
 		})
 	}
 
@@ -599,7 +599,7 @@ func runScrollPass(
 			return false, scrollErr
 		}
 		time.Sleep(opts.ScrollStepDelay)
-		waitForVisibleImages(ctx, 5*time.Second)
+		waitForVisibleImages(ctx, visibleImagesTimeout)
 		currentY += ch
 	}
 
@@ -607,7 +607,7 @@ func runScrollPass(
 		return false, scrollErr
 	}
 	time.Sleep(opts.ScrollStepDelay)
-	waitForVisibleImages(ctx, 5*time.Second)
+	waitForVisibleImages(ctx, visibleImagesTimeout)
 
 	waitNetworkIdle(ctx, opts.NetworkIdleDuration, opts.NetworkIdleTimeout)
 

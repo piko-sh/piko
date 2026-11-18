@@ -322,13 +322,13 @@ func (*Row) renderStackedChildren(children []*ast_domain.TemplateNode, ctx *pml_
 func (c *Row) renderVML(styles *pml_domain.StyleManager, content *ast_domain.TemplateNode, containerWidth float64) *ast_domain.TemplateNode {
 	bgURL := mustGetStyle(styles, "background-url")
 	bgColor := getStyleWithDefault(styles, "background-color", "#ffffff")
-	bgRepeat := getStyleWithDefault(styles, "background-repeat", "repeat")
+	bgRepeat := getStyleWithDefault(styles, "background-repeat", ValueRepeat)
 	bgSize := getStyleWithDefault(styles, "background-size", bgSizeAuto)
 	isFullWidth := mustGetStyle(styles, "full-width") == "full-width"
 
 	posX, posY := c.parseBackgroundPosition(styles)
-	vmlOriginX, vmlPosX := c.getVMLPosition(posX, bgRepeat == "repeat")
-	vmlOriginY, vmlPosY := c.getVMLPosition(posY, bgRepeat == "repeat")
+	vmlOriginX, vmlPosX := c.getVMLPosition(posX, bgRepeat == ValueRepeat)
+	vmlOriginY, vmlPosY := c.getVMLPosition(posY, bgRepeat == ValueRepeat)
 
 	vmlAspect, vmlSize := calculateVMLAspectAndSize(bgSize)
 	vmlType := calculateVMLType(bgRepeat, bgSize)
@@ -706,7 +706,7 @@ func calculateVMLAspectAndSize(bgSize string) (vmlAspect, vmlSize string) {
 //
 // Returns string which is the VML fill type: "tile" or "frame".
 func calculateVMLType(bgRepeat, bgSize string) string {
-	if bgRepeat == "repeat" || bgSize == bgSizeAuto {
+	if bgRepeat == ValueRepeat || bgSize == bgSizeAuto {
 		return "tile"
 	}
 	return "frame"
@@ -760,7 +760,7 @@ func getBackgroundShorthand(styles *pml_domain.StyleManager) string {
 		return bgColor
 	}
 
-	bgRepeat := getStyleWithDefault(styles, "background-repeat", "repeat")
+	bgRepeat := getStyleWithDefault(styles, "background-repeat", ValueRepeat)
 	bgSize := getStyleWithDefault(styles, "background-size", ValueAuto)
 	posX, posY := (&Row{}).parseBackgroundPosition(styles)
 	backgroundPosition := posX + ValueSpace + posY

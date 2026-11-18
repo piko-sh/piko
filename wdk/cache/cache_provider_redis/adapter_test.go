@@ -20,6 +20,7 @@ package cache_provider_redis_test
 
 import (
 	"context"
+	"fmt"
 	"maps"
 	"testing"
 	"time"
@@ -27,9 +28,20 @@ import (
 	"github.com/alicebob/miniredis/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"piko.sh/piko/internal/cache/cache_test/conformance"
+	budget_store_cache "piko.sh/piko/internal/llm/llm_adapters/budget_store/cache"
+	"piko.sh/piko/internal/llm/llm_domain"
+	"piko.sh/piko/internal/llm/llm_dto"
+	"piko.sh/piko/internal/ratelimiter/ratelimiter_adapters"
 	"piko.sh/piko/wdk/cache"
 	"piko.sh/piko/wdk/cache/cache_encoder_json"
 	"piko.sh/piko/wdk/cache/cache_provider_redis"
+	"piko.sh/piko/wdk/clock"
+	"piko.sh/piko/wdk/maths"
+)
+
+const (
+	perEntryOperationTimeout = time.Minute
 )
 
 func setupMiniredis(t *testing.T) (*miniredis.Miniredis, string) {
@@ -686,4 +698,280 @@ func TestRedisAdapter_CloseLeavesOtherNamespacesUsable(t *testing.T) {
 	assert.True(t, found)
 	assert.Equal(t, "rendered", value)
 	assert.NoError(t, provider.Close(), "the provider still owns an open client")
+}
+
+func TestRedis_PerEntryExpiryConformance(t *testing.T) {
+	t.Parallel()
+
+	conformance.RunPerEntryExpirySuite(t, conformance.PerEntryConfig{
+		NewHarness: func(t *testing.T) conformance.PerEntryHarness {
+			provider, mr := newPerEntryRedisProvider(t, time.Hour)
+			return conformance.PerEntryHarness{
+				Cache:       conformance.BuildPerEntryCache(t, redisFactory[string](provider)),
+				AdvanceTime: mr.FastForward,
+			}
+		},
+	})
+}
+
+func TestRedis_PerEntryExpirationIgnoresTheDefaultTTL(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	provider, mr := newPerEntryRedisProvider(t, time.Minute)
+	perEntryCache := conformance.BuildPerEntryCache(t, redisFactory[string](provider))
+
+	require.NoError(t, perEntryCache.Set(ctx, "key", "value"))
+	mr.FastForward(time.Hour)
+
+	_, found, err := perEntryCache.GetIfPresent(ctx, "key")
+	require.NoError(t, err)
+	assert.True(t, found, "a write without a TTL under PerEntryExpiration must not get the default TTL")
+}
+
+func TestRedis_TTLContractWithoutPerEntryExpiration(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		write       func(ctx context.Context, c *cache_provider_redis.RedisAdapter[string, string]) error
+		name        string
+		advance     time.Duration
+		wantPresent bool
+	}{
+		{
+			name: "Set applies the default TTL",
+			write: func(ctx context.Context, c *cache_provider_redis.RedisAdapter[string, string]) error {
+				return c.Set(ctx, "key", "value")
+			},
+			advance:     time.Minute,
+			wantPresent: false,
+		},
+		{
+			name: "SetWithTTL zero writes as Set does",
+			write: func(ctx context.Context, c *cache_provider_redis.RedisAdapter[string, string]) error {
+				return c.SetWithTTL(ctx, "key", "value", 0)
+			},
+			advance:     time.Minute,
+			wantPresent: false,
+		},
+		{
+			name: "SetWithTTL with NoExpiry stores without a TTL",
+			write: func(ctx context.Context, c *cache_provider_redis.RedisAdapter[string, string]) error {
+				return c.SetWithTTL(ctx, "key", "value", cache.NoExpiry)
+			},
+			advance:     24 * time.Hour,
+			wantPresent: true,
+		},
+		{
+			name: "SetExpiresAfter zero neither expires nor deletes",
+			write: func(ctx context.Context, c *cache_provider_redis.RedisAdapter[string, string]) error {
+				if err := c.SetWithTTL(ctx, "key", "value", cache.NoExpiry); err != nil {
+					return err
+				}
+				return c.SetExpiresAfter(ctx, "key", 0)
+			},
+			advance:     24 * time.Hour,
+			wantPresent: true,
+		},
+		{
+			name: "SetExpiresAfter with NoExpiry removes the TTL",
+			write: func(ctx context.Context, c *cache_provider_redis.RedisAdapter[string, string]) error {
+				if err := c.Set(ctx, "key", "value"); err != nil {
+					return err
+				}
+				return c.SetExpiresAfter(ctx, "key", cache.NoExpiry)
+			},
+			advance:     24 * time.Hour,
+			wantPresent: true,
+		},
+		{
+			name: "a sub-millisecond TTL is rounded up rather than sent as zero",
+			write: func(ctx context.Context, c *cache_provider_redis.RedisAdapter[string, string]) error {
+				return c.SetWithTTL(ctx, "key", "value", time.Microsecond)
+			},
+			advance:     time.Millisecond,
+			wantPresent: false,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx := t.Context()
+			c, mr := createRedisCache[string, string](t, time.Minute)
+
+			require.NoError(t, testCase.write(ctx, c))
+			mr.FastForward(testCase.advance)
+
+			_, found, err := c.GetIfPresent(ctx, "key")
+			require.NoError(t, err)
+			assert.Equal(t, testCase.wantPresent, found)
+		})
+	}
+}
+
+func TestRedis_ProbeEntryReportsMillisecondTTLs(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	c, _ := createRedisCache[string, string](t, 0)
+	require.NoError(t, c.SetWithTTL(ctx, "key", "value", 500*time.Millisecond))
+
+	entry, found, err := c.ProbeEntry(ctx, "key")
+	require.NoError(t, err)
+	require.True(t, found)
+
+	assert.NotZero(t, entry.ExpiresAtNano, "a TTL under one second must not read as no expiry")
+}
+
+func TestRedis_ProbeEntryReportsSubMillisecondTTL(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	c, mr := createRedisCache[string, string](t, 0)
+	require.NoError(t, c.SetWithTTL(ctx, "key", "value", time.Minute))
+	stored := mr.Keys()
+	require.Len(t, stored, 1)
+	mr.SetTTL(stored[0], 500*time.Microsecond)
+
+	entry, found, err := c.ProbeEntry(ctx, "key")
+	require.NoError(t, err)
+	require.True(t, found)
+
+	assert.NotZero(t, entry.ExpiresAtNano, "a TTL under one millisecond must not read as no expiry")
+}
+
+func newPerEntryRedisProvider(t *testing.T, defaultTTL time.Duration) (*cache_provider_redis.RedisProvider, *miniredis.Miniredis) {
+	t.Helper()
+
+	mr, addr := setupMiniredis(t)
+	valueEncoder := cache_encoder_json.New[string]()
+	provider, err := cache_provider_redis.NewRedisProvider(cache_provider_redis.Config{
+		Address:                addr,
+		DefaultTTL:             defaultTTL,
+		Registry:               cache.NewEncodingRegistry(valueEncoder.(cache.AnyEncoder)),
+		OperationTimeout:       perEntryOperationTimeout,
+		AtomicOperationTimeout: perEntryOperationTimeout,
+		AllowUnsafeFLUSHDB:     true,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { assert.NoError(t, provider.Close()) })
+
+	return provider, mr
+}
+
+func redisFactory[V any](provider *cache_provider_redis.RedisProvider) func(cache.Options[string, V]) (cache.ProviderPort[string, V], error) {
+	return func(options cache.Options[string, V]) (cache.ProviderPort[string, V], error) {
+		created, err := provider.CreateNamespaceTyped("per-entry", options)
+		if err != nil {
+			return nil, err
+		}
+		adapter, ok := created.(cache.ProviderPort[string, V])
+		if !ok {
+			return nil, fmt.Errorf("redis provider created %T", created)
+		}
+		return adapter, nil
+	}
+}
+
+func TestRedis_RateLimiterCounterKeepsWindowPastDefaultTTL(t *testing.T) {
+	t.Parallel()
+
+	const (
+		providerName = "redis"
+		counterKey   = "ratelimit:global:203.0.113.7"
+		window       = 3 * time.Second
+	)
+
+	ctx := t.Context()
+	mr, addr := setupMiniredis(t)
+	provider, err := cache_provider_redis.NewRedisProvider(cache_provider_redis.Config{
+		Address:            addr,
+		DefaultTTL:         time.Second,
+		Registry:           cache.NewEncodingRegistry(nil),
+		AllowUnsafeFLUSHDB: true,
+	})
+	require.NoError(t, err)
+	service := cache.NewService(providerName)
+	require.NoError(t, service.RegisterProvider(ctx, providerName, provider))
+	t.Cleanup(func() { _ = service.Close(context.Background()) })
+
+	mockClock := clock.NewMockClock(time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC))
+	store, err := ratelimiter_adapters.NewCacheCounterStore(ctx, ratelimiter_adapters.CacheCounterStoreConfig{
+		CacheService:       service,
+		Clock:              mockClock,
+		Provider:           providerName,
+		Namespace:          "",
+		MaximumEntries:     0,
+		ClockSkewTolerance: 0,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = store.Close(context.Background()) })
+
+	advance := func(duration time.Duration) {
+		mockClock.Advance(duration)
+		mr.FastForward(duration)
+	}
+
+	for range 3 {
+		_, err := store.IncrementAndGet(ctx, counterKey, 1, window)
+		require.NoError(t, err)
+	}
+	require.Len(t, mr.Keys(), 1, "the counter is held by Redis")
+
+	advance(1500 * time.Millisecond)
+	result, err := store.IncrementAndGet(ctx, counterKey, 1, window)
+	require.NoError(t, err)
+	assert.Equal(t, int64(4), result.Count, "the counter outlives the provider's default TTL inside its window")
+
+	advance(1500 * time.Millisecond)
+	result, err = store.IncrementAndGet(ctx, counterKey, 1, window)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), result.Count, "the key expires with its window and a new window starts")
+	assert.Equal(t, mockClock.Now(), result.WindowStart)
+}
+
+func TestRedis_BudgetStoreKeepsSpendPastDefaultTTL(t *testing.T) {
+	t.Parallel()
+
+	const (
+		providerName = "redis"
+		scope        = "tenant-a"
+	)
+
+	ctx := t.Context()
+	mr, addr := setupMiniredis(t)
+	provider, err := cache_provider_redis.NewRedisProvider(cache_provider_redis.Config{
+		Address:            addr,
+		DefaultTTL:         time.Second,
+		Registry:           cache.NewEncodingRegistry(nil),
+		AllowUnsafeFLUSHDB: true,
+	})
+	require.NoError(t, err)
+	service := cache.NewService(providerName)
+	require.NoError(t, service.RegisterProvider(ctx, providerName, provider))
+	t.Cleanup(func() { _ = service.Close(context.Background()) })
+
+	mockClock := clock.NewMockClock(time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC))
+	store, err := budget_store_cache.New(ctx, budget_store_cache.Config{
+		CacheService:   service,
+		Clock:          mockClock,
+		Provider:       providerName,
+		Namespace:      "",
+		MaximumEntries: 0,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = store.Close(context.Background()) })
+
+	limits := llm_dto.BudgetLimits{MaxTotalSpend: maths.NewMoneyFromString("1.00", llm_dto.CostCurrency)}
+	require.NoError(t, store.CheckAndReserve(ctx, scope, maths.NewMoneyFromString("1.00", llm_dto.CostCurrency), limits))
+	require.Len(t, mr.Keys(), 1, "the budget is held by Redis")
+
+	mockClock.Advance(2 * time.Second)
+	mr.FastForward(2 * time.Second)
+
+	err = store.CheckAndReserve(ctx, scope, maths.NewMoneyFromString("0.50", llm_dto.CostCurrency), limits)
+	require.ErrorIs(t, err, llm_domain.ErrBudgetExceeded, "an idle budget must outlive the provider's default TTL")
+	assert.Equal(t, time.Duration(0), mr.TTL(mr.Keys()[0]), "the budget key has no expiry")
 }

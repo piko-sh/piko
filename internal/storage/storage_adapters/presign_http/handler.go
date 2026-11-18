@@ -25,13 +25,12 @@ import (
 	"fmt"
 	"io"
 	"mime"
-	"net"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/security/security_dto"
 	"piko.sh/piko/internal/storage/storage_domain"
@@ -371,9 +370,7 @@ func (h *Handler) handleTokenError(ctx context.Context, w http.ResponseWriter, e
 // Takes err (error) which is the upload error to handle.
 // Takes maxSize (int64) which is the largest allowed file size in bytes.
 func (h *Handler) handleUploadError(ctx context.Context, w http.ResponseWriter, err error, maxSize int64) {
-	errString := err.Error()
-
-	if strings.Contains(errString, "http: request body too large") {
+	if _, tooLarge := errors.AsType[*http.MaxBytesError](err); tooLarge {
 		h.writeError(ctx, w, httpStatusPayloadTooLarge, "file_too_large",
 			fmt.Sprintf("File exceeds maximum size of %d bytes", maxSize))
 		return
@@ -903,6 +900,9 @@ func determineDisposition(contentType string, metadata map[string]string) string
 
 // checkRateLimit enforces the configured per-caller presign upload limit.
 //
+// A caller whose address is unknown is refused, since keying it would put every such
+// caller into one shared bucket.
+//
 // Takes w (http.ResponseWriter) which receives the 429 and its Retry-After.
 // Takes r (*http.Request) which identifies the caller.
 //
@@ -914,7 +914,17 @@ func (h *Handler) checkRateLimit(ctx context.Context, w http.ResponseWriter, r *
 
 	ctx, l := logger_domain.From(ctx, log)
 
-	key := presignRateLimitKeyPrefix + security_dto.SanitiseRateLimitKey(presignClientIdentity(r))
+	address := security_dto.RateLimitClientAddress(r)
+	if address == "" {
+		l.Warn("Presign rate limiting could not tell where the upload came from, denying it")
+
+		h.writeRateLimited(ctx, w, presignRateLimitWindow)
+
+		return false
+	}
+
+	key := presignRateLimitKeyPrefix + security_dto.SanitiseRateLimitKey(address,
+		security_dto.WithIPv6PrefixBits(h.config.RateLimitIPv6PrefixBits))
 
 	result, err := h.config.RateLimiter.CheckLimit(
 		ctx, key, h.config.RateLimitPerMinute, presignRateLimitWindow,
@@ -947,23 +957,6 @@ func (h *Handler) writeRateLimited(ctx context.Context, w http.ResponseWriter, r
 	w.Header().Set("Retry-After", strconv.Itoa(seconds))
 	h.writeError(ctx, w, httpStatusTooManyRequests, "rate_limited",
 		"Too many upload requests. Please try again later.")
-}
-
-// presignClientIdentity returns the address a presign upload is counted against.
-//
-// Takes r (*http.Request) which supplies the request identity.
-//
-// Returns string which identifies the caller.
-func presignClientIdentity(r *http.Request) string {
-	if clientIP := security_dto.ClientIPFromRequest(r); clientIP != "" {
-		return clientIP
-	}
-
-	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil && host != "" {
-		return host
-	}
-
-	return r.RemoteAddr
 }
 
 // drainRefusedBody consumes a bounded part of a body that will not be read.

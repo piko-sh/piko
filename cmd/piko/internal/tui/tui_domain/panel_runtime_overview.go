@@ -244,7 +244,7 @@ func (*RuntimeOverviewPanel) detailBody(stats *SystemStats) inspector.DetailBody
 	}
 	rows := []inspector.DetailRow{
 		inspector.NewDetailRow("Uptime", stats.Uptime.Truncate(time.Second).String()),
-		inspector.NewDetailRow("CPU", percentageString(stats.CPUMillicores/1000.0)),
+		inspector.NewDetailRow("CPU", percentageString(stats.CPUMillicores/millicoresPerCore)),
 		inspector.NewDetailRow("Goroutines", formatInt(stats.NumGoroutines)),
 		inspector.NewDetailRow("Heap alloc", inspector.FormatBytes(stats.Memory.HeapAlloc)),
 		inspector.NewDetailRow("RSS", inspector.FormatBytes(stats.Process.RSS)),

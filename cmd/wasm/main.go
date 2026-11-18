@@ -27,9 +27,9 @@ import (
 	"syscall/js"
 	"time"
 
+	"piko.sh/json"
 	"piko.sh/piko/cmd/wasm/internal/wasmrecover"
 	"piko.sh/piko/internal/inspector/inspector_dto"
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/render/render_adapters"
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/wasm/wasm_adapters"
@@ -45,6 +45,10 @@ const (
 
 	// invalidRequestFmt is the format string used when a JS request cannot be unmarshalled.
 	invalidRequestFmt = "invalid request: %v"
+
+	// maxPlaygroundSourceSize is the largest source the playground accepts, in bytes (2
+	// MiB).
+	maxPlaygroundSourceSize = 2 << 20
 )
 
 var (
@@ -97,7 +101,7 @@ func main() {
 		wasm_domain.WithConfig(wasm_domain.Config{
 			DefaultModuleName: "playground",
 			StdlibPackages:    nil,
-			MaxSourceSize:     2 * 1024 * 1024,
+			MaxSourceSize:     maxPlaygroundSourceSize,
 			EnableMetrics:     false,
 		}),
 	)

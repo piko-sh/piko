@@ -34,6 +34,43 @@ type DeferredAppender[K comparable, V any] interface {
 	// mode requires; waiting for an entry also covers every entry queued before it.
 	// Returns error when the WAL is closed or the entry cannot be encoded or queued.
 	Enqueue(ctx context.Context, entry Entry[K, V]) (wait func() error, err error)
+
+	// Encode prepares entry for EnqueueEncoded, so a caller can do the encoding before it
+	// takes its own locks.
+	//
+	// Takes entry (Entry[K, V]) which is the entry to encode.
+	//
+	// Returns EncodedEntry which the caller passes to EnqueueEncoded or releases.
+	// Returns error when the entry cannot be encoded.
+	Encode(entry Entry[K, V]) (EncodedEntry, error)
+
+	// EnqueueEncoded queues an entry made by Encode behind every entry queued before it,
+	// taking ownership of it.
+	//
+	// It waits a bounded time for room in the queue, so a stalled disk makes it fail with
+	// ErrQueueStalled rather than block its caller.
+	//
+	// Takes encoded (EncodedEntry) which is the entry to queue.
+	//
+	// Returns func() error which waits as the wait from Enqueue does.
+	// Returns error when the WAL is closed, the queue stays full, or ctx is cancelled.
+	EnqueueEncoded(ctx context.Context, encoded EncodedEntry) (wait func() error, err error)
+
+	// QueueEncoded queues an encoded entry in order without waking the writer.
+	//
+	// It takes ownership of encoded and waits a bounded time for queue space. A stalled
+	// queue returns ErrQueueStalled. Call Signal after releasing locks to wake the writer
+	// without waiting. Calling the returned wait also signals before it waits.
+	//
+	// Takes encoded (EncodedEntry) which is the entry to queue.
+	//
+	// Returns wait (func() error) which waits for the queued write to complete.
+	// Returns err (error) when the WAL is closed, the queue stays full, or the context is
+	// cancelled.
+	QueueEncoded(ctx context.Context, encoded EncodedEntry) (wait func() error, err error)
+
+	// Signal wakes the writer to write every entry queued so far. It never blocks.
+	Signal()
 }
 
 // WAL is the driven port for write-ahead logging. Implementations must be safe for

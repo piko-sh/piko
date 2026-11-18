@@ -29,11 +29,11 @@ import (
 )
 
 type recordingResponseWriter struct {
+	lastDeadline time.Time
 	http.ResponseWriter
+	deadlineErr   error
 	deadlineCalls atomic.Int64
 	flushCalls    atomic.Int64
-	lastDeadline  time.Time
-	deadlineErr   error
 }
 
 func (r *recordingResponseWriter) SetWriteDeadline(deadline time.Time) error {

@@ -31,9 +31,6 @@ const (
 	// actionReflectPackagePath is the import path for the reflect package.
 	actionReflectPackagePath = "reflect"
 
-	// actionLoggerPackagePath is the import path for the Piko logger package.
-	actionLoggerPackagePath = "piko.sh/piko/wdk/logger"
-
 	// actionMultipartPackagePath is the import path for the multipart package.
 	actionMultipartPackagePath = "mime/multipart"
 

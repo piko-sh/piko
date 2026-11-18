@@ -31,13 +31,13 @@ type CreateBookParams struct {
 	AuthorID int32
 	Title    string
 	Price    maths.Decimal
-	Rating   *int32
+	Rating   Null[int32]
 }
 type CreateBookRow struct {
 	ID     int64         `json:"id"`
 	Title  string        `json:"title"`
 	Price  maths.Decimal `json:"price"`
-	Rating *int32        `json:"rating"`
+	Rating Null[int32]   `json:"rating"`
 }
 
 func (queries *Queries) CreateBook(ctx context.Context, params CreateBookParams) (CreateBookRow, error) {
@@ -59,9 +59,9 @@ func (queries *Queries) DeleteBook(ctx context.Context, id int64) error {
 const getauthor = `SELECT id, name, born_year FROM authors WHERE id = ?1;`
 
 type GetAuthorRow struct {
-	ID       int64  `json:"id"`
-	Name     string `json:"name"`
-	BornYear *int32 `json:"born_year"`
+	ID       int64       `json:"id"`
+	Name     string      `json:"name"`
+	BornYear Null[int32] `json:"born_year"`
 }
 
 func (queries *Queries) GetAuthor(ctx context.Context, id int64) (GetAuthorRow, error) {
@@ -76,9 +76,9 @@ func (queries *Queries) GetAuthor(ctx context.Context, id int64) (GetAuthorRow, 
 const listauthors = `SELECT id, name, born_year FROM authors ORDER BY id;`
 
 type ListAuthorsRow struct {
-	ID       int64  `json:"id"`
-	Name     string `json:"name"`
-	BornYear *int32 `json:"born_year"`
+	ID       int64       `json:"id"`
+	Name     string      `json:"name"`
+	BornYear Null[int32] `json:"born_year"`
 }
 
 func (queries *Queries) ListAuthors(ctx context.Context) ([]ListAuthorsRow, error) {
@@ -88,12 +88,16 @@ func (queries *Queries) ListAuthors(ctx context.Context) ([]ListAuthorsRow, erro
 	}
 	defer rows.Close()
 	var results []ListAuthorsRow
-	for rows.Next() {
+	if rows.Next() {
 		var row ListAuthorsRow
-		if err := rows.Scan(&row.ID, &row.Name, &row.BornYear); err != nil {
-			return nil, err
+		scanArgs := []any{&row.ID, &row.Name, &row.BornYear}
+		for more := true; more; more = rows.Next() {
+			row = ListAuthorsRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -107,10 +111,10 @@ LEFT JOIN books b ON b.author_id = a.id
 ORDER BY a.id, b.id;`
 
 type ListAuthorsWithBooksRow struct {
-	AuthorID int64   `json:"author_id"`
-	Name     string  `json:"name"`
-	BookID   *int64  `json:"book_id"`
-	Title    *string `json:"title"`
+	AuthorID int64        `json:"author_id"`
+	Name     string       `json:"name"`
+	BookID   Null[int64]  `json:"book_id"`
+	Title    Null[string] `json:"title"`
 }
 
 func (queries *Queries) ListAuthorsWithBooks(ctx context.Context) ([]ListAuthorsWithBooksRow, error) {
@@ -120,12 +124,16 @@ func (queries *Queries) ListAuthorsWithBooks(ctx context.Context) ([]ListAuthors
 	}
 	defer rows.Close()
 	var results []ListAuthorsWithBooksRow
-	for rows.Next() {
+	if rows.Next() {
 		var row ListAuthorsWithBooksRow
-		if err := rows.Scan(&row.AuthorID, &row.Name, &row.BookID, &row.Title); err != nil {
-			return nil, err
+		scanArgs := []any{&row.AuthorID, &row.Name, &row.BookID, &row.Title}
+		for more := true; more; more = rows.Next() {
+			row = ListAuthorsWithBooksRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

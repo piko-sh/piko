@@ -30,7 +30,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"go.opentelemetry.io/otel/trace/noop"
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 	clockpkg "piko.sh/piko/wdk/clock"
@@ -231,6 +231,10 @@ type watermillTaskDispatcher struct {
 
 	// started indicates whether the dispatcher is running.
 	started atomic.Bool
+
+	// startupSwept indicates whether the startup sweep has published the tasks left pending
+	// before the dispatcher started.
+	startupSwept atomic.Bool
 
 	// localTransport is true when tasks are delivered through in-process rings rather than
 	// as messages on the bus.

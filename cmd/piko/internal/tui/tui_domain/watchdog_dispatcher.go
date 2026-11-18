@@ -34,6 +34,10 @@ import (
 )
 
 const (
+	// subscriberBackfillHeadroom is the extra channel capacity given to a new subscriber
+	// beyond its backfill so live events do not block at once.
+	subscriberBackfillHeadroom = 8
+
 	// WatchdogStreamDisconnected indicates the dispatcher is not currently connected to the
 	// upstream watchdog event stream.
 	WatchdogStreamDisconnected = "disconnected"
@@ -326,7 +330,7 @@ func (d *EventDispatcher) Subscribe(filter EventFilter, since time.Time) Watchdo
 
 	backfill := d.historySnapshot(filter, since)
 
-	bufferSize := max(len(backfill)+8, d.subscriberBuffer)
+	bufferSize := max(len(backfill)+subscriberBackfillHeadroom, d.subscriberBuffer)
 
 	sub := &dispatcherSub{
 		ch:      make(chan WatchdogEvent, bufferSize),

@@ -375,7 +375,6 @@ func TestEmitWrappers_ReservedPackageNames(t *testing.T) {
 	require.NoError(t, err)
 
 	output := string(result)
-	assert.Contains(t, output, "var "+actionLogVarName+" = logger.GetLogger")
 	assert.Contains(t, output, "argsMap[\"attachment\"].(*multipart.FileHeader)",
 		"the standard library multipart package must keep its own identifier")
 
@@ -1035,4 +1034,44 @@ func TestEmitWrappersCompilesWhenParametersShadowWrapperLocals(t *testing.T) {
 	fset := token.NewFileSet()
 	_, parseErr := parser.ParseFile(fset, "wrappers.go", source, parser.AllErrors)
 	require.NoError(t, parseErr, "generated wrappers must parse:\n%s", source)
+}
+
+func TestEmitWrappers_BindFailureIsLeftToTheHandlerToLog(t *testing.T) {
+	t.Parallel()
+
+	specs := []annotator_dto.ActionSpec{
+		{
+			Name:        "order.Create",
+			PackagePath: "mymod/actions/order",
+			PackageName: "order",
+			StructName:  "CreateAction",
+			HTTPMethod:  "POST",
+			HasError:    true,
+			CallParams: []annotator_dto.ParamSpec{
+				{
+					Name:     "input",
+					JSONName: "input",
+					GoType:   "order.CreateInput",
+					Struct: &annotator_dto.TypeSpec{
+						Name:        "CreateInput",
+						PackagePath: "mymod/actions/order",
+						PackageName: "order",
+					},
+				},
+			},
+		},
+	}
+
+	output, err := NewActionWrapperEmitter().EmitWrappers(t.Context(), specs)
+	require.NoError(t, err)
+
+	source := string(output)
+	assert.Contains(t, source, "return nil, err", "the bind error must still reach the action handler")
+	assert.NotContains(t, source, "l.Warn", "the action handler logs a failed bind once, so the wrapper must not")
+	assert.NotContains(t, source, "logger.From")
+	assert.NotContains(t, source, "FailedField")
+	assert.NotContains(t, source, "piko.sh/piko/wdk/logger", "a wrapper that logs nothing must not import the logger")
+
+	_, parseErr := parser.ParseFile(token.NewFileSet(), "wrappers.go", source, parser.AllErrors)
+	require.NoError(t, parseErr)
 }

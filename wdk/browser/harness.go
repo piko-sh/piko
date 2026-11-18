@@ -26,7 +26,6 @@ import (
 	"path/filepath"
 	"sync"
 	"testing"
-	"time"
 
 	"piko.sh/piko/wdk/browser/internal/browser_provider_chromedp"
 	"piko.sh/safedisk"
@@ -304,7 +303,7 @@ func (h *Harness) startServer(projectDir string) error {
 		return fmt.Errorf("starting server: %w", err)
 	}
 
-	if err := browser_provider_chromedp.WaitForServerReady(h.serverPort, 30*time.Second); err != nil {
+	if err := browser_provider_chromedp.WaitForServerReady(h.serverPort, serverReadyTimeout); err != nil {
 		h.stopServer()
 		return fmt.Errorf("server not ready: %w", err)
 	}

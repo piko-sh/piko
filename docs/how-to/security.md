@@ -115,7 +115,11 @@ ssr := piko.New(
 ```
 
 The limiter applies to the action dispatch path. Actions can declare their own limits by implementing `piko.RateLimitable`. See the [server actions reference](../reference/server-actions.md).
+
+To enforce one limit across instances, [share rate limiter state](actions/rate-limiting.md#share-limits-across-instances) through a remote cache provider.
+
 ## Cross-Origin Resource Policy
+
 Set the `Cross-Origin-Resource-Policy` header for images, fonts, and other subresources:
 
 ```go

@@ -18,10 +18,6 @@
 
 package ast_domain
 
-// Provides builder utilities for generating Go struct literals from AST nodes during
-// serialisation. Constructs field assignments, handles nested structures, and formats Go
-// code for TemplateNode and related types.
-
 import (
 	"bytes"
 	"fmt"
@@ -39,6 +35,9 @@ import (
 const (
 	// fieldLocation is the struct field name for source location data.
 	fieldLocation = "Location"
+
+	// fieldName is the struct field name for name properties in generated structs.
+	fieldName = "Name"
 
 	// fieldGoAnnotations is the struct field name for Go annotation metadata.
 	fieldGoAnnotations = "GoAnnotations"
@@ -376,7 +375,7 @@ func addGoAnnotationTypeFields(ann *GoGeneratorAnnotation, elts *[]goast.Expr) {
 		*elts = append(*elts, buildKV("Symbol", newUnaryExpr(token.AND, newCompositeLit(
 			astType("ResolvedSymbol"),
 			[]goast.Expr{
-				buildKV("Name", strLit(ann.Symbol.Name)),
+				buildKV(fieldName, strLit(ann.Symbol.Name)),
 				buildKV("ReferenceLocation", buildLocationLiteral(&ann.Symbol.ReferenceLocation)),
 				buildKV("DeclarationLocation", buildLocationLiteral(&ann.Symbol.DeclarationLocation)),
 			},
@@ -513,7 +512,7 @@ func buildPropDataSourceLiteral(pds *PropDataSource) goast.Expr {
 		elts = append(elts, buildKV("Symbol", newUnaryExpr(token.AND, newCompositeLit(
 			astType("ResolvedSymbol"),
 			[]goast.Expr{
-				buildKV("Name", strLit(pds.Symbol.Name)),
+				buildKV(fieldName, strLit(pds.Symbol.Name)),
 				buildKV("ReferenceLocation", buildLocationLiteral(&pds.Symbol.ReferenceLocation)),
 				buildKV("DeclarationLocation", buildLocationLiteral(&pds.Symbol.DeclarationLocation)),
 			},
@@ -597,7 +596,7 @@ func buildAttributesLiteral(attrs []HTMLAttribute) goast.Expr {
 		elts[i] = newCompositeLit(
 			astType("HTMLAttribute"),
 			[]goast.Expr{
-				buildKV("Name", strLit(attr.Name)),
+				buildKV(fieldName, strLit(attr.Name)),
 				buildKV(fieldValue, strLit(attr.Value)),
 				buildKV(fieldLocation, buildLocationLiteral(&attr.Location)),
 				buildKV("NameLocation", buildLocationLiteral(&attr.NameLocation)),
@@ -622,7 +621,7 @@ func buildDynamicAttributesLiteral(attrs []DynamicAttribute) goast.Expr {
 	for i := range attrs {
 		attr := &attrs[i]
 		attributeElements := []goast.Expr{
-			buildKV("Name", strLit(attr.Name)),
+			buildKV(fieldName, strLit(attr.Name)),
 			buildKV("RawExpression", strLit(attr.RawExpression)),
 			buildKV(fieldExpression, buildExpressionLiteral(attr.Expression)),
 			buildKV(fieldLocation, buildLocationLiteral(&attr.Location)),
@@ -1254,7 +1253,7 @@ func buildExpressionMapLiteral(expressionMap map[string]Expression) goast.Expr {
 // Returns goast.Expr which is the composite literal for the identifier.
 func buildIdentifierLiteral(n *Identifier) goast.Expr {
 	elts := []goast.Expr{
-		buildKV("Name", strLit(n.Name)),
+		buildKV(fieldName, strLit(n.Name)),
 		buildKV(fieldRelativeLocation, buildLocationLiteral(&n.RelativeLocation)),
 	}
 	return newUnaryExpr(token.AND, newCompositeLit(astType("Identifier"), elts))

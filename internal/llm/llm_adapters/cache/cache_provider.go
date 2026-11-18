@@ -24,7 +24,6 @@ import (
 	cache_adapters_otter "piko.sh/piko/internal/cache/cache_adapters/provider_otter"
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/cache/cache_dto"
-	"piko.sh/piko/internal/llm/llm_dto"
 )
 
 const (
@@ -32,14 +31,9 @@ const (
 	FactoryBlueprintName = "llm-cache-entry"
 )
 
-// createCacheEntryCache is the factory function for creating typed LLM cache entry
-// caches. It type-asserts the options and delegates to the Otter provider factory.
+// createCacheEntryCache creates a typed LLM cache from the supplied options.
 //
-// This pattern enables: 1. Full type safety - Cache[string, *CacheEntry] with no runtime
-// assertions 2. Resource sharing - Uses namespace pattern on the shared provider 3. Zero
-// circular dependencies - LLM adapters import cache_domain, not vice versa
-//
-// Takes options (any) which must be cache_dto.Options[string, *llm_dto.CacheEntry].
+// Takes options (any) which must be cache_dto.Options[string, *storedEntry].
 //
 // Returns any which is the created cache instance.
 // Returns error when the options type is wrong or cache creation fails.
@@ -48,10 +42,10 @@ func createCacheEntryCache(
 	_ string,
 	options any,
 ) (any, error) {
-	opts, ok := options.(cache_dto.Options[string, *llm_dto.CacheEntry])
+	opts, ok := options.(cache_dto.Options[string, *storedEntry])
 	if !ok {
 		return nil, fmt.Errorf(
-			"invalid options type for LLM cache entry cache: expected cache_dto.Options[string, *llm_dto.CacheEntry], got %T",
+			"invalid options type for LLM cache entry cache: expected cache_dto.Options[string, *storedEntry], got %T",
 			options,
 		)
 	}

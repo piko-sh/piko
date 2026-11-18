@@ -19,9 +19,12 @@
 package security_adapters
 
 import (
+	"context"
 	"net/http"
+	"sync/atomic"
 
 	"piko.sh/piko/internal/daemon/daemon_dto"
+	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/security/security_domain"
 	"piko.sh/piko/wdk/useragent"
 )
@@ -31,24 +34,21 @@ const (
 	requestIDHeader = "X-Request-Id"
 )
 
-// RealIPMiddleware extracts the client IP address and generates a request ID, storing
-// both on the PikoRequestCtx carrier already present in the context.
+// RealIPMiddleware resolves the client IP and stores it with a request ID in the request
+// context. It trusts forwarding headers only from configured proxies and sets RemoteAddr
+// to the resolved IP.
 //
-// This middleware combines the functionality of chi's RealIP and RequestID middlewares
-// while being more secure (only trusts forwarding headers from configured proxies) and
-// zero-alloc (mutates the existing PikoRequestCtx pointer rather than creating new
-// context values).
-//
-// The extracted data is:
-//  1. Stored on PikoRequestCtx (accessible via security_dto.ClientIPFromRequest and
-//     security_dto.RequestIDFromRequest)
-//  2. r.RemoteAddr is set to the client IP for compatibility
-//
-// This middleware should be placed early in the middleware chain so that downstream
-// handlers and other middleware can access the correct client IP and request ID.
+// Place RealIPMiddleware before handlers that use the client IP or request ID.
 type RealIPMiddleware struct {
 	// extractor extracts the client IP address from incoming requests.
 	extractor security_domain.ClientIPExtractor
+
+	// nextCounter returns the next request ID counter value.
+	nextCounter func() (uint64, error)
+
+	// counterFailureLogged records that a failure of nextCounter has been logged, so the
+	// warning is written once rather than on every request.
+	counterFailureLogged atomic.Bool
 }
 
 // NewRealIPMiddleware creates a new RealIP middleware with the given IP extractor.
@@ -59,7 +59,9 @@ type RealIPMiddleware struct {
 // Returns *RealIPMiddleware which is ready for use as HTTP middleware.
 func NewRealIPMiddleware(extractor security_domain.ClientIPExtractor) *RealIPMiddleware {
 	return &RealIPMiddleware{
-		extractor: extractor,
+		extractor:            extractor,
+		nextCounter:          daemon_dto.NextRequestIDCounter,
+		counterFailureLogged: atomic.Bool{},
 	}
 }
 
@@ -97,11 +99,31 @@ func (m *RealIPMiddleware) Handler(next http.Handler) http.Handler {
 		}
 
 		if pctx.RequestIDCounter == 0 && pctx.ForwardedRequestID == "" {
-			pctx.RequestIDCounter = daemon_dto.NextRequestIDCounter()
+			pctx.RequestIDCounter = m.nextRequestIDCounter(r.Context())
 		}
 
 		r.RemoteAddr = pctx.ClientIP
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+// nextRequestIDCounter returns the counter value for a server-generated request ID.
+//
+// When the sequence fails, which should not happen in practice, it logs one warning for
+// the life of the middleware and falls back to a random counter value so that requests
+// keep getting IDs in the usual format.
+//
+// Returns uint64 which is never zero.
+func (m *RealIPMiddleware) nextRequestIDCounter(ctx context.Context) uint64 {
+	counter, err := m.nextCounter()
+	if err == nil {
+		return counter
+	}
+	if m.counterFailureLogged.CompareAndSwap(false, true) {
+		_, l := logger_domain.From(ctx, log)
+		l.Warn("Request ID sequence failed, using random request IDs",
+			logger_domain.Error(err))
+	}
+	return daemon_dto.FallbackRequestIDCounter()
 }

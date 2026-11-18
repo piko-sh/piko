@@ -21,6 +21,7 @@ package tui_domain
 import (
 	"strings"
 	"sync"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -205,7 +206,7 @@ func (p *MemoryPanel) handleStats(msg systemStatsMessage) {
 	if msg.stats != nil {
 		p.heapHistory.Append(float64(msg.stats.Memory.HeapAlloc))
 		if msg.stats.GC.LastPauseNs > 0 {
-			p.gcHistory.Append(float64(msg.stats.GC.LastPauseNs) / 1000.0)
+			p.gcHistory.Append(float64(msg.stats.GC.LastPauseNs) / float64(time.Microsecond))
 		}
 	}
 }

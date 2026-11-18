@@ -42,6 +42,48 @@ func (a *ValkeyClusterAdapter[K, V]) buildScanPattern() string {
 	return "*"
 }
 
+// primaryNodes finds nodes to treat as primaries, keyed by address.
+//
+// A replica holds a copy of its primary's keys, so anything that walks or counts the
+// keyspace node by node must skip replicas or it sees every key once per copy. A node
+// whose role cannot be read is kept, since missing its keys would be worse than seeing
+// some twice. Callers that yield keys also drop repeats.
+//
+// Returns map[string]valkey.Client which holds known primaries and nodes whose role could
+// not be read, keyed by address.
+func (a *ValkeyClusterAdapter[K, V]) primaryNodes(ctx context.Context) map[string]valkey.Client {
+	ctx, l := logger.From(ctx, log)
+	roleCtx, cancel := context.WithTimeoutCause(ctx, a.operationTimeout, fmt.Errorf("valkey cluster ROLE exceeded %s timeout", a.operationTimeout))
+	defer cancel()
+
+	nodes := a.clusterNodes()
+	primaries := make(map[string]valkey.Client, len(nodes))
+	for addr, nodeClient := range nodes {
+		primary, err := nodeIsPrimary(roleCtx, nodeClient)
+		if err != nil {
+			l.Trace("Could not read the role of a cluster node; treating it as a primary",
+				logger.String(logKeyNode, addr),
+				logger.Error(err))
+			primaries[addr] = nodeClient
+			continue
+		}
+		if primary {
+			primaries[addr] = nodeClient
+		}
+	}
+	return primaries
+}
+
+// clusterNodes returns every node the client knows of, primaries and replicas alike.
+//
+// Returns map[string]valkey.Client which holds the nodes, keyed by address.
+func (a *ValkeyClusterAdapter[K, V]) clusterNodes() map[string]valkey.Client {
+	if a.listNodes != nil {
+		return a.listNodes()
+	}
+	return a.client.Nodes()
+}
+
 // scanNodeKeys scans a single cluster node for all non-tag keys matching the given
 // pattern. It handles cursor-based pagination internally.
 //
@@ -117,18 +159,20 @@ func (a *ValkeyClusterAdapter[K, V]) yieldScannedKeys(ctx context.Context, keys 
 	return true
 }
 
-// All returns an iterator over all key-value pairs in the cache namespace. In cluster
-// mode, this scans all nodes.
+// All returns an iterator over all key-value pairs in the cache namespace.
 //
-// Returns iter.Seq2[K, V] which yields each key-value pair found across all cluster
-// nodes.
+// In cluster mode, this scans known primaries and nodes whose role could not be read.
+// Each key is yielded once.
+//
+// Returns iter.Seq2[K, V] which yields each key-value pair found during the scan.
 func (a *ValkeyClusterAdapter[K, V]) All() iter.Seq2[K, V] {
 	return func(yield func(K, V) bool) {
 		ctx := context.Background()
 		scanPattern := a.buildScanPattern()
+		seen := make(map[string]struct{})
 
-		for addr, nodeClient := range a.client.Nodes() {
-			keys := a.scanNodeKeys(ctx, nodeClient, addr, scanPattern)
+		for addr, nodeClient := range a.primaryNodes(ctx) {
+			keys := dropSeenKeys(a.scanNodeKeys(ctx, nodeClient, addr, scanPattern), seen)
 			if !a.yieldScannedKeys(ctx, keys, yield) {
 				return
 			}
@@ -199,7 +243,7 @@ func (a *ValkeyClusterAdapter[K, V]) ProbeEntry(ctx context.Context, key K) (cac
 
 	cmds := []valkey.Completed{
 		a.client.B().Get().Key(keyString).Build(),
-		a.client.B().Ttl().Key(keyString).Build(),
+		a.client.B().Pttl().Key(keyString).Build(),
 	}
 	results := a.client.DoMulti(timeoutCtx, cmds...)
 
@@ -227,20 +271,19 @@ func (a *ValkeyClusterAdapter[K, V]) ProbeEntry(ctx context.Context, key K) (cac
 		return cache.Entry[K, V]{}, false, fmt.Errorf("type assertion failed after unmarshal for key %s", keyString)
 	}
 
-	ttlSeconds, _ := results[1].AsInt64()
-
-	var expiresAtNano int64
-	if ttlSeconds > 0 {
-		expiresAtNano = time.Now().Add(time.Duration(ttlSeconds) * time.Second).UnixNano()
+	ttlMilliseconds, err := results[1].AsInt64()
+	if err != nil {
+		return cache.Entry[K, V]{}, false, fmt.Errorf("valkey cluster PTTL failed for key %s: %w", keyString, err)
 	}
 
+	now := time.Now()
 	entry := cache.Entry[K, V]{
 		Key:               key,
 		Value:             value,
 		Weight:            0,
-		ExpiresAtNano:     expiresAtNano,
+		ExpiresAtNano:     expiryFromPTTL(now, ttlMilliseconds),
 		RefreshableAtNano: 0,
-		SnapshotAtNano:    time.Now().UnixNano(),
+		SnapshotAtNano:    now.UnixNano(),
 	}
 
 	return entry, true, nil
@@ -248,17 +291,19 @@ func (a *ValkeyClusterAdapter[K, V]) ProbeEntry(ctx context.Context, key K) (cac
 
 // EstimatedSize returns the approximate total number of keys in the cluster.
 //
-// Returns int which is the sum of keys across all nodes, or zero on error.
+// It counts known primaries and nodes whose role could not be read. Unknown-role replicas
+// may make the count too high. Failed node queries may leave it incomplete.
 //
-// CLUSTER NOTE: This sums DBSIZE across all nodes.
+// Returns int which is the sum of keys counted on the selected nodes.
 func (a *ValkeyClusterAdapter[K, V]) EstimatedSize() int {
 	ctx, cancel := context.WithTimeoutCause(context.Background(), a.operationTimeout, fmt.Errorf("valkey cluster EstimatedSize exceeded %s timeout", a.operationTimeout))
 	defer cancel()
 	_, l := logger.From(ctx, log)
 
+	primaries := a.primaryNodes(ctx)
 	if a.namespace == "" {
 		totalSize := 0
-		for addr, nodeClient := range a.client.Nodes() {
+		for addr, nodeClient := range primaries {
 			size, err := nodeClient.Do(ctx, nodeClient.B().Dbsize().Build()).AsInt64()
 			if err != nil {
 				l.Warn("Failed to get DBSIZE from cluster node",
@@ -273,7 +318,7 @@ func (a *ValkeyClusterAdapter[K, V]) EstimatedSize() int {
 
 	var count int
 	scanPattern := a.namespace + "*"
-	for addr, nodeClient := range a.client.Nodes() {
+	for addr, nodeClient := range primaries {
 		var cursor uint64
 		for {
 			response, err := nodeClient.Do(ctx, nodeClient.B().Scan().Cursor(cursor).Match(scanPattern).Count(scanBatchSize).Build()).AsScanEntry()
@@ -319,10 +364,12 @@ func (*ValkeyClusterAdapter[K, V]) parseValkeyStatsInfo(ctx context.Context, inf
 	return hits, misses
 }
 
-// Stats returns combined statistics from all cluster nodes.
+// Stats combines statistics from known primaries and nodes whose role could not be read.
 //
-// Returns cache.Stats which contains the total hit and miss counts across all nodes. If
-// any node fails to respond, its stats are skipped.
+// Unknown-role replicas may make the totals too high. Nodes that fail to respond are
+// skipped.
+//
+// Returns cache.Stats which contains the combined hit and miss counts.
 func (a *ValkeyClusterAdapter[K, V]) Stats() cache.Stats {
 	ctx, cancel := context.WithTimeoutCause(context.Background(), a.operationTimeout, fmt.Errorf("valkey cluster Stats exceeded %s timeout", a.operationTimeout))
 	defer cancel()
@@ -330,7 +377,7 @@ func (a *ValkeyClusterAdapter[K, V]) Stats() cache.Stats {
 
 	var totalHits, totalMisses uint64
 
-	for addr, nodeClient := range a.client.Nodes() {
+	for addr, nodeClient := range a.primaryNodes(ctx) {
 		info, err := nodeClient.Do(ctx, nodeClient.B().Info().Section("stats").Build()).ToString()
 		if err != nil {
 			l.Warn("Failed to get INFO from cluster node",
@@ -368,17 +415,22 @@ func (*ValkeyClusterAdapter[K, V]) Close(ctx context.Context) error {
 	return ctx.Err()
 }
 
-// SetExpiresAfter updates the time to live for an existing key using the EXPIRE command.
+// SetExpiresAfter updates the time to live for an existing key using the PEXPIRE command,
+// or PERSIST for cache.NoExpiry. It never creates a key.
 //
 // A cancelled or expired context returns its error before work begins.
 //
 // Takes key (K) which identifies the cache entry to update.
-// Takes expiresAfter (time.Duration) which specifies the new time to live.
+// Takes expiresAfter (time.Duration) which specifies the new time-to-live. cache.NoExpiry
+// removes the TTL. Other nonpositive values do nothing.
 //
 // Returns error when the operation fails.
 func (a *ValkeyClusterAdapter[K, V]) SetExpiresAfter(ctx context.Context, key K, expiresAfter time.Duration) error {
 	if err := ctx.Err(); err != nil {
 		return err
+	}
+	if expiresAfter <= 0 {
+		return nil
 	}
 
 	timeoutCtx, cancel := context.WithTimeoutCause(ctx, a.operationTimeout, fmt.Errorf("valkey cluster SetExpiresAfter exceeded %s timeout", a.operationTimeout))
@@ -389,7 +441,15 @@ func (a *ValkeyClusterAdapter[K, V]) SetExpiresAfter(ctx context.Context, key K,
 		return fmt.Errorf(errFmtEncodeKey, err)
 	}
 
-	if err := a.client.Do(timeoutCtx, a.client.B().Pexpire().Key(keyString).Milliseconds(expiresAfter.Milliseconds()).Build()).Error(); err != nil {
+	if expiresAfter == cache.NoExpiry {
+		if err := a.client.Do(timeoutCtx, a.client.B().Persist().Key(keyString).Build()).Error(); err != nil {
+			return fmt.Errorf("valkey cluster PERSIST failed for key %s: %w", keyString, err)
+		}
+		return nil
+	}
+
+	milliseconds := max(expiresAfter, time.Millisecond).Milliseconds()
+	if err := a.client.Do(timeoutCtx, a.client.B().Pexpire().Key(keyString).Milliseconds(milliseconds).Build()).Error(); err != nil {
 		return fmt.Errorf("valkey cluster PEXPIRE failed for key %s: %w", keyString, err)
 	}
 
@@ -398,15 +458,14 @@ func (a *ValkeyClusterAdapter[K, V]) SetExpiresAfter(ctx context.Context, key K,
 
 // GetMaximum returns the maxmemory setting from one of the cluster nodes.
 //
-// Returns uint64 which is the maxmemory value in bytes, or zero if not found.
+// Cluster nodes should have the same maxmemory setting.
 //
-// In a correctly configured cluster, all nodes should have the same maxmemory setting.
-// This reads from any node.
+// Returns uint64 which is the maxmemory value in bytes, or zero if none is readable.
 func (a *ValkeyClusterAdapter[K, V]) GetMaximum() uint64 {
 	ctx, cancel := context.WithTimeoutCause(context.Background(), a.operationTimeout, fmt.Errorf("valkey cluster GetMaximum exceeded %s timeout", a.operationTimeout))
 	defer cancel()
 
-	for _, nodeClient := range a.client.Nodes() {
+	for _, nodeClient := range a.clusterNodes() {
 		response := nodeClient.Do(ctx, nodeClient.B().ConfigGet().Parameter("maxmemory").Build())
 		result, err := response.AsStrMap()
 		if err != nil {
@@ -430,17 +489,20 @@ func (*ValkeyClusterAdapter[K, V]) SetMaximum(_ uint64) {
 	l.Warn("SetMaximum is not supported by the Valkey Cluster provider and will have no effect.")
 }
 
-// WeightedSize returns the total memory usage across all cluster nodes.
+// WeightedSize sums memory usage from known primaries and nodes whose role could not be
+// read.
 //
-// Returns uint64 which is the sum of used_memory from all nodes, or zero if the cluster
-// cannot be queried.
+// Replicas with known roles are excluded. An unknown-role replica may make the sum too
+// high, while a failed node query may leave it incomplete.
+//
+// Returns uint64 which is the sum of used_memory from responding selected nodes.
 func (a *ValkeyClusterAdapter[K, V]) WeightedSize() uint64 {
 	ctx, cancel := context.WithTimeoutCause(context.Background(), a.operationTimeout, fmt.Errorf("valkey cluster WeightedSize exceeded %s timeout", a.operationTimeout))
 	defer cancel()
 	_, l := logger.From(ctx, log)
 
 	var totalUsed uint64
-	for addr, nodeClient := range a.client.Nodes() {
+	for addr, nodeClient := range a.primaryNodes(ctx) {
 		info, err := nodeClient.Do(ctx, nodeClient.B().Info().Section("memory").Build()).ToString()
 		if err != nil {
 			l.Warn("Failed to get memory info from cluster node",
@@ -484,4 +546,73 @@ func (*ValkeyClusterAdapter[K, V]) SetRefreshableAfter(ctx context.Context, _ K,
 // Returns bool which is true if the key has a tag metadata prefix.
 func isTagMetadataKey(keyString string) bool {
 	return strings.HasPrefix(keyString, tagPrefix) || strings.HasPrefix(keyString, keyTagsPrefix)
+}
+
+// expiryFromPTTL turns a PTTL reply into an absolute expiry in Unix nanoseconds.
+//
+// PTTL counts whole milliseconds, so a key with less than one millisecond left reports
+// zero. That is read as one millisecond left, not as no expiry, because a key without a
+// TTL reports a negative value. Treating zero as no expiry would make a transaction
+// rollback remove the key's TTL.
+//
+// Takes now (time.Time) which is when the reply was read.
+// Takes ttlMilliseconds (int64) which is the PTTL reply in milliseconds.
+//
+// Returns int64 which is the expiry, or zero when the key has no TTL.
+func expiryFromPTTL(now time.Time, ttlMilliseconds int64) int64 {
+	if ttlMilliseconds < 0 {
+		return 0
+	}
+	return now.Add(max(time.Duration(ttlMilliseconds)*time.Millisecond, time.Millisecond)).UnixNano()
+}
+
+// nodeIsPrimary asks a node for its role.
+//
+// Takes nodeClient (valkey.Client) which is the node to ask.
+//
+// Returns bool which is true when the node is a primary.
+// Returns error when the role cannot be read.
+func nodeIsPrimary(ctx context.Context, nodeClient valkey.Client) (bool, error) {
+	reply, err := nodeClient.Do(ctx, nodeClient.B().Role().Build()).ToArray()
+	if err != nil {
+		return false, fmt.Errorf("reading node role: %w", err)
+	}
+	if len(reply) == 0 {
+		return false, errEmptyRoleReply
+	}
+	role, err := reply[0].ToString()
+	if err != nil {
+		return false, fmt.Errorf("reading node role name: %w", err)
+	}
+	return isPrimaryRole(role), nil
+}
+
+// isPrimaryRole reports whether a ROLE reply names a primary. Valkey and Redis both
+// report a primary as "master"; "primary" is accepted too.
+//
+// Takes role (string) which is the first element of the ROLE reply.
+//
+// Returns bool which is true for a primary.
+func isPrimaryRole(role string) bool {
+	return strings.EqualFold(role, "master") || strings.EqualFold(role, "primary")
+}
+
+// dropSeenKeys removes keys already seen on another node and records the rest as seen, so
+// a key held by two nodes (a replica that could not be told apart, or a slot being moved)
+// is yielded once.
+//
+// Takes keys ([]string) which are the keys scanned from one node.
+// Takes seen (map[string]struct{}) which holds the keys already yielded.
+//
+// Returns []string which holds the keys not seen before, in their scan order.
+func dropSeenKeys(keys []string, seen map[string]struct{}) []string {
+	fresh := keys[:0]
+	for _, key := range keys {
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		fresh = append(fresh, key)
+	}
+	return fresh
 }

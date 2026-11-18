@@ -19,11 +19,13 @@
 package cache
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
 	"time"
 
+	"piko.sh/piko/internal/cache/cache_adapters/encoder_json"
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/cache/cache_dto"
 	"piko.sh/piko/internal/llm/llm_domain"
@@ -48,15 +50,22 @@ type Config struct {
 	// Clock provides time operations. If nil, defaults to RealClock.
 	Clock clock.Clock
 
+	// Provider names the cache provider that holds budget data.
+	//
+	// An empty name keeps budgets in this process's typed in-memory cache. Budgets are
+	// shared when instances use the same named remote provider and namespace.
+	Provider string
+
 	// Namespace is the key prefix for all budget entries.
 	Namespace string
 
-	// MaximumEntries is the maximum number of scope entries.
+	// MaximumEntries is the maximum number of scope entries for the in-memory cache.
 	MaximumEntries int
 }
 
-// Store provides an LLM budget store using the internal cache service. It implements
-// llm_domain.BudgetStorePort.
+// Store records and checks LLM budgets through the cache service.
+//
+// Updates work on copies of budget data, so readers never see partial changes.
 type Store struct {
 	// cache stores budget data entries keyed by scope.
 	cache cache_domain.Cache[string, *llm_dto.BudgetData]
@@ -103,7 +112,9 @@ func (s *Store) Record(ctx context.Context, scope string, cost *llm_dto.CostEsti
 }
 
 // CheckAndReserve atomically checks whether the estimated cost fits within all configured
-// limits and, if so, reserves it by adding the cost to the current spend counters.
+// limits and, if so, reserves it by adding the cost to the current spend counters. A
+// denied request writes nothing unless it reset an elapsed window, so denials do not cost
+// a remote write each.
 //
 // Takes scope (string) which identifies the budget scope.
 // Takes estimatedCost (maths.Money) which is the cost to reserve.
@@ -119,12 +130,16 @@ func (s *Store) CheckAndReserve(ctx context.Context, scope string, estimatedCost
 	var checkErr error
 
 	_, _, err := s.cache.Compute(ctx, scope, func(old *llm_dto.BudgetData, found bool) (*llm_dto.BudgetData, cache_dto.ComputeAction) {
+		checkErr = nil
 		data := getOrCreate(old, found, now)
-		resetStaleWindows(data, now)
+		windowsReset := resetStaleWindows(data, now)
 
 		if err := checkLimits(data, estimatedCost, limits); err != nil {
 			checkErr = err
-			return data, cache_dto.ComputeActionSet
+			if found && windowsReset {
+				return data, cache_dto.ComputeActionSet
+			}
+			return old, cache_dto.ComputeActionNoop
 		}
 
 		data.TotalSpent.AddInPlace(estimatedCost)
@@ -153,7 +168,11 @@ func (s *Store) Unreserve(ctx context.Context, scope string, cost maths.Money) e
 		return ctx.Err()
 	}
 
-	_, _, err := s.cache.ComputeIfPresent(ctx, scope, func(data *llm_dto.BudgetData) (*llm_dto.BudgetData, cache_dto.ComputeAction) {
+	_, _, err := s.cache.ComputeIfPresent(ctx, scope, func(old *llm_dto.BudgetData) (*llm_dto.BudgetData, cache_dto.ComputeAction) {
+		if old == nil {
+			return nil, cache_dto.ComputeActionNoop
+		}
+		data := new(*old)
 		data.TotalSpent.SubtractInPlace(cost)
 		data.HourlySpent.SubtractInPlace(cost)
 		data.DailySpent.SubtractInPlace(cost)
@@ -242,6 +261,13 @@ func (s *Store) IncrementTokens(ctx context.Context, scope string, count int64) 
 	return s.incrementCounter(ctx, scope, func(data *llm_dto.BudgetData) { data.TokenCount += count })
 }
 
+// Close releases resources held by the store.
+//
+// Returns error when the underlying cache fails to close.
+func (s *Store) Close(ctx context.Context) error {
+	return s.cache.Close(ctx)
+}
+
 // Reset resets counters for a scope.
 //
 // Takes scope (string) which identifies the budget scope.
@@ -280,7 +306,10 @@ func (s *Store) incrementCounter(ctx context.Context, scope string, mutate func(
 	return nil
 }
 
-// New creates a new cache-backed budget store.
+// New creates a budget store in the selected cache.
+//
+// Budget entries in a named remote cache do not expire, even when that provider has a
+// default TTL. An idle budget therefore keeps its recorded spend.
 //
 // Takes config (Config) which configures the store.
 //
@@ -291,28 +320,31 @@ func New(ctx context.Context, config Config) (*Store, error) {
 		return nil, errors.New("cache service is required")
 	}
 
-	namespace := config.Namespace
-	if namespace == "" {
-		namespace = DefaultNamespace
-	}
-
 	maximumSize := config.MaximumEntries
 	if maximumSize <= 0 {
 		maximumSize = DefaultMaximumSize
 	}
 
-	c, err := cache_domain.NewCacheBuilder[string, *llm_dto.BudgetData](config.CacheService).
-		FactoryBlueprint(FactoryBlueprintName).
-		Namespace(namespace).
-		MaximumEntries(maximumSize).
-		Build(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create budget cache: %w", err)
-	}
-
 	clk := config.Clock
 	if clk == nil {
 		clk = clock.RealClock()
+	}
+
+	builder := cache_domain.NewCacheBuilder[string, *llm_dto.BudgetData](config.CacheService).
+		Namespace(cmp.Or(config.Namespace, DefaultNamespace)).
+		MaximumEntries(maximumSize).
+		Clock(clk)
+	if config.Provider == "" {
+		builder = builder.FactoryBlueprint(FactoryBlueprintName)
+	} else {
+		builder = builder.Provider(config.Provider).
+			TypedEncoder(encoder_json.New[*llm_dto.BudgetData]()).
+			PerEntryExpiration()
+	}
+
+	c, err := builder.Build(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create budget cache: %w", err)
 	}
 
 	return &Store{
@@ -321,16 +353,17 @@ func New(ctx context.Context, config Config) (*Store, error) {
 	}, nil
 }
 
-// getOrCreate returns the existing data or creates a new zero-valued entry.
+// getOrCreate returns a copy of the existing data, or a new zero-valued entry. Callers
+// change the result freely because the stored data is never shared with them.
 //
 // Takes old (*llm_dto.BudgetData) which is the existing data if any.
 // Takes found (bool) which indicates whether old is valid.
 // Takes now (time.Time) which is the current time for window starts.
 //
-// Returns *llm_dto.BudgetData which is the existing or newly created entry.
+// Returns *llm_dto.BudgetData which is a copy of the existing entry or a new one.
 func getOrCreate(old *llm_dto.BudgetData, found bool, now time.Time) *llm_dto.BudgetData {
 	if found && old != nil {
-		return old
+		return new(*old)
 	}
 	return &llm_dto.BudgetData{
 		TotalSpent:   maths.ZeroMoney(llm_dto.CostCurrency),
@@ -349,16 +382,23 @@ func getOrCreate(old *llm_dto.BudgetData, found bool, now time.Time) *llm_dto.Bu
 //
 // Takes data (*llm_dto.BudgetData) which is the budget data to update in place.
 // Takes now (time.Time) which is the current time for window checks.
-func resetStaleWindows(data *llm_dto.BudgetData, now time.Time) {
+//
+// Returns bool which is true when any window was reset.
+func resetStaleWindows(data *llm_dto.BudgetData, now time.Time) bool {
+	reset := false
 	if now.Sub(data.HourStart) >= time.Hour {
 		data.HourlySpent = maths.ZeroMoney(llm_dto.CostCurrency)
 		data.HourStart = now.Truncate(time.Hour)
+		reset = true
 	}
 
 	if !isSameDay(now, data.DayStart) {
 		data.DailySpent = maths.ZeroMoney(llm_dto.CostCurrency)
 		data.DayStart = truncateToDay(now)
+		reset = true
 	}
+
+	return reset
 }
 
 // checkLimits verifies the estimated cost against all configured budget limits.

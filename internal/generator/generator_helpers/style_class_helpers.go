@@ -30,6 +30,14 @@ import (
 )
 
 const (
+	// fourthPartIndex is the index of the fourth part when building a style string from
+	// exactly four parts.
+	fourthPartIndex = 3
+
+	// asciiCaseOffset is the distance between an upper case ASCII letter and its lower case
+	// form.
+	asciiCaseOffset = 'a' - 'A'
+
 	// classSpaceSeparator is the space used to join CSS class names together.
 	classSpaceSeparator = " "
 
@@ -669,7 +677,7 @@ func BuildStyleStringBytesV(parts ...string) *[]byte {
 	case stylePartsCount3:
 		return BuildStyleStringBytes3(parts[0], parts[1], parts[2])
 	case stylePartsCount4:
-		return BuildStyleStringBytes4(parts[0], parts[1], parts[2], parts[3])
+		return BuildStyleStringBytes4(parts[0], parts[1], parts[2], parts[fourthPartIndex])
 	}
 
 	totalLen := 0
@@ -957,7 +965,7 @@ func BuildStyleStringBytesVArena(arena *ast_domain.RenderArena, parts ...string)
 	case stylePartsCount3:
 		return BuildStyleStringBytes3Arena(arena, parts[0], parts[1], parts[2]) //nolint:gosec // len==3 checked by switch
 	case stylePartsCount4:
-		return BuildStyleStringBytes4Arena(arena, parts[0], parts[1], parts[2], parts[3]) //nolint:gosec // len==4 checked by switch
+		return BuildStyleStringBytes4Arena(arena, parts[0], parts[1], parts[2], parts[fourthPartIndex]) //nolint:gosec // len==4 checked by switch
 	}
 
 	totalLen := 0
@@ -1412,7 +1420,7 @@ func toKebabCase(s string) string {
 			if i > 0 {
 				buffer = append(buffer, '-')
 			}
-			buffer = append(buffer, c+32)
+			buffer = append(buffer, c+asciiCaseOffset)
 		} else {
 			buffer = append(buffer, c)
 		}

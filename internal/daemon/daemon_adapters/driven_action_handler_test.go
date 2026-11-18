@@ -22,16 +22,25 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
+	"log/slog"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
+	"piko.sh/json"
+	"piko.sh/piko/internal/binder"
 	"piko.sh/piko/internal/cache/cache_adapters/provider_otter"
 	"piko.sh/piko/internal/cache/cache_dto"
 	"piko.sh/piko/internal/captcha/captcha_domain"
@@ -39,6 +48,7 @@ import (
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/healthprobe/healthprobe_dto"
+	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/provider/provider_domain"
 	"piko.sh/piko/internal/ratelimiter/ratelimiter_dto"
 	"piko.sh/piko/internal/safeerror"
@@ -474,7 +484,7 @@ func TestActionHandler_BuildBatchErrorResult(t *testing.T) {
 			Fields: map[string]string{"name": "required"},
 		}
 
-		result := handler.buildBatchErrorResult("test.action", err, false)
+		result := handler.buildBatchErrorResult(t.Context(), "test.action", err, false)
 
 		assert.Equal(t, "test.action", result.Name)
 		assert.Equal(t, http.StatusUnprocessableEntity, result.Status)
@@ -485,7 +495,7 @@ func TestActionHandler_BuildBatchErrorResult(t *testing.T) {
 	t.Run("builds generic error for non-ActionError", func(t *testing.T) {
 		err := errors.New("something went wrong")
 
-		result := handler.buildBatchErrorResult("test.action", err, false)
+		result := handler.buildBatchErrorResult(t.Context(), "test.action", err, false)
 
 		assert.Equal(t, "test.action", result.Name)
 		assert.Equal(t, http.StatusInternalServerError, result.Status)
@@ -621,9 +631,9 @@ func TestIsSSEGetAliasRequest(t *testing.T) {
 
 	testCases := []struct {
 		name     string
-		entry    ActionHandlerEntry
 		method   string
 		accept   string
+		entry    ActionHandlerEntry
 		expected bool
 	}{
 		{
@@ -2085,19 +2095,22 @@ func (*cacheableAction) CacheConfig() *daemon_domain.CacheConfig {
 }
 
 type mockCaptchaService struct {
-	verifyErr error
-	enabled   bool
+	verifyErr    error
+	lastRemoteIP string
+	enabled      bool
 }
 
 func (m *mockCaptchaService) Verify(_ context.Context, _, _, _ string) error {
 	return m.verifyErr
 }
 
-func (m *mockCaptchaService) VerifyWithScore(_ context.Context, _, _, _ string, _ float64) (*captcha_dto.VerifyResponse, error) {
+func (m *mockCaptchaService) VerifyWithScore(_ context.Context, _, remoteIP, _ string, _ float64) (*captcha_dto.VerifyResponse, error) {
+	m.lastRemoteIP = remoteIP
 	return nil, m.verifyErr
 }
 
-func (m *mockCaptchaService) VerifyWithProvider(_ context.Context, _, _, _, _ string, _ float64) (*captcha_dto.VerifyResponse, error) {
+func (m *mockCaptchaService) VerifyWithProvider(_ context.Context, _, _, remoteIP, _ string, _ float64) (*captcha_dto.VerifyResponse, error) {
+	m.lastRemoteIP = remoteIP
 	return nil, m.verifyErr
 }
 
@@ -2229,6 +2242,21 @@ func TestValidateCaptcha_ValidToken(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotContains(t, arguments, "_captcha_token")
 	assert.Contains(t, arguments, "name")
+}
+
+func TestValidateCaptcha_PassesThePeerWithoutItsPort(t *testing.T) {
+	t.Parallel()
+
+	captchaSvc := &mockCaptchaService{enabled: true, verifyErr: nil}
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, captchaSvc)
+	request := httptest.NewRequest(http.MethodPost, "/", nil)
+	request.RemoteAddr = "203.0.113.5:4321"
+
+	err := handler.validateCaptcha(t.Context(), request, mockCaptchaAction{}, map[string]any{"_captcha_token": "token"}, "test.action")
+
+	require.NoError(t, err)
+	assert.Equal(t, "203.0.113.5", captchaSvc.lastRemoteIP,
+		"a port in the key would give one peer a fresh bucket for every connection")
 }
 
 func TestValidateCaptcha_InvalidToken(t *testing.T) {
@@ -2487,4 +2515,872 @@ func TestBuildCacheKey_FallsBackWithoutRequestMetadata(t *testing.T) {
 	key := handler.buildCacheKey(request, &struct{}{}, map[string]any{"id": 1}, ActionHandlerEntry{Name: "user.get"}, cc)
 
 	assert.Contains(t, key, `"id":1`, "the default key is used when the action exposes no metadata")
+}
+
+type statusRecordingSpan struct {
+	noop.Span
+	status         codes.Code
+	recordedErrors int
+}
+
+func (*statusRecordingSpan) IsRecording() bool { return true }
+
+func (s *statusRecordingSpan) SetStatus(code codes.Code, _ string) { s.status = code }
+
+func (s *statusRecordingSpan) RecordError(_ error, _ ...trace.EventOption) { s.recordedErrors++ }
+
+type failingStreamAction struct {
+	err error
+}
+
+func (a *failingStreamAction) StreamProgress(_ *daemon_domain.SSEStream) error {
+	return a.err
+}
+
+type actionFailureCase struct {
+	err          error
+	name         string
+	wantStatus   int
+	wantReported bool
+}
+
+func actionFailureCases() []actionFailureCase {
+	return []actionFailureCase{
+		{
+			name:         "not found is left to the client",
+			err:          daemon_dto.NotFound("order", "42"),
+			wantStatus:   http.StatusNotFound,
+			wantReported: false,
+		},
+		{
+			name:         "forbidden is left to the client",
+			err:          daemon_dto.Forbidden("not your order"),
+			wantStatus:   http.StatusForbidden,
+			wantReported: false,
+		},
+		{
+			name:         "validation error is left to the client",
+			err:          daemon_dto.NewValidationError(map[string]string{"email": "is required"}),
+			wantStatus:   http.StatusUnprocessableEntity,
+			wantReported: false,
+		},
+		{
+			name:         "binding failure is left to the client",
+			err:          binder.MultiError{"Quantity": errors.New("could not convert")},
+			wantStatus:   http.StatusUnprocessableEntity,
+			wantReported: false,
+		},
+		{
+			name:         "5xx action error is reported",
+			err:          daemon_dto.PageError(http.StatusServiceUnavailable, "payments are down"),
+			wantStatus:   http.StatusServiceUnavailable,
+			wantReported: true,
+		},
+		{
+			name:         "plain error is reported",
+			err:          errors.New("database unreachable"),
+			wantStatus:   http.StatusInternalServerError,
+			wantReported: true,
+		},
+	}
+}
+
+func failingActionEntry(err error) ActionHandlerEntry {
+	return ActionHandlerEntry{
+		Name:   "order.create",
+		Method: http.MethodPost,
+		Create: func() any { return &struct{}{} },
+		Invoke: func(_ context.Context, _ any, _ map[string]any) (any, error) { return nil, err },
+	}
+}
+
+func assertSpanReport(t *testing.T, span *statusRecordingSpan, wantReported bool) {
+	t.Helper()
+
+	if wantReported {
+		assert.Equal(t, codes.Error, span.status, "a server fault must mark the span failed")
+		assert.Equal(t, 1, span.recordedErrors, "a server fault must be recorded on the span once")
+		return
+	}
+
+	assert.Equal(t, codes.Unset, span.status, "a request fault must not mark the span failed")
+	assert.Zero(t, span.recordedErrors, "a request fault must not be recorded on the span")
+}
+
+func TestHandleHTTP_ReportsOnlyServerFaults(t *testing.T) {
+	t.Parallel()
+
+	for _, testCase := range actionFailureCases() {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
+			request := httptest.NewRequest(http.MethodPost, "/_piko/actions/order.create", strings.NewReader("{}"))
+			request.Header.Set("Content-Type", "application/json")
+			recorder := httptest.NewRecorder()
+			span := &statusRecordingSpan{}
+
+			handler.handleHTTP(request.Context(), recorder, request, failingActionEntry(testCase.err), span)
+
+			assert.Equal(t, testCase.wantStatus, recorder.Code)
+			assertSpanReport(t, span, testCase.wantReported)
+		})
+	}
+}
+
+func TestHandleCachedAction_ReportsOnlyServerFaults(t *testing.T) {
+	t.Parallel()
+
+	responseCache, err := provider_otter.OtterProviderFactory(cache_dto.Options[string, []byte]{
+		Namespace:      "test-action-failures",
+		MaximumEntries: 100,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = responseCache.Close(context.Background()) })
+
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, responseCache, nil)
+
+	for _, testCase := range actionFailureCases() {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			request := httptest.NewRequest(http.MethodPost, "/_piko/actions/order.create", nil)
+			recorder := httptest.NewRecorder()
+			span := &statusRecordingSpan{}
+
+			written := handler.handleCachedAction(request.Context(), recorder, request, cachedActionParams{
+				StartTime:       time.Now(),
+				Action:          &cacheableAction{},
+				Span:            span,
+				Args:            map[string]any{"case": testCase.name},
+				Entry:           failingActionEntry(testCase.err),
+				SlowThreshold:   0,
+				MaxResponseSize: 0,
+			})
+
+			require.True(t, written, "a cacheable action must be answered by the cache path")
+			assert.Equal(t, testCase.wantStatus, recorder.Code)
+			assertSpanReport(t, span, testCase.wantReported)
+		})
+	}
+}
+
+func TestExecuteSSEStream_ReportsOnlyServerFaults(t *testing.T) {
+	t.Parallel()
+
+	for _, testCase := range actionFailureCases() {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
+			request := httptest.NewRequest(http.MethodPost, "/_piko/actions/order.create", nil)
+			recorder := httptest.NewRecorder()
+			span := &statusRecordingSpan{}
+			action := &failingStreamAction{err: testCase.err}
+
+			handler.executeSSEStream(request.Context(), recorder, request, action, failingActionEntry(testCase.err), span)
+
+			assert.Contains(t, recorder.Body.String(), "event: error",
+				"the client must still be told the stream failed")
+			assertSpanReport(t, span, testCase.wantReported)
+		})
+	}
+}
+
+func TestIsRequestFault(t *testing.T) {
+	t.Parallel()
+
+	orderNotFound := daemon_dto.NotFound("order", "42")
+	var tooManyFields struct{ Name, Email, Phone string }
+	limitErr := binder.NewASTBinder().Bind(t.Context(), &tooManyFields, map[string][]string{
+		"Name": {"a"}, "Email": {"b"}, "Phone": {"c"},
+	}, binder.WithMaxFieldCount(2))
+	require.Error(t, limitErr)
+
+	testCases := []struct {
+		err        error
+		name       string
+		wantStatus int
+		wantFault  bool
+	}{
+		{
+			name:       "validation error",
+			err:        daemon_dto.NewValidationError(map[string]string{"email": "is required"}),
+			wantStatus: http.StatusUnprocessableEntity,
+			wantFault:  true,
+		},
+		{
+			name:       "single field validation error",
+			err:        daemon_dto.ValidationField("email", "is required"),
+			wantStatus: http.StatusUnprocessableEntity,
+			wantFault:  true,
+		},
+		{
+			name:       "not found",
+			err:        orderNotFound,
+			wantStatus: http.StatusNotFound,
+			wantFault:  true,
+		},
+		{
+			name:       "not found without an id",
+			err:        daemon_dto.NotFoundResource("order"),
+			wantStatus: http.StatusNotFound,
+			wantFault:  true,
+		},
+		{
+			name:       "conflict",
+			err:        daemon_dto.Conflict("order is already paid"),
+			wantStatus: http.StatusConflict,
+			wantFault:  true,
+		},
+		{
+			name:       "conflict with a code",
+			err:        daemon_dto.ConflictWithCode("order is already paid", "ALREADY_PAID"),
+			wantStatus: http.StatusConflict,
+			wantFault:  true,
+		},
+		{
+			name:       "forbidden",
+			err:        daemon_dto.Forbidden("not your order"),
+			wantStatus: http.StatusForbidden,
+			wantFault:  true,
+		},
+		{
+			name:       "unauthorised",
+			err:        daemon_dto.Unauthorised(""),
+			wantStatus: http.StatusUnauthorized,
+			wantFault:  true,
+		},
+		{
+			name:       "bad request",
+			err:        daemon_dto.BadRequest("missing order id"),
+			wantStatus: http.StatusBadRequest,
+			wantFault:  true,
+		},
+		{
+			name:       "teapot",
+			err:        daemon_dto.Teapot(""),
+			wantStatus: http.StatusTeapot,
+			wantFault:  true,
+		},
+		{
+			name:       "page error with a 4xx status",
+			err:        daemon_dto.PageError(http.StatusGone, "order was removed"),
+			wantStatus: http.StatusGone,
+			wantFault:  true,
+		},
+		{
+			name:       "binding failure",
+			err:        binder.MultiError{"Quantity": errors.New("could not convert")},
+			wantStatus: http.StatusUnprocessableEntity,
+			wantFault:  true,
+		},
+		{
+			name:       "validate tag failure",
+			err:        &binder.ValidationFailedError{Err: errors.New("email is required"), Fields: nil},
+			wantStatus: http.StatusUnprocessableEntity,
+			wantFault:  true,
+		},
+		{
+			name:       "wrapped 4xx error",
+			err:        fmt.Errorf("loading order: %w", orderNotFound),
+			wantStatus: http.StatusNotFound,
+			wantFault:  true,
+		},
+		{
+			name:       "4xx error behind a safe message",
+			err:        safeerror.NewError("you cannot see this order", daemon_dto.Forbidden("")),
+			wantStatus: http.StatusForbidden,
+			wantFault:  true,
+		},
+		{
+			name:       "joined error that hides a server fault behind a 4xx",
+			err:        errors.Join(errors.New("writing audit entry"), orderNotFound),
+			wantStatus: http.StatusNotFound,
+			wantFault:  false,
+		},
+		{
+			name:       "4xx joined with a cancelled request",
+			err:        errors.Join(orderNotFound, context.Canceled),
+			wantStatus: http.StatusNotFound,
+			wantFault:  true,
+		},
+		{
+			name:       "4xx joined with a deadline",
+			err:        errors.Join(orderNotFound, context.DeadlineExceeded),
+			wantStatus: http.StatusNotFound,
+			wantFault:  false,
+		},
+		{
+			name:       "deadline",
+			err:        fmt.Errorf("loading order: %w", context.DeadlineExceeded),
+			wantStatus: http.StatusInternalServerError,
+			wantFault:  false,
+		},
+		{
+			name:       "binder size limit",
+			err:        limitErr,
+			wantStatus: http.StatusRequestEntityTooLarge,
+			wantFault:  true,
+		},
+		{
+			name:       "5xx action error",
+			err:        daemon_dto.PageError(http.StatusServiceUnavailable, "payments are down"),
+			wantStatus: http.StatusServiceUnavailable,
+			wantFault:  false,
+		},
+		{
+			name:       "500 action error",
+			err:        daemon_dto.PageError(http.StatusInternalServerError, "broken"),
+			wantStatus: http.StatusInternalServerError,
+			wantFault:  false,
+		},
+		{
+			name:       "action error whose status is not an error",
+			err:        daemon_dto.PageError(http.StatusOK, "nothing went wrong"),
+			wantStatus: http.StatusInternalServerError,
+			wantFault:  false,
+		},
+		{
+			name:       "plain error",
+			err:        errors.New("database unreachable"),
+			wantStatus: http.StatusInternalServerError,
+			wantFault:  false,
+		},
+		{
+			name:       "joined plain errors",
+			err:        errors.Join(errors.New("database unreachable"), errors.New("cache unreachable")),
+			wantStatus: http.StatusInternalServerError,
+			wantFault:  false,
+		},
+		{
+			name:       "joined error answered with its 5xx",
+			err:        errors.Join(daemon_dto.PageError(http.StatusBadGateway, "upstream failed"), orderNotFound),
+			wantStatus: http.StatusBadGateway,
+			wantFault:  false,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, testCase.wantFault, isRequestFault(t.Context(), testCase.err))
+
+			handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
+			recorder := httptest.NewRecorder()
+			request := httptest.NewRequest(http.MethodPost, "/action", nil)
+			handler.handleActionError(recorder, request, &struct{}{}, testCase.err)
+
+			assert.Equal(t, testCase.wantStatus, recorder.Code,
+				"the fault must match the status the client is answered with")
+		})
+	}
+}
+
+type recordedLog struct {
+	attrs   map[string]string
+	message string
+	level   slog.Level
+}
+
+type recordingLogHandler struct {
+	records []recordedLog
+	mu      sync.Mutex
+}
+
+func (*recordingLogHandler) Enabled(context.Context, slog.Level) bool { return true }
+
+func (h *recordingLogHandler) Handle(_ context.Context, record slog.Record) error {
+	attrs := make(map[string]string, record.NumAttrs())
+	record.Attrs(func(attr slog.Attr) bool {
+		attrs[attr.Key] = attr.Value.String()
+		return true
+	})
+
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.records = append(h.records, recordedLog{attrs: attrs, message: record.Message, level: record.Level})
+	return nil
+}
+
+func (h *recordingLogHandler) WithAttrs([]slog.Attr) slog.Handler { return h }
+
+func (h *recordingLogHandler) WithGroup(string) slog.Handler { return h }
+
+func (h *recordingLogHandler) atLevel(level slog.Level) []recordedLog {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	var matching []recordedLog
+	for _, record := range h.records {
+		if record.level == level {
+			matching = append(matching, record)
+		}
+	}
+	return matching
+}
+
+func newLogRecordingRequest(t *testing.T, method, target, body string) (*http.Request, *recordingLogHandler) {
+	t.Helper()
+
+	logHandler := &recordingLogHandler{}
+	ctx := logger_domain.WithLogger(t.Context(), logger_domain.New(slog.New(logHandler), "test"))
+	request := httptest.NewRequestWithContext(ctx, method, target, strings.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
+	return request, logHandler
+}
+
+func mountFailingAction(t *testing.T, maxBodyBytes int64, invoke func(ctx context.Context) error) http.Handler {
+	t.Helper()
+
+	handler := NewActionHandler(nil, maxBodyBytes, nil, security_dto.RateLimitValues{}, false, nil, nil)
+	handler.Register(ActionHandlerEntry{
+		Name:   "order.create",
+		Method: http.MethodPost,
+		Create: func() any { return &struct{}{} },
+		Invoke: func(ctx context.Context, _ any, _ map[string]any) (any, error) {
+			return nil, invoke(ctx)
+		},
+	})
+
+	router := chi.NewRouter()
+	handler.Mount(router, "/_piko/actions")
+	return router
+}
+
+func TestHandleRequest_LogsRequestFaultsOnce(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		err       error
+		name      string
+		wantCode  string
+		wantLevel slog.Level
+	}{
+		{name: "not found is logged at info", err: daemon_dto.NotFound("order", "42"), wantCode: "NOT_FOUND", wantLevel: slog.LevelInfo},
+		{name: "conflict is logged at info", err: daemon_dto.Conflict("already paid"), wantCode: "CONFLICT", wantLevel: slog.LevelInfo},
+		{name: "forbidden is logged at warn", err: daemon_dto.Forbidden("not yours"), wantCode: "FORBIDDEN", wantLevel: slog.LevelWarn},
+		{name: "unauthorised is logged at warn", err: daemon_dto.Unauthorised(""), wantCode: "UNAUTHORISED", wantLevel: slog.LevelWarn},
+		{name: "too many requests is logged at warn", err: daemon_dto.PageError(http.StatusTooManyRequests, "slow down"), wantCode: "PAGE_ERROR", wantLevel: slog.LevelWarn},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			router := mountFailingAction(t, 1024, func(context.Context) error { return testCase.err })
+			request, logs := newLogRecordingRequest(t, http.MethodPost, "/_piko/actions/order.create", "{}")
+			recorder := httptest.NewRecorder()
+
+			router.ServeHTTP(recorder, request)
+
+			records := logs.atLevel(testCase.wantLevel)
+			require.Len(t, records, 1, "a refused request must be logged exactly once")
+			assert.Equal(t, "order.create", records[0].attrs[attributeKeyAction])
+			assert.Equal(t, strconv.Itoa(recorder.Code), records[0].attrs["status"])
+			assert.Equal(t, testCase.wantCode, records[0].attrs["code"])
+			assert.Empty(t, logs.atLevel(slog.LevelError), "a refused request is not a server fault")
+		})
+	}
+}
+
+func TestHandleRequest_ReportsServerFaultsHiddenBehindA4xx(t *testing.T) {
+	t.Parallel()
+
+	databaseErr := errors.New("database unreachable")
+	router := mountFailingAction(t, 1024, func(context.Context) error {
+		return errors.Join(databaseErr, daemon_dto.NotFound("order", "42"))
+	})
+	request, logs := newLogRecordingRequest(t, http.MethodPost, "/_piko/actions/order.create", "{}")
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, request)
+
+	assert.Equal(t, http.StatusNotFound, recorder.Code, "the client is still answered with the status the action chose")
+	errorsLogged := logs.atLevel(slog.LevelError)
+	require.Len(t, errorsLogged, 1, "the database failure must be reported")
+	assert.Equal(t, "Action execution failed", errorsLogged[0].message)
+}
+
+func TestHandleRequest_ReportsABindDeadlineAsAServerFault(t *testing.T) {
+	t.Parallel()
+
+	router := mountFailingAction(t, 1024, func(ctx context.Context) error {
+		expired, cancel := context.WithDeadline(ctx, time.Unix(0, 0))
+		defer cancel()
+
+		source := make(map[string][]string, 600)
+		for index := range 600 {
+			source["Unknown"+strconv.Itoa(index)] = []string{"value"}
+		}
+		var destination struct{ Name string }
+		return binder.NewASTBinder().Bind(expired, &destination, source, binder.IgnoreUnknownKeys(true))
+	})
+	request, logs := newLogRecordingRequest(t, http.MethodPost, "/_piko/actions/order.create", "{}")
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, request)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+	errorsLogged := logs.atLevel(slog.LevelError)
+	require.Len(t, errorsLogged, 1, "a bind that ran out of time is a server fault and must be reported")
+	assert.Equal(t, "Action execution failed", errorsLogged[0].message)
+}
+
+func TestHandleRequest_OversizedBodyAnswersPayloadTooLarge(t *testing.T) {
+	t.Parallel()
+
+	invoked := false
+	router := mountFailingAction(t, 64, func(context.Context) error {
+		invoked = true
+		return nil
+	})
+	body := `{"name":"` + strings.Repeat("a", 512) + `"}`
+	request, logs := newLogRecordingRequest(t, http.MethodPost, "/_piko/actions/order.create", body)
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, request)
+
+	assert.False(t, invoked)
+	assertPayloadTooLarge(t, recorder)
+	assert.Empty(t, logs.atLevel(slog.LevelError), "an oversized body is the client's fault")
+	infoLogged := logs.atLevel(slog.LevelInfo)
+	require.Len(t, infoLogged, 1)
+	assert.Equal(t, "64", infoLogged[0].attrs["limit_bytes"])
+	assert.NotContains(t, infoLogged[0].attrs, "error", "the body must not be logged")
+}
+
+func TestHandleRequest_MalformedBodyAnswersBadRequestWithoutReporting(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name string
+		body string
+	}{
+		{name: "malformed JSON", body: `{"name":`},
+		{name: "nesting past the depth limit", body: strings.Repeat("[", defaultMaxJSONBodyDepth+1) + strings.Repeat("]", defaultMaxJSONBodyDepth+1)},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			router := mountFailingAction(t, 1<<20, func(context.Context) error { return nil })
+			request, logs := newLogRecordingRequest(t, http.MethodPost, "/_piko/actions/order.create", testCase.body)
+			recorder := httptest.NewRecorder()
+
+			router.ServeHTTP(recorder, request)
+
+			assert.Equal(t, http.StatusBadRequest, recorder.Code)
+			assert.Empty(t, logs.atLevel(slog.LevelError), "a malformed body is the client's fault")
+			assert.Len(t, logs.atLevel(slog.LevelInfo), 1)
+		})
+	}
+}
+
+func TestHandleBatch_OversizedBodyAnswersPayloadTooLarge(t *testing.T) {
+	t.Parallel()
+
+	handler := NewActionHandler(nil, 64, nil, security_dto.RateLimitValues{}, false, nil, nil)
+	body := `{"actions":[{"name":"` + strings.Repeat("a", 512) + `"}]}`
+	request, logs := newLogRecordingRequest(t, http.MethodPost, "/_piko/actions/_batch", body)
+	recorder := httptest.NewRecorder()
+
+	handler.handleBatch(recorder, request)
+
+	assertPayloadTooLarge(t, recorder)
+	assert.Empty(t, logs.atLevel(slog.LevelError), "an oversized body is the client's fault")
+}
+
+func TestHandleBatch_MalformedBodyAnswersBadRequestWithoutReporting(t *testing.T) {
+	t.Parallel()
+
+	handler := NewActionHandler(nil, 1<<20, nil, security_dto.RateLimitValues{}, false, nil, nil)
+	request, logs := newLogRecordingRequest(t, http.MethodPost, "/_piko/actions/_batch", `{"actions":[`)
+	recorder := httptest.NewRecorder()
+
+	handler.handleBatch(recorder, request)
+
+	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+	assert.Empty(t, logs.atLevel(slog.LevelError), "a malformed body is the client's fault")
+	assert.Len(t, logs.atLevel(slog.LevelInfo), 1)
+}
+
+func TestHandleActionError_ClampsAStatusThatIsNotAnError(t *testing.T) {
+	t.Parallel()
+
+	for _, status := range []int{http.StatusOK, http.StatusFound, 600, 0} {
+		t.Run(strconv.Itoa(status), func(t *testing.T) {
+			t.Parallel()
+
+			handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
+			request, logs := newLogRecordingRequest(t, http.MethodPost, "/_piko/actions/order.create", "{}")
+			recorder := httptest.NewRecorder()
+
+			handler.handleActionError(recorder, request, &struct{}{}, daemon_dto.PageError(status, "odd"))
+
+			assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+			assert.Contains(t, recorder.Body.String(), `"code":"INTERNAL_ERROR"`)
+			assert.Empty(t, logs.atLevel(slog.LevelError),
+				"the bad status is reported once by reportActionFailure, not when the answer is written")
+		})
+	}
+}
+
+func TestBuildBatchErrorResult_ClampsAStatusThatIsNotAnError(t *testing.T) {
+	t.Parallel()
+
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
+	request, logs := newLogRecordingRequest(t, http.MethodPost, "/_piko/actions/_batch", "{}")
+
+	result := handler.buildBatchErrorResult(request.Context(), "order.create", daemon_dto.PageError(http.StatusFound, "moved"), false)
+
+	assert.Equal(t, http.StatusInternalServerError, result.Status)
+	assert.Equal(t, "INTERNAL_ERROR", result.Code)
+	errorsLogged := logs.atLevel(slog.LevelError)
+	require.NotEmpty(t, errorsLogged)
+	assert.Equal(t, "order.create", errorsLogged[0].attrs[attributeKeyAction])
+}
+
+func TestBuildBatchErrorResult_LogsEachFailureOnce(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		err       error
+		name      string
+		wantLevel slog.Level
+	}{
+		{name: "server fault is reported", err: errors.New("database unreachable"), wantLevel: slog.LevelError},
+		{name: "refused request is logged at info", err: daemon_dto.NotFound("order", "42"), wantLevel: slog.LevelInfo},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
+			request, logs := newLogRecordingRequest(t, http.MethodPost, "/_piko/actions/_batch", "{}")
+
+			handler.buildBatchErrorResult(request.Context(), "order.create", testCase.err, false)
+
+			records := logs.atLevel(testCase.wantLevel)
+			require.Len(t, records, 1)
+			assert.Equal(t, "order.create", records[0].attrs[attributeKeyAction])
+		})
+	}
+}
+
+func assertPayloadTooLarge(t *testing.T, recorder *httptest.ResponseRecorder) {
+	t.Helper()
+
+	require.Equal(t, http.StatusRequestEntityTooLarge, recorder.Code)
+	var body struct {
+		Code    string `json:"code"`
+		Message string `json:"message"`
+		Status  int    `json:"status"`
+	}
+	require.NoError(t, json.ConfigDefault.Unmarshal(recorder.Body.Bytes(), &body))
+	assert.Equal(t, http.StatusRequestEntityTooLarge, body.Status)
+	assert.Equal(t, "PAYLOAD_TOO_LARGE", body.Code)
+}
+
+func TestHandleRequest_OversizedMultipartBodyAnswersPayloadTooLarge(t *testing.T) {
+	t.Parallel()
+
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	require.NoError(t, writer.WriteField("name", strings.Repeat("a", 4096)))
+	require.NoError(t, writer.Close())
+
+	router := mountFailingAction(t, 256, func(context.Context) error { return nil })
+	request, logs := newLogRecordingRequest(t, http.MethodPost, "/_piko/actions/order.create", body.String())
+	request.Header.Set("Content-Type", writer.FormDataContentType())
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, request)
+
+	assertPayloadTooLarge(t, recorder)
+	assert.Empty(t, logs.atLevel(slog.LevelError))
+}
+
+func bindUnknownFields(ctx context.Context) error {
+	source := make(map[string][]string, 600)
+	for index := range 600 {
+		source["Unknown"+strconv.Itoa(index)] = []string{"value"}
+	}
+	var destination struct{ Name string }
+	return binder.NewASTBinder().Bind(ctx, &destination, source, binder.IgnoreUnknownKeys(true))
+}
+
+func cancelledBindError(t *testing.T, cause error) error {
+	t.Helper()
+
+	ctx, cancel := context.WithCancelCause(t.Context())
+	cancel(cause)
+	err := bindUnknownFields(ctx)
+	require.ErrorIs(t, err, context.Canceled)
+	return err
+}
+
+func expiredBindError(t *testing.T) error {
+	t.Helper()
+
+	ctx, cancel := context.WithDeadlineCause(t.Context(), time.Unix(0, 0), errors.New("action ran out of time"))
+	defer cancel()
+	err := bindUnknownFields(ctx)
+	require.ErrorIs(t, err, context.DeadlineExceeded)
+	return err
+}
+
+func TestHandleRequest_ClientAbortDuringBindIsNotReported(t *testing.T) {
+	t.Parallel()
+
+	request, logs := newLogRecordingRequest(t, http.MethodPost, "/_piko/actions/order.create", "{}")
+	ctx, cancel := context.WithCancelCause(request.Context())
+	t.Cleanup(func() { cancel(nil) })
+	request = request.WithContext(ctx)
+
+	router := mountFailingAction(t, 1024, func(ctx context.Context) error {
+		cancel(errors.New("client went away"))
+		return bindUnknownFields(ctx)
+	})
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, request)
+
+	assert.Empty(t, logs.atLevel(slog.LevelError), "a client that went away is not a server fault")
+	assert.Empty(t, logs.atLevel(slog.LevelWarn))
+	aborts := logs.atLevel(slog.LevelDebug)
+	require.Len(t, aborts, 1, "a client abort must be logged exactly once")
+	assert.Equal(t, "order.create", aborts[0].attrs[attributeKeyAction])
+	assert.Empty(t, recorder.Body.String(), "nothing is written to a client that has gone")
+}
+
+func TestReportActionFailure_ClientAbortsAreNotReported(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		buildErr     func(t *testing.T, cause error) error
+		name         string
+		wantReported bool
+	}{
+		{
+			name:         "plain cancellation",
+			buildErr:     func(*testing.T, error) error { return context.Canceled },
+			wantReported: false,
+		},
+		{
+			name:         "bind cancelled without a cause",
+			buildErr:     func(t *testing.T, _ error) error { return cancelledBindError(t, nil) },
+			wantReported: false,
+		},
+		{
+			name:         "bind cancelled with the request cause",
+			buildErr:     func(t *testing.T, cause error) error { return cancelledBindError(t, cause) },
+			wantReported: false,
+		},
+		{
+			name: "cancellation seen after the call returned",
+			buildErr: func(t *testing.T, cause error) error {
+				return fmt.Errorf("provider action returned error after context cancellation: %w", cancelledBindError(t, cause))
+			},
+			wantReported: false,
+		},
+		{
+			name:         "bind deadline with a cause",
+			buildErr:     func(t *testing.T, _ error) error { return expiredBindError(t) },
+			wantReported: true,
+		},
+		{
+			name: "cancellation joined with a deadline",
+			buildErr: func(*testing.T, error) error {
+				return errors.Join(context.Canceled, context.DeadlineExceeded)
+			},
+			wantReported: true,
+		},
+		{
+			name: "cancellation joined with a wrapped server failure",
+			buildErr: func(*testing.T, error) error {
+				return errors.Join(context.Canceled, fmt.Errorf("querying orders: %w", errors.New("database unreachable")))
+			},
+			wantReported: true,
+		},
+		{
+			name: "cancellation joined with a bare server failure that is not the request cause",
+			buildErr: func(*testing.T, error) error {
+				return errors.Join(context.Canceled, errors.New("database unreachable"))
+			},
+			wantReported: true,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			cause := errors.New("client went away")
+			requestCtx, cancel := context.WithCancelCause(t.Context())
+			cancel(cause)
+			span := &statusRecordingSpan{}
+			reportActionFailure(requestCtx, span, "order.create", testCase.buildErr(t, cause), "Action execution failed")
+
+			assertSpanReport(t, span, testCase.wantReported)
+		})
+	}
+}
+
+func TestReportActionFailure_CancellationWhileTheRequestIsAliveIsReported(t *testing.T) {
+	t.Parallel()
+
+	span := &statusRecordingSpan{}
+	reportActionFailure(t.Context(), span, "order.create", context.Canceled, "Action execution failed")
+
+	assertSpanReport(t, span, true)
+}
+
+func TestIsRequestFault_CancellationCauseBesideARefusal(t *testing.T) {
+	t.Parallel()
+
+	cause := errors.New("client went away")
+	requestCtx, cancel := context.WithCancelCause(t.Context())
+	cancel(cause)
+	err := errors.Join(daemon_dto.NotFound("order", "42"), cancelledBindError(t, cause))
+
+	assert.True(t, isRequestFault(requestCtx, err),
+		"the request's own cancellation cause beside context.Canceled is part of the abort")
+	assert.False(t, isRequestFault(t.Context(), err),
+		"without a matching request cause the extra leaf is not treated as part of the abort")
+}
+
+func TestHandleRequest_ReportsAnInvalidActionStatusOnce(t *testing.T) {
+	t.Parallel()
+
+	router := mountFailingAction(t, 1024, func(context.Context) error {
+		return daemon_dto.PageError(http.StatusFound, "moved")
+	})
+	request, logs := newLogRecordingRequest(t, http.MethodPost, "/_piko/actions/order.create", "{}")
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, request)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+	errorsLogged := logs.atLevel(slog.LevelError)
+	require.Len(t, errorsLogged, 1, "an invalid status must be reported exactly once")
+	assert.Equal(t, strconv.Itoa(http.StatusFound), errorsLogged[0].attrs[logFieldInvalidStatus])
+}
+
+func TestHandleRequest_ReportsAPanicOnce(t *testing.T) {
+	t.Parallel()
+
+	router := mountFailingAction(t, 1024, func(context.Context) error {
+		panic("action exploded")
+	})
+	request, logs := newLogRecordingRequest(t, http.MethodPost, "/_piko/actions/order.create", "{}")
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, request)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+	assert.Len(t, logs.atLevel(slog.LevelError), 1, "a recovered panic is already logged where it was recovered")
 }

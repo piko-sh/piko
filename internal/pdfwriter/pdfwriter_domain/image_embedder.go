@@ -18,14 +18,6 @@
 
 package pdfwriter_domain
 
-// Manages image XObject resources for PDF rendering. Follows the same
-// register-track-write lifecycle as FontEmbedder: images are registered during painting,
-// then written as PDF objects at the end.
-//
-// JPEG images are embedded using DCTDecode (raw passthrough, no re-encoding). PNG images
-// are decoded to raw RGB pixels, compressed with FlateDecode, and if an alpha channel is
-// present, a separate SMask XObject is written.
-
 import (
 	"bytes"
 	"compress/zlib"
@@ -87,6 +79,21 @@ const (
 
 	// rgbChannelCount holds the number of colour channels in an RGB image.
 	rgbChannelCount = 3
+
+	// jpegSOFHeightOffset holds the byte offset within a SOF segment of the image height.
+	jpegSOFHeightOffset = 3
+
+	// jpegSOFWidthOffset holds the byte offset within a SOF segment of the image width.
+	jpegSOFWidthOffset = 5
+
+	// pngWidthOffset holds the byte offset of the IHDR width field in a PNG file.
+	pngWidthOffset = 16
+
+	// pngHeightOffset holds the byte offset of the IHDR height field in a PNG file.
+	pngHeightOffset = 20
+
+	// colour16To8Shift converts a 16-bit colour channel from image.Color.RGBA to 8 bits.
+	colour16To8Shift = 8
 )
 
 const (
@@ -320,8 +327,11 @@ func extractPNGChannels(img image.Image, bounds image.Rectangle, width, height i
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			r, g, b, a := img.At(x, y).RGBA()
-			rgbPixels = append(rgbPixels, safeconv.Uint32ToByte(r>>8), safeconv.Uint32ToByte(g>>8), safeconv.Uint32ToByte(b>>8))
-			alphaByte := safeconv.Uint32ToByte(a >> 8)
+			rgbPixels = append(rgbPixels,
+				safeconv.Uint32ToByte(r>>colour16To8Shift),
+				safeconv.Uint32ToByte(g>>colour16To8Shift),
+				safeconv.Uint32ToByte(b>>colour16To8Shift))
+			alphaByte := safeconv.Uint32ToByte(a >> colour16To8Shift)
 			alphaPixels = append(alphaPixels, alphaByte)
 			if alphaByte != maxAlpha {
 				hasAlpha = true
@@ -428,8 +438,8 @@ func extractJPEGDimensions(data []byte) (width, height int) {
 				return 0, 0
 			}
 
-			height = int(binary.BigEndian.Uint16(data[offset+3 : offset+5]))
-			width = int(binary.BigEndian.Uint16(data[offset+5 : offset+7]))
+			height = int(binary.BigEndian.Uint16(data[offset+jpegSOFHeightOffset : offset+jpegSOFWidthOffset]))
+			width = int(binary.BigEndian.Uint16(data[offset+jpegSOFWidthOffset : offset+jpegSOFDataOffset]))
 			return width, height
 		}
 
@@ -458,7 +468,7 @@ func extractPNGDimensions(data []byte) (width, height int) {
 		return 0, 0
 	}
 
-	width = int(binary.BigEndian.Uint32(data[16:20]))
-	height = int(binary.BigEndian.Uint32(data[20:24]))
+	width = int(binary.BigEndian.Uint32(data[pngWidthOffset:pngHeightOffset]))
+	height = int(binary.BigEndian.Uint32(data[pngHeightOffset:pngMinHeaderSize]))
 	return width, height
 }

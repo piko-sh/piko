@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"reflect"
 	"testing"
 	"time"
@@ -800,22 +801,22 @@ func TestBuild_RejectsOptionsThatCannotCrossAnEncoder(t *testing.T) {
 	require.NoError(t, service.RegisterProvider(context.Background(), "mock", newMockTestProvider("mock")))
 
 	cases := []struct {
-		name      string
 		configure func(*CacheBuilder[string, string])
+		name      string
 	}{
-		{"weigher", func(b *CacheBuilder[string, string]) {
+		{name: "weigher", configure: func(b *CacheBuilder[string, string]) {
 			b.MaximumWeight(1 << 20).Weigher(func(_ string, value string) uint32 { return uint32(len(value)) })
 		}},
-		{"custom expiry calculator", func(b *CacheBuilder[string, string]) {
+		{name: "custom expiry calculator", configure: func(b *CacheBuilder[string, string]) {
 			b.ExpiryCalculator(&mockExpiryCalculator[string, string]{})
 		}},
-		{"refresh calculator", func(b *CacheBuilder[string, string]) {
+		{name: "refresh calculator", configure: func(b *CacheBuilder[string, string]) {
 			b.RefreshCalculator(&mockRefreshCalculator[string, string]{})
 		}},
-		{"deletion callback", func(b *CacheBuilder[string, string]) {
+		{name: "deletion callback", configure: func(b *CacheBuilder[string, string]) {
 			b.OnDeletion(func(cache_dto.DeletionEvent[string, string]) {})
 		}},
-		{"atomic deletion callback", func(b *CacheBuilder[string, string]) {
+		{name: "atomic deletion callback", configure: func(b *CacheBuilder[string, string]) {
 			b.OnAtomicDeletion(func(cache_dto.DeletionEvent[string, string]) {})
 		}},
 	}
@@ -1483,4 +1484,94 @@ func TestCacheBuilder_BuildMultiLevelGatesHeavyEntries(t *testing.T) {
 
 	require.ErrorIs(t, cache.Set(context.Background(), "heavy", "far too heavy"), ErrEntryTooLarge)
 	require.NoError(t, cache.Set(context.Background(), "light", "ok"))
+}
+
+func TestPerEntryExpiryCalculator(t *testing.T) {
+	const nowNano = int64(1_768_471_200_000_000_000)
+
+	calculator := newPerEntryExpiryCalculator[string, string]()
+
+	testCases := []struct {
+		calculate func(entry cache_dto.Entry[string, string]) time.Duration
+		name      string
+		entry     cache_dto.Entry[string, string]
+		want      time.Duration
+	}{
+		{
+			name:      "create places a new entry's expiry at the end of representable time",
+			calculate: calculator.ExpireAfterCreate,
+			entry:     cache_dto.Entry[string, string]{SnapshotAtNano: nowNano, ExpiresAtNano: math.MaxInt64},
+			want:      time.Duration(math.MaxInt64 - nowNano),
+		},
+		{
+			name:      "create replaces an expiry that has already passed",
+			calculate: calculator.ExpireAfterCreate,
+			entry:     cache_dto.Entry[string, string]{SnapshotAtNano: nowNano, ExpiresAtNano: nowNano - int64(time.Second)},
+			want:      time.Duration(math.MaxInt64 - nowNano),
+		},
+		{
+			name:      "create without a clock reading gives the longest duration",
+			calculate: calculator.ExpireAfterCreate,
+			entry:     cache_dto.Entry[string, string]{SnapshotAtNano: 0, ExpiresAtNano: 0},
+			want:      time.Duration(math.MaxInt64),
+		},
+		{
+			name: "update keeps the current expiry",
+			calculate: func(entry cache_dto.Entry[string, string]) time.Duration {
+				return calculator.ExpireAfterUpdate(entry, "old")
+			},
+			entry: cache_dto.Entry[string, string]{SnapshotAtNano: nowNano, ExpiresAtNano: nowNano + int64(time.Minute)},
+			want:  time.Minute,
+		},
+		{
+			name:      "read keeps the current expiry",
+			calculate: calculator.ExpireAfterRead,
+			entry:     cache_dto.Entry[string, string]{SnapshotAtNano: nowNano, ExpiresAtNano: nowNano + int64(time.Minute)},
+			want:      time.Minute,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			assert.Equal(t, testCase.want, testCase.calculate(testCase.entry))
+		})
+	}
+}
+
+func TestCacheBuilder_PerEntryExpiration(t *testing.T) {
+	builder := NewCacheBuilder[string, string](NewService(""))
+
+	result := builder.PerEntryExpiration()
+
+	assert.Same(t, builder, result)
+	assert.IsType(t, &perEntryExpiryCalculator[string, string]{}, builder.expiryCalculator)
+	assert.IsType(t, &perEntryExpiryCalculator[string, []byte]{}, builder.adaptExpiryCalculator(),
+		"per-entry expiry ignores the value, so it must survive the byte cache under an encoder")
+	assert.NoError(t, builder.validateTransformerCompatibility())
+}
+
+func TestIsPerEntryExpiry(t *testing.T) {
+	testCases := []struct {
+		calculator cache_dto.ExpiryCalculator[string, string]
+		name       string
+		want       bool
+	}{
+		{name: "the per-entry calculator", calculator: newPerEntryExpiryCalculator[string, string](), want: true},
+		{name: "no calculator", calculator: nil, want: false},
+		{name: "a write expiry", calculator: &writeExpiryCalculator[string, string]{duration: time.Minute}, want: false},
+		{name: "an access expiry", calculator: &accessExpiryCalculator[string, string]{duration: time.Minute}, want: false},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			assert.Equal(t, testCase.want, IsPerEntryExpiry(testCase.calculator))
+		})
+	}
+}
+
+func TestIsPerEntryExpiry_RecognisesTheByteCacheCalculator(t *testing.T) {
+	builder := NewCacheBuilder[string, string](NewService("")).PerEntryExpiration()
+
+	assert.True(t, IsPerEntryExpiry(builder.adaptExpiryCalculator()),
+		"a provider behind an encoder sees the byte form and must still keep TTLs on update")
 }

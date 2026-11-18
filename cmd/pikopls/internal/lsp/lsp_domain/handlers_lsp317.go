@@ -23,7 +23,7 @@ import (
 	"fmt"
 
 	protocol "github.com/politepixels/golang-language-server"
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 

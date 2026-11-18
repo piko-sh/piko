@@ -261,7 +261,9 @@ func (c *Container) buildCaptchaService(
 	}
 
 	serviceOptions = append(serviceOptions,
-		captcha_domain.WithClientIPExtractor(clientIPExtractorFunc(security_dto.ClientIPFromRequest)))
+		captcha_domain.WithClientIPExtractor(clientIPExtractorFunc(security_dto.ClientIPFromRequest)),
+		captcha_domain.WithIPv6RateLimitPrefixBits(resolveIPv6PrefixBits(
+			c.serverConfig.Security.RateLimit.IPv6PrefixBits)))
 
 	service, err := captcha_domain.NewCaptchaService(serviceConfig, serviceOptions...)
 	if err != nil {

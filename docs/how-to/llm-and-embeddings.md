@@ -211,11 +211,12 @@ if status.RemainingBudget.CheckIsZero() {
 }
 ```
 
-The service caches identical completion requests when you attach a cache manager via `svc.SetCacheManager(...)`. Cached hits do not count against the budget.
+Attach a cache manager to a custom service with `svc.SetCacheManager(...)` to cache identical completion requests. Cached hits do not count against the budget.
+
+The default service has a response cache and budget store in each process. To share cached responses and a budget across instances, register a shared remote cache provider and select it with `piko.WithLLMCacheProvider("redis")`. The in-memory response cache holds up to 256 MiB by default. Change the cap with `piko.WithLLMCacheMaxBytes`. Responses larger than 8 MiB are not cached.
 
 ## See also
 
-- [LLM API reference](../reference/llm-api.md) for the typed provider, model, and embedding surface.
+- [LLM API reference: response cache](../reference/llm-api.md#response-cache) for cache keys and ownership rules.
 - [Bootstrap options reference: LLM and embeddings](../reference/bootstrap-options.md#llm-and-embedding).
 - [How to streaming with SSE](actions/streaming-with-sse.md) for forwarding token streams to the browser.
-- Integration tests: [`tests/integration/llm/`](https://github.com/piko-sh/piko/tree/master/tests/integration/llm) exercises completions, streaming, embeddings, RAG, budgets, and fallback chains.

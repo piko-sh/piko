@@ -80,3 +80,86 @@ const (
 	// ErrFmtScrollingShadowDOMElement is the error format for shadow DOM scroll failures.
 	ErrFmtScrollingShadowDOMElement = "scrolling shadow DOM element into view %s: %w"
 )
+
+const (
+	// domQueryTimeout is the short time limit for a single DOM read or write that should
+	// finish almost at once.
+	domQueryTimeout = 500 * time.Millisecond
+
+	// stableCheckInterval is how often WaitStable compares the page HTML when waiting for
+	// the DOM to settle after a navigation.
+	stableCheckInterval = 500 * time.Millisecond
+
+	// stableMaxWait is the longest WaitStable waits for the DOM to settle.
+	stableMaxWait = 5 * time.Second
+
+	// historyNavigationTimeout is the time limit for going back or forward in the browser
+	// history.
+	historyNavigationTimeout = 5 * time.Second
+
+	// navigationTimeout is the time limit for loading a page by URL.
+	navigationTimeout = 15 * time.Second
+
+	// visibleImagesTimeout is the time limit for images in the viewport to finish loading
+	// while scrolling a page for capture.
+	visibleImagesTimeout = 5 * time.Second
+
+	// scrollResetDelay is the pause after scrolling back to the top so the page can repaint.
+	scrollResetDelay = 100 * time.Millisecond
+
+	// unwrapSettleDelay is the pause after removing scroll container limits so the page can
+	// reflow.
+	unwrapSettleDelay = 200 * time.Millisecond
+
+	// downloadStartDelay is the pause before polling for a downloaded file, giving the
+	// browser time to begin writing it.
+	downloadStartDelay = 500 * time.Millisecond
+
+	// pageCreationBackoffStep is the delay added per attempt when retrying page creation.
+	pageCreationBackoffStep = 100 * time.Millisecond
+
+	// pageInitialiseDelay is the pause after creating a page so its targets are ready to
+	// use.
+	pageInitialiseDelay = 200 * time.Millisecond
+
+	// consoleClearDelay is the pause after clearing the console so in-flight log events
+	// arrive before the stored logs are reset.
+	consoleClearDelay = 50 * time.Millisecond
+
+	// serverDialTimeout is the time limit for one TCP dial while waiting for the server to
+	// accept connections.
+	serverDialTimeout = 50 * time.Millisecond
+
+	// formattedHTMLMaxLineLength is the line length used when formatting HTML for output.
+	formattedHTMLMaxLineLength = 120
+
+	// tmplKeySelector is the script template key for a CSS selector.
+	tmplKeySelector = "Selector"
+
+	// tmplKeyFrameSelector is the script template key for an iframe selector.
+	tmplKeyFrameSelector = "FrameSelector"
+
+	// tmplKeyElementSelector is the script template key for a selector inside an iframe.
+	tmplKeyElementSelector = "ElementSelector"
+
+	// tmplKeyEventName is the script template key for an event name.
+	tmplKeyEventName = "EventName"
+
+	// tmplKeyDetailJSON is the script template key for an event detail as JSON.
+	tmplKeyDetailJSON = "DetailJSON"
+
+	// tmplKeyHost is the script template key for a shadow host selector.
+	tmplKeyHost = "Host"
+
+	// tmplKeyShadow is the script template key for a selector inside a shadow root.
+	tmplKeyShadow = "Shadow"
+
+	// tmplKeyStorageType is the script template key for the web storage type.
+	tmplKeyStorageType = "StorageType"
+
+	// tmplKeyKey is the script template key for a storage key.
+	tmplKeyKey = "Key"
+
+	// tmplKeyAttrName is the script template key for an attribute name.
+	tmplKeyAttrName = "AttrName"
+)

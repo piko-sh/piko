@@ -18,8 +18,6 @@
 
 package bootstrap
 
-// This file contains LLM service related container methods.
-
 import (
 	"context"
 	"fmt"
@@ -85,6 +83,16 @@ func (c *Container) SetDefaultEmbeddingProvider(name string) {
 	c.llmDefaultEmbeddingProvider = name
 }
 
+// SetLLMCacheProvider selects the provider for cached LLM responses and budgets.
+//
+// Empty, the default, keeps them in memory in each process. Budgets and cached responses
+// are shared between instances only when this names a remote provider they all use.
+//
+// Takes name (string) which is a registered cache provider or the built-in "otter".
+func (c *Container) SetLLMCacheProvider(name string) {
+	c.llmCacheProvider = name
+}
+
 // SetLLMService sets a custom LLM service, overriding the default.
 //
 // If the service implements a shutdown interface (Close, Shutdown, or Stop), it will be
@@ -113,10 +121,10 @@ func (c *Container) GetLLMService() (llm_domain.Service, error) {
 	return c.llmService, c.llmErr
 }
 
-// createDefaultLLMService creates and sets up the default LLM service.
+// createDefaultLLMService builds the default service from registered providers.
 //
-// It creates the service and registers any providers that were added via AddLLMProvider.
-// Any errors are stored in c.llmErr rather than returned.
+// Provider errors are stored in c.llmErr. Shutdown closes the service before its cache
+// and budget stores, which stay available through the service's Close call.
 func (c *Container) createDefaultLLMService() {
 	ctx, l := logger_domain.From(c.GetAppContext(), log)
 	l.Internal("Creating default LLMService...")
@@ -250,29 +258,34 @@ func (c *Container) configureDefaultEmbeddingProvider(ctx context.Context, s llm
 //
 // Returns error when cache setup fails.
 func (c *Container) configureLLMCache(s llm_domain.Service) error {
-	_, l := logger_domain.From(c.GetAppContext(), log)
+	ctx, l := logger_domain.From(c.GetAppContext(), log)
 
 	cacheService, err := c.GetCacheService()
 	if err != nil {
 		return fmt.Errorf("getting cache service for LLM: %w", err)
 	}
 
-	cacheStore, err := llm_adapters_cache.New(c.GetAppContext(), llm_adapters_cache.Config{
-		CacheService:   cacheService,
-		Namespace:      "llm:cache",
-		MaximumEntries: 10000,
-		Clock:          nil,
-		Provider:       "",
+	cacheStore, err := llm_adapters_cache.New(ctx, llm_adapters_cache.Config{
+		CacheService:       cacheService,
+		Clock:              nil,
+		Provider:           c.llmCacheProvider,
+		Namespace:          "llm:cache",
+		MaximumEntries:     llm_adapters_cache.DefaultCacheMaximumSize,
+		MaximumWeightBytes: c.llmCacheMaxBytesOverride,
+		MaximumEntryBytes:  0,
 	})
 	if err != nil {
 		return fmt.Errorf("creating LLM cache store: %w", err)
 	}
 
+	shutdown.Register(ctx, "LLMCacheStore", cacheStore.Close)
+
 	const defaultCacheTTL = time.Hour
 	cacheManager := llm_domain.NewCacheManager(cacheStore, defaultCacheTTL)
 	s.SetCacheManager(cacheManager)
 
-	l.Internal("LLM cache manager configured")
+	l.Internal("LLM cache manager configured",
+		logger_domain.String(fieldProvider, c.llmCacheProvider))
 	return nil
 }
 
@@ -283,16 +296,17 @@ func (c *Container) configureLLMCache(s llm_domain.Service) error {
 //
 // Returns error when budget store creation fails.
 func (c *Container) configureLLMBudget(s llm_domain.Service) error {
-	_, l := logger_domain.From(c.GetAppContext(), log)
+	ctx, l := logger_domain.From(c.GetAppContext(), log)
 
 	cacheService, err := c.GetCacheService()
 	if err != nil {
 		return fmt.Errorf("getting cache service for LLM budget: %w", err)
 	}
 
-	budgetStore, err := llm_adapters_budget.New(c.GetAppContext(), llm_adapters_budget.Config{
+	budgetStore, err := llm_adapters_budget.New(ctx, llm_adapters_budget.Config{
 		CacheService:   cacheService,
 		Clock:          nil,
+		Provider:       c.llmCacheProvider,
 		Namespace:      "",
 		MaximumEntries: 0,
 	})
@@ -300,9 +314,12 @@ func (c *Container) configureLLMBudget(s llm_domain.Service) error {
 		return fmt.Errorf("creating LLM budget store: %w", err)
 	}
 
+	shutdown.Register(ctx, "LLMBudgetStore", budgetStore.Close)
+
 	budgetManager := llm_domain.NewBudgetManager(budgetStore, s.GetCostCalculator())
 	s.SetBudgetManager(budgetManager)
 
-	l.Internal("LLM budget manager configured with cache-backed store")
+	l.Internal("LLM budget manager configured with cache-backed store",
+		logger_domain.String(fieldProvider, c.llmCacheProvider))
 	return nil
 }

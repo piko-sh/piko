@@ -59,6 +59,9 @@ const (
 	// dateFormatISO is the ISO 8601 date format (YYYY-MM-DD) used in sitemaps.
 	dateFormatISO = "2006-01-02"
 
+	// relAlternate is the link relation used for alternate language versions of a URL.
+	relAlternate = "alternate"
+
 	// gitLastModTimeout bounds a single `git log` invocation used to derive a page's
 	// lastmod, so a slow or hung git call cannot stall the build; on timeout the mtime
 	// fallback is used.
@@ -645,14 +648,14 @@ func (b *sitemapBuilder) buildAlternateLinks(routePattern string, locales []stri
 	alternates := make([]seo_dto.AlternateLink, 0, len(locales)+1)
 	for _, locale := range locales {
 		alternates = append(alternates, seo_dto.AlternateLink{
-			Rel:      "alternate",
+			Rel:      relAlternate,
 			Hreflang: locale,
 			Href:     b.buildLocalisedURL(routePattern, locale),
 		})
 	}
 
 	alternates = append(alternates, seo_dto.AlternateLink{
-		Rel:      "alternate",
+		Rel:      relAlternate,
 		Hreflang: "x-default",
 		Href:     b.buildLocalisedURL(routePattern, b.i18nDefaultLocale),
 	})
@@ -936,8 +939,8 @@ func (b *sitemapBuilder) resolveRouteSourcePage(ctx context.Context, component *
 //
 // Returns []seo_dto.SitemapURL which are the concrete URLs.
 func (b *sitemapBuilder) routeURLToSitemapURLs(ctx context.Context, rc RouteContext, routeURL RouteURL) []seo_dto.SitemapURL {
+	ctx, l := logger_domain.From(ctx, log)
 	if !isEnumerableParamValue(routeURL.ParamValue) {
-		_, l := logger_domain.From(ctx, log)
 		l.Warn("Route source produced a param value that does not name a real page; skipping its URL",
 			logger_domain.String(logFieldSource, rc.SourceName),
 			logger_domain.String("paramValue", routeURL.ParamValue))
@@ -983,13 +986,13 @@ func (b *sitemapBuilder) routeURLAlternates(rc RouteContext, paramValue string, 
 	alternates := make([]seo_dto.AlternateLink, 0, len(locales)+1)
 	for _, locale := range locales {
 		alternates = append(alternates, seo_dto.AlternateLink{
-			Rel:      "alternate",
+			Rel:      relAlternate,
 			Hreflang: locale,
 			Href:     b.buildAbsoluteURL(rc.Expand(paramValue, locale)),
 		})
 	}
 	alternates = append(alternates, seo_dto.AlternateLink{
-		Rel:      "alternate",
+		Rel:      relAlternate,
 		Hreflang: "x-default",
 		Href:     b.buildAbsoluteURL(rc.Expand(paramValue, rc.DefaultLocale)),
 	})

@@ -532,8 +532,11 @@ func (c *BinaryCodec[K, V]) EncodeWithLengthAndCRC(entry wal_domain.Entry[K, V])
 // Returns EncodeResult which contains the framed entry.
 // Returns error when encoding fails.
 func (c *BinaryCodec[K, V]) encodeWithLengthAndCRC(entry wal_domain.Entry[K, V]) (EncodeResult, error) {
-	if c.fastKeyCodec != nil && c.fastValueCodec != nil && entry.Operation != wal_domain.OpBatch {
-		return c.encodeWithLengthAndCRCFast(entry)
+	if entry.Operation != wal_domain.OpBatch {
+		if c.fastKeyCodec != nil && c.fastValueCodec != nil {
+			return c.encodeWithLengthAndCRCFast(entry)
+		}
+		return c.encodeWithLengthAndCRCSlow(entry)
 	}
 
 	payload, err := c.Encode(entry)
@@ -553,6 +556,47 @@ func (c *BinaryCodec[K, V]) encodeWithLengthAndCRC(entry wal_domain.Entry[K, V])
 	binary.BigEndian.PutUint32(buffer[lengthSize:lengthSize+crcSize], checksum)
 
 	copy(buffer[lengthSize+crcSize:], payload)
+
+	return EncodeResult{Data: buffer, pool: pool}, nil
+}
+
+// encodeWithLengthAndCRCSlow frames a single entry whose codecs cannot encode in place.
+//
+// Takes entry (wal_domain.Entry[K, V]) which is the non-batch entry to encode.
+//
+// Returns EncodeResult which contains the framed entry.
+// Returns error when encoding the key or value fails.
+func (c *BinaryCodec[K, V]) encodeWithLengthAndCRCSlow(entry wal_domain.Entry[K, V]) (EncodeResult, error) {
+	keyBytes, err := c.keyCodec.EncodeKey(entry.Key)
+	if err != nil {
+		return EncodeResult{}, fmt.Errorf("encoding entry payload: encoding key: %w", err)
+	}
+
+	var valueBytes []byte
+	if entry.Operation == wal_domain.OpSet {
+		valueBytes, err = c.valueCodec.EncodeValue(entry.Value)
+		if err != nil {
+			return EncodeResult{}, fmt.Errorf("encoding entry payload: encoding value: %w", err)
+		}
+	}
+
+	payloadSize := fixedPayloadSize + uint32Size + len(keyBytes) + uint32Size + len(valueBytes) + uint16Size +
+		c.calculateTagsSize(entry.Tags)
+	crcPlusPayloadSize := crcSize + payloadSize
+	totalSize := lengthSize + crcPlusPayloadSize
+
+	pool, buffer := GetByteBuffer(totalSize)
+	buffer = buffer[:totalSize]
+
+	binary.BigEndian.PutUint32(buffer[0:lengthSize], safeconv.IntToUint32(crcPlusPayloadSize))
+
+	payload := buffer[lengthSize+crcSize:]
+	offset := encodeFixedFields(payload, entry.Operation, entry.Timestamp, entry.ExpiresAt)
+	offset = encodeBytes(payload, offset, keyBytes)
+	offset = encodeBytes(payload, offset, valueBytes)
+	encodeTags(payload, offset, entry.Tags)
+
+	binary.BigEndian.PutUint32(buffer[lengthSize:lengthSize+crcSize], crc32.Checksum(payload, crcTable))
 
 	return EncodeResult{Data: buffer, pool: pool}, nil
 }

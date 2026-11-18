@@ -40,6 +40,9 @@ const (
 	// scanBatchSize is the number of keys to fetch in each Redis SCAN call.
 	scanBatchSize = 100
 
+	// logMessageAddTagsFailed is the warning logged when a key's tags cannot be stored.
+	logMessageAddTagsFailed = "Failed to add tags to key"
+
 	// logKeyField is the attribute key used when logging Redis cache keys.
 	logKeyField = "key"
 
@@ -117,6 +120,10 @@ type RedisAdapter[K comparable, V any] struct {
 
 	// indexCreated indicates whether the search index has been created.
 	indexCreated bool
+
+	// perEntry records that the cache was built with PerEntryExpiration, so a write without
+	// a TTL keeps the key's current TTL instead of applying a default one.
+	perEntry bool
 }
 
 var (
@@ -257,24 +264,11 @@ func (a *RedisAdapter[K, V]) Set(ctx context.Context, key K, value V, tags ...st
 		return fmt.Errorf(errFmtEncodeKey, err)
 	}
 
-	ttl := a.ttl
-	if a.expiryCalculator != nil {
-		entry := cache.Entry[K, V]{
-			Key:               key,
-			Value:             value,
-			Weight:            0,
-			ExpiresAtNano:     0,
-			RefreshableAtNano: 0,
-			SnapshotAtNano:    time.Now().UnixNano(),
-		}
-		ttl = a.expiryCalculator.ExpireAfterCreate(entry)
-	}
+	ttl := a.writeExpiry(0, a.defaultWriteTTL(key, value))
 
 	if a.needsJSONStorage() {
 		a.indexDocument(timeoutCtx, keyString, value)
-		if err := a.client.Expire(timeoutCtx, keyString, ttl).Err(); err != nil {
-			l.Warn("Failed to set TTL on JSON document", logger.String(logKeyField, keyString), logger.Error(err))
-		}
+		a.applyJSONExpiry(timeoutCtx, keyString, ttl)
 	} else {
 		encoder, err := a.registry.Get(value)
 		if err != nil {
@@ -292,7 +286,7 @@ func (a *RedisAdapter[K, V]) Set(ctx context.Context, key K, value V, tags ...st
 	}
 
 	if err := addTagsToKey(timeoutCtx, a.client, a.namespace, keyString, tags); err != nil {
-		l.Warn("Failed to add tags to key", logger.String(logKeyField, keyString), logger.Error(err))
+		l.Warn(logMessageAddTagsFailed, logger.String(logKeyField, keyString), logger.Error(err))
 	}
 
 	return nil
@@ -302,11 +296,16 @@ func (a *RedisAdapter[K, V]) Set(ctx context.Context, key K, value V, tags ...st
 //
 // Takes key (K) which identifies the cache entry.
 // Takes value (V) which is the data to store.
-// Takes ttl (time.Duration) which sets how long the entry stays valid.
+// Takes ttl (time.Duration) which sets how long the entry stays valid. cache.NoExpiry
+// removes any TTL. Other nonpositive values write as Set does.
 // Takes tags (...string) which links labels to the entry.
 //
 // Returns error when encoding, marshalling, or the Redis operation fails.
 func (a *RedisAdapter[K, V]) SetWithTTL(ctx context.Context, key K, value V, ttl time.Duration, tags ...string) error {
+	if ttl <= 0 {
+		return a.Set(ctx, key, value, tags...)
+	}
+
 	ctx, l := logger.From(ctx, log)
 	timeoutCtx, cancel := context.WithTimeoutCause(ctx, a.operationTimeout, fmt.Errorf("redis SetWithTTL exceeded %s timeout", a.operationTimeout))
 	defer cancel()
@@ -314,6 +313,15 @@ func (a *RedisAdapter[K, V]) SetWithTTL(ctx context.Context, key K, value V, ttl
 	keyString, err := a.encodeKey(key)
 	if err != nil {
 		return fmt.Errorf(errFmtEncodeKey, err)
+	}
+
+	if a.needsJSONStorage() {
+		a.indexDocument(timeoutCtx, keyString, value)
+		a.applyJSONExpiry(timeoutCtx, keyString, a.writeExpiry(ttl, 0))
+		if err := addTagsToKey(timeoutCtx, a.client, a.namespace, keyString, tags); err != nil {
+			l.Warn(logMessageAddTagsFailed, logger.String(logKeyField, keyString), logger.Error(err))
+		}
+		return nil
 	}
 
 	encoder, err := a.registry.Get(value)
@@ -328,13 +336,13 @@ func (a *RedisAdapter[K, V]) SetWithTTL(ctx context.Context, key K, value V, ttl
 		return fmt.Errorf("marshal failed: %w", err)
 	}
 
-	if err := a.client.Set(timeoutCtx, keyString, valBytes, ttl).Err(); err != nil {
+	if err := a.client.Set(timeoutCtx, keyString, valBytes, a.writeExpiry(ttl, 0)).Err(); err != nil {
 		l.Warn("Redis Set with TTL failed", logger.String(logKeyField, keyString), logger.Error(err))
 		return fmt.Errorf("redis set failed: %w", err)
 	}
 
 	if err := addTagsToKey(timeoutCtx, a.client, a.namespace, keyString, tags); err != nil {
-		l.Warn("Failed to add tags to key", logger.String(logKeyField, keyString), logger.Error(err))
+		l.Warn(logMessageAddTagsFailed, logger.String(logKeyField, keyString), logger.Error(err))
 	}
 
 	return nil
@@ -405,7 +413,7 @@ func (a *RedisAdapter[K, V]) executeComputeAction(ctx context.Context, pipe redi
 		if err != nil {
 			return err
 		}
-		pipe.Set(ctx, keyString, valBytes, a.ttl)
+		pipe.Set(ctx, keyString, valBytes, a.writeExpiry(0, a.ttl))
 
 	case cache.ComputeActionDelete:
 		if found {
@@ -550,7 +558,7 @@ func (a *RedisAdapter[K, V]) computeIfAbsentWatchFunction(ctx context.Context, t
 		if err != nil {
 			return err
 		}
-		pipe.Set(ctx, keyString, valBytes, a.ttl)
+		pipe.Set(ctx, keyString, valBytes, a.writeExpiry(0, a.ttl))
 		return nil
 	})
 	return txErr
@@ -646,7 +654,7 @@ func (a *RedisAdapter[K, V]) executeComputeActionPresent(ctx context.Context, pi
 		if err != nil {
 			return err
 		}
-		pipe.Set(ctx, keyString, valBytes, a.ttl)
+		pipe.Set(ctx, keyString, valBytes, a.writeExpiry(0, a.ttl))
 	case cache.ComputeActionDelete:
 		pipe.Del(ctx, keyString)
 	case cache.ComputeActionNoop:
@@ -762,7 +770,8 @@ func (a *RedisAdapter[K, V]) ComputeIfPresent(ctx context.Context, key K, comput
 // Takes newValue (V) which is the value to set when the action is Set.
 // Takes action (cache.ComputeAction) which specifies the operation to perform.
 // Takes found (bool) which indicates whether the key exists in the cache.
-// Takes ttl (time.Duration) which is the custom TTL; zero uses the default.
+// Takes ttl (time.Duration) which is the custom TTL; zero keeps the key's TTL under
+// PerEntryExpiration and otherwise applies the default.
 //
 // Returns error when encoding the value fails.
 func (a *RedisAdapter[K, V]) executeComputeActionWithTTL(ctx context.Context, pipe redis.Pipeliner, keyString string, newValue V, action cache.ComputeAction, found bool, ttl time.Duration) error {
@@ -772,11 +781,7 @@ func (a *RedisAdapter[K, V]) executeComputeActionWithTTL(ctx context.Context, pi
 		if err != nil {
 			return err
 		}
-		effectiveTTL := a.ttl
-		if ttl > 0 {
-			effectiveTTL = ttl
-		}
-		pipe.Set(ctx, keyString, valBytes, effectiveTTL)
+		pipe.Set(ctx, keyString, valBytes, a.writeExpiry(ttl, a.ttl))
 	case cache.ComputeActionDelete:
 		if found {
 			pipe.Del(ctx, keyString)
@@ -923,7 +928,7 @@ func (a *RedisAdapter[K, V]) storeLoadedValues(ctx context.Context, loaded map[K
 			l.Warn("Failed to marshal loaded value for Redis", logger.String(logKeyField, keyString), logger.Error(marshalErr))
 			continue
 		}
-		pipe.Set(ctx, keyString, valBytes, a.ttl)
+		pipe.Set(ctx, keyString, valBytes, a.writeExpiry(0, a.ttl))
 		results[k] = v
 	}
 
@@ -1023,7 +1028,7 @@ func (a *RedisAdapter[K, V]) prepareBulkSetItem(ctx context.Context, key K, valu
 	}
 
 	entryTTL := defaultTTL
-	if a.expiryCalculator != nil {
+	if a.expiryCalculator != nil && !a.perEntry {
 		entry := cache.Entry[K, V]{
 			Key: key, Value: value, SnapshotAtNano: time.Now().UnixNano(),
 			Weight:            0,
@@ -1067,7 +1072,7 @@ func (a *RedisAdapter[K, V]) BulkSet(ctx context.Context, items map[K]V, tags ..
 			continue
 		}
 
-		pipe.Set(timeoutCtx, keyString, valBytes, entryTTL)
+		pipe.Set(timeoutCtx, keyString, valBytes, a.writeExpiry(0, entryTTL))
 
 		for _, tag := range tags {
 			pipe.SAdd(timeoutCtx, a.namespace+tagPrefix+tag, keyString)
@@ -1112,9 +1117,10 @@ func (a *RedisAdapter[K, V]) bulkSetJSON(ctx context.Context, items map[K]V, tag
 		}
 
 		a.indexDocument(ctx, keyString, value)
+		a.applyJSONExpiry(ctx, keyString, a.writeExpiry(0, a.defaultWriteTTL(key, value)))
 
 		if err := addTagsToKey(ctx, a.client, a.namespace, keyString, tags); err != nil {
-			l.Warn("Failed to add tags to key", logger.String(logKeyField, keyString), logger.Error(err))
+			l.Warn(logMessageAddTagsFailed, logger.String(logKeyField, keyString), logger.Error(err))
 		}
 	}
 
@@ -1318,7 +1324,7 @@ func (a *RedisAdapter[K, V]) ProbeEntry(ctx context.Context, key K) (cache.Entry
 
 	pipe := a.client.Pipeline()
 	getCmd := pipe.Get(timeoutCtx, keyString)
-	ttlCmd := pipe.TTL(timeoutCtx, keyString)
+	ttlCmd := pipe.PTTL(timeoutCtx, keyString)
 	if _, err = pipe.Exec(timeoutCtx); err != nil {
 		if errors.Is(err, redis.Nil) {
 			return cache.Entry[K, V]{}, false, nil
@@ -1350,20 +1356,19 @@ func (a *RedisAdapter[K, V]) ProbeEntry(ctx context.Context, key K) (cache.Entry
 		return cache.Entry[K, V]{}, false, fmt.Errorf("type assertion failed after unmarshal for key %q", keyString)
 	}
 
-	ttl, _ := ttlCmd.Result()
-
-	var expiresAtNano int64
-	if ttl > 0 {
-		expiresAtNano = time.Now().Add(ttl).UnixNano()
+	ttl, err := ttlCmd.Result()
+	if err != nil {
+		return cache.Entry[K, V]{}, false, fmt.Errorf("redis PTTL failed for key %q: %w", keyString, err)
 	}
 
+	now := time.Now()
 	entry := cache.Entry[K, V]{
 		Key:               key,
 		Value:             value,
 		Weight:            0,
-		ExpiresAtNano:     expiresAtNano,
+		ExpiresAtNano:     expiryFromPTTL(now, ttl),
 		RefreshableAtNano: 0,
-		SnapshotAtNano:    time.Now().UnixNano(),
+		SnapshotAtNano:    now.UnixNano(),
 	}
 
 	return entry, true, nil
@@ -1453,16 +1458,21 @@ func (*RedisAdapter[K, V]) Close(ctx context.Context) error {
 	return ctx.Err()
 }
 
-// SetExpiresAfter updates the time-to-live for an existing key using the Redis EXPIRE
-// command.
+// SetExpiresAfter updates the time-to-live for an existing key using the Redis PEXPIRE
+// command, or PERSIST for cache.NoExpiry. It never creates a key.
 //
 // A cancelled or expired context returns its error before work begins.
 //
 // Takes key (K) which identifies the cache entry to update.
-// Takes expiresAfter (time.Duration) which specifies the new time-to-live.
+// Takes expiresAfter (time.Duration) which specifies the new time-to-live. cache.NoExpiry
+// removes the TTL. Other nonpositive values do nothing.
 //
 // Returns error when the operation fails.
 func (a *RedisAdapter[K, V]) SetExpiresAfter(ctx context.Context, key K, expiresAfter time.Duration) error {
+	if expiresAfter <= 0 {
+		return ctx.Err()
+	}
+
 	timeoutCtx, cancel := context.WithTimeoutCause(ctx, a.operationTimeout, fmt.Errorf("redis SetExpiresAfter exceeded %s timeout", a.operationTimeout))
 	defer cancel()
 
@@ -1471,11 +1481,84 @@ func (a *RedisAdapter[K, V]) SetExpiresAfter(ctx context.Context, key K, expires
 		return fmt.Errorf(errFmtEncodeKey, err)
 	}
 
-	if err := a.client.PExpire(timeoutCtx, keyString, expiresAfter).Err(); err != nil {
+	if expiresAfter == cache.NoExpiry {
+		if err := a.client.Persist(timeoutCtx, keyString).Err(); err != nil {
+			return fmt.Errorf("redis Persist failed: %w", err)
+		}
+		return nil
+	}
+
+	if err := a.client.PExpire(timeoutCtx, keyString, max(expiresAfter, time.Millisecond)).Err(); err != nil {
 		return fmt.Errorf("redis PExpire failed: %w", err)
 	}
 
 	return nil
+}
+
+// writeExpiry returns the expiration to pass to a go-redis SET for a write with ttl.
+//
+// A nonpositive fallback means no expiry. Passing -1 through would tell go-redis to keep
+// the old TTL even when the expiry calculator did not request that behaviour.
+//
+// Takes ttl (time.Duration) which is the TTL the caller asked for.
+// Takes fallback (time.Duration) which is the expiration a write without a TTL gets when
+// the cache is not built with PerEntryExpiration.
+//
+// Returns time.Duration which is zero for no expiry, redis.KeepTTL to keep the key's
+// current TTL, or a duration of at least one millisecond.
+func (a *RedisAdapter[K, V]) writeExpiry(ttl, fallback time.Duration) time.Duration {
+	switch {
+	case ttl == cache.NoExpiry:
+		return 0
+	case ttl > 0:
+		return max(ttl, time.Millisecond)
+	case a.perEntry:
+		return redis.KeepTTL
+	case fallback <= 0:
+		return 0
+	}
+	return max(fallback, time.Millisecond)
+}
+
+// defaultWriteTTL finds the TTL Set gives a key outside PerEntryExpiration. It uses the
+// expiry calculator's create TTL when configured, or the default TTL otherwise.
+//
+// Takes key (K) which identifies the entry.
+// Takes value (V) which is the value being written.
+//
+// Returns time.Duration which is the TTL. Zero means no expiry.
+func (a *RedisAdapter[K, V]) defaultWriteTTL(key K, value V) time.Duration {
+	if a.expiryCalculator == nil || a.perEntry {
+		return a.ttl
+	}
+	return a.expiryCalculator.ExpireAfterCreate(cache.Entry[K, V]{
+		Key:               key,
+		Value:             value,
+		Weight:            0,
+		ExpiresAtNano:     0,
+		RefreshableAtNano: 0,
+		SnapshotAtNano:    time.Now().UnixNano(),
+	})
+}
+
+// applyJSONExpiry sets the TTL of a JSON document after JSON.SET wrote it.
+//
+// Takes keyString (string) which is the document's key.
+// Takes expiration (time.Duration) which is a writeExpiry result.
+func (a *RedisAdapter[K, V]) applyJSONExpiry(ctx context.Context, keyString string, expiration time.Duration) {
+	ctx, l := logger.From(ctx, log)
+	var err error
+	switch {
+	case expiration == redis.KeepTTL:
+		return
+	case expiration > 0:
+		err = a.client.PExpire(ctx, keyString, expiration).Err()
+	default:
+		err = a.client.Persist(ctx, keyString).Err()
+	}
+	if err != nil {
+		l.Warn("Failed to set TTL on JSON document", logger.String(logKeyField, keyString), logger.Error(err))
+	}
 }
 
 // GetMaximum returns the Redis maxmemory configuration value.
@@ -1543,4 +1626,22 @@ func (*RedisAdapter[K, V]) SetRefreshableAfter(ctx context.Context, _ K, _ time.
 	_, l := logger.From(ctx, log)
 	l.Internal("SetRefreshableAfter is not natively supported by the Redis provider.")
 	return nil
+}
+
+// expiryFromPTTL turns a PTTL reply into an absolute expiry in Unix nanoseconds.
+//
+// PTTL counts whole milliseconds, so a key with less than one millisecond left reports
+// zero. That is read as one millisecond left, not as no expiry, because a key without a
+// TTL reports a negative value. Treating zero as no expiry would make a transaction
+// rollback remove the key's TTL.
+//
+// Takes now (time.Time) which is when the reply was read.
+// Takes ttl (time.Duration) which is the PTTL reply.
+//
+// Returns int64 which is the expiry, or zero when the key has no TTL.
+func expiryFromPTTL(now time.Time, ttl time.Duration) int64 {
+	if ttl < 0 {
+		return 0
+	}
+	return now.Add(max(ttl, time.Millisecond)).UnixNano()
 }

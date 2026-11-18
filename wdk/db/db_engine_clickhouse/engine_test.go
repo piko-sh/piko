@@ -29,7 +29,7 @@ import (
 	"piko.sh/piko/wdk/db"
 )
 
-func TestWithJoinUseNullsMakesOuterJoinColumnsPointers(t *testing.T) {
+func TestWithJoinUseNullsMakesOuterJoinColumnsNullable(t *testing.T) {
 	t.Parallel()
 
 	files := fstest.MapFS{
@@ -50,7 +50,7 @@ func TestWithJoinUseNullsMakesOuterJoinColumnsPointers(t *testing.T) {
 	}{
 		{name: "server default", options: nil, expected: "Title string"},
 		{name: "join_use_nulls off", options: []Option{WithJoinUseNulls(false)}, expected: "Title string"},
-		{name: "join_use_nulls on", options: []Option{WithJoinUseNulls(true)}, expected: "Title *string"},
+		{name: "join_use_nulls on", options: []Option{WithJoinUseNulls(true)}, expected: "Title Null[string]"},
 	}
 
 	for _, testCase := range testCases {

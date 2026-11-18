@@ -31,6 +31,10 @@ import (
 )
 
 const (
+	// presetLoggerName is the name of the logger that reports changes made by the output
+	// presets.
+	presetLoggerName = "logger"
+
 	// defaultMaxSizeMB is the default maximum log file size in megabytes.
 	defaultMaxSizeMB = 10
 
@@ -127,7 +131,7 @@ func AddPrettyOutput(opts ...OutputOption) {
 		NoColour:  config.noColour,
 	})
 	AddHandler(handler, nil)
-	logger_domain.GetLogger("logger").Debug("Added pretty console output", slog.String("level", level.String()))
+	logger_domain.GetLogger(presetLoggerName).Debug("Added pretty console output", slog.String("level", level.String()))
 }
 
 // AddJSONOutput adds a JSON-formatted console output to stdout.
@@ -150,7 +154,7 @@ func AddJSONOutput(opts ...OutputOption) {
 		ReplaceAttr: logger_domain.ReplaceLevelAttr,
 	})
 	AddHandler(handler, nil)
-	logger_domain.GetLogger("logger").Info("Added JSON console output.", slog.String("level", level.String()))
+	logger_domain.GetLogger(presetLoggerName).Info("Added JSON console output.", slog.String("level", level.String()))
 }
 
 // AddFileOutput adds a file output with rotation support. By default, it uses the
@@ -190,7 +194,7 @@ func AddFileOutput(ctx context.Context, name, path string, opts ...OutputOption)
 		LocalTime:  false,
 	})
 	if fileError != nil {
-		logger_domain.GetLogger("logger").Error("Failed to create file output", logger_domain.Error(fileError))
+		logger_domain.GetLogger(presetLoggerName).Error("Failed to create file output", logger_domain.Error(fileError))
 		return
 	}
 
@@ -202,7 +206,7 @@ func AddFileOutput(ctx context.Context, name, path string, opts ...OutputOption)
 	}
 
 	AddHandler(handler, fileLogger)
-	logger_domain.GetLogger("logger").Info("Added file output.", slog.String("name", name), slog.String("path", path), slog.String("level", level.String()))
+	logger_domain.GetLogger(presetLoggerName).Info("Added file output.", slog.String("name", name), slog.String("path", path), slog.String("level", level.String()))
 }
 
 // AddFileOutputOnly replaces existing handlers with a file output.
@@ -231,7 +235,7 @@ func AddFileOutputOnly(ctx context.Context, _, path string, opts ...OutputOption
 		LocalTime:  false,
 	})
 	if fileError != nil {
-		logger_domain.GetLogger("logger").Error("Failed to create file output", logger_domain.Error(fileError))
+		logger_domain.GetLogger(presetLoggerName).Error("Failed to create file output", logger_domain.Error(fileError))
 		return
 	}
 

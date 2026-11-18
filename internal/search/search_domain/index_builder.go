@@ -28,9 +28,9 @@ import (
 	"strings"
 
 	flatbuffers "github.com/google/flatbuffers/go"
+	"piko.sh/json"
 	"piko.sh/piko/internal/collection/collection_dto"
 	"piko.sh/piko/internal/fbs"
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/linguistics/linguistics_domain"
 	"piko.sh/piko/internal/search/search_dto"
 	"piko.sh/piko/internal/search/search_schema"
@@ -38,8 +38,17 @@ import (
 	"piko.sh/safeconv"
 )
 
-// IndexBuilder implements IndexBuilderPort to create search indexes from collection
-// items. Uses AnalyserPort interface for testability.
+const (
+	// idfSmoothing is the BM25 smoothing term added to both sides of the inverse document
+	// frequency ratio so rare and common terms stay finite.
+	idfSmoothing = 0.5
+
+	// initialIndexBuilderBytes is the starting capacity of the FlatBuffer builder used to
+	// encode a search index.
+	initialIndexBuilderBytes = 1024 * 1024
+)
+
+// IndexBuilder creates search indexes from collection items.
 //
 // Safe for concurrent use; BuildIndex creates a fresh analyser per call.
 type IndexBuilder struct{}
@@ -525,7 +534,7 @@ func (*IndexBuilder) calculateIDF(index map[string]*termInfo, totalDocuments uin
 	for _, term := range index {
 		n := float64(totalDocuments)
 		df := float64(term.docCount)
-		term.idf = math.Log((n-df+0.5)/(df+0.5) + 1.0)
+		term.idf = math.Log((n-df+idfSmoothing)/(df+idfSmoothing) + 1.0)
 	}
 }
 
@@ -570,7 +579,7 @@ func (ib *IndexBuilder) encodeIndex(
 	corpusStats CorpusStats,
 	config IndexBuildConfig,
 ) ([]byte, error) {
-	builder := flatbuffers.NewBuilder(1024 * 1024)
+	builder := flatbuffers.NewBuilder(initialIndexBuilderBytes)
 
 	termTexts := sortedTermKeys(index)
 	termsVectorOffset := ib.encodeTermsVector(builder, index, termTexts, mode)

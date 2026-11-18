@@ -130,7 +130,6 @@ func measureTextIntrinsicWidth(box *LayoutBox, mode SizingMode, fontMetrics Font
 	}
 
 	if preservesLineBreaks(box.Style.WhiteSpace) && strings.Contains(text, "\n") {
-
 		widest := 0.0
 		for line := range strings.SplitSeq(text, "\n") {
 			widest = max(widest, measureTextLineWidth(font, box, line, fontMetrics))

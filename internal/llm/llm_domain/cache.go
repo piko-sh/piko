@@ -25,16 +25,24 @@ import (
 	"fmt"
 	"time"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 	"piko.sh/piko/internal/llm/llm_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/wdk/clock"
 )
 
+const (
+	// shortKeyLength is how many leading characters of a cache key are logged.
+	shortKeyLength = 16
+)
+
 // CacheStorePort is the driven port for cache persistence. Implementations must be safe
 // for concurrent access.
 type CacheStorePort interface {
-	// Get retrieves a cache entry by key.
+	// Get retrieves a cache entry by key. The returned entry is owned by the caller.
+	//
+	// Implementations return a copy that the caller may change without affecting the cache
+	// or other readers, and count the read in its HitCount.
 	//
 	// Takes key (string) which is the cache key.
 	//
@@ -42,7 +50,8 @@ type CacheStorePort interface {
 	// Returns error if the operation fails.
 	Get(ctx context.Context, key string) (*llm_dto.CacheEntry, error)
 
-	// Set stores a cache entry.
+	// Set stores a cache entry. Implementations keep their own copy, so the caller may go on
+	// using entry and its response.
 	//
 	// Takes key (string) which is the cache key.
 	// Takes entry (*llm_dto.CacheEntry) which is the entry to store.
@@ -206,6 +215,9 @@ func (m *CacheManager) GetOrExecute(
 
 // Get retrieves a cached entry by key.
 //
+// An entry stored with a custom CacheConfig.Key is held under a hash of that key, so pass
+// the key through CustomKey first.
+//
 // Takes key (string) which is the cache key.
 //
 // Returns *llm_dto.CacheEntry if found and not expired.
@@ -232,6 +244,9 @@ func (m *CacheManager) Set(ctx context.Context, key string, entry *llm_dto.Cache
 }
 
 // Delete removes a cache entry.
+//
+// An entry stored with a custom CacheConfig.Key is held under a hash of that key, so pass
+// the key through CustomKey first.
 //
 // Takes key (string) which is the cache key.
 //
@@ -265,7 +280,22 @@ func (m *CacheManager) GenerateKey(request *llm_dto.CompletionRequest, provider 
 	return m.generator.Generate(request, provider)
 }
 
-// resolveKey returns the cache key, either from config or generated.
+// CustomKey returns the cache key under which an entry stored with a custom
+// CacheConfig.Key is held, for use with Get and Delete.
+//
+// Takes provider (string) which is the provider name the request used.
+// Takes model (string) which is the model the request used.
+// Takes key (string) which is the custom CacheConfig.Key.
+//
+// Returns string which is the cache key.
+func (*CacheManager) CustomKey(provider, model, key string) string {
+	return hashCustomKey(provider, model, key)
+}
+
+// resolveKey returns the cache key, either derived from the key in config or generated
+// from the request. A custom key is hashed together with the provider and model, so the
+// same custom key used with different models never shares an entry, and every key is a
+// fixed length hex string.
 //
 // Takes config (*llm_dto.CacheConfig) which provides an optional preset key.
 // Takes request (*llm_dto.CompletionRequest) which is used for key generation.
@@ -274,7 +304,7 @@ func (m *CacheManager) GenerateKey(request *llm_dto.CompletionRequest, provider 
 // Returns string which is the resolved cache key.
 func (m *CacheManager) resolveKey(config *llm_dto.CacheConfig, request *llm_dto.CompletionRequest, provider string) string {
 	if config.Key != "" {
-		return config.Key
+		return hashCustomKey(provider, request.Model, config.Key)
 	}
 	return m.generator.Generate(request, provider)
 }
@@ -296,7 +326,7 @@ func (m *CacheManager) tryReadCache(ctx context.Context, config *llm_dto.CacheCo
 	entry, err := m.store.Get(ctx, key)
 	if err != nil {
 		l.Debug("Cache read error",
-			logger_domain.String(AttrKeyKey, key[:16]+"..."),
+			logger_domain.String(AttrKeyKey, shortKey(key)),
 			logger_domain.Error(err),
 		)
 		return nil, false
@@ -307,9 +337,8 @@ func (m *CacheManager) tryReadCache(ctx context.Context, config *llm_dto.CacheCo
 	}
 
 	cacheHitCount.Add(ctx, 1)
-	entry.HitCount++
 	l.Debug("Cache hit",
-		logger_domain.String(AttrKeyKey, key[:16]+"..."),
+		logger_domain.String(AttrKeyKey, shortKey(key)),
 		logger_domain.String("model", entry.Model),
 	)
 	return entry.Response, true
@@ -347,14 +376,14 @@ func (m *CacheManager) tryWriteCache(ctx context.Context, config *llm_dto.CacheC
 
 	if err := m.store.Set(ctx, key, entry); err != nil {
 		l.Debug("Cache write error",
-			logger_domain.String(AttrKeyKey, key[:16]+"..."),
+			logger_domain.String(AttrKeyKey, shortKey(key)),
 			logger_domain.Error(err),
 		)
 		return
 	}
 
 	l.Debug("Cache write",
-		logger_domain.String(AttrKeyKey, key[:16]+"..."),
+		logger_domain.String(AttrKeyKey, shortKey(key)),
 		logger_domain.String("model", model),
 	)
 }
@@ -369,4 +398,26 @@ func WithCacheManagerClock(c clock.Clock) CacheManagerOption {
 	return func(m *CacheManager) {
 		m.clock = c
 	}
+}
+
+// hashCustomKey derives the cache key for a caller-supplied key.
+//
+// Takes provider (string) which identifies the LLM provider.
+// Takes model (string) which identifies the model.
+// Takes key (string) which is the caller-supplied key.
+//
+// Returns string which is the hex SHA-256 of the three values, separated by NUL bytes.
+func hashCustomKey(provider, model, key string) string {
+	hash := sha256.Sum256([]byte(provider + "\x00" + model + "\x00" + key))
+	return hex.EncodeToString(hash[:])
+}
+
+// shortKey shortens a cache key for log output.
+//
+// Takes key (string) which is the cache key.
+//
+// Returns string which is at most the first shortKeyLength bytes of key followed by an
+// ellipsis.
+func shortKey(key string) string {
+	return key[:min(len(key), shortKeyLength)] + "..."
 }

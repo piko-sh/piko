@@ -260,12 +260,12 @@ func computeAspectRatioTransform(
 // Takes node (*Node) which holds the SVG node to render.
 // Takes parentStyle (*Style) which holds the inherited style properties.
 func renderNode(ctx context.Context, rc *renderContext, node *Node, parentStyle *Style) {
+	ctx, l := logger_domain.From(ctx, log)
 	if node == nil {
 		return
 	}
 
 	if rc.depth >= maxSVGRenderDepth {
-		_, l := logger_domain.From(ctx, log)
 		l.Warn("SVG render depth limit reached, refusing to descend further",
 			logger_domain.Int("max_depth", maxSVGRenderDepth),
 			logger_domain.String("tag", node.Tag))
@@ -399,6 +399,7 @@ func applyGroupOpacity(rc *renderContext, style *Style) {
 // Takes node (*Node) which holds the use element to resolve.
 // Takes parentStyle (*Style) which holds the inherited style properties.
 func renderUse(ctx context.Context, rc *renderContext, node *Node, parentStyle *Style) {
+	ctx, l := logger_domain.From(ctx, log)
 	href := node.Attrs["href"]
 	if href == "" {
 		href = node.Attrs["xlink:href"]
@@ -413,7 +414,6 @@ func renderUse(ctx context.Context, rc *renderContext, node *Node, parentStyle *
 	}
 
 	if _, active := rc.activeHrefs[href]; active {
-		_, l := logger_domain.From(ctx, log)
 		l.Warn("cyclic SVG <use> reference detected, skipping to avoid unbounded recursion",
 			logger_domain.String("href", href))
 		return
@@ -564,20 +564,7 @@ func renderPath(ctx context.Context, rc *renderContext, node *Node, style *Style
 		return
 	}
 
-	for _, cmd := range commands {
-		switch cmd.Type {
-		case 'M':
-			rc.stream.MoveTo(cmd.Args[0], cmd.Args[1])
-		case 'L':
-			rc.stream.LineTo(cmd.Args[0], cmd.Args[1])
-		case 'C':
-			rc.stream.CurveTo(cmd.Args[0], cmd.Args[1],
-				cmd.Args[2], cmd.Args[3],
-				cmd.Args[4], cmd.Args[5])
-		case 'Z':
-			rc.stream.ClosePath()
-		}
-	}
+	emitPathCommands(rc.stream, commands)
 	paintPath(rc, style)
 }
 
@@ -624,6 +611,28 @@ func renderImage(ctx context.Context, rc *renderContext, node *Node) {
 	rc.stream.ConcatMatrix(w, 0, 0, -h, x, y+h)
 	rc.stream.PaintXObject(resourceName)
 	rc.stream.RestoreState()
+}
+
+// emitPathCommands writes parsed path commands to a PDF content stream as path
+// construction operators.
+//
+// Takes stream (*pdfwriter_domain.ContentStream) which receives the operators.
+// Takes commands ([]PathCommand) which holds the absolute path commands to write.
+func emitPathCommands(stream *pdfwriter_domain.ContentStream, commands []PathCommand) {
+	for _, cmd := range commands {
+		switch cmd.Type {
+		case 'M':
+			stream.MoveTo(cmd.Args[0], cmd.Args[1])
+		case 'L':
+			stream.LineTo(cmd.Args[0], cmd.Args[1])
+		case 'C':
+			stream.CurveTo(cmd.Args[0], cmd.Args[1],
+				cmd.Args[cubicCP1XIndex], cmd.Args[cubicCP1YIndex],
+				cmd.Args[cubicEndXIndex], cmd.Args[cubicEndYIndex])
+		case 'Z':
+			stream.ClosePath()
+		}
+	}
 }
 
 // paintPath applies the appropriate fill and stroke painting operations for the current

@@ -89,39 +89,6 @@ func TestSubmission_FieldString_NilFields(t *testing.T) {
 	assert.Equal(t, "", submission.FieldString("anything"))
 }
 
-func TestTruncateStringUTF8(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-		maximum  int
-	}{
-		{name: "under limit", input: "hello", maximum: 10, expected: "hello"},
-		{name: "at limit", input: "hello", maximum: 5, expected: "hello"},
-		{name: "over limit", input: "hello world", maximum: 5, expected: "hello"},
-		{name: "empty", input: "", maximum: 10, expected: ""},
-	}
-
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-			result := TruncateStringUTF8(testCase.input, testCase.maximum)
-			assert.Equal(t, testCase.expected, result)
-			assert.True(t, utf8.ValidString(result))
-		})
-	}
-}
-
-func TestTruncateStringUTF8_MultiByteBoundary(t *testing.T) {
-	t.Parallel()
-	input := "\u4e16"
-	result := TruncateStringUTF8(input, 2)
-	assert.True(t, utf8.ValidString(result))
-	assert.Equal(t, "", result)
-}
-
 func TestSpamDetectError(t *testing.T) {
 	t.Parallel()
 	underlying := assert.AnError

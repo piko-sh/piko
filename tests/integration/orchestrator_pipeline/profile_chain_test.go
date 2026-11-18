@@ -453,7 +453,7 @@ func TestProfileChain_FullCascade_Success(t *testing.T) {
 	assert.Contains(t, profileOrder[2:], "gzip", "gzip should be in last two")
 	assert.Contains(t, profileOrder[2:], "br", "br should be in last two")
 
-	published := h.registryService.ArtefactEventsPublished()
+	published := h.registryService.ArtefactEventsIssued()
 	processed := h.bridge.ArtefactEventsProcessed()
 	t.Logf("Published: %d, Processed: %d", published, processed)
 
@@ -575,7 +575,7 @@ func TestProfileChain_MultipleArtefacts_Cascade(t *testing.T) {
 		"all profiles completed")
 	assert.Equal(t, int64(0), stats.TasksFailed, "no failures")
 
-	published := h.registryService.ArtefactEventsPublished()
+	published := h.registryService.ArtefactEventsIssued()
 	processed := h.bridge.ArtefactEventsProcessed()
 	t.Logf("Published: %d, Processed: %d", published, processed)
 	assert.Equal(t, int64(count*5), published,
@@ -608,7 +608,7 @@ func TestProfileChain_MultipleArtefacts_MixedFailures(t *testing.T) {
 	assert.Equal(t, int64(12), stats.TasksCompleted, "all completed")
 	assert.Equal(t, int64(0), stats.TasksFailed, "no failures")
 
-	published := h.registryService.ArtefactEventsPublished()
+	published := h.registryService.ArtefactEventsIssued()
 	processed := h.bridge.ArtefactEventsProcessed()
 	t.Logf("Published: %d, Processed: %d", published, processed)
 	assert.Equal(t, int64(15), published, "5 events per artefact x 3")
@@ -776,7 +776,7 @@ func TestProfileChain_TwoPhaseRace(t *testing.T) {
 	flushed := h.waitForFlush(5 * time.Second)
 	require.True(t, flushed, "Phase 1 should pass")
 
-	published := h.registryService.ArtefactEventsPublished()
+	published := h.registryService.ArtefactEventsIssued()
 	processed := h.bridge.ArtefactEventsProcessed()
 	t.Logf("After Phase 1: Published=%d, Processed=%d", published, processed)
 
@@ -787,7 +787,7 @@ func TestProfileChain_TwoPhaseRace(t *testing.T) {
 	assert.Equal(t, int64(4), stats.TasksDispatched, "all 4 profiles dispatched")
 	assert.Equal(t, int64(4), stats.TasksCompleted, "all 4 profiles completed")
 
-	finalPublished := h.registryService.ArtefactEventsPublished()
+	finalPublished := h.registryService.ArtefactEventsIssued()
 	finalProcessed := h.bridge.ArtefactEventsProcessed()
 	t.Logf("Final: Published=%d, Processed=%d", finalPublished, finalProcessed)
 	assert.Equal(t, int64(5), finalPublished, "5 total events")

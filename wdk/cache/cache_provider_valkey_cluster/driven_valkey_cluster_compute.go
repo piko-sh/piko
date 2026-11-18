@@ -20,6 +20,7 @@ package cache_provider_valkey_cluster
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -28,6 +29,55 @@ import (
 	"piko.sh/piko/wdk/cache"
 	"piko.sh/piko/wdk/logger"
 )
+
+const (
+	// unwatchTimeout bounds the UNWATCH sent after a transaction that ended without EXEC.
+	unwatchTimeout = 5 * time.Second
+)
+
+var (
+	// errUnwatchTimedOut is the cause given when clearing a WATCH takes longer than
+	// unwatchTimeout.
+	errUnwatchTimedOut = errors.New("valkey cluster UNWATCH exceeded its timeout")
+)
+
+// execTracker wraps a dedicated connection and records whether a transaction called
+// DoMulti for its MULTI/EXEC block.
+type execTracker struct {
+	valkey.DedicatedClient
+
+	// execSent records a DoMulti call, which may fail before EXEC reaches the server.
+	execSent bool
+}
+
+// DoMulti forwards a transaction's MULTI/EXEC block and records the attempt.
+//
+// Takes multi (...valkey.Completed) which are the commands of the block.
+//
+// Returns []valkey.ValkeyResult which holds one result per command.
+func (t *execTracker) DoMulti(ctx context.Context, multi ...valkey.Completed) []valkey.ValkeyResult {
+	t.execSent = true
+	return t.DedicatedClient.DoMulti(ctx, multi...)
+}
+
+// runWatchedTransaction runs one transaction on a dedicated connection.
+//
+// If the attempt ends without calling DoMulti, it clears WATCH so the pooled connection
+// cannot abort a later transaction. A failed DoMulti call does not trigger this cleanup.
+//
+// Takes transaction (func(valkey.DedicatedClient) error) which runs the attempt.
+//
+// Returns error which is the attempt's error.
+func (a *ValkeyClusterAdapter[K, V]) runWatchedTransaction(ctx context.Context, transaction func(c valkey.DedicatedClient) error) error {
+	return a.client.Dedicated(func(c valkey.DedicatedClient) error {
+		tracker := &execTracker{DedicatedClient: c, execSent: false}
+		err := transaction(tracker)
+		if !tracker.execSent {
+			releaseWatch(ctx, c)
+		}
+		return err
+	})
+}
 
 // fetchValueInDedicated fetches and decodes a value inside a dedicated client context.
 //
@@ -116,23 +166,30 @@ func (a *ValkeyClusterAdapter[K, V]) Compute(ctx context.Context, key K, compute
 		return *new(V), false, fmt.Errorf(errFmtEncodeKey, err)
 	}
 
+	return a.retryCompute(ctx, key, keyString, func(c valkey.DedicatedClient) error {
+		return a.computeTransaction(timeoutCtx, c, keyString, computeFunction)
+	})
+}
+
+// retryCompute runs transaction on a dedicated client until it commits, retrying when a
+// concurrent write aborts it, up to the configured number of attempts.
+//
+// Takes key (K) which identifies the entry.
+// Takes keyString (string) which is the encoded cache key.
+// Takes transaction (func(valkey.DedicatedClient) error) which runs one attempt.
+//
+// Returns V which is the value after the compute.
+// Returns bool which reports whether a value is present.
+// Returns error when an attempt fails for a reason other than a conflict, or every
+// attempt conflicts.
+func (a *ValkeyClusterAdapter[K, V]) retryCompute(
+	ctx context.Context,
+	key K,
+	keyString string,
+	transaction func(c valkey.DedicatedClient) error,
+) (V, bool, error) {
 	for attempt := range a.maxComputeRetries {
-		err := a.client.Dedicated(func(c valkey.DedicatedClient) error {
-			if err := c.Do(timeoutCtx, c.B().Watch().Key(keyString).Build()).Error(); err != nil {
-				return fmt.Errorf("WATCH failed: %w", err)
-			}
-
-			oldValue, found, getErr := a.fetchValueInDedicated(timeoutCtx, c, keyString)
-			if getErr != nil {
-				return getErr
-			}
-
-			newValue, action := computeFunction(oldValue, found)
-
-			cmds := a.buildComputeCommands(c, keyString, newValue, action, found, a.ttl)
-			results := c.DoMulti(timeoutCtx, cmds...)
-			return results[len(results)-1].Error()
-		})
+		err := a.runWatchedTransaction(ctx, transaction)
 
 		shouldRetry, value, found, retryErr := a.handleComputeRetryResult(ctx, key, keyString, err, attempt)
 		if retryErr != nil {
@@ -146,6 +203,41 @@ func (a *ValkeyClusterAdapter[K, V]) Compute(ctx context.Context, key K, compute
 	return *new(V), false, fmt.Errorf("compute max retries exceeded for key %s", keyString)
 }
 
+// computeTransaction runs one WATCH/GET/MULTI/EXEC attempt of Compute on a dedicated
+// client.
+//
+// Takes c (valkey.DedicatedClient) which is the dedicated client for the transaction.
+// Takes keyString (string) which is the encoded cache key.
+// Takes computeFunction (func(V, bool) (V, cache.ComputeAction)) which computes the new
+// value and action.
+//
+// Returns error when any step fails, including a transaction the server aborted because
+// the key changed.
+func (a *ValkeyClusterAdapter[K, V]) computeTransaction(
+	ctx context.Context,
+	c valkey.DedicatedClient,
+	keyString string,
+	computeFunction func(oldValue V, found bool) (newValue V, action cache.ComputeAction),
+) error {
+	if err := c.Do(ctx, c.B().Watch().Key(keyString).Build()).Error(); err != nil {
+		return fmt.Errorf(errFmtWatchFailed, err)
+	}
+
+	oldValue, found, err := a.fetchValueInDedicated(ctx, c, keyString)
+	if err != nil {
+		return err
+	}
+
+	newValue, action := computeFunction(oldValue, found)
+
+	cmds, err := a.buildComputeCommands(c, keyString, newValue, action, found, a.writeExpiry(0, a.ttl))
+	if err != nil {
+		return err
+	}
+	results := c.DoMulti(ctx, cmds...)
+	return results[len(results)-1].Error()
+}
+
 // buildComputeCommands builds the MULTI/action/EXEC commands for a compute transaction.
 //
 // Takes c (valkey.DedicatedClient) which provides the client for building commands.
@@ -153,10 +245,18 @@ func (a *ValkeyClusterAdapter[K, V]) Compute(ctx context.Context, key K, compute
 // Takes newValue (V) which is the value to set when action is Set.
 // Takes action (cache.ComputeAction) which specifies the operation to perform.
 // Takes found (bool) which indicates whether the key exists in the cache.
-// Takes ttl (time.Duration) which specifies the expiry time for Set operations.
+// Takes expiration (time.Duration) which is the writeExpiry result for Set operations.
 //
 // Returns valkey.Commands which contains the transaction commands to execute.
-func (a *ValkeyClusterAdapter[K, V]) buildComputeCommands(c valkey.DedicatedClient, keyString string, newValue V, action cache.ComputeAction, found bool, ttl time.Duration) valkey.Commands {
+// Returns error when the new value cannot be encoded. Nothing is sent then.
+func (a *ValkeyClusterAdapter[K, V]) buildComputeCommands(
+	c valkey.DedicatedClient,
+	keyString string,
+	newValue V,
+	action cache.ComputeAction,
+	found bool,
+	expiration time.Duration,
+) (valkey.Commands, error) {
 	cmds := make(valkey.Commands, 0, maxTransactionCommands)
 	cmds = append(cmds, c.B().Multi().Build())
 
@@ -164,9 +264,9 @@ func (a *ValkeyClusterAdapter[K, V]) buildComputeCommands(c valkey.DedicatedClie
 	case cache.ComputeActionSet:
 		valBytes, err := a.encodeValue(newValue)
 		if err != nil {
-			return append(cmds, c.B().Exec().Build())
+			return nil, fmt.Errorf("encoding computed value for key %s: %w", keyString, err)
 		}
-		cmds = append(cmds, c.B().Set().Key(keyString).Value(string(valBytes)).Ex(ttl).Build())
+		cmds = append(cmds, buildSet(c.B(), keyString, string(valBytes), expiration))
 	case cache.ComputeActionDelete:
 		if found {
 			cmds = append(cmds, c.B().Del().Key(keyString).Build())
@@ -175,7 +275,7 @@ func (a *ValkeyClusterAdapter[K, V]) buildComputeCommands(c valkey.DedicatedClie
 	}
 
 	cmds = append(cmds, c.B().Exec().Build())
-	return cmds
+	return cmds, nil
 }
 
 // computeIfAbsentTransaction executes the WATCH/EXISTS/MULTI/SET/EXEC transaction for
@@ -189,7 +289,7 @@ func (a *ValkeyClusterAdapter[K, V]) buildComputeCommands(c valkey.DedicatedClie
 // Returns error when any step of the transaction fails.
 func (a *ValkeyClusterAdapter[K, V]) computeIfAbsentTransaction(ctx context.Context, c valkey.DedicatedClient, keyString string, computeFunction func() V) (bool, error) {
 	if err := c.Do(ctx, c.B().Watch().Key(keyString).Build()).Error(); err != nil {
-		return false, fmt.Errorf("WATCH failed: %w", err)
+		return false, fmt.Errorf(errFmtWatchFailed, err)
 	}
 
 	exists, err := c.Do(ctx, c.B().Exists().Key(keyString).Build()).AsInt64()
@@ -208,7 +308,7 @@ func (a *ValkeyClusterAdapter[K, V]) computeIfAbsentTransaction(ctx context.Cont
 
 	cmds := valkey.Commands{
 		c.B().Multi().Build(),
-		c.B().Set().Key(keyString).Value(string(valBytes)).Ex(a.ttl).Build(),
+		buildSet(c.B(), keyString, string(valBytes), a.writeExpiry(0, a.ttl)),
 		c.B().Exec().Build(),
 	}
 	results := c.DoMulti(ctx, cmds...)
@@ -240,7 +340,7 @@ func (a *ValkeyClusterAdapter[K, V]) ComputeIfAbsent(ctx context.Context, key K,
 
 	for range a.maxComputeRetries {
 		didCompute := false
-		err := a.client.Dedicated(func(c valkey.DedicatedClient) error {
+		err := a.runWatchedTransaction(timeoutCtx, func(c valkey.DedicatedClient) error {
 			computed, txErr := a.computeIfAbsentTransaction(timeoutCtx, c, keyString, computeFunction)
 			didCompute = computed
 			return txErr
@@ -324,7 +424,7 @@ func (a *ValkeyClusterAdapter[K, V]) ComputeIfPresent(ctx context.Context, key K
 	}
 
 	for attempt := range a.maxComputeRetries {
-		err := a.client.Dedicated(func(c valkey.DedicatedClient) error {
+		err := a.runWatchedTransaction(timeoutCtx, func(c valkey.DedicatedClient) error {
 			return a.computeIfPresentTxn(timeoutCtx, c, keyString, computeFunction)
 		})
 
@@ -354,7 +454,7 @@ func (a *ValkeyClusterAdapter[K, V]) computeIfPresentTxn(
 	computeFunction func(oldValue V) (newValue V, action cache.ComputeAction),
 ) error {
 	if err := c.Do(ctx, c.B().Watch().Key(keyString).Build()).Error(); err != nil {
-		return fmt.Errorf("WATCH failed: %w", err)
+		return fmt.Errorf(errFmtWatchFailed, err)
 	}
 
 	oldValue, found, getErr := a.fetchValueInDedicated(ctx, c, keyString)
@@ -367,7 +467,10 @@ func (a *ValkeyClusterAdapter[K, V]) computeIfPresentTxn(
 
 	newValue, action := computeFunction(oldValue)
 
-	cmds := a.buildComputePresentCommands(c, keyString, newValue, action, a.ttl)
+	cmds, err := a.buildComputePresentCommands(c, keyString, newValue, action, a.writeExpiry(0, a.ttl))
+	if err != nil {
+		return err
+	}
 	results := c.DoMulti(ctx, cmds...)
 	return results[len(results)-1].Error()
 }
@@ -378,10 +481,17 @@ func (a *ValkeyClusterAdapter[K, V]) computeIfPresentTxn(
 // Takes keyString (string) which is the cache key to operate on.
 // Takes newValue (V) which is the value to set if action is ComputeActionSet.
 // Takes action (cache.ComputeAction) which specifies the operation to perform.
-// Takes ttl (time.Duration) which sets the expiry time for set operations.
+// Takes expiration (time.Duration) which is the writeExpiry result for set operations.
 //
 // Returns valkey.Commands which contains the transaction commands to execute.
-func (a *ValkeyClusterAdapter[K, V]) buildComputePresentCommands(c valkey.DedicatedClient, keyString string, newValue V, action cache.ComputeAction, ttl time.Duration) valkey.Commands {
+// Returns error when the new value cannot be encoded. Nothing is sent then.
+func (a *ValkeyClusterAdapter[K, V]) buildComputePresentCommands(
+	c valkey.DedicatedClient,
+	keyString string,
+	newValue V,
+	action cache.ComputeAction,
+	expiration time.Duration,
+) (valkey.Commands, error) {
 	cmds := make(valkey.Commands, 0, maxTransactionCommands)
 	cmds = append(cmds, c.B().Multi().Build())
 
@@ -389,16 +499,16 @@ func (a *ValkeyClusterAdapter[K, V]) buildComputePresentCommands(c valkey.Dedica
 	case cache.ComputeActionSet:
 		valBytes, err := a.encodeValue(newValue)
 		if err != nil {
-			return append(cmds, c.B().Exec().Build())
+			return nil, fmt.Errorf("encoding computed value for key %s: %w", keyString, err)
 		}
-		cmds = append(cmds, c.B().Set().Key(keyString).Value(string(valBytes)).Ex(ttl).Build())
+		cmds = append(cmds, buildSet(c.B(), keyString, string(valBytes), expiration))
 	case cache.ComputeActionDelete:
 		cmds = append(cmds, c.B().Del().Key(keyString).Build())
 	case cache.ComputeActionNoop:
 	}
 
 	cmds = append(cmds, c.B().Exec().Build())
-	return cmds
+	return cmds, nil
 }
 
 // handleComputeIfPresentResult processes the result of a ComputeIfPresent transaction
@@ -468,7 +578,7 @@ func (a *ValkeyClusterAdapter[K, V]) ComputeWithTTL(ctx context.Context, key K, 
 	}
 
 	for attempt := range a.maxComputeRetries {
-		err := a.client.Dedicated(func(c valkey.DedicatedClient) error {
+		err := a.runWatchedTransaction(timeoutCtx, func(c valkey.DedicatedClient) error {
 			return a.computeWithTTLTxn(timeoutCtx, c, keyString, computeFunction)
 		})
 
@@ -499,7 +609,7 @@ func (a *ValkeyClusterAdapter[K, V]) computeWithTTLTxn(
 	computeFunction func(oldValue V, found bool) cache.ComputeResult[V],
 ) error {
 	if err := c.Do(ctx, c.B().Watch().Key(keyString).Build()).Error(); err != nil {
-		return fmt.Errorf("WATCH failed: %w", err)
+		return fmt.Errorf(errFmtWatchFailed, err)
 	}
 
 	oldValue, found, getErr := a.fetchValueInDedicated(ctx, c, keyString)
@@ -509,12 +619,10 @@ func (a *ValkeyClusterAdapter[K, V]) computeWithTTLTxn(
 
 	result := computeFunction(oldValue, found)
 
-	effectiveTTL := a.ttl
-	if result.TTL > 0 {
-		effectiveTTL = result.TTL
+	cmds, err := a.buildComputeCommands(c, keyString, result.Value, result.Action, found, a.writeExpiry(result.TTL, a.ttl))
+	if err != nil {
+		return err
 	}
-
-	cmds := a.buildComputeCommands(c, keyString, result.Value, result.Action, found, effectiveTTL)
 	results := c.DoMulti(ctx, cmds...)
 	return results[len(results)-1].Error()
 }
@@ -534,4 +642,21 @@ func isTransactionConflict(err error) bool {
 	return strings.Contains(errString, "EXECABORT") ||
 		strings.Contains(errString, "nil") ||
 		valkey.IsValkeyNil(err)
+}
+
+// releaseWatch sends UNWATCH on a dedicated connection. When that fails it closes the
+// connection, so the pool never hands out one that may still be watching a key.
+//
+// The UNWATCH keeps the values of ctx but not its cancellation, because the transaction
+// may have ended by running out of time.
+//
+// Takes c (valkey.DedicatedClient) which is the connection to clear.
+func releaseWatch(ctx context.Context, c valkey.DedicatedClient) {
+	unwatchCtx, cancel := context.WithTimeoutCause(context.WithoutCancel(ctx), unwatchTimeout, errUnwatchTimedOut)
+	defer cancel()
+	if err := c.Do(unwatchCtx, c.B().Unwatch().Build()).Error(); err != nil {
+		_, l := logger.From(ctx, log)
+		l.Warn("Closing a dedicated Valkey connection whose WATCH could not be cleared", logger.Error(err))
+		c.Close()
+	}
 }

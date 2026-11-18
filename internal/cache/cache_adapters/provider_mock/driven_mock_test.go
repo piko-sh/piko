@@ -29,6 +29,7 @@ import (
 	"piko.sh/piko/internal/cache/cache_adapters/provider_mock"
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/cache/cache_dto"
+	"piko.sh/piko/internal/cache/cache_test/conformance"
 	"piko.sh/piko/wdk/clock"
 )
 
@@ -527,4 +528,120 @@ func TestMockAdapter_Set_UnlinksTheTagsOfTheEntryItReplaces(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, found)
 	require.Equal(t, "2", value)
+}
+
+func TestMockAdapter_PerEntryExpiryConformance(t *testing.T) {
+	t.Parallel()
+
+	conformance.RunPerEntryExpirySuite(t, conformance.PerEntryConfig{
+		NewHarness: func(t *testing.T) conformance.PerEntryHarness {
+			mockClock := clock.NewMockClock(time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC))
+			cache := conformance.BuildPerEntryCache(t, provider_mock.MockProviderFactory[string, string],
+				func(builder *cache_domain.CacheBuilder[string, string]) { builder.Clock(mockClock) })
+			return conformance.PerEntryHarness{Cache: cache, AdvanceTime: mockClock.Advance, Clock: mockClock}
+		},
+	})
+}
+
+func TestMockAdapter_TTLContract(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		write       func(ctx context.Context, adapter *provider_mock.MockAdapter[string, string]) error
+		name        string
+		advance     time.Duration
+		wantPresent bool
+	}{
+		{
+			name: "SetWithTTL zero stores the value instead of expiring it",
+			write: func(ctx context.Context, adapter *provider_mock.MockAdapter[string, string]) error {
+				return adapter.SetWithTTL(ctx, "key", "value", 0)
+			},
+			advance:     time.Hour,
+			wantPresent: true,
+		},
+		{
+			name: "SetExpiresAfter zero neither expires nor deletes",
+			write: func(ctx context.Context, adapter *provider_mock.MockAdapter[string, string]) error {
+				if err := adapter.Set(ctx, "key", "value"); err != nil {
+					return err
+				}
+				return adapter.SetExpiresAfter(ctx, "key", 0)
+			},
+			advance:     time.Hour,
+			wantPresent: true,
+		},
+		{
+			name: "SetWithTTL with NoExpiry stores a value that does not expire",
+			write: func(ctx context.Context, adapter *provider_mock.MockAdapter[string, string]) error {
+				return adapter.SetWithTTL(ctx, "key", "value", cache_dto.NoExpiry)
+			},
+			advance:     365 * 24 * time.Hour,
+			wantPresent: true,
+		},
+		{
+			name: "an entry is gone once the clock reaches its expiry",
+			write: func(ctx context.Context, adapter *provider_mock.MockAdapter[string, string]) error {
+				return adapter.SetWithTTL(ctx, "key", "value", time.Minute)
+			},
+			advance:     time.Minute,
+			wantPresent: false,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx := t.Context()
+			mockClock := clock.NewMockClock(time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC))
+			adapter := provider_mock.NewMockAdapter[string, string](provider_mock.WithMockClock[string, string](mockClock))
+
+			require.NoError(t, testCase.write(ctx, adapter))
+			mockClock.Advance(testCase.advance)
+
+			_, present, err := adapter.GetIfPresent(ctx, "key")
+			require.NoError(t, err)
+			require.Equal(t, testCase.wantPresent, present)
+		})
+	}
+}
+
+func TestMockAdapter_ComputeTreatsAnExpiredEntryAsMissing(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	mockClock := clock.NewMockClock(time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC))
+	adapter := provider_mock.NewMockAdapter[string, string](provider_mock.WithMockClock[string, string](mockClock))
+	require.NoError(t, adapter.SetWithTTL(ctx, "key", "stale", time.Minute))
+	mockClock.Advance(time.Minute)
+
+	var sawFound bool
+	_, _, err := adapter.ComputeWithTTL(ctx, "key", func(_ string, found bool) cache_dto.ComputeResult[string] {
+		sawFound = found
+		return cache_dto.ComputeResult[string]{Value: "fresh", Action: cache_dto.ComputeActionSet}
+	})
+	require.NoError(t, err)
+
+	require.False(t, sawFound, "a fixed-window counter must restart once its window has passed")
+	entry, found, err := adapter.ProbeEntry(ctx, "key")
+	require.NoError(t, err)
+	require.True(t, found)
+	require.Zero(t, entry.ExpiresAtNano, "the fresh value has no expiry of its own")
+}
+
+func TestMockAdapter_ProbeEntryReportsTheExpiry(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	mockClock := clock.NewMockClock(time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC))
+	adapter := provider_mock.NewMockAdapter[string, string](provider_mock.WithMockClock[string, string](mockClock))
+	require.NoError(t, adapter.SetWithTTL(ctx, "key", "value", time.Minute))
+
+	entry, found, err := adapter.ProbeEntry(ctx, "key")
+	require.NoError(t, err)
+	require.True(t, found)
+
+	require.Equal(t, mockClock.Now().Add(time.Minute).UnixNano(), entry.ExpiresAtNano,
+		"a transaction can restore only the expiry the cache reports")
 }

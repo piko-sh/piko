@@ -21,7 +21,7 @@ package llm_provider_voyage
 import (
 	"reflect"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 func init() {

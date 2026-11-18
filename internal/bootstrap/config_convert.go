@@ -28,6 +28,7 @@ import (
 	"piko.sh/piko/internal/lifecycle/lifecycle_domain"
 	"piko.sh/piko/internal/logger/logger_adapters/driver_handlers"
 	"piko.sh/piko/internal/security/security_adapters"
+	"piko.sh/piko/internal/security/security_dto"
 )
 
 const (
@@ -297,8 +298,23 @@ func NewRateLimitValues(rateLimitConfig *config.RateLimitConfig) security_adapte
 			RequestsPerMinute: deref(rateLimitConfig.Actions.RequestsPerMinute, defaultActionRequestsPerMinute),
 			BurstSize:         deref(rateLimitConfig.Actions.BurstSize, defaultActionBurstSize),
 		},
+		IPv6PrefixBits:    resolveIPv6PrefixBits(rateLimitConfig.IPv6PrefixBits),
 		CloudflareEnabled: deref(rateLimitConfig.CloudflareEnabled, false),
 		Enabled:           deref(rateLimitConfig.Enabled, false),
 		HeadersEnabled:    deref(rateLimitConfig.HeadersEnabled, true),
 	}
+}
+
+// resolveIPv6PrefixBits returns the configured IPv6 rate limit prefix length, or the
+// default when it is unset or outside 1 to 128.
+//
+// Takes configured (*int) which is the prefix length from the server config.
+//
+// Returns int which is a usable prefix length.
+func resolveIPv6PrefixBits(configured *int) int {
+	bits := deref(configured, security_dto.DefaultIPv6RateLimitPrefixBits)
+	if security_dto.ValidateIPv6PrefixBits(bits) != nil {
+		return security_dto.DefaultIPv6RateLimitPrefixBits
+	}
+	return bits
 }

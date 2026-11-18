@@ -18,9 +18,6 @@
 
 package inspector_domain
 
-// This file focuses on extracting and converting field, method, and signature information
-// from the `go/types` representation into a portable DTO format.
-
 import (
 	"cmp"
 	"fmt"
@@ -37,6 +34,9 @@ import (
 )
 
 const (
+	// variadicPrefix is the ellipsis written before a variadic element type.
+	variadicPrefix = "..."
+
 	// compositeElementName is the name given to element type parts in composite types such
 	// as slices, arrays, channels, and pointers.
 	compositeElementName = "element"
@@ -1135,8 +1135,8 @@ func encodeTuple(tuple *types.Tuple, isVariadic bool, qualifier types.Qualifier)
 // Returns string which is the formatted variadic type string.
 func encodeVariadicType(elemType types.Type, qualifier types.Qualifier) string {
 	typeName := encodeTypeName(elemType, qualifier)
-	b := make([]byte, 0, 3+len(typeName))
-	b = append(b, "..."...)
+	b := make([]byte, 0, len(variadicPrefix)+len(typeName))
+	b = append(b, variadicPrefix...)
 	b = append(b, typeName...)
 	return mem.String(b)
 }

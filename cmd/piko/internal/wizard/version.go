@@ -25,7 +25,7 @@ import (
 	"net/http"
 	"time"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 const (

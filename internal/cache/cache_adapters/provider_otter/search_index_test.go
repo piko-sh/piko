@@ -19,7 +19,11 @@
 package provider_otter
 
 import (
+	"strings"
+	"sync/atomic"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestInvertedIndex_Add(t *testing.T) {
@@ -352,4 +356,122 @@ func TestInvertedIndex_Concurrent(t *testing.T) {
 	if len(results) == 0 {
 		t.Error("expected some results after concurrent operations")
 	}
+}
+
+func TestInvertedIndex_ReplaceTerms(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name          string
+		first         []string
+		second        []string
+		wantHits      []string
+		wantMisses    []string
+		wantDocuments int
+		wantTerms     int64
+	}{
+		{
+			name:          "overlapping terms unlink only the dropped ones",
+			first:         []string{"alpha", "beta", "gamma"},
+			second:        []string{"beta", "gamma", "delta"},
+			wantHits:      []string{"beta", "gamma", "delta"},
+			wantMisses:    []string{"alpha"},
+			wantDocuments: 1,
+			wantTerms:     3,
+		},
+		{
+			name:          "the same terms leave the document as it was",
+			first:         []string{"alpha", "beta"},
+			second:        []string{"beta", "alpha"},
+			wantHits:      []string{"alpha", "beta"},
+			wantMisses:    nil,
+			wantDocuments: 1,
+			wantTerms:     2,
+		},
+		{
+			name:          "no terms remove the document",
+			first:         []string{"alpha", "beta"},
+			second:        nil,
+			wantHits:      nil,
+			wantMisses:    []string{"alpha", "beta"},
+			wantDocuments: 0,
+			wantTerms:     0,
+		},
+		{
+			name:          "a long term list is replaced",
+			first:         numberedStrings("term", 0, 20),
+			second:        numberedStrings("term", 10, 30),
+			wantHits:      []string{"term-10", "term-29"},
+			wantMisses:    []string{"term-0", "term-9"},
+			wantDocuments: 1,
+			wantTerms:     20,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			index := NewInvertedIndex[string]()
+			index.SetAnalyseFunction(strings.Fields)
+			index.replaceTerms("doc1", testCase.first)
+			index.replaceTerms("doc1", testCase.second)
+
+			for _, term := range testCase.wantHits {
+				assert.Equal(t, []string{"doc1"}, index.Search(term), "term %q", term)
+			}
+			for _, term := range testCase.wantMisses {
+				assert.Empty(t, index.Search(term), "term %q", term)
+				assert.NotContains(t, index.index, term, "an unused term must leave the vocabulary")
+			}
+			assert.Equal(t, testCase.wantDocuments, index.totalDocuments)
+			assert.Equal(t, testCase.wantTerms, index.totalTerms)
+		})
+	}
+}
+
+func TestInvertedIndex_ReplaceTerms_KeepsOtherDocumentsTerms(t *testing.T) {
+	t.Parallel()
+
+	index := NewInvertedIndex[string]()
+	index.replaceTerms("doc1", []string{"shared", "alpha"})
+	index.replaceTerms("doc2", []string{"shared"})
+
+	index.replaceTerms("doc1", []string{"beta"})
+
+	assert.Equal(t, []string{"doc2"}, index.Search("shared"))
+	assert.Equal(t, 2, index.totalDocuments)
+	assert.Equal(t, int64(2), index.totalTerms)
+}
+
+func TestInvertedIndex_ReplaceTerms_KeepsHeldTermsWhenTheVocabularyIsFull(t *testing.T) {
+	t.Parallel()
+
+	index := NewInvertedIndex[string]()
+	index.maxTokens = 2
+	index.replaceTerms("doc1", []string{"alpha", "beta"})
+
+	index.replaceTerms("doc1", []string{"alpha", "beta", "gamma"})
+
+	assert.Equal(t, []string{"doc1"}, index.Search("alpha"))
+	assert.Equal(t, []string{"doc1"}, index.Search("beta"))
+	assert.Empty(t, index.Search("gamma"), "a full vocabulary must not take a new term")
+	assert.Equal(t, 3, index.docLengths["doc1"])
+	assert.Equal(t, int64(3), index.totalTerms)
+}
+
+func TestInvertedIndex_Add_AnalysesEachTextOnce(t *testing.T) {
+	t.Parallel()
+
+	var calls atomic.Int64
+	index := NewInvertedIndex[string]()
+	index.SetAnalyseFunction(func(text string) []string {
+		calls.Add(1)
+		return strings.Fields(text)
+	})
+
+	index.Add("doc1", []string{"alpha beta", "gamma"})
+
+	assert.Equal(t, int64(2), calls.Load())
+	assert.Equal(t, []string{"doc1"}, index.Search("gamma"))
 }

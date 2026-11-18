@@ -50,6 +50,11 @@ const (
 	// NoLimit asks a search or query to return every match rather than a page of them.
 	NoLimit = cache_dto.NoLimit
 
+	// NoExpiry is a TTL that removes any expiry from an entry, so it stays until it is
+	// evicted or removed. Pass it to SetWithTTL, as ComputeResult.TTL, or to
+	// SetExpiresAfter.
+	NoExpiry = cache_dto.NoExpiry
+
 	// ComputeActionSet indicates the computed value should be stored in the cache.
 	ComputeActionSet = cache_dto.ComputeActionSet
 
@@ -234,6 +239,11 @@ var (
 
 	// ErrEntryTooLarge is returned when a value exceeds the cache's MaxEntryWeight.
 	ErrEntryTooLarge = cache_domain.ErrEntryTooLarge
+
+	// ErrInvalidQueryVector is returned when a vector search is given a query vector the
+	// index cannot compare, such as one of the wrong dimension or a zero vector under cosine
+	// similarity.
+	ErrInvalidQueryVector = cache_domain.ErrInvalidQueryVector
 
 	// ErrDoNotStore is returned by a Loader alongside a valid value to signal that the value
 	// was loaded correctly but must not be admitted to the cache.

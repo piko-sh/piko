@@ -353,6 +353,20 @@ func WithCloudflareEnabled(enabled bool) Option {
 	}
 }
 
+// WithRateLimitIPv6PrefixBits sets the IPv6 prefix that identifies a caller.
+//
+// The default is 64 bits. An out-of-range value warns and falls back to that default when
+// the router is built. A configured validator may also reject the value.
+//
+// Takes bits (int) which is the IPv6 prefix length to key on.
+//
+// Returns Option which configures the IPv6 prefix length.
+func WithRateLimitIPv6PrefixBits(bits int) Option {
+	return func(c *Container) {
+		c.ensureOverrides().Security.RateLimit.IPv6PrefixBits = &bits
+	}
+}
+
 // WithRateLimitEnabled enables or disables HTTP request rate limiting. Rate limiting is
 // disabled by default to prevent accidental self-limiting when deployed behind a reverse
 // proxy without TrustedProxies configured.
@@ -1712,6 +1726,18 @@ func WithWebsiteConfig(websiteConfig config.WebsiteConfig) Option {
 func WithHybridCacheMaxBytes(maxBytes uint64) Option {
 	return func(c *Container) {
 		c.hybridCacheMaxBytesOverride = maxBytes
+	}
+}
+
+// WithLLMCacheMaxBytes overrides the default weight cap on the in-memory LLM response
+// cache.
+//
+// Takes maxBytes (uint64) which is the cap in bytes. Zero leaves the default in place.
+//
+// Returns Option which configures the container with the override.
+func WithLLMCacheMaxBytes(maxBytes uint64) Option {
+	return func(c *Container) {
+		c.llmCacheMaxBytesOverride = maxBytes
 	}
 }
 

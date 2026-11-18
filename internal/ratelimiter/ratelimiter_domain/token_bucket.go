@@ -19,9 +19,17 @@
 package ratelimiter_domain
 
 import (
+	"math"
 	"time"
 
 	"piko.sh/piko/internal/ratelimiter/ratelimiter_dto"
+)
+
+const (
+	// maxTokenWait is the longest wait TokenWaitDuration returns. A bucket that refills more
+	// slowly is checked again after this long, so a wait never overflows and a waiting
+	// caller still sees changes to the bucket.
+	maxTokenWait = time.Hour
 )
 
 // RefillBucket updates the bucket state based on elapsed time since the last refill.
@@ -69,4 +77,28 @@ func NewBucketState(config *ratelimiter_dto.TokenBucketConfig, nowNano int64) *T
 		RefillRate:     config.Rate / float64(time.Second),
 		LastRefillNano: nowNano,
 	}
+}
+
+// TokenWaitDuration returns how long a bucket takes to refill the tokens still needed.
+//
+// The wait is rounded up to a whole nanosecond, so a positive need never gives a zero
+// wait, and is capped at maxTokenWait, so a very slow refill rate cannot overflow
+// time.Duration.
+//
+// Takes needed (float64) which is the number of tokens still missing.
+// Takes refillRate (float64) which is the refill rate in tokens per nanosecond.
+//
+// Returns time.Duration which is zero when nothing is needed, and at most maxTokenWait.
+func TokenWaitDuration(needed, refillRate float64) time.Duration {
+	if needed <= 0 {
+		return 0
+	}
+	if math.IsNaN(needed) || math.IsNaN(refillRate) || refillRate <= 0 {
+		return maxTokenWait
+	}
+	waitNanos := math.Ceil(needed / refillRate)
+	if waitNanos >= float64(maxTokenWait) {
+		return maxTokenWait
+	}
+	return time.Duration(waitNanos)
 }

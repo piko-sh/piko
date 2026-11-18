@@ -54,7 +54,7 @@ func (*astBuilder) buildInitialRenderCall(
 
 	collectionPropStmts := buildCollectionPropsFallbacks(mainComponent, request.CollectionName, propsTypeExpr)
 	queryFallbackStmts := buildQueryParamFallbacks(mainComponent)
-	statements := make([]goast.Stmt, 0, 2+len(collectionPropStmts)+len(queryFallbackStmts)+3)
+	statements := make([]goast.Stmt, 0, propsSetupStmtCount+len(collectionPropStmts)+len(queryFallbackStmts)+renderCallStmtCount)
 	statements = append(statements,
 		defineAndAssign("props", propsVarInit),
 		buildPropsTypeAssertion(propsTypeExpr),
@@ -529,17 +529,10 @@ func buildUnusedVarAcknowledgements(isCollectionPage bool) []goast.Stmt {
 	return statements
 }
 
-// buildContextCancellationCheck builds an if statement that checks whether the request
-// context has been cancelled (e.g. client disconnect or timeout) and returns early to
-// avoid wasting work on template AST building.
+// buildContextCancellationCheck emits an early return with render metadata when the
+// request context has been canceled.
 //
-// Generated code:
-//
-//	if r.Context().Err() != nil {
-//	    return nil, pikoruntime.InternalMetadata{RenderError: r.Context().Err()}, diagnostics
-//	}
-//
-// Returns goast.Stmt which is the if statement that checks for context cancellation.
+// Returns goast.Stmt which checks for cancellation before rendering.
 func buildContextCancellationCheck() goast.Stmt {
 	ctxErrCall := &goast.CallExpr{
 		Fun: &goast.SelectorExpr{

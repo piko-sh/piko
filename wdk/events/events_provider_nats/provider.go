@@ -41,6 +41,10 @@ var (
 const (
 	// defaultTimeoutSeconds is the default timeout in seconds for various NATS operations.
 	defaultTimeoutSeconds = 30
+
+	// defaultNATSOptionCount is the number of connection options the provider always sets
+	// before any caller-supplied ones.
+	defaultNATSOptionCount = 6
 )
 
 // Config contains configuration options for the NATS JetStream provider.
@@ -496,7 +500,7 @@ func (p *NATSProvider) recordStartMetrics(ctx context.Context, startTime time.Ti
 func (p *NATSProvider) buildNATSOptions(ctx context.Context) []nc.Option {
 	ctx, l := logger.From(ctx, log)
 
-	opts := make([]nc.Option, 0, 6+len(p.config.NATSOptions))
+	opts := make([]nc.Option, 0, defaultNATSOptionCount+len(p.config.NATSOptions))
 	opts = append(opts,
 		nc.Name(p.config.ClusterID),
 		nc.ReconnectWait(2*time.Second),

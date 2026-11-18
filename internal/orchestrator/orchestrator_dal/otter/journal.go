@@ -251,7 +251,6 @@ func (d *DAL) rememberDedup(key string) {
 // Safe for concurrent use; holds the DAL read lock.
 func (d *DAL) CountUnsettled(_ context.Context, buildTag string) (int64, error) {
 	if buildTag == "" {
-
 		return 0, nil
 	}
 	d.mu.RLock()

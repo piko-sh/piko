@@ -119,18 +119,22 @@ func (*ValkeyAdapter[K, V]) Close(ctx context.Context) error {
 	return ctx.Err()
 }
 
-// SetExpiresAfter updates the time-to-live for an existing key using the Valkey EXPIRE
-// command.
+// SetExpiresAfter updates the time-to-live for an existing key using the Valkey PEXPIRE
+// command, or PERSIST for cache.NoExpiry. It never creates a key.
 //
 // A cancelled or expired context returns its error before work begins.
 //
 // Takes key (K) which identifies the cache entry to update.
-// Takes expiresAfter (time.Duration) which specifies the new time-to-live.
+// Takes expiresAfter (time.Duration) which specifies the new time-to-live. cache.NoExpiry
+// removes the TTL. Other nonpositive values do nothing.
 //
 // Returns error when the operation fails.
 func (a *ValkeyAdapter[K, V]) SetExpiresAfter(ctx context.Context, key K, expiresAfter time.Duration) error {
 	if err := ctx.Err(); err != nil {
 		return err
+	}
+	if expiresAfter <= 0 {
+		return nil
 	}
 
 	timeoutCtx, cancel := context.WithTimeoutCause(ctx, a.operationTimeout, fmt.Errorf("valkey SetExpiresAfter exceeded %s timeout", a.operationTimeout))
@@ -141,7 +145,15 @@ func (a *ValkeyAdapter[K, V]) SetExpiresAfter(ctx context.Context, key K, expire
 		return fmt.Errorf("failed to encode key: %w", err)
 	}
 
-	if err := a.client.Do(timeoutCtx, a.client.B().Pexpire().Key(keyString).Milliseconds(expiresAfter.Milliseconds()).Build()).Error(); err != nil {
+	if expiresAfter == cache.NoExpiry {
+		if err := a.client.Do(timeoutCtx, a.client.B().Persist().Key(keyString).Build()).Error(); err != nil {
+			return fmt.Errorf("valkey persist failed for key %s: %w", keyString, err)
+		}
+		return nil
+	}
+
+	milliseconds := max(expiresAfter, time.Millisecond).Milliseconds()
+	if err := a.client.Do(timeoutCtx, a.client.B().Pexpire().Key(keyString).Milliseconds(milliseconds).Build()).Error(); err != nil {
 		return fmt.Errorf("valkey pexpire failed for key %s: %w", keyString, err)
 	}
 

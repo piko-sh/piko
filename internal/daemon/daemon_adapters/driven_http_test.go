@@ -23,6 +23,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -43,6 +44,7 @@ import (
 	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
+	"piko.sh/piko/internal/security/security_dto"
 )
 
 func TestFrontendAssetHandlerWithFullMiddlewareStack(t *testing.T) {
@@ -1837,4 +1839,419 @@ func TestQueueRemainingVariants_DoesNothingWithoutMissingProfiles(t *testing.T) 
 	builder.queueRemainingVariants(context.Background(), &registry_domain.MockRegistryService{}, generator, artefact, "webp")
 
 	assert.Zero(t, generator.GenerateVariantCallCount.Load())
+}
+
+func videoRegistry(chunkBody string) *registry_domain.MockRegistryService {
+	artefact := &registry_dto.ArtefactMeta{
+		ID: "videos/intro.mp4",
+		DesiredProfiles: []registry_dto.NamedProfile{
+			{Name: hlsVariantPrefix + "720p"},
+		},
+		ActualVariants: []registry_dto.Variant{
+			{
+				VariantID: hlsVariantPrefix + "720p",
+				Chunks: []registry_dto.VariantChunk{
+					{ChunkID: "seg-001.ts", MimeType: "video/mp2t", DurationSeconds: new(6.0), SizeBytes: int64(len(chunkBody))},
+				},
+			},
+		},
+	}
+	return &registry_domain.MockRegistryService{
+		GetArtefactFunc: func(_ context.Context, id string) (*registry_dto.ArtefactMeta, error) {
+			if id != "intro" {
+				return nil, registry_domain.ErrArtefactNotFound
+			}
+			return artefact, nil
+		},
+		GetVariantChunkFunc: func(_ context.Context, _ *registry_dto.Variant, chunkID string) (io.ReadCloser, error) {
+			if chunkID == "broken.ts" {
+				return nil, errors.New("storage unavailable")
+			}
+			return io.NopCloser(strings.NewReader(chunkBody)), nil
+		},
+	}
+}
+
+func mountStaticRoutes(t *testing.T, routerConfig *daemon_domain.RouterConfig, registry registry_domain.RegistryService) http.Handler {
+	t.Helper()
+
+	builder := &HTTPRouterBuilder{}
+	t.Cleanup(builder.Close)
+	router := chi.NewRouter()
+	builder.setupBaseMiddleware(router, routerConfig, security_dto.CSPRuntimeConfig{})
+	builder.setupStaticRoutes(router, routerConfig, registry, nil, nil)
+	return router
+}
+
+func serveRoute(t *testing.T, handler http.Handler, target string, header http.Header) *httptest.ResponseRecorder {
+	t.Helper()
+
+	request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, target, nil)
+	maps.Copy(request.Header, header)
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, request)
+	return recorder
+}
+
+func TestStaticRoutes_ServeVideo(t *testing.T) {
+	t.Parallel()
+
+	const chunkBody = "video-bytes"
+	handler := mountStaticRoutes(t, &daemon_domain.RouterConfig{
+		DistServePath:     "/_piko/dist",
+		ArtefactServePath: "/_piko/assets",
+	}, videoRegistry(chunkBody))
+
+	testCases := []struct {
+		name       string
+		target     string
+		wantBody   string
+		wantType   string
+		wantStatus int
+	}{
+		{name: "master playlist", target: "/_piko/video/intro/master.m3u8", wantStatus: http.StatusOK, wantBody: "#EXTM3U", wantType: contentTypeMPEGURL},
+		{name: "master playlist for a missing video", target: "/_piko/video/missing/master.m3u8", wantStatus: http.StatusNotFound},
+		{name: "variant playlist", target: "/_piko/video/intro/720p/manifest.m3u8", wantStatus: http.StatusOK, wantBody: "seg-001.ts", wantType: contentTypeMPEGURL},
+		{name: "variant playlist for a missing video", target: "/_piko/video/missing/720p/manifest.m3u8", wantStatus: http.StatusNotFound},
+		{name: "variant playlist for a missing quality", target: "/_piko/video/intro/1080p/manifest.m3u8", wantStatus: http.StatusNotFound},
+		{name: "chunk", target: "/_piko/video/intro/720p/seg-001.ts", wantStatus: http.StatusOK, wantBody: chunkBody, wantType: "video/mp2t"},
+		{name: "chunk for a missing video", target: "/_piko/video/missing/720p/seg-001.ts", wantStatus: http.StatusNotFound},
+		{name: "chunk for a missing quality", target: "/_piko/video/intro/1080p/seg-001.ts", wantStatus: http.StatusNotFound},
+		{name: "chunk that does not exist", target: "/_piko/video/intro/720p/seg-999.ts", wantStatus: http.StatusNotFound},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			recorder := serveRoute(t, handler, testCase.target, nil)
+
+			assert.Equal(t, testCase.wantStatus, recorder.Code)
+			if testCase.wantBody != "" {
+				assert.Contains(t, recorder.Body.String(), testCase.wantBody)
+			}
+			if testCase.wantType != "" {
+				assert.Equal(t, testCase.wantType, recorder.Header().Get(headerContentType))
+			}
+		})
+	}
+}
+
+func TestServeVideoChunk_StorageFailureAnswersInternalServerError(t *testing.T) {
+	t.Parallel()
+
+	registry := videoRegistry("video-bytes")
+	artefact, err := registry.GetArtefact(t.Context(), "intro")
+	require.NoError(t, err)
+	artefact.ActualVariants[0].Chunks = append(artefact.ActualVariants[0].Chunks,
+		registry_dto.VariantChunk{ChunkID: "broken.ts", MimeType: "video/mp2t"})
+
+	handler := mountStaticRoutes(t, &daemon_domain.RouterConfig{ArtefactServePath: "/_piko/assets"}, registry)
+	recorder := serveRoute(t, handler, "/_piko/video/intro/720p/broken.ts", nil)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+}
+
+func TestServeVideoHandlers_RejectMissingParameters(t *testing.T) {
+	t.Parallel()
+
+	builder := &HTTPRouterBuilder{}
+	registry := videoRegistry("video-bytes")
+
+	handlers := map[string]http.HandlerFunc{
+		"master playlist":  builder.serveVideoMasterPlaylist(registry, false),
+		"variant playlist": builder.serveVideoVariantPlaylist(registry, false),
+		"chunk":            builder.serveVideoChunk(registry),
+	}
+
+	for name, handler := range handlers {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			recorder := serveRoute(t, handler, "/video", nil)
+
+			assert.Equal(t, http.StatusNotFound, recorder.Code)
+			assert.Zero(t, registry.GetArtefactCallCount.Load())
+		})
+	}
+}
+
+func TestStaticRoutes_ServeSitemapAndRobots(t *testing.T) {
+	t.Parallel()
+
+	sitemapRegistry := staticByIDRegistry("sitemap-2.xml", "application/xml", `"sitemap-etag"`, "<urlset/>")
+	handler := mountStaticRoutes(t, &daemon_domain.RouterConfig{ArtefactServePath: "/_piko/assets"}, sitemapRegistry)
+
+	recorder := serveRoute(t, handler, "/sitemap-2.xml", nil)
+	require.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, "<urlset/>", recorder.Body.String())
+	assert.Equal(t, contentTypeXML, recorder.Header().Get(headerContentType))
+	assert.Equal(t, `"sitemap-etag"`, recorder.Header().Get(headerETag))
+
+	notModified := serveRoute(t, handler, "/sitemap-2.xml", http.Header{headerIfNoneMatch: {`"sitemap-etag"`}})
+	assert.Equal(t, http.StatusNotModified, notModified.Code)
+
+	missing := serveRoute(t, handler, "/sitemap-9.xml", nil)
+	assert.Equal(t, http.StatusNotFound, missing.Code)
+
+	missingRobots := serveRoute(t, handler, "/robots.txt", nil)
+	assert.Equal(t, http.StatusNotFound, missingRobots.Code)
+	assert.Empty(t, missingRobots.Header().Get("X-Robots-Tag"))
+}
+
+func TestStaticRoutes_RobotsBlockWithholdsTheSite(t *testing.T) {
+	t.Parallel()
+
+	block := []byte("User-agent: *\nDisallow: /\n")
+	handler := mountStaticRoutes(t, &daemon_domain.RouterConfig{
+		ArtefactServePath: "/_piko/assets",
+		RobotsTxtBlock:    block,
+	}, &registry_domain.MockRegistryService{})
+
+	recorder := serveRoute(t, handler, "/robots.txt", nil)
+	require.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, string(block), recorder.Body.String())
+	assert.Equal(t, "text/plain; charset=utf-8", recorder.Header().Get(headerContentType))
+	assert.NotEmpty(t, recorder.Header().Get("X-Robots-Tag"), "every response is marked as not for indexing")
+
+	etag := recorder.Header().Get(headerETag)
+	require.NotEmpty(t, etag)
+	notModified := serveRoute(t, handler, "/robots.txt", http.Header{headerIfNoneMatch: {etag}})
+	assert.Equal(t, http.StatusNotModified, notModified.Code)
+
+	ping := serveRoute(t, handler, "/ping", nil)
+	assert.Equal(t, http.StatusOK, ping.Code)
+	assert.NotEmpty(t, ping.Header().Get("X-Robots-Tag"))
+}
+
+func TestServeStaticArtefactHandler_Failures(t *testing.T) {
+	t.Parallel()
+
+	config := staticArtefactConfig{
+		artefactID:      "theme.css",
+		defaultMimeType: contentTypeCSS,
+		cacheMaxAge:     cacheControlMutableAsset,
+		preferredType:   variantSource,
+		useCompression:  false,
+	}
+
+	testCases := []struct {
+		registry   *registry_domain.MockRegistryService
+		name       string
+		wantStatus int
+	}{
+		{
+			name: "registry failure",
+			registry: &registry_domain.MockRegistryService{
+				GetArtefactFunc: func(context.Context, string) (*registry_dto.ArtefactMeta, error) {
+					return nil, errors.New("registry unavailable")
+				},
+			},
+			wantStatus: http.StatusNotFound,
+		},
+		{
+			name: "artefact without a source variant",
+			registry: &registry_domain.MockRegistryService{
+				GetArtefactFunc: func(context.Context, string) (*registry_dto.ArtefactMeta, error) {
+					return &registry_dto.ArtefactMeta{ID: "theme.css"}, nil
+				},
+			},
+			wantStatus: http.StatusInternalServerError,
+		},
+		{
+			name: "variant data cannot be read",
+			registry: &registry_domain.MockRegistryService{
+				GetArtefactFunc: func(context.Context, string) (*registry_dto.ArtefactMeta, error) {
+					return &registry_dto.ArtefactMeta{
+						ID:             "theme.css",
+						ActualVariants: []registry_dto.Variant{{VariantID: variantSource}},
+					}, nil
+				},
+				GetVariantDataFunc: func(context.Context, *registry_dto.Variant) (io.ReadCloser, error) {
+					return nil, errors.New("blob missing")
+				},
+			},
+			wantStatus: http.StatusInternalServerError,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			handler := serveStaticArtefactHandler(testCase.registry, config, "serveTest")
+			recorder := serveRoute(t, handler, "/theme.css", nil)
+
+			assert.Equal(t, testCase.wantStatus, recorder.Code)
+		})
+	}
+}
+
+func TestServeStaticArtefactHandler_WritesVariantHeaders(t *testing.T) {
+	t.Parallel()
+
+	tags := registry_dto.Tags{}
+	tags.Set(registry_dto.TagEtag, `"theme-etag"`)
+	tags.Set(registry_dto.TagMimeType, "text/css; charset=utf-8")
+	tags.Set(registry_dto.TagContentEncoding, "br")
+	registry := &registry_domain.MockRegistryService{
+		GetArtefactFunc: func(context.Context, string) (*registry_dto.ArtefactMeta, error) {
+			return &registry_dto.ArtefactMeta{
+				ID:             "theme.css",
+				ActualVariants: []registry_dto.Variant{{VariantID: variantSource, SizeBytes: 4, MetadataTags: tags}},
+			}, nil
+		},
+		GetVariantDataFunc: func(context.Context, *registry_dto.Variant) (io.ReadCloser, error) {
+			return io.NopCloser(strings.NewReader("body")), nil
+		},
+	}
+
+	handler := serveStaticArtefactHandler(registry, staticArtefactConfig{
+		artefactID:      "theme.css",
+		defaultMimeType: contentTypeCSS,
+		cacheMaxAge:     cacheControlMutableAsset,
+		preferredType:   variantSource,
+		useCompression:  false,
+	}, "serveTest")
+	recorder := serveRoute(t, handler, "/theme.css", nil)
+
+	require.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, "body", recorder.Body.String())
+	assert.Equal(t, "text/css; charset=utf-8", recorder.Header().Get(headerContentType))
+	assert.Equal(t, "br", recorder.Header().Get(headerContentEncoding))
+	assert.Equal(t, "4", recorder.Header().Get(headerContentLength))
+	assert.Equal(t, cacheControlMutableAsset, recorder.Header().Get(headerCacheControl))
+}
+
+func pendingArtefactRegistry() *registry_domain.MockRegistryService {
+	artefact := &registry_dto.ArtefactMeta{
+		ID:     "images/photo.jpg",
+		Status: registry_dto.VariantStatusPending,
+	}
+	return &registry_domain.MockRegistryService{
+		GetArtefactFunc: func(_ context.Context, id string) (*registry_dto.ArtefactMeta, error) {
+			if id != artefact.ID {
+				return nil, registry_domain.ErrArtefactNotFound
+			}
+			return artefact, nil
+		},
+		GetVariantDataFunc: func(context.Context, *registry_dto.Variant) (io.ReadCloser, error) {
+			return io.NopCloser(strings.NewReader("image-bytes")), nil
+		},
+	}
+}
+
+func mountArtefactRoute(t *testing.T, registry registry_domain.RegistryService, generator daemon_domain.OnDemandVariantGenerator) http.Handler {
+	t.Helper()
+
+	builder := &HTTPRouterBuilder{}
+	t.Cleanup(builder.Close)
+	router := chi.NewRouter()
+	router.Get("/_piko/assets/*", builder.serveArtefact(registry, generator, false))
+	return router
+}
+
+func TestServeArtefact_PendingArtefactGeneratesItsFirstVariant(t *testing.T) {
+	t.Parallel()
+
+	generator := &daemon_domain.MockOnDemandVariantGenerator{
+		ParseProfileNameFunc: func(string) *daemon_domain.ParsedImageProfile {
+			return &daemon_domain.ParsedImageProfile{}
+		},
+		GenerateVariantFunc: func(_ context.Context, _ *registry_dto.ArtefactMeta, profileName string) (*registry_dto.Variant, error) {
+			return &registry_dto.Variant{VariantID: profileName, MimeType: "image/webp", StorageKey: "store/photo.webp"}, nil
+		},
+	}
+
+	handler := mountArtefactRoute(t, pendingArtefactRegistry(), generator)
+	recorder := serveRoute(t, handler, "/_piko/assets/images/photo.jpg?v=webp", nil)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, int64(1), generator.GenerateVariantCallCount.Load())
+}
+
+func TestServeArtefact_PendingArtefactAnswersUnavailableWhenGenerationFails(t *testing.T) {
+	t.Parallel()
+
+	generator := &daemon_domain.MockOnDemandVariantGenerator{
+		ParseProfileNameFunc: func(string) *daemon_domain.ParsedImageProfile {
+			return &daemon_domain.ParsedImageProfile{}
+		},
+		GenerateVariantFunc: func(context.Context, *registry_dto.ArtefactMeta, string) (*registry_dto.Variant, error) {
+			return nil, errors.New("encoder crashed")
+		},
+	}
+
+	handler := mountArtefactRoute(t, pendingArtefactRegistry(), generator)
+	recorder := serveRoute(t, handler, "/_piko/assets/images/photo.jpg", nil)
+
+	assert.Equal(t, http.StatusServiceUnavailable, recorder.Code)
+}
+
+func TestServeArtefact_PendingArtefactWithoutAGeneratorAnswersUnavailable(t *testing.T) {
+	t.Parallel()
+
+	handler := mountArtefactRoute(t, pendingArtefactRegistry(), nil)
+	recorder := serveRoute(t, handler, "/_piko/assets/images/photo.jpg", nil)
+
+	assert.Equal(t, http.StatusServiceUnavailable, recorder.Code)
+}
+
+func TestServeArtefact_ResolvesVariantsByArtefactID(t *testing.T) {
+	t.Parallel()
+
+	readyArtefact := &registry_dto.ArtefactMeta{
+		ID:     "images/logo.png",
+		Status: registry_dto.VariantStatusReady,
+		ActualVariants: []registry_dto.Variant{
+			{VariantID: variantSource, MimeType: "image/png", StorageKey: "store/logo.png", Status: registry_dto.VariantStatusReady},
+		},
+	}
+	noSourceArtefact := &registry_dto.ArtefactMeta{
+		ID:             "images/empty.png",
+		Status:         registry_dto.VariantStatusReady,
+		ActualVariants: []registry_dto.Variant{{VariantID: "thumb", StorageKey: "store/empty-thumb.png", Status: registry_dto.VariantStatusReady}},
+	}
+	registry := &registry_domain.MockRegistryService{
+		GetArtefactFunc: func(_ context.Context, id string) (*registry_dto.ArtefactMeta, error) {
+			switch id {
+			case readyArtefact.ID:
+				return readyArtefact, nil
+			case noSourceArtefact.ID:
+				return noSourceArtefact, nil
+			default:
+				return nil, registry_domain.ErrArtefactNotFound
+			}
+		},
+		FindArtefactByVariantStorageKeyFunc: func(context.Context, string) (*registry_dto.ArtefactMeta, error) {
+			return nil, registry_domain.ErrArtefactNotFound
+		},
+		GetVariantDataFunc: func(context.Context, *registry_dto.Variant) (io.ReadCloser, error) {
+			return io.NopCloser(strings.NewReader("image-bytes")), nil
+		},
+	}
+	generator := &daemon_domain.MockOnDemandVariantGenerator{
+		ParseProfileNameFunc: func(string) *daemon_domain.ParsedImageProfile { return nil },
+	}
+	handler := mountArtefactRoute(t, registry, generator)
+
+	testCases := []struct {
+		name       string
+		target     string
+		wantStatus int
+	}{
+		{name: "an unknown variant falls back to the source", target: "/_piko/assets/images/logo.png?v=huge", wantStatus: http.StatusOK},
+		{name: "an artefact without a source variant is not found", target: "/_piko/assets/images/empty.png", wantStatus: http.StatusNotFound},
+		{name: "an unknown artefact is not found", target: "/_piko/assets/images/missing.png", wantStatus: http.StatusNotFound},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			recorder := serveRoute(t, handler, testCase.target, nil)
+
+			assert.Equal(t, testCase.wantStatus, recorder.Code)
+		})
+	}
 }

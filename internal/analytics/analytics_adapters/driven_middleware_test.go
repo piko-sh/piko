@@ -25,6 +25,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 	"unicode/utf8"
 
 	"github.com/stretchr/testify/assert"
@@ -410,77 +411,6 @@ func (a *stubAuth) IsAuthenticated() bool { return a.authenticated }
 func (a *stubAuth) UserID() string        { return a.userID }
 func (a *stubAuth) Get(_ string) any      { return nil }
 
-func TestTruncateField_AsciiUnderLimit(t *testing.T) {
-	got := truncateField("hello", 10)
-	if got != "hello" {
-		t.Errorf("truncateField(%q, 10) = %q, want %q", "hello", got, "hello")
-	}
-}
-
-func TestTruncateField_AsciiAtLimit(t *testing.T) {
-	got := truncateField("hello", 5)
-	if got != "hello" {
-		t.Errorf("truncateField(%q, 5) = %q, want %q", "hello", got, "hello")
-	}
-}
-
-func TestTruncateField_AsciiOverLimit(t *testing.T) {
-	got := truncateField("helloworld", 5)
-	if got != "hello" {
-		t.Errorf("truncateField(%q, 5) = %q, want %q", "helloworld", got, "hello")
-	}
-}
-
-func TestTruncateField_ZeroLimit(t *testing.T) {
-	got := truncateField("hello", 0)
-	if got != "" {
-		t.Errorf("truncateField(%q, 0) = %q, want empty", "hello", got)
-	}
-}
-
-func TestTruncateField_NegativeLimit(t *testing.T) {
-	got := truncateField("hello", -1)
-	if got != "" {
-		t.Errorf("truncateField(%q, -1) = %q, want empty", "hello", got)
-	}
-}
-
-func TestTruncateField_MultiByteRunesAreNotCutMidSequence(t *testing.T) {
-	input := "https://example.com/" + strings.Repeat("中", 100)
-	got := truncateField(input, 50)
-	if !utf8.ValidString(got) {
-		t.Errorf("truncateField produced invalid UTF-8 for non-ASCII input: %q", got)
-	}
-	if utf8.RuneCountInString(got) > 50 {
-		t.Errorf("truncateField returned %d runes (limit 50)", utf8.RuneCountInString(got))
-	}
-}
-
-func TestTruncateField_EmojiUrlIsRuneTruncated(t *testing.T) {
-	emojiUrl := "https://example.com/path?q=" + strings.Repeat("\U0001F600", 1000)
-	got := truncateField(emojiUrl, maxFieldLength)
-	if !utf8.ValidString(got) {
-		t.Errorf("truncateField produced invalid UTF-8 for emoji-rich URL: %q", got)
-	}
-	if utf8.RuneCountInString(got) > maxFieldLength {
-		t.Errorf("truncateField returned %d runes (limit %d)", utf8.RuneCountInString(got), maxFieldLength)
-	}
-}
-
-func TestTruncateField_BoundaryAtMultiByteRune(t *testing.T) {
-	input := "ab中cd"
-	got := truncateField(input, 3)
-	if !utf8.ValidString(got) {
-		t.Errorf("truncateField produced invalid UTF-8 at rune boundary: %q", got)
-	}
-	if utf8.RuneCountInString(got) != 3 {
-		t.Errorf("truncateField returned %d runes, want exactly 3", utf8.RuneCountInString(got))
-	}
-	if got != "ab中" {
-		t.Errorf("truncateField(%q, 3) = %q, want %q", input, got, "ab中")
-	}
-}
-
 func trackOneEvent(t *testing.T, prepare func(pctx *daemon_dto.PikoRequestCtx)) analytics_dto.Event {
 	t.Helper()
 
@@ -570,4 +500,23 @@ func TestMiddleware_EventOwnsItsAnalyticsValues(t *testing.T) {
 		"later writes to the request carrier must not reach the queued event")
 	require.NotNil(t, events[0].Revenue)
 	assert.Equal(t, "9.99", events[0].Revenue.MustNumber())
+}
+
+func TestNewPageEvent_TruncatesLongFieldsByRune(t *testing.T) {
+	t.Parallel()
+
+	request := httptest.NewRequest(http.MethodGet, "/", nil)
+	request.Header.Set("User-Agent", strings.Repeat("\U0001F600", maxFieldLength+10))
+	request.Header.Set("Referer", "https://example.com/"+strings.Repeat("中", maxFieldLength))
+
+	pctx := daemon_dto.AcquirePikoRequestCtx()
+	defer daemon_dto.ReleasePikoRequestCtx(pctx)
+
+	event := newPageEvent(request, pctx, time.Now())
+	defer analytics_dto.ReleaseEvent(event)
+
+	assert.Equal(t, maxFieldLength, utf8.RuneCountInString(event.UserAgent))
+	assert.Equal(t, maxFieldLength, utf8.RuneCountInString(event.Referrer))
+	assert.True(t, utf8.ValidString(event.UserAgent))
+	assert.True(t, utf8.ValidString(event.Referrer))
 }

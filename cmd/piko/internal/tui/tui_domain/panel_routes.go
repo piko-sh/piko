@@ -35,6 +35,9 @@ import (
 )
 
 const (
+	// routesSortPath is the sort column that orders routes by path.
+	routesSortPath = "path"
+
 	// routesFetchLimit is the maximum number of routes to fetch when refreshing.
 	routesFetchLimit = 5000
 
@@ -348,9 +351,9 @@ func (p *RoutesPanel) cycleSortBy() {
 	case "avg":
 		p.sortBy = "errors"
 	case "errors":
-		p.sortBy = "path"
+		p.sortBy = routesSortPath
 		p.sortDesc = false
-	case "path":
+	case routesSortPath:
 		p.sortBy = "count"
 		p.sortDesc = true
 	}
@@ -367,13 +370,13 @@ func (p *RoutesPanel) sortRoutesSlice(routes []RouteStats) {
 			c = cmp.Compare(a.AverageMs, b.AverageMs)
 		case "errors":
 			c = cmp.Compare(a.ErrorCount, b.ErrorCount)
-		case "path":
+		case routesSortPath:
 			c = cmp.Compare(a.Path, b.Path)
 		default:
 			c = cmp.Compare(a.Count, b.Count)
 		}
 
-		if c == 0 && p.sortBy != "path" {
+		if c == 0 && p.sortBy != routesSortPath {
 			c = cmp.Compare(a.Path, b.Path)
 		}
 
@@ -575,7 +578,7 @@ func (p *RoutesPanel) refresh() tea.Cmd {
 			return RoutesRefreshMessage{Err: errNoTracesProvider, Routes: nil, TotalCount: 0, TotalErrors: 0}
 		}
 
-		ctx, cancel := context.WithTimeoutCause(context.Background(), 5*time.Second,
+		ctx, cancel := context.WithTimeoutCause(context.Background(), DefaultRefreshTimeout,
 			errors.New("routes panel data fetch exceeded 5s timeout"))
 		defer cancel()
 

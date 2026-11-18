@@ -35,6 +35,24 @@ const (
 
 	// defaultSpecTimeout is the default time limit for running a spec.
 	defaultSpecTimeout = 5 * time.Minute
+
+	// serverReadyTimeout is the time limit for the test server to accept connections after
+	// it starts.
+	serverReadyTimeout = 30 * time.Second
+
+	// downloadWaitTimeout is the time limit for a triggered download to finish.
+	downloadWaitTimeout = 30 * time.Second
+
+	// pageSettleTimeout is the time limit for reloading a page or waiting for its DOM to
+	// settle.
+	pageSettleTimeout = 5 * time.Second
+
+	// pageStableInterval is how often the page HTML is compared when waiting for the DOM to
+	// settle.
+	pageStableInterval = 500 * time.Millisecond
+
+	// specStepDelay is the pause between spec steps so the page can react.
+	specStepDelay = 50 * time.Millisecond
 )
 
 var (

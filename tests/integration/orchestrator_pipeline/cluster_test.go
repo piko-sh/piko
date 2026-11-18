@@ -46,7 +46,9 @@ import (
 	"piko.sh/piko/wdk/events/events_provider_nats"
 )
 
-const clusterExecutorName = "cluster.work"
+const (
+	clusterExecutorName = "cluster.work"
+)
 
 type cluster struct {
 	t        *testing.T
@@ -120,13 +122,11 @@ func newCluster(t *testing.T, executor func(replica string) orchestrator_domain.
 func startPostgresContainer(ctx context.Context, t *testing.T) string {
 	t.Helper()
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: testcontainers.ContainerRequest{
-			Image:        "postgres:17-alpine",
-			ExposedPorts: []string{"5432/tcp"},
-			Env:          map[string]string{"POSTGRES_PASSWORD": "piko", "POSTGRES_DB": "piko"},
-			WaitingFor: wait.ForLog("database system is ready to accept connections").
-				WithOccurrence(2).WithStartupTimeout(time.Minute),
-		},
+		Image:        "postgres:17-alpine",
+		ExposedPorts: []string{"5432/tcp"},
+		Env:          map[string]string{"POSTGRES_PASSWORD": "piko", "POSTGRES_DB": "piko"},
+		WaitingFor: wait.ForLog("database system is ready to accept connections").
+			WithOccurrence(2).WithStartupTimeout(time.Minute),
 		Started: true,
 	})
 	require.NoError(t, err, "starting Postgres")
@@ -224,7 +224,10 @@ func TestCluster_NoArtefactBuiltTwice(t *testing.T) {
 			case <-ctx.Done():
 				return nil, ctx.Err()
 			}
-			key, _ := payload["key"].(string)
+			key, ok := payload["key"].(string)
+			if !ok {
+				return nil, fmt.Errorf("payload key has type %T, want string", payload["key"])
+			}
 			mu.Lock()
 			runs[key]++
 			mu.Unlock()
@@ -325,7 +328,8 @@ func TestCluster_ShutdownHandsRunningTaskToPeer(t *testing.T) {
 		t.Fatal("no replica started the task")
 	}
 
-	stopping := firstReplica.Load().(string)
+	stopping, ok := firstReplica.Load().(string)
+	require.True(t, ok, "the first replica to start the task must be recorded")
 	survivor := map[string]string{"a": "b", "b": "a"}[stopping]
 	replicas[stopping].shutdown()
 

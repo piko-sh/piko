@@ -66,7 +66,11 @@ type CacheEntry struct {
 	// Model is the model that generated the response.
 	Model string
 
-	// HitCount tracks how many times this entry has been read from the cache.
+	// HitCount counts reads of this entry from the cache.
+	//
+	// The count is local to one process, and a returned entry may omit concurrent reads.
+	// Remote providers decode each read into a fresh entry, so their counts do not carry
+	// over between reads.
 	HitCount int64
 }
 

@@ -31,6 +31,10 @@ const (
 	// llmStreamEventBufferSize bounds the producer/consumer queue for stream events so a
 	// slow consumer cannot lockstep the upstream.
 	llmStreamEventBufferSize = 16
+
+	// toolCallCompletionTokens is the estimated completion token count reported for a
+	// streamed tool call.
+	toolCallCompletionTokens = 5
 )
 
 // Stream sends a streaming completion that delivers a fortune word by word.
@@ -322,8 +326,8 @@ func buildToolDoneEvent(model string, tool llm_dto.ToolDefinition, callID string
 		},
 		Usage: &llm_dto.Usage{
 			PromptTokens:     msgCount * estimatedTokensPerMessage,
-			CompletionTokens: 5,
-			TotalTokens:      msgCount*estimatedTokensPerMessage + 5,
+			CompletionTokens: toolCallCompletionTokens,
+			TotalTokens:      msgCount*estimatedTokensPerMessage + toolCallCompletionTokens,
 			EstimatedCost:    nil,
 			CachedTokens:     0,
 		},

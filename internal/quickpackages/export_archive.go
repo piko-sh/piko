@@ -34,6 +34,17 @@ const (
 	// archiveHeaderSize is the length of an ar member header.
 	archiveHeaderSize = 60
 
+	// archiveNameFieldEnd is the end offset of the file name field in an ar member header.
+	archiveNameFieldEnd = 16
+
+	// archiveSizeFieldStart is the start offset of the decimal file size field in an ar
+	// member header.
+	archiveSizeFieldStart = 48
+
+	// archiveSizeFieldEnd is the end offset of the decimal file size field in an ar member
+	// header.
+	archiveSizeFieldEnd = 58
+
 	// packageDefinitionName is the archive member holding the package's export data. The
 	// compiler always writes it first.
 	packageDefinitionName = "__.PKGDEF"
@@ -77,10 +88,10 @@ func exportDataReader(r *bufio.Reader) (io.Reader, error) {
 	if _, err := io.ReadFull(r, header); err != nil {
 		return nil, errNoPackageDefinition
 	}
-	if !strings.HasPrefix(strings.TrimSpace(string(header[0:16])), packageDefinitionName) {
+	if !strings.HasPrefix(strings.TrimSpace(string(header[:archiveNameFieldEnd])), packageDefinitionName) {
 		return nil, errNoPackageDefinition
 	}
-	remaining, err := strconv.Atoi(strings.TrimSpace(string(header[48:58])))
+	remaining, err := strconv.Atoi(strings.TrimSpace(string(header[archiveSizeFieldStart:archiveSizeFieldEnd])))
 	if err != nil || remaining <= 0 {
 		return nil, errNoPackageDefinition
 	}

@@ -18,11 +18,6 @@
 
 package pdfwriter_domain
 
-// Renders a layout box tree to a multi-page PDF using absolute coordinates. Embeds
-// TrueType fonts as CIDFont Type2 when font entries are provided, falling back to
-// Helvetica Type1 when no embedded fonts are available. The Y-axis is flipped: layout
-// uses top-left origin, PDF uses bottom-left.
-
 import (
 	"context"
 	"fmt"
@@ -1092,29 +1087,6 @@ func (painter *PdfPainter) effectiveViewerPrefs() *ViewerPreferences {
 	return nil
 }
 
-// isVariableFont reports whether the given font key is a variable font instance.
-//
-// Takes key (pdfFontKey) which specifies the font to check.
-//
-// Returns bool which indicates whether the font is a variable font instance.
-func (painter *PdfPainter) isVariableFont(key pdfFontKey) bool {
-	return painter.variableFonts != nil && painter.variableFonts[key]
-}
-
-// glyphAdvanceWidth returns the glyph advance width in font design units.
-//
-// Takes key (pdfFontKey) which specifies the font to look up.
-// Takes fontData ([]byte) which holds the raw font data for hmtx fallback.
-// Takes glyphID (uint16) which specifies the glyph to measure.
-//
-// Returns int which holds the advance width in font design units.
-func (painter *PdfPainter) glyphAdvanceWidth(key pdfFontKey, fontData []byte, glyphID uint16) int {
-	if painter.isVariableFont(key) && painter.glyphWidthFunc != nil {
-		return painter.glyphWidthFunc(key.family, key.weight, key.style, glyphID)
-	}
-	return GlyphAdvanceWidth(fontData, glyphID)
-}
-
 // structTreeParent returns the current parent node in the structure tree stack.
 //
 // Returns *StructNode which holds the current parent structure node.
@@ -1123,131 +1095,6 @@ func (painter *PdfPainter) structTreeParent() *StructNode {
 		return painter.structStack[len(painter.structStack)-1]
 	}
 	return painter.structTree.root
-}
-
-// resolvedFont holds the result of a font data lookup.
-type resolvedFont struct {
-	// data holds the raw font bytes for the resolved font.
-	data []byte
-
-	// key holds the font key that was matched.
-	key pdfFontKey
-
-	// found indicates whether a font was successfully resolved.
-	found bool
-}
-
-// resolveFontData looks up font data for the given family, weight, and style combination.
-//
-// Takes family (string) which specifies the font family name.
-// Takes weight (int) which specifies the CSS font weight.
-// Takes style (int) which specifies the CSS font style.
-//
-// Returns resolvedFont which holds the matched font data and key.
-func (painter *PdfPainter) resolveFontData(family string, weight int, style int) resolvedFont {
-	if resolved, ok := painter.tryExactFontMatch(family, weight, style); ok {
-		return resolved
-	}
-	if resolved, ok := painter.tryCrossFamilyFontMatch(weight, style); ok {
-		return resolved
-	}
-	return painter.fallbackToFirstFont()
-}
-
-// tryExactFontMatch attempts to find font data within the requested family.
-//
-// Takes family (string) which specifies the font family name.
-// Takes weight (int) which specifies the CSS font weight.
-// Takes style (int) which specifies the CSS font style.
-//
-// Returns resolvedFont which holds the matched font data if found.
-// Returns bool which indicates whether a match was found.
-func (painter *PdfPainter) tryExactFontMatch(family string, weight int, style int) (resolvedFont, bool) {
-	exact := pdfFontKey{family: family, weight: weight, style: style}
-	if data, ok := painter.fontDataMap[exact]; ok {
-		return resolvedFont{data: data, key: exact, found: true}, true
-	}
-	if style != 0 {
-		key := pdfFontKey{family: family, weight: weight, style: 0}
-		if data, ok := painter.fontDataMap[key]; ok {
-			return resolvedFont{data: data, key: key, found: true}, true
-		}
-	}
-	if weight != fontWeightNormal {
-		key := pdfFontKey{family: family, weight: fontWeightNormal, style: style}
-		if data, ok := painter.fontDataMap[key]; ok {
-			return resolvedFont{data: data, key: key, found: true}, true
-		}
-		if style != 0 {
-			key := pdfFontKey{family: family, weight: fontWeightNormal, style: 0}
-			if data, ok := painter.fontDataMap[key]; ok {
-				return resolvedFont{data: data, key: key, found: true}, true
-			}
-		}
-	}
-	return resolvedFont{}, false
-}
-
-// tryCrossFamilyFontMatch searches across all registered families.
-//
-// Takes weight (int) which specifies the CSS font weight.
-// Takes style (int) which specifies the CSS font style.
-//
-// Returns resolvedFont which holds the matched font data if found.
-// Returns bool which indicates whether a match was found.
-func (painter *PdfPainter) tryCrossFamilyFontMatch(weight int, style int) (resolvedFont, bool) {
-	for key, data := range painter.fontDataMap {
-		if key.weight == weight && key.style == style {
-			return resolvedFont{data: data, key: key, found: true}, true
-		}
-	}
-	for key, data := range painter.fontDataMap {
-		if key.weight == weight && key.style == 0 {
-			return resolvedFont{data: data, key: key, found: true}, true
-		}
-	}
-	return resolvedFont{}, false
-}
-
-// fallbackToFirstFont returns the first registered font entry, if any.
-//
-// Returns resolvedFont which holds the first font entry, or an empty result.
-func (painter *PdfPainter) fallbackToFirstFont() resolvedFont {
-	if len(painter.fontEntries) > 0 {
-		entry := painter.fontEntries[0]
-		key := pdfFontKey{family: entry.Family, weight: entry.Weight, style: entry.Style}
-		return resolvedFont{data: entry.Data, key: key, found: true}
-	}
-	return resolvedFont{}
-}
-
-// fontInstanceKey generates a unique instance key for a resolved font.
-//
-// Takes key (pdfFontKey) which specifies the font to generate a key for.
-//
-// Returns string which holds the formatted instance key.
-func fontInstanceKey(key pdfFontKey) string {
-	return fmt.Sprintf("%s:%d:%d", key.family, key.weight, key.style)
-}
-
-// needsSyntheticBold reports whether synthetic bold strokes are needed.
-//
-// Takes requested (pdfFontKey) which specifies the requested font key.
-// Takes resolved (pdfFontKey) which specifies the actually resolved font key.
-//
-// Returns bool which indicates whether the resolved font lacks bold weight.
-func needsSyntheticBold(requested pdfFontKey, resolved pdfFontKey) bool {
-	return requested.weight >= fontWeightBold && resolved.weight < fontWeightBold
-}
-
-// needsSyntheticItalic reports whether synthetic italic skew is needed.
-//
-// Takes requested (pdfFontKey) which specifies the requested font key.
-// Takes resolved (pdfFontKey) which specifies the actually resolved font key.
-//
-// Returns bool which indicates whether the resolved font lacks italic style.
-func needsSyntheticItalic(requested pdfFontKey, resolved pdfFontKey) bool {
-	return requested.style == int(layouter_domain.FontStyleItalic) && resolved.style == 0
 }
 
 // paintPageBoxes recursively paints boxes belonging to the given page.

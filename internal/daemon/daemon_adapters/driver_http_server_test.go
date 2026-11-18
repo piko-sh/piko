@@ -22,12 +22,21 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"io"
+	"net"
 	"net/http"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace/noop"
+)
+
+const (
+	serverTestTimeout = 10 * time.Second
 )
 
 func TestFormatServerURL_PortOnly(t *testing.T) {
@@ -314,5 +323,231 @@ func TestDriverHTTPServerAdapter_CreateListener(t *testing.T) {
 			adapter.logServerReady(context.Background(), listener.Addr().String())
 			assert.NotEmpty(t, listener.Addr().String())
 		})
+	}
+}
+
+func reserveLoopbackAddress(t *testing.T) string {
+	t.Helper()
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	address := listener.Addr().String()
+	require.NoError(t, listener.Close())
+	return address
+}
+
+func startServerAdapter(
+	t *testing.T,
+	ctx context.Context,
+	adapter *driverHTTPServerAdapter,
+	address string,
+	handler http.Handler,
+) <-chan error {
+	t.Helper()
+
+	served := make(chan error, 1)
+	go func() {
+		served <- adapter.ListenAndServe(ctx, address, handler)
+	}()
+
+	select {
+	case <-adapter.Bound():
+	case err := <-served:
+		require.FailNow(t, "server stopped before binding", "error: %v", err)
+	case <-time.After(serverTestTimeout):
+		require.FailNow(t, "server did not bind in time")
+	}
+	return served
+}
+
+func awaitServerStop(t *testing.T, served <-chan error) error {
+	t.Helper()
+
+	select {
+	case err := <-served:
+		return err
+	case <-time.After(serverTestTimeout):
+		require.FailNow(t, "server did not stop in time")
+		return nil
+	}
+}
+
+func TestDriverHTTPServerAdapter_ServesUntilShutdown(t *testing.T) {
+	t.Parallel()
+
+	address := reserveLoopbackAddress(t)
+	var boundAddress atomic.Value
+	adapter := &driverHTTPServerAdapter{purpose: serverPurposeMain}
+	adapter.SetOnBound(func(bound string) { boundAddress.Store(bound) })
+
+	served := startServerAdapter(t, t.Context(), adapter, address, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusTeapot)
+	}))
+
+	assert.Equal(t, address, boundAddress.Load())
+
+	client := &http.Client{Timeout: serverTestTimeout}
+	t.Cleanup(client.CloseIdleConnections)
+	request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "http://"+address+"/", nil)
+	require.NoError(t, err)
+	response, err := client.Do(request)
+	require.NoError(t, err)
+	_, _ = io.Copy(io.Discard, response.Body)
+	require.NoError(t, response.Body.Close())
+	assert.Equal(t, http.StatusTeapot, response.StatusCode)
+
+	client.CloseIdleConnections()
+	require.NoError(t, adapter.Shutdown(t.Context()))
+
+	err = awaitServerStop(t, served)
+	assert.ErrorIs(t, err, http.ErrServerClosed)
+}
+
+func TestDriverHTTPServerAdapter_ReportsTheResolvedAddressWhenBound(t *testing.T) {
+	t.Parallel()
+
+	var boundAddress atomic.Value
+	adapter := &driverHTTPServerAdapter{purpose: serverPurposeMain}
+	adapter.SetOnBound(func(bound string) { boundAddress.Store(bound) })
+
+	served := startServerAdapter(t, t.Context(), adapter, "127.0.0.1:0", http.NotFoundHandler())
+
+	reported, ok := boundAddress.Load().(string)
+	require.True(t, ok, "onBound was not called with an address")
+	host, port, err := net.SplitHostPort(reported)
+	require.NoError(t, err)
+	assert.Equal(t, "127.0.0.1", host)
+	assert.NotEqual(t, "0", port, "the real port should be reported, not the requested port zero")
+
+	require.NoError(t, adapter.Shutdown(t.Context()))
+	err = awaitServerStop(t, served)
+	assert.ErrorIs(t, err, http.ErrServerClosed)
+}
+
+func TestDriverHTTPServerAdapter_StopsWhenTheContextIsCancelled(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	adapter := &driverHTTPServerAdapter{purpose: serverPurposeHealth}
+	served := startServerAdapter(t, ctx, adapter, reserveLoopbackAddress(t), http.NotFoundHandler())
+
+	cancel()
+
+	err := awaitServerStop(t, served)
+	assert.ErrorIs(t, err, http.ErrServerClosed)
+}
+
+func TestDriverHTTPServerAdapter_ReportsABindFailure(t *testing.T) {
+	t.Parallel()
+
+	occupied, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = occupied.Close() })
+
+	adapter := &driverHTTPServerAdapter{purpose: serverPurposeMain}
+	bound := adapter.Bound()
+
+	err = adapter.ListenAndServe(t.Context(), occupied.Addr().String(), http.NotFoundHandler())
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "creating listener")
+	select {
+	case <-bound:
+		assert.Fail(t, "the bound channel must not close when the bind fails")
+	default:
+	}
+}
+
+func TestDriverHTTPServerAdapter_ShutdownReportsAnExpiredContext(t *testing.T) {
+	t.Parallel()
+
+	entered := make(chan struct{})
+	release := make(chan struct{})
+	address := reserveLoopbackAddress(t)
+	adapter := &driverHTTPServerAdapter{purpose: serverPurposeMain}
+	served := startServerAdapter(t, t.Context(), adapter, address, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		close(entered)
+		<-release
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	client := &http.Client{Timeout: serverTestTimeout}
+	t.Cleanup(client.CloseIdleConnections)
+	requestDone := make(chan struct{})
+	go func() {
+		defer close(requestDone)
+		request, err := http.NewRequestWithContext(context.WithoutCancel(t.Context()), http.MethodGet, "http://"+address+"/", nil)
+		if err != nil {
+			return
+		}
+		response, err := client.Do(request)
+		if err != nil {
+			return
+		}
+		_, _ = io.Copy(io.Discard, response.Body)
+		_ = response.Body.Close()
+	}()
+
+	select {
+	case <-entered:
+	case <-time.After(serverTestTimeout):
+		require.FailNow(t, "request did not reach the handler in time")
+	}
+
+	expired, cancel := context.WithCancel(t.Context())
+	cancel()
+	shutdownErr := adapter.Shutdown(expired)
+
+	close(release)
+	<-requestDone
+	require.Error(t, shutdownErr)
+	assert.ErrorIs(t, shutdownErr, context.Canceled)
+
+	assert.ErrorIs(t, awaitServerStop(t, served), http.ErrServerClosed)
+	require.NoError(t, adapter.Shutdown(t.Context()))
+}
+
+func TestDriverHTTPServerAdapter_MarkBoundIsIdempotent(t *testing.T) {
+	t.Parallel()
+
+	adapter := &driverHTTPServerAdapter{}
+	adapter.markBound()
+
+	assert.NotPanics(t, adapter.markBound, "the port retry loop can bind more than once")
+	select {
+	case <-adapter.Bound():
+	default:
+		assert.Fail(t, "the bound channel must be closed after binding")
+	}
+}
+
+func TestDriverHTTPServerAdapter_RecordServerSpanAttributes(t *testing.T) {
+	t.Parallel()
+
+	handler := http.NotFoundHandler()
+
+	for _, tlsConfig := range []*TLSAdapterConfig{nil, {MinVersion: tls.VersionTLS13}} {
+		adapter := &driverHTTPServerAdapter{tlsConfig: tlsConfig}
+		server := adapter.buildServer(t.Context(), ":0", handler)
+
+		assert.NotPanics(t, func() { adapter.recordServerSpanAttributes(noop.Span{}, server) })
+	}
+}
+
+func TestHTTPServerErrorWriter_Write(t *testing.T) {
+	t.Parallel()
+
+	writer := &httpServerErrorWriter{}
+
+	for _, message := range []string{
+		"http: TLS handshake error from 127.0.0.1:1234: EOF\n",
+		"http: Accept error: too many open files\n",
+	} {
+		written, err := writer.Write([]byte(message))
+
+		require.NoError(t, err)
+		assert.Equal(t, len(message), written)
 	}
 }

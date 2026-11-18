@@ -11,10 +11,7 @@ import (
 
 	"piko.sh/piko"
 	pikobinder "piko.sh/piko/wdk/binder"
-	"piko.sh/piko/wdk/logger"
 )
-
-var pikoActionLog = logger.GetLogger("piko/actions")
 
 func invokeContextRead(ctx context.Context, action any, argsMap map[string]any) (any, error) {
 	key, _ := argsMap["key"].(string)
@@ -22,10 +19,8 @@ func invokeContextRead(ctx context.Context, action any, argsMap map[string]any) 
 	return a.Call(key)
 }
 func invokeLogWrite(ctx context.Context, action any, argsMap map[string]any) (any, error) {
-	ctx, l := logger.From(ctx, pikoActionLog)
 	var input log_107e3be5.WriteInput
 	if err := pikobinder.BindMap(ctx, &input, pikobinder.ActionInputSource(argsMap, "input"), pikobinder.IgnoreUnknownKeys(true), pikobinder.WithDocumentScaleLimits(), pikobinder.WithValidation(true)); err != nil {
-		l.Warn("Failed to bind action parameter", logger.String("param", "input"), logger.Error(err))
 		return nil, err
 	}
 	a := action.(*log_107e3be5.WriteAction)
@@ -40,20 +35,16 @@ func invokeMultipartSend(ctx context.Context, action any, argsMap map[string]any
 	return a.Call(attachment)
 }
 func invokePikobinderBind(ctx context.Context, action any, argsMap map[string]any) (any, error) {
-	ctx, l := logger.From(ctx, pikoActionLog)
 	var input pikobinder_7d00b3bf.BindInput
 	if err := pikobinder.BindMap(ctx, &input, pikobinder.ActionInputSource(argsMap, "input"), pikobinder.IgnoreUnknownKeys(true), pikobinder.WithDocumentScaleLimits(), pikobinder.WithValidation(true)); err != nil {
-		l.Warn("Failed to bind action parameter", logger.String("param", "input"), logger.Error(err))
 		return nil, err
 	}
 	a := action.(*pikobinder_7d00b3bf.BindAction)
 	return a.Call(input)
 }
 func invokeReflectScan(ctx context.Context, action any, argsMap map[string]any) (any, error) {
-	ctx, l := logger.From(ctx, pikoActionLog)
 	var input reflect_5a35ffe5.ScanInput
 	if err := pikobinder.BindMap(ctx, &input, pikobinder.ActionInputSource(argsMap, "input"), pikobinder.IgnoreUnknownKeys(true), pikobinder.WithDocumentScaleLimits(), pikobinder.WithValidation(true)); err != nil {
-		l.Warn("Failed to bind action parameter", logger.String("param", "input"), logger.Error(err))
 		return nil, err
 	}
 	a := action.(*reflect_5a35ffe5.ScanAction)

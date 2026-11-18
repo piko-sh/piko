@@ -48,6 +48,40 @@ const (
 
 	// purgeLimit caps how many tasks the purge case deletes.
 	purgeLimit = 100
+
+	// fencedID is the task the claim fencing case claims with stale and repeated attempts.
+	fencedID = "fenced"
+
+	// staleClaimAttempt is an attempt number the fenced task has not reached.
+	staleClaimAttempt = 3
+
+	// deferredID is the retrying task the premature claim case claims before it is due.
+	deferredID = "deferred"
+
+	// latestRerunID is the most recent rerun request the busy rerun case submits.
+	latestRerunID = "busy-rerun-2"
+
+	// movedID is the task the stale write case moves on from under a writer.
+	movedID = "moved"
+
+	// fatalFailureID is the task the build failure case marks as fatally failed.
+	fatalFailureID = "f2"
+
+	// waitedOnID is the terminal task the purge case keeps because a receipt waits on it.
+	waitedOnID = "old-waited-on"
+
+	// orphanStaleAge is how long the orphan case lets an unleased task sit.
+	orphanStaleAge = 30 * time.Second
+
+	// leaseRenewDelay is how long the node lease case waits before renewing its lease.
+	leaseRenewDelay = 50 * time.Second
+
+	// leaseRenewedCheckDelay is how long after renewing the node lease case checks the lease
+	// has not lapsed.
+	leaseRenewedCheckDelay = 30 * time.Second
+
+	// purgeCutoffAge is how old a terminal task must be for the purge case to delete it.
+	purgeCutoffAge = 30 * time.Minute
 )
 
 // claim claims a task's attempt for owner at the harness clock's time, failing the test
@@ -107,34 +141,34 @@ func claimCases() []testCase {
 			assert.Equal(t, nodeA, got.OwnerInstance)
 		}},
 		{name: "claim/stale-or-repeated-delivery-is-obsolete", run: func(t *testing.T, h *Harness) {
-			h.create(t, h.newTask("fenced"))
-			_, err := h.Store.ClaimTask(t.Context(), orchestrator_domain.ClaimRequest{Now: h.Clock.Now(), ID: "fenced", Owner: nodeA, Attempt: 3, DueTolerance: 0, Into: nil})
+			h.create(t, h.newTask(fencedID))
+			_, err := h.Store.ClaimTask(t.Context(), orchestrator_domain.ClaimRequest{Now: h.Clock.Now(), ID: fencedID, Owner: nodeA, Attempt: staleClaimAttempt, DueTolerance: 0, Into: nil})
 			require.ErrorIs(t, err, orchestrator_domain.ErrObsoleteDelivery, "an attempt the task is not at")
-			assert.Equal(t, orchestrator_domain.StatusPending, h.get(t, "fenced").Status, "a refused claim writes nothing")
+			assert.Equal(t, orchestrator_domain.StatusPending, h.get(t, fencedID).Status, "a refused claim writes nothing")
 
-			h.claim(t, "fenced", 0, nodeA)
-			_, err = h.Store.ClaimTask(t.Context(), orchestrator_domain.ClaimRequest{Now: h.Clock.Now(), ID: "fenced", Owner: "node-b", Attempt: 0, DueTolerance: 0, Into: nil})
+			h.claim(t, fencedID, 0, nodeA)
+			_, err = h.Store.ClaimTask(t.Context(), orchestrator_domain.ClaimRequest{Now: h.Clock.Now(), ID: fencedID, Owner: "node-b", Attempt: 0, DueTolerance: 0, Into: nil})
 			require.ErrorIs(t, err, orchestrator_domain.ErrObsoleteDelivery, "a second delivery of the same attempt")
-			assert.Equal(t, nodeA, h.get(t, "fenced").OwnerInstance)
+			assert.Equal(t, nodeA, h.get(t, fencedID).OwnerInstance)
 
 			_, err = h.Store.ClaimTask(t.Context(), orchestrator_domain.ClaimRequest{Now: h.Clock.Now(), ID: "ghost", Owner: nodeA, Attempt: 0, DueTolerance: 0, Into: nil})
 			require.ErrorIs(t, err, orchestrator_domain.ErrObsoleteDelivery, "a task that does not exist")
 		}},
 		{name: "claim/deferred-before-due-is-premature", run: func(t *testing.T, h *Harness) {
-			task := h.newTask("deferred")
+			task := h.newTask(deferredID)
 			task.Status = orchestrator_domain.StatusRetrying
 			task.Attempt = 1
 			task.ExecuteAt = h.Clock.Now().Add(time.Minute)
 			h.create(t, task)
 
-			early, err := h.Store.ClaimTask(t.Context(), orchestrator_domain.ClaimRequest{Now: h.Clock.Now(), ID: "deferred", Owner: nodeA, Attempt: 1, DueTolerance: 0, Into: nil})
+			early, err := h.Store.ClaimTask(t.Context(), orchestrator_domain.ClaimRequest{Now: h.Clock.Now(), ID: deferredID, Owner: nodeA, Attempt: 1, DueTolerance: 0, Into: nil})
 			require.ErrorIs(t, err, orchestrator_domain.ErrPrematureDelivery)
 			require.NotNil(t, early, "a premature claim reports the stored task so the delivery can be deferred")
 			assert.True(t, early.ExecuteAt.Equal(task.ExecuteAt), "execute_at %s", early.ExecuteAt)
-			assert.Equal(t, orchestrator_domain.StatusRetrying, h.get(t, "deferred").Status)
+			assert.Equal(t, orchestrator_domain.StatusRetrying, h.get(t, deferredID).Status)
 
 			claimed, err := h.Store.ClaimTask(t.Context(), orchestrator_domain.ClaimRequest{
-				Now: h.Clock.Now(), ID: "deferred", Owner: nodeA, Attempt: 1, DueTolerance: 2 * time.Minute, Into: nil,
+				Now: h.Clock.Now(), ID: deferredID, Owner: nodeA, Attempt: 1, DueTolerance: 2 * time.Minute, Into: nil,
 			})
 			require.NoError(t, err, "the due tolerance absorbs clock skew between nodes")
 			assert.Equal(t, 2, claimed.Attempt)
@@ -279,7 +313,7 @@ func rerunCases() []testCase {
 			h.create(t, task)
 			claimed := h.claim(t, "busy", 0, nodeA)
 
-			for _, id := range []string{"busy-rerun-1", "busy-rerun-2"} {
+			for _, id := range []string{"busy-rerun-1", latestRerunID} {
 				recorded, err := h.Store.RequestRerun(t.Context(), "dedup:busy", orchestrator_domain.RerunRequest{
 					ID: id, Payload: map[string]any{"version": id}, Config: task.Config,
 				})
@@ -290,13 +324,13 @@ func rerunCases() []testCase {
 			outcome, err := h.Store.SettleTask(t.Context(), orchestrator_domain.Settlement{Task: h.settled(claimed, orchestrator_domain.StatusComplete), Successor: nil})
 			require.NoError(t, err)
 			require.NotNil(t, outcome.Rerun)
-			assert.Equal(t, "busy-rerun-2", outcome.Rerun.ID, "only the latest request is kept")
+			assert.Equal(t, latestRerunID, outcome.Rerun.ID, "only the latest request is kept")
 
-			rerun := h.get(t, "busy-rerun-2")
+			rerun := h.get(t, latestRerunID)
 			assert.Equal(t, orchestrator_domain.StatusPending, rerun.Status)
 			assert.Equal(t, "dedup:busy", rerun.DeduplicationKey, "the rerun holds the key the settled task released")
 			assert.Equal(t, testBuild, rerun.BuildTag)
-			assert.Equal(t, map[string]any{"version": "busy-rerun-2"}, rerun.Payload)
+			assert.Equal(t, map[string]any{"version": latestRerunID}, rerun.Payload)
 			assert.Nil(t, h.get(t, "busy").Rerun, "the request is cleared once its rerun exists")
 		}},
 		{name: "rerun/no-active-holder-is-not-recorded", run: func(t *testing.T, h *Harness) {
@@ -376,8 +410,8 @@ func transitionCases() []testCase {
 // Takes t (*testing.T) which reports test failures.
 // Takes h (*Harness) which holds the store under test.
 func checkTransitionFenced(t *testing.T, h *Harness) {
-	h.create(t, h.newTask("moved"))
-	failed := h.newTask("moved")
+	h.create(t, h.newTask(movedID))
+	failed := h.newTask(movedID)
 	failed.Status = orchestrator_domain.StatusFailed
 	failed.LastError = "could not publish"
 
@@ -392,13 +426,13 @@ func checkTransitionFenced(t *testing.T, h *Harness) {
 		Task: &stale, From: []orchestrator_domain.TaskStatus{orchestrator_domain.StatusPending},
 	})
 	require.ErrorIs(t, err, orchestrator_domain.ErrObsoleteDelivery, "the task is not at the expected attempt")
-	assert.Equal(t, orchestrator_domain.StatusPending, h.get(t, "moved").Status)
+	assert.Equal(t, orchestrator_domain.StatusPending, h.get(t, movedID).Status)
 
 	_, err = h.Store.TransitionTask(t.Context(), orchestrator_domain.Transition{
 		Task: failed, From: []orchestrator_domain.TaskStatus{orchestrator_domain.StatusPending},
 	})
 	require.NoError(t, err)
-	got := h.get(t, "moved")
+	got := h.get(t, movedID)
 	assert.Equal(t, orchestrator_domain.StatusFailed, got.Status)
 	assert.Equal(t, "could not publish", got.LastError)
 
@@ -448,7 +482,7 @@ func completionCases() []testCase {
 			assert.Equal(t, int64(unsettledInBuild-1), count)
 		}},
 		{name: "build/list-failed-for-build", run: func(t *testing.T, h *Harness) {
-			for _, spec := range []struct{ id, tag string }{{"f1", testBuild}, {"f2", testBuild}, {"f3", "build-2"}} {
+			for _, spec := range []struct{ id, tag string }{{"f1", testBuild}, {fatalFailureID, testBuild}, {"f3", "build-2"}} {
 				task := h.newTask(spec.id)
 				task.Status = orchestrator_domain.StatusFailed
 				task.BuildTag = spec.tag
@@ -463,8 +497,8 @@ func completionCases() []testCase {
 				ids[task.ID] = task
 			}
 			require.Len(t, ids, 2)
-			require.Contains(t, ids, "f2")
-			assert.True(t, ids["f2"].IsFatal)
+			require.Contains(t, ids, fatalFailureID)
+			assert.True(t, ids[fatalFailureID].IsFatal)
 			assert.Equal(t, "failed f1", ids["f1"].LastError)
 		}},
 	}
@@ -503,7 +537,7 @@ func maintenanceCases() []testCase {
 			h.create(t, h.newTask("owned"))
 			h.claim(t, "owned", 0, nodeA)
 			h.newProcessing(t, "ownerless", 1)
-			h.Clock.Advance(30 * time.Second)
+			h.Clock.Advance(orphanStaleAge)
 
 			query := orchestrator_domain.OrphanQuery{Now: h.Clock.Now(), StaleBefore: h.Clock.Now(), Limit: pageLimit}
 			orphans, err := h.Store.ListOrphanedTasks(ctx, query)
@@ -586,11 +620,11 @@ func checkNodeLeaseLifecycle(t *testing.T, h *Harness) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(2), touched)
 
-	h.Clock.Advance(50 * time.Second)
+	h.Clock.Advance(leaseRenewDelay)
 	lease.RenewedAt = h.Clock.Now()
 	lease.ExpiresAt = h.Clock.Now().Add(time.Minute)
 	require.NoError(t, h.Store.RenewNode(ctx, lease))
-	h.Clock.Advance(30 * time.Second)
+	h.Clock.Advance(leaseRenewedCheckDelay)
 	expired, err := h.Store.ListExpiredNodes(ctx, h.Clock.Now(), pageLimit)
 	require.NoError(t, err)
 	assert.Empty(t, expired, "a renewed lease has not lapsed")
@@ -617,28 +651,28 @@ func checkPurgeTerminal(t *testing.T, h *Harness) {
 	}{
 		{"old-done", orchestrator_domain.StatusComplete},
 		{"old-failed", orchestrator_domain.StatusFailed},
-		{"old-waited-on", orchestrator_domain.StatusComplete},
+		{waitedOnID, orchestrator_domain.StatusComplete},
 		{"old-pending", orchestrator_domain.StatusPending},
 	} {
 		task := h.newTask(spec.id)
 		task.Status = spec.status
 		h.create(t, task)
 	}
-	require.NoError(t, h.Store.CreateWorkflowReceipt(ctx, "receipt", "old-waited-on", nodeA))
+	require.NoError(t, h.Store.CreateWorkflowReceipt(ctx, "receipt", waitedOnID, nodeA))
 	h.Clock.Advance(time.Hour)
 	fresh := h.newTask("fresh-done")
 	fresh.Status = orchestrator_domain.StatusComplete
 	h.create(t, fresh)
 
-	purged, err := h.Store.PurgeTerminal(ctx, h.Clock.Now().Add(-30*time.Minute), purgeLimit)
+	purged, err := h.Store.PurgeTerminal(ctx, h.Clock.Now().Add(-purgeCutoffAge), purgeLimit)
 	require.NoError(t, err)
 	assert.Equal(t, 2, purged)
-	rows, err := h.Store.GetTasksByID(ctx, []string{"old-done", "old-failed", "old-waited-on", "old-pending", "fresh-done"})
+	rows, err := h.Store.GetTasksByID(ctx, []string{"old-done", "old-failed", waitedOnID, "old-pending", "fresh-done"})
 	require.NoError(t, err)
 	kept := make([]string, 0, len(rows))
 	for _, row := range rows {
 		kept = append(kept, row.ID)
 	}
-	assert.ElementsMatch(t, []string{"old-waited-on", "old-pending", "fresh-done"}, kept,
+	assert.ElementsMatch(t, []string{waitedOnID, "old-pending", "fresh-done"}, kept,
 		"active tasks, recent tasks and tasks a receipt still waits on are kept")
 }

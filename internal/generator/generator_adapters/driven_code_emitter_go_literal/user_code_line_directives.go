@@ -39,8 +39,8 @@ const (
 	// are mapped to .pk lines.
 	maxStatementMappingDepth = 512
 
-	// lineDirectiveResetOverhead is the length of a reset directive without its path,
-	// used to size the output buffer.
+	// lineDirectiveResetOverhead is the length of a reset directive without its path, used
+	// to size the output buffer.
 	lineDirectiveResetOverhead = len("//line :\n") + 10
 )
 
@@ -80,8 +80,8 @@ type userCodeStatementMapper struct {
 	// scriptStartLine is the .pk line on which the script content starts.
 	scriptStartLine int
 
-	// mismatchedStatements counts statement pairs that could not be matched, so their
-	// nested statements were left unmapped.
+	// mismatchedStatements counts statement pairs that could not be matched, so their nested
+	// statements were left unmapped.
 	mismatchedStatements int
 
 	// depthLimitReached records that nesting went past maxStatementMappingDepth.
@@ -209,8 +209,8 @@ func (m *userCodeStatementMapper) mapStatement(original, rewritten goast.Stmt, d
 // Takes rewritten (goast.Stmt) which is the matching rewritten statement.
 // Takes depth (int) which is the nesting depth of the statement.
 //
-// Returns goast.Stmt which is a copy with a mapped body, or rewritten unchanged when it is
-// not a loop, switch or select statement or the two statements differ in kind.
+// Returns goast.Stmt which is a copy with a mapped body, or rewritten unchanged when it
+// is not a loop, switch or select statement or the two statements differ in kind.
 func (m *userCodeStatementMapper) mapBodiedStatement(original, rewritten goast.Stmt, depth int) goast.Stmt {
 	switch rewrittenStatement := rewritten.(type) {
 	case *goast.ForStmt:

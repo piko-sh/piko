@@ -439,6 +439,12 @@ type RateLimitConfig struct {
 	// true.
 	HeadersEnabled *bool `json:"headersEnabled" yaml:"headersEnabled" default:"true" env:"PIKO_RATE_LIMIT_HEADERS_ENABLED" flag:"rateLimitHeaders" usage:"Include rate limit headers in responses."`
 
+	// IPv6PrefixBits sets how many leading IPv6 address bits identify one caller.
+	//
+	// A subscriber usually holds a whole /64, so using the full address could spread one
+	// caller's requests over many keys. Values must be from 1 to 128. The default is 64.
+	IPv6PrefixBits *int `json:"ipv6PrefixBits" yaml:"ipv6PrefixBits" default:"64" env:"PIKO_RATE_LIMIT_IPV6_PREFIX_BITS" flag:"rateLimitIPv6PrefixBits" usage:"Leading IPv6 address bits that identify one rate limited caller (1-128)." validate:"omitempty,gte=1,lte=128"`
+
 	// TrustedProxies is a list of CIDR ranges trusted to set X-Forwarded-For headers. When a
 	// request comes from these CIDRs, forwarding headers are used to extract the real client
 	// IP address.
@@ -501,8 +507,8 @@ type SandboxConfig struct {
 	// inside them (default: true); links that leave a sandbox are always refused.
 	//
 	// Setting it to false also refuses links within a sandbox, which breaks pnpm
-	// node_modules, symlinked project directories and Kubernetes secret mounts. The check
-	// is not atomic, so it narrows but does not close the window for a racing process.
+	// node_modules, symlinked project directories and Kubernetes secret mounts. The check is
+	// not atomic, so it narrows but does not close the window for a racing process.
 	AllowSymlinks *bool `json:"allowSymlinks" yaml:"allowSymlinks" default:"true" env:"PIKO_SANDBOX_ALLOW_SYMLINKS" flag:"sandboxAllowSymlinks" usage:"Allow following symbolic links that stay inside sandboxed directories."`
 
 	// AllowedPaths is a list of additional absolute or relative paths accessible to

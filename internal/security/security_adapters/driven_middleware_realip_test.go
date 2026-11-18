@@ -19,8 +19,10 @@
 package security_adapters
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -246,6 +248,76 @@ func TestRealIPMiddleware_Handler_RequestIDIncrements(t *testing.T) {
 	require.NotEmpty(t, id1)
 	require.NotEmpty(t, id2)
 	assert.NotEqual(t, id1, id2, "sequential requests should have different request IDs")
+}
+
+func TestRealIPMiddleware_Handler_RequestIDsUniqueUnderConcurrency(t *testing.T) {
+	t.Parallel()
+
+	extractor := &mockClientIPExtractor{
+		extractFunc: func(_ *http.Request) string { return "1.2.3.4" },
+	}
+	mw := NewRealIPMiddleware(extractor)
+
+	var mu sync.Mutex
+	seen := make(map[string]struct{})
+	duplicates := 0
+	handler := mw.Handler(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+		requestID := security_dto.RequestIDFromRequest(r)
+		mu.Lock()
+		defer mu.Unlock()
+		if _, ok := seen[requestID]; ok {
+			duplicates++
+		}
+		seen[requestID] = struct{}{}
+	}))
+
+	const goroutineCount = 8
+	const perGoroutine = 250
+
+	var waitGroup sync.WaitGroup
+	for range goroutineCount {
+		waitGroup.Go(func() {
+			for range perGoroutine {
+				handler.ServeHTTP(httptest.NewRecorder(), testRequestWithPikoCtx())
+			}
+		})
+	}
+	waitGroup.Wait()
+
+	assert.Zero(t, duplicates, "every request should get a distinct request ID")
+	assert.Len(t, seen, goroutineCount*perGoroutine)
+}
+
+func TestRealIPMiddleware_Handler_FallsBackWhenSequenceFails(t *testing.T) {
+	t.Parallel()
+
+	extractor := &mockClientIPExtractor{
+		extractFunc: func(_ *http.Request) string { return "1.2.3.4" },
+	}
+	mw := NewRealIPMiddleware(extractor)
+	calls := 0
+	mw.nextCounter = func() (uint64, error) {
+		calls++
+		return 0, errors.New("sequence exhausted")
+	}
+
+	var counters []uint64
+	handler := mw.Handler(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+		pctx := daemon_dto.PikoRequestCtxFromContext(r.Context())
+		require.NotNil(t, pctx)
+		counters = append(counters, pctx.RequestIDCounter)
+		assert.Contains(t, security_dto.RequestIDFromRequest(r), "/",
+			"the fallback id should keep the server-generated format")
+	}))
+
+	handler.ServeHTTP(httptest.NewRecorder(), testRequestWithPikoCtx())
+	handler.ServeHTTP(httptest.NewRecorder(), testRequestWithPikoCtx())
+
+	assert.Equal(t, 2, calls, "the sequence should be tried on every request")
+	require.Len(t, counters, 2)
+	assert.NotZero(t, counters[0])
+	assert.NotZero(t, counters[1])
+	assert.True(t, mw.counterFailureLogged.Load(), "the failure should be logged")
 }
 
 func TestRealIPMiddleware_Handler_CallsNext(t *testing.T) {

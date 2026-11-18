@@ -27,7 +27,7 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v3"
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 // unmarshalerFunc is a function type that converts bytes into a value.

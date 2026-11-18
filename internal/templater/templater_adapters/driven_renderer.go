@@ -24,10 +24,10 @@ import (
 	"net/http"
 	"strings"
 
+	"piko.sh/json"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/email/email_dto"
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/render/render_dto"
 	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/internal/templater/templater_dto"

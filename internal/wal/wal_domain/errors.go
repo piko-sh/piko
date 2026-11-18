@@ -52,6 +52,10 @@ var (
 	// ErrCodecRequired indicates a codec must be provided for the WAL.
 	ErrCodecRequired = errors.New("wal: codec is required")
 
+	// ErrQueueStalled indicates the write queue stayed full for longer than the queue
+	// timeout, which happens when the disk stops taking writes.
+	ErrQueueStalled = errors.New("wal: write queue stalled")
+
 	// ErrWriterInBadState indicates the WAL encountered a fatal I/O error and rejects all
 	// subsequent writes. The WAL file may be in an inconsistent state and should not be
 	// written to further.

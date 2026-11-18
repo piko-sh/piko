@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
 	"slices"
 	"sync"
 	"time"
@@ -33,12 +34,12 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
+	"piko.sh/json"
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/captcha/captcha_dto"
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/daemon/daemon_dto"
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/security/security_domain"
 	"piko.sh/piko/internal/security/security_dto"
@@ -49,6 +50,45 @@ import (
 const (
 	// httpErrorStatusThreshold is the minimum HTTP status code considered an error.
 	httpErrorStatusThreshold = 400
+
+	// httpMaxErrorStatus is the largest HTTP status code an action may answer with.
+	httpMaxErrorStatus = 599
+
+	// errorCodeInternal is the machine-readable code for a failure on the server side.
+	errorCodeInternal = "INTERNAL_ERROR"
+
+	// errorCodePayloadTooLarge is the machine-readable code for a request body that is
+	// larger than the action accepts.
+	errorCodePayloadTooLarge = "PAYLOAD_TOO_LARGE"
+
+	// payloadTooLargeMessage is the message a client is shown for an oversized body.
+	payloadTooLargeMessage = "Request body too large"
+
+	// responseKeyStatus is the JSON key for the HTTP status in an error response.
+	responseKeyStatus = "status"
+
+	// responseKeyCode is the JSON key for the machine-readable code in an error response.
+	responseKeyCode = "code"
+
+	// responseKeyMessage is the JSON key for the message in an error response.
+	responseKeyMessage = "message"
+
+	// logFieldStatus is the log attribute key for the HTTP status a request is answered
+	// with.
+	logFieldStatus = "status"
+
+	// logFieldCode is the log attribute key for the machine-readable error code.
+	logFieldCode = "code"
+
+	// logFieldInvalidStatus is the log attribute key for an action error status that was
+	// outside 400 to 599 and so was replaced with 500.
+	logFieldInvalidStatus = "invalid_status"
+
+	// logFieldLimitBytes is the log attribute key for a body size limit, in bytes.
+	logFieldLimitBytes = "limit_bytes"
+
+	// maxErrorTreeDepth bounds how deep isRequestFault walks a tree of wrapped errors.
+	maxErrorTreeDepth = 32
 
 	// attributeKeyAction is the attribute key for action names in logs and metrics.
 	attributeKeyAction = "action"
@@ -119,6 +159,10 @@ var (
 	// errJSONDepthExceeded is returned when a request body's structural nesting exceeds the
 	// configured depth limit. It is wrapped with context before being surfaced to callers.
 	errJSONDepthExceeded = errors.New("JSON nesting depth exceeded")
+
+	// actionErrorType lets isRequestFault tell an action error apart from an error that only
+	// wraps one.
+	actionErrorType = reflect.TypeFor[daemon_dto.ActionError]()
 )
 
 // ActionHandler is a generated-code friendly action handler that dispatches requests to
@@ -386,13 +430,13 @@ func (h *ActionHandler) handleHTTP(
 	entry ActionHandlerEntry,
 	span trace.Span,
 ) {
-	prepared, release, ok := h.prepareAction(ctx, w, request, entry, span)
+	prepared, release, ok := h.prepareAction(ctx, w, request, entry)
 	if !ok {
 		return
 	}
 	defer release()
 
-	ctx, l := logger_domain.From(prepared.Ctx, log)
+	ctx, _ = logger_domain.From(prepared.Ctx, log)
 
 	if h.handleCachedAction(ctx, w, prepared.Request, cachedActionParams{
 		Action:          prepared.Action,
@@ -410,9 +454,7 @@ func (h *ActionHandler) handleHTTP(
 		return entry.Invoke(ctx, prepared.Action, prepared.Arguments)
 	})
 	if err != nil {
-		if !isRequestFault(err) {
-			l.ReportError(span, err, "Action execution failed")
-		}
+		reportActionFailure(ctx, span, entry.Name, err, "Action execution failed")
 		h.handleActionError(w, prepared.Request, prepared.Action, err)
 		h.recordSlowAction(ctx, entry.Name, prepared.StartTime, prepared.Limits.SlowThreshold)
 
@@ -557,9 +599,10 @@ func (h *ActionHandler) encodeActionResponse(
 	response any,
 	maxResponseSize int64,
 ) ([]byte, bool) {
+	ctx, l := logger_domain.From(ctx, log)
+
 	encoded, err := json.ConfigDefault.Marshal(response)
 	if err != nil {
-		_, l := logger_domain.From(ctx, log)
 		l.Error("Failed to encode the action response",
 			logger_domain.String(attributeKeyAction, actionName),
 			logger_domain.Error(err),
@@ -571,7 +614,6 @@ func (h *ActionHandler) encodeActionResponse(
 	}
 
 	if maxResponseSize > 0 && int64(len(encoded)) > maxResponseSize {
-		_, l := logger_domain.From(ctx, log)
 		l.Error("Action response exceeds its declared size limit",
 			logger_domain.String(attributeKeyAction, actionName),
 			logger_domain.Int("response_bytes", len(encoded)),
@@ -623,8 +665,8 @@ func (h *ActionHandler) acquireActionSlot(actionName string, maxConcurrent int) 
 func (h *ActionHandler) writeConcurrencyLimitError(w http.ResponseWriter) {
 	w.Header().Set("Retry-After", "1")
 	h.writeJSON(w, http.StatusServiceUnavailable, map[string]any{
-		"error":   "concurrency_limit",
-		"message": "This action is handling as many requests as it allows. Retry shortly.",
+		"error":            "concurrency_limit",
+		responseKeyMessage: "This action is handling as many requests as it allows. Retry shortly.",
 	})
 }
 
@@ -655,7 +697,6 @@ type preparedAction struct {
 // Takes w (http.ResponseWriter) which receives any rejection response.
 // Takes request (*http.Request) which is the incoming request.
 // Takes entry (ActionHandlerEntry) which creates the action and names it.
-// Takes span (trace.Span) which records failures.
 //
 // Returns preparedAction which holds the admitted request, valid only when ok is true.
 // Returns func() which releases the action's concurrency slot.
@@ -665,9 +706,8 @@ func (h *ActionHandler) prepareAction(
 	w http.ResponseWriter,
 	request *http.Request,
 	entry ActionHandlerEntry,
-	span trace.Span,
 ) (preparedAction, func(), bool) {
-	ctx, l := logger_domain.From(ctx, log)
+	ctx, _ = logger_domain.From(ctx, log)
 
 	action := entry.Create()
 	prepared := preparedAction{
@@ -699,8 +739,7 @@ func (h *ActionHandler) prepareAction(
 	arguments, err := h.parseRequestBody(request)
 	if err != nil {
 		release()
-		l.ReportError(span, err, "Failed to parse request body")
-		h.writeError(w, http.StatusBadRequest, "Invalid request body", err, isDevelopmentModeFromContext(ctx))
+		h.writeBodyError(ctx, w, err, "Invalid request body")
 
 		return preparedAction{}, nil, false
 	}
@@ -720,6 +759,34 @@ func (h *ActionHandler) prepareAction(
 	prepared.Arguments = arguments
 
 	return prepared, release, true
+}
+
+// writeBodyError answers a request whose body could not be read or decoded.
+//
+// A body larger than the limit answers 413 PAYLOAD_TOO_LARGE, and any other failure
+// answers 400. Both are the client's fault, so they are logged at info and never
+// reported. The 413 log names the limit but not the body.
+//
+// Takes w (http.ResponseWriter) which receives the error response.
+// Takes err (error) which is the read or decode failure.
+// Takes message (string) which is the message a 400 answer carries.
+func (h *ActionHandler) writeBodyError(ctx context.Context, w http.ResponseWriter, err error, message string) {
+	ctx, l := logger_domain.From(ctx, log)
+
+	if maxBytesErr, ok := errors.AsType[*http.MaxBytesError](err); ok {
+		l.Info("Request body is larger than the limit",
+			logger_domain.Int64(logFieldLimitBytes, maxBytesErr.Limit),
+		)
+		h.writeJSON(w, http.StatusRequestEntityTooLarge, map[string]any{
+			responseKeyStatus:  http.StatusRequestEntityTooLarge,
+			responseKeyCode:    errorCodePayloadTooLarge,
+			responseKeyMessage: payloadTooLargeMessage,
+		})
+		return
+	}
+
+	l.Info("Request body could not be parsed", logger_domain.Error(err))
+	h.writeError(w, http.StatusBadRequest, message, err, isDevelopmentModeFromContext(ctx))
 }
 
 // actionLimits holds the resource limits that apply to one action call.
@@ -875,7 +942,7 @@ func (h *ActionHandler) handleCachedAction(
 		return false
 	}
 
-	ctx, l := logger_domain.From(ctx, log)
+	ctx, _ = logger_domain.From(ctx, log)
 	cacheKey := h.buildCacheKey(request, p.Action, p.Args, p.Entry, cc)
 
 	if cached, found, _ := h.responseCache.GetIfPresent(ctx, cacheKey); found {
@@ -897,7 +964,7 @@ func (h *ActionHandler) handleCachedAction(
 		return p.Entry.Invoke(ctx, p.Action, p.Args)
 	})
 	if invokeErr != nil {
-		l.ReportError(p.Span, invokeErr, "Action execution failed")
+		reportActionFailure(ctx, p.Span, p.Entry.Name, invokeErr, "Action execution failed")
 		h.handleActionError(w, request, p.Action, invokeErr)
 		h.recordSlowAction(ctx, p.Entry.Name, p.StartTime, p.SlowThreshold)
 		return true
@@ -964,7 +1031,7 @@ func (h *ActionHandler) handleSSE(
 	entry ActionHandlerEntry,
 	span trace.Span,
 ) {
-	prepared, release, ok := h.prepareAction(ctx, w, request, entry, span)
+	prepared, release, ok := h.prepareAction(ctx, w, request, entry)
 	if !ok {
 		return
 	}
@@ -1011,12 +1078,10 @@ func (h *ActionHandler) bindSSEInput(
 		return true
 	}
 
-	ctx, l := logger_domain.From(ctx, log)
+	ctx, _ = logger_domain.From(ctx, log)
 
 	if bindErr := entry.Bind(ctx, action, arguments); bindErr != nil {
-		if !isRequestFault(bindErr) {
-			l.ReportError(span, bindErr, "SSE input binding failed")
-		}
+		reportActionFailure(ctx, span, entry.Name, bindErr, "SSE input binding failed")
 		h.handleActionError(w, request, action, bindErr)
 
 		return false
@@ -1112,7 +1177,7 @@ func (*ActionHandler) executeSSEStream(
 	stream.SetDevelopmentModeFromContext(ctx)
 
 	if err := sseCapable.StreamProgress(stream); err != nil {
-		l.ReportError(span, err, "SSE streaming failed")
+		reportActionFailure(ctx, span, entry.Name, err, "SSE streaming failed")
 
 		if sendErr := stream.SendError(err); sendErr != nil {
 			l.Warn("Failed to report the streaming failure to the client",
@@ -1214,4 +1279,286 @@ func (*ActionHandler) buildFullResponse(action any, result any) any {
 	}
 
 	return result
+}
+
+// isRequestFault reports whether err describes the request rather than the server.
+//
+// A request fault answers with a 4xx status. Every failure inside err must agree. Each
+// leaf of the error tree is an action error with a 4xx status, or a cancellation because
+// the client went away. An action that answers piko.NotFound after a database failure is
+// still a server fault, so the database failure is reported. A deadline is a server fault
+// too, since the server ran out of time.
+//
+// Reporting a request fault as a server error would attach a stack trace and mark the
+// span failed, which lets any caller drive the error rate and the log volume by sending
+// bad input.
+//
+// Takes err (error) which is the failure returned by an action invocation.
+//
+// Returns bool which is true when the request, not the server, is at fault.
+func isRequestFault(ctx context.Context, err error) bool {
+	if !isClientErrorStatus(extractErrorStatusCode(err)) {
+		return false
+	}
+	return leavesAreRequestFaults(err, 0, requestCancellationCause(ctx))
+}
+
+// leavesAreRequestFaults reports whether every leaf of an error tree describes the
+// request.
+//
+// An action error ends the walk, since it states the status it answers with. Below it, a
+// validation error may wrap the validator's own error, which says nothing about who is at
+// fault.
+//
+// Takes err (error) which is the node being checked.
+// Takes depth (int) which is how deep the walk has gone, bounded by maxErrorTreeDepth.
+// Takes cause (error) which is the request's own cancellation cause, or nil.
+//
+// Returns bool which is true when every leaf below err is a request fault.
+func leavesAreRequestFaults(err error, depth int, cause error) bool {
+	if err == nil || depth > maxErrorTreeDepth {
+		return false
+	}
+
+	if reflect.TypeOf(err).Implements(actionErrorType) {
+		actionErr, ok := errors.AsType[daemon_dto.ActionError](err)
+		return ok && isClientErrorStatus(actionErr.StatusCode())
+	}
+
+	children := unwrapChildren(err)
+	if len(children) == 0 {
+		return errors.Is(err, context.Canceled)
+	}
+	return childrenAgree(children, depth, cause, leavesAreRequestFaults)
+}
+
+// isClientAbort reports whether a failure only says that the client went away.
+//
+// The request context must have been cancelled, err must not hold a deadline, and every
+// leaf of err must be the cancellation or the request's own cancellation cause beside it.
+// Any other error beside the cancellation is a real failure and is still reported. A
+// deadline is not an abort, since the server ran out of time.
+//
+// Takes err (error) which is the failure returned by an action invocation.
+//
+// Returns bool which is true when the client, not the server, ended the request.
+func isClientAbort(ctx context.Context, err error) bool {
+	if !errors.Is(ctx.Err(), context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return false
+	}
+	return leavesAreClientAborts(err, 0, requestCancellationCause(ctx))
+}
+
+// leavesAreClientAborts reports whether every leaf of an error tree describes a client
+// that went away.
+//
+// Takes err (error) which is the node being checked.
+// Takes depth (int) which is how deep the walk has gone, bounded by maxErrorTreeDepth.
+// Takes cause (error) which is the request's own cancellation cause, or nil.
+//
+// Returns bool which is true when every leaf below err is part of the cancellation.
+func leavesAreClientAborts(err error, depth int, cause error) bool {
+	if err == nil || depth > maxErrorTreeDepth {
+		return false
+	}
+
+	children := unwrapChildren(err)
+	if len(children) == 0 {
+		return errors.Is(err, context.Canceled)
+	}
+	return childrenAgree(children, depth, cause, leavesAreClientAborts)
+}
+
+// childrenAgree reports whether every child of one error node passes check.
+//
+// A node that wraps context.Canceled may also wrap the cause given to the cancellation,
+// as in fmt.Errorf("%w: %w", ctx.Err(), context.Cause(ctx)). Only that exact cause is
+// part of the cancellation and is skipped. Any other error beside it is checked, so a
+// real failure that happens as the client leaves is still reported.
+//
+// Takes children ([]error) which are the errors one node wraps.
+// Takes depth (int) which is how deep the node is.
+// Takes cause (error) which is the request's own cancellation cause, or nil.
+// Takes check (func(error, int, error) bool) which checks one child.
+//
+// Returns bool which is true when every child passes.
+func childrenAgree(children []error, depth int, cause error, check func(error, int, error) bool) bool {
+	besideCancellation := slices.ContainsFunc(children, isCancellationLeaf)
+	for _, child := range children {
+		if besideCancellation && isCancellationCause(child, cause) {
+			continue
+		}
+		if !check(child, depth+1, cause) {
+			return false
+		}
+	}
+	return true
+}
+
+// requestCancellationCause returns the cause the request context was cancelled with.
+//
+// Returns error which is the custom cause, or nil when the context is live or was
+// cancelled without one.
+func requestCancellationCause(ctx context.Context) error {
+	cause := context.Cause(ctx)
+	if cause == nil || errors.Is(cause, context.Canceled) || errors.Is(cause, context.DeadlineExceeded) {
+		return nil
+	}
+	return cause
+}
+
+// isCancellationLeaf reports whether err is a cancellation that wraps nothing.
+//
+// Takes err (error) which is the error to check.
+//
+// Returns bool which is true for context.Canceled itself.
+func isCancellationLeaf(err error) bool {
+	return len(unwrapChildren(err)) == 0 && errors.Is(err, context.Canceled)
+}
+
+// isCancellationCause reports whether err is the request's own cancellation cause.
+//
+// Takes err (error) which is the error to check.
+// Takes cause (error) which is the request's cancellation cause, or nil.
+//
+// Returns bool which is true when err is a leaf matching cause.
+func isCancellationCause(err error, cause error) bool {
+	return cause != nil && len(unwrapChildren(err)) == 0 && errors.Is(err, cause)
+}
+
+// unwrapChildren returns the errors that err wraps directly, one level down.
+//
+// errors.As cannot be used here because it searches the whole tree, while the walk needs
+// to know what this one node wraps.
+//
+// Takes err (error) which is the node to open.
+//
+// Returns []error which holds the wrapped errors, or nil when err wraps nothing.
+func unwrapChildren(err error) []error {
+	var node any = err
+	switch wrapper := node.(type) {
+	case interface{ Unwrap() []error }:
+		return wrapper.Unwrap()
+	case interface{ Unwrap() error }:
+		if child := wrapper.Unwrap(); child != nil {
+			return []error{child}
+		}
+	}
+	return nil
+}
+
+// isClientErrorStatus reports whether status is a 4xx status.
+//
+// Takes status (int) which is the HTTP status to check.
+//
+// Returns bool which is true for 400 to 499.
+func isClientErrorStatus(status int) bool {
+	return status >= httpErrorStatusThreshold && status < http.StatusInternalServerError
+}
+
+// isSecurityRefusal reports whether status denotes refused credentials, access, or a rate
+// limit.
+//
+// Takes status (int) which is the HTTP status to check.
+//
+// Returns bool which is true for 401, 403 and 429.
+func isSecurityRefusal(status int) bool {
+	return status == http.StatusUnauthorized || status == http.StatusForbidden || status == http.StatusTooManyRequests
+}
+
+// reportActionFailure logs a failed action once, at the level its fault deserves.
+//
+// A client that went away is logged at debug and nothing more. A panic was already logged
+// with its stack where it was recovered, so it only marks the span failed. Any other
+// server fault is reported as an error with its stack, names a status outside 400 to 599
+// when the action chose one, and marks the span failed. A request fault is logged at
+// info, or at warn for a security refusal, with the action, status and code only, so no
+// value the client sent reaches the logs.
+//
+// Takes span (trace.Span) which is marked failed for a server fault.
+// Takes actionName (string) which names the action in the log.
+// Takes err (error) which is the failure.
+// Takes message (string) which describes where the failure happened.
+func reportActionFailure(ctx context.Context, span trace.Span, actionName string, err error, message string) {
+	ctx, l := logger_domain.From(ctx, log)
+
+	if isClientAbort(ctx, err) {
+		l.Debug("Action stopped because the client went away", logger_domain.String(attributeKeyAction, actionName))
+		return
+	}
+
+	if _, panicked := errors.AsType[*goroutine.PanicError](err); panicked {
+		markSpanFailed(span, err, message)
+		return
+	}
+
+	if !isRequestFault(ctx, err) {
+		l.ReportError(span, err, message, serverFaultAttrs(actionName, err)...)
+		return
+	}
+
+	status, code, _ := resolveActionErrorAnswer(err)
+	attrs := []logger_domain.Attr{
+		logger_domain.String(attributeKeyAction, actionName),
+		logger_domain.Int(logFieldStatus, status),
+		logger_domain.String(logFieldCode, code),
+	}
+	if isSecurityRefusal(status) {
+		l.Warn("Action refused the request", attrs...)
+		return
+	}
+	l.Info("Action refused the request", attrs...)
+}
+
+// serverFaultAttrs builds the attributes a reported server fault is logged with.
+//
+// An action error whose status is outside 400 to 599 is a bug in the action, so the
+// status it chose is named.
+//
+// Takes actionName (string) which names the action.
+// Takes err (error) which is the failure.
+//
+// Returns []logger_domain.Attr which holds the action and any invalid status.
+func serverFaultAttrs(actionName string, err error) []logger_domain.Attr {
+	attrs := []logger_domain.Attr{logger_domain.String(attributeKeyAction, actionName)}
+	if _, _, valid := resolveActionErrorAnswer(err); !valid {
+		attrs = append(attrs, logger_domain.Int(logFieldInvalidStatus, extractErrorStatusCode(err)))
+	}
+	return attrs
+}
+
+// markSpanFailed records err on span and marks it failed without logging.
+//
+// Takes span (trace.Span) which may be nil or not recording.
+// Takes err (error) which is the failure.
+// Takes message (string) which describes where the failure happened.
+func markSpanFailed(span trace.Span, err error, message string) {
+	if span == nil || !span.IsRecording() {
+		return
+	}
+	span.RecordError(err)
+	span.SetStatus(codes.Error, message)
+}
+
+// resolveActionErrorAnswer chooses the status and code an action failure answers with.
+//
+// An action error whose status is outside 400 to 599 would tell the client the call
+// worked, or send it somewhere else, so it answers 500 instead.
+//
+// Takes err (error) which is the failure.
+//
+// Returns int which is the HTTP status to answer with.
+// Returns string which is the machine-readable code to answer with.
+// Returns bool which is false when the action error's own status had to be replaced.
+func resolveActionErrorAnswer(err error) (int, string, bool) {
+	actionErr, ok := errors.AsType[daemon_dto.ActionError](err)
+	if !ok {
+		return http.StatusInternalServerError, errorCodeInternal, true
+	}
+
+	status := actionErr.StatusCode()
+	if status < httpErrorStatusThreshold || status > httpMaxErrorStatus {
+		return http.StatusInternalServerError, errorCodeInternal, false
+	}
+	return status, actionErr.ErrorCode(), true
 }

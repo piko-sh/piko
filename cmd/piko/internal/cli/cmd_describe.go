@@ -42,6 +42,10 @@ const (
 
 	// describeTruncateLen is the default truncation length for IDs.
 	describeTruncateLen = 12
+
+	// describeDefaultListLimit is the default number of items fetched for describe listings
+	// when no limit is given.
+	describeDefaultListLimit = 50
 )
 
 var (
@@ -386,7 +390,7 @@ func describeTask(ctx context.Context, conn monitoringConnection, p *Printer, ar
 		"task",
 		resourceDescriptor{
 			fetch: func(ctx context.Context, conn monitoringConnection, _ string) (any, error) {
-				response, err := conn.OrchestratorClient().ListRecentTasks(ctx, &pb.ListRecentTasksRequest{Limit: safeconv.IntToInt32(p.GetLimit(50))})
+				response, err := conn.OrchestratorClient().ListRecentTasks(ctx, &pb.ListRecentTasksRequest{Limit: safeconv.IntToInt32(p.GetLimit(describeDefaultListLimit))})
 				if err != nil {
 					return nil, grpcError("fetching tasks", err)
 				}
@@ -467,7 +471,7 @@ func describeWorkflow(ctx context.Context, conn monitoringConnection, p *Printer
 
 	filter := extractFilter(positional)
 
-	response, err := conn.OrchestratorClient().ListWorkflowSummary(ctx, &pb.ListWorkflowSummaryRequest{Limit: safeconv.IntToInt32(p.GetLimit(50))})
+	response, err := conn.OrchestratorClient().ListWorkflowSummary(ctx, &pb.ListWorkflowSummaryRequest{Limit: safeconv.IntToInt32(p.GetLimit(describeDefaultListLimit))})
 	if err != nil {
 		return grpcError("fetching workflows", err)
 	}
@@ -544,7 +548,7 @@ func describeArtefact(ctx context.Context, conn monitoringConnection, p *Printer
 		"artefact",
 		resourceDescriptor{
 			fetch: func(ctx context.Context, conn monitoringConnection, _ string) (any, error) {
-				response, err := conn.RegistryClient().ListRecentArtefacts(ctx, &pb.ListRecentArtefactsRequest{Limit: safeconv.IntToInt32(p.GetLimit(50))})
+				response, err := conn.RegistryClient().ListRecentArtefacts(ctx, &pb.ListRecentArtefactsRequest{Limit: safeconv.IntToInt32(p.GetLimit(describeDefaultListLimit))})
 				if err != nil {
 					return nil, grpcError("fetching artefacts", err)
 				}

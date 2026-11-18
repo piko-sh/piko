@@ -193,6 +193,13 @@ func TestWithCloudflareEnabled_ViaNewContainer(t *testing.T) {
 	assert.True(t, deref(c.configServerOverrides.Security.RateLimit.CloudflareEnabled, false))
 }
 
+func TestWithRateLimitIPv6PrefixBits(t *testing.T) {
+	t.Parallel()
+	container := NewContainer(WithRateLimitIPv6PrefixBits(48))
+
+	assert.Equal(t, 48, deref(container.configServerOverrides.Security.RateLimit.IPv6PrefixBits, 0))
+}
+
 func TestWithRateLimitEnabled_True(t *testing.T) {
 	t.Parallel()
 	c := NewContainer()

@@ -41,6 +41,18 @@ const (
 	// searching for a pattern match.
 	patternSearchRadius = 20
 
+	// quotedValueSearchRadius is the number of characters after the cursor to include when
+	// searching for a quoted attribute value.
+	quotedValueSearchRadius = 30
+
+	// directiveSearchBehind is the number of characters before the cursor to include when
+	// searching for the start of a directive.
+	directiveSearchBehind = 50
+
+	// directiveSearchAhead is the number of characters after the cursor to include when
+	// searching for the end of a directive.
+	directiveSearchAhead = 30
+
 	// maxMultiLineSearchLinesNav is the maximum number of lines to search when finding
 	// multi-line element attributes.
 	maxMultiLineSearchLinesNav = 20
@@ -129,7 +141,7 @@ const (
 // Returns []protocol.Location which contains the definition locations found.
 // Returns error when the definition lookup fails.
 func (d *document) GetPKDefinition(ctx context.Context, position protocol.Position) ([]protocol.Location, error) {
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 
 	if len(d.Content) == 0 {
 		return nil, nil
@@ -965,7 +977,7 @@ func findEventHandlerEndPosition(line string, startPosition int) int {
 // Returns ok (bool) which is true when a valid quoted value was found at the cursor
 // position.
 func tryExtractQuotedValue(line string, cursor int, pattern string) (name string, startPosition, endPosition int, ok bool) {
-	index := strings.LastIndex(line[:min(cursor+30, len(line))], pattern)
+	index := strings.LastIndex(line[:min(cursor+quotedValueSearchRadius, len(line))], pattern)
 	if index == -1 || index > cursor {
 		return "", 0, 0, false
 	}

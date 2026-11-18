@@ -429,7 +429,7 @@ func (p *TracesPanel) refresh() tea.Cmd {
 			return TracesRefreshMessage{Err: errNoTracesProvider, Spans: nil}
 		}
 
-		ctx, cancel := context.WithTimeoutCause(context.Background(), 5*time.Second,
+		ctx, cancel := context.WithTimeoutCause(context.Background(), DefaultRefreshTimeout,
 			errors.New("traces panel data fetch exceeded 5s timeout"))
 		defer cancel()
 

@@ -77,6 +77,10 @@ const (
 	// start before the start is considered failed.
 	defaultComponentStartTimeout = 30 * time.Second
 
+	// serverStopTimeout bounds how long closing or stopping the SSR server, or stopping a
+	// previous daemon during a dev rebuild, may take.
+	serverStopTimeout = 10 * time.Second
+
 	// GenerateModeManifest is the generation mode for manifest output.
 	GenerateModeManifest = bootstrap.GenerateModeManifest
 
@@ -111,8 +115,8 @@ var (
 	// log is the package-level logger for the piko package.
 	log = logger_domain.GetLogger("piko")
 
-	// errInvalidEnvironmentValue is returned when a consulted environment variable holds
-	// a value that cannot be parsed.
+	// errInvalidEnvironmentValue is returned when a consulted environment variable holds a
+	// value that cannot be parsed.
 	errInvalidEnvironmentValue = errors.New("invalid environment variable value")
 
 	// WithComponents registers external PKC components with the Piko framework, letting
@@ -279,7 +283,7 @@ func (s *SSRServer) RegisterLifecycle(component LifecycleComponent) {
 	}
 	s.lifecycleComponents = append(s.lifecycleComponents, component)
 	_, l := logger_domain.From(context.Background(), log)
-	l.Internal("Lifecycle component registered", logger_domain.String("component", component.Name()))
+	l.Internal("Lifecycle component registered", logger_domain.String(logger_domain.FieldStrComponent, component.Name()))
 }
 
 // Setup bootstraps the configuration and creates the DI container without starting the
@@ -507,10 +511,10 @@ func (s *SSRServer) Run(runMode string) error {
 //
 // Safe to call multiple times.
 func (*SSRServer) Close() {
-	ctx, cancel := context.WithTimeoutCause(context.Background(), 10*time.Second,
+	ctx, cancel := context.WithTimeoutCause(context.Background(), serverStopTimeout,
 		errors.New("SSR server Close exceeded 10s timeout"))
 	defer cancel()
-	shutdown.Cleanup(ctx, 10*time.Second)
+	shutdown.Cleanup(ctx, serverStopTimeout)
 	shutdown.Reset()
 }
 
@@ -521,7 +525,7 @@ func (s *SSRServer) Stop() error {
 	if s.daemon == nil {
 		return nil
 	}
-	ctx, cancel := context.WithTimeoutCause(context.Background(), 10*time.Second,
+	ctx, cancel := context.WithTimeoutCause(context.Background(), serverStopTimeout,
 		errors.New("SSR server Stop exceeded 10s timeout"))
 	defer cancel()
 	return s.daemon.Stop(ctx)
@@ -601,7 +605,7 @@ func (s *SSRServer) stopPreviousDaemon(ctx context.Context, container *bootstrap
 	}
 
 	ctx, l := logger_domain.From(ctx, log)
-	stopCtx, stopCancel := context.WithTimeoutCause(ctx, 10*time.Second,
+	stopCtx, stopCancel := context.WithTimeoutCause(ctx, serverStopTimeout,
 		errors.New("stopping previous daemon exceeded 10s timeout"))
 	if stopErr := s.daemon.Stop(stopCtx); stopErr != nil {
 		l.Warn("Failed to stop previous daemon during dev rebuild", logger_domain.Error(stopErr))
@@ -781,15 +785,11 @@ func (s *SSRServer) startAndRunDaemon(ctx context.Context, runMode string, conta
 	})
 
 	container.SetOnServerBound(func(address string) {
-		bannerInfo.ServerURL = fmt.Sprintf(
-			"%s://%s", daemon_domain.BannerScheme(daemonConfig.TLS.Enabled()), daemon_domain.BannerServerAddress(address),
-		)
+		bannerInfo.ServerURL = bannerURL(daemonConfig.TLS.Enabled(), address)
 		bannerInfo.AutoPort = false
 
 		if resolved, ok := healthAddress.Load().(string); ok && resolved != "" {
-			bannerInfo.HealthProbeURL = fmt.Sprintf(
-				"%s://%s", daemon_domain.BannerScheme(daemonConfig.HealthTLS.Enabled()), resolved,
-			)
+			bannerInfo.HealthProbeURL = bannerURL(daemonConfig.HealthTLS.Enabled(), resolved)
 			bannerInfo.LivePath = daemonConfig.HealthLivePath
 			bannerInfo.ReadyPath = daemonConfig.HealthReadyPath
 			bannerInfo.HealthExposed = daemon_domain.IsExposedHostPort(resolved)
@@ -861,7 +861,7 @@ func (s *SSRServer) startLifecycleComponents(ctx context.Context) error {
 	l.Internal("Starting lifecycle components...", logger_domain.Int("count", len(s.lifecycleComponents)))
 
 	for _, component := range s.lifecycleComponents {
-		componentLog := l.With(logger_domain.String("component", component.Name()))
+		componentLog := l.With(logger_domain.String(logger_domain.FieldStrComponent, component.Name()))
 		componentLog.Internal("Starting lifecycle component...")
 
 		timeout := defaultComponentStartTimeout
@@ -905,7 +905,7 @@ func (s *SSRServer) registerLifecycleShutdownHooks(ctx context.Context) {
 
 		shutdown.Register(shutdownCtx, fmt.Sprintf("LifecycleComponent:%s", component.Name()), func(ctx context.Context) error {
 			ctx, componentLog := logger_domain.From(ctx, log)
-			componentLog = componentLog.With(logger_domain.String("component", component.Name()))
+			componentLog = componentLog.With(logger_domain.String(logger_domain.FieldStrComponent, component.Name()))
 			componentLog.Internal("Stopping lifecycle component...")
 
 			if err := component.OnStop(ctx); err != nil {
@@ -945,7 +945,7 @@ func (s *SSRServer) registerLifecycleHealthProbes(container *bootstrap.Container
 			container.AddCustomHealthProbe(adapter)
 			probeCount++
 
-			l.Internal("Registered health probe for lifecycle component", logger_domain.String("component", component.Name()))
+			l.Internal("Registered health probe for lifecycle component", logger_domain.String(logger_domain.FieldStrComponent, component.Name()))
 		}
 	}
 
@@ -1319,4 +1319,17 @@ func environmentDefaultOptions(lookup func(string) string) ([]bootstrap.Option, 
 		return options, fmt.Errorf("%w: %s=%q is not a boolean: %w", errInvalidEnvironmentValue, envDwarfLineDirectives, rawDwarf, err)
 	}
 	return append(options, bootstrap.WithExperimentalDwarfLineDirectives(enabled)), nil
+}
+
+// bannerURL builds the URL the startup banner shows for a bound listener.
+//
+// A wildcard host such as [::] or 0.0.0.0 is shown as localhost, so the URL can be opened
+// as it is. Whether the listener is exposed is judged from the raw address.
+//
+// Takes tlsEnabled (bool) which selects https over http.
+// Takes address (string) which is the host:port the listener bound to.
+//
+// Returns string which is the URL to show.
+func bannerURL(tlsEnabled bool, address string) string {
+	return fmt.Sprintf("%s://%s", daemon_domain.BannerScheme(tlsEnabled), daemon_domain.BannerServerAddress(address))
 }

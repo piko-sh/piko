@@ -26,8 +26,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"piko.sh/json"
 	"piko.sh/piko/internal/i18n/i18n_domain"
-	"piko.sh/piko/internal/json"
 	"piko.sh/safedisk"
 )
 

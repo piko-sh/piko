@@ -29,7 +29,7 @@ import (
 	"strings"
 	"time"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 const (

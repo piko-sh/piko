@@ -20,6 +20,7 @@ package storage_domain_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -281,4 +282,20 @@ func TestProviderRateLimitConfig(t *testing.T) {
 		assert.Equal(t, float64(0), config.CallsPerSecond)
 		assert.Equal(t, 0, config.Burst)
 	})
+}
+
+func TestProviderRateLimiter_FractionalRateAllowsOneCall(t *testing.T) {
+	t.Parallel()
+
+	limiter := storage_domain.NewProviderRateLimiter(storage_domain.ProviderRateLimitConfig{
+		CallsPerSecond: 0.5,
+		Clock:          clock.NewMockClock(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)),
+	})
+	require.NotNil(t, limiter)
+
+	ctx, cancel := context.WithTimeoutCause(t.Context(), time.Second, errors.New("test: wait did not return"))
+	defer cancel()
+
+	require.NoError(t, limiter.Wait(ctx), "a rate below one call per second must still allow a single call")
+	assert.False(t, limiter.Allow(), "the single token has been taken")
 }

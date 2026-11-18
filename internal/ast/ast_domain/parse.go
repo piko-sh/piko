@@ -18,11 +18,6 @@
 
 package ast_domain
 
-// Parses HTML templates into TemplateAST structures by tokenizing input and building a
-// tree of nodes with directives and expressions. Handles element parsing, attribute
-// processing, directive recognition, text interpolation, and string interning for
-// performance optimisation.
-
 import (
 	"bytes"
 	"context"
@@ -46,6 +41,18 @@ const (
 	// textPartPreallocCapacity is the initial slice capacity for TextPart slices. Sized for
 	// the common pattern: literal-expr-literal-expr.
 	textPartPreallocCapacity = 4
+
+	// directivePrefixOn is the attribute prefix for DOM event handler directives.
+	directivePrefixOn = "p-on:"
+
+	// directivePrefixEvent is the attribute prefix for custom event handler directives.
+	directivePrefixEvent = "p-event:"
+
+	// directivePrefixBind is the attribute prefix for attribute binding directives.
+	directivePrefixBind = "p-bind:"
+
+	// directivePrefixTimeline is the attribute prefix for timeline directives.
+	directivePrefixTimeline = "p-timeline:"
 )
 
 var (
@@ -1136,29 +1143,29 @@ func parsePrefixedDirective(key []byte, value string, location Location) (Direct
 	d.Location = location
 
 	switch {
-	case bytes.HasPrefix(key, []byte("p-on:")):
-		base := string(key[5:])
+	case bytes.HasPrefix(key, []byte(directivePrefixOn)):
+		base := string(key[len(directivePrefixOn):])
 		parts := strings.Split(base, ".")
 		d.Type, d.Arg = DirectiveOn, parts[0]
 		if len(parts) > 1 {
 			d.EventModifiers = parts[1:]
 		}
 		return d, true
-	case bytes.HasPrefix(key, []byte("p-event:")):
-		base := string(key[8:])
+	case bytes.HasPrefix(key, []byte(directivePrefixEvent)):
+		base := string(key[len(directivePrefixEvent):])
 		parts := strings.Split(base, ".")
 		d.Type, d.Arg = DirectiveEvent, parts[0]
 		if len(parts) > 1 {
 			d.EventModifiers = parts[1:]
 		}
 		return d, true
-	case bytes.HasPrefix(key, []byte("p-bind:")):
+	case bytes.HasPrefix(key, []byte(directivePrefixBind)):
 		d.Type = DirectiveBind
-		d.Arg = string(key[7:])
+		d.Arg = string(key[len(directivePrefixBind):])
 		return d, true
-	case bytes.HasPrefix(key, []byte("p-timeline:")):
+	case bytes.HasPrefix(key, []byte(directivePrefixTimeline)):
 		d.Type = DirectiveTimeline
-		d.Arg = string(key[11:])
+		d.Arg = string(key[len(directivePrefixTimeline):])
 		return d, true
 	}
 

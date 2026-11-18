@@ -19,7 +19,9 @@
 
 package persistence
 
-import "os"
+import (
+	"os"
+)
 
 // lockFile leaves the file unlocked on platforms without ownership locking.
 //

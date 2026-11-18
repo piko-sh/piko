@@ -29,6 +29,9 @@ import (
 )
 
 const (
+	// chunkIDFormat is the suffix appended to a document ID to form a chunk ID.
+	chunkIDFormat = "-chunk-%d"
+
 	// maxHeadingLevel is the highest heading level (h1-h6) recognised by the markdown
 	// splitter.
 	maxHeadingLevel = 6
@@ -138,7 +141,7 @@ func (s *MarkdownSplitter) Split(document Document) []Document {
 	if s.minChunkSize > 0 {
 		chunks = mergeSmallChunks(chunks, s.minChunkSize, s.chunkSize)
 		for i := range chunks {
-			chunks[i].ID = document.ID + fmt.Sprintf("-chunk-%d", i)
+			chunks[i].ID = document.ID + fmt.Sprintf(chunkIDFormat, i)
 		}
 	}
 
@@ -157,7 +160,7 @@ func (s *MarkdownSplitter) Split(document Document) []Document {
 func (*MarkdownSplitter) appendSmallSection(chunks []Document, document Document, sec section, content string) []Document {
 	meta := metadataWithHeading(document.Metadata, sec.heading)
 	return append(chunks, Document{
-		ID:       document.ID + fmt.Sprintf("-chunk-%d", len(chunks)),
+		ID:       document.ID + fmt.Sprintf(chunkIDFormat, len(chunks)),
 		Content:  content,
 		Metadata: meta,
 	})
@@ -180,7 +183,7 @@ func (s *MarkdownSplitter) splitOversizedSection(chunks []Document, document Doc
 		if len(txt) <= s.chunkSize || startsWithCodeFence(txt) {
 			meta := metadataWithHeading(document.Metadata, sec.heading)
 			chunks = append(chunks, Document{
-				ID:       document.ID + fmt.Sprintf("-chunk-%d", len(chunks)),
+				ID:       document.ID + fmt.Sprintf(chunkIDFormat, len(chunks)),
 				Content:  txt,
 				Metadata: meta,
 			})
@@ -208,7 +211,7 @@ func (s *MarkdownSplitter) fallbackSplitSubText(chunks []Document, document Docu
 	}
 	for _, sc := range s.fallback.Split(subDoc) {
 		sc.Metadata = metadataWithHeading(sc.Metadata, sec.heading)
-		sc.ID = document.ID + fmt.Sprintf("-chunk-%d", len(chunks))
+		sc.ID = document.ID + fmt.Sprintf(chunkIDFormat, len(chunks))
 		chunks = append(chunks, sc)
 	}
 	return chunks

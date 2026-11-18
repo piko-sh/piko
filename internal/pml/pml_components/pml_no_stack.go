@@ -45,6 +45,14 @@ const (
 
 	// defaultGroupDirection is the default text direction for group elements.
 	defaultGroupDirection = "ltr"
+
+	// nodesPerWrappedChild is the number of nodes (opening comment, child and closing
+	// comment) produced when a child is wrapped in an Outlook table cell.
+	nodesPerWrappedChild = 3
+
+	// ghostTableNodeCount is the number of Outlook ghost table nodes placed around the
+	// wrapped children.
+	ghostTableNodeCount = 2
 )
 
 // NewNoStack creates a new NoStack component instance. A NoStack stops its child columns
@@ -181,7 +189,7 @@ func (c *NoStack) renderStructure(styles *pml_domain.StyleManager, children []*a
 	outlookTableStart := c.renderOutlookGhostTableStart(styles)
 	outlookTableEnd := c.renderOutlookGhostTableEnd()
 
-	wrappedChildren := make([]*ast_domain.TemplateNode, 0, len(children)*3+2)
+	wrappedChildren := make([]*ast_domain.TemplateNode, 0, len(children)*nodesPerWrappedChild+ghostTableNodeCount)
 	wrappedChildren = append(wrappedChildren, outlookTableStart)
 	for _, child := range children {
 		if shouldWrapChild(child) {

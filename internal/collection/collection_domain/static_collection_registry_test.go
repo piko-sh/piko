@@ -20,6 +20,7 @@ package collection_domain
 
 import (
 	"context"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -413,6 +414,50 @@ func TestGetStaticCollectionItems_UnregisteredCollection(t *testing.T) {
 	if err == nil {
 		t.Error("Expected error for unregistered collection, got nil")
 	}
+}
+
+func TestGetStaticCollectionItems_NotFoundListingConcurrentWithRegistration(t *testing.T) {
+	ResetStaticCollectionRegistry()
+	t.Cleanup(ResetStaticCollectionRegistry)
+
+	const (
+		writers              = 64
+		collectionsPerWriter = 16
+		readers              = 4
+	)
+
+	blob, err := collection_adapters.NewFlatBufferEncoder().EncodeCollection([]collection_dto.ContentItem{{ID: "1", URL: "/a", Slug: "a"}})
+	require.NoError(t, err)
+
+	stop := make(chan struct{})
+	var readersDone sync.WaitGroup
+	for range readers {
+		readersDone.Go(func() {
+			for {
+				select {
+				case <-stop:
+					return
+				default:
+				}
+				_, err := GetStaticCollectionItems("missing")
+				assert.Error(t, err)
+			}
+		})
+	}
+
+	var writersDone sync.WaitGroup
+	for writer := range writers {
+		writersDone.Go(func() {
+			for collection := range collectionsPerWriter {
+				RegisterStaticCollectionBlob(context.Background(), "collection-"+strconv.Itoa(writer)+"-"+strconv.Itoa(collection), blob)
+			}
+		})
+	}
+	writersDone.Wait()
+	close(stop)
+	readersDone.Wait()
+
+	assert.Len(t, NewDefaultStaticCollectionRegistry().List(), writers*collectionsPerWriter)
 }
 
 func TestDefaultStaticCollectionRegistry_GetItem(t *testing.T) {
@@ -820,6 +865,78 @@ func TestMetadataToContentItems(t *testing.T) {
 		}
 		if item.URL != "" {
 			t.Errorf("URL = %q, want empty", item.URL)
+		}
+	})
+}
+
+func TestRegisterStaticCollectionBlob_ConcurrentWithReadersLosesNoCollection(t *testing.T) {
+	ResetStaticCollectionRegistry()
+	t.Cleanup(ResetStaticCollectionRegistry)
+
+	const writers = 32
+
+	encoder := collection_adapters.NewFlatBufferEncoder()
+	blob, err := encoder.EncodeCollection([]collection_dto.ContentItem{
+		{ID: "item-1", URL: "/blog/post-1", Slug: "post-1", Metadata: map[string]any{"title": "Post 1"}},
+	})
+	require.NoError(t, err)
+	RegisterStaticCollectionBlob(context.Background(), "base", blob)
+
+	stop := make(chan struct{})
+	var readers sync.WaitGroup
+	for range 4 {
+		readers.Go(func() {
+			for {
+				select {
+				case <-stop:
+					return
+				default:
+				}
+				items, getErr := GetStaticCollectionItems("base")
+				if !assert.NoError(t, getErr, "a registered collection must stay visible during writes") {
+					return
+				}
+				if !assert.Len(t, items, 1) {
+					return
+				}
+			}
+		})
+	}
+
+	var writersDone sync.WaitGroup
+	for index := range writers {
+		writersDone.Go(func() {
+			RegisterStaticCollectionBlob(context.Background(), "collection-"+strconv.Itoa(index), blob)
+		})
+	}
+	writersDone.Wait()
+	close(stop)
+	readers.Wait()
+
+	assert.Len(t, NewDefaultStaticCollectionRegistry().List(), writers+1,
+		"concurrent copy-on-write registration must not drop a collection")
+}
+
+func BenchmarkGetStaticCollectionItems_Parallel(b *testing.B) {
+	ResetStaticCollectionRegistry()
+	b.Cleanup(ResetStaticCollectionRegistry)
+
+	encoder := collection_adapters.NewFlatBufferEncoder()
+	blob, err := encoder.EncodeCollection([]collection_dto.ContentItem{
+		{ID: "item-1", URL: "/blog/post-1", Slug: "post-1", Metadata: map[string]any{"title": "Post 1"}},
+	})
+	require.NoError(b, err)
+	for _, name := range []string{"blog", "docs", "news", "guides"} {
+		RegisterStaticCollectionBlob(context.Background(), name, blob)
+	}
+
+	b.ReportAllocs()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			if _, err := GetStaticCollectionItems("docs"); err != nil {
+				b.Error(err)
+				return
+			}
 		}
 	})
 }

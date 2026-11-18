@@ -24,9 +24,9 @@ import (
 	"context"
 	"reflect"
 
+	"piko.sh/json"
 	"piko.sh/piko/internal/bootstrap"
 	"piko.sh/piko/internal/collection/collection_domain"
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/search/search_dto"
 	"piko.sh/piko/internal/templater/templater_dto"
 	"piko.sh/piko/wdk/logger"

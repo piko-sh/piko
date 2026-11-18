@@ -25,6 +25,12 @@ import (
 	"strings"
 )
 
+const (
+	// alphaChannelBits is the width of the alpha channel stored in the low bits of an RGBA
+	// colour value.
+	alphaChannelBits = 8
+)
+
 var (
 	// colourNameToHex maps CSS colour names to their RGBA hex values.
 	colourNameToHex = map[string]uint32{
@@ -295,7 +301,7 @@ func convertColorNameWord(word string) string {
 		return word
 	}
 
-	return fmt.Sprintf("#%06x", hexVal>>8) + word[len(cleanWord):]
+	return fmt.Sprintf("#%06x", hexVal>>alphaChannelBits) + word[len(cleanWord):]
 }
 
 // hslToRgb converts HSL colour values to RGB.

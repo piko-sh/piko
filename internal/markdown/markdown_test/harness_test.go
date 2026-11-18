@@ -27,8 +27,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"piko.sh/json"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/markdown/markdown_domain"
 	"piko.sh/piko/internal/markdown/markdown_dto"
 	"piko.sh/piko/internal/markdown/markdown_testparser"

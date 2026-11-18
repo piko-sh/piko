@@ -42,7 +42,7 @@ import (
 
 	"golang.org/x/tools/go/gcexportdata"
 	"golang.org/x/tools/go/packages"
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/safeconv"
 	"piko.sh/safedisk"
@@ -55,6 +55,9 @@ const (
 	// exportReaderBufSize is the buffer size for the buffered reader wrapping export data
 	// files.
 	exportReaderBufSize = 65536
+
+	// initialExportBufferBytes is the starting capacity of a pooled export data buffer.
+	initialExportBufferBytes = 256 * 1024
 
 	// logKeyPackage is the structured logging key for package paths.
 	logKeyPackage = "package"
@@ -732,7 +735,7 @@ func (st *typeCheckState) loadFromExportData(ctx context.Context, lp *loaderPkg)
 
 	buf, ok := st.exportBufPool.Get().(*bytes.Buffer)
 	if !ok || buf == nil {
-		buf = bytes.NewBuffer(make([]byte, 0, 256*1024))
+		buf = bytes.NewBuffer(make([]byte, 0, initialExportBufferBytes))
 	} else {
 		buf.Reset()
 	}

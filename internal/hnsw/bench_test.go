@@ -201,7 +201,7 @@ func BenchmarkSearch(b *testing.B) {
 			b.ReportAllocs()
 
 			for b.Loop() {
-				_ = g.Search(query, tc.topK, tc.efSearch)
+				_, _ = g.Search(query, tc.topK, tc.efSearch)
 			}
 		})
 	}
@@ -225,7 +225,7 @@ func BenchmarkSearchEfScaling(b *testing.B) {
 			b.ReportAllocs()
 
 			for b.Loop() {
-				_ = g.Search(query, 10, ef)
+				_, _ = g.Search(query, 10, ef)
 			}
 		})
 	}
@@ -245,7 +245,7 @@ func BenchmarkSearchParallel(b *testing.B) {
 		randomSource := benchRNG(rand.Int64())
 		for pb.Next() {
 			query := normalise(randomVector(randomSource, dim))
-			_ = g.Search(query, 10, 50)
+			_, _ = g.Search(query, 10, 50)
 		}
 	})
 }
@@ -459,7 +459,7 @@ func BenchmarkMixedInsertSearch(b *testing.B) {
 				g.Insert(n+i, vectors[i%len(vectors)])
 			} else {
 				query := normalise(randomVector(localRandomSource, dim))
-				_ = g.Search(query, 10, 50)
+				_, _ = g.Search(query, 10, 50)
 			}
 			i++
 		}
@@ -494,7 +494,7 @@ func BenchmarkMixedInsertDeleteSearch(b *testing.B) {
 				g.Delete(n + i - 1)
 			default:
 				query := normalise(randomVector(localRandomSource, dim))
-				_ = g.Search(query, 10, 50)
+				_, _ = g.Search(query, 10, 50)
 			}
 			i++
 		}

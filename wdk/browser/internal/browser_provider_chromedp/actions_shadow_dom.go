@@ -133,8 +133,8 @@ func withShadowDOMScroll(ctx context.Context, selector string, action shadowDOMA
 func simpleShadowDOMAction(ctx context.Context, selector, templateName, actionVerb, notFoundFmt string) error {
 	return withShadowDOMScroll(ctx, selector, func(ctx context.Context, selector string, selectors shadowDOMSelectors) error {
 		js := scripts.MustExecute(templateName, map[string]any{
-			"Host":   selectors.Host,
-			"Shadow": selectors.Shadow,
+			tmplKeyHost:   selectors.Host,
+			tmplKeyShadow: selectors.Shadow,
 		})
 
 		var result bool
@@ -217,9 +217,9 @@ func fillInShadowDOM(ctx context.Context, selector, value string) error {
 	}
 
 	js := scripts.MustExecute("shadow_fill_input.js.tmpl", map[string]any{
-		"Host":   selectors.Host,
-		"Shadow": selectors.Shadow,
-		"Value":  value,
+		tmplKeyHost:   selectors.Host,
+		tmplKeyShadow: selectors.Shadow,
+		"Value":       value,
 	})
 
 	var filled bool
@@ -262,8 +262,8 @@ func blurInShadowDOM(ctx context.Context, selector string) error {
 // Returns error when the element cannot be found or evaluation fails.
 func getShadowDOMElementPosition(ctx context.Context, selector string, selectors shadowDOMSelectors) (elementPosition, error) {
 	js := scripts.MustExecute("shadow_get_centre.js.tmpl", map[string]any{
-		"Host":   selectors.Host,
-		"Shadow": selectors.Shadow,
+		tmplKeyHost:   selectors.Host,
+		tmplKeyShadow: selectors.Shadow,
 	})
 
 	var result elementPosition
@@ -439,8 +439,8 @@ func setFilesCDPRuntime(ctx context.Context, selector string, selectors shadowDO
 		}
 
 		changeJS := scripts.MustExecute("shadow_dispatch_change.js.tmpl", map[string]any{
-			"Host":   selectors.Host,
-			"Shadow": selectors.Shadow,
+			tmplKeyHost:   selectors.Host,
+			tmplKeyShadow: selectors.Shadow,
 		})
 		_ = chromedp.Evaluate(changeJS, nil).Do(ctx2)
 

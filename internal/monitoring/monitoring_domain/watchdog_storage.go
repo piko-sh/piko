@@ -29,7 +29,7 @@ import (
 	"sync"
 	"time"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 	"piko.sh/piko/wdk/clock"
 	"piko.sh/safedisk"
 )
@@ -37,6 +37,9 @@ import (
 const (
 	// profileFilePermissions is the file mode used when writing profile files.
 	profileFilePermissions fs.FileMode = 0o640
+
+	// profileFileNameFormat joins the profile type and timestamp in a file name.
+	profileFileNameFormat = "%s-%s"
 
 	// profileTimestampFormat is the time layout used in profile file names.
 	profileTimestampFormat = "20060102T150405"
@@ -365,7 +368,7 @@ func (store *profileStore) write(profileType string, data []byte) (string, error
 	defer store.mu.Unlock()
 
 	timestamp := store.clock.Now().Format(profileTimestampFormat)
-	fileName := fmt.Sprintf("%s-%s"+profileFileExtension, profileType, timestamp)
+	fileName := fmt.Sprintf(profileFileNameFormat+profileFileExtension, profileType, timestamp)
 
 	if err := store.sandbox.WriteFileAtomic(fileName, compressed.Bytes(), profileFilePermissions); err != nil {
 		return "", fmt.Errorf("writing %s profile to disk: %w", profileType, err)
@@ -400,7 +403,7 @@ func (store *profileStore) writeMetadata(profileType, timestamp string, meta cap
 	store.mu.Lock()
 	defer store.mu.Unlock()
 
-	fileName := fmt.Sprintf("%s-%s"+profileSidecarExtension, profileType, timestamp)
+	fileName := fmt.Sprintf(profileFileNameFormat+profileSidecarExtension, profileType, timestamp)
 	if err := store.sandbox.WriteFileAtomic(fileName, encoded, profileFilePermissions); err != nil {
 		return fmt.Errorf("writing %s sidecar metadata: %w", profileType, err)
 	}
@@ -427,7 +430,7 @@ func (store *profileStore) writeStacks(profileType, timestamp string, stacks []b
 	store.mu.Lock()
 	defer store.mu.Unlock()
 
-	fileName := fmt.Sprintf("%s-%s"+profileStacksExtension, profileType, timestamp)
+	fileName := fmt.Sprintf(profileFileNameFormat+profileStacksExtension, profileType, timestamp)
 	if err := store.sandbox.WriteFileAtomic(fileName, stacks, profileFilePermissions); err != nil {
 		return fmt.Errorf("writing %s stacks sidecar: %w", profileType, err)
 	}
@@ -464,7 +467,7 @@ func (store *profileStore) writeWithRetention(profileType string, data []byte, m
 	defer store.mu.Unlock()
 
 	timestamp := store.clock.Now().Format(profileTimestampFormat)
-	fileName := fmt.Sprintf("%s-%s"+profileFileExtension, profileType, timestamp)
+	fileName := fmt.Sprintf(profileFileNameFormat+profileFileExtension, profileType, timestamp)
 
 	if err := store.sandbox.WriteFileAtomic(fileName, compressed.Bytes(), profileFilePermissions); err != nil {
 		return "", fmt.Errorf("writing %s profile to disk: %w", profileType, err)

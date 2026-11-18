@@ -29,7 +29,7 @@ import (
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 	"piko.sh/piko/internal/llm/llm_domain"
 	"piko.sh/piko/internal/llm/llm_dto"
 	"piko.sh/piko/internal/safeerror"
@@ -38,6 +38,9 @@ import (
 )
 
 const (
+	// closeDrainTimeout bounds how long Close waits for in-flight requests to finish.
+	closeDrainTimeout = 30 * time.Second
+
 	// providerNameAnthropic is the provider name used in model information.
 	providerNameAnthropic = "anthropic"
 
@@ -243,7 +246,7 @@ func (p *anthropicProvider) Close(ctx context.Context) error {
 			close(done)
 		}()
 
-		waitContext, cancel := context.WithTimeoutCause(ctx, 30*time.Second,
+		waitContext, cancel := context.WithTimeoutCause(ctx, closeDrainTimeout,
 			errors.New("anthropic provider close drain exceeded 30s"))
 		defer cancel()
 

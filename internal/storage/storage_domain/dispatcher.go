@@ -40,6 +40,10 @@ const (
 	// defaultFlushInterval is the time between automatic batch flushes.
 	defaultFlushInterval = 30 * time.Second
 
+	// shutdownCleanupTimeout bounds how long the dispatcher may take to stop during global
+	// shutdown.
+	shutdownCleanupTimeout = 30 * time.Second
+
 	// defaultQueueSize is the default number of items the dispatcher queue can hold.
 	defaultQueueSize = 1000
 
@@ -693,7 +697,7 @@ func (d *StorageDispatcher) shutdownCleanup(ctx context.Context) error {
 	ctx, l := logger_domain.From(ctx, log)
 	l.Internal("Executing storage dispatcher shutdown cleanup", logger_domain.String(logFieldProvider, d.providerName))
 
-	shutdownCtx, cancel := context.WithTimeoutCause(context.Background(), 30*time.Second,
+	shutdownCtx, cancel := context.WithTimeoutCause(context.Background(), shutdownCleanupTimeout,
 		errors.New("storage dispatcher shutdown exceeded 30s timeout"))
 	defer cancel()
 

@@ -163,8 +163,8 @@ func (l *directoryLoader) Load(ctx context.Context) ([]Document, error) {
 	return loader.Load(ctx)
 }
 
-// newPatternLoader creates a loader for fsys, walking recursively when any pattern has
-// a "**/" prefix and globbing a single level otherwise.
+// newPatternLoader creates a loader for fsys, walking recursively when any pattern has a
+// "**/" prefix and globbing a single level otherwise.
 //
 // Takes fsys (fs.FS) which provides the file system to load from.
 // Takes patterns ([]string) which specifies the glob patterns to match.

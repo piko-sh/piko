@@ -29,7 +29,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/mod/modfile"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 func TestGoModuleCacheResolver_findModulePath(t *testing.T) {

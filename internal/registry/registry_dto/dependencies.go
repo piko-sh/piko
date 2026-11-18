@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"iter"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 // Dependencies stores profile dependencies with inline storage for the common case. It

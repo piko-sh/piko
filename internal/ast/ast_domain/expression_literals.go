@@ -18,11 +18,6 @@
 
 package ast_domain
 
-// Defines literal expression types for constant values including strings, numbers,
-// booleans, dates, times, and durations. Provides implementations for all literal types
-// with cloning, transformation, and string representation methods for template
-// expressions.
-
 import (
 	"maps"
 	"slices"
@@ -1217,7 +1212,7 @@ func (te *TernaryExpression) String() string {
 	altString := te.Alternate.String()
 
 	var builder strings.Builder
-	builder.Grow(len(condString) + len(consString) + len(altString) + 7)
+	builder.Grow(len(condString) + len(consString) + len(altString) + ternaryExpressionPunctuationLength)
 
 	_ = builder.WriteByte('(')
 	builder.WriteString(condString)

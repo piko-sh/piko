@@ -401,11 +401,12 @@ func NewMockCacheStore() *MockCacheStore {
 	return &store
 }
 
-// Get retrieves a cache entry by key, implementing the cache store interface.
+// Get retrieves a cache entry by key, implementing the cache store interface. Like a real
+// store, it counts the read and returns a copy the caller owns.
 //
 // Takes key (string) which identifies the cache entry to retrieve.
 //
-// Returns *llm_dto.CacheEntry which is the cached entry, or nil if not found.
+// Returns *llm_dto.CacheEntry which is a copy of the cached entry, or nil if not found.
 // Returns error when the underlying GetFunc fails.
 //
 // Safe for concurrent use; protected by a mutex.
@@ -423,10 +424,12 @@ func (m *MockCacheStore) Get(ctx context.Context, key string) (*llm_dto.CacheEnt
 		return nil, nil
 	}
 	m.hits++
-	return entry, nil
+	entry.HitCount++
+	return copyCacheEntry(entry), nil
 }
 
-// Set implements the cache store Set method.
+// Set implements the cache store Set method. Like a real store, it keeps its own copy of
+// the entry.
 //
 // Takes key (string) which identifies the cache entry.
 // Takes entry (*llm_dto.CacheEntry) which contains the data to store.
@@ -442,7 +445,10 @@ func (m *MockCacheStore) Set(ctx context.Context, key string, entry *llm_dto.Cac
 		return m.SetFunc(ctx, key, entry)
 	}
 
-	m.entries[key] = entry
+	if entry == nil {
+		return nil
+	}
+	m.entries[key] = copyCacheEntry(entry)
 	return nil
 }
 
@@ -1030,4 +1036,15 @@ func (m *MockRateLimiterStore) DeleteBucket(_ context.Context, key string) error
 
 	delete(m.buckets, key)
 	return nil
+}
+
+// copyCacheEntry returns a copy of entry with its own response.
+//
+// Takes entry (*llm_dto.CacheEntry) which is the entry to copy.
+//
+// Returns *llm_dto.CacheEntry which is the copy.
+func copyCacheEntry(entry *llm_dto.CacheEntry) *llm_dto.CacheEntry {
+	copied := *entry
+	copied.Response = entry.Response.Clone()
+	return &copied
 }

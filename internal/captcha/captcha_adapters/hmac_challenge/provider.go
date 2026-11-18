@@ -25,9 +25,11 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"hash/maphash"
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"piko.sh/piko/internal/captcha/captcha_domain"
@@ -45,6 +47,10 @@ const (
 	// maxUsedTokens is the maximum number of consumed challenge IDs to track. Once reached,
 	// new verifications are rejected until entries expire.
 	maxUsedTokens = 100_000
+
+	// usedTokenShardCount is the number of independently locked shards that hold consumed
+	// challenge IDs. Must be a power of two so a shard can be picked with a bit mask.
+	usedTokenShardCount = 16
 
 	// errorCodeMissing indicates no token was provided.
 	errorCodeMissing = "missing-input-response"
@@ -65,32 +71,52 @@ const (
 
 	// maxActionLength is the maximum allowed length of an action name.
 	maxActionLength = 256
-
-	// evictionIntervalDivisor controls how often eviction runs relative to the TTL. With a
-	// divisor of 5 and a 5-minute TTL, eviction runs at most once per minute.
-	evictionIntervalDivisor = 5
 )
 
 // provider implements captcha_domain.CaptchaProvider using HMAC-based challenge tokens.
 type provider struct {
-	// lastEviction is when the last eviction pass ran, used to throttle eviction frequency
-	// to avoid O(n) scans on every verification.
-	lastEviction time.Time
-
 	// clock provides the time source for token generation and TTL checks.
 	clock clock.Clock
-
-	// usedTokens tracks consumed challenge IDs to prevent replay attacks.
-	usedTokens map[string]time.Time
 
 	// secret is the HMAC key used to sign and verify challenge tokens.
 	secret []byte
 
+	// shards hold the consumed challenge IDs that prevent replay attacks. Each ID always
+	// maps to the same shard, so replay checks for one ID are serialised by one lock.
+	shards [usedTokenShardCount]usedTokenShard
+
+	// shardSeed seeds the hash that picks the shard for a challenge ID.
+	shardSeed maphash.Seed
+
 	// ttl is how long a generated challenge token remains valid.
 	ttl time.Duration
 
-	// usedMutex guards concurrent access to usedTokens and lastEviction.
-	usedMutex sync.Mutex
+	// usedCount is the total number of consumed challenge IDs held across all shards,
+	// bounded by maxUsedTokens.
+	usedCount atomic.Int64
+}
+
+// usedTokenShard holds part of the consumed challenge IDs together with a min-heap
+// ordered by challenge time, so expired IDs can be removed without scanning the entries
+// that are still valid.
+type usedTokenShard struct {
+	// claimed is the set of consumed challenge IDs in this shard.
+	claimed map[string]struct{}
+
+	// expiry orders the IDs in claimed by challenge time, oldest first.
+	expiry []usedToken
+
+	// mu guards claimed and expiry.
+	mu sync.Mutex
+}
+
+// usedToken is one consumed challenge ID and the time its challenge was created.
+type usedToken struct {
+	// challengeTime is when the challenge was created.
+	challengeTime time.Time
+
+	// challengeID is the consumed challenge identifier.
+	challengeID string
 }
 
 var (
@@ -121,14 +147,18 @@ func NewProvider(config Config) (captcha_domain.CaptchaProvider, error) {
 	secret := make([]byte, len(config.Secret))
 	copy(secret, config.Secret)
 
-	return &provider{
-		secret:       secret,
-		ttl:          ttl,
-		clock:        providerClock,
-		usedTokens:   make(map[string]time.Time),
-		lastEviction: time.Time{},
-		usedMutex:    sync.Mutex{},
-	}, nil
+	p := &provider{
+		secret:    secret,
+		ttl:       ttl,
+		clock:     providerClock,
+		shardSeed: maphash.MakeSeed(),
+		shards:    [usedTokenShardCount]usedTokenShard{},
+		usedCount: atomic.Int64{},
+	}
+	for index := range p.shards {
+		p.shards[index].claimed = make(map[string]struct{})
+	}
+	return p, nil
 }
 
 // Type returns the provider type identifier.
@@ -371,50 +401,139 @@ func (p *provider) verifySignature(challengeID, timestampStr, action, providedSi
 }
 
 // claimChallengeID atomically checks whether a challenge ID has been used and marks it as
-// consumed if not. This prevents TOCTOU races between concurrent verification requests
-// for the same token.
+// consumed if not.
+//
+// Calls for the same token can run concurrently, but only one claim succeeds.
+//
+// The expiry is checked again against the same time used for eviction, so an ID whose
+// entry has been evicted can never be claimed a second time.
 //
 // Takes challengeID (string) which is the identifier to claim.
 // Takes challengeTime (time.Time) which is when the challenge was created.
 //
 // Returns bool which is true when the claim succeeded (first use), false when already
-// consumed or the map is at capacity.
-//
-// Concurrency: Safe for concurrent use; acquires usedMutex internally.
+// consumed, expired, or the store is at capacity.
 func (p *provider) claimChallengeID(challengeID string, challengeTime time.Time) bool {
-	p.usedMutex.Lock()
-	defer p.usedMutex.Unlock()
-
 	now := p.clock.Now()
-	if now.Sub(p.lastEviction) >= p.ttl/evictionIntervalDivisor {
-		p.evictExpired(now)
-		p.lastEviction = now
-	}
-
-	if _, used := p.usedTokens[challengeID]; used {
+	if now.Sub(challengeTime) > p.ttl {
 		return false
 	}
 
-	if len(p.usedTokens) >= maxUsedTokens {
-		p.evictExpired(now)
-		p.lastEviction = now
-		if len(p.usedTokens) >= maxUsedTokens {
-			return false
-		}
+	shard := &p.shards[maphash.String(p.shardSeed, challengeID)&(usedTokenShardCount-1)]
+	claimed, full := p.tryClaim(shard, challengeID, challengeTime, now)
+	if !full {
+		return claimed
 	}
 
-	p.usedTokens[challengeID] = challengeTime
-	return true
+	p.evictAllExpired(now)
+	claimed, _ = p.tryClaim(shard, challengeID, challengeTime, now)
+	return claimed
 }
 
-// evictExpired removes expired challenge IDs. Must be called with usedMutex held.
+// tryClaim evicts the expired IDs of one shard and then records the challenge ID in it.
+//
+// Takes shard (*usedTokenShard) which owns the challenge ID.
+// Takes challengeID (string) which is the identifier to claim.
+// Takes challengeTime (time.Time) which is when the challenge was created.
+// Takes now (time.Time) which is the current time for expiry comparison.
+//
+// Returns claimed (bool) which is true when the ID was recorded by this call.
+// Returns full (bool) which is true when the ID was unused but the store is at capacity.
+//
+// Concurrency: tryClaim locks shard while checking and recording the ID.
+func (p *provider) tryClaim(shard *usedTokenShard, challengeID string, challengeTime, now time.Time) (claimed, full bool) {
+	shard.mu.Lock()
+	defer shard.mu.Unlock()
+
+	p.evictShard(shard, now)
+
+	if _, used := shard.claimed[challengeID]; used {
+		return false, false
+	}
+
+	if p.usedCount.Add(1) > maxUsedTokens {
+		p.usedCount.Add(-1)
+		return false, true
+	}
+
+	shard.claimed[challengeID] = struct{}{}
+	shard.push(usedToken{challengeTime: challengeTime, challengeID: challengeID})
+	return true, false
+}
+
+// evictAllExpired removes the expired IDs from every shard, locking one shard at a time.
 //
 // Takes now (time.Time) which is the current time for expiry comparison.
-func (p *provider) evictExpired(now time.Time) {
-	for id, challengeTime := range p.usedTokens {
-		if now.Sub(challengeTime) > p.ttl {
-			delete(p.usedTokens, id)
+//
+// Concurrency: evictAllExpired locks one shard at a time.
+func (p *provider) evictAllExpired(now time.Time) {
+	for index := range p.shards {
+		shard := &p.shards[index]
+		shard.mu.Lock()
+		p.evictShard(shard, now)
+		shard.mu.Unlock()
+	}
+}
+
+// evictShard removes the expired IDs of one shard.
+//
+// The caller must hold shard.mu.
+//
+// Its cost depends on the number of expired IDs rather than the total IDs held.
+//
+// Takes shard (*usedTokenShard) which is the shard to clean.
+// Takes now (time.Time) which is the current time for expiry comparison.
+func (p *provider) evictShard(shard *usedTokenShard, now time.Time) {
+	var evicted int64
+	for len(shard.expiry) > 0 && now.Sub(shard.expiry[0].challengeTime) > p.ttl {
+		delete(shard.claimed, shard.popOldest().challengeID)
+		evicted++
+	}
+	if evicted > 0 {
+		p.usedCount.Add(-evicted)
+	}
+}
+
+// push adds a consumed ID to the expiry heap. Must be called with the shard lock held.
+//
+// Takes token (usedToken) which is the consumed ID to add.
+func (s *usedTokenShard) push(token usedToken) {
+	s.expiry = append(s.expiry, token)
+	child := len(s.expiry) - 1
+	for child > 0 {
+		parent := (child - 1) / 2
+		if !s.expiry[child].challengeTime.Before(s.expiry[parent].challengeTime) {
+			return
 		}
+		s.expiry[child], s.expiry[parent] = s.expiry[parent], s.expiry[child]
+		child = parent
+	}
+}
+
+// popOldest removes and returns the ID with the oldest challenge time. Must be called
+// with the shard lock held and a non-empty heap.
+//
+// Returns usedToken which is the removed ID.
+func (s *usedTokenShard) popOldest() usedToken {
+	last := len(s.expiry) - 1
+	oldest := s.expiry[0]
+	s.expiry[0] = s.expiry[last]
+	s.expiry[last] = usedToken{}
+	s.expiry = s.expiry[:last]
+
+	parent := 0
+	for {
+		smallest := parent
+		for _, child := range [2]int{2*parent + 1, 2*parent + 2} {
+			if child < last && s.expiry[child].challengeTime.Before(s.expiry[smallest].challengeTime) {
+				smallest = child
+			}
+		}
+		if smallest == parent {
+			return oldest
+		}
+		s.expiry[parent], s.expiry[smallest] = s.expiry[smallest], s.expiry[parent]
+		parent = smallest
 	}
 }
 

@@ -24,6 +24,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 )
 
 const (
@@ -65,9 +66,21 @@ type localeData struct {
 	locale string
 }
 
-// Store holds translations for multiple locales with fallback support. It implements
-// messageResolver and is safe for concurrent access.
+// Store holds translations for multiple locales with fallback support.
+//
+// Store methods support concurrent use when callers do not modify maps or entries
+// retained by or returned from the store.
 type Store struct {
+	// snapshot holds the current immutable store state.
+	snapshot atomic.Pointer[storeSnapshot]
+
+	// writeMu serialises writers so no update is lost between copy and publish.
+	writeMu sync.Mutex
+}
+
+// storeSnapshot holds one immutable state of a Store. Writers build and publish a new
+// snapshot without changing a published one.
+type storeSnapshot struct {
 	// locales maps locale codes to their translation data.
 	locales map[string]*localeData
 
@@ -77,9 +90,6 @@ type Store struct {
 	// defaultLocale is the fallback locale used when a key is not found in the requested
 	// locale.
 	defaultLocale string
-
-	// mu guards all store fields for concurrent access.
-	mu sync.RWMutex
 }
 
 // NewStore creates a new translation store.
@@ -88,12 +98,13 @@ type Store struct {
 //
 // Returns *Store which is an empty store ready to have locales added.
 func NewStore(defaultLocale string) *Store {
-	return &Store{
+	store := &Store{}
+	store.snapshot.Store(&storeSnapshot{
 		locales:       make(map[string]*localeData),
 		fallbackChain: make(map[string][]string),
 		defaultLocale: defaultLocale,
-		mu:            sync.RWMutex{},
-	}
+	})
+	return store
 }
 
 // NewStoreFromTranslations creates a populated Store from a Translations map.
@@ -118,29 +129,26 @@ func NewStoreFromTranslations(translations Translations, defaultLocale string) *
 //
 // Safe for concurrent use.
 func (s *Store) SetDefaultLocale(locale string) {
-	s.mu.Lock()
-	s.defaultLocale = locale
-	s.mu.Unlock()
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
+	current := s.snapshot.Load()
+	s.snapshot.Store(&storeSnapshot{
+		locales:       current.locales,
+		fallbackChain: current.fallbackChain,
+		defaultLocale: locale,
+	})
 }
 
 // AddLocale adds or updates translations for a locale.
 //
+// The store retains the supplied map and entries, so callers must not modify them after
+// passing them to AddLocale.
+//
 // Takes locale (string) which is the locale identifier to add or update.
 // Takes entries (map[string]*Entry) which contains the translation entries.
-//
-// Safe for concurrent use. Holds a mutex lock while updating the locale data and
-// rebuilding the fallback chain.
 func (s *Store) AddLocale(locale string, entries map[string]*Entry) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	data := &localeData{
-		locale:  locale,
-		entries: entries,
-	}
-	s.locales[locale] = data
-
-	s.fallbackChain[locale] = buildFallbackChain(locale, s.defaultLocale)
+	s.addLocales(map[string]map[string]*Entry{locale: entries})
 }
 
 // AddTranslations adds raw translation strings for a locale, parsing them into entries. A
@@ -154,21 +162,8 @@ func (s *Store) AddLocale(locale string, entries map[string]*Entry) {
 // Returns []TemplateProblem which lists the templates that failed to parse, ordered by
 // key and plural form, or nil when every template parsed.
 func (s *Store) AddTranslations(locale string, translations map[string]string) []TemplateProblem {
-	entries := make(map[string]*Entry, len(translations))
-	var problems []TemplateProblem
-	for key, template := range translations {
-		entry, entryProblems := parseEntry(template)
-		entries[key] = entry
-		for _, problem := range entryProblems {
-			problem.Locale = locale
-			problem.Key = key
-			problems = append(problems, problem)
-		}
-	}
+	entries, problems := parseTranslations(locale, translations)
 	s.AddLocale(locale, entries)
-	slices.SortFunc(problems, func(a, b TemplateProblem) int {
-		return cmp.Or(cmp.Compare(a.Key, b.Key), cmp.Compare(a.FormIndex, b.FormIndex))
-	})
 	return problems
 }
 
@@ -182,40 +177,43 @@ func (s *Store) AddTranslations(locale string, translations map[string]string) [
 // Returns []TemplateProblem which lists the templates that failed to parse, ordered by
 // locale, key and plural form, or nil when every template parsed.
 func (s *Store) AddAllTranslations(translations Translations) []TemplateProblem {
-	perLocale := make([][]TemplateProblem, 0, len(translations))
-	for _, locale := range slices.Sorted(maps.Keys(translations)) {
-		perLocale = append(perLocale, s.AddTranslations(locale, translations[locale]))
+	locales := slices.Sorted(maps.Keys(translations))
+	perLocale := make([][]TemplateProblem, 0, len(locales))
+	entriesByLocale := make(map[string]map[string]*Entry, len(locales))
+	for _, locale := range locales {
+		entries, problems := parseTranslations(locale, translations[locale])
+		entriesByLocale[locale] = entries
+		perLocale = append(perLocale, problems)
 	}
+	s.addLocales(entriesByLocale)
 	return slices.Concat(perLocale...)
 }
 
-// Get retrieves a translation entry for the given locale and key. It follows the fallback
-// chain if the key is not found in the requested locale.
+// Get finds a translation entry by locale and key, following the fallback chain when
+// needed.
+//
+// The returned entry is shared with the store and must not be modified.
 //
 // Takes locale (string) which specifies the preferred locale for the entry.
 // Takes key (string) which identifies the translation to retrieve.
 //
 // Returns *Entry which is the found translation entry, or nil if not found.
-// Returns bool which indicates whether the entry was found.
-//
-// Safe for concurrent use.
+// Returns bool which reports whether an entry was found.
 func (s *Store) Get(locale, key string) (*Entry, bool) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	snapshot := s.snapshot.Load()
 
-	if entry := s.getFromLocale(locale, key); entry != nil {
+	if entry := snapshot.getFromLocale(locale, key); entry != nil {
 		return entry, true
 	}
 
-	chain := s.fallbackChain[locale]
-	for _, fallbackLocale := range chain {
-		if entry := s.getFromLocale(fallbackLocale, key); entry != nil {
+	for _, fallbackLocale := range snapshot.fallbackChain[locale] {
+		if entry := snapshot.getFromLocale(fallbackLocale, key); entry != nil {
 			return entry, true
 		}
 	}
 
-	if locale != s.defaultLocale {
-		if entry := s.getFromLocale(s.defaultLocale, key); entry != nil {
+	if locale != snapshot.defaultLocale {
+		if entry := snapshot.getFromLocale(snapshot.defaultLocale, key); entry != nil {
 			return entry, true
 		}
 	}
@@ -227,46 +225,35 @@ func (s *Store) Get(locale, key string) (*Entry, bool) {
 //
 // Takes locale (string) which specifies the locale code to check.
 //
-// Returns bool which is true if translations exist for the locale.
-//
-// Safe for concurrent use.
+// Returns bool which reports whether translations exist for the locale.
 func (s *Store) HasLocale(locale string) bool {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	_, ok := s.locales[locale]
+	_, ok := s.snapshot.Load().locales[locale]
 	return ok
 }
 
 // Locales returns a list of all available locales.
 //
 // Returns []string which contains the locale identifiers.
-//
-// Safe for concurrent use.
 func (s *Store) Locales() []string {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	snapshot := s.snapshot.Load()
 
-	locales := make([]string, 0, len(s.locales))
-	for locale := range s.locales {
+	locales := make([]string, 0, len(snapshot.locales))
+	for locale := range snapshot.locales {
 		locales = append(locales, locale)
 	}
 	return locales
 }
 
-// GetEntriesForLocale returns all entries for a specific locale. This is used by the
-// FlatBuffer emitter to serialise translations.
+// GetEntriesForLocale finds all entries for a locale.
+//
+// The returned map and entries are shared with the store and must not be modified.
 //
 // Takes locale (string) which specifies the locale to retrieve entries for.
 //
 // Returns map[string]*Entry which contains all entries for the locale, or nil if the
 // locale does not exist.
-//
-// Safe for concurrent use.
 func (s *Store) GetEntriesForLocale(locale string) map[string]*Entry {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	data, ok := s.locales[locale]
+	data, ok := s.snapshot.Load().locales[locale]
 	if !ok {
 		return nil
 	}
@@ -276,12 +263,8 @@ func (s *Store) GetEntriesForLocale(locale string) map[string]*Entry {
 // DefaultLocale returns the default locale.
 //
 // Returns string which is the configured default locale identifier.
-//
-// Safe for concurrent use.
 func (s *Store) DefaultLocale() string {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.defaultLocale
+	return s.snapshot.Load().defaultLocale
 }
 
 // ResolveMessage implements the MessageResolver interface for linked message resolution.
@@ -327,13 +310,42 @@ func (s *Store) ResolveMessage(key, locale string, scope map[string]any, depth i
 	return result, true
 }
 
+// addLocales publishes a new snapshot that adds or replaces the given locales.
+//
+// The locale maps of the current snapshot are copied once for the whole batch, so a batch
+// costs one copy no matter how many locales it holds.
+//
+// Takes entriesByLocale (map[string]map[string]*Entry) which maps each locale to its
+// translation entries.
+//
+// Safe for concurrent use. Serialised by writeMu.
+func (s *Store) addLocales(entriesByLocale map[string]map[string]*Entry) {
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
+	current := s.snapshot.Load()
+	next := &storeSnapshot{
+		locales:       make(map[string]*localeData, len(current.locales)+len(entriesByLocale)),
+		fallbackChain: make(map[string][]string, len(current.fallbackChain)+len(entriesByLocale)),
+		defaultLocale: current.defaultLocale,
+	}
+	maps.Copy(next.locales, current.locales)
+	maps.Copy(next.fallbackChain, current.fallbackChain)
+
+	for locale, entries := range entriesByLocale {
+		next.locales[locale] = &localeData{locale: locale, entries: entries}
+		next.fallbackChain[locale] = buildFallbackChain(locale, current.defaultLocale)
+	}
+	s.snapshot.Store(next)
+}
+
 // getFromLocale retrieves an entry from a specific locale.
 //
 // Takes locale (string) which identifies the locale to search.
 // Takes key (string) which specifies the entry key to look up.
 //
 // Returns *Entry which is the found entry, or nil if the locale or key does not exist.
-func (s *Store) getFromLocale(locale, key string) *Entry {
+func (s *storeSnapshot) getFromLocale(locale, key string) *Entry {
 	data, ok := s.locales[locale]
 	if !ok {
 		return nil
@@ -344,6 +356,31 @@ func (s *Store) getFromLocale(locale, key string) *Entry {
 var (
 	_ messageResolver = (*Store)(nil)
 )
+
+// parseTranslations parses the raw translation strings of one locale into entries.
+//
+// Takes locale (string) which is the locale the strings belong to.
+// Takes translations (map[string]string) which maps keys to raw templates.
+//
+// Returns map[string]*Entry which maps keys to parsed entries.
+// Returns []TemplateProblem which lists the parse problems ordered by key and form.
+func parseTranslations(locale string, translations map[string]string) (map[string]*Entry, []TemplateProblem) {
+	entries := make(map[string]*Entry, len(translations))
+	var problems []TemplateProblem
+	for key, template := range translations {
+		entry, entryProblems := parseEntry(template)
+		entries[key] = entry
+		for _, problem := range entryProblems {
+			problem.Locale = locale
+			problem.Key = key
+			problems = append(problems, problem)
+		}
+	}
+	slices.SortFunc(problems, func(a, b TemplateProblem) int {
+		return cmp.Or(cmp.Compare(a.Key, b.Key), cmp.Compare(a.FormIndex, b.FormIndex))
+	})
+	return entries, problems
+}
 
 // parseEntry parses a template string into an Entry. A template or plural form that
 // cannot be parsed is kept as literal text so it renders verbatim.

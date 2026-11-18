@@ -24,7 +24,7 @@ import (
 	"maps"
 	"slices"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 // TagKey represents a known system tag key for fast array-based lookup. New tags must be

@@ -773,7 +773,7 @@ func (c *TaskProcessingCore) SignalSettled() {
 // Returns []*Task which holds the recovered tasks to dispatch again.
 // Returns error when the orphans cannot be read.
 func (c *TaskProcessingCore) recoverOrphans(ctx context.Context, span spanStatus, now, staleBefore time.Time) ([]*Task, error) {
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 	batchLimit := c.recoveryBatchLimit()
 	orphans, err := c.TaskStore.ListOrphanedTasks(ctx, OrphanQuery{
 		Now:         now,
@@ -797,7 +797,6 @@ func (c *TaskProcessingCore) recoverOrphans(ctx context.Context, span spanStatus
 			break
 		}
 		if c.instanceID != "" && task.OwnerInstance == c.instanceID {
-
 			continue
 		}
 		if !c.recoverOrphan(ctx, task, now) {
@@ -828,6 +827,7 @@ func (c *TaskProcessingCore) recoverOrphans(ctx context.Context, span spanStatus
 // Returns bool which is true when this node recovered the task; false when it settled or
 // was recovered elsewhere first, or the write failed.
 func (c *TaskProcessingCore) recoverOrphan(ctx context.Context, task *Task, now time.Time) bool {
+	ctx, l := logger_domain.From(ctx, log)
 	task.LastError = staleTaskRecoveryError
 	task.UpdatedAt = now
 	task.OwnerInstance = ""
@@ -841,7 +841,6 @@ func (c *TaskProcessingCore) recoverOrphan(ctx context.Context, task *Task, now 
 
 	if err := c.transitionTask(ctx, task, StatusProcessing); err != nil {
 		if !errors.Is(err, ErrObsoleteDelivery) && !errors.Is(err, ErrTaskNotFound) {
-			_, l := logger_domain.From(ctx, log)
 			l.Warn("Failed to recover stale task",
 				logger_domain.String(attributeKeyTaskID, task.ID),
 				logger_domain.Error(err))

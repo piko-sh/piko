@@ -24,7 +24,7 @@ import (
 
 	"github.com/bytedance/sonic"
 	"github.com/bytedance/sonic/option"
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 const (

@@ -21,7 +21,6 @@ package daemon_adapters
 import (
 	"cmp"
 	"context"
-	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -52,10 +51,6 @@ const (
 	// defaultActionKeySuffix is the rate-limit key suffix used for generic action requests
 	// without an action-specific override.
 	defaultActionKeySuffix = "action"
-
-	// rateLimitUnknownClient keys a caller whose address could not be determined at all, so
-	// the bucket still exists rather than every such caller being unlimited.
-	rateLimitUnknownClient = "unknown"
 )
 
 // rateLimitMiddleware limits HTTP requests based on client IP address. It reads the
@@ -204,7 +199,8 @@ func (m *rateLimitMiddleware) CheckActionAllowed(
 //
 // Returns ratelimiter_dto.Result which contains the limit decision and remaining quota.
 // If the service returns an error, the request is denied (fail closed) to prevent rate
-// limit bypass during backend outages.
+// limit bypass during backend outages. An empty clientIP is denied too, since keying it
+// would put every caller with an unknown address into one shared bucket.
 func (m *rateLimitMiddleware) checkRateLimit(
 	ctx context.Context,
 	clientIP string,
@@ -212,20 +208,34 @@ func (m *rateLimitMiddleware) checkRateLimit(
 	tier security_dto.RateLimitTierValues,
 ) ratelimiter_dto.Result {
 	window := time.Minute
-	key := "ratelimit:" + keySuffix + ":" + clientIP
+	if clientIP == "" {
+		return m.refusedResult(tier, window)
+	}
 
+	key := "ratelimit:" + keySuffix + ":" + clientIP
 	result, err := m.service.CheckLimit(ctx, key, tier.RequestsPerMinute, window)
 	if err != nil {
-		return ratelimiter_dto.Result{
-			Allowed:    false,
-			Limit:      tier.RequestsPerMinute,
-			Remaining:  0,
-			ResetAt:    m.clock.Now().Add(window),
-			RetryAfter: window,
-		}
+		return m.refusedResult(tier, window)
 	}
 
 	return result
+}
+
+// refusedResult builds the result for a request that is refused without asking the
+// backing store, or after the backing store failed.
+//
+// Takes tier (security_dto.RateLimitTierValues) which supplies the limit to report.
+// Takes window (time.Duration) which is how long the caller should wait.
+//
+// Returns ratelimiter_dto.Result which denies the request.
+func (m *rateLimitMiddleware) refusedResult(tier security_dto.RateLimitTierValues, window time.Duration) ratelimiter_dto.Result {
+	return ratelimiter_dto.Result{
+		Allowed:    false,
+		Limit:      tier.RequestsPerMinute,
+		Remaining:  0,
+		ResetAt:    m.clock.Now().Add(window),
+		RetryAfter: window,
+	}
 }
 
 // setRateLimitHeaders adds rate limit headers to the HTTP response.
@@ -296,30 +306,41 @@ func newRateLimitMiddleware(
 	return m
 }
 
-// resolveClientIdentity returns the address a request is rate limited by.
+// resolveClientIdentity returns the key segment a request is rate limited by.
+//
+// The address goes through security_dto.SanitiseRateLimitKey, so an IPv6 caller is keyed
+// on its network prefix rather than its full address. One subscriber is usually handed a
+// whole /64, and keying on the full address would let it rotate through fresh limits.
 //
 // Takes r (*http.Request) which supplies the request identity.
 //
-// Returns string which identifies the caller, never empty.
+// Returns string which identifies the caller, or empty when its address is unknown, in
+// which case checkRateLimit refuses the request.
 func (m *rateLimitMiddleware) resolveClientIdentity(r *http.Request) string {
-	if clientIP := security_dto.ClientIPFromRequest(r); clientIP != "" {
-		return clientIP
+	address := m.resolveClientAddress(r)
+	if address == "" {
+		return ""
+	}
+	return security_dto.SanitiseRateLimitKey(address, security_dto.WithIPv6PrefixBits(m.config.IPv6PrefixBits))
+}
+
+// resolveClientAddress returns the address a request comes from, before it is turned into
+// a key segment.
+//
+// Takes r (*http.Request) which supplies the request identity.
+//
+// Returns string which is the client IP, the peer address without its port when no client
+// IP was resolved, or empty when neither is known.
+func (m *rateLimitMiddleware) resolveClientAddress(r *http.Request) string {
+	if security_dto.ClientIPFromRequest(r) == "" {
+		m.missingClientIPOnce.Do(func() {
+			_, l := logger_domain.From(r.Context(), log)
+
+			l.Warn("Rate limiting could not resolve a client IP, so it is keying on the peer address "+
+				"and refusing requests that have none",
+				logger_domain.String(logFieldPath, r.URL.Path))
+		})
 	}
 
-	m.missingClientIPOnce.Do(func() {
-		_, l := logger_domain.From(r.Context(), log)
-
-		l.Warn("Rate limiting could not resolve a client IP, so it is keying on the peer address",
-			logger_domain.String(logFieldPath, r.URL.Path))
-	})
-
-	if r.RemoteAddr != "" {
-		if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil && host != "" {
-			return host
-		}
-
-		return r.RemoteAddr
-	}
-
-	return rateLimitUnknownClient
+	return security_dto.RateLimitClientAddress(r)
 }

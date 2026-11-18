@@ -21,11 +21,11 @@ package analytics_adapters
 import (
 	"net/http"
 	"time"
-	"unicode/utf8"
 
 	"piko.sh/piko/internal/analytics/analytics_domain"
 	"piko.sh/piko/internal/analytics/analytics_dto"
 	"piko.sh/piko/internal/daemon/daemon_dto"
+	"piko.sh/piko/internal/runeutil"
 )
 
 const (
@@ -55,9 +55,8 @@ func NewAnalyticsMiddleware(
 	}
 }
 
-// Handler returns an http.Handler middleware that captures the status code and duration
-// via PikoRequestCtx (zero allocations), then fires a page view event after the
-// downstream handler returns.
+// Handler wraps the downstream handler and records a page view after it returns. The
+// event includes the response status and duration from PikoRequestCtx.
 //
 // The event is built from copies and never holds the live *http.Request, and its
 // properties and revenue are copied from the carrier, so the asynchronous collectors
@@ -103,11 +102,11 @@ func newPageEvent(r *http.Request, pctx *daemon_dto.PikoRequestCtx, start time.T
 
 	ev := analytics_dto.AcquireEvent()
 	ev.Hostname = r.Host
-	ev.URL = truncateField(r.RequestURI, maxFieldLength)
+	ev.URL = runeutil.Truncate(r.RequestURI, maxFieldLength)
 	ev.Path = r.URL.Path
 	ev.Method = r.Method
-	ev.UserAgent = truncateField(r.UserAgent(), maxFieldLength)
-	ev.Referrer = truncateField(r.Referer(), maxFieldLength)
+	ev.UserAgent = runeutil.Truncate(r.UserAgent(), maxFieldLength)
+	ev.Referrer = runeutil.Truncate(r.Referer(), maxFieldLength)
 	ev.Timestamp = start
 	ev.Duration = time.Since(start)
 	ev.StatusCode = statusCode
@@ -133,24 +132,4 @@ func newPageEvent(r *http.Request, pctx *daemon_dto.PikoRequestCtx, start time.T
 	}
 
 	return ev
-}
-
-// truncateField returns s unchanged when it fits within limit runes, or truncates it to
-// the first limit runes. Truncation is rune-aware so the result is always valid UTF-8
-// even for non-ASCII values such as emoji or internationalised URLs.
-//
-// Takes s (string) which is the value to truncate.
-// Takes limit (int) which is the maximum number of runes to retain. Values of zero or
-// below produce an empty string.
-//
-// Returns string which is the truncated value.
-func truncateField(s string, limit int) string {
-	if limit <= 0 {
-		return ""
-	}
-	if utf8.RuneCountInString(s) <= limit {
-		return s
-	}
-	runes := []rune(s)
-	return string(runes[:limit])
 }

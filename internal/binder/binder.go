@@ -27,6 +27,7 @@ import (
 	"maps"
 	"net/http"
 	"reflect"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -34,6 +35,7 @@ import (
 
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/internal/runeutil"
 	"piko.sh/piko/wdk/goroutine"
 )
 
@@ -98,6 +100,10 @@ var (
 
 	// ErrSliceElementBudgetExhausted is returned when a bind would over-allocate.
 	ErrSliceElementBudgetExhausted = errors.New("slice element budget exhausted")
+
+	// ErrTooManyFields is returned when a request holds more fields than the binder allows,
+	// whether at the top level or inside a decoded subtree.
+	ErrTooManyFields = errors.New("too many fields")
 
 	// ErrValidationFailed reports that a bound destination violated its `validate:"..."`
 	// tags. Callers can use errors.Is to detect this without importing the concrete type.
@@ -281,7 +287,7 @@ func (*ValidationFailedError) StatusCode() int {
 //
 // Returns string which is the stable error code clients switch on.
 func (*ValidationFailedError) ErrorCode() string {
-	return "VALIDATION_FAILED"
+	return errorCodeValidationFailed
 }
 
 // NewASTBinder creates a new AST-powered binder with default settings.
@@ -356,11 +362,13 @@ func (b *ASTBinder) MaxBindJSONBytes() int64 {
 // Takes source (map[string][]string) which provides the source data for binding.
 // Takes opts (...Option) which override global settings for this call.
 //
-// Returns error as a MultiError containing all binding errors, or nil if successful.
+// Returns error which is nil on success. Per-field binding failures return a MultiError.
+// Size limits, cancellation, invalid destinations, and enabled validation return other
+// errors.
 func (b *ASTBinder) Bind(ctx context.Context, destination any, source map[string][]string, opts ...Option) error {
 	limits, err := b.bindWithoutValidation(ctx, destination, source, opts...)
-	if err != nil {
-		return err
+	if settled := b.settleBindErrors(nil, err); settled != nil {
+		return settled
 	}
 	return b.runValidation(ctx, limits, destination)
 }
@@ -378,14 +386,16 @@ func (b *ASTBinder) Bind(ctx context.Context, destination any, source map[string
 // Takes source (map[string]any) which provides the source data for binding.
 // Takes opts (...Option) which override global settings for this call.
 //
-// Returns error as a MultiError containing all binding errors, or nil if successful.
+// Returns error which is nil on success. Per-field binding failures return a MultiError.
+// Size limits, cancellation, invalid destinations, and enabled validation return other
+// errors.
 func (b *ASTBinder) BindMap(ctx context.Context, destination any, source map[string]any, opts ...Option) error {
 	limits := b.resolveLimits(opts)
 	remaining, subtreeErrs := b.bindWholeSubtreeFields(destination, source, limits)
 	flattened := flattenMapToFormData(remaining)
 	_, bindErr := b.bindWithoutValidation(ctx, destination, flattened, opts...)
-	if merged := mergeBindErrors(subtreeErrs, bindErr); merged != nil {
-		return merged
+	if settled := b.settleBindErrors(subtreeErrs, bindErr); settled != nil {
+		return settled
 	}
 	return b.runValidation(ctx, limits, destination)
 }
@@ -399,26 +409,29 @@ func (b *ASTBinder) BindMap(ctx context.Context, destination any, source map[str
 // decoding. The existing maxPathDepth limit covers the resolved structure; this size cap
 // protects the initial Unmarshal step against attacker-controlled payloads.
 //
+// A JSON null value supplies no fields.
+//
 // Takes destination (any) which is the destination struct pointer to populate.
 // Takes source ([]byte) which contains the raw JSON bytes to decode.
 // Takes opts (...Option) which override global settings for this call.
 //
-// Returns error when JSON decoding fails or binding errors occur, or when the source
-// exceeds the configured size cap (in which case the error wraps ErrBindJSONTooLarge).
+// Returns error for binding, validation, or invalid-target failures. Oversized input
+// answers 413 and wraps ErrBindJSONTooLarge. Decoding failures answer 400 with a safe
+// message.
 func (b *ASTBinder) BindJSON(ctx context.Context, destination any, source []byte, opts ...Option) error {
 	if maxBytes := b.maxBindJSONBytes.Load(); maxBytes > 0 && int64(len(source)) > maxBytes {
-		return fmt.Errorf("BindJSON input %d bytes exceeds limit %d: %w", len(source), maxBytes, ErrBindJSONTooLarge)
+		return newLimitError(fmt.Errorf("BindJSON input %d bytes exceeds limit %d: %w", len(source), maxBytes, ErrBindJSONTooLarge))
 	}
 	var rawFields map[string]stdjson.RawMessage
 	if err := stdjson.Unmarshal(source, &rawFields); err != nil {
-		return fmt.Errorf("decoding JSON for binding: %w", err)
+		return &malformedJSONError{err: err}
 	}
 	limits := b.resolveLimits(opts)
 	remaining, subtreeErrs := b.bindWholeSubtreeFieldsRaw(destination, rawFields, limits)
 	flattened := flattenMapToFormData(remaining)
 	_, bindErr := b.bindWithoutValidation(ctx, destination, flattened, opts...)
-	if merged := mergeBindErrors(subtreeErrs, bindErr); merged != nil {
-		return merged
+	if settled := b.settleBindErrors(subtreeErrs, bindErr); settled != nil {
+		return settled
 	}
 	return b.runValidation(ctx, limits, destination)
 }
@@ -577,21 +590,54 @@ func (b *ASTBinder) runValidation(ctx context.Context, limits binderOptions, des
 // Returns map[string][]string which holds at most the configured number of entries.
 func (b *ASTBinder) capFieldErrors(fields map[string][]string) map[string][]string {
 	limit := b.maxFieldErrors.Load()
-	if limit <= 0 || int64(len(fields)) <= limit {
-		return fields
-	}
-
-	capped := make(map[string][]string, limit+1)
-	for name, messages := range fields {
-		if int64(len(capped)) >= limit {
-			break
-		}
-		capped[name] = messages
-	}
-	capped[FieldErrorsTruncatedKey] = []string{
-		fmt.Sprintf("reporting %d of %d failed fields", limit, len(fields)),
+	capped, trimmed := keepFirstFields(fields, limit)
+	if trimmed {
+		capped[FieldErrorsTruncatedKey] = []string{fieldErrorsTruncatedNotice(limit, len(fields))}
 	}
 	return capped
+}
+
+// capMultiError trims the binding failures to the configured ceiling.
+//
+// Takes bindingErrors (MultiError) which holds every per-field binding failure.
+//
+// Returns MultiError which holds at most the configured number of fields, plus
+// FieldErrorsTruncatedKey when fields were dropped.
+func (b *ASTBinder) capMultiError(bindingErrors MultiError) MultiError {
+	limit := b.maxFieldErrors.Load()
+	capped, trimmed := keepFirstFields(bindingErrors, limit)
+	if trimmed {
+		capped[FieldErrorsTruncatedKey] = errFieldErrorsTruncated{reported: limit, total: len(bindingErrors)}
+	}
+	return capped
+}
+
+// settleBindErrors turns the results of the binding passes into the single error a bind
+// returns.
+//
+// A cancellation or a broken size limit stops the whole bind, so it is returned on its
+// own and never mixed into the per-field failures. A limit broken while binding one field
+// is lifted out of the field failures for the same reason. Any other failures are trimmed
+// to the configured ceiling.
+//
+// Takes subtreeErrs (MultiError) which holds the per-field subtree binding errors.
+// Takes bindErr (error) which is the flatten-pass result, possibly nil.
+//
+// Returns error which is the error the bind returns, or nil when both passes succeeded.
+func (b *ASTBinder) settleBindErrors(subtreeErrs MultiError, bindErr error) error {
+	merged := mergeBindErrors(subtreeErrs, bindErr)
+	if merged == nil {
+		return nil
+	}
+
+	bindingErrors, ok := errors.AsType[MultiError](merged)
+	if !ok {
+		return merged
+	}
+	if limitErr := liftLimitError(bindingErrors); limitErr != nil {
+		return limitErr
+	}
+	return b.capMultiError(bindingErrors)
 }
 
 // bindWithoutValidation performs the binding pass alone, leaving validation to the
@@ -606,7 +652,9 @@ func (b *ASTBinder) capFieldErrors(fields map[string][]string) map[string][]stri
 //
 // Returns binderOptions which are the resolved per-call settings, so the caller can run
 // validation without resolving the options again.
-// Returns error which is a MultiError holding every binding failure, or nil.
+// Returns error which is a MultiError holding every per-field binding failure, an error
+// that answers with 413 when the source broke the field count limit, the cancellation
+// when ctx ended during the bind, or nil.
 func (b *ASTBinder) bindWithoutValidation(
 	ctx context.Context,
 	destination any,
@@ -628,8 +676,10 @@ func (b *ASTBinder) bindWithoutValidation(
 
 	structMeta := b.cache.get(v.Type(), limits.maxPathDepth)
 
-	multiErrors := b.bindFields(ctx, v, source, structMeta, limits)
-
+	multiErrors, err := b.bindFields(ctx, v, source, structMeta, limits)
+	if err != nil {
+		return limits, err
+	}
 	if multiErrors != nil {
 		return limits, multiErrors
 	}
@@ -916,26 +966,31 @@ func (b *ASTBinder) resolveOptions(opts *BindOptions) binderOptions {
 // Takes structMeta (*structInfo) which provides metadata about the struct.
 // Takes limits (binderOptions) which specifies validation constraints.
 //
-// Returns MultiError which is nil on success, or contains all binding errors. The
-// MultiError is allocated lazily only when the first error occurs.
-func (b *ASTBinder) bindFields(ctx context.Context, v reflect.Value, src map[string][]string, structMeta *structInfo, limits binderOptions) MultiError {
+// Returns MultiError which is nil on success, or contains the per-field binding errors.
+// The MultiError is allocated lazily only when the first error occurs.
+// Returns error which is the cancellation when ctx ends during the bind. It is kept out
+// of the MultiError because it says nothing about the input.
+func (b *ASTBinder) bindFields(
+	ctx context.Context,
+	v reflect.Value,
+	src map[string][]string,
+	structMeta *structInfo,
+	limits binderOptions,
+) (MultiError, error) {
 	var multiErrors MultiError
 
 	fieldsBound := 0
 	for path, values := range src {
 		fieldsBound++
-		if fieldsBound%bindCancellationCheckInterval == 0 {
-			if err := ctx.Err(); err != nil {
-				accumulateError(&multiErrors, path, fmt.Errorf("binding cancelled after %d fields: %w", fieldsBound, err))
-				return multiErrors
-			}
+		if fieldsBound%bindCancellationCheckInterval == 0 && ctx.Err() != nil {
+			return multiErrors, bindCancelledError(ctx, fieldsBound)
 		}
 		if err := b.bindPathValues(ctx, v, path, values, structMeta, limits); err != nil {
 			accumulateError(&multiErrors, path, err)
 		}
 	}
 
-	return multiErrors
+	return multiErrors, nil
 }
 
 // bindPathValues binds the values for a single form key onto the destination struct.
@@ -1176,18 +1231,18 @@ func newSliceElementBudget(source map[string][]string) *sliceElementBudget {
 //
 // Takes elements (int) which is the number of elements about to be allocated.
 //
-// Returns error wrapping ErrSliceElementBudgetExhausted when the allocation would exceed
-// what the call's source data justifies.
+// Returns error which wraps ErrSliceElementBudgetExhausted and answers with 413 when the
+// allocation exceeds the budget justified by the source data.
 func (budget *sliceElementBudget) charge(elements int) error {
 	if budget == nil || elements <= 0 {
 		return nil
 	}
 
 	if budget.remaining.Add(-int64(elements)) < 0 {
-		return fmt.Errorf(
+		return newLimitError(fmt.Errorf(
 			"growing a slice by %d elements exceeds the %d elements this input allows: %w",
 			elements, budget.total, ErrSliceElementBudgetExhausted,
-		)
+		))
 	}
 	return nil
 }
@@ -1291,10 +1346,12 @@ func validateBindTarget(destination any) error {
 // Takes src (map[string][]string) which contains the form fields to check.
 // Takes maxFieldCount (int) which sets the maximum number of fields allowed.
 //
-// Returns error when the field count exceeds the limit.
+// Returns error which wraps ErrTooManyFields and answers with 413 when the field count
+// exceeds the limit.
 func checkFieldCountLimit(src map[string][]string, maxFieldCount int) error {
 	if maxFieldCount > 0 && len(src) > maxFieldCount {
-		return fmt.Errorf("binder: number of form fields (%d) exceeds maximum limit of %d", len(src), maxFieldCount)
+		return newLimitError(fmt.Errorf("binder: number of form fields (%d) exceeds maximum limit of %d: %w",
+			len(src), maxFieldCount, ErrTooManyFields))
 	}
 	return nil
 }
@@ -1435,22 +1492,25 @@ func bindSubtreeFieldRaw(key string, raw stdjson.RawMessage, target reflect.Valu
 	return decodeSubtreeBytes(key, data, target, !limits.ignoreUnknownKeys)
 }
 
-// checkSubtreeLimits enforces the flatten path's depth, field-count, slice-length and
-// value-length limits on a JSON subtree so a whole-subtree bind cannot bypass them. All
-// breaches are reported as errInvalidPath so the SafeMessage convention holds.
+// checkSubtreeLimits enforces binder limits on a JSON subtree.
+//
+// Too many entries produce a size limit error, as on the flattened path. Other limit
+// breaches produce errInvalidPath so SafeMessage stays consistent.
 //
 // Takes key (string) which is the source key, used for error context.
 // Takes raw (any) which is the decoded subtree value to inspect.
 // Takes limits (binderOptions) which supply the DoS ceilings to enforce.
 //
-// Returns error which is an errInvalidPath on a breach, or nil when within limits.
+// Returns error which is a size limit breach or an errInvalidPath, or nil when within
+// limits.
 func checkSubtreeLimits(key string, raw any, limits binderOptions) error {
 	stats := subtreeStatsOf(raw, limits.maxPathDepth)
 	if limits.maxPathDepth > 0 && 1+stats.depth > limits.maxPathDepth {
 		return errInvalidPath{path: key, err: fmt.Errorf("path depth exceeds maximum limit of %d", limits.maxPathDepth)}
 	}
 	if limits.maxFieldCount > 0 && stats.fieldCount > limits.maxFieldCount {
-		return errInvalidPath{path: key, err: fmt.Errorf("number of form fields (%d) exceeds maximum limit of %d", stats.fieldCount, limits.maxFieldCount)}
+		return newLimitError(fmt.Errorf("binder: field '%s' holds %d entries, which exceeds maximum limit of %d: %w",
+			runeutil.Truncate(key, maxQuotedValueRunes), stats.fieldCount, limits.maxFieldCount, ErrTooManyFields))
 	}
 	if limits.maxSliceSize > 0 && stats.maxArrayLen > limits.maxSliceSize {
 		return errInvalidPath{path: key, err: fmt.Errorf("slice length (%d) exceeds maximum limit of %d", stats.maxArrayLen, limits.maxSliceSize)}
@@ -1692,21 +1752,79 @@ func implementsJSONUnmarshaler(t reflect.Type) bool {
 // mergeBindErrors combines the subtree binding errors with the flatten-pass error into a
 // single error, preserving MultiError semantics.
 //
+// A flatten-pass error that is not a MultiError, such as a cancellation or a broken size
+// limit, stopped the whole bind, so it is returned on its own rather than filed under a
+// field.
+//
 // Takes subtreeErrs (MultiError) which holds the per-field subtree binding errors.
 // Takes bindErr (error) which is the flatten-pass result, possibly nil.
 //
 // Returns error which merges both sources, or nil when neither reported a failure.
 func mergeBindErrors(subtreeErrs MultiError, bindErr error) error {
-	if len(subtreeErrs) == 0 {
+	if bindErr == nil {
+		if len(subtreeErrs) == 0 {
+			return nil
+		}
+		return subtreeErrs
+	}
+
+	flat, ok := errors.AsType[MultiError](bindErr)
+	if !ok || len(subtreeErrs) == 0 {
 		return bindErr
 	}
-	if bindErr == nil {
-		return subtreeErrs
-	}
-	if flat, ok := errors.AsType[MultiError](bindErr); ok {
-		maps.Copy(subtreeErrs, flat)
-		return subtreeErrs
-	}
-	subtreeErrs["_binding"] = bindErr
+	maps.Copy(subtreeErrs, flat)
 	return subtreeErrs
+}
+
+// liftLimitError finds a size limit breach recorded against a field.
+//
+// A breach such as an exhausted slice element budget is found while one field is bound,
+// but it is a problem with the size of the whole request rather than with that field.
+//
+// Takes bindingErrors (MultiError) which holds the per-field binding errors.
+//
+// Returns error which is the first breach in field name order, or nil when there is none.
+func liftLimitError(bindingErrors MultiError) error {
+	for _, name := range slices.Sorted(maps.Keys(bindingErrors)) {
+		if limitErr, ok := errors.AsType[*limitError](bindingErrors[name]); ok {
+			return limitErr
+		}
+	}
+	return nil
+}
+
+// keepFirstFields trims a field-keyed map to its first limit entries in name order, so
+// the same input always keeps the same fields.
+//
+// Takes fields (map[string]V) which is the map to trim.
+// Takes limit (int64) which is the most entries to keep. Zero or less keeps them all.
+//
+// Returns map[string]V which is fields itself when nothing was dropped, or a trimmed
+// copy.
+// Returns bool which is true when entries were dropped.
+func keepFirstFields[V any](fields map[string]V, limit int64) (map[string]V, bool) {
+	if limit <= 0 || int64(len(fields)) <= limit {
+		return fields, false
+	}
+
+	kept := make(map[string]V, limit+1)
+	for _, name := range slices.Sorted(maps.Keys(fields))[:limit] {
+		kept[name] = fields[name]
+	}
+	return kept, true
+}
+
+// bindCancelledError describes a bind that stopped because ctx ended.
+//
+// Takes fieldsBound (int) which is how many fields were reached before the stop.
+//
+// Returns error which wraps both ctx.Err() and the cancellation cause, so a caller can
+// match context.Canceled or context.DeadlineExceeded as well as its own cause.
+func bindCancelledError(ctx context.Context, fieldsBound int) error {
+	ctxErr := ctx.Err()
+	cause := context.Cause(ctx)
+	if cause == nil || errors.Is(cause, ctxErr) {
+		return fmt.Errorf("binding cancelled after %d fields: %w", fieldsBound, ctxErr)
+	}
+	return fmt.Errorf("binding cancelled after %d fields: %w: %w", fieldsBound, ctxErr, cause)
 }

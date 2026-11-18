@@ -255,3 +255,13 @@ func TestDefaultConfigNamed(t *testing.T) {
 		require.NoError(t, err)
 	})
 }
+
+func TestConfigQueueTimeout(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, DefaultQueueTimeout, Config{}.WithDefaults().QueueTimeout)
+	assert.Equal(t, DefaultQueueTimeout, DefaultConfig("directory").QueueTimeout)
+	invalid := DefaultConfig("directory")
+	invalid.QueueTimeout = -1
+	assert.ErrorIs(t, invalid.Validate(), ErrInvalidConfig)
+}

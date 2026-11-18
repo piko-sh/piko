@@ -125,7 +125,7 @@ func TestEdgeCase_RapidSequentialSeeding(t *testing.T) {
 	idle := h.waitForIdle(10 * time.Second)
 	require.True(t, idle, "dispatcher should become idle")
 
-	published := h.registryService.ArtefactEventsPublished()
+	published := h.registryService.ArtefactEventsIssued()
 	assert.Equal(t, int64(count), published, "all events published")
 
 	stats := h.dispatcher.Stats()

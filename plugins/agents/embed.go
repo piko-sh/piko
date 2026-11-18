@@ -23,9 +23,7 @@ import (
 )
 
 var (
-	// FS contains the agent integration files. Dotfiles are named directly, and
-	// the all: prefix keeps dotfiles inside .claude-plugin/, so Go source and
-	// test files are left out of the binary.
+	// FS contains the embedded agent integration files.
 	//
 	//go:embed AGENTS.md SKILL.md .lsp.json all:.claude-plugin references skills
 	FS embed.FS

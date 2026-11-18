@@ -393,7 +393,7 @@ func (p *WatchdogConfigPanel) fetchCmd() tea.Cmd {
 		return nil
 	}
 	return func() tea.Msg {
-		ctx, cancel := context.WithTimeoutCause(context.Background(), 5*time.Second, errors.New("watchdog config fetch timed out"))
+		ctx, cancel := context.WithTimeoutCause(context.Background(), DefaultRefreshTimeout, errors.New("watchdog config fetch timed out"))
 		defer cancel()
 		status, err := p.provider.GetStatus(ctx)
 		return configSnapshotMsg{Status: status, Err: err}
@@ -491,5 +491,5 @@ func formatGauge(g UtilisationGauge) string {
 	if g.Max <= 0 {
 		return HyphenGlyph
 	}
-	return fmt.Sprintf("%s / %s  (%d%%)", trimFloat(g.Used), trimFloat(g.Max), int(g.Percent*100))
+	return fmt.Sprintf("%s / %s  (%d%%)", trimFloat(g.Used), trimFloat(g.Max), int(g.Percent*percentageScale))
 }

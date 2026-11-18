@@ -53,6 +53,15 @@ const (
 
 	// singleSpace is a single ASCII space character.
 	singleSpace = " "
+
+	// fenceIndentGroup is the fence pattern submatch holding the leading indentation.
+	fenceIndentGroup = 1
+
+	// fenceMarkerGroup is the fence pattern submatch holding the backtick or tilde run.
+	fenceMarkerGroup = 2
+
+	// fenceInfoGroup is the fence pattern submatch holding the info string.
+	fenceInfoGroup = 3
 )
 
 // Parser is a lightweight markdown parser that converts markdown source into piko-native
@@ -386,15 +395,16 @@ func parseFencedCodeBlock(parent markdown_ast.Node, lines []blockLine, start int
 	if m == nil {
 		return start + 1
 	}
-	fenceChar := m[2][0]
-	fenceLen := len(m[2])
-	info := strings.TrimSpace(m[3])
+	fenceChar := m[fenceMarkerGroup][0]
+	fenceLen := len(m[fenceMarkerGroup])
+	info := strings.TrimSpace(m[fenceInfoGroup])
 
 	fcb := markdown_ast.NewFencedCodeBlock()
 	if info != "" {
 		fcb.Info = info
 		fcb.Language = extractFenceLanguage(info)
-		infoStart := lines[start].offset + len(m[1]) + len(m[2]) + len(m[3]) - len(strings.TrimLeftFunc(m[3], unicode.IsSpace))
+		infoStart := lines[start].offset + len(m[fenceIndentGroup]) + len(m[fenceMarkerGroup]) + len(m[fenceInfoGroup]) -
+			len(strings.TrimLeftFunc(m[fenceInfoGroup], unicode.IsSpace))
 		fcb.InfoSegment = markdown_ast.Segment{Start: infoStart, Stop: infoStart + len(info)}
 	}
 

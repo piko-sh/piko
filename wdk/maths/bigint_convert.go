@@ -26,7 +26,7 @@ import (
 	"math/big"
 	"strconv"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 // String returns the decimal text form of the big integer.

@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -34,9 +35,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"piko.sh/json"
+	"piko.sh/piko/internal/binder"
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/daemon/daemon_dto"
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/security/security_dto"
 )
 
@@ -477,4 +479,143 @@ func TestHandleBatch_MetadataCarriesTheActionTimeout(t *testing.T) {
 	require.Equal(t, http.StatusOK, recorder.Code)
 	assert.True(t, hasDeadline,
 		"the action's metadata context must carry the per-call timeout on the batch path")
+}
+
+func TestHandleActionError_AnswersABindingFailureWithFieldErrors(t *testing.T) {
+	t.Parallel()
+
+	bindErr := bindQuantityForm(t, map[string]any{"Quantity": "lots", "Price": "1e400"})
+
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/action", nil)
+	handler.handleActionError(recorder, request, &struct{}{}, bindErr)
+
+	require.Equal(t, http.StatusUnprocessableEntity, recorder.Code)
+
+	var body struct {
+		Errors  map[string]string `json:"errors"`
+		Code    string            `json:"code"`
+		Message string            `json:"message"`
+		Status  int               `json:"status"`
+	}
+	require.NoError(t, json.ConfigDefault.Unmarshal(recorder.Body.Bytes(), &body))
+
+	assert.Equal(t, http.StatusUnprocessableEntity, body.Status)
+	assert.Equal(t, "VALIDATION_FAILED", body.Code)
+	assert.Equal(t, "validation failed", body.Message)
+	assert.Equal(t, map[string]string{
+		"Quantity": "Enter a whole number",
+		"Price":    "Number is too large or too small",
+	}, body.Errors)
+}
+
+func TestBuildBatchErrorResult_AnswersABindingFailureWithFieldErrors(t *testing.T) {
+	t.Parallel()
+
+	bindErr := bindQuantityForm(t, map[string]any{"Quantity": "lots"})
+
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
+	result := handler.buildBatchErrorResult(t.Context(), "order.create", bindErr, false)
+
+	assert.Equal(t, http.StatusUnprocessableEntity, result.Status)
+	assert.Equal(t, "VALIDATION_FAILED", result.Code)
+	assert.Equal(t, "validation failed", result.Error)
+	assert.Equal(t, map[string]string{"Quantity": "Enter a whole number"}, result.Errors)
+}
+
+func bindQuantityForm(t *testing.T, source map[string]any) error {
+	t.Helper()
+
+	var destination struct {
+		Quantity int
+		Price    float64
+	}
+	err := binder.NewASTBinder().BindMap(t.Context(), &destination, source)
+	require.Error(t, err)
+
+	return err
+}
+
+func TestFieldErrorsFor(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		err  error
+		want map[string]string
+		name string
+	}{
+		{
+			name: "validation error raised by an action",
+			err:  daemon_dto.NewValidationError(map[string]string{"email": "is required"}),
+			want: map[string]string{"email": "is required"},
+		},
+		{
+			name: "binding failure",
+			err:  binder.MultiError{"Quantity": errors.New("could not convert")},
+			want: map[string]string{"Quantity": "Enter a valid value"},
+		},
+		{
+			name: "validate tag failure with field messages",
+			err: &binder.ValidationFailedError{
+				Err:    errors.New("validator rejected the input"),
+				Fields: map[string][]string{"email": {"is required", "must be an email"}},
+			},
+			want: map[string]string{"email": "is required, must be an email"},
+		},
+		{
+			name: "validate tag failure without field messages",
+			err:  &binder.ValidationFailedError{Err: errors.New("validator rejected the input"), Fields: nil},
+			want: nil,
+		},
+		{
+			name: "wrapped binding failure",
+			err:  fmt.Errorf("binding input: %w", binder.MultiError{"Quantity": errors.New("could not convert")}),
+			want: map[string]string{"Quantity": "Enter a valid value"},
+		},
+		{
+			name: "plain error",
+			err:  errors.New("database unreachable"),
+			want: nil,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, testCase.want, fieldErrorsFor(testCase.err))
+		})
+	}
+}
+
+func TestBuildBatchErrorResult_ReportsAnInvalidStatusOnce(t *testing.T) {
+	t.Parallel()
+
+	handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
+	request, logs := newLogRecordingRequest(t, http.MethodPost, "/_piko/actions/_batch", "{}")
+
+	result := handler.buildBatchErrorResult(request.Context(), "order.create", daemon_dto.PageError(http.StatusFound, "moved"), false)
+
+	assert.Equal(t, http.StatusInternalServerError, result.Status)
+	assert.Len(t, logs.atLevel(slog.LevelError), 1, "an invalid status must be reported exactly once")
+}
+
+func TestExecuteBatchActions_ReportsAPanicOnce(t *testing.T) {
+	t.Parallel()
+
+	handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
+	registerMetadataAction(handler, "panicking", func(_ any) (any, error) {
+		panic("action exploded")
+	})
+	router := chi.NewRouter()
+	handler.Mount(router, "/_piko/actions")
+	request, logs := newLogRecordingRequest(t, http.MethodPost, "/_piko/actions/_batch",
+		`{"actions":[{"name":"panicking"}],"parallel":false}`)
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, request)
+
+	require.Equal(t, http.StatusOK, recorder.Code)
+	assert.Len(t, logs.atLevel(slog.LevelError), 1, "a recovered panic is already logged where it was recovered")
 }

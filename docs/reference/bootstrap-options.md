@@ -69,7 +69,7 @@ Passed inside `WithTLS(...)`:
 
 ## Dependency injection
 
-Piko's hexagonal architecture lets a project substitute any backend at construction. Most ports offer three options. The first registers a named provider, the second marks one as the default, and the third overrides the service wrapper entirely.
+Register providers and select defaults when you create the server.
 
 ### Cache
 
@@ -78,6 +78,7 @@ Piko's hexagonal architecture lets a project substitute any backend at construct
 | `WithCacheProvider(name, provider)` | Register a named cache backend. |
 | `WithDefaultCacheProvider(name)` | Select the default backend by name. |
 | `WithCacheService(service)` | Replace the entire cache service. |
+| `WithRateLimiterCacheProvider(name)` | Selects the provider for rate limiter state. By default, state stays in each process. |
 | `WithMemoryRegistryCache()` | In-memory metadata cache for the registry. |
 | `WithJSONTypeInspectorCache()` | Cache the JSON type inspector to avoid re-reflection per request. |
 
@@ -124,8 +125,10 @@ Piko's hexagonal architecture lets a project substitute any backend at construct
 | `WithLLMProvider(name, provider)` | Register a named LLM provider (OpenAI, Anthropic, local). |
 | `WithDefaultLLMProvider(name)` | Select the default LLM. |
 | `WithLLMService(service)` | Replace the entire LLM service. |
+| `WithLLMCacheProvider(name)` | Select the provider for LLM responses and budget data. By default, both stay in each process. |
 | `WithEmbeddingProvider(name, provider)` | Register a named embedding backend. |
 | `WithDefaultEmbeddingProvider(name)` | Select the default embedding backend. |
+| `WithLLMCacheMaxBytes(maxBytes)` | Sets the approximate memory cap on the in-memory LLM response cache. The default is 256 MiB, and zero keeps it. Responses over 8 MiB are not cached. |
 
 ### Captcha
 
@@ -195,6 +198,7 @@ Values below one keep the default input-size or nesting limit. These options bel
 | `WithCookieSecurity(cookies CookieSecurityConfig)` | Default `Secure`, `HttpOnly`, and `SameSite` flags applied to cookies the framework writes. |
 | `WithRateLimit(rl RateLimitConfig)` | Full rate-limiter configuration (window, burst, per-IP/user, exclusions). |
 | `WithRateLimitEnabled(enabled)` | Toggle the rate limiter without supplying a full config. |
+| `WithRateLimitIPv6PrefixBits(bits)` | Sets the IPv6 prefix used for rate limits on actions, presigned uploads and captcha. The default is 64 bits. Values outside 1 to 128 trigger a warning and use the default. |
 | `WithSandbox(s SandboxConfig)` | Filesystem sandbox for Piko internals (allowed roots, deny lists). |
 | `WithReporting(r ReportingConfig)` | Configure the `Reporting-Endpoints` HTTP header. |
 | `WithCaptcha(opts CaptchaOptions)` | Per-deployment captcha settings (site key, secret, score threshold). |

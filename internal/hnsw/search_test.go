@@ -82,7 +82,7 @@ func TestGraph_Search(t *testing.T) {
 				g.Insert(k, v)
 			}
 
-			results := g.Search(tt.query, tt.topK, tt.efSearch)
+			results := mustSearch(t, g, tt.query, tt.topK, tt.efSearch)
 
 			if tt.wantNil {
 				assert.Nil(t, results)
@@ -105,7 +105,7 @@ func TestGraph_SearchTopKLimiting(t *testing.T) {
 		g.Insert(fmt.Sprintf("n%d", i), vec)
 	}
 
-	results := g.Search([]float32{0, 10, 0}, 3, 0)
+	results := mustSearch(t, g, []float32{0, 10, 0}, 3, 0)
 	require.Len(t, results, 3)
 
 	for i := 1; i < len(results); i++ {
@@ -121,7 +121,7 @@ func TestGraph_SearchWithExactMatch(t *testing.T) {
 	g.Insert("y", []float32{0, 1, 0})
 	g.Insert("z", []float32{0.9, 0.1, 0})
 
-	results := g.Search([]float32{1, 0, 0}, 2, 0)
+	results := mustSearch(t, g, []float32{1, 0, 0}, 2, 0)
 	require.Len(t, results, 2)
 
 	assert.Equal(t, "x", results[0].Key)
@@ -168,7 +168,7 @@ func TestGraph_SearchMetrics(t *testing.T) {
 				g.Insert(k, v)
 			}
 
-			results := g.Search(tt.query, len(tt.want), 0)
+			results := mustSearch(t, g, tt.query, len(tt.want), 0)
 			require.Len(t, results, len(tt.want))
 
 			for i, wantKey := range tt.want {
@@ -185,10 +185,10 @@ func TestGraph_SearchCustomEfSearch(t *testing.T) {
 	g.Insert("b", []float32{0.9, 0.1, 0})
 	g.Insert("c", []float32{0, 1, 0})
 
-	r1 := g.Search([]float32{1, 0, 0}, 2, 0)
+	r1 := mustSearch(t, g, []float32{1, 0, 0}, 2, 0)
 	require.Len(t, r1, 2)
 
-	r2 := g.Search([]float32{1, 0, 0}, 2, 50)
+	r2 := mustSearch(t, g, []float32{1, 0, 0}, 2, 50)
 	require.Len(t, r2, 2)
 
 	assert.Equal(t, r1[0].Key, r2[0].Key)
@@ -227,4 +227,61 @@ func TestEuclideanDistance(t *testing.T) {
 			assert.InDelta(t, tt.expected, result, 0.001)
 		})
 	}
+}
+
+func TestGraph_SearchRejectsAnInvalidQuery(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		wantErr error
+		name    string
+		metric  vectormaths.Metric
+		query   []float32
+	}{
+		{name: "a shorter query", metric: vectormaths.Cosine, query: []float32{1, 0}, wantErr: ErrVectorDimensionMismatch},
+		{name: "a longer query", metric: vectormaths.Euclidean, query: []float32{1, 0, 0, 0}, wantErr: ErrVectorDimensionMismatch},
+		{name: "an empty query", metric: vectormaths.DotProduct, query: nil, wantErr: ErrVectorDimensionMismatch},
+		{name: "a zero query under cosine", metric: vectormaths.Cosine, query: []float32{0, 0, 0}, wantErr: ErrZeroVector},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			g := New[string](3, testCase.metric, WithRandomSeed(42))
+			require.NoError(t, g.Insert("a", []float32{1, 0, 0}))
+
+			results, err := g.Search(testCase.query, 1, 0)
+
+			require.ErrorIs(t, err, testCase.wantErr)
+			assert.Nil(t, results)
+		})
+	}
+}
+
+func TestGraph_SearchAcceptsAZeroQueryWhereTheMetricDefinesIt(t *testing.T) {
+	t.Parallel()
+
+	for _, metric := range []vectormaths.Metric{vectormaths.Euclidean, vectormaths.DotProduct} {
+		t.Run(string(metric), func(t *testing.T) {
+			t.Parallel()
+
+			g := New[string](3, metric, WithRandomSeed(42))
+			require.NoError(t, g.Insert("origin", []float32{0, 0, 0}))
+			require.NoError(t, g.Insert("a", []float32{1, 0, 0}))
+
+			results, err := g.Search([]float32{0, 0, 0}, 2, 0)
+
+			require.NoError(t, err)
+			assert.Len(t, results, 2)
+		})
+	}
+}
+
+func mustSearch[K comparable](t *testing.T, g *Graph[K], query []float32, topK, efSearch int) []Result[K] {
+	t.Helper()
+
+	results, err := g.Search(query, topK, efSearch)
+	require.NoError(t, err)
+	return results
 }

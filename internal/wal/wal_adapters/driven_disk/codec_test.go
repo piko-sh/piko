@@ -28,6 +28,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/mem"
+	"piko.sh/piko/internal/testutil/allocbudget"
 	"piko.sh/piko/internal/wal/wal_domain"
 )
 
@@ -1246,4 +1247,72 @@ func TestDecode_DeleteOperation_NoValue(t *testing.T) {
 
 	assert.Equal(t, wal_domain.OpDelete, decoded.Entry.Operation)
 	assert.Equal(t, "test-key", decoded.Entry.Key)
+}
+
+func TestEncodeWithLengthAndCRC_SlowPathMatchesFramedPayload(t *testing.T) {
+	t.Parallel()
+
+	codec := newSlowTestCodec()
+	entries := []wal_domain.Entry[string, testValue]{
+		{Operation: wal_domain.OpSet, Key: "k", Value: testValue{Name: "small", Count: 1}, Tags: []string{"a", "bb"}, Timestamp: 7, ExpiresAt: 9},
+		{Operation: wal_domain.OpSet, Key: "large", Value: testValue{Name: string(make([]byte, 70_000)), Count: 2}, Timestamp: 8},
+		{Operation: wal_domain.OpDelete, Key: "gone", Timestamp: 10},
+		{Operation: wal_domain.OpClear, Timestamp: 11},
+	}
+
+	for _, entry := range entries {
+		payload, err := codec.Encode(entry)
+		require.NoError(t, err)
+		want := make([]byte, lengthSize+crcSize, lengthSize+crcSize+len(payload))
+		binary.BigEndian.PutUint32(want[0:lengthSize], uint32(crcSize+len(payload)))
+		binary.BigEndian.PutUint32(want[lengthSize:], ComputeCRC(payload))
+		want = append(want, payload...)
+
+		result, err := codec.EncodeWithLengthAndCRC(entry)
+		require.NoError(t, err)
+		assert.Equal(t, want, result.Data, "the framed record must be byte for byte the framed payload")
+
+		decoded, err := codec.DecodeWithCRC(result.Data[lengthSize:])
+		require.NoError(t, err)
+		assert.Equal(t, entry.Key, decoded.Entry.Key)
+		assert.Equal(t, entry.Value, decoded.Entry.Value)
+		assert.Equal(t, entry.Operation, decoded.Entry.Operation)
+		result.Release()
+	}
+}
+
+func TestEncodeWithLengthAndCRC_SlowPathReportsCodecErrors(t *testing.T) {
+	t.Parallel()
+
+	entry := wal_domain.Entry[string, testValue]{Operation: wal_domain.OpSet, Key: "k", Value: testValue{Name: "v"}}
+
+	_, err := NewBinaryCodec[string, testValue](failingKeyCodec{failEncode: true}, failingValueCodec{}).
+		EncodeWithLengthAndCRC(entry)
+	require.ErrorContains(t, err, "encoding key")
+
+	_, err = NewBinaryCodec[string, testValue](failingKeyCodec{}, failingValueCodec{failEncode: true}).
+		EncodeWithLengthAndCRC(entry)
+	require.ErrorContains(t, err, "encoding value")
+}
+
+func TestAllocBudget_EncodeWithLengthAndCRC(t *testing.T) {
+	entry := wal_domain.Entry[string, testValue]{
+		Operation: wal_domain.OpSet, Key: "key", Value: testValue{Name: "value", Count: 1}, Tags: []string{"tag"}, Timestamp: 1,
+	}
+	encode := func(codec *BinaryCodec[string, testValue]) func() {
+		return func() {
+			result, err := codec.EncodeWithLengthAndCRC(entry)
+			if err != nil {
+				t.Fatal(err)
+			}
+			result.Release()
+		}
+	}
+
+	t.Run("codec=fast", func(t *testing.T) {
+		allocbudget.Assert(t, allocbudget.Budget{Allocs: 0}, encode(newTestCodec()))
+	})
+	t.Run("codec=slow", func(t *testing.T) {
+		allocbudget.Assert(t, allocbudget.Budget{Allocs: 2}, encode(newSlowTestCodec()))
+	})
 }

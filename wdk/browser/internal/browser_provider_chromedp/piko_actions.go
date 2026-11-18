@@ -47,8 +47,8 @@ func PikoBusEmit(ctx *ActionContext, eventName string, detail map[string]any) er
 	}
 
 	js := scripts.MustExecute("bus_emit.js.tmpl", map[string]any{
-		"EventName":  eventName,
-		"DetailJSON": string(detailJSON),
+		tmplKeyEventName:  eventName,
+		tmplKeyDetailJSON: string(detailJSON),
 	})
 
 	err = chromedp.Run(ctx.Ctx, chromedp.Evaluate(js, nil))
@@ -69,8 +69,8 @@ func PikoBusEmit(ctx *ActionContext, eventName string, detail map[string]any) er
 // Returns error when the event does not arrive within the timeout.
 func PikoBusWaitForEvent(ctx *ActionContext, eventName string, timeout time.Duration) (map[string]any, error) {
 	jsSetup := scripts.MustExecute("bus_wait_for_event.js.tmpl", map[string]any{
-		"EventName": eventName,
-		"TimeoutMS": timeout.Milliseconds(),
+		tmplKeyEventName: eventName,
+		"TimeoutMS":      timeout.Milliseconds(),
 	})
 
 	err := chromedp.Run(ctx.Ctx, chromedp.Evaluate(jsSetup, nil))
@@ -171,7 +171,7 @@ func PikoGetPartialState(ctx *ActionContext, partialName string) (map[string]any
 // Returns error when the check cannot be performed.
 func PikoCheckBusEventReceived(ctx *ActionContext, eventName string) (bool, error) {
 	js := scripts.MustExecute("piko_check_bus_event.js.tmpl", map[string]any{
-		"EventName": eventName,
+		tmplKeyEventName: eventName,
 	})
 
 	var received bool
@@ -252,8 +252,8 @@ func PikoClearEventLog(ctx *ActionContext) error {
 // Returns error when the morph operation fails.
 func PikoDispatchFragmentMorph(ctx *ActionContext, selector, newHTML string) error {
 	js := scripts.MustExecute("piko_fragment_morph.js.tmpl", map[string]any{
-		"Selector": selector,
-		"NewHTML":  newHTML,
+		tmplKeySelector: selector,
+		"NewHTML":       newHTML,
 	})
 
 	err := chromedp.Run(ctx.Ctx, chromedp.Evaluate(js, nil))
@@ -282,7 +282,7 @@ func PikoDispatchFragmentMorph(ctx *ActionContext, selector, newHTML string) err
 // Returns error when the element is not found or debug API is unavailable.
 func PikoDebugGetPartialInfo(ctx *ActionContext, selector string) (map[string]any, error) {
 	js := scripts.MustExecute("piko_debug_get_partial_info.js.tmpl", map[string]any{
-		"Selector": selector,
+		tmplKeySelector: selector,
 	})
 
 	var result any
@@ -312,7 +312,7 @@ func PikoDebugGetPartialInfo(ctx *ActionContext, selector string) (map[string]an
 // Returns error when the check cannot be performed.
 func PikoDebugIsConnected(ctx *ActionContext, selector string) (bool, error) {
 	js := scripts.MustExecute("piko_debug_is_connected.js.tmpl", map[string]any{
-		"Selector": selector,
+		tmplKeySelector: selector,
 	})
 
 	var result bool
@@ -333,7 +333,7 @@ func PikoDebugIsConnected(ctx *ActionContext, selector string) (bool, error) {
 // Returns error when the count cannot be retrieved.
 func PikoDebugGetCleanupCount(ctx *ActionContext, selector string) (int, error) {
 	js := scripts.MustExecute("piko_debug_get_cleanup_count.js.tmpl", map[string]any{
-		"Selector": selector,
+		tmplKeySelector: selector,
 	})
 
 	var result float64
@@ -355,7 +355,7 @@ func PikoDebugGetCleanupCount(ctx *ActionContext, selector string) (int, error) 
 // Returns error when the callbacks cannot be retrieved.
 func PikoDebugGetRegisteredCallbacks(ctx *ActionContext, selector string) ([]string, error) {
 	js := scripts.MustExecute("piko_debug_get_callbacks.js.tmpl", map[string]any{
-		"Selector": selector,
+		tmplKeySelector: selector,
 	})
 
 	var result []any

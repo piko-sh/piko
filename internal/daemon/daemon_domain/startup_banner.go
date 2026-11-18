@@ -548,8 +548,12 @@ func printFallbackLogs(ctx context.Context, info StartupBannerInfo) {
 	}
 }
 
-// BannerServerAddress renders a usable URL authority for the actual listener.
-// Wildcard listeners use localhost; explicit IPv4 and IPv6 addresses are retained.
+// BannerServerAddress renders a usable URL authority for the actual listener. Wildcard
+// listeners use localhost; explicit IPv4 and IPv6 addresses are retained.
+//
+// Takes address (string) which is the listener's host and port.
+//
+// Returns string which is the usable URL authority, or address if it cannot be split.
 func BannerServerAddress(address string) string {
 	host, port, err := net.SplitHostPort(address)
 	if err != nil {

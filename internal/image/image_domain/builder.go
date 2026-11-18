@@ -364,16 +364,16 @@ func (b *ImageConfigBuilder) validateVariants() error {
 	for name := range b.predefinedVariants {
 		spec := b.predefinedVariants[name]
 		if spec.Width < 0 {
-			return errors.New("variant '" + name + "' has negative width")
+			return fmt.Errorf("variant '%s' has negative width", name)
 		}
 		if spec.Height < 0 {
-			return errors.New("variant '" + name + "' has negative height")
+			return fmt.Errorf("variant '%s' has negative height", name)
 		}
 		if spec.Quality < 0 || spec.Quality > maxQuality {
-			return errors.New("variant '" + name + "' has invalid quality")
+			return fmt.Errorf("variant '%s' has invalid quality", name)
 		}
 		if spec.Format != "" && !isValidFormat(spec.Format) {
-			return errors.New("variant '" + name + "' has invalid format: " + spec.Format)
+			return fmt.Errorf("variant '%s' has invalid format: %s", name, spec.Format)
 		}
 	}
 	return nil

@@ -24,7 +24,7 @@ import (
 	"maps"
 	"slices"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 // paramKey represents a known profile parameter key for fast array-based lookup. New keys

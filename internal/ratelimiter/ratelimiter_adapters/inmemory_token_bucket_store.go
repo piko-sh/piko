@@ -126,12 +126,7 @@ func (s *InMemoryTokenBucketStore) WaitDuration(_ context.Context, key string, n
 		return 0, nil
 	}
 
-	deficit := n - state.Tokens
-	if state.RefillRate <= 0 {
-		return time.Second, nil
-	}
-	waitNanos := deficit / state.RefillRate
-	return time.Duration(waitNanos), nil
+	return ratelimiter_domain.TokenWaitDuration(n-state.Tokens, state.RefillRate), nil
 }
 
 // DeleteBucket removes a bucket's state from the store.

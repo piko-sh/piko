@@ -313,8 +313,8 @@ func newRegionCapture(x, y, width, height float64) *page.CaptureScreenshotParams
 // Returns error when the element cannot be found or has invalid bounds.
 func elementRegion(ctx context.Context, selector string, padding float64) (*page.CaptureScreenshotParams, error) {
 	js := scripts.MustExecute("element_bounds_with_padding.js.tmpl", map[string]any{
-		"Selector": selector,
-		"Padding":  padding,
+		tmplKeySelector: selector,
+		"Padding":       padding,
 	})
 
 	var bounds map[string]any

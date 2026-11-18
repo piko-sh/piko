@@ -24,7 +24,7 @@ import (
 	"fmt"
 	"time"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/wal/wal_domain"

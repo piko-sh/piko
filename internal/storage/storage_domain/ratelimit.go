@@ -53,8 +53,10 @@ type ProviderRateLimitConfig struct {
 	// rate limiting.
 	CallsPerSecond float64
 
-	// Burst is the maximum number of calls allowed in a short burst, letting brief spikes go
-	// above the rate limit. If 0, defaults to CallsPerSecond.
+	// Burst is the maximum number of calls allowed at once.
+	//
+	// A nonpositive value uses CallsPerSecond truncated to an integer, with a minimum of 1.
+	// The minimum lets rates below one call per second still permit calls.
 	Burst int
 }
 
@@ -74,7 +76,7 @@ func NewProviderRateLimiter(config ProviderRateLimitConfig) *ProviderRateLimiter
 
 	burst := config.Burst
 	if burst <= 0 {
-		burst = int(config.CallsPerSecond)
+		burst = max(int(config.CallsPerSecond), 1)
 	}
 
 	bucketConfig := ratelimiter_dto.TokenBucketConfig{

@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"reflect"
 	"slices"
 	"strings"
@@ -630,6 +631,67 @@ func (b *CacheBuilder[K, V]) AccessExpiration(duration time.Duration) *CacheBuil
 	return b
 }
 
+// PerEntryExpiration enables expiry for individual entries without a default TTL. An
+// entry stays until it is evicted unless a TTL is set through SetWithTTL, ComputeWithTTL
+// or SetExpiresAfter; updates and reads keep the entry's current expiry.
+//
+// In-memory providers track expiry only when an expiration option is set, and tracking it
+// adds work to every read and write, so a cache that passes TTLs needs this option and a
+// cache that never does should leave it off.
+//
+// Returns *CacheBuilder[K, V] for method chaining.
+func (b *CacheBuilder[K, V]) PerEntryExpiration() *CacheBuilder[K, V] {
+	b.expiryCalculator = newPerEntryExpiryCalculator[K, V]()
+	return b
+}
+
+// perEntryExpiryCalculator lets callers decide each entry's lifetime through per-entry
+// TTLs. It sets no expiry of its own.
+type perEntryExpiryCalculator[K comparable, V any] struct{}
+
+// ExpireAfterCreate returns the time left until the latest representable instant, so a
+// new entry does not expire. Replacing an entry whose expiry has passed but which has not
+// yet been removed counts as a create, and without a fresh expiry the new value would
+// inherit the old, already-passed one.
+//
+// Takes entry (cache_dto.Entry[K, V]) which is the entry being created.
+//
+// Returns time.Duration which places the entry's expiry at the end of representable time.
+func (*perEntryExpiryCalculator[K, V]) ExpireAfterCreate(entry cache_dto.Entry[K, V]) time.Duration {
+	if entry.SnapshotAtNano <= 0 {
+		return time.Duration(math.MaxInt64)
+	}
+	return time.Duration(math.MaxInt64 - entry.SnapshotAtNano)
+}
+
+// ExpireAfterUpdate returns the entry's remaining lifetime, leaving its expiry unchanged.
+//
+// Takes entry (cache_dto.Entry[K, V]) which is the entry being updated.
+//
+// Returns time.Duration which is the time left before the entry's current expiry.
+func (*perEntryExpiryCalculator[K, V]) ExpireAfterUpdate(entry cache_dto.Entry[K, V], _ V) time.Duration {
+	return remainingLifetime(entry)
+}
+
+// ExpireAfterRead returns the entry's remaining lifetime, leaving its expiry unchanged.
+//
+// Takes entry (cache_dto.Entry[K, V]) which is the entry being read.
+//
+// Returns time.Duration which is the time left before the entry's current expiry.
+func (*perEntryExpiryCalculator[K, V]) ExpireAfterRead(entry cache_dto.Entry[K, V]) time.Duration {
+	return remainingLifetime(entry)
+}
+
+// remainingLifetime returns how long an entry has left before its current expiry.
+// Returning this from an update or read leaves the expiry where it is.
+//
+// Takes entry (cache_dto.Entry[K, V]) which is the entry to measure.
+//
+// Returns time.Duration which is the time between the snapshot and the entry's expiry.
+func remainingLifetime[K comparable, V any](entry cache_dto.Entry[K, V]) time.Duration {
+	return time.Duration(entry.ExpiresAtNano - entry.SnapshotAtNano)
+}
+
 // writeExpiryCalculator applies a time-to-live only on write operations such as create
 // and update. Read operations do not reset the expiry timer.
 type writeExpiryCalculator[K comparable, V any] struct {
@@ -1224,7 +1286,7 @@ func (b *CacheBuilder[K, V]) validateTransformerCompatibility() error {
 	}
 
 	switch b.expiryCalculator.(type) {
-	case nil, *writeExpiryCalculator[K, V], *accessExpiryCalculator[K, V]:
+	case nil, *writeExpiryCalculator[K, V], *accessExpiryCalculator[K, V], *perEntryExpiryCalculator[K, V]:
 	default:
 		unsupported = append(unsupported, "ExpiryCalculator")
 	}
@@ -1245,7 +1307,7 @@ func (b *CacheBuilder[K, V]) validateTransformerCompatibility() error {
 
 	return fmt.Errorf(
 		"%w: %s cannot be used with transformers or encoders, which store encoded bytes the "+
-			"provider cannot interpret; use Expiration, WriteExpiration or AccessExpiration for "+
+			"provider cannot interpret; use Expiration, WriteExpiration, AccessExpiration or PerEntryExpiration for "+
 			"time-based eviction, and MaximumEntries to bound entry count",
 		errInvalidConfiguration, strings.Join(unsupported, ", "))
 }
@@ -1291,6 +1353,8 @@ func (b *CacheBuilder[K, V]) adaptExpiryCalculator() cache_dto.ExpiryCalculator[
 		return &writeExpiryCalculator[K, []byte]{duration: calculator.duration}
 	case *accessExpiryCalculator[K, V]:
 		return &accessExpiryCalculator[K, []byte]{duration: calculator.duration}
+	case *perEntryExpiryCalculator[K, V]:
+		return &perEntryExpiryCalculator[K, []byte]{}
 	default:
 		return nil
 	}
@@ -1427,4 +1491,25 @@ func getTransformerBlueprint(name string) (TransformerBlueprintFactory, bool) {
 	defer transformerBlueprintsMutex.RUnlock()
 	factory, exists := transformerBlueprints[name]
 	return factory, exists
+}
+
+// IsPerEntryExpiry reports whether calculator uses PerEntryExpiration. That calculator
+// keeps an entry's expiry when a write omits a TTL.
+//
+// Takes calculator (cache_dto.ExpiryCalculator[K, V]) which is the calculator from the
+// cache options; it may be nil.
+//
+// Returns bool which is true for the per-entry calculator.
+func IsPerEntryExpiry[K comparable, V any](calculator cache_dto.ExpiryCalculator[K, V]) bool {
+	_, ok := calculator.(*perEntryExpiryCalculator[K, V])
+	return ok
+}
+
+// newPerEntryExpiryCalculator returns an expiry calculator under which an entry expires
+// only when a TTL is set on it.
+//
+// Returns cache_dto.ExpiryCalculator[K, V] which gives new entries no expiry and leaves
+// the expiry of existing entries unchanged.
+func newPerEntryExpiryCalculator[K comparable, V any]() cache_dto.ExpiryCalculator[K, V] {
+	return &perEntryExpiryCalculator[K, V]{}
 }

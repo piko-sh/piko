@@ -250,17 +250,17 @@ func NewStdioAdapter(deps StdioAdapterDeps) (lsp_domain.LSPServerPort, error) {
 
 // setupLogFile creates the log file and sandbox for LSP protocol logging.
 //
-// Takes logPath (string) which is the protocol log file path. When empty, protocol logging
-// is disabled and nil is returned without touching the filesystem.
+// Takes logPath (string) which is the protocol log file path. When empty, protocol
+// logging is disabled and nil is returned without touching the filesystem.
 // Takes injectedSandbox (safedisk.Sandbox) which is an optional sandbox for testing. When
 // nil, a sandbox is created for the directory containing logPath.
 // Takes factory (safedisk.Factory) which creates sandboxes for filesystem access. When
 // nil, a real sandbox scoped to the log directory is created directly, so the protocol
 // log writer is still confined and never falls back to unsandboxed access.
 //
-// Returns *lspLogResources which holds the log file and sandbox handles, or nil if protocol
-// logging is disabled or the log file could not be created. The LSP server will continue
-// without protocol logging in that case.
+// Returns *lspLogResources which holds the log file and sandbox handles, or nil if
+// protocol logging is disabled or the log file could not be created. The LSP server will
+// continue without protocol logging in that case.
 func setupLogFile(ctx context.Context, logPath string, injectedSandbox safedisk.Sandbox, factory safedisk.Factory) *lspLogResources {
 	if logPath == "" {
 		return nil

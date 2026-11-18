@@ -24,7 +24,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"piko.sh/piko/internal/json"
+	"piko.sh/json"
 )
 
 func TestCreateEnvelopedCiphertext(t *testing.T) {

@@ -160,6 +160,8 @@ func (c *Container) buildSpamDetectServiceFromConfig(ctx context.Context) {
 		TimingMinDuration:   0,
 		GibberishThreshold:  0,
 		LinkDensityMaxLinks: 0,
+
+		RepetitionIPv6PrefixBits: resolveIPv6PrefixBits(c.serverConfig.Security.RateLimit.IPv6PrefixBits),
 	})
 	if err != nil {
 		c.spamdetectErr = fmt.Errorf("registering built-in detectors: %w", err)

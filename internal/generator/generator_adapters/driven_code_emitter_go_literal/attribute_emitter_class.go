@@ -97,11 +97,11 @@ func (ae *attributeEmitter) emitDynamicOnlyClassWriter(nodeVar *goast.Ident, dyn
 	goExpr, prereqs, diagnostics := ae.expressionEmitter.emit(dynamicExpr)
 	ann := getAnnotationFromExpression(dynamicExpr)
 
-	helperName := getSpecialisedHelperName(ann, "MergeClassesBytesArena", map[string]string{
+	helperName := getSpecialisedHelperName(ann, mergeClassesBytesArenaHelper, map[string]string{
 		"string":                 "ClassesFromStringBytesArena",
 		"[]string":               "ClassesFromSliceBytesArena",
-		"map[string]bool":        "MergeClassesBytesArena",
-		"map[string]interface{}": "MergeClassesBytesArena",
+		"map[string]bool":        mergeClassesBytesArenaHelper,
+		"map[string]interface{}": mergeClassesBytesArenaHelper,
 	})
 
 	return ae.buildClassWriterStmts(nodeVar, prereqs, helperName, goExpr), diagnostics
@@ -128,7 +128,7 @@ func (ae *attributeEmitter) emitMergedClassWriter(nodeVar *goast.Ident, staticCl
 
 	goExpr, prereqs, diagnostics := ae.expressionEmitter.emit(dynamicExpr)
 
-	return ae.buildClassWriterStmts(nodeVar, prereqs, "MergeClassesBytesArena", strLit(staticClass), goExpr), diagnostics
+	return ae.buildClassWriterStmts(nodeVar, prereqs, mergeClassesBytesArenaHelper, strLit(staticClass), goExpr), diagnostics
 }
 
 // buildClassWriterStmts builds DirectWriter code for a class attribute using

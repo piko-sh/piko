@@ -213,7 +213,7 @@ func (p *Provider) Close(ctx context.Context) error {
 		return nil
 	}
 
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 
 	if closer, ok := p.registryDAL.(interface{ Close() error }); ok {
 		if err := closer.Close(); err != nil {
@@ -533,7 +533,6 @@ func (p *Provider) createPersistentCaches(registryCapacity int64) (
 	}
 
 	if p.secondary {
-
 		return registryCache, nil, nil
 	}
 
@@ -632,6 +631,7 @@ func buildWALConfig(walDir, subDir string, syncMode wal_domain.SyncMode, snapsho
 		CompressionLevel:     0,
 		EnableCompression:    false,
 		DisableAlignedWrites: false,
+		QueueTimeout:         wal_domain.DefaultQueueTimeout,
 	}.WithDefaults()
 }
 

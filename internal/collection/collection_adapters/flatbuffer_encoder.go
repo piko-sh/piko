@@ -26,15 +26,19 @@ import (
 	"unicode/utf8"
 
 	flatbuffers "github.com/google/flatbuffers/go"
+	"piko.sh/json"
 	"piko.sh/piko/internal/ast/ast_adapters"
 	"piko.sh/piko/internal/collection/collection_dto"
 	"piko.sh/piko/internal/collection/collection_schema"
 	coll_fb "piko.sh/piko/internal/collection/collection_schema/collection_schema_gen"
 	"piko.sh/piko/internal/fbs"
-	"piko.sh/piko/internal/json"
 )
 
 const (
+	// initialBuilderBytes is the starting capacity of the FlatBuffer builder used to encode
+	// a collection, sized so typical collections avoid regrowth.
+	initialBuilderBytes = 64 * 1024
+
 	// MaxCollectionItems caps the number of items a single collection may contain. Acts as a
 	// DoS guardrail so a runaway content directory cannot exhaust memory while encoding the
 	// FlatBuffer blob.
@@ -132,7 +136,7 @@ func (*FlatBufferEncoder) EncodeCollection(items []collection_dto.ContentItem) (
 		return nil, err
 	}
 
-	builder := flatbuffers.NewBuilder(1024 * 64)
+	builder := flatbuffers.NewBuilder(initialBuilderBytes)
 
 	itemOffsets := make([]flatbuffers.UOffsetT, len(sortedItems))
 	for i := range sortedItems {
