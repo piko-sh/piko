@@ -473,6 +473,30 @@ func TestParser_TemplateLiterals(t *testing.T) {
 			},
 		},
 		{
+			name:  "non-ASCII text around an expression",
+			input: "`£${price} — each`",
+			validator: func(t *testing.T, tl *TemplateLiteral) {
+				require.Len(t, tl.Parts, 3)
+				assert.Equal(t, "£", tl.Parts[0].Literal)
+				assertExprString(t, "price", tl.Parts[1].Expression)
+				assert.Equal(t, " — each", tl.Parts[2].Literal)
+			},
+		},
+		{
+			name:  "non-ASCII text between several expressions",
+			input: "`£${net} + £${tax} = £${gross} €`",
+			validator: func(t *testing.T, tl *TemplateLiteral) {
+				require.Len(t, tl.Parts, 7)
+				assert.Equal(t, "£", tl.Parts[0].Literal)
+				assertExprString(t, "net", tl.Parts[1].Expression)
+				assert.Equal(t, " + £", tl.Parts[2].Literal)
+				assertExprString(t, "tax", tl.Parts[3].Expression)
+				assert.Equal(t, " = £", tl.Parts[4].Literal)
+				assertExprString(t, "gross", tl.Parts[5].Expression)
+				assert.Equal(t, " €", tl.Parts[6].Literal)
+			},
+		},
+		{
 			name:  "literal with complex expression",
 			input: "`Total: ${items.count * item.price}`",
 			validator: func(t *testing.T, tl *TemplateLiteral) {

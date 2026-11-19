@@ -23,10 +23,12 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/compiler/compiler_dto"
 	"piko.sh/piko/internal/esbuild/ast"
 	"piko.sh/piko/internal/esbuild/js_ast"
 	"piko.sh/piko/internal/sfcparser"
@@ -1217,6 +1219,42 @@ func TestCompileSFC_TemplateTextCannotEndTheASTDump(t *testing.T) {
 	require.Positive(t, dumpEnd)
 	assert.NotContains(t, script[:dumpEnd], "*/", "the AST dump comment must not be closed early")
 	assert.Contains(t, script[:dumpEnd], `a *\/ window.pwned = 1; /* b`)
+}
+
+func TestCompileSFC_NonASCIITemplateLiterals(t *testing.T) {
+	t.Parallel()
+
+	raw := []byte("<script lang=\"ts\">\n" +
+		"const state = { price: 5, items: [] as string[] };\n" +
+		"function label(change: { quoted: string }): string {\n" +
+		"  return `£${change.quoted} — ${`£${state.price}`}`;\n" +
+		"}\n" +
+		"function after(count: number): string { return `${count}£ for ${ {n: count}.n }`; }\n" +
+		"</script>" +
+		"<template name=\"price-tag\"><span p-text=\"`£${state.price} each`\"></span></template>")
+
+	type outcome struct {
+		artefact *compiler_dto.CompiledArtefact
+		err      error
+	}
+	done := make(chan outcome, 1)
+	go func() {
+		artefact, err := compileSFC(context.Background(), "price-tag.pkc", raw, "example.com/app", nil)
+		done <- outcome{artefact: artefact, err: err}
+	}()
+
+	var result outcome
+	select {
+	case result = <-done:
+	case <-time.After(10 * time.Second):
+		t.Fatal("compiling a component with non-ASCII template literals did not finish")
+	}
+
+	require.NoError(t, result.err)
+	script := result.artefact.Files[result.artefact.BaseJSPath]
+	assert.Contains(t, script, "£", "the non-ASCII text survives compilation")
+	assert.Contains(t, script, "after", "code after the template literals is compiled")
+	assert.NotContains(t, script, "\\u00a3", "the text is not escaped into a different value")
 }
 
 func TestCompileSFC_AttributesAreOrderedByName(t *testing.T) {
