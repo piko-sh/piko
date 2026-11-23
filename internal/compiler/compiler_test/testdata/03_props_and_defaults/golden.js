@@ -40,7 +40,7 @@ import { action } from "/_piko/assets/pk-js/pk/actions.gen.js";
             return {"age": 99, "isAdmin": false, "name": "Guest", "title": "User"};
         }
         connectedCallback () {
-            this.init(instance.call(this, this));
+            if (!this.$$ctx) this.init(instance.call(this, this));
             super.connectedCallback();
         }
         renderVDOM () {

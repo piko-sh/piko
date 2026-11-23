@@ -31,9 +31,7 @@ const (
 	rrfK = 60
 )
 
-// rrfFusion combines vector similarity results with text relevance results using
-// Reciprocal Rank Fusion. Items appearing in both lists receive scores from both,
-// producing a union rather than an intersection.
+// rrfFusion combines vector and text results using Reciprocal Rank Fusion.
 //
 // Takes vectorHits ([]VectorHit[K]) which are vector search results sorted by similarity
 // descending.
@@ -43,63 +41,51 @@ const (
 // Takes offset (int) which is the pagination offset.
 // Takes limit (int) which is the maximum number of results.
 //
-// Returns SearchResult with items scored by RRF and sorted descending.
+// Returns cache_dto.SearchResult[K, V] which contains the filtered page in descending RRF
+// order.
+// Returns error which is nil.
 func (a *OtterAdapter[K, V]) rrfFusion(
 	vectorHits []VectorHit[K],
 	textScored []ScoredResult[K],
 	filters []cache_dto.Filter,
 	offset, limit int,
 ) (cache_dto.SearchResult[K, V], error) {
-	rrfScores := make(map[K]float64, len(vectorHits)+len(textScored))
-
-	for rank, hit := range vectorHits {
-		rrfScores[hit.Key] += 1.0 / float64(rrfK+rank+1)
-	}
-
-	for rank, scored := range textScored {
-		rrfScores[scored.Key] += 1.0 / float64(rrfK+rank+1)
-	}
-
 	type rrfEntry struct {
-		key   K
-		score float64
+		key       K
+		score     float64
+		bestRank  int
+		firstSeen int
 	}
 
-	entries := make([]rrfEntry, 0, len(rrfScores))
-	for k, s := range rrfScores {
-		entries = append(entries, rrfEntry{key: k, score: s})
+	entries := make([]rrfEntry, 0, len(vectorHits)+len(textScored))
+	positions := make(map[K]int, len(vectorHits)+len(textScored))
+	add := func(key K, rank int) {
+		position, seen := positions[key]
+		if !seen {
+			position = len(entries)
+			positions[key] = position
+			entries = append(entries, rrfEntry{key: key, score: 0, bestRank: rank, firstSeen: position})
+		}
+		entry := &entries[position]
+		entry.score += 1.0 / float64(rrfK+rank+1)
+		entry.bestRank = min(entry.bestRank, rank)
+	}
+	for rank, hit := range vectorHits {
+		add(hit.Key, rank)
+	}
+	for rank, scored := range textScored {
+		add(scored.Key, rank)
 	}
 
 	slices.SortFunc(entries, func(a, b rrfEntry) int {
-		return cmp.Compare(b.score, a.score)
+		return cmp.Or(
+			cmp.Compare(b.score, a.score),
+			cmp.Compare(a.bestRank, b.bestRank),
+			cmp.Compare(a.firstSeen, b.firstSeen),
+		)
 	})
 
-	items := make([]cache_dto.SearchHit[K, V], 0, len(entries))
-	for _, entry := range entries {
-		value, ok := a.client.GetIfPresent(entry.key)
-		if !ok {
-			continue
-		}
-
-		if len(filters) > 0 && a.fieldExtractor != nil && !a.matchesAllFilters(value, filters) {
-			continue
-		}
-
-		items = append(items, cache_dto.SearchHit[K, V]{
-			Key:        entry.key,
-			Value:      value,
-			Score:      entry.score,
-			Highlights: nil,
-		})
-	}
-
-	total := int64(len(items))
-	items, limit = applyPagination(items, offset, limit)
-
-	return cache_dto.SearchResult[K, V]{
-		Items:  items,
-		Total:  total,
-		Offset: offset,
-		Limit:  limit,
-	}, nil
+	return a.rankedPage(len(entries), len(vectorHits), func(i int) (K, float64) {
+		return entries[i].key, entries[i].score
+	}, filters, offset, limit), nil
 }

@@ -18,11 +18,6 @@
 
 package annotator_domain
 
-// Orchestrates type resolution for template expressions by delegating to specialised
-// resolvers for different expression types. Coordinates member access, function calls,
-// operators, and collection operations whilst maintaining type safety and diagnostic
-// reporting.
-
 import (
 	"context"
 	"fmt"
@@ -40,18 +35,13 @@ import (
 )
 
 // CollectionServicePort is the interface for collection integration.
-//
-// This port allows the TypeResolver to process r.GetCollection() calls during type
-// resolution without directly depending on the collection_domain implementation.
 type CollectionServicePort interface {
-	// ProcessGetCollectionCall handles r.GetCollection() calls in user code.
-	//
-	// Receives semantic information extracted from the Piko AST.
+	// ProcessGetCollectionCall annotates r.GetCollection() calls in user code.
 	//
 	// Takes collectionName (string) which is the name of the collection, such as "blog".
 	// Takes targetTypeName (string) which is the name of the target struct type, such as
 	// "Post".
-	// Takes targetTypeExpr (goast.Expr) which is the Go AST expression for the target type.
+	// Takes targetTypeExpr (goast.Expr) which describes the Go target type.
 	// Takes options (any) which holds the fetch options, such as the provider, the locale
 	// and any filters.
 	//
@@ -68,10 +58,6 @@ type CollectionServicePort interface {
 
 	// ProcessCollectionDirective expands a p-collection directive into entry points.
 	//
-	// Called after building the component graph when a component has a p-collection
-	// directive. Returns virtual entry points for each content item (for static providers)
-	// or a single dynamic route entry point (for dynamic providers).
-	//
 	// Takes directive (*collection_dto.CollectionDirectiveInfo) which is the parsed
 	// information from the p-collection directive.
 	//
@@ -84,9 +70,7 @@ type CollectionServicePort interface {
 	) ([]*collection_dto.CollectionEntryPoint, error)
 }
 
-// TypeResolver looks up and resolves types within a given scope. It is used by
-// ComponentLinker, SemanticAnalyser, and other analysers for type checking and type
-// inference.
+// TypeResolver looks up and resolves types within a given scope.
 type TypeResolver struct {
 	// inspector provides access to type data for working out field types.
 	inspector TypeInspectorPort
@@ -94,8 +78,7 @@ type TypeResolver struct {
 	// virtualModule holds the parsed module data used for type resolution.
 	virtualModule *annotator_dto.VirtualModule
 
-	// collectionService handles collection calls such as GetCollection; nil means collection
-	// features are turned off.
+	// collectionService resolves collection calls and is nil when disabled.
 	collectionService CollectionServicePort
 
 	// componentsByVirtualFile indexes components by their virtual Go file path, so a
@@ -169,9 +152,7 @@ func (tr *TypeResolver) WithVirtualModule(virtualModule *annotator_dto.VirtualMo
 	return NewTypeResolver(tr.inspector, virtualModule, tr.collectionService)
 }
 
-// Resolve is the primary entry point for the TypeResolver. It performs a full, recursive
-// semantic analysis on a single expression and attaches the final annotation to the AST
-// node.
+// Resolve annotates a template expression with its Go type.
 //
 // Takes analysisContext (*AnalysisContext) which provides the analysis state and scope.
 // Takes expression (ast_domain.Expression) which is the expression to analyse.
@@ -204,15 +185,10 @@ func (tr *TypeResolver) DetermineIterationItemType(
 	collectionExpr ast_domain.Expression,
 	collectionTypeInfo *ast_domain.ResolvedTypeInfo,
 ) *ast_domain.ResolvedTypeInfo {
-	if result := tr.tryInferFromArrayLiteral(ctx, analysisContext, collectionExpr); result != nil {
-		return result
+	if item := tr.indexedElementType(ctx, analysisContext, collectionExpr, collectionTypeInfo); item != nil {
+		return item
 	}
-
-	if collectionTypeInfo == nil || collectionTypeInfo.TypeExpression == nil {
-		return tr.newResolvedTypeInfo(analysisContext, goast.NewIdent(typeAny))
-	}
-
-	return tr.determineItemTypeFromCollectionType(analysisContext, collectionTypeInfo)
+	return tr.newResolvedTypeInfo(analysisContext, goast.NewIdent(typeAny))
 }
 
 // DetermineIterationIndexType determines the type of the index when iterating over a
@@ -237,10 +213,34 @@ func (tr *TypeResolver) DetermineIterationIndexType(ctx *AnalysisContext, collec
 	return tr.newResolvedTypeInfo(ctx, goast.NewIdent(typeInt))
 }
 
+// indexedElementType resolves the item type of an indexed collection.
+//
+// Takes analysisContext (*AnalysisContext) which provides the symbols and types in scope.
+// Takes collectionExpr (ast_domain.Expression) which is the collection being indexed.
+// Takes collectionTypeInfo (*ast_domain.ResolvedTypeInfo) which is the resolved container
+// type.
+//
+// Returns *ast_domain.ResolvedTypeInfo which is the item type, or nil for a
+// non-collection.
+func (tr *TypeResolver) indexedElementType(
+	ctx context.Context,
+	analysisContext *AnalysisContext,
+	collectionExpr ast_domain.Expression,
+	collectionTypeInfo *ast_domain.ResolvedTypeInfo,
+) *ast_domain.ResolvedTypeInfo {
+	if result := tr.tryInferFromArrayLiteral(ctx, analysisContext, collectionExpr); result != nil {
+		return result
+	}
+
+	if collectionTypeInfo == nil || collectionTypeInfo.TypeExpression == nil {
+		return nil
+	}
+
+	return tr.determineItemTypeFromCollectionType(analysisContext, collectionTypeInfo)
+}
+
 // lookupPikoImportAlias checks if the given alias is a user-defined Piko import alias and
-// returns the corresponding hashed package name. Resolves template expressions like
-// card.FormatPrice() where "card" is the user's import alias but the actual package name
-// is partials_card_abc123.
+// returns the corresponding hashed package name.
 //
 // Takes goPackagePath (string) which is the full Go package path of the component.
 // Takes alias (string) which is the potential Piko import alias to look up.
@@ -257,10 +257,7 @@ func (tr *TypeResolver) lookupPikoImportAlias(goPackagePath, alias string) strin
 	return vc.PikoAliasToHash[alias]
 }
 
-// resolveRecursive is the core implementation of type resolution.
-//
-// It both returns the annotation for its parent and attaches the annotation to its own
-// node as a side-effect for debugging and golden files.
+// resolveRecursive resolves and annotates an expression in its current scope.
 //
 // Takes analysisContext (*AnalysisContext) which provides the analysis state and logger.
 // Takes expression (ast_domain.Expression) which is the expression to resolve.
@@ -299,9 +296,6 @@ func (tr *TypeResolver) resolveRecursive(
 
 // stampUnderlyingType stamps the go annotation with information about any underlying
 // type.
-//
-// This is used for defined types, so we are able to do direct comparisons with them in
-// the emitter. Primitives, composites, aliases and unresolved types are left unstamped.
 //
 // Takes ann (*ast_domain.GoGeneratorAnnotation) which contains the underlying type to be
 // stamped.
@@ -567,7 +561,7 @@ func (tr *TypeResolver) tryInferFromArrayLiteral(ctx context.Context, analysisCo
 // type to get the item type from.
 //
 // Returns *ast_domain.ResolvedTypeInfo which describes the item type of the collection,
-// or any if the type cannot be found.
+// or nil if the type cannot be indexed.
 func (tr *TypeResolver) determineItemTypeFromCollectionType(ctx *AnalysisContext, collectionTypeInfo *ast_domain.ResolvedTypeInfo) *ast_domain.ResolvedTypeInfo {
 	effectiveCtx := ctx
 	if collectionTypeInfo.CanonicalPackagePath != "" && collectionTypeInfo.CanonicalPackagePath != ctx.CurrentGoFullPackagePath {
@@ -600,7 +594,7 @@ func (tr *TypeResolver) determineItemTypeFromCollectionType(ctx *AnalysisContext
 		}
 	}
 
-	return tr.newResolvedTypeInfo(ctx, goast.NewIdent(typeAny))
+	return nil
 }
 
 // resolveCollectionElementType resolves the element type and copies the package path from
@@ -638,8 +632,7 @@ func (*TypeResolver) inheritPackagePathFromCollection(result *ast_domain.Resolve
 }
 
 // newResolvedTypeInfo is the single, authoritative function for creating a
-// fully-populated ResolvedTypeInfo. It deconstructs a type expression, resolves its local
-// package alias to a canonical import path, and returns the complete struct.
+// fully-populated ResolvedTypeInfo.
 //
 // Takes ctx (*AnalysisContext) which provides the current file and package context for
 // resolving imports.
@@ -758,7 +751,7 @@ type argumentValidationContext struct {
 	// sourceAnn is the annotation for the source expression being checked.
 	sourceAnn *ast_domain.GoGeneratorAnnotation
 
-	// baseAnn is the generator annotation to validate; nil if none exists.
+	// baseAnn is the generator annotation to validate, or nil if none exists.
 	baseAnn *ast_domain.GoGeneratorAnnotation
 
 	// argIndex is the zero-based position of the argument being checked.
@@ -841,7 +834,6 @@ func (tr *TypeResolver) buildReturnTypeAnnotation(
 }
 
 // resolveReturnTypeCanonicalPath resolves the canonical package path for a return type.
-// For method calls, this uses the method's defining context to resolve package aliases.
 //
 // Takes ctx (*AnalysisContext) which provides the current analysis state for fallback
 // context.
@@ -932,7 +924,7 @@ func (tr *TypeResolver) diagnoseCallFailure(
 }
 
 // buildUndefinedCalleeMessage builds an error message for a call to a function or method
-// that cannot be found. It includes a suggested name if one exists.
+// that cannot be found.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis context.
 // Takes n (*ast_domain.CallExpression) which is the call expression with the unknown
@@ -1015,8 +1007,7 @@ func (tr *TypeResolver) findMemberCallSuggestion(ctx *AnalysisContext, member *a
 // Takes packageAlias (string) which is the package alias prefix for type names.
 //
 // Returns *inspector_dto.FunctionSignature which contains the parsed parameter and result
-// type strings.
-// Returns nil when fnType is nil.
+// type strings, or nil when fnType is nil.
 func (*TypeResolver) parseSignatureFromFuncType(fnType *goast.FuncType, packageAlias string) *inspector_dto.FunctionSignature {
 	if fnType == nil {
 		return nil
@@ -1030,8 +1021,7 @@ func (*TypeResolver) parseSignatureFromFuncType(fnType *goast.FuncType, packageA
 	}
 }
 
-// newFallbackAnnotation creates a default GoGeneratorAnnotation with 'any' type. Used
-// when type resolution fails but a valid annotation is still needed.
+// newFallbackAnnotation creates a default GoGeneratorAnnotation with 'any' type.
 //
 // Returns *ast_domain.GoGeneratorAnnotation which is a minimal valid annotation with only
 // the ResolvedType field set.

@@ -52,18 +52,16 @@ const (
 	unusableCacheKeyWarningKey = "unusable-cache-key"
 )
 
-// validateCSRF extracts CSRF tokens from the request and validates them. The ephemeral
-// token is extracted from arguments (for POST/PUT/DELETE) or from query parameters (for
-// GET), then stripped from arguments so it does not leak to business logic.
+// validateCSRF checks the action's CSRF token pair.
 //
-// When csrfService is nil, validation is skipped entirely. When both tokens are empty
-// (e.g. server-to-server API calls without CSRF tokens), validation is also skipped.
+// The handler deletes the ephemeral token from the supplied arguments and falls back to
+// the query when that token is empty. A nil service skips validation. When both tokens
+// are empty, browser requests fail if Sec-Fetch-Site enforcement is enabled.
 //
-// Takes request (*http.Request) which provides the HTTP request context and cookies.
-// Takes arguments (map[string]any) which contains the parsed request body; the ephemeral
-// token key is deleted from this map as a side effect.
+// Takes request (*http.Request) which supplies the query, headers and cookies.
+// Takes arguments (map[string]any) which holds the action arguments.
 //
-// Returns error when CSRF validation fails, nil on success or when skipped.
+// Returns error when CSRF validation fails, or nil when it passes or is skipped.
 func (h *ActionHandler) validateCSRF(request *http.Request, arguments map[string]any) error {
 	var ephemeralToken string
 	if rawToken, ok := arguments[csrfEphemeralTokenKey].(string); ok {

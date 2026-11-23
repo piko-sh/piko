@@ -27,24 +27,19 @@ const (
 )
 
 const (
-	// FieldTypeText supports full-text search with tokenization. Values are split into words
-	// and indexed for partial matching.
+	// FieldTypeText supports full-text search with tokenization.
 	FieldTypeText FieldType = iota + 1
 
-	// FieldTypeTag supports exact match filtering without tokenization. Values are indexed
-	// as-is for precise equality matching.
+	// FieldTypeTag supports exact match filtering without tokenization.
 	FieldTypeTag
 
-	// FieldTypeNumeric supports range queries and numeric sorting. Values must be numeric
-	// (int, float, etc.) for comparison operations.
+	// FieldTypeNumeric supports range queries and numeric sorting.
 	FieldTypeNumeric
 
-	// FieldTypeGeo supports geographic queries based on coordinates. Values should be
-	// lat/long pairs for distance-based operations.
+	// FieldTypeGeo supports geographic queries based on coordinates.
 	FieldTypeGeo
 
-	// FieldTypeVector supports vector similarity search using HNSW indexing. Values must be
-	// []float32 vectors of the dimension specified in FieldSchema.
+	// FieldTypeVector supports vector similarity search using HNSW indexing.
 	FieldTypeVector
 )
 
@@ -87,65 +82,53 @@ const (
 
 // FieldSchema defines a single searchable field in a cached value type.
 type FieldSchema struct {
-	// Name is the field path in the cached value. Supports dot notation for nested fields
-	// (e.g., "address.city").
+	// Name is the field path in the cached value.
 	Name string
 
-	// DistanceMetric specifies the similarity metric for VECTOR fields: "cosine" (default),
-	// "euclidean", or "dot_product". It is ignored for non-vector field types.
+	// DistanceMetric is the VECTOR metric, defaulting to "cosine".
 	DistanceMetric string
 
 	// Type specifies how the field should be searchable.
 	Type FieldType
 
-	// Dimension is the vector dimensionality for VECTOR fields. Required when Type is
-	// FieldTypeVector; ignored for other field types.
+	// Dimension is the required vector length for FieldTypeVector.
 	Dimension int
 
-	// Sortable enables sorting on the field. Has memory cost as the provider maintains
-	// sorted structures.
+	// Sortable enables sorting on the field.
 	Sortable bool
 
-	// Weight is the relevance score multiplier for TEXT fields. Higher values increase
-	// search ranking impact; default is 1.0.
+	// Weight is the TEXT relevance multiplier, defaulting to 1.0.
 	Weight float64
 }
 
-// TextAnalyseFunc transforms text into index terms for search indexing. The same function
-// must be used for indexing and querying; implementations must be concurrent-safe, and
-// when nil, providers use default tokenisation.
+// TextAnalyseFunc transforms text into terms for indexing and queries.
+//
+// Implementations must support concurrent calls. A nil function uses default
+// tokenisation.
 type TextAnalyseFunc func(text string) []string
 
-// SearchSchema defines which fields of a cached value type are searchable. This schema
-// enables providers to build appropriate internal structures for efficient search and
-// query operations.
+// SearchSchema defines which fields of a cached value type are searchable.
 type SearchSchema struct {
-	// TextAnalyser is an optional function for linguistic text processing that replaces the
-	// default tokenisation. Providers with native search may ignore it.
+	// TextAnalyser replaces default tokenisation when supplied.
 	TextAnalyser TextAnalyseFunc
 
-	// Language specifies the stemming language for TEXT fields; affects how words are
-	// normalised (e.g., "running" becomes "run"). Default is "english".
+	// Language is the TEXT stemming language, defaulting to "english".
 	Language string
 
 	// Fields lists all searchable fields in the cached value type.
 	Fields []FieldSchema
 
-	// StopWords defines words to ignore during text search. If nil, provider defaults are
-	// used.
+	// StopWords defines words to ignore during text search.
 	StopWords []string
 
-	// MaxTagsPerKey limits the number of tags per cache key. Zero means unlimited; excess
-	// tags are silently dropped.
+	// MaxTagsPerKey caps tags per key, with zero allowing unlimited tags and excess tags
+	// dropped.
 	MaxTagsPerKey int
 
-	// MaxInvertedIndexTokens limits unique terms in the inverted index; when the limit is
-	// reached, new terms are silently ignored. Zero means unlimited.
+	// MaxInvertedIndexTokens caps unique terms, with zero allowing unlimited terms.
 	MaxInvertedIndexTokens int
 
-	// MaxVectors limits the maximum number of vectors per vector index, after which Add
-	// calls for new keys are silently ignored (updates to existing keys still work) and zero
-	// means unlimited.
+	// MaxVectors caps new vectors without limiting updates, with zero disabling the cap.
 	MaxVectors int
 }
 
@@ -172,83 +155,99 @@ type Filter struct {
 }
 
 // SearchOptions configures a full-text search operation.
+//
+// A search with both a text query and a vector is hybrid. The in-memory provider ranks
+// the union of the text and vector matches with Reciprocal Rank Fusion, while Redis and
+// Valkey rank only the vector neighbours that also match the text query.
 type SearchOptions struct {
-	// MinScore filters out results below this similarity threshold. If nil, no minimum score
-	// filter is applied.
+	// MinScore is the optional minimum similarity score.
 	MinScore *float32
 
-	// SortBy is the field to sort results by. If empty, results are sorted by relevance
-	// score.
+	// SortBy is the field to sort results by.
 	SortBy string
 
-	// VectorField specifies which vector field to search. If empty and only one vector field
-	// exists in the schema, it is used automatically.
+	// VectorField selects a vector field, defaulting to the only VECTOR field when
+	// unambiguous.
 	VectorField string
 
-	// Filters are additional conditions to apply after text matching. All filters must match
-	// (AND logic).
+	// Filters are additional conditions to apply after text matching.
 	Filters []Filter
 
-	// Fields limits which TEXT fields to search. If nil, all TEXT fields in the schema are
-	// searched.
+	// Fields selects TEXT fields, with nil searching all TEXT fields.
 	Fields []string
 
-	// Vector is the query vector for similarity search. When set, the search performs vector
-	// similarity matching.
+	// Vector is the query vector for similarity search.
 	Vector []float32
 
 	// Limit is the maximum number of results to return.
 	Limit int
 
-	// Offset is the starting position for pagination. Use with Limit for paging through
-	// results.
+	// Offset is the starting position for pagination.
 	Offset int
 
-	// TopK is the maximum number of nearest neighbours for vector search. If zero, defaults
-	// to Limit.
+	// TopK is the KNN candidate count, defaulting to Limit when zero.
 	TopK int
 
-	// SortOrder specifies ascending or descending sort. Default is SortAsc.
+	// SortOrder is the sort direction, defaulting to SortAsc.
 	SortOrder SortOrder
 
-	// Highlight enables highlighting of matched terms in results. When true,
-	// SearchHit.Highlights contains snippets.
+	// Highlight enables highlighting of matched terms in results.
 	Highlight bool
+}
+
+// VectorWindow resolves the KNN candidate count and returned page size.
+//
+// Takes defaultSize (int) which is the page size when Limit is neither positive nor
+// NoLimit.
+//
+// Returns candidates (int) which is a positive TopK, or else enough candidates to fill
+// the requested page after Offset.
+// Returns pageSize (int) which is the page size, at most candidates.
+func (o *SearchOptions) VectorWindow(defaultSize int) (candidates, pageSize int) {
+	return resolveVectorWindow(o.TopK, o.Limit, o.Offset, defaultSize)
 }
 
 // QueryOptions configures a structured query operation without full-text search.
 type QueryOptions struct {
-	// MinScore filters out results below this similarity threshold. If nil, no minimum score
-	// filter is applied.
+	// MinScore is the optional minimum similarity score.
 	MinScore *float32
 
-	// SortBy is the field to sort results by. Must be a sortable field in the schema.
+	// SortBy is the field to sort results by.
 	SortBy string
 
-	// VectorField specifies which vector field to search. If empty and only one vector field
-	// exists in the schema, it is used automatically.
+	// VectorField selects a vector field, defaulting to the only VECTOR field when
+	// unambiguous.
 	VectorField string
 
-	// Filters are the conditions to match. All filters must match (AND logic).
+	// Filters are the conditions to match.
 	Filters []Filter
 
-	// Vector is the query vector for similarity search. When set, the query performs vector
-	// similarity matching.
+	// Vector is the query vector for similarity search.
 	Vector []float32
 
 	// Limit is the maximum number of results to return.
 	Limit int
 
-	// Offset is the starting position for pagination. Use with Limit for paging through
-	// results.
+	// Offset is the starting position for pagination.
 	Offset int
 
-	// TopK is the maximum number of nearest neighbours for vector search. If zero, defaults
-	// to Limit.
+	// TopK is the KNN candidate count, defaulting to Limit when zero.
 	TopK int
 
-	// SortOrder specifies ascending or descending sort. Default is SortAsc.
+	// SortOrder is the sort direction, defaulting to SortAsc.
 	SortOrder SortOrder
+}
+
+// VectorWindow resolves the KNN candidate count and returned page size.
+//
+// Takes defaultSize (int) which is the page size when Limit is neither positive nor
+// NoLimit.
+//
+// Returns candidates (int) which is a positive TopK, or else enough candidates to fill
+// the requested page after Offset.
+// Returns pageSize (int) which is the page size, at most candidates.
+func (o *QueryOptions) VectorWindow(defaultSize int) (candidates, pageSize int) {
+	return resolveVectorWindow(o.TopK, o.Limit, o.Offset, defaultSize)
 }
 
 // SearchResult contains the results of a search or query operation.
@@ -256,15 +255,27 @@ type SearchResult[K comparable, V any] struct {
 	// Items contains the matched cache entries with metadata.
 	Items []SearchHit[K, V]
 
-	// Total is the total number of matches in the cache. May exceed len(Items) when
-	// pagination is used.
+	// Total is the total number of matches in the cache.
+	//
+	// For a vector search it counts the ranked candidates, so it never exceeds the candidate
+	// count. In-memory providers count only candidates that meet MinScore and the filters.
+	// Redis and Valkey apply MinScore to the returned page after the server has ranked the
+	// candidates, so their total also counts candidates below MinScore and a page can hold
+	// fewer than Limit items.
 	Total int64
 
 	// Offset is the starting position that was used.
 	Offset int
 
-	// Limit is the maximum results that were requested.
+	// Limit is the page size that was applied after resolving defaults.
 	Limit int
+
+	// Candidates counts ranked vector candidates, or zero for searches without a vector.
+	//
+	// The in-memory provider counts candidates at or above MinScore. Redis and Valkey infer
+	// the cutoff from the returned page, so the count can include candidates below MinScore
+	// outside that page.
+	Candidates int
 }
 
 // Keys returns all keys from the search results.
@@ -311,12 +322,10 @@ type SearchHit[K comparable, V any] struct {
 	// Value is the cached value.
 	Value V
 
-	// Highlights maps field names to snippets with matched terms highlighted. Only populated
-	// when SearchOptions.Highlight is true.
+	// Highlights maps field names to snippets with matched terms highlighted.
 	Highlights map[string]string
 
-	// Score is the relevance score for full-text search; higher values indicate better
-	// matches. For structured queries without text search, this is 0.
+	// Score is the relevance score, or zero for structured queries without text search.
 	Score float64
 }
 
@@ -439,7 +448,7 @@ func VectorField(name string, dimension int) FieldSchema {
 //
 // Takes name (string) which is the field path (supports dot notation).
 // Takes dimension (int) which is the vector dimensionality.
-// Takes metric (string) which is the distance metric: "cosine", "euclidean", or
+// Takes metric (string) which is the distance metric, one of "cosine", "euclidean", or
 // "dot_product".
 //
 // Returns FieldSchema configured for vector similarity search.
@@ -472,8 +481,7 @@ func NewSearchSchema(fields ...FieldSchema) *SearchSchema {
 }
 
 // NewSearchSchemaWithAnalyser creates a SearchSchema with a text analyser for linguistic
-// processing of TEXT fields. The analyser replaces the provider's default tokenisation,
-// enabling stemming, normalisation, stop words, and other NLP features.
+// processing of TEXT fields.
 //
 // Takes analyser (TextAnalyseFunc) which processes text into index terms.
 // Takes fields (...FieldSchema) which define the searchable fields.
@@ -580,4 +588,31 @@ func Between(field string, lower, upper any) Filter {
 // Returns Filter that matches if field starts with prefix.
 func Prefix(field string, prefix string) Filter {
 	return Filter{Field: field, Operation: FilterOpPrefix, Value: prefix, Values: nil}
+}
+
+// resolveVectorWindow resolves the KNN candidate count and page size.
+//
+// Takes topK (int) which is an explicit candidate count, or zero.
+// Takes limit (int) which is the page size, zero for defaultSize, or NoLimit for every
+// ranked candidate.
+// Takes offset (int) which is the number of ranked results the page skips.
+// Takes defaultSize (int) which is the page size when limit is neither positive nor
+// NoLimit.
+//
+// Returns candidates (int) which is topK when positive, otherwise offset plus the page
+// size, so a later page is not empty because too few candidates were ranked.
+// Returns pageSize (int) which is the page size, at most candidates.
+func resolveVectorWindow(topK, limit, offset, defaultSize int) (candidates, pageSize int) {
+	pageSize = limit
+	if pageSize <= 0 {
+		pageSize = defaultSize
+	}
+	candidates = topK
+	if candidates <= 0 {
+		candidates = max(offset, 0) + pageSize
+	}
+	if limit == NoLimit {
+		pageSize = candidates
+	}
+	return candidates, min(pageSize, candidates)
 }

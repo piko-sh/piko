@@ -130,8 +130,7 @@ func registerServiceProbes(c *Container, registry healthprobe_domain.Registry) {
 	}
 }
 
-// registerDirectProbes adds health probes from services that do not return errors during
-// setup.
+// registerDirectProbes adds health probes from the renderer and CSRF services.
 //
 // Takes c (*Container) which provides access to the service instances.
 // Takes registry (healthprobe_domain.Registry) which receives the probe registrations.
@@ -143,7 +142,9 @@ func registerDirectProbes(c *Container, registry healthprobe_domain.Registry) {
 		l.Internal("Registered RenderService health probe")
 	}
 
-	if probe, ok := c.GetCSRFService().(healthprobe_domain.Probe); ok {
+	if csrfService, err := c.GetCSRFService(); err != nil {
+		l.Internal("CSRF service not available for health probes", logger_domain.Error(err))
+	} else if probe, ok := csrfService.(healthprobe_domain.Probe); ok {
 		registry.Register(probe)
 		l.Internal("Registered CSRFService health probe")
 	}

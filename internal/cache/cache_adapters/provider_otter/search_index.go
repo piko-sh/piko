@@ -115,6 +115,10 @@ type InvertedIndex[K comparable] struct {
 	// length normalisation.
 	docLengths map[K]int
 
+	// sequences records the order in which each indexed key was first added, so documents
+	// with equal scores rank in a stable order.
+	sequences map[K]uint64
+
 	// analyseFunc replaces the default tokenise when set, enabling linguistic processing
 	// (stemming, normalisation, stop words, etc.).
 	analyseFunc cache_dto.TextAnalyseFunc
@@ -128,6 +132,9 @@ type InvertedIndex[K comparable] struct {
 	// totalTerms is the sum of all document lengths, used to compute average document length
 	// for BM25.
 	totalTerms int64
+
+	// nextSequence is the sequence the next newly indexed key receives.
+	nextSequence uint64
 
 	// mu guards concurrent access to the index.
 	mu sync.RWMutex
@@ -232,6 +239,8 @@ func (idx *InvertedIndex[K]) replaceTermsLocked(key K, terms []string) {
 		idx.totalTerms -= int64(previous)
 	} else {
 		idx.totalDocuments++
+		idx.sequences[key] = idx.nextSequence
+		idx.nextSequence++
 	}
 	idx.docLengths[key] = len(terms)
 	idx.totalTerms += int64(len(terms))
@@ -311,6 +320,7 @@ func (idx *InvertedIndex[K]) removeKeyUnsafe(key K) {
 		delete(idx.docLengths, key)
 	}
 
+	delete(idx.sequences, key)
 	delete(idx.keyTerms, key)
 }
 
@@ -467,6 +477,7 @@ func (idx *InvertedIndex[K]) Clear() {
 	idx.index = make(map[string]map[K]struct{})
 	idx.keyTerms = make(map[K]map[string]struct{})
 	idx.docLengths = make(map[K]int)
+	idx.sequences = make(map[K]uint64)
 	idx.totalDocuments = 0
 	idx.totalTerms = 0
 }
@@ -589,27 +600,42 @@ func (idx *InvertedIndex[K]) searchScoredAny(terms []string) []ScoredResult[K] {
 	return idx.collectAndSort(scores)
 }
 
-// collectAndSort converts a score map into a sorted slice of ScoredResult.
-// Returns nil if scores is empty.
+// collectAndSort converts a score map into a sorted slice of ScoredResult. Caller must
+// hold the read lock.
 //
 // Takes scores (map[K]float64) which maps document keys to their BM25 relevance scores.
 //
 // Returns []ScoredResult[K] which contains the results sorted by score in descending
-// order, or nil if scores is empty.
-func (*InvertedIndex[K]) collectAndSort(scores map[K]float64) []ScoredResult[K] {
+// order, with equal scores in the order their keys were first indexed, or nil if scores
+// is empty.
+func (idx *InvertedIndex[K]) collectAndSort(scores map[K]float64) []ScoredResult[K] {
 	if len(scores) == 0 {
 		return nil
 	}
 
-	results := make([]ScoredResult[K], 0, len(scores))
+	type sequencedResult struct {
+		result   ScoredResult[K]
+		sequence uint64
+	}
+	sequenced := make([]sequencedResult, 0, len(scores))
 	for key, score := range scores {
-		results = append(results, ScoredResult[K]{Key: key, Score: score})
+		sequenced = append(sequenced, sequencedResult{
+			result:   ScoredResult[K]{Key: key, Score: score},
+			sequence: idx.sequences[key],
+		})
 	}
 
-	slices.SortFunc(results, func(a, b ScoredResult[K]) int {
-		return cmp.Compare(b.Score, a.Score)
+	slices.SortFunc(sequenced, func(a, b sequencedResult) int {
+		return cmp.Or(
+			cmp.Compare(b.result.Score, a.result.Score),
+			cmp.Compare(a.sequence, b.sequence),
+		)
 	})
 
+	results := make([]ScoredResult[K], len(sequenced))
+	for index, entry := range sequenced {
+		results[index] = entry.result
+	}
 	return results
 }
 
@@ -749,10 +775,12 @@ func NewInvertedIndex[K comparable]() *InvertedIndex[K] {
 		index:          make(map[string]map[K]struct{}),
 		keyTerms:       make(map[K]map[string]struct{}),
 		docLengths:     make(map[K]int),
+		sequences:      make(map[K]uint64),
 		analyseFunc:    nil,
 		maxTokens:      0,
 		totalDocuments: 0,
 		totalTerms:     0,
+		nextSequence:   0,
 		mu:             sync.RWMutex{},
 	}
 }

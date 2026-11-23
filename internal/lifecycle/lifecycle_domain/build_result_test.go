@@ -69,3 +69,36 @@ func TestBuildResult_HasFailures_SeedFailureWithoutTaskFailures(t *testing.T) {
 
 	assert.True(t, result.HasFailures(), "a file the build could not seed must fail the build")
 }
+
+func TestBuildResult_FailureSummary(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name   string
+		result BuildResult
+		want   string
+	}{
+		{name: "no failures", result: BuildResult{}, want: ""},
+		{name: "failed tasks", result: BuildResult{TotalFailed: 2}, want: "2 failed task(s)"},
+		{
+			name: "every kind of failure",
+			result: BuildResult{
+				TotalFailed: 1,
+				Failures: []BuildFailure{
+					{ArtefactID: "a", Executor: "", Profile: "minified", Error: "never ran"},
+					{ArtefactID: "b", Executor: "minify", Profile: "minified", Error: "failed"},
+					{ArtefactID: "c", Executor: "", Profile: "", Error: "unknown"},
+				},
+				SeedFailures: []SeedFailure{{Path: "pages/a.pk", Stage: "read", Error: "denied"}},
+				TimedOut:     true,
+			},
+			want: "1 failed task(s), 1 profile(s) never built, 1 seed failure(s), timed out with tasks outstanding",
+		},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, testCase.want, testCase.result.FailureSummary())
+		})
+	}
+}

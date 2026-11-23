@@ -718,6 +718,25 @@ func TestWithOrchestratorCSSPreProcessor(t *testing.T) {
 	})
 }
 
+func TestCompileSFC_RadioAndMultiSelectModels(t *testing.T) {
+	t.Parallel()
+	source := `<template name="model-inputs"><div>
+		<input type="radio" value="red" p-model="state.colour">
+		<input type="radio" :value="state.blue" p-model="state.colour">
+		<select multiple p-model="state.many"><option value="a">A</option></select>
+	</div></template><script lang="ts">const state={colour:"red",blue:"blue",many:["a"]};</script>`
+	compiler := NewCompilerOrchestrator(nil, nil)
+	artifact, err := compiler.CompileSFCBytes(t.Context(), "model-inputs.pkc", []byte(source))
+	require.NoError(t, err)
+	js := artifact.Files[artifact.BaseJSPath]
+	assert.Contains(t, js, `=== "red"`)
+	assert.Contains(t, js, `"value": "red"`)
+	assert.Contains(t, js, `=== (this.$$ctx.state.blue)`)
+	assert.Contains(t, js, "selectedOptions")
+	assert.Contains(t, js, "Array.from(")
+	assert.NotContains(t, js, "unknown.")
+}
+
 func TestCompileSFC_MemoBinding(t *testing.T) {
 	t.Parallel()
 
@@ -815,4 +834,11 @@ class DynamicImportTestElement extends PPElement {
 		"no unresolved @/ specifier may reach the browser")
 	assert.Contains(t, mainJS, `import { helper } from "/_piko/assets/github.com/user/project/lib/helper.js"`,
 		"the static import must still be hoisted and resolved")
+}
+
+func TestCompileSFCDecodesStaticVDOMAttributeOnce(t *testing.T) {
+	source := []byte(`<template name="entity-probe"><span title="&#39;single&#39; &amp;lt;">x</span></template><script lang="ts">const state={};</script>`)
+	result, err := NewCompilerOrchestrator(nil, nil).CompileSFCBytes(t.Context(), "entity-probe.pkc", source)
+	require.NoError(t, err)
+	require.Contains(t, result.Files[result.BaseJSPath], `"title": "'single' &lt;"`)
 }

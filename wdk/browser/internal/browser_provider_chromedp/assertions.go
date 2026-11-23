@@ -135,32 +135,7 @@ type DeviceParams struct {
 //
 // Returns error when the element text does not match within the timeout.
 func CheckText(ctx *ActionContext, selector, expected string) error {
-	var actualText string
-
-	deadline := time.Now().Add(DefaultAssertionTimeout)
-	ticker := time.NewTicker(DefaultPollingInterval)
-	defer ticker.Stop()
-
-	for {
-		text, found := tryGetElementText(ctx, selector)
-		if found {
-			actualText = text
-			if actualText == expected {
-				return nil
-			}
-		}
-
-		if time.Now().After(deadline) {
-			return &AssertionError{
-				Selector: selector,
-				Expected: expected,
-				Actual:   actualText,
-				Message:  "text mismatch",
-			}
-		}
-
-		<-ticker.C
-	}
+	return pollForExpected(ctx, selector, expected, tryGetElementText, "text mismatch", "checking text of %q: %w")
 }
 
 // CheckTextContains checks that an element contains the expected text.
@@ -196,7 +171,9 @@ func CheckTextContains(ctx *ActionContext, selector, substring string) error {
 			}
 		}
 
-		<-ticker.C
+		if err := waitForTick(ctx.Ctx, ticker); err != nil {
+			return fmt.Errorf("checking text of %q contains %q: %w", selector, substring, err)
+		}
 	}
 }
 
@@ -239,32 +216,7 @@ func CheckTextNotContains(ctx *ActionContext, selector, substring string) error 
 // Returns error when the element value does not match the expected value within the
 // default assertion timeout.
 func CheckValue(ctx *ActionContext, selector, expected string) error {
-	var actualValue string
-
-	deadline := time.Now().Add(DefaultAssertionTimeout)
-	ticker := time.NewTicker(DefaultPollingInterval)
-	defer ticker.Stop()
-
-	for {
-		value, found := tryGetElementValue(ctx, selector)
-		if found {
-			actualValue = value
-			if actualValue == expected {
-				return nil
-			}
-		}
-
-		if time.Now().After(deadline) {
-			return &AssertionError{
-				Selector: selector,
-				Expected: expected,
-				Actual:   actualValue,
-				Message:  "value mismatch",
-			}
-		}
-
-		<-ticker.C
-	}
+	return pollForExpected(ctx, selector, expected, tryGetElementValue, "value mismatch", "checking value of %q: %w")
 }
 
 // CheckAttribute verifies that an element has the expected attribute value.
@@ -555,7 +507,9 @@ func CheckElementCount(ctx *ActionContext, selector string, expected int) error 
 			return newElementCountError(selector, expected, count)
 		}
 
-		<-ticker.C
+		if err := waitForTick(ctx.Ctx, ticker); err != nil {
+			return fmt.Errorf("checking element count of %q: %w", selector, err)
+		}
 	}
 }
 
@@ -1228,4 +1182,53 @@ func executeCheckAttributeContains(ctx *ActionContext, step *BrowserStep) error 
 // Returns error when the attribute contains the unwanted substring.
 func executeCheckAttributeNotContains(ctx *ActionContext, step *BrowserStep) error {
 	return CheckAttributeNotContains(ctx, step.Selector, step.AttributeName(), step.ExpectedString())
+}
+
+// pollForExpected polls an element reading until it equals expected, the assertion
+// timeout passes, or ctx ends.
+//
+// Takes ctx (*ActionContext) which provides the browser context for the check.
+// Takes selector (string) which identifies the element to read.
+// Takes expected (string) which is the reading to match.
+// Takes read (func(*ActionContext, string) (string, bool)) which reads the element,
+// reporting false when it is not available yet.
+// Takes mismatch (string) which describes a failed match in the assertion error.
+// Takes cancelledFormat (string) which formats the error when ctx ends, taking the
+// selector and the cause.
+//
+// Returns error which is an *AssertionError on timeout, the wrapped cause when ctx ends,
+// or nil on a match.
+func pollForExpected(
+	ctx *ActionContext,
+	selector, expected string,
+	read func(*ActionContext, string) (string, bool),
+	mismatch, cancelledFormat string,
+) error {
+	var actual string
+
+	deadline := time.Now().Add(DefaultAssertionTimeout)
+	ticker := time.NewTicker(DefaultPollingInterval)
+	defer ticker.Stop()
+
+	for {
+		if reading, found := read(ctx, selector); found {
+			actual = reading
+			if actual == expected {
+				return nil
+			}
+		}
+
+		if time.Now().After(deadline) {
+			return &AssertionError{
+				Selector: selector,
+				Expected: expected,
+				Actual:   actual,
+				Message:  mismatch,
+			}
+		}
+
+		if err := waitForTick(ctx.Ctx, ticker); err != nil {
+			return fmt.Errorf(cancelledFormat, selector, err)
+		}
+	}
 }

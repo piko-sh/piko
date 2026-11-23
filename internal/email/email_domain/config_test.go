@@ -20,19 +20,15 @@ package email_domain
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestDefaultServiceConfig(t *testing.T) {
 	config := defaultServiceConfig()
-	if config.MaxTotalRecipients != defaultMaxTotalRecipients {
-		t.Errorf("MaxTotalRecipients = %d, want %d", config.MaxTotalRecipients, defaultMaxTotalRecipients)
-	}
-	if config.MaxPayloadSizeBytes != defaultMaxPayloadSizeBytes {
-		t.Errorf("MaxPayloadSizeBytes = %d, want %d", config.MaxPayloadSizeBytes, defaultMaxPayloadSizeBytes)
-	}
-	if config.MaxRetryHeapSize != defaultServiceRetryHeapMax {
-		t.Errorf("MaxRetryHeapSize = %d, want %d", config.MaxRetryHeapSize, defaultServiceRetryHeapMax)
-	}
+
+	assert.Equal(t, defaultMaxTotalRecipients, config.MaxTotalRecipients)
+	assert.Equal(t, int64(defaultMaxPayloadSizeBytes), config.MaxPayloadSizeBytes)
 }
 
 func TestWithMaxTotalRecipients(t *testing.T) {
@@ -45,13 +41,11 @@ func TestWithMaxTotalRecipients(t *testing.T) {
 		{name: "zero ignored", input: 0, expected: defaultMaxTotalRecipients},
 		{name: "negative ignored", input: -1, expected: defaultMaxTotalRecipients},
 	}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
 			config := defaultServiceConfig()
-			WithMaxTotalRecipients(tc.input)(&config)
-			if config.MaxTotalRecipients != tc.expected {
-				t.Errorf("MaxTotalRecipients = %d, want %d", config.MaxTotalRecipients, tc.expected)
-			}
+			WithMaxTotalRecipients(testCase.input)(&config)
+			assert.Equal(t, testCase.expected, config.MaxTotalRecipients)
 		})
 	}
 }
@@ -66,55 +60,24 @@ func TestWithMaxPayloadSizeBytes(t *testing.T) {
 		{name: "zero ignored", input: 0, expected: defaultMaxPayloadSizeBytes},
 		{name: "negative ignored", input: -100, expected: defaultMaxPayloadSizeBytes},
 	}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
 			config := defaultServiceConfig()
-			WithMaxPayloadSizeBytes(tc.input)(&config)
-			if config.MaxPayloadSizeBytes != tc.expected {
-				t.Errorf("MaxPayloadSizeBytes = %d, want %d", config.MaxPayloadSizeBytes, tc.expected)
-			}
+			WithMaxPayloadSizeBytes(testCase.input)(&config)
+			assert.Equal(t, testCase.expected, config.MaxPayloadSizeBytes)
 		})
 	}
 }
 
-func TestWithMaxRetryHeapSize(t *testing.T) {
-	testCases := []struct {
-		name     string
-		input    int
-		expected int
-	}{
-		{name: "positive value", input: 1000, expected: 1000},
-		{name: "zero ignored", input: 0, expected: defaultServiceRetryHeapMax},
-		{name: "negative ignored", input: -5, expected: defaultServiceRetryHeapMax},
-	}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			config := defaultServiceConfig()
-			WithMaxRetryHeapSize(tc.input)(&config)
-			if config.MaxRetryHeapSize != tc.expected {
-				t.Errorf("MaxRetryHeapSize = %d, want %d", config.MaxRetryHeapSize, tc.expected)
-			}
-		})
-	}
-}
-
-func TestServiceOptions_Chained(t *testing.T) {
+func TestServiceOptionsChain(t *testing.T) {
 	config := defaultServiceConfig()
-	opts := []ServiceOption{
+	for _, option := range []ServiceOption{
 		WithMaxTotalRecipients(25),
 		WithMaxPayloadSizeBytes(1024 * 1024),
-		WithMaxRetryHeapSize(500),
+	} {
+		option(&config)
 	}
-	for _, opt := range opts {
-		opt(&config)
-	}
-	if config.MaxTotalRecipients != 25 {
-		t.Errorf("MaxTotalRecipients = %d, want 25", config.MaxTotalRecipients)
-	}
-	if config.MaxPayloadSizeBytes != 1024*1024 {
-		t.Errorf("MaxPayloadSizeBytes = %d, want %d", config.MaxPayloadSizeBytes, 1024*1024)
-	}
-	if config.MaxRetryHeapSize != 500 {
-		t.Errorf("MaxRetryHeapSize = %d, want 500", config.MaxRetryHeapSize)
-	}
+
+	assert.Equal(t, 25, config.MaxTotalRecipients)
+	assert.Equal(t, int64(1024*1024), config.MaxPayloadSizeBytes)
 }

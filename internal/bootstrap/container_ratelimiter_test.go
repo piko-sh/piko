@@ -185,7 +185,7 @@ func TestCloseAll(t *testing.T) {
 }
 
 type fakeContextCloser struct {
-	err error
+	err    error
 	closed bool
 }
 

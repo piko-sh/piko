@@ -31,12 +31,12 @@
     },
     {
       "action": "waitForSelector",
-      "selector": "aside.layout-sidebar .quick-links"
+      "selector": "aside.layout-sidebar .sidebar-card"
     },
     {
       "action": "checkText",
-      "selector": "aside.layout-sidebar .quick-links h3",
-      "expected": "Quick links"
+      "selector": "aside.layout-sidebar .sidebar-card h3",
+      "expected": "Get involved"
     },
     {
       "action": "navigate",

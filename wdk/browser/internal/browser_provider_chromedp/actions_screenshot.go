@@ -227,24 +227,19 @@ func ScreenshotElementWithPadding(ctx *ActionContext, selector string, padding f
 	return buffer, nil
 }
 
-// CompareScreenshots compares two screenshots and reports the percentage of differing
-// bytes.
-//
-// Yields 0.0 if identical, 1.0 if completely different. Only works with same-size images
-// and compares raw bytes.
+// CompareScreenshots measures differences between the encoded screenshot bytes.
 //
 // Takes a ([]byte) which is the first screenshot as raw bytes.
 // Takes b ([]byte) which is the second screenshot as raw bytes.
 //
-// Returns float64 which is the difference ratio from 0.0 to 1.0.
-// Returns error which is always nil for the current implementation.
-func CompareScreenshots(a, b []byte) (float64, error) {
+// Returns float64 which is the fraction of differing bytes, or 1.0 for unequal lengths.
+func CompareScreenshots(a, b []byte) float64 {
 	if len(a) != len(b) {
-		return 1.0, nil
+		return 1.0
 	}
 
 	if len(a) == 0 {
-		return 0.0, nil
+		return 0.0
 	}
 
 	var diffCount int
@@ -254,7 +249,7 @@ func CompareScreenshots(a, b []byte) (float64, error) {
 		}
 	}
 
-	return float64(diffCount) / float64(len(a)), nil
+	return float64(diffCount) / float64(len(a))
 }
 
 // newCaptureSettings applies the capture options over the defaults.
@@ -402,18 +397,18 @@ func runBoundedCapture(ctx context.Context, timeout time.Duration, capture chrom
 	defer cancel()
 
 	if err := chromedp.Run(captureCtx, page.BringToFront(), capture); err != nil {
-		return withCaptureCause(captureCtx, err)
+		return withContextCause(captureCtx, err)
 	}
 	return nil
 }
 
-// withCaptureCause attaches the context's cancellation cause to err when the context has
-// ended, so a timed-out capture reports why it was cancelled.
+// withContextCause attaches the context's cancellation cause to err when the context has
+// ended, so a timed-out or cancelled operation reports why it was cancelled.
 //
-// Takes err (error) which is the error returned by the capture.
+// Takes err (error) which is the error returned by the operation.
 //
 // Returns error which wraps both err and the cancellation cause when there is one.
-func withCaptureCause(ctx context.Context, err error) error {
+func withContextCause(ctx context.Context, err error) error {
 	if ctx.Err() == nil {
 		return err
 	}

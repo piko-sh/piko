@@ -38,47 +38,35 @@ export type RetryBackoff = 'linear' | 'exponential';
 export interface RetryConfig {
     /** Number of retry attempts. */
     attempts: number;
-    /** Backoff strategy (default: exponential). */
+    /** Selects the delay strategy and defaults to exponential. */
     backoff?: RetryBackoff;
 }
 
-/**
- * Retry configuration for SSE streams with auto-reconnection.
- *
- * When an SSE stream disconnects unexpectedly, the action builder
- * will automatically reconnect with configurable backoff. This enables
- * long-lived streams (notification feeds, live dashboards) to survive
- * transient network issues.
- */
+/** Configures automatic SSE reconnection. */
 export interface RetryStreamConfig {
     /** Maximum reconnection attempts (Infinity for long-lived streams). */
     maxReconnects: number;
-    /** Backoff strategy (default: 'linear'). */
+    /** Selects the delay strategy and defaults to linear. */
     backoff?: RetryBackoff;
-    /** Base delay between reconnection attempts in ms (default: 3000). */
+    /** Sets the initial delay in milliseconds and defaults to 3000. */
     baseDelay?: number;
-    /** Maximum delay cap in ms (default: 30000). */
+    /** Caps the delay in milliseconds and defaults to 30000. */
     maxDelay?: number;
     /**
-     * HTTP status codes that trigger a reconnect in addition to transport-level
-     * failures (status 0). Default: [408, 425, 429, 500, 502, 503, 504].
+     * Lists the HTTP statuses that trigger reconnection alongside transport failures. The
+     * default statuses are 408, 425, 429, 500, 502, 503 and 504.
      */
     retryableStatuses?: number[];
     /**
-     * Re-read the CSRF tokens before each reconnect instead of reusing the pair
-     * captured at first connect, so a long-lived stream can pick up a token
-     * rotated into the DOM by an independent refresh or navigation. It does not
-     * itself trigger a refresh. Default: true.
+     * Rereads CSRF tokens from the DOM before each reconnect. The option defaults to true
+     * and uses the tokens already present in the page.
      */
     refreshTokensOnReconnect?: boolean;
     /** Called when SSE connection drops (before reconnect attempt). */
     onDisconnect?: () => void;
     /** Called when reconnection succeeds. */
     onReconnect?: (attemptNumber: number) => void;
-    /**
-     * Called for every stream failure with the error and whether a reconnect
-     * will follow. Useful for diagnostics/observability on long-lived streams.
-     */
+    /** Receives each stream failure and whether a reconnect will follow. */
     onError?: (error: unknown, willReconnect: boolean) => void;
 }
 
@@ -97,14 +85,15 @@ export interface ActionError {
 }
 
 /**
- * Creates an ActionError instance with computed convenience properties for
- * checking network, validation, and authentication error categories.
+ * Classifies an action failure as a network, validation or authentication error when
+ * applicable.
  *
- * @param status - HTTP status code (0 for network errors).
- * @param message - Human-readable error message.
- * @param validationErrors - Optional field-level validation errors.
- * @param data - Optional raw response data.
- * @returns An ActionError with isNetworkError, isValidationError, and isAuthError getters.
+ * @param status - The HTTP status or zero for a network failure.
+ * @param message - A message describing the failure.
+ * @param validationErrors - Optional field errors.
+ * @param data - Optional response data.
+ * @param helpers - Optional server-response helpers.
+ * @returns The failure details and category flags.
  */
 export function createActionError(
     status: number,
@@ -139,22 +128,22 @@ export interface ActionDescriptor<T = unknown> {
     /** Arguments to pass to the action. */
     args?: unknown[];
 
-    /** HTTP method (default: POST). */
+    /** Selects the HTTP method and defaults to POST. */
     method?: ActionMethod;
 
     /** Runs immediately before the server call. */
     optimistic?: () => void;
 
-    /** Runs after successful response; can return another action to chain. */
+    /** Handles a successful response and may return another action. */
     onSuccess?: (response: T) => void | ActionDescriptor;
 
-    /** Runs if the server returns an error. */
+    /** Runs when the action fails. */
     onError?: (error: ActionError) => void;
 
     /** Runs always (success or error). */
     onComplete?: () => void;
 
-    /** Loading state target: true = element, string = selector, HTMLElement = specific element. */
+    /** Selects an element by CSS selector, by reference or with true for the trigger. */
     loading?: string | HTMLElement | boolean;
 
     /** Debounce in milliseconds before sending. */
@@ -163,7 +152,7 @@ export interface ActionDescriptor<T = unknown> {
     /** Retry configuration. */
     retry?: RetryConfig;
 
-    /** Timeout in milliseconds; the request is aborted after this duration. */
+    /** Sets how many milliseconds to wait before aborting a request. */
     timeout?: number;
 
     /** External AbortSignal for request cancellation. */
@@ -175,7 +164,7 @@ export interface ActionDescriptor<T = unknown> {
     /** Progress callback for SSE streaming, called for each intermediate event. */
     onProgress?: (data: unknown, eventType: string) => void;
 
-    /** Retry configuration for SSE streams, enables auto-reconnection on connection drop. */
+    /** Configures reconnection for dropped SSE streams. */
     retryStream?: RetryStreamConfig;
 }
 
@@ -191,11 +180,7 @@ export function isActionDescriptor(value: unknown): value is ActionDescriptor {
         typeof (value as ActionDescriptor).action === 'string';
 }
 
-/**
- * Fluent builder for ActionDescriptor.
- *
- * Implements the ActionDescriptor interface so it can be used directly without calling build().
- */
+/** Configures an action and can be used directly as an ActionDescriptor. */
 export class ActionBuilder<T = unknown> implements ActionDescriptor<T> {
     private readonly _action: string;
     private readonly _args: unknown[];
@@ -311,12 +296,10 @@ export class ActionBuilder<T = unknown> implements ActionDescriptor<T> {
     }
 
     /**
-     * Sets the optimistic update callback.
+     * Sets the callback that runs before the request.
      *
-     * Runs immediately before the server request.
-     *
-     * @param optimisticUpdate - Callback to run before the request.
-     * @returns This builder for chaining.
+     * @param optimisticUpdate - The callback that applies the optimistic update.
+     * @returns The builder for chaining.
      */
     setOptimistic(optimisticUpdate: () => void): this {
         this._optimistic = optimisticUpdate;
@@ -324,12 +307,10 @@ export class ActionBuilder<T = unknown> implements ActionDescriptor<T> {
     }
 
     /**
-     * Sets the success callback.
+     * Sets the callback for a successful response.
      *
-     * Can return another ActionDescriptor to chain actions.
-     *
-     * @param successHandler - Callback receiving the typed response.
-     * @returns This builder for chaining.
+     * @param successHandler - Handles the response and may return another action.
+     * @returns The builder for chaining.
      */
     setOnSuccess(successHandler: (response: T) => void | ActionDescriptor): this {
         this._onSuccess = successHandler;
@@ -350,12 +331,10 @@ export class ActionBuilder<T = unknown> implements ActionDescriptor<T> {
     }
 
     /**
-     * Sets the completion callback.
+     * Sets the callback that runs after success or failure.
      *
-     * Runs after success or error, always.
-     *
-     * @param completeHandler - Callback to run on completion.
-     * @returns This builder for chaining.
+     * @param completeHandler - The callback to run when the action finishes.
+     * @returns The builder for chaining.
      */
     setOnComplete(completeHandler: () => void): this {
         this._onComplete = completeHandler;
@@ -363,14 +342,10 @@ export class ActionBuilder<T = unknown> implements ActionDescriptor<T> {
     }
 
     /**
-     * Sets the loading state target.
+     * Sets where to show the loading state.
      *
-     * - `true`: Apply to trigger element.
-     * - `string`: CSS selector.
-     * - `HTMLElement`: Specific element.
-     *
-     * @param target - The loading state target.
-     * @returns This builder for chaining.
+     * @param target - A CSS selector, an element, or true to use the trigger.
+     * @returns The builder for chaining.
      */
     setLoading(target: string | HTMLElement | boolean): this {
         this._loading = target;
@@ -401,12 +376,10 @@ export class ActionBuilder<T = unknown> implements ActionDescriptor<T> {
     }
 
     /**
-     * Sets the timeout in milliseconds.
+     * Sets when to abort the request.
      *
-     * The request is aborted after this duration.
-     *
-     * @param ms - Timeout duration.
-     * @returns This builder for chaining.
+     * @param ms - The timeout in milliseconds.
+     * @returns The builder for chaining.
      */
     setTimeout(ms: number): this {
         this._timeout = ms;
@@ -425,14 +398,11 @@ export class ActionBuilder<T = unknown> implements ActionDescriptor<T> {
     }
 
     /**
-     * Sets the progress callback for SSE streaming.
+     * Selects SSE transport and sets the callback for intermediate events. Terminal
+     * events use the success or error callback.
      *
-     * When set, the action framework automatically uses SSE transport
-     * (POST with Accept: text/event-stream). The callback fires for each
-     * intermediate event; terminal events route to onSuccess/onError.
-     *
-     * @param progressHandler - Callback receiving event data and event type.
-     * @returns This builder for chaining.
+     * @param progressHandler - The callback that receives intermediate events.
+     * @returns The builder for chaining.
      */
     setOnProgress(progressHandler: (data: unknown, eventType: string) => void): this {
         this._onProgress = progressHandler;
@@ -440,14 +410,11 @@ export class ActionBuilder<T = unknown> implements ActionDescriptor<T> {
     }
 
     /**
-     * Sets the retry configuration for SSE streams.
+     * Configures reconnection when an SSE stream drops. Set the progress callback to
+     * select SSE transport. Use Infinity for maxReconnects to allow unlimited retries.
      *
-     * When set alongside onProgress, the action builder automatically
-     * reconnects the SSE stream on connection drops with configurable
-     * backoff. Use maxReconnects: Infinity for long-lived streams.
-     *
-     * @param config - Retry stream configuration.
-     * @returns This builder for chaining.
+     * @param config - The retry limits, delays and callbacks.
+     * @returns The builder for chaining.
      */
     setRetryStream(config: RetryStreamConfig): this {
         this._retryStream = config;
@@ -576,16 +543,9 @@ export class ActionBuilder<T = unknown> implements ActionDescriptor<T> {
     }
 
     /**
-     * Suppress automatic execution of server-response helpers.
+     * Prevents automatic execution of server-response helpers.
      *
-     * When called, helpers returned by the server (e.g. redirect, resetForm)
-     * will NOT be executed automatically. This is useful when you need to
-     * process the response programmatically and don't want side effects.
-     *
-     * The helpers are still available on the DirectCallResponse for manual
-     * inspection when using `.call()`.
-     *
-     * @returns This builder for chaining.
+     * @returns The builder for chaining.
      */
     suppressHelpers(): this {
         this._suppressHelpers = true;
@@ -593,12 +553,9 @@ export class ActionBuilder<T = unknown> implements ActionDescriptor<T> {
     }
 
     /**
-     * Builds the final ActionDescriptor.
+     * Creates a descriptor with the current action settings.
      *
-     * Note: The builder itself implements ActionDescriptor, so calling build()
-     * is optional. You can use the builder directly.
-     *
-     * @returns The constructed ActionDescriptor.
+     * @returns The configured action.
      */
     build(): ActionDescriptor<T> {
         return {
@@ -621,15 +578,9 @@ export class ActionBuilder<T = unknown> implements ActionDescriptor<T> {
     }
 
     /**
-     * Execute the action directly and return the typed response.
+     * Executes the action and runs server-response helpers unless suppressed.
      *
-     * This is an imperative alternative to the callback pattern, useful in
-     * component scripts where you need the response data directly.
-     *
-     * Helpers from the server response are processed automatically before
-     * the promise resolves.
-     *
-     * @returns Promise resolving to the typed response data.
+     * @returns A promise for the response data that rejects if the action fails.
      */
     async call(): Promise<T> {
         const response: DirectCallResponse<T> = await callServerActionDirect<T>(
@@ -661,14 +612,11 @@ export function action<T = unknown>(name: string, ...args: unknown[]): ActionBui
 }
 
 /**
- * Creates an action builder for generated action functions.
+ * Configures an action from a single object of named arguments.
  *
- * This is used by the auto-generated actions.gen.js file. It differs from `action()`
- * in that it accepts a single args object (named parameters) rather than variadic args.
- *
- * @param name - Server action name (e.g., 'media.Search').
- * @param args - Arguments object to pass to the action.
- * @returns ActionBuilder with fluent API.
+ * @param name - The server action.
+ * @param args - The argument values keyed by name.
+ * @returns The builder for the named action.
  */
 export function createActionBuilder<T = unknown>(name: string, args: Record<string, unknown>): ActionBuilder<T> {
     if (typeof (args as Record<string, unknown>).toObject === 'function') {
@@ -677,22 +625,14 @@ export function createActionBuilder<T = unknown>(name: string, args: Record<stri
     return new ActionBuilder<T>(name, [args]);
 }
 
-/**
- * Global registry mapping Go action names (e.g. "email.Contact") to their
- * generated JS wrapper functions. Populated by actions.gen.js at module load
- * time, consumed by DOMBinder when resolving action directive payloads.
- */
+/** Maps Go action names to generated wrappers. */
 const actionFunctionRegistry = new Map<string, (...args: unknown[]) => ActionBuilder>();
 
 /**
- * Registers an action function in the global registry.
+ * Stores a generated wrapper for a Go action.
  *
- * Called by the generated actions.gen.js to make action wrapper functions
- * discoverable by the DOMBinder for template-bound action calls
- * (e.g. p-on:submit="email.Contact($form)").
- *
- * @param name - The Go action name (e.g. "email.Contact").
- * @param actionFactory - The generated wrapper function that returns an ActionBuilder.
+ * @param name - The Go action name.
+ * @param actionFactory - The generated function that builds calls to the action.
  */
 export function registerActionFunction(name: string, actionFactory: (...args: unknown[]) => ActionBuilder): void {
     actionFunctionRegistry.set(name, actionFactory);
@@ -734,18 +674,16 @@ export interface BatchActionResponse<T extends unknown[]> {
 
 /** Options for a batch action request. */
 export interface BatchOptions {
-    /** Runs the batch entries concurrently. Results stay in request order either way. */
+    /** Runs entries concurrently and keeps results in request order. */
     parallel?: boolean;
 }
 
 /**
- * Executes multiple actions in a single HTTP request.
+ * Sends multiple actions in one HTTP request. The server runs each action even when
+ * another action fails.
  *
- * Uses "continue all, report failures" strategy: all actions execute,
- * failures are reported in results.
- *
- * @param actions - ActionBuilders to execute.
- * @returns Promise resolving to batch response with all results.
+ * @param actions - The actions to run.
+ * @returns A promise for the ordered results, including individual failures.
  */
 export async function batch<T extends unknown[]>(
     ...actions: { [K in keyof T]: ActionDescriptor<T[K]> }

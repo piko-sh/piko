@@ -4,4 +4,14 @@
   "expectedType": "*models.User",
   "expectedDiagnostics": 0,
   "diagnostics": []
+}, {
+  "description": "Indexing a map of arbitrary values still validates its string key.",
+  "expression": "state.Values[\"value\"]",
+  "expectedType": "any",
+  "expectedDiagnostics": 0
+}, {
+  "description": "A slice of arbitrary values is indexable.",
+  "expression": "state.Items[0]",
+  "expectedType": "any",
+  "expectedDiagnostics": 0
 }]

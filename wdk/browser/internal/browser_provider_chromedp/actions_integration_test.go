@@ -19,12 +19,16 @@
 package browser_provider_chromedp
 
 import (
+	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/chromedp/chromedp"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"piko.sh/safedisk"
 )
 
@@ -2122,11 +2126,8 @@ func TestGoBack(t *testing.T) {
 			t.Fatalf("Navigate() error = %v", err)
 		}
 
-		time.Sleep(500 * time.Millisecond)
-
-		err = GoBack(actx)
-
-		_ = err
+		require.NoError(t, GoBack(actx))
+		requireTitle(t, actx, "Home")
 	})
 }
 
@@ -2147,11 +2148,8 @@ func TestGoForward(t *testing.T) {
 			t.Fatalf("Navigate() error = %v", err)
 		}
 
-		time.Sleep(500 * time.Millisecond)
-
-		err = GoForward(actx)
-
-		_ = err
+		require.ErrorIs(t, GoForward(actx), errNoHistoryEntry)
+		requireTitle(t, actx, "Page 2")
 	})
 }
 
@@ -2171,18 +2169,15 @@ func TestExecuteStep_GoBackGoForward(t *testing.T) {
 		if err != nil {
 			t.Fatalf("ExecuteStep(navigate) error = %v", err)
 		}
-		time.Sleep(500 * time.Millisecond)
 
 		t.Run("goBack handler", func(t *testing.T) {
-
-			err := ExecuteStep(actx, &BrowserStep{Action: "goBack"})
-			_ = err
+			require.NoError(t, ExecuteStep(actx, &BrowserStep{Action: "goBack"}))
+			requireTitle(t, actx, "Home")
 		})
 
 		t.Run("goForward handler", func(t *testing.T) {
-
-			err := ExecuteStep(actx, &BrowserStep{Action: "goForward"})
-			_ = err
+			require.NoError(t, ExecuteStep(actx, &BrowserStep{Action: "goForward"}))
+			requireTitle(t, actx, "Page 2")
 		})
 	})
 }
@@ -2741,5 +2736,71 @@ func TestClear_StaleDOMReplacement(t *testing.T) {
 		if value != "" {
 			t.Errorf("input value = %q, want empty", value)
 		}
+	})
+}
+
+func cancelledActionContext(t *testing.T, page *PageHelper) (*ActionContext, error) {
+	t.Helper()
+
+	cause := errors.New("caller gave up")
+	cancelled, cancel := context.WithCancelCause(page.Ctx())
+	cancel(cause)
+	return &ActionContext{Ctx: cancelled, PageHelper: page}, cause
+}
+
+func requirePromptCause(t *testing.T, cause error, run func() error) {
+	t.Helper()
+
+	start := time.Now()
+	err := run()
+	require.ErrorIs(t, err, cause)
+	require.Less(t, time.Since(start), time.Second)
+}
+
+func TestWaitCancelled(t *testing.T) {
+	t.Parallel()
+	server := newTestServer(testHTMLVisibility)
+	defer server.Close()
+
+	withTestPage(t, server.URL, func(t *testing.T, page *PageHelper) {
+		actx, cause := cancelledActionContext(t, page)
+		testCases := map[string]func() error{
+			"WaitForSelector":      func() error { return WaitForSelector(actx, "#missing", 5*time.Second) },
+			"WaitForText":          func() error { return WaitForText(actx, "#visible", "never", 5*time.Second) },
+			"WaitForVisible":       func() error { return WaitForVisible(actx, "#hidden-display", 5*time.Second) },
+			"WaitForNotVisible":    func() error { return WaitForNotVisible(actx, "#visible", 5*time.Second) },
+			"WaitForEnabled":       func() error { return WaitForEnabled(actx, "#missing", 5*time.Second) },
+			"WaitForDisabled":      func() error { return WaitForDisabled(actx, "#visible", 5*time.Second) },
+			"WaitForNotPresent":    func() error { return WaitForNotPresent(actx, "#visible", 5*time.Second) },
+			"WaitForPartialReload": func() error { return WaitForPartialReload(actx, "missing", 5*time.Second) },
+			"WaitForElementInFrame": func() error {
+				return WaitForElementInFrame(actx, "#missing-frame", "#inner")
+			},
+			"WaitForRequest": func() error {
+				_, err := WaitForRequest(actx, RequestMatcher{URLContains: "/never"}, 5*time.Second)
+				return err
+			},
+		}
+		for name, run := range testCases {
+			t.Run(name, func(t *testing.T) {
+				requirePromptCause(t, cause, run)
+			})
+		}
+	})
+}
+
+func TestWaitForNotVisibleLookupError(t *testing.T) {
+	t.Parallel()
+	server := newTestServer(testHTMLVisibility)
+	defer server.Close()
+
+	withTestPage(t, server.URL, func(t *testing.T, page *PageHelper) {
+		actx := newActionContext(page)
+		err := chromedp.Run(page.Ctx(), chromedp.Evaluate(`window.getComputedStyle = () => { throw new Error('lookup broken'); }; true`, nil))
+		require.NoError(t, err)
+
+		err = WaitForNotVisible(actx, "#visible", time.Second)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "lookup broken")
 	})
 }

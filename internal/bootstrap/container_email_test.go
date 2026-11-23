@@ -26,9 +26,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"piko.sh/piko/internal/deadletter/deadletter_adapters"
 	email_mock "piko.sh/piko/internal/email/email_adapters/provider_mock"
 	"piko.sh/piko/internal/email/email_domain"
 	"piko.sh/piko/internal/email/email_dto"
+	"piko.sh/piko/internal/registry/registry_domain"
+	"piko.sh/piko/internal/templater/templater_domain"
 )
 
 func TestSelectEmailBaseProvider(t *testing.T) {
@@ -156,4 +159,97 @@ func TestCreateEmailDispatcher(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDefaultEmailProviderSurvivesContainerSetup(t *testing.T) {
+	c := &Container{}
+	name, provider, err := c.selectEmailBaseProvider(t.Context())
+	require.NoError(t, err)
+	service := email_domain.NewServiceWithProviderAndDispatcher(t.Context(), provider, nil, nil, nil)
+	require.NoError(t, c.registerEmailProviders(t.Context(), service, name))
+	require.Equal(t, []string{"default"}, service.GetProviders(t.Context()))
+}
+
+func TestNamedEmailProvidersSurviveBootstrap(t *testing.T) {
+
+	type templates struct {
+		templater_domain.EmailTemplateService
+	}
+	for _, hasDefault := range []bool{false, true} {
+		c := NewContainer()
+		c.registryServiceOverride = &registry_domain.MockRegistryService{}
+		c.SetEmailTemplateService(templates{})
+		c.AddEmailProvider("outbox", email_mock.NewMockEmailProvider())
+		want := []string{"outbox"}
+		if hasDefault {
+			c.AddEmailProvider("default", email_mock.NewMockEmailProvider())
+			c.SetEmailDefaultProvider("outbox")
+			want = []string{"default", "outbox"}
+		}
+		s, err := c.GetEmailService()
+		require.NoError(t, err)
+		assert.Equal(t, want, s.GetProviders(t.Context()))
+		for _, provider := range s.ListProviders(t.Context()) {
+			assert.Equal(t, provider.Name == "outbox", provider.IsDefault)
+		}
+	}
+}
+
+func TestEmailBootstrapStartsConfiguredDispatcherOnce(t *testing.T) {
+	type templates struct {
+		templater_domain.EmailTemplateService
+	}
+	c := NewContainer()
+	c.registryServiceOverride = &registry_domain.MockRegistryService{}
+	c.SetEmailTemplateService(templates{})
+	c.AddEmailProvider("outbox", email_mock.NewMockEmailProvider())
+	c.SetEmailDispatcherConfig(nil)
+	s, err := c.GetEmailService()
+	require.NoError(t, err)
+	require.NotNil(t, c.emailDispatcher)
+	defer func() { assert.NoError(t, c.emailDispatcher.Stop(t.Context())) }()
+	require.NoError(t, s.FlushDispatcher(t.Context()))
+}
+
+func TestEmailBootstrapRequiresADefaultAmongSeveralProviders(t *testing.T) {
+	type templates struct {
+		templater_domain.EmailTemplateService
+	}
+	c := NewContainer()
+	c.registryServiceOverride = &registry_domain.MockRegistryService{}
+	c.SetEmailTemplateService(templates{})
+	c.AddEmailProvider("outbox", email_mock.NewMockEmailProvider())
+	c.AddEmailProvider("archive", email_mock.NewMockEmailProvider())
+
+	_, err := c.GetEmailService()
+
+	require.ErrorIs(t, err, errEmailDefaultProviderRequired)
+	assert.Contains(t, err.Error(), "archive, outbox")
+}
+
+func TestSetEmailDeadLetterAdapterIsUsedByTheDispatcher(t *testing.T) {
+	t.Parallel()
+
+	dlq := deadletter_adapters.NewMemoryDeadLetterQueue[*email_dto.DeadLetterEntry]()
+	c := NewContainer()
+	c.SetEmailDeadLetterAdapter(dlq)
+	c.SetEmailDispatcherConfig(nil)
+
+	assert.Same(t, dlq, c.emailDeadLetterAdapter)
+	assert.NotNil(t, c.createEmailDispatcher(email_mock.NewMockEmailProvider()))
+}
+
+func TestRegisterEmailProvidersRejectsAnUnregisteredDefault(t *testing.T) {
+	t.Parallel()
+
+	c := &Container{}
+	name, provider, err := c.selectEmailBaseProvider(t.Context())
+	require.NoError(t, err)
+	service := email_domain.NewServiceWithProviderAndDispatcher(t.Context(), provider, nil, nil, nil)
+	c.emailDefaultProvider = "missing"
+
+	err = c.registerEmailProviders(t.Context(), service, name)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "missing")
 }

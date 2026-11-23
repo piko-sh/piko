@@ -42,7 +42,7 @@ import (
 
 const (
 	windowTestRequestsPerMinute = 3
-	windowTestClientIP = "203.0.113.7"
+	windowTestClientIP          = "203.0.113.7"
 )
 
 func requestWithClientIP(method, target, clientIP string) *http.Request {

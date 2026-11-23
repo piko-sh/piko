@@ -233,7 +233,10 @@ func (op *routerOperation) resolveServices(ctx context.Context) error {
 	}
 
 	op.renderRegistry = op.container.GetRenderRegistry()
-	op.csrfService = op.container.GetCSRFService()
+	op.csrfService, err = op.container.GetCSRFService()
+	if err != nil {
+		return fmt.Errorf("failed to get CSRF service for router: %w", err)
+	}
 	captchaService, captchaErr := op.container.GetCaptchaService()
 	if captchaErr != nil {
 		l.Warn("Captcha service unavailable; captcha-protected actions will be rejected with 403",

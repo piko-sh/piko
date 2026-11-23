@@ -26,8 +26,7 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// setByAST is the entry point for the recursive AST walker on the slow path. It
-// initialises depth tracking and delegates to setByASTRecursive.
+// setByAST is the entry point for the recursive AST walker on the slow path.
 //
 // Takes currentVal (reflect.Value) which is the value to be modified.
 // Takes expression (ast_domain.Expression) which is the parsed AST expression.
@@ -37,7 +36,11 @@ import (
 //
 // Returns error when the value cannot be set or the expression is invalid.
 func (b *ASTBinder) setByAST(currentVal reflect.Value, expression ast_domain.Expression, valueToSet string, fullPath string, limits binderOptions) error {
-	return b.setByASTRecursive(currentVal, expression, valueToSet, fullPath, 0, limits)
+	err := b.setByASTRecursive(currentVal, expression, valueToSet, fullPath, 0, limits)
+	if limits.ignoreUnknownKeys && errors.Is(err, errFieldNotFound) {
+		return nil
+	}
+	return err
 }
 
 // setByASTRecursive recursively walks the AST to set a field value at the specified path,
@@ -102,8 +105,6 @@ func (b *ASTBinder) handleIdentifierNode(currentVal reflect.Value, node *ast_dom
 }
 
 // handleIndexExprNode processes an IndexExpr AST node (e.g., items[0] or config["key"]).
-//
-// Dispatches to specific handlers based on the resolved value's kind.
 //
 // Takes currentVal (reflect.Value) which is the current reflection value being processed.
 // Takes node (*ast_domain.IndexExpression) which is the index expression AST node.
@@ -211,9 +212,7 @@ func (b *ASTBinder) handleMapIndexExpr(mapVal reflect.Value, node *ast_domain.In
 	return nil
 }
 
-// handleStructIndexExpr handles bracket-notation access on a struct field where flattened
-// JSON form data produces paths like shippingAddress['street'] and the bracket index is a
-// string literal that maps to a struct field name or json tag.
+// handleStructIndexExpr binds a quoted field name or JSON tag on a struct.
 //
 // Takes structVal (reflect.Value) which is the struct to access.
 // Takes node (*ast_domain.IndexExpression) which contains the string index.
@@ -242,8 +241,6 @@ func (b *ASTBinder) handleStructIndexExpr(structVal reflect.Value, node *ast_dom
 }
 
 // handleChainedIndexExpr handles chained index expressions like fields['key1']['key2'].
-// This is needed for map[string]any where intermediate values may not exist and need to
-// be created as maps.
 //
 // Takes currentVal (reflect.Value) which is the struct containing the base map.
 // Takes innerIndex (*ast_domain.IndexExpression) which is the inner index expression.
@@ -367,7 +364,7 @@ func (b *ASTBinder) handleUncachedField(currentVal reflect.Value, fieldName, val
 		if ignoreUnknown {
 			return nil
 		}
-		return errSetField{err: errors.New(errFieldNotFound), path: fullPath, field: fieldName, fieldType: ""}
+		return errSetField{err: errFieldNotFound, path: fullPath, field: fieldName, fieldType: ""}
 	}
 
 	fi := newFieldInfoForType(fieldName, field.Type())
@@ -534,8 +531,7 @@ func (b *ASTBinder) setMapElement(
 	return nil
 }
 
-// checkDepthLimit checks if the current depth is within the allowed limit. The maxDepth
-// is passed as a parameter to avoid repeated atomic loads.
+// checkDepthLimit checks if the current depth is within the allowed limit.
 //
 // Takes fullPath (string) which is the path being checked.
 // Takes depth (int) which is the current depth level.
@@ -550,8 +546,7 @@ func checkDepthLimit(fullPath string, depth int, maxDepth int) error {
 }
 
 // shouldUseChainedIndexHandler checks if the chained index expression should use the
-// special handler for map[string]any. Returns true only when the base map has interface{}
-// element type.
+// special handler for map[string]any.
 //
 // Takes currentVal (reflect.Value) which is the struct value containing the base map
 // field.

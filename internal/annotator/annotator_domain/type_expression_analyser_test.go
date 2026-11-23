@@ -3696,3 +3696,31 @@ func TestResolveTypeConversionCall(t *testing.T) {
 		assert.Equal(t, annotator_dto.CodeCoercionError, (*ctx.Diagnostics)[0].Code)
 	})
 }
+
+func TestResolveTemporalBinaryExpressions(t *testing.T) {
+	date := &ast_domain.DateLiteral{Value: "2024-02-29"}
+	instant := &ast_domain.DateTimeLiteral{Value: "2024-03-01T00:00:00Z"}
+	clock := &ast_domain.TimeLiteral{Value: "12:30:00"}
+	duration := &ast_domain.DurationLiteral{Value: "45m"}
+	for _, tc := range []struct {
+		left, right ast_domain.Expression
+		op          ast_domain.BinaryOp
+		want        string
+	}{
+		{date, instant, ast_domain.OpLt, "bool"}, {clock, clock, ast_domain.OpGe, "bool"}, {duration, duration, ast_domain.OpLt, "bool"},
+		{date, instant, ast_domain.OpMinus, "Duration"}, {date, duration, ast_domain.OpPlus, "Time"}, {duration, date, ast_domain.OpPlus, "Time"}, {date, duration, ast_domain.OpMinus, "Time"}, {duration, duration, ast_domain.OpPlus, "Duration"}, {duration, duration, ast_domain.OpMinus, "Duration"},
+	} {
+		h := newTypeResolverTestHarness()
+		expr := &ast_domain.BinaryExpression{Left: tc.left, Right: tc.right, Operator: tc.op}
+		out := h.Resolver.Resolve(t.Context(), h.Context, expr, ast_domain.Location{})
+		require.False(t, h.HasDiagnostics(), "%s: %v", expr, *h.Context.Diagnostics)
+		if tc.want == "bool" {
+			require.Equal(t, goast.NewIdent("bool"), out.ResolvedType.TypeExpression)
+			continue
+		}
+		require.Equal(t, tc.want, temporalTypeName(out.ResolvedType))
+		require.Equal(t, int(inspector_dto.StringableViaStringer), out.Stringability)
+	}
+
+	require.Empty(t, temporalTypeName(&ast_domain.ResolvedTypeInfo{TypeExpression: &goast.SelectorExpr{X: goast.NewIdent("time"), Sel: goast.NewIdent("Time")}, CanonicalPackagePath: "example.org/time"}))
+}

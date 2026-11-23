@@ -104,7 +104,7 @@ func TestMarkDirtyReplacesTheManifestForAFullResult(t *testing.T) {
 
 func TestMarkDirtyRebuildsTheReverseDependencyMap(t *testing.T) {
 	t.Parallel()
-	const moduleName = "mark_dirty_reverse_deps"
+	const moduleName = "example.org/apps/mark_dirty_reverse_deps/v2"
 	orchestrator, projectRoot := newTestOrchestrator(t, moduleName, &fakePool{interpreter: &fakeInterpreter{compile: registeringCompile}}, nil)
 	card := newManifestTestArtefact(projectRoot, moduleName, "partials/card.pk", "partial", "package card\n")
 	home := newManifestTestArtefact(projectRoot, moduleName, "pages/home.pk", "page", "package home\n")

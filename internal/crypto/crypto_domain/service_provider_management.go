@@ -116,9 +116,20 @@ func (s *cryptoService) getProvider(ctx context.Context) (EncryptionProvider, er
 	return s.registry.GetProvider(ctx, providerName)
 }
 
-// Close shuts down all providers in an orderly way.
+// Close releases the data-key cache and shuts down all providers in an orderly way.
 //
-// Returns error when the providers cannot be closed.
+// Returns error when the cache or the providers cannot be closed.
+//
+// Concurrency: acquires mu to detach the data-key cache.
 func (s *cryptoService) Close(ctx context.Context) error {
-	return s.registry.CloseAll(ctx)
+	s.mu.Lock()
+	cache := s.dataKeyCache
+	s.dataKeyCache = nil
+	s.mu.Unlock()
+
+	var cacheErr error
+	if cache != nil {
+		cacheErr = cache.Close(ctx)
+	}
+	return errors.Join(cacheErr, s.registry.CloseAll(ctx))
 }

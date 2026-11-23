@@ -122,7 +122,7 @@ func scaffoldSmokeProject(t *testing.T) (string, []string) {
 	require.NoErrorf(t, CreateProject(data), "CreateProject() failed")
 
 	goworkPath := filepath.Join(workspace, "go.work")
-	rewritten := rewriteGoWorkAbsolute(string(workBytes), frameworkRoot) +
+	rewritten := rewriteGoWorkAbsolute(t, workBytes, frameworkRoot) +
 		"\nuse " + projectDir + "\n"
 	require.NoErrorf(t, os.WriteFile(goworkPath, []byte(rewritten), 0o644), "writing workspace go.work")
 	if sum, sumErr := os.ReadFile(frameworkWork + ".sum"); sumErr == nil {

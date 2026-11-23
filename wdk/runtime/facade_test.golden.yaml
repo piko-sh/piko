@@ -281,6 +281,8 @@ TemplateNode: |- # Kind: Struct
       // Method
       ChildElementCount() int
       // Method
+      ChildrenWithBoundText() []*ast_domain.TemplateNode
+      // Method
       Classes() []string
       // Method
       Clone() *ast_domain.TemplateNode

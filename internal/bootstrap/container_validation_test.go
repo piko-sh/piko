@@ -60,6 +60,49 @@ func TestValidateProviderConfiguration_EmailDefaultWithProvider(t *testing.T) {
 	assert.NoError(t, err, "expected no error when default matches registered provider")
 }
 
+func TestValidateProviderConfiguration_EmailProvidersWithoutDefault(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		providers []string
+		name      string
+		wantError bool
+	}{
+		{name: "single provider needs no default", providers: []string{"outbox"}, wantError: false},
+		{name: "provider named default wins", providers: []string{"default", "archive"}, wantError: false},
+		{name: "several providers need a default", providers: []string{"outbox", "archive"}, wantError: true},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			c := NewContainer()
+			for _, name := range testCase.providers {
+				c.AddEmailProvider(name, email_mock.NewMockEmailProvider())
+			}
+
+			err := c.ValidateProviderConfiguration()
+			if !testCase.wantError {
+				require.NoError(t, err)
+				return
+			}
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), errEmailDefaultProviderRequired.Error())
+			assert.Contains(t, err.Error(), "archive, outbox")
+		})
+	}
+}
+
+func TestValidateProviderConfiguration_EmailProvidersWithServiceOverride(t *testing.T) {
+	t.Parallel()
+	c := NewContainer()
+	c.AddEmailProvider("outbox", email_mock.NewMockEmailProvider())
+	c.AddEmailProvider("archive", email_mock.NewMockEmailProvider())
+	c.emailServiceOverride = &stubEmailService{}
+
+	require.NoError(t, c.ValidateProviderConfiguration())
+}
+
 func TestValidateProviderConfiguration_StorageDefaultWithoutProvider(t *testing.T) {
 	t.Parallel()
 	c := NewContainer()
@@ -206,6 +249,46 @@ func TestValidateProviderConfiguration_NamedCacheProvidersOnSuppliedService(t *t
 				return
 			}
 			require.ErrorContains(t, err, testCase.wantErr)
+		})
+	}
+}
+
+func TestValidateProviderConfiguration_MediaAndLLMDefaultsWithoutProviders(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		configure func(c *Container)
+		name      string
+		wantText  string
+	}{
+		{
+			name:      "image transformer",
+			configure: func(c *Container) { c.defaultImageTransformer = "imgproxy" },
+			wantText:  "image default transformer",
+		},
+		{
+			name:      "video transcoder",
+			configure: func(c *Container) { c.defaultVideoTranscoder = "ffmpeg" },
+			wantText:  "video default transcoder",
+		},
+		{
+			name:      "llm provider",
+			configure: func(c *Container) { c.llmDefaultProvider = "openai" },
+			wantText:  "llm default provider",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			c := NewContainer()
+			testCase.configure(c)
+
+			err := c.ValidateProviderConfiguration()
+
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), testCase.wantText)
+			assert.Contains(t, err.Error(), "specified but no")
 		})
 	}
 }

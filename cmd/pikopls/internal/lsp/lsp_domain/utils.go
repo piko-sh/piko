@@ -43,3 +43,14 @@ func uriToPath(u uri.URI) (string, error) {
 
 	return u.Filename(), nil
 }
+
+// documentURIForPath converts a local file path to a URI using net/url escaping.
+//
+// Editors may escape characters such as `+` and `@` differently.
+//
+// Takes path (string) which is the absolute local file path.
+//
+// Returns uri.URI which is the file URI.
+func documentURIForPath(path string) uri.URI {
+	return uri.File(path)
+}

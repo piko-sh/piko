@@ -3563,6 +3563,20 @@ func TestBind_PerCallOptions(t *testing.T) {
 }
 
 func TestBind_IgnoreUnknownKeys(t *testing.T) {
+	t.Run("unknown repeated controls follow the same policy as scalar controls", func(t *testing.T) {
+		var form struct {
+			Label  string `json:"label"`
+			Counts []int  `json:"counts"`
+		}
+		input := map[string]any{"label": "task", "repeat": []any{"one", "two"}}
+		b := NewASTBinder()
+		require.NoError(t, b.BindMap(t.Context(), &form, input, IgnoreUnknownKeys(true)))
+		assert.Equal(t, "task", form.Label)
+		require.Error(t, b.BindMap(t.Context(), &form, input, IgnoreUnknownKeys(false)))
+		input["counts"] = []any{"wrong"}
+		require.Error(t, b.BindMap(t.Context(), &form, input, IgnoreUnknownKeys(true)))
+	})
+
 	t.Run("SetIgnoreUnknownKeys true silently ignores unknown nested fields", func(t *testing.T) {
 		binder := NewASTBinder()
 		binder.SetIgnoreUnknownKeys(true)

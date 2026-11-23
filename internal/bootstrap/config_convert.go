@@ -93,6 +93,22 @@ func NewDaemonConfig(sc *ServerConfig) daemon_domain.DaemonConfig {
 	}
 }
 
+// newDevelopmentDaemonConfig builds the daemon configuration for the development modes.
+//
+// Development servers move to the next free port by default, so several projects can run
+// side by side, but an explicit AutoNextPort setting is still honoured.
+//
+// Takes sc (*ServerConfig) which provides the server configuration values to convert.
+//
+// Returns daemon_domain.DaemonConfig which is the development configuration.
+func newDevelopmentDaemonConfig(sc *ServerConfig) daemon_domain.DaemonConfig {
+	daemonConfig := NewDaemonConfig(sc)
+	daemonConfig.DevelopmentMode = true
+	daemonConfig.NetworkAutoNextPort = deref(sc.Network.AutoNextPort, true)
+	daemonConfig.HealthAutoNextPort = deref(sc.HealthProbe.AutoNextPort, true)
+	return daemonConfig
+}
+
 // NewLifecyclePathsConfig converts the pointer-based ServerConfig into a value-type
 // LifecyclePathsConfig for the lifecycle service.
 //

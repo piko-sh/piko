@@ -39,6 +39,11 @@ var (
 	// ErrProviderUnavailable indicates the captcha provider is not available.
 	ErrProviderUnavailable = errors.New("captcha provider unavailable")
 
+	// ErrProviderMisconfigured indicates the provider answered but its configuration cannot
+	// produce a usable result, such as keys of the wrong kind. It does not count as provider
+	// unavailability for the circuit breaker.
+	ErrProviderMisconfigured = errors.New("captcha provider misconfigured")
+
 	// ErrTokenTooLong indicates the captcha token exceeds the maximum allowed length.
 	ErrTokenTooLong = errors.New("captcha token exceeds maximum length")
 

@@ -18,12 +18,13 @@
 
 package bootstrap
 
-// This file contains email service related container methods.
-
 import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
+	"strings"
 
 	"piko.sh/piko/internal/deadletter/deadletter_adapters"
 	"piko.sh/piko/internal/email/email_adapters/asset_resolver"
@@ -35,13 +36,19 @@ import (
 	"piko.sh/piko/internal/templater/templater_domain"
 )
 
+var (
+	// errEmailDefaultProviderRequired is returned when several email providers are
+	// registered and none is named as the default.
+	errEmailDefaultProviderRequired = errors.New("several email providers are registered; name the default provider")
+)
+
 // AddEmailProvider registers a named email provider for sending emails.
 //
 // If the provider implements a shutdown interface (Close, Shutdown, or Stop), it will be
 // automatically registered for graceful shutdown.
 //
 // Takes name (string) which identifies the provider for later retrieval.
-// Takes provider (EmailProviderPort) which handles email delivery.
+// Takes provider (email_domain.EmailProviderPort) which handles email delivery.
 func (c *Container) AddEmailProvider(name string, provider email_domain.EmailProviderPort) {
 	if c.emailProviders == nil {
 		c.emailProviders = make(map[string]email_domain.EmailProviderPort)
@@ -95,10 +102,6 @@ func (c *Container) GetEmailService() (email_domain.Service, error) {
 }
 
 // createDefaultEmailService builds and sets up the default email service.
-//
-// It gets the email templater, picks a base provider, sets up an optional dispatcher, and
-// creates an asset resolver for CID embedding. Any errors are stored in c.emailErr rather
-// than returned.
 func (c *Container) createDefaultEmailService() {
 	ctx := c.GetAppContext()
 	ctx, l := logger_domain.From(ctx, log)
@@ -127,9 +130,9 @@ func (c *Container) createDefaultEmailService() {
 	}
 	assetResolver := asset_resolver.New(registryService)
 
-	s := email_domain.NewServiceWithProviderAndDispatcher(c.GetAppContext(), baseProvider, dispatcher, templaterAdapter, assetResolver)
+	s := email_domain.NewServiceWithProviderAndDispatcher(ctx, baseProvider, nil, templaterAdapter, assetResolver, email_domain.WithInitialProviderName(baseName))
 
-	if err := c.registerEmailProviders(s, baseName); err != nil {
+	if err := c.registerEmailProviders(ctx, s, baseName); err != nil {
 		c.emailErr = err
 		return
 	}
@@ -148,35 +151,46 @@ func (c *Container) createDefaultEmailService() {
 //
 // Returns string which is the name of the selected provider.
 // Returns email_domain.EmailProviderPort which is the selected email provider.
-// Returns error when the configured provider is not registered or the default provider
-// fails to initialise.
+// Returns error when the configured provider is not registered, several providers are
+// registered without naming a default, or the default provider fails to initialise.
 func (c *Container) selectEmailBaseProvider(ctx context.Context) (baseName string, baseProvider email_domain.EmailProviderPort, err error) {
 	ctx, l := logger_domain.From(ctx, log)
 	if len(c.emailProviders) > 0 {
-		if c.emailDefaultProvider != "" {
-			baseName = c.emailDefaultProvider
-			baseProvider = c.emailProviders[baseName]
-			if baseProvider == nil {
-				return "", nil, fmt.Errorf("email default provider %q not registered", baseName)
-			}
-		} else if p, ok := c.emailProviders[email_dto.EmailNameDefault]; ok {
-			baseName = email_dto.EmailNameDefault
-			baseProvider = p
-		} else {
-			for n, p := range c.emailProviders {
-				baseName, baseProvider = n, p
-				break
-			}
-		}
-	} else {
-		baseName = email_dto.EmailNameDefault
-		baseProvider, err = provider_stdout.New(ctx)
-		if err != nil {
-			return "", nil, fmt.Errorf("failed to initialise default stdout email provider: %w", err)
-		}
-		l.Internal("Using default stdout email provider (no custom providers registered)")
+		return c.selectRegisteredEmailProvider()
 	}
-	return baseName, baseProvider, nil
+	baseProvider, err = provider_stdout.New(ctx)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to initialise default stdout email provider: %w", err)
+	}
+	l.Internal("Using default stdout email provider (no custom providers registered)")
+	return email_dto.EmailNameDefault, baseProvider, nil
+}
+
+// selectRegisteredEmailProvider picks the base provider among the registered ones.
+//
+// The configured default wins, then a provider named "default", then the only provider.
+//
+// Returns string which is the name of the selected provider.
+// Returns email_domain.EmailProviderPort which is the selected provider.
+// Returns error when the configured default is not registered, or several providers are
+// registered without naming a default.
+func (c *Container) selectRegisteredEmailProvider() (string, email_domain.EmailProviderPort, error) {
+	if c.emailDefaultProvider != "" {
+		provider := c.emailProviders[c.emailDefaultProvider]
+		if provider == nil {
+			return "", nil, fmt.Errorf("email default provider %q not registered", c.emailDefaultProvider)
+		}
+		return c.emailDefaultProvider, provider, nil
+	}
+	if provider, ok := c.emailProviders[email_dto.EmailNameDefault]; ok {
+		return email_dto.EmailNameDefault, provider, nil
+	}
+	if len(c.emailProviders) == 1 {
+		for name, provider := range c.emailProviders {
+			return name, provider, nil
+		}
+	}
+	return "", nil, fmt.Errorf("%w: registered %s", errEmailDefaultProviderRequired, strings.Join(slices.Sorted(maps.Keys(c.emailProviders)), ", "))
 }
 
 // createEmailDispatcher creates an email dispatcher if configured.
@@ -208,16 +222,12 @@ func (c *Container) createEmailDispatcher(baseProvider email_domain.EmailProvide
 // Takes baseName (string) which is the default provider name.
 //
 // Returns error when provider registration or default setup fails.
-func (c *Container) registerEmailProviders(s email_domain.Service, baseName string) error {
-	if err := c.registerAdditionalEmailProviders(s, baseName); err != nil {
+func (c *Container) registerEmailProviders(ctx context.Context, s email_domain.Service, baseName string) error {
+	if err := c.registerAdditionalEmailProviders(ctx, s, baseName); err != nil {
 		return fmt.Errorf("registering additional email providers: %w", err)
 	}
 
-	if err := c.ensureDefaultEmailProvider(s, baseName); err != nil {
-		return fmt.Errorf("ensuring default email provider: %w", err)
-	}
-
-	return c.setDefaultEmailProvider(s, baseName)
+	return c.setDefaultEmailProvider(ctx, s, baseName)
 }
 
 // registerAdditionalEmailProviders registers all user-supplied email providers except the
@@ -227,8 +237,7 @@ func (c *Container) registerEmailProviders(s email_domain.Service, baseName stri
 // Takes baseName (string) which identifies the already-registered base provider.
 //
 // Returns error when a provider fails to register.
-func (c *Container) registerAdditionalEmailProviders(s email_domain.Service, baseName string) error {
-	ctx := c.GetAppContext()
+func (c *Container) registerAdditionalEmailProviders(ctx context.Context, s email_domain.Service, baseName string) error {
 	for name, provider := range c.emailProviders {
 		if name == baseName {
 			continue
@@ -240,55 +249,27 @@ func (c *Container) registerAdditionalEmailProviders(s email_domain.Service, bas
 	return nil
 }
 
-// ensureDefaultEmailProvider creates and registers a default stdout provider if none were
-// supplied.
-//
-// Takes s (email_domain.Service) which handles provider registration.
-// Takes baseName (string) which is the base provider to try first.
-//
-// Returns error when provider creation or registration fails.
-func (c *Container) ensureDefaultEmailProvider(s email_domain.Service, baseName string) error {
-	if len(c.emailProviders) > 0 {
-		return nil
-	}
-
-	ctx := c.GetAppContext()
-
-	if err := s.RegisterProvider(ctx, email_dto.EmailNameDefault, c.emailProviders[baseName]); err == nil {
-		return nil
-	}
-
-	stdoutProvider, providerErr := provider_stdout.New(ctx)
-	if providerErr != nil {
-		return fmt.Errorf("failed to create default stdout email provider: %w", providerErr)
-	}
-	if err := s.RegisterProvider(ctx, email_dto.EmailNameDefault, stdoutProvider); err != nil {
-		return fmt.Errorf("failed to register default provider on default email service: %w", err)
-	}
-	return nil
-}
-
 // setDefaultEmailProvider sets the default email provider preference.
 //
 // Takes s (email_domain.Service) which provides the email service to set up.
 // Takes baseName (string) which specifies the fallback provider name.
 //
 // Returns error when the provider cannot be set.
-func (c *Container) setDefaultEmailProvider(s email_domain.Service, baseName string) error {
+func (c *Container) setDefaultEmailProvider(ctx context.Context, s email_domain.Service, baseName string) error {
 	defaultName := baseName
 	if c.emailDefaultProvider != "" {
 		defaultName = c.emailDefaultProvider
 	}
-	if err := s.SetDefaultProvider(c.GetAppContext(), defaultName); err != nil {
+	if err := s.SetDefaultProvider(ctx, defaultName); err != nil {
 		return fmt.Errorf("failed to set default email provider to %q: %w", defaultName, err)
 	}
 	return nil
 }
 
-// SetEmailTemplateService sets the email template service. Called by the daemon builder
-// to set the service built using the selected manifest runner.
+// SetEmailTemplateService sets the email template service.
 //
-// Takes s (EmailTemplateService) which provides email template operations.
+// Takes s (templater_domain.EmailTemplateService) which provides email template
+// operations.
 func (c *Container) SetEmailTemplateService(s templater_domain.EmailTemplateService) {
 	c.emailTemplateService = s
 }

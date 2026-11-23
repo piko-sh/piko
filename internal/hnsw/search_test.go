@@ -114,6 +114,57 @@ func TestGraph_SearchTopKLimiting(t *testing.T) {
 	}
 }
 
+func TestGraph_SearchAllAfterDeletingTheOnlyBridge(t *testing.T) {
+	g := New[string](2, vectormaths.Euclidean, WithRandomSeed(42))
+	for _, point := range []struct {
+		key string
+		x   float32
+	}{{key: "left", x: -1}, {key: "right", x: 1}, {key: "far", x: 3}, {key: "bridge", x: 0}} {
+		require.NoError(t, g.Insert(point.key, []float32{point.x, 0}))
+	}
+
+	for _, node := range g.nodes {
+		for layer := range node.neighbours {
+			node.neighbours[layer] = nil
+		}
+	}
+	bridge := g.nodes["bridge"]
+	for _, key := range []string{"left", "right", "far"} {
+		node := g.nodes[key]
+		node.neighbours[0] = append(node.neighbours[0], bridge)
+		bridge.neighbours[0] = append(bridge.neighbours[0], node)
+	}
+	g.Delete("bridge")
+	for _, node := range g.nodes {
+		require.Empty(t, node.neighbours[0])
+	}
+	for _, k := range []int{g.Len(), math.MaxInt} {
+		got := mustSearch(t, g, []float32{0, 0}, k, 0)
+		require.Equal(t, []Result[string]{{Key: "left", Distance: 1}, {Key: "right", Distance: 1}, {Key: "far", Distance: 9}}, got)
+	}
+	got := mustSearch(t, g, []float32{3, 0}, 2, 0)
+	require.Len(t, got, 2, "a beam cut off by deletes must still return TopK results")
+	assert.Equal(t, "far", got[0].Key)
+	assert.Equal(t, "right", got[1].Key)
+}
+
+func TestGraph_RejectsNonFiniteVectors(t *testing.T) {
+	g := New[string](2, vectormaths.Euclidean, WithRandomSeed(42))
+	require.NoError(t, g.Insert("origin", []float32{0, 0}))
+
+	for _, vector := range [][]float32{
+		{float32(math.NaN()), 0},
+		{0, float32(math.Inf(1))},
+		{float32(math.Inf(-1)), 1},
+		{3e38, 3e38},
+	} {
+		require.ErrorIs(t, g.Insert("bad", vector), ErrNonFiniteVector)
+		_, err := g.Search(vector, 1, 0)
+		require.ErrorIs(t, err, ErrNonFiniteVector)
+	}
+	assert.Equal(t, 1, g.Len())
+}
+
 func TestGraph_SearchWithExactMatch(t *testing.T) {
 	g := New[string](3, vectormaths.Cosine, WithRandomSeed(42))
 
@@ -284,4 +335,25 @@ func mustSearch[K comparable](t *testing.T, g *Graph[K], query []float32, topK, 
 	results, err := g.Search(query, topK, efSearch)
 	require.NoError(t, err)
 	return results
+}
+
+func TestGraph_SearchAllKeepsTheNearestNodesInOrder(t *testing.T) {
+	g := New[string](2, vectormaths.Euclidean, WithRandomSeed(42))
+	for index := range 40 {
+		require.NoError(t, g.Insert(fmt.Sprintf("node-%02d", index), []float32{float32(index % 20), 0}))
+	}
+
+	for _, limit := range []int{1, 3, 7, 40, 100} {
+		got := g.searchAll([]float32{0, 0}, limit)
+		require.Len(t, got, min(limit, 40))
+		for index := 1; index < len(got); index++ {
+			previous, current := got[index-1], got[index]
+			require.LessOrEqual(t, previous.Distance, current.Distance)
+			if previous.Distance == current.Distance {
+				assert.Less(t, g.nodes[previous.Key].id, g.nodes[current.Key].id, "node IDs break distance ties")
+			}
+		}
+		assert.Equal(t, float32(0), got[0].Distance)
+	}
+	assert.Equal(t, []Result[string]{{Key: "node-00", Distance: 0}, {Key: "node-20", Distance: 0}, {Key: "node-01", Distance: 1}}, g.searchAll([]float32{0, 0}, 3))
 }

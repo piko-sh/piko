@@ -36,28 +36,6 @@ function createUpdateFormState(component, internals) {
     }
   };
 }
-function attachFormLifecycleCallbacks(component, updateFormState) {
-  component.formAssociatedCallback = (_form) => {
-  };
-  component.formDisabledCallback = (disabled) => {
-    if (component.state) {
-      component.state.disabled = disabled;
-    }
-  };
-  component.formResetCallback = () => {
-    if (component.state && component.$$ctx?.$$initialState) {
-      const initialValue = component.$$ctx.state.value;
-      component.state.value = initialValue ?? "";
-      queueMicrotask(updateFormState);
-    }
-  };
-  component.formStateRestoreCallback = (state, _mode) => {
-    if (component.state) {
-      component.state.value = state;
-      queueMicrotask(updateFormState);
-    }
-  };
-}
 function defineFormProperties(component, internals) {
   Object.defineProperties(component, {
     form: { get: () => internals.form, enumerable: true },
@@ -88,7 +66,6 @@ const formAssociatedBehaviour = (component) => {
   });
   component.onConnected(updateFormState);
   component.onAfterRender(updateFormState);
-  attachFormLifecycleCallbacks(component, updateFormState);
   defineFormProperties(component, internals);
 };
 registerBehaviour("form", formAssociatedBehaviour);
@@ -357,7 +334,7 @@ function createKeyToOldIdxMap(children, beginIndex, endIndex) {
 function getHiddenNodeType(vnode) {
   return vnode._type === "fragment" ? "fragment" : "node";
 }
-const RESERVED_PROPS = ["_k", "_c", "_s", "_memo", "class", "_class", "style", "_style"];
+const RESERVED_PROPS = ["_k", "_c", "_s", "_memo", "_model", "class", "_class", "style", "_style"];
 function isReservedProp(propName) {
   return RESERVED_PROPS.includes(propName);
 }
@@ -641,6 +618,7 @@ function createElementNode(elVNode, refs, isSvg) {
       elementNode.appendChild(createElm(child, refs, childSvg));
     }
   }
+  syncSelectValue(elementNode, elVNode.props);
   return elementNode;
 }
 function clearElmRefsRecursive(vnode, refs) {
@@ -733,6 +711,7 @@ function patchElementVNode(domElement, oldVNode, newVNode, refs) {
       updateChildren(domElement, oldChildren, newChildren, refs, null);
     }
   }
+  syncSelectValue(domElement, newVNode.props);
 }
 function patchVNode(domElement, oldVNode, newVNode, refs) {
   newVNode.elm = domElement;
@@ -922,7 +901,9 @@ function removeStaleProps(htmlElement, oldProps, newProps, refs) {
       continue;
     }
     if (propName.startsWith("?")) {
-      htmlElement.removeAttribute(propName.slice(1));
+      if (!(propName in newProps)) {
+        setBooleanAttribute(htmlElement, propName.slice(1), false);
+      }
     } else if (propName.startsWith("on") || propName.startsWith("pe:")) {
       removeStaleEventListener(htmlElement, propName, newProps);
     } else if (propName === "_ref" && refs && oldProps[propName] && refs[oldProps[propName]] === htmlElement) {
@@ -932,12 +913,56 @@ function removeStaleProps(htmlElement, oldProps, newProps, refs) {
     }
   }
 }
-function applyAttributeValue(htmlElement, propName, newValue) {
-  if (newValue == null || newValue === false) {
-    htmlElement.removeAttribute(propName);
+function syncSelectValue(element, props) {
+  if (element.tagName !== "SELECT" || !props || !("value" in props)) {
     return;
   }
-  if ((htmlElement.tagName === "INPUT" || htmlElement.tagName === "TEXTAREA" || htmlElement.tagName === "SELECT") && propName === "value") {
+  const select = element;
+  if (!select.multiple || !Array.isArray(props.value)) {
+    applyAttributeValue(select, "value", props.value);
+    return;
+  }
+  const selected = new Set(props.value.map(String));
+  for (const option of Array.from(select.options)) {
+    const included = selected.has(option.value);
+    if (option.selected !== included) {
+      option.selected = included;
+    }
+  }
+}
+function isControlledProp(propName, props) {
+  return propName === "value" || propName === "?checked" && props._model === true;
+}
+function setBooleanAttribute(element, name, enabled) {
+  element.toggleAttribute(name, enabled);
+  if (name === "checked" && element.tagName === "INPUT") {
+    const input = element;
+    if (input.checked !== enabled) {
+      input.checked = enabled;
+    }
+  }
+}
+function clearFormValue(control) {
+  if (control instanceof HTMLSelectElement) {
+    if (control.selectedIndex !== -1) {
+      control.selectedIndex = -1;
+    }
+    return;
+  }
+  if (control.value !== "") {
+    control.value = "";
+  }
+}
+function applyAttributeValue(htmlElement, propName, newValue) {
+  const formValue = propName === "value" && (htmlElement.tagName === "INPUT" || htmlElement.tagName === "TEXTAREA" || htmlElement.tagName === "SELECT");
+  if (newValue == null || newValue === false) {
+    htmlElement.removeAttribute(propName);
+    if (formValue) {
+      clearFormValue(htmlElement);
+    }
+    return;
+  }
+  if (formValue) {
     if (htmlElement.value !== String(newValue)) {
       htmlElement.value = String(newValue);
     }
@@ -960,12 +985,7 @@ function applyAttributeValue(htmlElement, propName, newValue) {
 }
 function applyPropValue(htmlElement, propName, oldValue, newValue, refs) {
   if (propName.startsWith("?")) {
-    const realAttrName = propName.slice(1);
-    if (newValue) {
-      htmlElement.setAttribute(realAttrName, "");
-    } else {
-      htmlElement.removeAttribute(realAttrName);
-    }
+    setBooleanAttribute(htmlElement, propName.slice(1), !!newValue);
     return;
   }
   if (propName.startsWith("on") || propName.startsWith("pe:")) {
@@ -1001,10 +1021,10 @@ function applyNewProps(htmlElement, oldProps, newProps, refs) {
     if (isReservedProp(propName)) {
       continue;
     }
-    if (propName !== "value" && newValue === oldValue && typeof newValue !== "function") {
+    if (propName === "value" && htmlElement.tagName === "SELECT") {
       continue;
     }
-    if (propName !== "value" && newValue === oldValue) {
+    if (newValue === oldValue && !isControlledProp(propName, newProps)) {
       continue;
     }
     applyPropValue(htmlElement, propName, oldValue, newValue, refs);
@@ -1042,6 +1062,9 @@ function applyVisibility(htmlElement, newProps) {
     }
   } else if (htmlElement.style.display === "none") {
     htmlElement.style.display = "";
+    if (htmlElement.getAttribute("style") === "") {
+      htmlElement.removeAttribute("style");
+    }
   }
 }
 function patchProps(htmlElement, oldProps, newProps, refs) {
@@ -1051,8 +1074,12 @@ function patchProps(htmlElement, oldProps, newProps, refs) {
   }
   removeStaleProps(htmlElement, oldProps, newProps, refs);
   applyNewProps(htmlElement, oldProps, newProps, refs);
-  reconcileClassAttribute(htmlElement, newProps);
-  reconcileStyleAttribute(htmlElement, newProps);
+  if ("class" in newProps || "_class" in newProps || "class" in oldProps || "_class" in oldProps) {
+    reconcileClassAttribute(htmlElement, newProps);
+  }
+  if ("style" in newProps || "_style" in newProps || "style" in oldProps || "_style" in oldProps) {
+    reconcileStyleAttribute(htmlElement, newProps);
+  }
   applyVisibility(htmlElement, newProps);
 }
 function parseEventPropKey(propName, prefixLen) {
@@ -1692,6 +1719,7 @@ const _PPElement = class _PPElement extends HTMLElement {
   /** Creates a new PPElement instance and initialises all composed services. */
   constructor() {
     super();
+    this._formDisabled = false;
     this.refs = {};
     this._initServices();
   }
@@ -1703,7 +1731,11 @@ const _PPElement = class _PPElement extends HTMLElement {
   get renderScheduled() {
     return this._renderScheduler.isScheduled();
   }
-  /** No-op setter kept for backward compatibility with tests. */
+  /**
+   * Accepts assignments without changing the render schedule.
+   *
+   * @param _value - Ignored for compatibility.
+   */
   set renderScheduled(_value) {
   }
   /** Returns the computed default values from prop type definitions. */
@@ -1812,6 +1844,22 @@ const _PPElement = class _PPElement extends HTMLElement {
   get internals() {
     return this._formAssociation.getInternals();
   }
+  /**
+   * Reads the disabled state reported by the browser.
+   *
+   * @returns The most recent form disabled state.
+   */
+  get formDisabled() {
+    return this._formDisabled;
+  }
+  /**
+   * Combines the component prop and the disabled state reported by the browser.
+   *
+   * @returns Whether either source disables the component.
+   */
+  get effectiveDisabled() {
+    return Boolean(this.state?.disabled) || this._formDisabled;
+  }
   /** Returns the current component state object. */
   get state() {
     return this._stateManager.getState();
@@ -1865,12 +1913,10 @@ const _PPElement = class _PPElement extends HTMLElement {
     this._lifecycleManager.onUpdated(callback);
   }
   /**
-   * Registers a cleanup function to run when the component disconnects.
+   * Registers a callback that runs once after the next disconnection. The runtime runs
+   * onDisconnected callbacks before cleanups.
    *
-   * Cleanups run after onDisconnected callbacks, then the array is cleared.
-   * This allows co-locating setup and teardown logic.
-   *
-   * @param callback - The cleanup function to call on disconnection.
+   * @param callback - The cleanup function to run on disconnection.
    */
   onCleanup(callback) {
     this._lifecycleManager.onCleanup(callback);
@@ -1922,13 +1968,10 @@ const _PPElement = class _PPElement extends HTMLElement {
     this._renderScheduler.scheduleRender();
   }
   /**
-   * Initialises the component with a state context.
+   * Initialises component state and captures the form reset value after reading the
+   * initial attributes.
    *
-   * Sets up state defaults, synchronises HTML attributes to state,
-   * reflects state back to attributes, and triggers the first render
-   * if the element is already connected.
-   *
-   * @param optsFromInstance - The state context provided by the compiled component.
+   * @param optsFromInstance - The compiled component state.
    */
   init(optsFromInstance) {
     this._attributeSyncService.setInitialising(true);
@@ -1945,6 +1988,9 @@ const _PPElement = class _PPElement extends HTMLElement {
       }
     }
     this._attributeSyncService.syncAllAttributesToState();
+    if (this._formAssociation.isFormAssociated()) {
+      this._defaultFormValue = state?.value;
+    }
     this._attributeSyncService.reflectAllStateToAttributes();
     this._attributeSyncService.setInitialising(false);
     this._stateManager.clearChangedProps();
@@ -1970,6 +2016,51 @@ const _PPElement = class _PPElement extends HTMLElement {
       }
     }
   }
+  /** Restores the captured value or an empty string on form reset. */
+  formResetCallback() {
+    const state = this.state;
+    if (!state || !this._formAssociation.isFormAssociated()) {
+      return;
+    }
+    state.value = this._defaultFormValue ?? "";
+    if (this._updateFormState) {
+      queueMicrotask(this._updateFormState);
+    }
+  }
+  /**
+   * Records the disabled state reported by the browser. The browser finds form
+   * reactions on the prototype when it defines the element. Keeping this state off the
+   * host attribute lets the browser reenable the element when its fieldset is enabled.
+   *
+   * @param disabled - Whether the browser disabled the element.
+   */
+  formDisabledCallback(disabled) {
+    if (!this.state || !this._formAssociation.isFormAssociated() || this._formDisabled === disabled) {
+      return;
+    }
+    this._formDisabled = disabled;
+    const internals = this._formAssociation.getInternals();
+    if (internals && "ariaDisabled" in internals) {
+      internals.ariaDisabled = this.effectiveDisabled ? "true" : null;
+    }
+    this.scheduleRender();
+  }
+  /**
+   * Restores the value supplied by the browser.
+   *
+   * @param restored - The restored form value.
+   * @param _mode - The restore reason. Both modes restore the value in the same way.
+   */
+  formStateRestoreCallback(restored, _mode) {
+    const state = this.state;
+    if (!state || !this._formAssociation.isFormAssociated()) {
+      return;
+    }
+    state.value = restored;
+    if (this._updateFormState) {
+      queueMicrotask(this._updateFormState);
+    }
+  }
   /** Called when the element is removed from the DOM. */
   disconnectedCallback() {
     this._lifecycleManager.executeDisconnected();
@@ -1977,13 +2068,13 @@ const _PPElement = class _PPElement extends HTMLElement {
     this._lifecycleManager.resetConnectedState();
   }
   /**
-   * Called when an observed attribute changes.
+   * Applies observed attribute changes to component state. An external value attribute
+   * change also sets the form reset value. Initialisation and reflected attribute
+   * changes skip these updates.
    *
-   * Skips processing while reflecting to attributes or during initialisation.
-   *
-   * @param attributeName - The name of the changed attribute.
-   * @param _oldValue - The previous attribute value.
-   * @param newValue - The new attribute value.
+   * @param attributeName - The changed attribute.
+   * @param _oldValue - The unused previous value.
+   * @param newValue - The new value or null after removal.
    */
   attributeChangedCallback(attributeName, _oldValue, newValue) {
     if (this._attributeSyncService.isReflectingToAttribute() || !this._stateManager.getState() || this._attributeSyncService.isInitialising()) {
@@ -1993,6 +2084,9 @@ const _PPElement = class _PPElement extends HTMLElement {
     const propDef = this._propTypeRegistry.get(propertyName);
     if (propDef) {
       this.applyHtmlAttributeToState(propertyName, newValue);
+      if (propertyName === "value" && this._formAssociation.isFormAssociated()) {
+        this._defaultFormValue = this.state?.value;
+      }
     }
   }
   /**

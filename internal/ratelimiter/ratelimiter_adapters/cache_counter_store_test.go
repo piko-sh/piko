@@ -37,9 +37,9 @@ import (
 )
 
 const (
-	windowTestKey = "ratelimit:global:203.0.113.7"
-	windowTestLimit = 5
-	windowTestWindow = time.Minute
+	windowTestKey      = "ratelimit:global:203.0.113.7"
+	windowTestLimit    = 5
+	windowTestWindow   = time.Minute
 	sharedProviderName = "shared"
 )
 

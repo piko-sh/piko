@@ -19,6 +19,8 @@
 package cache_provider_valkey_cluster
 
 import (
+	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -122,6 +124,10 @@ func TestValkeyClusterAdapter_SetWithTTLKeepsSubSecondTTL(t *testing.T) {
 	assert.Equal(t, 500*time.Millisecond, server.TTL(keyString), "a sub-second TTL must be sent in milliseconds")
 }
 
+var (
+	errLoaderFailed = errors.New("loader failed")
+)
+
 func newMiniredisClusterAdapter(t *testing.T) (*ValkeyClusterAdapter[string, float64], *miniredis.Miniredis) {
 	t.Helper()
 
@@ -137,4 +143,142 @@ func newMiniredisClusterAdapter(t *testing.T) (*ValkeyClusterAdapter[string, flo
 	adapter, ok := created.(*ValkeyClusterAdapter[string, float64])
 	require.True(t, ok)
 	return adapter, server
+}
+
+func TestValkeyClusterAdapter_GetLoadsAndStoresMisses(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	adapter, _ := newMiniredisClusterAdapter(t)
+	loads := 0
+	loader := cache.LoaderFunc[string, float64](func(context.Context, string) (float64, error) {
+		loads++
+		return 7, nil
+	})
+
+	value, err := adapter.Get(ctx, "k", loader)
+	require.NoError(t, err)
+	assert.InDelta(t, 7.0, value, 0)
+
+	value, err = adapter.Get(ctx, "k", loader)
+	require.NoError(t, err)
+	assert.InDelta(t, 7.0, value, 0)
+	assert.Equal(t, 1, loads)
+
+	_, err = adapter.Get(ctx, "other", cache.LoaderFunc[string, float64](func(context.Context, string) (float64, error) {
+		return 0, errLoaderFailed
+	}))
+	require.ErrorIs(t, err, errLoaderFailed)
+}
+
+func TestValkeyClusterAdapter_BulkSetAndBulkGet(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	adapter, server := newMiniredisClusterAdapter(t)
+
+	require.NoError(t, adapter.BulkSet(ctx, nil))
+	require.NoError(t, adapter.BulkSet(ctx, map[string]float64{"a": 1, "b": 2}, "numbers"))
+	require.NoError(t, server.Set("test:corrupt", "not json"))
+
+	var requested []string
+	values, err := adapter.BulkGet(ctx, []string{"a", "b", "c", "corrupt"}, cache.BulkLoaderFunc[string, float64](func(_ context.Context, keys []string) (map[string]float64, error) {
+		requested = keys
+		return map[string]float64{"c": 3}, nil
+	}))
+	require.NoError(t, err)
+
+	assert.Equal(t, map[string]float64{"a": 1, "b": 2, "c": 3}, values)
+	assert.ElementsMatch(t, []string{"c", "corrupt"}, requested)
+	assert.True(t, server.Exists("test:c"), "loaded values are written back")
+
+	empty, err := adapter.BulkGet(ctx, nil, nil)
+	require.NoError(t, err)
+	assert.Empty(t, empty)
+
+	count, err := adapter.InvalidateByTags(ctx, "numbers")
+	require.NoError(t, err)
+	assert.Equal(t, 2, count)
+	assert.False(t, server.Exists("test:a"))
+}
+
+func TestValkeyClusterAdapter_BulkGetReportsLoaderFailure(t *testing.T) {
+	t.Parallel()
+
+	adapter, _ := newMiniredisClusterAdapter(t)
+	require.NoError(t, adapter.Set(t.Context(), "a", 1))
+
+	values, err := adapter.BulkGet(t.Context(), []string{"a", "b"}, cache.BulkLoaderFunc[string, float64](func(context.Context, []string) (map[string]float64, error) {
+		return nil, errLoaderFailed
+	}))
+
+	require.ErrorIs(t, err, errLoaderFailed)
+	assert.Equal(t, map[string]float64{"a": 1}, values)
+}
+
+func TestValkeyClusterAdapter_BulkSetReportsPipelineFailure(t *testing.T) {
+	t.Parallel()
+
+	adapter, server := newMiniredisClusterAdapter(t)
+	require.NoError(t, server.Set(tagPrefix+clusterHashTag("test:numbers"), "not a set"))
+
+	err := adapter.BulkSet(t.Context(), map[string]float64{"a": 1}, "numbers")
+
+	require.ErrorContains(t, err, "bulk set pipeline failed")
+}
+
+func TestValkeyClusterAdapter_Refresh(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	adapter, server := newMiniredisClusterAdapter(t)
+
+	result := <-adapter.Refresh(ctx, "a", cache.LoaderFunc[string, float64](func(context.Context, string) (float64, error) {
+		return 5, nil
+	}))
+	require.NoError(t, result.Err)
+	assert.InDelta(t, 5.0, result.Value, 0)
+	assert.True(t, server.Exists("test:a"))
+
+	result = <-adapter.Refresh(ctx, "b", cache.LoaderFunc[string, float64](func(context.Context, string) (float64, error) {
+		return 0, errLoaderFailed
+	}))
+	require.ErrorIs(t, result.Err, errLoaderFailed)
+	assert.False(t, server.Exists("test:b"))
+}
+
+func TestValkeyClusterAdapter_BulkRefresh(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	adapter, server := newMiniredisClusterAdapter(t)
+	failed := make(chan struct{})
+
+	adapter.BulkRefresh(ctx, []string{"a", "b"}, cache.BulkLoaderFunc[string, float64](func(_ context.Context, keys []string) (map[string]float64, error) {
+		loaded := make(map[string]float64, len(keys))
+		for index, key := range keys {
+			loaded[key] = float64(index)
+		}
+		return loaded, nil
+	}))
+	adapter.BulkRefresh(ctx, []string{"c"}, cache.BulkLoaderFunc[string, float64](func(context.Context, []string) (map[string]float64, error) {
+		defer close(failed)
+		return nil, errLoaderFailed
+	}))
+
+	require.Eventually(t, func() bool { return server.Exists("test:a") && server.Exists("test:b") }, 5*time.Second, 10*time.Millisecond)
+	<-failed
+	assert.False(t, server.Exists("test:c"))
+}
+
+func TestValkeyClusterAdapter_InvalidateByTagsHonoursCancellation(t *testing.T) {
+	t.Parallel()
+
+	adapter, _ := newMiniredisClusterAdapter(t)
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	_, err := adapter.InvalidateByTags(ctx, "numbers")
+
+	require.ErrorIs(t, err, context.Canceled)
 }

@@ -104,17 +104,22 @@ func BuildAST(r *piko.RequestData, propsData interface{}) (*pikoruntime.Template
 	tempVar6.AttributeWriters = tempVar7Slice
 	tempVar8 := arena.GetDirectWriter()
 	tempVar8.SetName("src")
-	tempVar8.AppendEscapeString(pikoruntime.EvaluateOr(func() string {
-		if pageData.Images == nil {
-			diagnostics = pikoruntime.AppendDiagnostic(diagnostics, pikoruntime.Warning, "Cannot index a nil slice/map in expression 'state.Images[0]'", "R004", "", "state.Images[0]", 1, 1)
-			return ""
+	tempVar8.AppendEscapeString(func() any {
+		if value := any(func() string {
+			if pageData.Images == nil {
+				diagnostics = pikoruntime.AppendDiagnostic(diagnostics, pikoruntime.Warning, "Cannot index a nil slice/map in expression 'state.Images[0]'", "R004", "", "state.Images[0]", 1, 1)
+				return ""
+			}
+			if int(0) >= len(pageData.Images) {
+				diagnostics = pikoruntime.AppendDiagnostic(diagnostics, pikoruntime.Warning, "Index out of bounds while accessing 'state.Images[0]'", "R005", "", "state.Images[0]", 1, 1)
+				return ""
+			}
+			return pageData.Images[0]
+		}()); pikoruntime.EvaluateTruthiness(value) {
+			return value
 		}
-		if int(0) >= len(pageData.Images) {
-			diagnostics = pikoruntime.AppendDiagnostic(diagnostics, pikoruntime.Warning, "Index out of bounds while accessing 'state.Images[0]'", "R005", "", "state.Images[0]", 1, 1)
-			return ""
-		}
-		return pageData.Images[0]
-	}(), "/default.png").(string))
+		return "/default.png"
+	}().(string))
 	tempVar6.AttributeWriters = append(tempVar6.AttributeWriters, tempVar8)
 	tempVar1.Children = append(tempVar1.Children, tempVar6)
 	// line pages/main.pk:27
@@ -144,13 +149,18 @@ func BuildAST(r *piko.RequestData, propsData interface{}) (*pikoruntime.Template
 	tempVar12.AttributeWriters = tempVar13Slice
 	tempVar14 := arena.GetDirectWriter()
 	tempVar14.SetName("data-value")
-	tempVar14.AppendEscapeString(pikoruntime.EvaluateOr(func() string {
-		if pageData.Mapping == nil {
-			diagnostics = pikoruntime.AppendDiagnostic(diagnostics, pikoruntime.Warning, "Cannot index a nil slice/map in expression 'state.Mapping[\"key\"]'", "R004", "", "state.Mapping[\"key\"]", 1, 1)
-			return ""
+	tempVar14.AppendEscapeString(func() any {
+		if value := any(func() string {
+			if pageData.Mapping == nil {
+				diagnostics = pikoruntime.AppendDiagnostic(diagnostics, pikoruntime.Warning, "Cannot index a nil slice/map in expression 'state.Mapping[\"key\"]'", "R004", "", "state.Mapping[\"key\"]", 1, 1)
+				return ""
+			}
+			return pageData.Mapping["key"]
+		}()); pikoruntime.EvaluateTruthiness(value) {
+			return value
 		}
-		return pageData.Mapping["key"]
-	}(), "default").(string))
+		return "default"
+	}().(string))
 	tempVar12.AttributeWriters = append(tempVar12.AttributeWriters, tempVar14)
 	tempVar1.Children = append(tempVar1.Children, tempVar12)
 	rootAST.RootNodes = append(rootAST.RootNodes, tempVar1)

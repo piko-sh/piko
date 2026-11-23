@@ -43,36 +43,15 @@ type binaryOpEmitter struct {
 // Returns []goast.Stmt which contains any statements needed for the expression.
 // Returns []*ast_domain.Diagnostic which contains any diagnostics from emission.
 func (be *binaryOpEmitter) emit(n *ast_domain.BinaryExpression) (goast.Expr, []goast.Stmt, []*ast_domain.Diagnostic) {
-	leftGoExpr, rightGoExpr, allStmts, allDiags := be.emitOperands(n)
+	left, leftStmts, diags := be.expressionEmitter.emit(n.Left)
+	right, rightStmts, rightDiags := be.expressionEmitter.emit(n.Right)
+	diags = append(diags, rightDiags...)
 
-	coerced := be.applyTypeCoercion(n, leftGoExpr, rightGoExpr, allStmts)
-
-	if expression, handled := be.tryEmitLogicalOperator(n, coerced.leftExpr, coerced.rightExpr); handled {
-		return expression, coerced.updatedStmts, allDiags
+	if isLogicalOperator(n.Operator) {
+		return emitLogicalOperator(n, left, right, rightStmts), leftStmts, diags
 	}
-
-	return be.emitNativeOrHelperOp(n, coerced.leftExpr, coerced.rightExpr, coerced.leftType, coerced.rightType, coerced.updatedStmts, allDiags)
-}
-
-// emitOperands emits both operands of a binary expression.
-//
-// Takes n (*ast_domain.BinaryExpression) which is the binary expression to process.
-//
-// Returns leftExpr (goast.Expr) which is the emitted left operand.
-// Returns rightExpr (goast.Expr) which is the emitted right operand.
-// Returns statements ([]goast.Stmt) which contains statements from both operands.
-// Returns diagnostics ([]*ast_domain.Diagnostic) which contains diagnostics from both
-// operands.
-func (be *binaryOpEmitter) emitOperands(n *ast_domain.BinaryExpression) (leftExpr, rightExpr goast.Expr, statements []goast.Stmt, diagnostics []*ast_domain.Diagnostic) {
-	leftExpr, leftStmts, leftDiags := be.expressionEmitter.emit(n.Left)
-	rightExpr, rightStmts, rightDiags := be.expressionEmitter.emit(n.Right)
-
-	statements = leftStmts
-	statements = append(statements, rightStmts...)
-	diagnostics = leftDiags
-	diagnostics = append(diagnostics, rightDiags...)
-
-	return leftExpr, rightExpr, statements, diagnostics
+	coerced := be.applyTypeCoercion(n, left, right, append(leftStmts, rightStmts...))
+	return be.emitNativeOrHelperOp(n, coerced.leftExpr, coerced.rightExpr, coerced.leftType, coerced.rightType, coerced.updatedStmts, diags)
 }
 
 // coercionResult holds the result of type coercion for binary operations.
@@ -144,37 +123,46 @@ func (be *binaryOpEmitter) applyTypeCoercion(
 	}
 }
 
-// tryEmitLogicalOperator handles logical AND/OR operators and emits the appropriate Go
-// expression.
+// emitLogicalOperator keeps the right operand inside the short-circuited branch.
 //
-// For || (OpOr): Uses EvaluateOr helper which returns the first truthy value (JavaScript
-// semantics). For && (OpAnd): Uses native Go && wrapped in truthiness checks (returns
-// bool).
+// The temporary for || is scoped to avoid shadowing names in the fallback expression.
 //
-// Takes n (*ast_domain.BinaryExpression) which is the binary expression to emit.
-// Takes leftGoExpr (goast.Expr) which is the already-emitted left operand.
-// Takes rightGoExpr (goast.Expr) which is the already-emitted right operand.
+// Takes n (*ast_domain.BinaryExpression) which is the logical expression to emit.
+// Takes left (goast.Expr) which is the emitted left operand.
+// Takes right (goast.Expr) which is the emitted right operand.
+// Takes rightStmts ([]goast.Stmt) which must run only when the right operand is selected.
 //
-// Returns goast.Expr which is the emitted Go expression, or nil if not handled.
-// Returns bool which indicates whether the operator was a logical operator.
-func (*binaryOpEmitter) tryEmitLogicalOperator(
-	n *ast_domain.BinaryExpression,
-	leftGoExpr goast.Expr,
-	rightGoExpr goast.Expr,
-) (goast.Expr, bool) {
-	switch n.Operator {
-	case ast_domain.OpOr:
-		helperCall := callHelper(helperEvaluateOr, leftGoExpr, rightGoExpr)
-		return wrapWithTypeAssertion(helperCall, n.GoAnnotations), true
-
-	case ast_domain.OpAnd:
-		leftGoExpr = wrapInTruthinessCallIfNeeded(leftGoExpr, n.Left)
-		rightGoExpr = wrapInTruthinessCallIfNeeded(rightGoExpr, n.Right)
-		return &goast.BinaryExpr{X: leftGoExpr, Op: token.LAND, Y: rightGoExpr}, true
-
-	default:
-		return nil, false
+// Returns goast.Expr which is the boolean AND or value-selecting OR expression.
+func emitLogicalOperator(n *ast_domain.BinaryExpression, left, right goast.Expr, rightStmts []goast.Stmt) goast.Expr {
+	if n.Operator == ast_domain.OpAnd {
+		right = wrapInTruthinessCallIfNeeded(right, n.Right)
+		if len(rightStmts) > 0 {
+			right = logicalBranch("bool", rightStmts, right)
+		}
+		return &goast.BinaryExpr{X: wrapInTruthinessCallIfNeeded(left, n.Left), Op: token.LAND, Y: right}
 	}
+	value := goast.NewIdent("value")
+	chooseLeft := &goast.IfStmt{
+		Init: &goast.AssignStmt{Lhs: []goast.Expr{value}, Tok: token.DEFINE, Rhs: []goast.Expr{&goast.CallExpr{Fun: goast.NewIdent("any"), Args: []goast.Expr{left}}}},
+		Cond: wrapInTruthinessCall(value),
+		Body: &goast.BlockStmt{List: []goast.Stmt{&goast.ReturnStmt{Results: []goast.Expr{value}}}},
+	}
+	body := append([]goast.Stmt{chooseLeft}, rightStmts...)
+	return wrapWithTypeAssertion(logicalBranch("any", body, right), n.GoAnnotations)
+}
+
+// logicalBranch wraps statements and their result in an immediately called function.
+//
+// Takes resultType (string) which names the result type.
+// Takes statements ([]goast.Stmt) which run before returning the result.
+// Takes result (goast.Expr) which is the final value to return.
+//
+// Returns goast.Expr which calls the generated function.
+func logicalBranch(resultType string, statements []goast.Stmt, result goast.Expr) goast.Expr {
+	return &goast.CallExpr{Fun: &goast.FuncLit{
+		Type: &goast.FuncType{Params: &goast.FieldList{}, Results: &goast.FieldList{List: []*goast.Field{{Type: goast.NewIdent(resultType)}}}},
+		Body: &goast.BlockStmt{List: append(statements, &goast.ReturnStmt{Results: []goast.Expr{result}})},
+	}}
 }
 
 // binaryOpContext holds the data needed to emit a binary operator.
@@ -260,9 +248,7 @@ func (be *binaryOpEmitter) emitNativeOrHelperOpWithContext(ctx *binaryOpContext)
 	return be.emitHelperBinaryOp(ctx.expression, ctx.leftExpr, ctx.rightExpr), ctx.statements, ctx.diagnostics
 }
 
-// emitNativeBinaryOp generates a standard Go binary expression (e.g., `a + b`). It uses
-// the final, potentially coerced types of its operands to perform correct type promotion
-// and casting.
+// emitNativeBinaryOp generates a standard Go binary expression (e.g., `a + b`).
 //
 // Takes operator (token.Token) which specifies the binary operator to apply.
 // Takes left (goast.Expr) which is the left operand expression.
@@ -293,15 +279,17 @@ func (*binaryOpEmitter) emitNativeBinaryOp(operator token.Token, left goast.Expr
 	return &goast.BinaryExpr{X: left, Op: operator, Y: right}
 }
 
-// emitHelperBinaryOp creates a call to a runtime helper function for complex or loose
-// comparisons.
+// emitHelperBinaryOp calls a runtime helper for a binary expression.
+//
+// An inferred time result needs the time import even when both operands come from an
+// external package. An existing import alias is reused.
 //
 // Takes n (*ast_domain.BinaryExpression) which provides the operator and annotations.
 // Takes left (goast.Expr) which is the left operand expression.
 // Takes right (goast.Expr) which is the right operand expression.
 //
 // Returns goast.Expr which is the helper function call expression.
-func (*binaryOpEmitter) emitHelperBinaryOp(n *ast_domain.BinaryExpression, left, right goast.Expr) goast.Expr {
+func (be *binaryOpEmitter) emitHelperBinaryOp(n *ast_domain.BinaryExpression, left, right goast.Expr) goast.Expr {
 	switch n.Operator {
 	case ast_domain.OpEq:
 		return callHelper(helperEvaluateStrictEquality, left, right)
@@ -322,7 +310,11 @@ func (*binaryOpEmitter) emitHelperBinaryOp(n *ast_domain.BinaryExpression, left,
 				Type: cachedIdent("bool"),
 			}
 		}
-		return wrapWithTypeAssertion(helperCall, resolveArithmeticResultAnnotation(n))
+		ann := resolveArithmeticResultAnnotation(n)
+		if ann != nil && ann.ResolvedType.CanonicalPackagePath == timePackagePath {
+			return &goast.TypeAssertExpr{X: helperCall, Type: updateTypeExprAlias(ann.ResolvedType.TypeExpression, be.emitter.timeQualifier())}
+		}
+		return wrapWithTypeAssertion(helperCall, ann)
 	}
 }
 
@@ -404,14 +396,8 @@ func wrapWithTypeAssertion(expression goast.Expr, ann *ast_domain.GoGeneratorAnn
 	}
 }
 
-// resolveArithmeticResultAnnotation determines the result type annotation for an
-// arithmetic binary expression, using a three-step strategy to provide a concrete type
-// assertion that EvaluateBinary (which returns 'any') cannot supply on its own.
-//
-// The strategy tries, in order:
-//  1. The BinaryExpr's own annotation, if it has a concrete (non-any) type.
-//  2. The left operand's annotation (e.g. from a state.Field reference).
-//  3. The left operand's literal type (e.g. DecimalLiteral -> maths.Decimal).
+// resolveArithmeticResultAnnotation finds a concrete result type for a runtime arithmetic
+// call.
 //
 // Takes n (*ast_domain.BinaryExpression) which is the arithmetic expression.
 //
@@ -434,8 +420,6 @@ func resolveArithmeticResultAnnotation(n *ast_domain.BinaryExpression) *ast_doma
 }
 
 // inferMathsTypeAnnotation creates a synthetic annotation for known maths literal types.
-// For nested binary expressions it recurses into the left operand to find the underlying
-// literal type.
 //
 // Takes expression (ast_domain.Expression) which is the expression to inspect.
 //
@@ -491,13 +475,9 @@ func isAnyType(expression goast.Expr) bool {
 	return ok && identifier.Name == "any"
 }
 
-// tryNilComparison checks if one operand is a nil literal and the other is a nillable
-// type (pointer, map, slice, func, chan, interface). If so, it returns a direct Go binary
-// expression (e.g., `ptr == nil` or `ptr != nil`).
+// tryNilComparison emits a native comparison with a nil literal when possible.
 //
-// This optimisation avoids calling EvaluateStrictEquality at runtime, which would
-// otherwise fail to correctly compare a typed nil (e.g., (*Image)(nil)) with an untyped
-// nil due to type information differences.
+// A direct comparison avoids boxing a typed nil and inspecting it with reflection.
 //
 // Takes ctx (*binaryOpContext) which provides the original expression and type info.
 //
@@ -641,8 +621,7 @@ func isComparablePrimitiveUnderlying(underlyingType string) bool {
 }
 
 // isSameComparableDefinedType reports whether both operands are the same defined type and
-// validates that their underlying type is comparable. So the generator can emit a native
-// equality operator rather than using our reflection handler.
+// validates that their underlying type is comparable.
 //
 // Takes left (*ast_domain.ResolvedTypeInfo) which is the type info for the left operand.
 // Takes right (*ast_domain.ResolvedTypeInfo) which is the type info for the right
@@ -769,9 +748,11 @@ func tryEqualityOperation(operator ast_domain.BinaryOp, leftTypeInfo, rightTypeI
 
 // tryNumericOperation maps a numeric binary operator to its Go token.
 //
-// Takes operator (BinaryOp) which specifies the binary operation to map.
-// Takes leftTypeInfo (*ResolvedTypeInfo) which describes the left operand type.
-// Takes rightTypeInfo (*ResolvedTypeInfo) which describes the right operand type.
+// Takes operator (ast_domain.BinaryOp) which specifies the binary operation to map.
+// Takes leftTypeInfo (*ast_domain.ResolvedTypeInfo) which describes the left operand
+// type.
+// Takes rightTypeInfo (*ast_domain.ResolvedTypeInfo) which describes the right operand
+// type.
 //
 // Returns token.Token which is the Go token for the operation.
 // Returns bool which is true when both operands are numeric and the operation is

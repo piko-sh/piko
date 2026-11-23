@@ -473,7 +473,7 @@ func pollForClickableShadowElement(ctx context.Context, selector string, selecto
 
 		select {
 		case <-ctx.Done():
-			return elementPosition{}, fmt.Errorf("timed out waiting for element %s to become clickable", selector)
+			return elementPosition{}, fmt.Errorf("timed out waiting for element %s to become clickable: %w", selector, context.Cause(ctx))
 		case <-ticker.C:
 		}
 	}

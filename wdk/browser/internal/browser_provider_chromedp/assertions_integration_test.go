@@ -1459,3 +1459,32 @@ func TestExecuteAssertion_CheckAttributeContains_Dispatch(t *testing.T) {
 		})
 	})
 }
+
+func TestAssertionsCancelled(t *testing.T) {
+	t.Parallel()
+	server := newTestServer(testHTMLAttributes)
+	defer server.Close()
+
+	withTestPage(t, server.URL, func(t *testing.T, page *PageHelper) {
+		actx, cause := cancelledActionContext(t, page)
+		testCases := map[string]func() error{
+			"CheckText":         func() error { return CheckText(actx, "#target", "never") },
+			"CheckTextContains": func() error { return CheckTextContains(actx, "#target", "never") },
+			"CheckValue":        func() error { return CheckValue(actx, "#missing", "never") },
+			"CheckElementCount": func() error { return CheckElementCount(actx, "#missing", 3) },
+			"CaptureDOM": func() error {
+				_, err := CaptureDOM(actx, "#missing", false)
+				return err
+			},
+			"ScreenshotElement": func() error {
+				_, err := ScreenshotElement(actx, "#missing")
+				return err
+			},
+		}
+		for name, run := range testCases {
+			t.Run(name, func(t *testing.T) {
+				requirePromptCause(t, cause, run)
+			})
+		}
+	})
+}

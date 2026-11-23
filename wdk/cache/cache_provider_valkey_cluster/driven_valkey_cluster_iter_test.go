@@ -30,11 +30,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/valkey-io/valkey-go"
+
+	"piko.sh/piko/wdk/cache"
 )
 
 type nodeCommands struct {
 	names []string
-	mu sync.Mutex
+	mu    sync.Mutex
 }
 
 func (c *nodeCommands) record(name string) {
@@ -203,6 +205,74 @@ func TestValkeyClusterAdapter_AllDropsKeysHeldByTwoNodes(t *testing.T) {
 
 	assert.Equal(t, map[string]int{"a": 1, "b": 1, "c": 1}, counts,
 		"a node whose role cannot be read is walked, so its copies must be dropped")
+}
+
+func TestValkeyClusterAdapter_ValuesAndEntries(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	adapter, _ := newMiniredisClusterAdapter(t)
+	require.NoError(t, adapter.Set(ctx, "a", 1))
+	require.NoError(t, adapter.SetWithTTL(ctx, "b", 2, time.Minute))
+
+	assert.ElementsMatch(t, []float64{1, 2}, slices.Collect(adapter.Values()))
+	for range adapter.Values() {
+		break
+	}
+
+	entry, found, err := adapter.GetEntry(ctx, "b")
+	require.NoError(t, err)
+	require.True(t, found)
+	assert.InDelta(t, 2.0, entry.Value, 0)
+	assert.Positive(t, entry.ExpiresAtNano)
+
+	_, found, err = adapter.GetEntry(ctx, "missing")
+	require.NoError(t, err)
+	assert.False(t, found)
+	require.NoError(t, adapter.Close(ctx))
+}
+
+func TestValkeyClusterAdapter_SetExpiresAfter(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	adapter, redisServer := newMiniredisClusterAdapter(t)
+	require.NoError(t, adapter.SetWithTTL(ctx, "k", 1, time.Minute))
+	keyString, err := adapter.encodeKey("k")
+	require.NoError(t, err)
+
+	require.NoError(t, adapter.SetExpiresAfter(ctx, "k", 10*time.Second))
+	assert.Equal(t, 10*time.Second, redisServer.TTL(keyString))
+
+	require.NoError(t, adapter.SetExpiresAfter(ctx, "k", cache.NoExpiry))
+	assert.Zero(t, redisServer.TTL(keyString))
+	assert.True(t, redisServer.Exists(keyString))
+
+	require.NoError(t, adapter.SetExpiresAfter(ctx, "missing", time.Second))
+	assert.False(t, redisServer.Exists("test:missing"), "SetExpiresAfter never creates a key")
+}
+
+func TestValkeyClusterAdapter_ServerLimits(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	adapter, redisServer := newMiniredisClusterAdapter(t)
+	assert.Zero(t, adapter.GetMaximum(), "a node without CONFIG reports no maximum")
+
+	require.NoError(t, redisServer.Server().Register("CONFIG", func(peer *server.Peer, _ string, arguments []string) {
+		if len(arguments) == 2 && arguments[1] == "maxmemory" {
+			peer.WriteMapLen(1)
+			peer.WriteBulk("maxmemory")
+			peer.WriteBulk("2097152")
+			return
+		}
+		peer.WriteError("unsupported")
+	}))
+
+	assert.Equal(t, uint64(2097152), adapter.GetMaximum())
+	adapter.SetMaximum(1)
+	assert.Equal(t, uint64(2097152), adapter.GetMaximum())
+	require.NoError(t, adapter.SetRefreshableAfter(ctx, "k", time.Minute))
 }
 
 func answerAsNode(t *testing.T, node *miniredis.Miniredis, role string, hits, misses, usedMemory int) *nodeCommands {

@@ -296,6 +296,27 @@ func TestNewRecursiveFSLoader_CustomPatterns(t *testing.T) {
 	assert.Equal(t, []string{"*.md", "*.txt"}, loader.patterns)
 }
 
+func TestRecursiveFSLoaderAcceptsTheRecursivePrefix(t *testing.T) {
+	fsys := fstest.MapFS{
+		"guide/intro.md":      {Data: []byte("intro")},
+		"guide/deep/setup.md": {Data: []byte("setup")},
+		"guide/notes.txt":     {Data: []byte("notes")},
+	}
+
+	documents, err := NewRecursiveFSLoader(fsys, "**/*.md").Load(t.Context())
+
+	require.NoError(t, err)
+	require.Len(t, documents, 2)
+}
+
+func TestRecursiveFSLoaderRejectsAMalformedPattern(t *testing.T) {
+	fsys := fstest.MapFS{"page.md": {Data: []byte("page")}}
+
+	_, err := NewRecursiveFSLoader(fsys, "[").Load(t.Context())
+
+	require.ErrorIs(t, err, filepath.ErrBadPattern)
+}
+
 func TestRecursiveFSLoader_Load_Empty(t *testing.T) {
 	fsys := fstest.MapFS{}
 	loader := NewRecursiveFSLoader(fsys, "*.md")

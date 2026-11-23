@@ -47,7 +47,7 @@ func createOtterVectorStore(t *testing.T, dimension int, metric string) *vector_
 
 	cacheService := cache_domain.NewService("otter")
 
-	return vector_cache.New(func(ns string, config *llm_domain.VectorNamespaceConfig) (cache_domain.Cache[string, llm_dto.VectorDocument], error) {
+	return vector_cache.New(func(ctx context.Context, ns string, config *llm_domain.VectorNamespaceConfig) (cache_domain.Cache[string, llm_dto.VectorDocument], error) {
 		m := metric
 		if config != nil && config.Metric != "" {
 			m = string(config.Metric)
@@ -67,6 +67,6 @@ func createOtterVectorStore(t *testing.T, dimension int, metric string) *vector_
 			Namespace(ns).
 			MaximumEntries(100000).
 			Searchable(schema).
-			Build(context.Background())
+			Build(ctx)
 	})
 }

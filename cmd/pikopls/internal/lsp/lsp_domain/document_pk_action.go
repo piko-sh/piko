@@ -24,7 +24,6 @@ import (
 	"strings"
 
 	protocol "github.com/politepixels/golang-language-server"
-	"go.lsp.dev/uri"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/safeconv"
 )
@@ -218,7 +217,7 @@ func (d *document) getActionNameHover(ctx *PKHoverContext) (*protocol.Hover, err
 
 	if action.FilePath != "" {
 		absPath := d.resolveActionFilePath(action.FilePath)
-		_, _ = fmt.Fprintf(&b, "[Open source file](%s)\n", uri.File(absPath))
+		_, _ = fmt.Fprintf(&b, "[Open source file](%s)\n", documentURIForPath(absPath))
 	}
 
 	return &protocol.Hover{

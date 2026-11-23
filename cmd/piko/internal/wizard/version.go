@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -37,6 +38,14 @@ const (
 
 	// fallbackVersion is used when the latest version cannot be resolved.
 	fallbackVersion = "v0.0.0"
+
+	// maxReleasesResponseBytes limits the size of the GitHub release list.
+	maxReleasesResponseBytes = 4 << 20
+)
+
+var (
+	// errReleasesResponseTooLarge reports a release list exceeding the size limit.
+	errReleasesResponseTooLarge = fmt.Errorf("github releases response exceeds %d bytes", maxReleasesResponseBytes)
 )
 
 // githubRelease holds the fields we need from the GitHub releases API.
@@ -51,13 +60,25 @@ type githubRelease struct {
 	Prerelease bool `json:"prerelease"`
 }
 
-// resolveLatestVersion queries the GitHub releases API to find the latest published
-// version of piko.sh/piko. It prefers stable releases over prereleases, falling back to
-// the latest prerelease if no stable release exists.
+// resolveLatestVersion selects the latest available Piko release from GitHub.
 //
-// Returns string which is the resolved version tag (e.g. "v0.1.0").
-// Returns error when the request fails or no releases are found.
+// Returns string which is the stable release tag, or a prerelease tag if necessary.
+// Returns error when the release list cannot be fetched or has no usable release.
 func resolveLatestVersion() (string, error) {
+	return fetchLatestVersion(http.DefaultClient, releasesURL)
+}
+
+// fetchLatestVersion finds the first stable release from the endpoint.
+//
+// If the list has no stable release, it uses the first tagged prerelease.
+//
+// Takes client (*http.Client) which sends the request.
+// Takes url (string) which is the releases endpoint to query.
+//
+// Returns string which is the resolved version tag.
+// Returns error when the request fails, the response is unsuccessful, oversized or
+// malformed, or the list has no usable release.
+func fetchLatestVersion(client *http.Client, url string) (string, error) {
 	ctx, cancel := context.WithTimeoutCause(
 		context.Background(),
 		versionRequestTimeout,
@@ -65,17 +86,18 @@ func resolveLatestVersion() (string, error) {
 	)
 	defer cancel()
 
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, releasesURL, nil)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 	request.Header.Set("Accept", "application/vnd.github+json")
 
-	response, err := http.DefaultClient.Do(request)
+	response, err := client.Do(request)
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch releases: %w", err)
 	}
 	defer func() {
+		_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, maxReleasesResponseBytes))
 		_ = response.Body.Close()
 	}()
 
@@ -83,8 +105,16 @@ func resolveLatestVersion() (string, error) {
 		return "", fmt.Errorf("GitHub API returned status %d", response.StatusCode)
 	}
 
+	body, err := io.ReadAll(io.LimitReader(response.Body, maxReleasesResponseBytes+1))
+	if err != nil {
+		return "", fmt.Errorf("failed to read releases: %w", err)
+	}
+	if len(body) > maxReleasesResponseBytes {
+		return "", errReleasesResponseTooLarge
+	}
+
 	var releases []githubRelease
-	if err := json.NewDecoder(response.Body).Decode(&releases); err != nil {
+	if err := json.Unmarshal(body, &releases); err != nil {
 		return "", fmt.Errorf("failed to decode releases: %w", err)
 	}
 

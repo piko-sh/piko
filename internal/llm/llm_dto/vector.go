@@ -104,8 +104,10 @@ type VectorSearchResponse struct {
 	// Results holds the matching documents sorted by similarity.
 	Results []VectorSearchResult
 
-	// TotalCount is the total number of documents that matched before the TopK limit was
-	// applied.
+	// TotalCount counts matches among all ranked candidates inspected for the query.
+	//
+	// The count includes at least len(Results) and may omit matches outside the inspected
+	// candidates.
 	TotalCount int
 }
 

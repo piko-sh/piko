@@ -49,7 +49,7 @@ import { action } from "/_piko/assets/pk-js/pk/actions.gen.js";
             return {"value": null};
         }
         connectedCallback () {
-            this.init(instance.call(this, this));
+            if (!this.$$ctx) this.init(instance.call(this, this));
             super.connectedCallback();
         }
         renderVDOM () {

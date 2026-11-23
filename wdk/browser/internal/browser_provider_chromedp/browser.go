@@ -44,6 +44,10 @@ const (
 	// executablePermissionBits selects the owner, group, and other execute bits.
 	executablePermissionBits = 0o111
 
+	// disableBackForwardCacheFlag forces a fresh DOM after history navigation so chromedp
+	// can resolve selectors.
+	disableBackForwardCacheFlag = "disable-back-forward-cache"
+
 	// gracefulCloseTimeout bounds how long Close waits for Chrome to shut down its processes
 	// before the browser is killed.
 	gracefulCloseTimeout = 5 * time.Second
@@ -59,6 +63,10 @@ var (
 	// errBrowserNotInitialised is returned when a browser-level CDP command is attempted
 	// before the browser connection exists.
 	errBrowserNotInitialised = errors.New("browser connection is not initialised")
+
+	// errPageHasNoBrowser is returned when a sibling page is requested from a page that was
+	// not opened by a Browser.
+	errPageHasNoBrowser = errors.New("page has no owning browser")
 )
 
 // Browser wraps a chromedp browser instance and manages its lifecycle. It implements
@@ -104,6 +112,10 @@ type BrowserOptions struct {
 	// ChromePath is the browser executable to launch.
 	ChromePath string
 
+	// SocketDir optionally gives Chrome a short TMPDIR for its singleton sockets. The
+	// profile is always created under the calling process's temporary directory.
+	SocketDir string
+
 	// ChromeFlags overrides the default Chrome flags when non-nil, with each flag passed to
 	// Chrome via --name=value; when nil, DefaultChromeFlags is used.
 	ChromeFlags []ChromeFlag
@@ -132,10 +144,9 @@ func DefaultChromeFlags() []ChromeFlag {
 	}
 }
 
-// IncognitoPage wraps a page with its incognito browser context for proper cleanup. It
-// implements io.Closer.
+// IncognitoPage owns a page target and its cleanup.
 type IncognitoPage struct {
-	// Ctx is the browser context for this incognito page.
+	// Ctx runs commands on the page target.
 	Ctx context.Context
 
 	// Cancel stops the page context when called; nil means no cleanup is needed.
@@ -148,6 +159,9 @@ type IncognitoPage struct {
 	// MaxConcurrentPages is configured; nil for pages created directly.
 	releaseFunction func()
 
+	// slots limits sibling pages in a pool and is nil for pages opened directly.
+	slots chan struct{}
+
 	// browserContextID is the CDP context identifier; empty after CloseContext.
 	browserContextID cdp.BrowserContextID
 
@@ -155,8 +169,21 @@ type IncognitoPage struct {
 	releaseOnce sync.Once
 }
 
-// Close closes both the page and its incognito context. The pool semaphore slot is
-// released exactly once via sync.Once when created by a BrowserPool with MaxPages.
+// NewSiblingPage opens another rendering window that shares the browser's storage.
+//
+// A sibling of a pooled page waits for its own slot and releases it on close.
+//
+// Returns *IncognitoPage which is the new page, owned and closed by the caller.
+// Returns error when the page has no owning browser, ctx ends while waiting for a pool
+// slot or the page cannot be created.
+func (ip *IncognitoPage) NewSiblingPage(ctx context.Context) (*IncognitoPage, error) {
+	if ip.browser == nil {
+		return nil, errPageHasNoBrowser
+	}
+	return acquirePage(ctx, ip.slots, ip.browser.NewIncognitoPage)
+}
+
+// Close closes the page and releases its pool slot, if any.
 //
 // Returns error when the context cannot be closed.
 func (ip *IncognitoPage) Close() error {
@@ -238,6 +265,19 @@ func validateChromePath(chromePath string) error {
 // Returns *Browser which is the configured browser ready for use.
 // Returns error when the browser fails to start.
 func NewBrowser(opts BrowserOptions) (*Browser, error) {
+	return NewBrowserContext(context.Background(), opts)
+}
+
+// NewBrowserContext starts Chrome with its lifetime and startup bound to ctx.
+//
+// Takes opts (BrowserOptions) which specifies the browser settings.
+//
+// Returns *Browser which is the started browser.
+// Returns error when the options are invalid, ctx is done or Chrome fails to start.
+func NewBrowserContext(ctx context.Context, opts BrowserOptions) (*Browser, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("launching Chrome: %w", context.Cause(ctx))
+	}
 	if err := validateChromePath(opts.ChromePath); err != nil {
 		return nil, err
 	}
@@ -247,42 +287,17 @@ func NewBrowser(opts BrowserOptions) (*Browser, error) {
 		return nil, fmt.Errorf("creating browser temp directory: %w", err)
 	}
 
-	headlessValue := func() any {
-		if opts.Headless {
-			return "new"
-		}
-		return false
-	}()
-
-	chromeFlags := opts.ChromeFlags
-	if chromeFlags == nil {
-		chromeFlags = DefaultChromeFlags()
-	}
-
-	allocatorOpts := append(chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.UserDataDir(userDataDir),
-		chromedp.Flag("headless", headlessValue),
-	)
-	for _, flag := range chromeFlags {
-		allocatorOpts = append(allocatorOpts, chromedp.Flag(flag.Name, flag.Value))
-	}
-
-	if opts.IgnoreCertErrors {
-		allocatorOpts = append(allocatorOpts, chromedp.Flag("ignore-certificate-errors", true))
-	}
-	if opts.ChromePath != "" {
-		allocatorOpts = append(allocatorOpts, chromedp.ExecPath(opts.ChromePath))
-	}
-
-	allocatorCtx, allocatorCancel := chromedp.NewExecAllocator(context.Background(), allocatorOpts...)
-
+	allocatorCtx, allocatorCancel := chromedp.NewExecAllocator(ctx, allocatorOptions(opts, userDataDir)...)
 	browserCtx, browserCancel := chromedp.NewContext(allocatorCtx)
 
 	if err := chromedp.Run(browserCtx); err != nil {
 		browserCancel()
 		allocatorCancel()
-		_ = os.RemoveAll(userDataDir)
-		return nil, fmt.Errorf("starting browser: %w", err)
+		removeErr := os.RemoveAll(userDataDir)
+		if ctx.Err() != nil {
+			err = errors.Join(err, context.Cause(ctx))
+		}
+		return nil, fmt.Errorf("launching Chrome: %w", errors.Join(err, removeErr))
 	}
 
 	return &Browser{
@@ -297,35 +312,35 @@ func NewBrowser(opts BrowserOptions) (*Browser, error) {
 	}, nil
 }
 
-// NewIncognitoPage creates a new isolated browser page in an incognito context. Each page
-// has its own cookies, storage, and cache, making it safe for parallel tests.
+// NewIncognitoPage opens a page in a separate window with shared browser storage.
 //
-// Returns *IncognitoPage which provides an isolated browsing context.
-// Returns error when page creation fails after retrying with backoff.
+// Returns *IncognitoPage which the caller must close.
+// Returns error when the browser closes or page creation fails after retries.
 func (b *Browser) NewIncognitoPage() (*IncognitoPage, error) {
-	if err := b.browserCtx.Err(); err != nil {
-		return nil, fmt.Errorf("browser is closed: %w", err)
-	}
-
 	var lastErr error
 	for attempt := range maxPageCreationRetries {
+		if err := b.browserCtx.Err(); err != nil {
+			return nil, fmt.Errorf("browser is closed: %w", err)
+		}
 		ip, err := b.createIncognitoPageOnce()
-		if err != nil {
-			lastErr = err
-			time.Sleep(time.Duration(attempt+1) * pageCreationBackoffStep)
-			continue
-		}
-
-		if err := b.verifyPageHealthy(ip.Ctx); err != nil {
+		if err == nil {
+			if err = b.verifyPageHealthy(ip.Ctx); err == nil {
+				return ip, nil
+			}
 			ip.Cancel()
-			lastErr = fmt.Errorf("page health check failed (attempt %d): %w", attempt+1, err)
-			time.Sleep(time.Duration(attempt+1) * pageCreationBackoffStep)
-			continue
+			err = fmt.Errorf("page health check failed (attempt %d): %w", attempt+1, err)
 		}
-
-		return ip, nil
+		lastErr = err
+		if attempt+1 < maxPageCreationRetries {
+			timer := time.NewTimer(time.Duration(attempt+1) * pageCreationBackoffStep)
+			select {
+			case <-b.browserCtx.Done():
+				timer.Stop()
+				return nil, fmt.Errorf("browser is closed: %w", errors.Join(context.Cause(b.browserCtx), lastErr))
+			case <-timer.C:
+			}
+		}
 	}
-
 	return nil, fmt.Errorf("failed to create healthy page after %d attempts: %w", maxPageCreationRetries, lastErr)
 }
 
@@ -373,14 +388,9 @@ func (b *Browser) BrowserCtx() context.Context {
 	return b.browserCtx
 }
 
-// createIncognitoPageOnce creates a single page without retries. This creates a new page
-// context, not a true incognito context, but provides sufficient isolation for parallel
-// test execution.
+// createIncognitoPageOnce opens a page in a new window without retrying.
 //
-// Each page opens in its own browser window so that it stays the active tab of that
-// window. Chrome stops producing compositor frames for a tab once another tab in the same
-// window is in front, which leaves Page.captureScreenshot waiting for a frame that never
-// arrives; a window per page keeps screenshots deterministic under parallel use.
+// Separate windows keep pages rendering when screenshots are taken in parallel.
 //
 // Returns *IncognitoPage which is the new page ready for use.
 // Returns error when the page fails to initialise.
@@ -409,7 +419,13 @@ func (b *Browser) createIncognitoPageOnce() (*IncognitoPage, error) {
 		return nil, errors.Join(initialiseErr, b.closeTarget(targetID))
 	}
 
-	time.Sleep(pageInitialiseDelay)
+	select {
+	case <-pageCtx.Done():
+		cause := context.Cause(pageCtx)
+		pageCancel()
+		return nil, fmt.Errorf("initialising page: %w", cause)
+	case <-time.After(pageInitialiseDelay):
+	}
 
 	return &IncognitoPage{
 		Ctx:              pageCtx,
@@ -417,6 +433,7 @@ func (b *Browser) createIncognitoPageOnce() (*IncognitoPage, error) {
 		browserContextID: "",
 		browser:          b,
 		releaseFunction:  nil,
+		slots:            nil,
 		releaseOnce:      sync.Once{},
 	}, nil
 }
@@ -478,7 +495,7 @@ func (*Browser) verifyPageHealthy(ctx context.Context) error {
 	)
 	defer cancel()
 
-	js := scripts.MustGet("document_ready_state.js")
+	js := scripts.MustGet(documentReadyStateScript)
 	var readyState string
 	err := chromedp.Run(timedCtx,
 		chromedp.Evaluate(js, &readyState),
@@ -519,6 +536,9 @@ type PageHelper struct {
 	// stopChan signals when to stop console capture.
 	stopChan chan struct{}
 
+	// documentHeaders records the response headers of each document the page loads.
+	documentHeaders *documentHeaderStore
+
 	// consoleLogs stores console messages as strings; protected by consoleMutex.
 	consoleLogs []string
 
@@ -538,13 +558,14 @@ type PageHelper struct {
 func NewPageHelper(ctx context.Context) *PageHelper {
 	helperCtx, cancel := context.WithCancelCause(ctx)
 	ph := &PageHelper{
-		ctx:           helperCtx,
-		cancel:        cancel,
-		stopChan:      make(chan struct{}),
-		consoleLogs:   []string{},
-		consoleLogsV2: []ConsoleLog{},
-		consoleMutex:  sync.Mutex{},
-		stopped:       false,
+		ctx:             helperCtx,
+		cancel:          cancel,
+		stopChan:        make(chan struct{}),
+		documentHeaders: newDocumentHeaderStore(),
+		consoleLogs:     []string{},
+		consoleLogsV2:   []ConsoleLog{},
+		consoleMutex:    sync.Mutex{},
+		stopped:         false,
 	}
 	ph.setupConsoleCapture()
 	return ph
@@ -685,11 +706,27 @@ func (ph *PageHelper) Navigate(url string) error {
 	return nil
 }
 
-// setupConsoleCapture begins capturing console logs from the page.
+// setupConsoleCapture begins capturing console logs and document response headers from
+// the page.
 func (ph *PageHelper) setupConsoleCapture() {
 	chromedp.ListenTarget(ph.ctx, func(ev any) {
+		ph.documentHeaders.record(ev)
 		ph.handleConsoleEvent(ev)
 	})
+}
+
+// currentDocumentHeaders returns the recorded response headers of the document shown in
+// the main frame.
+//
+// Returns map[string]string which holds the headers with lower-case names, or nil when
+// the document's response was not recorded.
+// Returns error when the main frame cannot be read.
+func (ph *PageHelper) currentDocumentHeaders(ctx context.Context) (map[string]string, error) {
+	loaderID, err := mainFrameLoaderID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return ph.documentHeaders.lookup(loaderID), nil
 }
 
 // handleConsoleEvent processes a console API event.
@@ -744,6 +781,7 @@ func DefaultBrowserOptions() BrowserOptions {
 		ChromePath:       "",
 		ChromeFlags:      nil,
 		IgnoreCertErrors: false,
+		SocketDir:        "",
 	}
 }
 
@@ -763,7 +801,7 @@ func WaitStable(ctx context.Context, interval time.Duration) error {
 	for {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return context.Cause(ctx)
 		case <-ticker.C:
 			var html string
 			err := chromedp.Run(ctx, chromedp.OuterHTML("html", &html, chromedp.ByQuery))
@@ -835,4 +873,40 @@ func mapConsoleLevel(t runtime.APIType) string {
 	default:
 		return "log"
 	}
+}
+
+// allocatorOptions builds the Chrome launch options.
+//
+// Takes opts (BrowserOptions) which specifies the browser settings.
+// Takes userDataDir (string) which is the private profile directory.
+//
+// Returns []chromedp.ExecAllocatorOption which configures the Chrome process.
+func allocatorOptions(opts BrowserOptions, userDataDir string) []chromedp.ExecAllocatorOption {
+	var headless any = false
+	if opts.Headless {
+		headless = "new"
+	}
+	chromeFlags := opts.ChromeFlags
+	if chromeFlags == nil {
+		chromeFlags = DefaultChromeFlags()
+	}
+
+	options := append(chromedp.DefaultExecAllocatorOptions[:],
+		chromedp.UserDataDir(userDataDir),
+		chromedp.Flag("headless", headless),
+		chromedp.Flag(disableBackForwardCacheFlag, true),
+	)
+	for _, flag := range chromeFlags {
+		options = append(options, chromedp.Flag(flag.Name, flag.Value))
+	}
+	if opts.IgnoreCertErrors {
+		options = append(options, chromedp.Flag("ignore-certificate-errors", true))
+	}
+	if opts.ChromePath != "" {
+		options = append(options, chromedp.ExecPath(opts.ChromePath))
+	}
+	if opts.SocketDir != "" {
+		options = append(options, chromedp.Env("TMPDIR="+opts.SocketDir))
+	}
+	return options
 }

@@ -22,9 +22,12 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/daemon/daemon_dto"
 )
@@ -58,6 +61,47 @@ func TestAuthGuardMiddleware_PublicPaths(t *testing.T) {
 			recorder := httptest.NewRecorder()
 			handler.ServeHTTP(recorder, request)
 			assert.True(t, called)
+		})
+	}
+}
+
+func TestAuthGuardMiddleware_PublicPrefixBoundaries(t *testing.T) {
+	t.Parallel()
+
+	guard := NewAuthGuardMiddleware(daemon_dto.AuthGuardConfig{
+		PublicPaths:    []string{"/login"},
+		PublicPrefixes: []string{"/static", "/assets/"},
+		LoginPath:      "/login",
+	})
+
+	tests := []struct {
+		name   string
+		target string
+		public bool
+	}{
+		{name: "prefix itself", target: "/static", public: true},
+		{name: "path under prefix", target: "/static/logo.svg", public: true},
+		{name: "trailing-slash prefix keeps its slash", target: "/assets/", public: true},
+		{name: "trailing-slash prefix without slash", target: "/assets", public: false},
+		{name: "sibling sharing the prefix text", target: "/staticx", public: false},
+		{name: "dot segments leaving the prefix", target: "/static/../account", public: false},
+		{name: "encoded slashes leaving the prefix", target: "/static%2F..%2Faccount", public: false},
+		{name: "dot segments staying inside the prefix", target: "/static/./logo.svg", public: false},
+		{name: "dot segments reaching a public path", target: "/account/../login", public: false},
+		{name: "repeated slashes", target: "//static//logo.svg", public: false},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			called := false
+			handler := guard.Handler(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+				called = true
+			}))
+			request := httptest.NewRequest(http.MethodGet, testCase.target, nil)
+			recorder := httptest.NewRecorder()
+			handler.ServeHTTP(recorder, request)
+			assert.Equal(t, testCase.public, called, "target %s", testCase.target)
 		})
 	}
 }
@@ -294,4 +338,67 @@ func TestRespondUnauthenticatedPrefersACustomHandler(t *testing.T) {
 
 	assert.True(t, called)
 	assert.Equal(t, http.StatusTeapot, recorder.Code)
+}
+
+func TestAuthGuardMiddlewareJudgesThePathTheRouterServes(t *testing.T) {
+	t.Parallel()
+
+	guard := NewAuthGuardMiddleware(daemon_dto.AuthGuardConfig{
+		PublicPaths:    []string{"/login"},
+		PublicPrefixes: []string{"/static"},
+		LoginPath:      "/login",
+	})
+	router := chi.NewRouter()
+	router.Use(guard.Handler)
+	served := make(chan string, 1)
+	record := func(name string) http.HandlerFunc {
+		return func(http.ResponseWriter, *http.Request) { served <- name }
+	}
+	router.Get("/login", record("login"))
+	router.Get("/account/{id}", record("account"))
+	router.Get("/static/*", record("static"))
+	router.Get("/*", record("catch-all"))
+
+	tests := []struct {
+		name   string
+		target string
+	}{
+		{name: "encoded slash climbing to a public page", target: "/account/..%2Flogin"},
+		{name: "encoded slash climbing into a public prefix", target: "/account/..%2Fstatic%2Fx"},
+		{name: "literal dot segments reaching a public page", target: "/private/../login"},
+		{name: "literal dot segments leaving a public prefix", target: "/static/../private"},
+		{name: "encoded dot segments leaving a public prefix", target: "/static/%2e%2e/private"},
+		{name: "repeated slashes", target: "//login"},
+		{name: "encoded backslash", target: "/static/..%5Cprivate"},
+	}
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodGet, "http://example.test/", nil)
+			request.URL = mustParseRequestURI(t, testCase.target)
+			request.RequestURI = testCase.target
+			recorder := httptest.NewRecorder()
+
+			router.ServeHTTP(recorder, request)
+
+			select {
+			case name := <-served:
+				assert.Failf(t, "unauthenticated request was served", "%s reached the %s handler", testCase.target, name)
+			default:
+			}
+		})
+	}
+
+	for _, target := range []string{"/login", "/static/logo.svg"} {
+		request := httptest.NewRequest(http.MethodGet, target, nil)
+		router.ServeHTTP(httptest.NewRecorder(), request)
+		require.Len(t, served, 1, "%s must stay public", target)
+		<-served
+	}
+}
+
+func mustParseRequestURI(t *testing.T, target string) *url.URL {
+	t.Helper()
+	parsed, err := url.ParseRequestURI(target)
+	require.NoError(t, err)
+	return parsed
 }

@@ -1129,7 +1129,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 								Attributes: []ast_domain.HTMLAttribute{
 									ast_domain.HTMLAttribute{
 										Name:  "condition",
-										Value: "len(r.GetCollection[Post](&quot;blog&quot;)) > 0",
+										Value: "len(r.GetCollection[Post](\"blog\")) > 0",
 										Location: ast_domain.Location{
 											Line:   33,
 											Column: 24,

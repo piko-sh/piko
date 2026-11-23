@@ -65,7 +65,7 @@ const (
 	functionNamePreview = "Preview"
 )
 
-// Sources holds the separated source code blocks from a .pk file. Intended for debugging.
+// Sources holds the separated source code blocks from a .pk file.
 type Sources struct {
 	// TemplateSource is the raw template content used for parsing.
 	TemplateSource string
@@ -77,8 +77,7 @@ type Sources struct {
 	StyleBlocks []sfcparser.Style
 }
 
-// scriptBlockParseError represents a fatal syntax error within a Go script block. It
-// implements the error interface.
+// scriptBlockParseError represents a fatal syntax error within a Go script block.
 type scriptBlockParseError struct {
 	// reason describes why the script block could not be parsed.
 	reason string
@@ -155,22 +154,26 @@ func ParsePK(ctx context.Context, data []byte, sourcePath string) (*annotator_dt
 	return component, srcs, nil
 }
 
-// parseTemplateBlock handles only the parsing of the <template> block into the custom
-// AST.
+// parseTemplateBlock parses the template block of a .pk file.
 //
 // Takes templateSource (string) which contains the raw template content.
 // Takes sourcePath (string) which identifies the file for error reporting.
 // Takes templateContentLocation (ast_domain.Location) which specifies the position of the
 // template content within the source file.
 //
-// Returns *ast_domain.TemplateAST which contains the parsed template tree.
-// Returns error when the template contains parse errors or diagnostics.
+// Returns *ast_domain.TemplateAST which contains the parsed tree, or nil for a blank
+// template or a fatal parse error.
+// Returns error when parsing fails or the tree contains error diagnostics.
 func parseTemplateBlock(ctx context.Context, templateSource, sourcePath string, templateContentLocation ast_domain.Location) (*ast_domain.TemplateAST, error) {
 	if strings.TrimSpace(templateSource) == "" {
 		return nil, nil
 	}
 
-	parsedTemplate, tmplErr := ast_domain.Parse(ctx, templateSource, sourcePath, &templateContentLocation)
+	parsedTemplate, tmplErr := ast_domain.ParseWithOptions(ctx, templateSource, sourcePath, &templateContentLocation, &ast_domain.ParseOptions{
+		RawMode:                false,
+		DecodeStaticAttributes: true,
+		PreserveRawText:        false,
+	})
 	if tmplErr != nil {
 		return nil, tmplErr
 	}
@@ -212,12 +215,6 @@ func parseAndSeparateSFC(data []byte) (*sfcparser.ParseResult, Sources, error) {
 
 // validateScriptBlocks checks all script blocks for missing or unrecognised lang/type
 // attributes and returns diagnostics for any problems found.
-//
-// Valid lang and type combinations cover Go, JavaScript, and TypeScript. See the
-// implementation for the recognised lang and MIME type strings accepted for each
-// language.
-//
-// Script blocks without a lang or type attribute will trigger a warning.
 //
 // Takes sfcResult (*sfcparser.ParseResult) which contains the parsed script blocks.
 // Takes sourcePath (string) which is the file path for diagnostic reporting.
@@ -336,9 +333,8 @@ func buildParsedComponent(
 	return component
 }
 
-// applyCollectionDirective copies the collection directive settings from the SFC parse
-// result onto the component, resolving any collection source alias against the script's
-// Go imports.
+// applyCollectionDirective attaches collection settings and resolves its source import
+// alias.
 //
 // Takes component (*annotator_dto.ParsedComponent) which receives the collection
 // settings.
@@ -384,10 +380,6 @@ func applyCollectionDirective(
 
 // attachComponentDiagnostic records a diagnostic found while assembling a component so
 // that it reaches the caller through the same path as template parse diagnostics.
-//
-// The diagnostic is appended to the component's template diagnostics when a template
-// exists, and to the existing parse diagnostic error when there is one. Any other
-// template error is fatal and is returned unchanged.
 //
 // Takes component (*annotator_dto.ParsedComponent) which owns the diagnostic.
 // Takes templateErr (error) which is the error returned from template parsing, if any.
@@ -497,9 +489,6 @@ func createEmptyParsedScript() *annotator_dto.ParsedScript {
 }
 
 // analyseGoScript parses Go source code and extracts script metadata.
-//
-// When the script source is empty or contains only whitespace, returns an empty parsed
-// script with no imports.
 //
 // Takes scriptSource (string) which is the Go source code to parse.
 // Takes scriptStartLocation (ast_domain.Location) which specifies where the script begins
@@ -726,8 +715,7 @@ func isRenderFuncSignature(node *goast.FuncDecl) bool {
 }
 
 // findAndAnalyseLifecycleFuncs checks for special lifecycle functions and records their
-// presence in the parsed script result. It looks for functions named Middlewares,
-// Locales, and CachePolicy.
+// presence in the parsed script result.
 //
 // Takes node (*goast.FuncDecl) which is the function declaration to check.
 // Takes result (*annotator_dto.ParsedScript) which stores the analysis results.
@@ -796,7 +784,8 @@ func parseI18nBlocks(sfcResult *sfcparser.ParseResult, sourcePath string) (i18n_
 // parseI18nBlocksInto parses a component's i18n blocks and attaches a warning to template
 // for each translation template that cannot be parsed.
 //
-// Takes template (*ast_domain.TemplateAST) which receives the warnings; nil skips them.
+// Takes template (*ast_domain.TemplateAST) which receives the warnings, with nil skipping
+// them.
 // Takes sfcResult (*sfcparser.ParseResult) which contains the parsed SFC with i18n
 // blocks.
 // Takes sourcePath (string) which identifies the source file for messages.
@@ -817,10 +806,6 @@ func parseI18nBlocksInto(template *ast_domain.TemplateAST, sfcResult *sfcparser.
 
 // newI18nTemplateDiagnostics reports the translation templates in a component's i18n
 // blocks that cannot be parsed, as warnings located at the first i18n block.
-//
-// They are reported here, when the component is compiled, because the runtime stores
-// built from the same translations render them as literal text without logging on the
-// render path.
 //
 // Takes translations (i18n_domain.Translations) which are the component's local
 // translations.

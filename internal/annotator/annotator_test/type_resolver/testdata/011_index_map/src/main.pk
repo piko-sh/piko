@@ -26,6 +26,8 @@ import piko "piko.sh/piko"
 
 type Response struct {
     UserMap map[string]*models.User
+    Values map[string]any
+    Items []any
 }
 
 func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {

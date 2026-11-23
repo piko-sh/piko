@@ -1,4 +1,5 @@
 {
   "description": "Benchmark: a simple, fully static page. This measures the baseline overhead of the rendering pipeline.",
-  "targetPage": "pages/main.pk"
+  "targetPage": "pages/main.pk",
+  "expectedText": "Hello, Piko Benchmark!"
 }

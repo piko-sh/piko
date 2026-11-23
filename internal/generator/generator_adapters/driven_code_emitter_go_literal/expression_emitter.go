@@ -46,9 +46,6 @@ const (
 	// helperEvaluateCoalesce is the helper function name for null coalescing operations.
 	helperEvaluateCoalesce = "EvaluateCoalesce"
 
-	// helperEvaluateOr is the name of the helper function for logical OR.
-	helperEvaluateOr = "EvaluateOr"
-
 	// helperEvaluateBinary is the helper function name for binary operations.
 	helperEvaluateBinary = "EvaluateBinary"
 )
@@ -64,25 +61,18 @@ var (
 	}
 
 	// runtimeHelperFunctionNames maps function names that are emitted as
-	// pikoruntime.FuncName() calls. These are Piko built-in functions that live in the
-	// wdk/runtime package.
+	// pikoruntime.FuncName() calls.
 	runtimeHelperFunctionNames = map[string]bool{
 		"F": true,
 	}
 
 	// stringerBuilderCallNames lists built-in function names whose runtime return type
-	// implements fmt.Stringer but which the annotator resolves as returning string. The
-	// emitter wraps calls to these functions with .String() so that the generated Go code
-	// compiles correctly.
-	//
-	// F/LF are NOT listed here because the annotator returns *FormatBuilder for them,
-	// enabling the stringability pipeline to add .String() automatically.
+	// implements fmt.Stringer but which the annotator resolves as returning string.
 	stringerBuilderCallNames = map[string]bool{
 		"T": true, "LT": true,
 	}
 
-	// coercionFunctionNames maps coercion built-in function names. These are special
-	// functions that convert values between types.
+	// coercionFunctionNames maps coercion built-in function names.
 	coercionFunctionNames = map[string]bool{
 		"string":  true,
 		"int":     true,
@@ -100,8 +90,7 @@ var (
 	_ ExpressionEmitter = (*expressionEmitter)(nil)
 )
 
-// ExpressionEmitter emits Piko expressions as Go expressions. This enables mocking and
-// testing of expression emission logic.
+// ExpressionEmitter emits Piko expressions as Go expressions.
 type ExpressionEmitter interface {
 	// emit converts a domain expression into Go AST representation.
 	//
@@ -130,9 +119,7 @@ type ExpressionEmitter interface {
 	getTypeExprForVarDecl(ann *ast_domain.GoGeneratorAnnotation) goast.Expr
 
 	// emitTemplateLiteralParts extracts each part of a template literal as a separate Go
-	// expression, without concatenating them. This is used for generating variadic calls
-	// like BuildClassBytesV(part1, part2, ...) that avoid intermediate string allocation
-	// from the + operator.
+	// expression, without concatenating them.
 	//
 	// Takes n (*ast_domain.TemplateLiteral) which is the template literal to process.
 	//
@@ -142,8 +129,7 @@ type ExpressionEmitter interface {
 	emitTemplateLiteralParts(n *ast_domain.TemplateLiteral) ([]goast.Expr, []goast.Stmt, []*ast_domain.Diagnostic)
 }
 
-// expressionEmitter translates annotated Piko AST expressions into Go AST expressions. It
-// implements ExpressionEmitter and holds references to its specialist sub-emitters.
+// expressionEmitter translates annotated Piko AST expressions into Go AST expressions.
 type expressionEmitter struct {
 	// emitter provides shared output generation and import management.
 	emitter *emitter
@@ -156,9 +142,6 @@ type expressionEmitter struct {
 }
 
 // emit is the main entry point for converting expressions.
-//
-// It converts a Piko AST expression to a Go AST expression. It tries several conversion
-// methods in order: collection calls, operators, literals, and composite expressions.
 //
 // Takes expression (ast_domain.Expression) which is the Piko AST expression to convert.
 //
@@ -225,7 +208,7 @@ func (ee *expressionEmitter) tryEmitLiteralExpression(expression ast_domain.Expr
 	case *ast_domain.RuneLiteral:
 		return &goast.BasicLit{Kind: TokenKindChar, Value: strconv.QuoteRune(n.Value)}, nil, nil, true
 	case *ast_domain.DateTimeLiteral:
-		return ee.emitTemporalParseLiteral(&goast.SelectorExpr{X: cachedIdent(timePackageName), Sel: cachedIdent("RFC3339")}, n.Value), nil, nil, true
+		return ee.emitTemporalParseLiteral(&goast.SelectorExpr{X: cachedIdent(ee.emitter.timeQualifier()), Sel: cachedIdent("RFC3339")}, n.Value), nil, nil, true
 	case *ast_domain.DateLiteral:
 		return ee.emitTemporalParseLiteral(strLit(timeDateFormat), n.Value), nil, nil, true
 	case *ast_domain.TimeLiteral:
@@ -236,9 +219,18 @@ func (ee *expressionEmitter) tryEmitLiteralExpression(expression ast_domain.Expr
 	return nil, nil, nil, false
 }
 
-// emitTemporalParseLiteral generates an IIFE that parses a time string literal. The
-// generated code is: func() time.Time { t, _ := time.Parse(layout, value); return t }()
-// The parser has already validated the format, so the error is unreachable.
+// timeQualifier registers the time import and resolves its alias.
+//
+// Returns string which is the alias used for time package types and functions.
+func (em *emitter) timeQualifier() string {
+	em.addImport(timePackagePath, timePackageName)
+	if name := em.getImportAlias(timePackagePath); name != "" {
+		return name
+	}
+	return timePackageName
+}
+
+// emitTemporalParseLiteral creates a time parser for a validated literal.
 //
 // Takes layoutExpr (goast.Expr) which is the layout argument (string literal or
 // time.RFC3339 selector).
@@ -246,32 +238,30 @@ func (ee *expressionEmitter) tryEmitLiteralExpression(expression ast_domain.Expr
 //
 // Returns goast.Expr which is the IIFE call expression producing a time.Time.
 func (ee *expressionEmitter) emitTemporalParseLiteral(layoutExpr goast.Expr, value string) goast.Expr {
-	ee.emitter.addImport(timePackagePath, "")
+	qualifier := ee.emitter.timeQualifier()
 
 	parseCall := &goast.CallExpr{
-		Fun:  &goast.SelectorExpr{X: cachedIdent(timePackageName), Sel: cachedIdent(timeParseFunc)},
+		Fun:  &goast.SelectorExpr{X: cachedIdent(qualifier), Sel: cachedIdent(timeParseFunc)},
 		Args: []goast.Expr{layoutExpr, strLit(value)},
 	}
 
-	return buildTemporalIIFE("Time", "t", parseCall)
+	return buildTemporalIIFE(qualifier, "Time", "t", parseCall)
 }
 
-// emitDurationParseLiteral generates an IIFE that parses a duration string literal. The
-// generated code is: func() time.Duration { d, _ := time.ParseDuration(value); return d
-// }() The parser has already validated the format, so the error is unreachable.
+// emitDurationParseLiteral creates a duration parser for a validated literal.
 //
 // Takes value (string) which is the duration string to parse.
 //
 // Returns goast.Expr which is the IIFE call expression producing a time.Duration.
 func (ee *expressionEmitter) emitDurationParseLiteral(value string) goast.Expr {
-	ee.emitter.addImport(timePackagePath, "")
+	qualifier := ee.emitter.timeQualifier()
 
 	parseCall := &goast.CallExpr{
-		Fun:  &goast.SelectorExpr{X: cachedIdent(timePackageName), Sel: cachedIdent(timeParseDuration)},
+		Fun:  &goast.SelectorExpr{X: cachedIdent(qualifier), Sel: cachedIdent(timeParseDuration)},
 		Args: []goast.Expr{strLit(value)},
 	}
 
-	return buildTemporalIIFE("Duration", "d", parseCall)
+	return buildTemporalIIFE(qualifier, "Duration", "d", parseCall)
 }
 
 // emitUnhandledExpression handles expression types that are not known.
@@ -311,11 +301,6 @@ func (ee *expressionEmitter) valueToString(goExpr goast.Expr, ann *ast_domain.Go
 
 // containsJSONMarshalCall reports whether expr contains the generated json.Marshal call.
 //
-// It matches a selector `json.Marshal` whose qualifier is the JSON package alias. Walking
-// the produced expression keeps this decoupled from the stringConverter's dispatch logic
-// and also catches the case where json.Marshal is nested inside the pointer-to-stringable
-// IIFE.
-//
 // Takes expr (goast.Expr) which is the conversion expression to inspect.
 //
 // Returns bool which is true when the expression contains a json.Marshal call.
@@ -340,10 +325,6 @@ func containsJSONMarshalCall(expr goast.Expr) bool {
 
 // getTypeExprForVarDecl determines the correct type expression to use for a variable
 // declaration.
-//
-// It strips the package qualifier if the type belongs to the package currently being
-// generated. It also handles import alias conflicts by updating the type expression to
-// use the resolved alias.
 //
 // Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the resolved type
 // information for the variable.
@@ -382,9 +363,7 @@ func (ee *expressionEmitter) getTypeExprForVarDecl(ann *ast_domain.GoGeneratorAn
 	return resolvedType.TypeExpression
 }
 
-// wrapWithStringerCall wraps a Go expression with a .String() method call. Used for
-// builder-pattern functions (T, LT, F, LF) whose runtime return type implements
-// fmt.Stringer.
+// wrapWithStringerCall wraps a Go expression with a .String() method call.
 //
 // Takes expression (goast.Expr) which is the expression to wrap.
 //
@@ -410,22 +389,21 @@ func newExpressionEmitter(emitter *emitter, binaryEmitter *binaryOpEmitter, stri
 	}
 }
 
-// buildTemporalIIFE creates an IIFE AST node that calls parseCall, discards the error,
-// and returns the result using the given typeName (e.g. "Time" or "Duration") and varName
-// for the local assignment.
+// buildTemporalIIFE creates a parser call that discards its error and returns its value.
 //
+// Takes qualifier (string) which is the time package import alias.
 // Takes typeName (string) which is the time package type name to return.
-// Takes varName (string) which is the local variable name in the IIFE.
-// Takes parseCall (goast.Expr) which is the parse function call expression.
+// Takes varName (string) which is the local result variable name.
+// Takes parseCall (goast.Expr) which is the parser call returning a value and an error.
 //
 // Returns *goast.CallExpr which is the IIFE that parses and returns the temporal value.
-func buildTemporalIIFE(typeName, varName string, parseCall goast.Expr) *goast.CallExpr {
+func buildTemporalIIFE(qualifier, typeName, varName string, parseCall goast.Expr) *goast.CallExpr {
 	return &goast.CallExpr{
 		Fun: &goast.FuncLit{
 			Type: &goast.FuncType{
 				Params: &goast.FieldList{},
 				Results: &goast.FieldList{List: []*goast.Field{{
-					Type: &goast.SelectorExpr{X: cachedIdent(timePackageName), Sel: cachedIdent(typeName)},
+					Type: &goast.SelectorExpr{X: cachedIdent(qualifier), Sel: cachedIdent(typeName)},
 				}}},
 			},
 			Body: &goast.BlockStmt{List: []goast.Stmt{
@@ -441,8 +419,7 @@ func buildTemporalIIFE(typeName, varName string, parseCall goast.Expr) *goast.Ca
 }
 
 // updateTypeExprAlias creates a copy of a type expression with the package alias changed
-// to a new value. This is used when fixing import alias clashes by creating unique
-// aliases.
+// to a new value.
 //
 // Takes typeExpr (goast.Expr) which is the type expression to update.
 // Takes newAlias (string) which is the new package alias to use.

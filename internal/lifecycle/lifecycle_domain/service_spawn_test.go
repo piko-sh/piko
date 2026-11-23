@@ -54,10 +54,9 @@ func newSpawnTestService(t *testing.T, coordinator *coordinator_domain.MockCoord
 	return service
 }
 
-func pageChange(index int) fileEventContext {
+func pageChange(index int) fileEvent {
 	relPath := fmt.Sprintf("pages/page%d.pk", index%4)
-	return fileEventContext{
-		ctx:        context.Background(),
+	return fileEvent{
 		relPath:    relPath,
 		artefactID: "test-module/" + relPath,
 		event:      lifecycle_dto.FileEvent{Path: "/project/" + relPath, Type: lifecycle_dto.FileEventTypeWrite},
@@ -90,7 +89,7 @@ func TestStop_ConcurrentChangesNeverRaceTheDrain(t *testing.T) {
 						return
 					default:
 					}
-					service.handleCoreSourceChange(pageChange(index), false)
+					service.handleCoreSourceChange(t.Context(), pageChange(index), false)
 					service.registerInitialStyleDeps(context.Background(), nil)
 				}
 			})
@@ -120,7 +119,7 @@ func TestStop_CancelsARunningTargetedRebuild(t *testing.T) {
 	}
 	service := newSpawnTestService(t, coordinator)
 
-	service.handleCoreSourceChange(pageChange(0), false)
+	service.handleCoreSourceChange(t.Context(), pageChange(0), false)
 	select {
 	case <-started:
 	case <-time.After(5 * time.Second):
@@ -159,5 +158,29 @@ func TestRunTargetedRebuild_AbandonsAnInvalidatedBuild(t *testing.T) {
 
 			assert.Equal(t, testCase.wantFallback, coordinator.RequestRebuildCallCount.Load() == 1)
 		})
+	}
+}
+
+func TestStartupGCIsNeverArmedAfterStop(t *testing.T) {
+	t.Parallel()
+
+	service := newSpawnTestService(t, &coordinator_domain.MockCoordinatorService{})
+	require.NoError(t, service.Stop(t.Context()))
+
+	service.armStartupGC(func() {})
+
+	assert.False(t, service.stopStartupGC(), "a timer was armed after Stop")
+}
+
+func TestStartupGCArmingRacesStopSafely(t *testing.T) {
+	t.Parallel()
+
+	for range 20 {
+		service := newSpawnTestService(t, &coordinator_domain.MockCoordinatorService{})
+		var group sync.WaitGroup
+		group.Go(func() { service.armStartupGC(func() {}) })
+		group.Go(func() { assert.NoError(t, service.Stop(t.Context())) })
+		group.Wait()
+		service.stopStartupGC()
 	}
 }

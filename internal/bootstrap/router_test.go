@@ -233,3 +233,21 @@ func TestCacheWeighers(t *testing.T) {
 		})
 	}
 }
+
+func TestRouterResolveServicesFailsWhenCSRFServiceFails(t *testing.T) {
+	t.Parallel()
+
+	setupErr := errors.New("csrf setup failed")
+	c := NewContainer()
+	c.registryServiceOverride = &stubRegistryService{}
+	c.capabilityServiceOverride = &stubCapabilityService{}
+	c.renderRegistryOverride = &stubRenderRegistryPort{}
+	c.csrfOnce.Do(func() { c.csrfErr = setupErr })
+
+	operation := &routerOperation{container: c}
+
+	err := operation.resolveServices(t.Context())
+
+	require.ErrorIs(t, err, setupErr)
+	assert.Nil(t, operation.csrfService)
+}

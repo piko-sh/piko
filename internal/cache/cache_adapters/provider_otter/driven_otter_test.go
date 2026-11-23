@@ -47,11 +47,11 @@ import (
 )
 
 const (
-	ttlTestKey = "key"
-	ttlTestValue = "value"
-	ttlTestNamespace = "ttl-test"
+	ttlTestKey        = "key"
+	ttlTestValue      = "value"
+	ttlTestNamespace  = "ttl-test"
 	ttlWarningMessage = "Cache ignores per-entry TTLs because it was built without expiry support"
-	tenYears = 10 * 365 * 24 * time.Hour
+	tenYears          = 10 * 365 * 24 * time.Hour
 )
 
 type ttlTestCache = cache_domain.ProviderPort[string, string]

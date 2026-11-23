@@ -9,7 +9,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.47.0
 	go.opentelemetry.io/otel/trace v1.47.0
 	go.uber.org/goleak v1.3.0
-	google.golang.org/grpc v1.83.0
+	google.golang.org/grpc v1.84.0
 	piko.sh/piko v0.0.0
 	piko.sh/piko/wdk/telemetry/telemetry_grpcfb v0.0.0
 )
@@ -26,11 +26,11 @@ require (
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel/log v1.47.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.6 // indirect
-	golang.org/x/net v0.59.0 // indirect
+	golang.org/x/net v0.63.0 // indirect
 	golang.org/x/sys v0.50.0 // indirect
 	golang.org/x/text v0.44.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260803160001-6ac0973c030d // indirect
-	google.golang.org/protobuf v1.36.11 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260928230214-8a89bd6388cc // indirect
+	google.golang.org/protobuf v1.36.12 // indirect
 	piko.sh/json v0.1.1 // indirect
 	piko.sh/safeconv v0.1.0 // indirect
 	piko.sh/sharded v0.2.0 // indirect

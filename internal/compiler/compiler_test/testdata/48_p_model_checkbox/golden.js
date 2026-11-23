@@ -43,11 +43,11 @@ import { action } from "/_piko/assets/pk-js/pk/actions.gen.js";
             return {"isChecked": false};
         }
         connectedCallback () {
-            this.init(instance.call(this, this));
+            if (!this.$$ctx) this.init(instance.call(this, this));
             super.connectedCallback();
         }
         renderVDOM () {
-            return dom.el("div", "r.0", {}, dom.frag("r.0_f", [dom.el("label", "r.0:0", {}, dom.frag("r.0:0_f", [dom.el("input", "r.0:0:0", {"?checked": this.$$ctx.state.isChecked, "onChange": this._dir_change___internal_model_updater_evt_1, "type": "checkbox"}, null), dom.txt(" Is Checked ", "r.0:0:1")])), dom.el("p", "r.0:1", {}, dom.txt("Status: " + String((this.$$ctx.state.isChecked ? "Checked" : "Not Checked") ?? ""), "r.0:1:0"))]));
+            return dom.el("div", "r.0", {}, dom.frag("r.0_f", [dom.el("label", "r.0:0", {}, dom.frag("r.0:0_f", [dom.el("input", "r.0:0:0", {"?checked": this.$$ctx.state.isChecked, "_model": true, "onChange": this._dir_change___internal_model_updater_evt_1, "type": "checkbox"}, null), dom.txt(" Is Checked ", "r.0:0:1")])), dom.el("p", "r.0:1", {}, dom.txt("Status: " + String((this.$$ctx.state.isChecked ? "Checked" : "Not Checked") ?? ""), "r.0:1:0"))]));
         }
     }
     customElements.define("p-model-checkbox", PModelCheckboxElement);

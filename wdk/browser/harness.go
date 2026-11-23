@@ -152,14 +152,14 @@ func (h *Harness) IsInteractive() bool {
 	return h.opts.interactive
 }
 
-// NewSession creates a standalone browser session (tab) that does not require testing.TB.
-// Unlike Page, Session methods return errors instead of calling Fatalf, making it
-// suitable for CLI tools and standalone programs.
+// NewSession opens a tab in the harness browser.
 //
-// Returns *Session which is a browser tab ready for interaction.
+// The tab shares storage with other tabs in the same browser.
+//
+// Returns *Session which the caller must close.
 // Returns error when the harness has not been set up or page creation fails.
 //
-// Concurrency: safe for concurrent use; acquires the harness mutex.
+// Concurrency: Safe for concurrent use.
 func (h *Harness) NewSession() (*Session, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -176,6 +176,9 @@ func (h *Harness) NewSession() (*Session, error) {
 	return &Session{
 		page:      incognitoPage,
 		serverURL: h.serverURL,
+		owner:     nil,
+		closeErr:  nil,
+		closeOnce: sync.Once{},
 	}, nil
 }
 
@@ -229,6 +232,7 @@ func (h *Harness) doSetup() error {
 		ChromePath:       "",
 		ChromeFlags:      nil,
 		IgnoreCertErrors: false,
+		SocketDir:        "",
 	}
 	h.browser, err = browser_provider_chromedp.NewBrowser(browserOpts)
 	if err != nil {
@@ -347,7 +351,7 @@ func (h *Harness) newPage(t testing.TB) (*Page, error) {
 		outputSandbox, err = safedisk.NewNoOpSandbox(h.opts.outputDir, safedisk.ModeReadWrite)
 	}
 	if err != nil {
-		_ = incognitoPage.CloseContext()
+		_ = incognitoPage.Close()
 		return nil, fmt.Errorf("creating output sandbox: %w", err)
 	}
 

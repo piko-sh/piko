@@ -1,0 +1,34 @@
+<template>
+  <main id="workflow">
+    <h1>SQLite task list</h1>
+    <form id="workflow-form" p-on:submit.prevent="createTask($event, $form)">
+      <workflow-field id="workflow-label" name="label" required></workflow-field>
+      <input type="hidden" name="ignored" disabled value="omit">
+      <input type="hidden" name="repeat" value="one"><input type="hidden" name="repeat" value="two">
+      <button type="submit" id="workflow-create">Add</button><button type="reset" id="workflow-reset">Reset</button>
+    </form>
+    <output id="workflow-status" data-revision="0"></output>
+    <piko:partial is="tasks" />
+  </main>
+</template>
+<script type="application/x-go">
+package main
+import (
+	"piko.sh/piko"
+	tasks "example.org/pikofuzzcase/partials/task-list.pk"
+)
+func Render(r *piko.RequestData, props piko.NoProps)(piko.NoResponse,piko.Metadata,error) {
+	return piko.NoResponse{},piko.Metadata{Title:"SQLite task list"},nil
+}
+</script>
+<script lang="ts">
+async function createTask(_event: SubmitEvent, form: FormDataHandle): Promise<void> {
+  const result = await action.tasks.Create(form).call();
+  await piko.partials.reload("task-list");
+  const status = document.getElementById('workflow-status');
+  status.dataset.id = String(result.id);
+  status.dataset.label = result.label;
+  status.dataset.done = String(result.done);
+  status.dataset.revision = String(Number(status.dataset.revision) + 1);
+}
+</script>

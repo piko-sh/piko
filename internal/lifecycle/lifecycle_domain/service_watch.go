@@ -18,9 +18,6 @@
 
 package lifecycle_domain
 
-// This file contains file-watching, event handling, entry-point bookkeeping, and asset
-// change processing for the lifecycle service.
-
 import (
 	"context"
 	"errors"
@@ -71,18 +68,15 @@ func (ls *lifecycleService) watchLoop(ctx context.Context, events <-chan lifecyc
 	}
 }
 
-// fileEventContext holds the data needed to process a file change event.
-type fileEventContext struct {
-	// ctx is the request-scoped context for cancellation and deadlines.
-	ctx context.Context
-
+// fileEvent holds the data needed to process a file change event.
+type fileEvent struct {
 	// relPath is the file path relative to the project root.
 	relPath string
 
 	// artefactID is the unique identifier for the asset artefact in the registry.
 	artefactID string
 
-	// event is the file event that triggered this context.
+	// event is the file event being processed.
 	event lifecycle_dto.FileEvent
 }
 
@@ -101,17 +95,17 @@ func (ls *lifecycleService) handleFileEvent(ctx context.Context, event lifecycle
 		return
 	}
 
-	fec, ok := ls.buildFileEventContext(ctx, event)
+	change, ok := ls.buildFileEvent(ctx, event)
 	if !ok {
 		return
 	}
 
-	if isCoreSourceFile(fec.relPath, &ls.pathsConfig) {
-		ls.handleCoreSourceChange(fec, initialSeed)
+	if isCoreSourceFile(change.relPath, &ls.pathsConfig) {
+		ls.handleCoreSourceChange(ctx, change, initialSeed)
 		return
 	}
 
-	ls.handleAssetChange(fec)
+	ls.handleAssetChange(ctx, change)
 }
 
 // maybeHandleStyleDependencyChange rebuilds components that import the changed
@@ -154,24 +148,24 @@ func (ls *lifecycleService) maybeHandleStyleDependencyChange(ctx context.Context
 	return false
 }
 
-// buildFileEventContext creates the context needed to process a file event.
+// buildFileEvent resolves the paths needed to process a file event.
 //
 // Takes event (lifecycle_dto.FileEvent) which contains the file event details.
 //
-// Returns fileEventContext which holds the processed event context.
+// Returns fileEvent which holds the event with its resolved paths.
 // Returns bool which is false if the event should be skipped.
-func (ls *lifecycleService) buildFileEventContext(ctx context.Context, event lifecycle_dto.FileEvent) (fileEventContext, bool) {
+func (ls *lifecycleService) buildFileEvent(ctx context.Context, event lifecycle_dto.FileEvent) (fileEvent, bool) {
 	ctx, l := logger_domain.From(ctx, log)
 	relPath, err := ls.fs.Rel(ls.pathsConfig.BaseDir, event.Path)
 	if err != nil {
 		l.Warn("Failed to compute relative path", logger_domain.Error(err))
-		return fileEventContext{}, false
+		return fileEvent{}, false
 	}
 	relPathSlash := filepath.ToSlash(relPath)
 
 	if !isRelevantFileForProcessing(relPathSlash, &ls.pathsConfig) {
 		l.Trace("Ignoring event for irrelevant file")
-		return fileEventContext{}, false
+		return fileEvent{}, false
 	}
 
 	moduleName := ""
@@ -179,8 +173,7 @@ func (ls *lifecycleService) buildFileEventContext(ctx context.Context, event lif
 		moduleName = ls.resolver.GetModuleName()
 	}
 
-	return fileEventContext{
-		ctx:        ctx,
+	return fileEvent{
 		event:      event,
 		relPath:    relPathSlash,
 		artefactID: moduleName + "/" + relPathSlash,
@@ -189,7 +182,7 @@ func (ls *lifecycleService) buildFileEventContext(ctx context.Context, event lif
 
 // handleCoreSourceChange processes changes to core source files (.pk, etc.).
 //
-// Calls may run concurrently; targeted rebuilds are batched on a separate goroutine.
+// Calls may run concurrently. A separate goroutine batches targeted rebuilds.
 //
 // In interpreted mode with an initialised orchestrator, this triggers a targeted rebuild
 // that only re-annotates and regenerates the changed component and its transitive
@@ -197,44 +190,43 @@ func (ls *lifecycleService) buildFileEventContext(ctx context.Context, event lif
 // compiled user packages and requests a full rebuild. Otherwise it falls back to a full
 // coordinator rebuild.
 //
-// Takes fec (fileEventContext) which provides the file event details and logging context.
-// Takes initialSeed (bool) which indicates whether this is the initial file discovery
-// phase.
-func (ls *lifecycleService) handleCoreSourceChange(fec fileEventContext, initialSeed bool) {
-	ctx, l := logger_domain.From(fec.ctx, log)
+// Takes change (fileEvent) which provides the file event and its resolved paths.
+// Takes initialSeed (bool) which reports whether startup discovery is in progress.
+func (ls *lifecycleService) handleCoreSourceChange(ctx context.Context, change fileEvent, initialSeed bool) {
+	ctx, l := logger_domain.From(ctx, log)
 
-	ls.updateBuildContext(ctx, fec.event, fec.relPath)
+	ls.updateBuildContext(ctx, change.event, change.relPath)
 
-	ext := strings.ToLower(filepath.Ext(fec.relPath))
+	ext := strings.ToLower(filepath.Ext(change.relPath))
 	if ext == ".pkc" && !initialSeed {
 		l.Trace("PKC file changed, upserting artefact for recompilation.")
-		ls.clearComponentCacheIfNeeded(fec)
-		ls.upsertAssetArtefact(fec)
+		ls.clearComponentCacheIfNeeded(ctx, change)
+		ls.upsertAssetArtefact(ctx, change)
 	}
 
 	if initialSeed {
 		return
 	}
 
-	if ls.interpretedOrchestrator != nil && isGoSourceFile(fec.relPath) {
-		ls.handleUserPackageChange(ctx, fec.relPath)
+	if ls.interpretedOrchestrator != nil && isGoSourceFile(change.relPath) {
+		ls.handleUserPackageChange(ctx, change.relPath)
 		return
 	}
 
-	isPageRemoval := isRemovalEvent(fec.event.Type) && strings.HasSuffix(strings.ToLower(fec.relPath), ".pk")
-	isPageCreate := fec.event.Type == lifecycle_dto.FileEventTypeCreate && strings.HasSuffix(strings.ToLower(fec.relPath), ".pk")
+	isPageRemoval := isRemovalEvent(change.event.Type) && strings.HasSuffix(strings.ToLower(change.relPath), ".pk")
+	isPageCreate := change.event.Type == lifecycle_dto.FileEventTypeCreate && strings.HasSuffix(strings.ToLower(change.relPath), ".pk")
 
 	if ls.interpretedOrchestrator != nil && ls.interpretedOrchestrator.IsInitialised() && ls.coordinatorService != nil {
 		if isPageRemoval {
-			ls.handlePageRemoval(ctx, fec.relPath)
+			ls.handlePageRemoval(ctx, change.relPath)
 			return
 		}
-		ls.targetedRebuildBatcher().addChange(ctx, fec.relPath, fec.relPath, isPageCreate)
+		ls.targetedRebuildBatcher().addChange(ctx, change.relPath, change.relPath, isPageCreate)
 		return
 	}
 
 	if isPageRemoval {
-		ls.removeComponentStyleDeps(fec.relPath)
+		ls.removeComponentStyleDeps(change.relPath)
 	}
 
 	if ls.buildCacheInvalidator != nil {
@@ -245,7 +237,7 @@ func (ls *lifecycleService) handleCoreSourceChange(fec fileEventContext, initial
 
 	if ls.coordinatorService != nil {
 		l.Trace("Core source file changed, requesting rebuild.")
-		ls.RequestRebuild(ctx, fmt.Sprintf("file-change:%s", fec.relPath))
+		ls.RequestRebuild(ctx, fmt.Sprintf("file-change:%s", change.relPath))
 	}
 }
 
@@ -290,32 +282,33 @@ func (ls *lifecycleService) handlePageRemoval(ctx context.Context, relPath strin
 
 // handleAssetChange processes changes to asset files.
 //
-// Takes fec (fileEventContext) which provides the file event details and logging context.
-func (ls *lifecycleService) handleAssetChange(fec fileEventContext) {
-	ctx, l := logger_domain.From(fec.ctx, log)
+// Takes change (fileEvent) which provides the file event and its resolved paths.
+func (ls *lifecycleService) handleAssetChange(ctx context.Context, change fileEvent) {
+	ctx, l := logger_domain.From(ctx, log)
 
 	l.Trace("Asset file changed, processing via orchestrator pipeline.")
 
-	switch fec.event.Type {
+	switch change.event.Type {
 	case lifecycle_dto.FileEventTypeCreate, lifecycle_dto.FileEventTypeWrite:
-		ls.upsertAssetArtefact(fec)
+		ls.upsertAssetArtefact(ctx, change)
 	case lifecycle_dto.FileEventTypeRemove, lifecycle_dto.FileEventTypeRename:
-		ls.deleteAssetArtefact(fec)
+		ls.deleteAssetArtefact(ctx, change)
 	default:
 		l.Warn("Unknown file event type for asset change",
-			logger_domain.Int("event_type", int(fec.event.Type)),
-			logger_domain.String("path", fec.event.Path))
+			logger_domain.Int("event_type", int(change.event.Type)),
+			logger_domain.String("path", change.event.Path))
 		return
 	}
 
-	ls.clearSvgCacheIfNeeded(fec)
+	ls.clearSvgCacheIfNeeded(ctx, change)
 
-	ls.notifyAssetReload(ctx, fec.relPath)
+	ls.notifyAssetReload(ctx, change.relPath)
 }
 
 // notifyAssetReload broadcasts a build-completion event so the browser live-reloads after
-// an asset is reprocessed. It is a no-op outside dev/dev-i modes where the notifier is
-// nil.
+// an asset is reprocessed.
+//
+// It is a no-op outside dev and dev-i modes, where the notifier is nil.
 //
 // Takes relPath (string) which is the project-relative path of the changed asset (e.g.
 // "lib/icon.svg").
@@ -328,30 +321,29 @@ func (ls *lifecycleService) notifyAssetReload(ctx context.Context, relPath strin
 
 // clearSvgCacheIfNeeded clears the SVG cache when the changed file is an SVG.
 //
-// Takes fec (fileEventContext) which provides the file event and artefact ID.
-func (ls *lifecycleService) clearSvgCacheIfNeeded(fec fileEventContext) {
+// Takes change (fileEvent) which provides the file event and artefact ID.
+func (ls *lifecycleService) clearSvgCacheIfNeeded(ctx context.Context, change fileEvent) {
 	if ls.renderRegistryPort == nil {
 		return
 	}
-	ext := strings.ToLower(filepath.Ext(fec.event.Path))
+	ext := strings.ToLower(filepath.Ext(change.event.Path))
 	if ext == ".svg" {
-		ls.renderRegistryPort.ClearSvgCache(fec.ctx, fec.artefactID)
+		ls.renderRegistryPort.ClearSvgCache(ctx, change.artefactID)
 	}
 }
 
-// clearComponentCacheIfNeeded clears the component cache for PKC files. The component tag
-// name is taken from the file name without the extension.
+// clearComponentCacheIfNeeded clears the component cache for PKC files.
 //
-// Takes fec (fileEventContext) which provides the file event and relative path.
-func (ls *lifecycleService) clearComponentCacheIfNeeded(fec fileEventContext) {
+// Takes change (fileEvent) which provides the file event and relative path.
+func (ls *lifecycleService) clearComponentCacheIfNeeded(ctx context.Context, change fileEvent) {
 	if ls.renderRegistryPort == nil {
 		return
 	}
-	ext := strings.ToLower(filepath.Ext(fec.event.Path))
+	ext := strings.ToLower(filepath.Ext(change.event.Path))
 	if ext == ".pkc" {
-		ctx, l := logger_domain.From(fec.ctx, log)
+		ctx, l := logger_domain.From(ctx, log)
 
-		tagName := strings.TrimSuffix(filepath.Base(fec.relPath), ext)
+		tagName := strings.TrimSuffix(filepath.Base(change.relPath), ext)
 		l.Trace("Clearing component cache for PKC file",
 			logger_domain.String("tagName", tagName))
 		ls.renderRegistryPort.ClearComponentCache(ctx, tagName)
@@ -361,21 +353,20 @@ func (ls *lifecycleService) clearComponentCacheIfNeeded(fec fileEventContext) {
 // upsertAssetArtefact creates or updates an asset while preserving its existing desired
 // profiles.
 //
-// Takes fec (fileEventContext) which provides the file event details and context for the
-// operation.
-func (ls *lifecycleService) upsertAssetArtefact(fec fileEventContext) {
-	ctx, l := logger_domain.From(fec.ctx, log)
+// Takes change (fileEvent) which provides the file event and its resolved paths.
+func (ls *lifecycleService) upsertAssetArtefact(ctx context.Context, change fileEvent) {
+	ctx, l := logger_domain.From(ctx, log)
 
 	if ls.registryBlobsReadOnly {
 		l.Trace("Registry blobs are read-only; skipping asset upsert (served from the embedded base)",
-			logger_domain.String(fieldPath, fec.relPath))
+			logger_domain.String(fieldPath, change.relPath))
 		return
 	}
 
-	file, err := ls.fs.Open(fec.event.Path)
+	file, err := ls.fs.Open(change.event.Path)
 	if errors.Is(err, fs.ErrNotExist) {
 		l.Trace("Asset file no longer exists, ignoring the event (likely an editor or tool temporary file)",
-			logger_domain.String(fieldPath, fec.relPath))
+			logger_domain.String(fieldPath, change.relPath))
 		return
 	}
 	if err != nil {
@@ -384,9 +375,9 @@ func (ls *lifecycleService) upsertAssetArtefact(fec fileEventContext) {
 	}
 	defer func() { _ = file.Close() }()
 
-	profiles := GetProfilesForFile(fec.artefactID, ResolverModuleName(ls.resolver), nil)
-	normalisedID := NormaliseAssetArtefactID(fec.artefactID)
-	_, err = ls.registryService.UpsertArtefact(ctx, normalisedID, fec.relPath, file, "local_disk_cache", profiles,
+	profiles := GetProfilesForFile(change.artefactID, ResolverModuleName(ls.resolver), nil)
+	normalisedID := NormaliseAssetArtefactID(change.artefactID)
+	_, err = ls.registryService.UpsertArtefact(ctx, normalisedID, change.relPath, file, "local_disk_cache", profiles,
 		registry_domain.WithProfileMerge())
 	if err != nil {
 		l.Error("Failed to upsert asset artefact", logger_domain.Error(err))
@@ -395,11 +386,11 @@ func (ls *lifecycleService) upsertAssetArtefact(fec fileEventContext) {
 
 // deleteAssetArtefact removes an asset artefact from the registry.
 //
-// Takes fec (fileEventContext) which provides the context and artefact ID.
-func (ls *lifecycleService) deleteAssetArtefact(fec fileEventContext) {
-	ctx, l := logger_domain.From(fec.ctx, log)
+// Takes change (fileEvent) which provides the file event and artefact ID.
+func (ls *lifecycleService) deleteAssetArtefact(ctx context.Context, change fileEvent) {
+	ctx, l := logger_domain.From(ctx, log)
 
-	normalisedID := NormaliseAssetArtefactID(fec.artefactID)
+	normalisedID := NormaliseAssetArtefactID(change.artefactID)
 	err := ls.registryService.DeleteArtefact(ctx, normalisedID)
 	if err != nil && !errors.Is(err, registry_domain.ErrArtefactNotFound) {
 		l.Error("Failed to delete asset artefact", logger_domain.Error(err))
@@ -426,7 +417,7 @@ type componentType struct {
 // Takes relPath (string) which is the path to the affected file, relative to the project
 // root.
 //
-// Safe for concurrent use; protects build context updates with a mutex.
+// Concurrency: A mutex protects build-context updates.
 func (ls *lifecycleService) updateBuildContext(ctx context.Context, event lifecycle_dto.FileEvent, relPath string) {
 	if ls.resolver == nil || !strings.HasSuffix(strings.ToLower(relPath), ".pk") {
 		return
@@ -480,10 +471,10 @@ func (ls *lifecycleService) determineComponentType(relPath string) componentType
 
 // addEntryPointIfNotExists adds an entry point if it is not already present.
 //
+// Callers must hold ls.mu.
+//
 // Takes entryPointPath (string) which specifies the path of the entry point.
 // Takes compType (componentType) which describes the component type.
-//
-// The caller must hold ls.mu.
 func (ls *lifecycleService) addEntryPointIfNotExists(ctx context.Context, entryPointPath string, compType componentType) {
 	for _, ep := range ls.entryPoints {
 		if ep.Path == entryPointPath {
@@ -504,9 +495,9 @@ func (ls *lifecycleService) addEntryPointIfNotExists(ctx context.Context, entryP
 
 // removeEntryPoint removes an entry point by its path.
 //
-// Takes entryPointPath (string) which specifies the path of the entry point to remove.
+// Callers must hold ls.mu.
 //
-// Must be called with ls.mu held.
+// Takes entryPointPath (string) which specifies the path of the entry point to remove.
 func (ls *lifecycleService) removeEntryPoint(entryPointPath string) {
 	newEntryPoints := make([]annotator_dto.EntryPoint, 0, len(ls.entryPoints))
 	for _, ep := range ls.entryPoints {
@@ -631,15 +622,14 @@ func (ls *lifecycleService) runTargetedRebuild(ctx context.Context, changedLabel
 }
 
 // filterEntryPointsByPaths returns the subset of the lifecycle service's entry points
-// whose paths match any of the given relative paths. The relative paths are prefixed with
-// the module name before comparison.
+// whose paths match any of the given relative paths.
 //
 // Takes relPaths ([]string) which contains project-relative paths to match (e.g.
 // "pages/login.pk").
 //
 // Returns []annotator_dto.EntryPoint which contains the matching entry points.
 //
-// Safe for concurrent use; acquires a read lock on ls.mu.
+// Concurrency: A read lock protects access to ls.entryPoints.
 func (ls *lifecycleService) filterEntryPointsByPaths(relPaths []string) []annotator_dto.EntryPoint {
 	ls.mu.RLock()
 	defer ls.mu.RUnlock()

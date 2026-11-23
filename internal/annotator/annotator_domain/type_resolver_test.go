@@ -1909,7 +1909,8 @@ func TestDetermineItemTypeFromCollectionType_UnresolvableType(t *testing.T) {
 		TypeExpression: goast.NewIdent("CustomType"),
 	}
 
-	result := h.Resolver.determineItemTypeFromCollectionType(h.Context, typeInfo)
+	require.Nil(t, h.Resolver.determineItemTypeFromCollectionType(h.Context, typeInfo))
+	result := h.Resolver.DetermineIterationItemType(t.Context(), h.Context, nil, typeInfo)
 
 	require.NotNil(t, result)
 	identifier, ok := result.TypeExpression.(*goast.Ident)

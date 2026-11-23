@@ -19,13 +19,36 @@
 package hnsw
 
 import (
+	"cmp"
 	"fmt"
 	"math"
+	"slices"
 
+	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/vectormaths"
 )
 
+var (
+	// log is the package-level logger for the HNSW index.
+	log = logger_domain.GetLogger("piko/internal/hnsw")
+)
+
+// rankedNode is a node's key and dense ID with its distance to a query, held while an
+// exhaustive search ranks the graph.
+type rankedNode[K comparable] struct {
+	// key identifies the node.
+	key K
+
+	// id is the node's dense ID, which breaks distance ties.
+	id uint32
+
+	// distance is the node's distance to the query.
+	distance float32
+}
+
 // Search finds the topK nearest neighbours to the query vector.
+//
+// Calls can run concurrently with other graph operations.
 //
 // Takes query ([]float32) which is the vector to search for.
 // Takes topK (int) which is the maximum number of results to return.
@@ -34,10 +57,9 @@ import (
 //
 // Returns []Result[K] which is sorted by distance, nearest first, or nil for an empty
 // graph or zero or negative topK after a valid query.
-// Returns error which wraps ErrVectorDimensionMismatch or ErrZeroVector when the query
-// fails validation, even if the graph is empty or topK is zero or negative.
-//
-// Concurrency: Search is safe for concurrent use.
+// Returns error which wraps ErrVectorDimensionMismatch, ErrZeroVector or
+// ErrNonFiniteVector when the query fails validation, even if the graph is empty or topK
+// is zero or negative.
 func (g *Graph[K]) Search(query []float32, topK, efSearch int) ([]Result[K], error) {
 	if err := g.validateVector(query); err != nil {
 		return nil, fmt.Errorf("checking query vector: %w", err)
@@ -46,11 +68,39 @@ func (g *Graph[K]) Search(query []float32, topK, efSearch int) ([]Result[K], err
 		return nil, nil
 	}
 
+	results, reachable, nodeCount := g.searchLocked(query, topK, efSearch)
+	if reachable >= 0 {
+		log.Debug("HNSW search fell back to an exhaustive scan",
+			logger_domain.Int("reachable", reachable),
+			logger_domain.Int("top_k", topK),
+			logger_domain.Int("nodes", nodeCount))
+	}
+	return results, nil
+}
+
+// searchLocked runs a search under the read lock.
+//
+// Takes query ([]float32) which is the validated query vector.
+// Takes topK (int) which is the positive number of results to return.
+// Takes efSearch (int) which is the search-time candidate list size, or 0 for the graph's
+// default.
+//
+// Returns []Result[K] which is sorted by distance, nearest first.
+// Returns reachable (int) which is the number of candidates the beam search reached when
+// it found too few and the search ranked every node instead, or -1 otherwise.
+// Returns nodeCount (int) which is the number of nodes in the graph.
+//
+// Concurrency: Takes the read lock.
+func (g *Graph[K]) searchLocked(query []float32, topK, efSearch int) (results []Result[K], reachable, nodeCount int) {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 
-	if !g.hasEntry {
-		return nil, nil
+	nodeCount = len(g.nodes)
+	if nodeCount == 0 {
+		return nil, -1, 0
+	}
+	if topK >= nodeCount {
+		return g.searchAll(query, nodeCount), -1, nodeCount
 	}
 
 	if efSearch <= 0 {
@@ -70,12 +120,17 @@ func (g *Graph[K]) Search(query []float32, topK, efSearch int) ([]Result[K], err
 	}
 
 	candidates := g.searchLayer(current, query, efSearch, 0)
+	if len(candidates) < topK {
+		reachable = len(candidates)
+		g.putPQSlice(candidates)
+		return g.searchAll(query, topK), reachable, nodeCount
+	}
 
 	if len(candidates) > topK {
 		candidates = candidates[:topK]
 	}
 
-	results := make([]Result[K], len(candidates))
+	results = make([]Result[K], len(candidates))
 	for i, candidate := range candidates {
 		results[i] = Result[K]{
 			Key:      candidate.node.key,
@@ -85,11 +140,46 @@ func (g *Graph[K]) Search(query []float32, topK, efSearch int) ([]Result[K], err
 
 	g.putPQSlice(candidates)
 
-	return results, nil
+	return results, -1, nodeCount
+}
+
+// searchAll ranks every live node, including nodes unreachable from the entry point, and
+// keeps the nearest limit of them in a bounded heap.
+//
+// Callers must hold the graph lock.
+//
+// Takes query ([]float32) which is the validated query vector.
+// Takes limit (int) which is the positive number of results to keep.
+//
+// Returns []Result[K] which is ordered by distance, with node IDs breaking ties.
+func (g *Graph[K]) searchAll(query []float32, limit int) []Result[K] {
+	limit = min(limit, len(g.nodes))
+	nearest := make([]rankedNode[K], 0, limit)
+	for key, node := range g.nodes {
+		candidate := rankedNode[K]{key: key, id: node.id, distance: g.distance(node.vector, query)}
+		if len(nearest) < limit {
+			nearest = append(nearest, candidate)
+			siftUpFarthest(nearest, len(nearest)-1)
+			continue
+		}
+		if compareRanked(candidate, nearest[0]) < 0 {
+			nearest[0] = candidate
+			siftDownFarthest(nearest, 0)
+		}
+	}
+
+	slices.SortFunc(nearest, compareRanked[K])
+	results := make([]Result[K], len(nearest))
+	for index, ranked := range nearest {
+		results[index] = Result[K]{Key: ranked.key, Distance: ranked.distance}
+	}
+	return results
 }
 
 // searchLayer performs a beam search at the given layer, returning the closest
-// candidateCount nodes to the target vector. Results are sorted nearest-first.
+// candidateCount nodes to the target vector.
+//
+// Callers must hold at least a read lock.
 //
 // Takes entry (*node[K]) which is the starting node for the search.
 // Takes target ([]float32) which is the query vector.
@@ -99,8 +189,6 @@ func (g *Graph[K]) Search(query []float32, topK, efSearch int) ([]Result[K], err
 // Returns []priorityQueueItem[K] sorted by distance (nearest first), containing at most
 // candidateCount items. Each item's distance field holds the pre-computed distance to
 // target.
-//
-// Caller must hold at least a read lock.
 func (g *Graph[K]) searchLayer(entry *node[K], target []float32, candidateCount, layer int) []priorityQueueItem[K] {
 	needed := int(g.nextID)
 	visited := g.getVisited(needed)
@@ -158,14 +246,10 @@ func (g *Graph[K]) searchLayer(entry *node[K], target []float32, candidateCount,
 	return sorted
 }
 
-// distance computes the distance between two vectors using the graph's metric. For
-// similarity metrics (cosine, dot product), the distance is 1 - similarity so that lower
-// values mean closer vectors.
+// distance computes the distance between two validated vectors.
 //
-// It runs in the inner loop of every insert and search, so it uses the unchecked
-// vectormaths kernels. That is safe because Insert, InsertBatch and Search pass every
-// vector through validateVector first: all vectors share the graph's non-zero dimension,
-// and under cosine none has zero magnitude.
+// Cosine and dot product use 1 - similarity so smaller distances rank first. Validation
+// requires finite vectors with the graph's dimension and nonzero magnitude for cosine.
 //
 // Takes a ([]float32) which is the first vector.
 // Takes b ([]float32) which is the second vector.
@@ -176,8 +260,7 @@ func (g *Graph[K]) distance(a, b []float32) float32 {
 }
 
 // euclideanDistance computes the squared Euclidean distance between two vectors. Using
-// squared distance avoids the sqrt call while keeping the correct ordering for
-// comparisons.
+// squared distance avoids the square root while keeping the ordering for comparisons.
 //
 // Takes a ([]float32) which is the first vector.
 // Takes b ([]float32) which is the second vector.
@@ -190,4 +273,52 @@ func euclideanDistance(a, b []float32) float32 {
 		return float32(math.MaxFloat32)
 	}
 	return vectormaths.EuclidSqF32(a, b)
+}
+
+// compareRanked orders ranked nodes nearest first, breaking distance ties by node ID.
+//
+// Takes a (rankedNode[K]) which is the first node.
+// Takes b (rankedNode[K]) which is the second node.
+//
+// Returns int which is negative when a ranks before b, positive when after, and zero when
+// they are the same node.
+func compareRanked[K comparable](a, b rankedNode[K]) int {
+	return cmp.Or(cmp.Compare(a.distance, b.distance), cmp.Compare(a.id, b.id))
+}
+
+// siftUpFarthest restores the max-heap order, with the farthest node at the root, after
+// the node at index was added.
+//
+// Takes heap ([]rankedNode[K]) which is the heap.
+// Takes index (int) which is the position of the added node.
+func siftUpFarthest[K comparable](heap []rankedNode[K], index int) {
+	for index > 0 {
+		parent := (index - 1) / 2
+		if compareRanked(heap[index], heap[parent]) <= 0 {
+			return
+		}
+		heap[index], heap[parent] = heap[parent], heap[index]
+		index = parent
+	}
+}
+
+// siftDownFarthest restores the max-heap order, with the farthest node at the root, after
+// the node at index was replaced.
+//
+// Takes heap ([]rankedNode[K]) which is the heap.
+// Takes index (int) which is the position of the replaced node.
+func siftDownFarthest[K comparable](heap []rankedNode[K], index int) {
+	for {
+		farthest := index
+		for _, child := range [2]int{2*index + 1, 2*index + 2} {
+			if child < len(heap) && compareRanked(heap[child], heap[farthest]) > 0 {
+				farthest = child
+			}
+		}
+		if farthest == index {
+			return
+		}
+		heap[index], heap[farthest] = heap[farthest], heap[index]
+		index = farthest
+	}
 }

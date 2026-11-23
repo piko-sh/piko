@@ -18,10 +18,6 @@
 
 package annotator_domain
 
-// Defines the core type system structures for representing Go types within template
-// expressions during compilation. Provides type information models including resolved
-// types, stringability levels, and type metadata used throughout semantic analysis.
-
 import (
 	"context"
 	"fmt"
@@ -108,6 +104,17 @@ const (
 
 	// familyDecimal is the number family for decimal values.
 	familyDecimal
+)
+
+const (
+	// timePackagePath is the import path and default name of the time package.
+	timePackagePath = "time"
+
+	// temporalTypeTime names time.Time.
+	temporalTypeTime = "Time"
+
+	// temporalTypeDuration names time.Duration.
+	temporalTypeDuration = "Duration"
 )
 
 // builtInHandler holds the validation and return type logic for a built-in function.
@@ -344,8 +351,7 @@ func (tr *TypeResolver) checkPointerStringability(
 	return 0, false, false
 }
 
-// determineStringability checks whether a type can be turned into a string. It looks for
-// types that implement the Stringer interface or are otherwise convertible to a string.
+// determineStringability checks whether a type can be turned into a string.
 //
 // Takes analysisContext (*AnalysisContext) which provides the analysis context.
 // Takes typeInfo (*ast_domain.ResolvedTypeInfo) which describes the type to check.
@@ -394,11 +400,6 @@ func (tr *TypeResolver) determineStringability(ctx context.Context, analysisCont
 }
 
 // resolveStringabilityViaInspector resolves a type to its named-type DTO's stringability.
-//
-// It is the final step of determineStringability for a non-primitive, non-JSON type. It
-// is split out so the trace guards (which keep their argument evaluation inline) do not
-// inflate the caller's cognitive complexity. It returns StringableNone when the inspector
-// cannot resolve the type.
 //
 // Takes analysisContext (*AnalysisContext) which provides the logger and current context.
 // Takes typeInfo (*ast_domain.ResolvedTypeInfo) which describes the type to resolve.
@@ -482,9 +483,7 @@ func validateLenCapArgs(
 	}
 }
 
-// validateMinMaxArgs checks that min/max built-in calls have valid arguments. It verifies
-// at least one argument is present, the first argument is an ordered type, and all
-// subsequent arguments match the first argument's type.
+// validateMinMaxArgs checks that min/max built-in calls have valid arguments.
 //
 // Takes analysisContext (*AnalysisContext) which collects diagnostics during validation.
 // Takes callExpr (*ast_domain.CallExpression) which is the min or max call to check.
@@ -537,8 +536,7 @@ func validateMinMaxArgs(
 }
 
 // getAppendReturnType returns the return type for the built-in append function, which is
-// the type of the first argument (the slice). Falls back to "any" when no argument type
-// information is available.
+// the type of the first argument (the slice).
 //
 // Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which provides resolved type
 // information for each argument.
@@ -645,9 +643,7 @@ func (tr *TypeResolver) getSliceElementType(typeInfo *ast_domain.ResolvedTypeInf
 	return nil, false
 }
 
-// validateTranslationFuncArgs checks that T() and LT() are called with at least one
-// string argument. These functions accept variadic arguments: the first is the
-// translation key, and later arguments are fallback values if the key is not found.
+// validateTranslationFuncArgs checks translation keys and fallback arguments to T and LT.
 //
 // If a TranslationKeySet is available in the context, it also checks that the translation
 // key exists and emits a warning if not.
@@ -696,22 +692,8 @@ func validateTranslationFuncArgs(
 	validateTranslationKeyExists(analysisContext, callExpr, functionName, baseLocation)
 }
 
-// isJSONStringableType checks if a type expression is a map or slice that can be safely
-// turned into JSON for use in HTML attributes.
-//
-// The method checks for safety by making sure that:
-//   - Map keys must be strings (JSON requires this)
-//   - Leaf values must be simple types OR types that can be turned into JSON
-//
-// Any nesting depth is accepted as long as the leaves are safe:
-//   - map[string]map[string][]string is allowed (simple leaves)
-//   - map[string]time.Time is allowed (time.Time has json.Marshaler)
-//   - []uuid.UUID is allowed (uuid.UUID has json.Marshaler)
-//
-// But blocks recursive or unsafe structures:
-//   - map[int]string is not allowed (key is not a string)
-//   - []SomeStruct is not allowed (struct without json.Marshaler could loop)
-//   - map[string]chan int is not allowed (channels cannot be turned into JSON)
+// isJSONStringableType checks whether a map or slice can be serialised safely for an
+// attribute.
 //
 // Takes analysisContext (*AnalysisContext) which provides inspector lookups.
 // Takes typeExpr (goast.Expr) which is the type expression to check.
@@ -736,11 +718,6 @@ func (tr *TypeResolver) isJSONStringableType(ctx context.Context, analysisContex
 }
 
 // isSafeJSONLeafOrCollection checks if a type can be safely turned into JSON.
-//
-// This checks for basic types, JSON-safe named types, or safe collections. It calls
-// itself to check nested structures at any depth. Named types are checked through the
-// inspector to see if they support JSON-compatible string output (TextMarshaler,
-// PikoFormatter, and similar).
 //
 // Takes analysisContext (*AnalysisContext) which provides the analysis state.
 // Takes typeExpr (goast.Expr) which is the type expression to check.
@@ -770,9 +747,7 @@ func (tr *TypeResolver) isSafeJSONLeafOrCollection(ctx context.Context, analysis
 	return false
 }
 
-// isNamedTypeJSONSafe checks if a named type is safe for JSON serialisation. A type is
-// safe if it implements json.Marshaler, TextMarshaler, or is a special Piko type with a
-// known formatter.
+// isNamedTypeJSONSafe checks if a named type is safe for JSON serialisation.
 //
 // Takes analysisContext (*AnalysisContext) which provides the analysis state and scope.
 // Takes typeExpr (goast.Expr) which is the type expression to check.
@@ -845,7 +820,6 @@ func getLenCapReturnType(_ context.Context, _ *TypeResolver, _ *AnalysisContext,
 }
 
 // getMinMaxReturnType defines the return type for the built-in min() and max() functions.
-// The return type is always the type of the first argument.
 //
 // Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which provides type annotations for
 // the function arguments.
@@ -859,215 +833,6 @@ func getMinMaxReturnType(_ context.Context, _ *TypeResolver, _ *AnalysisContext,
 	return newSimpleTypeInfo(goast.NewIdent(typeAny))
 }
 
-// substituteType walks a type expression and replaces generic type parameters with their
-// concrete types from the substitution map.
-//
-// When expression is nil or substMap is empty, returns the original expression.
-//
-// Takes expression (goast.Expr) which is the type expression to process.
-// Takes substMap (map[string]goast.Expr) which maps type parameter names to their
-// concrete types.
-//
-// Returns goast.Expr which is the expression with type parameters replaced, or the
-// original expression if no substitution applies.
-func substituteType(expression goast.Expr, substMap map[string]goast.Expr) goast.Expr {
-	if expression == nil || len(substMap) == 0 {
-		return expression
-	}
-
-	switch n := expression.(type) {
-	case *goast.Ident:
-		return substituteIdent(n, substMap)
-	case *goast.StarExpr:
-		return substituteStarExpr(n, substMap)
-	case *goast.ArrayType:
-		return substituteArrayType(n, substMap)
-	case *goast.MapType:
-		return substituteMapType(n, substMap)
-	case *goast.ChanType:
-		return substituteChanType(n, substMap)
-	case *goast.FuncType:
-		return substituteFuncType(n, substMap)
-	case *goast.IndexExpr:
-		return substituteIndexExpr(n, substMap)
-	case *goast.IndexListExpr:
-		return substituteIndexListExpr(n, substMap)
-	}
-	return expression
-}
-
-// substituteIdent replaces a type parameter name with its concrete type.
-//
-// Takes n (*goast.Ident) which is the identifier to check.
-// Takes substMap (map[string]goast.Expr) which maps type parameter names to their
-// concrete type expressions.
-//
-// Returns goast.Expr which is the concrete type if found in the map, or the original
-// identifier if not found.
-func substituteIdent(n *goast.Ident, substMap map[string]goast.Expr) goast.Expr {
-	if replacement, ok := substMap[n.Name]; ok {
-		return replacement
-	}
-	return n
-}
-
-// substituteStarExpr replaces type parameters in a pointer type.
-//
-// Takes n (*goast.StarExpr) which is the pointer type to process.
-// Takes substMap (map[string]goast.Expr) which maps type parameter names to their
-// concrete types.
-//
-// Returns goast.Expr which is a new pointer with the inner type replaced, or the original
-// if no change was needed.
-func substituteStarExpr(n *goast.StarExpr, substMap map[string]goast.Expr) goast.Expr {
-	newX := substituteType(n.X, substMap)
-	if newX != n.X {
-		return &goast.StarExpr{X: newX}
-	}
-	return n
-}
-
-// substituteArrayType replaces type parameters in array and slice types.
-//
-// Takes n (*goast.ArrayType) which is the array type node to process.
-// Takes substMap (map[string]goast.Expr) which maps type parameter names to their
-// concrete types.
-//
-// Returns goast.Expr which is a new array type with the element type replaced, or the
-// original node if no change was needed.
-func substituteArrayType(n *goast.ArrayType, substMap map[string]goast.Expr) goast.Expr {
-	newElt := substituteType(n.Elt, substMap)
-	if newElt != n.Elt {
-		return &goast.ArrayType{Len: n.Len, Elt: newElt}
-	}
-	return n
-}
-
-// substituteMapType replaces type parameters in a map type with their concrete types.
-//
-// Takes n (*goast.MapType) which is the map type node to process.
-// Takes substMap (map[string]goast.Expr) which maps type parameter names to their
-// concrete types.
-//
-// Returns goast.Expr which is the map type with replaced key and value types, or the
-// original node if no changes were made.
-func substituteMapType(n *goast.MapType, substMap map[string]goast.Expr) goast.Expr {
-	newKey := substituteType(n.Key, substMap)
-	newValue := substituteType(n.Value, substMap)
-	if newKey != n.Key || newValue != n.Value {
-		return &goast.MapType{Key: newKey, Value: newValue}
-	}
-	return n
-}
-
-// substituteChanType replaces type parameters in a channel type with their concrete
-// types.
-//
-// Takes n (*goast.ChanType) which is the channel type to process.
-// Takes substMap (map[string]goast.Expr) which maps type parameter names to their
-// concrete types.
-//
-// Returns goast.Expr which is a new channel type with the element type replaced, or the
-// original if no change was needed.
-func substituteChanType(n *goast.ChanType, substMap map[string]goast.Expr) goast.Expr {
-	newValue := substituteType(n.Value, substMap)
-	if newValue != n.Value {
-		return &goast.ChanType{Dir: n.Dir, Value: newValue}
-	}
-	return n
-}
-
-// substituteFuncType replaces type parameters in a function type.
-//
-// Takes n (*goast.FuncType) which is the function type to update.
-// Takes substMap (map[string]goast.Expr) which maps type parameter names to their
-// concrete types.
-//
-// Returns goast.Expr which is a new function type with the replacements applied, or the
-// original if no changes were needed.
-func substituteFuncType(n *goast.FuncType, substMap map[string]goast.Expr) goast.Expr {
-	newParams, paramsChanged := substituteFieldList(n.Params, substMap)
-	newResults, resultsChanged := substituteFieldList(n.Results, substMap)
-
-	if paramsChanged || resultsChanged {
-		return &goast.FuncType{Func: n.Func, Params: newParams, Results: newResults}
-	}
-	return n
-}
-
-// substituteFieldList replaces types in a field list used for function parameters or
-// results.
-//
-// Takes fieldList (*goast.FieldList) which is the list of fields to process.
-// Takes substMap (map[string]goast.Expr) which maps type names to their replacement
-// types.
-//
-// Returns *goast.FieldList which is the new field list with replacements.
-// Returns bool which indicates whether any replacements were made.
-func substituteFieldList(fieldList *goast.FieldList, substMap map[string]goast.Expr) (*goast.FieldList, bool) {
-	if fieldList == nil {
-		return nil, false
-	}
-
-	newFieldList := &goast.FieldList{Opening: fieldList.Opening, Closing: fieldList.Closing}
-	changed := false
-
-	for _, field := range fieldList.List {
-		newField := *field
-		newField.Type = substituteType(field.Type, substMap)
-		if newField.Type != field.Type {
-			changed = true
-		}
-		newFieldList.List = append(newFieldList.List, &newField)
-	}
-	return newFieldList, changed
-}
-
-// substituteIndexExpr replaces type parameters in a generic index expression with one
-// type argument, such as Box[T].
-//
-// Takes n (*goast.IndexExpr) which is the index expression to process.
-// Takes substMap (map[string]goast.Expr) which maps type parameter names to their
-// replacement expressions.
-//
-// Returns goast.Expr which is a new expression with replacements applied, or the original
-// if nothing changed.
-func substituteIndexExpr(n *goast.IndexExpr, substMap map[string]goast.Expr) goast.Expr {
-	newX := substituteType(n.X, substMap)
-	newIndex := substituteType(n.Index, substMap)
-	if newX != n.X || newIndex != n.Index {
-		return &goast.IndexExpr{X: newX, Lbrack: n.Lbrack, Index: newIndex, Rbrack: n.Rbrack}
-	}
-	return n
-}
-
-// substituteIndexListExpr replaces type parameters in an index list expression for
-// generic types with more than one parameter, such as Map[K, V].
-//
-// Takes n (*goast.IndexListExpr) which is the index list expression to process.
-// Takes substMap (map[string]goast.Expr) which maps type parameter names to their
-// concrete types.
-//
-// Returns goast.Expr which is a new expression with the replacements applied, or the
-// original if no changes were needed.
-func substituteIndexListExpr(n *goast.IndexListExpr, substMap map[string]goast.Expr) goast.Expr {
-	newX := substituteType(n.X, substMap)
-	changed := newX != n.X
-	newIndices := make([]goast.Expr, len(n.Indices))
-
-	for i, index := range n.Indices {
-		newIndices[i] = substituteType(index, substMap)
-		if newIndices[i] != index {
-			changed = true
-		}
-	}
-
-	if changed {
-		return &goast.IndexListExpr{X: newX, Lbrack: n.Lbrack, Indices: newIndices, Rbrack: n.Rbrack}
-	}
-	return n
-}
-
 // isAssignable checks whether a source type can be assigned to a destination type.
 //
 // Takes source (*ast_domain.ResolvedTypeInfo) which is the type being assigned.
@@ -1075,6 +840,23 @@ func substituteIndexListExpr(n *goast.IndexListExpr, substMap map[string]goast.E
 //
 // Returns bool which is true if the assignment is valid.
 func isAssignable(source, destination *ast_domain.ResolvedTypeInfo) bool {
+	if source == nil || destination == nil || source.TypeExpression == nil || destination.TypeExpression == nil {
+		return false
+	}
+	if isAssignableByRule(source, destination) {
+		return true
+	}
+	return goastutil.ASTToTypeString(source.TypeExpression, source.PackageAlias) == goastutil.ASTToTypeString(destination.TypeExpression, destination.PackageAlias)
+}
+
+// isAssignableByRule checks assignment rules for nil, any, type parameters and compatible
+// numeric types.
+//
+// Takes source (*ast_domain.ResolvedTypeInfo) which is the type being assigned.
+// Takes destination (*ast_domain.ResolvedTypeInfo) which is the target type.
+//
+// Returns bool which is true if one of the rules allows the assignment.
+func isAssignableByRule(source, destination *ast_domain.ResolvedTypeInfo) bool {
 	if source == nil || destination == nil || source.TypeExpression == nil || destination.TypeExpression == nil {
 		return false
 	}
@@ -1087,15 +869,11 @@ func isAssignable(source, destination *ast_domain.ResolvedTypeInfo) bool {
 	if isTypeParameter(destination) {
 		return true
 	}
-	if isArithmeticType(source, destination) {
-		return true
-	}
-	return goastutil.ASTToTypeString(source.TypeExpression, source.PackageAlias) == goastutil.ASTToTypeString(destination.TypeExpression, destination.PackageAlias)
+	return isArithmeticType(source, destination)
 }
 
-// isTypeParameter checks whether the given type information represents a generic type
-// parameter. Type parameters are usually single uppercase letters like T, E, S, K, V, or
-// names starting with a tilde (~) for underlying type constraints.
+// isTypeParameter recognises names shaped like generic parameters or underlying
+// constraints.
 //
 // Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved type to
 // check.
@@ -1223,14 +1001,13 @@ func getPackageAliasFromType(typeExpr goast.Expr, fallback string) string {
 	return fallback
 }
 
-// getNumericFamily returns the numeric family for a type. It is used to check if types
-// are compatible with each other.
+// getNumericFamily returns the numeric family for a type.
 //
 // Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved type
 // information to classify.
 //
-// Returns int which is the numeric family: familyDecimal, familyBigInt, familyStandard,
-// or familyNone if the type is not numeric.
+// Returns int which is the numeric family, one of familyDecimal, familyBigInt or
+// familyStandard, or familyNone if the type is not numeric.
 func getNumericFamily(typeInfo *ast_domain.ResolvedTypeInfo) int {
 	if typeInfo == nil || typeInfo.TypeExpression == nil {
 		return familyNone
@@ -1266,8 +1043,7 @@ func isNumericType(typeInfo *ast_domain.ResolvedTypeInfo) bool {
 	return goastutil.IsPrimitiveOrBuiltin(identifier.Name) && identifier.Name != typeString && identifier.Name != "bool"
 }
 
-// isStandardInteger reports whether a type is a standard Go integer type. It returns
-// false for floating-point types (float32 and float64).
+// isStandardInteger reports whether a type is a standard Go integer type.
 //
 // Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved type
 // information to check.
@@ -1301,8 +1077,7 @@ func isArithmeticType(left, right *ast_domain.ResolvedTypeInfo) bool {
 }
 
 // areNumericTypesCompatible checks if two numeric types can be used together in
-// operations. It handles standard numeric types, BigInt, and Decimal families, but not
-// Money.
+// operations.
 //
 // Takes left (*ast_domain.ResolvedTypeInfo) which is the first type to check.
 // Takes right (*ast_domain.ResolvedTypeInfo) which is the second type to check.
@@ -1359,6 +1134,47 @@ func areMoneyTypesCompatible(left, right *ast_domain.ResolvedTypeInfo) bool {
 	return false
 }
 
+// temporalTypeName recognises the standard library's Time and Duration types.
+//
+// Takes info (*ast_domain.ResolvedTypeInfo) which is the resolved type to identify.
+//
+// Returns string which is Time or Duration, or empty when the type is not recognised.
+func temporalTypeName(info *ast_domain.ResolvedTypeInfo) string {
+	if info == nil || (info.CanonicalPackagePath != "" && info.CanonicalPackagePath != timePackagePath) {
+		return ""
+	}
+	name := ""
+	switch x := info.TypeExpression.(type) {
+	case *goast.SelectorExpr:
+		id, ok := x.X.(*goast.Ident)
+		if !ok || (id.Name != timePackagePath && info.CanonicalPackagePath != timePackagePath) {
+			return ""
+		}
+		name = x.Sel.Name
+	case *goast.Ident:
+		if info.CanonicalPackagePath != timePackagePath {
+			return ""
+		}
+		name = x.Name
+	}
+	if name == temporalTypeTime || name == temporalTypeDuration {
+		return name
+	}
+	return ""
+}
+
+// temporalAnnotation creates a stringable annotation for a time package type.
+//
+// Takes name (string) which is the Time or Duration type name.
+//
+// Returns *ast_domain.GoGeneratorAnnotation which holds the concrete time type and source
+// path.
+func (a *typeExpressionAnalyser) temporalAnnotation(name string) *ast_domain.GoGeneratorAnnotation {
+	info := newSimpleTypeInfoWithAlias(&goast.SelectorExpr{X: goast.NewIdent(timePackagePath), Sel: goast.NewIdent(name)}, timePackagePath)
+	info.CanonicalPackagePath = timePackagePath
+	return newAnnotationFull(info, &a.ctx.SFCSourcePath, int(inspector_dto.StringableViaStringer))
+}
+
 // areComparableForOrdering checks if two types can be compared using ordering operators
 // such as >, <, >=, and <=.
 //
@@ -1367,6 +1183,9 @@ func areMoneyTypesCompatible(left, right *ast_domain.ResolvedTypeInfo) bool {
 //
 // Returns bool which is true if both types support ordering comparisons.
 func areComparableForOrdering(left, right *ast_domain.ResolvedTypeInfo) bool {
+	if name := temporalTypeName(left); name != "" && name == temporalTypeName(right) {
+		return true
+	}
 	if isStringType(left) && isStringType(right) {
 		return true
 	}
@@ -1434,7 +1253,7 @@ func isNumericLike(typeInfo *ast_domain.ResolvedTypeInfo) bool {
 
 // isNumeric reports whether the given type is a numeric type.
 //
-// Takes typeInfo (*ResolvedTypeInfo) which describes the type to check.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which describes the type to check.
 //
 // Returns bool which is true if the type is a built-in numeric type such as int, float64,
 // or byte.
@@ -1453,7 +1272,7 @@ func isNumeric(typeInfo *ast_domain.ResolvedTypeInfo) bool {
 }
 
 // getTranslationFuncReturnType returns the type information for T() and LT() translation
-// functions. These functions always return a string.
+// functions.
 //
 // Returns *ast_domain.ResolvedTypeInfo which holds the string type.
 func getTranslationFuncReturnType(_ context.Context, _ *TypeResolver, _ *AnalysisContext, _ *ast_domain.CallExpression, _ []*ast_domain.GoGeneratorAnnotation) *ast_domain.ResolvedTypeInfo {
@@ -1462,9 +1281,6 @@ func getTranslationFuncReturnType(_ context.Context, _ *TypeResolver, _ *Analysi
 
 // validateTranslationKeyExists checks if a translation key exists in the loaded
 // translations.
-//
-// When translation keys are not loaded, returns without checking. When the first argument
-// is not a string literal, returns without checking.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis state and translation keys.
 // Takes callExpr (*ast_domain.CallExpression) which is the function call to check.
@@ -1512,9 +1328,7 @@ func validateTranslationKeyExists(ctx *AnalysisContext, callExpr *ast_domain.Cal
 	}
 }
 
-// isJSONPrimitive checks if a type name is a primitive that is safe for JSON. The type
-// `any` is not included because it can hold values that cannot be turned into JSON at
-// runtime, such as channels, functions, and complex numbers.
+// isJSONPrimitive checks if a type name is a primitive that is safe for JSON.
 //
 // Takes name (string) which is the type name to check.
 //
@@ -1530,10 +1344,7 @@ func isJSONPrimitive(name string) bool {
 	return false
 }
 
-// isJSONSafeKeyType checks whether a type can be used as a JSON map key. JSON keys are
-// always strings, but Go's json.Marshal converts some types on its own: strings are used
-// as they are, integers become decimal strings, and types that use encoding.TextMarshaler
-// call their MarshalText method.
+// isJSONSafeKeyType checks whether a type can be used as a JSON map key.
 //
 // Takes typeExpr (goast.Expr) which is the type expression to check.
 //
@@ -1576,8 +1387,7 @@ func isPointerToType(source, destination *ast_domain.ResolvedTypeInfo) bool {
 	return sourceTypeString == destBaseTypeString
 }
 
-// getNumericRank returns the rank for numeric type promotion. This is called after
-// isArithmeticType has confirmed the operation is valid.
+// getNumericRank returns the rank for numeric type promotion.
 //
 // Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved type
 // information to rank.

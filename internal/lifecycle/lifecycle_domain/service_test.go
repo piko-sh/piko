@@ -574,12 +574,12 @@ func TestLifecycleService_clearSvgCacheIfNeeded(t *testing.T) {
 
 		service := mustBuildLifecycleService(t, deps)
 
-		fec := fileEventContext{
+		change := fileEvent{
 			event:      lifecycle_dto.FileEvent{Path: "/test/icons/logo.svg"},
 			artefactID: "icons/logo.svg",
 		}
 
-		service.clearSvgCacheIfNeeded(fec)
+		service.clearSvgCacheIfNeeded(t.Context(), change)
 
 		assert.Contains(t, mockRenderRegistry.clearedSvgIDs, "icons/logo.svg")
 	})
@@ -594,12 +594,12 @@ func TestLifecycleService_clearSvgCacheIfNeeded(t *testing.T) {
 
 		service := mustBuildLifecycleService(t, deps)
 
-		fec := fileEventContext{
+		change := fileEvent{
 			event:      lifecycle_dto.FileEvent{Path: "/test/images/logo.png"},
 			artefactID: "images/logo.png",
 		}
 
-		service.clearSvgCacheIfNeeded(fec)
+		service.clearSvgCacheIfNeeded(t.Context(), change)
 
 		assert.Empty(t, mockRenderRegistry.clearedSvgIDs)
 	})
@@ -612,12 +612,12 @@ func TestLifecycleService_clearSvgCacheIfNeeded(t *testing.T) {
 
 		service := mustBuildLifecycleService(t, deps)
 
-		fec := fileEventContext{
+		change := fileEvent{
 			event:      lifecycle_dto.FileEvent{Path: "/test/icons/logo.svg"},
 			artefactID: "icons/logo.svg",
 		}
 
-		service.clearSvgCacheIfNeeded(fec)
+		service.clearSvgCacheIfNeeded(t.Context(), change)
 	})
 }
 
@@ -899,11 +899,11 @@ func TestLifecycleService_buildFileEventContext(t *testing.T) {
 			Type: lifecycle_dto.FileEventTypeCreate,
 		}
 
-		fec, ok := service.buildFileEventContext(context.Background(), event)
+		change, ok := service.buildFileEvent(t.Context(), event)
 
 		assert.True(t, ok)
-		assert.Equal(t, "assets/logo.png", fec.relPath)
-		assert.Contains(t, fec.artefactID, "assets/logo.png")
+		assert.Equal(t, "assets/logo.png", change.relPath)
+		assert.Contains(t, change.artefactID, "assets/logo.png")
 	})
 
 	t.Run("returns false for irrelevant file", func(t *testing.T) {
@@ -922,7 +922,7 @@ func TestLifecycleService_buildFileEventContext(t *testing.T) {
 			Type: lifecycle_dto.FileEventTypeCreate,
 		}
 
-		_, ok := service.buildFileEventContext(context.Background(), event)
+		_, ok := service.buildFileEvent(t.Context(), event)
 
 		assert.False(t, ok)
 	})
@@ -1289,8 +1289,7 @@ func TestLifecycleService_handleCoreSourceChange(t *testing.T) {
 
 		service := mustBuildLifecycleService(t, deps)
 
-		fec := fileEventContext{
-			ctx:        context.Background(),
+		change := fileEvent{
 			relPath:    "pages/home.pk",
 			artefactID: "test-module/pages/home.pk",
 			event: lifecycle_dto.FileEvent{
@@ -1299,7 +1298,7 @@ func TestLifecycleService_handleCoreSourceChange(t *testing.T) {
 			},
 		}
 
-		service.handleCoreSourceChange(fec, false)
+		service.handleCoreSourceChange(t.Context(), change, false)
 
 		assert.True(t, mockInvalidator.invalidated)
 	})
@@ -1319,8 +1318,7 @@ func TestLifecycleService_handleCoreSourceChange(t *testing.T) {
 
 		service := mustBuildLifecycleService(t, deps)
 
-		fec := fileEventContext{
-			ctx:     context.Background(),
+		change := fileEvent{
 			relPath: "pages/home.pk",
 			event: lifecycle_dto.FileEvent{
 				Path: "/project/pages/home.pk",
@@ -1328,7 +1326,7 @@ func TestLifecycleService_handleCoreSourceChange(t *testing.T) {
 			},
 		}
 
-		service.handleCoreSourceChange(fec, true)
+		service.handleCoreSourceChange(t.Context(), change, true)
 
 		assert.False(t, mockInvalidator.invalidated)
 	})
@@ -1444,8 +1442,7 @@ func TestLifecycleService_handleAssetChange(t *testing.T) {
 
 		service := mustBuildLifecycleService(t, deps)
 
-		fec := fileEventContext{
-			ctx:        context.Background(),
+		change := fileEvent{
 			relPath:    "assets/logo.png",
 			artefactID: "test-module/assets/logo.png",
 			event: lifecycle_dto.FileEvent{
@@ -1454,7 +1451,7 @@ func TestLifecycleService_handleAssetChange(t *testing.T) {
 			},
 		}
 
-		service.handleAssetChange(fec)
+		service.handleAssetChange(t.Context(), change)
 
 		assert.Len(t, mockRegistry.upsertedArtefacts, 1)
 		assert.Equal(t, "test-module/assets/logo.png", mockRegistry.upsertedArtefacts[0])
@@ -1474,8 +1471,7 @@ func TestLifecycleService_handleAssetChange(t *testing.T) {
 
 		service := mustBuildLifecycleService(t, deps)
 
-		fec := fileEventContext{
-			ctx:        context.Background(),
+		change := fileEvent{
 			relPath:    "assets/style.css",
 			artefactID: "test-module/assets/style.css",
 			event: lifecycle_dto.FileEvent{
@@ -1484,7 +1480,7 @@ func TestLifecycleService_handleAssetChange(t *testing.T) {
 			},
 		}
 
-		service.handleAssetChange(fec)
+		service.handleAssetChange(t.Context(), change)
 
 		assert.Len(t, mockRegistry.upsertedArtefacts, 1)
 	})
@@ -1499,8 +1495,7 @@ func TestLifecycleService_handleAssetChange(t *testing.T) {
 
 		service := mustBuildLifecycleService(t, deps)
 
-		fec := fileEventContext{
-			ctx:        context.Background(),
+		change := fileEvent{
 			relPath:    "assets/old.png",
 			artefactID: "test-module/assets/old.png",
 			event: lifecycle_dto.FileEvent{
@@ -1509,7 +1504,7 @@ func TestLifecycleService_handleAssetChange(t *testing.T) {
 			},
 		}
 
-		service.handleAssetChange(fec)
+		service.handleAssetChange(t.Context(), change)
 
 		assert.Len(t, mockRegistry.deletedArtefacts, 1)
 		assert.Equal(t, "test-module/assets/old.png", mockRegistry.deletedArtefacts[0])
@@ -1525,8 +1520,7 @@ func TestLifecycleService_handleAssetChange(t *testing.T) {
 
 		service := mustBuildLifecycleService(t, deps)
 
-		fec := fileEventContext{
-			ctx:        context.Background(),
+		change := fileEvent{
 			relPath:    "assets/renamed.png",
 			artefactID: "test-module/assets/renamed.png",
 			event: lifecycle_dto.FileEvent{
@@ -1535,7 +1529,7 @@ func TestLifecycleService_handleAssetChange(t *testing.T) {
 			},
 		}
 
-		service.handleAssetChange(fec)
+		service.handleAssetChange(t.Context(), change)
 
 		assert.Len(t, mockRegistry.deletedArtefacts, 1)
 	})
@@ -1558,8 +1552,7 @@ func TestLifecycleService_upsertAssetArtefact(t *testing.T) {
 
 		service := mustBuildLifecycleService(t, deps)
 
-		fec := fileEventContext{
-			ctx:        context.Background(),
+		change := fileEvent{
 			relPath:    "assets/logo.png",
 			artefactID: "test-module/assets/logo.png",
 			event: lifecycle_dto.FileEvent{
@@ -1568,7 +1561,7 @@ func TestLifecycleService_upsertAssetArtefact(t *testing.T) {
 			},
 		}
 
-		service.upsertAssetArtefact(fec)
+		service.upsertAssetArtefact(t.Context(), change)
 
 		assert.Len(t, mockRegistry.upsertedArtefacts, 1)
 		assert.Equal(t, "test-module/assets/logo.png", mockRegistry.upsertedArtefacts[0])
@@ -1593,8 +1586,7 @@ func TestLifecycleService_upsertAssetArtefact(t *testing.T) {
 		ctx := logger_domain.WithLogger(context.Background(),
 			logger_domain.New(slog.New(slog.NewTextHandler(logOutput, nil)), "lifecycle-test"))
 
-		fec := fileEventContext{
-			ctx:        ctx,
+		change := fileEvent{
 			relPath:    "assets/missing.png",
 			artefactID: "test-module/assets/missing.png",
 			event: lifecycle_dto.FileEvent{
@@ -1603,7 +1595,7 @@ func TestLifecycleService_upsertAssetArtefact(t *testing.T) {
 			},
 		}
 
-		service.upsertAssetArtefact(fec)
+		service.upsertAssetArtefact(ctx, change)
 
 		assert.Empty(t, mockRegistry.upsertedArtefacts)
 		assert.NotContains(t, logOutput.String(), "Failed to read updated asset file",
@@ -1626,8 +1618,7 @@ func TestLifecycleService_upsertAssetArtefact(t *testing.T) {
 
 		service := mustBuildLifecycleService(t, deps)
 
-		fec := fileEventContext{
-			ctx:        context.Background(),
+		change := fileEvent{
 			relPath:    "assets/logo.png",
 			artefactID: "test-module/assets/logo.png",
 			event: lifecycle_dto.FileEvent{
@@ -1636,7 +1627,7 @@ func TestLifecycleService_upsertAssetArtefact(t *testing.T) {
 			},
 		}
 
-		service.upsertAssetArtefact(fec)
+		service.upsertAssetArtefact(t.Context(), change)
 	})
 }
 
@@ -1653,12 +1644,11 @@ func TestLifecycleService_deleteAssetArtefact(t *testing.T) {
 
 		service := mustBuildLifecycleService(t, deps)
 
-		fec := fileEventContext{
-			ctx:        context.Background(),
+		change := fileEvent{
 			artefactID: "test-module/assets/old.png",
 		}
 
-		service.deleteAssetArtefact(fec)
+		service.deleteAssetArtefact(t.Context(), change)
 
 		assert.Len(t, mockRegistry.deletedArtefacts, 1)
 		assert.Equal(t, "test-module/assets/old.png", mockRegistry.deletedArtefacts[0])
@@ -1676,12 +1666,11 @@ func TestLifecycleService_deleteAssetArtefact(t *testing.T) {
 
 		service := mustBuildLifecycleService(t, deps)
 
-		fec := fileEventContext{
-			ctx:        context.Background(),
+		change := fileEvent{
 			artefactID: "test-module/assets/nonexistent.png",
 		}
 
-		service.deleteAssetArtefact(fec)
+		service.deleteAssetArtefact(t.Context(), change)
 	})
 
 	t.Run("logs other delete errors", func(t *testing.T) {
@@ -1696,12 +1685,11 @@ func TestLifecycleService_deleteAssetArtefact(t *testing.T) {
 
 		service := mustBuildLifecycleService(t, deps)
 
-		fec := fileEventContext{
-			ctx:        context.Background(),
+		change := fileEvent{
 			artefactID: "test-module/assets/problematic.png",
 		}
 
-		service.deleteAssetArtefact(fec)
+		service.deleteAssetArtefact(t.Context(), change)
 	})
 }
 
@@ -2738,12 +2726,12 @@ func TestLifecycleService_buildFileEventContext_pathConversion(t *testing.T) {
 			Type: lifecycle_dto.FileEventTypeCreate,
 		}
 
-		fec, ok := service.buildFileEventContext(context.Background(), event)
+		change, ok := service.buildFileEvent(t.Context(), event)
 
 		assert.True(t, ok)
 
-		assert.Equal(t, "assets/nested/deep/file.css", fec.relPath)
-		assert.NotContains(t, fec.relPath, "\\")
+		assert.Equal(t, "assets/nested/deep/file.css", change.relPath)
+		assert.NotContains(t, change.relPath, "\\")
 	})
 
 	t.Run("builds correct artefact ID with module name", func(t *testing.T) {
@@ -2769,10 +2757,10 @@ func TestLifecycleService_buildFileEventContext_pathConversion(t *testing.T) {
 			Type: lifecycle_dto.FileEventTypeCreate,
 		}
 
-		fec, ok := service.buildFileEventContext(context.Background(), event)
+		change, ok := service.buildFileEvent(t.Context(), event)
 
 		assert.True(t, ok)
-		assert.Equal(t, "test-module/assets/logo.png", fec.artefactID)
+		assert.Equal(t, "test-module/assets/logo.png", change.artefactID)
 	})
 
 	t.Run("handles relative path computation error", func(t *testing.T) {
@@ -2791,7 +2779,7 @@ func TestLifecycleService_buildFileEventContext_pathConversion(t *testing.T) {
 			Type: lifecycle_dto.FileEventTypeCreate,
 		}
 
-		_, ok := service.buildFileEventContext(context.Background(), event)
+		_, ok := service.buildFileEvent(t.Context(), event)
 
 		assert.False(t, ok)
 	})
@@ -3126,8 +3114,7 @@ func TestLifecycleService_clearComponentCacheIfNeeded(t *testing.T) {
 
 		service := mustBuildLifecycleService(t, deps)
 
-		fec := fileEventContext{
-			ctx:        context.Background(),
+		change := fileEvent{
 			relPath:    "components/my-button.pkc",
 			artefactID: "test-module/components/my-button.pkc",
 			event: lifecycle_dto.FileEvent{
@@ -3136,7 +3123,7 @@ func TestLifecycleService_clearComponentCacheIfNeeded(t *testing.T) {
 			},
 		}
 
-		service.clearComponentCacheIfNeeded(fec)
+		service.clearComponentCacheIfNeeded(t.Context(), change)
 
 		require.Len(t, mockRenderRegistry.clearedComponentIDs, 1)
 		assert.Equal(t, "my-button", mockRenderRegistry.clearedComponentIDs[0])
@@ -3152,8 +3139,7 @@ func TestLifecycleService_clearComponentCacheIfNeeded(t *testing.T) {
 
 		service := mustBuildLifecycleService(t, deps)
 
-		fec := fileEventContext{
-			ctx:        context.Background(),
+		change := fileEvent{
 			relPath:    "assets/style.css",
 			artefactID: "test-module/assets/style.css",
 			event: lifecycle_dto.FileEvent{
@@ -3162,7 +3148,7 @@ func TestLifecycleService_clearComponentCacheIfNeeded(t *testing.T) {
 			},
 		}
 
-		service.clearComponentCacheIfNeeded(fec)
+		service.clearComponentCacheIfNeeded(t.Context(), change)
 
 		assert.Empty(t, mockRenderRegistry.clearedComponentIDs)
 	})
@@ -3175,8 +3161,7 @@ func TestLifecycleService_clearComponentCacheIfNeeded(t *testing.T) {
 
 		service := mustBuildLifecycleService(t, deps)
 
-		fec := fileEventContext{
-			ctx:        context.Background(),
+		change := fileEvent{
 			relPath:    "components/my-button.pkc",
 			artefactID: "test-module/components/my-button.pkc",
 			event: lifecycle_dto.FileEvent{
@@ -3185,7 +3170,7 @@ func TestLifecycleService_clearComponentCacheIfNeeded(t *testing.T) {
 			},
 		}
 
-		service.clearComponentCacheIfNeeded(fec)
+		service.clearComponentCacheIfNeeded(t.Context(), change)
 	})
 
 	t.Run("derives tag name from filename without extension", func(t *testing.T) {
@@ -3198,8 +3183,7 @@ func TestLifecycleService_clearComponentCacheIfNeeded(t *testing.T) {
 
 		service := mustBuildLifecycleService(t, deps)
 
-		fec := fileEventContext{
-			ctx:        context.Background(),
+		change := fileEvent{
 			relPath:    "components/nested/fancy-card.pkc",
 			artefactID: "test-module/components/nested/fancy-card.pkc",
 			event: lifecycle_dto.FileEvent{
@@ -3208,7 +3192,7 @@ func TestLifecycleService_clearComponentCacheIfNeeded(t *testing.T) {
 			},
 		}
 
-		service.clearComponentCacheIfNeeded(fec)
+		service.clearComponentCacheIfNeeded(t.Context(), change)
 
 		require.Len(t, mockRenderRegistry.clearedComponentIDs, 1)
 		assert.Equal(t, "fancy-card", mockRenderRegistry.clearedComponentIDs[0])
@@ -3422,8 +3406,7 @@ func TestLifecycleService_handleCoreSourceChange_pkcFile(t *testing.T) {
 
 		service := mustBuildLifecycleService(t, deps)
 
-		fec := fileEventContext{
-			ctx:        context.Background(),
+		change := fileEvent{
 			relPath:    "components/my-comp.pkc",
 			artefactID: "test-module/components/my-comp.pkc",
 			event: lifecycle_dto.FileEvent{
@@ -3432,7 +3415,7 @@ func TestLifecycleService_handleCoreSourceChange_pkcFile(t *testing.T) {
 			},
 		}
 
-		service.handleCoreSourceChange(fec, false)
+		service.handleCoreSourceChange(t.Context(), change, false)
 
 		require.Len(t, mockRenderRegistry.clearedComponentIDs, 1)
 		assert.Equal(t, "my-comp", mockRenderRegistry.clearedComponentIDs[0])
@@ -3459,8 +3442,7 @@ func TestLifecycleService_handleCoreSourceChange_pkcFile(t *testing.T) {
 
 		service := mustBuildLifecycleService(t, deps)
 
-		fec := fileEventContext{
-			ctx:        context.Background(),
+		change := fileEvent{
 			relPath:    "components/my-comp.pkc",
 			artefactID: "test-module/components/my-comp.pkc",
 			event: lifecycle_dto.FileEvent{
@@ -3469,7 +3451,7 @@ func TestLifecycleService_handleCoreSourceChange_pkcFile(t *testing.T) {
 			},
 		}
 
-		service.handleCoreSourceChange(fec, true)
+		service.handleCoreSourceChange(t.Context(), change, true)
 
 		assert.Empty(t, mockRegistry.upsertedArtefacts)
 	})
@@ -3490,8 +3472,7 @@ func TestLifecycleService_handleCoreSourceChange_pkcFile(t *testing.T) {
 
 		service := mustBuildLifecycleService(t, deps)
 
-		fec := fileEventContext{
-			ctx:        context.Background(),
+		change := fileEvent{
 			relPath:    "pages/home.pk",
 			artefactID: "test-module/pages/home.pk",
 			event: lifecycle_dto.FileEvent{
@@ -3500,7 +3481,7 @@ func TestLifecycleService_handleCoreSourceChange_pkcFile(t *testing.T) {
 			},
 		}
 
-		service.handleCoreSourceChange(fec, false)
+		service.handleCoreSourceChange(t.Context(), change, false)
 
 		assert.True(t, mockCoordinator.rebuildCalled)
 	})
@@ -4094,8 +4075,7 @@ func TestHandleAssetChangeReregistersUpdatedSvg(t *testing.T) {
 
 	service := mustBuildLifecycleService(t, deps)
 
-	fec := fileEventContext{
-		ctx:        context.Background(),
+	change := fileEvent{
 		relPath:    "assets/icon.svg",
 		artefactID: "test-module/assets/icon.svg",
 		event: lifecycle_dto.FileEvent{
@@ -4104,7 +4084,7 @@ func TestHandleAssetChangeReregistersUpdatedSvg(t *testing.T) {
 		},
 	}
 
-	service.handleAssetChange(fec)
+	service.handleAssetChange(t.Context(), change)
 
 	assert.Contains(t, mockRenderRegistry.clearedSvgIDs, "test-module/assets/icon.svg")
 	assert.Len(t, mockRegistry.upsertedArtefacts, 1)
@@ -4127,8 +4107,7 @@ func TestHandleAssetChangeRegistersNewSvg(t *testing.T) {
 
 	service := mustBuildLifecycleService(t, deps)
 
-	fec := fileEventContext{
-		ctx:        context.Background(),
+	change := fileEvent{
 		relPath:    "assets/new.svg",
 		artefactID: "test-module/assets/new.svg",
 		event: lifecycle_dto.FileEvent{
@@ -4137,7 +4116,7 @@ func TestHandleAssetChangeRegistersNewSvg(t *testing.T) {
 		},
 	}
 
-	service.handleAssetChange(fec)
+	service.handleAssetChange(t.Context(), change)
 
 	assert.Len(t, mockRegistry.upsertedArtefacts, 1)
 	assert.Equal(t, "test-module/assets/new.svg", mockRegistry.upsertedArtefacts[0])
@@ -4181,8 +4160,7 @@ func TestHandleAssetChangeNotifiesReload(t *testing.T) {
 
 		service := mustBuildLifecycleService(t, deps)
 
-		fec := fileEventContext{
-			ctx:        context.Background(),
+		change := fileEvent{
 			relPath:    "lib/icon.svg",
 			artefactID: "test-module/lib/icon.svg",
 			event: lifecycle_dto.FileEvent{
@@ -4191,7 +4169,7 @@ func TestHandleAssetChangeNotifiesReload(t *testing.T) {
 			},
 		}
 
-		service.handleAssetChange(fec)
+		service.handleAssetChange(t.Context(), change)
 
 		assert.Len(t, mockRegistry.upsertedArtefacts, 1)
 		assert.Equal(t, 1, mockNotifier.calls())
@@ -4211,8 +4189,7 @@ func TestHandleAssetChangeNotifiesReload(t *testing.T) {
 
 		service := mustBuildLifecycleService(t, deps)
 
-		fec := fileEventContext{
-			ctx:        context.Background(),
+		change := fileEvent{
 			relPath:    "lib/icon.svg",
 			artefactID: "test-module/lib/icon.svg",
 			event: lifecycle_dto.FileEvent{
@@ -4221,7 +4198,7 @@ func TestHandleAssetChangeNotifiesReload(t *testing.T) {
 			},
 		}
 
-		service.handleAssetChange(fec)
+		service.handleAssetChange(t.Context(), change)
 
 		assert.Len(t, mockRegistry.deletedArtefacts, 1)
 		assert.Equal(t, 1, mockNotifier.calls())
@@ -4238,8 +4215,7 @@ func TestHandleAssetChangeNotifiesReload(t *testing.T) {
 
 		service := mustBuildLifecycleService(t, deps)
 
-		fec := fileEventContext{
-			ctx:        context.Background(),
+		change := fileEvent{
 			relPath:    "lib/icon.svg",
 			artefactID: "test-module/lib/icon.svg",
 			event: lifecycle_dto.FileEvent{
@@ -4248,7 +4224,7 @@ func TestHandleAssetChangeNotifiesReload(t *testing.T) {
 			},
 		}
 
-		service.handleAssetChange(fec)
+		service.handleAssetChange(t.Context(), change)
 
 		assert.Equal(t, 0, mockNotifier.calls())
 	})
@@ -4268,8 +4244,7 @@ func TestHandleAssetChangeNotifiesReload(t *testing.T) {
 
 		service := mustBuildLifecycleService(t, deps)
 
-		fec := fileEventContext{
-			ctx:        context.Background(),
+		change := fileEvent{
 			relPath:    "lib/icon.svg",
 			artefactID: "test-module/lib/icon.svg",
 			event: lifecycle_dto.FileEvent{
@@ -4279,7 +4254,7 @@ func TestHandleAssetChangeNotifiesReload(t *testing.T) {
 		}
 
 		assert.NotPanics(t, func() {
-			service.handleAssetChange(fec)
+			service.handleAssetChange(t.Context(), change)
 		})
 	})
 }
@@ -4302,8 +4277,7 @@ func TestHandleCoreSourceChangePageRemovalNonInterpretedInvalidatesCache(t *test
 	service := mustBuildLifecycleService(t, deps)
 	service.updateStyleDepsFromBuild(styleBuildResult("hashA", "/proj/pages/old.pk", "/proj/lib/theme.css"))
 
-	fec := fileEventContext{
-		ctx:        context.Background(),
+	change := fileEvent{
 		relPath:    "pages/old.pk",
 		artefactID: "test-module/pages/old.pk",
 		event: lifecycle_dto.FileEvent{
@@ -4312,7 +4286,7 @@ func TestHandleCoreSourceChangePageRemovalNonInterpretedInvalidatesCache(t *test
 		},
 	}
 
-	service.handleCoreSourceChange(fec, false)
+	service.handleCoreSourceChange(t.Context(), change, false)
 
 	assert.True(t, mockInvalidator.invalidated)
 	assert.Nil(t, service.importersOfStyle("/proj/lib/theme.css"))
@@ -4389,8 +4363,7 @@ func TestHandleCoreSourceChangePageCreateReloadsRoutes(t *testing.T) {
 		service := mustBuildLifecycleService(t, deps)
 		service.currentRunner = mockRunner
 
-		fec := fileEventContext{
-			ctx:        context.Background(),
+		change := fileEvent{
 			relPath:    "pages/new.pk",
 			artefactID: "test-module/pages/new.pk",
 			event: lifecycle_dto.FileEvent{
@@ -4399,7 +4372,7 @@ func TestHandleCoreSourceChangePageCreateReloadsRoutes(t *testing.T) {
 			},
 		}
 
-		service.handleCoreSourceChange(fec, false)
+		service.handleCoreSourceChange(t.Context(), change, false)
 		service.rebuildWG.Wait()
 
 		assert.True(t, mockCoordinator.buildCalled)
@@ -4431,8 +4404,7 @@ func TestHandleCoreSourceChangePageCreateReloadsRoutes(t *testing.T) {
 		service.currentRunner = mockRunner
 		service.addEntryPointIfNotExists(context.Background(), "test-module/components/button.pkc", componentType{})
 
-		fec := fileEventContext{
-			ctx:        context.Background(),
+		change := fileEvent{
 			relPath:    "components/button.pkc",
 			artefactID: "test-module/components/button.pkc",
 			event: lifecycle_dto.FileEvent{
@@ -4441,7 +4413,7 @@ func TestHandleCoreSourceChangePageCreateReloadsRoutes(t *testing.T) {
 			},
 		}
 
-		service.handleCoreSourceChange(fec, false)
+		service.handleCoreSourceChange(t.Context(), change, false)
 		service.rebuildWG.Wait()
 
 		assert.Equal(t, 0, mockRouter.reloadCount)

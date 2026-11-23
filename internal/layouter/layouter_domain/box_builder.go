@@ -87,7 +87,6 @@ type BoxTreeInput struct {
 }
 
 // BuildBoxTree constructs a LayoutBox tree from a TemplateAST and its resolved styles.
-// The returned root box represents the initial containing block with the page dimensions.
 //
 // Takes input (BoxTreeInput) which holds the template, its styles, the image resolver,
 // the viewport size and the limit tracker.
@@ -147,8 +146,7 @@ type boxTreeBuilder struct {
 	// imageResolver resolves intrinsic dimensions for replaced elements such as images.
 	imageResolver ImageResolverPort
 
-	// counters tracks CSS counter values. Each counter name maps to a stack of integer
-	// values; counter-reset pushes, end of element pops.
+	// counters tracks CSS counter values.
 	counters map[string][]int
 
 	// limits enforces the box count, nesting depth and table span limits.
@@ -233,9 +231,8 @@ func (b *boxTreeBuilder) leaveElement() {
 	b.depth--
 }
 
-// processElementNode handles the creation and population of a LayoutBox for an element
-// node, including box-type-specific setup, counter operations, pseudo-element insertion,
-// and recursive child processing.
+// processElementNode builds an element box and its children, counters and
+// pseudo-elements.
 //
 // Takes node (*ast_domain.TemplateNode) which is the element node to process.
 // Takes style (*ComputedStyle) which is the computed style for the node.
@@ -286,7 +283,7 @@ func (b *boxTreeBuilder) processElementNode(
 	b.insertPseudoElement(node, box, containingBlock, PseudoBefore)
 
 	if boxType != BoxReplaced {
-		for _, child := range node.Children {
+		for _, child := range node.ChildrenWithBoundText() {
 			b.buildSubtree(ctx, child, box, childContainingBlock, childTransformAncestor)
 		}
 	}
@@ -385,9 +382,9 @@ func (b *boxTreeBuilder) processCounterReset(style *ComputedStyle) int {
 	return len(style.CounterReset)
 }
 
-// processCounterIncrement handles counter-increment declarations by incrementing the top
-// value on each counter's stack. If a counter has not been reset, an implicit reset to 0
-// is performed first.
+// processCounterIncrement adds each declared increment to the current counter value.
+//
+// A counter without a current value starts at zero.
 //
 // Takes style (*ComputedStyle) which holds the counter-increment declarations.
 func (b *boxTreeBuilder) processCounterIncrement(style *ComputedStyle) {
@@ -570,9 +567,7 @@ func (*boxTreeBuilder) buildTextBox(
 }
 
 // clearNonInheritedTextRunProperties resets non-inherited CSS properties on a text run's
-// style. Text runs are anonymous boxes created from DOM text nodes; they copy the
-// parent's full ComputedStyle for convenience, but non-inherited visual properties like
-// box-shadow, borders, backgrounds, and dimensional properties must not apply.
+// style.
 //
 // Takes style (*ComputedStyle) which is the style to reset.
 func clearNonInheritedTextRunProperties(style *ComputedStyle) {
@@ -674,7 +669,7 @@ func (b *boxTreeBuilder) resolveIntrinsicDimensions(ctx context.Context, box *La
 // Takes node (*ast_domain.TemplateNode) which is the template node to classify.
 // Takes style (*ComputedStyle) which is the computed style containing the display value.
 // Takes parentBoxType (BoxType) which is the box type of the parent container.
-// Takes parentDisplay (Display) which is the parent's display value, used to decide
+// Takes parentDisplay (DisplayType) which is the parent's display value, used to decide
 // whether a flex/grid item's children inherit flex/grid item status or get their natural
 // type.
 //
@@ -762,9 +757,8 @@ func resolveMarkerText(style *ComputedStyle, parent *LayoutBox) string {
 
 // generateListMarker creates a marker box for a list item.
 //
-// For list-style-position: inside the marker is an inline text run prepended to the
-// children. For outside the marker is a BoxListMarker positioned separately during
-// layout.
+// An inside marker is prepended as inline text. An outside marker is positioned
+// separately.
 //
 // Takes listItem (*LayoutBox) which is the list item box to add the marker to.
 // Takes markerText (string) which is the text content of the marker, such as a bullet or
@@ -786,15 +780,14 @@ func generateListMarker(listItem *LayoutBox, markerText string) {
 	listItem.Children = append([]*LayoutBox{marker}, listItem.Children...)
 }
 
-// parseIntAttributeOrDefault reads a named attribute from the node, parses it as an
-// integer, and returns the value clamped to a minimum of 1. Returns defaultValue if the
-// attribute is missing or unparseable.
+// parseIntAttributeOrDefault reads a positive integer attribute with a fallback.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to read the attribute from.
 // Takes name (string) which is the attribute name to look for.
-// Takes defaultValue (int) which is returned when the attribute is absent or invalid.
+// Takes defaultValue (int) which is used when the attribute is missing, invalid or less
+// than one.
 //
-// Returns int which is the parsed attribute value, at least 1.
+// Returns int which is the positive attribute value or the fallback.
 func parseIntAttributeOrDefault(node *ast_domain.TemplateNode, name string, defaultValue int) int {
 	for i := range node.Attributes {
 		if node.Attributes[i].Name == name {
@@ -870,9 +863,7 @@ func isFormElement(node *ast_domain.TemplateNode) bool {
 	}
 }
 
-// resolveFormIntrinsicDimensions sets default intrinsic dimensions for form elements,
-// matching typical browser defaults. These are used when the author does not specify
-// explicit width/height via CSS.
+// resolveFormIntrinsicDimensions sets browser-like default sizes for form elements.
 //
 // Takes box (*LayoutBox) which is the box to set dimensions on.
 // Takes node (*ast_domain.TemplateNode) which is the form element node.

@@ -55,9 +55,6 @@ func isStringType(expression goast.Expr) bool {
 
 // isNillableType checks if a type expression represents a type that can be nil.
 //
-// Nillable types include pointers, slices, maps, functions, channels, and interfaces.
-// Arrays are not nillable, but slices are.
-//
 // Takes typeExpr (goast.Expr) which is the type expression to check.
 //
 // Returns bool which is true if the type can be nil.
@@ -120,7 +117,7 @@ func isNumeric(typeInfo *ast_domain.ResolvedTypeInfo) bool {
 }
 
 // isExpressionStringType checks whether the given resolved type info represents a string
-// type. This is the type-info version of isStringType.
+// type.
 //
 // Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved type to
 // check.
@@ -137,8 +134,7 @@ func isExpressionStringType(typeInfo *ast_domain.ResolvedTypeInfo) bool {
 }
 
 // shouldSkipEscaping checks if HTML escaping can be skipped for a value based on its
-// type. Primitive non-string types like int and bool do not need HTML escaping because
-// they cannot contain HTML special characters.
+// type.
 //
 // Takes ann (*ast_domain.GoGeneratorAnnotation) which provides type information for the
 // value being checked.
@@ -154,9 +150,9 @@ func shouldSkipEscaping(ann *ast_domain.GoGeneratorAnnotation) bool {
 	}
 	if typeIdent, ok := ann.ResolvedType.TypeExpression.(*goast.Ident); ok {
 		switch typeIdent.Name {
-		case StringTypeName, "rune":
-			return false
-		default:
+		case BoolTypeName, IntTypeName, "int8", "int16", "int32", Int64TypeName,
+			"uint", "uint8", "uint16", "uint32", "uint64", "uintptr", "byte",
+			"float32", "float64", "complex64", "complex128":
 			return true
 		}
 	}

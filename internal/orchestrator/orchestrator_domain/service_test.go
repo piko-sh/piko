@@ -895,3 +895,43 @@ func TestServiceClock_SharesTheDispatcherClock(t *testing.T) {
 	assert.Equal(t, clockpkg.RealClock(), serviceClock(ServiceConfig{}, &MockTaskDispatcher{}),
 		"the real clock is the fallback")
 }
+
+func TestService_RunAfterStopReturnsWithoutStarting(t *testing.T) {
+	t.Parallel()
+
+	service := mustCastToOrchestratorService(t, NewService(t.Context(), NewFakeTaskStore(), nil,
+		WithSchedulerInterval(10*time.Second),
+		WithTaskDispatcher(NewMockTaskDispatcher()),
+	))
+	service.Stop()
+
+	returned := make(chan struct{})
+	go func() {
+		service.Run(t.Context())
+		close(returned)
+	}()
+
+	select {
+	case <-returned:
+	case <-t.Context().Done():
+		require.FailNow(t, "Run started a service that was already stopped")
+	}
+}
+
+func TestService_StopRacingRunNeverPanics(t *testing.T) {
+	t.Parallel()
+
+	for range 20 {
+		service := mustCastToOrchestratorService(t, NewService(t.Context(), NewFakeTaskStore(), nil,
+			WithSchedulerInterval(10*time.Second),
+			WithTaskDispatcher(NewMockTaskDispatcher()),
+		))
+		running := make(chan struct{})
+		go func() {
+			defer close(running)
+			service.Run(t.Context())
+		}()
+		service.Stop()
+		<-running
+	}
+}

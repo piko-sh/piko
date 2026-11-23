@@ -32,4 +32,8 @@ var (
 	// with zero magnitude. Such a vector has no direction, so its cosine similarity to any
 	// other vector is undefined.
 	ErrZeroVector = errors.New("hnsw: vector has zero magnitude, which cosine similarity cannot compare")
+
+	// ErrNonFiniteVector is returned when a vector holds NaN or an infinity, or its
+	// magnitude overflows float32, any of which make its distances meaningless.
+	ErrNonFiniteVector = errors.New("hnsw: vector holds a NaN or infinite value, or its magnitude overflows")
 )

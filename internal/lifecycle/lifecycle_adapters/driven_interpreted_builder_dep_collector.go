@@ -20,8 +20,7 @@ package lifecycle_adapters
 
 import (
 	"fmt"
-	"path/filepath"
-	"strings"
+	"maps"
 
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/generator/generator_domain"
@@ -42,6 +41,7 @@ func (o *InterpretedBuildOrchestrator) collectDependencies(
 ) ([]*generator_dto.GeneratedArtefact, error) {
 	collector := &dependencyCollector{
 		orchestrator: o,
+		resolver:     newImportResolver(o.projectRoot, o.moduleName, maps.Values(o.artefactByPackagePath)),
 		visited:      make(map[string]bool),
 		result:       make([]*generator_dto.GeneratedArtefact, 0),
 	}
@@ -52,6 +52,9 @@ func (o *InterpretedBuildOrchestrator) collectDependencies(
 type dependencyCollector struct {
 	// orchestrator holds a reference to the parent build orchestrator's shared state.
 	orchestrator *InterpretedBuildOrchestrator
+
+	// resolver resolves imports and relative paths to the orchestrator's components.
+	resolver *importResolver
 
 	// visited tracks paths already processed to prevent collecting them twice.
 	visited map[string]bool
@@ -108,23 +111,19 @@ func (collector *dependencyCollector) collectRecursive(relativePath string) erro
 func (collector *dependencyCollector) findArtefactByRelativePath(
 	relativePath string,
 ) (*generator_dto.GeneratedArtefact, *annotator_dto.VirtualComponent, error) {
-	for _, artefact := range collector.orchestrator.artefactByPackagePath {
-		candidate, _ := generator_domain.GetMainComponent(artefact.Result)
-		if candidate == nil {
-			continue
-		}
-
-		artefactRelativePath, err := filepath.Rel(collector.orchestrator.projectRoot, candidate.Source.SourcePath)
-		if err != nil {
-			continue
-		}
-		artefactRelativePath = filepath.ToSlash(artefactRelativePath)
-
-		if artefactRelativePath == relativePath {
-			return artefact, candidate, nil
-		}
+	packagePath, found := collector.resolver.packageByRelativePath[relativePath]
+	if !found {
+		return nil, nil, fmt.Errorf("could not find artefact for component: %s", relativePath)
 	}
-	return nil, nil, fmt.Errorf("could not find artefact for component: %s", relativePath)
+	artefact := collector.orchestrator.artefactByPackagePath[packagePath]
+	if artefact == nil {
+		return nil, nil, fmt.Errorf("could not find artefact for component: %s", relativePath)
+	}
+	component, _ := generator_domain.GetMainComponent(artefact.Result)
+	if component == nil {
+		return nil, nil, fmt.Errorf("could not find main component for: %s", relativePath)
+	}
+	return artefact, component, nil
 }
 
 // collectImportDependencies collects all dependencies from a component's piko imports.
@@ -132,68 +131,19 @@ func (collector *dependencyCollector) findArtefactByRelativePath(
 // Takes virtualComponent (*annotator_dto.VirtualComponent) which provides the component
 // whose imports should be processed.
 //
-// Returns error when recursive dependency collection fails.
+// Returns error when an import matches more than one component or recursive dependency
+// collection fails.
 func (collector *dependencyCollector) collectImportDependencies(virtualComponent *annotator_dto.VirtualComponent) error {
 	for _, pikoImport := range virtualComponent.Source.PikoImports {
-		dependencyRelativePath := collector.resolveImportToRelativePath(pikoImport.Path)
+		dependencyRelativePath, _, err := collector.resolver.resolve(pikoImport.Path)
+		if err != nil {
+			return fmt.Errorf("resolving import %q: %w", pikoImport.Path, err)
+		}
 		if dependencyRelativePath == "" {
 			continue
 		}
 		if err := collector.collectRecursive(dependencyRelativePath); err != nil {
 			return fmt.Errorf("collecting recursive dependency %q: %w", dependencyRelativePath, err)
-		}
-	}
-	return nil
-}
-
-// resolveImportToRelativePath resolves a piko import path to a relative path.
-//
-// Takes importPath (string) which is the piko import path to resolve.
-//
-// Returns string which is the relative path, or empty if the import cannot be resolved.
-func (collector *dependencyCollector) resolveImportToRelativePath(importPath string) string {
-	importRelativePath := collector.orchestrator.extractImportRelativePath(importPath)
-
-	dependencyArtefact := collector.findArtefactByImportPath(importRelativePath)
-	if dependencyArtefact == nil {
-		return ""
-	}
-
-	dependencyComponent, _ := generator_domain.GetMainComponent(dependencyArtefact.Result)
-	if dependencyComponent == nil {
-		return ""
-	}
-
-	dependencyRelativePath, err := filepath.Rel(collector.orchestrator.projectRoot, dependencyComponent.Source.SourcePath)
-	if err != nil {
-		return ""
-	}
-	return filepath.ToSlash(dependencyRelativePath)
-}
-
-// findArtefactByImportPath finds an artefact matching an import path.
-//
-// Takes importRelativePath (string) which is the relative path to search for.
-//
-// Returns *generator_dto.GeneratedArtefact which is the matching artefact, or nil if no
-// match is found.
-func (collector *dependencyCollector) findArtefactByImportPath(
-	importRelativePath string,
-) *generator_dto.GeneratedArtefact {
-	for _, dependencyArtefact := range collector.orchestrator.artefactByPackagePath {
-		dependencyComponent, _ := generator_domain.GetMainComponent(dependencyArtefact.Result)
-		if dependencyComponent == nil {
-			continue
-		}
-
-		dependencyRelativePath, err := filepath.Rel(collector.orchestrator.projectRoot, dependencyComponent.Source.SourcePath)
-		if err != nil {
-			dependencyRelativePath = dependencyComponent.Source.SourcePath
-		}
-		dependencyRelativePath = filepath.ToSlash(dependencyRelativePath)
-
-		if dependencyRelativePath == importRelativePath || strings.HasSuffix(dependencyRelativePath, importRelativePath) {
-			return dependencyArtefact
 		}
 	}
 	return nil

@@ -515,7 +515,7 @@ func TestTryEvaluateTimeOperation(t *testing.T) {
 	t.Run("time plus duration", func(t *testing.T) {
 		t.Parallel()
 
-		result, handled := tryEvaluateTimeOperation(OpPlus, tm, dur)
+		result, handled := EvaluateTimeOperation(OpPlus, tm, dur)
 		require.True(t, handled)
 		expected := tm.Add(dur)
 		assert.Equal(t, expected, result)
@@ -524,7 +524,7 @@ func TestTryEvaluateTimeOperation(t *testing.T) {
 	t.Run("time minus duration", func(t *testing.T) {
 		t.Parallel()
 
-		result, handled := tryEvaluateTimeOperation(OpMinus, tm, dur)
+		result, handled := EvaluateTimeOperation(OpMinus, tm, dur)
 		require.True(t, handled)
 		expected := tm.Add(-dur)
 		assert.Equal(t, expected, result)
@@ -533,7 +533,7 @@ func TestTryEvaluateTimeOperation(t *testing.T) {
 	t.Run("duration plus time", func(t *testing.T) {
 		t.Parallel()
 
-		result, handled := tryEvaluateTimeOperation(OpPlus, dur, tm)
+		result, handled := EvaluateTimeOperation(OpPlus, dur, tm)
 		require.True(t, handled)
 		expected := tm.Add(dur)
 		assert.Equal(t, expected, result)
@@ -542,7 +542,7 @@ func TestTryEvaluateTimeOperation(t *testing.T) {
 	t.Run("duration minus time is not supported", func(t *testing.T) {
 		t.Parallel()
 
-		result, handled := tryEvaluateTimeOperation(OpMinus, dur, tm)
+		result, handled := EvaluateTimeOperation(OpMinus, dur, tm)
 		assert.False(t, handled)
 		assert.Nil(t, result)
 	})
@@ -550,7 +550,7 @@ func TestTryEvaluateTimeOperation(t *testing.T) {
 	t.Run("non-time operands not handled", func(t *testing.T) {
 		t.Parallel()
 
-		result, handled := tryEvaluateTimeOperation(OpPlus, 1, 2)
+		result, handled := EvaluateTimeOperation(OpPlus, 1, 2)
 		assert.False(t, handled)
 		assert.Nil(t, result)
 	})

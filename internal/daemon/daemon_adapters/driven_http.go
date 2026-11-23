@@ -454,7 +454,7 @@ func (builder *HTTPRouterBuilder) serveArtefact(
 			if lookup.httpStatus == http.StatusNotFound {
 				http.NotFound(w, r)
 			} else {
-				http.Error(w, errMessageInternalServer, lookup.httpStatus)
+				http.Error(w, http.StatusText(lookup.httpStatus), lookup.httpStatus)
 			}
 			return
 		}

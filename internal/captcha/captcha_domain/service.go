@@ -588,11 +588,12 @@ func (s *captchaService) callProvider(ctx context.Context, provider CaptchaProvi
 // score thresholds.
 //
 // Takes response (*captcha_dto.VerifyResponse) which is the provider's result.
-// Takes providerType (string) which identifies the provider for metrics.
+// Takes providerType (string) which identifies the provider for metrics and decides
+// whether an omitted action is acceptable.
 // Takes durationMS (int64) which is the verification duration in milliseconds.
 // Takes scoreThreshold (float64) which is the minimum required score.
-// Takes expectedAction (string) which is the action the token should have been generated
-// for; empty skips the check.
+// Takes expectedAction (string) which names the token's expected action or is empty to
+// skip the action check.
 //
 // Returns *captcha_dto.VerifyResponse which is the original response.
 // Returns error when the verification failed, the action mismatches, or the score is
@@ -612,7 +613,7 @@ func (*captchaService) evaluateResponse(
 		return response, captcha_dto.ErrVerificationFailed
 	}
 
-	if expectedAction != "" && response.Action != "" && response.Action != expectedAction {
+	if expectedAction != "" && actionMismatch(response.Action, expectedAction, providerType) {
 		recordMetrics(ctx, providerType, statusError, durationMS)
 		l.Trace("Captcha action mismatch",
 			logger_domain.String("expected", expectedAction),
@@ -684,7 +685,8 @@ func newCaptchaCircuitBreaker() *gobreaker.CircuitBreaker[*captcha_dto.VerifyRes
 		},
 		IsExcluded: func(err error) bool {
 			return errors.Is(err, context.Canceled) ||
-				errors.Is(err, context.DeadlineExceeded)
+				errors.Is(err, context.DeadlineExceeded) ||
+				errors.Is(err, captcha_dto.ErrProviderMisconfigured)
 		},
 	}
 	return gobreaker.NewCircuitBreaker[*captcha_dto.VerifyResponse](settings)
@@ -698,4 +700,21 @@ func writeChallengeRateLimited(w http.ResponseWriter) {
 	w.Header().Set("Retry-After", challengeRetryAfterSeconds)
 	w.WriteHeader(http.StatusTooManyRequests)
 	_, _ = w.Write([]byte(`{"error":"rate limit exceeded"}`))
+}
+
+// actionMismatch reports whether a verified action differs from the expected one.
+//
+// Score-based reCAPTCHA v3 always reports the action, so an omitted action from it means
+// the token was not issued for this form. Other providers may omit the action.
+//
+// Takes reported (string) which is the action the provider reported.
+// Takes expected (string) which is the action the caller expects.
+// Takes providerType (string) which identifies the provider.
+//
+// Returns bool which is true when the action does not match.
+func actionMismatch(reported, expected, providerType string) bool {
+	if reported == "" {
+		return providerType == string(captcha_dto.ProviderTypeRecaptchaV3)
+	}
+	return reported != expected
 }

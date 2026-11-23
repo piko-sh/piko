@@ -23,7 +23,6 @@ import (
 	"fmt"
 
 	protocol "github.com/politepixels/golang-language-server"
-	"go.lsp.dev/uri"
 	"piko.sh/json"
 	"piko.sh/piko/internal/inspector/inspector_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
@@ -242,7 +241,7 @@ func newTypeHierarchyItem(typeName, packagePath, filePath string, line, column i
 		Name:           typeName,
 		Kind:           protocol.SymbolKindStruct,
 		Detail:         packagePath,
-		URI:            uri.File(filePath),
+		URI:            documentURIForPath(filePath),
 		Range:          textRange,
 		SelectionRange: textRange,
 		Data: TypeHierarchyData{

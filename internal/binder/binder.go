@@ -59,8 +59,6 @@ const (
 	sliceElementBudgetFactor = 4
 
 	// minimumSliceElementBudget is the floor for the slice element budget.
-	//
-	// The floor lets a small source still fill a slice up to the default size limit.
 	minimumSliceElementBudget = defaultMaxSliceSize
 
 	// maxCachedPathExpressions bounds the parsed-path cache.
@@ -70,32 +68,26 @@ const (
 	// checks.
 	bindCancellationCheckInterval = 256
 
-	// DefaultMaxBindJSONBytes caps the raw JSON payload size that BindJSON will decode. The
-	// cap protects callers from passing arbitrarily large attacker-controlled inputs
-	// straight into json.Unmarshal where memory and CPU costs scale with payload size.
+	// DefaultMaxBindJSONBytes caps the raw payload BindJSON accepts.
 	DefaultMaxBindJSONBytes int64 = 4 << 20
 
-	// DefaultMaxFieldErrors caps how many per-field validation messages a bind reports. It
-	// sits far above any genuine form yet well below the field counts a hostile payload can
-	// reach, which would otherwise size a map, a response body and a log line.
+	// DefaultMaxFieldErrors caps the number of fields reported in binding errors.
 	DefaultMaxFieldErrors int64 = 1_000
 
 	// FieldErrorsTruncatedKey is the entry added to a field-error map that hit the cap, so a
 	// client can tell a trimmed list from a complete one.
 	FieldErrorsTruncatedKey = "_truncated"
 
-	// errFieldNotFound is the error message used when a struct field cannot be found.
-	errFieldNotFound = "field not found"
-
-	// initialMultiErrorCapacity is the initial capacity for MultiError maps. Small since
-	// most binds succeed; grows if needed.
+	// initialMultiErrorCapacity is the initial capacity for MultiError maps.
 	initialMultiErrorCapacity = 4
 )
 
 var (
-	// ErrBindJSONTooLarge is returned by BindJSON when the supplied byte slice exceeds the
-	// configured maximum. Callers can use errors.Is to detect this condition without parsing
-	// the message.
+	// errFieldNotFound distinguishes an unknown struct field from a malformed path or
+	// invalid value while resolving nested form inputs.
+	errFieldNotFound = errors.New("field not found")
+
+	// ErrBindJSONTooLarge reports that a BindJSON payload exceeds the configured limit.
 	ErrBindJSONTooLarge = errors.New("BindJSON input exceeds configured size limit")
 
 	// ErrSliceElementBudgetExhausted is returned when a bind would over-allocate.
@@ -106,7 +98,7 @@ var (
 	ErrTooManyFields = errors.New("too many fields")
 
 	// ErrValidationFailed reports that a bound destination violated its `validate:"..."`
-	// tags. Callers can use errors.Is to detect this without importing the concrete type.
+	// tags.
 	ErrValidationFailed = errors.New("validation failed")
 
 	// log is the package-level logger for the binder package.
@@ -118,9 +110,7 @@ var (
 	// first call via sync.OnceValue.
 	getBinder = sync.OnceValue(NewASTBinder)
 
-	// identifierLUT is a lookup table for valid Go identifier characters. Using a lookup
-	// table replaces multiple comparisons with a single memory access per byte, which is
-	// roughly twice as fast as the branch-based approach for typical field names.
+	// identifierLUT is a lookup table for valid Go identifier characters.
 	identifierLUT = [256]bool{
 		'a': true, 'b': true, 'c': true, 'd': true, 'e': true, 'f': true, 'g': true, 'h': true,
 		'i': true, 'j': true, 'k': true, 'l': true, 'm': true, 'n': true, 'o': true, 'p': true,
@@ -136,66 +126,52 @@ var (
 	}
 )
 
-// ASTBinder fills Go structs with form data using Piko path expressions. Field order is
-// optimised for alignment (larger fields first, bools last).
+// ASTBinder fills Go structs with form data using Piko path expressions.
 type ASTBinder struct {
-	// converters stores user-registered type converters. Uses sync.Map for lock-free reads.
+	// converters stores user-registered type converters.
 	converters sync.Map
 
 	// astCache stores parsed path expressions, keyed by file path.
 	astCache sync.Map
 
-	// structValidator validates bound destinations for calls that opt in via WithValidation.
-	// Nil until SetStructValidator is called, in which case validation is skipped entirely.
+	// structValidator validates opted-in binds and is nil when validation is unavailable.
 	structValidator atomic.Pointer[StructValidator]
 
 	// cache stores parsed struct metadata for faster repeated bindings.
 	cache binderCache
 
-	// astCacheEntries counts the entries in astCache so the cache can be bounded.
-	//
-	// Paths come from caller-supplied keys, which must not grow the cache without limit.
+	// astCacheEntries counts cached paths to bound the memory used by submitted keys.
 	astCacheEntries atomic.Int64
 
-	// maxSliceSize limits the maximum allowed slice index; 0 means no limit.
+	// maxSliceSize limits the maximum slice index, with zero disabling the limit.
 	maxSliceSize atomic.Int64
 
-	// maxPathDepth limits how deeply paths can be nested; 0 means no limit.
+	// maxPathDepth limits path nesting, with zero disabling the limit.
 	maxPathDepth atomic.Int64
 
-	// maxPathLength limits how long a path string can be in characters. A value of 0 means
-	// there is no limit.
+	// maxPathLength limits the length of a field path in bytes, with zero disabling it.
 	maxPathLength atomic.Int64
 
-	// maxFieldCount stores the maximum number of fields allowed in a form submission. A
-	// value of 0 means no limit.
+	// maxFieldCount limits fields in a submission, with zero disabling the limit.
 	maxFieldCount atomic.Int64
 
-	// maxValueLength stores the maximum allowed length for a field value in characters. A
-	// value of 0 means no limit is applied.
+	// maxValueLength limits the length of a field value in bytes, with zero disabling it.
 	maxValueLength atomic.Int64
 
-	// maxBindJSONBytes caps the raw JSON payload accepted by BindJSON. A value of 0 disables
-	// the cap; the constructor seeds it with DefaultMaxBindJSONBytes so callers always start
-	// with a safe ceiling.
+	// maxBindJSONBytes caps the raw JSON payload, with zero disabling the cap.
 	maxBindJSONBytes atomic.Int64
 
-	// maxFieldErrors caps how many per-field validation messages a single bind reports. A
-	// value of 0 disables the cap; the constructor seeds it with DefaultMaxFieldErrors.
+	// maxFieldErrors caps per-field validation messages, with zero disabling the cap.
 	maxFieldErrors atomic.Int64
 
-	// hasConverters tracks whether any custom converters are registered. Used as a fast path
-	// to skip the map lookup when none exist.
+	// hasConverters tracks whether any custom converters are registered.
 	hasConverters atomic.Bool
 
-	// ignoreUnknownKeys controls whether unknown struct fields are skipped without error;
-	// false by default.
+	// ignoreUnknownKeys controls whether unknown struct fields are skipped without error.
 	ignoreUnknownKeys atomic.Bool
 }
 
-// StructValidator validates a populated struct against its field tags. It matches the
-// interface the framework's validator providers implement, so the binder does not depend
-// on any particular validation library.
+// StructValidator validates a populated struct against its field tags.
 type StructValidator interface {
 	// Struct validates s and returns an error describing every failed constraint.
 	//
@@ -207,15 +183,8 @@ type StructValidator interface {
 
 // FieldErrorReporter is an optional StructValidator extension that translates a
 // validation failure into per-field messages.
-//
-// Implementing it lets the HTTP layer answer with a 422 and a field-keyed message map
-// instead of a generic error, without the framework depending on any particular
-// validation library, since only the provider understands its own error type.
 type FieldErrorReporter interface {
 	// FieldErrors maps err to messages keyed by the destination's form field name.
-	//
-	// The key is the same name the input carries in the DOM, so the client can attach each
-	// message to the field that produced it.
 	//
 	// Takes err (error) which is an error previously returned by Struct.
 	// Takes destination (any) which is the struct that was validated, used to resolve Go
@@ -227,18 +196,13 @@ type FieldErrorReporter interface {
 }
 
 // ValidationFailedError reports that binding succeeded but the destination violated its
-// `validate:"..."` tags. It is distinct from a binding error so the HTTP layer can answer
-// with 422 rather than 500.
-//
-// It carries the status and safe message itself rather than relying on the HTTP layer to
-// recognise it, so a bind performed outside the action pipeline still answers 422 with a
-// message that discloses nothing about the failure's internals.
+// `validate:"..."` tags.
 type ValidationFailedError struct {
 	// Err is the underlying validator error.
 	Err error
 
 	// Fields holds per-field messages, keyed by form field name, when the validator could
-	// supply them. Nil when the validator could not attribute the failure to fields.
+	// supply them.
 	Fields map[string][]string
 }
 
@@ -292,10 +256,6 @@ func (*ValidationFailedError) ErrorCode() string {
 
 // NewASTBinder creates a new AST-powered binder with default settings.
 //
-// The returned binder is ready to use with all fields set to their defaults. All
-// protection limits are enabled with sensible values. Unknown fields cause errors by
-// default (strict mode).
-//
 // Returns *ASTBinder which is set up and ready for use.
 func NewASTBinder() *ASTBinder {
 	b := &ASTBinder{}
@@ -312,7 +272,6 @@ func NewASTBinder() *ASTBinder {
 }
 
 // SetStructValidator installs the validator used by binds that opt in via WithValidation.
-// Passing nil disables validation.
 //
 // Takes v (StructValidator) which validates bound destinations.
 func (b *ASTBinder) SetStructValidator(v StructValidator) {
@@ -323,10 +282,12 @@ func (b *ASTBinder) SetStructValidator(v StructValidator) {
 	b.structValidator.Store(&v)
 }
 
-// SetMaxBindJSONBytes overrides the maximum byte size accepted by BindJSON. A value of
-// zero or below disables the cap (not recommended for attacker-influenced input).
+// SetMaxBindJSONBytes sets the maximum payload size accepted by BindJSON.
 //
-// Takes maxBytes (int64) which is the new cap in bytes.
+// The limit can be changed while other calls bind values.
+//
+// Takes maxBytes (int64) which limits payload bytes, with nonpositive values disabling
+// the limit.
 func (b *ASTBinder) SetMaxBindJSONBytes(maxBytes int64) {
 	if maxBytes < 0 {
 		maxBytes = 0
@@ -334,11 +295,12 @@ func (b *ASTBinder) SetMaxBindJSONBytes(maxBytes int64) {
 	b.maxBindJSONBytes.Store(maxBytes)
 }
 
-// SetMaxFieldErrors overrides how many per-field validation messages a bind reports. A
-// value of zero or below disables the cap (not recommended for attacker-influenced
-// input).
+// SetMaxFieldErrors limits the number of fields reported in binding errors.
 //
-// Takes maxErrors (int64) which is the new ceiling on reported fields.
+// The limit can be changed while other calls bind values.
+//
+// Takes maxErrors (int64) which caps reported fields, with nonpositive values disabling
+// the cap.
 func (b *ASTBinder) SetMaxFieldErrors(maxErrors int64) {
 	if maxErrors < 0 {
 		maxErrors = 0
@@ -348,7 +310,7 @@ func (b *ASTBinder) SetMaxFieldErrors(maxErrors int64) {
 
 // MaxBindJSONBytes returns the active byte-size cap enforced by BindJSON.
 //
-// Returns int64 which is the current cap; a value of zero indicates no cap is enforced.
+// Returns int64 which is the current cap. A value of zero indicates no cap is enforced.
 func (b *ASTBinder) MaxBindJSONBytes() int64 {
 	return b.maxBindJSONBytes.Load()
 }
@@ -373,14 +335,9 @@ func (b *ASTBinder) Bind(ctx context.Context, destination any, source map[string
 	return b.runValidation(ctx, limits, destination)
 }
 
-// BindMap populates the fields of the destination struct using data from a
-// map[string]any, typically produced by JSON decoding. It flattens the nested map into
-// bracket-notation form data and delegates to the standard Bind pipeline.
+// BindMap populates a destination struct from decoded values.
 //
-// Because the source is already decoded, numbers have collapsed to float64 and a
-// json.RawMessage cannot be reconstructed byte-for-byte; callers that need either
-// preserved (opaque JSON, 64-bit identifiers, canonical payloads) should use BindJSON,
-// which retains the original bytes.
+// Use BindJSON to preserve raw JSON and integers that may lose precision on decoding.
 //
 // Takes destination (any) which is the destination struct pointer to populate.
 // Takes source (map[string]any) which provides the source data for binding.
@@ -400,24 +357,18 @@ func (b *ASTBinder) BindMap(ctx context.Context, destination any, source map[str
 	return b.runValidation(ctx, limits, destination)
 }
 
-// BindJSON populates the fields of the destination struct from raw JSON bytes. It decodes
-// the JSON into per-field raw messages, binds any whole-subtree fields directly from
-// their original bytes (so json.RawMessage fields and 64-bit integers survive
-// byte-for-byte), then flattens and binds the remaining scalar and well-known fields.
+// BindJSON populates a destination struct from raw JSON bytes.
 //
-// Inputs larger than the configured maximum (see SetMaxBindJSONBytes) are rejected before
-// decoding. The existing maxPathDepth limit covers the resolved structure; this size cap
-// protects the initial Unmarshal step against attacker-controlled payloads.
-//
-// A JSON null value supplies no fields.
+// json.RawMessage fields retain their original bytes, and integers keep their precision.
+// A top-level JSON null supplies no fields.
 //
 // Takes destination (any) which is the destination struct pointer to populate.
 // Takes source ([]byte) which contains the raw JSON bytes to decode.
 // Takes opts (...Option) which override global settings for this call.
 //
-// Returns error for binding, validation, or invalid-target failures. Oversized input
-// answers 413 and wraps ErrBindJSONTooLarge. Decoding failures answer 400 with a safe
-// message.
+// Returns error for binding, validation, cancellation or an invalid destination.
+// Oversized input wraps ErrBindJSONTooLarge and maps to HTTP 413. Malformed JSON maps to
+// HTTP 400 with a safe message.
 func (b *ASTBinder) BindJSON(ctx context.Context, destination any, source []byte, opts ...Option) error {
 	if maxBytes := b.maxBindJSONBytes.Load(); maxBytes > 0 && int64(len(source)) > maxBytes {
 		return newLimitError(fmt.Errorf("BindJSON input %d bytes exceeds limit %d: %w", len(source), maxBytes, ErrBindJSONTooLarge))
@@ -437,8 +388,7 @@ func (b *ASTBinder) BindJSON(ctx context.Context, destination any, source []byte
 }
 
 // RegisterConverter registers a custom function to convert string values to a specific
-// type. This takes precedence over all other conversion mechanisms and is safe for
-// concurrent use.
+// type.
 //
 // Takes typ (reflect.Type) which specifies the target type for conversion.
 // Takes converter (ConverterFunc) which provides the conversion function.
@@ -452,10 +402,9 @@ func (b *ASTBinder) RegisterConverter(typ reflect.Type, converter ConverterFunc)
 
 // SetMaxSliceSize sets the maximum allowed slice index for form binding.
 //
-// Prevents memory exhaustion attacks from malicious inputs like "items[9999999]". A value
-// of 0 means no limit is enforced. Safe for concurrent use.
+// The limit can be changed while other calls bind values.
 //
-// Takes size (int) which specifies the maximum slice index allowed.
+// Takes size (int) which is the limit, with zero or less disabling it.
 func (b *ASTBinder) SetMaxSliceSize(size int) {
 	if size < 0 {
 		size = 0
@@ -463,11 +412,11 @@ func (b *ASTBinder) SetMaxSliceSize(size int) {
 	b.maxSliceSize.Store(int64(size))
 }
 
-// SetMaxPathDepth sets the maximum nesting depth for form paths, which prevents stack
-// overflow from deeply nested paths like "a.b.c.d...".
+// SetMaxPathDepth sets the maximum nesting depth for form paths.
 //
-// Takes depth (int) which specifies the maximum depth; a value of 0 or less means no
-// limit is enforced.
+// The limit can be changed while other calls bind values.
+//
+// Takes depth (int) which caps nesting, with nonpositive values disabling the limit.
 func (b *ASTBinder) SetMaxPathDepth(depth int) {
 	if depth < 0 {
 		depth = 0
@@ -475,11 +424,11 @@ func (b *ASTBinder) SetMaxPathDepth(depth int) {
 	b.maxPathDepth.Store(int64(depth))
 }
 
-// SetMaxPathLength sets the maximum length of a form path string. This prevents CPU and
-// memory exhaustion from extremely long path strings.
+// SetMaxPathLength sets the maximum length of a form path string.
 //
-// Takes length (int) which specifies the maximum path length. A value of zero or less
-// means no limit is enforced.
+// The limit can be changed while other calls bind values.
+//
+// Takes length (int) which caps path bytes, with nonpositive values disabling the limit.
 func (b *ASTBinder) SetMaxPathLength(length int) {
 	if length < 0 {
 		length = 0
@@ -489,10 +438,9 @@ func (b *ASTBinder) SetMaxPathLength(length int) {
 
 // SetMaxFieldCount sets the maximum number of fields allowed in a form submission.
 //
-// Takes count (int) which specifies the field limit. A value of zero or less means no
-// limit is enforced.
+// The limit can be changed while other calls bind values.
 //
-// This prevents hash-flooding DoS attacks from forms with thousands of keys.
+// Takes count (int) which caps the field count, with nonpositive values disabling it.
 func (b *ASTBinder) SetMaxFieldCount(count int) {
 	if count < 0 {
 		count = 0
@@ -500,12 +448,11 @@ func (b *ASTBinder) SetMaxFieldCount(count int) {
 	b.maxFieldCount.Store(int64(count))
 }
 
-// SetMaxValueLength sets the maximum length of a field value string.
+// SetMaxValueLength sets the maximum byte length of a field value.
 //
-// Takes length (int) which specifies the maximum allowed length.
+// The limit can be changed while other calls bind values.
 //
-// Prevents CPU/memory exhaustion from malicious TextUnmarshaler implementations. A value
-// of 0 means no limit is enforced. Safe for concurrent use.
+// Takes length (int) which caps value bytes, with nonpositive values disabling the limit.
 func (b *ASTBinder) SetMaxValueLength(length int) {
 	if length < 0 {
 		length = 0
@@ -513,8 +460,7 @@ func (b *ASTBinder) SetMaxValueLength(length int) {
 	b.maxValueLength.Store(int64(length))
 }
 
-// SetIgnoreUnknownKeys sets the global default for ignoring unknown form fields. Safe for
-// concurrent use.
+// SetIgnoreUnknownKeys sets the global default for ignoring unknown form fields.
 //
 // Takes ignore (bool) which controls whether unknown fields are silently ignored (true)
 // or cause an error for each unknown key (false, the default).
@@ -615,10 +561,8 @@ func (b *ASTBinder) capMultiError(bindingErrors MultiError) MultiError {
 // settleBindErrors turns the results of the binding passes into the single error a bind
 // returns.
 //
-// A cancellation or a broken size limit stops the whole bind, so it is returned on its
-// own and never mixed into the per-field failures. A limit broken while binding one field
-// is lifted out of the field failures for the same reason. Any other failures are trimmed
-// to the configured ceiling.
+// Cancellation and size limit errors are returned without per-field failures. Other
+// failures are trimmed to the configured ceiling.
 //
 // Takes subtreeErrs (MultiError) which holds the per-field subtree binding errors.
 // Takes bindErr (error) which is the flatten-pass result, possibly nil.
@@ -642,9 +586,6 @@ func (b *ASTBinder) settleBindErrors(subtreeErrs MultiError, bindErr error) erro
 
 // bindWithoutValidation performs the binding pass alone, leaving validation to the
 // caller.
-//
-// BindMap and BindJSON bind in two passes, and a constraint must not be judged against
-// the struct until both have succeeded.
 //
 // Takes destination (any) which is the destination struct pointer to populate.
 // Takes source (map[string][]string) which provides the source data for binding.
@@ -704,8 +645,7 @@ func (b *ASTBinder) resolveLimits(opts []Option) binderOptions {
 }
 
 // bindWholeSubtreeFields binds each top-level opaque field directly from its decoded
-// source subtree. The original source map is never mutated, and a non-struct-pointer
-// destination is left for the flatten pass to reject.
+// source subtree.
 //
 // Takes destination (any) which is the struct pointer being populated.
 // Takes source (map[string]any) which is the decoded request body.
@@ -751,8 +691,7 @@ func (b *ASTBinder) bindWholeSubtreeFields(destination any, source map[string]an
 }
 
 // bindWholeSubtreeFieldsRaw is the byte-preserving counterpart of bindWholeSubtreeFields
-// used by BindJSON. Whole-subtree fields are bound from their original JSON bytes so a
-// json.RawMessage field and any 64-bit integer survive byte-for-byte.
+// used by BindJSON.
 //
 // Takes destination (any) which is the struct pointer being populated.
 // Takes source (map[string]stdjson.RawMessage) which holds each top field's raw JSON.
@@ -840,8 +779,7 @@ type subtreeStats struct {
 }
 
 // isWholeSubtreeField reports whether a field type must be bound by unmarshalling its
-// JSON subtree directly rather than through the flatten-and-rebind path. Types with an
-// established conversion path are excluded so their custom parsing is preserved.
+// JSON subtree directly rather than through the flatten-and-rebind path.
 //
 // Takes t (reflect.Type) which is the destination field type.
 //
@@ -899,8 +837,7 @@ func (b *ASTBinder) hasRegisteredConverter(t reflect.Type) bool {
 	return b.getUserConverter(t) != nil
 }
 
-// loadDefaults gets all protection limits using the global defaults only. This is the
-// fast path when no per-call options are given.
+// loadDefaults reads the binder's default limits.
 //
 // Returns binderOptions which contains the current default limits.
 func (b *ASTBinder) loadDefaults() binderOptions {
@@ -917,7 +854,7 @@ func (b *ASTBinder) loadDefaults() binderOptions {
 }
 
 // resolveOptions creates the final binding settings by merging global defaults with
-// per-call overrides. Per-call options take priority over global settings.
+// per-call overrides.
 //
 // Takes opts (*BindOptions) which provides per-call overrides for limits.
 //
@@ -995,7 +932,7 @@ func (b *ASTBinder) bindFields(
 
 // bindPathValues binds the values for a single form key onto the destination struct.
 //
-// A repeated bare key targeting a slice field fills the slice; any other key uses the
+// A repeated bare key targeting a slice field fills the slice. Any other key uses the
 // last value. An empty value list is skipped without error.
 //
 // Takes v (reflect.Value) which is the destination struct.
@@ -1032,17 +969,12 @@ func (b *ASTBinder) bindPathValues(ctx context.Context, v reflect.Value, path st
 
 // coercibleSliceField reports whether a bare form key targets a coercible slice field.
 //
-// A coercible slice field is a simple identifier naming a known field whose type, after
-// one pointer dereference, is a slice other than []byte (a text or binary scalar). A
-// repeated key such as tags=a&tags=b then fills the slice exactly as the indexed keys
-// tags[0], tags[1] already do; scalar fields fall through to the existing last-value-wins
-// behaviour.
-//
 // Takes path (string) which is the form key.
 // Takes structMeta (*structInfo) which holds the destination field metadata.
 //
-// Returns the matched *fieldInfo and true when the field is a coercible slice, or nil and
-// false.
+// Returns *fieldInfo which describes the slice field, or nil when no such field matches.
+// Returns bool which is true for a known slice field other than []byte after one
+// dereference.
 func coercibleSliceField(path string, structMeta *structInfo) (*fieldInfo, bool) {
 	if !isSimpleIdentifier(path) {
 		return nil, false
@@ -1061,10 +993,7 @@ func coercibleSliceField(path string, structMeta *structInfo) (*fieldInfo, bool)
 	return fieldMeta, true
 }
 
-// bindValuesToSliceField binds every value of a repeated bare form key into the
-// destination slice field, growing it to fit and honouring maxSliceSize, so a repeated
-// key fills the slice exactly as indexed keys do. Each value is converted through
-// convertAndSet, reusing the full converter precedence and pointer-element handling.
+// bindValuesToSliceField converts repeated form values into the destination slice.
 //
 // Takes field (reflect.Value) which is the destination slice field (a nil *[]T is
 // allocated).
@@ -1094,8 +1023,7 @@ func (b *ASTBinder) bindValuesToSliceField(field reflect.Value, values []string,
 	return nil
 }
 
-// bindSingleField attempts to bind a single field using fast path or slow path. Extracted
-// method to separate fast/slow path logic.
+// bindSingleField attempts to bind a single field using fast path or slow path.
 //
 // Takes v (reflect.Value) which is the struct value to bind the field on.
 // Takes path (string) which is the field path expression to bind.
@@ -1169,27 +1097,23 @@ func (b *ASTBinder) cachePathExpression(path string, parsed ast_domain.Expressio
 }
 
 // binderOptions holds DoS protection limits and binding settings for a single Bind call.
-// Values are loaded from atomics once at call start and passed through the stack to avoid
-// repeated atomic loads in recursive functions.
 type binderOptions struct {
-	// sliceElements caps the total slice elements the call may materialise across every
-	// destination slice; nil applies no cap.
+	// sliceElements caps total materialised slice elements, with nil disabling the cap.
 	sliceElements *sliceElementBudget
 
-	// maxFieldCount is the maximum number of fields allowed. It provides protection against
-	// denial-of-service attacks.
+	// maxFieldCount is the maximum number of fields allowed.
 	maxFieldCount int
 
-	// maxPathLength is the maximum length allowed for a path; 0 means no limit.
+	// maxPathLength is the maximum length allowed for a path. Zero means no limit.
 	maxPathLength int
 
 	// maxValueLength is the maximum allowed length for a single field value.
 	maxValueLength int
 
-	// maxPathDepth limits how deep nested paths can go; 0 means no limit.
+	// maxPathDepth limits how deep nested paths can go. Zero means no limit.
 	maxPathDepth int
 
-	// maxSliceSize is the largest allowed slice index; 0 means no limit.
+	// maxSliceSize is the largest allowed slice index. Zero means no limit.
 	maxSliceSize int
 
 	// ignoreUnknownKeys allows unknown field names to be silently ignored during binding.
@@ -1247,8 +1171,7 @@ func (budget *sliceElementBudget) charge(elements int) error {
 	return nil
 }
 
-// GetBinder returns the shared binder instance used for data binding. The instance is
-// safe for concurrent use and caches struct metadata for better performance.
+// GetBinder returns the shared binder instance used for data binding.
 //
 // Returns *ASTBinder which is the shared binder instance.
 func GetBinder() *ASTBinder {
@@ -1275,8 +1198,6 @@ func ActionInputSource(arguments map[string]any, key string) map[string]any {
 
 // accumulateError adds an error to the MultiError map.
 //
-// Creates the map on the first call if it does not exist yet.
-//
 // Takes multiErrors (*MultiError) which is the map to add the error to.
 // Takes path (string) which is the key for the error in the map.
 // Takes err (error) which is the error to store.
@@ -1287,9 +1208,7 @@ func accumulateError(multiErrors *MultiError, path string, err error) {
 	(*multiErrors)[path] = err
 }
 
-// holdsNilValue reports whether v carries a nil of a nilable kind. A plain v == nil check
-// misses a typed nil such as (*Validator)(nil) placed in an interface, which would
-// otherwise be stored and panic on the first Struct call.
+// holdsNilValue reports whether v carries a nil of a nilable kind.
 //
 // Takes v (StructValidator) which is the candidate validator.
 //
@@ -1305,9 +1224,7 @@ func holdsNilValue(v StructValidator) bool {
 }
 
 // isValidatableStruct reports whether destination is something a struct validator can
-// accept. Action parameters are not always structs: a slice, map, sized integer or
-// time.Time bind through the same path, and handing one to the validator yields an error
-// about the destination rather than about the user's input.
+// accept.
 //
 // Takes destination (any) which is the freshly bound value.
 //
@@ -1386,9 +1303,6 @@ func validateValueLength(path, value string, maxValueLength int) error {
 // isSimpleIdentifier reports whether the path is a simple Go identifier that contains
 // only letters, numbers, and underscores.
 //
-// This is a fast check that lets us skip AST parsing for simple form fields. It returns
-// false for paths with operators, brackets, or spaces that need full parsing.
-//
 // Takes path (string) which is the path to check.
 //
 // Returns bool which is true if the path contains only identifier characters.
@@ -1443,7 +1357,7 @@ func structPointerElem(destination any) (reflect.Value, bool) {
 }
 
 // bindSubtreeFieldValue enforces the DoS limits on an already-decoded JSON subtree and
-// binds it into target. It is used by BindMap, whose source is a decoded value map.
+// binds it into target.
 //
 // Takes key (string) which is the source key, used for error context.
 // Takes raw (any) which is the already-decoded subtree value.
@@ -1522,11 +1436,10 @@ func checkSubtreeLimits(key string, raw any, limits binderOptions) error {
 }
 
 // subtreeStatsOf walks a decoded JSON value collecting its nesting depth, entry count,
-// longest array and longest string value. Recursion stops once maxDepth is exceeded so a
-// hostile deeply-nested value cannot exhaust the stack before the depth limit is checked.
+// longest array and longest string value.
 //
 // Takes value (any) which is the decoded JSON value to summarise.
-// Takes maxDepth (int) which caps the recursion depth; 0 disables the bound.
+// Takes maxDepth (int) which caps the recursion depth, with zero disabling the bound.
 //
 // Returns subtreeStats which summarises the value for the DoS-limit checks.
 func subtreeStatsOf(value any, maxDepth int) subtreeStats {
@@ -1540,7 +1453,7 @@ func subtreeStatsOf(value any, maxDepth int) subtreeStats {
 //
 // Takes value (any) which is the current decoded JSON node.
 // Takes depth (int) which is the current nesting level.
-// Takes maxDepth (int) which caps the recursion depth; 0 disables the bound.
+// Takes maxDepth (int) which caps the recursion depth, with zero disabling the bound.
 // Takes s (*subtreeStats) which accumulates the collected statistics.
 func walkSubtreeStats(value any, depth, maxDepth int, s *subtreeStats) {
 	if maxDepth > 0 && depth > maxDepth {
@@ -1568,7 +1481,7 @@ func walkSubtreeStats(value any, depth, maxDepth int, s *subtreeStats) {
 }
 
 // decodeSubtreeBytes unmarshals JSON bytes into target, rejecting unknown struct fields
-// in strict mode. Errors are wrapped as errSetField so the SafeMessage convention holds.
+// in strict mode.
 //
 // Takes key (string) which is the source key, used for error context.
 // Takes data ([]byte) which is the JSON to decode.
@@ -1619,8 +1532,7 @@ func isRawMessageType(t reflect.Type) bool {
 
 // remapSubtreeKeys rewrites a decoded JSON value's keys so a later encoding/json decode
 // into t honours the binder's bind and json tag precedence, recursing through pointer,
-// slice, array and map element types. Types with their own JSON handling are returned
-// unchanged.
+// slice, array and map element types.
 //
 // Takes value (any) which is the decoded JSON value to rewrite.
 // Takes t (reflect.Type) which is the destination type the value will decode into.
@@ -1665,8 +1577,7 @@ func remapSubtreeKeys(value any, t reflect.Type) any {
 }
 
 // remapStructKeys re-keys a decoded object so encoding/json binds it into t while
-// honouring bind and json tag precedence. Source keys that match no field pass through
-// unchanged so strict mode still rejects genuine unknowns.
+// honouring bind and json tag precedence.
 //
 // Takes source (map[string]any) which is the decoded object to re-key.
 // Takes t (reflect.Type) which is the destination struct type.
@@ -1777,9 +1688,6 @@ func mergeBindErrors(subtreeErrs MultiError, bindErr error) error {
 }
 
 // liftLimitError finds a size limit breach recorded against a field.
-//
-// A breach such as an exhausted slice element budget is found while one field is bound,
-// but it is a problem with the size of the whole request rather than with that field.
 //
 // Takes bindingErrors (MultiError) which holds the per-field binding errors.
 //

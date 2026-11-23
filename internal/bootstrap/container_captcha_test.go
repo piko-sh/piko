@@ -141,3 +141,31 @@ func TestCreateCaptchaProviderFromConfig_HMACChallenge(t *testing.T) {
 	assert.Equal(t, "hmac_challenge", gotName)
 	assert.NotNil(t, gotProvider)
 }
+
+func TestGetCaptchaService_BuildsTheConfiguredHMACChallengeService(t *testing.T) {
+	runGlobalShutdownOnCleanup(t)
+
+	c := newResolvedContainer(t, t.TempDir(), WithCaptcha(CaptchaOptions{SecretKey: "0123456789abcdef0123456789abcdef", ScoreThreshold: 0.6}))
+	c.serverConfig.Security.CaptchaProvider = new("hmac_challenge")
+
+	service, err := c.GetCaptchaService()
+
+	require.NoError(t, err)
+	require.NotNil(t, service)
+	_, disabled := service.(*captcha_domain.DisabledCaptchaService)
+	assert.False(t, disabled)
+}
+
+func TestGetCaptchaService_ReportsUnsupportedConfigProviders(t *testing.T) {
+	t.Parallel()
+
+	for _, provider := range []string{"turnstile", "unknown"} {
+		c := NewContainer()
+		c.serverConfig.Security.CaptchaProvider = new(provider)
+
+		service, err := c.GetCaptchaService()
+
+		require.Error(t, err, provider)
+		assert.Nil(t, service, provider)
+	}
+}

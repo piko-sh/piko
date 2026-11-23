@@ -56,7 +56,7 @@ import { action } from "/_piko/assets/pk-js/pk/actions.gen.js";
             return {"items": [{"id": 1, "name": "First"}, {"id": 2, "name": "Second"}, {"id": 3, "name": "Third"}], "showList": false};
         }
         connectedCallback () {
-            this.init(instance.call(this, this));
+            if (!this.$$ctx) this.init(instance.call(this, this));
             super.connectedCallback();
         }
         renderVDOM () {

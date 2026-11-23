@@ -19,10 +19,13 @@
 package interp_piko_symbols
 
 import (
+	"go/types"
 	"reflect"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"piko.sh/piko/wdk/binder"
 )
 
 func TestProviderExportsContainsExpectedPackages(t *testing.T) {
@@ -123,4 +126,37 @@ func TestProviderImplementsInterface(t *testing.T) {
 
 	provider := NewProvider()
 	require.NotNil(t, provider.Exports())
+}
+
+func TestBinderSizeSentinelIsAvailableToInterpretedGo(t *testing.T) {
+	const path = "piko.sh/piko/wdk/binder"
+	const name = "ErrBindJSONTooLarge"
+	value := NewProvider().Exports()[path][name]
+	require.True(t, value.IsValid(), "missing runtime binding")
+	require.Same(t, binder.ErrBindJSONTooLarge, value.Interface())
+
+	if runtime.GOOS != "js" || runtime.GOARCH != "wasm" {
+		typePackages := TypesPackages()
+		require.NoError(t, TypesPackagesLoadError())
+		require.NotNil(t, typePackages[path])
+		require.NotNil(t, typePackages[path].Scope().Lookup(name), "missing compile-time type")
+	}
+}
+
+func TestRenderedMathsTypesAvailableToInterpreter(t *testing.T) {
+	const path = "piko.sh/piko/wdk/maths"
+	symbols := NewProvider().Exports()[path]
+	checkTypes := runtime.GOOS != "js" || runtime.GOARCH != "wasm"
+	var all map[string]*types.Package
+	if checkTypes {
+		all = TypesPackages()
+		require.NoError(t, TypesPackagesLoadError())
+		require.NotNil(t, all[path])
+	}
+	for _, name := range []string{"Decimal", "BigInt", "NewDecimalFromString", "NewBigIntFromString"} {
+		require.True(t, symbols[name].IsValid(), name)
+		if checkTypes {
+			require.NotNil(t, all[path].Scope().Lookup(name), name)
+		}
+	}
 }

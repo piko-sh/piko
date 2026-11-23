@@ -31,9 +31,9 @@ import (
 )
 
 const (
-	innerCreate = 7 * time.Second
-	innerUpdate = 8 * time.Second
-	innerRead = 9 * time.Second
+	innerCreate          = 7 * time.Second
+	innerUpdate          = 8 * time.Second
+	innerRead            = 9 * time.Second
 	overrideSnapshotNano = int64(1_768_471_200_000_000_000)
 )
 

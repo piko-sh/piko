@@ -21,6 +21,7 @@ package security_adapters
 import (
 	"net/http"
 	"net/url"
+	"path"
 	"strings"
 
 	"piko.sh/piko/internal/daemon/daemon_dto"
@@ -79,8 +80,8 @@ func NewAuthGuardMiddleware(config daemon_dto.AuthGuardConfig) *AuthGuardMiddlew
 // Returns map[string]struct{} which holds every exempt path, normalised.
 func buildGuardPublicPaths(config daemon_dto.AuthGuardConfig, loginPath string) map[string]struct{} {
 	paths := make(map[string]struct{}, len(config.PublicPaths)+2)
-	for _, path := range config.PublicPaths {
-		paths[normalisePublicPath(path)] = struct{}{}
+	for _, publicPath := range config.PublicPaths {
+		paths[normalisePublicPath(publicPath)] = struct{}{}
 	}
 
 	paths[normalisePublicPath(pathComponentOf(loginPath))] = struct{}{}
@@ -94,23 +95,49 @@ func buildGuardPublicPaths(config daemon_dto.AuthGuardConfig, loginPath string) 
 // A login path may legitimately carry a query, such as "/login?next=1", but the exemption
 // is matched against a request path, which never does.
 //
-// Takes path (string) which is the configured path.
+// Takes configuredPath (string) which is the configured path.
 //
 // Returns string which is the path without its query.
-func pathComponentOf(path string) string {
-	component, _, _ := strings.Cut(path, "?")
+func pathComponentOf(configuredPath string) string {
+	component, _, _ := strings.Cut(configuredPath, "?")
 
 	return component
+}
+
+// isCanonicalRequestPath reports whether a request path is already in the form the router
+// matches, so that the public-path decision and the route chosen agree.
+//
+// A path with dot segments, repeated slashes, a backslash, or an encoded slash or
+// backslash can be resolved differently by the guard and by the router, so it is never
+// treated as canonical.
+//
+// Takes requestURL (*url.URL) which is the request URL.
+//
+// Returns bool which is true when the path needs no resolution.
+func isCanonicalRequestPath(requestURL *url.URL) bool {
+	decoded := requestURL.Path
+	if decoded == "" || decoded[0] != '/' || strings.ContainsRune(decoded, '\\') {
+		return false
+	}
+	resolved := path.Clean(decoded)
+	if resolved != "/" && strings.HasSuffix(decoded, "/") {
+		resolved += "/"
+	}
+	if resolved != decoded {
+		return false
+	}
+	raw := strings.ToLower(requestURL.RawPath)
+	return !strings.Contains(raw, "%2f") && !strings.Contains(raw, "%5c")
 }
 
 // normalisePublicPath puts a path in the one form the exemption set is keyed by, so that
 // "/login" and "/login/" are the same entry.
 //
-// Takes path (string) which is the raw configured or requested path.
+// Takes rawPath (string) which is the raw configured or requested path.
 //
 // Returns string which is the normalised form.
-func normalisePublicPath(path string) string {
-	trimmed := strings.TrimSpace(path)
+func normalisePublicPath(rawPath string) string {
+	trimmed := strings.TrimSpace(rawPath)
 	if trimmed == "/" {
 		return trimmed
 	}
@@ -126,7 +153,7 @@ func normalisePublicPath(path string) string {
 // Returns http.Handler which wraps next with auth enforcement.
 func (m *AuthGuardMiddleware) Handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		if m.isPublicPath(request.URL.Path) {
+		if isCanonicalRequestPath(request.URL) && m.isPublicPath(request.URL.Path) {
 			next.ServeHTTP(writer, request)
 			return
 		}
@@ -153,19 +180,21 @@ func (m *AuthGuardMiddleware) Handler(next http.Handler) http.Handler {
 
 // isPublicPath checks whether the given path is in the public allow list.
 //
-// Takes path (string) which is the URL path to check.
+// Callers must pass a canonical path so the guard and router agree on the route.
+//
+// Takes resolved (string) which is the canonical decoded URL path to check.
 //
 // Returns bool which is true when the path matches a public path or prefix.
-func (m *AuthGuardMiddleware) isPublicPath(path string) bool {
-	if _, public := m.publicPaths[normalisePublicPath(path)]; public {
+func (m *AuthGuardMiddleware) isPublicPath(resolved string) bool {
+	if _, public := m.publicPaths[normalisePublicPath(resolved)]; public {
 		return true
 	}
 	for _, prefix := range m.config.PublicPrefixes {
 		if strings.HasSuffix(prefix, "/") {
-			if strings.HasPrefix(path, prefix) {
+			if strings.HasPrefix(resolved, prefix) {
 				return true
 			}
-		} else if path == prefix || strings.HasPrefix(path, prefix+"/") {
+		} else if resolved == prefix || strings.HasPrefix(resolved, prefix+"/") {
 			return true
 		}
 	}

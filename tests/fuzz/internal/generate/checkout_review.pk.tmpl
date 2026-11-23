@@ -1,0 +1,39 @@
+<template>
+<main><h1>Review order</h1>
+<section id="checkout-review" data-status="ready" data-attempts="0" data-committed="0" data-total="0" data-unit="INVOICE_UNIT">
+<button id="restore" type="button" p-on:click="restore()">Read draft</button>
+<span id="review-customer"></span><span id="review-quantity"></span>
+<button id="place" type="button" p-on:click="place()">Submit</button>
+<button id="deny" type="button" p-on:click="release(false)">Decline</button>
+<button id="approve" type="button" p-on:click="release(true)">Approve</button>
+<output id="receipt"></output><output id="error"></output>
+</section></main>
+</template>
+<script lang="ts">
+export function restore(){
+	const draft=JSON.parse(sessionStorage.getItem('checkout-draft') || '{}');
+	document.getElementById('review-customer').textContent=draft.customer || '';
+	document.getElementById('review-quantity').textContent=String(draft.quantity || 0);
+}
+export async function release(approve:boolean){await action.shop.Release({Approve:approve}).call();}
+export async function place(){
+	const el=document.getElementById('checkout-review'),button=document.getElementById('place') as HTMLButtonElement;
+	if (button.disabled) return;
+	document.getElementById('error').textContent='';
+	const draft=JSON.parse(sessionStorage.getItem('checkout-draft') || '{}');
+	button.disabled=true;
+	el.dataset.status='pending';
+	el.dataset.attempts=String(Number(el.dataset.attempts)+1);
+	el.dataset.total=String(draft.quantity * Number(el.dataset.unit));
+	try{
+		const order=await action.shop.Place({Customer:draft.customer,Quantity:draft.quantity,SKU:'INVOICE_SKU'}).call();
+		document.getElementById('receipt').textContent=order.Line;
+		el.dataset.total=String(order.Total);
+		el.dataset.committed='1';
+		el.dataset.status='saved';
+	}catch(e){
+		document.getElementById('error').textContent=typeof e === 'string' ? e : JSON.stringify(e);
+		el.dataset.total='0';el.dataset.status='retry';
+	}finally{button.disabled=false;}
+}
+</script>

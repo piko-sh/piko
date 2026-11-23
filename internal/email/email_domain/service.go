@@ -37,8 +37,7 @@ const (
 	// defaultProviderName is the key used for the default provider in the providers map.
 	defaultProviderName = email_dto.EmailNameDefault
 
-	// errProviderNotFoundFmt is the format string for the provider not found error. It wraps
-	// the underlying registry error via %w so callers can inspect the cause.
+	// errProviderNotFoundFmt is the format string for the provider not found error.
 	errProviderNotFoundFmt = "email provider %q not found: %w"
 
 	// serviceName is the name used to identify the email service in the registry.
@@ -54,10 +53,9 @@ var (
 	errProviderNil = errors.New("provider cannot be nil")
 )
 
-// service provides email sending through configurable providers and templates. It
-// implements the email.Service and healthprobe.Probe interfaces.
+// service provides email sending through configurable providers and templates.
 type service struct {
-	// dispatcher queues emails for async delivery; nil means send immediately.
+	// dispatcher queues emails for async delivery. Nil means send immediately.
 	dispatcher EmailDispatcherPort
 
 	// templater converts email templates into HTML content.
@@ -80,14 +78,12 @@ var (
 	_ Service = (*service)(nil)
 )
 
-// RegisterProvider registers a new email provider with the given name.
+// RegisterProvider registers a named provider without changing the default.
 //
 // Takes name (string) which identifies the provider for later retrieval.
 // Takes provider (EmailProviderPort) which handles email delivery.
 //
 // Returns error when name is empty or provider is nil.
-//
-// Default provider must be set explicitly with SetDefaultProvider.
 func (s *service) RegisterProvider(ctx context.Context, name string, provider EmailProviderPort) error {
 	if name == "" {
 		return errProviderNameEmpty
@@ -138,8 +134,7 @@ func (s *service) ListProviders(ctx context.Context) []provider_domain.ProviderI
 	return s.registry.ListProviders(ctx)
 }
 
-// NewEmail creates a builder for a simple HTML or plain text email. This is the entry
-// point for the fluent builder API for emails without templates.
+// NewEmail creates a builder for a simple HTML or plain text email.
 //
 // Returns *EmailBuilder which provides methods to set up and send the email.
 func (s *service) NewEmail() *EmailBuilder {
@@ -225,7 +220,7 @@ func (s *service) SendBulkWithProvider(ctx context.Context, providerName string,
 //
 // Returns error when dispatcher is nil or fails to start.
 //
-// Safe for concurrent use. Uses a mutex to protect dispatcher registration.
+// Concurrency: Safe for concurrent use. Uses a mutex to protect dispatcher registration.
 func (s *service) RegisterDispatcher(ctx context.Context, dispatcher EmailDispatcherPort) error {
 	if dispatcher == nil {
 		return errDispatcherNil
@@ -247,7 +242,7 @@ func (s *service) RegisterDispatcher(ctx context.Context, dispatcher EmailDispat
 //
 // Returns error when no dispatcher is registered or the flush fails.
 //
-// Safe for concurrent use.
+// Concurrency: Safe for concurrent use.
 func (s *service) FlushDispatcher(ctx context.Context) error {
 	s.mu.RLock()
 	dispatcher := s.dispatcher
@@ -268,8 +263,7 @@ func (*service) Name() string {
 	return "EmailService"
 }
 
-// Check implements the healthprobe_domain.Probe interface. It checks whether email
-// providers are available and working.
+// Check implements the healthprobe_domain.Probe interface.
 //
 // Takes checkType (healthprobe_dto.CheckType) which specifies whether to run a liveness
 // or readiness check.
@@ -289,7 +283,7 @@ func (s *service) Check(ctx context.Context, checkType healthprobe_dto.CheckType
 }
 
 // getProvider fetches a provider by name, returning the default provider when name is
-// empty.
+// empty, or is "default" and no provider has that name.
 //
 // Takes name (string) which specifies the provider to fetch, or empty for the default.
 //
@@ -297,7 +291,7 @@ func (s *service) Check(ctx context.Context, checkType healthprobe_dto.CheckType
 // Returns error when no default provider is set or fetching fails.
 func (s *service) getProvider(ctx context.Context, name string) (EmailProviderPort, error) {
 	providerName := name
-	if providerName == "" {
+	if providerName == "" || (providerName == defaultProviderName && !s.registry.HasProvider(defaultProviderName)) {
 		providerName = s.registry.GetDefaultProvider()
 	}
 
@@ -466,7 +460,7 @@ func NewService(_ context.Context, opts ...ServiceOption) Service {
 }
 
 // NewServiceWithDefaultProvider creates a new email service with a specified default
-// provider name. The provider itself must be registered separately via RegisterProvider.
+// provider name.
 //
 // Takes opts (...ServiceOption) which configures service limits and behaviour.
 //
@@ -508,18 +502,17 @@ func NewServiceWithProvider(ctx context.Context, provider EmailProviderPort, opt
 		assetResolver: nil,
 		mu:            sync.RWMutex{},
 	}
-	if err := s.registry.RegisterProvider(ctx, defaultProviderName, provider); err != nil {
+	if err := s.registry.RegisterProvider(ctx, config.initialProviderName, provider); err != nil {
 		log.ReportError(nil, err, "Failed to register default email provider")
 	}
-	if err := s.registry.SetDefaultProvider(ctx, defaultProviderName); err != nil {
+	if err := s.registry.SetDefaultProvider(ctx, config.initialProviderName); err != nil {
 		log.ReportError(nil, err, "Failed to set default email provider")
 	}
 	return s
 }
 
 // NewServiceWithProviderAndDispatcher creates a new email service with the given provider
-// and optional dispatcher. It accepts functional options to set service limits and
-// behaviour.
+// and optional dispatcher.
 //
 // Takes provider (EmailProviderPort) which handles sending emails.
 // Takes dispatcher (EmailDispatcherPort) which manages async email delivery.
@@ -544,10 +537,10 @@ func NewServiceWithProviderAndDispatcher(
 		assetResolver: assetResolver,
 		mu:            sync.RWMutex{},
 	}
-	if err := s.registry.RegisterProvider(ctx, defaultProviderName, provider); err != nil {
+	if err := s.registry.RegisterProvider(ctx, config.initialProviderName, provider); err != nil {
 		log.ReportError(nil, err, "Failed to register default email provider")
 	}
-	if err := s.registry.SetDefaultProvider(ctx, defaultProviderName); err != nil {
+	if err := s.registry.SetDefaultProvider(ctx, config.initialProviderName); err != nil {
 		log.ReportError(nil, err, "Failed to set default email provider")
 	}
 
@@ -562,14 +555,11 @@ func NewServiceWithProviderAndDispatcher(
 }
 
 var (
-	// ErrUnsupportedServiceImpl is returned by NewTemplatedEmail when the supplied Service
-	// is not the default implementation. Callers must use the bootstrapped service obtained
-	// from the wdk facade.
+	// ErrUnsupportedServiceImpl reports a service that cannot send templated email.
 	ErrUnsupportedServiceImpl = errors.New("email_domain: NewTemplatedEmail requires the default Service implementation")
 )
 
-// NewTemplatedEmail creates a new templated email builder with type-safe props. This is a
-// top-level generic function (methods cannot have type parameters in Go).
+// NewTemplatedEmail creates a new templated email builder with type-safe props.
 //
 // Takes s (Service) which is the email service implementation.
 //
@@ -601,13 +591,8 @@ func NewTemplatedEmail[PropsT any](s Service) (*TemplatedEmailBuilder[PropsT], e
 	}, nil
 }
 
-// NewFailedTemplatedEmail returns a templated email builder in a permanent error state so
-// a caller that did not check a constructor error still gets a panic-safe fluent chain.
-//
-// Every chainable method records against a throwaway parameter set and Do reports
-// buildError without attempting to send. This keeps best-effort senders (which discard
-// the constructor error) from dereferencing a nil builder when no default email service
-// is registered.
+// NewFailedTemplatedEmail creates a builder whose Do method returns buildError without
+// sending.
 //
 // Takes buildError (error) which is the construction failure to surface from Do.
 //
@@ -624,12 +609,8 @@ func NewFailedTemplatedEmail[PropsT any](buildError error) *TemplatedEmailBuilde
 	return builder
 }
 
-// NewFailedEmailBuilder returns a plain email builder in a permanent error state so a
-// caller that did not check a constructor error still gets a panic-safe fluent chain.
-//
-// The chainable methods record against a throwaway parameter set and Do reports
-// buildError without attempting to send, which keeps best-effort senders from
-// dereferencing a nil builder.
+// NewFailedEmailBuilder creates a builder whose Do method returns buildError without
+// sending.
 //
 // Takes buildError (error) which is the construction failure to surface from Do.
 //
@@ -647,11 +628,6 @@ func NewFailedEmailBuilder(buildError error) *EmailBuilder {
 }
 
 // handleBulkSend sends a batch of emails using the given provider.
-//
-// When the batch is empty, returns nil without doing anything.
-//
-// If the provider supports bulk sending, it tries that first. If bulk sending fails, it
-// falls back to sending each email one by one.
 //
 // Takes provider (EmailProviderPort) which handles the actual email sending.
 // Takes emails ([]*email_dto.SendParams) which specifies the emails to send.
@@ -693,7 +669,7 @@ func handleBulkSend(ctx context.Context, provider EmailProviderPort, emails []*e
 // Takes provider (EmailProviderPort) which handles email delivery.
 // Takes emails ([]*email_dto.SendParams) which contains the emails to send.
 //
-// Returns error when one or more emails fail to send; the error is a MultiError with
+// Returns error when one or more emails fail to send. The error is a MultiError with
 // details of each failure.
 func sendIndividuallyWithMultiError(ctx context.Context, provider EmailProviderPort, emails []*email_dto.SendParams) error {
 	ctx, l := logger_domain.From(ctx, log)
@@ -729,8 +705,7 @@ func sendIndividuallyWithMultiError(ctx context.Context, provider EmailProviderP
 }
 
 // updateOverallStateFromProvider determines the new overall health state based on a
-// provider's state. It follows these rules: 1) unhealthy default provider makes overall
-// unhealthy, 2) any unhealthy or degraded provider makes overall at least degraded.
+// provider's state.
 //
 // Takes currentState (healthprobe_dto.State) which is the current overall health state.
 // Takes providerState (healthprobe_dto.State) which is the state of the provider being

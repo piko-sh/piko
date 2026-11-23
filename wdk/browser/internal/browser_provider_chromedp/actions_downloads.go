@@ -54,6 +54,9 @@ const (
 )
 
 var (
+	// errDownloadTimeout is the cause when a download does not finish within its timeout.
+	errDownloadTimeout = errors.New("download did not finish within its timeout")
+
 	// ErrUnsafeDownloadPath indicates the suggested filename was rejected because it
 	// contained path separators, parent traversal segments, or escaped the download
 	// directory.
@@ -629,7 +632,7 @@ func WaitForDownload(ctx *ActionContext, downloadDir string, timeout time.Durati
 		return nil, fmt.Errorf("triggering download: %w", err)
 	}
 
-	return waitForDownloadCompletion(downloadCh, timeout)
+	return waitForDownloadCompletion(ctx.Ctx, downloadCh, timeout)
 }
 
 // CancelDownload cancels an in-progress download.
@@ -784,36 +787,48 @@ func setupDownloadListener(ctx *ActionContext, downloadDir string, downloadCh ch
 // exists.
 //
 // Takes downloadCh (chan *DownloadInfo) which receives download information.
-// Takes timeout (time.Duration) which specifies the maximum wait time.
+// Takes timeout (time.Duration) which bounds the whole wait, from the trigger to the file
+// appearing on disk.
 //
 // Returns *DownloadInfo which contains details of the completed download.
-// Returns error when the download times out or the file does not exist.
-func waitForDownloadCompletion(downloadCh chan *DownloadInfo, timeout time.Duration) (*DownloadInfo, error) {
+// Returns error when ctx ends, the download does not start or finish in time, or the file
+// does not exist.
+func waitForDownloadCompletion(ctx context.Context, downloadCh chan *DownloadInfo, timeout time.Duration) (*DownloadInfo, error) {
+	waitCtx, cancel := context.WithTimeoutCause(ctx, timeout, errDownloadTimeout)
+	defer cancel()
+
 	select {
 	case info := <-downloadCh:
-		return waitForFileExists(info, timeout)
-	case <-time.After(timeout):
-		return nil, errors.New("timeout waiting for download to start")
+		return waitForFileExists(waitCtx, info)
+	case <-waitCtx.Done():
+		return nil, fmt.Errorf("waiting for the download to start: %w", context.Cause(waitCtx))
 	}
 }
 
 // waitForFileExists polls until the downloaded file exists on disk.
 //
 // Takes info (*DownloadInfo) which contains the path to check.
-// Takes timeout (time.Duration) which sets how long to wait before giving up.
 //
 // Returns *DownloadInfo which has its state set to completed when found.
-// Returns error when the file does not appear within the timeout period.
-func waitForFileExists(info *DownloadInfo, timeout time.Duration) (*DownloadInfo, error) {
-	time.Sleep(downloadStartDelay)
+// Returns error when ctx ends before the file appears.
+func waitForFileExists(ctx context.Context, info *DownloadInfo) (*DownloadInfo, error) {
+	settle := time.NewTimer(downloadStartDelay)
+	defer settle.Stop()
+	select {
+	case <-ctx.Done():
+		return nil, fmt.Errorf("waiting for download %s: %w", info.Path, context.Cause(ctx))
+	case <-settle.C:
+	}
 
-	deadline := time.Now().Add(timeout)
-	for time.Now().Before(deadline) {
+	ticker := time.NewTicker(DefaultPollingInterval)
+	defer ticker.Stop()
+	for {
 		if _, err := os.Stat(info.Path); err == nil {
 			info.State = "completed"
 			return info, nil
 		}
-		time.Sleep(DefaultPollingInterval)
+		if err := waitForTick(ctx, ticker); err != nil {
+			return nil, fmt.Errorf("download file not found: %s: %w", info.Path, err)
+		}
 	}
-	return nil, fmt.Errorf("download file not found after timeout: %s", info.Path)
 }

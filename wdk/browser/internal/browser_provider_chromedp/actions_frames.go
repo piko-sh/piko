@@ -216,17 +216,17 @@ func WaitForElementInFrame(ctx *ActionContext, frameSelector, elementSelector st
 		tmplKeyElementSelector: elementSelector,
 	})
 
-	const (
-		pollInterval = 100 * time.Millisecond
-		timeout      = 5 * time.Second
-	)
+	const timeout = 5 * time.Second
 
 	deadline := time.Now().Add(timeout)
+	ticker := time.NewTicker(DefaultPollingInterval)
+	defer ticker.Stop()
+
 	for {
 		var found bool
 		err := chromedp.Run(ctx.Ctx, chromedp.Evaluate(js, &found))
 		if err != nil {
-			return fmt.Errorf("waiting for element in frame: %w", err)
+			return fmt.Errorf("waiting for element in frame: %w", withContextCause(ctx.Ctx, err))
 		}
 		if found {
 			return nil
@@ -234,7 +234,9 @@ func WaitForElementInFrame(ctx *ActionContext, frameSelector, elementSelector st
 		if time.Now().After(deadline) {
 			return fmt.Errorf("timed out waiting for element %q in frame %q", elementSelector, frameSelector)
 		}
-		time.Sleep(pollInterval)
+		if err := waitForTick(ctx.Ctx, ticker); err != nil {
+			return fmt.Errorf("waiting for element %q in frame %q: %w", elementSelector, frameSelector, err)
+		}
 	}
 }
 

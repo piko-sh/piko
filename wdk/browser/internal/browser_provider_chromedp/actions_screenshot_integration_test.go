@@ -24,6 +24,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/chromedp/chromedp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -254,25 +255,25 @@ func TestCompareScreenshots(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	testCases := []struct {
-		name     string
-		a        []byte
-		b        []byte
-		expected float64
-	}{
-		{name: "identical screenshots return 0", a: []byte{1, 2, 3, 4, 5}, b: []byte{1, 2, 3, 4, 5}, expected: 0},
-		{name: "different sizes return 1", a: []byte{1, 2, 3}, b: []byte{1, 2, 3, 4, 5}, expected: 1},
-		{name: "empty screenshots return 0", a: []byte{}, b: []byte{}, expected: 0},
-		{name: "partially different returns fraction", a: []byte{1, 2, 3, 4}, b: []byte{1, 2, 0, 0}, expected: 0.5},
-	}
+	server := newTestServer(testHTMLScreenshot)
+	defer server.Close()
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			diff, err := CompareScreenshots(tc.a, tc.b)
-			require.NoError(t, err)
-			assert.InDelta(t, tc.expected, diff, 0.001)
-		})
-	}
+	withTestPage(t, server.URL, func(t *testing.T, page *PageHelper) {
+		ctx := newActionContext(page)
+
+		first, err := ScreenshotElement(ctx, "#box")
+		require.NoError(t, err)
+		second, err := ScreenshotElement(ctx, "#box")
+		require.NoError(t, err)
+		assert.InDelta(t, 0.0, CompareScreenshots(first, second), 0.001)
+
+		err = chromedp.Run(page.Ctx(), chromedp.Evaluate(`document.getElementById('box').style.background = 'green'; true`, nil))
+		require.NoError(t, err)
+		changed, err := ScreenshotElement(ctx, "#box")
+		require.NoError(t, err)
+		assert.Greater(t, CompareScreenshots(first, changed), 0.0)
+		assert.InDelta(t, 1.0, CompareScreenshots(first, first[:len(first)-1]), 0.001)
+	})
 }
 
 func requirePNGSize(t *testing.T, data []byte, width, height int) {

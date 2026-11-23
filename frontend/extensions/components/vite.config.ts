@@ -133,7 +133,7 @@ export default defineConfig({
               toplevel: true,
               properties: {
                 regex: /^_/,
-                reserved: ['_csrf_ephemeral_token', '_f', '_class', '_style', '_k', '_c', '_s', '_ref', '_type']
+                reserved: ['_csrf_ephemeral_token', '_f', '_class', '_style', '_k', '_c', '_s', '_ref', '_type', '_memo', '_model']
               }
             },
             format: {

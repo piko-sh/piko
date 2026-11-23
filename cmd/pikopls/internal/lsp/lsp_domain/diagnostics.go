@@ -186,7 +186,7 @@ func convertRelatedInfoToLSP(d *ast_domain.Diagnostic) []protocol.DiagnosticRela
 	for _, ri := range d.RelatedInfo {
 		relatedInfo = append(relatedInfo, protocol.DiagnosticRelatedInformation{
 			Location: protocol.Location{
-				URI: protocol.DocumentURI("file://" + d.SourcePath),
+				URI: documentURIForPath(d.SourcePath),
 				Range: protocol.Range{
 					Start: protocol.Position{
 						Line:      safeconv.IntToUint32(ri.Location.Line - 1),

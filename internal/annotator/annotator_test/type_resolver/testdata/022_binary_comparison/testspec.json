@@ -4,4 +4,19 @@
   "expectedType": "bool",
   "expectedDiagnostics": 0,
   "diagnostics": []
+}, {
+  "description": "Orders a time.Time field and a leap-year date literal.",
+  "expression": "state.Day < d'2024-03-01'",
+  "expectedType": "bool",
+  "expectedDiagnostics": 0
+}, {
+  "description": "Resolves a method on the result of a time and duration sum.",
+  "expression": "(state.Day + state.Step).Format('2006-01-02')",
+  "expectedType": "string",
+  "expectedDiagnostics": 0
+}, {
+  "description": "Subtracting two times returns a duration.",
+  "expression": "state.Day - d'2024-02-29'",
+  "expectedType": "time.Duration",
+  "expectedDiagnostics": 0
 }]

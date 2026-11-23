@@ -1,0 +1,39 @@
+<template public>
+  <ul id="workflow-rows">
+    <li p-for="task in state.Tasks" p-key="task.ID" :data-fuzz-task="task.ID" :data-done="task.Marker">
+      <span data-task-label p-text="task.Label"></span>
+      <button type="button" data-toggle p-on:click="toggleTask(task.ID)">Toggle</button>
+      <button type="button" data-delete p-on:click="deleteTask(task.ID)">Delete</button>
+    </li>
+  </ul>
+</template>
+<script type="application/x-go">
+package main
+import (
+	"piko.sh/piko"
+	"example.org/pikofuzzcase/pkg/workflowdata"
+)
+type Response struct{ Tasks []workflowdata.Task }
+func Render(r *piko.RequestData, props piko.NoProps)(Response,piko.Metadata,error) {
+	rows,err:=workflowdata.List(r.Context())
+	return Response{Tasks:rows},piko.Metadata{},err
+}
+</script>
+<script lang="ts">
+async function toggleTask(id: number): Promise<void> {
+  const result = await action.tasks.Toggle({id}).call();
+  await finishTask(result);
+}
+async function deleteTask(id: number): Promise<void> {
+  const result = await action.tasks.Delete({id}).call();
+  await finishTask(result);
+}
+async function finishTask(result: {id: number, label: string, done: boolean}): Promise<void> {
+  await piko.partials.reload("task-list");
+  const status = document.getElementById('workflow-status');
+  status.dataset.id = String(result.id);
+  status.dataset.label = result.label;
+  status.dataset.done = String(result.done);
+  status.dataset.revision = String(Number(status.dataset.revision) + 1);
+}
+</script>

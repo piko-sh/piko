@@ -82,9 +82,6 @@ func (b *ASTBinder) isNestedMapAccess(currentVal reflect.Value, node *ast_domain
 // findTargetByAST dispatches navigation to a field using AST expression types with depth
 // tracking.
 //
-// It separates the strategy (dispatching) from the implementation (handling each type).
-// The limits are passed through to avoid repeated atomic loads in recursive calls.
-//
 // Takes currentVal (reflect.Value) which is the value to navigate from.
 // Takes expression (ast_domain.Expression) which is the AST node to evaluate.
 // Takes fullPath (string) which is the complete path for error messages.
@@ -120,8 +117,7 @@ func (b *ASTBinder) findTargetByAST(currentVal reflect.Value, expression ast_dom
 }
 
 // resolveMemberExpression resolves a member expression by recursively processing base and
-// property. The limits are passed through to avoid repeated atomic loads in recursive
-// calls.
+// property.
 //
 // Takes currentVal (reflect.Value) which is the current value being bound.
 // Takes node (*ast_domain.MemberExpression) which is the member expression to resolve.
@@ -139,10 +135,7 @@ func (b *ASTBinder) resolveMemberExpression(currentVal reflect.Value, node *ast_
 	return b.findTargetByAST(baseVal, node.Property, fullPath, depth+1, limits)
 }
 
-// resolveIndexExpression handles index access for slices, arrays, and maps. It
-// recursively resolves the base expression to support nested paths like
-// "parent.child[0]", then dispatches to the appropriate handler based on the resolved
-// value's kind.
+// resolveIndexExpression handles index access for slices, arrays, and maps.
 //
 // Takes currentVal (reflect.Value) which is the starting value to resolve from.
 // Takes node (*ast_domain.IndexExpression) which is the AST node for the index access.
@@ -296,7 +289,7 @@ func findFieldByName(currentVal reflect.Value, name, fullPath string) (reflect.V
 		}
 	}
 
-	return reflect.Value{}, errSetField{err: errors.New(errFieldNotFound), path: fullPath, field: name, fieldType: ""}
+	return reflect.Value{}, errSetField{err: errFieldNotFound, path: fullPath, field: name, fieldType: ""}
 }
 
 // resolveSliceIndex handles slice indexing with automatic growth.
@@ -329,8 +322,7 @@ func resolveSliceIndex(sliceVal reflect.Value, node *ast_domain.IndexExpression,
 	return sliceVal.Index(index), nil
 }
 
-// resolveMapIndex finds or creates a map element at the given index. It creates the map
-// if nil and sets up missing elements as needed.
+// resolveMapIndex finds or creates a map element at the given index.
 //
 // Takes mapVal (reflect.Value) which is the map to index into.
 // Takes node (*ast_domain.IndexExpression) which contains the index expression.
@@ -372,9 +364,7 @@ func resolveMapIndex(mapVal reflect.Value, node *ast_domain.IndexExpression, ful
 	return element, nil
 }
 
-// resolveStructFieldByStringIndex handles bracket-notation access on a struct value where
-// flattened JSON form data produces paths like shippingAddress['street'] and the bracket
-// index corresponds to a struct field name or json tag.
+// resolveStructFieldByStringIndex resolves a quoted index to a struct field or JSON tag.
 //
 // Takes structVal (reflect.Value) which is the struct to access.
 // Takes node (*ast_domain.IndexExpression) which contains the string index.
@@ -396,9 +386,6 @@ func resolveStructFieldByStringIndex(structVal reflect.Value, node *ast_domain.I
 }
 
 // createMapElement creates a new zero-value element for a map.
-//
-// When elemType is a pointer kind, returns a new pointer to the element type. Otherwise,
-// returns the element value directly.
 //
 // Takes elemType (reflect.Type) which specifies the type of element to create.
 //

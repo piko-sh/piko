@@ -8,12 +8,13 @@ require (
 	charm.land/lipgloss/v2 v2.0.5
 	github.com/NimbleMarkets/ntcharts/v2 v2.2.0
 	github.com/charmbracelet/x/ansi v0.11.7
-	github.com/google/pprof v0.0.0-20260802141513-ef3492d7dac3
+	github.com/google/pprof v0.0.0-20261016150608-1facf8f91b50
 	github.com/stretchr/testify v1.12.1
 	github.com/valyala/fasthttp v1.73.0
 	go.opentelemetry.io/otel v1.47.0
 	go.opentelemetry.io/otel/metric v1.47.0
 	go.uber.org/goleak v1.3.0
+	golang.org/x/mod v0.43.0
 	golang.org/x/text v0.44.0
 	google.golang.org/grpc v1.84.0
 	piko.sh/json v0.1.1
@@ -93,7 +94,6 @@ require (
 	golang.org/x/arch v0.29.0 // indirect
 	golang.org/x/exp v0.0.0-20261117202309-7a49493bfd90 // indirect
 	golang.org/x/image v0.44.0 // indirect
-	golang.org/x/mod v0.43.0 // indirect
 	golang.org/x/net v0.63.0 // indirect
 	golang.org/x/sync v0.25.0 // indirect
 	golang.org/x/sys v0.50.0 // indirect

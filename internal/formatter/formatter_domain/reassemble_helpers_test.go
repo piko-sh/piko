@@ -59,7 +59,7 @@ func TestWriteAttributes(t *testing.T) {
 		{
 			"attribute with special characters",
 			map[string]string{"data-value": "test\"quoted\""},
-			` data-value="test"quoted""`,
+			` data-value='test"quoted"'`,
 		},
 		{
 			"attribute with empty string value",
@@ -185,7 +185,7 @@ func TestWriteTemplateBlock(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var builder strings.Builder
-			writeTemplateBlock(&builder, tt.template)
+			writeTemplateBlock(&builder, tt.template, nil)
 			result := builder.String()
 
 			assert.Equal(t, tt.want, result)

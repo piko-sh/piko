@@ -1159,3 +1159,20 @@ func TestNewContextManager_Constructor(t *testing.T) {
 		assert.Same(t, vm, cm.virtualModule)
 	})
 }
+
+func TestSlottedChildUsesItsAuthorsInvocation(t *testing.T) {
+	h := newTypeResolverTestHarness()
+	vm := createContextManagerVirtualModuleWithPartial()
+	ctx := NewRootAnalysisContext(h.Diagnostics, "test/main", "main", "/virtual/main.go", "/test/main.pk")
+	receiver := &ast_domain.PartialInvocationInfo{PartialPackageName: "main_abc123", InvocationKey: "receiver"}
+	for _, key := range []string{"left", "right"} {
+		owner := &ast_domain.PartialInvocationInfo{PartialPackageName: "partial_123", InvocationKey: key}
+		visitor := NewSemanticAnalyser(h.Resolver, ctx, receiver, nil, vm, nil, SemanticAnalyserConfig{})
+		visitor.partialInvocationMap[owner.PartialPackageName] = owner
+		path := "/test/partial.pk"
+		node := &ast_domain.TemplateNode{NodeType: ast_domain.NodeElement, TagName: "p", GoAnnotations: &ast_domain.GoGeneratorAnnotation{OriginalPackageAlias: &owner.PartialPackageName, OriginalSourcePath: &path}}
+		child, err := visitor.Enter(t.Context(), node)
+		require.NoError(t, err)
+		require.Same(t, owner, child.(*SemanticAnalyser).currentPartialInfo)
+	}
+}

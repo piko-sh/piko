@@ -26,7 +26,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/generator/generator_dto"
+	"piko.sh/piko/internal/wasm/wasm_data"
 	"piko.sh/piko/internal/wasm/wasm_dto"
 )
 
@@ -112,6 +114,16 @@ func TestGeneratorAdapter_Generate_RejectsOversizeRequest(t *testing.T) {
 	assert.Contains(t, response.Error, "exceeds limit", "the validation gate must reject before stdlib lookup")
 }
 
+func TestValidateGenerateRequestZeroDisablesLimits(t *testing.T) {
+	t.Parallel()
+
+	request := &wasm_dto.GenerateFromSourcesRequest{
+		Sources: map[string]string{"a.pk": strings.Repeat("x", 64), "b.pk": "y"},
+	}
+	assert.Nil(t, validateGenerateRequest(request, generatorLimits{}))
+	assert.NotNil(t, validateGenerateRequest(request, generatorLimits{MaxFileBytes: 8}))
+}
+
 func TestGeneratorAdapter_Generate_RejectsNilRequest(t *testing.T) {
 	t.Parallel()
 
@@ -135,7 +147,7 @@ func TestConvertArtefacts_PrecedenceGeneratorWinsOverFSWriter(t *testing.T) {
 		Content:       []byte("from-generator"),
 	}}
 
-	result := adapter.convertArtefacts(generatorArtefacts, fsWriter, nil)
+	result := adapter.convertArtefacts(generatorArtefacts, fsWriter, nil, nil)
 	assert.Len(t, result, 1, "duplicate path must be deduplicated")
 	assert.Equal(t, "from-generator", result[0].Content, "generator artefact wins on collision")
 }
@@ -150,7 +162,7 @@ func TestConvertArtefacts_PrecedenceFSWriterWinsOverPKJS(t *testing.T) {
 	pkJSEmitter := NewInMemoryPKJSEmitter()
 	require.NoError(t, pkJSEmitter.Put("pk-js/pages/x.js", "from-pkjs"))
 
-	result := adapter.convertArtefacts(nil, fsWriter, pkJSEmitter)
+	result := adapter.convertArtefacts(nil, fsWriter, pkJSEmitter, nil)
 	assert.Len(t, result, 1)
 	assert.Equal(t, "from-fs", result[0].Content, "fsWriter precedes pkJSEmitter on duplicate paths")
 }
@@ -170,7 +182,7 @@ func TestConvertArtefacts_MergesUniquePathsFromAllThreeSources(t *testing.T) {
 		Content:       []byte("page"),
 	}}
 
-	result := adapter.convertArtefacts(generatorArtefacts, fsWriter, pkJSEmitter)
+	result := adapter.convertArtefacts(generatorArtefacts, fsWriter, pkJSEmitter, nil)
 	require.Len(t, result, 3)
 
 	paths := make(map[string]string, len(result))
@@ -249,8 +261,9 @@ func TestNewSourceEntryPoint(t *testing.T) {
 		sourcePath string
 		wantPath   string
 		wantPage   bool
+		wantPublic bool
 	}{
-		{name: "page", sourcePath: "pages/home.pk", wantPath: "playground/pages/home.pk", wantPage: true},
+		{name: "page", sourcePath: "pages/home.pk", wantPath: "playground/pages/home.pk", wantPage: true, wantPublic: true},
 		{name: "nested page", sourcePath: "app/pages/home.pk", wantPath: "playground/app/pages/home.pk", wantPage: true},
 		{name: "partial", sourcePath: "partials/card.pk", wantPath: "playground/partials/card.pk", wantPage: false},
 	}
@@ -260,7 +273,7 @@ func TestNewSourceEntryPoint(t *testing.T) {
 			entryPoint := newSourceEntryPoint("playground", testCase.sourcePath)
 			assert.Equal(t, testCase.wantPath, entryPoint.Path)
 			assert.Equal(t, testCase.wantPage, entryPoint.IsPage)
-			assert.False(t, entryPoint.IsPublic)
+			assert.Equal(t, testCase.wantPublic, entryPoint.IsPublic)
 		})
 	}
 }
@@ -296,4 +309,57 @@ func TestGeneratorAdapter_CreateGeneratorService(t *testing.T) {
 	require.Nil(t, failure)
 	assert.NotNil(t, writer)
 	assert.NotNil(t, service)
+}
+
+func TestWASMPageSourcesFollowTheirManifestPackages(t *testing.T) {
+	adapter := NewGeneratorAdapter()
+	manifest := &generator_dto.Manifest{Pages: map[string]generator_dto.ManifestPageEntry{}}
+	var inputs []*generator_dto.GeneratedArtefact
+	for _, name := range []string{"right", "left"} {
+		path := "pages/" + name + ".pk"
+		pkg := "example.test/dist/" + name
+		manifest.Pages[path] = generator_dto.ManifestPageEntry{PackagePath: pkg, OriginalSourcePath: path}
+		inputs = append(inputs, &generator_dto.GeneratedArtefact{SuggestedPath: "dist/" + name + "/page.go", Component: &annotator_dto.VirtualComponent{CanonicalGoPackagePath: pkg, IsPage: true}})
+	}
+	exported := adapter.convertManifest(manifest)
+	actual := adapter.convertArtefacts(inputs, NewInMemoryFSWriter(), nil, manifest)
+	for i, want := range []string{"pages/right.pk", "pages/left.pk"} {
+		require.Equal(t, want, actual[i].SourcePath)
+		require.Equal(t, want, exported.Pages[want].SourcePath)
+	}
+}
+
+func TestManifestSourcePathsCoversEveryComponentKind(t *testing.T) {
+	t.Parallel()
+
+	manifest := &generator_dto.Manifest{
+		Pages:      map[string]generator_dto.ManifestPageEntry{"pages/home.pk": {PackagePath: "example.test/dist/home", OriginalSourcePath: "pages/home.pk"}},
+		Partials:   map[string]generator_dto.ManifestPartialEntry{"partials/card.pk": {PackagePath: "example.test/dist/card", OriginalSourcePath: "partials/card.pk"}},
+		Emails:     map[string]generator_dto.ManifestEmailEntry{"emails/welcome.pk": {PackagePath: "example.test/dist/welcome", OriginalSourcePath: "emails/welcome.pk"}},
+		Pdfs:       map[string]generator_dto.ManifestPdfEntry{"pdfs/invoice.pk": {PackagePath: "example.test/dist/invoice", OriginalSourcePath: "pdfs/invoice.pk"}},
+		ErrorPages: map[string]generator_dto.ManifestErrorPageEntry{"pages/!404.pk": {PackagePath: "example.test/dist/notfound", OriginalSourcePath: "pages/!404.pk"}},
+	}
+
+	assert.Equal(t, map[string]string{
+		"example.test/dist/home":     "pages/home.pk",
+		"example.test/dist/card":     "partials/card.pk",
+		"example.test/dist/welcome":  "emails/welcome.pk",
+		"example.test/dist/invoice":  "pdfs/invoice.pk",
+		"example.test/dist/notfound": "pages/!404.pk",
+	}, manifestSourcePaths(manifest))
+	assert.Empty(t, manifestSourcePaths(nil))
+}
+
+func TestWASMPublicPageRoutePatterns(t *testing.T) {
+	response, err := NewGeneratorAdapter(WithStdlibDataGetter(wasm_data.GetStdlibTypeData)).Generate(t.Context(), &wasm_dto.GenerateFromSourcesRequest{
+		Sources:    map[string]string{"pages/alpha.pk": "<template><p>A</p></template>", "pages/group/beta.pk": "<template><p>B</p></template>"},
+		ModuleName: "example.test/app",
+	})
+	require.NoError(t, err)
+	require.True(t, response.Success, response.Error)
+	for file, route := range map[string]string{"pages/alpha.pk": "/alpha", "pages/group/beta.pk": "/group/beta"} {
+		p := response.Manifest.Pages[file]
+		require.Equal(t, file, p.SourcePath)
+		require.Equal(t, route, p.RoutePatterns["en"])
+	}
 }

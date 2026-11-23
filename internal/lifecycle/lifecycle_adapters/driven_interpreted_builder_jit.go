@@ -159,6 +159,7 @@ func (o *InterpretedBuildOrchestrator) getJITInterpreter(ctx context.Context) (t
 	if o.interpreterPool == nil {
 		return nil, errNoInterpreterPool
 	}
+
 	jitInterpreter, err := getInterpreterFromPool(o.interpreterPool)
 	if err != nil {
 		return nil, fmt.Errorf("getting interpreter from pool for JIT compilation: %w", err)

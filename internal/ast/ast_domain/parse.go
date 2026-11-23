@@ -30,6 +30,8 @@ import (
 	"sync"
 	"unicode/utf8"
 
+	nethtml "golang.org/x/net/html"
+
 	"piko.sh/piko/internal/htmllexer"
 )
 
@@ -38,8 +40,7 @@ const (
 	// attribute names. 64 bytes covers all standard HTML names.
 	lowerBufferSize = 64
 
-	// textPartPreallocCapacity is the initial slice capacity for TextPart slices. Sized for
-	// the common pattern: literal-expr-literal-expr.
+	// textPartPreallocCapacity is the initial slice capacity for TextPart slices.
 	textPartPreallocCapacity = 4
 
 	// directivePrefixOn is the attribute prefix for DOM event handler directives.
@@ -56,14 +57,12 @@ const (
 )
 
 var (
-	// flagDirectives defines directives that are treated as boolean flags. If the attribute
-	// is present, its value is considered "true" unless explicitly set to "false".
+	// flagDirectives lists directives whose missing attribute value means "true".
 	flagDirectives = map[DirectiveType]bool{ //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		DirectiveScaffold: true,
 	}
 
 	// internedStrings contains pre-allocated strings for common tag and attribute names.
-	// Using interning reduces allocations when parsing templates with repeated elements.
 	internedStrings = map[string]string{
 		"div": "div", "span": "span", "p": "p", "a": "a", "img": "img",
 		"ul": "ul", "ol": "ol", "li": "li", "table": "table", "tr": "tr",
@@ -96,11 +95,7 @@ var (
 		"aria-label": "aria-label", "aria-hidden": "aria-hidden", "aria-expanded": "aria-expanded",
 	}
 
-	// svgCaseSensitiveAttrs is the set of SVG attribute names that must preserve their
-	// original case, sourced from the HTML spec's "adjust SVG attributes" step.
-	//
-	// All other attributes on SVG elements are lowercased for performance so the renderer
-	// can use exact string comparison instead of equalFold.
+	// svgCaseSensitiveAttrs lists the SVG attribute names that retain their case.
 	svgCaseSensitiveAttrs = map[string]struct{}{
 		"attributeName":       {},
 		"attributeType":       {},
@@ -170,19 +165,21 @@ var (
 // ParseOptions configures the behaviour of the HTML parser.
 type ParseOptions struct {
 	// RawMode treats all attributes as plain HTML attributes and skips directive parsing.
-	// Useful when formatting rendered HTML output that contains p-key attributes with values
-	// that are not valid expressions.
 	RawMode bool
+
+	// DecodeStaticAttributes supplies decoded HTML attribute values for rendering.
+	DecodeStaticAttributes bool
+
+	// PreserveRawText keeps script and style text as written for formatting.
+	PreserveRawText bool
 }
 
-// Parser transforms raw HTML input into a TemplateAST. It uses a high-performance HTML
-// lexer to tokenise the input and build a tree structure, keeping directive expressions
-// as raw strings at this stage.
+// Parser transforms raw HTML input into a TemplateAST.
 type Parser struct {
 	// tree holds the template AST being built during parsing.
 	tree *TemplateAST
 
-	// opts holds the parse options; nil means default behaviour.
+	// opts holds the parse options. Nil means default behaviour.
 	opts *ParseOptions
 
 	// sourcePath is the file path of the source being parsed.
@@ -205,13 +202,11 @@ type Parser struct {
 	lowerBuf [lowerBufferSize]byte
 }
 
-// toLower lowercases src into the parser's scratch buffer and returns the result as a
-// byte slice. If src is longer than the scratch buffer, it falls back to bytes.ToLower
-// which allocates.
+// toLower lowercases the bytes of a tag or attribute name.
 //
 // Takes src ([]byte) which is the byte slice to lowercase.
 //
-// Returns []byte which is the lowercased result.
+// Returns []byte which may alias scratch storage reused by later calls.
 func (p *Parser) toLower(src []byte) []byte {
 	if len(src) > len(p.lowerBuf) {
 		return bytes.ToLower(src)
@@ -291,7 +286,9 @@ func (p *Parser) currentParent() *TemplateNode {
 //
 // Takes data ([]byte) which contains the text to process.
 func (p *Parser) processText(data []byte) {
-	if isRawTextParent(p.currentParent()) {
+	if p.opts != nil && p.opts.PreserveRawText && isScriptOrStyle(p.currentParent()) {
+		p.handleVerbatimText(data)
+	} else if isRawTextParent(p.currentParent()) {
 		p.handleRawText(data)
 	} else if bytes.Contains(data, []byte("{{")) {
 		p.handleInterpolatedText(data)
@@ -308,6 +305,16 @@ func (p *Parser) handleRawText(data []byte) {
 	node := &TemplateNode{}
 	node.TextContent = html.UnescapeString(string(data))
 	node.NodeType = NodeText
+	node.PreserveWhitespace = true
+	p.currentParent().Children = append(p.currentParent().Children, node)
+}
+
+// handleVerbatimText keeps script or style text exactly as written.
+//
+// Takes data ([]byte) which contains the text.
+func (p *Parser) handleVerbatimText(data []byte) {
+	line, column := p.lexer.TokenLine(), p.lexer.TokenCol()
+	node := newTextNode(string(data), p.adjustLocation(line, column))
 	node.PreserveWhitespace = true
 	p.currentParent().Children = append(p.currentParent().Children, node)
 }
@@ -497,6 +504,22 @@ func (p *Parser) handlePlainText(data []byte) {
 	}
 }
 
+// decodeStaticAttribute decodes the current static attribute's character references.
+//
+// HTML attribute rules preserve strings such as the query parameter "&copy=1".
+//
+// Takes rawVal (string) which supplies the undecoded fallback.
+//
+// Returns string which holds the decoded value, or rawVal if tokenisation fails.
+func (p *Parser) decodeStaticAttribute(rawVal string) string {
+	tokenizer := nethtml.NewTokenizer(strings.NewReader("<i a=" + string(p.lexer.AttrVal()) + ">"))
+	if tokenizer.Next() != nethtml.StartTagToken {
+		return rawVal
+	}
+	_, decoded, _ := tokenizer.TagAttr()
+	return string(decoded)
+}
+
 // processElement handles a start tag token and creates a new template node.
 func (p *Parser) processElement() {
 	tagNameBytes := p.lexer.Text()
@@ -555,12 +578,6 @@ func (p *Parser) processEndTag() {
 // PreferredFormat to keep the user's chosen style.
 //
 // Takes node (*TemplateNode) which is the element node to check.
-//
-// The method uses these rules:
-//   - Same line for open and close tags -> FormatInline
-//   - Children on separate lines from the opening tag -> FormatBlock
-//   - Multiple children spread across several lines -> FormatBlock
-//   - Otherwise -> FormatAuto (let the formatter decide)
 func (*Parser) detectFormattingHint(node *TemplateNode) {
 	if node == nil || node.NodeType != NodeElement {
 		return
@@ -611,9 +628,7 @@ func (p *Parser) processComment() {
 	p.currentParent().Children = append(p.currentParent().Children, node)
 }
 
-// processForeignToken handles SVGToken and MathToken by re-parsing the raw XML content
-// with encoding/xml and building a TemplateNode tree. This supports Piko directives
-// (p-if, p-show, etc.) and dynamic attributes on SVG/MathML elements.
+// processForeignToken adds parsed SVG or MathML content to the template tree.
 func (p *Parser) processForeignToken() {
 	data := p.lexer.Text()
 	line, column := p.lexer.TokenLine(), p.lexer.TokenCol()
@@ -735,6 +750,9 @@ func (p *Parser) processAttribute(tn *TemplateNode) {
 			AttributeRange: attributeRange,
 		})
 	} else {
+		if p.opts != nil && p.opts.DecodeStaticAttributes && strings.Contains(rawVal, "&") {
+			rawVal = p.decodeStaticAttribute(rawVal)
+		}
 		tn.Attributes = append(tn.Attributes, HTMLAttribute{
 			Name:           internBytes(p.toLower(keyBytes)),
 			Value:          rawVal,
@@ -779,8 +797,7 @@ func (p *Parser) consumeUntilTagClose() {
 	}
 }
 
-// ParseAndTransform is the main entry point for the AST pipeline. It parses the template
-// source, validates it, and applies all transformation passes.
+// ParseAndTransform parses, validates and tidies a template with default options.
 //
 // Takes raw (string) which contains the template source to parse.
 // Takes sourcePath (string) which identifies the file for error messages.
@@ -788,7 +805,21 @@ func (p *Parser) consumeUntilTagClose() {
 // Returns *TemplateAST which is the validated and transformed syntax tree.
 // Returns error when parsing fails.
 func ParseAndTransform(ctx context.Context, raw string, sourcePath string) (*TemplateAST, error) {
-	newAst, err := Parse(ctx, raw, sourcePath, &Location{Line: 1, Column: 1, Offset: 0})
+	return ParseAndTransformWithOptions(ctx, raw, sourcePath, nil)
+}
+
+// ParseAndTransformWithOptions parses, validates and tidies a template with the given
+// options.
+//
+// Takes raw (string) which contains the template source.
+// Takes sourcePath (string) which identifies the source in locations and diagnostics.
+// Takes opts (*ParseOptions) which selects the attribute representation and parsing
+// behaviour.
+//
+// Returns *TemplateAST which contains the tidied tree, or nil if parsing fails.
+// Returns error when the parser cannot finish.
+func ParseAndTransformWithOptions(ctx context.Context, raw string, sourcePath string, opts *ParseOptions) (*TemplateAST, error) {
+	newAst, err := ParseWithOptions(ctx, raw, sourcePath, &Location{Line: 1, Column: 1, Offset: 0}, opts)
 	if err != nil {
 		return newAst, fmt.Errorf("parsing template: %w", err)
 	}
@@ -809,12 +840,12 @@ func Parse(ctx context.Context, raw string, sourcePath string, startLocation *Lo
 	return ParseWithOptions(ctx, raw, sourcePath, startLocation, nil)
 }
 
-// ParseWithOptions performs the initial parsing with configurable options.
+// ParseWithOptions parses a template with the supplied options.
 //
 // Takes raw (string) which contains the template content to parse.
 // Takes sourcePath (string) which identifies the source file for diagnostics.
 // Takes startLocation (*Location) which optionally offsets all generated locations.
-// Takes opts (*ParseOptions) which configures parser behaviour; nil uses defaults.
+// Takes opts (*ParseOptions) which configures parser behaviour. Nil uses defaults.
 //
 // Returns *TemplateAST which contains the parsed template structure.
 // Returns error when parsing fails due to invalid syntax.
@@ -1046,6 +1077,16 @@ func isRawTextParent(node *TemplateNode) bool {
 	return node.TagName == "pre" || node.TagName == "code" || node.TagName == "textarea" || node.IsContentEditable
 }
 
+// isScriptOrStyle reports whether a node is a script or style element, whose text the
+// lexer delivers as one raw token.
+//
+// Takes node (*TemplateNode) which is the node to check.
+//
+// Returns bool which is true for script and style elements.
+func isScriptOrStyle(node *TemplateNode) bool {
+	return node.TagName == "script" || node.TagName == "style"
+}
+
 // isSpace reports whether a rune is a whitespace character.
 //
 // Takes r (rune) which is the character to check.
@@ -1111,9 +1152,9 @@ func interpretDirective(key []byte, value string, location Location) (Directive,
 
 // handleFlagDirective sets a directive's raw expression to a boolean string.
 //
-// When the value is empty or "true", it sets the expression to "true". When the value is
-// "false", it sets it to "false". Any other value is left unchanged so it can be parsed
-// as a dynamic expression.
+// An empty value or "true" becomes "true" and "false" becomes "false", ignoring case and
+// surrounding space. Any other value is left unchanged, so it is parsed as a dynamic
+// expression.
 //
 // Takes d (*Directive) which is the directive to process.
 func handleFlagDirective(d *Directive) {

@@ -59,25 +59,15 @@ interface ReplacementEntry {
     watchedValues?: Record<string, unknown>;
 }
 
-/**
- * Registry for elements that replace themselves at runtime.
- * Custom elements like piko-svg-inline can register their replacement so the VDOM
- * can adopt the new element instead of recreating on every update.
- *
- * Prefer using replaceElementWithTracking() which handles both registration and
- * replacement atomically.
- */
+/** Tracks replacement nodes so VDOM updates can adopt them. */
 const elementReplacements = new WeakMap<Node, ReplacementEntry>();
 
 /**
- * Registers an element replacement for VDOM tracking.
+ * Tracks a replacement node for subsequent VDOM updates.
  *
- * Prefer using replaceElementWithTracking() which handles both registration
- * and DOM replacement atomically.
- *
- * @param originalElement - The original element being replaced.
- * @param replacementElement - The new element to track.
- * @param options - Optional replacement options.
+ * @param originalElement - The node the VDOM originally created.
+ * @param replacementElement - The node to adopt during updates.
+ * @param options - Optional props that invalidate the replacement when changed.
  */
 export function registerElementReplacement(
     originalElement: Node,
@@ -100,13 +90,11 @@ export function registerElementReplacement(
 }
 
 /**
- * Replaces an element and registers the replacement for VDOM tracking.
+ * Replaces a DOM node and tracks the replacement for subsequent VDOM updates.
  *
- * Performs both VDOM registration and DOM replacement atomically.
- *
- * @param originalElement - The original element to replace.
- * @param replacementElement - The new element to insert.
- * @param options - Optional replacement options including watched props.
+ * @param originalElement - The element to replace.
+ * @param replacementElement - The node to insert.
+ * @param options - Optional props that invalidate the replacement when changed.
  */
 export function replaceElementWithTracking(
     originalElement: Element,
@@ -123,11 +111,11 @@ type EventHandler = EventListenerOrEventListenerObject;
 type PropsRecord = Record<string, unknown>;
 
 /**
- * Checks whether any watched props have changed between registration and new virtual node props.
+ * Checks whether a watched prop differs from its value at registration.
  *
- * @param entry - The replacement entry with watched values.
- * @param newProps - The new props from the virtual node.
- * @returns True if any watched prop value has changed.
+ * @param entry - The replacement and its recorded prop values.
+ * @param newProps - The incoming virtual node props.
+ * @returns True when a watched prop differs.
  */
 function hasWatchedPropsChanged(
     entry: ReplacementEntry,
@@ -448,13 +436,12 @@ function createElm(vnode: VirtualNode, refs: Record<string, Node> | null, isSvg?
 }
 
 /**
- * Creates a real DOM element from an element virtual node, handling SVG namespace
- * propagation, property patching, and child or innerHTML content.
+ * Creates a DOM element from an element virtual node.
  *
- * @param elVNode - The element virtual node to create a DOM element from.
- * @param refs - Object for storing element references.
- * @param isSvg - Whether the element is inside an SVG context.
- * @returns The created DOM element.
+ * @param elVNode - The virtual node to materialise.
+ * @param refs - The object that stores element references, if any.
+ * @param isSvg - Whether to inherit the SVG namespace.
+ * @returns The created element.
  */
 function createElementNode(elVNode: ElementVNode, refs: Record<string, Node> | null, isSvg?: boolean): Element {
     const tagIsSvg = elVNode.tag === "svg";
@@ -472,6 +459,7 @@ function createElementNode(elVNode: ElementVNode, refs: Record<string, Node> | n
             elementNode.appendChild(createElm(child, refs, childSvg));
         }
     }
+    syncSelectValue(elementNode, elVNode.props);
     return elementNode;
 }
 
@@ -581,13 +569,12 @@ function getFirstDomElementRecursive(vnode: VirtualNode | undefined | null): Nod
 }
 
 /**
- * Patch an element-type virtual node by syncing props, innerHTML, and
- * recursively updating children.
+ * Updates a live element unless its memo dependencies are unchanged.
  *
  * @param domElement - The live DOM element.
  * @param oldVNode - The previous virtual node.
- * @param newVNode - The new virtual node.
- * @param refs - Object for storing element references.
+ * @param newVNode - The incoming virtual node.
+ * @param refs - The object that stores element references, if any.
  */
 function patchElementVNode(
     domElement: HTMLElement,
@@ -625,6 +612,7 @@ function patchElementVNode(
             updateChildren(domElement, oldChildren, newChildren, refs, null);
         }
     }
+    syncSelectValue(domElement, newVNode.props);
 }
 
 /**
@@ -670,18 +658,15 @@ function patchVNode(
 }
 
 /**
- * Patches two matched nodes and relocates the DOM element to the end of the processed range.
+ * Patches matched nodes and moves the live element after the old end node.
  *
- * Used when the old-start pointer matches the new-end pointer, meaning the node
- * needs to move rightward in the DOM.
- *
- * @param oldVNode - The old virtual node being patched.
- * @param newVNode - The new virtual node to patch against.
- * @param nextOldSibling - The vnode after oldStart (for insertion reference).
- * @param oldEndVNode - The current old-end vnode (for computing the move target).
- * @param refs - Object for storing element references.
- * @param parentElement - The parent DOM node.
- * @param overallInsertBeforeNode - Fallback sibling to insert before.
+ * @param oldVNode - The virtual node to patch.
+ * @param newVNode - The incoming virtual node.
+ * @param nextOldSibling - The first sibling to check for a patch anchor.
+ * @param oldEndVNode - The last old node in the active range.
+ * @param refs - The object that stores element references, if any.
+ * @param parentElement - The parent whose children are moving.
+ * @param overallInsertBeforeNode - The fallback anchor, or null to append.
  */
 function patchAndRelocateToEnd(
     oldVNode: VirtualNode,
@@ -703,17 +688,14 @@ function patchAndRelocateToEnd(
 }
 
 /**
- * Patches two matched nodes and relocates the DOM element to the start of the processed range.
+ * Patches matched nodes and moves the live element before the old start node.
  *
- * Used when the old-end pointer matches the new-start pointer, meaning the node
- * needs to move leftward in the DOM.
- *
- * @param oldVNode - The old virtual node being patched.
- * @param newVNode - The new virtual node to patch against.
- * @param oldStartVNode - The current old-start vnode (for computing the insertion point).
- * @param refs - Object for storing element references.
- * @param parentElement - The parent DOM node.
- * @param overallInsertBeforeNode - Fallback sibling to insert before.
+ * @param oldVNode - The virtual node to patch.
+ * @param newVNode - The incoming virtual node.
+ * @param oldStartVNode - The first old node in the active range.
+ * @param refs - The object that stores element references, if any.
+ * @param parentElement - The parent whose children are moving.
+ * @param overallInsertBeforeNode - The fallback anchor, or null to append.
  */
 function patchAndRelocateToStart(
     oldVNode: VirtualNode,
@@ -779,20 +761,16 @@ function addRemainingNewChildren(
 }
 
 /**
- * Resolves a new child node against the keyed map of old children.
+ * Reuses a matching keyed child or inserts a new node. A matching key with a different
+ * node type or tag replaces the old node.
  *
- * Looks up the new node's key in the old-children index. When a match is found
- * the old node is patched in place and its DOM element is repositioned; when no
- * match exists a fresh element is created. Stale matches (same key but different
- * tag/type) are replaced and the old node is removed.
- *
- * @param oldChildren - The mutable array of old child vnodes (entries may be set to undefined).
- * @param oldKeyToIdxMap - Map from key to index in oldChildren.
- * @param newStartVNode - The new child being resolved.
- * @param oldStartVNode - The current old-start pointer (used for insertion reference).
- * @param refs - Object for storing element references.
- * @param parentElement - The parent DOM node.
- * @param overallInsertBeforeNode - Fallback sibling to insert before.
+ * @param oldChildren - The old child array, mutated to clear a reused entry.
+ * @param oldKeyToIdxMap - The index of old children by key.
+ * @param newStartVNode - The incoming child to resolve.
+ * @param oldStartVNode - The old node that anchors insertion.
+ * @param refs - The object that stores element references, if any.
+ * @param parentElement - The parent whose children are changing.
+ * @param overallInsertBeforeNode - The fallback anchor, or null to append.
  */
 function resolveKeyedChild(
     oldChildren: (VirtualNode | undefined)[],
@@ -830,18 +808,13 @@ function resolveKeyedChild(
 }
 
 /**
- * Reconciles old and new child virtual node arrays using a two-pointer diffing algorithm.
+ * Reconciles children in place, reusing and moving nodes with matching keys.
  *
- * Compares nodes at four pointer positions (old-start, old-end, new-start, new-end),
- * patches matches in place, relocates moved nodes, and falls back to keyed lookup
- * when no pointer match is found. After the loop, removes unmatched old nodes or
- * inserts remaining new nodes.
- *
- * @param parentElement - The parent DOM node.
- * @param oldChildren - The previous array of child virtual nodes.
- * @param newChildren - The new array of child virtual nodes.
- * @param refs - Object for storing element references.
- * @param overallInsertBeforeNode - The sibling to insert before, or null for append.
+ * @param parentElement - The parent whose children are changing.
+ * @param oldChildren - The previous children, with reused entries cleared as needed.
+ * @param newChildren - The incoming children.
+ * @param refs - The object that stores element references, if any.
+ * @param overallInsertBeforeNode - The fallback anchor, or null to append.
  */
 function updateChildren(
     parentElement: Node,
@@ -919,11 +892,12 @@ function canSkipPatchByMemo(oldVNode: VirtualNode, newVNode: VirtualNode): boole
 }
 
 /**
- * Compares two `_memo` dependency values for the keyed-row memo fast path.
+ * Compares memo dependencies after unwrapping reactive values. Arrays with the same
+ * length are compared element by element using strict equality.
  *
- * @param a - The previous `_memo` value.
- * @param b - The incoming `_memo` value.
- * @returns True when every dep is raw-reference-equal.
+ * @param a - The previous dependency value.
+ * @param b - The incoming dependency value.
+ * @returns True when the unwrapped values or array entries are strictly equal.
  */
 function memoDependenciesEqual(a: unknown, b: unknown): boolean {
     if (toRaw(a) === toRaw(b)) {
@@ -941,15 +915,12 @@ function memoDependenciesEqual(a: unknown, b: unknown): boolean {
 }
 
 /**
- * Removes the listener for a stale event prop ("on*" or "pe:*").
+ * Removes the listener when its event prop is absent from the new virtual node. Keeping
+ * the listener for retained props lets pending handlers run after a synchronous render.
  *
- * A prop still present in the new props is left alone: `applyPropValue` swaps
- * the managed handler in place, which keeps a still-pending sibling handler
- * attached when a re-render is triggered synchronously mid-dispatch.
- *
- * @param htmlElement - The target HTML element.
- * @param propName - The event prop name being removed.
- * @param newProps - The incoming props record.
+ * @param htmlElement - The element with the listener.
+ * @param propName - The event prop to remove.
+ * @param newProps - The incoming props.
  */
 function removeStaleEventListener(
     htmlElement: HTMLElement,
@@ -965,12 +936,12 @@ function removeStaleEventListener(
 }
 
 /**
- * Remove old props that are absent or changed in the new props.
+ * Clears stale attributes, listeners and refs.
  *
- * @param htmlElement - The target HTML element.
- * @param oldProps - The previous props record.
- * @param newProps - The incoming props record.
- * @param refs - An object for storing element references, or null.
+ * @param htmlElement - The element to update.
+ * @param oldProps - The previous props.
+ * @param newProps - The incoming props.
+ * @param refs - The object that stores element references, if any.
  */
 function removeStaleProps(
     htmlElement: HTMLElement,
@@ -983,7 +954,9 @@ function removeStaleProps(
             continue;
         }
         if (propName.startsWith("?")) {
-            htmlElement.removeAttribute(propName.slice(1));
+            if (!(propName in newProps)) {
+                setBooleanAttribute(htmlElement, propName.slice(1), false);
+            }
         } else if (propName.startsWith("on") || propName.startsWith("pe:")) {
             removeStaleEventListener(htmlElement, propName, newProps);
         } else if (propName === "_ref" && refs && oldProps[propName] && refs[oldProps[propName] as string] === htmlElement) {
@@ -995,20 +968,96 @@ function removeStaleProps(
 }
 
 /**
- * Set a DOM attribute from a prop value, handling null removal, form element
- * value properties, object serialisation, and plain string attributes.
+ * Applies a select's bound value after its options are reconciled.
  *
- * @param htmlElement - The target HTML element.
- * @param propName - The attribute name to set.
+ * @param element - The element whose children were reconciled.
+ * @param props - The incoming props, including the value binding when present.
+ */
+function syncSelectValue(element: Element, props: PropsRecord | undefined): void {
+    if (element.tagName !== "SELECT" || !props || !("value" in props)) {
+        return;
+    }
+    const select = element as HTMLSelectElement;
+    if (!select.multiple || !Array.isArray(props.value)) {
+        applyAttributeValue(select, "value", props.value);
+        return;
+    }
+    const selected = new Set(props.value.map(String));
+    for (const option of Array.from(select.options)) {
+        const included = selected.has(option.value);
+        if (option.selected !== included) {
+            option.selected = included;
+        }
+    }
+}
+
+/**
+ * Checks whether a binding must be reapplied even when unchanged. Value bindings always
+ * control the live value. A checked binding controls the live state on every patch only
+ * with p-model.
+ *
+ * @param propName - The binding to check.
+ * @param props - The incoming props.
+ * @returns True when the binding controls the live value on every patch.
+ */
+function isControlledProp(propName: string, props: PropsRecord): boolean {
+    return propName === "value" || (propName === "?checked" && props._model === true);
+}
+
+/**
+ * Sets a boolean attribute and keeps an input's live checked state in sync.
+ *
+ * @param element - The element receiving the binding.
+ * @param name - The attribute name.
+ * @param enabled - Whether to keep the attribute present.
+ */
+function setBooleanAttribute(element: HTMLElement, name: string, enabled: boolean): void {
+    element.toggleAttribute(name, enabled);
+    if (name === "checked" && element.tagName === "INPUT") {
+        const input = element as HTMLInputElement;
+        if (input.checked !== enabled) {
+            input.checked = enabled;
+        }
+    }
+}
+
+/**
+ * Clears a control's live text or selection.
+ *
+ * @param control - The form control whose value binding became empty.
+ */
+function clearFormValue(control: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement): void {
+    if (control instanceof HTMLSelectElement) {
+        if (control.selectedIndex !== -1) {
+            control.selectedIndex = -1;
+        }
+        return;
+    }
+    if (control.value !== "") {
+        control.value = "";
+    }
+}
+
+/**
+ * Applies a prop to an attribute or a form control's live value. Null, undefined and
+ * false remove the attribute and clear any live form value.
+ *
+ * @param htmlElement - The element to update.
+ * @param propName - The attribute or value binding name.
  * @param newValue - The incoming prop value.
  */
 function applyAttributeValue(htmlElement: HTMLElement, propName: string, newValue: unknown): void {
+    const formValue = propName === "value" &&
+        (htmlElement.tagName === "INPUT" || htmlElement.tagName === "TEXTAREA" || htmlElement.tagName === "SELECT");
     if (newValue == null || newValue === false) {
         htmlElement.removeAttribute(propName);
+        if (formValue) {
+            clearFormValue(htmlElement as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement);
+        }
         return;
     }
 
-    if ((htmlElement.tagName === "INPUT" || htmlElement.tagName === "TEXTAREA" || htmlElement.tagName === "SELECT") && propName === "value") {
+    if (formValue) {
         if ((htmlElement as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement).value !== String(newValue)) {
             (htmlElement as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement).value = String(newValue);
         }
@@ -1033,15 +1082,13 @@ function applyAttributeValue(htmlElement: HTMLElement, propName: string, newValu
 }
 
 /**
- * Apply a single prop value to an HTML element, dispatching by prop-name
- * prefix to the appropriate handler (boolean attributes, event listeners,
- * refs, or plain attributes).
+ * Applies a virtual DOM prop to a live element.
  *
- * @param htmlElement - The target HTML element.
- * @param propName - The prop name being applied.
- * @param oldValue - The previous value of the prop.
- * @param newValue - The incoming value of the prop.
- * @param refs - An object for storing element references, or null.
+ * @param htmlElement - The element to patch.
+ * @param propName - The prop name.
+ * @param oldValue - The previous prop value.
+ * @param newValue - The incoming prop value.
+ * @param refs - The object that stores element references, if any.
  */
 function applyPropValue(
     htmlElement: HTMLElement,
@@ -1051,12 +1098,7 @@ function applyPropValue(
     refs: Record<string, Node> | null
 ): void {
     if (propName.startsWith("?")) {
-        const realAttrName = propName.slice(1);
-        if (newValue) {
-            htmlElement.setAttribute(realAttrName, "");
-        } else {
-            htmlElement.removeAttribute(realAttrName);
-        }
+        setBooleanAttribute(htmlElement, propName.slice(1), !!newValue);
         return;
     }
 
@@ -1088,12 +1130,13 @@ function applyPropValue(
 }
 
 /**
- * Apply new or changed prop values to an HTML element.
+ * Applies changed and controlled props. Select values are applied after the option nodes
+ * are reconciled.
  *
- * @param htmlElement - The target HTML element.
- * @param oldProps - The previous props record.
- * @param newProps - The incoming props record.
- * @param refs - An object for storing element references, or null.
+ * @param htmlElement - The element to update.
+ * @param oldProps - The previous props.
+ * @param newProps - The incoming props.
+ * @param refs - The object that stores element references, if any.
  */
 function applyNewProps(
     htmlElement: HTMLElement,
@@ -1108,10 +1151,10 @@ function applyNewProps(
         if (isReservedProp(propName)) {
             continue;
         }
-        if (propName !== "value" && newValue === oldValue && typeof newValue !== 'function') {
+        if (propName === "value" && htmlElement.tagName === "SELECT") {
             continue;
         }
-        if (propName !== "value" && newValue === oldValue) {
+        if (newValue === oldValue && !isControlledProp(propName, newProps)) {
             continue;
         }
 
@@ -1160,10 +1203,10 @@ function reconcileStyleAttribute(htmlElement: HTMLElement, newProps: PropsRecord
 }
 
 /**
- * Apply visibility behaviour based on the _s show/hide prop.
+ * Applies the visibility flag using the element's display style.
  *
- * @param htmlElement - The target HTML element.
- * @param newProps - The incoming props record containing the _s flag.
+ * @param htmlElement - The element to show or hide.
+ * @param newProps - The incoming props, including the visibility flag when present.
  */
 function applyVisibility(htmlElement: HTMLElement, newProps: PropsRecord): void {
     const shouldShow = newProps._s !== false;
@@ -1174,16 +1217,19 @@ function applyVisibility(htmlElement: HTMLElement, newProps: PropsRecord): void 
         }
     } else if (htmlElement.style.display === 'none') {
         htmlElement.style.display = '';
+        if (htmlElement.getAttribute('style') === '') {
+            htmlElement.removeAttribute('style');
+        }
     }
 }
 
 /**
- * Apply prop changes to an HTML element by diffing old and new props.
+ * Patches an element's attributes, listeners and refs.
  *
- * @param htmlElement - The HTML element to update.
+ * @param htmlElement - The element to patch, if available.
  * @param oldProps - The previous props.
- * @param newProps - The new props.
- * @param refs - An object for storing element references.
+ * @param newProps - The incoming props.
+ * @param refs - The object that stores element references, if any.
  */
 function patchProps(
     htmlElement: HTMLElement | null,
@@ -1198,18 +1244,22 @@ function patchProps(
 
     removeStaleProps(htmlElement, oldProps, newProps, refs);
     applyNewProps(htmlElement, oldProps, newProps, refs);
-    reconcileClassAttribute(htmlElement, newProps);
-    reconcileStyleAttribute(htmlElement, newProps);
+    // Reconcile only bound class and style attributes so external updates survive.
+    if ("class" in newProps || "_class" in newProps || "class" in oldProps || "_class" in oldProps) {
+        reconcileClassAttribute(htmlElement, newProps);
+    }
+    if ("style" in newProps || "_style" in newProps || "style" in oldProps || "_style" in oldProps) {
+        reconcileStyleAttribute(htmlElement, newProps);
+    }
     applyVisibility(htmlElement, newProps);
 }
 
 /**
- * Parses a VDOM event prop key (after the prefix has been stripped) into the
- * event name and optional listener options encoded as $-delimited suffixes.
+ * Parses a lowercased event name and listener options from an event prop.
  *
- * @param propName - The full prop name (e.g. "onClick$capture").
- * @param prefixLen - Length of the prefix to strip (2 for "on", 3 for "pe:").
- * @returns The lowercased event name and optional listener options.
+ * @param propName - The full prop name, such as onClick$capture.
+ * @param prefixLen - The length of the on or pe: prefix.
+ * @returns The event name and any listener options.
  */
 function parseEventPropKey(propName: string, prefixLen: number): { eventName: string; listenerOptions?: AddEventListenerOptions } {
     const raw = propName.slice(prefixLen);
@@ -1226,13 +1276,7 @@ function parseEventPropKey(propName: string, prefixLen: number): { eventName: st
     return {eventName, listenerOptions: opts};
 }
 
-/**
- * Managed event listeners. Compiled templates mint FRESH handler closures on
- * every re-render, so identity comparison always fails and the old
- * remove/add pair churned the DOM's listener list on every patched node.
- * A large keyed list re-rendering at 60fps produced thousands of listener
- * mutations a second, which profiled as a top-3 cost on big scenes.
- */
+/** Keeps a stable DOM listener that calls the latest handler. */
 interface ManagedListenerEntry {
     handler: EventHandler | EventHandler[];
     options: AddEventListenerOptions;
@@ -1244,10 +1288,10 @@ const MANAGED_LISTENERS = Symbol("pikoManagedListeners");
 type ManagedHost = HTMLElement & { [MANAGED_LISTENERS]?: Map<string, ManagedListenerEntry> };
 
 /**
- * The listener namespace a given event prop belongs to.
+ * Finds the listener namespace for an event prop.
  *
- * @param propName - The event prop name ("on*" or "pe:*").
- * @returns The namespace segment for the managed-listener key.
+ * @param propName - The event prop name.
+ * @returns pe for a custom event prop or on otherwise.
  */
 function eventPropNamespace(propName: string): string {
     return propName.startsWith("pe:") ? "pe" : "on";
@@ -1350,12 +1394,11 @@ function setManagedListener(
 }
 
 /**
- * Determines whether DOM children created under the given parent should inherit
- * the SVG namespace. Children of an SVG element are SVG-namespaced, except the
- * descendants of a foreignObject, which return to the HTML/XHTML namespace.
+ * Checks whether children inherit the SVG namespace from their parent. Children of
+ * foreignObject elements use the HTML namespace.
  *
- * @param parent - The parent DOM node new children will be inserted into.
- * @returns True when new children should be created in the SVG namespace.
+ * @param parent - The DOM node that will receive the children.
+ * @returns True when the children use the SVG namespace.
  */
 function isSvgParent(parent: Node): boolean {
     return parent instanceof Element

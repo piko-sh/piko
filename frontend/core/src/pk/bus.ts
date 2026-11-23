@@ -30,15 +30,12 @@ const REACTIVE_RAW = Symbol.for('piko.reactivity.rawTarget');
 /** Simple event bus for cross-component communication. */
 export const bus = {
     /**
-     * Emits an event to all listeners.
+     * Calls all listeners with the same payload snapshot. The snapshot unwraps reactive
+     * proxies and keeps references to unsupported objects. If copying fails, listeners
+     * receive the original payload.
      *
-     * The payload is snapshotted once before dispatch: reactive proxies are
-     * unwrapped and plain objects and arrays are deep-copied, so listeners
-     * always receive plain, cloneable data rather than a live reference into
-     * component state.
-     *
-     * @param event - Event name.
-     * @param data - Optional data to pass to listeners.
+     * @param event - The event name.
+     * @param data - The optional payload.
      */
     emit(event: string, data?: unknown): void {
         const handlers = listeners.get(event);
@@ -81,11 +78,11 @@ export const bus = {
     },
 
     /**
-     * Subscribes to an event once (auto-unsubscribes after first call).
+     * Subscribes a handler and removes the subscription before the first call.
      *
-     * @param event - Event name.
-     * @param handler - Handler function.
-     * @returns Unsubscribe function (in case you want to cancel before it fires).
+     * @param event - The event name.
+     * @param handler - The listener that receives the first payload.
+     * @returns A function that cancels the subscription.
      */
     once(event: string, handler: EventHandler): () => void {
         const wrappedHandler = (data: unknown) => {
@@ -108,8 +105,6 @@ export const bus = {
         }
     }
 };
-
-
 
 /**
  * Returns the plain target behind a reactive proxy, or the value unchanged when
@@ -136,11 +131,11 @@ function isPlainObject(value: object): boolean {
 }
 
 /**
- * Produces a plain, cloneable snapshot of an emitted payload.
+ * Copies supported values and unwraps reactive proxies.
  *
- * @param value - The value to snapshot.
- * @param seen - Map of already-copied raw targets, used to break cycles.
- * @returns A plain snapshot of the value.
+ * @param value - The payload to copy.
+ * @param seen - Copies of previously visited targets.
+ * @returns The copied value or the unwrapped original when copying is unsupported.
  */
 function snapshot(value: unknown, seen: WeakMap<object, unknown>): unknown {
     if (value === null || typeof value !== 'object') {

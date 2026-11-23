@@ -19,7 +19,6 @@
 package lifecycle_domain
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -57,8 +56,7 @@ func TestHandleCoreSourceChangeRebuildsInterpreterForGoChanges(t *testing.T) {
 			}
 			service := mustBuildLifecycleService(t, deps)
 
-			service.handleCoreSourceChange(fileEventContext{
-				ctx:        context.Background(),
+			service.handleCoreSourceChange(t.Context(), fileEvent{
 				relPath:    testCase.relPath,
 				artefactID: "test-module/" + testCase.relPath,
 				event:      lifecycle_dto.FileEvent{Path: "/project/" + testCase.relPath, Type: lifecycle_dto.FileEventTypeWrite},
@@ -86,6 +84,43 @@ func TestIsGoSourceFile(t *testing.T) {
 		t.Run(testCase.relPath, func(t *testing.T) {
 			t.Parallel()
 			assert.Equal(t, testCase.want, isGoSourceFile(testCase.relPath))
+		})
+	}
+}
+
+func TestMaybeHandleStyleDependencyChange(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name           string
+		path           string
+		withImporter   bool
+		withRebuilder  bool
+		wantHandled    bool
+		wantRebuilding bool
+	}{
+		{name: "a non-stylesheet is not a style dependency", path: "/proj/lib/theme.js", withImporter: true, withRebuilder: true},
+		{name: "a stylesheet nothing imports is ignored", path: "/proj/lib/unused.css", withImporter: true, withRebuilder: true},
+		{name: "an imported stylesheet without a coordinator is not handled", path: "/proj/lib/theme.css", withImporter: true},
+		{name: "an imported stylesheet requests a rebuild", path: "/proj/lib/THEME.CSS", withImporter: true, withRebuilder: true, wantHandled: true, wantRebuilding: true},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			service := newStyleDepsTestService()
+			if testCase.withImporter {
+				service.updateStyleDepsFromBuild(styleBuildResult("hashA", "/proj/pages/index.pk", "/proj/lib/theme.css", "/proj/lib/THEME.CSS"))
+			}
+			coordinator := &mockTrackingCoordinatorService{}
+			if testCase.withRebuilder {
+				service.coordinatorService = coordinator
+			}
+
+			handled := service.maybeHandleStyleDependencyChange(t.Context(), lifecycle_dto.FileEvent{Path: testCase.path, Type: lifecycle_dto.FileEventTypeWrite})
+
+			assert.Equal(t, testCase.wantHandled, handled)
+			assert.Equal(t, testCase.wantRebuilding, coordinator.rebuildCalled)
 		})
 	}
 }

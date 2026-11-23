@@ -20,11 +20,15 @@ package browser_provider_chromedp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"runtime"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDefaultPoolSize(t *testing.T) {
@@ -451,4 +455,69 @@ func TestExclusiveBrowserPool_Close(t *testing.T) {
 	pool.Close()
 
 	pool.Close()
+}
+
+func TestAcquirePage(t *testing.T) {
+	errCreate := errors.New("create failed")
+	newPage := func() (*IncognitoPage, error) { return &IncognitoPage{}, nil }
+
+	t.Run("unlimited creates without a slot", func(t *testing.T) {
+		page, err := acquirePage(t.Context(), nil, newPage)
+		require.NoError(t, err)
+		assert.Nil(t, page.slots)
+		assert.Nil(t, page.releaseFunction)
+	})
+
+	t.Run("holds a slot until close", func(t *testing.T) {
+		slots := make(chan struct{}, 1)
+		page, err := acquirePage(t.Context(), slots, newPage)
+		require.NoError(t, err)
+		assert.Len(t, slots, 1)
+
+		siblingCause := errors.New("sibling waited for the full pool")
+		siblingCtx, cancel := context.WithTimeoutCause(t.Context(), 20*time.Millisecond, siblingCause)
+		defer cancel()
+		_, err = (&IncognitoPage{browser: &Browser{}, slots: slots}).NewSiblingPage(siblingCtx)
+		require.ErrorIs(t, err, siblingCause)
+		assert.ErrorContains(t, err, "waiting for pool slot")
+
+		require.NoError(t, page.Close())
+		require.NoError(t, page.Close())
+		assert.Empty(t, slots)
+	})
+
+	t.Run("waits for capacity until ctx ends", func(t *testing.T) {
+		slots := make(chan struct{}, 1)
+		slots <- struct{}{}
+		cause := errors.New("slot wait ended")
+		ctx, cancel := context.WithCancelCause(t.Context())
+		cancel(cause)
+
+		_, err := acquirePage(ctx, slots, newPage)
+		require.ErrorIs(t, err, cause)
+		assert.Len(t, slots, 1)
+	})
+
+	t.Run("blocked wait ends with ctx", func(t *testing.T) {
+		slots := make(chan struct{}, 1)
+		slots <- struct{}{}
+		cause := errors.New("slot deadline")
+		ctx, cancel := context.WithTimeoutCause(t.Context(), 20*time.Millisecond, cause)
+		defer cancel()
+
+		_, err := acquirePage(ctx, slots, newPage)
+		require.ErrorIs(t, err, cause)
+	})
+
+	t.Run("failed creation returns the slot", func(t *testing.T) {
+		slots := make(chan struct{}, 1)
+		_, err := acquirePage(t.Context(), slots, func() (*IncognitoPage, error) { return nil, errCreate })
+		require.ErrorIs(t, err, errCreate)
+		assert.Empty(t, slots)
+	})
+}
+
+func TestNewSiblingPageWithoutBrowser(t *testing.T) {
+	_, err := (&IncognitoPage{}).NewSiblingPage(t.Context())
+	require.ErrorIs(t, err, errPageHasNoBrowser)
 }

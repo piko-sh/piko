@@ -144,6 +144,7 @@ func NewCapturer(opts CaptureOptions) (*Capturer, error) {
 		ChromePath:       "",
 		ChromeFlags:      nil,
 		IgnoreCertErrors: false,
+		SocketDir:        "",
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating browser: %w", err)

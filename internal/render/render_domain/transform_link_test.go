@@ -19,11 +19,75 @@
 package render_domain
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/net/html"
 	"piko.sh/piko/internal/ast/ast_domain"
 )
+
+func TestBoundLinkHrefUsesActiveLocale(t *testing.T) {
+	const href = `/record?q="blue"&label=&amp;#summary`
+	for _, tc := range []struct {
+		name, locale, override, href, want string
+	}{
+		{name: "French", locale: "fr", override: "", href: href, want: "/fr" + href},
+		{name: "default", locale: "en", override: "", href: href, want: href},
+		{name: "override", locale: "fr", override: "de", href: href, want: "/de" + href},
+		{name: "fragment", locale: "fr", override: "", href: "#summary", want: "#summary"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := newTestRenderContext(nil)
+			ctx.currentLocale, ctx.defaultLocale, ctx.i18nStrategy = tc.locale, "en", "prefix_except_default"
+			hrefWriter := ast_domain.GetDirectWriter()
+			defer ast_domain.PutDirectWriter(hrefWriter)
+			hrefWriter.SetName("href")
+			hrefWriter.AppendEscapeString(tc.href)
+			label := ast_domain.GetDirectWriter()
+			defer ast_domain.PutDirectWriter(label)
+			label.SetName("aria-label")
+			label.AppendString("Read")
+			node := &ast_domain.TemplateNode{
+				TagName:          "piko:a",
+				Attributes:       []ast_domain.HTMLAttribute{{Name: "href", Value: "/fallback"}},
+				AttributeWriters: []*ast_domain.DirectWriter{label, hrefWriter},
+			}
+			if tc.override != "" {
+				node.Attributes = append(node.Attributes, ast_domain.HTMLAttribute{Name: "lang", Value: tc.override})
+			}
+			got := html.NewTokenizer(strings.NewReader(renderToString(t, node, ctx, renderPikoA)))
+			require.Equal(t, html.StartTagToken, got.Next())
+			attrs := got.Token().Attr
+			assert.ElementsMatch(t, []html.Attribute{
+				{Key: "href", Val: tc.want}, {Key: "piko:a"}, {Key: "aria-label", Val: "Read"},
+			}, attrs)
+		})
+	}
+}
+
+func TestLinkDocumentedLocaleOverride(t *testing.T) {
+	ctx := newTestRenderContext(nil)
+	ctx.currentLocale, ctx.defaultLocale, ctx.i18nStrategy = "en", "en", "prefix_except_default"
+	locale := ast_domain.GetDirectWriter()
+	defer ast_domain.PutDirectWriter(locale)
+	locale.SetName("data-locale")
+	locale.AppendEscapeString("fr")
+	for _, dynamic := range []bool{false, true} {
+		node := &ast_domain.TemplateNode{TagName: "piko:a", Attributes: []ast_domain.HTMLAttribute{
+			{Name: "href", Value: "/detail"}, {Name: "lang", Value: "en"},
+		}}
+		if dynamic {
+			node.AttributeWriters = []*ast_domain.DirectWriter{locale}
+		} else {
+			node.Attributes = append(node.Attributes, ast_domain.HTMLAttribute{Name: "data-locale", Value: "fr"})
+		}
+		got := html.NewTokenizer(strings.NewReader(renderToString(t, node, ctx, renderPikoA)))
+		require.Equal(t, html.StartTagToken, got.Next())
+		assert.ElementsMatch(t, []html.Attribute{{Key: "href", Val: "/fr/detail"}, {Key: "piko:a"}, {Key: "data-locale", Val: "fr"}}, got.Token().Attr)
+	}
+}
 
 func TestApplyPrefixStrategy_AddsLocalePrefix(t *testing.T) {
 	testCases := []struct {

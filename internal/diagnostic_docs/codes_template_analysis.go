@@ -229,11 +229,10 @@ var (
 			Title:      "$event or $form misused",
 			Severities: []Severity{SeverityError},
 			Summary:    "$event or $form is used outside an event handler, or used in a way it does not support.",
-			Detail: "$event and $form only exist inside p-on and p-event handlers, and are passed whole: reading a property from them in the template is not supported. The " +
-				"browser's own event object is $event, not event.",
-			Example: nil,
-			Fix:     "Pass $event or $form whole to the handler, and read their properties inside it.",
-			Unused:  false,
+			Detail:     "Use $event and $form only in p-on and p-event handlers. $event is the browser's event object.",
+			Example:    nil,
+			Fix:        "Pass $event or $form whole to the handler, and read their properties inside it.",
+			Unused:     false,
 		},
 		{
 			Code: annotator_dto.CodeInvalidLoopExpression, Name: "InvalidLoopExpression", Family: FamilyTemplateAnalysis,
@@ -459,8 +458,8 @@ var (
 			Title:      "Invalid comparison",
 			Severities: []Severity{SeverityError},
 			Summary:    "The two sides of a comparison cannot be compared.",
-			Detail: "Ordering operators (<, >, <=, >=) need ordered types of the same kind. Equality is checked strictly: a named type and a plain literal of its " +
-				"underlying type, such as a named string type and a string, cannot be compared directly.",
+			Detail: "Ordering operators (<, >, <=, >=) need compatible ordered types. A strict equality operator cannot directly compare a named type " +
+				"with a literal of its underlying type.",
 			Fix: "Convert one side so both have the same type, or compare a field that has a comparable type.",
 			Example: &Example{
 				File: "pages/index.pk", Line: 6, Column: 14, Width: 27,
@@ -474,8 +473,9 @@ var (
 			Title:      "Invalid arithmetic",
 			Severities: []Severity{SeverityError},
 			Summary:    "An arithmetic operator is used with types it is not defined for.",
-			Detail: "Both operands of +, -, *, / and % must be compatible numbers, and unary - needs a number. Money only adds and subtracts Money, multiplies and divides " +
-				"by plain numbers, and has no %.",
+			Detail: "Use compatible numbers for numeric arithmetic and + to join two strings. You can add or subtract two durations, add a duration " +
+				"to an instant in either order, or subtract a duration from an instant. Subtracting two instants gives a duration. You can add or " +
+				"subtract Money with Money or Decimal. Use a standard number with Money for multiplication or division.",
 			Example: nil,
 			Fix:     "Convert the operands to compatible types, or use the Money methods.",
 			Unused:  false,
@@ -495,7 +495,7 @@ var (
 			Title:      "String concatenation",
 			Severities: []Severity{SeverityError},
 			Summary:    "A string concatenation involves a value that cannot be turned into a string.",
-			Detail:     "This code is not currently reported: such concatenations are reported as invalid arithmetic (T142). The number stays assigned so it is never reused.",
+			Detail:     "Invalid string concatenation is reported as T142.",
 			Example:    nil,
 			Fix:        "Nothing to fix.",
 			Unused:     true,
@@ -579,7 +579,7 @@ var (
 			Title:      "Suggested prop name",
 			Severities: []Severity{SeverityWarning},
 			Summary:    "An unknown prop name is close to one the component defines.",
-			Detail:     "This code is not currently reported: suggestions appear in the unknown prop message (T126) instead. The number stays assigned so it is never reused.",
+			Detail:     "Suggestions appear in the unknown prop diagnostic (T126).",
 			Example:    nil,
 			Fix:        "Nothing to fix.",
 			Unused:     true,

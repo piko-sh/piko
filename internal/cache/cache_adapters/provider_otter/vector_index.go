@@ -67,9 +67,10 @@ type VectorIndex[K comparable] struct {
 // Takes vector ([]float32) which is the vector to index.
 //
 // Returns error which wraps hnsw.ErrVectorDimensionMismatch when the vector is empty or
-// does not match the index's dimension, or hnsw.ErrZeroVector when the index uses cosine
-// similarity and the vector has zero magnitude. An empty vector never fixes the dimension
-// of an index that auto-detects it.
+// does not match the index's dimension, hnsw.ErrNonFiniteVector when it holds a NaN or
+// infinite value or its magnitude overflows, or hnsw.ErrZeroVector when the index uses
+// cosine similarity and the vector has zero magnitude. An empty vector never fixes the
+// dimension of an index that auto-detects it.
 func (idx *VectorIndex[K]) Add(key K, vector []float32) error {
 	if len(vector) == 0 {
 		return fmt.Errorf("indexing vector: %w: got an empty vector", hnsw.ErrVectorDimensionMismatch)
@@ -152,8 +153,8 @@ func (idx *VectorIndex[K]) Remove(key K) {
 // Returns []VectorHit[K] which is sorted by descending score, or nil when topK is not
 // positive or nothing has been indexed yet.
 // Returns error which wraps cache_domain.ErrInvalidQueryVector, together with
-// hnsw.ErrVectorDimensionMismatch or hnsw.ErrZeroVector, when the query cannot be
-// compared with the indexed vectors.
+// hnsw.ErrVectorDimensionMismatch, hnsw.ErrNonFiniteVector or hnsw.ErrZeroVector, when
+// the query cannot be compared with the indexed vectors.
 func (idx *VectorIndex[K]) Search(query []float32, topK int, minScore *float32) ([]VectorHit[K], error) {
 	graph := idx.graph.Load()
 	if topK <= 0 || graph == nil {

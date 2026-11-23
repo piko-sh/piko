@@ -23,7 +23,6 @@ import (
 	"path/filepath"
 
 	protocol "github.com/politepixels/golang-language-server"
-	"go.lsp.dev/uri"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/safeconv"
@@ -167,7 +166,7 @@ func (d *document) resolvePartialToURI(ctx context.Context, partialPath, invoker
 	if d.Resolver != nil {
 		resolvedPath, err := d.Resolver.ResolvePKPath(ctx, partialPath, invokerSourcePath)
 		if err == nil {
-			return uri.File(resolvedPath)
+			return documentURIForPath(resolvedPath)
 		}
 	}
 
@@ -190,7 +189,7 @@ func (d *document) resolvePartialViaVirtualModule(partialPath string) protocol.D
 	if !ok {
 		return ""
 	}
-	return protocol.DocumentURI("file://" + partialComp.Source.SourcePath)
+	return documentURIForPath(partialComp.Source.SourcePath)
 }
 
 // createAssetLink creates a document link for an asset reference such as a src or href
@@ -213,7 +212,7 @@ func (d *document) createAssetLink(ctx context.Context, assetPath string, attrib
 
 		resolvedPath, err := d.Resolver.ResolveCSSPath(ctx, assetPath, containingDir)
 		if err == nil && resolvedPath != "" {
-			targetURI = uri.File(resolvedPath)
+			targetURI = documentURIForPath(resolvedPath)
 		}
 	}
 

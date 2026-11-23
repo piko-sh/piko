@@ -1,0 +1,8 @@
+<template><div><h1>Invoice</h1><p p-text="props.Line"></p></div></template>
+<script type="application/x-go">
+package main
+import ("piko.sh/piko"; "example.org/pikofuzzcase/pkg/invoice")
+func Render(r *piko.RequestData, props invoice.Order) (piko.NoResponse, piko.Metadata, error) {
+	return piko.NoResponse{}, piko.Metadata{Title: "Invoice "+props.SKU}, nil
+}
+</script>

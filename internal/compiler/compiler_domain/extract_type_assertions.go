@@ -339,7 +339,7 @@ func extractPropertyAssertion(lexer *js_lexer.Lexer, assertions map[string]TypeA
 func scanForTypeAssertion(lexer *js_lexer.Lexer, propName string, assertions map[string]TypeAssertion) bool {
 	valueDepth := 0
 
-	for {
+	for lexer.Token != js_lexer.TEndOfFile {
 		action := classifyValueToken(lexer.Token, valueDepth)
 
 		switch action {
@@ -369,6 +369,7 @@ func scanForTypeAssertion(lexer *js_lexer.Lexer, propName string, assertions map
 
 		lexer.Next()
 	}
+	return false
 }
 
 // classifyValueToken decides what action to take for a token when scanning a value.

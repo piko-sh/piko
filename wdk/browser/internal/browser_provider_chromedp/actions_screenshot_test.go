@@ -134,11 +134,11 @@ func TestRegionFromBounds(t *testing.T) {
 	}
 }
 
-func TestWithCaptureCause(t *testing.T) {
+func TestWithContextCause(t *testing.T) {
 	captureErr := errors.New("capture failed")
 
 	t.Run("returns the error unchanged while the context is live", func(t *testing.T) {
-		err := withCaptureCause(context.Background(), captureErr)
+		err := withContextCause(context.Background(), captureErr)
 		assert.Same(t, captureErr, err)
 	})
 
@@ -146,7 +146,7 @@ func TestWithCaptureCause(t *testing.T) {
 		ctx, cancel := context.WithCancelCause(context.Background())
 		cancel(errScreenshotTimedOut)
 
-		err := withCaptureCause(ctx, captureErr)
+		err := withContextCause(ctx, captureErr)
 		require.ErrorIs(t, err, captureErr)
 		require.ErrorIs(t, err, errScreenshotTimedOut)
 	})
@@ -155,7 +155,7 @@ func TestWithCaptureCause(t *testing.T) {
 		ctx, cancel := context.WithCancelCause(context.Background())
 		cancel(errScreenshotTimedOut)
 
-		err := withCaptureCause(ctx, errScreenshotTimedOut)
+		err := withContextCause(ctx, errScreenshotTimedOut)
 		assert.Same(t, errScreenshotTimedOut, err)
 	})
 }
@@ -207,14 +207,8 @@ func TestCompareScreenshots_Unit(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := CompareScreenshots(tc.a, tc.b)
-			require.NoError(t, err)
+			result := CompareScreenshots(tc.a, tc.b)
 			assert.InDelta(t, tc.expected, result, 0.001)
 		})
 	}
-}
-
-func TestCompareScreenshots_Unit_ErrorIsAlwaysNil(t *testing.T) {
-	_, err := CompareScreenshots([]byte{0x00}, []byte{0xFF, 0xFF})
-	require.NoError(t, err)
 }

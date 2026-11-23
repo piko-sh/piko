@@ -21,6 +21,8 @@ package captcha_provider_recaptcha_v3
 import (
 	"context"
 	"errors"
+	"io"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -29,8 +31,27 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/captcha/captcha_dto"
 )
+
+type stubTransport struct {
+	body string
+}
+
+func (s *stubTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+	if request.Body != nil {
+		_, _ = io.Copy(io.Discard, request.Body)
+		_ = request.Body.Close()
+	}
+
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     http.Header{"Content-Type": []string{"application/json"}},
+		Body:       io.NopCloser(strings.NewReader(s.body)),
+		Request:    request,
+	}, nil
+}
 
 func newTestProvider(t *testing.T, serverURL string, options ...Option) *provider {
 	t.Helper()
@@ -302,7 +323,7 @@ func TestProvider_Verify_ResponseSizeLimit(t *testing.T) {
 
 	const limit = 256
 	verdictOfSize := func(size int) string {
-		const prefix, suffix = `{"success":true,"hostname":"`, `"}`
+		const prefix, suffix = `{"success":true,"score":0.9,"hostname":"`, `"}`
 		return prefix + strings.Repeat("a", size-len(prefix)-len(suffix)) + suffix
 	}
 
@@ -347,4 +368,120 @@ func TestNewProvider_AcceptsOptions(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.NotNil(t, created)
+}
+
+func TestProvider_Verify_ScoreHandling(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name         string
+		body         string
+		testKeyScore *float64
+		wantScore    float64
+		wantErr      error
+	}{
+		{name: "zero score stays a bot", body: `{"success":true,"score":0}`, testKeyScore: nil, wantScore: 0, wantErr: nil},
+		{name: "missing score is rejected", body: `{"success":true}`, testKeyScore: nil, wantScore: 0, wantErr: ErrScoreMissing},
+		{name: "test key score fills a missing score", body: `{"success":true,"hostname":"testkey.google.com"}`, testKeyScore: new(0.7), wantScore: 0.7, wantErr: nil},
+		{name: "test key score ignores other hostnames", body: `{"success":true,"hostname":"example.com"}`, testKeyScore: new(0.7), wantScore: 0, wantErr: ErrScoreMissing},
+		{name: "test key score never overrides a real score", body: `{"success":true,"score":0}`, testKeyScore: new(0.7), wantScore: 0, wantErr: nil},
+		{name: "declined response without a score", body: `{"success":false}`, testKeyScore: nil, wantScore: 0, wantErr: nil},
+		{name: "out of range score is clamped", body: `{"success":true,"score":1.5}`, testKeyScore: nil, wantScore: 1, wantErr: nil},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+				writer.Header().Set("Content-Type", "application/json")
+				writer.WriteHeader(http.StatusOK)
+				_, _ = writer.Write([]byte(testCase.body))
+			}))
+			t.Cleanup(server.Close)
+
+			testProvider, err := newProvider(Config{SiteKey: "site", SecretKey: "secret", TestKeyScore: testCase.testKeyScore}, server.URL)
+			require.NoError(t, err)
+
+			response, err := testProvider.Verify(t.Context(), &captcha_dto.VerifyRequest{Token: "token"})
+			if testCase.wantErr != nil {
+				require.ErrorIs(t, err, testCase.wantErr)
+				assert.Nil(t, response)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, response.Score)
+			assert.InDelta(t, testCase.wantScore, *response.Score, 0.0001)
+		})
+	}
+}
+
+func TestNewProvider_RejectsOutOfRangeTestKeyScore(t *testing.T) {
+	t.Parallel()
+
+	for _, score := range []float64{-0.1, 1.1, math.NaN()} {
+		_, err := NewProvider(Config{SiteKey: "site", SecretKey: "secret", TestKeyScore: new(score)})
+		require.ErrorIs(t, err, ErrTestKeyScoreOutOfRange)
+	}
+}
+
+func TestCaptchaService_VerifyWithProvider_RecaptchaTestKeys(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		testKeyScore *float64
+		name         string
+		body         string
+		wantErrs     []error
+		wantScore    float64
+	}{
+		{
+			name:         "test keys pass with the configured score and requested action",
+			body:         `{"success":true,"hostname":"testkey.google.com"}`,
+			testKeyScore: new(0.9),
+			wantScore:    0.9,
+			wantErrs:     nil,
+		},
+		{
+			name:         "test keys without a test key score fail as misconfigured",
+			body:         `{"success":true,"hostname":"testkey.google.com"}`,
+			testKeyScore: nil,
+			wantErrs:     []error{ErrScoreMissing, captcha_dto.ErrProviderMisconfigured},
+		},
+		{
+			name:         "a v2 secret is not rescued by the test key score",
+			body:         `{"success":true,"hostname":"example.com"}`,
+			testKeyScore: new(0.9),
+			wantErrs:     []error{ErrScoreMissing, captcha_dto.ErrProviderMisconfigured},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			recaptcha, err := NewProvider(
+				Config{TestKeyScore: testCase.testKeyScore, SiteKey: "site", SecretKey: "secret"},
+				WithTransport(&stubTransport{body: testCase.body}),
+			)
+			require.NoError(t, err)
+
+			service, err := captcha_domain.NewCaptchaService(captcha_dto.DefaultServiceConfig())
+			require.NoError(t, err)
+			require.NoError(t, service.RegisterProvider(t.Context(), "recaptcha", recaptcha))
+
+			response, err := service.VerifyWithProvider(t.Context(), "recaptcha", "token", "192.0.2.1", "contact", 0.5)
+			if testCase.wantErrs != nil {
+				for _, wantErr := range testCase.wantErrs {
+					require.ErrorIs(t, err, wantErr)
+				}
+				return
+			}
+
+			require.NoError(t, err)
+			require.NotNil(t, response.Score)
+			assert.InDelta(t, testCase.wantScore, *response.Score, 0.0001)
+			assert.Equal(t, "contact", response.Action)
+		})
+	}
 }

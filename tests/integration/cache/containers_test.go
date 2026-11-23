@@ -229,14 +229,14 @@ func startRedisClusterContainer(ctx context.Context) (testcontainers.Container, 
 }
 
 const (
-	clusterSlotCount = 16384
+	clusterSlotCount    = 16384
 	clusterReadyTimeout = 120 * time.Second
 )
 
 type clusterNodeState struct {
-	err error
-	state string
-	slotsOK int
+	err        error
+	state      string
+	slotsOK    int
 	knownNodes int
 }
 

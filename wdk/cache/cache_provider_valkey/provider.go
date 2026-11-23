@@ -66,13 +66,14 @@ func NewValkeyProvider(config Config) (*ValkeyProvider, error) {
 	}
 
 	clientOpt := valkey.ClientOption{
-		InitAddress:  []string{config.Address},
-		Password:     config.Password,
-		Username:     config.Username,
-		SelectDB:     config.DB,
-		ClientName:   config.ClientName,
-		TLSConfig:    config.TLSConfig,
-		DisableCache: true,
+		InitAddress:       []string{config.Address},
+		Password:          config.Password,
+		Username:          config.Username,
+		SelectDB:          config.DB,
+		ClientName:        config.ClientName,
+		TLSConfig:         config.TLSConfig,
+		DisableCache:      true,
+		ForceSingleClient: true,
 	}
 
 	if config.DisableAutoPipelining {

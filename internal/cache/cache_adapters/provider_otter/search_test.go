@@ -1158,3 +1158,64 @@ func newVectorTestAdapter(t *testing.T) cache_domain.ProviderPort[string, testVe
 	t.Cleanup(func() { assert.NoError(t, adapter.Close(context.Background())) })
 	return adapter
 }
+
+func TestOtterAdapter_VectorSearchLaterPagesWithoutTopK(t *testing.T) {
+	adapter := newVectorTestAdapter(t)
+	ctx := t.Context()
+	for index := range 6 {
+		key := fmt.Sprintf("document-%d", index)
+		require.NoError(t, adapter.Set(ctx, key, testVecDocument{Title: key, Embedding: []float32{1, float32(index) / 10, 0}}))
+	}
+
+	var seen []string
+	for offset := 0; offset < 6; offset += 2 {
+		page, err := adapter.Search(ctx, "", &cache_dto.SearchOptions{Vector: []float32{1, 0, 0}, Offset: offset, Limit: 2})
+		require.NoError(t, err)
+		require.Len(t, page.Items, 2, "page at offset %d must be filled", offset)
+		assert.Equal(t, 2, page.Limit)
+		for _, item := range page.Items {
+			seen = append(seen, item.Key)
+		}
+	}
+	assert.Equal(t, []string{"document-0", "document-1", "document-2", "document-3", "document-4", "document-5"}, seen)
+}
+
+func TestOtterAdapter_VectorSearchPageSizeFollowsTheResolvedWindow(t *testing.T) {
+	adapter := newVectorTestAdapter(t)
+	ctx := t.Context()
+	for index := range 12 {
+		key := fmt.Sprintf("document-%d", index)
+		require.NoError(t, adapter.Set(ctx, key, testVecDocument{Title: key, Embedding: []float32{1, float32(index) / 10, 0}}))
+	}
+
+	testCases := []struct {
+		name       string
+		limit      int
+		wantItems  int
+		wantLimit  int
+		candidates int
+	}{
+		{name: "no limit returns every candidate", limit: cache_dto.NoLimit, wantItems: 11, wantLimit: 11, candidates: 11},
+		{name: "a zero limit uses the default page", limit: 0, wantItems: 10, wantLimit: 10, candidates: 11},
+		{name: "an explicit limit is kept", limit: 3, wantItems: 3, wantLimit: 3, candidates: 11},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			searched, err := adapter.Search(ctx, "", &cache_dto.SearchOptions{Vector: []float32{1, 0, 0}, TopK: 11, Limit: testCase.limit})
+			require.NoError(t, err)
+			assert.Len(t, searched.Items, testCase.wantItems)
+			assert.Equal(t, testCase.wantLimit, searched.Limit)
+			assert.Equal(t, testCase.candidates, searched.Candidates)
+
+			queried, err := adapter.Query(ctx, &cache_dto.QueryOptions{Vector: []float32{1, 0, 0}, TopK: 11, Limit: testCase.limit})
+			require.NoError(t, err)
+			assert.Len(t, queried.Items, testCase.wantItems)
+			assert.Equal(t, testCase.wantLimit, queried.Limit)
+			assert.Equal(t, testCase.candidates, queried.Candidates)
+		})
+	}
+
+	exhausted, err := adapter.Search(ctx, "", &cache_dto.SearchOptions{Vector: []float32{1, 0, 0}, TopK: 50, Limit: 50})
+	require.NoError(t, err)
+	assert.Equal(t, 12, exhausted.Candidates, "fewer candidates than TopK shows the ranking ran out")
+}

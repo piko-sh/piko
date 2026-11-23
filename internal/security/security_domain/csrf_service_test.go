@@ -463,3 +463,21 @@ func TestCSRFTokenService_ConcurrentGeneration_Produces_UniqueTokens(t *testing.
 
 	assert.Len(t, tokens, goroutines*tokensPerGoroutine, "all tokens should be unique")
 }
+
+func TestCSRFTokenService_ServicesWithDifferentKeysRejectEachOthersTokens(t *testing.T) {
+	binder := newMockBinder("session-id")
+	first := mustCreateCSRFServiceWithConfig(t, SecurityConfig{HMACSecretKey: []byte("first-secret"), CSRFTokenMaxAge: time.Hour}, binder)
+	second := mustCreateCSRFServiceWithConfig(t, SecurityConfig{HMACSecretKey: []byte("second-secret"), CSRFTokenMaxAge: time.Hour}, binder)
+	request := newTestRequest("test")
+
+	pair, err := first.GenerateCSRFPair(httptest.NewRecorder(), request, testCSRFBuf())
+	require.NoError(t, err)
+
+	valid, err := first.ValidateCSRFPair(request, pair.RawEphemeralToken, pair.ActionToken)
+	require.NoError(t, err)
+	assert.True(t, valid, "the issuing service accepts its own token")
+
+	valid, err = second.ValidateCSRFPair(request, pair.RawEphemeralToken, pair.ActionToken)
+	assert.False(t, valid, "a service created later must not take over the first service's key")
+	assert.ErrorIs(t, err, errCSRFTokenSignature)
+}

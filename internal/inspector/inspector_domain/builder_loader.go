@@ -27,6 +27,7 @@ import (
 	"fmt"
 	"maps"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -132,7 +133,7 @@ func loadWithStandardLoader(cfg *packages.Config, patterns []string) ([]*package
 // Takes overlay (map[string][]byte) which provides file contents held in memory that
 // replace files on disk.
 //
-// Returns *packages.Config which is ready for use with quickpackages.Load.
+// Returns *packages.Config which holds loader settings and a shallow copy of overlay.
 func buildPackagesConfig(inspectorConfig inspector_dto.Config, overlay map[string][]byte) *packages.Config {
 	overlayCopy := make(map[string][]byte, len(overlay))
 	maps.Copy(overlayCopy, overlay)
@@ -140,7 +141,7 @@ func buildPackagesConfig(inspectorConfig inspector_dto.Config, overlay map[strin
 	packagesConfig := &packages.Config{
 		Dir:        inspectorConfig.BaseDir,
 		Env:        os.Environ(),
-		BuildFlags: inspectorConfig.BuildFlags,
+		BuildFlags: loaderBuildFlags(inspectorConfig.BuildFlags),
 		Overlay:    overlayCopy,
 	}
 
@@ -341,4 +342,21 @@ func isIgnorablePackageError(message string) bool {
 		return true
 	}
 	return false
+}
+
+// loaderBuildFlags disables VCS stamping unless the caller sets a buildvcs flag.
+//
+// Type analysis works without VCS metadata, even when git cannot read the repository.
+//
+// Takes flags ([]string) which are the configured build flags.
+//
+// Returns []string which holds the original flags when buildvcs is set, or a copy with
+// VCS stamping disabled.
+func loaderBuildFlags(flags []string) []string {
+	for _, flag := range flags {
+		if strings.HasPrefix(flag, "-buildvcs") || strings.HasPrefix(flag, "--buildvcs") {
+			return flags
+		}
+	}
+	return append(slices.Clone(flags), "-buildvcs=false")
 }

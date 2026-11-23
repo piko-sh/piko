@@ -28,6 +28,11 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
+const (
+	// recursivePatternPrefix marks a glob pattern that applies at every directory depth.
+	recursivePatternPrefix = "**/"
+)
+
 // TransformFunc defines a document transformation applied before splitting and embedding.
 // It can strip frontmatter, clean markup, or apply pre-processing.
 type TransformFunc func(document Document) Document
@@ -262,7 +267,7 @@ func (b *IngestBuilder) applyPostSplitTransforms(docs []Document, spanLog logger
 // Returns bool which is true if any pattern uses the "**/" prefix.
 func hasRecursivePattern(patterns []string) bool {
 	for _, p := range patterns {
-		if strings.HasPrefix(p, "**/") {
+		if strings.HasPrefix(p, recursivePatternPrefix) {
 			return true
 		}
 	}
@@ -278,7 +283,7 @@ func hasRecursivePattern(patterns []string) bool {
 func stripRecursivePrefix(patterns []string) []string {
 	out := make([]string, len(patterns))
 	for i, p := range patterns {
-		out[i] = strings.TrimPrefix(p, "**/")
+		out[i] = strings.TrimPrefix(p, recursivePatternPrefix)
 	}
 	return out
 }

@@ -45,7 +45,7 @@ import { action } from "/_piko/assets/pk-js/pk/actions.gen.js";
             return {"user": {"id": "abc-123", "name": "Jane Doe", "role": "admin"}};
         }
         connectedCallback () {
-            this.init(instance.call(this, this));
+            if (!this.$$ctx) this.init(instance.call(this, this));
             super.connectedCallback();
         }
         renderVDOM () {

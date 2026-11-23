@@ -184,7 +184,12 @@ func BuildAST(r *piko.RequestData, propsData interface{}) (*pikoruntime.Template
 		tempVar17.Children = append(tempVar17.Children, staticNode_9)
 	}
 	// line pages/api.pk:89:9
-	if pikoruntime.EvaluateOr(pageData.IsPut, pageData.IsPatch).(bool) {
+	if func() any {
+		if value := any(pageData.IsPut); pikoruntime.EvaluateTruthiness(value) {
+			return value
+		}
+		return pageData.IsPatch
+	}().(bool) {
 		tempVar17.Children = append(tempVar17.Children, staticNode_10)
 	}
 	// line pages/api.pk:93:9

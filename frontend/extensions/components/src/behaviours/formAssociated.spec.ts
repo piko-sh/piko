@@ -20,6 +20,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { getBehaviour, registerBehaviour } from './registry';
 import type { PPBehaviour } from './registry';
 import './formAssociated';
+import { PPElement } from '@/element';
 
 interface MockPPElement {
     tagName: string;
@@ -33,10 +34,7 @@ interface MockPPElement {
     onAfterRender: (cb: () => void) => void;
     getAttribute: (name: string) => string | null;
     localName: string;
-    formAssociatedCallback?: (form: HTMLFormElement | null) => void;
-    formDisabledCallback?: (disabled: boolean) => void;
     formResetCallback?: () => void;
-    formStateRestoreCallback?: (state: string | File | FormData | null, mode: 'restore' | 'autocomplete') => void;
     checkValidity?: () => boolean;
     reportValidity?: () => boolean;
     _updateFormState?: () => void;
@@ -154,13 +152,14 @@ describe('formAssociated behaviour', () => {
             expect(onAfterRenderCallbacks).toHaveLength(1);
         });
 
-        it('should add form lifecycle methods to component', () => {
+        it('should leave form reactions to the element prototype', () => {
             formBehaviour(mockComponent as unknown as never);
 
-            expect(mockComponent.formAssociatedCallback).toBeDefined();
-            expect(mockComponent.formDisabledCallback).toBeDefined();
-            expect(mockComponent.formResetCallback).toBeDefined();
-            expect(mockComponent.formStateRestoreCallback).toBeDefined();
+            expect(PPElement.prototype.formResetCallback).toBeTypeOf('function');
+            expect(PPElement.prototype.formDisabledCallback).toBeTypeOf('function');
+            expect(PPElement.prototype.formStateRestoreCallback).toBeTypeOf('function');
+            expect(Object.hasOwn(mockComponent, 'formDisabledCallback')).toBe(false);
+            expect(Object.hasOwn(mockComponent, 'formStateRestoreCallback')).toBe(false);
         });
 
         it('should add validation methods to component', () => {
@@ -345,112 +344,6 @@ describe('formAssociated behaviour', () => {
             mockComponent._updateFormState!();
 
             expect(mockComponent.dispatchEvent).toHaveBeenCalledTimes(2);
-        });
-    });
-
-    describe('formDisabledCallback()', () => {
-        it('should set disabled state when called with true', () => {
-            formBehaviour(mockComponent as unknown as never);
-
-            mockComponent.formDisabledCallback!(true);
-
-            expect(mockComponent.state!.disabled).toBe(true);
-        });
-
-        it('should clear disabled state when called with false', () => {
-            mockComponent.state!.disabled = true;
-            formBehaviour(mockComponent as unknown as never);
-
-            mockComponent.formDisabledCallback!(false);
-
-            expect(mockComponent.state!.disabled).toBe(false);
-        });
-    });
-
-    describe('formResetCallback()', () => {
-        it('should reset value to initial state', () => {
-            mockComponent.state!.value = 'modified-value';
-            mockComponent.$$ctx = { $$initialState: { value: 'initial-value' }, state: { value: 'initial-value' } };
-            formBehaviour(mockComponent as unknown as never);
-
-            mockComponent.formResetCallback!();
-
-            expect(mockComponent.state!.value).toBe('initial-value');
-        });
-
-        it('should synchronise the form state on the microtask after reset', async () => {
-            mockComponent.$$ctx = { $$initialState: { value: 'initial-value' }, state: { value: 'initial-value' } };
-            formBehaviour(mockComponent as unknown as never);
-            mockInternals.setFormValue = vi.fn();
-
-            mockComponent.formResetCallback!();
-            expect(mockInternals.setFormValue).not.toHaveBeenCalled();
-
-            await Promise.resolve();
-
-            expect(mockInternals.setFormValue).toHaveBeenCalled();
-        });
-
-        it('should set empty value if initialState value is undefined', () => {
-            mockComponent.$$ctx = { $$initialState: {}, state: {} };
-            formBehaviour(mockComponent as unknown as never);
-
-            mockComponent.formResetCallback!();
-
-            expect(mockComponent.state!.value).toBe('');
-        });
-
-        it('should do nothing if state is undefined', () => {
-            mockComponent.state = undefined;
-            formBehaviour(mockComponent as unknown as never);
-
-            expect(() => mockComponent.formResetCallback!()).not.toThrow();
-        });
-    });
-
-    describe('formStateRestoreCallback()', () => {
-        it('should restore state value from provided state', () => {
-            formBehaviour(mockComponent as unknown as never);
-
-            mockComponent.formStateRestoreCallback!('restored-value', 'restore');
-
-            expect(mockComponent.state!.value).toBe('restored-value');
-        });
-
-        it('should handle autocomplete mode', () => {
-            formBehaviour(mockComponent as unknown as never);
-
-            mockComponent.formStateRestoreCallback!('autocomplete-value', 'autocomplete');
-
-            expect(mockComponent.state!.value).toBe('autocomplete-value');
-        });
-
-        it('should synchronise the form state on the microtask after restore', async () => {
-            formBehaviour(mockComponent as unknown as never);
-            mockInternals.setFormValue = vi.fn();
-
-            mockComponent.formStateRestoreCallback!('test', 'restore');
-            expect(mockInternals.setFormValue).not.toHaveBeenCalled();
-
-            await Promise.resolve();
-
-            expect(mockInternals.setFormValue).toHaveBeenCalled();
-        });
-
-        it('should do nothing if state is undefined', () => {
-            mockComponent.state = undefined;
-            formBehaviour(mockComponent as unknown as never);
-
-            expect(() => mockComponent.formStateRestoreCallback!('value', 'restore')).not.toThrow();
-        });
-    });
-
-    describe('formAssociatedCallback()', () => {
-        it('should be a no-op (just for completeness)', () => {
-            formBehaviour(mockComponent as unknown as never);
-
-            expect(() => mockComponent.formAssociatedCallback!(null)).not.toThrow();
-            expect(() => mockComponent.formAssociatedCallback!(document.createElement('form'))).not.toThrow();
         });
     });
 

@@ -520,6 +520,26 @@ function getNodeKey(node) {
   const partialName = el.getAttribute("partial_name");
   return partialName ? `${partialName}@${baseKey}` : baseKey;
 }
+function transformRelativeKeys(sourceEl, targetEl) {
+  const targetKey = targetEl.getAttribute("p-key");
+  const sourceKey = sourceEl.getAttribute("p-key");
+  if (!targetKey || !sourceKey) {
+    return;
+  }
+  const elementsWithKeys = [sourceEl, ...Array.from(sourceEl.querySelectorAll("[p-key]"))];
+  for (const el of elementsWithKeys) {
+    const currentKey = el.getAttribute("p-key");
+    if (!currentKey) {
+      continue;
+    }
+    if (currentKey === sourceKey) {
+      el.setAttribute("p-key", targetKey);
+    } else if (currentKey.startsWith(`${sourceKey}:`)) {
+      const suffix = currentKey.slice(sourceKey.length);
+      el.setAttribute("p-key", targetKey + suffix);
+    }
+  }
+}
 const NEVER_SYNC_ATTRS = /* @__PURE__ */ new Set(["pk-ev-bound", "pk-sync-bound"]);
 const SCOPE_ATTR = "partial";
 function parseFragment(html) {
@@ -625,6 +645,16 @@ function applyMorph(el, sourceEl, mode, ownedAttrs, preserveAttrs) {
 function assertExhaustive(_) {
   throw new Error(`Unhandled ReloadMode: ${String(_)}`);
 }
+const inFlightReloads = /* @__PURE__ */ new WeakMap();
+function beginReload(el) {
+  inFlightReloads.get(el)?.abort(new DOMException("Superseded by a newer reload", "AbortError"));
+  const controller = new AbortController();
+  inFlightReloads.set(el, controller);
+  return controller;
+}
+function isLatestReload(el, controller) {
+  return inFlightReloads.get(el) === controller;
+}
 async function performReload(el, name, options) {
   const baseSrc = el.getAttribute("partial_src");
   if (!baseSrc) {
@@ -641,18 +671,23 @@ async function performReload(el, name, options) {
   params.set("_f", "true");
   const url = `${baseSrc}?${params.toString()}`;
   const mode = resolveMode(options);
+  const controller = beginReload(el);
   applyLoadingIndicator(el);
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { signal: controller.signal });
     if (!response.ok) {
       throw new Error(`Failed to reload partial: ${response.status}`);
     }
     const html = await response.text();
+    if (controller.signal.aborted) {
+      return;
+    }
     const sourceEl = parseFragment(html);
     if (!sourceEl) {
       console.warn(`[pk] partial "${name}" received empty or invalid response`);
       return;
     }
+    transformRelativeKeys(sourceEl, el);
     applyMorph(el, sourceEl, mode, options.ownedAttrs, options.preserveAttrs);
     if (effectiveData) {
       el.setAttribute(
@@ -662,6 +697,9 @@ async function performReload(el, name, options) {
     }
     notifyDOMUpdated(el);
   } catch (error) {
+    if (controller.signal.aborted) {
+      return;
+    }
     console.error(`[pk] Failed to reload partial "${name}":`, {
       url,
       args: options.data,
@@ -670,7 +708,10 @@ async function performReload(el, name, options) {
     });
     throw error;
   } finally {
-    removeLoadingIndicator(el);
+    if (isLatestReload(el, controller)) {
+      inFlightReloads.delete(el);
+      removeLoadingIndicator(el);
+    }
   }
 }
 function partial(nameOrElement) {
@@ -705,15 +746,12 @@ const listeners = /* @__PURE__ */ new Map();
 const REACTIVE_RAW = /* @__PURE__ */ Symbol.for("piko.reactivity.rawTarget");
 const bus = {
   /**
-   * Emits an event to all listeners.
+   * Calls all listeners with the same payload snapshot. The snapshot unwraps reactive
+   * proxies and keeps references to unsupported objects. If copying fails, listeners
+   * receive the original payload.
    *
-   * The payload is snapshotted once before dispatch: reactive proxies are
-   * unwrapped and plain objects and arrays are deep-copied, so listeners
-   * always receive plain, cloneable data rather than a live reference into
-   * component state.
-   *
-   * @param event - Event name.
-   * @param data - Optional data to pass to listeners.
+   * @param event - The event name.
+   * @param data - The optional payload.
    */
   emit(event, data) {
     const handlers = listeners.get(event);
@@ -753,11 +791,11 @@ const bus = {
     };
   },
   /**
-   * Subscribes to an event once (auto-unsubscribes after first call).
+   * Subscribes a handler and removes the subscription before the first call.
    *
-   * @param event - Event name.
-   * @param handler - Handler function.
-   * @returns Unsubscribe function (in case you want to cancel before it fires).
+   * @param event - The event name.
+   * @param handler - The listener that receives the first payload.
+   * @returns A function that cancels the subscription.
    */
   once(event, handler) {
     const wrappedHandler = (data) => {
@@ -4017,24 +4055,20 @@ class ActionBuilder {
     return this;
   }
   /**
-   * Sets the optimistic update callback.
+   * Sets the callback that runs before the request.
    *
-   * Runs immediately before the server request.
-   *
-   * @param optimisticUpdate - Callback to run before the request.
-   * @returns This builder for chaining.
+   * @param optimisticUpdate - The callback that applies the optimistic update.
+   * @returns The builder for chaining.
    */
   setOptimistic(optimisticUpdate) {
     this._optimistic = optimisticUpdate;
     return this;
   }
   /**
-   * Sets the success callback.
+   * Sets the callback for a successful response.
    *
-   * Can return another ActionDescriptor to chain actions.
-   *
-   * @param successHandler - Callback receiving the typed response.
-   * @returns This builder for chaining.
+   * @param successHandler - Handles the response and may return another action.
+   * @returns The builder for chaining.
    */
   setOnSuccess(successHandler) {
     this._onSuccess = successHandler;
@@ -4053,26 +4087,20 @@ class ActionBuilder {
     return this;
   }
   /**
-   * Sets the completion callback.
+   * Sets the callback that runs after success or failure.
    *
-   * Runs after success or error, always.
-   *
-   * @param completeHandler - Callback to run on completion.
-   * @returns This builder for chaining.
+   * @param completeHandler - The callback to run when the action finishes.
+   * @returns The builder for chaining.
    */
   setOnComplete(completeHandler) {
     this._onComplete = completeHandler;
     return this;
   }
   /**
-   * Sets the loading state target.
+   * Sets where to show the loading state.
    *
-   * - `true`: Apply to trigger element.
-   * - `string`: CSS selector.
-   * - `HTMLElement`: Specific element.
-   *
-   * @param target - The loading state target.
-   * @returns This builder for chaining.
+   * @param target - A CSS selector, an element, or true to use the trigger.
+   * @returns The builder for chaining.
    */
   setLoading(target) {
     this._loading = target;
@@ -4100,12 +4128,10 @@ class ActionBuilder {
     return this;
   }
   /**
-   * Sets the timeout in milliseconds.
+   * Sets when to abort the request.
    *
-   * The request is aborted after this duration.
-   *
-   * @param ms - Timeout duration.
-   * @returns This builder for chaining.
+   * @param ms - The timeout in milliseconds.
+   * @returns The builder for chaining.
    */
   setTimeout(ms) {
     this._timeout = ms;
@@ -4122,28 +4148,22 @@ class ActionBuilder {
     return this;
   }
   /**
-   * Sets the progress callback for SSE streaming.
+   * Selects SSE transport and sets the callback for intermediate events. Terminal
+   * events use the success or error callback.
    *
-   * When set, the action framework automatically uses SSE transport
-   * (POST with Accept: text/event-stream). The callback fires for each
-   * intermediate event; terminal events route to onSuccess/onError.
-   *
-   * @param progressHandler - Callback receiving event data and event type.
-   * @returns This builder for chaining.
+   * @param progressHandler - The callback that receives intermediate events.
+   * @returns The builder for chaining.
    */
   setOnProgress(progressHandler) {
     this._onProgress = progressHandler;
     return this;
   }
   /**
-   * Sets the retry configuration for SSE streams.
+   * Configures reconnection when an SSE stream drops. Set the progress callback to
+   * select SSE transport. Use Infinity for maxReconnects to allow unlimited retries.
    *
-   * When set alongside onProgress, the action builder automatically
-   * reconnects the SSE stream on connection drops with configurable
-   * backoff. Use maxReconnects: Infinity for long-lived streams.
-   *
-   * @param config - Retry stream configuration.
-   * @returns This builder for chaining.
+   * @param config - The retry limits, delays and callbacks.
+   * @returns The builder for chaining.
    */
   setRetryStream(config) {
     this._retryStream = config;
@@ -4259,28 +4279,18 @@ class ActionBuilder {
     return this.setRetryStream(config);
   }
   /**
-   * Suppress automatic execution of server-response helpers.
+   * Prevents automatic execution of server-response helpers.
    *
-   * When called, helpers returned by the server (e.g. redirect, resetForm)
-   * will NOT be executed automatically. This is useful when you need to
-   * process the response programmatically and don't want side effects.
-   *
-   * The helpers are still available on the DirectCallResponse for manual
-   * inspection when using `.call()`.
-   *
-   * @returns This builder for chaining.
+   * @returns The builder for chaining.
    */
   suppressHelpers() {
     this._suppressHelpers = true;
     return this;
   }
   /**
-   * Builds the final ActionDescriptor.
+   * Creates a descriptor with the current action settings.
    *
-   * Note: The builder itself implements ActionDescriptor, so calling build()
-   * is optional. You can use the builder directly.
-   *
-   * @returns The constructed ActionDescriptor.
+   * @returns The configured action.
    */
   build() {
     return {
@@ -4302,15 +4312,9 @@ class ActionBuilder {
     };
   }
   /**
-   * Execute the action directly and return the typed response.
+   * Executes the action and runs server-response helpers unless suppressed.
    *
-   * This is an imperative alternative to the callback pattern, useful in
-   * component scripts where you need the response data directly.
-   *
-   * Helpers from the server response are processed automatically before
-   * the promise resolves.
-   *
-   * @returns Promise resolving to the typed response data.
+   * @returns A promise for the response data that rejects if the action fails.
    */
   async call() {
     const response = await callServerActionDirect(
@@ -6310,26 +6314,6 @@ function processStyleBlocks(parsedDoc, domOps) {
     newStyleEl.textContent = cssText;
     domOps.getHead().appendChild(newStyleEl);
   });
-}
-function transformRelativeKeys(sourceEl, targetEl) {
-  const targetKey = targetEl.getAttribute("p-key");
-  const sourceKey = sourceEl.getAttribute("p-key");
-  if (!targetKey || !sourceKey) {
-    return;
-  }
-  const elementsWithKeys = [sourceEl, ...Array.from(sourceEl.querySelectorAll("[p-key]"))];
-  for (const el of elementsWithKeys) {
-    const currentKey = el.getAttribute("p-key");
-    if (!currentKey) {
-      continue;
-    }
-    if (currentKey === sourceKey) {
-      el.setAttribute("p-key", targetKey);
-    } else if (currentKey.startsWith(`${sourceKey}:`)) {
-      const suffix = currentKey.slice(sourceKey.length);
-      el.setAttribute("p-key", targetKey + suffix);
-    }
-  }
 }
 function syncPatchAttributes(target, sourceEl) {
   if (!target.patchAttributes || !target.patchLocation) {

@@ -72,9 +72,16 @@ func (c *Container) ValidateProviderConfiguration() error {
 // validateEmailProviders checks the email provider settings.
 //
 // Returns string which is empty when valid, or an error message when the default provider
-// is not found in the list of registered providers.
+// is not found in the list of registered providers, or several providers are registered
+// without naming a default.
 func (c *Container) validateEmailProviders() string {
 	if c.emailDefaultProvider == "" {
+		if c.emailServiceOverride != nil || len(c.emailProviders) == 0 {
+			return ""
+		}
+		if _, _, err := c.selectRegisteredEmailProvider(); err != nil {
+			return err.Error()
+		}
 		return ""
 	}
 	if len(c.emailProviders) == 0 {

@@ -20,6 +20,7 @@ package compiler_domain
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -441,6 +442,28 @@ func TestExtractTypeAssertions_TextTheLexerCannotReadAlone(t *testing.T) {
 			require.NotNil(t, assertions)
 			for name, typeString := range tc.want {
 				assert.Equal(t, typeString, assertions[name].TypeString, "assertion for %s", name)
+			}
+		})
+	}
+}
+
+func TestExtractTypeAssertionsStopsAtAnUnfinishedValue(t *testing.T) {
+	sources := []string{
+		"const state = { message: ;",
+		"const state = { message: ",
+		"const state = { message: [1, 2",
+		"const state = { message: foo(",
+	}
+	for _, source := range sources {
+		t.Run(source, func(t *testing.T) {
+			done := make(chan map[string]TypeAssertion, 1)
+			go func() { done <- ExtractTypeAssertions(source) }()
+
+			select {
+			case assertions := <-done:
+				assert.Empty(t, assertions)
+			case <-time.After(5 * time.Second):
+				require.FailNow(t, "type assertion extraction did not finish")
 			}
 		})
 	}

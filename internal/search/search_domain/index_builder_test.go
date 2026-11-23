@@ -21,7 +21,11 @@ package search_domain
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/collection/collection_dto"
+	"piko.sh/piko/internal/linguistics/linguistics_domain"
+	fb "piko.sh/piko/internal/search/search_schema/search_schema_gen"
 )
 
 func TestIndexBuilder_NewIndexBuilder(t *testing.T) {
@@ -330,4 +334,22 @@ func TestIndexBuilder_stripMarkdown(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRepeatedTermsCountEachDocumentOnce(t *testing.T) {
+	builder := NewIndexBuilder()
+	config := DefaultIndexBuildConfig()
+	analyser := linguistics_domain.NewAnalyser(builder.createAnalysisConfig(fb.SearchModeFast, config))
+	docs := []collection_dto.ContentItem{
+		{URL: "/one", PlainContent: "zephyr zephyr zephyr zephyr"},
+		{URL: "/two", PlainContent: "zephyr spruce spruce spruce"},
+	}
+	index, _, err := builder.buildInvertedIndex(t.Context(), docs, config, analyser)
+	require.NoError(t, err)
+	term := index["zephyr"]
+	require.NotNil(t, term)
+	assert.Equal(t, uint32(2), term.docCount, "each document counts once")
+	require.Len(t, term.postings, 2)
+	assert.Equal(t, uint16(4), term.postings[0].termFrequency)
+	assert.Equal(t, uint16(1), term.postings[1].termFrequency)
 }

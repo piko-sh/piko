@@ -258,3 +258,61 @@ describe('PPElement Lifecycle & Initialisation', () => {
     expect(secondConnectedSpy).toHaveBeenCalledTimes(1);
   });
 });
+
+class MovableElement extends PPElement {
+  initialisations = 0;
+  activeTimers = 0;
+
+  override connectedCallback(): void {
+    if (!this.$$ctx) {
+      this.initialisations++;
+      this.onConnected(() => {
+        this.activeTimers++;
+        this.onCleanup(() => {
+          this.activeTimers--;
+        });
+      });
+      const initialState = { count: 0 };
+      this.init({ state: makeReactive(initialState, { scheduleRender: () => this.scheduleRender() }), $$initialState: initialState });
+    }
+    super.connectedCallback();
+  }
+
+  override renderVDOM(): VirtualNode {
+    return dom.el('div', 'moved-root', {}, [dom.txt(String(this.state!.count), 'moved-count')]);
+  }
+}
+customElements.define('test-movable-element', MovableElement);
+
+describe('PPElement reconnection', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('keeps state and re-runs connected setup when moved within the document', async () => {
+    const first = document.createElement('section');
+    const second = document.createElement('section');
+    document.body.append(first, second);
+    const element = new MovableElement();
+
+    first.appendChild(element);
+    await vi.waitFor(() => expect(element.activeTimers).toBe(1));
+    element.state!.count = 5;
+
+    second.appendChild(element);
+
+    expect(element.initialisations).toBe(1);
+    expect(element.state!.count).toBe(5);
+    expect(element.activeTimers).toBe(1);
+  });
+
+  it('tears down connected setup when removed', async () => {
+    const element = new MovableElement();
+    document.body.appendChild(element);
+    await vi.waitFor(() => expect(element.activeTimers).toBe(1));
+
+    element.remove();
+
+    expect(element.activeTimers).toBe(0);
+  });
+});

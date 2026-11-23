@@ -146,6 +146,9 @@ pkc.onConnected(() => {
 });
 ```
 
+Start resources inside `onConnected`, as in the example above, so they restart when a
+component moves or reconnects.
+
 See the [client components reference](../../reference/client-components.md) for the full lifecycle table.
 
 ## See also

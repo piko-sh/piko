@@ -20,6 +20,7 @@ package siteverify
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -210,4 +211,40 @@ func TestNewClient_Options(t *testing.T) {
 			assert.Equal(t, "https://example.com/siteverify", client.endpoint)
 		})
 	}
+}
+
+type recordingTransport struct {
+	requests []string
+}
+
+func (r *recordingTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+	r.requests = append(r.requests, request.URL.String())
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     http.Header{"Content-Type": []string{"application/json"}},
+		Body:       io.NopCloser(strings.NewReader(`{"success":true,"hostname":"transport.example"}`)),
+		Request:    request,
+	}, nil
+}
+
+func TestVerify_UsesInjectedTransport(t *testing.T) {
+	t.Parallel()
+
+	transport := &recordingTransport{requests: nil}
+	client := NewClient("example", "https://verify.example/siteverify", WithTransport(transport))
+
+	result, err := Verify[verdict](t.Context(), client, url.Values{"response": {"token"}})
+
+	require.NoError(t, err)
+	assert.True(t, result.Success)
+	assert.Equal(t, "transport.example", result.Hostname)
+	assert.Equal(t, []string{"https://verify.example/siteverify"}, transport.requests)
+}
+
+func TestWithTransport_NilKeepsDefault(t *testing.T) {
+	t.Parallel()
+
+	client := NewClient("example", "https://example.com/siteverify", WithTransport(nil))
+
+	assert.Nil(t, client.httpClient.Transport)
 }

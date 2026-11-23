@@ -1347,6 +1347,20 @@ func TestApplyInvokerAttributesToExpandedRoot(t *testing.T) {
 func TestProcessExpandedNodes(t *testing.T) {
 	t.Parallel()
 
+	t.Run("sole nested invocation retains both lexical frames", func(t *testing.T) {
+		t.Parallel()
+
+		inner := &ast_domain.PartialInvocationInfo{InvocationKey: "inner", PartialPackageName: "frame"}
+		outer := &ast_domain.PartialInvocationInfo{InvocationKey: "outer", PartialPackageName: "card"}
+		child := &ast_domain.TemplateNode{NodeType: ast_domain.NodeElement, TagName: "article", GoAnnotations: &ast_domain.GoGeneratorAnnotation{PartialInfo: inner}}
+		got := processExpandedNodes([]*ast_domain.TemplateNode{child}, &ast_domain.TemplateNode{}, outer)
+		require.Len(t, got, 1)
+		require.Equal(t, ast_domain.NodeFragment, got[0].NodeType)
+		require.Same(t, outer, got[0].GoAnnotations.PartialInfo)
+		require.Len(t, got[0].Children, 1)
+		require.Same(t, inner, got[0].Children[0].GoAnnotations.PartialInfo)
+	})
+
 	t.Run("single root element gets partial info attached directly", func(t *testing.T) {
 		t.Parallel()
 

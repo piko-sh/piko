@@ -1,0 +1,12 @@
+<template><main id="record-detail" :data-revision="state.Revision"><h1>Record detail</h1><p id="summary" p-text="state.Detail"></p></main></template>
+<script type="application/x-go">
+package main
+import ("piko.sh/piko";"example.org/pikofuzzcase/pkg/recordboard")
+type Response struct{Detail string;Revision int}
+func SupportedLocales()[]string{return []string{"en","fr"}}
+func Render(r *piko.RequestData,p piko.NoProps)(Response,piko.Metadata,error){
+	b,err:=recordboard.List();if err!=nil{return Response{},piko.Metadata{},err}
+	key:=r.QueryParam("key");for _,row:=range b.Rows{if row.ID==key{return Response{Detail:key+" / "+row.Label+" / "+r.QueryParam("q"),Revision:b.Revision},piko.Metadata{Title:"Record detail",Language:r.Locale()},nil}}
+	return Response{},piko.Metadata{},nil
+}
+</script>

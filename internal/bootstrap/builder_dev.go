@@ -284,12 +284,9 @@ func (b *devDaemonBuilder) buildFinalDaemonDeps(ctx context.Context, fsWatcher l
 		return nil, fmt.Errorf("failed to start lifecycle service: %w", err)
 	}
 
-	runInitialTasksInBackground(appCtx, lifecycleService)
+	b.c.initialTasksDone = runInitialTasksInBackground(appCtx, lifecycleService)
 
-	daemonConfig := NewDaemonConfig(&b.c.serverConfig)
-	daemonConfig.DevelopmentMode = true
-	daemonConfig.NetworkAutoNextPort = true
-	daemonConfig.HealthAutoNextPort = true
+	daemonConfig := newDevelopmentDaemonConfig(&b.c.serverConfig)
 
 	serverAdapter, err := b.setupTLSServerAdapter(ctx, &daemonConfig)
 	if err != nil {

@@ -47,7 +47,7 @@ import { format } from "./utils.js";
             return {"name": "World"};
         }
         connectedCallback () {
-            this.init(instance.call(this, this));
+            if (!this.$$ctx) this.init(instance.call(this, this));
             super.connectedCallback();
         }
         renderVDOM () {

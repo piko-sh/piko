@@ -50,7 +50,7 @@ const (
 
 // IndexBuilder creates search indexes from collection items.
 //
-// Safe for concurrent use; BuildIndex creates a fresh analyser per call.
+// Concurrent BuildIndex calls use separate analysers.
 type IndexBuilder struct{}
 
 // NewIndexBuilder creates a new index builder.
@@ -132,15 +132,6 @@ func (ib *IndexBuilder) BuildIndex(
 
 // detectLanguage finds the language from content items.
 //
-// Detection steps:
-//  1. Check the first item's metadata for a "language" or "lang" field.
-//  2. If not found, check for a "locale" field and extract the language (e.g., "en-US"
-//     becomes "english").
-//  3. If no language is found, use "english" as the default.
-//
-// This lets users set the language in their content frontmatter: --- title: My Spanish
-// Article language: spanish ---
-//
 // Takes items ([]collection_dto.ContentItem) which provides the content items to check
 // for language metadata.
 //
@@ -170,8 +161,7 @@ func (*IndexBuilder) detectLanguage(items []collection_dto.ContentItem) string {
 	return LanguageEnglish
 }
 
-// createAnalysisConfig creates a text analysis configuration based on search mode. Uses
-// the shared config builder to ensure consistency.
+// createAnalysisConfig creates a text analysis configuration based on search mode.
 //
 // Takes mode (search_fb.SearchMode) which specifies the search mode for analysis.
 // Takes config (IndexBuildConfig) which provides language and token settings.
@@ -196,10 +186,10 @@ type termInfo struct {
 	// text is the search term, stemmed when using Smart mode.
 	text string
 
-	// original holds the normalised form before stemming; used only in Smart mode.
+	// original holds the normalised form before stemming, used only in Smart mode.
 	original string
 
-	// phonetic is the phonetic code for fuzzy matching; used in Smart mode only.
+	// phonetic is the phonetic code for fuzzy matching, used in Smart mode only.
 	phonetic string
 
 	// idf is the inverse document frequency score for this term.
@@ -236,9 +226,7 @@ type docMetadata struct {
 	fieldLengthsPacked uint32
 }
 
-// buildInvertedIndex processes all items and builds the inverted index structure. Each
-// field (title, content, excerpt) is processed separately with its correct fieldID,
-// enabling proper field-aware BM25 scoring.
+// buildInvertedIndex processes all items and builds the inverted index structure.
 //
 // Takes items ([]collection_dto.ContentItem) which contains the documents to index.
 // Takes config (IndexBuildConfig) which specifies tokenisation and field settings.
@@ -355,15 +343,14 @@ func (ib *IndexBuilder) processToken(
 
 	if existingPosting, exists := termCounts[termKey]; exists {
 		existingPosting.termFrequency++
-	} else {
-		termCounts[termKey] = &posting{
-			documentID:    safeconv.IntToUint32(documentID),
-			termFrequency: 1,
-			fieldID:       fieldID,
-		}
+		return
 	}
-
-	ib.updateGlobalIndex(documentID, termKey, originalForm, phoneticForm, index)
+	termCounts[termKey] = &posting{
+		documentID:    safeconv.IntToUint32(documentID),
+		termFrequency: 1,
+		fieldID:       fieldID,
+	}
+	ib.updateGlobalIndex(termKey, originalForm, phoneticForm, index)
 }
 
 // extractTokenKey finds the index key based on the analysis mode.
@@ -381,22 +368,18 @@ func (*IndexBuilder) extractTokenKey(token linguistics_domain.Token, analyser li
 	return token.Normalised, "", ""
 }
 
-// updateGlobalIndex adds or updates a term entry in the given index.
+// updateGlobalIndex records the first occurrence of a term in a document.
 //
-// Takes documentID (int) which identifies the document containing the term.
-// Takes termKey (string) which is the lookup key for the term.
-// Takes originalForm (string) which is the term as it appeared in the source.
-// Takes phoneticForm (string) which is the phonetic form of the term.
-// Takes index (map[string]*termInfo) which is the index to update.
+// Takes termKey (string) which is the normalised lookup key.
+// Takes originalForm (string) which is the term before stemming.
+// Takes phoneticForm (string) which is the phonetic matching code.
+// Takes index (map[string]*termInfo) which accumulates term metadata and document counts.
 func (*IndexBuilder) updateGlobalIndex(
-	documentID int,
 	termKey, originalForm, phoneticForm string,
 	index map[string]*termInfo,
 ) {
 	if term, exists := index[termKey]; exists {
-		if _, hasDoc := term.postings[safeconv.IntToUint32(documentID)]; !hasDoc {
-			term.docCount++
-		}
+		term.docCount++
 		return
 	}
 
@@ -411,8 +394,7 @@ func (*IndexBuilder) updateGlobalIndex(
 }
 
 // extractSearchableFields extracts field-tagged text segments from a content item for
-// indexing. This enables proper field-aware BM25 scoring without the need for field
-// repetition hacks.
+// indexing.
 //
 // Takes item (collection_dto.ContentItem) which is the content to extract searchable
 // fields from.
@@ -462,8 +444,7 @@ func (ib *IndexBuilder) extractSearchableFields(item collection_dto.ContentItem)
 }
 
 // getMetadataString retrieves a string value from metadata, checking multiple key
-// variants. This handles case sensitivity issues where providers may use "Title" or
-// "title".
+// variants.
 //
 // Takes metadata (map[string]any) which contains the metadata to search.
 // Takes keys (...string) which specifies the key variants to check in order.
@@ -478,9 +459,7 @@ func (*IndexBuilder) getMetadataString(metadata map[string]any, keys ...string) 
 	return ""
 }
 
-// stripMarkdown performs markdown stripping to extract plain text for indexing. This
-// removes frontmatter, code blocks, and markdown syntax while preserving searchable
-// content.
+// stripMarkdown performs markdown stripping to extract plain text for indexing.
 //
 // Takes markdown (string) which is the raw markdown text to process.
 //
@@ -620,8 +599,7 @@ type searchIndexParams struct {
 	// docsVectorOffset is the FlatBuffers offset for the documents vector.
 	docsVectorOffset flatbuffers.UOffsetT
 
-	// phoneticMapOffset is the FlatBuffer offset for the phonetic map; 0 means no phonetic
-	// map is included.
+	// phoneticMapOffset points to the phonetic map, or is zero if the map is absent.
 	phoneticMapOffset flatbuffers.UOffsetT
 
 	// vocabSize is the number of unique terms in the search index vocabulary.
@@ -1018,8 +996,7 @@ func stripHTMLComments(markdown string) string {
 	return markdown
 }
 
-// stripMarkdownLinks removes markdown link syntax while keeping the link text. It
-// converts [text](url) to plain text.
+// stripMarkdownLinks removes markdown link syntax while keeping the link text.
 //
 // Takes markdown (string) which is the input text containing markdown links.
 //
@@ -1240,8 +1217,6 @@ func convertDocumentsToJSON(docMeta []docMetadata) []search_dto.JSONDocMetadata 
 }
 
 // convertPhoneticMapToJSON converts a phonetic map to JSON data transfer objects.
-//
-// When mode is not Smart or the phonetic map is empty, returns nil.
 //
 // Takes mode (search_fb.SearchMode) which specifies the search mode.
 // Takes phoneticMap (map[string][]uint32) which maps phonetic codes to term indices.

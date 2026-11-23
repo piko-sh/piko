@@ -20,6 +20,7 @@ package generator_helpers
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -757,4 +758,26 @@ func TestEvaluateBinaryMoney_LeftNotMoney(t *testing.T) {
 	result := EvaluateBinary(42, "+", maths.NewMoneyFromString("10.00", "USD"))
 
 	assert.NotNil(t, result)
+}
+
+func TestGeneratedTemporalOperations(t *testing.T) {
+	date := time.Date(2024, 2, 29, 0, 0, 0, 0, time.UTC)
+	half := 30 * time.Minute
+	later := date.Add(half)
+	for _, tc := range []struct {
+		a, b any
+		op   string
+		want any
+	}{
+		{half, 45 * time.Minute, "+", 75 * time.Minute}, {half, time.Hour, "-", -half},
+		{date, half, "+", later}, {half, date, "+", later}, {later, half, "-", date}, {date, later, "-", -half},
+		{date, later, "<", true}, {date, later, ">", false}, {date, date, "<=", true}, {date, date, ">=", true},
+		{half, time.Hour, "<", true}, {half, time.Hour, ">", false},
+	} {
+		require.Equal(t, tc.want, EvaluateBinary(tc.a, tc.op, tc.b), "%v %s %v", tc.a, tc.op, tc.b)
+	}
+
+	zone := date.In(time.FixedZone("offset", 3600))
+	require.True(t, EvaluateStrictEquality(date, zone))
+	require.True(t, EvaluateLooseEquality(date, zone))
 }

@@ -63,7 +63,6 @@ type sfcCompiler struct {
 	cssPreProcessor CSSPreProcessorPort
 
 	// moduleName is the Go module name from go.mod, such as a GitHub-hosted module path.
-	// Used to resolve @/ aliases in asset paths.
 	moduleName string
 }
 
@@ -116,7 +115,6 @@ type sfcCompilationContext struct {
 	registry *RegistryContext
 
 	// moduleName is the Go module name from go.mod, such as a GitHub-hosted module path.
-	// Used to resolve @/ aliases in asset paths.
 	moduleName string
 
 	// cssPreProcessor resolves CSS @import statements before CSS is embedded into compiled
@@ -154,15 +152,14 @@ type sfcCompilationContext struct {
 	// component name when no explicit name is set.
 	sourceFilename string
 
-	// scaffoldHTML is the static HTML scaffold for server-side rendering. Defaults to
-	// "<slot></slot>" when no template is provided or when scaffold building fails.
+	// scaffoldHTML is the static HTML scaffold for server-side rendering. It falls back to
+	// "<slot></slot>" when no template is provided or scaffold building fails.
 	scaffoldHTML string
 
 	// astDump holds the text form of the template AST for debugging.
 	astDump string
 
-	// enabledBehaviours holds the list of behaviours enabled for this component. Parsed from
-	// the script tag's enable attribute.
+	// enabledBehaviours lists the behaviours named in the script's enable attribute.
 	enabledBehaviours []string
 
 	// timelineJSON holds the parsed piko:timeline block as a JSON string, ready for
@@ -238,9 +235,9 @@ func (cc *sfcCompilationContext) extractScriptAndStyles() {
 	cc.stylesDefault = stylesBuilder.String()
 }
 
-// preProcessStyles resolves CSS @import statements in the concatenated style content
-// using the CSSPreProcessorPort stored on the compilation context. When no pre-processor
-// is available the raw CSS is kept as-is.
+// preProcessStyles resolves CSS @import statements in the component's styles.
+//
+// Without a CSS preprocessor, the styles are left as written.
 //
 // Returns error when an @import cannot be resolved or its target cannot be read.
 func (cc *sfcCompilationContext) preProcessStyles(ctx context.Context) error {
@@ -333,9 +330,8 @@ func (cc *sfcCompilationContext) injectTimelineData(ctx context.Context) error {
 
 // setupNaming resolves the component tag name and class name.
 //
-// Resolution order:
-//  1. <template name="..."> attribute
-//  2. Source filename without extension (e.g. my-counter.pkc -> my-counter)
+// The tag name comes from the template's name attribute or the source filename without
+// its extension.
 //
 // Returns error when the resolved name does not contain a hyphen, which is required by
 // the web component specification.
@@ -416,7 +412,7 @@ func (cc *sfcCompilationContext) parseJavaScript(ctx context.Context) error {
 
 // extractMetadata parses the JavaScript AST to get component metadata.
 //
-// When extraction fails, logs a warning and uses empty metadata instead.
+// When extraction fails, it logs a warning and uses empty metadata instead.
 func (cc *sfcCompilationContext) extractMetadata(ctx context.Context) {
 	_, l := logger_domain.From(ctx, log)
 	extractor := NewTypeExtractor(cc.jsAST, cc.jsParseResult.TypeAssertions)
@@ -469,7 +465,11 @@ func (cc *sfcCompilationContext) processTemplate(ctx context.Context) error {
 		return nil
 	}
 
-	tAST, tErr := ast_domain.ParseAndTransform(ctx, cc.sfcParseResult.Template, cc.tagName)
+	tAST, tErr := ast_domain.ParseAndTransformWithOptions(ctx, cc.sfcParseResult.Template, cc.tagName, &ast_domain.ParseOptions{
+		RawMode:                false,
+		DecodeStaticAttributes: true,
+		PreserveRawText:        false,
+	})
 	if tErr != nil {
 		l.Warn("AST parse error for template", logger_domain.String(logKeyError, tErr.Error()))
 	}
@@ -496,10 +496,9 @@ func (cc *sfcCompilationContext) processTemplate(ctx context.Context) error {
 
 // buildScaffoldHTML creates the static HTML scaffold for server-side rendering.
 //
-// Takes tAST (*ast_domain.TemplateAST) which is the parsed template structure.
+// When scaffold building fails, it logs a warning and falls back to a plain slot element.
 //
-// Reads scaffold settings from the context when available. If scaffold building fails,
-// logs a warning and uses a simple slot element as a fallback.
+// Takes tAST (*ast_domain.TemplateAST) which is the parsed template structure.
 func (cc *sfcCompilationContext) buildScaffoldHTML(ctx context.Context, tAST *ast_domain.TemplateAST) {
 	ctx, l := logger_domain.From(ctx, log)
 	var scaffoldErr error
@@ -561,8 +560,7 @@ func (cc *sfcCompilationContext) insertStaticCSS(ctx context.Context) error {
 }
 
 // finaliseAST completes AST processing by rewriting it, adding custom element definitions
-// when needed, and prepending the import preamble. It also gathers JavaScript
-// dependencies from @/ imports for registry registration.
+// when needed, and prepending the import preamble.
 //
 // Returns error when a user import cannot be hoisted exactly as written.
 func (cc *sfcCompilationContext) finaliseAST(ctx context.Context) error {
@@ -668,7 +666,7 @@ func getStmtsFromAST(tree *js_ast.AST) []js_ast.Stmt {
 
 // setStmtsInAST sets the statements in an esbuild AST, placing them into a single Part.
 //
-// When tree is nil, returns without making changes.
+// A nil tree is left unchanged.
 //
 // Takes tree (*js_ast.AST) which is the AST to update.
 // Takes statements ([]js_ast.Stmt) which are the statements to set.
@@ -685,10 +683,9 @@ func setStmtsInAST(tree *js_ast.AST, statements []js_ast.Stmt) {
 	}
 }
 
-// appendStatementToAST adds a statement to the start of an esbuild AST.
+// appendStatementToAST adds a statement to the end of an esbuild AST's first Part.
 //
-// When tree is nil, returns at once without changes. When tree has no parts, creates an
-// empty part before adding the statement.
+// A nil tree is left unchanged. A tree with no parts gains an empty part first.
 //
 // Takes tree (*js_ast.AST) which is the AST to modify.
 // Takes statement (js_ast.Stmt) which is the statement to add.
@@ -806,10 +803,7 @@ func (cc *sfcCompilationContext) runCompilationStages(ctx context.Context, span 
 	return ctx, nil
 }
 
-// ensurePPElementClass creates a default PPElement subclass if one does not already exist
-// in the AST.
-//
-// When a class with the given name already exists, returns without changes.
+// ensurePPElementClass adds a default PPElement subclass when the class is missing.
 //
 // Takes tree (*js_ast.AST) which is the syntax tree to search and modify.
 // Takes className (string) which is the name of the class to create if missing.
@@ -952,39 +946,19 @@ func prependPreambleToAST(ctx context.Context, tree *js_ast.AST, sourceCode stri
 	return dependencies, nil
 }
 
-// buildImportStatementsFromSource builds SImport statements by extracting the original
-// import text from source code.
+// buildImportStatementsFromSource recovers static imports as written in the script.
 //
-// This keeps the exact import syntax (named vs namespace) from the source. This matters
-// because esbuild may change named imports to namespace imports internally.
+// The source text preserves named imports that esbuild may rewrite as namespace imports.
+// Dynamic imports and require calls stay in place to preserve load timing. Type-only
+// imports are omitted.
 //
-// The function uses ImportRecords for:
-//   - Range data to find import paths in source
-//   - Knowing how many imports exist
-//
-// Only ImportStmt records are hoisted. A dynamic import() belongs where the author wrote
-// it, and require-style records carry a Range pointing at a string literal too, so
-// searching backwards from one would find an unrelated import keyword. Hoisting either
-// kind emits a second, eager fetch of a module the component meant to load lazily or not
-// at all.
-//
-// But it rebuilds imports from source text to keep:
-//   - Named imports: `import { foo, bar as baz } from '...'`
-//   - Default imports: `import foo from '...'`
-//   - Multi-line formatting
-//
-// Each statement's start and end come from a parser pass that keeps every import (see
-// locateImportStatements). An import the TypeScript parser removes because all of its
-// bindings are type-only, such as `import { type Foo } from './types'`, is dropped.
-//
-// When tree is nil or has no ImportRecords, returns nil for all values.
-//
-// Takes tree (*js_ast.AST) which holds ImportRecords with Range data.
+// Takes tree (*js_ast.AST) which supplies and receives import records.
 // Takes sourceCode (string) which is the original source code.
 // Takes moduleName (string) which resolves the @/ alias.
 //
-// Returns []js_ast.Stmt which holds the built import statements.
-// Returns []compiler_dto.JSDependency which holds dependencies for the registry.
+// Returns []js_ast.Stmt which holds static imports, or nil without import records.
+// Returns []compiler_dto.JSDependency which holds their registered dependencies, or nil
+// without import records.
 // Returns error when an import statement cannot be recovered exactly as written.
 func buildImportStatementsFromSource(ctx context.Context, tree *js_ast.AST, sourceCode string, moduleName string) ([]js_ast.Stmt, []compiler_dto.JSDependency, error) {
 	if tree == nil || len(tree.ImportRecords) == 0 {
@@ -1066,11 +1040,7 @@ func rebuildImportStatement(
 	return statement, mergedIndex, nil
 }
 
-// recoversSingleImport reports whether recovered text holds exactly the one import it was
-// cut out for.
-//
-// A statement fused with its neighbour would carry two import records, and a mislocated
-// one would name another path.
+// recoversSingleImport checks that recovered text contains only the expected import.
 //
 // Takes importText (string) which is the recovered statement text.
 // Takes pathText (string) which is the quoted module path as written in the source.
@@ -1127,10 +1097,7 @@ func resolveStatementImportPath(
 	return dependency
 }
 
-// usedIdentifierCollector is an AST visitor that records the name of every identifier
-// referenced as a value (a tdewolff Var node). Property keys and member names are
-// LiteralExpr or PropertyName nodes and string contents are literals, so none are
-// recorded.
+// usedIdentifierCollector records identifier names used as values.
 type usedIdentifierCollector struct {
 	// names holds the set of identifier names referenced as a value.
 	names map[string]struct{}
@@ -1186,16 +1153,7 @@ func extractImportTextFromSource(sourceCode string, locator importStatementLocat
 	return sourceCode[span.start:span.end], pathText, nil
 }
 
-// separateImportsFromAST walks the AST statements and separates SImport statements from
-// all other statements. Used to place imports at module top level while wrapping other
-// code in an IIFE.
-//
-// esbuild stores import information in two places: 1. ImportRecords - contains path,
-// range, and metadata for each import 2. Parts[].Stmts - contains SImport statements with
-// ImportRecordIndex
-//
-// Extracts SImport statements from Parts[].Stmts so they can be placed at module top
-// level, while other statements get wrapped in an IIFE.
+// separateImportsFromAST partitions statements into static imports and other statements.
 //
 // Takes statements ([]js_ast.Stmt) which contains all statements from the parsed AST.
 //
@@ -1284,9 +1242,6 @@ func buildComponentsImport(tree *js_ast.AST) js_ast.Stmt {
 
 // buildActionsImport creates the import statement for project actions.
 //
-// This imports the generated action namespace from the asset server. It allows pkc
-// components to use typed action calls like action.media.search({}).call().
-//
 // Takes tree (*js_ast.AST) which receives the new import record.
 //
 // Returns js_ast.Stmt which is the import statement for the project's generated actions
@@ -1308,8 +1263,8 @@ func buildActionsImport(tree *js_ast.AST) js_ast.Stmt {
 }
 
 // buildAnimationExtensionImport creates a side-effect import for the animation extension.
-// This is a bare import with no bindings; it runs the extension's module-level code which
-// registers the timeline setup function on a global.
+//
+// Loading the extension registers the timeline setup function.
 //
 // Takes tree (*js_ast.AST) which receives the new import record.
 //
@@ -1329,10 +1284,10 @@ func buildAnimationExtensionImport(tree *js_ast.AST) js_ast.Stmt {
 	}}
 }
 
-// mergeImportRecords combines import records from a statement AST into the main tree AST.
-// It updates symbol and import record indices to avoid conflicts.
+// mergeImportRecords adds a statement's import records to the main tree.
 //
-// When statementAST is nil or has no import records, returns at once.
+// The statement's import record and symbol indices change to match the main tree. A nil
+// statement AST or one with no import records leaves both trees unchanged.
 //
 // Takes tree (*js_ast.AST) which is the target AST to merge records into.
 // Takes statementAST (*js_ast.AST) which holds the import records to merge.
@@ -1550,13 +1505,10 @@ func clauseItemIsUsed(item js_ast.ClauseItem, used map[string]struct{}) bool {
 	return ok
 }
 
-// collectUsedIdentifiers records the name of every identifier referenced as a value in
-// the converted body.
+// collectUsedIdentifiers finds identifier names used as values in the component body.
 //
-// Walking the AST rather than scanning printed text means a name that appears only as a
-// property key or in a string literal is not mistaken for a value use. The final-print
-// registry is reused and conversion only reads it, so this throwaway pass cannot change
-// the final output.
+// Property keys and string contents do not count as value references. The registry is
+// read without being changed.
 //
 // Takes tree (*js_ast.AST) which supplies the symbol table for name resolution.
 // Takes bodyStmts ([]js_ast.Stmt) which are the non-import statements to scan.

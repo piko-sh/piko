@@ -76,10 +76,7 @@ func NewRedisClusterProvider(config Config) (*RedisClusterProvider, error) {
 		return nil, errors.New("redis cluster provider requires an EncodingRegistry in config")
 	}
 
-	client := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs:    config.Addrs,
-		Password: config.Password,
-	})
+	client := redis.NewClusterClient(clusterOptions(&config))
 
 	connCause := fmt.Errorf("redis cluster connection exceeded %s timeout", cache_domain.DefaultConnectionTimeout)
 	ctx, cancel := context.WithTimeoutCause(context.Background(), cache_domain.DefaultConnectionTimeout, connCause)
@@ -146,4 +143,21 @@ func (p *RedisClusterProvider) Close() error {
 // Returns string which is the unique name for the Redis cluster provider.
 func (*RedisClusterProvider) Name() string {
 	return "redis-cluster"
+}
+
+// clusterOptions maps the provider configuration onto the go-redis cluster client
+// options, so every documented routing and redirect setting reaches the client.
+//
+// Takes config (*Config) which is the provider configuration after defaults.
+//
+// Returns *redis.ClusterOptions which configures the cluster client.
+func clusterOptions(config *Config) *redis.ClusterOptions {
+	return &redis.ClusterOptions{
+		Addrs:          config.Addrs,
+		Password:       config.Password,
+		MaxRedirects:   config.MaxRedirects,
+		ReadOnly:       config.ReadOnly,
+		RouteByLatency: config.RouteByLatency,
+		RouteRandomly:  config.RouteRandomly,
+	}
 }

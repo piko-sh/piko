@@ -1037,23 +1037,20 @@ func (a *ValkeyAdapter[K, V]) BulkGet(ctx context.Context, keys []K, bulkLoader 
 		return results, nil
 	}
 
-	mgetResults := a.client.DoMulti(ctx,
-		a.client.B().Mget().Key(keyStrs...).Build(),
-	)
-	if len(mgetResults) == 0 {
-		return results, errors.New("valkey MGET returned empty response")
-	}
-
-	vals, err := mgetResults[0].ToArray()
+	messages, err := valkey.MGet(a.client, ctx, keyStrs)
 	if err != nil {
 		l.Warn("Valkey MGET failed", logger.Int("key_count", len(keys)), logger.Error(err))
 		return results, fmt.Errorf("valkey MGET failed: %w", err)
 	}
 
 	var misses []K
-	for i, message := range vals {
-		keyString := keyStrs[i]
+	for _, keyString := range keyStrs {
 		originalKey := keyMap[keyString]
+		message, found := messages[keyString]
+		if !found {
+			misses = append(misses, originalKey)
+			continue
+		}
 
 		value, err := message.ToString()
 		if err != nil {

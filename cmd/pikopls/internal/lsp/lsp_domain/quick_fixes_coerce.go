@@ -56,7 +56,7 @@ func generateCoerceFix(ctx context.Context, diagnostic protocol.Diagnostic, _ *d
 		return nil
 	}
 
-	targetURI := protocol.DocumentURI("file://" + fixData.PropDefPath)
+	targetURI := documentURIForPath(fixData.PropDefPath)
 	modifiedCode, goScript, err := prepareCoerceTagModification(ws, targetURI, fixData.PropName)
 	if err != nil {
 		l.Debug("generateCoerceFix: failed to prepare modification", logger_domain.Error(err))

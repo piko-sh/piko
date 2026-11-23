@@ -34,7 +34,7 @@ import { action } from "/_piko/assets/pk-js/pk/actions.gen.js";
             return {"label": "plain", "markup": "<em>injected</em>", "shapes": "<circle r='4'></circle>", "tag": "section"};
         }
         connectedCallback () {
-            this.init(instance.call(this, this));
+            if (!this.$$ctx) this.init(instance.call(this, this));
             super.connectedCallback();
         }
         renderVDOM () {

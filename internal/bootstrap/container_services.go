@@ -54,7 +54,8 @@ import (
 //
 // Returns security_domain.CSRFTokenService which provides CSRF token creation and
 // validation.
-func (c *Container) GetCSRFService() security_domain.CSRFTokenService {
+// Returns error when the default CSRF service cannot be created.
+func (c *Container) GetCSRFService() (security_domain.CSRFTokenService, error) {
 	c.csrfOnce.Do(func() {
 		_, l := logger_domain.From(c.GetAppContext(), log)
 		if c.csrfServiceOverride != nil {
@@ -62,16 +63,26 @@ func (c *Container) GetCSRFService() security_domain.CSRFTokenService {
 			c.csrfService = c.csrfServiceOverride
 			return
 		}
-		c.createDefaultCSRFService()
+		c.csrfService, c.csrfErr = c.createDefaultCSRFService()
 	})
-	return c.csrfService
+	return c.csrfService, c.csrfErr
 }
 
 // createDefaultCSRFService sets up the CSRF token service with default settings.
-func (c *Container) createDefaultCSRFService() {
+//
+// An empty provided secret, such as an unset environment variable passed to
+// WithCSRFSecret, falls back to the generated secret instead of disabling CSRF checks.
+//
+// Returns security_domain.CSRFTokenService which is the default CSRF service.
+// Returns error when the service cannot be created.
+func (c *Container) createDefaultCSRFService() (security_domain.CSRFTokenService, error) {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	l.Internal("Creating default CSRFService with cookie source...")
 	secret := c.csrfSecretKeyProvider()
+	if len(secret) == 0 {
+		l.Warn("CSRF secret is empty; falling back to the generated CSRF secret")
+		secret = resolveCSRFSecret("")
+	}
 	serverConfig := c.serverConfig
 
 	cookieSource := c.csrfCookieSourceOverride
@@ -84,8 +95,7 @@ func (c *Container) createDefaultCSRFService() {
 	}
 	c.csrfCookieSource = cookieSource
 
-	var err error
-	c.csrfService, err = security_domain.NewCSRFTokenService(
+	service, err := security_domain.NewCSRFTokenService(
 		security_domain.SecurityConfig{
 			HMACSecretKey:    secret,
 			CSRFTokenMaxAge:  c.csrfTokenMaxAge,
@@ -95,8 +105,9 @@ func (c *Container) createDefaultCSRFService() {
 		cookieSource,
 	)
 	if err != nil {
-		l.Error("Failed to create default CSRF service", logger_domain.Error(err))
+		return nil, fmt.Errorf("creating default CSRF service: %w", err)
 	}
+	return service, nil
 }
 
 // SetCSRFCookieSource sets a custom CSRF cookie source adapter. Use it with custom
@@ -114,7 +125,10 @@ func (c *Container) SetCSRFCookieSource(source security_domain.CSRFCookieSourceA
 // Returns security_domain.CSRFCookieSourceAdapter which provides access to CSRF cookie
 // operations.
 func (c *Container) GetCSRFCookieSource() security_domain.CSRFCookieSourceAdapter {
-	_ = c.GetCSRFService()
+	if _, err := c.GetCSRFService(); err != nil {
+		_, l := logger_domain.From(c.GetAppContext(), log)
+		l.Internal("CSRF service not available for cookie source", logger_domain.Error(err))
+	}
 	return c.csrfCookieSource
 }
 
@@ -316,11 +330,17 @@ func (c *Container) createDefaultRenderer() {
 		l.Internal("Captcha service not available for renderer", logger_domain.Error(captchaErr))
 	}
 
+	csrfService, csrfErr := c.GetCSRFService()
+	if csrfErr != nil {
+		_, l := logger_domain.From(c.GetAppContext(), log)
+		l.Internal("CSRF service not available for renderer", logger_domain.Error(csrfErr))
+	}
+
 	c.renderer = render_domain.NewRenderOrchestrator(
 		c.GetPMLTransformer(),
 		[]render_domain.TransformationPort{},
 		c.GetRenderRegistry(),
-		c.GetCSRFService(),
+		csrfService,
 		renderOpts...,
 	)
 }

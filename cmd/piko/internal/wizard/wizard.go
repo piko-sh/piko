@@ -21,6 +21,8 @@ package wizard
 import (
 	"fmt"
 	goversion "go/version"
+	"io"
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -56,6 +58,9 @@ type Model struct {
 	// Err holds any error that occurred during the wizard workflow.
 	Err error
 
+	// ModulePathErr holds the error shown until the user enters a valid module path.
+	ModulePathErr error
+
 	// TidyWarning holds a non-fatal warning from the go mod tidy step.
 	TidyWarning string
 
@@ -72,6 +77,9 @@ type Model struct {
 
 	// Choices holds the options shown to the user for the current wizard step.
 	Choices []string
+
+	// resolveVersion selects the scaffold version, using the GitHub lookup by default.
+	resolveVersion func() (string, error)
 
 	wizardbase.WizardBase
 
@@ -179,6 +187,9 @@ func (m *Model) View() tea.View {
 	case StepModulePath:
 		s.WriteString(wizardbase.TitleStyle.Render("What is your Go module path?") + "\n")
 		s.WriteString(m.Inputs[1].View() + "\n")
+		if m.ModulePathErr != nil {
+			_, _ = fmt.Fprintf(&s, "\n%v\n", m.ModulePathErr)
+		}
 
 	case StepFeatures:
 		s.WriteString(wizardbase.TitleStyle.Render("Which optional features would you like to enable?") + "\n")
@@ -339,15 +350,23 @@ func (m *Model) enterDestination() (tea.Model, tea.Cmd) {
 	return m, textinput.Blink
 }
 
-// enterModulePath captures the Go module path and advances to the features step.
+// enterModulePath advances to feature selection after accepting a valid Go module path.
+//
+// An invalid path keeps the wizard on the module step and displays the error.
 //
 // Returns tea.Model which is the updated model state.
 // Returns tea.Cmd which is nil since no async work is needed.
 func (m *Model) enterModulePath() (tea.Model, tea.Cmd) {
-	m.Config.ModuleName = m.Inputs[1].Value()
-	if m.Config.ModuleName == "" {
-		m.Config.ModuleName = m.Inputs[1].Placeholder
+	moduleName := m.Inputs[1].Value()
+	if moduleName == "" {
+		moduleName = m.Inputs[1].Placeholder
 	}
+	if err := templates.ValidateModuleName(moduleName); err != nil {
+		m.ModulePathErr = err
+		return m, nil
+	}
+	m.ModulePathErr = nil
+	m.Config.ModuleName = moduleName
 
 	m.Step = StepFeatures
 	m.Choices = []string{
@@ -387,7 +406,11 @@ func (m *Model) enterFeatures() (tea.Model, tea.Cmd) {
 	return m, func() tea.Msg {
 		var versionWarning string
 
-		version, err := resolveLatestVersion()
+		resolve := m.resolveVersion
+		if resolve == nil {
+			resolve = resolveLatestVersion
+		}
+		version, err := resolve()
 		if err != nil {
 			m.Config.PikoVersion = fallbackVersion
 			versionWarning = fmt.Sprintf(
@@ -407,7 +430,7 @@ func (m *Model) enterFeatures() (tea.Model, tea.Cmd) {
 
 // Run starts the interactive project creation wizard and handles the result.
 //
-// Returns int which is the exit code: 0 on success, 1 on error or cancellation.
+// Returns int which is 0 on success and 1 on error or cancellation.
 func Run() int {
 	p := tea.NewProgram(newInitialModel())
 
@@ -422,46 +445,56 @@ func Run() int {
 		return 1
 	}
 
+	return reportResult(os.Stdout, model)
+}
+
+// reportResult prints the outcome of a finished wizard run and the next steps.
+//
+// Takes out (io.Writer) which receives the report.
+// Takes model (*Model) which is the final wizard state.
+//
+// Returns int which is 0 on success and 1 on error or cancellation.
+func reportResult(out io.Writer, model *Model) int {
 	if model.Aborted {
-		fmt.Println("\nProject creation cancelled.")
+		_, _ = fmt.Fprintln(out, "\nProject creation cancelled.")
 		return 1
 	}
 	if model.Err != nil {
-		fmt.Printf("\nAn error occurred during project creation: %v\n", model.Err)
+		_, _ = fmt.Fprintf(out, "\nAn error occurred during project creation: %v\n", model.Err)
 		return 1
 	}
 
 	if w := goVersionWarning(); w != "" {
-		fmt.Printf("\nWarning: %s\n", w)
+		_, _ = fmt.Fprintf(out, "\nWarning: %s\n", w)
 	}
 	if model.VersionWarning != "" {
-		fmt.Printf("\nWarning: %s\n", model.VersionWarning)
+		_, _ = fmt.Fprintf(out, "\nWarning: %s\n", model.VersionWarning)
 	}
 	if model.TidyWarning != "" {
-		fmt.Printf("\nWarning: %s\n", model.TidyWarning)
+		_, _ = fmt.Fprintf(out, "\nWarning: %s\n", model.TidyWarning)
 	}
 
-	fmt.Printf("\nPiko project '%s' created successfully!\n", model.Config.ProjectName)
+	_, _ = fmt.Fprintf(out, "\nPiko project '%s' created successfully!\n", model.Config.ProjectName)
 
 	if model.Config.EnableAgents {
-		fmt.Println("\nProject-level AI agent integration added:")
-		fmt.Println("  AGENTS.md + references/   (Codex, Cursor, Copilot, Windsurf)")
-		fmt.Println("\n  For Claude Code global setup, run: piko agents install")
-		fmt.Println("  Run 'piko agents install' after upgrading Piko to refresh these files.")
+		_, _ = fmt.Fprintln(out, "\nProject-level AI agent integration added:")
+		_, _ = fmt.Fprintln(out, "  AGENTS.md + references/   (Codex, Cursor, Copilot, Windsurf)")
+		_, _ = fmt.Fprintln(out, "\n  For Claude Code global setup, run: piko agents install")
+		_, _ = fmt.Fprintln(out, "  Run 'piko agents install' after upgrading Piko to refresh these files.")
 	}
 
-	fmt.Println("\nNext Steps:")
+	_, _ = fmt.Fprintln(out, "\nNext Steps:")
 	step := 1
-	fmt.Printf("%d. cd %s\n", step, model.Config.ProjectName)
+	_, _ = fmt.Fprintf(out, "%d. cd %s\n", step, model.Config.ProjectName)
 	step++
 	if model.TidyWarning != "" {
-		fmt.Printf("%d. Run 'go mod tidy' to fetch dependencies.\n", step)
+		_, _ = fmt.Fprintf(out, "%d. Run 'go mod tidy' to fetch dependencies.\n", step)
 		step++
 	}
-	fmt.Printf("%d. Run 'piko generate' to build your assets for the first time.\n", step)
+	_, _ = fmt.Fprintf(out, "%d. Run 'piko generate' to build your assets for the first time.\n", step)
 	step++
-	fmt.Printf("%d. Run 'air' to start the development server with live reloading.\n", step)
-	fmt.Println("\nHappy coding!")
+	_, _ = fmt.Fprintf(out, "%d. Run 'air' to start the development server with live reloading.\n", step)
+	_, _ = fmt.Fprintln(out, "\nHappy coding!")
 
 	return 0
 }

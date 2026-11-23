@@ -18,11 +18,6 @@
 
 package annotator_domain
 
-// Analyses template expressions by resolving their types, validating syntax, and
-// annotating the AST with type information. Coordinates expression type checking
-// including literals, identifiers, operators, function calls, and member access for
-// semantic correctness.
-
 import (
 	"context"
 	"fmt"
@@ -48,8 +43,7 @@ var (
 )
 
 // typeExpressionAnalyser encapsulates the logic and state for resolving a single
-// expression node. It is a short-lived object, retrieved from a pool for one analysis
-// step and then returned.
+// expression node.
 type typeExpressionAnalyser struct {
 	// typeResolver is the type resolver used to find symbol definitions.
 	typeResolver *TypeResolver
@@ -94,9 +88,7 @@ func (a *typeExpressionAnalyser) resolveIdentifier(ctx context.Context, n *ast_d
 	return nil, false
 }
 
-// resolveMemberExpression handles member access expressions (e.g., `a.b`). It contains
-// structured logging to trace its decision-making process, which helps debug complex type
-// resolution issues.
+// resolveMemberExpression resolves the type of a field or method access.
 //
 // Takes n (*ast_domain.MemberExpression) which is the member expression to analyse.
 //
@@ -165,9 +157,7 @@ func (a *typeExpressionAnalyser) tryResolveAsPackageMember(n *ast_domain.MemberE
 }
 
 // resolvePackageMemberAccessWithAlias resolves a member access on a package alias, using
-// an effective alias that may differ from the base identifier's name. This is used for
-// Piko imports where the user writes "card.X" but the actual package alias in the imports
-// is "partials_card_abc123".
+// an effective alias that may differ from the base identifier's name.
 //
 // Takes n (*ast_domain.MemberExpression) which is the member expression to resolve.
 // Takes baseIdent (*ast_domain.Identifier) which is the user's base identifier.
@@ -203,9 +193,7 @@ func (a *typeExpressionAnalyser) resolvePackageMemberAccessWithAlias(n *ast_doma
 }
 
 // stampBaseAsPackageWithAlias marks the base identifier as a package reference, using an
-// effective alias that may differ from the base identifier's name. This is used for Piko
-// imports where the user writes "card" but the actual package alias in the imports is
-// "partials_card_abc123".
+// effective alias that may differ from the base identifier's name.
 //
 // Takes base (ast_domain.Expression) which is the expression to annotate.
 // Takes effectiveAlias (string) which is the actual package alias to use.
@@ -387,9 +375,7 @@ func (a *typeExpressionAnalyser) tryResolveAsMethod(
 }
 
 // finaliseMemberAnnotation copies metadata from the base annotation to the final
-// annotation. It also determines if a runtime nil-check is needed based on whether the
-// base expression is a pointer and whether it's known to be non-nil in the current scope
-// (via p-if guard tracking).
+// annotation.
 //
 // Takes n (*ast_domain.MemberExpression) which is the member expression being annotated.
 // Takes finalAnn (*ast_domain.GoGeneratorAnnotation) which receives the copied metadata.
@@ -422,8 +408,7 @@ func (a *typeExpressionAnalyser) finaliseMemberAnnotation(n *ast_domain.MemberEx
 }
 
 // checkMemberPointerSafety evaluates whether a member expression needs runtime safety
-// checks and emits appropriate diagnostics. It handles optional chaining, known non-nil
-// guards, and emits warnings for unguarded pointer access.
+// checks and emits appropriate diagnostics.
 //
 // Takes n (*ast_domain.MemberExpression) which is the member expression to check.
 // Takes finalAnn (*ast_domain.GoGeneratorAnnotation) which receives safety check flags.
@@ -455,12 +440,12 @@ func (a *typeExpressionAnalyser) checkMemberPointerSafety(n *ast_domain.MemberEx
 	a.emitNilPointerWarning(n, baseExprString, finalAnn)
 }
 
-// emitNilPointerWarning generates a warning for unguarded pointer access. The warning
-// advises the user to add a p-if nil check.
+// emitNilPointerWarning generates a warning for unguarded pointer access.
 //
 // Takes n (*ast_domain.MemberExpression) which triggers the warning.
 // Takes baseExprString (string) which is the base expression text.
-// Takes finalAnn (*ast_domain.GoGeneratorAnnotation) to store the warning.
+// Takes finalAnn (*ast_domain.GoGeneratorAnnotation) which attaches type information to
+// the warning.
 func (a *typeExpressionAnalyser) emitNilPointerWarning(n *ast_domain.MemberExpression, baseExprString string, finalAnn *ast_domain.GoGeneratorAnnotation) {
 	message := fmt.Sprintf(
 		"Accessing '%s' on potentially nil pointer '%s'. Consider adding p-if=\"%s != nil\".",
@@ -523,13 +508,8 @@ func (a *typeExpressionAnalyser) resolveIndexExpression(ctx context.Context, n *
 		return fallback
 	}
 
-	itemTypeInfo := a.typeResolver.DetermineIterationItemType(ctx, a.ctx, n.Base, baseAnn.ResolvedType)
-	itemTypeString := goastutil.ASTToTypeString(itemTypeInfo.TypeExpression, itemTypeInfo.PackageAlias)
-	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
-		a.ctx.Logger.Trace("Determined item/value type", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String("itemType", itemTypeString))
-	}
-
-	if itemTypeInfo.TypeExpression == nil || itemTypeString == typeAny {
+	itemTypeInfo := a.typeResolver.indexedElementType(ctx, a.ctx, n.Base, baseAnn.ResolvedType)
+	if itemTypeInfo == nil || itemTypeInfo.TypeExpression == nil {
 		a.emitNotIndexableDiagnostic(n, baseAnn)
 		return fallback
 	}
@@ -849,6 +829,10 @@ func (a *typeExpressionAnalyser) resolveLiteral(expr ast_domain.Expression) *ast
 		resolvedType = newSimpleTypeInfo(goast.NewIdent(typeFloat64))
 	case *ast_domain.BooleanLiteral:
 		resolvedType = newSimpleTypeInfo(goast.NewIdent(typeBool))
+	case *ast_domain.DateLiteral, *ast_domain.TimeLiteral, *ast_domain.DateTimeLiteral:
+		return a.temporalAnnotation("Time")
+	case *ast_domain.DurationLiteral:
+		return a.temporalAnnotation("Duration")
 	case *ast_domain.NilLiteral:
 		resolvedType = newSimpleTypeInfo(goast.NewIdent(typeNil))
 	default:

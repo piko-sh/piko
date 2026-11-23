@@ -233,7 +233,7 @@ func (b *prodDaemonBuilder) buildFinalDaemon(ctx context.Context) (daemon_domain
 		return nil, fmt.Errorf("failed to start lifecycle service: %w", err)
 	}
 
-	runInitialTasksInBackground(appCtx, lifecycleService)
+	b.c.initialTasksDone = runInitialTasksInBackground(appCtx, lifecycleService)
 
 	return daemon_domain.NewService(ctx, &daemon_domain.DaemonServiceDeps{
 		DaemonConfig:        daemonConfig,

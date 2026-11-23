@@ -24,6 +24,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/email/email_dto"
@@ -608,4 +609,22 @@ func TestNewEmail(t *testing.T) {
 	if builder == nil {
 		t.Fatal("expected non-nil builder")
 	}
+}
+
+func TestGetProviderResolvesTheDefaultAlias(t *testing.T) {
+	named := &mockProvider{}
+	s, ok := NewServiceWithProvider(t.Context(), named, WithInitialProviderName("outbox")).(*service)
+	require.True(t, ok)
+
+	for _, name := range []string{"", defaultProviderName, "outbox"} {
+		provider, err := s.getProvider(t.Context(), name)
+		require.NoError(t, err, "name %q", name)
+		assert.Same(t, named, provider, "name %q", name)
+	}
+
+	other := &mockProvider{}
+	require.NoError(t, s.RegisterProvider(t.Context(), defaultProviderName, other))
+	provider, err := s.getProvider(t.Context(), defaultProviderName)
+	require.NoError(t, err)
+	assert.Same(t, other, provider, "a provider registered as default keeps the name")
 }

@@ -4,6 +4,9 @@
 
 Go 1.27+. Node.js 22+ if you are touching frontend or plugins. `make help` lists all the targets.
 
+`make check` and `make test-all` need CGO tooling and the libvips and FFmpeg
+development libraries. The full test suite also needs Java 21 for the IntelliJ plugin.
+
 ---
 
 ## Quick start
@@ -11,7 +14,7 @@ Go 1.27+. Node.js 22+ if you are touching frontend or plugins. `make help` lists
 ```bash
 git clone https://piko.sh/piko.git
 cd piko
-go mod tidy
+go mod download
 make test
 ```
 
@@ -36,7 +39,7 @@ The `wdk/` directory is the public API surface. It re-exports internal types via
 
 Dependency injection happens in `internal/bootstrap/`, using functional options (`WithEventBus(...)`, `WithCacheService(...)`, etc.). The options system exposes these at the root, or through a facade in wdk.
 
-Entry points are in `cmd/`: `cli/` (wizard, formatter), `lsp/` (language server), `wasm/` (WebAssembly target).
+Entry points are in `cmd/piko` (CLI), `cmd/pikopls` (language server), and `cmd/wasm` (WebAssembly).
 
 ---
 
@@ -44,9 +47,12 @@ Entry points are in `cmd/`: `cli/` (wizard, formatter), `lsp/` (language server)
 
 ### Safe/unsafe build tags
 
-Performance-sensitive code has paired files: `*_unsafe.go` (the default, zero-alloc via `unsafe`) and `*_safe.go` (opt-in with `-tags safe`). The build tags are `//go:build !safe && !(js && wasm)` and `//go:build safe || (js && wasm)`.
+Performance-sensitive code can use paired files. The default `*_unsafe.go`
+implementation uses `unsafe`. The `*_safe.go` implementation is selected by `-tags safe`.
 
-For string/bytes conversions, use the `internal/mem` package (`mem.String()`, `mem.Bytes()`). 
+For string/bytes conversions, use the `internal/mem` package (`mem.String()`, `mem.Bytes()`).
+Its zero-allocation implementation uses `//go:build !safe && !(js && wasm)`. Its
+allocating implementation uses `//go:build safe || (js && wasm)`.
 
 Tests must pass in both modes.
 
@@ -56,9 +62,9 @@ Piko uses FlatBuffers, Protocol Buffers, and quicktemplate. Schemas live in `*_s
 
 ### Other bits
 
-The `hack/` directory has scripts for building, testing, linting, and code generation. All Make targets live there.
+The `hack/` directory has scripts for building, testing, linting, and code generation. Most Make targets delegate to those scripts.
 
-Each package defines its OTEL metrics and traces in a dedicated `otel.go` file. `Logger` and `Meter` are package-level vars in that file. Every package also has a `doc.go` with the licence header and a package comment.
+Framework packages keep OTEL metrics and traces in `otel.go`. Put the licence header and package comment in `doc.go`.
 
 Piko ships a custom seven-level logger. TRACE and INTERNAL are framework-only and stay invisible to end users unless explicitly enabled. DEBUG and INFO target users directly, and the NOTICE, WARN, and ERROR levels serve both framework and user code.
 
@@ -111,11 +117,11 @@ make lint-go                               # Lint every workspace module, untagg
 make lint-go-all                           # Also lint every build tag and platform variant
 ```
 
-Configuration is in `.golangci.yml` and `revive.toml`. The limits that tend to come up:
+Configuration is in `.golangci.yml`. The limits that tend to come up are listed below.
 
 | Rule | Limit |
 |------|-------|
-| Function length | 80 lines, 60 statements |
+| Function length | 60 lines, 90 statements |
 | Cyclomatic complexity | 20 |
 | Cognitive complexity | 15 |
 | Control nesting | 3 levels |
@@ -154,7 +160,7 @@ sudo sysctl --system
 
 ```bash
 make test                              # Quick unit tests (-short, skips integration)
-make test-sum                          # Same thing, gotestsum output
+make test-sum                          # Short tests with coverage and gotestsum output
 go test -tags safe -short piko.sh/piko/...        # Safe build mode (test both!)
 make test-all                          # Full suite, run this before submitting a PR
 ```
@@ -175,4 +181,49 @@ go test -tags integration -v ./tests/integration/storage/...
 
 Frontend and plugin tests: `make test-frontend`, `make test-vscode`, `make test-idea`.
 
-If in doubt run `make check`, its a good once over of the go code.
+If in doubt, run `make check` for vet, lint, and short Go tests.
+
+### Running fuzz checks
+
+Campaigns need Go 1.27, Linux cgroup v2 with access to a suitable cgroup or user
+systemd scope, and `taskset` from util-linux. The launcher builds with `GOPROXY=off`,
+so download the Go dependencies before running a campaign from the repository root.
+
+```sh
+./hack/fuzz/fuzz.sh doctor -target pages -mode compiled -browser off -n 4
+./hack/fuzz/fuzz.sh campaign -target pages -mode compiled -browser off -seed 7 -n 4
+```
+
+Run `./hack/fuzz/fuzz.sh help` to list targets, or
+`./hack/fuzz/fuzz.sh replay /path/to/finding` to reproduce a saved failure. For
+interpreted campaigns, follow the [local Pipit setup](#unreleased-pipit-fixes).
+
+### Extending the fuzz toolkit
+
+Add fixed-seed generation and saved-case replay tests for new inputs. Give independent
+assertions stable identifiers and verify that a deliberately wrong result fails the
+check. Exercise application targets in each supported server and browser mode.
+
+The fuzz module is part of the repository workspace. Run its tests from the
+repository root.
+
+```sh
+go test -p 1 ./tests/fuzz/...
+```
+
+### Unreleased Pipit fixes
+
+Piko builds against a released Pipit. Tests that require an unreleased fix call
+`pipitpending.Skip` with the fix they need. Check out Pipit at `../pipit` and export
+`PIKO_PIPIT_LOCAL=1` to run interpreted fuzz campaigns with the local workspace.
+The launcher selects that workspace unless `GOWORK` already names an absolute path.
+To run the Go tests directly, pass the workspace explicitly.
+
+```sh
+export PIKO_PIPIT_LOCAL=1
+GOWORK="$(./hack/fuzz/fuzz.sh workspace --local-pipit)" go test -p 1 ./tests/fuzz/...
+```
+
+When a new Pipit release ships, update the module requirements, remove the skip
+calls for fixes in the release, and rerun the affected tests without
+`PIKO_PIPIT_LOCAL`.

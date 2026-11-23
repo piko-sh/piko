@@ -147,6 +147,21 @@ func TestEngine_TransformPass_ValidInput(t *testing.T) {
 	}
 }
 
+func TestTransformForEmailKeepsBoundParagraphText(t *testing.T) {
+	engine := NewTransformer(buildMockRegistry(), newMockMediaQueryCollector(), newMockMSOConditionalCollector())
+	writer := ast_domain.GetDirectWriter()
+	t.Cleanup(func() { ast_domain.PutDirectWriter(writer) })
+	writer.AppendEscapeString("Buyer <3 & lot")
+	p := &ast_domain.TemplateNode{NodeType: ast_domain.NodeElement, TagName: "pml-p", TextContentWriter: writer,
+		Children: []*ast_domain.TemplateNode{{NodeType: ast_domain.NodeText, TextContent: "stale child"}}}
+	tree := &ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{p}}
+	transformed, _, _, diags := engine.TransformForEmail(t.Context(), tree, pml_dto.DefaultConfig())
+	require.Empty(t, diags)
+	output := renderASTToHTML(transformed)
+	assert.Contains(t, output, "Buyer &lt;3 &amp; lot")
+	assert.NotContains(t, output, "stale child")
+}
+
 func TestEngine_Transform_EndToEnd(t *testing.T) {
 	registry := buildMockRegistry()
 	engine := NewTransformer(registry, newMockMediaQueryCollector(), newMockMSOConditionalCollector())

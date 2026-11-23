@@ -48,6 +48,9 @@ type csrfTokenService struct {
 	// binder extracts a stable identifier from requests to tie tokens to their origin.
 	binder RequestContextBinderAdapter
 
+	// signer computes signatures with this service's secret key.
+	signer *csrfSigner
+
 	// config holds the settings for CSRF token handling.
 	config SecurityConfig
 }
@@ -78,7 +81,7 @@ func (s *csrfTokenService) GenerateCSRFPair(w http.ResponseWriter, r *http.Reque
 	buildCSRFPayload(buffer, cookieToken, s.binder.GetBindingIdentifier(r), rawEphemeralToken, time.Now())
 
 	payloadLen := buffer.Len()
-	if err := appendCSRFSignatureToBuffer(buffer, buffer.Bytes()[:payloadLen], s.config.HMACSecretKey); err != nil {
+	if err := appendCSRFSignatureToBuffer(buffer, buffer.Bytes()[:payloadLen], s.signer); err != nil {
 		return security_dto.CSRFPair{}, err
 	}
 
@@ -163,7 +166,7 @@ func (s *csrfTokenService) verifyAndParseActionToken(actionToken []byte) (csrfPa
 	payloadBytes := actionToken[:splitPoint]
 	sigString := mem.String(actionToken[splitPoint:])
 
-	sigOK, err := verifyCSRFSignature(payloadBytes, sigString, s.config.HMACSecretKey)
+	sigOK, err := verifyCSRFSignature(payloadBytes, sigString, s.signer)
 	if err != nil {
 		return csrfPayloadParts{}, newCSRFValidationError(CSRFErrorCodeInvalid, "signature verification failed", err)
 	}
@@ -245,11 +248,15 @@ func NewCSRFTokenService(
 		return nil, errCSRFCookieSourceNil
 	}
 
-	initialiseHMACPool(config.HMACSecretKey)
+	signer, err := newCSRFSigner(config.HMACSecretKey)
+	if err != nil {
+		return nil, fmt.Errorf("security: creating CSRF signer: %w", err)
+	}
 
 	return &csrfTokenService{
 		config:       config,
 		binder:       binderAdapter,
 		cookieSource: cookieSource,
+		signer:       signer,
 	}, nil
 }

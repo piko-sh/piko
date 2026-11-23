@@ -78,19 +78,17 @@ export class PPElement extends HTMLElement {
     /** Cached default values derived from prop type definitions. */
     private _defaults?: Record<string, unknown>;
 
-    /** Called when the component is associated with a form. */
-    formAssociatedCallback?: (form: HTMLFormElement | null) => void;
-    /** Called when the form owner sets the component's disabled state. */
-    formDisabledCallback?: (disabled: boolean) => void;
-    /** Called when the associated form is reset. */
-    formResetCallback?: () => void;
-    /** Called when the browser restores form state (e.g. back/forward navigation). */
-    formStateRestoreCallback?: (state: string | File | FormData | null, mode: 'restore' | 'autocomplete') => void;
+    /**
+     * Stores the reset value from initialisation or an external value attribute change.
+     */
+    private _defaultFormValue?: unknown;
+    /** Records the disabled state reported by the browser. */
+    private _formDisabled = false;
     /** Checks form validity without showing the browser's validation UI. */
     checkValidity?: () => boolean;
     /** Checks form validity and shows the browser's validation UI if invalid. */
     reportValidity?: () => boolean;
-    /** Custom validity check method. Override in form-associated subclasses. */
+    /** Supplies optional validation for a form-associated subclass. */
     customValidity?: () => CustomValidityResult | null;
     /** Internal method that synchronises form value and validity state. */
     _updateFormState?: () => void;
@@ -108,7 +106,11 @@ export class PPElement extends HTMLElement {
         return this._renderScheduler.isScheduled();
     }
 
-    /** No-op setter kept for backward compatibility with tests. */
+    /**
+     * Accepts assignments without changing the render schedule.
+     *
+     * @param _value - Ignored for compatibility.
+     */
     protected set renderScheduled(_value: boolean) {
     }
 
@@ -242,6 +244,24 @@ export class PPElement extends HTMLElement {
         return this._formAssociation.getInternals();
     }
 
+    /**
+     * Reads the disabled state reported by the browser.
+     *
+     * @returns The most recent form disabled state.
+     */
+    get formDisabled(): boolean {
+        return this._formDisabled;
+    }
+
+    /**
+     * Combines the component prop and the disabled state reported by the browser.
+     *
+     * @returns Whether either source disables the component.
+     */
+    get effectiveDisabled(): boolean {
+        return Boolean(this.state?.disabled) || this._formDisabled;
+    }
+
     /** Returns the current component state object. */
     get state(): Record<string, unknown> | undefined {
         return this._stateManager.getState();
@@ -302,12 +322,10 @@ export class PPElement extends HTMLElement {
     }
 
     /**
-     * Registers a cleanup function to run when the component disconnects.
+     * Registers a callback that runs once after the next disconnection. The runtime runs
+     * onDisconnected callbacks before cleanups.
      *
-     * Cleanups run after onDisconnected callbacks, then the array is cleared.
-     * This allows co-locating setup and teardown logic.
-     *
-     * @param callback - The cleanup function to call on disconnection.
+     * @param callback - The cleanup function to run on disconnection.
      */
     onCleanup(callback: () => void): void {
         this._lifecycleManager.onCleanup(callback);
@@ -366,13 +384,10 @@ export class PPElement extends HTMLElement {
     }
 
     /**
-     * Initialises the component with a state context.
+     * Initialises component state and captures the form reset value after reading the
+     * initial attributes.
      *
-     * Sets up state defaults, synchronises HTML attributes to state,
-     * reflects state back to attributes, and triggers the first render
-     * if the element is already connected.
-     *
-     * @param optsFromInstance - The state context provided by the compiled component.
+     * @param optsFromInstance - The compiled component state.
      */
     init(optsFromInstance: StateContext): void {
         this._attributeSyncService.setInitialising(true);
@@ -392,6 +407,9 @@ export class PPElement extends HTMLElement {
         }
 
         this._attributeSyncService.syncAllAttributesToState();
+        if (this._formAssociation.isFormAssociated()) {
+            this._defaultFormValue = state?.value;
+        }
         this._attributeSyncService.reflectAllStateToAttributes();
 
         this._attributeSyncService.setInitialising(false);
@@ -425,6 +443,54 @@ export class PPElement extends HTMLElement {
         }
     }
 
+    /** Restores the captured value or an empty string on form reset. */
+    formResetCallback(): void {
+        const state = this.state;
+        if (!state || !this._formAssociation.isFormAssociated()) {
+            return;
+        }
+        state.value = this._defaultFormValue ?? '';
+        if (this._updateFormState) {
+            queueMicrotask(this._updateFormState);
+        }
+    }
+
+    /**
+     * Records the disabled state reported by the browser. The browser finds form
+     * reactions on the prototype when it defines the element. Keeping this state off the
+     * host attribute lets the browser reenable the element when its fieldset is enabled.
+     *
+     * @param disabled - Whether the browser disabled the element.
+     */
+    formDisabledCallback(disabled: boolean): void {
+        if (!this.state || !this._formAssociation.isFormAssociated() || this._formDisabled === disabled) {
+            return;
+        }
+        this._formDisabled = disabled;
+        const internals = this._formAssociation.getInternals();
+        if (internals && 'ariaDisabled' in internals) {
+            internals.ariaDisabled = this.effectiveDisabled ? 'true' : null;
+        }
+        this.scheduleRender();
+    }
+
+    /**
+     * Restores the value supplied by the browser.
+     *
+     * @param restored - The restored form value.
+     * @param _mode - The restore reason. Both modes restore the value in the same way.
+     */
+    formStateRestoreCallback(restored: string | File | FormData | null, _mode: 'restore' | 'autocomplete'): void {
+        const state = this.state;
+        if (!state || !this._formAssociation.isFormAssociated()) {
+            return;
+        }
+        state.value = restored;
+        if (this._updateFormState) {
+            queueMicrotask(this._updateFormState);
+        }
+    }
+
     /** Called when the element is removed from the DOM. */
     disconnectedCallback(): void {
         this._lifecycleManager.executeDisconnected();
@@ -433,13 +499,13 @@ export class PPElement extends HTMLElement {
     }
 
     /**
-     * Called when an observed attribute changes.
+     * Applies observed attribute changes to component state. An external value attribute
+     * change also sets the form reset value. Initialisation and reflected attribute
+     * changes skip these updates.
      *
-     * Skips processing while reflecting to attributes or during initialisation.
-     *
-     * @param attributeName - The name of the changed attribute.
-     * @param _oldValue - The previous attribute value.
-     * @param newValue - The new attribute value.
+     * @param attributeName - The changed attribute.
+     * @param _oldValue - The unused previous value.
+     * @param newValue - The new value or null after removal.
      */
     attributeChangedCallback(
         attributeName: string,
@@ -459,6 +525,9 @@ export class PPElement extends HTMLElement {
 
         if (propDef) {
             this.applyHtmlAttributeToState(propertyName, newValue);
+            if (propertyName === 'value' && this._formAssociation.isFormAssociated()) {
+                this._defaultFormValue = this.state?.value;
+            }
         }
     }
 

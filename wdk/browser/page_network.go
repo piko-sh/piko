@@ -251,10 +251,10 @@ func (p *Page) SetCustomHeader(name, value string) *Page {
 	return p
 }
 
-// GetResponseHeaders returns limited response headers from the current document. Full
-// headers require network monitoring; this returns basic document info.
+// GetResponseHeaders returns the response headers of the current document, with
+// lower-case names, plus the contentType and lastModified keys read from the document.
 //
-// Returns map[string]string which contains the available response headers.
+// Returns map[string]string which contains the response headers.
 func (p *Page) GetResponseHeaders() map[string]string {
 	headers, err := browser_provider_chromedp.GetResponseHeaders(p.actionCtx())
 	if err != nil {

@@ -79,6 +79,10 @@ var (
 	// not configured.
 	ErrProviderUnavailable = captcha_dto.ErrProviderUnavailable
 
+	// ErrProviderMisconfigured reports a configuration that prevents verification. The
+	// circuit breaker excludes this error from its failure count.
+	ErrProviderMisconfigured = captcha_dto.ErrProviderMisconfigured
+
 	// ErrScoreBelowThreshold is returned when the captcha score is below the configured
 	// minimum threshold.
 	ErrScoreBelowThreshold = captcha_dto.ErrScoreBelowThreshold

@@ -18,10 +18,6 @@
 
 package annotator_domain
 
-// Parses component Props structs to extract property metadata including types, defaults,
-// and validation rules. Processes struct tags to determine required props, query
-// parameter bindings, and coercion settings for linking validation.
-
 import (
 	"fmt"
 	goast "go/ast"
@@ -108,7 +104,7 @@ func (p *propParser) collectFromEmbeddedField(field *inspector_dto.Field, import
 
 // propParseResult holds the result of parsing a prop tag.
 type propParseResult struct {
-	// defaultValue holds the default value expression; nil means no default was set.
+	// defaultValue holds the default value expression. Nil means no default was set.
 	defaultValue *string
 
 	// propName is the name of the property taken from the struct field.
@@ -117,7 +113,7 @@ type propParseResult struct {
 	// factoryFunc is the name of a function that creates default values for a prop.
 	factoryFunc string
 
-	// queryParamName is the URL query parameter name; empty if not a query prop.
+	// queryParamName is the URL query parameter name, or empty when unbound.
 	queryParamName string
 
 	// isRequired indicates whether the prop must be provided.
@@ -150,6 +146,7 @@ func (p *propParser) parseFieldAsProp(field *inspector_dto.Field) (string, valid
 
 	info := validPropInfo{
 		GoFieldName:     field.Name,
+		TypePackagePath: field.PackagePath,
 		DestinationType: destTypeExpr,
 		DefaultValue:    result.defaultValue,
 		FactoryFuncName: result.factoryFunc,
@@ -303,8 +300,7 @@ func getValidPropsForComponent(vc *annotator_dto.VirtualComponent, inspector Typ
 	return parser.validProps, err
 }
 
-// isQueryCompatibleType checks if a type can be used with query parameters. Only string
-// and *string types are allowed.
+// isQueryCompatibleType checks if a type can be used with query parameters.
 //
 // Takes destType (goast.Expr) which is the type expression to check.
 //

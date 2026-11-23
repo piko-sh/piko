@@ -29,26 +29,22 @@ import (
 )
 
 const (
-	// inlineSearchFields is how many sortable or vector fields a search entry holds without
-	// allocating; a schema with more allocates for them.
+	// inlineSearchFields is the number of sortable or vector fields stored without
+	// allocation.
 	inlineSearchFields = 2
 
 	// defaultSearchLimit is the default number of results to return when no limit is
 	// specified.
 	defaultSearchLimit = 10
 
-	// keyWithValuePoolMaxCap is the maximum capacity for pooled slices. Slices larger than
-	// this won't be returned to the pool to prevent memory bloat.
+	// keyWithValuePoolMaxCap is the maximum capacity for pooled slices.
 	keyWithValuePoolMaxCap = 10000
 
 	// initialKeyWithValueCapacity is the starting capacity for pooled keyWithValue slices.
-	// Sized to handle typical sort operations without reallocation.
 	initialKeyWithValueCapacity = 128
 )
 
-// searchEntry is what one value contributes to the search indexes, worked out from the
-// value alone so that it can be built before otter's bucket lock is taken and only
-// committed under it.
+// searchEntry holds the values to commit to the search indexes under the bucket lock.
 type searchEntry struct {
 	// terms holds the value's analysed text terms, each once.
 	terms []string
@@ -58,7 +54,7 @@ type searchEntry struct {
 	sortable []sortableValue
 
 	// vectors holds the vector of each vector field, in the order of the adapter's
-	// vectorFields; an empty vector means the value has none.
+	// vectorFields. An empty vector means the value has none.
 	vectors [][]float32
 
 	// sortableBuffer backs sortable when the schema has few sortable fields, so the entry
@@ -151,11 +147,9 @@ func (a *OtterAdapter[K, V]) indexesSearch() bool {
 	return a.schema != nil && a.fieldExtractor != nil
 }
 
-// fillSearchEntry works out what value contributes to the search indexes: its analysed
-// text terms and its sortable and vector field values. It reads only the value, so a
-// write whose value is known up front calls it before otter's bucket lock is taken.
+// fillSearchEntry derives text terms and field values before taking the bucket lock.
 //
-// Takes entry (*searchEntry) which is an empty entry to fill; its slices may point into
+// Takes entry (*searchEntry) which is an empty entry to fill. Its slices may point into
 // its own buffers, so it must not be copied once filled.
 // Takes value (V) which is the document to extract fields from.
 //
@@ -186,8 +180,7 @@ func (a *OtterAdapter[K, V]) fillSearchEntry(entry *searchEntry, value V) {
 	}
 }
 
-// commitSearchEntry updates the search indexes for key and entry. A missing field removes
-// the key from that field's index.
+// commitSearchEntry updates the search indexes for key and entry.
 //
 // Takes key (K) which identifies the document.
 // Takes entry (*searchEntry) which is what the stored value contributes.
@@ -238,8 +231,7 @@ func (a *OtterAdapter[K, V]) clearAllIndexes() {
 	}
 }
 
-// Search performs full-text search across indexed TEXT fields. When a text analyser is
-// configured, results are scored using BM25 relevance ranking.
+// Search performs full-text search across indexed TEXT fields.
 //
 // Takes query (string) which is the search query to tokenise and match.
 // Takes opts (*cache_dto.SearchOptions) which configures pagination, sorting, and
@@ -278,10 +270,11 @@ func (a *OtterAdapter[K, V]) Search(_ context.Context, query string, opts *cache
 	if candidateKeys == nil {
 		if query != "" {
 			return cache_dto.SearchResult[K, V]{
-				Items:  nil,
-				Total:  0,
-				Offset: opts.Offset,
-				Limit:  opts.Limit,
+				Items:      nil,
+				Total:      0,
+				Offset:     opts.Offset,
+				Limit:      opts.Limit,
+				Candidates: 0,
 			}, nil
 		}
 		candidateKeys = a.getAllKeys()
@@ -291,10 +284,11 @@ func (a *OtterAdapter[K, V]) Search(_ context.Context, query string, opts *cache
 
 	if len(candidateKeys) == 0 {
 		return cache_dto.SearchResult[K, V]{
-			Items:  nil,
-			Total:  0,
-			Offset: opts.Offset,
-			Limit:  opts.Limit,
+			Items:      nil,
+			Total:      0,
+			Offset:     opts.Offset,
+			Limit:      opts.Limit,
+			Candidates: 0,
 		}, nil
 	}
 
@@ -325,10 +319,11 @@ func (a *OtterAdapter[K, V]) Query(_ context.Context, opts *cache_dto.QueryOptio
 
 	if len(candidateKeys) == 0 {
 		return cache_dto.SearchResult[K, V]{
-			Items:  nil,
-			Total:  0,
-			Offset: opts.Offset,
-			Limit:  opts.Limit,
+			Items:      nil,
+			Total:      0,
+			Offset:     opts.Offset,
+			Limit:      opts.Limit,
+			Candidates: 0,
 		}, nil
 	}
 
@@ -474,8 +469,7 @@ func (a *OtterAdapter[K, V]) matchesAllFilters(value V, filters []cache_dto.Filt
 	return true
 }
 
-// matchesFilter checks if a value matches a single filter condition. Uses zero-alloc
-// direct comparison when possible (avoids boxing).
+// matchesFilter checks if a value matches a single filter condition.
 //
 // Takes value (V) which is the value to check against the filter.
 // Takes filter (cache_dto.Filter) which specifies the filter condition to apply.
@@ -617,8 +611,7 @@ func (a *OtterAdapter[K, V]) sortKeys(keys []K, sortBy string, sortOrder cache_d
 	return a.sortKeysByField(keys, sortBy, ascending)
 }
 
-// sortKeysByField sorts keys by extracting field values and comparing. Uses a sync.Pool
-// to reduce allocations.
+// sortKeysByField sorts keys by extracting field values and comparing.
 //
 // Takes keys ([]K) which contains the keys to sort.
 // Takes fieldName (string) which specifies the field to extract for comparison.
@@ -682,16 +675,16 @@ func (a *OtterAdapter[K, V]) buildSearchResult(keys []K, offset, limit int) (cac
 	return a.buildSearchResultWithScores(keys, nil, offset, limit)
 }
 
-// buildSearchResultWithScores creates a SearchResult with pagination applied. When scores
-// is non-nil, each hit uses the score from the map; otherwise a flat score of 1.0 is
-// used.
+// buildSearchResultWithScores creates a SearchResult with pagination applied.
 //
 // Takes keys ([]K) which contains the matched keys in display order.
 // Takes scores (map[K]float64) which maps keys to relevance scores (may be nil).
 // Takes offset (int) which is the pagination offset.
 // Takes limit (int) which is the maximum number of results.
 //
-// Returns SearchResult with scored items.
+// Returns cache_dto.SearchResult[K, V] which contains the live hits and pagination
+// metadata.
+// Returns error which is nil.
 func (a *OtterAdapter[K, V]) buildSearchResultWithScores(keys []K, scores map[K]float64, offset, limit int) (cache_dto.SearchResult[K, V], error) {
 	total := int64(len(keys))
 	keys, limit = applyPagination(keys, offset, limit)
@@ -719,16 +712,15 @@ func (a *OtterAdapter[K, V]) buildSearchResultWithScores(keys []K, scores map[K]
 	}
 
 	return cache_dto.SearchResult[K, V]{
-		Items:  items,
-		Total:  total,
-		Offset: offset,
-		Limit:  limit,
+		Items:      items,
+		Total:      total,
+		Offset:     offset,
+		Limit:      limit,
+		Candidates: 0,
 	}, nil
 }
 
-// vectorSearch performs vector similarity search with optional text fusion. When a text
-// query is provided, results are combined using Reciprocal Rank Fusion (RRF) to merge
-// semantic and lexical relevance signals.
+// vectorSearch performs vector similarity search with optional text fusion.
 //
 // Takes query (string) which is an optional text query for hybrid search.
 // Takes opts (*cache_dto.SearchOptions) which provides the vector, filters, and
@@ -742,20 +734,15 @@ func (a *OtterAdapter[K, V]) vectorSearch(query string, opts *cache_dto.SearchOp
 	index, ok := a.vectorIndexes[vectorField]
 	if !ok {
 		return cache_dto.SearchResult[K, V]{
-			Offset: opts.Offset,
-			Limit:  opts.Limit,
-			Items:  nil,
-			Total:  0,
+			Offset:     opts.Offset,
+			Limit:      opts.Limit,
+			Items:      nil,
+			Total:      0,
+			Candidates: 0,
 		}, nil
 	}
 
-	topK := opts.TopK
-	if topK <= 0 {
-		topK = opts.Limit
-	}
-	if topK <= 0 {
-		topK = defaultSearchLimit
-	}
+	topK, pageSize := opts.VectorWindow(defaultSearchLimit)
 
 	hits, err := index.Search(opts.Vector, topK, opts.MinScore)
 	if err != nil {
@@ -765,11 +752,11 @@ func (a *OtterAdapter[K, V]) vectorSearch(query string, opts *cache_dto.SearchOp
 	if a.invertedIndex != nil && query != "" {
 		textScored := a.invertedIndex.SearchScored(query, WithTermMatch(TermMatchAny))
 		if len(textScored) > 0 {
-			return a.rrfFusion(hits, textScored, opts.Filters, opts.Offset, opts.Limit)
+			return a.rrfFusion(hits, textScored, opts.Filters, opts.Offset, pageSize)
 		}
 	}
 
-	return a.buildVectorSearchResult(hits, nil, opts.Filters, opts.Offset, opts.Limit)
+	return a.buildVectorSearchResult(hits, opts.Filters, opts.Offset, pageSize)
 }
 
 // vectorQuery performs vector similarity search with filters but no text search.
@@ -785,27 +772,22 @@ func (a *OtterAdapter[K, V]) vectorQuery(opts *cache_dto.QueryOptions) (cache_dt
 	index, ok := a.vectorIndexes[vectorField]
 	if !ok {
 		return cache_dto.SearchResult[K, V]{
-			Offset: opts.Offset,
-			Limit:  opts.Limit,
-			Items:  nil,
-			Total:  0,
+			Offset:     opts.Offset,
+			Limit:      opts.Limit,
+			Items:      nil,
+			Total:      0,
+			Candidates: 0,
 		}, nil
 	}
 
-	topK := opts.TopK
-	if topK <= 0 {
-		topK = opts.Limit
-	}
-	if topK <= 0 {
-		topK = defaultSearchLimit
-	}
+	topK, pageSize := opts.VectorWindow(defaultSearchLimit)
 
 	hits, err := index.Search(opts.Vector, topK, opts.MinScore)
 	if err != nil {
 		return cache_dto.SearchResult[K, V]{}, fmt.Errorf("querying vector field %q: %w", vectorField, err)
 	}
 
-	return a.buildVectorSearchResult(hits, nil, opts.Filters, opts.Offset, opts.Limit)
+	return a.buildVectorSearchResult(hits, opts.Filters, opts.Offset, pageSize)
 }
 
 // resolveVectorField returns the explicit vector field name if provided, or defaults to
@@ -824,59 +806,68 @@ func (a *OtterAdapter[K, V]) resolveVectorField(explicit string) string {
 	return a.vectorFields[0].name
 }
 
-// buildVectorSearchResult constructs a SearchResult from vector hits, applying optional
-// text key intersection, metadata filters, and pagination.
+// buildVectorSearchResult selects a page of live vector hits that match the filters.
 //
-// Takes hits ([]VectorHit[K]) which are the vector search results sorted by score
-// descending.
-// Takes textKeys (map[K]struct{}) which limits results to text-matched keys. Nil means no
-// text filtering.
-// Takes filters ([]cache_dto.Filter) which are additional metadata filters.
-// Takes offset (int) which is the pagination offset.
-// Takes limit (int) which is the maximum number of results.
+// Takes hits ([]VectorHit[K]) which contains the hits in descending similarity order.
+// Takes filters ([]cache_dto.Filter) which are the metadata conditions each hit must
+// satisfy.
+// Takes offset (int) which is the number of eligible hits to skip.
+// Takes limit (int) which is the page size, with NoLimit selecting every hit.
 //
-// Returns SearchResult with scored items.
-func (a *OtterAdapter[K, V]) buildVectorSearchResult(
-	hits []VectorHit[K],
-	textKeys map[K]struct{},
+// Returns cache_dto.SearchResult[K, V] which contains the page and total eligible hit
+// count.
+// Returns error which is nil.
+func (a *OtterAdapter[K, V]) buildVectorSearchResult(hits []VectorHit[K], filters []cache_dto.Filter, offset, limit int) (cache_dto.SearchResult[K, V], error) {
+	return a.rankedPage(len(hits), len(hits), func(i int) (K, float64) {
+		return hits[i].Key, float64(hits[i].Score)
+	}, filters, offset, limit), nil
+}
+
+// rankedPage counts eligible hits and retains the requested page.
+//
+// Takes count (int) which is the number of ranked hits.
+// Takes candidates (int) which is the number of KNN candidates the vector index returned,
+// reported as the result's candidate count.
+// Takes ranked (func(int) (K, float64)) which supplies each hit in display order.
+// Takes filters ([]cache_dto.Filter) which are the metadata conditions each hit must
+// satisfy.
+// Takes offset (int) which is the number of eligible hits to skip.
+// Takes limit (int) which is the page size, with NoLimit selecting every hit.
+//
+// Returns cache_dto.SearchResult[K, V] which contains live matching hits and their total
+// count.
+func (a *OtterAdapter[K, V]) rankedPage(
+	count, candidates int,
+	ranked func(int) (K, float64),
 	filters []cache_dto.Filter,
 	offset, limit int,
-) (cache_dto.SearchResult[K, V], error) {
-	items := make([]cache_dto.SearchHit[K, V], 0, len(hits))
-
-	for _, hit := range hits {
-		if textKeys != nil {
-			if _, ok := textKeys[hit.Key]; !ok {
-				continue
-			}
-		}
-
-		value, ok := a.client.GetIfPresent(hit.Key)
-		if !ok {
-			continue
-		}
-
-		if len(filters) > 0 && a.fieldExtractor != nil && !a.matchesAllFilters(value, filters) {
-			continue
-		}
-
-		items = append(items, cache_dto.SearchHit[K, V]{
-			Key:        hit.Key,
-			Value:      value,
-			Score:      float64(hit.Score),
-			Highlights: nil,
-		})
+) cache_dto.SearchResult[K, V] {
+	switch {
+	case limit == cache_dto.NoLimit:
+		limit = count
+	case limit <= 0:
+		limit = defaultSearchLimit
 	}
-
-	total := int64(len(items))
-	items, limit = applyPagination(items, offset, limit)
-
+	items := make([]cache_dto.SearchHit[K, V], 0, min(count, limit))
+	total := 0
+	for i := range count {
+		key, score := ranked(i)
+		value, ok := a.client.GetIfPresent(key)
+		if !ok || (len(filters) > 0 && a.fieldExtractor != nil && !a.matchesAllFilters(value, filters)) {
+			continue
+		}
+		total++
+		if total > offset && len(items) < limit {
+			items = append(items, cache_dto.SearchHit[K, V]{Key: key, Value: value, Score: score, Highlights: nil})
+		}
+	}
 	return cache_dto.SearchResult[K, V]{
-		Items:  items,
-		Total:  total,
-		Offset: offset,
-		Limit:  limit,
-	}, nil
+		Items:      items,
+		Total:      int64(total),
+		Offset:     offset,
+		Limit:      limit,
+		Candidates: candidates,
+	}
 }
 
 // applyPagination applies offset and limit to a slice, returning the paginated slice and

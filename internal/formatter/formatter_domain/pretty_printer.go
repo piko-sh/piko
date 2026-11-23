@@ -20,7 +20,9 @@ package formatter_domain
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 
@@ -28,24 +30,20 @@ import (
 )
 
 const (
-	// maxInlineTextLength is the maximum character count for single text child elements to
-	// be formatted inline. Elements exceeding this are formatted as blocks.
+	// maxInlineTextLength caps the length of a lone text child formatted inline.
 	maxInlineTextLength = 60
 
-	// maxListItemLength is the maximum content length for list items (li, dt, dd) to be
-	// shown on one line. Items longer than this are shown as blocks.
+	// maxListItemLength caps the content length of list items placed on one line.
 	maxListItemLength = 80
 
 	// maxMixedContentLength is the longest content length for elements with mixed inline
 	// children (text and inline elements) that can be formatted on one line.
 	maxMixedContentLength = 80
 
-	// maxInlineCommentLength is the maximum length for inline comments. Comments longer than
-	// this are placed on their own line.
+	// maxInlineCommentLength is the maximum length for inline comments.
 	maxInlineCommentLength = 40
 
-	// interpolationLength is the number of extra characters added by an interpolation. This
-	// includes the {{ and }} markers plus spaces.
+	// interpolationLength is the number of extra characters added by an interpolation.
 	interpolationLength = 6
 
 	// approximateElementOverhead is the estimated character count for an element's opening
@@ -55,10 +53,24 @@ const (
 	// approximateCommentOverhead is the extra characters added by comment markers such as
 	// <!-- -->.
 	approximateCommentOverhead = 10
+
+	// maxVerbatimDepth bounds the nesting written verbatim inside preserved elements,
+	// matching the depth limit of the template walker.
+	maxVerbatimDepth = 10000
 )
 
-// prettyPrinter formats a TemplateAST into clean, consistent source code. It implements
-// the ast_domain.Visitor interface.
+var (
+	// errVerbatimTooDeep reports preserved content nested deeper than maxVerbatimDepth.
+	errVerbatimTooDeep = errors.New("preserved content is nested too deeply")
+
+	// escapeForeignAttribute escapes a static SVG or MathML attribute value, which the XML
+	// parser has already decoded.
+	escapeForeignAttribute = strings.NewReplacer("&", "&amp;", "<", "&lt;", `"`, "&quot;")
+	// escapeText escapes literal HTML text, making no-break spaces visible as references.
+	escapeText = strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", "\u00a0", "&nbsp;")
+)
+
+// prettyPrinter formats a template tree as source code.
 type prettyPrinter struct {
 	// options holds the formatting settings for output generation.
 	options *FormatOptions
@@ -75,6 +87,10 @@ type prettyPrinter struct {
 	// indentationLevel tracks the current nesting depth for indentation.
 	indentationLevel int
 
+	// foreignDepth counts the open SVG or MathML elements, whose static attribute values
+	// arrive decoded and must be escaped again.
+	foreignDepth int
+
 	// lastWasBlock tracks whether the previous element was a block element.
 	lastWasBlock bool
 
@@ -86,13 +102,10 @@ type prettyPrinter struct {
 	formattingInline bool
 
 	// pendingIndent indicates the next element needs indentation even if in inline mode.
-	// This is set when a block-formatted child ends with a newline, requiring the next
-	// sibling to be indented.
 	pendingIndent bool
 }
 
 // contentAnalysis holds details about an element's children to guide formatting choices.
-// Fields are ordered for optimal memory alignment.
 type contentAnalysis struct {
 	// textLength is the total character count of text content, excluding whitespace.
 	textLength int
@@ -141,8 +154,13 @@ func (p *prettyPrinter) Enter(_ context.Context, node *ast_domain.TemplateNode) 
 
 	switch node.NodeType {
 	case ast_domain.NodeElement:
-		p.formatElement(node)
-		if isWhitespaceSensitive(node.TagName) && len(node.Children) > 0 {
+		if err := p.formatElement(node); err != nil {
+			return nil, err
+		}
+		if len(node.Children) > 0 && p.isForeign(node) {
+			p.foreignDepth++
+		}
+		if preservesContent(node) && len(node.Children) > 0 {
 			return nil, nil
 		}
 
@@ -164,9 +182,6 @@ func (p *prettyPrinter) Enter(_ context.Context, node *ast_domain.TemplateNode) 
 // Exit handles post-visit processing for a template node after its children have been
 // visited.
 //
-// Closing tag logic is decomposed into focused helpers for whitespace-sensitive and
-// standard elements.
-//
 // Takes node (*ast_domain.TemplateNode) which is the node being exited.
 //
 // Returns error when processing fails.
@@ -175,8 +190,12 @@ func (p *prettyPrinter) Exit(_ context.Context, node *ast_domain.TemplateNode) e
 		return nil
 	}
 
-	if isWhitespaceSensitive(node.TagName) {
-		p.exitWhitespaceSensitiveElement(node)
+	if p.foreignDepth > 0 {
+		p.foreignDepth--
+	}
+
+	if preservesContent(node) {
+		p.exitPreservedElement(node)
 		return nil
 	}
 
@@ -184,20 +203,25 @@ func (p *prettyPrinter) Exit(_ context.Context, node *ast_domain.TemplateNode) e
 	return nil
 }
 
-// exitWhitespaceSensitiveElement handles exiting whitespace-sensitive elements (pre,
-// code, textarea).
+// exitPreservedElement closes an element whose content was written verbatim, keeping the
+// surrounding inline or block layout.
 //
 // Takes node (*ast_domain.TemplateNode) which is the element being exited.
-func (p *prettyPrinter) exitWhitespaceSensitiveElement(node *ast_domain.TemplateNode) {
+func (p *prettyPrinter) exitPreservedElement(node *ast_domain.TemplateNode) {
+	parentInline := p.popFormattingMode()
+	p.popFromParentBlockStack()
+	p.restoreParentFormattingContext()
+	if parentInline {
+		p.write("</%s>", node.TagName)
+		p.lastWasBlock = false
+		return
+	}
 	p.write("</%s>\n", node.TagName)
 	p.lastWasBlock = isBlockElement(node.TagName)
-	p.popFromStacks()
-	p.restoreParentFormattingContext()
 	p.pendingIndent = true
 }
 
-// exitStandardElement writes the closing tag for a standard element. Uses guard clauses
-// with early returns to flatten the logic.
+// exitStandardElement writes the closing tag for a standard element.
 //
 // Takes node (*ast_domain.TemplateNode) which provides the element being exited.
 func (p *prettyPrinter) exitStandardElement(node *ast_domain.TemplateNode) {
@@ -246,22 +270,12 @@ func (p *prettyPrinter) popFormattingMode() bool {
 }
 
 // restoreParentFormattingContext restores the parent's formatting mode for the next
-// sibling. This lets siblings know the correct formatting context.
+// sibling.
 func (p *prettyPrinter) restoreParentFormattingContext() {
 	if len(p.formattingModeStack) > 0 {
 		p.formattingInline = p.formattingModeStack[len(p.formattingModeStack)-1]
 	} else {
 		p.formattingInline = false
-	}
-}
-
-// popFromStacks removes the top entry from both formatting stacks.
-func (p *prettyPrinter) popFromStacks() {
-	if len(p.formattingModeStack) > 0 {
-		p.formattingModeStack = p.formattingModeStack[:len(p.formattingModeStack)-1]
-	}
-	if len(p.parentBlockFormattedStack) > 0 {
-		p.parentBlockFormattedStack = p.parentBlockFormattedStack[:len(p.parentBlockFormattedStack)-1]
 	}
 }
 
@@ -272,8 +286,7 @@ func (p *prettyPrinter) popFromParentBlockStack() {
 	}
 }
 
-// writeNestedInlineClosingTag writes a closing tag for nested inline elements. No newline
-// is added to keep the parent's inline flow.
+// writeNestedInlineClosingTag writes a closing tag for nested inline elements.
 //
 // Takes tagName (string) which specifies the HTML tag name to close.
 func (p *prettyPrinter) writeNestedInlineClosingTag(tagName string) {
@@ -282,8 +295,7 @@ func (p *prettyPrinter) writeNestedInlineClosingTag(tagName string) {
 }
 
 // writeTopLevelInlineClosingTag writes a closing tag for a top-level inline element and
-// adds a newline. This is used when the element is not nested within another inline
-// element.
+// adds a newline.
 //
 // Takes tagName (string) which specifies the HTML tag name to close.
 func (p *prettyPrinter) writeTopLevelInlineClosingTag(tagName string) {
@@ -310,9 +322,6 @@ func (p *prettyPrinter) writeBlockClosingTag(tagName string) {
 
 // shouldFormatInline decides whether an element should be formatted inline or as a block.
 //
-// It respects AST formatting hints when available, and falls back to heuristics based on
-// parent context, element-specific rules, and content.
-//
 // Takes node (*ast_domain.TemplateNode) which is the element to evaluate.
 //
 // Returns bool which is true if the element should be formatted inline.
@@ -321,7 +330,7 @@ func (p *prettyPrinter) shouldFormatInline(node *ast_domain.TemplateNode) bool {
 		return false
 	}
 
-	if isWhitespaceSensitive(node.TagName) {
+	if preservesContent(node) {
 		return false
 	}
 
@@ -337,7 +346,7 @@ func (p *prettyPrinter) shouldFormatInline(node *ast_domain.TemplateNode) bool {
 		return false
 	}
 
-	if node.ShouldFormatInline() {
+	if node.ShouldFormatInline() || inlineAroundWrappedAttributes(node) {
 		return true
 	}
 	if node.ShouldFormatBlock() {
@@ -353,6 +362,30 @@ func (p *prettyPrinter) shouldFormatInline(node *ast_domain.TemplateNode) bool {
 	}
 
 	return p.applyInlineHeuristics(node)
+}
+
+// inlineAroundWrappedAttributes finds inline children with wrapped attributes.
+//
+// Takes node (*ast_domain.TemplateNode) which is the parent element to inspect.
+//
+// Returns bool which is true when each child touches its neighbours and has no multiline
+// content.
+func inlineAroundWrappedAttributes(node *ast_domain.TemplateNode) bool {
+	end := node.OpeningTagRange.End
+	closeStart := node.ClosingTagRange.Start
+	if end.Line == 0 || end.Line >= closeStart.Line || len(node.Children) == 0 {
+		return false
+	}
+	for _, child := range node.Children {
+		if child.NodeType != ast_domain.NodeElement || child.OpeningTagRange.Start != end {
+			return false
+		}
+		if child.OpeningTagRange.End.Line != child.NodeRange.End.Line {
+			return false
+		}
+		end = child.NodeRange.End
+	}
+	return end == closeStart
 }
 
 // parentForcesBlockFormatting checks if the parent context requires block formatting for
@@ -401,34 +434,37 @@ func (*prettyPrinter) applyInlineHeuristics(node *ast_domain.TemplateNode) bool 
 	return false
 }
 
-// formatElement formats an HTML element with its attributes and directives. The
-// formatting logic is split into steps for clarity.
+// formatElement formats an HTML element with its attributes and directives.
 //
 // Takes node (*ast_domain.TemplateNode) which specifies the element to format.
-func (p *prettyPrinter) formatElement(node *ast_domain.TemplateNode) {
+//
+// Returns error when preserved content is nested too deeply to write.
+func (p *prettyPrinter) formatElement(node *ast_domain.TemplateNode) error {
 	if !p.formattingInline || p.pendingIndent {
 		p.writeIndent()
 		p.pendingIndent = false
 	}
 
-	var attrs []string
-	if p.options.SortAttributes {
-		attrs = collectAttributesSorted(node)
-	} else {
-		attrs = collectAttributesInOrder(node)
-	}
-	p.writeOpeningTag(node.TagName, attrs)
+	p.writeOpeningTag(node.TagName, p.collectAttributes(node, p.isForeign(node)))
 
 	if len(node.Children) == 0 {
 		p.handleEmptyElement(node)
-		return
+		return nil
 	}
 
-	p.formatElementWithChildren(node)
+	return p.formatElementWithChildren(node)
 }
 
-// writeOpeningTag writes an HTML opening tag with its attributes. It wraps attributes
-// onto separate lines if the tag would be too long.
+// isForeign reports whether an element is SVG or MathML content.
+//
+// Takes node (*ast_domain.TemplateNode) which is the element.
+//
+// Returns bool which is true for svg and math elements and everything inside them.
+func (p *prettyPrinter) isForeign(node *ast_domain.TemplateNode) bool {
+	return p.foreignDepth > 0 || isForeignRoot(node.TagName)
+}
+
+// writeOpeningTag writes an HTML opening tag with its attributes.
 //
 // Takes tagName (string) which specifies the HTML tag to write.
 // Takes attrs ([]string) which provides the attributes to include in the tag.
@@ -470,20 +506,37 @@ func (p *prettyPrinter) writeSingleLineOpeningTag(tagName string, attrs []string
 //
 // Takes node (*ast_domain.TemplateNode) which specifies the element to format.
 func (p *prettyPrinter) handleEmptyElement(node *ast_domain.TemplateNode) {
-	if isSelfClosing(node) {
-		p.write(" />\n")
+	selfClosing := isSelfClosing(node)
+	if selfClosing {
+		p.write(" />")
 	} else {
-		p.write("></%s>\n", node.TagName)
+		p.write("></%s>", node.TagName)
+	}
+	if selfClosing || !p.formattingInline {
+		p.write("\n")
+		p.pendingIndent = true
 	}
 	p.lastWasBlock = false
-	p.pendingIndent = true
 }
 
 // formatElementWithChildren formats an element that has children, choosing either inline
 // or block formatting based on the element's content.
 //
 // Takes node (*ast_domain.TemplateNode) which specifies the element to format.
-func (p *prettyPrinter) formatElementWithChildren(node *ast_domain.TemplateNode) {
+//
+// Returns error when preserved content is nested too deeply to write.
+func (p *prettyPrinter) formatElementWithChildren(node *ast_domain.TemplateNode) error {
+	if preservesContent(node) {
+		p.formattingModeStack = append(p.formattingModeStack, p.formattingInline)
+		p.parentBlockFormattedStack = append(p.parentBlockFormattedStack, false)
+		p.write(">")
+		return p.writeVerbatimChildren(node, verbatimContext{
+			raw:     isRawTextElement(node.TagName),
+			foreign: p.isForeign(node),
+			depth:   1,
+		})
+	}
+
 	formatInline := p.shouldFormatInline(node)
 	p.formattingInline = formatInline
 	p.formattingModeStack = append(p.formattingModeStack, formatInline)
@@ -493,11 +546,10 @@ func (p *prettyPrinter) formatElementWithChildren(node *ast_domain.TemplateNode)
 	} else {
 		p.setupBlockFormatting(node)
 	}
+	return nil
 }
 
-// setupInlineFormatting prepares the printer for inline child formatting. It increases
-// the indentation level so that if a child ends with a newline and sets pendingIndent,
-// later siblings will be indented correctly.
+// setupInlineFormatting prepares the printer for inline child formatting.
 func (p *prettyPrinter) setupInlineFormatting() {
 	p.write(">")
 	p.indentationLevel++
@@ -508,28 +560,127 @@ func (p *prettyPrinter) setupInlineFormatting() {
 //
 // Takes node (*ast_domain.TemplateNode) which is the element to format.
 func (p *prettyPrinter) setupBlockFormatting(node *ast_domain.TemplateNode) {
-	if isWhitespaceSensitive(node.TagName) {
-		p.write(">")
-		p.handleWhitespaceSensitiveContent(node)
-		p.parentBlockFormattedStack = append(p.parentBlockFormattedStack, false)
-	} else {
-		p.write(">\n")
-		p.indentationLevel++
-		p.parentBlockFormattedStack = append(p.parentBlockFormattedStack, true)
-		p.lastWasBlock = isBlockElement(node.TagName)
-	}
+	p.write(">\n")
+	p.indentationLevel++
+	p.parentBlockFormattedStack = append(p.parentBlockFormattedStack, true)
+	p.lastWasBlock = isBlockElement(node.TagName)
 }
 
-// handleWhitespaceSensitiveContent writes the content of elements like pre, code, and
-// textarea exactly as it appears, without changing the format.
+// verbatimContext carries the state that applies to a subtree written verbatim.
+type verbatimContext struct {
+	// depth is the nesting below the preserved element, bounded by maxVerbatimDepth.
+	depth int
+
+	// raw writes text unescaped, as script and style hold their own language rather than
+	// HTML.
+	raw bool
+
+	// foreign reports SVG or MathML content, whose static attribute values arrive decoded.
+	foreign bool
+}
+
+// writeVerbatimChildren writes child nodes without reflowing their whitespace.
 //
-// Takes node (*ast_domain.TemplateNode) which contains the element to process.
-func (p *prettyPrinter) handleWhitespaceSensitiveContent(node *ast_domain.TemplateNode) {
+// Takes node (*ast_domain.TemplateNode) which is the element whose children to write.
+// Takes verbatim (verbatimContext) which is the state of the element's subtree.
+//
+// Returns error when the subtree is nested deeper than maxVerbatimDepth.
+func (p *prettyPrinter) writeVerbatimChildren(node *ast_domain.TemplateNode, verbatim verbatimContext) error {
+	if verbatim.depth > maxVerbatimDepth {
+		return fmt.Errorf("writing <%s>: %w", node.TagName, errVerbatimTooDeep)
+	}
+	interpolates := !holdsLiteralText(node)
 	for _, child := range node.Children {
-		if child.NodeType == ast_domain.NodeText {
-			p.write("%s", child.TextContent)
+		if err := p.writeVerbatimNode(child, verbatim, interpolates); err != nil {
+			return err
 		}
 	}
+	return nil
+}
+
+// writeVerbatimNode writes a node without reflowing its content.
+//
+// Takes node (*ast_domain.TemplateNode) which is the node to write.
+// Takes verbatim (verbatimContext) which is the state of the enclosing subtree.
+// Takes interpolates (bool) which reports whether the parent parses interpolations in its
+// text, so literal braces need escaping.
+//
+// Returns error when the subtree is nested deeper than maxVerbatimDepth.
+func (p *prettyPrinter) writeVerbatimNode(node *ast_domain.TemplateNode, verbatim verbatimContext, interpolates bool) error {
+	if node == nil {
+		return nil
+	}
+	switch node.NodeType {
+	case ast_domain.NodeText:
+		if verbatim.raw {
+			p.builder.WriteString(node.TextContent)
+			return nil
+		}
+		p.builder.WriteString(verbatimTextContent(node, interpolates))
+	case ast_domain.NodeComment:
+		p.builder.WriteString("<!--")
+		p.builder.WriteString(node.TextContent)
+		p.builder.WriteString("-->")
+	case ast_domain.NodeElement:
+		return p.writeVerbatimElement(node, verbatim)
+	case ast_domain.NodeFragment:
+		for _, child := range node.Children {
+			if err := p.writeVerbatimNode(child, verbatim, interpolates); err != nil {
+				return err
+			}
+		}
+	default:
+	}
+	return nil
+}
+
+// writeVerbatimElement writes an element without reflowing its content.
+//
+// Takes node (*ast_domain.TemplateNode) which is the element to write.
+// Takes verbatim (verbatimContext) which is the state of the enclosing subtree.
+//
+// Returns error when the subtree is nested deeper than maxVerbatimDepth.
+func (p *prettyPrinter) writeVerbatimElement(node *ast_domain.TemplateNode, verbatim verbatimContext) error {
+	verbatim.foreign = verbatim.foreign || isForeignRoot(node.TagName)
+	p.builder.WriteString("<")
+	p.builder.WriteString(node.TagName)
+	for _, attribute := range p.collectAttributes(node, verbatim.foreign) {
+		p.builder.WriteByte(' ')
+		p.builder.WriteString(attribute)
+	}
+	if len(node.Children) == 0 {
+		if isSelfClosing(node) {
+			p.builder.WriteString(" />")
+			return nil
+		}
+		p.builder.WriteString("></")
+		p.builder.WriteString(node.TagName)
+		p.builder.WriteByte('>')
+		return nil
+	}
+	p.builder.WriteByte('>')
+	verbatim.raw = verbatim.raw || isRawTextElement(node.TagName)
+	verbatim.depth++
+	if err := p.writeVerbatimChildren(node, verbatim); err != nil {
+		return err
+	}
+	p.builder.WriteString("</")
+	p.builder.WriteString(node.TagName)
+	p.builder.WriteByte('>')
+	return nil
+}
+
+// collectAttributes gathers an element's attributes in the configured order.
+//
+// Takes node (*ast_domain.TemplateNode) which is the element.
+// Takes foreign (bool) which reports SVG or MathML content.
+//
+// Returns []string which holds the formatted attributes.
+func (p *prettyPrinter) collectAttributes(node *ast_domain.TemplateNode, foreign bool) []string {
+	if p.options.SortAttributes {
+		return collectAttributesSorted(node, foreign)
+	}
+	return collectAttributesInOrder(node, foreign)
 }
 
 // formatText formats a text node by normalising its whitespace and handling any embedded
@@ -537,17 +688,14 @@ func (p *prettyPrinter) handleWhitespaceSensitiveContent(node *ast_domain.Templa
 //
 // Takes node (*ast_domain.TemplateNode) which contains the text content to format.
 func (p *prettyPrinter) formatText(node *ast_domain.TemplateNode) {
-	content, hasContent := buildTextContent(node)
-	if !hasContent {
+	content := formatTextContent(node)
+	if content == "" {
 		return
 	}
-
-	normalised := normaliseWhitespace(content)
-
 	if p.formattingInline || p.inlineContext {
-		p.formatInlineText(normalised)
+		p.formatInlineText(content)
 	} else {
-		p.formatBlockText(normalised)
+		p.formatBlockText(content)
 	}
 }
 
@@ -575,8 +723,7 @@ func (p *prettyPrinter) formatBlockText(normalised string) {
 	p.lastWasBlock = false
 }
 
-// formatComment outputs a comment node with smart placement. Short comments in an inline
-// context stay on the same line, while longer comments are placed on their own line.
+// formatComment places short comments inline when the surrounding layout allows it.
 //
 // Takes node (*ast_domain.TemplateNode) which contains the comment to format.
 func (p *prettyPrinter) formatComment(node *ast_domain.TemplateNode) {
@@ -598,8 +745,7 @@ func (p *prettyPrinter) writeIndent() {
 	p.builder.WriteString(indent)
 }
 
-// writeIndentLevel writes spaces for a given indentation depth. Used for attribute
-// wrapping where attributes need custom indentation.
+// writeIndentLevel writes spaces for a given indentation depth.
 //
 // Takes level (int) which specifies the indentation depth to write.
 func (p *prettyPrinter) writeIndentLevel(level int) {
@@ -621,10 +767,6 @@ func (p *prettyPrinter) write(format string, arguments ...any) {
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 //
 // Returns bool which is true when an empty line should be added before the node.
-//
-// Only applies when PreserveEmptyLines is enabled. Checks the printer's current state and
-// options to decide. Returns true for directive nodes (if, for) and major block elements
-// (header, main, footer, section, article, form).
 func (p *prettyPrinter) shouldAddEmptyLineBefore(node *ast_domain.TemplateNode) bool {
 	if node == nil || node.NodeType != ast_domain.NodeElement {
 		return false
@@ -672,6 +814,7 @@ func newPrettyPrinter(opts *FormatOptions) *prettyPrinter {
 		inlineContext:             false,
 		formattingInline:          false,
 		pendingIndent:             false,
+		foreignDepth:              0,
 	}
 }
 
@@ -780,15 +923,13 @@ func containsShadowRootChild(node *ast_domain.TemplateNode) bool {
 	return false
 }
 
-// containsNestedBlockElement checks if a block-level element contains a direct child that
-// is also a block-level element.
+// containsNestedBlockElement checks whether a block or partial wraps a block child.
 //
 // Takes node (*ast_domain.TemplateNode) which is the element to check.
 //
-// Returns bool which is true when the node is a block element and at least one direct
-// child is also a block element.
+// Returns bool which is true when the parent should expand its block child.
 func containsNestedBlockElement(node *ast_domain.TemplateNode) bool {
-	if len(node.Children) == 0 || !isBlockElement(node.TagName) {
+	if len(node.Children) == 0 || (!isBlockElement(node.TagName) && !strings.EqualFold(node.TagName, "piko:partial")) {
 		return false
 	}
 	for _, child := range node.Children {
@@ -801,9 +942,6 @@ func containsNestedBlockElement(node *ast_domain.TemplateNode) bool {
 
 // shouldFormatAsBlockDueToMultipleChildren checks if an element should use block format
 // because it has multiple element children.
-//
-// This stops complex nesting from being put on one line. Pure function with no printer
-// state needed.
 //
 // Takes node (*ast_domain.TemplateNode) which is the element to check.
 // Takes analysis (contentAnalysis) which provides content metrics.
@@ -837,8 +975,7 @@ func isSingleShortTextChild(analysis contentAnalysis) bool {
 		analysis.textLength <= maxInlineTextLength
 }
 
-// isSimpleListItem checks if an element is a list item with short, simple content. List
-// items are often formatted inline even with nested elements.
+// isSimpleListItem checks if an element is a list item with short, simple content.
 //
 // Takes node (*ast_domain.TemplateNode) which is the element to check.
 // Takes analysis (contentAnalysis) which provides content metrics for the node.
@@ -879,36 +1016,142 @@ func shouldWrapAttributes(tagName string, attrs []string, maxLineLength, current
 	}
 
 	var tagLineBuilder strings.Builder
-	tagLineBuilder.WriteString("<")
+	tagLineBuilder.WriteByte('<')
 	tagLineBuilder.WriteString(tagName)
 	for _, attr := range attrs {
-		tagLineBuilder.WriteString(" ")
+		tagLineBuilder.WriteByte(' ')
 		tagLineBuilder.WriteString(attr)
 	}
-	tagLineBuilder.WriteString(">")
+	tagLineBuilder.WriteByte('>')
 
 	return tagLineBuilder.Len()+currentIndent > maxLineLength
 }
 
-// buildTextContent extracts text content from a node, handling both plain text and rich
-// text with interpolations.
+// isForeignRoot reports whether a tag starts SVG or MathML content.
 //
-// Takes node (*ast_domain.TemplateNode) which provides the template node to extract
-// content from.
+// Takes tag (string) which is the element's tag name.
 //
-// Returns content (string) which contains the extracted text or rebuilt interpolation
-// blocks.
-// Returns hasContent (bool) which indicates whether any content was found.
-func buildTextContent(node *ast_domain.TemplateNode) (content string, hasContent bool) {
-	if len(node.RichText) > 0 {
-		return node.OwnRawText(), true
-	}
+// Returns bool which is true for svg and math.
+func isForeignRoot(tag string) bool {
+	return strings.EqualFold(tag, "svg") || strings.EqualFold(tag, "math")
+}
 
-	if node.TextContent != "" {
-		return node.TextContent, true
-	}
+// isRawTextElement reports whether an element's text belongs to another language and is
+// written without HTML escaping.
+//
+// Takes tag (string) which is the HTML tag name.
+//
+// Returns bool which is true for script and style.
+func isRawTextElement(tag string) bool {
+	return strings.EqualFold(tag, "script") || strings.EqualFold(tag, "style")
+}
 
-	return "", false
+// preservesContent reports whether an element keeps its content whitespace.
+//
+// Takes node (*ast_domain.TemplateNode) which is the element.
+//
+// Returns bool which is true for whitespace-sensitive, raw-text and contenteditable
+// elements.
+func preservesContent(node *ast_domain.TemplateNode) bool {
+	return isWhitespaceSensitive(node.TagName) || isRawTextElement(node.TagName) || node.IsContentEditable
+}
+
+// holdsLiteralText reports whether an element's own text is never parsed for
+// interpolations.
+//
+// Takes node (*ast_domain.TemplateNode) which is the element.
+//
+// Returns bool which is true for whitespace-sensitive and contenteditable elements.
+func holdsLiteralText(node *ast_domain.TemplateNode) bool {
+	return isWhitespaceSensitive(node.TagName) || node.IsContentEditable
+}
+
+// escapeLiteral escapes literal template text.
+//
+// When interpolation is enabled, literal "{{" is escaped to survive a later parse.
+//
+// Takes text (string) which is the decoded literal text.
+// Takes interpolates (bool) which reports whether the text supports interpolation.
+//
+// Returns string which is the escaped text.
+func escapeLiteral(text string, interpolates bool) string {
+	escaped := escapeText.Replace(text)
+	if interpolates && strings.Contains(escaped, "{{") {
+		escaped = strings.ReplaceAll(escaped, "{", "&#123;")
+	}
+	return escaped
+}
+
+// formatTextContent normalises text while preserving interpolation expressions.
+//
+// Takes node (*ast_domain.TemplateNode) which holds the literal and expression parts.
+//
+// Returns string which contains normalised text with literal HTML escaped.
+func formatTextContent(node *ast_domain.TemplateNode) string {
+	return renderTextParts(node, normaliseWhitespace, true)
+}
+
+// verbatimTextContent renders text with its whitespace unchanged.
+//
+// Takes node (*ast_domain.TemplateNode) which holds the literal and expression parts.
+// Takes interpolates (bool) which reports whether the text is parsed for interpolations.
+//
+// Returns string which contains the text with literal HTML escaped.
+func verbatimTextContent(node *ast_domain.TemplateNode, interpolates bool) string {
+	return renderTextParts(node, func(text string) string { return text }, interpolates)
+}
+
+// renderTextParts renders a text node's literal and expression parts.
+//
+// Takes node (*ast_domain.TemplateNode) which holds the literal and expression parts.
+// Takes shape (func(string) string) which adjusts the whitespace of literal text.
+// Takes interpolates (bool) which reports whether the text is parsed for interpolations.
+//
+// Returns string which contains the rendered text with literal HTML escaped.
+func renderTextParts(node *ast_domain.TemplateNode, shape func(string) string, interpolates bool) string {
+	if len(node.RichText) == 0 {
+		return escapeLiteral(shape(node.TextContent), interpolates)
+	}
+	var content strings.Builder
+	for index, part := range node.RichText {
+		if part.IsLiteral {
+			literal := escapeLiteral(shape(part.Literal), interpolates)
+			if interpolates && precedesExpression(node.RichText, index) {
+				literal = escapeTrailingBrace(literal)
+			}
+			content.WriteString(literal)
+			continue
+		}
+		content.WriteString("{{ ")
+		content.WriteString(part.RawExpression)
+		content.WriteString(" }}")
+	}
+	return content.String()
+}
+
+// precedesExpression reports whether the part after index is an interpolation.
+//
+// Takes parts ([]ast_domain.TextPart) which are the text node's parts.
+// Takes index (int) which is the position of the current part.
+//
+// Returns bool which is true when the next part is an expression.
+func precedesExpression(parts []ast_domain.TextPart, index int) bool {
+	return index+1 < len(parts) && !parts[index+1].IsLiteral
+}
+
+// escapeTrailingBrace encodes a final "{" of literal text written just before an
+// interpolation.
+//
+// Escaping the brace keeps the next parse from treating it as part of the interpolation.
+//
+// Takes literal (string) which is the escaped literal text.
+//
+// Returns string which is the text with a trailing brace encoded as "&#123;".
+func escapeTrailingBrace(literal string) string {
+	if trimmed, found := strings.CutSuffix(literal, "{"); found {
+		return trimmed + "&#123;"
+	}
+	return literal
 }
 
 // collectAttributesInOrder gathers all attributes from a node and returns them as
@@ -916,11 +1159,12 @@ func buildTextContent(node *ast_domain.TemplateNode) (content string, hasContent
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to extract attributes
 // from.
+// Takes foreign (bool) which reports SVG or MathML content.
 //
 // Returns []string which contains the formatted attribute strings in their original
 // order.
-func collectAttributesInOrder(node *ast_domain.TemplateNode) []string {
-	return collectAttributesCore(node)
+func collectAttributesInOrder(node *ast_domain.TemplateNode, foreign bool) []string {
+	return collectAttributesCore(node, foreign)
 }
 
 // collectAttributesSorted gathers all attributes from a node and returns them as
@@ -928,37 +1172,59 @@ func collectAttributesInOrder(node *ast_domain.TemplateNode) []string {
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to collect attributes
 // from.
+// Takes foreign (bool) which reports SVG or MathML content.
 //
 // Returns []string which contains the formatted attributes in sorted order.
-func collectAttributesSorted(node *ast_domain.TemplateNode) []string {
-	attrs := collectAttributesCore(node)
-	slices.Sort(attrs)
+func collectAttributesSorted(node *ast_domain.TemplateNode, foreign bool) []string {
+	attrs := collectAttributesCore(node, foreign)
+	slices.SortStableFunc(attrs, func(left, right string) int {
+		return strings.Compare(attributeSortKey(left), attributeSortKey(right))
+	})
 	return attrs
 }
 
-// collectAttributesCore gathers all attributes from a template node. This is a pure
-// function with no printer state needed.
+// attributeSortKey groups event handlers without sorting their modifiers.
+//
+// Takes attr (string) which is the formatted attribute.
+//
+// Returns string which is the event directive without modifiers, or the unchanged
+// attribute.
+func attributeSortKey(attr string) string {
+	if strings.HasPrefix(attr, "p-on:") || strings.HasPrefix(attr, "p-event:") {
+		name, _, _ := strings.Cut(attr, "=")
+		name, _, _ = strings.Cut(name, ".")
+		return name
+	}
+	return attr
+}
+
+// collectAttributesCore gathers all attributes from a template node.
 //
 // Takes node (*ast_domain.TemplateNode) which provides the template node to get
 // attributes from.
+// Takes foreign (bool) which reports SVG or MathML content. Its static values were
+// decoded by the XML parser, so "&" and "<" are escaped again as well as the quote.
 //
 // Returns []string which contains the formatted static attributes, dynamic attributes,
 // and directives in canonical order.
-func collectAttributesCore(node *ast_domain.TemplateNode) []string {
+func collectAttributesCore(node *ast_domain.TemplateNode, foreign bool) []string {
 	attrs := make([]string, 0)
 
 	for i := range node.Attributes {
 		attr := &node.Attributes[i]
-		if attr.Value == "" {
+		switch {
+		case attr.Value == "":
 			attrs = append(attrs, attr.Name)
-		} else {
-			attrs = append(attrs, fmt.Sprintf("%s=%q", attr.Name, attr.Value))
+		case foreign:
+			attrs = append(attrs, attr.Name+`="`+escapeForeignAttribute.Replace(attr.Value)+`"`)
+		default:
+			attrs = append(attrs, attr.Name+`="`+strings.ReplaceAll(attr.Value, `"`, "&quot;")+`"`)
 		}
 	}
 
 	for i := range node.DynamicAttributes {
 		attr := &node.DynamicAttributes[i]
-		attrs = append(attrs, fmt.Sprintf(":%s=%q", attr.Name, attr.RawExpression))
+		attrs = append(attrs, ":"+attr.Name+"="+formatRawAttributeValue(attr.RawExpression))
 	}
 
 	attrs = append(attrs, formatDirectives(node)...)
@@ -966,12 +1232,11 @@ func collectAttributesCore(node *ast_domain.TemplateNode) []string {
 	return attrs
 }
 
-// formatDirectives collects all directives from a node in a standard order. This is a
-// pure function that needs no printer state.
+// formatDirectives collects all directives from a node in a standard order.
 //
 // Takes node (*ast_domain.TemplateNode) which contains the directives to format.
 //
-// Returns []string which contains the formatted directives grouped by type: structural,
+// Returns []string which contains the formatted directives grouped by structural,
 // display, content, style, bind, event, and other.
 func formatDirectives(node *ast_domain.TemplateNode) []string {
 	directives := make([]string, 0)
@@ -981,14 +1246,14 @@ func formatDirectives(node *ast_domain.TemplateNode) []string {
 	directives = appendContentDirectives(directives, node)
 	directives = appendStyleDirectives(directives, node)
 	directives = appendBindDirectives(directives, node)
-	directives = appendEventDirectives(directives, node)
+	directives = appendEventDirectives(directives, "p-on:", node.OnEvents)
+	directives = appendEventDirectives(directives, "p-event:", node.CustomEvents)
 	directives = appendOtherDirectives(directives, node)
 
 	return directives
 }
 
-// appendStructuralDirectives adds structural directives to the given list. Structural
-// directives are if, else-if, else, and for.
+// appendStructuralDirectives adds structural directives to the given list.
 //
 // Takes directives ([]string) which is the list to add to.
 // Takes node (*ast_domain.TemplateNode) which holds the structural directive fields to
@@ -997,16 +1262,16 @@ func formatDirectives(node *ast_domain.TemplateNode) []string {
 // Returns []string which is the updated list with any structural directives added.
 func appendStructuralDirectives(directives []string, node *ast_domain.TemplateNode) []string {
 	if node.DirIf != nil {
-		directives = append(directives, fmt.Sprintf("p-if=%q", node.DirIf.RawExpression))
+		directives = append(directives, "p-if="+formatRawAttributeValue(node.DirIf.RawExpression))
 	}
 	if node.DirElseIf != nil {
-		directives = append(directives, fmt.Sprintf("p-else-if=%q", node.DirElseIf.RawExpression))
+		directives = append(directives, "p-else-if="+formatRawAttributeValue(node.DirElseIf.RawExpression))
 	}
 	if node.DirElse != nil {
 		directives = append(directives, "p-else")
 	}
 	if node.DirFor != nil {
-		directives = append(directives, fmt.Sprintf("p-for=%q", node.DirFor.RawExpression))
+		directives = append(directives, "p-for="+formatRawAttributeValue(node.DirFor.RawExpression))
 	}
 	return directives
 }
@@ -1019,10 +1284,10 @@ func appendStructuralDirectives(directives []string, node *ast_domain.TemplateNo
 // Returns []string which is the updated list with any display directives.
 func appendDisplayDirectives(directives []string, node *ast_domain.TemplateNode) []string {
 	if node.DirShow != nil {
-		directives = append(directives, fmt.Sprintf("p-show=%q", node.DirShow.RawExpression))
+		directives = append(directives, "p-show="+formatRawAttributeValue(node.DirShow.RawExpression))
 	}
 	if node.DirKey != nil {
-		directives = append(directives, fmt.Sprintf("p-key=%q", node.DirKey.RawExpression))
+		directives = append(directives, "p-key="+formatRawAttributeValue(node.DirKey.RawExpression))
 	}
 	return directives
 }
@@ -1035,10 +1300,10 @@ func appendDisplayDirectives(directives []string, node *ast_domain.TemplateNode)
 // Returns []string which is the list with any content directives added.
 func appendContentDirectives(directives []string, node *ast_domain.TemplateNode) []string {
 	if node.DirText != nil {
-		directives = append(directives, fmt.Sprintf("p-text=%q", node.DirText.RawExpression))
+		directives = append(directives, "p-text="+formatRawAttributeValue(node.DirText.RawExpression))
 	}
 	if node.DirHTML != nil {
-		directives = append(directives, fmt.Sprintf("p-html=%q", node.DirHTML.RawExpression))
+		directives = append(directives, "p-html="+formatRawAttributeValue(node.DirHTML.RawExpression))
 	}
 	return directives
 }
@@ -1051,10 +1316,10 @@ func appendContentDirectives(directives []string, node *ast_domain.TemplateNode)
 // Returns []string which is the list with any style or class directives added.
 func appendStyleDirectives(directives []string, node *ast_domain.TemplateNode) []string {
 	if node.DirClass != nil {
-		directives = append(directives, fmt.Sprintf("p-class=%q", node.DirClass.RawExpression))
+		directives = append(directives, "p-class="+formatRawAttributeValue(node.DirClass.RawExpression))
 	}
 	if node.DirStyle != nil {
-		directives = append(directives, fmt.Sprintf("p-style=%q", node.DirStyle.RawExpression))
+		directives = append(directives, "p-style="+formatRawAttributeValue(node.DirStyle.RawExpression))
 	}
 	return directives
 }
@@ -1078,38 +1343,30 @@ func appendBindDirectives(directives []string, node *ast_domain.TemplateNode) []
 
 	for _, key := range bindKeys {
 		bind := node.Binds[key]
-		directives = append(directives, fmt.Sprintf("p-bind:%s=%q", key, bind.RawExpression))
+		directives = append(directives, "p-bind:"+key+"="+formatRawAttributeValue(bind.RawExpression))
 	}
 
 	return directives
 }
 
-// appendEventDirectives adds p-on event handler directives to the list in sorted order.
+// appendEventDirectives orders event names and preserves handler registration order.
 //
-// Takes directives ([]string) which is the current list of directives.
-// Takes node (*ast_domain.TemplateNode) which holds the event handlers.
+// Takes directives ([]string) which receives the formatted event directives.
+// Takes prefix (string) which is the event directive prefix.
+// Takes events (map[string][]ast_domain.Directive) which groups handlers by event name.
 //
-// Returns []string which is the updated list with event directives added.
-func appendEventDirectives(directives []string, node *ast_domain.TemplateNode) []string {
-	if node.OnEvents == nil {
-		return directives
-	}
-
-	eventKeys := make([]string, 0, len(node.OnEvents))
-	for key := range node.OnEvents {
-		eventKeys = append(eventKeys, key)
-	}
-	slices.Sort(eventKeys)
-
-	for _, key := range eventKeys {
-		handlers := node.OnEvents[key]
-		for i := range handlers {
-			handler := &handlers[i]
-			modifierString := ""
-			if handler.Modifier != "" {
-				modifierString = "." + handler.Modifier
+// Returns []string which contains the original entries followed by the formatted
+// handlers.
+func appendEventDirectives(directives []string, prefix string, events map[string][]ast_domain.Directive) []string {
+	for _, key := range slices.Sorted(maps.Keys(events)) {
+		handlers := events[key]
+		for index := range handlers {
+			handler := &handlers[index]
+			name := prefix + key
+			if len(handler.EventModifiers) != 0 {
+				name += "." + strings.Join(handler.EventModifiers, ".")
 			}
-			directives = append(directives, fmt.Sprintf("p-on:%s%s=%q", key, modifierString, handler.RawExpression))
+			directives = append(directives, name+"="+formatRawAttributeValue(handler.RawExpression))
 		}
 	}
 
@@ -1117,7 +1374,7 @@ func appendEventDirectives(directives []string, node *ast_domain.TemplateNode) [
 }
 
 // appendOtherDirectives adds extra directives to the list if they are present in the
-// node. These include model, ref, context, format, and scaffold.
+// node.
 //
 // Takes directives ([]string) which is the existing list to add to.
 // Takes node (*ast_domain.TemplateNode) which holds the directive values.
@@ -1125,24 +1382,34 @@ func appendEventDirectives(directives []string, node *ast_domain.TemplateNode) [
 // Returns []string which is the updated list with any found directives added.
 func appendOtherDirectives(directives []string, node *ast_domain.TemplateNode) []string {
 	if node.DirModel != nil {
-		directives = append(directives, fmt.Sprintf("p-model=%q", node.DirModel.RawExpression))
+		directives = append(directives, "p-model="+formatRawAttributeValue(node.DirModel.RawExpression))
 	}
 	if node.DirRef != nil {
-		directives = append(directives, fmt.Sprintf("p-ref=%q", node.DirRef.RawExpression))
+		directives = append(directives, "p-ref="+formatRawAttributeValue(node.DirRef.RawExpression))
 	}
 	if node.DirContext != nil {
-		directives = append(directives, fmt.Sprintf("p-context=%q", node.DirContext.RawExpression))
+		directives = append(directives, "p-context="+formatRawAttributeValue(node.DirContext.RawExpression))
+	}
+	if node.DirMemo != nil {
+		directives = append(directives, "p-memo="+formatRawAttributeValue(node.DirMemo.RawExpression))
+	}
+	if node.DirSlot != nil {
+		directives = append(directives, "p-slot="+formatRawAttributeValue(node.DirSlot.RawExpression))
 	}
 	if node.DirScaffold != nil {
-		directives = append(directives, fmt.Sprintf("p-scaffold=%q", node.DirScaffold.RawExpression))
+		directives = append(directives, "p-scaffold="+formatRawAttributeValue(node.DirScaffold.RawExpression))
+	}
+	for _, key := range slices.Sorted(maps.Keys(node.TimelineDirectives)) {
+		attr := "p-timeline:" + key
+		if value := node.TimelineDirectives[key].RawExpression; value != "" {
+			attr += "=" + formatRawAttributeValue(value)
+		}
+		directives = append(directives, attr)
 	}
 	return directives
 }
 
 // isSelfClosing checks whether an HTML element is a void element.
-//
-// Void elements cannot have content and must be self-closing, such as br, img, and input.
-// This is a standalone function as it does not need printer state.
 //
 // Takes node (*ast_domain.TemplateNode) which specifies the element to check.
 //
@@ -1158,8 +1425,7 @@ func isSelfClosing(node *ast_domain.TemplateNode) bool {
 	return voidElements[strings.ToLower(node.TagName)]
 }
 
-// isBlockElement checks whether a tag should be formatted as a block element. This is a
-// standalone function as it does not need printer state.
+// isBlockElement checks whether a tag should be formatted as a block element.
 //
 // Takes tagName (string) which is the HTML or Piko tag name to check.
 //
@@ -1184,8 +1450,7 @@ func isBlockElement(tagName string) bool {
 	return blockElements[strings.ToLower(tagName)]
 }
 
-// isInlineElement checks if an HTML tag should be formatted inline. This is a standalone
-// function as it does not need printer state.
+// isInlineElement checks if an HTML tag should be formatted inline.
 //
 // Takes tagName (string) which is the HTML tag name to check.
 //
@@ -1208,8 +1473,7 @@ func isInlineElement(tagName string) bool {
 	return inlineElements[strings.ToLower(tagName)]
 }
 
-// isWhitespaceSensitive checks if an HTML element keeps its content spacing. This is a
-// standalone function as it does not need printer state.
+// isWhitespaceSensitive checks if an HTML element keeps its content spacing.
 //
 // Takes tagName (string) which is the HTML element name to check.
 //
@@ -1223,8 +1487,6 @@ func isWhitespaceSensitive(tagName string) bool {
 }
 
 // normaliseWhitespace replaces runs of whitespace with a single space.
-//
-// This matches how HTML shows whitespace and gives clean, even formatting.
 //
 // Takes s (string) which is the input text to normalise.
 //

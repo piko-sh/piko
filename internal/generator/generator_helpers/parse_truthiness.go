@@ -23,6 +23,9 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
+
+	"piko.sh/piko/internal/ast/ast_domain"
 
 	"piko.sh/piko/wdk/maths"
 )
@@ -120,9 +123,8 @@ type arithmeticComparable[T any] interface {
 
 // EvaluateTruthiness determines the boolean truth value of any Go value.
 //
-// It follows JavaScript-like semantics where empty strings, zero values, nil, and "false"
-// (case-insensitive) are considered falsy. This is used by the template engine to
-// evaluate p-if and p-show directives.
+// Empty strings, zero values, nil and "false" (case-insensitive) are falsy, as the
+// template engine's p-if and p-show directives expect.
 //
 // Takes value (any) which is the value to evaluate for truthiness.
 //
@@ -149,9 +151,6 @@ func EvaluateTruthiness(value any) bool {
 }
 
 // ConvertToFloat64 converts any numeric or string value to a float64.
-//
-// Non-numeric types return 0.0. Booleans return 1.0 for true and 0.0 for false. This is
-// used by the template engine for numeric comparisons and arithmetic.
 //
 // Takes value (any) which is the value to convert.
 //
@@ -198,15 +197,21 @@ func ConvertToFloat64(value any) float64 {
 	}
 }
 
-// EvaluateLooseEquality compares two values for loose equality using JS-style type
-// coercion. Float64 values are compared directly; all other types are compared by their
-// string representation, enabling comparisons like 0 ~= "0" to return true.
+// EvaluateLooseEquality compares values using template loose equality.
+//
+// Two times use time.Time.Equal. Two float64 values are compared directly. Other pairs
+// are compared as strings, so 0 ~= "0" is true.
 //
 // Takes a (any) which is the first value to compare.
 // Takes b (any) which is the second value to compare.
 //
 // Returns bool which is true when the values are loosely equal.
 func EvaluateLooseEquality(a, b any) bool {
+	if t, ok := a.(time.Time); ok {
+		if u, ok := b.(time.Time); ok {
+			return t.Equal(u)
+		}
+	}
 	floatA, aIsFloat := a.(float64)
 	if aIsFloat {
 		floatB, bIsFloat := b.(float64)
@@ -217,19 +222,15 @@ func EvaluateLooseEquality(a, b any) bool {
 	return fmt.Sprintf("%v", a) == fmt.Sprintf("%v", b)
 }
 
-// EvaluateStrictEquality compares two values for strict equality using Go-style ==
-// comparison.
+// EvaluateStrictEquality compares two values for strict template equality.
+//
+// A typed nil can equal untyped nil. All other comparisons require matching types. Times
+// use time.Time.Equal, so different time zones can represent equal times.
 //
 // Takes a (any) which is the first value to compare.
 // Takes b (any) which is the second value to compare.
 //
-// Returns bool which is true when the values are strictly equal, or false if the types do
-// not match.
-//
-// Uses optimised type-specific comparisons for common types, falling back to
-// reflect.DeepEqual for complex types. A typed nil (e.g., (*Image)(nil)) is considered
-// equal to untyped nil. This enables template expressions like `p-if="props.FloorPlan !=
-// nil"` to work correctly when FloorPlan is a nil pointer.
+// Returns bool which reports whether the values are strictly equal.
 func EvaluateStrictEquality(a, b any) bool {
 	if b == nil {
 		if a == nil {
@@ -246,6 +247,8 @@ func EvaluateStrictEquality(a, b any) bool {
 	}
 
 	switch av := a.(type) {
+	case time.Time:
+		return av.Equal(b.(time.Time))
 	case bool:
 		return av == b.(bool)
 	case int:
@@ -279,9 +282,7 @@ func EvaluateStrictEquality(a, b any) bool {
 	return reflect.DeepEqual(a, b)
 }
 
-// EvaluateOr returns the first truthy value, or the last value if none are truthy. This
-// uses JavaScript-style || operator rules, which differ from Go's || that always returns
-// a boolean.
+// EvaluateOr selects the right operand when the left operand is falsy.
 //
 // Takes left (any) which is the first value to check for truthiness.
 // Takes right (any) which is the value to use if left is falsy.
@@ -294,15 +295,14 @@ func EvaluateOr(left, right any) any {
 	return right
 }
 
-// EvaluateCoalesce implements JavaScript-like nullish coalescing (??) operator.
+// EvaluateCoalesce selects a fallback for nil and typed nil pointers.
 //
-// It returns left if it is not nil, otherwise right. Unlike the || operator, it does not
-// treat empty strings, zero, or false as nullish.
+// Empty strings, zero, false and nil slices or maps are kept.
 //
-// Takes left (any) which is the primary value to check for nil.
-// Takes right (any) which is the fallback value returned if left is nil.
+// Takes left (any) which is the primary value.
+// Takes right (any) which is the fallback value.
 //
-// Returns any which is left if non-nil, otherwise right.
+// Returns any which is the selected operand.
 func EvaluateCoalesce(left, right any) any {
 	if left == nil {
 		return right
@@ -314,23 +314,20 @@ func EvaluateCoalesce(left, right any) any {
 	return left
 }
 
-// EvaluateBinary performs a binary operation on two values at runtime.
-//
-// It handles arithmetic (+, -, *, /, %) and comparison (>, <, >=, <=) operators for maths
-// types (maths.Decimal, maths.BigInt, maths.Money) and falls back to float64 arithmetic
-// for primitive numeric types.
+// EvaluateBinary performs an arithmetic or comparison operation on two values.
 //
 // Takes left (any) which is the left operand.
-// Takes operator (string) which is the operator ("+", "-", "*", "/", "%", ">", "<", ">=",
-// "<=").
+// Takes operator (string) which selects the arithmetic or comparison operation.
 // Takes right (any) which is the right operand.
 //
-// Returns any which is the result of the operation. Arithmetic operators return the same
-// maths type as the operands; comparison operators return bool. For unsupported types or
-// operators, returns nil.
+// Returns any which is the evaluated result, or nil for an unsupported operator.
 //
 //nolint:revive // dispatch table
 func EvaluateBinary(left any, operator string, right any) any {
+	if result, ok := ast_domain.EvaluateTimeOperation(ast_domain.BinaryOp(operator), left, right); ok {
+		return result
+	}
+
 	if result, ok := evaluateBinaryDecimal(left, right, operator); ok {
 		return result
 	}
@@ -437,8 +434,7 @@ func evaluateReflectTruthiness(value any) bool {
 }
 
 // isNilableValue checks whether a value is a nil pointer, interface, map, slice,
-// function, or channel. This is used by EvaluateStrictEquality to compare typed nils with
-// untyped nil correctly.
+// function, or channel.
 //
 // Takes value (any) which is the value to check.
 //
@@ -653,8 +649,7 @@ func evaluateMoneyAddSub(lm, rm maths.Money, right any, rightIsMoney bool, opera
 	return lm.SubtractDecimal(CoerceToDecimal(right)), true
 }
 
-// evaluateMoneyComparison handles comparison operators for Money values. Comparisons
-// require both operands to be Money.
+// evaluateMoneyComparison handles comparison operators for Money values.
 //
 // Takes lm (maths.Money) which is the left-hand money operand.
 // Takes rm (maths.Money) which is the right-hand money operand.

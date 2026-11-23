@@ -9,6 +9,7 @@ use (
 	./cmd/wasm
 	./tests/benchmarks/orchestrator
 	./tests/benchmarks/registry
+	./tests/fuzz
 	./tests/integration/asset_pipeline
 	./tests/integration/cache
 	./tests/integration/cache_rendering

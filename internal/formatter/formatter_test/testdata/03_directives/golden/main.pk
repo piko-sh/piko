@@ -19,7 +19,7 @@
     <div p-else>
       <p>Nothing to show</p>
     </div>
-    <button p-bind:disabled="state.IsProcessing" p-on:click="submit">Submit</button>
+    <button p-bind:disabled="state.IsProcessing" p-on:click.prevent="submit">Submit</button>
     <input p-model="state.Username" placeholder="Username" type="text" />
   </div>
 </template>

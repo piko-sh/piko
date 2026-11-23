@@ -51,7 +51,7 @@ import { action } from "/_piko/assets/pk-js/pk/actions.gen.js";
             return {"activeCount": 2, "items": [{"id": 1, "name": "Alice", "active": true}, {"id": 2, "name": "Bob", "active": false}, {"id": 3, "name": "Carol", "active": true}, {"id": 4, "name": "Dave", "active": false}]};
         }
         connectedCallback () {
-            this.init(instance.call(this, this));
+            if (!this.$$ctx) this.init(instance.call(this, this));
             super.connectedCallback();
         }
         renderVDOM () {

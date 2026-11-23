@@ -80,7 +80,8 @@ const (
 // It implements LifecycleService, handling file watching, build notifications, asset
 // pipeline orchestration, and router hot-reload.
 type lifecycleService struct {
-	// gcTimer holds the post-startup GC timer so it can be stopped during shutdown.
+	// gcTimer holds the post-startup GC timer. spawnMu prevents arming the timer once
+	// shutdown starts.
 	gcTimer clock.Timer
 
 	// componentRegistry holds the PKC component registry for deterministic tag lookup.
@@ -371,9 +372,8 @@ func (ls *lifecycleService) Stop(ctx context.Context) error {
 		ls.beginStopping()
 		close(ls.stopChan)
 
-		if ls.gcTimer != nil {
-			l.Internal("Stopping post-startup GC timer")
-			ls.gcTimer.Stop()
+		if ls.stopStartupGC() {
+			l.Internal("Stopped post-startup GC timer")
 		}
 
 		if ls.unsubscribe != nil {
@@ -467,7 +467,7 @@ func (ls *lifecycleService) RunInitialTasks(ctx context.Context) error {
 		}
 	}
 
-	ls.gcTimer = ls.clock.AfterFunc(gcDelayAfterStartup, func() {
+	ls.armStartupGC(func() {
 		l.Internal("Initial build period has passed. Forcing GC and attempting to release OS memory.")
 		runtime.GC()
 		debug.FreeOSMemory()

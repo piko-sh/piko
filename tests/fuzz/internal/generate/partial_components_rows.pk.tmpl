@@ -1,0 +1,17 @@
+<template public><section id="record-rows" :data-revision="state.Revision" p-event:record-picked="recordPicked($event)">
+<article p-for="row in state.Rows" p-key="row.ID" :data-record="row.ID">
+<record-chip :recordkey="row.ID" :label="row.Label" :score="row.Score"><span slot="caption" p-text="row.Caption"></span></record-chip>
+<piko:a :data-fuzz-element="row.ID" :href="row.Href" :data-locale="props.Locale" :aria-label="row.Name"><piko:svg src="@/lib/record-icons/arrow.svg" aria-hidden="true"></piko:svg>Open</piko:a>
+</article></section></template>
+<script type="application/x-go">
+package main
+import ("piko.sh/piko"; "example.org/pikofuzzcase/pkg/recordboard")
+type Props struct { Locale string `prop:"locale" query:"locale"` }
+func Render(r *piko.RequestData,p Props)(recordboard.Board,piko.Metadata,error){b,err:=recordboard.List();return b,piko.Metadata{},err}
+</script>
+<script lang="ts">
+export function recordPicked(event:CustomEvent){
+	const el=document.getElementById('record-log');
+	el.textContent+=event.target.getAttribute('recordkey')+'='+event.detail.label+':'+event.detail.count+';';
+}
+</script>

@@ -8,7 +8,7 @@ nav:
     order: 20
 ---
 
-<!-- Generated from internal/diagnostic_docs. Edit the catalogue there, then run: make generate-diagnostics-docs -->
+<!-- Generated from the diagnostics catalogue. -->
 
 # Diagnostics
 
@@ -17,7 +17,7 @@ has a severity and a stable code. Codes starting with T0 come from parsing templ
 expressions, T1 from analysing templates, and R0 from rendering. A code keeps its meaning
 and its number is never reused, so editors, scripts and CI can rely on it.
 
-Build output follows each coded diagnostic with a link to its explanation:
+Build output follows each coded diagnostic with a link to its explanation.
 
 ```text
  ● error [T141]: Invalid operation: cannot strictly compare type 'app.Level' to 'string'
@@ -28,19 +28,18 @@ Build output follows each coded diagnostic with a link to its explanation:
   = docs: https://piko.sh/diagnostics/T141 (or run: piko explain T141)
 ```
 
-Run `piko explain T141` to read an explanation in the terminal, or
-`piko explain` to list every code; see the [CLI reference](cli.md). Editors
-that use the Piko language server link each code to its explanation; see
-[LSP setup](../how-to/lsp-setup.md).
+Run `piko explain T141` to read an explanation in the terminal or
+`piko explain` to list every code. See the [CLI reference](cli.md).
+The Piko language server links each code to its explanation. See
+[LSP setup](../how-to/lsp-setup.md) to enable these links in your editor.
 
-Severities:
+## Severity levels
 
-- **Error** stops the build, or marks a render that failed.
+- **Error** stops the build or reports a render failure.
 - **Warning** reports a likely mistake. The build continues.
 - **Info** reports something worth knowing. The build continues.
 
-Some codes are reported with more than one severity, depending on the case; each code
-below says when.
+Some codes have more than one severity. Each explanation gives the conditions.
 
 SQL diagnostics, whose codes start with Q, come from the SQL generator. They are listed in
 the [querier reference](querier.md#diagnostics).
@@ -622,7 +621,7 @@ Reported while templates are type-checked against their Go code, and while compo
 
 **Error.** $event or $form is used outside an event handler, or used in a way it does not support.
 
-**When it is reported.** $event and $form only exist inside p-on and p-event handlers, and are passed whole: reading a property from them in the template is not supported. The browser's own event object is $event, not event.
+**When it is reported.** Use $event and $form only in p-on and p-event handlers. $event is the browser's event object.
 
 **How to fix it.** Pass $event or $form whole to the handler, and read their properties inside it.
 
@@ -807,7 +806,7 @@ Reported while templates are type-checked against their Go code, and while compo
 
 **Error.** The two sides of a comparison cannot be compared.
 
-**When it is reported.** Ordering operators (<, >, <=, >=) need ordered types of the same kind. Equality is checked strictly: a named type and a plain literal of its underlying type, such as a named string type and a string, cannot be compared directly.
+**When it is reported.** Ordering operators (<, >, <=, >=) need compatible ordered types. A strict equality operator cannot directly compare a named type with a literal of its underlying type.
 
 **How to fix it.** Convert one side so both have the same type, or compare a field that has a comparable type.
 
@@ -824,7 +823,7 @@ Reported while templates are type-checked against their Go code, and while compo
 
 **Error.** An arithmetic operator is used with types it is not defined for.
 
-**When it is reported.** Both operands of +, -, *, / and % must be compatible numbers, and unary - needs a number. Money only adds and subtracts Money, multiplies and divides by plain numbers, and has no %.
+**When it is reported.** Use compatible numbers for numeric arithmetic and + to join two strings. You can add or subtract two durations, add a duration to an instant in either order, or subtract a duration from an instant. Subtracting two instants gives a duration. You can add or subtract Money with Money or Decimal. Use a standard number with Money for multiplication or division.
 
 **How to fix it.** Convert the operands to compatible types, or use the Money methods.
 
@@ -842,7 +841,7 @@ Not currently reported. The number stays assigned so it is never reused.
 
 **Error.** A string concatenation involves a value that cannot be turned into a string.
 
-**When it is reported.** This code is not currently reported: such concatenations are reported as invalid arithmetic (T142). The number stays assigned so it is never reused.
+**When it is reported.** Invalid string concatenation is reported as T142.
 
 **How to fix it.** Nothing to fix.
 
@@ -908,7 +907,7 @@ Not currently reported. The number stays assigned so it is never reused.
 
 **Warning.** An unknown prop name is close to one the component defines.
 
-**When it is reported.** This code is not currently reported: suggestions appear in the unknown prop message (T126) instead. The number stays assigned so it is never reused.
+**When it is reported.** Suggestions appear in the unknown prop diagnostic (T126).
 
 **How to fix it.** Nothing to fix.
 
@@ -947,7 +946,7 @@ Not currently reported. The number stays assigned so it is never reused.
 
 ## Rendering {#rendering}
 
-Reported by generated code while a page renders. They appear in the server log rather than in build output, and the page still renders: a nil read or an out-of-range index gives a zero value instead of a panic.
+Render diagnostics appear in the server log. A nil read or an out-of-range index produces a zero value. Each diagnostic explains how rendering proceeds.
 
 ### R001 Render returned an error {#r001}
 

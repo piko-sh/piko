@@ -1,0 +1,39 @@
+events	wdk/events/events_provider_gochannel	tests/fuzz/internal/publiccontracts/testdata/events.go	TestProviderLifecycleContract	start router, publish and ack, cancel a subscription, close, reject reuse and recover with a fresh provider	in-process Watermill GoChannel	overlay
+analytics	wdk/analytics/analytics_collector_ga4	wdk/analytics/analytics_collector_ga4/collector_test.go	TestCollector_PageViewMapping	capture a page view and inspect its GA4 event fields	private loopback HTTP recorder	package-test
+binder	wdk/binder	wdk/binder/facade_test.go	TestBindJSONSizeLimitMatchesPublicSentinel	bind oversized JSON and match its documented sentinel	in-memory request body	package-test
+browser	wdk/browser	wdk/browser/spec_test.go	TestFormatStepDescription	format an authored browser step for diagnostics	in-process fixture; example-contracts exercises actual Chromium	package-test
+cache	wdk/cache	wdk/cache/counter_test.go	TestIncrementWithExpiry_CreatesCounterWithTTL	create an expiring counter and read its value and TTL	in-process cache provider	package-test
+captcha	wdk/captcha/captcha_provider_hcaptcha	wdk/captcha/captcha_provider_hcaptcha/provider_test.go	TestProvider_Verify_Success	send verification and decode a successful captcha response	private loopback hCaptcha stub	package-test
+clock	wdk/clock	wdk/clock/clock_test.go	TestMockClock_Advance	advance logical time and read the new instant	mock clock	package-test
+collection	wdk/collection	wdk/collection/facade_test.go	TestSimpleProviderAdapter_FetchStaticContent	fetch a collection item through the simple provider adapter	in-memory provider	package-test
+config	wdk/config	wdk/config/facade_test.go	TestLoad_AppliesDefaultsFromStructTags	resolve defaults into a typed configuration value	local loader	package-test
+contextaware	wdk/contextaware	wdk/contextaware/reader_test.go	TestNewReader_ReturnsCancelledContextError	cancel a wrapped read and match the context error	in-memory reader	package-test
+crypto	wdk/crypto/crypto_signer_ed25519	wdk/crypto/crypto_signer_ed25519/signer_test.go	TestGenerateSignVerifyRoundTrip	generate a signing key and verify the signed bytes	local Ed25519 keypair	package-test
+db	wdk/db	wdk/db/facade_test.go	TestGenerateWithoutEngine	invoke generation without an engine and require its documented failure	no registered database engine	package-test
+email	wdk/email	wdk/email/facade_test.go	TestNewEmailBuilder_NilServiceYieldsPanicSafeBuilder	use a nil service and receive a safe builder error	no configured mail service	package-test
+encoding	wdk/encoding	wdk/encoding/shorteruuid_test.go	TestUUIDToShorterString_RoundTrip	encode a UUID and recover its original value	in-process codec	package-test
+fbs	wdk/fbs	tests/fuzz/internal/publiccontracts/testdata/fbs.go	TestPublicSchemaContract	compare the schema hash to independent SHA-256 and reject a different stored hash	in-memory FlatBuffer prefix	overlay
+formatter	wdk/formatter	tests/fuzz/internal/publiccontracts/testdata/formatter.go	TestPublicFormatContract	format a compact template twice and preserve its meaningful text	in-process formatter	overlay
+goroutine	wdk/goroutine	wdk/goroutine/safecall_test.go	TestSafeCall_RecoversPanic	run a panicking callback through the recovery facade	in-process callback	package-test
+highlight	wdk/highlight/highlight_chroma	wdk/highlight/highlight_chroma/highlighter_test.go	TestHighlighter_Highlight	highlight a code fragment and inspect the expected HTML	local Chroma assets	package-test
+interp	wdk/interp/interp_piko_symbols	wdk/interp/interp_piko_symbols/provider_test.go	TestProviderFunctionsAreCallable	load exported functions and call reflected symbols	generated Piko symbol table	package-test
+json	wdk/json	tests/fuzz/internal/publiccontracts/testdata/json.go	TestPublicJSONContract	round-trip Unicode and reject malformed JSON	in-process JSON backend	overlay
+lifecycle	wdk/lifecycle	tests/fuzz/internal/publiccontracts/testdata/lifecycle.go	TestPublicShutdownContract	register a named cleanup through the public facade and execute it once	private process shutdown manager	overlay
+linguistics	wdk/linguistics/linguistics_phonetic_dutch	wdk/linguistics/linguistics_phonetic_dutch/encoder_test.go	TestEncode_TruncationStaysValidUTF8	truncate a phonetic key and preserve valid UTF-8	local Dutch phonetic codec	package-test
+llm	wdk/llm/llm_provider_anthropic	wdk/llm/llm_provider_anthropic/config_test.go	TestAnthropicProvider_Capabilities	inspect advertised model capabilities	local provider construction; no inference request	package-test
+logger	wdk/logger/log_collector_grpcfb	wdk/logger/log_collector_grpcfb/breadcrumbs_test.go	TestHandle_BreadcrumbsAreTraceScoped	record concurrent trace breadcrumbs and check scope separation	private capture transport	package-test
+markdown	wdk/markdown/markdown_provider_goldmark	wdk/markdown/markdown_provider_goldmark/parser_test.go	TestParser_Parse_Frontmatter	parse frontmatter and examine the document tree	local Goldmark parser	package-test
+maths	wdk/maths	wdk/maths/bigint_aggregate_test.go	TestBigIntAllocation	allocate big integers and verify the numerical result	in-process maths	package-test
+media	wdk/media	wdk/media/facade_test.go	TestGetImageDimensions_FailsWhenFrameworkNotBootstrapped	read dimensions before setup and require the returned error	unbootstrapped image service	package-test
+metrics	wdk/metrics/metrics_exporter_prometheus	tests/fuzz/internal/publiccontracts/testdata/metrics.go	TestPublicMetricsContract	record a known metric and scrape its value through the HTTP handler	private OpenTelemetry meter and Prometheus registry	overlay
+modules	wdk/modules/modules_provider_chain	wdk/modules/modules_provider_chain/provider_test.go	TestChainFallsThroughOnNotFound	fall through a missing module and resolve via a second provider	in-memory chained providers	package-test
+monitoring	wdk/monitoring/monitoring_transport_grpc	wdk/monitoring/monitoring_transport_grpc/conversion_test.go	TestConvertHealthStatus_WithDependencies	convert a health status with dependent checks	local transport conversion	package-test
+notification	wdk/notification	tests/fuzz/internal/publiccontracts/testdata/notification.go	TestPublicNotificationContract	reject a nil builder service and recover with an explicitly constructed service	in-process service	overlay
+pdf	wdk/pdf	wdk/pdf/service_manifest_test.go	TestManifestService_RenderBeforeLoad	attempt a render before loading its manifest and examine the error	uninitialised manifest renderer	package-test
+runtime	wdk/runtime	wdk/runtime/coerce_test.go	TestCoerceInt	coerce representative values through runtime int conversion	in-process conversions	package-test
+spamdetect	wdk/spamdetect	wdk/spamdetect/facade_test.go	TestFacade_NewSpamDetectService_RoundTrip	construct a service and check its disabled state	in-process detectors	package-test
+storage	wdk/storage/storage_transformer_gzip	wdk/storage/storage_transformer_gzip/transformer_test.go	TestTransformRoundTrip	compress and recover the source bytes	local gzip transformer	package-test
+system	wdk/system/system_memlimit_automemlimit	tests/fuzz/internal/publiccontracts/testdata/system.go	TestPublicMemlimitContract	detect a positive memory ceiling and apply an invalid-ratio error control	isolated local process, Linux cgroup or host fallback	overlay
+telemetry	wdk/telemetry/email_collector_grpcfb	wdk/telemetry/email_collector_grpcfb/provider_test.go	TestSendEmitsEventOnSuccess	send via a fixture and inspect the successful telemetry event	private capture sink	package-test
+useragent	wdk/useragent	wdk/useragent/useragent_test.go	TestClassify_BotsReportNoBorrowedIdentity	classify bots and verify no borrowed device identity	in-process classifier	package-test
+validation	wdk/validation/validation_provider_playground	wdk/validation/validation_provider_playground/validator_test.go	TestMoneyPositiveValidation	validate signed monetary input and inspect acceptance	local playground validator	package-test

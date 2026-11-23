@@ -46,7 +46,7 @@ import { action } from "/_piko/assets/pk-js/pk/actions.gen.js";
             return {"matrix": [[1, 2, 3], [4, 5, 6], [7, 8, 9]]};
         }
         connectedCallback () {
-            this.init(instance.call(this, this));
+            if (!this.$$ctx) this.init(instance.call(this, this));
             super.connectedCallback();
         }
         renderVDOM () {

@@ -171,20 +171,14 @@ func (p *Page) ScreenshotWithOptions(opts browser_provider_chromedp.ScreenshotOp
 	return buffer
 }
 
-// CompareScreenshots compares two screenshots and returns the percentage of bytes that
-// differ between them.
+// CompareScreenshots measures differences between the encoded screenshot bytes.
 //
 // Takes a ([]byte) which is the first screenshot to compare.
 // Takes b ([]byte) which is the second screenshot to compare.
 //
-// Returns float64 which is 0.0 if the screenshots are the same, or 1.0 if they are
-// completely different.
-func (p *Page) CompareScreenshots(a, b []byte) float64 {
-	diff, err := browser_provider_chromedp.CompareScreenshots(a, b)
-	if err != nil {
-		p.t.Fatalf("CompareScreenshots() failed: %v", err)
-	}
-	return diff
+// Returns float64 which is the fraction of differing bytes, or 1.0 for unequal lengths.
+func (*Page) CompareScreenshots(a, b []byte) float64 {
+	return browser_provider_chromedp.CompareScreenshots(a, b)
 }
 
 // PrintToPDF creates a PDF of the current page using default options.

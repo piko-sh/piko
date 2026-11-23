@@ -20,13 +20,78 @@ package bootstrap
 
 import (
 	"context"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"piko.sh/piko/internal/shutdown"
 	"piko.sh/piko/internal/sqldb/sqldb_dto"
 )
+
+const (
+	testProjectModule    = "example.com/site"
+	testProjectIndexPage = "<template>\n<h1>Hello</h1>\n</template>\n"
+)
+
+func runGlobalShutdownOnCleanup(t *testing.T) {
+	t.Helper()
+
+	t.Cleanup(func() {
+		shutdown.Cleanup(context.Background(), 10*time.Second)
+		shutdown.Reset()
+	})
+}
+
+func newTestProject(t *testing.T, files map[string]string) string {
+	t.Helper()
+
+	t.Setenv("GOWORK", "off")
+
+	repositoryRoot, err := filepath.Abs(filepath.Join("..", ".."))
+	require.NoError(t, err)
+	rootModule, err := os.ReadFile(filepath.Join(repositoryRoot, "go.mod"))
+	require.NoError(t, err)
+	rootSums, err := os.ReadFile(filepath.Join(repositoryRoot, "go.sum"))
+	require.NoError(t, err)
+
+	moduleFile := strings.Replace(string(rootModule), "module piko.sh/piko", "module "+testProjectModule, 1) +
+		"\nrequire piko.sh/piko v0.0.0\n\nreplace piko.sh/piko => " + repositoryRoot + "\n"
+
+	baseDir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(baseDir, "go.mod"), []byte(moduleFile), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(baseDir, "go.sum"), rootSums, 0o600))
+
+	for name, content := range files {
+		path := filepath.Join(baseDir, filepath.FromSlash(name))
+		require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o750))
+		require.NoError(t, os.WriteFile(path, []byte(content), 0o600))
+	}
+
+	return baseDir
+}
+
+func newResolvedContainer(t *testing.T, baseDir string, opts ...Option) *Container {
+	t.Helper()
+
+	runGlobalShutdownOnCleanup(t)
+
+	c := NewContainer(append([]Option{WithBaseDir(baseDir)}, opts...)...)
+	_, err := resolveServerConfig(&c.serverConfig, c.configServerOverrides, c.configResolvers)
+	require.NoError(t, err)
+
+	return c
+}
+
+func buildTestProject(t *testing.T, baseDir string) {
+	t.Helper()
+
+	require.NoError(t, BuildProject(context.Background(), GenerateModeManifest, newResolvedContainer(t, baseDir)))
+}
 
 func TestIsErrorPage(t *testing.T) {
 	t.Parallel()
@@ -135,4 +200,72 @@ func TestCheckSQLDiagnostics(t *testing.T) {
 			assert.Equal(t, tc.wantErrText, err.Error())
 		})
 	}
+}
+
+func TestBuildProject_ManifestModeWritesTheManifestAndPageCode(t *testing.T) {
+	baseDir := newTestProject(t, map[string]string{"pages/index.pk": testProjectIndexPage})
+	c := newResolvedContainer(t, baseDir)
+
+	err := BuildProject(context.Background(), GenerateModeManifest, c)
+
+	require.NoError(t, err)
+	assert.FileExists(t, filepath.Join(baseDir, distDirName, manifestFilenameBinary))
+	pageFiles, err := filepath.Glob(filepath.Join(baseDir, distDirName, "pages", "pages_index_*", "generated.go"))
+	require.NoError(t, err)
+	assert.Len(t, pageFiles, 1)
+}
+
+func TestBuildProject_AllModeBuildsAssetsAlongsideTheManifest(t *testing.T) {
+	baseDir := newTestProject(t, map[string]string{"pages/index.pk": testProjectIndexPage})
+	c := newResolvedContainer(t, baseDir, WithReleaseID("release-1"))
+
+	err := BuildProject(context.Background(), GenerateModeAll, c)
+
+	require.NoError(t, err)
+	assert.FileExists(t, filepath.Join(baseDir, distDirName, manifestFilenameBinary))
+	assert.DirExists(t, filepath.Join(baseDir, ".piko"))
+}
+
+func TestBuildProject_AssetsModeDoesNotWriteAManifest(t *testing.T) {
+	baseDir := newTestProject(t, map[string]string{"pages/index.pk": testProjectIndexPage})
+	c := newResolvedContainer(t, baseDir)
+
+	err := BuildProject(context.Background(), GenerateModeAssets, c)
+
+	require.NoError(t, err)
+	assert.NoFileExists(t, filepath.Join(baseDir, distDirName, manifestFilenameBinary))
+}
+
+func TestBuildProject_MissingPagesDirectoryFails(t *testing.T) {
+	baseDir := newTestProject(t, nil)
+	c := newResolvedContainer(t, baseDir)
+
+	err := BuildProject(context.Background(), GenerateModeManifest, c)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "pages source directory")
+}
+
+func TestBuildProject_EmptyPagesDirectoryCompletesWithNothingToDo(t *testing.T) {
+	for _, mode := range []string{GenerateModeManifest, GenerateModeAssets, GenerateModeSQL} {
+		t.Run(mode, func(t *testing.T) {
+			baseDir := newTestProject(t, map[string]string{"pages/notes.txt": "no pages here"})
+			c := newResolvedContainer(t, baseDir)
+
+			err := BuildProject(context.Background(), mode, c)
+
+			require.NoError(t, err)
+			assert.NoFileExists(t, filepath.Join(baseDir, distDirName, manifestFilenameBinary))
+		})
+	}
+}
+
+func TestBuildProject_RejectsAnUnsupportedMode(t *testing.T) {
+	baseDir := newTestProject(t, map[string]string{"pages/index.pk": testProjectIndexPage})
+	c := newResolvedContainer(t, baseDir)
+
+	err := BuildProject(context.Background(), "unknown", c)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `unsupported generate mode "unknown"`)
 }

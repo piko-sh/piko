@@ -32,6 +32,7 @@ import (
 
 	"piko.sh/piko/wdk/cache"
 	"piko.sh/piko/wdk/logger"
+	"piko.sh/safeconv"
 )
 
 const (
@@ -41,6 +42,12 @@ const (
 	// DefaultSearchResultLimit is the default number of results returned by search queries
 	// when no explicit limit is specified.
 	DefaultSearchResultLimit = 10
+
+	// MaxSearchResultLimit is the page size used when a text search or query asks for every
+	// match with NoLimit. It matches the search module's default MAXSEARCHRESULTS, above
+	// which the server rejects the request, and it bounds the response a single call can
+	// pull into memory.
+	MaxSearchResultLimit = 10000
 
 	// valkeyJSONPath is the root path selector for Valkey JSON commands.
 	valkeyJSONPath = "$"
@@ -60,12 +67,12 @@ const (
 	searchKeywordAS = "AS"
 )
 
-// ensureIndexExists creates the Valkey Search index if it does not already exist. This is
-// called lazily on first search operation.
+// ensureIndexExists creates the Valkey Search index if it does not already exist.
 //
 // Returns error when the index cannot be created or search is not supported.
 //
-// Safe for concurrent use. Uses a mutex to ensure only one goroutine creates the index.
+// Concurrency: Safe for concurrent use. Uses a mutex to ensure only one goroutine creates
+// the index.
 func (a *ValkeyAdapter[K, V]) ensureIndexExists(ctx context.Context) error {
 	ctx, l := logger.From(ctx, log)
 
@@ -95,8 +102,9 @@ func (a *ValkeyAdapter[K, V]) ensureIndexExists(ctx context.Context) error {
 	return nil
 }
 
-// createIndex creates the Valkey Search index using FT.CREATE. Valkey Search only
-// supports TAG and NUMERIC fields; TEXT and GEO fields are skipped with a warning.
+// createIndex creates the Valkey Search index using FT.CREATE.
+//
+// TEXT and GEO fields are skipped, as Valkey Search does not support them.
 //
 // Returns error when the index creation fails.
 func (a *ValkeyAdapter[K, V]) createIndex(ctx context.Context) error {
@@ -243,12 +251,9 @@ func (*ValkeyAdapter[K, V]) buildFilterClause(f cache.Filter) string {
 // Returns int64 which is the total count of matching documents.
 // Returns error when the search command fails or the result format is unexpected.
 func (a *ValkeyAdapter[K, V]) executeSearch(ctx context.Context, query string, opts *cache.SearchOptions) ([]valkey.ValkeyMessage, int64, error) {
-	limit := DefaultSearchResultLimit
+	limit := searchPageSize(opts)
 	offset := 0
 	if opts != nil {
-		if opts.Limit > 0 {
-			limit = opts.Limit
-		}
 		offset = opts.Offset
 	}
 
@@ -292,19 +297,20 @@ func (a *ValkeyAdapter[K, V]) executeSearch(ctx context.Context, query string, o
 // metadata.
 //
 // Returns cache.SearchResult[K, V] which contains the parsed hits with pagination info.
-// Returns error which is currently always nil but reserved for future use.
+// Returns error which is nil.
 func (a *ValkeyAdapter[K, V]) parseSearchResults(ctx context.Context, rawResults []valkey.ValkeyMessage, total int64, opts *cache.SearchOptions) (cache.SearchResult[K, V], error) {
 	result := cache.SearchResult[K, V]{
-		Items:  make([]cache.SearchHit[K, V], 0),
-		Total:  total,
-		Offset: 0,
-		Limit:  0,
+		Items:      make([]cache.SearchHit[K, V], 0),
+		Total:      total,
+		Offset:     0,
+		Limit:      0,
+		Candidates: 0,
 	}
 
 	if opts != nil {
 		result.Offset = opts.Offset
-		result.Limit = opts.Limit
 	}
+	result.Limit = searchPageSize(opts)
 
 	for i := 0; i < len(rawResults); i += 2 {
 		hit, ok := a.parseSearchHit(ctx, rawResults, i)
@@ -320,7 +326,7 @@ func (a *ValkeyAdapter[K, V]) parseSearchResults(ctx context.Context, rawResults
 //
 // Takes rawResults ([]valkey.ValkeyMessage) which contains the full array of raw search
 // result messages.
-// Takes i (int) which is the index of the key element within rawResults; the document
+// Takes i (int) which is the index of the key element within rawResults. The document
 // data follows at i+1.
 //
 // Returns cache.SearchHit[K, V] which contains the decoded key and unmarshalled value.
@@ -389,8 +395,7 @@ func (a *ValkeyAdapter[K, V]) setJSONValue(ctx context.Context, keyString string
 	return nil
 }
 
-// indexDocument stores a document for Valkey Search indexing. This is called from Set
-// when search schema is configured.
+// indexDocument stores a document for Valkey Search indexing.
 //
 // Takes keyString (string) which is the cache key for the document.
 // Takes value (V) which is the document to be indexed.
@@ -417,8 +422,7 @@ func (a *ValkeyAdapter[K, V]) indexDocument(ctx context.Context, keyString strin
 
 // searchWithValkeySearch performs a search using FT.SEARCH.
 //
-// Takes query (string) which is the text search term; may be empty for filter-only
-// queries.
+// Takes query (string) which is the text search term, or empty for filter-only queries.
 // Takes opts (*cache.SearchOptions) which provides filters, pagination, sorting, and
 // optional vector parameters.
 //
@@ -494,9 +498,10 @@ func (a *ValkeyAdapter[K, V]) queryWithValkeySearch(ctx context.Context, opts *c
 	return a.parseSearchResults(ctx, rawResults, total, searchOpts)
 }
 
-// dropIndex removes the search index. Called during InvalidateAll if search is enabled.
+// dropIndex removes the search index.
 //
-// Safe for concurrent use. Serialises index teardown under the same mutex as creation.
+// Concurrency: Safe for concurrent use. Serialises index teardown under the same mutex as
+// creation.
 func (a *ValkeyAdapter[K, V]) dropIndex(ctx context.Context) {
 	ctx, l := logger.From(ctx, log)
 
@@ -537,7 +542,8 @@ func (a *ValkeyAdapter[K, V]) needsJSONStorage() bool {
 // Takes opts (*cache.SearchOptions) which provides the vector, filters, and pagination
 // options.
 //
-// Returns SearchResult[K, V] which contains the matched documents with similarity scores.
+// Returns cache.SearchResult[K, V] which contains the matched documents with similarity
+// scores.
 // Returns error when the search command fails.
 func (a *ValkeyAdapter[K, V]) vectorSearchWithValkeySearch(ctx context.Context, query string, opts *cache.SearchOptions) (cache.SearchResult[K, V], error) {
 	vectorField := opts.VectorField
@@ -548,13 +554,7 @@ func (a *ValkeyAdapter[K, V]) vectorSearchWithValkeySearch(ctx context.Context, 
 		return cache.SearchResult[K, V]{}, errors.New("no vector field found in schema")
 	}
 
-	topK := opts.TopK
-	if topK <= 0 {
-		topK = opts.Limit
-	}
-	if topK <= 0 {
-		topK = DefaultSearchResultLimit
-	}
+	topK, pageSize := opts.VectorWindow(DefaultSearchResultLimit)
 
 	baseQuery := a.buildSearchQuery(query, opts.Filters)
 	knnQuery := fmt.Sprintf("(%s)=>[KNN %d @%s $vec]", baseQuery, topK, vectorField)
@@ -562,7 +562,7 @@ func (a *ValkeyAdapter[K, V]) vectorSearchWithValkeySearch(ctx context.Context, 
 
 	command := a.client.B().Arbitrary("FT.SEARCH").Keys(a.indexName).Args(knnQuery)
 	command = command.Args("PARAMS", "2", "vec", string(vectorToBlob(opts.Vector)))
-	command = command.Args("LIMIT", fmt.Sprintf(searchFmtInt, opts.Offset), fmt.Sprintf(searchFmtInt, topK))
+	command = command.Args("LIMIT", fmt.Sprintf(searchFmtInt, opts.Offset), fmt.Sprintf(searchFmtInt, pageSize))
 	command = command.Args("RETURN", "2", valkeyJSONPath, scoreField)
 	command = command.Args("DIALECT", "2")
 
@@ -572,7 +572,13 @@ func (a *ValkeyAdapter[K, V]) vectorSearchWithValkeySearch(ctx context.Context, 
 	}
 
 	if len(result) == 0 {
-		return cache.SearchResult[K, V]{Items: make([]cache.SearchHit[K, V], 0), Total: 0, Offset: 0, Limit: 0}, nil
+		return cache.SearchResult[K, V]{
+			Items:      make([]cache.SearchHit[K, V], 0),
+			Total:      0,
+			Offset:     opts.Offset,
+			Limit:      pageSize,
+			Candidates: 0,
+		}, nil
 	}
 
 	total, err := result[0].AsInt64()
@@ -580,7 +586,7 @@ func (a *ValkeyAdapter[K, V]) vectorSearchWithValkeySearch(ctx context.Context, 
 		return cache.SearchResult[K, V]{}, fmt.Errorf("unexpected result format: total count not int64: %w", err)
 	}
 
-	return a.parseVectorSearchResults(ctx, result[1:], total, opts, scoreField)
+	return a.parseVectorSearchResults(ctx, result[1:], total, opts, pageSize, scoreField)
 }
 
 // parseVectorSearchResults converts raw FT.SEARCH vector results to SearchResult,
@@ -591,20 +597,22 @@ func (a *ValkeyAdapter[K, V]) vectorSearchWithValkeySearch(ctx context.Context, 
 // Takes total (int64) which is the total count of matching documents reported by Valkey.
 // Takes opts (*cache.SearchOptions) which provides pagination and minimum score
 // filtering.
+// Takes pageSize (int) which is the page size the query applied.
 // Takes scoreField (string) which is the name of the distance score field in the result
 // documents.
 //
 // Returns cache.SearchResult[K, V] which contains the parsed hits with similarity scores.
-// Returns error which is currently always nil but reserved for future use.
+// Returns error which is nil.
 func (a *ValkeyAdapter[K, V]) parseVectorSearchResults(
 	ctx context.Context, rawResults []valkey.ValkeyMessage, total int64,
-	opts *cache.SearchOptions, scoreField string,
+	opts *cache.SearchOptions, pageSize int, scoreField string,
 ) (cache.SearchResult[K, V], error) {
 	result := cache.SearchResult[K, V]{
-		Items:  make([]cache.SearchHit[K, V], 0),
-		Total:  total,
-		Offset: opts.Offset,
-		Limit:  opts.Limit,
+		Items:      make([]cache.SearchHit[K, V], 0),
+		Total:      total,
+		Offset:     opts.Offset,
+		Limit:      pageSize,
+		Candidates: safeconv.Int64ToInt(total),
 	}
 
 	for i := 0; i < len(rawResults); i += 2 {
@@ -613,6 +621,7 @@ func (a *ValkeyAdapter[K, V]) parseVectorSearchResults(
 			continue
 		}
 		if opts.MinScore != nil && hit.Score < float64(*opts.MinScore) {
+			result.Candidates = min(result.Candidates, max(opts.Offset, 0)+i/2)
 			continue
 		}
 		result.Items = append(result.Items, hit)
@@ -626,7 +635,7 @@ func (a *ValkeyAdapter[K, V]) parseVectorSearchResults(
 //
 // Takes rawResults ([]valkey.ValkeyMessage) which contains the full array of raw vector
 // search result messages.
-// Takes i (int) which is the index of the key element; the document data follows at i+1.
+// Takes i (int) which is the index of the key element. The document data follows at i+1.
 // Takes scoreField (string) which is the name of the distance score field to extract from
 // the document data.
 //
@@ -789,8 +798,7 @@ func extractJSONFromDocData(docData []valkey.ValkeyMessage) string {
 }
 
 // extractVectorScore extracts the distance score from document data and converts it to a
-// similarity score. Valkey returns distance (lower is better), so we convert to
-// similarity (higher is better) as 1 - distance.
+// similarity score.
 //
 // Takes docData ([]valkey.ValkeyMessage) which contains the document fields.
 // Takes scoreField (string) which specifies the field name holding the score.
@@ -846,4 +854,23 @@ func vectorToBlob(v []float32) []byte {
 		binary.LittleEndian.PutUint32(buffer[i*float32Bytes:], math.Float32bits(f))
 	}
 	return buffer
+}
+
+// searchPageSize resolves the page size a text search or query sends to the server.
+//
+// Takes opts (*cache.SearchOptions) which carries the requested limit, or nil.
+//
+// Returns int which is a positive Limit, MaxSearchResultLimit for NoLimit, or
+// DefaultSearchResultLimit otherwise.
+func searchPageSize(opts *cache.SearchOptions) int {
+	switch {
+	case opts == nil:
+		return DefaultSearchResultLimit
+	case opts.Limit > 0:
+		return min(opts.Limit, MaxSearchResultLimit)
+	case opts.Limit == cache.NoLimit:
+		return MaxSearchResultLimit
+	default:
+		return DefaultSearchResultLimit
+	}
 }

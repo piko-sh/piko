@@ -37,7 +37,7 @@ import (
 )
 
 // EnsureStandardConstructor checks that a class has a standard constructor and creates
-// one if needed. A standard constructor has super() and this.init() calls.
+// one if needed.
 //
 // Takes classDecl (*js_ast.Class) which is the class to check.
 // Takes registry (*RegistryContext) which provides the build context.
@@ -98,9 +98,9 @@ func EnsureConnectedCallback(ctx context.Context, classDecl *js_ast.Class, regis
 	return createConnectedCallback(ctx, span, classDecl, registry)
 }
 
-// InjectInitIntoConnectedCallback adds startup logic to the connectedCallback method of a
-// web component. It inserts an init call and a super callback at the start of the method
-// body.
+// InjectInitIntoConnectedCallback adds guarded initialisation to a web component.
+//
+// Reconnecting the same element preserves its state and registered hooks.
 //
 // Takes connectedCallback (*js_ast.EFunction) which is the callback method to modify.
 //
@@ -117,7 +117,7 @@ func InjectInitIntoConnectedCallback(ctx context.Context, connectedCallback *js_
 
 	startTime := time.Now()
 
-	initStmt, err := parseSnippetAsStatement("this.init(instance.call(this, this));")
+	initStmt, err := parseSnippetAsStatement("if (!this.$$ctx) this.init(instance.call(this, this));")
 	if err != nil {
 		return fmt.Errorf("failed to parse init statement snippet: %w", err)
 	}
@@ -179,8 +179,7 @@ func createNewConstructor(ctx context.Context, span trace.Span, classDecl *js_as
 }
 
 // standardiseExistingConstructor updates an existing constructor to use a standard
-// format. It adds a super() call at the start of the body and keeps the original
-// statements, but removes any existing super() or init instance calls.
+// format.
 //
 // Takes span (trace.Span) which provides the tracing context for error reporting.
 // Takes constructor (*js_ast.EFunction) which is the constructor function to update.
@@ -316,10 +315,6 @@ func findConstructorMethod(classDecl *js_ast.Class, registry *RegistryContext) *
 // parseSnippetAsStatement parses a code snippet and returns the first statement from the
 // parsed AST.
 //
-// The function wraps the snippet in braces to form a block, then extracts the first
-// statement. It adds a semicolon if the snippet does not end with one, a closing brace,
-// or an opening brace.
-//
 // Takes snippet (string) which contains the JavaScript or TypeScript code to parse.
 //
 // Returns js_ast.Stmt which is the first parsed statement from the snippet.
@@ -364,7 +359,6 @@ func parseSnippetAsStatement(snippet string) (js_ast.Stmt, error) {
 }
 
 // parseSnippetAsBlock parses a TypeScript snippet and returns all statements as a block.
-// Use this when you need every statement from the snippet, not just the first one.
 //
 // Takes snippet (string) which contains the TypeScript code to parse.
 //
@@ -428,8 +422,6 @@ func findBlockInParts(parts []js_ast.Part) *js_ast.SBlock {
 }
 
 // parseModuleLevelStatement parses a module-level statement such as import or export.
-// Unlike parseSnippetAsStatement, this does not wrap the snippet in a block, which is
-// needed for import statements that cannot appear inside blocks.
 //
 // Takes snippet (string) which contains the TypeScript statement to parse.
 //
@@ -516,8 +508,7 @@ func buildImportFromRecords(parsedAST *js_ast.AST, trimmedSnippet string) (js_as
 	return js_ast.Stmt{Data: simport}, true
 }
 
-// parseImportAliases extracts alias mappings from an import statement string. For `import
-// { add as addNumbers, foo }`, returns {"addNumbers": "add", "foo": "foo"}.
+// parseImportAliases extracts alias mappings from an import statement string.
 //
 // Takes snippet (string) which is the import statement to parse.
 //
@@ -651,9 +642,7 @@ func buildSImportFromSymbols(allSymbols []ast.Symbol, importSymbols []ast.Symbol
 	return simport
 }
 
-// registerNamesFromSnippet extracts and registers names from a parsed statement. It walks
-// the AST to find class names, function names, and other identifiers based on the
-// statement type.
+// registerNamesFromSnippet extracts and registers names from a parsed statement.
 //
 // Takes statement (js_ast.Stmt) which is the statement to extract names from.
 // Takes symbols ([]ast.Symbol) which is the symbol table to register names into.
@@ -847,6 +836,10 @@ func registerExprIdentifiers(expression js_ast.Expr, symbols []ast.Symbol) {
 		registerExprIdentifiers(e.Target, symbols)
 	case *js_ast.EIndex:
 		registerIndexExprIdents(e, symbols)
+	case *js_ast.EIf:
+		registerExprIdentifiers(e.Test, symbols)
+		registerExprIdentifiers(e.Yes, symbols)
+		registerExprIdentifiers(e.No, symbols)
 	case *js_ast.EBinary:
 		registerBinaryExprIdents(e, symbols)
 	case *js_ast.EUnary:
@@ -938,8 +931,7 @@ func registerArrowExprIdents(e *js_ast.EArrow, symbols []ast.Symbol) {
 	}
 }
 
-// registerFunctionExprIdents registers identifiers found in a function expression. It
-// scans the function arguments and body statements.
+// registerFunctionExprIdents registers identifiers found in a function expression.
 //
 // Takes e (*js_ast.EFunction) which is the function expression to scan.
 // Takes symbols ([]ast.Symbol) which collects the found identifiers.

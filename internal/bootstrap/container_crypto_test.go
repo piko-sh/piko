@@ -23,6 +23,7 @@ import (
 	"encoding/base64"
 	"maps"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -234,4 +235,44 @@ func TestCreateLocalAESGCMProvider(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetCryptoService_RoundTripsWithAConfiguredKey(t *testing.T) {
+	runGlobalShutdownOnCleanup(t)
+
+	c := NewContainer()
+	c.serverConfig.Security.EncryptionKey = new(base64.StdEncoding.EncodeToString([]byte("0123456789abcdef0123456789abcdef")))
+	c.serverConfig.Security.DataKeyCacheTTL = new(time.Minute)
+	c.serverConfig.Security.DataKeyCacheMaxSize = new(16)
+
+	service, err := c.GetCryptoService()
+	require.NoError(t, err)
+
+	ciphertext, err := service.Encrypt(context.Background(), "secret")
+	require.NoError(t, err)
+	assert.NotEqual(t, "secret", ciphertext)
+	plaintext, err := service.Decrypt(context.Background(), ciphertext)
+	require.NoError(t, err)
+	assert.Equal(t, "secret", plaintext)
+}
+
+func TestGetCryptoService_IsDisabledWithoutAKey(t *testing.T) {
+	t.Parallel()
+
+	service, err := NewContainer().GetCryptoService()
+
+	require.NoError(t, err)
+	assert.IsType(t, &crypto_domain.DisabledCryptoService{}, service)
+}
+
+func TestGetCryptoService_ReportsAnInvalidKey(t *testing.T) {
+	t.Parallel()
+
+	c := NewContainer()
+	c.serverConfig.Security.EncryptionKey = new("not base64!")
+
+	service, err := c.GetCryptoService()
+
+	require.Error(t, err)
+	assert.Nil(t, service)
 }

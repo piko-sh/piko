@@ -23,9 +23,12 @@ import (
 	"time"
 
 	"github.com/alicebob/miniredis/v2"
+	miniredisserver "github.com/alicebob/miniredis/v2/server"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"piko.sh/piko/internal/cache/cache_domain"
+	"piko.sh/piko/internal/cache/cache_test/conformance"
 	"piko.sh/piko/wdk/cache"
 	"piko.sh/piko/wdk/cache/cache_encoder_json"
 )
@@ -139,6 +142,46 @@ func newMiniredisAdapter(t *testing.T) (*ValkeyAdapter[string, float64], *minire
 	created, err := createNamespaceGeneric(provider, "test", cache.Options[string, float64]{})
 	require.NoError(t, err)
 	adapter, ok := created.(*ValkeyAdapter[string, float64])
+	require.True(t, ok)
+	return adapter, server
+}
+
+func TestValkeyAdapter_Conformance(t *testing.T) {
+	t.Parallel()
+
+	conformance.RunStringSuite(t, conformance.StringConfig{
+		ProviderFactory: func(t *testing.T, options cache.Options[string, string]) cache_domain.Cache[string, string] {
+			t.Helper()
+
+			adapter, _ := newStringAdapter(t, options)
+			return adapter
+		},
+		SupportsIteration:          true,
+		SupportsCompute:            true,
+		HonoursContextCancellation: true,
+	})
+}
+
+func newStringAdapter(t *testing.T, options cache.Options[string, string]) (*ValkeyAdapter[string, string], *miniredis.Miniredis) {
+	t.Helper()
+
+	server := miniredis.RunT(t)
+	server.Server().SetPreHook(func(peer *miniredisserver.Peer, cmd string, _ ...string) bool {
+		if cmd != "CLUSTER" {
+			return false
+		}
+		peer.WriteError("ERR This instance has cluster support disabled")
+		return true
+	})
+	encoder, ok := cache_encoder_json.New[string]().(cache.AnyEncoder)
+	require.True(t, ok)
+	provider, err := NewValkeyProvider(Config{Address: server.Addr(), Registry: cache.NewEncodingRegistry(encoder), DefaultTTL: time.Hour})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = provider.Close() })
+
+	created, err := createNamespaceGeneric(provider, "plain", options)
+	require.NoError(t, err)
+	adapter, ok := created.(*ValkeyAdapter[string, string])
 	require.True(t, ok)
 	return adapter, server
 }

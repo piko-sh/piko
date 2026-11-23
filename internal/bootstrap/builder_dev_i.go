@@ -65,7 +65,7 @@ import (
 // interpretedDaemonBuilder holds the state and logic needed to build the daemon in
 // interpreted development mode.
 type interpretedDaemonBuilder struct {
-	// variantGenerator creates image variants on demand; nil disables this feature.
+	// variantGenerator creates image variants on demand. Nil disables this feature.
 	variantGenerator daemon_domain.OnDemandVariantGenerator
 
 	// registryService provides access to the template registry for builds and routing.
@@ -86,10 +86,10 @@ type interpretedDaemonBuilder struct {
 	// csrfService creates and checks CSRF tokens for forms.
 	csrfService security_domain.CSRFTokenService
 
-	// captchaService verifies captcha tokens; nil when captcha is disabled.
+	// captchaService verifies captcha tokens. Nil when captcha is disabled.
 	captchaService captcha_domain.CaptchaServicePort
 
-	// spamdetectService analyses form content for spam; nil when disabled.
+	// spamdetectService analyses form content for spam. Nil when disabled.
 	spamdetectService spamdetect_domain.SpamDetectServicePort
 
 	// generatorService provides content generation capabilities.
@@ -130,8 +130,7 @@ type interpretedDaemonBuilder struct {
 	// deps holds external dependencies from the application layer.
 	deps *Dependencies
 
-	// interpreterPool provides a pool of interpreters for JIT compilation. Set from
-	// Dependencies.InterpreterPool.
+	// interpreterPool provides a pool of interpreters for JIT compilation.
 	interpreterPool templater_domain.InterpreterPoolPort
 
 	// entryPoints stores the entry points found for the daemon.
@@ -239,7 +238,9 @@ func (b *interpretedDaemonBuilder) resolveServices(ctx context.Context) error {
 	if err := b.resolveGeneratorAndCoordinator(); err != nil {
 		return fmt.Errorf("resolving generator and coordinator: %w", err)
 	}
-	b.resolveRenderingServices()
+	if err := b.resolveRenderingServices(); err != nil {
+		return fmt.Errorf("resolving rendering services: %w", err)
+	}
 	if err := b.resolveResolverService(); err != nil {
 		return fmt.Errorf("resolving resolver service: %w", err)
 	}
@@ -277,8 +278,8 @@ func (b *interpretedDaemonBuilder) resolveCoreServices() error {
 
 // setupCoordinatorOverrides configures coordinator overrides before generator creation.
 //
-// CRITICAL: These overrides must be set BEFORE calling GetGeneratorService() because
-// generator service creation triggers coordinator creation (sync.Once).
+// Set these overrides before GetGeneratorService creates the coordinator through
+// sync.Once.
 //
 // Returns error when the interpreted annotator service or code emitter cannot be created.
 func (b *interpretedDaemonBuilder) setupCoordinatorOverrides(ctx context.Context) error {
@@ -314,10 +315,16 @@ func (b *interpretedDaemonBuilder) resolveGeneratorAndCoordinator() error {
 
 // resolveRenderingServices sets up the renderer, render registry, and CSRF services from
 // the container.
-func (b *interpretedDaemonBuilder) resolveRenderingServices() {
+//
+// Returns error when the CSRF service cannot be created.
+func (b *interpretedDaemonBuilder) resolveRenderingServices() error {
 	b.renderer = b.c.GetRenderer()
 	b.renderRegistry = b.c.GetRenderRegistry()
-	b.csrfService = b.c.GetCSRFService()
+	csrfService, err := b.c.GetCSRFService()
+	if err != nil {
+		return fmt.Errorf("getting CSRF service: %w", err)
+	}
+	b.csrfService = csrfService
 	captchaService, captchaErr := b.c.GetCaptchaService()
 	if captchaErr != nil {
 		_, l := logger_domain.From(context.Background(), log)
@@ -332,6 +339,7 @@ func (b *interpretedDaemonBuilder) resolveRenderingServices() {
 			logger_domain.Error(spamdetectErr))
 	}
 	b.spamdetectService = spamdetectService
+	return nil
 }
 
 // resolveResolverService sets up the resolver service for the daemon builder.
@@ -346,10 +354,8 @@ func (b *interpretedDaemonBuilder) resolveResolverService() error {
 	return nil
 }
 
-// createInterpretedAnnotatorService creates a custom annotator service configured for
-// interpreted mode with WARN-level compilation logging to reduce noise from frequent JIT
-// compilations. This override must be set before the coordinator service is created since
-// the coordinator depends on the annotator.
+// createInterpretedAnnotatorService creates an annotator with warning-level compile
+// logging.
 //
 // Returns error when the resolver, reader, processor, or service instance cannot be
 // created.
@@ -472,8 +478,7 @@ func (b *interpretedDaemonBuilder) prepareProviders(ctx context.Context) {
 	}
 }
 
-// buildTemplaterAndRunner creates the core JIT templating engine. It sets up the
-// InterpretedBuildOrchestrator and an empty initial runner.
+// buildTemplaterAndRunner creates the core JIT templating engine.
 //
 // Returns error when the absolute project root path cannot be found.
 func (b *interpretedDaemonBuilder) buildTemplaterAndRunner() error {
@@ -509,8 +514,8 @@ func (b *interpretedDaemonBuilder) buildTemplaterAndRunner() error {
 	defaultLocale := deref(b.c.serverConfig.I18nDefaultLocale, "en")
 	b.runner = templater_adapters.NewInterpretedManifestRunner(
 		b.i18nService,
-		make(map[string]*templater_adapters.PageEntry),
 		nil,
+		b.buildOrchestrator,
 		defaultLocale,
 	)
 
@@ -539,10 +544,9 @@ func (b *interpretedDaemonBuilder) setupPdfWriter() error {
 // buildRouter creates the router manager which handles dynamic route loading and prepares
 // the final wrapped http.Handler.
 //
-// The router manager receives the same request-path services as the compiled router,
-// including the auth provider and guard, analytics, rate limiting, presigned and public
-// storage handlers, the action response cache and the release identity, so every reload
-// serves the application exactly as a compiled build would.
+// The router manager must receive the same request path services as the compiled router
+// (auth provider and guard, analytics, rate limiting, storage handlers, the action
+// response cache and the release identity), so dev and production enforce the same rules.
 //
 // Returns error when the rate limit service cannot be created.
 func (b *interpretedDaemonBuilder) buildRouter(ctx context.Context) error {
@@ -624,10 +628,7 @@ func (b *interpretedDaemonBuilder) newRouterManagerConfig(ctx context.Context) (
 	}, nil
 }
 
-// buildArtefactMetadataCache builds the shared artefact-metadata cache for the
-// interpreted daemon and wires it to the registry artefact lifecycle events so that an
-// asset rewritten on disk (for example an svg) is served fresh straight away rather than
-// after the cache TTL expires.
+// buildArtefactMetadataCache creates the shared cache and subscribes to artefact changes.
 //
 // Returns cache_domain.Cache[string, *registry_dto.ArtefactMeta] which is the
 // artefact-metadata cache, or nil when no cache service is available.
@@ -675,8 +676,6 @@ func (b *interpretedDaemonBuilder) setupDevEventBroadcaster() {
 }
 
 // wireDevAPIOptionalDeps attaches optional monitoring providers to the dev API handler.
-// Each provider is best-effort; failures are logged and the handler gracefully degrades
-// to returning {"available": false} for that endpoint.
 func (b *interpretedDaemonBuilder) wireDevAPIOptionalDeps(ctx context.Context) {
 	wireDevAPIOptionalDeps(ctx, b.c, b.devAPIHandler, b.devEventBroadcaster)
 }
@@ -720,8 +719,7 @@ func (b *interpretedDaemonBuilder) buildRouterConfig() *daemon_domain.RouterConf
 }
 
 // createVariantGenerator sets up the variant generator for creating image variants on
-// demand. Variants include different formats such as WebP or different sizes, and are
-// made when first requested.
+// demand.
 func (b *interpretedDaemonBuilder) createVariantGenerator(ctx context.Context) {
 	_, l := logger_domain.From(ctx, log)
 	capabilityService, err := b.c.GetCapabilityService()
@@ -792,10 +790,7 @@ func (b *interpretedDaemonBuilder) buildInterpretedDaemonDeps(ctx context.Contex
 		return nil, fmt.Errorf("failed to start lifecycle service: %w", err)
 	}
 
-	daemonConfig := NewDaemonConfig(&b.c.serverConfig)
-	daemonConfig.DevelopmentMode = true
-	daemonConfig.NetworkAutoNextPort = true
-	daemonConfig.HealthAutoNextPort = true
+	daemonConfig := newDevelopmentDaemonConfig(&b.c.serverConfig)
 
 	serverAdapter, err := b.setupTLSServerAdapter(ctx, &daemonConfig)
 	if err != nil {
@@ -882,7 +877,7 @@ func (b *interpretedDaemonBuilder) triggerInitialBuild(ctx context.Context) erro
 // Returns []annotator_dto.EntryPoint which contains the found entry points.
 // Returns error when entry point discovery fails.
 //
-// Not safe for concurrent use; holds the builder's mutex during execution.
+// Concurrency: Protects entry point updates with the builder mutex.
 func (b *interpretedDaemonBuilder) discoverAndStoreEntryPoints(ctx context.Context) ([]annotator_dto.EntryPoint, error) {
 	_, l := logger_domain.From(ctx, log)
 	l.Internal("Discovering entry points...")
@@ -958,8 +953,7 @@ func (b *interpretedDaemonBuilder) installRunnerAndRoutes(ctx context.Context, r
 }
 
 // discoverInitialEntryPoints walks all configured source directories to find .pk files
-// that should be part of the build. It classifies them and produces EntryPoint structs
-// with the Piko Module Path that the coordinator expects.
+// that should be part of the build.
 //
 // Returns []annotator_dto.EntryPoint which contains the discovered entry points sorted
 // for consistent ordering.
@@ -972,14 +966,18 @@ func (b *interpretedDaemonBuilder) discoverInitialEntryPoints(ctx context.Contex
 	serverConfig := b.c.serverConfig
 	entryPointMap := make(map[string]annotator_dto.EntryPoint)
 
-	if err := b.discoverSourceDir(ctx, deref(serverConfig.Paths.PagesSourceDir, "pages"), true, false, entryPointMap); err != nil {
-		return nil, fmt.Errorf("discovering pages source directory: %w", err)
-	}
-	if err := b.discoverSourceDir(ctx, deref(serverConfig.Paths.PartialsSourceDir, "partials"), false, false, entryPointMap); err != nil {
-		return nil, fmt.Errorf("discovering partials source directory: %w", err)
-	}
-	if err := b.discoverSourceDir(ctx, deref(serverConfig.Paths.EmailsSourceDir, "emails"), false, true, entryPointMap); err != nil {
-		return nil, fmt.Errorf("discovering emails source directory: %w", err)
+	for _, source := range []struct {
+		directory string
+		kind      sourceKind
+	}{
+		{directory: deref(serverConfig.Paths.PagesSourceDir, "pages"), kind: sourceKind{isPage: true, isEmail: false, isPdf: false}},
+		{directory: deref(serverConfig.Paths.PartialsSourceDir, "partials"), kind: sourceKind{isPage: false, isEmail: false, isPdf: false}},
+		{directory: deref(serverConfig.Paths.EmailsSourceDir, "emails"), kind: sourceKind{isPage: false, isEmail: true, isPdf: false}},
+		{directory: deref(serverConfig.Paths.PdfsSourceDir, "pdfs"), kind: sourceKind{isPage: false, isEmail: false, isPdf: true}},
+	} {
+		if err := b.discoverSourceDir(ctx, source.directory, source.kind, entryPointMap); err != nil {
+			return nil, fmt.Errorf("discovering source directory %q: %w", source.directory, err)
+		}
 	}
 
 	return b.sortedEntryPoints(entryPointMap), nil
@@ -988,8 +986,7 @@ func (b *interpretedDaemonBuilder) discoverInitialEntryPoints(ctx context.Contex
 // discoverSourceDir walks a single source directory and populates the entry point map.
 //
 // Takes directory (string) which specifies the directory path relative to base.
-// Takes isPage (bool) which indicates whether entries are page templates.
-// Takes isEmail (bool) which indicates whether entries are email templates.
+// Takes kind (sourceKind) which classifies the source directory.
 // Takes entryPointMap (map[string]annotator_dto.EntryPoint) which collects the discovered
 // entry points.
 //
@@ -997,7 +994,7 @@ func (b *interpretedDaemonBuilder) discoverInitialEntryPoints(ctx context.Contex
 func (b *interpretedDaemonBuilder) discoverSourceDir(
 	ctx context.Context,
 	directory string,
-	isPage, isEmail bool,
+	kind sourceKind,
 	entryPointMap map[string]annotator_dto.EntryPoint,
 ) error {
 	if directory == "" {
@@ -1015,8 +1012,7 @@ func (b *interpretedDaemonBuilder) discoverSourceDir(
 	sfCtx := &sourceFileContext{
 		baseDir:       baseDir,
 		moduleName:    b.resolver.GetModuleName(),
-		isPage:        isPage,
-		isEmail:       isEmail,
+		kind:          kind,
 		entryPointMap: entryPointMap,
 	}
 	return filepath.WalkDir(absDir, func(absPath string, d os.DirEntry, err error) error {
@@ -1058,11 +1054,20 @@ type sourceFileContext struct {
 	// moduleName is the Go module name used as a prefix for Piko paths.
 	moduleName string
 
-	// isPage indicates whether this source file is a page entry point.
+	// kind classifies the directory this file was discovered in.
+	kind sourceKind
+}
+
+// sourceKind classifies a source directory by the kind of entry point its files become.
+type sourceKind struct {
+	// isPage marks a pages directory, whose files are public routes.
 	isPage bool
 
-	// isEmail indicates whether this source file is an email template.
+	// isEmail marks an emails directory.
 	isEmail bool
+
+	// isPdf marks a PDF templates directory.
+	isPdf bool
 }
 
 // processSourceFile handles a single file during directory walking.
@@ -1072,7 +1077,7 @@ type sourceFileContext struct {
 // Takes err (error) which is any error from the walk step.
 // Takes sfCtx (*sourceFileContext) which holds the results.
 //
-// Returns error which is always nil; errors are logged but do not stop the walk.
+// Returns error which is nil. Walk errors are logged without stopping discovery.
 func (*interpretedDaemonBuilder) processSourceFile(
 	ctx context.Context,
 	absPath string,
@@ -1112,16 +1117,16 @@ func (*interpretedDaemonBuilder) processSourceFile(
 	pikoPath := filepath.ToSlash(filepath.Join(sfCtx.moduleName, relPath))
 	sfCtx.entryPointMap[pikoPath] = annotator_dto.EntryPoint{
 		Path:               pikoPath,
-		IsPage:             sfCtx.isPage && !errResult.isErrorPage,
-		IsEmail:            sfCtx.isEmail,
-		IsPublic:           sfCtx.isPage,
+		IsPage:             sfCtx.kind.isPage && !errResult.isErrorPage,
+		IsEmail:            sfCtx.kind.isEmail,
+		IsPublic:           sfCtx.kind.isPage,
 		IsErrorPage:        errResult.isErrorPage,
 		ErrorStatusCode:    errResult.statusCode,
 		ErrorStatusCodeMin: errResult.rangeMin,
 		ErrorStatusCodeMax: errResult.rangeMax,
 		IsCatchAllError:    errResult.isCatchAll,
 		VirtualPageSource:  nil,
-		IsPdf:              false,
+		IsPdf:              sfCtx.kind.isPdf,
 		IsE2EOnly:          false,
 	}
 	return nil
@@ -1145,15 +1150,13 @@ func (*interpretedDaemonBuilder) sortedEntryPoints(entryPointMap map[string]anno
 }
 
 // buildLifecycleService constructs the lifecycle service, attaching the dev event
-// broadcaster only when it has been created. Assigning a nil *DevEventBroadcaster
-// straight into the DevEventNotifier interface would produce a typed-nil that passes `!=
-// nil` checks and panics on first access.
+// broadcaster only when it has been created.
 //
 // Takes fsWatcher (lifecycle_domain.FileSystemWatcher) which feeds file-change events
 // into the service.
 //
-// Returns lifecycle_domain.LifecycleService ready for Start, or an error if creation
-// fails.
+// Returns lifecycle_domain.LifecycleService which is ready to start.
+// Returns error when service creation fails.
 func (b *interpretedDaemonBuilder) buildLifecycleService(fsWatcher lifecycle_domain.FileSystemWatcher) (lifecycle_domain.LifecycleService, error) {
 	config := &lifecycleServiceConfig{
 		PathsConfig:             b.buildLifecyclePathsConfig(),
@@ -1165,6 +1168,7 @@ func (b *interpretedDaemonBuilder) buildLifecycleService(fsWatcher lifecycle_dom
 		DevEventNotifier:        nil,
 		Clock:                   nil,
 	}
+
 	if b.devEventBroadcaster != nil {
 		config.DevEventNotifier = b.devEventBroadcaster
 	}
@@ -1209,7 +1213,6 @@ func (b *interpretedDaemonBuilder) buildGeneratorPathsConfig() generator_domain.
 }
 
 // buildDevInterpretedDaemon is the entry point for the interpreted development strategy.
-// It creates a builder to assemble the daemon.
 //
 // Takes c (*Container) which provides the dependency injection container.
 // Takes deps (*Dependencies) which holds the resolved dependencies.

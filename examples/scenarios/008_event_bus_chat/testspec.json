@@ -23,7 +23,7 @@
     {
       "action": "checkText",
       "selector": ".message-log .empty-state",
-      "expected": "No messages yet - try sending one!"
+      "expected": "No messages yet. Try sending one!"
     },
     {
       "action": "checkText",

@@ -21,9 +21,11 @@ package compiled_test
 import (
 	"bytes"
 	"context"
+	_ "embed"
 	"errors"
 	"flag"
 	"fmt"
+	"go/format"
 	"io"
 	"net"
 	"net/http"
@@ -33,7 +35,6 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-	"text/template"
 	"time"
 
 	"github.com/stretchr/testify/assert"
@@ -47,6 +48,7 @@ import (
 	"piko.sh/piko/internal/compiler/compiler_domain"
 	"piko.sh/piko/internal/config/config_domain"
 	"piko.sh/piko/internal/generator/generator_helpers"
+	"piko.sh/piko/internal/gosource"
 	"piko.sh/piko/internal/i18n/i18n_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/render/render_domain"
@@ -57,11 +59,13 @@ import (
 
 var (
 	updateGoldenFiles  = flag.Bool("update", false, "Update golden files")
-	mainGoTemplate     = template.Must(template.ParseFiles("main.go.tmpl"))
 	csrfTokenRegex     = regexp.MustCompile(`(<meta name="csrf-token" content=")[^"]*(")`)
 	csrfEphemeralRegex = regexp.MustCompile(`(<meta name="csrf-ephemeral" content=")[^"]*(")`)
 	integrityRegex     = regexp.MustCompile(`(integrity=")sha384-[A-Za-z0-9+/=]+(")`)
 	testServerURLRegex = regexp.MustCompile(`(https?://)(?:localhost|127\.0\.0\.1)(?::\d+)?`)
+
+	//go:embed testdata/main.go
+	mainGoSource []byte
 )
 
 type TemplaterTestSpec struct {
@@ -73,6 +77,10 @@ type TemplaterTestSpec struct {
 	IsFragment            bool              `json:"isFragment,omitempty"`
 	ShouldError           bool              `json:"shouldError,omitempty"`
 	SkipGoldenComparison  bool              `json:"skipGoldenComparison,omitempty"`
+}
+
+func renderTestServer(module string) ([]byte, error) {
+	return gosource.RenderFixture("testdata/main.go", mainGoSource, "example.org/piko-fixture", module)
 }
 
 func runTestCase(t *testing.T, tc testCase) {
@@ -151,8 +159,6 @@ func runTestCase(t *testing.T, tc testCase) {
 	require.NoError(t, os.WriteFile(filepath.Join(tempDir, "go.work"), []byte(goWorkContent), 0644))
 
 	mainGoPath := filepath.Join(tempDir, "main.go")
-	mainGoFile, err := os.Create(mainGoPath)
-	require.NoError(t, err)
 
 	moduleNameLine := ""
 	for line := range strings.SplitSeq(updatedGoModContent, "\n") {
@@ -163,9 +169,9 @@ func runTestCase(t *testing.T, tc testCase) {
 	}
 	require.NotEmpty(t, moduleNameLine, "Could not find module name in go.mod")
 
-	err = mainGoTemplate.Execute(mainGoFile, map[string]string{"ModuleName": moduleNameLine})
+	source, err := renderTestServer(moduleNameLine)
 	require.NoError(t, err)
-	_ = mainGoFile.Close()
+	require.NoError(t, os.WriteFile(mainGoPath, source, 0644))
 
 	tidyCmd := exec.Command("go", "mod", "tidy")
 	tidyCmd.Dir = tempDir
@@ -494,4 +500,13 @@ func TestNormaliseVolatileValuesIsStableAcrossPorts(t *testing.T) {
 
 	assert.Equal(t, string(first), string(second),
 		"two runs on different ephemeral ports must normalise to the same golden content")
+}
+
+func TestHarnessFixtureImport(t *testing.T) {
+	const module = "fixture.example/app/v2"
+	rendered, err := renderTestServer(module)
+	require.NoError(t, err)
+	expected, err := format.Source(bytes.ReplaceAll(mainGoSource, []byte("example.org/piko-fixture/dist"), []byte(module+"/dist")))
+	require.NoError(t, err)
+	require.Equal(t, string(expected), string(rendered))
 }

@@ -1,0 +1,16 @@
+<template>
+<main><h1>Customer and quantity</h1>
+<form id="checkout-form" p-on:submit.prevent="next()">
+<label>Customer <input id="customer" required></label>
+<label>Quantity <input id="quantity" type="number" min="1" max="10" required></label>
+<button id="next" type="submit">Review</button>
+</form></main>
+</template>
+<script lang="ts">
+export function next(){
+	const c=document.querySelector('#customer') as HTMLInputElement;
+	const q=document.querySelector('#quantity') as HTMLInputElement;
+	sessionStorage.setItem('checkout-draft',JSON.stringify({customer:c.value,quantity:Number(q.value)}));
+	window.piko.nav.navigate('/checkout-review');
+}
+</script>

@@ -50,8 +50,7 @@ func TestCompiledRunner_Benchmark(t *testing.T) {
 		}
 
 		t.Run(bc.Name, func(t *testing.T) {
-			b := testing.B{N: 1}
-			runBenchmarkCase(&b, bc)
+			runBenchmarkCase(t, bc)
 		})
 	}
 }

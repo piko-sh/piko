@@ -124,7 +124,7 @@ func awaitThrottleSlot(
 // Takes writer (http.ResponseWriter) which receives the response.
 // Takes retryAfter (time.Duration) which tells the caller when to try again.
 func writeThrottled(writer http.ResponseWriter, retryAfter time.Duration) {
-	writer.Header().Set("Retry-After", strconv.Itoa(max(int(retryAfter/time.Second), 1)))
+	writer.Header().Set(headerRetryAfter, strconv.Itoa(retryAfterSeconds(retryAfter)))
 	http.Error(writer, "Too Many Requests", http.StatusTooManyRequests)
 }
 

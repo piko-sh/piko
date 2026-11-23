@@ -19,12 +19,15 @@
 package lifecycle_domain
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"piko.sh/safedisk"
 )
 
 func Test_osFileSystem_NewOSFileSystem(t *testing.T) {
@@ -120,4 +123,59 @@ func TestFileSystemInterface(t *testing.T) {
 
 	var _ FileSystem = (*osFileSystem)(nil)
 	var _ FileSystem = (*MockFileSystem)(nil)
+}
+
+func Test_osFileSystem_OpenReadsAnExistingFile(t *testing.T) {
+	t.Parallel()
+
+	directory := t.TempDir()
+	path := filepath.Join(directory, "note.txt")
+	require.NoError(t, os.WriteFile(path, []byte("hello"), 0o600))
+
+	handle, err := newOSFileSystem().Open(path)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = handle.Close() })
+	content, err := io.ReadAll(handle)
+	require.NoError(t, err)
+	assert.Equal(t, "hello", string(content))
+
+	_, err = newOSFileSystem().Open(filepath.Join(directory, "missing", "note.txt"))
+	require.Error(t, err)
+	assert.True(t, os.IsNotExist(err), "a missing parent directory still reads as not existing")
+}
+
+func Test_sandboxedFileSystem_ReadsThroughTheSandbox(t *testing.T) {
+	t.Parallel()
+
+	directory := t.TempDir()
+	require.NoError(t, os.MkdirAll(filepath.Join(directory, "pages"), 0o750))
+	require.NoError(t, os.WriteFile(filepath.Join(directory, "pages", "home.pk"), []byte("home"), 0o600))
+	sandbox, err := safedisk.NewSandbox(directory, safedisk.ModeReadOnly)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sandbox.Close() })
+	fileSystem := &sandboxedFileSystem{sandbox: sandbox}
+
+	var walked []string
+	require.NoError(t, fileSystem.WalkDir(".", func(path string, entry os.DirEntry, walkErr error) error {
+		require.NoError(t, walkErr)
+		if !entry.IsDir() {
+			walked = append(walked, filepath.ToSlash(path))
+		}
+		return nil
+	}))
+	assert.Equal(t, []string{"pages/home.pk"}, walked)
+
+	info, err := fileSystem.Stat("pages/home.pk")
+	require.NoError(t, err)
+	assert.Equal(t, int64(4), info.Size())
+
+	handle, err := fileSystem.Open("pages/home.pk")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = handle.Close() })
+	content, err := io.ReadAll(handle)
+	require.NoError(t, err)
+	assert.Equal(t, "home", string(content))
+
+	_, err = fileSystem.Open("../outside.pk")
+	assert.Error(t, err, "the sandbox refuses paths outside its root")
 }

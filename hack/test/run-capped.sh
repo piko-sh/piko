@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Copyright 2026 PolitePixels Limited
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,6 +21,7 @@
 #
 # Runs packages serially with Go's soft memory limit near 80% of the cap.
 # Where user systemd scopes are available, MemoryMax enforces the cap without swap.
+# The command runs in the caller's working directory.
 #
 # Usage:
 #   ./hack/test/run-capped.sh <cap> <command...>
@@ -30,18 +31,60 @@
 # Example:
 #   ./hack/test/run-capped.sh 6G go test -race -tags integration ./tests/integration/orchestrator_pipeline/...
 
-set -euo pipefail
+# Working directory of the caller, captured before init.sh moves to PIKO_ROOT.
+CALLER_DIR="$(pwd -P)"
+readonly CALLER_DIR
 
-cap="${1:?usage: run-capped.sh <cap, e.g. 6G> <command...>}"
-shift
-[[ $# -gt 0 ]] || { echo "run-capped.sh: no command given" >&2; exit 2; }
-[[ "$cap" =~ ^[0-9]+G$ ]] || { echo "run-capped.sh: cap must look like 6G, got ${cap}" >&2; exit 2; }
+# shellcheck source=../lib/init.sh
+source "$(dirname "$0")/../lib/init.sh"
 
-gibibytes="${cap%G}"
-export GOMEMLIMIT="$((gibibytes * 820))MiB"
-export GOFLAGS="${GOFLAGS:+$GOFLAGS }-p=1"
+# Mebibytes of GOMEMLIMIT per gibibyte of cap, about 80%.
+readonly GOMEMLIMIT_MIB_PER_GIB=820
 
-if command -v systemd-run >/dev/null 2>&1 && systemd-run --user --scope -q true >/dev/null 2>&1; then
-    exec systemd-run --user --scope -q -p MemoryMax="$cap" -p MemorySwapMax=0 -- "$@"
-fi
-exec "$@"
+# show_usage displays help information.
+show_usage() {
+    piko::log::info "Usage: ./hack/test/run-capped.sh <cap> <command...>"
+    piko::log::blank
+    piko::log::detail "cap      Whole gibibytes with a G suffix, e.g. 6G"
+    piko::log::detail "command  The command to run under the cap"
+}
+
+# user_scopes_available reports whether transient user systemd scopes can be created.
+# Returns:
+#   0 when systemd-run can create a user scope, 1 otherwise
+user_scopes_available() {
+    command -v systemd-run > /dev/null 2>&1 && systemd-run --user --scope -q true > /dev/null 2>&1
+}
+
+# main validates the cap and runs the command under it.
+# Globals:
+#   CALLER_DIR - Read
+#   GOMEMLIMIT_MIB_PER_GIB - Read
+# Arguments:
+#   $1 - Memory cap, e.g. 6G
+#   $@ - Command and its arguments
+main() {
+    if [[ $# -lt 2 ]]; then
+        show_usage
+        exit 2
+    fi
+
+    local cap="$1"
+    shift
+    if [[ ! "$cap" =~ ^[0-9]+G$ ]]; then
+        piko::log::error "Cap must look like 6G, got ${cap}"
+        exit 2
+    fi
+
+    local gibibytes="${cap%G}"
+    export GOMEMLIMIT="$((gibibytes * GOMEMLIMIT_MIB_PER_GIB))MiB"
+    export GOFLAGS="${GOFLAGS:+${GOFLAGS} }-p=1"
+
+    cd "$CALLER_DIR" || exit 1
+    if user_scopes_available; then
+        exec systemd-run --user --scope -q -p MemoryMax="$cap" -p MemorySwapMax=0 -- "$@"
+    fi
+    exec "$@"
+}
+
+main "$@"

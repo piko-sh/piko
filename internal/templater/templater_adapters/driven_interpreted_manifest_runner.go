@@ -37,8 +37,6 @@ import (
 )
 
 // InterpretedManifestRunner implements ManifestRunnerPort for development environments.
-// It provides live-reloading template execution via lazy JIT compilation, deferring work
-// until pages are visited for fast feedback.
 type InterpretedManifestRunner struct {
 	// progCache maps manifest keys to their cached page entries.
 	progCache map[string]*PageEntry
@@ -57,7 +55,6 @@ type InterpretedManifestRunner struct {
 }
 
 // JITCompiler defines the contract for on-demand template compilation.
-// InterpretedBuildOrchestrator implements the port.
 type JITCompiler interface {
 	// JITCompile compiles the file at the given path on demand.
 	//
@@ -66,8 +63,7 @@ type JITCompiler interface {
 	// Returns error when compilation fails.
 	JITCompile(ctx context.Context, relPath string) error
 
-	// GetCachedEntry retrieves a compiled page entry from the cache. Uses proper locking
-	// when reading shared state.
+	// GetCachedEntry retrieves a compiled page entry from the cache.
 	//
 	// Takes relPath (string) which is the path to look up in the cache.
 	//
@@ -82,9 +78,6 @@ type JITCompiler interface {
 }
 
 // RunPage serves a page request in interpreted mode.
-//
-// It performs lazy JIT compilation if the requested page is dirty, then serves the page.
-// It delegates to runPageWithRedirectLoop to handle ServerRedirect logic.
 //
 // Takes pageDef (templater_dto.PageDefinition) which specifies the page to render.
 // Takes request (*http.Request) which provides the incoming HTTP request.
@@ -119,7 +112,7 @@ func (r *InterpretedManifestRunner) RunPartial(
 }
 
 // RunPartialWithProps runs a partial and passes props through to the interpreted BuildAST
-// function. It performs lazy JIT compilation if the requested partial is dirty.
+// function.
 //
 // Takes pageDef (templater_dto.PageDefinition) which specifies the page to render.
 // Takes request (*http.Request) which provides the HTTP request context.
@@ -180,7 +173,7 @@ func (r *InterpretedManifestRunner) RunPartialWithProps(
 // Returns templater_domain.PageEntryView which contains the page metadata.
 // Returns error when the manifest key is not found.
 //
-// Safe for concurrent use. Uses a read lock when accessing the local cache.
+// Concurrency: Safe for concurrent use. Uses a read lock when accessing the local cache.
 func (r *InterpretedManifestRunner) GetPageEntry(_ context.Context, manifestKey string) (templater_domain.PageEntryView, error) {
 	if r.orchestrator != nil {
 		entry, found := r.orchestrator.GetCachedEntry(manifestKey)
@@ -201,13 +194,10 @@ func (r *InterpretedManifestRunner) GetPageEntry(_ context.Context, manifestKey 
 
 // GetKeys returns all known component paths in the cache.
 //
-// Keys are sorted by route specificity for correct Chi router matching, ensuring static
-// routes are registered before dynamic routes.
+// Returns []string which contains component paths ordered by route specificity.
 //
-// Returns []string which contains the sorted component paths.
-//
-// Safe for concurrent use when an orchestrator is present. When using the local cache
-// fallback, a read lock protects access.
+// Concurrency: Safe for concurrent use when an orchestrator is present. When using the
+// local cache fallback, a read lock protects access.
 func (r *InterpretedManifestRunner) GetKeys() []string {
 	var keys []string
 	var entryLookup func(string) *PageEntry
@@ -236,24 +226,16 @@ func (r *InterpretedManifestRunner) GetKeys() []string {
 	return keys
 }
 
-// GetPageEntryByPath provides lookup by path for ManifestStoreView interface.
+// GetPageEntryByPath finds a cached page by component path.
 //
-// Takes path (string) which specifies the page path to look up.
+// The lookup is safe to call concurrently.
 //
-// Returns templater_domain.PageEntryView which is the page entry if found.
-// Returns bool which indicates whether the path was found.
+// Takes path (string) which is the page's component path.
 //
-// Safe for concurrent use. Uses read lock when falling back to local cache.
+// Returns templater_domain.PageEntryView which holds the page entry when found.
+// Returns bool which reports whether the page was found.
 func (r *InterpretedManifestRunner) GetPageEntryByPath(path string) (templater_domain.PageEntryView, bool) {
-	if r.orchestrator != nil {
-		entry, found := r.orchestrator.GetCachedEntry(path)
-		return entry, found
-	}
-
-	r.cacheLock.RLock()
-	defer r.cacheLock.RUnlock()
-
-	entry, found := r.progCache[path]
+	entry, found := r.lookupPageEntry(path)
 	return entry, found
 }
 
@@ -276,14 +258,11 @@ func (r *InterpretedManifestRunner) ListPreviewEntries() []templater_domain.Prev
 	return listPreviewEntriesFromCache(r.liveEntries())
 }
 
-// liveEntries returns a snapshot of all cached page entries keyed by component path. It
-// reads from the orchestrator's live cache when one is attached (the hot-reload path, so
-// entries reflect the latest incremental build) and falls back to the local program cache
-// otherwise.
+// liveEntries returns a snapshot of all cached page entries keyed by component path.
 //
 // Returns map[string]*PageEntry which maps component paths to their cached entries.
 //
-// Safe for concurrent use.
+// Concurrency: Safe for concurrent use.
 func (r *InterpretedManifestRunner) liveEntries() map[string]*PageEntry {
 	if r.orchestrator != nil {
 		keys := r.orchestrator.GetAllCachedKeys()
@@ -304,8 +283,7 @@ func (r *InterpretedManifestRunner) liveEntries() map[string]*PageEntry {
 	return entries
 }
 
-// runPageWithRedirectLoop handles page execution with server-side redirect support. It
-// recursively follows ServerRedirect metadata up to maxServerRedirectHops times.
+// runPageWithRedirectLoop renders a page and follows server-side redirects.
 //
 // Takes pageDef (templater_dto.PageDefinition) which specifies the page to execute.
 // Takes request (*http.Request) which provides the HTTP request context.
@@ -314,7 +292,7 @@ func (r *InterpretedManifestRunner) liveEntries() map[string]*PageEntry {
 // Returns *ast_domain.TemplateAST which is the parsed template tree.
 // Returns templater_dto.InternalMetadata which contains page metadata.
 // Returns string which is the page styling content.
-// Returns error when the page is not found or request preparation fails.
+// Returns error when page lookup, request preparation, rendering or a redirect fails.
 func (r *InterpretedManifestRunner) runPageWithRedirectLoop(
 	ctx context.Context,
 	pageDef templater_dto.PageDefinition,
@@ -408,8 +386,12 @@ func (r *InterpretedManifestRunner) triggerJITCompilation(ctx context.Context, p
 // Returns *PageEntry which is the cached entry, or nil if not found.
 // Returns bool which indicates whether the entry was found.
 //
-// Safe for concurrent use; protected by a read lock.
+// Concurrency: A read lock protects the local cache. The orchestrator protects its own
+// cache.
 func (r *InterpretedManifestRunner) lookupPageEntry(path string) (*PageEntry, bool) {
+	if r.orchestrator != nil {
+		return r.orchestrator.GetCachedEntry(path)
+	}
 	r.cacheLock.RLock()
 	defer r.cacheLock.RUnlock()
 	pageEntry, found := r.progCache[path]
@@ -479,10 +461,6 @@ func (r *InterpretedManifestRunner) handleServerRedirect(
 
 // NewInterpretedManifestRunner creates a runner with a shared cache and JIT compiler for
 // on-demand compilation.
-//
-// This constructor is called by DaemonService after the initial build to create the
-// runner that will serve requests with lazy compilation support. The progCache is shared
-// with the orchestrator and will be updated as components are lazily compiled.
 //
 // Takes i18nService (i18n_domain.Service) which provides translation support.
 // Takes progCache (map[string]*PageEntry) which stores compiled page entries.

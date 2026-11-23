@@ -25,6 +25,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"piko.sh/piko/internal/sfcparser"
 )
 
 func TestNewFormatterService(t *testing.T) {
@@ -2112,4 +2114,301 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
 		assert.Equal(t, string(result1), string(result2),
 			"formatting should be idempotent for a full component")
 	})
+}
+
+func TestFormatterService_PreservesLiteralAttributeValues(t *testing.T) {
+	service := NewFormatterService()
+	const source = `<template><fuzz-item label='&#39;single&#39; &amp;lt; "quotes" \path' link=/route?x=1&copy=2></fuzz-item></template>`
+	first, err := service.Format(t.Context(), []byte(source))
+	require.NoError(t, err)
+	require.Contains(t, string(first), `label="&#39;single&#39; &amp;lt; &quot;quotes&quot; \path"`)
+	require.Contains(t, string(first), `link="/route?x=1&copy=2"`)
+	second, err := service.Format(t.Context(), first)
+	require.NoError(t, err)
+	require.Equal(t, first, second)
+}
+
+func formatIdempotently(t *testing.T, service FormatterService, source string) string {
+	t.Helper()
+	first, err := service.Format(t.Context(), []byte(source))
+	require.NoError(t, err)
+	second, err := service.Format(t.Context(), first)
+	require.NoError(t, err)
+	require.Equal(t, string(first), string(second), "formatting changed on a second pass")
+	return string(first)
+}
+
+func assertFragmentsInOrder(t *testing.T, output string, fragments ...string) {
+	t.Helper()
+	remaining := output
+	for _, fragment := range fragments {
+		var found bool
+		_, remaining, found = strings.Cut(remaining, fragment)
+		require.True(t, found, "missing or reordered %q in %s", fragment, output)
+	}
+}
+
+func TestFormatPKCPreservesAnimationTimelines(t *testing.T) {
+	const source = `<template name="demo-player" enable="animation"><h1 p-ref="title" p-timeline:hidden>Hello</h1><span p-timeline:anchor="title" p-timeline:hidden>Toast</span></template>
+<piko:timeline media="(min-width: 600px)">
+  <piko:at time="0.5s"><piko:show ref="title" /></piko:at>
+  <piko:at time="1s"><piko:addclass ref="title" class="played" /></piko:at>
+</piko:timeline>
+<script lang="ts">const state = { time: 0 };</script>
+<piko:timeline><piko:at time="0s"><piko:show ref="title"/></piko:at></piko:timeline>
+<style>.played { color: blue }</style>
+<i18n lang="json">{"en":{"title":"Hello"}}</i18n>`
+	before, err := sfcparser.Parse([]byte(source))
+	require.NoError(t, err)
+	require.Len(t, before.Timelines, 2)
+
+	first := formatIdempotently(t, NewFormatterService(), source)
+	after, err := sfcparser.Parse([]byte(first))
+	require.NoError(t, err)
+	require.Len(t, after.Timelines, len(before.Timelines))
+	for index, want := range before.Timelines {
+		got := after.Timelines[index]
+		assert.Equal(t, want.Attributes, got.Attributes, "timeline %d attributes", index)
+		assert.Equal(t, want.Content, got.Content, "timeline %d content", index)
+	}
+	assert.Equal(t, 2, strings.Count(after.Template, "p-timeline:hidden"))
+	assert.Contains(t, after.Template, `p-timeline:anchor="title"`)
+	assert.Equal(t, before.TemplateAttributes, after.TemplateAttributes)
+	assert.Len(t, after.Scripts, 1)
+	assert.Len(t, after.Styles, 1)
+	assert.Len(t, after.I18nBlocks, 1)
+}
+
+func TestFormatPreservesEventsMemoAndNamedFills(t *testing.T) {
+	tests := []struct {
+		name   string
+		source string
+		want   []string
+	}{
+		{
+			name:   "custom event listeners on a PKC child",
+			source: `<template name="demo-board"><demo-picker p-event:choose.stop.once='onPick($event, "A&B")' p-event:choose.self="onSelf($event)" p-event:review=inspect("can't")></demo-picker></template>`,
+			want:   []string{`p-event:choose.stop.once='onPick($event, "A&B")'`, `p-event:choose.self="onSelf($event)"`, `p-event:review="inspect(&quot;can't&quot;)"`},
+		},
+		{
+			name:   "native click modifiers on a PK button",
+			source: `<template><button p-on:click.prevent.stop='open("It&#39;s ready")'>Pick</button></template>`,
+			want:   []string{`p-on:click.prevent.stop='open("It&#39;s ready")'`},
+		},
+		{
+			name:   "keyed PKC row memo dependencies",
+			source: `<template name="demo-list"><ul><li p-for="row in state.rows" p-key="row.id" p-memo='[row.version, state.filter == "new"]'>{{ row.label }}</li></ul></template>`,
+			want:   []string{`p-memo='[row.version, state.filter == "new"]'`},
+		},
+		{
+			name:   "named and default fills in a PK partial invocation",
+			source: `<template><piko:partial is="frame"><h2 p-slot="caption">Title</h2><section p-slot="body">Body</section><p>Default</p></piko:partial></template>`,
+			want:   []string{`<h2 p-slot="caption">Title</h2>`, `<section p-slot="body">Body</section>`, "<p>Default</p>"},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assertFragmentsInOrder(t, formatIdempotently(t, NewFormatterService(), test.source), test.want...)
+		})
+	}
+}
+
+func TestFormatPreservesDirectiveValueSpelling(t *testing.T) {
+	tests := []struct {
+		name string
+		attr string
+	}{
+		{name: "condition holding double quotes", attr: `p-if='state.mode == "edit"'`},
+		{name: "else-if holding a backslash", attr: `p-else-if="state.path == 'a\\b'"`},
+		{name: "loop over a filtered call", attr: `p-for='item in filter(state.items, "open")'`},
+		{name: "show", attr: `p-show='state.tab == "info"'`},
+		{name: "key", attr: `p-key='item.id + "-row"'`},
+		{name: "text", attr: `p-text='state.greeting + ", world"'`},
+		{name: "html", attr: `p-html='render("<b>x</b>")'`},
+		{name: "class over several lines", attr: "p-class=\"{\n  active: state.on,\n  quiet: !state.on\n}\""},
+		{name: "style", attr: `p-style='{ color: state.colour || "red" }'`},
+		{name: "bound property", attr: `p-bind:title='state.title + " (draft)"'`},
+		{name: "dynamic attribute", attr: `:aria-label='label("close")'`},
+		{name: "model", attr: `p-model="state.form['name']"`},
+		{name: "ref", attr: `p-ref="title"`},
+		{name: "context", attr: `p-context='{ theme: "dark" }'`},
+		{name: "scaffold", attr: `p-scaffold='scaffold("card")'`},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			source := "<template><div " + test.attr + ">x</div></template>"
+			assert.Contains(t, formatIdempotently(t, NewFormatterService(), source), test.attr)
+		})
+	}
+}
+
+func TestFormatSFCPreservesMultilineText(t *testing.T) {
+	const literal = "left  words\n  right\n"
+	for _, tag := range []string{"pre", "textarea", "code"} {
+		t.Run(tag, func(t *testing.T) {
+			input := "<template><section><" + tag + ">" + literal + "</" + tag + "></section></template>"
+			assert.Contains(t, formatIdempotently(t, NewFormatterService(), input), "<"+tag+">"+literal+"</"+tag+">")
+		})
+	}
+}
+
+func TestFormatPreservesElementsInsideWhitespaceSensitiveContent(t *testing.T) {
+	tests := []struct {
+		name   string
+		source string
+		want   string
+	}{
+		{name: "code nested in pre", source: "<template><pre><code>x\n  y</code></pre></template>", want: "<pre><code>x\n  y</code></pre>"},
+		{name: "bold text in pre", source: "<template><pre>a <b>b</b>\n  c</pre></template>", want: "<pre>a <b>b</b>\n  c</pre>"},
+		{name: "element in inline code", source: "<template><p><code>x</code> and <code>y <b>z</b></code></p></template>", want: "<p><code>x</code> and <code>y <b>z</b></code></p>"},
+		{name: "comment in pre", source: "<template><pre>a<!-- keep -->b</pre></template>", want: "<pre>a<!-- keep -->b</pre>"},
+		{name: "contenteditable keeps its layout", source: "<template><div contenteditable>a  b\n  c</div></template>", want: "<div contenteditable>a  b\n  c</div>"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Contains(t, formatIdempotently(t, NewFormatterService(), test.source), test.want)
+		})
+	}
+}
+
+func TestFormatKeepsScriptAndStyleTextVerbatim(t *testing.T) {
+	tests := []struct {
+		name string
+		text string
+		tag  string
+	}{
+		{name: "line comment before code", tag: "script", text: "// note\nrun()"},
+		{name: "references stay undecoded", tag: "script", text: `const a = "&amp;"`},
+		{name: "operators", tag: "script", text: `if (a < b && b > 0) { count++; }`},
+		{name: "style selectors", tag: "style", text: "a > b { color: red }\n.c {}"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			for _, source := range []string{
+				"<template><div><" + test.tag + ">" + test.text + "</" + test.tag + "></div></template>",
+				"<section><" + test.tag + ">" + test.text + "</" + test.tag + "></section>",
+			} {
+				assert.Contains(t, formatIdempotently(t, NewFormatterService(), source), test.text)
+			}
+		})
+	}
+}
+
+func TestFormatKeepsEscapedTextLiteral(t *testing.T) {
+	output := formatIdempotently(t, NewFormatterService(), "<template><p>&#123;&#123; x }} and&nbsp;y</p><pre>{{ raw }}</pre></template>")
+
+	assert.NotContains(t, output, "<p>{{", "escaped braces must not become an interpolation")
+	assert.Contains(t, output, "&#123;&#123; x }}")
+	assert.Contains(t, output, "and&nbsp;y", "a no-break space stays visible")
+	assert.Contains(t, output, "<pre>{{ raw }}</pre>", "pre never interpolates, so its braces stay as written")
+}
+
+func TestFormatKeepsEscapedBraceBeforeInterpolation(t *testing.T) {
+	output := formatIdempotently(t, NewFormatterService(), "<template><p>&#123;{{ x }} and {&#123;{{ y }}</p></template>")
+
+	assert.Contains(t, output, "&#123;{{ x }}", "a literal brace must not join the interpolation")
+	assert.Contains(t, output, "and &#123;&#123;{{ y }}")
+	assert.NotContains(t, output, "{{{")
+}
+
+func TestFormatQuotesForeignDirectiveHoldingBothQuotes(t *testing.T) {
+	output := formatIdempotently(t, NewFormatterService(), `<template><svg><text :title="a == &quot;x&quot; ? 'y' : 'z'"></text></svg></template>`)
+
+	assert.Contains(t, output, `:title="a == &quot;x&quot; ? 'y' : 'z'"`)
+}
+
+func TestFormatEscapesForeignStaticAttributes(t *testing.T) {
+	output := formatIdempotently(t, NewFormatterService(), `<template><svg title="a &lt; b &amp;&amp; &quot;c&quot;"><g aria-label="x &lt; y"><rect></rect></g></svg></template>`)
+
+	assert.Contains(t, output, `title="a &lt; b &amp;&amp; &quot;c&quot;"`)
+	assert.Contains(t, output, `aria-label="x &lt; y"`)
+}
+
+func TestFormatKeepsHTMLStaticAttributeSpelling(t *testing.T) {
+	output := formatIdempotently(t, NewFormatterService(), `<template><a href="/a?x=1&amp;y=2" title="a < b">link</a></template>`)
+
+	assert.Contains(t, output, `href="/a?x=1&amp;y=2"`)
+	assert.Contains(t, output, `title="a < b"`)
+}
+
+func TestFormatRejectsPreservedContentNestedTooDeeply(t *testing.T) {
+	depth := maxVerbatimDepth + 1
+	source := "<template><pre>" + strings.Repeat("<b>", depth) + "x" + strings.Repeat("</b>", depth) + "</pre></template>"
+
+	service, ok := NewFormatterService().(*formatterServiceImpl)
+	require.True(t, ok)
+
+	_, err := service.formatTemplate(t.Context(), source, DefaultFormatOptions())
+	require.ErrorIs(t, err, errVerbatimTooDeep)
+
+	output, err := service.Format(t.Context(), []byte(source))
+	require.NoError(t, err)
+	assert.Contains(t, string(output), strings.Repeat("<b>", depth), "the unformattable template is kept as written")
+}
+
+func TestFormatKeepsDeepPreservedContentWithinLimit(t *testing.T) {
+	const depth = 50
+	nested := strings.Repeat("<b>", depth) + "x" + strings.Repeat("</b>", depth)
+
+	output := formatIdempotently(t, NewFormatterService(), "<template><pre>"+nested+"</pre></template>")
+
+	assert.Contains(t, output, "<pre>"+nested+"</pre>")
+}
+
+func TestFormatPKCKeepsRegistrationAttributes(t *testing.T) {
+	formatter := NewFormatterService()
+	const source = `<template name="pp-counter" enable="form" title='A "caption"'><button>count</button></template>`
+	output := formatIdempotently(t, formatter, source)
+	blocks, err := sfcparser.Parse([]byte(output))
+	require.NoError(t, err)
+	assert.Equal(t, "pp-counter", blocks.TemplateAttributes["name"])
+	assert.Equal(t, "form", blocks.TemplateAttributes["enable"])
+	assert.Equal(t, `A "caption"`, blocks.TemplateAttributes["title"])
+	for range 10 {
+		next, err := formatter.Format(t.Context(), []byte(output))
+		require.NoError(t, err)
+		require.Equal(t, output, string(next), "template attributes formatted inconsistently")
+	}
+}
+
+func TestFormatTemplateAttributeKeepsReferences(t *testing.T) {
+	output := formatIdempotently(t, NewFormatterService(), `<template title="A &quot;b&quot; 'c'"><p>x</p></template>`)
+	assert.Contains(t, output, `<template title="A &quot;b&quot; 'c'">`)
+}
+
+func TestFormatPartialWithNestedBlockIsIdempotent(t *testing.T) {
+	formatIdempotently(t, NewFormatterService(), `<template><piko:partial is="frame"><div><main><div><p>item</p></div></main></div></piko:partial></template>`)
+}
+
+func TestFormatLiteralEntitiesAndInterpolations(t *testing.T) {
+	const expression = `{{ state.Count < 2 && state.Name == "a  b" }}`
+	const source = `<template><ul><li>&lt;text&gt;</li><li>&amp;lt;</li><li>&lt; ` + expression + ` &amp;</li></ul><pre>&lt;text&gt;
+  &amp;lt;</pre></template>`
+	output := formatIdempotently(t, NewFormatterService(), source)
+	for _, fragment := range []string{"<li>&lt;text&gt;</li>", "<li>&amp;lt;</li>", "&lt; " + expression + " &amp;", "<pre>&lt;text&gt;\n  &amp;lt;</pre>"} {
+		assert.Contains(t, output, fragment)
+	}
+}
+
+func TestFormatInlineSiblingsAfterEmptyElement(t *testing.T) {
+	formatIdempotently(t, NewFormatterService(), `<template name="pp-counter"><div><span id="count" p-text="state.count"></span><button id="increment" p-on:click="increment">+</button></div></template>`)
+}
+
+func TestFormatWrappedChildAttributesPreservesInlineBoundaries(t *testing.T) {
+	opts := DefaultFormatOptions()
+	opts.MaxLineLength = 12
+	formatter := NewFormatterServiceWithOptions(opts)
+	for _, testCase := range []struct {
+		name, body string
+		inline     bool
+	}{
+		{name: "one_child", body: `<section><output a="123"></output></section>`, inline: true},
+		{name: "siblings", body: `<section><output a="123"></output><span>next</span></section>`, inline: true},
+		{name: "author_line_breaks", body: "<section>\n<output a=\"123\"></output>\n</section>", inline: false},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			output := formatIdempotently(t, formatter, "<template><div>"+testCase.body+"</div></template>")
+			assert.Equal(t, testCase.inline, strings.Contains(output, "<section><output\n"), "wrong parent/child whitespace: %q", output)
+		})
+	}
 }

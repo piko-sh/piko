@@ -56,7 +56,7 @@ import { action } from "/_piko/assets/pk-js/pk/actions.gen.js";
             return {"active": true, "count": 42, "data": {"nested": "object"}, "disabled": false, "items": ["Alpha", "Beta", "Gamma"], "message": "Hello from JavaScript"};
         }
         connectedCallback () {
-            this.init(instance.call(this, this));
+            if (!this.$$ctx) this.init(instance.call(this, this));
             super.connectedCallback();
         }
         renderVDOM () {

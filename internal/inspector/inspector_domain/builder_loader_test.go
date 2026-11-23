@@ -196,3 +196,12 @@ func TestErrorKindName(t *testing.T) {
 	assert.Equal(t, "TypeError", errorKindName(packages.TypeError))
 	assert.Equal(t, "UnknownError", errorKindName(packages.ErrorKind(99)))
 }
+
+func TestLoaderBuildFlagsDisablesVCSStamping(t *testing.T) {
+	assert.Equal(t, []string{"-tags=x", "-buildvcs=false"}, loaderBuildFlags([]string{"-tags=x"}))
+	assert.Equal(t, []string{"-buildvcs=true"}, loaderBuildFlags([]string{"-buildvcs=true"}))
+
+	configured := []string{"-tags=x"}
+	_ = loaderBuildFlags(configured)
+	assert.Equal(t, []string{"-tags=x"}, configured, "the caller's flags must not be modified")
+}

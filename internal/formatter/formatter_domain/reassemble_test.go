@@ -535,3 +535,81 @@ func TestReassembleSFC_BlockSpacing(t *testing.T) {
 		assert.True(t, strings.HasPrefix(result, "\n<i18n>"))
 	})
 }
+
+func TestFormatRawAttributeValue(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name  string
+		value string
+		want  string
+	}{
+		{name: "no quotes", value: "a == b", want: `"a == b"`},
+		{name: "double quotes only", value: `a == "x"`, want: `'a == "x"'`},
+		{name: "single quotes only", value: "a == 'x'", want: `"a == 'x'"`},
+		{name: "both quote kinds", value: `a == "x" ? 'y' : 'z'`, want: `"a == &quot;x&quot; ? 'y' : 'z'"`},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, test.want, formatRawAttributeValue(test.value))
+		})
+	}
+}
+
+func TestNextInterpolationState(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name    string
+		raw     string
+		open    bool
+		canOpen bool
+		want    bool
+	}{
+		{name: "plain text", raw: "hello", want: false, canOpen: true},
+		{name: "text opens", raw: `a {{ "`, want: true, canOpen: true},
+		{name: "text opens and closes", raw: "a {{ b }} c", want: false, canOpen: true},
+		{name: "text closes and reopens", raw: `" }} and {{ "`, open: true, want: true, canOpen: true},
+		{name: "open stays open", raw: "a<pre", open: true, want: true, canOpen: true},
+		{name: "tag closes", raw: `<code" }}>`, open: true, want: false},
+		{name: "tag never opens", raw: `<p title="{{">`, want: false},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, test.want, nextInterpolationState(test.raw, test.open, test.canOpen))
+		})
+	}
+}
+
+func TestWriteTemplateBlockIgnoresTagsInsideInterpolations(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		template string
+		want     string
+	}{
+		{
+			name:     "start tag in a string",
+			template: "<p>{{ \"<code>\" }}</p>\n<div>\n  <p>after</p>\n</div>",
+			want:     "<template>\n  <p>{{ \"<code>\" }}</p>\n  <div>\n    <p>after</p>\n  </div>\n</template>\n",
+		},
+		{
+			name:     "comparison against a tag name",
+			template: "<p>{{ a<pre }}</p>\n<div>after</div>",
+			want:     "<template>\n  <p>{{ a<pre }}</p>\n  <div>after</div>\n</template>\n",
+		},
+		{
+			name:     "real preserved element after an interpolation",
+			template: "<p>{{ a }}</p>\n<pre>keep\nthis</pre>\n<div>after</div>",
+			want:     "<template>\n  <p>{{ a }}</p>\n  <pre>keep\nthis</pre>\n  <div>after</div>\n</template>\n",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			var builder strings.Builder
+			writeTemplateBlock(&builder, test.template, nil)
+			assert.Equal(t, test.want, builder.String())
+		})
+	}
+}

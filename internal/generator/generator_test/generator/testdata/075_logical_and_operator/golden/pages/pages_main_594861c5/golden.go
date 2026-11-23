@@ -176,11 +176,21 @@ func BuildAST(r *piko.RequestData, propsData interface{}) (*pikoruntime.Template
 	}
 	tempVar1.Children = append(tempVar1.Children, staticNode_19)
 	// line pages/main.pk:49:26
-	if pikoruntime.EvaluateOr(pageData.IsAdmin, pageData.IsModerator).(bool) && pageData.IsActive {
+	if func() any {
+		if value := any(pageData.IsAdmin); pikoruntime.EvaluateTruthiness(value) {
+			return value
+		}
+		return pageData.IsModerator
+	}().(bool) && pageData.IsActive {
 		tempVar1.Children = append(tempVar1.Children, staticNode_20)
 	}
 	// line pages/main.pk:50:26
-	if pikoruntime.EvaluateOr(pageData.IsAdmin, pageData.IsModerator && pageData.IsVerified).(bool) {
+	if func() any {
+		if value := any(pageData.IsAdmin); pikoruntime.EvaluateTruthiness(value) {
+			return value
+		}
+		return pageData.IsModerator && pageData.IsVerified
+	}().(bool) {
 		tempVar1.Children = append(tempVar1.Children, staticNode_21)
 	}
 	tempVar1.Children = append(tempVar1.Children, staticNode_22)

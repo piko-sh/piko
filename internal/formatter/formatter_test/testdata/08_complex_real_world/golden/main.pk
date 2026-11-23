@@ -15,7 +15,7 @@
         </li>
       </ul>
     </div>
-    <form class="add-to-cart" p-on:submit="addToCart">
+    <form class="add-to-cart" p-on:submit.prevent="addToCart">
       <label>Quantity:</label>
       <input :max="state.Product.StockQuantity" min="1" p-model="state.Quantity" type="number" />
       <button :disabled="state.IsProcessing || state.Product.StockQuantity == 0" type="submit">

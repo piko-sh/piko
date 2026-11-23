@@ -48,7 +48,7 @@ type Config struct {
 	// Valkey instances to prevent key collisions.
 	Namespace string
 
-	// Address is the Valkey server address (for example, "localhost:6379").
+	// Address identifies one standalone Valkey server, such as "localhost:6379".
 	Address string
 
 	// ClientName is the client name sent to Valkey via CLIENT SETNAME.

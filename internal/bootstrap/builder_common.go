@@ -44,22 +44,25 @@ import (
 	"piko.sh/safedisk"
 )
 
-// runInitialTasksInBackground spawns a goroutine that runs the lifecycle service's
-// one-time startup tasks (theme seeding, configuration loading, asset discovery). Errors
-// are logged unless the context has already been cancelled.
+// runInitialTasksInBackground starts the lifecycle service's one-time startup tasks.
 //
-// Takes appCtx (context.Context) which controls the lifetime of the goroutine and carries
-// its logger.
-// Takes lifecycleService (lifecycle_domain.LifecycleService) which provides the initial
-// tasks to run.
-func runInitialTasksInBackground(appCtx context.Context, lifecycleService lifecycle_domain.LifecycleService) {
+// Takes lifecycleService (lifecycle_domain.LifecycleService) which runs the tasks.
+//
+// Returns <-chan struct{} which closes after the tasks finish.
+//
+// Concurrency: The tasks run in a goroutine under the application's context. Errors are
+// logged unless the context has already been cancelled.
+func runInitialTasksInBackground(appCtx context.Context, lifecycleService lifecycle_domain.LifecycleService) <-chan struct{} {
+	done := make(chan struct{})
 	go func() {
+		defer close(done)
 		defer goroutine.RecoverPanic(appCtx, "bootstrap.runInitialTasks")
 		if err := lifecycleService.RunInitialTasks(appCtx); err != nil && appCtx.Err() == nil {
 			_, l := logger_domain.From(appCtx, log)
 			l.Error("Initial tasks failed", logger_domain.Error(err))
 		}
 	}()
+	return done
 }
 
 // wireMonitoringInspectors connects the orchestrator and registry inspectors to the

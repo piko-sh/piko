@@ -1,0 +1,448 @@
+# kind	name	contract owner
+adapter-module	analytics_collector_ga4	public provider contract: analytics
+adapter-module	analytics_collector_grpcfb	public provider contract: analytics
+adapter-module	analytics_collector_plausible	public provider contract: analytics
+adapter-module	cache_linguistics	public provider contract: cache
+adapter-module	cache_provider_redis	public provider contract: cache
+adapter-module	cache_provider_redis_cluster	public provider contract: cache
+adapter-module	cache_provider_valkey	public provider contract: cache
+adapter-module	cache_provider_valkey_cluster	public provider contract: cache
+adapter-module	captcha_provider_hcaptcha	public provider contract: captcha
+adapter-module	captcha_provider_recaptcha_v3	public provider contract: captcha
+adapter-module	captcha_provider_turnstile	public provider contract: captcha
+adapter-module	config_resolver_aws	public provider contract: config
+adapter-module	config_resolver_azure	public provider contract: config
+adapter-module	config_resolver_gcp	public provider contract: config
+adapter-module	config_resolver_kubernetes	public provider contract: config
+adapter-module	config_resolver_vault	public provider contract: config
+adapter-module	crypto_provider_aws_kms	public provider contract: crypto
+adapter-module	crypto_provider_gcp_kms	public provider contract: crypto
+adapter-module	crypto_signer_mldsa	public provider contract: crypto
+adapter-module	db_driver_d1	public provider contract: db
+adapter-module	db_driver_sqlite_cgo	public provider contract: db
+adapter-module	db_driver_sqlite_nocgo	public provider contract: db
+adapter-module	db_engine_clickhouse	public provider contract: db
+adapter-module	db_engine_cockroachdb	public provider contract: db
+adapter-module	db_engine_duckdb	public provider contract: db
+adapter-module	db_engine_mariadb	public provider contract: db
+adapter-module	db_engine_mysql	public provider contract: db
+adapter-module	db_engine_postgres	public provider contract: db
+adapter-module	db_engine_sqlite	public provider contract: db
+adapter-module	db_engine_timescaledb	public provider contract: db
+adapter-module	db_provider_seagull	public provider contract: db
+adapter-module	email_collector_grpcfb	public provider contract: email
+adapter-module	email_provider_gmail	public provider contract: email
+adapter-module	email_provider_mailchimp_transactional	public provider contract: email
+adapter-module	email_provider_mailgun	public provider contract: email
+adapter-module	email_provider_postmark	public provider contract: email
+adapter-module	email_provider_sendgrid	public provider contract: email
+adapter-module	email_provider_ses	public provider contract: email
+adapter-module	email_provider_smtp	public provider contract: email
+adapter-module	events_provider_nats	public provider contract: events
+adapter-module	highlight_chroma	public provider contract: highlight
+adapter-module	image_provider_imaging	public provider contract: image
+adapter-module	image_provider_vips	public provider contract: image
+adapter-module	interp_piko_symbols	public provider contract: interp
+adapter-module	interp_provider_pipit	public provider contract: interp
+adapter-module	json_provider_sonic	public provider contract: json
+adapter-module	linguistics_bigrams_dutch	public provider contract: linguistics
+adapter-module	linguistics_bigrams_english	public provider contract: linguistics
+adapter-module	linguistics_bigrams_french	public provider contract: linguistics
+adapter-module	linguistics_bigrams_german	public provider contract: linguistics
+adapter-module	linguistics_bigrams_hungarian	public provider contract: linguistics
+adapter-module	linguistics_bigrams_norwegian	public provider contract: linguistics
+adapter-module	linguistics_bigrams_russian	public provider contract: linguistics
+adapter-module	linguistics_bigrams_spanish	public provider contract: linguistics
+adapter-module	linguistics_bigrams_swedish	public provider contract: linguistics
+adapter-module	linguistics_language_dutch	public provider contract: linguistics
+adapter-module	linguistics_language_english	public provider contract: linguistics
+adapter-module	linguistics_language_french	public provider contract: linguistics
+adapter-module	linguistics_language_german	public provider contract: linguistics
+adapter-module	linguistics_language_hungarian	public provider contract: linguistics
+adapter-module	linguistics_language_mock	public provider contract: linguistics
+adapter-module	linguistics_language_norwegian	public provider contract: linguistics
+adapter-module	linguistics_language_russian	public provider contract: linguistics
+adapter-module	linguistics_language_spanish	public provider contract: linguistics
+adapter-module	linguistics_language_swedish	public provider contract: linguistics
+adapter-module	linguistics_phonetic_dutch	public provider contract: linguistics
+adapter-module	linguistics_phonetic_english	public provider contract: linguistics
+adapter-module	linguistics_phonetic_french	public provider contract: linguistics
+adapter-module	linguistics_phonetic_german	public provider contract: linguistics
+adapter-module	linguistics_phonetic_hungarian	public provider contract: linguistics
+adapter-module	linguistics_phonetic_mock	public provider contract: linguistics
+adapter-module	linguistics_phonetic_norwegian	public provider contract: linguistics
+adapter-module	linguistics_phonetic_russian	public provider contract: linguistics
+adapter-module	linguistics_phonetic_spanish	public provider contract: linguistics
+adapter-module	linguistics_phonetic_swedish	public provider contract: linguistics
+adapter-module	linguistics_stemmer_dutch	public provider contract: linguistics
+adapter-module	linguistics_stemmer_english	public provider contract: linguistics
+adapter-module	linguistics_stemmer_french	public provider contract: linguistics
+adapter-module	linguistics_stemmer_german	public provider contract: linguistics
+adapter-module	linguistics_stemmer_hungarian	public provider contract: linguistics
+adapter-module	linguistics_stemmer_mock	public provider contract: linguistics
+adapter-module	linguistics_stemmer_norwegian	public provider contract: linguistics
+adapter-module	linguistics_stemmer_russian	public provider contract: linguistics
+adapter-module	linguistics_stemmer_spanish	public provider contract: linguistics
+adapter-module	linguistics_stemmer_swedish	public provider contract: linguistics
+adapter-module	linguistics_stopwords_dutch	public provider contract: linguistics
+adapter-module	linguistics_stopwords_english	public provider contract: linguistics
+adapter-module	linguistics_stopwords_french	public provider contract: linguistics
+adapter-module	linguistics_stopwords_german	public provider contract: linguistics
+adapter-module	linguistics_stopwords_hungarian	public provider contract: linguistics
+adapter-module	linguistics_stopwords_mock	public provider contract: linguistics
+adapter-module	linguistics_stopwords_norwegian	public provider contract: linguistics
+adapter-module	linguistics_stopwords_russian	public provider contract: linguistics
+adapter-module	linguistics_stopwords_spanish	public provider contract: linguistics
+adapter-module	linguistics_stopwords_swedish	public provider contract: linguistics
+adapter-module	llm_provider_anthropic	public provider contract: llm
+adapter-module	llm_provider_gemini	public provider contract: llm
+adapter-module	llm_provider_grok	public provider contract: llm
+adapter-module	llm_provider_mistral	public provider contract: llm
+adapter-module	llm_provider_ollama	public provider contract: llm
+adapter-module	llm_provider_openai	public provider contract: llm
+adapter-module	llm_provider_zoltai	public provider contract: llm
+adapter-module	log_collector_grpcfb	public provider contract: log
+adapter-module	logger_integration_otel_grpc	public provider contract: logger
+adapter-module	logger_integration_otel_http	public provider contract: logger
+adapter-module	logger_integration_sentry	public provider contract: logger
+adapter-module	logger_otel_sdk	public provider contract: logger
+adapter-module	markdown_provider_goldmark	public provider contract: markdown
+adapter-module	metric_collector_grpcfb	public provider contract: metric
+adapter-module	metrics_exporter_prometheus	public provider contract: metrics
+adapter-module	monitoring_api	public provider contract: monitoring
+adapter-module	monitoring_transport_grpc	public provider contract: monitoring
+adapter-module	query_collector_grpcfb	public provider contract: query
+adapter-module	readiness_collector_grpcfb	public provider contract: readiness
+adapter-module	span_collector_grpcfb	public provider contract: span
+adapter-module	storage_provider_gcs	public provider contract: storage
+adapter-module	storage_provider_r2	public provider contract: storage
+adapter-module	storage_provider_s3	public provider contract: storage
+adapter-module	storage_transformer_gzip	public provider contract: storage
+adapter-module	storage_transformer_zstd	public provider contract: storage
+adapter-module	system_memlimit_automemlimit	public provider contract: system
+adapter-module	telemetry_grpcfb	public provider contract: telemetry
+adapter-module	validation_provider_playground	public provider contract: validation
+adapter-module	video_provider_astiav	public provider contract: video
+adapter-module	watchdog_grpcfb	public provider contract: watchdog
+app-target	browser-events	application execution and independent model
+app-target	browser-lifecycle	application execution and independent model
+app-target	catalog-rebuild	application execution and independent model
+app-target	collection-routes	application execution and independent model
+app-target	components	application execution and independent model
+app-target	form-workflow	application execution and independent model
+app-target	generated-artifacts	compiled Go registrations, selective manifest rebuild, typed action client and symbols
+app-target	graph-rebuild	application execution and independent model
+app-target	http-actions	application execution and independent model
+app-target	pages	application execution and independent model
+app-target	partial-components	application execution and independent model
+app-target	typed-catalog	application execution and independent model
+cli	agents	operator entry point and artifact contract
+cli	build	operator entry point and artifact contract
+cli	describe	operator entry point and artifact contract
+cli	dev	operator entry point and artifact contract
+cli	dev-i	operator entry point and artifact contract
+cli	diagnostics	operator entry point and artifact contract
+cli	explain	operator entry point and artifact contract
+cli	extract	operator entry point and artifact contract
+cli	fmt	operator entry point and artifact contract
+cli	generate	operator entry point and artifact contract
+cli	get	operator entry point and artifact contract
+cli	help	operator entry point and artifact contract
+cli	info	operator entry point and artifact contract
+cli	inspect	operator entry point and artifact contract
+cli	new	operator entry point and artifact contract
+cli	profile	operator entry point and artifact contract
+cli	profiling	operator entry point and artifact contract
+cli	tui	operator entry point and artifact contract
+cli	version	operator entry point and artifact contract
+cli	watch	operator entry point and artifact contract
+cli	watchdog	operator entry point and artifact contract
+client-components	Directives	components and PKC compiler
+client-components	Events	components and PKC compiler
+client-components	File structure	components and PKC compiler
+client-components	Form association	components and PKC compiler
+client-components	Lifecycle hooks	components and PKC compiler
+client-components	Naming and attribute mapping	components and PKC compiler
+client-components	Props	components and PKC compiler
+client-components	Reactive state	components and PKC compiler
+client-components	Registration	components and PKC compiler
+client-components	Runtime roots in scope	components and PKC compiler
+client-components	Script attributes	components and PKC compiler
+client-components	Shadow DOM and styling	components and PKC compiler
+client-components	Slots	components and PKC compiler
+client-components	State and HTML attribute binding	components and PKC compiler
+client-components	Template attributes	components and PKC compiler
+client-components	Type annotations	components and PKC compiler
+compiler-tag	piko:a	compiler special element lowering
+compiler-tag	piko:addclass	compiler special element lowering
+compiler-tag	piko:at	compiler special element lowering
+compiler-tag	piko:element	compiler special element lowering
+compiler-tag	piko:hide	compiler special element lowering
+compiler-tag	piko:img	compiler special element lowering
+compiler-tag	piko:picture	compiler special element lowering
+compiler-tag	piko:removeclass	compiler special element lowering
+compiler-tag	piko:show	compiler special element lowering
+compiler-tag	piko:svg	compiler special element lowering
+compiler-tag	piko:tooltip	compiler special element lowering
+compiler-tag	piko:type	compiler special element lowering
+compiler-tag	piko:typehtml	compiler special element lowering
+component-behaviour	animation	browser-lifecycle and components
+component-behaviour	formAssociated	browser-lifecycle and components
+directive	p-bind	coverage: per-directive owner and semantic expectation
+directive	p-class	coverage: per-directive owner and semantic expectation
+directive	p-context	coverage: per-directive owner and semantic expectation
+directive	p-else	coverage: per-directive owner and semantic expectation
+directive	p-else-if	coverage: per-directive owner and semantic expectation
+directive	p-event	coverage: per-directive owner and semantic expectation
+directive	p-for	coverage: per-directive owner and semantic expectation
+directive	p-html	coverage: per-directive owner and semantic expectation
+directive	p-if	coverage: per-directive owner and semantic expectation
+directive	p-key	coverage: per-directive owner and semantic expectation
+directive	p-memo	coverage: per-directive owner and semantic expectation
+directive	p-model	coverage: per-directive owner and semantic expectation
+directive	p-on	coverage: per-directive owner and semantic expectation
+directive	p-ref	coverage: per-directive owner and semantic expectation
+directive	p-scaffold	coverage: per-directive owner and semantic expectation
+directive	p-show	coverage: per-directive owner and semantic expectation
+directive	p-slot	coverage: per-directive owner and semantic expectation
+directive	p-style	coverage: per-directive owner and semantic expectation
+directive	p-text	coverage: per-directive owner and semantic expectation
+directive	p-timeline	coverage: per-directive owner and semantic expectation
+directives	Animation timelines (PKC only)	compiler/browser directive semantics
+directives	Attribute binding	compiler/browser directive semantics
+directives	Binding directives	compiler/browser directive semantics
+directives	Collection binding	compiler/browser directive semantics
+directives	Collection directives	compiler/browser directive semantics
+directives	Conditional directives	compiler/browser directive semantics
+directives	Conditional rendering	compiler/browser directive semantics
+directives	Element references	compiler/browser directive semantics
+directives	Event directives	compiler/browser directive semantics
+directives	Event handling	compiler/browser directive semantics
+directives	Form binding	compiler/browser directive semantics
+directives	Framework-internal directives	compiler/browser directive semantics
+directives	Key scoping	compiler/browser directive semantics
+directives	Key scoping directives	compiler/browser directive semantics
+directives	Loop directives	compiler/browser directive semantics
+directives	Loops	compiler/browser directive semantics
+directives	Partials and animation directives	compiler/browser directive semantics
+directives	Partials and slots	compiler/browser directive semantics
+directives	Projecting into a PKC slot	compiler/browser directive semantics
+directives	Quick reference	compiler/browser directive semantics
+directives	Text and HTML binding	compiler/browser directive semantics
+directives	`:attribute` (shorthand)	compiler/browser directive semantics
+directives	`p-bind`	compiler/browser directive semantics
+directives	`p-class`	compiler/browser directive semantics
+directives	`p-collection-source`	compiler/browser directive semantics
+directives	`p-context`	compiler/browser directive semantics
+directives	`p-else-if` and `p-else`	compiler/browser directive semantics
+directives	`p-event`	compiler/browser directive semantics
+directives	`p-for`	compiler/browser directive semantics
+directives	`p-html`	compiler/browser directive semantics
+directives	`p-if`	compiler/browser directive semantics
+directives	`p-key`	compiler/browser directive semantics
+directives	`p-memo` (PKC only)	compiler/browser directive semantics
+directives	`p-model`	compiler/browser directive semantics
+directives	`p-on`	compiler/browser directive semantics
+directives	`p-ref`	compiler/browser directive semantics
+directives	`p-show`	compiler/browser directive semantics
+directives	`p-slot` (PK partials only)	compiler/browser directive semantics
+directives	`p-style`	compiler/browser directive semantics
+directives	`p-text`	compiler/browser directive semantics
+directives	`p-timeline`	compiler/browser directive semantics
+example	001_hello_world	pages: visible heading and successful root route
+example	002_contact_form	form-workflow: validate contact DTO and visible response
+example	003_reactive_counter	components: independent counter instances and reflected state
+example	004_product_catalogue	typed-catalog: list, detail and typed product identity
+example	005_blog_with_layout	pages: inherited layout and named partial fills
+example	006_data_table	markup: table row order and coordinates
+example	007_todo_app	form-workflow: create, toggle and remove rows
+example	008_event_bus_chat	events: two local subscriptions and ordered delivery
+example	009_form_wizard	wizard: back, edit, validate and commit once
+example	010_progress_tracker	components: numeric progress and completion transition
+example	011_live_notifications	events: reconnect and unsubscribe delivered notifications
+example	012_file_upload	http-actions: multipart payload and stored byte range
+example	013_tls_https	TLS: local certificate and client trust prerequisite
+example	015_markdown_blog	collection-routes: Markdown routing and removal
+example	016_cached_api	http-actions: staged cache hit and invalidation
+example	017_rate_limited_api	http-actions: local rate limit and recovery
+example	018_builtin_components	components: shipped Piko component contract
+example	019_m3e_components	components: interactive M3E family
+example	020_m3e_recipe_app	components: multi-component M3E navigation and selection
+example	021_live_playground	wasm: local Node/wasm prerequisite
+example	022_database_sqlite	form-workflow: generated SQLite accessors against private rows
+example	023_database_mysql	database: optional local MySQL instance
+example	024_database_postgres	database: optional local PostgreSQL instance
+example	025_database_duckdb	database: optional local DuckDB driver
+example	026_email_contact	documents: local email capture sink
+example	027_pdf_invoice	documents: ordered invoice rows and total
+example	028_analytics_ecommerce	analytics: local collector and exact event/revenue
+example	030_captcha	captcha: deterministic local verification provider
+native-target	ast	coverage-guided property
+native-target	binder	coverage-guided property
+native-target	cache	coverage-guided property
+native-target	encoding	coverage-guided property
+native-target	expression-semantics	coverage-guided property
+native-target	formatter	coverage-guided property
+native-target	maths	coverage-guided property
+native-target	project	coverage-guided property
+native-target	raw-expression	coverage-guided property
+native-target	raw-sfc	coverage-guided property
+native-target	search	coverage-guided property
+native-target	subsystems	coverage-guided property
+package-target	actions	package or fixture execution
+package-target	annotator	package or fixture execution
+package-target	assets	package or fixture execution
+package-target	ast	package or fixture execution
+package-target	binder	package or fixture execution
+package-target	binder-safe	package or fixture execution
+package-target	cache	package or fixture execution
+package-target	collections	package or fixture execution
+package-target	database	package or fixture execution
+package-target	documents	package or fixture execution
+package-target	formatter	package or fixture execution
+package-target	i18n	package or fixture execution
+package-target	incremental	package or fixture execution
+package-target	inspector	package or fixture execution
+package-target	lsp	package or fixture execution
+package-target	oracle-sensitivity	passing controls and independently corrupted model observations
+package-target	orchestrator	package or fixture execution
+package-target	persistence	package or fixture execution
+package-target	registry	package or fixture execution
+package-target	release	package or fixture execution
+package-target	resolver	package or fixture execution
+package-target	routing	package or fixture execution
+package-target	search	package or fixture execution
+package-target	storage	package or fixture execution
+package-target	syntax	package or fixture execution
+package-target	utilities	package or fixture execution
+package-target	vector-search	package or fixture execution
+package-target	wasm	package or fixture execution
+pk-file-format	Client-side scripts	syntax, formatter and pages
+pk-file-format	File structure	syntax, formatter and pages
+pk-file-format	Interpolation	syntax, formatter and pages
+pk-file-format	Optional functions	syntax, formatter and pages
+pk-file-format	Package declaration	syntax, formatter and pages
+pk-file-format	Render function	syntax, formatter and pages
+pk-file-format	RequestData methods	syntax, formatter and pages
+pk-file-format	Response struct	syntax, formatter and pages
+pk-file-format	Runtime roots in scope	syntax, formatter and pages
+pk-file-format	Script section	syntax, formatter and pages
+pk-file-format	Style section	syntax, formatter and pages
+pk-file-format	Template section	syntax, formatter and pages
+routing-rules	File-to-route mapping	routing and served page decisions
+routing-rules	HTTP methods	routing and served page decisions
+routing-rules	Index routes	routing and served page decisions
+routing-rules	Precedence	routing and served page decisions
+routing-rules	Route parameter accessors	routing and served page decisions
+routing-rules	Segment syntax	routing and served page decisions
+routing-rules	Status codes	routing and served page decisions
+suite	asset_pipeline	integration fixture comparison
+suite	cache	integration fixture comparison
+suite	cache_rendering	integration fixture comparison
+suite	compiler_browser	integration fixture comparison
+suite	db_seagull_sqlite	integration fixture comparison
+suite	e2e_browser	integration fixture comparison
+suite	email	integration fixture comparison
+suite	interpreted_cache_invalidation	integration fixture comparison
+suite	interpreted_runner	integration fixture comparison
+suite	layouter	integration fixture comparison
+suite	llm	integration fixture comparison
+suite	lsp	integration fixture comparison
+suite	markdown_collection	integration fixture comparison
+suite	orchestrator_dal	integration fixture comparison
+suite	orchestrator_pipeline	integration fixture comparison
+suite	pdf	integration fixture comparison
+suite	persistence_sqlite	integration fixture comparison
+suite	pikotest_meta	integration fixture comparison
+suite	pkc_serving	integration fixture comparison
+suite	registry	integration fixture comparison
+suite	release	integration fixture comparison
+suite	storage	integration fixture comparison
+suite	testutil	integration fixture comparison
+suite	wasm	integration fixture comparison
+suite	wasm_runner	integration fixture comparison
+template-syntax	Arithmetic operators	expression-semantics and pages
+template-syntax	Array and object literals	expression-semantics and pages
+template-syntax	Attribute binding	expression-semantics and pages
+template-syntax	Basic interpolation	expression-semantics and pages
+template-syntax	BigInt literals	expression-semantics and pages
+template-syntax	Built-in literal types	expression-semantics and pages
+template-syntax	Cheat sheet	expression-semantics and pages
+template-syntax	Comparison operators	expression-semantics and pages
+template-syntax	DSL extensions beyond Go	expression-semantics and pages
+template-syntax	Date and time literals	expression-semantics and pages
+template-syntax	Decimal literals	expression-semantics and pages
+template-syntax	Expressions	expression-semantics and pages
+template-syntax	Function calls	expression-semantics and pages
+template-syntax	HTML escaping	expression-semantics and pages
+template-syntax	Limitations	expression-semantics and pages
+template-syntax	Logical operators	expression-semantics and pages
+template-syntax	Nullish coalescing operator	expression-semantics and pages
+template-syntax	Optional chaining	expression-semantics and pages
+template-syntax	Rune literals	expression-semantics and pages
+template-syntax	String concatenation	expression-semantics and pages
+template-syntax	Template literals	expression-semantics and pages
+template-syntax	Ternary operator	expression-semantics and pages
+wdk	analytics	public WDK contract: analytics
+wdk	binder	public WDK contract: binder
+wdk	browser	public WDK contract: browser
+wdk	cache	public WDK contract: cache
+wdk	captcha	public WDK contract: captcha
+wdk	clock	public WDK contract: clock
+wdk	collection	public WDK contract: collection
+wdk	config	public WDK contract: config
+wdk	contextaware	public WDK contract: contextaware
+wdk	crypto	public WDK contract: crypto
+wdk	db	public WDK contract: db
+wdk	email	public WDK contract: email
+wdk	encoding	public WDK contract: encoding
+wdk	events	public WDK contract: events
+wdk	fbs	public WDK contract: fbs
+wdk	formatter	public WDK contract: formatter
+wdk	goroutine	public WDK contract: goroutine
+wdk	highlight	public WDK contract: highlight
+wdk	interp	public WDK contract: interp
+wdk	json	public WDK contract: json
+wdk	lifecycle	public WDK contract: lifecycle
+wdk	linguistics	public WDK contract: linguistics
+wdk	llm	public WDK contract: llm
+wdk	logger	public WDK contract: logger
+wdk	markdown	public WDK contract: markdown
+wdk	maths	public WDK contract: maths
+wdk	media	public WDK contract: media
+wdk	metrics	public WDK contract: metrics
+wdk	modules	public WDK contract: modules
+wdk	monitoring	public WDK contract: monitoring
+wdk	notification	public WDK contract: notification
+wdk	pdf	public WDK contract: pdf
+wdk	runtime	public WDK contract: runtime
+wdk	spamdetect	public WDK contract: spamdetect
+wdk	storage	public WDK contract: storage
+wdk	system	public WDK contract: system
+wdk	telemetry	public WDK contract: telemetry
+wdk	useragent	public WDK contract: useragent
+wdk	validation	public WDK contract: validation
+app-target	embedded-deploy	compiled embedded deployment and public HTTP
+app-target	go-topology	package initialization and cross-file application state
+app-target	markup	application execution and independent DOM model
+app-target	firefox-markup	Firefox WebDriver native DOM, identity, forms, disclosure and keyboard
+app-target	source-equivalence	paired source rewrites, independent selective edit and multi-file helper
+app-target	checkout-workflow	multi-page order, native transactional action, PDF and delivered email
+app-target	shipped-components	public bundled component family interactions and responsive timeline
+app-target	content-editions	public Markdown navigation, removal and versioned media across deployed editions
+package-target	source-diagnostics	single-change template rejection, precise source locations and repair
+package-target	example-contracts	Private compiled example, authored browser recipe and HTTP status
+package-target	provider-contracts	Local public WDK contract and provider lifecycle
+app-target	route-contracts	nested fills and fallback, ordered middleware, public heads and typed error routes
+app-target	auth-contracts	generated pages and actions with a configured identity provider and guard
+app-target	form-shim-contracts	CSRF, CAPTCHA and action quotas on a generated form with recorded writes
+package-target	csrf-contracts	page issuance and form validation over modeled session histories
+package-target	rate-limit-contracts	action and client quota isolation, refill and backend outcomes
+package-target	captcha-contracts	provider selection, forwarding, decision and recovery contracts
+native-target	csrf-contracts	coverage-guided CSRF session histories
+native-target	rate-limit-contracts	coverage-guided quota and clock histories
+native-target	captcha-contracts	coverage-guided local provider histories
+package-target	auth-middleware	provider and guard across document, JSON and SSE clients
+native-target	auth-middleware	coverage-guided provider and guard request histories
+package-target	captcha-adapters	three hosted verifier adapters with a private in-memory transport
+native-target	captcha-adapters	coverage-guided local verification request and response contracts

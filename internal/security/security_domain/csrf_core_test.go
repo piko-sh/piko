@@ -21,6 +21,7 @@ package security_domain
 import (
 	"bytes"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -63,7 +64,7 @@ func TestGenerateCSRFEphemeralToken_ProducesCorrectLength(t *testing.T) {
 
 func TestSignCSRFPayload_Success(t *testing.T) {
 	payload := []byte("test-payload")
-	secret := []byte("secret-key")
+	secret := newTestSigner(t, []byte("secret-key"))
 
 	signature, err := signCSRFPayload(payload, secret)
 
@@ -74,7 +75,7 @@ func TestSignCSRFPayload_Success(t *testing.T) {
 
 func TestSignCSRFPayload_Deterministic(t *testing.T) {
 	payload := []byte("test-payload")
-	secret := []byte("secret-key")
+	secret := newTestSigner(t, []byte("secret-key"))
 
 	sig1, err1 := signCSRFPayload(payload, secret)
 	sig2, err2 := signCSRFPayload(payload, secret)
@@ -84,24 +85,67 @@ func TestSignCSRFPayload_Deterministic(t *testing.T) {
 	assert.Equal(t, sig1, sig2, "signatures should be identical for same input")
 }
 
-func TestSignCSRFPayload_EmptySecret_ReturnsError(t *testing.T) {
-	payload := []byte("test-payload")
-
-	_, err := signCSRFPayload(payload, []byte{})
+func TestNewCSRFSigner_EmptySecret_ReturnsError(t *testing.T) {
+	_, err := newCSRFSigner([]byte{})
 
 	assert.ErrorIs(t, err, errMissingSecret)
 }
 
-func TestSignCSRFPayload_NilSecret_ReturnsError(t *testing.T) {
-	payload := []byte("test-payload")
-
-	_, err := signCSRFPayload(payload, nil)
+func TestNewCSRFSigner_NilSecret_ReturnsError(t *testing.T) {
+	_, err := newCSRFSigner(nil)
 
 	assert.ErrorIs(t, err, errMissingSecret)
+}
+
+func TestSignCSRFPayload_NilSigner_ReturnsError(t *testing.T) {
+	_, err := signCSRFPayload([]byte("test-payload"), nil)
+
+	assert.ErrorIs(t, err, errMissingSecret)
+}
+
+func TestNewCSRFSigner_CopiesSecret(t *testing.T) {
+	key := []byte("secret-key")
+	signer := newTestSigner(t, key)
+	before, err := signCSRFPayload([]byte("payload"), signer)
+	require.NoError(t, err)
+
+	key[0] = 'X'
+	after, err := signCSRFPayload([]byte("payload"), signer)
+	require.NoError(t, err)
+
+	assert.Equal(t, before, after, "mutating the caller's key must not change the signer")
+}
+
+func TestCSRFSigners_WithDifferentKeysStayIndependentUnderConcurrency(t *testing.T) {
+	first := newTestSigner(t, []byte("first-secret"))
+	second := newTestSigner(t, []byte("second-secret"))
+	payload := []byte("shared-payload")
+	firstSignature, err := signCSRFPayload(payload, first)
+	require.NoError(t, err)
+	secondSignature, err := signCSRFPayload(payload, second)
+	require.NoError(t, err)
+	require.NotEqual(t, firstSignature, secondSignature)
+
+	var wg sync.WaitGroup
+	for range 8 {
+		wg.Go(func() {
+			for range 200 {
+				ownFirst, _ := verifyCSRFSignature(payload, firstSignature, first)
+				crossFirst, _ := verifyCSRFSignature(payload, secondSignature, first)
+				ownSecond, _ := verifyCSRFSignature(payload, secondSignature, second)
+				crossSecond, _ := verifyCSRFSignature(payload, firstSignature, second)
+				assert.True(t, ownFirst)
+				assert.False(t, crossFirst)
+				assert.True(t, ownSecond)
+				assert.False(t, crossSecond)
+			}
+		})
+	}
+	wg.Wait()
 }
 
 func TestSignCSRFPayload_DifferentPayloads_DifferentSignatures(t *testing.T) {
-	secret := []byte("secret-key")
+	secret := newTestSigner(t, []byte("secret-key"))
 
 	sig1, err1 := signCSRFPayload([]byte("payload1"), secret)
 	sig2, err2 := signCSRFPayload([]byte("payload2"), secret)
@@ -112,11 +156,10 @@ func TestSignCSRFPayload_DifferentPayloads_DifferentSignatures(t *testing.T) {
 }
 
 func TestSignCSRFPayload_DifferentSecrets_DifferentSignatures(t *testing.T) {
-	resetHMACPoolForTesting()
 	payload := []byte("test-payload")
 
-	sig1, err1 := signCSRFPayload(payload, []byte("secret1"))
-	sig2, err2 := signCSRFPayload(payload, []byte("secret2"))
+	sig1, err1 := signCSRFPayload(payload, newTestSigner(t, []byte("secret1")))
+	sig2, err2 := signCSRFPayload(payload, newTestSigner(t, []byte("secret2")))
 
 	require.NoError(t, err1)
 	require.NoError(t, err2)
@@ -246,7 +289,7 @@ func TestParseSignedCSRFPayload_EmptyBinderValue_Allowed(t *testing.T) {
 
 func TestVerifyCSRFSignature_ValidSignature_ReturnsTrue(t *testing.T) {
 	payload := []byte("test-payload")
-	secret := []byte("secret-key")
+	secret := newTestSigner(t, []byte("secret-key"))
 
 	signature, err := signCSRFPayload(payload, secret)
 	require.NoError(t, err)
@@ -259,7 +302,7 @@ func TestVerifyCSRFSignature_ValidSignature_ReturnsTrue(t *testing.T) {
 
 func TestVerifyCSRFSignature_InvalidSignature_ReturnsFalse(t *testing.T) {
 	payload := []byte("test-payload")
-	secret := []byte("secret-key")
+	secret := newTestSigner(t, []byte("secret-key"))
 
 	valid, err := verifyCSRFSignature(payload, "invalid-signature", secret)
 
@@ -269,7 +312,7 @@ func TestVerifyCSRFSignature_InvalidSignature_ReturnsFalse(t *testing.T) {
 
 func TestVerifyCSRFSignature_TamperedPayload_ReturnsFalse(t *testing.T) {
 	payload := []byte("test-payload")
-	secret := []byte("secret-key")
+	secret := newTestSigner(t, []byte("secret-key"))
 
 	signature, err := signCSRFPayload(payload, secret)
 	require.NoError(t, err)
@@ -282,10 +325,9 @@ func TestVerifyCSRFSignature_TamperedPayload_ReturnsFalse(t *testing.T) {
 }
 
 func TestVerifyCSRFSignature_WrongSecret_ReturnsFalse(t *testing.T) {
-	resetHMACPoolForTesting()
 	payload := []byte("test-payload")
-	secret1 := []byte("secret-key-1")
-	secret2 := []byte("secret-key-2")
+	secret1 := newTestSigner(t, []byte("secret-key-1"))
+	secret2 := newTestSigner(t, []byte("secret-key-2"))
 
 	signature, err := signCSRFPayload(payload, secret1)
 	require.NoError(t, err)
@@ -296,25 +338,15 @@ func TestVerifyCSRFSignature_WrongSecret_ReturnsFalse(t *testing.T) {
 	assert.False(t, valid, "signature should not verify with different secret")
 }
 
-func TestVerifyCSRFSignature_EmptySecret_ReturnsError(t *testing.T) {
-	payload := []byte("test-payload")
-
-	_, err := verifyCSRFSignature(payload, "some-signature", []byte{})
-
-	assert.ErrorIs(t, err, errMissingSecret)
-}
-
-func TestVerifyCSRFSignature_NilSecret_ReturnsError(t *testing.T) {
-	payload := []byte("test-payload")
-
-	_, err := verifyCSRFSignature(payload, "some-signature", nil)
+func TestVerifyCSRFSignature_NilSigner_ReturnsError(t *testing.T) {
+	_, err := verifyCSRFSignature([]byte("test-payload"), "some-signature", nil)
 
 	assert.ErrorIs(t, err, errMissingSecret)
 }
 
 func TestVerifyCSRFSignature_EmptySignature_ReturnsFalse(t *testing.T) {
 	payload := []byte("test-payload")
-	secret := []byte("secret-key")
+	secret := newTestSigner(t, []byte("secret-key"))
 
 	valid, err := verifyCSRFSignature(payload, "", secret)
 
@@ -323,23 +355,8 @@ func TestVerifyCSRFSignature_EmptySignature_ReturnsFalse(t *testing.T) {
 }
 
 func BenchmarkAppendCSRFSignatureToBuffer(b *testing.B) {
-	resetHMACPoolForTesting()
 	payload := []byte("session-id^ephemeral-token^1234567890")
-	secret := []byte("secret-key-32-bytes-long-enough!")
-	buffer := &bytes.Buffer{}
-	buffer.Grow(128)
-	b.ResetTimer()
-	b.ReportAllocs()
-	for b.Loop() {
-		buffer.Reset()
-		_ = appendCSRFSignatureToBuffer(buffer, payload, secret)
-	}
-}
-
-func BenchmarkAppendCSRFSignatureToBuffer_Pooled(b *testing.B) {
-	payload := []byte("session-id^ephemeral-token^1234567890")
-	secret := []byte("secret-key-32-bytes-long-enough!")
-	initialiseHMACPool(secret)
+	secret := newTestSigner(b, []byte("secret-key-32-bytes-long-enough!"))
 	buffer := &bytes.Buffer{}
 	buffer.Grow(128)
 	b.ResetTimer()
@@ -358,20 +375,8 @@ func BenchmarkGenerateCSRFEphemeralToken(b *testing.B) {
 }
 
 func BenchmarkSignCSRFPayload(b *testing.B) {
-	resetHMACPoolForTesting()
 	payload := []byte("session-id^ephemeral-token^1234567890")
-	secret := []byte("secret-key-32-bytes-long-enough!")
-	b.ResetTimer()
-	b.ReportAllocs()
-	for b.Loop() {
-		_, _ = signCSRFPayload(payload, secret)
-	}
-}
-
-func BenchmarkSignCSRFPayload_Pooled(b *testing.B) {
-	payload := []byte("session-id^ephemeral-token^1234567890")
-	secret := []byte("secret-key-32-bytes-long-enough!")
-	initialiseHMACPool(secret)
+	secret := newTestSigner(b, []byte("secret-key-32-bytes-long-enough!"))
 	b.ResetTimer()
 	b.ReportAllocs()
 	for b.Loop() {
@@ -390,7 +395,7 @@ func TestCSRFCryptoFlow_EndToEnd(t *testing.T) {
 	buildCSRFPayload(buffer, cookieValue, binderValue, ephemeral, timestamp)
 	payloadString := buffer.String()
 
-	secret := []byte("my-secret-key")
+	secret := newTestSigner(t, []byte("my-secret-key"))
 	signature, err := signCSRFPayload([]byte(payloadString), secret)
 	require.NoError(t, err)
 
@@ -405,4 +410,11 @@ func TestCSRFCryptoFlow_EndToEnd(t *testing.T) {
 	assert.Equal(t, binderValue, parts.Binder)
 	assert.Equal(t, ephemeral, parts.EphemeralToken)
 	assert.Equal(t, timestamp.Unix(), parts.Timestamp.Unix())
+}
+
+func newTestSigner(tb testing.TB, secret []byte) *csrfSigner {
+	tb.Helper()
+	signer, err := newCSRFSigner(secret)
+	require.NoError(tb, err)
+	return signer
 }

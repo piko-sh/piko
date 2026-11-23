@@ -90,6 +90,10 @@ type AuthPolicy struct {
 // AuthGuardConfig controls prefix-level and page-level authentication enforcement. When
 // registered via WithAuthGuard, Piko installs middleware that protects routes not listed
 // in PublicPaths or PublicPrefixes.
+//
+// A request path that is not canonical (dot segments, repeated slashes, a backslash, or
+// an encoded slash or backslash) always requires authentication, even when it would
+// resolve to a public path.
 type AuthGuardConfig struct {
 	// OnUnauthenticated is called when a protected route is accessed without valid
 	// authentication. If nil, a default redirect to LoginPath is used.

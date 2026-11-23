@@ -464,7 +464,7 @@ func TestVdomProps_IsCheckboxInput(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got := isCheckboxInput(tc.node)
+			got := isInputType(tc.node, "checkbox")
 			assert.Equal(t, tc.want, got)
 		})
 	}
@@ -1243,14 +1243,14 @@ func TestVdomProps_BuildDynamicContentExpr(t *testing.T) {
 
 func TestVdomProps_ParseModelHandlerBlockForExpr(t *testing.T) {
 	t.Run("input handler uses value property", func(t *testing.T) {
-		block, err := parseModelHandlerBlockForExpr("this.$$ctx.name", false)
+		block, err := parseModelHandlerBlockForExpr("this.$$ctx.name", "event.target.value")
 		require.NoError(t, err)
 		require.NotNil(t, block, "should parse successfully for input model")
 		assert.NotEmpty(t, block.Stmts)
 	})
 
 	t.Run("checkbox handler uses checked property", func(t *testing.T) {
-		block, err := parseModelHandlerBlockForExpr("this.$$ctx.isActive", true)
+		block, err := parseModelHandlerBlockForExpr("this.$$ctx.isActive", "event.target.checked")
 		require.NoError(t, err)
 		require.NotNil(t, block, "should parse successfully for checkbox model")
 		assert.NotEmpty(t, block.Stmts)

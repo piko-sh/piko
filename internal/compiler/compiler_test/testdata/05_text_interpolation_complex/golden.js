@@ -50,7 +50,7 @@ import { action } from "/_piko/assets/pk-js/pk/actions.gen.js";
             return {"isActive": true, "name": "Product", "price": 100, "tax": 0.07};
         }
         connectedCallback () {
-            this.init(instance.call(this, this));
+            if (!this.$$ctx) this.init(instance.call(this, this));
             super.connectedCallback();
         }
         renderVDOM () {

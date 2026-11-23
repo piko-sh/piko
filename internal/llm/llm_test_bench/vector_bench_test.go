@@ -79,7 +79,7 @@ func newBenchVectorStore(b *testing.B, dimension int) *vector_cache.Store {
 
 	cacheService := cache_domain.NewService("otter")
 
-	return vector_cache.New(func(ns string, config *llm_domain.VectorNamespaceConfig) (cache_domain.Cache[string, llm_dto.VectorDocument], error) {
+	return vector_cache.New(func(ctx context.Context, ns string, config *llm_domain.VectorNamespaceConfig) (cache_domain.Cache[string, llm_dto.VectorDocument], error) {
 		d := dimension
 		if config != nil && config.Dimension > 0 {
 			d = config.Dimension
@@ -93,7 +93,7 @@ func newBenchVectorStore(b *testing.B, dimension int) *vector_cache.Store {
 			Namespace(ns).
 			MaximumEntries(200000).
 			Searchable(schema).
-			Build(context.Background())
+			Build(ctx)
 	})
 }
 

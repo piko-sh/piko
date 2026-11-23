@@ -45,11 +45,11 @@ type poolAdapter struct {
 	// golden is the pre-warmed interpreter every returned interpreter is cloned from.
 	golden *pipit.Interpreter
 
-	// moduleLoad holds the outcome of LoadModules; nil until it has run.
+	// moduleLoad holds the outcome of LoadModules, or nil until it has run.
 	moduleLoad atomic.Pointer[moduleLoadOutcome]
 
 	// bytecodeEmissionDirectory is the root directory for emitting source and compiled
-	// bytecode to disk. Empty disables emission.
+	// bytecode to disk.
 	bytecodeEmissionDirectory string
 
 	// pendingModules are the module bundles LoadModules loads into the golden interpreter.
@@ -91,14 +91,13 @@ func newPoolAdapter(golden *pipit.Interpreter, pendingModules []pendingModuleLoa
 // LoadModules loads the queued module bundles into the golden interpreter, verifying each
 // against its ref's pin, so every interpreter the pool returns can import them.
 //
-// The work runs once; later calls return the first call's result. A failure is also
-// returned by every later Get, so a bad module fails loudly rather than silently serving
-// interpreters without it.
+// Later calls reuse the first load result. If a module fails to load, later Get calls
+// return the same error.
 //
 // Returns error when a module fails to load or ctx is cancelled.
 //
-// Safe for concurrent use. The load mutex serialises callers, and the first load outcome
-// is published atomically for subsequent calls and interpreter retrieval.
+// Concurrency: Safe for concurrent use. The load mutex serialises callers, and the first
+// load outcome is published atomically for subsequent calls and interpreter retrieval.
 func (p *poolAdapter) LoadModules(ctx context.Context) error {
 	p.loadMutex.Lock()
 	defer p.loadMutex.Unlock()

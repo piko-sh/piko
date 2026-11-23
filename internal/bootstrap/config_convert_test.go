@@ -353,3 +353,18 @@ func TestNewRateLimitValuesIPv6PrefixBits(t *testing.T) {
 		}
 	})
 }
+
+func TestNewDevelopmentDaemonConfigHonoursExplicitAutoNextPort(t *testing.T) {
+	var defaults ServerConfig
+	daemonConfig := newDevelopmentDaemonConfig(&defaults)
+	assert.True(t, daemonConfig.DevelopmentMode)
+	assert.True(t, daemonConfig.NetworkAutoNextPort, "development servers move to a free port by default")
+	assert.True(t, daemonConfig.HealthAutoNextPort)
+
+	var pinned ServerConfig
+	pinned.Network.AutoNextPort = new(false)
+	pinned.HealthProbe.AutoNextPort = new(false)
+	daemonConfig = newDevelopmentDaemonConfig(&pinned)
+	assert.False(t, daemonConfig.NetworkAutoNextPort, "an explicit setting must not be overridden")
+	assert.False(t, daemonConfig.HealthAutoNextPort)
+}

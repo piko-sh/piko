@@ -19,7 +19,13 @@
 package browser_provider_chromedp
 
 import (
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -199,30 +205,51 @@ func TestSetCustomHeader(t *testing.T) {
 	})
 }
 
+func newHeaderServer() *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set("X-Page", strings.TrimPrefix(r.URL.Path, "/"))
+		_, _ = w.Write([]byte(testHTMLHeaders))
+	}))
+}
+
 func TestGetResponseHeaders(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
-	}
+	server := newHeaderServer()
+	defer server.Close()
 
-	server := newTestServer(testHTMLHeaders)
+	withTestPage(t, server.URL+"/first", func(t *testing.T, page *PageHelper) {
+		ctx := newActionContext(page)
+		ctx.ServerURL = server.URL
+
+		headers, err := GetResponseHeaders(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, "first", headers["x-page"])
+		assert.Equal(t, "text/html; charset=utf-8", headers["content-type"])
+		assert.Equal(t, "text/html", headers["contentType"])
+		assert.Contains(t, headers, "lastModified")
+
+		require.NoError(t, Navigate(ctx, "/second"))
+		headers, err = GetResponseHeaders(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, "second", headers["x-page"])
+
+		require.NoError(t, GoBack(ctx))
+		headers, err = GetResponseHeaders(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, "first", headers["x-page"])
+	})
+}
+
+func TestGetResponseHeadersNoHelper(t *testing.T) {
+	t.Parallel()
+	server := newHeaderServer()
 	defer server.Close()
 
 	withTestPage(t, server.URL, func(t *testing.T, page *PageHelper) {
-		ctx := newActionContext(page)
-
-		t.Run("gets response headers", func(t *testing.T) {
-			headers, err := GetResponseHeaders(ctx)
-			if err != nil {
-				t.Fatalf("GetResponseHeaders() error = %v", err)
-			}
-			if headers == nil {
-				t.Error("GetResponseHeaders() returned nil")
-			}
-
-			if _, ok := headers["contentType"]; !ok {
-				t.Log("contentType header not present (may be expected)")
-			}
-		})
+		headers, err := GetResponseHeaders(&ActionContext{Ctx: page.Ctx()})
+		require.NoError(t, err)
+		assert.Equal(t, "text/html", headers["contentType"])
+		assert.NotContains(t, headers, "x-page")
 	})
 }

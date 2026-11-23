@@ -16,22 +16,8 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package piko is the command-line tool for creating and managing Piko projects.
+// Command piko creates, builds, formats and monitors Piko projects.
 //
-// This package is a thin entry point that dispatches to subcommands implemented in
-// internal packages.
-//
-// # Subcommands
-//
-// The CLI supports the following subcommands:
-//
-//   - new: Launches the interactive project creation wizard
-//   - fmt: Formats Piko template files (.pk)
-//   - inspect: Inspects FlatBuffers binary files
-//   - get/describe/info/watch/diagnostics/tui: Monitoring commands via gRPC
-//   - version: Displays the CLI version
-//   - help: Displays usage information
-//
-// When invoked without a subcommand it displays a welcome message with available commands
-// and version information.
+// Run piko help to list commands, or run piko without arguments to see the welcome
+// message and version.
 package main

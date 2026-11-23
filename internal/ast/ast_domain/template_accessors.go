@@ -18,9 +18,6 @@
 
 package ast_domain
 
-// Contains accessor methods for TemplateNode including text extraction, attribute
-// manipulation, class handling, and DOM-like traversal methods.
-
 import (
 	"context"
 	"slices"
@@ -91,12 +88,6 @@ func (n *TemplateNode) Text(ctx context.Context) string {
 
 // GetAttribute returns the value of an attribute by name.
 //
-// The parser makes all attribute names lowercase, so the input name is also made
-// lowercase before comparison.
-//
-// It first checks static Attributes, then falls back to dynamic AttributeWriters. Static
-// attributes take priority and are faster.
-//
 // Takes name (string) which specifies the attribute name to look up.
 //
 // Returns string which is the attribute value if found.
@@ -123,12 +114,7 @@ func (n *TemplateNode) GetAttribute(name string) (string, bool) {
 	return "", false
 }
 
-// GetAttributeWriter returns the DirectWriter for a dynamic attribute by name. Parser
-// lowercases all attribute names, so the input name is lowercased for consistent
-// comparison.
-//
-// Callers can then access dynamic attributes that may contain multiple parts or require
-// lazy evaluation.
+// GetAttributeWriter returns the DirectWriter for a dynamic attribute by name.
 //
 // Takes name (string) which specifies the attribute name to look up.
 //
@@ -184,8 +170,7 @@ func (n *TemplateNode) SetAttribute(name, value string) {
 	})
 }
 
-// RemoveAttribute removes a static attribute by name. The name is lowercased for matching
-// because the parser stores all attribute names in lowercase.
+// RemoveAttribute removes a static attribute by name.
 //
 // Takes name (string) which specifies the attribute name to remove.
 func (n *TemplateNode) RemoveAttribute(name string) {
@@ -236,8 +221,7 @@ func (n *TemplateNode) HasClass(className string) bool {
 	return false
 }
 
-// AddClass adds one or more class names to the node's class list. Duplicate class names
-// are ignored.
+// AddClass adds one or more class names to the node's class list.
 //
 // Takes names (...string) which specifies the class names to add.
 func (n *TemplateNode) AddClass(names ...string) {
@@ -316,8 +300,7 @@ func (n *TemplateNode) ChildElementCount() int {
 	return count
 }
 
-// ShouldFormatInline returns true if this node was originally formatted inline. Returns
-// false if the node should be formatted as block or if no hint is set (FormatAuto).
+// ShouldFormatInline returns true if this node was originally formatted inline.
 //
 // Returns bool which indicates whether the node prefers inline formatting.
 func (n *TemplateNode) ShouldFormatInline() bool {
@@ -325,7 +308,6 @@ func (n *TemplateNode) ShouldFormatInline() bool {
 }
 
 // ShouldFormatBlock returns true if this node was explicitly marked for block formatting.
-// Returns false if the node should be formatted inline or if no hint is set (FormatAuto).
 //
 // Returns bool which indicates whether block formatting is preferred.
 func (n *TemplateNode) ShouldFormatBlock() bool {
@@ -385,6 +367,20 @@ func (n *TemplateNode) OwnTextRaw() string {
 		return n.TextContentWriter.StringRaw()
 	}
 	return n.OwnText()
+}
+
+// ChildrenWithBoundText presents an element's bound text as a child node.
+//
+// Bound text takes precedence over fallback children and is copied from the pooled
+// writer.
+//
+// Returns []*TemplateNode which is a new bound-text node when no InnerHTML overrides it,
+// or the node's existing children otherwise.
+func (n *TemplateNode) ChildrenWithBoundText() []*TemplateNode {
+	if n.NodeType == NodeElement && n.InnerHTML == "" && n.TextContentWriter.HasParts() {
+		return []*TemplateNode{newTextNode(n.TextContentWriter.String(), n.Location)}
+	}
+	return n.Children
 }
 
 // OwnRawText returns this node's own text as it was authored in the template source, with
@@ -484,8 +480,7 @@ func walkTextInto(
 	}
 }
 
-// appendNormalisedText appends text to the builder with whitespace normalised. It splits
-// content into words and joins them with single spaces.
+// appendNormalisedText appends text to the builder with whitespace normalised.
 //
 // Takes builder (*strings.Builder) which receives the output.
 // Takes content (string) which is the text to normalise and append.

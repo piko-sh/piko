@@ -86,20 +86,25 @@ Actions consume the score through the same `VerifyResponse.Score` field regardle
 
 ## Errors
 
-`ErrCaptchaDisabled`, `ErrVerificationFailed`, `ErrTokenMissing`, `ErrTokenExpired`, `ErrProviderUnavailable`, `ErrScoreBelowThreshold`.
+Verification can return `ErrCaptchaDisabled`, `ErrVerificationFailed`,
+`ErrTokenMissing`, `ErrTokenExpired`, `ErrProviderUnavailable`,
+`ErrProviderMisconfigured` or `ErrScoreBelowThreshold`.
 
 ## Providers
 
 Each provider sub-package exposes a `NewProvider` constructor returning `(captcha_domain.CaptchaProvider, error)`.
 
-The providers that call a remote verification endpoint (Turnstile, reCAPTCHA v3, hCaptcha) take `NewProvider(config Config, options ...Option)` with two options:
+Turnstile, reCAPTCHA v3 and hCaptcha accept these options through
+`NewProvider(config Config, options ...Option)`.
 
 | Option | Purpose |
 |---|---|
 | `WithVerifyTimeout(timeout time.Duration)` | Bounds each verification call, including reading the response. Defaults to 10 seconds. |
 | `WithMaxResponseBytes(limit int64)` | Caps the verification response body. Defaults to 64 KiB. A larger response fails with an error wrapping `ErrProviderUnavailable` without truncating the response. |
+| `WithTransport(transport http.RoundTripper)` | Sends verification requests through `transport`, for example an egress proxy. Defaults to the standard transport. |
 
-Zero or negative values keep the default.
+A nonpositive timeout or body limit keeps its default. A nil transport uses the
+standard HTTP transport.
 
 ### `captcha_provider_turnstile`
 
@@ -116,12 +121,21 @@ Constructor: `captcha_provider_turnstile.NewProvider(Config, ...Option)`.
 
 ```go
 type Config struct {
-    SiteKey   string
-    SecretKey string
+    SiteKey      string
+    SecretKey    string
+    TestKeyScore *float64
 }
 ```
 
 Constructor: `captcha_provider_recaptcha_v3.NewProvider(Config, ...Option)`.
+
+Piko preserves scores from `0.0` to `1.0`, including zero. Set `TestKeyScore` to
+supply the score omitted by Google's test keys. The fallback applies only to
+responses from Google's test key hostname. With no applicable fallback, a
+successful response without a score returns an error wrapping `ErrScoreMissing`
+and `ErrProviderMisconfigured`. `NewProvider` rejects a fallback outside the
+inclusive range `0.0` to `1.0` or a fallback of NaN with
+`ErrTestKeyScoreOutOfRange`.
 
 ### `captcha_provider_hcaptcha`
 

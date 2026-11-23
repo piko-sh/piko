@@ -447,7 +447,13 @@ func TestInjectInitIntoConnectedCallback(t *testing.T) {
 
 		assert.NotEmpty(t, ccb.Fn.Body.Block.Stmts)
 
-		assert.GreaterOrEqual(t, len(ccb.Fn.Body.Block.Stmts), 2)
+		require.Len(t, ccb.Fn.Body.Block.Stmts, 2)
+		guard, ok := ccb.Fn.Body.Block.Stmts[0].Data.(*js_ast.SIf)
+		require.True(t, ok, "component setup must be guarded on reconnection")
+		body, err := printStatement(ccb.Fn.Body.Block.Stmts[0], NewRegistryContext())
+		require.NoError(t, err)
+		assert.Contains(t, body, "!this.$$ctx")
+		assert.NotNil(t, guard.Yes.Data)
 	})
 
 	t.Run("preserves existing body", func(t *testing.T) {

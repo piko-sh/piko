@@ -21,10 +21,13 @@
 package templates
 
 import (
+	"io"
 	"maps"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"slices"
 	"strings"
@@ -33,9 +36,29 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"golang.org/x/mod/modfile"
 )
 
+type scaffoldFeatures struct {
+	interpreted bool
+	sonic       bool
+	validator   bool
+}
+
 func TestScaffold_BuildsAgainstLocalFramework(t *testing.T) {
+	t.Run("interpreted-and-sonic", func(t *testing.T) {
+		smokeScaffoldBuild(t, scaffoldFeatures{interpreted: true, sonic: true, validator: false})
+	})
+	t.Run("all-features", func(t *testing.T) {
+		smokeScaffoldBuild(t, scaffoldFeatures{interpreted: true, sonic: true, validator: true})
+	})
+	t.Run("no-optional-features", func(t *testing.T) {
+		smokeScaffoldBuild(t, scaffoldFeatures{interpreted: false, sonic: false, validator: false})
+	})
+}
+
+func smokeScaffoldBuild(t *testing.T, features scaffoldFeatures) {
+	t.Helper()
 	goBin, err := exec.LookPath("go")
 	if err != nil {
 		t.Skipf("go toolchain not available: %v", err)
@@ -56,15 +79,15 @@ func TestScaffold_BuildsAgainstLocalFramework(t *testing.T) {
 		ModuleName:        "example.com/smoke-project",
 		DestinationPath:   projectDir,
 		PikoVersion:       "v0.0.0",
-		EnableInterpreted: true,
-		EnableSonicJSON:   true,
-		EnableValidator:   true,
+		EnableInterpreted: features.interpreted,
+		EnableSonicJSON:   features.sonic,
+		EnableValidator:   features.validator,
 		EnableAgents:      true,
 	}
 	require.NoErrorf(t, CreateProject(data), "CreateProject() failed")
 
 	goworkPath := filepath.Join(workspace, "go.work")
-	rewritten := rewriteGoWorkAbsolute(string(workBytes), frameworkRoot) +
+	rewritten := rewriteGoWorkAbsolute(t, workBytes, frameworkRoot) +
 		"\nuse " + projectDir + "\n"
 	require.NoErrorf(t, os.WriteFile(goworkPath, []byte(rewritten), 0o644), "writing workspace go.work")
 
@@ -170,27 +193,60 @@ func assertSelfContainedBinaryBoots(t *testing.T, binaryPath string) {
 	require.NoErrorf(t, err, "reading the built binary: %v", err)
 	require.NoErrorf(t, os.WriteFile(isolated, data, 0o755), "copying the binary into the empty directory")
 
+	logFile, err := os.Create(filepath.Join(t.TempDir(), "startup.log"))
+	require.NoError(t, err)
+	defer func() { _ = logFile.Close() }()
 	cmd := exec.Command(isolated, "prod")
 	cmd.Dir = emptyDir
-	cmd.Env = append(os.Environ(), "PIKO_LOG_LEVEL=error")
+	cmd.Stdout, cmd.Stderr = logFile, logFile
 	require.NoErrorf(t, cmd.Start(), "starting the self-contained binary")
+	exited := make(chan struct{})
+	go func() { _ = cmd.Wait(); close(exited) }()
+	t.Cleanup(func() {
+		_ = cmd.Process.Signal(syscall.SIGTERM)
+		select {
+		case <-exited:
+		case <-time.After(5 * time.Second):
+			_ = cmd.Process.Kill()
+			<-exited
+		}
+	})
 
-	exited := make(chan error, 1)
-	go func() { exited <- cmd.Wait() }()
-
-	select {
-	case err := <-exited:
-		require.Failf(t, "self-contained binary exited during startup", "the self-contained binary exited during startup instead of serving: %v", err)
-	case <-time.After(15 * time.Second):
+	boundURL := regexp.MustCompile(`Server:[^\n]*?(http://(?:localhost|127\.0\.0\.1):[0-9]+)`)
+	var output []byte
+	var serverURL string
+	processExited := false
+	require.Eventually(t, func() bool {
+		content, err := os.ReadFile(logFile.Name())
+		if err != nil {
+			return false
+		}
+		output = content
+		if match := boundURL.FindSubmatch(content); len(match) > 0 {
+			serverURL = string(match[1])
+			return true
+		}
+		select {
+		case <-exited:
+			processExited = true
+			return true
+		default:
+			return false
+		}
+	}, 15*time.Second, 100*time.Millisecond, "no bound server URL reported within 15 seconds")
+	if processExited {
+		require.FailNowf(t, "scaffold exited early", "scaffold exited before serving its homepage (%s): %s", cmd.ProcessState, output)
 	}
 
-	_ = cmd.Process.Signal(syscall.SIGTERM)
-	select {
-	case <-exited:
-	case <-time.After(5 * time.Second):
-		_ = cmd.Process.Kill()
-		<-exited
-	}
+	client := &http.Client{Timeout: 3 * time.Second}
+	defer client.CloseIdleConnections()
+	response, err := client.Get(serverURL + "/?name=Alice")
+	require.NoError(t, err)
+	defer func() { _ = response.Body.Close() }()
+	body, err := io.ReadAll(response.Body)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.Contains(t, string(body), "Welcome, Alice")
 }
 
 func frameworkRootDir(t *testing.T) string {
@@ -200,30 +256,26 @@ func frameworkRootDir(t *testing.T) string {
 	return filepath.Clean(filepath.Join(filepath.Dir(file), "..", "..", "..", "..", ".."))
 }
 
-func rewriteGoWorkAbsolute(content, root string) string {
-	abs := func(p string) string {
-		switch {
-		case p == ".":
-			return root
-		case strings.HasPrefix(p, "./"):
-			return filepath.Join(root, p)
-		default:
-			return p
+func rewriteGoWorkAbsolute(t *testing.T, content []byte, root string) string {
+	t.Helper()
+	work, err := modfile.ParseWork("go.work", content, nil)
+	require.NoError(t, err)
+	absolute := func(path string) string {
+		if filepath.IsAbs(path) {
+			return path
+		}
+		return filepath.Join(root, path)
+	}
+	var uses []*modfile.Use
+	for _, u := range work.Use {
+		uses = append(uses, &modfile.Use{Path: absolute(u.Path), ModulePath: u.ModulePath})
+	}
+	work.SetUse(uses)
+	for _, r := range work.Replace {
+		if r.New.Version == "" {
+			require.NoError(t, work.AddReplace(r.Old.Path, r.Old.Version, absolute(r.New.Path), ""))
 		}
 	}
-	lines := strings.Split(content, "\n")
-	for i, line := range lines {
-		if idx := strings.Index(line, "=> "); idx >= 0 {
-			lhs := line[:idx+3]
-			rhs := strings.TrimSpace(line[idx+3:])
-			lines[i] = lhs + abs(rhs)
-			continue
-		}
-		trimmed := strings.TrimSpace(line)
-		if trimmed == "." || strings.HasPrefix(trimmed, "./") {
-			indent := line[:len(line)-len(strings.TrimLeft(line, " \t"))]
-			lines[i] = indent + abs(trimmed)
-		}
-	}
-	return strings.Join(lines, "\n")
+	work.Cleanup()
+	return string(modfile.Format(work.Syntax))
 }

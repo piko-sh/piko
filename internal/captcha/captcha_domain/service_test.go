@@ -21,6 +21,7 @@ package captcha_domain
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -38,9 +39,13 @@ type mockCaptchaProvider struct {
 	healthCheckErr error
 	siteKey        string
 	scriptURL      string
+	providerType   captcha_dto.ProviderType
 }
 
 func (m *mockCaptchaProvider) Type() captcha_dto.ProviderType {
+	if m.providerType != "" {
+		return m.providerType
+	}
 	return captcha_dto.ProviderTypeHMACChallenge
 }
 
@@ -365,6 +370,48 @@ func TestService_VerifyProviderError(t *testing.T) {
 	assert.Equal(t, "verify", captchaErr.Operation)
 }
 
+func TestService_CircuitBreakerIgnoresMisconfiguredProvider(t *testing.T) {
+	testCases := []struct {
+		providerErr   error
+		name          string
+		wantCallCount int
+	}{
+		{
+			name:          "misconfiguration never trips the breaker",
+			providerErr:   fmt.Errorf("verification succeeded without a score: %w", captcha_dto.ErrProviderMisconfigured),
+			wantCallCount: 2 * circuitBreakerConsecutiveFailures,
+		},
+		{
+			name:          "provider failures trip the breaker",
+			providerErr:   errors.New("network timeout"),
+			wantCallCount: circuitBreakerConsecutiveFailures,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			service := newTestService(t)
+			ctx := t.Context()
+
+			callCount := 0
+			provider := &mockCaptchaProvider{
+				verifyFunc: func(_ context.Context, _ *captcha_dto.VerifyRequest) (*captcha_dto.VerifyResponse, error) {
+					callCount++
+					return nil, testCase.providerErr
+				},
+			}
+			require.NoError(t, service.RegisterProvider(ctx, "test", provider))
+			require.NoError(t, service.SetDefaultProvider("test"))
+
+			for range 2 * circuitBreakerConsecutiveFailures {
+				require.Error(t, service.Verify(ctx, "token", "127.0.0.1", "submit"))
+			}
+
+			assert.Equal(t, testCase.wantCallCount, callCount)
+		})
+	}
+}
+
 func TestService_VerifyWithScoreZeroThreshold(t *testing.T) {
 	service := newTestService(t)
 	ctx := t.Context()
@@ -597,6 +644,44 @@ func TestService_VerifyWithScore_ActionMismatch(t *testing.T) {
 
 	_, err := service.VerifyWithScore(ctx, "token", "127.0.0.1", "submit", 0)
 	assert.ErrorIs(t, err, captcha_dto.ErrVerificationFailed)
+}
+
+func TestService_VerifyWithScore_OmittedAction(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name         string
+		providerType captcha_dto.ProviderType
+		wantErr      error
+	}{
+		{name: "reCAPTCHA v3 must report the action", providerType: captcha_dto.ProviderTypeRecaptchaV3, wantErr: captcha_dto.ErrVerificationFailed},
+		{name: "hCaptcha may omit the action", providerType: captcha_dto.ProviderTypeHCaptcha, wantErr: nil},
+		{name: "Turnstile may omit the action", providerType: captcha_dto.ProviderTypeTurnstile, wantErr: nil},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			service := newTestService(t)
+			ctx := t.Context()
+			provider := &mockCaptchaProvider{
+				providerType: testCase.providerType,
+				verifyFunc: func(_ context.Context, _ *captcha_dto.VerifyRequest) (*captcha_dto.VerifyResponse, error) {
+					return &captcha_dto.VerifyResponse{Success: true, Score: new(0.9)}, nil
+				},
+			}
+			require.NoError(t, service.RegisterProvider(ctx, "test", provider))
+			require.NoError(t, service.SetDefaultProvider("test"))
+
+			_, err := service.VerifyWithScore(ctx, "token", "127.0.0.1", "submit", 0.5)
+			if testCase.wantErr == nil {
+				assert.NoError(t, err)
+				return
+			}
+			assert.ErrorIs(t, err, testCase.wantErr)
+		})
+	}
 }
 
 func TestService_NilConfig(t *testing.T) {

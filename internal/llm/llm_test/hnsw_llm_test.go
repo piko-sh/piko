@@ -60,14 +60,14 @@ func TestLLM_Vertical_HNSW_RAG_Flow(t *testing.T) {
 		})
 	})
 
-	vStore := vector_cache.New(func(ns string, config *llm_domain.VectorNamespaceConfig) (cache_domain.Cache[string, llm_dto.VectorDocument], error) {
+	vStore := vector_cache.New(func(ctx context.Context, ns string, config *llm_domain.VectorNamespaceConfig) (cache_domain.Cache[string, llm_dto.VectorDocument], error) {
 		return cache_domain.NewCacheBuilder[string, llm_dto.VectorDocument](cacheService).
 			FactoryBlueprint(blueprintName).
 			Namespace(ns).
 			Searchable(cache_dto.NewSearchSchema(
 				cache_dto.VectorFieldWithMetric("Vector", dimension, string(config.Metric)),
 			)).
-			Build(context.Background())
+			Build(ctx)
 	})
 	h.service.SetVectorStore(vStore)
 

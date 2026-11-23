@@ -41,9 +41,7 @@ const (
 	maxLogPreviewLength = 50
 )
 
-// engine implements the Transformer interface. It orchestrates a two-pass transformation:
-// autowrap to ensure structural validity, then transform to convert PML components into
-// email-safe HTML.
+// engine converts PML components into HTML for email.
 type engine struct {
 	// registry stores PML components by tag name for lookup during transformation.
 	registry ComponentRegistry
@@ -56,15 +54,14 @@ type engine struct {
 	msoConditionalCollector MSOConditionalCollector
 }
 
-// Transform applies PML changes to a template using a two-pass method. It implements the
-// Transformer interface.
+// Transform wraps and converts PML components in a template.
 //
-// Takes ast (*ast_domain.TemplateAST) which is the template to transform.
-// Takes config (*pml_dto.Config) which sets how the transformation behaves.
+// Takes ast (*ast_domain.TemplateAST) which is the template and may be changed in place.
+// Takes config (*pml_dto.Config) which supplies settings, or nil to use defaults.
 //
-// Returns *ast_domain.TemplateAST which is the changed template.
-// Returns string which holds the CSS made for the breakpoint.
-// Returns []*Error which lists any problems found during the process.
+// Returns *ast_domain.TemplateAST which contains the converted template.
+// Returns string which holds the CSS for the configured breakpoint.
+// Returns []*Error which contains transformation diagnostics.
 func (e *engine) Transform(
 	ctx context.Context,
 	ast *ast_domain.TemplateAST,
@@ -104,11 +101,6 @@ func (e *engine) Transform(
 }
 
 // TransformForEmail transforms a template AST for email rendering contexts.
-//
-// It initialises an email-specific transformation context with asset registry support and
-// returns the collected asset requests alongside the transformed AST. Use when rendering
-// email templates to enable automatic CID (Content-ID) embedding of local assets
-// referenced in <pml-img> tags.
 //
 // Takes ast (*ast_domain.TemplateAST) which is the template to transform.
 // Takes config (*pml_dto.Config) which specifies rendering options.
@@ -221,8 +213,7 @@ func (e *engine) transformRootNodesForEmail(
 }
 
 // doTransformRootNodes iterates over root nodes, transforms each one, and collects
-// diagnostics. It is the shared implementation for both standard and email transformation
-// passes.
+// diagnostics.
 //
 // Takes rootNodes ([]*ast_domain.TemplateNode) which are the root template nodes to
 // transform.
@@ -324,12 +315,11 @@ func (e *engine) autowrapTree(ctx context.Context, ast *ast_domain.TemplateAST) 
 	e.autowrapPostOrderRecursive(ctx, ast.RootNodes, nil)
 }
 
-// autowrapPostOrderRecursive performs a post-order walk that processes all of a node's
-// children first and then applies autowrapping to that node's direct children, using a
-// bottom-up approach to prevent infinite loops.
+// autowrapPostOrderRecursive wraps descendants before their parent to avoid repeated
+// wrapping.
 //
 // Takes nodes ([]*ast_domain.TemplateNode) which are the nodes to process.
-func (e *engine) autowrapPostOrderRecursive(ctx context.Context, nodes []*ast_domain.TemplateNode, _ /* parent */ *ast_domain.TemplateNode) {
+func (e *engine) autowrapPostOrderRecursive(ctx context.Context, nodes []*ast_domain.TemplateNode, _ *ast_domain.TemplateNode) {
 	if nodes == nil {
 		return
 	}
@@ -453,6 +443,7 @@ func (e *engine) transformPMLComponent(
 
 	childCtx := e.createChildContext(ctx, node, comp, parentNode, parentComponent)
 	nodeToTransform := node.DeepClone()
+	nodeToTransform.Children = nodeToTransform.ChildrenWithBoundText()
 
 	var allDiagnostics []*Error
 
@@ -563,9 +554,6 @@ func (*engine) countPMLSiblings(parentNode *ast_domain.TemplateNode) int {
 }
 
 // NewTransformer creates and returns a new PML transformation engine.
-//
-// The collectors are injected as dependencies to avoid circular dependencies with
-// adapters.
 //
 // Takes registry (ComponentRegistry) which provides access to PML components.
 // Takes mediaQueryCollector (MediaQueryCollector) which gathers media queries.

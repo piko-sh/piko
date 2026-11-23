@@ -20,6 +20,8 @@ package captcha_provider_recaptcha_v3
 
 import (
 	"errors"
+	"math"
+	"net/http"
 	"time"
 
 	"piko.sh/piko/internal/captcha/captcha_adapters/siteverify"
@@ -31,10 +33,23 @@ var (
 
 	// ErrSecretKeyEmpty is returned when the secret key is not set.
 	ErrSecretKeyEmpty = errors.New("recaptcha: secret key cannot be empty")
+
+	// ErrScoreMissing is returned when a successful verification carries no score and no
+	// test key score is configured.
+	ErrScoreMissing = errors.New("recaptcha: verification response has no score")
+
+	// ErrTestKeyScoreOutOfRange is returned when the test key score lies outside 0.0 to 1.0.
+	ErrTestKeyScoreOutOfRange = errors.New("recaptcha: test key score must be between 0 and 1")
 )
 
 // Config holds configuration for the Google reCAPTCHA v3 captcha provider.
 type Config struct {
+	// TestKeyScore supplies the score omitted by a successful Google test key response.
+	//
+	// The fallback applies only to Google's test key hostname. A nil fallback makes a
+	// successful response without a score fail verification.
+	TestKeyScore *float64
+
 	// SiteKey is the public site key from the Google reCAPTCHA admin console. This is
 	// embedded in the frontend widget.
 	SiteKey string
@@ -56,6 +71,9 @@ func (c *Config) validate() error {
 	}
 	if c.SecretKey == "" {
 		return ErrSecretKeyEmpty
+	}
+	if c.TestKeyScore != nil && (*c.TestKeyScore < 0 || *c.TestKeyScore > 1 || math.IsNaN(*c.TestKeyScore)) {
+		return ErrTestKeyScoreOutOfRange
 	}
 	return nil
 }
@@ -80,4 +98,14 @@ func WithVerifyTimeout(timeout time.Duration) Option {
 // Returns Option which applies the limit.
 func WithMaxResponseBytes(limit int64) Option {
 	return siteverify.WithMaxResponseBytes(limit)
+}
+
+// WithTransport sends reCAPTCHA verification requests through transport instead of the
+// default transport, for example to route through an egress proxy.
+//
+// Takes transport (http.RoundTripper) which sends requests or is nil to keep the default.
+//
+// Returns Option which applies the transport.
+func WithTransport(transport http.RoundTripper) Option {
+	return siteverify.WithTransport(transport)
 }

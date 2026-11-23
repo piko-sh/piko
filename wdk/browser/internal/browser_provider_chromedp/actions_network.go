@@ -20,6 +20,7 @@ package browser_provider_chromedp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -316,25 +317,35 @@ func (ri *RequestInterceptor) Disable(ctx *ActionContext) error {
 	return nil
 }
 
-// WaitForNetworkIdle waits until no network requests have been made for the specified
-// duration.
+// WaitForNetworkIdle waits for a period without fetch activity in the current document.
+//
+// The document tracks fetch requests started after the first call.
 //
 // Takes ctx (*ActionContext) which provides the browser context for execution.
 // Takes idleDuration (time.Duration) which specifies how long the network must be idle
 // before returning.
 // Takes timeout (time.Duration) which sets the maximum time to wait for idle.
 //
-// Returns error when the JavaScript execution fails or the context is invalid.
+// Returns error when the network is not idle within the timeout, the script fails or ctx
+// ends.
 func WaitForNetworkIdle(ctx *ActionContext, idleDuration time.Duration, timeout time.Duration) error {
 	js := scripts.MustExecute("wait_network_idle.js.tmpl", map[string]any{
 		"IdleDuration": idleDuration.Milliseconds(),
 		"Timeout":      timeout.Milliseconds(),
 	})
 
-	var result bool
-	err := chromedp.Run(ctx.Ctx, chromedp.Evaluate(js, &result, chromedp.EvalAsValue))
+	limit := timeout + networkIdleGrace
+	timedCtx, cancel := context.WithTimeoutCause(ctx.Ctx, limit,
+		fmt.Errorf("WaitForNetworkIdle exceeded %s timeout", limit))
+	defer cancel()
+
+	var idle bool
+	err := chromedp.Run(timedCtx, chromedp.Evaluate(js, &idle, chromedp.EvalAsValue, AwaitPromise))
 	if err != nil {
-		return fmt.Errorf("waiting for network idle: %w", err)
+		return fmt.Errorf("waiting for network idle: %w", withContextCause(timedCtx, err))
+	}
+	if !idle {
+		return errors.New("waiting for network idle: script reported the network busy")
 	}
 	return nil
 }
@@ -370,11 +381,13 @@ func CheckRequestMade(ctx *ActionContext, matcher RequestMatcher) (bool, error) 
 // Returns error when the timeout is reached before a matching request appears.
 func WaitForRequest(ctx *ActionContext, matcher RequestMatcher, timeout time.Duration) (*NetworkRequest, error) {
 	deadline := time.Now().Add(timeout)
+	ticker := time.NewTicker(DefaultPollingInterval)
+	defer ticker.Stop()
 
-	for time.Now().Before(deadline) {
+	for {
 		requests, err := getTrackedRequests(ctx)
 		if err != nil {
-			return nil, err
+			return nil, withContextCause(ctx.Ctx, err)
 		}
 
 		for _, request := range requests {
@@ -383,10 +396,13 @@ func WaitForRequest(ctx *ActionContext, matcher RequestMatcher, timeout time.Dur
 			}
 		}
 
-		time.Sleep(DefaultPollingInterval)
+		if time.Now().After(deadline) {
+			return nil, fmt.Errorf("timeout waiting for request matching %+v", matcher)
+		}
+		if err := waitForTick(ctx.Ctx, ticker); err != nil {
+			return nil, fmt.Errorf("waiting for request matching %+v: %w", matcher, err)
+		}
 	}
-
-	return nil, fmt.Errorf("timeout waiting for request matching %+v", matcher)
 }
 
 // InterceptRequest sets up a simple request interceptor using JavaScript. This is easier

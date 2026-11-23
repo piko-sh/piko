@@ -20,8 +20,8 @@ package lifecycle_adapters
 
 import (
 	"fmt"
-	"path/filepath"
-	"strings"
+	"maps"
+	"slices"
 
 	"piko.sh/piko/internal/generator/generator_domain"
 	"piko.sh/piko/internal/generator/generator_dto"
@@ -39,7 +39,7 @@ func (o *InterpretedBuildOrchestrator) topologicallySortArtefacts(
 	artefacts []*generator_dto.GeneratedArtefact,
 ) ([]*generator_dto.GeneratedArtefact, error) {
 	sorter := &topologicalSorter{
-		orchestrator:          o,
+		resolver:              newImportResolver(o.projectRoot, o.moduleName, slices.Values(artefacts)),
 		artefactByPackagePath: make(map[string]*generator_dto.GeneratedArtefact),
 		adjacency:             make(map[string][]string),
 		inDegree:              make(map[string]int),
@@ -51,8 +51,8 @@ func (o *InterpretedBuildOrchestrator) topologicallySortArtefacts(
 // topologicalSorter holds the state needed to sort build artefacts by their dependencies
 // using topological sorting.
 type topologicalSorter struct {
-	// orchestrator holds the parent orchestrator for accessing project root.
-	orchestrator *InterpretedBuildOrchestrator
+	// resolver resolves each import to the component it names among the artefacts.
+	resolver *importResolver
 
 	// artefactByPackagePath maps canonical Go package paths to their generated artefacts.
 	artefactByPackagePath map[string]*generator_dto.GeneratedArtefact
@@ -63,7 +63,8 @@ type topologicalSorter struct {
 	// inDegree tracks how many unprocessed dependencies each package path has.
 	inDegree map[string]int
 
-	// allPaths holds all package paths in the order they were added.
+	// allPaths holds all package paths in sorted order, so the result does not depend on map
+	// iteration.
 	allPaths []string
 }
 
@@ -77,7 +78,9 @@ type topologicalSorter struct {
 // Returns error when a dependency cycle is detected or validation fails.
 func (sorter *topologicalSorter) sort(artefacts []*generator_dto.GeneratedArtefact) ([]*generator_dto.GeneratedArtefact, error) {
 	sorter.buildArtefactMap(artefacts)
-	sorter.buildDependencyGraph()
+	if err := sorter.buildDependencyGraph(); err != nil {
+		return nil, err
+	}
 	sorted := sorter.executeKahnsAlgorithm()
 	return sorter.validateAndReturn(sorted)
 }
@@ -89,29 +92,35 @@ func (sorter *topologicalSorter) sort(artefacts []*generator_dto.GeneratedArtefa
 func (sorter *topologicalSorter) buildArtefactMap(artefacts []*generator_dto.GeneratedArtefact) {
 	for _, artefact := range artefacts {
 		component, _ := generator_domain.GetMainComponent(artefact.Result)
-		if component != nil {
-			sorter.artefactByPackagePath[component.CanonicalGoPackagePath] = artefact
+		if component == nil {
+			continue
 		}
+		sorter.artefactByPackagePath[component.CanonicalGoPackagePath] = artefact
 	}
 }
 
 // buildDependencyGraph builds the adjacency list and in-degree map for all packages.
-func (sorter *topologicalSorter) buildDependencyGraph() {
-	for packagePath, artefact := range sorter.artefactByPackagePath {
+//
+// Returns error when an import matches more than one component.
+func (sorter *topologicalSorter) buildDependencyGraph() error {
+	sorter.allPaths = slices.Sorted(maps.Keys(sorter.artefactByPackagePath))
+	for _, packagePath := range sorter.allPaths {
 		sorter.initialiseGraphNode(packagePath)
-		sorter.processArtefactImports(packagePath, artefact)
 	}
+	for _, packagePath := range sorter.allPaths {
+		if err := sorter.processArtefactImports(packagePath, sorter.artefactByPackagePath[packagePath]); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // initialiseGraphNode adds a node to the dependency graph.
 //
 // Takes packagePath (string) which specifies the package path to add as a node.
 func (sorter *topologicalSorter) initialiseGraphNode(packagePath string) {
-	sorter.allPaths = append(sorter.allPaths, packagePath)
 	sorter.inDegree[packagePath] = 0
-	if _, ok := sorter.adjacency[packagePath]; !ok {
-		sorter.adjacency[packagePath] = []string{}
-	}
+	sorter.adjacency[packagePath] = []string{}
 }
 
 // processArtefactImports processes all piko imports for an artefact.
@@ -119,83 +128,40 @@ func (sorter *topologicalSorter) initialiseGraphNode(packagePath string) {
 // Takes packagePath (string) which identifies the package being processed.
 // Takes artefact (*generator_dto.GeneratedArtefact) which contains the artefact with piko
 // imports to process.
-func (sorter *topologicalSorter) processArtefactImports(packagePath string, artefact *generator_dto.GeneratedArtefact) {
+//
+// Returns error when an import matches more than one component.
+func (sorter *topologicalSorter) processArtefactImports(packagePath string, artefact *generator_dto.GeneratedArtefact) error {
 	component, _ := generator_domain.GetMainComponent(artefact.Result)
 	if component == nil {
-		return
+		return nil
 	}
 
 	for _, pikoImport := range component.Source.PikoImports {
-		sorter.processImport(packagePath, pikoImport.Path)
+		if err := sorter.processImport(packagePath, pikoImport.Path); err != nil {
+			return fmt.Errorf("resolving import %q of %s: %w", pikoImport.Path, packagePath, err)
+		}
 	}
+	return nil
 }
 
 // processImport handles a single import and updates the dependency graph.
 //
 // Takes packagePath (string) which is the package being processed.
 // Takes importPath (string) which is the import path to resolve.
-func (sorter *topologicalSorter) processImport(packagePath, importPath string) {
-	importRelativePath := sorter.extractRelativePath(importPath)
-	dependencyPackagePath := sorter.findDependencyPackagePath(importRelativePath)
-
-	if dependencyPackagePath == "" || sorter.artefactByPackagePath[dependencyPackagePath] == nil {
-		return
+//
+// Returns error when the import matches more than one component.
+func (sorter *topologicalSorter) processImport(packagePath, importPath string) error {
+	_, dependencyPackagePath, err := sorter.resolver.resolve(importPath)
+	if err != nil {
+		return err
+	}
+	if dependencyPackagePath == "" || dependencyPackagePath == packagePath {
+		return nil
 	}
 
 	sorter.adjacency[dependencyPackagePath] = append(sorter.adjacency[dependencyPackagePath], packagePath)
 	sorter.inDegree[packagePath]++
-}
-
-// extractRelativePath extracts the relative path portion of an import path.
-//
-// Takes importPath (string) which is the full import path to process.
-//
-// Returns string which is the path after the first slash, or the original path if no
-// slash is present.
-func (*topologicalSorter) extractRelativePath(importPath string) string {
-	parts := strings.SplitN(importPath, "/", 2)
-	if len(parts) > 1 {
-		return filepath.ToSlash(parts[1])
-	}
-	return filepath.ToSlash(importPath)
-}
-
-// findDependencyPackagePath finds the package path of an artefact matching the import.
-//
-// Takes importRelativePath (string) which specifies the relative import path to search
-// for.
-//
-// Returns string which is the package path of the matching artefact, or an empty string
-// if no match is found.
-func (sorter *topologicalSorter) findDependencyPackagePath(importRelativePath string) string {
-	for candidatePackagePath, candidateArtefact := range sorter.artefactByPackagePath {
-		if sorter.matchesImport(candidateArtefact, importRelativePath) {
-			return candidatePackagePath
-		}
-	}
-	return ""
-}
-
-// matchesImport checks if an artefact matches the given import path.
-//
-// Takes artefact (*generator_dto.GeneratedArtefact) which is the artefact to check.
-// Takes importRelativePath (string) which is the import path to match against.
-//
-// Returns bool which is true if the artefact's relative path matches or ends with the
-// import path.
-func (sorter *topologicalSorter) matchesImport(artefact *generator_dto.GeneratedArtefact, importRelativePath string) bool {
-	candidateComponent, _ := generator_domain.GetMainComponent(artefact.Result)
-	if candidateComponent == nil {
-		return false
-	}
-
-	candidateRelativePath, err := filepath.Rel(sorter.orchestrator.projectRoot, candidateComponent.Source.SourcePath)
-	if err != nil {
-		candidateRelativePath = candidateComponent.Source.SourcePath
-	}
-	candidateRelativePath = filepath.ToSlash(candidateRelativePath)
-
-	return candidateRelativePath == importRelativePath || strings.HasSuffix(candidateRelativePath, importRelativePath)
+	return nil
 }
 
 // executeKahnsAlgorithm performs Kahn's algorithm to produce a topologically sorted list.

@@ -19,44 +19,32 @@
 import fragmentMorpher from '@/core/fragmentMorpher';
 import {notifyDOMUpdated} from '@/pk/domUpdater';
 import {applyLoadingIndicator, removeLoadingIndicator} from '@/pk/loadingState';
-import {getNodeKey} from '@/pk/getNodeKey';
+import {getNodeKey, transformRelativeKeys} from '@/pk/getNodeKey';
 
 /**
- * How a partial reload reconciles the live partial root with the server response.
+ * Controls which parts of a partial root a reload updates.
  *
- * - `merge` (default): server-emitted attributes overwrite their live counterparts;
- *   live-only attributes are preserved. The `partial` scope chain is merged
- *   rather than overwritten. Children are morphed.
- * - `replace`: server is fully authoritative for root attributes; live-only
- *   attributes are removed. Children are morphed.
- * - `children-only`: root attributes are not touched; only children are morphed.
- * - `attrs-only`: root attributes follow the merge rule; children are not
- *   touched.
+ * - `merge` overwrites attributes present in the response and preserves live-only
+ *   attributes. It merges the partial scope chain and morphs children.
+ * - `replace` replaces root attributes and morphs children.
+ * - `children-only` morphs children and preserves root attributes.
+ * - `attrs-only` merges root attributes and preserves children.
  */
 export type ReloadMode = 'merge' | 'replace' | 'children-only' | 'attrs-only';
 
-/** Attribute names framework infrastructure owns; never copied across a morph. */
+/** Lists framework attributes to keep during root attribute merges. */
 const NEVER_SYNC_ATTRS = new Set(['pk-ev-bound', 'pk-sync-bound']);
 
-/**
- * The `partial` attribute is space-separated and stacks self-scope on top of
- * inherited parent scopes. It must be merged rather than overwritten on every
- * mode that touches root attributes, otherwise a child partial's parent CSS
- * scopes are lost on each reload.
- */
+/** Names the attribute that stores the partial scope before its parent scopes. */
 const SCOPE_ATTR = 'partial';
 
-/** Options for partial reload with fine-grained control. */
+/** Configures a partial reload. */
 export interface PartialReloadOptions {
     /** Query parameters to pass to the server. */
     data?: Record<string, string | number | boolean>;
     /** Reconciliation mode for the partial root. Defaults to `'merge'`. */
     mode?: ReloadMode;
-    /**
-     * Attributes the server is authoritative for on the partial root.
-     * When set, only listed attribute names are copied from the server response.
-     * All other live attributes are preserved.
-     */
+    /** Limits which attributes to sync in merge and attrs-only modes. */
     ownedAttrs?: string[];
     /** Attribute names that must never be modified on the live partial root. */
     preserveAttrs?: string[];
@@ -83,16 +71,11 @@ export interface PartialHandle {
 }
 
 /**
- * Parses a server fragment response and returns the partial root element.
+ * Finds the partial root in a fragment response.
  *
- * Fragment responses are wrapped in `<head>...</head><body><div id="app">...partial root...</div>...</body>`.
- * Drilling into `#app` matches the parser hand-off RemoteRenderer.render does,
- * so both reload paths see the same partial root rather than the page wrapper.
- * Falls back to `doc.body` for unwrapped fragments (test harnesses, alternative
- * servers) so the function still produces a usable element.
- *
- * @param html - Raw HTML string.
- * @returns The partial root element, or null when no root can be found.
+ * @param html - The response body.
+ * @returns The first child element of #app if present, otherwise of the body.
+ * The result is null if that container has no child element.
  */
 function parseFragment(html: string): HTMLElement | null {
     const parser = new DOMParser();
@@ -102,24 +85,20 @@ function parseFragment(html: string): HTMLElement | null {
 }
 
 /**
- * Resolves the {@link ReloadMode} for a reload call. Explicit `mode` wins;
- * otherwise the default `'merge'` is used.
+ * Chooses the requested reconciliation mode.
  *
- * @param options - Reload options.
- * @returns The resolved mode.
+ * @param options - Reload options that can specify a mode.
+ * @returns The requested mode or merge.
  */
 function resolveMode(options: PartialReloadOptions): ReloadMode {
     return options.mode ?? 'merge';
 }
 
 /**
- * Merges the live element's parent-scope tail onto the server-emitted self
- * scope for the `partial` attribute. Mirrors `handlePartialScopePreservation`
- * inside fragmentMorpher so that modes which skip root-morphing still keep
- * the CSS scope chain attached to nested partials.
+ * Replaces the live partial scope and keeps its parent scopes.
  *
- * @param el - Live partial root.
- * @param sourceEl - Newly rendered partial root.
+ * @param el - The live partial root.
+ * @param sourceEl - The element that supplies the new partial scope.
  */
 function mergeRootScope(el: HTMLElement, sourceEl: HTMLElement): void {
     const existing = el.getAttribute(SCOPE_ATTR);
@@ -138,17 +117,12 @@ function mergeRootScope(el: HTMLElement, sourceEl: HTMLElement): void {
 }
 
 /**
- * Copies attributes from a server-side source element onto the live element
- * using merge semantics: only attributes named in `owned` (defaulting to every
- * attribute the source actually has) are touched, anything else on the live
- * element is preserved. `preserve` attributes are skipped, framework-only
- * attributes are skipped, and the `partial` scope attribute is merged rather
- * than overwritten so nested partials keep their parent scope chain.
+ * Updates server-owned attributes and merges the partial scope.
  *
- * @param el - Live partial root.
- * @param sourceEl - Newly rendered partial root.
- * @param owned - Optional explicit list of attribute names the server owns.
- * @param preserve - Optional list of attribute names that must not be touched.
+ * @param el - The live partial root.
+ * @param sourceEl - The element that supplies the new attributes and scope.
+ * @param owned - Attributes to sync, defaulting to those on sourceEl.
+ * @param preserve - Additional attributes to keep unchanged.
  */
 function syncRootAttrsFromSource(
     el: HTMLElement,
@@ -187,12 +161,11 @@ function syncRootAttrsFromSource(
 }
 
 /**
- * Captures the current values of `preserve` attributes on the live element so
- * they can be restored after a full-replace morph clobbers them.
+ * Saves live attributes for restoration after a replace morph.
  *
- * @param el - Live partial root.
- * @param preserve - Attribute names to capture.
- * @returns Map of name to value, or null where the attribute was absent.
+ * @param el - The element whose attributes to save.
+ * @param preserve - Attributes to save.
+ * @returns A map with null entries for missing attributes, or null for an empty list.
  */
 function captureAttrs(el: HTMLElement, preserve?: string[]): Map<string, string | null> | null {
     if (!preserve || preserve.length === 0) {
@@ -206,12 +179,10 @@ function captureAttrs(el: HTMLElement, preserve?: string[]): Map<string, string 
 }
 
 /**
- * Re-applies a captured attribute snapshot to the live element. Used to honour
- * `preserveAttrs` in `replace` mode, where the morph has just overwritten or
- * removed those attributes.
+ * Restores saved attributes, including their absence.
  *
- * @param el - Live partial root.
- * @param snapshot - Captured attribute snapshot from {@link captureAttrs}.
+ * @param el - The live partial root.
+ * @param snapshot - The saved values.
  */
 function restoreAttrs(el: HTMLElement, snapshot: Map<string, string | null> | null): void {
     if (!snapshot) {
@@ -229,15 +200,13 @@ function restoreAttrs(el: HTMLElement, snapshot: Map<string, string | null> | nu
 }
 
 /**
- * Applies the configured mode to merge the server response into the live DOM.
- * The live partial root element identity is preserved across every mode; only
- * its attributes and/or children change.
+ * Updates the live partial in place using the selected reload mode.
  *
- * @param el - Live partial root.
- * @param sourceEl - Newly rendered partial root.
- * @param mode - Reconciliation mode.
- * @param ownedAttrs - Optional explicit list of attributes the server owns on the root.
- * @param preserveAttrs - Optional list of attributes to leave untouched on the root.
+ * @param el - The live partial root.
+ * @param sourceEl - The element that supplies the new attributes and children.
+ * @param mode - What to reconcile.
+ * @param ownedAttrs - Attributes to update in merge and attrs-only modes.
+ * @param preserveAttrs - Root attributes to keep unchanged.
  */
 function applyMorph(
     el: HTMLElement,
@@ -278,22 +247,50 @@ function applyMorph(
 }
 
 /**
- * Compile-time exhaustiveness guard. If a new {@link ReloadMode} value is
- * added without a matching case in {@link applyMorph}, TypeScript fails to
- * narrow the parameter to `never` and the call site stops type-checking.
+ * Throws for an unhandled reload mode.
  *
- * @param _ - The unreachable value that proves all cases are covered.
+ * @param _ - An unreachable mode in the type system.
  */
 function assertExhaustive(_: never): never {
     throw new Error(`Unhandled ReloadMode: ${String(_)}`);
 }
 
+/** Tracks the latest pending reload of each partial. */
+const inFlightReloads = new WeakMap<HTMLElement, AbortController>();
+
 /**
- * Performs the partial reload with the given options.
+ * Tracks a new partial reload and aborts its predecessor.
  *
- * @param el - Partial container element.
- * @param name - Partial name.
- * @param options - Reload options.
+ * @param el - The live partial root.
+ * @returns The controller for the new reload.
+ */
+function beginReload(el: HTMLElement): AbortController {
+    inFlightReloads.get(el)?.abort(new DOMException('Superseded by a newer reload', 'AbortError'));
+    const controller = new AbortController();
+    inFlightReloads.set(el, controller);
+    return controller;
+}
+
+/**
+ * Checks whether a reload still owns the partial.
+ *
+ * @param el - The live partial root.
+ * @param controller - The controller that identifies the reload.
+ * @returns Whether the reload is still the latest pending one.
+ */
+function isLatestReload(el: HTMLElement, controller: AbortController): boolean {
+    return inFlightReloads.get(el) === controller;
+}
+
+/**
+ * Fetches and reconciles the server fragment for a partial. A newer reload of the same
+ * element aborts the pending reload.
+ *
+ * @param el - The live partial root.
+ * @param name - The partial name to use in errors.
+ * @param options - The request data and reconciliation settings.
+ * @returns A promise that resolves after the reload, including empty or superseded
+ * responses, or rejects if the request fails or partial_src is missing.
  */
 async function performReload(el: HTMLElement, name: string, options: PartialReloadOptions): Promise<void> {
     const baseSrc = el.getAttribute('partial_src');
@@ -314,15 +311,19 @@ async function performReload(el: HTMLElement, name: string, options: PartialRelo
 
     const mode = resolveMode(options);
 
+    const controller = beginReload(el);
     applyLoadingIndicator(el);
 
     try {
-        const response = await fetch(url);
+        const response = await fetch(url, {signal: controller.signal});
         if (!response.ok) {
             throw new Error(`Failed to reload partial: ${response.status}`);
         }
 
         const html = await response.text();
+        if (controller.signal.aborted) {
+            return;
+        }
         const sourceEl = parseFragment(html);
 
         if (!sourceEl) {
@@ -330,6 +331,7 @@ async function performReload(el: HTMLElement, name: string, options: PartialRelo
             return;
         }
 
+        transformRelativeKeys(sourceEl, el);
         applyMorph(el, sourceEl, mode, options.ownedAttrs, options.preserveAttrs);
 
         if (effectiveData) {
@@ -340,6 +342,9 @@ async function performReload(el: HTMLElement, name: string, options: PartialRelo
 
         notifyDOMUpdated(el);
     } catch (error) {
+        if (controller.signal.aborted) {
+            return;
+        }
         console.error(`[pk] Failed to reload partial "${name}":`, {
             url,
             args: options.data,
@@ -348,18 +353,18 @@ async function performReload(el: HTMLElement, name: string, options: PartialRelo
         });
         throw error;
     } finally {
-        removeLoadingIndicator(el);
+        if (isLatestReload(el, controller)) {
+            inFlightReloads.delete(el);
+            removeLoadingIndicator(el);
+        }
     }
 }
 
 /**
- * Returns a handle for a server-side partial by name or element.
+ * Finds a server-side partial and creates a reload handle.
  *
- * When given a string, looks up the partial by its partial_name attribute.
- * When given an Element, uses it directly (it must have partial_src for reload).
- *
- * @param nameOrElement - The partial name (matches partial_name attribute) or a partial root element.
- * @returns A handle for reloading the partial.
+ * @param nameOrElement - A partial_name or its root element.
+ * @returns A handle with the element if found and methods to reload it.
  */
 export function partial(nameOrElement: string | Element): PartialHandle {
     let el: HTMLElement | null;

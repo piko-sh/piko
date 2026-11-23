@@ -153,7 +153,10 @@ piko.WithCaptchaProvider("recaptcha", recaptcha),
 piko.WithDefaultCaptchaProvider("recaptcha"),
 ```
 
-The widget script URL changes (`https://www.google.com/recaptcha/api.js`), but the action code stays identical because `captcha.Verify` is the same. reCAPTCHA v3 returns a numeric confidence score, and Piko normalises it onto the same `0.0-1.0` scale used elsewhere.
+The widget loads Google's script and the action still calls `captcha.Verify`.
+reCAPTCHA v3 reports a score from `0.0` to `1.0`. If you use Google's test keys,
+set [`TestKeyScore`](../reference/captcha-api.md#captcha_provider_recaptcha_v3)
+to supply the score those keys omit.
 
 hCaptcha (`captcha_provider_hcaptcha`) follows the same shape.
 

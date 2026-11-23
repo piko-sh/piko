@@ -25,6 +25,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -1116,4 +1117,29 @@ func TestCachingManifestRunner_ASTRoundTripThroughDisk(t *testing.T) {
 	assert.Equal(t, "handleSubmit", button.OnEvents["click"][0].RawExpression)
 	require.Len(t, button.Children, 1)
 	assert.Equal(t, "Submit", button.Children[0].TextContent)
+}
+
+func TestStartupRunnerRendersNewDocumentWithProps(t *testing.T) {
+	for _, path := range []string{"pdfs/order.pk", "emails/order.pk"} {
+		t.Run(path, func(t *testing.T) {
+			cache := &mockJITCompiler{entries: map[string]*PageEntry{}}
+			runner := NewInterpretedManifestRunner(nil, map[string]*PageEntry{}, cache, "en")
+			def := templater_dto.PageDefinition{OriginalPath: path}
+			_, _, _, err := runner.RunPartialWithProps(t.Context(), def, nil, "first")
+			require.ErrorIs(t, err, os.ErrNotExist)
+			var received any
+			entry := &PageEntry{}
+			entry.SetASTFunc(func(_ *templater_dto.RequestData, props any) (*ast_domain.TemplateAST, templater_dto.InternalMetadata, []*generator_dto.RuntimeDiagnostic) {
+				received = props
+				return &ast_domain.TemplateAST{}, templater_dto.InternalMetadata{}, nil
+			})
+			cache.entries[path] = entry
+			_, _, _, err = runner.RunPartialWithProps(t.Context(), def, nil, "invoice")
+			require.NoError(t, err)
+			require.Equal(t, "invoice", received)
+			delete(cache.entries, path)
+			_, _, _, err = runner.RunPartialWithProps(t.Context(), def, nil, "removed")
+			require.ErrorIs(t, err, os.ErrNotExist)
+		})
+	}
 }

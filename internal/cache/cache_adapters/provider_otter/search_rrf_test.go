@@ -20,6 +20,7 @@ package provider_otter
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -362,4 +363,66 @@ func TestHybridSearch_TextNoVectorMatch(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.True(t, len(result.Items) > 0, "should still have vector results even without text matches")
+}
+
+func TestRRFFusion_TiesAreStableAcrossPages(t *testing.T) {
+	adapter := newRRFTestAdapter(t)
+	ctx := t.Context()
+
+	keys := []string{"vector-a", "vector-b", "vector-c", "text-a", "text-b", "text-c"}
+	for _, key := range keys {
+		require.NoError(t, adapter.Set(ctx, key, Product{ID: key, Name: key}))
+	}
+	vectorHits := []VectorHit[string]{{Key: "vector-a", Score: 0.9}, {Key: "vector-b", Score: 0.8}, {Key: "vector-c", Score: 0.7}}
+	textScored := []ScoredResult[string]{{Key: "text-a", Score: 3}, {Key: "text-b", Score: 2}, {Key: "text-c", Score: 1}}
+
+	var first []string
+	for range 20 {
+		var order []string
+		for offset := 0; offset < len(keys); offset += 2 {
+			page, err := adapter.rrfFusion(vectorHits, textScored, nil, offset, 2)
+			require.NoError(t, err)
+			for _, item := range page.Items {
+				order = append(order, item.Key)
+			}
+		}
+		require.ElementsMatch(t, keys, order, "paging must neither repeat nor drop a key")
+		if first == nil {
+			first = order
+			continue
+		}
+		require.Equal(t, first, order, "tied scores must order the same way every time")
+	}
+	assert.Equal(t, []string{"vector-a", "text-a", "vector-b", "text-b", "vector-c", "text-c"}, first)
+}
+
+func TestRRFFusion_HybridSearchWithTiedTextScoresIsStableAcrossPages(t *testing.T) {
+	adapter := newVectorTestAdapter(t)
+	ctx := t.Context()
+
+	keys := make([]string, 0, 6)
+	for index := range 6 {
+		key := fmt.Sprintf("document-%d", index)
+		keys = append(keys, key)
+		embedding := []float32{1, float32(5-index) / 10, 0}
+		require.NoError(t, adapter.Set(ctx, key, testVecDocument{Title: "shared title", Embedding: embedding}))
+	}
+
+	var first []string
+	for range 20 {
+		var order []string
+		for offset := 0; offset < len(keys); offset += 2 {
+			page, err := adapter.Search(ctx, "shared", &cache_dto.SearchOptions{Vector: []float32{1, 0, 0}, TopK: len(keys), Offset: offset, Limit: 2})
+			require.NoError(t, err)
+			for _, item := range page.Items {
+				order = append(order, item.Key)
+			}
+		}
+		require.ElementsMatch(t, keys, order, "paging must neither repeat nor drop a key")
+		if first == nil {
+			first = order
+			continue
+		}
+		require.Equal(t, first, order, "equal text scores must rank the same way every time")
+	}
 }

@@ -14,6 +14,10 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
+// main runs the CAPTCHA example server with its configured providers.
+//
+// Panics if creating the secret, setting up a CAPTCHA provider or running the server
+// fails.
 func main() {
 	command := piko.RunModeDev
 	if len(os.Args) > 1 {
@@ -51,8 +55,9 @@ func main() {
 	}
 
 	recaptchaPassProvider, err := captcha_provider_recaptcha_v3.NewProvider(captcha_provider_recaptcha_v3.Config{
-		SiteKey:   "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI",
-		SecretKey: "6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe",
+		TestKeyScore: new(0.9),
+		SiteKey:      "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI",
+		SecretKey:    "6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe",
 	})
 	if err != nil {
 		panic(err)

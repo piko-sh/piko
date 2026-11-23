@@ -23,6 +23,9 @@ import (
 )
 
 const (
+	// documentReadyStateScript names the embedded script that reads document.readyState.
+	documentReadyStateScript = "document_ready_state.js"
+
 	// ShadowDOMSeparator is the separator used for shadow DOM piercing selectors.
 	ShadowDOMSeparator = " >>> "
 
@@ -96,6 +99,10 @@ const (
 	// historyNavigationTimeout is the time limit for going back or forward in the browser
 	// history.
 	historyNavigationTimeout = 5 * time.Second
+
+	// networkIdleGrace is the extra time WaitForNetworkIdle allows beyond its in-page
+	// timeout before giving up on a page that never answers.
+	networkIdleGrace = 2 * time.Second
 
 	// navigationTimeout is the time limit for loading a page by URL.
 	navigationTimeout = 15 * time.Second

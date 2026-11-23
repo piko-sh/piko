@@ -62,7 +62,7 @@ import { action } from "/_piko/assets/pk-js/pk/actions.gen.js";
             return {"explicit": 0, "explicitArray": [], "explicitBool": false, "explicitStr": "test", "inferred": 100, "inferredArray": [1, 2, 3], "inferredBool": true, "inferredStr": "hello"};
         }
         connectedCallback () {
-            this.init(instance.call(this, this));
+            if (!this.$$ctx) this.init(instance.call(this, this));
             super.connectedCallback();
         }
         renderVDOM () {

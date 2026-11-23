@@ -231,7 +231,7 @@ func TestPrettyPrinter_collectAttributes(t *testing.T) {
 			},
 		}
 
-		attrs := collectAttributesInOrder(node)
+		attrs := collectAttributesInOrder(node, false)
 		assert.Len(t, attrs, 2)
 		assert.Contains(t, attrs, `class="container"`)
 		assert.Contains(t, attrs, `id="main"`)
@@ -245,7 +245,7 @@ func TestPrettyPrinter_collectAttributes(t *testing.T) {
 			},
 		}
 
-		attrs := collectAttributesSorted(node)
+		attrs := collectAttributesSorted(node, false)
 		assert.Len(t, attrs, 2)
 		assert.Contains(t, attrs, "disabled")
 		assert.Contains(t, attrs, "readonly")
@@ -259,7 +259,7 @@ func TestPrettyPrinter_collectAttributes(t *testing.T) {
 			},
 		}
 
-		attrs := collectAttributesSorted(node)
+		attrs := collectAttributesSorted(node, false)
 		assert.Len(t, attrs, 2)
 		assert.Contains(t, attrs, `:title="state.Title"`)
 		assert.Contains(t, attrs, `:href="state.URL"`)
@@ -274,7 +274,7 @@ func TestPrettyPrinter_collectAttributes(t *testing.T) {
 			},
 		}
 
-		attrs := collectAttributesSorted(node)
+		attrs := collectAttributesSorted(node, false)
 		assert.Len(t, attrs, 3)
 
 		assert.Equal(t, `a-attr="first"`, attrs[0])
@@ -290,7 +290,7 @@ func TestPrettyPrinter_collectAttributes(t *testing.T) {
 			},
 		}
 
-		attrs := collectAttributesInOrder(node)
+		attrs := collectAttributesInOrder(node, false)
 		assert.Len(t, attrs, 2)
 
 		assert.Equal(t, `z-attr="last"`, attrs[0])
@@ -412,7 +412,7 @@ func TestPrettyPrinter_formatElement(t *testing.T) {
 			Children: nil,
 		}
 
-		printer.formatElement(node)
+		require.NoError(t, printer.formatElement(node))
 		result := printer.String()
 		assert.Equal(t, "<div></div>\n", result)
 	})
@@ -428,7 +428,7 @@ func TestPrettyPrinter_formatElement(t *testing.T) {
 			},
 		}
 
-		printer.formatElement(node)
+		require.NoError(t, printer.formatElement(node))
 		result := printer.String()
 		assert.Equal(t, `<img src="/image.png" />`+"\n", result)
 	})
@@ -445,7 +445,7 @@ func TestPrettyPrinter_formatElement(t *testing.T) {
 			},
 		}
 
-		printer.formatElement(node)
+		require.NoError(t, printer.formatElement(node))
 		result := printer.String()
 		assert.Contains(t, result, "<div")
 		assert.Contains(t, result, `class="container"`)
@@ -465,7 +465,7 @@ func TestPrettyPrinter_formatElement(t *testing.T) {
 		}
 
 		initialLevel := printer.indentationLevel
-		printer.formatElement(node)
+		require.NoError(t, printer.formatElement(node))
 
 		assert.Equal(t, initialLevel+1, printer.indentationLevel)
 	})

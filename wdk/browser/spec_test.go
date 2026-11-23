@@ -21,6 +21,7 @@ package browser
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"piko.sh/piko/wdk/browser/internal/browser_provider_chromedp"
 )
 
@@ -131,6 +132,30 @@ func TestIsAssertionAction(t *testing.T) {
 			if isAssertionAction(action) {
 				t.Errorf("isAssertionAction(%q) = true, want false", action)
 			}
+		})
+	}
+}
+
+func TestStepDetail(t *testing.T) {
+	testCases := []struct {
+		step BrowserStep
+		name string
+		want string
+	}{
+		{name: "checkText with expected", step: BrowserStep{Action: "checkText", Selector: "#t", Expected: "hi"}, want: `#t = "hi"`},
+		{name: "checkText without expected", step: BrowserStep{Action: "checkText", Selector: "#t"}, want: "#t"},
+		{name: "click", step: BrowserStep{Action: "click", Selector: "#b"}, want: "#b"},
+		{name: "waitForSelector", step: BrowserStep{Action: "waitForSelector", Selector: "#w"}, want: "#w"},
+		{name: "wait", step: BrowserStep{Action: "wait", Value: "250"}, want: "250ms"},
+		{name: "navigate", step: BrowserStep{Action: "navigate", Value: "/home"}, want: "/home"},
+		{name: "captureDOM", step: BrowserStep{Action: "captureDOM", Selector: "main", GoldenFile: "main.html"}, want: "main → main.html"},
+		{name: "fill", step: BrowserStep{Action: "fill", Selector: "#n", Value: "Ada"}, want: `#n = "Ada"`},
+		{name: "other with selector", step: BrowserStep{Action: "hover", Selector: "#h"}, want: "#h"},
+		{name: "other with value", step: BrowserStep{Action: "press", Value: "Enter"}, want: "Enter"},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			assert.Equal(t, testCase.want, StepDetail(&testCase.step))
 		})
 	}
 }

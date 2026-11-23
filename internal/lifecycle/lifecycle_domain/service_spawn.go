@@ -117,3 +117,33 @@ func (ls *lifecycleService) beginStopping() {
 	ls.lifetimeContext()
 	ls.cancelLifetime(errLifecycleStopping)
 }
+
+// armStartupGC schedules the post-startup collection unless the service is stopping.
+//
+// Takes collect (func()) which runs once the startup period has passed.
+//
+// Concurrency: acquires spawnMu, which also guards the stopping flag, so a timer is never
+// armed after Stop has begun.
+func (ls *lifecycleService) armStartupGC(collect func()) {
+	ls.spawnMu.Lock()
+	defer ls.spawnMu.Unlock()
+	if ls.stopping {
+		return
+	}
+	ls.gcTimer = ls.clock.AfterFunc(gcDelayAfterStartup, collect)
+}
+
+// stopStartupGC stops the post-startup collection timer if one was armed.
+//
+// Returns bool which is true when a timer was armed.
+//
+// Concurrency: acquires spawnMu.
+func (ls *lifecycleService) stopStartupGC() bool {
+	ls.spawnMu.Lock()
+	defer ls.spawnMu.Unlock()
+	if ls.gcTimer == nil {
+		return false
+	}
+	ls.gcTimer.Stop()
+	return true
+}

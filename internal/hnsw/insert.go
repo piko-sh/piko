@@ -38,8 +38,9 @@ const (
 // Takes vector ([]float32) which is the vector data. Must match the graph's dimension.
 //
 // Returns error which wraps ErrVectorDimensionMismatch when the vector is empty or its
-// length does not match the graph's dimension, or ErrZeroVector when the graph uses
-// cosine similarity and the vector has zero magnitude.
+// length does not match the graph's dimension, ErrNonFiniteVector when it holds a NaN or
+// infinite value or its magnitude overflows, or ErrZeroVector when the graph uses cosine
+// similarity and the vector has zero magnitude.
 //
 // Safe for concurrent use.
 func (g *Graph[K]) Insert(key K, vector []float32) error {
@@ -64,8 +65,9 @@ func (g *Graph[K]) Insert(key K, vector []float32) error {
 // Each vector must match the graph's dimension. If lengths differ or either slice is
 // empty, this is a no-op.
 //
-// Returns error which wraps ErrVectorDimensionMismatch or ErrZeroVector, as Insert does,
-// for the first vector that cannot be inserted. No vectors are inserted in that case.
+// Returns error which wraps ErrVectorDimensionMismatch, ErrNonFiniteVector or
+// ErrZeroVector, as Insert does, for the first vector that cannot be inserted. No vectors
+// are inserted in that case.
 //
 // Safe for concurrent use.
 func (g *Graph[K]) InsertBatch(keys []K, vectors [][]float32) error {
@@ -96,13 +98,23 @@ func (g *Graph[K]) InsertBatch(keys []K, vectors [][]float32) error {
 // Takes vector ([]float32) which is the vector to check.
 //
 // Returns error which wraps ErrVectorDimensionMismatch when the vector is empty or does
-// not match the graph's dimension, or ErrZeroVector when the graph uses cosine similarity
-// and the vector has zero magnitude.
+// not match the graph's dimension, ErrNonFiniteVector when it holds a NaN or infinite
+// value or its magnitude overflows, or ErrZeroVector when the graph uses cosine
+// similarity and the vector has zero magnitude.
 func (g *Graph[K]) validateVector(vector []float32) error {
 	if len(vector) == 0 || len(vector) != g.dimension {
 		return fmt.Errorf("%w: got %d, want %d", ErrVectorDimensionMismatch, len(vector), g.dimension)
 	}
-	if g.usesCosine() && vectormaths.NormF32(vector) == 0 {
+	for index, value := range vector {
+		if math.IsNaN(float64(value)) || math.IsInf(float64(value), 0) {
+			return fmt.Errorf("%w: component %d is %v", ErrNonFiniteVector, index, value)
+		}
+	}
+	norm := vectormaths.NormF32(vector)
+	if math.IsNaN(float64(norm)) || math.IsInf(float64(norm), 0) {
+		return fmt.Errorf("%w: magnitude overflows", ErrNonFiniteVector)
+	}
+	if g.usesCosine() && norm == 0 {
 		return ErrZeroVector
 	}
 	return nil

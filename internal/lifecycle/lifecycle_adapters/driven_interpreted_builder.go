@@ -59,7 +59,6 @@ const (
 	fieldPackagePath = "pkg_path"
 
 	// defaultJITCompileTimeout bounds one JIT compilation when no other limit is configured.
-	// It sits well above any realistic compile so only a wedged compilation reaches it.
 	defaultJITCompileTimeout = 5 * time.Minute
 )
 
@@ -73,16 +72,7 @@ var (
 )
 
 // InterpretedBuildOrchestrator handles the conversion of build artefacts into a runnable
-// InterpretedManifestRunner. It implements InterpretedBuildOrchestrator and JITCompiler
-// interfaces.
-//
-// This orchestrator uses a pre-warmed interpreter pool for performance. Every interpreter
-// it takes from the pool shares one symbol registry with the pool's golden interpreter,
-// so packages compiled by the initial build stay resolvable for later JIT recompiles.
-//
-// On file save (via MarkDirty), it only marks components as dirty without recompiling. On
-// HTTP request (via JITCompile), it compiles dirty components just-in-time. This improves
-// hot-reload performance by eliminating wasted compilation work.
+// InterpretedManifestRunner.
 type InterpretedBuildOrchestrator struct {
 	// compileGroup stops repeated JIT compilations for the same path.
 	compileGroup singleflight.Group
@@ -104,11 +94,11 @@ type InterpretedBuildOrchestrator struct {
 	reverseDepsMap map[string][]string
 
 	// interpreterPool holds reusable interpreters for template processing. Replaced by a
-	// fresh pool when user Go packages change; guarded by stateLock.
+	// fresh pool when user Go packages change, guarded by stateLock.
 	interpreterPool templater_domain.InterpreterPoolPort
 
 	// interpreterProvider builds fresh interpreter pools when user Go packages change, so
-	// they are recompiled into a new symbol registry. Nil disables the refresh.
+	// they are recompiled into a new symbol registry.
 	interpreterProvider templater_domain.InterpreterProviderPort
 
 	// clock supplies the time used for compilation metrics.
@@ -132,8 +122,7 @@ type InterpretedBuildOrchestrator struct {
 	// moduleName is the Go module path used to resolve imports.
 	moduleName string
 
-	// hostImports holds the relative directories of the project packages the server binary's
-	// main package imports; set once by hostImportsOnce.
+	// hostImports holds the memoised project-relative directories of the host imports.
 	hostImports map[string]bool
 
 	// packageStateWarned records the project packages already reported by
@@ -144,12 +133,11 @@ type InterpretedBuildOrchestrator struct {
 	jitCompileTimeout time.Duration
 
 	// freshPoolRequested counts the requests for a fresh interpreter pool made by
-	// InvalidateUserPackages; guarded by stateLock.
+	// InvalidateUserPackages, guarded by stateLock.
 	freshPoolRequested uint64
 
-	// freshPoolBuilt is the highest request count a completed build has satisfied; guarded
-	// by stateLock. The orchestrator reports itself uninitialised while it trails
-	// freshPoolRequested, so the next build runs in full with a fresh pool.
+	// freshPoolBuilt records the latest request covered by a completed build. stateLock
+	// protects the counter.
 	freshPoolBuilt uint64
 
 	// hostImportsOnce computes hostImports on the first build.
@@ -166,9 +154,8 @@ type InterpretedBuildOrchestratorDeps struct {
 	// already be loaded.
 	InterpreterPool templater_domain.InterpreterPoolPort
 
-	// InterpreterProvider builds a fresh interpreter pool when user Go packages change, so
-	// edited packages are recompiled. Nil keeps the initial pool for the life of the
-	// orchestrator.
+	// InterpreterProvider rebuilds the interpreter pool after Go package changes. A nil
+	// provider disables the refresh.
 	InterpreterProvider templater_domain.InterpreterProviderPort
 
 	// Clock supplies the time used for compilation metrics. Nil uses the real clock.
@@ -192,7 +179,7 @@ type InterpretedBuildOrchestratorDeps struct {
 	// ProjectRoot specifies the root directory of the project.
 	ProjectRoot string
 
-	// JITCompileTimeout bounds one JIT compilation; zero or less uses a generous default.
+	// JITCompileTimeout bounds one JIT compilation. Zero or less uses a generous default.
 	JITCompileTimeout time.Duration
 }
 
@@ -262,14 +249,7 @@ func NewInterpretedBuildOrchestrator(
 	}
 }
 
-// BuildRunner creates a new InterpretedManifestRunner from build artefacts. Orchestrates
-// the entire JIT compilation pipeline by building the manifest, sorting artefacts
-// topologically, compiling all artefacts as one program in a fresh interpreter, creating
-// a PageEntry cache, and returning a new runner with the populated cache.
-//
-// When InvalidateUserPackages has been called since the last build, the program is
-// compiled with a fresh interpreter pool so edited user Go packages are recompiled; the
-// new pool replaces the old one only when the build succeeds.
+// BuildRunner compiles build artefacts and constructs an interpreted manifest runner.
 //
 // Takes result (*annotator_dto.ProjectAnnotationResult) which provides the annotated
 // project artefacts to compile.
@@ -340,15 +320,12 @@ func (o *InterpretedBuildOrchestrator) BuildRunner(
 // MarkDirty caches changed source and marks components and their dependents for later JIT
 // compilation.
 //
-// Partial results merge into the cached manifest; full results replace it. Both refresh
-// the reverse dependency map.
-//
 // Takes result (*annotator_dto.ProjectAnnotationResult) which contains the annotation
 // results for changed files.
 //
 // Returns error when artefact extraction or manifest building fails.
 //
-// Safe for concurrent use; protects shared state with stateLock.
+// Concurrency: The stateLock mutex protects shared state.
 func (o *InterpretedBuildOrchestrator) MarkDirty(
 	ctx context.Context,
 	result *annotator_dto.ProjectAnnotationResult,
@@ -400,46 +377,37 @@ func (o *InterpretedBuildOrchestrator) MarkDirty(
 
 // IsInitialised returns true if the orchestrator has completed an initial full build.
 //
-// This is used by the daemon service to distinguish between the initial build (which
-// requires BuildRunner) and subsequent incremental builds (which use MarkDirty). It
-// reports false again after InvalidateUserPackages, until a full build has recompiled the
-// user packages.
-//
 // Returns bool which is true when the interpreter pool exists, the program cache is
 // populated and no fresh interpreter pool is pending.
 //
-// Safe for concurrent use. Uses a read lock to access internal state.
+// Concurrency: Safe for concurrent use. Uses a read lock to access internal state.
 func (o *InterpretedBuildOrchestrator) IsInitialised() bool {
 	o.stateLock.RLock()
 	defer o.stateLock.RUnlock()
 	return o.interpreterPool != nil && len(o.progCache) > 0 && o.freshPoolBuilt == o.freshPoolRequested
 }
 
-// InvalidateUserPackages records that user-written Go packages changed on disk.
+// InvalidateUserPackages requests a full build with a fresh interpreter pool.
 //
-// The interpreter cannot unregister a compiled package, and every interpreter the pool
-// hands out shares one symbol registry, so an edited package would keep resolving to its
-// old compiled form. After this call IsInitialised reports false, so the next build runs
-// BuildRunner, which compiles the whole program, user packages included, with a fresh
-// interpreter pool. Until that build completes, requests keep being served from the
-// current pool.
+// The interpreter cannot unregister a compiled package, and every clone the pool hands
+// out shares one symbol registry, so an edited user package would otherwise keep its old
+// compiled form. Requests use the current pool until that build succeeds.
 //
-// Safe for concurrent use; acquires stateLock.
+// Concurrency: Acquires stateLock.
 func (o *InterpretedBuildOrchestrator) InvalidateUserPackages() {
 	o.stateLock.Lock()
 	defer o.stateLock.Unlock()
 	o.freshPoolRequested++
 }
 
-// GetCachedEntry retrieves a compiled page entry from the cache. Part of the JITCompiler
-// interface used by InterpretedManifestRunner.
+// GetCachedEntry retrieves a compiled page entry from the cache.
 //
 // Takes relPath (string) which specifies the relative path to look up.
 //
 // Returns *templater_adapters.PageEntry which is the cached entry if found.
 // Returns bool which indicates whether the entry was present in the cache.
 //
-// Safe for concurrent use; protected by a read lock.
+// Concurrency: A read lock protects access to the cached entry.
 func (o *InterpretedBuildOrchestrator) GetCachedEntry(relPath string) (*templater_adapters.PageEntry, bool) {
 	o.stateLock.RLock()
 	defer o.stateLock.RUnlock()
@@ -447,30 +415,21 @@ func (o *InterpretedBuildOrchestrator) GetCachedEntry(relPath string) (*template
 	return entry, found
 }
 
-// GetAllCachedKeys returns all keys in the prog cache. Part of the JITCompiler interface
-// used by InterpretedManifestRunner.
+// GetAllCachedKeys returns all keys in the prog cache.
 //
 // Returns []string which contains all cached program keys.
 //
-// Safe for concurrent use; acquires a read lock on the state.
+// Concurrency: A read lock protects access to the cached keys.
 func (o *InterpretedBuildOrchestrator) GetAllCachedKeys() []string {
 	o.stateLock.RLock()
 	defer o.stateLock.RUnlock()
 	return slices.Collect(maps.Keys(o.progCache))
 }
 
-// JITCompile performs on-demand compilation when a dirty page is requested. It compiles
-// only the specific requested component and its dependencies if needed.
+// JITCompile compiles a dirty component and its dependencies on demand.
 //
-// Checks dirtyCodeCache and uses the long-lived interpreter to compile changed code.
-// Updates the PageEntry in progCache with the new function pointers, then removes the
-// component from dirtyCodeCache. Only visited pages pay the compilation cost.
-//
-// Requests for the same component share one compilation through the singleflight group.
-// It runs on a detached copy of the request context, free of every caller's cancellation
-// and of the pooled request carrier, bounded only by the configured JIT timeout, so one
-// client disconnecting cannot abort the compile for the others; each caller stops waiting
-// when its own ctx ends.
+// Requests for the same component share one compilation under the JIT timeout. Each
+// caller can stop waiting when its own context ends.
 //
 // Takes relPath (string) which specifies the relative path of the component to compile.
 //
@@ -504,15 +463,14 @@ func (o *InterpretedBuildOrchestrator) JITCompile(
 }
 
 // GetAffectedComponents returns all component paths that transitively depend on the given
-// component. It performs a BFS traversal of the reverse dependency map starting from
-// relPath.
+// component.
 //
 // Takes relPath (string) which is the relative path of the changed component.
 //
 // Returns []string which contains the relative paths of all transitively dependent
 // components, not including relPath itself.
 //
-// Safe for concurrent use; acquires a read lock on the state.
+// Concurrency: Safe for concurrent use. Acquires a read lock on the state.
 func (o *InterpretedBuildOrchestrator) GetAffectedComponents(relPath string) []string {
 	o.stateLock.RLock()
 	defer o.stateLock.RUnlock()
@@ -580,17 +538,15 @@ func resultCoversVirtualModule(result *annotator_dto.ProjectAnnotationResult) bo
 	return len(result.ComponentResults) >= len(result.VirtualModule.ComponentsByHash)
 }
 
-// ProactiveRecompile JIT-compiles all components currently in the dirty code cache. This
-// runs compilation eagerly rather than waiting for an HTTP request to trigger it.
+// ProactiveRecompile JIT-compiles all components currently in the dirty code cache.
 //
-// Compilation errors for individual components are logged but do not stop the batch; all
-// dirty components are attempted. When ctx ends (for example on shutdown) the batch stops
-// quietly, leaving the remaining components dirty for the next request.
+// An error compiling one component is logged and does not stop the batch. When ctx ends
+// the batch stops quietly, leaving the remaining components dirty for the next request.
 //
 // Returns error only when a systemic failure prevents all compilation.
 //
-// Safe for concurrent use; reads dirtyCodeCache keys under a read lock, then calls
-// JITCompile which acquires its own locks.
+// Concurrency: Safe for concurrent use. Reads dirtyCodeCache keys under a read lock, then
+// calls JITCompile which acquires its own locks.
 func (o *InterpretedBuildOrchestrator) ProactiveRecompile(ctx context.Context) error {
 	ctx, span, l := log.Span(ctx, "InterpretedBuildOrchestrator.ProactiveRecompile")
 	defer span.End()
@@ -640,7 +596,7 @@ func (o *InterpretedBuildOrchestrator) ProactiveRecompile(ctx context.Context) e
 // Takes relPath (string) which is the project-relative source path of the removed
 // component (e.g. "pages/old.pk"). For a regular page this is the program cache key.
 //
-// Safe for concurrent use; acquires stateLock while mutating the caches.
+// Concurrency: The stateLock mutex protects cache mutations.
 func (o *InterpretedBuildOrchestrator) RemoveComponent(ctx context.Context, relPath string) {
 	_, l := logger_domain.From(ctx, log)
 	relPath = filepath.ToSlash(relPath)
@@ -683,14 +639,11 @@ func (o *InterpretedBuildOrchestrator) RemoveComponent(ctx context.Context, relP
 // markArtefactsDirty merges partial-build artefacts and marks them and their dependents
 // for recompilation.
 //
-// Manifest construction uses the full project context. The merge holds stateLock
-// throughout.
-//
 // Takes artefacts ([]*generator_dto.GeneratedArtefact) which are the rebuilt components.
 //
 // Returns error when the manifest cannot be built.
 //
-// Safe for concurrent use; acquires stateLock.
+// Concurrency: The stateLock mutex protects the merge and dirty flags.
 func (o *InterpretedBuildOrchestrator) markArtefactsDirty(
 	ctx context.Context,
 	artefacts []*generator_dto.GeneratedArtefact,
@@ -818,9 +771,7 @@ func (o *InterpretedBuildOrchestrator) buildManifest(
 	return manifest, nil
 }
 
-// buildManifestWithContext creates manifest entries for the given artefacts, resolving
-// cross-component data against the other known artefacts too (see
-// ManifestBuilder.BuildWithContext).
+// buildManifestWithContext builds entries against all known artefacts.
 //
 // Takes artefacts ([]*generator_dto.GeneratedArtefact) which are the artefacts to create
 // entries for.
@@ -847,16 +798,14 @@ func (o *InterpretedBuildOrchestrator) buildManifestWithContext(
 	return manifest, nil
 }
 
-// interpreterPoolForBuild returns a fresh pool with loaded modules if
-// InvalidateUserPackages has been called since the last build, or the current pool
-// otherwise.
+// interpreterPoolForBuild selects the current pool or creates a fresh pool for a pending
+// rebuild.
 //
 // Returns templater_domain.InterpreterPoolPort which is the pool to compile with.
 // Returns uint64 which is the fresh-pool request count the build satisfies.
 // Returns error when no pool is configured or a fresh pool's modules fail to load.
 //
-// Safe for concurrent use; reads state under a read lock and builds any fresh pool
-// without holding it.
+// Concurrency: State is read under a read lock. Fresh pools are built after releasing it.
 func (o *InterpretedBuildOrchestrator) interpreterPoolForBuild(ctx context.Context) (templater_domain.InterpreterPoolPort, uint64, error) {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -886,9 +835,6 @@ func (o *InterpretedBuildOrchestrator) interpreterPoolForBuild(ctx context.Conte
 
 // interpretArtefacts compiles all artefacts as a single program and builds the program
 // cache.
-//
-// It collects all generated source code, calls CompileAndExecute to compile and run the
-// init functions, then links the registered functions to page entries.
 //
 // Takes pool (templater_domain.InterpreterPoolPort) which provides the interpreter.
 // Takes sortedArtefacts ([]*generator_dto.GeneratedArtefact) which provides the artefacts
@@ -1008,8 +954,8 @@ func (o *InterpretedBuildOrchestrator) collectArtefactSources(
 // discoverUserPackages follows local imports transitively, skipping packages already
 // registered with the interpreter.
 //
-// Packages with exported variables receive a warning about separate host and interpreted
-// state.
+// A user package the server binary also links is warned about when it declares exported
+// variables, as the host and the interpreter hold separate copies of them.
 //
 // Takes packages (map[string]map[string]string) which is the mutable map to populate with
 // discovered package sources.
@@ -1064,9 +1010,6 @@ func (o *InterpretedBuildOrchestrator) discoverUserPackages(
 
 // resolveImportedPackage attempts to resolve a single local import path into a user
 // package.
-//
-// When the package is found and not already known, its source files are added to packages
-// and any transitive local imports are returned for further processing.
 //
 // Takes importPath (string) which is the fully qualified Go import path to resolve.
 // Takes modulePrefix (string) which is the module name followed by a slash, used to
@@ -1144,8 +1087,6 @@ func (*InterpretedBuildOrchestrator) collectLocalImports(
 
 // readUserGoFiles reads non-test Go files accepted by CompilesFile.
 //
-// Files with invalid build constraints are retained so compilation can report the error.
-//
 // Takes sandbox (safedisk.Sandbox) which provides safe filesystem access scoped to the
 // project root.
 // Takes relDir (string) which is the relative directory path to read Go files from.
@@ -1195,8 +1136,8 @@ func (*InterpretedBuildOrchestrator) readUserGoFiles(
 // Takes manifest (*generator_dto.Manifest) which provides build metadata for page entry
 // creation.
 //
-// Returns map[string]*PageEntry which maps relative paths to their fully linked page
-// entries.
+// Returns map[string]*templater_adapters.PageEntry which maps relative paths to their
+// fully linked page entries.
 // Returns error when function linking fails for any component.
 func (o *InterpretedBuildOrchestrator) linkAllArtefacts(
 	ctx context.Context,
@@ -1224,17 +1165,22 @@ func (o *InterpretedBuildOrchestrator) linkAllArtefacts(
 	return progCache, nil
 }
 
-// buildReverseDependencyMap creates a map from import paths to the components that depend
-// on them.
+// buildReverseDependencyMap creates a map from component paths to the components that
+// import them.
+//
+// Imports are resolved as the dependency sort resolves them. An ambiguous import records
+// the importer under every component it could name, so a change to any of them marks it
+// dirty.
 //
 // Takes sortedArtefacts ([]*generator_dto.GeneratedArtefact) which provides the build
 // artefacts in dependency order.
 //
-// Returns map[string][]string which maps each import path to the list of component paths
-// that depend on it.
+// Returns map[string][]string which maps each component's project-relative path to the
+// paths of the components that import it.
 func (o *InterpretedBuildOrchestrator) buildReverseDependencyMap(
 	sortedArtefacts []*generator_dto.GeneratedArtefact,
 ) map[string][]string {
+	resolver := newImportResolver(o.projectRoot, o.moduleName, slices.Values(sortedArtefacts))
 	reverseDepsMap := make(map[string][]string)
 	for _, artefact := range sortedArtefacts {
 		component, _ := generator_domain.GetMainComponent(artefact.Result)
@@ -1242,45 +1188,28 @@ func (o *InterpretedBuildOrchestrator) buildReverseDependencyMap(
 			continue
 		}
 
-		relativePath, err := filepath.Rel(o.projectRoot, component.Source.SourcePath)
-		if err != nil {
-			continue
-		}
-		relativePath = filepath.ToSlash(relativePath)
-
+		relativePath := componentRelativePath(o.projectRoot, component.Source.SourcePath)
 		for _, pikoImport := range component.Source.PikoImports {
-			importRelativePath := o.extractImportRelativePath(pikoImport.Path)
-			reverseDepsMap[importRelativePath] = append(reverseDepsMap[importRelativePath], relativePath)
+			for _, dependencyPath := range resolver.matches(pikoImport.Path) {
+				if dependencyPath != relativePath {
+					reverseDepsMap[dependencyPath] = append(reverseDepsMap[dependencyPath], relativePath)
+				}
+			}
 		}
 	}
 	return reverseDepsMap
 }
 
 // rebuildReverseDependencyMapFromState rebuilds the reverse dependency map from the
-// current artefact state. Called after targeted builds so that imports added or removed
-// during the build are reflected in subsequent GetAffectedComponents lookups.
+// current artefact state.
 //
-// Must be called with stateLock held.
+// Callers must hold stateLock.
 func (o *InterpretedBuildOrchestrator) rebuildReverseDependencyMapFromState() {
 	allArtefacts := make([]*generator_dto.GeneratedArtefact, 0, len(o.artefactByPackagePath))
 	for _, artefact := range o.artefactByPackagePath {
 		allArtefacts = append(allArtefacts, artefact)
 	}
 	o.reverseDepsMap = o.buildReverseDependencyMap(allArtefacts)
-}
-
-// extractImportRelativePath gets the relative path from a piko import path.
-//
-// Takes importPath (string) which is the full import path to process.
-//
-// Returns string which is the part after the first slash, or the original path if no
-// slash is found.
-func (*InterpretedBuildOrchestrator) extractImportRelativePath(importPath string) string {
-	parts := strings.SplitN(importPath, "/", 2)
-	if len(parts) > 1 {
-		return filepath.ToSlash(parts[1])
-	}
-	return filepath.ToSlash(importPath)
 }
 
 // buildArtefactLookupMap builds a map from canonical package paths to artefacts.
@@ -1307,7 +1236,7 @@ func (*InterpretedBuildOrchestrator) buildArtefactLookupMap(
 //
 // Takes state (orchestratorBuildState) which holds the products of the completed build.
 //
-// Safe for concurrent use; acquires stateLock before updating fields.
+// Concurrency: The stateLock mutex protects field updates.
 func (o *InterpretedBuildOrchestrator) updateOrchestratorState(state orchestratorBuildState) {
 	o.stateLock.Lock()
 	defer o.stateLock.Unlock()
@@ -1354,8 +1283,9 @@ func (*InterpretedBuildOrchestrator) extractMarkDirtyArtefacts(
 	return artefacts, nil
 }
 
-// updateArtefactLookup registers the artefacts in the package-path lookup map. Must be
-// called with stateLock held.
+// updateArtefactLookup registers the artefacts in the package-path lookup map.
+//
+// Callers must hold stateLock.
 //
 // Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains the generated
 // artefacts to register.
@@ -1369,8 +1299,9 @@ func (o *InterpretedBuildOrchestrator) updateArtefactLookup(artefacts []*generat
 	}
 }
 
-// markDirectlyChangedComponents marks components as dirty based on generated code. Must
-// be called with stateLock held.
+// markDirectlyChangedComponents marks components as dirty based on generated code.
+//
+// Callers must hold stateLock.
 //
 // Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains the generated code
 // to process.
@@ -1415,12 +1346,12 @@ func (o *InterpretedBuildOrchestrator) markDirectlyChangedComponents(
 
 // propagateDirtyFlags marks all dependents as dirty using the reverse dependency map.
 //
+// Callers must hold stateLock.
+//
 // Takes directlyChanged (map[string]bool) which contains paths that were changed and need
 // their dependents marked dirty.
 // Takes allDirty (map[string]bool) which collects all paths marked dirty, including those
 // affected through other dependents.
-//
-// Must be called with stateLock held.
 func (o *InterpretedBuildOrchestrator) propagateDirtyFlags(
 	ctx context.Context,
 	directlyChanged, allDirty map[string]bool,
@@ -1452,7 +1383,7 @@ func (o *InterpretedBuildOrchestrator) propagateDirtyFlags(
 // addDependentToDirtyCache finds the dependent's artefact code and adds it to the dirty
 // cache for later recompilation.
 //
-// Must be called with stateLock held.
+// Callers must hold stateLock.
 //
 // Takes dependent (string) which is the relative path of the file to add.
 // Takes changedComponent (string) which identifies the component that changed.
@@ -1485,12 +1416,11 @@ func (o *InterpretedBuildOrchestrator) addDependentToDirtyCache(
 }
 
 // mergeManifest merges entries from newManifest into the cached manifest without removing
-// existing entries. This preserves manifest data for components not included in a
-// targeted build.
+// existing entries.
+//
+// Callers must hold stateLock.
 //
 // Takes newManifest (*generator_dto.Manifest) which contains the entries to merge.
-//
-// Must be called with stateLock held.
 func (o *InterpretedBuildOrchestrator) mergeManifest(newManifest *generator_dto.Manifest) {
 	if o.cachedManifest == nil {
 		o.cachedManifest = newManifest
@@ -1523,10 +1453,6 @@ func getInterpreterFromPool(pool templater_domain.InterpreterPoolPort) (template
 
 // parseLocalImportPaths extracts import paths from Go source code that match the given
 // module prefix.
-//
-// Uses go/parser with ImportsOnly for efficiency, since only the import block is parsed,
-// not function bodies. All import styles (standard, aliased, blank, dot) are handled
-// because the path is always extracted from importSpec.Path.Value.
 //
 // Takes source (string) which is the Go source code to parse.
 // Takes modulePrefix (string) which filters imports to only those belonging to the

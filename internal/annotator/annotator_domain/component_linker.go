@@ -18,10 +18,6 @@
 
 package annotator_domain
 
-// Orchestrates the linking phase where partial invocations are resolved and validated
-// against component contracts. Validates props, applies type coercion, handles defaults,
-// and assembles the final component structure for code generation.
-
 import (
 	"context"
 	"fmt"
@@ -68,31 +64,31 @@ type propOrigin struct {
 	location ast_domain.Location
 }
 
-// ComponentLinker is the entry point for the linking stage. It validates the contracts
-// between components in a fully expanded AST by walking the tree.
+// ComponentLinker resolves partial invocations and their property bindings.
 type ComponentLinker struct {
 	// typeResolver resolves types when linking documentation references.
 	typeResolver *TypeResolver
 }
 
-// validPropInfo holds details about a valid prop from a component's Props struct. This
-// includes its type, default value, and binding options.
+// validPropInfo holds details about a valid prop from a component's Props struct.
 type validPropInfo struct {
+	// TypePackagePath identifies the package defining an imported named field type.
+	TypePackagePath string
+
 	// DestinationType is the AST expression for the target type of the property.
 	DestinationType goast.Expr
 
-	// DefaultValue is the literal default for this property; nil means no default.
+	// DefaultValue is the literal default for this property. Nil means no default.
 	DefaultValue *string
 
 	// GoFieldName is the name of this property in the Go struct.
 	GoFieldName string
 
 	// FactoryFuncName is the name of a function that creates a default value for this
-	// property. Empty means no factory function is used.
+	// property.
 	FactoryFuncName string
 
-	// QueryParamName is the URL query parameter name used as a fallback when the prop is not
-	// set by a parent component. Empty means no query parameter binding.
+	// QueryParamName names the URL parameter used when the parent omits the prop.
 	QueryParamName string
 
 	// IsRequired indicates whether this prop must be provided.
@@ -280,8 +276,7 @@ func sortInvocationsByOrder(state *linkingSharedState) []*annotator_dto.PartialI
 }
 
 // populateContextForLinking sets up the analysis context with the symbols needed for
-// linking. It defines global symbols, component symbols (state, props, request), and
-// local functions, constants, and variables.
+// linking.
 //
 // Takes ctx (*AnalysisContext) which receives the symbol definitions.
 // Takes tr (*TypeResolver) which resolves type information for symbols.
@@ -307,10 +302,6 @@ func getValidPropNames(validProps map[string]validPropInfo) []string {
 }
 
 // calculateCanonicalKey builds a unique key for a partial invocation.
-//
-// The key combines the partial alias, the invoker's invocation key, and sorted property
-// expressions. This means nested partial invocations with the same expressions but
-// different parent instances produce distinct keys.
 //
 // Takes partialAlias (string) which is the base name for the partial.
 // Takes props (map[string]ast_domain.PropValue) which contains the property bindings for

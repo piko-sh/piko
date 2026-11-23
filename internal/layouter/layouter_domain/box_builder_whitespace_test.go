@@ -258,3 +258,25 @@ func TestBuildBoxTree_InterpolatedTextInFlexContainers(t *testing.T) {
 	require.Len(t, chipBox.Children, 1)
 	assert.Equal(t, "Go", chipBox.Children[0].Children[0].Text)
 }
+
+func TestBuildBoxTreeElementBoundTextReplacesChildren(t *testing.T) {
+	writer := ast_domain.GetDirectWriter()
+	t.Cleanup(func() { ast_domain.PutDirectWriter(writer) })
+	writer.AppendEscapeString("Buyer <3 & lot")
+	p := &ast_domain.TemplateNode{NodeType: ast_domain.NodeElement, TagName: "p", TextContentWriter: writer,
+		Children: []*ast_domain.TemplateNode{{NodeType: ast_domain.NodeText, TextContent: "stale child"}}}
+	root, err := BuildBoxTree(t.Context(), newTestBoxTreeInput(&ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{p}}, nil, nil, nil, nil))
+	require.NoError(t, err)
+	var texts []string
+	var walk func(*LayoutBox)
+	walk = func(b *LayoutBox) {
+		if b.Type == BoxTextRun {
+			texts = append(texts, b.Text)
+		}
+		for _, child := range b.Children {
+			walk(child)
+		}
+	}
+	walk(root)
+	assert.Equal(t, []string{"Buyer <3 & lot"}, texts)
+}

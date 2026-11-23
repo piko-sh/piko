@@ -27,34 +27,6 @@ import (
 	"piko.sh/piko/internal/generator/generator_dto"
 )
 
-func TestExtractRelativePath(t *testing.T) {
-	t.Parallel()
-
-	sorter := &topologicalSorter{}
-
-	tests := []struct {
-		name       string
-		importPath string
-		want       string
-	}{
-		{name: "with slash", importPath: "myproject/components/header.pk", want: "components/header.pk"},
-		{name: "no slash", importPath: "header.pk", want: "header.pk"},
-		{name: "multiple slashes", importPath: "myproject/components/ui/button.pk", want: "components/ui/button.pk"},
-		{name: "empty string", importPath: "", want: ""},
-		{name: "only slash", importPath: "/", want: ""},
-		{name: "leading slash", importPath: "/components/header.pk", want: "components/header.pk"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			result := sorter.extractRelativePath(tt.importPath)
-			assert.Equal(t, tt.want, result)
-		})
-	}
-}
-
 func TestInitialiseQueue(t *testing.T) {
 	t.Parallel()
 
@@ -206,31 +178,4 @@ func TestValidateAndReturn(t *testing.T) {
 		require.NoError(t, err)
 		assert.Nil(t, result)
 	})
-}
-
-func TestExtractImportRelativePath(t *testing.T) {
-	t.Parallel()
-
-	o := &InterpretedBuildOrchestrator{}
-
-	tests := []struct {
-		name       string
-		importPath string
-		want       string
-	}{
-		{name: "with slash", importPath: "myproject/components/card.pk", want: "components/card.pk"},
-		{name: "no slash", importPath: "card.pk", want: "card.pk"},
-		{name: "multiple slashes", importPath: "proj/a/b/c.pk", want: "a/b/c.pk"},
-		{name: "empty string", importPath: "", want: ""},
-		{name: "leading slash", importPath: "/path/to/file.pk", want: "path/to/file.pk"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			result := o.extractImportRelativePath(tt.importPath)
-			assert.Equal(t, tt.want, result)
-		})
-	}
 }

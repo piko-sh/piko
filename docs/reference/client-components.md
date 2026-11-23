@@ -187,6 +187,9 @@ Register lifecycle callbacks by calling registration methods on `pkc` inside the
 | `pkc.onUpdated(callback)` | After a re-render commits when one or more reactive properties changed. The callback receives `Set<string>` of changed property paths. |
 | `pkc.onCleanup(callback)` | After `onDisconnected` callbacks have run. Cleanups run once and the runtime clears the queue. |
 
+The component's top-level code runs once per element. Moving the element keeps its
+state and runs `onDisconnected`, registered cleanups and then `onConnected`.
+
 ```typescript
 pkc.onConnected(() => {
     window.addEventListener('scroll', handleScroll);

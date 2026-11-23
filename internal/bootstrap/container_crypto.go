@@ -31,6 +31,7 @@ import (
 	"piko.sh/piko/internal/crypto/crypto_domain"
 	"piko.sh/piko/internal/crypto/crypto_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/internal/shutdown"
 )
 
 // AddCryptoProvider registers a named encryption provider for cryptographic operations.
@@ -103,6 +104,7 @@ func (c *Container) createDefaultCryptoService() {
 		return
 	}
 	c.cryptoService = cryptoService
+	shutdown.Register(c.GetAppContext(), "CryptoService", cryptoService.Close)
 
 	l.Internal("Crypto service created",
 		logger_domain.String("provider", providerName),

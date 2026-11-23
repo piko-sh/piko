@@ -19,12 +19,17 @@
 package wizard
 
 import (
+	"bytes"
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"piko.sh/piko/cmd/piko/internal/wizard/templates"
 )
 
 func TestInitialModel(t *testing.T) {
@@ -410,4 +415,243 @@ func toModel(t *testing.T, m tea.Model) Model {
 	v, ok := m.(*Model)
 	require.Truef(t, ok, "unexpected tea.Model type: %T", m)
 	return *v
+}
+
+func TestUpdate_ModulePath_InvalidStaysOnStep(t *testing.T) {
+	t.Parallel()
+
+	m := InitialModel()
+	m.Step = StepModulePath
+	m.Config.ProjectName = "My App"
+	m.Inputs = append(m.Inputs, m.Inputs[0])
+	m.Inputs[1].Placeholder = "My App"
+	m.Inputs[1].SetValue("")
+
+	result, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+	model := toModel(t, result)
+
+	assert.Equal(t, StepModulePath, model.Step)
+	require.ErrorIs(t, model.ModulePathErr, templates.ErrInvalidModuleName)
+	assert.Empty(t, model.Config.ModuleName)
+	assert.Contains(t, model.View().Content, "invalid module name")
+
+	model.Inputs[1].SetValue("example.com/my-app")
+	result, _ = model.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+	model = toModel(t, result)
+
+	assert.Equal(t, StepFeatures, model.Step)
+	assert.NoError(t, model.ModulePathErr)
+	assert.Equal(t, "example.com/my-app", model.Config.ModuleName)
+}
+
+func pressKeys(t *testing.T, model *Model, keys ...tea.KeyPressMsg) (*Model, tea.Cmd) {
+	t.Helper()
+
+	var command tea.Cmd
+	for _, key := range keys {
+		var result tea.Model
+		result, command = model.Update(key)
+		next, ok := result.(*Model)
+		require.Truef(t, ok, "unexpected tea.Model type: %T", result)
+		model = next
+	}
+	return model, command
+}
+
+func typeText(text string) []tea.KeyPressMsg {
+	keys := make([]tea.KeyPressMsg, 0, len(text))
+	for _, character := range text {
+		keys = append(keys, tea.KeyPressMsg{Code: character, Text: string(character)})
+	}
+	return keys
+}
+
+func TestUpdate_WalksEveryStepWithKeyPresses(t *testing.T) {
+	t.Parallel()
+
+	model := newInitialModel()
+	require.NotNil(t, model.Init())
+	enter := tea.KeyPressMsg{Code: tea.KeyEnter}
+	down := tea.KeyPressMsg{Code: tea.KeyDown}
+	up := tea.KeyPressMsg{Code: tea.KeyUp}
+	space := tea.KeyPressMsg{Code: tea.KeySpace, Text: " "}
+
+	model, _ = pressKeys(t, model, typeText("demo")...)
+	model, _ = pressKeys(t, model, enter)
+	require.Equal(t, StepDestination, model.Step)
+	assert.Equal(t, "demo", model.Config.ProjectName)
+	assert.Contains(t, model.View().Content, "./demo/")
+
+	model, _ = pressKeys(t, model, down, up, enter)
+	require.Equal(t, StepModulePath, model.Step)
+	assert.Equal(t, "demo", model.Config.DestinationPath)
+
+	model, _ = pressKeys(t, model, typeText("example.com/demo")...)
+	model, _ = pressKeys(t, model, enter)
+	require.Equal(t, StepFeatures, model.Step)
+	assert.Equal(t, "example.com/demo", model.Config.ModuleName)
+	assert.Contains(t, model.View().Content, "space to toggle")
+
+	model, _ = pressKeys(t, model, up, space, up, up, space, down, down, down)
+	model, command := pressKeys(t, model, enter)
+	require.Equal(t, StepScaffolding, model.Step)
+	require.NotNil(t, command)
+	assert.Equal(t, templates.ScaffoldData{
+		ProjectName:       "demo",
+		ModuleName:        "example.com/demo",
+		DestinationPath:   "demo",
+		EnableValidator:   true,
+		EnableAgents:      true,
+		EnableSonicJSON:   true,
+		EnableInterpreted: true,
+	}, model.Config)
+
+	_, command = model.Update(model.Spinner.Tick())
+	assert.NotNil(t, command, "the spinner keeps ticking while scaffolding")
+
+	_, command = model.Update(scaffoldDoneMessage{versionWarning: "offline"})
+	require.NotNil(t, command)
+	assert.Equal(t, StepTidying, model.Step)
+	assert.Equal(t, "offline", model.VersionWarning)
+	assert.Contains(t, model.View().Content, "go mod tidy")
+
+	_, _ = model.Update(tidyDoneMessage{warning: "tidy failed"})
+	assert.True(t, model.Done)
+	assert.Equal(t, "tidy failed", model.TidyWarning)
+
+	_, command = pressKeys(t, model, enter)
+	require.NotNil(t, command)
+	assert.IsType(t, tea.QuitMsg{}, command())
+}
+
+func TestEnterFeatures_ScaffoldsWithTheResolvedVersion(t *testing.T) {
+	t.Parallel()
+
+	destination := filepath.Join(t.TempDir(), "demo")
+	model := newInitialModel()
+	model.Step = StepFeatures
+	model.Config = templates.ScaffoldData{ProjectName: "demo", ModuleName: "example.com/demo", DestinationPath: destination}
+	model.Choices = make([]string, 4)
+	model.Selected = make([]bool, 4)
+	model.Cursor = len(model.Choices)
+	model.resolveVersion = func() (string, error) { return "v1.2.3", nil }
+
+	_, command := model.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+	require.NotNil(t, command)
+	message := command()
+
+	assert.Equal(t, scaffoldDoneMessage{}, message)
+	assert.Equal(t, "v1.2.3", model.Config.PikoVersion)
+	goMod, err := os.ReadFile(filepath.Join(destination, "go.mod"))
+	require.NoError(t, err)
+	assert.Contains(t, string(goMod), "v1.2.3")
+}
+
+func TestEnterFeatures_FallsBackWhenTheVersionCannotBeResolved(t *testing.T) {
+	t.Parallel()
+
+	model := newInitialModel()
+	model.Step = StepFeatures
+	model.Config = templates.ScaffoldData{ProjectName: "demo", ModuleName: "example.com/demo", DestinationPath: t.TempDir()}
+	model.Choices = make([]string, 4)
+	model.Selected = make([]bool, 4)
+	model.Cursor = len(model.Choices)
+	model.resolveVersion = func() (string, error) { return "", errors.New("offline") }
+
+	_, command := model.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+	require.NotNil(t, command)
+	message := command()
+
+	failure, ok := message.(errMessage)
+	require.Truef(t, ok, "unexpected message %T", message)
+	assert.ErrorContains(t, failure.err, "already exists")
+	assert.Equal(t, fallbackVersion, model.Config.PikoVersion)
+}
+
+func TestRunGoModTidy_ReportsAFailureAsAWarning(t *testing.T) {
+	t.Parallel()
+
+	destination := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(destination, "go.mod"), []byte("not a module file\n"), 0o600))
+	model := newInitialModel()
+	model.Config.DestinationPath = destination
+
+	message := model.runGoModTidy()()
+
+	done, ok := message.(tidyDoneMessage)
+	require.Truef(t, ok, "unexpected message %T", message)
+	assert.Contains(t, done.warning, "'go mod tidy' failed")
+}
+
+func TestReportResult(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		model       *Model
+		name        string
+		wantContain []string
+		wantAbsent  []string
+		wantCode    int
+	}{
+		{
+			name:        "cancelled",
+			model:       &Model{Aborted: true},
+			wantCode:    1,
+			wantContain: []string{"Project creation cancelled."},
+		},
+		{
+			name:        "failed",
+			model:       &Model{Err: errors.New("disk full")},
+			wantCode:    1,
+			wantContain: []string{"An error occurred during project creation: disk full"},
+		},
+		{
+			name:        "created",
+			model:       &Model{Config: templates.ScaffoldData{ProjectName: "demo"}},
+			wantCode:    0,
+			wantContain: []string{"Piko project 'demo' created successfully!", "1. cd demo", "2. Run 'piko generate'", "3. Run 'air'"},
+			wantAbsent:  []string{"Warning:", "AGENTS.md", "go mod tidy"},
+		},
+		{
+			name: "created with warnings and agents",
+			model: &Model{
+				Config:         templates.ScaffoldData{ProjectName: "demo", EnableAgents: true},
+				VersionWarning: "using v0.0.0",
+				TidyWarning:    "tidy failed",
+			},
+			wantCode: 0,
+			wantContain: []string{
+				"Warning: using v0.0.0",
+				"Warning: tidy failed",
+				"AGENTS.md + references/",
+				"2. Run 'go mod tidy' to fetch dependencies.",
+				"3. Run 'piko generate'",
+				"4. Run 'air'",
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			var out bytes.Buffer
+
+			code := reportResult(&out, testCase.model)
+
+			assert.Equal(t, testCase.wantCode, code)
+			for _, want := range testCase.wantContain {
+				assert.Contains(t, out.String(), want)
+			}
+			for _, absent := range testCase.wantAbsent {
+				assert.NotContains(t, out.String(), absent)
+			}
+		})
+	}
+}
+
+func TestGoVersionWarning(t *testing.T) {
+	t.Parallel()
+
+	assert.Empty(t, goVersionWarning(), "the test toolchain meets the required Go version")
 }

@@ -26,6 +26,8 @@ import (
 	"time"
 
 	"github.com/chromedp/chromedp"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -193,9 +195,26 @@ func TestNetworkTracker_WaitForNetworkIdle(t *testing.T) {
 		defer func() { _ = tracker.StopTracking(ctx) }()
 
 		t.Run("idle after no requests", func(t *testing.T) {
-
-			_ = WaitForNetworkIdle(ctx, 200*time.Millisecond, 5*time.Second)
+			require.NoError(t, WaitForNetworkIdle(ctx, 200*time.Millisecond, 5*time.Second))
 		})
+	})
+}
+
+func TestWaitForNetworkIdleBusy(t *testing.T) {
+	t.Parallel()
+	server := newNetworkTestServer()
+	defer server.Close()
+
+	withTestPage(t, server.URL, func(t *testing.T, page *PageHelper) {
+		ctx := newActionContext(page)
+		require.NoError(t, WaitForNetworkIdle(ctx, 50*time.Millisecond, 2*time.Second))
+
+		err := chromedp.Run(page.Ctx(), chromedp.Evaluate(`setInterval(() => { fetch('/api/data'); }, 20); true`, nil))
+		require.NoError(t, err)
+
+		err = WaitForNetworkIdle(ctx, time.Second, 500*time.Millisecond)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "timeout waiting for network idle")
 	})
 }
 

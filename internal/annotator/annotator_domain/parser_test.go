@@ -968,3 +968,10 @@ func TestNewI18nTemplateDiagnostics_WithoutI18nBlocks(t *testing.T) {
 
 	assert.Nil(t, diagnostics)
 }
+
+func TestParsePKDecodesExecutableStaticAttributes(t *testing.T) {
+	source := []byte(`<template><fuzz-item payload="&#39;single&#39; &amp;lt;"></fuzz-item></template>`)
+	component, _, err := ParsePK(t.Context(), source, "entities.pk")
+	require.NoError(t, err)
+	require.Equal(t, "'single' &lt;", component.Template.RootNodes[0].Attributes[0].Value)
+}

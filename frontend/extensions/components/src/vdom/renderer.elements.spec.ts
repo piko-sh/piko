@@ -547,6 +547,107 @@ describe('PPElement Patching - Elements, Text, Comments', () => {
       expect(domEl.getAttribute('data-config')).toBe(JSON.stringify(objVal));
     });
 
+    it('resets the live checked property after the user toggles a checkbox', () => {
+      const checkbox = (checked: boolean) => dom.el('input', 'flag', { type: 'checkbox', '?checked': checked });
+      const initial = checkbox(false);
+      component.setAndRender(initial);
+      const input = initial.elm as HTMLInputElement;
+      input.click();
+      expect(input.checked).toBe(true);
+      component.setAndRender(checkbox(true));
+      component.setAndRender(checkbox(false));
+      expect(input.checked).toBe(false);
+      expect(input.defaultChecked).toBe(false);
+    });
+
+    it('keeps a user toggle on a one-way checked binding until the bound value changes', () => {
+      const checkbox = (checked: boolean, label: string) =>
+        dom.el('label', 'row', {}, [dom.el('input', 'flag', { type: 'checkbox', '?checked': checked }), dom.txt(label, 'label')]);
+      const initial = checkbox(false, 'first');
+      component.setAndRender(initial);
+      const input = (initial.elm as HTMLElement).querySelector('input') as HTMLInputElement;
+      input.click();
+      expect(input.checked).toBe(true);
+
+      component.setAndRender(checkbox(false, 'second'));
+
+      expect(input.checked).toBe(true);
+    });
+
+    it('keeps a p-model checkbox in step with its model on every patch', () => {
+      const checkbox = (checked: boolean, label: string) =>
+        dom.el('label', 'row', {}, [dom.el('input', 'flag', { type: 'checkbox', '?checked': checked, _model: true }), dom.txt(label, 'label')]);
+      const initial = checkbox(false, 'first');
+      component.setAndRender(initial);
+      const input = (initial.elm as HTMLElement).querySelector('input') as HTMLInputElement;
+      input.click();
+      expect(input.checked).toBe(true);
+
+      component.setAndRender(checkbox(false, 'second'));
+
+      expect(input.checked).toBe(false);
+      expect(input.hasAttribute('_model')).toBe(false);
+    });
+
+    it('leaves inline styles set outside the template on an element without a style binding', () => {
+      const row = (label: string) => dom.el('div', 'animated', {}, [dom.txt(label, 'label')]);
+      const initial = row('first');
+      component.setAndRender(initial);
+      const element = initial.elm as HTMLElement;
+      element.style.transform = 'translateX(10px)';
+
+      component.setAndRender(row('second'));
+
+      expect(element.style.transform).toBe('translateX(10px)');
+    });
+
+    it('still removes a bound style once the binding goes away', () => {
+      component.setAndRender(dom.el('div', 'styled', { style: 'color: red' }));
+      const element = component.shadowRoot!.querySelector('div') as HTMLElement;
+      expect(element.style.color).toBe('red');
+
+      component.setAndRender(dom.el('div', 'styled', {}));
+
+      expect(element.hasAttribute('style')).toBe(false);
+    });
+
+    it('selects the bound value after mounting and replacing option nodes', () => {
+      const select = (value: string, values: string[]) => dom.el('select', 'choice', { value },
+        values.map(item => dom.el('option', item, { value: item }, [dom.txt(item, item + '-text')])));
+      const initial = select('middle', ['first', 'middle']);
+      component.setAndRender(initial);
+      const input = initial.elm as HTMLSelectElement;
+      expect(input.value).toBe('middle');
+      component.setAndRender(select('last', ['first', 'last']));
+      expect(input.value).toBe('last');
+      component.setAndRender(select('last', ['first']));
+      expect(input.selectedIndex).toBe(-1);
+    });
+
+    it('preserves classes applied by animations to elements without a class binding', () => {
+      const el = dom.el('span', 'headline', { id: 'before' });
+      component.setAndRender(el);
+      const node = el.elm as HTMLElement;
+      node.classList.add('played');
+      component.setAndRender(dom.el('span', 'headline', { id: 'after' }));
+      expect(node.classList.contains('played')).toBe(true);
+    });
+
+    it('synchronises every selected option after mounting or replacing the option list', () => {
+      const select = (value: string[], rows: string[]) => dom.el('select', 'many', { multiple: '', value },
+        rows.map(row => dom.el('option', row, { value: row })));
+      const initial = select(['a', 'c'], ['a', 'b', 'c']);
+      component.setAndRender(initial);
+      const node = initial.elm as HTMLSelectElement;
+      const values = () => Array.from(node.selectedOptions, option => option.value);
+      expect(values()).toEqual(['a', 'c']);
+      node.options[1].selected = true;
+      component.setAndRender(select(['b', 'd'], ['d', 'b', 'a']));
+      expect(values()).toEqual(['d', 'b']);
+      component.setAndRender(select([], ['a', 'd']));
+      expect(values()).toEqual([]);
+    });
+
     it('should set the value property on input elements', () => {
       const vnode1 = dom.el('input', 'input-val', { value: 'hello' });
       component.setAndRender(vnode1);
@@ -556,6 +657,33 @@ describe('PPElement Patching - Elements, Text, Comments', () => {
       const vnode2 = dom.el('input', 'input-val', { value: 'world' });
       component.setAndRender(vnode2);
       expect(domEl.value).toBe('world');
+    });
+
+    it('clears the live value when a value binding becomes empty', () => {
+      for (const empty of [null, undefined, false]) {
+        const input = dom.el('input', 'cleared-input', { value: 'typed' });
+        component.setAndRender(input);
+        const inputElement = input.elm as HTMLInputElement;
+        inputElement.value = 'user text';
+        component.setAndRender(dom.el('input', 'cleared-input', { value: empty }));
+        expect(inputElement.value, String(empty)).toBe('');
+
+        const area = dom.el('textarea', 'cleared-area', { value: 'typed' });
+        component.setAndRender(area);
+        const areaElement = area.elm as HTMLTextAreaElement;
+        areaElement.value = 'user text';
+        component.setAndRender(dom.el('textarea', 'cleared-area', { value: empty }));
+        expect(areaElement.value, String(empty)).toBe('');
+
+        const options = ['a', 'b'].map(item => dom.el('option', item, { value: item }));
+        const select = dom.el('select', 'cleared-select', { value: 'b' }, options);
+        component.setAndRender(select);
+        const selectElement = select.elm as HTMLSelectElement;
+        expect(selectElement.value).toBe('b');
+        component.setAndRender(dom.el('select', 'cleared-select', { value: empty },
+          ['a', 'b'].map(item => dom.el('option', item, { value: item }))));
+        expect(selectElement.selectedIndex, String(empty)).toBe(-1);
+      }
     });
   });
 

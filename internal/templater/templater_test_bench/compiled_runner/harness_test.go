@@ -21,163 +21,70 @@
 package compiled_bench_test
 
 import (
-	"context"
+	"bytes"
+	_ "embed"
 	"flag"
 	"fmt"
+	"go/format"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"testing"
-	"text/template"
 
 	"github.com/stretchr/testify/require"
+	"golang.org/x/mod/modfile"
 	"piko.sh/json"
-	"piko.sh/piko/internal/annotator/annotator_adapters"
-	"piko.sh/piko/internal/annotator/annotator_domain"
-	"piko.sh/piko/internal/annotator/annotator_dto"
-	"piko.sh/piko/internal/bootstrap"
-	"piko.sh/piko/internal/cache/cache_domain"
-	"piko.sh/piko/internal/config"
-	"piko.sh/piko/internal/coordinator/coordinator_adapters"
-	"piko.sh/piko/internal/coordinator/coordinator_domain"
-	esbuildconfig "piko.sh/piko/internal/esbuild/config"
-	"piko.sh/piko/internal/generator/generator_adapters"
-	generator_adapters_driven_code_emitter_go_literal "piko.sh/piko/internal/generator/generator_adapters/driven_code_emitter_go_literal"
-	"piko.sh/piko/internal/generator/generator_domain"
-	"piko.sh/piko/internal/inspector/inspector_adapters"
-	"piko.sh/piko/internal/inspector/inspector_domain"
-	"piko.sh/piko/internal/inspector/inspector_dto"
-	"piko.sh/piko/internal/render/render_domain"
-	"piko.sh/piko/internal/resolver/resolver_adapters"
-	"piko.sh/piko/internal/resolver/resolver_domain"
+	"piko.sh/piko"
+	"piko.sh/piko/internal/gosource"
 	"piko.sh/piko/internal/testutil"
-	"piko.sh/safedisk"
 )
-
-func newTestCacheService() cache_domain.Service {
-	return cache_domain.NewService("")
-}
 
 var (
 	runBenchmarks = flag.Bool("run-bench", false, "Run the compiled benchmark suite")
+
+	//go:embed testdata/main_test.go
+	benchmarkGoSource []byte
 )
 
 type TemplaterBenchSpec struct {
-	Description string `json:"description"`
-	TargetPage  string `json:"targetPage"`
+	Description  string `json:"description"`
+	TargetPage   string `json:"targetPage"`
+	ExpectedText string `json:"expectedText"`
 }
 
-var (
-	mainTestGoTemplate = template.Must(template.ParseFiles("main_test.go.tmpl"))
-)
+func renderBenchmark(module string) ([]byte, error) {
+	return gosource.RenderFixture("testdata/main_test.go", benchmarkGoSource, "example.org/piko-fixture", module)
+}
 
-func runBenchmarkCase(b *testing.B, bc benchmarkCase) {
+func runBenchmarkCase(t *testing.T, bc benchmarkCase) {
+	t.Helper()
+	spec := loadBenchSpec(t, bc)
+	require.NotEmpty(t, spec.ExpectedText)
+	tempDir := t.TempDir()
 
-	spec := loadBenchSpec(b, bc)
-	tempDir := b.TempDir()
-
-	srcDir := filepath.Join(bc.Path, "src")
-	absSrcDir, err := filepath.Abs(srcDir)
-	require.NoError(b, err)
-
-	resolver := resolver_adapters.NewLocalModuleResolver(absSrcDir)
-	err = resolver.DetectLocalModule(context.Background())
-	require.NoError(b, err)
-	fsReader := &realFSReader{}
-	benchSandbox, _ := safedisk.NewNoOpSandbox(absSrcDir, safedisk.ModeReadWrite)
-	fsWriter := generator_adapters.NewFSWriter(benchSandbox)
-	manifestEmitter := generator_adapters.NewJSONManifestEmitter(benchSandbox)
-	cssProcessor := annotator_domain.NewCSSProcessor(esbuildconfig.LoaderCSS, &esbuildconfig.Options{MinifyWhitespace: true}, resolver)
-	baseDir := resolver.GetBaseDir()
-	serverConfig := bootstrap.ServerConfig{
-		Paths: config.PathsConfig{
-			BaseDir:           &baseDir,
-			PagesSourceDir:    new("pages"),
-			PartialsSourceDir: new("partials"),
-		},
+	stageBenchmarkSources(t, filepath.Join(bc.Path, "src"), tempDir)
+	root, err := filepath.Abs("../../../..")
+	require.NoError(t, err)
+	mod := stageBenchmarkModule(t, root, tempDir)
+	t.Setenv("GOWORK", "off")
+	profileOutputDir := os.Getenv("PIKO_PROFILE_OUTPUT_DIR")
+	if profileOutputDir != "" {
+		profileOutputDir, err = filepath.Abs(profileOutputDir)
+		require.NoError(t, err)
 	}
-	inspectorManager := inspector_domain.NewTypeBuilder(inspector_dto.Config{BaseDir: *serverConfig.Paths.BaseDir, ModuleName: resolver.GetModuleName()}, inspector_domain.WithProvider(inspector_adapters.NewInMemoryProvider(nil)))
-	annotatorComponentCache := annotator_adapters.NewComponentCache()
-	annotatorService := annotator_domain.NewAnnotatorService(&annotator_domain.AnnotatorServiceConfig{
-		Resolver:            resolver,
-		FSReader:            fsReader,
-		TypeInspector:       annotator_domain.NewTypeInspectorBuilderAdapter(inspectorManager),
-		CSSProcessor:        cssProcessor,
-		PathsConfig:         bootstrap.NewAnnotatorPathsConfig(&serverConfig),
-		Cache:               annotatorComponentCache,
-		CompilationLogLevel: 0,
-		CollectionService:   nil,
-	})
-	cacheService := newTestCacheService()
-	coordinatorCache, err := coordinator_adapters.NewBuildResultCache(context.Background(), cacheService)
-	require.NoError(b, err)
-	introspectionCache, err := coordinator_adapters.NewIntrospectionCache(context.Background(), cacheService)
-	require.NoError(b, err)
-	coordinatorService := coordinator_domain.NewService(
-		context.Background(), annotatorService, coordinatorCache, introspectionCache, fsReader, resolver,
-		coordinator_domain.WithDiagnosticOutput(coordinator_adapters.NewSilentDiagnosticOutput()),
-	)
-	b.Cleanup(func() { coordinatorService.Shutdown(context.Background()) })
-	prerenderer := render_domain.NewRenderOrchestrator(nil, nil, nil, nil)
-	codeEmitterFactory := generator_adapters_driven_code_emitter_go_literal.NewEmitterFactory(prerenderer)
-	registerEmitter := generator_adapters.NewRegisterEmitter(fsWriter)
-	generatorService, err := generator_domain.NewGeneratorService(bootstrap.NewGeneratorPathsConfig(&serverConfig), "en", generator_domain.GeneratorPorts{
-		FSWriter:           fsWriter,
-		ManifestEmitter:    manifestEmitter,
-		Coordinator:        coordinatorService,
-		Resolver:           resolver,
-		RegisterEmitter:    registerEmitter,
-		CodeEmitterFactory: codeEmitterFactory,
-		SEOService:         nil,
-	})
-	require.NoError(b, err)
-	require.NoError(b, generatorService.EnsureDistPackage(context.Background()))
-	entryPoints := discoverEntryPoints(b, resolver, serverConfig)
-	require.NotEmpty(b, entryPoints)
+	t.Chdir(tempDir)
+	server := piko.New(piko.WithBaseDir(tempDir), piko.WithModuleName(mod))
+	generationErr := server.Generate(t.Context(), piko.GenerateModeAll)
+	server.Close()
+	require.NoError(t, generationErr)
+	source, err := renderBenchmark(mod)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(tempDir, "main_test.go"), source, 0644))
 
-	allArtefacts, manifest, err := generatorService.GenerateProject(context.Background(), entryPoints)
-	require.NoError(b, err)
-
-	projectRoot := resolver.GetBaseDir()
-	for _, artefact := range allArtefacts {
-		relPath, err := filepath.Rel(projectRoot, artefact.SuggestedPath)
-		require.NoError(b, err)
-		outputPath := filepath.Join(tempDir, relPath)
-		require.NoError(b, os.MkdirAll(filepath.Dir(outputPath), 0755))
-		require.NoError(b, fsWriter.WriteFile(context.Background(), outputPath, artefact.Content))
-	}
-	require.NoError(b, manifestEmitter.EmitCode(context.Background(), manifest, filepath.Join(tempDir, "dist", "manifest.json")))
-
-	moduleName := resolver.GetModuleName()
-	pikoProjectRoot, err := filepath.Abs(filepath.Join(srcDir, "../../../../../../../"))
-	require.NoError(b, err)
-	goModContent := mustReadFile(b, filepath.Join(srcDir, "go.mod"))
-	goModString := strings.ReplaceAll(string(goModContent), "replace piko.sh/piko => ../../../../../../../", fmt.Sprintf("replace piko.sh/piko => %s", pikoProjectRoot))
-	require.NoError(b, os.WriteFile(filepath.Join(tempDir, "go.mod"), []byte(goModString), 0644))
-	if goSumContent, err := os.ReadFile(filepath.Join(srcDir, "go.sum")); err == nil {
-		require.NoError(b, os.WriteFile(filepath.Join(tempDir, "go.sum"), goSumContent, 0644))
-	}
-	goWorkContent := fmt.Sprintf("go 1.25.1\n\nuse (\n\t.\n\t%s\n)\n", pikoProjectRoot)
-	require.NoError(b, os.WriteFile(filepath.Join(tempDir, "go.work"), []byte(goWorkContent), 0644))
-
-	mainTestGoPath := filepath.Join(tempDir, "main_test.go")
-	mainTestGoFile, err := os.Create(mainTestGoPath)
-	require.NoError(b, err)
-	err = mainTestGoTemplate.Execute(mainTestGoFile, map[string]string{"ModuleName": moduleName})
-	require.NoError(b, err)
-	mainTestGoFile.Close()
-
-	tidyCmd := exec.Command("go", "mod", "tidy")
-	tidyCmd.Dir = tempDir
-	tidyCmd.Env = testutil.ToolchainEnv("GOWORK=off")
-	tidyOutput, err := tidyCmd.CombinedOutput()
-	require.NoError(b, err, "Failed to `go mod tidy` in temp directory.\nOutput:\n%s", string(tidyOutput))
-
-	benchArgs := []string{"test", "-tags", "bench", "-bench=.", "-benchmem"}
+	benchArgs := []string{"test", "-mod=mod", "-tags", "bench", "-run=^$", "-bench=^BenchmarkCompiledRender$", "-benchmem", "-count=1"}
 
 	profileType := os.Getenv("PIKO_PROFILE_TYPE")
-	profileOutputDir := os.Getenv("PIKO_PROFILE_OUTPUT_DIR")
 	var profileOutPath string
 
 	if profileType != "" && profileOutputDir != "" {
@@ -188,13 +95,11 @@ func runBenchmarkCase(b *testing.B, bc benchmarkCase) {
 
 	benchCmd := exec.Command("go", benchArgs...)
 	benchCmd.Dir = tempDir
-	benchCmd.Env = append(os.Environ(), "GOWORK=off", fmt.Sprintf("PIKO_BENCH_TARGET_PAGE=%s", spec.TargetPage))
+	benchCmd.Env = testutil.ToolchainEnv("GOWORK=off", "PIKO_BENCH_TARGET_PAGE="+spec.TargetPage, "PIKO_BENCH_EXPECT_TEXT="+spec.ExpectedText)
 
-	benchCmd.Stdout = os.Stdout
-	benchCmd.Stderr = os.Stderr
-
-	err = benchCmd.Run()
-	require.NoError(b, err, "Benchmark execution failed")
+	out, err := benchCmd.CombinedOutput()
+	require.NoError(t, err, "benchmark execution: %s", out)
+	_, _ = os.Stdout.Write(out)
 
 	if profileType != "" && profileOutputDir != "" && profileOutPath != "" {
 		if _, err := os.Stat(profileOutPath); err == nil {
@@ -226,44 +131,89 @@ func loadBenchSpec(t testing.TB, tc benchmarkCase) TemplaterBenchSpec {
 	return spec
 }
 
-func discoverEntryPoints(t testing.TB, resolver resolver_domain.ResolverPort, serverConfig bootstrap.ServerConfig) []annotator_dto.EntryPoint {
+func stageBenchmarkModule(t *testing.T, root, dir string) string {
 	t.Helper()
-
-	var entryPoints []annotator_dto.EntryPoint
-	moduleName := resolver.GetModuleName()
-	baseDir := resolver.GetBaseDir()
-
-	discover := func(sourceDir string, isPotentiallyPage bool) {
-		sourceRoot := filepath.Join(baseDir, sourceDir)
-		if _, err := os.Stat(sourceRoot); os.IsNotExist(err) {
-			return
+	path := filepath.Join(dir, "go.mod")
+	src, err := os.ReadFile(path)
+	require.NoError(t, err)
+	project, err := modfile.Parse(path, src, nil)
+	require.NoError(t, err)
+	module := "piko.sh/piko/benchmarks/" + project.Module.Mod.Path
+	require.NoError(t, project.AddModuleStmt(module))
+	require.NoError(t, project.AddReplace("piko.sh/piko", "", root, ""))
+	workfile := os.Getenv("GOWORK")
+	if workfile == "" {
+		workfile = filepath.Join(root, "go.work")
+	}
+	if workfile != "off" {
+		data, err := os.ReadFile(workfile)
+		if err == nil {
+			work, err := modfile.ParseWork(workfile, data, nil)
+			require.NoError(t, err)
+			absolute := func(path string) string {
+				if filepath.IsAbs(path) {
+					return path
+				}
+				return filepath.Join(filepath.Dir(workfile), path)
+			}
+			for _, r := range work.Replace {
+				target := r.New.Path
+				if r.New.Version == "" {
+					target = absolute(target)
+				}
+				require.NoError(t, project.AddReplace(r.Old.Path, r.Old.Version, target, r.New.Version))
+			}
+			for _, u := range work.Use {
+				local := absolute(u.Path)
+				b, err := os.ReadFile(filepath.Join(local, "go.mod"))
+				require.NoError(t, err)
+				require.NoError(t, project.AddReplace(modfile.ModulePath(b), "", local, ""))
+			}
+		} else {
+			require.ErrorIs(t, err, fs.ErrNotExist)
 		}
+	}
+	out, err := project.Format()
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(path, out, 0644))
+	return module
+}
 
-		filepath.WalkDir(sourceRoot, func(absPath string, d os.DirEntry, walkErr error) error {
-			require.NoError(t, walkErr)
-			if !d.IsDir() && strings.HasSuffix(strings.ToLower(d.Name()), ".pk") {
-				relPathToBase, _ := filepath.Rel(baseDir, absPath)
-				pikoPath := filepath.ToSlash(filepath.Join(moduleName, relPathToBase))
-				entryPoints = append(entryPoints, annotator_dto.EntryPoint{Path: pikoPath, IsPage: isPotentiallyPage, IsPublic: isPotentiallyPage})
+func stageBenchmarkSources(t *testing.T, src, dest string) {
+	t.Helper()
+	skipped := map[string]bool{"dist": true, ".piko": true, "piko_dependency.go": true}
+	err := filepath.WalkDir(src, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		relative, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		if skipped[relative] {
+			if entry.IsDir() {
+				return filepath.SkipDir
 			}
 			return nil
-		})
-	}
-
-	discover(*serverConfig.Paths.PagesSourceDir, true)
-	discover(*serverConfig.Paths.PartialsSourceDir, false)
-	return entryPoints
-}
-
-func mustReadFile(t testing.TB, path string) []byte {
-	t.Helper()
-	bytes, err := os.ReadFile(path)
+		}
+		target := filepath.Join(dest, relative)
+		if entry.IsDir() {
+			return os.MkdirAll(target, 0755)
+		}
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(target, content, 0644)
+	})
 	require.NoError(t, err)
-	return bytes
 }
 
-type realFSReader struct{}
-
-func (r *realFSReader) ReadFile(_ context.Context, filePath string) ([]byte, error) {
-	return os.ReadFile(filePath)
+func TestHarnessFixtureImport(t *testing.T) {
+	const module = "fixture.example/app/v2"
+	rendered, err := renderBenchmark(module)
+	require.NoError(t, err)
+	expected, err := format.Source(bytes.ReplaceAll(benchmarkGoSource, []byte("example.org/piko-fixture/dist"), []byte(module+"/dist")))
+	require.NoError(t, err)
+	require.Equal(t, string(expected), string(rendered))
 }

@@ -632,10 +632,10 @@ const (
 
 type failingCache struct {
 	cache_domain.Cache[string, *storedEntry]
-	stored *storedEntry
-	closeErr error
+	stored        *storedEntry
+	closeErr      error
 	invalidateErr error
-	invalidated bool
+	invalidated   bool
 }
 
 func (c *failingCache) GetIfPresent(context.Context, string) (*storedEntry, bool, error) {

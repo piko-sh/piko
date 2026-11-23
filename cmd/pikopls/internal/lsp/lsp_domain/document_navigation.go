@@ -22,7 +22,6 @@ import (
 	"context"
 
 	protocol "github.com/politepixels/golang-language-server"
-	"go.lsp.dev/uri"
 	"piko.sh/piko/internal/annotator/annotator_domain"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/inspector/inspector_dto"
@@ -327,7 +326,7 @@ func (d *document) tryPartialDefinition(ctx context.Context, ann *ast_domain.GoG
 	}
 
 	l.Debug("GetDefinition: Resolved as a partial definition.", logger_domain.String("path", vc.Source.SourcePath))
-	return []protocol.Location{{URI: uri.File(vc.Source.SourcePath), Range: protocol.Range{}}}
+	return []protocol.Location{{URI: documentURIForPath(vc.Source.SourcePath), Range: protocol.Range{}}}
 }
 
 // trySymbolDefinition tries to find where a symbol or variable is defined.
@@ -444,7 +443,7 @@ func (d *document) tryLocalSymbolDefinition(ctx context.Context, symbolName stri
 // Returns protocol.Location which contains the URI and range for the symbol.
 func (*document) buildSymbolLocation(path string, line, column int, symbolName string) protocol.Location {
 	return protocol.Location{
-		URI: uri.File(path),
+		URI: documentURIForPath(path),
 		Range: protocol.Range{
 			Start: protocol.Position{
 				Line:      safeconv.IntToUint32(line - 1),
@@ -606,7 +605,7 @@ func (d *document) buildTypeDefinitionLocation(ctx context.Context, typeInfo *in
 
 	return []protocol.Location{
 		{
-			URI: uri.File(unmappedPath),
+			URI: documentURIForPath(unmappedPath),
 			Range: protocol.Range{
 				Start: protocol.Position{
 					Line:      safeconv.IntToUint32(unmappedLine - 1),

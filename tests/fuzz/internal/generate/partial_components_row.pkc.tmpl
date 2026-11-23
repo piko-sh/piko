@@ -1,0 +1,6 @@
+<template name="record-chip"><strong id="label">{{ state.label }}</strong><output id="score">{{ state.score }}</output><slot name="caption"></slot>
+<button type="button" id="pick" p-on:click="pick()">Pick</button><output id="count">{{ state.local.count }}</output></template>
+<script lang="ts">
+const state={recordkey:"" as string,label:"" as string,score:0 as number,local:{count:0}};
+function pick(){state.local={count:state.local.count+1};this.dispatchEvent(new CustomEvent('record-picked',{bubbles:true,composed:true,detail:{label:state.label,count:state.local.count}}));}
+</script>

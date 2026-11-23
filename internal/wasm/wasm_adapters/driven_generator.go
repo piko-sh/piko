@@ -54,9 +54,7 @@ const (
 	// accept in a single call, so the input is bounded before it is walked.
 	defaultMaxGenerateSourceFiles = 4096
 
-	// defaultMaxGenerateSourceBytes caps the aggregated payload size of every source file in
-	// a single Generate / DynamicRender. Defaults to 8 MiB; raise via WithGeneratorLimits if
-	// a project legitimately needs more.
+	// defaultMaxGenerateSourceBytes caps total source bytes per generation request.
 	defaultMaxGenerateSourceBytes = 8 * 1024 * 1024
 
 	// defaultMaxGenerateFileBytes caps an individual source file's size before it is fed to
@@ -84,9 +82,7 @@ var (
 	// sources exceed the adapter's configured limits.
 	errGenerateLimitsExceeded = errors.New("generate request exceeds configured limits")
 
-	// errorPositionPattern recovers a line/column pair from rendered Go- scanner-style
-	// "file:line:col: message" prefixes, used as a best- effort fallback for SFC error
-	// positions that aren't yet exposed via a typed error.
+	// errorPositionPattern matches scanner-style file, line and column prefixes.
 	errorPositionPattern = regexp.MustCompile(`^([^:]+):(\d+):(\d+)?:?\s*(.*)$`)
 )
 
@@ -95,7 +91,7 @@ var (
 )
 
 // parsePositiveInt returns the integer value of s, or an error when s is non-positive or
-// unparseable. Used to validate line/column captures.
+// unparseable.
 //
 // Takes s (string) which is the captured digit run.
 //
@@ -115,9 +111,9 @@ func parsePositiveInt(s string) (int, error) {
 	return value, nil
 }
 
-// generatorLimits caps caller-supplied input on every Generate so the WASM heap cannot
-// blow up under untrusted source maps. Defaults are sourced from the const block above;
-// override per adapter via WithGeneratorLimits.
+// generatorLimits bounds memory use from caller-supplied source files.
+//
+// A zero field disables that limit.
 type generatorLimits struct {
 	// MaxFileCount is the maximum number of entries allowed in request.Sources.
 	MaxFileCount int
@@ -130,25 +126,12 @@ type generatorLimits struct {
 	MaxFileBytes int
 }
 
-// GeneratorAdapter implements GeneratorPort using the real generator service with
-// in-memory adapters for file system operations.
-//
-// This adapter is designed for WASM and testing contexts where actual file system access
-// is not available or desired.
-//
-// Concurrent Generate calls on the same adapter are serialised by an internal mutex so
-// the shared pkJSEmitter cannot observe a half-mutated per-run state from a parallel run.
+// GeneratorAdapter generates Piko artefacts from in-memory source files.
 type GeneratorAdapter struct {
-	// stdlibDataGetter retrieves the pre-bundled standard library type information. This is
-	// a function because the data may not be available at construction time (it's loaded
-	// during orchestrator initialisation).
+	// stdlibDataGetter retrieves the pre-bundled standard library type information.
 	stdlibDataGetter func() (*inspector_dto.TypeData, error)
 
 	// pkJSEmitter captures compiled client-side JavaScript across Generate calls.
-	//
-	// Lifted to adapter scope so the content-hash cache amortises transpile work between
-	// keystroke-rate renders. Reset at the start of each Generate to ensure responses
-	// contain only the current run's artefacts.
 	pkJSEmitter *InMemoryPKJSEmitter
 
 	// pathsConfig holds the resolved path settings.
@@ -160,7 +143,7 @@ type GeneratorAdapter struct {
 	// moduleName is the Go module name used for generated code.
 	moduleName string
 
-	// limits caps caller-supplied source map size; see generatorLimits.
+	// limits caps the caller-supplied source map size.
 	limits generatorLimits
 
 	// generateMu serialises Generate calls so concurrent invocations on the same adapter
@@ -213,9 +196,7 @@ func NewGeneratorAdapter(opts ...GeneratorAdapterOption) *GeneratorAdapter {
 // and manifest on success, or error details on failure.
 // Returns error when an unexpected error occurs during generation.
 //
-// Concurrency: Concurrent Generate calls on the same adapter are serialised by an
-// internal mutex so the shared pkJSEmitter cannot observe half-mutated per-run state from
-// a parallel run.
+// Concurrency: Calls on one adapter run serially to keep their client assets separate.
 func (a *GeneratorAdapter) Generate(
 	ctx context.Context,
 	request *wasm_dto.GenerateFromSourcesRequest,
@@ -266,7 +247,7 @@ func (a *GeneratorAdapter) Generate(
 
 	response := &wasm_dto.GenerateFromSourcesResponse{
 		Success:     true,
-		Artefacts:   a.convertArtefacts(artefacts, fsWriter, a.pkJSEmitter),
+		Artefacts:   a.convertArtefacts(artefacts, fsWriter, a.pkJSEmitter, manifest),
 		Manifest:    a.convertManifest(manifest),
 		Diagnostics: componentDiagnostics,
 		Error:       "",
@@ -278,10 +259,6 @@ func (a *GeneratorAdapter) Generate(
 }
 
 // validateGenerateRequest enforces caller-supplied limits.
-//
-// Mirrors validateAnalyseRequest's gate so expensive work never runs on an oversize
-// request. Returns nil when the request is acceptable, or a failed response carrying a
-// developer-facing message when a limit is exceeded.
 //
 // Takes request (*wasm_dto.GenerateFromSourcesRequest) which is the request to validate.
 // Takes limits (generatorLimits) which configures the caps.
@@ -392,7 +369,7 @@ func (a *GeneratorAdapter) createGeneratorService(
 
 	pathsConfig := generator_domain.GeneratorPathsConfig{
 		BaseDir:        ".",
-		PagesSourceDir: "",
+		PagesSourceDir: "pages",
 		E2ESourceDir:   "",
 		BaseServePath:  "",
 	}
@@ -429,13 +406,7 @@ func (*GeneratorAdapter) errorResponse(message string) *wasm_dto.GenerateFromSou
 	}
 }
 
-// discoverEntryPoints finds .pk files in the sources map and returns them as entry
-// points. The paths are prefixed with the module name to create fully-qualified import
-// paths.
-//
-// .pkc client-side components are NOT entry points; they're compiled separately by
-// compileClientComponents because the annotator's page/partial-style type checking would
-// mistakenly demand a Render function or a Response DTO that .pkc components don't have.
+// discoverEntryPoints finds the .pk source files to generate.
 //
 // Takes sources (map[string]string) which contains the source files to scan.
 // Takes moduleName (string) which is the prefix for fully-qualified paths.
@@ -490,8 +461,7 @@ func (a *GeneratorAdapter) compileClientComponents(
 }
 
 // compileSingleClientComponent runs one .pkc through the SFC compiler and stores its
-// output in the emitter. Returns the slice of diagnostics that should be appended to the
-// caller's collection (empty on a clean success).
+// output in the emitter.
 //
 // Takes sfcCompiler (compiler_domain.SFCCompiler) which compiles the SFC.
 // Takes sourcePath (string) which is the user-supplied source key.
@@ -554,14 +524,12 @@ func (a *GeneratorAdapter) compileSingleClientComponent(
 	return diagnostics
 }
 
-// locationFromError walks the error chain looking for a structured sfcparser location or
-// a Go scanner-style "file:line:col" prefix. Falls back to (path, 0, 0) when no location
-// can be recovered.
+// locationFromError finds a parser location or a "file:line:col" prefix in an error.
 //
 // Takes err (error) which is the error returned from CompileSFC.
 // Takes sourcePath (string) which is used as the FilePath of the location.
 //
-// Returns wasm_dto.Location with whatever Line/Column could be parsed.
+// Returns wasm_dto.Location which contains the source path and any available position.
 func locationFromError(err error, sourcePath string) wasm_dto.Location {
 	location := wasm_dto.Location{FilePath: sourcePath, Line: 0, Column: 0}
 	if err == nil {
@@ -580,23 +548,47 @@ func locationFromError(err error, sourcePath string) wasm_dto.Location {
 	return location
 }
 
-// convertArtefacts converts generator artefacts to WASM DTOs, merging output from three
-// sources: the generator's direct artefact slice, the in-memory filesystem (for
-// register/manifest emitters that write through it), and the PKJS emitter (which captures
-// compiled client-side JavaScript directly).
+// convertGeneratedArtefact converts one generated Go artefact, typing it by its component
+// and linking it to the component's source file.
 //
-// Takes artefacts ([]*generator_dto.GeneratedArtefact) which holds the generated Go
-// output from the generator.
-// Takes fsWriter (*InMemoryFSWriter) which provides access to files written to the
-// in-memory filesystem.
-// Takes pkJSEmitter (*InMemoryPKJSEmitter) which captures transpiled client-side
-// JavaScript artefacts.
+// Takes artefact (*generator_dto.GeneratedArtefact) which is the generated file.
+// Takes sources (map[string]string) which maps Go package paths to source paths.
 //
-// Returns []wasm_dto.GeneratedArtefact with deduplication by Path.
+// Returns wasm_dto.GeneratedArtefact which is the converted artefact.
+func convertGeneratedArtefact(artefact *generator_dto.GeneratedArtefact, sources map[string]string) wasm_dto.GeneratedArtefact {
+	artefactType := wasm_dto.ArtefactTypePartial
+	sourcePath := ""
+	if component := artefact.Component; component != nil {
+		sourcePath = sources[component.CanonicalGoPackagePath]
+		if component.IsPage {
+			artefactType = wasm_dto.ArtefactTypePage
+		}
+	}
+	return wasm_dto.GeneratedArtefact{
+		Path:       artefact.SuggestedPath,
+		Content:    string(artefact.Content),
+		Type:       artefactType,
+		SourcePath: sourcePath,
+	}
+}
+
+// convertArtefacts combines generated Go, in-memory files and client JavaScript as WASM
+// DTOs.
+//
+// Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains the generated Go
+// output.
+// Takes fsWriter (*InMemoryFSWriter) which holds files written by register and manifest
+// emitters.
+// Takes pkJSEmitter (*InMemoryPKJSEmitter) which holds client JavaScript, or nil when
+// absent.
+// Takes manifest (*generator_dto.Manifest) which maps package identities to source paths.
+//
+// Returns []wasm_dto.GeneratedArtefact which combines outputs without duplicate paths.
 func (*GeneratorAdapter) convertArtefacts(
 	artefacts []*generator_dto.GeneratedArtefact,
 	fsWriter *InMemoryFSWriter,
 	pkJSEmitter *InMemoryPKJSEmitter,
+	manifest *generator_dto.Manifest,
 ) []wasm_dto.GeneratedArtefact {
 	totalCapacity := len(artefacts) + len(fsWriter.GetWrittenFiles())
 	if pkJSEmitter != nil {
@@ -605,18 +597,10 @@ func (*GeneratorAdapter) convertArtefacts(
 	result := make([]wasm_dto.GeneratedArtefact, 0, totalCapacity)
 	seen := make(map[string]struct{}, totalCapacity)
 
-	for _, artefact := range artefacts {
-		artefactType := wasm_dto.ArtefactTypePartial
-		if artefact.Component != nil && artefact.Component.IsPage {
-			artefactType = wasm_dto.ArtefactTypePage
-		}
+	sources := manifestSourcePaths(manifest)
 
-		result = append(result, wasm_dto.GeneratedArtefact{
-			Path:       artefact.SuggestedPath,
-			Content:    string(artefact.Content),
-			Type:       artefactType,
-			SourcePath: "",
-		})
+	for _, artefact := range artefacts {
+		result = append(result, convertGeneratedArtefact(artefact, sources))
 		seen[artefact.SuggestedPath] = struct{}{}
 	}
 
@@ -677,7 +661,7 @@ func (*GeneratorAdapter) convertManifest(manifest *generator_dto.Manifest) *wasm
 			JSArtefactIDs: page.JSArtefactIDs,
 			StyleBlock:    page.StyleBlock,
 			CachePolicy:   nil,
-			SourcePath:    "",
+			SourcePath:    page.OriginalSourcePath,
 			HasGetData:    false,
 			HasRender:     false,
 		}
@@ -697,19 +681,18 @@ func (*GeneratorAdapter) convertManifest(manifest *generator_dto.Manifest) *wasm
 	return result
 }
 
-// inMemoryResolver provides path resolution for in-memory file systems. It implements
-// resolver_domain.ResolverPort.
+// inMemoryResolver provides path resolution for in-memory file systems.
 type inMemoryResolver struct {
 	// moduleName is the Go module path used to resolve import paths.
 	moduleName string
 
-	// baseDir is the base directory path; empty for in-memory resolution.
+	// baseDir is the base directory path, empty for in-memory resolution.
 	baseDir string
 }
 
 // DetectLocalModule is a no-op for in-memory resolver.
 //
-// Returns error when detection fails; always returns nil for this resolver.
+// Returns error which is nil.
 func (*inMemoryResolver) DetectLocalModule(_ context.Context) error {
 	return nil
 }
@@ -803,27 +786,23 @@ func (r *inMemoryResolver) ConvertEntryPointPathToManifestKey(entryPointPath str
 	return entryPointPath
 }
 
-// GetModuleDir resolves a Go module path to its filesystem directory. For in-memory
-// resolver, this returns an error as external modules are not available.
+// GetModuleDir rejects module directory lookups on the in-memory resolver.
 //
-// Takes modulePath (string) which specifies the Go module path to resolve.
+// Takes modulePath (string) which identifies the module in the error.
 //
-// Returns string which would be the directory path if resolution succeeded.
-// Returns error when called, as external modules are not available.
+// Returns string which is always empty.
+// Returns error which reports that module directories are unavailable.
 func (*inMemoryResolver) GetModuleDir(_ context.Context, modulePath string) (string, error) {
 	return "", fmt.Errorf("external module %q not available in in-memory resolver", modulePath)
 }
 
-// FindModuleBoundary splits an import path into module and subpath. The in-memory
-// resolver assumes everything is in the local module and does not support absolute file
-// paths, which it rejects so a caller never receives a bogus boundary from path text it
-// cannot resolve.
+// FindModuleBoundary splits an import path into module and subpath.
 //
 // Takes importPath (string) which is the import path to split.
 //
 // Returns modulePath (string) which is the module portion of the path.
 // Returns subpath (string) which is the path within the module.
-// Returns err (error) when given an absolute path; otherwise nil for this resolver.
+// Returns err (error) when given an absolute path, and nil otherwise for this resolver.
 func (r *inMemoryResolver) FindModuleBoundary(_ context.Context, importPath string) (modulePath, subpath string, err error) {
 	if filepath.IsAbs(importPath) {
 		return "", "", fmt.Errorf("in-memory resolver does not support absolute path %q", importPath)
@@ -847,8 +826,7 @@ func (r *inMemoryResolver) FindModuleBoundary(_ context.Context, importPath stri
 }
 
 // WithStdlibDataGetter sets a function to fetch the pre-bundled standard library type
-// data. This is a function because the stdlib data may not be ready when the adapter is
-// created.
+// data.
 //
 // Takes getter (func() (*inspector_dto.TypeData, error)) which fetches the stdlib types
 // when called.
@@ -887,10 +865,7 @@ func WithModuleName(moduleName string) GeneratorAdapterOption {
 
 // WithGeneratorLimits overrides the default per-call caps.
 //
-// Bounds how many sources Generate / DynamicRender accept and how large each source can
-// be. Pass zero on any field to disable that specific limit. Defaults are intentionally
-// generous so they do not get in the way of real projects but still close the
-// unbounded-input attack surface.
+// Pass zero for any limit to disable it.
 //
 // Takes maxFileCount (int) which caps len(request.Sources).
 // Takes maxTotalBytes (int) which caps the aggregate byte size of every source file.
@@ -955,6 +930,44 @@ func newInMemoryResolver(moduleName string, baseDir string) *inMemoryResolver {
 func newSourceEntryPoint(moduleName, sourcePath string) annotator_dto.EntryPoint {
 	entryPoint := annotator_dto.EntryPoint{}
 	entryPoint.Path = moduleName + "/" + sourcePath
-	entryPoint.IsPage = strings.Contains(sourcePath, "pages/")
+	entryPoint.IsPage = strings.Contains("/"+sourcePath, "/pages/")
+	entryPoint.IsPublic = strings.HasPrefix(sourcePath, "pages/")
 	return entryPoint
+}
+
+// manifestSourcePaths maps component package paths to the manifest's source paths.
+//
+// Package paths identify artefacts even when the manifest and output lists differ in
+// order.
+//
+// Takes manifest (*generator_dto.Manifest) which lists the pages, partials, emails, PDFs
+// and error pages, or nil.
+//
+// Returns map[string]string which maps package paths to source paths.
+func manifestSourcePaths(manifest *generator_dto.Manifest) map[string]string {
+	sources := make(map[string]string)
+	if manifest == nil {
+		return sources
+	}
+	for key := range manifest.Pages {
+		page := manifest.Pages[key]
+		sources[page.PackagePath] = page.OriginalSourcePath
+	}
+	for key := range manifest.Partials {
+		partial := manifest.Partials[key]
+		sources[partial.PackagePath] = partial.OriginalSourcePath
+	}
+	for key := range manifest.Emails {
+		email := manifest.Emails[key]
+		sources[email.PackagePath] = email.OriginalSourcePath
+	}
+	for key := range manifest.Pdfs {
+		pdf := manifest.Pdfs[key]
+		sources[pdf.PackagePath] = pdf.OriginalSourcePath
+	}
+	for key := range manifest.ErrorPages {
+		errorPage := manifest.ErrorPages[key]
+		sources[errorPage.PackagePath] = errorPage.OriginalSourcePath
+	}
+	return sources
 }

@@ -78,6 +78,17 @@ func TestSetupPdfWriterService_InstallsTheService(t *testing.T) {
 	assert.NotNil(t, c.GetPdfWriterService())
 }
 
+func waitForInitialTasks(t *testing.T, c *Container) {
+	t.Helper()
+
+	require.NotNil(t, c.initialTasksDone)
+	select {
+	case <-c.initialTasksDone:
+	case <-t.Context().Done():
+		t.Fatal("initial tasks did not finish")
+	}
+}
+
 func TestRunInitialTasksInBackground(t *testing.T) {
 	testCases := []struct {
 		err    error
@@ -98,9 +109,10 @@ func TestRunInitialTasksInBackground(t *testing.T) {
 			}
 			lifecycle := &initialTasksLifecycle{err: tc.err, done: make(chan struct{})}
 
-			runInitialTasksInBackground(ctx, lifecycle)
+			finished := runInitialTasksInBackground(ctx, lifecycle)
 
 			<-lifecycle.done
+			<-finished
 		})
 	}
 }

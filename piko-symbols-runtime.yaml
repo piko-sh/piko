@@ -3,7 +3,7 @@
 # Lists the piko framework packages whose symbols are vendored into the
 # bytecode interpreter for native-speed access via reflect.Value.Call().
 #
-# Regenerate with: make generate-interp-piko-symbols
+# Regenerate with make generate-interp-piko-symbols.
 
 package: interp_piko_symbols
 output: wdk/interp/interp_piko_symbols
@@ -13,5 +13,6 @@ packages:
       build_tag: "!js"
   - piko.sh/piko/wdk/binder
   - piko.sh/piko/wdk/logger
+  - piko.sh/piko/wdk/maths
   - piko.sh/piko/wdk/runtime
   - piko.sh/safeconv

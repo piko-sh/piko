@@ -54,7 +54,7 @@ nav:
     order: 20
 ---
 
-<!-- Generated from internal/diagnostic_docs. Edit the catalogue there, then run: make generate-diagnostics-docs -->
+<!-- Generated from the diagnostics catalogue. -->
 
 # Diagnostics
 
@@ -63,25 +63,24 @@ has a severity and a stable code. Codes starting with T0 come from parsing templ
 expressions, T1 from analysing templates, and R0 from rendering. A code keeps its meaning
 and its number is never reused, so editors, scripts and CI can rely on it.
 
-Build output follows each coded diagnostic with a link to its explanation:
+Build output follows each coded diagnostic with a link to its explanation.
 
 ` + "```text" + `
 {{example}}
 ` + "```" + `
 
-Run ` + "`piko explain T141`" + ` to read an explanation in the terminal, or
-` + "`piko explain`" + ` to list every code; see the [CLI reference](cli.md). Editors
-that use the Piko language server link each code to its explanation; see
-[LSP setup](../how-to/lsp-setup.md).
+Run ` + "`piko explain T141`" + ` to read an explanation in the terminal or
+` + "`piko explain`" + ` to list every code. See the [CLI reference](cli.md).
+The Piko language server links each code to its explanation. See
+[LSP setup](../how-to/lsp-setup.md) to enable these links in your editor.
 
-Severities:
+## Severity levels
 
-- **Error** stops the build, or marks a render that failed.
+- **Error** stops the build or reports a render failure.
 - **Warning** reports a likely mistake. The build continues.
 - **Info** reports something worth knowing. The build continues.
 
-Some codes are reported with more than one severity, depending on the case; each code
-below says when.
+Some codes have more than one severity. Each explanation gives the conditions.
 
 SQL diagnostics, whose codes start with Q, come from the SQL generator. They are listed in
 the [querier reference](querier.md#diagnostics).
@@ -141,8 +140,8 @@ var (
 	familyIntroductions = map[Family]string{
 		FamilyTemplateExpressions: "Reported while a template's expressions and directives are parsed, before any types are checked.",
 		FamilyTemplateAnalysis:    "Reported while templates are type-checked against their Go code, and while components, props, assets and styles are linked.",
-		FamilyRendering: "Reported by generated code while a page renders. They appear in the server log rather than in build output, and the page " +
-			"still renders: a nil read or an out-of-range index gives a zero value instead of a panic.",
+		FamilyRendering: "Render diagnostics appear in the server log. A nil read or an out-of-range index produces a zero value. " +
+			"Each diagnostic explains how rendering proceeds.",
 	}
 )
 
@@ -196,12 +195,11 @@ func (e *Entry) SeverityLabel() string {
 	}
 }
 
-// RenderMarkdown returns the reference page, docs/reference/diagnostics.md.
+// RenderMarkdown renders the diagnostics reference page.
 //
-// The examples are rendered without colour, whatever the colour package's setting; the
-// setting is restored before returning.
+// Examples omit colour. The colour setting is restored before returning.
 //
-// Returns []byte which is the page's content.
+// Returns []byte which contains the reference page in Markdown.
 func RenderMarkdown() []byte {
 	previous := colour.Enabled()
 	colour.SetEnabled(false)

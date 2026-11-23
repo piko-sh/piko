@@ -91,7 +91,7 @@ func BuildAST(r *piko.RequestData, propsData interface{}) (*pikoruntime.Template
 	tempVar5 := arena.GetNode()
 	tempVar5.NodeType = pikoruntime.NodeText
 	tempVar6 := arena.GetDirectWriter()
-	tempVar6.AppendString(pikoruntime.ValueToString(InnerPrefix))
+	tempVar6.AppendEscapeString(pikoruntime.ValueToString(InnerPrefix))
 	tempVar5.TextContentWriter = tempVar6
 	tempVar3.Children = append(tempVar3.Children, tempVar5)
 	tempVar1.Children = append(tempVar1.Children, tempVar3)
@@ -121,7 +121,7 @@ func BuildAST(r *piko.RequestData, propsData interface{}) (*pikoruntime.Template
 	tempVar13 := arena.GetNode()
 	tempVar13.NodeType = pikoruntime.NodeText
 	tempVar14 := arena.GetDirectWriter()
-	tempVar14.AppendString(pikoruntime.ValueToString(InnerSuffix))
+	tempVar14.AppendEscapeString(pikoruntime.ValueToString(InnerSuffix))
 	tempVar13.TextContentWriter = tempVar14
 	tempVar11.Children = append(tempVar11.Children, tempVar13)
 	tempVar1.Children = append(tempVar1.Children, tempVar11)

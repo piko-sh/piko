@@ -603,6 +603,18 @@ func TestSetRateLimitHeaders(t *testing.T) {
 		assert.Equal(t, "1700000060", w.Header().Get(headerRateLimitReset))
 		assert.Equal(t, "30", w.Header().Get(headerRetryAfter))
 	})
+
+	t.Run("rounds a sub-second Retry-After up to one second", func(t *testing.T) {
+		m := &rateLimitMiddleware{}
+		for _, wait := range []time.Duration{0, time.Millisecond, 999 * time.Millisecond} {
+			w := httptest.NewRecorder()
+			m.setRateLimitHeaders(w, ratelimiter_dto.Result{Allowed: false, RetryAfter: wait})
+			assert.Equal(t, "1", w.Header().Get(headerRetryAfter), "wait %s", wait)
+		}
+		w := httptest.NewRecorder()
+		m.setRateLimitHeaders(w, ratelimiter_dto.Result{Allowed: false, RetryAfter: 1500 * time.Millisecond})
+		assert.Equal(t, "2", w.Header().Get(headerRetryAfter), "partial seconds round up")
+	})
 }
 
 func TestCheckRateLimit(t *testing.T) {

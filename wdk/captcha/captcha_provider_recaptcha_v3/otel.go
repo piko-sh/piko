@@ -20,9 +20,13 @@ package captcha_provider_recaptcha_v3
 
 import (
 	"go.opentelemetry.io/otel"
+	"piko.sh/piko/wdk/logger"
 )
 
 var (
+	// log is the package-level logger for the captcha_provider_recaptcha_v3 package.
+	log = logger.GetLogger("piko/wdk/captcha/captcha_provider_recaptcha_v3")
+
 	// tracer is the package-level OTel tracer for the captcha_provider_recaptcha_v3 package.
 	tracer = otel.Tracer("piko/wdk/captcha/captcha_provider_recaptcha_v3")
 )

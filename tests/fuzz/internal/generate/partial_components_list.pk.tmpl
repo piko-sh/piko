@@ -1,0 +1,22 @@
+<template><main id="record-page">
+<h1>Record board</h1><output id="record-log"></output><output id="record-action" data-revision="0"></output>
+<button type="button" id="record-edit" p-on:click="change('edit')">Edit</button>
+<button type="button" id="record-reorder" p-on:click="change('reorder')">Reorder</button>
+<button type="button" id="record-remove" p-on:click="change('remove')">Remove</button>
+<button type="button" id="record-restore" p-on:click="change('restore')">Restore</button>
+<piko:partial is="rows" :locale="state.Locale"></piko:partial>
+</main></template>
+<script type="application/x-go">
+package main
+import ("piko.sh/piko"; rows "example.org/pikofuzzcase/partials/record-rows.pk")
+type Response struct{Locale string}
+func SupportedLocales()[]string{return []string{"en","fr"}}
+func Render(r *piko.RequestData, p piko.NoProps)(Response,piko.Metadata,error){return Response{Locale:r.Locale()},piko.Metadata{Title:"Record board",Language:r.Locale()},nil}
+</script>
+<script lang="ts">
+export async function change(op:string){
+	const result=await action.records.Advance({op}).call();
+	await piko.partials.reload('record-rows');
+	document.getElementById('record-action').dataset.revision=String(result.revision);
+}
+</script>

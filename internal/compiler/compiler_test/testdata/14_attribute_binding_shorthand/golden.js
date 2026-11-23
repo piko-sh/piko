@@ -44,7 +44,7 @@ import { action } from "/_piko/assets/pk-js/pk/actions.gen.js";
             return {"id": 123, "imgSrc": "/logo_initial.png", "url": "https://example.com/initial"};
         }
         connectedCallback () {
-            this.init(instance.call(this, this));
+            if (!this.$$ctx) this.init(instance.call(this, this));
             super.connectedCallback();
         }
         renderVDOM () {

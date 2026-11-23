@@ -19,13 +19,34 @@
 package bootstrap
 
 import (
+	"context"
+	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/annotator/annotator_dto"
+	"piko.sh/piko/internal/config"
+	"piko.sh/piko/internal/monitoring/monitoring_domain"
 )
+
+type otelStubMonitoringService struct {
+	monitoring_domain.MonitoringService
+}
+
+type otelStubMetricsExporter struct {
+	monitoring_domain.MetricsExporter
+}
+
+func (*otelStubMonitoringService) SpanProcessor() monitoring_domain.SpanProcessor { return nil }
+
+func (*otelStubMonitoringService) MetricsReader() monitoring_domain.MetricReader { return nil }
+
+func (*otelStubMetricsExporter) Reader() monitoring_domain.MetricReader { return nil }
 
 func TestBuildersDispatchTable(t *testing.T) {
 
@@ -202,4 +223,116 @@ func TestServiceProbesTable(t *testing.T) {
 	}
 
 	assert.Len(t, serviceProbes, len(expectedServices), "unexpected number of service probes")
+}
+
+func TestConfigAndContainer_RejectsAMissingAppRouter(t *testing.T) {
+	t.Parallel()
+
+	container, err := ConfigAndContainer(context.Background(), &Dependencies{})
+
+	require.Error(t, err)
+	assert.Nil(t, container)
+	assert.Contains(t, err.Error(), "appRouter dependency cannot be nil")
+}
+
+func TestConfigAndContainer_RejectsInvalidProviderConfiguration(t *testing.T) {
+	t.Parallel()
+
+	invalid := func(c *Container) { c.SetEmailDefaultProvider("missing") }
+
+	container, err := ConfigAndContainer(context.Background(), &Dependencies{AppRouter: chi.NewRouter()}, invalid)
+
+	require.Error(t, err)
+	assert.Nil(t, container)
+	assert.Contains(t, err.Error(), "validating provider configuration")
+}
+
+func TestConfigAndContainer_RejectsAMissingBaseDirectory(t *testing.T) {
+	t.Parallel()
+
+	missing := filepath.Join(t.TempDir(), "absent")
+
+	container, err := ConfigAndContainer(context.Background(), &Dependencies{AppRouter: chi.NewRouter()}, WithBaseDir(missing))
+
+	require.Error(t, err)
+	assert.Nil(t, container)
+	assert.Contains(t, err.Error(), "website base directory not found")
+}
+
+func TestConfigAndContainer_RejectsABaseDirectoryThatIsAFile(t *testing.T) {
+	t.Parallel()
+
+	file := filepath.Join(t.TempDir(), "file.txt")
+	require.NoError(t, os.WriteFile(file, []byte("x"), 0o600))
+
+	container, err := ConfigAndContainer(context.Background(), &Dependencies{AppRouter: chi.NewRouter()}, WithBaseDir(file))
+
+	require.Error(t, err)
+	assert.Nil(t, container)
+	assert.Contains(t, err.Error(), "baseDir is not a directory")
+}
+
+func TestConfigAndContainer_ResolvesConfigurationAndInstallsTheContainer(t *testing.T) {
+	installGlobalContainer(t, nil)
+	runGlobalShutdownOnCleanup(t)
+	baseDir := t.TempDir()
+	website := config.WebsiteConfig{Name: "Example"}
+
+	container, err := ConfigAndContainer(
+		context.Background(),
+		&Dependencies{AppRouter: chi.NewRouter()},
+		WithBaseDir(baseDir),
+		WithPort(9999),
+		WithWebsiteConfig(website),
+		WithAutoMemoryLimit(func() (int64, error) { return 256 << 20, nil }),
+		WithSpanProcessor(&optionsStubSpanProcessor{}),
+	)
+
+	require.NoError(t, err)
+	require.NotNil(t, container)
+	assert.Equal(t, baseDir, *container.GetServerConfig().Paths.BaseDir)
+	assert.Equal(t, "9999", *container.GetServerConfig().Network.Port)
+	assert.Equal(t, "Example", container.GetWebsiteConfig().Name)
+}
+
+func TestConfigAndContainer_UsesDefaultWebsiteConfiguration(t *testing.T) {
+	installGlobalContainer(t, nil)
+	runGlobalShutdownOnCleanup(t)
+
+	container, err := ConfigAndContainer(
+		context.Background(),
+		&Dependencies{AppRouter: chi.NewRouter()},
+		WithBaseDir(t.TempDir()),
+		WithAutoMemoryLimit(func() (int64, error) { return 0, errors.New("no cgroup limit") }),
+	)
+
+	require.NoError(t, err)
+	assert.Empty(t, container.GetWebsiteConfig().Name)
+}
+
+func TestDaemon_RejectsAnUnknownRunMode(t *testing.T) {
+	t.Parallel()
+
+	daemon, err := Daemon(context.Background(), "staging", NewContainer(), &Dependencies{AppRouter: chi.NewRouter()})
+
+	require.Error(t, err)
+	assert.Nil(t, daemon)
+	assert.Contains(t, err.Error(), `invalid or unknown run mode: "staging"`)
+}
+
+func TestBuildOtelSetupOptions_CollectsTheConfiguredComponents(t *testing.T) {
+	t.Parallel()
+
+	assert.Nil(t, buildOtelSetupOptions(context.Background(), NewContainer()))
+
+	c := NewContainer()
+	c.SetMonitoringService(&otelStubMonitoringService{})
+	c.SetMetricsExporter(&otelStubMetricsExporter{})
+	c.AddSpanProcessor(&optionsStubSpanProcessor{})
+
+	opts := buildOtelSetupOptions(context.Background(), c)
+
+	require.NotNil(t, opts)
+	assert.Len(t, opts.AdditionalSpanProcessors, 2)
+	assert.Len(t, opts.AdditionalMetricReaders, 2)
 }

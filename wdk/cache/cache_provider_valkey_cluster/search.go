@@ -281,10 +281,11 @@ func (a *ValkeyClusterAdapter[K, V]) executeSearch(ctx context.Context, query st
 // Returns error which is currently always nil but reserved for future use.
 func (a *ValkeyClusterAdapter[K, V]) parseSearchResults(ctx context.Context, rawResults []valkey.ValkeyMessage, total int64, opts *cache.SearchOptions) (cache.SearchResult[K, V], error) {
 	result := cache.SearchResult[K, V]{
-		Items:  make([]cache.SearchHit[K, V], 0),
-		Total:  total,
-		Offset: 0,
-		Limit:  0,
+		Items:      make([]cache.SearchHit[K, V], 0),
+		Total:      total,
+		Offset:     0,
+		Limit:      0,
+		Candidates: 0,
 	}
 
 	if opts != nil {

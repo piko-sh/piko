@@ -19,15 +19,19 @@
 package templates
 
 import (
+	"bytes"
 	"embed"
 	"errors"
 	"fmt"
+	"go/format"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
 
+	"golang.org/x/mod/module"
 	"piko.sh/piko/plugins/agents"
 	"piko.sh/safedisk"
 )
@@ -41,6 +45,11 @@ const (
 
 	// filePermissions is the file mode used when creating scaffold files.
 	filePermissions = 0640
+)
+
+var (
+	// ErrInvalidModuleName reports a module name that is invalid as a Go import path.
+	ErrInvalidModuleName = errors.New("invalid module name")
 )
 
 // ScaffoldData holds configuration for creating a new project from a template.
@@ -77,9 +86,12 @@ type ScaffoldData struct {
 //
 // Takes data (ScaffoldData) which contains the project name and destination path.
 //
-// Returns error when the destination already exists, the current folder is not empty, or
-// any file operation fails.
+// Returns error when the module name is not a valid import path, the destination already
+// exists, the current folder is not empty, or any file operation fails.
 func CreateProject(data ScaffoldData) error {
+	if err := ValidateModuleName(data.ModuleName); err != nil {
+		return err
+	}
 	sandboxDir, _ := resolveSandboxPaths(data.DestinationPath)
 	factory, err := safedisk.NewFactory(safedisk.FactoryConfig{
 		CWD:          sandboxDir,
@@ -449,14 +461,43 @@ func createTemplateFiles(factory safedisk.Factory, data ScaffoldData) error {
 // Takes sourceFS (embed.FS) which contains the embedded template files.
 // Takes data (ScaffoldData) which provides the values for template execution.
 //
-// Returns error when the template cannot be parsed, the file cannot be created, or
-// template execution fails.
+// Go files are formatted with gofmt after rendering, so template conditionals need not
+// keep the output tidy.
+//
+// Returns error when the template cannot be parsed or executed, a Go file renders as
+// invalid Go, or the file cannot be created.
 func createFromTemplate(factory safedisk.Factory, destPath, templateName string, sourceFS embed.FS, data ScaffoldData) error {
 	parsedTemplate, err := template.New(filepath.Base(templateName)).ParseFS(sourceFS, templateName)
 	if err != nil {
 		return fmt.Errorf("failed to parse template %s: %w", templateName, err)
 	}
 
+	var rendered bytes.Buffer
+	if err := parsedTemplate.Execute(&rendered, data); err != nil {
+		return fmt.Errorf("failed to execute template for %s: %w", destPath, err)
+	}
+	content := rendered.Bytes()
+	if filepath.Ext(destPath) == ".go" {
+		if content, err = format.Source(content); err != nil {
+			return fmt.Errorf("template %s rendered invalid Go: %w", templateName, err)
+		}
+	}
+
+	return createScaffoldFile(factory, destPath, func(w io.Writer) error {
+		_, err := w.Write(content)
+		return err
+	})
+}
+
+// createScaffoldFile writes a scaffold file within its parent directory sandbox.
+//
+// Takes factory (safedisk.Factory) which creates the sandbox.
+// Takes destPath (string) which is the file to create.
+// Takes write (func(io.Writer) error) which writes the file's content.
+//
+// Returns error when the sandbox or file cannot be created, or which joins the write and
+// close failures.
+func createScaffoldFile(factory safedisk.Factory, destPath string, write func(io.Writer) error) error {
 	parentDir := filepath.Dir(destPath)
 	fileName := filepath.Base(destPath)
 
@@ -470,10 +511,27 @@ func createFromTemplate(factory safedisk.Factory, destPath, templateName string,
 	if err != nil {
 		return fmt.Errorf("failed to create file %s: %w", destPath, err)
 	}
-	defer func() { _ = file.Close() }()
 
-	if err := parsedTemplate.Execute(file, data); err != nil {
-		return fmt.Errorf("failed to execute template for %s: %w", destPath, err)
+	if err := errors.Join(write(file), file.Close()); err != nil {
+		return fmt.Errorf("failed to write scaffold file %s: %w", destPath, err)
+	}
+	return nil
+}
+
+// ValidateModuleName checks that the module name is a valid Go import path.
+//
+// Line breaks are rejected because they can introduce directives into go.mod.
+//
+// Takes moduleName (string) which is the project's module path.
+//
+// Returns error which wraps ErrInvalidModuleName when the name is not a valid import
+// path.
+func ValidateModuleName(moduleName string) error {
+	if strings.ContainsAny(moduleName, "\r\n") {
+		return fmt.Errorf("%w %q: contains a line break", ErrInvalidModuleName, moduleName)
+	}
+	if err := module.CheckImportPath(moduleName); err != nil {
+		return fmt.Errorf("%w %q: %w", ErrInvalidModuleName, moduleName, err)
 	}
 	return nil
 }

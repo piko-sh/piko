@@ -19,6 +19,8 @@
 package driven_code_emitter_go_literal
 
 import (
+	"bytes"
+	"go/format"
 	"testing"
 
 	goast "go/ast"
@@ -184,7 +186,7 @@ func TestEmit_LogicalOperators(t *testing.T) {
 		}
 	})
 
-	t.Run("|| uses EvaluateOr helper with type assertion", func(t *testing.T) {
+	t.Run("|| returns its left operand before evaluating its fallback", func(t *testing.T) {
 		t.Parallel()
 
 		mockEmitter := &emitter{config: EmitterConfig{}, ctx: NewEmitterContext()}
@@ -202,7 +204,13 @@ func TestEmit_LogicalOperators(t *testing.T) {
 
 		callExpr, ok := typeAssert.X.(*goast.CallExpr)
 		require.True(t, ok, "Inside TypeAssertExpr should be a CallExpr")
-		assertIsHelperCall(t, callExpr, "EvaluateOr")
+		closure, ok := callExpr.Fun.(*goast.FuncLit)
+		require.True(t, ok)
+		require.Len(t, closure.Body.List, 2)
+		guard, ok := closure.Body.List[0].(*goast.IfStmt)
+		require.True(t, ok)
+		require.IsType(t, &goast.ReturnStmt{}, guard.Body.List[0])
+		require.IsType(t, &goast.ReturnStmt{}, closure.Body.List[1])
 	})
 }
 
@@ -1223,4 +1231,22 @@ func TestIsSameComparableDefinedType(t *testing.T) {
 			assert.Equal(t, tc.want, isSameComparableDefinedType(tc.left, tc.right))
 		})
 	}
+}
+
+func TestEmitTemporalExpressionsUsesScriptTimeAlias(t *testing.T) {
+	em := &emitter{ctx: NewEmitterContext()}
+	em.addImport("time", "clock")
+	be := newBinaryOpEmitter(em, nil)
+	ee := newExpressionEmitter(em, be, newStringConverter())
+	be.expressionEmitter = ee
+	ann := &ast_domain.GoGeneratorAnnotation{ResolvedType: &ast_domain.ResolvedTypeInfo{CanonicalPackagePath: "time", PackageAlias: "time", TypeExpression: &goast.SelectorExpr{X: goast.NewIdent("time"), Sel: goast.NewIdent("Duration")}}}
+	expr := &ast_domain.BinaryExpression{Left: &ast_domain.DateTimeLiteral{Value: "2024-02-29T00:00:00Z"}, Right: &ast_domain.DateLiteral{Value: "2024-02-28"}, Operator: ast_domain.OpMinus, GoAnnotations: ann}
+	emitted, _, diags := be.emit(expr)
+	require.Empty(t, diags)
+	var text bytes.Buffer
+	require.NoError(t, format.Node(&text, token.NewFileSet(), emitted))
+	require.Contains(t, text.String(), "clock.RFC3339")
+	require.Contains(t, text.String(), "clock.Time")
+	require.Contains(t, text.String(), ".(clock.Duration)")
+	require.NotRegexp(t, `\btime\.`, text.String())
 }

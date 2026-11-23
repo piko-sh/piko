@@ -22,7 +22,6 @@ import (
 	"context"
 
 	protocol "github.com/politepixels/golang-language-server"
-	"go.lsp.dev/uri"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/inspector/inspector_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
@@ -151,7 +150,7 @@ func buildImplementorLocations(implementors []inspector_domain.ImplementorInfo) 
 // definition.
 func buildImplementorLocation(implementor inspector_domain.ImplementorInfo) protocol.Location {
 	return protocol.Location{
-		URI: uri.File(implementor.DefinitionFile),
+		URI: documentURIForPath(implementor.DefinitionFile),
 		Range: protocol.Range{
 			Start: protocol.Position{
 				Line:      safeconv.IntToUint32(implementor.DefinitionLine - 1),

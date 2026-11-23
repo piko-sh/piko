@@ -119,30 +119,10 @@ func NewBrowserPool(opts BrowserOptions, size int, config ...BrowserPoolConfig) 
 // Returns *IncognitoPage which provides an isolated browsing context.
 // Returns error when page creation fails or ctx is cancelled while waiting.
 func (bp *BrowserPool) NewIncognitoPage(ctx context.Context) (*IncognitoPage, error) {
-	if bp.sem != nil {
-		select {
-		case bp.sem <- struct{}{}:
-		case <-ctx.Done():
-			return nil, fmt.Errorf("waiting for pool slot: %w", ctx.Err())
-		}
-	}
-
-	index := bp.index.Add(1) - 1
-	b := bp.browsers[index%uint64(len(bp.browsers))]
-	page, err := b.NewIncognitoPage()
-	if err != nil {
-		if bp.sem != nil {
-			<-bp.sem
-		}
-		return nil, err
-	}
-
-	if bp.sem != nil {
-		sem := bp.sem
-		page.releaseFunction = func() { <-sem }
-	}
-
-	return page, nil
+	return acquirePage(ctx, bp.sem, func() (*IncognitoPage, error) {
+		index := bp.index.Add(1) - 1
+		return bp.browsers[index%uint64(len(bp.browsers))].NewIncognitoPage()
+	})
 }
 
 // Size returns the number of browser instances in the pool.
@@ -294,4 +274,34 @@ func startBrowsers(opts BrowserOptions, size int) ([]*Browser, error) {
 	}
 
 	return browsers, nil
+}
+
+// acquirePage creates a page while holding a slot of slots, which the page releases when
+// it closes. A nil slots creates the page without a limit.
+//
+// Takes slots (chan struct{}) which is the pool semaphore, or nil.
+// Takes create (func() (*IncognitoPage, error)) which creates the page.
+//
+// Returns *IncognitoPage which holds the slot until it closes.
+// Returns error when ctx ends while waiting for a slot or page creation fails.
+func acquirePage(ctx context.Context, slots chan struct{}, create func() (*IncognitoPage, error)) (*IncognitoPage, error) {
+	if ctx.Err() != nil {
+		return nil, fmt.Errorf("opening page: %w", context.Cause(ctx))
+	}
+	if slots == nil {
+		return create()
+	}
+	select {
+	case slots <- struct{}{}:
+	case <-ctx.Done():
+		return nil, fmt.Errorf("waiting for pool slot: %w", context.Cause(ctx))
+	}
+	page, err := create()
+	if err != nil {
+		<-slots
+		return nil, err
+	}
+	page.slots = slots
+	page.releaseFunction = func() { <-slots }
+	return page, nil
 }

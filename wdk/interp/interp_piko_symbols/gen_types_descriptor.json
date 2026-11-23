@@ -3,6 +3,7 @@
     "piko.sh/piko",
     "piko.sh/piko/wdk/binder",
     "piko.sh/piko/wdk/logger",
+    "piko.sh/piko/wdk/maths",
     "piko.sh/piko/wdk/runtime",
     "piko.sh/safeconv"
   ]

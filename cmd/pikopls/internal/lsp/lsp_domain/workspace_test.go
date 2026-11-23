@@ -28,6 +28,8 @@ import (
 	"time"
 
 	protocol "github.com/politepixels/golang-language-server"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/annotator/annotator_domain"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
@@ -1163,4 +1165,61 @@ func TestWorkspace_PublishErrorDiagnosticAsync_Tracked(t *testing.T) {
 	default:
 		t.Fatal("publishErrorDiagnosticAsync did not run before Close drained")
 	}
+}
+
+func TestPublishComponentDiagnosticsAcrossRepair(t *testing.T) {
+	workspace := createTestWorkspace()
+	var published *protocol.PublishDiagnosticsParams
+	workspace.client = &mockClient{PublishDiagnosticsFunc: func(_ context.Context, parameters *protocol.PublishDiagnosticsParams) error {
+		published = parameters
+		return nil
+	}}
+	const componentURI = protocol.DocumentURI("file:///components/status-field.pkc")
+	for _, withProject := range []bool{false, true} {
+		for _, member := range []string{"missing", "count"} {
+			component := &document{URI: componentURI, Content: []byte(`<template name="status-field"><output>{{ state.` + member + ` }}</output></template>
+<script lang="ts">const state={count:1};</script>`)}
+			if withProject {
+				component.ProjectResult = &annotator_dto.ProjectAnnotationResult{}
+			}
+
+			workspace.publishDiagnostics(t.Context(), componentURI, component)
+
+			require.NotNil(t, published, "missing publication")
+			assert.Equal(t, componentURI, published.URI)
+			if member == "missing" {
+				require.Len(t, published.Diagnostics, 1, "project result %t", withProject)
+				assert.Equal(t, "Unknown state property 'missing'", published.Diagnostics[0].Message)
+			} else {
+				assert.Empty(t, published.Diagnostics, "project result %t", withProject)
+				assert.NotNil(t, published.Diagnostics, "an empty list clears the client's diagnostics")
+			}
+		}
+	}
+}
+
+func TestPublishDiagnosticsDropsStaleGoplsDiagnosticsWithoutAProject(t *testing.T) {
+	workspace := createTestWorkspace()
+	var published *protocol.PublishDiagnosticsParams
+	workspace.client = &mockClient{PublishDiagnosticsFunc: func(_ context.Context, parameters *protocol.PublishDiagnosticsParams) error {
+		published = parameters
+		return nil
+	}}
+	const pageURI = protocol.DocumentURI("file:///pages/index.pk")
+	workspace.goplsDiagnostics = map[protocol.DocumentURI][]protocol.Diagnostic{pageURI: {{Message: "stale gopls error"}}}
+
+	workspace.publishDiagnostics(t.Context(), pageURI, &document{URI: pageURI, Content: []byte("<template><p>x</p></template>")})
+
+	require.NotNil(t, published)
+	assert.Empty(t, published.Diagnostics, "gopls diagnostics from an earlier analysis must not be republished")
+}
+
+func TestMergeDiagnosticsDropsRepeats(t *testing.T) {
+	first := protocol.Diagnostic{Message: "Unknown state property 'missing'", Range: protocol.Range{Start: protocol.Position{Line: 1, Character: 2}}}
+	other := protocol.Diagnostic{Message: "Unknown state property 'missing'", Range: protocol.Range{Start: protocol.Position{Line: 3, Character: 2}}}
+
+	merged := mergeDiagnostics([]protocol.Diagnostic{first}, []protocol.Diagnostic{first, other}, nil)
+
+	assert.Equal(t, []protocol.Diagnostic{first, other}, merged)
+	assert.NotNil(t, mergeDiagnostics(), "no diagnostics is an empty, not nil, list")
 }

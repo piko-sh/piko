@@ -262,8 +262,8 @@ func WithMaxSplitLevel(level int) MarkdownSplitterOption {
 }
 
 // WithSplitterMarkdownParser sets the markdown parser for AST-based heading detection.
-// When nil (default), the splitter returns the entire document as a single section -
-// users must provide a parser for heading-based splitting.
+// When nil (default), the splitter treats the entire document as a single section, so
+// heading-based splitting needs a parser.
 //
 // Takes parser (markdown_domain.MarkdownParserPort) which parses markdown into piko AST.
 //

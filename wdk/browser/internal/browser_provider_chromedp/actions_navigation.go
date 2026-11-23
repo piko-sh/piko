@@ -20,12 +20,19 @@ package browser_provider_chromedp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
 	"piko.sh/piko/wdk/browser/internal/browser_provider_chromedp/scripts"
+)
+
+var (
+	// errNoHistoryEntry is returned when there is no history entry to move to.
+	errNoHistoryEntry = errors.New("no history entry in that direction")
 )
 
 // Navigate navigates to a path, prepending the server URL.
@@ -40,7 +47,7 @@ func Navigate(ctx *ActionContext, path string) error {
 	timedCtx, cancel := context.WithTimeoutCause(ctx.Ctx, 2*time.Second, fmt.Errorf("navigation Navigate exceeded %s timeout", 2*time.Second))
 	defer cancel()
 
-	js := scripts.MustGet("document_ready_state.js")
+	js := scripts.MustGet(documentReadyStateScript)
 	var readyState string
 	err := chromedp.Run(timedCtx, chromedp.Evaluate(js, &readyState))
 	if err != nil {
@@ -54,17 +61,12 @@ func Navigate(ctx *ActionContext, path string) error {
 //
 // Takes ctx (*ActionContext) which provides the browser context for the navigation.
 //
-// Returns error when the navigation fails.
+// Returns error when there is no earlier entry, the navigation fails, the page does not
+// finish loading in time or ctx ends.
 func GoBack(ctx *ActionContext) error {
-	timedCtx, cancel := context.WithTimeoutCause(ctx.Ctx, historyNavigationTimeout, fmt.Errorf("navigation GoBack exceeded %s timeout", historyNavigationTimeout))
-	defer cancel()
-
-	err := chromedp.Run(timedCtx, chromedp.NavigateBack())
-	if err != nil {
+	if err := navigateHistory(ctx.Ctx, -1, "GoBack"); err != nil {
 		return fmt.Errorf("navigating back: %w", err)
 	}
-
-	_ = WaitStable(timedCtx, stableCheckInterval)
 	return nil
 }
 
@@ -72,17 +74,12 @@ func GoBack(ctx *ActionContext) error {
 //
 // Takes ctx (*ActionContext) which provides the browser context for the action.
 //
-// Returns error when navigation fails.
+// Returns error when there is no later entry, the navigation fails, the page does not
+// finish loading in time or ctx ends.
 func GoForward(ctx *ActionContext) error {
-	timedCtx, cancel := context.WithTimeoutCause(ctx.Ctx, historyNavigationTimeout, fmt.Errorf("navigation GoForward exceeded %s timeout", historyNavigationTimeout))
-	defer cancel()
-
-	err := chromedp.Run(timedCtx, chromedp.NavigateForward())
-	if err != nil {
+	if err := navigateHistory(ctx.Ctx, 1, "GoForward"); err != nil {
 		return fmt.Errorf("navigating forward: %w", err)
 	}
-
-	_ = WaitStable(timedCtx, stableCheckInterval)
 	return nil
 }
 
@@ -163,7 +160,7 @@ func navigateOnce(ctx *ActionContext, url string) error {
 
 	_ = WaitStable(timedCtx, stableCheckInterval)
 
-	jsHealth := scripts.MustGet("document_ready_state.js")
+	jsHealth := scripts.MustGet(documentReadyStateScript)
 	var readyState string
 	err = chromedp.Run(timedCtx, chromedp.Evaluate(jsHealth, &readyState))
 	if err != nil {
@@ -171,6 +168,108 @@ func navigateOnce(ctx *ActionContext, url string) error {
 	}
 
 	return nil
+}
+
+// navigateHistory moves offset entries through the session history and waits for the
+// destination document to load.
+//
+// A page restored from the back/forward cache may skip the load event, so navigation
+// checks the destination's readiness before waiting for the DOM to settle.
+//
+// Takes offset (int64) which is the signed distance to move, negative for back.
+// Takes action (string) which names the action in the timeout cause.
+//
+// Returns error when there is no entry at the offset, the navigation fails, the page does
+// not finish loading within historyNavigationTimeout or ctx ends.
+func navigateHistory(ctx context.Context, offset int64, action string) error {
+	timedCtx, cancel := context.WithTimeoutCause(ctx, historyNavigationTimeout,
+		fmt.Errorf("navigation %s exceeded %s timeout", action, historyNavigationTimeout))
+	defer cancel()
+
+	var targetIndex int64
+	err := chromedp.Run(timedCtx, chromedp.ActionFunc(func(runCtx context.Context) error {
+		current, entries, err := page.GetNavigationHistory().Do(runCtx)
+		if err != nil {
+			return fmt.Errorf("reading navigation history: %w", err)
+		}
+		targetIndex = current + offset
+		if targetIndex < 0 || targetIndex >= int64(len(entries)) {
+			return errNoHistoryEntry
+		}
+		return page.NavigateToHistoryEntry(entries[targetIndex].ID).Do(runCtx)
+	}))
+	if err != nil {
+		return withContextCause(timedCtx, err)
+	}
+
+	if err := waitForHistoryEntry(timedCtx, targetIndex); err != nil {
+		return err
+	}
+
+	if err := WaitStable(ctx, stableCheckInterval); err != nil {
+		return fmt.Errorf("waiting for page to settle: %w", err)
+	}
+	return nil
+}
+
+// waitForHistoryEntry polls until the session history index is targetIndex and the
+// document has finished loading.
+//
+// Takes targetIndex (int64) which is the history index the navigation moves to.
+//
+// Returns error carrying the cause of ctx ending, and the last lookup error if there was
+// one, when the entry is not loaded before ctx ends.
+func waitForHistoryEntry(ctx context.Context, targetIndex int64) error {
+	readyStateScript := scripts.MustGet(documentReadyStateScript)
+	ticker := time.NewTicker(DefaultPollingInterval)
+	defer ticker.Stop()
+
+	var lastErr error
+	for {
+		loaded, err := historyEntryLoaded(ctx, targetIndex, readyStateScript)
+		if loaded {
+			return nil
+		}
+		if err != nil {
+			lastErr = err
+		}
+
+		if err := waitForTick(ctx, ticker); err != nil {
+			if lastErr != nil {
+				return fmt.Errorf("waiting for history entry %d to load: %w (last error: %w)", targetIndex, err, lastErr)
+			}
+			return fmt.Errorf("waiting for history entry %d to load: %w", targetIndex, err)
+		}
+	}
+}
+
+// historyEntryLoaded reports whether the current history entry is targetIndex and its
+// document has finished loading.
+//
+// Takes targetIndex (int64) which is the history index expected to be current.
+// Takes readyStateScript (string) which reads document.readyState.
+//
+// Returns bool which is true when the entry is current and its document is complete.
+// Returns error when the history or the ready state cannot be read.
+func historyEntryLoaded(ctx context.Context, targetIndex int64, readyStateScript string) (bool, error) {
+	var readyState string
+	var current int64
+	err := chromedp.Run(ctx, chromedp.ActionFunc(func(runCtx context.Context) error {
+		var historyErr error
+		current, _, historyErr = page.GetNavigationHistory().Do(runCtx)
+		return historyErr
+	}))
+	if err != nil {
+		return false, fmt.Errorf("reading navigation history: %w", err)
+	}
+	if current != targetIndex {
+		return false, nil
+	}
+
+	if err := chromedp.Run(ctx, chromedp.Evaluate(readyStateScript, &readyState)); err != nil {
+		return false, fmt.Errorf("reading document ready state: %w", err)
+	}
+	return readyState == "complete", nil
 }
 
 // verifyPageHasContent checks that the page has a body element with content.
@@ -181,7 +280,7 @@ func verifyPageHasContent(ctx context.Context) error {
 	timedCtx, cancel := context.WithTimeoutCause(ctx, 2*time.Second, fmt.Errorf("navigation verifyPageHasContent exceeded %s timeout", 2*time.Second))
 	defer cancel()
 
-	js := scripts.MustGet("document_ready_state.js")
+	js := scripts.MustGet(documentReadyStateScript)
 	var readyState string
 	err := chromedp.Run(timedCtx, chromedp.Evaluate(js, &readyState))
 	if err != nil {

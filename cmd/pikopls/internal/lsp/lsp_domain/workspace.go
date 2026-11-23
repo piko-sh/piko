@@ -205,9 +205,9 @@ type workspace struct {
 //
 // Stop issuing new work before calling Close. Repeated calls are safe.
 //
-// Returns error when the drain timed out; nil on a clean drain.
+// Returns error which is nil after draining, or reports a shutdown timeout.
 //
-// Concurrent access is guarded by spawnMu; a goroutine waits for tracked work to finish.
+// Concurrency: Protects tracked goroutine registration with spawnMu.
 func (w *workspace) Close(ctx context.Context) error {
 	if w == nil {
 		return nil
@@ -265,7 +265,7 @@ type workspaceDeps struct {
 // Returns *document which is the cached document if found.
 // Returns bool which indicates whether the document exists in the cache.
 //
-// Safe for concurrent use.
+// Concurrency: Safe for concurrent use.
 func (w *workspace) GetDocument(uri protocol.DocumentURI) (*document, bool) {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
@@ -273,19 +273,19 @@ func (w *workspace) GetDocument(uri protocol.DocumentURI) (*document, bool) {
 	return document, exists
 }
 
-// UpdateDocument updates the content of a document and marks it as dirty. version is the
-// editor's monotonic document version (0 when the source notification carries none, such
-// as didSave); a non-zero version is recorded so a later piko/analysisComplete can report
-// which version the analysis reflects.
+// UpdateDocument updates document content, records its version and marks it dirty.
+//
+// Pass the new content generation to the analysis scheduled for this update so it can
+// reject a superseded result. Only positive versions replace the recorded version
+// reported by piko/analysisComplete.
 //
 // Takes uri (protocol.DocumentURI) which identifies the document to update.
 // Takes content ([]byte) which provides the new document content.
 // Takes version (int32) which is the editor's document version, or 0 if unknown.
 //
-// Returns the new monotonic generation for this URI; pass it to the analysis it schedules
-// so the analysis is tagged with the exact content snapshot it must satisfy.
+// Returns uint64 which is the new content generation.
 //
-// Safe for concurrent use; access is protected by a mutex.
+// Concurrency: Safe for concurrent use. Access is protected by a mutex.
 func (w *workspace) UpdateDocument(uri protocol.DocumentURI, content []byte, version int32) uint64 {
 	w.mu.Lock()
 
@@ -329,13 +329,12 @@ func (w *workspace) UpdateDocument(uri protocol.DocumentURI, content []byte, ver
 	return generation
 }
 
-// RemoveDocument removes a document from the workspace and clears its diagnostics. Called
-// when a file is closed in the editor.
+// RemoveDocument removes a document from the workspace and clears its diagnostics.
 //
 // Takes uri (protocol.DocumentURI) which identifies the document to remove.
 //
-// Safe for concurrent use. Stops any running analysis for the document before removing
-// it. Clears diagnostics in a separate goroutine.
+// Concurrency: Safe for concurrent use. Stops any running analysis for the document
+// before removing it. Clears diagnostics in a separate goroutine.
 func (w *workspace) RemoveDocument(ctx context.Context, uri protocol.DocumentURI) {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -382,9 +381,7 @@ func (w *workspace) RemoveDocument(ctx context.Context, uri protocol.DocumentURI
 	l.Debug("Document removed from workspace", logger_domain.String(keyURI, uri.Filename()))
 }
 
-// RunAnalysisForURI orchestrates document analysis for the given URI. It checks if the
-// document is dirty, runs coordinator analysis if needed, creates a new document with the
-// result, updates internal state, and triggers diagnostic publishing.
+// RunAnalysisForURI analyses the latest requested generation of a document.
 //
 // Takes uri (protocol.DocumentURI) which identifies the document to analyse.
 //
@@ -394,9 +391,7 @@ func (w *workspace) RunAnalysisForURI(ctx context.Context, uri protocol.Document
 	return w.runAnalysisForGeneration(ctx, uri, w.currentGeneration(uri))
 }
 
-// GetDocumentForCompletion returns a document suitable for completion requests by waiting
-// for any in-flight analysis to complete rather than cancelling it, ensuring fresh
-// results even during rapid edits.
+// GetDocumentForCompletion waits for any in-flight analysis before returning a document.
 //
 // Takes uri (protocol.DocumentURI) which identifies the document to retrieve for
 // completion.
@@ -404,7 +399,7 @@ func (w *workspace) RunAnalysisForURI(ctx context.Context, uri protocol.Document
 // Returns *document which contains the analysis result for the URI.
 // Returns error when analysis fails or is cancelled.
 //
-// Safe for concurrent use.
+// Concurrency: Safe for concurrent use.
 func (w *workspace) GetDocumentForCompletion(ctx context.Context, uri protocol.DocumentURI) (*document, error) {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -453,10 +448,8 @@ func (w *workspace) spawnTracked(ctx context.Context, component string, operatio
 	})
 }
 
-// runFullAnalysis executes a full project build with all entry points. It stores the
-// result as the workspace-level cache for future scoped rebuilds.
+// runFullAnalysis executes a full project build with all entry points.
 //
-// Takes analysisCtx (context.Context) which is the cancellable analysis context.
 // Takes uri (protocol.DocumentURI) which identifies the changed document.
 // Takes moduleCtx (*ModuleContext) which provides the module root and resolver.
 // Takes entryPoints ([]annotator_dto.EntryPoint) which is the full set of entry points.
@@ -466,8 +459,8 @@ func (w *workspace) spawnTracked(ctx context.Context, component string, operatio
 // Returns *document which contains the analysis result for the URI.
 // Returns error when the build fails or is cancelled.
 //
-// Safe for concurrent use. Acquires the workspace mutex to update the cached project
-// result and documents.
+// Concurrency: Safe for concurrent use. Acquires the workspace mutex to update the cached
+// project result and documents.
 func (w *workspace) runFullAnalysis(
 	ctx context.Context,
 	analysisCtx context.Context,
@@ -530,10 +523,8 @@ func (w *workspace) runFullAnalysis(
 }
 
 // runScopedAnalysis executes a targeted build that only re-annotates the changed
-// component and its transitive dependents. It merges the partial result into the cached
-// full project result and publishes diagnostics for all affected files.
+// component and its transitive dependents.
 //
-// Takes analysisCtx (context.Context) which is the cancellable analysis context.
 // Takes uri (protocol.DocumentURI) which identifies the changed document.
 // Takes moduleCtx (*ModuleContext) which provides the module root and resolver.
 // Takes entryPoints ([]annotator_dto.EntryPoint) which is the full set of entry points.
@@ -609,9 +600,7 @@ func (w *workspace) runScopedAnalysis(
 	return newDoc, nil
 }
 
-// resolveAffectedEntryPoints determines which entry points are affected by a change to
-// the given URI, returning the targeted entry points and the list of affected relative
-// paths (excluding the changed file itself).
+// resolveAffectedEntryPoints finds entry points and dependent paths affected by a change.
 //
 // Takes uri (protocol.DocumentURI) which identifies the changed document.
 // Takes moduleCtx (*ModuleContext) which provides the module root.
@@ -622,7 +611,7 @@ func (w *workspace) runScopedAnalysis(
 // Returns []string which holds the relative paths of transitive dependents.
 // Returns error when URI-to-path conversion fails.
 //
-// Safe for concurrent use. Takes a read lock on the workspace mutex.
+// Concurrency: Safe for concurrent use. Takes a read lock on the workspace mutex.
 func (w *workspace) resolveAffectedEntryPoints(
 	uri protocol.DocumentURI,
 	moduleCtx *ModuleContext,
@@ -653,14 +642,7 @@ func (w *workspace) resolveAffectedEntryPoints(
 	return targetedEntryPoints, affected, nil
 }
 
-// mergeAndCommitScopedResult atomically merges a targeted (partial) annotation result
-// into the cached full project result and commits all workspace state changes (cached
-// result, reverse dependency map, affected document invalidation) under a single write
-// lock.
-//
-// This prevents concurrent scoped merges from losing each other's updates: without
-// atomicity, goroutine A could read the cache, goroutine B could read the same cache,
-// then B's write would overwrite A's merged result.
+// mergeAndCommitScopedResult merges a current targeted build into the cached project.
 //
 // Takes uri (protocol.DocumentURI) which identifies the document whose scoped analysis is
 // being committed.
@@ -671,10 +653,10 @@ func (w *workspace) resolveAffectedEntryPoints(
 // Takes affectedRelPaths ([]string) which are the transitive dependents to invalidate.
 // Takes moduleCtx (*ModuleContext) which provides module root and name.
 //
-// Returns *annotator_dto.ProjectAnnotationResult which is the merged result.
+// Returns *annotator_dto.ProjectAnnotationResult which is the merged result, or nil when
+// a newer generation superseded the build.
 //
-// Safe for concurrent use. Acquires the workspace write lock for the entire
-// read-merge-write cycle.
+// Concurrency: Holds the write lock across the merge to prevent lost updates.
 func (w *workspace) mergeAndCommitScopedResult(
 	_ context.Context,
 	uri protocol.DocumentURI,
@@ -710,7 +692,7 @@ func (w *workspace) mergeAndCommitScopedResult(
 
 	for _, relPath := range affectedRelPaths {
 		absPath := filepath.Join(moduleCtx.ModuleRoot, relPath)
-		affectedURI := protocol.DocumentURI("file://" + absPath)
+		affectedURI := documentURIForPath(absPath)
 		if doc, exists := w.documents[affectedURI]; exists {
 			doc.dirty = true
 		}
@@ -719,9 +701,7 @@ func (w *workspace) mergeAndCommitScopedResult(
 	return mergedResult
 }
 
-// mergeScopedAnnotationResults combines a cached full project result with a targeted
-// (partial) rebuild result, producing a merged result that contains both the unchanged
-// components from the cache and the updated components from the targeted build.
+// mergeScopedAnnotationResults replaces cached components with their targeted rebuilds.
 //
 // Takes cached (*annotator_dto.ProjectAnnotationResult) which is the full project result
 // to merge into.
@@ -775,8 +755,7 @@ func mergeScopedAnnotationResults(
 }
 
 // publishDiagnosticsForAffectedPaths publishes diagnostics for a set of affected
-// component paths beyond the one that was directly edited. This ensures that open tabs
-// for dependent files show up-to-date errors after a scoped rebuild.
+// component paths beyond the one that was directly edited.
 //
 // Takes projectResult (*annotator_dto.ProjectAnnotationResult) which contains the merged
 // diagnostics.
@@ -784,7 +763,7 @@ func mergeScopedAnnotationResults(
 // components (excluding the directly edited file).
 // Takes moduleCtx (*ModuleContext) which provides the module root for path conversion.
 //
-// Concurrency: takes a read lock on mu while checking whether each affected URI is
+// Concurrency: Uses a read lock on mu while checking whether each affected URI is
 // tracked.
 func (w *workspace) publishDiagnosticsForAffectedPaths(
 	ctx context.Context,
@@ -801,17 +780,20 @@ func (w *workspace) publishDiagnosticsForAffectedPaths(
 
 	for _, relPath := range affectedRelPaths {
 		absPath := filepath.Join(moduleCtx.ModuleRoot, relPath)
-		affectedURI := protocol.DocumentURI("file://" + absPath)
+		affectedURI := documentURIForPath(absPath)
 
 		w.mu.RLock()
-		_, isTracked := w.documents[affectedURI]
+		doc, isTracked := w.documents[affectedURI]
 		w.mu.RUnlock()
 		if !isTracked {
 			continue
 		}
 
-		lspDiagnostics := convertDiagnosticsToLSP(ctx, projectResult.AllDiagnostics, absPath)
-		lspDiagnostics = append(lspDiagnostics, w.goplsDiagnosticsFor(affectedURI)...)
+		lspDiagnostics := mergeDiagnostics(
+			convertDiagnosticsToLSP(ctx, projectResult.AllDiagnostics, absPath),
+			doc.getPKCDiagnostics(),
+			w.goplsDiagnosticsFor(affectedURI),
+		)
 
 		if err := client.PublishDiagnostics(ctx, &protocol.PublishDiagnosticsParams{
 			URI:         affectedURI,
@@ -825,10 +807,9 @@ func (w *workspace) publishDiagnosticsForAffectedPaths(
 }
 
 // resetScopedAnalysisCache resets the scoped analysis state, forcing the next analysis to
-// perform a full build. Called when structural changes occur (file creation, deletion, or
-// rename) that may add or remove entry points.
+// perform a full build.
 //
-// Safe for concurrent use.
+// Concurrency: Safe for concurrent use.
 func (w *workspace) resetScopedAnalysisCache() {
 	if w == nil {
 		return
@@ -851,7 +832,7 @@ func (w *workspace) resetScopedAnalysisCache() {
 //
 // Takes client (protocol.Client) which provides the new client instance.
 //
-// Safe for concurrent use. Acquires the workspace mutex.
+// Concurrency: Safe for concurrent use. Acquires the workspace mutex.
 func (w *workspace) setClient(client protocol.Client) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
@@ -862,7 +843,7 @@ func (w *workspace) setClient(client protocol.Client) {
 //
 // Takes conn (jsonrpc2.Conn) which provides the new connection.
 //
-// Safe for concurrent use. Acquires the workspace mutex.
+// Concurrency: Safe for concurrent use. Acquires the workspace mutex.
 func (w *workspace) setConn(conn jsonrpc2.Conn) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
@@ -873,7 +854,7 @@ func (w *workspace) setConn(conn jsonrpc2.Conn) {
 //
 // Returns protocol.Client which may be nil if not yet set.
 //
-// Safe for concurrent use. Holds a read lock while accessing the client.
+// Concurrency: Safe for concurrent use. Holds a read lock while accessing the client.
 func (w *workspace) getClient() protocol.Client {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
@@ -884,28 +865,25 @@ func (w *workspace) getClient() protocol.Client {
 //
 // Returns jsonrpc2.Conn which may be nil if not yet set.
 //
-// Safe for concurrent use. Acquires a read lock.
+// Concurrency: Safe for concurrent use. Acquires a read lock.
 func (w *workspace) getConn() jsonrpc2.Conn {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
 	return w.conn
 }
 
-// runAnalysisForGeneration analyses uri on behalf of a specific content generation.
+// runAnalysisForGeneration analyses a specific document content generation.
 //
-// The generation tags the analysis with the content snapshot it must satisfy: an
-// older-content analysis that loses the setup race self-aborts instead of cancelling the
-// latest survivor, and a result is committed (clearing dirty) only when its generation is
-// still the latest requested, so a stale build never masks newer content.
+// An older analysis abandons setup if a newer generation already owns the document. Only
+// the latest requested generation can update the document and mark it clean.
 //
 // Takes uri (protocol.DocumentURI) which identifies the document to analyse.
-// Takes gen (uint64) which is the content generation this analysis must satisfy.
+// Takes gen (uint64) which identifies the content to analyse.
 //
 // Returns *document which contains the analysis result for the URI.
 // Returns error when analysis fails or is cancelled.
 //
-// Concurrency: takes a read lock on mu to read the cached project result, and delegates
-// further synchronisation to setupAnalysisContext and the scoped or full analysis paths.
+// Concurrency: Safe for concurrent use.
 func (w *workspace) runAnalysisForGeneration(ctx context.Context, uri protocol.DocumentURI, gen uint64) (*document, error) {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -960,7 +938,7 @@ func (w *workspace) runAnalysisForGeneration(ctx context.Context, uri protocol.D
 //
 // Returns *document which is the cached document, or nil if not found or dirty.
 //
-// Safe for concurrent use. Uses a read lock to access the document cache.
+// Concurrency: Safe for concurrent use. Uses a read lock to access the document cache.
 func (w *workspace) getCachedCleanDocument(ctx context.Context, uri protocol.DocumentURI) *document {
 	_, l := logger_domain.From(ctx, log)
 
@@ -985,10 +963,12 @@ func (w *workspace) getCachedCleanDocument(ctx context.Context, uri protocol.Doc
 // Takes uri (protocol.DocumentURI) which identifies the document being analysed.
 // Takes gen (uint64) which is the content generation this analysis intends to satisfy.
 //
-// Returns the cancellable analysis context, a done channel closed on completion, and the
-// process-unique ownership token to pass to cleanupAnalysisContext.
+// Returns context.Context which is cancelled when superseded or when ctx ends.
+// Returns chan struct{} which closes when this analysis finishes or is superseded.
+// Returns uint64 which is the ownership token for cleanupAnalysisContext, or zero if
+// superseded.
 //
-// Safe for concurrent use. Acquires the workspace mutex.
+// Concurrency: Safe for concurrent use. Acquires the workspace mutex.
 func (w *workspace) setupAnalysisContext(ctx context.Context, uri protocol.DocumentURI, gen uint64) (context.Context, chan struct{}, uint64) {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -1039,17 +1019,14 @@ func (w *workspace) setupAnalysisContext(ctx context.Context, uri protocol.Docum
 
 // supersede cancels any active analysis for uri whose generation is older than gen.
 //
-// The stale slot-holder is signalled to abort and frees its analysis semaphore slot
-// before a newer edit competes for one. It is a no-op when nothing older is active, and
-// it never cancels an equal-or-newer generation. Called before the semaphore acquire so
-// cancellation does not depend on winning a slot. Ownership is left in place for the
-// cancelled analysis's own cleanup to release.
-//
 // Takes uri (protocol.DocumentURI) which identifies the document whose older analysis to
 // cancel.
 // Takes gen (uint64) which is the generation that any older analysis must defer to.
 //
-// Safe for concurrent use. Acquires the workspace mutex.
+// Signal cancellation before acquiring a semaphore slot so older work can release its
+// slot. The cancelled analysis retains ownership until its cleanup runs.
+//
+// Concurrency: Safe for concurrent use. Acquires the workspace mutex.
 func (w *workspace) supersede(uri protocol.DocumentURI, gen uint64) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
@@ -1061,16 +1038,15 @@ func (w *workspace) supersede(uri protocol.DocumentURI, gen uint64) {
 	}
 }
 
-// cleanupAnalysisContext removes the cancel function, releases this analysis's ownership
-// of the URI (only when it still owns it, identified by its unique token), and signals
+// cleanupAnalysisContext releases this analysis if it still owns the URI and signals
 // completion.
 //
 // Takes uri (protocol.DocumentURI) which identifies the document to clean up.
 // Takes doneChan (chan struct{}) which is the channel to close when done.
 // Takes token (uint64) which is the ownership token from setupAnalysisContext.
 //
-// Safe for concurrent use. Acquires the workspace mutex to modify internal maps before
-// signalling completion.
+// Concurrency: Safe for concurrent use. Acquires the workspace mutex to modify internal
+// maps before signalling completion.
 func (w *workspace) cleanupAnalysisContext(ctx context.Context, uri protocol.DocumentURI, doneChan chan struct{}, token uint64) {
 	w.mu.Lock()
 	if owner, owned := w.inFlight[uri]; owned && owner.token == token {
@@ -1091,9 +1067,9 @@ func (w *workspace) cleanupAnalysisContext(ctx context.Context, uri protocol.Doc
 // Takes uri (protocol.DocumentURI) which identifies the document.
 // Takes attemptedGen (uint64) which is the generation whose analysis just finished.
 //
-// Returns the generation that still needs analysing, or 0 when none is pending.
+// Returns uint64 which is the pending generation, or zero when none remains.
 //
-// Safe for concurrent use. Acquires the workspace mutex.
+// Concurrency: Safe for concurrent use. Acquires the workspace mutex.
 func (w *workspace) settleGeneration(uri protocol.DocumentURI, attemptedGen uint64) uint64 {
 	w.mu.Lock()
 	defer w.mu.Unlock()
@@ -1110,10 +1086,10 @@ func (w *workspace) settleGeneration(uri protocol.DocumentURI, attemptedGen uint
 //
 // Takes uri (protocol.DocumentURI) which identifies the document.
 //
-// Returns the latest requested content generation, or 0 when the document has never been
-// updated.
+// Returns uint64 which is the latest requested generation, or zero before the first
+// update.
 //
-// Safe for concurrent use. Acquires the workspace read lock.
+// Concurrency: Safe for concurrent use. Acquires the workspace read lock.
 func (w *workspace) currentGeneration(uri protocol.DocumentURI) uint64 {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
@@ -1121,19 +1097,15 @@ func (w *workspace) currentGeneration(uri protocol.DocumentURI) uint64 {
 }
 
 // commitAnalysedDocument stores newDoc only when gen is still the latest requested
-// content for uri.
-//
-// This ensures a stale completed build never masks a newer edit. The stored document has
-// its dirty flag cleared.
+// content for uri, so a stale build never masks a newer edit.
 //
 // Takes uri (protocol.DocumentURI) which identifies the document to commit.
 // Takes newDoc (*document) which is the analysed document to store.
 // Takes gen (uint64) which is the content generation the new document satisfies.
 //
-// Returns bool which is true when the commit happened; a false result means a newer edit
-// arrived mid-build and the caller should discard the stale result.
+// Returns bool which is true when the document was committed.
 //
-// Safe for concurrent use. Acquires the workspace mutex.
+// Concurrency: Safe for concurrent use. Acquires the workspace mutex.
 func (w *workspace) commitAnalysedDocument(uri protocol.DocumentURI, newDoc *document, gen uint64) bool {
 	w.mu.Lock()
 	defer w.mu.Unlock()
@@ -1153,7 +1125,7 @@ func (w *workspace) commitAnalysedDocument(uri protocol.DocumentURI, newDoc *doc
 //
 // Takes uri (protocol.DocumentURI) which identifies the document that was analysed.
 //
-// Concurrency: takes a read lock on mu to read the committed version before notifying.
+// Concurrency: Uses a read lock on mu to read the committed version before notifying.
 func (w *workspace) signalAnalysisComplete(ctx context.Context, uri protocol.DocumentURI) {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -1224,7 +1196,8 @@ func (w *workspace) prepareAnalysisInputs(
 // Takes uri (protocol.DocumentURI) which identifies the document to analyse.
 // Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the starting points for
 // analysis.
-// Takes resolver (ResolverPort) which provides path resolution for this build.
+// Takes resolver (resolver_domain.ResolverPort) which provides path resolution for this
+// build.
 //
 // Returns *annotator_dto.ProjectAnnotationResult which contains the analysis results for
 // the project.
@@ -1251,7 +1224,7 @@ func (w *workspace) runCoordinatorAnalysis(
 // Returns map[string]annotator_domain.ActionInfoProvider which is a shallow copy of the
 // current action providers.
 //
-// Safe for concurrent use. Acquires a read lock.
+// Concurrency: Safe for concurrent use. Acquires a read lock.
 func (w *workspace) copyActionProviders() map[string]annotator_domain.ActionInfoProvider {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
@@ -1476,6 +1449,9 @@ func (*workspace) extractAnnotationResultForURI(
 
 // publishDiagnostics sends diagnostics for a document to the LSP client.
 //
+// Without a project result, only component diagnostics are current because the gopls
+// overlay belongs to an earlier analysis.
+//
 // Takes uri (protocol.DocumentURI) which identifies the document.
 // Takes document (*document) which contains the project result with diagnostics.
 func (w *workspace) publishDiagnostics(ctx context.Context, uri protocol.DocumentURI, document *document) {
@@ -1492,23 +1468,20 @@ func (w *workspace) publishDiagnostics(ctx context.Context, uri protocol.Documen
 		return
 	}
 
-	if document.ProjectResult == nil {
-		l.Info("publishDiagnostics: No project result, clearing diagnostics")
-		_ = client.PublishDiagnostics(ctx, &protocol.PublishDiagnosticsParams{
-			URI:         uri,
-			Diagnostics: []protocol.Diagnostic{},
-		})
-		return
+	var analysisDiagnostics, goplsDiagnostics []protocol.Diagnostic
+	if document.ProjectResult != nil {
+		filePath, err := uriToPath(uri)
+		if err != nil {
+			l.Warn("publishDiagnostics: cannot map URI to a file path", logger_domain.Error(err))
+		} else {
+			analysisDiagnostics = convertDiagnosticsToLSP(ctx, document.ProjectResult.AllDiagnostics, filePath)
+		}
+		goplsDiagnostics = w.goplsDiagnosticsFor(uri)
 	}
-
-	filePath, _ := uriToPath(uri)
-
-	lspDiagnostics := convertDiagnosticsToLSP(ctx, document.ProjectResult.AllDiagnostics, filePath)
-	lspDiagnostics = append(lspDiagnostics, w.goplsDiagnosticsFor(uri)...)
+	lspDiagnostics := mergeDiagnostics(analysisDiagnostics, document.getPKCDiagnostics(), goplsDiagnostics)
 
 	l.Info("publishDiagnostics: Publishing diagnostics to client",
 		logger_domain.String(keyURI, uri.Filename()),
-		logger_domain.Int("totalDiagnostics", len(document.ProjectResult.AllDiagnostics)),
 		logger_domain.Int("filteredDiagnostics", len(lspDiagnostics)))
 
 	if err := client.PublishDiagnostics(ctx, &protocol.PublishDiagnosticsParams{
@@ -1536,9 +1509,7 @@ func (w *workspace) publishErrorDiagnosticAsync(ctx context.Context, uri protoco
 	})
 }
 
-// publishErrorDiagnostic sends an error message to the user through the LSP. This is used
-// when the coordinator or other key parts fail, so the user sees helpful feedback instead
-// of no response.
+// publishErrorDiagnostic sends an error message to the user through the LSP.
 //
 // Takes uri (protocol.DocumentURI) which identifies the document to report the error
 // against.
@@ -1579,7 +1550,7 @@ func (w *workspace) publishErrorDiagnostic(ctx context.Context, uri protocol.Doc
 
 // sourceDirInfo describes a source directory for entry point discovery.
 type sourceDirInfo struct {
-	// Dir is the path relative to the project root; empty means not set.
+	// Dir is the path relative to the project root. Empty means not set.
 	Dir string
 
 	// IsPage indicates whether this directory contains a page entry point.
@@ -1647,4 +1618,33 @@ func isValidEntryPointFile(d fs.DirEntry) bool {
 		return false
 	}
 	return true
+}
+
+// mergeDiagnostics combines diagnostic sources, dropping a diagnostic that repeats one
+// already present at the same range with the same message and code.
+//
+// Takes sources (...[]protocol.Diagnostic) which are the diagnostic lists to combine.
+//
+// Returns []protocol.Diagnostic which is the combined list, with a non-nil empty slice to
+// clear the client's diagnostics when there are none.
+func mergeDiagnostics(sources ...[]protocol.Diagnostic) []protocol.Diagnostic {
+	type diagnosticKey struct {
+		message string
+		code    string
+		rng     protocol.Range
+	}
+	merged := []protocol.Diagnostic{}
+	seen := make(map[diagnosticKey]struct{})
+	for _, source := range sources {
+		for index := range source {
+			diagnostic := &source[index]
+			key := diagnosticKey{message: diagnostic.Message, code: fmt.Sprint(diagnostic.Code), rng: diagnostic.Range}
+			if _, duplicate := seen[key]; duplicate {
+				continue
+			}
+			seen[key] = struct{}{}
+			merged = append(merged, *diagnostic)
+		}
+	}
+	return merged
 }

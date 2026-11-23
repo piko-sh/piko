@@ -65,8 +65,8 @@ type typeDepth struct {
 type paramScanner struct {
 	*js_lexer.Lexer
 
-	// substitutionDepths holds, for each template substitution that is open, the brace
-	// depth at which it opened, innermost last.
+	// substitutionDepths holds, for each template substitution that is open, the brace depth
+	// at which it opened, innermost last.
 	substitutionDepths []int
 
 	// braceDepth counts the braces opened in code and not yet closed.
@@ -154,8 +154,8 @@ func (s *paramScanner) Next() {
 //
 // A syntax-error token or lack of lexer progress ends the scan.
 //
-// Takes previous (logger.Loc) which is the preceding token's location or a
-// sentinel before the first token.
+// Takes previous (logger.Loc) which is the preceding token's location or a sentinel
+// before the first token.
 func (s *paramScanner) followToken(previous logger.Loc) {
 	if s.Token == js_lexer.TEndOfFile {
 		return
@@ -178,8 +178,8 @@ func (s *paramScanner) followToken(previous logger.Loc) {
 
 // closeBrace handles a closing brace while tracking template substitutions.
 //
-// A brace at the depth of the innermost substitution resumes its template.
-// Other braces reduce the depth only when a code brace is open.
+// A brace at the depth of the innermost substitution resumes its template. Other braces
+// reduce the depth only when a code brace is open.
 func (s *paramScanner) closeBrace() {
 	last := len(s.substitutionDepths) - 1
 	if last < 0 || s.substitutionDepths[last] != s.braceDepth {
@@ -403,8 +403,8 @@ func extractParamList(lexer *paramScanner) []ParamInfo {
 // extractSingleParam reads one parameter declaration including optional rest operator,
 // name, optional marker, and type annotation.
 //
-// Takes lexer (*paramScanner) which provides the token stream positioned at the start
-// of a parameter.
+// Takes lexer (*paramScanner) which provides the token stream positioned at the start of
+// a parameter.
 //
 // Returns ParamInfo which contains the extracted parameter name, type, and flags.
 func extractSingleParam(lexer *paramScanner) ParamInfo {
@@ -453,8 +453,8 @@ func extractSingleParam(lexer *paramScanner) ParamInfo {
 // extractParamType reads a TypeScript type expression from the lexer and returns it as a
 // string. Stops at a top-level comma, closing paren, or equals sign (default value).
 //
-// Takes lexer (*paramScanner) which provides the token stream positioned after the
-// colon of a type annotation.
+// Takes lexer (*paramScanner) which provides the token stream positioned after the colon
+// of a type annotation.
 //
 // Returns string which is the reconstructed type expression text.
 func extractParamType(lexer *paramScanner) string {
@@ -515,8 +515,8 @@ func appendTypeToken(lexer *paramScanner, tokens *[]string) {
 
 // skipTypeParameters skips past generic type parameters like <T> or <T, U>.
 //
-// Takes lexer (*paramScanner) which provides the token stream to advance past any
-// generic type parameter list.
+// Takes lexer (*paramScanner) which provides the token stream to advance past any generic
+// type parameter list.
 func skipTypeParameters(lexer *paramScanner) {
 	if lexer.Token != js_lexer.TLessThan {
 		return
@@ -572,13 +572,13 @@ func skipDestructurePattern(lexer *paramScanner) {
 	}
 }
 
-// skipDefaultValue advances past a parameter's default value to the next top-level
-// comma or closing parenthesis.
+// skipDefaultValue advances past a parameter's default value to the next top-level comma
+// or closing parenthesis.
 //
 // Template substitutions count as nesting, so commas inside them do not end the value.
 //
-// Takes lexer (*paramScanner) which provides the token stream positioned after the
-// equals sign of a default value.
+// Takes lexer (*paramScanner) which provides the token stream positioned after the equals
+// sign of a default value.
 func skipDefaultValue(lexer *paramScanner) {
 	depth := 0
 
@@ -608,8 +608,8 @@ func skipDefaultValue(lexer *paramScanner) {
 // skipToNextStatement advances the lexer past the current statement by skipping until a
 // matching closing brace at the top level or end of file.
 //
-// Takes lexer (*paramScanner) which provides the token stream to advance past the
-// current statement.
+// Takes lexer (*paramScanner) which provides the token stream to advance past the current
+// statement.
 func skipToNextStatement(lexer *paramScanner) {
 	depth := 0
 

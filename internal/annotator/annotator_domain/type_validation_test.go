@@ -44,17 +44,28 @@ func TestValidateOrderingComparison_InvalidStructComparison(t *testing.T) {
 
 	left := newSimpleTypeInfo(&goast.SelectorExpr{
 		X:   goast.NewIdent("time"),
-		Sel: goast.NewIdent("Time"),
+		Sel: goast.NewIdent("Location"),
 	})
 	right := newSimpleTypeInfo(&goast.SelectorExpr{
 		X:   goast.NewIdent("time"),
-		Sel: goast.NewIdent("Time"),
+		Sel: goast.NewIdent("Location"),
 	})
 
 	result := ValidateOrderingComparison(left, right, ast_domain.OpLt)
 
 	assert.False(t, result.Valid)
 	assert.Contains(t, result.Message, "Invalid operation")
+}
+
+func TestValidateOrderingComparison_DateAndDuration(t *testing.T) {
+	t.Parallel()
+	temporal := func(name string) *ast_domain.ResolvedTypeInfo {
+		return newSimpleTypeInfo(&goast.SelectorExpr{X: goast.NewIdent("time"), Sel: goast.NewIdent(name)})
+	}
+	date, duration := temporal("Time"), temporal("Duration")
+	assert.True(t, ValidateOrderingComparison(date, date, ast_domain.OpLt).Valid)
+	assert.True(t, ValidateOrderingComparison(duration, duration, ast_domain.OpGt).Valid)
+	assert.False(t, ValidateOrderingComparison(date, duration, ast_domain.OpLt).Valid)
 }
 
 func TestValidateEqualityComparison_ValidStringComparison(t *testing.T) {

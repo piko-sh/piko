@@ -27,6 +27,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	nethtml "golang.org/x/net/html"
 )
 
 func TestParse_BasicStructure(t *testing.T) {
@@ -376,6 +377,59 @@ func TestParse_Attributes(t *testing.T) {
 	assert.Equal(t, "pageTitle", titleAttr.RawExpression)
 	require.NotNil(t, titleAttr.Expression)
 	assertExprString(t, "pageTitle", titleAttr.Expression)
+}
+
+func TestParseStaticAttributeCharacterReferences(t *testing.T) {
+	for _, tc := range []struct{ name, source, want string }{
+		{name: "event payload", source: `"&#39;single&#39;"`, want: `'single'`},
+		{name: "decode once", source: `"&amp;#39; &amp;lt;"`, want: `&#39; &lt;`},
+		{name: "named and numeric", source: `'&quot;&amp;&#x3c;'`, want: `"&<`},
+		{name: "unquoted query", source: `/?first=1&copy=2&amp;end=3`, want: `/?first=1&copy=2&end=3`},
+		{name: "ambiguous named prefix", source: `"&notit; &copycat &unknown; &copy"`, want: `&notit; &copycat &unknown; ©`},
+		{name: "raw literal", source: `'back\slash and "quoted"'`, want: `back\slash and "quoted"`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			source := "<fuzz-item payload=" + tc.source + "></fuzz-item>"
+			browser := nethtml.NewTokenizer(strings.NewReader(source))
+			require.Equal(t, nethtml.StartTagToken, browser.Next())
+			browserAttribute := browser.Token().Attr[0]
+			require.Equal(t, tc.want, browserAttribute.Val)
+			tree, err := ParseAndTransformWithOptions(t.Context(), source, "executable.pk", &ParseOptions{DecodeStaticAttributes: true})
+			require.NoError(t, err)
+			got := getAttribute(t, tree.RootNodes[0], "payload")
+			require.NotNil(t, got)
+			require.Equal(t, browserAttribute.Val, got.Value)
+			for _, opts := range []ParseOptions{{RawMode: true, DecodeStaticAttributes: false, PreserveRawText: false}, {RawMode: false, DecodeStaticAttributes: false, PreserveRawText: false}} {
+				raw, err := ParseWithOptions(t.Context(), source, "raw.pk", nil, &opts)
+				require.NoError(t, err)
+				rawValue := tc.source
+				if rawValue[0] == '"' || rawValue[0] == '\'' {
+					rawValue = rawValue[1 : len(rawValue)-1]
+				}
+				require.Equal(t, rawValue, raw.RootNodes[0].Attributes[0].Value)
+			}
+		})
+	}
+}
+
+func TestParseVerbatimTextHasLocation(t *testing.T) {
+	source := "<div>\n  <script>\n  const a = 1 &amp;&amp; b;\n</script>\n</div>"
+	tree, err := ParseWithOptions(t.Context(), source, "verbatim.pk", &Location{Line: 1, Column: 1, Offset: 0}, &ParseOptions{PreserveRawText: true})
+	require.NoError(t, err)
+	require.Len(t, tree.RootNodes, 1)
+	var script *TemplateNode
+	for _, child := range tree.RootNodes[0].Children {
+		if child.TagName == "script" {
+			script = child
+		}
+	}
+	require.NotNil(t, script)
+	require.Len(t, script.Children, 1)
+	text := script.Children[0]
+	assert.Equal(t, "\n  const a = 1 &amp;&amp; b;\n", text.TextContent)
+	assert.True(t, text.PreserveWhitespace)
+	assert.Equal(t, 2, text.Location.Line)
+	assert.Equal(t, 11, text.Location.Column)
 }
 
 func TestParse_LocationTracking(t *testing.T) {

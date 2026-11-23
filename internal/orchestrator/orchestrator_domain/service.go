@@ -144,7 +144,7 @@ type orchestratorService struct {
 	// executorsMutex guards access to the executors map.
 	executorsMutex sync.RWMutex
 
-	// stopMutex guards the isStopped flag during shutdown.
+	// stopMutex guards the isStopped flag, runCtx and cancel between Run and Stop.
 	stopMutex sync.Mutex
 
 	// receiptsMutex protects access to the receipts map.
@@ -414,18 +414,20 @@ func (s *orchestratorService) Schedule(ctx context.Context, task *Task, executeA
 	return receipt, nil
 }
 
-// Run starts the orchestrator's background processes.
+// Run starts the orchestrator and waits for cancellation.
 //
-// Spawns goroutines for task dispatching, batch insertion, scheduled task promotion, and
-// completion event handling. Blocks until the context is cancelled.
+// The service skips startup if Stop was called earlier.
 //
-// Safe for concurrent use.
+// Concurrency: A service can have one active Run call at a time.
 func (s *orchestratorService) Run(ctx context.Context) {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "OrchestratorService.Run")
 	defer span.End()
 
-	s.runCtx, s.cancel = context.WithCancelCause(ctx)
+	if !s.beginRun(ctx) {
+		l.Internal("Orchestrator Service was stopped before it started")
+		return
+	}
 
 	l.Internal("Starting Orchestrator Service with TaskDispatcher")
 
@@ -459,9 +461,9 @@ func (s *orchestratorService) Run(ctx context.Context) {
 		logger_domain.String("reason", s.runCtx.Err().Error()))
 }
 
-// Stop gracefully shuts down the orchestrator service.
+// Stop cancels the orchestrator service and waits for its background workers.
 //
-// Safe for concurrent use. Blocks until all background goroutines have finished.
+// Concurrency: Concurrent or repeated calls return once shutdown has started.
 func (s *orchestratorService) Stop() {
 	s.stopMutex.Lock()
 	if s.isStopped {
@@ -469,17 +471,36 @@ func (s *orchestratorService) Stop() {
 		return
 	}
 	s.isStopped = true
+	runCtx, cancel := s.runCtx, s.cancel
 	s.stopMutex.Unlock()
 
-	_, stl := logger_domain.From(context.WithoutCancel(s.runCtx), log)
+	if runCtx == nil {
+		runCtx = context.Background()
+	}
+	_, stl := logger_domain.From(context.WithoutCancel(runCtx), log)
 	stl.Internal("Orchestrator Service stopping")
 
-	if s.cancel != nil {
-		s.cancel(errors.New("orchestrator service stopped"))
+	if cancel != nil {
+		cancel(errors.New("orchestrator service stopped"))
 	}
 
 	s.wg.Wait()
 	stl.Internal("Orchestrator Service stopped gracefully")
+}
+
+// beginRun records the run context unless Stop has already run.
+//
+// Returns bool which is false when the service was stopped before it started.
+//
+// Concurrency: Startup and Stop are synchronised, so a stopped service cannot start.
+func (s *orchestratorService) beginRun(ctx context.Context) bool {
+	s.stopMutex.Lock()
+	defer s.stopMutex.Unlock()
+	if s.isStopped {
+		return false
+	}
+	s.runCtx, s.cancel = context.WithCancelCause(ctx)
+	return true
 }
 
 // schedulerLoop runs at regular intervals to move tasks from SCHEDULED to PENDING status.

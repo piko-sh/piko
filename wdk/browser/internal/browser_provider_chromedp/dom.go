@@ -188,6 +188,30 @@ func FindElements(ctx context.Context, selector string) ([]*cdp.Node, error) {
 	return nodes, nil
 }
 
+// countElements counts the elements matching selector without waiting for one to appear.
+//
+// Takes selector (string) which specifies the CSS selector, with " >>> " piercing shadow
+// roots.
+//
+// Returns int which is the number of matching elements, zero when none match.
+// Returns error when the page cannot be queried, so an unreachable page is never mistaken
+// for an absent element.
+func countElements(ctx context.Context, selector string) (int, error) {
+	fastCtx, cancel := context.WithTimeoutCause(ctx, domQueryTimeout, fmt.Errorf("DOM count exceeded %s timeout", domQueryTimeout))
+	defer cancel()
+
+	if strings.Contains(selector, ShadowDOMSeparator) {
+		nodes, err := findElementsInShadowDOM(fastCtx, selector)
+		return len(nodes), err
+	}
+
+	var nodes []*cdp.Node
+	if err := chromedp.Run(fastCtx, chromedp.Nodes(selector, &nodes, chromedp.ByQueryAll, chromedp.AtLeast(0))); err != nil {
+		return 0, fmt.Errorf("counting elements %s: %w", selector, err)
+	}
+	return len(nodes), nil
+}
+
 // ElementExists checks if an element exists without error.
 //
 // Takes selector (string) which specifies the CSS selector to find.

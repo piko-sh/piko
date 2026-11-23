@@ -99,7 +99,7 @@ To read or remove an entry stored with a custom `CacheConfig.Key`, pass `manager
 
 | Function | Purpose |
 |---|---|
-| `NewVectorStore(factory)` | Cache-backed vector store. |
+| `NewVectorStore(factory, opts...)` | Creates a [cache-backed vector store](#vector-store-options). |
 | `Service.NewIngest(namespace) *IngestBuilder` | Method on `Service` (not a top-level function). Returns a fluent builder that loads, splits, transforms, and vectorises documents into `namespace`. |
 | `NewRecursiveFSLoader(fsys, patterns...)` | Filesystem document loader. |
 | `NewRecursiveCharacterSplitter(chunkSize, overlap) (SplitterPort, error)` | Token-agnostic chunker. Returns an error when `chunkSize` or `overlap` are invalid. |
@@ -109,6 +109,17 @@ To read or remove an entry stored with a custom `CacheConfig.Key`, pass `manager
 | `LLMQueryRewriter(opts...)` | Multi-query expansion. |
 
 Attach RAG to a completion with `CompletionBuilder.WithRAG(...)` options: `WithRAGQuery`, `WithRAGMinScore`, `WithRAGFilter`, `WithRAGEmbeddingProvider`, `WithRAGEmbeddingModel`, `WithRAGQueryRewriter`, `WithRAGHybridSearch`.
+
+### Vector store options
+
+Pass a `CacheFactory` to create the backing cache when a namespace is created or
+first used. Concurrent requests for the same namespace share one creation.
+
+Use `WithVectorStoreMaxFilteredCandidates(n)` to cap how many ranked candidates
+a filtered or thresholded search inspects. The default is 10,000.
+
+Supply a nonempty vector with finite values and a representable magnitude. If a
+namespace declares a dimension, the vector must have that length.
 
 ## Errors
 

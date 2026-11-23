@@ -68,7 +68,7 @@ import { action } from "/_piko/assets/pk-js/pk/actions.gen.js";
             return {"currentKey": "a", "data": {"a": "Alpha", "b": "Beta", "c": "Gamma"}};
         }
         connectedCallback () {
-            this.init(instance.call(this, this));
+            if (!this.$$ctx) this.init(instance.call(this, this));
             super.connectedCallback();
         }
         renderVDOM () {

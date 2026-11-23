@@ -18,13 +18,10 @@
 
 package annotator_domain
 
-// Processes individual partial invocations during the linking phase with detailed prop
-// validation and type coercion. Handles default values, factory functions, dependency
-// tracking, and automatic type conversions between components.
-
 import (
 	"context"
 	"fmt"
+	goast "go/ast"
 	"slices"
 	"strings"
 	"sync"
@@ -34,6 +31,11 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
+)
+
+const (
+	// maxAliasDepth bounds how many aliases are followed, so a cycle cannot loop forever.
+	maxAliasDepth = 16
 )
 
 var (
@@ -58,8 +60,7 @@ type finalisedInvocationData struct {
 	dependsOn []string
 }
 
-// propAssignmentParams groups the values needed for property assignment. This reduces the
-// number of arguments passed to helper methods.
+// propAssignmentParams groups the values needed for property assignment.
 type propAssignmentParams struct {
 	// SourceExpression is the expression from the right side of the assignment.
 	SourceExpression ast_domain.Expression
@@ -114,8 +115,10 @@ type invocationLinker struct {
 	canonicalProps map[string]ast_domain.PropValue
 }
 
-// process links an invocation through several passes to build a canonical key. It checks
-// the invoker context, works out which props are valid, and gathers dependency data.
+// aliasResolver follows one type alias to its target.
+type aliasResolver func(packagePath, typeName string) (targetPackage, targetName string, ok bool)
+
+// process resolves a partial invocation's props and dependencies.
 //
 // Returns *finalisedInvocationData which holds the canonical key, resolved props, and
 // dependency list for the invocation.
@@ -148,8 +151,7 @@ func (il *invocationLinker) process(ctx context.Context) (*finalisedInvocationDa
 	}, nil
 }
 
-// applyRequestOverrides processes request overrides from the invocation and stores valid
-// properties. Logs a warning when an override refers to an unknown property.
+// applyRequestOverrides stores valid overrides and reports unknown prop names.
 func (il *invocationLinker) applyRequestOverrides(ctx context.Context) {
 	for propName, propValue := range il.invocation.RequestOverrides {
 		if propInfo, isValid := il.validProps[propName]; isValid {
@@ -234,8 +236,7 @@ func (il *invocationLinker) processProvidedProps(ctx context.Context) {
 }
 
 // resolveAndStoreProp finds the type of an expression, checks it is valid, and stores the
-// final property value. It handles type conversion, checks for loop dependencies, and
-// reports any errors found.
+// final property value.
 //
 // Takes propName (string) which names the property being set.
 // Takes sourceExpression (ast_domain.Expression) which is the expression to resolve.
@@ -354,7 +355,7 @@ func (il *invocationLinker) tryDirectAssignment(p *propAssignmentParams) bool {
 		return false
 	}
 
-	if isAssignable(p.SourceAnnotation.ResolvedType, p.DestTypeInfo) {
+	if isAssignableToProp(p.SourceAnnotation.ResolvedType, p.DestTypeInfo, p.PropInfo.TypePackagePath, il.resolveTypeAlias) {
 		il.storeProp(p.PropName, p.SourceExpression, p.Loc, p.NameLocation, p.PropInfo, p.SourceAnnotation, p.IsLoopDependent)
 		return true
 	}
@@ -365,6 +366,69 @@ func (il *invocationLinker) tryDirectAssignment(p *propAssignmentParams) bool {
 	}
 
 	return false
+}
+
+// isAssignableToProp reports whether an expression can be assigned to a prop.
+//
+// Named types match when their aliases resolve to the same declaration. The rules for
+// nil, any, type parameters and compatible numeric types can also allow assignment.
+//
+// Takes source (*ast_domain.ResolvedTypeInfo) which is the expression's resolved type.
+// Takes dest (*ast_domain.ResolvedTypeInfo) which is the property's declared type.
+// Takes fieldPackage (string) which is the canonical import path of the named field type.
+// Takes resolveAlias (aliasResolver) which follows a type alias to its target, or nil to
+// compare names as declared.
+//
+// Returns bool which is true when the source can be assigned to the property.
+func isAssignableToProp(source, dest *ast_domain.ResolvedTypeInfo, fieldPackage string, resolveAlias aliasResolver) bool {
+	if source != nil && dest != nil && source.CanonicalPackagePath != "" && fieldPackage != "" {
+		from, sourceNamed := source.TypeExpression.(*goast.SelectorExpr)
+		to, destNamed := dest.TypeExpression.(*goast.SelectorExpr)
+		if sourceNamed && destNamed {
+			sourcePackage, sourceName := followAliases(source.CanonicalPackagePath, from.Sel.Name, resolveAlias)
+			destPackage, destName := followAliases(fieldPackage, to.Sel.Name, resolveAlias)
+			return (sourcePackage == destPackage && sourceName == destName) || isAssignableByRule(source, dest)
+		}
+	}
+	return isAssignable(source, dest)
+}
+
+// resolveTypeAlias finds the named target of a type alias.
+//
+// Takes packagePath (string) which is the canonical path of the declaring package.
+// Takes typeName (string) which is the declared type name.
+//
+// Returns string which is the target's canonical package path.
+// Returns string which is the target's type name.
+// Returns bool which reports whether a named target was found.
+func (il *invocationLinker) resolveTypeAlias(packagePath, typeName string) (targetPackage, targetName string, ok bool) {
+	if il.typeResolver == nil || il.typeResolver.inspector == nil {
+		return "", "", false
+	}
+	declaring, found := il.typeResolver.inspector.GetAllPackages()[packagePath]
+	if !found || declaring == nil {
+		return "", "", false
+	}
+	named, found := declaring.NamedTypes[typeName]
+	if !found || named == nil || !named.IsAlias {
+		return "", "", false
+	}
+	switch target := goastutil.TypeStringToAST(named.TypeString).(type) {
+	case *goast.Ident:
+		return packagePath, target.Name, true
+	case *goast.SelectorExpr:
+		qualifier, isIdentifier := target.X.(*goast.Ident)
+		if !isIdentifier {
+			return "", "", false
+		}
+		targetPackage := il.typeResolver.inspector.ResolvePackageAlias(qualifier.Name, packagePath, named.DefinedInFilePath)
+		if targetPackage == "" {
+			return "", "", false
+		}
+		return targetPackage, target.Sel.Name, true
+	default:
+		return "", "", false
+	}
 }
 
 // tryCoercionAssignment tries to convert a value and store it as a property.
@@ -386,8 +450,7 @@ func (il *invocationLinker) tryCoercionAssignment(ctx context.Context, p *propAs
 }
 
 // reportTypeMismatch reports a diagnostic when a property value type does not match the
-// expected type. It checks whether type coercion could fix the issue and suggests adding
-// a coerce tag if so.
+// expected type.
 //
 // Takes p (*propAssignmentParams) which holds the source type, target type, and property
 // details.
@@ -409,9 +472,6 @@ func (il *invocationLinker) reportTypeMismatch(ctx context.Context, p *propAssig
 }
 
 // tryCoerceToString attempts to convert a stringable type to a string.
-//
-// If successful, it returns the new transformed expression, its new annotation, and true.
-// Otherwise, it returns the originals and false.
 //
 // Takes sourceExpression (ast_domain.Expression) which is the expression to coerce.
 // Takes sourceAnnotation (*ast_domain.GoGeneratorAnnotation) which provides type and
@@ -531,9 +591,6 @@ func (il *invocationLinker) tryCoerce(
 }
 
 // buildStringConversionAST creates an AST node that converts a value to a string.
-//
-// It mirrors the logic from the generator's stringConverter to produce fast code without
-// reflection. It builds AST nodes for strconv calls or method calls based on the type.
 //
 // Takes sourceExpression (ast_domain.Expression) which is the expression to convert.
 // Takes ann (*ast_domain.GoGeneratorAnnotation) which provides type and stringability
@@ -808,8 +865,7 @@ func (il *invocationLinker) calculateCanonicalKey() string {
 }
 
 // buildPartialInvocation creates a PartialInvocation and locates the target virtual
-// component from the module registry. This shared logic is used by both the pool-based
-// and fresh-allocation paths.
+// component from the module registry.
 //
 // Takes pInfo (*ast_domain.PartialInvocationInfo) which contains the invocation details.
 // Takes virtualModule (*annotator_dto.VirtualModule) which provides the component
@@ -936,7 +992,7 @@ func newInvocationLinker(
 }
 
 // collectDependenciesFromProps scans property values and collects unique dependency keys
-// from their annotations. These keys are used for sorting during code generation.
+// from their annotations.
 //
 // Takes props (map[string]ast_domain.PropValue) which contains the property values to
 // scan for dependencies.
@@ -1272,11 +1328,7 @@ func convertViaRuntimeFallback(sourceExpression ast_domain.Expression) ast_domai
 }
 
 // updateExpressionBaseCodeGenVarName walks down an expression tree and sets the
-// BaseCodeGenVarName on the root identifier. This means property expressions resolved in
-// a given invocation context use the correct variable names (for example,
-// props_parent_xxx instead of props).
-//
-// When baseCodeGenVarName is nil, returns without making changes.
+// BaseCodeGenVarName on the root identifier.
 //
 // Takes expression (ast_domain.Expression) which is the expression to update.
 // Takes baseCodeGenVarName (*string) which is the new variable name to set.
@@ -1297,4 +1349,26 @@ func updateExpressionBaseCodeGenVarName(expression ast_domain.Expression, baseCo
 	case *ast_domain.CallExpression:
 		updateExpressionBaseCodeGenVarName(e.Callee, baseCodeGenVarName)
 	}
+}
+
+// followAliases follows a chain of type aliases to the declaration it names.
+//
+// Takes packagePath (string) which is the canonical path of the declaring package.
+// Takes typeName (string) which is the declared type name.
+// Takes resolveAlias (aliasResolver) which follows one alias, or nil.
+//
+// Returns string which is the final canonical package path.
+// Returns string which is the final type name.
+func followAliases(packagePath, typeName string, resolveAlias aliasResolver) (finalPackage, finalName string) {
+	if resolveAlias == nil {
+		return packagePath, typeName
+	}
+	for range maxAliasDepth {
+		targetPackage, targetName, ok := resolveAlias(packagePath, typeName)
+		if !ok {
+			break
+		}
+		packagePath, typeName = targetPackage, targetName
+	}
+	return packagePath, typeName
 }

@@ -286,6 +286,9 @@ type containerServiceErrors struct {
 
 	// emailErr holds any error from email service setup.
 	emailErr error
+
+	// csrfErr holds any error from CSRF service setup.
+	csrfErr error
 }
 
 // containerCoreServices holds the lazily created services that make up the build and
@@ -961,6 +964,10 @@ type containerLifecycle struct {
 
 	// profilingServer is the running pprof server; nil until it starts.
 	profilingServer *profiler.ServerHandle
+
+	// initialTasksDone closes when the daemon's initial tasks finish and stays nil when the
+	// daemon has no background startup tasks.
+	initialTasksDone <-chan struct{}
 
 	// onServerBound is an optional callback invoked after the main HTTP server binds to a
 	// port. Used to print the startup banner with the actual port.

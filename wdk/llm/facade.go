@@ -644,20 +644,28 @@ var (
 	// content with their parent section (default 2: h1 and h2 only).
 	WithMaxSplitLevel = llm_domain.WithMaxSplitLevel
 
+	// WithSplitterMarkdownParser supplies the parser that finds Markdown headings.
+	WithSplitterMarkdownParser = llm_domain.WithSplitterMarkdownParser
+
 	// WithMinChunkSize sets the minimum chunk size in bytes for NewMarkdownSplitter, merging
 	// smaller chunks with an adjacent chunk to eliminate orphaned fragments (0 disables
 	// merging).
 	WithMinChunkSize = llm_domain.WithMinChunkSize
+
+	// WithVectorStoreMaxFilteredCandidates sets the ceiling on the ranked candidates a
+	// filtered or thresholded vector search inspects before returning fewer than TopK
+	// results (default 10,000). A requested TopK above the ceiling is lowered to it.
+	WithVectorStoreMaxFilteredCandidates = vector_cache.WithMaxFilteredCandidates
 )
 
-// CacheFactory creates a cache instance for a given namespace configuration. The factory
-// is called once per namespace when VectorStorePort.CreateNamespace is invoked, and must
-// return a cache configured with an appropriate search schema (vector fields, text
-// fields) for the namespace.
+// CacheFactory creates the backing cache for a vector namespace.
 //
-// Use [cache_provider_otter.OtterProviderFactory] for in-memory storage or a Redis/Valkey
-// provider factory for distributed storage.
+// The factory runs when the namespace is created or first used. It must configure the
+// vector and text search fields the namespace requires.
 type CacheFactory = vector_cache.CacheFactory
+
+// VectorStoreOption configures a vector store created by NewVectorStore.
+type VectorStoreOption = vector_cache.Option
 
 // NewService creates a new LLM service.
 //
@@ -828,15 +836,16 @@ func ValidateRequest(request *CompletionRequest) error {
 	return llm_domain.ValidateRequest(request)
 }
 
-// NewVectorStore creates a cache-backed vector store, calling the factory once per
-// namespace to create the backing cache instance (Otter for in-memory, Redis/Valkey for
-// distributed).
+// NewVectorStore creates a cache-backed vector store.
 //
-// Takes factory (CacheFactory) which creates cache instances per namespace.
+// Overlapping requests for the same namespace share one factory call.
 //
-// Returns VectorStorePort which is ready for use.
-func NewVectorStore(factory CacheFactory) VectorStorePort {
-	return vector_cache.New(factory)
+// Takes factory (CacheFactory) which creates the cache for each namespace.
+// Takes opts (...VectorStoreOption) which configure search limits.
+//
+// Returns VectorStorePort which manages the namespace caches.
+func NewVectorStore(factory CacheFactory, opts ...VectorStoreOption) VectorStorePort {
+	return vector_cache.New(factory, opts...)
 }
 
 // StripFrontmatter returns a TransformFunc that removes YAML frontmatter delimited by ---
@@ -895,11 +904,12 @@ func NewRecursiveCharacterSplitter(chunkSize, overlap int) (SplitterPort, error)
 }
 
 // NewMarkdownSplitter creates a SplitterPort that splits markdown documents on heading
-// boundaries using the goldmark AST parser.
+// boundaries found by a markdown parser.
 //
-// Headings inside fenced code blocks are correctly ignored. Sections exceeding chunkSize
-// are sub-split using NewRecursiveCharacterSplitter. Each chunk receives a "heading"
-// metadata key containing the nearest heading text.
+// Pass a parser with WithSplitterMarkdownParser to split on headings outside fenced code
+// blocks. The splitter divides oversized sections by size and treats each document as one
+// section when no parser is set. Each chunk records its nearest heading in the "heading"
+// metadata field when available.
 //
 // By default only h1 and h2 headings act as split boundaries. Use WithMaxSplitLevel to
 // include deeper headings.
@@ -929,8 +939,8 @@ func PrependChunkContext() TransformFunc {
 // files matching the given glob patterns.
 //
 // Takes fsys (fs.FS) which is the filesystem to walk.
-// Takes patterns (...string) which are glob patterns to match file names. Patterns
-// prefixed with "**/" walk the directory tree recursively.
+// Takes patterns (...string) which match file names at every depth with or without a
+// leading "**/".
 //
 // Returns LoaderPort which loads documents from the filesystem.
 func NewRecursiveFSLoader(fsys fs.FS, patterns ...string) LoaderPort {

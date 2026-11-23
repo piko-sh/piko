@@ -20,9 +20,11 @@ package lsp_domain
 
 import (
 	"context"
+	"path/filepath"
 	"testing"
 
 	protocol "github.com/politepixels/golang-language-server"
+	"github.com/stretchr/testify/assert"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/inspector/inspector_dto"
@@ -962,6 +964,34 @@ func TestSearchDocumentForIDs(t *testing.T) {
 			if len(result) != tc.wantCount {
 				t.Errorf("got %d symbols, want %d", len(result), tc.wantCount)
 			}
+		})
+	}
+}
+
+func TestClassifyFileChangesInStagedWorkspace(t *testing.T) {
+	for _, ancestor := range []string{".piko", "dist"} {
+		t.Run(ancestor, func(t *testing.T) {
+			root := filepath.Join(t.TempDir(), ancestor, "worktree")
+			fileURI := func(path string) protocol.DocumentURI {
+				return documentURIForPath(filepath.Join(root, path))
+			}
+			want := []protocol.DocumentURI{fileURI("pages/old.pk"), fileURI("pages/new.pk")}
+			changes := []*protocol.FileEvent{
+				{URI: want[0], Type: protocol.FileChangeTypeDeleted},
+				{URI: want[1], Type: protocol.FileChangeTypeCreated},
+				{URI: fileURI(".piko/generate/pages/a.go"), Type: protocol.FileChangeTypeChanged},
+				{URI: fileURI("nested/dist/copied.pk"), Type: protocol.FileChangeTypeCreated},
+			}
+
+			analysed, goChanged, structural := classifyFileChanges(t.Context(), root, changes)
+			assert.Equal(t, want, analysed)
+			assert.False(t, goChanged)
+			assert.True(t, structural)
+
+			analysed, goChanged, structural = classifyFileChanges(t.Context(), root, changes[2:])
+			assert.Empty(t, analysed, "generated files must not trigger analysis")
+			assert.False(t, goChanged)
+			assert.False(t, structural)
 		})
 	}
 }

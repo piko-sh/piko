@@ -372,6 +372,39 @@ func TestEvaluateExpression_NullishCoalescing(t *testing.T) {
 	}
 }
 
+func TestEvaluateExpression_LogicalOperatorsMatchCompiledForm(t *testing.T) {
+	t.Parallel()
+
+	scope := map[string]any{
+		"emptyTitle": "",
+		"title":      "Report",
+		"fallback":   "Untitled",
+		"zero":       0.0,
+	}
+
+	tests := []struct {
+		expected         any
+		name             string
+		expressionString string
+	}{
+		{name: "or selects a truthy left operand", expressionString: "title || fallback", expected: "Report"},
+		{name: "or falls back to the right operand", expressionString: "emptyTitle || fallback", expected: "Untitled"},
+		{name: "or returns a falsy right operand unchanged", expressionString: "emptyTitle || zero", expected: 0.0},
+		{name: "or chains to the first truthy operand", expressionString: "emptyTitle || zero || fallback", expected: "Untitled"},
+		{name: "and stays boolean", expressionString: "title && fallback", expected: true},
+		{name: "and short-circuits to false", expressionString: "emptyTitle && fallback", expected: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			expression := mustParseExpr(t, tt.expressionString)
+			assert.Equal(t, tt.expected, EvaluateExpression(expression, scope))
+		})
+	}
+}
+
 func TestConvertArgument_FloatToInt(t *testing.T) {
 	t.Parallel()
 
@@ -435,6 +468,29 @@ func TestConvertArgument_FloatToInt(t *testing.T) {
 			expression := mustParseExpr(t, tc.expressionString)
 			result := EvaluateExpression(expression, tc.scope)
 			assert.Equal(t, tc.expected, result)
+		})
+	}
+}
+
+func TestEvaluateExpressionShortCircuitsLogic(t *testing.T) {
+	tests := []struct {
+		source string
+		result bool
+		calls  int
+	}{
+		{source: "true || right()", result: true, calls: 0},
+		{source: "false && right()", result: false, calls: 0},
+		{source: "false || right()", result: true, calls: 1},
+		{source: "true && right()", result: true, calls: 1},
+	}
+	for _, testCase := range tests {
+		t.Run(testCase.source, func(t *testing.T) {
+			calls := 0
+			expression, diagnostics := ParseExpressionCached(t.Context(), testCase.source, "guard.pk")
+			require.Empty(t, diagnostics)
+			result := EvaluateExpression(expression, map[string]any{"right": func() bool { calls++; return true }})
+			assert.Equal(t, testCase.result, result)
+			assert.Equal(t, testCase.calls, calls, "right operand evaluations")
 		})
 	}
 }

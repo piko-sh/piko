@@ -16,7 +16,7 @@
       "name": "Rendering",
       "slug": "rendering",
       "prefix": "R0",
-      "introduction": "Reported by generated code while a page renders. They appear in the server log rather than in build output, and the page still renders: a nil read or an out-of-range index gives a zero value instead of a panic."
+      "introduction": "Render diagnostics appear in the server log. A nil read or an out-of-range index produces a zero value. Each diagnostic explains how rendering proceeds."
     }
   ],
   "codes": [
@@ -681,7 +681,7 @@
       "family": "Template analysis",
       "title": "$event or $form misused",
       "summary": "$event or $form is used outside an event handler, or used in a way it does not support.",
-      "detail": "$event and $form only exist inside p-on and p-event handlers, and are passed whole: reading a property from them in the template is not supported. The browser's own event object is $event, not event.",
+      "detail": "Use $event and $form only in p-on and p-event handlers. $event is the browser's event object.",
       "fix": "Pass $event or $form whole to the handler, and read their properties inside it.",
       "severities": [
         "error"
@@ -966,7 +966,7 @@
       "family": "Template analysis",
       "title": "Invalid comparison",
       "summary": "The two sides of a comparison cannot be compared.",
-      "detail": "Ordering operators (\u003c, \u003e, \u003c=, \u003e=) need ordered types of the same kind. Equality is checked strictly: a named type and a plain literal of its underlying type, such as a named string type and a string, cannot be compared directly.",
+      "detail": "Ordering operators (\u003c, \u003e, \u003c=, \u003e=) need compatible ordered types. A strict equality operator cannot directly compare a named type with a literal of its underlying type.",
       "fix": "Convert one side so both have the same type, or compare a field that has a comparable type.",
       "severities": [
         "error"
@@ -978,7 +978,7 @@
       "family": "Template analysis",
       "title": "Invalid arithmetic",
       "summary": "An arithmetic operator is used with types it is not defined for.",
-      "detail": "Both operands of +, -, *, / and % must be compatible numbers, and unary - needs a number. Money only adds and subtracts Money, multiplies and divides by plain numbers, and has no %.",
+      "detail": "Use compatible numbers for numeric arithmetic and + to join two strings. You can add or subtract two durations, add a duration to an instant in either order, or subtract a duration from an instant. Subtracting two instants gives a duration. You can add or subtract Money with Money or Decimal. Use a standard number with Money for multiplication or division.",
       "fix": "Convert the operands to compatible types, or use the Money methods.",
       "severities": [
         "error"
@@ -1002,7 +1002,7 @@
       "family": "Template analysis",
       "title": "String concatenation",
       "summary": "A string concatenation involves a value that cannot be turned into a string.",
-      "detail": "This code is not currently reported: such concatenations are reported as invalid arithmetic (T142). The number stays assigned so it is never reused.",
+      "detail": "Invalid string concatenation is reported as T142.",
       "fix": "Nothing to fix.",
       "severities": [
         "error"
@@ -1103,7 +1103,7 @@
       "family": "Template analysis",
       "title": "Suggested prop name",
       "summary": "An unknown prop name is close to one the component defines.",
-      "detail": "This code is not currently reported: suggestions appear in the unknown prop message (T126) instead. The number stays assigned so it is never reused.",
+      "detail": "Suggestions appear in the unknown prop diagnostic (T126).",
       "fix": "Nothing to fix.",
       "severities": [
         "warning"

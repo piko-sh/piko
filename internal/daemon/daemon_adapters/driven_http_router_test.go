@@ -1275,6 +1275,19 @@ func TestAliasCatchAllParam(t *testing.T) {
 	})
 }
 
+func TestNamedStarRouteCarriesAllCapturedSegments(t *testing.T) {
+	router := chi.NewRouter()
+	pattern, alias := translateCatchAllForChi("/bulletins/archive/{rest}*")
+	router.Get(pattern, func(w http.ResponseWriter, r *http.Request) {
+		aliasCatchAllParam(r, alias)
+		_, _ = w.Write([]byte(chi.URLParam(r, "rest")))
+	})
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/bulletins/archive/2026/march", nil))
+	require.Equal(t, http.StatusOK, response.Code)
+	require.Equal(t, "2026/march", response.Body.String())
+}
+
 func TestTranslateCatchAllForChi(t *testing.T) {
 	t.Parallel()
 
@@ -1780,5 +1793,32 @@ func TestRolesFromAuthValue(t *testing.T) {
 
 			assert.Equal(t, testCase.want, rolesFromAuthValue(testCase.value))
 		})
+	}
+}
+
+func TestProductionFallbackUsesRenderedErrorStatus(t *testing.T) {
+	tests := []struct {
+		err    error
+		status int
+	}{
+		{err: daemon_dto.NotFound("book", "private-id"), status: http.StatusNotFound},
+		{err: daemon_dto.Forbidden("private detail"), status: http.StatusForbidden},
+		{err: errors.New("private detail"), status: http.StatusInternalServerError},
+	}
+	for _, phase := range []string{"probe", "render"} {
+		for _, testCase := range tests {
+			t.Run(fmt.Sprintf("%s/%d", phase, testCase.status), func(t *testing.T) {
+				page := pageErrorContext{Entry: &mockPageEntryViewWithPath{}, Store: &templater_domain.MockManifestStoreView{}, Span: newNoopSpan()}
+				request := httptest.NewRequest(http.MethodGet, "/book", nil)
+				recorder := httptest.NewRecorder()
+				if phase == "probe" {
+					handlePageProbeError(request.Context(), recorder, request, testCase.err, page)
+				} else {
+					handlePageRenderError(request.Context(), recorder, request, testCase.err, page, false)
+				}
+				assert.Equal(t, testCase.status, recorder.Code)
+				assert.Equal(t, http.StatusText(testCase.status)+"\n", recorder.Body.String(), "the body must not leak the error detail")
+			})
+		}
 	}
 }

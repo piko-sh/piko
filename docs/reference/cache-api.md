@@ -213,6 +213,12 @@ Sorting on a `Sortable` field walks that field's whole B-tree, so it costs the s
 
 `Limit` defaults to 10 when unset. Pass `cache.NoLimit` to return every match instead of paging through repeated scans.
 
+For vector search, `TopK` caps the ranked candidates and `Limit` sets the page size.
+Use `cache.NoLimit` to return all eligible hits after `Offset` within that candidate set.
+`SearchResult.Candidates` reports the ranked candidate count. Redis and Valkey
+apply `MinScore` to the returned page, so the count can include candidates below
+the threshold outside that page.
+
 ## Options and builders
 
 | Type | Purpose |
@@ -293,7 +299,7 @@ schema := cache.NewSearchSchema(
 |---|---|
 | `SearchOptions` | Full-text search configuration. |
 | `QueryOptions` | Structured query without full-text. |
-| `SearchResult[K, V]` | Result set with total count and hits. |
+| `SearchResult[K, V]` | Result set with total count, hits and, for a vector search, the ranked candidate count. |
 | `SearchHit[K, V]` | Single hit (key, value, score, matched fields). |
 | `Filter` | Filter condition (built via the filter constructors). |
 | `TextAnalyseFunc` | Text analyser for stemming and tokenisation. |

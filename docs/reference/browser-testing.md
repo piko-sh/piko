@@ -10,7 +10,10 @@ nav:
 
 # Browser testing harness
 
-The `wdk/browser` package runs Piko projects in a real browser (Chromedp / headless Chrome) and exposes a fluent, assertion-driven API for end-to-end tests. Tests either drive the browser programmatically through `Page` or load declarative `TestSpec` JSON documents. For the design rationale and the comparison with pikotest, see [about browser testing](../explanation/about-browser-testing.md). For task recipes see [how to browser testing](../how-to/browser-testing.md). Source of truth: [`wdk/browser/`](https://github.com/piko-sh/piko/tree/master/wdk/browser).
+The `wdk/browser` test harness runs Piko projects in Chromium. Drive the browser with
+`Page` or run a declarative `TestSpec` JSON file. For recipes, see the
+[browser testing guide](../how-to/browser-testing.md). For a comparison with pikotest,
+see [about browser testing](../explanation/about-browser-testing.md).
 
 ## Harness and pages
 
@@ -27,6 +30,35 @@ func RunSpec(t testing.TB, specPath string, opts ...SpecOption)
 ```
 
 `NewHarness` builds a reusable harness. Typically called once in `TestMain` so every test shares a single server build. `New(t)` returns a per-test `Page` bound to `t` for automatic cleanup. `NewSession` returns a `Session` for cases that prefer returned errors over `t.Fatalf`. `RunSpec` runs a declarative JSON test spec.
+
+## Browser sessions for running applications
+
+`browser.OpenSession(ctx, browser.DefaultBrowserOptions())` opens a private Chromium
+session for an application that is already running. Defer `session.Close()` after
+checking the returned error. The opening context bounds startup and the session's
+lifetime. To limit a single operation, pass a shorter context to that operation.
+
+| Operation | API |
+| --- | --- |
+| Navigate and read the final HTTP document status and URL | `NavigateResponse(ctx, url)` |
+| Open another tab that shares the primary tab's cookies | `NewTab(ctx)`, then close the returned tab |
+| Wait for an exported page handler or another DOM condition | `WaitForExpression(ctx, expression, timeout)` |
+| Decode a JavaScript result, including a promise | `Evaluate(ctx, script, &value)`, `Await(ctx, script, &value)` |
+| Send pointer, keyboard or native text input | `Click(ctx, selector)`, `PressKey(ctx, "ArrowDown", "Shift")`, `Key(ctx, text)`, `InsertText(ctx, text)` |
+| Correlate requests, responses, cookie inclusion and script exceptions | `ObserveNetwork(ctx, callback)`, `RequestPostData(ctx, id)`, `ResponseBody(ctx, id)` |
+| Collect precise JavaScript function coverage for a page | `StartJSCoverage(ctx)`, `StopJSCoverage(ctx, options)` |
+
+Install network observers before navigation. Read response bodies after the response
+completes and outside the observer callback. Start coverage before navigation to
+capture top-level script execution. Use the URL filter and source, script and range
+limits in `JSCoverageOptions` to bound collection. While coverage is active, breakpoints
+and `debugger` statements do not pause the tab.
+
+`browser.OpenFirefoxSession(ctx)` opens a headless Firefox tab in a private profile.
+Use `NavigateURL`, `SetViewport`, `Key`, `PressKey` and `EvaluateString` to drive the
+tab. If cancellation interrupts an in-flight command, close the session and open a
+new one. `Version()` reports the Firefox version. `Close()` stops Firefox and removes
+its temporary profile.
 
 ## Harness options
 

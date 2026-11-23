@@ -206,13 +206,11 @@ func (*formatterServiceImpl) formatHTMLOnly(ctx context.Context, source []byte, 
 	var tree *ast_domain.TemplateAST
 	var err error
 
-	if opts.RawHTMLMode {
-		tree, err = ast_domain.ParseWithOptions(ctx, string(source), "formatter", startLocation, &ast_domain.ParseOptions{
-			RawMode: true,
-		})
-	} else {
-		tree, err = ast_domain.Parse(ctx, string(source), "formatter", startLocation)
-	}
+	tree, err = ast_domain.ParseWithOptions(ctx, string(source), "formatter", startLocation, &ast_domain.ParseOptions{
+		RawMode:                opts.RawHTMLMode,
+		DecodeStaticAttributes: false,
+		PreserveRawText:        true,
+	})
 
 	if err != nil {
 		formatErrorCount.Add(ctx, 1)
@@ -384,10 +382,14 @@ func (s *formatterServiceImpl) formatI18nBlocks(ctx context.Context, i18nBlocks 
 // Returns string which is the formatted template output.
 // Returns error when parsing fails or the template contains parse errors.
 func (*formatterServiceImpl) formatTemplate(ctx context.Context, templateContent string, opts *FormatOptions) (string, error) {
-	tree, err := ast_domain.Parse(ctx, templateContent, "formatter", &ast_domain.Location{
+	tree, err := ast_domain.ParseWithOptions(ctx, templateContent, "formatter", &ast_domain.Location{
 		Line:   1,
 		Column: 1,
 		Offset: 0,
+	}, &ast_domain.ParseOptions{
+		RawMode:                false,
+		DecodeStaticAttributes: false,
+		PreserveRawText:        true,
 	})
 	if err != nil {
 		return "", fmt.Errorf("parsing template: %w", err)

@@ -39,7 +39,7 @@ import { action } from "/_piko/assets/pk-js/pk/actions.gen.js";
             return {"htmlContent": "<strong>Bold</strong> and <em>italic</em>"};
         }
         connectedCallback () {
-            this.init(instance.call(this, this));
+            if (!this.$$ctx) this.init(instance.call(this, this));
             super.connectedCallback();
         }
         renderVDOM () {

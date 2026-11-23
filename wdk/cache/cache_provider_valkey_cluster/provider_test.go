@@ -21,8 +21,11 @@ package cache_provider_valkey_cluster_test
 import (
 	"testing"
 
+	"github.com/alicebob/miniredis/v2"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/wdk/cache"
+	"piko.sh/piko/wdk/cache/cache_encoder_json"
 	"piko.sh/piko/wdk/cache/cache_provider_valkey_cluster"
 )
 
@@ -57,4 +60,45 @@ func TestProviderName_ReturnsExpectedConstant(t *testing.T) {
 	provider := &cache_provider_valkey_cluster.ValkeyClusterProvider{}
 
 	require.Equal(t, "valkey-cluster", provider.Name())
+}
+
+func TestValkeyClusterProvider_CreateNamespaceTyped(t *testing.T) {
+	t.Parallel()
+
+	server := miniredis.RunT(t)
+	encoder, ok := cache_encoder_json.New[string]().(cache.AnyEncoder)
+	require.True(t, ok)
+	provider, err := cache_provider_valkey_cluster.NewValkeyClusterProvider(cache_provider_valkey_cluster.Config{
+		InitAddress: []string{server.Addr()},
+		Registry:    cache.NewEncodingRegistry(encoder),
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { assert.NoError(t, provider.Close()) })
+
+	supported := map[string]any{
+		"bytes":    cache.Options[string, []byte]{},
+		"strings":  cache.Options[string, string]{},
+		"counts":   cache.Options[string, int]{},
+		"names":    cache.Options[int, string]{},
+		"anything": cache.Options[string, any]{},
+		"numbers":  cache.Options[int, int]{},
+		"indexed":  cache.Options[int, any]{},
+	}
+	for namespace, options := range supported {
+		created, err := provider.CreateNamespaceTyped(namespace, options)
+		require.NoError(t, err, namespace)
+		assert.NotNil(t, created, namespace)
+	}
+
+	reused, err := provider.CreateNamespaceTyped("strings", cache.Options[string, string]{})
+	require.NoError(t, err)
+	stringCache, ok := reused.(cache.Cache[string, string])
+	require.True(t, ok)
+	require.NoError(t, stringCache.Set(t.Context(), "greeting", "hello"))
+
+	_, err = provider.CreateNamespaceTyped("strings", cache.Options[string, int]{})
+	require.ErrorContains(t, err, "different key/value types")
+
+	_, err = provider.CreateNamespaceTyped("floats", cache.Options[string, float32]{})
+	require.ErrorContains(t, err, "unsupported cache type")
 }

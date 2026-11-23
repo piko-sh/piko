@@ -20,6 +20,7 @@ package captcha_provider_turnstile
 
 import (
 	"errors"
+	"net/http"
 	"time"
 
 	"piko.sh/piko/internal/captcha/captcha_adapters/siteverify"
@@ -80,4 +81,14 @@ func WithVerifyTimeout(timeout time.Duration) Option {
 // Returns Option which applies the limit.
 func WithMaxResponseBytes(limit int64) Option {
 	return siteverify.WithMaxResponseBytes(limit)
+}
+
+// WithTransport sends Turnstile verification requests through transport instead of the
+// default transport, for example to route through an egress proxy.
+//
+// Takes transport (http.RoundTripper) which sends requests or is nil to keep the default.
+//
+// Returns Option which applies the transport.
+func WithTransport(transport http.RoundTripper) Option {
+	return siteverify.WithTransport(transport)
 }

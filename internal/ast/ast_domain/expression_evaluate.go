@@ -18,11 +18,6 @@
 
 package ast_domain
 
-// Provides runtime evaluation of expression trees with variable scopes for computing
-// values from template expressions. Handles literals, identifiers, member access,
-// operators, function calls, and composite expressions with type coercion and reflection
-// support.
-
 import (
 	"fmt"
 	"reflect"
@@ -133,6 +128,15 @@ func evaluateOperatorExpression(expression Expression, scope map[string]any) (an
 		return evaluateUnary(node.Operator, value), true
 	case *BinaryExpression:
 		leftVal := EvaluateExpression(node.Left, scope)
+		if node.Operator == OpAnd && !toBool(leftVal) {
+			return false, true
+		}
+		if node.Operator == OpOr {
+			if toBool(leftVal) {
+				return leftVal, true
+			}
+			return EvaluateExpression(node.Right, scope), true
+		}
 		rightVal := EvaluateExpression(node.Right, scope)
 		return evaluateBinary(node.Operator, leftVal, rightVal), true
 	default:
@@ -448,16 +452,13 @@ func evaluateUnary(op UnaryOp, value any) any {
 
 // evaluateBinary applies a binary operation to two operands.
 //
-// It first tries handlers for time, decimal, and big integer types. If none of these
-// handle the operation, it falls back to standard evaluation.
-//
 // Takes op (BinaryOp) which specifies the operation to perform.
 // Takes left (any) which is the left operand.
 // Takes right (any) which is the right operand.
 //
 // Returns any which is the result of the operation.
 func evaluateBinary(op BinaryOp, left any, right any) any {
-	if result, handled := tryEvaluateTimeOperation(op, left, right); handled {
+	if result, handled := EvaluateTimeOperation(op, left, right); handled {
 		return result
 	}
 	if result, handled := tryEvaluateDecimalOperation(op, left, right); handled {
@@ -469,17 +470,17 @@ func evaluateBinary(op BinaryOp, left any, right any) any {
 	return evaluateStandardBinary(op, left, right)
 }
 
-// tryEvaluateTimeOperation attempts to evaluate a binary operation on time and duration
-// values.
+// EvaluateTimeOperation evaluates a binary operation on times or durations.
 //
 // Takes op (BinaryOp) which specifies the operation to perform.
 // Takes left (any) which is the left operand, expected to be time.Time or time.Duration.
 // Takes right (any) which is the right operand, expected to be time.Time or
 // time.Duration.
 //
-// Returns any which is the result of the operation if successful.
-// Returns bool which indicates whether the operation was valid.
-func tryEvaluateTimeOperation(op BinaryOp, left any, right any) (any, bool) {
+// Returns any which holds a time, duration or comparison result, or an error for an
+// unsupported operator on two times or two durations.
+// Returns bool which reports whether a result is available.
+func EvaluateTimeOperation(op BinaryOp, left any, right any) (any, bool) {
 	leftTime, isLeftTime := left.(time.Time)
 	rightTime, isRightTime := right.(time.Time)
 	leftDuration, isLeftDuration := left.(time.Duration)
@@ -676,9 +677,6 @@ func tryEvaluateBigIntOperation(op BinaryOp, left any, right any) (any, bool) {
 
 // promoteToBigInt converts a value to a BigInt.
 //
-// If the value is already a BigInt, it returns the value unchanged. Otherwise, the value
-// is converted to a float and then to a BigInt.
-//
 // Takes value (any) which is the value to convert.
 //
 // Returns maths.BigInt which is the converted BigInt value.
@@ -732,9 +730,7 @@ func evaluateBigIntBinary(op BinaryOp, left maths.BigInt, right maths.BigInt) an
 	}
 }
 
-// evaluateStandardBinary works out the result of a binary operation on two values. It
-// tries logical, equality, comparison, and arithmetic operations in turn until one
-// handles the operation.
+// evaluateStandardBinary applies an operator to ordinary template values.
 //
 // Takes op (BinaryOp) which specifies the operation to perform.
 // Takes left (any) which is the left operand.
@@ -851,9 +847,6 @@ func evaluateArithmeticOp(op BinaryOp, left any, right any) any {
 }
 
 // evaluatePlus adds two values together, handling both strings and numbers.
-//
-// When either value is a string, joins both values as strings. Otherwise, adds the values
-// as numbers.
 //
 // Takes left (any) which is the first value to add.
 // Takes right (any) which is the second value to add.
@@ -1034,10 +1027,6 @@ func tryStringOrFloat(value any) (*string, float64) {
 
 // isLooselyEqual compares two values for equality with type coercion.
 //
-// When either value is nil, returns true only if both are nil. When both values are
-// numeric-like, compares them as floats. Otherwise, uses reflect.DeepEqual for
-// comparison.
-//
 // Takes a (any) which is the first value to compare.
 // Takes b (any) which is the second value to compare.
 //
@@ -1061,10 +1050,6 @@ func isLooselyEqual(a, b any) bool {
 }
 
 // isStrictlyEqual compares two values for strict equality with type checking.
-//
-// When either value is nil, returns true only if both are nil. For Decimal, BigInt, and
-// Time types, uses their native equality methods. For all other types, requires matching
-// types and uses reflect.DeepEqual.
 //
 // Takes a (any) which is the first value to compare.
 // Takes b (any) which is the second value to compare.

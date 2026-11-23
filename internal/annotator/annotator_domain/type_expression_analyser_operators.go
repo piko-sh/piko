@@ -18,10 +18,6 @@
 
 package annotator_domain
 
-// Analyses operator expressions in templates by validating operand types and determining
-// result types for binary and unary operations. Handles arithmetic, comparison, logical,
-// and string concatenation operators whilst ensuring type compatibility and correctness.
-
 import (
 	"context"
 	"fmt"
@@ -170,11 +166,22 @@ func (a *typeExpressionAnalyser) validateEqualityComparison(n *ast_domain.Binary
 //
 // Returns goast.Expr which is the result type expression.
 // Returns string which is the package alias for the result type.
-// Returns *ast_domain.GoGeneratorAnnotation which is always nil.
+// Returns *ast_domain.GoGeneratorAnnotation which marks a time.Time or time.Duration
+// result, or nil for other arithmetic.
 func (a *typeExpressionAnalyser) resolveArithmeticOperator(
 	n *ast_domain.BinaryExpression,
 	leftTypeInfo, rightTypeInfo *ast_domain.ResolvedTypeInfo,
 ) (goast.Expr, string, *ast_domain.GoGeneratorAnnotation) {
+	leftTime, rightTime := temporalTypeName(leftTypeInfo), temporalTypeName(rightTypeInfo)
+	switch {
+	case leftTime == temporalTypeTime && rightTime == temporalTypeTime && n.Operator == ast_domain.OpMinus:
+		return nil, "", a.temporalAnnotation(temporalTypeDuration)
+	case leftTime == temporalTypeDuration && rightTime == temporalTypeDuration && (n.Operator == ast_domain.OpPlus || n.Operator == ast_domain.OpMinus):
+		return nil, "", a.temporalAnnotation(temporalTypeDuration)
+	case leftTime == temporalTypeTime && rightTime == temporalTypeDuration && (n.Operator == ast_domain.OpPlus || n.Operator == ast_domain.OpMinus),
+		leftTime == temporalTypeDuration && rightTime == temporalTypeTime && n.Operator == ast_domain.OpPlus:
+		return nil, "", a.temporalAnnotation(temporalTypeTime)
+	}
 	if isMoneyType(leftTypeInfo) || isMoneyType(rightTypeInfo) {
 		typeExpr, packageAlias := a.resolveMoneyArithmetic(n, leftTypeInfo, rightTypeInfo)
 		return typeExpr, packageAlias, nil

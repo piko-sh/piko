@@ -25,6 +25,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"piko.sh/goastutil"
 
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
@@ -2898,4 +2899,99 @@ func createTestInvocationLinkerWithNilResolve() *invocationLinker {
 		providedPropOrigins:     make(map[string]propOrigin),
 		canonicalProps:          make(map[string]ast_domain.PropValue),
 	}
+}
+
+func TestIsAssignableToProp_ImportedNamedType(t *testing.T) {
+	const from = "example.org/catalog-item/v2"
+	tests := []struct {
+		name       string
+		caller     string
+		callee     string
+		calleePath string
+		want       bool
+	}{
+		{name: "same type under a different import alias", caller: "listing.Product", callee: "item.Product", calleePath: from, want: true},
+		{name: "same name from another package", caller: "listing.Product", callee: "listing.Product", calleePath: "example.org/other/v2", want: false},
+		{name: "different type from the same package", caller: "listing.Product", callee: "item.Other", calleePath: from, want: false},
+		{name: "numeric families still convert", caller: "maths.BigInt", callee: "maths.Decimal", calleePath: from, want: true},
+	}
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			source := &ast_domain.ResolvedTypeInfo{TypeExpression: goastutil.TypeStringToAST(testCase.caller), CanonicalPackagePath: from}
+			destination := &ast_domain.ResolvedTypeInfo{TypeExpression: goastutil.TypeStringToAST(testCase.callee)}
+			assert.Equal(t, testCase.want, isAssignableToProp(source, destination, testCase.calleePath, nil))
+		})
+	}
+}
+
+func TestIsAssignableToProp_FollowsTypeAliases(t *testing.T) {
+	const catalogue, listing, shop = "example.org/catalogue", "example.org/listing", "example.org/shop"
+	aliases := map[[2]string][2]string{
+		{listing, "Product"}: {catalogue, "Product"},
+		{shop, "Item"}:       {listing, "Product"},
+		{shop, "Loop"}:       {shop, "Loop"},
+	}
+	resolve := func(packagePath, typeName string) (string, string, bool) {
+		target, ok := aliases[[2]string{packagePath, typeName}]
+		return target[0], target[1], ok
+	}
+	tests := []struct {
+		name          string
+		sourcePackage string
+		sourceType    string
+		fieldPackage  string
+		destType      string
+		want          bool
+	}{
+		{name: "alias of the prop type", sourcePackage: listing, sourceType: "listing.Product", fieldPackage: catalogue, destType: "catalogue.Product", want: true},
+		{name: "chain of aliases", sourcePackage: shop, sourceType: "shop.Item", fieldPackage: catalogue, destType: "catalogue.Product", want: true},
+		{name: "prop declared through an alias", sourcePackage: catalogue, sourceType: "catalogue.Product", fieldPackage: listing, destType: "listing.Product", want: true},
+		{name: "unrelated type", sourcePackage: shop, sourceType: "shop.Other", fieldPackage: catalogue, destType: "catalogue.Product", want: false},
+		{name: "alias cycle ends", sourcePackage: shop, sourceType: "shop.Loop", fieldPackage: catalogue, destType: "catalogue.Product", want: false},
+	}
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			source := &ast_domain.ResolvedTypeInfo{TypeExpression: goastutil.TypeStringToAST(testCase.sourceType), CanonicalPackagePath: testCase.sourcePackage}
+			destination := &ast_domain.ResolvedTypeInfo{TypeExpression: goastutil.TypeStringToAST(testCase.destType)}
+			assert.Equal(t, testCase.want, isAssignableToProp(source, destination, testCase.fieldPackage, resolve))
+		})
+	}
+}
+
+func TestInvocationLinker_ResolveTypeAlias(t *testing.T) {
+	packages := map[string]*inspector_dto.Package{
+		"example.org/listing": {NamedTypes: map[string]*inspector_dto.Type{
+			"Product": {Name: "Product", PackagePath: "example.org/listing", TypeString: "catalogue.Product", IsAlias: true, DefinedInFilePath: "/src/listing/types.go"},
+			"Local":   {Name: "Local", PackagePath: "example.org/listing", TypeString: "Product", IsAlias: true},
+			"Plain":   {Name: "Plain", PackagePath: "example.org/listing", TypeString: "struct{}", IsAlias: false},
+		}},
+	}
+	linker := &invocationLinker{typeResolver: &TypeResolver{inspector: &inspector_domain.MockTypeQuerier{
+		GetAllPackagesFunc: func() map[string]*inspector_dto.Package { return packages },
+		ResolvePackageAliasFunc: func(alias, importerPackagePath, importerFilePath string) string {
+			if alias == "catalogue" && importerPackagePath == "example.org/listing" && importerFilePath == "/src/listing/types.go" {
+				return "example.org/catalogue"
+			}
+			return ""
+		},
+	}}}
+
+	targetPackage, targetName, ok := linker.resolveTypeAlias("example.org/listing", "Product")
+	require.True(t, ok)
+	assert.Equal(t, "example.org/catalogue", targetPackage)
+	assert.Equal(t, "Product", targetName)
+
+	targetPackage, targetName, ok = linker.resolveTypeAlias("example.org/listing", "Local")
+	require.True(t, ok, "an unqualified alias stays in its package")
+	assert.Equal(t, "example.org/listing", targetPackage)
+	assert.Equal(t, "Product", targetName)
+
+	for _, typeName := range []string{"Plain", "Missing"} {
+		_, _, ok = linker.resolveTypeAlias("example.org/listing", typeName)
+		assert.False(t, ok, typeName)
+	}
+	_, _, ok = linker.resolveTypeAlias("example.org/unknown", "Product")
+	assert.False(t, ok)
+	_, _, ok = (&invocationLinker{}).resolveTypeAlias("example.org/listing", "Product")
+	assert.False(t, ok, "a linker without an inspector resolves nothing")
 }

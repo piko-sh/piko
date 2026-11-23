@@ -33,10 +33,12 @@ import (
 )
 
 const (
-	// memoPropName is the reserved prop that carries keyed-row memoisation dependencies. The
-	// p-memo directive sets it, the renderer reads it to decide whether a row's patch can be
-	// skipped, and it is never written to the DOM.
+	// memoPropName is the reserved prop that carries keyed-row memoisation dependencies.
 	memoPropName = "_memo"
+
+	// modelPropName is the reserved prop that marks a checkbox or radio bound with p-model,
+	// whose live checked state the renderer keeps in step with the model on every patch.
+	modelPropName = "_model"
 )
 
 // buildPropsAST builds the props object for an element node.
@@ -84,8 +86,7 @@ func buildPropsAST(
 	return buildPropsObject(properties), nil
 }
 
-// collectDirectiveProps gathers directive properties from a template node. It extracts
-// _s, _class, _style, _ref and _memo directives and adds them to the properties map.
+// collectDirectiveProps gathers directive properties from a template node.
 //
 // Takes n (*ast_domain.TemplateNode) which is the template node to extract directive
 // properties from.
@@ -223,7 +224,7 @@ func collectBindProps(n *ast_domain.TemplateNode, properties map[string]js_ast.E
 //
 // Returns bool which is true when the prop is read by the renderer rather than rendered.
 func isRuntimeOnlyProp(propName string) bool {
-	return propName == memoPropName
+	return propName == memoPropName || propName == modelPropName
 }
 
 // collectEventHandlers gathers event handlers from a template node and adds them to the
@@ -379,9 +380,6 @@ func extractBaseIdentifier(expression ast_domain.Expression) string {
 
 // handleModelDirective sets up two-way data binding for the p-model directive.
 //
-// For checkbox inputs, it binds to the "checked" property and listens for the "change"
-// event. For other inputs, it binds to "value" and listens for the "input" event.
-//
 // Takes n (*ast_domain.TemplateNode) which is the template node containing the model
 // directive.
 // Takes properties (map[string]js_ast.Expr) which receives the bound property.
@@ -410,27 +408,37 @@ func handleModelDirective(
 		return nil
 	}
 
-	isCheckbox := isCheckboxInput(n)
-
-	if isCheckbox {
+	const target = "(event.originalTarget || event.target)"
+	eventName, propKey := "input", "onInput"
+	value := target + ".value"
+	switch {
+	case isInputType(n, "checkbox"):
 		properties["?checked"] = modelExpr
-	} else {
+		properties[modelPropName] = js_ast.Expr{Data: &js_ast.EBoolean{Value: true}}
+		value = target + ".checked"
+		eventName, propKey = "change", "onChange"
+	case isInputType(n, "radio"):
+		option, ok := properties["value"]
+		if !ok {
+			option = newStringLiteral("on")
+		}
+		properties["?checked"] = js_ast.Expr{Data: &js_ast.EBinary{Op: js_ast.BinOpStrictEq, Left: modelExpr, Right: option}}
+		properties[modelPropName] = js_ast.Expr{Data: &js_ast.EBoolean{Value: true}}
+		eventName, propKey = "change", "onChange"
+	default:
 		properties["value"] = modelExpr
+		if strings.EqualFold(n.TagName, "select") && (properties["multiple"].Data != nil || properties["?multiple"].Data != nil) {
+			value = target + ".multiple ? Array.from(" + target + ".selectedOptions, option => option.value) : " + value
+		}
 	}
 
 	modelExprString, err := printExpressionAt(modelExpr, registry, parsejs.OpLHS)
 	if err != nil {
 		return fmt.Errorf("printing p-model target: %w", err)
 	}
-
-	handlerBodyBlock, err := parseModelHandlerBlockForExpr(modelExprString, isCheckbox)
+	handlerBodyBlock, err := parseModelHandlerBlockForExpr(modelExprString, value)
 	if err != nil {
 		return fmt.Errorf("building p-model updater: %w", err)
-	}
-
-	eventName := "input"
-	if isCheckbox {
-		eventName = "change"
 	}
 
 	jsPropVal, err := events.createAndStoreBindingAST(
@@ -445,26 +453,24 @@ func handleModelDirective(
 		return fmt.Errorf("creating p-model event binding: %w", err)
 	}
 
-	propKey := "onInput"
-	if isCheckbox {
-		propKey = "onChange"
-	}
 	multiValueProps[propKey] = append(multiValueProps[propKey], jsPropVal)
 	return nil
 }
 
-// isCheckboxInput reports whether the node is an input element with type="checkbox".
+// isInputType reports whether the node is an input element with the requested type.
 //
 // Takes n (*ast_domain.TemplateNode) which is the template node to check.
 //
-// Returns bool which is true if the node is a checkbox input element.
-func isCheckboxInput(n *ast_domain.TemplateNode) bool {
+// Takes kind (string) which is the static input type to match.
+//
+// Returns bool which is true for a matching input.
+func isInputType(n *ast_domain.TemplateNode, kind string) bool {
 	if !strings.EqualFold(n.TagName, "input") {
 		return false
 	}
 	for attributeIndex := range n.Attributes {
 		attr := &n.Attributes[attributeIndex]
-		if strings.EqualFold(attr.Name, "type") && strings.EqualFold(attr.Value, "checkbox") {
+		if strings.EqualFold(attr.Name, "type") && strings.EqualFold(attr.Value, kind) {
 			return true
 		}
 	}
@@ -477,20 +483,15 @@ func isCheckboxInput(n *ast_domain.TemplateNode) bool {
 // The modelExprString should already include the this.$$ctx prefix from printExpression.
 //
 // Takes modelExprString (string) which specifies the model expression to update.
-// Takes isCheckbox (bool) which indicates whether to use .checked instead of .value.
+// Takes value (string) which is the JavaScript expression reading the native control.
 //
 // Returns *js_ast.SBlock which contains the parsed handler block.
 // Returns error when the snippet cannot be parsed.
-func parseModelHandlerBlockForExpr(modelExprString string, isCheckbox bool) (*js_ast.SBlock, error) {
-	targetProperty := "value"
-	if isCheckbox {
-		targetProperty = "checked"
-	}
-
+func parseModelHandlerBlockForExpr(modelExprString, value string) (*js_ast.SBlock, error) {
 	handlerSnippet := fmt.Sprintf(`
-		%s = (event.originalTarget || event.target).%s;
+		%s = %s;
 		if (this._updateFormState) this._updateFormState();
-	`, modelExprString, targetProperty)
+	`, modelExprString, value)
 	block, err := parseSnippetAsBlock(handlerSnippet)
 	if err != nil {
 		return nil, fmt.Errorf("parsing p-model updater snippet: %w", err)
@@ -629,11 +630,6 @@ func buildEventHandlerExpr(
 
 // buildActionHandler builds a handler block for a server action call.
 //
-// For v2 action calls (action.namespace.Name()), the annotator transforms the directive
-// expression into a CallExpr with the callee set to an Identifier containing just the
-// action name. Extracts the callee name (not the full expression string which would
-// incorrectly include arguments).
-//
 // Takes d (ast_domain.Directive) which contains the directive expression with the action
 // call.
 //
@@ -725,8 +721,7 @@ func parseOnCallToParts(expression string) (string, []string) {
 	return functionName, splitArgs(argumentsString)
 }
 
-// splitArgs splits a comma-separated argument string into separate parts. It respects
-// bracket nesting, so commas inside brackets do not cause a split.
+// splitArgs splits a comma-separated argument string into separate parts.
 //
 // Takes s (string) which is the comma-separated argument string to split.
 //

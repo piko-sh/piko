@@ -204,7 +204,11 @@ func sourceOrDot(source string) string {
 }
 
 // NewRecursiveFSLoader creates a new RecursiveFSLoader with the given file system and
-// patterns. Patterns are matched against file names (not paths) using filepath.Match.
+// patterns.
+//
+// The loader always walks the whole tree and matches each pattern against file names (not
+// paths) using filepath.Match. A leading "**/" is accepted and dropped, since every
+// pattern already applies at every depth.
 //
 // Takes fsys (fs.FS) which provides the file system to walk.
 // Takes patterns (...string) which specifies the glob patterns to match file names
@@ -217,7 +221,7 @@ func NewRecursiveFSLoader(fsys fs.FS, patterns ...string) *RecursiveFSLoader {
 	}
 	return &RecursiveFSLoader{
 		fsys:     fsys,
-		patterns: patterns,
+		patterns: stripRecursivePrefix(patterns),
 		source:   "",
 	}
 }
@@ -228,6 +232,12 @@ func NewRecursiveFSLoader(fsys fs.FS, patterns ...string) *RecursiveFSLoader {
 // Returns []Document which contains all successfully loaded documents.
 // Returns error when the walk fails or the context is cancelled.
 func (l *RecursiveFSLoader) Load(ctx context.Context) ([]Document, error) {
+	for _, pattern := range l.patterns {
+		if _, err := filepath.Match(pattern, ""); err != nil {
+			return nil, fmt.Errorf("loading documentation source %q: pattern %q: %w", sourceOrDot(l.source), pattern, err)
+		}
+	}
+
 	var docs []Document
 	var skipped []string
 
@@ -281,7 +291,7 @@ func (l *RecursiveFSLoader) setSource(source string) {
 func (l *RecursiveFSLoader) matchesAnyPattern(path string) bool {
 	name := filepath.Base(path)
 	for _, pattern := range l.patterns {
-		if ok, _ := filepath.Match(pattern, name); ok {
+		if ok, err := filepath.Match(pattern, name); err == nil && ok {
 			return true
 		}
 	}

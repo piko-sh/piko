@@ -17,7 +17,7 @@
 // strip others of their rights and dignity.
 
 import fragmentMorpher from '@/core/fragmentMorpher';
-import {getNodeKey} from '@/pk/getNodeKey';
+import {getNodeKey, transformRelativeKeys} from '@/pk/getNodeKey';
 import type {ModuleLoader} from '@/services/ModuleLoader';
 import type {SpriteSheetManager} from '@/services/SpriteSheetManager';
 import type {LinkHeaderParser} from '@/services/LinkHeaderParser';
@@ -60,7 +60,7 @@ function sha1(str: string): string {
     return h.toString(HASH_RADIX);
 }
 
-/** Primitive value types accepted in form data, including null/undefined for unset entries. */
+/** Represents a primitive form value or an unset entry. */
 type FormDataValue = string | number | boolean | null | undefined;
 
 /** Plain object of form data values. */
@@ -144,44 +144,6 @@ function processStyleBlocks(parsedDoc: Document, domOps: DOMOperations): void {
 }
 
 /**
- * Transforms relative p-key values in the source element tree to absolute keys
- * by replacing the source root prefix with the target container's key.
- *
- * Example:
- * - Target container has p-key="r.0:1:3:0:3:0"
- * - Source root has p-key="r.0"
- * - Source child has p-key="r.0:0:1"
- * - After transform: child has p-key="r.0:1:3:0:3:0:0:1"
- *
- * @param sourceEl - The root of the source tree.
- * @param targetEl - The target container element.
- */
-function transformRelativeKeys(sourceEl: Element, targetEl: Element): void {
-    const targetKey = targetEl.getAttribute('p-key');
-    const sourceKey = sourceEl.getAttribute('p-key');
-
-    if (!targetKey || !sourceKey) {
-        return;
-    }
-
-    const elementsWithKeys = [sourceEl, ...Array.from(sourceEl.querySelectorAll('[p-key]'))];
-
-    for (const el of elementsWithKeys) {
-        const currentKey = el.getAttribute('p-key');
-        if (!currentKey) {
-            continue;
-        }
-
-        if (currentKey === sourceKey) {
-            el.setAttribute('p-key', targetKey);
-        } else if (currentKey.startsWith(`${sourceKey}:`)) {
-            const suffix = currentKey.slice(sourceKey.length);
-            el.setAttribute('p-key', targetKey + suffix);
-        }
-    }
-}
-
-/**
  * Syncs specified attributes from the source element onto the patch target.
  *
  * @param target - The patch target with attribute sync configuration.
@@ -210,13 +172,13 @@ export interface PatchTarget {
     patchLocation?: HTMLElement;
     /** Whether to patch only children, not the root element. */
     childrenOnly?: boolean;
-    /** Method for applying the patch: 'replace' or 'morph'. */
+    /** Selects replacement or morphing. */
     patchMethod?: 'replace' | 'morph';
     /** Attributes to sync from source to target. */
     patchAttributes?: string[];
-    /** Preserve parent CSS scopes in partial attribute during morph (Level 1+). */
+    /** Keeps parent CSS scopes during a morph. */
     preservePartialScopes?: boolean;
-    /** For Level 2: only update these attributes, preserve all others. */
+    /** Limits a morph to the listed attributes when the list is nonempty. */
     ownedAttributes?: string[];
 }
 
@@ -242,9 +204,9 @@ export interface RemoteRenderOptions {
     querySelector?: string;
     /** DOM element for single-target rendering. */
     patchLocation?: HTMLElement;
-    /** Preserve parent CSS scopes in partial attribute during morph (Level 1+). */
+    /** Keeps parent CSS scopes during a morph. */
     preservePartialScopes?: boolean;
-    /** For Level 2: only update these attributes, preserve all others. */
+    /** Limits a morph to the listed attributes when the list is nonempty. */
     ownedAttributes?: string[];
 }
 
@@ -260,11 +222,11 @@ export interface RemoteRendererDependencies {
     linkHeaderParser: LinkHeaderParser;
     /** Callback invoked after DOM is updated. */
     onDOMUpdated: (root: HTMLElement) => void;
-    /** DOM operations implementation. Defaults to browser document. */
+    /** Provides DOM access and defaults to the browser document. */
     domOps?: DOMOperations;
-    /** Window operations implementation. Defaults to browser window. */
+    /** Provides window access and defaults to the browser window. */
     windowOps?: WindowOperations;
-    /** HTTP operations implementation. Defaults to browser fetch. */
+    /** Sends requests and defaults to browser fetch. */
     http?: HTTPOperations;
     /** Hook manager for analytics events. */
     hookManager?: HookManager;
@@ -343,11 +305,11 @@ function applyPatch(ctx: ApplyPatchContext): void {
 }
 
 /**
- * Finds a source element within the fetched root, falling back to the root itself.
+ * Looks for a matching descendant of the fetched root.
  *
- * @param rootEl - The root element from the fetched document.
- * @param selector - Optional CSS selector to narrow the search.
- * @returns The matched element, or the root if no selector is given.
+ * @param rootEl - The fetched root.
+ * @param selector - An optional CSS selector for the source element.
+ * @returns The match or the root when no match is found.
  */
 function findSourceElement(rootEl: Element, selector: string | undefined): Element | null {
     if (!selector) {
@@ -395,12 +357,13 @@ interface FetchContext {
 }
 
 /**
- * Fetches a remote HTML fragment, validates the response type, and processes Link headers.
+ * Requests a remote HTML fragment and applies its Link headers. A successful response
+ * without fragment support triggers a page reload.
  *
- * @param fullUrl - The fully qualified URL to fetch.
- * @param options - Render options containing optional form data.
- * @param ctx - Fetch dependencies.
- * @returns The HTML string, or null if the fetch failed or response type was unexpected.
+ * @param fullUrl - The URL to fetch.
+ * @param options - Render options that can supply form data for a POST.
+ * @param ctx - The request, header parsing and page reload dependencies.
+ * @returns A promise for the HTML or null if the response fails or lacks support.
  */
 async function fetchFragment(fullUrl: string, options: RemoteRenderOptions, ctx: FetchContext): Promise<string | null> {
     const fetchOptions: RequestInit = {method: 'GET'};
@@ -450,11 +413,11 @@ interface ApplyRenderTargetsDeps {
 }
 
 /**
- * Reload modules that were already cached by the module loader, triggering
- * their page-context callbacks so that newly rendered partials are wired up.
+ * Loads document modules and reruns page-context callbacks for cached modules.
  *
- * @param parsedDoc - The parsed document containing module script elements.
- * @param moduleLoader - The module loader to query and reload through.
+ * @param parsedDoc - The document that contains the module scripts.
+ * @param moduleLoader - The loader that identifies cached scripts.
+ * @returns A promise for the document load. Cached callbacks run independently.
  */
 async function reloadCachedModules(parsedDoc: Document, moduleLoader: ModuleLoader): Promise<void> {
     const moduleScripts = parsedDoc.querySelectorAll('script[type="module"]');
@@ -479,13 +442,12 @@ async function reloadCachedModules(parsedDoc: Document, moduleLoader: ModuleLoad
 }
 
 /**
- * Iterate the patch targets, locate the corresponding source elements in the
- * fetched document, apply patches, and emit lifecycle hooks.
+ * Patches render targets and emits lifecycle hooks.
  *
- * @param targets - The list of patch targets to process.
- * @param rootEl - The root element of the fetched document.
- * @param options - The remote render options for this request.
- * @param deps - Shared dependencies from the factory closure.
+ * @param targets - The patch destinations.
+ * @param rootEl - The fetched content.
+ * @param options - The request URL and default patch settings.
+ * @param deps - DOM operations and lifecycle hooks.
  */
 function applyRenderTargets(
     targets: PatchTarget[],
@@ -542,9 +504,10 @@ export function createRemoteRenderer(deps: RemoteRendererDependencies): RemoteRe
     const renderTargetDeps: ApplyRenderTargetsDeps = {onDOMUpdated, domOps, hookManager};
 
     /**
-     * Fetches remote content and patches it into the DOM at configured targets.
+     * Fetches a same-origin HTML fragment and patches the configured targets.
      *
-     * @param options - The remote render options specifying source and targets.
+     * @param options - The fragment URL and patch targets.
+     * @returns A promise that resolves after patching or skipping the request.
      */
     async function render(options: RemoteRenderOptions): Promise<void> {
         const fullUrl = buildRemoteUrl(options.src, options.args ?? {});

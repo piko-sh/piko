@@ -272,6 +272,8 @@ func TestShouldSkipEscaping(t *testing.T) {
 
 		{name: "string primitive NEEDS escaping", typeName: "string", stringability: inspector_dto.StringablePrimitive, want: false},
 		{name: "rune primitive NEEDS escaping", typeName: "rune", stringability: inspector_dto.StringablePrimitive, want: false},
+		{name: "dynamic map value", typeName: "any", stringability: inspector_dto.StringablePrimitive, want: false},
+		{name: "named primitive may hold text", typeName: "Label", stringability: inspector_dto.StringablePrimitive, want: false},
 
 		{name: "Stringer interface", typeName: "MyType", stringability: inspector_dto.StringableViaStringer, want: false},
 		{name: "TextMarshaler", typeName: "MyType", stringability: inspector_dto.StringableViaTextMarshaler, want: false},

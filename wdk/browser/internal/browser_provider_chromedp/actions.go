@@ -161,7 +161,7 @@ func pollForClickableElement(ctx context.Context, selector string) (clickablePos
 
 		select {
 		case <-ctx.Done():
-			return clickablePosition{}, fmt.Errorf("timed out waiting for element %s to become clickable", selector)
+			return clickablePosition{}, fmt.Errorf("timed out waiting for element %s to become clickable: %w", selector, context.Cause(ctx))
 		case <-ticker.C:
 		}
 	}
@@ -589,7 +589,9 @@ func WaitForSelector(ctx *ActionContext, selector string, timeout time.Duration)
 				selector, timeout, currentURL, bodyHTML, lastErr)
 		}
 
-		<-ticker.C
+		if err := waitForTick(ctx.Ctx, ticker); err != nil {
+			return fmt.Errorf("waiting for selector %q: %w", selector, err)
+		}
 	}
 }
 
@@ -616,7 +618,9 @@ func WaitForText(ctx *ActionContext, selector, text string, timeout time.Duratio
 			return fmt.Errorf("timed out waiting for text '%s' in '%s'", text, selector)
 		}
 
-		<-ticker.C
+		if err := waitForTick(ctx.Ctx, ticker); err != nil {
+			return fmt.Errorf("waiting for text %q in %q: %w", text, selector, err)
+		}
 	}
 }
 
@@ -831,7 +835,9 @@ func WaitForPartialReload(ctx *ActionContext, partialName string, timeout time.D
 			return fmt.Errorf("timed out waiting for partial '%s' to finish loading", partialName)
 		}
 
-		<-ticker.C
+		if err := waitForTick(ctx.Ctx, ticker); err != nil {
+			return fmt.Errorf("waiting for partial %q to finish loading: %w", partialName, err)
+		}
 	}
 }
 
@@ -852,7 +858,8 @@ func WaitForVisible(ctx *ActionContext, selector string, timeout time.Duration) 
 // Takes selector (string) which identifies the element to wait for.
 // Takes timeout (time.Duration) which sets the maximum wait time.
 //
-// Returns error when the element remains visible after the timeout expires.
+// Returns error when the element remains visible after the timeout expires, the
+// visibility lookup keeps failing until then, or ctx ends.
 func WaitForNotVisible(ctx *ActionContext, selector string, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
 	ticker := time.NewTicker(DefaultPollingInterval)
@@ -860,15 +867,20 @@ func WaitForNotVisible(ctx *ActionContext, selector string, timeout time.Duratio
 
 	for {
 		visible, err := IsElementVisible(ctx.Ctx, selector)
-		if err != nil || !visible {
+		if err == nil && !visible {
 			return nil
 		}
 
 		if time.Now().After(deadline) {
+			if err != nil {
+				return fmt.Errorf("timed out waiting for '%s' to become hidden after %v: %w", selector, timeout, err)
+			}
 			return fmt.Errorf("timed out waiting for '%s' to become hidden after %v", selector, timeout)
 		}
 
-		<-ticker.C
+		if err := waitForTick(ctx.Ctx, ticker); err != nil {
+			return fmt.Errorf("waiting for %q to become hidden: %w", selector, err)
+		}
 	}
 }
 
@@ -912,7 +924,9 @@ func WaitForDisabled(ctx *ActionContext, selector string, timeout time.Duration)
 			return fmt.Errorf("timed out waiting for '%s' to be disabled after %v (element exists but enabled)", selector, timeout)
 		}
 
-		<-ticker.C
+		if err := waitForTick(ctx.Ctx, ticker); err != nil {
+			return fmt.Errorf("waiting for %q to be disabled: %w", selector, err)
+		}
 	}
 }
 
@@ -928,17 +942,27 @@ func WaitForNotPresent(ctx *ActionContext, selector string, timeout time.Duratio
 	ticker := time.NewTicker(DefaultPollingInterval)
 	defer ticker.Stop()
 
+	var lookupErr error
 	for {
-		exists := ElementExists(ctx.Ctx, selector)
-		if !exists {
+		count, err := countElements(ctx.Ctx, selector)
+		if ctx.Ctx.Err() != nil {
+			return fmt.Errorf("waiting for %q to be removed from DOM: %w", selector, context.Cause(ctx.Ctx))
+		}
+		if err == nil && count == 0 {
 			return nil
 		}
+		lookupErr = err
 
 		if time.Now().After(deadline) {
+			if lookupErr != nil {
+				return fmt.Errorf("timed out waiting for '%s' to be removed from DOM after %v: %w", selector, timeout, lookupErr)
+			}
 			return fmt.Errorf("timed out waiting for '%s' to be removed from DOM after %v", selector, timeout)
 		}
 
-		<-ticker.C
+		if err := waitForTick(ctx.Ctx, ticker); err != nil {
+			return fmt.Errorf("waiting for %q to be removed from DOM: %w", selector, err)
+		}
 	}
 }
 
@@ -965,6 +989,25 @@ func submitInShadowDOM(ctx context.Context, selector string) error {
 		return fmt.Errorf("no form found in shadow DOM: %s", selector)
 	}
 	return nil
+}
+
+// waitForTick waits for a tick or cancellation.
+//
+// Prior cancellation takes precedence over a tick.
+//
+// Takes ticker (*time.Ticker) which paces the poll loop.
+//
+// Returns error which is the cause of ctx ending, or nil when the ticker fired.
+func waitForTick(ctx context.Context, ticker *time.Ticker) error {
+	if ctx.Err() != nil {
+		return context.Cause(ctx)
+	}
+	select {
+	case <-ctx.Done():
+		return context.Cause(ctx)
+	case <-ticker.C:
+		return nil
+	}
 }
 
 // getBodyPreview returns a truncated preview of the page body for diagnostics.
@@ -1028,6 +1071,8 @@ func waitForBoolCondition(
 			return fmt.Errorf("timed out waiting for '%s' to be %s after %v (%s)", selector, conditionDesc, timeout, existsButFalseDesc)
 		}
 
-		<-ticker.C
+		if err := waitForTick(ctx.Ctx, ticker); err != nil {
+			return fmt.Errorf("waiting for %q to be %s: %w", selector, conditionDesc, err)
+		}
 	}
 }

@@ -23,6 +23,8 @@
     <h1>{{ state.Title }}</h1>
     <p>The message is: {{ state.Message }}</p>
     <p>Request Path: {{ request.URL().Path }}</p>
+    <p p-text="state.Values['label'] ?? 'fallback'"></p>
+    <p>Label: {{ state.Values['label'] }}</p>
   </div>
 </template>
 
@@ -34,12 +36,14 @@ import "piko.sh/piko"
 type Response struct {
 	Title   string
 	Message string
+	Values  map[string]any
 }
 
 func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
 	return Response{
 		Title:   "Dynamic Page Title",
 		Message: "This content comes from the interpreted Go Render function.",
+		Values:  map[string]any{"label": "<text> & more"},
 	}, piko.Metadata{}, nil
 }
 </script>

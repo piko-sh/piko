@@ -33,11 +33,11 @@
 //	    Tags  []string `form:"tags"`
 //	}
 //
-//	err := binder.Bind(&form, r.Form)
+//	err := binder.Bind(ctx, &form, request.Form)
 //
 // Per-call options override global defaults:
 //
-//	err := binder.Bind(&form, data,
+//	err := binder.Bind(ctx, &form, data,
 //	    binder.IgnoreUnknownKeys(true),
 //	    binder.WithMaxFieldCount(500),
 //	)

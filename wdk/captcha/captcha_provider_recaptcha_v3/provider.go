@@ -20,6 +20,7 @@ package captcha_provider_recaptcha_v3
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"time"
 
@@ -27,6 +28,7 @@ import (
 	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/captcha/captcha_dto"
 	"piko.sh/piko/wdk/captcha/captcha_provider_recaptcha_v3/scripts"
+	"piko.sh/piko/wdk/logger"
 )
 
 const (
@@ -35,11 +37,18 @@ const (
 
 	// providerName names reCAPTCHA in verification errors.
 	providerName = "recaptcha"
+
+	// testKeyHostname is the hostname Google reports for tokens issued by its test keys.
+	testKeyHostname = "testkey.google.com"
 )
 
 // recaptchaVerifyResult represents the JSON response from the Google reCAPTCHA v3
 // siteverify endpoint.
 type recaptchaVerifyResult struct {
+	// Score is the risk score between 0.0 (likely bot) and 1.0 (likely human), or nil when
+	// the response carries no score.
+	Score *float64 `json:"score"`
+
 	// Action is the action name that was passed when the token was generated.
 	Action string `json:"action"`
 
@@ -51,9 +60,6 @@ type recaptchaVerifyResult struct {
 
 	// ErrorCodes contains reCAPTCHA-specific error codes when verification fails.
 	ErrorCodes []string `json:"error-codes"`
-
-	// Score is the risk score between 0.0 (likely bot) and 1.0 (likely human).
-	Score float64 `json:"score"`
 
 	// Success indicates whether the token verification passed.
 	Success bool `json:"success"`
@@ -101,6 +107,12 @@ func newProvider(config Config, endpoint string, options ...Option) (*provider, 
 		return nil, err
 	}
 
+	if config.TestKeyScore != nil {
+		log.Warn("reCAPTCHA test key score is set; never use it with production keys",
+			logger.Float64("test_key_score", *config.TestKeyScore),
+		)
+	}
+
 	return &provider{
 		config: config,
 		client: siteverify.NewClient(providerName, endpoint, options...),
@@ -140,7 +152,9 @@ func (p *provider) ScriptURL() string {
 //
 // Returns *captcha_dto.VerifyResponse which contains the verification result including
 // the risk score.
-// Returns error when the HTTP request fails or the response cannot be parsed.
+// Returns error when the HTTP request fails or the response cannot be parsed, or one
+// wrapping ErrScoreMissing when a successful response carries no score and no test key
+// score applies.
 func (p *provider) Verify(ctx context.Context, request *captcha_dto.VerifyRequest) (*captcha_dto.VerifyResponse, error) {
 	ctx, span := tracer.Start(ctx, "captcha_provider_recaptcha_v3.Verify")
 	defer span.End()
@@ -164,20 +178,36 @@ func (p *provider) Verify(ctx context.Context, request *captcha_dto.VerifyReques
 		return nil, err
 	}
 
-	return buildVerifyResponse(recaptchaResult), nil
+	return buildVerifyResponse(recaptchaResult, p.config.TestKeyScore, request.Action)
 }
 
 // buildVerifyResponse converts the provider-specific response into the standard
 // VerifyResponse.
 //
 // Takes result (recaptchaVerifyResult) which is the raw reCAPTCHA API response.
+// Takes testKeyScore (*float64) which is the score to report for a successful test key
+// response without a score, or nil to reject such a response.
+// Takes requestedAction (string) which supplies the action omitted by a response verified
+// with the test key fallback.
 //
 // Returns *captcha_dto.VerifyResponse which contains the normalised result.
-func buildVerifyResponse(result recaptchaVerifyResult) *captcha_dto.VerifyResponse {
+// Returns error which wraps ErrScoreMissing when a successful response has no score and
+// no test key score applies.
+func buildVerifyResponse(result recaptchaVerifyResult, testKeyScore *float64, requestedAction string) (*captcha_dto.VerifyResponse, error) {
+	score, usedTestKey, err := resolveScore(result, testKeyScore)
+	if err != nil {
+		return nil, err
+	}
+
+	action := result.Action
+	if usedTestKey {
+		action = requestedAction
+	}
+
 	response := &captcha_dto.VerifyResponse{
 		Success:    result.Success,
-		Score:      new(normaliseScore(result.Success, result.Score)),
-		Action:     result.Action,
+		Score:      new(score),
+		Action:     action,
 		ErrorCodes: result.ErrorCodes,
 		Hostname:   result.Hostname,
 		Timestamp:  time.Time{},
@@ -190,21 +220,45 @@ func buildVerifyResponse(result recaptchaVerifyResult) *captcha_dto.VerifyRespon
 		}
 	}
 
-	return response
+	return response, nil
 }
 
-// normaliseScore ensures the score follows the convention where 0.0 = bot and 1.0 =
-// human, returning 1.0 when verification succeeded but the score is zero (which happens
-// with Google's test keys) since a successful verification cannot be a confirmed bot.
+// resolveScore returns the score to report for a verification response, where 0.0 means a
+// bot and 1.0 means a human.
 //
-// Takes success (bool) which indicates whether the verification passed.
-// Takes score (float64) which is the raw reCAPTCHA risk score.
+// A successful response without a score is rejected, because treating a missing score as
+// confident would let any token that verifies pass every threshold. Google's test keys
+// omit the score, so testKeyScore supplies one, but only for a response from the test key
+// hostname. A response using a v2 secret without a score still fails.
 //
-// Returns float64 which is the normalised score.
-func normaliseScore(success bool, score float64) float64 {
-	if success && score == 0 {
-		return 1.0
+// Takes result (recaptchaVerifyResult) which is the raw reCAPTCHA API response.
+// Takes testKeyScore (*float64) which is the score for a successful test key response
+// without a score, or nil to reject such a response.
+//
+// Returns float64 which is the score clamped to the range 0.0 to 1.0.
+// Returns bool which is true when the score came from testKeyScore.
+// Returns error which wraps ErrScoreMissing and captcha_dto.ErrProviderMisconfigured when
+// a successful response has no score and no test key score applies.
+func resolveScore(result recaptchaVerifyResult, testKeyScore *float64) (float64, bool, error) {
+	switch {
+	case result.Score != nil:
+		return clampScore(*result.Score), false, nil
+	case !result.Success:
+		return 0, false, nil
+	case testKeyScore != nil && result.Hostname == testKeyHostname:
+		return clampScore(*testKeyScore), true, nil
+	default:
+		return 0, false, fmt.Errorf("%s verification succeeded without a score: %w: %w",
+			providerName, ErrScoreMissing, captcha_dto.ErrProviderMisconfigured)
 	}
+}
+
+// clampScore limits a score to the range 0.0 to 1.0.
+//
+// Takes score (float64) which is the raw score.
+//
+// Returns float64 which is the clamped score.
+func clampScore(score float64) float64 {
 	return max(0.0, min(1.0, score))
 }
 

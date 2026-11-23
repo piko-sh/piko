@@ -1,41 +1,36 @@
 new Promise((resolve, reject) => {
     const idleDuration = {{.IdleDuration}};
     const timeout = {{.Timeout}};
-    let lastRequestTime = Date.now();
-    let checkCount = 0;
-    const maxChecks = timeout / 100;
+    const startTime = Date.now();
 
-    // Track pending requests
-    let pendingRequests = 0;
-
-    const originalFetch = window.__originalFetch || window.fetch;
-    if (!window.__originalFetch) {
-        window.__originalFetch = window.fetch;
+    if (!window.__pikoNetworkIdle) {
+        const state = { pending: 0, lastRequestTime: Date.now() };
+        const originalFetch = window.fetch;
+        window.__pikoNetworkIdle = state;
         window.fetch = async function(...args) {
-            pendingRequests++;
-            lastRequestTime = Date.now();
+            state.pending++;
+            state.lastRequestTime = Date.now();
             try {
                 return await originalFetch.apply(this, args);
             } finally {
-                pendingRequests--;
-                lastRequestTime = Date.now();
+                state.pending--;
+                state.lastRequestTime = Date.now();
             }
         };
     }
+    const state = window.__pikoNetworkIdle;
 
     const check = () => {
-        checkCount++;
-        if (checkCount > maxChecks) {
+        const timeSinceLastRequest = Date.now() - state.lastRequestTime;
+        if (state.pending === 0 && timeSinceLastRequest >= idleDuration) {
+            resolve(true);
+            return;
+        }
+        if (Date.now() - startTime >= timeout) {
             reject(new Error('timeout waiting for network idle'));
             return;
         }
-
-        const timeSinceLastRequest = Date.now() - lastRequestTime;
-        if (pendingRequests === 0 && timeSinceLastRequest >= idleDuration) {
-            resolve(true);
-        } else {
-            setTimeout(check, 100);
-        }
+        setTimeout(check, Math.min(100, idleDuration || 100));
     };
 
     check();

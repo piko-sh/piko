@@ -155,7 +155,7 @@ func createOtterVectorStore(t *testing.T, dimension int, metric string) *vector_
 
 	cacheService := cache_domain.NewService("otter")
 
-	return vector_cache.New(func(ns string, namespaceConfig *llm_domain.VectorNamespaceConfig) (cache_domain.Cache[string, llm_dto.VectorDocument], error) {
+	return vector_cache.New(func(ctx context.Context, ns string, namespaceConfig *llm_domain.VectorNamespaceConfig) (cache_domain.Cache[string, llm_dto.VectorDocument], error) {
 		m := metric
 		if namespaceConfig != nil && namespaceConfig.Metric != "" {
 			m = string(namespaceConfig.Metric)
@@ -173,7 +173,7 @@ func createOtterVectorStore(t *testing.T, dimension int, metric string) *vector_
 			Namespace(ns).
 			MaximumEntries(100000).
 			Searchable(schema).
-			Build(context.Background())
+			Build(ctx)
 	})
 }
 
@@ -208,14 +208,14 @@ func createRedisVectorStore(t *testing.T, dimension int) *vector_cache.Store {
 		return cache_provider_redis.RedisProviderFactory[string, llm_dto.VectorDocument](provider, ns, opts)
 	})
 
-	return vector_cache.New(func(ns string, namespaceConfig *llm_domain.VectorNamespaceConfig) (cache_domain.Cache[string, llm_dto.VectorDocument], error) {
+	return vector_cache.New(func(ctx context.Context, ns string, namespaceConfig *llm_domain.VectorNamespaceConfig) (cache_domain.Cache[string, llm_dto.VectorDocument], error) {
 		return cache_domain.NewCacheBuilder[string, llm_dto.VectorDocument](cacheService).
 			FactoryBlueprint(bp).
 			Namespace(ns).
 			Searchable(cache_dto.NewSearchSchema(
 				cache_dto.VectorFieldWithMetric("Vector", dimension, string(namespaceConfig.Metric)),
 			)).
-			Build(context.Background())
+			Build(ctx)
 	})
 }
 
@@ -250,14 +250,14 @@ func createValkeyVectorStore(t *testing.T, dimension int) *vector_cache.Store {
 		return cache_provider_valkey.ValkeyProviderFactory[string, llm_dto.VectorDocument](provider, ns, opts)
 	})
 
-	return vector_cache.New(func(ns string, namespaceConfig *llm_domain.VectorNamespaceConfig) (cache_domain.Cache[string, llm_dto.VectorDocument], error) {
+	return vector_cache.New(func(ctx context.Context, ns string, namespaceConfig *llm_domain.VectorNamespaceConfig) (cache_domain.Cache[string, llm_dto.VectorDocument], error) {
 		return cache_domain.NewCacheBuilder[string, llm_dto.VectorDocument](cacheService).
 			FactoryBlueprint(bp).
 			Namespace(ns).
 			Searchable(cache_dto.NewSearchSchema(
 				cache_dto.VectorFieldWithMetric("Vector", dimension, string(namespaceConfig.Metric)),
 			)).
-			Build(context.Background())
+			Build(ctx)
 	})
 }
 
@@ -275,7 +275,7 @@ func createOtterHybridVectorStore(t *testing.T) *vector_cache.Store {
 
 	cacheService := cache_domain.NewService("otter")
 
-	return vector_cache.New(func(ns string, namespaceConfig *llm_domain.VectorNamespaceConfig) (cache_domain.Cache[string, llm_dto.VectorDocument], error) {
+	return vector_cache.New(func(ctx context.Context, ns string, namespaceConfig *llm_domain.VectorNamespaceConfig) (cache_domain.Cache[string, llm_dto.VectorDocument], error) {
 		dim := 0
 		if namespaceConfig != nil && namespaceConfig.Dimension > 0 {
 			dim = namespaceConfig.Dimension
@@ -291,7 +291,7 @@ func createOtterHybridVectorStore(t *testing.T) *vector_cache.Store {
 			Namespace(ns).
 			MaximumEntries(100000).
 			Searchable(schema).
-			Build(context.Background())
+			Build(ctx)
 	})
 }
 

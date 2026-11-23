@@ -44,16 +44,18 @@ const (
 // Takes params (*protocol.DidChangeWatchedFilesParams) which contains the list of file
 // change events to process.
 //
-// Returns error when processing fails (currently always returns nil).
+// Returns error which is nil.
 //
-// Runs analysis for changed files using a bounded worker pool to prevent resource
-// exhaustion. Uses the server context so analysis stops during shutdown.
+// Concurrency: Uses a bounded worker pool tied to the server context.
 func (s *Server) DidChangeWatchedFiles(ctx context.Context, params *protocol.DidChangeWatchedFilesParams) error {
 	ctx, l := logger_domain.From(ctx, log)
 
 	l.Debug("DidChangeWatchedFiles", logger_domain.Int("changes", len(params.Changes)))
 
-	changedURIs, hasGoFileChange, hasStructuralChange := classifyFileChanges(ctx, params.Changes)
+	s.mu.Lock()
+	root := s.moduleRoot
+	s.mu.Unlock()
+	changedURIs, hasGoFileChange, hasStructuralChange := classifyFileChanges(ctx, root, params.Changes)
 
 	if hasGoFileChange || hasStructuralChange {
 		s.workspace.resetScopedAnalysisCache()
@@ -78,20 +80,21 @@ func (s *Server) DidChangeWatchedFiles(ctx context.Context, params *protocol.Did
 // classifyFileChanges categorises watched file changes into Go file changes, structural
 // changes (create/delete), and non-Go changed URIs needing re-analysis.
 //
-// Takes changes ([]*protocol.FileEvent) which contains the file change events to
-// classify.
+// Takes root (string) which is the workspace directory used to exclude build output.
+// Takes changes ([]*protocol.FileEvent) which contains the file events to classify.
 //
-// Returns changedURIs ([]protocol.DocumentURI) which holds non-Go changed URIs.
-// Returns hasGoFileChange (bool) which is true when a Go source file changed.
-// Returns hasStructuralChange (bool) which is true when files were created or deleted.
-func classifyFileChanges(ctx context.Context, changes []*protocol.FileEvent) (changedURIs []protocol.DocumentURI, hasGoFileChange, hasStructuralChange bool) {
+// Returns changedURIs ([]protocol.DocumentURI) which contains changed non-Go files and
+// modified Go test files.
+// Returns hasGoFileChange (bool) which reports whether a non-test Go file was modified.
+// Returns hasStructuralChange (bool) which reports whether files were created or deleted.
+func classifyFileChanges(ctx context.Context, root string, changes []*protocol.FileEvent) (changedURIs []protocol.DocumentURI, hasGoFileChange, hasStructuralChange bool) {
 	_, l := logger_domain.From(ctx, log)
 	for _, change := range changes {
 		l.Debug("File change", logger_domain.String(keyURI, change.URI.Filename()), logger_domain.Int("type", int(change.Type)))
 
 		filename := change.URI.Filename()
 
-		if isIgnoredWatchPath(filename) {
+		if isIgnoredWatchPath(root, filename) {
 			l.Debug("Ignoring change in build output directory",
 				logger_domain.String(keyURI, filename))
 			continue
@@ -116,14 +119,19 @@ func classifyFileChanges(ctx context.Context, changes []*protocol.FileEvent) (ch
 	return changedURIs, hasGoFileChange, hasStructuralChange
 }
 
-// isIgnoredWatchPath returns true for paths inside build output directories that should
-// not trigger re-analysis.
+// isIgnoredWatchPath reports whether a path lies inside workspace build output.
 //
-// Takes filename (string) which is the file path to check.
+// Takes root (string) which is the workspace directory, or empty when unknown.
+// Takes filename (string) which is the changed file path.
 //
-// Returns bool which is true for paths inside build output directories.
-func isIgnoredWatchPath(filename string) bool {
-	normalised := filepath.ToSlash(filename)
+// Returns bool which is true for paths within .piko or dist directories.
+func isIgnoredWatchPath(root, filename string) bool {
+	if root != "" {
+		if rel, err := filepath.Rel(root, filename); err == nil && filepath.IsLocal(rel) {
+			filename = rel
+		}
+	}
+	normalised := "/" + filepath.ToSlash(filename)
 
 	return strings.Contains(normalised, "/"+config.PikoInternalPath+"/") ||
 		strings.Contains(normalised, "/dist/")
@@ -155,7 +163,7 @@ func (*Server) DidChangeWorkspaceFolders(ctx context.Context, params *protocol.D
 //
 // Returns error when the configuration update fails.
 //
-// Safe for concurrent use. Uses a mutex to protect configuration updates.
+// Concurrency: Safe for concurrent use. Uses a mutex to protect configuration updates.
 func (s *Server) DidChangeConfiguration(ctx context.Context, _ *protocol.DidChangeConfigurationParams) error {
 	_, l := logger_domain.From(ctx, log)
 
@@ -168,16 +176,15 @@ func (s *Server) DidChangeConfiguration(ctx context.Context, _ *protocol.DidChan
 	return nil
 }
 
-// ExecuteCommand handles requests to run a custom command.
+// ExecuteCommand schedules a diagnostic refresh for open documents.
+//
+// A bounded worker pool runs the refresh until it finishes or the server shuts down.
 //
 // Takes params (*protocol.ExecuteCommandParams) which specifies the command name and its
 // arguments.
 //
 // Returns any which is a status message describing the result.
 // Returns error when the command is not recognised.
-//
-// Uses a bounded worker pool when refreshing diagnostics to prevent resource exhaustion.
-// Uses the server context so analysis stops during shutdown.
 func (s *Server) ExecuteCommand(ctx context.Context, params *protocol.ExecuteCommandParams) (any, error) {
 	_, l := logger_domain.From(ctx, log)
 
@@ -254,8 +261,8 @@ func (s *Server) searchGoSymbols(queryLower string) []protocol.SymbolInformation
 // Returns []protocol.SymbolInformation which contains all matching symbols found across
 // open documents.
 //
-// Safe for concurrent use. Takes a read lock on the workspace documents map before
-// copying.
+// Concurrency: Safe for concurrent use. Takes a read lock on the workspace documents map
+// before copying.
 func (s *Server) searchPKDocuments(queryLower string) []protocol.SymbolInformation {
 	s.workspace.mu.RLock()
 	docs := make(map[protocol.DocumentURI]*document)
@@ -591,7 +598,7 @@ func buildContainerName(packageName, containerName string) string {
 // zero-based line and character offsets.
 func buildSymbolLocation(filePath string, line, column int, name string) protocol.Location {
 	return protocol.Location{
-		URI: protocol.DocumentURI("file://" + filePath),
+		URI: documentURIForPath(filePath),
 		Range: protocol.Range{
 			Start: protocol.Position{
 				Line:      safeconv.IntToUint32(line - 1),

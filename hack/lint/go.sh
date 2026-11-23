@@ -37,7 +37,7 @@ BUILD_TAGS=""
 # All custom build tags used in the project. Platform tags (linux, darwin,
 # windows) and Go version tags (go1.25) are excluded since they are handled
 # automatically by the toolchain.
-readonly ALL_BUILD_TAGS="integration,vips,ffmpeg,bench,fuzz,smoke"
+readonly ALL_BUILD_TAGS="integration,vips,ffmpeg,bench,fuzz,fuzzintegration,smoke"
 
 # Array of every module path listed in go.work.
 WORKSPACE_MODULES=()
@@ -208,14 +208,25 @@ contains_element() {
 }
 
 # owning_module prints the workspace module that contains a package directory, choosing
-# the deepest module whose path is a prefix of the directory.
+# the deepest module whose path is a prefix of the directory, or nothing when the
+# directory's own module is not listed in go.work.
 # Globals:
+#   PIKO_ROOT - Read
 #   WORKSPACE_MODULES - Read
 # Arguments:
 #   $1 - Package directory relative to PIKO_ROOT (e.g. ./internal/colour)
 owning_module() {
     local dir="$1"
     local best=""
+
+    local nearest="$dir"
+    while [[ "$nearest" != "." && "$nearest" != "/" && ! -f "${PIKO_ROOT}/${nearest}/go.mod" ]]; do
+        nearest=$(dirname "$nearest")
+    done
+    if [[ "$nearest" != "." ]] && ! contains_element "$nearest" "${WORKSPACE_MODULES[@]}"; then
+        echo ""
+        return
+    fi
 
     local mod_path
     for mod_path in "${WORKSPACE_MODULES[@]}"; do

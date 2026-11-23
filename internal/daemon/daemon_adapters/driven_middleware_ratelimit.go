@@ -249,7 +249,7 @@ func (*rateLimitMiddleware) setRateLimitHeaders(w http.ResponseWriter, result ra
 	h[headerRateLimitReset] = []string{strconv.FormatInt(result.ResetAt.Unix(), 10)}
 
 	if !result.Allowed {
-		h[headerRetryAfter] = []string{strconv.Itoa(int(result.RetryAfter.Seconds()))}
+		h[headerRetryAfter] = []string{strconv.Itoa(retryAfterSeconds(result.RetryAfter))}
 	}
 }
 
@@ -343,4 +343,15 @@ func (m *rateLimitMiddleware) resolveClientAddress(r *http.Request) string {
 	}
 
 	return security_dto.RateLimitClientAddress(r)
+}
+
+// retryAfterSeconds converts a wait into a Retry-After value in whole seconds. It rounds
+// up and never returns less than one, because a value of zero tells clients to retry
+// immediately while the limit still applies.
+//
+// Takes wait (time.Duration) which is how long the caller must wait.
+//
+// Returns int which is the wait in seconds, at least one.
+func retryAfterSeconds(wait time.Duration) int {
+	return max(int((wait+time.Second-1)/time.Second), 1)
 }

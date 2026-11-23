@@ -55,7 +55,7 @@ import { action } from "/_piko/assets/pk-js/pk/actions.gen.js";
             return {"value": "real"};
         }
         connectedCallback () {
-            this.init(instance.call(this, this));
+            if (!this.$$ctx) this.init(instance.call(this, this));
             super.connectedCallback();
         }
         renderVDOM () {

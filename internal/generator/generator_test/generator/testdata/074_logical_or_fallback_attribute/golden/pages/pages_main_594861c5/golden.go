@@ -89,7 +89,12 @@ func BuildAST(r *piko.RequestData, propsData interface{}) (*pikoruntime.Template
 	tempVar3.Children = tempVar5Slice
 	tempVar6 := arena.GetDirectWriter()
 	tempVar6.SetName("data-value")
-	tempVar6.AppendEscapeString(pikoruntime.EvaluateOr(pageData.EmptyString, "or-fallback").(string))
+	tempVar6.AppendEscapeString(func() any {
+		if value := any(pageData.EmptyString); pikoruntime.EvaluateTruthiness(value) {
+			return value
+		}
+		return "or-fallback"
+	}().(string))
 	tempVar3.AttributeWriters = append(tempVar3.AttributeWriters, tempVar6)
 	tempVar3.Children = append(tempVar3.Children, staticNode_3)
 	tempVar1.Children = append(tempVar1.Children, tempVar3)
@@ -120,7 +125,12 @@ func BuildAST(r *piko.RequestData, propsData interface{}) (*pikoruntime.Template
 	tempVar11.Children = tempVar13Slice
 	tempVar14 := arena.GetDirectWriter()
 	tempVar14.SetName("data-value")
-	tempVar14.AppendEscapeString(pikoruntime.EvaluateOr(pageData.ValidString, "or-fallback").(string))
+	tempVar14.AppendEscapeString(func() any {
+		if value := any(pageData.ValidString); pikoruntime.EvaluateTruthiness(value) {
+			return value
+		}
+		return "or-fallback"
+	}().(string))
 	tempVar11.AttributeWriters = append(tempVar11.AttributeWriters, tempVar14)
 	tempVar11.Children = append(tempVar11.Children, staticNode_6)
 	tempVar1.Children = append(tempVar1.Children, tempVar11)
@@ -151,7 +161,17 @@ func BuildAST(r *piko.RequestData, propsData interface{}) (*pikoruntime.Template
 	tempVar19.Children = tempVar21Slice
 	tempVar22 := arena.GetDirectWriter()
 	tempVar22.SetName("data-value")
-	tempVar22.AppendEscapeString(pikoruntime.EvaluateOr(pageData.EmptyString, pikoruntime.EvaluateOr(pageData.AlsoEmpty, "final-fallback").(string)).(string))
+	tempVar22.AppendEscapeString(func() any {
+		if value := any(pageData.EmptyString); pikoruntime.EvaluateTruthiness(value) {
+			return value
+		}
+		return func() any {
+			if value := any(pageData.AlsoEmpty); pikoruntime.EvaluateTruthiness(value) {
+				return value
+			}
+			return "final-fallback"
+		}().(string)
+	}().(string))
 	tempVar19.AttributeWriters = append(tempVar19.AttributeWriters, tempVar22)
 	tempVar19.Children = append(tempVar19.Children, staticNode_9)
 	tempVar1.Children = append(tempVar1.Children, tempVar19)
@@ -180,7 +200,12 @@ func BuildAST(r *piko.RequestData, propsData interface{}) (*pikoruntime.Template
 	tempVar27.AttributeWriters = tempVar28Slice
 	tempVar29 := arena.GetDirectWriter()
 	tempVar29.SetName("src")
-	tempVar29.AppendEscapeString(pikoruntime.EvaluateOr(pageData.EmptyImageURL, "/fallback/image.png").(string))
+	tempVar29.AppendEscapeString(func() any {
+		if value := any(pageData.EmptyImageURL); pikoruntime.EvaluateTruthiness(value) {
+			return value
+		}
+		return "/fallback/image.png"
+	}().(string))
 	tempVar27.AttributeWriters = append(tempVar27.AttributeWriters, tempVar29)
 	tempVar1.Children = append(tempVar1.Children, tempVar27)
 	// line pages/main.pk:39
@@ -209,7 +234,12 @@ func BuildAST(r *piko.RequestData, propsData interface{}) (*pikoruntime.Template
 	tempVar36.SetName("data-value")
 	tempVar36.AppendEscapeString(func() string {
 		if pageData.IsActive {
-			return pikoruntime.EvaluateOr(pageData.EmptyString, "default-value").(string)
+			return func() any {
+				if value := any(pageData.EmptyString); pikoruntime.EvaluateTruthiness(value) {
+					return value
+				}
+				return "default-value"
+			}().(string)
 		} else {
 			return "inactive"
 		}
@@ -245,7 +275,12 @@ func BuildAST(r *piko.RequestData, propsData interface{}) (*pikoruntime.Template
 	tempVar41.TagName = "p"
 	tempVar41.Attributes = staticAttrs_12
 	tempVar42 := arena.GetDirectWriter()
-	tempVar42.AppendEscapeString(pikoruntime.EvaluateOr(pageData.EmptyString, "Text fallback via ||").(string))
+	tempVar42.AppendEscapeString(func() any {
+		if value := any(pageData.EmptyString); pikoruntime.EvaluateTruthiness(value) {
+			return value
+		}
+		return "Text fallback via ||"
+	}().(string))
 	tempVar41.TextContentWriter = tempVar42
 	tempVar1.Children = append(tempVar1.Children, tempVar41)
 	// line pages/main.pk:47

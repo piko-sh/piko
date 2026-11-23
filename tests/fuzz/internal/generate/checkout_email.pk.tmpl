@@ -1,0 +1,8 @@
+<template><pml-container><pml-row><pml-col><pml-p p-text="props.Line"></pml-p></pml-col></pml-row></pml-container></template>
+<script type="application/x-go">
+package main
+import ("piko.sh/piko"; "example.org/pikofuzzcase/pkg/invoice")
+func Render(r *piko.RequestData, props invoice.Order) (piko.NoResponse, piko.Metadata, error) {
+	return piko.NoResponse{}, piko.Metadata{Title:"Order "+props.SKU}, nil
+}
+</script>

@@ -502,7 +502,7 @@ func (d *document) findPartialDefinitionByName(partialName string) ([]protocol.L
 			for _, vc := range d.AnnotationResult.VirtualModule.ComponentsByHash {
 				if vc.Source != nil && strings.HasSuffix(vc.Source.SourcePath, imp.Path+".pk") {
 					return []protocol.Location{{
-						URI:   protocol.DocumentURI("file://" + vc.Source.SourcePath),
+						URI:   documentURIForPath(vc.Source.SourcePath),
 						Range: protocol.Range{},
 					}}, nil
 				}
@@ -540,7 +540,7 @@ func (d *document) findPartialFileByName(ctx context.Context, partialName string
 						logger_domain.String("alias", partialName),
 						logger_domain.String("path", vc.Source.SourcePath))
 					return []protocol.Location{{
-						URI:   protocol.DocumentURI("file://" + vc.Source.SourcePath),
+						URI:   documentURIForPath(vc.Source.SourcePath),
 						Range: protocol.Range{},
 					}}, nil
 				}

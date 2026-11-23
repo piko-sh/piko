@@ -87,7 +87,7 @@ describe('partial (PK Server Partials)', () => {
 
             await partial('custom-src').reload();
 
-            expect(mockFetch).toHaveBeenCalledWith('/api/partials/custom?_f=true');
+            expect(mockFetch).toHaveBeenCalledWith('/api/partials/custom?_f=true', expect.objectContaining({signal: expect.any(AbortSignal)}));
         });
 
         it('should throw when no partial_src is set', async () => {
@@ -306,6 +306,66 @@ describe('partial (PK Server Partials)', () => {
 
             expect(mockFetch).toHaveBeenCalledTimes(3);
             expect(partialEl.querySelector('p')?.textContent).toBe('Call 3');
+        });
+    });
+
+    describe('overlapping reloads', () => {
+        it('applies only the newest response when an older one arrives last', async () => {
+            const pending: Array<(html: string) => void> = [];
+            const signals: AbortSignal[] = [];
+            mockFetch.mockImplementation((_url: string, init?: RequestInit) => {
+                signals.push(init!.signal!);
+                return Promise.resolve({
+                    ok: true,
+                    text: () => new Promise<string>(resolve => pending.push(resolve))
+                });
+            });
+
+            const partialEl = document.createElement('div');
+            partialEl.setAttribute('partial_name', 'racing');
+            partialEl.setAttribute('partial_src', '/_piko/partials/racing');
+            testContainer.appendChild(partialEl);
+            const handle = partial('racing');
+
+            const older = handle.reload();
+            const newer = handle.reload();
+            await vi.waitFor(() => expect(pending).toHaveLength(2));
+            expect(signals[0].aborted).toBe(true);
+            expect(signals[1].aborted).toBe(false);
+
+            pending[1](wrap('<div><p>Newer</p></div>'));
+            await newer;
+            pending[0](wrap('<div><p>Older</p></div>'));
+            await older;
+
+            expect(partialEl.querySelector('p')?.textContent).toBe('Newer');
+            expect(partialEl.classList.contains('pk-loading')).toBe(false);
+        });
+
+        it('keeps the loading state until the newest reload finishes', async () => {
+            const pending: Array<(html: string) => void> = [];
+            mockFetch.mockImplementation(() => Promise.resolve({
+                ok: true,
+                text: () => new Promise<string>(resolve => pending.push(resolve))
+            }));
+
+            const partialEl = document.createElement('div');
+            partialEl.setAttribute('partial_name', 'loading-race');
+            partialEl.setAttribute('partial_src', '/_piko/partials/loading-race');
+            testContainer.appendChild(partialEl);
+            const handle = partial('loading-race');
+
+            const older = handle.reload();
+            const newer = handle.reload();
+            await vi.waitFor(() => expect(pending).toHaveLength(2));
+
+            pending[0](wrap('<div><p>Older</p></div>'));
+            await older;
+            expect(partialEl.classList.contains('pk-loading')).toBe(true);
+
+            pending[1](wrap('<div><p>Newer</p></div>'));
+            await newer;
+            expect(partialEl.classList.contains('pk-loading')).toBe(false);
         });
     });
 
@@ -628,6 +688,26 @@ describe('partial (PK Server Partials)', () => {
     });
 
     describe('getNodeKey adoption (shared with RemoteRenderer)', () => {
+        it('retains a projected row when a standalone response uses relative keys', async () => {
+            const partialEl = document.createElement('div');
+            partialEl.setAttribute('partial_name', 'catalog');
+            partialEl.setAttribute('partial_src', '/catalog');
+            partialEl.setAttribute('p-key', 'r.0:3');
+            partialEl.innerHTML = '<span p-key="r.0:3:0.sku">before</span>';
+            testContainer.appendChild(partialEl);
+            const row = partialEl.firstElementChild;
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                text: () => Promise.resolve(wrap('<div partial_name="catalog" p-key="r.0"><span p-key="r.0:0.sku">after</span></div>'))
+            });
+
+            await partial('catalog').reload();
+
+            expect(partialEl.firstElementChild).toBe(row);
+            expect(row?.textContent).toBe('after');
+            expect(partialEl.getAttribute('p-key')).toBe('r.0:3');
+        });
+
         it('should reorder keyed children rather than destroy and recreate them', async () => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
@@ -758,7 +838,7 @@ describe('partial (PK Server Partials)', () => {
 
             await partial('opts-nodata').reloadWithOptions({});
 
-            expect(mockFetch).toHaveBeenCalledWith('/api/content?_f=true');
+            expect(mockFetch).toHaveBeenCalledWith('/api/content?_f=true', expect.objectContaining({signal: expect.any(AbortSignal)}));
         });
 
         it('should add and remove loading state during reloadWithOptions', async () => {
@@ -824,7 +904,7 @@ describe('partial (PK Server Partials)', () => {
 
             await partial('src-only').reload();
 
-            expect(mockFetch).toHaveBeenCalledWith('https://cdn.example.com/partials/widget?_f=true');
+            expect(mockFetch).toHaveBeenCalledWith('https://cdn.example.com/partials/widget?_f=true', expect.objectContaining({signal: expect.any(AbortSignal)}));
         });
 
         it('should append query params to partial_src', async () => {

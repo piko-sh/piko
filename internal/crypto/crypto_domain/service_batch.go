@@ -499,10 +499,10 @@ func (s *cryptoService) decryptDataKeyWithCache(ctx context.Context, encryptedKe
 
 	zeroBytes(plaintextKey)
 
-	if s.dataKeyCache != nil {
+	if cache != nil {
 		cacheKey, cloneErr := secureKey.Clone()
 		if cloneErr == nil {
-			_ = s.dataKeyCache.Set(ctx, encryptedKey, cacheKey)
+			_ = cache.Set(ctx, encryptedKey, cacheKey)
 		}
 	}
 

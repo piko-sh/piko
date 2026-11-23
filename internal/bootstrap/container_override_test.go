@@ -210,7 +210,7 @@ func TestServiceGetterOverrideContract(t *testing.T) {
 				c.csrfServiceOverride = s
 				return s
 			},
-			callGetter: func(c *Container) (any, error) { return c.GetCSRFService(), nil },
+			callGetter: func(c *Container) (any, error) { return c.GetCSRFService() },
 		},
 		{
 			name: "PMLTransformer",

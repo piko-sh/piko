@@ -25,10 +25,8 @@ const PREFIX_PE_LENGTH = 3;
 /** Length of the 'on' event prefix. */
 const PREFIX_ON_LENGTH = 2;
 
-/**
- * Reserved prop names that have special handling.
- */
-export const RESERVED_PROPS = ['_k', '_c', '_s', '_memo', 'class', '_class', 'style', '_style'] as const;
+/** Lists virtual DOM props that are handled outside ordinary attribute updates. */
+export const RESERVED_PROPS = ['_k', '_c', '_s', '_memo', '_model', 'class', '_class', 'style', '_style'] as const;
 
 /**
  * Union of reserved prop name literals.

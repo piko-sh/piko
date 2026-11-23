@@ -25,7 +25,6 @@ import (
 	"strings"
 
 	protocol "github.com/politepixels/golang-language-server"
-	"go.lsp.dev/uri"
 	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
@@ -790,7 +789,7 @@ func (d *document) getTemplateTagHover(ctx *PKHoverContext) (*protocol.Hover, er
 
 	vc := d.findCurrentComponent()
 	if vc != nil && vc.VirtualGoFilePath != "" {
-		_, _ = fmt.Fprintf(&b, "\n[Open generated file](%s)\n", uri.File(vc.VirtualGoFilePath))
+		_, _ = fmt.Fprintf(&b, "\n[Open generated file](%s)\n", documentURIForPath(vc.VirtualGoFilePath))
 	}
 
 	return &protocol.Hover{
@@ -1077,10 +1076,10 @@ func extractPartialName(importPath string) string {
 // paths.
 func appendComponentLinks(b *strings.Builder, vc *annotator_dto.VirtualComponent) {
 	if vc.Source != nil && vc.Source.SourcePath != "" {
-		_, _ = fmt.Fprintf(b, "\n[Open source file](%s)\n", uri.File(vc.Source.SourcePath))
+		_, _ = fmt.Fprintf(b, "\n[Open source file](%s)\n", documentURIForPath(vc.Source.SourcePath))
 	}
 	if vc.VirtualGoFilePath != "" {
-		_, _ = fmt.Fprintf(b, "\n[Open generated file](%s)\n", uri.File(vc.VirtualGoFilePath))
+		_, _ = fmt.Fprintf(b, "\n[Open generated file](%s)\n", documentURIForPath(vc.VirtualGoFilePath))
 	}
 }
 

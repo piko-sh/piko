@@ -18,11 +18,6 @@
 
 // Package tui provides a terminal user interface for monitoring Piko applications.
 //
-// This package is the public facade for Piko's TUI subsystem. It displays real-time
-// information about registry artefacts, orchestrator tasks, metrics, traces, health
-// status, and system statistics. The TUI connects to a running Piko instance via its gRPC
-// monitoring endpoint.
-//
 // # Quick start
 //
 // The TUI connects to your Piko application's gRPC monitoring endpoint:
@@ -52,10 +47,8 @@
 //   - [WithTitle]: set the TUI title bar text
 //   - [WithConfig]: apply settings from a Config value
 //
-// Configuration can also be loaded from a tui.yaml file using [LoadConfig], which checks
-// ./tui.yaml and $HOME/.config/piko/tui.yaml. PIKO_TUI_* environment variables override
-// file values. The TUI's loader uses the same generic config_domain machinery exposed at
-// piko.sh/piko/wdk/config.
+// [LoadConfig] reads tui.yaml from the project or $HOME/.config/piko. Project settings
+// override user settings. PIKO_TUI_* variables override both.
 //
 // # Custom panels and providers
 //
@@ -85,6 +78,6 @@
 //
 // # Thread safety
 //
-// A [TUI] instance must not be shared between goroutines. Call [TUI.Run] from a single
-// goroutine; it blocks until the user exits or the context is cancelled.
+// Use each [TUI] from a single goroutine. [TUI.Run] blocks until the user exits or the
+// context is cancelled.
 package tui

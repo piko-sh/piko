@@ -120,9 +120,10 @@ var (
 	// configured vector store.
 	ErrVectorStoreNotConfigured = errors.New("vector store is not configured")
 
-	// ErrInvalidVector reports a vector that cannot be stored in its namespace. The vector
-	// may be empty, have the wrong dimension, or have zero magnitude where cosine similarity
-	// is used.
+	// ErrInvalidVector reports a vector that fails namespace validation.
+	//
+	// Vectors need the configured dimension, finite values and representable magnitude. An
+	// empty vector or a zero-magnitude cosine vector fails validation.
 	ErrInvalidVector = errors.New("vector cannot be stored in the namespace")
 
 	// retryableStatusCodes contains HTTP status codes that indicate transient failures worth

@@ -830,7 +830,7 @@ func (p *Page) Close() {
 	}
 
 	if p.incognitoPage != nil {
-		_ = p.incognitoPage.CloseContext()
+		_ = p.incognitoPage.Close()
 	}
 
 	if p.outputSandbox != nil {
@@ -974,7 +974,7 @@ func (p *Page) recreatePage() error {
 	}
 
 	if p.incognitoPage != nil {
-		_ = p.incognitoPage.CloseContext()
+		_ = p.incognitoPage.Close()
 		p.incognitoPage = nil
 	}
 

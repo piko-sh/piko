@@ -216,6 +216,7 @@ type mockCache struct {
 	mu                sync.RWMutex
 	getIfPresentCalls int
 	setCalls          int
+	closeCalls        int
 }
 
 func newMockCache() *mockCache {
@@ -361,7 +362,12 @@ func (c *mockCache) EstimatedSize() int {
 
 func (c *mockCache) Stats() cache_dto.Stats { return cache_dto.Stats{} }
 
-func (c *mockCache) Close(_ context.Context) error { return nil }
+func (c *mockCache) Close(_ context.Context) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.closeCalls++
+	return nil
+}
 
 func (c *mockCache) GetMaximum() uint64 { return 0 }
 

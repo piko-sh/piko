@@ -60,6 +60,9 @@ type Option func(*settings)
 
 // settings collects the values the options set.
 type settings struct {
+	// transport sends the requests, or nil for the default transport.
+	transport http.RoundTripper
+
 	// timeout bounds one verification call.
 	timeout time.Duration
 
@@ -71,17 +74,18 @@ type settings struct {
 //
 // Takes provider (string) which names the provider in error messages.
 // Takes endpoint (string) which is the siteverify URL.
-// Takes options (...Option) which override the timeout and response size limit.
+// Takes options (...Option) which override the timeout, the response size limit and the
+// transport.
 //
 // Returns *Client which is ready for use.
 func NewClient(provider, endpoint string, options ...Option) *Client {
-	configured := settings{timeout: DefaultTimeout, maxResponseBytes: DefaultMaxResponseBytes}
+	configured := settings{transport: nil, timeout: DefaultTimeout, maxResponseBytes: DefaultMaxResponseBytes}
 	for _, option := range options {
 		option(&configured)
 	}
 
 	return &Client{
-		httpClient:       &http.Client{Timeout: configured.timeout},
+		httpClient:       &http.Client{Timeout: configured.timeout, Transport: configured.transport},
 		provider:         provider,
 		endpoint:         endpoint,
 		maxResponseBytes: configured.maxResponseBytes,
@@ -120,6 +124,20 @@ func (c *Client) readBody(response *http.Response) ([]byte, error) {
 	}
 
 	return body, nil
+}
+
+// WithTransport sends verification requests through transport instead of the default
+// transport, for example to route through a proxy or to isolate the calls in tests.
+//
+// Takes transport (http.RoundTripper) which sends requests or is nil to keep the default.
+//
+// Returns Option which applies the transport.
+func WithTransport(transport http.RoundTripper) Option {
+	return func(s *settings) {
+		if transport != nil {
+			s.transport = transport
+		}
+	}
 }
 
 // WithTimeout bounds each verification call, including reading the response.

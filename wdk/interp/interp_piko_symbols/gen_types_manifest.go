@@ -5,7 +5,7 @@
 package interp_piko_symbols
 
 // typesExportGoVersion is the toolchain that produced the embedded export data.
-const typesExportGoVersion = "go1.27.1"
+const typesExportGoVersion = "go1.27.0"
 
 // typesExportEntry describes one embedded gcexportdata blob.
 type typesExportEntry struct {
@@ -21,9 +21,10 @@ type typesExportEntry struct {
 
 // typesExportManifest lists every embedded blob sorted by import path.
 var typesExportManifest = []typesExportEntry{
-	{Path: "piko.sh/piko", File: "gen_types_export/piko.sh_piko.bin.gz", Dependencies: []string{"piko.sh/piko/wdk/logger", "piko.sh/piko/wdk/runtime"}},
+	{Path: "piko.sh/piko", File: "gen_types_export/piko.sh_piko.bin.gz", Dependencies: []string{"piko.sh/piko/wdk/logger", "piko.sh/piko/wdk/maths", "piko.sh/piko/wdk/runtime"}},
 	{Path: "piko.sh/piko/wdk/binder", File: "gen_types_export/piko.sh_piko_wdk_binder.bin.gz"},
 	{Path: "piko.sh/piko/wdk/logger", File: "gen_types_export/piko.sh_piko_wdk_logger.bin.gz"},
+	{Path: "piko.sh/piko/wdk/maths", File: "gen_types_export/piko.sh_piko_wdk_maths.bin.gz"},
 	{Path: "piko.sh/piko/wdk/runtime", File: "gen_types_export/piko.sh_piko_wdk_runtime.bin.gz", Dependencies: []string{"piko.sh/piko/wdk/logger", "piko.sh/safeconv"}},
 	{Path: "piko.sh/safeconv", File: "gen_types_export/piko.sh_safeconv.bin.gz"},
 }

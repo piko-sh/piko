@@ -21,6 +21,8 @@ package provider_otter
 import (
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestInvertedIndex_SearchScored_SingleTerm(t *testing.T) {
@@ -493,5 +495,27 @@ func TestInvertedIndex_SearchScored_DefaultIsAND(t *testing.T) {
 	explicitAnd := index.SearchScored("hello world", WithTermMatch(TermMatchAll))
 	if len(explicitAnd) != 1 {
 		t.Errorf("explicit AND: expected 1 result, got %d", len(explicitAnd))
+	}
+}
+
+func TestInvertedIndex_SearchScored_TiesFollowIndexingOrder(t *testing.T) {
+	idx := NewInvertedIndex[string]()
+	keys := []string{"delta", "alpha", "charlie", "bravo", "echo"}
+	for _, key := range keys {
+		idx.Add(key, []string{"same words"})
+	}
+	idx.Remove("charlie")
+	idx.Add("charlie", []string{"same words"})
+
+	want := []string{"delta", "alpha", "bravo", "echo", "charlie"}
+	for _, match := range []TermMatch{TermMatchAll, TermMatchAny} {
+		for range 20 {
+			results := idx.SearchScored("same words", WithTermMatch(match))
+			got := make([]string, 0, len(results))
+			for _, result := range results {
+				got = append(got, result.Key)
+			}
+			require.Equal(t, want, got, "equal scores rank in indexing order, with a re-added key last")
+		}
 	}
 }

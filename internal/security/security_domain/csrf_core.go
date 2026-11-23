@@ -20,14 +20,11 @@ package security_domain
 
 import (
 	"bytes"
-	"crypto/hmac"
 	"crypto/rand"
-	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"hash"
 	"strconv"
 	"strings"
 	"sync"
@@ -104,11 +101,6 @@ var (
 			return new(make([]byte, csrfEphemeralTokenBytes))
 		},
 	}
-
-	// hmacPool reuses HMAC-SHA256 instances to avoid per-request allocation. Reset() clears
-	// internal state but preserves the application-wide immutable secret key, making reuse
-	// safe.
-	hmacPool sync.Pool
 )
 
 // getRandomBytes gets a byte slice from the pool for random data.
@@ -133,53 +125,6 @@ func putRandomBytes(bufferPointer *[]byte) {
 	}
 	clear(*bufferPointer)
 	randomBytesPool.Put(bufferPointer)
-}
-
-// initialiseHMACPool sets up the HMAC pool with the given secret key. Must be called once
-// during service setup, before any CSRF operations.
-//
-// Takes secretKey ([]byte) which is the secret key used to sign tokens.
-func initialiseHMACPool(secretKey []byte) {
-	hmacPool = sync.Pool{
-		New: func() any {
-			return hmac.New(sha256.New, secretKey)
-		},
-	}
-}
-
-// resetHMACPoolForTesting clears the HMAC pool. Only for use in tests to ensure that
-// tests using different secret keys create fresh HMAC instances.
-func resetHMACPoolForTesting() {
-	hmacPool = sync.Pool{}
-}
-
-// getHMAC retrieves a pooled HMAC-SHA256 instance ready for use. The caller must call
-// putHMAC after use.
-//
-// Returns hash.Hash which is the HMAC instance, or nil if the pool has not been
-// initialised or the type assertion fails.
-func getHMAC() hash.Hash {
-	if hmacPool.New == nil {
-		return nil
-	}
-	h, ok := hmacPool.Get().(hash.Hash)
-	if !ok {
-		return nil
-	}
-	return h
-}
-
-// putHMAC returns an HMAC instance to the pool after resetting it. Safe to call even if
-// the pool is not set up (will do nothing).
-//
-// Takes h (hash.Hash) which is the HMAC to return.
-// Takes pooled (bool) which shows whether h came from the pool.
-func putHMAC(h hash.Hash, pooled bool) {
-	if h == nil || !pooled {
-		return
-	}
-	h.Reset()
-	hmacPool.Put(h)
 }
 
 // generateCSRFEphemeralToken creates a secure random token for CSRF protection.
@@ -232,24 +177,15 @@ func buildCSRFPayload(buffer *bytes.Buffer, cookieToken string, binderValue stri
 // signCSRFPayload creates an HMAC-SHA256 signature for the given payload.
 //
 // Takes payload ([]byte) which is the data to sign.
-// Takes secretKey ([]byte) which is the key used for signing.
+// Takes signer (*csrfSigner) which holds the signing key.
 //
 // Returns string which is the base64 URL-encoded signature, shortened for storage.
-// Returns error when the secret key is empty.
-func signCSRFPayload(payload []byte, secretKey []byte) (string, error) {
-	if len(secretKey) == 0 {
+// Returns error when the signer is nil.
+func signCSRFPayload(payload []byte, signer *csrfSigner) (string, error) {
+	if signer == nil {
 		return "", errMissingSecret
 	}
-	mac := getHMAC()
-	pooled := mac != nil
-	if !pooled {
-		mac = hmac.New(sha256.New, secretKey)
-	}
-	_, _ = mac.Write(payload)
-	fullSignature := mac.Sum(nil)
-	putHMAC(mac, pooled)
-	truncatedSignature := fullSignature[:signatureLengthBytes]
-	return base64.RawURLEncoding.EncodeToString(truncatedSignature), nil
+	return base64.RawURLEncoding.EncodeToString(signer.sum(payload)), nil
 }
 
 // appendCSRFSignatureToBuffer computes the HMAC signature and writes it to the buffer.
@@ -258,22 +194,14 @@ func signCSRFPayload(payload []byte, secretKey []byte) (string, error) {
 //
 // Takes buffer (*bytes.Buffer) which receives the encoded signature.
 // Takes payload ([]byte) which is the data to sign.
-// Takes secretKey ([]byte) which is the HMAC secret key.
+// Takes signer (*csrfSigner) which holds the signing key.
 //
-// Returns error when the secret key is empty.
-func appendCSRFSignatureToBuffer(buffer *bytes.Buffer, payload []byte, secretKey []byte) error {
-	if len(secretKey) == 0 {
+// Returns error when the signer is nil or the encoding pool misbehaves.
+func appendCSRFSignatureToBuffer(buffer *bytes.Buffer, payload []byte, signer *csrfSigner) error {
+	if signer == nil {
 		return errMissingSecret
 	}
-	mac := getHMAC()
-	pooled := mac != nil
-	if !pooled {
-		mac = hmac.New(sha256.New, secretKey)
-	}
-	_, _ = mac.Write(payload)
-	fullSignature := mac.Sum(nil)
-	putHMAC(mac, pooled)
-	truncatedSignature := fullSignature[:signatureLengthBytes]
+	truncatedSignature := signer.sum(payload)
 
 	bufferPointer, ok := b64BufPool.Get().(*[]byte)
 	if !ok {
@@ -329,15 +257,12 @@ func parseSignedCSRFPayload(signedPayloadString string) (csrfPayloadParts, error
 //
 // Takes payloadToVerify ([]byte) which is the data that was signed.
 // Takes signatureProvided (string) which is the signature to check.
-// Takes secretKey ([]byte) which is the key used for HMAC signing.
+// Takes signer (*csrfSigner) which holds the signing key.
 //
 // Returns bool which is true if the signature is valid.
-// Returns error when the secret key is empty or signing fails.
-func verifyCSRFSignature(payloadToVerify []byte, signatureProvided string, secretKey []byte) (bool, error) {
-	if len(secretKey) == 0 {
-		return false, errMissingSecret
-	}
-	expectedSignature, err := signCSRFPayload(payloadToVerify, secretKey)
+// Returns error when the signer is nil or signing fails.
+func verifyCSRFSignature(payloadToVerify []byte, signatureProvided string, signer *csrfSigner) (bool, error) {
+	expectedSignature, err := signCSRFPayload(payloadToVerify, signer)
 	if err != nil {
 		return false, fmt.Errorf("security: error recomputing signature for verification: %w", err)
 	}

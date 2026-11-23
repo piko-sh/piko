@@ -42,8 +42,7 @@ func TestInitialSeed_SkipsWritesWhenRegistryBlobsReadOnly(t *testing.T) {
 		registryService:       registry,
 	}
 
-	ls.upsertAssetArtefact(fileEventContext{
-		ctx:        t.Context(),
+	ls.upsertAssetArtefact(t.Context(), fileEvent{
 		relPath:    "assets/icons/search.svg",
 		artefactID: "example.com/assets/icons/search.svg",
 		event: lifecycle_dto.FileEvent{
