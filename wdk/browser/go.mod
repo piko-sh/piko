@@ -30,7 +30,7 @@ require (
 	github.com/stretchr/testify v1.12.1
 	go.uber.org/goleak v1.3.0
 	piko.sh/json v0.1.1
-	piko.sh/piko v0.0.0
+	piko.sh/piko v0.0.0-alpha.46
 	piko.sh/safedisk v0.3.0
 )
 

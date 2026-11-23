@@ -13,8 +13,8 @@ require (
 	golang.org/x/sync v0.25.0
 	piko.sh/goastutil v0.2.0
 	piko.sh/json v0.1.1
-	piko.sh/piko v0.0.0
-	piko.sh/piko/wdk/json/json_provider_sonic v0.0.0
+	piko.sh/piko v0.0.0-alpha.46
+	piko.sh/piko/wdk/json/json_provider_sonic v0.0.0-alpha.46
 	piko.sh/safeconv v0.1.0
 	piko.sh/safedisk v0.3.0
 )
