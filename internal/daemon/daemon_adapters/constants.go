@@ -85,6 +85,9 @@ const (
 	// headerLink is the HTTP header name for link relations.
 	headerLink = "Link"
 
+	// headerSetCookie is the HTTP header name that sets a cookie in the browser.
+	headerSetCookie = "Set-Cookie"
+
 	// encodingBrotli is the Content-Encoding header value for Brotli compression.
 	encodingBrotli = "br"
 
@@ -95,151 +98,148 @@ const (
 	// responses are served immediately but must be revalidated.
 	jitCacheControl = "public, max-age=0, must-revalidate"
 
-	// cacheControlNoCache forces ETag revalidation on every request. Used when
-	// DisableHTTPCache is true (dev mode).
+	// cacheControlNoCache forces ETag revalidation on every request.
+	//
+	// It is used for every response when DisableHTTPCache is true (dev mode), and in every
+	// mode for assets whose URL stays the same across releases. These are the unversioned
+	// framework bundle URLs, the runtime recovery script and theme.css. A cached copy of
+	// those must never outlive a deploy, because a page from the new build would then run
+	// old bytes, or the browser would block a copy whose hash no longer matches the page,
+	// leaving the page without its scripts or styles.
 	cacheControlNoCache = "public, no-cache"
 
 	// cacheControlMutableAsset is the prod Cache-Control for assets that change when a
-	// project is updated (theme, sitemaps, robots.txt, HLS playlists, embedded frontend).
-	// Fresh for one hour, stale-while-revalidate for one day.
+	// project is updated but that no page pins by hash (sitemaps, robots.txt, HLS playlists,
+	// images served by ID). Fresh for one hour, stale-while-revalidate for one day.
 	cacheControlMutableAsset = "public, max-age=3600, stale-while-revalidate=86400"
 
+	// weakETagPrefix marks an entity tag as weak. If-None-Match uses weak comparison, so the
+	// prefix is ignored when matching.
+	weakETagPrefix = "W/"
+
+	// entityTagQuote opens and closes the opaque part of an entity tag. It cannot appear
+	// inside the tag, so the next one always ends it.
+	entityTagQuote = `"`
+	// ifNoneMatchAny is the If-None-Match value that matches any current representation.
+	ifNoneMatchAny = '*'
+	// ifNoneMatchSeparators are the characters allowed between the entity tags in an
+	// If-None-Match list.
+	ifNoneMatchSeparators = " \t,"
 	// cacheControlImmutable is the prod Cache-Control for content-addressed assets, whose
 	// URL names their own bytes so revalidation can never yield a different answer.
 	cacheControlImmutable = "public, max-age=31536000, immutable"
-
+	// cacheControlPrivateNoCache is the default Cache-Control for HTML that Piko renders for
+	// each request. This covers pages, fragments, partials, error pages and redirects.
+	//
+	// Such a response can hold one user's content and CSRF tokens, so a shared cache such as
+	// a CDN must not store it, and a browser must ask the server before it reuses its copy.
+	cacheControlPrivateNoCache = "private, no-cache"
+	// cacheControlNoStore is the default Cache-Control for action responses. They answer one
+	// user's call and can carry personal data, so no cache may store them.
+	cacheControlNoStore = "no-store"
+	// staticPageCacheControlFormat is the Cache-Control for a page from the static page
+	// cache.
+	//
+	// The %d is the page's MaxAgeSeconds, which only a shared cache such as a CDN uses. A
+	// browser must revalidate the page before every reuse.
+	staticPageCacheControlFormat = "public, max-age=0, s-maxage=%d, must-revalidate"
 	// contentTypeJSON is the MIME type for JSON content in HTTP responses.
 	contentTypeJSON = "application/json"
-
 	// contentTypeHTML is the MIME type for HTML content with UTF-8 encoding.
 	contentTypeHTML = "text/html; charset=utf-8"
-
 	// contentTypeMPEGURL is the MIME type for HLS playlist responses.
 	contentTypeMPEGURL = "application/x-mpegURL"
-
 	// contentTypeTextPlain is the MIME type for plain text responses.
 	contentTypeTextPlain = "text/plain; charset=utf-8"
-
 	// contentTypeCSS is the MIME type for CSS files with UTF-8 encoding.
 	contentTypeCSS = "text/css; charset=utf-8"
-
+	// contentTypeJavaScript is the content type of JavaScript written by the server itself,
+	// such as the module that re-exports a versioned bundle.
+	contentTypeJavaScript = "text/javascript; charset=utf-8"
 	// contentTypeXML is the MIME type for XML content with UTF-8 encoding.
 	contentTypeXML = "application/xml; charset=utf-8"
-
 	// errMessageInternalServer is the error message returned to clients for internal server
 	// errors.
 	errMessageInternalServer = "Internal Server Error"
-
 	// methodGET is the HTTP GET method string.
 	methodGET = "GET"
-
 	// methodPOST is the HTTP POST method used for page and partial routes.
 	methodPOST = "POST"
-
 	// variantSource is the variant identifier for original source content.
 	variantSource = "source"
-
 	// hlsVariantPrefix is the prefix added to quality names to form HLS variant IDs.
 	hlsVariantPrefix = "hls_"
-
 	// hlsDefaultSegmentDuration is the default duration in seconds for HLS segments.
 	hlsDefaultSegmentDuration = 10.0
-
 	// logFieldQuality is the log field key for video quality level.
 	logFieldQuality = "quality"
-
 	// logFieldChunkID is the log field key for chunk identifiers.
 	logFieldChunkID = "chunkID"
-
 	// msgVariantNotFound is the log message used when a video variant cannot be found.
 	msgVariantNotFound = "Variant not found"
-
 	// logFieldPath is the log field key for request URL paths.
 	logFieldPath = "path"
-
 	// logFieldMethod is the log field key for the HTTP request method.
 	logFieldMethod = "method"
-
 	// logFieldArtefactID is the log field key for artefact identifiers.
 	logFieldArtefactID = "artefactID"
-
 	// logFieldVariantID is the log field key for variant IDs.
 	logFieldVariantID = "variantID"
-
 	// logFieldError is the key for error messages in structured logging.
 	logFieldError = "error"
-
 	// logFieldURL is the logging field key for the request URL.
 	logFieldURL = "url"
-
 	// logFieldOriginalPath is the log field key for the original template path.
 	logFieldOriginalPath = "originalPath"
-
 	// logFieldRoutePattern is the log field key for the URL route pattern.
 	logFieldRoutePattern = "routePattern"
-
 	// logFieldChiPattern is the log field key for the chi-translated route pattern (e.g.
 	// "/docs/*" derived from "/docs/{slug:.+}").
 	logFieldChiPattern = "chiPattern"
-
 	// logFieldLocale is the log field key for the request locale.
 	logFieldLocale = "locale"
-
 	// logFieldI18nStrategy is the log field key for the i18n routing strategy.
 	logFieldI18nStrategy = "i18nStrategy"
-
 	// logFieldIsE2EOnly is the log field key indicating whether a route is only registered
 	// when e2e mode is enabled.
 	logFieldIsE2EOnly = "isE2EOnly"
-
 	// logFieldActionCount is the log field key for the number of actions.
 	logFieldActionCount = "actionCount"
-
 	// logFieldActionName is the log field key for the action name.
 	logFieldActionName = "actionName"
-
 	// logFieldBytesWritten is the log field key for the number of bytes written.
 	logFieldBytesWritten = "bytesWritten"
-
 	// logFieldSelectedVar is the span attribute key for the selected variant name.
 	logFieldSelectedVar = "selectedVariant"
-
 	// logFieldETagMatch is the tracing attribute key that records whether the client's ETag
 	// matched the cached resource.
 	logFieldETagMatch = "etagMatch"
-
 	// logFieldContentEnc is the log field key for content encoding.
 	logFieldContentEnc = "contentEncoding"
-
 	// logFieldHandler is the log field key for the handler name.
 	logFieldHandler = "handler"
-
 	// logFieldRouter is the log field key for HTTP router operations.
 	logFieldRouter = "router"
-
 	// logFieldHTTPBuilder is the log field name for HTTPRouterBuilder entries.
 	logFieldHTTPBuilder = "HTTPRouterBuilder"
-
 	// logFieldCacheFile is the log field value for the cache middleware file.
 	logFieldCacheFile = "driven_middleware_cache.go"
-
 	// logFieldHTTPFile is the file name used for log field identification in HTTP handlers.
 	logFieldHTTPFile = "driven_http.go"
-
 	// logFieldHTTPRouterFile is the filename used in structured log entries for HTTP router
 	// operations.
 	logFieldHTTPRouterFile = "driven_http_router.go"
-
 	// logFieldProfileName is the log field key for the image profile name.
 	logFieldProfileName = "profileName"
-
 	// headerXCacheStatus is the canonical MIME form of the cache status header.
 	headerXCacheStatus = "X-Cache-Status"
-
 	// headerXPPResponseSupport is the canonical MIME form of the response support
 	// negotiation header. CanonicalMIMEHeaderKey("X-PP-Response-Support") lowercases "PP" to
 	// "Pp".
 	headerXPPResponseSupport = "X-Pp-Response-Support"
+	// headerXPPRuntime is the canonical MIME form of daemon_frontend.RuntimeVersionHeader,
+	// which names the runtime version a server hands out.
+	headerXPPRuntime = "X-Pp-Runtime"
 )
 
 var (
@@ -279,6 +279,22 @@ var (
 	// control.
 	headerValCacheImmutable = []string{cacheControlImmutable}
 
+	// headerValCacheNoCache is a pre-allocated header value slice for the always-revalidate
+	// cache control.
+	headerValCacheNoCache = []string{cacheControlNoCache}
+
+	// headerValCachePrivateNoCache is a pre-allocated header value slice for the default
+	// cache control of HTML rendered for each request.
+	headerValCachePrivateNoCache = []string{cacheControlPrivateNoCache}
+
+	// headerValCacheNoStore is a pre-allocated header value slice for the default cache
+	// control of action responses.
+	headerValCacheNoStore = []string{cacheControlNoStore}
+
+	// headerValContentTypeJavaScript is a pre-allocated header value slice for JavaScript
+	// written by the server itself.
+	headerValContentTypeJavaScript = []string{contentTypeJavaScript}
+
 	// headerValNoIndexNoFollow is a pre-allocated header value slice marking a response as
 	// not for indexing, used by deploys that withhold themselves from search.
 	headerValNoIndexNoFollow = []string{"noindex, nofollow"}
@@ -297,6 +313,10 @@ var (
 	// headerValCacheStatusStale is a pre-allocated header value slice for a stale cache
 	// status.
 	headerValCacheStatusStale = []string{"STALE"}
+
+	// headerValVaryAcceptEncoding is the Vary header for a served asset variant, which
+	// shared caches key on the negotiated encoding.
+	headerValVaryAcceptEncoding = []string{headerAcceptEncoding}
 
 	// headerValVaryCachePage is the Vary header for cached page responses without i18n.
 	// Accept-Encoding because different compressed variants are served.

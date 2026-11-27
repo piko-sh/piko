@@ -212,7 +212,7 @@ func TestSecurityHeadersMiddleware_CSP_RequestTokenReplacement(t *testing.T) {
 
 	var capturedToken string
 	next := http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
-		capturedToken = GetRequestTokenFromContext(r.Context())
+		capturedToken = daemon_dto.CSPTokenFromContext(r.Context())
 	})
 
 	w := httptest.NewRecorder()
@@ -378,26 +378,6 @@ func TestHeaderStripperWriter_Flush(t *testing.T) {
 
 		assert.True(t, writer.wroteHeader, "Flush should trigger implicit WriteHeader")
 		assert.Equal(t, http.StatusOK, recorder.Code)
-	})
-}
-
-func TestGetRequestTokenFromContext(t *testing.T) {
-	t.Parallel()
-
-	t.Run("present", func(t *testing.T) {
-		t.Parallel()
-
-		r := httptest.NewRequest(http.MethodGet, "/", nil)
-		pctx := &daemon_dto.PikoRequestCtx{CSPToken: "my-token"}
-		ctx := daemon_dto.WithPikoRequestCtx(r.Context(), pctx)
-		assert.Equal(t, "my-token", GetRequestTokenFromContext(ctx))
-	})
-
-	t.Run("absent returns empty", func(t *testing.T) {
-		t.Parallel()
-
-		r := httptest.NewRequest(http.MethodGet, "/", nil)
-		assert.Empty(t, GetRequestTokenFromContext(r.Context()))
 	})
 }
 

@@ -54,6 +54,9 @@ const (
 	// timelineChoices bounds the drawn timeline threshold in seconds.
 	timelineChoices = 4
 
+	// formsNumberBase is the smallest number typed into the forms family's number input.
+	formsNumberBase = 20
+
 	// visualBranches holds the selected visual component subprogram.
 	visualBranches = `<section id="extra-output" :data-phase="state.panel ? 'open' : 'shut'" p-bind:data-note="state.draft">
 <div id="extra-branches"><span p-if="state.draft == ''">pristine</span><span p-else-if="state.panel">editing</span><span p-else>hidden</span></div>
@@ -155,7 +158,7 @@ func advancedFixture(c *casefile.Case, p Project, variant, family int) clientFix
 //
 // Returns clientFixture which holds the family's sections and interactions.
 func formsFixture(user, count int) clientFixture {
-	number := strconv.Itoa(20 + count)
+	number := strconv.Itoa(formsNumberBase + count)
 	return clientFixture{
 		initial:    map[string]string{"radio": "red", "radio-model": "red", "radio-values": "red,blue", "multi": "c", "multi-model": "c", "number": "7", "number-model": "7"},
 		name:       "forms",

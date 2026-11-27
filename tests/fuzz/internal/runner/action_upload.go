@@ -42,6 +42,10 @@ const (
 
 	// storedUploadName is the stored upload file, relative to the working directory.
 	storedUploadName = "upload-store/uploads/payload.bin"
+
+	// binaryUploadMarker is a byte that is never valid UTF-8, so the upload payload is
+	// binary rather than text.
+	binaryUploadMarker = 0xff
 )
 
 // UploadRead records uploaded bytes, storage checks and public responses.
@@ -98,7 +102,7 @@ type uploadRemoval struct {
 //
 // Returns []byte which holds the bounded source or response bytes.
 func uploadPayload(input casefile.ActionValue) []byte {
-	return append([]byte{0xff, 0, '\r', '\n'}, fmt.Appendf(nil, "%s\n%d", input.Label, input.Quantity)...)
+	return append([]byte{binaryUploadMarker, 0, '\r', '\n'}, fmt.Appendf(nil, "%s\n%d", input.Label, input.Quantity)...)
 }
 
 // expectedUpload models upload metadata and delivered byte identities.

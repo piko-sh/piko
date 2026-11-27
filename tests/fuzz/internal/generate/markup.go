@@ -28,6 +28,9 @@ import (
 )
 
 const (
+	// markupPagePath is the case file path of the markup page source.
+	markupPagePath = "pages/markup.pk"
+
 	// markupNotes selects the board's notes text area.
 	markupNotes = "#notes"
 
@@ -87,10 +90,10 @@ func addMarkup(c *casefile.Case, p Project) {
 		second += " B"
 	}
 	line := fmt.Sprintf("left  %d\n  right", p.Count)
-	c.Files["pages/markup.pk"] = markupPagePrefix + html.EscapeString(line) + markupPageSuffix
+	c.Files[markupPagePath] = markupPagePrefix + html.EscapeString(line) + markupPageSuffix
 	c.Files["lib/markup-icon.svg"] = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><circle cx="2" cy="2" r="2"/></svg>`
 	assets := strings.NewReplacer(`"/markup-icon.svg"`, `"/_piko/assets/`+casefile.Module+`/lib/markup-icon.svg"`, "@/lib/", casefile.Module+"/lib/")
-	c.Files["pages/markup.pk"] = assets.Replace(c.Files["pages/markup.pk"])
+	c.Files[markupPagePath] = assets.Replace(c.Files[markupPagePath])
 	c.Files["components/markup-board.pkc"] = fmt.Sprintf(markupComponent, strconv.Quote(label), p.Count, strconv.Quote(second), p.Count+1)
 	c.Files["pages/main.pk"] = strings.Replace(c.Files["pages/main.pk"], "</main>", "<markup-board hidden></markup-board></main>", 1)
 	c.Expected.AdditionalComponents = append(c.Expected.AdditionalComponents, boardHost)
@@ -101,7 +104,7 @@ func addMarkup(c *casefile.Case, p Project) {
 		catalogueElement("cell", "td", "Only"),
 	)
 	c.Probes = append(c.Probes, semanticProbe("/markup", contract))
-	c.Files["pages/markup.pk"] = strings.Replace(c.Files["pages/markup.pk"], "<h1>", "<h1 data-fuzz-element=\"title\">", 1)
+	c.Files[markupPagePath] = strings.Replace(c.Files[markupPagePath], "<h1>", "<h1 data-fuzz-element=\"title\">", 1)
 	c.Features = append(c.Features, "markup-table", "markup-svg", "markup-controls", "markup-dialog", "markup-pre")
 	c.Expected.DOM = markupExpectations(label, second, line, p.Count)
 	addMarkupFamilies(c, p.Title)

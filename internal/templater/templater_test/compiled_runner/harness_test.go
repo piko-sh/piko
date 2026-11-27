@@ -47,6 +47,7 @@ import (
 	"piko.sh/piko/internal/collection/collection_domain"
 	"piko.sh/piko/internal/compiler/compiler_domain"
 	"piko.sh/piko/internal/config/config_domain"
+	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/generator/generator_helpers"
 	"piko.sh/piko/internal/gosource"
 	"piko.sh/piko/internal/i18n/i18n_domain"
@@ -277,7 +278,7 @@ func normaliseVolatileValues(data []byte) []byte {
 	result = csrfEphemeralRegex.ReplaceAll(result, []byte(`${1}NORMALISED${2}`))
 	result = integrityRegex.ReplaceAll(result, []byte(`${1}sha384-NORMALISED${2}`))
 	result = testServerURLRegex.ReplaceAll(result, []byte(`${1}NORMALISED`))
-	return result
+	return []byte(daemon_frontend.StripRuntimeVersion(string(result)))
 }
 
 func assertGoldenFile(t *testing.T, goldenPath string, actualBytes []byte, msgAndArgs ...any) {

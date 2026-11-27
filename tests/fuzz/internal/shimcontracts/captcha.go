@@ -82,6 +82,19 @@ const (
 
 	// commentAction is the form action used by fixture challenges.
 	commentAction = "comment"
+
+	// captchaClockStart is the fixture clock's start time in Unix seconds.
+	captchaClockStart = 1_700_000_000
+
+	// documentationHosts is the number of usable host addresses in the 192.0.2.0/24
+	// documentation range.
+	documentationHosts = 254
+
+	// scoreIncrements is the number of drawn score increments above the base score.
+	scoreIncrements = 16
+
+	// changeDefaultBit marks a drawn stage that changes the default provider first.
+	changeDefaultBit = 32
 )
 
 var (
@@ -299,7 +312,7 @@ func RunCaptcha(ctx context.Context, data []byte) (err error) {
 	if cause := context.Cause(ctx); cause != nil {
 		return cause
 	}
-	at := time.Unix(1_700_000_000, 0).UTC()
+	at := time.Unix(captchaClockStart, 0).UTC()
 	service, err := captcha_domain.NewCaptchaService(nil, captcha_domain.WithClock(clock.NewMockClock(at)))
 	if err != nil {
 		return captchaFailure("construction", err)
@@ -377,10 +390,10 @@ func (r *captchaRun) expectation(stage captchaStage, who *captchaFixture, index 
 	actions := []string{commentAction, "checkout", "signup"}
 	request := captcha.VerifyRequest{
 		Token:    fmt.Sprintf("fixture-receipt-%d-%d", index, draw),
-		RemoteIP: fmt.Sprintf("192.0.2.%d", 1+int(draw)%254),
+		RemoteIP: fmt.Sprintf("192.0.2.%d", 1+int(draw)%documentationHosts),
 		Action:   actions[int(draw)%len(actions)],
 	}
-	score := baseScore + float64(draw%16)/scoreSteps
+	score := baseScore + float64(draw%scoreIncrements)/scoreSteps
 	want := captcha.VerifyResponse{
 		Timestamp:  r.at.Add(time.Duration(index) * time.Second),
 		Score:      &score,
@@ -521,7 +534,7 @@ func captchaStages(choices *[captchaChoices]byte) []captchaStage {
 		stages = append(stages, captchaStage{
 			operation:     operations[draw%len(operations)],
 			outcome:       outcomes[(draw/len(operations))%len(outcomes)],
-			changeDefault: draw&32 != 0,
+			changeDefault: draw&changeDefaultBit != 0,
 		})
 	}
 	return stages

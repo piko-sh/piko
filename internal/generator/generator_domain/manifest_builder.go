@@ -127,11 +127,12 @@ func (mb *ManifestBuilder) Build(artefacts []*generator_dto.GeneratedArtefact) (
 // Returns error when an artefact cannot be processed.
 func (mb *ManifestBuilder) BuildWithContext(artefacts, contextArtefacts []*generator_dto.GeneratedArtefact) (*generator_dto.Manifest, error) {
 	manifest := &generator_dto.Manifest{
-		Pages:      make(map[string]generator_dto.ManifestPageEntry),
-		Partials:   make(map[string]generator_dto.ManifestPartialEntry),
-		Emails:     make(map[string]generator_dto.ManifestEmailEntry),
-		Pdfs:       make(map[string]generator_dto.ManifestPdfEntry),
-		ErrorPages: make(map[string]generator_dto.ManifestErrorPageEntry),
+		Pages:          make(map[string]generator_dto.ManifestPageEntry),
+		Partials:       make(map[string]generator_dto.ManifestPartialEntry),
+		Emails:         make(map[string]generator_dto.ManifestEmailEntry),
+		Pdfs:           make(map[string]generator_dto.ManifestPdfEntry),
+		ErrorPages:     make(map[string]generator_dto.ManifestErrorPageEntry),
+		PartialScripts: nil,
 	}
 
 	resolverArtefacts := artefacts
@@ -147,6 +148,7 @@ func (mb *ManifestBuilder) BuildWithContext(artefacts, contextArtefacts []*gener
 			return nil, fmt.Errorf("processing artefact %q: %w", artefact.SuggestedPath, err)
 		}
 	}
+	manifest.PartialScripts = jsResolver.PartialScriptNames()
 
 	return manifest, nil
 }

@@ -20,5 +20,10 @@
   },
   "partials": {},
   "emails": {},
-  "pdfs": {}
+  "pdfs": {},
+  "partialScripts": {
+    "pk-js/partials/accordion-panel.js": "accordion-panel",
+    "pk-js/partials/counter-widget.js": "counter-widget",
+    "pk-js/partials/toggle-button.js": "toggle-button"
+  }
 }

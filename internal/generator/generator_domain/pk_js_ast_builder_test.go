@@ -23,6 +23,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tdewolff/parse/v2"
 	parsejs "github.com/tdewolff/parse/v2/js"
 )
 
@@ -90,6 +91,39 @@ func TestJSASTBuilder_NewStringLiteral(t *testing.T) {
 
 		assert.Equal(t, `"hello world"`, string(stringLiteral.Data))
 	})
+}
+
+func TestJSASTBuilder_NewStringLiteral_EscapesTheValue(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		value string
+		want  string
+	}{
+		{name: "double quote", value: `say "hi"`, want: `"say \"hi\""`},
+		{name: "backslash", value: `a\b`, want: `"a\\b"`},
+		{name: "single quote stays as it is", value: `it's`, want: `"it's"`},
+		{name: "line feed and carriage return", value: "a\nb\rc", want: `"a\nb\rc"`},
+		{name: "tab", value: "a\tb", want: `"a\tb"`},
+		{name: "other control character", value: "a\x01b", want: `"a\u0001b"`},
+		{name: "delete character", value: "a\x7fb", want: `"a\u007fb"`},
+		{name: "line separator", value: "a\u2028b", want: `"a\u2028b"`},
+		{name: "paragraph separator", value: "a\u2029b", want: `"a\u2029b"`},
+		{name: "multi-byte characters stay as they are", value: "café ☕", want: `"café ☕"`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			stringLiteral := newJSASTBuilder().newStringLiteral(tt.value)
+
+			assert.Equal(t, tt.want, string(stringLiteral.Data))
+			_, err := parsejs.Parse(parse.NewInputString("x = "+string(stringLiteral.Data)+";"), parsejs.Options{})
+			assert.NoError(t, err, "the literal must be valid JavaScript")
+		})
+	}
 }
 
 func TestJSASTBuilder_NewCall(t *testing.T) {
@@ -380,7 +414,7 @@ func TestJSASTBuilder_NewFunc(t *testing.T) {
 
 	t.Run("creates named function", func(t *testing.T) {
 		body := []parsejs.IStmt{builder.newReturn(builder.newVar("x"))}
-		jsFunction := builder.newFunc("myFunc", false, []string{"x"}, body)
+		jsFunction := builder.newFunc("myFunc", []string{"x"}, body)
 
 		require.NotNil(t, jsFunction)
 		assert.Equal(t, "myFunc", string(jsFunction.Name.Data))
@@ -390,44 +424,42 @@ func TestJSASTBuilder_NewFunc(t *testing.T) {
 	})
 
 	t.Run("creates anonymous function", func(t *testing.T) {
-		jsFunction := builder.newFunc("", false, nil, nil)
+		jsFunction := builder.newFunc("", nil, nil)
 
 		assert.Nil(t, jsFunction.Name)
 	})
 
-	t.Run("creates async function", func(t *testing.T) {
-		jsFunction := builder.newFunc("asyncFunc", true, nil, nil)
-
-		assert.True(t, jsFunction.Async)
-	})
-
 	t.Run("creates function with multiple parameters", func(t *testing.T) {
-		jsFunction := builder.newFunc("multi", false, []string{"a", "b", "c"}, nil)
+		jsFunction := builder.newFunc("multi", []string{"a", "b", "c"}, nil)
 
 		require.Len(t, jsFunction.Params.List, 3)
 	})
+}
+
+func TestJSASTBuilder_NewAsyncFunc(t *testing.T) {
+	builder := newJSASTBuilder()
+
+	jsFunction := builder.newAsyncFunc("asyncFunc", []string{"e"}, nil)
+
+	assert.True(t, jsFunction.Async)
+	assert.Equal(t, "asyncFunc", string(jsFunction.Name.Data))
+	require.Len(t, jsFunction.Params.List, 1)
+	assert.Equal(t, "async function asyncFunc(e) {}", builder.renderStmt(jsFunction))
 }
 
 func TestJSASTBuilder_NewFuncWithRest(t *testing.T) {
 	builder := newJSASTBuilder()
 
 	t.Run("creates function with rest parameter", func(t *testing.T) {
-		jsFunction := builder.newFuncWithRest("myFunc", false, []string{"first"}, "rest", nil)
+		jsFunction := builder.newFuncWithRest("myFunc", []string{"first"}, "rest", nil)
 
+		assert.False(t, jsFunction.Async)
 		require.NotNil(t, jsFunction.Params.Rest)
 		restVar, ok := jsFunction.Params.Rest.(*parsejs.Var)
 		require.True(t, ok)
 		assert.Equal(t, "rest", string(restVar.Data))
 	})
 
-	t.Run("creates async function with rest parameter", func(t *testing.T) {
-		jsFunction := builder.newFuncWithRest("asyncFunc", true, nil, "args", nil)
-
-		assert.True(t, jsFunction.Async)
-		restVar, ok := jsFunction.Params.Rest.(*parsejs.Var)
-		require.True(t, ok)
-		assert.Equal(t, "args", string(restVar.Data))
-	})
 }
 
 func TestJSASTBuilder_NewReturn(t *testing.T) {
@@ -506,29 +538,19 @@ func TestJSASTBuilder_NewImport(t *testing.T) {
 	})
 }
 
-func TestJSASTBuilder_NewExportFunc(t *testing.T) {
+func TestJSASTBuilder_NewAsyncExportFunc(t *testing.T) {
 	builder := newJSASTBuilder()
 
-	t.Run("creates exported function", func(t *testing.T) {
-		body := []parsejs.IStmt{builder.newReturn(builder.newVar("result"))}
-		exp := builder.newExportFunc("myFunc", false, []string{"input"}, "", body)
+	body := []parsejs.IStmt{builder.newReturn(builder.newVar("result"))}
+	exp := builder.newAsyncExportFunc("asyncHandler", []string{"ctx"}, "args", body)
 
-		require.NotNil(t, exp)
-		jsFunction, ok := exp.Decl.(*parsejs.FuncDecl)
-		require.True(t, ok)
-		assert.Equal(t, "myFunc", string(jsFunction.Name.Data))
-	})
-
-	t.Run("creates exported async function with rest parameter", func(t *testing.T) {
-		exp := builder.newExportFunc("asyncHandler", true, []string{"ctx"}, "args", nil)
-
-		jsFunction, ok := exp.Decl.(*parsejs.FuncDecl)
-		require.True(t, ok)
-		assert.True(t, jsFunction.Async)
-		restVar, ok := jsFunction.Params.Rest.(*parsejs.Var)
-		require.True(t, ok)
-		assert.Equal(t, "args", string(restVar.Data))
-	})
+	jsFunction, ok := exp.Decl.(*parsejs.FuncDecl)
+	require.True(t, ok)
+	assert.Equal(t, "asyncHandler", string(jsFunction.Name.Data))
+	assert.True(t, jsFunction.Async)
+	restVar, ok := jsFunction.Params.Rest.(*parsejs.Var)
+	require.True(t, ok)
+	assert.Equal(t, "args", string(restVar.Data))
 }
 
 func TestJSASTBuilder_RenderStmt(t *testing.T) {
@@ -576,7 +598,7 @@ func TestJSASTBuilder_RenderStmt(t *testing.T) {
 	})
 
 	t.Run("renders function declaration", func(t *testing.T) {
-		jsFunction := builder.newFunc("greet", false, []string{"name"}, []parsejs.IStmt{
+		jsFunction := builder.newFunc("greet", []string{"name"}, []parsejs.IStmt{
 			builder.newReturn(builder.newVar("name")),
 		})
 		result := builder.renderStmt(jsFunction)
@@ -587,7 +609,7 @@ func TestJSASTBuilder_RenderStmt(t *testing.T) {
 	})
 
 	t.Run("renders async function", func(t *testing.T) {
-		jsFunction := builder.newFunc("fetchData", true, nil, []parsejs.IStmt{
+		jsFunction := builder.newAsyncFunc("fetchData", nil, []parsejs.IStmt{
 			builder.newReturn(builder.newAwait(builder.newCall(builder.newIdentifier("fetch")))),
 		})
 		result := builder.renderStmt(jsFunction)

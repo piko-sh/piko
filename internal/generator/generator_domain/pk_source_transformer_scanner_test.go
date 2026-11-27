@@ -20,6 +20,7 @@ package generator_domain
 
 import (
 	"bytes"
+	"context"
 	"log/slog"
 	"strings"
 	"testing"
@@ -27,6 +28,8 @@ import (
 	"github.com/stretchr/testify/require"
 	parsejs "github.com/tdewolff/parse/v2/js"
 
+	"piko.sh/piko/internal/generator/generator_dto"
+	"piko.sh/piko/internal/jsscan"
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
@@ -99,15 +102,15 @@ func requireExportsFunctions(t *testing.T, source string, want []string) {
 	}
 	require.Equal(t, want, names)
 
-	transformed := TransformPKSource(source, "docs/shell")
+	transformed := transformForTest(t, source, generator_dto.PartialScriptTarget("docs/shell"))
 	require.Contains(t, transformed, "getGlobalPageContext().setExports({"+strings.Join(want, ", ")+"})")
 }
 
 func countRegExpTokens(source string) int {
-	scanner := newPKScriptScanner(source)
+	scanner := jsscan.New(source)
 	count := 0
 	for {
-		tt, _ := scanner.next()
+		tt, _ := scanner.Next()
 		if tt == parsejs.ErrorToken {
 			return count
 		}
@@ -117,9 +120,10 @@ func countRegExpTokens(source string) int {
 	}
 }
 
-func captureWarnings() (logger_domain.Logger, *bytes.Buffer) {
+func captureWarnings(t *testing.T) (context.Context, *bytes.Buffer) {
 	output := new(bytes.Buffer)
-	return logger_domain.New(slog.New(slog.NewTextHandler(output, nil)), "pk-source-transformer-test"), output
+	logger := logger_domain.New(slog.New(slog.NewTextHandler(output, nil)), "pk-source-transformer-test")
+	return logger_domain.WithLogger(t.Context(), logger), output
 }
 
 func TestFindTopLevelFunctions_RegExpLiterals(t *testing.T) {
@@ -426,30 +430,10 @@ function after() {}`,
 	}
 }
 
-func TestPKScriptScanner_ReadsRegExpLiteralsWhole(t *testing.T) {
-	t.Parallel()
-
-	scanner := newPKScriptScanner(`if (!/^[a-z][a-z0-9_]{0,31}$/.test(name)) text.replace(/\//g, '_');`)
-
-	var literals []string
-	for {
-		tt, data := scanner.next()
-		if tt == parsejs.ErrorToken {
-			break
-		}
-		if tt == parsejs.RegExpToken {
-			literals = append(literals, string(data))
-		}
-	}
-
-	require.Equal(t, []string{`/^[a-z][a-z0-9_]{0,31}$/`, `/\//g`}, literals)
-	require.Zero(t, scanner.braceDepth)
-}
-
 func TestTransformPKSource_RegExpHeavyComponentTranspiles(t *testing.T) {
 	t.Parallel()
 
-	transformed := TransformPKSource(docsShellScript, "docs/shell")
+	transformed := transformForTest(t, docsShellScript, generator_dto.PartialScriptTarget("docs/shell"))
 
 	require.Contains(t, transformed, "getGlobalPageContext().setExports({toBase64URL, blockFile, playgroundLink, toggleSidebar})")
 	require.Contains(t, transformed, `/^[a-z][a-z0-9_]{0,31}$/.test(dialect)`)
@@ -512,46 +496,46 @@ func TestWarnOnUndetectedFunctions(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name          string
-		source        string
-		componentName string
-		found         []exportedFunctionInfo
-		wantContains  []string
+		target       pkScriptTarget
+		name         string
+		source       string
+		found        []exportedFunctionInfo
+		wantContains []string
 	}{
 		{
-			name:          "names the partial and every function when none were found",
-			source:        "function toggleSidebar() {}\nfunction blockFile() {}",
-			componentName: "docs/shell",
-			found:         nil,
-			wantContains:  []string{"level=WARN", "component=docs/shell", "functions=toggleSidebar,blockFile", "will not be bound"},
+			name:         "names the partial and every function when none were found",
+			source:       "function toggleSidebar() {}\nfunction blockFile() {}",
+			target:       partialPKScript{partialName: "docs/shell"},
+			found:        nil,
+			wantContains: []string{"level=WARN", "component=docs/shell", "functions=toggleSidebar,blockFile", "will not be bound"},
 		},
 		{
-			name:          "names only the functions that were missed",
-			source:        "function toggleSidebar() {}\nfunction blockFile() {}",
-			componentName: "docs/shell",
-			found:         []exportedFunctionInfo{{name: "toggleSidebar", isArrow: false, wasExported: false}},
-			wantContains:  []string{"level=WARN", "functions=blockFile\n"},
+			name:         "names only the functions that were missed",
+			source:       "function toggleSidebar() {}\nfunction blockFile() {}",
+			target:       partialPKScript{partialName: "docs/shell"},
+			found:        []exportedFunctionInfo{{name: "toggleSidebar", isArrow: false, wasExported: false}},
+			wantContains: []string{"level=WARN", "functions=blockFile\n"},
 		},
 		{
-			name:          "labels a page script",
-			source:        "export function handleClick() {}",
-			componentName: "",
-			found:         nil,
-			wantContains:  []string{"level=WARN", `component=(page)`, "functions=handleClick"},
+			name:         "labels a page script",
+			source:       "export function handleClick() {}",
+			target:       pagePKScript{},
+			found:        nil,
+			wantContains: []string{"level=WARN", `component=(page)`, "functions=handleClick"},
 		},
 		{
-			name:          "stays quiet when every declared function was found",
-			source:        "function toggleSidebar() {}\nconst helper = () => {};",
-			componentName: "docs/shell",
-			found:         []exportedFunctionInfo{{name: "toggleSidebar", isArrow: false, wasExported: false}},
-			wantContains:  nil,
+			name:         "stays quiet when every declared function was found",
+			source:       "function toggleSidebar() {}\nconst helper = () => {};",
+			target:       partialPKScript{partialName: "docs/shell"},
+			found:        []exportedFunctionInfo{{name: "toggleSidebar", isArrow: false, wasExported: false}},
+			wantContains: nil,
 		},
 		{
-			name:          "stays quiet when nothing is plainly declared",
-			source:        "pk.onConnected(() => { refs.button.focus(); });",
-			componentName: "docs/shell",
-			found:         nil,
-			wantContains:  nil,
+			name:         "stays quiet when nothing is plainly declared",
+			source:       "pk.onConnected(() => { refs.button.focus(); });",
+			target:       partialPKScript{partialName: "docs/shell"},
+			found:        nil,
+			wantContains: nil,
 		},
 	}
 
@@ -559,8 +543,8 @@ func TestWarnOnUndetectedFunctions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			logger, output := captureWarnings()
-			warnOnUndetectedFunctions(logger, tt.source, tt.componentName, tt.found)
+			ctx, output := captureWarnings(t)
+			warnOnUndetectedFunctions(ctx, tt.source, tt.target.label(), tt.found)
 
 			if tt.wantContains == nil {
 				require.Empty(t, output.String())

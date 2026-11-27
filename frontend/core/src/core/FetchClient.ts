@@ -32,9 +32,9 @@ export interface FetchClientOptions {
 
     /**
      * Callback fired the moment response headers are received and `response.ok`
-     * passes.
+     * passes. Receives the response headers.
      */
-    onHeadersReceived?: () => void;
+    onHeadersReceived?: (headers: Headers) => void;
 }
 
 /**
@@ -149,7 +149,7 @@ export function createFetchClient(deps: FetchClientDependencies = {}): FetchClie
                     return [false, null];
                 }
 
-                options.onHeadersReceived?.();
+                options.onHeadersReceived?.(response.headers);
 
                 let text: string;
                 if (options.onProgress) {

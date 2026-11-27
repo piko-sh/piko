@@ -95,7 +95,7 @@ export default defineConfig({
             compress: {
               defaults: true,
               passes: 2,
-              pure_funcs: ['console.log', 'console.info', 'console.debug'],
+              pure_funcs: ['console.log', 'console.warn', 'console.info', 'console.debug'],
             },
             mangle: true,
             format: { comments: false }
@@ -109,7 +109,7 @@ export default defineConfig({
             compress: {
               defaults: true,
               passes: 2,
-              pure_funcs: ['console.log', 'console.info', 'console.debug'],
+              pure_funcs: ['console.log', 'console.warn', 'console.info', 'console.debug'],
             },
             mangle: true,
             format: { comments: false }

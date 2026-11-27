@@ -103,7 +103,7 @@ func (queries *Queries) GetArtefactForUpdate(ctx context.Context, id string) ([]
 
 const getmultipleartefacts = `SELECT id, release_id, source_path, created_at, updated_at, data_fbs
 FROM registry_artefact
-WHERE id IN ($1)
+WHERE id = ANY($1)
 ORDER BY id, release_id;`
 
 type GetMultipleArtefactsParams struct {
@@ -119,15 +119,7 @@ type GetMultipleArtefactsRow struct {
 }
 
 func (queries *Queries) GetMultipleArtefacts(ctx context.Context, params GetMultipleArtefactsParams) ([]GetMultipleArtefactsRow, error) {
-	if err := pikoCheckBinds(len(params.IDs)); err != nil {
-		return nil, err
-	}
-	query := pikoSplice(getmultipleartefacts, pikoList(pikoListMark{Empty: `= ANY('{}')`, Operator: 101, Start: 104, End: 108}, 1, len(params.IDs)))
-	args := make([]any, 0, len(params.IDs))
-	for _, v := range params.IDs {
-		args = append(args, v)
-	}
-	rows, err := queries.reader.QueryContext(ctx, query, args...)
+	rows, err := queries.reader.QueryContext(ctx, getmultipleartefacts, pikoArrayLiteral(params.IDs))
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +157,7 @@ type InsertArtefactLayerIfAbsentRow struct {
 
 func (queries *Queries) InsertArtefactLayerIfAbsent(ctx context.Context, params InsertArtefactLayerIfAbsentParams) (InsertArtefactLayerIfAbsentRow, bool, error) {
 	var row InsertArtefactLayerIfAbsentRow
-	err := queries.writer.QueryRowContext(ctx, insertartefactlayerifabsent, params.ID, params.ReleaseID, params.SourcePath, params.CreatedAt, params.UpdatedAt, params.DataFbs).Scan(&row.ID)
+	err := queries.writer.QueryRowContext(ctx, insertartefactlayerifabsent, params.ID, params.ReleaseID, params.SourcePath, params.CreatedAt, params.UpdatedAt, pikoNonNil(params.DataFbs)).Scan(&row.ID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return InsertArtefactLayerIfAbsentRow{}, false, nil
 	}
@@ -252,6 +244,6 @@ type UpsertArtefactParams struct {
 }
 
 func (queries *Queries) UpsertArtefact(ctx context.Context, params UpsertArtefactParams) error {
-	_, err := queries.writer.ExecContext(ctx, upsertartefact, params.ID, params.ReleaseID, params.SourcePath, params.CreatedAt, params.UpdatedAt, params.DataFbs)
+	_, err := queries.writer.ExecContext(ctx, upsertartefact, params.ID, params.ReleaseID, params.SourcePath, params.CreatedAt, params.UpdatedAt, pikoNonNil(params.DataFbs))
 	return err
 }

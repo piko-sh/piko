@@ -165,7 +165,7 @@ type InsertArtefactLayerIfAbsentRow struct {
 
 func (queries *Queries) InsertArtefactLayerIfAbsent(ctx context.Context, params InsertArtefactLayerIfAbsentParams) (InsertArtefactLayerIfAbsentRow, bool, error) {
 	var row InsertArtefactLayerIfAbsentRow
-	err := queries.writer.QueryRowContext(ctx, insertartefactlayerifabsent, params.ID, params.ReleaseID, params.SourcePath, params.CreatedAt, params.UpdatedAt, params.DataFbs).Scan(&row.ID)
+	err := queries.writer.QueryRowContext(ctx, insertartefactlayerifabsent, params.ID, params.ReleaseID, params.SourcePath, params.CreatedAt, params.UpdatedAt, pikoNonNil(params.DataFbs)).Scan(&row.ID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return InsertArtefactLayerIfAbsentRow{}, false, nil
 	}
@@ -252,6 +252,6 @@ type UpsertArtefactParams struct {
 }
 
 func (queries *Queries) UpsertArtefact(ctx context.Context, params UpsertArtefactParams) error {
-	_, err := queries.writer.ExecContext(ctx, upsertartefact, params.ID, params.ReleaseID, params.SourcePath, params.CreatedAt, params.UpdatedAt, params.DataFbs)
+	_, err := queries.writer.ExecContext(ctx, upsertartefact, params.ID, params.ReleaseID, params.SourcePath, params.CreatedAt, params.UpdatedAt, pikoNonNil(params.DataFbs))
 	return err
 }

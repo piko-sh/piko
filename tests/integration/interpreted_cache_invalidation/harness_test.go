@@ -27,6 +27,7 @@ import (
 	"piko.sh/piko/internal/collection/collection_domain"
 	"piko.sh/piko/internal/compiler/compiler_domain"
 	"piko.sh/piko/internal/config/config_domain"
+	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/generator/generator_helpers"
 	"piko.sh/piko/internal/i18n/i18n_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
@@ -45,7 +46,8 @@ var (
 )
 
 func normaliseHTML(html []byte) []byte {
-	return csrfTokenRegex.ReplaceAll(html, []byte(`<meta name="csrf-$1" content="[NORMALIZED]">`))
+	normalised := csrfTokenRegex.ReplaceAll(html, []byte(`<meta name="csrf-$1" content="[NORMALIZED]">`))
+	return []byte(daemon_frontend.StripRuntimeVersion(string(normalised)))
 }
 
 func resetGlobalStateForTestIsolation() {

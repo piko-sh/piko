@@ -57,6 +57,7 @@ func contextTestCard(jsArtefactID string) *generator_dto.GeneratedArtefact {
 		Component: &annotator_dto.VirtualComponent{
 			IsPublic:               true,
 			HashedName:             "partials_card",
+			PartialName:            "card",
 			CanonicalGoPackagePath: "example.com/partials/card",
 			Source: &annotator_dto.ParsedComponent{
 				SourcePath:       "/project/partials/card.pk",
@@ -96,6 +97,8 @@ func TestManifestBuilder_BuildWithContext(t *testing.T) {
 		assert.Equal(t, []string{"pk-js/partials/card.js"}, manifest.Pages["pages/home.pk"].JSArtefactIDs)
 		assert.NotContains(t, manifest.Pages, "pages/about.pk", "context artefacts are lookups only and get no entries")
 		assert.NotContains(t, manifest.Partials, "partials/card.pk")
+		assert.Equal(t, map[string]string{"pk-js/partials/card.js": "card"}, manifest.PartialScripts,
+			"the page must still be able to name the partial of each script it lists")
 	})
 
 	t.Run("a rebuilt artefact overrides its context version", func(t *testing.T) {
@@ -110,5 +113,6 @@ func TestManifestBuilder_BuildWithContext(t *testing.T) {
 		assert.Empty(t, manifest.Pages["pages/home.pk"].JSArtefactIDs,
 			"the rebuilt partial dropped its script, so the stale context script must not be kept")
 		assert.Contains(t, manifest.Partials, "partials/card.pk")
+		assert.Empty(t, manifest.PartialScripts)
 	})
 }

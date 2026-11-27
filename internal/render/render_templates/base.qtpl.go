@@ -5,448 +5,495 @@
 package render_templates
 
 //line base.qtpl:3
+import "piko.sh/piko/internal/daemon/daemon_dto"
+
+//line base.qtpl:5
 import (
 	qtio422016 "io"
 
 	qt422016 "github.com/valyala/quicktemplate"
 )
 
-//line base.qtpl:3
+//line base.qtpl:5
 var (
 	_ = qtio422016.Copy
 	_ = qt422016.AcquireByteBuffer
 )
 
-//line base.qtpl:3
+//line base.qtpl:5
 func StreamBasePageHeader(qw422016 *qt422016.Writer, p *BasePageData) {
-//line base.qtpl:4
+//line base.qtpl:6
 	qw422016.N().S(`<!DOCTYPE html><html lang="`)
-//line base.qtpl:6
+//line base.qtpl:8
 	if p.Lang != "" {
-//line base.qtpl:6
+//line base.qtpl:8
 		qw422016.N().S(p.Lang)
-//line base.qtpl:6
+//line base.qtpl:8
 	} else {
-//line base.qtpl:6
+//line base.qtpl:8
 		qw422016.N().S(`en`)
-//line base.qtpl:6
+//line base.qtpl:8
 	}
-//line base.qtpl:6
+//line base.qtpl:8
 	qw422016.N().S(`"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1" />`)
-//line base.qtpl:10
+//line base.qtpl:12
 	if p.Title != "" {
-//line base.qtpl:10
+//line base.qtpl:12
 		qw422016.N().S(`<title>`)
-//line base.qtpl:10
+//line base.qtpl:12
 		qw422016.N().S(p.Title)
-//line base.qtpl:10
+//line base.qtpl:12
 		qw422016.N().S(`</title>`)
-//line base.qtpl:10
+//line base.qtpl:12
 	} else {
-//line base.qtpl:10
+//line base.qtpl:12
 		qw422016.N().S(`<title>Piko Page</title>`)
-//line base.qtpl:10
-	}
 //line base.qtpl:12
+	}
+//line base.qtpl:14
 	if p.Description != "" {
-//line base.qtpl:12
+//line base.qtpl:14
 		qw422016.N().S(`<meta name="description" content="`)
-//line base.qtpl:12
+//line base.qtpl:14
 		qw422016.N().S(p.Description)
-//line base.qtpl:12
+//line base.qtpl:14
 		qw422016.N().S(`">`)
-//line base.qtpl:12
+//line base.qtpl:14
 	}
-//line base.qtpl:13
+//line base.qtpl:15
 	if p.Keywords != "" {
-//line base.qtpl:13
+//line base.qtpl:15
 		qw422016.N().S(`<meta name="keywords" content="`)
-//line base.qtpl:13
+//line base.qtpl:15
 		qw422016.N().S(p.Keywords)
-//line base.qtpl:13
+//line base.qtpl:15
 		qw422016.N().S(`">`)
-//line base.qtpl:13
+//line base.qtpl:15
 	}
-//line base.qtpl:14
+//line base.qtpl:16
 	if p.RobotsRule != "" {
-//line base.qtpl:14
+//line base.qtpl:16
 		qw422016.N().S(`<meta name="robots" content="`)
-//line base.qtpl:14
+//line base.qtpl:16
 		qw422016.E().S(p.RobotsRule)
-//line base.qtpl:14
+//line base.qtpl:16
 		qw422016.N().S(`">`)
-//line base.qtpl:14
+//line base.qtpl:16
 	}
-//line base.qtpl:15
+//line base.qtpl:17
 	if p.CanonicalURL != "" {
-//line base.qtpl:15
+//line base.qtpl:17
 		qw422016.N().S(`<link rel="canonical" href="`)
-//line base.qtpl:15
+//line base.qtpl:17
 		qw422016.N().S(p.CanonicalURL)
-//line base.qtpl:15
+//line base.qtpl:17
 		qw422016.N().S(`">`)
-//line base.qtpl:15
+//line base.qtpl:17
 	}
-//line base.qtpl:16
-	for _, link := range p.AlternateLinks {
-//line base.qtpl:16
-		qw422016.N().S(`<link rel="alternate" hreflang="`)
-//line base.qtpl:17
-		qw422016.N().S(link["hreflang"])
-//line base.qtpl:17
-		qw422016.N().S(`" href="`)
-//line base.qtpl:17
-		qw422016.N().S(link["href"])
-//line base.qtpl:17
-		qw422016.N().S(`">`)
 //line base.qtpl:18
-	}
+	for _, link := range p.AlternateLinks {
+//line base.qtpl:18
+		qw422016.N().S(`<link rel="alternate" hreflang="`)
+//line base.qtpl:19
+		qw422016.N().S(link["hreflang"])
+//line base.qtpl:19
+		qw422016.N().S(`" href="`)
+//line base.qtpl:19
+		qw422016.N().S(link["href"])
+//line base.qtpl:19
+		qw422016.N().S(`">`)
 //line base.qtpl:20
+	}
+//line base.qtpl:22
 	if len(p.FaviconsHTML) > 0 {
-//line base.qtpl:20
+//line base.qtpl:22
 		qw422016.N().Z(p.FaviconsHTML)
-//line base.qtpl:20
-	}
 //line base.qtpl:22
+	}
+//line base.qtpl:24
 	for _, tag := range p.MetaTags {
-//line base.qtpl:22
+//line base.qtpl:24
 		qw422016.N().S(`<meta name="`)
-//line base.qtpl:22
+//line base.qtpl:24
 		qw422016.N().S(tag.Name)
-//line base.qtpl:22
+//line base.qtpl:24
 		qw422016.N().S(`" content="`)
-//line base.qtpl:22
+//line base.qtpl:24
 		qw422016.N().S(tag.Content)
-//line base.qtpl:22
+//line base.qtpl:24
 		qw422016.N().S(`">`)
-//line base.qtpl:22
+//line base.qtpl:24
 	}
-//line base.qtpl:23
+//line base.qtpl:25
 	for _, og := range p.OGTags {
-//line base.qtpl:23
+//line base.qtpl:25
 		qw422016.N().S(`<meta property="`)
-//line base.qtpl:23
+//line base.qtpl:25
 		qw422016.N().S(og.Property)
-//line base.qtpl:23
+//line base.qtpl:25
 		qw422016.N().S(`" content="`)
-//line base.qtpl:23
+//line base.qtpl:25
 		qw422016.N().S(og.Content)
-//line base.qtpl:23
+//line base.qtpl:25
 		qw422016.N().S(`">`)
-//line base.qtpl:23
+//line base.qtpl:25
 	}
-//line base.qtpl:24
+//line base.qtpl:26
 	for _, tc := range p.TwitterCards {
-//line base.qtpl:24
+//line base.qtpl:26
 		qw422016.N().S(`<meta name="`)
-//line base.qtpl:24
+//line base.qtpl:26
 		qw422016.N().S(tc.Name)
-//line base.qtpl:24
+//line base.qtpl:26
 		qw422016.N().S(`" content="`)
-//line base.qtpl:24
+//line base.qtpl:26
 		qw422016.N().S(tc.Content)
-//line base.qtpl:24
+//line base.qtpl:26
 		qw422016.N().S(`">`)
-//line base.qtpl:24
+//line base.qtpl:26
 	}
-//line base.qtpl:25
+//line base.qtpl:27
 	for _, jsonLD := range p.StructuredData {
-//line base.qtpl:25
-		qw422016.N().S(`<script type="application/ld+json">`)
-//line base.qtpl:25
-		qw422016.N().S(jsonLD)
-//line base.qtpl:25
-		qw422016.N().S(`</script>`)
-//line base.qtpl:25
-	}
 //line base.qtpl:27
-	if len(p.CSRFActionToken) > 0 {
+		qw422016.N().S(`<script type="application/ld+json"`)
 //line base.qtpl:27
-		qw422016.N().S(`<meta name="csrf-token" content="`)
+		qw422016.N().S(daemon_dto.CSPTokenAttribute(p.CSPToken))
 //line base.qtpl:27
-		qw422016.N().Z(p.CSRFActionToken)
-//line base.qtpl:27
-		qw422016.N().S(`">`)
-//line base.qtpl:27
-	}
-//line base.qtpl:28
-	if p.CSRFEphemeralToken != "" {
-//line base.qtpl:28
-		qw422016.N().S(`<meta name="csrf-ephemeral" content="`)
-//line base.qtpl:28
-		qw422016.N().S(p.CSRFEphemeralToken)
-//line base.qtpl:28
-		qw422016.N().S(`">`)
-//line base.qtpl:28
-	}
-//line base.qtpl:30
-	if len(p.FontsHTML) > 0 {
-//line base.qtpl:30
-		qw422016.N().Z(p.FontsHTML)
-//line base.qtpl:30
-	}
-//line base.qtpl:30
-	qw422016.N().S(`<link rel="modulepreload" href="/_piko/dist/ppframework.core.es.js"`)
-//line base.qtpl:32
-	if p.CoreJSSRIHash != "" {
-//line base.qtpl:32
-		qw422016.N().S(` `)
-//line base.qtpl:32
-		qw422016.N().S(`integrity="`)
-//line base.qtpl:32
-		qw422016.N().S(p.CoreJSSRIHash)
-//line base.qtpl:32
-		qw422016.N().S(`" crossorigin="anonymous"`)
-//line base.qtpl:32
-	}
-//line base.qtpl:32
-	qw422016.N().S(`>`)
-//line base.qtpl:33
-	if p.PreloadURLS != "" {
-//line base.qtpl:33
-		qw422016.N().S(p.PreloadURLS)
-//line base.qtpl:33
-	}
-//line base.qtpl:33
-	qw422016.N().S(`<link rel="preload" href="/theme.css" as="style"`)
-//line base.qtpl:35
-	if p.ThemeCSSSRIHash != "" {
-//line base.qtpl:35
-		qw422016.N().S(` `)
-//line base.qtpl:35
-		qw422016.N().S(`integrity="`)
-//line base.qtpl:35
-		qw422016.N().S(p.ThemeCSSSRIHash)
-//line base.qtpl:35
-		qw422016.N().S(`" crossorigin="anonymous"`)
-//line base.qtpl:35
-	}
-//line base.qtpl:35
-	qw422016.N().S(`><link rel="stylesheet" href="/theme.css"`)
-//line base.qtpl:36
-	if p.ThemeCSSSRIHash != "" {
-//line base.qtpl:36
-		qw422016.N().S(` `)
-//line base.qtpl:36
-		qw422016.N().S(`integrity="`)
-//line base.qtpl:36
-		qw422016.N().S(p.ThemeCSSSRIHash)
-//line base.qtpl:36
-		qw422016.N().S(`" crossorigin="anonymous"`)
-//line base.qtpl:36
-	}
-//line base.qtpl:36
-	qw422016.N().S(`>`)
-//line base.qtpl:37
-	if p.Styling != "" {
-//line base.qtpl:37
-		qw422016.N().S(`<style pk-page>`)
-//line base.qtpl:37
-		qw422016.N().S(p.Styling)
-//line base.qtpl:37
-		qw422016.N().S(`</style>`)
-//line base.qtpl:37
-	}
-//line base.qtpl:37
-	qw422016.N().S(`</head><body`)
-//line base.qtpl:39
-	if p.Aesthetic != "" {
-//line base.qtpl:39
-		qw422016.N().S(` `)
-//line base.qtpl:39
-		qw422016.N().S(`data-aesthetic="`)
-//line base.qtpl:39
-		qw422016.N().S(p.Aesthetic)
-//line base.qtpl:39
-		qw422016.N().S(`"`)
-//line base.qtpl:39
-	}
-//line base.qtpl:39
-	if p.Style != "" {
-//line base.qtpl:39
-		qw422016.N().S(` `)
-//line base.qtpl:39
-		qw422016.N().S(`data-style="`)
-//line base.qtpl:39
-		qw422016.N().S(p.Style)
-//line base.qtpl:39
-		qw422016.N().S(`"`)
-//line base.qtpl:39
-	}
-//line base.qtpl:39
-	if p.PageID != "" {
-//line base.qtpl:39
-		qw422016.N().S(` `)
-//line base.qtpl:39
-		qw422016.N().S(`data-pageid="`)
-//line base.qtpl:39
-		qw422016.N().S(p.PageID)
-//line base.qtpl:39
-		qw422016.N().S(`"`)
-//line base.qtpl:39
-	}
-//line base.qtpl:39
-	qw422016.N().S(`><div id="app">`)
-//line base.qtpl:42
-}
-
-//line base.qtpl:42
-func WriteBasePageHeader(qq422016 qtio422016.Writer, p *BasePageData) {
-//line base.qtpl:42
-	qw422016 := qt422016.AcquireWriter(qq422016)
-//line base.qtpl:42
-	StreamBasePageHeader(qw422016, p)
-//line base.qtpl:42
-	qt422016.ReleaseWriter(qw422016)
-//line base.qtpl:42
-}
-
-//line base.qtpl:42
-func BasePageHeader(p *BasePageData) string {
-//line base.qtpl:42
-	qb422016 := qt422016.AcquireByteBuffer()
-//line base.qtpl:42
-	WriteBasePageHeader(qb422016, p)
-//line base.qtpl:42
-	qs422016 := string(qb422016.B)
-//line base.qtpl:42
-	qt422016.ReleaseByteBuffer(qb422016)
-//line base.qtpl:42
-	return qs422016
-//line base.qtpl:42
-}
-
-//line base.qtpl:44
-func StreamBasePageFooter(qw422016 *qt422016.Writer, p *BasePageData) {
-//line base.qtpl:44
-	qw422016.N().S(`    </div>`)
-//line base.qtpl:47
-	if p.SvgSpriteSheet != "" {
-//line base.qtpl:48
-		qw422016.N().S(p.SvgSpriteSheet)
-//line base.qtpl:49
-	}
-//line base.qtpl:49
-	qw422016.N().S(`<script type="module" src="/_piko/dist/ppframework.core.es.js"`)
-//line base.qtpl:51
-	if p.CoreJSSRIHash != "" {
-//line base.qtpl:51
-		qw422016.N().S(` `)
-//line base.qtpl:51
-		qw422016.N().S(`integrity="`)
-//line base.qtpl:51
-		qw422016.N().S(p.CoreJSSRIHash)
-//line base.qtpl:51
-		qw422016.N().S(`" crossorigin="anonymous"`)
-//line base.qtpl:51
-	}
-//line base.qtpl:51
-	qw422016.N().S(`></script><script type="module" src="/_piko/assets/pk-js/pk/actions.gen.js"`)
-//line base.qtpl:52
-	if p.ActionsJSSRIHash != "" {
-//line base.qtpl:52
-		qw422016.N().S(` `)
-//line base.qtpl:52
-		qw422016.N().S(`integrity="`)
-//line base.qtpl:52
-		qw422016.N().S(p.ActionsJSSRIHash)
-//line base.qtpl:52
-		qw422016.N().S(`" crossorigin="anonymous"`)
-//line base.qtpl:52
-	}
-//line base.qtpl:52
-	qw422016.N().S(`></script>`)
-//line base.qtpl:53
-	if p.ModuleScripts != "" {
-//line base.qtpl:53
-		qw422016.N().S(p.ModuleScripts)
-//line base.qtpl:53
-	}
-//line base.qtpl:54
-	for _, meta := range p.PKScriptMetas {
-//line base.qtpl:54
-		qw422016.N().S(`<script type="module" src="`)
-//line base.qtpl:54
-		qw422016.N().S(meta.URL)
-//line base.qtpl:54
-		qw422016.N().S(`"`)
-//line base.qtpl:54
-		if meta.SRIHash != "" {
-//line base.qtpl:54
-			qw422016.N().S(` `)
-//line base.qtpl:54
-			qw422016.N().S(`integrity="`)
-//line base.qtpl:54
-			qw422016.N().S(meta.SRIHash)
-//line base.qtpl:54
-			qw422016.N().S(`" crossorigin="anonymous"`)
-//line base.qtpl:54
-		}
-//line base.qtpl:54
-		qw422016.N().S(`></script><meta name="pk-script" content="`)
-//line base.qtpl:54
-		qw422016.N().S(meta.URL)
-//line base.qtpl:54
-		qw422016.N().S(`"`)
-//line base.qtpl:54
-		if meta.PartialName != "" {
-//line base.qtpl:54
-			qw422016.N().S(` `)
-//line base.qtpl:54
-			qw422016.N().S(`data-partial-name="`)
-//line base.qtpl:54
-			qw422016.N().S(meta.PartialName)
-//line base.qtpl:54
-			qw422016.N().S(`"`)
-//line base.qtpl:54
-		}
-//line base.qtpl:54
 		qw422016.N().S(`>`)
-//line base.qtpl:54
+//line base.qtpl:27
+		qw422016.N().S(jsonLD)
+//line base.qtpl:27
+		qw422016.N().S(`</script>`)
+//line base.qtpl:27
 	}
-//line base.qtpl:55
-	for _, url := range p.WidgetScripts {
-//line base.qtpl:55
-		qw422016.N().S(`<meta name="pk-widget-script" content="`)
-//line base.qtpl:55
-		qw422016.N().S(url)
-//line base.qtpl:55
+//line base.qtpl:29
+	if len(p.CSRFActionToken) > 0 {
+//line base.qtpl:29
+		qw422016.N().S(`<meta name="csrf-token" content="`)
+//line base.qtpl:29
+		qw422016.N().Z(p.CSRFActionToken)
+//line base.qtpl:29
 		qw422016.N().S(`">`)
+//line base.qtpl:29
+	}
+//line base.qtpl:30
+	if p.CSRFEphemeralToken != "" {
+//line base.qtpl:30
+		qw422016.N().S(`<meta name="csrf-ephemeral" content="`)
+//line base.qtpl:30
+		qw422016.N().S(p.CSRFEphemeralToken)
+//line base.qtpl:30
+		qw422016.N().S(`">`)
+//line base.qtpl:30
+	}
+//line base.qtpl:31
+	if p.ViewTransitionsOff {
+//line base.qtpl:31
+		qw422016.N().S(`<meta name="pk-view-transitions" content="off">`)
+//line base.qtpl:31
+	}
+//line base.qtpl:33
+	if len(p.FontsHTML) > 0 {
+//line base.qtpl:33
+		qw422016.N().Z(p.FontsHTML)
+//line base.qtpl:33
+	}
+//line base.qtpl:35
+	if p.RuntimeRecoveryURL != "" {
+//line base.qtpl:35
+		qw422016.N().S(`<script defer src="`)
+//line base.qtpl:35
+		qw422016.N().S(p.RuntimeRecoveryURL)
+//line base.qtpl:35
+		qw422016.N().S(`"`)
+//line base.qtpl:35
+		qw422016.N().S(daemon_dto.CSPTokenAttribute(p.CSPToken))
+//line base.qtpl:35
+		qw422016.N().S(`></script>`)
+//line base.qtpl:35
+	}
+//line base.qtpl:35
+	qw422016.N().S(`<link rel="modulepreload" href="`)
+//line base.qtpl:36
+	qw422016.N().S(p.CoreJSURL)
+//line base.qtpl:36
+	qw422016.N().S(`"`)
+//line base.qtpl:36
+	qw422016.N().S(daemon_dto.CSPTokenAttribute(p.CSPToken))
+//line base.qtpl:36
+	if p.CoreJSSRIHash != "" {
+//line base.qtpl:36
+		qw422016.N().S(` `)
+//line base.qtpl:36
+		qw422016.N().S(`integrity="`)
+//line base.qtpl:36
+		qw422016.N().S(p.CoreJSSRIHash)
+//line base.qtpl:36
+		qw422016.N().S(`" crossorigin="anonymous"`)
+//line base.qtpl:36
+	}
+//line base.qtpl:36
+	qw422016.N().S(`>`)
+//line base.qtpl:37
+	if p.PreloadURLS != "" {
+//line base.qtpl:37
+		qw422016.N().S(p.PreloadURLS)
+//line base.qtpl:37
+	}
+//line base.qtpl:37
+	qw422016.N().S(`<link rel="preload" href="/theme.css" as="style"`)
+//line base.qtpl:39
+	if p.ThemeCSSSRIHash != "" {
+//line base.qtpl:39
+		qw422016.N().S(` `)
+//line base.qtpl:39
+		qw422016.N().S(`integrity="`)
+//line base.qtpl:39
+		qw422016.N().S(p.ThemeCSSSRIHash)
+//line base.qtpl:39
+		qw422016.N().S(`" crossorigin="anonymous"`)
+//line base.qtpl:39
+	}
+//line base.qtpl:39
+	qw422016.N().S(`><link rel="stylesheet" href="/theme.css"`)
+//line base.qtpl:40
+	if p.ThemeCSSSRIHash != "" {
+//line base.qtpl:40
+		qw422016.N().S(` `)
+//line base.qtpl:40
+		qw422016.N().S(`integrity="`)
+//line base.qtpl:40
+		qw422016.N().S(p.ThemeCSSSRIHash)
+//line base.qtpl:40
+		qw422016.N().S(`" crossorigin="anonymous"`)
+//line base.qtpl:40
+	}
+//line base.qtpl:40
+	qw422016.N().S(`>`)
+//line base.qtpl:41
+	if p.Styling != "" {
+//line base.qtpl:41
+		qw422016.N().S(`<style pk-page`)
+//line base.qtpl:41
+		qw422016.N().S(daemon_dto.CSPTokenAttribute(p.CSPToken))
+//line base.qtpl:41
+		qw422016.N().S(`>`)
+//line base.qtpl:41
+		qw422016.N().S(p.Styling)
+//line base.qtpl:41
+		qw422016.N().S(`</style>`)
+//line base.qtpl:41
+	}
+//line base.qtpl:41
+	qw422016.N().S(`</head><body`)
+//line base.qtpl:43
+	if p.Aesthetic != "" {
+//line base.qtpl:43
+		qw422016.N().S(` `)
+//line base.qtpl:43
+		qw422016.N().S(`data-aesthetic="`)
+//line base.qtpl:43
+		qw422016.N().S(p.Aesthetic)
+//line base.qtpl:43
+		qw422016.N().S(`"`)
+//line base.qtpl:43
+	}
+//line base.qtpl:43
+	if p.Style != "" {
+//line base.qtpl:43
+		qw422016.N().S(` `)
+//line base.qtpl:43
+		qw422016.N().S(`data-style="`)
+//line base.qtpl:43
+		qw422016.N().S(p.Style)
+//line base.qtpl:43
+		qw422016.N().S(`"`)
+//line base.qtpl:43
+	}
+//line base.qtpl:43
+	if p.PageID != "" {
+//line base.qtpl:43
+		qw422016.N().S(` `)
+//line base.qtpl:43
+		qw422016.N().S(`data-pageid="`)
+//line base.qtpl:43
+		qw422016.N().S(p.PageID)
+//line base.qtpl:43
+		qw422016.N().S(`"`)
+//line base.qtpl:43
+	}
+//line base.qtpl:43
+	qw422016.N().S(`><div id="app">`)
+//line base.qtpl:46
+}
+
+//line base.qtpl:46
+func WriteBasePageHeader(qq422016 qtio422016.Writer, p *BasePageData) {
+//line base.qtpl:46
+	qw422016 := qt422016.AcquireWriter(qq422016)
+//line base.qtpl:46
+	StreamBasePageHeader(qw422016, p)
+//line base.qtpl:46
+	qt422016.ReleaseWriter(qw422016)
+//line base.qtpl:46
+}
+
+//line base.qtpl:46
+func BasePageHeader(p *BasePageData) string {
+//line base.qtpl:46
+	qb422016 := qt422016.AcquireByteBuffer()
+//line base.qtpl:46
+	WriteBasePageHeader(qb422016, p)
+//line base.qtpl:46
+	qs422016 := string(qb422016.B)
+//line base.qtpl:46
+	qt422016.ReleaseByteBuffer(qb422016)
+//line base.qtpl:46
+	return qs422016
+//line base.qtpl:46
+}
+
+//line base.qtpl:48
+func StreamBasePageFooter(qw422016 *qt422016.Writer, p *BasePageData) {
+//line base.qtpl:48
+	qw422016.N().S(`    </div>`)
+//line base.qtpl:51
+	if p.SvgSpriteSheet != "" {
+//line base.qtpl:52
+		qw422016.N().S(p.SvgSpriteSheet)
+//line base.qtpl:53
+	}
+//line base.qtpl:53
+	qw422016.N().S(`<script type="module" src="`)
+//line base.qtpl:55
+	qw422016.N().S(p.CoreJSURL)
+//line base.qtpl:55
+	qw422016.N().S(`"`)
+//line base.qtpl:55
+	qw422016.N().S(daemon_dto.CSPTokenAttribute(p.CSPToken))
+//line base.qtpl:55
+	if p.CoreJSSRIHash != "" {
+//line base.qtpl:55
+		qw422016.N().S(` `)
+//line base.qtpl:55
+		qw422016.N().S(`integrity="`)
+//line base.qtpl:55
+		qw422016.N().S(p.CoreJSSRIHash)
+//line base.qtpl:55
+		qw422016.N().S(`" crossorigin="anonymous"`)
 //line base.qtpl:55
 	}
+//line base.qtpl:55
+	qw422016.N().S(`></script><script type="module" src="/_piko/assets/pk-js/pk/actions.gen.js"`)
 //line base.qtpl:56
-	if p.DevWidgetHTML != "" {
+	qw422016.N().S(daemon_dto.CSPTokenAttribute(p.CSPToken))
 //line base.qtpl:56
-		qw422016.N().S(p.DevWidgetHTML)
+	if p.ActionsJSSRIHash != "" {
+//line base.qtpl:56
+		qw422016.N().S(` `)
+//line base.qtpl:56
+		qw422016.N().S(`integrity="`)
+//line base.qtpl:56
+		qw422016.N().S(p.ActionsJSSRIHash)
+//line base.qtpl:56
+		qw422016.N().S(`" crossorigin="anonymous"`)
 //line base.qtpl:56
 	}
 //line base.qtpl:56
+	qw422016.N().S(`></script>`)
+//line base.qtpl:57
+	if p.ModuleScripts != "" {
+//line base.qtpl:57
+		qw422016.N().S(p.ModuleScripts)
+//line base.qtpl:57
+	}
+//line base.qtpl:58
+	for _, meta := range p.PKScriptMetas {
+//line base.qtpl:58
+		qw422016.N().S(`<script type="module" src="`)
+//line base.qtpl:58
+		qw422016.N().S(meta.URL)
+//line base.qtpl:58
+		qw422016.N().S(`"`)
+//line base.qtpl:58
+		qw422016.N().S(daemon_dto.CSPTokenAttribute(p.CSPToken))
+//line base.qtpl:58
+		if meta.SRIHash != "" {
+//line base.qtpl:58
+			qw422016.N().S(` `)
+//line base.qtpl:58
+			qw422016.N().S(`integrity="`)
+//line base.qtpl:58
+			qw422016.N().S(meta.SRIHash)
+//line base.qtpl:58
+			qw422016.N().S(`" crossorigin="anonymous"`)
+//line base.qtpl:58
+		}
+//line base.qtpl:58
+		qw422016.N().S(`></script><meta name="pk-script" content="`)
+//line base.qtpl:58
+		qw422016.N().S(meta.URL)
+//line base.qtpl:58
+		qw422016.N().S(`"`)
+//line base.qtpl:58
+		if meta.PartialName != "" {
+//line base.qtpl:58
+			qw422016.N().S(` `)
+//line base.qtpl:58
+			qw422016.N().S(`data-partial-name="`)
+//line base.qtpl:58
+			qw422016.N().S(meta.PartialName)
+//line base.qtpl:58
+			qw422016.N().S(`"`)
+//line base.qtpl:58
+		}
+//line base.qtpl:58
+		qw422016.N().S(`>`)
+//line base.qtpl:58
+	}
+//line base.qtpl:59
+	for _, url := range p.WidgetScripts {
+//line base.qtpl:59
+		qw422016.N().S(`<meta name="pk-widget-script" content="`)
+//line base.qtpl:59
+		qw422016.N().S(url)
+//line base.qtpl:59
+		qw422016.N().S(`">`)
+//line base.qtpl:59
+	}
+//line base.qtpl:60
+	if p.DevWidgetHTML != "" {
+//line base.qtpl:60
+		qw422016.N().S(p.DevWidgetHTML)
+//line base.qtpl:60
+	}
+//line base.qtpl:60
 	qw422016.N().S(`</body></html>`)
-//line base.qtpl:60
+//line base.qtpl:64
 }
 
-//line base.qtpl:60
+//line base.qtpl:64
 func WriteBasePageFooter(qq422016 qtio422016.Writer, p *BasePageData) {
-//line base.qtpl:60
+//line base.qtpl:64
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line base.qtpl:60
+//line base.qtpl:64
 	StreamBasePageFooter(qw422016, p)
-//line base.qtpl:60
+//line base.qtpl:64
 	qt422016.ReleaseWriter(qw422016)
-//line base.qtpl:60
+//line base.qtpl:64
 }
 
-//line base.qtpl:60
+//line base.qtpl:64
 func BasePageFooter(p *BasePageData) string {
-//line base.qtpl:60
+//line base.qtpl:64
 	qb422016 := qt422016.AcquireByteBuffer()
-//line base.qtpl:60
+//line base.qtpl:64
 	WriteBasePageFooter(qb422016, p)
-//line base.qtpl:60
+//line base.qtpl:64
 	qs422016 := string(qb422016.B)
-//line base.qtpl:60
+//line base.qtpl:64
 	qt422016.ReleaseByteBuffer(qb422016)
-//line base.qtpl:60
+//line base.qtpl:64
 	return qs422016
-//line base.qtpl:60
+//line base.qtpl:64
 }

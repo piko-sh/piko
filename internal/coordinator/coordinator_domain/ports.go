@@ -305,17 +305,21 @@ type ClientScriptEmitterPort interface {
 	// block.
 	// Takes pagePath (string) which is the project-relative path of the component without
 	// its .pk extension (e.g. "partials/header").
+	// Takes target (generator_dto.ClientScriptTarget) which says whether the script belongs
+	// to a page or a partial, and names the partial.
 	// Takes moduleName (string) which is the Go module name used for @/ alias resolution in
 	// imports.
 	// Takes outputDir (string) which is ignored; the registry handles storage.
 	// Takes minify (bool) which is ignored; the capabilities pipeline handles minification.
 	//
 	// Returns artefactID (string) which identifies the stored artefact.
-	// Returns error when transpilation or registry storage fails.
+	// Returns error when the target is not valid, or transpilation or registry storage
+	// fails.
 	EmitJS(
 		ctx context.Context,
 		source string,
 		pagePath string,
+		target generator_dto.ClientScriptTarget,
 		moduleName string,
 		outputDir string,
 		minify bool,

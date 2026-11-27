@@ -22,6 +22,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"path"
 	"strings"
 
 	"piko.sh/json"
@@ -51,6 +52,10 @@ const (
 	// ModuleComponents provides the PKC component runtime (PPElement, VDOM, reactivity).
 	// Unlike other modules, this is not injected site-wide; it is loaded on demand when a
 	// page contains PKC components.
+	//
+	// Compiled components import its unversioned URL, which re-exports the build's versioned
+	// URL. The browser knows an ES module by its URL, so both resolve to one copy with one
+	// component registry and state.
 	ModuleComponents
 )
 
@@ -137,45 +142,74 @@ func (m FrontendModule) String() string {
 	}
 }
 
-// AssetPath returns the path to the module's JS file in the embedded asset store.
+// AssetPath returns the path to the module's unminified JS file in the embedded asset
+// store.
+//
+// The module is served at the URL named after this file. The build decides whether the
+// URL answers with these bytes or with the minified file.
 //
 // Returns string which is the asset path, or an empty string for unknown modules.
 func (m FrontendModule) AssetPath() string {
 	switch m {
 	case ModuleAnalytics:
-		return "built/ppframework.analytics.min.es.js"
+		return builtAssetPrefix + analyticsModuleFile
 	case ModuleModals:
-		return "built/ppframework.modals.min.es.js"
+		return builtAssetPrefix + modalsModuleFile
 	case ModuleToasts:
-		return "built/ppframework.toasts.min.es.js"
+		return builtAssetPrefix + toastsModuleFile
 	case ModuleDev:
-		return "built/ppframework.dev.min.es.js"
+		return builtAssetPrefix + devModuleFile
 	case ModuleComponents:
-		return "built/ppframework.components.min.es.js"
+		return builtAssetPrefix + componentsModuleFile
 	default:
 		return ""
 	}
 }
 
-// ServeURL returns the URL at which this module is served to browsers. This is used for
-// generating <script> and <link rel="modulepreload"> tags.
+// ServeURL returns the URL at which a build of this module is served to browsers. This is
+// used for generating <script> and <link rel="modulepreload"> tags.
+//
+// The URL carries the build's runtime version, so it can be cached for good and two
+// builds never share it.
+//
+// Takes build (CoreRuntimeBuild) which is the build the server sends.
 //
 // Returns string which is the URL path, or empty if the module is unknown.
-func (m FrontendModule) ServeURL() string {
-	switch m {
-	case ModuleAnalytics:
-		return "/_piko/dist/ppframework.analytics.min.es.js"
-	case ModuleModals:
-		return "/_piko/dist/ppframework.modals.min.es.js"
-	case ModuleToasts:
-		return "/_piko/dist/ppframework.toasts.min.es.js"
-	case ModuleDev:
-		return "/_piko/dist/ppframework.dev.min.es.js"
-	case ModuleComponents:
-		return "/_piko/dist/ppframework.components.min.es.js"
-	default:
+func (m FrontendModule) ServeURL(build CoreRuntimeBuild) string {
+	assetPath := m.AssetPath()
+	if assetPath == "" {
 		return ""
 	}
+	return build.ModuleURL(path.Base(assetPath))
+}
+
+// ImportURL returns the unversioned URL of this module, for code that does not know the
+// build the server sends.
+//
+// The server answers it with a module that re-exports the build's versioned URL, so it
+// loads the same single copy as ServeURL.
+//
+// Returns string which is the URL path, or empty if the module is unknown.
+func (m FrontendModule) ImportURL() string {
+	assetPath := m.AssetPath()
+	if assetPath == "" {
+		return ""
+	}
+	return runtimeDistPath + path.Base(assetPath)
+}
+
+// SRIHash returns the SRI hash of the bytes a build sends at this module's URL.
+//
+// Takes build (CoreRuntimeBuild) which is the build the server sends.
+//
+// Returns string which is the integrity hash, or empty when SRI is disabled or the module
+// is unknown.
+func (m FrontendModule) SRIHash(build CoreRuntimeBuild) string {
+	assetPath := m.AssetPath()
+	if assetPath == "" {
+		return ""
+	}
+	return build.ModuleSRIHash(path.Base(assetPath))
 }
 
 // CustomFrontendModule represents a user-provided frontend JavaScript module. The content
@@ -291,6 +325,10 @@ func GetDevWidgetHTML() string {
 
 // GenerateModuleHTML creates the HTML needed to load frontend modules.
 //
+// Each built-in module is loaded from the URL of the build the server sends, with the SRI
+// hash of the bytes served there.
+//
+// Takes build (CoreRuntimeBuild) which is the build the server sends.
 // Takes moduleEntries ([]ModuleEntry) which contains the built-in modules to include.
 // Takes customModules (map[string]*CustomFrontendModule) which provides custom modules to
 // include alongside the built-in ones.
@@ -299,17 +337,21 @@ func GetDevWidgetHTML() string {
 // Returns scriptHTML (string) which contains script tags for module loading.
 // Returns configHTML (string) which contains a JSON script tag with module settings, or
 // an empty string if no modules have settings.
-func GenerateModuleHTML(moduleEntries []ModuleEntry, customModules map[string]*CustomFrontendModule) (preloadHTML, scriptHTML, configHTML string) {
+func GenerateModuleHTML(
+	build CoreRuntimeBuild,
+	moduleEntries []ModuleEntry,
+	customModules map[string]*CustomFrontendModule,
+) (preloadHTML, scriptHTML, configHTML string) {
 	var preloadBuf, scriptBuf strings.Builder
 
 	allConfigs := make(map[string]any)
 
 	for _, entry := range moduleEntries {
-		url := entry.Module.ServeURL()
+		url := entry.Module.ServeURL(build)
 		if url == "" {
 			continue
 		}
-		sriHash := GetSRIHash(entry.Module.AssetPath())
+		sriHash := entry.Module.SRIHash(build)
 		writeModulePreloadTag(&preloadBuf, url, sriHash)
 		writeModuleScriptTag(&scriptBuf, url, sriHash)
 

@@ -19,8 +19,13 @@
 package browser_provider_chromedp
 
 import (
+	"context"
 	"errors"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAssertionError_Error(t *testing.T) {
@@ -313,4 +318,56 @@ func TestCheckNoConsoleWarnings_WithWarning(t *testing.T) {
 	if err := CheckNoConsoleWarnings(ctx); err == nil {
 		t.Error("expected error when console warning exists")
 	}
+}
+
+func TestPollConsoleMessageWaitsForAMessageLoggedLater(t *testing.T) {
+	reads := 0
+	readLogs := func() []ConsoleLog {
+		reads++
+		if reads < 3 {
+			return []ConsoleLog{{Level: "log", Message: "starting"}}
+		}
+		return []ConsoleLog{{Level: "log", Message: "starting"}, {Level: "error", Message: "failed to load again soon after a reload"}}
+	}
+
+	err := pollConsoleMessage(t.Context(), readLogs, "error", "failed to load again", DefaultAssertionTimeout)
+
+	require.NoError(t, err)
+	assert.Equal(t, 3, reads)
+}
+
+func TestPollConsoleMessageFailsWhenTheMessageNeverArrives(t *testing.T) {
+	readLogs := func() []ConsoleLog { return []ConsoleLog{{Level: "log", Message: "starting"}} }
+
+	err := pollConsoleMessage(t.Context(), readLogs, "error", "never logged", 2*DefaultPollingInterval)
+
+	var assertionError *AssertionError
+	require.ErrorAs(t, err, &assertionError)
+	assert.Equal(t, "console message not found", assertionError.Message)
+}
+
+func TestPollConsoleMessageStopsWhenTheContextEnds(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	readLogs := func() []ConsoleLog { return nil }
+
+	err := pollConsoleMessage(ctx, readLogs, "", "never logged", time.Minute)
+
+	require.ErrorIs(t, err, context.Canceled)
+}
+
+func TestCheckConsoleMessageStepWaitsForTheMessage(t *testing.T) {
+	ph := &PageHelper{
+		stopChan:      make(chan struct{}),
+		consoleLogs:   []string{},
+		consoleLogsV2: []ConsoleLog{},
+	}
+	ph.recordConsoleLog("already logged", "warn")
+	ctx := &ActionContext{Ctx: t.Context(), PageHelper: ph}
+
+	err := ExecuteAssertion(ctx, &BrowserStep{Action: "checkConsoleMessage", Level: "warn", Message: "already", Timeout: 200})
+	require.NoError(t, err)
+
+	err = ExecuteAssertion(ctx, &BrowserStep{Action: "checkConsoleMessage", Level: "error", Message: "missing", Timeout: 200})
+	require.Error(t, err)
 }

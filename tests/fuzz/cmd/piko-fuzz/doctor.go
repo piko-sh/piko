@@ -62,12 +62,6 @@ var (
 	// errDoctorMissingTools reports that at least one required tool or source is absent.
 	errDoctorMissingTools = errors.New("doctor found missing tools or sources")
 
-	// browserTargetNames lists targets that always use a browser under the sample policy.
-	browserTargetNames = []string{
-		"components", "form-workflow", "browser-events", "browser-lifecycle", "partial-components",
-		"checkout-workflow", "shipped-components", "markup", "firefox-markup",
-	}
-
 	// chromeCandidates lists Chromium executable names and paths in search order.
 	chromeCandidates = []string{
 		"headless_shell", "headless-shell", "chromium", "chromium-browser", "google-chrome",
@@ -107,8 +101,8 @@ type doctorReport struct {
 // Takes repo (string) which is the repository root.
 // Takes options (*flags) which holds the parsed command options.
 //
-// Returns error which reports unverified limits, failed preflight, missing
-// prerequisites or failed output.
+// Returns error which reports unverified limits, failed preflight, missing prerequisites
+// or failed output.
 func doctor(ctx context.Context, repo string, options *flags) error {
 	budget, err := openBudget(ctx)
 	if err != nil {
@@ -257,7 +251,7 @@ func browserSelected(names []string, all bool, options *flags) bool {
 	case browserOff:
 		return false
 	}
-	if all || slices.ContainsFunc(names, func(name string) bool { return slices.Contains(browserTargetNames, name) }) {
+	if all || slices.ContainsFunc(names, targets.IsBrowser) {
 		return true
 	}
 	for _, name := range names {
@@ -285,8 +279,7 @@ func browserSelected(names []string, all bool, options *flags) bool {
 // Returns string which is "ok" when the build succeeded.
 // Returns error which reports a held lock, a refused admission or a failed build.
 //
-// Concurrency: Holds the per-user campaign lock while waiting for admission and
-// building.
+// Concurrency: Holds the per-user campaign lock while waiting for admission and building.
 func preflightPikopls(ctx context.Context, repo string, options *flags, budget *resource.Budget) (string, error) {
 	release, err := resource.Lock()
 	if err != nil {

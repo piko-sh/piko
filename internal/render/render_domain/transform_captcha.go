@@ -28,6 +28,7 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/captcha/captcha_dto"
+	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
@@ -289,7 +290,8 @@ func renderClientSideCaptcha(
 
 // writeCaptchaScriptTags outputs the external SDK and init script tags for all captcha
 // providers collected during rendering, using pre-resolved probe paths when available or
-// falling back to direct path construction for headless renders.
+// falling back to direct path construction for headless renders. Each element carries the
+// request's CSP token when the policy uses one.
 //
 // Takes qw (*qt.Writer) which is the output writer for the script elements.
 //
@@ -299,20 +301,29 @@ func writeCaptchaScriptTags(qw *qt.Writer, rctx *renderContext) {
 		return
 	}
 
+	cspToken := rctx.cspToken()
 	for providerName, info := range rctx.collectedCaptchaScripts {
 		for _, sdkURL := range info.SDKScriptURLs {
-			qw.N().S("\n")
-			qw.N().S(`<script src="`)
-			qw.E().S(sdkURL)
-			qw.N().S(`" async defer></script>`)
+			writeAsyncScriptTag(qw, sdkURL, cspToken)
 		}
-
-		servePath := resolveCaptchaInitScriptPath(rctx, providerName, info)
-		qw.N().S("\n")
-		qw.N().S(`<script src="`)
-		qw.E().S(servePath)
-		qw.N().S(`" async defer></script>`)
+		writeAsyncScriptTag(qw, resolveCaptchaInitScriptPath(rctx, providerName, info), cspToken)
 	}
+}
+
+// writeAsyncScriptTag writes an external script element that loads without blocking the
+// page, on a line of its own.
+//
+// Takes qw (*qt.Writer) which receives the element.
+// Takes source (string) which is the script URL.
+// Takes cspToken (string) which is the request's CSP token, or empty when the policy uses
+// none.
+func writeAsyncScriptTag(qw *qt.Writer, source, cspToken string) {
+	qw.N().S("\n")
+	qw.N().S(`<script src="`)
+	qw.E().S(source)
+	qw.N().S(`"`)
+	qw.N().S(daemon_dto.CSPTokenAttribute(cspToken))
+	qw.N().S(` async defer></script>`)
 }
 
 // collectCaptchaWidgetScriptURLs returns all SDK and init script URLs from the collected

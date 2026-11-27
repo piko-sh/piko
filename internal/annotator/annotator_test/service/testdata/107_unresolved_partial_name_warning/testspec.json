@@ -1,0 +1,10 @@
+{
+  "description": "Validates that a partial reload call naming a partial that is not in the build emits a warning, and that an import alias is reported with the partial's real name.",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "piko.partials.reload(\"task_list\") names no partial in the build, so the partial is never found. \"task_list\" is the import alias; the partial's name is \"partials/task-list\""
+    }
+  ]
+}

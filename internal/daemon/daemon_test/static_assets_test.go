@@ -65,7 +65,9 @@ func TestServeTheme_Success(t *testing.T) {
 	AssertStatus(t, recorder, http.StatusOK)
 	assert.Contains(t, recorder.Header().Get("Content-Type"), "text/css")
 	assert.NotEmpty(t, recorder.Header().Get("ETag"))
-	assert.Contains(t, recorder.Header().Get("Cache-Control"), "max-age=3600")
+	assert.Equal(t, "public, no-cache", recorder.Header().Get("Cache-Control"),
+		"theme.css is pinned by SRI under a stable URL, so it must be revalidated before reuse")
+	assert.Equal(t, "Accept-Encoding", recorder.Header().Get("Vary"))
 	assert.Equal(t, string(cssContent), recorder.Body.String())
 }
 
@@ -121,6 +123,9 @@ func TestServeTheme_ETagMatch_304(t *testing.T) {
 	router.ServeHTTP(recorder, request)
 
 	AssertNotModified(t, recorder)
+	assert.Equal(t, etag, recorder.Header().Get("ETag"))
+	assert.Equal(t, "public, no-cache", recorder.Header().Get("Cache-Control"),
+		"a 304 must restate the policy so the browser's stored copy keeps revalidating")
 }
 
 func TestServeTheme_BrotliCompression(t *testing.T) {

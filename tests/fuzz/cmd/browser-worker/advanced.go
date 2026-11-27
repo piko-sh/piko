@@ -104,7 +104,7 @@ func advancedInteraction(root string, action casefile.ClientAction) (browserActi
 		if err != nil {
 			return nil, true, err
 		}
-		return run("root.host.setAttribute('time'," + value + ")"), true, nil
+		return run("root.host.setAttribute('time'," + value + scriptGroupEnd), true, nil
 	default:
 		return nil, false, nil
 	}

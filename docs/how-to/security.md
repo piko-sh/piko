@@ -29,6 +29,8 @@ ssr := piko.New(
 )
 ```
 
+With the strict preset, only scripts and styles that carry the response's token may run. Piko adds the token to the scripts and styles it writes. In your own templates, add `{{ .CSPTokenAttr }}` to inline `<script>` and `<style>` elements, and move `style="..."` attributes into a `<style>` block or a stylesheet, because the preset blocks them. The static page cache is off under this preset (see [How to set a cache policy](routing/cache-policy.md)).
+
 ## Customise the CSP
 
 For fine-grained control, use `piko.WithCSP(configure)` and build the policy programmatically:

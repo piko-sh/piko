@@ -1,0 +1,12 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <button [Events: p-on:click.="refresh()" {P: refresh()}] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Refresh"
+  </button>
+  <ul class="tasks" [ANNOTATIONS: OriginPackage: partials_task_list_3de6a953 OriginPath: partials/task-list.pk PARTIAL InvKey: task_list_ba5a228f Package: partials_task_list_3de6a953 InvPackage: main_aaf9a2e0] />
+</div>
+
+--- END AST DUMP ---
+*/

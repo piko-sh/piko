@@ -26,12 +26,16 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/config"
+	"piko.sh/piko/internal/daemon/daemon_dto"
+	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/render/render_dto"
 	"piko.sh/piko/internal/render/render_test/pages/fixtures"
@@ -54,6 +58,8 @@ func setupTest(t testing.TB) (*render_domain.RenderOrchestrator, *mocks.MockRegi
 
 func assertGolden(t *testing.T, goldenFile string, actual []byte) {
 	t.Helper()
+	require.Contains(t, string(actual), daemon_frontend.CoreRuntimeBuildDevelopment.CoreModuleURL(), "full pages must load the versioned core of the server's build")
+	actual = []byte(daemon_frontend.StripRuntimeVersion(string(actual)))
 	if *update {
 		t.Logf("Updating golden file: %s", goldenFile)
 		require.NoError(t, os.WriteFile(goldenFile, actual, 0644), "failed to update golden file")
@@ -63,6 +69,124 @@ func assertGolden(t *testing.T, goldenFile string, actual []byte) {
 	require.NoError(t, err, "failed to read golden file")
 
 	assert.Equal(t, string(expected), string(actual), "output does not match golden file: %s", goldenFile)
+}
+
+func TestRenderOrchestrator_RuntimeRecoveryScript(t *testing.T) {
+	testCases := []struct {
+		name       string
+		cspToken   string
+		wantScript string
+	}{
+		{
+			name:       "loads before the runtime when the policy uses no token",
+			wantScript: `<script defer src="/_piko/runtime-recovery.js"></script>`,
+		},
+		{
+			name:       "carries the request token so a token-based policy lets it run",
+			cspToken:   "dG9rZW4rLz0=",
+			wantScript: `<script defer src="/_piko/runtime-recovery.js" nonce="dG9rZW4rLz0="></script>`,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			orchestrator, _, request := setupTest(t)
+			if testCase.cspToken != "" {
+				request = request.WithContext(daemon_dto.WithPikoRequestCtx(request.Context(), &daemon_dto.PikoRequestCtx{CSPToken: testCase.cspToken}))
+			}
+
+			var buffer bytes.Buffer
+			err := orchestrator.RenderAST(t.Context(), &buffer, httptest.NewRecorder(), request, render_domain.RenderASTOptions{
+				PageID: "simple-page", Template: fixtures.SimplePageAST(), Metadata: &templater_dto.InternalMetadata{}, SiteConfig: &config.WebsiteConfig{},
+			})
+			require.NoError(t, err)
+
+			page := buffer.String()
+			scriptIndex := strings.Index(page, testCase.wantScript)
+			require.GreaterOrEqual(t, scriptIndex, 0, "the page must load the recovery script")
+			assert.Less(t, scriptIndex, strings.Index(page, `<link rel="modulepreload" href="`+daemon_frontend.CoreRuntimeBuildDevelopment.CoreModuleURL()+`"`),
+				"the recovery script must come before the runtime so it runs first")
+			assert.Less(t, scriptIndex, strings.Index(page, "</head>"))
+		})
+	}
+}
+
+var (
+	scriptOrModulePreloadPattern = regexp.MustCompile(`<script\b[^>]*>|<link rel="modulepreload"[^>]*>`)
+)
+
+func renderPageWithEveryScriptSource(t *testing.T, cspToken string) string {
+	t.Helper()
+	orchestrator, mockRegistry, request := setupTest(t)
+	mockRegistry.OnGetComponent("my-card", &render_dto.ComponentMetadata{
+		TagName: "my-card", BaseJSPath: "/dist/my-card.js", SRIHash: "sha384-card", RequiredModules: []string{"/dist/shared.js"},
+	})
+	mockRegistry.OnGetComponent("another-component", &render_dto.ComponentMetadata{TagName: "another-component", BaseJSPath: "/dist/another.js"})
+	mockRegistry.OnGetSVG("testmodule/lib/icon.svg", &render_domain.ParsedSvgData{
+		InnerHTML:  `<path d="..."></path>`,
+		Attributes: []ast_domain.HTMLAttribute{{Name: "viewBox", Value: "0 0 24 24"}},
+	})
+
+	previousPreload := daemon_frontend.GetModulePreloadHTML()
+	previousScript := daemon_frontend.GetModuleScriptHTML()
+	previousConfig := daemon_frontend.GetModuleConfigHTML()
+	t.Cleanup(func() { daemon_frontend.SetModuleHTML(previousPreload, previousScript, previousConfig) })
+	daemon_frontend.SetModuleHTML(daemon_frontend.GenerateModuleHTML(daemon_frontend.CoreRuntimeBuildDevelopment, nil, map[string]*daemon_frontend.CustomFrontendModule{
+		"extra": daemon_frontend.NewCustomFrontendModule("extra", []byte("export {};"), map[string]any{"enabled": true}),
+	}))
+
+	if cspToken != "" {
+		request = request.WithContext(daemon_dto.WithPikoRequestCtx(request.Context(), &daemon_dto.PikoRequestCtx{CSPToken: cspToken}))
+	}
+	metadata := templater_dto.InternalMetadata{
+		Title:          "Token Test",
+		CustomTags:     []string{"my-card", "another-component"},
+		StructuredData: []string{`{"@type":"WebPage"}`},
+		JSScriptMetas: []templater_dto.JSScriptMeta{
+			{URL: "/_piko/assets/pk-js/pages/main.js", SRIHash: "sha384-page"},
+			{URL: "/_piko/assets/pk-js/partials/modal.js", PartialName: "modal"},
+		},
+	}
+
+	var buffer bytes.Buffer
+	err := orchestrator.RenderAST(t.Context(), &buffer, httptest.NewRecorder(), request, render_domain.RenderASTOptions{
+		PageID: "token-page", Template: fixtures.ComplexPageAST(), Metadata: &metadata, Styling: "body { color: red; }", SiteConfig: &config.WebsiteConfig{},
+	})
+	require.NoError(t, err)
+	return buffer.String()
+}
+
+func TestRenderOrchestrator_ScriptElementsFollowTheCSPToken(t *testing.T) {
+	const cspToken = "dG9rZW4rLz0="
+
+	t.Run("every script and module preload carries the request token", func(t *testing.T) {
+		page := renderPageWithEveryScriptSource(t, cspToken)
+
+		tags := scriptOrModulePreloadPattern.FindAllString(page, -1)
+		require.GreaterOrEqual(t, len(tags), 10, "the page must exercise every script source")
+		for _, tag := range tags {
+			assert.Contains(t, tag, ` nonce="`+cspToken+`"`, "tag without the token: %s", tag)
+		}
+		assert.Contains(t, page, `<style pk-page nonce="`+cspToken+`">`)
+	})
+
+	t.Run("no element carries a token when the policy uses none", func(t *testing.T) {
+		page := renderPageWithEveryScriptSource(t, "")
+
+		require.NotEmpty(t, scriptOrModulePreloadPattern.FindAllString(page, -1))
+		assert.NotContains(t, page, "nonce=")
+	})
+
+	t.Run("matches the golden page", func(t *testing.T) {
+		assertGolden(t, filepath.Join("golden", "csp_token_page.golden.html"), []byte(renderPageWithEveryScriptSource(t, cspToken)))
+	})
+
+	t.Run("the framework writes no style attribute, which the policy would block", func(t *testing.T) {
+		page := renderPageWithEveryScriptSource(t, cspToken)
+
+		require.Contains(t, page, `<svg xmlns="http://www.w3.org/2000/svg" id="sprite" aria-hidden="true" width="0" height="0">`)
+		assert.NotContains(t, page, ` style="`)
+	})
 }
 
 func TestRenderOrchestrator_GoldenFiles(t *testing.T) {
@@ -319,10 +443,10 @@ func TestRenderOrchestrator_Metadata(t *testing.T) {
 
 		assert.Equal(t, "modulepreload", headerMap["/dist/comp-a.js"].Rel)
 		assert.Equal(t, "modulepreload", headerMap["/dist/comp-b.js"].Rel)
-		assert.Equal(t, "preload", headerMap["/_piko/dist/ppframework.core.es.js"].Rel)
+		assert.Equal(t, "preload", headerMap[daemon_frontend.CoreRuntimeBuildDevelopment.CoreModuleURL()].Rel)
 		assert.Equal(t, "preload", headerMap["/theme.css"].Rel)
 		assert.Equal(t, "style", headerMap["/theme.css"].As)
-		assert.Equal(t, "modulepreload", headerMap["/_piko/dist/ppframework.components.es.js"].Rel)
+		assert.Equal(t, "modulepreload", headerMap[daemon_frontend.CoreRuntimeBuildDevelopment.ComponentsModuleURL()].Rel)
 		assert.Equal(t, "preconnect", headerMap["https://fonts.googleapis.com"].Rel)
 		assert.Equal(t, "preconnect", headerMap["https://fonts.gstatic.com"].Rel)
 		assert.Equal(t, "preload", headerMap["https://fonts.googleapis.com/css?family=Roboto"].Rel)

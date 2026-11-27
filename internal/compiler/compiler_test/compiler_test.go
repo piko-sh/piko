@@ -28,6 +28,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/compiler/compiler_domain"
+	"piko.sh/piko/internal/daemon/daemon_frontend"
 )
 
 var (
@@ -67,7 +68,9 @@ func TestCompiler_GoldenFiles(t *testing.T) {
 			require.NotEmpty(t, artefact.Files)
 
 			mainJSFile := artefact.BaseJSPath
-			actualJS := artefact.Files[mainJSFile]
+			require.Contains(t, artefact.Files[mainJSFile], `"`+daemon_frontend.CoreModuleImportURL()+`"`,
+				"compiled components must import the core URL that re-exports the server's own build")
+			actualJS := daemon_frontend.StripRuntimeVersion(artefact.Files[mainJSFile])
 			actualScaffoldHTML := artefact.ScaffoldHTML
 
 			if *update {

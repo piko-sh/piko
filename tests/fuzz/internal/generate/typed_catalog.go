@@ -29,6 +29,15 @@ import (
 )
 
 const (
+	// catalogueLoaderPath is the case file path of the catalogue data loader source.
+	catalogueLoaderPath = "pkg/shelf/loader.go"
+
+	// headTitle is the response contract key of the document title.
+	headTitle = "title"
+
+	// headCanonical is the response contract key of the canonical link.
+	headCanonical = "canonical"
+
 	// catalogueModel names the typed catalogue model package import path.
 	catalogueModel = casefile.Module + "/pkg/catalog-item/v2"
 
@@ -178,7 +187,7 @@ func catalogueElement(key, tag, name string, attributes ...string) casefile.Page
 // values.
 func catalogueHead(title, theme string) map[string][]string {
 	return map[string][]string{
-		"lang": {"en-GB"}, "title": {title}, "canonical": {"https://catalog.example/catalog"},
+		"lang": {"en-GB"}, headTitle: {title}, headCanonical: {"https://catalog.example/catalog"},
 		"description": {"Listings for " + theme}, "og:title": {title}, "twitter:card": {"summary"},
 	}
 }
@@ -201,18 +210,18 @@ func addTypedCatalogue(c *casefile.Case, p Project) {
 	page = strings.Replace(page, `<main id="case-root">`, `<main id="case-root"><a data-fuzz-element="catalog" href="/catalog" aria-label="Browse catalog">Catalog</a>`, 1)
 	page = strings.Replace(page, "piko.Metadata{Title:title}", "piko.Metadata{Title:title,CanonicalURL:"+strconv.Quote("https://catalog.example/main")+"}", 1)
 	c.Files["pages/main.pk"] = page
-	c.Expected.Semantic = responseContract(map[string][]string{"canonical": {"https://catalog.example/main"}}, catalogueElement("catalog", "a", "Browse catalog", "href", "/catalog"))
+	c.Expected.Semantic = responseContract(map[string][]string{headCanonical: {"https://catalog.example/main"}}, catalogueElement("catalog", "a", "Browse catalog", "href", "/catalog"))
 	addCatalogueVisits(c, p, cards)
 	if c.Target == catalogueRebuild {
 		c.Files["pages/catalog-summary.pk"] = cataloguePage(catalogueSummaryTemplate, fmt.Sprintf("records %q\nitem %q", catalogueData, catalogueModel), catalogueSummaryScript)
 		summary := catalogueElement("summary", "a", fmt.Sprintf("Item %d.1", p.Count), "href", fmt.Sprintf("/product/p%d-1", p.Count))
-		c.Probes = append(c.Probes, semanticProbe("/catalog-summary", responseContract(map[string][]string{"title": {"Catalog summary"}}, summary)))
+		c.Probes = append(c.Probes, semanticProbe("/catalog-summary", responseContract(map[string][]string{headTitle: {"Catalog summary"}}, summary)))
 	}
 	addCatalogueDraft(c)
 	if c.Target == catalogueRebuild && c.Index%2 == 0 {
 		c.Features = append(c.Features, "catalog-precomputed-destinations")
 		c.Files["pkg/catalog-item/v2/item.go"] = strings.Replace(catalogueTypes, "Code Code; Label string;", "Code Code; Label, SKU, Href string;", 1)
-		c.Files["pkg/shelf/loader.go"] = strings.Replace(c.Files["pkg/shelf/loader.go"], "Label:parts[1]", `Label:parts[1], SKU:parts[0], Href:"/product/"+parts[0]`, 1)
+		c.Files[catalogueLoaderPath] = strings.Replace(c.Files[catalogueLoaderPath], "Label:parts[1]", `Label:parts[1], SKU:parts[0], Href:"/product/"+parts[0]`, 1)
 		cardEdits := strings.NewReplacer("props.Item.Code.Path()", "props.Item.Href", "props.Item.Code", "props.Item.SKU")
 		c.Files["partials/catalog/card.pk"] = cardEdits.Replace(c.Files["partials/catalog/card.pk"])
 		c.Files["pages/catalog-summary.pk"] = strings.Replace(c.Files["pages/catalog-summary.pk"], "state.Item.Code.Path()", "state.Item.Href", 1)
@@ -228,7 +237,7 @@ func addTypedCatalogue(c *casefile.Case, p Project) {
 // Takes c (*casefile.Case) which receives the model and loader sources.
 func addCatalogueShelf(c *casefile.Case) {
 	c.Files["pkg/catalog-item/v2/item.go"] = catalogueTypes
-	c.Files["pkg/shelf/loader.go"] = catalogueLoader
+	c.Files[catalogueLoaderPath] = catalogueLoader
 	c.Files["pkg/shelf/files_native.go"] = "//go:build !interp\n\npackage shelf\nimport (\"embed\";\"io/fs\")\n//go:embed items.txt\nvar embedded embed.FS\nvar Files fs.FS=embedded\n"
 	c.Files["pkg/shelf/files_interp.go"] = "//go:build interp\n\npackage shelf\nimport (\"os\";\"io/fs\")\nvar Files fs.FS=os.DirFS(\"pkg/shelf\")\n"
 	if c.Target != catalogueRebuild || c.Index%2 != 0 {
@@ -236,7 +245,7 @@ func addCatalogueShelf(c *casefile.Case) {
 		return
 	}
 	c.Features = append(c.Features, "catalog-filesystem-function")
-	c.Files["pkg/shelf/loader.go"] = strings.Replace(catalogueLoader, "fs.ReadFile(Files,", "fs.ReadFile(Files(),", 1)
+	c.Files[catalogueLoaderPath] = strings.Replace(catalogueLoader, "fs.ReadFile(Files,", "fs.ReadFile(Files(),", 1)
 	c.Files["pkg/shelf/files_native.go"] = strings.Replace(c.Files["pkg/shelf/files_native.go"], "var Files fs.FS=embedded", "func Files() fs.FS {return embedded}", 1)
 	c.Files["pkg/shelf/files_interp.go"] = strings.Replace(c.Files["pkg/shelf/files_interp.go"],
 		"var Files fs.FS=os.DirFS(\"pkg/shelf\")", "func Files() fs.FS {return os.DirFS(\"pkg/shelf\")}", 1)
@@ -334,18 +343,18 @@ func addCatalogueDraft(c *casefile.Case) {
 			probe.Program = false
 			probe.Output = nil
 			probe.Text = catalogueUnavailable
-			probe.Semantic = responseContract(map[string][]string{"title": {catalogueUnavailable}}, catalogueElement("missing", headingTag, catalogueUnavailable))
+			probe.Semantic = responseContract(map[string][]string{headTitle: {catalogueUnavailable}}, catalogueElement("missing", headingTag, catalogueUnavailable))
 		}
 	}
 	draft := newProbe("/draft", 0)
 	draft.ByMode = map[string]casefile.ModeResponse{
 		"interp": {
 			Status:   http.StatusOK,
-			Semantic: *responseContract(map[string][]string{"title": {"Draft preview"}, "canonical": {"http://fuzz.test/draft"}}, catalogueElement("draft", headingTag, "Draft preview")),
+			Semantic: *responseContract(map[string][]string{headTitle: {"Draft preview"}, headCanonical: {"http://fuzz.test/draft"}}, catalogueElement("draft", headingTag, "Draft preview")),
 		},
 		"compiled": {
 			Status:   http.StatusNotFound,
-			Semantic: *responseContract(map[string][]string{"title": {catalogueUnavailable}, "canonical": {}}, catalogueElement("missing", headingTag, catalogueUnavailable)),
+			Semantic: *responseContract(map[string][]string{headTitle: {catalogueUnavailable}, headCanonical: {}}, catalogueElement("missing", headingTag, catalogueUnavailable)),
 		},
 	}
 	c.Probes = append(c.Probes, draft)

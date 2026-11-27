@@ -25,29 +25,29 @@ type DispatchablePageParams struct {
 	Limit           int
 }
 type DispatchablePageRow struct {
-	ID                 string  `json:"id"`
-	WorkflowID         string  `json:"workflow_id"`
-	Executor           string  `json:"executor"`
-	Priority           int32   `json:"priority"`
-	Payload            string  `json:"payload"`
-	Config             string  `json:"config"`
-	Result             *string `json:"result"`
-	Status             string  `json:"status"`
-	ExecuteAt          int64   `json:"execute_at"`
-	Attempt            int32   `json:"attempt"`
-	LastError          *string `json:"last_error"`
-	CreatedAt          int64   `json:"created_at"`
-	UpdatedAt          int64   `json:"updated_at"`
-	DeduplicationKey   *string `json:"deduplication_key"`
-	BuildTag           string  `json:"build_tag"`
-	IsFatal            bool    `json:"is_fatal"`
-	ScheduledExecuteAt int64   `json:"scheduled_execute_at"`
-	Background         bool    `json:"background"`
-	OwnerInstance      string  `json:"owner_instance"`
-	LastPublishedAt    int64   `json:"last_published_at"`
-	RerunID            *string `json:"rerun_id"`
-	RerunPayload       *string `json:"rerun_payload"`
-	RerunConfig        *string `json:"rerun_config"`
+	ID                 string       `json:"id"`
+	WorkflowID         string       `json:"workflow_id"`
+	Executor           string       `json:"executor"`
+	Priority           int32        `json:"priority"`
+	Payload            string       `json:"payload"`
+	Config             string       `json:"config"`
+	Result             Null[string] `json:"result"`
+	Status             string       `json:"status"`
+	ExecuteAt          int64        `json:"execute_at"`
+	Attempt            int32        `json:"attempt"`
+	LastError          Null[string] `json:"last_error"`
+	CreatedAt          int64        `json:"created_at"`
+	UpdatedAt          int64        `json:"updated_at"`
+	DeduplicationKey   Null[string] `json:"deduplication_key"`
+	BuildTag           string       `json:"build_tag"`
+	IsFatal            bool         `json:"is_fatal"`
+	ScheduledExecuteAt int64        `json:"scheduled_execute_at"`
+	Background         bool         `json:"background"`
+	OwnerInstance      string       `json:"owner_instance"`
+	LastPublishedAt    int64        `json:"last_published_at"`
+	RerunID            Null[string] `json:"rerun_id"`
+	RerunPayload       Null[string] `json:"rerun_payload"`
+	RerunConfig        Null[string] `json:"rerun_config"`
 }
 
 func (queries *Queries) DispatchablePage(ctx context.Context, params DispatchablePageParams) ([]DispatchablePageRow, error) {
@@ -57,12 +57,16 @@ func (queries *Queries) DispatchablePage(ctx context.Context, params Dispatchabl
 	}
 	defer rows.Close()
 	var results []DispatchablePageRow
-	for rows.Next() {
+	if rows.Next() {
 		var row DispatchablePageRow
-		if err := rows.Scan(&row.ID, &row.WorkflowID, &row.Executor, &row.Priority, &row.Payload, &row.Config, &row.Result, &row.Status, &row.ExecuteAt, &row.Attempt, &row.LastError, &row.CreatedAt, &row.UpdatedAt, &row.DeduplicationKey, &row.BuildTag, &row.IsFatal, &row.ScheduledExecuteAt, &row.Background, &row.OwnerInstance, &row.LastPublishedAt, &row.RerunID, &row.RerunPayload, &row.RerunConfig); err != nil {
-			return nil, err
+		scanArgs := []any{&row.ID, &row.WorkflowID, &row.Executor, pikoScanNumber(&row.Priority), &row.Payload, &row.Config, &row.Result, &row.Status, &row.ExecuteAt, pikoScanNumber(&row.Attempt), &row.LastError, &row.CreatedAt, &row.UpdatedAt, &row.DeduplicationKey, &row.BuildTag, &row.IsFatal, &row.ScheduledExecuteAt, &row.Background, &row.OwnerInstance, &row.LastPublishedAt, &row.RerunID, &row.RerunPayload, &row.RerunConfig}
+		for more := true; more; more = rows.Next() {
+			row = DispatchablePageRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -91,29 +95,29 @@ type ListOrphanedTasksParams struct {
 	Limit     int
 }
 type ListOrphanedTasksRow struct {
-	ID                 string  `json:"id"`
-	WorkflowID         string  `json:"workflow_id"`
-	Executor           string  `json:"executor"`
-	Priority           int32   `json:"priority"`
-	Payload            string  `json:"payload"`
-	Config             string  `json:"config"`
-	Result             *string `json:"result"`
-	Status             string  `json:"status"`
-	ExecuteAt          int64   `json:"execute_at"`
-	Attempt            int32   `json:"attempt"`
-	LastError          *string `json:"last_error"`
-	CreatedAt          int64   `json:"created_at"`
-	UpdatedAt          int64   `json:"updated_at"`
-	DeduplicationKey   *string `json:"deduplication_key"`
-	BuildTag           string  `json:"build_tag"`
-	IsFatal            bool    `json:"is_fatal"`
-	ScheduledExecuteAt int64   `json:"scheduled_execute_at"`
-	Background         bool    `json:"background"`
-	OwnerInstance      string  `json:"owner_instance"`
-	LastPublishedAt    int64   `json:"last_published_at"`
-	RerunID            *string `json:"rerun_id"`
-	RerunPayload       *string `json:"rerun_payload"`
-	RerunConfig        *string `json:"rerun_config"`
+	ID                 string       `json:"id"`
+	WorkflowID         string       `json:"workflow_id"`
+	Executor           string       `json:"executor"`
+	Priority           int32        `json:"priority"`
+	Payload            string       `json:"payload"`
+	Config             string       `json:"config"`
+	Result             Null[string] `json:"result"`
+	Status             string       `json:"status"`
+	ExecuteAt          int64        `json:"execute_at"`
+	Attempt            int32        `json:"attempt"`
+	LastError          Null[string] `json:"last_error"`
+	CreatedAt          int64        `json:"created_at"`
+	UpdatedAt          int64        `json:"updated_at"`
+	DeduplicationKey   Null[string] `json:"deduplication_key"`
+	BuildTag           string       `json:"build_tag"`
+	IsFatal            bool         `json:"is_fatal"`
+	ScheduledExecuteAt int64        `json:"scheduled_execute_at"`
+	Background         bool         `json:"background"`
+	OwnerInstance      string       `json:"owner_instance"`
+	LastPublishedAt    int64        `json:"last_published_at"`
+	RerunID            Null[string] `json:"rerun_id"`
+	RerunPayload       Null[string] `json:"rerun_payload"`
+	RerunConfig        Null[string] `json:"rerun_config"`
 }
 
 func (queries *Queries) ListOrphanedTasks(ctx context.Context, params ListOrphanedTasksParams) ([]ListOrphanedTasksRow, error) {
@@ -123,12 +127,16 @@ func (queries *Queries) ListOrphanedTasks(ctx context.Context, params ListOrphan
 	}
 	defer rows.Close()
 	var results []ListOrphanedTasksRow
-	for rows.Next() {
+	if rows.Next() {
 		var row ListOrphanedTasksRow
-		if err := rows.Scan(&row.ID, &row.WorkflowID, &row.Executor, &row.Priority, &row.Payload, &row.Config, &row.Result, &row.Status, &row.ExecuteAt, &row.Attempt, &row.LastError, &row.CreatedAt, &row.UpdatedAt, &row.DeduplicationKey, &row.BuildTag, &row.IsFatal, &row.ScheduledExecuteAt, &row.Background, &row.OwnerInstance, &row.LastPublishedAt, &row.RerunID, &row.RerunPayload, &row.RerunConfig); err != nil {
-			return nil, err
+		scanArgs := []any{&row.ID, &row.WorkflowID, &row.Executor, pikoScanNumber(&row.Priority), &row.Payload, &row.Config, &row.Result, &row.Status, &row.ExecuteAt, pikoScanNumber(&row.Attempt), &row.LastError, &row.CreatedAt, &row.UpdatedAt, &row.DeduplicationKey, &row.BuildTag, &row.IsFatal, &row.ScheduledExecuteAt, &row.Background, &row.OwnerInstance, &row.LastPublishedAt, &row.RerunID, &row.RerunPayload, &row.RerunConfig}
+		for more := true; more; more = rows.Next() {
+			row = ListOrphanedTasksRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

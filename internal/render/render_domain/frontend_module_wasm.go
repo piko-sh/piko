@@ -20,9 +20,13 @@
 
 package render_domain
 
+import (
+	"piko.sh/piko/internal/daemon/daemon_frontend"
+)
+
 // In WASM builds, the frontend module HTML (preload links, config scripts, module
-// scripts, dev widget) is not needed. The daemon_frontend package embeds ~4.5MB of
-// ppframework JS bundles that would bloat the WASM binary.
+// scripts, dev widget) is not needed. The WASM build of daemon_frontend leaves out the
+// heavy embedded bundles, so only the runtime URLs are taken from it.
 
 // getModulePreloadHTML returns empty HTML since preload links are not needed in WASM
 // builds.
@@ -49,8 +53,10 @@ func getDevWidgetHTML() string { return "" }
 
 // getCoreJSSRIHash returns empty since SRI is not needed in WASM builds.
 //
+// Takes build (daemon_frontend.CoreRuntimeBuild) which is not used.
+//
 // Returns string which is always empty.
-func getCoreJSSRIHash() string { return "" }
+func getCoreJSSRIHash(daemon_frontend.CoreRuntimeBuild) string { return "" }
 
 // getActionsJSSRIHash returns empty since SRI is not needed in WASM builds.
 //
@@ -61,3 +67,32 @@ func getActionsJSSRIHash() string { return "" }
 //
 // Returns string which is always empty.
 func getThemeCSSSRIHash() string { return "" }
+
+// getCoreJSURL returns the URL generated modules import the core framework JS module
+// from. The playground maps that URL to its in-browser copy of the runtime, so the page
+// must load the same one.
+//
+// Takes build (daemon_frontend.CoreRuntimeBuild) which is not used, as the page always
+// loads the URL that generated modules import.
+//
+// Returns string which holds the URL the page loads the runtime from.
+func getCoreJSURL(daemon_frontend.CoreRuntimeBuild) string {
+	return daemon_frontend.CoreModuleImportURL()
+}
+
+// getComponentsJSURL returns the URL compiled components import the PKC components JS
+// module from, which the playground maps to its in-browser copy.
+//
+// Takes build (daemon_frontend.CoreRuntimeBuild) which is not used, as the page always
+// loads the URL that compiled components import.
+//
+// Returns string which holds the unversioned URL of the module.
+func getComponentsJSURL(daemon_frontend.CoreRuntimeBuild) string {
+	return daemon_frontend.ComponentsModuleImportURL()
+}
+
+// getRuntimeRecoveryURL returns empty, since the playground has no server to serve the
+// runtime recovery script.
+//
+// Returns string which is always empty.
+func getRuntimeRecoveryURL() string { return "" }

@@ -946,3 +946,85 @@ func TestPromoteToCatchAll(t *testing.T) {
 		})
 	}
 }
+
+func TestManifestBuilder_Build_NamesEveryPartialScript(t *testing.T) {
+	t.Parallel()
+
+	partial := func(partialName, componentType, jsArtefactID string, isPublic bool) *generator_dto.GeneratedArtefact {
+		return &generator_dto.GeneratedArtefact{
+			SuggestedPath: "/output/" + partialName + ".go",
+			JSArtefactID:  jsArtefactID,
+			Component: &annotator_dto.VirtualComponent{
+				IsPublic:    isPublic,
+				HashedName:  partialName + "_hash",
+				PartialName: partialName,
+				Source: &annotator_dto.ParsedComponent{
+					SourcePath:    "/project/" + partialName + ".pk",
+					ComponentType: componentType,
+					Script:        &annotator_dto.ParsedScript{},
+				},
+			},
+			Result: &annotator_dto.AnnotationResult{},
+		}
+	}
+	page := &generator_dto.GeneratedArtefact{
+		SuggestedPath: "/output/pages/home.go",
+		JSArtefactID:  "pk-js/pages/home.js",
+		Component: &annotator_dto.VirtualComponent{
+			IsPage:     true,
+			IsPublic:   true,
+			HashedName: "pages_home_hash",
+			Source: &annotator_dto.ParsedComponent{
+				SourcePath:    "/project/pages/home.pk",
+				ComponentType: "page",
+				Script:        &annotator_dto.ParsedScript{},
+			},
+		},
+		Result: &annotator_dto.AnnotationResult{},
+	}
+
+	tests := []struct {
+		artefact *generator_dto.GeneratedArtefact
+		want     map[string]string
+		name     string
+	}{
+		{
+			name:     "public partial",
+			artefact: partial("partials/card", "partial", "pk-js/partials/card.js", true),
+			want:     map[string]string{"pk-js/partials/card.js": "partials/card"},
+		},
+		{
+			name:     "partial that is not public",
+			artefact: partial("partials/menu", "partial", "pk-js/partials/menu.js", false),
+			want:     map[string]string{"pk-js/partials/menu.js": "partials/menu"},
+		},
+		{
+			name:     "partial outside the partials directory",
+			artefact: partial("layouts/layout", "component", "pk-js/layouts/layout.js", false),
+			want:     map[string]string{"pk-js/layouts/layout.js": "layouts/layout"},
+		},
+		{
+			name:     "partial without a script",
+			artefact: partial("partials/static", "partial", "", true),
+			want:     nil,
+		},
+		{
+			name:     "page script",
+			artefact: page,
+			want:     nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			builder := &ManifestBuilder{baseDir: "/project", pagesSourceDir: "pages"}
+
+			manifest, err := builder.Build([]*generator_dto.GeneratedArtefact{tt.artefact})
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, manifest.PartialScripts)
+		})
+	}
+}

@@ -26,6 +26,10 @@ export {registerBehaviour} from '@/behaviours';
 
 export type {PropTypeDefinition} from '@/element';
 
-// Side-effect: register the piko-svg-inline custom element.
 import {registerPikoSvgInline as _registerPikoSvgInline} from '@/element';
+import {capturePageCSPToken} from '@/element/services/ShadowDOMService';
+
+capturePageCSPToken(document);
+
+// Side-effect: register the piko-svg-inline custom element.
 _registerPikoSvgInline();

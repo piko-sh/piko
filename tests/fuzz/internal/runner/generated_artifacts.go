@@ -28,6 +28,7 @@ import (
 	"reflect"
 	"strings"
 
+	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/generator/generator_adapters"
 	"piko.sh/piko/tests/fuzz/internal/casefile"
 	"piko.sh/piko/wdk/interp/interp_piko_symbols"
@@ -37,6 +38,12 @@ const (
 	// actionClientName is the generated TypeScript action client, relative to the
 	// application directory.
 	actionClientName = "dist/ts/actions.gen.ts"
+
+	// artifactRoute is the route whose output the generated artefact edit changes.
+	artifactRoute = "/artifact"
+
+	// unaffectedRoute is the route whose output the generated artefact edit leaves alone.
+	unaffectedRoute = "/unaffected"
 )
 
 // GeneratedArtifactReceipt lists verified generated artefacts.
@@ -98,13 +105,13 @@ func (e artefactMismatch) FailureSubject() string { return e.field }
 //
 // Returns error which reports a regeneration, manifest, render or client failure.
 func (a *artefactSession) checkPhase(ctx context.Context, phase string) error {
-	label := a.want["/artifact"]
+	label := a.want[artifactRoute]
 	if phase == "edit" {
 		label += " revised"
 	}
 	if phase != "initial" {
 		source := filepath.Join(a.app, "pages", "artifact.pk")
-		if err := os.WriteFile(source, []byte(strings.ReplaceAll(a.original, a.want["/artifact"], label)), privateFileMode); err != nil {
+		if err := os.WriteFile(source, []byte(strings.ReplaceAll(a.original, a.want[artifactRoute], label)), privateFileMode); err != nil {
 			return err
 		}
 		if _, err := command(ctx, a.app, a.env, "generate-manifest", a.generator, "--manifest"); err != nil {
@@ -147,7 +154,7 @@ func (a *artefactSession) manifestPackages(ctx context.Context, phase string) ([
 		return nil, err
 	}
 	var packages []string
-	for _, route := range []string{"/artifact", "/unaffected"} {
+	for _, route := range []string{artifactRoute, unaffectedRoute} {
 		entry, ok := manifest.Pages["pages"+route+".pk"]
 		if !ok || !strings.HasPrefix(entry.PackagePath, casefile.Module+"/dist/") {
 			return nil, artefactMismatch{field: phase + route + "/manifest", detail: fmt.Sprintf("missing public package entry %q", entry.PackagePath)}
@@ -182,7 +189,7 @@ func main(){
 	if err != nil {
 		return err
 	}
-	if !strings.HasSuffix(strings.TrimSpace(output), label+"\n"+a.want["/unaffected"]) {
+	if !strings.HasSuffix(strings.TrimSpace(output), label+"\n"+a.want[unaffectedRoute]) {
 		return artefactMismatch{field: phase + "/go/metadata", detail: fmt.Sprintf("got %q", output)}
 	}
 	return nil
@@ -211,7 +218,7 @@ func exerciseGeneratedArtifacts(ctx context.Context, app, work, generator string
 	if err != nil {
 		return receipt, err
 	}
-	if err := checkTypeScriptAction(ctx, work, env, baseline, want["/artifact"]); err != nil {
+	if err := checkTypeScriptAction(ctx, work, env, baseline, want[artifactRoute]); err != nil {
 		return receipt, err
 	}
 	receipt.Checks = append(receipt.Checks, "typescript/compile", "typescript/load-and-call")
@@ -246,7 +253,7 @@ func generatedPageModels(c *casefile.Case) map[string]string {
 	want := map[string]string{}
 	for index := range c.Probes {
 		probe := &c.Probes[index]
-		if (probe.Path == "/artifact" || probe.Path == "/unaffected") && len(probe.Output) == 1 {
+		if (probe.Path == artifactRoute || probe.Path == unaffectedRoute) && len(probe.Output) == 1 {
 			want[probe.Path] = probe.Output[0].Text
 		}
 	}
@@ -290,12 +297,12 @@ func checkTypeScriptAction(ctx context.Context, work string, env []string, sourc
 		return err
 	}
 
-	const runtimePath = "/_piko/dist/ppframework.core.es.js"
-	if bytes.Count(source, []byte(runtimePath)) != 1 {
-		return artefactMismatch{field: "typescript/transport", detail: "expected one public runtime import"}
+	action, err := localTransportSource(source)
+	if err != nil {
+		return err
 	}
 	files := map[string]string{
-		"action.ts": strings.Replace(string(source), runtimePath, "./transport.js", 1),
+		"action.ts": action,
 		"transport.d.ts": `export interface ActionBuilder<T>{call():Promise<T>}
 export declare function createActionBuilder<T>(name:string, input:unknown):ActionBuilder<T>;
 export declare function registerActionFunction<I,T>(name:string, factory:(input:I)=>ActionBuilder<T>):void;
@@ -325,6 +332,26 @@ action.contract.Echo({label:123});
 	if _, err := command(ctx, directory, env, "typescript-compile", "tsc", compile...); err != nil {
 		return err
 	}
-	_, err := command(ctx, directory, env, "typescript-load", "node", "check.js")
+	_, err = command(ctx, directory, env, "typescript-load", "node", "check.js")
 	return err
+}
+
+// localTransportSource points the generated action client's runtime import at the local
+// transport fixture.
+//
+// The runtime version is stripped first, so a client built by another Piko build, which
+// names another runtime version, still matches.
+//
+// Takes source ([]byte) which holds generated TypeScript action-client source.
+//
+// Returns string which is the source that imports "./transport.js" instead.
+// Returns error which reports a model mismatch when the source does not import the core
+// runtime exactly once.
+func localTransportSource(source []byte) (string, error) {
+	runtimePath := daemon_frontend.CoreModuleImportURL()
+	unversioned := daemon_frontend.StripRuntimeVersion(string(source))
+	if strings.Count(unversioned, runtimePath) != 1 {
+		return "", artefactMismatch{field: "typescript/transport", detail: "expected one public runtime import"}
+	}
+	return strings.Replace(unversioned, runtimePath, "./transport.js", 1), nil
 }

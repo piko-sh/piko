@@ -47,6 +47,7 @@ import (
 	"piko.sh/piko/internal/component/component_dto"
 	"piko.sh/piko/internal/coordinator/coordinator_adapters"
 	"piko.sh/piko/internal/coordinator/coordinator_domain"
+	"piko.sh/piko/internal/daemon/daemon_frontend"
 	esbuildconfig "piko.sh/piko/internal/esbuild/config"
 	"piko.sh/piko/internal/generator/generator_adapters"
 	generator_adapters_driven_code_emitter_go_literal "piko.sh/piko/internal/generator/generator_adapters/driven_code_emitter_go_literal"
@@ -65,9 +66,9 @@ import (
 	"piko.sh/safedisk"
 )
 
-func newTestCacheService() cache_domain.Service {
-	return cache_domain.NewService("")
-}
+const (
+	defaultPartialsSourceDir = "partials"
+)
 
 var (
 	updateGoldenFiles = flag.Bool("update", false, "Update golden files")
@@ -79,11 +80,16 @@ type testCase struct {
 }
 
 type TopLevelTestSpec struct {
-	Description   string `json:"description"`
-	PackageName   string `json:"packageName,omitempty"`
-	ErrorContains string `json:"errorContains,omitempty"`
-	IsPage        bool   `json:"isPage"`
-	ShouldError   bool   `json:"shouldError,omitempty"`
+	Description       string `json:"description"`
+	PackageName       string `json:"packageName,omitempty"`
+	ErrorContains     string `json:"errorContains,omitempty"`
+	PartialsSourceDir string `json:"partialsSourceDir,omitempty"`
+	IsPage            bool   `json:"isPage"`
+	ShouldError       bool   `json:"shouldError,omitempty"`
+}
+
+func newTestCacheService() cache_domain.Service {
+	return cache_domain.NewService("")
 }
 
 func runTestCase(t *testing.T, tc testCase) {
@@ -111,7 +117,7 @@ func runTestCase(t *testing.T, tc testCase) {
 	)
 	annotatorPaths := annotator_domain.AnnotatorPathsConfig{
 		PagesSourceDir:    "pages",
-		PartialsSourceDir: "partials",
+		PartialsSourceDir: spec.PartialsSourceDir,
 		EmailsSourceDir:   "emails",
 		PartialServePath:  "/_piko/partial",
 	}
@@ -191,7 +197,7 @@ func runTestCase(t *testing.T, tc testCase) {
 
 	moduleName := resolver.GetModuleName()
 	require.NotEmpty(t, moduleName, "Resolver failed to detect a module name from go.mod")
-	entryPoints := discoverEntryPoints(t, resolver, "pages", "partials")
+	entryPoints := discoverEntryPoints(t, resolver, "pages", spec.PartialsSourceDir)
 	require.NotEmpty(t, entryPoints, "Test discovery failed: no entry points found in src directory")
 
 	allArtefacts, manifest, err := generatorService.GenerateProject(context.Background(), entryPoints)
@@ -316,9 +322,10 @@ func loadTestSpec(t *testing.T, tc testCase) TopLevelTestSpec {
 	specBytes, err := os.ReadFile(specPath)
 	if os.IsNotExist(err) {
 		return TopLevelTestSpec{
-			Description: "Default test case",
-			PackageName: "default_test_pkg",
-			IsPage:      true,
+			Description:       "Default test case",
+			PackageName:       "default_test_pkg",
+			PartialsSourceDir: defaultPartialsSourceDir,
+			IsPage:            true,
 		}
 	}
 	require.NoError(t, err, "Failed to read testspec.json for %s", tc.Name)
@@ -326,6 +333,9 @@ func loadTestSpec(t *testing.T, tc testCase) TopLevelTestSpec {
 	require.NoError(t, err, "Failed to parse testspec.json for %s", tc.Name)
 	if spec.PackageName == "" {
 		spec.PackageName = "default_test_pkg"
+	}
+	if spec.PartialsSourceDir == "" {
+		spec.PartialsSourceDir = defaultPartialsSourceDir
 	}
 	return spec
 }
@@ -417,6 +427,7 @@ func verifyGeneratedCodeBuilds(t *testing.T, tc testCase, artefacts []*generator
 
 func assertGoldenFile(t *testing.T, goldenPath string, actualBytes []byte, msgAndArgs ...any) {
 	t.Helper()
+	actualBytes = []byte(daemon_frontend.StripRuntimeVersion(string(actualBytes)))
 	if *updateGoldenFiles {
 		require.NoError(t, os.MkdirAll(filepath.Dir(goldenPath), 0755))
 		require.NoError(t, os.WriteFile(goldenPath, actualBytes, 0644))

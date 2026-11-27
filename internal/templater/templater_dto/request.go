@@ -29,7 +29,6 @@ import (
 
 	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/i18n/i18n_domain"
-	"piko.sh/piko/internal/security/security_adapters"
 )
 
 const (
@@ -231,7 +230,7 @@ func (r *RequestData) CSPTokenAttr() template.HTMLAttr {
 	if r.ctx == nil {
 		return ""
 	}
-	token := security_adapters.GetRequestTokenFromContext(r.ctx)
+	token := daemon_dto.CSPTokenFromContext(r.ctx)
 	if token == "" {
 		return ""
 	}

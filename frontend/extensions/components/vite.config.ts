@@ -21,7 +21,36 @@ import terser from '@rollup/plugin-terser';
 import etagPlugin from '../../core/vite-plugin-etag';
 import sriPlugin from '../../core/vite-plugin-sri';
 import { compression } from 'vite-plugin-compression2';
-import * as path from 'path';
+import * as path from 'node:path';
+
+/**
+ * Property names the compiler writes into component code and that this runtime reads, or
+ * the other way round. The runtime must use the same names as compiled code.
+ */
+const COMPILED_COMPONENT_PROPERTIES = [
+  '_f', '_class', '_style', '_k', '_c', '_s', '_ref', '_type', '_memo', '_model', '_updateFormState',
+];
+
+/** Property names in server requests and responses. */
+const SERVER_PROPERTIES = ['_csrf_ephemeral_token'];
+
+/** Window properties that other bundles set and this runtime reads. */
+const WINDOW_PROPERTIES = ['__piko_animation'];
+
+/**
+ * Names terser mangles and keeps in the minified build.
+ *
+ * Only names with one leading underscore are renamed. Names with two leading underscores
+ * belong to the protocol between the runtime and other code, so they always keep their
+ * names, even when a new one is not in the lists above.
+ */
+const MANGLE_OPTIONS = {
+  toplevel: true,
+  properties: {
+    regex: /^_(?!_)/,
+    reserved: [...COMPILED_COMPONENT_PROPERTIES, ...SERVER_PROPERTIES, ...WINDOW_PROPERTIES],
+  },
+};
 
 export default defineConfig({
   resolve: {
@@ -121,7 +150,6 @@ export default defineConfig({
               unsafe_undefined: true,
               reduce_vars: true,
               reduce_funcs: true,
-              booleans_as_integers: true,
               toplevel: true,
               hoist_props: true,
               join_vars: true,
@@ -129,13 +157,7 @@ export default defineConfig({
               sequences: 500,
               inline: 3
             },
-            mangle: {
-              toplevel: true,
-              properties: {
-                regex: /^_/,
-                reserved: ['_csrf_ephemeral_token', '_f', '_class', '_style', '_k', '_c', '_s', '_ref', '_type', '_memo', '_model']
-              }
-            },
+            mangle: MANGLE_OPTIONS,
             format: {
               comments: false
             }

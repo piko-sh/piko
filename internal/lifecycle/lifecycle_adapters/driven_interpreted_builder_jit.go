@@ -372,7 +372,7 @@ func (o *InterpretedBuildOrchestrator) createPageEntry(
 	}
 
 	entry.SetBaseDir(o.projectRoot)
-	entry.SetJSArtefactToPartialNameMap(buildJSArtefactToPartialNameMap(manifest))
+	entry.SetJSArtefactToPartialNameMap(manifest.PartialScripts)
 	entry.InitialiseLocalStore()
 
 	return entry
@@ -496,28 +496,9 @@ func (o *InterpretedBuildOrchestrator) createInstancePageEntry(
 		entry = templater_adapters.NewComponentPageEntry(component.CanonicalGoPackagePath, instance.ManifestKey)
 	}
 	entry.SetBaseDir(o.projectRoot)
-	entry.SetJSArtefactToPartialNameMap(buildJSArtefactToPartialNameMap(manifest))
+	entry.SetJSArtefactToPartialNameMap(manifest.PartialScripts)
 	entry.InitialiseLocalStore()
 	return entry
-}
-
-// buildJSArtefactToPartialNameMap iterates the manifest's partials and builds the mapping
-// from JS artefact IDs to friendly partial names.
-//
-// This mirrors the logic in processPartials (driven_manifest_store.go) for the compiled
-// path.
-//
-// Takes manifest (*generator_dto.Manifest) which provides the partials to iterate.
-//
-// Returns map[string]string which maps JS artefact IDs to partial names.
-func buildJSArtefactToPartialNameMap(manifest *generator_dto.Manifest) map[string]string {
-	m := make(map[string]string, len(manifest.Partials))
-	for _, partial := range manifest.Partials {
-		if partial.JSArtefactID != "" {
-			m[partial.JSArtefactID] = partial.PartialName
-		}
-	}
-	return m
 }
 
 // extractPackageName finds the package name from Go source code.

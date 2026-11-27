@@ -143,6 +143,9 @@ the [querier reference](querier.md#diagnostics).
 | [T153](#t153) | Warning | Collection provider not registered |
 | [T154](#t154) | Warning | sitemap marker ignored |
 | [T155](#t155) | Error | Collection source not imported |
+| [T156](#t156) | Warning | Ref not declared |
+| [T157](#t157) | Warning | Partial name not found |
+| [T158](#t158) | Warning | Modal selector matches nothing |
 
 ### Rendering {#rendering-codes}
 
@@ -942,6 +945,57 @@ Not currently reported. The number stays assigned so it is never reused.
 1 | <template p-collection="docs" p-provider="markdown" p-collection-source="docs">
   | ^^^^^^^^^^
   = docs: https://piko.sh/diagnostics/T155 (or run: piko explain T155)
+```
+
+### T156 Ref not declared {#t156}
+
+**Warning.** A script reads a ref by a literal name that no p-ref declares.
+
+**When it is reported.** For a page script, pk.refs is checked against the page's template and every partial. For a partial script, it is checked against every template, because callers can put content inside the partial. For a component script, pkc.refs is checked against the component's own template only. Computed names, projects that bind p-ref, and elements that a script creates at runtime are not checked.
+
+**How to fix it.** Add p-ref with that name to the element the script needs, or correct the name in the script.
+
+```text
+ ● warning [T156]: pk.refs.titel matches no element with p-ref="titel" on this page or in any partial, so it is always null. Did you mean 'title'?
+   --> pages/index.pk:12:13
+   |
+12 |     pk.refs.titel.textContent = message;
+   |             ^^^^^
+   = docs: https://piko.sh/diagnostics/T156 (or run: piko explain T156)
+```
+
+### T157 Partial name not found {#t157}
+
+**Warning.** A partial reload call names a partial that is not in the build.
+
+**When it is reported.** piko.partial, piko.partials.reload, piko.partials.reloadGroup and piko.partials.autoRefresh find a partial by its partial_name. That is its path in the partials folder without the .pk extension, or a partial_name written on the partial's tag. An import alias is not a partial name. Computed names are not checked.
+
+**How to fix it.** Use the partial's name, as the message suggests, or add the partial.
+
+```text
+ ● warning [T157]: piko.partials.reload("task_list") names no partial in the build, so the partial is never found. "task_list" is the import alias; the partial's name is "task-list"
+   --> pages/index.pk:20:26
+   |
+20 |     piko.partials.reload("task_list");
+   |                          ^^^^^^^^^^^
+   = docs: https://piko.sh/diagnostics/T157 (or run: piko explain T157)
+```
+
+### T158 Modal selector matches nothing {#t158}
+
+**Warning.** A [modal=name] selector matches no element with that modal attribute.
+
+**When it is reported.** p-modal:selector and modal_selector values of the form [modal=name] are checked against the modal attributes on the page, its layout and every partial. Other selectors, bound values and projects that bind modal are not checked.
+
+**How to fix it.** Add an element with that modal attribute to the page or its layout, or correct the selector.
+
+```text
+ ● warning [T158]: Modal selector "[modal=qoute]" matches no element with modal="qoute" on page app/pages/quotes.pk or in any partial. Did you mean 'quote'?
+   --> partials/quote_table.pk:8:47
+  |
+8 |       <button type="button" p-modal:selector="[modal=qoute]">Edit</button>
+  |                                               ^^^^^^^^^^^^^^
+  = docs: https://piko.sh/diagnostics/T158 (or run: piko explain T158)
 ```
 
 ## Rendering {#rendering}

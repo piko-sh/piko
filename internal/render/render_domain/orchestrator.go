@@ -35,6 +35,7 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/config"
+	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/email/email_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/pml/pml_domain"
@@ -401,8 +402,15 @@ type RenderOrchestrator struct {
 	// lastEmailAssetRequests holds asset requests from the most recent email render.
 	lastEmailAssetRequests []*email_dto.EmailAssetRequest
 
+	// coreRuntimeBuild is the build of the core runtime the server sends, whose SRI hash
+	// pages carry.
+	coreRuntimeBuild daemon_frontend.CoreRuntimeBuild
+
 	// stripHTMLComments controls whether HTML comments are removed from the output.
 	stripHTMLComments bool
+
+	// viewTransitionsOff turns off View Transitions for SPA navigation in every page.
+	viewTransitionsOff bool
 }
 
 // RenderOrchestratorOption configures a RenderOrchestrator.
@@ -435,7 +443,9 @@ func NewRenderOrchestrator(
 		captchaService:         nil,
 		dynamicAssetCache:      sync.Map{},
 		cssResetCSS:            "",
+		coreRuntimeBuild:       daemon_frontend.CoreRuntimeBuildDevelopment,
 		stripHTMLComments:      false,
+		viewTransitionsOff:     false,
 	}
 	for _, opt := range opts {
 		opt(ro)
@@ -633,6 +643,7 @@ func (ro *RenderOrchestrator) renderFragment(
 		CSRFEphemeralToken: "",
 		CSRFActionToken:    nil,
 		WidgetScripts:      nil,
+		ViewTransitionsOff: ro.viewTransitionsOff,
 	}
 
 	if csrfPair != nil {
@@ -666,17 +677,45 @@ func (ro *RenderOrchestrator) renderFullPage(
 	opts RenderASTOptions,
 	preloadHTML, scriptHTML string,
 ) error {
+	data := ro.buildBasePageData(ctx, rctx, opts, preloadHTML, scriptHTML)
+
+	render_templates.StreamBasePageHeader(qw, data)
+	if err := ro.renderASTToWriter(opts.Template, qw, rctx); err != nil {
+		return fmt.Errorf("streaming AST for page %s: %w", opts.PageID, err)
+	}
+	writeCaptchaScriptTags(qw, rctx)
+	data.WidgetScripts = collectCaptchaWidgetScriptURLs(rctx)
+	data.SvgSpriteSheet = ro.buildSvgSpriteSheetIfNeeded(ctx, rctx)
+	render_templates.StreamBasePageFooter(qw, data)
+	return nil
+}
+
+// buildBasePageData prepares the template data for the header and footer of a full page.
+//
+// The widget scripts and SVG sprite sheet stay empty, because they are only known after
+// the page content has been rendered.
+//
+// Takes rctx (*renderContext) which provides the CSP token and CSRF state.
+// Takes opts (RenderASTOptions) which specifies page metadata and configuration.
+// Takes preloadHTML (string) which contains preload link tags for the page.
+// Takes scriptHTML (string) which contains script tags to include.
+//
+// Returns *render_templates.BasePageData which holds the page header and footer data.
+func (ro *RenderOrchestrator) buildBasePageData(
+	ctx context.Context,
+	rctx *renderContext,
+	opts RenderASTOptions,
+	preloadHTML, scriptHTML string,
+) *render_templates.BasePageData {
 	var fonts, favicons []byte
 	if opts.SiteConfig != nil {
 		fonts = ro.buildFontLinks(opts.SiteConfig)
 		favicons = ro.buildFaviconLinks(opts.SiteConfig)
 	}
 
-	modulePreloadHTML := getModulePreloadHTML()
-	moduleConfigHTML := getModuleConfigHTML()
-	moduleScriptHTML := getModuleScriptHTML()
-	fullPreloadHTML := modulePreloadHTML + preloadHTML
-	fullScriptHTML := moduleConfigHTML + scriptHTML + moduleScriptHTML
+	cspToken := rctx.cspToken()
+	fullPreloadHTML := withCSPToken(getModulePreloadHTML()+preloadHTML, cspToken)
+	fullScriptHTML := withCSPToken(getModuleConfigHTML()+scriptHTML+getModuleScriptHTML(), cspToken)
 
 	csrfPair := ro.ensureCSRFForMeta(rctx)
 
@@ -704,12 +743,16 @@ func (ro *RenderOrchestrator) renderFullPage(
 		TwitterCards:       opts.Metadata.TwitterCards,
 		StructuredData:     filterValidJSON(ctx, opts.Metadata.StructuredData),
 		DevWidgetHTML:      getDevWidgetHTML(),
-		CoreJSSRIHash:      getCoreJSSRIHash(),
+		CoreJSURL:          getCoreJSURL(ro.coreRuntimeBuild),
+		RuntimeRecoveryURL: getRuntimeRecoveryURL(),
+		CSPToken:           cspToken,
+		CoreJSSRIHash:      getCoreJSSRIHash(ro.coreRuntimeBuild),
 		ActionsJSSRIHash:   getActionsJSSRIHash(),
 		ThemeCSSSRIHash:    getThemeCSSSRIHash(),
 		CSRFEphemeralToken: "",
 		CSRFActionToken:    nil,
 		WidgetScripts:      nil,
+		ViewTransitionsOff: ro.viewTransitionsOff,
 	}
 
 	if csrfPair != nil {
@@ -717,15 +760,7 @@ func (ro *RenderOrchestrator) renderFullPage(
 		data.CSRFEphemeralToken = csrfPair.RawEphemeralToken
 	}
 
-	render_templates.StreamBasePageHeader(qw, data)
-	if err := ro.renderASTToWriter(opts.Template, qw, rctx); err != nil {
-		return fmt.Errorf("streaming AST for page %s: %w", opts.PageID, err)
-	}
-	writeCaptchaScriptTags(qw, rctx)
-	data.WidgetScripts = collectCaptchaWidgetScriptURLs(rctx)
-	data.SvgSpriteSheet = ro.buildSvgSpriteSheetIfNeeded(ctx, rctx)
-	render_templates.StreamBasePageFooter(qw, data)
-	return nil
+	return data
 }
 
 // getRenderContext obtains a render context from the pool and initialises it.
@@ -1252,6 +1287,27 @@ func (ro *RenderOrchestrator) renderHeadlessFullPage(
 func WithStripHTMLComments(strip bool) RenderOrchestratorOption {
 	return func(ro *RenderOrchestrator) {
 		ro.stripHTMLComments = strip
+	}
+}
+
+// WithoutViewTransitions makes every page turn off View Transitions for SPA navigation.
+//
+// Returns RenderOrchestratorOption which turns the transitions off.
+func WithoutViewTransitions() RenderOrchestratorOption {
+	return func(ro *RenderOrchestrator) {
+		ro.viewTransitionsOff = true
+	}
+}
+
+// WithCoreRuntimeBuild sets the build of the core runtime the server sends, so the SRI
+// hash in each page matches the bytes the browser receives.
+//
+// Takes build (daemon_frontend.CoreRuntimeBuild) which is the build the server sends.
+//
+// Returns RenderOrchestratorOption which sets the build.
+func WithCoreRuntimeBuild(build daemon_frontend.CoreRuntimeBuild) RenderOrchestratorOption {
+	return func(ro *RenderOrchestrator) {
+		ro.coreRuntimeBuild = build
 	}
 }
 

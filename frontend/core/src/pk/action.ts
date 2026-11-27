@@ -18,6 +18,7 @@
 
 import {callServerActionDirect, marshalActionArgs, type DirectCallResponse} from '@/core/ActionExecutor';
 import {getCSRFTokensFromMeta} from '@/core/CSRFUtils';
+import {runtimeVersionGate} from '@/core/RuntimeVersion';
 
 /** HTTP status code for validation errors. */
 const HTTP_STATUS_UNPROCESSABLE = 422;
@@ -728,6 +729,7 @@ export async function batchWith<T extends unknown[]>(
         credentials: 'same-origin',
         body: JSON.stringify(body)
     });
+    runtimeVersionGate.observe(response.headers);
 
     if (!response.ok) {
         throw createActionError(

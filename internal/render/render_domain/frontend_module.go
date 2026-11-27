@@ -46,9 +46,13 @@ func getDevWidgetHTML() string { return daemon_frontend.GetDevWidgetHTML() }
 
 // getCoreJSSRIHash returns the SRI hash for the core framework JS module.
 //
-// Returns string which holds the integrity hash, or empty if SRI is disabled.
-func getCoreJSSRIHash() string {
-	return daemon_frontend.GetSRIHash("built/ppframework.core.es.js")
+// Takes build (daemon_frontend.CoreRuntimeBuild) which is the build the server sends at
+// the core module URL.
+//
+// Returns string which holds the integrity hash of those bytes, or empty if SRI is
+// disabled.
+func getCoreJSSRIHash(build daemon_frontend.CoreRuntimeBuild) string {
+	return build.CoreModuleSRIHash()
 }
 
 // getActionsJSSRIHash returns the SRI hash for the actions.gen.js module. This returns a
@@ -69,3 +73,25 @@ func getActionsJSSRIHash() string {
 func getThemeCSSSRIHash() string {
 	return daemon_frontend.GetSRIHash("theme.css")
 }
+
+// getCoreJSURL returns the versioned URL of the core framework JS module.
+//
+// Takes build (daemon_frontend.CoreRuntimeBuild) which is the build the server sends.
+//
+// Returns string which holds the URL the page loads that build from.
+func getCoreJSURL(build daemon_frontend.CoreRuntimeBuild) string { return build.CoreModuleURL() }
+
+// getComponentsJSURL returns the versioned URL of the PKC components JS module.
+//
+// Takes build (daemon_frontend.CoreRuntimeBuild) which is the build the server sends.
+//
+// Returns string which holds the URL the unversioned import of compiled components
+// resolves to.
+func getComponentsJSURL(build daemon_frontend.CoreRuntimeBuild) string {
+	return build.ComponentsModuleURL()
+}
+
+// getRuntimeRecoveryURL returns the URL of the runtime recovery script.
+//
+// Returns string which holds the fixed URL of the script.
+func getRuntimeRecoveryURL() string { return daemon_frontend.RuntimeRecoveryURL }

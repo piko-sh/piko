@@ -31,6 +31,10 @@ import (
 const (
 	// editionAsset names the source-edition asset.
 	editionAsset = "lib/edition.svg"
+
+	// editionReferenceOffset moves the revised body's reference number away from the drawn
+	// count shown in its title.
+	editionReferenceOffset = 99
 )
 
 // addContentEditions adds source and expected observations for source-edition histories.
@@ -59,7 +63,7 @@ func addContentEditions(c *casefile.Case, p Project) error {
 	target := "/catalog/" + slug
 	name := casefile.CollectionDir + "/entries/" + slug + ".md"
 	title := fmt.Sprintf("Revised edition %d", p.Count)
-	body := fmt.Sprintf("Edited publication with reference %d.", p.Count+99)
+	body := fmt.Sprintf("Edited publication with reference %d.", p.Count+editionReferenceOffset)
 	revised.Write[name] = fmt.Sprintf("---\ntitle: %s\ndate: 2026-01-01\n---\n\n%s\n", title, body)
 	removed.Remove = []string{name}
 	for index := range c.Probes {

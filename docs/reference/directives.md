@@ -312,6 +312,8 @@ function focusSearch() {
 </script>
 ```
 
+A literal `pk.refs.<name>`, or `pkc.refs.<name>` in a `.pkc` component, that no `p-ref` can supply gets the build warning [`T156`](diagnostics.md#t156). A page's refs come from the page, its layout and every partial. A partial's refs come from every template. A component's refs come only from its own template.
+
 ## Collection binding
 
 For `p-collection`, `p-provider`, and `p-param`, see [Collections](collections-api.md). The `p-param` attribute names the route placeholder used to look up the current item. The default is `slug`.

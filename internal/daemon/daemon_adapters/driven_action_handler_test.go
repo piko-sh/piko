@@ -3384,3 +3384,148 @@ func TestHandleRequest_ReportsAPanicOnce(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 	assert.Len(t, logs.atLevel(slog.LevelError), 1, "a recovered panic is already logged where it was recovered")
 }
+
+const (
+	cacheTestActionName   = "cache.Test"
+	cacheTestActionPath   = "/_piko/actions/" + cacheTestActionName
+	cacheTestActionPolicy = "private, max-age=30"
+	cacheTestNoStore      = "no-store"
+)
+
+func mountCacheTestAction(t *testing.T, handler *ActionHandler, entry ActionHandlerEntry) *chi.Mux {
+	t.Helper()
+
+	entry.Name = cacheTestActionName
+	if entry.Method == "" {
+		entry.Method = http.MethodPost
+	}
+	if entry.Create == nil {
+		entry.Create = func() any { return &struct{}{} }
+	}
+	if entry.Invoke == nil {
+		entry.Invoke = func(context.Context, any, map[string]any) (any, error) {
+			return map[string]string{"ok": "true"}, nil
+		}
+	}
+	handler.Register(entry)
+
+	router := chi.NewRouter()
+	handler.Mount(router, "/_piko/actions")
+	return router
+}
+
+func serveCacheTestAction(t *testing.T, router http.Handler, method string) *httptest.ResponseRecorder {
+	t.Helper()
+
+	request := httptest.NewRequestWithContext(t.Context(), method, cacheTestActionPath, nil)
+	request.Header.Set("X-CSRF-Action-Token", "action-token")
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+	return recorder
+}
+
+func TestActionResponsesDefaultCacheControl(t *testing.T) {
+	t.Parallel()
+
+	refusingCSRF := &configurableCSRFService{
+		validateResult: false,
+		validateErr:    &security_domain.CSRFValidationError{Code: "csrf_expired", Message: "expired"},
+	}
+
+	testCases := []struct {
+		csrf             security_domain.CSRFTokenService
+		name             string
+		method           string
+		wantCacheControl string
+		entry            ActionHandlerEntry
+		wantStatus       int
+	}{
+		{
+			name:             "POST response gets the default",
+			method:           http.MethodPost,
+			wantStatus:       http.StatusOK,
+			wantCacheControl: cacheTestNoStore,
+		},
+		{
+			name:             "GET response gets the default",
+			method:           http.MethodGet,
+			entry:            ActionHandlerEntry{Method: http.MethodGet},
+			wantStatus:       http.StatusOK,
+			wantCacheControl: cacheTestNoStore,
+		},
+		{
+			name:   "failed action gets the default",
+			method: http.MethodPost,
+			entry: ActionHandlerEntry{Invoke: func(context.Context, any, map[string]any) (any, error) {
+				return nil, errors.New("action failed")
+			}},
+			wantStatus:       http.StatusInternalServerError,
+			wantCacheControl: cacheTestNoStore,
+		},
+		{
+			name:             "refused CSRF check gets the default",
+			csrf:             refusingCSRF,
+			method:           http.MethodPost,
+			wantStatus:       http.StatusForbidden,
+			wantCacheControl: cacheTestNoStore,
+		},
+		{
+			name:   "action that sets its own policy keeps it",
+			method: http.MethodPost,
+			entry: ActionHandlerEntry{
+				Create: func() any { return &mockActionWithResponse{} },
+				Invoke: func(_ context.Context, action any, _ map[string]any) (any, error) {
+					action.(*mockActionWithResponse).response.SetHeader("Cache-Control", cacheTestActionPolicy)
+					return map[string]string{"ok": "true"}, nil
+				},
+			},
+			wantStatus:       http.StatusOK,
+			wantCacheControl: cacheTestActionPolicy,
+		},
+		{
+			name:   "middleware that sets a policy keeps it",
+			method: http.MethodPost,
+			entry: ActionHandlerEntry{
+				Middlewares: []func(http.Handler) http.Handler{setsCacheControl(cacheTestActionPolicy)},
+			},
+			wantStatus:       http.StatusOK,
+			wantCacheControl: cacheTestActionPolicy,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			handler := NewActionHandler(testCase.csrf, 1<<20, nil, security_dto.RateLimitValues{}, false, nil, nil)
+			router := mountCacheTestAction(t, handler, testCase.entry)
+
+			recorder := serveCacheTestAction(t, router, testCase.method)
+
+			assert.Equal(t, testCase.wantStatus, recorder.Code)
+			assert.Equal(t, []string{testCase.wantCacheControl}, recorder.Header().Values("Cache-Control"))
+		})
+	}
+}
+
+func TestCachedActionResponsesDefaultCacheControl(t *testing.T) {
+	t.Parallel()
+
+	responseCache, err := provider_otter.OtterProviderFactory(cache_dto.Options[string, []byte]{
+		Namespace:      "test-action-cache-control",
+		MaximumEntries: 10,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = responseCache.Close(context.Background()) })
+
+	handler := NewActionHandler(nil, 1<<20, nil, security_dto.RateLimitValues{}, false, responseCache, nil)
+	router := mountCacheTestAction(t, handler, ActionHandlerEntry{Create: func() any { return &cacheableAction{} }})
+
+	miss := serveCacheTestAction(t, router, http.MethodPost)
+	hit := serveCacheTestAction(t, router, http.MethodPost)
+
+	assert.Equal(t, "MISS", miss.Header().Get("X-Action-Cache"))
+	assert.Equal(t, []string{cacheTestNoStore}, miss.Header().Values("Cache-Control"))
+	assert.Equal(t, "HIT", hit.Header().Get("X-Action-Cache"))
+	assert.Equal(t, []string{cacheTestNoStore}, hit.Header().Values("Cache-Control"))
+}

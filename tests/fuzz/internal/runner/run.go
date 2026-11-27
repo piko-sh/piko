@@ -926,7 +926,6 @@ func buildInterpretedHost(ctx context.Context, run *applicationRun, env, buildAr
 		return process.BuildWorker(ctx, run.repo, run.workers, "interp-worker", "")
 	}
 
-	// application. Ordinary interpreted hosts can be reused across cases.
 	hostDirectory := filepath.Join(run.app, "fuzzhost")
 	if err := os.Mkdir(hostDirectory, privateDirectoryMode); err != nil {
 		return "", fmt.Errorf(interpProbeFormat, err)

@@ -17,6 +17,7 @@
 // strip others of their rights and dignity.
 
 import {resolveElement} from './resolve';
+import {reportDiagnostic} from '@/services/DiagnosticReporter';
 
 /** Options for dispatching a custom event. */
 export interface DispatchOptions {
@@ -63,6 +64,7 @@ export function dispatch(
 
     if (!el) {
         console.warn(`[pk] dispatch: target "${target}" not found`);
+        reportDiagnostic({kind: 'target-not-found', name: String(target), source: 'piko.event.dispatch'});
         return;
     }
 
@@ -95,6 +97,7 @@ export function listen(
 
     if (!el) {
         console.warn(`[pk] listen: target "${target}" not found`);
+        reportDiagnostic({kind: 'target-not-found', name: String(target), source: 'piko.event.listen'});
         return () => {
         };
     }

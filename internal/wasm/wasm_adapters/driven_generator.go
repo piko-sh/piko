@@ -517,8 +517,8 @@ func (a *GeneratorAdapter) compileSingleClientComponent(
 		diagnostics = append(diagnostics, wasm_dto.Diagnostic{
 			Severity: compilerDiagnostic.Severity,
 			Message:  compilerDiagnostic.Message,
-			Location: wasm_dto.Location{FilePath: sourcePath, Line: 0, Column: 0},
-			Code:     "",
+			Location: wasm_dto.Location{FilePath: sourcePath, Line: compilerDiagnostic.Line, Column: compilerDiagnostic.Column},
+			Code:     compilerDiagnostic.Code,
 		})
 	}
 	return diagnostics

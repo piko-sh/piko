@@ -89,6 +89,26 @@ piko.analytics.track("page_view", {
 
 When `GTMContainerID` carries a value, the module pushes events into the GTM `dataLayer` with the event name prefix `piko_`. The [Automatic events](#automatic-events) table documents the GA4-to-GTM name mapping.
 
+## Runtime diagnostics hook
+
+When a runtime lookup finds nothing, such as `piko.partials.reload` for a partial that is not on the page, a `pk.refs` name with no matching `p-ref`, or a modal selector that matches nothing, the runtime emits a `diagnostic` hook. The call itself does not throw and returns its usual value. Development builds also log a console warning.
+
+```typescript
+piko.hooks.on('diagnostic', (payload) => {
+    myMonitoring.report("piko_diagnostic", payload);
+});
+```
+
+| Field | Type | Meaning |
+|---|---|---|
+| `kind` | string | `partial-not-found`, `ref-not-found`, `modal-not-found`, `target-not-found`, `fragment-selector-not-found`, `handler-not-found` or `action-not-found`. |
+| `name` | string | The name, selector or target that was looked up. |
+| `context` | string | The partial ID when the lookup ran inside a partial, otherwise the page path. |
+| `source` | string | The API that made the lookup, such as `piko.partials.reload`, `pk.refs` or `openModal`. |
+| `timestamp` | number | Unix time in milliseconds. |
+
+Each kind and name fires at most once per page visit, up to 100 diagnostics per visit. SPA navigation starts a new visit.
+
 ## Privacy
 
 `AnonymiseIP` toggles GA4's IP anonymisation flag. The module performs no browser fingerprinting beyond what GA4 itself collects. The module does not implement consent gating. Cookie-consent flags (`window.gtag` consent state) remain the application's responsibility.

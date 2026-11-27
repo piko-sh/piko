@@ -1,0 +1,21 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <button p-modal:selector="[modal=quote]" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "New quote"
+  </button>
+  <table [ANNOTATIONS: OriginPackage: partials_quote_table_530fbb2a OriginPath: partials/quote_table.pk PARTIAL InvKey: quote_table_2f2519cf Package: partials_quote_table_530fbb2a InvPackage: main_aaf9a2e0]>
+    <tr [ANNOTATIONS: OriginPackage: partials_quote_table_530fbb2a OriginPath: partials/quote_table.pk]>
+      <td [ANNOTATIONS: OriginPackage: partials_quote_table_530fbb2a OriginPath: partials/quote_table.pk]>
+        <button p-modal:selector="[modal=qoute]" [ANNOTATIONS: OriginPackage: partials_quote_table_530fbb2a OriginPath: partials/quote_table.pk]>
+          "Edit"
+        </button>
+      </td>
+    </tr>
+  </table>
+  <pp-modal modal="quote" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk] />
+</div>
+
+--- END AST DUMP ---
+*/

@@ -24,6 +24,7 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_domain"
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/daemon/daemon_domain"
+	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/generator/generator_domain"
 	"piko.sh/piko/internal/lifecycle/lifecycle_domain"
 	"piko.sh/piko/internal/logger/logger_adapters/driver_handlers"
@@ -235,6 +236,7 @@ func NewRouterConfig(
 		DevPreviewHandler:         nil,
 		RobotsTxtBlock:            nil,
 		DisableHTTPCache:          false,
+		CoreRuntimeBuild:          daemon_frontend.CoreRuntimeBuildDevelopment,
 		SitemapCacheMaxAgeSeconds: 0,
 	}
 }

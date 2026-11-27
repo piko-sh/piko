@@ -59,8 +59,8 @@ var (
 // Lock acquires the per-user campaign lock without waiting.
 //
 // Returns func() which releases the lock.
-// Returns error which reports contention, an unsafe lock directory or a failed
-// lock operation.
+// Returns error which reports contention, an unsafe lock directory or a failed lock
+// operation.
 func Lock() (func(), error) {
 	directory, err := openLockDirectory()
 	if err != nil {

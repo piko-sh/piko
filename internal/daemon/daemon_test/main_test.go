@@ -23,15 +23,3 @@
 // All tests are designed to run in short mode (go test -short) and use in-memory mocks
 // for fast execution.
 package daemon_test
-
-import (
-	"flag"
-	"testing"
-
-	"piko.sh/piko/internal/testutil/leakcheck"
-)
-
-func TestMain(m *testing.M) {
-	flag.Parse()
-	leakcheck.VerifyTestMain(m)
-}

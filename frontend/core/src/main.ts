@@ -16,7 +16,10 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
+// Side-effect: must stay the first import, so no other runtime module runs when another runtime already owns the page.
+import '@/claimRuntime';
 import {PPFramework} from '@/core';
+import {capturePageCSPToken} from '@/core/cspToken';
 // Side-effect: registers core helpers (submitForm, submitModalForm, resetForm, redirect, emitEvent, dispatchEvent).
 import '@/helpers/formHelpers';
 import '@/helpers/redirect';
@@ -24,23 +27,23 @@ import '@/helpers/emitEvent';
 import '@/helpers/dispatchEvent';
 
 // Imported directly from source modules to avoid Rollup circular chunk warnings.
-import {_initCleanupObserver, _registerLifecycle, _runPageCleanup} from '@/pk/lifecycle';
+import {_currentPageVisit, _initCleanupObserver, _registerLifecycle, _runPageCleanup} from '@/pk/lifecycle';
 import {ActionBuilder, batch, batchWith, createActionBuilder, registerActionFunction} from '@/pk/action';
 import {getGlobalPageContext} from '@/services/PageContext';
 import {bus} from '@/pk/bus';
 import {piko} from '@/pk/namespace';
 import {createRefs as _createRefs} from '@/pk/refs';
-import {_createPKContext} from '@/pk/context';
+import {_createPKContext, _createPagePKContext} from '@/pk/context';
 
 export {piko};
 
 export {ActionBuilder, batch, batchWith, createActionBuilder, registerActionFunction};
 
-export {_registerLifecycle, _runPageCleanup, _initCleanupObserver};
+export {_registerLifecycle, _runPageCleanup, _initCleanupObserver, _currentPageVisit};
 export {getGlobalPageContext};
 export {bus};
 export {_createRefs};
-export {_createPKContext};
+export {_createPKContext, _createPagePKContext};
 
 export type {
     PPHelper, PPFrameworkOptions, NavigateOptions, RemoteRenderOptions, PatchTarget, FetchResult
@@ -56,6 +59,8 @@ export type {
     NavigateOptions as PKNavigateOptions, RouteInfo, NavigationGuard,
     WhenVisibleOptions, AbortableOperation, PollingOptions, MutationWatchOptions
 } from '@/pk';
+
+capturePageCSPToken(document);
 
 _initCleanupObserver();
 

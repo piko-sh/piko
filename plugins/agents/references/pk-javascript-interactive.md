@@ -1,3 +1,23 @@
+<!--
+Copyright 2026 PolitePixels Limited
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+This project stands against fascism, authoritarianism, and all forms of
+oppression. We built this to empower people, not to enable those who would
+strip others of their rights and dignity.
+-->
+
 # PK Client-Side Interactivity
 
 Use this guide when adding client-side behaviour to `.pk` files - lifecycle hooks, event handling, DOM references, cleanup, the event bus, and the `piko` namespace API.
@@ -65,14 +85,20 @@ pk.onConnected(() => {
 
 | Hook | Signature | When it fires |
 |------|-----------|---------------|
-| `pk.onConnected(cb)` | `() => void` | Partial mounts in the DOM |
-| `pk.onDisconnected(cb)` | `() => void` | Partial is removed from the DOM |
-| `pk.onBeforeRender(cb)` | `() => void` | Before a partial re-render (refresh) |
-| `pk.onAfterRender(cb)` | `() => void` | After a partial re-render |
-| `pk.onUpdated(cb)` | `(context?: unknown) => void` | Server pushes updated content |
+| `pk.onConnected(cb)` | `() => void` | Partial mounts in the DOM. For a page script, each time the page is shown |
+| `pk.onDisconnected(cb)` | `() => void` | Partial is removed from the DOM. For a page script, when SPA navigation leaves the page |
+| `pk.onBeforeRender(cb)` | `() => void` | Before a partial re-render (refresh). For a page script, before any partial on the page re-renders |
+| `pk.onAfterRender(cb)` | `() => void` | After a partial re-render. For a page script, after any partial on the page re-renders |
+| `pk.onUpdated(cb)` | `(context?: unknown) => void` | Server pushes updated content. For a page script, for any partial on the page |
 | `pk.onCleanup(cb)` | `() => void` | Registers teardown (fires on disconnect) |
 
-Multiple callbacks per hook are allowed - they fire in registration order.
+Multiple callbacks per hook are allowed - they fire in registration order. An `onConnected` callback registered after the partial or page has connected runs straight away.
+
+Page scripts:
+
+- A page script runs once per visit, including each return through SPA navigation, and its `pk.refs` look up elements anywhere on the page. Top-level code, such as `piko.hooks.on(...)` or a listener on `window`, runs again on every visit. Put it in `pk.onConnected` and undo it in `pk.onCleanup`.
+- Do not use `document.addEventListener('DOMContentLoaded', ...)` in a page script. The event has often fired before the script loads, and SPA navigation never fires it.
+- Once SPA navigation leaves the page, code from the old visit no longer acts on the page. Stop timers in `pk.onCleanup` so they do not outlive the visit.
 
 **onConnected** - set up listeners, timers, subscriptions, third-party libraries:
 
@@ -246,6 +272,12 @@ const unguard = piko.nav.guard({
     afterNavigate: (to, from) => { /* ... */ },
 });
 ```
+
+### Deploys and the runtime version
+
+- Framework scripts are served at versioned URLs, `/_piko/dist/<version>/<file>`, which browsers cache for good.
+- After a deploy that changes the runtime, an open tab loads the next page in full instead of navigating in place. Partial reloads and actions keep working.
+- Build the generator and the server from the same Piko version. Otherwise the runtime URLs in generated code answer `404`.
 
 ### piko.form - form utilities
 
@@ -518,6 +550,7 @@ The earlier partial-root decorators (`pk-refresh-root`, `pk-own-attrs`, partial-
 
 - Using `pkc.` instead of `pk.` in PK files - PK files use `pk.refs`, `pk.onConnected`, etc. `pkc.` is for `.pkc` Web Components only
 - Forgetting cleanup - always pair `addEventListener` with `removeEventListener` via `pk.onCleanup()` or `AbortController`
+- Using `document.addEventListener('DOMContentLoaded', ...)` in a page script - it may never fire. Use `pk.onConnected` and `pk.onCleanup`
 - Using `type="text/typescript"` instead of `lang="ts"` on the script tag
 - Referencing `pk.refs.name` before the DOM is ready - refs are available at script execution time (DOM is ready), but be careful with elements inside `p-if`/`p-for` that may not exist yet
 - Writing `piko.bus.on(...)` without storing and cleaning up the unsubscribe function

@@ -26,8 +26,8 @@ import (
 )
 
 const (
-	// overlayWorkspace is the untracked workspace that adds the local Pipit checkout to
-	// the committed repository workspace.
+	// overlayWorkspace is the untracked workspace that adds the local Pipit checkout to the
+	// committed repository workspace.
 	overlayWorkspace = "go.fuzz.work"
 
 	// repositoryWorkspace is the committed repository workspace.
@@ -37,8 +37,8 @@ const (
 // Workspace resolves the workspace file that staged applications inherit.
 //
 // An absolute GOWORK takes precedence because workers run in separate directories.
-// Without one, PIKO_PIPIT_LOCAL=1 selects the local Pipit overlay and the default is
-// the committed go.work.
+// Without one, PIKO_PIPIT_LOCAL=1 selects the local Pipit overlay and the default is the
+// committed go.work.
 //
 // Takes repo (string) which is the Piko checkout root.
 //

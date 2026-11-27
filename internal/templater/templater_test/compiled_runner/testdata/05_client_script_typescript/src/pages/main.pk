@@ -63,17 +63,19 @@ function formatGreeting(user: User): string {
 	return `Hello, ${user.name}! You are ${user.age} years old.`;
 }
 
-document.addEventListener('DOMContentLoaded', (): void => {
+pk.onConnected((): void => {
 	const btn: HTMLElement | null = document.getElementById('greet-btn');
 	const display: HTMLElement | null = document.getElementById('user-display');
 
 	if (btn && display) {
-		btn.addEventListener('click', (): void => {
+		const greet = (): void => {
 			const user: User = createUser('Alice', 30);
 			const greeting: string = formatGreeting(user);
 			display.textContent = greeting;
 			console.log('Greeting displayed:', greeting);
-		});
+		};
+		btn.addEventListener('click', greet);
+		pk.onCleanup((): void => btn.removeEventListener('click', greet));
 	}
 });
 </script>

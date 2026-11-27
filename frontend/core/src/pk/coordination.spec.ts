@@ -43,6 +43,8 @@ import {
     autoRefresh,
     reloadCascade
 } from './coordination';
+import {registerDiagnosticEmitter} from '@/services/DiagnosticReporter';
+import {_endPageVisit} from '@/pk/lifecycle';
 import {partial} from './partial';
 
 function resolvePartialName(nameOrElement: string | Element): string {
@@ -116,6 +118,23 @@ describe('coordination', () => {
                 expect.stringContaining('missing-partial')
             );
             expect(mockReload).not.toHaveBeenCalled();
+        });
+
+        it('sends a diagnostic event when the partial to reload is missing', async () => {
+            mockElement = null;
+            vi.spyOn(console, 'warn').mockImplementation(() => {});
+            const emitter = vi.fn();
+            registerDiagnosticEmitter(emitter);
+            emitter.mockClear();
+            _endPageVisit();
+
+            await expect(reloadPartial('gone-partial')).resolves.toBeUndefined();
+
+            expect(emitter).toHaveBeenCalledWith(expect.objectContaining({
+                kind: 'partial-not-found',
+                name: 'gone-partial',
+                source: 'piko.partials.reload'
+            }));
         });
 
         it('should add pk-loading class and aria-busy before reload, then remove after', async () => {

@@ -29,6 +29,7 @@ import (
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/chromedp"
 
+	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/formatter/formatter_domain"
 	"piko.sh/piko/wdk/browser/internal/browser_provider_chromedp/scripts"
 )
@@ -53,6 +54,12 @@ var (
 
 	// integrityPattern matches SRI hashes in integrity="sha384-..." attributes.
 	integrityPattern = regexp.MustCompile(`(integrity=")sha384-[A-Za-z0-9+/=]+(")`)
+
+	// generatedAssetHashPattern matches the content hash in the file name of a generated
+	// script, such as "/_piko/assets/generated/components/card_0123456789abcdef.min.js" or
+	// "card_0123456789abcdef.es.js". The hash changes whenever the asset's content changes,
+	// including when the framework runtime it imports is rebuilt.
+	generatedAssetHashPattern = regexp.MustCompile(`(/_piko/assets/generated/[^"'\s]*_)[0-9a-f]{16}(\.[a-z.]*js)`)
 )
 
 // NormaliseOptions controls how DOM normalisation is performed.
@@ -92,14 +99,19 @@ func DefaultNormaliseOptions() NormaliseOptions {
 
 // NormaliseDOM cleans HTML for deterministic comparison.
 //
+// It removes the runtime version from framework bundle URLs before formatting, so a
+// captured DOM matches across runtime builds and a long URL wraps the same way whatever
+// the version.
+//
 // Takes html (string) which is the raw HTML content to normalise.
 // Takes opts (NormaliseOptions) which controls normalisation behaviour.
 //
 // Returns string which is the cleaned and optionally formatted HTML.
 func NormaliseDOM(html string, opts NormaliseOptions) string {
-	normalised := html
+	normalised := daemon_frontend.StripRuntimeVersion(html)
 
 	normalised = integrityPattern.ReplaceAllString(normalised, "${1}sha384-NORMALISED${2}")
+	normalised = generatedAssetHashPattern.ReplaceAllString(normalised, "${1}HASH${2}")
 
 	if opts.ReplaceUUIDs {
 		normalised = uuidPattern.ReplaceAllString(normalised, "[UUID]")

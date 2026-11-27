@@ -576,7 +576,7 @@ func (h *ActionHandler) writeActionResponse(
 		return false
 	}
 
-	w.Header().Set(headerContentType, "application/json")
+	setActionJSONHeaders(w.Header())
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(encoded)
 
@@ -948,7 +948,7 @@ func (h *ActionHandler) handleCachedAction(
 	if cached, found, _ := h.responseCache.GetIfPresent(ctx, cacheKey); found {
 		actionCacheHitCount.Add(ctx, 1,
 			metric.WithAttributes(attribute.String(attributeKeyAction, p.Entry.Name)))
-		w.Header().Set("Content-Type", "application/json")
+		setActionJSONHeaders(w.Header())
 		w.Header().Set("X-Action-Cache", "HIT")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(cached)
@@ -1011,7 +1011,7 @@ func (h *ActionHandler) storeAndWriteCachedResponse(
 	}
 
 	w.Header().Set("X-Action-Cache", "MISS")
-	w.Header().Set(headerContentType, "application/json")
+	setActionJSONHeaders(w.Header())
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(encoded)
 	p.Span.SetStatus(codes.Ok, "Action completed, response cached")
@@ -1561,4 +1561,14 @@ func resolveActionErrorAnswer(err error) (int, string, bool) {
 		return http.StatusInternalServerError, errorCodeInternal, false
 	}
 	return status, actionErr.ErrorCode(), true
+}
+
+// setActionJSONHeaders marks an action response as JSON and gives it the action default
+// cache policy, no-store, unless the app, the action's middleware or the action itself
+// has already set a Cache-Control.
+//
+// Takes h (http.Header) which is the response header map.
+func setActionJSONHeaders(h http.Header) {
+	h.Set(headerContentType, contentTypeJSON)
+	setDefaultCacheControl(h, headerValCacheNoStore)
 }

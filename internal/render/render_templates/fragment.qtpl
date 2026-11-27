@@ -14,6 +14,7 @@
 	{%- for _, jsonLD := range p.StructuredData -%}<script type="application/ld+json">{%s= jsonLD %}</script>{%- endfor -%}
 	{%- if len(p.CSRFActionToken) > 0 -%}<meta name="csrf-token" content="{%z= p.CSRFActionToken -%}">{%- endif -%}
 	{%- if p.CSRFEphemeralToken != "" -%}<meta name="csrf-ephemeral" content="{%s= p.CSRFEphemeralToken -%}">{%- endif -%}
+	{%- if p.ViewTransitionsOff -%}<meta name="pk-view-transitions" content="off">{%- endif -%}
 	{%- endstripspace -%}{%- if p.Styling != "" -%}<style pk-page>{%s= p.Styling -%}</style>{%- endif -%}{%- stripspace -%}
 </head>
 <body>

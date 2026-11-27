@@ -30,15 +30,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/andybalholm/brotli"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/cors"
-	"github.com/klauspost/compress/gzip"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/propagation"
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/daemon/daemon_frontend"
@@ -46,654 +40,6 @@ import (
 	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/security/security_dto"
 )
-
-func TestFrontendAssetHandlerWithFullMiddlewareStack(t *testing.T) {
-	t.Run("With Production Middleware Stack", func(t *testing.T) {
-
-		mainRouter := chi.NewRouter()
-
-		mainRouter.Use(cors.Handler(cors.Options{
-			AllowedOrigins:   []string{"*"},
-			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"},
-			AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-CSRF-Action-Token"},
-			ExposedHeaders:   []string{"Link"},
-			AllowCredentials: false,
-			MaxAge:           300,
-		}))
-
-		mainRouter.Use(middleware.RequestID)
-
-		mainRouter.Use(middleware.Recoverer)
-		mainRouter.Use(middleware.Heartbeat("/ping"))
-		mainRouter.Use(middleware.Timeout(60 * time.Second))
-
-		mainRouter.Get("/_piko/dist/*", serveEmbeddedFrontend(false, false))
-		mainRouter.Head("/_piko/dist/*", serveEmbeddedFrontend(false, false))
-
-		tracingHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			reqCtx := r.Context()
-
-			carrier := propagation.MapCarrier{}
-			for k, v := range r.Header {
-				if len(v) > 0 {
-					carrier.Set(k, v[0])
-				}
-			}
-			reqCtx = otel.GetTextMapPropagator().Extract(reqCtx, carrier)
-
-			mainRouter.ServeHTTP(w, r.WithContext(reqCtx))
-		})
-
-		server := httptest.NewServer(tracingHandler)
-		defer server.Close()
-
-		testCases := []struct {
-			headers            map[string]string
-			name               string
-			path               string
-			method             string
-			checkHeaders       []string
-			expectedStatusCode int
-		}{
-			{
-				name:               "Should serve asset through middleware stack",
-				path:               "/_piko/dist/ppframework.core.es.js",
-				method:             "GET",
-				expectedStatusCode: http.StatusOK,
-				checkHeaders:       []string{"Content-Type", "ETag", "Cache-Control"},
-			},
-			{
-				name:               "Should handle OPTIONS request (middleware processing)",
-				path:               "/_piko/dist/ppframework.core.es.js",
-				method:             "OPTIONS",
-				expectedStatusCode: http.StatusMethodNotAllowed,
-			},
-			{
-				name:               "Should process GET request through all middleware",
-				path:               "/_piko/dist/ppframework.core.es.js",
-				method:             "GET",
-				expectedStatusCode: http.StatusOK,
-				checkHeaders:       []string{"Content-Type"},
-			},
-			{
-				name:               "Should handle heartbeat endpoint (middleware.Heartbeat)",
-				path:               "/ping",
-				method:             "GET",
-				expectedStatusCode: http.StatusOK,
-			},
-			{
-				name:               "Should handle timeout gracefully (middleware.Timeout)",
-				path:               "/_piko/dist/ppframework.core.es.js",
-				method:             "GET",
-				expectedStatusCode: http.StatusOK,
-				checkHeaders:       []string{"Content-Type"},
-			},
-			{
-				name:               "Should handle recoverer middleware",
-				path:               "/_piko/dist/ppframework.core.es.js",
-				method:             "GET",
-				expectedStatusCode: http.StatusOK,
-				checkHeaders:       []string{"Content-Type"},
-			},
-			{
-				name:               "Should handle HEAD requests through middleware stack",
-				path:               "/_piko/dist/ppframework.core.es.js",
-				method:             "HEAD",
-				expectedStatusCode: http.StatusOK,
-				checkHeaders:       []string{"Content-Type", "ETag"},
-			},
-			{
-				name:               "Should handle 404 through middleware stack",
-				path:               "/_piko/dist/nonexistent.js",
-				method:             "GET",
-				expectedStatusCode: http.StatusNotFound,
-			},
-		}
-
-		for _, tc := range testCases {
-			t.Run(tc.name, func(t *testing.T) {
-				request, err := http.NewRequest(tc.method, server.URL+tc.path, nil)
-				require.NoError(t, err)
-
-				for k, v := range tc.headers {
-					request.Header.Set(k, v)
-				}
-
-				response, err := http.DefaultClient.Do(request)
-				require.NoError(t, err)
-				defer func() { _ = response.Body.Close() }()
-
-				assert.Equal(t, tc.expectedStatusCode, response.StatusCode, "Status code mismatch")
-
-				for _, headerName := range tc.checkHeaders {
-					actualVal := response.Header.Get(headerName)
-					assert.NotEmpty(t, actualVal, "Header '%s' should be present", headerName)
-				}
-			})
-		}
-	})
-}
-
-func TestFrontendAssetHandler(t *testing.T) {
-
-	t.Run("With Global Asset Store", func(t *testing.T) {
-
-		r := chi.NewRouter()
-
-		r.Get("/_piko/dist/*", serveEmbeddedFrontend(true, false))
-		r.Head("/_piko/dist/*", serveEmbeddedFrontend(true, false))
-		server := httptest.NewServer(r)
-		defer server.Close()
-
-		expectedAsset, ok := daemon_frontend.GetAsset(context.Background(), "built/ppframework.core.es.js")
-		require.True(t, ok)
-		expectedAssetBr, ok := daemon_frontend.GetAsset(context.Background(), "built/ppframework.core.es.js.br")
-		require.True(t, ok)
-
-		testCases := []struct {
-			expectedHeaders    map[string]string
-			name               string
-			path               string
-			method             string
-			acceptEncoding     string
-			ifNoneMatch        string
-			rangeHeader        string
-			expectedEncoding   string
-			expectedBody       []byte
-			expectedStatusCode int
-		}{
-			{
-				name:               "Should serve uncompressed asset when no encoding is accepted",
-				path:               "/_piko/dist/ppframework.core.es.js",
-				method:             "GET",
-				acceptEncoding:     "",
-				expectedStatusCode: http.StatusOK,
-				expectedEncoding:   "",
-				expectedBody:       expectedAsset.Content,
-			},
-			{
-				name:               "Should serve Brotli compressed asset when 'br' is accepted",
-				path:               "/_piko/dist/ppframework.core.es.js",
-				method:             "GET",
-				acceptEncoding:     "br, gzip",
-				expectedStatusCode: http.StatusOK,
-				expectedEncoding:   "br",
-				expectedBody:       expectedAssetBr.Content,
-			},
-			{
-				name:               "Should serve Gzip compressed asset when only 'gzip' is accepted",
-				path:               "/_piko/dist/ppframework.core.es.js",
-				method:             "GET",
-				acceptEncoding:     "gzip, deflate",
-				expectedStatusCode: http.StatusOK,
-				expectedEncoding:   "gzip",
-			},
-			{
-				name:               "Should return 304 Not Modified for matching ETag",
-				path:               "/_piko/dist/ppframework.core.es.js",
-				method:             "GET",
-				ifNoneMatch:        "",
-				expectedStatusCode: http.StatusNotModified,
-			},
-			{
-				name:               "Should return 200 OK for mismatched ETag",
-				path:               "/_piko/dist/ppframework.core.es.js",
-				method:             "GET",
-				ifNoneMatch:        `"wrong-etag"`,
-				expectedStatusCode: http.StatusOK,
-				expectedBody:       expectedAsset.Content,
-			},
-			{
-				name:               "Should return 404 for a non-existent asset",
-				path:               "/_piko/dist/non-existent-file.js",
-				method:             "GET",
-				expectedStatusCode: http.StatusNotFound,
-			},
-		}
-
-		for _, tc := range testCases {
-			t.Run(tc.name, func(t *testing.T) {
-
-				if tc.name == "Should return 304 Not Modified for matching ETag" {
-
-					request, err := http.NewRequest("GET", server.URL+"/_piko/dist/ppframework.core.es.js", nil)
-					require.NoError(t, err)
-
-					response, err := http.DefaultClient.Do(request)
-					require.NoError(t, err)
-					_ = response.Body.Close()
-
-					actualETag := response.Header.Get("ETag")
-					require.NotEmpty(t, actualETag, "Server should return an ETag")
-
-					tc.ifNoneMatch = actualETag
-				}
-				runTestCase(t, server.URL, tc)
-			})
-		}
-	})
-
-	t.Run("Additional Edge Cases", func(t *testing.T) {
-
-		r := chi.NewRouter()
-		r.Get("/_piko/dist/*", serveEmbeddedFrontend(false, false))
-		r.Head("/_piko/dist/*", serveEmbeddedFrontend(false, false))
-		server := httptest.NewServer(r)
-		defer server.Close()
-
-		testCases := []struct {
-			expectedHeaders    map[string]string
-			name               string
-			path               string
-			method             string
-			acceptEncoding     string
-			ifNoneMatch        string
-			rangeHeader        string
-			expectedEncoding   string
-			expectedBody       []byte
-			expectedStatusCode int
-		}{
-			{
-				name:               "Should return 404 for non-existent asset",
-				path:               "/_piko/dist/non-existent-file.js",
-				method:             "GET",
-				expectedStatusCode: http.StatusNotFound,
-			},
-			{
-				name:               "Should handle HEAD requests",
-				path:               "/_piko/dist/ppframework.core.es.js",
-				method:             "HEAD",
-				expectedStatusCode: http.StatusOK,
-			},
-			{
-				name:               "Should return 405 for POST method",
-				path:               "/_piko/dist/ppframework.core.es.js",
-				method:             "POST",
-				expectedStatusCode: http.StatusMethodNotAllowed,
-			},
-			{
-				name:               "Should handle path traversal attempts",
-				path:               "/_piko/dist/../../../etc/passwd",
-				method:             "GET",
-				expectedStatusCode: http.StatusNotFound,
-			},
-			{
-				name:               "Should handle empty path parameter",
-				path:               "/_piko/dist/",
-				method:             "GET",
-				expectedStatusCode: http.StatusNotFound,
-			},
-			{
-				name:               "Should handle Range requests (if supported by http.ServeContent)",
-				path:               "/_piko/dist/ppframework.core.es.js",
-				method:             "GET",
-				rangeHeader:        "bytes=0-10",
-				expectedStatusCode: http.StatusPartialContent,
-			},
-		}
-
-		for _, tc := range testCases {
-			t.Run(tc.name, func(t *testing.T) {
-				runTestCase(t, server.URL, tc)
-			})
-		}
-	})
-}
-
-func runTestCase(t *testing.T, serverURL string, tc struct {
-	expectedHeaders    map[string]string
-	name               string
-	path               string
-	method             string
-	acceptEncoding     string
-	ifNoneMatch        string
-	rangeHeader        string
-	expectedEncoding   string
-	expectedBody       []byte
-	expectedStatusCode int
-}) {
-	method := "GET"
-	if tc.method != "" {
-		method = tc.method
-	}
-
-	request, err := http.NewRequest(method, serverURL+tc.path, nil)
-	require.NoError(t, err)
-
-	if tc.acceptEncoding != "" {
-		request.Header.Set("Accept-Encoding", tc.acceptEncoding)
-	}
-	if tc.ifNoneMatch != "" {
-		request.Header.Set("If-None-Match", tc.ifNoneMatch)
-	}
-	if tc.rangeHeader != "" {
-		request.Header.Set("Range", tc.rangeHeader)
-	}
-
-	response, err := http.DefaultClient.Do(request)
-	require.NoError(t, err)
-	defer func() { _ = response.Body.Close() }()
-
-	assert.Equal(t, tc.expectedStatusCode, response.StatusCode, "Status code mismatch")
-
-	for key, value := range tc.expectedHeaders {
-		assert.Equal(t, value, response.Header.Get(key), "Header '%s' mismatch", key)
-	}
-
-	if response.StatusCode == http.StatusOK {
-		assert.Equal(t, tc.expectedEncoding, response.Header.Get("Content-Encoding"), "Content-Encoding header mismatch")
-		assert.Equal(t, cacheControlMutableAsset, response.Header.Get("Cache-Control"))
-		assert.NotEmpty(t, response.Header.Get("ETag"))
-		assert.Contains(t, response.Header.Get("Vary"), "Accept-Encoding")
-	}
-
-	if response.StatusCode == http.StatusPartialContent {
-		assert.Equal(t, tc.expectedEncoding, response.Header.Get("Content-Encoding"), "Content-Encoding header mismatch")
-
-		assert.NotEmpty(t, response.Header.Get("Content-Length"), "Range responses should have Content-Length")
-
-		assert.NotEmpty(t, response.Header.Get("Content-Range"), "Range responses should have Content-Range")
-	}
-
-	body, err := io.ReadAll(response.Body)
-	require.NoError(t, err)
-
-	if len(tc.expectedBody) > 0 {
-		assert.Equal(t, tc.expectedBody, body, "Response body mismatch")
-	} else if tc.expectedEncoding == "gzip" {
-
-		gzReader, err := gzip.NewReader(strings.NewReader(string(body)))
-		require.NoError(t, err)
-		defer func() { _ = gzReader.Close() }()
-		decompressedBody, err := io.ReadAll(gzReader)
-		require.NoError(t, err)
-
-		expectedAsset, _ := daemon_frontend.GetAsset(context.Background(), "built/ppframework.core.es.js")
-		assert.Equal(t, expectedAsset.Content, decompressedBody)
-	} else {
-
-		switch tc.expectedStatusCode {
-		case http.StatusNotModified:
-			assert.Empty(t, body, "304 responses should have empty body")
-		case http.StatusNotFound, http.StatusMethodNotAllowed:
-
-		case http.StatusPartialContent:
-
-			assert.NotEmpty(t, body, "206 responses should have body content")
-		case http.StatusOK:
-			if tc.method == "HEAD" {
-				assert.Empty(t, body, "HEAD responses should have empty body")
-			} else {
-
-				assert.NotEmpty(t, body, "200 GET responses should have body content")
-			}
-		}
-	}
-}
-
-func decompressBrotli(t *testing.T, data []byte) []byte {
-	t.Helper()
-
-	if len(data) > 0 {
-		preview := data
-		if len(preview) > 20 {
-			preview = preview[:20]
-		}
-		t.Logf("Brotli data preview (first %d bytes): %v", len(preview), preview)
-		t.Logf("Brotli data as string preview: %q", string(preview))
-	}
-
-	r := brotli.NewReader(bytes.NewReader(data))
-	decompressed, err := io.ReadAll(r)
-	if err != nil {
-		t.Logf("Brotli decompression failed: %v", err)
-		t.Logf("Data length: %d bytes", len(data))
-		return nil
-	}
-
-	return decompressed
-}
-
-func decompressGzip(t *testing.T, data []byte) []byte {
-	t.Helper()
-
-	gzReader, err := gzip.NewReader(bytes.NewReader(data))
-	require.NoError(t, err, "failed to create gzip reader")
-	defer func() { _ = gzReader.Close() }()
-
-	decompressed, err := io.ReadAll(gzReader)
-	require.NoError(t, err, "failed to read decompressed gzip data")
-
-	return decompressed
-}
-
-func createNonDecompressingHTTPClient() *http.Client {
-	transport := &http.Transport{
-		DisableCompression: true,
-	}
-
-	return &http.Client{
-		Transport: transport,
-		Timeout:   30 * time.Second,
-	}
-}
-
-func TestFrontendAssetHandlerCompressionVerification(t *testing.T) {
-	t.Run("Compression Verification with Full Middleware Stack", func(t *testing.T) {
-
-		mainRouter := chi.NewRouter()
-
-		mainRouter.Use(cors.Handler(cors.Options{
-			AllowedOrigins:   []string{"*"},
-			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"},
-			AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-CSRF-Action-Token"},
-			ExposedHeaders:   []string{"Link"},
-			AllowCredentials: false,
-			MaxAge:           300,
-		}))
-
-		mainRouter.Use(middleware.RequestID)
-		mainRouter.Use(middleware.Recoverer)
-		mainRouter.Use(middleware.Heartbeat("/ping"))
-		mainRouter.Use(middleware.Timeout(60 * time.Second))
-
-		mainRouter.Get("/_piko/dist/*", serveEmbeddedFrontend(true, false))
-		mainRouter.Head("/_piko/dist/*", serveEmbeddedFrontend(true, false))
-
-		tracingHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			reqCtx := r.Context()
-
-			carrier := propagation.MapCarrier{}
-			for k, v := range r.Header {
-				if len(v) > 0 {
-					carrier.Set(k, v[0])
-				}
-			}
-			reqCtx = otel.GetTextMapPropagator().Extract(reqCtx, carrier)
-
-			mainRouter.ServeHTTP(w, r.WithContext(reqCtx))
-		})
-
-		server := httptest.NewServer(tracingHandler)
-		defer server.Close()
-
-		expectedAsset, ok := daemon_frontend.GetAsset(context.Background(), "built/ppframework.core.es.js")
-		require.True(t, ok, "Expected asset should exist in embedded store")
-
-		client := createNonDecompressingHTTPClient()
-
-		compressionTestCases := []struct {
-			decompressFunc   func(*testing.T, []byte) []byte
-			name             string
-			acceptEncoding   string
-			expectedEncoding string
-		}{
-			{
-				name:             "Should serve and verify Brotli compressed asset",
-				acceptEncoding:   "br, gzip, deflate",
-				expectedEncoding: "br",
-				decompressFunc:   decompressBrotli,
-			},
-			{
-				name:             "Should serve and verify Gzip compressed asset",
-				acceptEncoding:   "gzip, deflate",
-				expectedEncoding: "gzip",
-				decompressFunc:   decompressGzip,
-			},
-			{
-				name:             "Should prefer Brotli over Gzip when both accepted",
-				acceptEncoding:   "gzip, br, deflate",
-				expectedEncoding: "br",
-				decompressFunc:   decompressBrotli,
-			},
-		}
-
-		for _, tc := range compressionTestCases {
-			t.Run(tc.name, func(t *testing.T) {
-
-				request, err := http.NewRequest("GET", server.URL+"/_piko/dist/ppframework.core.es.js", nil)
-				require.NoError(t, err)
-				request.Header.Set("Accept-Encoding", tc.acceptEncoding)
-
-				response, err := client.Do(request)
-				require.NoError(t, err)
-				defer func() { _ = response.Body.Close() }()
-
-				assert.Equal(t, http.StatusOK, response.StatusCode, "Status code should be 200")
-
-				actualEncoding := response.Header.Get("Content-Encoding")
-				t.Logf("Request Accept-Encoding: %s", tc.acceptEncoding)
-				t.Logf("Response Content-Encoding: %s", actualEncoding)
-
-				assert.Equal(t, "application/javascript; charset=utf-8", response.Header.Get("Content-Type"),
-					"Content-Type should be correct")
-				assert.NotEmpty(t, response.Header.Get("ETag"), "ETag should be present")
-				varyHeader := response.Header.Get("Vary")
-				t.Logf("Vary header: %s", varyHeader)
-
-				assert.NotEmpty(t, varyHeader, "Vary header should be present with middleware stack")
-				assert.Equal(t, cacheControlMutableAsset, response.Header.Get("Cache-Control"), "Cache-Control should be set correctly")
-
-				compressedBody, err := io.ReadAll(response.Body)
-				require.NoError(t, err, "Should be able to read compressed response body")
-				assert.NotEmpty(t, compressedBody, "Compressed body should not be empty")
-
-				if actualEncoding == "" {
-
-					assert.Equal(t, expectedAsset.Content, compressedBody,
-						"Uncompressed content should match original asset content")
-					t.Logf("⚠ Server served uncompressed content instead of expected %s compression", tc.expectedEncoding)
-				} else if actualEncoding != tc.expectedEncoding {
-
-					t.Logf("⚠ Server served %s compression instead of expected %s compression", actualEncoding, tc.expectedEncoding)
-
-					assert.NotEqual(t, expectedAsset.Content, compressedBody,
-						"Response should be compressed and different from original")
-				} else {
-
-					assert.NotEqual(t, expectedAsset.Content, compressedBody,
-						"Raw response body should be different from original (i.e., compressed)")
-
-					decompressedContent := tc.decompressFunc(t, compressedBody)
-
-					if decompressedContent == nil {
-						t.Logf("⚠ Decompression failed for %s - this may indicate the asset isn't actually compressed with %s",
-							tc.expectedEncoding, tc.expectedEncoding)
-
-						return
-					}
-
-					assert.Equal(t, expectedAsset.Content, decompressedContent,
-						"Decompressed content should exactly match the original asset content")
-				}
-
-				t.Logf("Successfully verified %s compression/decompression cycle", tc.expectedEncoding)
-				t.Logf("  Original size: %d bytes", len(expectedAsset.Content))
-				t.Logf("  Compressed size: %d bytes", len(compressedBody))
-				t.Logf("  Compression ratio: %.2f%%", float64(len(compressedBody))/float64(len(expectedAsset.Content))*100)
-			})
-		}
-	})
-
-	t.Run("Compression Edge Cases and Error Scenarios", func(t *testing.T) {
-
-		router := chi.NewRouter()
-		router.Use(middleware.RequestID)
-		router.Get("/_piko/dist/*", serveEmbeddedFrontend(true, false))
-
-		server := httptest.NewServer(router)
-		defer server.Close()
-
-		client := createNonDecompressingHTTPClient()
-
-		edgeCaseTests := []struct {
-			name             string
-			path             string
-			acceptEncoding   string
-			expectedStatus   int
-			shouldDecompress bool
-		}{
-			{
-				name:             "Should handle no Accept-Encoding header (uncompressed)",
-				path:             "/_piko/dist/ppframework.core.es.js",
-				acceptEncoding:   "",
-				expectedStatus:   http.StatusOK,
-				shouldDecompress: false,
-			},
-			{
-				name:             "Should handle unsupported compression types gracefully",
-				path:             "/_piko/dist/ppframework.core.es.js",
-				acceptEncoding:   "deflate, compress",
-				expectedStatus:   http.StatusOK,
-				shouldDecompress: false,
-			},
-			{
-				name:             "Should handle non-existent assets with compression headers",
-				path:             "/_piko/dist/nonexistent.js",
-				acceptEncoding:   "br, gzip",
-				expectedStatus:   http.StatusNotFound,
-				shouldDecompress: false,
-			},
-		}
-
-		for _, tc := range edgeCaseTests {
-			t.Run(tc.name, func(t *testing.T) {
-				request, err := http.NewRequest("GET", server.URL+tc.path, nil)
-				require.NoError(t, err)
-				if tc.acceptEncoding != "" {
-					request.Header.Set("Accept-Encoding", tc.acceptEncoding)
-				}
-
-				response, err := client.Do(request)
-				require.NoError(t, err)
-				defer func() { _ = response.Body.Close() }()
-
-				assert.Equal(t, tc.expectedStatus, response.StatusCode, "Status code should match expected")
-
-				body, err := io.ReadAll(response.Body)
-				require.NoError(t, err)
-
-				if tc.expectedStatus == http.StatusOK {
-					if tc.shouldDecompress {
-
-						contentEncoding := response.Header.Get("Content-Encoding")
-						assert.NotEmpty(t, contentEncoding, "Content-Encoding should be set for compressed responses")
-					} else {
-
-						contentEncoding := response.Header.Get("Content-Encoding")
-						assert.Empty(t, contentEncoding, "Content-Encoding should be empty for uncompressed responses")
-
-						if tc.acceptEncoding == "" {
-							expectedAsset, ok := daemon_frontend.GetAsset(context.Background(), "built/ppframework.core.es.js")
-							require.True(t, ok)
-							assert.Equal(t, expectedAsset.Content, body, "Uncompressed body should match original asset")
-						}
-					}
-				}
-			})
-		}
-	})
-}
 
 func TestBuildAllowedOrigins_EmptyPublicDomain_ReturnsNil(t *testing.T) {
 	t.Parallel()
@@ -1491,20 +837,19 @@ func TestServeJITResult_WritesContent(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, "/", nil)
 
 	result := &jitResult{
-		Content:      []byte("<html>test</html>"),
-		Encoding:     "br",
-		ETag:         `"jit-abc123"`,
-		StatusCode:   http.StatusOK,
-		CacheControl: "public, max-age=0, must-revalidate",
+		Content:    []byte("<html>test</html>"),
+		Encoding:   "br",
+		ETag:       `"jit-abc123"`,
+		StatusCode: http.StatusOK,
 	}
 
-	m.serveJITResult(recorder, request, result)
+	m.serveJITResult(recorder, request, result, 600)
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	assert.Equal(t, "text/html; charset=utf-8", recorder.Header().Get("Content-Type"))
 	assert.Equal(t, "br", recorder.Header().Get("Content-Encoding"))
 	assert.Equal(t, `"jit-abc123"`, recorder.Header().Get("ETag"))
-	assert.Equal(t, "public, max-age=0, must-revalidate", recorder.Header().Get("Cache-Control"))
+	assert.Equal(t, "public, max-age=0, s-maxage=600, must-revalidate", recorder.Header().Get("Cache-Control"))
 	assert.Equal(t, "<html>test</html>", recorder.Body.String())
 }
 
@@ -1517,14 +862,13 @@ func TestServeJITResult_ETagMatch_Returns304(t *testing.T) {
 	request.Header.Set("If-None-Match", `"jit-abc123"`)
 
 	result := &jitResult{
-		Content:      []byte("<html>test</html>"),
-		Encoding:     "br",
-		ETag:         `"jit-abc123"`,
-		StatusCode:   http.StatusOK,
-		CacheControl: "public, max-age=0, must-revalidate",
+		Content:    []byte("<html>test</html>"),
+		Encoding:   "br",
+		ETag:       `"jit-abc123"`,
+		StatusCode: http.StatusOK,
 	}
 
-	m.serveJITResult(recorder, request, result)
+	m.serveJITResult(recorder, request, result, 600)
 
 	assert.Equal(t, http.StatusNotModified, recorder.Code)
 	assert.Empty(t, recorder.Body.String())
@@ -1544,7 +888,7 @@ func TestServeJITResult_NoETagMatch_Returns200(t *testing.T) {
 		StatusCode: http.StatusOK,
 	}
 
-	m.serveJITResult(recorder, request, result)
+	m.serveJITResult(recorder, request, result, 600)
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	assert.Equal(t, "content", recorder.Body.String())
@@ -1563,7 +907,7 @@ func TestServeJITResult_NoIfNoneMatch_Returns200(t *testing.T) {
 		StatusCode: http.StatusOK,
 	}
 
-	m.serveJITResult(recorder, request, result)
+	m.serveJITResult(recorder, request, result, 600)
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	assert.Equal(t, "fresh content", recorder.Body.String())
@@ -2024,6 +1368,270 @@ func TestStaticRoutes_RobotsBlockWithholdsTheSite(t *testing.T) {
 	assert.NotEmpty(t, ping.Header().Get("X-Robots-Tag"))
 }
 
+func TestStaticRoutes_FrameworkBundles(t *testing.T) {
+	t.Parallel()
+
+	handler := mountStaticRoutes(t, &daemon_domain.RouterConfig{
+		DistServePath:     "/_piko/dist",
+		ArtefactServePath: "/_piko/assets",
+	}, &registry_domain.MockRegistryService{})
+
+	testCases := []struct {
+		name           string
+		file           string
+		acceptEncoding string
+		storedSuffix   string
+	}{
+		{name: "core runtime", file: "ppframework.core.es.js"},
+		{name: "core runtime as brotli", file: "ppframework.core.es.js", acceptEncoding: "br, gzip", storedSuffix: ".br"},
+		{name: "core runtime as gzip", file: "ppframework.core.es.js", acceptEncoding: "gzip", storedSuffix: ".gz"},
+		{name: "minified core runtime", file: "ppframework.core.min.es.js"},
+		{name: "component runtime", file: "ppframework.components.es.js"},
+		{name: "minified component runtime", file: "ppframework.components.min.es.js"},
+		{name: "modals module", file: "ppframework.modals.min.es.js"},
+		{name: "toasts module", file: "ppframework.toasts.min.es.js"},
+		{name: "analytics module", file: "ppframework.analytics.min.es.js"},
+		{name: "dev module", file: "ppframework.dev.min.es.js"},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			asset, found := daemon_frontend.GetAsset(t.Context(), "built/"+testCase.file+testCase.storedSuffix)
+			require.True(t, found, "the embedded build must contain the bundle")
+
+			request := http.Header{}
+			if testCase.acceptEncoding != "" {
+				request.Set(headerAcceptEncoding, testCase.acceptEncoding)
+			}
+
+			assertCachedForGood(t, handler, versionedBundleURL(testCase.file), request, asset.ETag, asset.Content)
+			assertReexportsVersionedModule(t, handler, testCase.file, request)
+		})
+	}
+}
+
+func TestStaticRoutes_UnversionedClassicBundleAlwaysRevalidates(t *testing.T) {
+	t.Parallel()
+
+	handler := mountStaticRoutes(t, &daemon_domain.RouterConfig{
+		DistServePath:     "/_piko/dist",
+		ArtefactServePath: "/_piko/assets",
+	}, &registry_domain.MockRegistryService{})
+
+	asset, found := daemon_frontend.GetAsset(t.Context(), "built/ppframework.core.min.umd.js")
+	require.True(t, found)
+
+	assertAlwaysRevalidated(t, handler, "/_piko/dist/ppframework.core.min.umd.js", http.Header{}, asset.ETag, asset.Content)
+}
+
+func TestStaticRoutes_DevModeKeepsVersionedURLsButRevalidates(t *testing.T) {
+	t.Parallel()
+
+	handler := mountStaticRoutes(t, &daemon_domain.RouterConfig{
+		DistServePath:     "/_piko/dist",
+		ArtefactServePath: "/_piko/assets",
+		WatchMode:         true,
+		DisableHTTPCache:  true,
+	}, &registry_domain.MockRegistryService{})
+
+	asset, found := daemon_frontend.GetAsset(t.Context(), "built/ppframework.core.es.js")
+	require.True(t, found)
+
+	assertAlwaysRevalidated(t, handler, daemon_frontend.CoreRuntimeBuildDevelopment.CoreModuleURL(), http.Header{}, asset.ETag, asset.Content)
+}
+
+func TestStaticRoutes_RuntimeRecoveryScriptAlwaysRevalidates(t *testing.T) {
+	t.Parallel()
+
+	handler := mountStaticRoutes(t, &daemon_domain.RouterConfig{
+		DistServePath:     "/_piko/dist",
+		ArtefactServePath: "/_piko/assets",
+	}, &registry_domain.MockRegistryService{})
+
+	asset, found := daemon_frontend.GetAsset(t.Context(), daemon_frontend.RuntimeRecoveryAssetPath)
+	require.True(t, found, "the embedded build must contain the runtime recovery script")
+
+	assertAlwaysRevalidated(t, handler, daemon_frontend.RuntimeRecoveryURL, http.Header{}, asset.ETag, asset.Content)
+}
+
+func assertCachedForGood(
+	t *testing.T,
+	handler http.Handler,
+	target string,
+	request http.Header,
+	wantETag string,
+	wantBody []byte,
+) {
+	t.Helper()
+
+	fresh := serveRoute(t, handler, target, request)
+	require.Equal(t, http.StatusOK, fresh.Code)
+	assert.Equal(t, cacheControlImmutable, fresh.Header().Get(headerCacheControl))
+	assert.Equal(t, wantETag, fresh.Header().Get(headerETag))
+	assert.Contains(t, fresh.Header().Values(headerVary), headerAcceptEncoding)
+	assert.Equal(t, wantBody, fresh.Body.Bytes())
+
+	conditional := request.Clone()
+	conditional.Set(headerIfNoneMatch, wantETag)
+	notModified := serveRoute(t, handler, target, conditional)
+	require.Equal(t, http.StatusNotModified, notModified.Code)
+	assert.Empty(t, notModified.Body.Bytes(), "a 304 must not carry a body")
+}
+
+func assertReexportsVersionedModule(t *testing.T, handler http.Handler, fileName string, request http.Header) {
+	t.Helper()
+
+	version := versionSegmentFor(fileName)
+	wantETag := `"reexport-` + version + `"`
+
+	fresh := serveRoute(t, handler, "/_piko/dist/"+fileName, request)
+	require.Equal(t, http.StatusOK, fresh.Code)
+	assert.Equal(t, cacheControlNoCache, fresh.Header().Get(headerCacheControl))
+	assert.Equal(t, wantETag, fresh.Header().Get(headerETag))
+	assert.Empty(t, fresh.Header().Get(headerContentEncoding), "the re-export module is never sent compressed")
+	assert.Equal(t, "export * from \"./"+version+"/"+fileName+"\";\n", fresh.Body.String())
+
+	stale := request.Clone()
+	stale.Set(headerIfNoneMatch, `"etag-from-an-earlier-release"`)
+	replaced := serveRoute(t, handler, "/_piko/dist/"+fileName, stale)
+	require.Equal(t, http.StatusOK, replaced.Code, "a copy from an earlier release must be replaced in full")
+
+	conditional := request.Clone()
+	conditional.Set(headerIfNoneMatch, wantETag)
+	notModified := serveRoute(t, handler, "/_piko/dist/"+fileName, conditional)
+	assert.Equal(t, http.StatusNotModified, notModified.Code)
+}
+
+func TestStaticRoutes_ThemeStylesheetAlwaysRevalidates(t *testing.T) {
+	t.Parallel()
+
+	const (
+		themeBody       = "body{color:red}"
+		themeETag       = `"theme-minified"`
+		themeBrotliBody = "brotli-theme-bytes"
+		themeBrotliETag = `"theme-minified-br"`
+	)
+
+	handler := mountStaticRoutes(t, &daemon_domain.RouterConfig{
+		DistServePath:     "/_piko/dist",
+		ArtefactServePath: "/_piko/assets",
+	}, themeRegistry(
+		themeFixture{variantID: "minified", etag: themeETag, body: themeBody},
+		themeFixture{variantID: "minified_br", etag: themeBrotliETag, encoding: encodingBrotli, body: themeBrotliBody},
+	))
+
+	testCases := []struct {
+		name           string
+		acceptEncoding string
+		wantETag       string
+		wantBody       string
+	}{
+		{name: "uncompressed stylesheet", wantETag: themeETag, wantBody: themeBody},
+		{name: "brotli stylesheet", acceptEncoding: "br, gzip", wantETag: themeBrotliETag, wantBody: themeBrotliBody},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			request := http.Header{}
+			if testCase.acceptEncoding != "" {
+				request.Set(headerAcceptEncoding, testCase.acceptEncoding)
+			}
+
+			assertAlwaysRevalidated(t, handler, "/theme.css", request, testCase.wantETag, []byte(testCase.wantBody))
+		})
+	}
+}
+
+func assertAlwaysRevalidated(
+	t *testing.T,
+	handler http.Handler,
+	target string,
+	request http.Header,
+	wantETag string,
+	wantBody []byte,
+) {
+	t.Helper()
+
+	fresh := serveRoute(t, handler, target, request)
+	require.Equal(t, http.StatusOK, fresh.Code)
+	assertRevalidatingCacheHeaders(t, fresh, wantETag)
+	assert.Equal(t, wantBody, fresh.Body.Bytes())
+
+	for _, ifNoneMatch := range []string{wantETag, "W/" + wantETag, `"another-tag", ` + wantETag} {
+		conditional := request.Clone()
+		conditional.Set(headerIfNoneMatch, ifNoneMatch)
+
+		notModified := serveRoute(t, handler, target, conditional)
+		require.Equal(t, http.StatusNotModified, notModified.Code, "If-None-Match %s must match", ifNoneMatch)
+		assert.Empty(t, notModified.Body.Bytes(), "a 304 must not carry a body")
+		assertRevalidatingCacheHeaders(t, notModified, wantETag)
+	}
+
+	stale := request.Clone()
+	stale.Set(headerIfNoneMatch, `"etag-from-an-earlier-release"`)
+	replaced := serveRoute(t, handler, target, stale)
+	require.Equal(t, http.StatusOK, replaced.Code)
+	assertRevalidatingCacheHeaders(t, replaced, wantETag)
+	assert.Equal(t, wantBody, replaced.Body.Bytes(), "an outdated copy must be replaced in full")
+}
+
+func assertRevalidatingCacheHeaders(t *testing.T, recorder *httptest.ResponseRecorder, wantETag string) {
+	t.Helper()
+
+	assert.Equal(t, cacheControlNoCache, recorder.Header().Get(headerCacheControl))
+	assert.Equal(t, wantETag, recorder.Header().Get(headerETag))
+	assert.Contains(t, recorder.Header().Values(headerVary), headerAcceptEncoding)
+}
+
+type themeFixture struct {
+	variantID string
+	etag      string
+	encoding  string
+	body      string
+}
+
+func themeRegistry(fixtures ...themeFixture) *registry_domain.MockRegistryService {
+	bodies := make(map[string]string, len(fixtures))
+	variants := make([]registry_dto.Variant, 0, len(fixtures))
+	for _, fixture := range fixtures {
+		tags := registry_dto.Tags{}
+		tags.Set(registry_dto.TagType, "minified")
+		tags.Set(registry_dto.TagEtag, fixture.etag)
+		if fixture.encoding != "" {
+			tags.Set(registry_dto.TagContentEncoding, fixture.encoding)
+		}
+		variants = append(variants, registry_dto.Variant{
+			VariantID:    fixture.variantID,
+			MimeType:     contentTypeCSS,
+			StorageKey:   "store/theme/" + fixture.variantID,
+			SizeBytes:    int64(len(fixture.body)),
+			Status:       registry_dto.VariantStatusReady,
+			MetadataTags: tags,
+		})
+		bodies[fixture.variantID] = fixture.body
+	}
+	artefact := &registry_dto.ArtefactMeta{
+		ID:             "theme.css",
+		Status:         registry_dto.VariantStatusReady,
+		ActualVariants: variants,
+	}
+	return &registry_domain.MockRegistryService{
+		GetArtefactFunc: func(_ context.Context, id string) (*registry_dto.ArtefactMeta, error) {
+			if id != artefact.ID {
+				return nil, registry_domain.ErrArtefactNotFound
+			}
+			return artefact, nil
+		},
+		GetVariantDataFunc: func(_ context.Context, variant *registry_dto.Variant) (io.ReadCloser, error) {
+			return io.NopCloser(strings.NewReader(bodies[variant.VariantID])), nil
+		},
+	}
+}
+
 func TestServeStaticArtefactHandler_Failures(t *testing.T) {
 	t.Parallel()
 
@@ -2254,4 +1862,15 @@ func TestServeArtefact_ResolvesVariantsByArtefactID(t *testing.T) {
 			assert.Equal(t, testCase.wantStatus, recorder.Code)
 		})
 	}
+}
+
+func versionedBundleURL(fileName string) string {
+	return "/_piko/dist/" + versionSegmentFor(fileName) + "/" + fileName
+}
+
+func versionSegmentFor(fileName string) string {
+	if daemon_frontend.HasBuildVariants(fileName) {
+		return daemon_frontend.CoreRuntimeBuildDevelopment.RuntimeVersion()
+	}
+	return daemon_frontend.RuntimeVersion()
 }

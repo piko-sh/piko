@@ -951,6 +951,16 @@ type containerFeatureFlags struct {
 	// devHotreloadEnabled controls whether the SSE hot-reload JS module is loaded in dev
 	// mode to trigger automatic page refreshes on rebuild.
 	devHotreloadEnabled bool
+
+	// viewTransitionsOff turns off View Transitions for SPA navigation in every page.
+	viewTransitionsOff bool
+
+	// coreRuntimeBuild is the build of the core runtime the server sends at the core module
+	// URL.
+	//
+	// The renderer and the router both read it, so the SRI hash in each page matches the
+	// bytes served. The run mode sets it before any service is created.
+	coreRuntimeBuild daemon_frontend.CoreRuntimeBuild
 }
 
 // containerLifecycle holds the application context, the lifecycle callbacks, and the

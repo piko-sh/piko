@@ -328,6 +328,8 @@ type PKJSEmitterPort interface {
 	// <script> block.
 	// Takes pagePath (string) which is the relative path of the page (e.g.
 	// "pages/checkout").
+	// Takes target (generator_dto.ClientScriptTarget) which says whether the script belongs
+	// to a page, a partial or a plain module, and names the partial.
 	// Takes moduleName (string) which is the Go module name for @/ alias resolution in
 	// imports.
 	// Takes outputDir (string) which is ignored (registry handles storage).
@@ -335,11 +337,13 @@ type PKJSEmitterPort interface {
 	//
 	// Returns artefactID (string) which is the registry key (e.g. "pk-js/pages/checkout.js")
 	// for storage in the manifest.
-	// Returns error when transpilation or registry storage fails.
+	// Returns error when the target is not valid, or transpilation or registry storage
+	// fails.
 	EmitJS(
 		ctx context.Context,
 		source string,
 		pagePath string,
+		target generator_dto.ClientScriptTarget,
 		moduleName string,
 		outputDir string,
 		minify bool,

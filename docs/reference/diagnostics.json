@@ -1155,6 +1155,66 @@
       ]
     },
     {
+      "example": {
+        "file": "pages/index.pk",
+        "source": "    pk.refs.titel.textContent = message;",
+        "message": "pk.refs.titel matches no element with p-ref=\"titel\" on this page or in any partial, so it is always null. Did you mean 'title'?",
+        "line": 12,
+        "column": 13,
+        "width": 5
+      },
+      "code": "T156",
+      "name": "UnresolvedRef",
+      "family": "Template analysis",
+      "title": "Ref not declared",
+      "summary": "A script reads a ref by a literal name that no p-ref declares.",
+      "detail": "For a page script, pk.refs is checked against the page's template and every partial. For a partial script, it is checked against every template, because callers can put content inside the partial. For a component script, pkc.refs is checked against the component's own template only. Computed names, projects that bind p-ref, and elements that a script creates at runtime are not checked.",
+      "fix": "Add p-ref with that name to the element the script needs, or correct the name in the script.",
+      "severities": [
+        "warning"
+      ]
+    },
+    {
+      "example": {
+        "file": "pages/index.pk",
+        "source": "    piko.partials.reload(\"task_list\");",
+        "message": "piko.partials.reload(\"task_list\") names no partial in the build, so the partial is never found. \"task_list\" is the import alias; the partial's name is \"task-list\"",
+        "line": 20,
+        "column": 26,
+        "width": 11
+      },
+      "code": "T157",
+      "name": "UnresolvedPartialName",
+      "family": "Template analysis",
+      "title": "Partial name not found",
+      "summary": "A partial reload call names a partial that is not in the build.",
+      "detail": "piko.partial, piko.partials.reload, piko.partials.reloadGroup and piko.partials.autoRefresh find a partial by its partial_name. That is its path in the partials folder without the .pk extension, or a partial_name written on the partial's tag. An import alias is not a partial name. Computed names are not checked.",
+      "fix": "Use the partial's name, as the message suggests, or add the partial.",
+      "severities": [
+        "warning"
+      ]
+    },
+    {
+      "example": {
+        "file": "partials/quote_table.pk",
+        "source": "      \u003cbutton type=\"button\" p-modal:selector=\"[modal=qoute]\"\u003eEdit\u003c/button\u003e",
+        "message": "Modal selector \"[modal=qoute]\" matches no element with modal=\"qoute\" on page app/pages/quotes.pk or in any partial. Did you mean 'quote'?",
+        "line": 8,
+        "column": 47,
+        "width": 14
+      },
+      "code": "T158",
+      "name": "UnresolvedModalSelector",
+      "family": "Template analysis",
+      "title": "Modal selector matches nothing",
+      "summary": "A [modal=name] selector matches no element with that modal attribute.",
+      "detail": "p-modal:selector and modal_selector values of the form [modal=name] are checked against the modal attributes on the page, its layout and every partial. Other selectors, bound values and projects that bind modal are not checked.",
+      "fix": "Add an element with that modal attribute to the page or its layout, or correct the selector.",
+      "severities": [
+        "warning"
+      ]
+    },
+    {
       "code": "R001",
       "name": "RenderError",
       "family": "Rendering",

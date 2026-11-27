@@ -43,6 +43,14 @@ import (
 	"piko.sh/piko/tests/fuzz/internal/casefile"
 )
 
+const (
+	// pageExtension is the file extension of a Piko page or partial source.
+	pageExtension = ".pk"
+
+	// componentExtension is the file extension of a Piko client component source.
+	componentExtension = ".pkc"
+)
+
 var (
 	// errNoPikoSources reports a case without any PK or PKC source.
 	errNoPikoSources = errors.New("case has no Piko sources")
@@ -143,7 +151,7 @@ func eachSource(savedCase *casefile.Case, checkSource func(string, string, *sfcp
 	count := 0
 	for _, name := range slices.Sorted(maps.Keys(savedCase.Files)) {
 		switch filepath.Ext(name) {
-		case ".pk", ".pkc":
+		case pageExtension, componentExtension:
 		default:
 			continue
 		}
@@ -188,7 +196,7 @@ func checkSyntax(ctx context.Context, _ *tape.Tape, savedCase *casefile.Case) er
 		if !strings.Contains(source, blocks.Template) {
 			return property("source-span", "template is absent from source")
 		}
-		if filepath.Ext(name) == ".pkc" {
+		if filepath.Ext(name) == componentExtension {
 			return checkComponentName(savedCase, name, blocks)
 		}
 		return nil
@@ -210,7 +218,7 @@ func checkComponentName(savedCase *casefile.Case, name string, blocks *sfcparser
 	if !strings.Contains(tag, "-") {
 		return property("name", "component registration name %q must contain a hyphen", tag)
 	}
-	if filepath.Base(name) == savedCase.Expected.Tag+".pkc" && tag != savedCase.Expected.Tag {
+	if filepath.Base(name) == savedCase.Expected.Tag+componentExtension && tag != savedCase.Expected.Tag {
 		return property("name", "generated registration name %q differs from expected %q", tag, savedCase.Expected.Tag)
 	}
 	return nil
@@ -324,7 +332,7 @@ func checkFormatter(ctx context.Context, _ *tape.Tape, savedCase *casefile.Case)
 func partitionPreformatted(files map[string]string) (primary, others map[string]string) {
 	primary, others = map[string]string{}, map[string]string{}
 	for name, source := range files {
-		if filepath.Ext(name) != ".pk" && filepath.Ext(name) != ".pkc" {
+		if filepath.Ext(name) != pageExtension && filepath.Ext(name) != componentExtension {
 			continue
 		}
 		if strings.Contains(source, "<pre>") || strings.Contains(source, "<textarea>") {

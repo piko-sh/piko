@@ -28,7 +28,18 @@ interface TrackedForm {
     isDirty: boolean;
     /** Whether the initial snapshot is pending while custom elements initialise. */
     snapshotPending: boolean;
+    /**
+     * Custom elements that were not defined when tracking began. Their fields are
+     * left out of the snapshot until each one is defined and has set its value.
+     */
+    pendingElements: Set<Element>;
 }
+
+/** A single serialised snapshot entry, as a key and value pair. */
+type SnapshotEntry = [string, string];
+
+/** Decides whether a field, given by name, belongs in a snapshot. */
+type FieldNamePredicate = (name: string) => boolean;
 
 /** Manages form dirty state tracking for unsaved changes protection. */
 export interface FormStateManager {
@@ -98,8 +109,8 @@ const TRACKED_ATTR = 'data-pk-tracked';
 /** Number of trailing characters to use from the form action for ID generation. */
 const ACTION_SUFFIX_LENGTH = 20;
 
-/** Maximum time in milliseconds to wait for custom elements before snapshotting anyway. */
-const DEFERRED_SNAPSHOT_TIMEOUT_MS = 5000;
+/** Key prefix for the checked state of checkboxes and radio buttons in a snapshot. */
+const CHECKED_KEY_PREFIX = '__checked_';
 
 /**
  * Checks whether a form field is inside a pk-no-track container. Fields nested
@@ -114,32 +125,130 @@ function isInsideNoTrackContainer(el: Element): boolean {
 }
 
 /**
- * Serialises form state into a comparable string, including checkbox and radio
- * states. Fields inside pk-no-track containers are excluded from the snapshot.
- * Entries are sorted for consistent comparison.
- * @param form - The form element to snapshot.
- * @returns A JSON string representing the form's current state.
+ * Collects the snapshot entries of the fields that the predicate accepts,
+ * including checkbox and radio states.
+ * @param form - The form element to read.
+ * @param includeField - Decides, by field name, which fields to read.
+ * @returns The unsorted snapshot entries.
  */
-function getFormSnapshot(form: HTMLFormElement): string {
-    const excludedNames = collectNoTrackFieldNames(form);
-    const data = new FormData(form);
-    const entries: [string, string][] = [];
+function collectSnapshotEntries(form: HTMLFormElement, includeField: FieldNamePredicate): SnapshotEntry[] {
+    const entries: SnapshotEntry[] = [];
 
-    for (const [key, value] of data.entries()) {
-        if (typeof value === 'string' && !excludedNames.has(key)) {
+    for (const [key, value] of new FormData(form).entries()) {
+        if (typeof value === 'string' && includeField(key)) {
             entries.push([key, value]);
         }
     }
 
     const checkboxes = form.querySelectorAll<HTMLInputElement>('input[type="checkbox"], input[type="radio"]');
     for (const checkbox of checkboxes) {
-        if (checkbox.name && !excludedNames.has(checkbox.name)) {
-            entries.push([`__checked_${checkbox.name}_${checkbox.value}`, String(checkbox.checked)]);
+        if (checkbox.name && includeField(checkbox.name)) {
+            entries.push([`${CHECKED_KEY_PREFIX}${checkbox.name}_${checkbox.value}`, String(checkbox.checked)]);
         }
     }
 
+    return entries;
+}
+
+/**
+ * Sorts snapshot entries and serialises them into a comparable string.
+ * @param entries - The snapshot entries.
+ * @returns A JSON string of the sorted entries.
+ */
+function serialiseEntries(entries: SnapshotEntry[]): string {
     entries.sort((a, b) => a[0].localeCompare(b[0]));
     return JSON.stringify(entries);
+}
+
+/**
+ * Serialises form state into a comparable string, including checkbox and radio
+ * states. Fields inside pk-no-track containers and fields of custom elements
+ * that are not ready yet are left out. Entries are sorted for consistent
+ * comparison.
+ * @param tracked - The tracked form to snapshot.
+ * @returns A JSON string representing the form's current state.
+ */
+function getFormSnapshot(tracked: TrackedForm): string {
+    const excludedNames = collectNoTrackFieldNames(tracked.form);
+    for (const name of collectPendingFieldNames(tracked)) {
+        excludedNames.add(name);
+    }
+    return serialiseEntries(collectSnapshotEntries(tracked.form, name => !excludedNames.has(name)));
+}
+
+/**
+ * Collects the field names that belong to a custom element, which are its own name
+ * and the names of form controls inside it.
+ * @param form - The form that holds the element.
+ * @param element - The custom element.
+ * @returns The set of field names.
+ */
+function collectElementFieldNames(form: HTMLFormElement, element: Element): Set<string> {
+    const names = new Set<string>();
+    const ownName = element.getAttribute('name');
+    if (ownName) {
+        names.add(ownName);
+    }
+    const controls = form.elements;
+    for (let i = 0; i < controls.length; i++) {
+        const control = controls[i] as HTMLElement & { name?: string };
+        if (control.name && element.contains(control)) {
+            names.add(control.name);
+        }
+    }
+    return names;
+}
+
+/**
+ * Collects the field names of every custom element in the form that is not
+ * ready yet.
+ * @param tracked - The tracked form.
+ * @returns The set of field names to leave out of snapshots.
+ */
+function collectPendingFieldNames(tracked: TrackedForm): Set<string> {
+    const names = new Set<string>();
+    for (const element of tracked.pendingElements) {
+        for (const name of collectElementFieldNames(tracked.form, element)) {
+            names.add(name);
+        }
+    }
+    return names;
+}
+
+/**
+ * Checks whether a snapshot key belongs to one of the given fields.
+ * @param key - The snapshot key.
+ * @param names - The field names.
+ * @returns True if the key is for one of the fields.
+ */
+function isKeyForFields(key: string, names: ReadonlySet<string>): boolean {
+    if (names.has(key)) {
+        return true;
+    }
+    if (!key.startsWith(CHECKED_KEY_PREFIX)) {
+        return false;
+    }
+    const rest = key.slice(CHECKED_KEY_PREFIX.length);
+    for (const name of names) {
+        if (rest.startsWith(`${name}_`)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Adds the current values of the given fields to the form's initial snapshot,
+ * replacing any values already stored for them.
+ * @param tracked - The tracked form.
+ * @param names - The field names to add.
+ */
+function addFieldsToSnapshot(tracked: TrackedForm, names: ReadonlySet<string>): void {
+    const noTrackNames = collectNoTrackFieldNames(tracked.form);
+    const kept = (JSON.parse(tracked.initialSnapshot) as SnapshotEntry[])
+        .filter(([key]) => !isKeyForFields(key, names));
+    const added = collectSnapshotEntries(tracked.form, name => names.has(name) && !noTrackNames.has(name));
+    tracked.initialSnapshot = serialiseEntries([...kept, ...added]);
 }
 
 /**
@@ -224,7 +333,7 @@ function updateDirtyState(
         return;
     }
 
-    const currentSnapshot = getFormSnapshot(form);
+    const currentSnapshot = getFormSnapshot(tracked);
     const wasDirty = tracked.isDirty;
     tracked.isDirty = currentSnapshot !== tracked.initialSnapshot;
 
@@ -300,54 +409,90 @@ function containsCustomElements(form: HTMLFormElement): boolean {
 }
 
 /**
- * Defers the initial snapshot of a form until custom elements have had time to initialise.
- * For undefined elements, waits for registration via customElements.whenDefined().
- * Then waits two animation frames for connectedCallback and post-render setFormValue()
- * calls to complete before snapshotting.
- * Falls back to snapshotting after a timeout if elements are never defined.
- * @param form - The form element awaiting its initial snapshot.
- * @param trackedForms - The map of currently tracked forms.
+ * Waits two animation frames so that connectedCallback and post-render
+ * setFormValue() calls can complete.
+ * @returns A promise that resolves after two animation frames.
  */
-async function deferFormSnapshot(
-    form: HTMLFormElement,
-    trackedForms: Map<HTMLFormElement, TrackedForm>
-): Promise<void> {
-    const undefinedElements = form.querySelectorAll(':not(:defined)');
-
-    if (undefinedElements.length > 0) {
-        const tagNames = new Set<string>();
-        for (const el of undefinedElements) {
-            tagNames.add(el.localName);
-        }
-
-        const timeout = new Promise<'timeout'>(resolve =>
-            setTimeout(() => resolve('timeout'), DEFERRED_SNAPSHOT_TIMEOUT_MS)
-        );
-
-        const result = await Promise.race([
-            Promise.all(
-                Array.from(tagNames).map(name => customElements.whenDefined(name))
-            ).then(() => 'defined' as const),
-            timeout
-        ]);
-
-        if (result === 'timeout') {
-            console.warn(`[pk] Timed out waiting for custom elements in form "${getFormId(form)}":`,
-                Array.from(tagNames));
-        }
-    }
-
-    await new Promise<void>(resolve => requestAnimationFrame(() => {
+function waitForSettle(): Promise<void> {
+    return new Promise<void>(resolve => requestAnimationFrame(() => {
         requestAnimationFrame(() => resolve());
     }));
+}
 
-    const tracked = trackedForms.get(form);
-    if (!tracked) {
+/**
+ * Checks whether the given tracked entry is still the one tracking its form.
+ * @param tracked - The tracked form entry.
+ * @param trackedForms - The map of currently tracked forms.
+ * @returns True if the entry is still current.
+ */
+function isStillTracked(tracked: TrackedForm, trackedForms: Map<HTMLFormElement, TrackedForm>): boolean {
+    return trackedForms.get(tracked.form) === tracked;
+}
+
+/**
+ * Records the initial snapshot of the fields that are ready, after the settle
+ * frames. Fields of custom elements that are not defined yet are left out.
+ * @param tracked - The tracked form awaiting its initial snapshot.
+ * @param trackedForms - The map of currently tracked forms.
+ */
+async function recordReadySnapshot(
+    tracked: TrackedForm,
+    trackedForms: Map<HTMLFormElement, TrackedForm>
+): Promise<void> {
+    await waitForSettle();
+    if (!isStillTracked(tracked, trackedForms)) {
         return;
     }
-
-    tracked.initialSnapshot = getFormSnapshot(form);
+    tracked.initialSnapshot = getFormSnapshot(tracked);
     tracked.snapshotPending = false;
+}
+
+/**
+ * Adds a custom element's fields to the initial snapshot once the element is
+ * defined and has settled. If the element is never defined, its fields are
+ * never part of the snapshot.
+ * @param tracked - The tracked form that holds the element.
+ * @param element - The custom element that is not defined yet.
+ * @param readySnapshot - Resolves once the ready part has been recorded.
+ * @param trackedForms - The map of currently tracked forms.
+ */
+async function addElementWhenDefined(
+    tracked: TrackedForm,
+    element: Element,
+    readySnapshot: Promise<void>,
+    trackedForms: Map<HTMLFormElement, TrackedForm>
+): Promise<void> {
+    await Promise.all([customElements.whenDefined(element.localName), readySnapshot]);
+    await waitForSettle();
+    if (!isStillTracked(tracked, trackedForms)) {
+        return;
+    }
+    const names = collectElementFieldNames(tracked.form, element);
+    tracked.pendingElements.delete(element);
+    addFieldsToSnapshot(tracked, names);
+}
+
+/**
+ * Defers the initial snapshot of a form until custom elements have had time to initialise.
+ * The fields that are ready are recorded after two animation frames. Each custom element
+ * that is not defined yet adds its fields to the snapshot once it is defined and has
+ * settled. Until then its fields are left out of every dirty check.
+ * @param tracked - The tracked form awaiting its initial snapshot.
+ * @param trackedForms - The map of currently tracked forms.
+ */
+function deferFormSnapshot(
+    tracked: TrackedForm,
+    trackedForms: Map<HTMLFormElement, TrackedForm>
+): void {
+    for (const element of tracked.form.querySelectorAll(':not(:defined)')) {
+        tracked.pendingElements.add(element);
+    }
+
+    const readySnapshot = recordReadySnapshot(tracked, trackedForms);
+
+    for (const element of tracked.pendingElements) {
+        void addElementWhenDefined(tracked, element, readySnapshot, trackedForms);
+    }
 }
 
 /**
@@ -364,11 +509,20 @@ function internalTrackForm(form: HTMLFormElement, trackedForms: Map<HTMLFormElem
         return;
     }
 
+    const tracked: TrackedForm = {
+        form,
+        initialSnapshot: '',
+        isDirty: false,
+        snapshotPending: false,
+        pendingElements: new Set()
+    };
+    trackedForms.set(form, tracked);
+
     if (containsCustomElements(form)) {
-        trackedForms.set(form, {form, initialSnapshot: '', isDirty: false, snapshotPending: true});
-        void deferFormSnapshot(form, trackedForms);
+        tracked.snapshotPending = true;
+        deferFormSnapshot(tracked, trackedForms);
     } else {
-        trackedForms.set(form, {form, initialSnapshot: getFormSnapshot(form), isDirty: false, snapshotPending: false});
+        tracked.initialSnapshot = getFormSnapshot(tracked);
     }
 
     form.setAttribute(TRACKED_ATTR, 'true');
@@ -437,7 +591,7 @@ function createFormSubmitHandler(
         if (!tracked) {
             return;
         }
-        tracked.initialSnapshot = getFormSnapshot(form);
+        tracked.initialSnapshot = getFormSnapshot(tracked);
         tracked.snapshotPending = false;
         const wasDirty = tracked.isDirty;
         tracked.isDirty = false;
@@ -518,7 +672,7 @@ export function createFormStateManager(deps: FormStateManagerDependencies): Form
             if (!tracked) {
                 return;
             }
-            tracked.initialSnapshot = getFormSnapshot(form);
+            tracked.initialSnapshot = getFormSnapshot(tracked);
             tracked.snapshotPending = false;
             const wasDirty = tracked.isDirty;
             tracked.isDirty = false;

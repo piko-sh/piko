@@ -1,0 +1,24 @@
+{
+  "pages": {
+    "pages/main.pk": {
+      "routePatterns": {
+        "en": "/main"
+      },
+      "i18nStrategy": "disabled",
+      "jsArtefactIds": [
+        "pk-js/layouts/layout.js"
+      ],
+      "packagePath": "testcase_183_partial_script_in_custom_partials_dir/dist/pages/pages_main_594861c5",
+      "originalSourcePath": "pages/main.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {},
+  "partialScripts": {
+    "pk-js/layouts/layout.js": "layout"
+  }
+}

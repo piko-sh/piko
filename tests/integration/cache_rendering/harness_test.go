@@ -40,6 +40,7 @@ import (
 	"piko.sh/piko/internal/collection/collection_domain"
 	"piko.sh/piko/internal/compiler/compiler_domain"
 	"piko.sh/piko/internal/config/config_domain"
+	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/generator/generator_helpers"
 	"piko.sh/piko/internal/i18n/i18n_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
@@ -224,7 +225,7 @@ func normaliseForComparison(html []byte) []byte {
 	result = partialRegex.ReplaceAll(result, []byte(`partial="pages_[PAGE]_[HASH]"`))
 	result = pageidRegex.ReplaceAll(result, []byte(`data-pageid="pages/[PAGE].pk"`))
 	result = canonicalRegex.ReplaceAll(result, []byte(`<link rel="canonical" href="[NORMALISED]/[PAGE]">`))
-	return result
+	return []byte(daemon_frontend.StripRuntimeVersion(string(result)))
 }
 
 func assertHTMLEqual(t *testing.T, expected, actual []byte, label string) {

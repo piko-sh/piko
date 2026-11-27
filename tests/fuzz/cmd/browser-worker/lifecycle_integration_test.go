@@ -26,6 +26,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -50,8 +51,10 @@ func TestLifecycleWorkerSavesPartialBrowserReceipt(t *testing.T) {
 			root.querySelector('button').onclick=()=>root.querySelector('output').textContent='2';
 			</script>`)
 		case "/journey":
-			_, err = fmt.Fprint(writer, `<input id="draft"><span id="retained-row">saved</span><script>
+			_, err = fmt.Fprint(writer, `<input id="draft"><span id="retained-row">saved</span><button id="journey-bound">Bound</button><script>
 			window.__journey.connected=2;
+			window.__journey.pages.journey.connected=1;
+			document.getElementById('journey-bound').onclick=()=>window.__journey.pages.journey.clicks++;
 			window.piko={partials:{reload:()=>document.getElementById('retained-row').textContent='saved'},
 				nav:{navigate:()=>{throw new Error('local navigation interrupted')}}};
 			</script>`)
@@ -75,7 +78,7 @@ func TestLifecycleWorkerSavesPartialBrowserReceipt(t *testing.T) {
 	require.NotNil(t, observed)
 	assert.Equal(t, "cancel-navigation", observed.FailedStep)
 	assert.Contains(t, observed.DriverError, "local navigation interrupted")
-	assert.Equal(t, casefile.ExpectedLifecycle(input).States[:2], observed.States)
+	assert.Equal(t, casefile.ExpectedLifecycle(input).States[:3], observed.States)
 }
 
 const (
@@ -107,41 +110,126 @@ class FuzzWatch extends HTMLElement {
 }
 customElements.define('fuzz-watch', FuzzWatch);
 const app = document.getElementById('app');
-const mount = () => {
-  app.innerHTML = '<input id="draft"><div id="journey-list"><span id="retained-row">saved</span></div>' +
-    '<fuzz-watch id="first"></fuzz-watch><fuzz-watch id="second"></fuzz-watch>';
+let dirty = false, leavePage = () => {};
+const connectPage = key => {
+  const page = window.__journey.pages[key], bound = document.getElementById(key + '-bound');
+  const click = () => { page.clicks++; };
+  page.connected++;
+  bound.addEventListener('click', click);
+  leavePage = () => { page.disconnected++; page.cleaned++; bound.removeEventListener('click', click); };
+};
+const show = path => {
+  leavePage();
+  dirty = false;
+  if (path === '/journey') {
+    app.innerHTML = '<input id="draft"><div id="journey-list"><span id="retained-row">saved</span></div>' +
+      '<fuzz-watch id="first"></fuzz-watch><fuzz-watch id="second"></fuzz-watch>' +
+      '<button id="journey-bound">Bound</button><a id="link-away" href="/journey-away">away</a>';
+    document.getElementById('draft').addEventListener('input', () => { dirty = true; });
+    connectPage('journey');
+  } else {
+    app.innerHTML = '<main id="journey-away">Editor closed<button id="away-bound">Bound</button>' +
+      '<a id="link-journey" href="/journey">journey</a></main>';
+    connectPage('away');
+  }
+  app.querySelectorAll('a').forEach(link => link.addEventListener('click', event => {
+    event.preventDefault();
+    window.piko.nav.navigate(link.getAttribute('href'));
+  }));
 };
 window.piko = {
   partials: {reload: () => { document.getElementById('retained-row').textContent = 'saved'; }},
   nav: {navigate: path => {
-    if (!window.confirm('Leave?')) return;
+    if (dirty && !window.confirm('Leave?')) return;
     history.pushState(null, '', path);
-    app.innerHTML = '<main id="journey-away">Editor closed</main>';
+    show(path);
   }}
 };
-window.addEventListener('popstate', () => { if (location.pathname === '/journey') mount(); });
-mount();
+window.addEventListener('popstate', () => show(location.pathname));
+show(location.pathname);
+</script>`
+
+	reuseListingsPage = `<div id="app"></div><script>
+class ListingPager extends HTMLElement {
+  connectedCallback() {
+    const log = window.__journey, owner = this.getAttribute('owner');
+    const filter = document.querySelector(this.getAttribute('filter_input'));
+    const react = () => { log.deliveries++; log.applied.push(owner); };
+    log.connected++;
+    filter.addEventListener('change', react);
+    this.release = () => filter.removeEventListener('change', react);
+  }
+  disconnectedCallback() {
+    window.__journey.cleaned++;
+    this.release();
+  }
+}
+customElements.define('listing-pager', ListingPager);
+const app = document.getElementById('app');
+const show = path => {
+  const listing = path.slice('/reuse-'.length);
+  app.innerHTML = '<input id="' + listing + '-filter"><listing-pager owner="' + listing + '" filter_input="#' + listing + '-filter"></listing-pager>' +
+    '<a id="link-orders" href="/reuse-orders">orders</a><a id="link-invoices" href="/reuse-invoices">invoices</a>';
+  app.querySelectorAll('a').forEach(link => link.addEventListener('click', event => {
+    event.preventDefault();
+    history.pushState(null, '', link.getAttribute('href'));
+    show(link.getAttribute('href'));
+  }));
+};
+window.addEventListener('popstate', () => show(location.pathname));
+show(location.pathname);
 </script>`
 )
 
-func TestBrowserLifecycleMatchesTheModelInEitherOrder(t *testing.T) {
-	requireChromium(t)
-	clearRecipeVariables(t)
+func servePage(t *testing.T, path, page string) *httptest.Server {
+	t.Helper()
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		if request.URL.Path != "/journey" {
+		if request.URL.Path != path {
 			http.NotFound(writer, request)
 			return
 		}
 		writer.Header().Set("Content-Type", "text/html")
-		_, err := fmt.Fprint(writer, lifecycleJourneyPage)
+		_, err := fmt.Fprint(writer, page)
 		assert.NoError(t, err)
 	}))
-	defer server.Close()
-	ctx, session := openTestBrowser(t, 2*lifecycleBudget()+10*time.Second)
+	t.Cleanup(server.Close)
+	return server
+}
+
+func TestBrowserLifecycleMatchesTheModelInEitherOrder(t *testing.T) {
+	requireChromium(t)
+	clearRecipeVariables(t)
+	server := servePage(t, "/journey", lifecycleJourneyPage)
+	ctx, session := openTestBrowser(t, 2*lifecycleBudget(casefile.LifecycleInput{})+10*time.Second)
 	for _, reverse := range []bool{false, true} {
 		input := casefile.LifecycleInput{Draft: "draft é", Reverse: reverse}
 		trace := browserLifecycle(ctx, session, server.URL, input)
 		require.Empty(t, trace.DriverError, "reverse=%t failed at %s", reverse, trace.FailedStep)
 		assert.Equal(t, casefile.ExpectedLifecycle(input).States, trace.States, "reverse=%t", reverse)
 	}
+}
+
+func TestBrowserElementReuseMatchesTheModelWhenListingsReconnect(t *testing.T) {
+	requireChromium(t)
+	clearRecipeVariables(t)
+	server := servePage(t, casefile.ReuseListingPath(casefile.ReuseFirstListing), reuseListingsPage)
+	input := casefile.LifecycleInput{ElementReuse: true}
+	ctx, session := openTestBrowser(t, lifecycleBudget(input)+10*time.Second)
+	trace := browserLifecycle(ctx, session, server.URL, input)
+	require.Empty(t, trace.DriverError, "failed at %s", trace.FailedStep)
+	assert.Equal(t, casefile.ExpectedLifecycle(input).States, trace.States)
+}
+
+func TestBrowserLifecycleWaitsForADisconnectThatRunsAfterTheNextPageConnects(t *testing.T) {
+	requireChromium(t)
+	clearRecipeVariables(t)
+	immediate := "leavePage = () => { page.disconnected++; page.cleaned++; bound.removeEventListener('click', click); };"
+	late := "leavePage = () => { bound.removeEventListener('click', click); setTimeout(() => { page.disconnected++; page.cleaned++; }, 200); };"
+	require.Contains(t, lifecycleJourneyPage, immediate)
+	server := servePage(t, "/journey", strings.Replace(lifecycleJourneyPage, immediate, late, 1))
+	input := casefile.LifecycleInput{Draft: "draft"}
+	ctx, session := openTestBrowser(t, lifecycleBudget(input)+10*time.Second)
+	trace := browserLifecycle(ctx, session, server.URL, input)
+	require.Empty(t, trace.DriverError, "failed at %s", trace.FailedStep)
+	assert.Equal(t, casefile.ExpectedLifecycle(input).States, trace.States)
 }

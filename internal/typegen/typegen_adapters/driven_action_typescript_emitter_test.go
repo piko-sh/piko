@@ -27,6 +27,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/annotator/annotator_dto"
+	"piko.sh/piko/internal/daemon/daemon_frontend"
 )
 
 func newTestActionSpecs() []annotator_dto.ActionSpec {
@@ -109,6 +110,14 @@ func TestActionTypeScriptEmitter_EmitTypeScript(t *testing.T) {
 		assert.NotContains(t, result, "export interface")
 		assert.NotContains(t, result, "export function")
 		assert.NotContains(t, result, "registerActionFunction(")
+	})
+
+	t.Run("imports the core URL that re-exports the server's own build", func(t *testing.T) {
+		t.Parallel()
+		output, err := emitter.EmitTypeScript(t.Context(), newTestActionSpecs())
+		require.NoError(t, err)
+
+		assert.Contains(t, string(output), "from '"+daemon_frontend.CoreModuleImportURL()+"';")
 	})
 
 	t.Run("generates JSDoc from description", func(t *testing.T) {

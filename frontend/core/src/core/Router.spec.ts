@@ -26,6 +26,7 @@ import type {FormStateManager} from '@/services/FormStateManager';
 import type {A11yAnnouncer} from '@/services/A11yAnnouncer';
 import type {HookManager} from '@/services/HookManager';
 import type {WindowOperations, DOMOperations} from '@/core/BrowserAPIs';
+import {createRuntimeVersionGate, RUNTIME_VERSION_HEADER, type RuntimeVersionGate} from '@/core/RuntimeVersion';
 
 function createMockWindowOps(overrides: Partial<WindowOperations> = {}): WindowOperations {
     return {
@@ -664,7 +665,7 @@ describe('Router', () => {
         });
 
         it('should catch and log errors from navigation callbacks', async () => {
-            const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
             router.setConfig({
                 beforeNavigate: () => { throw new Error('callback boom'); },
@@ -836,7 +837,7 @@ describe('Router', () => {
 
         it('should fire onHeadersReceived on the loader when fetch passes headers', async () => {
             vi.mocked(fetchClient.get).mockImplementation(async (_url: string, options?: FetchClientOptions) => {
-                options?.onHeadersReceived?.();
+                options?.onHeadersReceived?.(new Headers());
                 return [true, VALID_HTML];
             });
 
@@ -854,6 +855,150 @@ describe('Router', () => {
             await router.navigateTo('http://localhost/page');
 
             expect(loader.setProgress).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('runtime version handshake', () => {
+        const OWN_VERSION = '0123456789abcdef';
+        const OTHER_VERSION = 'fedcba9876543210';
+
+        beforeEach(() => {
+            vi.spyOn(console, 'warn').mockImplementation(() => {});
+        });
+
+        function createRouterWithGate(gate: RuntimeVersionGate): Router {
+            router.destroy();
+            router = createRouter({fetchClient, loader, errorDisplay, onPageLoad, windowOps, domOps, runtimeVersionGate: gate});
+            return router;
+        }
+
+        function serveFragmentFrom(serverVersion: string | null): void {
+            vi.mocked(fetchClient.get).mockImplementation(async (_url: string, options?: FetchClientOptions) => {
+                const headers = new Headers();
+                if (serverVersion !== null) {
+                    headers.set(RUNTIME_VERSION_HEADER, serverVersion);
+                }
+                options?.onHeadersReceived?.(headers);
+                return [true, VALID_HTML];
+            });
+        }
+
+        it('morphs the page in when the server runs the same runtime build', async () => {
+            createRouterWithGate(createRuntimeVersionGate({ownVersion: OWN_VERSION}));
+            serveFragmentFrom(OWN_VERSION);
+
+            await router.navigateTo('http://localhost/page');
+
+            expect(onPageLoad).toHaveBeenCalled();
+            expect(windowOps.locationReload).not.toHaveBeenCalled();
+        });
+
+        it('loads the full page instead of morphing when the server runs another build', async () => {
+            createRouterWithGate(createRuntimeVersionGate({ownVersion: OWN_VERSION}));
+            serveFragmentFrom(OTHER_VERSION);
+
+            await router.navigateTo('http://localhost/page');
+
+            expect(onPageLoad).not.toHaveBeenCalled();
+            expect(windowOps.locationReload).toHaveBeenCalledTimes(1);
+            expect(errorDisplay.show).not.toHaveBeenCalled();
+            expect(windowOps.setLocationHref).not.toHaveBeenCalled();
+        });
+
+        it('reports the other build as an error, which production builds keep', async () => {
+            const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+            createRouterWithGate(createRuntimeVersionGate({ownVersion: OWN_VERSION}));
+            serveFragmentFrom(OTHER_VERSION);
+
+            await router.navigateTo('http://localhost/page');
+
+            expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('different runtime build'), {url: 'http://localhost/page'});
+            errorSpy.mockRestore();
+        });
+
+        it('points history at the target before reloading', async () => {
+            createRouterWithGate(createRuntimeVersionGate({ownVersion: OWN_VERSION}));
+            serveFragmentFrom(OTHER_VERSION);
+
+            await router.navigateTo('http://localhost/page');
+
+            expect(windowOps.historyPushState).toHaveBeenCalledWith({scrollY: 0}, '', 'http://localhost/page');
+            const pushOrder = vi.mocked(windowOps.historyPushState).mock.invocationCallOrder[0];
+            const reloadOrder = vi.mocked(windowOps.locationReload).mock.invocationCallOrder[0];
+            expect(pushOrder).toBeLessThan(reloadOrder);
+        });
+
+        it('stops the fragment download once the headers name another build', async () => {
+            createRouterWithGate(createRuntimeVersionGate({ownVersion: OWN_VERSION}));
+            vi.mocked(fetchClient.get).mockImplementation(async (_url: string, options?: FetchClientOptions) => {
+                options?.onHeadersReceived?.(new Headers({[RUNTIME_VERSION_HEADER]: OTHER_VERSION}));
+                if (vi.mocked(fetchClient.abort).mock.calls.length > 0) {
+                    throw new DOMException('The download was stopped.', 'AbortError');
+                }
+                return [true, VALID_HTML];
+            });
+
+            await router.navigateTo('http://localhost/page');
+
+            expect(fetchClient.abort).toHaveBeenCalledTimes(1);
+            expect(onPageLoad).not.toHaveBeenCalled();
+            expect(windowOps.locationReload).toHaveBeenCalledTimes(1);
+        });
+
+        it('ends the navigation with the error hook when another build answers', async () => {
+            const hookManager = createMockHookManager();
+            const afterNavigate = vi.fn();
+            router.destroy();
+            router = createRouter({
+                fetchClient, loader, errorDisplay, onPageLoad, windowOps, domOps, hookManager,
+                runtimeVersionGate: createRuntimeVersionGate({ownVersion: OWN_VERSION})
+            });
+            serveFragmentFrom(OTHER_VERSION);
+
+            await router.navigateTo('http://localhost/page', undefined, {afterNavigate});
+
+            const emitted = vi.mocked(hookManager.emit).mock.calls.map(([name]) => name);
+            expect(emitted).toEqual(['navigation:start', 'navigation:error']);
+            expect(hookManager.emit).toHaveBeenCalledWith('navigation:error', expect.objectContaining({
+                url: 'http://localhost/page',
+                error: expect.stringContaining('different runtime build')
+            }));
+            expect(afterNavigate).toHaveBeenCalledWith('http://localhost/page');
+        });
+
+        it('skips the fragment fetch once another build has been seen', async () => {
+            const gate = createRuntimeVersionGate({ownVersion: OWN_VERSION});
+            gate.observe(new Headers({[RUNTIME_VERSION_HEADER]: OTHER_VERSION}));
+            createRouterWithGate(gate);
+
+            await router.navigateTo('http://localhost/page');
+
+            expect(fetchClient.get).not.toHaveBeenCalled();
+            expect(windowOps.locationReload).toHaveBeenCalledTimes(1);
+        });
+
+        it('reloads on back and forward navigation as well', async () => {
+            createRouterWithGate(createRuntimeVersionGate({ownVersion: OWN_VERSION}));
+            serveFragmentFrom(OTHER_VERSION);
+
+            await router.navigateTo('http://localhost/page', undefined, {isPopState: true, replaceHistory: true});
+
+            expect(windowOps.historyPushState).not.toHaveBeenCalled();
+            expect(windowOps.locationReload).toHaveBeenCalledTimes(1);
+        });
+
+        it.each([
+            ['the server names no runtime version', OWN_VERSION, null],
+            ['the server sends a malformed version', OWN_VERSION, 'not-a-version'],
+            ['this tab does not know its own version', null, OTHER_VERSION]
+        ])('keeps morphing when %s', async (_name, ownVersion, serverVersion) => {
+            createRouterWithGate(createRuntimeVersionGate({ownVersion}));
+            serveFragmentFrom(serverVersion);
+
+            await router.navigateTo('http://localhost/page');
+
+            expect(onPageLoad).toHaveBeenCalled();
+            expect(windowOps.locationReload).not.toHaveBeenCalled();
         });
     });
 

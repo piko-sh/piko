@@ -494,7 +494,7 @@ func TestEmitClientSideJS(t *testing.T) {
 			name: "emitter error returns empty with warning",
 			setup: func(s *generatorService) {
 				s.pkJSEmitter = &mockPKJSEmitter{
-					EmitJSFunc: func(_ context.Context, _ string, _ string, _ string, _ string, _ bool) (string, error) {
+					EmitJSFunc: func(_ context.Context, _ string, _ string, _ generator_dto.ClientScriptTarget, _ string, _ string, _ bool) (string, error) {
 						return "", errors.New("js fail")
 					},
 				}
@@ -513,10 +513,98 @@ func TestEmitClientSideJS(t *testing.T) {
 				SourcePath: "/test/pages/checkout.pk",
 				BaseDir:    "/test",
 			}
-			got := s.emitClientSideJS(ctx, request, tc.annotationResult)
+			got := s.emitClientSideJS(ctx, request, tc.annotationResult, &annotator_dto.VirtualComponent{IsPage: true})
 			assert.Equal(t, tc.want, got)
 		})
 	}
+}
+
+func TestEmitClientSideJS_PassesTargetToEmitter(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		component *annotator_dto.VirtualComponent
+		want      generator_dto.ClientScriptTarget
+		name      string
+	}{
+		{
+			name:      "page",
+			component: &annotator_dto.VirtualComponent{IsPage: true},
+			want:      generator_dto.PageScriptTarget(),
+		},
+		{
+			name:      "partial outside the default partials directory",
+			component: &annotator_dto.VirtualComponent{PartialName: "layout"},
+			want:      generator_dto.PartialScriptTarget("layout"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var received generator_dto.ClientScriptTarget
+			s := newTestService(func(s *generatorService) {
+				s.pkJSEmitter = &mockPKJSEmitter{
+					EmitJSFunc: func(_ context.Context, _ string, pagePath string, target generator_dto.ClientScriptTarget, _ string, _ string, _ bool) (string, error) {
+						received = target
+						return "pk-js/" + pagePath + ".js", nil
+					},
+				}
+			})
+			request := generator_dto.GenerateRequest{SourcePath: "/test/components/layout.pk", BaseDir: "/test"}
+			annotationResult := &annotator_dto.AnnotationResult{ClientScript: "pk.onConnected(() => {});"}
+
+			got := s.emitClientSideJS(t.Context(), request, annotationResult, tt.component)
+
+			assert.Equal(t, "pk-js/components/layout.js", got)
+			assert.Equal(t, tt.want, received)
+		})
+	}
+}
+
+func TestEmitClientSideJS_SkipsAComponentWithNoKnownKind(t *testing.T) {
+	t.Parallel()
+
+	emitted := false
+	s := newTestService(func(s *generatorService) {
+		s.pkJSEmitter = &mockPKJSEmitter{
+			EmitJSFunc: func(context.Context, string, string, generator_dto.ClientScriptTarget, string, string, bool) (string, error) {
+				emitted = true
+				return "pk-js/components/layout.js", nil
+			},
+		}
+	})
+	request := generator_dto.GenerateRequest{SourcePath: "/test/components/layout.pk", BaseDir: "/test"}
+	annotationResult := &annotator_dto.AnnotationResult{ClientScript: "pk.onConnected(() => {});"}
+
+	got := s.emitClientSideJS(t.Context(), request, annotationResult, &annotator_dto.VirtualComponent{})
+
+	assert.Empty(t, got)
+	assert.False(t, emitted)
+}
+
+func TestEmitActionsJS_EmitsAPlainModule(t *testing.T) {
+	t.Parallel()
+
+	var received generator_dto.ClientScriptTarget
+	var receivedPath string
+	s := newTestService(func(s *generatorService) {
+		s.pkJSEmitter = &mockPKJSEmitter{
+			EmitJSFunc: func(_ context.Context, _ string, pagePath string, target generator_dto.ClientScriptTarget, _ string, _ string, _ bool) (string, error) {
+				received = target
+				receivedPath = pagePath
+				return "pk-js/" + pagePath + ".js", nil
+			},
+		}
+	})
+	s.baseSandbox = nil
+
+	err := s.emitActionsJS(t.Context(), "", "")
+
+	require.NoError(t, err)
+	assert.Equal(t, "pk/actions.gen", receivedPath)
+	assert.Equal(t, generator_dto.ModuleScriptTarget(), received)
 }
 
 func TestGenerateSingleArtefact(t *testing.T) {

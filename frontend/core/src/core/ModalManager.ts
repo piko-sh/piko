@@ -17,6 +17,7 @@
 // strip others of their rights and dignity.
 
 import {HookEvent, type HookManager} from '@/services/HookManager';
+import {reportDiagnostic} from '@/services/DiagnosticReporter';
 
 /**
  * Dependencies for creating a ModalManager.
@@ -89,6 +90,7 @@ export function createModalManager(deps: ModalManagerDependencies = {}): ModalMa
 
             if (!modalElem) {
                 console.warn(`ModalManager: Could not find modal "${modalSelector}". Falling back to dispatch event.`);
+                reportDiagnostic({kind: 'modal-not-found', name: modalSelector, source: 'openModal'});
                 triggerElement.dispatchEvent(new CustomEvent(fallbackEventName, {bubbles: true, composed: true}));
                 return;
             }

@@ -30,6 +30,8 @@ import {getGlobalHelperRegistry} from './PPFramework';
 import {HookEvent, type HookManager} from '@/services/HookManager';
 import type {FormStateManager} from '@/services/FormStateManager';
 import {applyLoadingIndicator, removeLoadingIndicator} from '@/pk/loadingState';
+import {runtimeVersionGate} from '@/core/RuntimeVersion';
+import {ActionRepeatGuard, guardHoldMilliseconds} from '@/core/actionRepeatGuard';
 
 /**
  * Holds data for a helper call from server response.
@@ -142,6 +144,9 @@ const RANDOM_STRING_SLICE_END = 9;
 /** Debounce timers keyed by action name and element. */
 const debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
+/** Ignores a repeat of an action from the same element while it is in flight. */
+const repeatGuard = new ActionRepeatGuard();
+
 /** Global error handler, if registered. */
 let globalErrorHandler: GlobalActionErrorHandler | null = null;
 
@@ -234,7 +239,7 @@ function attemptCSRFRecovery(
                     if (refreshedEl) {
                         retryAction();
                     } else {
-                        console.warn('[ActionExecutor] Could not find element with CSRF token after partial refresh');
+                        console.error('[ActionExecutor] Could not find element with CSRF token after partial refresh');
                     }
                 }
             }
@@ -621,6 +626,7 @@ async function executeServerAction(
             body,
             signal: controller.signal
         });
+        runtimeVersionGate.observe(response.headers);
 
         return await parseActionResponse(response);
     } catch (error) {
@@ -730,7 +736,7 @@ async function invokeSuccessCallback(
         const next = descriptor.onSuccess(data);
 
         if (isActionDescriptor(next)) {
-            await handleAction(next, element, event);
+            await scheduleAction(next, element, event, executeAction);
         }
     } catch (error) {
         console.error('[ActionExecutor] onSuccess callback failed:', error);
@@ -1021,12 +1027,80 @@ async function executeAction(
     }
 }
 
+/** Runs one send of an action, once any debounce has passed. */
+type ActionRunner = (descriptor: ActionDescriptor, element: HTMLElement, event?: Event) => Promise<void>;
+
+/**
+ * Sends an action through the repeat guard.
+ *
+ * While the same action is in flight from the same element, or from the
+ * same form for a submit, a second send is ignored. The element with the
+ * pk-allow-repeat attribute opts out.
+ *
+ * @param descriptor - The action descriptor to execute.
+ * @param element - The element the action is bound to.
+ * @param event - Optional event that triggered the action.
+ * @returns A promise that settles with the send, or at once when it is ignored.
+ */
+function executeGuardedAction(
+    descriptor: ActionDescriptor,
+    element: HTMLElement,
+    event?: Event
+): Promise<void> {
+    return repeatGuard.run(
+        {
+            actionName: descriptor.action,
+            element,
+            event,
+            holdMilliseconds: guardHoldMilliseconds(descriptor.timeout)
+        },
+        () => executeAction(descriptor, element, event)
+    );
+}
+
+/**
+ * Runs an action, after its debounce delay when it has one.
+ *
+ * @param descriptor - The action descriptor to execute.
+ * @param element - The triggering element.
+ * @param event - Optional event that triggered the action.
+ * @param runner - Sends the action once any debounce has passed.
+ * @returns A promise that settles with the send.
+ */
+function scheduleAction(
+    descriptor: ActionDescriptor,
+    element: HTMLElement,
+    event: Event | undefined,
+    runner: ActionRunner
+): Promise<void> {
+    if (!descriptor.debounce || descriptor.debounce <= 0) {
+        return runner(descriptor, element, event);
+    }
+
+    const debounceKey = getDebounceKey(descriptor.action, element);
+    clearDebounce(debounceKey);
+
+    return new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(() => {
+            debounceTimers.delete(debounceKey);
+            runner(descriptor, element, event).then(resolve).catch((err: unknown) => {
+                console.error('[ActionExecutor] Debounced action failed:', err);
+                reject(err instanceof Error ? err : new Error(String(err)));
+            });
+        }, descriptor.debounce);
+
+        debounceTimers.set(debounceKey, timer);
+    });
+}
+
 /**
  * Handles an action descriptor through its full lifecycle.
  *
- * Applies debounce if configured, runs optimistic updates, shows loading state,
- * calls the server action (with retry if configured), processes helpers,
- * invokes success/error callbacks, and always calls onComplete.
+ * Applies debounce if configured, ignores a repeat of the same action from
+ * the same element while it is in flight, runs optimistic updates, shows
+ * loading state, calls the server action (with retry if configured),
+ * processes helpers, invokes success/error callbacks, and always calls
+ * onComplete.
  *
  * @param descriptor - The action descriptor to execute.
  * @param element - The triggering element (for loading state).
@@ -1037,25 +1111,7 @@ export async function handleAction(
     element: HTMLElement,
     event?: Event
 ): Promise<void> {
-    if (descriptor.debounce && descriptor.debounce > 0) {
-        const debounceKey = getDebounceKey(descriptor.action, element);
-
-        clearDebounce(debounceKey);
-
-        return new Promise<void>((resolve, reject) => {
-            const timer = setTimeout(() => {
-                debounceTimers.delete(debounceKey);
-                executeAction(descriptor, element, event).then(resolve).catch((err: unknown) => {
-                    console.error('[ActionExecutor] Debounced action failed:', err);
-                    reject(err instanceof Error ? err : new Error(String(err)));
-                });
-            }, descriptor.debounce);
-
-            debounceTimers.set(debounceKey, timer);
-        });
-    }
-
-    return executeAction(descriptor, element, event);
+    return scheduleAction(descriptor, element, event, executeGuardedAction);
 }
 
 /**
@@ -1301,6 +1357,7 @@ async function executeServerActionSSEInternal(params: SSEInternalParams): Promis
             body: JSON.stringify(bodyData),
             signal: controller.signal
         });
+        runtimeVersionGate.observe(response.headers);
 
         if (!response.ok) {
             await throwSSEErrorResponse(response);

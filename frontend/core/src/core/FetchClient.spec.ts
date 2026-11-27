@@ -303,6 +303,17 @@ describe('FetchClient', () => {
             expect(onHeadersReceived).toHaveBeenCalledTimes(1);
         });
 
+        it('passes the response headers to onHeadersReceived', async () => {
+            const response = mockResponse({ok: true, text: 'hi', headers: {'X-PP-Runtime': '0123456789abcdef'}});
+            vi.mocked(mockHttp.fetch).mockResolvedValue(response);
+            const onHeadersReceived = vi.fn();
+
+            await client.get('/api/data', {onHeadersReceived});
+
+            const headers = onHeadersReceived.mock.calls[0][0] as Headers;
+            expect(headers.get('X-PP-Runtime')).toBe('0123456789abcdef');
+        });
+
         it('fires onHeadersReceived before any onProgress', async () => {
             const chunk = new Uint8Array([1, 2, 3]);
             const response = mockResponse({

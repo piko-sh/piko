@@ -18,6 +18,9 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { partial } from '@/pk/partial';
+import {runtimeVersionGate} from '@/core/RuntimeVersion';
+import {registerDiagnosticEmitter} from '@/services/DiagnosticReporter';
+import {_endPageVisit} from '@/pk/lifecycle';
 
 const wrap = (inner: string): string =>
     `<head></head><body><div id="app" data-pageid="test">${inner}</div></body>`;
@@ -88,6 +91,26 @@ describe('partial (PK Server Partials)', () => {
             await partial('custom-src').reload();
 
             expect(mockFetch).toHaveBeenCalledWith('/api/partials/custom?_f=true', expect.objectContaining({signal: expect.any(AbortSignal)}));
+        });
+
+        it('passes the response headers to the runtime version gate', async () => {
+            const observe = vi.spyOn(runtimeVersionGate, 'observe');
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                headers: new Headers({'X-PP-Runtime': 'fedcba9876543210'}),
+                text: () => Promise.resolve(wrap('<div><p>Loaded content</p></div>'))
+            });
+
+            const partialEl = document.createElement('div');
+            partialEl.setAttribute('partial_name', 'observed-src');
+            partialEl.setAttribute('partial_src', '/api/partials/observed');
+            testContainer.appendChild(partialEl);
+
+            await partial('observed-src').reload();
+
+            expect(observe).toHaveBeenCalledTimes(1);
+            expect(observe.mock.calls[0][0]?.get('X-PP-Runtime')).toBe('fedcba9876543210');
+            observe.mockRestore();
         });
 
         it('should throw when no partial_src is set', async () => {
@@ -202,6 +225,21 @@ describe('partial (PK Server Partials)', () => {
             expect(mockFetch).not.toHaveBeenCalled();
 
             warnSpy.mockRestore();
+        });
+
+        it('sends a diagnostic event and resolves when the partial is missing', async () => {
+            vi.spyOn(console, 'warn').mockImplementation(() => {});
+            const emitter = vi.fn();
+            registerDiagnosticEmitter(emitter);
+            emitter.mockClear();
+            _endPageVisit();
+
+            await expect(partial('absent-partial').reload()).resolves.toBeUndefined();
+
+            expect(emitter).toHaveBeenCalledWith(expect.objectContaining({
+                kind: 'partial-not-found',
+                name: 'absent-partial'
+            }));
         });
 
         it('should throw on non-ok response', async () => {
@@ -938,7 +976,7 @@ describe('partial (PK Server Partials)', () => {
     });
 
     describe('empty or invalid response', () => {
-        it('should warn when response parses to empty content', async () => {
+        it('should report an error when response parses to empty content', async () => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
                 text: () => Promise.resolve('')
@@ -950,7 +988,7 @@ describe('partial (PK Server Partials)', () => {
             partialEl.innerHTML = '<p>Original</p>';
             testContainer.appendChild(partialEl);
 
-            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            const warnSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
             await partial('empty-response').reload();
 
@@ -962,7 +1000,7 @@ describe('partial (PK Server Partials)', () => {
             warnSpy.mockRestore();
         });
 
-        it('should warn when #app is empty', async () => {
+        it('should report an error when #app is empty', async () => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
                 text: () => Promise.resolve('<head></head><body><div id="app"></div></body>')
@@ -974,7 +1012,7 @@ describe('partial (PK Server Partials)', () => {
             partialEl.innerHTML = '<p>Original</p>';
             testContainer.appendChild(partialEl);
 
-            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            const warnSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
             await partial('empty-app').reload();
 

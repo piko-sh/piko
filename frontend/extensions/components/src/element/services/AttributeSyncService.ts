@@ -26,6 +26,12 @@ export interface AttributeSyncService {
     /** Applies an HTML attribute value to component state. */
     applyAttributeToState(propertyName: string, attributeValue: string | null): void;
 
+    /**
+     * Reports whether the component added an attribute from its own state, so the markup
+     * never set it.
+     */
+    isSelfAddedAttribute(attributeName: string): boolean;
+
     /** Reflects a state property value to an HTML attribute. */
     reflectStateToAttribute(propertyName: string, propertyValue: unknown): void;
 
@@ -252,6 +258,11 @@ interface SyncState {
     reflectingToAttribute: boolean;
     /** Whether the component is in its initialisation phase. */
     initialising: boolean;
+    /**
+     * The attributes the component added from its own state, which the markup never set.
+     * Setting or removing one from outside makes it part of the markup.
+     */
+    selfAddedAttributes: Set<string>;
 }
 
 /**
@@ -323,20 +334,57 @@ function reflectToAttribute(
         const attributeName = propTypeRegistry.propertyToAttributeName(propertyName);
         const propType = propDef?.type ?? "any";
 
-        if (propertyValue === null || propertyValue === undefined) {
-            if (host.hasAttribute(attributeName)) {
-                host.removeAttribute(attributeName);
-            }
-        } else if (propType === "boolean") {
-            host.toggleAttribute(attributeName, propertyValue === true);
-        } else {
-            const stringValue = valueToAttributeString(propType, propertyValue);
-            if (host.getAttribute(attributeName) !== stringValue) {
-                host.setAttribute(attributeName, stringValue);
-            }
-        }
+        const wasPresent = host.hasAttribute(attributeName);
+        writeReflectedAttribute(host, attributeName, propType, propertyValue);
+        recordSelfAddedAttribute(host, attributeName, wasPresent, syncState);
     } finally {
         syncState.reflectingToAttribute = false;
+    }
+}
+
+/**
+ * Writes a property value to its attribute.
+ *
+ * Booleans use the attribute's presence, null and undefined remove the attribute, and
+ * other values are written as strings.
+ *
+ * @param host - The host element.
+ * @param attributeName - The attribute to write.
+ * @param propType - The property type controlling the format.
+ * @param propertyValue - The value to write.
+ */
+function writeReflectedAttribute(host: HTMLElement, attributeName: string, propType: PropType, propertyValue: unknown): void {
+    if (propertyValue === null || propertyValue === undefined) {
+        if (host.hasAttribute(attributeName)) {
+            host.removeAttribute(attributeName);
+        }
+        return;
+    }
+    if (propType === "boolean") {
+        host.toggleAttribute(attributeName, propertyValue === true);
+        return;
+    }
+    const stringValue = valueToAttributeString(propType, propertyValue);
+    if (host.getAttribute(attributeName) !== stringValue) {
+        host.setAttribute(attributeName, stringValue);
+    }
+}
+
+/**
+ * Notes whether the component itself added an attribute, which the markup never set.
+ *
+ * @param host - The host element.
+ * @param attributeName - The attribute just written.
+ * @param wasPresent - Whether the attribute was there before the write.
+ * @param syncState - The synchronisation state holding the self added attributes.
+ */
+function recordSelfAddedAttribute(host: HTMLElement, attributeName: string, wasPresent: boolean, syncState: SyncState): void {
+    if (!host.hasAttribute(attributeName)) {
+        syncState.selfAddedAttributes.delete(attributeName);
+        return;
+    }
+    if (!wasPresent) {
+        syncState.selfAddedAttributes.add(attributeName);
     }
 }
 
@@ -349,11 +397,21 @@ function reflectToAttribute(
 export function createAttributeSyncService(
     options: AttributeSyncServiceOptions
 ): AttributeSyncService {
-    const syncState: SyncState = {applyingToState: false, reflectingToAttribute: false, initialising: true};
+    const syncState: SyncState = {
+        applyingToState: false,
+        reflectingToAttribute: false,
+        initialising: true,
+        selfAddedAttributes: new Set<string>()
+    };
 
     return {
         applyAttributeToState(propertyName: string, attributeValue: string | null): void {
+            syncState.selfAddedAttributes.delete(options.propTypeRegistry.propertyToAttributeName(propertyName));
             applyToState(propertyName, attributeValue, options, syncState);
+        },
+
+        isSelfAddedAttribute(attributeName: string): boolean {
+            return syncState.selfAddedAttributes.has(attributeName);
         },
 
         reflectStateToAttribute(propertyName: string, propertyValue: unknown): void {

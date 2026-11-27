@@ -285,8 +285,14 @@ func buildParsedComponent(
 	pikoImports []annotator_dto.PikoImport,
 ) *annotator_dto.ParsedComponent {
 	var clientScript string
+	var clientScriptLocation ast_domain.Location
 	if clientScriptBlock, ok := sfcResult.ClientScript(); ok {
 		clientScript = clientScriptBlock.Content
+		clientScriptLocation = ast_domain.Location{
+			Line:   clientScriptBlock.ContentLocation.Line,
+			Column: clientScriptBlock.ContentLocation.Column,
+			Offset: 0,
+		}
 	}
 
 	component := &annotator_dto.ParsedComponent{
@@ -304,6 +310,7 @@ func buildParsedComponent(
 		CollectionProvider:     "",
 		CollectionParamName:    "",
 		ClientScript:           clientScript,
+		ClientScriptLocation:   clientScriptLocation,
 		ContentModulePath:      "",
 		VisibilityOverride:     nil,
 		RouteSourceName:        "",

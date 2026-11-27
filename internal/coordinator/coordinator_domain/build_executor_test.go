@@ -749,17 +749,21 @@ type mockClientScriptEmitter struct {
 	LastSource string
 	LastPage   string
 	LastModule string
+	LastTarget generator_dto.ClientScriptTarget
 	Calls      int
 }
 
 func (m *mockClientScriptEmitter) EmitJS(
 	_ context.Context,
-	source, pagePath, moduleName, _ string,
+	source, pagePath string,
+	target generator_dto.ClientScriptTarget,
+	moduleName, _ string,
 	_ bool,
 ) (string, error) {
 	m.Calls++
 	m.LastSource = source
 	m.LastPage = pagePath
+	m.LastTarget = target
 	m.LastModule = moduleName
 	return m.Result, m.Error
 }
@@ -817,67 +821,130 @@ func TestDeriveComponentPagePath(t *testing.T) {
 func TestEmitClientScript(t *testing.T) {
 	t.Parallel()
 
-	baseVC := func() *annotator_dto.VirtualComponent {
+	partialComponent := func(sourcePath, partialName string) *annotator_dto.VirtualComponent {
 		return &annotator_dto.VirtualComponent{
-			Source: &annotator_dto.ParsedComponent{SourcePath: "/project/partials/demo.pk"},
+			Source:      &annotator_dto.ParsedComponent{SourcePath: sourcePath},
+			PartialName: partialName,
 		}
 	}
 
-	t.Run("returns empty when emitter is nil", func(t *testing.T) {
-		t.Parallel()
-		s := &coordinatorService{}
-		annotation := &annotator_dto.AnnotationResult{ClientScript: "console.log(1)"}
-		got := s.emitClientScript(context.Background(), baseVC(), annotation)
-		assert.Empty(t, got)
-	})
-
-	t.Run("returns empty when ClientScript is absent", func(t *testing.T) {
-		t.Parallel()
-		emitter := &mockClientScriptEmitter{Result: "unused"}
-		s := &coordinatorService{
-			clientScriptEmitter: emitter,
-			resolver: &resolver_domain.MockResolver{
-				GetBaseDirFunc:    func() string { return "/project" },
-				GetModuleNameFunc: func() string { return "example.com/mod" },
+	tests := []struct {
+		component    *annotator_dto.VirtualComponent
+		emitterError error
+		wantTarget   generator_dto.ClientScriptTarget
+		name         string
+		script       string
+		emitterID    string
+		wantID       string
+		wantPage     string
+		wantCalls    int
+	}{
+		{
+			name:       "forwards derived inputs and returns artefact id",
+			component:  partialComponent("/project/partials/demo.pk", "demo"),
+			script:     "export const x = 1",
+			emitterID:  "pk-js/partials/demo.js",
+			wantID:     "pk-js/partials/demo.js",
+			wantCalls:  1,
+			wantPage:   "partials/demo",
+			wantTarget: generator_dto.PartialScriptTarget("demo"),
+		},
+		{
+			name:       "passes the partial name of a partial outside the default partials directory",
+			component:  partialComponent("/project/components/layout.pk", "layout"),
+			script:     "pk.onConnected(() => {})",
+			emitterID:  "pk-js/components/layout.js",
+			wantID:     "pk-js/components/layout.js",
+			wantCalls:  1,
+			wantPage:   "components/layout",
+			wantTarget: generator_dto.PartialScriptTarget("layout"),
+		},
+		{
+			name: "passes a page target for a page",
+			component: &annotator_dto.VirtualComponent{
+				Source: &annotator_dto.ParsedComponent{SourcePath: "/project/pages/home.pk"},
+				IsPage: true,
 			},
-		}
-		got := s.emitClientScript(context.Background(), baseVC(), &annotator_dto.AnnotationResult{})
-		assert.Empty(t, got)
-		assert.Zero(t, emitter.Calls)
-	})
+			script:     "pk.onConnected(() => {})",
+			emitterID:  "pk-js/pages/home.js",
+			wantID:     "pk-js/pages/home.js",
+			wantCalls:  1,
+			wantPage:   "pages/home",
+			wantTarget: generator_dto.PageScriptTarget(),
+		},
+		{
+			name:      "returns empty when ClientScript is absent",
+			component: partialComponent("/project/partials/demo.pk", "demo"),
+			script:    "",
+			emitterID: "unused",
+		},
+		{
+			name:      "skips a component with no known kind",
+			component: partialComponent("/project/components/layout.pk", ""),
+			script:    "pk.onConnected(() => {})",
+			emitterID: "pk-js/components/layout.js",
+		},
+		{
+			name:      "skips a missing component",
+			component: nil,
+			script:    "pk.onConnected(() => {})",
+			emitterID: "pk-js/pages/home.js",
+		},
+		{
+			name:      "skips a component without a source",
+			component: &annotator_dto.VirtualComponent{IsPage: true},
+			script:    "pk.onConnected(() => {})",
+			emitterID: "pk-js/pages/home.js",
+		},
+		{
+			name:         "swallows emitter errors so the build continues",
+			component:    partialComponent("/project/partials/demo.pk", "demo"),
+			script:       "broken",
+			emitterError: errors.New("transpile failed"),
+			wantCalls:    1,
+			wantPage:     "partials/demo",
+			wantTarget:   generator_dto.PartialScriptTarget("demo"),
+		},
+	}
 
-	t.Run("forwards derived inputs and returns artefact id", func(t *testing.T) {
-		t.Parallel()
-		emitter := &mockClientScriptEmitter{Result: "pk-js/partials/demo.js"}
-		s := &coordinatorService{
-			clientScriptEmitter: emitter,
-			resolver: &resolver_domain.MockResolver{
-				GetBaseDirFunc:    func() string { return "/project" },
-				GetModuleNameFunc: func() string { return "example.com/mod" },
-			},
-		}
-		annotation := &annotator_dto.AnnotationResult{ClientScript: "export const x = 1"}
-		got := s.emitClientScript(context.Background(), baseVC(), annotation)
-		assert.Equal(t, "pk-js/partials/demo.js", got)
-		assert.Equal(t, 1, emitter.Calls)
-		assert.Equal(t, "export const x = 1", emitter.LastSource)
-		assert.Equal(t, "partials/demo", emitter.LastPage)
-		assert.Equal(t, "example.com/mod", emitter.LastModule)
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	t.Run("swallows emitter errors so the build continues", func(t *testing.T) {
-		t.Parallel()
-		emitter := &mockClientScriptEmitter{Error: errors.New("transpile failed")}
-		s := &coordinatorService{
-			clientScriptEmitter: emitter,
-			resolver: &resolver_domain.MockResolver{
-				GetBaseDirFunc:    func() string { return "/project" },
-				GetModuleNameFunc: func() string { return "example.com/mod" },
-			},
-		}
-		annotation := &annotator_dto.AnnotationResult{ClientScript: "broken"}
-		got := s.emitClientScript(context.Background(), baseVC(), annotation)
-		assert.Empty(t, got)
-		assert.Equal(t, 1, emitter.Calls)
-	})
+			emitter := &mockClientScriptEmitter{Result: tt.emitterID, Error: tt.emitterError}
+			s := &coordinatorService{
+				clientScriptEmitter: emitter,
+				resolver: &resolver_domain.MockResolver{
+					GetBaseDirFunc:    func() string { return "/project" },
+					GetModuleNameFunc: func() string { return "example.com/mod" },
+				},
+			}
+
+			got := s.emitClientScript(t.Context(), tt.component, &annotator_dto.AnnotationResult{ClientScript: tt.script})
+
+			assert.Equal(t, tt.wantID, got)
+			assert.Equal(t, tt.wantCalls, emitter.Calls)
+			if tt.wantCalls == 0 {
+				return
+			}
+			assert.Equal(t, tt.script, emitter.LastSource)
+			assert.Equal(t, tt.wantPage, emitter.LastPage)
+			assert.Equal(t, "example.com/mod", emitter.LastModule)
+			assert.Equal(t, tt.wantTarget, emitter.LastTarget)
+		})
+	}
+}
+
+func TestEmitClientScript_WithoutEmitter(t *testing.T) {
+	t.Parallel()
+
+	s := &coordinatorService{}
+	component := &annotator_dto.VirtualComponent{
+		Source:      &annotator_dto.ParsedComponent{SourcePath: "/project/partials/demo.pk"},
+		PartialName: "demo",
+	}
+
+	got := s.emitClientScript(t.Context(), component, &annotator_dto.AnnotationResult{ClientScript: "console.log(1)"})
+
+	assert.Empty(t, got)
 }

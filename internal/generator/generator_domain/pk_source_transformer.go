@@ -19,12 +19,16 @@
 package generator_domain
 
 import (
+	"context"
+	"fmt"
 	"regexp"
 	"slices"
 	"strings"
 
 	parsejs "github.com/tdewolff/parse/v2/js"
 
+	"piko.sh/piko/internal/generator/generator_dto"
+	"piko.sh/piko/internal/jsscan"
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
@@ -43,7 +47,7 @@ type exportedFunctionInfo struct {
 var (
 	// topLevelTokenHandlers maps token types to their scanning functions for top-level
 	// function detection. Each handler returns a function info if found.
-	topLevelTokenHandlers = map[parsejs.TokenType]func(*pkScriptScanner) *exportedFunctionInfo{ //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
+	topLevelTokenHandlers = map[parsejs.TokenType]func(*jsscan.Scanner) *exportedFunctionInfo{ //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		parsejs.ExportToken:   scanExportedFunctionWithFlag,
 		parsejs.FunctionToken: scanNonExportedFunction,
 		parsejs.ConstToken:    scanNonExportedArrowFunction,
@@ -71,58 +75,64 @@ var (
 
 // TransformPKSource scopes script functions and refs to individual component instances.
 //
-// Empty sources and TypeScript modules declaring exported interfaces are unchanged.
-// Sources without top-level functions receive imports only. Undetected function
-// declarations produce a warning.
+// A plain module, an empty source and a TypeScript module declaring exported interfaces
+// are returned unchanged. A script that neither uses pk or refs nor declares top-level
+// functions receives imports only. Undetected function declarations produce a warning.
+//
+// A page script gets one instance per page visit, scoped to the page root. A partial
+// script gets one instance per root element of the partial.
 //
 // Takes source (string) which is the PK script source code to change.
-// Takes componentName (string) which is the partial_name attribute value (e.g.
-// "modals/listing_lightbox") or empty for pages. When set, the eager init and __reinit__
-// selectors target the specific partial element instead of matching the first
-// [partial_name] element on the page.
+// Takes target (generator_dto.ClientScriptTarget) which says whether the script belongs
+// to a page, a partial or a plain module, and names the partial.
 //
 // Returns string which is the changed source with scoped ref support.
-func TransformPKSource(source string, componentName string) string {
-	if source == "" {
-		return source
+// Returns error when the target is not valid.
+func TransformPKSource(ctx context.Context, source string, target generator_dto.ClientScriptTarget) (string, error) {
+	if err := target.Validate(); err != nil {
+		return "", fmt.Errorf("transforming PK script: %w", err)
+	}
+	if isLeftUnchanged(source, target) {
+		return source, nil
 	}
 
-	if isTypeScriptModuleFile(source) {
-		return source
-	}
-
+	scriptTarget := newPKScriptTarget(target)
 	topLevelFunctions := findTopLevelFunctions(source)
-	warnOnUndetectedFunctions(log, source, componentName, topLevelFunctions)
-	if len(topLevelFunctions) == 0 {
-		if !sourceUsesRefs(source) {
-			return addImportsOnly(source)
-		}
-		return buildInlineRefsSource(source, componentName)
+	warnOnUndetectedFunctions(ctx, source, scriptTarget.label(), topLevelFunctions)
+
+	if len(topLevelFunctions) > 0 {
+		return buildTransformedSource(source, topLevelFunctions, detectUsedIdentifiersExcludingRefs(source), scriptTarget), nil
 	}
+	if sourceUsesRefs(source) {
+		return scriptTarget.transformWithoutFunctions(source), nil
+	}
+	return addImportsOnly(source), nil
+}
 
-	usedIdentifiers := detectUsedIdentifiersExcludingRefs(source)
-
-	return buildTransformedSource(source, topLevelFunctions, usedIdentifiers, componentName)
+// isLeftUnchanged reports whether a script is used as written. That is the case for a
+// plain module, an empty source, or a TypeScript module that declares exported
+// interfaces.
+//
+// Takes source (string) which is the script source.
+// Takes target (generator_dto.ClientScriptTarget) which says what the script belongs to.
+//
+// Returns bool which is true when the script needs no transformation.
+func isLeftUnchanged(source string, target generator_dto.ClientScriptTarget) bool {
+	return target.Kind == generator_dto.ClientScriptModule || source == "" || isTypeScriptModuleFile(source)
 }
 
 // warnOnUndetectedFunctions warns about top-level functions missed by the script scanner.
 //
-// Takes l (logger_domain.Logger) which receives the warning.
 // Takes source (string) which is the PK script source that was scanned.
-// Takes componentName (string) which is the partial_name of the component, or empty for a
-// page.
+// Takes component (string) which names the script's component in the warning.
 // Takes found ([]exportedFunctionInfo) which holds the functions the scanner found.
-func warnOnUndetectedFunctions(l logger_domain.Logger, source string, componentName string, found []exportedFunctionInfo) {
+func warnOnUndetectedFunctions(ctx context.Context, source string, component string, found []exportedFunctionInfo) {
 	missing := undetectedFunctionNames(source, found)
 	if len(missing) == 0 {
 		return
 	}
 
-	component := componentName
-	if component == "" {
-		component = "(page)"
-	}
-
+	_, l := logger_domain.From(ctx, log)
 	l.Warn("PK script declares top-level functions the scanner did not detect, so p-on handlers naming them will not be bound",
 		logger_domain.String("component", component),
 		logger_domain.Strings("functions", missing))
@@ -178,11 +188,11 @@ func isTypeScriptModuleFile(source string) bool {
 // scanExportedFunctionWithFlag wraps scanExportedFunction and marks the result as
 // exported.
 //
-// Takes scanner (*pkScriptScanner) which provides the token stream to scan.
+// Takes scanner (*jsscan.Scanner) which provides the token stream to scan.
 //
 // Returns *exportedFunctionInfo which holds the function info with wasExported set to
 // true, or nil if no exported function was found.
-func scanExportedFunctionWithFlag(scanner *pkScriptScanner) *exportedFunctionInfo {
+func scanExportedFunctionWithFlag(scanner *jsscan.Scanner) *exportedFunctionInfo {
 	function := scanExportedFunction(scanner)
 	if function != nil {
 		function.wasExported = true
@@ -198,17 +208,17 @@ func scanExportedFunctionWithFlag(scanner *pkScriptScanner) *exportedFunctionInf
 // Returns []exportedFunctionInfo which contains details of each top-level function found,
 // including both regular function declarations and arrow functions.
 func findTopLevelFunctions(source string) []exportedFunctionInfo {
-	scanner := newPKScriptScanner(source)
+	scanner := jsscan.New(source)
 
 	var functions []exportedFunctionInfo
 
 	for {
-		tt, _ := scanner.next()
+		tt, _ := scanner.Next()
 		if tt == parsejs.ErrorToken {
 			break
 		}
 
-		if isBraceToken(tt) || scanner.braceDepth > 0 {
+		if isBraceToken(tt) || scanner.BraceDepth() > 0 {
 			continue
 		}
 
@@ -218,25 +228,6 @@ func findTopLevelFunctions(source string) []exportedFunctionInfo {
 	}
 
 	return functions
-}
-
-// updateBraceDepth adjusts brace depth based on the token type.
-//
-// Takes tt (parsejs.TokenType) which is the token to check for braces.
-// Takes depth (int) which is the current brace depth.
-//
-// Returns int which is the updated depth, incremented for open braces and decremented for
-// close braces. It never drops below zero, so a stray close brace cannot make nested
-// declarations look top-level.
-func updateBraceDepth(tt parsejs.TokenType, depth int) int {
-	switch tt {
-	case parsejs.OpenBraceToken:
-		return depth + 1
-	case parsejs.CloseBraceToken:
-		return max(depth-1, 0)
-	default:
-		return depth
-	}
 }
 
 // isBraceToken reports whether the token is an open or close brace.
@@ -250,12 +241,12 @@ func isBraceToken(tt parsejs.TokenType) bool {
 
 // processTopLevelToken finds and runs the right handler for a token type.
 //
-// Takes scanner (*pkScriptScanner) which provides the token stream to process.
+// Takes scanner (*jsscan.Scanner) which provides the token stream to process.
 // Takes tt (parsejs.TokenType) which specifies the token type to handle.
 //
 // Returns *exportedFunctionInfo which holds the parsed function details, or nil if no
 // handler exists for the token type.
-func processTopLevelToken(scanner *pkScriptScanner, tt parsejs.TokenType) *exportedFunctionInfo {
+func processTopLevelToken(scanner *jsscan.Scanner, tt parsejs.TokenType) *exportedFunctionInfo {
 	handler, ok := topLevelTokenHandlers[tt]
 	if !ok {
 		return nil
@@ -266,21 +257,21 @@ func processTopLevelToken(scanner *pkScriptScanner, tt parsejs.TokenType) *expor
 // scanExportedFunction scans tokens after an export keyword to check if it is a function
 // export and extract the function name.
 //
-// Takes scanner (*pkScriptScanner) which provides the token stream to scan.
+// Takes scanner (*jsscan.Scanner) which provides the token stream to scan.
 //
 // Returns *exportedFunctionInfo which contains the function name and whether it is an
 // arrow function.
 // Returns nil if no function export was found.
-func scanExportedFunction(scanner *pkScriptScanner) *exportedFunctionInfo {
-	tt, _ := scanner.next()
+func scanExportedFunction(scanner *jsscan.Scanner) *exportedFunctionInfo {
+	tt, _ := scanner.Next()
 
 	if tt == parsejs.AsyncToken {
-		tt, _ = scanner.next()
+		tt, _ = scanner.Next()
 	}
 
 	switch tt { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 	case parsejs.FunctionToken:
-		tt, data := scanner.next()
+		tt, data := scanner.Next()
 		if tt == parsejs.IdentifierToken {
 			name := string(data)
 			return &exportedFunctionInfo{
@@ -291,21 +282,21 @@ func scanExportedFunction(scanner *pkScriptScanner) *exportedFunctionInfo {
 		}
 
 	case parsejs.ConstToken:
-		tt, data := scanner.next()
+		tt, data := scanner.Next()
 		if tt != parsejs.IdentifierToken {
 			return nil
 		}
 		name := string(data)
 
-		tt, _ = scanner.next()
+		tt, _ = scanner.Next()
 		if tt != parsejs.EqToken {
 			return nil
 		}
 
-		tt, _ = scanner.next()
+		tt, _ = scanner.Next()
 
 		if tt == parsejs.AsyncToken {
-			tt, _ = scanner.next()
+			tt, _ = scanner.Next()
 		}
 
 		if tt == parsejs.LtToken {
@@ -326,12 +317,12 @@ func scanExportedFunction(scanner *pkScriptScanner) *exportedFunctionInfo {
 
 // scanNonExportedFunction scans tokens after a function keyword at top level.
 //
-// Takes scanner (*pkScriptScanner) which provides the token stream to scan.
+// Takes scanner (*jsscan.Scanner) which provides the token stream to scan.
 //
 // Returns *exportedFunctionInfo which holds the function name, or nil if no function name
 // is found.
-func scanNonExportedFunction(scanner *pkScriptScanner) *exportedFunctionInfo {
-	tt, data := scanner.next()
+func scanNonExportedFunction(scanner *jsscan.Scanner) *exportedFunctionInfo {
+	tt, data := scanner.Next()
 	if tt == parsejs.IdentifierToken {
 		name := string(data)
 		return &exportedFunctionInfo{
@@ -346,26 +337,26 @@ func scanNonExportedFunction(scanner *pkScriptScanner) *exportedFunctionInfo {
 // scanNonExportedArrowFunction scans for a const name = (...) => pattern at the top level
 // of a file.
 //
-// Takes scanner (*pkScriptScanner) which provides the token stream to scan.
+// Takes scanner (*jsscan.Scanner) which provides the token stream to scan.
 //
 // Returns *exportedFunctionInfo which contains the function name, or nil if no arrow
 // function pattern was found.
-func scanNonExportedArrowFunction(scanner *pkScriptScanner) *exportedFunctionInfo {
-	tt, data := scanner.next()
+func scanNonExportedArrowFunction(scanner *jsscan.Scanner) *exportedFunctionInfo {
+	tt, data := scanner.Next()
 	if tt != parsejs.IdentifierToken {
 		return nil
 	}
 	name := string(data)
 
-	tt, _ = scanner.next()
+	tt, _ = scanner.Next()
 	if tt != parsejs.EqToken {
 		return nil
 	}
 
-	tt, _ = scanner.next()
+	tt, _ = scanner.Next()
 
 	if tt == parsejs.AsyncToken {
-		tt, _ = scanner.next()
+		tt, _ = scanner.Next()
 	}
 
 	if tt == parsejs.LtToken {
@@ -385,12 +376,12 @@ func scanNonExportedArrowFunction(scanner *pkScriptScanner) *exportedFunctionInf
 // scanNonExportedAsyncFunction scans for a non-exported async function name at the top
 // level of the token stream.
 //
-// Takes scanner (*pkScriptScanner) which provides the token stream to scan.
+// Takes scanner (*jsscan.Scanner) which provides the token stream to scan.
 //
 // Returns *exportedFunctionInfo which contains the function name, or nil if no async
 // function pattern was found.
-func scanNonExportedAsyncFunction(scanner *pkScriptScanner) *exportedFunctionInfo {
-	tt, _ := scanner.next()
+func scanNonExportedAsyncFunction(scanner *jsscan.Scanner) *exportedFunctionInfo {
+	tt, _ := scanner.Next()
 	if tt != parsejs.FunctionToken {
 		return nil
 	}
@@ -400,20 +391,20 @@ func scanNonExportedAsyncFunction(scanner *pkScriptScanner) *exportedFunctionInf
 // skipGenericTypeParams skips over TypeScript generic type parameters such as <T> or <T
 // extends Foo, U> and returns the next token after the closing >.
 //
-// Takes scanner (*pkScriptScanner) which provides the token stream to read from.
+// Takes scanner (*jsscan.Scanner) which provides the token stream to read from.
 //
 // Returns parsejs.TokenType which is the next token after the closing angle bracket, or
 // ErrorToken if parsing fails.
-func skipGenericTypeParams(scanner *pkScriptScanner) parsejs.TokenType {
+func skipGenericTypeParams(scanner *jsscan.Scanner) parsejs.TokenType {
 	depth := 1
 	for depth > 0 {
-		tt, data := scanner.next()
+		tt, data := scanner.Next()
 		if tt == parsejs.ErrorToken {
 			return tt
 		}
 		depth += genericDepthChange(tt, data)
 	}
-	tt, _ := scanner.next()
+	tt, _ := scanner.Next()
 	return tt
 }
 
@@ -463,36 +454,31 @@ func sourceUsesRefs(source string) bool {
 	return refsPattern.MatchString(source) || pkContextPattern.MatchString(source)
 }
 
-// buildInlineRefsSource wraps source code that uses refs or pk context but has no
-// top-level functions, creating a pk context inline from the partial's scope element
-// instead of the full factory/WeakMap pattern.
+// buildInlineRefsSource wraps a partial script that uses refs or the pk context but has
+// no top-level functions. It creates the pk context inline from the partial's first root
+// element instead of using the factory.
 //
 // Module scripts execute after DOM parsing, so document.querySelector will find the
 // partial container.
 //
 // Takes source (string) which contains the PK source code to wrap.
-// Takes componentName (string) which is the partial_name attribute value for targeted
-// scope resolution, or empty for generic fallback.
+// Takes target (partialPKScript) which names the partial.
 //
 // Returns string which is the source with pk context creation added inline.
-func buildInlineRefsSource(source string, componentName string) string {
+func buildInlineRefsSource(source string, target partialPKScript) string {
 	usedIdentifiers := detectUsedIdentifiers(source)
-	importStmt := buildImportStatement(append(usedIdentifiers, "_createPKContext"))
+	importStmt := buildImportStatement(append(usedIdentifiers, jsFuncCreatePKContext))
+	builder := newPKTransformBuilder()
 
-	selector := `"[partial_name]"`
-	if componentName != "" {
-		selector = `"[partial_name='` + componentName + `']"`
-	}
+	var result strings.Builder
+	result.WriteString(importStmt)
+	result.WriteString("{" + jsNewline)
+	result.WriteString(builder.buildContextDeclaration(target, target.scopeExpression(builder.ast)))
+	result.WriteString(jsNewline)
+	result.WriteString(source)
+	result.WriteString(jsNewline + "}" + jsNewline)
 
-	var builder strings.Builder
-	builder.WriteString(importStmt)
-	builder.WriteString("{\n")
-	builder.WriteString(`const pk = _createPKContext(document.querySelector(` + selector + `) ?? document.body);`)
-	builder.WriteString("\n")
-	builder.WriteString(source)
-	builder.WriteString("\n}\n")
-
-	return builder.String()
+	return result.String()
 }
 
 // addImportsOnly adds import statements to source code that has no exports.
@@ -507,17 +493,17 @@ func addImportsOnly(source string) string {
 }
 
 // buildTransformedSource creates the full transformed source code using the factory
-// pattern and PageContext self-registration. It uses AST-based code generation to apply
-// these changes.
+// pattern. It uses AST-based code generation to apply these changes.
 //
 // Takes source (string) which contains the original source code to transform.
 // Takes functions ([]exportedFunctionInfo) which lists the top-level functions to wrap.
 // Takes otherImports ([]string) which specifies extra imports to include.
-// Takes componentName (string) which names the component in the transformed source.
+// Takes target (pkScriptTarget) which shapes the code that differs between pages and
+// partials.
 //
-// Returns string which is the transformed source with the factory pattern applied and
-// self-registration with PageContext for p-on:* event binding.
-func buildTransformedSource(source string, functions []exportedFunctionInfo, otherImports []string, componentName string) string {
+// Returns string which is the transformed source, whose exported functions run on the
+// instance of the current page visit or partial element.
+func buildTransformedSource(source string, functions []exportedFunctionInfo, otherImports []string, target pkScriptTarget) string {
 	transformedSource := source
 	for _, function := range functions {
 		if !function.wasExported {
@@ -531,10 +517,8 @@ func buildTransformedSource(source string, functions []exportedFunctionInfo, oth
 		}
 	}
 
-	imports := make([]string, 0, 2+len(otherImports))
-	imports = append(imports, "_createPKContext", "getGlobalPageContext")
-	imports = append(imports, otherImports...)
+	imports := slices.Concat(target.runtimeImports(), otherImports)
 
 	builder := newPKTransformBuilder()
-	return builder.buildFullTransform(imports, functions, transformedSource, componentName)
+	return builder.buildFullTransform(imports, functions, transformedSource, target)
 }

@@ -59,7 +59,9 @@ export type {
     PartialRenderPayload,
     FormStatePayload,
     NetworkPayload,
-    ErrorPayload
+    ErrorPayload,
+    DiagnosticKind,
+    DiagnosticPayload
 } from './HookManager';
 
 export {createNetworkStatus} from './NetworkStatus';

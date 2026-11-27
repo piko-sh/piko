@@ -506,9 +506,9 @@ describe('DOMBinder', () => {
             );
 
             it.each(blockedSchemes)(
-                'should warn when blocking $description links ($scheme)',
+                'should report an error when blocking $description links ($scheme)',
                 ({ href }) => {
-                    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+                    const warnSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
                     const link = document.createElement('a');
                     link.setAttribute('piko:a', '');

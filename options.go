@@ -674,6 +674,27 @@ func WithCSSTreeShakingSafelist(classes ...string) Option {
 	return Option(bootstrap.WithCSSTreeShakingSafelist(classes))
 }
 
+// WithoutViewTransitions turns off View Transitions for SPA navigation.
+//
+// By default the runtime runs each SPA navigation's page swap in
+// document.startViewTransition, where the browser supports it, so the old and new page
+// can be animated with the `::view-transition` pseudo-elements. While a transition runs,
+// the browser sends clicks to the root element. The runtime ends the transition early and
+// passes such a click on to the element under the pointer on the new page.
+//
+// With this option the page content is swapped at once, with no transition.
+//
+// Returns Option which turns the transitions off.
+//
+// Example:
+//
+//	server := piko.New(
+//	    piko.WithoutViewTransitions(),
+//	)
+func WithoutViewTransitions() Option {
+	return Option(bootstrap.WithoutViewTransitions())
+}
+
 // WithCSSReset enables the CSS reset for PK files (pages, partials, emails). Without
 // sub-options, the simple default reset is used which zeroes margins and padding and sets
 // border-box sizing on all elements.
@@ -2421,6 +2442,10 @@ func WithPikoDefaultCSP() Option {
 //   - base-uri 'self' (prevents base tag hijacking)
 //   - frame-ancestors 'self' (clickjacking protection)
 //   - upgrade-insecure-requests
+//
+// The framework's own script, module preload and page style elements carry the token. The
+// static page cache is off under this policy, because a stored page would carry the token
+// of an earlier response.
 //
 // Returns Option which applies the strict CSP configuration to the server.
 //

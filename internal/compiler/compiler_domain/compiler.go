@@ -35,6 +35,7 @@ import (
 	"golang.org/x/text/language"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/compiler/compiler_dto"
+	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/esbuild/ast"
 	"piko.sh/piko/internal/esbuild/js_ast"
 	"piko.sh/piko/internal/esbuild/logger"
@@ -169,6 +170,12 @@ type sfcCompilationContext struct {
 	// jsDependencies holds JavaScript import paths that need registry registration.
 	jsDependencies []compiler_dto.JSDependency
 
+	// diagnostics holds the warnings found while compiling, which the artefact carries.
+	diagnostics []compiler_dto.CompilationDiagnostic
+
+	// scriptLocation is where the script content begins in the source file.
+	scriptLocation sfcparser.Location
+
 	// stylesLocation is where the first contributing style block's content begins in the
 	// source file, so a style failure is reported at the line the author wrote.
 	stylesLocation ast_domain.Location
@@ -203,6 +210,7 @@ func (cc *sfcCompilationContext) recordCompilationMetrics(ctx context.Context, s
 func (cc *sfcCompilationContext) extractScriptAndStyles() {
 	if jsScript, found := cc.sfcParseResult.JavaScriptScript(); found {
 		cc.scriptCode = jsScript.Content
+		cc.scriptLocation = jsScript.ContentLocation
 	}
 
 	if enable, ok := cc.sfcParseResult.TemplateAttributes["enable"]; ok {
@@ -490,6 +498,8 @@ func (cc *sfcCompilationContext) processTemplate(ctx context.Context) error {
 		return nil
 	}
 
+	cc.diagnostics = append(cc.diagnostics,
+		findUnresolvedComponentRefs(cc.scriptCode, cc.scriptLocation, tAST, cc.sourceFilename)...)
 	cc.buildScaffoldHTML(ctx, tAST)
 	return cc.buildVDOMRenderMethod(ctx, tAST, cc.moduleName)
 }
@@ -632,7 +642,7 @@ func (cc *sfcCompilationContext) buildArtefact(ctx context.Context) (*compiler_d
 			mainJSFileName: builder.String(),
 		},
 		JSDependencies: cc.jsDependencies,
-		Diagnostics:    nil,
+		Diagnostics:    cc.diagnostics,
 	}, nil
 }
 
@@ -1203,7 +1213,7 @@ func buildIIFEWrapper(statements []js_ast.Stmt) js_ast.Stmt {
 // Returns js_ast.Stmt which is the import statement for the core framework module. This
 // imports the piko namespace.
 func buildCoreImport(tree *js_ast.AST) js_ast.Stmt {
-	coreImportPath := "/_piko/dist/ppframework.core.es.js"
+	coreImportPath := daemon_frontend.CoreModuleImportURL()
 	coreImportRecord := ast.ImportRecord{
 		Path: logger.Path{Text: coreImportPath},
 		Kind: ast.ImportStmt,
@@ -1225,7 +1235,7 @@ func buildCoreImport(tree *js_ast.AST) js_ast.Stmt {
 // Returns js_ast.Stmt which is the import statement for the components extension. This
 // imports PPElement, dom, and makeReactive.
 func buildComponentsImport(tree *js_ast.AST) js_ast.Stmt {
-	componentsImportPath := "/_piko/dist/ppframework.components.es.js"
+	componentsImportPath := daemon_frontend.ComponentsModuleImportURL()
 	componentsImportRecord := ast.ImportRecord{
 		Path: logger.Path{Text: componentsImportPath},
 		Kind: ast.ImportStmt,
@@ -1270,7 +1280,7 @@ func buildActionsImport(tree *js_ast.AST) js_ast.Stmt {
 //
 // Returns js_ast.Stmt which is the side-effect import statement.
 func buildAnimationExtensionImport(tree *js_ast.AST) js_ast.Stmt {
-	animImportPath := "/_piko/dist/ppframework.animation.es.js"
+	animImportPath := daemon_frontend.AnimationModuleImportURL()
 	animImportRecord := ast.ImportRecord{
 		Path: logger.Path{Text: animImportPath},
 		Kind: ast.ImportStmt,

@@ -43,6 +43,7 @@ import (
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/daemon/daemon_dto"
+	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
@@ -666,8 +667,8 @@ func TestGenerateCacheArtefactID_GeneratesConsistentID(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, "/test/page", nil)
 	policy := templater_dto.CachePolicy{}
 
-	id1 := generateCacheArtefactID(request, policy)
-	id2 := generateCacheArtefactID(request, policy)
+	id1 := generateCacheArtefactID(request, policy, "")
+	id2 := generateCacheArtefactID(request, policy, "")
 
 	assert.Equal(t, id1, id2, "Same request should generate same ID")
 	assert.True(t, strings.HasPrefix(id1, "page:"), "ID should have page: prefix")
@@ -680,8 +681,8 @@ func TestGenerateCacheArtefactID_DiffersByPath(t *testing.T) {
 	req2 := httptest.NewRequest(http.MethodGet, "/path/two", nil)
 	policy := templater_dto.CachePolicy{}
 
-	id1 := generateCacheArtefactID(req1, policy)
-	id2 := generateCacheArtefactID(req2, policy)
+	id1 := generateCacheArtefactID(req1, policy, "")
+	id2 := generateCacheArtefactID(req2, policy, "")
 
 	assert.NotEqual(t, id1, id2, "Different paths should generate different IDs")
 }
@@ -693,8 +694,8 @@ func TestGenerateCacheArtefactID_DiffersByPolicyKey(t *testing.T) {
 	policy1 := templater_dto.CachePolicy{Key: "key1"}
 	policy2 := templater_dto.CachePolicy{Key: "key2"}
 
-	id1 := generateCacheArtefactID(request, policy1)
-	id2 := generateCacheArtefactID(request, policy2)
+	id1 := generateCacheArtefactID(request, policy1, "")
+	id2 := generateCacheArtefactID(request, policy2, "")
 
 	assert.NotEqual(t, id1, id2, "Different policy keys should generate different IDs")
 }
@@ -706,8 +707,8 @@ func TestGenerateCacheArtefactID_DiffersByQueryString(t *testing.T) {
 	req2 := httptest.NewRequest(http.MethodGet, "/test?a=2", nil)
 	policy := templater_dto.CachePolicy{}
 
-	id1 := generateCacheArtefactID(req1, policy)
-	id2 := generateCacheArtefactID(req2, policy)
+	id1 := generateCacheArtefactID(req1, policy, "")
+	id2 := generateCacheArtefactID(req2, policy, "")
 
 	assert.NotEqual(t, id1, id2, "Different query strings should generate different IDs")
 }
@@ -1529,17 +1530,15 @@ func TestJitResult_FieldsWork(t *testing.T) {
 	t.Parallel()
 
 	result := jitResult{
-		Content:      []byte("test content"),
-		Encoding:     "br",
-		ETag:         `"test-etag"`,
-		CacheControl: "public, max-age=3600",
-		StatusCode:   http.StatusOK,
+		Content:    []byte("test content"),
+		Encoding:   "br",
+		ETag:       `"test-etag"`,
+		StatusCode: http.StatusOK,
 	}
 
 	assert.Equal(t, []byte("test content"), result.Content)
 	assert.Equal(t, "br", result.Encoding)
 	assert.Equal(t, `"test-etag"`, result.ETag)
-	assert.Equal(t, "public, max-age=3600", result.CacheControl)
 	assert.Equal(t, http.StatusOK, result.StatusCode)
 }
 
@@ -2118,8 +2117,8 @@ func TestGenerateCacheArtefactID_ReturnsConsistentID(t *testing.T) {
 	req2 := httptest.NewRequest(http.MethodGet, "/path", nil)
 	policy := templater_dto.CachePolicy{Key: "key1"}
 
-	id1 := generateCacheArtefactID(req1, policy)
-	id2 := generateCacheArtefactID(req2, policy)
+	id1 := generateCacheArtefactID(req1, policy, "")
+	id2 := generateCacheArtefactID(req2, policy, "")
 
 	assert.Equal(t, id1, id2, "Same inputs should produce same ID")
 }
@@ -2131,8 +2130,8 @@ func TestGenerateCacheArtefactID_ReturnsDifferentIDs_ForDifferentPaths(t *testin
 	req2 := httptest.NewRequest(http.MethodGet, "/path2", nil)
 	policy := templater_dto.CachePolicy{Key: "key1"}
 
-	id1 := generateCacheArtefactID(req1, policy)
-	id2 := generateCacheArtefactID(req2, policy)
+	id1 := generateCacheArtefactID(req1, policy, "")
+	id2 := generateCacheArtefactID(req2, policy, "")
 
 	assert.NotEqual(t, id1, id2, "Different paths should produce different IDs")
 }
@@ -2144,10 +2143,36 @@ func TestGenerateCacheArtefactID_ReturnsDifferentIDs_ForDifferentKeys(t *testing
 	policy1 := templater_dto.CachePolicy{Key: "key1"}
 	policy2 := templater_dto.CachePolicy{Key: "key2"}
 
-	id1 := generateCacheArtefactID(request, policy1)
-	id2 := generateCacheArtefactID(request, policy2)
+	id1 := generateCacheArtefactID(request, policy1, "")
+	id2 := generateCacheArtefactID(request, policy2, "")
 
 	assert.NotEqual(t, id1, id2, "Different keys should produce different IDs")
+}
+
+func TestGenerateCacheArtefactID_SeparatesPagesCachedByAnotherRuntimeBuild(t *testing.T) {
+	t.Parallel()
+
+	request := httptest.NewRequest(http.MethodGet, "/path", nil)
+	policy := templater_dto.CachePolicy{Key: "key1"}
+
+	oldBuild := generateCacheArtefactID(request, policy, "0123456789abcdef")
+	newBuild := generateCacheArtefactID(request, policy, "fedcba9876543210")
+	unversioned := generateCacheArtefactID(request, policy, "")
+
+	assert.NotEqual(t, oldBuild, newBuild, "a page cached by one runtime build names bundle URLs another build cannot serve")
+	assert.NotEqual(t, unversioned, newBuild)
+	assert.Equal(t, newBuild, generateCacheArtefactID(request, policy, "fedcba9876543210"))
+}
+
+func TestCacheRuntimeKey_SeparatesPagesCachedForAnotherCoreRuntimeBuild(t *testing.T) {
+	t.Parallel()
+
+	development := cacheRuntimeKey("0123456789abcdef", daemon_frontend.CoreRuntimeBuildDevelopment)
+	production := cacheRuntimeKey("0123456789abcdef", daemon_frontend.CoreRuntimeBuildProduction)
+
+	assert.NotEqual(t, development, production, "a cached page carries the SRI hash of one core runtime build")
+	assert.NotEqual(t, production, cacheRuntimeKey("fedcba9876543210", daemon_frontend.CoreRuntimeBuildProduction))
+	assert.Equal(t, production, cacheRuntimeKey("0123456789abcdef", daemon_frontend.CoreRuntimeBuildProduction))
 }
 
 func TestExtractOTelContextFromRequest_ReturnsContextFromHeader(t *testing.T) {

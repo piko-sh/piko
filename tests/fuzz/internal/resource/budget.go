@@ -232,8 +232,8 @@ type probeResult struct {
 
 // NewBudget sets the memory reserve and disk limit for a resource reader.
 //
-// Takes read (func(ctx context.Context, scan bool) (Sample, error)) which samples
-// the kernel and measures disk use when scan is true.
+// Takes read (func(ctx context.Context, scan bool) (Sample, error)) which samples the
+// kernel and measures disk use when scan is true.
 // Takes minFree (uint64) which is the host memory reserve in bytes.
 // Takes disk (uint64) which is the state-tree disk budget in bytes.
 //

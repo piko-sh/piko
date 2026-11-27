@@ -16,6 +16,8 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
+import {applyPageCSPToken} from '@/core/cspToken';
+
 /** Handles loading ES modules during SPA navigation. */
 export interface ModuleLoader {
     /**
@@ -64,7 +66,7 @@ export function createModuleLoader(): ModuleLoader {
         const newScript = document.createElement('script');
         newScript.type = 'module';
         newScript.src = src;
-        document.body.appendChild(newScript);
+        document.body.appendChild(applyPageCSPToken(newScript));
     }
 
     return {

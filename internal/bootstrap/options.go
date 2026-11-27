@@ -1529,6 +1529,27 @@ func WithStandardLoader(enabled bool) Option {
 	}
 }
 
+// WithoutViewTransitions turns off View Transitions for SPA navigation.
+//
+// Returns Option which makes every page ask the runtime not to animate navigation.
+func WithoutViewTransitions() Option {
+	return func(c *Container) {
+		c.viewTransitionsOff = true
+	}
+}
+
+// WithCoreRuntimeBuild sets the build of the core runtime the server sends at the core
+// module URL.
+//
+// Takes build (daemon_frontend.CoreRuntimeBuild) which is the build to send.
+//
+// Returns Option which sets the build for the renderer and the router.
+func WithCoreRuntimeBuild(build daemon_frontend.CoreRuntimeBuild) Option {
+	return func(c *Container) {
+		c.coreRuntimeBuild = build
+	}
+}
+
 // WithCSSTreeShaking enables CSS tree-shaking during scaffold generation.
 //
 // Takes enabled (bool) which controls whether CSS tree-shaking is active.

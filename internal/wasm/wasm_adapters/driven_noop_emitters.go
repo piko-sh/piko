@@ -326,18 +326,20 @@ func NewInMemoryPKJSEmitter() *InMemoryPKJSEmitter {
 // annotator from a .pkc <script> block.
 // Takes pagePath (string) which identifies the page or partial. Cleaned via path.Clean
 // and rejected if it escapes the artefact namespace.
+// Takes target (generator_dto.ClientScriptTarget) which says what the script belongs to.
 // Takes moduleName (string) which is the Go module name; used by the transpiler to
 // rewrite "@/" import aliases.
 //
 // Returns string which is the artefact ID ("pk-js/<cleanPath>.js"), or empty when source
 // is whitespace-only.
-// Returns error when the path is invalid or transpilation fails or panics.
+// Returns error when the path or target is invalid or transpilation fails or panics.
 //
 // Concurrency: Safe for concurrent use; the entire body runs under the emitter mutex.
 func (e *InMemoryPKJSEmitter) EmitJS(
 	ctx context.Context,
 	source string,
 	pagePath string,
+	target generator_dto.ClientScriptTarget,
 	moduleName string,
 	_ string,
 	_ bool,
@@ -351,12 +353,10 @@ func (e *InMemoryPKJSEmitter) EmitJS(
 		return "", err
 	}
 
-	componentName := strings.TrimPrefix(cleanPath, "partials/")
-	if componentName == cleanPath {
-		componentName = ""
+	transformedSource, err := generator_domain.TransformPKSource(ctx, source, target)
+	if err != nil {
+		return "", fmt.Errorf("preparing PK JS for %s: %w", pagePath, err)
 	}
-
-	transformedSource := generator_domain.TransformPKSource(source, componentName)
 	filename := filepath.Base(cleanPath) + ".ts"
 	cacheKey := pkJSCacheKey(transformedSource, moduleName, filename)
 	artefactID := path.Join("pk-js", cleanPath) + ".js"

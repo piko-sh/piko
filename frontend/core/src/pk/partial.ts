@@ -20,6 +20,8 @@ import fragmentMorpher from '@/core/fragmentMorpher';
 import {notifyDOMUpdated} from '@/pk/domUpdater';
 import {applyLoadingIndicator, removeLoadingIndicator} from '@/pk/loadingState';
 import {getNodeKey, transformRelativeKeys} from '@/pk/getNodeKey';
+import {runtimeVersionGate} from '@/core/RuntimeVersion';
+import {reportDiagnostic} from '@/services/DiagnosticReporter';
 
 /**
  * Controls which parts of a partial root a reload updates.
@@ -316,6 +318,7 @@ async function performReload(el: HTMLElement, name: string, options: PartialRelo
 
     try {
         const response = await fetch(url, {signal: controller.signal});
+        runtimeVersionGate.observe(response.headers);
         if (!response.ok) {
             throw new Error(`Failed to reload partial: ${response.status}`);
         }
@@ -327,7 +330,7 @@ async function performReload(el: HTMLElement, name: string, options: PartialRelo
         const sourceEl = parseFragment(html);
 
         if (!sourceEl) {
-            console.warn(`[pk] partial "${name}" received empty or invalid response`);
+            console.error(`[pk] partial "${name}" received empty or invalid response`);
             return;
         }
 
@@ -361,6 +364,18 @@ async function performReload(el: HTMLElement, name: string, options: PartialRelo
 }
 
 /**
+ * Warns in development and sends a diagnostic event for a partial that is not
+ * in the page.
+ *
+ * @param name - The partial name that was looked up.
+ * @param source - The API that looked it up.
+ */
+function reportMissingPartial(name: string, source: string): void {
+    console.warn(`[pk] partial "${name}" not found`);
+    reportDiagnostic({kind: 'partial-not-found', name, source});
+}
+
+/**
  * Finds a server-side partial and creates a reload handle.
  *
  * @param nameOrElement - A partial_name or its root element.
@@ -383,7 +398,7 @@ export function partial(nameOrElement: string | Element): PartialHandle {
 
         async reload(data?: Record<string, string | number | boolean>): Promise<void> {
             if (!el) {
-                console.warn(`[pk] partial "${name}" not found`);
+                reportMissingPartial(name, 'piko.partial().reload');
                 return;
             }
             return performReload(el, name, {data});
@@ -391,7 +406,7 @@ export function partial(nameOrElement: string | Element): PartialHandle {
 
         async reloadWithOptions(options: PartialReloadOptions): Promise<void> {
             if (!el) {
-                console.warn(`[pk] partial "${name}" not found`);
+                reportMissingPartial(name, 'piko.partial().reloadWithOptions');
                 return;
             }
             return performReload(el, name, options);

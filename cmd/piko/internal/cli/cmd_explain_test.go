@@ -97,7 +97,7 @@ func TestExplainJSON(t *testing.T) {
 		Codes []json.RawMessage `json:"codes"`
 	}
 	require.NoError(t, json.Unmarshal([]byte(stdout), &catalogue))
-	require.Len(t, catalogue.Codes, 95)
+	require.Len(t, catalogue.Codes, 98)
 }
 
 func TestExplainSQLCode(t *testing.T) {

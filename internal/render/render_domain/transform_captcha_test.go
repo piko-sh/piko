@@ -22,6 +22,8 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"regexp"
 	"testing"
 
@@ -31,6 +33,7 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/captcha/captcha_dto"
+	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/provider/provider_domain"
 	"piko.sh/piko/internal/render/render_dto"
 )
@@ -681,6 +684,29 @@ func TestWriteCaptchaScriptTags(t *testing.T) {
 		output := buffer.String()
 		assert.Contains(t, output, `<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>`)
 		assert.Contains(t, output, `<script src="/_piko/captcha/init-turnstile.js" async defer></script>`)
+	})
+
+	t.Run("carries the request CSP token on every script tag", func(t *testing.T) {
+		t.Parallel()
+		var buffer bytes.Buffer
+		qw := qt.AcquireWriter(&buffer)
+		defer qt.ReleaseWriter(qw)
+
+		rctx := NewTestRenderContextBuilder().Build()
+		request := httptest.NewRequest(http.MethodGet, "/", nil)
+		rctx.httpRequest = request.WithContext(daemon_dto.WithPikoRequestCtx(request.Context(), &daemon_dto.PikoRequestCtx{CSPToken: "abc"}))
+		rctx.collectedCaptchaScripts = map[string]*captchaScriptInfo{
+			"turnstile": {
+				InitScriptArtefactID: "captcha/init-turnstile.js",
+				SDKScriptURLs:        []string{"https://challenges.cloudflare.com/turnstile/v0/api.js"},
+			},
+		}
+
+		writeCaptchaScriptTags(qw, rctx)
+
+		output := buffer.String()
+		assert.Contains(t, output, `<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" nonce="abc" async defer></script>`)
+		assert.Contains(t, output, `<script src="/_piko/captcha/init-turnstile.js" nonce="abc" async defer></script>`)
 	})
 
 	t.Run("uses probe data resolved path when available", func(t *testing.T) {

@@ -20,25 +20,31 @@ package generator_domain
 
 import (
 	"regexp"
+
+	"piko.sh/piko/internal/daemon/daemon_frontend"
 )
 
 const (
-	// PKFrameworkURL is the import path for the PK runtime core framework.
-	//
-	// Exported so consumers (e.g. the WASM playground) can construct an importmap that
-	// rewrites this to an in-browser Blob URL without parsing JS.
-	PKFrameworkURL = "/_piko/dist/ppframework.core.es.js"
-
-	// PKComponentsURL is the import path for the PK components extension. Compiled component
-	// classes import PPElement, dom, and makeReactive from this module.
-	PKComponentsURL = "/_piko/dist/ppframework.components.es.js"
-
 	// PKActionsGenURL is the import path for the auto-generated actions file. Always
 	// emitted; contains the empty `action` namespace by default.
 	PKActionsGenURL = "/_piko/assets/pk-js/pk/actions.gen.js"
 )
 
 var (
+	// pkFrameworkURL is the import path for the PK runtime core framework.
+	//
+	// It is the unversioned core URL. Modules are generated before it is known which core
+	// runtime build the server sends, and the server answers this URL by re-exporting its
+	// own versioned core, so generated modules share the page's runtime instance.
+	pkFrameworkURL = daemon_frontend.CoreModuleImportURL()
+
+	// pkComponentsURL is the import path for the PK components extension.
+	//
+	// Compiled component classes import PPElement, dom, and makeReactive from this module.
+	// Like the core, it is the unversioned URL, since its bytes depend on the runtime build
+	// the server sends, and the server re-exports its own versioned module.
+	pkComponentsURL = daemon_frontend.ComponentsModuleImportURL()
+
 	// pkIdentifiers lists identifiers that may appear in PK source code and need to be
 	// imported from the runtime.
 	//
@@ -54,6 +60,22 @@ var (
 	// boundaries to avoid false positives (e.g., "preferences" should not match "refs").
 	identifierPatterns = make(map[string]*regexp.Regexp)
 )
+
+// PKFrameworkURL returns the import path for the PK runtime core framework, with the
+// runtime version of this binary. Consumers such as the WASM playground use it to build
+// an importmap that points this path at an in-browser Blob URL without parsing JS.
+//
+// Returns string which is the versioned import path.
+func PKFrameworkURL() string {
+	return pkFrameworkURL
+}
+
+// PKComponentsURL returns the unversioned import path for the PK components extension.
+//
+// Returns string which is the import path.
+func PKComponentsURL() string {
+	return pkComponentsURL
+}
 
 // prepareSourceWithImports scans the source for PK runtime identifiers and adds the
 // matching import statement at the start.
@@ -117,7 +139,7 @@ func buildImportStatement(identifiers []string) string {
 	}
 
 	if len(frameworkIdentifiers) > 0 {
-		frameworkImport := ast.newImport(frameworkIdentifiers, PKFrameworkURL)
+		frameworkImport := ast.newImport(frameworkIdentifiers, pkFrameworkURL)
 		result += ast.renderStmt(frameworkImport) + "\n"
 	}
 

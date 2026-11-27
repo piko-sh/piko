@@ -34,6 +34,7 @@ import (
 	"piko.sh/piko/internal/component/component_dto"
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/daemon/daemon_adapters"
+	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/dispatcher/dispatcher_adapters"
 	"piko.sh/piko/internal/dispatcher/dispatcher_domain"
 	"piko.sh/piko/internal/email/email_domain"
@@ -277,6 +278,13 @@ func (c *Container) IsSRIEnabled() bool {
 		return *c.sriEnabled
 	}
 	return true
+}
+
+// CoreRuntimeBuild returns the build of the framework runtime the server sends.
+//
+// Returns daemon_frontend.CoreRuntimeBuild which is the build chosen for the run mode.
+func (c *Container) CoreRuntimeBuild() daemon_frontend.CoreRuntimeBuild {
+	return c.coreRuntimeBuild
 }
 
 // SetCompilerDebugLogsEnabled overrides the default for compiler debug log files. Use

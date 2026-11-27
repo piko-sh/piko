@@ -499,6 +499,18 @@ export class PPElement extends HTMLElement {
     }
 
     /**
+     * Reports whether the component added an attribute from its own state, such as a
+     * default it reflects, so the server's markup never set it. The page morph keeps such
+     * an attribute when the server's markup does not have it.
+     *
+     * @param attributeName - The attribute to check.
+     * @returns True when the component added the attribute and nothing has set it since.
+     */
+    hasSelfAddedAttribute(attributeName: string): boolean {
+        return this._attributeSyncService.isSelfAddedAttribute(attributeName);
+    }
+
+    /**
      * Applies observed attribute changes to component state. An external value attribute
      * change also sets the form reset value. Initialisation and reflected attribute
      * changes skip these updates.

@@ -101,6 +101,19 @@ type BasePageData struct {
 	// StructuredData holds raw JSON-LD strings for search engine structured data.
 	StructuredData []string
 
+	// CoreJSURL is the versioned URL of the core framework JS module. Generated page and
+	// component modules import the same URL, so the browser loads one copy of the runtime.
+	CoreJSURL string
+
+	// RuntimeRecoveryURL is the URL of the script that reloads the page once when a
+	// framework bundle or generated module fails to load, or empty to leave it out.
+	RuntimeRecoveryURL string
+
+	// CSPToken is the per-request Content Security Policy token, or empty when the policy
+	// uses none. Every script, module preload and page style element the template writes
+	// carries it, so they load under a token-based policy.
+	CSPToken string
+
 	// CoreJSSRIHash is the SRI integrity hash for the core framework JS module.
 	CoreJSSRIHash string
 
@@ -120,6 +133,10 @@ type BasePageData struct {
 	// navigation. Emitted as meta[name="pk-widget-script"] tags in the footer so the
 	// framework can discover and load them dynamically.
 	WidgetScripts []string
+
+	// ViewTransitionsOff writes the meta element that turns off View Transitions for SPA
+	// navigation. The runtime reads it once when it starts.
+	ViewTransitionsOff bool
 }
 
 // FragmentPageData holds the data needed to render partial page fragments.
@@ -185,6 +202,10 @@ type FragmentPageData struct {
 
 	// StructuredData holds raw JSON-LD strings for search engine structured data.
 	StructuredData []string
+
+	// ViewTransitionsOff writes the same View Transitions meta element as the full page, so
+	// a fragment's head matches the page it belongs to.
+	ViewTransitionsOff bool
 }
 
 // EmailPageData holds data for rendering email page templates.

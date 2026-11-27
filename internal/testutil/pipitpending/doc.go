@@ -20,8 +20,7 @@
 // pins.
 //
 // Call [Skip] at the narrowest level, a subtest or case, with the pipit fix the test
-// needs. Every skip message starts with [SkipPrefix], so the pending tests can be
-// found with one search when the pin moves. Setting [LocalEnv] to 1 runs them against
-// a local Pipit checkout instead; [Local] reports that mode to code that must adapt
-// to it.
+// needs. Every skip message starts with [SkipPrefix], so the pending tests can be found
+// with one search when the pin moves. Setting [LocalEnv] to 1 runs them against a local
+// Pipit checkout instead; [Local] reports that mode to code that must adapt to it.
 package pipitpending

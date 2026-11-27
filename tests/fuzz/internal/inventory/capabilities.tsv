@@ -124,8 +124,10 @@ adapter-module	telemetry_grpcfb	public provider contract: telemetry
 adapter-module	validation_provider_playground	public provider contract: validation
 adapter-module	video_provider_astiav	public provider contract: video
 adapter-module	watchdog_grpcfb	public provider contract: watchdog
+app-target	browser-element-reuse	application execution and independent model
 app-target	browser-events	application execution and independent model
 app-target	browser-lifecycle	application execution and independent model
+app-target	browser-lifecycle-inline	application execution and independent model
 app-target	catalog-rebuild	application execution and independent model
 app-target	collection-routes	application execution and independent model
 app-target	components	application execution and independent model

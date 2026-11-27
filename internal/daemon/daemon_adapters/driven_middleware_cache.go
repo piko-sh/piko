@@ -24,20 +24,21 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
+	"slices"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/andybalholm/brotli"
 	"github.com/cespare/xxhash/v2"
 	"github.com/go-chi/chi/v5"
-	"github.com/klauspost/compress/gzip"
 	"golang.org/x/sync/singleflight"
 	"piko.sh/piko/internal/capabilities/capabilities_domain"
 	"piko.sh/piko/internal/capabilities/capabilities_dto"
 
 	"piko.sh/piko/internal/daemon/daemon_dto"
+	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
@@ -89,6 +90,19 @@ const (
 	// pipeResponseWriter may retain.
 	pipeResponseWriterMaxRetainedHeaders = 64
 
+	// maxStoredPageLinkBytes caps the size of the page's Link headers kept with a cached
+	// page. Longer headers are not kept, so a cache hit sends none.
+	maxStoredPageLinkBytes = 8 << 10
+
+	// pageLinkTagName is the custom tag on a cached page's first profile that keeps the
+	// page's own Link header values, one per line. A page cached before the tag existed has
+	// no such tag and is sent without them.
+	pageLinkTagName = "pageLinkHeader"
+
+	// pageLinkSeparator joins the stored Link header values. A header value cannot hold a
+	// line break, so it never appears inside a value.
+	pageLinkSeparator = "\n"
+
 	// backgroundPersistTimeout bounds how long one background persistence of a rendered page
 	// may take once it holds a write slot.
 	backgroundPersistTimeout = 30 * time.Second
@@ -102,25 +116,9 @@ var (
 	// code.
 	errHandlerNonSuccess = errors.New("upstream handler returned non-200 status code")
 
-	// brotliWriterPool is a pool of brotli writers for reuse across compress operations. It
-	// uses quality level 4 and window size 20.
-	brotliWriterPool = sync.Pool{
-		New: func() any {
-			opts := brotli.WriterOptions{
-				Quality: 4,
-				LGWin:   20,
-			}
-			return brotli.NewWriterOptions(nil, opts)
-		},
-	}
-
-	// gzipWriterPool is a pool of gzip writers to reduce memory allocation.
-	gzipWriterPool = sync.Pool{
-		New: func() any {
-			w, _ := gzip.NewWriterLevel(nil, gzip.BestSpeed)
-			return w
-		},
-	}
+	// errPageLinksTooLong is returned when the page's Link headers are too long to keep with
+	// the cached page.
+	errPageLinksTooLong = errors.New("page Link headers are too long to store")
 
 	// htmlBufferPool is a sync.Pool of pre-grown byte buffers for HTML page rendering.
 	htmlBufferPool = sync.Pool{
@@ -131,13 +129,13 @@ var (
 		},
 	}
 
-	// cacheControlHeaders provides pre-computed Cache-Control header values for common
-	// max-age durations. Avoids fmt.Sprintf allocation on every cache hit response.
-	cacheControlHeaders = func() map[int]string {
+	// staticPageCacheControlValues holds the static page Cache-Control value for common
+	// MaxAgeSeconds settings, so most responses do not need fmt.Sprintf.
+	staticPageCacheControlValues = func() map[int]string {
 		commonAges := []int{0, 60, 300, 600, 900, 1800, 3600, 7200, 14400, 28800, 43200, 86400, 604800}
 		m := make(map[int]string, len(commonAges))
 		for _, age := range commonAges {
-			m[age] = fmt.Sprintf("public, max-age=%d", age)
+			m[age] = fmt.Sprintf(staticPageCacheControlFormat, age)
 		}
 		return m
 	}()
@@ -207,13 +205,6 @@ var (
 		}
 	}()
 
-	// compressedResponseWriterPool provides reusable compressedResponseWriter structs.
-	compressedResponseWriterPool = sync.Pool{
-		New: func() any {
-			return &compressedResponseWriter{}
-		},
-	}
-
 	// pipeResponseWriterPool is a sync.Pool of pipe response writers for cache middleware.
 	pipeResponseWriterPool = sync.Pool{
 		New: func() any {
@@ -238,24 +229,94 @@ type CacheMiddlewareConfig struct {
 
 	// PersistenceDisabled turns off background persistence of rendered pages.
 	PersistenceDisabled bool
+
+	// CSPUsesRequestTokens turns off the static page cache because the Content Security
+	// Policy gives each response its own token. Pages carry that token on their script
+	// elements, so a stored page would only match the response it was rendered for.
+	CSPUsesRequestTokens bool
+
+	// CoreRuntimeBuild is the build of the core runtime the server sends. A cached page
+	// carries the SRI hash of that build, so the build is part of every cache key.
+	CoreRuntimeBuild daemon_frontend.CoreRuntimeBuild
 }
 
 // jitResult holds the output of a just-in-time response generation.
 type jitResult struct {
+	// ForwardedHeader holds a copy of the page's response headers when the page answered
+	// with a status other than 200 OK, such as a redirect or an error page, and is nil
+	// otherwise. Such a response is sent on as the page wrote it and is never cached.
+	ForwardedHeader http.Header
+
 	// Encoding specifies the content encoding for the response, such as gzip or br.
 	Encoding string
 
 	// ETag is the entity tag used for cache validation with If-None-Match headers.
 	ETag string
 
-	// CacheControl is the value for the Cache-Control HTTP header in the response.
-	CacheControl string
-
 	// Content holds the response body bytes to write to the client.
 	Content []byte
 
+	// Links holds the page's own Link header values for a 200 OK page.
+	Links []string
+
 	// StatusCode is the HTTP status code to send in the response.
 	StatusCode int
+}
+
+// sharedWithFollower returns the result as a request may see it when it joined another
+// request's render instead of rendering the page itself.
+//
+// A forwarded response, such as a redirect or an error page, may set cookies that belong
+// to the request that rendered it, such as a session, a flash message or a CSRF token.
+// Those are left out, so they never reach another visitor. A 200 OK page keeps no
+// cookies, so it is returned as it is.
+//
+// Returns *jitResult which is the same result when it sets no cookies, or a copy without
+// them. The receiver is never changed, because other requests share it.
+func (result *jitResult) sharedWithFollower() *jitResult {
+	if _, setsCookies := result.ForwardedHeader[headerSetCookie]; !setsCookies {
+		return result
+	}
+	follower := *result
+	follower.ForwardedHeader = result.ForwardedHeader.Clone()
+	delete(follower.ForwardedHeader, headerSetCookie)
+	return &follower
+}
+
+// upstreamResponse describes what the upstream handler sent once it has finished.
+type upstreamResponse struct {
+	// forwardedHeader holds a copy of the handler's headers when it answered with a status
+	// other than 200 OK, and is nil otherwise.
+	forwardedHeader http.Header
+
+	// links holds the handler's own Link header values when it answered 200 OK.
+	links []string
+
+	// statusCode is the final status code the handler wrote.
+	statusCode int
+}
+
+// isForwarded reports whether the handler's response is sent on as it is rather than
+// cached.
+//
+// Returns bool which is true when the handler answered with a status other than 200 OK.
+func (u upstreamResponse) isForwarded() bool {
+	return u.forwardedHeader != nil
+}
+
+// staticPageBody describes a full response with a page from the static page cache.
+type staticPageBody struct {
+	// encoding is the body's content encoding, or empty when it is not compressed.
+	encoding string
+
+	// etag is the page's entity tag, or empty when it has none.
+	etag string
+
+	// links holds the page's own Link header values.
+	links []string
+
+	// maxAgeSeconds is how long a shared cache may keep the page.
+	maxAgeSeconds int
 }
 
 // CacheMiddleware provides HTTP response caching for page and partial requests. It uses
@@ -278,6 +339,12 @@ type CacheMiddleware struct {
 
 	// writeLimiter limits the number of concurrent disk writes.
 	writeLimiter chan struct{}
+
+	// runtimeKey names the framework bundles this server sends by their runtime version and
+	// the core runtime build. It is part of every cache key, because a cached page names the
+	// bundle URLs and the core SRI hash of the server that rendered it, and the cache may
+	// outlive that server.
+	runtimeKey string
 
 	// config holds the cache middleware settings.
 	config CacheMiddlewareConfig
@@ -334,6 +401,7 @@ func NewCacheMiddleware(
 		requestGroup:      singleflight.Group{},
 		routeMap:          routeMap,
 		writeLimiter:      make(chan struct{}, config.CacheWriteConcurrency),
+		runtimeKey:        cacheRuntimeKey(daemon_frontend.RuntimeVersion(), config.CoreRuntimeBuild),
 		config:            config,
 	}
 }
@@ -349,7 +417,6 @@ func NewCacheMiddleware(
 func (m *CacheMiddleware) Handle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx, contextChanged := extractOTelContextFromRequest(r)
-		ctx, l := logger_domain.From(ctx, log)
 
 		request := r
 		if contextChanged {
@@ -362,29 +429,62 @@ func (m *CacheMiddleware) Handle(next http.Handler) http.Handler {
 			return
 		}
 
-		policy, ok := m.getCachePolicy(r, manifestKey)
-		if !ok {
+		policy, ok := m.getCachePolicy(request, manifestKey)
+		if !ok || !m.servesFromCache(ctx, w.Header(), request.Method, policy) {
 			handleNonCacheableStream(w, request, next)
 			return
 		}
 
-		if !policy.Enabled || policy.NoStore || !policy.Static {
-			l.Trace("Static page cache policy disabled, NoStore set, or not a static page. Streaming response.",
-				logger_domain.Bool("enabled", policy.Enabled),
-				logger_domain.Bool("noStore", policy.NoStore),
-				logger_domain.Bool("static", policy.Static))
-			handleNonCacheableStream(w, request, next)
+		artefactID := generateCacheArtefactID(request, policy, m.runtimeKey)
+
+		if m.tryCacheHit(ctx, w, request, artefactID, policy.MaxAgeSeconds) {
 			return
 		}
 
-		artefactID := generateCacheArtefactID(r, policy)
-
-		if m.tryCacheHit(ctx, w, r, artefactID, policy.MaxAgeSeconds) {
-			return
-		}
-
-		m.generateAndServeResponse(ctx, w, r, next, artefactID)
+		m.generateAndServeResponse(ctx, w, request, next, artefactID, policy.MaxAgeSeconds)
 	})
+}
+
+// servesFromCache decides whether the static page cache serves a request, and marks the
+// response as one no cache may keep when the policy sets NoStore.
+//
+// Only GET and HEAD are served from the cache. Any other method, such as a form POST to a
+// static page, must reach the page itself and must never be stored under the URL that GET
+// visitors share.
+//
+// Takes h (http.Header) which is the response header map.
+// Takes method (string) which is the request method.
+// Takes policy (templater_dto.CachePolicy) which is the page's policy for this request.
+//
+// Returns bool which is true when the request may be served from the cache.
+func (m *CacheMiddleware) servesFromCache(
+	ctx context.Context,
+	h http.Header,
+	method string,
+	policy templater_dto.CachePolicy,
+) bool {
+	_, l := logger_domain.From(ctx, log)
+	if policy.NoStore {
+		l.Trace("Cache policy sets NoStore. Streaming response that no cache may keep.")
+		setNoStoreCacheControl(h)
+		return false
+	}
+	if !policy.Enabled || !policy.Static {
+		l.Trace("Static page cache policy disabled or not a static page. Streaming response.",
+			logger_domain.Bool("enabled", policy.Enabled),
+			logger_domain.Bool("static", policy.Static))
+		return false
+	}
+	if m.config.CSPUsesRequestTokens {
+		l.Trace("Static page cache is off because the CSP uses per-request tokens. Streaming response.")
+		return false
+	}
+	if !isCacheableMethod(method) {
+		l.Trace("Static page cache serves only GET and HEAD. Streaming response.",
+			logger_domain.String(logger_domain.KeyMethod, method))
+		return false
+	}
+	return true
 }
 
 // lookupManifestKey finds the manifest key for the current route pattern.
@@ -410,28 +510,19 @@ func (m *CacheMiddleware) lookupManifestKey(ctx context.Context) (string, bool) 
 // Takes manifestKey (string) which identifies the page entry in the manifest.
 //
 // Returns templater_dto.CachePolicy which contains the resolved caching rules.
-// Returns bool which indicates whether the policy was successfully retrieved.
+// Returns bool which is false when the manifest has no entry for the key.
 func (m *CacheMiddleware) getCachePolicy(
 	r *http.Request,
 	manifestKey string,
 ) (templater_dto.CachePolicy, bool) {
-	ctx := r.Context()
-	_, l := logger_domain.From(ctx, log)
 	pageEntry, ok := m.manifest.GetPageEntry(manifestKey)
 	if !ok {
+		_, l := logger_domain.From(r.Context(), log)
+		l.Debug("Route maps to a page the manifest does not hold; serving uncached",
+			logger_domain.String("manifest_key", manifestKey))
 		return templater_dto.CachePolicy{}, false
 	}
-
-	reqData, err := templater_domain.ParseRequestData(r, "")
-	if err != nil {
-		l.Error("Failed to parse request data for cache policy; serving uncached",
-			logger_domain.Error(err))
-		return templater_dto.CachePolicy{}, false
-	}
-
-	policy := pageEntry.GetCachePolicy(reqData)
-	reqData.Release()
-	return policy, true
+	return resolveCachePolicy(r, pageEntry), true
 }
 
 // tryCacheHit checks for a valid cached artefact and serves it if found.
@@ -481,17 +572,21 @@ func (m *CacheMiddleware) tryCacheHit(
 // Takes r (*http.Request) which provides the incoming request details.
 // Takes next (http.Handler) which generates the original response.
 // Takes artefactID (string) which identifies the cached item.
+// Takes maxAgeSeconds (int) which is how long a shared cache may keep the page.
 func (m *CacheMiddleware) generateAndServeResponse(
 	ctx context.Context,
 	w http.ResponseWriter,
 	r *http.Request,
 	next http.Handler,
 	artefactID string,
+	maxAgeSeconds int,
 ) {
 	ctx, l := logger_domain.From(ctx, log)
 	l.Trace("Generating response with singleflight protection")
 	generationStartTime := time.Now()
+	rendered := false
 	result, err, _ := m.requestGroup.Do(artefactID, func() (any, error) {
+		rendered = true
 		return m.generateAndCacheResponse(r.WithContext(ctx), next, artefactID)
 	})
 	generationDuration := time.Since(generationStartTime)
@@ -508,7 +603,17 @@ func (m *CacheMiddleware) generateAndServeResponse(
 		return
 	}
 
-	m.serveJITResult(w, r.WithContext(ctx), result.(*jitResult))
+	jit, ok := result.(*jitResult)
+	if !ok {
+		l.Error("Shared page generation returned an unexpected result",
+			logger_domain.String("result_type", fmt.Sprintf("%T", result)))
+		http.Error(w, "Could not generate page", http.StatusInternalServerError)
+		return
+	}
+	if !rendered {
+		jit = jit.sharedWithFollower()
+	}
+	m.serveJITResult(w, r.WithContext(ctx), jit, maxAgeSeconds)
 }
 
 // readAndCompressStream reads content from stream, optionally compressing it.
@@ -528,8 +633,7 @@ func (m *CacheMiddleware) readAndCompressStream(
 	if encoding == "" {
 		content, err := io.ReadAll(stream)
 		if err != nil {
-			l.Error("Failed to read from uncompressed stream", logger_domain.Error(err))
-			return nil, fmt.Errorf("failed to read uncompressed stream: %w", err)
+			return nil, fmt.Errorf("reading uncompressed stream: %w", err)
 		}
 		return content, nil
 	}
@@ -537,13 +641,11 @@ func (m *CacheMiddleware) readAndCompressStream(
 	l.Trace("Preparing JIT compression stream", logger_domain.String("encoding", encoding))
 	compressedStream, err := m.capabilityService.Execute(ctx, capability.String(), stream, nil)
 	if err != nil {
-		l.Error("Failed to create compression capability stream", logger_domain.Error(err))
-		return nil, fmt.Errorf("failed to start compression stream: %w", err)
+		return nil, fmt.Errorf("starting compression stream: %w", err)
 	}
 	content, err := io.ReadAll(compressedStream)
 	if err != nil {
-		l.Error("Failed to read from compressed stream", logger_domain.Error(err))
-		return nil, fmt.Errorf("failed to read compressed stream: %w", err)
+		return nil, fmt.Errorf("reading compressed stream: %w", err)
 	}
 	return content, nil
 }
@@ -551,15 +653,16 @@ func (m *CacheMiddleware) readAndCompressStream(
 // generateAndCacheResponse generates a response by calling the next handler and caches
 // the result for future requests.
 //
+// The upstream response is captured by a helper, which every return path waits for, and
+// the artefact may be stored in the background.
+//
 // Takes r (*http.Request) which provides the incoming request context.
 // Takes next (http.Handler) which is the upstream handler to generate the response.
 // Takes artefactID (string) which identifies the cache entry for storage.
 //
 // Returns *jitResult which contains the compressed response ready for the client.
-// Returns error when the upstream handler returns a non-200 status or an empty body.
-//
-// Spawns a goroutine to capture the upstream response, joined on every return path, and
-// one to persist the artefact in the background under a detached request context.
+// Returns error when the upstream handler fails before it answers, or returns an empty
+// body with 200 OK.
 func (m *CacheMiddleware) generateAndCacheResponse(
 	r *http.Request, next http.Handler, artefactID string,
 ) (*jitResult, error) {
@@ -587,9 +690,14 @@ func (m *CacheMiddleware) generateAndCacheResponse(
 		return nil, fmt.Errorf("reading and compressing response stream: %w", err)
 	}
 
-	if finalStatusCode := <-upstreamStatus; finalStatusCode != http.StatusOK {
-		l.Warn("Upstream handler returned non-200 status code", logger_domain.Int("status", finalStatusCode))
-		return nil, errHandlerNonSuccess
+	upstream := <-upstreamStatus
+	if upstream.isForwarded() {
+		l.Trace("Upstream handler answered without 200 OK; forwarding the response without caching it",
+			logger_domain.Int("status", upstream.statusCode))
+		return newForwardedResult(upstream, encodingForUser, contentForUser, rawHTMLBuffer.Len()), nil
+	}
+	if upstream.statusCode != http.StatusOK {
+		return nil, fmt.Errorf("%w: status %d", errHandlerNonSuccess, upstream.statusCode)
 	}
 	if rawHTMLBuffer.Len() == 0 {
 		l.Warn("Handler returned empty body")
@@ -599,38 +707,73 @@ func (m *CacheMiddleware) generateAndCacheResponse(
 	if m.config.PersistenceDisabled {
 		l.Trace("Registry is read-only; serving just-in-time without persisting the rendered page")
 	} else {
-		l.Trace("Scheduling background persistence of artefact", logger_domain.Int("size", rawHTMLBuffer.Len()))
-		bufferHandedOff = true
-		go m.persistArtefactInBackground(daemon_dto.DetachRequestContext(ctx), artefactID, r.URL.String(), rawHTMLBuffer)
+		bufferHandedOff = m.startBackgroundPersistence(ctx, artefactID, r.URL.String(), rawHTMLBuffer, upstream.links)
 	}
 
 	return &jitResult{
-		Content: contentForUser, Encoding: encodingForUser,
-		ETag:         formatJITETag(xxhash.Sum64(contentForUser)),
-		StatusCode:   http.StatusOK,
-		CacheControl: jitCacheControl,
+		ForwardedHeader: nil,
+		Content:         contentForUser,
+		Encoding:        encodingForUser,
+		ETag:            formatJITETag(xxhash.Sum64(contentForUser)),
+		Links:           upstream.links,
+		StatusCode:      http.StatusOK,
 	}, nil
 }
 
-// persistArtefactInBackground saves rendered HTML to the cache.
+// startBackgroundPersistence stores a rendered page in the background when a cache write
+// slot is free.
 //
-// The caller passes a context already detached through daemon_dto.DetachRequestContext,
-// so the write keeps its trace values while outliving the request.
+// The slot is taken before the goroutine starts, so the number of goroutines and of
+// buffers they hold never grows past the write limit, however many distinct URLs clients
+// ask for. When every slot is busy the page is served without being stored, and a later
+// request renders and stores it.
 //
 // Takes artefactID (string) which identifies the cache entry.
 // Takes sourcePath (string) which is the original request path.
 // Takes rawHTML (*bytes.Buffer) which contains the rendered HTML to cache.
+// Takes links ([]string) which holds the page's own Link header values to keep with it.
 //
-// The buffer is returned to the pool after use. Uses a write limiter to control disk
-// writes.
-func (m *CacheMiddleware) persistArtefactInBackground(ctx context.Context, artefactID, sourcePath string, rawHTML *bytes.Buffer) {
+// Returns bool which is true when the goroutine started and now owns rawHTML.
+//
+// Spawns a goroutine under a context detached through daemon_dto.DetachRequestContext, so
+// the write keeps its trace values while outliving the request. It ends when the write
+// finishes or its timeout passes.
+func (m *CacheMiddleware) startBackgroundPersistence(
+	ctx context.Context, artefactID, sourcePath string, rawHTML *bytes.Buffer, links []string,
+) bool {
+	ctx, l := logger_domain.From(ctx, log)
+	select {
+	case m.writeLimiter <- struct{}{}:
+	default:
+		cachePersistSkippedCount.Add(ctx, 1)
+		l.Debug("Serving the page without storing it because every cache write slot is busy",
+			logger_domain.String(logFieldArtefactID, artefactID))
+		return false
+	}
+
+	l.Trace("Scheduling background persistence of artefact", logger_domain.Int("size", rawHTML.Len()))
+	go m.persistArtefactInBackground(daemon_dto.DetachRequestContext(ctx), artefactID, sourcePath, rawHTML, links)
+	return true
+}
+
+// persistArtefactInBackground saves rendered HTML to the cache.
+//
+// The caller has already taken a cache write slot, which is given back here.
+//
+// Takes artefactID (string) which identifies the cache entry.
+// Takes sourcePath (string) which is the original request path.
+// Takes rawHTML (*bytes.Buffer) which contains the rendered HTML to cache.
+// Takes links ([]string) which holds the page's own Link header values to keep with it.
+//
+// The buffer is returned to the pool after use.
+func (m *CacheMiddleware) persistArtefactInBackground(
+	ctx context.Context, artefactID, sourcePath string, rawHTML *bytes.Buffer, links []string,
+) {
 	ctx = goroutine.Label(ctx, "daemon.persistArtefactInBackground",
 		"artefact_id", artefactID, "path", sourcePath)
+	defer func() { <-m.writeLimiter }()
 	defer releaseHTMLBuffer(rawHTML)
 	defer goroutine.RecoverPanic(ctx, "daemon.persistArtefactInBackground")
-
-	m.writeLimiter <- struct{}{}
-	defer func() { <-m.writeLimiter }()
 
 	ctx, cancel := context.WithTimeoutCause(ctx, backgroundPersistTimeout,
 		errors.New("background artefact persistence exceeded its timeout"))
@@ -639,7 +782,14 @@ func (m *CacheMiddleware) persistArtefactInBackground(ctx context.Context, artef
 	ctx, l := logger_domain.From(ctx, log)
 	const blobStoreID = "local_disk_cache"
 
-	_, err := m.registryService.UpsertArtefact(ctx, artefactID, sourcePath, rawHTML, blobStoreID, pageCacheProfiles)
+	profiles, err := pageCacheProfilesWithLinks(links)
+	if err != nil {
+		l.Warn("Caching the page without its Link headers",
+			logger_domain.String(logFieldArtefactID, artefactID),
+			logger_domain.Error(err))
+	}
+
+	_, err = m.registryService.UpsertArtefact(ctx, artefactID, sourcePath, rawHTML, blobStoreID, profiles)
 	if err != nil {
 		l.Error("Background cache persistence failed",
 			logger_domain.String(logFieldArtefactID, artefactID),
@@ -663,12 +813,14 @@ type variantSelectionResult struct {
 //
 // Takes w (http.ResponseWriter) which receives the cached content.
 // Takes variant (*registry_dto.Variant) which holds the cached data to serve.
-// Takes maxAge (int) which sets how long the cache lasts in seconds.
+// Takes maxAge (int) which is how long a shared cache may keep the page, in seconds.
+// Takes links ([]string) which holds the page's own Link header values kept with it.
 func (m *CacheMiddleware) serveCachedVariant(
 	ctx context.Context,
 	w http.ResponseWriter,
 	variant *registry_dto.Variant,
 	maxAge int,
+	links []string,
 ) {
 	ctx, l := logger_domain.From(ctx, log)
 	blobStream, err := m.registryService.GetVariantData(ctx, variant)
@@ -677,28 +829,13 @@ func (m *CacheMiddleware) serveCachedVariant(
 		http.Error(w, "Failed to read from cache", http.StatusInternalServerError)
 		return
 	}
+	defer func() {
+		if closeErr := blobStream.Close(); closeErr != nil {
+			l.Warn("Failed to close the cached page blob", logger_domain.Error(closeErr))
+		}
+	}()
 
-	etag := variantETag(variant)
-
-	l.Trace("Preparing response headers",
-		logger_domain.Int64("contentLength", variant.SizeBytes),
-		logger_domain.Int("maxAge", maxAge))
-
-	h := w.Header()
-	h[headerContentType] = headerValContentTypeHTML
-	if encoding := variant.MetadataTags.Get(registry_dto.TagContentEncoding); encoding != "" {
-		h[headerContentEncoding] = []string{encoding}
-	}
-	if etag != "" {
-		h[headerETag] = []string{etag}
-	}
-	h[headerCacheControl] = []string{getCacheControlHeader(maxAge)}
-	if pctx := daemon_dto.PikoRequestCtxFromContext(ctx); pctx != nil && pctx.Locale != "" {
-		h[headerVary] = headerValVaryCachePageI18n
-	} else {
-		h[headerVary] = headerValVaryCachePage
-	}
-	w.WriteHeader(http.StatusOK)
+	writeCachedVariantHeaders(ctx, w, variant, maxAge, links)
 
 	bytesWritten, err := io.Copy(w, blobStream)
 	if err != nil {
@@ -714,7 +851,7 @@ func (m *CacheMiddleware) serveCachedVariant(
 // Takes r (*http.Request) which provides headers for selecting the best variant.
 // Takes artefact (*registry_dto.ArtefactMeta) which holds the cached artefact and its
 // variants.
-// Takes maxAge (int) which sets the cache duration in seconds.
+// Takes maxAge (int) which is how long a shared cache may keep the page, in seconds.
 func (m *CacheMiddleware) serveFromCache(w http.ResponseWriter, r *http.Request, artefact *registry_dto.ArtefactMeta, maxAge int) {
 	ctx := r.Context()
 	ctx, l := logger_domain.From(ctx, log)
@@ -735,13 +872,19 @@ func (m *CacheMiddleware) serveFromCache(w http.ResponseWriter, r *http.Request,
 
 	etag := variantETag(result.variant)
 
-	if etag != "" && r.Header.Get(headerIfNoneMatch) == etag {
+	if ifNoneMatchSatisfied(r.Header.Get(headerIfNoneMatch), etag) {
 		l.Trace("ETag matched, returning 304 Not Modified")
+		setStaticPageHeaders(ctx, w.Header(), etag, maxAge)
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
 
-	m.serveCachedVariant(ctx, w, result.variant, maxAge)
+	if r.Method == http.MethodHead {
+		l.Trace("Answering HEAD from the cache without reading the page body")
+		writeCachedVariantHeaders(ctx, w, result.variant, maxAge, storedPageLinks(artefact))
+		return
+	}
+	m.serveCachedVariant(ctx, w, result.variant, maxAge, storedPageLinks(artefact))
 }
 
 // serveJITResult writes a just-in-time compiled result to the response. It checks if the
@@ -749,12 +892,21 @@ func (m *CacheMiddleware) serveFromCache(w http.ResponseWriter, r *http.Request,
 //
 // Takes w (http.ResponseWriter) which receives the response.
 // Takes r (*http.Request) which provides headers for ETag matching.
-// Takes result (*jitResult) which contains the content and metadata to serve.
-func (*CacheMiddleware) serveJITResult(w http.ResponseWriter, r *http.Request, result *jitResult) {
+// Takes result (*jitResult) which contains the content and metadata to serve, or the page
+// response to forward. It may be shared with other requests, so it is never changed here.
+// Takes maxAgeSeconds (int) which is how long a shared cache may keep the page.
+func (*CacheMiddleware) serveJITResult(w http.ResponseWriter, r *http.Request, result *jitResult, maxAgeSeconds int) {
 	ctx := r.Context()
 	_, l := logger_domain.From(ctx, log)
-	if result.ETag != "" && r.Header.Get(headerIfNoneMatch) == result.ETag {
+	if result.ForwardedHeader != nil {
+		l.Trace("Forwarding the page response", logger_domain.Int("statusCode", result.StatusCode))
+		serveForwardedResult(w, r, result)
+		return
+	}
+
+	if ifNoneMatchSatisfied(r.Header.Get(headerIfNoneMatch), result.ETag) {
 		l.Trace("ETag matched, returning 304 Not Modified")
+		setStaticPageHeaders(ctx, w.Header(), result.ETag, maxAgeSeconds)
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
@@ -763,53 +915,22 @@ func (*CacheMiddleware) serveJITResult(w http.ResponseWriter, r *http.Request, r
 		logger_domain.Int("contentLength", len(result.Content)),
 		logger_domain.Int("statusCode", result.StatusCode))
 
-	h := w.Header()
-	h[headerContentType] = headerValContentTypeHTML
-	h[headerContentEncoding] = []string{result.Encoding}
-	h[headerETag] = []string{result.ETag}
-	h[headerCacheControl] = []string{result.CacheControl}
-	if pctx := daemon_dto.PikoRequestCtxFromContext(r.Context()); pctx != nil && pctx.Locale != "" {
-		h[headerVary] = headerValVaryCachePageI18n
-	} else {
-		h[headerVary] = headerValVaryCachePage
-	}
+	setStaticPageBodyHeaders(ctx, w.Header(), staticPageBody{
+		links:         result.Links,
+		encoding:      result.Encoding,
+		etag:          result.ETag,
+		maxAgeSeconds: maxAgeSeconds,
+	})
 	w.WriteHeader(result.StatusCode)
+	if r.Method == http.MethodHead {
+		return
+	}
 
 	bytesWritten, err := w.Write(result.Content)
 	if err != nil {
 		l.Error("Error writing JIT response body", logger_domain.Error(err))
 	} else {
 		l.Trace("JIT response successfully written", logger_domain.Int(logFieldBytesWritten, bytesWritten))
-	}
-}
-
-// compressedResponseWriter wraps an http.ResponseWriter with compression. It implements
-// io.Writer.
-type compressedResponseWriter struct {
-	http.ResponseWriter
-
-	// compressor writes compressed data to the underlying response writer.
-	compressor io.WriteCloser
-}
-
-// Write writes compressed data to the underlying response writer.
-//
-// Takes p ([]byte) which contains the data to compress and write.
-//
-// Returns int which is the number of bytes written.
-// Returns error when the write to the underlying compressor fails.
-func (w *compressedResponseWriter) Write(p []byte) (int, error) {
-	return w.compressor.Write(p)
-}
-
-// Flush sends any buffered compressed data to the client. Required for HTTP/2 features
-// such as 103 Early Hints that need to flush intermediate responses before the main body.
-func (w *compressedResponseWriter) Flush() {
-	if flusher, ok := w.compressor.(interface{ Flush() error }); ok {
-		_ = flusher.Flush()
-	}
-	if flusher, ok := w.ResponseWriter.(http.Flusher); ok {
-		flusher.Flush()
 	}
 }
 
@@ -841,10 +962,15 @@ func (w *pipeResponseWriter) Write(p []byte) (int, error) {
 	return w.Writer.Write(p)
 }
 
-// WriteHeader records the status code for later retrieval.
+// WriteHeader records the status code for later retrieval. An informational status such
+// as 103 Early Hints is not the final status, so it is not recorded, and a body written
+// after it is sent as 200 OK, as net/http does.
 //
 // Takes statusCode (int) which specifies the HTTP status code to record.
 func (w *pipeResponseWriter) WriteHeader(statusCode int) {
+	if isInformationalStatus(statusCode) {
+		return
+	}
 	w.statusCode = statusCode
 }
 
@@ -853,6 +979,18 @@ func (w *pipeResponseWriter) Flush() {
 	if flusher, ok := w.Writer.(http.Flusher); ok {
 		flusher.Flush()
 	}
+}
+
+// response describes what the handler sent. It copies the headers it needs, all of them
+// for a response that is forwarded and the Link values for a 200 OK page, because the
+// writer goes back to its pool.
+//
+// Returns upstreamResponse which holds the final status and the copied headers.
+func (w *pipeResponseWriter) response() upstreamResponse {
+	if w.statusCode != http.StatusOK {
+		return upstreamResponse{forwardedHeader: w.header.Clone(), links: nil, statusCode: w.statusCode}
+	}
+	return upstreamResponse{forwardedHeader: nil, links: slices.Clone(w.header[headerLink]), statusCode: w.statusCode}
 }
 
 // getHTMLBuffer gets a buffer from the pool for HTML content.
@@ -880,17 +1018,236 @@ func releaseHTMLBuffer(buffer *bytes.Buffer) {
 	htmlBufferPool.Put(buffer)
 }
 
-// getCacheControlHeader returns a Cache-Control header value for the given maximum age.
-// It uses stored values for common ages and falls back to fmt.Sprintf for other values.
+// staticPageCacheControl builds the Cache-Control value for a page from the static page
+// cache.
 //
-// Takes maxAge (int) which specifies the cache length in seconds.
+// A shared cache such as a CDN may keep the page for maxAgeSeconds. A browser must
+// revalidate it before every reuse, because the page names the versioned framework bundle
+// URLs of the build that rendered it, and a server from a later build answers those URLs
+// with 404, so a browser copy that outlived a deploy would load no runtime. A shared
+// cache keeps the same risk until its copy expires, so a deploy that changes the runtime
+// should purge it.
 //
-// Returns string which is the formatted Cache-Control header value.
-func getCacheControlHeader(maxAge int) string {
-	if h, ok := cacheControlHeaders[maxAge]; ok {
-		return h
+// Takes maxAgeSeconds (int) which is the page's MaxAgeSeconds. A negative value counts as
+// zero.
+//
+// Returns string which is the Cache-Control header value.
+func staticPageCacheControl(maxAgeSeconds int) string {
+	maxAgeSeconds = max(maxAgeSeconds, 0)
+	if value, ok := staticPageCacheControlValues[maxAgeSeconds]; ok {
+		return value
 	}
-	return fmt.Sprintf("public, max-age=%d", maxAge)
+	return fmt.Sprintf(staticPageCacheControlFormat, maxAgeSeconds)
+}
+
+// setStaticPageBodyHeaders sets the headers for a full response with a page from the
+// static page cache. A cache hit and a cache miss both use it, so they send the same
+// headers.
+//
+// Takes h (http.Header) which is the response header map.
+// Takes body (staticPageBody) which describes the page being sent.
+func setStaticPageBodyHeaders(ctx context.Context, h http.Header, body staticPageBody) {
+	h[headerContentType] = headerValContentTypeHTML
+	h[headerXPPResponseSupport] = headerValFragmentPatch
+	if body.encoding != "" {
+		h[headerContentEncoding] = []string{body.encoding}
+	}
+	if len(body.links) > 0 {
+		h[headerLink] = slices.Concat(h[headerLink], body.links)
+	}
+	setStaticPageHeaders(ctx, h, body.etag, body.maxAgeSeconds)
+}
+
+// setStaticPageHeaders sets the validator and cache headers for a page from the static
+// page cache.
+//
+// A full response and a 304 Not Modified both carry them, so a cache that revalidates its
+// copy keeps the same policy. A Cache-Control that the app or the page set earlier is
+// kept, and a Vary that they set is merged with the page's own.
+//
+// Takes h (http.Header) which is the response header map.
+// Takes etag (string) which is the page's entity tag, or empty when it has none.
+// Takes maxAgeSeconds (int) which is how long a shared cache may keep the page.
+func setStaticPageHeaders(ctx context.Context, h http.Header, etag string, maxAgeSeconds int) {
+	if etag != "" {
+		h[headerETag] = []string{etag}
+	}
+	setDefaultCacheControl(h, []string{staticPageCacheControl(maxAgeSeconds)})
+	mergeVary(h, staticPageVary(ctx))
+}
+
+// copyPageHeaders copies the headers of a forwarded page response into the client's
+// response, as if the page had written them there itself.
+//
+// A Cache-Control that the app set earlier wins over the page's, a Vary from both is
+// merged, and Link values from both are kept. Content-Length is left out, because the
+// body may be compressed here.
+//
+// Takes destination (http.Header) which is the client's response header map.
+// Takes source (http.Header) which holds the page's headers. It may be shared with other
+// requests, so it is never changed here.
+func copyPageHeaders(destination, source http.Header) {
+	for key, values := range source {
+		switch key {
+		case headerCacheControl:
+			setDefaultCacheControl(destination, slices.Clone(values))
+		case headerVary:
+			mergeVary(destination, slices.Clone(values))
+		case headerLink:
+			destination[key] = slices.Concat(destination[key], values)
+		case headerContentLength:
+		default:
+			destination[key] = slices.Clone(values)
+		}
+	}
+}
+
+// serveForwardedResult sends a page response that is not cached, such as a redirect or an
+// error page, with the page's status, headers and body. A HEAD request gets the status
+// and headers only.
+//
+// Takes w (http.ResponseWriter) which receives the response.
+// Takes r (*http.Request) which is the request being answered.
+// Takes result (*jitResult) which holds the forwarded response. It may be shared with
+// other requests, so it is never changed here.
+func serveForwardedResult(w http.ResponseWriter, r *http.Request, result *jitResult) {
+	ctx := r.Context()
+	h := w.Header()
+	copyPageHeaders(h, result.ForwardedHeader)
+	if result.Encoding != "" {
+		h[headerContentEncoding] = []string{result.Encoding}
+		mergeVary(h, staticPageVary(ctx))
+	}
+	w.WriteHeader(result.StatusCode)
+	if len(result.Content) == 0 || r.Method == http.MethodHead {
+		return
+	}
+	if _, err := w.Write(result.Content); err != nil {
+		_, l := logger_domain.From(ctx, log)
+		l.Error("Error writing forwarded response body", logger_domain.Error(err))
+	}
+}
+
+// newForwardedResult builds the result for a page response that is sent on as it is.
+//
+// Takes upstream (upstreamResponse) which holds the page's status and headers.
+// Takes encoding (string) which is the encoding content was compressed with.
+// Takes content ([]byte) which is the body as sent to the client.
+// Takes rawLength (int) which is the length of the body the page wrote. When it is zero
+// the response has no body, so the encoding is dropped too.
+//
+// Returns *jitResult which forwards the response.
+func newForwardedResult(upstream upstreamResponse, encoding string, content []byte, rawLength int) *jitResult {
+	if rawLength == 0 {
+		encoding, content = "", nil
+	}
+	return &jitResult{
+		ForwardedHeader: upstream.forwardedHeader,
+		Encoding:        encoding,
+		ETag:            "",
+		Content:         content,
+		Links:           nil,
+		StatusCode:      upstream.statusCode,
+	}
+}
+
+// pageCacheProfilesWithLinks returns the profiles to cache a page with, keeping the
+// page's own Link header values on the first one so a cache hit can send them.
+//
+// Takes links ([]string) which holds the page's Link header values.
+//
+// Returns []registry_dto.NamedProfile which is the shared default when there are no
+// links, or when they are too long to keep.
+// Returns error when the links are too long to keep.
+func pageCacheProfilesWithLinks(links []string) ([]registry_dto.NamedProfile, error) {
+	if len(links) == 0 {
+		return pageCacheProfiles, nil
+	}
+	joined := strings.Join(links, pageLinkSeparator)
+	if len(joined) > maxStoredPageLinkBytes {
+		return pageCacheProfiles, fmt.Errorf("%w: %d bytes, limit %d", errPageLinksTooLong, len(joined), maxStoredPageLinkBytes)
+	}
+
+	profiles := slices.Clone(pageCacheProfiles)
+	tags := profiles[0].Profile.ResultingTags
+	tags.Custom = maps.Clone(tags.Custom)
+	tags.SetByName(pageLinkTagName, joined)
+	profiles[0].Profile.ResultingTags = tags
+	return profiles, nil
+}
+
+// storedPageLinks reads the page's own Link header values kept with a cached page.
+//
+// Takes artefact (*registry_dto.ArtefactMeta) which is the cached page.
+//
+// Returns []string which holds the Link values, or nil for a page cached without them,
+// including one cached before they were kept.
+func storedPageLinks(artefact *registry_dto.ArtefactMeta) []string {
+	for i := range artefact.DesiredProfiles {
+		if joined, ok := artefact.DesiredProfiles[i].Profile.ResultingTags.GetByName(pageLinkTagName); ok && joined != "" {
+			return strings.Split(joined, pageLinkSeparator)
+		}
+	}
+	return nil
+}
+
+// writeCachedVariantHeaders sends the status and headers of a page from the static page
+// cache, without its body.
+//
+// Takes w (http.ResponseWriter) which receives the headers.
+// Takes variant (*registry_dto.Variant) which is the cached page being sent.
+// Takes maxAge (int) which is how long a shared cache may keep the page, in seconds.
+// Takes links ([]string) which holds the page's own Link header values kept with it.
+func writeCachedVariantHeaders(
+	ctx context.Context,
+	w http.ResponseWriter,
+	variant *registry_dto.Variant,
+	maxAge int,
+	links []string,
+) {
+	_, l := logger_domain.From(ctx, log)
+	l.Trace("Preparing response headers",
+		logger_domain.Int64("contentLength", variant.SizeBytes),
+		logger_domain.Int("maxAge", maxAge))
+
+	setStaticPageBodyHeaders(ctx, w.Header(), staticPageBody{
+		links:         links,
+		encoding:      variant.MetadataTags.Get(registry_dto.TagContentEncoding),
+		etag:          variantETag(variant),
+		maxAgeSeconds: maxAge,
+	})
+	w.WriteHeader(http.StatusOK)
+}
+
+// isCacheableMethod reports whether the static page cache may answer a request method.
+//
+// Takes method (string) which is the request method.
+//
+// Returns bool which is true for GET and HEAD.
+func isCacheableMethod(method string) bool {
+	return method == http.MethodGet || method == http.MethodHead
+}
+
+// isInformationalStatus reports whether a status is an interim 1xx response, which comes
+// before the final status. 101 Switching Protocols ends the response, so it is final.
+//
+// Takes statusCode (int) which is the status to check.
+//
+// Returns bool which is true for an interim status.
+func isInformationalStatus(statusCode int) bool {
+	return statusCode >= http.StatusContinue &&
+		statusCode < http.StatusOK &&
+		statusCode != http.StatusSwitchingProtocols
+}
+
+// staticPageVary picks the Vary value for a page from the static page cache.
+//
+// Returns []string which also names Accept-Language when the route is localised.
+func staticPageVary(ctx context.Context) []string {
+	if pctx := daemon_dto.PikoRequestCtxFromContext(ctx); pctx != nil && pctx.Locale != "" {
+		return headerValVaryCachePageI18n
+	}
+	return headerValVaryCachePage
 }
 
 // formatCacheKey formats a hash as "page:" followed by 16 hex digits. Uses direct hex
@@ -982,14 +1339,31 @@ func extractOTelContextFromRequest(r *http.Request) (context.Context, bool) {
 	return result, true
 }
 
-// generateCacheArtefactID creates a cache key from the request URL, locale, and policy
-// key. Uses a pooled xxhash hasher to avoid extra memory use from string joining.
+// cacheRuntimeKey names the framework bundles a server sends, for the static page cache
+// key.
+//
+// Takes version (string) which is the runtime version of this binary, or empty.
+// Takes build (daemon_frontend.CoreRuntimeBuild) which is the core runtime build sent.
+//
+// Returns string which joins the version and the core runtime file name.
+func cacheRuntimeKey(version string, build daemon_frontend.CoreRuntimeBuild) string {
+	return version + "/" + build.CoreFileName()
+}
+
+// generateCacheArtefactID creates a cache key from the request URL, locale, policy key
+// and runtime key. Uses a pooled xxhash hasher to avoid extra memory use from string
+// joining.
+//
+// The runtime key keeps a page cached by one build from being served by another, whose
+// server would answer its versioned bundle URLs with 404, or send core runtime bytes that
+// do not match the page's SRI hash.
 //
 // Takes r (*http.Request) which provides the URL and context for building the cache key.
 // Takes policy (CachePolicy) which provides an optional key to include in the hash.
+// Takes runtimeVersion (string) which names the bundles this server sends, or empty.
 //
 // Returns string which is the formatted cache key based on the hash.
-func generateCacheArtefactID(r *http.Request, policy templater_dto.CachePolicy) string {
+func generateCacheArtefactID(r *http.Request, policy templater_dto.CachePolicy, runtimeVersion string) string {
 	hasher, ok := xxhashDigestPool.Get().(*xxhash.Digest)
 	if !ok {
 		hasher = xxhash.New()
@@ -1008,30 +1382,17 @@ func generateCacheArtefactID(r *http.Request, policy templater_dto.CachePolicy) 
 		_, _ = hasher.WriteString(policy.Key)
 	}
 
+	if runtimeVersion != "" {
+		_, _ = hasher.Write(nullSeparator)
+		_, _ = hasher.WriteString("runtime=")
+		_, _ = hasher.WriteString(runtimeVersion)
+	}
+
 	sum := hasher.Sum64()
 	hasher.Reset()
 	xxhashDigestPool.Put(hasher)
 
 	return formatCacheKey(sum)
-}
-
-// determineCompression determines the encoding and capability based on the
-// Accept-Encoding header.
-//
-// Takes acceptEncoding (string) which is the value of the Accept-Encoding header from the
-// HTTP request.
-//
-// Returns string which is the encoding name (e.g. "br", "gzip") or empty if no supported
-// encoding is found.
-// Returns capabilities_dto.Capability which indicates the compression capability to use.
-func determineCompression(acceptEncoding string) (string, capabilities_dto.Capability) {
-	if strings.Contains(acceptEncoding, encodingBrotli) {
-		return "br", capabilities_dto.CapabilityCompressBrotli
-	}
-	if strings.Contains(acceptEncoding, "gzip") {
-		return "gzip", capabilities_dto.CapabilityCompressGzip
-	}
-	return "", ""
 }
 
 // selectBestVariantForRequest picks the best variant based on Accept-Encoding. Priority
@@ -1068,126 +1429,6 @@ func selectBestVariantForRequest(
 	}
 
 	return variantSelectionResult{}
-}
-
-// getCompressedResponseWriter gets a compressedResponseWriter from the pool.
-//
-// Takes w (http.ResponseWriter) which is the underlying response writer.
-// Takes compressor (io.WriteCloser) which compresses the response data.
-//
-// Returns *compressedResponseWriter which wraps the response writer with compression
-// support.
-func getCompressedResponseWriter(w http.ResponseWriter, compressor io.WriteCloser) *compressedResponseWriter {
-	crw, ok := compressedResponseWriterPool.Get().(*compressedResponseWriter)
-	if !ok {
-		crw = &compressedResponseWriter{}
-	}
-	crw.ResponseWriter = w
-	crw.compressor = compressor
-	return crw
-}
-
-// releaseCompressedResponseWriter returns a compressedResponseWriter to the pool for
-// reuse.
-//
-// Takes crw (*compressedResponseWriter) which is the writer to release.
-func releaseCompressedResponseWriter(crw *compressedResponseWriter) {
-	crw.ResponseWriter = nil
-	crw.compressor = nil
-	compressedResponseWriterPool.Put(crw)
-}
-
-// setupBrotliCompressor gets a brotli writer from the pool and sets the response headers
-// for brotli compression.
-//
-// Takes w (http.ResponseWriter) which receives the compression headers.
-//
-// Returns io.WriteCloser which wraps the response in brotli compression, or nil when a
-// pool writer cannot be obtained.
-func setupBrotliCompressor(ctx context.Context, w http.ResponseWriter) io.WriteCloser {
-	bw, ok := brotliWriterPool.Get().(*brotli.Writer)
-	if !ok {
-		_, l := logger_domain.From(ctx, log)
-		l.Error("Failed to get brotli writer from pool")
-		return nil
-	}
-	bw.Reset(w)
-	w.Header()[headerContentEncoding] = headerValEncodingBrotli
-	return bw
-}
-
-// setupGzipCompressor gets a gzip writer from a pool and sets the response headers for
-// gzip encoding.
-//
-// Takes w (http.ResponseWriter) which receives the compression headers.
-//
-// Returns io.WriteCloser which wraps the response in gzip compression, or nil when a pool
-// writer cannot be obtained.
-func setupGzipCompressor(ctx context.Context, w http.ResponseWriter) io.WriteCloser {
-	gw, ok := gzipWriterPool.Get().(*gzip.Writer)
-	if !ok {
-		_, l := logger_domain.From(ctx, log)
-		l.Error("Failed to get gzip writer from pool")
-		return nil
-	}
-	gw.Reset(w)
-	w.Header()[headerContentEncoding] = headerValEncodingGzip
-	return gw
-}
-
-// releaseCompressor returns a compressor to its pool for reuse.
-//
-// Takes compressor (io.WriteCloser) which is the compressor to return.
-// Takes isBrotli (bool) which indicates whether this is a Brotli or gzip compressor.
-func releaseCompressor(compressor io.WriteCloser, isBrotli bool) {
-	if compressor == nil {
-		return
-	}
-	_ = compressor.Close()
-	if isBrotli {
-		(compressor.(*brotli.Writer)).Reset(nil)
-		brotliWriterPool.Put(compressor)
-	} else {
-		(compressor.(*gzip.Writer)).Reset(nil)
-		gzipWriterPool.Put(compressor)
-	}
-}
-
-// handleNonCacheableStream serves a response with streaming compression.
-//
-// When the client accepts Brotli or Gzip encoding, the response is compressed on the fly.
-// When no compression is requested, the response is served uncompressed.
-//
-// Takes w (http.ResponseWriter) which receives the compressed response.
-// Takes r (*http.Request) which provides the incoming request and headers.
-// Takes next (http.Handler) which is the handler to serve the actual content.
-func handleNonCacheableStream(w http.ResponseWriter, r *http.Request, next http.Handler) {
-	acceptEncoding := r.Header.Get("Accept-Encoding")
-
-	var compressor io.WriteCloser
-	var isBrotli bool
-
-	switch {
-	case strings.Contains(acceptEncoding, encodingBrotli):
-		compressor = setupBrotliCompressor(r.Context(), w)
-		isBrotli = true
-	case strings.Contains(acceptEncoding, encodingGzip):
-		compressor = setupGzipCompressor(r.Context(), w)
-	default:
-		next.ServeHTTP(w, r)
-		return
-	}
-
-	if compressor == nil {
-		next.ServeHTTP(w, r)
-		return
-	}
-	defer releaseCompressor(compressor, isBrotli)
-
-	wrappedWriter := getCompressedResponseWriter(w, compressor)
-	defer releaseCompressedResponseWriter(wrappedWriter)
-
-	next.ServeHTTP(wrappedWriter, r)
 }
 
 // findVariantByTag searches for a variant with a given metadata tag value.
@@ -1264,21 +1505,21 @@ func releasePipeResponseWriter(prw *pipeResponseWriter) {
 // Takes pw (*io.PipeWriter) which receives the body and is closed when next returns or
 // panics, so the reader always sees the end of the stream.
 //
-// Returns <-chan int which receives the upstream status code exactly once, after next has
-// returned and pw is closed. The value is the code next wrote, or 500 when it panicked.
-// Receiving from it joins the goroutine. A reader that stops early must close the pipe
-// reader first, so a handler waiting to write is released.
-func serveUpstreamIntoPipe(ctx context.Context, r *http.Request, next http.Handler, pw *io.PipeWriter) <-chan int {
-	status := make(chan int, 1)
+// Returns <-chan upstreamResponse which receives the upstream response exactly once,
+// after next has returned and pw is closed. Its status is the code next wrote, or 500
+// when it panicked. Receiving from it joins the goroutine. A reader that stops early must
+// close the pipe reader first, so a handler waiting to write is released.
+func serveUpstreamIntoPipe(ctx context.Context, r *http.Request, next http.Handler, pw *io.PipeWriter) <-chan upstreamResponse {
+	status := make(chan upstreamResponse, 1)
 	go func() {
-		statusCode := http.StatusInternalServerError
-		defer func() { status <- statusCode }()
+		response := upstreamResponse{forwardedHeader: nil, links: nil, statusCode: http.StatusInternalServerError}
+		defer func() { status <- response }()
 		defer func() { _ = pw.Close() }()
 		defer goroutine.RecoverPanic(ctx, "daemon.cacheMiddlewareUpstream")
 
 		recorder := getPipeResponseWriter(pw)
 		next.ServeHTTP(recorder, r.WithContext(ctx))
-		statusCode = recorder.statusCode
+		response = recorder.response()
 		releasePipeResponseWriter(recorder)
 	}()
 

@@ -220,11 +220,12 @@ func WithFlatBufferManifestSandbox(sandbox safedisk.Sandbox) FlatBufferManifestP
 // emails.
 func unpackManifest(fb *gen_fb.ManifestFB) *generator_dto.Manifest {
 	return &generator_dto.Manifest{
-		Pages:      unpackMap(fb.PagesLength(), fb.Pages, unpackPageEntryMapItem),
-		Partials:   unpackMap(fb.PartialsLength(), fb.Partials, unpackPartialEntryMapItem),
-		Emails:     unpackMap(fb.EmailsLength(), fb.Emails, unpackEmailEntryMapItem),
-		Pdfs:       unpackMap(fb.PdfsLength(), fb.Pdfs, unpackPdfEntryMapItem),
-		ErrorPages: unpackMap(fb.ErrorPagesLength(), fb.ErrorPages, unpackErrorPageEntryMapItem),
+		Pages:          unpackMap(fb.PagesLength(), fb.Pages, unpackPageEntryMapItem),
+		Partials:       unpackMap(fb.PartialsLength(), fb.Partials, unpackPartialEntryMapItem),
+		Emails:         unpackMap(fb.EmailsLength(), fb.Emails, unpackEmailEntryMapItem),
+		Pdfs:           unpackMap(fb.PdfsLength(), fb.Pdfs, unpackPdfEntryMapItem),
+		ErrorPages:     unpackMap(fb.ErrorPagesLength(), fb.ErrorPages, unpackErrorPageEntryMapItem),
+		PartialScripts: unpackMap(fb.PartialScriptsLength(), fb.PartialScripts, unpackPartialScriptMapItem),
 	}
 }
 
@@ -249,6 +250,18 @@ func unpackPageEntryMapItem(fb *gen_fb.PageEntryMapItemFB) (string, generator_dt
 func unpackPartialEntryMapItem(fb *gen_fb.PartialEntryMapItemFB) (string, generator_dto.ManifestPartialEntry) {
 	var entry gen_fb.ManifestPartialEntryFB
 	return mem.String(fb.Key()), unpackPartialEntry(fb.Value(&entry))
+}
+
+// unpackPartialScriptMapItem reads the partial name of one partial script from a
+// FlatBuffers map item.
+//
+// Takes fb (*gen_fb.PartialScriptMapItemFB) which is the FlatBuffers map item to read
+// from.
+//
+// Returns string which is the JS artefact ID of the partial's script.
+// Returns string which is the name of the partial.
+func unpackPartialScriptMapItem(fb *gen_fb.PartialScriptMapItemFB) (jsArtefactID string, partialName string) {
+	return mem.String(fb.JavascriptArtefactId()), mem.String(fb.PartialName())
 }
 
 // unpackPageEntry converts a FlatBuffer page entry into a domain object.

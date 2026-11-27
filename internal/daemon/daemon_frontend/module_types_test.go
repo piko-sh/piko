@@ -53,9 +53,11 @@ func TestFrontendModule_AssetPath(t *testing.T) {
 		want   string
 		module FrontendModule
 	}{
-		{name: "analytics", module: ModuleAnalytics, want: "built/ppframework.analytics.min.es.js"},
-		{name: "modals", module: ModuleModals, want: "built/ppframework.modals.min.es.js"},
-		{name: "toasts", module: ModuleToasts, want: "built/ppframework.toasts.min.es.js"},
+		{name: "analytics", module: ModuleAnalytics, want: "built/ppframework.analytics.es.js"},
+		{name: "modals", module: ModuleModals, want: "built/ppframework.modals.es.js"},
+		{name: "toasts", module: ModuleToasts, want: "built/ppframework.toasts.es.js"},
+		{name: "dev", module: ModuleDev, want: "built/ppframework.dev.es.js"},
+		{name: "components", module: ModuleComponents, want: "built/ppframework.components.es.js"},
 		{name: "unknown", module: FrontendModule(99), want: ""},
 	}
 	for _, tt := range tests {
@@ -66,25 +68,37 @@ func TestFrontendModule_AssetPath(t *testing.T) {
 	}
 }
 
-func TestFrontendModule_ServeURL(t *testing.T) {
+func TestFrontendModule_ServeURLNamesTheBuildsVersionedURL(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name   string
 		want   string
 		module FrontendModule
+		build  CoreRuntimeBuild
 	}{
-		{name: "analytics", module: ModuleAnalytics, want: "/_piko/dist/ppframework.analytics.min.es.js"},
-		{name: "modals", module: ModuleModals, want: "/_piko/dist/ppframework.modals.min.es.js"},
-		{name: "toasts", module: ModuleToasts, want: "/_piko/dist/ppframework.toasts.min.es.js"},
-		{name: "unknown", module: FrontendModule(99), want: ""},
+		{name: "analytics in production", module: ModuleAnalytics, build: CoreRuntimeBuildProduction, want: "/_piko/dist/" + CoreRuntimeBuildProduction.RuntimeVersion() + "/ppframework.analytics.es.js"},
+		{name: "analytics in development", module: ModuleAnalytics, build: CoreRuntimeBuildDevelopment, want: "/_piko/dist/" + CoreRuntimeBuildDevelopment.RuntimeVersion() + "/ppframework.analytics.es.js"},
+		{name: "modals", module: ModuleModals, build: CoreRuntimeBuildProduction, want: "/_piko/dist/" + CoreRuntimeBuildProduction.RuntimeVersion() + "/ppframework.modals.es.js"},
+		{name: "toasts", module: ModuleToasts, build: CoreRuntimeBuildProduction, want: "/_piko/dist/" + CoreRuntimeBuildProduction.RuntimeVersion() + "/ppframework.toasts.es.js"},
+		{name: "dev", module: ModuleDev, build: CoreRuntimeBuildDevelopment, want: "/_piko/dist/" + CoreRuntimeBuildDevelopment.RuntimeVersion() + "/ppframework.dev.es.js"},
+		{name: "components", module: ModuleComponents, build: CoreRuntimeBuildProduction, want: "/_piko/dist/" + CoreRuntimeBuildProduction.RuntimeVersion() + "/ppframework.components.es.js"},
+		{name: "unknown", module: FrontendModule(99), build: CoreRuntimeBuildProduction, want: ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			assert.Equal(t, tt.want, tt.module.ServeURL())
+			assert.Equal(t, tt.want, tt.module.ServeURL(tt.build))
 		})
 	}
+}
+
+func TestFrontendModule_ImportURLIsUnversioned(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, "/_piko/dist/ppframework.components.es.js", ModuleComponents.ImportURL())
+	assert.Equal(t, "/_piko/dist/ppframework.dev.es.js", ModuleDev.ImportURL())
+	assert.Empty(t, FrontendModule(99).ImportURL())
 }
 
 func TestNewCustomFrontendModule(t *testing.T) {

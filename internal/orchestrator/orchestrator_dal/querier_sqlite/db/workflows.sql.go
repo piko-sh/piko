@@ -117,9 +117,9 @@ SET status = 'RESOLVED',
 WHERE workflow_id = ?4 AND status = 'PENDING';`
 
 type ResolveWorkflowReceiptsParams struct {
-	ErrorMessage *string
+	ErrorMessage Null[string]
 	UpdatedAt    int64
-	ResolvedAt   *int64
+	ResolvedAt   Null[int64]
 	WorkflowID   string
 }
 

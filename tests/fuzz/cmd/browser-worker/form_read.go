@@ -73,6 +73,9 @@ var (
 	// errFormStoreTimeout is the cause recorded when a direct SQLite read runs out of time.
 	errFormStoreTimeout = fmt.Errorf("direct SQLite read timed out: %w", context.DeadlineExceeded)
 
+	// errFreshFormTimeout is the cause recorded when a fresh page read runs out of time.
+	errFreshFormTimeout = fmt.Errorf("fresh page read timed out: %w", context.DeadlineExceeded)
+
 	// errFreshFormTooLarge reports a server-rendered page above the read limit.
 	errFreshFormTooLarge = errors.New("fresh page exceeds 1 MiB")
 
@@ -80,11 +83,12 @@ var (
 	errInvalidFormRows = errors.New("invalid SSR workflow rows")
 )
 
-// readFormStore reads workflow rows through an independent read-only SQLite connection.
+// readFormStore reads workflow rows through an independent read-only SQLite connection,
+// bounded by formStoreTimeout.
 //
 // Returns []casefile.FormRow which lists form row values in their recorded order.
-// Returns error which reports a SQLite read, process or row-decoding failure, or nil on
-// success.
+// Returns error which reports a missing database path, a SQLite read, process or
+// row-decoding failure, or nil on success.
 func readFormStore(ctx context.Context) ([]casefile.FormRow, error) {
 	path := os.Getenv(envWorkflowDatabase)
 	if path == "" {
@@ -92,11 +96,21 @@ func readFormStore(ctx context.Context) ([]casefile.FormRow, error) {
 	}
 	short, cancel := context.WithTimeoutCause(ctx, formStoreTimeout, errFormStoreTimeout)
 	defer cancel()
-	output, err := exec.CommandContext(short, "python3", "-I", "-c", formQuery, path).Output() //nolint:gosec // fixed python3 argv; harness-owned path argument
+	return queryFormStore(short, path)
+}
+
+// queryFormStore reads workflow rows from one SQLite file through a read-only python3
+// connection that may run until ctx ends.
+//
+// Takes path (string) which is the SQLite database file.
+//
+// Returns []casefile.FormRow which lists form row values in their recorded order.
+// Returns error which reports a SQLite read, process or row-decoding failure, with the
+// context's cause when ctx has ended, or nil on success.
+func queryFormStore(ctx context.Context, path string) ([]casefile.FormRow, error) {
+	output, err := exec.CommandContext(ctx, "python3", "-I", "-c", formQuery, path).Output() //nolint:gosec // fixed python3 argv; harness-owned path argument
 	if err != nil {
-		if cause := context.Cause(short); cause != nil {
-			err = fmt.Errorf("%w: %w", cause, err)
-		}
+		err = withContextCause(ctx, err)
 		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 			return nil, fmt.Errorf("reading workflow store: %w: %s", err, textlimit.Truncate(string(exitErr.Stderr), formStoreStderrBytes))
 		}
@@ -109,17 +123,32 @@ func readFormStore(ctx context.Context) ([]casefile.FormRow, error) {
 	return rows, nil
 }
 
-// readFreshForm reads server-rendered rows with a fresh HTTP transport.
+// readFreshForm reads server-rendered rows with a fresh HTTP transport, bounded by
+// freshFormTimeout.
 //
 // Takes address (string) which is the server-rendered workflow list URL.
 //
 // Returns []casefile.FormRow which lists form row values in their recorded order.
 // Returns error which reports an HTTP read, response-size or rendered-row failure, or nil
 // on success.
-func readFreshForm(ctx context.Context, address string) (rows []casefile.FormRow, err error) {
+func readFreshForm(ctx context.Context, address string) ([]casefile.FormRow, error) {
+	short, cancel := context.WithTimeoutCause(ctx, freshFormTimeout, errFreshFormTimeout)
+	defer cancel()
+	return fetchFreshForm(short, address)
+}
+
+// fetchFreshForm reads server-rendered rows with a fresh HTTP transport that may run
+// until ctx ends.
+//
+// Takes address (string) which is the server-rendered workflow list URL.
+//
+// Returns []casefile.FormRow which lists form row values in their recorded order.
+// Returns error which reports an HTTP read, response-size or rendered-row failure, with
+// the context's cause when ctx has ended, or nil on success.
+func fetchFreshForm(ctx context.Context, address string) (rows []casefile.FormRow, err error) {
 	transport := &http.Transport{}
 	defer transport.CloseIdleConnections()
-	client := http.Client{Transport: transport, Timeout: freshFormTimeout, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	client := http.Client{Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, address, nil)
 	if err != nil {
 		return nil, err
@@ -127,7 +156,7 @@ func readFreshForm(ctx context.Context, address string) (rows []casefile.FormRow
 	request.Header.Set("Cache-Control", "no-cache")
 	response, err := client.Do(request)
 	if err != nil {
-		return nil, err
+		return nil, withContextCause(ctx, err)
 	}
 	defer func() {
 		err = errors.Join(err, drainAndClose(response.Body))
@@ -137,7 +166,7 @@ func readFreshForm(ctx context.Context, address string) (rows []casefile.FormRow
 	}
 	body, err := io.ReadAll(io.LimitReader(response.Body, freshFormLimit+1))
 	if err != nil {
-		return nil, err
+		return nil, withContextCause(ctx, err)
 	}
 	if len(body) > freshFormLimit {
 		return nil, errFreshFormTooLarge
@@ -147,6 +176,19 @@ func readFreshForm(ctx context.Context, address string) (rows []casefile.FormRow
 		return nil, err
 	}
 	return formRows(document)
+}
+
+// withContextCause adds the cause of an ended context to an error.
+//
+// Takes err (error) which is the failure seen while ctx was in use.
+//
+// Returns error which wraps both the context's cause and err when ctx has ended, or err
+// unchanged otherwise.
+func withContextCause(ctx context.Context, err error) error {
+	if cause := context.Cause(ctx); cause != nil {
+		return fmt.Errorf("%w: %w", cause, err)
+	}
+	return err
 }
 
 // drainAndClose discards a bounded remainder of a response body and closes it so the

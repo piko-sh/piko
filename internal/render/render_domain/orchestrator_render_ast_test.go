@@ -25,12 +25,16 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"path"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	qt "github.com/valyala/quicktemplate"
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/daemon/daemon_frontend"
+	"piko.sh/piko/internal/pml/pml_domain"
 	"piko.sh/piko/internal/templater/templater_dto"
 )
 
@@ -1330,4 +1334,139 @@ func TestWriteElementDirectivesExcluding_CombinesDirectivesAndExclusion(t *testi
 	assert.Contains(t, output, `class="my-class"`)
 
 	assert.NotContains(t, output, `src="image.png"`)
+}
+
+func TestRenderPage_WritesTheViewTransitionsSettingOfTheApp(t *testing.T) {
+	t.Parallel()
+
+	const viewTransitionsMeta = `<meta name="pk-view-transitions" content="off">`
+
+	testCases := []struct {
+		name       string
+		options    []RenderOrchestratorOption
+		isFragment bool
+		want       bool
+	}{
+		{name: "a full page leaves transitions on by default", want: false},
+		{name: "a full page turns transitions off when the app asked", options: []RenderOrchestratorOption{WithoutViewTransitions()}, want: true},
+		{name: "a fragment leaves transitions on by default", isFragment: true, want: false},
+		{name: "a fragment carries the same setting as the full page", options: []RenderOrchestratorOption{WithoutViewTransitions()}, isFragment: true, want: true},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			output := renderTestPage(t, newTestPageOrchestrator(testCase.options...), testCase.isFragment)
+
+			assert.Equal(t, testCase.want, strings.Contains(output, viewTransitionsMeta))
+		})
+	}
+}
+
+func TestRenderFullPage_CarriesTheSRIHashOfTheServedCoreRuntime(t *testing.T) {
+	daemon_frontend.SetSRIEnabled(true)
+	t.Cleanup(func() { daemon_frontend.SetSRIEnabled(false) })
+	require.NoError(t, daemon_frontend.InitAssetStore(t.Context()))
+
+	testCases := []struct {
+		name       string
+		build      daemon_frontend.CoreRuntimeBuild
+		servedFile string
+	}{
+		{name: "the dev modes serve the unminified core", build: daemon_frontend.CoreRuntimeBuildDevelopment, servedFile: "ppframework.core.es.js"},
+		{name: "production serves the minified core", build: daemon_frontend.CoreRuntimeBuildProduction, servedFile: "ppframework.core.min.es.js"},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			served, found := daemon_frontend.GetAsset(t.Context(), "built/"+testCase.servedFile)
+			require.True(t, found)
+			integrity := `integrity="` + daemon_frontend.ComputeSRIHash(served.Content) + `"`
+
+			output := renderTestPage(t, newTestPageOrchestrator(WithCoreRuntimeBuild(testCase.build)), false)
+
+			coreURL := testCase.build.CoreModuleURL()
+			assert.Contains(t, output, `<link rel="modulepreload" href="`+coreURL+`" `+integrity)
+			assert.Contains(t, output, `<script type="module" src="`+coreURL+`" `+integrity)
+		})
+	}
+}
+
+func TestRenderFullPage_CarriesTheSRIHashOfTheServedExtensionModules(t *testing.T) {
+	daemon_frontend.SetSRIEnabled(true)
+	t.Cleanup(func() {
+		daemon_frontend.SetSRIEnabled(false)
+		daemon_frontend.SetModuleHTML("", "", "")
+	})
+	require.NoError(t, daemon_frontend.InitAssetStore(t.Context()))
+
+	entries := []daemon_frontend.ModuleEntry{
+		{Module: daemon_frontend.ModuleAnalytics},
+		{Module: daemon_frontend.ModuleModals},
+		{Module: daemon_frontend.ModuleToasts},
+	}
+	testCases := []struct {
+		name          string
+		build         daemon_frontend.CoreRuntimeBuild
+		servedFileFor func(string) string
+	}{
+		{
+			name:          "the dev modes serve the unminified modules",
+			build:         daemon_frontend.CoreRuntimeBuildDevelopment,
+			servedFileFor: func(fileName string) string { return fileName },
+		},
+		{
+			name:          "production serves the minified modules",
+			build:         daemon_frontend.CoreRuntimeBuildProduction,
+			servedFileFor: func(fileName string) string { return strings.TrimSuffix(fileName, ".es.js") + ".min.es.js" },
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			daemon_frontend.SetModuleHTML(daemon_frontend.GenerateModuleHTML(testCase.build, entries, nil))
+
+			output := renderTestPage(t, newTestPageOrchestrator(WithCoreRuntimeBuild(testCase.build)), false)
+
+			for _, entry := range entries {
+				fileName := path.Base(entry.Module.AssetPath())
+				served, found := daemon_frontend.GetAsset(t.Context(), "built/"+testCase.servedFileFor(fileName))
+				require.True(t, found)
+				moduleURL := testCase.build.ModuleURL(fileName)
+				integrity := `integrity="` + daemon_frontend.ComputeSRIHash(served.Content) + `"`
+
+				assert.Contains(t, output, `<link rel="modulepreload" href="`+moduleURL+`" `+integrity)
+				assert.Contains(t, output, `<script type="module" src="`+moduleURL+`" `+integrity)
+			}
+		})
+	}
+}
+
+func newTestPageOrchestrator(options ...RenderOrchestratorOption) *RenderOrchestrator {
+	return NewRenderOrchestrator(&pml_domain.MockTransformer{}, nil, defaultTestRegistry(), nil, options...)
+}
+
+func renderTestPage(t *testing.T, ro *RenderOrchestrator, isFragment bool) string {
+	t.Helper()
+
+	rctx := NewTestRenderContextBuilder().WithHTTPRequest(testHTTPRequest()).Build()
+	opts := RenderASTOptions{
+		Template: &ast_domain.TemplateAST{
+			RootNodes: []*ast_domain.TemplateNode{{NodeType: ast_domain.NodeText, TextContent: "page body"}},
+		},
+		Metadata: &templater_dto.InternalMetadata{},
+		PageID:   "pages/test",
+	}
+
+	var buffer bytes.Buffer
+	qw := qt.AcquireWriter(&buffer)
+	defer qt.ReleaseWriter(qw)
+
+	if isFragment {
+		require.NoError(t, ro.renderFragment(t.Context(), qw, rctx, opts, ""))
+	} else {
+		require.NoError(t, ro.renderFullPage(t.Context(), qw, rctx, opts, "", ""))
+	}
+	return buffer.String()
 }

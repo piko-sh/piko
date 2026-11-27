@@ -17,6 +17,7 @@
 // strip others of their rights and dignity.
 
 import {type PPHelper, RegisterHelper} from '@/core';
+import {requestSubmitFrom} from '@/core/actionRepeatGuard';
 
 /**
  * Locates a form element by an optional CSS selector, falling back to the
@@ -56,6 +57,10 @@ const findForm = (element: HTMLElement, helperName: string, formSelector?: strin
  * Submits a form identified by an optional CSS selector or the closest
  * ancestor form. Uses requestSubmit to trigger validation.
  *
+ * The triggering element is recorded as the trigger of the submit, so it is
+ * marked aria-busy, and its pk-allow-repeat attribute is honoured, while
+ * the form's action is in flight.
+ *
  * @param element - The HTML element that triggered the helper.
  * @param _event - The original DOM event.
  * @param args - The variadic string arguments; the first is an optional form CSS selector.
@@ -64,7 +69,9 @@ const findForm = (element: HTMLElement, helperName: string, formSelector?: strin
 const submitFormHelper: PPHelper = (element: HTMLElement, _event: Event, ...args: string[]) => {
     const formSelector = args[0];
     const form = findForm(element, 'submitForm', formSelector);
-    form?.requestSubmit();
+    if (form) {
+        requestSubmitFrom(form, element);
+    }
 };
 
 /**

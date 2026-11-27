@@ -59,6 +59,22 @@ func (r *partialJSDependencyResolver) ResolveForPage(pageHashedName string) []st
 	return artefactIDs
 }
 
+// PartialScriptNames maps the JS artefact ID of every partial script the resolver knows
+// to the name of its partial.
+//
+// Returns map[string]string which maps JS artefact IDs to partial names, or nil when no
+// partial has a script.
+func (r *partialJSDependencyResolver) PartialScriptNames() map[string]string {
+	if len(r.partialJSLookup) == 0 {
+		return nil
+	}
+	names := make(map[string]string, len(r.partialJSLookup))
+	for hashedName, jsArtefactID := range r.partialJSLookup {
+		names[jsArtefactID] = r.artefactsByHashedName[hashedName].Component.PartialName
+	}
+	return names
+}
+
 // collectDependencies performs DFS to find all partial dependencies. It traverses
 // PikoImports recursively, collecting JS artefact IDs along the way.
 //
@@ -130,7 +146,7 @@ func newPartialJSDependencyResolver(artefacts []*generator_dto.GeneratedArtefact
 			resolver.importPathToHashedName[vc.Source.ModuleImportPath] = hashedName
 		}
 
-		if vc.Source != nil && vc.Source.ComponentType == "partial" && artefact.JSArtefactID != "" {
+		if isPartialWithScript(artefact) {
 			resolver.partialJSLookup[hashedName] = artefact.JSArtefactID
 		} else {
 			delete(resolver.partialJSLookup, hashedName)
@@ -138,4 +154,22 @@ func newPartialJSDependencyResolver(artefacts []*generator_dto.GeneratedArtefact
 	}
 
 	return resolver
+}
+
+// isPartialWithScript reports whether an artefact is a partial that has client-side
+// JavaScript.
+//
+// The decision uses the same client script target as the emitter, not the folder the
+// source lives in, so a partial under a custom partials directory or from another module
+// is found too.
+//
+// Takes artefact (*generator_dto.GeneratedArtefact) which is the artefact to check.
+//
+// Returns bool which is true when the artefact's script is a partial script.
+func isPartialWithScript(artefact *generator_dto.GeneratedArtefact) bool {
+	if artefact.JSArtefactID == "" {
+		return false
+	}
+	target, err := generator_dto.ClientScriptTargetFor(artefact.Component)
+	return err == nil && target.Kind == generator_dto.ClientScriptPartial
 }

@@ -44,6 +44,9 @@ type EmbeddedAsset struct {
 
 	// Content holds the asset bytes ready to be served.
 	Content []byte
+
+	// Embedded is true when the asset is one of the framework bundles built into the binary.
+	Embedded bool
 }
 
 // GetAsset is a no-op in WASM builds because the asset store (InitAssetStore) and the

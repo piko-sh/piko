@@ -101,6 +101,16 @@ func TestCompiledOnlyExcludesWarmInterpreter(t *testing.T) {
 	}
 }
 
+func TestAllSelectsTheLifecycleTargets(t *testing.T) {
+	options, _, err := parse("campaign", []string{"-target=all", "-mode=compiled", "-browser=every"})
+	require.NoError(t, err)
+	list, err := selected(&options)
+	require.NoError(t, err)
+	assert.Contains(t, list, "browser-lifecycle")
+	assert.Contains(t, list, "browser-lifecycle-inline")
+	assert.Contains(t, list, "browser-element-reuse")
+}
+
 func TestAuthoredExamplesRespectHostAndBrowserSelection(t *testing.T) {
 	for _, testCase := range []struct {
 		mode     string

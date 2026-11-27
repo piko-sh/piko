@@ -19,6 +19,7 @@
 import {partial, type PartialHandle, type ReloadMode} from './partial';
 import {debounce} from './utils';
 import {applyLoadingIndicator, removeLoadingIndicator} from './loadingState';
+import {reportDiagnostic} from '@/services/DiagnosticReporter';
 
 /** Base delay in milliseconds for exponential backoff retry. */
 const RETRY_BACKOFF_BASE_MS = 1000;
@@ -292,6 +293,7 @@ export async function reloadPartial(nameOrElement: string | Element, options: Re
 
     if (!handle.element) {
         console.warn(`[pk] reloadPartial: partial "${name}" not found`);
+        reportDiagnostic({kind: 'partial-not-found', name, source: 'piko.partials.reload'});
         return;
     }
 
@@ -376,7 +378,7 @@ export function autoRefresh(name: string, options: AutoRefreshOptions): () => vo
                     intervalId = null;
                 }
                 stopped = true;
-                console.warn(`[pk] autoRefresh "${name}" stopped after ${retryCount} failures`);
+                console.error(`[pk] autoRefresh "${name}" stopped after ${retryCount} failures`);
             }
         }
     };

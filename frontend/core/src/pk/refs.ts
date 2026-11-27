@@ -16,6 +16,8 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
+import {reportDiagnostic} from '@/services/DiagnosticReporter';
+
 /**
  * Creates a proxy-based refs object that lazily queries elements by p-ref attribute.
  *
@@ -47,6 +49,7 @@ export function createRefs(scope: Element = document.body): Record<string, HTMLE
 
             if (!el) {
                 console.warn(`[pk] ref "${name}" not found in scope`);
+                reportDiagnostic({kind: 'ref-not-found', name, source: 'pk.refs', context: partialId ?? undefined});
             }
             return el;
         }

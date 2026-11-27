@@ -55,7 +55,7 @@ func (queries *Queries) GetDesiredProfilesForArtefact(ctx context.Context, artef
 
 const getdesiredprofilesforartefactids = `SELECT artefact_id, name, capability_name, priority, params_json, tags_json, depends_on_json
 FROM registry_desired_profile
-WHERE artefact_id IN ($1);`
+WHERE artefact_id = ANY($1);`
 
 type GetDesiredProfilesForArtefactIDsParams struct {
 	IDs []string
@@ -71,15 +71,7 @@ type GetDesiredProfilesForArtefactIDsRow struct {
 }
 
 func (queries *Queries) GetDesiredProfilesForArtefactIDs(ctx context.Context, params GetDesiredProfilesForArtefactIDsParams) ([]GetDesiredProfilesForArtefactIDsRow, error) {
-	if err := pikoCheckBinds(len(params.IDs)); err != nil {
-		return nil, err
-	}
-	query := pikoSplice(getdesiredprofilesforartefactids, pikoList(pikoListMark{Empty: `= ANY('{}')`, Operator: 141, Start: 144, End: 148}, 1, len(params.IDs)))
-	args := make([]any, 0, len(params.IDs))
-	for _, v := range params.IDs {
-		args = append(args, v)
-	}
-	rows, err := queries.reader.QueryContext(ctx, query, args...)
+	rows, err := queries.reader.QueryContext(ctx, getdesiredprofilesforartefactids, pikoArrayLiteral(params.IDs))
 	if err != nil {
 		return nil, err
 	}

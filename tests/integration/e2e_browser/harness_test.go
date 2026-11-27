@@ -56,18 +56,19 @@ import (
 )
 
 type E2EBrowserHarness struct {
-	T             *testing.T
-	TestCase      testCase
-	Spec          *E2ETestSpec
-	TempDir       string
-	SrcDir        string
-	GoldenDir     string
-	ServerCmd     *exec.Cmd
-	ServerPort    int
-	ServerURL     string
-	PageHelper    *browserpkg.PageHelper
-	IncognitoPage *browserpkg.IncognitoPage
-	ActionCtx     *browserpkg.ActionContext
+	T                  *testing.T
+	TestCase           testCase
+	Spec               *E2ETestSpec
+	TempDir            string
+	SrcDir             string
+	GoldenDir          string
+	ServerCmd          *exec.Cmd
+	ServerPort         int
+	ServerURL          string
+	PageHelper         *browserpkg.PageHelper
+	IncognitoPage      *browserpkg.IncognitoPage
+	ActionCtx          *browserpkg.ActionContext
+	RuntimeDeployProxy *runtimeDeployProxy
 }
 
 var (
@@ -116,6 +117,9 @@ var (
 	{{- if .RequiresCaptcha}}
 			piko.WithCaptchaProvider("hmac_challenge", captchaProvider),
 			piko.WithDefaultCaptchaProvider("hmac_challenge"),
+	{{- end}}
+	{{- if .RequiresStrictCSP}}
+			piko.WithStrictCSP(),
 	{{- end}}
 		)
 		server.Configure(piko.PublicConfig{
@@ -309,6 +313,7 @@ func (h *E2EBrowserHarness) BuildServer() error {
 		"RequiresMarkdown":  h.Spec.RequiresMarkdown,
 		"RequiresRateLimit": h.Spec.RequiresRateLimit,
 		"RequiresCaptcha":   h.Spec.RequiresCaptcha,
+		"RequiresStrictCSP": h.Spec.RequiresStrictCSP,
 	}
 	if err := mainGoTemplate.Execute(mainGoFile, templateData); err != nil {
 		return fmt.Errorf("executing main.go template: %w", err)
@@ -357,10 +362,22 @@ func (h *E2EBrowserHarness) StartServer() error {
 		return fmt.Errorf("server not ready: %w\nStdout: %s\nStderr: %s", err, stdout.String(), stderr.String())
 	}
 
+	if usesRuntimeDeployProxy(h.Spec) {
+		proxy, err := newRuntimeDeployProxy(h.ServerURL)
+		if err != nil {
+			return fmt.Errorf("starting the runtime deploy proxy: %w", err)
+		}
+		h.RuntimeDeployProxy = proxy
+		h.ServerURL = proxy.server.URL
+	}
+
 	return nil
 }
 
 func (h *E2EBrowserHarness) StopServer() {
+	if h.RuntimeDeployProxy != nil {
+		h.RuntimeDeployProxy.Close()
+	}
 	if h.ServerCmd != nil && h.ServerCmd.Process != nil {
 		_ = h.ServerCmd.Process.Kill()
 		_, _ = h.ServerCmd.Process.Wait()

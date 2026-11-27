@@ -98,6 +98,12 @@ Every cache instance tracks hits, misses, evictions and loads, with or without a
 
 Eviction events carry a cause (`CauseOverflow`, `CauseExpiration`, `CauseInvalidation`, `CauseReplacement`). Sustained `CauseOverflow` evictions mean the cache is too small. Sustained `CauseExpiration` evictions on values that should be long-lived mean the TTL is too tight.
 
+## Why browsers revalidate cached pages
+
+A page names the framework script URLs of the build that rendered it, and each runtime version has its own URLs. After a deploy that changes the runtime, the old URLs answer `404`. A browser that kept the old page would load no runtime, so the static page cache tells browsers to revalidate every time and lets only shared caches keep the page for `MaxAgeSeconds`. The `ETag` keeps that revalidation cheap. A CDN copy can still outlive a deploy, which is why the CDN needs a purge on each deploy.
+
+A strict Content Security Policy gives each response its own token, and the page's scripts and styles carry it. A stored page would carry the token of an earlier response and fail the next response's policy, so the static page cache is off under such a policy.
+
 ## See also
 
 - [Cache API reference](../reference/cache-api.md) for the full surface.

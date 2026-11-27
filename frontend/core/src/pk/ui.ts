@@ -17,6 +17,7 @@
 // strip others of their rights and dignity.
 
 import {resolveHTMLElement} from './resolve';
+import {reportDiagnostic} from '@/services/DiagnosticReporter';
 
 /** Configuration options for the loading function. */
 export interface LoadingOptions {
@@ -184,6 +185,7 @@ export async function loading<T>(
     const element = resolveHTMLElement(target);
     if (!element) {
         console.warn(`[pk] loading: target "${target}" not found`);
+        reportDiagnostic({kind: 'target-not-found', name: String(target), source: 'piko.ui.loading'});
         return promise;
     }
 

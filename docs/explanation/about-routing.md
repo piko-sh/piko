@@ -42,7 +42,7 @@ The `!` prefix is the routing system's one deliberate departure from "files name
 
 A route in Piko is a page, and a page is a `Render` function that returns typed data. The template substitutes the data and emits HTML. There is no hydration step, no client-side router, no SPA-style route-to-component dispatch in the browser.
 
-Client-side navigation layers on top. `<piko:a>` links intercept clicks, fetch the next page's HTML, and swap the body without a full reload. The server still owns the URL-to-HTML contract, and the browser is a consumer, not a participant. This is deliberate. See [About SSR](about-ssr.md) for the reasoning.
+Client-side navigation layers on top. `<piko:a>` links intercept clicks, fetch the next page's HTML, and swap the body without a full reload. Where the browser supports View Transitions, the swap runs inside one, so a page change can animate without any client-side router. While a transition runs, the browser sends clicks to the `<html>` element, so Piko ends the transition at the first press and passes the click on to the new page. See [Bootstrap options](../reference/bootstrap-options.md#frontend) to turn transitions off. The server still owns the URL-to-HTML contract, and the browser is a consumer, not a participant. This is deliberate. See [About SSR](about-ssr.md) for the reasoning.
 
 ## When to reach past the filesystem
 

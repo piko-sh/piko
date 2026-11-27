@@ -61,10 +61,6 @@ const (
 	// settings set no limit.
 	defaultActionMaxBodyBytes int64 = 10 << 20
 
-	// buildHeadersMaxParts is the maximum number of parts in a Link header (URL + rel + as +
-	// type + crossorigin).
-	buildHeadersMaxParts = 5
-
 	// authRolesKey is the AuthContext key a provider publishes the caller's roles under.
 	authRolesKey = "roles"
 )
@@ -331,6 +327,10 @@ func MountRoutesFromManifest(ctx context.Context, mountConfig *MountRoutesConfig
 
 // createNotFoundHandler builds the not-found response handler shared by both routers.
 //
+// The canonical trailing-slash redirect is the same for every user, so it is sent without
+// a cache policy. Any other answer is an error page, which is sent as private, no-cache
+// unless the app has already set a Cache-Control.
+//
 // Takes router (chi.Router) whose registered routes are consulted for the canonical
 // trailing-slash redirect.
 // Takes pageCtx (pageErrorContext) which provides the manifest store, templater, and
@@ -342,6 +342,7 @@ func createNotFoundHandler(router chi.Router, pageCtx pageErrorContext) http.Han
 		if redirectToCanonicalSlash(router, w, request) {
 			return
 		}
+		setDefaultCacheControl(w.Header(), headerValCachePrivateNoCache)
 		if renderErrorPage(request.Context(), w, request, pageCtx, errorPageRequest{
 			Message:         "",
 			InternalMessage: "",
@@ -603,11 +604,7 @@ func applyMiddlewares(
 ) http.Handler {
 	hasAuthPolicy := entry.GetHasAuthPolicy()
 
-	finalHandler := baseHandler
-
-	if cacheMiddleware != nil && !hasAuthPolicy {
-		finalHandler = cacheMiddleware(baseHandler)
-	}
+	finalHandler := applyCachePolicyMiddleware(baseHandler, entry, cacheMiddleware)
 
 	if hasAuthPolicy {
 		guardConfig := daemon_dto.AuthGuardConfig{}
@@ -657,6 +654,7 @@ func authPolicyMiddleware(
 
 		if len(policy.Roles) > 0 && auth != nil {
 			if !authHasRequiredRole(auth, policy.Roles) {
+				setDefaultCacheControl(writer.Header(), headerValCachePrivateNoCache)
 				http.Error(writer, "Forbidden", http.StatusForbidden)
 				return
 			}
@@ -664,6 +662,33 @@ func authPolicyMiddleware(
 
 		next.ServeHTTP(writer, request)
 	})
+}
+
+// applyCachePolicyMiddleware wraps a handler with the page's cache policy.
+//
+// A page behind an auth policy never goes through the static page cache, because the
+// shared cache key does not vary on identity. Such a page, and any page served when the
+// static page cache is off, still gets Cache-Control: no-store when its policy sets
+// NoStore.
+//
+// Takes baseHandler (http.Handler) which is the handler to wrap.
+// Takes entry (templater_domain.PageEntryView) which holds the page's policies.
+// Takes cacheMiddleware (func(next http.Handler) http.Handler) which adds caching or is
+// nil when the static page cache is off.
+//
+// Returns http.Handler which applies the cache policy and then calls baseHandler.
+func applyCachePolicyMiddleware(
+	baseHandler http.Handler,
+	entry templater_domain.PageEntryView,
+	cacheMiddleware func(next http.Handler) http.Handler,
+) http.Handler {
+	if cacheMiddleware != nil && !entry.GetHasAuthPolicy() {
+		return cacheMiddleware(baseHandler)
+	}
+	if entry.GetHasCachePolicy() {
+		return noStorePolicyMiddleware(baseHandler, entry)
+	}
+	return baseHandler
 }
 
 // resolveAuthContext extracts the AuthContext from the request's PikoRequestCtx,
@@ -903,6 +928,13 @@ func handlePageRenderError(
 
 // handlePageRequest handles an HTTP request for a page route.
 //
+// The response holds HTML rendered for this request, which can include one user's content
+// and CSRF tokens. Unless the app or the page has already set a Cache-Control, every
+// answer from here (the page, a fragment, a redirect or an error page) is sent as
+// private, no-cache, so no shared cache stores it. A page served from the static page
+// cache never reaches this point with the client's response writer, so its policy is
+// unchanged.
+//
 // Takes w (http.ResponseWriter) which receives the rendered page response.
 // Takes request (*http.Request) which contains the incoming HTTP request.
 // Takes deps (*daemon_domain.HTTPHandlerDependencies) which provides shared services for
@@ -916,6 +948,8 @@ func handlePageRequest(
 	entry templater_domain.PageEntryView, websiteConfig *config.WebsiteConfig,
 	store templater_domain.ManifestStoreView,
 ) {
+	setDefaultCacheControl(w.Header(), headerValCachePrivateNoCache)
+
 	ctx, span := tracer.Start(request.Context(), "handlePageRequest")
 	span.SetAttributes(
 		attribute.String(logFieldPath, entry.GetOriginalPath()),
@@ -1154,6 +1188,9 @@ func handleRedirect(
 // handlePartialRequest handles an HTTP request for a partial route by probing and
 // rendering the partial template with tracing and metrics.
 //
+// Like a page, a partial is HTML rendered for this request, so it is sent as private,
+// no-cache unless the app or the partial has already set a Cache-Control.
+//
 // Takes w (http.ResponseWriter) which receives the rendered response.
 // Takes request (*http.Request) which is the incoming HTTP request.
 // Takes deps (*daemon_domain.HTTPHandlerDependencies) which provides shared handler
@@ -1165,6 +1202,8 @@ func handlePartialRequest(
 	w http.ResponseWriter, request *http.Request, deps *daemon_domain.HTTPHandlerDependencies,
 	_ templater_domain.ManifestStoreView, entry templater_domain.PageEntryView, websiteConfig *config.WebsiteConfig,
 ) {
+	setDefaultCacheControl(w.Header(), headerValCachePrivateNoCache)
+
 	ctx, span := tracer.Start(request.Context(), "handlePartialRequest")
 	span.SetAttributes(
 		attribute.String(logFieldPath, entry.GetOriginalPath()),
@@ -1374,69 +1413,6 @@ func extractOTelContext(request *http.Request) context.Context {
 		}
 	}
 	return otel.GetTextMapPropagator().Extract(ctx, carrier)
-}
-
-// buildHeaders builds an HTTP Link header value from link header data.
-//
-// Takes lh (render_dto.LinkHeader) which contains the link URL, relation type, and
-// optional attributes such as resource type and cross-origin settings.
-//
-// Returns string which is the formatted header value with parts joined by semicolons.
-func buildHeaders(lh render_dto.LinkHeader) string {
-	parts := make([]string, 0, buildHeadersMaxParts)
-	parts = append(parts,
-		fmt.Sprintf("<%s>", lh.URL),
-		fmt.Sprintf("rel=%s", lh.Rel),
-	)
-
-	if lh.As != "" {
-		parts = append(parts, fmt.Sprintf("as=%s", lh.As))
-	}
-	if lh.Type != "" {
-		parts = append(parts, fmt.Sprintf("type=%q", lh.Type))
-	}
-	if lh.CrossOrigin == "anonymous" || lh.CrossOrigin == "use-credentials" {
-		parts = append(parts, fmt.Sprintf("crossorigin=%s", lh.CrossOrigin))
-	} else if lh.CrossOrigin != "" {
-		parts = append(parts, "crossorigin")
-	}
-	return strings.Join(parts, "; ")
-}
-
-// sendSpecificEarlyHints sends HTTP 103 Early Hints with the specified link headers to
-// enable browser preloading.
-//
-// Takes w (http.ResponseWriter) which receives the early hints response.
-// Takes r (*http.Request) which provides the incoming request used to prepare early
-// hints.
-// Takes headersToSend ([]render_dto.LinkHeader) which specifies the link headers to send
-// as early hints.
-//
-// Returns bool which indicates whether the early hints were sent and flushed
-// successfully.
-func sendSpecificEarlyHints(w http.ResponseWriter, r *http.Request, headersToSend []render_dto.LinkHeader) bool {
-	if len(headersToSend) == 0 {
-		return false
-	}
-
-	ctx := r.Context()
-	_, l := logger_domain.From(ctx, log)
-
-	for _, lh := range headersToSend {
-		w.Header().Add("Link", buildHeaders(lh))
-	}
-
-	l.Trace("Attempting to send 103 Early Hints", logger_domain.Int("count", len(headersToSend)))
-	w.WriteHeader(http.StatusEarlyHints)
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		l.Warn("ResponseWriter does not support flushing, 103 Early Hints might not be sent effectively.")
-		return false
-	}
-	flusher.Flush()
-	l.Trace("Flushed 103 Early Hints")
-	return true
 }
 
 // isDevelopmentModeFromContext reads the DevelopmentMode flag from the PikoRequestCtx on

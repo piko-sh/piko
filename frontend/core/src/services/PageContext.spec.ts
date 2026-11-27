@@ -18,6 +18,8 @@
 
 import {describe, it, expect, beforeEach, vi} from 'vitest';
 import {createPageContext, resetGlobalPageContext, getGlobalPageContext, findClosestMatch} from './PageContext';
+import {_currentPageVisit, _endPageVisit} from '@/pk/lifecycle';
+import * as reinitFixture from './__fixtures__/test-module-reinit';
 
 describe('PageContext', () => {
     beforeEach(() => {
@@ -624,6 +626,54 @@ describe('PageContext', () => {
 
             await expect(ctx.loadModule('./__fixtures__/test-module-no-id.ts')).resolves.not.toThrow();
             expect(ctx.hasFunction('noIdFunc')).toBe(true);
+        });
+    });
+
+    describe('page visit guard', () => {
+        it('ignores a module that finishes loading after the page visit ended', async () => {
+            const onModuleLoaded = vi.fn();
+            const ctx = createPageContext({onModuleLoaded});
+            const reinitCountBefore = reinitFixture.getReinitCallCount();
+
+            const loading = ctx.loadModule('./__fixtures__/test-module-reinit.ts');
+            _endPageVisit();
+            await loading;
+
+            expect(ctx.hasFunction('reinitFunc')).toBe(false);
+            expect(reinitFixture.getReinitCallCount()).toBe(reinitCountBefore);
+            expect(onModuleLoaded).not.toHaveBeenCalled();
+        });
+
+        it('logs a debug message naming a module that finished loading after its page visit ended', async () => {
+            const debug = vi.spyOn(console, 'debug').mockImplementation(() => {});
+            const ctx = createPageContext();
+
+            const loading = ctx.loadModule('./__fixtures__/test-module-reinit.ts');
+            _endPageVisit();
+            await loading;
+
+            expect(debug).toHaveBeenCalledWith(expect.stringContaining('[PageContext]'),
+                {url: './__fixtures__/test-module-reinit.ts'});
+            debug.mockRestore();
+        });
+
+        it('loads a module whose page visit is still current', async () => {
+            const ctx = createPageContext();
+            const reinitCountBefore = reinitFixture.getReinitCallCount();
+
+            await ctx.loadModule('./__fixtures__/test-module-reinit.ts');
+
+            expect(ctx.hasFunction('reinitFunc')).toBe(true);
+            expect(reinitFixture.getReinitCallCount()).toBe(reinitCountBefore + 1);
+        });
+
+        it('passes the page visit the load started in to __reinit__', async () => {
+            const ctx = createPageContext();
+            const visit = _currentPageVisit();
+
+            await ctx.loadModule('./__fixtures__/test-module-reinit.ts');
+
+            expect(reinitFixture.getLastReinitVisit()).toBe(visit);
         });
     });
 

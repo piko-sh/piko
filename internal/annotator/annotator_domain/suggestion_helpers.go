@@ -25,7 +25,8 @@ package annotator_domain
 import (
 	"strings"
 	"unicode"
-	"unicode/utf8"
+
+	"piko.sh/piko/internal/linguistics/linguistics_domain"
 )
 
 var (
@@ -104,89 +105,7 @@ func findClosestMatch(input string, candidates []string) string {
 		return synonymMatch
 	}
 
-	return findClosestTypo(input, candidates)
-}
-
-// findClosestTypo finds the closest spelling match for a misspelt word.
-//
-// It uses Levenshtein distance to compare the input against a list of valid words. A
-// match is only returned if it falls within a threshold based on the input length.
-//
-// Takes input (string) which is the misspelt word to correct.
-// Takes candidates ([]string) which contains valid words to match against.
-//
-// Returns string which is the closest match, or empty if none is close enough.
-func findClosestTypo(input string, candidates []string) string {
-	inputLower := strings.ToLower(input)
-	bestMatch := ""
-
-	const similarityThresholdDivisor = 3
-	const minimumDistanceThreshold = 2
-
-	threshold := (utf8.RuneCountInString(input) / similarityThresholdDivisor) + 1
-	if threshold < minimumDistanceThreshold && utf8.RuneCountInString(input) > 2 {
-		threshold = minimumDistanceThreshold
-	}
-
-	bestDistance := threshold + 1
-
-	for _, candidate := range candidates {
-		distance := levenshteinDistance(inputLower, strings.ToLower(candidate))
-		if distance < bestDistance {
-			bestDistance = distance
-			bestMatch = candidate
-		}
-	}
-
-	if bestDistance <= threshold {
-		return bestMatch
-	}
-
-	return ""
-}
-
-// levenshteinDistance counts the fewest single-character edits needed to turn one string
-// into another. It is used to find typos and suggest similar words.
-//
-// Takes source (string) which is the starting string.
-// Takes target (string) which is the string to match against.
-//
-// Returns int which is the number of edits needed.
-func levenshteinDistance(source, target string) int {
-	sourceRunes := []rune(source)
-	targetRunes := []rune(target)
-	sourceLen := len(sourceRunes)
-	targetLen := len(targetRunes)
-
-	if sourceLen == 0 {
-		return targetLen
-	}
-	if targetLen == 0 {
-		return sourceLen
-	}
-
-	previousRow := make([]int, targetLen+1)
-	currentRow := make([]int, targetLen+1)
-
-	for targetIndex := 0; targetIndex <= targetLen; targetIndex++ {
-		previousRow[targetIndex] = targetIndex
-	}
-
-	for sourceIndex := range sourceLen {
-		currentRow[0] = sourceIndex + 1
-		for targetIndex := range targetLen {
-			cost := 0
-			if sourceRunes[sourceIndex] != targetRunes[targetIndex] {
-				cost = 1
-			}
-			deletionCost := previousRow[targetIndex+1] + 1
-			insertionCost := currentRow[targetIndex] + 1
-			substitutionCost := previousRow[targetIndex] + cost
-			currentRow[targetIndex+1] = min(deletionCost, insertionCost, substitutionCost)
-		}
-		copy(previousRow, currentRow)
-	}
-	return currentRow[targetLen]
+	return linguistics_domain.ClosestName(input, candidates)
 }
 
 // findSynonymMatch checks if the input term has a known synonym that matches any of the

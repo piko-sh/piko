@@ -34,6 +34,16 @@ export interface PartialDebugInfo {
     cleanupCount: number;
 }
 
+/** Debug information about the lifecycle of one page script instance on the current page. */
+export interface PageScriptDebugInfo {
+    /** Whether the instance's onConnected callbacks have run in this page visit. */
+    connectedOnce: boolean;
+    /** Names of registered lifecycle callbacks. */
+    registeredCallbacks: string[];
+    /** Number of cleanups that run when the page visit ends. */
+    cleanupCount: number;
+}
+
 /** Debug inspection API for E2E testing. */
 export interface PikoDebugAPI {
     /**
@@ -76,6 +86,13 @@ export interface PikoDebugAPI {
      * @returns Array of partial elements that are currently connected.
      */
     getAllConnectedPartials(): Element[];
+
+    /**
+     * Returns the lifecycles of the page script instances of the current page visit.
+     *
+     * @returns One entry per page script instance, in creation order.
+     */
+    getPageScripts(): PageScriptDebugInfo[];
 
     /**
      * Checks if the debug API is available.

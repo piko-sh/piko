@@ -1,0 +1,11 @@
+{
+  "description": "Validates that a [modal=name] selector in a partial emits a warning when no element with that modal attribute is on the page or in any partial, while a matching selector resolves.",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "Modal selector \"[modal=qoute]\" matches no element with modal=\"qoute\" on page testcase_108_unresolved_modal_selector_warning/main.pk or in any partial. Did you mean 'quote'?",
+      "onLine": 24
+    }
+  ]
+}

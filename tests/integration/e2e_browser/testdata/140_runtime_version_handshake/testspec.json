@@ -1,0 +1,220 @@
+{
+  "description": "An open tab loads a full page instead of SPA navigation once the server names another runtime build, recovers from a missing runtime with one reload, and never reloads in a loop",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Main Page"
+    },
+    {
+      "action": "comment",
+      "value": "Baseline: with the same runtime build on both sides, navigation stays in the SPA"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "window.__spaMarker = true;"
+    },
+    {
+      "action": "click",
+      "selector": "#nav-other"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Other Page"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "if (window.__spaMarker !== true) { throw new Error('the navigation loaded a full page although the runtime did not change'); }"
+    },
+    {
+      "action": "click",
+      "selector": "#nav-main"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Main Page"
+    },
+    {
+      "action": "comment",
+      "value": "Version switch: the server now names another runtime build, so the next navigation is a full load"
+    },
+    {
+      "action": "runtimeDeploy",
+      "value": "reset"
+    },
+    {
+      "action": "runtimeDeploy",
+      "value": "advertise-other-version"
+    },
+    {
+      "action": "click",
+      "selector": "#nav-other"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Other Page"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "if (window.__spaMarker === true) { throw new Error('a fragment from another runtime build was morphed into this tab'); }"
+    },
+    {
+      "action": "checkRuntimeDeploy",
+      "value": "/other",
+      "expected": 1
+    },
+    {
+      "action": "comment",
+      "value": "One runtime runs after the full load, and the page script binds its button once"
+    },
+    {
+      "action": "checkText",
+      "selector": "#other-connected",
+      "expected": "1"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "const loads = performance.getEntriesByType('resource').filter(entry => /^\\/_piko\\/dist\\/[0-9a-f]{16}\\/ppframework\\.core\\.es\\.js$/.test(new URL(entry.name).pathname)); if (loads.length !== 1) { throw new Error('expected the page to load one runtime, got ' + loads.length); } const running = window.__pikoRuntime; if (!running || !running.version || !loads[0].name.includes('/' + running.version + '/')) { throw new Error('the running runtime is not the one this page loaded'); }"
+    },
+    {
+      "action": "click",
+      "selector": "#other-button"
+    },
+    {
+      "action": "checkText",
+      "selector": "#other-clicks",
+      "expected": "1"
+    },
+    {
+      "action": "comment",
+      "value": "While the server keeps naming another build, every navigation stays a full load"
+    },
+    {
+      "action": "click",
+      "selector": "#nav-main"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Main Page"
+    },
+    {
+      "action": "checkRuntimeDeploy",
+      "value": "/main",
+      "expected": 1
+    },
+    {
+      "action": "checkText",
+      "selector": "#main-connected",
+      "expected": "1"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "const loads = performance.getEntriesByType('resource').filter(entry => /^\\/_piko\\/dist\\/[0-9a-f]{16}\\/ppframework\\.core\\.es\\.js$/.test(new URL(entry.name).pathname)); if (loads.length !== 1) { throw new Error('expected the page to load one runtime, got ' + loads.length); } const running = window.__pikoRuntime; if (!running || !running.version || !loads[0].name.includes('/' + running.version + '/')) { throw new Error('the running runtime is not the one this page loaded'); }"
+    },
+    {
+      "action": "comment",
+      "value": "Rolling deploy: one page load reaches an instance without this runtime build, and the page recovers with exactly one reload"
+    },
+    {
+      "action": "runtimeDeploy",
+      "value": "reset"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "sessionStorage.clear();"
+    },
+    {
+      "action": "runtimeDeploy",
+      "value": "fail-runtime-once"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "setTimeout(() => location.assign('/main'), 0);"
+    },
+    {
+      "action": "checkRuntimeDeploy",
+      "value": "/main",
+      "expected": 2
+    },
+    {
+      "action": "checkText",
+      "selector": "#main-connected",
+      "expected": "1"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "if (!sessionStorage.getItem('piko:runtime-reload-at')) { throw new Error('the recovery reload was not recorded'); }"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "const loads = performance.getEntriesByType('resource').filter(entry => /^\\/_piko\\/dist\\/[0-9a-f]{16}\\/ppframework\\.core\\.es\\.js$/.test(new URL(entry.name).pathname)); if (loads.length !== 1) { throw new Error('expected the page to load one runtime, got ' + loads.length); } const running = window.__pikoRuntime; if (!running || !running.version || !loads[0].name.includes('/' + running.version + '/')) { throw new Error('the running runtime is not the one this page loaded'); }"
+    },
+    {
+      "action": "comment",
+      "value": "No reload loop: when every load fails, the page reloads once, then stops and logs an error"
+    },
+    {
+      "action": "runtimeDeploy",
+      "value": "reset"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "sessionStorage.clear();"
+    },
+    {
+      "action": "clearConsole"
+    },
+    {
+      "action": "runtimeDeploy",
+      "value": "fail-runtime-always"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "setTimeout(() => location.assign('/main'), 0);"
+    },
+    {
+      "action": "checkRuntimeDeploy",
+      "value": "/main",
+      "expected": 2
+    },
+    {
+      "action": "checkConsoleMessage",
+      "message": "failed to load again soon after a reload"
+    },
+    {
+      "action": "wait",
+      "value": "2000"
+    },
+    {
+      "action": "checkRuntimeDeploy",
+      "value": "/main",
+      "expected": 2
+    },
+    {
+      "action": "checkText",
+      "selector": "#main-connected",
+      "expected": "0"
+    }
+  ]
+}

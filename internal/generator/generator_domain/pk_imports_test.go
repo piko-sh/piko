@@ -23,6 +23,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"piko.sh/piko/internal/daemon/daemon_frontend"
 )
 
 func Test_prepareSourceWithImports(t *testing.T) {
@@ -88,12 +90,12 @@ func Test_prepareSourceWithImports(t *testing.T) {
 			assert.Contains(t, result, "import { action }", "result should import action")
 
 			if len(tt.wantFrameworkImport) > 0 {
-				assert.Contains(t, result, PKFrameworkURL, "result should contain framework import")
+				assert.Contains(t, result, PKFrameworkURL(), "result should contain framework import")
 				for _, id := range tt.wantFrameworkImport {
 					assert.Contains(t, result, id, "import should contain %s", id)
 				}
 			} else {
-				assert.NotContains(t, result, PKFrameworkURL, "result should not contain framework import when no bare identifiers used")
+				assert.NotContains(t, result, PKFrameworkURL(), "result should not contain framework import when no bare identifiers used")
 			}
 
 			assert.True(t, strings.HasSuffix(result, tt.source), "original source should be preserved")
@@ -158,7 +160,7 @@ func TestBuildImportStatement(t *testing.T) {
 			name:        "framework identifiers generate framework import",
 			identifiers: []string{"_createRefs", "getGlobalPageContext"},
 			wantAction:  true,
-			wantOthers:  "import { _createRefs, getGlobalPageContext } from \"/_piko/dist/ppframework.core.es.js\";\n",
+			wantOthers:  "import { _createRefs, getGlobalPageContext } from \"" + PKFrameworkURL() + "\";\n",
 		},
 	}
 
@@ -177,4 +179,22 @@ func TestBuildImportStatement(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPKRuntimeURLs_ImportTheCoreThroughTheServersReexport(t *testing.T) {
+	t.Parallel()
+
+	version := daemon_frontend.RuntimeVersion()
+	require.True(t, daemon_frontend.IsRuntimeVersion(version))
+
+	assert.Equal(t, "/_piko/dist/ppframework.core.es.js", PKFrameworkURL(),
+		"generated modules must import the core URL that re-exports the server's own build")
+	assert.Equal(t, "/_piko/dist/ppframework.components.es.js", PKComponentsURL(),
+		"compiled components must import the components URL that re-exports the server's own build")
+}
+
+func TestEmptyActionsStub_ImportsTheCoreURLThatReexportsTheServersBuild(t *testing.T) {
+	t.Parallel()
+
+	assert.Contains(t, emptyActionsStub, "from '"+daemon_frontend.CoreModuleImportURL()+"'")
 }

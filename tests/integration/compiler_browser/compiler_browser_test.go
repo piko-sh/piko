@@ -158,13 +158,13 @@ func TestCompiler_Functional(t *testing.T) {
 			require.NoError(t, err)
 
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				switch r.URL.Path {
+				switch daemon_frontend.StripRuntimeVersion(r.URL.Path) {
 				case "/harness.html":
 					w.Header().Set("Content-Type", "text/html")
 					_, _ = fmt.Fprint(w, createTestHarnessHTML(artefact))
 				case "/_piko/dist/ppframework.core.es.js", "/_piko/dist/ppframework.components.es.js":
 					w.Header().Set("Content-Type", "application/javascript")
-					filename := strings.TrimPrefix(r.URL.Path, "/_piko/dist/")
+					filename := strings.TrimPrefix(daemon_frontend.StripRuntimeVersion(r.URL.Path), "/_piko/dist/")
 					framework, err := daemon_frontend.EmbeddedFrontendTemplates.ReadFile("built/" + filename)
 					if err != nil {
 						t.Logf("ERROR: Failed to read embedded framework JS %s: %v", filename, err)

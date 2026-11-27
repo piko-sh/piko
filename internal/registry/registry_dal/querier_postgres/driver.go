@@ -543,7 +543,7 @@ func (d *driver) InsertVariantChunk(ctx context.Context, params dalcore.InsertVa
 		SequenceNumber:   params.SequenceNumber,
 		MimeType:         params.MimeType,
 		CreatedAt:        params.CreatedAt,
-		DurationSeconds:  params.DurationSeconds,
+		DurationSeconds:  registry_db.NullFrom(params.DurationSeconds),
 	})
 }
 

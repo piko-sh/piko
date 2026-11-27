@@ -97,8 +97,8 @@ type ManifestStore struct {
 
 	// jsArtefactToPartialName maps JS artefact IDs to their partial names, enabling the
 	// frontend to scope partial JS functions by their friendly partial name (e.g.,
-	// "modal-wrapper") rather than the hashed ID. Only populated for partials that have JS
-	// scripts.
+	// "modal-wrapper") rather than the hashed ID. It comes from the manifest and holds every
+	// partial with a script, public or not.
 	jsArtefactToPartialName map[string]string
 
 	// baseDir is the project root folder used to build full paths from relative paths in
@@ -255,7 +255,7 @@ func NewManifestStore(ctx context.Context, provider generator_domain.ManifestPro
 		errorPages:              make(map[int][]*errorPageEntry),
 		keys:                    make([]string, 0, len(manifest.Pages)+len(manifest.Partials)+len(manifest.Emails)+len(manifest.Pdfs)),
 		registry:                templater_domain.GetDefaultRegistry(),
-		jsArtefactToPartialName: make(map[string]string, len(manifest.Partials)),
+		jsArtefactToPartialName: manifest.PartialScripts,
 		rangeErrorPages:         nil,
 		catchAllErrorPages:      nil,
 		baseDir:                 "",
@@ -928,18 +928,13 @@ func processPages(store *ManifestStore, pages map[string]generator_dto.ManifestP
 // processPartials loads and links all partial entries, adapting them to the PageEntry
 // structure.
 //
-// Partials use single-pattern routing with query-only locale detection. processPartials
-// also builds the jsArtefactToPartialName mapping for frontend function scoping.
+// Partials use single-pattern routing with query-only locale detection.
 //
 // Takes store (*ManifestStore) which receives the processed partial entries.
 // Takes partials (map[string]generator_dto.ManifestPartialEntry) which provides the raw
 // partial data to process.
 func processPartials(store *ManifestStore, partials map[string]generator_dto.ManifestPartialEntry) {
 	for key, partialData := range partials {
-		if partialData.JSArtefactID != "" {
-			store.jsArtefactToPartialName[partialData.JSArtefactID] = partialData.PartialName
-		}
-
 		entry := NewPartialPageEntry(partialData)
 		entry.jsArtefactToPartialName = store.jsArtefactToPartialName
 		store.linkEntry(entry)
@@ -1245,22 +1240,18 @@ func warnMissingAuthPolicy(r *templater_dto.RequestData, packagePath string) {
 // Takes err (error) which is the error to display.
 // Takes filePath (string) which is the name of the component that failed.
 //
+// The overlay is styled by classes in the framework's theme.css rather than style
+// attributes, so a Content Security Policy without 'unsafe-inline' does not block it.
+//
 // Returns *ast_domain.TemplateAST which contains the styled error overlay.
 func buildErrorAST(err error, filePath string) *ast_domain.TemplateAST {
 	errorHTML := fmt.Sprintf(
-		`<div style="z-index: 99999; position: fixed; top: 0; left: 0; right: 0; bottom: 0; `+
-			`background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center;">`+
-			`<div style="width: 80vw; max-width: 1200px; padding: 2rem; border-radius: 8px; `+
-			`border: 2px solid #e11d48; background: #1c1917; font-family: ui-monospace, `+
-			`SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; `+
-			`color: #f8fafc; max-height: 80vh; overflow-y: auto;">`+
-			`<h3 style="color: #f43f5e; margin-bottom: 1rem; font-size: 1.5rem; `+
-			`border-bottom: 1px solid #3f3f46; padding-bottom: 0.5rem;">Runtime Error</h3>`+
-			`<p style="margin-bottom: 0.5rem; font-size: 1.1rem; color: #a1a1aa;">`+
-			`Failed to execute component: <strong style="color: #e5e7eb;">%s</strong></p>`+
-			`<pre style="background: #27272a; padding: 1rem; border-radius: 4px; `+
-			`white-space: pre-wrap; word-wrap: break-word; font-size: 0.9rem; color: #d4d4d8; `+
-			`border: 1px solid #3f3f46;">%s</pre>`+
+		`<div class="pk-runtime-error">`+
+			`<div class="pk-runtime-error__panel">`+
+			`<h3 class="pk-runtime-error__title">Runtime Error</h3>`+
+			`<p class="pk-runtime-error__message">`+
+			`Failed to execute component: <strong class="pk-runtime-error__component">%s</strong></p>`+
+			`<pre class="pk-runtime-error__detail">%s</pre>`+
 			`</div>`+
 			`</div>`,
 		html.EscapeString(filePath),

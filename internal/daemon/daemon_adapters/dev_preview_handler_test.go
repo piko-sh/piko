@@ -24,6 +24,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -32,6 +33,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"piko.sh/json"
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/compiler/compiler_domain"
+	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/pdfwriter/pdfwriter_domain"
 	"piko.sh/piko/internal/pdfwriter/pdfwriter_dto"
@@ -546,8 +549,45 @@ func TestDevPreviewHandler_DevWidgetSnippet(t *testing.T) {
 			snippet := handler.devWidgetSnippet(t.Context())
 
 			assert.True(t, strings.HasPrefix(snippet, "<piko-dev-widget></piko-dev-widget>"))
-			assert.Contains(t, snippet, "/_piko/dist/ppframework.core.es.js")
+			assert.Contains(t, snippet, `"`+daemon_frontend.CoreModuleImportURL()+`"`)
 			assert.Equal(t, testCase.wantComponent, strings.Contains(snippet, "/_piko/widget.js"))
+		})
+	}
+}
+
+func TestDevPreviewHandler_DevWidgetSnippetFollowsTheCSPToken(t *testing.T) {
+	daemon_frontend.SetDevWidgetHTML("<piko-dev-widget></piko-dev-widget>")
+	t.Cleanup(func() { daemon_frontend.SetDevWidgetHTML("") })
+
+	testCases := []struct {
+		name     string
+		cspToken string
+	}{
+		{name: "every script carries the request token under a token-based policy", cspToken: "abc+/="},
+		{name: "no script carries a token when the policy uses none", cspToken: ""},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			registry := &render_domain.MockRegistryPort{
+				GetComponentMetadataFunc: func(context.Context, string) (*render_dto.ComponentMetadata, error) {
+					return &render_dto.ComponentMetadata{BaseJSPath: "/_piko/widget.js"}, nil
+				},
+			}
+			handler := NewDevPreviewHandler(nil, nil, nil, nil, nil, registry)
+			ctx := daemon_dto.WithPikoRequestCtx(t.Context(), &daemon_dto.PikoRequestCtx{CSPToken: testCase.cspToken})
+
+			snippet := handler.devWidgetSnippet(ctx)
+
+			scripts := moduleScriptTagPattern.FindAllString(snippet, -1)
+			require.Len(t, scripts, 4)
+			for _, script := range scripts {
+				if testCase.cspToken == "" {
+					assert.NotContains(t, script, "nonce=")
+					continue
+				}
+				assert.Contains(t, script, ` nonce="`+testCase.cspToken+`"`)
+			}
 		})
 	}
 }
@@ -558,4 +598,87 @@ func TestDevPreviewHandler_DevWidgetSnippetIsEmptyOutsideDevMode(t *testing.T) {
 	handler := NewDevPreviewHandler(nil, nil, nil, nil, nil, nil)
 
 	assert.Empty(t, handler.devWidgetSnippet(t.Context()))
+}
+
+var (
+	esImportPattern        = regexp.MustCompile(`import\s*\{[^}]*\}\s*from\s*"([^"]+)"`)
+	moduleScriptTagPattern = regexp.MustCompile(`<script type="module"[^>]*>`)
+	moduleScriptPattern    = regexp.MustCompile(`<script type="module" src="([^"]+)"`)
+)
+
+func frameworkRuntimeURLs(pattern *regexp.Regexp, text string) []string {
+	var urls []string
+	for _, match := range pattern.FindAllStringSubmatch(text, -1) {
+		bundle := strings.TrimPrefix(daemon_frontend.StripRuntimeVersion(match[1]), "/_piko/dist/")
+		if strings.HasPrefix(bundle, "ppframework.core.") || strings.HasPrefix(bundle, "ppframework.components.") {
+			urls = append(urls, match[1])
+		}
+	}
+	return urls
+}
+
+func compiledComponentRuntimeURLs(t *testing.T) []string {
+	t.Helper()
+
+	source := []byte(`<template name="runtime-probe"><div>Probe</div></template>` +
+		`<script lang="ts">const state = {};</script>`)
+	artefact, err := compiler_domain.NewSFCCompiler("", nil).CompileSFC(t.Context(), "runtime-probe.pkc", source)
+	require.NoError(t, err)
+
+	urls := frameworkRuntimeURLs(esImportPattern, artefact.Files[artefact.BaseJSPath])
+	require.NotEmpty(t, urls, "a compiled component must import the framework runtime")
+	return urls
+}
+
+func TestDevPreviewHandler_LoadsTheRuntimeThatComponentsImport(t *testing.T) {
+	daemon_frontend.SetDevWidgetHTML("<piko-dev-widget></piko-dev-widget>")
+	t.Cleanup(func() { daemon_frontend.SetDevWidgetHTML("") })
+
+	compiledURLs := compiledComponentRuntimeURLs(t)
+	router := newPreviewRouter(t, previewHandlerDependencies{
+		scenarios: map[string][]templater_dto.PreviewScenario{
+			"emails/welcome.pk": {{Name: "default"}},
+			"pdfs/invoice.pk":   {{Name: "default"}},
+		},
+		emailService: &stubEmailTemplateService{html: "<html><body><p>Hello</p></body></html>"},
+	})
+
+	for _, target := range []string{"/_piko/dev/preview/email/welcome", "/_piko/dev/preview/pdf/invoice"} {
+		t.Run(target, func(t *testing.T) {
+			recorder := servePreview(t, router, target)
+
+			require.Equal(t, http.StatusOK, recorder.Code)
+			assert.ElementsMatch(t, compiledURLs, frameworkRuntimeURLs(moduleScriptPattern, recorder.Body.String()),
+				"the preview must load each runtime bundle once, at the URL compiled components import")
+		})
+	}
+}
+
+func TestDevPreviewHandler_PdfPreviewStylesFollowTheCSPToken(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name      string
+		cspToken  string
+		wantStyle string
+	}{
+		{name: "the page style carries the request token under a token-based policy", cspToken: "abc", wantStyle: `<style nonce="abc">body{margin:0;height:100vh}</style>`},
+		{name: "the page style carries no token when the policy uses none", cspToken: "", wantStyle: `<style>body{margin:0;height:100vh}</style>`},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			handler := NewDevPreviewHandler(nil, nil, nil, nil, nil, nil)
+			request := httptest.NewRequest(http.MethodGet, "/_piko/dev/preview/pdf/invoice", nil)
+			request = request.WithContext(daemon_dto.WithPikoRequestCtx(request.Context(), &daemon_dto.PikoRequestCtx{CSPToken: testCase.cspToken}))
+			recorder := httptest.NewRecorder()
+
+			handler.renderPdfPreview(recorder, request, "pdfs/invoice.pk", nil, "")
+
+			body := recorder.Body.String()
+			assert.Contains(t, body, testCase.wantStyle)
+			assert.NotContains(t, body, ` style="`)
+		})
+	}
 }

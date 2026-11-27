@@ -21,6 +21,7 @@ package inventory
 import (
 	"os"
 	"testing"
+	"testing/fstest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -66,4 +67,21 @@ func TestClassifyRejectsInvalidAssignments(t *testing.T) {
 			require.ErrorContains(t, err, testCase.message)
 		})
 	}
+}
+
+func TestAddSourceGroupsSkipsADirectoryWithOnlyBuildOutput(t *testing.T) {
+	files := fstest.MapFS{
+		"examples/scenarios/kept/src/pages/main.pk":     {},
+		"examples/scenarios/removed/src/bin/generator":  {},
+		"examples/scenarios/removed/src/.piko/wal/data": {},
+		"wdk/adapter/go.mod":                            {},
+		"tests/integration/suite/main_test.go":          {},
+	}
+	entries := capabilitySet{}
+	require.NoError(t, addSourceGroups(files, entries))
+	names := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		names = append(names, entry.Kind+"/"+entry.Name)
+	}
+	assert.ElementsMatch(t, []string{"example/kept", "wdk/adapter", "suite/suite"}, names)
 }

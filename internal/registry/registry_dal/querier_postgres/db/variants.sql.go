@@ -64,7 +64,7 @@ func (queries *Queries) GetAllTagsForArtefact(ctx context.Context, artefactID st
 
 const gettagsforartefactids = `SELECT artefact_id, variant_id, tag_key, tag_value
 FROM registry_variant_tag
-WHERE artefact_id IN ($1);`
+WHERE artefact_id = ANY($1);`
 
 type GetTagsForArtefactIDsParams struct {
 	IDs []string
@@ -77,15 +77,7 @@ type GetTagsForArtefactIDsRow struct {
 }
 
 func (queries *Queries) GetTagsForArtefactIDs(ctx context.Context, params GetTagsForArtefactIDsParams) ([]GetTagsForArtefactIDsRow, error) {
-	if err := pikoCheckBinds(len(params.IDs)); err != nil {
-		return nil, err
-	}
-	query := pikoSplice(gettagsforartefactids, pikoList(pikoListMark{Empty: `= ANY('{}')`, Operator: 95, Start: 98, End: 102}, 1, len(params.IDs)))
-	args := make([]any, 0, len(params.IDs))
-	for _, v := range params.IDs {
-		args = append(args, v)
-	}
-	rows, err := queries.reader.QueryContext(ctx, query, args...)
+	rows, err := queries.reader.QueryContext(ctx, gettagsforartefactids, pikoArrayLiteral(params.IDs))
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +177,7 @@ func (queries *Queries) GetVariantsForArtefact(ctx context.Context, artefactID s
 
 const getvariantsforartefactids = `SELECT artefact_id, variant_id, storage_key, storage_backend_id, mime_type, size_bytes, status, created_at
 FROM registry_variant
-WHERE artefact_id IN ($1);`
+WHERE artefact_id = ANY($1);`
 
 type GetVariantsForArtefactIDsParams struct {
 	IDs []string
@@ -202,15 +194,7 @@ type GetVariantsForArtefactIDsRow struct {
 }
 
 func (queries *Queries) GetVariantsForArtefactIDs(ctx context.Context, params GetVariantsForArtefactIDsParams) ([]GetVariantsForArtefactIDsRow, error) {
-	if err := pikoCheckBinds(len(params.IDs)); err != nil {
-		return nil, err
-	}
-	query := pikoSplice(getvariantsforartefactids, pikoList(pikoListMark{Empty: `= ANY('{}')`, Operator: 147, Start: 150, End: 154}, 1, len(params.IDs)))
-	args := make([]any, 0, len(params.IDs))
-	for _, v := range params.IDs {
-		args = append(args, v)
-	}
-	rows, err := queries.reader.QueryContext(ctx, query, args...)
+	rows, err := queries.reader.QueryContext(ctx, getvariantsforartefactids, pikoArrayLiteral(params.IDs))
 	if err != nil {
 		return nil, err
 	}

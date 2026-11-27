@@ -16,6 +16,15 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
+import {applyPageCSPTokenToTree} from '@/core/cspToken';
+
+/**
+ * The attribute that carries a Content Security Policy token. A morph never copies it from
+ * a fragment, whose token belongs to another response, and never removes it from the live
+ * page, whose token the browser has hidden.
+ */
+const CSP_TOKEN_ATTRIBUTE = 'nonce';
+
 /** Node type constant for element nodes. */
 const ELEMENT_NODE = 1;
 
@@ -405,6 +414,78 @@ function extractParentScopesFromChildren(container: HTMLElement): string[] {
     return [];
 }
 
+/**
+ * Splits a partial attribute value into its scope IDs.
+ *
+ * @param partialAttr - The partial attribute value.
+ * @returns The scope IDs in their original order.
+ */
+function splitScopes(partialAttr: string): string[] {
+    return partialAttr.trim().split(/\s+/);
+}
+
+/**
+ * Checks whether a scope list holds every scope of another list.
+ *
+ * @param scopes - The scope list to search.
+ * @param requiredScopes - The scopes that must all be present.
+ * @returns True if every required scope is in the list.
+ */
+function containsAllScopes(scopes: string[], requiredScopes: string[]): boolean {
+    return requiredScopes.every(scope => scopes.includes(scope));
+}
+
+/**
+ * Checks whether a different partial or page rendered the target node.
+ *
+ * The partial attribute lists the scopes of the partial or page that rendered an
+ * element. A partial fetched on its own can list fewer parent scopes than the same
+ * element inside the page, so the two count as the same source when one list holds
+ * every scope of the other. A node without scopes always counts as the same source.
+ *
+ * @param from - The live node.
+ * @param to - The target node.
+ * @returns True if the two nodes come from different partials or pages.
+ */
+function isRenderedByOtherScope(from: Node, to: Node): boolean {
+    if (from.nodeType !== ELEMENT_NODE || to.nodeType !== ELEMENT_NODE) {
+        return false;
+    }
+    const fromPartial = (from as HTMLElement).getAttribute('partial')?.trim();
+    const toPartial = (to as HTMLElement).getAttribute('partial')?.trim();
+    if (!fromPartial || !toPartial || fromPartial === toPartial) {
+        return false;
+    }
+    const fromScopes = splitScopes(fromPartial);
+    const toScopes = splitScopes(toPartial);
+    return !containsAllScopes(fromScopes, toScopes) && !containsAllScopes(toScopes, fromScopes);
+}
+
+/**
+ * A component host that can say which of its attributes it added from its own state.
+ * The component runtime's elements have this method.
+ */
+interface SelfAddedAttributeHost {
+    /** Reports whether the component added the attribute, so no markup set it. */
+    hasSelfAddedAttribute(attributeName: string): boolean;
+}
+
+/**
+ * Checks whether a component added an attribute from its own state.
+ *
+ * The server never renders such an attribute, so its absence from the target is not a
+ * change. Removing it would reset the component's state, for example turning a boolean
+ * property that defaults to true into false.
+ *
+ * @param element - The live element.
+ * @param attributeName - The attribute to check.
+ * @returns True if the element's component added the attribute itself.
+ */
+function isSelfAddedByComponent(element: HTMLElement, attributeName: string): boolean {
+    const host = element as Partial<SelfAddedAttributeHost>;
+    return typeof host.hasSelfAddedAttribute === 'function' && host.hasSelfAddedAttribute(attributeName);
+}
+
 /** Attribute name used to mark attributes that should be preserved during morphing. */
 const PRESERVE_ATTR_NAME = 'pk-no-refresh-attrs';
 
@@ -472,6 +553,9 @@ function handlePartialScopePreservation(
  * @returns True if the attribute should not be updated.
  */
 function shouldSkipAttrUpdate(attrName: string, ctx: MorphAttrsContext): boolean {
+    if (attrName === CSP_TOKEN_ATTRIBUTE) {
+        return true;
+    }
     if (attrName === 'pk-ev-bound' || attrName === 'pk-sync-bound') {
         return true;
     }
@@ -510,6 +594,30 @@ function syncToAttrs(fromEl: HTMLElement, toEl: HTMLElement, ctx: MorphAttrsCont
 }
 
 /**
+ * Checks whether a live attribute stays even when the target element does not have it.
+ *
+ * @param fromEl - The live DOM element.
+ * @param attrName - The live attribute's name.
+ * @param ctx - The morph attributes context.
+ * @returns True if the attribute must not be removed.
+ */
+function keepsLiveAttr(fromEl: HTMLElement, attrName: string, ctx: MorphAttrsContext): boolean {
+    if (attrName === CSP_TOKEN_ATTRIBUTE) {
+        return true;
+    }
+    if (attrName === 'pk-ev-bound' || attrName === 'pk-sync-bound') {
+        return true;
+    }
+    if (ctx.partialScopeHandled && attrName === 'partial') {
+        return true;
+    }
+    if (ctx.preservedAttrs.includes(attrName)) {
+        return true;
+    }
+    return isSelfAddedByComponent(fromEl, attrName);
+}
+
+/**
  * Removes attributes from the live element that are not present on the target element.
  *
  * @param fromEl - The live DOM element.
@@ -518,13 +626,7 @@ function syncToAttrs(fromEl: HTMLElement, toEl: HTMLElement, ctx: MorphAttrsCont
  */
 function removeStaleAttrs(fromEl: HTMLElement, toEl: HTMLElement, ctx: MorphAttrsContext): void {
     for (const fromAttr of Array.from(fromEl.attributes)) {
-        if (fromAttr.name === 'pk-ev-bound' || fromAttr.name === 'pk-sync-bound') {
-            continue;
-        }
-        if (ctx.partialScopeHandled && fromAttr.name === 'partial') {
-            continue;
-        }
-        if (ctx.preservedAttrs.includes(fromAttr.name)) {
+        if (keepsLiveAttr(fromEl, fromAttr.name, ctx)) {
             continue;
         }
         if (!toEl.hasAttributeNS(fromAttr.namespaceURI, fromAttr.localName)) {
@@ -745,7 +847,7 @@ function morphChildren(fromEl: HTMLElement, toEl: HTMLElement, isParentPreserved
 
         if (fromMatch) {
             const cursorWasMatch = fromChild === fromMatch;
-            const morphedNode = morphNode(fromMatch, toChild, isParentPreserved, options);
+            const morphedNode = morphMatchedChild(fromMatch, toChild, isParentPreserved, options);
 
             if (cursorWasMatch) {
                 fromChild = morphedNode.nextSibling;
@@ -760,15 +862,10 @@ function morphChildren(fromEl: HTMLElement, toEl: HTMLElement, isParentPreserved
                 fromChild = fromChild.nextSibling;
             }
         } else {
-            const newNode = toChild.cloneNode(true);
-            if (options._parentScopesToInherit && options._parentScopesToInherit.length > 0) {
-                applyParentScopesToTree(newNode, options._parentScopesToInherit);
-            }
-            if (options.onBeforeNodeAdded?.(newNode) !== false) {
-                fromEl.insertBefore(newNode, fromChild);
-                upgradeCustomElements(newNode);
-                options.onNodeAdded?.(newNode);
-            }
+            const insertBefore = fromChild;
+            addTargetNode(toChild, options, newNode => {
+                fromEl.insertBefore(newNode, insertBefore);
+            });
         }
     }
 
@@ -834,14 +931,39 @@ function morphElementNode(
  * @returns The replacement node, or the original if the hook prevented it.
  */
 function replaceIncompatibleNode(from: Node, to: Node, currentOptions: MorphOptions): Node {
-    const replacement = to.cloneNode(true);
-    if (currentOptions.onBeforeNodeAdded?.(replacement) === false) {
-        return from;
+    const replacement = addTargetNode(to, currentOptions, newNode => {
+        from.parentNode?.replaceChild(newNode, from);
+        currentOptions.onNodeDiscarded?.(from);
+    });
+    return replacement ?? from;
+}
+
+/**
+ * Copies a target node into the live DOM, for both new and replaced nodes.
+ *
+ * The copy's script, style and module preload elements get the page's CSP token in place
+ * of any token the fragment carried. The copy inherits the parent partial scopes, the
+ * onBeforeNodeAdded hook can stop it, and once it is in place its custom elements are
+ * upgraded and onNodeAdded runs.
+ *
+ * @param to - The target node to copy.
+ * @param options - Morph configuration options.
+ * @param insert - Puts the copy into the live DOM.
+ * @returns The copy, or null when onBeforeNodeAdded stopped it.
+ */
+function addTargetNode(to: Node, options: MorphOptions, insert: (newNode: Node) => void): Node | null {
+    const newNode = to.cloneNode(true);
+    applyPageCSPTokenToTree(newNode, document);
+    if (options._parentScopesToInherit) {
+        applyParentScopesToTree(newNode, options._parentScopesToInherit);
     }
-    from.parentNode?.replaceChild(replacement, from);
-    currentOptions.onNodeDiscarded?.(from);
-    currentOptions.onNodeAdded?.(replacement);
-    return replacement;
+    if (options.onBeforeNodeAdded?.(newNode) === false) {
+        return null;
+    }
+    insert(newNode);
+    upgradeCustomElements(newNode);
+    options.onNodeAdded?.(newNode);
+    return newNode;
 }
 
 /**
@@ -876,6 +998,46 @@ function morphNode(from: Node, to: Node, isParentPreserved: boolean, currentOpti
     }
 
     return morphElementNode(from as HTMLElement, to as HTMLElement, isParentPreserved, currentOptions);
+}
+
+/**
+ * Checks whether a matched child must be replaced instead of morphed.
+ *
+ * A morph that preserves partial scopes reloads the same partial and merges the
+ * partial attribute itself, so only other morphs, such as page navigation, replace
+ * children that a different partial or page rendered.
+ *
+ * @param from - The matched live node.
+ * @param to - The target node.
+ * @param currentOptions - Morph configuration options.
+ * @returns True if the live node must be replaced.
+ */
+function mustReplaceMatch(from: Node, to: Node, currentOptions: MorphOptions): boolean {
+    if (currentOptions.preservePartialScopes) {
+        return false;
+    }
+    return isRenderedByOtherScope(from, to);
+}
+
+/**
+ * Morphs a matched child, or replaces it when a different partial or page rendered
+ * the target. Patching such an element in place would keep its listeners and
+ * component state, and its components would never disconnect or connect again.
+ *
+ * @param from - The matched live node.
+ * @param to - The target node.
+ * @param isParentPreserved - Whether the parent is in a preserved state.
+ * @param currentOptions - Morph configuration options.
+ * @returns The resulting node, which is a new node when the live one was replaced.
+ */
+function morphMatchedChild(from: Node, to: Node, isParentPreserved: boolean, currentOptions: MorphOptions): Node {
+    if (!mustReplaceMatch(from, to, currentOptions)) {
+        return morphNode(from, to, isParentPreserved, currentOptions);
+    }
+    if (currentOptions.onBeforeNodeDiscarded?.(from) === false) {
+        return from;
+    }
+    return replaceIncompatibleNode(from, to, currentOptions);
 }
 
 /**
@@ -939,7 +1101,9 @@ function performMorph(
  * Morphs a DOM element to match a target structure with optional preservation.
  *
  * Performs efficient DOM diffing and patching, preserving elements marked with
- * pk-no-refresh and updating elements marked with pk-refresh.
+ * pk-no-refresh and updating elements marked with pk-refresh. A child that a
+ * different partial or page rendered is replaced, not patched, unless
+ * preservePartialScopes is set. This check does not apply to fromNode itself.
  *
  * @param fromNode - The existing DOM element to morph.
  * @param toNodeOrHTML - The target structure as a Node or HTML string.

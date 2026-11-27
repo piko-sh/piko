@@ -186,8 +186,8 @@ func TestLifecycleDriverFailureMetricsCreditOnlyVerifiedPrefix(t *testing.T) {
 	assert.Equal(t, 2, check.WorkflowVerified)
 	var totals ModeMetrics
 	totals.observeWorkflows(&c, &check, runner.WorkflowProofs(&c, &observation))
-	assert.Equal(t, TransitionCounts{Planned: 1, Executed: 1, Reached: 1, Observed: 1}, totals.Workflows["navigation/browser/cancel-navigation"])
-	assert.Equal(t, TransitionCounts{Planned: 1, Reached: 1}, totals.Workflows["navigation/browser/start-requests"])
+	assert.Equal(t, TransitionCounts{Planned: 1, Executed: 1, Reached: 1, Observed: 1}, totals.Workflows["navigation/browser/edit-and-refresh"])
+	assert.Equal(t, TransitionCounts{Planned: 1, Reached: 1}, totals.Workflows["navigation/browser/cancel-navigation"])
 }
 
 func TestPartialFormAndEventsUseExpectationFailurePath(t *testing.T) {

@@ -128,6 +128,10 @@ type ParsedComponent struct {
 	// PikoImports lists the Piko framework imports declared in this component.
 	PikoImports []PikoImport
 
+	// ClientScriptLocation is where the client script content begins in the source file. Its
+	// line is 0 when the component has no client script.
+	ClientScriptLocation ast_domain.Location
+
 	// HasCollection indicates whether this component has a p-collection attribute on its
 	// template element.
 	HasCollection bool

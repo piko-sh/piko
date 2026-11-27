@@ -19,6 +19,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -26,6 +27,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -44,7 +46,7 @@ func TestFormFreshClientReadsChangedServerRows(t *testing.T) {
 	}))
 	defer server.Close()
 	for _, want := range []string{"<label>", "next"} {
-		rows, err := readFreshForm(t.Context(), server.URL)
+		rows, err := fetchFreshForm(t.Context(), server.URL)
 		require.NoError(t, err)
 		assert.Equal(t, []casefile.FormRow{{ID: 1, Label: want, Done: true}}, rows)
 		label = "next"
@@ -68,11 +70,21 @@ func TestFormFreshClientRejectsErrorStatusAndOversizedPage(t *testing.T) {
 				assert.NoError(t, err)
 			}))
 			defer server.Close()
-			_, err := readFreshForm(t.Context(), server.URL)
+			_, err := fetchFreshForm(t.Context(), server.URL)
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), testCase.want)
 		})
 	}
+}
+
+func TestFormFreshClientReportsTimeoutCause(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	defer server.Close()
+	expired, cancel := context.WithDeadlineCause(t.Context(), time.Now(), errFreshFormTimeout)
+	defer cancel()
+	_, err := fetchFreshForm(expired, server.URL)
+	require.ErrorIs(t, err, errFreshFormTimeout)
+	assert.ErrorIs(t, err, context.DeadlineExceeded)
 }
 
 func TestFormRowsRejectMalformedDocuments(t *testing.T) {
@@ -95,16 +107,26 @@ func TestFormRowsRejectMalformedDocuments(t *testing.T) {
 	}
 }
 
+func TestFormSQLiteReadRequiresDatabasePath(t *testing.T) {
+	t.Setenv(envWorkflowDatabase, "")
+	_, err := readFormStore(t.Context())
+	require.ErrorIs(t, err, errMissingWorkflowDatabase)
+}
+
+func TestFormSQLiteReadReportsTimeoutCause(t *testing.T) {
+	expired, cancel := context.WithDeadlineCause(t.Context(), time.Now(), errFormStoreTimeout)
+	defer cancel()
+	_, err := queryFormStore(expired, filepath.Join(t.TempDir(), "tasks.sqlite"))
+	require.ErrorIs(t, err, errFormStoreTimeout)
+	assert.ErrorIs(t, err, context.DeadlineExceeded)
+}
+
 func TestFormSQLiteReadUsesIndependentReadOnlyConnection(t *testing.T) {
 	if _, err := exec.LookPath("python3"); err != nil {
 		t.Skip("python3 unavailable")
 	}
-	t.Setenv(envWorkflowDatabase, "")
-	_, err := readFormStore(t.Context())
-	require.ErrorIs(t, err, errMissingWorkflowDatabase)
 	path := filepath.Join(t.TempDir(), "tasks.sqlite")
-	t.Setenv(envWorkflowDatabase, path)
-	_, err = readFormStore(t.Context())
+	_, err := queryFormStore(t.Context(), path)
 	require.Error(t, err, "missing database was treated as empty")
 	assert.Contains(t, err.Error(), "unable to open database")
 	const write = `import sqlite3,sys
@@ -112,7 +134,7 @@ with sqlite3.connect(sys.argv[1]) as db: db.executescript(sys.argv[2])`
 	for index, query := range []string{"CREATE TABLE tasks(id INTEGER,label TEXT,done INTEGER); INSERT INTO tasks VALUES (7,'from-disk',0);", "UPDATE tasks SET done=1 WHERE id=7;"} {
 		output, err := exec.CommandContext(t.Context(), "python3", "-I", "-c", write, path, query).CombinedOutput()
 		require.NoError(t, err, string(output))
-		rows, err := readFormStore(t.Context())
+		rows, err := queryFormStore(t.Context(), path)
 		require.NoError(t, err)
 		assert.Equal(t, []casefile.FormRow{{ID: 7, Label: "from-disk", Done: index == 1}}, rows)
 	}

@@ -38,6 +38,12 @@ func CachePolicy() piko.CachePolicy {
 
 `Static: true` skips `Render` entirely on a hit. Use it only when the output does not vary per user.
 
+Under a Content Security Policy with per-request tokens, such as `piko.WithStrictCSP()`, the static page cache is off and Piko renders these pages for each request.
+
+`MaxAgeSeconds` sets how long a shared cache such as a CDN may keep the page. Browsers always revalidate it. Purge the CDN on every deploy. [About caching](../../explanation/about-caching.md#why-browsers-revalidate-cached-pages) explains why.
+
+To send a different `Cache-Control`, set it in a page or app middleware before it calls the next handler. Piko keeps a header that is already set. For the headers Piko sends by default, see [Cache response headers](../../reference/metadata-fields.md#cache-response-headers).
+
 ## Partition the cache key with `policy.Key`
 
 Piko mixes `CachePolicy.Key` into the cache artefact ID alongside the URL and locale. Use it to partition the cache between deploys, A/B variants, or any other namespace that the URL alone does not capture:
@@ -85,7 +91,7 @@ func CachePolicy() piko.CachePolicy {
 }
 ```
 
-`NoStore: true` short-circuits server-side caching so the page renders fresh on every request. It does not emit `Cache-Control: no-store` automatically. Add a header middleware if your downstream proxies must honour that directive.
+`NoStore: true` skips server-side caching, so the page renders fresh on every request. It also sends `Cache-Control: no-store`, so neither a browser nor a shared cache keeps a copy.
 
 ## See also
 

@@ -53,6 +53,31 @@ func TestBuildThemeCSS_WithValidConfig(t *testing.T) {
 	assert.Contains(t, cssString, "box-sizing: border-box")
 }
 
+func TestBuildThemeCSS_HidesTheSpriteSheetAndStylesTheRuntimeErrorOverlay(t *testing.T) {
+	testCases := []struct {
+		name     string
+		cssReset string
+	}{
+		{name: "without a CSS reset", cssReset: ""},
+		{name: "after the CSS reset", cssReset: DefaultCSSResetComplete},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			ro := NewTestOrchestratorBuilder().WithCSSResetCSS(testCase.cssReset).Build()
+
+			css, err := ro.BuildThemeCSS(t.Context(), &config.WebsiteConfig{})
+			require.NoError(t, err)
+
+			cssString := string(css)
+			assert.Contains(t, cssString, "#sprite {\n  position: absolute;\n  width: 0;\n  height: 0;\n  overflow: hidden;\n}")
+			assert.Contains(t, cssString, ".pk-runtime-error {")
+			assert.Contains(t, cssString, ".pk-runtime-error__detail {")
+			assert.Greater(t, strings.Index(cssString, "#sprite {"), strings.Index(cssString, ":root {"))
+		})
+	}
+}
+
 func TestBuildThemeCSS_WithNilConfig(t *testing.T) {
 	ro := NewTestOrchestratorBuilder().Build()
 

@@ -5,8 +5,8 @@ package db
 import "strings"
 
 var queryNameMap = map[string]string{claimtask: "ClaimTask", clearrerun: "ClearRerun", requestrerun: "RequestRerun", settletask: "SettleTask", transitiontask: "TransitionTask", cleanupoldresolvedreceipts: "CleanupOldResolvedReceipts", listfailedtasks: "ListFailedTasks", timeoutstalereceipts: "TimeoutStaleReceipts", countunsettledforbuild: "CountUnsettledForBuild", listfailedforbuild: "ListFailedForBuild", createtaskwithdedup: "CreateTaskWithDedup", listrecenttasks: "ListRecentTasks", listtaskstatuscounts: "ListTaskStatusCounts", listworkflowsummary: "ListWorkflowSummary", dispatchablepage: "DispatchablePage", listorphanedtasks: "ListOrphanedTasks", markpublished: "MarkPublished", purgeterminaltasks: "PurgeTerminalTasks", deletenode: "DeleteNode", listexpirednodes: "ListExpiredNodes", renewnode: "RenewNode", touchownedtasks: "TouchOwnedTasks", upsertnode: "UpsertNode", pendingtaskcount: "PendingTaskCount", promotescheduledtasks: "PromoteScheduledTasks", createtask: "CreateTask", createtasksbatch: "CreateTasksBatch", gettasksbyid: "GetTasksByID", updatetask: "UpdateTask", createworkflowreceipt: "CreateWorkflowReceipt", getpendingreceiptsbynode: "GetPendingReceiptsByNode", getpendingreceiptsbyworkflow: "GetPendingReceiptsByWorkflow", getworkflowstatus: "GetWorkflowStatus", resolveworkflowreceipts: "ResolveWorkflowReceipts"}
-var queryNamePrefixes = []string{gettasksbyid[:336], createtasksbatch[:270], transitiontask[:216], markpublished[:62]}
-var queryNamePrefixNames = []string{"GetTasksByID", "CreateTasksBatch", "TransitionTask", "MarkPublished"}
+var queryNamePrefixes = []string{createtasksbatch[:270]}
+var queryNamePrefixNames = []string{"CreateTasksBatch"}
 
 func QueryNameResolver(query string) string {
 	if name, ok := queryNameMap[query]; ok {

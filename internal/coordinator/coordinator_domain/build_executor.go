@@ -889,7 +889,7 @@ func (s *coordinatorService) generateSingleArtefact(
 	if err != nil {
 		l.Error("Fatal error emitting code for component",
 			logger_domain.String(logKeyHashedName, hashedName),
-			logger_domain.String("source", vc.Source.SourcePath),
+			logger_domain.String(logger_domain.KeySource, vc.Source.SourcePath),
 			logger_domain.Error(err))
 		return nil, fmt.Errorf("failed to emit code for %s: %w", vc.Source.SourcePath, err)
 	}
@@ -917,12 +917,14 @@ func (s *coordinatorService) generateSingleArtefact(
 
 // emitClientScript returns the artefact ID for the component's client script.
 //
-// Takes vc (*annotator_dto.VirtualComponent) which identifies the source file and is used
-// to derive the component's relative path.
+// Takes vc (*annotator_dto.VirtualComponent) which identifies the source file, is used to
+// derive the component's relative path, and says whether the script belongs to a page or
+// a partial.
 // Takes annotationResult (*annotator_dto.AnnotationResult) which holds the parsed
 // ClientScript source.
 //
-// Returns string which is the registered artefact ID, or "" when no JS was emitted.
+// Returns string which is the registered artefact ID, or "" when no JS was emitted,
+// including for a component without a source.
 func (s *coordinatorService) emitClientScript(
 	ctx context.Context,
 	vc *annotator_dto.VirtualComponent,
@@ -932,17 +934,28 @@ func (s *coordinatorService) emitClientScript(
 		return ""
 	}
 	ctx, l := logger_domain.From(ctx, log)
+	if vc == nil || vc.Source == nil {
+		l.Warn("Skipping client-side JS of a component without a source")
+		return ""
+	}
+	target, err := generator_dto.ClientScriptTargetFor(vc)
+	if err != nil {
+		l.Warn("Failed to decide the target of the client-side JS, continuing without it",
+			logger_domain.String(logger_domain.KeySource, vc.Source.SourcePath),
+			logger_domain.Error(err))
+		return ""
+	}
 	pagePath := deriveComponentPagePath(vc.Source.SourcePath, s.resolver.GetBaseDir())
 	moduleName := s.resolver.GetModuleName()
-	jsPath, err := s.clientScriptEmitter.EmitJS(ctx, annotationResult.ClientScript, pagePath, moduleName, "", false)
+	jsPath, err := s.clientScriptEmitter.EmitJS(ctx, annotationResult.ClientScript, pagePath, target, moduleName, "", false)
 	if err != nil {
-		l.Warn("Failed to emit client-side JS; continuing without it",
-			logger_domain.String("source", vc.Source.SourcePath),
+		l.Warn("Failed to emit client-side JS, continuing without it",
+			logger_domain.String(logger_domain.KeySource, vc.Source.SourcePath),
 			logger_domain.Error(err))
 		return ""
 	}
 	l.Trace("Emitted client-side JS",
-		logger_domain.String("source", vc.Source.SourcePath),
+		logger_domain.String(logger_domain.KeySource, vc.Source.SourcePath),
 		logger_domain.String("jsPath", jsPath))
 	return jsPath
 }

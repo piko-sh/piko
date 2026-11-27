@@ -18,22 +18,14 @@ func (queries *Queries) AddGCHint(ctx context.Context, params AddGCHintParams) e
 	return err
 }
 
-const deletegchints = `DELETE FROM registry_gc_hint WHERE id IN ($1);`
+const deletegchints = `DELETE FROM registry_gc_hint WHERE id = ANY($1);`
 
 type DeleteGCHintsParams struct {
 	IDs []int64
 }
 
 func (queries *Queries) DeleteGCHints(ctx context.Context, params DeleteGCHintsParams) error {
-	if err := pikoCheckBinds(len(params.IDs)); err != nil {
-		return err
-	}
-	query := pikoSplice(deletegchints, pikoList(pikoListMark{Empty: `= ANY('{}')`, Operator: 38, Start: 41, End: 45}, 1, len(params.IDs)))
-	args := make([]any, 0, len(params.IDs))
-	for _, v := range params.IDs {
-		args = append(args, v)
-	}
-	_, err := queries.writer.ExecContext(ctx, query, args...)
+	_, err := queries.writer.ExecContext(ctx, deletegchints, pikoArrayLiteral(params.IDs))
 	return err
 }
 

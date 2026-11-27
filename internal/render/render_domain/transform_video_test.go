@@ -20,6 +20,8 @@ package render_domain
 
 import (
 	"bytes"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -27,6 +29,7 @@ import (
 	"github.com/stretchr/testify/require"
 	qt "github.com/valyala/quicktemplate"
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/daemon/daemon_dto"
 )
 
 func TestExtractPikoVideoAttrs_BasicAttributes(t *testing.T) {
@@ -430,6 +433,38 @@ func TestRenderPikoVideo_HLSManifestURL(t *testing.T) {
 	assert.Contains(t, output, "/_piko/video/")
 	assert.Contains(t, output, "/master.m3u8")
 	assert.Contains(t, output, `type="application/x-mpegURL"`)
+}
+
+func TestRenderPikoVideo_PlaybackScriptCSPToken(t *testing.T) {
+	testCases := []struct {
+		name       string
+		cspToken   string
+		wantScript string
+	}{
+		{name: "carries the request token under a token-based policy", cspToken: "abc", wantScript: `<script nonce="abc">`},
+		{name: "has no token when the policy uses none", cspToken: "", wantScript: `<script>`},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			rctx := NewTestRenderContextBuilder().Build()
+			request := httptest.NewRequest(http.MethodGet, "/", nil)
+			rctx.httpRequest = request.WithContext(daemon_dto.WithPikoRequestCtx(request.Context(), &daemon_dto.PikoRequestCtx{CSPToken: testCase.cspToken}))
+			ro := NewTestOrchestratorBuilder().Build()
+			node := &ast_domain.TemplateNode{
+				TagName:    "piko:video",
+				Attributes: []ast_domain.HTMLAttribute{{Name: "src", Value: "videos/movie.mp4"}},
+			}
+
+			var buffer bytes.Buffer
+			qw := qt.AcquireWriter(&buffer)
+			defer qt.ReleaseWriter(qw)
+
+			require.NoError(t, renderPikoVideo(ro, node, qw, rctx))
+			assert.Contains(t, buffer.String(), testCase.wantScript)
+			assert.Equal(t, 1, strings.Count(buffer.String(), "<script"))
+		})
+	}
 }
 
 func TestRenderPikoVideo_DefaultPreload(t *testing.T) {

@@ -26,6 +26,7 @@ import (
 	"piko.sh/piko/internal/analytics/analytics_domain"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/daemon/daemon_dto"
+	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/security/security_domain"
 	"piko.sh/piko/internal/security/security_dto"
@@ -206,6 +207,10 @@ type RouterConfig struct {
 	// revalidation on every request. This is derived from WatchMode by default but expressed
 	// as a separate flag to clarify intent.
 	DisableHTTPCache bool
+
+	// CoreRuntimeBuild is the build of the core runtime served at the core module URL. It is
+	// the minified build in production and the unminified one in the dev modes.
+	CoreRuntimeBuild daemon_frontend.CoreRuntimeBuild
 
 	// SitemapCacheMaxAgeSeconds is the max-age (in seconds) applied to the Cache-Control
 	// header of /sitemap.xml, its chunks, and /robots.txt.

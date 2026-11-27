@@ -119,6 +119,14 @@ var (
 	// value that cannot be parsed.
 	errInvalidEnvironmentValue = errors.New("invalid environment variable value")
 
+	// coreRuntimeBuilds maps each run mode to the core runtime build the server sends.
+	//
+	// Production sends the minified build, so the development checks and warnings never run
+	// there. A mode not listed sends the unminified build.
+	coreRuntimeBuilds = map[string]daemon_frontend.CoreRuntimeBuild{
+		RunModeProd: daemon_frontend.CoreRuntimeBuildProduction,
+	}
+
 	// WithComponents registers external PKC components with the Piko framework, letting
 	// third-party component libraries provide components that can be used in templates.
 	//
@@ -436,6 +444,34 @@ func withEmbeddedDefaults(runMode string, options []bootstrap.Option) []bootstra
 	}, options...)
 }
 
+// withCoreRuntimeBuild prepends the option that picks the core runtime build for the run
+// mode.
+//
+// It is set when the container is created, before any service exists, so the renderer and
+// the router always agree on the build and the SRI hash in each page matches the bytes
+// served.
+//
+// Takes runMode (string) which is the requested run mode.
+// Takes options ([]bootstrap.Option) which are the other container options.
+//
+// Returns []bootstrap.Option with the build option prepended.
+func withCoreRuntimeBuild(runMode string, options []bootstrap.Option) []bootstrap.Option {
+	return append([]bootstrap.Option{bootstrap.WithCoreRuntimeBuild(coreRuntimeBuildFor(runMode))}, options...)
+}
+
+// coreRuntimeBuildFor returns the core runtime build a run mode sends.
+//
+// Takes runMode (string) which is the requested run mode.
+//
+// Returns daemon_frontend.CoreRuntimeBuild which is the minified build for production and
+// the unminified build for every other mode.
+func coreRuntimeBuildFor(runMode string) daemon_frontend.CoreRuntimeBuild {
+	if build, found := coreRuntimeBuilds[runMode]; found {
+		return build
+	}
+	return daemon_frontend.CoreRuntimeBuildDevelopment
+}
+
 // Run is the high-level API for starting the Piko server. It spawns a goroutine that
 // listens for shutdown signals and runs until a shutdown signal is received.
 //
@@ -455,7 +491,7 @@ func (s *SSRServer) Run(runMode string) error {
 		return err
 	}
 
-	container, err := bootstrap.ConfigAndContainer(ctx, deps, withEmbeddedDefaults(runMode, s.options)...)
+	container, err := bootstrap.ConfigAndContainer(ctx, deps, withCoreRuntimeBuild(runMode, withEmbeddedDefaults(runMode, s.options))...)
 	if err != nil {
 		return fmt.Errorf("failed during configuration bootstrap: %w", err)
 	}
@@ -639,7 +675,7 @@ func (s *SSRServer) ensureContainer(ctx context.Context, deps *bootstrap.Depende
 		return s.Container, nil
 	}
 
-	container, err := bootstrap.ConfigAndContainer(ctx, deps, s.options...)
+	container, err := bootstrap.ConfigAndContainer(ctx, deps, withCoreRuntimeBuild(runMode, s.options)...)
 	if err != nil {
 		return nil, fmt.Errorf("failed during configuration bootstrap for generate command: %w", err)
 	}
@@ -1255,6 +1291,7 @@ func setupFrontendModules(ctx context.Context, l logger_domain.Logger, container
 	}
 
 	preloadHTML, scriptHTML, configHTML := daemon_frontend.GenerateModuleHTML(
+		container.CoreRuntimeBuild(),
 		container.GetFrontendModules(),
 		container.GetCustomFrontendModules(),
 	)

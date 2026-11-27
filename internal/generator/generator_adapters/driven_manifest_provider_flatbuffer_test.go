@@ -466,6 +466,10 @@ func TestRoundTrip(t *testing.T) {
 				StyleBlock:         ".err { color: red; }",
 			},
 		},
+		PartialScripts: map[string]string{
+			"pk-js/partials/widget.js": "widget",
+			"pk-js/layouts/layout.js":  "layouts/layout",
+		},
 	}
 
 	emitter := NewFlatBufferManifestEmitter(sandbox)
@@ -498,6 +502,9 @@ func TestRoundTrip(t *testing.T) {
 	loadedPartial := loaded.Partials["partials/widget.pk"]
 	originalPartial := original.Partials["partials/widget.pk"]
 	assert.Equal(t, originalPartial.PartialName, loadedPartial.PartialName, "Partial name mismatch")
+
+	assert.Equal(t, original.PartialScripts, loaded.PartialScripts,
+		"the partial name of every partial script must survive the manifest round-trip")
 
 	loadedEmail := loaded.Emails["emails/newsletter.pk"]
 	originalEmail := original.Emails["emails/newsletter.pk"]

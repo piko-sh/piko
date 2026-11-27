@@ -19,12 +19,51 @@
 package generator_domain
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"piko.sh/piko/internal/daemon/daemon_frontend"
+	"piko.sh/piko/internal/generator/generator_dto"
 )
+
+const (
+	eagerInitBlock             = "\n{\n    const __s__"
+	actionsModuleWithFunctions = `import { ActionBuilder, createActionBuilder, registerActionFunction } from '/_piko/dist/ppframework.core.es.js';
+export function pingCall(): ActionBuilder<string> {
+  return createActionBuilder<string>('ping.Call', {});
+}
+export const action = {
+  ping: {
+    Call: pingCall
+  }
+} as const;
+registerActionFunction('ping.Call', pingCall);
+`
+)
+
+func transformForTest(t *testing.T, source string, target generator_dto.ClientScriptTarget) string {
+	t.Helper()
+
+	result, err := TransformPKSource(t.Context(), source, target)
+	require.NoError(t, err)
+	return daemon_frontend.StripRuntimeVersion(result)
+}
+
+func transpileForTest(t *testing.T, source string) string {
+	t.Helper()
+
+	result, err := NewJSTranspiler().Transpile(t.Context(), source, TranspileOptions{
+		Filename: "test.ts",
+		Minify:   false,
+	})
+	require.NoError(t, err, "transformed source should transpile without error")
+	require.NotEmpty(t, result.Code)
+	return result.Code
+}
 
 func TestTransformPKSource(t *testing.T) {
 	t.Parallel()
@@ -53,37 +92,19 @@ func TestTransformPKSource(t *testing.T) {
 			},
 		},
 		{
-			name:   "top-level refs usage gets inline refs without factory",
-			source: `piko.bus.on('test', (data) => { refs.el.textContent = data.message; });`,
-			wantContains: []string{
-				"_createPKContext",
-				`const pk = _createPKContext(document.querySelector("[partial_name]") ?? document.body)`,
-				"refs.el.textContent",
-			},
-			wantNotContain: []string{
-				"__createInstance__",
-				"__instances__",
-			},
-		},
-		{
 			name: "single export function gets wrapped",
 			source: `export function handleClick(event) {
     refs.button.click();
 }`,
 			wantContains: []string{
 				"import {",
-				"_createPKContext",
-				"getGlobalPageContext",
 				"const __instances__ = new WeakMap()",
-				"__getScope__",
 				"__getInstance__",
 				"__createInstance__",
-				"const pk = _createPKContext(__scope__)",
 				"function handleClick(event)",
 				"refs.button.click()",
 				"export async function handleClick(event, ...args)",
-				"(await __getInstance__(event)).handleClick(...args)",
-				"getGlobalPageContext().setExports({handleClick})",
+				".handleClick(...args)",
 			},
 			wantNotContain: []string{
 				"export function handleClick(event) {",
@@ -104,7 +125,6 @@ export function handleSubmit(event) {
 				"export async function handleSubmit(event, ...args)",
 				"handleClick(...args)",
 				"handleSubmit(...args)",
-				"getGlobalPageContext().setExports({handleClick, handleSubmit})",
 			},
 		},
 		{
@@ -162,23 +182,10 @@ export const arrow = (event) => {
 }`,
 			wantContains: []string{
 				"import {",
-				"_createPKContext",
 				"action",
-				"formData",
 				"} from \"/_piko/dist/ppframework.core.es.js\"",
 				"formData(refs.form)",
 				"action('submit', data)",
-			},
-		},
-		{
-			name: "partial_name and data-pageid attributes in scope finder",
-			source: `export function test(event) {
-    refs.x.y();
-}`,
-			wantContains: []string{
-				`closest("[partial_name]")`,
-				`closest("[data-pageid]")`,
-				"document.body",
 			},
 		},
 		{
@@ -188,8 +195,6 @@ export const arrow = (event) => {
 }`,
 			wantContains: []string{
 				"import {",
-				"_createPKContext",
-				"getGlobalPageContext",
 				"const __instances__ = new WeakMap()",
 				"function handleClick(event)",
 				"refs.button.click()",
@@ -240,20 +245,26 @@ const arrowHelper = (x) => x * 2;`,
 		},
 	}
 
+	targets := []generator_dto.ClientScriptTarget{
+		generator_dto.PageScriptTarget(),
+		generator_dto.PartialScriptTarget("widgets/counter"),
+	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
+		for _, target := range targets {
+			t.Run(tt.name+"/"+newPKScriptTarget(target).label(), func(t *testing.T) {
+				t.Parallel()
 
-			result := TransformPKSource(tt.source, "")
+				result := transformForTest(t, tt.source, target)
 
-			for _, want := range tt.wantContains {
-				assert.Contains(t, result, want, "result should contain: %s", want)
-			}
+				for _, want := range tt.wantContains {
+					assert.Contains(t, result, want, "result should contain: %s", want)
+				}
 
-			for _, notWant := range tt.wantNotContain {
-				assert.NotContains(t, result, notWant, "result should not contain: %s", notWant)
-			}
-		})
+				for _, notWant := range tt.wantNotContain {
+					assert.NotContains(t, result, notWant, "result should not contain: %s", notWant)
+				}
+			})
+		}
 	}
 }
 
@@ -540,10 +551,175 @@ const privateHelper = () => {};`
 	assert.False(t, functions[3].wasExported)
 }
 
-func TestTransformedSourceTranspiles(t *testing.T) {
+func TestTransformPKSource_ShapesScriptByTarget(t *testing.T) {
 	t.Parallel()
 
-	source := `export function handleClick(event: Event) {
+	withFunctions := `function handleClick(event) {
+    pk.refs.button.click();
+}
+pk.onConnected(() => {});`
+	withoutFunctions := `pk.onConnected(() => {
+    pk.refs.button.focus();
+});`
+	importsOnly := `console.log("ready"); action.user.Load({}).call();`
+
+	pageForms := []string{"_createPagePKContext", "_currentPageVisit"}
+	partialForms := []string{"_createPKContext", "getGlobalPageContext", "__getScope__", "partial_name"}
+	scaffolding := []string{"__instances__", "__createInstance__", "__reinit__"}
+
+	tests := []struct {
+		target         generator_dto.ClientScriptTarget
+		name           string
+		source         string
+		wantContains   []string
+		wantNotContain []string
+	}{
+		{
+			name:   "page script with functions gets one instance per page visit on the page root",
+			target: generator_dto.PageScriptTarget(),
+			source: withFunctions,
+			wantContains: []string{
+				"import { _createPagePKContext, _currentPageVisit } from \"/_piko/dist/ppframework.core.es.js\"",
+				"const pk = _createPagePKContext(__scope__, __visit__);",
+				"async function __getInstance__() {\n    return __instances__.get(_currentPageVisit());\n}",
+				"async function __createInstance__(__scope__, __visit__) {",
+				"export async function handleClick(event, ...args) {\n    return (await __getInstance__())?.handleClick(...args);",
+				"export function __reinit__(__visit__ = _currentPageVisit()) {\n    const __s__ = document.querySelector(\"[data-pageid]\") ?? document.body;" +
+					"\n    if (!__instances__.has(__visit__)) __instances__.set(__visit__, __createInstance__(__s__, __visit__));\n}",
+			},
+			wantNotContain: slices.Concat(partialForms, []string{
+				"setExports", eagerInitBlock, "__getInstance__(e)", "__getInstance__(event)", "const s =", "__instances__.set(s,",
+			}),
+		},
+		{
+			name:   "page script without functions still gets the per-visit factory",
+			target: generator_dto.PageScriptTarget(),
+			source: withoutFunctions,
+			wantContains: []string{
+				"import { _createPagePKContext, _currentPageVisit }",
+				"const pk = _createPagePKContext(__scope__, __visit__);",
+				"pk.refs.button.focus();",
+				"return {};",
+				"export function __reinit__(__visit__ = _currentPageVisit()) {",
+			},
+			wantNotContain: slices.Concat(partialForms, []string{"setExports", "export async function", "__getInstance__", eagerInitBlock}),
+		},
+		{
+			name:           "page script that uses neither pk nor functions only gets imports",
+			target:         generator_dto.PageScriptTarget(),
+			source:         importsOnly,
+			wantContains:   []string{"import { action } from \"/_piko/assets/pk-js/pk/actions.gen.js\"", importsOnly},
+			wantNotContain: slices.Concat(pageForms, scaffolding),
+		},
+		{
+			name:   "partial script with functions gets one instance per partial element",
+			target: generator_dto.PartialScriptTarget("widgets/counter"),
+			source: withFunctions,
+			wantContains: []string{
+				"import { _createPKContext, getGlobalPageContext } from \"/_piko/dist/ppframework.core.es.js\"",
+				"const pk = _createPKContext(__scope__);",
+				"function __getScope__(e)",
+				"return t.closest(\"[partial_name='widgets/counter']\") ?? t.closest(\"[partial_name]\") ?? t.closest(\"[data-pageid]\") ?? document.body;",
+				"async function __getInstance__(e) {",
+				"const s = __getScope__(e);",
+				"(await __getInstance__(event)).handleClick(...args)",
+				"async function __createInstance__(__scope__) {",
+				"if (!__instances__.has(s)) __instances__.set(s, __createInstance__(s));",
+				"getGlobalPageContext().setExports({handleClick});",
+				eagerInitBlock + " = document.querySelector(\"[partial_name='widgets/counter']\") ?? document.querySelector(\"[data-pageid]\") ?? document.body;",
+				"if (!__instances__.has(__s__)) __instances__.set(__s__, __createInstance__(__s__));",
+				"export function __reinit__() {",
+			},
+			wantNotContain: slices.Concat(pageForms, []string{"__visit__", ")?."}),
+		},
+		{
+			name:   "partial script without functions creates its context inline",
+			target: generator_dto.PartialScriptTarget("widgets/counter"),
+			source: withoutFunctions,
+			wantContains: []string{
+				"import { _createPKContext } from \"/_piko/dist/ppframework.core.es.js\"",
+				"{\nconst pk = _createPKContext(document.querySelector(\"[partial_name='widgets/counter']\") ?? document.querySelector(\"[data-pageid]\") ?? document.body);\n" + withoutFunctions + "\n}\n",
+			},
+			wantNotContain: slices.Concat(pageForms, scaffolding),
+		},
+		{
+			name:           "partial script that uses neither pk nor functions only gets imports",
+			target:         generator_dto.PartialScriptTarget("widgets/counter"),
+			source:         importsOnly,
+			wantContains:   []string{"import { action } from \"/_piko/assets/pk-js/pk/actions.gen.js\"", importsOnly},
+			wantNotContain: slices.Concat(pageForms, scaffolding, []string{"_createPKContext"}),
+		},
+		{
+			name:           "module with functions is left unchanged",
+			target:         generator_dto.ModuleScriptTarget(),
+			source:         actionsModuleWithFunctions,
+			wantContains:   []string{actionsModuleWithFunctions},
+			wantNotContain: slices.Concat(pageForms, scaffolding, []string{"_createPKContext", "const pk"}),
+		},
+		{
+			name:           "module that uses pk is left unchanged",
+			target:         generator_dto.ModuleScriptTarget(),
+			source:         withoutFunctions,
+			wantContains:   []string{withoutFunctions},
+			wantNotContain: slices.Concat(pageForms, scaffolding, []string{"_createPKContext", "import"}),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := transformForTest(t, tt.source, tt.target)
+
+			for _, want := range tt.wantContains {
+				assert.Contains(t, result, want)
+			}
+			for _, notWant := range tt.wantNotContain {
+				assert.NotContains(t, result, notWant)
+			}
+		})
+	}
+}
+
+func TestTransformPKSource_ModuleIsReturnedAsWritten(t *testing.T) {
+	t.Parallel()
+
+	result := transformForTest(t, actionsModuleWithFunctions, generator_dto.ModuleScriptTarget())
+
+	assert.Equal(t, actionsModuleWithFunctions, result)
+	code := transpileForTest(t, result)
+	assert.Contains(t, code, "export function pingCall()")
+	assert.Contains(t, code, "registerActionFunction(\"ping.Call\", pingCall)")
+}
+
+func TestTransformPKSource_InvalidTarget(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		target generator_dto.ClientScriptTarget
+		name   string
+	}{
+		{name: "zero value", target: generator_dto.ClientScriptTarget{}},
+		{name: "partial without a name", target: generator_dto.PartialScriptTarget("")},
+		{name: "page with a partial name", target: generator_dto.ClientScriptTarget{Kind: generator_dto.ClientScriptPage, PartialName: "card"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result, err := TransformPKSource(t.Context(), "pk.onConnected(() => {});", tt.target)
+
+			require.ErrorIs(t, err, generator_dto.ErrInvalidClientScriptTarget)
+			assert.Empty(t, result)
+		})
+	}
+}
+
+func TestTransformPKSource_Transpiles(t *testing.T) {
+	t.Parallel()
+
+	typedFunctions := `export function handleClick(event: Event) {
     const input = refs.searchInput as HTMLInputElement;
     if (input) {
         input.value = "";
@@ -551,70 +727,70 @@ func TestTransformedSourceTranspiles(t *testing.T) {
     }
 }
 
-export function handleSubmit(event: Event) {
-    event.preventDefault();
-    const form = refs.loginForm;
-    if (form) {
-        console.log("Submitting form");
-    }
-}`
-
-	transformed := TransformPKSource(source, "")
-
-	require.Contains(t, transformed, "import { _createPKContext, getGlobalPageContext }")
-	require.Contains(t, transformed, "__createInstance__")
-	require.Contains(t, transformed, "export async function handleClick")
-	require.Contains(t, transformed, "export async function handleSubmit")
-	require.Contains(t, transformed, "getGlobalPageContext().setExports({handleClick, handleSubmit})")
-
-	transpiler := NewJSTranspiler()
-	result, err := transpiler.Transpile(t.Context(), transformed, TranspileOptions{
-		Filename: "test.ts",
-		Minify:   false,
-	})
-
-	require.NoError(t, err, "transformed source should transpile without error")
-	require.NotEmpty(t, result.Code)
-
-	assert.Contains(t, result.Code, "__instances__")
-	assert.Contains(t, result.Code, "__getInstance__")
-	assert.Contains(t, result.Code, "handleClick")
-	assert.Contains(t, result.Code, "handleSubmit")
-	assert.NotContains(t, result.Code, ": Event")
-	assert.NotContains(t, result.Code, "as HTMLInputElement")
-}
-
-func TestTransformedAsyncSourceTranspiles(t *testing.T) {
-	t.Parallel()
-
-	source := `export async function uploadFiles() {
+export async function uploadFiles() {
     await fetch('/upload');
     refs.button.click();
 }
 
-export function onFilesSelected(event) {
-    refs.input.value = '';
-}`
+piko.hooks.on('form:dirty', (payload) => {
+    console.log('dirty:', payload);
+});`
+	typedWithoutFunctions := `const count: number = 1;
+pk.onConnected(() => {
+    (pk.refs.output as HTMLElement).textContent = String(count);
+});`
 
-	transformed := TransformPKSource(source, "")
+	tests := []struct {
+		target         generator_dto.ClientScriptTarget
+		name           string
+		source         string
+		wantContains   []string
+		wantNotContain []string
+	}{
+		{
+			name:           "page script with functions",
+			target:         generator_dto.PageScriptTarget(),
+			source:         typedFunctions,
+			wantContains:   []string{"__instances__", "handleClick", "uploadFiles", "hooks.on", "__reinit__"},
+			wantNotContain: []string{": Event", "as HTMLInputElement"},
+		},
+		{
+			name:           "page script without functions",
+			target:         generator_dto.PageScriptTarget(),
+			source:         typedWithoutFunctions,
+			wantContains:   []string{"_createPagePKContext(__scope__, __visit__)", "__reinit__"},
+			wantNotContain: []string{": number", "as HTMLElement"},
+		},
+		{
+			name:           "partial script with functions",
+			target:         generator_dto.PartialScriptTarget("forms/search"),
+			source:         typedFunctions,
+			wantContains:   []string{"__instances__", "handleClick", "uploadFiles", "hooks.on", "__reinit__"},
+			wantNotContain: []string{": Event", "as HTMLInputElement"},
+		},
+		{
+			name:           "partial script without functions",
+			target:         generator_dto.PartialScriptTarget("forms/search"),
+			source:         typedWithoutFunctions,
+			wantContains:   []string{"_createPKContext(document.querySelector(\"[partial_name='forms/search']\") ?? document.querySelector(\"[data-pageid]\") ?? document.body)"},
+			wantNotContain: []string{": number", "as HTMLElement"},
+		},
+	}
 
-	require.Contains(t, transformed, "async function uploadFiles()")
-	require.Contains(t, transformed, "function onFilesSelected(event)")
-	require.Contains(t, transformed, "export async function uploadFiles(event, ...args)")
-	require.Contains(t, transformed, "export async function onFilesSelected(event, ...args)")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	transpiler := NewJSTranspiler()
-	result, err := transpiler.Transpile(t.Context(), transformed, TranspileOptions{
-		Filename: "test.ts",
-		Minify:   false,
-	})
+			code := transpileForTest(t, transformForTest(t, tt.source, tt.target))
 
-	require.NoError(t, err, "transformed source with async function should transpile without error")
-	require.NotEmpty(t, result.Code)
-
-	assert.Contains(t, result.Code, "__instances__")
-	assert.Contains(t, result.Code, "uploadFiles")
-	assert.Contains(t, result.Code, "onFilesSelected")
+			for _, want := range tt.wantContains {
+				assert.Contains(t, code, want)
+			}
+			for _, notWant := range tt.wantNotContain {
+				assert.NotContains(t, code, notWant)
+			}
+		})
+	}
 }
 
 func TestTransformedSourceStructure(t *testing.T) {
@@ -624,7 +800,7 @@ func TestTransformedSourceStructure(t *testing.T) {
     refs.button.click();
 }`
 
-	result := TransformPKSource(source, "")
+	result := transformForTest(t, source, generator_dto.PartialScriptTarget("widgets/counter"))
 
 	lines := strings.Split(result, "\n")
 
@@ -634,7 +810,9 @@ func TestTransformedSourceStructure(t *testing.T) {
 	assert.Contains(t, result, "function __getScope__")
 	assert.Contains(t, result, "function __getInstance__")
 	assert.Contains(t, result, "async function __createInstance__(__scope__)")
-	assert.Contains(t, result, "const pk = _createPKContext(__scope__)")
+	assert.Contains(t, result, "const pk = _createPKContext(__scope__);")
+	assert.Contains(t, result, `closest("[partial_name]")`)
+	assert.Contains(t, result, `closest("[data-pageid]")`)
 
 	assert.Contains(t, result, "function test(event)")
 	assert.NotContains(t, result, "export function test(event) {")
@@ -643,266 +821,64 @@ func TestTransformedSourceStructure(t *testing.T) {
 	assert.Contains(t, result, "(await __getInstance__(event)).test(...args)")
 }
 
-func TestTransformPKSource_EagerInit(t *testing.T) {
+func TestTransformPKSource_PartialCreatesItsInstanceOnLoad(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name           string
-		source         string
-		wantContains   []string
-		wantNotContain []string
-	}{
-		{
-			name: "factory output includes eager init block",
-			source: `function handleClick(event) {
-    refs.button.click();
-}`,
-			wantContains: []string{
-				`document.querySelector("[partial_name]")`,
-				`document.querySelector("[data-pageid]")`,
-				"document.body",
-				"__instances__.has(",
-				"__instances__.set(",
-				"__createInstance__(",
-			},
-		},
-		{
-			name: "eager init runs side effects at module load",
-			source: `function handleClick(event) {
+	source := `export function handleClick(event) {
     refs.button.click();
 }
 
 piko.hooks.on('form:dirty', (payload) => {
     console.log(payload);
-});`,
-			wantContains: []string{
-				"__createInstance__",
-				"piko.hooks.on",
-				`document.querySelector("[partial_name]")`,
-			},
-		},
-		{
-			name: "eager init appears after setExports",
-			source: `export function test(event) {
-    refs.x.y();
-}`,
-			wantContains: []string{
-				"getGlobalPageContext().setExports({test})",
-			},
-		},
-		{
-			name:   "inline refs source does not include eager init",
-			source: `piko.hooks.on('form:dirty', (payload) => { refs.el.textContent = 'dirty'; });`,
-			wantContains: []string{
-				"_createPKContext",
-			},
-			wantNotContain: []string{
-				"__instances__",
-				"__createInstance__",
-			},
-		},
-		{
-			name:   "no exports and no refs does not include eager init",
-			source: "const x = 42;",
-			wantNotContain: []string{
-				"__instances__",
-				"__createInstance__",
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			result := TransformPKSource(tt.source, "")
-
-			for _, want := range tt.wantContains {
-				assert.Contains(t, result, want, "result should contain: %s", want)
-			}
-
-			for _, notWant := range tt.wantNotContain {
-				assert.NotContains(t, result, notWant, "result should not contain: %s", notWant)
-			}
-		})
-	}
-}
-
-func TestTransformPKSource_EagerInitOrdering(t *testing.T) {
-	t.Parallel()
-
-	source := `export function handleClick(event) {
-    refs.button.click();
-}`
-
-	result := TransformPKSource(source, "")
-
-	setExportsIndex := strings.Index(result, "getGlobalPageContext().setExports(")
-	eagerInitIndex := strings.Index(result, `document.querySelector("[partial_name]")`)
-
-	require.Greater(t, setExportsIndex, 0, "setExports should be present")
-	require.Greater(t, eagerInitIndex, 0, "eager init should be present")
-	assert.Greater(t, eagerInitIndex, setExportsIndex, "eager init should appear after setExports")
-}
-
-func TestTransformPKSource_EagerInitTranspiles(t *testing.T) {
-	t.Parallel()
-
-	source := `export function handleClick(event) {
-    refs.button.click();
-}
-
-piko.hooks.on('form:dirty', (payload) => {
-    console.log('dirty:', payload);
 });`
 
-	transformed := TransformPKSource(source, "")
+	result := transformForTest(t, source, generator_dto.PartialScriptTarget("forms/editor"))
 
-	require.Contains(t, transformed, "__createInstance__")
-	require.Contains(t, transformed, "piko.hooks.on")
-	require.Contains(t, transformed, `document.querySelector("[partial_name]")`)
-
-	transpiler := NewJSTranspiler()
-	result, err := transpiler.Transpile(t.Context(), transformed, TranspileOptions{
-		Filename: "test.ts",
-		Minify:   false,
-	})
-
-	require.NoError(t, err, "source with eager init should transpile without error")
-	require.NotEmpty(t, result.Code)
-
-	assert.Contains(t, result.Code, "__instances__")
-	assert.Contains(t, result.Code, "handleClick")
-	assert.Contains(t, result.Code, "hooks.on")
-}
-
-func TestTransformPKSource_Reinit(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name           string
-		source         string
-		wantContains   []string
-		wantNotContain []string
-	}{
-		{
-			name: "factory output includes __reinit__ export",
-			source: `function handleClick(event) {
-    refs.button.click();
-}`,
-			wantContains: []string{
-				"export function __reinit__(",
-				`document.querySelector("[partial_name]")`,
-				"__instances__.has(",
-				"__instances__.set(",
-				"__createInstance__(",
-			},
-		},
-		{
-			name:   "inline refs source does not include __reinit__",
-			source: `piko.hooks.on('form:dirty', (payload) => { refs.el.textContent = 'dirty'; });`,
-			wantNotContain: []string{
-				"__reinit__",
-			},
-		},
-		{
-			name:   "no exports and no refs does not include __reinit__",
-			source: "const x = 42;",
-			wantNotContain: []string{
-				"__reinit__",
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			result := TransformPKSource(tt.source, "")
-
-			for _, want := range tt.wantContains {
-				assert.Contains(t, result, want, "result should contain: %s", want)
-			}
-
-			for _, notWant := range tt.wantNotContain {
-				assert.NotContains(t, result, notWant, "result should not contain: %s", notWant)
-			}
-		})
-	}
-}
-
-func TestTransformPKSource_ReinitOrdering(t *testing.T) {
-	t.Parallel()
-
-	source := `export function handleClick(event) {
-    refs.button.click();
-}`
-
-	result := TransformPKSource(source, "")
-
-	eagerInitIndex := strings.Index(result, `{const __s__=document.querySelector`)
+	setExportsIndex := strings.Index(result, "getGlobalPageContext().setExports(")
+	eagerInitIndex := strings.Index(result, eagerInitBlock)
 	reinitIndex := strings.Index(result, "export function __reinit__")
 
-	require.Greater(t, eagerInitIndex, 0, "eager init should be present")
-	require.Greater(t, reinitIndex, 0, "__reinit__ should be present")
-	assert.Greater(t, reinitIndex, eagerInitIndex, "__reinit__ should appear after eager init")
+	require.Positive(t, setExportsIndex, "setExports should be present")
+	require.Positive(t, eagerInitIndex, "the instance should be created when the module loads")
+	require.Positive(t, reinitIndex, "__reinit__ should be present")
+	assert.Greater(t, eagerInitIndex, setExportsIndex, "the instance should be created after setExports")
+	assert.Greater(t, reinitIndex, eagerInitIndex, "__reinit__ should follow the instance creation")
 }
 
-func TestTransformPKSource_ReinitTranspiles(t *testing.T) {
-	t.Parallel()
-
-	source := `export function handleClick(event) {
-    refs.button.click();
-}`
-
-	transformed := TransformPKSource(source, "")
-
-	require.Contains(t, transformed, "export function __reinit__")
-
-	transpiler := NewJSTranspiler()
-	result, err := transpiler.Transpile(t.Context(), transformed, TranspileOptions{
-		Filename: "test.ts",
-		Minify:   false,
-	})
-
-	require.NoError(t, err, "source with __reinit__ should transpile without error")
-	require.NotEmpty(t, result.Code)
-
-	assert.Contains(t, result.Code, "__reinit__")
-}
-
-func TestTransformPKSource_ComponentNameTargetedSelector(t *testing.T) {
+func TestTransformPKSource_PartialNameSelector(t *testing.T) {
 	t.Parallel()
 
 	source := `export function handleClick() {
     refs.button.click();
 }`
 
-	t.Run("with component name uses specific selector in eager init and reinit", func(t *testing.T) {
+	t.Run("partial targets its own root element", func(t *testing.T) {
 		t.Parallel()
-		result := TransformPKSource(source, "modals/listing_lightbox")
-		assert.Contains(t, result, `document.querySelector("[partial_name='modals/listing_lightbox']")`,
-			"eager init should use specific partial_name selector")
-		assert.NotContains(t, result, `document.querySelector("[partial_name]")`,
-			"should not contain generic partial_name selector")
+		result := transformForTest(t, source, generator_dto.PartialScriptTarget("modals/listing_lightbox"))
+		assert.Contains(t, result, `document.querySelector("[partial_name='modals/listing_lightbox']")`)
+		assert.NotContains(t, result, `document.querySelector("[partial_name]")`)
 	})
 
-	t.Run("without component name uses generic selector", func(t *testing.T) {
+	t.Run("page targets the page root, not a partial inside it", func(t *testing.T) {
 		t.Parallel()
-		result := TransformPKSource(source, "")
-		assert.Contains(t, result, `document.querySelector("[partial_name]")`,
-			"should use generic partial_name selector")
-		assert.NotContains(t, result, `partial_name='`,
-			"should not contain specific partial_name selector")
+		result := transformForTest(t, source, generator_dto.PageScriptTarget())
+		assert.Contains(t, result, `document.querySelector("[data-pageid]") ?? document.body`)
+		assert.NotContains(t, result, `partial_name`)
 	})
 
-	t.Run("inline refs with component name uses specific selector", func(t *testing.T) {
+	t.Run("partial without functions targets its own root element", func(t *testing.T) {
 		t.Parallel()
 		inlineSource := `pk.onConnected(() => {
     console.log("hello");
 });`
-		result := TransformPKSource(inlineSource, "sections/photo_gallery")
-		assert.Contains(t, result, `[partial_name='sections/photo_gallery']`,
-			"inline refs should use specific partial_name selector")
+		result := transformForTest(t, inlineSource, generator_dto.PartialScriptTarget("sections/photo_gallery"))
+		assert.Contains(t, result, `[partial_name='sections/photo_gallery']`)
+	})
+
+	t.Run("partial name with quotes and backslashes stays inside the selector string", func(t *testing.T) {
+		t.Parallel()
+		result := transformForTest(t, source, generator_dto.PartialScriptTarget(`it's\"odd"`))
+		assert.Contains(t, result, `document.querySelector("[partial_name='it\\'s\\\\\"odd\"']")`)
+		assert.NotEmpty(t, transpileForTest(t, result))
 	})
 }

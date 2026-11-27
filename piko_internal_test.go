@@ -32,6 +32,7 @@ import (
 	"piko.sh/piko/internal/bootstrap"
 	"piko.sh/piko/internal/bootstrap/embedregistry"
 	"piko.sh/piko/internal/daemon/daemon_dto"
+	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/pikotest/pikotest_dto"
 	"piko.sh/piko/internal/shutdown"
 	"piko.sh/piko/internal/templater/templater_dto"
@@ -440,6 +441,27 @@ func TestBannerURL(t *testing.T) {
 			t.Parallel()
 
 			assert.Equal(t, testCase.expected, bannerURL(testCase.tlsEnabled, testCase.address))
+		})
+	}
+}
+
+func TestCoreRuntimeBuildFor(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		runMode string
+		want    daemon_frontend.CoreRuntimeBuild
+	}{
+		{runMode: RunModeProd, want: daemon_frontend.CoreRuntimeBuildProduction},
+		{runMode: RunModeDev, want: daemon_frontend.CoreRuntimeBuildDevelopment},
+		{runMode: RunModeDevInterpreted, want: daemon_frontend.CoreRuntimeBuildDevelopment},
+		{runMode: GenerateModeAll, want: daemon_frontend.CoreRuntimeBuildDevelopment},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.runMode, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, testCase.want, coreRuntimeBuildFor(testCase.runMode))
 		})
 	}
 }

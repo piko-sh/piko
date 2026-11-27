@@ -315,13 +315,7 @@ func (c *Container) createDefaultRenderer() {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	l.Internal("Creating default Renderer (RenderOrchestrator)...")
 
-	renderOpts := []render_domain.RenderOrchestratorOption{
-		render_domain.WithStripHTMLComments(c.experimentalCommentStripping),
-	}
-
-	if c.cssResetCSS != "" {
-		renderOpts = append(renderOpts, render_domain.WithCSSResetCSS(c.cssResetCSS))
-	}
+	renderOpts := c.pageRenderOptions()
 
 	if captchaService, captchaErr := c.GetCaptchaService(); captchaErr == nil {
 		renderOpts = append(renderOpts, render_domain.WithCaptchaService(captchaService))
@@ -343,6 +337,26 @@ func (c *Container) createDefaultRenderer() {
 		csrfService,
 		renderOpts...,
 	)
+}
+
+// pageRenderOptions returns the renderer options that come from the app's page settings.
+//
+// Returns []render_domain.RenderOrchestratorOption which holds the comment stripping,
+// core runtime build, View Transitions and CSS reset settings.
+func (c *Container) pageRenderOptions() []render_domain.RenderOrchestratorOption {
+	options := []render_domain.RenderOrchestratorOption{
+		render_domain.WithStripHTMLComments(c.experimentalCommentStripping),
+		render_domain.WithCoreRuntimeBuild(c.coreRuntimeBuild),
+	}
+
+	if c.viewTransitionsOff {
+		options = append(options, render_domain.WithoutViewTransitions())
+	}
+
+	if c.cssResetCSS != "" {
+		options = append(options, render_domain.WithCSSResetCSS(c.cssResetCSS))
+	}
+	return options
 }
 
 // GetI18nService returns the internationalisation service, creating it if necessary.

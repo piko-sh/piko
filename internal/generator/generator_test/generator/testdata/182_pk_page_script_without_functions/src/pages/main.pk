@@ -1,0 +1,62 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div>
+    <h1>Page script without functions</h1>
+    <p>
+      The page script counts clicks on the counter button from the moment the page
+      connects until the page is left.
+    </p>
+    <button p-ref="counter" type="button">Count</button>
+  </div>
+</template>
+
+<script type="application/x-go">
+  package main
+
+  import "piko.sh/piko"
+
+  func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{}, nil
+  }
+</script>
+
+<script lang="ts">
+const host = window as unknown as { __pageScriptLog?: string[] };
+host.__pageScriptLog ??= [];
+const pageLog = host.__pageScriptLog;
+let clicks = 0;
+
+pk.onConnected(() => {
+  pageLog.push('connected');
+  const counter = pk.refs.counter;
+  const countClick = (): void => {
+    clicks++;
+    pageLog.push('click ' + clicks);
+  };
+  counter?.addEventListener('click', countClick);
+  pk.onCleanup(() => counter?.removeEventListener('click', countClick));
+});
+
+pk.onDisconnected(() => {
+  pageLog.push('disconnected');
+});
+</script>

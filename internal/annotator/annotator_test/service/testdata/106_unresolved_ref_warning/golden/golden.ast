@@ -1,0 +1,14 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <h1 [p-ref: title] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Title"
+  </h1>
+  <aside [p-ref: banner] [ANNOTATIONS: OriginPackage: partials_banner_814bb352 OriginPath: partials/banner.pk PARTIAL InvKey: banner_e474372a Package: partials_banner_814bb352 InvPackage: main_aaf9a2e0]>
+    "Banner"
+  </aside>
+</div>
+
+--- END AST DUMP ---
+*/

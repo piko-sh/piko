@@ -18,6 +18,8 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createModalManager, type ModalManager } from '@/core/ModalManager';
+import {registerDiagnosticEmitter} from '@/services/DiagnosticReporter';
+import {_endPageVisit} from '@/pk/lifecycle';
 
 describe('ModalManager', () => {
     let modalManager: ModalManager;
@@ -53,6 +55,21 @@ describe('ModalManager', () => {
             expect(eventSpy.mock.calls[0][0]).toBeInstanceOf(CustomEvent);
 
             warnSpy.mockRestore();
+        });
+
+        it('sends a diagnostic event when the modal selector matches nothing', async () => {
+            vi.spyOn(console, 'warn').mockImplementation(() => {});
+            const emitter = vi.fn();
+            registerDiagnosticEmitter(emitter);
+            emitter.mockClear();
+            _endPageVisit();
+
+            await modalManager.openIfAvailable({selector: '#absent-modal', triggerElement});
+
+            expect(emitter).toHaveBeenCalledWith(expect.objectContaining({
+                kind: 'modal-not-found',
+                name: '#absent-modal'
+            }));
         });
 
         it('should dispatch custom fallback event name when specified', async () => {

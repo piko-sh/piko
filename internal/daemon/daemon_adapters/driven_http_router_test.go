@@ -34,7 +34,9 @@ import (
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/daemon/daemon_dto"
-	"piko.sh/piko/internal/render/render_dto"
+	"piko.sh/piko/internal/daemon/daemon_frontend"
+	"piko.sh/piko/internal/registry/registry_domain"
+	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/security/security_dto"
 	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/internal/templater/templater_dto"
@@ -302,115 +304,6 @@ func TestApplyMiddlewares(t *testing.T) {
 		result.ServeHTTP(recorder, request)
 
 		assert.Equal(t, []string{"mw1", "mw2", "base"}, order)
-	})
-}
-
-func TestBuildHeaders(t *testing.T) {
-	testCases := []struct {
-		name     string
-		lh       render_dto.LinkHeader
-		expected string
-	}{
-		{
-			name: "basic preload link",
-			lh: render_dto.LinkHeader{
-				URL: "/assets/style.css",
-				Rel: "preload",
-			},
-			expected: "</assets/style.css>; rel=preload",
-		},
-		{
-			name: "preload with as attribute",
-			lh: render_dto.LinkHeader{
-				URL: "/assets/script.js",
-				Rel: "preload",
-				As:  "script",
-			},
-			expected: "</assets/script.js>; rel=preload; as=script",
-		},
-		{
-			name: "preload with type attribute",
-			lh: render_dto.LinkHeader{
-				URL:  "/assets/font.woff2",
-				Rel:  "preload",
-				As:   "font",
-				Type: "font/woff2",
-			},
-			expected: `</assets/font.woff2>; rel=preload; as=font; type="font/woff2"`,
-		},
-		{
-			name: "preload with anonymous crossorigin",
-			lh: render_dto.LinkHeader{
-				URL:         "/api/data",
-				Rel:         "preload",
-				CrossOrigin: "anonymous",
-			},
-			expected: "</api/data>; rel=preload; crossorigin=anonymous",
-		},
-		{
-			name: "preload with use-credentials crossorigin",
-			lh: render_dto.LinkHeader{
-				URL:         "/api/secure",
-				Rel:         "preload",
-				CrossOrigin: "use-credentials",
-			},
-			expected: "</api/secure>; rel=preload; crossorigin=use-credentials",
-		},
-		{
-			name: "preload with boolean crossorigin",
-			lh: render_dto.LinkHeader{
-				URL:         "/external/resource",
-				Rel:         "preload",
-				CrossOrigin: "true",
-			},
-			expected: "</external/resource>; rel=preload; crossorigin",
-		},
-		{
-			name: "full link header with all attributes",
-			lh: render_dto.LinkHeader{
-				URL:         "/assets/font.woff2",
-				Rel:         "preload",
-				As:          "font",
-				Type:        "font/woff2",
-				CrossOrigin: "anonymous",
-			},
-			expected: `</assets/font.woff2>; rel=preload; as=font; type="font/woff2"; crossorigin=anonymous`,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result := buildHeaders(tc.lh)
-			assert.Equal(t, tc.expected, result)
-		})
-	}
-}
-
-func TestSendSpecificEarlyHints(t *testing.T) {
-	t.Run("returns false for empty headers", func(t *testing.T) {
-		recorder := httptest.NewRecorder()
-		request := httptest.NewRequest(http.MethodGet, "/", nil)
-
-		result := sendSpecificEarlyHints(recorder, request, []render_dto.LinkHeader{})
-
-		assert.False(t, result)
-	})
-
-	t.Run("adds link headers to response", func(t *testing.T) {
-		recorder := httptest.NewRecorder()
-		request := httptest.NewRequest(http.MethodGet, "/", nil)
-
-		headers := []render_dto.LinkHeader{
-			{URL: "/style.css", Rel: "preload", As: "style"},
-			{URL: "/script.js", Rel: "preload", As: "script"},
-		}
-
-		_ = sendSpecificEarlyHints(recorder, request, headers)
-
-		linkHeaders := recorder.Header().Values("Link")
-		require.Len(t, linkHeaders, 2)
-		assert.Contains(t, linkHeaders[0], "/style.css")
-		assert.Contains(t, linkHeaders[1], "/script.js")
 	})
 }
 
@@ -1389,11 +1282,44 @@ func TestComputeAutoLocaleHead_LocalisedStaticPage(t *testing.T) {
 
 	require.NotNil(t, head)
 	assert.Equal(t, "fr", head.Language)
-	assert.Equal(t, "https://example.com/what-we-do/", head.CanonicalURL)
+	assert.Equal(t, "https://example.com/fr/what-we-do/", head.CanonicalURL, "a translated page must be its own canonical")
 	require.Len(t, head.AlternateLinks, 3)
 	assert.Equal(t, map[string]string{"hreflang": "en", "href": "https://example.com/what-we-do/"}, head.AlternateLinks[0])
 	assert.Equal(t, map[string]string{"hreflang": "fr", "href": "https://example.com/fr/what-we-do/"}, head.AlternateLinks[1])
 	assert.Equal(t, map[string]string{"hreflang": "x-default", "href": "https://example.com/what-we-do/"}, head.AlternateLinks[2])
+}
+
+func TestComputeAutoLocaleHead_DefaultLocaleIsSelfCanonical(t *testing.T) {
+	t.Parallel()
+
+	entry := &templater_domain.MockPageEntryView{
+		GetRoutePatternsFunc: func() map[string]string {
+			return map[string]string{"en": "/what-we-do/", "fr": "/fr/what-we-do/"}
+		},
+	}
+	cfg := &config.WebsiteConfig{I18n: config.I18nConfig{Locales: []string{"en", "fr"}, DefaultLocale: "en"}}
+
+	head := computeAutoLocaleHead(newAutoHeadRequest("en", "/what-we-do/", nil), entry, cfg)
+
+	require.NotNil(t, head)
+	assert.Equal(t, "https://example.com/what-we-do/", head.CanonicalURL)
+	assert.Equal(t, map[string]string{"hreflang": "x-default", "href": "https://example.com/what-we-do/"}, head.AlternateLinks[2])
+}
+
+func TestComputeAutoLocaleHead_UnknownLocaleFallsBackToDefaultCanonical(t *testing.T) {
+	t.Parallel()
+
+	entry := &templater_domain.MockPageEntryView{
+		GetRoutePatternsFunc: func() map[string]string {
+			return map[string]string{"en": "/what-we-do/", "fr": "/fr/what-we-do/"}
+		},
+	}
+	cfg := &config.WebsiteConfig{I18n: config.I18nConfig{Locales: []string{"en", "fr"}, DefaultLocale: "en"}}
+
+	head := computeAutoLocaleHead(newAutoHeadRequest("de", "/what-we-do/", nil), entry, cfg)
+
+	require.NotNil(t, head)
+	assert.Equal(t, "https://example.com/what-we-do/", head.CanonicalURL)
 }
 
 func TestComputeAutoLocaleHead_SingleLocaleEmitsSelfCanonicalOnly(t *testing.T) {
@@ -1668,6 +1594,43 @@ func TestBuildRouter_InstallsNotFoundHandlerOnMainRouter(t *testing.T) {
 	assert.Contains(t, recorder.Body.String(), customNotFoundBody)
 }
 
+func TestBuildRouter_NotFoundNamesTheRuntimeVersion(t *testing.T) {
+	t.Parallel()
+
+	require.NotEmpty(t, daemon_frontend.RuntimeVersion(), "the embedded bundles must have a runtime version")
+
+	testCases := []struct {
+		notFoundHandler http.Handler
+		name            string
+		build           daemon_frontend.CoreRuntimeBuild
+	}{
+		{name: "the app's not found page on a production server", notFoundHandler: NewNotFoundHandler(
+			chi.NewRouter(), depsRenderingBody(customNotFoundBody), storeWithErrorPage(), &config.WebsiteConfig{}),
+			build: daemon_frontend.CoreRuntimeBuildProduction},
+		{name: "the plain not found response on a dev server", notFoundHandler: nil, build: daemon_frontend.CoreRuntimeBuildDevelopment},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			builder := NewHTTPRouterBuilder(nil, "")
+			mainRouter, err := builder.BuildRouter(
+				&daemon_domain.RouterConfig{DistServePath: "/_piko/dist", ArtefactServePath: "/_piko/artefacts", CoreRuntimeBuild: testCase.build},
+				daemon_domain.RouterDependencies{NotFoundHandler: testCase.notFoundHandler},
+			)
+			require.NoError(t, err)
+
+			recorder := httptest.NewRecorder()
+			mainRouter.ServeHTTP(recorder, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/no-such-route", nil))
+
+			assert.Equal(t, http.StatusNotFound, recorder.Code)
+			assert.Equal(t, testCase.build.RuntimeVersion(), recorder.Header().Get(daemon_frontend.RuntimeVersionHeader),
+				"the header must name the version in the core URL the server's pages load")
+		})
+	}
+}
+
 func TestApplyRequestTimeoutBoundsARoute(t *testing.T) {
 	t.Parallel()
 
@@ -1771,6 +1734,62 @@ func TestApplyMiddlewaresDoesNotCacheAnIdentityVaryingPage(t *testing.T) {
 	assert.True(t, cacheApplied, "an ordinary page is still cached")
 }
 
+func TestApplyCachePolicyMiddlewareSendsNoStore(t *testing.T) {
+	t.Parallel()
+
+	passThroughCache := func(next http.Handler) http.Handler { return next }
+	noStorePage := func(hasAuthPolicy bool) *templater_domain.MockPageEntryView {
+		return &templater_domain.MockPageEntryView{
+			GetHasAuthPolicyFunc:  func() bool { return hasAuthPolicy },
+			GetHasCachePolicyFunc: func() bool { return true },
+			GetCachePolicyFunc: func(*templater_dto.RequestData) templater_dto.CachePolicy {
+				return templater_dto.CachePolicy{NoStore: true}
+			},
+		}
+	}
+
+	testCases := []struct {
+		cacheMiddleware  func(http.Handler) http.Handler
+		entry            *templater_domain.MockPageEntryView
+		name             string
+		wantCacheControl string
+	}{
+		{
+			name:             "page behind an auth policy",
+			cacheMiddleware:  passThroughCache,
+			entry:            noStorePage(true),
+			wantCacheControl: cacheControlNoStore,
+		},
+		{
+			name:             "static page cache off",
+			entry:            noStorePage(false),
+			wantCacheControl: cacheControlNoStore,
+		},
+		{
+			name:             "page without a cache policy",
+			entry:            &templater_domain.MockPageEntryView{},
+			wantCacheControl: cacheControlPrivateNoCache,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			page := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				setDefaultCacheControl(w.Header(), headerValCachePrivateNoCache)
+				w.WriteHeader(http.StatusOK)
+			})
+			handler := applyCachePolicyMiddleware(page, testCase.entry, testCase.cacheMiddleware)
+			recorder := httptest.NewRecorder()
+
+			handler.ServeHTTP(recorder, newRoutedRequest(t, "/account"))
+
+			assert.Equal(t, []string{testCase.wantCacheControl}, recorder.Header().Values("Cache-Control"))
+		})
+	}
+}
+
 func TestRolesFromAuthValue(t *testing.T) {
 	t.Parallel()
 
@@ -1821,4 +1840,301 @@ func TestProductionFallbackUsesRenderedErrorStatus(t *testing.T) {
 			})
 		}
 	}
+}
+
+const (
+	cacheTestPagePath      = "/about"
+	cacheTestPartialPath   = "/_piko/partials/card"
+	cacheTestErrorPagePath = "/pages/!error.pk"
+	cacheTestPageBody      = "<h1>About</h1>"
+	cacheTestErrorBody     = "<h1>Something went wrong</h1>"
+	cacheTestPagePolicy    = "public, max-age=60"
+	cacheTestAppPolicy     = "no-store"
+	cacheTestDefaultPolicy = "private, no-cache"
+)
+
+type cacheTestRoutes struct {
+	templater       *templater_domain.MockTemplaterService
+	appMiddleware   func(http.Handler) http.Handler
+	pageMiddleware  func(http.Handler) http.Handler
+	cacheMiddleware func(http.Handler) http.Handler
+	pagePolicy      templater_dto.CachePolicy
+	pageRoles       []string
+}
+
+func setsCacheControl(value string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+			w.Header().Set("Cache-Control", value)
+			next.ServeHTTP(w, request)
+		})
+	}
+}
+
+func renderingTemplater() *templater_domain.MockTemplaterService {
+	probe := func(context.Context, templater_dto.PageDefinition, *http.Request, *config.WebsiteConfig) (*templater_dto.PageProbeResult, error) {
+		return &templater_dto.PageProbeResult{}, nil
+	}
+	render := func(_ context.Context, request templater_domain.RenderRequest) error {
+		body := cacheTestPageBody
+		if request.Page.OriginalPath == cacheTestErrorPagePath {
+			body = cacheTestErrorBody
+		}
+		_, err := request.Writer.Write([]byte(body))
+		return err
+	}
+	return &templater_domain.MockTemplaterService{
+		ProbePageFunc:    probe,
+		ProbePartialFunc: probe,
+		RenderPageFunc:   render,
+		RenderPartialFunc: func(_ context.Context, request templater_domain.RenderRequest) error {
+			_, err := request.Writer.Write([]byte(cacheTestPageBody))
+			return err
+		},
+	}
+}
+
+func newCacheTestStore(routes cacheTestRoutes) *templater_domain.MockManifestStoreView {
+	page := &templater_domain.MockPageEntryView{
+		GetIsPageFunc:        func() bool { return true },
+		GetOriginalPathFunc:  func() string { return "/pages/about.pk" },
+		GetRoutePatternFunc:  func() string { return cacheTestPagePath },
+		GetRoutePatternsFunc: func() map[string]string { return map[string]string{"en": cacheTestPagePath} },
+		GetCachePolicyFunc:   func(*templater_dto.RequestData) templater_dto.CachePolicy { return routes.pagePolicy },
+	}
+	if routes.pageMiddleware != nil {
+		page.GetHasMiddlewareFunc = func() bool { return true }
+		page.GetMiddlewaresFunc = func() []func(http.Handler) http.Handler {
+			return []func(http.Handler) http.Handler{routes.pageMiddleware}
+		}
+	}
+	if len(routes.pageRoles) > 0 {
+		page.GetHasAuthPolicyFunc = func() bool { return true }
+		page.GetAuthPolicyFunc = func(*templater_dto.RequestData) daemon_dto.AuthPolicy {
+			return daemon_dto.AuthPolicy{Required: true, Roles: routes.pageRoles}
+		}
+	}
+	partial := &templater_domain.MockPageEntryView{
+		GetOriginalPathFunc: func() string { return "/partials/card.pk" },
+		GetRoutePatternFunc: func() string { return cacheTestPartialPath },
+	}
+	errorPage := &templater_domain.MockPageEntryView{
+		GetOriginalPathFunc: func() string { return cacheTestErrorPagePath },
+	}
+	entries := map[string]templater_domain.PageEntryView{"pages/about.pk": page, "partials/card.pk": partial}
+
+	return &templater_domain.MockManifestStoreView{
+		GetKeysFunc: func() []string { return []string{"pages/about.pk", "partials/card.pk"} },
+		GetPageEntryFunc: func(key string) (templater_domain.PageEntryView, bool) {
+			entry, ok := entries[key]
+			return entry, ok
+		},
+		FindErrorPageFunc: func(int, string) (templater_domain.PageEntryView, bool) { return errorPage, true },
+	}
+}
+
+func newCacheTestRouter(t *testing.T, routes cacheTestRoutes) chi.Router {
+	t.Helper()
+
+	router := chi.NewRouter()
+	if routes.appMiddleware != nil {
+		router.Use(routes.appMiddleware)
+	}
+	MountRoutesFromManifest(t.Context(), &MountRoutesConfig{
+		Router:          router,
+		Deps:            &daemon_domain.HTTPHandlerDependencies{Templater: routes.templater},
+		Store:           newCacheTestStore(routes),
+		SiteSettings:    &config.WebsiteConfig{},
+		CacheMiddleware: routes.cacheMiddleware,
+		RouteSettings:   RouteSettings{},
+	})
+	return router
+}
+
+func serveCacheTestRequest(t *testing.T, router http.Handler, target string, auth daemon_dto.AuthContext) *httptest.ResponseRecorder {
+	t.Helper()
+
+	pctx := daemon_dto.AcquirePikoRequestCtx()
+	t.Cleanup(func() { daemon_dto.ReleasePikoRequestCtx(pctx) })
+	if auth != nil {
+		pctx.CachedAuth = auth
+	}
+	request := httptest.NewRequestWithContext(daemon_dto.WithPikoRequestCtx(t.Context(), pctx), http.MethodGet, target, nil)
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+	return recorder
+}
+
+func TestPageRoutesDefaultCacheControl(t *testing.T) {
+	t.Parallel()
+
+	redirecting := renderingTemplater()
+	redirecting.RenderPageFunc = func(context.Context, templater_domain.RenderRequest) error {
+		return &templater_dto.RedirectRequired{Metadata: templater_dto.InternalMetadata{
+			Metadata: templater_dto.Metadata{ClientRedirect: "/login"},
+		}}
+	}
+
+	failingRender := renderingTemplater()
+	failingRender.RenderPageFunc = func(_ context.Context, request templater_domain.RenderRequest) error {
+		if request.Page.OriginalPath == cacheTestErrorPagePath {
+			_, err := request.Writer.Write([]byte(cacheTestErrorBody))
+			return err
+		}
+		return errors.New("render failed")
+	}
+
+	failingProbe := renderingTemplater()
+	failingProbe.ProbePageFunc = func(
+		_ context.Context, page templater_dto.PageDefinition, _ *http.Request, _ *config.WebsiteConfig,
+	) (*templater_dto.PageProbeResult, error) {
+		if page.OriginalPath == cacheTestErrorPagePath {
+			return &templater_dto.PageProbeResult{}, nil
+		}
+		return nil, errors.New("probe failed")
+	}
+
+	testCases := []struct {
+		auth             daemon_dto.AuthContext
+		name             string
+		target           string
+		wantCacheControl string
+		wantBody         string
+		routes           cacheTestRoutes
+		wantStatus       int
+	}{
+		{
+			name:             "page without a policy gets the default",
+			routes:           cacheTestRoutes{templater: renderingTemplater()},
+			target:           cacheTestPagePath,
+			wantStatus:       http.StatusOK,
+			wantCacheControl: cacheTestDefaultPolicy,
+			wantBody:         cacheTestPageBody,
+		},
+		{
+			name:             "fragment request gets the default",
+			routes:           cacheTestRoutes{templater: renderingTemplater()},
+			target:           cacheTestPagePath + "?_f=1",
+			wantStatus:       http.StatusOK,
+			wantCacheControl: cacheTestDefaultPolicy,
+			wantBody:         cacheTestPageBody,
+		},
+		{
+			name:             "partial gets the default",
+			routes:           cacheTestRoutes{templater: renderingTemplater()},
+			target:           cacheTestPartialPath,
+			wantStatus:       http.StatusOK,
+			wantCacheControl: cacheTestDefaultPolicy,
+			wantBody:         cacheTestPageBody,
+		},
+		{
+			name:             "page that sets its own policy keeps it",
+			routes:           cacheTestRoutes{templater: renderingTemplater(), pageMiddleware: setsCacheControl(cacheTestPagePolicy)},
+			target:           cacheTestPagePath,
+			wantStatus:       http.StatusOK,
+			wantCacheControl: cacheTestPagePolicy,
+			wantBody:         cacheTestPageBody,
+		},
+		{
+			name:             "app that sets its own policy keeps it",
+			routes:           cacheTestRoutes{templater: renderingTemplater(), appMiddleware: setsCacheControl(cacheTestAppPolicy)},
+			target:           cacheTestPagePath,
+			wantStatus:       http.StatusOK,
+			wantCacheControl: cacheTestAppPolicy,
+			wantBody:         cacheTestPageBody,
+		},
+		{
+			name:             "app policy also wins on a partial",
+			routes:           cacheTestRoutes{templater: renderingTemplater(), appMiddleware: setsCacheControl(cacheTestAppPolicy)},
+			target:           cacheTestPartialPath,
+			wantStatus:       http.StatusOK,
+			wantCacheControl: cacheTestAppPolicy,
+			wantBody:         cacheTestPageBody,
+		},
+		{
+			name:             "redirect gets the default",
+			routes:           cacheTestRoutes{templater: redirecting},
+			target:           cacheTestPagePath,
+			wantStatus:       http.StatusFound,
+			wantCacheControl: cacheTestDefaultPolicy,
+		},
+		{
+			name:             "error page after a failed render gets the default",
+			routes:           cacheTestRoutes{templater: failingRender},
+			target:           cacheTestPagePath,
+			wantStatus:       http.StatusInternalServerError,
+			wantCacheControl: cacheTestDefaultPolicy,
+			wantBody:         cacheTestErrorBody,
+		},
+		{
+			name:             "error page after a failed probe gets the default",
+			routes:           cacheTestRoutes{templater: failingProbe},
+			target:           cacheTestPagePath,
+			wantStatus:       http.StatusInternalServerError,
+			wantCacheControl: cacheTestDefaultPolicy,
+			wantBody:         cacheTestErrorBody,
+		},
+		{
+			name:             "not found page gets the default",
+			routes:           cacheTestRoutes{templater: renderingTemplater()},
+			target:           "/no-such-page",
+			wantStatus:       http.StatusNotFound,
+			wantCacheControl: cacheTestDefaultPolicy,
+			wantBody:         cacheTestErrorBody,
+		},
+		{
+			name:             "page refused for a missing role gets the default",
+			routes:           cacheTestRoutes{templater: renderingTemplater(), pageRoles: []string{"admin"}},
+			auth:             headerAuthContext{userID: "ada"},
+			target:           cacheTestPagePath,
+			wantStatus:       http.StatusForbidden,
+			wantCacheControl: cacheTestDefaultPolicy,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			router := newCacheTestRouter(t, testCase.routes)
+
+			recorder := serveCacheTestRequest(t, router, testCase.target, testCase.auth)
+
+			assert.Equal(t, testCase.wantStatus, recorder.Code)
+			assert.Equal(t, []string{testCase.wantCacheControl}, recorder.Header().Values("Cache-Control"))
+			if testCase.wantBody != "" {
+				assert.Contains(t, recorder.Body.String(), testCase.wantBody)
+			}
+		})
+	}
+}
+
+func TestPageRoutesStaticCachedPageKeepsItsOwnCacheControl(t *testing.T) {
+	t.Parallel()
+
+	routes := cacheTestRoutes{
+		templater:  renderingTemplater(),
+		pagePolicy: templater_dto.CachePolicy{Enabled: true, Static: true, MaxAgeSeconds: 3600},
+	}
+	store := newCacheTestStore(routes)
+	cacheMiddleware := NewCacheMiddleware(
+		CacheMiddlewareConfig{PersistenceDisabled: true},
+		store,
+		&registry_domain.MockRegistryService{
+			GetArtefactFunc: func(context.Context, string) (*registry_dto.ArtefactMeta, error) {
+				return nil, errors.New("not cached yet")
+			},
+		},
+		nil,
+		"",
+	)
+	routes.cacheMiddleware = cacheMiddleware.Handle
+	router := newCacheTestRouter(t, routes)
+
+	recorder := serveCacheTestRequest(t, router, cacheTestPagePath, nil)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, "MISS", recorder.Header().Get("X-Cache-Status"))
+	assert.Equal(t, []string{"public, max-age=0, s-maxage=3600, must-revalidate"}, recorder.Header().Values("Cache-Control"))
+	assert.Equal(t, cacheTestPageBody, recorder.Body.String())
 }

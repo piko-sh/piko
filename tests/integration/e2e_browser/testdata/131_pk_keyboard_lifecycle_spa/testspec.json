@@ -1,5 +1,5 @@
 {
-  "description": "Tests PK keyboard event listeners registered in pk.onConnected survive SPA navigation away and back",
+  "description": "Keyboard listeners registered in pk.onConnected work after SPA navigation away and back",
   "requestURL": "/main",
   "expectedStatus": 200,
   "browserSteps": [
@@ -58,8 +58,24 @@
       "goldenFile": "after_keypress.html"
     },
     {
+      "action": "eval",
+      "selector": "window",
+      "value": "document.body.setAttribute('data-keydown-calls', String(window.__keydownCalls ?? 0));"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "body",
+      "attribute": "data-keydown-calls",
+      "expected": "1"
+    },
+    {
       "action": "comment",
       "value": "Step 2: Navigate away via SPA link"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "window.__spaMarker = 'same-window';"
     },
     {
       "action": "click",
@@ -81,6 +97,29 @@
     },
     {
       "action": "comment",
+      "value": "Key presses on the other page reach no listener of the main page"
+    },
+    {
+      "action": "press",
+      "key": "ArrowUp"
+    },
+    {
+      "action": "wait",
+      "value": "300"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "document.body.setAttribute('data-keydown-calls', String(window.__keydownCalls ?? 0));"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "body",
+      "attribute": "data-keydown-calls",
+      "expected": "1"
+    },
+    {
+      "action": "comment",
       "value": "Step 3: Navigate back via SPA link"
     },
     {
@@ -90,6 +129,17 @@
     {
       "action": "wait",
       "value": "500"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "document.body.setAttribute('data-spa', window.__spaMarker || 'full-reload');"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "body",
+      "attribute": "data-spa",
+      "expected": "same-window"
     },
     {
       "action": "checkText",
@@ -132,6 +182,17 @@
       "action": "captureDOM",
       "selector": "#app",
       "goldenFile": "after_return_keypress.html"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "document.body.setAttribute('data-keydown-calls', String(window.__keydownCalls ?? 0));"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "body",
+      "attribute": "data-keydown-calls",
+      "expected": "2"
     }
   ]
 }

@@ -26,8 +26,6 @@ import (
 	"io"
 	"math"
 	"net/http"
-	"path"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -109,11 +107,7 @@ func (builder *HTTPRouterBuilder) BuildRouter(
 		return nil, fmt.Errorf("setting up dynamic routes: %w", err)
 	}
 
-	if deps.NotFoundHandler != nil {
-		mainRouter.NotFound(deps.NotFoundHandler.ServeHTTP)
-	} else {
-		mainRouter.NotFound(http.NotFound)
-	}
+	mainRouter.NotFound(notFoundWithRuntimeVersion(deps.NotFoundHandler, routerConfig.CoreRuntimeBuild).ServeHTTP)
 
 	span.SetStatus(codes.Ok, "Router built successfully")
 	return mainRouter, nil
@@ -155,6 +149,8 @@ func (*HTTPRouterBuilder) setupBaseMiddleware(
 
 	router.Use(middleware.Recoverer)
 
+	router.Use(headAsGetMiddleware)
+
 	router.Use(middleware.Heartbeat("/ping"))
 }
 
@@ -177,8 +173,14 @@ func (builder *HTTPRouterBuilder) setupStaticRoutes(
 ) {
 	noCache := routerConfig.DisableHTTPCache
 	sitemapCacheControl := cacheControlForMode(noCache, sitemapCacheControlValue(routerConfig.SitemapCacheMaxAgeSeconds))
-	router.Get(routerConfig.DistServePath+"/*", serveEmbeddedFrontend(routerConfig.WatchMode, noCache))
-	router.Get("/theme.css", builder.serveTheme(registryService, noCache))
+	frontendHandler := newEmbeddedFrontendHandler(
+		daemon_frontend.RuntimeVersion(),
+		cacheControlForMode(noCache, cacheControlImmutable),
+		routerConfig.CoreRuntimeBuild,
+	)
+	router.Get(routerConfig.DistServePath+"/*", frontendHandler.ServeHTTP)
+	router.Get(daemon_frontend.RuntimeRecoveryURL, serveRuntimeRecovery)
+	router.Get("/theme.css", builder.serveTheme(registryService))
 	router.Get("/sitemap.xml", builder.serveSitemapArtefact(registryService, "sitemap.xml", sitemapCacheControl))
 	router.Get("/sitemap-{number}.xml", builder.serveSitemapChunk(registryService, sitemapCacheControl))
 	router.Get("/robots.txt", builder.serveRobotsTxt(registryService, sitemapCacheControl, routerConfig.RobotsTxtBlock))
@@ -225,6 +227,8 @@ func (builder *HTTPRouterBuilder) setupDynamicRoutes(
 ) error {
 	var setupErr error
 	router.Group(func(r chi.Router) {
+		r.Use(runtimeVersionMiddleware(routerConfig.CoreRuntimeBuild.RuntimeVersion()))
+
 		if err := builder.setupRealIP(r, routerConfig); err != nil {
 			setupErr = err
 			return
@@ -283,18 +287,20 @@ type staticArtefactConfig struct {
 
 // serveTheme returns a handler that serves the theme CSS file.
 //
+// Pages pin theme.css with SRI under a URL that stays the same across releases, so the
+// browser must revalidate it before every reuse in every mode. Otherwise a copy cached
+// before a deploy would fail the new page's integrity check and the page would render
+// without its styles.
+//
 // Takes registryService (registry_domain.RegistryService) which provides access to static
 // assets.
-// Takes disableHTTPCache (bool) which serves the asset with a revalidating cache policy
-// instead of the long-lived one.
 //
-// Returns http.HandlerFunc which serves the minified, compressed theme CSS with a
-// one-hour cache time.
-func (*HTTPRouterBuilder) serveTheme(registryService registry_domain.RegistryService, disableHTTPCache bool) http.HandlerFunc {
+// Returns http.HandlerFunc which serves the minified, compressed theme CSS.
+func (*HTTPRouterBuilder) serveTheme(registryService registry_domain.RegistryService) http.HandlerFunc {
 	return serveStaticArtefactHandler(registryService, staticArtefactConfig{
 		artefactID:      "theme.css",
 		defaultMimeType: contentTypeCSS,
-		cacheMaxAge:     cacheControlForMode(disableHTTPCache, cacheControlMutableAsset),
+		cacheMaxAge:     cacheControlNoCache,
 		preferredType:   "minified",
 		useCompression:  true,
 	}, "serveTheme")
@@ -1013,11 +1019,9 @@ func writeStaticVariantResponse(
 		contentType = mt
 	}
 
-	etag := variant.MetadataTags.Get(registry_dto.TagEtag)
 	h := w.Header()
 	h[headerContentType] = []string{contentType}
-	h[headerETag] = []string{etag}
-	h[headerCacheControl] = []string{config.cacheMaxAge}
+	setVariantCacheHeaders(h, variant.MetadataTags.Get(registry_dto.TagEtag), config.cacheMaxAge)
 
 	if encoding := variant.MetadataTags.Get(registry_dto.TagContentEncoding); encoding != "" {
 		h[headerContentEncoding] = []string{encoding}
@@ -1047,6 +1051,29 @@ func withheldFromSearchMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// headAsGetMiddleware serves HEAD requests through the GET route for the same path.
+//
+// RFC 9110 requires a server that supports GET on a resource to also support HEAD, and
+// crawlers, uptime monitors and link checkers rely on it. Pages and static routes are
+// registered for GET only, so without this every HEAD request is refused with 405. The
+// handler runs as a GET, and net/http (HTTP/1.1 and HTTP/2) discards the body because the
+// connection still sees the original HEAD request, while headers, status and
+// Content-Length match the GET response.
+//
+// Takes next (http.Handler) which is the next handler in the chain.
+//
+// Returns http.Handler which rewrites HEAD to GET before delegating.
+func headAsGetMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			getRequest := r.WithContext(r.Context())
+			getRequest.Method = http.MethodGet
+			r = getRequest
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 // serveFixedRobotsTxt returns a handler that writes a fixed robots.txt body computed at
 // startup rather than reading the stored artefact.
 //
@@ -1065,7 +1092,7 @@ func serveFixedRobotsTxt(content []byte, cacheControl string) http.HandlerFunc {
 		h[headerETag] = etag
 		h[headerCacheControl] = cacheControlValue
 
-		if match := r.Header.Get(headerIfNoneMatch); match != "" && strings.Contains(match, etag[0]) {
+		if ifNoneMatchSatisfied(r.Header.Get(headerIfNoneMatch), etag[0]) {
 			w.WriteHeader(http.StatusNotModified)
 			return
 		}
@@ -1114,7 +1141,8 @@ func serveStaticArtefactHandler(
 		}
 
 		etag := bestVariant.MetadataTags.Get(registry_dto.TagEtag)
-		if etag != "" && r.Header.Get(headerIfNoneMatch) == etag {
+		if ifNoneMatchSatisfied(r.Header.Get(headerIfNoneMatch), etag) {
+			setVariantCacheHeaders(w.Header(), etag, config.cacheMaxAge)
 			w.WriteHeader(http.StatusNotModified)
 			return
 		}
@@ -1222,7 +1250,7 @@ func serveVariantResponse(
 
 	etag := bestVariant.MetadataTags.Get(registry_dto.TagEtag)
 	cacheControl := cacheControlForArtefact(vrc.disableHTTPCache, vrc.foundByStorageKey, bestVariant)
-	if etag != "" && vrc.r.Header.Get(headerIfNoneMatch) == etag {
+	if ifNoneMatchSatisfied(vrc.r.Header.Get(headerIfNoneMatch), etag) {
 		setVariantCacheHeaders(vrc.w.Header(), etag, cacheControl)
 		vrc.w.WriteHeader(http.StatusNotModified)
 		return
@@ -1292,62 +1320,6 @@ func findBestCompressedVariant(r *http.Request, artefact *registry_dto.ArtefactM
 	}
 
 	return findVariantByID(artefact.ActualVariants, baseVariantID)
-}
-
-// serveEmbeddedFrontend creates a handler that serves static files from the embedded
-// frontend.
-//
-// In production mode (when watchMode is false), requests for .es.js files are
-// automatically redirected to the minified .min.es.js versions for optimal performance.
-//
-// When the requested file is not found, sends a 404 Not Found response. When the client's
-// If-None-Match header matches the file's ETag, sends a 304 Not Modified response.
-//
-// Takes watchMode (bool) which indicates whether the server is in dev mode.
-// Takes disableHTTPCache (bool) which serves the asset with a revalidating cache policy
-// instead of the long-lived one.
-//
-// Returns http.HandlerFunc which serves the embedded frontend assets.
-func serveEmbeddedFrontend(watchMode bool, disableHTTPCache bool) http.HandlerFunc {
-	frontendCacheControl := cacheControlForMode(disableHTTPCache, cacheControlMutableAsset)
-	return func(w http.ResponseWriter, r *http.Request) {
-		fileParam := chi.URLParam(r, "*")
-
-		const forceUnminified = true
-		if !forceUnminified && !watchMode && strings.HasSuffix(fileParam, ".es.js") && !strings.Contains(fileParam, ".min.") {
-			fileParam = strings.Replace(fileParam, ".es.js", ".min.es.js", 1)
-		}
-
-		basePath := path.Join("built", fileParam)
-
-		finalPath := daemon_frontend.DetermineBestAssetPath(r.Context(), basePath, r.Header.Get(headerAcceptEncoding))
-
-		asset, found := daemon_frontend.GetAsset(r.Context(), finalPath)
-		if !found {
-			asset, found = daemon_frontend.GetAsset(r.Context(), basePath)
-			if !found {
-				http.NotFound(w, r)
-				return
-			}
-		}
-
-		h := w.Header()
-		h[headerETag] = []string{asset.ETag}
-		h[headerCacheControl] = []string{frontendCacheControl}
-
-		if match := r.Header.Get(headerIfNoneMatch); match != "" && strings.Contains(match, asset.ETag) {
-			w.WriteHeader(http.StatusNotModified)
-			return
-		}
-
-		h[headerContentType] = []string{asset.MimeType}
-		if asset.Encoding != "" {
-			h[headerContentEncoding] = []string{asset.Encoding}
-		}
-		w.Header().Add("Vary", headerAcceptEncoding)
-
-		http.ServeContent(w, r, filepath.Base(basePath), time.Time{}, bytes.NewReader(asset.Content))
-	}
 }
 
 // generateMissingVariants generates each named profile that the registry does not yet
@@ -1597,4 +1569,22 @@ func (*HTTPRouterBuilder) setupPresignRoutes(router chi.Router, deps daemon_doma
 			presign.Head(presignDownloadPath, deps.PresignDownloadHandler.ServeHTTP)
 		}
 	})
+}
+
+// notFoundWithRuntimeVersion builds the handler for requests that match no route.
+//
+// It names the runtime version like every other dynamic response, so a tab that navigates
+// to a missing page still learns that the server runs a different build.
+//
+// Takes notFoundHandler (http.Handler) which renders the not found page, or nil for the
+// plain 404 response.
+// Takes build (daemon_frontend.CoreRuntimeBuild) which is the core runtime build the
+// server sends.
+//
+// Returns http.Handler which sets the runtime version header and then answers 404.
+func notFoundWithRuntimeVersion(notFoundHandler http.Handler, build daemon_frontend.CoreRuntimeBuild) http.Handler {
+	if notFoundHandler == nil {
+		notFoundHandler = http.HandlerFunc(http.NotFound)
+	}
+	return runtimeVersionMiddleware(build.RuntimeVersion())(notFoundHandler)
 }

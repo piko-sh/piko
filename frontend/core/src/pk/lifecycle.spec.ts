@@ -31,6 +31,9 @@ import {
     _executeUpdated,
     _executeConnectedForPartials,
     _hasLifecycleCallbacks,
+    _createPageLifecycle,
+    _currentPageVisit,
+    _endPageVisit,
 } from '@/pk/lifecycle';
 
 describe('lifecycle (PK Cleanup Management)', () => {
@@ -70,6 +73,17 @@ describe('lifecycle (PK Cleanup Management)', () => {
             _runPageCleanup();
 
             expect(order).toEqual([1, 2, 3]);
+        });
+
+        it('keeps a page cleanup added by a page cleanup for the next navigation', () => {
+            const added = vi.fn();
+            onCleanup(() => onCleanup(added));
+
+            _runPageCleanup();
+            expect(added).not.toHaveBeenCalled();
+
+            _runPageCleanup();
+            expect(added).toHaveBeenCalledTimes(1);
         });
 
         it('should clear cleanup queue after running', () => {
@@ -331,6 +345,34 @@ describe('lifecycle (PK Lifecycle Callbacks)', () => {
             expect(onDisconnected).toHaveBeenCalledTimes(1);
         });
 
+        it('runs an onConnected callback registered after the partial connected, without re-running earlier ones', () => {
+            const scope = document.createElement('div');
+            scope.setAttribute('partial', 'test-5b');
+            testContainer.appendChild(scope);
+            const first = vi.fn();
+            const second = vi.fn();
+
+            _registerLifecycle(scope, { onConnected: first });
+            _registerLifecycle(scope, { onConnected: second });
+
+            expect(first).toHaveBeenCalledTimes(1);
+            expect(second).toHaveBeenCalledTimes(1);
+        });
+
+        it('registers the other callbacks before running onConnected', () => {
+            const scope = document.createElement('div');
+            scope.setAttribute('partial', 'test-5c');
+            testContainer.appendChild(scope);
+            const onUpdated = vi.fn();
+
+            _registerLifecycle(scope, {
+                onConnected: () => { _executeUpdated(scope); },
+                onUpdated,
+            });
+
+            expect(onUpdated).toHaveBeenCalledTimes(1);
+        });
+
         it('should not re-fire onConnected if already connected once', () => {
             const scope = document.createElement('div');
             scope.setAttribute('partial', 'test-5');
@@ -448,6 +490,55 @@ describe('lifecycle (PK Lifecycle Callbacks)', () => {
             _executeDisconnected(scope);
 
             expect(onDisconnected).toHaveBeenCalledTimes(1);
+        });
+
+        it('runs each onDisconnected callback once when a callback disconnects the partial again', () => {
+            const scope = document.createElement('div');
+            scope.setAttribute('partial', 'disc-nested');
+            const second = vi.fn();
+            _registerLifecycle(scope, { onConnected: vi.fn() });
+            _executeConnected(scope);
+            const first = vi.fn(() => _executeDisconnected(scope));
+            _addLifecycleCallback(scope, 'onDisconnected', first);
+            _addLifecycleCallback(scope, 'onDisconnected', second);
+
+            _executeDisconnected(scope);
+
+            expect(first).toHaveBeenCalledTimes(1);
+            expect(second).toHaveBeenCalledTimes(1);
+        });
+
+        it('does not connect the partial from a callback while it disconnects', () => {
+            const scope = document.createElement('div');
+            scope.setAttribute('partial', 'disc-reconnect');
+            const onConnected = vi.fn();
+            _registerLifecycle(scope, { onConnected });
+            _executeConnected(scope);
+            _addLifecycleCallback(scope, 'onDisconnected', () => {
+                _executeDisconnected(scope);
+                _executeConnected(scope);
+            });
+
+            _executeDisconnected(scope);
+            expect(onConnected).toHaveBeenCalledTimes(1);
+
+            _executeConnected(scope);
+            _executeConnected(scope);
+            expect(onConnected).toHaveBeenCalledTimes(2);
+        });
+
+        it('does not connect a partial that never connected from a callback while it disconnects', () => {
+            const scope = document.createElement('div');
+            scope.setAttribute('partial', 'disc-never-connected');
+            const onConnected = vi.fn();
+            _registerLifecycle(scope, { onConnected });
+            _addLifecycleCallback(scope, 'onDisconnected', () => _executeConnected(scope));
+
+            _executeDisconnected(scope);
+            expect(onConnected).not.toHaveBeenCalled();
+
+            _executeConnected(scope);
+            expect(onConnected).toHaveBeenCalledTimes(1);
         });
 
         it('should catch and log errors thrown in onDisconnected callback', () => {
@@ -739,6 +830,20 @@ describe('lifecycle (PK Lifecycle Callbacks)', () => {
             await new Promise(resolve => setTimeout(resolve, 0));
 
             expect(onDisconnected).toHaveBeenCalledTimes(1);
+        });
+
+        it('runs a cleanup added by another cleanup of the same removed element', async () => {
+            _initCleanupObserver();
+            const partial = document.createElement('div');
+            partial.setAttribute('partial', 'rec-late');
+            testContainer.appendChild(partial);
+            const lateCleanup = vi.fn();
+            onCleanup(() => onCleanup(lateCleanup, partial), partial);
+
+            partial.remove();
+            await new Promise(resolve => setTimeout(resolve, 0));
+
+            expect(lateCleanup).toHaveBeenCalledTimes(1);
         });
 
         it('should fire both element-scoped cleanups and onDisconnected for partials', async () => {
@@ -1087,18 +1192,53 @@ describe('lifecycle (_addLifecycleCallback - additive registration)', () => {
             expect(onConnected).not.toHaveBeenCalled();
         });
 
-        it('should not auto-execute onConnected if already connected once', () => {
+        it('runs an onConnected callback added after the partial connected, without re-running earlier ones', () => {
             const scope = document.createElement('div');
             scope.setAttribute('partial', 'add-9');
             testContainer.appendChild(scope);
 
             const first = vi.fn();
             _addLifecycleCallback(scope, 'onConnected', first);
-            expect(first).toHaveBeenCalledTimes(1);
-
             const second = vi.fn();
             _addLifecycleCallback(scope, 'onConnected', second);
-            expect(second).not.toHaveBeenCalled();
+
+            expect(first).toHaveBeenCalledTimes(1);
+            expect(second).toHaveBeenCalledTimes(1);
+        });
+
+        it('runs an onConnected callback added by another onConnected callback once', () => {
+            const scope = document.createElement('div');
+            scope.setAttribute('partial', 'add-9b');
+            testContainer.appendChild(scope);
+            const nested = vi.fn();
+
+            _addLifecycleCallback(scope, 'onConnected', () => {
+                _addLifecycleCallback(scope, 'onConnected', nested);
+            });
+
+            expect(nested).toHaveBeenCalledTimes(1);
+        });
+
+        it('does not run onConnected callbacks while the partial disconnects', () => {
+            const scope = document.createElement('div');
+            scope.setAttribute('partial', 'add-9c');
+            testContainer.appendChild(scope);
+            const first = vi.fn();
+            const addedByDisconnect = vi.fn();
+            _addLifecycleCallback(scope, 'onConnected', first);
+            _addLifecycleCallback(scope, 'onDisconnected', () => {
+                _addLifecycleCallback(scope, 'onConnected', addedByDisconnect);
+            });
+
+            _executeDisconnected(scope);
+
+            expect(first).toHaveBeenCalledTimes(1);
+            expect(addedByDisconnect).not.toHaveBeenCalled();
+
+            _executeConnected(scope);
+
+            expect(first).toHaveBeenCalledTimes(2);
+            expect(addedByDisconnect).toHaveBeenCalledTimes(1);
         });
 
         it('should coexist with _registerLifecycle callbacks', () => {
@@ -1161,6 +1301,308 @@ describe('lifecycle (_addLifecycleCallback - additive registration)', () => {
             expect(names).toContain('onConnected');
             expect(names).toContain('onBeforeRender');
             expect(names).not.toContain('onDisconnected');
+        });
+    });
+});
+
+describe('lifecycle (page visits)', () => {
+    let pageRoot: HTMLDivElement;
+
+    beforeEach(() => {
+        pageRoot = document.createElement('div');
+        pageRoot.setAttribute('data-pageid', 'pages/main');
+        document.body.appendChild(pageRoot);
+    });
+
+    afterEach(() => {
+        _endPageVisit();
+        pageRoot.remove();
+        vi.restoreAllMocks();
+    });
+
+    describe('_createPageLifecycle()', () => {
+        it('runs onConnected straight away when its scope is in the DOM', () => {
+            const connected = vi.fn();
+
+            _createPageLifecycle(pageRoot).add('onConnected', connected);
+
+            expect(connected).toHaveBeenCalledTimes(1);
+        });
+
+        it('runs onConnected straight away and warns when its scope is not in the DOM', () => {
+            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            const connected = vi.fn();
+            const detachedScope = document.createElement('div');
+
+            _createPageLifecycle(detachedScope).add('onConnected', connected);
+
+            expect(connected).toHaveBeenCalledTimes(1);
+            expect(warnSpy).toHaveBeenCalledWith(
+                '[pk] A page script is scoped to an element that is not in the DOM:',
+                detachedScope,
+            );
+        });
+
+        it('disconnects at the end of the visit when its scope is not in the DOM', () => {
+            vi.spyOn(console, 'warn').mockImplementation(() => {});
+            const disconnected = vi.fn();
+            const lifecycle = _createPageLifecycle(document.createElement('div'));
+            lifecycle.add('onConnected', vi.fn());
+            lifecycle.add('onDisconnected', disconnected);
+
+            _endPageVisit();
+
+            expect(disconnected).toHaveBeenCalledTimes(1);
+        });
+
+        it('runs every onConnected callback once when several are added', () => {
+            const lifecycle = _createPageLifecycle(pageRoot);
+            const first = vi.fn();
+            const second = vi.fn();
+
+            lifecycle.add('onConnected', first);
+            lifecycle.add('onConnected', second);
+
+            expect(first).toHaveBeenCalledTimes(1);
+            expect(second).toHaveBeenCalledTimes(1);
+        });
+
+        it('keeps the lifecycle of each instance apart', () => {
+            const firstDisconnected = vi.fn();
+            const secondCleanup = vi.fn();
+            _createPageLifecycle(pageRoot).add('onDisconnected', firstDisconnected);
+            _createPageLifecycle(pageRoot).addCleanup(secondCleanup);
+
+            _endPageVisit();
+
+            expect(firstDisconnected).toHaveBeenCalledTimes(1);
+            expect(secondCleanup).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe('_endPageVisit()', () => {
+        it('runs onDisconnected, then the cleanups, once', () => {
+            const order: string[] = [];
+            const lifecycle = _createPageLifecycle(pageRoot);
+            lifecycle.add('onConnected', () => lifecycle.addCleanup(() => order.push('cleanup')));
+            lifecycle.add('onDisconnected', () => order.push('disconnected'));
+
+            _endPageVisit();
+            _endPageVisit();
+
+            expect(order).toEqual(['disconnected', 'cleanup']);
+        });
+
+        it('starts a new page visit', () => {
+            const firstVisit = _currentPageVisit();
+
+            _endPageVisit();
+
+            expect(_currentPageVisit()).not.toBe(firstVisit);
+        });
+
+        it('keeps the page visit while the visit has not ended', () => {
+            const visit = _currentPageVisit();
+
+            _createPageLifecycle(pageRoot).add('onConnected', vi.fn());
+
+            expect(_currentPageVisit()).toBe(visit);
+        });
+
+        it('connects the next visit afresh although the scope element is the same', () => {
+            const firstVisit = vi.fn();
+            const firstDisconnected = vi.fn();
+            const firstLifecycle = _createPageLifecycle(pageRoot);
+            firstLifecycle.add('onConnected', firstVisit);
+            firstLifecycle.add('onDisconnected', firstDisconnected);
+
+            _endPageVisit();
+            const secondVisit = vi.fn();
+            _createPageLifecycle(pageRoot).add('onConnected', secondVisit);
+
+            expect(firstDisconnected).toHaveBeenCalledTimes(1);
+            expect(firstVisit).toHaveBeenCalledTimes(1);
+            expect(secondVisit).toHaveBeenCalledTimes(1);
+        });
+
+        it('ignores an onConnected callback added after the visit ended', () => {
+            const lifecycle = _createPageLifecycle(pageRoot);
+            const early = vi.fn();
+            lifecycle.add('onConnected', early);
+            _endPageVisit();
+
+            const late = vi.fn();
+            lifecycle.add('onConnected', late);
+            _createPageLifecycle(pageRoot).add('onConnected', vi.fn());
+
+            expect(early).toHaveBeenCalledTimes(1);
+            expect(late).not.toHaveBeenCalled();
+        });
+
+        it('ignores an onDisconnected callback added after the visit ended', () => {
+            const lifecycle = _createPageLifecycle(pageRoot);
+            _endPageVisit();
+
+            const late = vi.fn();
+            lifecycle.add('onDisconnected', late);
+            _endPageVisit();
+
+            expect(late).not.toHaveBeenCalled();
+        });
+
+        it('runs a cleanup added after the visit ended straight away', () => {
+            const lifecycle = _createPageLifecycle(pageRoot);
+            _endPageVisit();
+            const late = vi.fn();
+
+            lifecycle.addCleanup(late);
+
+            expect(late).toHaveBeenCalledTimes(1);
+        });
+
+        it('logs a cleanup added after the visit ended that throws, without throwing', () => {
+            const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+            const lifecycle = _createPageLifecycle(pageRoot);
+            _endPageVisit();
+
+            expect(() => lifecycle.addCleanup(() => { throw new Error('late'); })).not.toThrow();
+            expect(errorSpy).toHaveBeenCalledWith('[pk] Error in lifecycle cleanup:', expect.any(Error));
+        });
+
+        it('does not let one ending instance connect another while the visit ends', () => {
+            const first = _createPageLifecycle(pageRoot);
+            const second = _createPageLifecycle(pageRoot);
+            const secondConnected = vi.fn();
+            first.add('onDisconnected', () => second.add('onConnected', secondConnected));
+
+            _endPageVisit();
+
+            expect(secondConnected).not.toHaveBeenCalled();
+        });
+
+        it('runs a cleanup added by a cleanup once, without looping', () => {
+            const lifecycle = _createPageLifecycle(pageRoot);
+            const added = vi.fn();
+            lifecycle.addCleanup(() => lifecycle.addCleanup(added));
+
+            _endPageVisit();
+            _endPageVisit();
+
+            expect(added).toHaveBeenCalledTimes(1);
+        });
+
+        it('creates page lifecycles that have already ended while the visit ends', () => {
+            const created: Array<ReturnType<typeof _createPageLifecycle>> = [];
+            _createPageLifecycle(pageRoot).add('onDisconnected', () => {
+                created.push(_createPageLifecycle(pageRoot));
+            });
+            _endPageVisit();
+            const lateConnected = vi.fn();
+            const lateDisconnected = vi.fn();
+
+            created[0].add('onConnected', lateConnected);
+            created[0].add('onDisconnected', lateDisconnected);
+            _endPageVisit();
+
+            expect(lateConnected).not.toHaveBeenCalled();
+            expect(lateDisconnected).not.toHaveBeenCalled();
+            expect(window.__pikoDebug!.getPageScripts()).toEqual([]);
+        });
+
+        it('keeps disconnecting the other instances when one callback throws', () => {
+            const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+            _createPageLifecycle(pageRoot).add('onDisconnected', () => { throw new Error('boom'); });
+            const other = vi.fn();
+            _createPageLifecycle(pageRoot).add('onDisconnected', other);
+
+            _endPageVisit();
+
+            expect(other).toHaveBeenCalledTimes(1);
+            expect(errorSpy).toHaveBeenCalledWith('[pk] Error in onDisconnected:', expect.any(Error));
+        });
+    });
+
+    describe('render hooks', () => {
+        it('run when a partial on the page re-renders, until the visit ends', () => {
+            const partial = document.createElement('div');
+            partial.setAttribute('partial', 'card-1');
+            pageRoot.appendChild(partial);
+            const order: string[] = [];
+            const lifecycle = _createPageLifecycle(pageRoot);
+            lifecycle.add('onBeforeRender', (...args: unknown[]) => order.push(`before:${args.length}`));
+            lifecycle.add('onAfterRender', (...args: unknown[]) => order.push(`after:${args.length}`));
+            lifecycle.add('onUpdated', (context?: unknown) => order.push(`updated:${JSON.stringify(context)}`));
+
+            _executeBeforeRender(partial);
+            _executeAfterRender(partial);
+            _executeUpdated(partial, {patchMethod: 'morph'});
+            _endPageVisit();
+            _executeAfterRender(partial);
+
+            expect(order).toEqual(['before:0', 'after:0', 'updated:{"patchMethod":"morph"}']);
+        });
+
+        it('do not run when an element outside the page scope re-renders', () => {
+            const outside = document.createElement('div');
+            document.body.appendChild(outside);
+            const updated = vi.fn();
+            _createPageLifecycle(pageRoot).add('onUpdated', updated);
+
+            _executeUpdated(outside, {});
+            outside.remove();
+
+            expect(updated).not.toHaveBeenCalled();
+        });
+
+        it('run after the re-rendered partial\'s own hooks', () => {
+            const partial = document.createElement('div');
+            partial.setAttribute('partial', 'card-2');
+            pageRoot.appendChild(partial);
+            const order: string[] = [];
+            _createPageLifecycle(pageRoot).add('onUpdated', () => order.push('page'));
+            _addLifecycleCallback(partial, 'onUpdated', () => order.push('partial'));
+
+            _executeUpdated(partial, {});
+
+            expect(order).toEqual(['partial', 'page']);
+        });
+    });
+
+    describe('debug API', () => {
+        it('lists the page script lifecycles of the current visit', () => {
+            const lifecycle = _createPageLifecycle(pageRoot);
+            lifecycle.add('onConnected', () => lifecycle.addCleanup(vi.fn()));
+            lifecycle.add('onUpdated', vi.fn());
+
+            const before = window.__pikoDebug!.getPageScripts();
+            _endPageVisit();
+
+            expect(before).toEqual([{connectedOnce: true, registeredCallbacks: ['onConnected', 'onUpdated'], cleanupCount: 1}]);
+            expect(window.__pikoDebug!.getPageScripts()).toEqual([]);
+        });
+    });
+
+    describe('many page lifecycles', () => {
+        it('warns once per visit when a visit holds more than a hundred', () => {
+            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+            for (let index = 0; index < 101; index++) {
+                _createPageLifecycle(pageRoot);
+            }
+            _createPageLifecycle(pageRoot);
+
+            expect(warnSpy).toHaveBeenCalledTimes(1);
+            expect(warnSpy.mock.calls[0][1]).toBe(101);
+        });
+
+        it('does not warn for a hundred', () => {
+            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+            for (let index = 0; index < 100; index++) {
+                _createPageLifecycle(pageRoot);
+            }
+
+            expect(warnSpy).not.toHaveBeenCalled();
         });
     });
 });

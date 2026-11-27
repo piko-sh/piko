@@ -27,14 +27,14 @@ type CreateTaskWithDedupParams struct {
 	Attempt            int32
 	CreatedAt          int64
 	UpdatedAt          int64
-	DeduplicationKey   *string
+	DeduplicationKey   Null[string]
 	BuildTag           string
 	IsFatal            bool
 	ScheduledExecuteAt int64
 	Background         bool
 	OwnerInstance      string
-	LastError          *string
-	Result             *string
+	LastError          Null[string]
+	Result             Null[string]
 }
 
 func (queries *Queries) CreateTaskWithDedup(ctx context.Context, params CreateTaskWithDedupParams) (int64, error) {

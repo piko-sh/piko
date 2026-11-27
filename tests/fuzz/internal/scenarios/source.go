@@ -53,6 +53,9 @@ const (
 	// schemaChoices is the number of choice bytes the database schema draws.
 	schemaChoices = 3
 
+	// ledgerUnitChoices is the number of ledger unit sizes the callbacks edit can draw.
+	ledgerUnitChoices = 6
+
 	// graphPage is the page that marks an incremental graph case.
 	graphPage = "pages/partial-graph.pk"
 
@@ -121,7 +124,7 @@ func renderSuite(repository, source string, data []byte) ([]byte, error) {
 	}
 	if name == "callbacks.go" {
 		seed := sha256.Sum256(data)
-		units := 1 + int(seed[0]%6)
+		units := 1 + int(seed[0]%ledgerUnitChoices)
 		expression := &ast.CallExpr{
 			Fun: &ast.SelectorExpr{
 				X:   &ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent("library"), Sel: ast.NewIdent("Ledger")}, Args: []ast.Expr{&ast.BasicLit{Kind: token.INT, Value: strconv.Itoa(units)}}},

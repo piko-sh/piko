@@ -243,6 +243,9 @@ func checkArtefactDiagnostics(
 		case compiler_dto.DiagnosticSeverityWarning:
 			l.Warn("Component compiled with a warning",
 				logger_domain.String(paramSourcePath, sourcePath),
+				logger_domain.String("code", diagnostic.Code),
+				logger_domain.Int("line", diagnostic.Line),
+				logger_domain.Int("column", diagnostic.Column),
 				logger_domain.String("diagnostic", diagnostic.Message))
 		default:
 			l.Trace("Component compiled with a diagnostic",

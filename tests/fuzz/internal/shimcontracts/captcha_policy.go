@@ -48,6 +48,15 @@ const (
 	// baseVerifyQuota is the smallest configured verification quota.
 	baseVerifyQuota = 3
 
+	// quotaDrawIndex is the policy draw that selects the verification quota.
+	quotaDrawIndex = 3
+
+	// verifyQuotaJitter bounds the drawn verification quota increment.
+	verifyQuotaJitter = 4
+
+	// scoreReplyEpoch is the Unix second of the first score check's provider reply.
+	scoreReplyEpoch = 100
+
 	// admissionScore is the provider score returned during quota checks.
 	admissionScore = .875
 
@@ -126,7 +135,7 @@ func exerciseCaptchaPolicy(ctx context.Context, choices *[captchaChoices]byte) (
 	}
 	configuration := captcha_dto.DefaultServiceConfig()
 	configuration.DefaultScoreThreshold = configured
-	configuration.VerifyRateLimit = baseVerifyQuota + int(draws[3]%4)
+	configuration.VerifyRateLimit = baseVerifyQuota + int(draws[quotaDrawIndex]%verifyQuotaJitter)
 	limiter := &captchaLimiter{fault: nil, calls: nil, allowed: true}
 	service, err := captcha_domain.NewCaptchaService(configuration, captcha_domain.WithRateLimiter(limiter))
 	if err != nil {
@@ -219,7 +228,7 @@ func checkCaptchaScore(ctx context.Context, service captcha.ServicePort, provide
 	ticket := "fixture-" + mode + "-" + relation
 	before := len(*provider.calls)
 	want := captcha.VerifyResponse{
-		Timestamp:  time.Unix(100+int64(index), 0).UTC(),
+		Timestamp:  time.Unix(scoreReplyEpoch+int64(index), 0).UTC(),
 		Score:      &score,
 		Action:     action,
 		Hostname:   "scores.example.invalid",

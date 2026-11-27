@@ -1,0 +1,77 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="filter-watcher">
+    <span class="watching">Watching {{ state.label }}</span>
+</template>
+
+<script lang="ts">
+    const state = {
+        label: '' as string,
+        input_selector: '' as string,
+    };
+
+    let boundLabel = '';
+    let boundInputs: Element[] = [];
+    let boundHandler: ((event: Event) => void) | null = null;
+
+    const watcherRecord = () => {
+        const host = window as unknown as {
+            __filterWatcher?: {
+                connected: Record<string, number>;
+                disconnected: Record<string, number>;
+                changes: Record<string, number>;
+                lastChange: string;
+            };
+        };
+        host.__filterWatcher ??= {connected: {}, disconnected: {}, changes: {}, lastChange: ''};
+        return host.__filterWatcher;
+    };
+
+    const increment = (counts: Record<string, number>, label: string) => {
+        counts[label] = (counts[label] ?? 0) + 1;
+    };
+
+    pkc.onConnected(() => {
+        const label = state.label;
+        boundLabel = label;
+        increment(watcherRecord().connected, label);
+        boundHandler = (event: Event) => {
+            const record = watcherRecord();
+            increment(record.changes, label);
+            record.lastChange = `${label}:${(event.target as HTMLInputElement).value}`;
+        };
+        boundInputs = Array.from(document.querySelectorAll(state.input_selector));
+        for (const input of boundInputs) {
+            input.addEventListener('change', boundHandler);
+        }
+    });
+
+    pkc.onDisconnected(() => {
+        increment(watcherRecord().disconnected, boundLabel);
+        if (boundHandler) {
+            for (const input of boundInputs) {
+                input.removeEventListener('change', boundHandler);
+            }
+        }
+        boundInputs = [];
+        boundHandler = null;
+    });
+</script>

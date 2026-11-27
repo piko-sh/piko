@@ -24,6 +24,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -35,8 +36,11 @@ import (
 	"piko.sh/piko/internal/capabilities/capabilities_domain"
 
 	"piko.sh/piko/internal/daemon/daemon_adapters"
+	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
+	"piko.sh/piko/internal/security/security_adapters"
+	"piko.sh/piko/internal/security/security_domain"
 	"piko.sh/piko/internal/templater/templater_dto"
 )
 
@@ -845,7 +849,7 @@ func TestCacheMiddleware_HandlesNonSuccessStatus(t *testing.T) {
 		"should not cache non-success responses")
 }
 
-func TestCacheMiddleware_CacheHit_SetsMaxAgeHeader(t *testing.T) {
+func TestCacheMiddleware_CacheHit_SetsSharedCacheMaxAge(t *testing.T) {
 	t.Parallel()
 
 	h := NewCacheTestHarness(t)
@@ -880,7 +884,80 @@ func TestCacheMiddleware_CacheHit_SetsMaxAgeHeader(t *testing.T) {
 
 	AssertStatus(t, recorder, http.StatusOK)
 
-	cacheControl := recorder.Header().Get("Cache-Control")
-	require.Contains(t, cacheControl, "public")
-	require.Contains(t, cacheControl, "max-age=7200")
+	assert.Equal(t, "public, max-age=0, s-maxage=7200, must-revalidate", recorder.Header().Get("Cache-Control"))
+}
+
+func TestCacheMiddleware_TokenBasedCSP_EachPageCarriesTheTokenOfItsOwnResponse(t *testing.T) {
+	t.Parallel()
+
+	h := NewCacheTestHarness(t)
+	h.AddCacheablePage("pages/home", "/", templater_dto.CachePolicy{
+		Enabled:       true,
+		Static:        true,
+		MaxAgeSeconds: 3600,
+	})
+
+	storedHTML := `<html><body><script nonce="token-of-an-earlier-request" src="/a.js"></script></body></html>`
+	variant := CreateVariantWithTags("source", "cache/home/source", map[string]string{
+		"type": "source",
+		"etag": `"stored"`,
+	}, []byte(storedHTML))
+	h.RegistryService.AddVariantData("cache/home/source", []byte(storedHTML))
+	h.RegistryService.GetArtefactFunc = func(_ context.Context, artefactID string) (*registry_dto.ArtefactMeta, error) {
+		return &registry_dto.ArtefactMeta{
+			ID:             artefactID,
+			UpdatedAt:      time.Now(),
+			ActualVariants: []registry_dto.Variant{variant},
+			Status:         registry_dto.VariantStatusReady,
+		}, nil
+	}
+
+	cacheMiddleware := daemon_adapters.NewCacheMiddleware(
+		daemon_adapters.CacheMiddlewareConfig{CSPUsesRequestTokens: true},
+		h.ManifestStore,
+		h.RegistryService,
+		h.CapabilityService,
+		h.PartialServePath,
+	)
+	securityHeaders := security_adapters.NewSecurityHeadersMiddleware(
+		security_adapters.SecurityHeadersValues{},
+		false,
+		security_domain.NewCSPBuilder().WithStrictPolicy().RuntimeConfig(),
+		security_adapters.ReportingValues{},
+	)
+	page := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h.HandlerCalls.Add(1)
+		token := daemon_dto.PikoRequestCtxFromContext(r.Context()).CSPToken
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write([]byte(`<html><body><script nonce="` + token + `" src="/a.js"></script></body></html>`))
+	})
+	h.Router.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			next.ServeHTTP(w, r.WithContext(daemon_dto.WithPikoRequestCtx(r.Context(), &daemon_dto.PikoRequestCtx{})))
+		})
+	})
+	h.Router.Use(securityHeaders.Handler)
+	h.Router.Method(http.MethodGet, "/", cacheMiddleware.Handle(page))
+
+	headerTokenPattern := regexp.MustCompile(`'nonce-([^']+)'`)
+	bodyTokenPattern := regexp.MustCompile(`nonce="([^"]+)"`)
+	seenTokens := make(map[string]struct{})
+	for range 2 {
+		recorder := h.DoRequest(Get("/").Build())
+		AssertStatus(t, recorder, http.StatusOK)
+
+		headerMatch := headerTokenPattern.FindStringSubmatch(recorder.Header().Get("Content-Security-Policy"))
+		require.Len(t, headerMatch, 2, "the response must name its token in the policy")
+		bodyMatch := bodyTokenPattern.FindStringSubmatch(recorder.Body.String())
+		require.Len(t, bodyMatch, 2, "the page must carry a token")
+
+		assert.Equal(t, headerMatch[1], bodyMatch[1], "the page must carry the token of its own response")
+		assert.NotContains(t, recorder.Header().Get("Cache-Control"), "public", "no shared cache may keep a page with a per-request token")
+		AssertHeaderNotExists(t, recorder, "ETag")
+		seenTokens[headerMatch[1]] = struct{}{}
+	}
+
+	assert.Len(t, seenTokens, 2, "each response must get its own token")
+	assert.Equal(t, int32(2), h.HandlerCalls.Load(), "each page must be rendered for its own response")
+	assert.Zero(t, h.RegistryService.UpsertArtefactCallCount.Load(), "no page with a per-request token may be stored")
 }

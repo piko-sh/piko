@@ -16,6 +16,8 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
+import {_currentPageVisit} from '@/pk/lifecycle';
+
 /**
  * Manages ES module exports from PK page scripts.
  * Supports scoped function resolution for partials, where functions are stored per-partial
@@ -47,7 +49,10 @@ export interface PageContext {
     clear(): void;
 
     /**
-     * Loads exports from an ES module URL, optionally scoped to a partial.
+     * Loads exports from an ES module URL, optionally scoped to a partial, then calls the
+     * module's __reinit__ with the page visit the load started in. When SPA navigation
+     * leaves the page while the module loads, the module is ignored, so it cannot attach
+     * to the next page.
      * @param url - The module URL to import.
      * @param partialName - An optional partial name to scope the exports under.
      */
@@ -196,8 +201,13 @@ export function createPageContext(options: PageContextOptions = {}): PageContext
         },
 
         async loadModule(url: string, partialName?: string) {
+            const visit = _currentPageVisit();
             try {
                 const module = await import(/* @vite-ignore */ url) as Record<string, unknown>;
+                if (_currentPageVisit() !== visit) {
+                    reportModuleFromEndedVisit(url);
+                    return;
+                }
 
                 if (partialName) {
                     const partialId = (module.__PARTIAL_ID__ as string | undefined) ?? partialName;
@@ -208,7 +218,7 @@ export function createPageContext(options: PageContextOptions = {}): PageContext
                 }
 
                 if (typeof module.__reinit__ === 'function') {
-                    (module.__reinit__ as () => void)();
+                    (module.__reinit__ as (pageVisit: object) => void)(visit);
                 }
 
                 options.onModuleLoaded?.(url, ctx.getExportedFunctions());
@@ -338,6 +348,20 @@ function levenshteinDistance(a: string, b: string): number {
     }
 
     return matrix[b.length][a.length];
+}
+
+/**
+ * Notes, in development builds only, that a module finished loading after the page visit
+ * it was loaded for ended, so it was not started.
+ *
+ * @param url - The URL of the module.
+ */
+function reportModuleFromEndedVisit(url: string): void {
+    if (!__DEV__) {
+        return;
+    }
+    // eslint-disable-next-line no-console -- a late module is normal, so this is a debug message, not a warning
+    console.debug('[PageContext] A module loaded after its page visit ended, so it was not started.', {url});
 }
 
 if (typeof window !== 'undefined') {

@@ -69,7 +69,7 @@ func TestGenerateModuleHTML(t *testing.T) {
 	t.Run("empty inputs produce empty outputs", func(t *testing.T) {
 		t.Parallel()
 
-		preloadHTML, scriptHTML, configHTML := GenerateModuleHTML(nil, nil)
+		preloadHTML, scriptHTML, configHTML := GenerateModuleHTML(CoreRuntimeBuildDevelopment, nil, nil)
 		assert.Empty(t, preloadHTML)
 		assert.Empty(t, scriptHTML)
 		assert.Empty(t, configHTML)
@@ -82,11 +82,11 @@ func TestGenerateModuleHTML(t *testing.T) {
 			{Module: ModuleModals},
 		}
 
-		preloadHTML, scriptHTML, configHTML := GenerateModuleHTML(entries, nil)
+		preloadHTML, scriptHTML, configHTML := GenerateModuleHTML(CoreRuntimeBuildDevelopment, entries, nil)
 		assert.Contains(t, preloadHTML, "modulepreload")
-		assert.Contains(t, preloadHTML, ModuleModals.ServeURL())
+		assert.Contains(t, preloadHTML, ModuleModals.ServeURL(CoreRuntimeBuildDevelopment))
 		assert.Contains(t, scriptHTML, "type=\"module\"")
-		assert.Contains(t, scriptHTML, ModuleModals.ServeURL())
+		assert.Contains(t, scriptHTML, ModuleModals.ServeURL(CoreRuntimeBuildDevelopment))
 		assert.Empty(t, configHTML)
 	})
 
@@ -103,9 +103,9 @@ func TestGenerateModuleHTML(t *testing.T) {
 			},
 		}
 
-		preloadHTML, scriptHTML, configHTML := GenerateModuleHTML(entries, nil)
-		assert.Contains(t, preloadHTML, ModuleAnalytics.ServeURL())
-		assert.Contains(t, scriptHTML, ModuleAnalytics.ServeURL())
+		preloadHTML, scriptHTML, configHTML := GenerateModuleHTML(CoreRuntimeBuildDevelopment, entries, nil)
+		assert.Contains(t, preloadHTML, ModuleAnalytics.ServeURL(CoreRuntimeBuildDevelopment))
+		assert.Contains(t, scriptHTML, ModuleAnalytics.ServeURL(CoreRuntimeBuildDevelopment))
 		assert.Contains(t, configHTML, "pk-module-config")
 		assert.Contains(t, configHTML, "application/json")
 		assert.Contains(t, configHTML, "G-123")
@@ -123,7 +123,7 @@ func TestGenerateModuleHTML(t *testing.T) {
 			},
 		}
 
-		_, _, configHTML := GenerateModuleHTML(entries, nil)
+		_, _, configHTML := GenerateModuleHTML(CoreRuntimeBuildDevelopment, entries, nil)
 		assert.Contains(t, configHTML, "GTM-PCRXLD")
 		assert.Contains(t, configHTML, "gtmContainerId")
 	})
@@ -142,7 +142,7 @@ func TestGenerateModuleHTML(t *testing.T) {
 			},
 		}
 
-		_, _, configHTML := GenerateModuleHTML(entries, nil)
+		_, _, configHTML := GenerateModuleHTML(CoreRuntimeBuildDevelopment, entries, nil)
 		assert.Contains(t, configHTML, "GTM-ABC123")
 		assert.Contains(t, configHTML, "G-999")
 		assert.Contains(t, configHTML, "anonymiseIp")
@@ -160,7 +160,7 @@ func TestGenerateModuleHTML(t *testing.T) {
 			},
 		}
 
-		_, _, configHTML := GenerateModuleHTML(entries, nil)
+		_, _, configHTML := GenerateModuleHTML(CoreRuntimeBuildDevelopment, entries, nil)
 		assert.Contains(t, configHTML, "GTM-ONLY")
 		assert.NotContains(t, configHTML, "G-")
 	})
@@ -173,11 +173,11 @@ func TestGenerateModuleHTML(t *testing.T) {
 			{Module: ModuleToasts},
 		}
 
-		preloadHTML, scriptHTML, _ := GenerateModuleHTML(entries, nil)
-		assert.Contains(t, preloadHTML, ModuleModals.ServeURL())
-		assert.Contains(t, preloadHTML, ModuleToasts.ServeURL())
-		assert.Contains(t, scriptHTML, ModuleModals.ServeURL())
-		assert.Contains(t, scriptHTML, ModuleToasts.ServeURL())
+		preloadHTML, scriptHTML, _ := GenerateModuleHTML(CoreRuntimeBuildDevelopment, entries, nil)
+		assert.Contains(t, preloadHTML, ModuleModals.ServeURL(CoreRuntimeBuildDevelopment))
+		assert.Contains(t, preloadHTML, ModuleToasts.ServeURL(CoreRuntimeBuildDevelopment))
+		assert.Contains(t, scriptHTML, ModuleModals.ServeURL(CoreRuntimeBuildDevelopment))
+		assert.Contains(t, scriptHTML, ModuleToasts.ServeURL(CoreRuntimeBuildDevelopment))
 	})
 
 	t.Run("custom module appears in output", func(t *testing.T) {
@@ -187,7 +187,7 @@ func TestGenerateModuleHTML(t *testing.T) {
 			"widget": NewCustomFrontendModule("widget", []byte("code"), nil),
 		}
 
-		preloadHTML, scriptHTML, _ := GenerateModuleHTML(nil, custom)
+		preloadHTML, scriptHTML, _ := GenerateModuleHTML(CoreRuntimeBuildDevelopment, nil, custom)
 		assert.Contains(t, preloadHTML, "ppframework.widget.min.js")
 		assert.Contains(t, scriptHTML, "ppframework.widget.min.js")
 	})
@@ -199,7 +199,7 @@ func TestGenerateModuleHTML(t *testing.T) {
 			"widget": NewCustomFrontendModule("widget", []byte("code"), map[string]any{"colour": "blue"}),
 		}
 
-		_, _, configHTML := GenerateModuleHTML(nil, custom)
+		_, _, configHTML := GenerateModuleHTML(CoreRuntimeBuildDevelopment, nil, custom)
 		assert.Contains(t, configHTML, "pk-module-config")
 		assert.Contains(t, configHTML, "widget")
 	})
@@ -211,7 +211,7 @@ func TestGenerateModuleHTML(t *testing.T) {
 			{Module: FrontendModule(99)},
 		}
 
-		preloadHTML, scriptHTML, configHTML := GenerateModuleHTML(entries, nil)
+		preloadHTML, scriptHTML, configHTML := GenerateModuleHTML(CoreRuntimeBuildDevelopment, entries, nil)
 		assert.Empty(t, preloadHTML)
 		assert.Empty(t, scriptHTML)
 		assert.Empty(t, configHTML)
@@ -227,10 +227,10 @@ func TestGenerateModuleHTML(t *testing.T) {
 			"extra": NewCustomFrontendModule("extra", []byte("js"), map[string]any{"enabled": true}),
 		}
 
-		preloadHTML, scriptHTML, configHTML := GenerateModuleHTML(entries, custom)
-		assert.Contains(t, preloadHTML, ModuleModals.ServeURL())
+		preloadHTML, scriptHTML, configHTML := GenerateModuleHTML(CoreRuntimeBuildDevelopment, entries, custom)
+		assert.Contains(t, preloadHTML, ModuleModals.ServeURL(CoreRuntimeBuildDevelopment))
 		assert.Contains(t, preloadHTML, "ppframework.extra.min.js")
-		assert.Contains(t, scriptHTML, ModuleModals.ServeURL())
+		assert.Contains(t, scriptHTML, ModuleModals.ServeURL(CoreRuntimeBuildDevelopment))
 		assert.Contains(t, scriptHTML, "ppframework.extra.min.js")
 		assert.Contains(t, configHTML, "modals")
 		assert.Contains(t, configHTML, "extra")
@@ -275,12 +275,12 @@ func TestFrontendModule_DevModule(t *testing.T) {
 
 	t.Run("asset path returns dev bundle", func(t *testing.T) {
 		t.Parallel()
-		assert.Equal(t, "built/ppframework.dev.min.es.js", ModuleDev.AssetPath())
+		assert.Equal(t, "built/ppframework.dev.es.js", ModuleDev.AssetPath())
 	})
 
-	t.Run("serve URL returns dev dist path", func(t *testing.T) {
+	t.Run("serve URL returns the versioned dev dist path", func(t *testing.T) {
 		t.Parallel()
-		assert.Equal(t, "/_piko/dist/ppframework.dev.min.es.js", ModuleDev.ServeURL())
+		assert.Equal(t, "/_piko/dist/"+CoreRuntimeBuildDevelopment.RuntimeVersion()+"/ppframework.dev.es.js", ModuleDev.ServeURL(CoreRuntimeBuildDevelopment))
 	})
 }
 

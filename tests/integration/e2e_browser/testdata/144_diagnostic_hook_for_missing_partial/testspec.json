@@ -1,0 +1,40 @@
+{
+  "description": "In production a reload of a partial that is not on the page still sends a diagnostic hook event, although the console warning is removed",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Diagnostics"
+    },
+    {
+      "action": "comment",
+      "value": "Listen for diagnostics through the same runtime instance the page uses"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "import('/_piko/dist/ppframework.core.es.js').then(runtime => { window.__diagnostics = []; runtime.piko.hooks.on('diagnostic', payload => { window.__diagnostics.push(payload); }); return true; })"
+    },
+    {
+      "action": "comment",
+      "value": "Reload a missing partial twice; the call resolves and the event fires once"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "import('/_piko/dist/ppframework.core.es.js').then(runtime => runtime.piko.partials.reload('no-such-partial').then(() => runtime.piko.partials.reload('no-such-partial'))).then(() => true)"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "new Promise((resolve, reject) => { const events = window.__diagnostics; if (events.length !== 1) { reject(new Error('expected one diagnostic event, got ' + events.length)); return; } const event = events[0]; if (event.kind !== 'partial-not-found' || event.name !== 'no-such-partial' || event.source !== 'piko.partials.reload' || event.context !== '/main' || typeof event.timestamp !== 'number') { reject(new Error('unexpected diagnostic payload: ' + JSON.stringify(event))); return; } resolve(true); })"
+    },
+    {
+      "action": "checkNoConsoleMessage",
+      "level": "warn",
+      "message": "no-such-partial"
+    }
+  ]
+}

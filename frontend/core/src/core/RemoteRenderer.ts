@@ -17,6 +17,7 @@
 // strip others of their rights and dignity.
 
 import fragmentMorpher from '@/core/fragmentMorpher';
+import {applyPageCSPToken, cloneWithPageCSPToken, parseWithPageCSPToken} from '@/core/cspToken';
 import {getNodeKey, transformRelativeKeys} from '@/pk/getNodeKey';
 import type {ModuleLoader} from '@/services/ModuleLoader';
 import type {SpriteSheetManager} from '@/services/SpriteSheetManager';
@@ -32,12 +33,14 @@ import {
 } from '@/core/BrowserAPIs';
 import {buildRemoteUrl, isSameOriginUrl} from '@/core/URLUtils';
 import {getGlobalPageContext} from '@/services/PageContext';
+import {runtimeVersionGate as browserRuntimeVersionGate, type RuntimeVersionGate} from '@/core/RuntimeVersion';
 import {
     _executeBeforeRender,
     _executeAfterRender,
     _executeUpdated,
     _executeConnectedForPartials
 } from '@/pk';
+import {reportDiagnostic} from '@/services/DiagnosticReporter';
 
 /** Bit shift amount for simple hash calculation. */
 const HASH_SHIFT = 5;
@@ -139,7 +142,7 @@ function processStyleBlocks(parsedDoc: Document, domOps: DOMOperations): void {
         newStyleEl.setAttribute('pk-page', '');
         newStyleEl.setAttribute('data-pk-style-key', styleKey);
         newStyleEl.textContent = cssText;
-        domOps.getHead().appendChild(newStyleEl);
+        domOps.getHead().appendChild(applyPageCSPToken(newStyleEl));
     });
 }
 
@@ -230,6 +233,8 @@ export interface RemoteRendererDependencies {
     http?: HTTPOperations;
     /** Hook manager for analytics events. */
     hookManager?: HookManager;
+    /** Tracks whether the server still runs this tab's runtime build. Defaults to the tab's gate. */
+    runtimeVersionGate?: RuntimeVersionGate;
 }
 
 /**
@@ -289,10 +294,7 @@ function applyPatch(ctx: ApplyPatchContext): void {
             }
         });
     } else {
-        patchLocation.innerHTML = '';
-        Array.from(sourceEl.children).forEach(child => {
-            patchLocation.appendChild(child.cloneNode(true));
-        });
+        patchLocation.replaceChildren(cloneWithPageCSPToken(sourceEl.children, patchLocation.ownerDocument));
         onDOMUpdated(patchLocation);
     }
 
@@ -318,6 +320,7 @@ function findSourceElement(rootEl: Element, selector: string | undefined): Eleme
     const matched = rootEl.querySelector(selector);
     if (!matched) {
         console.warn(`RemoteRenderer: selector "${selector}" not found`);
+        reportDiagnostic({kind: 'fragment-selector-not-found', name: selector, source: 'remoteRender'});
     }
     return matched ?? rootEl;
 }
@@ -354,11 +357,16 @@ interface FetchContext {
     http: HTTPOperations;
     /** Window operations for page reload fallback. */
     windowOps: WindowOperations;
+    /** Tracks whether the server still runs this tab's runtime build. */
+    runtimeVersionGate: RuntimeVersionGate;
 }
 
 /**
  * Requests a remote HTML fragment and applies its Link headers. A successful response
  * without fragment support triggers a page reload.
+ *
+ * A fragment from a different runtime build is still patched in, so the partial keeps
+ * working, but the tab's gate is marked stale and the next navigation loads a full page.
  *
  * @param fullUrl - The URL to fetch.
  * @param options - Render options that can supply form data for a POST.
@@ -380,6 +388,7 @@ async function fetchFragment(fullUrl: string, options: RemoteRenderOptions, ctx:
     }
 
     const response = await ctx.http.fetch(fullUrl, fetchOptions);
+    ctx.runtimeVersionGate.observe(response.headers);
     if (!response.ok) {
         console.error('RemoteRenderer: fetch failed', response.status, response.statusText);
         return null;
@@ -387,7 +396,7 @@ async function fetchFragment(fullUrl: string, options: RemoteRenderOptions, ctx:
 
     const responseType = response.headers.get('X-PP-Response-Support');
     if (responseType !== 'fragment-patch') {
-        console.warn(`RemoteRenderer: expected 'fragment-patch' response but got '${responseType ?? 'none'}'. Reloading page.`);
+        console.error(`RemoteRenderer: expected 'fragment-patch' response but got '${responseType ?? 'none'}'. Reloading page.`);
         ctx.windowOps.locationReload();
         return null;
     }
@@ -500,7 +509,8 @@ export function createRemoteRenderer(deps: RemoteRendererDependencies): RemoteRe
     const domOps = deps.domOps ?? browserDOMOperations;
     const windowOps = deps.windowOps ?? browserWindowOperations;
     const http = deps.http ?? browserHTTPOperations;
-    const fetchCtx: FetchContext = {linkHeaderParser, http, windowOps};
+    const runtimeVersionGate = deps.runtimeVersionGate ?? browserRuntimeVersionGate;
+    const fetchCtx: FetchContext = {linkHeaderParser, http, windowOps, runtimeVersionGate};
     const renderTargetDeps: ApplyRenderTargetsDeps = {onDOMUpdated, domOps, hookManager};
 
     /**
@@ -550,13 +560,17 @@ export function createRemoteRenderer(deps: RemoteRendererDependencies): RemoteRe
         const doc = domOps.parseHTML(htmlString);
         const newPartialEl = doc.querySelector(cssSelector);
         if (!newPartialEl) {
-            return console.warn(`RemoteRenderer: patchPartial - no element found for selector ${cssSelector}`);
+            console.warn(`RemoteRenderer: patchPartial - no element found for selector ${cssSelector}`);
+            reportDiagnostic({kind: 'fragment-selector-not-found', name: cssSelector, source: 'patchPartial'});
+            return;
         }
         const currentEl = domOps.querySelector(cssSelector);
         if (!currentEl) {
-            return console.warn(`RemoteRenderer: patchPartial - no existing element found for selector ${cssSelector}`);
+            console.warn(`RemoteRenderer: patchPartial - no existing element found for selector ${cssSelector}`);
+            reportDiagnostic({kind: 'target-not-found', name: cssSelector, source: 'patchPartial'});
+            return;
         }
-        currentEl.innerHTML = newPartialEl.innerHTML;
+        currentEl.replaceChildren(parseWithPageCSPToken(newPartialEl.innerHTML, currentEl.ownerDocument));
         onDOMUpdated(currentEl as HTMLElement);
 
         hookManager?.emit(HookEvent.PARTIAL_RENDER, {

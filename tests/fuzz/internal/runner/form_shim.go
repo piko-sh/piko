@@ -44,6 +44,9 @@ const (
 
 	// shimQuotaLimit bounds a quota reply body in bytes.
 	shimQuotaLimit = 4096
+
+	// shimMismatchPrefix starts the subject of every form shim response mismatch.
+	shimMismatchPrefix = "form-shim/"
 )
 
 // FormShimReceipt records the initial form page and each submission.
@@ -310,7 +313,7 @@ func readShimPage(ctx context.Context, client *http.Client, base, path string, r
 func submitShimForm(ctx context.Context, formClient shimFormClient, form shimHTMLForm, expected *casefile.FormShimStep) (FormShimRead, error) {
 	var step FormShimRead
 	if form.name != expected.Name || form.action != "/_piko/actions/intake.Submit" || form.method != http.MethodPost || form.label != expected.Label || form.ticket != expected.Ticket {
-		return step, responseMismatchf("form-shim/"+expected.Name+"/form", "actual form action, input, or ticket differs")
+		return step, responseMismatchf(shimMismatchPrefix+expected.Name+"/form", "actual form action, input, or ticket differs")
 	}
 	arguments := map[string]string{"label": form.label}
 	if form.ticket != "" {
@@ -330,7 +333,7 @@ func submitShimForm(ctx context.Context, formClient shimFormClient, form shimHTM
 		var refusal shimRefusal
 		err = decodeAction(response, &refusal)
 		if err == nil && refusal.Status != response.StatusCode {
-			err = responseMismatchf("form-shim/"+expected.Name+"/status-envelope", "HTTP %d with envelope %d", response.StatusCode, refusal.Status)
+			err = responseMismatchf(shimMismatchPrefix+expected.Name+"/status-envelope", "HTTP %d with envelope %d", response.StatusCode, refusal.Status)
 		}
 		step.Code = refusal.Code
 	default:
@@ -364,7 +367,7 @@ func readQuotaResponse(response *http.Response, name string) (bool, error) {
 	}
 	media, _, mediaErr := mime.ParseMediaType(response.Header.Get(headerContentType))
 	if mediaErr != nil || media != "text/plain" || len(raw) > shimQuotaLimit || !strings.Contains(string(raw), "Rate limit exceeded") {
-		return advertised, responseMismatchf("form-shim/"+name+"/quota-response", "unexpected quota response body or media type")
+		return advertised, responseMismatchf(shimMismatchPrefix+name+"/quota-response", "unexpected quota response body or media type")
 	}
 	return advertised, nil
 }
@@ -425,7 +428,7 @@ func checkFormShimStep(want casefile.FormShimStep, got FormShimRead) error {
 		field = "history"
 	}
 	if field != "" {
-		return responseMismatchf("form-shim/"+want.Name+"/"+field, "form step %s field %s differs: got %+v; expected %+v", want.Name, field, got, want)
+		return responseMismatchf(shimMismatchPrefix+want.Name+"/"+field, "form step %s field %s differs: got %+v; expected %+v", want.Name, field, got, want)
 	}
 	return nil
 }

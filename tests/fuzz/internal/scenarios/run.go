@@ -41,6 +41,9 @@ const (
 
 	// drawPrefixBytes is how many leading choice bytes a scenario receives.
 	drawPrefixBytes = 24
+
+	// caseTokenBytes is how many case digest bytes form the scenario case token.
+	caseTokenBytes = 8
 )
 
 var (
@@ -183,7 +186,7 @@ func runRenderedSuite(ctx context.Context, root, work string, fuzzCase *casefile
 	}
 	digest := sha256.Sum256(fuzzCase.Data)
 	environment := slices.Concat([]string{
-		fmt.Sprintf("PIKO_FUZZ_CASE_TOKEN=%x", digest[:8]),
+		fmt.Sprintf("PIKO_FUZZ_CASE_TOKEN=%x", digest[:caseTokenBytes]),
 		"PIKO_FUZZ_DRAWS=" + hex.EncodeToString(fuzzCase.Data[:min(drawPrefixBytes, len(fuzzCase.Data))]),
 		"PIKO_FUZZ_CASE_DIR=" + filepath.Join(work, "case"),
 		"GOFLAGS=" + strings.TrimSpace(os.Getenv("GOFLAGS")+" -buildvcs=false"),

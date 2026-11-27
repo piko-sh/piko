@@ -27,6 +27,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/config"
+	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/render/render_dto"
 )
 
@@ -430,7 +431,7 @@ func TestFormatComponentNotFoundError_ContainsHelpfulInfo(t *testing.T) {
 func TestAddStandardLinkHeaders_AddsFrameworkAndTheme(t *testing.T) {
 	rctx := NewTestRenderContextBuilder().Build()
 
-	addStandardLinkHeaders(rctx)
+	addStandardLinkHeaders(rctx, daemon_frontend.CoreRuntimeBuildDevelopment)
 
 	require.Len(t, rctx.collectedLinkHeaders, 2)
 
@@ -455,9 +456,9 @@ func TestAddStandardLinkHeaders_AddsFrameworkAndTheme(t *testing.T) {
 func TestAddStandardLinkHeaders_DeduplicatesOnMultipleCalls(t *testing.T) {
 	rctx := NewTestRenderContextBuilder().Build()
 
-	addStandardLinkHeaders(rctx)
-	addStandardLinkHeaders(rctx)
-	addStandardLinkHeaders(rctx)
+	addStandardLinkHeaders(rctx, daemon_frontend.CoreRuntimeBuildDevelopment)
+	addStandardLinkHeaders(rctx, daemon_frontend.CoreRuntimeBuildDevelopment)
+	addStandardLinkHeaders(rctx, daemon_frontend.CoreRuntimeBuildDevelopment)
 
 	assert.Len(t, rctx.collectedLinkHeaders, 2)
 }

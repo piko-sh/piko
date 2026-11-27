@@ -108,8 +108,7 @@ type ancestorLimits struct {
 // Takes scan (bool) which requests a state-tree disk measurement.
 //
 // Returns Sample which holds the verified reading.
-// Returns error which reports unverified limits, failed accounting reads or
-// cancellation.
+// Returns error which reports unverified limits, failed accounting reads or cancellation.
 func readKernel(ctx context.Context, limits kernelLimits, scan bool) (Sample, error) {
 	group, err := OwnCgroup()
 	if err != nil {
@@ -234,8 +233,8 @@ func OwnCgroup() (string, error) {
 	return "", errNoCgroup
 }
 
-// EnclosingLimit finds the nearest cgroup, from this process's own upwards, that
-// already caps memory or CPU.
+// EnclosingLimit finds the nearest cgroup, from this process's own upwards, that already
+// caps memory or CPU.
 //
 // A new user scope may move the process sideways in the hierarchy, so the launcher
 // records this group and the supervisor checks it still runs beneath it.
@@ -616,8 +615,8 @@ func DiskUsed(ctx context.Context, root string) (uint64, error) {
 	return total, err
 }
 
-// DiskFree reports the space available to this user on the filesystem holding path,
-// or on its nearest existing ancestor.
+// DiskFree reports the space available to this user on the filesystem holding path, or on
+// its nearest existing ancestor.
 //
 // Takes path (string) which is the directory whose filesystem is measured.
 //

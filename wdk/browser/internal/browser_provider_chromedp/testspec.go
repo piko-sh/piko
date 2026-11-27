@@ -99,6 +99,10 @@ type TestSpec struct {
 	// When true, the harness registers the HMAC challenge provider, which verifies tokens
 	// locally and so needs no external service.
 	RequiresCaptcha bool `json:"requiresCaptcha,omitempty"`
+
+	// RequiresStrictCSP indicates that the server under test runs with the strict Content
+	// Security Policy, which only lets scripts carrying the request's token run.
+	RequiresStrictCSP bool `json:"requiresStrictCSP,omitempty"`
 }
 
 // BrowserStep defines a single browser action to execute within a test.

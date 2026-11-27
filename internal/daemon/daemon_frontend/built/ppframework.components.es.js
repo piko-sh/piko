@@ -1042,17 +1042,25 @@ function reconcileClassAttribute(htmlElement, newProps) {
     htmlElement.removeAttribute("class");
   }
 }
+const appliedStyles = /* @__PURE__ */ new WeakMap();
+function showsBoundStyle(htmlElement, boundStyle) {
+  const applied = appliedStyles.get(htmlElement);
+  return applied?.bound === boundStyle && applied.serialised === htmlElement.getAttribute("style");
+}
 function reconcileStyleAttribute(htmlElement, newProps) {
   const staticStyleValue = newProps.style ?? "";
   const dynamicStyleValue = newProps._style ?? null;
-  const finalStyle = combineStyles(staticStyleValue, parseStyleData(dynamicStyleValue));
-  if (finalStyle.trim()) {
-    if (htmlElement.getAttribute("style") !== finalStyle.trim()) {
-      htmlElement.setAttribute("style", finalStyle.trim());
-    }
-  } else {
+  const boundStyle = combineStyles(staticStyleValue, parseStyleData(dynamicStyleValue)).trim();
+  if (!boundStyle) {
+    appliedStyles.delete(htmlElement);
     htmlElement.removeAttribute("style");
+    return;
   }
+  if (showsBoundStyle(htmlElement, boundStyle)) {
+    return;
+  }
+  htmlElement.style.cssText = boundStyle;
+  appliedStyles.set(htmlElement, { bound: boundStyle, serialised: htmlElement.getAttribute("style") });
 }
 function applyVisibility(htmlElement, newProps) {
   const shouldShow = newProps._s !== false;
@@ -1307,13 +1315,10 @@ function createShadowDOMService(options) {
         return host.shadowRoot;
       }
       const shadow = host.attachShadow({ mode, delegatesFocus, serializable: true });
-      const resetStyleEl = document.createElement("style");
-      resetStyleEl.textContent = RESET_CSS;
-      shadow.appendChild(resetStyleEl);
+      const cspToken = readPageCSPToken(host.ownerDocument);
+      shadow.appendChild(createStyleElement(RESET_CSS, cspToken));
       if (typeof componentCSS === "string" && componentCSS.trim()) {
-        const userStyleElement = document.createElement("style");
-        userStyleElement.textContent = componentCSS;
-        shadow.appendChild(userStyleElement);
+        shadow.appendChild(createStyleElement(componentCSS, cspToken));
       }
       return shadow;
     },
@@ -1324,6 +1329,32 @@ function createShadowDOMService(options) {
       return host.shadowRoot !== null;
     }
   };
+}
+const capturedPageTokens = /* @__PURE__ */ new WeakMap();
+function readTokenFromScripts(doc) {
+  const script = doc.querySelector("script[nonce]");
+  if (!script) {
+    return "";
+  }
+  const token = script.nonce ?? "";
+  if (token !== "") {
+    return token;
+  }
+  return script.getAttribute("nonce") ?? "";
+}
+function capturePageCSPToken(doc = document) {
+  capturedPageTokens.set(doc, readTokenFromScripts(doc));
+}
+function readPageCSPToken(doc) {
+  return capturedPageTokens.get(doc) ?? readTokenFromScripts(doc);
+}
+function createStyleElement(css, cspToken) {
+  const style = document.createElement("style");
+  if (cspToken !== "") {
+    style.nonce = cspToken;
+  }
+  style.textContent = css;
+  return style;
 }
 function buildSlotSelector(slotName) {
   return slotName ? `slot[name="${slotName}"]` : `slot:not([name])`;
@@ -1571,27 +1602,52 @@ function reflectToAttribute(propertyName, propertyValue, options, syncState) {
   try {
     const attributeName = propTypeRegistry.propertyToAttributeName(propertyName);
     const propType = propDef?.type ?? "any";
-    if (propertyValue === null || propertyValue === void 0) {
-      if (host.hasAttribute(attributeName)) {
-        host.removeAttribute(attributeName);
-      }
-    } else if (propType === "boolean") {
-      host.toggleAttribute(attributeName, propertyValue === true);
-    } else {
-      const stringValue = valueToAttributeString(propType, propertyValue);
-      if (host.getAttribute(attributeName) !== stringValue) {
-        host.setAttribute(attributeName, stringValue);
-      }
-    }
+    const wasPresent = host.hasAttribute(attributeName);
+    writeReflectedAttribute(host, attributeName, propType, propertyValue);
+    recordSelfAddedAttribute(host, attributeName, wasPresent, syncState);
   } finally {
     syncState.reflectingToAttribute = false;
   }
 }
+function writeReflectedAttribute(host, attributeName, propType, propertyValue) {
+  if (propertyValue === null || propertyValue === void 0) {
+    if (host.hasAttribute(attributeName)) {
+      host.removeAttribute(attributeName);
+    }
+    return;
+  }
+  if (propType === "boolean") {
+    host.toggleAttribute(attributeName, propertyValue === true);
+    return;
+  }
+  const stringValue = valueToAttributeString(propType, propertyValue);
+  if (host.getAttribute(attributeName) !== stringValue) {
+    host.setAttribute(attributeName, stringValue);
+  }
+}
+function recordSelfAddedAttribute(host, attributeName, wasPresent, syncState) {
+  if (!host.hasAttribute(attributeName)) {
+    syncState.selfAddedAttributes.delete(attributeName);
+    return;
+  }
+  if (!wasPresent) {
+    syncState.selfAddedAttributes.add(attributeName);
+  }
+}
 function createAttributeSyncService(options) {
-  const syncState = { applyingToState: false, reflectingToAttribute: false, initialising: true };
+  const syncState = {
+    applyingToState: false,
+    reflectingToAttribute: false,
+    initialising: true,
+    selfAddedAttributes: /* @__PURE__ */ new Set()
+  };
   return {
     applyAttributeToState(propertyName, attributeValue) {
+      syncState.selfAddedAttributes.delete(options.propTypeRegistry.propertyToAttributeName(propertyName));
       applyToState(propertyName, attributeValue, options, syncState);
+    },
+    isSelfAddedAttribute(attributeName) {
+      return syncState.selfAddedAttributes.has(attributeName);
     },
     reflectStateToAttribute(propertyName, propertyValue) {
       reflectToAttribute(propertyName, propertyValue, options, syncState);
@@ -2068,6 +2124,17 @@ const _PPElement = class _PPElement extends HTMLElement {
     this._lifecycleManager.resetConnectedState();
   }
   /**
+   * Reports whether the component added an attribute from its own state, such as a
+   * default it reflects, so the server's markup never set it. The page morph keeps such
+   * an attribute when the server's markup does not have it.
+   *
+   * @param attributeName - The attribute to check.
+   * @returns True when the component added the attribute and nothing has set it since.
+   */
+  hasSelfAddedAttribute(attributeName) {
+    return this._attributeSyncService.isSelfAddedAttribute(attributeName);
+  }
+  /**
    * Applies observed attribute changes to component state. An external value attribute
    * change also sets the form reset value. Initialisation and reflected attribute
    * changes skip these updates.
@@ -2312,6 +2379,7 @@ function registerPikoSvgInline() {
     customElements.define("piko-svg-inline", PikoSvgInline);
   }
 }
+capturePageCSPToken(document);
 registerPikoSvgInline();
 export {
   PPElement,

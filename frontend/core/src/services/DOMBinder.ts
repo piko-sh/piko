@@ -21,6 +21,7 @@ import {findClosestMatch, getGlobalPageContext} from './PageContext';
 import {isActionDescriptor, getActionFunction} from '@/pk/action';
 import {handleAction} from '@/core/ActionExecutor';
 import {formData as createFormData} from '@/pk/form';
+import {reportDiagnostic} from '@/services/DiagnosticReporter';
 
 const BASE64_BLOCK_SIZE = 4;
 
@@ -462,6 +463,8 @@ function handleCustomEventNoModifier(ctx: ModifierContext): void {
     const available = pageContext.getExportedFunctions();
     const suggestion = __DEV__ ? findClosestMatch(ctx.payload.f, available) : undefined;
 
+    reportDiagnostic({kind: 'handler-not-found', name: ctx.payload.f, source: 'p-event'});
+
     let message = `[DOMBinder] Function "${ctx.payload.f}" not found for p-event handler.`;
     message += ` Did you forget to export it?`;
     if (suggestion) {
@@ -515,6 +518,8 @@ function handleExplicitPartialCall(ctx: ModifierContext, explicitPartial: string
     const available = pageContext.getRegisteredPartialNames();
     const suggestion = __DEV__ ? findClosestMatch(explicitPartial, available) : undefined;
 
+    reportDiagnostic({kind: 'handler-not-found', name: `@${explicitPartial}.${fnName}`, source: 'p-on'});
+
     let message = `[DOMBinder] Partial "${explicitPartial}" not found or has no function "${fnName}".`;
     if (suggestion) {
         message += ` Did you mean "@${suggestion}"?`;
@@ -561,6 +566,8 @@ function handleImplicitScopeCall(ctx: ModifierContext, fnName: string): void {
 
     const available = pageContext.getExportedFunctions();
     const suggestion = __DEV__ ? findClosestMatch(fnName, available) : undefined;
+
+    reportDiagnostic({kind: 'handler-not-found', name: fnName, source: 'p-on', context: partialId ?? undefined});
 
     let message = `[DOMBinder] Function "${fnName}" not found.`;
     if (partialId) {
@@ -814,7 +821,7 @@ export function createDOMBinder(helperRegistry: HelperRegistry, callbacks: DOMBi
 
         if (isBlockedScheme(href)) {
             event.preventDefault();
-            console.warn('DOMBinder: Blocked navigation to dangerous URI scheme:', href);
+            console.error('DOMBinder: Blocked navigation to dangerous URI scheme:', href);
             return;
         }
 

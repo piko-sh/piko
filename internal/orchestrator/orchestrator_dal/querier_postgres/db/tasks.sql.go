@@ -27,14 +27,14 @@ type CreateTaskParams struct {
 	Attempt            int32
 	CreatedAt          int64
 	UpdatedAt          int64
-	DeduplicationKey   *string
+	DeduplicationKey   Null[string]
 	BuildTag           string
 	IsFatal            bool
 	ScheduledExecuteAt int64
 	Background         bool
 	OwnerInstance      string
-	LastError          *string
-	Result             *string
+	LastError          Null[string]
+	Result             Null[string]
 }
 
 func (queries *Queries) CreateTask(ctx context.Context, params CreateTaskParams) error {
@@ -60,14 +60,14 @@ type CreateTasksBatchParams struct {
 	Attempt            int32
 	CreatedAt          int64
 	UpdatedAt          int64
-	DeduplicationKey   *string
+	DeduplicationKey   Null[string]
 	BuildTag           string
 	IsFatal            bool
 	ScheduledExecuteAt int64
 	Background         bool
 	OwnerInstance      string
-	LastError          *string
-	Result             *string
+	LastError          Null[string]
+	Result             Null[string]
 }
 
 func (queries *Queries) CreateTasksBatch(ctx context.Context, params []CreateTasksBatchParams) error {
@@ -143,58 +143,54 @@ const gettasksbyid = `SELECT
     rerun_id, rerun_payload, rerun_config
 FROM orchestrator_tasks
 WHERE
-  id IN ($1);`
+  id = ANY($1);`
 
 type GetTasksByIDParams struct {
 	IDs []string
 }
 type GetTasksByIDRow struct {
-	ID                 string  `json:"id"`
-	WorkflowID         string  `json:"workflow_id"`
-	Executor           string  `json:"executor"`
-	Priority           int32   `json:"priority"`
-	Payload            string  `json:"payload"`
-	Config             string  `json:"config"`
-	Result             *string `json:"result"`
-	Status             string  `json:"status"`
-	ExecuteAt          int64   `json:"execute_at"`
-	Attempt            int32   `json:"attempt"`
-	LastError          *string `json:"last_error"`
-	CreatedAt          int64   `json:"created_at"`
-	UpdatedAt          int64   `json:"updated_at"`
-	DeduplicationKey   *string `json:"deduplication_key"`
-	BuildTag           string  `json:"build_tag"`
-	IsFatal            bool    `json:"is_fatal"`
-	ScheduledExecuteAt int64   `json:"scheduled_execute_at"`
-	Background         bool    `json:"background"`
-	OwnerInstance      string  `json:"owner_instance"`
-	LastPublishedAt    int64   `json:"last_published_at"`
-	RerunID            *string `json:"rerun_id"`
-	RerunPayload       *string `json:"rerun_payload"`
-	RerunConfig        *string `json:"rerun_config"`
+	ID                 string       `json:"id"`
+	WorkflowID         string       `json:"workflow_id"`
+	Executor           string       `json:"executor"`
+	Priority           int32        `json:"priority"`
+	Payload            string       `json:"payload"`
+	Config             string       `json:"config"`
+	Result             Null[string] `json:"result"`
+	Status             string       `json:"status"`
+	ExecuteAt          int64        `json:"execute_at"`
+	Attempt            int32        `json:"attempt"`
+	LastError          Null[string] `json:"last_error"`
+	CreatedAt          int64        `json:"created_at"`
+	UpdatedAt          int64        `json:"updated_at"`
+	DeduplicationKey   Null[string] `json:"deduplication_key"`
+	BuildTag           string       `json:"build_tag"`
+	IsFatal            bool         `json:"is_fatal"`
+	ScheduledExecuteAt int64        `json:"scheduled_execute_at"`
+	Background         bool         `json:"background"`
+	OwnerInstance      string       `json:"owner_instance"`
+	LastPublishedAt    int64        `json:"last_published_at"`
+	RerunID            Null[string] `json:"rerun_id"`
+	RerunPayload       Null[string] `json:"rerun_payload"`
+	RerunConfig        Null[string] `json:"rerun_config"`
 }
 
 func (queries *Queries) GetTasksByID(ctx context.Context, params GetTasksByIDParams) ([]GetTasksByIDRow, error) {
-	if err := pikoCheckBinds(len(params.IDs)); err != nil {
-		return nil, err
-	}
-	query := pikoSplice(gettasksbyid, pikoList(pikoListMark{Empty: `= ANY('{}')`, Operator: 336, Start: 339, End: 343}, 1, len(params.IDs)))
-	args := make([]any, 0, len(params.IDs))
-	for _, v := range params.IDs {
-		args = append(args, v)
-	}
-	rows, err := queries.reader.QueryContext(ctx, query, args...)
+	rows, err := queries.reader.QueryContext(ctx, gettasksbyid, pikoArrayLiteral(params.IDs))
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	var results []GetTasksByIDRow
-	for rows.Next() {
+	if rows.Next() {
 		var row GetTasksByIDRow
-		if err := rows.Scan(&row.ID, &row.WorkflowID, &row.Executor, &row.Priority, &row.Payload, &row.Config, &row.Result, &row.Status, &row.ExecuteAt, &row.Attempt, &row.LastError, &row.CreatedAt, &row.UpdatedAt, &row.DeduplicationKey, &row.BuildTag, &row.IsFatal, &row.ScheduledExecuteAt, &row.Background, &row.OwnerInstance, &row.LastPublishedAt, &row.RerunID, &row.RerunPayload, &row.RerunConfig); err != nil {
-			return nil, err
+		scanArgs := []any{&row.ID, &row.WorkflowID, &row.Executor, pikoScanNumber(&row.Priority), &row.Payload, &row.Config, &row.Result, &row.Status, &row.ExecuteAt, pikoScanNumber(&row.Attempt), &row.LastError, &row.CreatedAt, &row.UpdatedAt, &row.DeduplicationKey, &row.BuildTag, &row.IsFatal, &row.ScheduledExecuteAt, &row.Background, &row.OwnerInstance, &row.LastPublishedAt, &row.RerunID, &row.RerunPayload, &row.RerunConfig}
+		for more := true; more; more = rows.Next() {
+			row = GetTasksByIDRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -214,8 +210,8 @@ type UpdateTaskParams struct {
 	Priority           int32
 	ExecuteAt          int64
 	Attempt            int32
-	LastError          *string
-	Result             *string
+	LastError          Null[string]
+	Result             Null[string]
 	Payload            string
 	Config             string
 	UpdatedAt          int64

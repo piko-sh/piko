@@ -429,6 +429,7 @@ func (gb *GraphBuilder) registerBrokenComponent(ctx context.Context, graph *anno
 		Template:               nil,
 		VisibilityOverride:     nil,
 		ClientScript:           "",
+		ClientScriptLocation:   ast_domain.Location{},
 		CollectionName:         "",
 		CollectionProvider:     "",
 		CollectionParamName:    "",

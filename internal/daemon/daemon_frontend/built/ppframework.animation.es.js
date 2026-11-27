@@ -236,19 +236,15 @@ function computeAnchorPosition(targetRect, containerRect, elementWidth, elementH
   } else {
     if (wantBottom) {
       top = targetRect.bottom - containerRect.top + ANCHOR_PADDING;
-      if (top + elementHeight > bottomLimit - ANCHOR_PADDING) {
-        const flipped = targetRect.top - containerRect.top - elementHeight - ANCHOR_PADDING;
-        if (flipped >= ANCHOR_PADDING) {
-          top = flipped;
-        }
+      const flipped = targetRect.top - containerRect.top - elementHeight - ANCHOR_PADDING;
+      if (top + elementHeight > bottomLimit - ANCHOR_PADDING && flipped >= ANCHOR_PADDING) {
+        top = flipped;
       }
     } else {
       top = targetRect.top - containerRect.top - elementHeight - ANCHOR_PADDING;
-      if (top < ANCHOR_PADDING) {
-        const flipped = targetRect.bottom - containerRect.top + ANCHOR_PADDING;
-        if (flipped + elementHeight <= bottomLimit - ANCHOR_PADDING) {
-          top = flipped;
-        }
+      const flipped = targetRect.bottom - containerRect.top + ANCHOR_PADDING;
+      if (top < ANCHOR_PADDING && flipped + elementHeight <= bottomLimit - ANCHOR_PADDING) {
+        top = flipped;
       }
     }
     left = wantRight ? targetRect.right - containerRect.left - elementWidth : targetRect.left - containerRect.left;

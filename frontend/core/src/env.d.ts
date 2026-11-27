@@ -19,3 +19,6 @@
 /** Build-time constant replaced by Terser; code guarded by __DEV__ is stripped from production bundles. */
 // eslint-disable-next-line @typescript-eslint/naming-convention
 declare const __DEV__: boolean;
+
+/** Generated JavaScript from the generator's golden outputs, which has no type declarations. */
+declare module '@generator-goldens/*';

@@ -40,6 +40,10 @@ const (
 
 	// quote is the quotation mark used to wrap attribute values.
 	quote = `"`
+	// tagEnd is the character that closes an HTML start tag.
+	tagEnd = ">"
+	// attributeAssign is the sign placed between an attribute name and its value.
+	attributeAssign = "="
 )
 
 // reassembleSFC joins formatted blocks into a complete .pk file.
@@ -69,7 +73,7 @@ func reassembleSFC(
 	for _, timeline := range source.Timelines {
 		builder.WriteString(newline + "<piko:timeline")
 		writeAttributes(&builder, timeline.Attributes)
-		builder.WriteString(">")
+		builder.WriteString(tagEnd)
 		builder.WriteString(timeline.Content)
 		builder.WriteString("</piko:timeline>" + newline)
 	}
@@ -92,7 +96,7 @@ func writeTemplateBlock(builder *strings.Builder, formattedTemplate string, attr
 
 	builder.WriteString("<template")
 	writeAttributes(builder, attributes)
-	builder.WriteString(">" + newline)
+	builder.WriteString(tagEnd + newline)
 
 	source := strings.TrimSpace(formattedTemplate)
 	nextLine := true
@@ -258,7 +262,7 @@ func writeScriptBlocks(builder *strings.Builder, formattedScripts []sfcparser.Sc
 		script := &formattedScripts[i]
 		builder.WriteString(newline + "<script")
 		writeAttributes(builder, script.Attributes)
-		builder.WriteString(">" + newline)
+		builder.WriteString(tagEnd + newline)
 		writeBlockContent(builder, script.Content)
 		builder.WriteString("</script>" + newline)
 	}
@@ -273,7 +277,7 @@ func writeStyleBlocks(builder *strings.Builder, formattedStyles []sfcparser.Styl
 		style := &formattedStyles[i]
 		builder.WriteString(newline + "<style")
 		writeAttributes(builder, style.Attributes)
-		builder.WriteString(">" + newline)
+		builder.WriteString(tagEnd + newline)
 		writeBlockContent(builder, style.Content)
 		builder.WriteString("</style>" + newline)
 	}
@@ -289,7 +293,7 @@ func writeI18nBlocks(builder *strings.Builder, formattedI18nBlocks []sfcparser.I
 		i18n := &formattedI18nBlocks[i]
 		builder.WriteString(newline + "<i18n")
 		writeAttributes(builder, i18n.Attributes)
-		builder.WriteString(">" + newline)
+		builder.WriteString(tagEnd + newline)
 		writeBlockContent(builder, i18n.Content)
 		builder.WriteString("</i18n>" + newline)
 	}
@@ -308,7 +312,7 @@ func writeAttributes(builder *strings.Builder, attributes map[string]string) {
 		} else {
 			builder.WriteString(space)
 			builder.WriteString(key)
-			builder.WriteString("=")
+			builder.WriteString(attributeAssign)
 			builder.WriteString(formatRawAttributeValue(value))
 		}
 	}

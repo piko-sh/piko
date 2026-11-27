@@ -110,6 +110,27 @@ When both `ServerRedirect` and `ClientRedirect` carry values, `ServerRedirect` t
 
 Set `RedirectStatus` alongside `ClientRedirect`. Piko defaults to `302` (Found) when you omit `RedirectStatus` or supply an unsupported value, and ignores `RedirectStatus` entirely when `ClientRedirect` is empty. `ServerRedirect` is an internal rewrite, so the inner page's response writer controls the status code. `RedirectStatus` is not consulted.
 
+## Cache response headers
+
+Piko sets these `Cache-Control` values when neither the app nor a page middleware has set one. A `Cache-Control` that is already set is kept.
+
+| Response | `Cache-Control` |
+|---|---|
+| Page served from the static page cache | `public, max-age=0, s-maxage=N, must-revalidate`, where `N` is `MaxAgeSeconds` |
+| Page whose policy sets `NoStore` | `no-store` |
+| Any other page, SPA fragment (`?_f=1`), partial, error page or redirect | `private, no-cache` |
+| Action | `no-store` |
+
+- Static page cache responses carry an `ETag`. A matching `If-None-Match` gets `304 Not Modified`.
+- Only `GET` and `HEAD` requests use the static page cache. A `HEAD` response has the same status and headers as `GET` and no body. Other methods always reach the page, and their responses are not cached.
+- A response other than `200 OK` is sent as the page wrote it and is not cached.
+- Requests that arrive while a page renders share its response. Only the request that rendered it gets its `Set-Cookie` headers.
+- The page's own `Link` headers are stored with the cached page and sent on each hit.
+- Piko adds `Accept-Encoding` to `Vary`, and `Accept-Language` on a localised route. A `Vary` that is already set is kept, with no token listed twice.
+- Under a Content Security Policy with per-request tokens, such as `piko.WithStrictCSP()`, the static page cache is off. Pages with `Static: true` render for each request with `private, no-cache`, and Piko logs this once at start-up.
+
+See [About caching](../explanation/about-caching.md#why-browsers-revalidate-cached-pages) for why browsers revalidate.
+
 ## See also
 
 - [Title and OG tags how-to](../how-to/metadata-seo/title-and-og.md).

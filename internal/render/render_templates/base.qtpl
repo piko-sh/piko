@@ -1,5 +1,7 @@
 {%- package render_templates -%}
 
+{%- import "piko.sh/piko/internal/daemon/daemon_dto" -%}
+
 {%- func BasePageHeader(p *BasePageData) -%}
 {%- stripspace -%}
 <!DOCTYPE html>
@@ -22,19 +24,21 @@
     {%- for _, tag := range p.MetaTags -%}<meta name="{%s= tag.Name -%}" content="{%s= tag.Content -%}">{%- endfor -%}
     {%- for _, og := range p.OGTags -%}<meta property="{%s= og.Property -%}" content="{%s= og.Content -%}">{%- endfor -%}
     {%- for _, tc := range p.TwitterCards -%}<meta name="{%s= tc.Name -%}" content="{%s= tc.Content -%}">{%- endfor -%}
-    {%- for _, jsonLD := range p.StructuredData -%}<script type="application/ld+json">{%s= jsonLD %}</script>{%- endfor -%}
+    {%- for _, jsonLD := range p.StructuredData -%}<script type="application/ld+json"{%s= daemon_dto.CSPTokenAttribute(p.CSPToken) %}>{%s= jsonLD %}</script>{%- endfor -%}
 
     {%- if len(p.CSRFActionToken) > 0 -%}<meta name="csrf-token" content="{%z= p.CSRFActionToken -%}">{%- endif -%}
     {%- if p.CSRFEphemeralToken != "" -%}<meta name="csrf-ephemeral" content="{%s= p.CSRFEphemeralToken -%}">{%- endif -%}
+    {%- if p.ViewTransitionsOff -%}<meta name="pk-view-transitions" content="off">{%- endif -%}
 
     {%- if len(p.FontsHTML) > 0 -%}{%z= p.FontsHTML -%}{%- endif -%}
 
-    <link rel="modulepreload" href="/_piko/dist/ppframework.core.es.js"{%- if p.CoreJSSRIHash != "" -%}{% space %}integrity="{%s= p.CoreJSSRIHash -%}" crossorigin="anonymous"{%- endif -%}>
+    {%- if p.RuntimeRecoveryURL != "" -%}<script defer src="{%s= p.RuntimeRecoveryURL -%}"{%s= daemon_dto.CSPTokenAttribute(p.CSPToken) %}></script>{%- endif -%}
+    <link rel="modulepreload" href="{%s= p.CoreJSURL -%}"{%s= daemon_dto.CSPTokenAttribute(p.CSPToken) %}{%- if p.CoreJSSRIHash != "" -%}{% space %}integrity="{%s= p.CoreJSSRIHash -%}" crossorigin="anonymous"{%- endif -%}>
     {%- if p.PreloadURLS != "" -%}{%s= p.PreloadURLS -%}{%- endif -%}
 
     <link rel="preload" href="/theme.css" as="style"{%- if p.ThemeCSSSRIHash != "" -%}{% space %}integrity="{%s= p.ThemeCSSSRIHash -%}" crossorigin="anonymous"{%- endif -%}>
     <link rel="stylesheet" href="/theme.css"{%- if p.ThemeCSSSRIHash != "" -%}{% space %}integrity="{%s= p.ThemeCSSSRIHash -%}" crossorigin="anonymous"{%- endif -%}>
-    {%- endstripspace -%}{%- if p.Styling != "" -%}<style pk-page>{%s= p.Styling -%}</style>{%- endif -%}{%- stripspace -%}
+    {%- endstripspace -%}{%- if p.Styling != "" -%}<style pk-page{%s= daemon_dto.CSPTokenAttribute(p.CSPToken) %}>{%s= p.Styling -%}</style>{%- endif -%}{%- stripspace -%}
 </head>
 <body {%- if p.Aesthetic != "" -%}{% space %}data-aesthetic="{%s= p.Aesthetic -%}"{%- endif %} {% if p.Style != "" -%}{% space %}data-style="{%s= p.Style -%}"{%- endif %} {% if p.PageID != "" -%}{% space %}data-pageid="{%s= p.PageID -%}"{%- endif %}>
     <div id="app">
@@ -48,13 +52,14 @@
         {%s= p.SvgSpriteSheet %}
     {%- endif -%}
 
-    <script type="module" src="/_piko/dist/ppframework.core.es.js"{%- if p.CoreJSSRIHash != "" -%}{% space %}integrity="{%s= p.CoreJSSRIHash -%}" crossorigin="anonymous"{%- endif -%}></script>
-    <script type="module" src="/_piko/assets/pk-js/pk/actions.gen.js"{%- if p.ActionsJSSRIHash != "" -%}{% space %}integrity="{%s= p.ActionsJSSRIHash -%}" crossorigin="anonymous"{%- endif -%}></script>
+    <script type="module" src="{%s= p.CoreJSURL -%}"{%s= daemon_dto.CSPTokenAttribute(p.CSPToken) %}{%- if p.CoreJSSRIHash != "" -%}{% space %}integrity="{%s= p.CoreJSSRIHash -%}" crossorigin="anonymous"{%- endif -%}></script>
+    <script type="module" src="/_piko/assets/pk-js/pk/actions.gen.js"{%s= daemon_dto.CSPTokenAttribute(p.CSPToken) %}{%- if p.ActionsJSSRIHash != "" -%}{% space %}integrity="{%s= p.ActionsJSSRIHash -%}" crossorigin="anonymous"{%- endif -%}></script>
     {%- if p.ModuleScripts != "" -%}{%s= p.ModuleScripts -%}{%- endif -%}
-    {%- for _, meta := range p.PKScriptMetas -%}<script type="module" src="{%s= meta.URL -%}"{%- if meta.SRIHash != "" -%}{% space %}integrity="{%s= meta.SRIHash -%}" crossorigin="anonymous"{%- endif -%}></script><meta name="pk-script" content="{%s= meta.URL -%}"{%- if meta.PartialName != "" -%}{% space %}data-partial-name="{%s= meta.PartialName -%}"{%- endif -%}>{%- endfor -%}
+    {%- for _, meta := range p.PKScriptMetas -%}<script type="module" src="{%s= meta.URL -%}"{%s= daemon_dto.CSPTokenAttribute(p.CSPToken) %}{%- if meta.SRIHash != "" -%}{% space %}integrity="{%s= meta.SRIHash -%}" crossorigin="anonymous"{%- endif -%}></script><meta name="pk-script" content="{%s= meta.URL -%}"{%- if meta.PartialName != "" -%}{% space %}data-partial-name="{%s= meta.PartialName -%}"{%- endif -%}>{%- endfor -%}
     {%- for _, url := range p.WidgetScripts -%}<meta name="pk-widget-script" content="{%s= url -%}">{%- endfor -%}
     {%- if p.DevWidgetHTML != "" -%}{%s= p.DevWidgetHTML -%}{%- endif -%}
 </body>
 </html>
 {%- endstripspace -%}
 {%- endfunc -%}
+

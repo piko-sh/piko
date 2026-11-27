@@ -29,6 +29,7 @@ export {
     _executeUpdated,
     _executeConnectedForPartials,
     _hasLifecycleCallbacks,
+    _endPageVisit,
 } from './lifecycle';
 
 export {_createPKContext} from './context';
@@ -51,7 +52,7 @@ export {getGlobalPageContext} from '../services/PageContext';
 
 export type {PartialHandle} from './partial';
 export type {PKLifecycleCallbacks} from './lifecycle';
-export type {PikoDebugAPI, PartialDebugInfo} from './debug';
+export type {PikoDebugAPI, PartialDebugInfo, PageScriptDebugInfo} from './debug';
 export type {ReloadOptions, ReloadGroupOptions, AutoRefreshOptions, CascadeNode, CascadeOptions} from './coordination';
 export type {SSEOptions, SSESubscription} from './sse';
 export type {DispatchOptions, EventListener} from './events';

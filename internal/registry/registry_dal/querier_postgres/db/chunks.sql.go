@@ -72,15 +72,15 @@ type GetChunksForVariantParams struct {
 	VariantID  string
 }
 type GetChunksForVariantRow struct {
-	ChunkID          string   `json:"chunk_id"`
-	StorageKey       string   `json:"storage_key"`
-	StorageBackendID string   `json:"storage_backend_id"`
-	SizeBytes        int64    `json:"size_bytes"`
-	ContentHash      string   `json:"content_hash"`
-	SequenceNumber   int64    `json:"sequence_number"`
-	MimeType         string   `json:"mime_type"`
-	CreatedAt        int64    `json:"created_at"`
-	DurationSeconds  *float64 `json:"duration_seconds"`
+	ChunkID          string        `json:"chunk_id"`
+	StorageKey       string        `json:"storage_key"`
+	StorageBackendID string        `json:"storage_backend_id"`
+	SizeBytes        int64         `json:"size_bytes"`
+	ContentHash      string        `json:"content_hash"`
+	SequenceNumber   int64         `json:"sequence_number"`
+	MimeType         string        `json:"mime_type"`
+	CreatedAt        int64         `json:"created_at"`
+	DurationSeconds  Null[float64] `json:"duration_seconds"`
 }
 
 func (queries *Queries) GetChunksForVariant(ctx context.Context, params GetChunksForVariantParams) ([]GetChunksForVariantRow, error) {
@@ -90,12 +90,16 @@ func (queries *Queries) GetChunksForVariant(ctx context.Context, params GetChunk
 	}
 	defer rows.Close()
 	var results []GetChunksForVariantRow
-	for rows.Next() {
+	if rows.Next() {
 		var row GetChunksForVariantRow
-		if err := rows.Scan(&row.ChunkID, &row.StorageKey, &row.StorageBackendID, &row.SizeBytes, &row.ContentHash, &row.SequenceNumber, &row.MimeType, &row.CreatedAt, &row.DurationSeconds); err != nil {
-			return nil, err
+		scanArgs := []any{&row.ChunkID, &row.StorageKey, &row.StorageBackendID, &row.SizeBytes, &row.ContentHash, &row.SequenceNumber, &row.MimeType, &row.CreatedAt, &row.DurationSeconds}
+		for more := true; more; more = rows.Next() {
+			row = GetChunksForVariantRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -116,7 +120,7 @@ const getchunksforvariants = `SELECT
   created_at,
   duration_seconds
 FROM registry_variant_chunk
-WHERE artefact_id = $1 AND variant_id IN ($2)
+WHERE artefact_id = $1 AND variant_id = ANY($2)
 ORDER BY artefact_id, variant_id, sequence_number ASC;`
 
 type GetChunksForVariantsParams struct {
@@ -124,41 +128,36 @@ type GetChunksForVariantsParams struct {
 	VariantIDs []string
 }
 type GetChunksForVariantsRow struct {
-	ArtefactID       string   `json:"artefact_id"`
-	VariantID        string   `json:"variant_id"`
-	ChunkID          string   `json:"chunk_id"`
-	StorageKey       string   `json:"storage_key"`
-	StorageBackendID string   `json:"storage_backend_id"`
-	SizeBytes        int64    `json:"size_bytes"`
-	ContentHash      string   `json:"content_hash"`
-	SequenceNumber   int64    `json:"sequence_number"`
-	MimeType         string   `json:"mime_type"`
-	CreatedAt        int64    `json:"created_at"`
-	DurationSeconds  *float64 `json:"duration_seconds"`
+	ArtefactID       string        `json:"artefact_id"`
+	VariantID        string        `json:"variant_id"`
+	ChunkID          string        `json:"chunk_id"`
+	StorageKey       string        `json:"storage_key"`
+	StorageBackendID string        `json:"storage_backend_id"`
+	SizeBytes        int64         `json:"size_bytes"`
+	ContentHash      string        `json:"content_hash"`
+	SequenceNumber   int64         `json:"sequence_number"`
+	MimeType         string        `json:"mime_type"`
+	CreatedAt        int64         `json:"created_at"`
+	DurationSeconds  Null[float64] `json:"duration_seconds"`
 }
 
 func (queries *Queries) GetChunksForVariants(ctx context.Context, params GetChunksForVariantsParams) ([]GetChunksForVariantsRow, error) {
-	if err := pikoCheckBinds(1 + len(params.VariantIDs)); err != nil {
-		return nil, err
-	}
-	query := pikoSplice(getchunksforvariants, pikoList(pikoListMark{Empty: `= ANY('{}')`, Operator: 246, Start: 249, End: 253}, 2, len(params.VariantIDs)))
-	args := make([]any, 0, 1+len(params.VariantIDs))
-	args = append(args, params.ArtefactID)
-	for _, v := range params.VariantIDs {
-		args = append(args, v)
-	}
-	rows, err := queries.reader.QueryContext(ctx, query, args...)
+	rows, err := queries.reader.QueryContext(ctx, getchunksforvariants, params.ArtefactID, pikoArrayLiteral(params.VariantIDs))
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	var results []GetChunksForVariantsRow
-	for rows.Next() {
+	if rows.Next() {
 		var row GetChunksForVariantsRow
-		if err := rows.Scan(&row.ArtefactID, &row.VariantID, &row.ChunkID, &row.StorageKey, &row.StorageBackendID, &row.SizeBytes, &row.ContentHash, &row.SequenceNumber, &row.MimeType, &row.CreatedAt, &row.DurationSeconds); err != nil {
-			return nil, err
+		scanArgs := []any{&row.ArtefactID, &row.VariantID, &row.ChunkID, &row.StorageKey, &row.StorageBackendID, &row.SizeBytes, &row.ContentHash, &row.SequenceNumber, &row.MimeType, &row.CreatedAt, &row.DurationSeconds}
+		for more := true; more; more = rows.Next() {
+			row = GetChunksForVariantsRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -193,7 +192,7 @@ type InsertVariantChunkParams struct {
 	SequenceNumber   int64
 	MimeType         string
 	CreatedAt        int64
-	DurationSeconds  *float64
+	DurationSeconds  Null[float64]
 }
 
 func (queries *Queries) InsertVariantChunk(ctx context.Context, params InsertVariantChunkParams) error {

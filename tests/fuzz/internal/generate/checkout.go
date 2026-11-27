@@ -37,6 +37,9 @@ const (
 
 	// checkoutUnitStep is the unit price increase per follow-up choice.
 	checkoutUnitStep = 37
+
+	// checkoutCustomerBase is the smallest number added to the drawn customer name.
+	checkoutCustomerBase = 20
 )
 
 var (
@@ -63,7 +66,7 @@ func addCheckout(c *casefile.Case, p Project) error {
 	customers := []string{"Buyer", "A & B", "Buyer <B>", "Café"}
 	skus := []string{"linen", "amber"}
 	input := casefile.CheckoutInput{
-		Customer: fmt.Sprintf("%s %d", customers[p.Count%len(customers)], 20+p.Count),
+		Customer: fmt.Sprintf("%s %d", customers[p.Count%len(customers)], checkoutCustomerBase+p.Count),
 		SKU:      skus[(c.Seed+c.Index)%uint64(len(skus))],
 		Quantity: 1 + p.Count%checkoutQuantityChoices,
 		Unit:     checkoutBaseUnit + p.Followup*checkoutUnitStep,

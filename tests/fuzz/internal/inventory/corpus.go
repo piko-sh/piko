@@ -198,6 +198,38 @@ func excludedDirectory(name string) bool {
 	return strings.HasPrefix(name, ".")
 }
 
+// hasAuthoredFiles reports whether a directory holds any file outside generated or hidden
+// directories.
+//
+// A directory left behind with only build output, such as bin or .piko, holds no authored
+// files.
+//
+// Takes root (fs.FS) which exposes the source tree to inventory.
+// Takes directory (string) which is the directory to search.
+//
+// Returns bool which is true once an authored file is found.
+// Returns error which reports an unreadable directory, or nil on success.
+func hasAuthoredFiles(root fs.FS, directory string) (bool, error) {
+	found := false
+	err := fs.WalkDir(root, directory, func(current string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() {
+			if current != directory && excludedDirectory(entry.Name()) {
+				return fs.SkipDir
+			}
+			return nil
+		}
+		found = true
+		return fs.SkipAll
+	})
+	if err != nil {
+		return false, fmt.Errorf("searching %s for authored files: %w", directory, err)
+	}
+	return found, nil
+}
+
 // negativeFixture reports whether a fixture intentionally expects a failure.
 //
 // Takes root (fs.FS) which exposes the source tree to inventory.

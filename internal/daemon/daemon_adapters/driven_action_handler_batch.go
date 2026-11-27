@@ -490,7 +490,7 @@ func (*ActionHandler) buildBatchErrorResult(ctx context.Context, name string, er
 // Takes status (int) which sets the HTTP status code.
 // Takes data (any) which is the value to encode as JSON, or nil to skip.
 func (*ActionHandler) writeJSON(w http.ResponseWriter, status int, data any) {
-	w.Header().Set(headerContentType, "application/json")
+	setActionJSONHeaders(w.Header())
 	w.WriteHeader(status)
 	if data != nil {
 		_ = json.ConfigDefault.NewEncoder(w).Encode(data)

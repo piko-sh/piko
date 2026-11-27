@@ -1,0 +1,5 @@
+{
+  "description": "A layout partial outside the partials directory is still a partial, so its client script is listed for the page that uses it",
+  "packageName": "testcase_184_partial_script_outside_partials_dir",
+  "isPage": true
+}

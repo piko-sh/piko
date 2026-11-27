@@ -23,12 +23,14 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"html"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/layouter/layouter_dto"
 	"piko.sh/piko/internal/pdfwriter/pdfwriter_domain"
@@ -36,6 +38,12 @@ import (
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/internal/templater/templater_dto"
+)
+
+const (
+	// bodyCloseTag is the end tag of an HTML body. Content for the bottom of a preview page
+	// goes just before its last one.
+	bodyCloseTag = "</body>"
 )
 
 // DevPreviewHandler serves dev-mode preview endpoints for listing and rendering
@@ -349,15 +357,15 @@ func (h *DevPreviewHandler) renderEmailPreview(w http.ResponseWriter, r *http.Re
 	w.Header().Set(headerContentType, contentTypeHTML)
 	addCopyScriptHashToCSP(w)
 
-	html := result.HTML
+	emailHTML := result.HTML
 	injection := emailCopyButtonSnippet(result.HTML) + h.devWidgetSnippet(r.Context())
-	if idx := strings.LastIndex(html, "</body>"); idx != -1 {
-		html = html[:idx] + injection + html[idx:]
+	if beforeBody, afterBody, found := strings.CutLast(emailHTML, bodyCloseTag); found {
+		emailHTML = beforeBody + injection + bodyCloseTag + afterBody
 	} else {
-		html += injection
+		emailHTML += injection
 	}
 
-	_, _ = w.Write([]byte(html))
+	_, _ = w.Write([]byte(emailHTML))
 }
 
 // renderPdfPreview serves an HTML wrapper page with an embedded PDF viewer and the dev
@@ -382,12 +390,12 @@ func (h *DevPreviewHandler) renderPdfPreview(w http.ResponseWriter, r *http.Requ
 	w.Header().Set(headerContentType, contentTypeHTML)
 	fmt.Fprintf(w, `<!DOCTYPE html>
 <html>
-<head><title>PDF Preview: %s</title></head>
-<body style="margin:0; height:100vh">
+<head><title>PDF Preview: %s</title><style%s>body{margin:0;height:100vh}</style></head>
+<body>
   <embed src="%s" type="application/pdf" width="100%%" height="100%%">
   %s
 </body>
-</html>`, sourcePath, renderURL, devSnippet)
+</html>`, html.EscapeString(sourcePath), daemon_dto.CSPTokenAttribute(daemon_dto.CSPTokenFromContext(r.Context())), html.EscapeString(renderURL), devSnippet)
 }
 
 // renderPdfRaw renders a PDF template and returns the raw PDF bytes.
@@ -472,6 +480,14 @@ func (h *DevPreviewHandler) renderComponentPreview(w http.ResponseWriter, r *htt
 // devWidgetSnippet returns an HTML snippet that injects the full dev widget (including
 // its PKC component definition) and hot-reload scripts into a preview page.
 //
+// The core and components scripts use the same URLs that compiled components, the dev
+// widget among them, import. These are the unversioned URLs, which re-export the server's
+// own build of each module. The browser knows an ES module by its URL, so a different URL
+// would load a second copy of the runtime with its own registries and state.
+//
+// Each script carries the request's CSP token when the policy uses one, so a token-based
+// policy lets the widget run.
+//
 // Returns string which is the combined HTML snippet for the dev widget and associated
 // module scripts.
 func (h *DevPreviewHandler) devWidgetSnippet(ctx context.Context) string {
@@ -480,26 +496,33 @@ func (h *DevPreviewHandler) devWidgetSnippet(ctx context.Context) string {
 		return ""
 	}
 
-	coreURL := "/_piko/dist/ppframework.core.es.js"
-	componentsURL := daemon_frontend.ModuleComponents.ServeURL()
-	devURL := daemon_frontend.ModuleDev.ServeURL()
-
-	var componentScript string
+	cspToken := daemon_dto.CSPTokenFromContext(ctx)
+	var snippet strings.Builder
+	snippet.WriteString(widgetHTML)
+	writeModuleScript(&snippet, daemon_frontend.CoreModuleImportURL(), cspToken)
+	writeModuleScript(&snippet, daemon_frontend.ModuleComponents.ImportURL(), cspToken)
 	if h.registry != nil {
 		meta, err := h.registry.GetComponentMetadata(ctx, "piko-dev-widget")
 		if err == nil && meta != nil && meta.BaseJSPath != "" {
-			componentScript = `<script type="module" src="` + meta.BaseJSPath + `"></script>`
+			writeModuleScript(&snippet, meta.BaseJSPath, cspToken)
 		}
 	}
+	writeModuleScript(&snippet, daemon_frontend.ModuleDev.ImportURL(), cspToken)
+	return snippet.String()
+}
 
-	return fmt.Sprintf(
-		`%s`+
-			`<script type="module" src="%s"></script>`+
-			`<script type="module" src="%s"></script>`+
-			`%s`+
-			`<script type="module" src="%s"></script>`,
-		widgetHTML, coreURL, componentsURL, componentScript, devURL,
-	)
+// writeModuleScript writes a module script element for a framework-owned URL.
+//
+// Takes builder (*strings.Builder) which receives the element.
+// Takes source (string) which is the module URL.
+// Takes cspToken (string) which is the request's CSP token, or empty when the policy uses
+// none.
+func writeModuleScript(builder *strings.Builder, source, cspToken string) {
+	builder.WriteString(`<script type="module" src="`)
+	builder.WriteString(html.EscapeString(source))
+	builder.WriteString(`"`)
+	builder.WriteString(daemon_dto.CSPTokenAttribute(cspToken))
+	builder.WriteString(`></script>`)
 }
 
 // emailCopyButtonSnippet returns an HTML snippet containing a floating button that copies

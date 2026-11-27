@@ -1,0 +1,151 @@
+{
+  "description": "A component in page content that sits at the same place on two pages under a shared layout disconnects when its page is left and a new instance connects on every SPA visit, so each page's input is bound once with that page's settings while the layout element is kept",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Main Page"
+    },
+    {
+      "action": "comment",
+      "value": "Initial load: the main watcher connects once and binds the main input"
+    },
+    {
+      "action": "eval",
+      "value": "window.__spaMarker = 'kept'; document.querySelector('.layout-nav').__layoutMarker = 'kept';"
+    },
+    {
+      "action": "eval",
+      "value": "new Promise((resolve, reject) => { const expected = JSON.stringify({connected: {main: 1}, disconnected: {}}); const deadline = performance.now() + 5000; const poll = () => { const record = window.__filterWatcher; const actual = JSON.stringify(record && {connected: record.connected, disconnected: record.disconnected}); if (actual === expected) { resolve(true); return; } if (performance.now() > deadline) { reject(new Error('lifecycle counts: expected ' + expected + ', got ' + actual)); return; } setTimeout(poll, 50); }; poll(); })"
+    },
+    {
+      "action": "fill",
+      "selector": "#main-filter",
+      "value": "first"
+    },
+    {
+      "action": "blur",
+      "selector": "#main-filter"
+    },
+    {
+      "action": "eval",
+      "value": "new Promise((resolve, reject) => { const expected = JSON.stringify({changes: {main: 1}, lastChange: 'main:first'}); const deadline = performance.now() + 5000; const poll = () => { const record = window.__filterWatcher; const actual = JSON.stringify(record && {changes: record.changes, lastChange: record.lastChange}); if (actual === expected) { resolve(true); return; } if (performance.now() > deadline) { reject(new Error('change handling: expected ' + expected + ', got ' + actual)); return; } setTimeout(poll, 50); }; poll(); })"
+    },
+    {
+      "action": "comment",
+      "value": "SPA navigation to the other page: the main watcher disconnects and a new watcher binds the other input"
+    },
+    {
+      "action": "click",
+      "selector": "#nav-other"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Other Page"
+    },
+    {
+      "action": "eval",
+      "value": "if (window.__spaMarker !== 'kept') { throw new Error('the page reloaded instead of navigating in place'); } if (document.querySelector('.layout-nav').__layoutMarker !== 'kept') { throw new Error('the shared layout element was replaced'); }"
+    },
+    {
+      "action": "eval",
+      "value": "new Promise((resolve, reject) => { const expected = JSON.stringify({connected: {main: 1, other: 1}, disconnected: {main: 1}}); const deadline = performance.now() + 5000; const poll = () => { const record = window.__filterWatcher; const actual = JSON.stringify({connected: record.connected, disconnected: record.disconnected}); if (actual === expected) { resolve(true); return; } if (performance.now() > deadline) { reject(new Error('lifecycle counts: expected ' + expected + ', got ' + actual)); return; } setTimeout(poll, 50); }; poll(); })"
+    },
+    {
+      "action": "checkElementCount",
+      "selector": "#main-filter",
+      "expected": 0
+    },
+    {
+      "action": "fill",
+      "selector": "#other-filter",
+      "value": "second"
+    },
+    {
+      "action": "blur",
+      "selector": "#other-filter"
+    },
+    {
+      "action": "eval",
+      "value": "new Promise((resolve, reject) => { const expected = JSON.stringify({changes: {main: 1, other: 1}, lastChange: 'other:second'}); const deadline = performance.now() + 5000; const poll = () => { const record = window.__filterWatcher; const actual = JSON.stringify(record && {changes: record.changes, lastChange: record.lastChange}); if (actual === expected) { resolve(true); return; } if (performance.now() > deadline) { reject(new Error('change handling: expected ' + expected + ', got ' + actual)); return; } setTimeout(poll, 50); }; poll(); })"
+    },
+    {
+      "action": "comment",
+      "value": "SPA navigation back to the main page: the other watcher disconnects and a new main watcher binds once"
+    },
+    {
+      "action": "click",
+      "selector": "#nav-main"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Main Page"
+    },
+    {
+      "action": "eval",
+      "value": "if (window.__spaMarker !== 'kept') { throw new Error('the page reloaded instead of navigating in place'); } if (document.querySelector('.layout-nav').__layoutMarker !== 'kept') { throw new Error('the shared layout element was replaced'); }"
+    },
+    {
+      "action": "eval",
+      "value": "new Promise((resolve, reject) => { const expected = JSON.stringify({connected: {main: 2, other: 1}, disconnected: {main: 1, other: 1}}); const deadline = performance.now() + 5000; const poll = () => { const record = window.__filterWatcher; const actual = JSON.stringify({connected: record.connected, disconnected: record.disconnected}); if (actual === expected) { resolve(true); return; } if (performance.now() > deadline) { reject(new Error('lifecycle counts: expected ' + expected + ', got ' + actual)); return; } setTimeout(poll, 50); }; poll(); })"
+    },
+    {
+      "action": "fill",
+      "selector": "#main-filter",
+      "value": "third"
+    },
+    {
+      "action": "blur",
+      "selector": "#main-filter"
+    },
+    {
+      "action": "eval",
+      "value": "new Promise((resolve, reject) => { const expected = JSON.stringify({changes: {main: 2, other: 1}, lastChange: 'main:third'}); const deadline = performance.now() + 5000; const poll = () => { const record = window.__filterWatcher; const actual = JSON.stringify(record && {changes: record.changes, lastChange: record.lastChange}); if (actual === expected) { resolve(true); return; } if (performance.now() > deadline) { reject(new Error('change handling: expected ' + expected + ', got ' + actual)); return; } setTimeout(poll, 50); }; poll(); })"
+    },
+    {
+      "action": "comment",
+      "value": "History back behaves like any other SPA navigation"
+    },
+    {
+      "action": "eval",
+      "value": "history.back()"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Other Page"
+    },
+    {
+      "action": "eval",
+      "value": "if (window.__spaMarker !== 'kept') { throw new Error('the page reloaded instead of navigating in place'); } if (document.querySelector('.layout-nav').__layoutMarker !== 'kept') { throw new Error('the shared layout element was replaced'); }"
+    },
+    {
+      "action": "eval",
+      "value": "new Promise((resolve, reject) => { const expected = JSON.stringify({connected: {main: 2, other: 2}, disconnected: {main: 2, other: 1}}); const deadline = performance.now() + 5000; const poll = () => { const record = window.__filterWatcher; const actual = JSON.stringify({connected: record.connected, disconnected: record.disconnected}); if (actual === expected) { resolve(true); return; } if (performance.now() > deadline) { reject(new Error('lifecycle counts: expected ' + expected + ', got ' + actual)); return; } setTimeout(poll, 50); }; poll(); })"
+    },
+    {
+      "action": "fill",
+      "selector": "#other-filter",
+      "value": "fourth"
+    },
+    {
+      "action": "blur",
+      "selector": "#other-filter"
+    },
+    {
+      "action": "eval",
+      "value": "new Promise((resolve, reject) => { const expected = JSON.stringify({changes: {main: 2, other: 2}, lastChange: 'other:fourth'}); const deadline = performance.now() + 5000; const poll = () => { const record = window.__filterWatcher; const actual = JSON.stringify(record && {changes: record.changes, lastChange: record.lastChange}); if (actual === expected) { resolve(true); return; } if (performance.now() > deadline) { reject(new Error('change handling: expected ' + expected + ', got ' + actual)); return; } setTimeout(poll, 50); }; poll(); })"
+    },
+    {
+      "action": "checkNoConsoleErrors"
+    }
+  ]
+}

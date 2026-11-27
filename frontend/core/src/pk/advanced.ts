@@ -17,6 +17,7 @@
 // strip others of their rights and dignity.
 
 import {resolveElement} from './resolve';
+import {reportDiagnostic} from '@/services/DiagnosticReporter';
 
 /** Configuration options for whenVisible(). */
 export interface WhenVisibleOptions {
@@ -96,6 +97,7 @@ export function whenVisible(
     const element = resolveElement(target);
     if (!element) {
         console.warn(`[pk] whenVisible: target "${target}" not found`);
+        reportDiagnostic({kind: 'target-not-found', name: String(target), source: 'piko.util.whenVisible'});
         return () => {
         };
     }
@@ -271,6 +273,7 @@ export function watchMutations(
     const element = resolveElement(target);
     if (!element) {
         console.warn(`[pk] watchMutations: target "${target}" not found`);
+        reportDiagnostic({kind: 'target-not-found', name: String(target), source: 'piko.util.watchMutations'});
         return () => {
         };
     }

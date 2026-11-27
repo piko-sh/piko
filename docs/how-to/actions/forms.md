@@ -149,6 +149,27 @@ async function handleSubmit(event: SubmitEvent, form: FormDataHandle): Promise<v
 
 The `action.customer.Upsert(form)` expression builds the call from the current form's fields. Calling `.call()` posts the form-encoded data to the action endpoint. Piko renders validation errors inline next to the matching field without a full-page reload.
 
+## Handle repeated clicks
+
+When the template binds the action directly, such as `p-on:submit.prevent="action.customer.Upsert($form)"` or `p-on:click="helpers.submitForm('#customer-form')"`, Piko ignores repeat triggers from the same element or form while the action is in flight. Other actions and other elements still run.
+
+To show a busy state, style `aria-busy`, which the trigger and the form carry while the action is in flight:
+
+```css
+[aria-busy="true"] {
+    opacity: 0.6;
+    cursor: progress;
+}
+```
+
+To allow repeated sends, add `pk-allow-repeat` to the trigger or the form:
+
+```html
+<button p-on:click="action.counter.Increment()" pk-allow-repeat>Add one</button>
+```
+
+A handler that calls `.call()` itself, as in the example above, is not guarded.
+
 ## Enable toasts and modals
 
 `redirect` ships in the frontend core and works without any extra wiring. `showToast` lives in the toasts module. `closeModal` and `reloadPartial` both live in the modals module. Enable them at bootstrap when you use those helpers:

@@ -186,6 +186,12 @@ table ErrorPageEntryMapItemFB {
   value:ManifestErrorPageEntryFB;
 }
 
+table PartialScriptMapItemFB {
+  javascript_artefact_id:string (key);
+
+  partial_name:string;
+}
+
 table ManifestFB {
   pages:[PageEntryMapItemFB];
 
@@ -196,6 +202,8 @@ table ManifestFB {
   pdfs:[PdfEntryMapItemFB];
 
   error_pages:[ErrorPageEntryMapItemFB];
+
+  partial_scripts:[PartialScriptMapItemFB];
 }
 
 root_type ManifestFB;

@@ -66,15 +66,12 @@ export function createShadowDOMService(options: ShadowDOMServiceOptions): Shadow
             }
 
             const shadow = host.attachShadow({mode, delegatesFocus, serializable: true});
+            const cspToken = readPageCSPToken(host.ownerDocument);
 
-            const resetStyleEl = document.createElement("style");
-            resetStyleEl.textContent = RESET_CSS;
-            shadow.appendChild(resetStyleEl);
+            shadow.appendChild(createStyleElement(RESET_CSS, cspToken));
 
             if (typeof componentCSS === "string" && componentCSS.trim()) {
-                const userStyleElement = document.createElement("style");
-                userStyleElement.textContent = componentCSS;
-                shadow.appendChild(userStyleElement);
+                shadow.appendChild(createStyleElement(componentCSS, cspToken));
             }
 
             return shadow;
@@ -88,4 +85,67 @@ export function createShadowDOMService(options: ShadowDOMServiceOptions): Shadow
             return host.shadowRoot !== null;
         },
     };
+}
+
+/** The page token of each document, recorded when the component runtime starts. */
+const capturedPageTokens = new WeakMap<Document, string>();
+
+/**
+ * Reads the Content Security Policy token from the first script element that has one.
+ * Browsers hide the token attribute's value once the page has loaded, but keep it in the
+ * element's `nonce` property.
+ *
+ * @param doc - The document to read from.
+ * @returns The token, or an empty string when the page has none.
+ */
+function readTokenFromScripts(doc: Document): string {
+    const script = doc.querySelector<HTMLScriptElement>("script[nonce]");
+    if (!script) {
+        return "";
+    }
+    const token = script.nonce ?? "";
+    if (token !== "") {
+        return token;
+    }
+    return script.getAttribute("nonce") ?? "";
+}
+
+/**
+ * Records the page's Content Security Policy token once, when the component runtime
+ * starts. Later reads use this token, so an element the page inserts afterwards, which
+ * may carry another token, can never become the page token.
+ *
+ * @param doc - The page's document.
+ */
+export function capturePageCSPToken(doc: Document = document): void {
+    capturedPageTokens.set(doc, readTokenFromScripts(doc));
+}
+
+/**
+ * Returns the Content Security Policy token the server gave the page. This is the token
+ * recorded when the component runtime started, or, before that, the token of the page's
+ * first script element that has one.
+ *
+ * @param doc - The page's document.
+ * @returns The token, or an empty string when the page has none.
+ */
+function readPageCSPToken(doc: Document): string {
+    return capturedPageTokens.get(doc) ?? readTokenFromScripts(doc);
+}
+
+/**
+ * Creates a style element holding the given CSS, carrying the page's CSP token so a
+ * token-based policy applies it.
+ *
+ * @param css - The CSS text.
+ * @param cspToken - The page's CSP token, or empty when it has none.
+ * @returns The new style element.
+ */
+function createStyleElement(css: string, cspToken: string): HTMLStyleElement {
+    const style = document.createElement("style");
+    if (cspToken !== "") {
+        style.nonce = cspToken;
+    }
+    style.textContent = css;
+    return style;
 }

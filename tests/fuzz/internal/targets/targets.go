@@ -126,6 +126,7 @@ func ApplicationNames() []string {
 		"content-editions", "graph-rebuild", "form-workflow", "typed-catalog", "catalog-rebuild", "browser-events",
 		"browser-lifecycle", "partial-components", "markup", "firefox-markup", "source-equivalence", "route-contracts",
 		"checkout-workflow", "shipped-components", "go-topology", "embedded-deploy", "generated-artifacts",
+		"browser-element-reuse", "browser-lifecycle-inline",
 	}
 }
 
@@ -135,6 +136,26 @@ func ApplicationNames() []string {
 //
 // Returns bool which reports whether the target launches an application server.
 func IsApplication(name string) bool { return slices.Contains(ApplicationNames(), name) }
+
+// BrowserNames lists application targets that always launch a browser unless the browser
+// is turned off.
+//
+// Returns []string which lists the browser target names.
+func BrowserNames() []string {
+	return []string{
+		"components", "form-workflow", "browser-events", "browser-lifecycle", "partial-components",
+		"checkout-workflow", "shipped-components", "markup", "firefox-markup", "browser-element-reuse",
+		"browser-lifecycle-inline",
+	}
+}
+
+// IsBrowser reports whether a target always launches a browser unless the browser is
+// turned off.
+//
+// Takes name (string) which is the target name.
+//
+// Returns bool which reports whether the target always launches a browser.
+func IsBrowser(name string) bool { return slices.Contains(BrowserNames(), name) }
 
 // UsesPackageWorker identifies targets executed in cmd/target-worker.
 //

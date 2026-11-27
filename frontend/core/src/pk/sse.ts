@@ -139,7 +139,7 @@ function createErrorHandler(
 
         if (onError === 'stop') {
             state.stopped = true;
-            console.warn(`[pk] SSE connection to "${url}" failed, stopping`);
+            console.error(`[pk] SSE connection to "${url}" failed, stopping`);
             onClose?.();
             return;
         }

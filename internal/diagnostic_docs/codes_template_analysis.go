@@ -618,5 +618,54 @@ var (
 			},
 			Unused: false,
 		},
+		{
+			Code: annotator_dto.CodeUnresolvedRef, Name: "UnresolvedRef", Family: FamilyTemplateAnalysis,
+			Title:      "Ref not declared",
+			Severities: []Severity{SeverityWarning},
+			Summary:    "A script reads a ref by a literal name that no p-ref declares.",
+			Detail: "For a page script, pk.refs is checked against the page's template and every partial. For a partial " +
+				"script, it is checked against every template, because callers can put content inside the partial. For a " +
+				"component script, pkc.refs is checked against the component's own template only. Computed names, projects " +
+				"that bind p-ref, and elements that a script creates at runtime are not checked.",
+			Fix: "Add p-ref with that name to the element the script needs, or correct the name in the script.",
+			Example: &Example{
+				File: "pages/index.pk", Line: 12, Column: 13, Width: 5,
+				Source:  "    pk.refs.titel.textContent = message;",
+				Message: "pk.refs.titel matches no element with p-ref=\"titel\" on this page or in any partial, so it is always null. Did you mean 'title'?",
+			},
+			Unused: false,
+		},
+		{
+			Code: annotator_dto.CodeUnresolvedPartialName, Name: "UnresolvedPartialName", Family: FamilyTemplateAnalysis,
+			Title:      "Partial name not found",
+			Severities: []Severity{SeverityWarning},
+			Summary:    "A partial reload call names a partial that is not in the build.",
+			Detail: "piko.partial, piko.partials.reload, piko.partials.reloadGroup and piko.partials.autoRefresh find a partial " +
+				"by its partial_name. That is its path in the partials folder without the .pk extension, or a partial_name " +
+				"written on the partial's tag. An import alias is not a partial name. Computed names are not checked.",
+			Fix: "Use the partial's name, as the message suggests, or add the partial.",
+			Example: &Example{
+				File: "pages/index.pk", Line: 20, Column: 26, Width: 11,
+				Source:  `    piko.partials.reload("task_list");`,
+				Message: "piko.partials.reload(\"task_list\") names no partial in the build, so the partial is never found. \"task_list\" is the import alias; the partial's name is \"task-list\"",
+			},
+			Unused: false,
+		},
+		{
+			Code: annotator_dto.CodeUnresolvedModalSelector, Name: "UnresolvedModalSelector", Family: FamilyTemplateAnalysis,
+			Title:      "Modal selector matches nothing",
+			Severities: []Severity{SeverityWarning},
+			Summary:    "A [modal=name] selector matches no element with that modal attribute.",
+			Detail: "p-modal:selector and modal_selector values of the form [modal=name] are checked against the modal " +
+				"attributes on the page, its layout and every partial. Other selectors, bound values and projects that bind " +
+				"modal are not checked.",
+			Fix: "Add an element with that modal attribute to the page or its layout, or correct the selector.",
+			Example: &Example{
+				File: "partials/quote_table.pk", Line: 8, Column: 47, Width: 14,
+				Source:  `      <button type="button" p-modal:selector="[modal=qoute]">Edit</button>`,
+				Message: "Modal selector \"[modal=qoute]\" matches no element with modal=\"qoute\" on page app/pages/quotes.pk or in any partial. Did you mean 'quote'?",
+			},
+			Unused: false,
+		},
 	}
 )

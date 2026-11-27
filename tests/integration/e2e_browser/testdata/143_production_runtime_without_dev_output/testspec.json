@@ -1,0 +1,71 @@
+{
+  "description": "In production the server sends the minified core and components runtimes, so development warnings, such as the dirty form warning that prints typed values, never run",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Quote form"
+    },
+    {
+      "action": "comment",
+      "value": "The core runtime served at the one core URL is the minified build"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "fetch(document.querySelector('link[rel=modulepreload][href$=\"/ppframework.core.es.js\"]').href).then(response => response.text()).then(source => { if (source.includes('is now dirty')) { throw new Error('the served core runtime holds development warnings'); } return true; })"
+    },
+    {
+      "action": "comment",
+      "value": "Record when the runtime marks the form dirty, through the same runtime instance"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "import('/_piko/dist/ppframework.core.es.js').then(runtime => { window.__formDirty = false; runtime.piko.hooks.on('form:dirty', () => { window.__formDirty = true; }); return true; })"
+    },
+    {
+      "action": "click",
+      "selector": "#customer-name"
+    },
+    {
+      "action": "type",
+      "value": "typed secret"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "new Promise((resolve, reject) => { const deadline = performance.now() + 5000; const poll = () => { if (window.__formDirty === true) { resolve(true); return; } if (performance.now() > deadline) { reject(new Error('the form was never marked dirty')); return; } setTimeout(poll, 20); }; poll(); })"
+    },
+    {
+      "action": "checkNoConsoleMessage",
+      "level": "warn",
+      "message": "is now dirty"
+    },
+    {
+      "action": "checkNoConsoleMessage",
+      "message": "typed secret"
+    },
+    {
+      "action": "comment",
+      "value": "The components runtime served at its one URL is the minified build, so its warnings never run"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "empty-tag-probe >>> div#empty-tag-probe",
+      "timeout": 5000
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "fetch('/_piko/dist/ppframework.components.es.js').then(response => response.text()).then(reexport => { const target = /from \"([^\"]+)\"/.exec(reexport); if (!target) { throw new Error('the components URL is not a re-export: ' + reexport); } return fetch(new URL(target[1], new URL('/_piko/dist/', location.href))); }).then(response => response.text()).then(source => { if (source.includes('resolved to an empty tag name')) { throw new Error('the served components runtime holds development warnings'); } return true; })"
+    },
+    {
+      "action": "checkNoConsoleMessage",
+      "level": "warn",
+      "message": "resolved to an empty tag name"
+    }
+  ]
+}

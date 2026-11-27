@@ -318,6 +318,8 @@ func Render(r *piko.RequestData, props Props) (Response, piko.Metadata, error) {
 }
 ```
 
+Each locale variant is its own canonical. `/fr/about` declares `https://example.com/fr/about`, not the default-locale URL. The `x-default` alternate points at the default-locale variant.
+
 The canonical origin comes from the configured site URL (the SEO sitemap hostname) when set, otherwise the request host. A page may still set `Metadata.CanonicalURL` or `Metadata.AlternateLinks` explicitly to override the derived values.
 
 ## Locale-aware links

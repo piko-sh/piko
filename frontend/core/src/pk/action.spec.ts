@@ -17,6 +17,7 @@
 // strip others of their rights and dignity.
 
 import {describe, it, expect, vi, beforeEach, afterEach} from 'vitest';
+import {runtimeVersionGate} from '@/core/RuntimeVersion';
 import {
     action,
     isActionDescriptor,
@@ -798,6 +799,20 @@ describe('action (PK Action Descriptor)', () => {
 
         afterEach(() => {
             globalThis.fetch = originalFetch;
+        });
+
+        it('passes the response headers to the runtime version gate', async () => {
+            const observe = vi.spyOn(runtimeVersionGate, 'observe');
+            globalThis.fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({results: [], success: true}), {
+                status: 200,
+                headers: {'Content-Type': 'application/json', 'X-PP-Runtime': 'fedcba9876543210'}
+            }));
+
+            await batch(action('user.Create'));
+
+            expect(observe).toHaveBeenCalledTimes(1);
+            expect(observe.mock.calls[0][0]?.get('X-PP-Runtime')).toBe('fedcba9876543210');
+            observe.mockRestore();
         });
 
         it('should send the CSRF header and ephemeral token from the page meta tags', async () => {

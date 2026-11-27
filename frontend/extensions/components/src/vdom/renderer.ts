@@ -1183,7 +1183,40 @@ function reconcileClassAttribute(htmlElement: HTMLElement, newProps: PropsRecord
 }
 
 /**
+ * Records the bound style last written to each element, which is the text the binding
+ * produced and the style attribute the browser serialised from it.
+ */
+interface AppliedStyle {
+    /** The style text the binding produced. */
+    bound: string;
+    /** The style attribute as the browser serialised it after the write. */
+    serialised: string | null;
+}
+
+/** The bound style last written to each element, so an unchanged binding is not rewritten. */
+const appliedStyles = new WeakMap<Element, AppliedStyle>();
+
+/**
+ * Reports whether the binding itself already wrote this style to the element and the
+ * element is unchanged since. A style attribute that only holds the same text, such as
+ * one in server-rendered markup, does not count. A Content Security Policy may have
+ * blocked it, so the binding writes it through the CSSOM once.
+ *
+ * @param htmlElement - The target element.
+ * @param boundStyle - The style text the binding produced.
+ * @returns True when nothing needs to be written.
+ */
+function showsBoundStyle(htmlElement: HTMLElement, boundStyle: string): boolean {
+    const applied = appliedStyles.get(htmlElement);
+    return applied?.bound === boundStyle && applied.serialised === htmlElement.getAttribute('style');
+}
+
+/**
  * Reconcile the style attribute from static and dynamic sources.
+ *
+ * The style is written through the CSSOM rather than setAttribute, because a Content
+ * Security Policy without 'unsafe-inline' blocks a style set as an attribute but allows
+ * one set through `style.cssText`.
  *
  * @param htmlElement - The target HTML element.
  * @param newProps - The incoming props record containing style data.
@@ -1191,15 +1224,18 @@ function reconcileClassAttribute(htmlElement: HTMLElement, newProps: PropsRecord
 function reconcileStyleAttribute(htmlElement: HTMLElement, newProps: PropsRecord): void {
     const staticStyleValue = (newProps.style ?? "") as string;
     const dynamicStyleValue = newProps._style ?? null;
-    const finalStyle = combineStyles(staticStyleValue, parseStyleData(dynamicStyleValue));
+    const boundStyle = combineStyles(staticStyleValue, parseStyleData(dynamicStyleValue)).trim();
 
-    if (finalStyle.trim()) {
-        if (htmlElement.getAttribute('style') !== finalStyle.trim()) {
-            htmlElement.setAttribute("style", finalStyle.trim());
-        }
-    } else {
+    if (!boundStyle) {
+        appliedStyles.delete(htmlElement);
         htmlElement.removeAttribute("style");
+        return;
     }
+    if (showsBoundStyle(htmlElement, boundStyle)) {
+        return;
+    }
+    htmlElement.style.cssText = boundStyle;
+    appliedStyles.set(htmlElement, {bound: boundStyle, serialised: htmlElement.getAttribute('style')});
 }
 
 /**

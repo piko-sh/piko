@@ -19,6 +19,7 @@
 package browser_provider_chromedp
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -99,7 +100,7 @@ var (
 			return CheckFormData(ctx, step.Selector, step.ExpectedMap())
 		},
 		"checkConsoleMessage": func(ctx *ActionContext, step *BrowserStep) error {
-			return CheckConsoleMessage(ctx, step.Level, step.Message)
+			return waitForConsoleMessage(ctx, step.Level, step.Message, getStepTimeout(step))
 		},
 		"checkNoConsoleMessage": func(ctx *ActionContext, step *BrowserStep) error {
 			return CheckNoConsoleMessage(ctx, step.Level, step.Message)
@@ -816,16 +817,90 @@ func CheckConsoleMessage(ctx *ActionContext, level, messageContains string) erro
 	}
 
 	logs := ctx.PageHelper.ConsoleLogsWithLevel()
+	if hasConsoleMessage(logs, level, messageContains) {
+		return nil
+	}
+	return consoleMessageNotFound(logs, level, messageContains)
+}
 
+// waitForConsoleMessage waits until a matching console message has been logged.
+//
+// Takes ctx (*ActionContext) which provides the page helper and the browser context.
+// Takes level (string) which specifies the log level to match, or empty for any level.
+// Takes messageContains (string) which specifies a substring to find in the message, or
+// empty for any message.
+// Takes timeout (time.Duration) which bounds the wait.
+//
+// Returns error when no matching message is logged within the timeout, the context ends
+// or the page helper is nil.
+func waitForConsoleMessage(ctx *ActionContext, level, messageContains string, timeout time.Duration) error {
+	if ctx.PageHelper == nil {
+		return errors.New("checkConsoleMessage requires PageHelper in ActionContext")
+	}
+	return pollConsoleMessage(ctx.Ctx, ctx.PageHelper.ConsoleLogsWithLevel, level, messageContains, timeout)
+}
+
+// pollConsoleMessage reads the console logs until one matches or the timeout passes.
+//
+// Takes readLogs (func() []ConsoleLog) which returns the console logs captured so far.
+// Takes level (string) which specifies the log level to match, or empty for any level.
+// Takes messageContains (string) which specifies a substring to find in the message, or
+// empty for any message.
+// Takes timeout (time.Duration) which bounds the wait.
+//
+// Returns error when no matching message is logged within the timeout or the context
+// ends.
+func pollConsoleMessage(
+	ctx context.Context,
+	readLogs func() []ConsoleLog,
+	level, messageContains string,
+	timeout time.Duration,
+) error {
+	deadline := time.Now().Add(timeout)
+	ticker := time.NewTicker(DefaultPollingInterval)
+	defer ticker.Stop()
+
+	for {
+		logs := readLogs()
+		if hasConsoleMessage(logs, level, messageContains) {
+			return nil
+		}
+		if time.Now().After(deadline) {
+			return consoleMessageNotFound(logs, level, messageContains)
+		}
+		if err := waitForTick(ctx, ticker); err != nil {
+			return fmt.Errorf("waiting for console message %q: %w", messageContains, err)
+		}
+	}
+}
+
+// hasConsoleMessage reports whether any log matches the level and message.
+//
+// Takes logs ([]ConsoleLog) which holds the captured console logs.
+// Takes level (string) which specifies the log level to match, or empty for any level.
+// Takes messageContains (string) which specifies a substring to find in the message, or
+// empty for any message.
+//
+// Returns bool which is true when a log matches.
+func hasConsoleMessage(logs []ConsoleLog, level, messageContains string) bool {
 	for _, log := range logs {
 		levelMatches := level == "" || log.Level == level
 		messageMatches := messageContains == "" || strings.Contains(log.Message, messageContains)
-
 		if levelMatches && messageMatches {
-			return nil
+			return true
 		}
 	}
+	return false
+}
 
+// consoleMessageNotFound builds the error for a console message that was not logged.
+//
+// Takes logs ([]ConsoleLog) which holds the captured console logs.
+// Takes level (string) which is the log level that was expected.
+// Takes messageContains (string) which is the substring that was expected.
+//
+// Returns error which describes the missing message.
+func consoleMessageNotFound(logs []ConsoleLog, level, messageContains string) error {
 	return &AssertionError{
 		Selector: "",
 		Expected: fmt.Sprintf("console message (level=%q, contains=%q)", level, messageContains),

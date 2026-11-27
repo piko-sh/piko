@@ -22,6 +22,8 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"reflect"
+	"strings"
 
 	"piko.sh/json"
 	"piko.sh/piko/tests/fuzz/internal/casefile"
@@ -122,7 +124,7 @@ func verifiedLifecycle(got, want *casefile.LifecycleTrace) (int, error) {
 			return index, lifecycleMismatch{step: "final", detail: "unexpected extra observation"}
 		}
 		if actual, state := &got.States[index], &want.States[index]; *actual != *state {
-			return index, lifecycleMismatch{step: state.Step, detail: fmt.Sprintf("got %+v want %+v", *actual, *state)}
+			return index, lifecycleMismatch{step: state.Step, detail: lifecycleDifference(actual, state)}
 		}
 	}
 	recorded := len(got.States)
@@ -134,4 +136,54 @@ func verifiedLifecycle(got, want *casefile.LifecycleTrace) (int, error) {
 		return recorded, lifecycleMismatch{step: step, detail: fmt.Sprintf("recorded %d/%d snapshots, failed step %q: %s", recorded, len(want.States), got.FailedStep, got.DriverError)}
 	}
 	return recorded, nil
+}
+
+// lifecycleDifference describes how an observed lifecycle state differs from its model.
+// It gives each differing field first, then both complete states.
+//
+// Takes got (*casefile.LifecycleState) which holds the observed state.
+// Takes want (*casefile.LifecycleState) which holds the expected state.
+//
+// Returns string which names the differing fields and holds both states.
+func lifecycleDifference(got, want *casefile.LifecycleState) string {
+	fields := differingFields("", reflect.ValueOf(*got), reflect.ValueOf(*want))
+	return fmt.Sprintf("differs in %s; got %+v want %+v", strings.Join(fields, ", "), *got, *want)
+}
+
+// differingFields lists the fields, nested structs included, in which two values of one
+// struct type differ.
+//
+// Takes prefix (string) which is the dotted path of the struct within the state.
+// Takes got (reflect.Value) which holds the observed struct.
+// Takes want (reflect.Value) which holds the expected struct.
+//
+// Returns []string which describes each differing field with both values.
+func differingFields(prefix string, got, want reflect.Value) []string {
+	var fields []string
+	for field, actual := range got.Fields() {
+		name := prefix + field.Name
+		expected := want.FieldByIndex(field.Index)
+		if actual.Kind() == reflect.Struct {
+			fields = append(fields, differingFields(name+".", actual, expected)...)
+			continue
+		}
+		if !valuesEqual(actual, expected) {
+			fields = append(fields, fmt.Sprintf("%s (got %#v, want %#v)", name, actual, expected))
+		}
+	}
+	return fields
+}
+
+// valuesEqual reports whether two field values are equal. Values that cannot be compared
+// with ==, such as slices and maps, are compared in depth.
+//
+// Takes actual (reflect.Value) which holds the observed field.
+// Takes expected (reflect.Value) which holds the expected field.
+//
+// Returns bool which is true when both values are equal.
+func valuesEqual(actual, expected reflect.Value) bool {
+	if actual.Comparable() && expected.Comparable() {
+		return actual.Equal(expected)
+	}
+	return reflect.DeepEqual(actual.Interface(), expected.Interface())
 }

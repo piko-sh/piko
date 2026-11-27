@@ -40,6 +40,9 @@ const (
 	// domViewportHeight is the fixed viewport height used by viewport steps.
 	domViewportHeight = 720
 
+	// scriptGroupEnd closes a JavaScript call or bracketed expression built as a string.
+	scriptGroupEnd = ")"
+
 	// queryDOM reads the fixed public DOM query vocabulary.
 	queryDOM = `(step => {
  const root = host => host ? document.querySelector(host)?.shadowRoot : document;
@@ -122,7 +125,7 @@ func runDOM(ctx context.Context, session *browser.Session, base string, plan cas
 	if err != nil {
 		return err
 	}
-	if err := runBrowser(ctx, session, navigate(destination.String()), waitExpression("!!("+ready+")", domReadyWait)); err != nil {
+	if err := runBrowser(ctx, session, navigate(destination.String()), waitExpression("!!("+ready+scriptGroupEnd, domReadyWait)); err != nil {
 		return fmt.Errorf("visit %s: %w", plan.Path, err)
 	}
 	if err := session.Evaluate(ctx, "navigator.userAgent", &trace.Version); err != nil {
@@ -175,7 +178,7 @@ func runDOMStep(ctx context.Context, session *browser.Session, step casefile.DOM
 	if err != nil {
 		return state, fmt.Errorf("encoding DOM step: %w", err)
 	}
-	tasks = append(tasks, settle, evaluate(queryDOM+"("+string(input)+")", &state))
+	tasks = append(tasks, settle, evaluate(queryDOM+"("+string(input)+scriptGroupEnd, &state))
 	stepCtx, cancel := stepContext(ctx, domStepBudget)
 	defer cancel()
 	return state, tasks.run(stepCtx, session)
@@ -194,13 +197,13 @@ func domSelector(host, selector string) (string, error) {
 		return "", err
 	}
 	if host == "" {
-		return "document.querySelector(" + quotedSelector + ")", nil
+		return "document.querySelector(" + quotedSelector + scriptGroupEnd, nil
 	}
 	quotedHost, err := scriptString(host)
 	if err != nil {
 		return "", err
 	}
-	return "document.querySelector(" + quotedHost + ")?.shadowRoot?.querySelector(" + quotedSelector + ")", nil
+	return "document.querySelector(" + quotedHost + ")?.shadowRoot?.querySelector(" + quotedSelector + scriptGroupEnd, nil
 }
 
 // domBudget sizes the session time a DOM plan needs.

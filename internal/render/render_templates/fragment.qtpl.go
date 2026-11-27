@@ -152,147 +152,153 @@ func StreamFragmentPageHeader(qw422016 *qt422016.Writer, p *FragmentPageData) {
 //line fragment.qtpl:16
 	}
 //line fragment.qtpl:17
+	if p.ViewTransitionsOff {
+//line fragment.qtpl:17
+		qw422016.N().S(`<meta name="pk-view-transitions" content="off">`)
+//line fragment.qtpl:17
+	}
+//line fragment.qtpl:18
 	if p.Styling != "" {
-//line fragment.qtpl:17
+//line fragment.qtpl:18
 		qw422016.N().S(`<style pk-page>`)
-//line fragment.qtpl:17
+//line fragment.qtpl:18
 		qw422016.N().S(p.Styling)
-//line fragment.qtpl:17
+//line fragment.qtpl:18
 		qw422016.N().S(`</style>`)
-//line fragment.qtpl:17
+//line fragment.qtpl:18
 	}
-//line fragment.qtpl:17
+//line fragment.qtpl:18
 	qw422016.N().S(`</head><body>`)
-//line fragment.qtpl:20
+//line fragment.qtpl:21
 	qw422016.N().S(`<div id="app" data-pageid="`)
-//line fragment.qtpl:20
+//line fragment.qtpl:21
 	qw422016.N().S(p.PageID)
-//line fragment.qtpl:20
+//line fragment.qtpl:21
 	qw422016.N().S(`">`)
-//line fragment.qtpl:22
+//line fragment.qtpl:23
 }
 
-//line fragment.qtpl:22
+//line fragment.qtpl:23
 func WriteFragmentPageHeader(qq422016 qtio422016.Writer, p *FragmentPageData) {
-//line fragment.qtpl:22
+//line fragment.qtpl:23
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line fragment.qtpl:22
+//line fragment.qtpl:23
 	StreamFragmentPageHeader(qw422016, p)
-//line fragment.qtpl:22
+//line fragment.qtpl:23
 	qt422016.ReleaseWriter(qw422016)
-//line fragment.qtpl:22
+//line fragment.qtpl:23
 }
 
-//line fragment.qtpl:22
+//line fragment.qtpl:23
 func FragmentPageHeader(p *FragmentPageData) string {
-//line fragment.qtpl:22
+//line fragment.qtpl:23
 	qb422016 := qt422016.AcquireByteBuffer()
-//line fragment.qtpl:22
+//line fragment.qtpl:23
 	WriteFragmentPageHeader(qb422016, p)
-//line fragment.qtpl:22
+//line fragment.qtpl:23
 	qs422016 := string(qb422016.B)
-//line fragment.qtpl:22
+//line fragment.qtpl:23
 	qt422016.ReleaseByteBuffer(qb422016)
-//line fragment.qtpl:22
+//line fragment.qtpl:23
 	return qs422016
-//line fragment.qtpl:22
+//line fragment.qtpl:23
 }
 
-//line fragment.qtpl:24
+//line fragment.qtpl:25
 func StreamFragmentPageFooter(qw422016 *qt422016.Writer, p *FragmentPageData) {
-//line fragment.qtpl:24
+//line fragment.qtpl:25
 	qw422016.N().S(`    </div>`)
-//line fragment.qtpl:27
-	if p.SvgSpriteSheet != "" {
 //line fragment.qtpl:28
-		qw422016.N().S(p.SvgSpriteSheet)
+	if p.SvgSpriteSheet != "" {
 //line fragment.qtpl:29
+		qw422016.N().S(p.SvgSpriteSheet)
+//line fragment.qtpl:30
 	}
-//line fragment.qtpl:31
+//line fragment.qtpl:32
 	if p.ModuleScripts != "" {
-//line fragment.qtpl:31
+//line fragment.qtpl:32
 		qw422016.N().S(p.ModuleScripts)
-//line fragment.qtpl:31
-	}
 //line fragment.qtpl:32
+	}
+//line fragment.qtpl:33
 	for _, meta := range p.PKScriptMetas {
-//line fragment.qtpl:32
+//line fragment.qtpl:33
 		qw422016.N().S(`<script type="module" src="`)
-//line fragment.qtpl:32
+//line fragment.qtpl:33
 		qw422016.N().S(meta.URL)
-//line fragment.qtpl:32
+//line fragment.qtpl:33
 		qw422016.N().S(`"`)
-//line fragment.qtpl:32
+//line fragment.qtpl:33
 		if meta.SRIHash != "" {
-//line fragment.qtpl:32
+//line fragment.qtpl:33
 			qw422016.N().S(` `)
-//line fragment.qtpl:32
+//line fragment.qtpl:33
 			qw422016.N().S(`integrity="`)
-//line fragment.qtpl:32
+//line fragment.qtpl:33
 			qw422016.N().S(meta.SRIHash)
-//line fragment.qtpl:32
+//line fragment.qtpl:33
 			qw422016.N().S(`" crossorigin="anonymous"`)
-//line fragment.qtpl:32
+//line fragment.qtpl:33
 		}
-//line fragment.qtpl:32
+//line fragment.qtpl:33
 		qw422016.N().S(`></script><meta name="pk-script" content="`)
-//line fragment.qtpl:32
+//line fragment.qtpl:33
 		qw422016.N().S(meta.URL)
-//line fragment.qtpl:32
+//line fragment.qtpl:33
 		qw422016.N().S(`"`)
-//line fragment.qtpl:32
+//line fragment.qtpl:33
 		if meta.PartialName != "" {
-//line fragment.qtpl:32
+//line fragment.qtpl:33
 			qw422016.N().S(` `)
-//line fragment.qtpl:32
+//line fragment.qtpl:33
 			qw422016.N().S(`data-partial-name="`)
-//line fragment.qtpl:32
+//line fragment.qtpl:33
 			qw422016.N().S(meta.PartialName)
-//line fragment.qtpl:32
+//line fragment.qtpl:33
 			qw422016.N().S(`"`)
-//line fragment.qtpl:32
+//line fragment.qtpl:33
 		}
-//line fragment.qtpl:32
+//line fragment.qtpl:33
 		qw422016.N().S(`>`)
-//line fragment.qtpl:32
-	}
 //line fragment.qtpl:33
+	}
+//line fragment.qtpl:34
 	for _, url := range p.WidgetScripts {
-//line fragment.qtpl:33
+//line fragment.qtpl:34
 		qw422016.N().S(`<meta name="pk-widget-script" content="`)
-//line fragment.qtpl:33
+//line fragment.qtpl:34
 		qw422016.N().S(url)
-//line fragment.qtpl:33
+//line fragment.qtpl:34
 		qw422016.N().S(`">`)
-//line fragment.qtpl:33
+//line fragment.qtpl:34
 	}
-//line fragment.qtpl:33
+//line fragment.qtpl:34
 	qw422016.N().S(`</body>`)
-//line fragment.qtpl:36
+//line fragment.qtpl:37
 }
 
-//line fragment.qtpl:36
+//line fragment.qtpl:37
 func WriteFragmentPageFooter(qq422016 qtio422016.Writer, p *FragmentPageData) {
-//line fragment.qtpl:36
+//line fragment.qtpl:37
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line fragment.qtpl:36
+//line fragment.qtpl:37
 	StreamFragmentPageFooter(qw422016, p)
-//line fragment.qtpl:36
+//line fragment.qtpl:37
 	qt422016.ReleaseWriter(qw422016)
-//line fragment.qtpl:36
+//line fragment.qtpl:37
 }
 
-//line fragment.qtpl:36
+//line fragment.qtpl:37
 func FragmentPageFooter(p *FragmentPageData) string {
-//line fragment.qtpl:36
+//line fragment.qtpl:37
 	qb422016 := qt422016.AcquireByteBuffer()
-//line fragment.qtpl:36
+//line fragment.qtpl:37
 	WriteFragmentPageFooter(qb422016, p)
-//line fragment.qtpl:36
+//line fragment.qtpl:37
 	qs422016 := string(qb422016.B)
-//line fragment.qtpl:36
+//line fragment.qtpl:37
 	qt422016.ReleaseByteBuffer(qb422016)
-//line fragment.qtpl:36
+//line fragment.qtpl:37
 	return qs422016
-//line fragment.qtpl:36
+//line fragment.qtpl:37
 }

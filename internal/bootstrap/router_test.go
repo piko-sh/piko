@@ -21,6 +21,7 @@ package bootstrap
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -31,8 +32,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/collection/collection_domain"
+	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/security/security_domain"
+	"piko.sh/piko/internal/security/security_dto"
 	"piko.sh/piko/internal/storage/storage_domain"
+	"piko.sh/piko/internal/templater/templater_domain"
 )
 
 type presignConfiguredStorage struct {
@@ -250,4 +254,116 @@ func TestRouterResolveServicesFailsWhenCSRFServiceFails(t *testing.T) {
 
 	require.ErrorIs(t, err, setupErr)
 	assert.Nil(t, operation.csrfService)
+}
+
+func TestBuildCacheMiddlewareConfig(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name                     string
+		cspConfig                security_dto.CSPRuntimeConfig
+		persistenceDisabled      bool
+		wantCSPUsesRequestTokens bool
+		coreRuntimeBuild         daemon_frontend.CoreRuntimeBuild
+	}{
+		{
+			name:                     "turns the static page cache off under the strict policy, which uses request tokens",
+			cspConfig:                security_domain.NewCSPBuilder().WithStrictPolicy().RuntimeConfig(),
+			wantCSPUsesRequestTokens: true,
+		},
+		{
+			name:      "keeps the static page cache under the Piko default policy",
+			cspConfig: security_domain.NewCSPBuilder().WithPikoDefaults().RuntimeConfig(),
+		},
+		{
+			name:                "keeps the static page cache under a raw policy string",
+			cspConfig:           security_dto.CSPRuntimeConfig{Policy: "default-src 'self'"},
+			persistenceDisabled: true,
+		},
+		{
+			name:             "keys cached pages by the core runtime build the server sends",
+			cspConfig:        security_domain.NewCSPBuilder().WithPikoDefaults().RuntimeConfig(),
+			coreRuntimeBuild: daemon_frontend.CoreRuntimeBuildProduction,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			config := buildCacheMiddlewareConfig(testCase.cspConfig, testCase.persistenceDisabled, testCase.coreRuntimeBuild)
+
+			assert.Equal(t, testCase.wantCSPUsesRequestTokens, config.CSPUsesRequestTokens)
+			assert.Equal(t, testCase.coreRuntimeBuild, config.CoreRuntimeBuild)
+			assert.Equal(t, testCase.persistenceDisabled, config.PersistenceDisabled)
+			assert.Equal(t, defaultCacheWriteConcurrency, config.CacheWriteConcurrency)
+		})
+	}
+}
+
+func TestStaticPageCacheTurnedOffByCSP(t *testing.T) {
+	t.Parallel()
+
+	storeOf := func(hasCachePolicy ...bool) *templater_domain.MockManifestStoreView {
+		keys := make([]string, len(hasCachePolicy))
+		entries := make(map[string]templater_domain.PageEntryView, len(hasCachePolicy))
+		for index, has := range hasCachePolicy {
+			keys[index] = fmt.Sprintf("pages/page%d.pk", index)
+			entries[keys[index]] = &templater_domain.MockPageEntryView{
+				GetHasCachePolicyFunc: func() bool { return has },
+			}
+		}
+		return &templater_domain.MockManifestStoreView{
+			GetKeysFunc: func() []string { return keys },
+			GetPageEntryFunc: func(key string) (templater_domain.PageEntryView, bool) {
+				entry, found := entries[key]
+				return entry, found
+			},
+		}
+	}
+	strict := security_domain.NewCSPBuilder().WithStrictPolicy().RuntimeConfig()
+
+	testCases := []struct {
+		store     templater_domain.ManifestStoreView
+		name      string
+		cspConfig security_dto.CSPRuntimeConfig
+		want      bool
+	}{
+		{name: "a token policy and a page with a cache policy", cspConfig: strict, store: storeOf(false, true), want: true},
+		{name: "a token policy and no page with a cache policy", cspConfig: strict, store: storeOf(false, false), want: false},
+		{name: "a token policy and no pages", cspConfig: strict, store: storeOf(), want: false},
+		{name: "a token policy and no manifest", cspConfig: strict, store: nil, want: false},
+		{
+			name:      "a policy without tokens",
+			cspConfig: security_domain.NewCSPBuilder().WithPikoDefaults().RuntimeConfig(),
+			store:     storeOf(true),
+			want:      false,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, testCase.want, staticPageCacheTurnedOffByCSP(testCase.cspConfig, testCase.store))
+		})
+	}
+}
+
+func TestBuildRouterConfig_SendsTheCoreRuntimeBuildOfTheContainer(t *testing.T) {
+	t.Parallel()
+
+	builds := []daemon_frontend.CoreRuntimeBuild{
+		daemon_frontend.CoreRuntimeBuildDevelopment,
+		daemon_frontend.CoreRuntimeBuildProduction,
+	}
+
+	for _, build := range builds {
+		t.Run(build.CoreFileName(), func(t *testing.T) {
+			t.Parallel()
+
+			operation := &routerOperation{container: NewContainer(WithCoreRuntimeBuild(build))}
+
+			assert.Equal(t, build, operation.buildRouterConfig(t.Context()).CoreRuntimeBuild)
+		})
+	}
 }

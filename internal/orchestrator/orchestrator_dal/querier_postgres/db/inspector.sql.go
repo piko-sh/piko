@@ -12,15 +12,15 @@ ORDER BY updated_at DESC
 LIMIT $1;`
 
 type ListRecentTasksRow struct {
-	ID         string  `json:"id"`
-	WorkflowID string  `json:"workflow_id"`
-	Executor   string  `json:"executor"`
-	Status     string  `json:"status"`
-	Priority   int32   `json:"priority"`
-	Attempt    int32   `json:"attempt"`
-	LastError  *string `json:"last_error"`
-	CreatedAt  int64   `json:"created_at"`
-	UpdatedAt  int64   `json:"updated_at"`
+	ID         string       `json:"id"`
+	WorkflowID string       `json:"workflow_id"`
+	Executor   string       `json:"executor"`
+	Status     string       `json:"status"`
+	Priority   int32        `json:"priority"`
+	Attempt    int32        `json:"attempt"`
+	LastError  Null[string] `json:"last_error"`
+	CreatedAt  int64        `json:"created_at"`
+	UpdatedAt  int64        `json:"updated_at"`
 }
 
 func (queries *Queries) ListRecentTasks(ctx context.Context, limit int) ([]ListRecentTasksRow, error) {
@@ -30,12 +30,16 @@ func (queries *Queries) ListRecentTasks(ctx context.Context, limit int) ([]ListR
 	}
 	defer rows.Close()
 	var results []ListRecentTasksRow
-	for rows.Next() {
+	if rows.Next() {
 		var row ListRecentTasksRow
-		if err := rows.Scan(&row.ID, &row.WorkflowID, &row.Executor, &row.Status, &row.Priority, &row.Attempt, &row.LastError, &row.CreatedAt, &row.UpdatedAt); err != nil {
-			return nil, err
+		scanArgs := []any{&row.ID, &row.WorkflowID, &row.Executor, &row.Status, pikoScanNumber(&row.Priority), pikoScanNumber(&row.Attempt), &row.LastError, &row.CreatedAt, &row.UpdatedAt}
+		for more := true; more; more = rows.Next() {
+			row = ListRecentTasksRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -90,13 +94,13 @@ ORDER BY MAX(updated_at) DESC
 LIMIT $1;`
 
 type ListWorkflowSummaryRow struct {
-	WorkflowID    string `json:"workflow_id"`
-	TaskCount     int64  `json:"task_count"`
-	CompleteCount *int64 `json:"complete_count"`
-	FailedCount   *int64 `json:"failed_count"`
-	ActiveCount   *int64 `json:"active_count"`
-	CreatedAt     *int64 `json:"created_at"`
-	UpdatedAt     *int64 `json:"updated_at"`
+	WorkflowID    string      `json:"workflow_id"`
+	TaskCount     int64       `json:"task_count"`
+	CompleteCount Null[int64] `json:"complete_count"`
+	FailedCount   Null[int64] `json:"failed_count"`
+	ActiveCount   Null[int64] `json:"active_count"`
+	CreatedAt     Null[int64] `json:"created_at"`
+	UpdatedAt     Null[int64] `json:"updated_at"`
 }
 
 func (queries *Queries) ListWorkflowSummary(ctx context.Context, limit int) ([]ListWorkflowSummaryRow, error) {
@@ -106,12 +110,16 @@ func (queries *Queries) ListWorkflowSummary(ctx context.Context, limit int) ([]L
 	}
 	defer rows.Close()
 	var results []ListWorkflowSummaryRow
-	for rows.Next() {
+	if rows.Next() {
 		var row ListWorkflowSummaryRow
-		if err := rows.Scan(&row.WorkflowID, &row.TaskCount, &row.CompleteCount, &row.FailedCount, &row.ActiveCount, &row.CreatedAt, &row.UpdatedAt); err != nil {
-			return nil, err
+		scanArgs := []any{&row.WorkflowID, &row.TaskCount, &row.CompleteCount, &row.FailedCount, &row.ActiveCount, &row.CreatedAt, &row.UpdatedAt}
+		for more := true; more; more = rows.Next() {
+			row = ListWorkflowSummaryRow{}
+			if err := rows.Scan(scanArgs...); err != nil {
+				return nil, err
+			}
+			results = append(results, row)
 		}
-		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

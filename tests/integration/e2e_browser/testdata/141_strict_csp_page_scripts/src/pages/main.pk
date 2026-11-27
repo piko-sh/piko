@@ -1,0 +1,77 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <main>
+    <h1>Strict Main</h1>
+    <button type="button" id="count-button" p-on:click="countClick()">Count</button>
+    <p>Clicks: <span id="click-count" p-ref="clickCount">0</span></p>
+    <p>Script ran: <span id="script-ran" p-ref="scriptRan">no</span></p>
+    <piko:a href="/other" id="nav-other">Other</piko:a>
+  </main>
+</template>
+
+<style>
+  h1 {
+    color: rgb(0, 100, 0);
+  }
+</style>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Strict Main",
+    }, nil
+}
+
+func CachePolicy() piko.CachePolicy {
+    return piko.CachePolicy{
+        Enabled:       true,
+        Static:        true,
+        MaxAgeSeconds: 3600,
+    }
+}
+</script>
+
+<script lang="ts">
+const host = window as unknown as { __cspViolations?: string[] };
+if (!host.__cspViolations) {
+    const violations: string[] = [];
+    host.__cspViolations = violations;
+    document.addEventListener('securitypolicyviolation', (event: SecurityPolicyViolationEvent) => {
+        violations.push(event.effectiveDirective + ' ' + event.blockedURI);
+    });
+}
+
+let clicks = 0;
+
+function countClick(): void {
+    clicks++;
+    pk.refs.clickCount.textContent = String(clicks);
+}
+
+pk.onConnected(() => {
+    pk.refs.scriptRan.textContent = 'yes';
+});
+</script>

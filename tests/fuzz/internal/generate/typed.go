@@ -36,6 +36,9 @@ const (
 	// typedCentsStep is the price step in hundredths per counter value.
 	typedCentsStep = 17
 
+	// centsPerUnit is the number of hundredths in one whole price unit.
+	centsPerUnit = 100
+
 	// typedBigShift is the bit shift of the smallest generated large integer.
 	typedBigShift = 72
 
@@ -44,6 +47,9 @@ const (
 
 	// typedShiftDays is the day offset applied to the date in negated modes.
 	typedShiftDays = 31
+
+	// typedDay is the length of one calendar day in the generated dates.
+	typedDay = 24 * time.Hour
 
 	// typedBigAddend is the large-integer literal the template adds.
 	typedBigAddend = 7
@@ -124,7 +130,7 @@ var (
 // Takes p (Project) which holds the drawn application model.
 func addTypedPage(c *casefile.Case, p Project) {
 	cents := typedBaseCents + typedCentsStep*p.Count
-	price := fmt.Sprintf("%d.%02d", cents/100, cents%100)
+	price := fmt.Sprintf("%d.%02d", cents/centsPerUnit, cents%centsPerUnit)
 	large := new(big.Int).Lsh(big.NewInt(1), uint(typedBigShift+p.Count))
 	large.Add(large, big.NewInt(int64(len(p.Rows))))
 	date := time.Date(2024, 2, typedBaseDay+p.Count, 0, 0, 0, 0, time.UTC)
@@ -175,14 +181,14 @@ func typedExpectations(title, mode string, cents int, large *big.Int, date time.
 	if mode == "nil" || mode == "empty" {
 		wantCents = -wantCents
 		wantBig.Neg(wantBig)
-		wantDate = date.Add(typedShiftDays * 24 * time.Hour)
+		wantDate = date.Add(typedShiftDays * typedDay)
 		order, dayOrder = "below", "after"
 	}
-	decimal := strconv.FormatFloat(float64(wantCents+1)/100, 'f', -1, 64)
+	decimal := strconv.FormatFloat(float64(wantCents+1)/centsPerUnit, 'f', -1, 64)
 	bigSum := wantBig.Add(wantBig, big.NewInt(typedBigAddend)).String()
 	return []string{
 		lookup, member, choice, decimal, order, bigSum, order,
-		wantDate.Format(time.DateOnly), dayOrder, wantDate.Add(24 * time.Hour).Format(time.DateOnly), (typedDurationMinutes * time.Minute).String(),
+		wantDate.Format(time.DateOnly), dayOrder, wantDate.Add(typedDay).Format(time.DateOnly), (typedDurationMinutes * time.Minute).String(),
 	}
 }
 

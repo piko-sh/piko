@@ -24,44 +24,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestLevenshteinDistance(t *testing.T) {
-	testCases := []struct {
-		name     string
-		s1       string
-		s2       string
-		expected int
-	}{
-
-		{name: "Identical strings", s1: "hello", s2: "hello", expected: 0},
-		{name: "Single substitution", s1: "kitten", s2: "sitten", expected: 1},
-		{name: "Single insertion", s1: "sit", s2: "sits", expected: 1},
-		{name: "Single deletion", s1: "saturday", s2: "saurday", expected: 1},
-		{name: "Multiple edits", s1: "saturday", s2: "sunday", expected: 3},
-		{name: "Transposition (costs 2)", s1: "martha", s2: "marhta", expected: 2},
-
-		{name: "One string is empty", s1: "hello", s2: "", expected: 5},
-		{name: "Other string is empty", s1: "", s2: "world", expected: 5},
-		{name: "Both strings are empty", s1: "", s2: "", expected: 0},
-		{name: "One is a prefix of the other", s1: "test", s2: "testing", expected: 3},
-
-		{name: "Different case", s1: "Hello", s2: "hello", expected: 1},
-		{name: "All different case", s1: "WORLD", s2: "world", expected: 5},
-
-		{name: "Identical unicode", s1: "你好", s2: "你好", expected: 0},
-		{name: "Single unicode insertion", s1: "你好世界", s2: "你好世界a", expected: 1},
-		{name: "Mixed ascii and unicode", s1: "hello你好", s2: "hellö你好", expected: 1},
-		{name: "Complex unicode edits", s1: " résumé", s2: "resume", expected: 3},
-		{name: "Emoji", s1: "😄", s2: "😃", expected: 1},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			actual := levenshteinDistance(tc.s1, tc.s2)
-			assert.Equal(t, tc.expected, actual, "Distance between '%s' and '%s' should be %d", tc.s1, tc.s2, tc.expected)
-		})
-	}
-}
-
 func TestFindClosestMatch(t *testing.T) {
 	candidates := []string{
 		"Title",

@@ -183,8 +183,16 @@ func addSourceGroups(repo fs.FS, entries capabilitySet) error {
 			return fmt.Errorf("reading %s: %w", group.root, err)
 		}
 		for _, entry := range items {
-			if entry.IsDir() && !strings.HasPrefix(entry.Name(), ".") {
-				entries.add(group.kind, entry.Name(), path.Join(group.root, entry.Name()))
+			if !entry.IsDir() || strings.HasPrefix(entry.Name(), ".") {
+				continue
+			}
+			directory := path.Join(group.root, entry.Name())
+			authored, authoredErr := hasAuthoredFiles(repo, directory)
+			if authoredErr != nil {
+				return authoredErr
+			}
+			if authored {
+				entries.add(group.kind, entry.Name(), directory)
 			}
 		}
 	}

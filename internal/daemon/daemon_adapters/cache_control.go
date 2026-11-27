@@ -21,10 +21,138 @@ package daemon_adapters
 import (
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
 	"piko.sh/piko/internal/registry/registry_dto"
+	"piko.sh/piko/internal/templater/templater_domain"
+	"piko.sh/piko/internal/templater/templater_dto"
 )
+
+const (
+	// varyAnyToken is the Vary value that says the response varies on everything.
+	varyAnyToken = "*"
+
+	// varyTokenSeparator separates the tokens in a Vary header value.
+	varyTokenSeparator = ","
+
+	// varyJoinedSeparator joins merged Vary tokens into one header value.
+	varyJoinedSeparator = ", "
+
+	// varyTokenCapacity is the starting capacity for the merged list of Vary tokens.
+	varyTokenCapacity = 8
+)
+
+// setDefaultCacheControl gives a response a default Cache-Control unless it already has
+// one. A policy that the app, a page or an action set earlier always wins.
+//
+// An entry set to nil also counts as set, because Go uses nil to leave a header out.
+//
+// Takes h (http.Header) which is the response header map.
+// Takes value ([]string) which is the default policy as a header value.
+func setDefaultCacheControl(h http.Header, value []string) {
+	if _, set := h[headerCacheControl]; set {
+		return
+	}
+	h[headerCacheControl] = value
+}
+
+// setNoStoreCacheControl marks a response as one that no cache may keep, for a page whose
+// cache policy sets NoStore. A Cache-Control that the app or the page set earlier wins.
+//
+// Takes h (http.Header) which is the response header map.
+func setNoStoreCacheControl(h http.Header) {
+	setDefaultCacheControl(h, headerValCacheNoStore)
+}
+
+// mergeVary adds Vary tokens to a response and keeps the tokens the app or the page set
+// earlier, in their order and spelling.
+//
+// Tokens compare without case, so no token is listed twice. A Vary of "*" already covers
+// every token, so it is left as it is. An entry set to nil counts as unset, because a
+// response that leaves out the tokens given here would let a shared cache serve the wrong
+// variant.
+//
+// Takes h (http.Header) which is the response header map.
+// Takes values ([]string) which are the Vary header values to add.
+func mergeVary(h http.Header, values []string) {
+	existing := h[headerVary]
+	if len(existing) == 0 {
+		h[headerVary] = values
+		return
+	}
+
+	tokens := appendVaryTokens(make([]string, 0, varyTokenCapacity), existing)
+	if slices.Contains(tokens, varyAnyToken) {
+		return
+	}
+	tokens = appendVaryTokens(tokens, values)
+	h[headerVary] = []string{strings.Join(tokens, varyJoinedSeparator)}
+}
+
+// appendVaryTokens splits Vary header values into tokens and appends each one that is not
+// already listed.
+//
+// Takes tokens ([]string) which holds the tokens found so far.
+// Takes values ([]string) which are the Vary header values to split.
+//
+// Returns []string which holds the tokens with the new ones appended.
+func appendVaryTokens(tokens, values []string) []string {
+	for _, value := range values {
+		for token := range strings.SplitSeq(value, varyTokenSeparator) {
+			token = strings.TrimSpace(token)
+			if token == "" || containsTokenFold(tokens, token) {
+				continue
+			}
+			tokens = append(tokens, token)
+		}
+	}
+	return tokens
+}
+
+// containsTokenFold reports whether a token is in the list, ignoring case.
+//
+// Takes tokens ([]string) which is the list to search.
+// Takes token (string) which is the token to find.
+//
+// Returns bool which is true when the list holds the token.
+func containsTokenFold(tokens []string, token string) bool {
+	return slices.ContainsFunc(tokens, func(listed string) bool {
+		return strings.EqualFold(listed, token)
+	})
+}
+
+// resolveCachePolicy works out a page's cache policy for a request.
+//
+// The policy sees the request's path, query, cookies and locale, but never its body. The
+// body is left for the page, so it is read once, and a large or malformed upload never
+// costs anything for a page that does not read it.
+//
+// Takes r (*http.Request) which is the incoming request.
+// Takes pageEntry (templater_domain.PageEntryView) which holds the page's cache policy.
+//
+// Returns templater_dto.CachePolicy which is the page's policy for this request.
+func resolveCachePolicy(r *http.Request, pageEntry templater_domain.PageEntryView) templater_dto.CachePolicy {
+	requestData := templater_domain.NewRequestDataFromAction(r)
+	defer requestData.Release()
+	return pageEntry.GetCachePolicy(requestData)
+}
+
+// noStorePolicyMiddleware sends Cache-Control: no-store for a page whose cache policy
+// sets NoStore, on routes that the static page cache does not wrap.
+//
+// Takes next (http.Handler) which serves the page.
+// Takes pageEntry (templater_domain.PageEntryView) which holds the page's cache policy.
+//
+// Returns http.Handler which applies the policy and then calls next.
+func noStorePolicyMiddleware(next http.Handler, pageEntry templater_domain.PageEntryView) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if resolveCachePolicy(r, pageEntry).NoStore {
+			setNoStoreCacheControl(w.Header())
+		}
+		next.ServeHTTP(w, r)
+	})
+}
 
 // cacheControlForArtefact derives the Cache-Control policy for a served artefact variant.
 //
@@ -89,7 +217,8 @@ func isCosmeticMediaVariant(variant *registry_dto.Variant) bool {
 
 // setVariantCacheHeaders writes the caching headers shared by the 200 and 304 responses
 // for a served variant: its ETag, the resolved Cache-Control policy, and Vary so that
-// shared caches key on the negotiated encoding.
+// shared caches key on the negotiated encoding. A Vary set earlier is merged, not
+// replaced.
 //
 // Takes h (http.Header) which is the response header map to populate.
 // Takes etag (string) which is the variant's entity tag.
@@ -97,5 +226,66 @@ func isCosmeticMediaVariant(variant *registry_dto.Variant) bool {
 func setVariantCacheHeaders(h http.Header, etag, cacheControl string) {
 	h[headerETag] = []string{etag}
 	h[headerCacheControl] = []string{cacheControl}
-	h[headerVary] = []string{headerAcceptEncoding}
+	mergeVary(h, headerValVaryAcceptEncoding)
+}
+
+// ifNoneMatchSatisfied reports whether an If-None-Match header names the entity tag of
+// the representation being served, so the server can answer 304 Not Modified.
+//
+// It uses the weak comparison that RFC 9110 requires for If-None-Match. A "W/" prefix on
+// either side is ignored, a list matches when any member matches, and "*" matches any
+// representation. A malformed list stops the scan, which only costs the client a full
+// response.
+//
+// Takes ifNoneMatch (string) which is the raw If-None-Match header value.
+// Takes etag (string) which is the entity tag of the representation being served.
+//
+// Returns bool which is true when the client already holds this representation.
+func ifNoneMatchSatisfied(ifNoneMatch, etag string) bool {
+	if ifNoneMatch == "" || etag == "" {
+		return false
+	}
+	if ifNoneMatch == etag {
+		return true
+	}
+	target := strings.TrimPrefix(etag, weakETagPrefix)
+
+	remaining := ifNoneMatch
+	for {
+		remaining = strings.TrimLeft(remaining, ifNoneMatchSeparators)
+		if remaining == "" {
+			return false
+		}
+		if remaining[0] == ifNoneMatchAny {
+			return true
+		}
+
+		candidate, rest, ok := cutEntityTag(remaining)
+		if !ok {
+			return false
+		}
+		if candidate == target {
+			return true
+		}
+		remaining = rest
+	}
+}
+
+// cutEntityTag splits the first entity tag off the front of an If-None-Match list.
+//
+// Takes list (string) which starts with an entity tag, weak or strong.
+//
+// Returns opaque (string) which is the quoted tag without any weak prefix.
+// Returns rest (string) which is the text after the tag.
+// Returns ok (bool) which is false when the list does not start with a quoted tag.
+func cutEntityTag(list string) (opaque, rest string, ok bool) {
+	afterOpening, opened := strings.CutPrefix(strings.TrimPrefix(list, weakETagPrefix), entityTagQuote)
+	if !opened {
+		return "", "", false
+	}
+	tag, rest, closed := strings.Cut(afterOpening, entityTagQuote)
+	if !closed {
+		return "", "", false
+	}
+	return entityTagQuote + tag + entityTagQuote, rest, true
 }

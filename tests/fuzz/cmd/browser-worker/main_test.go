@@ -60,7 +60,7 @@ func TestProbeRecipeSizesBudgetFromSelectedJourneys(t *testing.T) {
 	require.NotNil(t, full.checkout)
 	assert.Equal(t, "Alice", full.checkout.Customer)
 	reloads := time.Duration(len(full.partialComponents.ReloadOrder()))
-	want := base + checkoutBudget() + eventsBudget() + lifecycleBudget() + (partialStepCount+reloads)*partialStepBudget +
+	want := base + checkoutBudget() + eventsBudget() + lifecycleBudget(casefile.LifecycleInput{}) + (partialStepCount+reloads)*partialStepBudget +
 		domReadyWait + 2*domStepBudget + intakeBudget() + coverageBudget + 2*routeBudget
 	assert.Equal(t, want, full.budget(0))
 }

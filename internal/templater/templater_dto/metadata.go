@@ -58,8 +58,16 @@ type CachePolicy struct {
 	// per-user caching, A/B testing, or localisation.
 	Key string `json:"key,omitempty"`
 
-	// MaxAgeSeconds sets the max-age value in seconds for the Cache-Control header. It also
-	// sets how long the server-side AST cache stores entries.
+	// MaxAgeSeconds sets how long the server-side AST cache keeps entries.
+	//
+	// For a page from the static page cache, it also sets how long a shared cache such as a
+	// CDN may keep the page, sent as s-maxage. Browsers always check the page with the
+	// server before they use it again (max-age=0, must-revalidate). The page loads the
+	// framework runtime of the build that rendered it, from a URL that names that build's
+	// runtime version, and after a deploy the server only serves the new version. An old
+	// copy of the page would then load no scripts. A CDN copy has the same problem until it
+	// expires, so purge the CDN on every deploy. A Cache-Control set by the app or the
+	// page's middleware replaces this policy.
 	MaxAgeSeconds int `json:"maxAgeSeconds,omitempty"`
 
 	// Enabled is the master switch for server-side AST caching. If false, the AST is never
@@ -79,7 +87,9 @@ type CachePolicy struct {
 	MustRevalidate bool `json:"mustRevalidate"`
 
 	// NoStore corresponds to the `no-store` Cache-Control directive, indicating that the
-	// response should not be stored in any cache.
+	// response should not be stored in any cache. The page is never cached on the server and
+	// is sent with Cache-Control: no-store, unless the app or the page set a Cache-Control
+	// earlier.
 	NoStore bool `json:"noStore"`
 }
 

@@ -26,6 +26,7 @@ import {
 } from '@/core/ActionExecutor';
 import {action} from '@/pk/action';
 import * as CSRFUtils from '@/core/CSRFUtils';
+import {runtimeVersionGate} from '@/core/RuntimeVersion';
 
 describe('ActionExecutor', () => {
     let element: HTMLElement;
@@ -990,6 +991,25 @@ describe('ActionExecutor', () => {
         });
     });
 
+    describe('runtime version handshake', () => {
+        it.each([
+            ['a JSON action', 'application/json', JSON.stringify({status: 200, data: {}})],
+            ['a streamed action', 'text/event-stream', 'event: complete\ndata: {"status":200,"data":{}}\n\n']
+        ])('passes the response headers of %s to the runtime version gate', async (_name, contentType, body) => {
+            const observe = vi.spyOn(runtimeVersionGate, 'observe');
+            fetchSpy.mockResolvedValueOnce(new Response(body, {
+                status: 200,
+                headers: {'Content-Type': contentType, 'X-PP-Runtime': 'fedcba9876543210'}
+            }));
+
+            const options = contentType === 'text/event-stream' ? {onProgress: vi.fn()} : undefined;
+            await callServerActionDirect('observed', [], 'POST', options).catch(() => undefined);
+
+            expect(observe).toHaveBeenCalledTimes(1);
+            expect(observe.mock.calls[0][0]?.get('X-PP-Runtime')).toBe('fedcba9876543210');
+        });
+    });
+
     describe('callServerActionDirect() SSE', () => {
         function createSSEResponse(sseText: string): Response {
             const stream = new ReadableStream({
@@ -1509,8 +1529,8 @@ describe('ActionExecutor', () => {
             expect(reloadSpy).toHaveBeenCalledOnce();
         });
 
-        it('should warn when no element with CSRF token found after partial refresh', async () => {
-            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        it('should report an error when no element with CSRF token found after partial refresh', async () => {
+            const warnSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
             const partial = document.createElement('div');
             partial.setAttribute('partial_src', '/my-partial');
@@ -2408,6 +2428,185 @@ describe('ActionExecutor', () => {
 
             const body = JSON.parse(options.body as string);
             expect(body._csrf_ephemeral_token).toBe('element-ephemeral-token');
+        });
+    });
+    describe('repeat guard', () => {
+        interface PendingFetch {
+            settle: () => void;
+            fail: (error: Error) => void;
+        }
+
+        function holdFetches(): PendingFetch[] {
+            const pending: PendingFetch[] = [];
+            fetchSpy.mockImplementation(() => new Promise<Response>((resolve, reject) => {
+                pending.push({
+                    settle: () => resolve(new Response(JSON.stringify({status: 200}), {status: 200})),
+                    fail: reject
+                });
+            }));
+            return pending;
+        }
+
+        it('sends nothing for a second click while the first send is in flight', async () => {
+            const pending = holdFetches();
+
+            const first = handleAction(action('quotes.Upsert'), element, new MouseEvent('click'));
+            await handleAction(action('quotes.Upsert'), element, new MouseEvent('click'));
+
+            expect(fetchSpy).toHaveBeenCalledTimes(1);
+            pending[0].settle();
+            await first;
+            expect(fetchSpy).toHaveBeenCalledTimes(1);
+        });
+
+        it('sends a click made after the first send settled', async () => {
+            const pending = holdFetches();
+
+            const first = handleAction(action('quotes.Upsert'), element);
+            pending[0].settle();
+            await first;
+            const second = handleAction(action('quotes.Upsert'), element);
+            pending[1].settle();
+            await second;
+
+            expect(fetchSpy).toHaveBeenCalledTimes(2);
+        });
+
+        it.each([
+            {name: 'a network error', fail: (pending: PendingFetch) => pending.fail(new TypeError('Failed to fetch'))},
+            {name: 'an abort', fail: (pending: PendingFetch) => pending.fail(new DOMException('Aborted', 'AbortError'))}
+        ])('releases the guard after $name', async ({fail}) => {
+            const pending = holdFetches();
+
+            const first = handleAction(action('quotes.Upsert').setOnError(() => {}), element);
+            const rejection = expect(first).rejects.toBeDefined();
+            fail(pending[0]);
+            await rejection;
+
+            expect(element.hasAttribute('aria-busy')).toBe(false);
+            const second = handleAction(action('quotes.Upsert'), element);
+            expect(fetchSpy).toHaveBeenCalledTimes(2);
+            pending[1].settle();
+            await second;
+        });
+
+        it('releases the guard after a server error', async () => {
+            fetchSpy.mockResolvedValue(new Response(JSON.stringify({message: 'Failed'}), {status: 500}));
+
+            await expect(handleAction(action('quotes.Upsert').setOnError(() => {}), element)).rejects.toThrow();
+            await expect(handleAction(action('quotes.Upsert').setOnError(() => {}), element)).rejects.toThrow();
+
+            expect(fetchSpy).toHaveBeenCalledTimes(2);
+        });
+
+        it('releases the guard when a success handler throws', async () => {
+            vi.spyOn(console, 'error').mockImplementation(() => {});
+            fetchSpy.mockImplementation(async () => new Response(JSON.stringify({status: 200}), {status: 200}));
+            const throwing = action('quotes.Upsert').setOnSuccess(() => {
+                throw new Error('handler failed');
+            });
+
+            await expect(handleAction(throwing, element)).rejects.toThrow('handler failed');
+            await handleAction(action('quotes.Upsert'), element);
+
+            expect(fetchSpy).toHaveBeenCalledTimes(2);
+            expect(element.hasAttribute('aria-busy')).toBe(false);
+        });
+
+        it('releases the guard when the hold time passes and the send never settles', async () => {
+            vi.useFakeTimers();
+            try {
+                holdFetches();
+
+                void handleAction(action('quotes.Upsert').setTimeout(1000), element);
+                await vi.advanceTimersByTimeAsync(60_000);
+                void handleAction(action('quotes.Upsert'), element);
+
+                expect(fetchSpy).toHaveBeenCalledTimes(2);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it('allows a repeat when the trigger has pk-allow-repeat', async () => {
+            const pending = holdFetches();
+            element.setAttribute('pk-allow-repeat', '');
+
+            const first = handleAction(action('quotes.Upsert'), element);
+            const second = handleAction(action('quotes.Upsert'), element);
+
+            expect(fetchSpy).toHaveBeenCalledTimes(2);
+            expect(element.hasAttribute('aria-busy')).toBe(false);
+            pending.forEach(fetch => fetch.settle());
+            await Promise.all([first, second]);
+        });
+
+        it.each([
+            {name: 'the same action from another element', otherAction: 'quotes.Upsert', otherElement: true},
+            {name: 'another action from the same element', otherAction: 'quotes.Delete', otherElement: false}
+        ])('does not block $name', async ({otherAction, otherElement}) => {
+            const pending = holdFetches();
+            const other = otherElement ? document.body.appendChild(document.createElement('button')) : element;
+
+            const first = handleAction(action('quotes.Upsert'), element);
+            const second = handleAction(action(otherAction), other);
+
+            expect(fetchSpy).toHaveBeenCalledTimes(2);
+            pending.forEach(fetch => fetch.settle());
+            await Promise.all([first, second]);
+        });
+
+        it('sets aria-busy on the trigger while in flight and clears it when settled', async () => {
+            const pending = holdFetches();
+
+            const send = handleAction(action('quotes.Upsert'), element);
+            expect(element.getAttribute('aria-busy')).toBe('true');
+            pending[0].settle();
+            await send;
+
+            expect(element.hasAttribute('aria-busy')).toBe(false);
+        });
+
+        it('keeps an aria-busy the app set itself', async () => {
+            const pending = holdFetches();
+            element.setAttribute('aria-busy', 'false');
+
+            const send = handleAction(action('quotes.Upsert'), element);
+            pending[0].settle();
+            await send;
+
+            expect(element.getAttribute('aria-busy')).toBe('false');
+        });
+
+        it('guards a form submit and marks the form and its submit button busy', async () => {
+            const pending = holdFetches();
+            const form = document.body.appendChild(document.createElement('form'));
+            const submitButton = form.appendChild(document.createElement('button'));
+            const submit = (): SubmitEvent => new SubmitEvent('submit', {submitter: submitButton});
+
+            const first = handleAction(action('quotes.Upsert'), form, submit());
+            await handleAction(action('quotes.Upsert'), form, submit());
+
+            expect(fetchSpy).toHaveBeenCalledTimes(1);
+            expect(form.getAttribute('aria-busy')).toBe('true');
+            expect(submitButton.getAttribute('aria-busy')).toBe('true');
+            pending[0].settle();
+            await first;
+            expect(form.hasAttribute('aria-busy')).toBe(false);
+            expect(submitButton.hasAttribute('aria-busy')).toBe(false);
+        });
+
+        it('allows a repeat submit when the form has pk-allow-repeat', async () => {
+            const pending = holdFetches();
+            const form = document.body.appendChild(document.createElement('form'));
+            form.setAttribute('pk-allow-repeat', '');
+
+            const first = handleAction(action('quotes.Upsert'), form, new SubmitEvent('submit'));
+            const second = handleAction(action('quotes.Upsert'), form, new SubmitEvent('submit'));
+
+            expect(fetchSpy).toHaveBeenCalledTimes(2);
+            pending.forEach(fetch => fetch.settle());
+            await Promise.all([first, second]);
         });
     });
 });

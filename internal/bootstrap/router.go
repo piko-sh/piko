@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"net/http"
 	"path/filepath"
+	"slices"
 	"time"
 
 	"go.opentelemetry.io/otel/codes"
@@ -34,6 +35,7 @@ import (
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/daemon/daemon_adapters"
 	"piko.sh/piko/internal/daemon/daemon_domain"
+	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/generator/generator_adapters"
 	"piko.sh/piko/internal/generator/generator_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
@@ -388,16 +390,15 @@ func (op *routerOperation) createCacheMiddleware(ctx context.Context) *daemon_ad
 	_, l := logger_domain.From(ctx, log)
 
 	cacheMiddleware := daemon_adapters.NewCacheMiddleware(
-		daemon_adapters.CacheMiddlewareConfig{
-			CacheWriteConcurrency:  defaultCacheWriteConcurrency,
-			PersistenceDisabled:    op.container.registryBlobsReadOnly(),
-			StreamCompressionLevel: 0,
-		},
+		buildCacheMiddlewareConfig(op.cspConfig, op.container.registryBlobsReadOnly(), op.container.coreRuntimeBuild),
 		op.store,
 		op.registryService,
 		op.capabilityService,
 		deref(op.container.serverConfig.Paths.PartialServePath, "/_piko/partials"),
 	)
+	if staticPageCacheTurnedOffByCSP(op.cspConfig, op.store) {
+		l.Info("Static page cache is off because the Content Security Policy uses per-request tokens")
+	}
 	l.Internal("Cache middleware initialised.")
 	return cacheMiddleware
 }
@@ -460,6 +461,7 @@ func (op *routerOperation) buildRouterConfig(ctx context.Context) *daemon_domain
 
 	routerConfig := NewRouterConfig(&serverConfig, shValues, op.container.GetReportingConfig())
 	routerConfig.DisableHTTPCache = op.disableHTTPCache
+	routerConfig.CoreRuntimeBuild = op.container.coreRuntimeBuild
 	routerConfig.SitemapCacheMaxAgeSeconds = sitemapCacheMaxAge(op.container.seoConfigOverride)
 	routerConfig.RobotsTxtBlock = robotsTxtBlock(ctx, op.container.seoConfigOverride)
 	routerConfig.DevEventsBroadcaster = op.devEventsBroadcaster
@@ -537,6 +539,49 @@ func buildRouter(
 	}
 
 	return operation.execute(ctx)
+}
+
+// buildCacheMiddlewareConfig builds the cache middleware settings. The static page cache
+// is off when the Content Security Policy uses per-request tokens, because a stored page
+// would carry the token of an earlier response.
+//
+// Takes cspConfig (security_dto.CSPRuntimeConfig) which is the policy the server sends.
+// Takes persistenceDisabled (bool) which is true when rendered pages cannot be stored.
+// Takes coreRuntimeBuild (daemon_frontend.CoreRuntimeBuild) which is the core runtime
+// build the server sends, whose SRI hash cached pages carry.
+//
+// Returns daemon_adapters.CacheMiddlewareConfig which holds the settings.
+func buildCacheMiddlewareConfig(
+	cspConfig security_dto.CSPRuntimeConfig,
+	persistenceDisabled bool,
+	coreRuntimeBuild daemon_frontend.CoreRuntimeBuild,
+) daemon_adapters.CacheMiddlewareConfig {
+	return daemon_adapters.CacheMiddlewareConfig{
+		CacheWriteConcurrency:  defaultCacheWriteConcurrency,
+		PersistenceDisabled:    persistenceDisabled,
+		StreamCompressionLevel: 0,
+		CSPUsesRequestTokens:   cspConfig.UsesRequestTokens,
+		CoreRuntimeBuild:       coreRuntimeBuild,
+	}
+}
+
+// staticPageCacheTurnedOffByCSP reports whether the Content Security Policy turns off a
+// static page cache that some page could use. Only a page with a cache policy can be
+// static, so a site without one loses nothing and is not told about it.
+//
+// Takes cspConfig (security_dto.CSPRuntimeConfig) which is the policy the server sends.
+// Takes store (templater_domain.ManifestStoreView) which lists the site's pages.
+//
+// Returns bool which is true when the policy uses request tokens and a page has a cache
+// policy.
+func staticPageCacheTurnedOffByCSP(cspConfig security_dto.CSPRuntimeConfig, store templater_domain.ManifestStoreView) bool {
+	if !cspConfig.UsesRequestTokens || store == nil {
+		return false
+	}
+	return slices.ContainsFunc(store.GetKeys(), func(key string) bool {
+		entry, found := store.GetPageEntry(key)
+		return found && entry.GetHasCachePolicy()
+	})
 }
 
 // buildCSPRuntimeConfig builds the Content Security Policy runtime settings from the

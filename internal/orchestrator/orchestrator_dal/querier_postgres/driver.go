@@ -114,8 +114,8 @@ func (d *driver) UpdateTask(ctx context.Context, params dalcore.UpdateTaskParams
 		Priority:           params.Priority,
 		ExecuteAt:          params.ExecuteAt,
 		Attempt:            params.Attempt,
-		LastError:          params.LastError,
-		Result:             params.Result,
+		LastError:          orchestrator_db.NullFrom(params.LastError),
+		Result:             orchestrator_db.NullFrom(params.Result),
 		Payload:            params.Payload,
 		Config:             params.Config,
 		UpdatedAt:          params.UpdatedAt,
@@ -228,8 +228,8 @@ func (d *driver) CreateWorkflowReceipt(ctx context.Context, params dalcore.Creat
 // Returns error when the update fails.
 func (d *driver) ResolveWorkflowReceipts(ctx context.Context, workflowID string, errorMessage *string, nowUnix int64) (int64, error) {
 	return d.queries.ResolveWorkflowReceipts(ctx, orchestrator_db.ResolveWorkflowReceiptsParams{
-		ErrorMessage: errorMessage,
-		UpdatedAt:    &nowUnix,
+		ErrorMessage: orchestrator_db.NullFrom(errorMessage),
+		UpdatedAt:    orchestrator_db.NullOf(nowUnix),
 		WorkflowID:   workflowID,
 	})
 }
@@ -347,7 +347,7 @@ func (d *driver) ListRecentTasks(ctx context.Context, limit int) ([]dalcore.Rece
 			Status:     rows[i].Status,
 			Priority:   rows[i].Priority,
 			Attempt:    rows[i].Attempt,
-			LastError:  rows[i].LastError,
+			LastError:  rows[i].LastError.Ptr(),
 			CreatedAt:  rows[i].CreatedAt,
 			UpdatedAt:  rows[i].UpdatedAt,
 		}
@@ -371,11 +371,11 @@ func (d *driver) ListWorkflowSummary(ctx context.Context, limit int) ([]dalcore.
 		out[i] = dalcore.WorkflowSummaryRow{
 			WorkflowID:    rows[i].WorkflowID,
 			TaskCount:     rows[i].TaskCount,
-			CompleteCount: rows[i].CompleteCount,
-			FailedCount:   rows[i].FailedCount,
-			ActiveCount:   rows[i].ActiveCount,
-			CreatedAt:     rows[i].CreatedAt,
-			UpdatedAt:     rows[i].UpdatedAt,
+			CompleteCount: rows[i].CompleteCount.Ptr(),
+			FailedCount:   rows[i].FailedCount.Ptr(),
+			ActiveCount:   rows[i].ActiveCount.Ptr(),
+			CreatedAt:     rows[i].CreatedAt.Ptr(),
+			UpdatedAt:     rows[i].UpdatedAt.Ptr(),
 		}
 	}
 	return out, nil
@@ -399,14 +399,14 @@ func toCreateTaskParams(params dalcore.CreateTaskParams) orchestrator_db.CreateT
 		Attempt:            params.Attempt,
 		CreatedAt:          params.CreatedAt,
 		UpdatedAt:          params.UpdatedAt,
-		DeduplicationKey:   params.DeduplicationKey,
+		DeduplicationKey:   orchestrator_db.NullFrom(params.DeduplicationKey),
 		BuildTag:           params.BuildTag,
 		IsFatal:            params.IsFatal,
 		ScheduledExecuteAt: params.ScheduledExecuteAt,
 		Background:         params.Background,
 		OwnerInstance:      params.OwnerInstance,
-		LastError:          params.LastError,
-		Result:             params.Result,
+		LastError:          orchestrator_db.NullFrom(params.LastError),
+		Result:             orchestrator_db.NullFrom(params.Result),
 	}
 }
 
@@ -426,24 +426,24 @@ type wholeTaskRow interface {
 func toTaskRows[R wholeTaskRow](rows []R) []dalcore.TaskRow {
 	out := make([]dalcore.TaskRow, len(rows))
 	for i := range rows {
-		out[i] = toTaskRow(orchestrator_db.GetTasksByIDRow(rows[i]))
+		out[i] = toTaskRow(new(orchestrator_db.GetTasksByIDRow(rows[i])))
 	}
 	return out
 }
 
 // toTaskRow converts a generated task row into the driver-neutral row shape.
 //
-// Takes row (orchestrator_db.GetTasksByIDRow) which is the generated row.
+// Takes row (*orchestrator_db.GetTasksByIDRow) which is the generated row.
 //
 // Returns dalcore.TaskRow which carries the same columns.
-func toTaskRow(row orchestrator_db.GetTasksByIDRow) dalcore.TaskRow {
+func toTaskRow(row *orchestrator_db.GetTasksByIDRow) dalcore.TaskRow {
 	return dalcore.TaskRow{
-		Result:             row.Result,
-		DeduplicationKey:   row.DeduplicationKey,
-		LastError:          row.LastError,
-		RerunID:            row.RerunID,
-		RerunPayload:       row.RerunPayload,
-		RerunConfig:        row.RerunConfig,
+		Result:             row.Result.Ptr(),
+		DeduplicationKey:   row.DeduplicationKey.Ptr(),
+		LastError:          row.LastError.Ptr(),
+		RerunID:            row.RerunID.Ptr(),
+		RerunPayload:       row.RerunPayload.Ptr(),
+		RerunConfig:        row.RerunConfig.Ptr(),
 		Payload:            row.Payload,
 		Config:             row.Config,
 		Status:             row.Status,

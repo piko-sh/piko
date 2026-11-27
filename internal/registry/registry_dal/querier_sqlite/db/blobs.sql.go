@@ -25,7 +25,7 @@ type DecrementBlobRefCountRow struct {
 
 func (queries *Queries) DecrementBlobRefCount(ctx context.Context, params DecrementBlobRefCountParams) (DecrementBlobRefCountRow, bool, error) {
 	var row DecrementBlobRefCountRow
-	err := queries.writer.QueryRowContext(ctx, decrementblobrefcount, params.LastReferencedAt, params.StorageKey).Scan(&row.RefCount)
+	err := queries.writer.QueryRowContext(ctx, decrementblobrefcount, params.LastReferencedAt, params.StorageKey).Scan(pikoScanNumber(&row.RefCount))
 	if errors.Is(err, sql.ErrNoRows) {
 		return DecrementBlobRefCountRow{}, false, nil
 	}
@@ -50,7 +50,7 @@ type GetBlobRefCountRow struct {
 
 func (queries *Queries) GetBlobRefCount(ctx context.Context, storageKey string) (GetBlobRefCountRow, bool, error) {
 	var row GetBlobRefCountRow
-	err := queries.reader.QueryRowContext(ctx, getblobrefcount, storageKey).Scan(&row.RefCount)
+	err := queries.reader.QueryRowContext(ctx, getblobrefcount, storageKey).Scan(pikoScanNumber(&row.RefCount))
 	if errors.Is(err, sql.ErrNoRows) {
 		return GetBlobRefCountRow{}, false, nil
 	}
@@ -82,7 +82,7 @@ type IncrementBlobRefCountRow struct {
 
 func (queries *Queries) IncrementBlobRefCount(ctx context.Context, params IncrementBlobRefCountParams) (IncrementBlobRefCountRow, error) {
 	var row IncrementBlobRefCountRow
-	err := queries.writer.QueryRowContext(ctx, incrementblobrefcount, params.StorageKey, params.StorageBackendID, params.ContentHash, params.SizeBytes, params.MimeType, params.CreatedAt, params.LastReferencedAt).Scan(&row.RefCount)
+	err := queries.writer.QueryRowContext(ctx, incrementblobrefcount, params.StorageKey, params.StorageBackendID, params.ContentHash, params.SizeBytes, params.MimeType, params.CreatedAt, params.LastReferencedAt).Scan(pikoScanNumber(&row.RefCount))
 	if err != nil {
 		return IncrementBlobRefCountRow{}, err
 	}

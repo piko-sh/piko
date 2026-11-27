@@ -37,8 +37,8 @@ const (
 var (
 	// defaultRuntimeImports lists the framework-runtime URLs.
 	defaultRuntimeImports = []string{
-		generator_domain.PKFrameworkURL,
-		generator_domain.PKComponentsURL,
+		generator_domain.PKFrameworkURL(),
+		generator_domain.PKComponentsURL(),
 		generator_domain.PKActionsGenURL,
 	}
 )

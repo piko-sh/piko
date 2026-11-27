@@ -24,6 +24,7 @@ import type {A11yAnnouncer} from '@/services/A11yAnnouncer';
 import {HookEvent, type HookManager} from '@/services/HookManager';
 import {type WindowOperations, type DOMOperations, browserWindowOperations, browserDOMOperations} from '@/core/BrowserAPIs';
 import {addFragmentQuery, isSameDomain} from '@/core/URLUtils';
+import {runtimeVersionGate as browserRuntimeVersionGate, type RuntimeVersionGate} from '@/core/RuntimeVersion';
 
 /**
  * Options for navigation operations.
@@ -40,6 +41,9 @@ export interface NavigateOptions {
      *  - `"none"`: replace `#app` via `innerHTML` (full DOM rebuild, no state preservation).
      *  - any other value, or omitted: use `fragmentMorpher` (default; preserves scroll, focus,
      *    `<details>` open state, video playback, and other stateful subtrees with stable keys).
+     *    A live element is replaced, not patched, when the new page renders it from a different
+     *    partial or page, such as page content inside a shared layout. Its components then
+     *    disconnect and connect again.
      */
     morph?: string;
     /** Callback invoked before navigation begins. */
@@ -100,6 +104,8 @@ export interface RouterDependencies {
     formStateManager?: FormStateManager;
     /** Accessibility announcer for screen readers. */
     a11yAnnouncer?: A11yAnnouncer;
+    /** Tracks whether the server still runs this tab's runtime build. Defaults to the tab's gate. */
+    runtimeVersionGate?: RuntimeVersionGate;
 }
 
 /**
@@ -122,6 +128,9 @@ export interface Router {
 /** Maximum progress value for the loading indicator. */
 const PROGRESS_MAX = 100;
 
+/** Error the navigation error hook reports when another runtime build answers. */
+const OTHER_RUNTIME_NAVIGATION_ERROR = 'The server runs a different runtime build';
+
 /**
  * Invokes a navigation callback, catching and logging any errors it throws.
  *
@@ -135,7 +144,7 @@ function safeInvokeCallback(callback: ((url: string) => void) | undefined, url: 
     try {
         callback(url);
     } catch (error) {
-        console.warn('[Router] Error in navigation callback:', {
+        console.error('[Router] Error in navigation callback:', {
             url,
             callback: callback.name || 'anonymous',
             error
@@ -175,6 +184,8 @@ interface NavigationDeps {
     formStateManager?: FormStateManager;
     /** Accessibility announcer for screen readers. */
     a11yAnnouncer?: A11yAnnouncer;
+    /** Tracks whether the server still runs this tab's runtime build. */
+    runtimeVersionGate: RuntimeVersionGate;
 }
 
 /**
@@ -216,6 +227,87 @@ function emitNavigationError(
         timestamp: Date.now()
     });
     deps.windowOps.setLocationHref(targetUrl);
+}
+
+/**
+ * Result of fetching a page fragment for SPA navigation.
+ */
+interface PageFragment {
+    /** The fragment HTML, or null when the fetch failed. */
+    html: string | null;
+    /** Whether the response came from a different runtime build than this tab's. */
+    fromOtherRuntime: boolean;
+}
+
+/**
+ * Fetches the fragment of a page and notes which runtime build served it.
+ *
+ * When the response headers name another runtime build, the download stops there, as
+ * the fragment will not be used.
+ *
+ * @param deps - Navigation dependencies.
+ * @param targetUrl - The URL of the page.
+ * @returns The fragment HTML and whether a different runtime build served it.
+ */
+async function fetchPageFragment(deps: NavigationDeps, targetUrl: string): Promise<PageFragment> {
+    const observed = {fromOtherRuntime: false};
+    try {
+        const [success, htmlString] = await deps.fetchClient.get(addFragmentQuery(targetUrl), {
+            onHeadersReceived: (headers) => {
+                deps.loader.headersReceived();
+                observed.fromOtherRuntime = deps.runtimeVersionGate.observe(headers);
+                if (observed.fromOtherRuntime) {
+                    deps.fetchClient.abort();
+                }
+            },
+            onProgress: (loaded, total) => {
+                if (total > 0) {
+                    deps.loader.setProgress(PROGRESS_MAX / 2 + (loaded / total) * (PROGRESS_MAX / 2));
+                }
+            }
+        });
+        if (observed.fromOtherRuntime) {
+            return {html: null, fromOtherRuntime: true};
+        }
+        return {html: success ? htmlString : null, fromOtherRuntime: false};
+    } catch (error) {
+        if (observed.fromOtherRuntime && isAbortError(error)) {
+            return {html: null, fromOtherRuntime: true};
+        }
+        throw error;
+    }
+}
+
+/**
+ * Reports whether an error comes from an aborted fetch.
+ *
+ * @param error - The caught error.
+ * @returns True for an abort.
+ */
+function isAbortError(error: unknown): boolean {
+    return error instanceof DOMException && error.name === 'AbortError';
+}
+
+/**
+ * Loads the target as a full page because the server runs a different runtime build.
+ *
+ * The target page's modules are built against the server's runtime and may need exports
+ * this tab's runtime does not have, so morphing them in would leave the page without its
+ * scripts. The history entry already points at the target, so a reload fetches it whole
+ * with the server's runtime. The navigation error hook ends the navigation the start hook
+ * began, as the page is now loaded in full rather than through SPA navigation.
+ *
+ * @param deps - Navigation dependencies.
+ * @param targetUrl - The URL being navigated to.
+ */
+function loadFullPageForOtherRuntime(deps: NavigationDeps, targetUrl: string): void {
+    console.error('[Router] The server runs a different runtime build; loading the full page.', {url: targetUrl});
+    deps.hookManager?.emit(HookEvent.NAVIGATION_ERROR, {
+        url: targetUrl,
+        error: OTHER_RUNTIME_NAVIGATION_ERROR,
+        timestamp: Date.now()
+    });
+    deps.windowOps.locationReload();
 }
 
 /**
@@ -287,7 +379,7 @@ function handleNavigationError(
     targetUrl: string,
     error: unknown
 ): void {
-    if (error instanceof DOMException && error.name === 'AbortError') {
+    if (isAbortError(error)) {
         console.warn('Fetch aborted:', targetUrl);
         return;
     }
@@ -373,7 +465,7 @@ async function performNavigation(
     event: Event | undefined,
     options: NavigateOptions
 ): Promise<void> {
-    const {fetchClient, loader, onPageLoad, windowOps, domOps, formStateManager} = deps;
+    const {fetchClient, loader, onPageLoad, windowOps, domOps, formStateManager, runtimeVersionGate} = deps;
 
     if (event) {
         event.preventDefault();
@@ -412,16 +504,19 @@ async function performNavigation(
             updateHistoryState(windowOps, targetUrl, options.replaceHistory);
         }
 
-        const [success, htmlString] = await fetchClient.get(addFragmentQuery(targetUrl), {
-            onHeadersReceived: () => loader.headersReceived(),
-            onProgress: (loaded, total) => {
-                if (total > 0) {
-                    loader.setProgress(PROGRESS_MAX / 2 + (loaded / total) * (PROGRESS_MAX / 2));
-                }
-            }
-        });
+        if (runtimeVersionGate.isStale()) {
+            loadFullPageForOtherRuntime(deps, targetUrl);
+            return;
+        }
 
-        if (!success || !htmlString) {
+        const {html: htmlString, fromOtherRuntime} = await fetchPageFragment(deps, targetUrl);
+
+        if (fromOtherRuntime) {
+            loadFullPageForOtherRuntime(deps, targetUrl);
+            return;
+        }
+
+        if (!htmlString) {
             emitNavigationError(deps, targetUrl, 'Fetch failed');
             return;
         }
@@ -492,7 +587,8 @@ export function createRouter(deps: RouterDependencies): Router {
         domOps,
         hookManager: deps.hookManager,
         formStateManager: deps.formStateManager,
-        a11yAnnouncer: deps.a11yAnnouncer
+        a11yAnnouncer: deps.a11yAnnouncer,
+        runtimeVersionGate: deps.runtimeVersionGate ?? browserRuntimeVersionGate
     };
 
     const navigateTo = (targetUrl: string, event?: Event, options: NavigateOptions = {}) =>

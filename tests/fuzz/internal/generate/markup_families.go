@@ -83,7 +83,7 @@ type markupFamily struct {
 // Takes c (*casefile.Case) which receives generated sources and expected results.
 // Takes value (string) which supplies the text used in each generated fragment.
 func addMarkupFamilies(c *casefile.Case, value string) {
-	source := c.Files["pages/markup.pk"]
+	source := c.Files[markupPagePath]
 	var block strings.Builder
 	step := domStep("content-models", "inspect", "", "", "")
 
@@ -110,6 +110,6 @@ func addMarkupFamilies(c *casefile.Case, value string) {
 		}
 		c.Features = append(c.Features, "html-family-"+family.id)
 	}
-	c.Files["pages/markup.pk"] = strings.Replace(source, "</article>", block.String()+"</article>", 1)
+	c.Files[markupPagePath] = strings.Replace(source, "</article>", block.String()+"</article>", 1)
 	c.Expected.DOM.Steps = append(c.Expected.DOM.Steps, step)
 }

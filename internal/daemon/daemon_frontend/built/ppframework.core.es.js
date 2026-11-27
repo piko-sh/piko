@@ -1,3 +1,201 @@
+const ACTIVE_RUNTIME_PROPERTY = "__pikoRuntime";
+const EARLIER_RUNTIME_PROPERTY = "__pikoPageContext";
+class RuntimeConflictError extends Error {
+  /**
+   * Creates the error.
+   *
+   * @param message - Explains which runtimes met.
+   */
+  constructor(message) {
+    super(message);
+    this.name = "RuntimeConflictError";
+  }
+}
+function findActiveRuntime(win) {
+  const recorded = Reflect.get(win, ACTIVE_RUNTIME_PROPERTY);
+  if (isActiveRuntime(recorded)) {
+    return recorded;
+  }
+  if (isPageContext(Reflect.get(win, EARLIER_RUNTIME_PROPERTY))) {
+    return { version: null, moduleURL: "an earlier runtime" };
+  }
+  return null;
+}
+function isActiveRuntime(value) {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const version = Reflect.get(value, "version");
+  const moduleURL = Reflect.get(value, "moduleURL");
+  return typeof moduleURL === "string" && (version === null || typeof version === "string");
+}
+function isPageContext(value) {
+  return typeof value === "object" && value !== null && typeof Reflect.get(value, "loadModule") === "function";
+}
+function describeRuntime(runtime) {
+  return runtime.version ? `version ${runtime.version} from ${runtime.moduleURL}` : runtime.moduleURL;
+}
+function claimRuntime(deps, own) {
+  const existing = findActiveRuntime(deps.win);
+  if (!existing) {
+    Reflect.defineProperty(deps.win, ACTIVE_RUNTIME_PROPERTY, {
+      value: Object.freeze({ ...own }),
+      configurable: true,
+      enumerable: false,
+      writable: false
+    });
+    return;
+  }
+  const reloading = deps.claimReload();
+  if (reloading) {
+    deps.reload();
+  }
+  throw new RuntimeConflictError(
+    `[piko] A runtime (${describeRuntime(existing)}) already runs in this page, so this copy (${describeRuntime(own)}) will not start. ${reloading ? "Reloading the page." : "Reload the page to update it."}`
+  );
+}
+const RUNTIME_VERSION_HEADER = "X-PP-Runtime";
+const RUNTIME_VERSION_PATTERN = /^[0-9a-f]{16}$/;
+const RELOAD_STORAGE_KEY = "piko:runtime-reload-at";
+const RELOAD_INTERVAL_MS = 6e4;
+const VERSION_SEGMENT_FROM_END = 2;
+function isRuntimeVersion(value) {
+  return typeof value === "string" && RUNTIME_VERSION_PATTERN.test(value);
+}
+function runtimeVersionFromModuleURL(moduleURL) {
+  let pathname;
+  try {
+    pathname = new URL(moduleURL).pathname;
+  } catch {
+    return null;
+  }
+  const segments = pathname.split("/");
+  if (segments.length < VERSION_SEGMENT_FROM_END || segments[segments.length - 1] === "") {
+    return null;
+  }
+  const candidate = segments[segments.length - VERSION_SEGMENT_FROM_END];
+  return isRuntimeVersion(candidate) ? candidate : null;
+}
+function isWithinReloadInterval(lastReloadAt, now) {
+  if (!Number.isFinite(lastReloadAt) || lastReloadAt <= 0) {
+    return false;
+  }
+  const elapsed = now - lastReloadAt;
+  return elapsed >= 0 && elapsed < RELOAD_INTERVAL_MS;
+}
+function claimReloadSlot(reloadStore, now) {
+  if (!reloadStore) {
+    return false;
+  }
+  try {
+    if (isWithinReloadInterval(Number(reloadStore.getItem(RELOAD_STORAGE_KEY)), now)) {
+      return false;
+    }
+    reloadStore.setItem(RELOAD_STORAGE_KEY, String(now));
+    return true;
+  } catch {
+    return false;
+  }
+}
+function createRuntimeVersionGate(options) {
+  const ownVersion = isRuntimeVersion(options.ownVersion) ? options.ownVersion : null;
+  const reloadStore = options.reloadStore ?? null;
+  const now = options.now ?? Date.now;
+  let stale = false;
+  return {
+    ownVersion,
+    observe(headers) {
+      const serverVersion = headers?.get(RUNTIME_VERSION_HEADER);
+      if (ownVersion === null || !isRuntimeVersion(serverVersion) || serverVersion === ownVersion) {
+        return false;
+      }
+      stale = true;
+      return true;
+    },
+    isStale() {
+      return stale;
+    },
+    claimReload() {
+      return claimReloadSlot(reloadStore, now());
+    }
+  };
+}
+function browserReloadStore() {
+  try {
+    return typeof sessionStorage === "undefined" ? null : sessionStorage;
+  } catch {
+    return null;
+  }
+}
+const runtimeVersionGate = createRuntimeVersionGate({
+  ownVersion: runtimeVersionFromModuleURL(import.meta.url),
+  reloadStore: browserReloadStore()
+});
+if (typeof window !== "undefined") {
+  claimRuntime(
+    {
+      win: window,
+      reload: () => window.location.reload(),
+      claimReload: () => runtimeVersionGate.claimReload()
+    },
+    { version: runtimeVersionGate.ownVersion, moduleURL: import.meta.url }
+  );
+}
+const TOKEN_CONTROLLED_SELECTOR = 'script, style, link[rel~="modulepreload"]';
+const capturedPageTokens = /* @__PURE__ */ new WeakMap();
+function readTokenFromScripts(doc2) {
+  const script = doc2.querySelector("script[nonce]");
+  if (!script) {
+    return "";
+  }
+  const token = script.nonce ?? "";
+  if (token !== "") {
+    return token;
+  }
+  return script.getAttribute("nonce") ?? "";
+}
+function capturePageCSPToken(doc2 = document) {
+  capturedPageTokens.set(doc2, readTokenFromScripts(doc2));
+}
+function readPageCSPToken(doc2 = document) {
+  return capturedPageTokens.get(doc2) ?? readTokenFromScripts(doc2);
+}
+function setToken(element, token) {
+  element.removeAttribute("nonce");
+  element.nonce = token;
+}
+function applyPageCSPToken(element, doc2 = document) {
+  setToken(element, readPageCSPToken(doc2));
+  return element;
+}
+function applyPageCSPTokenToTree(root, doc2 = document) {
+  if (root.nodeType !== Node.ELEMENT_NODE && root.nodeType !== Node.DOCUMENT_FRAGMENT_NODE) {
+    return;
+  }
+  const token = readPageCSPToken(doc2);
+  if (root.nodeType === Node.ELEMENT_NODE && root.matches(TOKEN_CONTROLLED_SELECTOR)) {
+    setToken(root, token);
+  }
+  for (const element of root.querySelectorAll(TOKEN_CONTROLLED_SELECTOR)) {
+    setToken(element, token);
+  }
+}
+function parseWithPageCSPToken(html, doc2 = document) {
+  const template = doc2.createElement("template");
+  template.innerHTML = html;
+  const fragment = doc2.importNode(template.content, true);
+  applyPageCSPTokenToTree(fragment, doc2);
+  return fragment;
+}
+function cloneWithPageCSPToken(nodes, doc2 = document) {
+  const fragment = doc2.createDocumentFragment();
+  for (const node of nodes) {
+    fragment.appendChild(doc2.importNode(node, true));
+  }
+  applyPageCSPTokenToTree(fragment, doc2);
+  return fragment;
+}
+const CSP_TOKEN_ATTRIBUTE = "nonce";
 const ELEMENT_NODE = 1;
 const TEXT_NODE = 3;
 const COMMENT_NODE = 8;
@@ -178,6 +376,29 @@ function extractParentScopesFromChildren(container) {
   }
   return [];
 }
+function splitScopes(partialAttr) {
+  return partialAttr.trim().split(/\s+/);
+}
+function containsAllScopes(scopes, requiredScopes) {
+  return requiredScopes.every((scope) => scopes.includes(scope));
+}
+function isRenderedByOtherScope(from, to) {
+  if (from.nodeType !== ELEMENT_NODE || to.nodeType !== ELEMENT_NODE) {
+    return false;
+  }
+  const fromPartial = from.getAttribute("partial")?.trim();
+  const toPartial = to.getAttribute("partial")?.trim();
+  if (!fromPartial || !toPartial || fromPartial === toPartial) {
+    return false;
+  }
+  const fromScopes = splitScopes(fromPartial);
+  const toScopes = splitScopes(toPartial);
+  return !containsAllScopes(fromScopes, toScopes) && !containsAllScopes(toScopes, fromScopes);
+}
+function isSelfAddedByComponent(element, attributeName) {
+  const host = element;
+  return typeof host.hasSelfAddedAttribute === "function" && host.hasSelfAddedAttribute(attributeName);
+}
 const PRESERVE_ATTR_NAME = "pk-no-refresh-attrs";
 function buildPreservedAttrsList(fromEl) {
   const preserved = fromEl.getAttribute(PRESERVE_ATTR_NAME)?.split(",").map((s) => s.trim()) ?? [];
@@ -201,6 +422,9 @@ function handlePartialScopePreservation(fromEl, toEl, options) {
   return true;
 }
 function shouldSkipAttrUpdate(attrName, ctx) {
+  if (attrName === CSP_TOKEN_ATTRIBUTE) {
+    return true;
+  }
   if (attrName === "pk-ev-bound" || attrName === "pk-sync-bound") {
     return true;
   }
@@ -229,15 +453,24 @@ function syncToAttrs(fromEl, toEl, ctx) {
     }
   }
 }
+function keepsLiveAttr(fromEl, attrName, ctx) {
+  if (attrName === CSP_TOKEN_ATTRIBUTE) {
+    return true;
+  }
+  if (attrName === "pk-ev-bound" || attrName === "pk-sync-bound") {
+    return true;
+  }
+  if (ctx.partialScopeHandled && attrName === "partial") {
+    return true;
+  }
+  if (ctx.preservedAttrs.includes(attrName)) {
+    return true;
+  }
+  return isSelfAddedByComponent(fromEl, attrName);
+}
 function removeStaleAttrs(fromEl, toEl, ctx) {
   for (const fromAttr of Array.from(fromEl.attributes)) {
-    if (fromAttr.name === "pk-ev-bound" || fromAttr.name === "pk-sync-bound") {
-      continue;
-    }
-    if (ctx.partialScopeHandled && fromAttr.name === "partial") {
-      continue;
-    }
-    if (ctx.preservedAttrs.includes(fromAttr.name)) {
+    if (keepsLiveAttr(fromEl, fromAttr.name, ctx)) {
       continue;
     }
     if (!toEl.hasAttributeNS(fromAttr.namespaceURI, fromAttr.localName)) {
@@ -353,7 +586,7 @@ function morphChildren(fromEl, toEl, isParentPreserved, options) {
     const fromMatch = findFromMatch(toChild, state, getNodeKey2);
     if (fromMatch) {
       const cursorWasMatch = fromChild === fromMatch;
-      const morphedNode = morphNode(fromMatch, toChild, isParentPreserved, options);
+      const morphedNode = morphMatchedChild(fromMatch, toChild, isParentPreserved, options);
       if (cursorWasMatch) {
         fromChild = morphedNode.nextSibling;
         advanceFromPointer();
@@ -366,15 +599,10 @@ function morphChildren(fromEl, toEl, isParentPreserved, options) {
         fromChild = fromChild.nextSibling;
       }
     } else {
-      const newNode = toChild.cloneNode(true);
-      if (options._parentScopesToInherit && options._parentScopesToInherit.length > 0) {
-        applyParentScopesToTree(newNode, options._parentScopesToInherit);
-      }
-      if (options.onBeforeNodeAdded?.(newNode) !== false) {
-        fromEl.insertBefore(newNode, fromChild);
-        upgradeCustomElements(newNode);
-        options.onNodeAdded?.(newNode);
-      }
+      const insertBefore = fromChild;
+      addTargetNode(toChild, options, (newNode) => {
+        fromEl.insertBefore(newNode, insertBefore);
+      });
     }
   }
   discardUnmatchedNodes(fromNodesByKey, unkeyedFromNodes, state.unkeyedFromIndex, state.skippedUnkeyed, options);
@@ -408,14 +636,25 @@ function morphElementNode(fromEl, toEl, isParentPreserved, currentOptions) {
   return fromEl;
 }
 function replaceIncompatibleNode(from, to, currentOptions) {
-  const replacement = to.cloneNode(true);
-  if (currentOptions.onBeforeNodeAdded?.(replacement) === false) {
-    return from;
+  const replacement = addTargetNode(to, currentOptions, (newNode) => {
+    from.parentNode?.replaceChild(newNode, from);
+    currentOptions.onNodeDiscarded?.(from);
+  });
+  return replacement ?? from;
+}
+function addTargetNode(to, options, insert) {
+  const newNode = to.cloneNode(true);
+  applyPageCSPTokenToTree(newNode, document);
+  if (options._parentScopesToInherit) {
+    applyParentScopesToTree(newNode, options._parentScopesToInherit);
   }
-  from.parentNode?.replaceChild(replacement, from);
-  currentOptions.onNodeDiscarded?.(from);
-  currentOptions.onNodeAdded?.(replacement);
-  return replacement;
+  if (options.onBeforeNodeAdded?.(newNode) === false) {
+    return null;
+  }
+  insert(newNode);
+  upgradeCustomElements(newNode);
+  options.onNodeAdded?.(newNode);
+  return newNode;
 }
 function morphNode(from, to, isParentPreserved, currentOptions) {
   if (currentOptions.onBeforeNodeDiscarded?.(from) === false) {
@@ -435,6 +674,21 @@ function morphNode(from, to, isParentPreserved, currentOptions) {
     return from;
   }
   return morphElementNode(from, to, isParentPreserved, currentOptions);
+}
+function mustReplaceMatch(from, to, currentOptions) {
+  if (currentOptions.preservePartialScopes) {
+    return false;
+  }
+  return isRenderedByOtherScope(from, to);
+}
+function morphMatchedChild(from, to, isParentPreserved, currentOptions) {
+  if (!mustReplaceMatch(from, to, currentOptions)) {
+    return morphNode(from, to, isParentPreserved, currentOptions);
+  }
+  if (currentOptions.onBeforeNodeDiscarded?.(from) === false) {
+    return from;
+  }
+  return replaceIncompatibleNode(from, to, currentOptions);
 }
 function captureActiveElementKey(fromNode, getNodeKey2) {
   const activeEl = doc?.activeElement;
@@ -499,14 +753,14 @@ function notifyDOMUpdated(root) {
   }
 }
 const LOADING_CLASS = "pk-loading";
-const ARIA_BUSY_ATTR = "aria-busy";
+const ARIA_BUSY_ATTR$1 = "aria-busy";
 function applyLoadingIndicator(el) {
   el.classList.add(LOADING_CLASS);
-  el.setAttribute(ARIA_BUSY_ATTR, "true");
+  el.setAttribute(ARIA_BUSY_ATTR$1, "true");
 }
 function removeLoadingIndicator(el) {
   el.classList.remove(LOADING_CLASS);
-  el.removeAttribute(ARIA_BUSY_ATTR);
+  el.removeAttribute(ARIA_BUSY_ATTR$1);
 }
 function getNodeKey(node) {
   if (node.nodeType !== Node.ELEMENT_NODE) {
@@ -539,6 +793,385 @@ function transformRelativeKeys(sourceEl, targetEl) {
       el.setAttribute("p-key", targetKey + suffix);
     }
   }
+}
+const LIFECYCLE_HOOK_NAMES = [
+  "onConnected",
+  "onDisconnected",
+  "onBeforeRender",
+  "onAfterRender",
+  "onUpdated"
+];
+const LEGACY_REGISTRATION_ORDER = [
+  "onDisconnected",
+  "onBeforeRender",
+  "onAfterRender",
+  "onUpdated",
+  "onConnected"
+];
+const ELEMENT_CLEANUP_LABEL = "element cleanup";
+const LIFECYCLE_CLEANUP_LABEL = "lifecycle cleanup";
+const PAGE_LIFECYCLE_WARNING_THRESHOLD = 100;
+const pageCleanups = [];
+const elementCleanups = /* @__PURE__ */ new WeakMap();
+const elementsCleaningUp = /* @__PURE__ */ new WeakSet();
+const partialLifecycleState = /* @__PURE__ */ new WeakMap();
+const pageLifecycleEntries = [];
+let currentPageVisit = {};
+let endingPageVisit = false;
+let warnedAboutPageLifecycles = false;
+function invokeEach(callbacks, label, ...args) {
+  for (const callback of [...callbacks]) {
+    try {
+      callback(...args);
+    } catch (error) {
+      console.error(`[pk] Error in ${label}:`, error);
+    }
+  }
+}
+function newLifecycleState() {
+  return {
+    callbacks: {
+      onConnected: [],
+      onDisconnected: [],
+      onBeforeRender: [],
+      onAfterRender: [],
+      onUpdated: []
+    },
+    connectedOnce: false,
+    disconnecting: false,
+    cleanups: [],
+    ended: false
+  };
+}
+function getOrCreateState(scope) {
+  let state = partialLifecycleState.get(scope);
+  if (!state) {
+    state = newLifecycleState();
+    partialLifecycleState.set(scope, state);
+  }
+  return state;
+}
+function runConnected(state) {
+  if (state.disconnecting || state.connectedOnce) {
+    return;
+  }
+  state.connectedOnce = true;
+  invokeEach(state.callbacks.onConnected, "onConnected");
+}
+function runDisconnected(state) {
+  if (state.disconnecting) {
+    return;
+  }
+  state.disconnecting = true;
+  try {
+    invokeEach(state.callbacks.onDisconnected, "onDisconnected");
+    invokeEach(state.cleanups.splice(0), LIFECYCLE_CLEANUP_LABEL);
+  } finally {
+    state.disconnecting = false;
+    state.connectedOnce = false;
+  }
+}
+function connectAddedCallback(state, callback) {
+  if (state.disconnecting) {
+    return;
+  }
+  if (state.connectedOnce) {
+    invokeEach([callback], "onConnected");
+    return;
+  }
+  runConnected(state);
+}
+function addPartialCallback(state, scope, hookName, callback) {
+  state.callbacks[hookName].push(callback);
+  if (hookName === "onConnected" && scope.isConnected) {
+    connectAddedCallback(state, callback);
+  }
+}
+function addPageCallback(state, hookName, callback) {
+  if (state.ended) {
+    return;
+  }
+  state.callbacks[hookName].push(callback);
+  if (hookName === "onConnected") {
+    connectAddedCallback(state, callback);
+  }
+}
+function addCleanup(state, cleanupFunction) {
+  if (state.ended) {
+    invokeEach([cleanupFunction], LIFECYCLE_CLEANUP_LABEL);
+    return;
+  }
+  state.cleanups.push(cleanupFunction);
+}
+function statesRenderedWith(renderedElement) {
+  const states = pageLifecycleEntries.filter((entry) => entry.scope.contains(renderedElement)).map((entry) => entry.state);
+  const partialState = partialLifecycleState.get(renderedElement);
+  return partialState ? [partialState, ...states] : states;
+}
+function createPageLifecycleState(scope, visit) {
+  const state = newLifecycleState();
+  if (endingPageVisit || visit !== void 0 && visit !== currentPageVisit) {
+    state.ended = true;
+    return state;
+  }
+  warnIfScopeDetached(scope);
+  pageLifecycleEntries.push({ scope, state });
+  warnIfManyPageLifecycles();
+  return state;
+}
+function warnIfScopeDetached(scope) {
+  if (scope.isConnected) {
+    return;
+  }
+  console.warn("[pk] A page script is scoped to an element that is not in the DOM:", scope);
+}
+function warnIfManyPageLifecycles() {
+  if (warnedAboutPageLifecycles || pageLifecycleEntries.length <= PAGE_LIFECYCLE_WARNING_THRESHOLD) {
+    return;
+  }
+  warnedAboutPageLifecycles = true;
+  console.warn(
+    "[pk] The page holds many page script lifecycles. A script may be creating page contexts in a loop:",
+    pageLifecycleEntries.length
+  );
+}
+function _currentPageVisit() {
+  return currentPageVisit;
+}
+function _createPageLifecycle(scope, visit) {
+  const state = createPageLifecycleState(scope, visit);
+  return {
+    add: (hookName, callback) => {
+      addPageCallback(state, hookName, callback);
+    },
+    addCleanup: (cleanupFunction) => {
+      addCleanup(state, cleanupFunction);
+    }
+  };
+}
+function _endPageVisit() {
+  const ending = pageLifecycleEntries.splice(0);
+  for (const entry of ending) {
+    entry.state.ended = true;
+  }
+  const wasEnding = endingPageVisit;
+  endingPageVisit = true;
+  try {
+    for (const entry of ending) {
+      runDisconnected(entry.state);
+    }
+  } finally {
+    endingPageVisit = wasEnding;
+    currentPageVisit = {};
+    warnedAboutPageLifecycles = false;
+  }
+}
+function _registerLifecycle(scope, callbacks) {
+  const state = getOrCreateState(scope);
+  for (const hookName of LEGACY_REGISTRATION_ORDER) {
+    const callback = callbacks[hookName];
+    if (callback) {
+      addPartialCallback(state, scope, hookName, callback);
+    }
+  }
+}
+function _addLifecycleCallback(scope, hookName, callback) {
+  addPartialCallback(getOrCreateState(scope), scope, hookName, callback);
+}
+function _executeConnected(scope) {
+  const state = partialLifecycleState.get(scope);
+  if (state) {
+    runConnected(state);
+  }
+}
+function _executeDisconnected(scope) {
+  const state = partialLifecycleState.get(scope);
+  if (state) {
+    runDisconnected(state);
+  }
+}
+function _executeBeforeRender(scope) {
+  for (const state of statesRenderedWith(scope)) {
+    invokeEach(state.callbacks.onBeforeRender, "onBeforeRender");
+  }
+}
+function _executeAfterRender(scope) {
+  for (const state of statesRenderedWith(scope)) {
+    invokeEach(state.callbacks.onAfterRender, "onAfterRender");
+  }
+}
+function _executeUpdated(scope, context) {
+  for (const state of statesRenderedWith(scope)) {
+    invokeEach(state.callbacks.onUpdated, "onUpdated", context);
+  }
+}
+function _executeConnectedForPartials(container) {
+  const partials = container.querySelectorAll("[partial]");
+  for (const partial2 of partials) {
+    _executeConnected(partial2);
+  }
+}
+function onCleanup(cleanupFunction, scope) {
+  if (scope && elementsCleaningUp.has(scope)) {
+    invokeEach([cleanupFunction], ELEMENT_CLEANUP_LABEL);
+    return;
+  }
+  if (scope) {
+    let scopeCleanups = elementCleanups.get(scope);
+    if (!scopeCleanups) {
+      scopeCleanups = [];
+      elementCleanups.set(scope, scopeCleanups);
+    }
+    scopeCleanups.push(cleanupFunction);
+  } else {
+    pageCleanups.push(cleanupFunction);
+  }
+}
+function _runPageCleanup() {
+  invokeEach(pageCleanups.splice(0), "page cleanup");
+}
+let cleanupObserver = null;
+function _initCleanupObserver() {
+  if (cleanupObserver) {
+    return;
+  }
+  cleanupObserver = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      for (const node of mutation.removedNodes) {
+        if (typeof Element !== "undefined" && node instanceof Element) {
+          runElementCleanups(node);
+        }
+      }
+    }
+  });
+  cleanupObserver.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+}
+function runCleanupsOf(element) {
+  const cleanups = elementCleanups.get(element);
+  if (!cleanups) {
+    return;
+  }
+  elementCleanups.delete(element);
+  elementsCleaningUp.add(element);
+  try {
+    invokeEach(cleanups, ELEMENT_CLEANUP_LABEL);
+  } finally {
+    elementsCleaningUp.delete(element);
+  }
+}
+function runElementCleanups(element) {
+  executeDisconnectedForRemovedPartials(element);
+  runCleanupsOf(element);
+  for (const child of element.querySelectorAll("*")) {
+    runCleanupsOf(child);
+  }
+}
+function executeDisconnectedForRemovedPartials(element) {
+  if (element.hasAttribute("partial")) {
+    _executeDisconnected(element);
+  }
+  const partials = element.querySelectorAll("[partial]");
+  for (const partial2 of partials) {
+    _executeDisconnected(partial2);
+  }
+}
+function getCallbackNames(callbacks) {
+  return LIFECYCLE_HOOK_NAMES.filter((hookName) => callbacks[hookName].length > 0);
+}
+function isPartialConnected(element) {
+  return partialLifecycleState.get(element)?.connectedOnce ?? false;
+}
+function createDebugAPI() {
+  return {
+    getPartialInfo(element) {
+      const state = partialLifecycleState.get(element);
+      const cleanups = elementCleanups.get(element);
+      return {
+        exists: state !== void 0,
+        partialName: element.getAttribute("partial_name") ?? element.getAttribute("data-partial-name"),
+        partialId: element.getAttribute("partial") ?? element.getAttribute("data-partial"),
+        isConnected: isPartialConnected(element),
+        connectedOnce: state?.connectedOnce ?? false,
+        registeredCallbacks: state ? getCallbackNames(state.callbacks) : [],
+        cleanupCount: (state?.cleanups.length ?? 0) + (cleanups?.length ?? 0)
+      };
+    },
+    isConnected(element) {
+      return isPartialConnected(element);
+    },
+    getCleanupCount(element) {
+      const state = partialLifecycleState.get(element);
+      const cleanups = elementCleanups.get(element);
+      return (state?.cleanups.length ?? 0) + (cleanups?.length ?? 0);
+    },
+    getRegisteredCallbacks(element) {
+      const state = partialLifecycleState.get(element);
+      return state ? getCallbackNames(state.callbacks) : [];
+    },
+    getAllConnectedPartials() {
+      const partials = document.querySelectorAll("[partial], [data-partial]");
+      return Array.from(partials).filter(isPartialConnected);
+    },
+    getPageScripts() {
+      return pageLifecycleEntries.map(({ state }) => ({
+        connectedOnce: state.connectedOnce,
+        registeredCallbacks: getCallbackNames(state.callbacks),
+        cleanupCount: state.cleanups.length
+      }));
+    },
+    isAvailable() {
+      return true;
+    }
+  };
+}
+if (typeof window !== "undefined") {
+  window.__pikoDebug = createDebugAPI();
+}
+const MAX_DIAGNOSTICS_PER_PAGE_VISIT = 100;
+const KEY_SEPARATOR = "\0";
+let emitDiagnostic = null;
+const heldPayloads = [];
+let reportedVisit = null;
+const reportedKeys = /* @__PURE__ */ new Set();
+function registerDiagnosticEmitter(emitter) {
+  emitDiagnostic = emitter;
+  const held = heldPayloads.splice(0);
+  for (const payload of held) {
+    emitter(payload);
+  }
+}
+function claimReport(report) {
+  const visit = _currentPageVisit();
+  if (visit !== reportedVisit) {
+    reportedVisit = visit;
+    reportedKeys.clear();
+  }
+  const key = `${report.kind}${KEY_SEPARATOR}${report.name}`;
+  if (reportedKeys.has(key) || reportedKeys.size >= MAX_DIAGNOSTICS_PER_PAGE_VISIT) {
+    return false;
+  }
+  reportedKeys.add(key);
+  return true;
+}
+function reportDiagnostic(report) {
+  if (!claimReport(report)) {
+    return;
+  }
+  const payload = {
+    kind: report.kind,
+    name: report.name,
+    context: report.context ?? window.location.pathname,
+    source: report.source,
+    timestamp: Date.now()
+  };
+  if (!emitDiagnostic) {
+    heldPayloads.push(payload);
+    return;
+  }
+  emitDiagnostic(payload);
 }
 const NEVER_SYNC_ATTRS = /* @__PURE__ */ new Set(["pk-ev-bound", "pk-sync-bound"]);
 const SCOPE_ATTR = "partial";
@@ -675,6 +1308,7 @@ async function performReload(el, name, options) {
   applyLoadingIndicator(el);
   try {
     const response = await fetch(url, { signal: controller.signal });
+    runtimeVersionGate.observe(response.headers);
     if (!response.ok) {
       throw new Error(`Failed to reload partial: ${response.status}`);
     }
@@ -684,7 +1318,7 @@ async function performReload(el, name, options) {
     }
     const sourceEl = parseFragment(html);
     if (!sourceEl) {
-      console.warn(`[pk] partial "${name}" received empty or invalid response`);
+      console.error(`[pk] partial "${name}" received empty or invalid response`);
       return;
     }
     transformRelativeKeys(sourceEl, el);
@@ -714,6 +1348,10 @@ async function performReload(el, name, options) {
     }
   }
 }
+function reportMissingPartial(name, source) {
+  console.warn(`[pk] partial "${name}" not found`);
+  reportDiagnostic({ kind: "partial-not-found", name, source });
+}
 function partial(nameOrElement) {
   let el;
   let name;
@@ -728,14 +1366,14 @@ function partial(nameOrElement) {
     element: el,
     async reload(data) {
       if (!el) {
-        console.warn(`[pk] partial "${name}" not found`);
+        reportMissingPartial(name, "piko.partial().reload");
         return;
       }
       return performReload(el, name, { data });
     },
     async reloadWithOptions(options) {
       if (!el) {
-        console.warn(`[pk] partial "${name}" not found`);
+        reportMissingPartial(name, "piko.partial().reloadWithOptions");
         return;
       }
       return performReload(el, name, options);
@@ -1360,6 +1998,7 @@ async function loading(target, promise, options = {}) {
   const element = resolveHTMLElement(target);
   if (!element) {
     console.warn(`[pk] loading: target "${target}" not found`);
+    reportDiagnostic({ kind: "target-not-found", name: String(target), source: "piko.ui.loading" });
     return promise;
   }
   const originalState = captureOriginalState(element);
@@ -1464,6 +2103,7 @@ function dispatch(target, eventName, detail, options) {
   const el = resolveTarget(target);
   if (!el) {
     console.warn(`[pk] dispatch: target "${target}" not found`);
+    reportDiagnostic({ kind: "target-not-found", name: String(target), source: "piko.event.dispatch" });
     return;
   }
   const event = new CustomEvent(eventName, {
@@ -1477,6 +2117,7 @@ function listen(target, eventName, callback) {
   const el = resolveTarget(target);
   if (!el) {
     console.warn(`[pk] listen: target "${target}" not found`);
+    reportDiagnostic({ kind: "target-not-found", name: String(target), source: "piko.event.listen" });
     return () => {
     };
   }
@@ -1627,6 +2268,7 @@ async function reloadPartial(nameOrElement, options = {}) {
   const name = typeof nameOrElement === "string" ? nameOrElement : nameOrElement.getAttribute("partial_name") ?? "unknown";
   if (!handle.element) {
     console.warn(`[pk] reloadPartial: partial "${name}" not found`);
+    reportDiagnostic({ kind: "partial-not-found", name, source: "piko.partials.reload" });
     return;
   }
   const { retry = 0, debounce: debounceMs, ...reloadOpts } = options;
@@ -1685,7 +2327,7 @@ function autoRefresh(name, options) {
           intervalId = null;
         }
         stopped = true;
-        console.warn(`[pk] autoRefresh "${name}" stopped after ${retryCount} failures`);
+        console.error(`[pk] autoRefresh "${name}" stopped after ${retryCount} failures`);
       }
     }
   };
@@ -1740,7 +2382,7 @@ function createErrorHandler(state, url, onError, reconnectDelay, maxReconnects, 
     state.eventSource = null;
     if (onError === "stop") {
       state.stopped = true;
-      console.warn(`[pk] SSE connection to "${url}" failed, stopping`);
+      console.error(`[pk] SSE connection to "${url}" failed, stopping`);
       onClose?.();
       return;
     }
@@ -1853,6 +2495,7 @@ function whenVisible(target, callback, options = {}) {
   const element = resolveElement(target);
   if (!element) {
     console.warn(`[pk] whenVisible: target "${target}" not found`);
+    reportDiagnostic({ kind: "target-not-found", name: String(target), source: "piko.util.whenVisible" });
     return () => {
     };
   }
@@ -1972,6 +2615,7 @@ function watchMutations(target, callback, options = {}) {
   const element = resolveElement(target);
   if (!element) {
     console.warn(`[pk] watchMutations: target "${target}" not found`);
+    reportDiagnostic({ kind: "target-not-found", name: String(target), source: "piko.util.watchMutations" });
     return () => {
     };
   }
@@ -2371,11 +3015,16 @@ function createPageContext(options = {}) {
       nameToIds = {};
     },
     async loadModule(url, partialName) {
+      const visit = _currentPageVisit();
       try {
         const module = await import(
           /* @vite-ignore */
           url
         );
+        if (_currentPageVisit() !== visit) {
+          reportModuleFromEndedVisit(url);
+          return;
+        }
         if (partialName) {
           const partialId = module.__PARTIAL_ID__ ?? partialName;
           scopedExports[partialId] = { ...scopedExports[partialId] ?? {}, ...module };
@@ -2384,7 +3033,7 @@ function createPageContext(options = {}) {
           globalExports = { ...globalExports, ...module };
         }
         if (typeof module.__reinit__ === "function") {
-          module.__reinit__();
+          module.__reinit__(visit);
         }
         options.onModuleLoaded?.(url, ctx.getExportedFunctions());
       } catch (error) {
@@ -2466,6 +3115,9 @@ function levenshteinDistance(a, b) {
   }
   return matrix[b.length][a.length];
 }
+function reportModuleFromEndedVisit(url) {
+  console.debug("[PageContext] A module loaded after its page visit ended, so it was not started.", { url });
+}
 if (typeof window !== "undefined") {
   window.__pikoPageContext = getGlobalPageContext();
 }
@@ -2501,7 +3153,12 @@ const HookEvent = {
   /** Fired when an error occurs. */
   ERROR: "error",
   /** Fired when user code requests a custom analytics event via piko.analytics.track(). */
-  ANALYTICS_TRACK: "analytics:track"
+  ANALYTICS_TRACK: "analytics:track",
+  /**
+   * Fired when a call looks up something by name and finds nothing, such as a
+   * missing partial, ref or modal. Fires at most once per kind and name per page visit.
+   */
+  DIAGNOSTIC: "diagnostic"
 };
 function buildHooksAPI(registerHook, removeHook, clearHooks, getIsReady, hookEventRef) {
   return {
@@ -2816,277 +3473,6 @@ var piko;
 if (typeof window !== "undefined") {
   window.piko = piko;
 }
-const pageCleanups = [];
-const elementCleanups = /* @__PURE__ */ new WeakMap();
-const partialLifecycleState = /* @__PURE__ */ new WeakMap();
-const connectedPartials = /* @__PURE__ */ new WeakSet();
-function _getOrCreateState(scope) {
-  let state = partialLifecycleState.get(scope);
-  if (!state) {
-    state = {
-      callbacks: {
-        onConnected: [],
-        onDisconnected: [],
-        onBeforeRender: [],
-        onAfterRender: [],
-        onUpdated: []
-      },
-      connectedOnce: false,
-      cleanups: []
-    };
-    partialLifecycleState.set(scope, state);
-  }
-  return state;
-}
-function _registerLifecycle(scope, callbacks) {
-  const state = _getOrCreateState(scope);
-  if (callbacks.onConnected) {
-    state.callbacks.onConnected.push(callbacks.onConnected);
-  }
-  if (callbacks.onDisconnected) {
-    state.callbacks.onDisconnected.push(callbacks.onDisconnected);
-  }
-  if (callbacks.onBeforeRender) {
-    state.callbacks.onBeforeRender.push(callbacks.onBeforeRender);
-  }
-  if (callbacks.onAfterRender) {
-    state.callbacks.onAfterRender.push(callbacks.onAfterRender);
-  }
-  if (callbacks.onUpdated) {
-    state.callbacks.onUpdated.push(callbacks.onUpdated);
-  }
-  if (scope.isConnected && !state.connectedOnce) {
-    _executeConnected(scope);
-  }
-}
-function _addLifecycleCallback(scope, hookName, callback) {
-  const state = _getOrCreateState(scope);
-  state.callbacks[hookName].push(callback);
-  if (hookName === "onConnected" && scope.isConnected && !state.connectedOnce) {
-    _executeConnected(scope);
-  }
-}
-function _executeConnected(scope) {
-  const state = partialLifecycleState.get(scope);
-  if (!state || state.connectedOnce) {
-    return;
-  }
-  state.connectedOnce = true;
-  connectedPartials.add(scope);
-  for (const callback of state.callbacks.onConnected) {
-    try {
-      callback();
-    } catch (error) {
-      console.error("[pk] Error in onConnected:", error);
-    }
-  }
-}
-function _executeDisconnected(scope) {
-  const state = partialLifecycleState.get(scope);
-  if (!state) {
-    return;
-  }
-  for (const callback of state.callbacks.onDisconnected) {
-    try {
-      callback();
-    } catch (error) {
-      console.error("[pk] Error in onDisconnected:", error);
-    }
-  }
-  state.connectedOnce = false;
-  connectedPartials.delete(scope);
-  for (const cleanup of state.cleanups) {
-    try {
-      cleanup();
-    } catch (error) {
-      console.error("[pk] Error in partial cleanup:", error);
-    }
-  }
-  state.cleanups.length = 0;
-}
-function _executeBeforeRender(scope) {
-  const state = partialLifecycleState.get(scope);
-  if (!state || state.callbacks.onBeforeRender.length === 0) {
-    return;
-  }
-  for (const callback of state.callbacks.onBeforeRender) {
-    try {
-      callback();
-    } catch (error) {
-      console.error("[pk] Error in onBeforeRender:", error);
-    }
-  }
-}
-function _executeAfterRender(scope) {
-  const state = partialLifecycleState.get(scope);
-  if (!state || state.callbacks.onAfterRender.length === 0) {
-    return;
-  }
-  for (const callback of state.callbacks.onAfterRender) {
-    try {
-      callback();
-    } catch (error) {
-      console.error("[pk] Error in onAfterRender:", error);
-    }
-  }
-}
-function _executeUpdated(scope, context) {
-  const state = partialLifecycleState.get(scope);
-  if (!state || state.callbacks.onUpdated.length === 0) {
-    return;
-  }
-  for (const callback of state.callbacks.onUpdated) {
-    try {
-      callback(context);
-    } catch (error) {
-      console.error("[pk] Error in onUpdated:", error);
-    }
-  }
-}
-function _executeConnectedForPartials(container) {
-  const partials = container.querySelectorAll("[partial]");
-  for (const partial2 of partials) {
-    if (partialLifecycleState.has(partial2) && !connectedPartials.has(partial2)) {
-      _executeConnected(partial2);
-    }
-  }
-}
-function onCleanup(cleanupFunction, scope) {
-  if (scope) {
-    let scopeCleanups = elementCleanups.get(scope);
-    if (!scopeCleanups) {
-      scopeCleanups = [];
-      elementCleanups.set(scope, scopeCleanups);
-    }
-    scopeCleanups.push(cleanupFunction);
-  } else {
-    pageCleanups.push(cleanupFunction);
-  }
-}
-function _runPageCleanup() {
-  for (const cleanupFunction of pageCleanups) {
-    try {
-      cleanupFunction();
-    } catch (error) {
-      console.error("[pk] Error in page cleanup:", error);
-    }
-  }
-  pageCleanups.length = 0;
-}
-let cleanupObserver = null;
-function _initCleanupObserver() {
-  if (cleanupObserver) {
-    return;
-  }
-  cleanupObserver = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      for (const node of mutation.removedNodes) {
-        if (typeof Element !== "undefined" && node instanceof Element) {
-          runElementCleanups(node);
-        }
-      }
-    }
-  });
-  cleanupObserver.observe(document.body, {
-    childList: true,
-    subtree: true
-  });
-}
-function runElementCleanups(element) {
-  executeDisconnectedForRemovedPartials(element);
-  const cleanups = elementCleanups.get(element);
-  if (cleanups) {
-    for (const cleanupFunction of cleanups) {
-      try {
-        cleanupFunction();
-      } catch (error) {
-        console.error("[pk] Error in element cleanup:", error);
-      }
-    }
-    elementCleanups.delete(element);
-  }
-  for (const child of element.querySelectorAll("*")) {
-    const childCleanups = elementCleanups.get(child);
-    if (!childCleanups) {
-      continue;
-    }
-    for (const cleanupFunction of childCleanups) {
-      try {
-        cleanupFunction();
-      } catch (error) {
-        console.error("[pk] Error in element cleanup:", error);
-      }
-    }
-    elementCleanups.delete(child);
-  }
-}
-function executeDisconnectedForRemovedPartials(element) {
-  if (element.hasAttribute("partial")) {
-    _executeDisconnected(element);
-  }
-  const partials = element.querySelectorAll("[partial]");
-  for (const partial2 of partials) {
-    _executeDisconnected(partial2);
-  }
-}
-function getCallbackNames(callbacks) {
-  const names = [];
-  if (callbacks.onConnected.length > 0) {
-    names.push("onConnected");
-  }
-  if (callbacks.onDisconnected.length > 0) {
-    names.push("onDisconnected");
-  }
-  if (callbacks.onBeforeRender.length > 0) {
-    names.push("onBeforeRender");
-  }
-  if (callbacks.onAfterRender.length > 0) {
-    names.push("onAfterRender");
-  }
-  if (callbacks.onUpdated.length > 0) {
-    names.push("onUpdated");
-  }
-  return names;
-}
-function createDebugAPI() {
-  return {
-    getPartialInfo(element) {
-      const state = partialLifecycleState.get(element);
-      const cleanups = elementCleanups.get(element);
-      return {
-        exists: state !== void 0,
-        partialName: element.getAttribute("partial_name") ?? element.getAttribute("data-partial-name"),
-        partialId: element.getAttribute("partial") ?? element.getAttribute("data-partial"),
-        isConnected: connectedPartials.has(element),
-        connectedOnce: state?.connectedOnce ?? false,
-        registeredCallbacks: state ? getCallbackNames(state.callbacks) : [],
-        cleanupCount: (state?.cleanups.length ?? 0) + (cleanups?.length ?? 0)
-      };
-    },
-    isConnected(element) {
-      return connectedPartials.has(element);
-    },
-    getCleanupCount(element) {
-      const state = partialLifecycleState.get(element);
-      const cleanups = elementCleanups.get(element);
-      return (state?.cleanups.length ?? 0) + (cleanups?.length ?? 0);
-    },
-    getRegisteredCallbacks(element) {
-      const state = partialLifecycleState.get(element);
-      return state ? getCallbackNames(state.callbacks) : [];
-    },
-    getAllConnectedPartials() {
-      const partials = document.querySelectorAll("[partial], [data-partial]");
-      return Array.from(partials).filter((el) => connectedPartials.has(el));
-    },
-    isAvailable() {
-      return true;
-    }
-  };
-}
-if (typeof window !== "undefined") {
-  window.__pikoDebug = createDebugAPI();
-}
 function createRefs(scope = document.body) {
   const partialId = scope.getAttribute("partial") ?? scope.closest("[partial]")?.getAttribute("partial");
   return new Proxy({}, {
@@ -3101,6 +3487,7 @@ function createRefs(scope = document.body) {
       el ??= scope.querySelector(`[p-ref="${name}"]`);
       if (!el) {
         console.warn(`[pk] ref "${name}" not found in scope`);
+        reportDiagnostic({ kind: "ref-not-found", name, source: "pk.refs", context: partialId ?? void 0 });
       }
       return el;
     }
@@ -3110,13 +3497,26 @@ createRefs();
 function _createPKContext(scope) {
   return {
     refs: createRefs(scope),
-    createRefs: (s) => createRefs(s ?? scope),
+    createRefs: (root) => createRefs(root ?? scope),
     onConnected: (callback) => _addLifecycleCallback(scope, "onConnected", callback),
     onDisconnected: (callback) => _addLifecycleCallback(scope, "onDisconnected", callback),
     onBeforeRender: (callback) => _addLifecycleCallback(scope, "onBeforeRender", callback),
     onAfterRender: (callback) => _addLifecycleCallback(scope, "onAfterRender", callback),
     onUpdated: (callback) => _addLifecycleCallback(scope, "onUpdated", callback),
     onCleanup: (cleanupFunction) => onCleanup(cleanupFunction, scope)
+  };
+}
+function _createPagePKContext(scope, visit) {
+  const lifecycle = _createPageLifecycle(scope, visit);
+  return {
+    refs: createRefs(scope),
+    createRefs: (root) => createRefs(root ?? scope),
+    onConnected: (callback) => lifecycle.add("onConnected", callback),
+    onDisconnected: (callback) => lifecycle.add("onDisconnected", callback),
+    onBeforeRender: (callback) => lifecycle.add("onBeforeRender", callback),
+    onAfterRender: (callback) => lifecycle.add("onAfterRender", callback),
+    onUpdated: (callback) => lifecycle.add("onUpdated", callback),
+    onCleanup: (cleanupFunction) => lifecycle.addCleanup(cleanupFunction)
   };
 }
 const BLOCK_DELIMITER = "\n\n";
@@ -3237,6 +3637,170 @@ function getCSRFTokensFromMeta() {
     ephemeralToken: getCSRFEphemeralFromMeta()
   };
 }
+const ALLOW_REPEAT_ATTR = "pk-allow-repeat";
+const ARIA_BUSY_ATTR = "aria-busy";
+const DEFAULT_GUARD_HOLD_MS = 6e4;
+class ActionRepeatGuard {
+  constructor() {
+    this.inFlight = /* @__PURE__ */ new WeakMap();
+    this.busyMarks = /* @__PURE__ */ new WeakMap();
+  }
+  /**
+   * Runs a send unless the same action is already in flight from the same
+   * element. The guard is released when the send settles, whether it
+   * succeeds, fails or throws, or when holdMilliseconds pass.
+   *
+   * @param send - Describes the action, its element and its event.
+   * @param run - Sends the action.
+   * @returns A promise that settles with the send, or at once when the send is ignored.
+   */
+  async run(send, run) {
+    if (allowsRepeat(send)) {
+      return run();
+    }
+    if (this.isInFlight(send.element, send.actionName)) {
+      return;
+    }
+    const release = this.acquire(send);
+    try {
+      await run();
+    } finally {
+      release();
+    }
+  }
+  /**
+   * Reports whether an action is in flight from an element.
+   *
+   * @param element - The element the action is bound to.
+   * @param actionName - The server action name.
+   * @returns True while a guarded send of that action from that element is in flight.
+   */
+  isInFlight(element, actionName) {
+    return this.inFlight.get(element)?.has(actionName) ?? false;
+  }
+  /**
+   * Holds the guard for a send and marks its elements as busy.
+   *
+   * @param send - The send to guard.
+   * @returns A function that releases the guard. Calling it again does nothing.
+   */
+  acquire(send) {
+    const token = {};
+    let actions = this.inFlight.get(send.element);
+    if (!actions) {
+      actions = /* @__PURE__ */ new Map();
+      this.inFlight.set(send.element, actions);
+    }
+    actions.set(send.actionName, token);
+    const busyElements = busyElementsOf(send);
+    busyElements.forEach((element) => this.markBusy(element));
+    let released = false;
+    const release = () => {
+      if (released) {
+        return;
+      }
+      released = true;
+      clearTimeout(timer);
+      this.dropToken(send.element, send.actionName, token);
+      busyElements.forEach((element) => this.unmarkBusy(element));
+    };
+    const timer = setTimeout(release, send.holdMilliseconds);
+    return release;
+  }
+  /**
+   * Removes an action's token from an element, unless a later send now owns it.
+   *
+   * @param element - The element the action is bound to.
+   * @param actionName - The server action name.
+   * @param token - The token of the send being released.
+   */
+  dropToken(element, actionName, token) {
+    const actions = this.inFlight.get(element);
+    if (actions?.get(actionName) !== token) {
+      return;
+    }
+    actions.delete(actionName);
+    if (actions.size === 0) {
+      this.inFlight.delete(element);
+    }
+  }
+  /**
+   * Adds one busy hold to an element, setting aria-busy on the first.
+   *
+   * @param element - The element to mark.
+   */
+  markBusy(element) {
+    const mark = this.busyMarks.get(element);
+    if (mark) {
+      mark.holds++;
+      return;
+    }
+    const addedAttribute = !element.hasAttribute(ARIA_BUSY_ATTR);
+    if (addedAttribute) {
+      element.setAttribute(ARIA_BUSY_ATTR, "true");
+    }
+    this.busyMarks.set(element, { holds: 1, addedAttribute });
+  }
+  /**
+   * Removes one busy hold from an element, removing aria-busy after the last
+   * when the guard added it.
+   *
+   * @param element - The element to unmark.
+   */
+  unmarkBusy(element) {
+    const mark = this.busyMarks.get(element);
+    if (!mark) {
+      return;
+    }
+    mark.holds--;
+    if (mark.holds > 0) {
+      return;
+    }
+    this.busyMarks.delete(element);
+    if (mark.addedAttribute) {
+      element.removeAttribute(ARIA_BUSY_ATTR);
+    }
+  }
+}
+const helperSubmitTriggers = /* @__PURE__ */ new WeakMap();
+function requestSubmitFrom(form, trigger) {
+  const ownerDocument = form.ownerDocument;
+  const recordTrigger = (event) => {
+    if (event.target === form) {
+      helperSubmitTriggers.set(event, trigger);
+    }
+  };
+  ownerDocument.addEventListener("submit", recordTrigger, { capture: true });
+  try {
+    form.requestSubmit();
+  } finally {
+    ownerDocument.removeEventListener("submit", recordTrigger, { capture: true });
+  }
+}
+function guardHoldMilliseconds(timeoutMilliseconds) {
+  return Math.max(DEFAULT_GUARD_HOLD_MS, timeoutMilliseconds ?? 0);
+}
+function submitTriggerOf(event) {
+  if (event?.type !== "submit") {
+    return null;
+  }
+  const submitter = event.submitter;
+  if (submitter instanceof HTMLElement) {
+    return submitter;
+  }
+  return helperSubmitTriggers.get(event) ?? null;
+}
+function busyElementsOf(send) {
+  const trigger = submitTriggerOf(send.event);
+  if (trigger && trigger !== send.element) {
+    return [send.element, trigger];
+  }
+  return [send.element];
+}
+function allowsRepeat(send) {
+  const candidates = [send.element, submitTriggerOf(send.event), send.element.closest("form")];
+  return candidates.some((candidate) => candidate?.hasAttribute(ALLOW_REPEAT_ATTR) === true);
+}
 const HTTP_STATUS_UNPROCESSABLE$1 = 422;
 const HTTP_STATUS_FORBIDDEN$1 = 403;
 const CSRF_ERROR_EXPIRED = "csrf_expired";
@@ -3266,6 +3830,7 @@ const RANDOM_STRING_RADIX = 36;
 const RANDOM_STRING_SLICE_START = 2;
 const RANDOM_STRING_SLICE_END = 9;
 const debounceTimers = /* @__PURE__ */ new Map();
+const repeatGuard = new ActionRepeatGuard();
 function getCSRFTokens(element) {
   const actionToken = element?.getAttribute("data-csrf-action-token") ?? getCSRFTokenFromMeta();
   const ephemeralToken = element?.getAttribute("data-csrf-ephemeral-token") ?? getCSRFEphemeralFromMeta();
@@ -3289,7 +3854,7 @@ function attemptCSRFRecovery(responseData, element, retryAction) {
           if (refreshedEl) {
             retryAction();
           } else {
-            console.warn("[ActionExecutor] Could not find element with CSRF token after partial refresh");
+            console.error("[ActionExecutor] Could not find element with CSRF token after partial refresh");
           }
         }
       }
@@ -3478,6 +4043,7 @@ async function executeServerAction(actionName, args, method, actionToken, epheme
       body,
       signal: controller.signal
     });
+    runtimeVersionGate.observe(response.headers);
     return await parseActionResponse(response);
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
@@ -3531,7 +4097,7 @@ async function invokeSuccessCallback(descriptor, response, element, event) {
     const data = response.data ?? response;
     const next = descriptor.onSuccess(data);
     if (isActionDescriptor(next)) {
-      await handleAction(next, element, event);
+      await scheduleAction(next, element, event, executeAction);
     }
   } catch (error) {
     console.error("[ActionExecutor] onSuccess callback failed:", error);
@@ -3666,22 +4232,36 @@ async function executeAction(descriptor, element, event) {
     }
   }
 }
-async function handleAction(descriptor, element, event) {
-  if (descriptor.debounce && descriptor.debounce > 0) {
-    const debounceKey = getDebounceKey(descriptor.action, element);
-    clearDebounce(debounceKey);
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        debounceTimers.delete(debounceKey);
-        executeAction(descriptor, element, event).then(resolve).catch((err) => {
-          console.error("[ActionExecutor] Debounced action failed:", err);
-          reject(err instanceof Error ? err : new Error(String(err)));
-        });
-      }, descriptor.debounce);
-      debounceTimers.set(debounceKey, timer);
-    });
+function executeGuardedAction(descriptor, element, event) {
+  return repeatGuard.run(
+    {
+      actionName: descriptor.action,
+      element,
+      event,
+      holdMilliseconds: guardHoldMilliseconds(descriptor.timeout)
+    },
+    () => executeAction(descriptor, element, event)
+  );
+}
+function scheduleAction(descriptor, element, event, runner) {
+  if (!descriptor.debounce || descriptor.debounce <= 0) {
+    return runner(descriptor, element, event);
   }
-  return executeAction(descriptor, element, event);
+  const debounceKey = getDebounceKey(descriptor.action, element);
+  clearDebounce(debounceKey);
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      debounceTimers.delete(debounceKey);
+      runner(descriptor, element, event).then(resolve).catch((err) => {
+        console.error("[ActionExecutor] Debounced action failed:", err);
+        reject(err instanceof Error ? err : new Error(String(err)));
+      });
+    }, descriptor.debounce);
+    debounceTimers.set(debounceKey, timer);
+  });
+}
+async function handleAction(descriptor, element, event) {
+  return scheduleAction(descriptor, element, event, executeGuardedAction);
 }
 const SSE_CONTENT_TYPE = "text/event-stream";
 const SSE_ACCEPT_HEADER = "text/event-stream";
@@ -3783,6 +4363,7 @@ async function executeServerActionSSEInternal(params) {
       body: JSON.stringify(bodyData),
       signal: controller.signal
     });
+    runtimeVersionGate.observe(response.headers);
     if (!response.ok) {
       await throwSSEErrorResponse(response);
     }
@@ -4372,6 +4953,7 @@ async function batchWith(options, ...actions) {
     credentials: "same-origin",
     body: JSON.stringify(body)
   });
+  runtimeVersionGate.observe(response.headers);
   if (!response.ok) {
     throw createActionError(
       response.status,
@@ -4685,7 +5267,7 @@ function createModuleLoader() {
     const newScript = document.createElement("script");
     newScript.type = "module";
     newScript.src = src;
-    document.body.appendChild(newScript);
+    document.body.appendChild(applyPageCSPToken(newScript));
   }
   return {
     loadFromDocument(doc2) {
@@ -4776,7 +5358,7 @@ function createLinkHeaderParser() {
         if (params.type) {
           linkEl.type = params.type;
         }
-        document.head.appendChild(linkEl);
+        document.head.appendChild(applyPageCSPToken(linkEl));
       });
     }
   };
@@ -4972,6 +5554,7 @@ function handleCustomEventNoModifier(ctx) {
   }
   const available = pageContext.getExportedFunctions();
   const suggestion = findClosestMatch(ctx.payload.f, available);
+  reportDiagnostic({ kind: "handler-not-found", name: ctx.payload.f, source: "p-event" });
   let message = `[DOMBinder] Function "${ctx.payload.f}" not found for p-event handler.`;
   message += ` Did you forget to export it?`;
   if (suggestion) {
@@ -5001,6 +5584,7 @@ function handleExplicitPartialCall(ctx, explicitPartial, fnName) {
   }
   const available = pageContext.getRegisteredPartialNames();
   const suggestion = findClosestMatch(explicitPartial, available);
+  reportDiagnostic({ kind: "handler-not-found", name: `@${explicitPartial}.${fnName}`, source: "p-on" });
   let message = `[DOMBinder] Partial "${explicitPartial}" not found or has no function "${fnName}".`;
   if (suggestion) {
     message += ` Did you mean "@${suggestion}"?`;
@@ -5034,6 +5618,7 @@ function handleImplicitScopeCall(ctx, fnName) {
   }
   const available = pageContext.getExportedFunctions();
   const suggestion = findClosestMatch(fnName, available);
+  reportDiagnostic({ kind: "handler-not-found", name: fnName, source: "p-on", context: partialId ?? void 0 });
   let message = `[DOMBinder] Function "${fnName}" not found.`;
   if (partialId) {
     message += ` (searched partial scope and global)`;
@@ -5174,7 +5759,7 @@ function createDOMBinder(helperRegistry, callbacks) {
     }
     if (isBlockedScheme(href)) {
       event.preventDefault();
-      console.warn("DOMBinder: Blocked navigation to dangerous URI scheme:", href);
+      console.error("DOMBinder: Blocked navigation to dangerous URI scheme:", href);
       return;
     }
     if (isNativeScheme(href)) {
@@ -5500,27 +6085,80 @@ function createA11yAnnouncer() {
 }
 const NO_TRACK_ATTR = "pk-no-track";
 const TRACKED_ATTR = "data-pk-tracked";
-const DEFERRED_SNAPSHOT_TIMEOUT_MS = 5e3;
+const CHECKED_KEY_PREFIX = "__checked_";
 function isInsideNoTrackContainer(el) {
   return el.closest(`[${NO_TRACK_ATTR}]`) !== null;
 }
-function getFormSnapshot(form) {
-  const excludedNames = collectNoTrackFieldNames(form);
-  const data = new FormData(form);
+function collectSnapshotEntries(form, includeField) {
   const entries = [];
-  for (const [key, value] of data.entries()) {
-    if (typeof value === "string" && !excludedNames.has(key)) {
+  for (const [key, value] of new FormData(form).entries()) {
+    if (typeof value === "string" && includeField(key)) {
       entries.push([key, value]);
     }
   }
   const checkboxes = form.querySelectorAll('input[type="checkbox"], input[type="radio"]');
   for (const checkbox of checkboxes) {
-    if (checkbox.name && !excludedNames.has(checkbox.name)) {
-      entries.push([`__checked_${checkbox.name}_${checkbox.value}`, String(checkbox.checked)]);
+    if (checkbox.name && includeField(checkbox.name)) {
+      entries.push([`${CHECKED_KEY_PREFIX}${checkbox.name}_${checkbox.value}`, String(checkbox.checked)]);
     }
   }
+  return entries;
+}
+function serialiseEntries(entries) {
   entries.sort((a, b) => a[0].localeCompare(b[0]));
   return JSON.stringify(entries);
+}
+function getFormSnapshot(tracked) {
+  const excludedNames = collectNoTrackFieldNames(tracked.form);
+  for (const name of collectPendingFieldNames(tracked)) {
+    excludedNames.add(name);
+  }
+  return serialiseEntries(collectSnapshotEntries(tracked.form, (name) => !excludedNames.has(name)));
+}
+function collectElementFieldNames(form, element) {
+  const names = /* @__PURE__ */ new Set();
+  const ownName = element.getAttribute("name");
+  if (ownName) {
+    names.add(ownName);
+  }
+  const controls = form.elements;
+  for (let i = 0; i < controls.length; i++) {
+    const control = controls[i];
+    if (control.name && element.contains(control)) {
+      names.add(control.name);
+    }
+  }
+  return names;
+}
+function collectPendingFieldNames(tracked) {
+  const names = /* @__PURE__ */ new Set();
+  for (const element of tracked.pendingElements) {
+    for (const name of collectElementFieldNames(tracked.form, element)) {
+      names.add(name);
+    }
+  }
+  return names;
+}
+function isKeyForFields(key, names) {
+  if (names.has(key)) {
+    return true;
+  }
+  if (!key.startsWith(CHECKED_KEY_PREFIX)) {
+    return false;
+  }
+  const rest = key.slice(CHECKED_KEY_PREFIX.length);
+  for (const name of names) {
+    if (rest.startsWith(`${name}_`)) {
+      return true;
+    }
+  }
+  return false;
+}
+function addFieldsToSnapshot(tracked, names) {
+  const noTrackNames = collectNoTrackFieldNames(tracked.form);
+  const kept = JSON.parse(tracked.initialSnapshot).filter(([key]) => !isKeyForFields(key, names));
+  const added = collectSnapshotEntries(tracked.form, (name) => names.has(name) && !noTrackNames.has(name));
+  tracked.initialSnapshot = serialiseEntries([...kept, ...added]);
 }
 function collectNoTrackFieldNames(form) {
   const excluded = /* @__PURE__ */ new Set();
@@ -5568,7 +6206,7 @@ function updateDirtyState(form, trackedForms, hookManager) {
   if (!tracked || tracked.snapshotPending) {
     return;
   }
-  const currentSnapshot = getFormSnapshot(form);
+  const currentSnapshot = getFormSnapshot(tracked);
   const wasDirty = tracked.isDirty;
   tracked.isDirty = currentSnapshot !== tracked.initialSnapshot;
   if (tracked.isDirty && !wasDirty) {
@@ -5616,48 +6254,58 @@ function containsCustomElements(form) {
   }
   return false;
 }
-async function deferFormSnapshot(form, trackedForms) {
-  const undefinedElements = form.querySelectorAll(":not(:defined)");
-  if (undefinedElements.length > 0) {
-    const tagNames = /* @__PURE__ */ new Set();
-    for (const el of undefinedElements) {
-      tagNames.add(el.localName);
-    }
-    const timeout2 = new Promise(
-      (resolve) => setTimeout(() => resolve("timeout"), DEFERRED_SNAPSHOT_TIMEOUT_MS)
-    );
-    const result = await Promise.race([
-      Promise.all(
-        Array.from(tagNames).map((name) => customElements.whenDefined(name))
-      ).then(() => "defined"),
-      timeout2
-    ]);
-    if (result === "timeout") {
-      console.warn(
-        `[pk] Timed out waiting for custom elements in form "${getFormId(form)}":`,
-        Array.from(tagNames)
-      );
-    }
-  }
-  await new Promise((resolve) => requestAnimationFrame(() => {
+function waitForSettle() {
+  return new Promise((resolve) => requestAnimationFrame(() => {
     requestAnimationFrame(() => resolve());
   }));
-  const tracked = trackedForms.get(form);
-  if (!tracked) {
+}
+function isStillTracked(tracked, trackedForms) {
+  return trackedForms.get(tracked.form) === tracked;
+}
+async function recordReadySnapshot(tracked, trackedForms) {
+  await waitForSettle();
+  if (!isStillTracked(tracked, trackedForms)) {
     return;
   }
-  tracked.initialSnapshot = getFormSnapshot(form);
+  tracked.initialSnapshot = getFormSnapshot(tracked);
   tracked.snapshotPending = false;
+}
+async function addElementWhenDefined(tracked, element, readySnapshot, trackedForms) {
+  await Promise.all([customElements.whenDefined(element.localName), readySnapshot]);
+  await waitForSettle();
+  if (!isStillTracked(tracked, trackedForms)) {
+    return;
+  }
+  const names = collectElementFieldNames(tracked.form, element);
+  tracked.pendingElements.delete(element);
+  addFieldsToSnapshot(tracked, names);
+}
+function deferFormSnapshot(tracked, trackedForms) {
+  for (const element of tracked.form.querySelectorAll(":not(:defined)")) {
+    tracked.pendingElements.add(element);
+  }
+  const readySnapshot = recordReadySnapshot(tracked, trackedForms);
+  for (const element of tracked.pendingElements) {
+    void addElementWhenDefined(tracked, element, readySnapshot, trackedForms);
+  }
 }
 function internalTrackForm(form, trackedForms) {
   if (trackedForms.has(form) || form.hasAttribute(NO_TRACK_ATTR)) {
     return;
   }
+  const tracked = {
+    form,
+    initialSnapshot: "",
+    isDirty: false,
+    snapshotPending: false,
+    pendingElements: /* @__PURE__ */ new Set()
+  };
+  trackedForms.set(form, tracked);
   if (containsCustomElements(form)) {
-    trackedForms.set(form, { form, initialSnapshot: "", isDirty: false, snapshotPending: true });
-    void deferFormSnapshot(form, trackedForms);
+    tracked.snapshotPending = true;
+    deferFormSnapshot(tracked, trackedForms);
   } else {
-    trackedForms.set(form, { form, initialSnapshot: getFormSnapshot(form), isDirty: false, snapshotPending: false });
+    tracked.initialSnapshot = getFormSnapshot(tracked);
   }
   form.setAttribute(TRACKED_ATTR, "true");
 }
@@ -5701,7 +6349,7 @@ function createFormSubmitHandler(trackedForms, hookManager) {
     if (!tracked) {
       return;
     }
-    tracked.initialSnapshot = getFormSnapshot(form);
+    tracked.initialSnapshot = getFormSnapshot(tracked);
     tracked.snapshotPending = false;
     const wasDirty = tracked.isDirty;
     tracked.isDirty = false;
@@ -5749,7 +6397,7 @@ function createFormStateManager(deps) {
       if (!tracked) {
         return;
       }
-      tracked.initialSnapshot = getFormSnapshot(form);
+      tracked.initialSnapshot = getFormSnapshot(tracked);
       tracked.snapshotPending = false;
       const wasDirty = tracked.isDirty;
       tracked.isDirty = false;
@@ -5965,7 +6613,7 @@ function createFetchClient(deps = {}) {
         if (!response.ok) {
           return [false, null];
         }
-        options.onHeadersReceived?.();
+        options.onHeadersReceived?.(response.headers);
         let text;
         if (options.onProgress) {
           text = await readWithProgress(response, options.onProgress);
@@ -6011,7 +6659,11 @@ function createFetchClient(deps = {}) {
   };
 }
 function resolveAgainstDocument(urlValue) {
-  return new URL(urlValue, globalThis.location?.href ?? "");
+  return new URL(urlValue, pageLocation()?.href ?? "");
+}
+function pageLocation() {
+  const location = globalThis.location;
+  return location;
 }
 function appendRawQuery(urlValue, name, value) {
   const separator = urlValue.includes("?") ? "&" : "?";
@@ -6047,7 +6699,7 @@ function isSameDomain(loc) {
   return loc.hostname === window.location.hostname;
 }
 function isSameOriginUrl(urlValue) {
-  const pageOrigin = globalThis.location?.origin;
+  const pageOrigin = pageLocation()?.origin;
   if (!pageOrigin) {
     return false;
   }
@@ -6058,6 +6710,7 @@ function isSameOriginUrl(urlValue) {
   }
 }
 const PROGRESS_MAX = 100;
+const OTHER_RUNTIME_NAVIGATION_ERROR = "The server runs a different runtime build";
 function safeInvokeCallback(callback, url) {
   if (!callback) {
     return;
@@ -6065,7 +6718,7 @@ function safeInvokeCallback(callback, url) {
   try {
     callback(url);
   } catch (error) {
-    console.warn("[Router] Error in navigation callback:", {
+    console.error("[Router] Error in navigation callback:", {
       url,
       callback: callback.name || "anonymous",
       error
@@ -6081,6 +6734,46 @@ function emitNavigationError(deps, targetUrl, errorMessage, displayMessage) {
     timestamp: Date.now()
   });
   deps.windowOps.setLocationHref(targetUrl);
+}
+async function fetchPageFragment(deps, targetUrl) {
+  const observed = { fromOtherRuntime: false };
+  try {
+    const [success, htmlString] = await deps.fetchClient.get(addFragmentQuery(targetUrl), {
+      onHeadersReceived: (headers) => {
+        deps.loader.headersReceived();
+        observed.fromOtherRuntime = deps.runtimeVersionGate.observe(headers);
+        if (observed.fromOtherRuntime) {
+          deps.fetchClient.abort();
+        }
+      },
+      onProgress: (loaded, total) => {
+        if (total > 0) {
+          deps.loader.setProgress(PROGRESS_MAX / 2 + loaded / total * (PROGRESS_MAX / 2));
+        }
+      }
+    });
+    if (observed.fromOtherRuntime) {
+      return { html: null, fromOtherRuntime: true };
+    }
+    return { html: success ? htmlString : null, fromOtherRuntime: false };
+  } catch (error) {
+    if (observed.fromOtherRuntime && isAbortError(error)) {
+      return { html: null, fromOtherRuntime: true };
+    }
+    throw error;
+  }
+}
+function isAbortError(error) {
+  return error instanceof DOMException && error.name === "AbortError";
+}
+function loadFullPageForOtherRuntime(deps, targetUrl) {
+  console.error("[Router] The server runs a different runtime build; loading the full page.", { url: targetUrl });
+  deps.hookManager?.emit(HookEvent.NAVIGATION_ERROR, {
+    url: targetUrl,
+    error: OTHER_RUNTIME_NAVIGATION_ERROR,
+    timestamp: Date.now()
+  });
+  deps.windowOps.locationReload();
 }
 function updateHistoryState(windowOps, targetUrl, replaceHistory) {
   const currentState = { scrollY: windowOps.getScrollY() };
@@ -6111,7 +6804,7 @@ function emitNavigationSuccess(deps, ctx, pageTitle) {
   deps.formStateManager?.scanAndTrackForms();
 }
 function handleNavigationError(deps, targetUrl, error) {
-  if (error instanceof DOMException && error.name === "AbortError") {
+  if (isAbortError(error)) {
     console.warn("Fetch aborted:", targetUrl);
     return;
   }
@@ -6143,7 +6836,7 @@ function buildScrollOptions(ctx, options, windowOps) {
   };
 }
 async function performNavigation(state, deps, targetUrl, event, options) {
-  const { fetchClient, loader, onPageLoad, windowOps, domOps, formStateManager } = deps;
+  const { fetchClient, loader, onPageLoad, windowOps, domOps, formStateManager, runtimeVersionGate: runtimeVersionGate2 } = deps;
   if (event) {
     event.preventDefault();
   }
@@ -6171,15 +6864,16 @@ async function performNavigation(state, deps, targetUrl, event, options) {
     if (!isPopNavigation) {
       updateHistoryState(windowOps, targetUrl, options.replaceHistory);
     }
-    const [success, htmlString] = await fetchClient.get(addFragmentQuery(targetUrl), {
-      onHeadersReceived: () => loader.headersReceived(),
-      onProgress: (loaded, total) => {
-        if (total > 0) {
-          loader.setProgress(PROGRESS_MAX / 2 + loaded / total * (PROGRESS_MAX / 2));
-        }
-      }
-    });
-    if (!success || !htmlString) {
+    if (runtimeVersionGate2.isStale()) {
+      loadFullPageForOtherRuntime(deps, targetUrl);
+      return;
+    }
+    const { html: htmlString, fromOtherRuntime } = await fetchPageFragment(deps, targetUrl);
+    if (fromOtherRuntime) {
+      loadFullPageForOtherRuntime(deps, targetUrl);
+      return;
+    }
+    if (!htmlString) {
       emitNavigationError(deps, targetUrl, "Fetch failed");
       return;
     }
@@ -6228,7 +6922,8 @@ function createRouter(deps) {
     domOps,
     hookManager: deps.hookManager,
     formStateManager: deps.formStateManager,
-    a11yAnnouncer: deps.a11yAnnouncer
+    a11yAnnouncer: deps.a11yAnnouncer,
+    runtimeVersionGate: deps.runtimeVersionGate ?? runtimeVersionGate
   };
   const navigateTo = (targetUrl, event, options = {}) => performNavigation(state, navDeps, targetUrl, event, options);
   const popstateHandler = () => {
@@ -6312,7 +7007,7 @@ function processStyleBlocks(parsedDoc, domOps) {
     newStyleEl.setAttribute("pk-page", "");
     newStyleEl.setAttribute("data-pk-style-key", styleKey);
     newStyleEl.textContent = cssText;
-    domOps.getHead().appendChild(newStyleEl);
+    domOps.getHead().appendChild(applyPageCSPToken(newStyleEl));
   });
 }
 function syncPatchAttributes(target, sourceEl) {
@@ -6350,10 +7045,7 @@ function applyPatch(ctx) {
       }
     });
   } else {
-    patchLocation.innerHTML = "";
-    Array.from(sourceEl.children).forEach((child) => {
-      patchLocation.appendChild(child.cloneNode(true));
-    });
+    patchLocation.replaceChildren(cloneWithPageCSPToken(sourceEl.children, patchLocation.ownerDocument));
     onDOMUpdated(patchLocation);
   }
   syncPatchAttributes(target, sourceEl);
@@ -6369,6 +7061,7 @@ function findSourceElement(rootEl, selector) {
   const matched = rootEl.querySelector(selector);
   if (!matched) {
     console.warn(`RemoteRenderer: selector "${selector}" not found`);
+    reportDiagnostic({ kind: "fragment-selector-not-found", name: selector, source: "remoteRender" });
   }
   return matched ?? rootEl;
 }
@@ -6400,13 +7093,14 @@ async function fetchFragment(fullUrl, options, ctx) {
     }
   }
   const response = await ctx.http.fetch(fullUrl, fetchOptions);
+  ctx.runtimeVersionGate.observe(response.headers);
   if (!response.ok) {
     console.error("RemoteRenderer: fetch failed", response.status, response.statusText);
     return null;
   }
   const responseType = response.headers.get("X-PP-Response-Support");
   if (responseType !== "fragment-patch") {
-    console.warn(`RemoteRenderer: expected 'fragment-patch' response but got '${responseType ?? "none"}'. Reloading page.`);
+    console.error(`RemoteRenderer: expected 'fragment-patch' response but got '${responseType ?? "none"}'. Reloading page.`);
     ctx.windowOps.locationReload();
     return null;
   }
@@ -6468,7 +7162,8 @@ function createRemoteRenderer(deps) {
   const domOps = deps.domOps ?? browserDOMOperations;
   const windowOps = deps.windowOps ?? browserWindowOperations;
   const http = deps.http ?? browserHTTPOperations;
-  const fetchCtx = { linkHeaderParser, http, windowOps };
+  const runtimeVersionGate$1 = deps.runtimeVersionGate ?? runtimeVersionGate;
+  const fetchCtx = { linkHeaderParser, http, windowOps, runtimeVersionGate: runtimeVersionGate$1 };
   const renderTargetDeps = { onDOMUpdated, domOps, hookManager };
   async function render(options) {
     const fullUrl = buildRemoteUrl(options.src, options.args ?? {});
@@ -6498,13 +7193,17 @@ function createRemoteRenderer(deps) {
     const doc2 = domOps.parseHTML(htmlString);
     const newPartialEl = doc2.querySelector(cssSelector);
     if (!newPartialEl) {
-      return console.warn(`RemoteRenderer: patchPartial - no element found for selector ${cssSelector}`);
+      console.warn(`RemoteRenderer: patchPartial - no element found for selector ${cssSelector}`);
+      reportDiagnostic({ kind: "fragment-selector-not-found", name: cssSelector, source: "patchPartial" });
+      return;
     }
     const currentEl = domOps.querySelector(cssSelector);
     if (!currentEl) {
-      return console.warn(`RemoteRenderer: patchPartial - no existing element found for selector ${cssSelector}`);
+      console.warn(`RemoteRenderer: patchPartial - no existing element found for selector ${cssSelector}`);
+      reportDiagnostic({ kind: "target-not-found", name: cssSelector, source: "patchPartial" });
+      return;
     }
-    currentEl.innerHTML = newPartialEl.innerHTML;
+    currentEl.replaceChildren(parseWithPageCSPToken(newPartialEl.innerHTML, currentEl.ownerDocument));
     onDOMUpdated(currentEl);
     hookManager?.emit(HookEvent.PARTIAL_RENDER, {
       src: "inline",
@@ -6537,6 +7236,7 @@ function createModalManager(deps = {}) {
       const modalElem = document.querySelector(modalSelector);
       if (!modalElem) {
         console.warn(`ModalManager: Could not find modal "${modalSelector}". Falling back to dispatch event.`);
+        reportDiagnostic({ kind: "modal-not-found", name: modalSelector, source: "openModal" });
         triggerElement.dispatchEvent(new CustomEvent(fallbackEventName, { bubbles: true, composed: true }));
         return;
       }
@@ -6584,6 +7284,162 @@ function createModalManager(deps = {}) {
     }
   };
 }
+const FOCUSABLE_SELECTOR = "a[href], button, input, select, textarea, summary, [tabindex]";
+const MAX_SHADOW_DEPTH = 32;
+class TransitionClickReplay {
+  /**
+   * Creates a replay for one transition.
+   *
+   * @param transition - The running transition.
+   * @param doc - The document the transition runs in.
+   * @param view - The window of that document.
+   */
+  constructor(transition, doc2, view) {
+    this.transition = transition;
+    this.doc = doc2;
+    this.view = view;
+    this.pending = null;
+    this.delivered = false;
+    this.settled = false;
+    this.pressing = false;
+    this.removed = false;
+    this.onPointerDown = (event) => {
+      if (!this.isLostToTransition(event)) {
+        this.stopIfSettled();
+        return;
+      }
+      this.pressing = true;
+      this.transition.skipTransition();
+    };
+    this.onPointerCancel = () => {
+      this.pressing = false;
+      this.stopIfSettled();
+    };
+    this.onClick = (event) => {
+      if (!this.isLostToTransition(event) || event.detail === 0) {
+        this.stopIfSettled();
+        return;
+      }
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      this.pressing = false;
+      if (this.pending === null && !this.delivered) {
+        this.pending = captureClick(event);
+      }
+      this.transition.skipTransition();
+      if (this.settled) {
+        this.deliver();
+      }
+    };
+  }
+  /** Adds the listeners and waits for the transition to end. */
+  start() {
+    this.view.addEventListener("pointerdown", this.onPointerDown, true);
+    this.view.addEventListener("pointercancel", this.onPointerCancel, true);
+    this.view.addEventListener("click", this.onClick, true);
+    void this.waitForEnd();
+  }
+  /** Passes on a held click once the transition has ended, even when it failed. */
+  async waitForEnd() {
+    await this.transition.finished.catch(() => void 0);
+    this.settled = true;
+    this.deliver();
+  }
+  /**
+   * Reports whether an event was sent to the root element, where a running transition
+   * sends every pointer event.
+   *
+   * @param event - The pointer event.
+   * @returns True when the event targets the root element.
+   */
+  isLostToTransition(event) {
+    return event.target === this.doc.documentElement;
+  }
+  /** Sends the held click to the element now under the pointer, at most once. */
+  deliver() {
+    const click = this.pending;
+    this.pending = null;
+    if (click !== null && !this.delivered) {
+      this.delivered = true;
+      dispatchClickAt(this.doc, this.view, click);
+    }
+    this.stopIfSettled();
+  }
+  /** Removes the listeners once the transition has ended and no press is waiting. */
+  stopIfSettled() {
+    if (!this.settled || this.pressing || this.removed) {
+      return;
+    }
+    this.removed = true;
+    this.view.removeEventListener("pointerdown", this.onPointerDown, true);
+    this.view.removeEventListener("pointercancel", this.onPointerCancel, true);
+    this.view.removeEventListener("click", this.onClick, true);
+  }
+}
+function replayClicksLostToTransition(transition, doc2 = document) {
+  const view = doc2.defaultView;
+  if (!view) {
+    return;
+  }
+  new TransitionClickReplay(transition, doc2, view).start();
+}
+function captureClick(event) {
+  return {
+    clientX: event.clientX,
+    clientY: event.clientY,
+    screenX: event.screenX,
+    screenY: event.screenY,
+    button: event.button,
+    ctrlKey: event.ctrlKey,
+    shiftKey: event.shiftKey,
+    altKey: event.altKey,
+    metaKey: event.metaKey
+  };
+}
+function dispatchClickAt(doc2, view, click) {
+  if (!isInsideViewport(view, click)) {
+    return;
+  }
+  const outerTarget = doc2.elementFromPoint(click.clientX, click.clientY);
+  if (outerTarget === null || outerTarget === doc2.documentElement) {
+    return;
+  }
+  const target = descendIntoShadowRoots(outerTarget, click);
+  const focusable = target.closest(FOCUSABLE_SELECTOR);
+  focusable?.focus({ preventScroll: true });
+  target.dispatchEvent(new MouseEvent("click", {
+    ...click,
+    bubbles: true,
+    cancelable: true,
+    composed: true,
+    detail: 1
+  }));
+}
+function descendIntoShadowRoots(outerTarget, click) {
+  let target = outerTarget;
+  for (let depth = 0; depth < MAX_SHADOW_DEPTH; depth++) {
+    const inner = elementInsideShadowRoot(target, click);
+    if (inner === null) {
+      return target;
+    }
+    target = inner;
+  }
+  return target;
+}
+function elementInsideShadowRoot(host, click) {
+  const shadowRoot = host.shadowRoot;
+  if (shadowRoot === null || typeof shadowRoot.elementFromPoint !== "function") {
+    return null;
+  }
+  const inner = shadowRoot.elementFromPoint(click.clientX, click.clientY);
+  if (inner === null || inner === host) {
+    return null;
+  }
+  return inner;
+}
+function isInsideViewport(view, click) {
+  return click.clientX >= 0 && click.clientY >= 0 && click.clientX < view.innerWidth && click.clientY < view.innerHeight;
+}
 function registerPartialInstancesFromDOM(doc2) {
   const partials = doc2.querySelectorAll("[partial][data-partial-name]");
   const pageContext = getGlobalPageContext();
@@ -6595,6 +7451,7 @@ function registerPartialInstancesFromDOM(doc2) {
     }
   }
 }
+const VIEW_TRANSITIONS_META_SELECTOR = 'meta[name="pk-view-transitions"]';
 const globalHelperRegistry = createHelperRegistry();
 function RegisterHelper(name, setupFunction) {
   globalHelperRegistry.register(name, setupFunction);
@@ -6640,11 +7497,47 @@ function loadWidgetScripts(doc2) {
     script.defer = true;
     script.onload = onScriptReady;
     script.onerror = onScriptReady;
-    document.head.appendChild(script);
+    document.head.appendChild(applyPageCSPToken(script));
   }
   if (pendingCount === 0) {
     document.dispatchEvent(new Event("piko:widgetinit"));
   }
+}
+const MAX_CALLS_BEFORE_INIT = 50;
+function queueUntilInit(services, call) {
+  if (services.callsBeforeInit.length >= MAX_CALLS_BEFORE_INIT) {
+    throw new Error(
+      `PPFramework: more than ${MAX_CALLS_BEFORE_INIT} calls were made before init(), so this call was dropped`
+    );
+  }
+  services.callsBeforeInit.push(call);
+}
+function runCallsQueuedBeforeInit(services) {
+  const calls = services.callsBeforeInit.splice(0);
+  for (const call of calls) {
+    call();
+  }
+}
+function queueRemoteRender(services, instance, options) {
+  return new Promise((resolve, reject) => {
+    queueUntilInit(services, () => {
+      instance.remoteRender(options).then(resolve).catch(reject);
+    });
+  });
+}
+function queuePatchPartial(services, instance, htmlString, cssSelector) {
+  try {
+    queueUntilInit(services, () => instance.patchPartial(htmlString, cssSelector));
+  } catch (error) {
+    console.error("[PPFramework] Failed to queue patchPartial until init()", error);
+  }
+}
+function navigateWithFullPageLoad(targetUrl, options) {
+  if (options.replaceHistory) {
+    window.location.replace(targetUrl);
+    return;
+  }
+  window.location.assign(targetUrl);
 }
 function scrollToAnchor(hash) {
   if (!hash || hash === "#") {
@@ -6665,17 +7558,27 @@ function handleScrollPosition(scrollOptions) {
     window.scrollTo({ top: 0, behavior: "instant" });
   }
 }
+function syncPageID(parsedDocument) {
+  const pageID = parsedDocument.querySelector("[data-pageid]")?.getAttribute("data-pageid");
+  if (pageID) {
+    document.body.setAttribute("data-pageid", pageID);
+  } else {
+    document.body.removeAttribute("data-pageid");
+  }
+}
 function performDOMUpdate(deps, parsedDocument, oldAppRoot, newAppRoot, scrollOptions) {
   _runPageCleanup();
+  _endPageVisit();
   getGlobalPageContext().clear();
   if (scrollOptions.morph === "none") {
-    oldAppRoot.innerHTML = newAppRoot.innerHTML;
+    oldAppRoot.replaceChildren(parseWithPageCSPToken(newAppRoot.innerHTML, oldAppRoot.ownerDocument));
   } else {
     fragmentMorpher(oldAppRoot, newAppRoot, {
       childrenOnly: true,
       getNodeKey
     });
   }
+  syncPageID(parsedDocument);
   handleScrollPosition(scrollOptions);
   deps.bindDOM(oldAppRoot);
   deps.moduleLoader.loadFromDocument(parsedDocument);
@@ -6690,7 +7593,7 @@ function performDOMUpdate(deps, parsedDocument, oldAppRoot, newAppRoot, scrollOp
   }
   if (newPageStyle) {
     const clonedStyle = newPageStyle.cloneNode(true);
-    document.head.appendChild(clonedStyle);
+    document.head.appendChild(applyPageCSPToken(clonedStyle));
   }
   const newTitle = parsedDocument.querySelector("title");
   if (newTitle) {
@@ -6714,20 +7617,34 @@ async function handlePageLoad(deps, parsedDocument, _targetUrl, scrollOptions) {
     updateState.applied = true;
     performDOMUpdate(domUpdateDeps, parsedDocument, oldAppRoot, newAppRoot, scrollOptions);
   };
-  const canAnimate = document.visibilityState !== "hidden" && "startViewTransition" in document && typeof document.startViewTransition === "function";
-  if (!canAnimate) {
+  if (!canAnimateNavigation(deps)) {
     applyUpdate();
     return;
   }
   try {
-    const transition = document.startViewTransition(applyUpdate);
-    await transition.updateCallbackDone;
+    await runUpdateInTransition(applyUpdate);
   } catch (error) {
     if (updateState.applied) {
       throw error;
     }
     applyUpdate();
   }
+}
+async function runUpdateInTransition(applyUpdate) {
+  const transition = document.startViewTransition(applyUpdate);
+  handleTransitionAnimation(transition);
+  replayClicksLostToTransition(transition);
+  await transition.updateCallbackDone;
+}
+function handleTransitionAnimation(transition) {
+  transition.ready.catch(() => void 0);
+  transition.finished.catch(() => void 0);
+}
+function canAnimateNavigation(deps) {
+  return !deps.viewTransitionsOff && document.visibilityState !== "hidden" && "startViewTransition" in document && typeof document.startViewTransition === "function";
+}
+function viewTransitionsTurnedOff(doc2) {
+  return doc2.head.querySelector(VIEW_TRANSITIONS_META_SELECTOR) !== null;
 }
 function initFrameworkServices(services, options, instance) {
   services.globalConfig = options;
@@ -6752,7 +7669,8 @@ function initFrameworkServices(services, options, instance) {
   const pageLoadDeps = {
     spriteSheetManager: services.spriteSheetManager,
     bindDOM,
-    moduleLoader: services.moduleLoader
+    moduleLoader: services.moduleLoader,
+    viewTransitionsOff: viewTransitionsTurnedOff(document)
   };
   services.router = createRouter({
     fetchClient: services.fetchClient,
@@ -6802,6 +7720,8 @@ function initFrameworkDOM(services) {
   }
   services.formStateManager?.scanAndTrackForms();
   services.hookManager.processQueue();
+  const hookManager = services.hookManager;
+  registerDiagnosticEmitter((payload) => hookManager.emit(HookEvent.DIAGNOSTIC, payload));
   services.hookManager.emit(HookEvent.FRAMEWORK_READY, {
     version: "1.0.0",
     loadTime: performance.now(),
@@ -6835,7 +7755,8 @@ function createInitialServices() {
     domBinder: null,
     syncPartialManager: null,
     globalConfig: {},
-    moduleConfigCache: null
+    moduleConfigCache: null,
+    callsBeforeInit: []
   };
 }
 function buildFrameworkInstance(services) {
@@ -6885,18 +7806,18 @@ function buildFrameworkInstance(services) {
     init(options = {}) {
       initFrameworkServices(services, options, instance);
       initFrameworkDOM(services);
+      runCallsQueuedBeforeInit(services);
     },
     async navigateTo(targetUrl, evt, options = {}) {
       if (!services.router) {
-        console.warn("PPFramework: navigateTo called before init()");
+        navigateWithFullPageLoad(targetUrl, options);
         return;
       }
       return services.router.navigateTo(targetUrl, evt, options);
     },
     async remoteRender(options) {
       if (!services.remoteRenderer) {
-        console.warn("PPFramework: remoteRender called before init()");
-        return;
+        return queueRemoteRender(services, instance, options);
       }
       return services.remoteRenderer.render(options);
     },
@@ -6933,7 +7854,11 @@ function buildFrameworkInstance(services) {
       services.moduleLoader.loadFromDocument(doc2);
     },
     patchPartial(htmlString, cssSelector) {
-      services.remoteRenderer?.patchPartial(htmlString, cssSelector);
+      if (!services.remoteRenderer) {
+        queuePatchPartial(services, instance, htmlString, cssSelector);
+        return;
+      }
+      services.remoteRenderer.patchPartial(htmlString, cssSelector);
     },
     async openModalIfAvailable(options) {
       return services.modalManager.openIfAvailable(options);
@@ -6959,7 +7884,7 @@ function getModuleConfig(services, moduleName) {
       try {
         services.moduleConfigCache = JSON.parse(configEl.textContent);
       } catch {
-        console.warn("[PPFramework] Failed to parse module config JSON");
+        console.error("[PPFramework] Failed to parse module config JSON");
         services.moduleConfigCache = {};
       }
     } else {
@@ -6990,7 +7915,8 @@ function dispatchActionImpl(actionName, element, event) {
     });
     return;
   }
-  console.warn(`[PPFramework] Action function "${actionName}" not found in registry.`);
+  console.error(`[PPFramework] Action function "${actionName}" not found in registry.`);
+  reportDiagnostic({ kind: "action-not-found", name: actionName, source: "dispatchAction" });
 }
 function executeHelperImpl(event, actionString, element) {
   event.preventDefault();
@@ -7040,7 +7966,9 @@ const findForm = (element, helperName, formSelector) => {
 const submitFormHelper = (element, _event, ...args) => {
   const formSelector = args[0];
   const form = findForm(element, "submitForm", formSelector);
-  form?.requestSubmit();
+  if (form) {
+    requestSubmitFrom(form, element);
+  }
 };
 const resetFormHelper = (element, _event, ...args) => {
   const formSelector = args[0];
@@ -7091,13 +8019,16 @@ const dispatchEventHelper = (_element, _event, ...args) => {
   window.dispatchEvent(new CustomEvent(eventName));
 };
 RegisterHelper("dispatchEvent", dispatchEventHelper);
+capturePageCSPToken(document);
 _initCleanupObserver();
 PPFramework.init();
 piko._markReady();
 export {
   ActionBuilder,
   _createPKContext,
+  _createPagePKContext,
   createRefs as _createRefs,
+  _currentPageVisit,
   _initCleanupObserver,
   _registerLifecycle,
   _runPageCleanup,

@@ -30,6 +30,7 @@ import (
 	qt "github.com/valyala/quicktemplate"
 	"piko.sh/piko/internal/assetpath"
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/registry/registry_dto"
 )
 
@@ -454,7 +455,7 @@ func renderPikoVideo(ro *RenderOrchestrator, node *ast_domain.TemplateNode, qw *
 
 	writeVideoElement(qw, videoID, &attrs, manifestURL, transformedPoster, artefact)
 
-	writeHLSScript(qw, videoID, manifestURL)
+	writeHLSScript(qw, videoID, manifestURL, rctx.cspToken())
 
 	writePikoVideoStaticAttrsFiltered(node, qw)
 	ro.writeElementDirectivesExcluding(node, qw, rctx, attributeSrc)
@@ -622,8 +623,12 @@ func writeVideoSource(qw *qt.Writer, manifestURL string) {
 // Takes qw (*qt.Writer) which receives the script output.
 // Takes videoID (string) which is the HTML element ID of the video player.
 // Takes manifestURL (string) which is the URL to the HLS manifest file.
-func writeHLSScript(qw *qt.Writer, videoID, manifestURL string) {
-	qw.N().S(`<script>`)
+// Takes cspToken (string) which is the request's CSP token, or empty when the policy uses
+// none.
+func writeHLSScript(qw *qt.Writer, videoID, manifestURL, cspToken string) {
+	qw.N().S(`<script`)
+	qw.N().S(daemon_dto.CSPTokenAttribute(cspToken))
+	qw.N().S(`>`)
 	qw.N().S(`(function(){`)
 	qw.N().S(`var v=document.getElementById('`)
 	qw.N().S(videoID)

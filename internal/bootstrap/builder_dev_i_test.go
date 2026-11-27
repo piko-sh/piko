@@ -33,6 +33,7 @@ import (
 	"piko.sh/piko/internal/analytics/analytics_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/daemon/daemon_dto"
+	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/generator/generator_dto"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
@@ -203,4 +204,24 @@ func TestResolveRenderingServicesFailsWhenCSRFServiceFails(t *testing.T) {
 
 	require.ErrorIs(t, err, setupErr)
 	assert.Nil(t, builder.csrfService)
+}
+
+func TestInterpretedDaemonBuilder_RouterConfigSendsTheCoreRuntimeBuildOfTheContainer(t *testing.T) {
+	t.Parallel()
+
+	builds := []daemon_frontend.CoreRuntimeBuild{
+		daemon_frontend.CoreRuntimeBuildDevelopment,
+		daemon_frontend.CoreRuntimeBuildProduction,
+	}
+
+	for _, build := range builds {
+		t.Run(build.CoreFileName(), func(t *testing.T) {
+			t.Parallel()
+
+			builder := &interpretedDaemonBuilder{c: NewContainer(WithCoreRuntimeBuild(build))}
+
+			assert.Equal(t, build, builder.buildRouterConfig().CoreRuntimeBuild,
+				"the router must send the build whose SRI hash the renderer writes")
+		})
+	}
 }

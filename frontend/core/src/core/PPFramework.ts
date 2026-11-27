@@ -16,7 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-import {_runPageCleanup, _executeConnectedForPartials} from '@/pk';
+import {_runPageCleanup, _endPageVisit, _executeConnectedForPartials} from '@/pk';
 import {registerDOMUpdater as _registerDOMUpdater} from '@/pk/domUpdater';
 import {getGlobalPageContext} from '@/services/PageContext';
 import {
@@ -47,12 +47,15 @@ import {createFormStateManager, type FormStateManager} from '@/services/FormStat
 import {createFetchClient, type FetchClient, type FetchResult} from '@/core/FetchClient';
 import {createRouter, type NavigateOptions, type PageLoadScrollOptions, type Router} from '@/core/Router';
 import fragmentMorpher from '@/core/fragmentMorpher';
+import {applyPageCSPToken, parseWithPageCSPToken} from '@/core/cspToken';
 import {handleAction} from '@/core/ActionExecutor';
 import {getActionFunction} from '@/pk/action';
 import {createRemoteRenderer, type PatchTarget, type RemoteRenderer, type RemoteRenderOptions} from '@/core/RemoteRenderer';
 import {getNodeKey} from '@/pk/getNodeKey';
 import {createModalManager, type ModalManager, type ModalRequestOptions} from '@/core/ModalManager';
 import {addFragmentQuery, buildRemoteUrl, isSameDomain} from '@/core/URLUtils';
+import {replayClicksLostToTransition} from '@/core/viewTransitionClicks';
+import {registerDiagnosticEmitter, reportDiagnostic} from '@/services/DiagnosticReporter';
 
 export type {PPHelper} from '@/services';
 export type {NavigateOptions, RemoteRenderOptions, PatchTarget, FetchResult};
@@ -87,6 +90,12 @@ export interface PPFrameworkOptions {
     /** Callback invoked after each navigation completes. */
     afterNavigate?: (targetUrl: string) => void;
 }
+
+/**
+ * Selects the meta element the server writes when the app turned off View Transitions
+ * for SPA navigation.
+ */
+const VIEW_TRANSITIONS_META_SELECTOR = 'meta[name="pk-view-transitions"]';
 
 /** Global helper registry shared by all framework components. */
 const globalHelperRegistry = createHelperRegistry();
@@ -130,10 +139,10 @@ interface PPFrameworkInstance {
     /** Initialises the framework with the given options. */
     init(options?: PPFrameworkOptions): void;
 
-    /** Navigates to a URL using SPA navigation. */
+    /** Navigates to a URL using SPA navigation. Before init() it loads the URL as a full page. */
     navigateTo(targetUrl: string, evt?: Event, options?: NavigateOptions): Promise<void>;
 
-    /** Fetches and renders remote HTML content. */
+    /** Fetches and renders remote HTML content. Calls made before init() wait and run once it completes. */
     remoteRender(options: RemoteRenderOptions): Promise<void>;
 
     /**
@@ -182,7 +191,7 @@ interface PPFrameworkInstance {
     /** Loads module scripts from the given document. */
     loadModuleScripts(doc: Document): void;
 
-    /** Patches an HTML string into the DOM at the given CSS selector. */
+    /** Patches an HTML string into the DOM at the given CSS selector. Calls made before init() wait and run once it completes. */
     patchPartial(htmlString: string, cssSelector: string): void;
 
     /** Opens a modal if available, dispatching a fallback event if not found. */
@@ -273,7 +282,7 @@ function loadWidgetScripts(doc: Document | DocumentFragment): void {
         script.defer = true;
         script.onload = onScriptReady;
         script.onerror = onScriptReady;
-        document.head.appendChild(script);
+        document.head.appendChild(applyPageCSPToken(script));
     }
 
     if (pendingCount === 0) {
@@ -322,6 +331,98 @@ interface FrameworkServices {
     globalConfig: PPFrameworkOptions;
     /** The cached module configuration from the DOM. */
     moduleConfigCache: Record<string, unknown> | null;
+    /** Calls made before init() that run once init() completes. */
+    callsBeforeInit: Array<() => void>;
+}
+
+/** The most calls that can wait for init() at once. Calls past this are refused. */
+const MAX_CALLS_BEFORE_INIT = 50;
+
+/**
+ * Queues a call to run once init() completes.
+ *
+ * @param services - The framework services bag that holds the queue.
+ * @param call - The call to run after init().
+ * @throws Error when the queue already holds the most calls it can.
+ */
+function queueUntilInit(services: FrameworkServices, call: () => void): void {
+    if (services.callsBeforeInit.length >= MAX_CALLS_BEFORE_INIT) {
+        throw new Error(
+            `PPFramework: more than ${MAX_CALLS_BEFORE_INIT} calls were made before init(), so this call was dropped`
+        );
+    }
+    services.callsBeforeInit.push(call);
+}
+
+/**
+ * Runs, in order, every call that was queued before init().
+ *
+ * @param services - The framework services bag that holds the queue.
+ */
+function runCallsQueuedBeforeInit(services: FrameworkServices): void {
+    const calls = services.callsBeforeInit.splice(0);
+    for (const call of calls) {
+        call();
+    }
+}
+
+/**
+ * Queues a remote render to run once init() completes.
+ *
+ * @param services - The framework services bag that holds the queue.
+ * @param instance - The framework instance that renders once ready.
+ * @param options - The remote render options.
+ * @returns A promise that settles when the queued render has run, or rejects
+ * when the queue is full.
+ */
+function queueRemoteRender(
+    services: FrameworkServices,
+    instance: PPFrameworkInstance,
+    options: RemoteRenderOptions
+): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+        queueUntilInit(services, () => {
+            instance.remoteRender(options).then(resolve).catch(reject);
+        });
+    });
+}
+
+/**
+ * Queues a partial patch to run once init() completes. When the queue is full,
+ * the patch is dropped and an error is logged.
+ *
+ * @param services - The framework services bag that holds the queue.
+ * @param instance - The framework instance that patches once ready.
+ * @param htmlString - The HTML to patch in.
+ * @param cssSelector - The CSS selector of the element to patch.
+ */
+function queuePatchPartial(
+    services: FrameworkServices,
+    instance: PPFrameworkInstance,
+    htmlString: string,
+    cssSelector: string
+): void {
+    try {
+        queueUntilInit(services, () => instance.patchPartial(htmlString, cssSelector));
+    } catch (error) {
+        console.error('[PPFramework] Failed to queue patchPartial until init()', error);
+    }
+}
+
+/**
+ * Loads the target URL with a normal full page navigation. Used when
+ * navigateTo is called before init(), as the SPA router is not ready yet.
+ *
+ * @param targetUrl - The URL to load.
+ * @param options - The navigation options. replaceHistory replaces the current
+ * history entry.
+ */
+function navigateWithFullPageLoad(targetUrl: string, options: NavigateOptions): void {
+    if (options.replaceHistory) {
+        window.location.replace(targetUrl);
+        return;
+    }
+    window.location.assign(targetUrl);
 }
 
 /**
@@ -368,6 +469,21 @@ interface DOMUpdateDeps {
 }
 
 /**
+ * Copies the page ID of the page navigated to onto the body, which SPA navigation keeps.
+ * Page scripts find the page root by this attribute.
+ *
+ * @param parsedDocument - The parsed document from the server.
+ */
+function syncPageID(parsedDocument: Document): void {
+    const pageID = parsedDocument.querySelector('[data-pageid]')?.getAttribute('data-pageid');
+    if (pageID) {
+        document.body.setAttribute('data-pageid', pageID);
+    } else {
+        document.body.removeAttribute('data-pageid');
+    }
+}
+
+/**
  * Perform the DOM update operations synchronously during page navigation.
  *
  * @param deps - The service dependencies for the update.
@@ -385,16 +501,20 @@ function performDOMUpdate(
 ): void {
     _runPageCleanup();
 
+    _endPageVisit();
+
     getGlobalPageContext().clear();
 
     if (scrollOptions.morph === 'none') {
-        oldAppRoot.innerHTML = newAppRoot.innerHTML;
+        oldAppRoot.replaceChildren(parseWithPageCSPToken(newAppRoot.innerHTML, oldAppRoot.ownerDocument));
     } else {
         fragmentMorpher(oldAppRoot as HTMLElement, newAppRoot, {
             childrenOnly: true,
             getNodeKey
         });
     }
+
+    syncPageID(parsedDocument);
 
     handleScrollPosition(scrollOptions);
 
@@ -419,7 +539,7 @@ function performDOMUpdate(
 
     if (newPageStyle) {
         const clonedStyle = newPageStyle.cloneNode(true) as HTMLStyleElement;
-        document.head.appendChild(clonedStyle);
+        document.head.appendChild(applyPageCSPToken(clonedStyle));
     }
 
     const newTitle = parsedDocument.querySelector('title');
@@ -439,11 +559,13 @@ interface PageLoadDeps {
     bindDOM: (root: HTMLElement) => void;
     /** The module loader for loading ES module scripts. */
     moduleLoader: ModuleLoader;
+    /** Whether the app turned off View Transitions for SPA navigation. */
+    viewTransitionsOff: boolean;
 }
 
 /**
  * Handle a page load after SPA navigation by merging sprites,
- * replacing DOM content, and triggering View Transitions if available.
+ * replacing DOM content, and running a View Transition unless the app turned them off.
  *
  * @param deps - The service dependencies for the page load.
  * @param parsedDocument - The parsed document from the server.
@@ -477,25 +599,69 @@ async function handlePageLoad(
         performDOMUpdate(domUpdateDeps, parsedDocument, oldAppRoot, newAppRoot, scrollOptions);
     };
 
-    const canAnimate =
-        document.visibilityState !== 'hidden' &&
-        'startViewTransition' in document &&
-        typeof document.startViewTransition === 'function';
-
-    if (!canAnimate) {
+    if (!canAnimateNavigation(deps)) {
         applyUpdate();
         return;
     }
 
     try {
-        const transition = document.startViewTransition(applyUpdate);
-        await transition.updateCallbackDone;
+        await runUpdateInTransition(applyUpdate);
     } catch (error) {
         if (updateState.applied) {
             throw error;
         }
         applyUpdate();
     }
+}
+
+/**
+ * Runs a page update in a View Transition and waits until the update has run.
+ *
+ * @param applyUpdate - The page update.
+ */
+async function runUpdateInTransition(applyUpdate: () => void): Promise<void> {
+    const transition = document.startViewTransition(applyUpdate);
+    handleTransitionAnimation(transition);
+    replayClicksLostToTransition(transition);
+    await transition.updateCallbackDone;
+}
+
+/**
+ * Handles the promises of a transition's animation, which reject when the transition is
+ * skipped, for example by a click or a new navigation.
+ *
+ * The page update still runs when the animation is skipped, so these rejections are
+ * expected and need no report.
+ *
+ * @param transition - The running transition.
+ */
+function handleTransitionAnimation(transition: ViewTransition): void {
+    transition.ready.catch(() => undefined);
+    transition.finished.catch(() => undefined);
+}
+
+/**
+ * Reports whether a SPA navigation should run its DOM update in a View Transition.
+ *
+ * @param deps - The service dependencies for the page load.
+ * @returns True when the app did not turn transitions off and the browser can run one.
+ */
+function canAnimateNavigation(deps: PageLoadDeps): boolean {
+    return !deps.viewTransitionsOff &&
+        document.visibilityState !== 'hidden' &&
+        'startViewTransition' in document &&
+        typeof document.startViewTransition === 'function';
+}
+
+/**
+ * Reports whether the server turned off View Transitions for SPA navigation, through a
+ * meta element in the document head.
+ *
+ * @param doc - The document the runtime started in.
+ * @returns True when the document carries the View Transitions meta element.
+ */
+function viewTransitionsTurnedOff(doc: Document): boolean {
+    return doc.head.querySelector(VIEW_TRANSITIONS_META_SELECTOR) !== null;
 }
 
 /**
@@ -539,7 +705,8 @@ function initFrameworkServices(
     const pageLoadDeps: PageLoadDeps = {
         spriteSheetManager: services.spriteSheetManager,
         bindDOM,
-        moduleLoader: services.moduleLoader
+        moduleLoader: services.moduleLoader,
+        viewTransitionsOff: viewTransitionsTurnedOff(document)
     };
 
     services.router = createRouter({
@@ -608,6 +775,9 @@ function initFrameworkDOM(services: FrameworkServices): void {
 
     services.hookManager.processQueue();
 
+    const hookManager = services.hookManager;
+    registerDiagnosticEmitter(payload => hookManager.emit(HookEvent.DIAGNOSTIC, payload));
+
     services.hookManager.emit(HookEvent.FRAMEWORK_READY, {
         version: '1.0.0',
         loadTime: performance.now(),
@@ -650,7 +820,8 @@ function createInitialServices(): FrameworkServices {
         domBinder: null,
         syncPartialManager: null,
         globalConfig: {},
-        moduleConfigCache: null
+        moduleConfigCache: null,
+        callsBeforeInit: []
     };
 }
 
@@ -692,18 +863,18 @@ function buildFrameworkInstance(services: FrameworkServices): PPFrameworkInstanc
         init(options: PPFrameworkOptions = {}) {
             initFrameworkServices(services, options, instance);
             initFrameworkDOM(services);
+            runCallsQueuedBeforeInit(services);
         },
         async navigateTo(targetUrl: string, evt?: Event, options: NavigateOptions = {}): Promise<void> {
             if (!services.router) {
-                console.warn('PPFramework: navigateTo called before init()');
+                navigateWithFullPageLoad(targetUrl, options);
                 return;
             }
             return services.router.navigateTo(targetUrl, evt, options);
         },
         async remoteRender(options: RemoteRenderOptions): Promise<void> {
             if (!services.remoteRenderer) {
-                console.warn('PPFramework: remoteRender called before init()');
-                return;
+                return queueRemoteRender(services, instance, options);
             }
             return services.remoteRenderer.render(options);
         },
@@ -725,7 +896,13 @@ function buildFrameworkInstance(services: FrameworkServices): PPFrameworkInstanc
         updateProgressBar(percentValue: number) { services.loader?.setProgress(percentValue); },
         displayError(message: string) { services.errorDisplay?.show(message); },
         loadModuleScripts(doc: Document) { services.moduleLoader.loadFromDocument(doc); },
-        patchPartial(htmlString: string, cssSelector: string) { services.remoteRenderer?.patchPartial(htmlString, cssSelector); },
+        patchPartial(htmlString: string, cssSelector: string) {
+            if (!services.remoteRenderer) {
+                queuePatchPartial(services, instance, htmlString, cssSelector);
+                return;
+            }
+            services.remoteRenderer.patchPartial(htmlString, cssSelector);
+        },
         async openModalIfAvailable(options: ModalRequestOptions): Promise<void> {
             return services.modalManager.openIfAvailable(options);
         },
@@ -765,7 +942,7 @@ function getModuleConfig<T = unknown>(services: FrameworkServices, moduleName: s
             try {
                 services.moduleConfigCache = JSON.parse(configEl.textContent) as Record<string, unknown>;
             } catch {
-                console.warn('[PPFramework] Failed to parse module config JSON');
+                console.error('[PPFramework] Failed to parse module config JSON');
                 services.moduleConfigCache = {};
             }
         } else {
@@ -811,7 +988,8 @@ function dispatchActionImpl(
         return;
     }
 
-    console.warn(`[PPFramework] Action function "${actionName}" not found in registry.`);
+    console.error(`[PPFramework] Action function "${actionName}" not found in registry.`);
+    reportDiagnostic({kind: 'action-not-found', name: actionName, source: 'dispatchAction'});
 }
 
 /**

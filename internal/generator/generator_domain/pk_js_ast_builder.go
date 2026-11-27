@@ -19,6 +19,7 @@
 package generator_domain
 
 import (
+	"fmt"
 	"strings"
 
 	parsejs "github.com/tdewolff/parse/v2/js"
@@ -27,6 +28,34 @@ import (
 const (
 	// jsDoubleQuote is the double quote that wraps a JavaScript string literal.
 	jsDoubleQuote = `"`
+
+	// jsGlobalDocument is the browser's global document object.
+	jsGlobalDocument = "document"
+
+	// jsFirstPrintableRune is the first character that a string literal may hold as it is.
+	// Characters below it are control characters.
+	jsFirstPrintableRune = 0x20
+
+	// jsDeleteRune is the delete control character.
+	jsDeleteRune = 0x7f
+
+	// jsLineSeparatorRune is U+2028, which ends a line in older JavaScript engines.
+	jsLineSeparatorRune = 0x2028
+
+	// jsParagraphSeparatorRune is U+2029, which ends a line in older JavaScript engines.
+	jsParagraphSeparatorRune = 0x2029
+)
+
+var (
+	// jsStringEscapes maps the characters that have a short escape sequence inside a
+	// double-quoted JavaScript string literal to that sequence.
+	jsStringEscapes = map[rune]string{
+		'\\': `\\`,
+		'"':  `\"`,
+		'\n': `\n`,
+		'\r': `\r`,
+		'\t': `\t`,
+	}
 )
 
 // jsASTBuilder provides methods for building JavaScript AST nodes using the tdewolff
@@ -51,13 +80,14 @@ func (*jsASTBuilder) newIdentifier(name string) *parsejs.LiteralExpr {
 	return &parsejs.LiteralExpr{TokenType: parsejs.IdentifierToken, Data: []byte(name)}
 }
 
-// newStringLiteral creates a string literal with proper quoting.
+// newStringLiteral creates a double-quoted string literal, escaping the value so any text
+// stays inside the literal.
 //
 // Takes value (string) which is the unquoted string content.
 //
 // Returns *parsejs.LiteralExpr which is the quoted string literal expression.
 func (*jsASTBuilder) newStringLiteral(value string) *parsejs.LiteralExpr {
-	return &parsejs.LiteralExpr{TokenType: parsejs.StringToken, Data: []byte(jsDoubleQuote + value + jsDoubleQuote)}
+	return &parsejs.LiteralExpr{TokenType: parsejs.StringToken, Data: []byte(quoteJSString(value))}
 }
 
 // newCall creates a function call expression.
@@ -131,6 +161,23 @@ func (b *jsASTBuilder) newMethodCall(target parsejs.IExpr, method string, argume
 // Returns *parsejs.CallExpr which is the built method call expression.
 func (b *jsASTBuilder) newMethodCallWithSpread(target parsejs.IExpr, method string, arguments []parsejs.IExpr, spreadArg parsejs.IExpr) *parsejs.CallExpr {
 	return b.newCallWithSpread(b.newDot(target, method), arguments, spreadArg)
+}
+
+// newQuerySelector creates a call that finds the first element on the page matching a
+// selector (document.querySelector("selector")).
+//
+// Takes selector (string) which is the CSS selector to match.
+//
+// Returns *parsejs.CallExpr which is the query call.
+func (b *jsASTBuilder) newQuerySelector(selector string) *parsejs.CallExpr {
+	return b.newMethodCall(b.newIdentifier(jsGlobalDocument), "querySelector", b.newStringLiteral(selector))
+}
+
+// newDocumentBody creates the expression for the page's body element (document.body).
+//
+// Returns *parsejs.DotExpr which is the member access.
+func (b *jsASTBuilder) newDocumentBody() *parsejs.DotExpr {
+	return b.newDot(b.newIdentifier(jsGlobalDocument), "body")
 }
 
 // newNew creates a new expression AST node (new X(arguments)).
@@ -233,12 +280,11 @@ func (b *jsASTBuilder) newConstDecl(name string, init parsejs.IExpr) *parsejs.Va
 //
 // Takes name (string) which specifies the function name, or empty for anonymous
 // functions.
-// Takes async (bool) which indicates whether the function is async.
 // Takes params ([]string) which lists the parameter names.
 // Takes body ([]parsejs.IStmt) which contains the function body statements.
 //
 // Returns *parsejs.FuncDecl which is the built function declaration.
-func (b *jsASTBuilder) newFunc(name string, async bool, params []string, body []parsejs.IStmt) *parsejs.FuncDecl {
+func (b *jsASTBuilder) newFunc(name string, params []string, body []parsejs.IStmt) *parsejs.FuncDecl {
 	paramBindings := make([]parsejs.BindingElement, len(params))
 	for i, p := range params {
 		paramBindings[i] = parsejs.BindingElement{Binding: b.newVar(p)}
@@ -250,24 +296,36 @@ func (b *jsASTBuilder) newFunc(name string, async bool, params []string, body []
 	}
 
 	return &parsejs.FuncDecl{
-		Async:  async,
 		Name:   nameVar,
 		Params: parsejs.Params{List: paramBindings},
 		Body:   parsejs.BlockStmt{List: body},
 	}
 }
 
+// newAsyncFunc creates an async function declaration.
+//
+// Takes name (string) which specifies the function name, or empty for anonymous
+// functions.
+// Takes params ([]string) which lists the parameter names.
+// Takes body ([]parsejs.IStmt) which contains the function body statements.
+//
+// Returns *parsejs.FuncDecl which is the built async function declaration.
+func (b *jsASTBuilder) newAsyncFunc(name string, params []string, body []parsejs.IStmt) *parsejs.FuncDecl {
+	jsFunction := b.newFunc(name, params, body)
+	jsFunction.Async = true
+	return jsFunction
+}
+
 // newFuncWithRest creates a function declaration with a rest parameter.
 //
 // Takes name (string) which specifies the function name.
-// Takes async (bool) which indicates whether the function is async.
 // Takes params ([]string) which lists the regular parameter names.
 // Takes restParam (string) which specifies the rest parameter name.
 // Takes body ([]parsejs.IStmt) which contains the function body statements.
 //
 // Returns *parsejs.FuncDecl which is the function declaration with a rest parameter set.
-func (b *jsASTBuilder) newFuncWithRest(name string, async bool, params []string, restParam string, body []parsejs.IStmt) *parsejs.FuncDecl {
-	jsFunction := b.newFunc(name, async, params, body)
+func (b *jsASTBuilder) newFuncWithRest(name string, params []string, restParam string, body []parsejs.IStmt) *parsejs.FuncDecl {
+	jsFunction := b.newFunc(name, params, body)
 	jsFunction.Params.Rest = b.newVar(restParam)
 	return jsFunction
 }
@@ -314,21 +372,22 @@ func (*jsASTBuilder) newImport(names []string, modulePath string) *parsejs.Impor
 	}
 	return &parsejs.ImportStmt{
 		List:   aliases,
-		Module: []byte(jsDoubleQuote + modulePath + jsDoubleQuote),
+		Module: []byte(quoteJSString(modulePath)),
 	}
 }
 
-// newExportFunc creates an exported function declaration.
+// newAsyncExportFunc creates an exported async function declaration with a rest
+// parameter.
 //
 // Takes name (string) which specifies the function name.
-// Takes async (bool) which indicates if the function is asynchronous.
 // Takes params ([]string) which lists the function parameter names.
-// Takes restParam (string) which specifies the rest parameter name, if any.
+// Takes restParam (string) which specifies the rest parameter name.
 // Takes body ([]parsejs.IStmt) which contains the function body statements.
 //
 // Returns *parsejs.ExportStmt which wraps the function in an export statement.
-func (b *jsASTBuilder) newExportFunc(name string, async bool, params []string, restParam string, body []parsejs.IStmt) *parsejs.ExportStmt {
-	jsFunction := b.newFuncWithRest(name, async, params, restParam, body)
+func (b *jsASTBuilder) newAsyncExportFunc(name string, params []string, restParam string, body []parsejs.IStmt) *parsejs.ExportStmt {
+	jsFunction := b.newFuncWithRest(name, params, restParam, body)
+	jsFunction.Async = true
 	return &parsejs.ExportStmt{Decl: jsFunction}
 }
 
@@ -348,4 +407,53 @@ func (*jsASTBuilder) renderStmt(statement parsejs.IStmt) string {
 // Returns *jsASTBuilder which is an empty builder ready for use.
 func newJSASTBuilder() *jsASTBuilder {
 	return &jsASTBuilder{}
+}
+
+// quoteJSString returns a value as a double-quoted JavaScript string literal.
+//
+// Backslashes and double quotes are escaped, and line breaks, other control characters
+// and the line and paragraph separators are written as escape sequences, so the literal
+// can neither end early nor span lines.
+//
+// Takes value (string) which is the text to quote.
+//
+// Returns string which is the quoted literal.
+func quoteJSString(value string) string {
+	var builder strings.Builder
+	builder.Grow(len(value) + len(jsDoubleQuote)*2)
+	builder.WriteString(jsDoubleQuote)
+	for _, character := range value {
+		writeJSStringRune(&builder, character)
+	}
+	builder.WriteString(jsDoubleQuote)
+	return builder.String()
+}
+
+// writeJSStringRune writes one character as it must appear inside a double-quoted
+// JavaScript string literal.
+//
+// Takes builder (*strings.Builder) which receives the character or its escape sequence.
+// Takes character (rune) which is the character to write.
+func writeJSStringRune(builder *strings.Builder, character rune) {
+	if escape, found := jsStringEscapes[character]; found {
+		builder.WriteString(escape)
+		return
+	}
+	if isJSStringControlRune(character) {
+		_, _ = fmt.Fprintf(builder, `\u%04x`, character)
+		return
+	}
+	_, _ = builder.WriteRune(character)
+}
+
+// isJSStringControlRune reports whether a character must be written as a unicode escape
+// inside a JavaScript string literal.
+//
+// Takes character (rune) which is the character to check.
+//
+// Returns bool which is true for control characters and the line and paragraph
+// separators.
+func isJSStringControlRune(character rune) bool {
+	return character < jsFirstPrintableRune || character == jsDeleteRune ||
+		character == jsLineSeparatorRune || character == jsParagraphSeparatorRune
 }

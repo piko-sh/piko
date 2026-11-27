@@ -1,0 +1,72 @@
+{
+  "description": "Double-clicking a Save button bound to an action sends the action once and saves one record, and the button and form are busy while it is in flight",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "#save-supplier[pk-ev-bound]",
+      "timeout": 5000
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#supplier[pk-ev-bound]",
+      "timeout": 5000
+    },
+    {
+      "action": "checkText",
+      "selector": "#supplier-count",
+      "expected": "0"
+    },
+    {
+      "action": "comment",
+      "value": "Count every send of the action from the page"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "(() => { window.__supplierSends = 0; const send = window.fetch; window.fetch = (...args) => { if (String(args[0]).includes('/_piko/actions/suppliers.Create')) { window.__supplierSends++; } return send(...args); }; return true; })()"
+    },
+    {
+      "action": "doubleClick",
+      "selector": "#save-supplier"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "#supplier",
+      "attribute": "aria-busy",
+      "expected": "true"
+    },
+    {
+      "action": "checkAttribute",
+      "selector": "#save-supplier",
+      "attribute": "aria-busy",
+      "expected": "true"
+    },
+    {
+      "action": "comment",
+      "value": "Wait for the save to settle, then check that it was sent once"
+    },
+    {
+      "action": "eval",
+      "selector": "window",
+      "value": "new Promise((resolve, reject) => { const deadline = performance.now() + 10000; const poll = () => { if (!document.querySelector('#supplier').hasAttribute('aria-busy') && !document.querySelector('#save-supplier').hasAttribute('aria-busy')) { resolve(true); return; } if (performance.now() > deadline) { reject(new Error('the save never settled')); return; } setTimeout(poll, 20); }; poll(); }).then(() => { if (window.__supplierSends !== 1) { throw new Error('the action was sent ' + window.__supplierSends + ' times'); } return true; })"
+    },
+    {
+      "action": "comment",
+      "value": "The server saved one supplier"
+    },
+    {
+      "action": "navigate",
+      "value": "/main"
+    },
+    {
+      "action": "checkText",
+      "selector": "#supplier-count",
+      "expected": "1"
+    },
+    {
+      "action": "checkNoConsoleErrors"
+    }
+  ]
+}

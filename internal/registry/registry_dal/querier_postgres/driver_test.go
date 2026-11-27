@@ -21,20 +21,24 @@ package querier_postgres
 import (
 	"context"
 	"database/sql"
+	sqldriver "database/sql/driver"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"piko.sh/piko/internal/registry/registry_dal/dalcore"
 	dbpkg "piko.sh/piko/internal/registry/registry_dal/querier_postgres/db"
 )
 
 type recordingDBTX struct {
-	queries []string
+	queries   []string
+	arguments [][]any
 }
 
-func (r *recordingDBTX) ExecContext(_ context.Context, query string, _ ...any) (sql.Result, error) {
+func (r *recordingDBTX) ExecContext(_ context.Context, query string, arguments ...any) (sql.Result, error) {
 	r.queries = append(r.queries, query)
+	r.arguments = append(r.arguments, arguments)
 
 	return nil, sql.ErrConnDone
 }
@@ -62,4 +66,39 @@ func TestNewObserved_RunsStatementsThroughTheObservedHandle(t *testing.T) {
 
 	queries := dbpkg.New(recorder)
 	assert.NotNil(t, queries)
+}
+
+func TestDriver_InsertVariantChunkBindsNullableDuration(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		duration *float64
+		want     sqldriver.Value
+		name     string
+	}{
+		{name: "nil duration is bound as NULL", duration: nil, want: nil},
+		{name: "set duration is bound as its value", duration: new(2.5), want: 2.5},
+		{name: "zero duration stays a value rather than NULL", duration: new(0.0), want: 0.0},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			recorder := &recordingDBTX{}
+			chunkDriver := &driver{queries: dbpkg.New(recorder)}
+			err := chunkDriver.InsertVariantChunk(t.Context(), dalcore.InsertVariantChunkParams{DurationSeconds: testCase.duration})
+			require.ErrorIs(t, err, sql.ErrConnDone)
+
+			require.Len(t, recorder.arguments, 1)
+			arguments := recorder.arguments[0]
+			require.NotEmpty(t, arguments)
+			valuer, ok := arguments[len(arguments)-1].(sqldriver.Valuer)
+			require.True(t, ok, "the duration is bound through a driver value")
+
+			bound, err := valuer.Value()
+			require.NoError(t, err)
+			assert.Equal(t, testCase.want, bound)
+		})
+	}
 }

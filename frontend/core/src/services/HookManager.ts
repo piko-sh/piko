@@ -65,6 +65,12 @@ export const HookEvent = {
 
     /** Fired when user code requests a custom analytics event via piko.analytics.track(). */
     ANALYTICS_TRACK: 'analytics:track',
+
+    /**
+     * Fired when a call looks up something by name and finds nothing, such as a
+     * missing partial, ref or modal. Fires at most once per kind and name per page visit.
+     */
+    DIAGNOSTIC: 'diagnostic',
 } as const;
 
 /** Union type of all hook event string values. */
@@ -204,6 +210,30 @@ export interface AnalyticsTrackPayload {
     timestamp: number;
 }
 
+/** The kinds of lookup that a diagnostic event reports as not found. */
+export type DiagnosticKind =
+    | 'partial-not-found'
+    | 'ref-not-found'
+    | 'modal-not-found'
+    | 'target-not-found'
+    | 'fragment-selector-not-found'
+    | 'handler-not-found'
+    | 'action-not-found';
+
+/** Payload for diagnostic events. */
+export interface DiagnosticPayload {
+    /** What kind of lookup found nothing. */
+    kind: DiagnosticKind;
+    /** The name, selector or target that was looked up. */
+    name: string;
+    /** Where the lookup ran. This is the partial id when known, otherwise the page path. */
+    context: string;
+    /** The API that made the lookup, such as reloadPartial or pk.refs. */
+    source: string;
+    /** Unix timestamp of the event. */
+    timestamp: number;
+}
+
 /** Maps hook event types to their corresponding payload types. */
 export interface HookPayloads {
     [HookEvent.FRAMEWORK_READY]: FrameworkReadyPayload;
@@ -222,6 +252,7 @@ export interface HookPayloads {
     [HookEvent.NETWORK_OFFLINE]: NetworkPayload;
     [HookEvent.ERROR]: ErrorPayload;
     [HookEvent.ANALYTICS_TRACK]: AnalyticsTrackPayload;
+    [HookEvent.DIAGNOSTIC]: DiagnosticPayload;
 }
 
 /** Callback function type for hook subscribers, typed by event. */

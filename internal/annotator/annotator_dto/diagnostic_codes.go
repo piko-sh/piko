@@ -229,4 +229,16 @@ const (
 	// CodeCollectionSourceNotFound indicates a p-collection-source alias matches no import
 	// in the component's Go script block.
 	CodeCollectionSourceNotFound = "T155"
+
+	// CodeUnresolvedRef indicates a script reads pk.refs or pkc.refs with a literal name
+	// that no p-ref in reach declares, so the ref is always missing.
+	CodeUnresolvedRef = "T156"
+
+	// CodeUnresolvedPartialName indicates a script passes a literal partial name to a
+	// partial reload call, but no partial in the build has that name.
+	CodeUnresolvedPartialName = "T157"
+
+	// CodeUnresolvedModalSelector indicates a literal [modal=name] selector matches no
+	// element with that modal attribute on the page or in any partial.
+	CodeUnresolvedModalSelector = "T158"
 )

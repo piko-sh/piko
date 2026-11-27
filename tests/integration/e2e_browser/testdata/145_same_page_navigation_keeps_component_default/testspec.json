@@ -1,0 +1,70 @@
+{
+  "description": "Clicking the link of the page already shown navigates in place and keeps a component's default that the server markup never sets, so a label shown by default stays shown",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Main Page"
+    },
+    {
+      "action": "comment",
+      "value": "The label shows by its default and the component reflects that default as an attribute"
+    },
+    {
+      "action": "eval",
+      "value": "new Promise((resolve, reject) => { const deadline = performance.now() + 5000; const poll = () => { const label = document.querySelector('page-label'); const text = label && label.shadowRoot && label.shadowRoot.querySelector('.page-label-text'); if (text && text.textContent.trim() === 'Page 1 of 3' && label.hasAttribute('show_page_info')) { resolve(true); return; } if (performance.now() > deadline) { reject(new Error('the label did not show Page 1 of 3 with its show_page_info attribute')); return; } setTimeout(poll, 50); }; poll(); })"
+    },
+    {
+      "action": "eval",
+      "value": "window.__spaMarker = 'kept'; window.__labelNode = document.querySelector('page-label'); window.__navigations = 0; window.piko.hooks.on('navigation:complete', () => { window.__navigations++; });"
+    },
+    {
+      "action": "comment",
+      "value": "Click the link of the page already shown"
+    },
+    {
+      "action": "click",
+      "selector": "#nav-main"
+    },
+    {
+      "action": "eval",
+      "value": "new Promise((resolve, reject) => { const deadline = performance.now() + 5000; const poll = () => { if (window.__navigations >= 1) { resolve(true); return; } if (performance.now() > deadline) { reject(new Error('the same-page navigation did not complete')); return; } setTimeout(poll, 50); }; poll(); })"
+    },
+    {
+      "action": "eval",
+      "value": "if (window.__spaMarker !== 'kept') { throw new Error('the page reloaded instead of navigating in place'); } if (document.querySelector('page-label') !== window.__labelNode) { throw new Error('the component was replaced instead of morphed'); }"
+    },
+    {
+      "action": "eval",
+      "value": "new Promise((resolve, reject) => { const settle = performance.now() + 300; const deadline = performance.now() + 5000; const poll = () => { const label = document.querySelector('page-label'); const text = label.shadowRoot && label.shadowRoot.querySelector('.page-label-text'); const shown = Boolean(text && text.textContent.trim() === 'Page 1 of 3'); if (!shown || !label.hasAttribute('show_page_info')) { reject(new Error('after the same-page navigation the label is gone; attributes: ' + label.getAttributeNames().join(' '))); return; } if (performance.now() > settle) { resolve(true); return; } if (performance.now() > deadline) { reject(new Error('timed out')); return; } setTimeout(poll, 50); }; poll(); })"
+    },
+    {
+      "action": "comment",
+      "value": "Navigating to another page and back still shows the label"
+    },
+    {
+      "action": "click",
+      "selector": "#nav-other"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Other Page"
+    },
+    {
+      "action": "click",
+      "selector": "#nav-main"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Main Page"
+    },
+    {
+      "action": "eval",
+      "value": "new Promise((resolve, reject) => { const deadline = performance.now() + 5000; const poll = () => { const label = document.querySelector('page-label'); const text = label && label.shadowRoot && label.shadowRoot.querySelector('.page-label-text'); if (text && text.textContent.trim() === 'Page 1 of 3') { resolve(true); return; } if (performance.now() > deadline) { reject(new Error('the label did not show after navigating back')); return; } setTimeout(poll, 50); }; poll(); })"
+    }
+  ]
+}

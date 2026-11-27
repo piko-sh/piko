@@ -46,6 +46,11 @@ type Manifest struct {
 	// Paths use the ! prefix convention (e.g. "pages/!404.pk") and are rendered when the
 	// corresponding HTTP error occurs, with hierarchical scoping.
 	ErrorPages map[string]ManifestErrorPageEntry `json:"errorPages,omitempty"`
+
+	// PartialScripts maps the JS artefact ID of each partial's client script to the
+	// partial's name. It holds every partial with a script, public or not and wherever its
+	// source lives, so the runtime can scope each script a page lists to its partial.
+	PartialScripts map[string]string `json:"partialScripts,omitempty"`
 }
 
 // ManifestPageEntry contains all the pre-compiled, static metadata for a single routable

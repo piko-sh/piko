@@ -31,17 +31,34 @@ const (
 	// jsVarArgs is the JavaScript variable name for spread arguments.
 	jsVarArgs = "args"
 
-	// jsVarScope is the JavaScript variable name for the event scope parameter.
+	// jsVarScope is the JavaScript variable name for the event parameter of __getScope__ and
+	// of __getInstance__ in a partial script.
 	jsVarScope = "e"
 
 	// jsVarTarget is the JavaScript variable name for the event target element.
 	jsVarTarget = "t"
 
-	// jsVarScopeElement is the JavaScript variable name for the scope element.
+	// jsVarScopeElement is the JavaScript variable name for the scope element in
+	// __getInstance__ of a partial script.
 	jsVarScopeElement = "s"
 
-	// jsVarInstances is the JavaScript variable name for the WeakMap that stores component
-	// instances keyed by their DOM elements.
+	// jsVarInitScope is the JavaScript variable name for the scope element in the code that
+	// creates the instance when the module loads or is re-initialised.
+	jsVarInitScope = "__s__"
+
+	// jsVarPageVisit is the JavaScript parameter name for the page visit that keys the
+	// instance of a page script and that its pk context is created for.
+	jsVarPageVisit = "__visit__"
+
+	// jsVarFactoryScope is the JavaScript parameter name for the scope element of
+	// __createInstance__.
+	jsVarFactoryScope = "__scope__"
+
+	// jsVarContext is the JavaScript variable name for the pk context that user code calls.
+	jsVarContext = "pk"
+
+	// jsVarInstances is the JavaScript variable name for the WeakMap that stores instances
+	// by key. The key is the scope element for a partial, and the page visit for a page.
 	jsVarInstances = "__instances__"
 
 	// jsVarGetScope is the function name used to retrieve scope elements.
@@ -54,13 +71,37 @@ const (
 	// component instances.
 	jsVarCreateInst = "__createInstance__"
 
-	// jsSelectorPageID is the CSS selector for elements with a page ID attribute.
+	// jsFuncReinit is the exported function the runtime calls each time it loads the module
+	// for a page, to create the instance for the current DOM.
+	jsFuncReinit = "__reinit__"
+
+	// jsFuncCreatePKContext is the runtime function that creates the pk context of a partial
+	// instance.
+	jsFuncCreatePKContext = "_createPKContext"
+
+	// jsFuncCreatePagePKContext is the runtime function that creates the pk context of a
+	// page script instance, whose lifecycle ends with the page visit.
+	jsFuncCreatePagePKContext = "_createPagePKContext"
+
+	// jsFuncCurrentPageVisit is the runtime function that returns the token of the page
+	// visit currently shown. A page script keys its instance by this token, so each visit to
+	// the page, including a return through SPA navigation, gets a fresh instance.
+	jsFuncCurrentPageVisit = "_currentPageVisit"
+
+	// jsFuncGetGlobalPageContext is the runtime function that returns the page context,
+	// which maps exported function names to handlers.
+	jsFuncGetGlobalPageContext = "getGlobalPageContext"
+
+	// jsSelectorPageID is the CSS selector for the page root, which carries the page ID.
 	jsSelectorPageID = "[data-pageid]"
 
-	// jsSelectorPartial is the CSS selector for partial template containers. We use
-	// [partial_name] not [partial] because [partial] is on ALL elements inside a partial
-	// (for CSS scoping), but only the container has [partial_name].
-	jsSelectorPartial = "[partial_name]"
+	// jsSelectorPartial is the CSS selector for the root element of any partial. It uses
+	// partial_name, not partial, because partial is on every element inside a partial (for
+	// CSS scoping), but only the root element has partial_name.
+	jsSelectorPartial = "[" + partialNameAttribute + "]"
+
+	// jsStatementEnd ends a rendered statement that the AST renderer leaves open.
+	jsStatementEnd = ";"
 
 	// jsNewline is the newline character used when building JavaScript output.
 	jsNewline = "\n"
@@ -79,7 +120,7 @@ type pkTransformBuilder struct {
 //
 // Returns parsejs.IStmt which is the import statement for the PK framework.
 func (b *pkTransformBuilder) buildImportStmt(identifiers []string) parsejs.IStmt {
-	return b.ast.newImport(identifiers, PKFrameworkURL)
+	return b.ast.newImport(identifiers, pkFrameworkURL)
 }
 
 // buildInstancesDecl creates a const declaration for the instances WeakMap.
@@ -93,12 +134,24 @@ func (b *pkTransformBuilder) buildInstancesDecl() parsejs.IStmt {
 // buildGetScopeFunc creates the __getScope__ function that finds the scope element for
 // event handlers.
 //
-// The generated function checks partial_name first (inner scope) before data-pageid
-// (outer scope) so that partials inside pages get the correct partial scope. Falls back
-// to document.body if no scope element is found.
+// The generated function looks for the script's own partial root first, then for the root
+// of any partial, then for the page root, and falls back to document.body. Looking for
+// the own partial first means a handler placed in the slot of another partial still finds
+// the root of the partial it belongs to.
+//
+// It generates the code below.
+//
+//	function __getScope__(e) {
+//	    const t = e?.currentTarget ?? e?.target;
+//	    if (!(t instanceof Element)) return document.body;
+//	    return t.closest(<own selector>) ?? t.closest("[partial_name]") ?? t.closest("[data-pageid]") ?? document.body;
+//	}
+//
+// Takes ownPartialSelector (string) which is the CSS selector for the root element of the
+// script's own partial.
 //
 // Returns parsejs.IStmt which is the generated function statement.
-func (b *pkTransformBuilder) buildGetScopeFunc() parsejs.IStmt {
+func (b *pkTransformBuilder) buildGetScopeFunc(ownPartialSelector string) parsejs.IStmt {
 	tDecl := b.ast.newConstDecl(jsVarTarget,
 		b.ast.newBinary(parsejs.NullishToken,
 			&parsejs.DotExpr{
@@ -120,61 +173,107 @@ func (b *pkTransformBuilder) buildGetScopeFunc() parsejs.IStmt {
 	)
 	notInstanceof := b.ast.newUnary(parsejs.NotToken, b.ast.newGroup(instanceofCheck))
 	ifNotElement := b.ast.newIf(notInstanceof,
-		b.ast.newReturn(b.ast.newDot(b.ast.newIdentifier("document"), "body")),
+		b.ast.newReturn(b.ast.newDocumentBody()),
 		nil,
 	)
 
-	closestPageid := b.ast.newMethodCall(b.ast.newIdentifier(jsVarTarget), "closest",
-		b.ast.newStringLiteral(jsSelectorPageID))
-	closestPartial := b.ast.newMethodCall(b.ast.newIdentifier(jsVarTarget), "closest",
-		b.ast.newStringLiteral(jsSelectorPartial))
-	documentBody := b.ast.newDot(b.ast.newIdentifier("document"), "body")
+	scope := b.buildClosest(ownPartialSelector)
+	for _, selector := range []string{jsSelectorPartial, jsSelectorPageID} {
+		scope = b.ast.newBinary(parsejs.NullishToken, scope, b.buildClosest(selector))
+	}
+	returnStmt := b.ast.newReturn(b.ast.newBinary(parsejs.NullishToken, scope, b.ast.newDocumentBody()))
 
-	returnStmt := b.ast.newReturn(
-		b.ast.newBinary(parsejs.NullishToken,
-			b.ast.newBinary(parsejs.NullishToken, closestPartial, closestPageid),
-			documentBody,
-		),
-	)
-
-	return b.ast.newFunc(jsVarGetScope, false, []string{jsVarScope}, []parsejs.IStmt{
+	return b.ast.newFunc(jsVarGetScope, []string{jsVarScope}, []parsejs.IStmt{
 		tDecl, ifNotElement, returnStmt,
 	})
 }
 
-// buildGetInstanceFunc creates the async __getInstance__ function that retrieves or
-// creates a scoped instance.
+// buildClosest creates the call that finds the nearest element around the event target
+// that matches a selector.
 //
-// Generates:
+// It generates t.closest(selector).
 //
-//	async function __getInstance__(e) {
-//	    const s = __getScope__(e);
-//	    if (!__instances__.has(s)) __instances__.set(s, __createInstance__(s));
-//	    return __instances__.get(s);
-//	}
+// Takes selector (string) which is the CSS selector to match.
 //
-// Returns parsejs.IStmt which is the generated function statement.
-func (b *pkTransformBuilder) buildGetInstanceFunc() parsejs.IStmt {
-	sDecl := b.ast.newConstDecl(jsVarScopeElement,
-		b.ast.newCall(b.ast.newIdentifier(jsVarGetScope), b.ast.newIdentifier(jsVarScope)))
+// Returns parsejs.IExpr which is the generated call.
+func (b *pkTransformBuilder) buildClosest(selector string) parsejs.IExpr {
+	return b.ast.newMethodCall(b.ast.newIdentifier(jsVarTarget), "closest", b.ast.newStringLiteral(selector))
+}
 
-	hasCheck := b.ast.newMethodCall(b.ast.newIdentifier(jsVarInstances), "has",
-		b.ast.newIdentifier(jsVarScopeElement))
-	notHas := b.ast.newUnary(parsejs.NotToken, hasCheck)
-
+// buildCreateIfMissing creates the statement that creates and stores the instance of a
+// scope element unless its key already has one.
+//
+// For a partial, it generates the code below.
+//
+//	if (!__instances__.has(scope)) __instances__.set(scope, __createInstance__(scope));
+//
+// A page keys the instance by the page visit and passes the visit to __createInstance__.
+//
+// Takes target (pkScriptTarget) which decides the instance key and the factory arguments.
+// Takes scope (parsejs.IExpr) which is the scope element of the instance.
+//
+// Returns parsejs.IStmt which is the generated if statement.
+func (b *pkTransformBuilder) buildCreateIfMissing(target pkScriptTarget, scope parsejs.IExpr) parsejs.IStmt {
+	key := target.instanceKey(b.ast, scope)
+	hasCheck := b.ast.newMethodCall(b.ast.newIdentifier(jsVarInstances), "has", key)
 	setCall := b.ast.newMethodCall(b.ast.newIdentifier(jsVarInstances), "set",
-		b.ast.newIdentifier(jsVarScopeElement),
-		b.ast.newCall(b.ast.newIdentifier(jsVarCreateInst), b.ast.newIdentifier(jsVarScopeElement)),
+		key,
+		b.ast.newCall(b.ast.newIdentifier(jsVarCreateInst), target.factoryArguments(b.ast, scope)...),
 	)
-	ifNotHas := b.ast.newIf(notHas, b.ast.newExprStmt(setCall), nil)
+	return b.ast.newIf(b.ast.newUnary(parsejs.NotToken, hasCheck), b.ast.newExprStmt(setCall), nil)
+}
 
-	returnStmt := b.ast.newReturn(
-		b.ast.newMethodCall(b.ast.newIdentifier(jsVarInstances), "get",
-			b.ast.newIdentifier(jsVarScopeElement)))
+// buildInstanceInit creates the statements that create the instance for the current DOM
+// unless it already exists. A partial runs them when its module is first evaluated, and
+// every script runs them in __reinit__.
+//
+// It generates the code below.
+//
+//	const __s__ = <scope expression>;
+//	if (!__instances__.has(<key>)) __instances__.set(<key>, __createInstance__(__s__, ...));
+//
+// Takes target (pkScriptTarget) which decides the scope element and the instance key.
+//
+// Returns []parsejs.IStmt which holds the scope declaration and the creation.
+func (b *pkTransformBuilder) buildInstanceInit(target pkScriptTarget) []parsejs.IStmt {
+	scope := b.ast.newIdentifier(jsVarInitScope)
+	return []parsejs.IStmt{
+		b.ast.newConstDecl(jsVarInitScope, target.scopeExpression(b.ast)),
+		b.buildCreateIfMissing(target, scope),
+	}
+}
 
-	return b.ast.newFunc(jsVarGetInstance, true, []string{jsVarScope}, []parsejs.IStmt{
-		sDecl, ifNotHas, returnStmt,
-	})
+// buildReinitExport creates the exported __reinit__ function that creates the instance
+// for the current DOM.
+//
+// ES module import() is idempotent. The browser evaluates a module once and returns the
+// cached module on later imports. The runtime calls __reinit__ each time it loads the
+// module for a page, including after SPA navigation, so pk.onConnected and the other
+// lifecycle hooks run for the new DOM. For a page, the runtime passes the page visit it
+// loaded the module for.
+//
+// Takes target (pkScriptTarget) which decides the parameters, the scope element and the
+// instance key.
+//
+// Returns parsejs.IStmt which is the exported function statement.
+func (b *pkTransformBuilder) buildReinitExport(target pkScriptTarget) parsejs.IStmt {
+	reinit := b.ast.newFunc(jsFuncReinit, nil, b.buildInstanceInit(target))
+	reinit.Params.List = target.reinitParameters(b.ast)
+	return &parsejs.ExportStmt{Decl: reinit}
+}
+
+// buildContextDeclaration creates the line that declares the pk context user code calls.
+//
+// It generates `const pk = <context factory>(scope);`.
+//
+// Takes target (pkScriptTarget) which decides the context factory.
+// Takes scope (parsejs.IExpr) which is the scope element of the context.
+//
+// Returns string which is the rendered declaration. It ends with a semicolon, so user
+// code that starts with a bracket cannot continue it.
+func (b *pkTransformBuilder) buildContextDeclaration(target pkScriptTarget, scope parsejs.IExpr) string {
+	declaration := b.ast.newConstDecl(jsVarContext, target.contextCall(b.ast, scope))
+	return b.ast.renderStmt(declaration) + jsStatementEnd
 }
 
 // buildExportWrapper creates an export wrapper function for a user function.
@@ -185,26 +284,33 @@ func (b *pkTransformBuilder) buildGetInstanceFunc() parsejs.IStmt {
 //	    return (await __getInstance__(event)).name(...args);
 //	}
 //
+// A page script calls __getInstance__ without the event, and calls the function only when
+// the page visit shown now has an instance.
+//
 // Takes functionName (string) which specifies the name of the function to wrap.
+// Takes target (pkScriptTarget) which decides the arguments of __getInstance__ and how
+// the instance is called.
 //
 // Returns parsejs.IStmt which is the generated export wrapper statement.
-func (b *pkTransformBuilder) buildExportWrapper(functionName string) parsejs.IStmt {
+func (b *pkTransformBuilder) buildExportWrapper(functionName string, target pkScriptTarget) parsejs.IStmt {
 	getInstance := b.ast.newCall(b.ast.newIdentifier(jsVarGetInstance),
-		b.ast.newIdentifier(jsVarEvent))
+		target.instanceLookupArguments(b.ast)...)
 	awaitedInstance := b.ast.newGroup(b.ast.newAwait(getInstance))
 
-	methodCall := b.ast.newMethodCallWithSpread(awaitedInstance, functionName,
+	methodCall := b.ast.newCallWithSpread(target.instanceMember(b.ast, awaitedInstance, functionName),
 		nil, b.ast.newIdentifier(jsVarArgs))
 
 	returnStmt := b.ast.newReturn(methodCall)
 
-	return b.ast.newExportFunc(functionName, true, []string{jsVarEvent}, jsVarArgs,
+	return b.ast.newAsyncExportFunc(functionName, []string{jsVarEvent}, jsVarArgs,
 		[]parsejs.IStmt{returnStmt})
 }
 
 // buildSetExportsCall creates the PageContext registration call.
 //
-// Generates: getGlobalPageContext().setExports({ fn1, fn2, ... });
+// It generates the code below.
+//
+//	getGlobalPageContext().setExports({ fn1, fn2, ... });
 //
 // Takes functionNames ([]string) which lists the function names to export.
 //
@@ -217,7 +323,7 @@ func (b *pkTransformBuilder) buildSetExportsCall(functionNames []string) parsejs
 	exportsObj := b.ast.newObject(props...)
 
 	call := b.ast.newMethodCall(
-		b.ast.newCall(b.ast.newIdentifier("getGlobalPageContext")),
+		b.ast.newCall(b.ast.newIdentifier(jsFuncGetGlobalPageContext)),
 		"setExports",
 		exportsObj,
 	)
@@ -227,7 +333,9 @@ func (b *pkTransformBuilder) buildSetExportsCall(functionNames []string) parsejs
 
 // buildFactoryReturnObject creates the return statement for __createInstance__.
 //
-// Generates: return { fn1, fn2, ... };
+// It generates the code below.
+//
+//	return { fn1, fn2, ... };
 //
 // Takes functionNames ([]string) which lists the function names to include as shorthand
 // properties in the returned object.
@@ -250,7 +358,7 @@ func (b *pkTransformBuilder) buildFactoryReturnObject(functionNames []string) st
 // Returns string which is the rendered statement without a trailing semicolon.
 func (b *pkTransformBuilder) renderExportFunc(statement parsejs.IStmt) string {
 	rendered := b.ast.renderStmt(statement)
-	return strings.TrimSuffix(rendered, ";")
+	return strings.TrimSuffix(rendered, jsStatementEnd)
 }
 
 // buildActionImportStmt creates the import statement for the generated action namespace.
@@ -261,85 +369,47 @@ func (b *pkTransformBuilder) buildActionImportStmt() parsejs.IStmt {
 	return b.ast.newImport([]string{"action"}, PKActionsGenURL)
 }
 
-// buildEagerInit generates a self-invoking block that eagerly creates the factory
-// instance at module load time. This ensures that side-effect code inside
-// __createInstance__ (such as piko.hooks.on registrations) runs immediately rather than
-// waiting for the first event handler invocation.
+// writeStatements renders statements to the output, one per line.
 //
-// The scope element is resolved using the same partial/page/body fallback chain as
-// __getScope__. The instance is stored in the WeakMap so that subsequent event-driven
-// calls via __getInstance__ reuse it.
-//
-// Takes componentName (string) which identifies the component for partial selector
-// targeting. When empty, the generic partial selector is used.
-//
-// Returns string which contains the eager initialisation block.
-func (*pkTransformBuilder) buildEagerInit(componentName string) string {
-	partialSelector := jsSelectorPartial
-	if componentName != "" {
-		partialSelector = "[partial_name='" + componentName + "']"
+// Takes builder (*strings.Builder) which receives the rendered statements.
+// Takes statements (...parsejs.IStmt) which are the statements to render.
+func (b *pkTransformBuilder) writeStatements(builder *strings.Builder, statements ...parsejs.IStmt) {
+	for _, statement := range statements {
+		builder.WriteString(b.ast.renderStmt(statement))
+		builder.WriteString(jsNewline)
 	}
-	return `{const __s__=document.querySelector("` + partialSelector +
-		`")??document.querySelector("` + jsSelectorPageID +
-		`")??document.body;if(!` + jsVarInstances +
-		`.has(__s__))` + jsVarInstances + `.set(__s__,` + jsVarCreateInst + `(__s__));}`
 }
 
-// buildReinitExport generates an exported __reinit__ function that re-runs scope
-// resolution and instance creation for the current DOM.
+// buildFullTransform generates the complete transformed source code with the imports, the
+// instance factory around the user's source, an exported wrapper per function and the
+// code that creates instances. The lookup that exported wrappers use is left out when the
+// script has no functions.
 //
-// ES module import() is idempotent - the browser caches modules and does not re-execute
-// them on subsequent imports. During SPA navigation, the eager init block
-// (buildEagerInit) only runs once at first load. __reinit__ provides a callable entry
-// point that the framework invokes after each SPA navigation to create fresh instances
-// for new DOM elements, ensuring pk.onConnected and other lifecycle hooks fire correctly.
-//
-// Takes componentName (string) which identifies the component for partial selector
-// targeting. When empty, the generic partial selector is used.
-//
-// Returns string which contains the exported __reinit__ function.
-func (*pkTransformBuilder) buildReinitExport(componentName string) string {
-	partialSelector := jsSelectorPartial
-	if componentName != "" {
-		partialSelector = "[partial_name='" + componentName + "']"
-	}
-	return `export function __reinit__(){const __s__=document.querySelector("` + partialSelector +
-		`")??document.querySelector("` + jsSelectorPageID +
-		`")??document.body;if(!` + jsVarInstances +
-		`.has(__s__))` + jsVarInstances + `.set(__s__,` + jsVarCreateInst + `(__s__));}`
-}
-
-// buildFullTransform generates the complete transformed source code.
-//
-// Takes imports ([]string) which lists the modules to import.
+// Takes imports ([]string) which lists the identifiers to import.
 // Takes functions ([]exportedFunctionInfo) which describes the top-level functions to
 // wrap as exports.
 // Takes transformedUserSource (string) which is the user's source with export keywords
 // already stripped.
-// Takes componentName (string) which names the component in the transformed source.
+// Takes target (pkScriptTarget) which shapes the code that differs between pages and
+// partials.
 //
 // Returns string which is the fully assembled JavaScript module source.
 func (b *pkTransformBuilder) buildFullTransform(
 	imports []string,
 	functions []exportedFunctionInfo,
 	transformedUserSource string,
-	componentName string,
+	target pkScriptTarget,
 ) string {
 	var builder strings.Builder
 
-	builder.WriteString(b.ast.renderStmt(b.buildActionImportStmt()))
-	builder.WriteString(jsNewline)
-	builder.WriteString(b.ast.renderStmt(b.buildImportStmt(filterFrameworkImports(imports))))
-	builder.WriteString(jsNewline)
-	builder.WriteString(b.ast.renderStmt(b.buildInstancesDecl()))
-	builder.WriteString(jsNewline)
-	builder.WriteString(b.ast.renderStmt(b.buildGetScopeFunc()))
-	builder.WriteString(jsNewline)
-	builder.WriteString(b.ast.renderStmt(b.buildGetInstanceFunc()))
-	builder.WriteString(jsNewline)
+	b.writeStatements(&builder, b.buildActionImportStmt(), b.buildImportStmt(filterFrameworkImports(imports)), b.buildInstancesDecl())
+	if len(functions) > 0 {
+		b.writeStatements(&builder, target.helperFunctions(b)...)
+		b.writeStatements(&builder, target.getInstanceFunction(b))
+	}
 
-	builder.WriteString("async function __createInstance__(__scope__) {" + jsNewline)
-	builder.WriteString("const pk = _createPKContext(__scope__);" + jsNewline)
+	builder.WriteString("async function " + jsVarCreateInst + "(" + strings.Join(target.factoryParameters(), ", ") + ") {" + jsNewline)
+	builder.WriteString(b.buildContextDeclaration(target, b.ast.newIdentifier(jsVarFactoryScope)) + jsNewline)
 	builder.WriteString(transformedUserSource)
 	builder.WriteString(jsNewline)
 
@@ -348,18 +418,12 @@ func (b *pkTransformBuilder) buildFullTransform(
 	builder.WriteString(jsNewline + "}" + jsNewline)
 
 	for _, function := range functions {
-		builder.WriteString(b.renderExportFunc(b.buildExportWrapper(function.name)))
+		builder.WriteString(b.renderExportFunc(b.buildExportWrapper(function.name, target)))
 		builder.WriteString(jsNewline)
 	}
 
-	if len(functionNames) > 0 {
-		builder.WriteString(b.ast.renderStmt(b.buildSetExportsCall(functionNames)))
-		builder.WriteString(jsNewline)
-	}
-
-	builder.WriteString(b.buildEagerInit(componentName))
-	builder.WriteString(jsNewline)
-	builder.WriteString(b.buildReinitExport(componentName))
+	b.writeStatements(&builder, target.moduleLoadStatements(b, functionNames)...)
+	builder.WriteString(b.renderExportFunc(b.buildReinitExport(target)))
 	builder.WriteString(jsNewline)
 
 	return builder.String()

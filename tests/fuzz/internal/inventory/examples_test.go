@@ -61,3 +61,12 @@ func TestExampleContractsReportMissingOperationSource(t *testing.T) {
 	_, err := ExampleContracts(fstest.MapFS{"examples/scenarios/015_markdown_blog/README.md": {}})
 	require.ErrorContains(t, err, "reading operation source")
 }
+
+func TestExampleContractsSkipADirectoryWithOnlyBuildOutput(t *testing.T) {
+	rows, err := ExampleContracts(fstest.MapFS{
+		"examples/scenarios/removed/src/bin/generator":  {},
+		"examples/scenarios/removed/src/.piko/wal/data": {},
+	})
+	require.NoError(t, err)
+	assert.Empty(t, rows)
+}

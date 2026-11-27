@@ -29,6 +29,9 @@ import (
 )
 
 const (
+	// graphWordSeparator joins the words of a modelled graph label or feature name.
+	graphWordSeparator = "-"
+
 	// graphDir is the saved shared-partial source directory.
 	graphDir = "partials/graph/"
 
@@ -169,13 +172,13 @@ func (g partialGraph) evaluate(request string) []casefile.ProgramOutput {
 	if g.editHelper {
 		request += "-changed"
 	}
-	label := request + "-" + g.word
+	label := request + graphWordSeparator + g.word
 	calls := g.calls()
 	out := make([]casefile.ProgramOutput, 0, 1+len(calls))
 	out = append(out, valuedOutput("caption", label, label))
 	for _, call := range calls {
 		var path strings.Builder
-		path.WriteString(request + "-" + g.word)
+		path.WriteString(request + graphWordSeparator + g.word)
 		for node := call.branch; node != "leaf"; node = g.child(node) {
 			path.WriteString("/" + node)
 		}
@@ -362,7 +365,7 @@ func addGraphFeatures(c *casefile.Case, g partialGraph) {
 		c.Features = append(c.Features, "aliased-duplicate-partial-names")
 	}
 	c.Features = append(c.Features, "partial-graph-shared-props", "named-slot-projection", "local-go-import", "multi-file-go-package",
-		"transitive-go-import", "shared-go-package", "partial-graph-"+motif+"-"+path+"-"+order)
+		"transitive-go-import", "shared-go-package", "partial-graph-"+motif+graphWordSeparator+path+graphWordSeparator+order)
 	if g.diamond {
 		c.Features = append(c.Features, "partial-graph-diamond")
 	} else {

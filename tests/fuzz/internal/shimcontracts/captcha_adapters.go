@@ -67,6 +67,16 @@ const (
 
 	// omitWireActionBit marks a provider reply without an action.
 	omitWireActionBit = 64
+
+	// reportedActionShift is the bit position in a choice byte that selects the reported
+	// action.
+	reportedActionShift = 2
+
+	// tokenChoiceShift is the shift that leaves the choice bits selecting the token.
+	tokenChoiceShift = 3
+
+	// addressChoiceShift is the shift that leaves the choice bits selecting the address.
+	addressChoiceShift = 4
 )
 
 const (
@@ -443,11 +453,11 @@ func exerciseHostedCaptcha(ctx context.Context, adapter *hostedCaptchaAdapter, t
 // Returns url.Values which holds the expected wire form fields.
 // Returns string which is the action the provider reports.
 func hostedRequest(adapter *hostedCaptchaAdapter, choice byte) (captcha.VerifyRequest, url.Values, string) {
-	reportedAction := []string{"notes_save", "notes_preview"}[choice>>2&1]
+	reportedAction := []string{"notes_save", "notes_preview"}[choice>>reportedActionShift&1]
 	request := captcha.VerifyRequest{
-		Token:    hostedCaptchaTokens[int(choice>>3)%len(hostedCaptchaTokens)],
+		Token:    hostedCaptchaTokens[int(choice>>tokenChoiceShift)%len(hostedCaptchaTokens)],
 		Action:   reportedAction,
-		RemoteIP: hostedCaptchaAddresses[int(choice>>4)%len(hostedCaptchaAddresses)],
+		RemoteIP: hostedCaptchaAddresses[int(choice>>addressChoiceShift)%len(hostedCaptchaAddresses)],
 	}
 	if choice&omitActionBit != 0 {
 		request.Action = ""

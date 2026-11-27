@@ -1,0 +1,80 @@
+{
+  "description": "A click on a link the moment a SPA navigation shows the new page, while its View Transition still runs, reaches the link, and a click on a button inside a component's shadow root reaches that button",
+  "requestURL": "/first",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "First Page"
+    },
+    {
+      "action": "comment",
+      "value": "SPA navigation to the second page starts a View Transition"
+    },
+    {
+      "action": "click",
+      "selector": "#nav-second"
+    },
+    {
+      "action": "comment",
+      "value": "Click the second page's link with a real mouse press as soon as it is shown, before the transition ends"
+    },
+    {
+      "action": "clickOnAppearance",
+      "selector": "#second-to-third"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Third Page"
+    },
+    {
+      "action": "comment",
+      "value": "The same quick click on the shared top menu"
+    },
+    {
+      "action": "click",
+      "selector": "#nav-second"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Second Page"
+    },
+    {
+      "action": "click",
+      "selector": "#nav-first"
+    },
+    {
+      "action": "clickOnAppearance",
+      "selector": "body[data-pageid*='first'] #nav-third"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Third Page"
+    },
+    {
+      "action": "comment",
+      "value": "Click a button inside a component's shadow root with a real mouse press as soon as it is shown, before the transition ends"
+    },
+    {
+      "action": "click",
+      "selector": "#nav-second"
+    },
+    {
+      "action": "clickOnAppearance",
+      "selector": "body[data-pageid*='second'] #shadow-next"
+    },
+    {
+      "action": "eval",
+      "value": "new Promise((resolve, reject) => { const deadline = performance.now() + 5000; const poll = () => { if (window.__shadowNextClicks === 1) { resolve(true); return; } if (performance.now() > deadline) { reject(new Error('the click did not reach the button inside the shadow root; clicks: ' + window.__shadowNextClicks)); return; } setTimeout(poll, 50); }; poll(); })"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Second Page"
+    }
+  ]
+}

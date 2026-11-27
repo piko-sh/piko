@@ -19,11 +19,18 @@
 package daemon_adapters
 
 import (
+	"context"
+	"io"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"piko.sh/piko/internal/registry/registry_dto"
+	"piko.sh/piko/internal/templater/templater_domain"
+	"piko.sh/piko/internal/templater/templater_dto"
 )
 
 func TestCacheControlForArtefact(t *testing.T) {
@@ -127,4 +134,247 @@ func TestSetVariantCacheHeaders(t *testing.T) {
 	assert.Equal(t, `"etag-1"`, header.Get(headerETag))
 	assert.Equal(t, jitCacheControl, header.Get(headerCacheControl))
 	assert.Equal(t, headerAcceptEncoding, header.Get(headerVary))
+}
+
+func TestSetVariantCacheHeadersMergesVary(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		existing string
+		want     string
+	}{
+		{name: "app token is kept", existing: "Origin", want: "Origin, Accept-Encoding"},
+		{name: "same token is not repeated", existing: "accept-encoding", want: "accept-encoding"},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			header := http.Header{}
+			header.Set(headerVary, testCase.existing)
+
+			setVariantCacheHeaders(header, `"etag-1"`, jitCacheControl)
+
+			assert.Equal(t, []string{testCase.want}, header.Values(headerVary))
+		})
+	}
+}
+
+func TestIfNoneMatchSatisfied(t *testing.T) {
+	t.Parallel()
+
+	const etag = `"abc123"`
+
+	testCases := []struct {
+		name        string
+		ifNoneMatch string
+		etag        string
+		want        bool
+	}{
+		{name: "exact strong tag matches", ifNoneMatch: etag, etag: etag, want: true},
+		{name: "weak form of the tag matches", ifNoneMatch: `W/"abc123"`, etag: etag, want: true},
+		{name: "weak served tag matches its strong form", ifNoneMatch: etag, etag: `W/"abc123"`, want: true},
+		{name: "tag later in a list matches", ifNoneMatch: `"old", W/"older", "abc123"`, etag: etag, want: true},
+		{name: "list without spaces matches", ifNoneMatch: `"old","abc123"`, etag: etag, want: true},
+		{name: "wildcard matches any representation", ifNoneMatch: "*", etag: etag, want: true},
+		{name: "tag from an earlier release does not match", ifNoneMatch: `"old"`, etag: etag, want: false},
+		{name: "tag that only shares a prefix does not match", ifNoneMatch: `"abc1234"`, etag: etag, want: false},
+		{name: "tag that only shares a suffix does not match", ifNoneMatch: `"xabc123"`, etag: etag, want: false},
+		{name: "comma inside a quoted tag is part of the tag", ifNoneMatch: `"x,abc123"`, etag: etag, want: false},
+		{name: "unquoted value does not match", ifNoneMatch: "abc123", etag: etag, want: false},
+		{name: "unterminated tag does not match", ifNoneMatch: `"abc123`, etag: etag, want: false},
+		{name: "malformed member stops the scan", ifNoneMatch: `junk, "abc123"`, etag: etag, want: false},
+		{name: "empty header does not match", ifNoneMatch: "", etag: etag, want: false},
+		{name: "separators only do not match", ifNoneMatch: " , ", etag: etag, want: false},
+		{name: "missing served tag never matches", ifNoneMatch: "*", etag: "", want: false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tc.want, ifNoneMatchSatisfied(tc.ifNoneMatch, tc.etag))
+		})
+	}
+}
+
+func TestCutEntityTag(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		list       string
+		wantOpaque string
+		wantRest   string
+		wantOK     bool
+	}{
+		{name: "strong tag", list: `"a", "b"`, wantOpaque: `"a"`, wantRest: `, "b"`, wantOK: true},
+		{name: "weak tag loses its prefix", list: `W/"a"`, wantOpaque: `"a"`, wantRest: "", wantOK: true},
+		{name: "empty tag", list: `""`, wantOpaque: `""`, wantRest: "", wantOK: true},
+		{name: "unquoted", list: "a", wantOK: false},
+		{name: "unterminated", list: `"a`, wantOK: false},
+		{name: "bare weak prefix", list: "W/", wantOK: false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			opaque, rest, ok := cutEntityTag(tc.list)
+
+			assert.Equal(t, tc.wantOK, ok)
+			assert.Equal(t, tc.wantOpaque, opaque)
+			assert.Equal(t, tc.wantRest, rest)
+		})
+	}
+}
+
+func TestMergeVary(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		existing []string
+		values   []string
+		want     []string
+	}{
+		{name: "no earlier Vary", values: []string{"Accept-Encoding"}, want: []string{"Accept-Encoding"}},
+		{name: "earlier Vary set to nil", existing: nil, values: []string{"Accept-Encoding"}, want: []string{"Accept-Encoding"}},
+		{
+			name:     "earlier token kept first",
+			existing: []string{"Origin"},
+			values:   []string{"Accept-Encoding, Accept-Language"},
+			want:     []string{"Origin, Accept-Encoding, Accept-Language"},
+		},
+		{
+			name:     "token in another case is not repeated",
+			existing: []string{"accept-encoding"},
+			values:   []string{"Accept-Encoding, Accept-Language"},
+			want:     []string{"accept-encoding, Accept-Language"},
+		},
+		{
+			name:     "earlier lines and repeats are folded together",
+			existing: []string{"Origin, Cookie", "origin", " , Cookie "},
+			values:   []string{"Accept-Encoding"},
+			want:     []string{"Origin, Cookie, Accept-Encoding"},
+		},
+		{name: "any token is left alone", existing: []string{"Origin, *"}, values: []string{"Accept-Encoding"}, want: []string{"Origin, *"}},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			h := http.Header{}
+			if testCase.existing != nil {
+				h[headerVary] = testCase.existing
+			}
+
+			mergeVary(h, testCase.values)
+
+			assert.Equal(t, testCase.want, h[headerVary])
+		})
+	}
+}
+
+func newRoutedRequest(t *testing.T, path string) *http.Request {
+	t.Helper()
+
+	request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, path, nil)
+	return request.WithContext(context.WithValue(request.Context(), chi.RouteCtxKey, chi.NewRouteContext()))
+}
+
+func TestNoStorePolicyMiddleware(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name             string
+		appCacheControl  string
+		wantCacheControl string
+		policy           templater_dto.CachePolicy
+	}{
+		{name: "NoStore", policy: templater_dto.CachePolicy{NoStore: true}, wantCacheControl: cacheControlNoStore},
+		{name: "no NoStore keeps the page default", policy: templater_dto.CachePolicy{Enabled: true}, wantCacheControl: cacheControlPrivateNoCache},
+		{
+			name:             "app Cache-Control wins over NoStore",
+			policy:           templater_dto.CachePolicy{NoStore: true},
+			appCacheControl:  "private, max-age=10",
+			wantCacheControl: "private, max-age=10",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			entry := &templater_domain.MockPageEntryView{
+				GetCachePolicyFunc: func(*templater_dto.RequestData) templater_dto.CachePolicy { return testCase.policy },
+			}
+			page := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				setDefaultCacheControl(w.Header(), headerValCachePrivateNoCache)
+				w.WriteHeader(http.StatusOK)
+			})
+			recorder := httptest.NewRecorder()
+			if testCase.appCacheControl != "" {
+				recorder.Header().Set("Cache-Control", testCase.appCacheControl)
+			}
+
+			noStorePolicyMiddleware(page, entry).ServeHTTP(recorder, newRoutedRequest(t, "/account"))
+
+			assert.Equal(t, http.StatusOK, recorder.Code)
+			assert.Equal(t, []string{testCase.wantCacheControl}, recorder.Header().Values("Cache-Control"))
+		})
+	}
+}
+
+type readRecordingBody struct {
+	io.Reader
+	read bool
+}
+
+func (body *readRecordingBody) Read(p []byte) (int, error) {
+	body.read = true
+	return body.Reader.Read(p)
+}
+
+func (*readRecordingBody) Close() error { return nil }
+
+func TestResolveCachePolicyLeavesTheBodyForThePage(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name        string
+		contentType string
+		body        string
+	}{
+		{name: "url-encoded form", contentType: "application/x-www-form-urlencoded", body: "name=Ada"},
+		{name: "multipart form", contentType: "multipart/form-data; boundary=edge", body: "--edge\r\nContent-Disposition: form-data; name=\"name\"\r\n\r\nAda\r\n--edge--\r\n"},
+		{name: "malformed multipart form", contentType: "multipart/form-data; boundary=edge", body: "not multipart"},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			var seenQuery string
+			entry := &templater_domain.MockPageEntryView{
+				GetCachePolicyFunc: func(requestData *templater_dto.RequestData) templater_dto.CachePolicy {
+					seenQuery = requestData.QueryParam("variant")
+					return templater_dto.CachePolicy{NoStore: true}
+				},
+			}
+			body := &readRecordingBody{Reader: strings.NewReader(testCase.body)}
+			request := newRoutedRequest(t, "/account?variant=b")
+			request.Method = http.MethodPost
+			request.Body = body
+			request.Header.Set("Content-Type", testCase.contentType)
+
+			policy := resolveCachePolicy(request, entry)
+
+			assert.True(t, policy.NoStore)
+			assert.Equal(t, "b", seenQuery, "the policy still sees the query")
+			assert.False(t, body.read, "the policy must not read the request body")
+		})
+	}
 }

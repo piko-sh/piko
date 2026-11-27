@@ -548,7 +548,7 @@ func containsPKTemplateWithAttributes(source string) bool {
 		}
 		index += searchFrom
 
-		closeIndex := strings.Index(source[index:], ">")
+		closeIndex := strings.Index(source[index:], tagEnd)
 		if closeIndex < 0 {
 			return false
 		}

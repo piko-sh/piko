@@ -68,6 +68,15 @@ type CompilationDiagnostic struct {
 	// SourceIdentifier echoes CompiledArtefact.SourceIdentifier so downstream filters can
 	// route the diagnostic.
 	SourceIdentifier string
+
+	// Code is the diagnostic code, such as "T156", or empty when the issue has none.
+	Code string
+
+	// Line is the 1-based line in the source file, or 0 when the issue has no position.
+	Line int
+
+	// Column is the 1-based column in the source file, or 0 when the issue has no position.
+	Column int
 }
 
 // JSDependency represents a JavaScript file that a component imports. The file needs to

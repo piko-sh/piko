@@ -77,6 +77,12 @@ const (
 
 	// minStatusEntryBytes is the shortest porcelain git status entry with a path.
 	minStatusEntryBytes = statusPrefixBytes + 1
+
+	// moduleDigestBytes is the number of digest bytes kept in a module set identity.
+	moduleDigestBytes = 12
+
+	// moduleFieldSeparator separates the path, version and sum of a module record.
+	moduleFieldSeparator = " "
 )
 
 var (
@@ -259,7 +265,7 @@ func (p *Provenance) workerKey(name string, modules map[string]string) (string, 
 			return "", err
 		}
 	}
-	return fmt.Sprintf("%s@%x", name, digest.Sum(nil)[:12]), nil
+	return fmt.Sprintf("%s@%x", name, digest.Sum(nil)[:moduleDigestBytes]), nil
 }
 
 // resolveFromLinked records linked worker modules as the fallback module resolution.
@@ -356,9 +362,9 @@ func (p *Provenance) recordModule(ctx context.Context, dir string, remaining *in
 //
 // Returns string which is the linked version including its replacement identity.
 func linkedVersion(dep *debug.Module) string {
-	value := strings.TrimSpace(dep.Version + " " + dep.Sum)
+	value := strings.TrimSpace(dep.Version + moduleFieldSeparator + dep.Sum)
 	if replacement := dep.Replace; replacement != nil {
-		value = strings.TrimSpace(value + " => " + strings.TrimSpace(replacement.Path+" "+replacement.Version+" "+replacement.Sum))
+		value = strings.TrimSpace(value + " => " + strings.TrimSpace(replacement.Path+moduleFieldSeparator+replacement.Version+moduleFieldSeparator+replacement.Sum))
 	}
 	return value
 }
@@ -945,7 +951,7 @@ func parseModuleListings(data []byte) (map[string]string, []string, error) {
 		if err != nil {
 			return nil, nil, err
 		}
-		choice := strings.TrimSpace(listing.Version + " " + listing.Sum)
+		choice := strings.TrimSpace(listing.Version + moduleFieldSeparator + listing.Sum)
 		if listing.Main {
 			choice = listing.Dir
 		}
@@ -954,7 +960,7 @@ func parseModuleListings(data []byte) (map[string]string, []string, error) {
 				dirs = append(dirs, replacement.Dir)
 				choice += " => " + replacement.Dir
 			} else {
-				choice += " => " + strings.TrimSpace(replacement.Path+" "+replacement.Version+" "+replacement.Sum)
+				choice += " => " + strings.TrimSpace(replacement.Path+moduleFieldSeparator+replacement.Version+moduleFieldSeparator+replacement.Sum)
 			}
 		}
 		versions[listing.Path] = choice

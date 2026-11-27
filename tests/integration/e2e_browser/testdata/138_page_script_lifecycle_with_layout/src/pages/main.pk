@@ -1,0 +1,95 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <piko:partial is="layout">
+    <h1>Main Page</h1>
+    <button type="button" id="bound-button" p-ref="boundButton">Click me</button>
+    <p>Clicks on this visit: <span id="main-clicks">0</span></p>
+    <p>Main connected: <span id="main-connected">0</span></p>
+  </piko:partial>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+    layout "testmodule/partials/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{
+        Title: "Main Page",
+    }, nil
+}
+</script>
+
+<script lang="ts">
+interface LifecycleCounters {
+    mainConnected: number;
+    mainDisconnected: number;
+    boundButtonClicks: number;
+    documentClicks: number;
+}
+
+function counters(): LifecycleCounters {
+    const host = window as unknown as { __lifecycle?: LifecycleCounters };
+    host.__lifecycle ??= {mainConnected: 0, mainDisconnected: 0, boundButtonClicks: 0, documentClicks: 0};
+    return host.__lifecycle;
+}
+
+let clicks = 0;
+
+function onBoundButtonClick(): void {
+    clicks++;
+    counters().boundButtonClicks++;
+    const output = document.getElementById('main-clicks');
+    if (output) {
+        output.textContent = String(clicks);
+    }
+}
+
+function onDocumentClick(event: Event): void {
+    if (event.target instanceof Element && event.target.closest('#document-target')) {
+        counters().documentClicks++;
+    }
+}
+
+pk.onConnected(() => {
+    const lifecycleCounters = counters();
+    lifecycleCounters.mainConnected++;
+    const output = document.getElementById('main-connected');
+    if (output) {
+        output.textContent = String(lifecycleCounters.mainConnected);
+    }
+    const button = pk.refs.boundButton;
+    button?.addEventListener('click', onBoundButtonClick);
+    document.addEventListener('click', onDocumentClick);
+    pk.onCleanup(() => {
+        button?.removeEventListener('click', onBoundButtonClick);
+        document.removeEventListener('click', onDocumentClick);
+    });
+});
+
+pk.onDisconnected(() => {
+    counters().mainDisconnected++;
+});
+</script>

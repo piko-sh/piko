@@ -63,6 +63,29 @@ const (
 
 	// storePolicyLimit is the capacity of the counter-store policy checks.
 	storePolicyLimit = 2
+
+	// rateClockStart is the virtual clock's start time in Unix seconds.
+	rateClockStart = 1_700_000_000
+
+	// twoBitChoiceMask keeps the two lowest bits of a shifted choice byte.
+	twoBitChoiceMask = 3
+
+	// bucketTicksShift is the shift that leaves the choice bits selecting a bucket step's
+	// ticks.
+	bucketTicksShift = 5
+
+	// bucketResetBit marks a drawn bucket step that resets its key first.
+	bucketResetBit = 128
+
+	// advanceChoiceShift is the shift that leaves the choice bits selecting a clock advance.
+	advanceChoiceShift = 2
+
+	// tokenHistoryShift is the shift that leaves the config bits selecting the token history
+	// capacity.
+	tokenHistoryShift = 4
+
+	// actionLimitChoices is the number of capacities each limited action can draw.
+	actionLimitChoices = 4
 )
 
 var (
@@ -235,8 +258,8 @@ func (s *rateScenario) tokenHistory(ctx context.Context, capacity int, history [
 		steps = append(steps, rateBucketStep{
 			key:   int(choice & 1),
 			cost:  1 + int(choice>>1)%capacity,
-			ticks: int(choice >> 5 & 3),
-			reset: choice&128 != 0,
+			ticks: int(choice >> bucketTicksShift & twoBitChoiceMask),
+			reset: choice&bucketResetBit != 0,
 		})
 	}
 	for _, step := range steps {
@@ -358,7 +381,7 @@ func RunRateLimit(ctx context.Context, data []byte) (err error) {
 	if len(data) > 0 {
 		config, data = data[0], data[1:]
 	}
-	mockClock := clock.NewMockClock(time.Unix(1700000000, 0).UTC())
+	mockClock := clock.NewMockClock(time.Unix(rateClockStart, 0).UTC())
 	var counterConfig ratelimiter_adapters.CacheCounterStoreConfig
 	counterConfig.Clock = mockClock
 	counterConfig.CacheService = cache_domain.NewService("")
@@ -382,7 +405,7 @@ func RunRateLimit(ctx context.Context, data []byte) (err error) {
 	history := data[:min(len(data), rateHistoryLimit)]
 	advances := [...]time.Duration{0, time.Second, drawnPause, time.Minute}
 	for _, choice := range history {
-		mockClock.Advance(advances[choice>>2&3])
+		mockClock.Advance(advances[choice>>advanceChoiceShift&twoBitChoiceMask])
 		if err := scenario.request(ctx, int(choice&1), int(choice>>1&1)); err != nil {
 			return err
 		}
@@ -391,7 +414,7 @@ func RunRateLimit(ctx context.Context, data []byte) (err error) {
 		return err
 	}
 	scenario.denied++
-	if err := scenario.tokenHistory(ctx, 2+int(config>>4&3), history); err != nil {
+	if err := scenario.tokenHistory(ctx, 2+int(config>>tokenHistoryShift&twoBitChoiceMask), history); err != nil {
 		return err
 	}
 	status, err := limiter.GetStatus(ctx)
@@ -417,7 +440,7 @@ func newRateScenario(mockClock *clock.MockClock, limiter *ratelimiter_domain.Lim
 		clock:   mockClock,
 		limiter: limiter,
 		windows: [2][2]rateWindow{},
-		limits:  [2]int{1 + int(config%4), 1 + int((config>>2)%4)},
+		limits:  [2]int{1 + int(config%actionLimitChoices), 1 + int((config>>2)%actionLimitChoices)},
 		invokes: [2]int{},
 		allowed: 0,
 		denied:  0,

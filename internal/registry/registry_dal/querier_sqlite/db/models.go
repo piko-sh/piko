@@ -59,19 +59,19 @@ type Variant struct {
 	CreatedAt        int64  `json:"created_at"`
 }
 type VariantChunk struct {
-	ID               int64    `json:"id"`
-	ArtefactID       string   `json:"artefact_id"`
-	ReleaseID        string   `json:"release_id"`
-	VariantID        string   `json:"variant_id"`
-	ChunkID          string   `json:"chunk_id"`
-	StorageKey       string   `json:"storage_key"`
-	StorageBackendID string   `json:"storage_backend_id"`
-	SizeBytes        int64    `json:"size_bytes"`
-	ContentHash      string   `json:"content_hash"`
-	SequenceNumber   int64    `json:"sequence_number"`
-	MimeType         string   `json:"mime_type"`
-	CreatedAt        int64    `json:"created_at"`
-	DurationSeconds  *float64 `json:"duration_seconds"`
+	ID               int64         `json:"id"`
+	ArtefactID       string        `json:"artefact_id"`
+	ReleaseID        string        `json:"release_id"`
+	VariantID        string        `json:"variant_id"`
+	ChunkID          string        `json:"chunk_id"`
+	StorageKey       string        `json:"storage_key"`
+	StorageBackendID string        `json:"storage_backend_id"`
+	SizeBytes        int64         `json:"size_bytes"`
+	ContentHash      string        `json:"content_hash"`
+	SequenceNumber   int64         `json:"sequence_number"`
+	MimeType         string        `json:"mime_type"`
+	CreatedAt        int64         `json:"created_at"`
+	DurationSeconds  Null[float64] `json:"duration_seconds"`
 }
 type VariantTag struct {
 	ID         int64  `json:"id"`

@@ -18,5 +18,8 @@
   },
   "partials": {},
   "emails": {},
-  "pdfs": {}
+  "pdfs": {},
+  "partialScripts": {
+    "pk-js/partials/action-button.js": "action-button"
+  }
 }

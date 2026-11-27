@@ -18,6 +18,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createLinkHeaderParser, type LinkHeaderParser } from './LinkHeaderParser';
+import { addPageTokenScript } from '../../test/pageTokenScript';
 
 describe('LinkHeaderParser', () => {
     let parser: LinkHeaderParser;
@@ -117,6 +118,15 @@ describe('LinkHeaderParser', () => {
             parser.parseAndApply('/no-brackets.css; rel=stylesheet');
             const after = document.head.querySelectorAll('link').length;
             expect(after).toBe(before);
+        });
+
+        it('gives an inserted preload link the page CSP token, never one named in the header', () => {
+            const tokenScript = addPageTokenScript('page-token');
+
+            parser.parseAndApply('</js/module.js>; rel=modulepreload; nonce=token-of-another-response');
+
+            expect(getLink('/js/module.js')!.nonce).toBe('page-token');
+            tokenScript.remove();
         });
 
         it('should skip duplicate links that already exist in document', () => {

@@ -442,7 +442,7 @@ func BrowserHistoryProof(c *casefile.Case, o *Observation, steps []Proof) Proof 
 		_, err = checkPartialComponents(got.PartialComponents, want.PartialComponents)
 	case "browser-events":
 		err = checkEvents(got.Events, want.Events)
-	case "browser-lifecycle":
+	case "browser-lifecycle", "browser-lifecycle-inline", "browser-element-reuse":
 		err = checkLifecycle(got.Lifecycle, want.Lifecycle)
 	default:
 		return Unseen

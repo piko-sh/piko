@@ -63,6 +63,7 @@ func TestNewPartialJSDependencyResolver(t *testing.T) {
 			{
 				Component: &annotator_dto.VirtualComponent{
 					HashedName: "page_abc123",
+					IsPage:     true,
 					Source: &annotator_dto.ParsedComponent{
 						ComponentType: "page",
 					},
@@ -102,7 +103,8 @@ func TestNewPartialJSDependencyResolver(t *testing.T) {
 			{
 				JSArtefactID: "pk-js/components/card.js",
 				Component: &annotator_dto.VirtualComponent{
-					HashedName: "card_hash",
+					HashedName:  "card_hash",
+					PartialName: "card_hash",
 					Source: &annotator_dto.ParsedComponent{
 						ComponentType:    "partial",
 						ModuleImportPath: "github.com/example/components/card",
@@ -116,6 +118,46 @@ func TestNewPartialJSDependencyResolver(t *testing.T) {
 		assert.Equal(t, "pk-js/components/card.js", resolver.partialJSLookup["card_hash"])
 	})
 
+	t.Run("adds partial outside the partials directory to lookup", func(t *testing.T) {
+		t.Parallel()
+
+		artefacts := []*generator_dto.GeneratedArtefact{
+			{
+				JSArtefactID: "pk-js/layouts/layout.js",
+				Component: &annotator_dto.VirtualComponent{
+					HashedName:  "layout_hash",
+					PartialName: "layout",
+					Source: &annotator_dto.ParsedComponent{
+						ComponentType:    "component",
+						ModuleImportPath: "example.com/site/layouts/layout.pk",
+					},
+				},
+			},
+		}
+
+		resolver := newPartialJSDependencyResolver(artefacts)
+
+		assert.Equal(t, "pk-js/layouts/layout.js", resolver.partialJSLookup["layout_hash"])
+	})
+
+	t.Run("skips component of unknown kind from lookup", func(t *testing.T) {
+		t.Parallel()
+
+		artefacts := []*generator_dto.GeneratedArtefact{
+			{
+				JSArtefactID: "pk-js/odd.js",
+				Component: &annotator_dto.VirtualComponent{
+					HashedName: "odd_hash",
+					Source:     &annotator_dto.ParsedComponent{ComponentType: "component"},
+				},
+			},
+		}
+
+		resolver := newPartialJSDependencyResolver(artefacts)
+
+		assert.NotContains(t, resolver.partialJSLookup, "odd_hash")
+	})
+
 	t.Run("skips partial without JS from lookup", func(t *testing.T) {
 		t.Parallel()
 
@@ -123,7 +165,8 @@ func TestNewPartialJSDependencyResolver(t *testing.T) {
 			{
 				JSArtefactID: "",
 				Component: &annotator_dto.VirtualComponent{
-					HashedName: "static_partial",
+					HashedName:  "static_partial",
+					PartialName: "static_partial",
 					Source: &annotator_dto.ParsedComponent{
 						ComponentType: "partial",
 					},
@@ -144,6 +187,7 @@ func TestNewPartialJSDependencyResolver(t *testing.T) {
 				JSArtefactID: "pk-js/pages/home.js",
 				Component: &annotator_dto.VirtualComponent{
 					HashedName: "page_hash",
+					IsPage:     true,
 					Source: &annotator_dto.ParsedComponent{
 						ComponentType: "page",
 					},
@@ -167,6 +211,7 @@ func TestResolveForPage(t *testing.T) {
 			{
 				Component: &annotator_dto.VirtualComponent{
 					HashedName: "page_hash",
+					IsPage:     true,
 					Source: &annotator_dto.ParsedComponent{
 						ComponentType: "page",
 						PikoImports:   nil,
@@ -197,6 +242,7 @@ func TestResolveForPage(t *testing.T) {
 			{
 				Component: &annotator_dto.VirtualComponent{
 					HashedName: "page_hash",
+					IsPage:     true,
 					Source: &annotator_dto.ParsedComponent{
 						ComponentType: "page",
 						PikoImports: []annotator_dto.PikoImport{
@@ -208,7 +254,8 @@ func TestResolveForPage(t *testing.T) {
 			{
 				JSArtefactID: "pk-js/partials/card.js",
 				Component: &annotator_dto.VirtualComponent{
-					HashedName: "card_hash",
+					HashedName:  "card_hash",
+					PartialName: "card_hash",
 					Source: &annotator_dto.ParsedComponent{
 						ComponentType:    "partial",
 						ModuleImportPath: "example.com/partials/card",
@@ -231,6 +278,7 @@ func TestResolveForPage(t *testing.T) {
 			{
 				Component: &annotator_dto.VirtualComponent{
 					HashedName: "page_hash",
+					IsPage:     true,
 					Source: &annotator_dto.ParsedComponent{
 						ComponentType: "page",
 						PikoImports: []annotator_dto.PikoImport{
@@ -242,7 +290,8 @@ func TestResolveForPage(t *testing.T) {
 			{
 				JSArtefactID: "",
 				Component: &annotator_dto.VirtualComponent{
-					HashedName: "static_hash",
+					HashedName:  "static_hash",
+					PartialName: "static_hash",
 					Source: &annotator_dto.ParsedComponent{
 						ComponentType:    "partial",
 						ModuleImportPath: "example.com/partials/static",
@@ -264,6 +313,7 @@ func TestResolveForPage(t *testing.T) {
 			{
 				Component: &annotator_dto.VirtualComponent{
 					HashedName: "page_hash",
+					IsPage:     true,
 					Source: &annotator_dto.ParsedComponent{
 						ComponentType: "page",
 						PikoImports: []annotator_dto.PikoImport{
@@ -275,7 +325,8 @@ func TestResolveForPage(t *testing.T) {
 			{
 				JSArtefactID: "pk-js/partials/a.js",
 				Component: &annotator_dto.VirtualComponent{
-					HashedName: "partial_a_hash",
+					HashedName:  "partial_a_hash",
+					PartialName: "partial_a_hash",
 					Source: &annotator_dto.ParsedComponent{
 						ComponentType:    "partial",
 						ModuleImportPath: "example.com/partials/a",
@@ -288,7 +339,8 @@ func TestResolveForPage(t *testing.T) {
 			{
 				JSArtefactID: "pk-js/partials/b.js",
 				Component: &annotator_dto.VirtualComponent{
-					HashedName: "partial_b_hash",
+					HashedName:  "partial_b_hash",
+					PartialName: "partial_b_hash",
 					Source: &annotator_dto.ParsedComponent{
 						ComponentType:    "partial",
 						ModuleImportPath: "example.com/partials/b",
@@ -312,6 +364,7 @@ func TestResolveForPage(t *testing.T) {
 			{
 				Component: &annotator_dto.VirtualComponent{
 					HashedName: "page_hash",
+					IsPage:     true,
 					Source: &annotator_dto.ParsedComponent{
 						ComponentType: "page",
 						PikoImports: []annotator_dto.PikoImport{
@@ -323,7 +376,8 @@ func TestResolveForPage(t *testing.T) {
 			{
 				JSArtefactID: "pk-js/partials/a.js",
 				Component: &annotator_dto.VirtualComponent{
-					HashedName: "partial_a_hash",
+					HashedName:  "partial_a_hash",
+					PartialName: "partial_a_hash",
 					Source: &annotator_dto.ParsedComponent{
 						ComponentType:    "partial",
 						ModuleImportPath: "example.com/partials/a",
@@ -336,7 +390,8 @@ func TestResolveForPage(t *testing.T) {
 			{
 				JSArtefactID: "pk-js/partials/b.js",
 				Component: &annotator_dto.VirtualComponent{
-					HashedName: "partial_b_hash",
+					HashedName:  "partial_b_hash",
+					PartialName: "partial_b_hash",
 					Source: &annotator_dto.ParsedComponent{
 						ComponentType:    "partial",
 						ModuleImportPath: "example.com/partials/b",
@@ -363,6 +418,7 @@ func TestResolveForPage(t *testing.T) {
 			{
 				Component: &annotator_dto.VirtualComponent{
 					HashedName: "page_hash",
+					IsPage:     true,
 					Source: &annotator_dto.ParsedComponent{
 						ComponentType: "page",
 						PikoImports: []annotator_dto.PikoImport{
@@ -375,7 +431,8 @@ func TestResolveForPage(t *testing.T) {
 			{
 				JSArtefactID: "pk-js/partials/a.js",
 				Component: &annotator_dto.VirtualComponent{
-					HashedName: "partial_a_hash",
+					HashedName:  "partial_a_hash",
+					PartialName: "partial_a_hash",
 					Source: &annotator_dto.ParsedComponent{
 						ComponentType:    "partial",
 						ModuleImportPath: "example.com/partials/a",
@@ -388,7 +445,8 @@ func TestResolveForPage(t *testing.T) {
 			{
 				JSArtefactID: "pk-js/partials/b.js",
 				Component: &annotator_dto.VirtualComponent{
-					HashedName: "partial_b_hash",
+					HashedName:  "partial_b_hash",
+					PartialName: "partial_b_hash",
 					Source: &annotator_dto.ParsedComponent{
 						ComponentType:    "partial",
 						ModuleImportPath: "example.com/partials/b",
@@ -401,7 +459,8 @@ func TestResolveForPage(t *testing.T) {
 			{
 				JSArtefactID: "pk-js/partials/shared.js",
 				Component: &annotator_dto.VirtualComponent{
-					HashedName: "shared_hash",
+					HashedName:  "shared_hash",
+					PartialName: "shared_hash",
 					Source: &annotator_dto.ParsedComponent{
 						ComponentType:    "partial",
 						ModuleImportPath: "example.com/partials/shared",
@@ -426,6 +485,7 @@ func TestResolveForPage(t *testing.T) {
 			{
 				Component: &annotator_dto.VirtualComponent{
 					HashedName: "page_hash",
+					IsPage:     true,
 					Source: &annotator_dto.ParsedComponent{
 						ComponentType: "page",
 						PikoImports: []annotator_dto.PikoImport{
@@ -449,6 +509,7 @@ func TestResolveForPage(t *testing.T) {
 			{
 				Component: &annotator_dto.VirtualComponent{
 					HashedName: "page_hash",
+					IsPage:     true,
 					Source: &annotator_dto.ParsedComponent{
 						ComponentType: "page",
 						PikoImports: []annotator_dto.PikoImport{
@@ -461,7 +522,8 @@ func TestResolveForPage(t *testing.T) {
 			{
 				JSArtefactID: "pk-js/partials/with-js.js",
 				Component: &annotator_dto.VirtualComponent{
-					HashedName: "with_js_hash",
+					HashedName:  "with_js_hash",
+					PartialName: "with_js_hash",
 					Source: &annotator_dto.ParsedComponent{
 						ComponentType:    "partial",
 						ModuleImportPath: "example.com/partials/with-js",
@@ -471,7 +533,8 @@ func TestResolveForPage(t *testing.T) {
 			{
 				JSArtefactID: "",
 				Component: &annotator_dto.VirtualComponent{
-					HashedName: "no_js_hash",
+					HashedName:  "no_js_hash",
+					PartialName: "no_js_hash",
 					Source: &annotator_dto.ParsedComponent{
 						ComponentType:    "partial",
 						ModuleImportPath: "example.com/partials/no-js",

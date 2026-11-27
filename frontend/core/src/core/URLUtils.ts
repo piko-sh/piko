@@ -24,7 +24,20 @@
  * @returns The resolved absolute URL.
  */
 function resolveAgainstDocument(urlValue: string): URL {
-    return new URL(urlValue, globalThis.location?.href ?? '');
+    return new URL(urlValue, pageLocation()?.href ?? '');
+}
+
+/**
+ * Returns the location of the current page.
+ *
+ * The DOM types say a location always exists, but it does not when the runtime is
+ * loaded outside a browser page, for example in a worker or another place without a DOM.
+ *
+ * @returns The page location, or undefined when there is none.
+ */
+function pageLocation(): Location | undefined {
+    const location: Location | undefined = globalThis.location;
+    return location;
 }
 
 /**
@@ -105,7 +118,7 @@ export function isSameDomain(loc: Location | HTMLAnchorElement): boolean {
  * @returns True if the URL is on the page's own origin, false otherwise.
  */
 export function isSameOriginUrl(urlValue: string): boolean {
-    const pageOrigin = globalThis.location?.origin;
+    const pageOrigin = pageLocation()?.origin;
     if (!pageOrigin) {
         return false;
     }

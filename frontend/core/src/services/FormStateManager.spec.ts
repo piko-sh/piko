@@ -1068,6 +1068,111 @@ describe('FormStateManager', () => {
             input.value = 'changed';
             expect(formStateManager.hasDirtyForms()).toBe(true);
         });
+
+        describe('custom elements defined late', () => {
+            const LONG_WAIT_MS = 6000;
+            const SETTLE_WAIT_MS = 100;
+
+            beforeEach(() => {
+                vi.useFakeTimers({toFake: ['setTimeout', 'clearTimeout', 'requestAnimationFrame', 'cancelAnimationFrame']});
+            });
+
+            afterEach(() => {
+                vi.useRealTimers();
+            });
+
+            function defineRatingElement(tagName: string): void {
+                customElements.define(tagName, class extends HTMLElement {
+                    connectedCallback(): void {
+                        if (this.querySelector('input')) {
+                            return;
+                        }
+                        const rating = document.createElement('input');
+                        rating.name = 'rating';
+                        rating.value = '3';
+                        this.appendChild(rating);
+                    }
+                });
+            }
+
+            function createFormWithLateElement(tagName: string): {form: HTMLFormElement; title: HTMLInputElement} {
+                const form = document.createElement('form');
+                form.id = `${tagName}-form`;
+                const title = document.createElement('input');
+                title.name = 'title';
+                title.value = 'initial';
+                form.appendChild(title);
+                form.appendChild(document.createElement(tagName));
+                testContainer.appendChild(form);
+                return {form, title};
+            }
+
+            it('does not mark the form dirty when a custom element is defined after a long wait', async () => {
+                formStateManager = createFormStateManager({hookManager});
+                const {form} = createFormWithLateElement('pp-late-rating-a');
+                formStateManager.trackForm(form);
+
+                await vi.advanceTimersByTimeAsync(LONG_WAIT_MS);
+                defineRatingElement('pp-late-rating-a');
+                await vi.advanceTimersByTimeAsync(SETTLE_WAIT_MS);
+
+                expect(form.querySelector<HTMLInputElement>('input[name="rating"]')?.value).toBe('3');
+                expect(formStateManager.hasDirtyForms()).toBe(false);
+            });
+
+            it('notices an edit to a custom element that was defined after a long wait', async () => {
+                formStateManager = createFormStateManager({hookManager});
+                const {form} = createFormWithLateElement('pp-late-rating-b');
+                formStateManager.trackForm(form);
+
+                await vi.advanceTimersByTimeAsync(LONG_WAIT_MS);
+                defineRatingElement('pp-late-rating-b');
+                await vi.advanceTimersByTimeAsync(SETTLE_WAIT_MS);
+                expect(formStateManager.hasDirtyForms()).toBe(false);
+
+                const rating = form.querySelector<HTMLInputElement>('input[name="rating"]');
+                if (!rating) {
+                    throw new Error('rating input was not rendered');
+                }
+                rating.value = '5';
+                expect(formStateManager.getDirtyFormIds()).toEqual(['pp-late-rating-b-form']);
+            });
+
+            it('tracks the ready fields without waiting for a custom element that is never defined', async () => {
+                formStateManager = createFormStateManager({hookManager});
+                const {form, title} = createFormWithLateElement('pp-never-defined-rating');
+                formStateManager.trackForm(form);
+
+                await vi.advanceTimersByTimeAsync(SETTLE_WAIT_MS);
+                expect(formStateManager.hasDirtyForms()).toBe(false);
+
+                title.value = 'changed';
+                expect(formStateManager.hasDirtyForms()).toBe(true);
+
+                title.value = 'initial';
+                await vi.advanceTimersByTimeAsync(LONG_WAIT_MS);
+                expect(formStateManager.hasDirtyForms()).toBe(false);
+            });
+
+            it('ignores the fields of a custom element that is not defined yet', async () => {
+                formStateManager = createFormStateManager({hookManager});
+                const form = document.createElement('form');
+                form.id = 'pending-field-form';
+                const pending = document.createElement('pp-pending-wrapper');
+                const nested = document.createElement('input');
+                nested.name = 'nested';
+                nested.value = 'before';
+                pending.appendChild(nested);
+                form.appendChild(pending);
+                testContainer.appendChild(form);
+                formStateManager.trackForm(form);
+
+                await vi.advanceTimersByTimeAsync(LONG_WAIT_MS);
+                nested.value = 'after';
+
+                expect(formStateManager.hasDirtyForms()).toBe(false);
+            });
+        });
     });
 
     describe('automatic form observation', () => {

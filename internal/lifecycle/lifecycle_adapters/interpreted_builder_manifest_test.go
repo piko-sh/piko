@@ -22,6 +22,7 @@ import (
 	"context"
 	"maps"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -43,6 +44,7 @@ func newManifestTestArtefact(projectRoot, moduleName, relativePath, componentTyp
 	artefact.Component.Source.ModuleImportPath = moduleName + "/" + relativePath
 	artefact.Component.Source.Script = &annotator_dto.ParsedScript{}
 	if componentType == "partial" {
+		artefact.Component.PartialName = strings.TrimSuffix(strings.TrimPrefix(relativePath, "partials/"), ".pk")
 		artefact.JSArtefactID = manifestTestCardJS
 	}
 	return artefact
@@ -141,6 +143,8 @@ func TestMarkComponentsDirtyKeepsPartialScriptsOfARebuiltPage(t *testing.T) {
 	defer orchestrator.stateLock.RUnlock()
 	assert.Equal(t, []string{manifestTestCardJS}, orchestrator.cachedManifest.Pages["pages/home.pk"].JSArtefactIDs,
 		"a page rebuilt without its partials must keep their client scripts")
+	assert.Equal(t, map[string]string{manifestTestCardJS: "card"}, orchestrator.cachedManifest.PartialScripts,
+		"the page must still be able to name the partial of each client script")
 }
 
 func TestRemoveComponentDropsItsManifestEntries(t *testing.T) {

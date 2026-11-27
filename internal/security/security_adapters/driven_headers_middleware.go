@@ -19,7 +19,6 @@
 package security_adapters
 
 import (
-	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"net/http"
@@ -230,7 +229,7 @@ func (m *SecurityHeadersMiddleware) setCSPHeader(h http.Header, r *http.Request)
 		return
 	}
 
-	token := GetRequestTokenFromContext(r.Context())
+	token := daemon_dto.CSPTokenFromContext(r.Context())
 	if token != "" {
 		policy := strings.ReplaceAll(m.cspConfig.Policy, requestTokenPlaceholder, formatCSPToken(token))
 		h[m.cspHeaderName] = []string{policy}
@@ -300,18 +299,6 @@ func (w *headerStripperWriter) Flush() {
 // Returns http.ResponseWriter which is the wrapped response writer.
 func (w *headerStripperWriter) Unwrap() http.ResponseWriter {
 	return w.ResponseWriter
-}
-
-// GetRequestTokenFromContext retrieves the CSP request token from the PikoRequestCtx
-// carrier in the context.
-//
-// Returns string which is the token, or an empty string if no token was set for this
-// request.
-func GetRequestTokenFromContext(ctx context.Context) string {
-	if pctx := daemon_dto.PikoRequestCtxFromContext(ctx); pctx != nil {
-		return pctx.CSPToken
-	}
-	return ""
 }
 
 // generateSecureToken creates a random token for CSP using secure random bytes.

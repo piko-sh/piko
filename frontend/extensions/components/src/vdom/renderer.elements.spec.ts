@@ -611,6 +611,71 @@ describe('PPElement Patching - Elements, Text, Comments', () => {
       expect(element.hasAttribute('style')).toBe(false);
     });
 
+    describe('style bindings written through the CSSOM', () => {
+      const styledDiv = (props: Record<string, unknown>) => dom.el('div', 'styled', props);
+      const boundElement = () => component.shadowRoot!.querySelector('div') as HTMLElement;
+
+      it.each([
+        { name: 'a static style', props: { style: 'color: red' }, want: { color: 'red', fontSize: '' } },
+        { name: 'a dynamic style object', props: { _style: { color: 'red', fontSize: '12px' } }, want: { color: 'red', fontSize: '12px' } },
+        { name: 'a static and a dynamic style together', props: { style: 'color: red', _style: { fontSize: '12px' } }, want: { color: 'red', fontSize: '12px' } },
+      ])('applies $name without setAttribute', ({ props, want }) => {
+        const setAttribute = vi.spyOn(Element.prototype, 'setAttribute');
+
+        component.setAndRender(styledDiv(props));
+
+        expect(boundElement().style.color).toBe(want.color);
+        expect(boundElement().style.fontSize).toBe(want.fontSize);
+        expect(setAttribute.mock.calls.filter(([name]) => name === 'style')).toEqual([]);
+        setAttribute.mockRestore();
+      });
+
+      it('updates a changed binding and clears a removed one without setAttribute', () => {
+        const setAttribute = vi.spyOn(Element.prototype, 'setAttribute');
+        component.setAndRender(styledDiv({ _style: { color: 'red', fontSize: '12px' } }));
+
+        component.setAndRender(styledDiv({ _style: { color: 'blue' } }));
+        expect(boundElement().style.color).toBe('blue');
+        expect(boundElement().style.fontSize).toBe('');
+
+        component.setAndRender(styledDiv({}));
+        expect(boundElement().hasAttribute('style')).toBe(false);
+        expect(setAttribute.mock.calls.filter(([name]) => name === 'style')).toEqual([]);
+        setAttribute.mockRestore();
+      });
+
+      it('restores the bound style over a style changed outside the template', () => {
+        component.setAndRender(styledDiv({ style: 'color: red' }));
+        boundElement().setAttribute('style', 'color: blue');
+
+        component.setAndRender(styledDiv({ style: 'color: red' }));
+
+        expect(boundElement().style.color).toBe('red');
+      });
+
+      it('writes a style once through the CSSOM when the markup already holds the same text', () => {
+        component.setAndRender(styledDiv({}));
+        boundElement().setAttribute('style', 'color: red;');
+        const cssText = vi.spyOn(boundElement().style, 'cssText', 'set');
+
+        component.setAndRender(styledDiv({ style: 'color: red' }));
+        component.setAndRender(styledDiv({ style: 'color: red' }));
+
+        expect(cssText).toHaveBeenCalledTimes(1);
+      });
+
+      it('leaves an unchanged binding alone', () => {
+        component.setAndRender(styledDiv({ _style: { color: 'red' } }));
+        const styleBefore = boundElement().getAttribute('style');
+        const cssText = vi.spyOn(boundElement().style, 'cssText', 'set');
+
+        component.setAndRender(styledDiv({ _style: { color: 'red' } }));
+
+        expect(cssText).not.toHaveBeenCalled();
+        expect(boundElement().getAttribute('style')).toBe(styleBefore);
+      });
+    });
+
     it('selects the bound value after mounting and replacing option nodes', () => {
       const select = (value: string, values: string[]) => dom.el('select', 'choice', { value },
         values.map(item => dom.el('option', item, { value: item }, [dom.txt(item, item + '-text')])));

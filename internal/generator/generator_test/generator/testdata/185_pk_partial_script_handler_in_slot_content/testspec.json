@@ -1,0 +1,5 @@
+{
+  "description": "A handler of one partial placed in the slot of another partial runs on the instance of the partial that owns the handler",
+  "packageName": "testcase_185_pk_partial_script_handler_in_slot_content",
+  "isPage": true
+}

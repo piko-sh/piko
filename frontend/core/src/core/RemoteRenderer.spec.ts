@@ -18,6 +18,7 @@
 
 import {describe, it, expect, beforeEach, afterEach, vi} from 'vitest';
 import {createRemoteRenderer, type RemoteRenderer} from './RemoteRenderer';
+import {addPageTokenScript} from '../../test/pageTokenScript';
 import {getNodeKey} from '@/pk/getNodeKey';
 import type {ModuleLoader} from '@/services/ModuleLoader';
 import type {SpriteSheetManager} from '@/services/SpriteSheetManager';
@@ -25,6 +26,7 @@ import type {LinkHeaderParser} from '@/services/LinkHeaderParser';
 import {createHookManager, HookEvent, type HookManager} from '@/services/HookManager';
 import type {DOMOperations, WindowOperations, HTTPOperations} from '@/core/BrowserAPIs';
 import {resetGlobalPageContext, getGlobalPageContext} from '@/services/PageContext';
+import {createRuntimeVersionGate, RUNTIME_VERSION_HEADER, type RuntimeVersionGate} from '@/core/RuntimeVersion';
 
 describe('RemoteRenderer', () => {
     let remoteRenderer: RemoteRenderer;
@@ -468,7 +470,7 @@ describe('RemoteRenderer', () => {
             });
 
             it('should reload page when response type is not fragment-patch', async () => {
-                const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+                const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
                 const patchLocation = document.createElement('div');
                 document.body.appendChild(patchLocation);
 
@@ -502,6 +504,62 @@ describe('RemoteRenderer', () => {
                     'RemoteRenderer: target has no patchLocation'
                 );
                 consoleSpy.mockRestore();
+            });
+        });
+
+        describe('runtime version handshake', () => {
+            const OWN_VERSION = '0123456789abcdef';
+            const OTHER_VERSION = 'fedcba9876543210';
+
+            function rendererWithGate(gate: RuntimeVersionGate): RemoteRenderer {
+                return createRemoteRenderer({
+                    moduleLoader,
+                    spriteSheetManager,
+                    linkHeaderParser,
+                    onDOMUpdated,
+                    domOps: mockDomOps,
+                    windowOps: mockWindowOps,
+                    http: mockHttpOps,
+                    hookManager,
+                    runtimeVersionGate: gate
+                });
+            }
+
+            function respondFrom(serverVersion: string): void {
+                mockFetch.mockResolvedValueOnce(createMockResponse({
+                    headers: {'X-PP-Response-Support': 'fragment-patch', [RUNTIME_VERSION_HEADER]: serverVersion},
+                    body: '<div id="app"><div id="fresh">New</div></div>'
+                }));
+            }
+
+            it.each([
+                ['the server runs the same runtime build', OWN_VERSION, false],
+                ['the server runs another runtime build', OTHER_VERSION, true]
+            ])('patches the fragment in when %s, and marks the next navigation for a full load only for another build', async (_name, serverVersion, wantStale) => {
+                const patchLocation = document.createElement('div');
+                document.body.appendChild(patchLocation);
+                const gate = createRuntimeVersionGate({ownVersion: OWN_VERSION});
+                respondFrom(serverVersion);
+
+                await rendererWithGate(gate).render({src: '/partial/test', patchLocation});
+
+                expect(patchLocation.querySelector('#fresh')).not.toBeNull();
+                expect(mockWindowOps.locationReload).not.toHaveBeenCalled();
+                expect(gate.isStale()).toBe(wantStale);
+            });
+
+            it('marks the gate stale even when the fragment request fails', async () => {
+                vi.spyOn(console, 'error').mockImplementation(() => {});
+                const gate = createRuntimeVersionGate({ownVersion: OWN_VERSION});
+                mockFetch.mockResolvedValueOnce(createMockResponse({
+                    ok: false,
+                    status: 500,
+                    headers: {[RUNTIME_VERSION_HEADER]: OTHER_VERSION}
+                }));
+
+                await rendererWithGate(gate).render({src: '/partial/test', patchLocation: document.createElement('div')});
+
+                expect(gate.isStale()).toBe(true);
             });
         });
 
@@ -621,6 +679,25 @@ describe('RemoteRenderer', () => {
 
                 const styleEl = document.head.querySelector('style[data-pk-style-key="empty-style-page"]');
                 expect(styleEl).toBeNull();
+            });
+
+            it('gives an inserted style block the page CSP token so a token-based policy applies it', async () => {
+                const tokenScript = addPageTokenScript('page-token');
+                const patchLocation = document.createElement('div');
+                document.body.appendChild(patchLocation);
+
+                mockFetch.mockResolvedValueOnce(createMockResponse({
+                    body: `
+                        <div id="app" data-pageid="token-style-page"><div>Content</div></div>
+                        <style pk-page nonce="token-of-the-fragment-response">.test { color: red; }</style>
+                    `
+                }));
+
+                await remoteRenderer.render({src: '/partial/test', patchLocation});
+
+                const styleEl = document.head.querySelector<HTMLStyleElement>('style[data-pk-style-key="token-style-page"]');
+                expect(styleEl?.nonce).toBe('page-token');
+                tokenScript.remove();
             });
         });
 
@@ -848,6 +925,56 @@ describe('RemoteRenderer', () => {
                     patchLocation: '.target'
                 }));
             });
+        });
+    });
+
+    describe('fragment CSP tokens', () => {
+        const fragmentToken = 'token-of-the-fragment-response';
+        let tokenScript: HTMLScriptElement;
+
+        beforeEach(() => {
+            tokenScript = addPageTokenScript('page-token');
+        });
+
+        afterEach(() => {
+            tokenScript.remove();
+        });
+
+        function tokensUnder(root: ParentNode): Array<{property: string; attribute: string | null}> {
+            return [...root.querySelectorAll<HTMLElement>('style, script')].map(element => ({
+                property: element.nonce ?? '',
+                attribute: element.getAttribute('nonce')
+            }));
+        }
+
+        it('gives replaced content the page token in place of the fragment token', async () => {
+            const patchLocation = document.createElement('div');
+            document.body.appendChild(patchLocation);
+            mockFetch.mockResolvedValueOnce(createMockResponse({
+                body: `<div id="app"><section><style nonce="${fragmentToken}">p{}</style><script nonce="${fragmentToken}" type="text/plain"></script></section></div>`
+            }));
+
+            await remoteRenderer.render({src: '/partial/test', patchLocation, patchMethod: 'replace'});
+
+            const tokens = tokensUnder(patchLocation);
+            expect(tokens.map(token => token.property)).toEqual(['page-token', 'page-token']);
+            expect(tokens.some(token => token.attribute === fragmentToken)).toBe(false);
+        });
+
+        it('gives a patched partial the page token in place of the fragment token', () => {
+            const existing = document.createElement('div');
+            existing.id = 'partial';
+            document.body.appendChild(existing);
+
+            remoteRenderer.patchPartial(
+                `<div id="partial"><style nonce="${fragmentToken}">p{}</style><p>New</p></div>`,
+                '#partial'
+            );
+
+            const tokens = tokensUnder(existing);
+            expect(tokens.map(token => token.property)).toEqual(['page-token']);
+            expect(tokens.some(token => token.attribute === fragmentToken)).toBe(false);
+            expect(existing.querySelector('p')?.textContent).toBe('New');
         });
     });
 

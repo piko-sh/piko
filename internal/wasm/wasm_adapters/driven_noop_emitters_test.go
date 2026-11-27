@@ -27,6 +27,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"piko.sh/piko/internal/generator/generator_dto"
 )
 
 func TestInMemoryPKJSEmitter_EmitJS_StripsTypeAnnotations(t *testing.T) {
@@ -35,7 +37,7 @@ func TestInMemoryPKJSEmitter_EmitJS_StripsTypeAnnotations(t *testing.T) {
 	emitter := NewInMemoryPKJSEmitter()
 	source := "const greet = (name: string): string => `hello ${name}`;\n"
 
-	artefactID, err := emitter.EmitJS(context.Background(), source, "pages/index", "example.com/site", "", false)
+	artefactID, err := emitter.EmitJS(t.Context(), source, "pages/index", generator_dto.PageScriptTarget(), "example.com/site", "", false)
 	require.NoError(t, err)
 	assert.Equal(t, "pk-js/pages/index.js", artefactID)
 
@@ -45,19 +47,31 @@ func TestInMemoryPKJSEmitter_EmitJS_StripsTypeAnnotations(t *testing.T) {
 	assert.Contains(t, out, "greet")
 }
 
-func TestInMemoryPKJSEmitter_EmitJS_PartialDerivesComponentName(t *testing.T) {
+func TestInMemoryPKJSEmitter_EmitJS_PartialUsesItsPartialName(t *testing.T) {
 	t.Parallel()
 
 	emitter := NewInMemoryPKJSEmitter()
 	source := "export function increment() { return 1; }\n"
 
-	artefactID, err := emitter.EmitJS(context.Background(), source, "partials/cart", "example.com/site", "", true)
+	artefactID, err := emitter.EmitJS(t.Context(), source, "partials/cart", generator_dto.PartialScriptTarget("cart"), "example.com/site", "", true)
 	require.NoError(t, err)
 	assert.Equal(t, "pk-js/partials/cart.js", artefactID)
 
 	out := emitter.GetArtefacts()[artefactID]
 	require.NotEmpty(t, out)
 	assert.Contains(t, out, "_createPKContext", "partial sources must get the factory wrapper")
+	assert.Contains(t, out, `document.querySelector("[partial_name='cart']")`)
+}
+
+func TestInMemoryPKJSEmitter_EmitJS_InvalidTargetIsRejected(t *testing.T) {
+	t.Parallel()
+
+	emitter := NewInMemoryPKJSEmitter()
+
+	_, err := emitter.EmitJS(t.Context(), "const x = 1;\n", "pages/index", generator_dto.ClientScriptTarget{}, "m", "", false)
+
+	require.ErrorIs(t, err, generator_dto.ErrInvalidClientScriptTarget)
+	assert.Empty(t, emitter.GetArtefacts())
 }
 
 func TestInMemoryPKJSEmitter_EmitJS_BareSourceWithNoFunctionsPassesThrough(t *testing.T) {
@@ -66,7 +80,7 @@ func TestInMemoryPKJSEmitter_EmitJS_BareSourceWithNoFunctionsPassesThrough(t *te
 	emitter := NewInMemoryPKJSEmitter()
 	source := "console.log('boot');\n"
 
-	artefactID, err := emitter.EmitJS(context.Background(), source, "pages/about", "example.com/site", "", false)
+	artefactID, err := emitter.EmitJS(t.Context(), source, "pages/about", generator_dto.PageScriptTarget(), "example.com/site", "", false)
 	require.NoError(t, err)
 
 	out := emitter.GetArtefacts()[artefactID]
@@ -80,12 +94,12 @@ func TestInMemoryPKJSEmitter_EmitJS_EmptySourceReturnsEmpty(t *testing.T) {
 
 	emitter := NewInMemoryPKJSEmitter()
 
-	artefactID, err := emitter.EmitJS(context.Background(), "", "pages/index", "example.com/site", "", false)
+	artefactID, err := emitter.EmitJS(t.Context(), "", "pages/index", generator_dto.PageScriptTarget(), "example.com/site", "", false)
 	require.NoError(t, err)
 	assert.Empty(t, artefactID)
 	assert.Empty(t, emitter.GetArtefacts())
 
-	artefactID, err = emitter.EmitJS(context.Background(), "  \n\t  ", "pages/index", "example.com/site", "", false)
+	artefactID, err = emitter.EmitJS(t.Context(), "  \n\t  ", "pages/index", generator_dto.PageScriptTarget(), "example.com/site", "", false)
 	require.NoError(t, err)
 	assert.Empty(t, artefactID)
 	assert.Empty(t, emitter.GetArtefacts())
@@ -97,7 +111,7 @@ func TestInMemoryPKJSEmitter_EmitJS_ParseErrorPropagates(t *testing.T) {
 	emitter := NewInMemoryPKJSEmitter()
 	source := "const x: number = ;"
 
-	artefactID, err := emitter.EmitJS(context.Background(), source, "pages/index", "example.com/site", "", false)
+	artefactID, err := emitter.EmitJS(t.Context(), source, "pages/index", generator_dto.PageScriptTarget(), "example.com/site", "", false)
 	require.Error(t, err)
 	assert.Empty(t, artefactID)
 	assert.Empty(t, emitter.GetArtefacts(), "no artefact stored on parse failure")
@@ -110,11 +124,11 @@ func TestInMemoryPKJSEmitter_EmitJS_StripsPkSuffix(t *testing.T) {
 	emitter := NewInMemoryPKJSEmitter()
 	source := "const x = 1;\n"
 
-	artefactID1, err := emitter.EmitJS(context.Background(), source, "pages/index.pk", "m", "", false)
+	artefactID1, err := emitter.EmitJS(t.Context(), source, "pages/index.pk", generator_dto.PageScriptTarget(), "m", "", false)
 	require.NoError(t, err)
 	assert.Equal(t, "pk-js/pages/index.js", artefactID1)
 
-	artefactID2, err := emitter.EmitJS(context.Background(), source, "pages/index", "m", "", false)
+	artefactID2, err := emitter.EmitJS(t.Context(), source, "pages/index", generator_dto.PageScriptTarget(), "m", "", false)
 	require.NoError(t, err)
 	assert.Equal(t, "pk-js/pages/index.js", artefactID2)
 }
@@ -125,7 +139,7 @@ func TestInMemoryPKJSEmitter_EmitJS_RewritesAtAliasImports(t *testing.T) {
 	emitter := NewInMemoryPKJSEmitter()
 	source := "import { helper } from '@/lib/utils';\nhelper();\n"
 
-	artefactID, err := emitter.EmitJS(context.Background(), source, "pages/index", "example.com/site", "", false)
+	artefactID, err := emitter.EmitJS(t.Context(), source, "pages/index", generator_dto.PageScriptTarget(), "example.com/site", "", false)
 	require.NoError(t, err)
 
 	out := emitter.GetArtefacts()[artefactID]
@@ -148,7 +162,7 @@ func TestInMemoryPKJSEmitter_EmitJS_RejectsTraversalPaths(t *testing.T) {
 		"./",
 		"",
 	} {
-		_, err := emitter.EmitJS(context.Background(), source, badPath, "m", "", false)
+		_, err := emitter.EmitJS(t.Context(), source, badPath, generator_dto.PageScriptTarget(), "m", "", false)
 		require.Error(t, err, "path %q must be rejected", badPath)
 		require.True(t, errors.Is(err, errPKJSPathInvalid), "errPKJSPathInvalid expected, got %v", err)
 		assert.Empty(t, emitter.GetArtefacts(), "rejected path must not store anything")
@@ -162,7 +176,7 @@ func TestInMemoryPKJSEmitter_TranspileCacheRoundTrip(t *testing.T) {
 	source := "const greet = (name: string): string => 'hi ' + name;\n"
 
 	emitter.Reset()
-	artefactID1, err := emitter.EmitJS(context.Background(), source, "pages/index", "example.com/site", "", false)
+	artefactID1, err := emitter.EmitJS(t.Context(), source, "pages/index", generator_dto.PageScriptTarget(), "example.com/site", "", false)
 	require.NoError(t, err)
 	originalOutput := emitter.GetArtefacts()[artefactID1]
 	require.NotEmpty(t, originalOutput)
@@ -178,7 +192,7 @@ func TestInMemoryPKJSEmitter_TranspileCacheRoundTrip(t *testing.T) {
 	require.Len(t, emitter.transpileCache, 1, "Reset must NOT touch the cache")
 	emitter.mu.Unlock()
 
-	artefactID2, err := emitter.EmitJS(context.Background(), "const x = 1;\n", "pages/other", "example.com/site", "", false)
+	artefactID2, err := emitter.EmitJS(t.Context(), "const x = 1;\n", "pages/other", generator_dto.PageScriptTarget(), "example.com/site", "", false)
 	require.NoError(t, err)
 	require.NotEqual(t, artefactID1, artefactID2)
 
@@ -231,7 +245,7 @@ func TestInMemoryPKJSEmitter_Sweep_ClearsProducedThisRun(t *testing.T) {
 	emitter := NewInMemoryPKJSEmitter()
 	source := "const x = 1;\n"
 
-	_, err := emitter.EmitJS(context.Background(), source, "pages/index", "m", "", false)
+	_, err := emitter.EmitJS(t.Context(), source, "pages/index", generator_dto.PageScriptTarget(), "m", "", false)
 	require.NoError(t, err)
 
 	emitter.mu.Lock()
@@ -270,7 +284,7 @@ func TestInMemoryPKJSEmitter_GetArtefacts_ReturnsCopy(t *testing.T) {
 	t.Parallel()
 
 	emitter := NewInMemoryPKJSEmitter()
-	_, err := emitter.EmitJS(context.Background(), "const x = 1;", "pages/index", "m", "", false)
+	_, err := emitter.EmitJS(t.Context(), "const x = 1;", "pages/index", generator_dto.PageScriptTarget(), "m", "", false)
 	require.NoError(t, err)
 
 	artefacts := emitter.GetArtefacts()
@@ -295,7 +309,7 @@ func TestInMemoryPKJSEmitter_ConcurrentEmitJSIsSafe(t *testing.T) {
 			for iteration := range perGoroutine {
 				_, err := emitter.EmitJS(context.Background(), source,
 					"pages/p"+stringFromInt(goroutineIndex)+"_"+stringFromInt(iteration),
-					"m", "", false)
+					generator_dto.PageScriptTarget(), "m", "", false)
 				require.NoError(t, err)
 			}
 		})

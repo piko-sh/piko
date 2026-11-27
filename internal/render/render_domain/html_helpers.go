@@ -41,6 +41,66 @@ type htmlLinksCache struct {
 }
 
 const (
+	// frameworkThemeCSS holds the rules for elements the framework itself writes.
+	//
+	// They live in theme.css rather than in style attributes, so a Content Security Policy
+	// without 'unsafe-inline' does not block them. The sprite sheet is hidden without
+	// `display:none`, which would make some browsers drop its gradients. The runtime error
+	// overlay classes match the markup the templater writes when a component cannot run.
+	frameworkThemeCSS = `#sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+.pk-runtime-error {
+  z-index: 99999;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pk-runtime-error__panel {
+  width: 80vw;
+  max-width: 1200px;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 2rem;
+  border-radius: 8px;
+  border: 2px solid #e11d48;
+  background: #1c1917;
+  color: #f8fafc;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+}
+.pk-runtime-error__title {
+  color: #f43f5e;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  border-bottom: 1px solid #3f3f46;
+  padding-bottom: 0.5rem;
+}
+.pk-runtime-error__message {
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+  color: #a1a1aa;
+}
+.pk-runtime-error__component {
+  color: #e5e7eb;
+}
+.pk-runtime-error__detail {
+  background: #27272a;
+  padding: 1rem;
+  border-radius: 4px;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  font-size: 0.9rem;
+  color: #d4d4d8;
+  border: 1px solid #3f3f46;
+}
+`
+
 	// DefaultCSSResetSimple is a minimal CSS reset that zeroes margins and padding and sets
 	// border-box sizing on all elements. This is the default reset used when WithCSSReset is
 	// called without sub-options.
@@ -173,8 +233,8 @@ func (ro *RenderOrchestrator) BuildThemeCSS(
 //
 // Takes websiteConfig (*config.WebsiteConfig) which provides the theme settings.
 //
-// Returns string which contains the full CSS with theme variables and, when configured,
-// the CSS reset styles.
+// Returns string which contains the full CSS with theme variables, the CSS reset styles
+// when configured, and the rules for the elements the framework writes.
 func (ro *RenderOrchestrator) buildThemeCSSContent(websiteConfig *config.WebsiteConfig) string {
 	var builder strings.Builder
 	builder.Grow(initialThemeCSSCapacity)
@@ -184,6 +244,7 @@ func (ro *RenderOrchestrator) buildThemeCSSContent(websiteConfig *config.Website
 	if ro.cssResetCSS != "" {
 		builder.WriteString(ro.cssResetCSS)
 	}
+	builder.WriteString(frameworkThemeCSS)
 
 	return builder.String()
 }

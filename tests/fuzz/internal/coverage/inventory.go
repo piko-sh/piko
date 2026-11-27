@@ -378,7 +378,7 @@ func (i *Inventory) Add(ctx context.Context, fuzzCase *casefile.Case, browser bo
 		fuzzCase:       fuzzCase,
 		seenServer:     map[string]bool{},
 		seenClient:     map[string]bool{},
-		actionControls: map[casefile.ClientOp]bool{},
+		actionControls: make(map[casefile.ClientOp]bool),
 		perProgram:     map[string]ProgramCounts{},
 		serverShape:    strings.Builder{},
 		clientShape:    strings.Builder{},
@@ -671,7 +671,7 @@ func New(target, policy string, seed, start uint64) *Inventory {
 			Client: Counts{SourceCases: 0, OracleEligibleCases: 0},
 		})
 	}
-	inventory.ClientActions = map[casefile.ClientOp]ActionCounts{}
+	inventory.ClientActions = make(map[casefile.ClientOp]ActionCounts, len(clientActionOps))
 	for _, op := range clientActionOps {
 		inventory.ClientActions[op] = ActionCounts{RecipeCases: 0, OracleEligibleCases: 0}
 	}

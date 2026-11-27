@@ -28,7 +28,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/debug"
-	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -99,12 +98,6 @@ var (
 
 	// errIncompleteBrowser reports a selected browser that returned no complete observation.
 	errIncompleteBrowser = errors.New("infrastructure: selected browser returned no complete interaction observation")
-
-	// browserTargets lists application targets that always select a browser.
-	browserTargets = []string{
-		"components", "form-workflow", "browser-events", "browser-lifecycle", "partial-components", "checkout-workflow",
-		"shipped-components",
-	}
 
 	// recordedWorkers lists the private worker binaries whose provenance is recorded.
 	recordedWorkers = []string{
@@ -1128,7 +1121,7 @@ func BrowserCase(c *casefile.Case, policy string) bool {
 	if c.Expected.DOM != nil {
 		return true
 	}
-	if policy == "every" || slices.Contains(browserTargets, c.Target) {
+	if policy == "every" || targets.IsBrowser(c.Target) {
 		return true
 	}
 	if c.BrowserSampleVersion == 0 {

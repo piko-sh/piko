@@ -1,0 +1,7 @@
+{
+  "description": "A layout partial outside the partials directory is not public, but the page still names it on the script tag of its client script, so the runtime scopes the script's exported functions to the partial.",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "shouldError": false,
+  "isFragment": false
+}

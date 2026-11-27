@@ -18,9 +18,18 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
+  capturePageCSPToken,
   createShadowDOMService,
   RESET_CSS,
 } from "./ShadowDOMService";
+
+function addPageTokenScript(token: string, parent: ParentNode = document.head): HTMLScriptElement {
+  const script = document.createElement("script");
+  script.setAttribute("nonce", "");
+  Object.defineProperty(script, "nonce", { value: token, configurable: true });
+  parent.prepend(script);
+  return script;
+}
 
 describe("ShadowDOMService", () => {
   let container: HTMLElement;
@@ -119,6 +128,34 @@ describe("ShadowDOMService", () => {
 
         expect(styles.length).toBe(2);
         expect(styles[1].textContent).toBe(componentCSS);
+      });
+
+      it.each([
+        { name: "gives every injected style the page CSP token", pageToken: "page-token", wantToken: "page-token" },
+        { name: "injects styles without a token when the page has none", pageToken: "", wantToken: "" },
+      ])("$name", ({ pageToken, wantToken }) => {
+        const tokenScript = pageToken === "" ? null : addPageTokenScript(pageToken);
+        const host = document.createElement("div");
+        const service = createShadowDOMService({ host, componentCSS: ".custom { color: red; }" });
+
+        const styles = Array.from(service.ensureShadowRoot().querySelectorAll("style"));
+
+        expect(styles.map(style => style.nonce)).toEqual([wantToken, wantToken]);
+        tokenScript?.remove();
+      });
+
+      it("uses the token recorded at start when a script with another token is added first", () => {
+        const separate = document.implementation.createHTMLDocument("separate");
+        addPageTokenScript("page-token", separate.head);
+        capturePageCSPToken(separate);
+        addPageTokenScript("token-of-another-response", separate.head);
+        const host = separate.createElement("div");
+        separate.body.appendChild(host);
+        const service = createShadowDOMService({ host });
+
+        const styles = Array.from(service.ensureShadowRoot().querySelectorAll("style"));
+
+        expect(styles.map(style => style.nonce)).toEqual(["page-token"]);
       });
 
       it("should not inject empty component CSS", () => {

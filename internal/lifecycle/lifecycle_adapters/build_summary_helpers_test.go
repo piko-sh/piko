@@ -24,7 +24,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"piko.sh/piko/internal/generator/generator_dto"
 )
 
 func TestExtractGutterContent(t *testing.T) {
@@ -183,77 +182,6 @@ func TestExtractCoreMessage_ExtendedCases(t *testing.T) {
 		got := extractCoreMessage("X")
 
 		assert.Equal(t, "X", got)
-	})
-}
-
-func TestBuildJSArtefactToPartialNameMap(t *testing.T) {
-	t.Parallel()
-
-	t.Run("builds map from partials with JS artefact IDs", func(t *testing.T) {
-		t.Parallel()
-
-		manifest := &generator_dto.Manifest{
-			Partials: map[string]generator_dto.ManifestPartialEntry{
-				"partials/card.pk": {
-					JSArtefactID: "js-card-abc123",
-					PartialName:  "card",
-				},
-				"partials/header.pk": {
-					JSArtefactID: "js-header-def456",
-					PartialName:  "header",
-				},
-			},
-		}
-
-		result := buildJSArtefactToPartialNameMap(manifest)
-
-		assert.Len(t, result, 2)
-		assert.Equal(t, "card", result["js-card-abc123"])
-		assert.Equal(t, "header", result["js-header-def456"])
-	})
-
-	t.Run("skips partials without JS artefact ID", func(t *testing.T) {
-		t.Parallel()
-
-		manifest := &generator_dto.Manifest{
-			Partials: map[string]generator_dto.ManifestPartialEntry{
-				"partials/card.pk": {
-					JSArtefactID: "js-card-abc123",
-					PartialName:  "card",
-				},
-				"partials/static.pk": {
-					JSArtefactID: "",
-					PartialName:  "static",
-				},
-			},
-		}
-
-		result := buildJSArtefactToPartialNameMap(manifest)
-
-		assert.Len(t, result, 1)
-		assert.Equal(t, "card", result["js-card-abc123"])
-	})
-
-	t.Run("returns empty map for no partials", func(t *testing.T) {
-		t.Parallel()
-
-		manifest := &generator_dto.Manifest{
-			Partials: map[string]generator_dto.ManifestPartialEntry{},
-		}
-
-		result := buildJSArtefactToPartialNameMap(manifest)
-
-		assert.Empty(t, result)
-	})
-
-	t.Run("returns empty map for nil partials", func(t *testing.T) {
-		t.Parallel()
-
-		manifest := &generator_dto.Manifest{}
-
-		result := buildJSArtefactToPartialNameMap(manifest)
-
-		assert.Empty(t, result)
 	})
 }
 

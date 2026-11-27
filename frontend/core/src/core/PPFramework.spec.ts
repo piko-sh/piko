@@ -18,9 +18,14 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi, Mock } from 'vitest';
 import { PPFramework, RegisterHelper, getGlobalHelperRegistry } from './PPFramework';
+import { addPageTokenScript } from '../../test/pageTokenScript';
 import type { PPFrameworkOptions } from './PPFramework';
 import * as actionModule from '@/pk/action';
 import * as ActionExecutor from '@/core/ActionExecutor';
+import { _createPagePKContext } from '@/pk/context';
+import { _currentPageVisit, _endPageVisit } from '@/pk/lifecycle';
+import { reloadPartial } from '@/pk/coordination';
+import { getGlobalPageContext } from '@/services/PageContext';
 
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
@@ -234,6 +239,28 @@ describe('PPFramework', () => {
   };
 
   describe('init()', () => {
+    it('does not end the current page visit when the framework starts', () => {
+      const visitBefore = _currentPageVisit();
+
+      PPFramework.init();
+
+      expect(_currentPageVisit()).toBe(visitBefore);
+    });
+
+    it('loads the page scripts of the document through the page context', () => {
+      const meta = document.createElement('meta');
+      meta.setAttribute('name', 'pk-script');
+      meta.setAttribute('content', '/_piko/assets/pk-js/pages/main.js');
+      document.head.appendChild(meta);
+      const loadModule = vi.spyOn(getGlobalPageContext(), 'loadModule').mockResolvedValue();
+
+      PPFramework.init();
+      meta.remove();
+
+      expect(loadModule).toHaveBeenCalledWith('/_piko/assets/pk-js/pages/main.js', undefined);
+      loadModule.mockRestore();
+    });
+
     it('should set globalConfig', () => {
       const options: PPFrameworkOptions = { loaderColour: 'red' };
       PPFramework.init(options);
@@ -294,6 +321,86 @@ describe('PPFramework', () => {
       expect(mockFetch).toHaveBeenCalledWith('http://localhost:3000/new-page?_f=1', expect.anything());
       expect(appRoot.innerHTML).toBe('<p>New Content</p>');
       expect(document.title).toBe('New Title');
+    });
+
+    it('disconnects the page script of the page being left once, while its elements are still in the DOM', async () => {
+      appRoot.innerHTML = '<div partial_name="layout"><button id="leaving-button">Leaving</button></div>';
+      const seenOnDisconnect: Array<string | null> = [];
+      _createPagePKContext(document.body).onDisconnected(() => {
+        seenOnDisconnect.push(document.getElementById('leaving-button')?.textContent ?? null);
+      });
+      const visitBefore = _currentPageVisit();
+      mockSuccessfulFetch('<html><body><div id="app"><div partial_name="layout"><p>Arrived</p></div></div></body></html>');
+      await PPFramework.navigateTo('/next-page');
+      mockSuccessfulFetch('<html><body><div id="app"><div partial_name="layout"><p>Arrived again</p></div></div></body></html>');
+
+      await PPFramework.navigateTo('/another-page');
+
+      expect(seenOnDisconnect).toEqual(['Leaving']);
+      expect(_currentPageVisit()).not.toBe(visitBefore);
+      expect(appRoot.textContent).toContain('Arrived again');
+    });
+
+    it('gives the page style and widget scripts it inserts the page CSP token', async () => {
+      const tokenScript = addPageTokenScript('page-token');
+      mockSuccessfulFetch('<html><head><style pk-page>h1 { color: green; }</style><meta name="pk-widget-script" content="/_piko/captcha/token-widget.js"></head><body><div id="app"><h1>Next</h1></div></body></html>');
+
+      await PPFramework.navigateTo('/token-page');
+
+      expect(document.head.querySelector<HTMLStyleElement>('style[pk-page]')?.nonce).toBe('page-token');
+      expect(document.head.querySelector<HTMLScriptElement>('script[src="/_piko/captcha/token-widget.js"]')?.nonce).toBe('page-token');
+      document.head.querySelectorAll('style[pk-page], script[src="/_piko/captcha/token-widget.js"]').forEach(element => element.remove());
+      tokenScript.remove();
+    });
+
+    it('gives content swapped in without morphing the page token in place of the fragment token', async () => {
+      const tokenScript = addPageTokenScript('page-token');
+      const fragmentToken = 'token-of-the-fragment-response';
+      mockSuccessfulFetch(`<html><body><div id="app"><style nonce="${fragmentToken}">h1{}</style><h1>Next</h1></div></body></html>`);
+
+      await PPFramework.navigateTo('/unmorphed-page', undefined, { morph: 'none' });
+
+      const style = appRoot.querySelector<HTMLStyleElement>('style');
+      expect(appRoot.querySelector('h1')?.textContent).toBe('Next');
+      expect(style?.nonce).toBe('page-token');
+      expect(style?.getAttribute('nonce')).not.toBe(fragmentToken);
+      tokenScript.remove();
+    });
+
+    it('loads the page scripts of the page navigated to in the new page visit', async () => {
+      const visitBefore = _currentPageVisit();
+      const visitsAtLoad: object[] = [];
+      const loadModule = vi.spyOn(getGlobalPageContext(), 'loadModule').mockImplementation(() => {
+        visitsAtLoad.push(_currentPageVisit());
+        return Promise.resolve();
+      });
+      mockSuccessfulFetch('<html><head><meta name="pk-script" content="/_piko/assets/pk-js/pages/next.js"></head><body><div id="app"><p>Next</p></div></body></html>');
+
+      await PPFramework.navigateTo('/next-page');
+
+      expect(loadModule).toHaveBeenCalledWith('/_piko/assets/pk-js/pages/next.js', undefined);
+      expect(visitsAtLoad).toHaveLength(1);
+      expect(visitsAtLoad[0]).not.toBe(visitBefore);
+      expect(visitsAtLoad[0]).toBe(_currentPageVisit());
+      loadModule.mockRestore();
+    });
+
+    it('copies the page ID of the page navigated to onto the body', async () => {
+      document.body.setAttribute('data-pageid', 'pages/old');
+      mockSuccessfulFetch('<html><body><div id="app" data-pageid="pages/new"><p>New</p></div></body></html>');
+
+      await PPFramework.navigateTo('/new-page');
+
+      expect(document.body.getAttribute('data-pageid')).toBe('pages/new');
+    });
+
+    it('removes the page ID from the body when the page navigated to has none', async () => {
+      document.body.setAttribute('data-pageid', 'pages/old');
+      mockSuccessfulFetch('<html><body><div id="app"><p>New</p></div></body></html>');
+
+      await PPFramework.navigateTo('/new-page');
+
+      expect(document.body.hasAttribute('data-pageid')).toBe(false);
     });
 
     it('should update history (pushState by default) with the original targetUrl', async () => {
@@ -377,6 +484,110 @@ describe('PPFramework', () => {
       await PPFramework.navigateTo('/page2');
 
       expect(controller?.signal.aborted).toBe(true);
+    });
+  });
+
+  describe('navigation View Transitions', () => {
+    let startViewTransition: Mock<(update: () => void) => {updateCallbackDone: Promise<void>; ready: Promise<void>; finished: Promise<void>; skipTransition: () => void}>;
+    let viewTransitionsMeta: HTMLMetaElement | null;
+
+    beforeEach(() => {
+      viewTransitionsMeta = null;
+      startViewTransition = vi.fn((update: () => void) => {
+        update();
+        return {updateCallbackDone: Promise.resolve(), ready: Promise.resolve(), finished: Promise.resolve(), skipTransition: vi.fn()};
+      });
+      Object.defineProperty(document, 'startViewTransition', {value: startViewTransition, configurable: true, writable: true});
+      vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+    });
+
+    afterEach(() => {
+      viewTransitionsMeta?.remove();
+      Reflect.deleteProperty(document, 'startViewTransition');
+      Reflect.deleteProperty(document, 'elementFromPoint');
+    });
+
+    const turnOffViewTransitions = (): void => {
+      viewTransitionsMeta = document.createElement('meta');
+      viewTransitionsMeta.setAttribute('name', 'pk-view-transitions');
+      viewTransitionsMeta.setAttribute('content', 'off');
+      document.head.appendChild(viewTransitionsMeta);
+    };
+
+    it('runs the page update in a View Transition by default', async () => {
+      PPFramework.init();
+      mockSuccessfulFetch('<html><body><div id="app"><p>Animated</p></div></body></html>');
+
+      await PPFramework.navigateTo('/animated-page');
+
+      expect(startViewTransition).toHaveBeenCalledTimes(1);
+      expect(appRoot.innerHTML).toBe('<p>Animated</p>');
+    });
+
+    it('updates the page without a View Transition when the server turned them off', async () => {
+      turnOffViewTransitions();
+      PPFramework.init();
+      mockSuccessfulFetch('<html><body><div id="app"><p>Plain</p></div></body></html>');
+
+      await PPFramework.navigateTo('/plain-page');
+
+      expect(startViewTransition).not.toHaveBeenCalled();
+      expect(appRoot.innerHTML).toBe('<p>Plain</p>');
+    });
+
+    it('reads the setting once when the framework starts', async () => {
+      PPFramework.init();
+      turnOffViewTransitions();
+      mockSuccessfulFetch('<html><body><div id="app"><p>Late</p></div></body></html>');
+
+      await PPFramework.navigateTo('/late-page');
+
+      expect(startViewTransition).toHaveBeenCalledTimes(1);
+      expect(appRoot.innerHTML).toBe('<p>Late</p>');
+    });
+
+    it('passes a click lost to the transition on to the new page', async () => {
+      let endTransition: () => void = () => undefined;
+      const skipTransition = vi.fn();
+      startViewTransition.mockImplementationOnce((update: () => void) => {
+        update();
+        return {updateCallbackDone: Promise.resolve(), ready: Promise.resolve(), finished: new Promise<void>(resolve => { endTransition = resolve; }), skipTransition};
+      });
+      PPFramework.init();
+      mockSuccessfulFetch('<html><body><div id="app"><button id="next-button">Next</button></div></body></html>');
+      await PPFramework.navigateTo('/button-page');
+      const button = appRoot.querySelector('#next-button') as HTMLButtonElement;
+      const buttonClicks = vi.fn();
+      button.addEventListener('click', buttonClicks);
+      Object.defineProperty(document, 'elementFromPoint', {value: () => button, configurable: true, writable: true});
+
+      document.documentElement.dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true, detail: 1, clientX: 5, clientY: 5}));
+      endTransition();
+      await vi.waitFor(() => expect(buttonClicks).toHaveBeenCalledTimes(1));
+
+      expect(skipTransition).toHaveBeenCalled();
+    });
+
+    it('leaves no unhandled rejection when the transition is skipped', async () => {
+      const unhandledReasons: unknown[] = [];
+      const recordUnhandled = (reason: unknown): void => {
+        unhandledReasons.push(reason);
+      };
+      process.on('unhandledRejection', recordUnhandled);
+      startViewTransition.mockImplementationOnce((update: () => void) => {
+        update();
+        const skipped = new DOMException('Transition was skipped', 'AbortError');
+        return {updateCallbackDone: Promise.resolve(), ready: Promise.reject(skipped), finished: Promise.reject(skipped), skipTransition: vi.fn()};
+      });
+      PPFramework.init();
+      mockSuccessfulFetch('<html><body><div id="app"><p>Skipped</p></div></body></html>');
+
+      await PPFramework.navigateTo('/skipped-page');
+      await new Promise(resolve => setTimeout(resolve, 20));
+      process.off('unhandledRejection', recordUnhandled);
+
+      expect(unhandledReasons).toEqual([]);
+      expect(appRoot.innerHTML).toBe('<p>Skipped</p>');
     });
   });
 
@@ -600,9 +811,46 @@ describe('PPFramework', () => {
     });
   });
 
+  describe('diagnostic hook', () => {
+    beforeEach(() => {
+      PPFramework.init();
+    });
+
+    it('fires for a reload of a partial that is not in the page', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      _endPageVisit();
+      const listener = vi.fn();
+      const unsubscribe = PPFramework.hooks.on(PPFramework.hooks.events.DIAGNOSTIC, listener);
+
+      await reloadPartial('no-such-partial');
+      unsubscribe();
+
+      expect(listener).toHaveBeenCalledWith(expect.objectContaining({
+        kind: 'partial-not-found',
+        name: 'no-such-partial',
+        source: 'piko.partials.reload'
+      }));
+    });
+
+    it('fires for an action that is not registered', () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      _endPageVisit();
+      const listener = vi.fn();
+      const unsubscribe = PPFramework.hooks.on(PPFramework.hooks.events.DIAGNOSTIC, listener);
+
+      PPFramework.dispatchAction('missing.action', document.createElement('button'));
+      unsubscribe();
+
+      expect(listener).toHaveBeenCalledWith(expect.objectContaining({
+        kind: 'action-not-found',
+        name: 'missing.action'
+      }));
+    });
+  });
+
   describe('dispatchAction', () => {
-    it('should warn when action function is not registered', () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    it('should report an error when action function is not registered', () => {
+      const warnSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       const button = document.createElement('button');
       PPFramework.dispatchAction('nonexistent.action', button);
@@ -730,21 +978,118 @@ describe('PPFramework', () => {
     });
   });
 
-  describe('Pre-init safety', () => {
-    it('navigateTo before init should warn and not crash', async () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  describe('calls made before init', () => {
+    const MAX_CALLS_BEFORE_INIT = 50;
+    const FRAGMENT_PATCH_HTML = '<html><head><meta name="X-PP-Response-Support" content="fragment-patch"></head><body><div id="app"><em>Queued Content</em></div></body></html>';
 
-      await PPFramework.navigateTo('http://external.com/page');
+    async function importFreshFramework(): Promise<typeof PPFramework> {
+      vi.resetModules();
+      const freshModule = await import('./PPFramework');
+      return freshModule.PPFramework;
+    }
 
-      warnSpy.mockRestore();
+    function mockFragmentResponse(): void {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        text: () => Promise.resolve(FRAGMENT_PATCH_HTML),
+        headers: new Headers({ 'X-PP-Response-Support': 'fragment-patch' }),
+        body: null,
+      });
+    }
+
+    it('loads the page in full when navigateTo is called before init', async () => {
+      const freshFramework = await importFreshFramework();
+
+      await freshFramework.navigateTo('/before-init');
+
+      expect(window.location.assign).toHaveBeenCalledWith('/before-init');
+      expect(window.location.replace).not.toHaveBeenCalled();
     });
 
-    it('remoteRender before init should warn and not crash', async () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    it('replaces the history entry when navigateTo asks for it before init', async () => {
+      const freshFramework = await importFreshFramework();
 
-      await PPFramework.remoteRender({ src: '/some/path', patchLocation: document.createElement('div') });
+      await freshFramework.navigateTo('/before-init-replace', undefined, { replaceHistory: true });
 
-      warnSpy.mockRestore();
+      expect(window.location.replace).toHaveBeenCalledWith('/before-init-replace');
+      expect(window.location.assign).not.toHaveBeenCalled();
+    });
+
+    it('runs a remote render queued before init once init completes', async () => {
+      const freshFramework = await importFreshFramework();
+      mockFragmentResponse();
+      const patchLocation = document.createElement('div');
+      document.body.appendChild(patchLocation);
+
+      let settled = false;
+      const pending = freshFramework.remoteRender({ src: '/queued', patchLocation }).then(() => {
+        settled = true;
+      });
+      await Promise.resolve();
+
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(settled).toBe(false);
+
+      freshFramework.init();
+      await pending;
+
+      expect(mockFetch).toHaveBeenCalledWith('http://localhost:3000/queued?_f=1', expect.anything());
+      expect(patchLocation.innerHTML).toBe('<em>Queued Content</em>');
+    });
+
+    it('rejects remote renders past the queue limit and names the limit', async () => {
+      const freshFramework = await importFreshFramework();
+      mockFragmentResponse();
+      const patchLocation = document.createElement('div');
+      document.body.appendChild(patchLocation);
+
+      const queued = Array.from({ length: MAX_CALLS_BEFORE_INIT }, () =>
+        freshFramework.remoteRender({ src: '/queued', patchLocation })
+      );
+      const overflow = freshFramework.remoteRender({ src: '/overflow', patchLocation });
+
+      await expect(overflow).rejects.toThrow(String(MAX_CALLS_BEFORE_INIT));
+
+      freshFramework.init();
+      await Promise.all(queued);
+      expect(mockFetch).toHaveBeenCalledTimes(MAX_CALLS_BEFORE_INIT);
+    });
+
+    it('delivers a diagnostic raised before init to a listener queued before init', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const listener = vi.fn();
+      const hooksWindow = window as Window & { __PP_HOOKS_QUEUE__?: unknown[] };
+      hooksWindow.__PP_HOOKS_QUEUE__ = [{ event: 'diagnostic', callback: listener }];
+      const freshFramework = await importFreshFramework();
+      const freshCoordination = await import('@/pk/coordination');
+
+      await freshCoordination.reloadPartial('early-partial');
+      expect(listener).not.toHaveBeenCalled();
+
+      freshFramework.init();
+      await freshCoordination.reloadPartial('early-partial');
+
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect(listener).toHaveBeenCalledWith(expect.objectContaining({
+        kind: 'partial-not-found',
+        name: 'early-partial'
+      }));
+      delete hooksWindow.__PP_HOOKS_QUEUE__;
+    });
+
+    it('runs a partial patch queued before init once init completes', async () => {
+      const freshFramework = await importFreshFramework();
+      const target = document.createElement('div');
+      target.id = 'queued-patch';
+      target.textContent = 'old';
+      document.body.appendChild(target);
+
+      freshFramework.patchPartial('<div id="queued-patch">new</div>', '#queued-patch');
+      expect(document.getElementById('queued-patch')?.textContent).toBe('old');
+
+      freshFramework.init();
+
+      expect(document.getElementById('queued-patch')?.textContent).toBe('new');
     });
   });
 

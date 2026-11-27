@@ -1,0 +1,11 @@
+{
+  "description": "Validates that a page script reading pk.refs with a name that no p-ref on the page or in any partial declares emits a warning, while refs from the page and its partials resolve.",
+  "expectedDiagnostics": 1,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "messageContains": "pk.refs.titel matches no element with p-ref=\"titel\" on this page or in any partial, so it is always null. Did you mean 'title'?",
+      "onLine": 37
+    }
+  ]
+}

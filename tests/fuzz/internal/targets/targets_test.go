@@ -68,6 +68,11 @@ func TestTargetCatalogues(t *testing.T) {
 	assert.False(t, IsApplication("binder"))
 	assert.True(t, UsesPackageWorker("binder-safe"))
 	assert.True(t, IsPublicContract("example-contracts"))
+	for _, name := range BrowserNames() {
+		assert.True(t, IsApplication(name), name)
+		assert.True(t, IsBrowser(name), name)
+	}
+	assert.False(t, IsBrowser("pages"))
 	for name, fuzzer := range Fuzzers() {
 		assert.NotEmpty(t, fuzzer.Package, name)
 		assert.True(t, strings.HasPrefix(fuzzer.Function, "Fuzz"), name)

@@ -2,20 +2,8 @@
 
 package db
 
-import "strings"
-
 var queryNameMap = map[string]string{deleteartefact: "DeleteArtefact", deleteartefactlayer: "DeleteArtefactLayer", deleteartefactlayersforrelease: "DeleteArtefactLayersForRelease", getartefact: "GetArtefact", getartefactforupdate: "GetArtefactForUpdate", getmultipleartefacts: "GetMultipleArtefacts", insertartefactlayerifabsent: "InsertArtefactLayerIfAbsent", listallartefactids: "ListAllArtefactIDs", reclaimartefactlayersforrelease: "ReclaimArtefactLayersForRelease", upsertartefact: "UpsertArtefact", decrementblobrefcount: "DecrementBlobRefCount", deleteblobreferenceifzero: "DeleteBlobReferenceIfZero", getblobrefcount: "GetBlobRefCount", incrementblobrefcount: "IncrementBlobRefCount", countchunksforvariant: "CountChunksForVariant", deletechunksforartefact: "DeleteChunksForArtefact", findartefactbychunkstoragekey: "FindArtefactByChunkStorageKey", getchunksforvariant: "GetChunksForVariant", getchunksforvariants: "GetChunksForVariants", insertvariantchunk: "InsertVariantChunk", addgchint: "AddGCHint", deletegchints: "DeleteGCHints", popgchints: "PopGCHints", listallartefactswithdata: "ListAllArtefactsWithData", listrecentartefactswithdata: "ListRecentArtefactsWithData", listvariantstatuscounts: "ListVariantStatusCounts", claimrelease: "ClaimRelease", deletereleaselease: "DeleteReleaseLease", deletestalepublishinglease: "DeleteStalePublishingLease", getrelease: "GetRelease", heartbeatrelease: "HeartbeatRelease", listexpiredreleases: "ListExpiredReleases", markreleasepublished: "MarkReleasePublished", deletedesiredprofilesforartefact: "DeleteDesiredProfilesForArtefact", getdesiredprofilesforartefact: "GetDesiredProfilesForArtefact", getdesiredprofilesforartefactids: "GetDesiredProfilesForArtefactIDs", insertdesiredprofile: "InsertDesiredProfile", findartefactbyvariantstoragekey: "FindArtefactByVariantStorageKey", findartefactidsbytag: "FindArtefactIDsByTag", findartefactidsbytagvalues: "FindArtefactIDsByTagValues", deletevarianttagsforartefact: "DeleteVariantTagsForArtefact", deletevariantsforartefact: "DeleteVariantsForArtefact", getalltagsforartefact: "GetAllTagsForArtefact", gettagsforartefactids: "GetTagsForArtefactIDs", gettagsforvariant: "GetTagsForVariant", getvariantsforartefact: "GetVariantsForArtefact", getvariantsforartefactids: "GetVariantsForArtefactIDs", insertvariant: "InsertVariant", insertvarianttag: "InsertVariantTag"}
-var queryNamePrefixes = []string{getchunksforvariants[:246], getvariantsforartefactids[:147], getdesiredprofilesforartefactids[:141], getmultipleartefacts[:101], gettagsforartefactids[:95], findartefactidsbytagvalues[:87], deletegchints[:38]}
-var queryNamePrefixNames = []string{"GetChunksForVariants", "GetVariantsForArtefactIDs", "GetDesiredProfilesForArtefactIDs", "GetMultipleArtefacts", "GetTagsForArtefactIDs", "FindArtefactIDsByTagValues", "DeleteGCHints"}
 
 func QueryNameResolver(query string) string {
-	if name, ok := queryNameMap[query]; ok {
-		return name
-	}
-	for index, prefix := range queryNamePrefixes {
-		if strings.HasPrefix(query, prefix) {
-			return queryNamePrefixNames[index]
-		}
-	}
-	return ""
+	return queryNameMap[query]
 }

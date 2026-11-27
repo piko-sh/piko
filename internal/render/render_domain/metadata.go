@@ -32,6 +32,7 @@ import (
 	"golang.org/x/net/html"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/config"
+	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/mem"
 	"piko.sh/piko/internal/render/render_dto"
@@ -56,10 +57,14 @@ const (
 	// elements, which is enough for most pages.
 	defaultSVGIDSliceCapacity = 32
 
-	// spriteSheetOpenTag is the sprite root element. It is hidden with a zero-size
-	// absolutely positioned style rather than display:none, because some browsers drop paint
-	// servers such as gradients when their host is display:none.
-	spriteSheetOpenTag = `<svg xmlns="http://www.w3.org/2000/svg" id="sprite" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">`
+	// spriteSheetOpenTag is the sprite root element.
+	//
+	// It is hidden by a zero-size absolutely positioned rule in theme.css rather than
+	// `display:none`, because some browsers drop paint servers such as gradients when their
+	// host is `display:none`. It carries no style attribute, which a Content Security Policy
+	// without 'unsafe-inline' would block. The zero width and height attributes keep it out
+	// of the way if theme.css is missing.
+	spriteSheetOpenTag = `<svg xmlns="http://www.w3.org/2000/svg" id="sprite" aria-hidden="true" width="0" height="0">`
 )
 
 // ParsedSvgData contains the parsed content and attributes of an SVG asset. CachedSymbol
@@ -174,8 +179,8 @@ func (ro *RenderOrchestrator) CollectMetadata(
 
 	ro.preloadAssetsAndComponentsForTags(
 		ctx, metadata.CustomTags, tempRenderCtx)
-	addStandardLinkHeaders(tempRenderCtx)
-	addComponentsExtensionLinkHeader(tempRenderCtx)
+	addStandardLinkHeaders(tempRenderCtx, ro.coreRuntimeBuild)
+	addComponentsExtensionLinkHeader(tempRenderCtx, ro.coreRuntimeBuild)
 	addJSLinkHeaders(metadata.JSScriptMetas, tempRenderCtx)
 
 	if siteConfig != nil {
@@ -455,9 +460,11 @@ func formatComponentNotFoundError(componentTag string) string {
 // context. These headers tell the browser to fetch key assets early.
 //
 // Takes rctx (*renderContext) which receives the link headers.
-func addStandardLinkHeaders(rctx *renderContext) {
+// Takes build (daemon_frontend.CoreRuntimeBuild) which is the core runtime build the
+// server sends, whose URL the page loads.
+func addStandardLinkHeaders(rctx *renderContext, build daemon_frontend.CoreRuntimeBuild) {
 	rctx.addLinkHeaderIfUnique(render_dto.LinkHeader{
-		URL:         "/_piko/dist/ppframework.core.es.js",
+		URL:         getCoreJSURL(build),
 		Rel:         "preload",
 		As:          preloadAsScript,
 		Type:        "",
@@ -478,12 +485,14 @@ func addStandardLinkHeaders(rctx *renderContext) {
 //
 // Takes rctx (*renderContext) which provides the component metadata and receives the link
 // header.
-func addComponentsExtensionLinkHeader(rctx *renderContext) {
+// Takes build (daemon_frontend.CoreRuntimeBuild) which is the build the server sends,
+// whose components URL the page loads.
+func addComponentsExtensionLinkHeader(rctx *renderContext, build daemon_frontend.CoreRuntimeBuild) {
 	if rctx.componentMetadata == nil {
 		return
 	}
 	rctx.addLinkHeaderIfUnique(render_dto.LinkHeader{
-		URL:         "/_piko/dist/ppframework.components.es.js",
+		URL:         getComponentsJSURL(build),
 		Rel:         "modulepreload",
 		As:          preloadAsScript,
 		Type:        "",

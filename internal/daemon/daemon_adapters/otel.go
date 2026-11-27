@@ -66,6 +66,10 @@ var (
 	// cacheGenerationDuration tracks the duration of cache generation in milliseconds.
 	cacheGenerationDuration metric.Float64Histogram
 
+	// cachePersistSkippedCount counts rendered static pages that were not stored because
+	// every cache write slot was busy.
+	cachePersistSkippedCount metric.Int64Counter
+
 	// serverStartupDuration tracks the duration of server startup in milliseconds.
 	serverStartupDuration metric.Float64Histogram
 
@@ -110,6 +114,11 @@ var (
 
 	// tlsCertificateReloadErrorCount tracks failed TLS certificate reload attempts.
 	tlsCertificateReloadErrorCount metric.Int64Counter
+
+	// unknownRuntimeVersionCount tracks requests for framework bundles of a runtime version
+	// this binary does not hold. A rise during a deploy means requests from pages of one
+	// build are reaching instances of another.
+	unknownRuntimeVersionCount metric.Int64Counter
 
 	// metricAttrCache holds an immutable map of pre-built metric measurement options keyed
 	// by path and method, so page and partial requests read it without locking.
@@ -248,6 +257,14 @@ func init() {
 		otel.Handle(err)
 	}
 
+	cachePersistSkippedCount, err = meter.Int64Counter(
+		"daemon.cache_persist_skipped_count",
+		metric.WithDescription("Number of rendered static pages not stored because every cache write slot was busy"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
 	cacheGenerationDuration, err = meter.Float64Histogram(
 		"daemon.cache_generation_duration",
 		metric.WithDescription("Duration of cache generation"),
@@ -367,6 +384,14 @@ func init() {
 	tlsCertificateReloadErrorCount, err = meter.Int64Counter(
 		"daemon.tls.certificate_reload_error_count",
 		metric.WithDescription("Number of failed TLS certificate reload attempts"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	unknownRuntimeVersionCount, err = meter.Int64Counter(
+		"daemon.http.unknown_runtime_version_count",
+		metric.WithDescription("Number of framework bundle requests for a runtime version this binary does not hold"),
 	)
 	if err != nil {
 		otel.Handle(err)

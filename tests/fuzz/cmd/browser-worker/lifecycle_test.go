@@ -20,6 +20,7 @@ package main
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -27,10 +28,18 @@ import (
 )
 
 func TestBrowserLifecycleRecordsUnparseableAddress(t *testing.T) {
-	input := casefile.LifecycleInput{Draft: "draft", Reverse: true}
-	trace := browserLifecycle(t.Context(), nil, "://missing-scheme", input)
-	assert.Equal(t, "mount", trace.FailedStep)
-	assert.Contains(t, trace.DriverError, "missing protocol scheme")
-	assert.Equal(t, input, trace.Input)
-	assert.Empty(t, trace.States)
+	for _, input := range []casefile.LifecycleInput{{Draft: "draft", Reverse: true}, {ElementReuse: true}} {
+		trace := browserLifecycle(t.Context(), nil, "://missing-scheme", input)
+		assert.Equal(t, casefile.ExpectedLifecycle(input).States[0].Step, trace.FailedStep)
+		assert.Contains(t, trace.DriverError, "missing protocol scheme")
+		assert.Equal(t, input, trace.Input)
+		assert.Empty(t, trace.States)
+	}
+}
+
+func TestLifecycleBudgetCoversEveryModelledStep(t *testing.T) {
+	for _, input := range []casefile.LifecycleInput{{}, {ElementReuse: true}} {
+		steps := time.Duration(len(casefile.ExpectedLifecycle(input).States))
+		assert.Equal(t, steps*lifecycleStepBudget, lifecycleBudget(input), "element reuse %t", input.ElementReuse)
+	}
 }

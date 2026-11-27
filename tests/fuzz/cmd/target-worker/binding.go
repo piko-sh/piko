@@ -58,6 +58,9 @@ const (
 
 	// maxActionCount bounds the drawn action contact counter.
 	maxActionCount = 1000
+
+	// actionMaxBodyBytes is the request body limit of the action handler under check.
+	actionMaxBodyBytes = 1 << 16
 )
 
 // contact supplies a nested action argument.
@@ -249,7 +252,7 @@ func checkJSONNumber(ctx context.Context, choices *tape.Tape) error {
 func checkActions(ctx context.Context, choices *tape.Tape, _ *casefile.Case) error {
 	want := contact{Name: label(choices), Count: safeconv.Int64ToInt16(drawInt64(choices, maxActionCount))}
 	var got contact
-	handler := daemon_adapters.NewActionHandler(nil, 1<<16, nil, security_dto.RateLimitValues{}, false, nil, nil)
+	handler := daemon_adapters.NewActionHandler(nil, actionMaxBodyBytes, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	handler.Register(daemon_adapters.ActionHandlerEntry{
 		Middlewares: nil,
 		Name:        "fixture.Contact",

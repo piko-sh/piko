@@ -58,6 +58,9 @@ const (
 
 	// reportVersion is the checkpoint schema version New writes.
 	reportVersion = 2
+
+	// fingerprintBytes is the number of digest bytes kept in a failure fingerprint.
+	fingerprintBytes = 12
 )
 
 var (
@@ -277,7 +280,7 @@ func (r Result) Fingerprint() string {
 		}
 	}
 	digest := sha256.Sum256([]byte(strings.Join(parts, "\x00")))
-	return hex.EncodeToString(digest[:12])
+	return hex.EncodeToString(digest[:fingerprintBytes])
 }
 
 // matches compares failure fingerprints with legacy receipt normalisation.

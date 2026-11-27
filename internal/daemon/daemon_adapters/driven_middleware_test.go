@@ -21,6 +21,7 @@ package daemon_adapters
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -118,58 +119,6 @@ func TestFormatJITETag(t *testing.T) {
 
 			assert.Equal(t, tc.expected, result)
 			assert.Len(t, result, jitETagLen)
-		})
-	}
-}
-
-func TestGetCacheControlHeader(t *testing.T) {
-	testCases := []struct {
-		name     string
-		expected string
-		maxAge   int
-	}{
-		{
-			name:     "returns precomputed header for zero",
-			maxAge:   0,
-			expected: "public, max-age=0",
-		},
-		{
-			name:     "returns precomputed header for 60 seconds",
-			maxAge:   60,
-			expected: "public, max-age=60",
-		},
-		{
-			name:     "returns precomputed header for 1 hour",
-			maxAge:   3600,
-			expected: "public, max-age=3600",
-		},
-		{
-			name:     "returns precomputed header for 1 day",
-			maxAge:   86400,
-			expected: "public, max-age=86400",
-		},
-		{
-			name:     "returns precomputed header for 1 week",
-			maxAge:   604800,
-			expected: "public, max-age=604800",
-		},
-		{
-			name:     "computes header for non-standard age",
-			maxAge:   12345,
-			expected: "public, max-age=12345",
-		},
-		{
-			name:     "computes header for another non-standard age",
-			maxAge:   999,
-			expected: "public, max-age=999",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result := getCacheControlHeader(tc.maxAge)
-
-			assert.Equal(t, tc.expected, result)
 		})
 	}
 }
@@ -1342,22 +1291,23 @@ func TestPageCacheProfiles_GzipTagsSet(t *testing.T) {
 	assert.Equal(t, "cached-page", typeVal)
 }
 
-func TestCacheControlHeaders_PreComputedValues(t *testing.T) {
+func TestStaticPageCacheControlValues_PreComputedValues(t *testing.T) {
 	t.Parallel()
 
 	expectedAges := []int{0, 60, 300, 600, 900, 1800, 3600, 7200, 14400, 28800, 43200, 86400, 604800}
-	assert.Len(t, cacheControlHeaders, len(expectedAges))
+	assert.Len(t, staticPageCacheControlValues, len(expectedAges))
 
 	for _, age := range expectedAges {
-		_, ok := cacheControlHeaders[age]
+		value, ok := staticPageCacheControlValues[age]
 		assert.True(t, ok, "Should have pre-computed header for age %d", age)
+		assert.Equal(t, fmt.Sprintf(staticPageCacheControlFormat, age), value)
 	}
 }
 
-func TestCacheControlHeaders_NonStandardAge_NotPrecomputed(t *testing.T) {
+func TestStaticPageCacheControlValues_NonStandardAge_NotPrecomputed(t *testing.T) {
 	t.Parallel()
 
-	_, ok := cacheControlHeaders[12345]
+	_, ok := staticPageCacheControlValues[12345]
 	assert.False(t, ok, "Non-standard ages should not be pre-computed")
 }
 

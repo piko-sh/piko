@@ -54,6 +54,36 @@ func TestNormaliseDOM(t *testing.T) {
 			expected: `<div id="550e8400-e29b-41d4-a716-446655440000">content</div>`,
 		},
 		{
+			name:     "replaces the content hash of a generated asset",
+			input:    `<script src="/_piko/assets/generated/components/template-probe_be33447dc7720315.min.js"></script>`,
+			opts:     NormaliseOptions{},
+			expected: `<script src="/_piko/assets/generated/components/template-probe_HASH.min.js"></script>`,
+		},
+		{
+			name:     "keeps a hash-like suffix outside generated assets",
+			input:    `<script src="/_piko/assets/pk-js/pages/main_be33447dc7720315.js"></script>`,
+			opts:     NormaliseOptions{},
+			expected: `<script src="/_piko/assets/pk-js/pages/main_be33447dc7720315.js"></script>`,
+		},
+		{
+			name:     "replaces the content hash of a generated ES module",
+			input:    `<script src="/_piko/assets/generated/components/card_be33447dc7720315.es.js"></script><script src="/_piko/assets/generated/components/card_0123456789abcdef.min.es.js"></script>`,
+			opts:     NormaliseOptions{},
+			expected: `<script src="/_piko/assets/generated/components/card_HASH.es.js"></script><script src="/_piko/assets/generated/components/card_HASH.min.es.js"></script>`,
+		},
+		{
+			name:     "removes the runtime version from a framework bundle URL",
+			input:    `<script type="module" src="/_piko/dist/0123456789abcdef/ppframework.core.es.js"></script>`,
+			opts:     NormaliseOptions{},
+			expected: `<script type="module" src="/_piko/dist/ppframework.core.es.js"></script>`,
+		},
+		{
+			name:     "removes the runtime version before formatting so the line does not wrap",
+			input:    `<div><link rel="modulepreload" href="/_piko/dist/0123456789abcdef/ppframework.core.es.js" data-padding="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"></div>`,
+			opts:     NormaliseOptions{FormatHTML: true},
+			expected: "<div><link rel=\"modulepreload\" href=\"/_piko/dist/ppframework.core.es.js\" data-padding=\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\" />\n</div>",
+		},
+		{
 			name:     "trims whitespace",
 			input:    `   <div>content</div>   `,
 			opts:     NormaliseOptions{},

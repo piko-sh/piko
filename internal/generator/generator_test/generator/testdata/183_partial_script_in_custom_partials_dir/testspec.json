@@ -1,0 +1,6 @@
+{
+  "description": "A layout partial in a custom partials directory is a partial, so its client script is listed for the page that uses it",
+  "packageName": "testcase_183_partial_script_in_custom_partials_dir",
+  "partialsSourceDir": "layouts",
+  "isPage": true
+}

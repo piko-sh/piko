@@ -16,15 +16,120 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-import { defineConfig, type PluginOption } from 'vite';
+import { defineConfig, transformWithEsbuild, type Plugin, type PluginOption } from 'vite';
+import { promises as fs } from 'node:fs';
 import terser from '@rollup/plugin-terser';
 import { visualizer } from 'rollup-plugin-visualizer';
 import etagPlugin from './vite-plugin-etag';
 import sriPlugin from './vite-plugin-sri';
 import { compression } from 'vite-plugin-compression2';
-import * as path from 'path';
+import * as path from 'node:path';
 
 const isAnalyze = process.env.ANALYZE === 'true';
+
+/**
+ * The bundle exports whose names start with an underscore. Generated page and partial
+ * scripts import them by name, and the UMD build exposes exports as properties, so the
+ * property mangling below must keep these names.
+ */
+const UNDERSCORE_EXPORTS = [
+  '_createPKContext',
+  '_createPagePKContext',
+  '_createRefs',
+  '_currentPageVisit',
+  '_initCleanupObserver',
+  '_registerLifecycle',
+  '_runPageCleanup',
+];
+
+/**
+ * Property names the compiler writes into component code and that the component runtime
+ * reads, or the other way round. The runtime must use the same names as compiled code.
+ */
+const COMPILED_COMPONENT_PROPERTIES = [
+  '_f', '_class', '_style', '_k', '_c', '_s', '_ref', '_type', '_updateFormState',
+];
+
+/** Property names in server requests and responses. */
+const SERVER_PROPERTIES = ['_csrf_ephemeral_token', '_helpers'];
+
+/**
+ * Property names the runtime reads on the namespace of a generated page or partial module.
+ */
+const MODULE_PROTOCOL_PROPERTIES = ['__reinit__', '__PARTIAL_ID__'];
+
+/**
+ * Window properties that other bundles, the server's pages or any other outside code
+ * read or write.
+ */
+const WINDOW_PROPERTIES = [
+  '__pikoRuntime', '__pikoPageContext', '__pikoDebug', '__PP_HOOKS_QUEUE__', '__piko_animation',
+];
+
+/**
+ * Names terser mangles and keeps in the minified builds.
+ *
+ * Only names with one leading underscore are renamed. Names with two leading underscores
+ * belong to the protocol between the runtime and other code, so they always keep their
+ * names, even when a new one is not in the lists above.
+ */
+const MANGLE_OPTIONS = {
+  toplevel: true,
+  properties: {
+    regex: /^_(?!_)/,
+    reserved: [
+      ...COMPILED_COMPONENT_PROPERTIES,
+      ...SERVER_PROPERTIES,
+      ...MODULE_PROTOCOL_PROPERTIES,
+      ...WINDOW_PROPERTIES,
+      ...UNDERSCORE_EXPORTS,
+    ],
+  },
+};
+
+/** Source of the runtime recovery script, which is built on its own. */
+const RUNTIME_RECOVERY_SOURCE = path.resolve(__dirname, 'src/runtimeRecovery.ts');
+
+/** File name of the built runtime recovery script in the output directory. */
+const RUNTIME_RECOVERY_FILE = 'runtime-recovery.js';
+
+/**
+ * Builds src/runtimeRecovery.ts into a small classic script next to the bundles.
+ *
+ * Pages load it with a plain `<script defer>` at a fixed URL, so it cannot be an ES
+ * module and must not import anything. It is emitted once per build, with the first
+ * output, so the compression, ETag and SRI plugins treat it like any other bundle file.
+ *
+ * @returns The plugin.
+ */
+function runtimeRecoveryPlugin(): Plugin {
+  let emitted = false;
+
+  return {
+    name: 'piko-runtime-recovery',
+    apply: 'build',
+
+    buildStart() {
+      emitted = false;
+      this.addWatchFile(RUNTIME_RECOVERY_SOURCE);
+    },
+
+    async generateBundle() {
+      if (emitted) {
+        return;
+      }
+      emitted = true;
+      const source = await fs.readFile(RUNTIME_RECOVERY_SOURCE, 'utf8');
+      const result = await transformWithEsbuild(source, RUNTIME_RECOVERY_SOURCE, {
+        format: 'iife',
+        target: 'es2017',
+        legalComments: 'none',
+        sourcemap: false,
+      });
+      this.emitFile({ type: 'asset', fileName: RUNTIME_RECOVERY_FILE, source: result.code });
+    },
+  };
+}
 
 export default defineConfig({
   define: {
@@ -38,6 +143,8 @@ export default defineConfig({
   },
 
   plugins: [
+    runtimeRecoveryPlugin(),
+
     compression({
       include: /\.(html|xml|css|json|js|mjs|svg|yaml|yml|toml|ico)$/,
       threshold: 1024,
@@ -81,6 +188,14 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./test/test-setup.ts'],
+    alias: {
+      /**
+       * Generated page scripts import the runtime from the URL the server serves the
+       * bundle at. Here that URL resolves to a shim that re-exports the runtime source.
+       */
+      '/_piko/dist/ppframework.core.es.js': path.resolve(__dirname, 'test/pkRuntimeShim.ts'),
+      '@generator-goldens': path.resolve(__dirname, '../../internal/generator/generator_test/generator/testdata'),
+    },
     include: [
       'src/**/*.spec.ts',
       'test/**/*.spec.ts'
@@ -134,7 +249,6 @@ export default defineConfig({
               unsafe_undefined: true,
               reduce_vars: true,
               reduce_funcs: true,
-              booleans_as_integers: true,
               toplevel: true,
               hoist_props: true,
               join_vars: true,
@@ -143,13 +257,7 @@ export default defineConfig({
               inline: 3,
               global_defs: { __DEV__: false }
             },
-            mangle: {
-              toplevel: true,
-              properties: {
-                regex: /^_/,
-                reserved: ['_csrf_ephemeral_token', '_f', '_class', '_style', '_k', '_c', '_s', '_ref', '_type']
-              }
-            },
+            mangle: MANGLE_OPTIONS,
             format: {
               comments: false
             }
@@ -174,7 +282,6 @@ export default defineConfig({
               unsafe_undefined: true,
               reduce_vars: true,
               reduce_funcs: true,
-              booleans_as_integers: true,
               hoist_props: true,
               join_vars: true,
               negate_iife: true,
@@ -182,13 +289,7 @@ export default defineConfig({
               inline: 3,
               global_defs: { __DEV__: false }
             },
-            mangle: {
-              toplevel: true,
-              properties: {
-                regex: /^_/,
-                reserved: ['_csrf_ephemeral_token', '_f', '_class', '_style', '_k', '_c', '_s', '_ref', '_type']
-              }
-            },
+            mangle: MANGLE_OPTIONS,
             format: {
               comments: false
             }

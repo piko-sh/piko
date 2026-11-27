@@ -19,5 +19,9 @@
   },
   "partials": {},
   "emails": {},
-  "pdfs": {}
+  "pdfs": {},
+  "partialScripts": {
+    "pk-js/partials/modal-a.js": "modal-a",
+    "pk-js/partials/modal-b.js": "modal-b"
+  }
 }

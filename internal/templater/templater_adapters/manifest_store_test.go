@@ -19,6 +19,7 @@
 package templater_adapters
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -27,7 +28,16 @@ import (
 
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/generator/generator_dto"
+	"piko.sh/piko/internal/templater/templater_dto"
 )
+
+type staticManifestProvider struct {
+	manifest *generator_dto.Manifest
+}
+
+func (provider staticManifestProvider) Load(context.Context) (*generator_dto.Manifest, error) {
+	return provider.manifest, nil
+}
 
 func TestNormaliseServerRedirectPath(t *testing.T) {
 	t.Parallel()
@@ -136,6 +146,17 @@ func TestBuildErrorAST(t *testing.T) {
 		assert.Contains(t, result.RootNodes[0].InnerHTML, "something went wrong")
 		assert.Contains(t, result.RootNodes[0].InnerHTML, "pages/index.pk")
 		assert.Contains(t, result.RootNodes[0].InnerHTML, "Runtime Error")
+	})
+
+	t.Run("is styled by framework classes rather than style attributes", func(t *testing.T) {
+		t.Parallel()
+
+		result := buildErrorAST(errors.New("fail"), "pages/index.pk")
+
+		require.Len(t, result.RootNodes, 1)
+		assert.NotContains(t, result.RootNodes[0].InnerHTML, "style=")
+		assert.Contains(t, result.RootNodes[0].InnerHTML, `<div class="pk-runtime-error">`)
+		assert.Contains(t, result.RootNodes[0].InnerHTML, `<pre class="pk-runtime-error__detail">`)
 	})
 
 	t.Run("HTML escaping", func(t *testing.T) {
@@ -517,4 +538,61 @@ func TestFindErrorPage(t *testing.T) {
 		_, ok = store.FindErrorPage(300, "/test")
 		assert.False(t, ok)
 	})
+}
+
+func TestNewManifestStore_NamesThePartialOfEachPageScript(t *testing.T) {
+	t.Parallel()
+
+	const (
+		pageScript    = "pk-js/pages/home.js"
+		partialScript = "pk-js/layouts/layout.js"
+	)
+
+	tests := []struct {
+		partialScripts map[string]string
+		name           string
+		want           []templater_dto.JSScriptMeta
+	}{
+		{
+			name:           "partial that has no manifest entry of its own",
+			partialScripts: map[string]string{partialScript: "layouts/layout"},
+			want: []templater_dto.JSScriptMeta{
+				{URL: "/_piko/assets/" + pageScript},
+				{URL: "/_piko/assets/" + partialScript, PartialName: "layouts/layout"},
+			},
+		},
+		{
+			name:           "manifest without partial scripts",
+			partialScripts: nil,
+			want: []templater_dto.JSScriptMeta{
+				{URL: "/_piko/assets/" + pageScript},
+				{URL: "/_piko/assets/" + partialScript},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			manifest := &generator_dto.Manifest{
+				Pages: map[string]generator_dto.ManifestPageEntry{
+					"pages/home.pk": {
+						PackagePath:        "project/dist/pages/home",
+						OriginalSourcePath: "pages/home.pk",
+						RoutePatterns:      map[string]string{"en": "/home"},
+						JSArtefactIDs:      []string{pageScript, partialScript},
+					},
+				},
+				PartialScripts: tt.partialScripts,
+			}
+
+			store, err := NewManifestStore(t.Context(), staticManifestProvider{manifest: manifest})
+			require.NoError(t, err)
+
+			entry, found := store.GetPageEntry("pages/home.pk")
+			require.True(t, found)
+			assert.Equal(t, tt.want, entry.GetJSScriptMetas())
+		})
+	}
 }

@@ -26,6 +26,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/generator/generator_adapters"
+	"piko.sh/piko/internal/generator/generator_dto"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
 )
@@ -85,6 +86,7 @@ func TestPKJSEmitter_EmitJS(t *testing.T) {
 
 	ctx := context.Background()
 	testCases := []struct {
+		target             generator_dto.ClientScriptTarget
 		name               string
 		source             string
 		pagePath           string
@@ -98,6 +100,7 @@ func TestPKJSEmitter_EmitJS(t *testing.T) {
 			name:               "empty source returns empty artefact ID",
 			source:             "",
 			pagePath:           "pages/test",
+			target:             generator_dto.PageScriptTarget(),
 			expectedArtefactID: "",
 			expectEmpty:        true,
 		},
@@ -105,6 +108,7 @@ func TestPKJSEmitter_EmitJS(t *testing.T) {
 			name:               "simple typescript is transpiled and stored",
 			source:             `const x: number = 42;`,
 			pagePath:           "pages/checkout",
+			target:             generator_dto.PageScriptTarget(),
 			expectedArtefactID: "pk-js/pages/checkout.js",
 			expectedSourcePath: "pk/checkout.js",
 			checkContains:      []string{"const x", "42"},
@@ -114,6 +118,7 @@ func TestPKJSEmitter_EmitJS(t *testing.T) {
 			name:               "pk extension is stripped from artefact ID",
 			source:             `const x = 1;`,
 			pagePath:           "pages/cart.pk",
+			target:             generator_dto.PageScriptTarget(),
 			expectedArtefactID: "pk-js/pages/cart.js",
 			expectedSourcePath: "pk/cart.js",
 			checkContains:      []string{"const x", "1"},
@@ -122,6 +127,7 @@ func TestPKJSEmitter_EmitJS(t *testing.T) {
 			name:               "nested path is preserved in artefact ID",
 			source:             `const y = "test";`,
 			pagePath:           "pages/admin/dashboard",
+			target:             generator_dto.PageScriptTarget(),
 			expectedArtefactID: "pk-js/pages/admin/dashboard.js",
 			expectedSourcePath: "pk/dashboard.js",
 		},
@@ -132,6 +138,7 @@ interface User { name: string; }
 const user: User = { name: "Alice" };
 `,
 			pagePath:           "pages/users",
+			target:             generator_dto.PageScriptTarget(),
 			expectedArtefactID: "pk-js/pages/users.js",
 			expectedSourcePath: "pk/users.js",
 			checkContains:      []string{"const user", "Alice"},
@@ -141,37 +148,38 @@ const user: User = { name: "Alice" };
 			name:               "actions.gen keeps a js mime via the source path",
 			source:             `const a = 1;`,
 			pagePath:           "pk/actions.gen",
+			target:             generator_dto.ModuleScriptTarget(),
 			expectedArtefactID: "pk-js/pk/actions.gen.js",
 			expectedSourcePath: "pk/actions.gen.js",
 			checkContains:      []string{"const a", "1"},
 		},
 	}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
 			mock, lastArtefactID, lastSourcePath, lastContent, _, lastDesiredProfiles := newCapturingRegistryMock(false)
 			emitter := generator_adapters.NewPKJSEmitter(mock)
-			artefactID, err := emitter.EmitJS(ctx, tc.source, tc.pagePath, "", "", false)
+			artefactID, err := emitter.EmitJS(ctx, tt.source, tt.pagePath, tt.target, "", "", false)
 			require.NoError(t, err, "unexpected error")
-			assert.Equal(t, tc.expectedArtefactID, artefactID,
-				"expected artefact ID %q, got %q", tc.expectedArtefactID, artefactID)
-			if tc.expectEmpty {
+			assert.Equal(t, tt.expectedArtefactID, artefactID,
+				"expected artefact ID %q, got %q", tt.expectedArtefactID, artefactID)
+			if tt.expectEmpty {
 				assert.Equal(t, int64(0), mock.UpsertArtefactCallCount.Load(),
 					"expected no registry call for empty source")
 				return
 			}
 			assert.Equal(t, int64(1), mock.UpsertArtefactCallCount.Load(),
 				"expected 1 registry call, got %d", mock.UpsertArtefactCallCount.Load())
-			assert.Equal(t, tc.expectedArtefactID, *lastArtefactID,
-				"expected stored artefact ID %q, got %q", tc.expectedArtefactID, *lastArtefactID)
-			assert.Equal(t, tc.expectedSourcePath, *lastSourcePath,
-				"expected stored source path %q, got %q", tc.expectedSourcePath, *lastSourcePath)
-			for _, s := range tc.checkContains {
+			assert.Equal(t, tt.expectedArtefactID, *lastArtefactID,
+				"expected stored artefact ID %q, got %q", tt.expectedArtefactID, *lastArtefactID)
+			assert.Equal(t, tt.expectedSourcePath, *lastSourcePath,
+				"expected stored source path %q, got %q", tt.expectedSourcePath, *lastSourcePath)
+			for _, s := range tt.checkContains {
 				assert.Contains(t, *lastContent, s,
 					"expected content to contain %q, got:\n%s", s, *lastContent)
 			}
-			for _, s := range tc.checkExcludes {
+			for _, s := range tt.checkExcludes {
 				assert.NotContains(t, *lastContent, s,
 					"expected content NOT to contain %q, got:\n%s", s, *lastContent)
 			}
@@ -191,7 +199,7 @@ func TestPKJSEmitter_EmitJS_SyntaxError(t *testing.T) {
 	mock, _, _, _, _, _ := newCapturingRegistryMock(false)
 	emitter := generator_adapters.NewPKJSEmitter(mock)
 	ctx := context.Background()
-	_, err := emitter.EmitJS(ctx, "const x = {{{", "pages/broken", "", "", false)
+	_, err := emitter.EmitJS(ctx, "const x = {{{", "pages/broken", generator_dto.PageScriptTarget(), "", "", false)
 	assert.Error(t, err, "expected error for syntax error, got nil")
 	assert.Equal(t, int64(0), mock.UpsertArtefactCallCount.Load(),
 		"registry should not be called on transpile error")
@@ -202,7 +210,7 @@ func TestPKJSEmitter_EmitJS_RegistryError(t *testing.T) {
 	mock, _, _, _, _, _ := newCapturingRegistryMock(true)
 	emitter := generator_adapters.NewPKJSEmitter(mock)
 	ctx := context.Background()
-	_, err := emitter.EmitJS(ctx, "const x = 1;", "pages/test", "", "", false)
+	_, err := emitter.EmitJS(ctx, "const x = 1;", "pages/test", generator_dto.PageScriptTarget(), "", "", false)
 	assert.Error(t, err, "expected error when registry fails, got nil")
 }
 func TestPKJSEmitter_EmitJS_NilRegistry(t *testing.T) {
@@ -210,7 +218,7 @@ func TestPKJSEmitter_EmitJS_NilRegistry(t *testing.T) {
 
 	emitter := generator_adapters.NewPKJSEmitter(nil)
 	ctx := context.Background()
-	artefactID, err := emitter.EmitJS(ctx, "const x = 1;", "pages/test", "", "", false)
+	artefactID, err := emitter.EmitJS(ctx, "const x = 1;", "pages/test", generator_dto.PageScriptTarget(), "", "", false)
 	require.NoError(t, err, "unexpected error")
 	assert.Empty(t, artefactID, "expected empty artefact ID with nil registry, got %q", artefactID)
 }
@@ -220,7 +228,7 @@ func TestPKJSEmitter_ProfilesPriorityNeed(t *testing.T) {
 	mock, _, _, _, _, lastDesiredProfiles := newCapturingRegistryMock(false)
 	emitter := generator_adapters.NewPKJSEmitter(mock)
 	ctx := context.Background()
-	_, err := emitter.EmitJS(ctx, "const x = 1;", "pages/checkout", "", "", false)
+	_, err := emitter.EmitJS(ctx, "const x = 1;", "pages/checkout", generator_dto.PageScriptTarget(), "", "", false)
 	require.NoError(t, err, "unexpected error")
 	minifiedProfile, ok := getProfileByName(*lastDesiredProfiles, "minified")
 	require.True(t, ok, "expected 'minified' profile")
@@ -239,7 +247,7 @@ func TestPKJSEmitter_EmitJS_ModuleAliasRewriting(t *testing.T) {
 const el = document.querySelector('.output');
 if (el) { el.textContent = greet("World"); }`
 
-	_, err := emitter.EmitJS(ctx, source, "pages/test", "github.com/org/repo", "", false)
+	_, err := emitter.EmitJS(ctx, source, "pages/test", generator_dto.PageScriptTarget(), "github.com/org/repo", "", false)
 	require.NoError(t, err, "unexpected error")
 
 	assert.Contains(t, *lastContent, `"/_piko/assets/github.com/org/repo/lib/greeting.js"`,
@@ -258,13 +266,101 @@ func TestPKJSEmitter_EmitJS_TSExtensionRewriting(t *testing.T) {
 	source := `import { helper } from './utils.ts';
 console.log(helper());`
 
-	_, err := emitter.EmitJS(ctx, source, "pages/test", "", "", false)
+	_, err := emitter.EmitJS(ctx, source, "pages/test", generator_dto.PageScriptTarget(), "", "", false)
 	require.NoError(t, err, "unexpected error")
 
 	assert.Contains(t, *lastContent, `"./utils.js"`,
 		"expected .ts import to be rewritten to .js, got:\n%s", *lastContent)
 	assert.NotContains(t, *lastContent, `"./utils.ts"`,
 		"expected .ts extension to be removed from output, got:\n%s", *lastContent)
+}
+
+func TestPKJSEmitter_EmitJS_ShapesScriptByTarget(t *testing.T) {
+	t.Parallel()
+
+	source := `export function increment() { pk.refs.count.textContent = "1"; }`
+	testCases := []struct {
+		target         generator_dto.ClientScriptTarget
+		name           string
+		pagePath       string
+		wantContains   []string
+		wantNotContain []string
+	}{
+		{
+			name:           "page script gets a page context keyed by the page visit",
+			target:         generator_dto.PageScriptTarget(),
+			pagePath:       "pages/counter",
+			wantContains:   []string{"_createPagePKContext(__scope__, __visit__)", "_currentPageVisit()"},
+			wantNotContain: []string{"_createPKContext(", "partial_name='"},
+		},
+		{
+			name:           "partial outside the default partials directory is scoped to its own root",
+			target:         generator_dto.PartialScriptTarget("counter"),
+			pagePath:       "components/counter",
+			wantContains:   []string{"_createPKContext(__scope__)", `document.querySelector("[partial_name='counter']")`},
+			wantNotContain: []string{"_createPagePKContext", "_currentPageVisit"},
+		},
+	}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			mock, _, _, lastContent, _, _ := newCapturingRegistryMock(false)
+			emitter := generator_adapters.NewPKJSEmitter(mock)
+
+			_, err := emitter.EmitJS(t.Context(), source, tt.pagePath, tt.target, "", "", false)
+
+			require.NoError(t, err)
+			for _, want := range tt.wantContains {
+				assert.Contains(t, *lastContent, want)
+			}
+			for _, notWant := range tt.wantNotContain {
+				assert.NotContains(t, *lastContent, notWant)
+			}
+		})
+	}
+}
+
+func TestPKJSEmitter_EmitJS_ModuleWithFunctionsIsNotWrapped(t *testing.T) {
+	t.Parallel()
+
+	source := `import { ActionBuilder, createActionBuilder, registerActionFunction } from '/_piko/dist/ppframework.core.es.js';
+
+export function pingCall(): ActionBuilder<string> {
+  return createActionBuilder<string>('ping.Call', {});
+}
+
+export const action = {
+  ping: {
+    Call: pingCall
+  }
+} as const;
+
+registerActionFunction('ping.Call', pingCall);
+`
+	mock, _, _, lastContent, _, _ := newCapturingRegistryMock(false)
+	emitter := generator_adapters.NewPKJSEmitter(mock)
+
+	artefactID, err := emitter.EmitJS(t.Context(), source, "pk/actions.gen", generator_dto.ModuleScriptTarget(), "", "", false)
+
+	require.NoError(t, err)
+	assert.Equal(t, "pk-js/pk/actions.gen.js", artefactID)
+	assert.Contains(t, *lastContent, "export function pingCall()")
+	assert.NotContains(t, *lastContent, "__instances__")
+	assert.NotContains(t, *lastContent, "__createInstance__")
+}
+
+func TestPKJSEmitter_EmitJS_InvalidTarget(t *testing.T) {
+	t.Parallel()
+
+	mock, _, _, _, _, _ := newCapturingRegistryMock(false)
+	emitter := generator_adapters.NewPKJSEmitter(mock)
+
+	_, err := emitter.EmitJS(t.Context(), "const x = 1;", "partials/card", generator_dto.PartialScriptTarget(""), "", "", false)
+
+	require.ErrorIs(t, err, generator_dto.ErrInvalidClientScriptTarget)
+	assert.Equal(t, int64(0), mock.UpsertArtefactCallCount.Load())
 }
 
 func hasProfileNamed(profiles []registry_dto.NamedProfile, name string) bool {

@@ -1435,6 +1435,10 @@ func (o *InterpretedBuildOrchestrator) mergeManifest(newManifest *generator_dto.
 	}
 	maps.Copy(o.cachedManifest.Pdfs, newManifest.Pdfs)
 	maps.Copy(o.cachedManifest.ErrorPages, newManifest.ErrorPages)
+	if o.cachedManifest.PartialScripts == nil {
+		o.cachedManifest.PartialScripts = make(map[string]string, len(newManifest.PartialScripts))
+	}
+	maps.Copy(o.cachedManifest.PartialScripts, newManifest.PartialScripts)
 }
 
 // getInterpreterFromPool retrieves a pre-warmed interpreter from a pool.

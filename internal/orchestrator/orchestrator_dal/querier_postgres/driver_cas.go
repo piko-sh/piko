@@ -54,7 +54,7 @@ func (d *driver) ClaimTask(ctx context.Context, params dalcore.ClaimTaskParams) 
 	if err != nil || !ok {
 		return dalcore.TaskRow{}, false, err
 	}
-	return toTaskRow(orchestrator_db.GetTasksByIDRow(row)), true, nil
+	return toTaskRow(new(orchestrator_db.GetTasksByIDRow(row))), true, nil
 }
 
 // SettleTask writes a processing task's settled state, fenced by its claimed attempt.
@@ -68,8 +68,8 @@ func (d *driver) SettleTask(ctx context.Context, params dalcore.TaskWriteParams)
 	row, ok, err := d.queries.SettleTask(ctx, orchestrator_db.SettleTaskParams{
 		Status:             params.Status,
 		ExecuteAt:          params.ExecuteAt,
-		LastError:          params.LastError,
-		Result:             params.Result,
+		LastError:          orchestrator_db.NullFrom(params.LastError),
+		Result:             orchestrator_db.NullFrom(params.Result),
 		IsFatal:            params.IsFatal,
 		ScheduledExecuteAt: params.ScheduledExecuteAt,
 		UpdatedAt:          params.UpdatedAt,
@@ -79,7 +79,7 @@ func (d *driver) SettleTask(ctx context.Context, params dalcore.TaskWriteParams)
 	if err != nil || !ok {
 		return dalcore.TaskRow{}, false, err
 	}
-	return toTaskRow(orchestrator_db.GetTasksByIDRow(row)), true, nil
+	return toTaskRow(new(orchestrator_db.GetTasksByIDRow(row))), true, nil
 }
 
 // TransitionTask writes a task's new state, fenced by its attempt and status.
@@ -94,8 +94,8 @@ func (d *driver) TransitionTask(ctx context.Context, params dalcore.TaskWritePar
 	row, ok, err := d.queries.TransitionTask(ctx, orchestrator_db.TransitionTaskParams{
 		Status:             params.Status,
 		ExecuteAt:          params.ExecuteAt,
-		LastError:          params.LastError,
-		Result:             params.Result,
+		LastError:          orchestrator_db.NullFrom(params.LastError),
+		Result:             orchestrator_db.NullFrom(params.Result),
 		IsFatal:            params.IsFatal,
 		ScheduledExecuteAt: params.ScheduledExecuteAt,
 		UpdatedAt:          params.UpdatedAt,
@@ -107,7 +107,7 @@ func (d *driver) TransitionTask(ctx context.Context, params dalcore.TaskWritePar
 	if err != nil || !ok {
 		return dalcore.TaskRow{}, false, err
 	}
-	return toTaskRow(orchestrator_db.GetTasksByIDRow(row)), true, nil
+	return toTaskRow(new(orchestrator_db.GetTasksByIDRow(row))), true, nil
 }
 
 // ClearRerun removes a task's rerun request.
@@ -127,10 +127,10 @@ func (d *driver) ClearRerun(ctx context.Context, id string) error {
 // Returns error when the update fails.
 func (d *driver) RequestRerun(ctx context.Context, params dalcore.RerunParams) (int64, error) {
 	return d.queries.RequestRerun(ctx, orchestrator_db.RequestRerunParams{
-		RerunID:          &params.ID,
-		RerunPayload:     &params.Payload,
-		RerunConfig:      &params.Config,
-		DeduplicationKey: &params.DeduplicationKey,
+		RerunID:          orchestrator_db.NullOf(params.ID),
+		RerunPayload:     orchestrator_db.NullOf(params.Payload),
+		RerunConfig:      orchestrator_db.NullOf(params.Config),
+		DeduplicationKey: orchestrator_db.NullOf(params.DeduplicationKey),
 	})
 }
 

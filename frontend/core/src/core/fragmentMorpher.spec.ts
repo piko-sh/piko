@@ -18,6 +18,8 @@
 
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import fragmentMorpher from './fragmentMorpher';
+import { addPageTokenScript } from '../../test/pageTokenScript';
+import { getNodeKey } from '@/pk/getNodeKey';
 
 describe('fragmentMorpher', () => {
     let fromEl: HTMLElement;
@@ -63,6 +65,77 @@ describe('fragmentMorpher', () => {
             setup('<div>Element</div>');
             fragmentMorpher(fromEl, 'Just Text');
             expect(host.innerHTML).toBe('Just Text');
+        });
+    });
+
+    describe('CSP tokens', () => {
+        const fragmentToken = 'token-of-the-fragment-response';
+        let tokenScript: HTMLScriptElement | null = null;
+
+        const givePageToken = (token: string) => {
+            tokenScript = addPageTokenScript(token);
+        };
+
+        afterEach(() => {
+            tokenScript?.remove();
+            tokenScript = null;
+        });
+
+        const tokenElements = (root: Element) =>
+            Array.from(root.querySelectorAll<HTMLElement>('script, style, link[rel="modulepreload"]'));
+
+        it.each([
+            {
+                name: 'gives added script, style and module preload elements the page token',
+                from: '<div><p>Kept</p></div>',
+                to: `<div><p>Kept</p><style nonce="${fragmentToken}">p{}</style><script nonce="${fragmentToken}" src="/a.js"></script><link rel="modulepreload" href="/m.js" nonce="${fragmentToken}"></div>`,
+            },
+            {
+                name: 'gives elements inside a replaced subtree the page token',
+                from: '<div><span>Old</span></div>',
+                to: `<div><section><style nonce="${fragmentToken}">p{}</style><script nonce="${fragmentToken}" src="/a.js"></script></section></div>`,
+            },
+            {
+                name: 'gives a replacing style element the page token',
+                from: '<div><span>Old</span></div>',
+                to: `<div><style nonce="${fragmentToken}">p{}</style></div>`,
+            },
+        ])('$name', ({ from, to }) => {
+            givePageToken('page-token');
+            setup(from);
+
+            fragmentMorpher(fromEl, to);
+
+            const elements = tokenElements(fromEl);
+            expect(elements.length).toBeGreaterThan(0);
+            for (const element of elements) {
+                expect(element.nonce).toBe('page-token');
+                expect(element.getAttribute('nonce')).not.toBe(fragmentToken);
+            }
+        });
+
+        it('never trusts a fragment token when the page has none', () => {
+            setup('<div><p>Kept</p></div>');
+
+            fragmentMorpher(fromEl, `<div><p>Kept</p><style nonce="${fragmentToken}">p{}</style></div>`);
+
+            const style = fromEl.querySelector('style')!;
+            expect(style.nonce).toBe('');
+            expect(style.getAttribute('nonce')).not.toBe(fragmentToken);
+        });
+
+        it('never copies a fragment token onto a kept element, nor drops the live one', () => {
+            givePageToken('page-token');
+            setup('<div><style nonce="">p{}</style></div>');
+            const liveStyle = fromEl.querySelector('style')!;
+            liveStyle.nonce = 'page-token';
+
+            fragmentMorpher(fromEl, `<div><style nonce="${fragmentToken}">p{}</style></div>`);
+
+            expect(fromEl.querySelector('style')).toBe(liveStyle);
+            expect(liveStyle.hasAttribute('nonce')).toBe(true);
+            expect(liveStyle.getAttribute('nonce')).not.toBe(fragmentToken);
+            expect(liveStyle.nonce).toBe('page-token');
         });
     });
 
@@ -757,6 +830,32 @@ describe('fragmentMorpher', () => {
             expect(widget).not.toBeNull();
             expect(widget?.constructor).toBe(FakeWidget);
             expect((widget as InstanceType<typeof FakeWidget>).connectedCalls).toBeGreaterThan(0);
+        });
+
+        it('upgrades a custom element that replaces an element with a different tag', () => {
+            class ReplacementWidget extends HTMLElement {
+                connectedCalls = 0;
+                connectedCallback() { this.connectedCalls++; }
+            }
+            const tagName = `morph-replacement-widget-${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
+            customElements.define(tagName, ReplacementWidget);
+
+            setup('<div><span id="slot"></span></div>');
+            const parsed = new DOMParser().parseFromString(
+                `<div><${tagName} id="slot"></${tagName}></div>`,
+                'text/html'
+            );
+            const toEl = parsed.body.firstElementChild as HTMLElement;
+            const upgradeSpy = vi.spyOn(customElements, 'upgrade');
+
+            fragmentMorpher(fromEl, toEl);
+
+            const widget = fromEl.querySelector(tagName);
+            expect(fromEl.querySelector('span')).toBeNull();
+            expect(upgradeSpy).toHaveBeenCalledWith(widget);
+            expect(widget?.constructor).toBe(ReplacementWidget);
+            expect((widget as InstanceType<typeof ReplacementWidget>).connectedCalls).toBeGreaterThan(0);
+            upgradeSpy.mockRestore();
         });
 
         it('does not double-upgrade an already-upgraded custom element', () => {
@@ -2753,6 +2852,25 @@ describe('fragmentMorpher', () => {
             expect(newItem?.getAttribute('partial')).toBe('new_scope modal_scope page_scope');
         });
 
+        it('should inherit parent scopes when an element is replaced by one with a different tag', () => {
+            setup(`<div class="container">
+                <div class="existing" partial="existing_scope modal_scope page_scope">Existing</div>
+                <p id="slot" partial="old_scope modal_scope page_scope"><span partial="inner_scope">Old</span></p>
+            </div>`);
+            const container = fromEl;
+            fragmentMorpher(container, `<div class="container">
+                <div class="existing" partial="existing_scope">Existing</div>
+                <section id="slot" partial="new_scope"><span partial="inner_scope">New</span></section>
+            </div>`, {
+                childrenOnly: true,
+                preservePartialScopes: true
+            });
+            const replaced = container.querySelector('#slot');
+            expect(replaced?.tagName).toBe('SECTION');
+            expect(replaced?.getAttribute('partial')).toBe('new_scope modal_scope page_scope');
+            expect(replaced?.querySelector('span')?.getAttribute('partial')).toBe('inner_scope modal_scope page_scope');
+        });
+
         it('should NOT modify scopes when no existing children have partial attribute', () => {
             setup('<div class="container"></div>');
             const container = fromEl;
@@ -2864,6 +2982,281 @@ describe('fragmentMorpher', () => {
 
             const added = fromEl.querySelector('.added');
             expect(added?.getAttribute('partial')).toBe('added_scope parent_scope');
+        });
+    });
+
+    describe('Children Rendered By A Different Partial Or Page', () => {
+        const parseApp = (html: string): HTMLElement => {
+            return new DOMParser().parseFromString(html, 'text/html').body.firstElementChild as HTMLElement;
+        };
+
+        const morphApp = (html: string, options: Parameters<typeof fragmentMorpher>[2] = {}) => {
+            fragmentMorpher(fromEl, parseApp(html), {childrenOnly: true, getNodeKey, ...options});
+        };
+
+        const uniqueTagName = (prefix: string): string => {
+            return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
+        };
+
+        it('replaces a child that a different page rendered', () => {
+            setup('<div id="app"><input p-key="r.0:0" partial="pages_alpha" id="alpha-filter"></div>');
+            const oldInput = fromEl.querySelector('input') as HTMLInputElement;
+
+            morphApp('<div id="app"><input p-key="r.0:0" partial="pages_beta" id="beta-filter"></div>');
+
+            const newInput = fromEl.querySelector('input') as HTMLInputElement;
+            expect(newInput).not.toBe(oldInput);
+            expect(newInput.id).toBe('beta-filter');
+            expect(newInput.getAttribute('partial')).toBe('pages_beta');
+            expect(oldInput.isConnected).toBe(false);
+        });
+
+        it('drops listeners bound to the old element when a different page rendered the child', () => {
+            setup('<div id="app"><input p-key="r.0:0" partial="pages_alpha" id="alpha-filter"></div>');
+            const listener = vi.fn();
+            (fromEl.querySelector('input') as HTMLInputElement).addEventListener('change', listener);
+
+            morphApp('<div id="app"><input p-key="r.0:0" partial="pages_beta" id="beta-filter"></div>');
+            (fromEl.querySelector('#beta-filter') as HTMLInputElement).dispatchEvent(new Event('change'));
+
+            expect(listener).not.toHaveBeenCalled();
+        });
+
+        it('morphs a child from the same scope and keeps the element and its listeners', () => {
+            setup('<div id="app"><input p-key="r.0:0" partial="pages_alpha" class="old"></div>');
+            const input = fromEl.querySelector('input') as HTMLInputElement;
+            const listener = vi.fn();
+            input.addEventListener('change', listener);
+
+            morphApp('<div id="app"><input p-key="r.0:0" partial="pages_alpha" class="new"></div>');
+            input.dispatchEvent(new Event('change'));
+
+            expect(fromEl.querySelector('input')).toBe(input);
+            expect(input.className).toBe('new');
+            expect(listener).toHaveBeenCalledTimes(1);
+        });
+
+        it('disconnects the old component and connects a new one when a different page rendered it', () => {
+            const lifecycleLog: string[] = [];
+            class ScopeWatcher extends HTMLElement {
+                connectedCallback() { lifecycleLog.push(`connected:${this.getAttribute('label') ?? ''}`); }
+                disconnectedCallback() { lifecycleLog.push(`disconnected:${this.getAttribute('label') ?? ''}`); }
+            }
+            const tagName = uniqueTagName('scope-watcher');
+            customElements.define(tagName, ScopeWatcher);
+            setup(`<div id="app"><${tagName} p-key="r.0:0" partial="pages_alpha" label="alpha"></${tagName}></div>`);
+            const oldWatcher = fromEl.querySelector(tagName);
+            lifecycleLog.length = 0;
+
+            morphApp(`<div id="app"><${tagName} p-key="r.0:0" partial="pages_beta" label="beta"></${tagName}></div>`);
+
+            const newWatcher = fromEl.querySelector(tagName);
+            expect(newWatcher).not.toBe(oldWatcher);
+            expect(newWatcher).toBeInstanceOf(ScopeWatcher);
+            expect(lifecycleLog).toEqual(['disconnected:alpha', 'connected:beta']);
+        });
+
+        it('keeps a component from the same scope connected and patches its attributes', () => {
+            const lifecycleLog: string[] = [];
+            class ScopeWatcher extends HTMLElement {
+                connectedCallback() { lifecycleLog.push('connected'); }
+                disconnectedCallback() { lifecycleLog.push('disconnected'); }
+            }
+            const tagName = uniqueTagName('scope-watcher');
+            customElements.define(tagName, ScopeWatcher);
+            setup(`<div id="app"><${tagName} p-key="r.0:0" partial="pages_alpha" label="first"></${tagName}></div>`);
+            const watcher = fromEl.querySelector(tagName) as HTMLElement;
+            lifecycleLog.length = 0;
+
+            morphApp(`<div id="app"><${tagName} p-key="r.0:0" partial="pages_alpha" label="second"></${tagName}></div>`);
+
+            expect(fromEl.querySelector(tagName)).toBe(watcher);
+            expect(watcher.getAttribute('label')).toBe('second');
+            expect(lifecycleLog).toEqual([]);
+        });
+
+        it('keeps a shared layout container and replaces only the page children inside it', () => {
+            setup(`<div id="app">
+                <main p-key="r.0" partial="partials_layout" partial_name="layout">
+                    <h1 p-key="r.0:0" partial="partials_layout pages_alpha">Alpha</h1>
+                    <div p-key="r.0:1" partial="partials_layout pages_alpha">
+                        <input p-key="r.0:1:0" partial="pages_alpha" id="alpha-filter">
+                    </div>
+                </main>
+            </div>`);
+            const layout = fromEl.querySelector('main');
+            const oldPanel = fromEl.querySelector('div');
+            const oldInput = fromEl.querySelector('input');
+
+            morphApp(`<div id="app">
+                <main p-key="r.0" partial="partials_layout" partial_name="layout">
+                    <h1 p-key="r.0:0" partial="partials_layout pages_beta">Beta</h1>
+                    <div p-key="r.0:1" partial="partials_layout pages_beta">
+                        <input p-key="r.0:1:0" partial="pages_beta" id="beta-filter">
+                    </div>
+                </main>
+            </div>`);
+
+            expect(fromEl.querySelector('main')).toBe(layout);
+            expect(fromEl.querySelector('div')).not.toBe(oldPanel);
+            expect(fromEl.querySelector('input')).not.toBe(oldInput);
+            expect(fromEl.querySelector('h1')?.textContent).toBe('Beta');
+            expect(fromEl.querySelector('#beta-filter')).not.toBeNull();
+        });
+
+        it('morphs a child when one scope list holds every scope of the other', () => {
+            setup(`<div id="app">
+                <form p-key="r.0:1" partial="partials_results">
+                    <p p-key="r.0:1:0" partial="partials_results pages_search">Old</p>
+                </form>
+            </div>`);
+            const paragraph = fromEl.querySelector('p');
+
+            morphApp(`<div id="app">
+                <form p-key="r.0:1" partial="partials_results">
+                    <p p-key="r.0:1:0" partial="partials_results">New</p>
+                </form>
+            </div>`);
+
+            expect(fromEl.querySelector('p')).toBe(paragraph);
+            expect(paragraph?.textContent).toBe('New');
+        });
+
+        it('morphs children without a partial attribute as before', () => {
+            setup('<div id="app"><input id="filter" class="old"><p>Old</p></div>');
+            const input = fromEl.querySelector('input');
+            const paragraph = fromEl.querySelector('p');
+
+            morphApp('<div id="app"><input id="filter" class="new"><p>New</p></div>');
+
+            expect(fromEl.querySelector('input')).toBe(input);
+            expect(input?.className).toBe('new');
+            expect(fromEl.querySelector('p')).toBe(paragraph);
+            expect(paragraph?.textContent).toBe('New');
+        });
+
+        it('morphs a child when only one side has a partial attribute', () => {
+            setup('<div id="app"><p id="note">Client</p><span id="badge" partial="pages_alpha">Old</span></div>');
+            const note = fromEl.querySelector('p');
+            const badge = fromEl.querySelector('span');
+
+            morphApp('<div id="app"><p id="note" partial="pages_beta">Server</p><span id="badge">New</span></div>');
+
+            expect(fromEl.querySelector('p')).toBe(note);
+            expect(note?.getAttribute('partial')).toBe('pages_beta');
+            expect(fromEl.querySelector('span')).toBe(badge);
+            expect(badge?.hasAttribute('partial')).toBe(false);
+        });
+
+        it('treats a partial attribute holding only whitespace as having no scope', () => {
+            setup('<div id="app"><p id="note" partial="  ">Old</p></div>');
+            const note = fromEl.querySelector('p');
+
+            morphApp('<div id="app"><p id="note" partial="pages_beta">New</p></div>');
+
+            expect(fromEl.querySelector('p')).toBe(note);
+            expect(note?.textContent).toBe('New');
+        });
+
+        it('morphs the root element in place even when a different page rendered it', () => {
+            setup('<section p-key="r.0" partial="pages_alpha" class="old"><p p-key="r.0:0" partial="pages_alpha">Old</p></section>');
+            const root = fromEl;
+            const oldParagraph = fromEl.querySelector('p');
+
+            fragmentMorpher(root, parseApp('<section p-key="r.0" partial="pages_beta" class="new"><p p-key="r.0:0" partial="pages_beta">New</p></section>'), {getNodeKey});
+
+            expect(host.firstElementChild).toBe(root);
+            expect(root.getAttribute('partial')).toBe('pages_beta');
+            expect(root.querySelector('p')).not.toBe(oldParagraph);
+            expect(root.querySelector('p')?.textContent).toBe('New');
+        });
+
+        it('morphs children from another scope when partial scopes are preserved', () => {
+            setup('<div id="app"><p p-key="r.0:0" partial="partials_list pages_alpha">Old</p></div>');
+            const paragraph = fromEl.querySelector('p');
+
+            morphApp('<div id="app"><p p-key="r.0:0" partial="partials_list_v2">New</p></div>', {preservePartialScopes: true});
+
+            expect(fromEl.querySelector('p')).toBe(paragraph);
+            expect(paragraph?.getAttribute('partial')).toBe('partials_list_v2 pages_alpha');
+        });
+
+        it('keeps the child when onBeforeNodeDiscarded refuses the replacement', () => {
+            setup('<div id="app"><p p-key="r.0:0" partial="pages_alpha">Old</p></div>');
+            const paragraph = fromEl.querySelector('p') as HTMLElement;
+
+            morphApp('<div id="app"><p p-key="r.0:0" partial="pages_beta">New</p></div>', {
+                onBeforeNodeDiscarded: (node) => node !== paragraph
+            });
+
+            expect(fromEl.querySelector('p')).toBe(paragraph);
+            expect(paragraph.textContent).toBe('Old');
+            expect(paragraph.getAttribute('partial')).toBe('pages_alpha');
+        });
+
+        it('reports the replaced child to onNodeDiscarded and its replacement to onNodeAdded', () => {
+            setup('<div id="app"><p p-key="r.0:0" partial="pages_alpha">Old</p></div>');
+            const paragraph = fromEl.querySelector('p');
+            const onNodeDiscarded = vi.fn();
+            const onNodeAdded = vi.fn();
+
+            morphApp('<div id="app"><p p-key="r.0:0" partial="pages_beta">New</p></div>', {onNodeDiscarded, onNodeAdded});
+
+            expect(onNodeDiscarded).toHaveBeenCalledWith(paragraph);
+            expect(onNodeAdded).toHaveBeenCalledWith(fromEl.querySelector('p'));
+        });
+    });
+
+    describe('Attributes A Component Added Itself', () => {
+        const SERVER_PAGINATOR_ATTRIBUTES = 'partial="partials_lists_item_table_3a9c1d42" ' +
+            'partial_name="lists/item_table" partial_src="/_piko/partials/lists/item_table" p-key="r.0:0:1:2" ' +
+            'filter_input="#item_filter" current_page="0" filter="" items_per_page="25" total_pages="141"';
+
+        const definePaginator = (selfAdded: string[]): string => {
+            const tagName = `self-added-paginator-${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
+            customElements.define(tagName, class extends HTMLElement {
+                hasSelfAddedAttribute(attributeName: string): boolean {
+                    return selfAdded.includes(attributeName);
+                }
+            });
+            return tagName;
+        };
+
+        const serverApp = (tagName: string, extraAttributes = ''): HTMLElement => {
+            const html = `<div id="app"><main partial="pages_main_d1ae3e8a"><${tagName} ${SERVER_PAGINATOR_ATTRIBUTES}${extraAttributes}></${tagName}></main></div>`;
+            return new DOMParser().parseFromString(html, 'text/html').body.firstElementChild as HTMLElement;
+        };
+
+        it('keeps the attribute a component reflected from its default when the same page is shown again', () => {
+            const tagName = definePaginator(['show_page_info']);
+            setup(`<div id="app"><main partial="pages_main_d1ae3e8a"><${tagName} ${SERVER_PAGINATOR_ATTRIBUTES} show_page_info=""></${tagName}></main></div>`);
+            const paginator = fromEl.querySelector(tagName) as HTMLElement;
+
+            fragmentMorpher(fromEl, serverApp(tagName), {childrenOnly: true, getNodeKey});
+
+            expect(fromEl.querySelector(tagName)).toBe(paginator);
+            expect(paginator.hasAttribute('show_page_info')).toBe(true);
+            expect(paginator.getAttribute('total_pages')).toBe('141');
+        });
+
+        it('still removes an attribute the markup set when the server no longer renders it', () => {
+            const tagName = definePaginator([]);
+            setup(`<div id="app"><main partial="pages_main_d1ae3e8a"><${tagName} ${SERVER_PAGINATOR_ATTRIBUTES} show_page_info=""></${tagName}></main></div>`);
+            const paginator = fromEl.querySelector(tagName) as HTMLElement;
+
+            fragmentMorpher(fromEl, serverApp(tagName), {childrenOnly: true, getNodeKey});
+
+            expect(paginator.hasAttribute('show_page_info')).toBe(false);
+        });
+
+        it('still copies a value the server renders for an attribute the component added', () => {
+            const tagName = definePaginator(['show_page_info']);
+            setup(`<div id="app"><main partial="pages_main_d1ae3e8a"><${tagName} ${SERVER_PAGINATOR_ATTRIBUTES} show_page_info=""></${tagName}></main></div>`);
+            const paginator = fromEl.querySelector(tagName) as HTMLElement;
+
+            fragmentMorpher(fromEl, serverApp(tagName, ' show_page_info="false"'), {childrenOnly: true, getNodeKey});
+
+            expect(paginator.getAttribute('show_page_info')).toBe('false');
         });
     });
 

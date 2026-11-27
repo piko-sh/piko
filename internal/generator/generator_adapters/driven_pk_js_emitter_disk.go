@@ -27,6 +27,7 @@ import (
 	"sync"
 
 	"piko.sh/piko/internal/generator/generator_domain"
+	"piko.sh/piko/internal/generator/generator_dto"
 	"piko.sh/safedisk"
 )
 
@@ -123,12 +124,13 @@ func NewDiskPKJSEmitter(outputDir string, minify bool, opts ...DiskPKJSEmitterOp
 //
 // Takes source (string) which is the TypeScript/JavaScript source code to transpile.
 // Takes pagePath (string) which identifies the page this script belongs to.
+// Takes target (generator_dto.ClientScriptTarget) which says what the script belongs to.
 // Takes moduleName (string) which identifies the module used to resolve JavaScript
 // imports.
 //
 // Returns string which is the artefact ID that can be used to look up the file path via
 // GetWrittenFilePath.
-// Returns error when transpilation or file writing fails.
+// Returns error when the target is not valid, or transpilation or file writing fails.
 //
 // Safe for concurrent use. Access to the written files map is serialised by an internal
 // mutex.
@@ -136,6 +138,7 @@ func (e *DiskPKJSEmitter) EmitJS(
 	ctx context.Context,
 	source string,
 	pagePath string,
+	target generator_dto.ClientScriptTarget,
 	moduleName string,
 	_ string,
 	_ bool,
@@ -146,12 +149,10 @@ func (e *DiskPKJSEmitter) EmitJS(
 
 	cleanPath := strings.TrimSuffix(pagePath, ".pk")
 
-	componentName := strings.TrimPrefix(cleanPath, "partials/")
-	if componentName == cleanPath {
-		componentName = ""
+	transformedSource, err := generator_domain.TransformPKSource(ctx, source, target)
+	if err != nil {
+		return "", fmt.Errorf("preparing PK JS for %s: %w", pagePath, err)
 	}
-
-	transformedSource := generator_domain.TransformPKSource(source, componentName)
 
 	filename := filepath.Base(cleanPath) + ".ts"
 	result, err := e.transpiler.Transpile(ctx, transformedSource, generator_domain.TranspileOptions{

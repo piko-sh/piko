@@ -109,6 +109,7 @@ func packManifest(b *flatbuffers.Builder, manifest *generator_dto.Manifest) flat
 	emailsOffset := packMap(b, manifest.Emails, packEmailEntryMapItem)
 	pdfsOffset := packMap(b, manifest.Pdfs, packPdfEntryMapItem)
 	errorPagesOffset := packMap(b, manifest.ErrorPages, packErrorPageEntryMapItem)
+	partialScriptsOffset := packMap(b, manifest.PartialScripts, packPartialScriptMapItem)
 
 	gen_fb.ManifestFBStart(b)
 	gen_fb.ManifestFBAddPages(b, pagesOffset)
@@ -116,6 +117,7 @@ func packManifest(b *flatbuffers.Builder, manifest *generator_dto.Manifest) flat
 	gen_fb.ManifestFBAddEmails(b, emailsOffset)
 	gen_fb.ManifestFBAddPdfs(b, pdfsOffset)
 	gen_fb.ManifestFBAddErrorPages(b, errorPagesOffset)
+	gen_fb.ManifestFBAddPartialScripts(b, partialScriptsOffset)
 	return gen_fb.ManifestFBEnd(b)
 }
 
@@ -149,6 +151,22 @@ func packPartialEntryMapItem(b *flatbuffers.Builder, key string, value generator
 	gen_fb.PartialEntryMapItemFBAddKey(b, keyOffset)
 	gen_fb.PartialEntryMapItemFBAddValue(b, valueOffset)
 	return gen_fb.PartialEntryMapItemFBEnd(b)
+}
+
+// packPartialScriptMapItem writes the partial name of one partial script to a FlatBuffer.
+//
+// Takes b (*flatbuffers.Builder) which builds the binary output.
+// Takes jsArtefactID (string) which is the JS artefact ID of the partial's script.
+// Takes partialName (string) which is the name of the partial.
+//
+// Returns flatbuffers.UOffsetT which is the offset of the written item.
+func packPartialScriptMapItem(b *flatbuffers.Builder, jsArtefactID string, partialName string) flatbuffers.UOffsetT {
+	jsArtefactIDOffset := b.CreateString(jsArtefactID)
+	partialNameOffset := b.CreateString(partialName)
+	gen_fb.PartialScriptMapItemFBStart(b)
+	gen_fb.PartialScriptMapItemFBAddJavascriptArtefactId(b, jsArtefactIDOffset)
+	gen_fb.PartialScriptMapItemFBAddPartialName(b, partialNameOffset)
+	return gen_fb.PartialScriptMapItemFBEnd(b)
 }
 
 // packPageEntry writes a manifest page entry to the FlatBuffer.

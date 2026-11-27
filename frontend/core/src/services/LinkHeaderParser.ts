@@ -16,6 +16,8 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
+import {applyPageCSPToken} from '@/core/cspToken';
+
 /** Parses and applies HTTP Link headers for resource preloading. */
 export interface LinkHeaderParser {
     /**
@@ -75,7 +77,7 @@ export function createLinkHeaderParser(): LinkHeaderParser {
                     linkEl.type = params.type;
                 }
 
-                document.head.appendChild(linkEl);
+                document.head.appendChild(applyPageCSPToken(linkEl));
             });
         }
     };

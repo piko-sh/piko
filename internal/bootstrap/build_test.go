@@ -29,6 +29,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"piko.sh/piko/internal/generator/generator_adapters"
 	"piko.sh/piko/internal/shutdown"
 	"piko.sh/piko/internal/sqldb/sqldb_dto"
 )
@@ -36,6 +37,35 @@ import (
 const (
 	testProjectModule    = "example.com/site"
 	testProjectIndexPage = "<template>\n<h1>Hello</h1>\n</template>\n"
+
+	testProjectLayoutPage = `<template>
+  <piko:partial is="layout"><h1>Hello</h1></piko:partial>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+	"piko.sh/piko"
+	layout "example.com/site/layouts/layout.pk"
+)
+
+func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
+	return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>
+`
+
+	testProjectLayoutWithScript = `<template>
+  <div><button p-on:click="toggleMenu()">Menu</button><piko:slot></piko:slot></div>
+</template>
+
+<script lang="ts">
+export function toggleMenu(): void {
+  document.body.classList.toggle("menu-open");
+}
+</script>
+`
 )
 
 func runGlobalShutdownOnCleanup(t *testing.T) {
@@ -268,4 +298,30 @@ func TestBuildProject_RejectsAnUnsupportedMode(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), `unsupported generate mode "unknown"`)
+}
+
+func TestBuildProject_TreatsALayoutInACustomPartialsDirectoryAsAPartial(t *testing.T) {
+	baseDir := newTestProject(t, map[string]string{
+		"pages/index.pk":    testProjectLayoutPage,
+		"layouts/layout.pk": testProjectLayoutWithScript,
+	})
+	c := newResolvedContainer(t, baseDir, WithPartialsSourceDir("layouts"))
+
+	err := BuildProject(t.Context(), GenerateModeManifest, c)
+
+	require.NoError(t, err)
+	manifestPath := filepath.Join(baseDir, distDirName, manifestFilenameBinary)
+	manifest, err := generator_adapters.NewFlatBufferManifestProvider(manifestPath).Load(t.Context())
+	require.NoError(t, err)
+	page, found := manifest.Pages["pages/index.pk"]
+	require.True(t, found, "manifest has no entry for the index page")
+	assert.Contains(t, page.JSArtefactIDs, "pk-js/layouts/layout.js")
+
+	pageFiles, err := filepath.Glob(filepath.Join(baseDir, distDirName, "pages", "pages_index_*", "generated.go"))
+	require.NoError(t, err)
+	require.Len(t, pageFiles, 1)
+	pageCode, err := os.ReadFile(pageFiles[0])
+	require.NoError(t, err)
+	assert.Regexp(t, `"partial_name",\s*Value:\s*"layout"`, string(pageCode),
+		"the layout is named relative to the custom partials directory")
 }

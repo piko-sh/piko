@@ -27,7 +27,9 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
+	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/tests/fuzz/internal/generate"
 )
 
@@ -41,7 +43,7 @@ func TestGeneratedActionTypeAndRegistrationControls(t *testing.T) {
 			t.Skip(err)
 		}
 	}
-	const source = `import {createActionBuilder, registerActionFunction} from "/_piko/dist/ppframework.core.es.js";
+	source := `import {createActionBuilder, registerActionFunction} from "` + daemon_frontend.CoreModuleImportURL() + `";
 const Echo = (input:{label:string})=>createActionBuilder<{label:string}>("contract.Echo",input);
 registerActionFunction("contract.Echo",Echo); export const action = { contract: { Echo } };`
 	for _, testCase := range []struct {
@@ -84,4 +86,50 @@ func TestArtefactMismatchNamesTheField(t *testing.T) {
 
 	assert.Equal(t, "generated-artifact: edit/manifest missing", err.Error())
 	assert.Equal(t, "edit/manifest", err.FailureSubject())
+}
+
+func TestLocalTransportSourceAcceptsAnyRuntimeVersion(t *testing.T) {
+	for _, testCase := range []struct {
+		name     string
+		source   string
+		want     string
+		mismatch bool
+	}{
+		{
+			name:   "this build's runtime version",
+			source: `import {x} from "` + daemon_frontend.CoreModuleImportURL() + `";`,
+			want:   `import {x} from "./transport.js";`,
+		},
+		{
+			name:   "another build's runtime version",
+			source: `import {x} from "/_piko/dist/0123456789abcdef/ppframework.core.es.js";`,
+			want:   `import {x} from "./transport.js";`,
+		},
+		{
+			name:   "unversioned runtime",
+			source: `import {x} from "/_piko/dist/ppframework.core.es.js";`,
+			want:   `import {x} from "./transport.js";`,
+		},
+		{
+			name:     "no runtime import",
+			source:   `import {x} from "./other.js";`,
+			mismatch: true,
+		},
+		{
+			name:     "two runtime imports",
+			source:   `import {x} from "/_piko/dist/ppframework.core.es.js"; import {y} from "/_piko/dist/0123456789abcdef/ppframework.core.es.js";`,
+			mismatch: true,
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			got, err := localTransportSource([]byte(testCase.source))
+			if testCase.mismatch {
+				_, isMismatch := errors.AsType[artefactMismatch](err)
+				assert.True(t, isMismatch, "%v", err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, testCase.want, got)
+		})
+	}
 }

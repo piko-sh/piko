@@ -20,5 +20,8 @@
   },
   "partials": {},
   "emails": {},
-  "pdfs": {}
+  "pdfs": {},
+  "partialScripts": {
+    "pk-js/partials/card.js": "card"
+  }
 }

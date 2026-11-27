@@ -19,6 +19,7 @@
 package daemon_adapters
 
 import (
+	"cmp"
 	"net/http"
 	"regexp"
 	"slices"
@@ -156,12 +157,19 @@ func singleLocaleHead(currentLocale, baseURL string, patterns, params map[string
 }
 
 // localeAlternatesHead builds the SEO head for a multi-locale page: a self-referential
-// hreflang alternate for every locale, a canonical pointing at the default-locale
-// variant, and an x-default. Each href is escaped per segment so it is both
-// injection-safe and byte-identical to the build-time sitemap URL.
+// hreflang alternate for every locale, a canonical pointing at the variant being served,
+// and an x-default pointing at the default-locale variant. Each href is escaped per
+// segment so it is both injection-safe and byte-identical to the build-time sitemap URL.
 //
-// Takes currentLocale (string) which is the active request locale.
-// Takes defaultLocale (string) which selects the canonical variant.
+// The canonical must be self-referential per locale. Pointing a translated page's
+// canonical at the default-locale variant tells search engines the translation is a
+// duplicate, so it is dropped from the index ("Alternate page with proper canonical tag")
+// and the hreflang cluster is contradicted.
+//
+// Takes currentLocale (string) which is the active request locale and selects the
+// canonical variant.
+// Takes defaultLocale (string) which selects the x-default variant, and the canonical
+// when the current locale has no variant.
 // Takes baseURL (string) which is the absolute site origin.
 // Takes orderedLocales ([]string) which orders the alternates; empty sorts the pattern
 // keys.
@@ -181,6 +189,7 @@ func localeAlternatesHead(currentLocale, defaultLocale, baseURL string, orderedL
 
 	head := &templater_domain.LocaleSEOHead{Language: currentLocale, CanonicalURL: "", AlternateLinks: nil}
 	alternates := make([]map[string]string, 0, len(patterns)+1)
+	currentURL, defaultURL := "", ""
 	for _, locale := range ordered {
 		pattern, ok := patterns[locale]
 		if !ok {
@@ -188,15 +197,19 @@ func localeAlternatesHead(currentLocale, defaultLocale, baseURL string, orderedL
 		}
 		fullURL := baseURL + seo_dto.EscapePathSegments(substituteRouteParams(pattern, params))
 		alternates = append(alternates, map[string]string{"hreflang": locale, "href": fullURL})
+		if locale == currentLocale {
+			currentURL = fullURL
+		}
 		if locale == defaultLocale {
-			head.CanonicalURL = fullURL
+			defaultURL = fullURL
 		}
 	}
-	if head.CanonicalURL == "" && len(alternates) > 0 {
-		head.CanonicalURL = alternates[0]["href"]
+	if defaultURL == "" && len(alternates) > 0 {
+		defaultURL = alternates[0]["href"]
 	}
-	if head.CanonicalURL != "" {
-		alternates = append(alternates, map[string]string{"hreflang": "x-default", "href": head.CanonicalURL})
+	head.CanonicalURL = cmp.Or(currentURL, defaultURL)
+	if defaultURL != "" {
+		alternates = append(alternates, map[string]string{"hreflang": "x-default", "href": defaultURL})
 	}
 	head.AlternateLinks = alternates
 	return head

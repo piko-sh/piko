@@ -1,3 +1,23 @@
+<!--
+Copyright 2026 PolitePixels Limited
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+This project stands against fascism, authoritarianism, and all forms of
+oppression. We built this to empower people, not to enable those who would
+strip others of their rights and dignity.
+-->
+
 # PK File Format
 
 Use this guide when creating or modifying `.pk` files - pages, partials, or email templates.
@@ -36,6 +56,8 @@ h1 { color: blue; }
 }
 </i18n>
 ```
+
+A page's client script runs again on each visit, including returns through SPA navigation. Set it up in `pk.onConnected` and tear it down in `pk.onCleanup`, not in `DOMContentLoaded`, which may never fire. See `references/pk-javascript-interactive.md`.
 
 ## Script section
 
@@ -159,10 +181,10 @@ func CachePolicy() piko.CachePolicy {
 |-------|------|---------|
 | `Enabled` | `bool` | Master switch - if `false`, response is never cached |
 | `Static` | `bool` | Enable full-page HTML caching. Only for pages that don't vary per user |
-| `MaxAgeSeconds` | `int` | Cache TTL in seconds. Also sets `Cache-Control: public, max-age=N` on cache hits |
+| `MaxAgeSeconds` | `int` | Cache TTL in seconds. For static pages, also the CDN lifetime (`Cache-Control: public, max-age=0, s-maxage=N, must-revalidate`). Browsers always revalidate, so purge the CDN on deploy |
 | `Key` | `string` | Optional fixed key combined with URL for cache key. Use for A/B variants or partitioning (not per-user) |
 | `MustRevalidate` | `bool` | Currently unused (no header is added) |
-| `NoStore` | `bool` | Bypasses all server-side caching. Does not send `Cache-Control: no-store` |
+| `NoStore` | `bool` | Bypasses all server-side caching and sends `Cache-Control: no-store` |
 | `OnRender` | `bool` | Currently unused |
 
 **How it works**:
@@ -170,6 +192,8 @@ func CachePolicy() piko.CachePolicy {
 - **Cache hit**: Serves pre-rendered, pre-compressed HTML directly. Response includes `X-Cache-Status: HIT`
 - **Cache miss**: Renders the page, caches it, generates Brotli/Gzip variants in the background. Response includes `X-Cache-Status: MISS`
 - **ETag validation**: Clients can send `If-None-Match` to get `304 Not Modified` responses
+- **Default policy**: Pages without a static cache policy (and their fragments, partials, error pages and redirects) get `Cache-Control: private, no-cache`, and actions get `no-store`. A `Cache-Control` set by the app or a page middleware always wins
+- **Strict CSP**: Under `WithStrictCSP`, or any CSP with a per-request token, the static cache is off and `Static: true` pages render per request
 - **Singleflight**: Multiple concurrent requests for the same uncached page only render once - others wait for the result
 - **Cache keys**: Generated from URL + locale + custom `Key` field
 

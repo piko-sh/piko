@@ -224,6 +224,13 @@ func ExampleContracts(repo fs.FS) ([]ExampleContract, error) {
 		}
 		name := directory.Name()
 		base := path.Join("examples/scenarios", name)
+		authored, err := hasAuthoredFiles(repo, base)
+		if err != nil {
+			return nil, err
+		}
+		if !authored {
+			continue
+		}
 		var row ExampleContract
 		row.Name = name
 		row.ScheduledLocal = slices.Contains(publiccontracts.LocalExamples, name)

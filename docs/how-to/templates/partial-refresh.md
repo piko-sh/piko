@@ -12,6 +12,8 @@ nav:
 
 `piko.partials.reload('name')` refreshes a partial via DOM morphing. Most reloads need no configuration - the default `merge` mode does the right thing for the common case. Reach for the controls below when JS-mutated root attributes, parent CSS scope chains, or runtime initialisation flags need explicit handling. For the directive surface see [directives](../../reference/directives.md).
 
+Pass the partial's `partial_name`, which is its path inside the partials folder without `.pk`, such as `cart` or `admin/table`. Do not pass its import alias. A literal name that matches no partial gets the build warning [`T157`](../../reference/diagnostics.md#t157).
+
 <p align="center">
   <img src="../../diagrams/partial-refresh-levels.svg"
        alt="Four columns, one per reload mode. Merge (default) overwrites server-emitted root attributes and preserves live-only ones, then morphs children. Replace clears live-only root attributes too. Children-only leaves root attributes alone and only morphs children. Attrs-only refreshes root attributes and leaves children alone."

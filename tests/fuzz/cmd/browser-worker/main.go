@@ -92,6 +92,10 @@ const (
 	// probeArgumentCount is the argument count of a probe without saved actions.
 	probeArgumentCount = 3
 
+	// jsonInputIndex is the position of the JSON input argument, which holds the DOM plan or
+	// form recipe of a mode, or the saved actions of a probe.
+	jsonInputIndex = 3
+
 	// settleScript waits two animation frames so queued rendering can run.
 	settleScript = "new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve(true))))"
 
@@ -191,7 +195,7 @@ func (recipe probeRecipe) budget(actions int) time.Duration {
 		budget += eventsBudget()
 	}
 	if recipe.lifecycle != nil {
-		budget += lifecycleBudget()
+		budget += lifecycleBudget(*recipe.lifecycle)
 	}
 	if recipe.dom != nil {
 		budget += domBudget(*recipe.dom)
@@ -554,9 +558,9 @@ func execute(ctx context.Context, arguments []string) int {
 		mode := [modeArgumentCount]string(arguments)
 		switch mode[1] {
 		case "--firefox-dom":
-			return report(firefoxDOM(ctx, mode[0], mode[2], mode[3]), 1)
+			return report(firefoxDOM(ctx, mode[0], mode[2], mode[jsonInputIndex]), 1)
 		case "--form-workflow":
-			err := formProbe(ctx, mode[0], mode[2], mode[3])
+			err := formProbe(ctx, mode[0], mode[2], mode[jsonInputIndex])
 			return report(err, exitCode(err))
 		}
 	}
@@ -567,7 +571,7 @@ func execute(ctx context.Context, arguments []string) int {
 	var actions []casefile.ClientAction
 	if len(arguments) == modeArgumentCount {
 		var err error
-		if actions, err = parseActions(arguments[3]); err != nil {
+		if actions, err = parseActions(arguments[jsonInputIndex]); err != nil {
 			return report(err, usageExitCode)
 		}
 	}

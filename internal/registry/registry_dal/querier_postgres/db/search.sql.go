@@ -67,7 +67,7 @@ func (queries *Queries) FindArtefactIDsByTag(ctx context.Context, params FindArt
 
 const findartefactidsbytagvalues = `SELECT DISTINCT artefact_id
 FROM registry_variant_tag
-WHERE tag_key = $1 AND tag_value IN ($2);`
+WHERE tag_key = $1 AND tag_value = ANY($2);`
 
 type FindArtefactIDsByTagValuesParams struct {
 	TagKey    string
@@ -78,16 +78,7 @@ type FindArtefactIDsByTagValuesRow struct {
 }
 
 func (queries *Queries) FindArtefactIDsByTagValues(ctx context.Context, params FindArtefactIDsByTagValuesParams) ([]FindArtefactIDsByTagValuesRow, error) {
-	if err := pikoCheckBinds(1 + len(params.TagValues)); err != nil {
-		return nil, err
-	}
-	query := pikoSplice(findartefactidsbytagvalues, pikoList(pikoListMark{Empty: `= ANY('{}')`, Operator: 87, Start: 90, End: 94}, 2, len(params.TagValues)))
-	args := make([]any, 0, 1+len(params.TagValues))
-	args = append(args, params.TagKey)
-	for _, v := range params.TagValues {
-		args = append(args, v)
-	}
-	rows, err := queries.reader.QueryContext(ctx, query, args...)
+	rows, err := queries.reader.QueryContext(ctx, findartefactidsbytagvalues, params.TagKey, pikoArrayLiteral(params.TagValues))
 	if err != nil {
 		return nil, err
 	}

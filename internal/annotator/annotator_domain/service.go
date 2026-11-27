@@ -597,11 +597,27 @@ func (s *AnnotatorService) runPhase2Annotation(
 		return finalResult, s.logStore, NewSemanticError(finalResult.AllDiagnostics)
 	}
 
-	runAssetAggregation(ctx, finalResult)
-
-	s.runSrcsetAnnotation(ctx, finalResult)
+	s.runProjectWideStages(ctx, finalResult, allComponentsToAnnotate)
 
 	return handlePhase2Completion(ctx, finalResult, s.logStore, options)
+}
+
+// runProjectWideStages runs the stages that need every component's annotation result.
+// These are the unresolved reference checks, asset aggregation and srcset annotation.
+//
+// Takes finalResult (*annotator_dto.ProjectAnnotationResult) which holds the component
+// results and receives the diagnostics and assets found.
+// Takes annotatedComponents (map[string]*annotator_dto.VirtualComponent) which are the
+// components annotated in this run.
+func (s *AnnotatorService) runProjectWideStages(
+	ctx context.Context,
+	finalResult *annotator_dto.ProjectAnnotationResult,
+	annotatedComponents map[string]*annotator_dto.VirtualComponent,
+) {
+	finalResult.AllDiagnostics = append(finalResult.AllDiagnostics, checkUnresolvedReferences(
+		ctx, finalResult.VirtualModule, annotatedComponents, finalResult.ComponentResults, s.pathsConfig.PartialsSourceDir)...)
+	runAssetAggregation(ctx, finalResult)
+	s.runSrcsetAnnotation(ctx, finalResult)
 }
 
 // handlePhase1Error creates an introspection failure result containing the diagnostics

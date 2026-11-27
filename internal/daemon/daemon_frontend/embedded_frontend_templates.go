@@ -55,6 +55,13 @@ type EmbeddedAsset struct {
 
 	// Content holds the raw bytes of the embedded asset.
 	Content []byte
+
+	// Embedded is true when the asset is one of the framework bundles built into the binary,
+	// whose bytes the runtime version fingerprints.
+	//
+	// Only these may be served under a versioned URL. Custom modules registered at startup
+	// change with each app release, so they are false.
+	Embedded bool
 }
 
 // InitAssetStore sets up the in-memory asset cache by walking the embedded filesystem and
@@ -99,6 +106,12 @@ func InitAssetStore(ctx context.Context) error {
 	assetStore = store
 
 	populateSRIHashes(ctx, store)
+
+	if versionErr := runtimeVersionError(); versionErr != nil {
+		l.Warn("Cannot compute the framework runtime version, so pages will use unversioned bundle URLs",
+			logger_domain.Error(versionErr),
+		)
+	}
 
 	assetCacheSize.Add(ctx, int64(len(assetStore)))
 	l.Internal("Embedded asset cache initialised successfully",
@@ -215,6 +228,7 @@ func RegisterCustomModule(ctx context.Context, name string, content []byte, etag
 		ETag:     etag,
 		MimeType: mimeType,
 		Encoding: "",
+		Embedded: false,
 	}
 
 	SetSRIHash(assetPath, ComputeSRIHash(content))
@@ -246,7 +260,7 @@ func loadEmbeddedAsset(ctx context.Context, assetPath string) (*EmbeddedAsset, e
 		return nil, readErr
 	}
 
-	etag := loadAssetETag(ctx, assetPath)
+	etag := loadAssetETag(ctx, EmbeddedFrontendTemplates, assetPath, contentBytes)
 	uncompressedPath := strings.TrimSuffix(strings.TrimSuffix(assetPath, ".br"), ".gz")
 	mimeType := getMimeType(filepath.Ext(uncompressedPath))
 	encoding := getEncodingFromPath(assetPath)
@@ -256,28 +270,42 @@ func loadEmbeddedAsset(ctx context.Context, assetPath string) (*EmbeddedAsset, e
 		ETag:     etag,
 		MimeType: mimeType,
 		Encoding: encoding,
+		Embedded: true,
 	}, nil
 }
 
-// loadAssetETag reads the ETag for an asset from its matching .etag file. Falls back to a
-// generated ETag if the .etag file is missing.
+// loadAssetETag reads the ETag for an asset from its matching .etag file.
 //
-// Takes assetPath (string) which is the path to the embedded asset.
+// When the file is missing or empty, the ETag is derived from the asset's bytes instead.
+// Browsers revalidate these assets on every use, so the tag must change whenever the
+// bytes do. A tag built from the file name would answer 304 to a copy from an earlier
+// release.
 //
-// Returns string which is the ETag value from the file or a generated one.
-func loadAssetETag(ctx context.Context, assetPath string) string {
-	ctx, l := logger_domain.From(ctx, log)
+// Takes assetFS (fs.ReadFileFS) which holds the asset and its sidecar files.
+// Takes assetPath (string) which is the path to the asset.
+// Takes content ([]byte) which is the asset's bytes, used when no sidecar can be read.
+//
+// Returns string which is the ETag from the sidecar or one derived from the content.
+func loadAssetETag(ctx context.Context, assetFS fs.ReadFileFS, assetPath string, content []byte) string {
+	_, l := logger_domain.From(ctx, log)
 
-	etagPath := assetPath + ".etag"
-	etagBytes, etagErr := EmbeddedFrontendTemplates.ReadFile(etagPath)
-	if etagErr == nil {
-		return string(etagBytes)
+	etagBytes, err := assetFS.ReadFile(assetPath + ".etag")
+	if err != nil {
+		l.Warn("Missing .etag file for embedded asset, deriving it from the content",
+			logger_domain.String(logger_domain.FieldStrPath, assetPath),
+			logger_domain.Error(err),
+		)
+		return computeETag(content)
 	}
 
-	l.Warn("Missing .etag file for embedded asset",
-		logger_domain.String(logger_domain.FieldStrPath, assetPath),
-	)
-	return fmt.Sprintf("%q", "fallback-for-"+filepath.Base(assetPath))
+	etag := strings.TrimSpace(string(etagBytes))
+	if etag == "" {
+		l.Warn("Empty .etag file for embedded asset, deriving it from the content",
+			logger_domain.String(logger_domain.FieldStrPath, assetPath),
+		)
+		return computeETag(content)
+	}
+	return etag
 }
 
 // loadAssetSRI reads the SRI hash for an asset from its matching .sri sidecar file. Falls

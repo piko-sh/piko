@@ -29,6 +29,10 @@ import (
 )
 
 const (
+	// expressionRemainderDivisor is the divisor of the modelled template remainder
+	// expression.
+	expressionRemainderDivisor = 3
+
 	// bulletinDirectory is the bulletin partials' source directory.
 	bulletinDirectory = "partials/bulletin/"
 
@@ -154,7 +158,7 @@ func Render(r *piko.RequestData,_ piko.NoProps)(Response,piko.Metadata,error){
 		{id: "coerce", expression: `row.Number ~= "0" ? 'same' : 'different'`},
 		{id: "loose-not", expression: `row.Number !~= "0" ? 'different' : 'same'`},
 		{id: "truth", expression: `~row.Text ? 'yes' : 'no'`},
-		{id: "remainder", expression: `row.Number % 3`},
+		{id: "remainder", expression: "row.Number % " + strconv.Itoa(expressionRemainderDivisor)},
 		{id: "template", expression: "`edition ${row.ID}: ${row.Number}`"},
 		{id: "rune", expression: `row.Point == r'界' ? 'match' : 'miss'`},
 		{id: "clock", expression: `(row.Number == 0 ? t'23:59:58' : t'23:59:59') < t'23:59:59' ? 'before' : 'after'`},
@@ -180,7 +184,7 @@ func Render(r *piko.RequestData,_ piko.NoProps)(Response,piko.Metadata,error){
 				coercion, truth = "different", "yes"
 				point, clock, instant = "miss", "after", "different"
 			}
-			values := []string{coercion, coercion, truth, strconv.Itoa(number % 3), "edition " + id + ": " + strconv.Itoa(number), point, clock, instant}
+			values := []string{coercion, coercion, truth, strconv.Itoa(number % expressionRemainderDivisor), "edition " + id + ": " + strconv.Itoa(number), point, clock, instant}
 			for position, field := range fields {
 				probe.Output = append(probe.Output, valuedOutput(field.id, values[position], id))
 			}

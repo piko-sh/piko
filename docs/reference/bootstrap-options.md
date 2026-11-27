@@ -225,6 +225,9 @@ Values below one keep the default input-size or nesting limit. These options bel
 | `WithComponents(defs...)` | Register external `.pkc` components. |
 | `WithDevWidget()` | Show the dev-mode overlay. |
 | `WithDevHotreload()` | Enable hot reload in dev mode. |
+| `WithoutViewTransitions()` | Swap the page at once on client-side navigation, with no View Transition. |
+
+By default, client-side navigation runs each page swap in a [View Transition](https://developer.mozilla.org/docs/Web/API/View_Transition_API) where the browser supports one. The `::view-transition` pseudo-elements style it. A click during a transition reaches the element under the pointer on the new page. See [About routing](../explanation/about-routing.md) for how this works.
 
 ## Performance and caching
 

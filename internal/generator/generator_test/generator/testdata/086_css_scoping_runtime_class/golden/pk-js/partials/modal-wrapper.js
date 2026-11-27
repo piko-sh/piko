@@ -3,7 +3,7 @@ const __instances__ = /* @__PURE__ */ new WeakMap();
 function __getScope__(e) {
   const t = e?.currentTarget ?? e?.target;
   if (!(t instanceof Element)) return document.body;
-  return t.closest("[partial_name]") ?? t.closest("[data-pageid]") ?? document.body;
+  return t.closest("[partial_name='modal-wrapper']") ?? t.closest("[partial_name]") ?? t.closest("[data-pageid]") ?? document.body;
 }
 async function __getInstance__(e) {
   const s = __getScope__(e);

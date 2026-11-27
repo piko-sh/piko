@@ -18,6 +18,8 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createRefs, refs } from '@/pk/refs';
+import {registerDiagnosticEmitter} from '@/services/DiagnosticReporter';
+import {_endPageVisit} from '@/pk/lifecycle';
 
 describe('refs (PK Scoped Refs)', () => {
     let testContainer: HTMLDivElement;
@@ -55,6 +57,29 @@ describe('refs (PK Scoped Refs)', () => {
             );
 
             warnSpy.mockRestore();
+        });
+
+        it('sends one diagnostic event for a missing ref however often it is read', () => {
+            vi.spyOn(console, 'warn').mockImplementation(() => {});
+            const emitter = vi.fn();
+            registerDiagnosticEmitter(emitter);
+            emitter.mockClear();
+            _endPageVisit();
+            const partialRoot = document.createElement('div');
+            partialRoot.setAttribute('partial', 'cart-partial');
+            testContainer.appendChild(partialRoot);
+            const scopedRefs = createRefs(partialRoot);
+
+            expect(scopedRefs.missingRef).toBeNull();
+            expect(scopedRefs.missingRef).toBeNull();
+
+            expect(emitter).toHaveBeenCalledTimes(1);
+            expect(emitter.mock.calls[0][0]).toMatchObject({
+                kind: 'ref-not-found',
+                name: 'missingRef',
+                context: 'cart-partial',
+                source: 'pk.refs'
+            });
         });
 
         it('should scope queries to provided element', () => {

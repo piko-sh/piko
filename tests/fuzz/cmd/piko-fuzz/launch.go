@@ -46,6 +46,10 @@ const (
 	// gibibyte is one GiB in bytes.
 	gibibyte = 1 << 30
 
+	// binaryUnitShift is the number of bits each binary size unit adds, as 1 KiB is 2^10
+	// bytes.
+	binaryUnitShift = 10
+
 	// minimumHostReserve is the smallest default host memory reserve in bytes.
 	minimumHostReserve = 4 * gibibyte
 
@@ -116,8 +120,7 @@ type launchPlan struct {
 // Takes out (io.Writer) which receives the plan.
 // Takes arguments ([]string) which holds the command and its arguments.
 //
-// Returns error which reports invalid options, failed resource planning or
-// failed output.
+// Returns error which reports invalid options, failed resource planning or failed output.
 func plan(ctx context.Context, out io.Writer, arguments []string) error {
 	if len(arguments) == 0 {
 		return errors.New("_plan needs a command")
@@ -155,8 +158,8 @@ func plan(ctx context.Context, out io.Writer, arguments []string) error {
 // Takes options (*flags) which holds the parsed command options.
 //
 // Returns launchPlan which holds the resolved budget.
-// Returns error which reports invalid sizes, paths containing newlines or
-// unreadable host limits.
+// Returns error which reports invalid sizes, paths containing newlines or unreadable host
+// limits.
 func planLaunch(command, repo string, options *flags) (launchPlan, error) {
 	if strings.ContainsRune(repo, '\n') || strings.ContainsRune(options.state, '\n') {
 		return launchPlan{}, errLaunchPathNewline
@@ -266,7 +269,7 @@ func parseByteSize(text string) (uint64, error) {
 		return 0, fmt.Errorf("invalid byte size %q", text)
 	}
 	unit := strings.ToUpper(cmp.Or(match[2], "B"))[:1]
-	multiplier := new(big.Int).Lsh(big.NewInt(1), uint(10*strings.Index("BKMGT", unit)))
+	multiplier := new(big.Int).Lsh(big.NewInt(1), uint(binaryUnitShift*strings.Index("BKMGT", unit)))
 	bytes := new(big.Int).Quo(new(big.Int).Mul(value.Num(), multiplier), value.Denom())
 	if bytes.Sign() <= 0 || !bytes.IsInt64() {
 		return 0, fmt.Errorf("byte size %q is out of range", text)

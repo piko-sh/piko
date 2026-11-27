@@ -529,7 +529,7 @@ func (p *prettyPrinter) formatElementWithChildren(node *ast_domain.TemplateNode)
 	if preservesContent(node) {
 		p.formattingModeStack = append(p.formattingModeStack, p.formattingInline)
 		p.parentBlockFormattedStack = append(p.parentBlockFormattedStack, false)
-		p.write(">")
+		p.write(tagEnd)
 		return p.writeVerbatimChildren(node, verbatimContext{
 			raw:     isRawTextElement(node.TagName),
 			foreign: p.isForeign(node),
@@ -551,7 +551,7 @@ func (p *prettyPrinter) formatElementWithChildren(node *ast_domain.TemplateNode)
 
 // setupInlineFormatting prepares the printer for inline child formatting.
 func (p *prettyPrinter) setupInlineFormatting() {
-	p.write(">")
+	p.write(tagEnd)
 	p.indentationLevel++
 	p.parentBlockFormattedStack = append(p.parentBlockFormattedStack, false)
 }
@@ -1191,7 +1191,7 @@ func collectAttributesSorted(node *ast_domain.TemplateNode, foreign bool) []stri
 // attribute.
 func attributeSortKey(attr string) string {
 	if strings.HasPrefix(attr, "p-on:") || strings.HasPrefix(attr, "p-event:") {
-		name, _, _ := strings.Cut(attr, "=")
+		name, _, _ := strings.Cut(attr, attributeAssign)
 		name, _, _ = strings.Cut(name, ".")
 		return name
 	}
@@ -1224,7 +1224,7 @@ func collectAttributesCore(node *ast_domain.TemplateNode, foreign bool) []string
 
 	for i := range node.DynamicAttributes {
 		attr := &node.DynamicAttributes[i]
-		attrs = append(attrs, ":"+attr.Name+"="+formatRawAttributeValue(attr.RawExpression))
+		attrs = append(attrs, ":"+attr.Name+attributeAssign+formatRawAttributeValue(attr.RawExpression))
 	}
 
 	attrs = append(attrs, formatDirectives(node)...)
@@ -1343,7 +1343,7 @@ func appendBindDirectives(directives []string, node *ast_domain.TemplateNode) []
 
 	for _, key := range bindKeys {
 		bind := node.Binds[key]
-		directives = append(directives, "p-bind:"+key+"="+formatRawAttributeValue(bind.RawExpression))
+		directives = append(directives, "p-bind:"+key+attributeAssign+formatRawAttributeValue(bind.RawExpression))
 	}
 
 	return directives
@@ -1366,7 +1366,7 @@ func appendEventDirectives(directives []string, prefix string, events map[string
 			if len(handler.EventModifiers) != 0 {
 				name += "." + strings.Join(handler.EventModifiers, ".")
 			}
-			directives = append(directives, name+"="+formatRawAttributeValue(handler.RawExpression))
+			directives = append(directives, name+attributeAssign+formatRawAttributeValue(handler.RawExpression))
 		}
 	}
 
@@ -1402,7 +1402,7 @@ func appendOtherDirectives(directives []string, node *ast_domain.TemplateNode) [
 	for _, key := range slices.Sorted(maps.Keys(node.TimelineDirectives)) {
 		attr := "p-timeline:" + key
 		if value := node.TimelineDirectives[key].RawExpression; value != "" {
-			attr += "=" + formatRawAttributeValue(value)
+			attr += attributeAssign + formatRawAttributeValue(value)
 		}
 		directives = append(directives, attr)
 	}
