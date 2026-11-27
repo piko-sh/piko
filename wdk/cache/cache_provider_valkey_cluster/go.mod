@@ -8,7 +8,7 @@ require (
 	github.com/valkey-io/valkey-go v1.0.76
 	go.uber.org/goleak v1.3.0
 	golang.org/x/sync v0.25.0
-	piko.sh/piko v0.0.0
+	piko.sh/piko v0.0.0-alpha.47
 	piko.sh/safeconv v0.1.0
 )
 

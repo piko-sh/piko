@@ -18,13 +18,13 @@ require (
 	golang.org/x/text v0.44.0
 	google.golang.org/grpc v1.84.0
 	piko.sh/json v0.1.1
-	piko.sh/piko v0.0.0
-	piko.sh/piko/wdk/interp/interp_piko_symbols v0.0.0
-	piko.sh/piko/wdk/json/json_provider_sonic v0.0.0
-	piko.sh/piko/wdk/logger/logger_integration_otel_grpc v0.0.0
-	piko.sh/piko/wdk/logger/logger_integration_otel_http v0.0.0
-	piko.sh/piko/wdk/logger/logger_otel_sdk v0.0.0
-	piko.sh/piko/wdk/monitoring/monitoring_api v0.0.0
+	piko.sh/piko v0.0.0-alpha.47
+	piko.sh/piko/wdk/interp/interp_piko_symbols v0.0.0-alpha.47
+	piko.sh/piko/wdk/json/json_provider_sonic v0.0.0-alpha.47
+	piko.sh/piko/wdk/logger/logger_integration_otel_grpc v0.0.0-alpha.47
+	piko.sh/piko/wdk/logger/logger_integration_otel_http v0.0.0-alpha.47
+	piko.sh/piko/wdk/logger/logger_otel_sdk v0.0.0-alpha.47
+	piko.sh/piko/wdk/monitoring/monitoring_api v0.0.0-alpha.47
 	piko.sh/safeconv v0.1.0
 	piko.sh/safedisk v0.3.0
 	pipit.sh/pipit v0.0.0-alpha.10

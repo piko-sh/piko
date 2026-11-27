@@ -8,7 +8,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.47.0
 	go.uber.org/goleak v1.3.0
 	piko.sh/json v0.1.1
-	piko.sh/piko v0.0.0
+	piko.sh/piko v0.0.0-alpha.47
 )
 
 require (

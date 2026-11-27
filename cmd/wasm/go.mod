@@ -5,8 +5,8 @@ go 1.27.0
 require (
 	github.com/stretchr/testify v1.12.1
 	piko.sh/json v0.1.1
-	piko.sh/piko v0.0.0
-	piko.sh/piko/wdk/interp/interp_provider_pipit v0.0.0
+	piko.sh/piko v0.0.0-alpha.47
+	piko.sh/piko/wdk/interp/interp_provider_pipit v0.0.0-alpha.47
 )
 
 require (
@@ -50,7 +50,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	piko.sh/asmgen v0.5.0 // indirect
 	piko.sh/goastutil v0.2.0 // indirect
-	piko.sh/piko/wdk/interp/interp_piko_symbols v0.0.0 // indirect
+	piko.sh/piko/wdk/interp/interp_piko_symbols v0.0.0-alpha.47 // indirect
 	piko.sh/safeconv v0.1.0 // indirect
 	piko.sh/safedisk v0.3.0 // indirect
 	piko.sh/sharded v0.2.0 // indirect
